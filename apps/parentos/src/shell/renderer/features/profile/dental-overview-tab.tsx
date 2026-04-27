@@ -32,12 +32,12 @@ export function DentalOverviewTab({ childId, onOpenOrthodontic }: Props) {
   }, [childId]);
 
   if (loading) {
-    return <div className="p-6 text-[13px]" style={{ color: S.sub }}>加载中...</div>;
+    return <div className="p-6 text-[14px]" style={{ color: S.sub }}>加载中...</div>;
   }
 
   if (errorMsg) {
     return (
-      <div role="alert" className="p-4 rounded-xl text-[12px]"
+      <div role="alert" className="p-4 rounded-xl text-[14px]"
         style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
         加载失败：{errorMsg}
       </div>
@@ -45,7 +45,7 @@ export function DentalOverviewTab({ childId, onOpenOrthodontic }: Props) {
   }
 
   if (!dashboard) {
-    return <div className="p-6 text-[13px]" style={{ color: S.sub }}>暂无数据</div>;
+    return <div className="p-6 text-[14px]" style={{ color: S.sub }}>暂无数据</div>;
   }
 
   const activeCase = dashboard.activeCase;
@@ -67,13 +67,13 @@ export function DentalOverviewTab({ childId, onOpenOrthodontic }: Props) {
                 : '暂无进行中正畸疗程'}
             </div>
             {hasOrthoTreatment && activeCase.providerInstitution && (
-              <div className="mt-1 text-[12px]" style={{ color: S.sub }}>{activeCase.providerInstitution}</div>
+              <div className="mt-1 text-[14px]" style={{ color: S.sub }}>{activeCase.providerInstitution}</div>
             )}
           </div>
           <button
             type="button"
             onClick={onOpenOrthodontic}
-            className="text-[13px] font-semibold text-white hover:opacity-90 transition-opacity"
+            className="text-[14px] font-semibold text-white hover:opacity-90 transition-opacity"
             style={{ background: S.accent, padding: '8px 14px', borderRadius: 10, border: 0, cursor: 'pointer' }}
           >
             {hasOrthoTreatment ? '查看正畸' : '开始正畸'}
@@ -91,7 +91,7 @@ export function DentalOverviewTab({ childId, onOpenOrthodontic }: Props) {
             {dashboard.nextReviewDate ?? '未安排'}
           </div>
           {dashboard.activeAppliances.length > 0 && (
-            <div className="mt-1 text-[11px]" style={{ color: S.sub }}>
+            <div className="mt-1 text-[13px]" style={{ color: S.sub }}>
               活跃装置 {dashboard.activeAppliances.length} 件
             </div>
           )}
@@ -101,13 +101,13 @@ export function DentalOverviewTab({ childId, onOpenOrthodontic }: Props) {
             近 30 天依从率
           </div>
           {compliance.total === 0 ? (
-            <div className="mt-2 text-[13px]" style={{ color: S.sub }}>暂无打卡</div>
+            <div className="mt-2 text-[14px]" style={{ color: S.sub }}>暂无打卡</div>
           ) : (
             <>
               <div className="mt-2 text-[18px] font-semibold" style={{ color: S.text }}>
                 {Math.round((compliance.done / compliance.total) * 100)}%
               </div>
-              <div className="mt-1 text-[11px]" style={{ color: S.sub }}>
+              <div className="mt-1 text-[13px]" style={{ color: S.sub }}>
                 达成 {compliance.done} · 部分 {compliance.partial} · 缺席 {compliance.missed}
               </div>
             </>
@@ -116,7 +116,7 @@ export function DentalOverviewTab({ childId, onOpenOrthodontic }: Props) {
       </div>
 
       {/* Compliance disclaimer per PO-ORTHO-008. */}
-      <div className="px-4 py-3 rounded-xl text-[11px]"
+      <div className="px-4 py-3 rounded-xl text-[13px]"
         style={{ background: 'rgba(148,163,184,0.08)', color: '#64748b', border: '1px dashed rgba(148,163,184,0.3)' }}>
         {compliance.note}
       </div>

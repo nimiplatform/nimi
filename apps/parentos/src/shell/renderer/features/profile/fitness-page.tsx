@@ -207,11 +207,11 @@ export default function FitnessPage() {
   /** Reusable styled input for the form */
   const formInput = (label: string, value: string, onChange: (v: string) => void, opts?: { type?: string; step?: string; min?: string; placeholder?: string; className?: string }) => (
     <label className="flex flex-col gap-1">
-      <span className="text-[11px] font-medium" style={{ color: S.sub }}>{label}</span>
+      <span className="text-[13px] font-medium" style={{ color: S.sub }}>{label}</span>
       <input
         type={opts?.type ?? 'number'} step={opts?.step} min={opts?.min} placeholder={opts?.placeholder ?? '--'}
         value={value} onChange={(e) => onChange(e.target.value)}
-        className={`${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${opts?.className ?? ''}`}
+        className={`${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${opts?.className ?? ''}`}
         style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text, background: '#fafaf8' }}
       />
     </label>
@@ -220,15 +220,15 @@ export default function FitnessPage() {
   /** Section header inside form */
   const sectionHeader = (icon: string, title: string) => (
     <div className="flex items-center gap-2 mb-2.5">
-      <span className="text-[15px]">{icon}</span>
-      <span className="text-[13px] font-semibold" style={{ color: S.text }}>{title}</span>
+      <span className="text-[16px]">{icon}</span>
+      <span className="text-[14px] font-semibold" style={{ color: S.text }}>{title}</span>
     </div>
   );
 
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-6">
-        <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>&larr; 返回档案</Link>
+        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>&larr; 返回档案</Link>
       </div>
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold" style={{ color: S.text }}>体能评估</h1>
@@ -254,8 +254,8 @@ export default function FitnessPage() {
           <div className="flex items-center justify-between px-6 pt-6 pb-3">
             <div className="flex items-center gap-2">
               <span className="text-[20px]">🏃</span>
-              <h2 className="text-[15px] font-bold" style={{ color: S.text }}>添加体能评估</h2>
-              <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: '#f4f4f2', color: S.sub }}>
+              <h2 className="text-[16px] font-bold" style={{ color: S.text }}>添加体能评估</h2>
+              <span className="text-[13px] px-2 py-0.5 rounded-full" style={{ background: '#f4f4f2', color: S.sub }}>
                 {AGE_TIER_LABELS[tier]}
               </span>
             </div>
@@ -264,7 +264,7 @@ export default function FitnessPage() {
 
           <div className="px-6 pb-2 space-y-4 flex-1">
           {tier === 'preschool' && (
-            <div className={`${S.radiusSm} px-4 py-3 text-[12px]`} style={{ background: '#EEF6EE', color: '#3a7a3a' }}>
+            <div className={`${S.radiusSm} px-4 py-3 text-[14px]`} style={{ background: '#EEF6EE', color: '#3a7a3a' }}>
               📋 依据《国民体质测定标准》幼儿部分（3-6岁），共 6 项测试
             </div>
           )}
@@ -272,11 +272,11 @@ export default function FitnessPage() {
           {/* Meta: date + source */}
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-medium" style={{ color: S.sub }}>评估日期</span>
+              <span className="text-[13px] font-medium" style={{ color: S.sub }}>评估日期</span>
               <ProfileDatePicker value={formAssessedAt} onChange={setFormAssessedAt} style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text, background: '#fafaf8' }} />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-medium" style={{ color: S.sub }}>来源</span>
+              <span className="text-[13px] font-medium" style={{ color: S.sub }}>来源</span>
               <AppSelect value={formSource} onChange={setFormSource}
                 options={SOURCE_OPTIONS.map((v) => ({ value: v, label: SOURCE_LABELS[v] ?? v }))} />
             </label>
@@ -328,16 +328,16 @@ export default function FitnessPage() {
 
           {/* Notes */}
           <div>
-            <label className="text-[11px] mb-1 block font-medium" style={{ color: S.sub }}>备注</label>
+            <label className="text-[13px] mb-1 block font-medium" style={{ color: S.sub }}>备注</label>
             <input placeholder="记录一些观察..." value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
               style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text, background: '#fafaf8' }} />
           </div>
           </div>
           <div className="px-6 pt-3 pb-5 mt-1">
             <div className="flex items-center justify-end gap-2">
-              <button onClick={resetForm} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
-              <button onClick={handleSubmit} className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110`} style={{ background: S.accent }}>保存</button>
+              <button onClick={resetForm} className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+              <button onClick={handleSubmit} className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110`} style={{ background: S.accent }}>保存</button>
             </div>
           </div>
         </section>
@@ -348,9 +348,9 @@ export default function FitnessPage() {
       <section>
         {sortedAssessments.length === 0 ? (
           <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-            <span className="text-[28px]">🏃</span>
-            <p className="text-[13px] mt-2 font-medium" style={{ color: S.text }}>还没有体能评估</p>
-            <p className="text-[11px] mt-1" style={{ color: S.sub }}>记录体测成绩，追踪体能发展</p>
+            <span className="text-[24px]">🏃</span>
+            <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>还没有体能评估</p>
+            <p className="text-[13px] mt-1" style={{ color: S.sub }}>记录体测成绩，追踪体能发展</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -377,7 +377,7 @@ export default function FitnessPage() {
               ].filter((m) => m.value != null);
 
               const metricChip = (m: { label: string; value: number | null; unit: string }) => (
-                <span key={m.label} className="inline-flex items-center gap-1 text-[12px] px-2 py-0.5 rounded-full" style={{ background: '#f4f4f2' }}>
+                <span key={m.label} className="inline-flex items-center gap-1 text-[14px] px-2 py-0.5 rounded-full" style={{ background: '#f4f4f2' }}>
                   <span style={{ color: S.sub }}>{m.label}</span>
                   <span className="font-medium" style={{ color: S.text }}>{m.value}{m.unit}</span>
                 </span>
@@ -388,9 +388,9 @@ export default function FitnessPage() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2.5">
                       <span className="text-sm font-semibold" style={{ color: S.text }}>{a.assessedAt.split('T')[0]}</span>
-                      <span className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: '#f4f4f2', color: S.sub }}>{AGE_TIER_LABELS[ageTier(a.ageMonths)]}</span>
+                      <span className="text-[13px] px-1.5 py-0.5 rounded" style={{ background: '#f4f4f2', color: S.sub }}>{AGE_TIER_LABELS[ageTier(a.ageMonths)]}</span>
                       {a.assessmentSource && (
-                        <span className="text-[11px]" style={{ color: S.sub }}>{SOURCE_LABELS[a.assessmentSource] ?? a.assessmentSource}</span>
+                        <span className="text-[13px]" style={{ color: S.sub }}>{SOURCE_LABELS[a.assessmentSource] ?? a.assessmentSource}</span>
                       )}
                     </div>
                     {a.overallGrade && (
@@ -402,32 +402,32 @@ export default function FitnessPage() {
                   <div className="space-y-2">
                     {speedMetrics.length > 0 && (
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[11px] w-8" style={{ color: S.sub }}>速度</span>
+                        <span className="text-[13px] w-8" style={{ color: S.sub }}>速度</span>
                         {speedMetrics.map(metricChip)}
                       </div>
                     )}
                     {strengthMetrics.length > 0 && (
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[11px] w-8" style={{ color: S.sub }}>力量</span>
+                        <span className="text-[13px] w-8" style={{ color: S.sub }}>力量</span>
                         {strengthMetrics.map(metricChip)}
                       </div>
                     )}
                     {cardioMetrics.length > 0 && (
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[11px] w-8" style={{ color: S.sub }}>心肺</span>
+                        <span className="text-[13px] w-8" style={{ color: S.sub }}>心肺</span>
                         {cardioMetrics.map(metricChip)}
                       </div>
                     )}
                     {a.footArchStatus && (
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] w-8" style={{ color: S.sub }}>足弓</span>
-                        <span className="inline-flex items-center text-[12px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#f4f4f2', color: S.text }}>
+                        <span className="text-[13px] w-8" style={{ color: S.sub }}>足弓</span>
+                        <span className="inline-flex items-center text-[14px] px-2 py-0.5 rounded-full font-medium" style={{ background: '#f4f4f2', color: S.text }}>
                           {FOOT_ARCH_LABELS[a.footArchStatus] ?? a.footArchStatus}
                         </span>
                       </div>
                     )}
                   </div>
-                  {a.notes && <p className="text-[12px] mt-3 pt-2" style={{ color: S.sub, borderTop: `1px solid ${S.border}` }}>{a.notes}</p>}
+                  {a.notes && <p className="text-[14px] mt-3 pt-2" style={{ color: S.sub, borderTop: `1px solid ${S.border}` }}>{a.notes}</p>}
                 </div>
               );
             })}

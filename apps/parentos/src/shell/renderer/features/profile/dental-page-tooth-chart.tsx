@@ -41,7 +41,7 @@ export function ToothChart({
 
   const renderRow = (teeth: string[], label: string) => (
     <div className="flex items-center gap-0.5">
-      <span className="mr-1 w-8 text-right text-[9px]" style={{ color: S.sub }}>{label}</span>
+      <span className="mr-1 w-8 text-right text-[12px]" style={{ color: S.sub }}>{label}</span>
       {teeth.map((id) => {
         const colors = toothColor(id);
         return (
@@ -50,7 +50,7 @@ export function ToothChart({
             type="button"
             onClick={() => onToggle(id)}
             title={`${id} ${TOOTH_NAMES[id] ?? ''}`}
-            className="h-7 w-7 rounded-lg text-[10px] font-bold transition-all hover:scale-110"
+            className="h-7 w-7 rounded-lg text-[12px] font-bold transition-all hover:scale-110"
             style={{ background: colors.bg, color: colors.color }}
           >
             {id}
@@ -63,7 +63,7 @@ export function ToothChart({
   return (
     <div className={`${S.radius} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-[12px] font-semibold" style={{ color: S.text }}>
+        <p className="text-[14px] font-semibold" style={{ color: S.text }}>
           {isPrimary ? '乳牙 (20颗)' : '恒牙 (32颗)'} · 点击选择牙位（可多选）
         </p>
         <div className="flex gap-1">
@@ -73,7 +73,7 @@ export function ToothChart({
             { color: '#fecaca', label: '龋齿' },
             { color: '#dbeafe', label: '治疗' },
           ].map((item) => (
-            <span key={item.label} className="flex items-center gap-0.5 text-[9px]" style={{ color: S.sub }}>
+            <span key={item.label} className="flex items-center gap-0.5 text-[12px]" style={{ color: S.sub }}>
               <span className="h-2 w-2 rounded-sm" style={{ background: item.color }} />
               {item.label}
             </span>
@@ -81,24 +81,24 @@ export function ToothChart({
         </div>
       </div>
       <div className="flex flex-col items-center gap-1">
-        <p className="text-[9px]" style={{ color: S.sub }}>上颌</p>
+        <p className="text-[12px]" style={{ color: S.sub }}>上颌</p>
         <div className="flex gap-1">
           {renderRow(upperRight, '右')}
           <span className="w-3" />
           {renderRow(upperLeft, '')}
-          <span className="ml-1 w-8 text-[9px]" style={{ color: S.sub }}>左</span>
+          <span className="ml-1 w-8 text-[12px]" style={{ color: S.sub }}>左</span>
         </div>
         <div className="my-1 h-px w-full" style={{ background: S.border }} />
         <div className="flex gap-1">
           {renderRow(lowerRight, '右')}
           <span className="w-3" />
           {renderRow(lowerLeft, '')}
-          <span className="ml-1 w-8 text-[9px]" style={{ color: S.sub }}>左</span>
+          <span className="ml-1 w-8 text-[12px]" style={{ color: S.sub }}>左</span>
         </div>
-        <p className="text-[9px]" style={{ color: S.sub }}>下颌</p>
+        <p className="text-[12px]" style={{ color: S.sub }}>下颌</p>
       </div>
       {selectedTeeth.length > 0 ? (
-        <p className="mt-2 text-center text-[11px] font-medium" style={{ color: S.accent }}>
+        <p className="mt-2 text-center text-[13px] font-medium" style={{ color: S.accent }}>
           已选 {selectedTeeth.length} 颗: {selectedTeeth.map((id) => `${id}(${TOOTH_NAMES[id] ?? ''})`).join('、')}
         </p>
       ) : null}

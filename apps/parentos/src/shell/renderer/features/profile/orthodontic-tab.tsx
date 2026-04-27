@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAppStore } from '../../app-shell/app-store.js';
 import {
   deleteOrthodonticAppliance,
   deleteOrthodonticCase,
@@ -24,7 +23,6 @@ import {
   ApplianceFormModal,
   CaseFormModal,
   CASE_TYPE_OPTIONS,
-  FieldSelect,
   OrthoClinicalEventModal,
   STAGE_OPTIONS,
 } from './orthodontic-tab-forms.js';
@@ -114,13 +112,13 @@ export function OrthodonticTab({ childId, childBirthDate, ageMonths }: Props) {
   );
 
   if (loading) {
-    return <div className="p-6 text-[13px]" style={{ color: S.sub }}>加载中...</div>;
+    return <div className="p-6 text-[14px]" style={{ color: S.sub }}>加载中...</div>;
   }
 
   return (
     <div className="flex flex-col gap-4">
       {errorMsg && (
-        <div role="alert" className="p-3 rounded-xl text-[12px]"
+        <div role="alert" className="p-3 rounded-xl text-[14px]"
           style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
           {errorMsg}
           <button type="button" onClick={() => setErrorMsg(null)} className="ml-2 underline">
@@ -136,7 +134,7 @@ export function OrthodonticTab({ childId, childBirthDate, ageMonths }: Props) {
           <button
             type="button"
             onClick={() => setShowCaseForm(true)}
-            className="text-[13px] font-semibold text-white hover:opacity-90 transition-opacity"
+            className="text-[14px] font-semibold text-white hover:opacity-90 transition-opacity"
             style={{ background: S.accent, padding: '6px 12px', borderRadius: 8, border: 0, cursor: 'pointer' }}
           >
             新建疗程
@@ -144,7 +142,7 @@ export function OrthodonticTab({ childId, childBirthDate, ageMonths }: Props) {
         </header>
 
         {cases.length === 0 ? (
-          <div className="p-5 rounded-2xl text-center text-[13px]"
+          <div className="p-5 rounded-2xl text-center text-[14px]"
             style={{ background: S.card, boxShadow: S.shadow, color: S.sub }}>
             还没有正畸疗程记录
           </div>
@@ -165,17 +163,17 @@ export function OrthodonticTab({ childId, childBirthDate, ageMonths }: Props) {
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-[14px] font-semibold" style={{ color: S.text }}>
+                    <div className="text-[16px] font-semibold" style={{ color: S.text }}>
                       {caseTypeLabel(c.caseType)} · {stageLabel(c.stage)}
                     </div>
-                    <div className="mt-1 text-[11px]" style={{ color: S.sub }}>
+                    <div className="mt-1 text-[13px]" style={{ color: S.sub }}>
                       开始 {c.startedAt}
                       {c.nextReviewDate ? ` · 下次复诊 ${c.nextReviewDate}` : ''}
                       {c.providerInstitution ? ` · ${c.providerInstitution}` : ''}
                     </div>
                   </div>
                   {c.caseType === 'unknown-legacy' && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full"
+                    <span className="text-[12px] px-2 py-0.5 rounded-full"
                       style={{ background: 'rgba(245,158,11,0.14)', color: '#b45309' }}>
                       历史数据
                     </span>
@@ -205,7 +203,7 @@ export function OrthodonticTab({ childId, childBirthDate, ageMonths }: Props) {
                       });
                   }
                 }}
-                className="text-[12px]"
+                className="text-[14px]"
                 style={{ background: 'transparent', color: '#b91c1c', border: 0, cursor: 'pointer' }}
               >
                 删除疗程
@@ -215,7 +213,7 @@ export function OrthodonticTab({ childId, childBirthDate, ageMonths }: Props) {
                   <button
                     type="button"
                     onClick={() => setShowClinicalEventModal(true)}
-                    className="text-[12px] font-semibold"
+                    className="text-[14px] font-semibold"
                     style={{ background: '#eef2f6', color: S.text, padding: '6px 10px', borderRadius: 8, border: 0, cursor: 'pointer' }}
                     title="记录复诊、调整、异常或结束等临床事件（写入口腔时间线）"
                   >
@@ -224,7 +222,7 @@ export function OrthodonticTab({ childId, childBirthDate, ageMonths }: Props) {
                   <button
                     type="button"
                     onClick={() => setShowApplianceForm(true)}
-                    className="text-[12px] font-semibold"
+                    className="text-[14px] font-semibold"
                     style={{ background: '#eef2f6', color: S.text, padding: '6px 10px', borderRadius: 8, border: 0, cursor: 'pointer' }}
                   >
                     添加装置
@@ -237,8 +235,8 @@ export function OrthodonticTab({ childId, childBirthDate, ageMonths }: Props) {
           {activeCase.caseType === 'unknown-legacy' && (
             <div className="p-4 rounded-2xl mb-3"
               style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)' }}>
-              <div className="text-[13px] font-semibold mb-1" style={{ color: '#b45309' }}>待确认历史疗程</div>
-              <p className="text-[12px] mb-2" style={{ color: S.sub }}>
+              <div className="text-[14px] font-semibold mb-1" style={{ color: '#b45309' }}>待确认历史疗程</div>
+              <p className="text-[14px] mb-2" style={{ color: S.sub }}>
                 该疗程由历史 <code>ortho-start</code> 记录回补生成。在您确认类型之前，新装置、打卡与协议提醒都不会启用（PO-ORTHO-002a）。
               </p>
               <ReclassifyLegacyCase
@@ -253,7 +251,7 @@ export function OrthodonticTab({ childId, childBirthDate, ageMonths }: Props) {
           )}
 
           {appliances.length === 0 ? (
-            <div className="p-4 rounded-xl text-[12px]"
+            <div className="p-4 rounded-xl text-[14px]"
               style={{ background: S.card, boxShadow: S.shadow, color: S.sub }}>
               该疗程还没有装置
             </div>
@@ -507,9 +505,9 @@ function ApplianceCard({
     <div className="p-4 rounded-2xl" style={{ background: S.card, boxShadow: S.shadow }}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[14px] font-semibold" style={{ color: S.text }}>
+          <div className="text-[16px] font-semibold" style={{ color: S.text }}>
             {applianceTypeLabel(appliance.applianceType)}
-            <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full"
+            <span className="ml-2 text-[12px] px-2 py-0.5 rounded-full"
               style={{
                 background: appliance.status === 'active' ? 'rgba(34,197,94,0.14)' : appliance.status === 'paused' ? 'rgba(245,158,11,0.14)' : 'rgba(148,163,184,0.16)',
                 color: appliance.status === 'active' ? '#15803d' : appliance.status === 'paused' ? '#b45309' : '#475569',
@@ -517,7 +515,7 @@ function ApplianceCard({
               {appliance.status === 'active' ? '进行中' : appliance.status === 'paused' ? '已暂停' : '已完成'}
             </span>
           </div>
-          <div className="mt-1 text-[11px]" style={{ color: S.sub }}>
+          <div className="mt-1 text-[13px]" style={{ color: S.sub }}>
             开始 {appliance.startedAt}
             {appliance.prescribedHoursPerDay ? ` · 医嘱 ${appliance.prescribedHoursPerDay} 小时/天` : ''}
             {appliance.nextReviewDate ? ` · 下次复诊 ${appliance.nextReviewDate}` : ''}
@@ -526,25 +524,25 @@ function ApplianceCard({
               : ''}
           </div>
           {appliance.pauseReason && (
-            <div className="mt-1 text-[11px]" style={{ color: '#b45309' }}>
+            <div className="mt-1 text-[13px]" style={{ color: '#b45309' }}>
               暂停原因：{appliance.pauseReason}
             </div>
           )}
         </div>
         <div className="flex flex-col items-end gap-1">
           {appliance.status !== 'completed' && (
-            <button type="button" onClick={togglePause} className="text-[11px]"
+            <button type="button" onClick={togglePause} className="text-[13px]"
               style={{ background: 'transparent', color: S.sub, border: 0, cursor: 'pointer' }}>
               {appliance.status === 'paused' ? '恢复' : '暂停'}
             </button>
           )}
           {appliance.status !== 'completed' && (
-            <button type="button" onClick={completeAppliance} className="text-[11px]"
+            <button type="button" onClick={completeAppliance} className="text-[13px]"
               style={{ background: 'transparent', color: S.sub, border: 0, cursor: 'pointer' }}>
               完成
             </button>
           )}
-          <button type="button" onClick={removeAppliance} className="text-[11px]"
+          <button type="button" onClick={removeAppliance} className="text-[13px]"
             style={{ background: 'transparent', color: '#b91c1c', border: 0, cursor: 'pointer' }}>
             删除
           </button>
@@ -553,7 +551,7 @@ function ApplianceCard({
 
       {canDailyCheckin && !todayCheckin && (
         <div className="mt-3 flex items-center gap-2 pt-3" style={{ borderTop: '1px solid rgba(226,232,240,0.6)' }}>
-          <label className="text-[12px]" style={{ color: S.sub }}>今日佩戴小时数</label>
+          <label className="text-[14px]" style={{ color: S.sub }}>今日佩戴小时数</label>
           <input
             type="number"
             min={0}
@@ -561,11 +559,11 @@ function ApplianceCard({
             step={0.5}
             value={wearHours}
             onChange={(e) => setWearHours(e.target.value)}
-            className="text-[13px] px-2 py-1 rounded-md"
+            className="text-[14px] px-2 py-1 rounded-md"
             style={{ width: 70, border: '1px solid rgba(226,232,240,0.9)' }}
           />
           <button type="button" onClick={() => void handleSubmitDaily()}
-            className="text-[12px] font-semibold text-white"
+            className="text-[14px] font-semibold text-white"
             style={{ background: S.accent, padding: '4px 10px', borderRadius: 6, border: 0, cursor: 'pointer' }}>
             打卡
           </button>
@@ -573,7 +571,7 @@ function ApplianceCard({
       )}
 
       {todayCheckin && (
-        <div className="mt-3 pt-3 text-[12px]" style={{ borderTop: '1px solid rgba(226,232,240,0.6)', color: S.sub }}>
+        <div className="mt-3 pt-3 text-[14px]" style={{ borderTop: '1px solid rgba(226,232,240,0.6)', color: S.sub }}>
           今日已打卡 {todayCheckin.actualWearHours} 小时 · {complianceBucketLabel(todayCheckin.complianceBucket)}
         </div>
       )}
@@ -583,10 +581,10 @@ function ApplianceCard({
           {canAlignerChange && (
             <>
               {latestAlignerIndex !== null && (
-                <span className="text-[11px]" style={{ color: S.sub }}>当前：第 {latestAlignerIndex} 副</span>
+                <span className="text-[13px]" style={{ color: S.sub }}>当前：第 {latestAlignerIndex} 副</span>
               )}
               <button type="button" onClick={() => void handleAlignerChange()}
-                className="text-[12px] font-semibold"
+                className="text-[14px] font-semibold"
                 style={{ background: '#eef2f6', color: S.text, padding: '4px 10px', borderRadius: 6, border: 0, cursor: 'pointer' }}>
                 更换下一副牙套
               </button>
@@ -595,10 +593,10 @@ function ApplianceCard({
           {canExpanderActivation && (
             <>
               {appliance.prescribedActivations !== null && (
-                <span className="text-[11px]" style={{ color: S.sub }}>已激活 {appliance.completedActivations}/{appliance.prescribedActivations}</span>
+                <span className="text-[13px]" style={{ color: S.sub }}>已激活 {appliance.completedActivations}/{appliance.prescribedActivations}</span>
               )}
               <button type="button" onClick={() => void handleExpanderActivation()}
-                className="text-[12px] font-semibold"
+                className="text-[14px] font-semibold"
                 style={{ background: '#eef2f6', color: S.text, padding: '4px 10px', borderRadius: 6, border: 0, cursor: 'pointer' }}>
                 记录一次加力
               </button>
@@ -621,7 +619,7 @@ function ApplianceCard({
               }}
             />
           ))}
-          <span className="text-[10px] ml-2" style={{ color: S.sub }}>近 7 天达成率近似</span>
+          <span className="text-[12px] ml-2" style={{ color: S.sub }}>近 7 天达成率近似</span>
         </div>
       )}
     </div>
@@ -666,14 +664,14 @@ function ReclassifyLegacyCase({
   };
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <label className="text-[12px]" style={{ color: S.sub }}>重新归类为：</label>
+      <label className="text-[14px]" style={{ color: S.sub }}>重新归类为：</label>
       <select value={selected} onChange={(e) => setSelected(e.target.value as WritableOrthodonticCaseType)}
-        className="text-[13px] px-2 py-1 rounded-md"
+        className="text-[14px] px-2 py-1 rounded-md"
         style={{ border: '1px solid rgba(226,232,240,0.9)' }}>
         {CASE_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
       <button type="button" onClick={() => void handleSubmit()}
-        className="text-[12px] font-semibold text-white"
+        className="text-[14px] font-semibold text-white"
         style={{ background: S.accent, padding: '4px 10px', borderRadius: 6, border: 0, cursor: 'pointer' }}>
         确认归类
       </button>
@@ -717,4 +715,3 @@ function nextAlignerIndexForAppliance(checkins: OrthodonticCheckinRow[]): number
   if (indices.length === 0) return 1;
   return Math.max(...indices) + 1;
 }
-

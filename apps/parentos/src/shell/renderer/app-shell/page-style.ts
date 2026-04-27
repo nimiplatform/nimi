@@ -19,7 +19,7 @@ export const S = {
   radiusSm: 'rounded-[16px]',
   container: 'max-w-3xl mx-auto px-6 pb-6',
   topPad: 72,
-  select: 'rounded-[10px] px-3 py-1.5 text-[12px] cursor-pointer appearance-none bg-white/60 hover:bg-white/80 transition-colors',
+  select: 'rounded-[10px] px-3 py-1.5 text-[14px] cursor-pointer appearance-none bg-white/60 hover:bg-white/80 transition-colors',
 } as const;
 
 export const selectStyle = {

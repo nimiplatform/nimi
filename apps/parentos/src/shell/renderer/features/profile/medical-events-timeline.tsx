@@ -38,11 +38,11 @@ export function MedicalEventsTimeline({
   if (filteredEvents.length === 0) {
     return (
       <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-        <span className="text-[28px]">🏥</span>
-        <p className="text-[13px] mt-2 font-medium" style={{ color: S.text }}>
+        <span className="text-[24px]">🏥</span>
+        <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>
           {events.length === 0 ? '还没有就医记录' : '未找到匹配的记录'}
         </p>
-        <p className="text-[11px] mt-1" style={{ color: S.sub }}>
+        <p className="text-[13px] mt-1" style={{ color: S.sub }}>
           {events.length === 0 ? '记录门诊、体检、用药等信息' : '尝试调整筛选条件'}
         </p>
       </div>
@@ -52,7 +52,7 @@ export function MedicalEventsTimeline({
   return (
     <div className="relative">
       {searchQuery ? (
-        <p className="text-[11px] mb-3" style={{ color: S.sub }}>
+        <p className="text-[13px] mb-3" style={{ color: S.sub }}>
           找到 {filteredEvents.length} 条匹配记录
         </p>
       ) : null}
@@ -66,8 +66,8 @@ export function MedicalEventsTimeline({
           </div>
 
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[12px] font-bold" style={{ color: S.text }}>{formatMonthLabel(yearMonth)}</span>
-            <span className="text-[10px]" style={{ color: S.sub }}>{monthEvents.length} 条记录</span>
+            <span className="text-[14px] font-bold" style={{ color: S.text }}>{formatMonthLabel(yearMonth)}</span>
+            <span className="text-[12px]" style={{ color: S.sub }}>{monthEvents.length} 条记录</span>
           </div>
 
           <div className="space-y-1.5">
@@ -80,16 +80,16 @@ export function MedicalEventsTimeline({
               return (
                 <div key={event.eventId}>
                   <div className={`flex items-start gap-2.5 p-2.5 ${S.radiusSm} transition-all duration-150`} style={{ background: isSevere ? '#fef2f2' : S.card, border: `1px solid ${isSevere ? '#fca5a5' : S.border}` }}>
-                    <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-[12px] shrink-0 font-medium" style={{ background: typeColor + '18', color: typeColor }}>
+                    <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-[14px] shrink-0 font-medium" style={{ background: typeColor + '18', color: typeColor }}>
                       {EVENT_TYPE_ICONS[event.eventType] ?? '📋'}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-[12px] font-medium" style={{ color: S.text }}>{event.title}</p>
+                        <p className="text-[14px] font-medium" style={{ color: S.text }}>{event.title}</p>
                         {event.severity ? (
                           <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded-full ${event.severity === 'severe'
+                            className={`text-[12px] px-1.5 py-0.5 rounded-full ${event.severity === 'severe'
                               ? 'bg-red-100 text-red-700'
                               : event.severity === 'moderate'
                                 ? 'bg-amber-100 text-amber-700'
@@ -100,19 +100,19 @@ export function MedicalEventsTimeline({
                           </span>
                         ) : null}
                         {event.result ? (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${event.result === 'pass' ? 'bg-green-100 text-green-700' : event.result === 'fail' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                          <span className={`text-[12px] px-1.5 py-0.5 rounded-full ${event.result === 'pass' ? 'bg-green-100 text-green-700' : event.result === 'fail' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
                             {RESULT_LABELS[event.result] ?? event.result}
                           </span>
                         ) : null}
                       </div>
-                      <p className="text-[10px] truncate" style={{ color: S.sub }}>
+                      <p className="text-[12px] truncate" style={{ color: S.sub }}>
                         {day}日
                         {event.endDate ? ` - ${event.endDate.split('T')[0]}` : ''}
                         {event.hospital ? ` · ${event.hospital}` : ''}
                         {` · ${formatAge(event.ageMonths)}`}
                       </p>
                       {event.medication || event.dosage ? (
-                        <p className="text-[10px] mt-0.5" style={{ color: S.accent }}>
+                        <p className="text-[12px] mt-0.5" style={{ color: S.accent }}>
                           💊 {event.medication}{event.dosage ? ` · ${event.dosage}` : ''}
                         </p>
                       ) : null}
@@ -126,27 +126,27 @@ export function MedicalEventsTimeline({
                                 if (value == null) return null;
                                 const range = labRangeFor(item, value);
                                 return (
-                                  <div key={item.key} className="flex items-center gap-2 text-[10px]">
+                                  <div key={item.key} className="flex items-center gap-2 text-[12px]">
                                     <span className="w-14 shrink-0" style={{ color: S.sub }}>{item.label}</span>
                                     <span className="font-medium" style={{ color: S.text }}>{value} {item.unit}</span>
-                                    <span className="px-1 py-0.5 rounded text-[9px]" style={{ background: `${range.color}20`, color: range.color }}>{range.label}</span>
+                                    <span className="px-1 py-0.5 rounded text-[12px]" style={{ background: `${range.color}20`, color: range.color }}>{range.label}</span>
                                   </div>
                                 );
                               })}
                             </div>
                           );
                         }
-                        return <p className="text-[10px] mt-0.5 truncate" style={{ color: S.sub }}>{event.notes}</p>;
+                        return <p className="text-[12px] mt-0.5 truncate" style={{ color: S.sub }}>{event.notes}</p>;
                       })() : null}
                     </div>
 
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: typeColor + '18', color: typeColor }}>
+                      <span className="text-[12px] px-1.5 py-0.5 rounded-full" style={{ background: typeColor + '18', color: typeColor }}>
                         {EVENT_TYPE_LABELS[event.eventType] ?? event.eventType}
                       </span>
                       <div className="flex gap-1">
-                        <button onClick={() => onEdit(event)} className="text-[10px] px-1.5 py-0.5 rounded-full transition-colors hover:bg-[#f0f0ec]" style={{ color: S.sub }} title="编辑">✏️</button>
-                        <button onClick={() => onAnalyze(event)} disabled={eventAiLoading === event.eventId} className="text-[10px] px-1.5 py-0.5 rounded-full transition-colors hover:bg-[#f0f0ec] disabled:opacity-40" style={{ color: S.sub }} title="AI 分析">
+                        <button onClick={() => onEdit(event)} className="text-[12px] px-1.5 py-0.5 rounded-full transition-colors hover:bg-[#f0f0ec]" style={{ color: S.sub }} title="编辑">✏️</button>
+                        <button onClick={() => onAnalyze(event)} disabled={eventAiLoading === event.eventId} className="text-[12px] px-1.5 py-0.5 rounded-full transition-colors hover:bg-[#f0f0ec] disabled:opacity-40" style={{ color: S.sub }} title="AI 分析">
                           {eventAiLoading === event.eventId ? '⏳' : '✨'}
                         </button>
                       </div>
@@ -157,14 +157,14 @@ export function MedicalEventsTimeline({
                     <div className={`ml-[38px] mt-1 p-2.5 ${S.radiusSm}`} style={{ background: '#f9faf7', border: `1px solid ${S.border}` }}>
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1">
-                          <span className="text-[10px]">✨</span>
-                          <span className="text-[10px] font-semibold" style={{ color: S.text }}>AI 分析</span>
+                          <span className="text-[12px]">✨</span>
+                          <span className="text-[12px] font-semibold" style={{ color: S.text }}>AI 分析</span>
                         </div>
-                        <button onClick={() => onCloseAI(event.eventId)} className="text-[10px] hover:bg-[#f0f0ec] px-1 rounded" style={{ color: S.sub }}>
+                        <button onClick={() => onCloseAI(event.eventId)} className="text-[12px] hover:bg-[#f0f0ec] px-1 rounded" style={{ color: S.sub }}>
                           收起
                         </button>
                       </div>
-                      <p className="text-[10px] leading-relaxed" style={{ color: S.text }}>
+                      <p className="text-[12px] leading-relaxed" style={{ color: S.text }}>
                         {eventAiResult[event.eventId]}
                       </p>
                     </div>

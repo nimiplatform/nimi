@@ -177,7 +177,7 @@ export default function AllergyPage() {
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-5">
-        <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
+        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
       </div>
 
       {/* Header */}
@@ -185,7 +185,7 @@ export default function AllergyPage() {
         <h1 className="text-xl font-bold" style={{ color: S.text }}>过敏记录</h1>
         {!showForm && (
           <button onClick={() => setShowForm(true)}
-            className={`flex items-center gap-1.5 px-4 py-2 text-[12px] font-medium text-white ${S.radiusSm} hover:opacity-90`}
+            className={`flex items-center gap-1.5 px-4 py-2 text-[14px] font-medium text-white ${S.radiusSm} hover:opacity-90`}
             style={{ background: S.accent }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             记录过敏
@@ -210,7 +210,7 @@ export default function AllergyPage() {
           <div className="flex items-center justify-between px-6 pt-6 pb-3">
             <div className="flex items-center gap-2">
               <span className="text-[20px]">🤧</span>
-              <h2 className="text-[15px] font-bold" style={{ color: S.text }}>添加过敏记录</h2>
+              <h2 className="text-[16px] font-bold" style={{ color: S.text }}>添加过敏记录</h2>
             </div>
             <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
           </div>
@@ -222,9 +222,9 @@ export default function AllergyPage() {
 
               {/* Allergen */}
               <div>
-                <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>过敏原 <span style={{ color: '#dc2626' }}>*</span></p>
+                <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>过敏原 <span style={{ color: '#dc2626' }}>*</span></p>
                 <input value={formAllergen} onChange={(e) => setFormAllergen(e.target.value)} placeholder="输入过敏原名称"
-                  className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+                  className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                   style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
               </div>
 
@@ -232,7 +232,7 @@ export default function AllergyPage() {
               <div className="flex flex-wrap gap-1.5">
                 {COMMON_ALLERGENS.slice(0, 6).map((a) => (
                   <button key={a.label} onClick={() => { setFormAllergen(a.label); setFormCategory(a.category); }}
-                    className={`px-2.5 py-1 text-[11px] rounded-full transition-all`}
+                    className={`px-2.5 py-1 text-[13px] rounded-full transition-all`}
                     style={formAllergen === a.label
                       ? { background: S.accent, color: '#fff' }
                       : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
@@ -240,7 +240,7 @@ export default function AllergyPage() {
                   </button>
                 ))}
                 <button onClick={() => setShowMore(showMore === 'allergens' ? false : 'allergens')}
-                  className="px-2.5 py-1 text-[11px] rounded-full transition-all"
+                  className="px-2.5 py-1 text-[13px] rounded-full transition-all"
                   style={{ border: `1px solid ${S.border}`, color: S.sub, background: showMore === 'allergens' ? '#f0f2ee' : '#fff' }}>
                   + 更多
                 </button>
@@ -249,7 +249,7 @@ export default function AllergyPage() {
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {COMMON_ALLERGENS.slice(6).map((a) => (
                     <button key={a.label} onClick={() => { setFormAllergen(a.label); setFormCategory(a.category); }}
-                      className="px-2.5 py-1 text-[11px] rounded-full transition-all"
+                      className="px-2.5 py-1 text-[13px] rounded-full transition-all"
                       style={formAllergen === a.label
                         ? { background: S.accent, color: '#fff' }
                         : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
@@ -262,7 +262,7 @@ export default function AllergyPage() {
               {/* Date + Severity side-by-side */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>发生日期 <span style={{ color: '#dc2626' }}>*</span></p>
+                  <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>发生日期 <span style={{ color: '#dc2626' }}>*</span></p>
                   <ProfileDatePicker
                     value={formDiagnosedAt}
                     onChange={setFormDiagnosedAt}
@@ -270,11 +270,11 @@ export default function AllergyPage() {
                   />
                 </div>
                 <div>
-                  <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>严重程度 <span style={{ color: '#dc2626' }}>*</span></p>
+                  <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>严重程度 <span style={{ color: '#dc2626' }}>*</span></p>
                   <div className="flex gap-1.5">
                     {(['mild', 'moderate', 'severe'] as const).map((sv) => (
                       <button key={sv} onClick={() => setFormSeverity(formSeverity === sv ? '' : sv)}
-                        className={`flex-1 py-2 text-[11px] font-medium ${S.radiusSm} transition-all`}
+                        className={`flex-1 py-2 text-[13px] font-medium ${S.radiusSm} transition-all`}
                         style={formSeverity === sv
                           ? { background: sevColor(sv), color: '#fff' }
                           : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
@@ -288,13 +288,13 @@ export default function AllergyPage() {
 
             {/* ━━ Section 2: Symptoms + Photo ━━ */}
             <div className="space-y-3 py-4" style={{ borderTop: `1px solid ${S.border}` }}>
-              <p className="text-[11px] font-medium" style={{ color: S.sub }}>症状表现 <span className="font-normal">（可多选）</span></p>
+              <p className="text-[13px] font-medium" style={{ color: S.sub }}>症状表现 <span className="font-normal">（可多选）</span></p>
 
               {/* Top 6 symptoms visible */}
               <div className="flex flex-wrap gap-1.5">
                 {SYMPTOM_TAGS.slice(0, 6).map((t) => (
                   <button key={t.key} onClick={() => toggleSymptom(t.key)}
-                    className={`px-2.5 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
+                    className={`px-2.5 py-1.5 text-[13px] ${S.radiusSm} transition-all`}
                     style={formSymptoms.has(t.key)
                       ? { background: S.accent, color: '#fff' }
                       : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
@@ -302,7 +302,7 @@ export default function AllergyPage() {
                   </button>
                 ))}
                 <button onClick={() => setShowMore(showMore === 'symptoms' ? false : 'symptoms')}
-                  className={`px-2.5 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
+                  className={`px-2.5 py-1.5 text-[13px] ${S.radiusSm} transition-all`}
                   style={{ border: `1px solid ${S.border}`, color: S.sub, background: showMore === 'symptoms' ? '#f0f2ee' : '#fff' }}>
                   + 更多症状
                 </button>
@@ -311,7 +311,7 @@ export default function AllergyPage() {
                 <div className="flex flex-wrap gap-1.5">
                   {SYMPTOM_TAGS.slice(6).map((t) => (
                     <button key={t.key} onClick={() => toggleSymptom(t.key)}
-                      className={`px-2.5 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
+                      className={`px-2.5 py-1.5 text-[13px] ${S.radiusSm} transition-all`}
                       style={formSymptoms.has(t.key)
                         ? { background: S.accent, color: '#fff' }
                         : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
@@ -320,25 +320,25 @@ export default function AllergyPage() {
                   ))}
                   <input value={formCustomSymptom} onChange={(e) => setFormCustomSymptom(e.target.value)}
                     placeholder="自定义症状..."
-                    className={`px-2.5 py-1.5 text-[13px] ${S.radiusSm} outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 w-32`}
+                    className={`px-2.5 py-1.5 text-[14px] ${S.radiusSm} outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 w-32`}
                     style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
                 </div>
               )}
 
               {/* Photo — tight to symptoms */}
               <div>
-                <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>
+                <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>
                   现场照片 <span className="font-normal">（皮疹/红斑等，就医时极有帮助）</span>
                 </p>
                 {formPhotoName ? (
-                  <div className={`flex items-center gap-2 px-4 py-2 w-full ${S.radiusSm} text-[12px] group`}
+                  <div className={`flex items-center gap-2 px-4 py-2 w-full ${S.radiusSm} text-[14px] group`}
                     style={{ background: '#fff', color: S.text, border: `1px solid ${S.accent}` }}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={S.accent} strokeWidth="1.5" strokeLinecap="round">
                       <rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="12" cy="12" r="3" /><path d="M3 8h2l2-3h10l2 3h2" />
                     </svg>
                     <span className="truncate flex-1">{formPhotoName}</span>
                     <button onClick={() => setFormPhotoName('')}
-                      className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-500"
+                      className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[12px] opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-500"
                       style={{ color: S.sub }}>✕</button>
                   </div>
                 ) : (
@@ -367,7 +367,7 @@ export default function AllergyPage() {
                       }}>
                       <rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="12" cy="12" r="3" /><path d="M3 8h2l2-3h10l2 3h2" />
                     </svg>
-                    <span className="text-[11px]" style={{
+                    <span className="text-[13px]" style={{
                       color: photoHover ? '#1e293b' : '#a0a0a0',
                       transition: 'color 0.25s ease',
                     }}>点击拍照或选择照片</span>
@@ -379,7 +379,7 @@ export default function AllergyPage() {
             {/* ━━ Section 3: Medical details (collapsed) ━━ */}
             <div className="py-3" style={{ borderTop: `1px solid ${S.border}` }}>
               <button onClick={() => setShowMore(showMore === 'medical' ? false : 'medical')}
-                className="flex items-center gap-1.5 text-[11px] font-medium w-full" style={{ color: S.sub }}>
+                className="flex items-center gap-1.5 text-[13px] font-medium w-full" style={{ color: S.sub }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
                   className={`transition-transform duration-200 ${showMore === 'medical' ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6" /></svg>
                 {showMore === 'medical' ? '收起医疗与后续信息' : '补充医疗与后续信息'}
@@ -390,11 +390,11 @@ export default function AllergyPage() {
 
                   {/* Treatment tags */}
                   <div>
-                    <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>处理措施 <span className="font-normal">（可多选）</span></p>
+                    <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>处理措施 <span className="font-normal">（可多选）</span></p>
                     <div className="flex flex-wrap gap-1.5">
                       {TREATMENT_TAGS.map((t) => (
                         <button key={t} onClick={() => toggleTreatment(t)}
-                          className={`px-2.5 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
+                          className={`px-2.5 py-1.5 text-[13px] ${S.radiusSm} transition-all`}
                           style={formTreatments.has(t)
                             ? { background: S.accent, color: '#fff' }
                             : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
@@ -403,7 +403,7 @@ export default function AllergyPage() {
                       ))}
                       <input value={formCustomTreatment} onChange={(e) => setFormCustomTreatment(e.target.value)}
                         placeholder="自定义..."
-                        className={`px-2.5 py-1.5 text-[13px] ${S.radiusSm} outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 w-28`}
+                        className={`px-2.5 py-1.5 text-[14px] ${S.radiusSm} outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 w-28`}
                         style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
                     </div>
                   </div>
@@ -411,11 +411,11 @@ export default function AllergyPage() {
                   {/* Category + Confirmed by + Status — unified grid */}
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>过敏类别</p>
+                      <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>过敏类别</p>
                       <div className="flex flex-col gap-1">
                         {Object.entries(CATEGORY_LABELS).map(([k, l]) => (
                           <button key={k} onClick={() => setFormCategory(k)}
-                            className={`px-2.5 py-1 text-[11px] ${S.radiusSm} text-left transition-all`}
+                            className={`px-2.5 py-1 text-[13px] ${S.radiusSm} text-left transition-all`}
                             style={formCategory === k
                               ? { background: S.accent, color: '#fff' }
                               : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
@@ -425,11 +425,11 @@ export default function AllergyPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>确认方式</p>
+                      <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>确认方式</p>
                       <div className="flex flex-col gap-1">
                         {Object.entries(CONFIRMED_LABELS).map(([k, l]) => (
                           <button key={k} onClick={() => setFormConfirmedBy(formConfirmedBy === k ? '' : k)}
-                            className={`px-2.5 py-1 text-[11px] ${S.radiusSm} text-left transition-all`}
+                            className={`px-2.5 py-1 text-[13px] ${S.radiusSm} text-left transition-all`}
                             style={formConfirmedBy === k
                               ? { background: S.accent, color: '#fff' }
                               : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
@@ -439,11 +439,11 @@ export default function AllergyPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>当前状态</p>
+                      <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>当前状态</p>
                       <div className="flex flex-col gap-1">
                         {Object.entries(STATUS_LABELS).map(([k, l]) => (
                           <button key={k} onClick={() => setFormStatus(k)}
-                            className={`px-2.5 py-1 text-[11px] ${S.radiusSm} text-left transition-all`}
+                            className={`px-2.5 py-1 text-[13px] ${S.radiusSm} text-left transition-all`}
                             style={formStatus === k
                               ? { background: S.accent, color: '#fff' }
                               : { border: `1px solid ${S.border}`, color: S.sub, background: '#fff' }}>
@@ -456,9 +456,9 @@ export default function AllergyPage() {
 
                   {/* Notes */}
                   <div>
-                    <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>补充备注</p>
+                    <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>补充备注</p>
                     <textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="其他需要记录的信息..."
-                      className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 resize-none`} rows={2}
+                      className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 resize-none`} rows={2}
                       style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
                   </div>
                 </div>
@@ -469,9 +469,9 @@ export default function AllergyPage() {
           {/* ── Footer ── */}
           <div className="px-6 pt-3 pb-5">
             <div className="flex items-center justify-end gap-2">
-              <button onClick={resetForm} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+              <button onClick={resetForm} className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
               <button onClick={() => void handleSubmit()} disabled={!formAllergen.trim() || !formSeverity}
-                className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} disabled:opacity-40 transition-colors hover:brightness-110`}
+                className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} disabled:opacity-40 transition-colors hover:brightness-110`}
                 style={{ background: S.accent }}>保存</button>
             </div>
           </div>
@@ -482,7 +482,7 @@ export default function AllergyPage() {
       {/* ── Active allergies ─────────────────────────────── */}
       {activeRecords.length > 0 && (
         <div className="mb-5">
-          <h2 className="text-[13px] font-semibold mb-3" style={{ color: S.text }}>
+          <h2 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>
             活跃过敏原（{activeRecords.length}）
           </h2>
           <div className="space-y-2">
@@ -496,7 +496,7 @@ export default function AllergyPage() {
       {/* ── Resolved / other ─────────────────────────────── */}
       {otherRecords.length > 0 && (
         <div className="mb-5">
-          <h2 className="text-[13px] font-semibold mb-3" style={{ color: S.sub }}>已脱敏 / 不确定（{otherRecords.length}）</h2>
+          <h2 className="text-[14px] font-semibold mb-3" style={{ color: S.sub }}>已脱敏 / 不确定（{otherRecords.length}）</h2>
           <div className="space-y-2">
             {otherRecords.map((r) => <AllergyCard key={r.recordId} record={r} />)}
           </div>
@@ -506,9 +506,9 @@ export default function AllergyPage() {
       {/* Empty state */}
       {records.length === 0 && !showForm && (
         <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <span className="text-[28px]">🤧</span>
-          <p className="text-[13px] mt-2 font-medium" style={{ color: S.text }}>还没有过敏记录</p>
-          <p className="text-[11px] mt-1" style={{ color: S.sub }}>记录已知的过敏原，方便就医时快速参考</p>
+          <span className="text-[24px]">🤧</span>
+          <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>还没有过敏记录</p>
+          <p className="text-[13px] mt-1" style={{ color: S.sub }}>记录已知的过敏原，方便就医时快速参考</p>
         </div>
       )}
     </div>
@@ -532,22 +532,22 @@ function AllergyCard({ record: r, onMarkOutgrown }: { record: AllergyRecordRow; 
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[13px] font-semibold" style={{ color: S.text }}>{r.allergen}</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={statusStyle}>{STATUS_LABELS[r.status] ?? r.status}</span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: sevColor + '18', color: sevColor }}>{SEVERITY_LABELS[r.severity] ?? r.severity}</span>
-            <span className="text-[10px]" style={{ color: '#b0b5bc' }}>{CATEGORY_LABELS[r.category] ?? r.category}</span>
-            {hasPhoto && <span className="text-[10px]" title="有照片记录">📷</span>}
+            <span className="text-[14px] font-semibold" style={{ color: S.text }}>{r.allergen}</span>
+            <span className="text-[12px] px-1.5 py-0.5 rounded-full" style={statusStyle}>{STATUS_LABELS[r.status] ?? r.status}</span>
+            <span className="text-[12px] px-1.5 py-0.5 rounded-full" style={{ background: sevColor + '18', color: sevColor }}>{SEVERITY_LABELS[r.severity] ?? r.severity}</span>
+            <span className="text-[12px]" style={{ color: '#b0b5bc' }}>{CATEGORY_LABELS[r.category] ?? r.category}</span>
+            {hasPhoto && <span className="text-[12px]" title="有照片记录">📷</span>}
           </div>
-          {symptoms && <p className="text-[11px] mt-1.5" style={{ color: S.sub }}>症状：{symptoms}</p>}
-          {treatments && <p className="text-[11px] mt-0.5" style={{ color: S.sub }}>处理：{treatments}</p>}
-          <p className="text-[10px] mt-1" style={{ color: '#c0bdb8' }}>
+          {symptoms && <p className="text-[13px] mt-1.5" style={{ color: S.sub }}>症状：{symptoms}</p>}
+          {treatments && <p className="text-[13px] mt-0.5" style={{ color: S.sub }}>处理：{treatments}</p>}
+          <p className="text-[12px] mt-1" style={{ color: '#c0bdb8' }}>
             {r.diagnosedAt && `${r.diagnosedAt.split('T')[0]}`}
             {r.confirmedBy && ` · ${CONFIRMED_LABELS[r.confirmedBy] ?? r.confirmedBy}`}
           </p>
         </div>
         {r.status === 'active' && onMarkOutgrown && (
           <button onClick={onMarkOutgrown}
-            className={`shrink-0 px-3 py-1.5 text-[10px] font-medium ${S.radiusSm} transition-colors hover:bg-green-100`}
+            className={`shrink-0 px-3 py-1.5 text-[12px] font-medium ${S.radiusSm} transition-colors hover:bg-green-100`}
             style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
             标记脱敏
           </button>

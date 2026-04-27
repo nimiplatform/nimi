@@ -50,8 +50,8 @@ export default function NurtureModeSettingsPage() {
     return (
       <div className="h-full overflow-y-auto" style={{ background: 'transparent' }}>
         <div className="max-w-3xl mx-auto px-6 pb-6" style={{ paddingTop: 86 }}>
-          <Link to="/settings" className="text-[12px] hover:underline" style={{ color: S.sub }}>← 返回设置</Link>
-          <p className="mt-6 text-[13px]" style={{ color: S.sub }}>请先选择一个孩子</p>
+          <Link to="/settings" className="text-[14px] hover:underline" style={{ color: S.sub }}>← 返回设置</Link>
+          <p className="mt-6 text-[14px]" style={{ color: S.sub }}>请先选择一个孩子</p>
         </div>
       </div>
     );
@@ -114,7 +114,7 @@ export default function NurtureModeSettingsPage() {
     <div className="h-full overflow-y-auto" style={{ background: 'transparent' }}>
       <div className="max-w-3xl mx-auto px-6 pb-6" style={{ paddingTop: 86 }}>
 
-        <Link to="/settings" className="inline-flex items-center gap-1 text-[12px] mb-5 hover:underline" style={{ color: S.sub }}>
+        <Link to="/settings" className="inline-flex items-center gap-1 text-[14px] mb-5 hover:underline" style={{ color: S.sub }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
           返回设置
         </Link>
@@ -122,14 +122,14 @@ export default function NurtureModeSettingsPage() {
         {/* ── Header ─────────────────────────────────────── */}
         <div className="mb-6">
           <h1 className="text-xl font-bold" style={{ color: S.text }}>{child.displayName} 的养育模式</h1>
-          <p className="text-[12px] mt-0.5" style={{ color: S.sub }}>
+          <p className="text-[14px] mt-0.5" style={{ color: S.sub }}>
             控制提醒频率和内容深度，底线安全规则在任何模式下均不降级
           </p>
         </div>
 
         {/* ── Global mode selector ───────────────────────── */}
         <div className={`${S.radius} p-5 mb-5`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <h2 className="text-[14px] font-bold mb-4" style={{ color: S.text }}>全局模式</h2>
+          <h2 className="text-[16px] font-bold mb-4" style={{ color: S.text }}>全局模式</h2>
           <div className="grid grid-cols-3 gap-3">
             {NURTURE_MODES.map((m) => {
               const active = child.nurtureMode === m.modeId;
@@ -148,12 +148,12 @@ export default function NurtureModeSettingsPage() {
                       {meta.emoji}
                     </div>
                     <div>
-                      <h3 className="text-[13px] font-semibold" style={{ color: active ? meta.color : '#1F2937' }}>{m.displayName}</h3>
-                      <p className="text-[10px]" style={{ color: '#6B7280' }}>{m.subtitle}</p>
+                      <h3 className="text-[14px] font-semibold" style={{ color: active ? meta.color : '#1F2937' }}>{m.displayName}</h3>
+                      <p className="text-[12px]" style={{ color: '#6B7280' }}>{m.subtitle}</p>
                     </div>
                   </div>
                   {/* Description */}
-                  <p className="text-[11px] leading-[1.6] mb-3" style={{ color: '#4B5563' }}>{m.description}</p>
+                  <p className="text-[13px] leading-[1.6] mb-3" style={{ color: '#4B5563' }}>{m.description}</p>
                   {/* Parameters */}
                   <div className="space-y-1.5">
                     {[
@@ -161,7 +161,7 @@ export default function NurtureModeSettingsPage() {
                       `每日最多 ${m.parameters.pushFrequency.maxDailyPush} 条`,
                       `汇总：${DIGEST_LABELS[m.parameters.pushFrequency.digestMode] ?? m.parameters.pushFrequency.digestMode}`,
                     ].map((line) => (
-                      <p key={line} className="text-[10px] leading-[1.6] flex items-center gap-1.5" style={{ color: '#6B7280' }}>
+                      <p key={line} className="text-[12px] leading-[1.6] flex items-center gap-1.5" style={{ color: '#6B7280' }}>
                         <span className="w-1 h-1 rounded-full shrink-0" style={{ background: active ? meta.color : '#d0d5db' }} />
                         {line}
                       </p>
@@ -177,11 +177,11 @@ export default function NurtureModeSettingsPage() {
         <div className={`${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-[14px] font-bold" style={{ color: S.text }}>按领域自定义</h2>
-              <p className="text-[11px] mt-0.5" style={{ color: S.sub }}>可为不同领域设置不同的养育模式</p>
+              <h2 className="text-[16px] font-bold" style={{ color: S.text }}>按领域自定义</h2>
+              <p className="text-[13px] mt-0.5" style={{ color: S.sub }}>可为不同领域设置不同的养育模式</p>
             </div>
             {overrideCount > 0 && (
-              <span className="text-[10px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#f4f7ea', color: S.accent }}>
+              <span className="text-[12px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#f4f7ea', color: S.accent }}>
                 {overrideCount} 项自定义
               </span>
             )}
@@ -197,10 +197,10 @@ export default function NurtureModeSettingsPage() {
                 <div key={group.label}>
                   {/* Group header */}
                   <div className="flex items-center gap-2 mb-2.5">
-                    <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-[14px]" style={{ background: group.color }}>
+                    <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-[16px]" style={{ background: group.color }}>
                       {group.emoji}
                     </div>
-                    <h3 className="text-[12px] font-bold" style={{ color: S.text }}>{group.label}</h3>
+                    <h3 className="text-[14px] font-bold" style={{ color: S.text }}>{group.label}</h3>
                   </div>
                   {/* Domain rows */}
                   <div className="space-y-1.5">
@@ -214,7 +214,7 @@ export default function NurtureModeSettingsPage() {
                             background: override ? overrideMeta?.activeBg ?? '#f4f7ea' : '#fafaf8',
                             border: `1px solid ${override ? (overrideMeta?.border ?? S.accent) + '60' : INNER_BORDER}`,
                           }}>
-                          <span className="text-[12px] font-medium" style={{ color: S.text }}>{DOMAIN_LABELS[domain] ?? domain}</span>
+                          <span className="text-[14px] font-medium" style={{ color: S.text }}>{DOMAIN_LABELS[domain] ?? domain}</span>
                           <AppSelect
                             value={override ?? ''}
                             onChange={(v) => void handleDomainOverride(domain, v ? v as NurtureMode : null)}

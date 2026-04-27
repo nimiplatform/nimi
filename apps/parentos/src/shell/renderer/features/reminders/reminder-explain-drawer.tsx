@@ -201,16 +201,16 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span
-                className="inline-flex items-center rounded-full px-2 py-[2px] text-[10px] font-semibold tracking-[0.04em]"
+                className="inline-flex items-center rounded-full px-2 py-[2px] text-[12px] font-semibold tracking-[0.04em]"
                 style={{ background: kindBadge.bg, color: kindBadge.fg }}
               >
                 {kindBadge.label}
               </span>
-              <span className="text-[10px]" style={{ color: '#94a3b8' }}>
+              <span className="text-[12px]" style={{ color: '#94a3b8' }}>
                 {PROGRESSION_LABEL[progression] ?? progression}
               </span>
               {reminder.kind === 'practice' && reminder.state?.practiceCount ? (
-                <span className="text-[10px]" style={{ color: '#64748b' }}>
+                <span className="text-[12px]" style={{ color: '#64748b' }}>
                   · 实践 {reminder.state.practiceCount} 次
                 </span>
               ) : null}
@@ -218,7 +218,7 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
             <h2 className="mt-1.5 text-[16px] font-semibold leading-snug tracking-tight" style={{ color: '#0f172a' }}>
               {reminder.rule.title}
             </h2>
-            <p className="mt-1 text-[12px] leading-relaxed" style={{ color: '#475569' }}>
+            <p className="mt-1 text-[14px] leading-relaxed" style={{ color: '#475569' }}>
               {reminder.rule.description}
             </p>
           </div>
@@ -243,14 +243,14 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
             <>
               {explain.whyNow && (
                 <Section title="为什么现在">
-                  <p className="text-[13px] leading-relaxed" style={{ color: '#1e293b' }}>{explain.whyNow}</p>
+                  <p className="text-[14px] leading-relaxed" style={{ color: '#1e293b' }}>{explain.whyNow}</p>
                 </Section>
               )}
               {explain.howTo && explain.howTo.length > 0 && (
                 <Section title="怎么做">
                   <ol className="ml-4 list-decimal space-y-1.5">
                     {explain.howTo.map((step, index) => (
-                      <li key={index} className="text-[13px] leading-relaxed" style={{ color: '#1e293b' }}>
+                      <li key={index} className="text-[14px] leading-relaxed" style={{ color: '#1e293b' }}>
                         {step}
                       </li>
                     ))}
@@ -259,14 +259,14 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
               )}
               {explain.doneWhen && (
                 <Section title="做到什么算到位">
-                  <p className="text-[13px] leading-relaxed" style={{ color: '#1e293b' }}>{explain.doneWhen}</p>
+                  <p className="text-[14px] leading-relaxed" style={{ color: '#1e293b' }}>{explain.doneWhen}</p>
                 </Section>
               )}
               {explain.pitfalls && explain.pitfalls.length > 0 && (
                 <Section title="常见陷阱">
                   <ul className="ml-4 list-disc space-y-1">
                     {explain.pitfalls.map((item, index) => (
-                      <li key={index} className="text-[12px] leading-relaxed" style={{ color: '#475569' }}>
+                      <li key={index} className="text-[14px] leading-relaxed" style={{ color: '#475569' }}>
                         {item}
                       </li>
                     ))}
@@ -275,14 +275,14 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
               )}
               {explain.ifNotNow && (
                 <Section title="现在不方便">
-                  <p className="text-[12px] leading-relaxed" style={{ color: '#475569' }}>{explain.ifNotNow}</p>
+                  <p className="text-[14px] leading-relaxed" style={{ color: '#475569' }}>{explain.ifNotNow}</p>
                 </Section>
               )}
               {explain.sources && explain.sources.length > 0 && (
                 <Section title="依据">
                   <ul className="space-y-1">
                     {explain.sources.map((source, index) => (
-                      <li key={index} className="text-[11px]" style={{ color: '#64748b' }}>
+                      <li key={index} className="text-[13px]" style={{ color: '#64748b' }}>
                         {source.url ? (
                           <a
                             href={source.url}
@@ -303,7 +303,7 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
             </>
           ) : (
             // Task rules are allowed to omit explain. Render title + description only.
-            <p className="text-[13px] leading-relaxed" style={{ color: '#475569' }}>
+            <p className="text-[14px] leading-relaxed" style={{ color: '#475569' }}>
               {reminder.rule.description}
             </p>
           )}
@@ -314,7 +314,7 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
           <div className="flex flex-wrap items-center gap-2">
             {primaries.map((primary, index) => {
               const isPrimary = index === 0;
-              const className = `inline-flex h-9 items-center justify-center rounded-full px-4 text-[12px] font-medium transition-colors ${
+              const className = `inline-flex h-9 items-center justify-center rounded-full px-4 text-[14px] font-medium transition-colors ${
                 isPrimary ? 'text-white' : ''
               }`;
               const style = isPrimary
@@ -354,7 +354,7 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
                   onAction(reminder, 'snooze', defaultSnoozeUntil(reminder.kind, getLocalToday()));
                   onClose();
                 }}
-                className="inline-flex h-9 items-center rounded-full px-3 text-[11px] transition-colors hover:bg-[#f1f5f9]"
+                className="inline-flex h-9 items-center rounded-full px-3 text-[13px] transition-colors hover:bg-[#f1f5f9]"
                 style={{ color: '#475569' }}
               >
                 推迟
@@ -366,7 +366,7 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
                     onAction(reminder, 'mark_not_applicable');
                     onClose();
                   }}
-                  className="inline-flex h-9 items-center rounded-full px-3 text-[11px] transition-colors hover:bg-[#f1f5f9]"
+                  className="inline-flex h-9 items-center rounded-full px-3 text-[13px] transition-colors hover:bg-[#f1f5f9]"
                   style={{ color: '#475569' }}
                 >
                   不适用
@@ -383,7 +383,7 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-5">
-      <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#8d93a0' }}>
+      <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#8d93a0' }}>
         {title}
       </h3>
       {children}
@@ -394,10 +394,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function ExplainIncompletePlaceholder({ kind }: { kind: ReminderKind }) {
   return (
     <div className="rounded-xl border border-dashed px-4 py-5" style={{ borderColor: '#fde68a', background: '#fffbeb' }}>
-      <p className="text-[12px] font-medium" style={{ color: '#b45309' }}>
+      <p className="text-[14px] font-medium" style={{ color: '#b45309' }}>
         指南正在完善
       </p>
-      <p className="mt-1 text-[11px] leading-relaxed" style={{ color: '#92400e' }}>
+      <p className="mt-1 text-[13px] leading-relaxed" style={{ color: '#92400e' }}>
         这条 {KIND_BADGE[kind].label} 提醒的结构化指南尚未完整填写。为了不误导家长，抽屉暂时隐藏引导段并禁用主操作。可以到 /reminders 列表查看原始提醒描述，或联系规则作者补齐内容。
       </p>
     </div>

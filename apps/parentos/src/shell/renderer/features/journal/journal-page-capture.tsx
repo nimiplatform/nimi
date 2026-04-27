@@ -103,14 +103,14 @@ export function JournalPageCapture(props: {
               >
                 <div className="flex items-start gap-2.5">
                   <div
-                    className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-[12px]"
+                    className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-[14px]"
                     style={{ background: `${S.accent}20`, color: S.accent }}
                   >
                     草
                   </div>
                   <div>
-                    <p className="text-[12px] font-medium" style={{ color: S.text }}>发现一条未完成的随手记</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed" style={{ color: S.sub }}>
+                    <p className="text-[14px] font-medium" style={{ color: S.text }}>发现一条未完成的随手记</p>
+                    <p className="mt-0.5 text-[13px] leading-relaxed" style={{ color: S.sub }}>
                       内容已帮你暂存在本地
                       {props.restorableDraft.updatedAt ? `，上次保存于 ${formatJournalDraftTime(props.restorableDraft.updatedAt)}` : ''}
                     </p>
@@ -120,7 +120,7 @@ export function JournalPageCapture(props: {
                   <button
                     type="button"
                     onClick={props.onDiscardLocalDraft}
-                    className={`${S.radiusSm} px-3 py-1.5 text-[11px] transition-colors`}
+                    className={`${S.radiusSm} px-3 py-1.5 text-[13px] transition-colors`}
                     style={{ background: '#f5f3ef', color: S.sub }}
                   >
                     放弃草稿
@@ -128,7 +128,7 @@ export function JournalPageCapture(props: {
                   <button
                     type="button"
                     onClick={() => props.onRestoreLocalDraft(props.restorableDraft!)}
-                    className={`${S.radiusSm} px-3 py-1.5 text-[11px] font-medium text-white`}
+                    className={`${S.radiusSm} px-3 py-1.5 text-[13px] font-medium text-white`}
                     style={{ background: S.accent }}
                   >
                     继续编辑
@@ -141,14 +141,14 @@ export function JournalPageCapture(props: {
           {props.editingEntryLabel ? (
             <div className="px-5 pt-4 pb-3" style={{ borderBottom: `1px solid ${S.border}` }}>
               <div className={`${S.radiusSm} flex items-center justify-between gap-3 px-3 py-2`} style={{ background: '#fafaf8', border: `1px solid ${S.border}` }}>
-                <p className="text-[12px]" style={{ color: S.text }}>正在编辑 {props.editingEntryLabel} 的记录</p>
+                <p className="text-[14px]" style={{ color: S.text }}>正在编辑 {props.editingEntryLabel} 的记录</p>
                 <button
                   type="button"
                   onClick={() => {
                     props.onResetComposer();
                     props.onClearReminderSearchParams();
                   }}
-                  className="text-[11px] underline"
+                  className="text-[13px] underline"
                   style={{ color: S.sub }}
                 >
                   取消编辑
@@ -161,16 +161,16 @@ export function JournalPageCapture(props: {
             <>
               {props.guidedContext ? (
                 <div className="mx-5 mt-5 mb-2 rounded-[14px] p-4" style={{ background: '#f6f8f5' }}>
-                  <p className="text-[13px] font-semibold" style={{ color: S.text }}>
+                  <p className="text-[14px] font-semibold" style={{ color: S.text }}>
                     📋 {props.guidedContext.title}
                   </p>
-                  <p className="mt-1 text-[11px] leading-relaxed" style={{ color: S.sub }}>
+                  <p className="mt-1 text-[13px] leading-relaxed" style={{ color: S.sub }}>
                     {props.guidedContext.description}
                   </p>
                   <div className="mt-3 space-y-2">
                     {props.guidedContext.prompts.map((prompt, index) => (
-                      <div key={index} className="flex gap-2 text-[12px] leading-relaxed" style={{ color: S.text }}>
-                        <span className="shrink-0 text-[11px] font-medium" style={{ color: S.accent }}>{index + 1}.</span>
+                      <div key={index} className="flex gap-2 text-[14px] leading-relaxed" style={{ color: S.text }}>
+                        <span className="shrink-0 text-[13px] font-medium" style={{ color: S.accent }}>{index + 1}.</span>
                         <span>{prompt}</span>
                       </div>
                     ))}
@@ -183,7 +183,7 @@ export function JournalPageCapture(props: {
                       <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Z" />
                       <path d="M19 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z" />
                     </svg>
-                    <p className="text-[12px] font-medium leading-relaxed" style={{ color: '#475569' }}>
+                    <p className="text-[14px] font-medium leading-relaxed" style={{ color: '#475569' }}>
                       不用管对错，像讲故事一样，描述一下孩子刚才的行为细节吧
                     </p>
                   </div>
@@ -195,7 +195,7 @@ export function JournalPageCapture(props: {
                 value={props.textContent}
                 onChange={(event) => props.onTextContentChange(event.target.value)}
                 placeholder={props.guidedContext ? '参考上面的引导问题，记录你观察到的情况...' : '他刚刚做了什么？说了什么？如果遇到了困难，他是如何解决的...'}
-                className="w-full resize-none px-5 py-3 text-[13px] leading-relaxed outline-none"
+                className="w-full resize-none px-5 py-3 text-[14px] leading-relaxed outline-none"
                 style={{ background: 'transparent', minHeight: 120, border: 'none' }}
                 rows={5}
               />
@@ -210,7 +210,7 @@ export function JournalPageCapture(props: {
                 <button
                   type="button"
                   onClick={() => props.onCaptureModeChange('voice')}
-                  className={`voice-note-btn ${S.radiusSm} px-3 py-1.5 text-[11px] flex items-center gap-1.5`}
+                  className={`voice-note-btn ${S.radiusSm} px-3 py-1.5 text-[13px] flex items-center gap-1.5`}
                   style={{ background: '#f5f3ef', color: S.sub }}
                 >
                   <span className="voice-note-btn__ripple" aria-hidden="true" />
@@ -278,14 +278,14 @@ export function JournalPageCapture(props: {
                       props.onResetComposer();
                       props.onClearReminderSearchParams();
                     }}
-                    className={`${S.radiusSm} px-3 py-1.5 text-[11px] transition-colors`}
+                    className={`${S.radiusSm} px-3 py-1.5 text-[13px] transition-colors`}
                     style={{ background: '#f5f3ef', color: S.sub }}
                   >
                     取消编辑
                   </button>
                 ) : null}
                 {props.draftStatusLabel ? (
-                  <span className="text-[10px]" style={{ color: props.draftStatusLabel === '未保存' ? '#b45309' : S.sub }}>
+                  <span className="text-[12px]" style={{ color: props.draftStatusLabel === '未保存' ? '#b45309' : S.sub }}>
                     {props.draftStatusLabel}
                   </span>
                 ) : null}
@@ -294,7 +294,7 @@ export function JournalPageCapture(props: {
                   type="button"
                   onClick={props.onRequestSave}
                   disabled={props.saving || !props.canSaveText}
-                  className={`${S.radiusSm} px-5 py-2 text-[12px] font-medium transition-colors`}
+                  className={`${S.radiusSm} px-5 py-2 text-[14px] font-medium transition-colors`}
                   style={props.canSaveText
                     ? { background: S.accent, color: '#fff', boxShadow: '0 2px 8px rgba(78,204,163,0.25)' }
                     : { background: '#ededeb', color: '#a1a1aa', border: '1px solid rgba(0,0,0,0.04)' }}
@@ -319,11 +319,11 @@ export function JournalPageCapture(props: {
                       <path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="22" />
                     </svg>
                   </button>
-                  <p className="text-[12px]" style={{ color: S.sub }}>点击开始语音记录</p>
-                  <button type="button" onClick={() => { props.onCaptureModeChange('text'); props.onClearVoiceDraft(); }} className="text-[11px] underline" style={{ color: S.sub }}>
+                  <p className="text-[14px]" style={{ color: S.sub }}>点击开始语音记录</p>
+                  <button type="button" onClick={() => { props.onCaptureModeChange('text'); props.onClearVoiceDraft(); }} className="text-[13px] underline" style={{ color: S.sub }}>
                     切换文字输入
                   </button>
-                  {!props.recordingSupported ? <p className="text-[10px] text-red-500">当前环境不支持录音</p> : null}
+                  {!props.recordingSupported ? <p className="text-[12px] text-red-500">当前环境不支持录音</p> : null}
                 </div>
               ) : (
                 <VoiceCapture
@@ -357,14 +357,14 @@ export function JournalPageCapture(props: {
                       props.onResetComposer();
                       props.onClearReminderSearchParams();
                     }}
-                    className={`${S.radiusSm} px-3 py-1.5 text-[11px] transition-colors`}
+                    className={`${S.radiusSm} px-3 py-1.5 text-[13px] transition-colors`}
                     style={{ background: '#f5f3ef', color: S.sub }}
                   >
                     取消编辑
                   </button>
                 ) : null}
                 {props.draftStatusLabel ? (
-                  <span className="text-[10px]" style={{ color: props.draftStatusLabel === '未保存' ? '#b45309' : S.sub }}>
+                  <span className="text-[12px]" style={{ color: props.draftStatusLabel === '未保存' ? '#b45309' : S.sub }}>
                     {props.draftStatusLabel}
                   </span>
                 ) : null}
@@ -372,7 +372,7 @@ export function JournalPageCapture(props: {
                   type="button"
                   onClick={props.onRequestSave}
                   disabled={props.saving || !props.canSaveVoice}
-                  className={`${S.radiusSm} px-5 py-2 text-[12px] font-medium text-white disabled:opacity-50`}
+                  className={`${S.radiusSm} px-5 py-2 text-[14px] font-medium text-white disabled:opacity-50`}
                   style={{ background: S.accent }}
                 >
                   {props.saving ? '保存中...' : props.editingEntryId ? '保存修改' : '保存'}
@@ -381,16 +381,16 @@ export function JournalPageCapture(props: {
             </div>
           )}
 
-          {props.submitError ? <p className="text-[11px] px-5 pb-3 text-red-500">{props.submitError}</p> : null}
+          {props.submitError ? <p className="text-[13px] px-5 pb-3 text-red-500">{props.submitError}</p> : null}
         </section>
       </div>
 
       {props.postSaveExperiment ? (
         <section className="mx-5 mb-4 rounded-[14px] p-4" style={{ background: '#f8faf0', border: `1px solid ${S.accent}30` }}>
-          <p className="text-[12px] font-medium mb-2" style={{ color: S.text }}>
+          <p className="text-[14px] font-medium mb-2" style={{ color: S.text }}>
             试试这个小实验
           </p>
-          <p className="text-[12px] leading-relaxed mb-3" style={{ color: S.text }}>
+          <p className="text-[14px] leading-relaxed mb-3" style={{ color: S.text }}>
             {props.postSaveExperiment.title}
           </p>
           <div className="flex items-center gap-2">
@@ -398,7 +398,7 @@ export function JournalPageCapture(props: {
               type="button"
               onClick={props.onAddExperimentTodo}
               disabled={props.addingTodo}
-              className="rounded-full px-3.5 py-1.5 text-[11px] font-medium transition-opacity disabled:opacity-50"
+              className="rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-opacity disabled:opacity-50"
               style={{ background: S.accent, color: '#fff' }}
             >
               {props.addingTodo ? '添加中...' : '添加到待办'}
@@ -406,7 +406,7 @@ export function JournalPageCapture(props: {
             <button
               type="button"
               onClick={props.onDismissExperiment}
-              className="rounded-full px-3 py-1.5 text-[11px] transition-colors hover:bg-black/[0.04]"
+              className="rounded-full px-3 py-1.5 text-[13px] transition-colors hover:bg-black/[0.04]"
               style={{ color: S.sub }}
             >
               跳过

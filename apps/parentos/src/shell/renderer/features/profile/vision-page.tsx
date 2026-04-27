@@ -76,9 +76,9 @@ function RecordCard({ record, index, gender, onEdit, onDelete, meta }: {
     return (
       <div key={row.label} className="grid grid-cols-[1.2fr_1fr_1fr] items-center text-center py-2 px-4 border-t"
         style={{ borderColor: '#f0f0ec', background: i % 2 === 0 ? S.card : '#fafcfb' }}>
-        <span className="text-left text-[11px]" style={{ color: S.sub }}>{row.label}</span>
-        <span className="text-[14px] font-bold" style={{ color: odVal ? S.text : '#d4d1cc' }}>{odVal || '—'}</span>
-        <span className="text-[14px] font-bold" style={{ color: osVal ? S.text : '#d4d1cc' }}>{osVal || '—'}</span>
+        <span className="text-left text-[13px]" style={{ color: S.sub }}>{row.label}</span>
+        <span className="text-[16px] font-bold" style={{ color: odVal ? S.text : '#d4d1cc' }}>{odVal || '—'}</span>
+        <span className="text-[16px] font-bold" style={{ color: osVal ? S.text : '#d4d1cc' }}>{osVal || '—'}</span>
       </div>
     );
   }).filter(Boolean);
@@ -97,15 +97,15 @@ function RecordCard({ record, index, gender, onEdit, onDelete, meta }: {
       <div className="px-5 py-3 flex items-center justify-between"
         style={{ background: 'linear-gradient(135deg, #6a82a8, #BDE0F5)' }}>
         <div className="flex items-center gap-3">
-          <span className="w-7 h-7 rounded-lg flex items-center justify-center text-white/80 text-[13px] font-bold"
+          <span className="w-7 h-7 rounded-lg flex items-center justify-center text-white/80 text-[14px] font-bold"
             style={{ background: 'rgba(255,255,255,0.2)' }}>{index + 1}</span>
-          <span className="text-[14px] font-semibold text-white">{record.date}</span>
-          {meta?.pupil && <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 text-white/80">{meta.pupil}</span>}
+          <span className="text-[16px] font-semibold text-white">{record.date}</span>
+          {meta?.pupil && <span className="text-[12px] px-2 py-0.5 rounded-full bg-white/20 text-white/80">{meta.pupil}</span>}
         </div>
         <div className="flex items-center gap-2">
           <div className="text-right">
-            <span className="text-[11px] text-white/60">{fmtAge(record.ageMonths)}</span>
-            {meta?.hospital && <span className="block text-[10px] text-white/40">{meta.hospital}</span>}
+            <span className="text-[13px] text-white/60">{fmtAge(record.ageMonths)}</span>
+            {meta?.hospital && <span className="block text-[12px] text-white/40">{meta.hospital}</span>}
           </div>
           <button onClick={onEdit} title="编辑此记录"
             className="w-7 h-7 rounded-full flex items-center justify-center transition-colors hover:bg-white/20"
@@ -135,7 +135,7 @@ function RecordCard({ record, index, gender, onEdit, onDelete, meta }: {
         {/* Refraction section */}
         {hasRefraction && (
           <>
-            <div className="grid grid-cols-[1.2fr_1fr_1fr] text-center text-[10px] font-medium py-2 px-4"
+            <div className="grid grid-cols-[1.2fr_1fr_1fr] text-center text-[12px] font-medium py-2 px-4"
               style={{ color: S.sub, background: '#f8faf9' }}>
               <span className="text-left">验光单</span>
               <span>OD 右眼</span>
@@ -148,7 +148,7 @@ function RecordCard({ record, index, gender, onEdit, onDelete, meta }: {
         {/* Axial section */}
         {hasAxial && (
           <>
-            <div className="grid grid-cols-[1.2fr_1fr_1fr] text-center text-[10px] font-medium py-2 px-4 border-t"
+            <div className="grid grid-cols-[1.2fr_1fr_1fr] text-center text-[12px] font-medium py-2 px-4 border-t"
               style={{ color: S.sub, background: '#f8faf9', borderColor: '#f1f5f9' }}>
               <span className="text-left">眼轴单</span>
               <span>OD 右眼</span>
@@ -163,15 +163,15 @@ function RecordCard({ record, index, gender, onEdit, onDelete, meta }: {
                 <div className="grid grid-cols-[1.2fr_1fr_1fr] items-center text-center py-2 px-4 border-t"
                   style={{ borderColor: '#f1f5f9', background: '#f0f5f4' }}>
                   <div className="text-left">
-                    <span className="text-[10px] font-medium" style={{ color: S.sub }}>同龄均值</span>
+                    <span className="text-[12px] font-medium" style={{ color: S.sub }}>同龄均值</span>
                   </div>
                   <div>
-                    <span className="text-[12px] font-medium" style={{ color: S.sub }}>{ref.mean.toFixed(2)}</span>
-                    {kOD != null && <span className="block text-[9px]" style={{ color: '#b0b5bc' }}>K{ref.kMean.toFixed(2)}</span>}
+                    <span className="text-[14px] font-medium" style={{ color: S.sub }}>{ref.mean.toFixed(2)}</span>
+                    {kOD != null && <span className="block text-[12px]" style={{ color: '#b0b5bc' }}>K{ref.kMean.toFixed(2)}</span>}
                   </div>
                   <div>
-                    <span className="text-[12px] font-medium" style={{ color: S.sub }}>{ref.mean.toFixed(2)}</span>
-                    {kOS != null && <span className="block text-[9px]" style={{ color: '#b0b5bc' }}>K{ref.kMean.toFixed(2)}</span>}
+                    <span className="text-[14px] font-medium" style={{ color: S.sub }}>{ref.mean.toFixed(2)}</span>
+                    {kOS != null && <span className="block text-[12px]" style={{ color: '#b0b5bc' }}>K{ref.kMean.toFixed(2)}</span>}
                   </div>
                 </div>
 
@@ -179,18 +179,18 @@ function RecordCard({ record, index, gender, onEdit, onDelete, meta }: {
                 <div className="grid grid-cols-[1.2fr_1fr_1fr] items-center text-center py-2 px-4 border-t"
                   style={{ borderColor: '#f0f0ec', background: '#fafafa' }}>
                   <div className="text-left">
-                    <span className="text-[10px] font-medium" style={{ color: S.sub }}>{Math.round(record.ageMonths / 12)}岁</span>
-                    <span className="ml-1 text-[10px]" style={{ color: '#b0b5bc' }}>临界</span>
+                    <span className="text-[12px] font-medium" style={{ color: S.sub }}>{Math.round(record.ageMonths / 12)}岁</span>
+                    <span className="ml-1 text-[12px]" style={{ color: '#b0b5bc' }}>临界</span>
                   </div>
-                  <span className="text-[12px] font-medium" style={{ color: S.sub }}>{ref.critical.toFixed(2)}</span>
-                  <span className="text-[12px] font-medium" style={{ color: S.sub }}>{ref.critical.toFixed(2)}</span>
+                  <span className="text-[14px] font-medium" style={{ color: S.sub }}>{ref.critical.toFixed(2)}</span>
+                  <span className="text-[14px] font-medium" style={{ color: S.sub }}>{ref.critical.toFixed(2)}</span>
                 </div>
 
                 {/* Axial surplus */}
                 <div className="grid grid-cols-[1.2fr_1fr_1fr] items-center text-center py-2.5 px-4 border-t"
                   style={{ borderColor: '#f1f5f9', background: '#f8faf8' }}>
                   <div className="text-left">
-                    <span className="text-[11px] font-semibold" style={{ color: S.text }}>轴余</span>
+                    <span className="text-[13px] font-semibold" style={{ color: S.text }}>轴余</span>
                   </div>
                   <span className="text-[16px] font-bold" style={{ color: surplusColor(surplusOD) }}>
                     {surplusOD != null ? surplusOD.toFixed(2) : '—'}
@@ -207,14 +207,14 @@ function RecordCard({ record, index, gender, onEdit, onDelete, meta }: {
         {/* Hyperopia reserve */}
         {record.data.has('hyperopia-reserve') && (
           <div className="flex items-center justify-between py-2.5 px-4 border-t" style={{ borderColor: '#f0f0ec' }}>
-            <span className="text-[11px]" style={{ color: S.sub }}>远视储备</span>
-            <span className="text-[14px] font-bold" style={{ color: S.text }}>{fmt('hyperopia-reserve')} D</span>
+            <span className="text-[13px]" style={{ color: S.sub }}>远视储备</span>
+            <span className="text-[16px] font-bold" style={{ color: S.text }}>{fmt('hyperopia-reserve')} D</span>
           </div>
         )}
 
         {/* Notes */}
         {meta?.notes && (
-          <div className="px-4 py-2.5 border-t text-[11px]" style={{ borderColor: '#f0f0ec', color: S.sub }}>
+          <div className="px-4 py-2.5 border-t text-[13px]" style={{ borderColor: '#f0f0ec', color: S.sub }}>
             <span className="font-medium" style={{ color: S.text }}>备注：</span>{meta.notes}
           </div>
         )}
@@ -285,10 +285,10 @@ function ScreeningSection({ childId, birthDate, ageMonths, screeningRecords, onS
     <div className="mb-6">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <h2 className="text-[13px] font-semibold" style={{ color: S.text }}>{sectionTitle}</h2>
+          <h2 className="text-[14px] font-semibold" style={{ color: S.text }}>{sectionTitle}</h2>
           {isArchiveOnly && hasHistoricalRecords && (
             <span
-              className={`px-2 py-0.5 text-[10px] font-medium ${S.radiusSm}`}
+              className={`px-2 py-0.5 text-[12px] font-medium ${S.radiusSm}`}
               style={{ background: '#f0f5f4', color: S.sub }}
             >
               {sorted.length} 条
@@ -299,7 +299,7 @@ function ScreeningSection({ childId, birthDate, ageMonths, screeningRecords, onS
           {isArchiveOnly && hasHistoricalRecords && (
             <button
               onClick={() => setIsExpanded((prev) => !prev)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium ${S.radiusSm} transition-all`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium ${S.radiusSm} transition-all`}
               style={{ background: '#f5f3ef', color: S.sub }}
             >
               {isExpanded ? '收起' : '展开'}
@@ -320,7 +320,7 @@ function ScreeningSection({ childId, birthDate, ageMonths, screeningRecords, onS
           )}
           {!isArchiveOnly && !showForm && (
             <button onClick={() => setShowForm(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
               style={{ background: S.accent }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               添加筛查
@@ -331,7 +331,7 @@ function ScreeningSection({ childId, birthDate, ageMonths, screeningRecords, onS
 
       {isArchiveOnly && isExpanded && (
         <div
-          className={`${S.radiusSm} px-4 py-3 mb-3 text-[11px]`}
+          className={`${S.radiusSm} px-4 py-3 mb-3 text-[13px]`}
           style={{ background: '#f8faf9', color: S.sub, border: `1px solid ${S.border}` }}
         >
           已进入学龄阶段，当前重点请结合下方的检查记录、眼轴和趋势变化继续跟踪。
@@ -345,16 +345,16 @@ function ScreeningSection({ childId, birthDate, ageMonths, screeningRecords, onS
             <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={() => resetForm()}>
             <div className={`w-[560px] max-h-[85vh] overflow-y-auto ${S.radius} p-5 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[14px] font-semibold" style={{ color: S.text }}>添加筛查记录</h3>
+                <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>添加筛查记录</h3>
                 <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
               </div>
 
               {/* Screening type selector */}
-              <p className="text-[11px] mb-2" style={{ color: S.sub }}>筛查项目</p>
+              <p className="text-[13px] mb-2" style={{ color: S.sub }}>筛查项目</p>
               <div className="flex flex-wrap gap-1.5 mb-4">
                 {availableTypes.map((t) => (
                   <button key={t.key} onClick={() => setFormType(t.key)}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-[11px] ${S.radiusSm} transition-all`}
+                    className={`flex items-center gap-1 px-3 py-1.5 text-[13px] ${S.radiusSm} transition-all`}
                     style={formType === t.key
                       ? { background: S.accent, color: '#fff' }
                       : { background: '#f5f3ef', color: S.sub }}>
@@ -364,11 +364,11 @@ function ScreeningSection({ childId, birthDate, ageMonths, screeningRecords, onS
               </div>
 
               {/* Result selector */}
-              <p className="text-[11px] mb-2" style={{ color: S.sub }}>检查结果</p>
+              <p className="text-[13px] mb-2" style={{ color: S.sub }}>检查结果</p>
               <div className="flex gap-1.5 mb-4">
                 {SCREENING_RESULT_OPTIONS.map((r) => (
                   <button key={r.key} onClick={() => setFormResult(r.key)}
-                    className={`px-3 py-1.5 text-[11px] ${S.radiusSm} transition-all font-medium`}
+                    className={`px-3 py-1.5 text-[13px] ${S.radiusSm} transition-all font-medium`}
                     style={formResult === r.key
                       ? { background: r.color, color: '#fff' }
                       : { background: '#f5f3ef', color: S.sub }}>
@@ -380,32 +380,32 @@ function ScreeningSection({ childId, birthDate, ageMonths, screeningRecords, onS
               {/* Date + hospital */}
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
-                  <p className="text-[11px] mb-1" style={{ color: S.sub }}>日期</p>
+                  <p className="text-[13px] mb-1" style={{ color: S.sub }}>日期</p>
                   <ProfileDatePicker value={formDate} onChange={setFormDate} style={{ background: '#f5f3ef', color: S.text }} />
                 </div>
                 <div>
-                  <p className="text-[11px] mb-1" style={{ color: S.sub }}>医院/诊所</p>
+                  <p className="text-[13px] mb-1" style={{ color: S.sub }}>医院/诊所</p>
                   <input type="text" value={formHospital} onChange={(e) => setFormHospital(e.target.value)}
-                    placeholder="选填" className={`w-full px-3 py-2 text-[12px] ${S.radiusSm} border-0 outline-none`}
+                    placeholder="选填" className={`w-full px-3 py-2 text-[14px] ${S.radiusSm} border-0 outline-none`}
                     style={{ background: '#f5f3ef', color: S.text }} />
                 </div>
               </div>
 
               {/* Notes */}
               <div className="mb-4">
-                <p className="text-[11px] mb-1" style={{ color: S.sub }}>备注</p>
+                <p className="text-[13px] mb-1" style={{ color: S.sub }}>备注</p>
                 <input type="text" value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
-                  placeholder="选填" className={`w-full px-3 py-2 text-[12px] ${S.radiusSm} border-0 outline-none`}
+                  placeholder="选填" className={`w-full px-3 py-2 text-[14px] ${S.radiusSm} border-0 outline-none`}
                   style={{ background: '#f5f3ef', color: S.text }} />
               </div>
 
               {/* Submit */}
               <div className="flex gap-2">
                 <button onClick={handleSubmit}
-                  className={`px-5 py-2 text-[12px] font-medium text-white ${S.radiusSm} hover:opacity-90 transition-all`}
+                  className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} hover:opacity-90 transition-all`}
                   style={{ background: S.accent }}>保存</button>
                 <button onClick={resetForm}
-                  className={`px-4 py-2 text-[12px] ${S.radiusSm} transition-all`}
+                  className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-all`}
                   style={{ background: '#f5f3ef', color: S.sub }}>取消</button>
               </div>
             </div>
@@ -428,15 +428,15 @@ function ScreeningSection({ childId, birthDate, ageMonths, screeningRecords, onS
                     <div className="flex items-center gap-2.5">
                       <span className="text-[16px]">{meta?.emoji ?? '🩺'}</span>
                       <div>
-                        <span className="text-[12px] font-medium" style={{ color: S.text }}>{rec.title}</span>
-                        <span className="block text-[10px]" style={{ color: S.sub }}>
+                        <span className="text-[14px] font-medium" style={{ color: S.text }}>{rec.title}</span>
+                        <span className="block text-[12px]" style={{ color: S.sub }}>
                           {rec.eventDate.replace(/-/g, '/')} · {Math.floor(rec.ageMonths / 12)}岁{rec.ageMonths % 12}月
                           {rec.hospital ? ` · ${rec.hospital}` : ''}
                         </span>
-                        {userNotes && <span className="block text-[10px] mt-0.5" style={{ color: S.sub }}>{userNotes}</span>}
+                        {userNotes && <span className="block text-[12px] mt-0.5" style={{ color: S.sub }}>{userNotes}</span>}
                       </div>
                     </div>
-                    <span className={`px-2.5 py-0.5 text-[10px] font-semibold ${S.radiusSm}`}
+                    <span className={`px-2.5 py-0.5 text-[12px] font-semibold ${S.radiusSm}`}
                       style={{ background: `${rl.color}18`, color: rl.color }}>
                       {rl.label}
                     </span>
@@ -446,7 +446,7 @@ function ScreeningSection({ childId, birthDate, ageMonths, screeningRecords, onS
             </div>
           ) : !showForm && (
             <div className={`${S.radiusSm} p-5 text-center`} style={{ background: S.card, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-              <p className="text-[12px]" style={{ color: S.sub }}>暂无筛查记录</p>
+              <p className="text-[14px]" style={{ color: S.sub }}>暂无筛查记录</p>
             </div>
           )}
         </>
@@ -564,7 +564,7 @@ export default function VisionPage() {
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-5">
-        <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
+        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
       </div>
 
       {/* Header */}
@@ -578,33 +578,33 @@ export default function VisionPage() {
                 <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
               </svg>
             </div>
-            <div className="pointer-events-none absolute left-0 top-7 z-50 w-[340px] rounded-xl p-4 text-[11px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
+            <div className="pointer-events-none absolute left-0 top-7 z-50 w-[340px] rounded-xl p-4 text-[13px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
               style={{ background: '#1e293b', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
-              <p className="text-[12px] font-semibold text-white mb-2.5">数据参考文献</p>
+              <p className="text-[14px] font-semibold text-white mb-2.5">数据参考文献</p>
               <ul className="space-y-2.5">
                 <li>
                   <span className="text-[#4ECCA3] font-medium">眼轴 P50/P75 百分位（分性别 · 4-18岁）</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">He X, Sankaridurg P, Naduvilath T, et al. Normative data and percentile curves for axial length and axial length/corneal curvature in Chinese children and adolescents aged 4-18 years.</span>
-                  <span className="block text-[10px] text-[#7a8090]">Br J Ophthalmol 2023;107:167-175</span>
-                  <span className="block text-[9px] text-[#606878]">DOI: 10.1136/bjophthalmol-2021-319431 · 样本: 14,127名 · STAR研究等3项队列</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">He X, Sankaridurg P, Naduvilath T, et al. Normative data and percentile curves for axial length and axial length/corneal curvature in Chinese children and adolescents aged 4-18 years.</span>
+                  <span className="block text-[12px] text-[#7a8090]">Br J Ophthalmol 2023;107:167-175</span>
+                  <span className="block text-[12px] text-[#606878]">DOI: 10.1136/bjophthalmol-2021-319431 · 样本: 14,127名 · STAR研究等3项队列</span>
                 </li>
                 <li>
                   <span className="text-[#4ECCA3] font-medium">远视储备 · 角膜曲率参考区间（6-15岁）</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">中华预防医学会公共卫生眼科分会. 中国学龄儿童眼球远视储备、眼轴长度、角膜曲率参考区间及相关遗传因素专家共识（2022年）.</span>
-                  <span className="block text-[10px] text-[#7a8090]">中华眼科杂志 2022;58(2):96-102</span>
-                  <span className="block text-[9px] text-[#606878]">DOI: 10.3760/cma.j.cn112142-20210603-00267 · 安阳/山东/甘肃调查</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">中华预防医学会公共卫生眼科分会. 中国学龄儿童眼球远视储备、眼轴长度、角膜曲率参考区间及相关遗传因素专家共识（2022年）.</span>
+                  <span className="block text-[12px] text-[#7a8090]">中华眼科杂志 2022;58(2):96-102</span>
+                  <span className="block text-[12px] text-[#606878]">DOI: 10.3760/cma.j.cn112142-20210603-00267 · 安阳/山东/甘肃调查</span>
                 </li>
                 <li>
                   <span className="text-[#4ECCA3] font-medium">眼轴防控应用共识</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">中华医学会眼科学分会眼视光学组. 眼轴长度在近视防控管理中的应用专家共识（2023）.</span>
-                  <span className="block text-[10px] text-[#7a8090]">中华实验眼科杂志 2024;42(1):1-8</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">中华医学会眼科学分会眼视光学组. 眼轴长度在近视防控管理中的应用专家共识（2023）.</span>
+                  <span className="block text-[12px] text-[#7a8090]">中华实验眼科杂志 2024;42(1):1-8</span>
                 </li>
                 <li>
                   <span className="text-[#4ECCA3] font-medium">近视防控技术指南</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">国家卫生健康委员会. 儿童青少年近视防控适宜技术指南（更新版）. 2023</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">国家卫生健康委员会. 儿童青少年近视防控适宜技术指南（更新版）. 2023</span>
                 </li>
               </ul>
-              <p className="text-[9px] mt-2.5 pt-2 border-t border-white/10 text-[#808890]">P50 = 同龄同性别中位数 · P75 = 第75百分位（临界值） · 轴余 = P75 − 当前眼轴 · 覆盖: 4-18岁男/女</p>
+              <p className="text-[12px] mt-2.5 pt-2 border-t border-white/10 text-[#808890]">P50 = 同龄同性别中位数 · P75 = 第75百分位（临界值） · 轴余 = P75 − 当前眼轴 · 覆盖: 4-18岁男/女</p>
             </div>
           </div>
         </div>
@@ -612,7 +612,7 @@ export default function VisionPage() {
         {ageMonths >= 36 && (
           <div className="flex items-center gap-2">
             <button onClick={() => setShowGuide(!showGuide)}
-              className={`flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium ${S.radiusSm} transition-all`}
+              className={`flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium ${S.radiusSm} transition-all`}
               style={showGuide ? { background: S.accent, color: '#fff' } : { background: '#f0f0ec', color: S.sub }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
@@ -620,18 +620,18 @@ export default function VisionPage() {
               录入指引
             </button>
             <button onClick={() => ocrInputRef.current?.click()} disabled={ocrScanning}
-              className={`group relative flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium ${S.radiusSm} transition-all hover:opacity-90 disabled:opacity-50`}
+              className={`group relative flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium ${S.radiusSm} transition-all hover:opacity-90 disabled:opacity-50`}
               style={{ background: '#BDE0F5', color: '#fff' }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h4M7 12h10M7 16h6" />
               </svg>
               {ocrScanning ? '识别中...' : '智能识别'}
-              <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-0.5 text-[9px] font-normal text-white opacity-0 group-hover:opacity-100 z-50"
+              <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-0.5 text-[12px] font-normal text-white opacity-0 group-hover:opacity-100 z-50"
                 style={{ background: '#1e293b' }}>上传验光单/眼轴单自动识别</span>
             </button>
             {!showForm && (
               <button onClick={openManualForm}
-                className={`flex items-center gap-1.5 px-4 py-2 text-[12px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
+                className={`flex items-center gap-1.5 px-4 py-2 text-[14px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
                 style={{ background: S.accent }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
                 录入数据
@@ -657,7 +657,7 @@ export default function VisionPage() {
 
       {ocrError && (
         <div
-          className={`${S.radiusSm} px-4 py-3 mb-5 text-[12px]`}
+          className={`${S.radiusSm} px-4 py-3 mb-5 text-[14px]`}
           style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}
           data-testid="vision-ocr-error"
         >
@@ -702,7 +702,7 @@ export default function VisionPage() {
       {/* ── Exam record cards (quantitative) ─────────────────── */}
       {records.length > 0 ? (
         <div className="mb-6">
-          <h2 className="text-[13px] font-semibold mb-3" style={{ color: S.text }}>检查记录（{records.length} 次）</h2>
+          <h2 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>检查记录（{records.length} 次）</h2>
           {records.map((rec, i) => <RecordCard key={rec.date} record={rec} index={records.length - 1 - i} gender={child.gender}
             onEdit={() => {
               setOCRDraft(null);
@@ -722,8 +722,8 @@ export default function VisionPage() {
               <circle cx="12" cy="12" r="3" /><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
             </svg>
           </div>
-          <p className="text-[13px] font-medium" style={{ color: S.text }}>还没有视力检查记录</p>
-          <p className="text-[11px] mt-1" style={{ color: S.sub }}>点击上方按钮录入第一次检查数据</p>
+          <p className="text-[14px] font-medium" style={{ color: S.text }}>还没有视力检查记录</p>
+          <p className="text-[13px] mt-1" style={{ color: S.sub }}>点击上方按钮录入第一次检查数据</p>
         </div>
       )}
 
@@ -731,15 +731,15 @@ export default function VisionPage() {
       {records.length > 0 && (
         <div className={`${S.radius} p-4 mb-6`} style={{ background: S.card, boxShadow: S.shadow }}>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[13px] font-semibold" style={{ color: S.text }}>趋势曲线</h3>
+            <h3 className="text-[14px] font-semibold" style={{ color: S.text }}>趋势曲线</h3>
             <AppSelect value={chartType} onChange={(v) => setChartType(v as GrowthTypeId)}
               options={CHART_OPTIONS.map((o) => ({ value: o.typeId, label: o.label }))} />
           </div>
           {chartData.length === 0 ? (
             <div className="p-8 text-center">
-              <span className="text-[28px]">👁️</span>
-              <p className="text-[13px] mt-2 font-medium" style={{ color: S.text }}>还没有{typeInfo?.displayName ?? chartType}记录</p>
-              <p className="text-[11px] mt-1" style={{ color: S.sub }}>点击右上角添加第一条记录</p>
+              <span className="text-[24px]">👁️</span>
+              <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>还没有{typeInfo?.displayName ?? chartType}记录</p>
+              <p className="text-[13px] mt-1" style={{ color: S.sub }}>点击右上角添加第一条记录</p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>

@@ -71,7 +71,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
         <div className="flex items-center justify-between px-6 pb-3 pt-6">
           <div className="flex items-center gap-2">
             <span className="text-[20px]">{props.isEditing ? '✏️' : '🦷'}</span>
-            <h2 className="text-[15px] font-bold" style={{ color: S.text }}>
+            <h2 className="text-[16px] font-bold" style={{ color: S.text }}>
               {props.isEditing ? '编辑口腔记录' : '添加口腔记录'}
             </h2>
           </div>
@@ -81,16 +81,16 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
         <div className="flex-1 space-y-4 px-6 pb-2">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="mb-1 text-[11px]" style={{ color: S.sub }}>就诊日期</p>
+              <p className="mb-1 text-[13px]" style={{ color: S.sub }}>就诊日期</p>
               <ProfileDatePicker value={props.formEventDate} onChange={props.setFormEventDate} style={{ background: '#fafaf8', color: S.text }} />
             </div>
             <div>
-              <p className="mb-1 text-[11px]" style={{ color: S.sub }}>医院/诊所</p>
+              <p className="mb-1 text-[13px]" style={{ color: S.sub }}>医院/诊所</p>
               <input
                 value={props.formHospital}
                 onChange={(event) => props.setFormHospital(event.target.value)}
                 placeholder="选填"
-                className={`w-full border-0 px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${S.radiusSm}`}
+                className={`w-full border-0 px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${S.radiusSm}`}
                 style={{ background: '#fafaf8', color: S.text }}
               />
             </div>
@@ -112,7 +112,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
                 onClick={() => props.setActiveEntryIdx(idx)}
               >
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-[11px] font-semibold" style={{ color: isActive ? S.accent : S.text }}>
+                  <p className="text-[13px] font-semibold" style={{ color: isActive ? S.accent : S.text }}>
                     事件 {idx + 1} {eventMeta ? `· ${eventMeta.emoji} ${eventMeta.label}` : ''}
                     {entry.toothIds.length > 0 ? <span className="font-normal" style={{ color: S.sub }}> · {entry.toothIds.length} 颗牙</span> : null}
                   </p>
@@ -123,7 +123,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
                         event.stopPropagation();
                         props.removeEntry(idx);
                       }}
-                      className="rounded-full px-2 py-0.5 text-[10px] transition-colors hover:bg-red-50"
+                      className="rounded-full px-2 py-0.5 text-[12px] transition-colors hover:bg-red-50"
                       style={{ color: '#dc2626' }}
                     >
                       删除
@@ -134,7 +134,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
                 {isActive ? (
                   <div className="mt-2 space-y-3">
                     <div>
-                      <p className="mb-1.5 text-[10px]" style={{ color: S.sub }}>类型</p>
+                      <p className="mb-1.5 text-[12px]" style={{ color: S.sub }}>类型</p>
                       <div className="flex flex-wrap gap-1.5">
                         {props.availableEventTypes.map((item) => (
                           <button
@@ -144,7 +144,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
                               event.stopPropagation();
                               props.updateEntry(idx, { eventType: item.key, toothIds: [], severity: '' });
                             }}
-                            className={`flex items-center gap-1 px-2.5 py-1 text-[10px] transition-all ${S.radiusSm}`}
+                            className={`flex items-center gap-1 px-2.5 py-1 text-[12px] transition-all ${S.radiusSm}`}
                             style={entry.eventType === item.key
                               ? { background: S.accent, color: '#fff' }
                               : { background: '#f0f0ec', color: S.sub }}
@@ -159,7 +159,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
                     {entryNeedsTooth ? (
                       <div>
                         <div className="mb-2 flex items-center gap-3">
-                          <p className="text-[10px]" style={{ color: S.sub }}>牙位</p>
+                          <p className="text-[12px]" style={{ color: S.sub }}>牙位</p>
                           <div className="flex gap-1">
                             {(['primary', ...(props.ageMonths >= 60 ? ['permanent'] : [])] as const).map((toothSet) => (
                               <button
@@ -169,7 +169,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
                                   event.stopPropagation();
                                   props.updateEntry(idx, { toothSet: toothSet as 'primary' | 'permanent', toothIds: [] });
                                 }}
-                                className="rounded-full px-2.5 py-0.5 text-[9px] font-medium transition-all"
+                                className="rounded-full px-2.5 py-0.5 text-[12px] font-medium transition-all"
                                 style={entry.toothSet === toothSet
                                   ? { background: S.accent, color: '#fff' }
                                   : { background: '#f0f0ec', color: S.sub }}
@@ -195,7 +195,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
 
                     {entryNeedsSeverity ? (
                       <div>
-                        <p className="mb-1.5 text-[10px]" style={{ color: S.sub }}>严重程度</p>
+                        <p className="mb-1.5 text-[12px]" style={{ color: S.sub }}>严重程度</p>
                         <div className="flex gap-1.5">
                           {(['mild', 'moderate', 'severe'] as const).map((severity) => (
                             <button
@@ -205,7 +205,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
                                 event.stopPropagation();
                                 props.updateEntry(idx, { severity: entry.severity === severity ? '' : severity });
                               }}
-                              className={`px-2.5 py-1 text-[10px] transition-all ${S.radiusSm}`}
+                              className={`px-2.5 py-1 text-[12px] transition-all ${S.radiusSm}`}
                               style={entry.severity === severity
                                 ? {
                                     background: severity === 'severe' ? '#dc2626' : severity === 'moderate' ? '#d97706' : S.accent,
@@ -231,7 +231,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
             hidden={props.isEditing}
             onMouseEnter={() => props.setPhotoDropHover(true)}
             onMouseLeave={() => props.setPhotoDropHover(false)}
-            className={`flex w-full items-center justify-center gap-2 py-3 text-[11px] font-medium ${S.radiusSm}`}
+            className={`flex w-full items-center justify-center gap-2 py-3 text-[13px] font-medium ${S.radiusSm}`}
             style={{
               border: `2px dashed ${props.photoDropHover ? '#4ECCA3' : '#d0d0cc'}`,
               background: props.photoDropHover ? '#f9fbf4' : '#fafaf8',
@@ -258,7 +258,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
           </button>
 
           <div>
-            <p className="mb-1 text-[11px]" style={{ color: S.sub }}>备注</p>
+            <p className="mb-1 text-[13px]" style={{ color: S.sub }}>备注</p>
             <textarea
               value={props.formNotes}
               onChange={(event) => props.setFormNotes(event.target.value)}
@@ -274,13 +274,13 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
                 el.style.height = 'auto';
                 el.style.height = `${el.scrollHeight}px`;
               }}
-              className={`w-full resize-none border-0 px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${S.radiusSm}`}
+              className={`w-full resize-none border-0 px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${S.radiusSm}`}
               style={{ background: '#fafaf8', color: S.text, overflow: 'hidden' }}
             />
           </div>
 
           <div>
-            <p className="mb-1 text-[11px]" style={{ color: S.sub }}>
+            <p className="mb-1 text-[13px]" style={{ color: S.sub }}>
               照片 {props.formPhotoFiles.length > 0 ? `(${props.formPhotoFiles.length}/${PHOTO_MAX})` : ''}
             </p>
             <div
@@ -308,7 +308,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
                   <button
                     type="button"
                     onClick={() => props.removeExistingPhoto(attachment.attachmentId)}
-                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[12px] text-white opacity-0 transition-opacity group-hover:opacity-100"
                   >
                     ×
                   </button>
@@ -320,7 +320,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
                   <button
                     type="button"
                     onClick={() => props.removePhotoAt(idx)}
-                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[12px] text-white opacity-0 transition-opacity group-hover:opacity-100"
                   >
                     ✕
                   </button>
@@ -355,7 +355,7 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
                     <path d="M12 5v14M5 12h14" />
                   </svg>
                   <span
-                    className="px-1 text-center text-[10px]"
+                    className="px-1 text-center text-[12px]"
                     style={{
                       color: props.photoDragOver || props.photoDropHover ? '#1e293b' : '#a0a0a0',
                       transition: 'color 0.25s ease',
@@ -371,8 +371,8 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
 
         <div className="mt-1 px-6 pb-5 pt-3">
           <div className="flex items-center justify-end gap-2">
-            <button type="button" onClick={props.resetForm} className={`px-4 py-2 text-[13px] transition-colors hover:bg-[#e8e8e4] ${S.radiusSm}`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
-            <button type="button" onClick={() => void props.handleSubmit()} className={`px-5 py-2 text-[13px] font-medium text-white transition-colors hover:brightness-110 ${S.radiusSm}`} style={{ background: S.accent }}>
+            <button type="button" onClick={props.resetForm} className={`px-4 py-2 text-[14px] transition-colors hover:bg-[#e8e8e4] ${S.radiusSm}`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+            <button type="button" onClick={() => void props.handleSubmit()} className={`px-5 py-2 text-[14px] font-medium text-white transition-colors hover:brightness-110 ${S.radiusSm}`} style={{ background: S.accent }}>
               {props.isEditing ? '保存修改' : '保存'}
             </button>
           </div>

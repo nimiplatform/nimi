@@ -134,27 +134,27 @@ function RecordModal({ milestone, record, childId, ageMonths, onSave, onClose }:
         <div className="flex items-center justify-between px-6 pt-6 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-[20px]">{dm?.emoji ?? '🎯'}</span>
-            <h2 className="text-[15px] font-bold" style={{ color: S.text }}>{milestone.title}</h2>
+            <h2 className="text-[16px] font-bold" style={{ color: S.text }}>{milestone.title}</h2>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
         </div>
 
         <div className="px-6 pb-2 space-y-4 flex-1">
-          <p className="text-[12px]" style={{ color: S.sub }}>{milestone.description}</p>
+          <p className="text-[14px]" style={{ color: S.sub }}>{milestone.description}</p>
           <div>
-            <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>达成日期</label>
+            <label className="text-[13px] mb-1 block" style={{ color: S.sub }}>达成日期</label>
             <ProfileDatePicker value={date} onChange={setDate} style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
           </div>
           <div>
-            <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>记录小故事 ✏️</label>
+            <label className="text-[13px] mb-1 block" style={{ color: S.sub }}>记录小故事 ✏️</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
               placeholder="例如：第一次找到藏起来的球，开心地咯咯笑..."
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[12px] resize-none outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`} rows={3}
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] resize-none outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`} rows={3}
               style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
           </div>
           <div>
-            <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>添加照片 📷</label>
-            <input type="file" accept="image/*" className="text-[12px]"
+            <label className="text-[13px] mb-1 block" style={{ color: S.sub }}>添加照片 📷</label>
+            <input type="file" accept="image/*" className="text-[14px]"
               onChange={(e) => void handlePhoto(e.target.files?.[0] ?? null)} />
             {photoPreview && <img src={photoPreview} alt="" className={`mt-2 h-24 ${S.radiusSm} object-cover`} />}
           </div>
@@ -162,9 +162,9 @@ function RecordModal({ milestone, record, childId, ageMonths, onSave, onClose }:
 
         <div className="px-6 pt-3 pb-5 mt-1">
           <div className="flex items-center justify-end gap-2">
-            <button onClick={onClose} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+            <button onClick={onClose} className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
             <button onClick={() => void handleSave()} disabled={saving}
-              className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-50`}
+              className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-50`}
               style={{ background: S.accent }}>
               {saving ? '保存中...' : '✅ 记录达成'}
             </button>
@@ -282,7 +282,7 @@ export default function MilestonePage() {
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-5">
-        <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
+        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
       </div>
 
       {/* Header */}
@@ -295,30 +295,30 @@ export default function MilestonePage() {
                 <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
               </svg>
             </div>
-            <div className="pointer-events-none absolute left-0 top-7 z-50 w-[340px] rounded-xl p-4 text-[11px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
+            <div className="pointer-events-none absolute left-0 top-7 z-50 w-[340px] rounded-xl p-4 text-[13px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
               style={{ background: '#1e293b', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
-              <p className="text-[12px] font-semibold text-white mb-2.5">数据参考文献</p>
+              <p className="text-[14px] font-semibold text-white mb-2.5">数据参考文献</p>
               <ul className="space-y-2.5">
                 <li>
                   <span className="text-[#4ECCA3] font-medium">大运动 · 精细动作 · 语言 · 认知</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">CDC Developmental Milestones (2022 updated).</span>
-                  <span className="block text-[10px] text-[#7a8090]">Zubler JM, et al. Evidence-Informed Milestones for Developmental Surveillance. MMWR 2022;71(1):1-4</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">CDC Developmental Milestones (2022 updated).</span>
+                  <span className="block text-[12px] text-[#7a8090]">Zubler JM, et al. Evidence-Informed Milestones for Developmental Surveillance. MMWR 2022;71(1):1-4</span>
                 </li>
                 <li>
                   <span className="text-[#4ECCA3] font-medium">社交情绪 · 自理能力</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">Ages &amp; Stages Questionnaires (ASQ-3), 3rd Edition.</span>
-                  <span className="block text-[10px] text-[#7a8090]">Squires J, Bricker D. Paul H. Brookes Publishing, 2009</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">Ages &amp; Stages Questionnaires (ASQ-3), 3rd Edition.</span>
+                  <span className="block text-[12px] text-[#7a8090]">Squires J, Bricker D. Paul H. Brookes Publishing, 2009</span>
                 </li>
                 <li>
                   <span className="text-[#4ECCA3] font-medium">中国儿童发育参考</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">国家卫生健康委员会.《0-6岁儿童健康管理技术规范》· 首都儿科研究所《0-6岁儿童发育行为评估量表》</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">国家卫生健康委员会.《0-6岁儿童健康管理技术规范》· 首都儿科研究所《0-6岁儿童发育行为评估量表》</span>
                 </li>
               </ul>
-              <p className="text-[9px] mt-2.5 pt-2 border-t border-white/10 text-[#808890]">每项标注中位月龄和正常范围 · 超过警示月龄未达成建议咨询专业人士</p>
+              <p className="text-[12px] mt-2.5 pt-2 border-t border-white/10 text-[#808890]">每项标注中位月龄和正常范围 · 超过警示月龄未达成建议咨询专业人士</p>
             </div>
           </div>
         </div>
-        <span className="text-[12px] px-3 py-1 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>
+        <span className="text-[14px] px-3 py-1 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>
           已达成 {achievedCount}/{MILESTONE_CATALOG.length}
         </span>
       </div>
@@ -343,7 +343,7 @@ export default function MilestonePage() {
         <div className={`${S.radius} p-5 mb-5`} style={{ background: S.card, boxShadow: S.shadow }}>
           <div className="flex items-center gap-2 mb-3">
             <span className="text-[16px]">🔔</span>
-            <h3 className="text-[13px] font-semibold" style={{ color: S.text }}>即将到来的里程碑</h3>
+            <h3 className="text-[14px] font-semibold" style={{ color: S.text }}>即将到来的里程碑</h3>
           </div>
           <div className="space-y-2">
             {upcoming.map((m) => {
@@ -363,13 +363,13 @@ export default function MilestonePage() {
                     {achieved && <svg viewBox="0 0 12 12" className="w-2.5 h-2.5"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" fill="none" /></svg>}
                   </button>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-medium" style={{ color: achieved ? S.accent : S.text }}>{m.title}</p>
-                    <p className="text-[10px]" style={{ color: S.sub }}>
+                    <p className="text-[14px] font-medium" style={{ color: achieved ? S.accent : S.text }}>{m.title}</p>
+                    <p className="text-[12px]" style={{ color: S.sub }}>
                       {achieved ? `${formatAchievedDate(rec?.achievedAt)} 达成` : `典型 ${formatAge(m.typicalAge.rangeStart)}-${formatAge(m.typicalAge.rangeEnd)} · ${m.description.slice(0, 30)}...`}
                     </p>
                   </div>
                   <button onClick={() => setEditingMilestone(m.milestoneId)}
-                    className="text-[10px] shrink-0 rounded-full px-2.5 py-1 transition-colors hover:bg-[#f0f0ec]"
+                    className="text-[12px] shrink-0 rounded-full px-2.5 py-1 transition-colors hover:bg-[#f0f0ec]"
                     style={{ color: S.sub, border: `1px solid ${S.border}` }}>
                     📝 {achieved ? '补个故事' : '记录'}
                   </button>
@@ -384,7 +384,7 @@ export default function MilestonePage() {
       <div className="flex gap-1 rounded-full p-1 mb-5 w-fit" style={{ background: '#eceeed' }}>
         {([['timeline', '📋 时间轴'], ['radar', '📊 雷达图']] as const).map(([k, l]) => (
           <button key={k} onClick={() => setActiveTab(k)}
-            className="px-4 py-1.5 text-[11px] font-medium rounded-full transition-all"
+            className="px-4 py-1.5 text-[13px] font-medium rounded-full transition-all"
             style={activeTab === k
               ? { background: S.card, color: S.text, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
               : { color: S.sub }}>
@@ -396,14 +396,14 @@ export default function MilestonePage() {
       {/* ── 3. Radar chart view ──────────────────────────────── */}
       {activeTab === 'radar' && (
         <div className={`${S.radius} p-5 mb-5`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <h3 className="text-[13px] font-semibold mb-2 text-center" style={{ color: S.text }}>发展轮廓总览</h3>
+          <h3 className="text-[14px] font-semibold mb-2 text-center" style={{ color: S.text }}>发展轮廓总览</h3>
           <RadarChart data={radarData} />
           <div className="grid grid-cols-3 gap-2 mt-4">
             {radarData.map((d) => (
               <div key={d.label} className={`flex items-center gap-2 p-2 ${S.radiusSm}`} style={{ background: '#f9faf7' }}>
                 <div className="w-2 h-2 rounded-full" style={{ background: S.accent }} />
-                <span className="text-[11px]" style={{ color: S.text }}>{d.label}</span>
-                <span className="text-[11px] font-bold ml-auto" style={{ color: S.text }}>{d.pct}%</span>
+                <span className="text-[13px]" style={{ color: S.text }}>{d.label}</span>
+                <span className="text-[13px] font-bold ml-auto" style={{ color: S.text }}>{d.pct}%</span>
               </div>
             ))}
           </div>
@@ -423,8 +423,8 @@ export default function MilestonePage() {
                   {bucketAchieved > 0 && <div className="w-[6px] h-[6px] rounded-full" style={{ background: S.accent }} />}
                 </div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[12px] font-bold" style={{ color: S.text }}>{bucket.label}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>
+                  <span className="text-[14px] font-bold" style={{ color: S.text }}>{bucket.label}</span>
+                  <span className="text-[12px] px-2 py-0.5 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>
                     {bucketAchieved}/{bucket.milestones.length}
                   </span>
                 </div>
@@ -446,14 +446,14 @@ export default function MilestonePage() {
                           <div className="w-[20px] h-[20px] rounded-full border-[1.5px] shrink-0" style={{ borderColor: '#d0d5db' }} />
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-[12px] font-medium" style={{ color: achieved ? S.accent : S.sub }}>{m.title}</p>
-                          <p className="text-[10px] truncate" style={{ color: S.sub }}>
+                          <p className="text-[14px] font-medium" style={{ color: achieved ? S.accent : S.sub }}>{m.title}</p>
+                          <p className="text-[12px] truncate" style={{ color: S.sub }}>
                             {achieved ? `${formatAchievedDate(rec?.achievedAt)} 达成` : '未记录'}
                           </p>
                         </div>
                         <button
                           onClick={() => setEditingMilestone(m.milestoneId)}
-                          className="text-[10px] shrink-0 rounded-full px-2.5 py-1 transition-colors hover:bg-[#f0f0ec]"
+                          className="text-[12px] shrink-0 rounded-full px-2.5 py-1 transition-colors hover:bg-[#f0f0ec]"
                           style={{ color: S.sub, border: `1px solid ${S.border}` }}>
                           📝 {achieved ? '补个故事' : '补记'}
                         </button>
@@ -482,26 +482,26 @@ export default function MilestonePage() {
                 <div className="min-w-0">
                   <div className="mb-2 flex items-center gap-2">
                     <span
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-[14px]"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-[16px]"
                       style={{ background: '#eef4d9' }}
                     >
                       🗂️
                     </span>
-                    <span className="text-[12px] font-semibold tracking-[0.08em]" style={{ color: S.accent }}>
+                    <span className="text-[14px] font-semibold tracking-[0.08em]" style={{ color: S.accent }}>
                       成长档案
                     </span>
                   </div>
                   <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>
                     已走过的阶段
                   </h3>
-                  <p className="mt-1 text-[11px] leading-5" style={{ color: S.sub }}>
+                  <p className="mt-1 text-[13px] leading-5" style={{ color: S.sub }}>
                     {pastBuckets[0]!.label} ~ {pastBuckets[pastBuckets.length - 1]!.label} 的成长足迹，随时可以回顾和补记
                   </p>
                 </div>
 
                 <button
                   onClick={() => setPastExpanded(!pastExpanded)}
-                  className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-[11px] font-semibold transition-colors hover:opacity-90"
+                  className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-colors hover:opacity-90"
                   style={{ background: '#eef4d9', color: S.text }}
                 >
                   {pastExpanded ? '收起成长档案' : '展开成长档案'}
@@ -521,13 +521,13 @@ export default function MilestonePage() {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <div className="rounded-full px-3 py-1 text-[10px] font-medium" style={{ background: '#f4f7ea', color: S.accent }}>
+                <div className="rounded-full px-3 py-1 text-[12px] font-medium" style={{ background: '#f4f7ea', color: S.accent }}>
                   已走过 {pastBuckets.length} 个阶段
                 </div>
-                <div className="rounded-full px-3 py-1 text-[10px] font-medium" style={{ background: '#eef4d9', color: S.text }}>
+                <div className="rounded-full px-3 py-1 text-[12px] font-medium" style={{ background: '#eef4d9', color: S.text }}>
                   已记录 {pastSummary.achieved}/{pastSummary.total} 项
                 </div>
-                <div className="rounded-full px-3 py-1 text-[10px] font-medium" style={{ background: '#f6efe2', color: '#8a6a2f' }}>
+                <div className="rounded-full px-3 py-1 text-[12px] font-medium" style={{ background: '#f6efe2', color: '#8a6a2f' }}>
                   {pastPendingCount} 项可补记
                 </div>
               </div>
@@ -549,25 +549,25 @@ export default function MilestonePage() {
                       >
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[13px] font-semibold" style={{ color: S.text }}>
+                            <span className="text-[14px] font-semibold" style={{ color: S.text }}>
                               {bucket.label}
                             </span>
                             <span
-                              className="rounded-full px-2.5 py-1 text-[10px] font-medium"
+                              className="rounded-full px-2.5 py-1 text-[12px] font-medium"
                               style={{ background: '#ffffff', color: S.text, border: `1px solid ${S.border}` }}
                             >
                               已记录 {bucketAchieved}/{bucket.milestones.length}
                             </span>
                             {bucketPending > 0 && (
                               <span
-                                className="rounded-full px-2.5 py-1 text-[10px] font-medium"
+                                className="rounded-full px-2.5 py-1 text-[12px] font-medium"
                                 style={{ background: '#f6efe2', color: '#8a6a2f' }}
                               >
                                 待补记 {bucketPending} 项
                               </span>
                             )}
                           </div>
-                          <p className="mt-1 text-[10px] leading-5" style={{ color: S.sub }}>
+                          <p className="mt-1 text-[12px] leading-5" style={{ color: S.sub }}>
                             {bucketPending > 0 ? '还有未记录的项目，可以补上哦' : '所有里程碑都已记录'}
                           </p>
                         </div>
@@ -599,24 +599,24 @@ export default function MilestonePage() {
 
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <p className="text-[12px] font-medium" style={{ color: achieved ? S.accent : S.text }}>
+                                    <p className="text-[14px] font-medium" style={{ color: achieved ? S.accent : S.text }}>
                                       {m.title}
                                     </p>
                                     <span
-                                      className="rounded-full px-2 py-0.5 text-[9px] font-medium"
+                                      className="rounded-full px-2 py-0.5 text-[12px] font-medium"
                                       style={{ background: dm?.color ?? '#f0f0ec', color: S.text }}
                                     >
                                       {dm?.label ?? '里程碑'}
                                     </span>
                                   </div>
-                                  <p className="mt-1 line-clamp-2 text-[10px] leading-4" style={{ color: S.sub }}>
+                                  <p className="mt-1 line-clamp-2 text-[12px] leading-4" style={{ color: S.sub }}>
                                     {achieved ? `${formatAchievedDate(rec?.achievedAt)} 达成` : m.description}
                                   </p>
                                 </div>
 
                                 <button
                                   onClick={(e) => { e.stopPropagation(); setEditingMilestone(m.milestoneId); }}
-                                  className="text-[10px] shrink-0 rounded-full px-2.5 py-1 transition-colors hover:bg-[#f3f5ea]"
+                                  className="text-[12px] shrink-0 rounded-full px-2.5 py-1 transition-colors hover:bg-[#f3f5ea]"
                                   style={{ color: S.sub, border: `1px solid ${S.border}` }}>
                                   📝 {achieved ? '补个故事' : '记录'}
                                 </button>
@@ -642,8 +642,8 @@ export default function MilestonePage() {
                   <div className="absolute left-[11px] top-1 w-[16px] h-[16px] rounded-full border-[2px] flex items-center justify-center"
                     style={{ background: S.accent, borderColor: S.accent }} />
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[12px] font-bold" style={{ color: S.accent }}>{currentBucket.label}</span>
-                    <span className="text-[9px] px-2 py-0.5 rounded-full text-white" style={{ background: S.accent }}>当前阶段</span>
+                    <span className="text-[14px] font-bold" style={{ color: S.accent }}>{currentBucket.label}</span>
+                    <span className="text-[12px] px-2 py-0.5 rounded-full text-white" style={{ background: S.accent }}>当前阶段</span>
                   </div>
                   <div className="space-y-1.5">
                     {currentBucket.milestones.map((m) => {
@@ -665,15 +665,15 @@ export default function MilestonePage() {
                           </button>
                           {/* Content */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-[12px] font-medium" style={{ color: achieved ? S.accent : S.text }}>{m.title}</p>
-                            <p className="text-[10px] truncate" style={{ color: S.sub }}>
+                            <p className="text-[14px] font-medium" style={{ color: achieved ? S.accent : S.text }}>{m.title}</p>
+                            <p className="text-[12px] truncate" style={{ color: S.sub }}>
                               {achieved ? `${formatAchievedDate(rec?.achievedAt)} 达成` : m.description}
                             </p>
                           </div>
                           {/* Detail record button */}
                           <button
                             onClick={(e) => { e.stopPropagation(); setEditingMilestone(m.milestoneId); }}
-                            className="text-[10px] shrink-0 rounded-full px-2.5 py-1 transition-colors hover:bg-[#f0f0ec]"
+                            className="text-[12px] shrink-0 rounded-full px-2.5 py-1 transition-colors hover:bg-[#f0f0ec]"
                             style={{ color: S.sub, border: `1px solid ${S.border}` }}>
                             📝 {achieved ? '补个故事' : '记录'}
                           </button>
@@ -690,7 +690,7 @@ export default function MilestonePage() {
                   <div className="absolute left-[11px] top-1 w-[16px] h-[16px] rounded-full border-[2px] flex items-center justify-center"
                     style={{ background: '#eceeed', borderColor: S.border }} />
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[12px] font-bold" style={{ color: S.text }}>{bucket.label}</span>
+                    <span className="text-[14px] font-bold" style={{ color: S.text }}>{bucket.label}</span>
                   </div>
                   <div className="space-y-1.5">
                     {bucket.milestones.map((m) => {
@@ -699,13 +699,13 @@ export default function MilestonePage() {
                         <div key={m.milestoneId}
                           className={`flex items-center gap-2.5 p-2.5 ${S.radiusSm}`}
                           style={{ background: S.card, border: `1px solid ${S.border}` }}>
-                          <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-[14px] shrink-0"
+                          <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-[16px] shrink-0"
                             style={{ background: dm?.color ?? '#f0f0ec' }}>
                             {dm?.emoji ?? '🎯'}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[12px] font-medium" style={{ color: S.text }}>{m.title}</p>
-                            <p className="text-[10px] truncate" style={{ color: S.sub }}>{m.description}</p>
+                            <p className="text-[14px] font-medium" style={{ color: S.text }}>{m.title}</p>
+                            <p className="text-[12px] truncate" style={{ color: S.sub }}>{m.description}</p>
                           </div>
                         </div>
                       );

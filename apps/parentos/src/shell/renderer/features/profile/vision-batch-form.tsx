@@ -163,16 +163,16 @@ export function NumberPickerPopover({ typeId, label, unit, value, onSelect, onCl
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3" style={{ background: '#e0e4e0' }}>
           {step === 'dec' && (
-            <button onClick={() => setStep('int')} className="text-[12px] font-medium" style={{ color: S.accent }}>
+            <button onClick={() => setStep('int')} className="text-[14px] font-medium" style={{ color: S.accent }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="inline -mt-0.5 mr-1"><path d="M15 18l-6-6 6-6" /></svg>
               返回
             </button>
           )}
           {step === 'int' && <span />}
           <div className="text-center flex-1">
-            {eyeLabel && <span className="text-[12px] font-bold mr-2" style={{ color: '#e67e22' }}>{eyeLabel}</span>}
-            <span className="text-[15px] font-bold" style={{ color: S.text }}>{label}</span>
-            {unit && <span className="text-[11px] ml-1.5" style={{ color: S.sub }}>{unit}</span>}
+            {eyeLabel && <span className="text-[14px] font-bold mr-2" style={{ color: '#e67e22' }}>{eyeLabel}</span>}
+            <span className="text-[16px] font-bold" style={{ color: S.text }}>{label}</span>
+            {unit && <span className="text-[13px] ml-1.5" style={{ color: S.sub }}>{unit}</span>}
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ color: S.sub }}>✕</button>
         </div>
@@ -202,7 +202,7 @@ export function NumberPickerPopover({ typeId, label, unit, value, onSelect, onCl
             <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(decimals.length, 10)}, 1fr)` }}>
               {decimals.map((d) => (
                 <button key={d} onClick={() => handleDecSelect(d)}
-                  className="py-3 text-[15px] font-semibold rounded-xl transition-all hover:bg-white"
+                  className="py-3 text-[16px] font-semibold rounded-xl transition-all hover:bg-white"
                   style={{ background: '#fafafa', color: S.text }}>
                   {d < 10 && decimals.some((x) => x >= 10) ? `0${d}` : String(d)}
                 </button>
@@ -215,9 +215,9 @@ export function NumberPickerPopover({ typeId, label, unit, value, onSelect, onCl
         <div className="flex items-center gap-2 px-4 pb-4">
           <input type="number" placeholder="或手动输入..." value={value}
             onChange={(e) => onSelect(e.target.value)}
-            className="flex-1 rounded-xl px-3 py-2 text-[13px] border-0 outline-none"
+            className="flex-1 rounded-xl px-3 py-2 text-[14px] border-0 outline-none"
             style={{ background: '#fff', color: S.text }} />
-          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[12px] font-medium text-white"
+          <button onClick={onClose} className="px-4 py-2 rounded-xl text-[14px] font-medium text-white"
             style={{ background: S.accent }}>确定</button>
         </div>
       </div>
@@ -237,13 +237,13 @@ export function ValueCell({ typeId, label, unit, value, onChange }: {
     <>
       {hasPicker ? (
         <button onClick={() => setShowPicker(true)}
-          className="w-full text-center text-[13px] font-medium rounded-lg py-1.5 transition-all hover:ring-2 hover:ring-[#BDE0F5]/30"
+          className="w-full text-center text-[14px] font-medium rounded-lg py-1.5 transition-all hover:ring-2 hover:ring-[#BDE0F5]/30"
           style={{ background: value ? '#eef3ee' : '#f5f3ef', color: value ? S.text : '#c0bdb8' }}>
           {value || '—'}
         </button>
       ) : (
         <input type="number" placeholder="—" value={value} onChange={(e) => onChange(e.target.value)}
-          className="w-full text-center text-[13px] font-medium rounded-lg py-1.5 border-0 outline-none focus:ring-2 focus:ring-[#BDE0F5]/30"
+          className="w-full text-center text-[14px] font-medium rounded-lg py-1.5 border-0 outline-none focus:ring-2 focus:ring-[#BDE0F5]/30"
           style={{ background: '#f5f3ef', color: S.text }} />
       )}
       {showPicker && (
@@ -469,23 +469,23 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
   };
 
   const filledCount = Object.values(values).filter((v) => v.trim()).length + (hrValue.trim() ? 1 : 0);
-  const inp = `${S.radiusSm} px-3 py-2 text-[13px] border-0 outline-none focus:ring-2 focus:ring-[#BDE0F5]/30`;
+  const inp = `${S.radiusSm} px-3 py-2 text-[14px] border-0 outline-none focus:ring-2 focus:ring-[#BDE0F5]/30`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
     <div className={`w-[680px] max-h-[85vh] overflow-y-auto ${S.radius} p-5 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[14px] font-semibold" style={{ color: S.text }}>{initialRecord ? `编辑检查记录 · ${initialRecord.date}` : '录入检查数据'}</h3>
+        <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>{initialRecord ? `编辑检查记录 · ${initialRecord.date}` : '录入检查数据'}</h3>
         <div className="flex items-center gap-2">
           {/* OCR button */}
           <button onClick={() => void handleOCR()} disabled={ocrBusy}
-            className={`group relative flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90 disabled:opacity-50`}
+            className={`group relative flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90 disabled:opacity-50`}
             style={{ background: S.accent }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h4M7 12h10M7 16h6" />
             </svg>
             {ocrBusy ? '识别中...' : '智能识别'}
-            <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-0.5 text-[9px] font-normal text-white opacity-0 group-hover:opacity-100 z-50"
+            <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-0.5 text-[12px] font-normal text-white opacity-0 group-hover:opacity-100 z-50"
               style={{ background: '#1e293b' }}>拍照或上传验光单自动填入</span>
           </button>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
@@ -493,7 +493,7 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
       </div>
 
       {ocrError && (
-        <div className={`${S.radiusSm} px-3 py-2 mb-4 text-[11px]`}
+        <div className={`${S.radiusSm} px-3 py-2 mb-4 text-[13px]`}
           style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
           {ocrError}
         </div>
@@ -502,20 +502,20 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
       {/* Basic info */}
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div>
-          <label className="text-[11px] block mb-1" style={{ color: S.sub }}>检查日期 *</label>
+          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>检查日期 *</label>
           <ProfileDatePicker value={date} onChange={setDate} className={inp} style={{ background: '#f5f3ef', color: S.text }} />
         </div>
         <div>
-          <label className="text-[11px] block mb-1" style={{ color: S.sub }}>医院/机构</label>
+          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>医院/机构</label>
           <input value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填"
             className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
         </div>
         <div>
-          <label className="text-[11px] block mb-1" style={{ color: S.sub }}>瞳孔状态</label>
+          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>瞳孔状态</label>
           <div className="flex gap-1.5">
             {PUPIL_OPTIONS.map((p) => (
               <button key={p} onClick={() => setPupil(pupil === p ? '' : p)}
-                className={`flex-1 py-2 text-[11px] font-medium ${S.radiusSm} transition-all`}
+                className={`flex-1 py-2 text-[13px] font-medium ${S.radiusSm} transition-all`}
                 style={pupil === p ? { background: S.accent, color: '#fff' } : { background: '#f5f3ef', color: S.sub }}>
                 {p}
               </button>
@@ -527,9 +527,9 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
       {/* Form sections with picker-enabled cells */}
       {FORM_SECTIONS.map((section) => (
         <div key={section.title} className="mb-4">
-          <p className="text-[12px] font-semibold mb-2" style={{ color: S.text }}>{section.title}</p>
+          <p className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>{section.title}</p>
           <div className={`${S.radiusSm} overflow-hidden border`} style={{ borderColor: '#f1f5f9' }}>
-            <div className="grid grid-cols-[1.5fr_1fr_1fr] text-center text-[10px] font-medium py-2 px-3"
+            <div className="grid grid-cols-[1.5fr_1fr_1fr] text-center text-[12px] font-medium py-2 px-3"
               style={{ background: '#f8faf9', color: S.sub }}>
               <span className="text-left">项目</span>
               <span>OD 右眼</span>
@@ -539,8 +539,8 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
               <div key={f.label} className="grid grid-cols-[1.5fr_1fr_1fr] items-center gap-2 py-2 px-3 border-t"
                 style={{ borderColor: '#f0f0ec', background: i % 2 === 0 ? S.card : '#fafcfb' }}>
                 <div>
-                  <span className="text-[11px]" style={{ color: S.text }}>{f.label}</span>
-                  {f.unit && <span className="text-[9px] ml-1" style={{ color: S.sub }}>({f.unit})</span>}
+                  <span className="text-[13px]" style={{ color: S.text }}>{f.label}</span>
+                  {f.unit && <span className="text-[12px] ml-1" style={{ color: S.sub }}>({f.unit})</span>}
                 </div>
                 <ValueCell typeId={f.od} label={f.label} unit={f.unit} value={values[f.od] ?? ''} onChange={(v) => set(f.od, v)} />
                 <ValueCell typeId={f.os} label={f.label} unit={f.unit} value={values[f.os] ?? ''} onChange={(v) => set(f.os, v)} />
@@ -552,23 +552,23 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
 
       {/* Hyperopia reserve */}
       <div className="mb-4">
-        <p className="text-[12px] font-semibold mb-2" style={{ color: S.text }}>远视储备</p>
+        <p className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>远视储备</p>
         <div className="flex items-center gap-3">
           <ValueCell typeId="hyperopia-reserve" label="远视储备" unit="D" value={hrValue} onChange={setHrValue} />
-          <span className="text-[11px]" style={{ color: S.sub }}>D</span>
+          <span className="text-[13px]" style={{ color: S.sub }}>D</span>
         </div>
       </div>
 
       {/* Behavioral factors */}
       <div className={`${S.radiusSm} p-4 mb-4`} style={{ background: '#f9faf7', border: `1px solid ${S.border}` }}>
-        <p className="text-[12px] font-semibold mb-3" style={{ color: S.text }}>用眼行为因素</p>
+        <p className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>用眼行为因素</p>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] block mb-1" style={{ color: S.sub }}>日近距用眼时长（课外）</label>
+            <label className="text-[12px] block mb-1" style={{ color: S.sub }}>日近距用眼时长（课外）</label>
             <div className="flex gap-1.5">
               {['0-1小时', '2-3小时', '4-5小时', '6小时以上'].map((opt) => (
                 <button key={opt} onClick={() => setScreenTime(screenTime === opt ? '' : opt)}
-                  className={`flex-1 py-1.5 text-[10px] ${S.radiusSm} transition-all`}
+                  className={`flex-1 py-1.5 text-[12px] ${S.radiusSm} transition-all`}
                   style={screenTime === opt ? { background: S.accent, color: '#fff' } : { background: '#fff', border: `1px solid ${S.border}`, color: S.sub }}>
                   {opt}
                 </button>
@@ -576,11 +576,11 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
             </div>
           </div>
           <div>
-            <label className="text-[10px] block mb-1" style={{ color: S.sub }}>日户外活动时长</label>
+            <label className="text-[12px] block mb-1" style={{ color: S.sub }}>日户外活动时长</label>
             <div className="flex gap-1.5">
               {['0-1小时', '2-3小时', '4-5小时', '5小时以上'].map((opt) => (
                 <button key={opt} onClick={() => setOutdoorTime(outdoorTime === opt ? '' : opt)}
-                  className={`flex-1 py-1.5 text-[10px] ${S.radiusSm} transition-all`}
+                  className={`flex-1 py-1.5 text-[12px] ${S.radiusSm} transition-all`}
                   style={outdoorTime === opt ? { background: S.accent, color: '#fff' } : { background: '#fff', border: `1px solid ${S.border}`, color: S.sub }}>
                   {opt}
                 </button>
@@ -593,13 +593,13 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
       {/* Control measures & notes */}
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div>
-          <label className="text-[11px] block mb-1" style={{ color: S.sub }}>防控措施</label>
+          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>防控措施</label>
           <input value={controls} onChange={(e) => setControls(e.target.value)}
             placeholder="如：OK镜、低浓度阿托品、户外运动..."
             className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
         </div>
         <div>
-          <label className="text-[11px] block mb-1" style={{ color: S.sub }}>防控笔记</label>
+          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>防控笔记</label>
           <input value={notes} onChange={(e) => setNotes(e.target.value)}
             placeholder="补充说明..."
             className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
@@ -608,12 +608,12 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
 
       {/* Submit */}
       <div className="flex items-center justify-between">
-        <span className="text-[11px]" style={{ color: S.sub }}>已填写 {filledCount} 项数据</span>
+        <span className="text-[13px]" style={{ color: S.sub }}>已填写 {filledCount} 项数据</span>
         <div className="flex gap-2">
-          <button onClick={onClose} className={`px-4 py-2 text-[12px] ${S.radiusSm}`}
+          <button onClick={onClose} className={`px-4 py-2 text-[14px] ${S.radiusSm}`}
             style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
           <button onClick={() => void handleSubmit()} disabled={saving || filledCount === 0} aria-label="vision-record-save"
-            className={`px-5 py-2 text-[12px] font-medium text-white ${S.radiusSm} disabled:opacity-40 transition-all hover:opacity-90`}
+            className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} disabled:opacity-40 transition-all hover:opacity-90`}
             style={{ background: S.accent }}>
             {saving ? '保存中...' : '保存记录'}
           </button>

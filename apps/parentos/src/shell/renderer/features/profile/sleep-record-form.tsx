@@ -82,35 +82,35 @@ export function SleepRecordForm({
             <span className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#f1f5f9' }}>
               <Moon size={18} strokeWidth={1.5} style={{ color: S.accent }} />
             </span>
-            <h2 className="text-[15px] font-bold" style={{ color: S.text }}>{isEditing ? '编辑睡眠记录' : '新增睡眠记录'}</h2>
+            <h2 className="text-[16px] font-bold" style={{ color: S.text }}>{isEditing ? '编辑睡眠记录' : '新增睡眠记录'}</h2>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
         </div>
 
         <div className="px-6 pb-2 space-y-4 flex-1">
           <div className="grid grid-cols-3 gap-3">
-            <label className="text-[11px] flex flex-col gap-1 font-medium" style={{ color: S.sub }}>
+            <label className="text-[13px] flex flex-col gap-1 font-medium" style={{ color: S.sub }}>
               日期
               <DatePickerInput value={formSleepDate} onChange={setFormSleepDate} />
             </label>
-            <label className="text-[11px] flex flex-col gap-1 font-medium" style={{ color: S.sub }}>
+            <label className="text-[13px] flex flex-col gap-1 font-medium" style={{ color: S.sub }}>
               入睡时间
               <TimePickerInput value={formBedtime} onChange={setFormBedtime} icon={Moon} />
             </label>
-            <label className="text-[11px] flex flex-col gap-1 font-medium" style={{ color: S.sub }}>
+            <label className="text-[13px] flex flex-col gap-1 font-medium" style={{ color: S.sub }}>
               起床时间
               <TimePickerInput value={formWakeTime} onChange={setFormWakeTime} icon={Sun} />
             </label>
           </div>
 
           {autoDuration !== null ? (
-            <p className="text-[11px] -mt-2 font-medium" style={{ color: S.accent }}>
+            <p className="text-[13px] -mt-2 font-medium" style={{ color: S.accent }}>
               夜间 {fmtDuration(autoDuration)}
             </p>
           ) : null}
 
           {showNightWakings ? (
-            <label className="text-[11px] flex flex-col gap-1 font-medium" style={{ color: S.sub }}>
+            <label className="text-[13px] flex flex-col gap-1 font-medium" style={{ color: S.sub }}>
               夜醒次数
               <div className="group/field relative flex items-center w-32">
                 <input type="number" min="0" max="20" placeholder="0" value={formNightWakings} onChange={(event) => setFormNightWakings(event.target.value)} className={inputCls()} style={inputSty} />
@@ -121,11 +121,11 @@ export function SleepRecordForm({
 
           <div className="pt-1">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-medium" style={{ color: S.text }}>
+              <span className="text-[13px] font-medium" style={{ color: S.text }}>
                 {tier === 'infant' || tier === 'toddler' ? '日间小睡' : '午睡'}
               </span>
               {napCount > 0 ? (
-                <span className="text-[11px] font-medium" style={{ color: S.accent }}>
+                <span className="text-[13px] font-medium" style={{ color: S.accent }}>
                   {napCount} 次 · {fmtDuration(totalNapMinutes)}
                 </span>
               ) : null}
@@ -137,12 +137,12 @@ export function SleepRecordForm({
                   <div className="flex-1">
                     <TimePickerInput value={row.start} onChange={(value) => updateNapRow(index, 'start', value)} icon={Clock} size="small" />
                   </div>
-                  <span className="text-[11px] shrink-0" style={{ color: S.sub }}>至</span>
+                  <span className="text-[13px] shrink-0" style={{ color: S.sub }}>至</span>
                   <div className="flex-1">
                     <TimePickerInput value={row.end} onChange={(value) => updateNapRow(index, 'end', value)} icon={Clock} size="small" />
                   </div>
                   {(napDurations[index] ?? 0) > 0 ? (
-                    <span className="text-[11px] font-medium shrink-0 w-10 text-right" style={{ color: S.accent }}>
+                    <span className="text-[13px] font-medium shrink-0 w-10 text-right" style={{ color: S.accent }}>
                       {fmtDuration(napDurations[index] ?? 0)}
                     </span>
                   ) : null}
@@ -165,14 +165,14 @@ export function SleepRecordForm({
               }}
             >
               <Plus size={18} strokeWidth={1.5} style={{ color: napAddHover ? '#1e293b' : '#b0b0aa', transform: napAddHover ? 'scale(1.15)' : 'scale(1)', transition: 'color 0.25s ease, transform 0.25s ease' }} />
-              <span className="text-[11px] font-medium" style={{ color: napAddHover ? '#1e293b' : '#a0a0a0', transition: 'color 0.25s ease' }}>
+              <span className="text-[13px] font-medium" style={{ color: napAddHover ? '#1e293b' : '#a0a0a0', transition: 'color 0.25s ease' }}>
                 添加{tier === 'infant' || tier === 'toddler' ? '小睡' : '午睡'}
               </span>
             </button>
           </div>
 
           <div className="pt-1 space-y-3">
-            <label className="text-[11px] flex flex-col gap-1 font-medium w-32" style={{ color: S.sub }}>
+            <label className="text-[13px] flex flex-col gap-1 font-medium w-32" style={{ color: S.sub }}>
               睡眠质量
               <AppSelect
                 value={formQuality}
@@ -181,12 +181,12 @@ export function SleepRecordForm({
               />
             </label>
             <div>
-              <label className="text-[11px] mb-1 font-medium block" style={{ color: S.sub }}>备注</label>
+              <label className="text-[13px] mb-1 font-medium block" style={{ color: S.sub }}>备注</label>
               <input
                 placeholder="补充今天的睡眠细节..."
                 value={formNotes}
                 onChange={(event) => setFormNotes(event.target.value)}
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={inputSty}
               />
             </div>
@@ -195,11 +195,11 @@ export function SleepRecordForm({
 
         <div className="px-6 pt-3 pb-5 mt-1">
           {saveError ? (
-            <p className="text-[12px] mb-2 text-center font-medium" style={{ color: '#dc2626' }}>{saveError}</p>
+            <p className="text-[14px] mb-2 text-center font-medium" style={{ color: '#dc2626' }}>{saveError}</p>
           ) : null}
           <div className="flex items-center justify-end gap-2">
-            <button onClick={onClose} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
-            <button onClick={onSave} className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110`} style={{ background: S.accent }}>保存</button>
+            <button onClick={onClose} className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+            <button onClick={onSave} className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110`} style={{ background: S.accent }}>保存</button>
           </div>
         </div>
       </section>

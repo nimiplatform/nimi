@@ -153,7 +153,7 @@ export default function SleepPage() {
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-6">
-        <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>&larr; 返回档案</Link>
+        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>&larr; 返回档案</Link>
       </div>
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold" style={{ color: S.text }}>睡眠记录</h1>
@@ -213,9 +213,9 @@ export default function SleepPage() {
       <section>
         {sortedRecords.length === 0 ? (
           <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-            <span className="text-[28px]">😴</span>
-            <p className="text-[13px] mt-2 font-medium" style={{ color: S.text }}>还没有睡眠记录</p>
-            <p className="text-[11px] mt-1" style={{ color: S.sub }}>点击上方按钮添加第一条记录</p>
+            <span className="text-[24px]">😴</span>
+            <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>还没有睡眠记录</p>
+            <p className="text-[13px] mt-1" style={{ color: S.sub }}>点击上方按钮添加第一条记录</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -230,11 +230,11 @@ export default function SleepPage() {
       {deletingRecordId ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={() => setDeletingRecordId(null)}>
           <div className={`${S.radius} p-6 w-[340px] shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
-            <p className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>确认删除</p>
-            <p className="text-[12px] mb-5" style={{ color: S.sub }}>删除后无法恢复，确定要删除这条睡眠记录吗？</p>
+            <p className="text-[16px] font-semibold mb-2" style={{ color: S.text }}>确认删除</p>
+            <p className="text-[14px] mb-5" style={{ color: S.sub }}>删除后无法恢复，确定要删除这条睡眠记录吗？</p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setDeletingRecordId(null)} className={`px-4 py-2 text-[13px] ${S.radiusSm}`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
-              <button onClick={() => void handleDelete(deletingRecordId)} className={`px-4 py-2 text-[13px] font-medium text-white ${S.radiusSm}`} style={{ background: '#dc2626' }}>确认删除</button>
+              <button onClick={() => setDeletingRecordId(null)} className={`px-4 py-2 text-[14px] ${S.radiusSm}`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+              <button onClick={() => void handleDelete(deletingRecordId)} className={`px-4 py-2 text-[14px] font-medium text-white ${S.radiusSm}`} style={{ background: '#dc2626' }}>确认删除</button>
             </div>
           </div>
         </div>

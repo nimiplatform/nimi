@@ -60,7 +60,7 @@ export default function MedicalEventsPage() {
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-6">
-        <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>&larr; 返回档案</Link>
+        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>&larr; 返回档案</Link>
       </div>
 
       {/* ── Header ── */}
@@ -133,7 +133,7 @@ export default function MedicalEventsPage() {
               style={{ borderColor: S.border }} />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px]" style={{ color: S.sub }}>清除</button>
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[13px]" style={{ color: S.sub }}>清除</button>
             )}
           </div>
           <AppSelect value={filterType} onChange={setFilterType}

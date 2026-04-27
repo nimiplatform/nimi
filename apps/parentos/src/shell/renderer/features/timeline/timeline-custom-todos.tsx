@@ -121,7 +121,7 @@ export function CustomTodoComposer({
     }
   }, [childId, newDueDate, newTitle, onAdded, onChanged, recurrenceRule, reminderOffsetMinutes, reset]);
 
-  const dateFieldClassName = `w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#C2E8F7]/50`;
+  const dateFieldClassName = `w-full ${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#C2E8F7]/50`;
   const dateFieldStyle = {
     borderColor: S.border,
     borderWidth: 1,
@@ -148,7 +148,7 @@ export function CustomTodoComposer({
               <path d="M12 5v14M5 12h14" />
             </svg>
           </span>
-          <span className="text-[13px] transition-colors group-hover:text-[#3BB88A]" style={{ color: '#9ca3af' }}>添加日常待办...</span>
+          <span className="text-[14px] transition-colors group-hover:text-[#3BB88A]" style={{ color: '#9ca3af' }}>添加日常待办...</span>
         </button>
       </div>
     );
@@ -164,7 +164,7 @@ export function CustomTodoComposer({
           boxShadow: '0 8px 22px rgba(59, 184, 138, 0.14)',
         }}
       >
-        <div className="mb-1 text-[14px] font-semibold" style={{ color: '#111827' }}>要做什么？</div>
+        <div className="mb-1 text-[16px] font-semibold" style={{ color: '#111827' }}>要做什么？</div>
         <textarea
           ref={inputRef}
           value={newTitle}
@@ -184,7 +184,7 @@ export function CustomTodoComposer({
           placeholder="比如：提醒我每晚读 10 分钟绘本"
           disabled={adding}
           rows={1}
-          className="block w-full resize-none overflow-y-auto border-0 bg-transparent py-1 text-[13px] leading-[1.55] outline-none placeholder:text-[#9ca3af]"
+          className="block w-full resize-none overflow-y-auto border-0 bg-transparent py-1 text-[14px] leading-[1.55] outline-none placeholder:text-[#9ca3af]"
           style={{ color: '#1e293b' }}
         />
 
@@ -203,7 +203,7 @@ export function CustomTodoComposer({
               setShowDatePicker(true);
               setDatePickerOpenNonce((value) => value + 1);
             }}
-            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3.5 text-[12px] font-medium transition-colors"
+            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3.5 text-[14px] font-medium transition-colors"
             style={{
               color: dateActive ? '#ffffff' : '#64748b',
               background: dateActive ? '#3BB88A' : 'transparent',
@@ -235,7 +235,7 @@ export function CustomTodoComposer({
           <button
             type="button"
             onClick={reset}
-            className="h-8 rounded-full px-4 text-[13px] font-medium transition-colors hover:bg-[#f3f4f6]"
+            className="h-8 rounded-full px-4 text-[14px] font-medium transition-colors hover:bg-[#f3f4f6]"
             style={{ color: '#64748b', background: 'transparent' }}
           >
             取消
@@ -244,7 +244,7 @@ export function CustomTodoComposer({
             type="button"
             onClick={() => void handleAdd()}
             disabled={!canSubmit}
-            className="h-8 rounded-full px-5 text-[13px] font-medium transition-all"
+            className="h-8 rounded-full px-5 text-[14px] font-medium transition-all"
             style={{
               background: canSubmit ? '#3BB88A' : '#e5e7eb',
               color: canSubmit ? '#fff' : '#9ca3af',
@@ -339,9 +339,9 @@ export function CustomTodoInlineList({
                 </svg>
               </button>
               <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-medium leading-snug [overflow-wrap:anywhere]" style={{ color: '#38506f' }}>{todo.title}</p>
+                <p className="text-[14px] font-medium leading-snug [overflow-wrap:anywhere]" style={{ color: '#38506f' }}>{todo.title}</p>
                 {(todo.dueDate || reminderLabel || recurrenceLabel) && (
-                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px]">
                     {todo.dueDate && (
                       <span style={{ color: todo.dueDate < getLocalToday() ? '#ef4444' : '#8aa1bc' }}>
                         {formatDueDate(todo.dueDate)}
@@ -410,7 +410,7 @@ export function CustomTodoInlineList({
                   </svg>
                 </button>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[12px] leading-snug line-through [overflow-wrap:anywhere]" style={{ color: '#9fb0c8' }}>{todo.title}</p>
+                  <p className="text-[14px] leading-snug line-through [overflow-wrap:anywhere]" style={{ color: '#9fb0c8' }}>{todo.title}</p>
                 </div>
                 <button
                   type="button"

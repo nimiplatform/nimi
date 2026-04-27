@@ -60,7 +60,7 @@ export function EmojiPickerPortal({
             key={cat.key}
             onClick={() => onCategoryChange(cat.key)}
             title={cat.label}
-            className={`w-7 h-7 rounded flex items-center justify-center text-[14px] transition-colors ${category === cat.key ? 'bg-[#e8e8e4]' : 'hover:bg-[#f0f0ec]'}`}
+            className={`w-7 h-7 rounded flex items-center justify-center text-[16px] transition-colors ${category === cat.key ? 'bg-[#e8e8e4]' : 'hover:bg-[#f0f0ec]'}`}
           >
             {cat.icon}
           </button>
@@ -72,7 +72,7 @@ export function EmojiPickerPortal({
             <button
               key={`${emoji}-${index}`}
               onClick={() => onSelect(emoji)}
-              className="w-[34px] h-[34px] rounded flex items-center justify-center text-[17px] hover:bg-[#f0f0ec] transition-colors"
+              className="w-[34px] h-[34px] rounded flex items-center justify-center text-[18px] hover:bg-[#f0f0ec] transition-colors"
             >
               {emoji}
             </button>
@@ -109,17 +109,17 @@ export function DeleteJournalEntryModal({
       >
         <div className="mb-4">
           <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>删除这条随手记？</h3>
-          <p className="mt-1 text-[12px] leading-relaxed" style={{ color: S.sub }}>
+          <p className="mt-1 text-[14px] leading-relaxed" style={{ color: S.sub }}>
             删除后会从列表中移除这条随手记，关联的本地语音和图片也会一起清理。
           </p>
         </div>
         <div className={`${S.radiusSm} mb-4 p-3`} style={{ background: '#fafaf8', border: `1px solid ${S.border}` }}>
-          <p className="mb-1 text-[11px] font-medium" style={{ color: S.text }}>
+          <p className="mb-1 text-[13px] font-medium" style={{ color: S.text }}>
             {entry.recordedAt.split('T')[0]} {entry.recordedAt.split('T')[1]?.slice(0, 5)}
           </p>
-          <p className="line-clamp-3 text-[12px] leading-relaxed" style={{ color: S.sub }}>{previewText}</p>
+          <p className="line-clamp-3 text-[14px] leading-relaxed" style={{ color: S.sub }}>{previewText}</p>
           {mediaCount > 0 ? (
-            <p className="mt-2 text-[11px]" style={{ color: '#b45309' }}>包含 {mediaCount} 个本地媒体附件</p>
+            <p className="mt-2 text-[13px]" style={{ color: '#b45309' }}>包含 {mediaCount} 个本地媒体附件</p>
           ) : null}
         </div>
         <div className="flex items-center justify-end gap-2">
@@ -127,7 +127,7 @@ export function DeleteJournalEntryModal({
             type="button"
             onClick={onCancel}
             disabled={deleting}
-            className={`${S.radiusSm} px-4 py-2 text-[12px] transition-colors disabled:opacity-50`}
+            className={`${S.radiusSm} px-4 py-2 text-[14px] transition-colors disabled:opacity-50`}
             style={{ background: '#f3f4f6', color: S.sub }}
           >
             取消
@@ -136,7 +136,7 @@ export function DeleteJournalEntryModal({
             type="button"
             onClick={onConfirm}
             disabled={deleting}
-            className={`${S.radiusSm} px-4 py-2 text-[12px] font-medium text-white transition-colors disabled:opacity-50`}
+            className={`${S.radiusSm} px-4 py-2 text-[14px] font-medium text-white transition-colors disabled:opacity-50`}
             style={{ background: '#dc2626' }}
           >
             {deleting ? '删除中...' : '确认删除'}
@@ -210,7 +210,7 @@ export function KeepsakePromptModal({
         <div className="flex items-center justify-between px-6 pt-6 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-[20px]">⭐</span>
-            <h3 className="text-[15px] font-bold" style={{ color: S.text }}>{copy.heading}</h3>
+            <h3 className="text-[16px] font-bold" style={{ color: S.text }}>{copy.heading}</h3>
           </div>
           <button
             type="button"
@@ -230,32 +230,32 @@ export function KeepsakePromptModal({
             className={`${S.radiusSm} px-4 py-3`}
             style={{ background: '#fff8eb', border: '1px solid rgba(245, 158, 11, 0.18)' }}
           >
-            <p className="text-[12px] font-medium" style={{ color: '#92400e' }}>{copy.bannerTitle}</p>
-            <p className="mt-1 text-[11px] leading-relaxed" style={{ color: S.sub }}>
+            <p className="text-[14px] font-medium" style={{ color: '#92400e' }}>{copy.bannerTitle}</p>
+            <p className="mt-1 text-[13px] leading-relaxed" style={{ color: S.sub }}>
               {copy.bannerBody}
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="mb-1 text-[11px]" style={{ color: S.sub }}>标题（可选）</p>
+              <p className="mb-1 text-[13px]" style={{ color: S.sub }}>标题（可选）</p>
               <input
                 type="text"
                 value={title}
                 maxLength={60}
                 onChange={(event) => onTitleChange(event.target.value)}
                 placeholder="比如：第一次独自上台分享"
-                className={`${S.radiusSm} w-full px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+                className={`${S.radiusSm} w-full px-3 py-2 text-[14px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ background: '#fafaf8', color: S.text }}
               />
             </div>
 
             <div>
-              <p className="mb-1 text-[11px]" style={{ color: S.sub }}>为什么值得珍藏（可选）</p>
+              <p className="mb-1 text-[13px]" style={{ color: S.sub }}>为什么值得珍藏（可选）</p>
               <select
                 value={reason ?? ''}
                 onChange={(event) => onReasonChange(event.target.value ? event.target.value as KeepsakeReason : null)}
-                className={`${S.radiusSm} w-full px-3 py-2 text-[13px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+                className={`${S.radiusSm} w-full px-3 py-2 text-[14px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ background: '#fafaf8', color: S.text }}
               >
                 <option value="">暂不选择</option>
@@ -269,7 +269,7 @@ export function KeepsakePromptModal({
           {reason ? (
             <div className="flex justify-start">
               <span
-                className="rounded-full px-2.5 py-1 text-[10px] font-medium"
+                className="rounded-full px-2.5 py-1 text-[12px] font-medium"
                 style={{ background: '#fef3c7', color: '#a16207' }}
               >
                 {getKeepsakeReasonLabel(reason)}
@@ -284,7 +284,7 @@ export function KeepsakePromptModal({
               type="button"
               onClick={onSkip}
               disabled={saving}
-              className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4] disabled:opacity-50`}
+              className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4] disabled:opacity-50`}
               style={{ background: '#f0f0ec', color: S.sub }}
             >
               {copy.skipLabel}
@@ -293,7 +293,7 @@ export function KeepsakePromptModal({
               type="button"
               onClick={onSave}
               disabled={saving}
-              className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-50`}
+              className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-50`}
               style={{ background: S.accent }}
             >
               {saving ? copy.savingLabel : copy.saveLabel}

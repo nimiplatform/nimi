@@ -230,8 +230,8 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
             <button type="button" onClick={() => setShowMonthYearPicker((p) => !p)}
               className="relative flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 transition-colors hover:bg-[#e6f7f0]"
               style={{ background: 'linear-gradient(180deg, rgba(78,204,163,0.12), rgba(78,204,163,0.06))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.72)', color: '#2F7D6B' }}>
-              <span className="text-[15px] font-semibold tracking-[0.02em]">{displayMonth.getFullYear()}年</span>
-              <span className="relative pr-4 text-[15px] font-semibold tracking-[0.02em]">
+              <span className="text-[16px] font-semibold tracking-[0.02em]">{displayMonth.getFullYear()}年</span>
+              <span className="relative pr-4 text-[16px] font-semibold tracking-[0.02em]">
                 {displayMonth.getMonth() + 1}月
                 <ChevronRight size={13} strokeWidth={2} className="absolute right-[-1px] bottom-[1px] transition-transform"
                   style={{ color: '#3BB88A', transform: `rotate(${showMonthYearPicker ? 270 : 90}deg)` }} />
@@ -273,7 +273,7 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
       {/* Weekday headers */}
       <div className="mb-2 grid grid-cols-7 gap-1 px-1">
         {['一', '二', '三', '四', '五', '六', '日'].map((label) => (
-          <div key={label} className="flex h-8 items-center justify-center text-[11px] font-medium" style={{ color: S.sub }}>{label}</div>
+          <div key={label} className="flex h-8 items-center justify-center text-[13px] font-medium" style={{ color: S.sub }}>{label}</div>
         ))}
       </div>
 
@@ -289,7 +289,7 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
           return (
             <button key={day.toISOString()} type="button"
               onClick={() => { if (!isFuture) onChange(formatDateValue(day)); }}
-              className="relative flex h-10 items-center justify-center rounded-[13px] text-[13px] transition-all duration-150 hover:-translate-y-[1px]"
+              className="relative flex h-10 items-center justify-center rounded-[13px] text-[14px] transition-all duration-150 hover:-translate-y-[1px]"
               disabled={isFuture}
               style={{
                 color: textColor,
@@ -309,18 +309,18 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
       {/* Footer */}
       <div className="mt-3 flex items-center justify-between px-1">
         <button type="button" onClick={() => { const now = new Date(); onDisplayMonthChange(new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0, 0)); onChange(formatDateValue(clampToMax(now, maxDate))); }}
-          className="rounded-full px-3 py-1 text-[12px] font-medium transition-colors hover:bg-[#e6f7f0]" style={{ color: '#2F7D6B' }}>
+          className="rounded-full px-3 py-1 text-[14px] font-medium transition-colors hover:bg-[#e6f7f0]" style={{ color: '#2F7D6B' }}>
           今天
         </button>
         <div className="flex items-center gap-1">
           {onClear && value && (
             <button type="button" onClick={onClear}
-              className="rounded-full px-3 py-1 text-[12px] font-medium transition-colors hover:bg-[#f4f4ef]" style={{ color: '#9aa0a7' }}>
+              className="rounded-full px-3 py-1 text-[14px] font-medium transition-colors hover:bg-[#f4f4ef]" style={{ color: '#9aa0a7' }}>
               清空
             </button>
           )}
           <button type="button" onClick={onClose}
-            className="rounded-full px-3 py-1 text-[12px] font-medium transition-colors hover:bg-[#f4f4ef]" style={{ color: S.sub }}>
+            className="rounded-full px-3 py-1 text-[14px] font-medium transition-colors hover:bg-[#f4f4ef]" style={{ color: S.sub }}>
             关闭
           </button>
         </div>
@@ -394,7 +394,7 @@ export function ProfileDatePicker({
     toggle();
   };
 
-  const sizeClass = size === 'small' ? 'pl-2.5 pr-14 py-1.5 text-[12px]' : 'pl-3 pr-16 py-2 text-[13px]';
+  const sizeClass = size === 'small' ? 'pl-2.5 pr-14 py-1.5 text-[14px]' : 'pl-3 pr-16 py-2 text-[14px]';
 
   return (
     <div ref={wrapRef} className="relative">
@@ -402,7 +402,7 @@ export function ProfileDatePicker({
         <input type="text" readOnly value={formatDateDisplay(value)}
           className={`w-full ${S.radiusSm} ${sizeClass} outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 cursor-pointer ${className}`}
           style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8', ...style }} />
-        <div className={`absolute right-2 flex items-center gap-1 ${size === 'small' ? 'text-[11px]' : ''}`}>
+        <div className={`absolute right-2 flex items-center gap-1 ${size === 'small' ? 'text-[13px]' : ''}`}>
           {allowClear && value && (
             <button type="button" onClick={(e) => { e.stopPropagation(); onChange(''); setOpen(false); }}
               className="flex h-5 w-5 items-center justify-center rounded-full transition-colors hover:bg-[#e6f7f0]" style={{ color: '#9ea5ad' }} aria-label="清空日期">

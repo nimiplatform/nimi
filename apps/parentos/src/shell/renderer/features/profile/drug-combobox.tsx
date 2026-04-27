@@ -109,7 +109,7 @@ export function DrugComboBox({ value, onChange, onSelect, historyDrugs, placehol
         onChange={(e) => { onChange(e.target.value); if (e.target.value.trim().length >= 2) { if (!mounted) openPanel(); } else { closePanel(); } }}
         onFocus={() => { if (queryLen >= 2 && !mounted) openPanel(); }}
         placeholder={placeholder ?? '搜索药品名称或拼音首字母'}
-        className="w-full bg-transparent text-[13px] outline-none"
+        className="w-full bg-transparent text-[14px] outline-none"
         style={{ color: S.text }}
       />
 
@@ -133,7 +133,7 @@ export function DrugComboBox({ value, onChange, onSelect, historyDrugs, placehol
           <div className="overflow-y-auto" style={{ maxHeight: 240 }}>
             {matches.length === 0 && !showCustom && shouldSearch && (
               <div className="px-3 py-4 text-center">
-                <p className="text-[11px]" style={{ color: S.sub }}>未找到匹配药品</p>
+                <p className="text-[13px]" style={{ color: S.sub }}>未找到匹配药品</p>
               </div>
             )}
 
@@ -142,12 +142,12 @@ export function DrugComboBox({ value, onChange, onSelect, historyDrugs, placehol
                 onClick={() => handleSelect(drug)}
                 className="flex items-center gap-2 w-full px-3 py-2 text-left transition-colors hover:bg-[#f5f3ef]">
                 <div className="flex-1 min-w-0">
-                  <span className="text-[12px] font-medium" style={{ color: S.text }}>{drug.name}</span>
+                  <span className="text-[14px] font-medium" style={{ color: S.text }}>{drug.name}</span>
                   {drug.generic && (
-                    <span className="text-[10px] ml-1" style={{ color: S.sub }}>({drug.generic})</span>
+                    <span className="text-[12px] ml-1" style={{ color: S.sub }}>({drug.generic})</span>
                   )}
                 </div>
-                <span className="text-[10px] shrink-0 px-1.5 py-0.5 rounded" style={{ background: '#f5f3ef', color: S.sub }}>
+                <span className="text-[12px] shrink-0 px-1.5 py-0.5 rounded" style={{ background: '#f5f3ef', color: S.sub }}>
                   {drug.unit}
                 </span>
               </button>
@@ -158,7 +158,7 @@ export function DrugComboBox({ value, onChange, onSelect, historyDrugs, placehol
               <button onClick={handleCustom}
                 className="flex items-center gap-2 w-full px-3 py-2.5 text-left transition-colors hover:bg-[#f5f3ef]"
                 style={{ borderTop: `1px solid ${S.border}` }}>
-                <span className="text-[12px] font-medium" style={{ color: S.accent }}>
+                <span className="text-[14px] font-medium" style={{ color: S.accent }}>
                   + 添加自定义药品: "{value.trim()}"
                 </span>
               </button>

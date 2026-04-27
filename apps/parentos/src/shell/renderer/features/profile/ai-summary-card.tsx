@@ -61,7 +61,7 @@ function cacheKey(childId: string, domain: string) {
  * If it doesn't, the model was cut off (token limit, transport, etc.) and
  * we should not persist it to the 24h cache.
  */
-const TERMINAL_PUNCTUATION = /[。！？\.!?"'”’）\)]\s*$/u;
+const TERMINAL_PUNCTUATION = /[。！？.!?"'”’）)]\s*$/u;
 
 function looksTruncated(text: string): boolean {
   const trimmed = text.trim();
@@ -184,7 +184,7 @@ export function AISummaryCard(props: AISummaryCardProps) {
       <div className={`${S.radius} p-4 mb-5 flex items-center gap-3`}
         style={{ background: '#f9faf7', border: `1px solid ${S.border}` }}>
         <span className="text-[20px]">📊</span>
-        <p className="text-[12px]" style={{ color: S.sub }}>记录更多数据后，AI 将为您生成分析报告</p>
+        <p className="text-[14px]" style={{ color: S.sub }}>记录更多数据后，AI 将为您生成分析报告</p>
       </div>
     );
   }
@@ -194,11 +194,11 @@ export function AISummaryCard(props: AISummaryCardProps) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-[16px]">✨</span>
-          <h3 className="text-[13px] font-semibold" style={{ color: S.text }}>AI 分析</h3>
+          <h3 className="text-[14px] font-semibold" style={{ color: S.text }}>AI 分析</h3>
         </div>
         <button onClick={() => void generate(true)}
           disabled={loading}
-          className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full transition-colors hover:bg-[#f0f0ec] disabled:opacity-40"
+          className="flex items-center gap-1 text-[13px] px-2.5 py-1 rounded-full transition-colors hover:bg-[#f0f0ec] disabled:opacity-40"
           style={{ color: S.sub }}
           title="重新生成">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
@@ -218,15 +218,15 @@ export function AISummaryCard(props: AISummaryCardProps) {
         </div>
       ) : error ? (
         <div className="flex items-center gap-2">
-          <span className="text-[12px]" style={{ color: S.sub }}>连接 AI 运行时后可查看智能分析</span>
+          <span className="text-[14px]" style={{ color: S.sub }}>连接 AI 运行时后可查看智能分析</span>
           <button onClick={() => void generate(true)}
-            className={`text-[11px] px-2 py-0.5 ${S.radiusSm} transition-colors hover:bg-[#f0f0ec]`}
+            className={`text-[13px] px-2 py-0.5 ${S.radiusSm} transition-colors hover:bg-[#f0f0ec]`}
             style={{ color: S.accent, border: `1px solid ${S.border}` }}>
             重试
           </button>
         </div>
       ) : summary ? (
-        <p className="text-[12px] leading-relaxed" style={{ color: S.text }}>{summary}</p>
+        <p className="text-[14px] leading-relaxed" style={{ color: S.text }}>{summary}</p>
       ) : null}
     </div>
   );

@@ -23,17 +23,17 @@ function MiniTrendRow({ trend }: { trend: GrowthTrendItem }) {
     <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-medium" style={{ color: textMuted }}>{trend.label}</p>
+          <p className="text-[13px] font-medium" style={{ color: textMuted }}>{trend.label}</p>
           {hasDelta ? (
-            <p className="mt-1 text-[10px] font-semibold" style={{ color: deltaColor }}>
+            <p className="mt-1 text-[12px] font-semibold" style={{ color: deltaColor }}>
               {deltaArrow} {trend.delta! > 0 ? '+' : ''}{trend.delta}{trend.unit ? ` ${trend.unit}` : ''}
               {trend.deltaPercent !== null ? <span className="ml-1 font-normal" style={{ color: '#64748b' }}>({trend.deltaPercent! > 0 ? '+' : ''}{trend.deltaPercent}%)</span> : null}
             </p>
           ) : null}
         </div>
         <div className="text-right">
-          <span className="text-[22px] font-semibold leading-none tracking-tight" style={{ color: textMain }}>{trend.latestValue}</span>
-          {trend.unit ? <span className="ml-1 text-[10px]" style={{ color: '#64748b' }}>{trend.unit}</span> : null}
+          <span className="text-[24px] font-semibold leading-none tracking-tight" style={{ color: textMain }}>{trend.latestValue}</span>
+          {trend.unit ? <span className="ml-1 text-[12px]" style={{ color: '#64748b' }}>{trend.unit}</span> : null}
         </div>
       </div>
       {hasChart ? (
@@ -61,15 +61,15 @@ export function GrowthSnapshotCard({ snapshot }: { snapshot: { updatedAt: string
     <Cd cls="col-span-4">
       <Hdr title="成长快照" to="/profile/growth" link="查看曲线" />
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-[12px] font-semibold" style={{ color: textMain }}>最近一次成长测量</p>
-        <span className="text-[10px]" style={{ color: '#64748b' }}>{snapshot.updatedLabel}</span>
+        <p className="text-[14px] font-semibold" style={{ color: textMain }}>最近一次成长测量</p>
+        <span className="text-[12px]" style={{ color: '#64748b' }}>{snapshot.updatedLabel}</span>
       </div>
       {snapshot.trends.length > 0 ? (
         <div className="space-y-3">{snapshot.trends.map((trend) => <MiniTrendRow key={trend.id} trend={trend} />)}</div>
       ) : (
         <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
-          <p className="text-[13px] font-semibold" style={{ color: textMain }}>还没有成长测量快照</p>
-          <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>记录第一条身高或体重后，这里会自动显示趋势曲线。</p>
+          <p className="text-[14px] font-semibold" style={{ color: textMain }}>还没有成长测量快照</p>
+          <p className="mt-1 text-[13px] leading-relaxed" style={{ color: textMuted }}>记录第一条身高或体重后，这里会自动显示趋势曲线。</p>
         </div>
       )}
     </Cd>
@@ -87,25 +87,25 @@ export function RecentLinesCard({ lines }: { lines: RecentLineItem[] }) {
               style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
               <div className="flex items-center justify-between gap-2">
                 <span
-                  className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  className="rounded-full px-2 py-0.5 text-[12px] font-medium"
                   style={line.badgeTone === 'keepsake'
                     ? { background: 'rgba(245, 158, 11, 0.12)', color: '#b45309' }
                     : { background: 'rgba(255,255,255,0.6)', color: textMuted }}
                 >
                   {line.badge}
                 </span>
-                <span className="text-[10px]" style={{ color: '#64748b' }}>{fmtRel(line.recordedAt)}</span>
+                <span className="text-[12px]" style={{ color: '#64748b' }}>{fmtRel(line.recordedAt)}</span>
               </div>
-              <p className="mt-3 line-clamp-3 text-[12px] font-medium leading-relaxed" style={{ color: textMain }}>{line.title}</p>
-              <p className="mt-2 text-[10px]" style={{ color: textMuted }}>{line.detail}</p>
-              {line.tag ? <p className="mt-2 text-[10px] font-medium" style={{ color: '#b45309' }}>{line.tag}</p> : null}
+              <p className="mt-3 line-clamp-3 text-[14px] font-medium leading-relaxed" style={{ color: textMain }}>{line.title}</p>
+              <p className="mt-2 text-[12px]" style={{ color: textMuted }}>{line.detail}</p>
+              {line.tag ? <p className="mt-2 text-[12px] font-medium" style={{ color: '#b45309' }}>{line.tag}</p> : null}
             </Link>
           ))}
         </div>
       ) : (
         <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
-          <p className="text-[13px] font-semibold" style={{ color: textMain }}>最近还没有新的线索</p>
-          <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>记录一条观察、日记或语音后，这里会自动显示最近留下的内容。</p>
+          <p className="text-[14px] font-semibold" style={{ color: textMain }}>最近还没有新的线索</p>
+          <p className="mt-1 text-[13px] leading-relaxed" style={{ color: textMuted }}>记录一条观察、日记或语音后，这里会自动显示最近留下的内容。</p>
         </div>
       )}
     </Cd>
@@ -132,8 +132,8 @@ export function OutdoorGoalCard({
       <Cd cls="col-span-4">
         <Hdr title="每周户外目标" to="/profile/outdoor" link="设定目标" />
         <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
-          <p className="text-[13px] font-semibold" style={{ color: textMain }}>还没有设定户外目标</p>
-          <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>
+          <p className="text-[14px] font-semibold" style={{ color: textMain }}>还没有设定户外目标</p>
+          <p className="mt-1 text-[13px] leading-relaxed" style={{ color: textMuted }}>
             每天 2 小时以上的户外活动有助于保护视力。设定每周目标，追踪孩子的户外时间。
           </p>
         </div>
@@ -147,15 +147,15 @@ export function OutdoorGoalCard({
       <div className="space-y-3">
         <div className="flex items-end justify-between">
           <p className="text-[18px] font-bold tabular-nums" style={{ color: textMain }}>
-            {summary.totalMinutes} <span className="text-[12px] font-normal" style={{ color: textMuted }}>/ {effectiveGoal} 分钟</span>
+            {summary.totalMinutes} <span className="text-[14px] font-normal" style={{ color: textMuted }}>/ {effectiveGoal} 分钟</span>
           </p>
-          <span className="text-[12px] font-medium tabular-nums" style={{ color: barColor }}>{progressPercent}%</span>
+          <span className="text-[14px] font-medium tabular-nums" style={{ color: barColor }}>{progressPercent}%</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full" style={{ background: 'rgba(226,232,240,0.5)' }}>
           <div className="h-full rounded-full transition-all" style={{ width: `${progressPercent}%`, background: barColor }} />
         </div>
-        <p className="text-[12px]" style={{ color: textMuted }}>{message.primary}</p>
-        {message.secondary ? <p className="text-[11px]" style={{ color: textMuted }}>{message.secondary}</p> : null}
+        <p className="text-[14px]" style={{ color: textMuted }}>{message.primary}</p>
+        {message.secondary ? <p className="text-[13px]" style={{ color: textMuted }}>{message.secondary}</p> : null}
       </div>
     </Cd>
   );

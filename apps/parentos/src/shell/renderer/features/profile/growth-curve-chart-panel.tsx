@@ -93,11 +93,11 @@ export function GrowthCurveChartPanel({
       <div className={`${S.radius} p-5 mb-6`} style={{ background: S.card, boxShadow: S.shadow }}>
         {chartData.length === 0 ? (
           <div className="p-8 text-center">
-            <span className="text-[28px]">📏</span>
-            <p className="text-[13px] mt-2 font-medium" style={{ color: S.text }}>
+            <span className="text-[24px]">📏</span>
+            <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>
               还没有{typeInfo?.displayName ?? selectedType}记录
             </p>
-            <p className="text-[11px] mt-1" style={{ color: S.sub }}>点击右上角添加第一条记录</p>
+            <p className="text-[13px] mt-1" style={{ color: S.sub }}>点击右上角添加第一条记录</p>
           </div>
         ) : (
           (() => {
@@ -166,14 +166,14 @@ export function GrowthCurveChartPanel({
                             minWidth: 160,
                           }}
                         >
-                          <p className="text-[11px] font-medium" style={{ color: '#94a3b8' }}>
+                          <p className="text-[13px] font-medium" style={{ color: '#94a3b8' }}>
                             {formatAgeLabel(age)}
                             {point?.date ? ` · ${point.date}` : ''}
                           </p>
                           <p className="text-[20px] font-bold mt-1 tracking-tight" style={{ color: '#1e293b' }}>
-                            {value}<span className="text-[12px] font-medium ml-1" style={{ color: '#94a3b8' }}>{unit}</span>
+                            {value}<span className="text-[14px] font-medium ml-1" style={{ color: '#94a3b8' }}>{unit}</span>
                           </p>
-                          {hint ? <p className="text-[11px] mt-1.5 font-medium" style={{ color: hint.color }}>{hint.text}</p> : null}
+                          {hint ? <p className="text-[13px] mt-1.5 font-medium" style={{ color: hint.color }}>{hint.text}</p> : null}
                         </div>
                       );
                     }}
@@ -257,7 +257,7 @@ export function GrowthCurveChartPanel({
 
       {referenceNote ? (
         <div
-          className={`${S.radiusSm} px-3 py-2 mb-4 text-[11px]`}
+          className={`${S.radiusSm} px-3 py-2 mb-4 text-[13px]`}
           style={{ background: '#f7f6f2', border: `1px solid ${S.border}`, color: S.sub }}
         >
           {referenceNote}
@@ -286,17 +286,17 @@ export function GrowthCurveChartPanel({
               <span className="text-[20px] mt-0.5">🦴</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[14px] font-semibold" style={{ color: S.text }}>骨龄 {boneAgeYears} 岁</span>
-                  <span className="text-[11px]" style={{ color: S.sub }}>（实际 {actualAgeStr}）</span>
+                  <span className="text-[16px] font-semibold" style={{ color: S.text }}>骨龄 {boneAgeYears} 岁</span>
+                  <span className="text-[13px]" style={{ color: S.sub }}>（实际 {actualAgeStr}）</span>
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="w-2 h-2 rounded-full inline-block" style={{ background: status.color }} />
-                  <span className="text-[12px]" style={{ color: status.color }}>{status.label}</span>
-                  {absDiff > 1 ? <span className="text-[11px]" style={{ color: S.sub }}> — 建议关注身高增长趋势</span> : null}
+                  <span className="text-[14px]" style={{ color: status.color }}>{status.label}</span>
+                  {absDiff > 1 ? <span className="text-[13px]" style={{ color: S.sub }}> — 建议关注身高增长趋势</span> : null}
                 </div>
                 <div className="flex items-center gap-3 mt-1.5">
-                  <span className="text-[10px]" style={{ color: S.sub }}>评估日期：{latest.measuredAt.split('T')[0]}</span>
-                  <Link to="/profile/tanner" className="text-[10px] hover:underline" style={{ color: S.accent }}>
+                  <span className="text-[12px]" style={{ color: S.sub }}>评估日期：{latest.measuredAt.split('T')[0]}</span>
+                  <Link to="/profile/tanner" className="text-[12px] hover:underline" style={{ color: S.accent }}>
                     详细记录 → 青春期发育
                   </Link>
                 </div>

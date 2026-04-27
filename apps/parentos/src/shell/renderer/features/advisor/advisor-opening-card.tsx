@@ -128,7 +128,7 @@ export function AdvisorOpeningCard({ childName, ageLabel, snapshot, siblingNames
     <div className="shrink-0 px-5 pb-1 pt-4">
       <div className="mx-auto max-w-2xl">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1">
-          <div className="flex items-center gap-1.5 text-[12px] text-slate-500">
+          <div className="flex items-center gap-1.5 text-[14px] text-slate-500">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
             <span className="font-medium text-slate-700">{childName}</span>
             <span className="text-slate-400">· {ageLabel}</span>
@@ -136,7 +136,7 @@ export function AdvisorOpeningCard({ childName, ageLabel, snapshot, siblingNames
           {facts.map((fact) => (
             <span
               key={`${fact.label}-${fact.dateIso}`}
-              className="inline-flex items-center gap-1 text-[11.5px] text-slate-500"
+              className="inline-flex items-center gap-1 text-[13px] text-slate-500"
             >
               <span aria-hidden>{fact.icon}</span>
               <span className="text-slate-600">{fact.detail}</span>

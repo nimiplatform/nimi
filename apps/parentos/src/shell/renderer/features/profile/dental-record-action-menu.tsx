@@ -83,7 +83,7 @@ export function DentalRecordActionMenu({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setOpen(false); onEdit(); }}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition-colors hover:bg-[#f5f3ef]"
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] transition-colors hover:bg-[#f5f3ef]"
             style={{ color: S.text }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -95,7 +95,7 @@ export function DentalRecordActionMenu({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setOpen(false); onDelete(); }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition-colors hover:bg-[#fef2f2]"
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] transition-colors hover:bg-[#fef2f2]"
               style={{ color: '#dc2626' }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

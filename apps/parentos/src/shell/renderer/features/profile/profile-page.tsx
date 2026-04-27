@@ -193,7 +193,7 @@ export default function ProfilePage() {
             {/* Info */}
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-semibold tracking-tight" style={{ color: '#1e293b', letterSpacing: '-0.3px' }}>{activeChild.displayName}</h1>
-              <p className="text-[12px] mt-0.5" style={{ color: '#475569' }}>
+              <p className="text-[14px] mt-0.5" style={{ color: '#475569' }}>
                 {ageY > 0 ? `${ageY}岁` : ''}{ageR > 0 ? `${ageR}个月` : ''} · {activeChild.gender === 'male' ? '男孩' : '女孩'} · 出生 {activeChild.birthDate}
               </p>
               {/* Profile completeness */}
@@ -201,11 +201,11 @@ export default function ProfilePage() {
                 <div className="flex-1 h-[5px] rounded-full overflow-hidden" style={{ background: '#F0F4F8' }}>
                   <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: '#4ECCA3' }} />
                 </div>
-                <span className="text-[10px]" style={{ color: '#475569' }}>{pct}%</span>
+                <span className="text-[12px]" style={{ color: '#475569' }}>{pct}%</span>
               </div>
             </div>
             {/* Edit button */}
-            <Link to="/settings/children" className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium text-white transition-all hover:-translate-y-0.5" style={{ background: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <Link to="/settings/children" className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[13px] font-medium text-white transition-all hover:-translate-y-0.5" style={{ background: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>
               编辑
             </Link>
@@ -215,8 +215,8 @@ export default function ProfilePage() {
         {/* ── Summary load error ─────────────────────────────── */}
         {summaryError && (
           <div className="rounded-[14px] p-4 mb-4 flex items-center justify-between" style={{ background: '#f5f5f4', border: '1px solid #e7e5e4' }}>
-            <p className="text-[12px]" style={{ color: '#78716c' }}>档案摘要暂时无法加载</p>
-            <button onClick={() => activeChildId && loadData(activeChildId)} className="text-[11px] px-3 py-1 rounded-full" style={{ background: '#e7e5e4', color: '#57534e' }}>
+            <p className="text-[14px]" style={{ color: '#78716c' }}>档案摘要暂时无法加载</p>
+            <button onClick={() => activeChildId && loadData(activeChildId)} className="text-[13px] px-3 py-1 rounded-full" style={{ background: '#e7e5e4', color: '#57534e' }}>
               重试
             </button>
           </div>
@@ -224,7 +224,7 @@ export default function ProfilePage() {
 
         {/* ── Section grid (archive only) ───────────────────── */}
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[14px] font-bold" style={{ color: C.text }}>健康档案</h2>
+          <h2 className="text-[16px] font-bold" style={{ color: C.text }}>健康档案</h2>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {orderedSections.map((s) => {
@@ -238,12 +238,12 @@ export default function ProfilePage() {
                 className="flex items-start gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
                 <ArchiveCardIcon src={s.iconSrc} offsetX={s.iconOffsetX} scale={s.iconScale} />
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{label}</h3>
+                  <h3 className="text-[14px] font-semibold" style={{ color: C.text }}>{label}</h3>
                   {/* Section summary line */}
                   {!loading && summary && (
                     <SectionStatusLine summary={summary} />
                   )}
-                  <p className="text-[11px] mt-0.5 leading-snug" style={{ color: C.sub }}>{desc}</p>
+                  <p className="text-[13px] mt-0.5 leading-snug" style={{ color: C.sub }}>{desc}</p>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2" strokeLinecap="round" className="shrink-0 mt-1"><path d="M9 18l6-6-6-6" /></svg>
               </Surface>
@@ -258,8 +258,8 @@ export default function ProfilePage() {
               className="flex items-center gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
               <ArchiveCardIcon src={t.iconSrc} offsetX={t.iconOffsetX} scale={t.iconScale} />
               <div className="min-w-0 flex-1">
-                <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{t.label}</h3>
-                <p className="text-[11px] mt-0.5" style={{ color: C.sub }}>{t.desc}</p>
+                <h3 className="text-[14px] font-semibold" style={{ color: C.text }}>{t.label}</h3>
+                <p className="text-[13px] mt-0.5" style={{ color: C.sub }}>{t.desc}</p>
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2" strokeLinecap="round" className="shrink-0"><path d="M9 18l6-6-6-6" /></svg>
             </Surface>
@@ -270,7 +270,7 @@ export default function ProfilePage() {
         {TOOL_ENTRIES.length > 0 && (
           <>
             <div className="flex items-center mb-3 mt-6">
-              <h2 className="text-[14px] font-bold" style={{ color: C.text }}>工具</h2>
+              <h2 className="text-[16px] font-bold" style={{ color: C.text }}>工具</h2>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {TOOL_ENTRIES.map((t) => (
@@ -279,8 +279,8 @@ export default function ProfilePage() {
                   style={{ borderLeft: `3px solid ${C.accent}` }}>
                   <ArchiveCardIcon src={t.iconSrc} offsetX={t.iconOffsetX} scale={t.iconScale} />
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{t.label}</h3>
-                    <p className="text-[11px] mt-0.5" style={{ color: C.sub }}>{t.desc}</p>
+                    <h3 className="text-[14px] font-semibold" style={{ color: C.text }}>{t.label}</h3>
+                    <p className="text-[13px] mt-0.5" style={{ color: C.sub }}>{t.desc}</p>
                   </div>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2" strokeLinecap="round" className="shrink-0"><path d="M9 18l6-6-6-6" /></svg>
                 </Surface>
@@ -312,7 +312,7 @@ function ArchiveCardIcon({ src, offsetX = 0, scale = 1 }: { src: string; offsetX
 function SectionStatusLine({ summary }: { summary: SectionSummary }) {
   if (summary.state === 'error') {
     return (
-      <p className="text-[10px] mt-0.5" style={{ color: C.sub }}>
+      <p className="text-[12px] mt-0.5" style={{ color: C.sub }}>
         点击重试
       </p>
     );
@@ -321,7 +321,7 @@ function SectionStatusLine({ summary }: { summary: SectionSummary }) {
     return null;
   }
   return (
-    <p className="text-[10px] mt-0.5" style={{ color: '#16a34a' }}>
+    <p className="text-[12px] mt-0.5" style={{ color: '#16a34a' }}>
       {summary.recordCount} 条{summary.lastUpdatedAt ? ` · ${formatRelativeDate(summary.lastUpdatedAt)}` : ''}
     </p>
   );

@@ -172,7 +172,7 @@ export function PostureGuide({ onClose }: { onClose: () => void }) {
       {/* Step header */}
       <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg, #6f8f2c, #1e293b)' }}>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[10px] text-white/60">体态观察指引</span>
+          <span className="text-[12px] text-white/60">体态观察指引</span>
           <button onClick={onClose} className="w-6 h-6 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10">✕</button>
         </div>
         <h3 className="text-[16px] font-bold text-white mb-3">{current.title}</h3>
@@ -182,7 +182,7 @@ export function PostureGuide({ onClose }: { onClose: () => void }) {
             <button key={i} onClick={() => setStep(i)}
               className={`h-[6px] rounded-full transition-all ${i === step ? 'w-6 bg-white' : 'w-[6px] bg-white/30 hover:bg-white/50'}`} />
           ))}
-          <span className="text-[10px] text-white/50 ml-2">{step + 1}/{GUIDE_STEPS.length}</span>
+          <span className="text-[12px] text-white/50 ml-2">{step + 1}/{GUIDE_STEPS.length}</span>
         </div>
       </div>
 
@@ -191,11 +191,11 @@ export function PostureGuide({ onClose }: { onClose: () => void }) {
         {current.sections.map((sec, si) => (
           <div key={si}>
             {'heading' in sec && sec.heading && (
-              <h4 className="text-[13px] font-semibold mb-2" style={{ color: S.text }}>{sec.heading}</h4>
+              <h4 className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>{sec.heading}</h4>
             )}
 
             {'body' in sec && sec.body && (
-              <p className="text-[12px] leading-relaxed" style={{ color: S.sub }}>{sec.body}</p>
+              <p className="text-[14px] leading-relaxed" style={{ color: S.sub }}>{sec.body}</p>
             )}
 
             {'items' in sec && sec.items && (
@@ -203,12 +203,12 @@ export function PostureGuide({ onClose }: { onClose: () => void }) {
                 {sec.items.map((item, ii) => (
                   <div key={ii} className={`${S.radiusSm} p-3`} style={{ background: '#f8faf9', border: `1px solid ${S.border}` }}>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[12px] font-semibold" style={{ color: S.text }}>{item.label}</span>
+                      <span className="text-[14px] font-semibold" style={{ color: S.text }}>{item.label}</span>
                       {item.tag && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: '#e8f0e8', color: S.accent }}>{item.tag}</span>
+                        <span className="text-[12px] px-1.5 py-0.5 rounded-full" style={{ background: '#e8f0e8', color: S.accent }}>{item.tag}</span>
                       )}
                     </div>
-                    <p className="text-[11px] leading-relaxed" style={{ color: S.sub }}>{item.desc}</p>
+                    <p className="text-[13px] leading-relaxed" style={{ color: S.sub }}>{item.desc}</p>
                   </div>
                 ))}
               </div>
@@ -216,11 +216,11 @@ export function PostureGuide({ onClose }: { onClose: () => void }) {
 
             {'table' in sec && sec.table && (
               <div className={`${S.radiusSm} overflow-hidden border`} style={{ borderColor: S.border }}>
-                <div className="grid grid-cols-[0.8fr_1fr_1.5fr] text-[10px] font-medium py-2 px-3" style={{ background: '#f8faf9', color: S.sub }}>
+                <div className="grid grid-cols-[0.8fr_1fr_1.5fr] text-[12px] font-medium py-2 px-3" style={{ background: '#f8faf9', color: S.sub }}>
                   <span>角度</span><span>分级</span><span>建议</span>
                 </div>
                 {sec.table.map((row, ri) => (
-                  <div key={ri} className="grid grid-cols-[0.8fr_1fr_1.5fr] py-2 px-3 border-t text-[11px]"
+                  <div key={ri} className="grid grid-cols-[0.8fr_1fr_1.5fr] py-2 px-3 border-t text-[13px]"
                     style={{ borderColor: '#f0f0ec', background: ri % 2 === 0 ? S.card : '#fafcfb' }}>
                     <span className="font-semibold" style={{ color: S.accent }}>{row.field}</span>
                     <span style={{ color: S.text }}>{row.meaning}</span>
@@ -232,8 +232,8 @@ export function PostureGuide({ onClose }: { onClose: () => void }) {
 
             {'warning' in sec && sec.warning && (
               <div className={`${S.radiusSm} px-4 py-3`} style={{ background: '#fff8e8', border: '1px solid #f3d38a' }}>
-                <p className="text-[12px] font-semibold mb-1" style={{ color: S.text }}>{sec.warning.title}</p>
-                <p className="text-[11px] leading-relaxed" style={{ color: S.sub }}>{sec.warning.body}</p>
+                <p className="text-[14px] font-semibold mb-1" style={{ color: S.text }}>{sec.warning.title}</p>
+                <p className="text-[13px] leading-relaxed" style={{ color: S.sub }}>{sec.warning.body}</p>
               </div>
             )}
           </div>
@@ -243,17 +243,17 @@ export function PostureGuide({ onClose }: { onClose: () => void }) {
       {/* Navigation */}
       <div className="flex items-center justify-between px-5 py-3" style={{ background: '#f8faf9', borderTop: `1px solid ${S.border}` }}>
         <button onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}
-          className="text-[12px] font-medium disabled:opacity-30" style={{ color: S.sub }}>
+          className="text-[14px] font-medium disabled:opacity-30" style={{ color: S.sub }}>
           ← 上一步
         </button>
         {step < GUIDE_STEPS.length - 1 ? (
           <button onClick={() => setStep(step + 1)}
-            className={`px-4 py-1.5 text-[12px] font-medium text-white ${S.radiusSm}`} style={{ background: S.accent }}>
+            className={`px-4 py-1.5 text-[14px] font-medium text-white ${S.radiusSm}`} style={{ background: S.accent }}>
             下一步 →
           </button>
         ) : (
           <button onClick={onClose}
-            className={`px-4 py-1.5 text-[12px] font-medium text-white ${S.radiusSm}`} style={{ background: S.accent }}>
+            className={`px-4 py-1.5 text-[14px] font-medium text-white ${S.radiusSm}`} style={{ background: S.accent }}>
             我知道了 ✓
           </button>
         )}

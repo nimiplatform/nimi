@@ -49,10 +49,10 @@ export function VisionSummaryCard({ childId }: { childId: string }) {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-medium" style={{ color: S.text }}>视力档案</span>
-            <span className="text-[10px]" style={{ color: S.sub }}>尚无检查记录</span>
+            <span className="text-[14px] font-medium" style={{ color: S.text }}>视力档案</span>
+            <span className="text-[12px]" style={{ color: S.sub }}>尚无检查记录</span>
           </div>
-          <span className="text-[11px]" style={{ color: S.sub }}>录入 →</span>
+          <span className="text-[13px]" style={{ color: S.sub }}>录入 →</span>
         </div>
       </Link>
     );
@@ -76,29 +76,29 @@ export function VisionSummaryCard({ childId }: { childId: string }) {
     >
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[13px] font-medium" style={{ color: S.text }}>最近一次视力检查</span>
-          <span className="text-[10px]" style={{ color: S.sub }}>{latestRecord.date} · {elapsed}</span>
+          <span className="text-[14px] font-medium" style={{ color: S.text }}>最近一次视力检查</span>
+          <span className="text-[12px]" style={{ color: S.sub }}>{latestRecord.date} · {elapsed}</span>
         </div>
-        <span className="text-[11px]" style={{ color: S.sub }}>查看档案 →</span>
+        <span className="text-[13px]" style={{ color: S.sub }}>查看档案 →</span>
       </div>
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         {hasVision && (
           <div className="flex items-baseline gap-2">
-            <span className="text-[10px]" style={{ color: S.sub }}>裸眼</span>
-            <span className="text-[14px] font-bold tabular-nums" style={{ color: S.text }}>
+            <span className="text-[12px]" style={{ color: S.sub }}>裸眼</span>
+            <span className="text-[16px] font-bold tabular-nums" style={{ color: S.text }}>
               R {vr ?? '—'} · L {vl ?? '—'}
             </span>
           </div>
         )}
         {hasAxial && (
           <div className="flex items-baseline gap-2">
-            <span className="text-[10px]" style={{ color: S.sub }}>眼轴</span>
-            <span className="text-[14px] font-bold tabular-nums" style={{ color: S.text }}>
+            <span className="text-[12px]" style={{ color: S.sub }}>眼轴</span>
+            <span className="text-[16px] font-bold tabular-nums" style={{ color: S.text }}>
               R {ar != null ? `${ar}mm` : '—'} · L {al != null ? `${al}mm` : '—'}
             </span>
           </div>
         )}
-        <span className="ml-auto text-[10px]" style={{ color: S.sub }}>{fmtAge(latestRecord.ageMonths)}</span>
+        <span className="ml-auto text-[12px]" style={{ color: S.sub }}>{fmtAge(latestRecord.ageMonths)}</span>
       </div>
     </Link>
   );

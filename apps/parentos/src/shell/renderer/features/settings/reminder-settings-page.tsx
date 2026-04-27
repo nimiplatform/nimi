@@ -55,21 +55,21 @@ export default function ReminderSettingsPage() {
   return (
     <div className="min-h-full p-6" style={{ background: 'transparent' }}>
       <div className="max-w-3xl mx-auto">
-        <Link to="/settings" className="inline-flex items-center gap-1 text-[12px] mb-5 hover:underline" style={{ color: S.sub }}>
+        <Link to="/settings" className="inline-flex items-center gap-1 text-[14px] mb-5 hover:underline" style={{ color: S.sub }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
           返回设置
         </Link>
 
-        <h1 className="text-[22px] font-bold mb-2" style={{ color: S.text }}>提醒管理</h1>
-        <p className="text-[12px] mb-6" style={{ color: S.sub }}>查看和管理已自定义频率的提醒规则</p>
+        <h1 className="text-[24px] font-bold mb-2" style={{ color: S.text }}>提醒管理</h1>
+        <p className="text-[14px] mb-6" style={{ color: S.sub }}>查看和管理已自定义频率的提醒规则</p>
 
         {loading ? (
-          <p className="text-[13px]" style={{ color: S.sub }}>加载中...</p>
+          <p className="text-[14px]" style={{ color: S.sub }}>加载中...</p>
         ) : entries.length === 0 ? (
           <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-            <span className="text-[28px]">⏱️</span>
-            <p className="text-[13px] mt-2 font-medium" style={{ color: S.text }}>所有提醒使用默认频率</p>
-            <p className="text-[11px] mt-1" style={{ color: S.sub }}>在首页或提醒页点击"调整频率"可自定义</p>
+            <span className="text-[24px]">⏱️</span>
+            <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>所有提醒使用默认频率</p>
+            <p className="text-[13px] mt-1" style={{ color: S.sub }}>在首页或提醒页点击"调整频率"可自定义</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -77,12 +77,12 @@ export default function ReminderSettingsPage() {
               <div key={entry.ruleId} className={`${S.radius} p-4 flex items-center gap-4`} style={{ background: S.card, boxShadow: S.shadow }}>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: '#f5f3ef', color: S.sub }}>
+                    <span className="text-[12px] px-2 py-0.5 rounded-full" style={{ background: '#f5f3ef', color: S.sub }}>
                       {DOMAIN_LABELS[entry.domain] ?? entry.domain}
                     </span>
-                    <p className="text-[13px] font-medium truncate" style={{ color: S.text }}>{entry.ruleTitle}</p>
+                    <p className="text-[14px] font-medium truncate" style={{ color: S.text }}>{entry.ruleTitle}</p>
                   </div>
-                  <p className="text-[11px] mt-1" style={{ color: S.sub }}>
+                  <p className="text-[13px] mt-1" style={{ color: S.sub }}>
                     默认：每 {entry.defaultInterval} 个月 →
                     {entry.override.disabled ? (
                       <span style={{ color: '#dc2626' }}> 已关闭</span>
@@ -92,7 +92,7 @@ export default function ReminderSettingsPage() {
                   </p>
                 </div>
                 <button onClick={() => void handleReset(entry.ruleId)}
-                  className={`shrink-0 px-3 py-1.5 text-[11px] ${S.radiusSm} hover:opacity-80`}
+                  className={`shrink-0 px-3 py-1.5 text-[13px] ${S.radiusSm} hover:opacity-80`}
                   style={{ background: '#f5f3ef', color: S.text }}>
                   恢复默认
                 </button>

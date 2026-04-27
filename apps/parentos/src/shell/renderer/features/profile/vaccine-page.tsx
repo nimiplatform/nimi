@@ -53,45 +53,45 @@ function VaccineRecordModal({ rule, childId, birthDate, onSave, onClose }: {
         <div className="flex items-center justify-between px-6 pt-6 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-[20px]">💉</span>
-            <h2 className="text-[15px] font-bold" style={{ color: S.text }}>{rule.title}</h2>
+            <h2 className="text-[16px] font-bold" style={{ color: S.text }}>{rule.title}</h2>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
         </div>
 
         <div className="px-6 pb-2 space-y-4 flex-1">
-          <p className="text-[12px]" style={{ color: S.sub }}>{rule.description}</p>
+          <p className="text-[14px]" style={{ color: S.sub }}>{rule.description}</p>
           <div>
-            <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>接种日期</label>
+            <label className="text-[13px] mb-1 block" style={{ color: S.sub }}>接种日期</label>
             <ProfileDatePicker value={date} onChange={setDate} style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>疫苗批号</label>
+              <label className="text-[13px] mb-1 block" style={{ color: S.sub }}>疫苗批号</label>
               <input value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
             </div>
             <div>
-              <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>接种机构</label>
+              <label className="text-[13px] mb-1 block" style={{ color: S.sub }}>接种机构</label>
               <input value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
             </div>
           </div>
           <div>
-            <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>不良反应记录</label>
+            <label className="text-[13px] mb-1 block" style={{ color: S.sub }}>不良反应记录</label>
             <textarea value={reaction} onChange={(e) => setReaction(e.target.value)}
               placeholder="如有不良反应请记录..."
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[12px] resize-none outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`} rows={2}
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] resize-none outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`} rows={2}
               style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
           </div>
         </div>
 
         <div className="px-6 pt-3 pb-5 mt-1">
           <div className="flex items-center justify-end gap-2">
-            <button onClick={onClose} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+            <button onClick={onClose} className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
             <button onClick={() => void handleSave()} disabled={saving}
-              className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-50`}
+              className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-50`}
               style={{ background: S.accent }}>
               {saving ? '保存中...' : '✅ 记录接种'}
             </button>
@@ -169,51 +169,51 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
         <div className="flex items-center justify-between px-6 pt-6 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-[20px]">💉</span>
-            <h2 className="text-[15px] font-bold" style={{ color: S.text }}>自定义疫苗</h2>
+            <h2 className="text-[16px] font-bold" style={{ color: S.text }}>自定义疫苗</h2>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
         </div>
 
         <div className="px-6 pb-2 space-y-4 flex-1">
-          <p className="text-[11px]" style={{ color: S.sub }}>
+          <p className="text-[13px]" style={{ color: S.sub }}>
             添加非计划内疫苗（如流感疫苗、自费疫苗等），可设置定期提醒。
           </p>
           <div>
-            <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>疫苗名称 *</label>
+            <label className="text-[13px] mb-1 block" style={{ color: S.sub }}>疫苗名称 *</label>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：流感疫苗、水痘疫苗"
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+              className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
               style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>接种日期 *</label>
+              <label className="text-[13px] mb-1 block" style={{ color: S.sub }}>接种日期 *</label>
               <ProfileDatePicker value={date} onChange={setDate} style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
             </div>
             <div>
-              <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>接种机构</label>
+              <label className="text-[13px] mb-1 block" style={{ color: S.sub }}>接种机构</label>
               <input value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>疫苗批号</label>
+              <label className="text-[13px] mb-1 block" style={{ color: S.sub }}>疫苗批号</label>
               <input value={batch} onChange={(e) => setBatch(e.target.value)} placeholder="选填"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
             </div>
             <div>
-              <label className="text-[11px] mb-1 block" style={{ color: S.sub }}>不良反应</label>
+              <label className="text-[13px] mb-1 block" style={{ color: S.sub }}>不良反应</label>
               <input value={reaction} onChange={(e) => setReaction(e.target.value)} placeholder="如有请记录"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+                className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                 style={{ background: '#fafaf8', color: S.text, borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }} />
             </div>
           </div>
 
           {/* Reminder setting */}
           <div className={`${S.radiusSm} p-3`} style={{ background: '#f9faf7', border: `1px solid ${S.border}` }}>
-            <label className="text-[11px] mb-2 block font-medium" style={{ color: S.text }}>
+            <label className="text-[13px] mb-2 block font-medium" style={{ color: S.text }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="inline mr-1 -mt-0.5">
                 <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
               </svg>
@@ -222,7 +222,7 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
             <div className="flex flex-wrap gap-1.5">
               {REMIND_OPTIONS.map((opt) => (
                 <button key={opt.value} onClick={() => setRemindOption(opt.value)}
-                  className={`px-3 py-1.5 text-[11px] rounded-full transition-all ${remindOption === opt.value ? 'text-white font-medium' : ''}`}
+                  className={`px-3 py-1.5 text-[13px] rounded-full transition-all ${remindOption === opt.value ? 'text-white font-medium' : ''}`}
                   style={remindOption === opt.value
                     ? { background: S.accent, color: '#fff' }
                     : { background: S.card, border: `1px solid ${S.border}`, color: S.sub }
@@ -234,13 +234,13 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
             {remindOption === 'custom' && (
               <div className="flex items-center gap-2 mt-2">
                 <input type="number" min="1" max="120" value={customMonths} onChange={(e) => setCustomMonths(e.target.value)}
-                  placeholder="月数" className={`w-20 ${S.radiusSm} px-2 py-1.5 text-[12px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
+                  placeholder="月数" className={`w-20 ${S.radiusSm} px-2 py-1.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
                   style={{ background: '#fafaf8', border: `1px solid ${S.border}`, color: S.text }} />
-                <span className="text-[11px]" style={{ color: S.sub }}>个月后提醒</span>
+                <span className="text-[13px]" style={{ color: S.sub }}>个月后提醒</span>
               </div>
             )}
             {remindMonths > 0 && (
-              <p className="text-[10px] mt-2" style={{ color: S.accent }}>
+              <p className="text-[12px] mt-2" style={{ color: S.accent }}>
                 将在 {new Date(new Date(date).setMonth(new Date(date).getMonth() + remindMonths)).toLocaleDateString('zh-CN')} 前后提醒下次接种
               </p>
             )}
@@ -249,9 +249,9 @@ function CustomVaccineModal({ childId, birthDate, onSave, onClose }: {
 
         <div className="px-6 pt-3 pb-5 mt-1">
           <div className="flex items-center justify-end gap-2">
-            <button onClick={onClose} className={`px-4 py-2 text-[13px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+            <button onClick={onClose} className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
             <button onClick={() => void handleSave()} disabled={saving || !name.trim()}
-              className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-40`}
+              className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-40`}
               style={{ background: S.accent }}>
               {saving ? '保存中...' : '记录接种'}
             </button>
@@ -286,10 +286,10 @@ function HistoricalSection({ rules, onRecord, onMarkAll, onQuickMark }: {
       <button onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-5 py-3.5 text-left transition-colors hover:bg-[#f5f5f3]">
         <div className="flex items-center gap-2">
-          <span className="text-[14px]">📋</span>
-          <span className="text-[12px] font-medium" style={{ color: S.sub }}>
+          <span className="text-[16px]">📋</span>
+          <span className="text-[14px] font-medium" style={{ color: S.sub }}>
             有 {remaining.length} 项历史疫苗待补录
-            {marked.length > 0 && <span className="ml-1 text-[10px]" style={{ color: S.accent }}>（已标记 {marked.length} 项）</span>}
+            {marked.length > 0 && <span className="ml-1 text-[12px]" style={{ color: S.accent }}>（已标记 {marked.length} 项）</span>}
           </span>
         </div>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={S.sub} strokeWidth="2" strokeLinecap="round"
@@ -300,13 +300,13 @@ function HistoricalSection({ rules, onRecord, onMarkAll, onQuickMark }: {
 
       {expanded && (
         <div className="px-5 pb-4">
-          <p className="text-[10px] mb-3" style={{ color: S.sub }}>
+          <p className="text-[12px] mb-3" style={{ color: S.sub }}>
             点击左侧圆圈快速标记已接种，点击"补录"可填写详细接种信息（批号、机构等）。
           </p>
           {/* Mark all button */}
           {remaining.length > 0 && (
             <button onClick={() => { remaining.forEach((r) => handleQuickMark(r.ruleId)); onMarkAll(); }}
-              className={`w-full mb-3 py-2 text-[11px] font-medium ${S.radiusSm} transition-colors hover:opacity-90`}
+              className={`w-full mb-3 py-2 text-[13px] font-medium ${S.radiusSm} transition-colors hover:opacity-90`}
               style={{ background: S.accent, color: '#fff' }}>
               全部标记为已接种（{remaining.length} 项）
             </button>
@@ -321,9 +321,9 @@ function HistoricalSection({ rules, onRecord, onMarkAll, onQuickMark }: {
                   className="w-[20px] h-[20px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-all hover:border-[#1e293b] hover:bg-[#1e293b]/10"
                   style={{ borderColor: '#c5cad0' }}
                   title="点击标记为已接种" />
-                <span className="flex-1 text-[11px]" style={{ color: S.text }}>{r.title}</span>
+                <span className="flex-1 text-[13px]" style={{ color: S.text }}>{r.title}</span>
                 <button onClick={() => onRecord(r.ruleId)}
-                  className={`px-2.5 py-1 text-[10px] font-medium ${S.radiusSm} transition-colors hover:bg-[#f1f5f9]`}
+                  className={`px-2.5 py-1 text-[12px] font-medium ${S.radiusSm} transition-colors hover:bg-[#f1f5f9]`}
                   style={{ background: '#f0f0ec', color: S.sub }}>
                   补录
                 </button>
@@ -333,7 +333,7 @@ function HistoricalSection({ rules, onRecord, onMarkAll, onQuickMark }: {
           {/* Already marked items */}
           {marked.length > 0 && (
             <>
-              <p className="text-[10px] mt-4 mb-2 font-medium" style={{ color: S.accent }}>已标记为接种 ✓</p>
+              <p className="text-[12px] mt-4 mb-2 font-medium" style={{ color: S.accent }}>已标记为接种 ✓</p>
               <div className="space-y-1">
                 {marked.map((r) => (
                   <div key={r.ruleId} className={`flex items-center gap-2.5 p-2 ${S.radiusSm}`}
@@ -342,9 +342,9 @@ function HistoricalSection({ rules, onRecord, onMarkAll, onQuickMark }: {
                       style={{ background: S.accent, color: '#fff' }}>
                       <svg viewBox="0 0 12 12" className="w-2.5 h-2.5"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" fill="none" /></svg>
                     </div>
-                    <span className="flex-1 text-[11px] line-through" style={{ color: '#b0b5a0' }}>{r.title}</span>
+                    <span className="flex-1 text-[13px] line-through" style={{ color: '#b0b5a0' }}>{r.title}</span>
                     <button onClick={() => onRecord(r.ruleId)}
-                      className={`px-2.5 py-1 text-[10px] ${S.radiusSm} transition-colors hover:bg-[#f1f5f9]`}
+                      className={`px-2.5 py-1 text-[12px] ${S.radiusSm} transition-colors hover:bg-[#f1f5f9]`}
                       style={{ color: S.sub }}>
                       补录详情
                     </button>
@@ -433,7 +433,7 @@ export default function VaccinePage() {
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-5">
-        <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
+        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
       </div>
 
       {/* Header */}
@@ -446,38 +446,38 @@ export default function VaccinePage() {
                 <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
               </svg>
             </div>
-            <div className="pointer-events-none absolute left-0 top-7 z-50 w-[360px] rounded-xl p-4 text-[11px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
+            <div className="pointer-events-none absolute left-0 top-7 z-50 w-[360px] rounded-xl p-4 text-[13px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
               style={{ background: '#1e293b', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
-              <p className="text-[12px] font-semibold text-white mb-2.5">数据参考文献</p>
+              <p className="text-[14px] font-semibold text-white mb-2.5">数据参考文献</p>
               <ul className="space-y-2.5">
                 <li>
                   <span className="text-[#4ECCA3] font-medium">国家免疫规划疫苗（免费）</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">国家卫生健康委员会. 国家免疫规划疫苗儿童免疫程序及说明（2021年版）.</span>
-                  <span className="block text-[10px] text-[#7a8090]">国卫办疾控函〔2021〕196号</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">国家卫生健康委员会. 国家免疫规划疫苗儿童免疫程序及说明（2021年版）.</span>
+                  <span className="block text-[12px] text-[#7a8090]">国卫办疾控函〔2021〕196号</span>
                 </li>
                 <li>
                   <span className="text-[#4ECCA3] font-medium">非免疫规划疫苗（自费推荐）</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">中华预防医学会. 非免疫规划疫苗使用指南（2023版）.</span>
-                  <span className="block text-[10px] text-[#7a8090]">中华流行病学杂志 2023;44(10):1521-1570 · 含流感、HPV、水痘、轮状病毒等推荐接种方案</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">中华预防医学会. 非免疫规划疫苗使用指南（2023版）.</span>
+                  <span className="block text-[12px] text-[#7a8090]">中华流行病学杂志 2023;44(10):1521-1570 · 含流感、HPV、水痘、轮状病毒等推荐接种方案</span>
                 </li>
                 <li>
                   <span className="text-[#4ECCA3] font-medium">WHO 全球免疫立场文件</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">WHO Position Papers on Vaccines. Weekly Epidemiological Record (WER).</span>
-                  <span className="block text-[10px] text-[#7a8090]">覆盖: BCG · 乙肝 · 百白破 · 脊灰 · 麻腮风 · 流脑 · 乙脑 · 甲肝等</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">WHO Position Papers on Vaccines. Weekly Epidemiological Record (WER).</span>
+                  <span className="block text-[12px] text-[#7a8090]">覆盖: BCG · 乙肝 · 百白破 · 脊灰 · 麻腮风 · 流脑 · 乙脑 · 甲肝等</span>
                 </li>
               </ul>
-              <p className="text-[9px] mt-2.5 pt-2 border-t border-white/10 text-[#808890]">接种窗口和时间表以国家免疫规划为准 · 自费疫苗仅供参考 · 具体请遵医嘱</p>
+              <p className="text-[12px] mt-2.5 pt-2 border-t border-white/10 text-[#808890]">接种窗口和时间表以国家免疫规划为准 · 自费疫苗仅供参考 · 具体请遵医嘱</p>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowCustomModal(true)}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
             style={{ background: S.accent, boxShadow: '0 2px 6px rgba(148,165,51,0.25)' }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
             自定义疫苗
           </button>
-          <span className="text-[12px] px-3 py-1 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>
+          <span className="text-[14px] px-3 py-1 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>
             {completedCount}/{vaccineRules.length} · {pct}%
           </span>
         </div>
@@ -490,8 +490,8 @@ export default function VaccinePage() {
       {/* Progress bar */}
       <div className={`${S.radius} p-4 mb-5`} style={{ background: S.card, boxShadow: S.shadow }}>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[12px] font-medium" style={{ color: S.text }}>接种进度</span>
-          <span className="text-[12px] font-bold" style={{ color: S.accent }}>{pct}%</span>
+          <span className="text-[14px] font-medium" style={{ color: S.text }}>接种进度</span>
+          <span className="text-[14px] font-bold" style={{ color: S.accent }}>{pct}%</span>
         </div>
         <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: S.border }}>
           <div className="h-full rounded-full transition-all duration-500" style={{ background: S.accentBar, width: `${pct}%` }} />
@@ -508,7 +508,7 @@ export default function VaccinePage() {
         <div className={`${S.radius} p-5 mb-5`} style={{ background: S.card, boxShadow: S.shadow }}>
           <div className="flex items-center gap-2 mb-3">
             <span className="text-[16px]">🔔</span>
-            <h3 className="text-[13px] font-semibold" style={{ color: S.text }}>待接种疫苗</h3>
+            <h3 className="text-[14px] font-semibold" style={{ color: S.text }}>待接种疫苗</h3>
           </div>
           <div className="space-y-2">
             {upcoming.map((r) => {
@@ -516,18 +516,18 @@ export default function VaccinePage() {
               return (
                 <div key={r.ruleId} className={`flex items-center gap-3 p-3 ${S.radiusSm}`}
                   style={{ background: isOverdue ? '#fef8f8' : '#f9faf7', border: `1px solid ${isOverdue ? '#fecaca' : S.border}` }}>
-                  <div className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center text-[14px] shrink-0"
+                  <div className="w-[32px] h-[32px] rounded-[8px] flex items-center justify-center text-[16px] shrink-0"
                     style={{ background: isOverdue ? '#fee2e2' : '#e8f5e9' }}>
                     {isOverdue ? '⚠️' : '💉'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-medium" style={{ color: S.text }}>{r.title}</p>
-                    <p className="text-[10px]" style={{ color: isOverdue ? '#dc2626' : S.sub }}>
+                    <p className="text-[14px] font-medium" style={{ color: S.text }}>{r.title}</p>
+                    <p className="text-[12px]" style={{ color: isOverdue ? '#dc2626' : S.sub }}>
                       {isOverdue ? `已过建议接种窗口 (${formatAge(r.triggerAge.startMonths)}-${formatAge(r.triggerAge.endMonths)})` : `建议 ${formatAge(r.triggerAge.startMonths)}-${r.triggerAge.endMonths === -1 ? '无上限' : formatAge(r.triggerAge.endMonths)}接种`}
                     </p>
                   </div>
                   <button onClick={() => setRecordingRuleId(r.ruleId)}
-                    className={`px-3 py-1 text-[11px] font-medium text-white ${S.radiusSm} transition-colors hover:opacity-90`}
+                    className={`px-3 py-1 text-[13px] font-medium text-white ${S.radiusSm} transition-colors hover:opacity-90`}
                     style={{ background: S.accent }}>记录</button>
                 </div>
               );
@@ -577,7 +577,7 @@ export default function VaccinePage() {
       <div className="flex gap-1 rounded-full p-1 mb-5 w-fit" style={{ background: '#eceeed' }}>
         {([['timeline', '📋 时间轴'], ['list', '📊 列表']] as const).map(([k, l]) => (
           <button key={k} onClick={() => setActiveTab(k)}
-            className="px-4 py-1.5 text-[11px] font-medium rounded-full transition-all"
+            className="px-4 py-1.5 text-[13px] font-medium rounded-full transition-all"
             style={activeTab === k
               ? { background: S.card, color: S.text, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }
               : { color: S.sub }}>
@@ -608,9 +608,9 @@ export default function VaccinePage() {
                 </div>
 
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[12px] font-bold" style={{ color: isCurrent ? S.accent : S.text }}>{bucket.label}</span>
-                  {isCurrent && <span className="text-[9px] px-2 py-0.5 rounded-full text-white" style={{ background: S.accent }}>当前阶段</span>}
-                  {bucketComplete && <span className="text-[9px] px-2 py-0.5 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>全部完成</span>}
+                  <span className="text-[14px] font-bold" style={{ color: isCurrent ? S.accent : S.text }}>{bucket.label}</span>
+                  {isCurrent && <span className="text-[12px] px-2 py-0.5 rounded-full text-white" style={{ background: S.accent }}>当前阶段</span>}
+                  {bucketComplete && <span className="text-[12px] px-2 py-0.5 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>全部完成</span>}
                 </div>
 
                 <div className="space-y-1.5">
@@ -628,22 +628,22 @@ export default function VaccinePage() {
                             <svg viewBox="0 0 12 12" className="w-3.5 h-3.5"><path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" fill="none" /></svg>
                           </div>
                         ) : (
-                          <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-[14px] shrink-0"
+                          <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-[16px] shrink-0"
                             style={{ background: '#e8f5e9' }}>💉</div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-[12px] font-medium" style={{ color: done ? S.accent : S.text }}>{r.title}</p>
-                          <p className="text-[10px] truncate" style={{ color: S.sub }}>
+                          <p className="text-[14px] font-medium" style={{ color: done ? S.accent : S.text }}>{r.title}</p>
+                          <p className="text-[12px] truncate" style={{ color: S.sub }}>
                             {done && rec ? `${fmtDate(rec.vaccinatedAt)} 接种${rec.hospital ? ` · ${rec.hospital}` : ''}` : r.description}
                           </p>
                         </div>
                         {done ? (
                           <button onClick={() => setRecordingRuleId(r.ruleId)}
-                            className="text-[10px] shrink-0 px-2 py-1 rounded-full hover:bg-[#f1f5f9] transition-colors"
+                            className="text-[12px] shrink-0 px-2 py-1 rounded-full hover:bg-[#f1f5f9] transition-colors"
                             style={{ color: S.sub }}>修改</button>
                         ) : (
                           <button onClick={() => setRecordingRuleId(r.ruleId)}
-                            className="text-[10px] shrink-0 px-2 py-1 rounded-full hover:bg-[#f0f0ec]"
+                            className="text-[12px] shrink-0 px-2 py-1 rounded-full hover:bg-[#f0f0ec]"
                             style={{ color: S.sub }}>记录</button>
                         )}
                       </div>
@@ -675,19 +675,19 @@ export default function VaccinePage() {
                   <div className="w-[24px] h-[24px] rounded-full border-[1.5px] shrink-0" style={{ borderColor: isOverdue ? '#fca5a5' : S.border }} />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-medium" style={{ color: done ? S.accent : S.text }}>{r.title}</p>
-                  <p className="text-[10px]" style={{ color: S.sub }}>
+                  <p className="text-[14px] font-medium" style={{ color: done ? S.accent : S.text }}>{r.title}</p>
+                  <p className="text-[12px]" style={{ color: S.sub }}>
                     {done && rec ? fmtDate(rec.vaccinatedAt) : `${formatAge(r.triggerAge.startMonths)}-${r.triggerAge.endMonths === -1 ? '∞' : formatAge(r.triggerAge.endMonths)}`}
                     {isOverdue && ' · 已过期'}
                   </p>
                 </div>
                 {done ? (
                   <button onClick={() => setRecordingRuleId(r.ruleId)}
-                    className={`px-3 py-1 text-[11px] font-medium ${S.radiusSm} transition-colors hover:bg-[#f1f5f9]`}
+                    className={`px-3 py-1 text-[13px] font-medium ${S.radiusSm} transition-colors hover:bg-[#f1f5f9]`}
                     style={{ color: S.sub }}>修改</button>
                 ) : (
                   <button onClick={() => setRecordingRuleId(r.ruleId)}
-                    className={`px-3 py-1 text-[11px] font-medium text-white ${S.radiusSm}`}
+                    className={`px-3 py-1 text-[13px] font-medium text-white ${S.radiusSm}`}
                     style={{ background: S.accent }}>记录</button>
                 )}
               </div>

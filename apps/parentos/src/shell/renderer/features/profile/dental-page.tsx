@@ -26,7 +26,7 @@ export default function DentalPage() {
   if (!child) {
     return (
       <div className={S.container} style={{ paddingTop: S.topPad }}>
-        <div className="p-8 text-[13px]" style={{ color: S.sub }}>请先添加孩子</div>
+        <div className="p-8 text-[14px]" style={{ color: S.sub }}>请先添加孩子</div>
       </div>
     );
   }
@@ -36,7 +36,7 @@ export default function DentalPage() {
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-3">
-        <Link to="/profile" className="text-[12px] hover:underline flex items-center gap-1.5" style={{ color: S.sub }}>
+        <Link to="/profile" className="text-[14px] hover:underline flex items-center gap-1.5" style={{ color: S.sub }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>

@@ -289,7 +289,7 @@ export default function GrowthCurvePage() {
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-6">
-        <Link to="/profile" className="text-[13px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
+        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
       </div>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
@@ -301,50 +301,50 @@ export default function GrowthCurvePage() {
                 <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
               </svg>
             </div>
-            <div className="pointer-events-none absolute left-0 top-7 z-50 w-[360px] rounded-xl p-4 text-[11px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
+            <div className="pointer-events-none absolute left-0 top-7 z-50 w-[360px] rounded-xl p-4 text-[13px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
               style={{ background: '#1e293b', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
-              <p className="text-[12px] font-semibold text-white mb-2.5">数据参考文献</p>
+              <p className="text-[14px] font-semibold text-white mb-2.5">数据参考文献</p>
               <ul className="space-y-2.5">
                 <li>
                   <span className="text-[#4ECCA3] font-medium">身高 · 体重 · BMI 百分位曲线（0-5岁）</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">WHO Child Growth Standards (2006). Length/height-for-age, weight-for-age, BMI-for-age.</span>
-                  <span className="block text-[10px] text-[#7a8090]">World Health Organization Multicentre Growth Reference Study Group</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">WHO Child Growth Standards (2006). Length/height-for-age, weight-for-age, BMI-for-age.</span>
+                  <span className="block text-[12px] text-[#7a8090]">World Health Organization Multicentre Growth Reference Study Group</span>
                 </li>
                 <li>
                   <span className="text-[#4ECCA3] font-medium">身高 · 体重 · BMI 百分位曲线（5-19岁）</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">WHO Growth References (2007). Height-for-age, weight-for-age, BMI-for-age references for school-age children and adolescents.</span>
-                  <span className="block text-[10px] text-[#7a8090]">de Onis M, et al. Bull World Health Organ 2007;85:660-667</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">WHO Growth References (2007). Height-for-age, weight-for-age, BMI-for-age references for school-age children and adolescents.</span>
+                  <span className="block text-[12px] text-[#7a8090]">de Onis M, et al. Bull World Health Organ 2007;85:660-667</span>
                 </li>
                 <li>
                   <span className="text-[#4ECCA3] font-medium">头围百分位曲线（0-36月）</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">WHO Child Growth Standards (2006). Head circumference-for-age.</span>
-                  <span className="block text-[10px] text-[#7a8090]">覆盖: 0-36个月 · 分男/女 · P3-P97 百分位线</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">WHO Child Growth Standards (2006). Head circumference-for-age.</span>
+                  <span className="block text-[12px] text-[#7a8090]">覆盖: 0-36个月 · 分男/女 · P3-P97 百分位线</span>
                 </li>
                 <li>
                   <span className="text-[#4ECCA3] font-medium">骨龄评估</span>
-                  <span className="block text-[10px] text-[#a0a8b4] mt-0.5">Greulich-Pyle Atlas / Tanner-Whitehouse 3 (TW3) 骨龄评估标准</span>
+                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">Greulich-Pyle Atlas / Tanner-Whitehouse 3 (TW3) 骨龄评估标准</span>
                 </li>
               </ul>
-              <p className="text-[9px] mt-2.5 pt-2 border-t border-white/10 text-[#808890]">百分位线: P3 · P10 · P25 · P50 (中位数) · P75 · P90 · P97 · 低于P3或高于P97建议咨询专业人士</p>
+              <p className="text-[12px] mt-2.5 pt-2 border-t border-white/10 text-[#808890]">百分位线: P3 · P10 · P25 · P50 (中位数) · P75 · P90 · P97 · 低于P3或高于P97建议咨询专业人士</p>
             </div>
           </div>
         </div>
         {/* Action buttons */}
         <div className="flex items-center gap-2">
           <button onClick={() => setShowOCR(!showOCR)}
-            className={`group relative flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
+            className={`group relative flex items-center gap-1.5 px-3 py-1.5 text-[14px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
             style={{ background: showOCR ? S.sub : '#BDE0F5', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h4M7 12h10M7 16h6" />
             </svg>
             {showOCR ? '关闭识别' : '智能识别'}
-            <span className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg px-3 py-1.5 text-[11px] font-normal text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 z-50"
+            <span className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg px-3 py-1.5 text-[13px] font-normal text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 z-50"
               style={{ background: '#1e293b' }}>
               拍照/上传体检单，自动识别数据
             </span>
           </button>
           <button onClick={() => setShowForm(true)}
-            className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
+            className={`flex items-center gap-1 px-3 py-1.5 text-[14px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
             style={{ background: S.accent }}>
             + 添加记录
           </button>

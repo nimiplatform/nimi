@@ -28,8 +28,8 @@ export function SleepTrendChart({
   return (
     <div className={`${S.radius} p-4 mb-4`} style={{ background: S.card, boxShadow: S.shadow }}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[12px] font-medium" style={{ color: S.text }}>睡眠趋势</span>
-        <span className="text-[11px]" style={{ color: S.sub }}>参考 {refLo}-{refHi}h/天</span>
+        <span className="text-[14px] font-medium" style={{ color: S.text }}>睡眠趋势</span>
+        <span className="text-[13px]" style={{ color: S.sub }}>参考 {refLo}-{refHi}h/天</span>
       </div>
       <ResponsiveContainer width="100%" height={120}>
         <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>

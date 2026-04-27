@@ -51,7 +51,7 @@ function renderToothRow(
 ) {
   return (
     <div className="flex items-center gap-0.5">
-      <span className="mr-1 w-8 text-right text-[9px]" style={{ color: S.sub }}>{label}</span>
+      <span className="mr-1 w-8 text-right text-[12px]" style={{ color: S.sub }}>{label}</span>
       {teeth.map((id) => {
         const candidate = candidateMap.get(id);
         const isSelected = selected.has(id);
@@ -65,7 +65,7 @@ function renderToothRow(
             onClick={() => candidate && onToggle(id)}
             disabled={!candidate}
             title={`${id} ${TOOTH_NAMES[id] ?? ''}${confidenceHint}${wasAlready ? ' · 已在历史中' : ''}`}
-            className="h-7 w-7 rounded-lg text-[10px] font-bold transition-all hover:scale-105 disabled:cursor-default disabled:hover:scale-100"
+            className="h-7 w-7 rounded-lg text-[12px] font-bold transition-all hover:scale-105 disabled:cursor-default disabled:hover:scale-100"
             style={style}
           >
             {id}
@@ -174,8 +174,8 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
       >
         <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: S.border }}>
           <div>
-            <h2 className="text-[15px] font-semibold" style={{ color: S.text }}>AI 识别牙齿萌出情况</h2>
-            <p className="mt-0.5 text-[11px]" style={{ color: S.sub }}>
+            <h2 className="text-[16px] font-semibold" style={{ color: S.text }}>AI 识别牙齿萌出情况</h2>
+            <p className="mt-0.5 text-[13px]" style={{ color: S.sub }}>
               支持口腔全景片、口内照、咬合照。AI 识别仅供参考，请以医生诊断为准。
             </p>
           </div>
@@ -193,7 +193,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
         <div className="space-y-4 px-5 py-4">
           {props.errorMessage ? (
             <div
-              className={`px-3 py-2 text-[12px] ${S.radiusSm}`}
+              className={`px-3 py-2 text-[14px] ${S.radiusSm}`}
               style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}
             >
               {props.errorMessage}
@@ -202,14 +202,14 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
 
           {props.stage === 'upload' ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
-              <p className="text-[13px] font-medium" style={{ color: S.text }}>选择一张口腔全景片或口腔照片</p>
-              <p className="max-w-[420px] text-[11px]" style={{ color: S.sub }}>
+              <p className="text-[14px] font-medium" style={{ color: S.text }}>选择一张口腔全景片或口腔照片</p>
+              <p className="max-w-[420px] text-[13px]" style={{ color: S.sub }}>
                 建议：咬合面照或正面微笑照最适合识别已萌出的牙齿；全景 X 光片还可以帮助识别颌骨内未萌出的恒牙胚。
               </p>
               <button
                 type="button"
                 onClick={() => void props.onPickImage()}
-                className={`mt-2 px-5 py-2.5 text-[13px] font-medium text-white ${S.radiusSm}`}
+                className={`mt-2 px-5 py-2.5 text-[14px] font-medium text-white ${S.radiusSm}`}
                 style={{ background: S.accent }}
               >
                 选择照片
@@ -225,7 +225,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
                 className={`h-28 w-28 object-cover ${S.radiusSm}`}
                 style={{ border: `1px solid ${S.border}` }}
               />
-              <div className="flex-1 text-[11px]" style={{ color: S.sub }}>
+              <div className="flex-1 text-[13px]" style={{ color: S.sub }}>
                 {props.stage === 'analyzing' ? (
                   <p>AI 正在分析中，请稍候…</p>
                 ) : props.stage === 'saving' ? (
@@ -245,7 +245,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
                   <button
                     type="button"
                     onClick={props.onRetake}
-                    className={`px-2.5 py-1 text-[11px] ${S.radiusSm}`}
+                    className={`px-2.5 py-1 text-[13px] ${S.radiusSm}`}
                     style={{ background: '#f0f0ec', color: S.sub }}
                   >
                     换一张照片
@@ -254,7 +254,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
                     <button
                       type="button"
                       onClick={() => void props.onAnalyze()}
-                      className={`px-2.5 py-1 text-[11px] ${S.radiusSm}`}
+                      className={`px-2.5 py-1 text-[13px] ${S.radiusSm}`}
                       style={{ background: '#f0f0ec', color: S.sub }}
                     >
                       重新分析
@@ -267,7 +267,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
 
           {props.warnings.length > 0 && props.stage === 'review' ? (
             <div
-              className={`px-3 py-2 text-[11px] ${S.radiusSm}`}
+              className={`px-3 py-2 text-[13px] ${S.radiusSm}`}
               style={{ background: '#fffbeb', color: '#a16207', border: '1px solid #fef3c7' }}
             >
               {props.warnings.map((warning, idx) => (
@@ -285,7 +285,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
                       key={value}
                       type="button"
                       onClick={() => setToothSet(value)}
-                      className="px-3 py-1.5 text-[11px]"
+                      className="px-3 py-1.5 text-[13px]"
                       style={{
                         background: toothSet === value ? S.accent : 'transparent',
                         color: toothSet === value ? '#ffffff' : S.sub,
@@ -299,7 +299,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
                   <button
                     type="button"
                     onClick={() => selectAllVisible(true)}
-                    className={`px-2.5 py-1 text-[11px] ${S.radiusSm}`}
+                    className={`px-2.5 py-1 text-[13px] ${S.radiusSm}`}
                     style={{ background: '#f0f0ec', color: S.sub }}
                   >
                     全选当前视图
@@ -307,7 +307,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
                   <button
                     type="button"
                     onClick={() => selectAllVisible(false)}
-                    className={`px-2.5 py-1 text-[11px] ${S.radiusSm}`}
+                    className={`px-2.5 py-1 text-[13px] ${S.radiusSm}`}
                     style={{ background: '#f0f0ec', color: S.sub }}
                   >
                     全不选当前视图
@@ -316,7 +316,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
                     type="button"
                     onClick={handleFlip}
                     title="如果 AI 把左右搞反了，点此镜像翻转"
-                    className={`px-2.5 py-1 text-[11px] ${S.radiusSm}`}
+                    className={`px-2.5 py-1 text-[13px] ${S.radiusSm}`}
                     style={{ background: '#f0f0ec', color: S.sub }}
                   >
                     左右镜像
@@ -324,7 +324,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
                   <button
                     type="button"
                     onClick={handleReset}
-                    className={`px-2.5 py-1 text-[11px] ${S.radiusSm}`}
+                    className={`px-2.5 py-1 text-[13px] ${S.radiusSm}`}
                     style={{ background: '#f0f0ec', color: S.sub }}
                   >
                     恢复 AI 默认选择
@@ -334,23 +334,23 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
 
               <div className={`${S.radiusSm} p-3`} style={{ background: '#fafaf8' }}>
                 <div className="flex flex-col items-center gap-1">
-                  <p className="text-[9px]" style={{ color: S.sub }}>上颌</p>
+                  <p className="text-[12px]" style={{ color: S.sub }}>上颌</p>
                   <div className="flex gap-1">
                     {renderToothRow(upperRight, '右', candidateMap, selected, props.alreadyRecordedErupted, toggleTooth)}
                     <span className="w-3" />
                     {renderToothRow(upperLeft, '', candidateMap, selected, props.alreadyRecordedErupted, toggleTooth)}
-                    <span className="ml-1 w-8 text-[9px]" style={{ color: S.sub }}>左</span>
+                    <span className="ml-1 w-8 text-[12px]" style={{ color: S.sub }}>左</span>
                   </div>
                   <div className="my-1 h-px w-full" style={{ background: S.border }} />
                   <div className="flex gap-1">
                     {renderToothRow(lowerRight, '右', candidateMap, selected, props.alreadyRecordedErupted, toggleTooth)}
                     <span className="w-3" />
                     {renderToothRow(lowerLeft, '', candidateMap, selected, props.alreadyRecordedErupted, toggleTooth)}
-                    <span className="ml-1 w-8 text-[9px]" style={{ color: S.sub }}>左</span>
+                    <span className="ml-1 w-8 text-[12px]" style={{ color: S.sub }}>左</span>
                   </div>
-                  <p className="text-[9px]" style={{ color: S.sub }}>下颌</p>
+                  <p className="text-[12px]" style={{ color: S.sub }}>下颌</p>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-3 text-[10px]" style={{ color: S.sub }}>
+                <div className="mt-3 flex flex-wrap gap-3 text-[12px]" style={{ color: S.sub }}>
                   <span className="flex items-center gap-1">
                     <span className="h-3 w-3 rounded" style={{ background: S.accent }} />已确认写入
                   </span>
@@ -367,7 +367,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
               </div>
 
               <div>
-                <p className="mb-1 text-[11px]" style={{ color: S.sub }}>观察日期</p>
+                <p className="mb-1 text-[13px]" style={{ color: S.sub }}>观察日期</p>
                 <ProfileDatePicker value={props.eventDate} onChange={props.onEventDateChange} />
               </div>
             </>
@@ -375,7 +375,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t px-5 py-3" style={{ borderColor: S.border }}>
-          <p className="text-[10px]" style={{ color: S.sub }}>
+          <p className="text-[12px]" style={{ color: S.sub }}>
             已选 {selected.size} 颗（{permanentCount} 恒 / {primaryCount} 乳）
           </p>
           <div className="flex gap-2">
@@ -383,7 +383,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
               type="button"
               onClick={props.onClose}
               disabled={props.stage === 'analyzing' || props.stage === 'saving'}
-              className={`px-4 py-2 text-[13px] ${S.radiusSm}`}
+              className={`px-4 py-2 text-[14px] ${S.radiusSm}`}
               style={{ background: '#f0f0ec', color: S.sub }}
             >
               取消
@@ -392,7 +392,7 @@ export function DentalEruptionScanModal(props: DentalEruptionScanModalProps) {
               type="button"
               onClick={() => void handleConfirm()}
               disabled={props.stage !== 'review' || selected.size === 0}
-              className={`px-5 py-2 text-[13px] font-medium text-white ${S.radiusSm} disabled:opacity-50`}
+              className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} disabled:opacity-50`}
               style={{ background: S.accent }}
             >
               {props.stage === 'saving' ? '保存中…' : '确认并写入'}

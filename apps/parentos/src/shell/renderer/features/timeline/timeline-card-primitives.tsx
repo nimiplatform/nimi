@@ -34,8 +34,8 @@ export function Cd({
 export function Hdr({ title, to, link = '查看全部' }: { title: string; to?: string; link?: string }) {
   return (
     <div className="mb-5 flex items-center justify-between">
-      <h3 className="text-[15px] font-semibold" style={{ color: textMain }}>{title}</h3>
-      {to ? <Link to={to} className="text-[11px] font-medium transition-colors hover:text-[#1e293b]" style={{ color: textMuted }}>{link}</Link> : null}
+      <h3 className="text-[16px] font-semibold" style={{ color: textMain }}>{title}</h3>
+      {to ? <Link to={to} className="text-[13px] font-medium transition-colors hover:text-[#1e293b]" style={{ color: textMuted }}>{link}</Link> : null}
     </div>
   );
 }

@@ -230,7 +230,7 @@ export function TimePickerInput({
           type="text"
           readOnly
           value={value}
-          className={`w-full ${S.radiusSm} ${isSmall ? 'pl-2 pr-7' : 'pl-3 pr-8'} ${py} text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 cursor-pointer ${isSmall ? 'bg-white' : ''}`}
+          className={`w-full ${S.radiusSm} ${isSmall ? 'pl-2 pr-7' : 'pl-3 pr-8'} ${py} text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 cursor-pointer ${isSmall ? 'bg-white' : ''}`}
           style={isSmall ? { borderColor: S.border, borderWidth: 1, borderStyle: 'solid' } : inputSty}
         />
         <Icon size={iconSize} strokeWidth={1.5} className={`absolute ${isSmall ? 'right-2' : 'right-2.5'} text-gray-400 transition-colors cursor-pointer ${open ? 'text-[#1e293b]' : 'group-focus-within/field:text-[#1e293b]'}`} />
@@ -417,8 +417,8 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
           </button>
           <div className="relative flex-1">
             <button type="button" onClick={() => setShowMonthYearPicker((prev) => !prev)} className="relative flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 transition-colors hover:bg-[#f3f7e8]" style={{ background: 'linear-gradient(180deg, rgba(148,165,51,0.12), rgba(148,165,51,0.06))', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.72)', color: '#5e7316' }}>
-              <span className="text-[15px] font-semibold tracking-[0.02em]">{displayMonth.getFullYear()}年</span>
-              <span className="relative pr-4 text-[15px] font-semibold tracking-[0.02em]">
+              <span className="text-[16px] font-semibold tracking-[0.02em]">{displayMonth.getFullYear()}年</span>
+              <span className="relative pr-4 text-[16px] font-semibold tracking-[0.02em]">
                 {displayMonth.getMonth() + 1}月
                 <ChevronRight size={13} strokeWidth={2} className="absolute right-[-1px] bottom-[1px] transition-transform" style={{ color: '#7b8d30', transform: `rotate(${showMonthYearPicker ? 270 : 90}deg)` }} />
               </span>
@@ -443,7 +443,7 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
 
       <div className="mb-2 grid grid-cols-7 gap-1 px-1">
         {['一', '二', '三', '四', '五', '六', '日'].map((label) => (
-          <div key={label} className="flex h-8 items-center justify-center text-[11px] font-medium" style={{ color: S.sub }}>
+          <div key={label} className="flex h-8 items-center justify-center text-[13px] font-medium" style={{ color: S.sub }}>
             {label}
           </div>
         ))}
@@ -471,7 +471,7 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
                 if (isFuture) return;
                 onChange(formatDateValue(day));
               }}
-              className="relative flex h-10 items-center justify-center rounded-[13px] text-[13px] transition-all duration-150 hover:-translate-y-[1px]"
+              className="relative flex h-10 items-center justify-center rounded-[13px] text-[14px] transition-all duration-150 hover:-translate-y-[1px]"
               disabled={isFuture}
               style={{
                 color: textColor,
@@ -495,10 +495,10 @@ const DatePickerPanel = forwardRef<HTMLDivElement, {
           const now = new Date();
           onDisplayMonthChange(new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0, 0));
           onChange(formatDateValue(now));
-        }} className="rounded-full px-3 py-1 text-[12px] font-medium transition-colors hover:bg-[#f3f5ea]" style={{ color: '#5e7316' }}>
+        }} className="rounded-full px-3 py-1 text-[14px] font-medium transition-colors hover:bg-[#f3f5ea]" style={{ color: '#5e7316' }}>
           今天
         </button>
-        <button type="button" onClick={onClose} className="rounded-full px-3 py-1 text-[12px] font-medium transition-colors hover:bg-[#f4f4ef]" style={{ color: S.sub }}>
+        <button type="button" onClick={onClose} className="rounded-full px-3 py-1 text-[14px] font-medium transition-colors hover:bg-[#f4f4ef]" style={{ color: S.sub }}>
           关闭
         </button>
       </div>

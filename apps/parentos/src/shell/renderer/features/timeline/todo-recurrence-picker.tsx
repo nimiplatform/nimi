@@ -116,7 +116,7 @@ export function TodoRecurrencePicker({ value, onChange }: TodoRecurrencePickerPr
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[12px] font-medium transition-colors"
+        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[14px] font-medium transition-colors"
         style={{
           color: active ? '#ffffff' : '#64748b',
           background: active ? '#3BB88A' : 'transparent',
@@ -137,7 +137,7 @@ export function TodoRecurrencePicker({ value, onChange }: TodoRecurrencePickerPr
           <button
             type="button"
             onClick={() => { onChange(null); setShowCustomEditor(false); setOpen(false); }}
-            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[13px] transition-colors hover:bg-[#f3f4f6]"
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[14px] transition-colors hover:bg-[#f3f4f6]"
             style={{ color: !active ? '#3BB88A' : '#64748b' }}
           >
             <span>不重复</span>
@@ -153,7 +153,7 @@ export function TodoRecurrencePicker({ value, onChange }: TodoRecurrencePickerPr
                 key={item.preset}
                 type="button"
                 onClick={() => handlePresetClick(item.preset)}
-                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[13px] transition-colors hover:bg-[#f3f4f6]"
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[14px] transition-colors hover:bg-[#f3f4f6]"
                 style={{ color: selected ? '#3BB88A' : '#1e293b' }}
               >
                 <span>{item.label}</span>
@@ -167,22 +167,22 @@ export function TodoRecurrencePicker({ value, onChange }: TodoRecurrencePickerPr
               className="mt-2 rounded-xl p-3"
               style={{ background: '#f9fafb', border: '1px solid #eef0ee' }}
             >
-              <div className="mb-2 text-[12px] font-semibold" style={{ color: '#111827' }}>自定义重复</div>
+              <div className="mb-2 text-[14px] font-semibold" style={{ color: '#111827' }}>自定义重复</div>
               <div className="flex items-center gap-2">
-                <span className="text-[12px]" style={{ color: '#64748b' }}>每</span>
+                <span className="text-[14px]" style={{ color: '#64748b' }}>每</span>
                 <input
                   type="number"
                   min={1}
                   max={999}
                   value={customInterval}
                   onChange={(e) => setCustomInterval(Number(e.target.value))}
-                  className="h-8 w-14 rounded-lg border px-2 text-[13px] outline-none"
+                  className="h-8 w-14 rounded-lg border px-2 text-[14px] outline-none"
                   style={{ borderColor: '#e5e7eb', background: '#ffffff' }}
                 />
                 <select
                   value={customUnit}
                   onChange={(e) => setCustomUnit(e.target.value as TodoRecurrenceUnit)}
-                  className="h-8 rounded-lg border px-2 text-[13px] outline-none"
+                  className="h-8 rounded-lg border px-2 text-[14px] outline-none"
                   style={{ borderColor: '#e5e7eb', background: '#ffffff' }}
                 >
                   {UNITS.map((u) => (
@@ -193,7 +193,7 @@ export function TodoRecurrencePicker({ value, onChange }: TodoRecurrencePickerPr
 
               {customUnit === 'week' && (
                 <div className="mt-2.5">
-                  <div className="mb-1.5 text-[11px]" style={{ color: '#64748b' }}>在这些日子重复</div>
+                  <div className="mb-1.5 text-[13px]" style={{ color: '#64748b' }}>在这些日子重复</div>
                   <div className="flex flex-wrap gap-1">
                     {WEEKDAYS.map((d) => {
                       const on = customWeekdays.includes(d.value);
@@ -202,7 +202,7 @@ export function TodoRecurrencePicker({ value, onChange }: TodoRecurrencePickerPr
                           key={d.value}
                           type="button"
                           onClick={() => toggleWeekday(d.value)}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[12px] transition-colors"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[14px] transition-colors"
                           style={{
                             background: on ? '#3BB88A' : '#ffffff',
                             color: on ? '#ffffff' : '#64748b',
@@ -221,7 +221,7 @@ export function TodoRecurrencePicker({ value, onChange }: TodoRecurrencePickerPr
                 <button
                   type="button"
                   onClick={() => { setShowCustomEditor(false); }}
-                  className="h-7 rounded-full px-3 text-[12px] font-medium"
+                  className="h-7 rounded-full px-3 text-[14px] font-medium"
                   style={{ color: '#64748b', background: 'transparent' }}
                 >
                   取消
@@ -229,7 +229,7 @@ export function TodoRecurrencePicker({ value, onChange }: TodoRecurrencePickerPr
                 <button
                   type="button"
                   onClick={handleCustomApply}
-                  className="h-7 rounded-full px-3 text-[12px] font-medium"
+                  className="h-7 rounded-full px-3 text-[14px] font-medium"
                   style={{ background: '#3BB88A', color: '#ffffff' }}
                 >
                   确定

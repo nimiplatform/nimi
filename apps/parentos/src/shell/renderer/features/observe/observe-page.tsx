@@ -74,7 +74,7 @@ export default function ObservePage() {
   if (!child) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-[13px]" style={{ color: S.sub }}>请先添加孩子档案</p>
+        <p className="text-[14px]" style={{ color: S.sub }}>请先添加孩子档案</p>
       </div>
     );
   }
@@ -83,7 +83,7 @@ export default function ObservePage() {
     <div className={S.container} style={{ paddingTop: S.topPad }}>
       <div className="mb-6">
         <h1 className="text-[18px] font-semibold tracking-tight" style={{ color: S.text }}>观察任务</h1>
-        <p className="mt-1 text-[12px] leading-relaxed" style={{ color: S.sub }}>
+        <p className="mt-1 text-[14px] leading-relaxed" style={{ color: S.sub }}>
           选一个方向，带着好奇心去观察。不用每个都做，挑感兴趣的就好。
         </p>
       </div>
@@ -106,22 +106,22 @@ export default function ObservePage() {
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-medium" style={{ color: S.text }}>{card.displayName}</span>
+                    <span className="text-[14px] font-medium" style={{ color: S.text }}>{card.displayName}</span>
                     {card.entryCountLast14d === 0 && (
                       <span
-                        className="rounded-full px-1.5 py-0.5 text-[9px] font-medium"
+                        className="rounded-full px-1.5 py-0.5 text-[12px] font-medium"
                         style={{ background: '#f0f4e8', color: '#7aa06e' }}
                       >
                         最近未记录
                       </span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-[11px] leading-relaxed" style={{ color: S.sub }}>
+                  <p className="mt-0.5 text-[13px] leading-relaxed" style={{ color: S.sub }}>
                     {card.parentQuestion}
                   </p>
                 </div>
                 <span
-                  className="mt-1 shrink-0 text-[10px] transition-transform"
+                  className="mt-1 shrink-0 text-[12px] transition-transform"
                   style={{ color: S.sub, transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
                 >
                   ▾
@@ -134,12 +134,12 @@ export default function ObservePage() {
                   {/* Observable signals */}
                   {card.observableSignals.length > 0 && (
                     <div className="mb-3">
-                      <p className="mb-1.5 text-[10px] font-medium" style={{ color: S.accent }}>可以观察的信号</p>
+                      <p className="mb-1.5 text-[12px] font-medium" style={{ color: S.accent }}>可以观察的信号</p>
                       <div className="flex flex-wrap gap-1.5">
                         {card.observableSignals.map((signal, i) => (
                           <span
                             key={i}
-                            className="rounded-full px-2.5 py-1 text-[10px]"
+                            className="rounded-full px-2.5 py-1 text-[12px]"
                             style={{ background: '#f6f8f5', color: S.text }}
                           >
                             {signal}
@@ -152,10 +152,10 @@ export default function ObservePage() {
                   {/* Guided questions */}
                   {card.guidedQuestions.length > 0 && (
                     <div className="mb-3">
-                      <p className="mb-1.5 text-[10px] font-medium" style={{ color: S.accent }}>引导问题</p>
+                      <p className="mb-1.5 text-[12px] font-medium" style={{ color: S.accent }}>引导问题</p>
                       <div className="space-y-1">
                         {card.guidedQuestions.map((q, i) => (
-                          <p key={i} className="text-[11px] leading-relaxed" style={{ color: S.text }}>
+                          <p key={i} className="text-[13px] leading-relaxed" style={{ color: S.text }}>
                             {i + 1}. {q}
                           </p>
                         ))}
@@ -169,15 +169,15 @@ export default function ObservePage() {
                       className={`mb-3 ${S.radiusSm} px-3 py-2.5`}
                       style={{ background: '#faf9f6' }}
                     >
-                      <p className="mb-1 text-[10px] font-medium" style={{ color: '#c9891a' }}>试试这个小实验</p>
-                      <p className="text-[11px] leading-relaxed" style={{ color: S.text }}>{card.experiment}</p>
+                      <p className="mb-1 text-[12px] font-medium" style={{ color: '#c9891a' }}>试试这个小实验</p>
+                      <p className="text-[13px] leading-relaxed" style={{ color: S.text }}>{card.experiment}</p>
                     </div>
                   )}
 
                   {/* CTA */}
                   <Link
                     to={`/journal?dimensionId=${encodeURIComponent(card.dimensionId)}`}
-                    className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-medium no-underline transition-colors hover:opacity-90"
+                    className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[14px] font-medium no-underline transition-colors hover:opacity-90"
                     style={{ background: S.accent, color: '#fff' }}
                   >
                     开始记录
@@ -191,7 +191,7 @@ export default function ObservePage() {
 
       {cards.length === 0 && (
         <div className="py-16 text-center">
-          <p className="text-[13px]" style={{ color: S.sub }}>当前年龄暂无可用的观察维度</p>
+          <p className="text-[14px]" style={{ color: S.sub }}>当前年龄暂无可用的观察维度</p>
         </div>
       )}
     </div>

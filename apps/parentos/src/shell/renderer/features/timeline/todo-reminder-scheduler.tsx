@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { CustomTodoRow } from '../../bridge/sqlite-bridge.js';
 import { combineDateAndReminderOffset, describeReminderOffset } from './todo-recurrence.js';
 
@@ -123,17 +123,17 @@ export function CustomTodoReminderBanner({
           </svg>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-semibold" style={{ color: '#92400E' }}>
+          <div className="text-[14px] font-semibold" style={{ color: '#92400E' }}>
             {describeReminderOffset(primary.offsetMinutes)}提醒
           </div>
-          <div className="mt-0.5 truncate text-[13px]" style={{ color: '#78350F' }}>
+          <div className="mt-0.5 truncate text-[14px]" style={{ color: '#78350F' }}>
             {primary.title}
           </div>
           {extra > 0 && (
             <button
               type="button"
               onClick={onDismissAll}
-              className="mt-1 text-[11px] underline"
+              className="mt-1 text-[13px] underline"
               style={{ color: '#92400E' }}
             >
               另有 {extra} 条，全部标记已读
@@ -143,7 +143,7 @@ export function CustomTodoReminderBanner({
         <button
           type="button"
           onClick={() => onDismiss(primary.key)}
-          className="-mr-1 h-6 w-6 shrink-0 rounded-full text-[14px]"
+          className="-mr-1 h-6 w-6 shrink-0 rounded-full text-[16px]"
           style={{ color: '#92400E' }}
           aria-label="关闭"
         >

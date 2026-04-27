@@ -26,7 +26,7 @@ export const TIER_DEFAULTS: Record<SleepAgeTier, { bed: string; wake: string }> 
 };
 
 export const inputCls = (extra = '') =>
-  `w-full ${S.radiusSm} pl-3 pr-8 py-2 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${extra}`;
+  `w-full ${S.radiusSm} pl-3 pr-8 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${extra}`;
 
 export const inputSty = {
   borderColor: S.border,

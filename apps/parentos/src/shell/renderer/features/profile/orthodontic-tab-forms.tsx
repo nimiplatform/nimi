@@ -200,21 +200,21 @@ export function ApplianceFormModal({
       <FieldSelect label="装置类型" value={applianceType} onChange={(v) => setApplianceType(v as OrthodonticApplianceType)}
         options={eligibleTypes.map((o) => ({ value: o.value, label: o.label }))} />
       {eligibleTypes.length === 0 && (
-        <div className="text-[12px] px-3 py-2 rounded-md"
+        <div className="text-[14px] px-3 py-2 rounded-md"
           style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
           孩子当前年龄不满足任何装置的最小年龄门槛（PO-ORTHO-009）。
         </div>
       )}
       <FieldInput label="开始日期" type="date" value={startedAt} onChange={setStartedAt} />
       {dateIsBeforeBirth && (
-        <div className="text-[11px]" style={{ color: '#b91c1c' }}>
+        <div className="text-[13px]" style={{ color: '#b91c1c' }}>
           开始日期不能早于孩子出生日。
         </div>
       )}
       <FieldInput label="医嘱佩戴小时/天" type="number" value={prescribedHours} onChange={setPrescribedHours}
         placeholder={needsPrescribedHours ? '该装置必填' : '非日佩戴类装置可不填'} />
       {needsPrescribedHours && !prescribedHours.trim() && (
-        <div className="text-[11px]" style={{ color: '#b91c1c' }}>
+        <div className="text-[13px]" style={{ color: '#b91c1c' }}>
           每日佩戴类装置必须有医嘱小时数（PO-ORTHO-003）。
         </div>
       )}
@@ -224,7 +224,7 @@ export function ApplianceFormModal({
       <FieldInput label="复诊间隔（天）" type="number" value={reviewIntervalDays} onChange={setReviewIntervalDays}
         placeholder="不填使用协议默认值" />
       {startedAt && childBirthDate && !dateIsBeforeBirth && (
-        <div className="text-[11px]" style={{ color: S.sub }}>
+        <div className="text-[13px]" style={{ color: S.sub }}>
           开始时孩子 {Math.floor(startedAgeMonths / 12)} 岁 {startedAgeMonths % 12} 月
         </div>
       )}
@@ -320,7 +320,7 @@ export function OrthoClinicalEventModal({
 
   return (
     <Modal title="记录正畸临床事件" onClose={onClose}>
-      <p className="text-[11px]" style={{ color: S.sub }}>
+      <p className="text-[13px]" style={{ color: S.sub }}>
         将写入口腔档案的临床时间线（dental_records），不参与依从率统计。
       </p>
       <FieldSelect label="事件类型" value={eventType} onChange={(v) => setEventType(v as OrthoClinicalEventType)}
@@ -333,7 +333,7 @@ export function OrthoClinicalEventModal({
             onChange={(v) => setAppliedToApplianceId(v)}
             options={activeAppliances.map((a) => ({ value: a.applianceId, label: `${a.applianceType} · 开始 ${a.startedAt}` }))} />
           {computedNextReviewDate && (
-            <div className="text-[11px] px-3 py-2 rounded-md"
+            <div className="text-[13px] px-3 py-2 rounded-md"
               style={{ background: 'rgba(78,204,163,0.08)', color: S.text, border: '1px solid rgba(78,204,163,0.25)' }}>
               本次完成后，下次复诊自动设为 <strong>{computedNextReviewDate}</strong>；对应协议提醒会推进到该日。
             </div>
@@ -341,7 +341,7 @@ export function OrthoClinicalEventModal({
         </>
       )}
       {advancesReview && activeAppliances.length === 0 && (
-        <div className="text-[11px] px-3 py-2 rounded-md"
+        <div className="text-[13px] px-3 py-2 rounded-md"
           style={{ background: 'rgba(245,158,11,0.08)', color: '#b45309', border: '1px solid rgba(245,158,11,0.25)' }}>
           当前疗程没有进行中的装置。事件会写入时间线，但不会推进复诊周期。
         </div>
@@ -373,11 +373,11 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
 export function ModalFooter({ onCancel, onSubmit, submitLabel, disabled }: { onCancel: () => void; onSubmit: () => void; submitLabel: string; disabled?: boolean }) {
   return (
     <div className="flex justify-end gap-2 mt-2">
-      <button type="button" onClick={onCancel} className="text-[13px]"
+      <button type="button" onClick={onCancel} className="text-[14px]"
         style={{ background: 'transparent', color: '#64748b', border: 0, cursor: 'pointer', padding: '6px 12px' }}>
         取消
       </button>
-      <button type="button" onClick={onSubmit} disabled={disabled} className="text-[13px] font-semibold text-white"
+      <button type="button" onClick={onSubmit} disabled={disabled} className="text-[14px] font-semibold text-white"
         style={{ background: disabled ? '#cbd5e1' : S.accent, padding: '6px 14px', borderRadius: 8, border: 0, cursor: disabled ? 'not-allowed' : 'pointer' }}>
         {submitLabel}
       </button>
@@ -387,10 +387,10 @@ export function ModalFooter({ onCancel, onSubmit, submitLabel, disabled }: { onC
 
 export function FieldSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
   return (
-    <label className="flex flex-col gap-1 text-[12px]" style={{ color: '#475569' }}>
+    <label className="flex flex-col gap-1 text-[14px]" style={{ color: '#475569' }}>
       {label}
       <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="px-2 py-1.5 rounded-md text-[13px]" style={{ border: '1px solid rgba(226,232,240,0.9)' }}>
+        className="px-2 py-1.5 rounded-md text-[14px]" style={{ border: '1px solid rgba(226,232,240,0.9)' }}>
         {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     </label>
@@ -399,20 +399,20 @@ export function FieldSelect({ label, value, onChange, options }: { label: string
 
 export function FieldInput({ label, type = 'text', value, onChange, placeholder }: { label: string; type?: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
-    <label className="flex flex-col gap-1 text-[12px]" style={{ color: '#475569' }}>
+    <label className="flex flex-col gap-1 text-[14px]" style={{ color: '#475569' }}>
       {label}
       <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-        className="px-2 py-1.5 rounded-md text-[13px]" style={{ border: '1px solid rgba(226,232,240,0.9)' }} />
+        className="px-2 py-1.5 rounded-md text-[14px]" style={{ border: '1px solid rgba(226,232,240,0.9)' }} />
     </label>
   );
 }
 
 export function FieldTextarea({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
-    <label className="flex flex-col gap-1 text-[12px]" style={{ color: '#475569' }}>
+    <label className="flex flex-col gap-1 text-[14px]" style={{ color: '#475569' }}>
       {label}
       <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={3}
-        className="px-2 py-1.5 rounded-md text-[13px]" style={{ border: '1px solid rgba(226,232,240,0.9)' }} />
+        className="px-2 py-1.5 rounded-md text-[14px]" style={{ border: '1px solid rgba(226,232,240,0.9)' }} />
     </label>
   );
 }

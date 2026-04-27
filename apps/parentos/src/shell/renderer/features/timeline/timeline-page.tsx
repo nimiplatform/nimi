@@ -165,10 +165,10 @@ export default function TimelinePage() {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center" style={{ color: '#b91c1c' }}>
         <p className="text-base font-medium">提醒目录不完整</p>
-        <p className="text-[12px]" style={{ color: C.sub }}>
+        <p className="text-[14px]" style={{ color: C.sub }}>
           发现未登记的 ruleId：{agendaResult.ruleIds.join('、')}
         </p>
-        <p className="text-[12px]" style={{ color: C.sub }}>
+        <p className="text-[14px]" style={{ color: C.sub }}>
           提醒流按 PO-TIME-007 fail-close。请修复 reminder-rules.yaml 或清理脏数据后重试。
         </p>
       </div>

@@ -13,7 +13,7 @@ import type { ObservationNudge } from './timeline-observation-nudges.js';
 export { CustomTodoComposer, CustomTodoInlineList } from './timeline-custom-todos.js';
 
 const ACTION_PILL_CLASS = 'inline-flex h-7 min-h-7 shrink-0 items-center justify-center whitespace-nowrap rounded-full border-0 px-3 no-underline [appearance:none] transition-colors';
-const ACTION_LABEL_CLASS = 'block text-[11px] leading-none font-medium tracking-[0.01em]';
+const ACTION_LABEL_CLASS = 'block text-[13px] leading-none font-medium tracking-[0.01em]';
 
 function reminderPrimaryLink(reminder: ActiveReminder) {
   // W5b will replace this Link-based primary with the ReminderExplainDrawer trigger.
@@ -103,8 +103,8 @@ function OverdueGroup({
         >
           <path d="M9 18l6-6-6-6" />
         </svg>
-        <span className="text-[10px] font-semibold" style={{ color: '#d97706' }}>逾期汇总</span>
-        <span className="rounded-full px-1.5 py-[1px] text-[9px] font-medium" style={{ background: '#fef3c7', color: '#b45309' }}>
+        <span className="text-[12px] font-semibold" style={{ color: '#d97706' }}>逾期汇总</span>
+        <span className="rounded-full px-1.5 py-[1px] text-[12px] font-medium" style={{ background: '#fef3c7', color: '#b45309' }}>
           {totalCount}
         </span>
       </button>
@@ -127,8 +127,8 @@ function OverdueGroup({
               </svg>
             </button>
             <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-medium leading-snug" style={{ color: C.text }}>{reminder.rule.title}</p>
-              <p className="mt-0.5 text-[10px]" style={{ color: '#f59e0b' }}>{reminderStatus(reminder)}</p>
+              <p className="text-[14px] font-medium leading-snug" style={{ color: C.text }}>{reminder.rule.title}</p>
+              <p className="mt-0.5 text-[12px]" style={{ color: '#f59e0b' }}>{reminderStatus(reminder)}</p>
               <div className="mt-1.5 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                 <Link to={primary.to} className={ACTION_PILL_CLASS} style={{ background: '#1e293b', color: '#fff' }}>
                   <span className={ACTION_LABEL_CLASS}>{primary.label}</span>
@@ -147,7 +147,7 @@ function OverdueGroup({
         );
       })}
       {open && totalCount > items.length && (
-        <Link to="/reminders" className="block py-1 text-center text-[10px]" style={{ color: '#475569' }}>
+        <Link to="/reminders" className="block py-1 text-center text-[12px]" style={{ color: '#475569' }}>
           查看全部 {totalCount}
         </Link>
       )}
@@ -189,8 +189,8 @@ function AgendaOverflowGroup({
         >
           <path d="M9 18l6-6-6-6" />
         </svg>
-        <span className="text-[10px] font-semibold" style={{ color: tone.fg }}>{label}</span>
-        <span className="rounded-full px-1.5 py-[1px] text-[9px] font-medium" style={{ background: tone.bg, color: tone.text }}>
+        <span className="text-[12px] font-semibold" style={{ color: tone.fg }}>{label}</span>
+        <span className="rounded-full px-1.5 py-[1px] text-[12px] font-medium" style={{ background: tone.bg, color: tone.text }}>
           {totalCount}
         </span>
       </button>
@@ -213,8 +213,8 @@ function AgendaOverflowGroup({
               </svg>
             </button>
             <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-medium leading-snug" style={{ color: C.text }}>{reminder.rule.title}</p>
-              <p className="mt-0.5 text-[10px]" style={{ color: tone.text }}>{reminderStatus(reminder)}</p>
+              <p className="text-[14px] font-medium leading-snug" style={{ color: C.text }}>{reminder.rule.title}</p>
+              <p className="mt-0.5 text-[12px]" style={{ color: tone.text }}>{reminderStatus(reminder)}</p>
               <div className="mt-1.5 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                 <Link to={primary.to} className={ACTION_PILL_CLASS} style={{ background: '#1e293b', color: '#fff' }}>
                   <span className={ACTION_LABEL_CLASS}>{primary.label}</span>
@@ -231,7 +231,7 @@ function AgendaOverflowGroup({
                   <button
                     type="button"
                     onClick={() => onAction(reminder, 'mark_not_applicable')}
-                    className="rounded-full px-2.5 py-1 text-[10px]"
+                    className="rounded-full px-2.5 py-1 text-[12px]"
                     style={{ background: '#fff', color: '#a16b5d' }}
                   >
                     不适用
@@ -258,12 +258,12 @@ function ObservationNudgeSection({ nudges }: { nudges: ObservationNudge[] }) {
           className="group flex items-start gap-2.5 rounded-[12px] px-3 py-3 transition-colors hover:bg-white"
         >
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-medium leading-snug" style={{ color: '#1e293b' }}>{nudge.nudgeText}</p>
-            <p className="mt-0.5 text-[10px]" style={{ color: '#475569' }}>{nudge.parentQuestion}</p>
+            <p className="text-[14px] font-medium leading-snug" style={{ color: '#1e293b' }}>{nudge.nudgeText}</p>
+            <p className="mt-0.5 text-[12px]" style={{ color: '#475569' }}>{nudge.parentQuestion}</p>
           </div>
           <Link
             to={`/observe?dimensionId=${encodeURIComponent(nudge.dimensionId)}`}
-            className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-medium text-white opacity-0 transition-all group-hover:opacity-100 hover:-translate-y-0.5"
+            className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium text-white opacity-0 transition-all group-hover:opacity-100 hover:-translate-y-0.5"
             style={{ background: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
           >
             去观察
@@ -345,7 +345,7 @@ export function ReminderPanel({
     <div className="relative hidden w-[320px] shrink-0 flex-col pt-7 pb-6 pr-4 lg:flex" style={{ background: 'transparent' }}>
       <div className="mb-5 flex items-center justify-between px-3">
         <h3 className="text-[18px] font-semibold tracking-tight" style={{ color: '#1e293b', letterSpacing: '-0.3px' }}>待办事项</h3>
-        <Link to="/reminders" className="text-[11px] font-medium" style={{ color: '#475569' }}>查看全部</Link>
+        <Link to="/reminders" className="text-[13px] font-medium" style={{ color: '#475569' }}>查看全部</Link>
       </div>
 
       {showTabs && (
@@ -360,13 +360,13 @@ export function ReminderPanel({
                 key={key}
                 type="button"
                 onClick={() => setTab(key)}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-[6px] text-[11px] font-bold transition-all"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-[6px] text-[13px] font-bold transition-all"
                 style={active ? { background: '#fff', color: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } : { color: '#9CA0A6' }}
               >
                 <span>{label}</span>
                 {count > 0 && (
                   <span
-                    className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold"
+                    className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[12px] font-semibold"
                     style={active
                       ? { background: 'rgba(78, 204, 163, 0.15)', color: '#3BB88A' }
                       : { background: 'rgba(0,0,0,0.06)', color: '#9CA0A6' }}
@@ -394,7 +394,7 @@ export function ReminderPanel({
 
       <div className="flex-1 overflow-y-auto px-1">
         {items.length === 0 ? (
-          <p className="py-10 text-center text-[12px]" style={{ color: '#64748b' }}>暂无事项</p>
+          <p className="py-10 text-center text-[14px]" style={{ color: '#64748b' }}>暂无事项</p>
         ) : (
           <>
             {items.map((reminder) => (
@@ -435,11 +435,11 @@ export function ReminderPanel({
 
         {seasonalTasks.length > 0 && (
           <div className="mt-3 pt-3">
-            <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.08em]" style={{ color: '#d97706' }}>季节关注</p>
+            <p className="mb-2 px-1 text-[12px] font-bold uppercase tracking-[0.08em]" style={{ color: '#d97706' }}>季节关注</p>
             {seasonalTasks.map((task) => (
               <div key={task.id} className="px-1 py-2">
-                <p className="text-[11px] font-semibold" style={{ color: '#1e293b' }}>{task.title}</p>
-                <p className="mt-0.5 text-[9px] leading-relaxed" style={{ color: '#475569' }}>{task.description}</p>
+                <p className="text-[13px] font-semibold" style={{ color: '#1e293b' }}>{task.title}</p>
+                <p className="mt-0.5 text-[12px] leading-relaxed" style={{ color: '#475569' }}>{task.description}</p>
               </div>
             ))}
           </div>

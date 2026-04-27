@@ -41,7 +41,7 @@ export function TodoReminderPicker({ value, onChange }: TodoReminderPickerProps)
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[12px] font-medium transition-colors"
+        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[14px] font-medium transition-colors"
         style={{
           color: active ? '#ffffff' : '#64748b',
           background: active ? '#3BB88A' : 'transparent',
@@ -62,7 +62,7 @@ export function TodoReminderPicker({ value, onChange }: TodoReminderPickerProps)
           <button
             type="button"
             onClick={() => { onChange(null); setOpen(false); }}
-            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[13px] transition-colors hover:bg-[#f3f4f6]"
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[14px] transition-colors hover:bg-[#f3f4f6]"
             style={{ color: !active ? '#3BB88A' : '#64748b' }}
           >
             <span>不提醒</span>
@@ -76,7 +76,7 @@ export function TodoReminderPicker({ value, onChange }: TodoReminderPickerProps)
                 key={preset.minutes}
                 type="button"
                 onClick={() => { onChange(preset.minutes); setOpen(false); }}
-                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[13px] transition-colors hover:bg-[#f3f4f6]"
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-[14px] transition-colors hover:bg-[#f3f4f6]"
                 style={{ color: selected ? '#3BB88A' : '#1e293b' }}
               >
                 <span>{preset.label}</span>

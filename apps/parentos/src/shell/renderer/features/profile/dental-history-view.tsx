@@ -353,13 +353,11 @@ export function DentalHistoryView() {
       cancelled = true;
       if (unlisten) unlisten();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showForm]);
 
   useEffect(() => {
     if (!activeChildId) return;
     void refreshDentalData(activeChildId).catch(catchLog('dental', 'action:load-dental-data-failed'));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChildId]);
 
   // Filter event types by child age
@@ -590,7 +588,7 @@ export function DentalHistoryView() {
           <button
             onClick={openScanModal}
             title="上传口腔照片或全景片，由 AI 识别萌出情况"
-            className="flex items-center gap-1.5 text-[13px] font-medium hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 text-[14px] font-medium hover:opacity-90 transition-opacity"
             style={{
               background: '#ffffff',
               color: S.text,
@@ -609,7 +607,7 @@ export function DentalHistoryView() {
           </button>
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-1.5 text-[13px] font-semibold text-white hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 text-[14px] font-semibold text-white hover:opacity-90 transition-opacity"
             style={{
               background: S.accent,
               padding: '10px 16px',
@@ -625,7 +623,7 @@ export function DentalHistoryView() {
 
       {/* Reminder toast */}
       {reminderMsg && (
-        <div className={`${S.radiusSm} px-4 py-2.5 mb-4 flex items-center gap-2 text-[12px] font-medium`}
+        <div className={`${S.radiusSm} px-4 py-2.5 mb-4 flex items-center gap-2 text-[14px] font-medium`}
           style={{ background: '#f0f7f0', color: '#16a34a', border: '1px solid #bbf7d0' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
           {reminderMsg}
@@ -635,7 +633,7 @@ export function DentalHistoryView() {
       {errorMsg && (
         <div
           role="alert"
-          className={`${S.radiusSm} px-4 py-2.5 mb-4 flex items-start gap-2 text-[12px] font-medium`}
+          className={`${S.radiusSm} px-4 py-2.5 mb-4 flex items-start gap-2 text-[14px] font-medium`}
           style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
@@ -765,15 +763,15 @@ export function DentalHistoryView() {
 
       {sortedRecords.length === 0 && !showForm && (
         <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <span className="text-[28px]">🦷</span>
-          <p className="text-[13px] mt-2 font-medium" style={{ color: S.text }}>还没有口腔记录</p>
-          <p className="text-[11px] mt-1" style={{ color: S.sub }}>建议每半年进行一次口腔检查</p>
+          <span className="text-[24px]">🦷</span>
+          <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>还没有口腔记录</p>
+          <p className="text-[13px] mt-1" style={{ color: S.sub }}>建议每半年进行一次口腔检查</p>
         </div>
       )}
 
       {sortedRecords.length > 0 && filteredSortedRecords.length === 0 && (
         <div className={`${S.radius} p-6 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[12px]" style={{ color: S.sub }}>该筛选下暂无记录</p>
+          <p className="text-[14px]" style={{ color: S.sub }}>该筛选下暂无记录</p>
         </div>
       )}
 

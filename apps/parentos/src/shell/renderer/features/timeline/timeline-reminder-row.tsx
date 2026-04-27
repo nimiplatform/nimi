@@ -93,7 +93,7 @@ export function TimelineReminderRow({ reminder, onOpen, onAction, statusLabel }:
         <span
           aria-label={kindGlyph?.tooltip ?? reminder.kind}
           title={kindGlyph?.tooltip}
-          className="mt-[1px] flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-full text-[10px]"
+          className="mt-[1px] flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-full text-[12px]"
           style={{ background: '#f1f5f9' }}
         >
           {kindGlyph?.icon ?? '•'}
@@ -101,11 +101,11 @@ export function TimelineReminderRow({ reminder, onOpen, onAction, statusLabel }:
       )}
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="text-[12px] font-medium leading-snug" style={{ color: '#1e293b' }}>{reminder.rule.title}</p>
-          <span className="shrink-0 text-[10px]" style={{ color: '#64748b' }}>{statusLabel}</span>
+          <p className="text-[14px] font-medium leading-snug" style={{ color: '#1e293b' }}>{reminder.rule.title}</p>
+          <span className="shrink-0 text-[12px]" style={{ color: '#64748b' }}>{statusLabel}</span>
         </div>
         {progressionNote ? (
-          <p className="mt-0.5 text-[10px]" style={{ color: '#64748b' }}>{progressionNote}</p>
+          <p className="mt-0.5 text-[12px]" style={{ color: '#64748b' }}>{progressionNote}</p>
         ) : null}
       </div>
     </div>

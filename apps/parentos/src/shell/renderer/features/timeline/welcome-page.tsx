@@ -60,8 +60,8 @@ export function WelcomePage() {
 
           {/* ── header ── */}
           <header>
-            <p className="text-[13px] font-medium tracking-wide" style={{ color: textMuted }}>{dateStr}</p>
-            <h1 className="mt-2 text-[28px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.5px' }}>
+            <p className="text-[14px] font-medium tracking-wide" style={{ color: textMuted }}>{dateStr}</p>
+            <h1 className="mt-2 text-[24px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.5px' }}>
               {greeting}，开启今天的育儿之旅。
             </h1>
           </header>
@@ -79,7 +79,7 @@ export function WelcomePage() {
                 <h2 className="text-[24px] font-semibold" style={{ color: textMain }}>
                   {hasChildren ? '选择一个孩子开始' : '欢迎使用成长底稿'}
                 </h2>
-                <p className="mt-3 text-[15px] leading-relaxed" style={{ color: textMuted }}>
+                <p className="mt-3 text-[16px] leading-relaxed" style={{ color: textMuted }}>
                   {hasChildren
                     ? '请选择一个孩子，查看个性化成长时间线'
                     : '这里是你的专属"成长底稿"。从第一笔身高体重，到每一次难忘的微笑，我们用科学与 AI 陪伴宝贝的每一步。'}
@@ -109,15 +109,15 @@ export function WelcomePage() {
                         >
                           <ChildAvatar child={child} ageMonths={age} className="h-9 w-9 shrink-0 rounded-full object-cover" />
                           <span>
-                            <span className="block text-[13px] font-semibold">{child.displayName}</span>
-                            <span className="block text-[11px]" style={{ color: textMuted }}>{ageLabel}</span>
+                            <span className="block text-[14px] font-semibold">{child.displayName}</span>
+                            <span className="block text-[13px]" style={{ color: textMuted }}>{ageLabel}</span>
                           </span>
                         </button>
                       );
                     })}
                     <Link
                       to="/settings/children"
-                      className="flex items-center gap-2 rounded-full px-5 py-2 text-[13px] font-medium transition-colors hover:bg-black/5"
+                      className="flex items-center gap-2 rounded-full px-5 py-2 text-[14px] font-medium transition-colors hover:bg-black/5"
                       style={{ color: textMuted, border: '1.5px dashed #cbd5e1' }}
                     >
                       + 添加新孩子
@@ -126,7 +126,7 @@ export function WelcomePage() {
                 ) : (
                   <Link
                     to="/settings/children"
-                    className="mt-8 inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-[15px] font-medium text-white transition-all hover:-translate-y-0.5"
+                    className="mt-8 inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-[16px] font-medium text-white transition-all hover:-translate-y-0.5"
                     style={{
                       background: textMain,
                       boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
@@ -164,13 +164,13 @@ export function WelcomePage() {
                   className="p-7 transition-transform hover:-translate-y-1"
                 >
                   <div
-                    className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl text-[22px]"
+                    className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl text-[24px]"
                     style={{ background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}
                   >
                     {item.emoji}
                   </div>
-                  <h3 className="text-[17px] font-semibold" style={{ color: textMain }}>{item.title}</h3>
-                  <p className="mt-2.5 text-[14px] leading-relaxed" style={{ color: textMuted }}>{item.desc}</p>
+                  <h3 className="text-[18px] font-semibold" style={{ color: textMain }}>{item.title}</h3>
+                  <p className="mt-2.5 text-[16px] leading-relaxed" style={{ color: textMuted }}>{item.desc}</p>
                 </Surface>
               ))}
             </div>
@@ -181,7 +181,7 @@ export function WelcomePage() {
             {TRUST.map((t) => (
               <div
                 key={t.label}
-                className="flex items-center gap-2 rounded-full px-4 py-2 text-[12px]"
+                className="flex items-center gap-2 rounded-full px-4 py-2 text-[14px]"
                 style={{
                   color: textMuted,
                   background: 'rgba(255,255,255,0.6)',

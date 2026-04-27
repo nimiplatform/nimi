@@ -52,7 +52,7 @@ const ICON_TONE: Record<RecentChangeIconName, { bg: string; fg: string }> = {
   bone: { bg: 'rgba(148,163,184,0.18)', fg: '#475569' },
 };
 
-const ICON_TINT: Record<string, string> = {
+const _ICON_TINT: Record<string, string> = {
   '📏': 'rgba(78,204,163,0.12)',
   '💉': 'rgba(251,191,36,0.10)',
   '😴': 'rgba(129,140,248,0.12)',
@@ -162,8 +162,8 @@ function ChildSwitchPopover({ child, childList }: { child: ChildProfile; childLi
                   <ChildAvatar child={item} className="h-full w-full object-cover" />
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-[12px] font-semibold" style={{ color: isActive ? '#2F7D6B' : textMain }}>{item.displayName}</p>
-                  <p className="text-[10px]" style={{ color: textMuted }}>{formatAgeLabel(computeAgeMonths(item.birthDate))} · {item.gender === 'female' ? '女孩' : '男孩'}</p>
+                  <p className="truncate text-[14px] font-semibold" style={{ color: isActive ? '#2F7D6B' : textMain }}>{item.displayName}</p>
+                  <p className="text-[12px]" style={{ color: textMuted }}>{formatAgeLabel(computeAgeMonths(item.birthDate))} · {item.gender === 'female' ? '女孩' : '男孩'}</p>
                 </div>
               </button>
             );
@@ -213,19 +213,19 @@ export function ChildContextCard({ child, childList, ageMonths }: { child: Child
           <ChildAvatar child={child} ageMonths={ageMonths} className="h-full w-full rounded-full object-cover" />
         </div>
         <div className="relative mt-6 max-w-full text-center">
-          <h2 className="truncate text-[22px] font-semibold tracking-tight" style={{ color: '#1d1d1f', letterSpacing: '-0.3px' }}>
+          <h2 className="truncate text-[24px] font-semibold tracking-tight" style={{ color: '#1d1d1f', letterSpacing: '-0.3px' }}>
             {child.displayName}
           </h2>
-          <p className="mt-1.5 text-[12px]" style={{ color: '#86868b' }}>
+          <p className="mt-1.5 text-[14px]" style={{ color: '#86868b' }}>
             {formatAgeLabel(ageMonths)} · {child.gender === 'female' ? '女孩' : '男孩'}
           </p>
         </div>
         <div className="relative mt-auto flex w-full flex-col items-center gap-3">
-          <span className="inline-flex items-center rounded-full px-3 py-[5px] text-[11px] font-medium" style={{ background: 'rgba(52,199,89,0.12)', color: '#248a3d' }}>
+          <span className="inline-flex items-center rounded-full px-3 py-[5px] text-[13px] font-medium" style={{ background: 'rgba(52,199,89,0.12)', color: '#248a3d' }}>
             <span className="mr-1.5 inline-block h-[6px] w-[6px] rounded-full" style={{ background: '#34c759' }} />
             {describeNurtureMode(child.nurtureMode)}
           </span>
-          <Link to="/profile" className="flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-[13px] font-medium transition-colors hover:bg-black/[0.04]" style={{ color: '#1d1d1f' }}>
+          <Link to="/profile" className="flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-[14px] font-medium transition-colors hover:bg-black/[0.04]" style={{ color: '#1d1d1f' }}>
             查看完整档案
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 opacity-60">
               <path d="M9 5l7 7-7 7" />
@@ -247,23 +247,23 @@ function RecentChangeLeadCell({ item }: { item: RecentChangeItem }) {
     >
       <div className="flex items-center gap-3">
         <RecentChangeIcon item={item} size={20} />
-        <span className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: textSoft }}>
+        <span className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: textSoft }}>
           {item.label}
         </span>
       </div>
-      <p className="mt-5 text-[15px] font-semibold leading-snug" style={{ color: textMain, letterSpacing: '-0.1px' }}>{item.title}</p>
+      <p className="mt-5 text-[16px] font-semibold leading-snug" style={{ color: textMain, letterSpacing: '-0.1px' }}>{item.title}</p>
       {item.metric ? (
-        <p className="mt-2 text-[44px] font-semibold leading-none tabular-nums" style={{ color: textMain, letterSpacing: '-1.4px' }}>
+        <p className="mt-2 text-[48px] font-semibold leading-none tabular-nums" style={{ color: textMain, letterSpacing: '-1.4px' }}>
           {item.metric.value}
           {item.metric.unit ? <span className="ml-1.5 text-[18px] font-medium" style={{ color: textMuted }}>{item.metric.unit}</span> : null}
         </p>
       ) : null}
       {item.summary ? (
-        <p className="mt-3 text-[13px] leading-relaxed" style={{ color: textMuted, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        <p className="mt-3 text-[14px] leading-relaxed" style={{ color: textMuted, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
           {item.summary}
         </p>
       ) : null}
-      <p className="mt-auto pt-4 text-[11px] font-medium tabular-nums" style={{ color: textSoft }}>{item.subtitle ?? item.detail}</p>
+      <p className="mt-auto pt-4 text-[13px] font-medium tabular-nums" style={{ color: textSoft }}>{item.subtitle ?? item.detail}</p>
     </Link>
   );
 }
@@ -278,9 +278,9 @@ function RecentChangeSecondaryCell({ item }: { item: RecentChangeItem }) {
       <div className="flex items-start gap-3">
         <RecentChangeIcon item={item} size={16} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[12px] font-semibold" style={{ color: textMain }}>{item.title}</p>
-          {item.summary ? <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.summary}</p> : null}
-          <p className="mt-1.5 text-[10px] tabular-nums" style={{ color: textSoft }}>{item.subtitle ?? item.detail}</p>
+          <p className="truncate text-[14px] font-semibold" style={{ color: textMain }}>{item.title}</p>
+          {item.summary ? <p className="mt-1 text-[13px] leading-relaxed" style={{ color: textMuted, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.summary}</p> : null}
+          <p className="mt-1.5 text-[12px] tabular-nums" style={{ color: textSoft }}>{item.subtitle ?? item.detail}</p>
         </div>
       </div>
     </Link>
@@ -295,12 +295,12 @@ export function RecentChangesHeroCard({ items }: { items: RecentChangeItem[] }) 
     <Cd cls="col-span-6 row-span-2" material="glass-thick">
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-medium tracking-[0.08em]" style={{ color: textSoft }}>最近 7 天</p>
-          <h2 className="mt-1.5 text-[22px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.5px' }}>
+          <p className="text-[13px] font-medium tracking-[0.08em]" style={{ color: textSoft }}>最近 7 天</p>
+          <h2 className="mt-1.5 text-[24px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.5px' }}>
             最近变化
           </h2>
         </div>
-        <Link to="/profile" className="text-[11px] font-medium transition-colors hover:text-[#1e293b]" style={{ color: textMuted }}>
+        <Link to="/profile" className="text-[13px] font-medium transition-colors hover:text-[#1e293b]" style={{ color: textMuted }}>
           查看档案
         </Link>
       </div>
@@ -312,8 +312,8 @@ export function RecentChangesHeroCard({ items }: { items: RecentChangeItem[] }) 
             {secondary.map((item) => <RecentChangeSecondaryCell key={item.id} item={item} />)}
             {secondary.length === 0 ? (
               <div className="rounded-[18px] p-4 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
-                <p className="text-[12px] font-semibold" style={{ color: textMain }}>再记录一点会更完整</p>
-                <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>
+                <p className="text-[14px] font-semibold" style={{ color: textMain }}>再记录一点会更完整</p>
+                <p className="mt-1 text-[13px] leading-relaxed" style={{ color: textMuted }}>
                   继续补充睡眠、测量或观察后，这里会把最近变化串成更完整的脉络。
                 </p>
               </div>
@@ -322,11 +322,11 @@ export function RecentChangesHeroCard({ items }: { items: RecentChangeItem[] }) 
         </div>
       ) : (
         <div className="rounded-[22px] p-7 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
-          <p className="text-[15px] font-semibold" style={{ color: textMain }}>最近 7 天还没有新的变化</p>
-          <p className="mt-2 text-[13px] leading-relaxed" style={{ color: textMuted }}>
+          <p className="text-[16px] font-semibold" style={{ color: textMain }}>最近 7 天还没有新的变化</p>
+          <p className="mt-2 text-[14px] leading-relaxed" style={{ color: textMuted }}>
             先记录一次测量、观察或睡眠数据，首页会在这里归纳最近的变化。
           </p>
-          <Link to="/journal" className="mt-5 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-medium text-white transition-all hover:-translate-y-0.5" style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}>
+          <Link to="/journal" className="mt-5 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-medium text-white transition-all hover:-translate-y-0.5" style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}>
             去记录一条 <span>→</span>
           </Link>
         </div>
@@ -344,20 +344,20 @@ export function StageFocusCard({ periods }: { periods: Array<{ periodId: string;
           {periods.slice(0, 2).map((period) => (
             <div key={period.periodId} className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-semibold text-amber-600">敏感期</span>
-                <p className="text-[13px] font-semibold" style={{ color: textMain }}>{period.title}</p>
+                <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[12px] font-semibold text-amber-600">敏感期</span>
+                <p className="text-[14px] font-semibold" style={{ color: textMain }}>{period.title}</p>
               </div>
-              <p className="mt-2 text-[12px] leading-relaxed" style={{ color: textMuted }}>{period.observableSigns[0] ?? '这个阶段值得继续观察孩子最近的变化。'}</p>
+              <p className="mt-2 text-[14px] leading-relaxed" style={{ color: textMuted }}>{period.observableSigns[0] ?? '这个阶段值得继续观察孩子最近的变化。'}</p>
               <Link to={`/journal?topic=${encodeURIComponent(period.title)}`}
-                className="mt-3 inline-flex rounded-full px-4 py-1.5 text-[11px] font-medium text-white hover:-translate-y-0.5"
+                className="mt-3 inline-flex rounded-full px-4 py-1.5 text-[13px] font-medium text-white hover:-translate-y-0.5"
                 style={{ background: textMain, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>去记录</Link>
             </div>
           ))}
         </div>
       ) : (
         <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
-          <p className="text-[13px] font-semibold" style={{ color: textMain }}>当前阶段相对平稳</p>
-          <p className="mt-1 text-[11px] leading-relaxed" style={{ color: textMuted }}>下一个敏感期命中后，这里会解释为什么值得关注。</p>
+          <p className="text-[14px] font-semibold" style={{ color: textMain }}>当前阶段相对平稳</p>
+          <p className="mt-1 text-[13px] leading-relaxed" style={{ color: textMuted }}>下一个敏感期命中后，这里会解释为什么值得关注。</p>
         </div>
       )}
     </Cd>
@@ -378,7 +378,7 @@ export function QuickLinksStrip({ ageMonths }: { ageMonths: number }) {
                 className="group flex flex-col items-center rounded-[20px] px-3 py-5 transition-all duration-200 hover:-translate-y-1 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
                 style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
                 <QuickLinkIcon src={iconMeta.src} offsetX={iconMeta.offsetX} scale={iconMeta.scale} bg={iconMeta.bg} />
-                <p className="text-[11px] font-semibold" style={{ color: textMain }}>{item.label}</p>
+                <p className="text-[13px] font-semibold" style={{ color: textMain }}>{item.label}</p>
               </Link>
             );
           })()

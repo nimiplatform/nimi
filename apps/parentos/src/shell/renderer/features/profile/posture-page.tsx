@@ -218,14 +218,14 @@ export default function PosturePage() {
 
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
-      <Link to="/profile" className="text-[13px] hover:underline mb-5 inline-block" style={{ color: S.sub }}>← 返回档案</Link>
+      <Link to="/profile" className="text-[14px] hover:underline mb-5 inline-block" style={{ color: S.sub }}>← 返回档案</Link>
 
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold" style={{ color: S.text }}>体态档案</h1>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowGuide((prev) => !prev)}
-            className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium ${S.radiusSm} transition-all`}
+            className={`flex items-center gap-1.5 px-3 py-2 text-[14px] font-medium ${S.radiusSm} transition-all`}
             style={showGuide ? { background: S.accent, color: '#fff' } : { background: '#f0f0ec', color: S.sub }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -237,7 +237,7 @@ export default function PosturePage() {
           </button>
           {!showForm && (
             <button onClick={() => setShowForm(true)}
-              className={`flex items-center gap-1.5 px-4 py-2 text-[12px] font-medium text-white ${S.radiusSm} hover:opacity-90`}
+              className={`flex items-center gap-1.5 px-4 py-2 text-[14px] font-medium text-white ${S.radiusSm} hover:opacity-90`}
               style={{ background: S.accent }}>
               + 添加记录
             </button>
@@ -263,31 +263,31 @@ export default function PosturePage() {
       {/* Quick overview */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         <div className={`${S.radiusSm} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[10px] font-medium" style={{ color: S.sub }}>🦴 Cobb 角</p>
+          <p className="text-[12px] font-medium" style={{ color: S.sub }}>🦴 Cobb 角</p>
           {cobbRecords[0] ? (() => {
             const level = cobbLevel(cobbRecords[0].value);
             return (<>
               <p className="text-[20px] font-bold mt-1" style={{ color: S.text }}>{cobbRecords[0].value}°</p>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full mt-1 inline-block" style={{ background: `${level.color}20`, color: level.color }}>{level.label}</span>
+              <span className="text-[12px] px-1.5 py-0.5 rounded-full mt-1 inline-block" style={{ background: `${level.color}20`, color: level.color }}>{level.label}</span>
             </>);
-          })() : <p className="text-[13px] mt-1" style={{ color: S.sub }}>未记录</p>}
+          })() : <p className="text-[14px] mt-1" style={{ color: S.sub }}>未记录</p>}
         </div>
 
         <div className={`${S.radiusSm} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[10px] font-medium" style={{ color: S.sub }}>🧍 肩部</p>
+          <p className="text-[12px] font-medium" style={{ color: S.sub }}>🧍 肩部</p>
           {shoulderRecords[0] ? (
             <p className="text-[16px] font-bold mt-1" style={{ color: S.text }}>{SHOULDER_LABELS[String(shoulderRecords[0].value)] ?? '未知'}</p>
-          ) : <p className="text-[13px] mt-1" style={{ color: S.sub }}>未记录</p>}
+          ) : <p className="text-[14px] mt-1" style={{ color: S.sub }}>未记录</p>}
         </div>
 
         <div className={`${S.radiusSm} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[10px] font-medium" style={{ color: S.sub }}>🦶 足弓</p>
+          <p className="text-[12px] font-medium" style={{ color: S.sub }}>🦶 足弓</p>
           {latestFootArch?.footArchStatus ? (
             <p className="text-[16px] font-bold mt-1" style={{ color: FOOT_ARCH_COLORS[latestFootArch.footArchStatus] ?? S.text }}>
               {FOOT_ARCH_LABELS[latestFootArch.footArchStatus] ?? latestFootArch.footArchStatus}
             </p>
-          ) : <p className="text-[13px] mt-1" style={{ color: S.sub }}>未记录</p>}
-          <p className="text-[9px] mt-0.5" style={{ color: S.sub }}>来自体能测评</p>
+          ) : <p className="text-[14px] mt-1" style={{ color: S.sub }}>未记录</p>}
+          <p className="text-[12px] mt-0.5" style={{ color: S.sub }}>来自体能测评</p>
         </div>
       </div>
 
@@ -321,19 +321,19 @@ export default function PosturePage() {
 
             {/* ━━ 基础信息 + 视角 Tab ━━ */}
             <div className="rounded-xl p-4 space-y-3" style={{ background: '#fff' }}>
-              <p className="text-[12px] font-semibold" style={{ color: S.text }}>基础信息</p>
+              <p className="text-[14px] font-semibold" style={{ color: S.text }}>基础信息</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>评估日期</p>
+                  <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>评估日期</p>
                   <ProfileDatePicker value={formDate} onChange={setFormDate}
                     style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text, borderRadius: 12 }} />
                 </div>
                 <div>
-                  <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>数据来源</p>
+                  <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>数据来源</p>
                   <div className="flex gap-1.5">
                     {SOURCE_OPTIONS.map((opt) => (
                       <button key={opt.value} onClick={() => setFormSource(opt.value)}
-                        className="flex-1 py-2.5 text-[11px] font-medium rounded-xl transition-all"
+                        className="flex-1 py-2.5 text-[13px] font-medium rounded-xl transition-all"
                         style={formSource === opt.value
                           ? { background: S.accent, color: '#fff' }
                           : { border: `1px solid ${S.border}`, color: S.sub, background: '#fafaf8' }}>
@@ -364,7 +364,7 @@ export default function PosturePage() {
                     const isNormal = 'normal' in o ? o.normal : o.value === '0' || o.value === 'normal' || o.value === 'equal' || o.value === 'straight' || o.value === 'symmetric';
                     return (
                       <button key={o.value} onClick={() => set(val === o.value ? '' : o.value)}
-                        className="flex-1 py-2 text-[11px] font-medium rounded-xl transition-all"
+                        className="flex-1 py-2 text-[13px] font-medium rounded-xl transition-all"
                         style={selected
                           ? { background: isNormal ? '#dcfce7' : '#fef3c7', color: isNormal ? '#166534' : '#92400e', border: `1px solid ${isNormal ? '#bbf7d0' : '#fde68a'}` }
                           : { border: `1px solid ${S.border}`, color: S.sub, background: '#fafaf8' }}>
@@ -375,7 +375,7 @@ export default function PosturePage() {
                 </div>
               );
 
-              const fieldLabel = (text: string) => <p className="text-[11px] font-medium mb-1.5" style={{ color: S.text }}>{text}</p>;
+              const fieldLabel = (text: string) => <p className="text-[13px] font-medium mb-1.5" style={{ color: S.text }}>{text}</p>;
 
               return (
                 <>
@@ -393,10 +393,10 @@ export default function PosturePage() {
                               borderBottom: active ? `2px solid ${S.accent}` : '2px solid transparent',
                             }}>
                             <span className="text-[20px]">{tab.emoji}</span>
-                            <span className="text-[11px] font-medium" style={{ color: active ? S.accent : S.sub }}>{tab.label}</span>
+                            <span className="text-[13px] font-medium" style={{ color: active ? S.accent : S.sub }}>{tab.label}</span>
                             {/* Photo upload indicator */}
                             <button onClick={(e) => { e.stopPropagation(); photoSlotRef.current = tab.photoKey; photoInputRef.current?.click(); }}
-                              className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] transition-colors hover:bg-black/5"
+                              className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-[12px] transition-colors hover:bg-black/5"
                               style={{ background: hasPhoto ? '#dcfce7' : '#f0f0ec', color: hasPhoto ? '#166534' : S.sub }}
                               title={hasPhoto ? '已上传' : '上传照片'}>
                               {hasPhoto ? '✓' : '📷'}
@@ -418,7 +418,7 @@ export default function PosturePage() {
                             <img src={photoUrl} alt="preview" className={`w-full h-32 object-cover ${S.radiusSm}`} />
                             <button
                               onClick={() => setFormPhotos((p) => { const next = { ...p }; delete next[currentPhotoKey]; return next; })}
-                              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white text-[11px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 text-white text-[13px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                             >✕</button>
                           </div>
                         ) : (
@@ -429,7 +429,7 @@ export default function PosturePage() {
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.5" strokeLinecap="round" style={{ stroke: '#b0b0aa' }}>
                               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
                             </svg>
-                            <span className="text-[11px]" style={{ color: S.sub }}>点击上传照片</span>
+                            <span className="text-[13px]" style={{ color: S.sub }}>点击上传照片</span>
                           </button>
                         );
                       })()}
@@ -457,7 +457,7 @@ export default function PosturePage() {
                             {optionBtn(ADAM_OPTIONS.map((o) => ({ ...o, normal: o.value === 'normal' })), formAdam, setFormAdam)}
                             {formAdam === 'obvious' && (
                               <div className="rounded-xl px-3 py-2.5 mt-2" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
-                                <p className="text-[11px] font-medium" style={{ color: '#dc2626' }}>⚠️ 建议尽快去骨科或脊柱外科做正式评估</p>
+                                <p className="text-[13px] font-medium" style={{ color: '#dc2626' }}>⚠️ 建议尽快去骨科或脊柱外科做正式评估</p>
                               </div>
                             )}
                           </div>
@@ -469,21 +469,21 @@ export default function PosturePage() {
                   {/* ━━ 医疗数据（Cobb 角）━━ */}
                   <div className={`rounded-xl p-4 space-y-3 transition-opacity ${isMedical ? 'opacity-100' : 'opacity-50'}`} style={{ background: '#fff' }}>
                     <div className="flex items-center justify-between">
-                      <p className="text-[12px] font-semibold" style={{ color: S.text }}>医疗数据</p>
-                      {!isMedical && <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: '#f5f3ef', color: S.sub }}>选择"体检报告"或"医生评估"后激活</span>}
+                      <p className="text-[14px] font-semibold" style={{ color: S.text }}>医疗数据</p>
+                      {!isMedical && <span className="text-[12px] px-2 py-0.5 rounded-full" style={{ background: '#f5f3ef', color: S.sub }}>选择"体检报告"或"医生评估"后激活</span>}
                     </div>
                     <div>
-                      <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>Cobb 角（°）</p>
+                      <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>Cobb 角（°）</p>
                       <div className="flex items-center gap-3">
                         <input type="number" step="1" min="0" max="90" value={formCobb}
                           onChange={(e) => setFormCobb(e.target.value)} placeholder="来自 X 光报告"
                           disabled={!isMedical}
-                          className="flex-1 rounded-xl px-3 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 disabled:cursor-not-allowed"
+                          className="flex-1 rounded-xl px-3 py-2.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 disabled:cursor-not-allowed"
                           style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: isMedical ? '#fafaf8' : '#f5f3ef', color: S.text }} />
-                        <span className="text-[13px] shrink-0" style={{ color: S.sub }}>°</span>
+                        <span className="text-[14px] shrink-0" style={{ color: S.sub }}>°</span>
                         {formCobb && parseFloat(formCobb) > 0 && (() => {
                           const level = cobbLevel(parseFloat(formCobb));
-                          return <span className="text-[11px] px-2.5 py-1 rounded-full shrink-0 font-medium" style={{ background: `${level.color}15`, color: level.color }}>{level.label}</span>;
+                          return <span className="text-[13px] px-2.5 py-1 rounded-full shrink-0 font-medium" style={{ background: `${level.color}15`, color: level.color }}>{level.label}</span>;
                         })()}
                       </div>
                     </div>
@@ -491,10 +491,10 @@ export default function PosturePage() {
 
                   {/* ━━ 备注 ━━ */}
                   <div className="rounded-xl p-4" style={{ background: '#fff' }}>
-                    <p className="text-[11px] mb-1.5 font-medium" style={{ color: S.sub }}>补充备注</p>
+                    <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>补充备注</p>
                     <textarea value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="其他观察到的情况..."
                       rows={2}
-                      className="w-full rounded-xl px-3 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 resize-none"
+                      className="w-full rounded-xl px-3 py-2.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 resize-none"
                       style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }} />
                   </div>
                 </>
@@ -506,8 +506,8 @@ export default function PosturePage() {
           {/* Footer */}
           <div className="px-6 pt-3 pb-5">
             <div className="flex items-center justify-end gap-2.5">
-              <button onClick={resetForm} className="px-5 py-2.5 text-[13px] rounded-xl transition-colors hover:bg-[#e8e8e4]" style={{ background: '#e8e8e4', color: S.sub }}>取消</button>
-              <button onClick={() => void handleSubmit()} className="px-6 py-2.5 text-[13px] font-medium text-white rounded-xl transition-colors hover:brightness-110" style={{ background: S.accent }}>保存记录</button>
+              <button onClick={resetForm} className="px-5 py-2.5 text-[14px] rounded-xl transition-colors hover:bg-[#e8e8e4]" style={{ background: '#e8e8e4', color: S.sub }}>取消</button>
+              <button onClick={() => void handleSubmit()} className="px-6 py-2.5 text-[14px] font-medium text-white rounded-xl transition-colors hover:brightness-110" style={{ background: S.accent }}>保存记录</button>
             </div>
           </div>
         </div>
@@ -515,39 +515,39 @@ export default function PosturePage() {
       )}
 
       {/* Timeline */}
-      <h2 className="text-[13px] font-semibold mb-3 mt-2" style={{ color: S.text }}>
+      <h2 className="text-[14px] font-semibold mb-3 mt-2" style={{ color: S.text }}>
         {timeline.length > 0 ? `评估记录（${timeline.length} 次）` : ''}
       </h2>
       {timeline.length === 0 && !showForm && (
         <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <span className="text-[28px]">🧍</span>
-          <p className="text-[13px] mt-2 font-medium" style={{ color: S.text }}>还没有体态评估记录</p>
-          <p className="text-[11px] mt-1" style={{ color: S.sub }}>记录脊柱侧弯角度和肩部对称性</p>
+          <span className="text-[24px]">🧍</span>
+          <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>还没有体态评估记录</p>
+          <p className="text-[13px] mt-1" style={{ color: S.sub }}>记录脊柱侧弯角度和肩部对称性</p>
         </div>
       )}
       <div className="space-y-3">
         {timeline.map((rec) => (
           <div key={rec.date} className={`${S.radius} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
-            <p className="text-[11px] font-medium mb-2" style={{ color: S.sub }}>{rec.date}</p>
+            <p className="text-[13px] font-medium mb-2" style={{ color: S.sub }}>{rec.date}</p>
             <div className="flex flex-wrap gap-3">
               {rec.cobb != null && (() => {
                 const level = cobbLevel(rec.cobb);
                 return (
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px]" style={{ color: S.sub }}>Cobb 角</span>
-                    <span className="text-[14px] font-bold" style={{ color: S.text }}>{rec.cobb}°</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: `${level.color}20`, color: level.color }}>{level.label}</span>
+                    <span className="text-[12px]" style={{ color: S.sub }}>Cobb 角</span>
+                    <span className="text-[16px] font-bold" style={{ color: S.text }}>{rec.cobb}°</span>
+                    <span className="text-[12px] px-1.5 py-0.5 rounded-full" style={{ background: `${level.color}20`, color: level.color }}>{level.label}</span>
                   </div>
                 );
               })()}
               {rec.shoulder && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px]" style={{ color: S.sub }}>肩部</span>
-                  <span className="text-[13px] font-medium" style={{ color: S.text }}>{SHOULDER_LABELS[rec.shoulder] ?? '未知'}</span>
+                  <span className="text-[12px]" style={{ color: S.sub }}>肩部</span>
+                  <span className="text-[14px] font-medium" style={{ color: S.text }}>{SHOULDER_LABELS[rec.shoulder] ?? '未知'}</span>
                 </div>
               )}
             </div>
-            {rec.cobbNotes && <p className="text-[11px] mt-2" style={{ color: S.sub }}>{rec.cobbNotes}</p>}
+            {rec.cobbNotes && <p className="text-[13px] mt-2" style={{ color: S.sub }}>{rec.cobbNotes}</p>}
           </div>
         ))}
       </div>

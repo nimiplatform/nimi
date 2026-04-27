@@ -72,7 +72,7 @@ function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
         onClick={() => open ? closeMenu() : openMenu()}
         aria-expanded={open}
         aria-label="打开账号菜单"
-        className="flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-semibold transition-all hover:-translate-y-0.5"
+        className="flex h-9 w-9 items-center justify-center rounded-full text-[14px] font-semibold transition-all hover:-translate-y-0.5"
         style={{ background: textMain, color: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}
       >
         {initial}
@@ -97,7 +97,7 @@ function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
           {/* ── User info header ── */}
           <div className="flex items-center gap-3 px-4 py-3">
             <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[15px] font-semibold text-white"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[16px] font-semibold text-white"
               style={{ background: textMain }}
             >
               {initial}
@@ -117,7 +117,7 @@ function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
             <>
               <div className="mx-3 border-t" style={{ borderColor: 'rgba(78,204,163,0.2)' }} />
               <div className="px-1.5 py-1.5">
-                <p className="px-3 py-1 text-[11px] font-medium" style={{ color: textMuted }}>切换孩子</p>
+                <p className="px-3 py-1 text-[13px] font-medium" style={{ color: textMuted }}>切换孩子</p>
                 {childList.map((c, idx) => {
                   const am = computeAgeMonths(c.birthDate);
                   const y = Math.floor(am / 12);
@@ -141,8 +141,8 @@ function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
                         <ChildAvatar child={c} className="h-full w-full object-cover" />
                       </div>
                       <div className="min-w-0">
-                        <span className="block truncate text-[12px] font-semibold" style={{ color: isActive ? '#2F7D6B' : textMain }}>{c.displayName}</span>
-                        <span className="block text-[10px]" style={{ color: textMuted }}>
+                        <span className="block truncate text-[14px] font-semibold" style={{ color: isActive ? '#2F7D6B' : textMain }}>{c.displayName}</span>
+                        <span className="block text-[12px]" style={{ color: textMuted }}>
                           {y > 0 ? `${y}岁` : ''}{m > 0 ? `${m}个月` : ''} · {c.gender === 'female' ? '女孩' : '男孩'}
                         </span>
                       </div>
@@ -162,7 +162,7 @@ function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
               <button
                 key={item.id}
                 onClick={() => { closeMenu(); navigate(item.route); }}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] transition-all hover:bg-[#4ECCA3]/5"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] transition-all hover:bg-[#4ECCA3]/5"
                 style={{
                   color: '#374151',
                   opacity: open ? 1 : 0,
@@ -183,7 +183,7 @@ function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
           <div className="px-1.5 py-1.5">
             <button
               onClick={handleLogout}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] transition-all hover:bg-red-50"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] transition-all hover:bg-red-50"
               style={{
                 color: '#e25555',
                 opacity: open ? 1 : 0,
@@ -248,7 +248,7 @@ export function ShellLayout({ children }: { children: ReactNode }) {
             >
               <item.Icon size={19} strokeWidth={1.8} />
               <span
-                className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap px-3 py-1.5 text-[11px] font-medium opacity-0 transition-opacity duration-100 group-hover:opacity-100 bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] shadow-[0_8px_32px_rgba(31,38,135,0.04)] rounded-[var(--nimi-radius-xl)] nimi-material-glass-thick"
+                className="pointer-events-none absolute left-[52px] z-50 whitespace-nowrap px-3 py-1.5 text-[13px] font-medium opacity-0 transition-opacity duration-100 group-hover:opacity-100 bg-[var(--nimi-material-glass-thick-bg)] border border-[var(--nimi-material-glass-thick-border)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] shadow-[0_8px_32px_rgba(31,38,135,0.04)] rounded-[var(--nimi-radius-xl)] nimi-material-glass-thick"
                 style={{ color: textMain }}
               >
                 {item.label}
@@ -267,7 +267,7 @@ export function ShellLayout({ children }: { children: ReactNode }) {
           style={{ background: 'transparent' }}
           onMouseDown={handleWindowDragMouseDown}
         >
-          <h1 className="text-[17px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.3px' }}>ParentOS</h1>
+          <h1 className="text-[18px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.3px' }}>ParentOS</h1>
 
           <div className="ml-auto flex items-center gap-3">
             <button className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:bg-white/40"

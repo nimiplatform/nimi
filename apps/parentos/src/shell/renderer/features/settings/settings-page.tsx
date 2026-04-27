@@ -80,18 +80,18 @@ export default function SettingsPage() {
               {authUser.displayName?.charAt(0)?.toUpperCase() || '?'}
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-[14px] font-semibold truncate" style={{ color: C.text }}>
+              <h3 className="text-[16px] font-semibold truncate" style={{ color: C.text }}>
                 {authUser.displayName || '未命名用户'}
               </h3>
               {authUser.email ? (
-                <p className="text-[12px] mt-0.5 truncate" style={{ color: C.sub }}>{authUser.email}</p>
+                <p className="text-[14px] mt-0.5 truncate" style={{ color: C.sub }}>{authUser.email}</p>
               ) : null}
             </div>
             <button
               type="button"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="shrink-0 rounded-full px-4 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-50"
+              className="shrink-0 rounded-full px-4 py-1.5 text-[14px] font-medium transition-colors disabled:opacity-50"
               style={{ color: C.danger, border: `1px solid ${C.danger}` }}
             >
               {loggingOut ? '退出中…' : '退出登录'}
@@ -105,12 +105,12 @@ export default function SettingsPage() {
             <Link key={s.to} to={s.to}
               className={`flex items-start gap-4 ${C.radius} p-5 transition-all duration-200 hover:scale-[1.01] hover:shadow-md`}
               style={{ background: C.card, boxShadow: C.shadow }}>
-              <div className="w-[46px] h-[46px] rounded-[14px] flex items-center justify-center text-[22px] shrink-0" style={{ background: s.color }}>
+              <div className="w-[46px] h-[46px] rounded-[14px] flex items-center justify-center text-[24px] shrink-0" style={{ background: s.color }}>
                 {s.emoji}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-[14px] font-semibold" style={{ color: C.text }}>{s.label}</h3>
-                <p className="text-[12px] mt-0.5 leading-snug" style={{ color: C.sub }}>{s.desc}</p>
+                <h3 className="text-[16px] font-semibold" style={{ color: C.text }}>{s.label}</h3>
+                <p className="text-[14px] mt-0.5 leading-snug" style={{ color: C.sub }}>{s.desc}</p>
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2" strokeLinecap="round" className="shrink-0 mt-1.5"><path d="M9 18l6-6-6-6" /></svg>
             </Link>
@@ -118,15 +118,15 @@ export default function SettingsPage() {
         </div>
 
         {/* ── Info cards ─────────────────────────────────── */}
-        <p className="text-[12px] font-semibold mb-3" style={{ color: C.sub }}>其他</p>
+        <p className="text-[14px] font-semibold mb-3" style={{ color: C.sub }}>其他</p>
         <div className="grid grid-cols-2 gap-3">
           {infoCards.map((c) => (
             <div key={c.label} className={`${C.radius} p-4`} style={{ background: C.card, boxShadow: C.shadow }}>
               <div className="w-[38px] h-[38px] rounded-[12px] flex items-center justify-center text-[18px] mb-3" style={{ background: c.color }}>
                 {c.emoji}
               </div>
-              <h3 className="text-[13px] font-semibold" style={{ color: C.text }}>{c.label}</h3>
-              <p className="text-[11px] mt-0.5 leading-snug" style={{ color: C.sub }}>{c.desc}</p>
+              <h3 className="text-[14px] font-semibold" style={{ color: C.text }}>{c.label}</h3>
+              <p className="text-[13px] mt-0.5 leading-snug" style={{ color: C.sub }}>{c.desc}</p>
             </div>
           ))}
         </div>
@@ -134,17 +134,17 @@ export default function SettingsPage() {
         {/* ── Dev tools (dev mode only) ─────────────────── */}
         {import.meta.env.DEV ? (
           <div className="mt-6">
-            <p className="text-[12px] font-semibold mb-3" style={{ color: C.sub }}>Dev Tools</p>
+            <p className="text-[14px] font-semibold mb-3" style={{ color: C.sub }}>Dev Tools</p>
             <div
               className={`${C.radius} p-5`}
               style={{ background: C.card, boxShadow: C.shadow }}
             >
               <div className="flex items-center gap-4">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-[14px] font-semibold" style={{ color: C.text }}>
+                  <h3 className="text-[16px] font-semibold" style={{ color: C.text }}>
                     {seedStatus === 'seeding' ? `导入中… ${seedLabel}` : '导入测试数据'}
                   </h3>
-                  <p className="text-[12px] mt-0.5 leading-snug" style={{ color: C.sub }}>
+                  <p className="text-[14px] mt-0.5 leading-snug" style={{ color: C.sub }}>
                     {seedStatus === 'done' ? seedResult
                       : seedStatus === 'error' ? seedResult
                       : '从 mock.json 导入 3 个孩子及全部测试数据到 SQLite'}
@@ -154,7 +154,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={handleSeedMock}
                   disabled={seedStatus === 'seeding'}
-                  className="shrink-0 rounded-full px-4 py-1.5 text-[12px] font-medium text-white transition-colors disabled:opacity-50"
+                  className="shrink-0 rounded-full px-4 py-1.5 text-[14px] font-medium text-white transition-colors disabled:opacity-50"
                   style={{ background: seedStatus === 'done' ? C.accent : seedStatus === 'error' ? C.danger : C.blue }}
                 >
                   {seedStatus === 'seeding' ? '导入中…'

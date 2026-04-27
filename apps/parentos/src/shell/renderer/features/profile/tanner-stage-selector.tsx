@@ -19,7 +19,7 @@ export function TannerStageSelector({
 
   return (
     <div className="mb-5">
-      <p className="text-[12px] font-semibold mb-2" style={{ color: S.text }}>{label}</p>
+      <p className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>{label}</p>
       <div className="space-y-1.5">
         {stages.map((stage) => {
           const active = value === stage.stage;
@@ -35,31 +35,31 @@ export function TannerStageSelector({
               <button onClick={() => onChange(stage.stage)} className="w-full text-left p-3">
                 <div className="flex items-center gap-2">
                   <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0"
                     style={active ? { background: 'rgba(255,255,255,0.25)', color: '#fff' } : { background: '#f1f5f9', color: S.sub }}
                   >
                     {stage.stage}
                   </div>
-                  <span className="text-[12px] font-semibold flex-1">{stage.title}</span>
+                  <span className="text-[14px] font-semibold flex-1">{stage.title}</span>
                   <span
                     onClick={(event) => {
                       event.stopPropagation();
                       setExpandedStage(expanded ? null : stage.stage);
                     }}
-                    className="text-[9px] px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                    className="text-[12px] px-1.5 py-0.5 rounded cursor-pointer transition-colors"
                     style={active ? { background: 'rgba(255,255,255,0.2)', color: '#fff' } : { background: '#f1f5f9', color: S.sub }}
                   >
                     {expanded ? '收起' : '如何判断?'}
                   </span>
                 </div>
-                <p className="text-[10px] mt-1 ml-8 leading-relaxed" style={{ color: active ? 'rgba(255,255,255,0.8)' : S.sub }}>
+                <p className="text-[12px] mt-1 ml-8 leading-relaxed" style={{ color: active ? 'rgba(255,255,255,0.8)' : S.sub }}>
                   {stage.desc}
                 </p>
               </button>
               {expanded ? (
                 <div className="px-3 pb-3 ml-8">
                   <div
-                    className={`${S.radiusSm} p-2.5 text-[10px] leading-relaxed`}
+                    className={`${S.radiusSm} p-2.5 text-[12px] leading-relaxed`}
                     style={active
                       ? { background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)' }
                       : { background: '#fff', color: S.text, border: `1px solid ${S.border}` }}

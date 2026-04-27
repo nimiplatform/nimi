@@ -27,7 +27,7 @@ export function AdvisorSidebar({
       <button
         type="button"
         onClick={onNewConversation}
-        className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-semibold transition-colors hover:bg-white/60"
+        className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[14px] font-semibold transition-colors hover:bg-white/60"
         style={{ background: 'rgba(78,204,163,0.12)', color: '#0F766E', border: '1px solid rgba(78,204,163,0.2)' }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -58,12 +58,12 @@ export function AdvisorSidebar({
               >
                 <div className="flex items-start justify-between gap-2">
                   <p
-                    className="min-w-0 flex-1 truncate text-[12px]"
+                    className="min-w-0 flex-1 truncate text-[14px]"
                     style={{ color: active ? '#1e293b' : '#475569', fontWeight: active ? 600 : 500 }}
                   >
                     {conv.title ?? '新对话'}
                   </p>
-                  <span className="shrink-0 pt-0.5 text-[10px]" style={{ color: '#94a3b8' }}>
+                  <span className="shrink-0 pt-0.5 text-[12px]" style={{ color: '#94a3b8' }}>
                     {formatRelativeTimeCn(conv.lastMessageAt)}
                   </span>
                 </div>

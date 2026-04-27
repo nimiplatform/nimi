@@ -55,7 +55,7 @@ export function AdvisorComposer({
           <div className="mb-2">
             <Link
               to={recordRoute}
-              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/60 bg-emerald-50/60 px-3 py-1.5 text-[12px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100/60"
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/60 bg-emerald-50/60 px-3 py-1.5 text-[14px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100/60"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               去记录数据

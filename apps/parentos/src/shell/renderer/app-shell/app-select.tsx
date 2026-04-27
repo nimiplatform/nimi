@@ -93,7 +93,7 @@ function SelectPopover({
             key={opt.value + idx}
             disabled={opt.disabled}
             onClick={() => { if (!opt.disabled) onSelect(opt.value); }}
-            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-[12px] transition-colors hover:bg-[#f1f5f9] disabled:opacity-40 disabled:cursor-default"
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-[14px] transition-colors hover:bg-[#f1f5f9] disabled:opacity-40 disabled:cursor-default"
             style={{
               ...(active ? { background: '#f1f5f9' } : undefined),
               color: S.text,
@@ -154,7 +154,7 @@ export function AppSelect({ value, onChange, options, placeholder, className, st
         ref={btnRef}
         type="button"
         onClick={() => open ? closeMenu() : openMenu()}
-        className={`rounded-[10px] px-3 py-1.5 text-[12px] cursor-pointer bg-[#f1f5f9] hover:bg-[#f1f5f9] transition-colors flex items-center gap-1 text-left ${className ?? ''}`}
+        className={`rounded-[10px] px-3 py-1.5 text-[14px] cursor-pointer bg-[#f1f5f9] hover:bg-[#f1f5f9] transition-colors flex items-center gap-1 text-left ${className ?? ''}`}
         style={{
           borderWidth: 1, borderStyle: 'solid', borderColor: '#f1f5f9',
           color: selectedLabel ? S.text : S.sub,

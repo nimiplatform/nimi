@@ -80,18 +80,18 @@ export function GrowthCurveControls({
             >
               <div className="flex items-start justify-between mb-2">
                 <span className="text-[20px]">{card.emoji}</span>
-                <span className="text-[10px] font-medium" style={{ color: isActive ? S.accent : S.sub }}>{card.label}</span>
+                <span className="text-[12px] font-medium" style={{ color: isActive ? S.accent : S.sub }}>{card.label}</span>
               </div>
               <div className="flex items-baseline gap-1.5">
                 <p className="text-[20px] font-bold leading-none" style={{ color: S.text }}>{displayValue}</p>
                 {delta != null ? (
-                  <span className="text-[10px] font-medium" style={{ color: S.sub }}>
+                  <span className="text-[12px] font-medium" style={{ color: S.sub }}>
                     {delta >= 0 ? '↑' : '↓'}{delta >= 0 ? '+' : ''}{delta}
                   </span>
                 ) : null}
               </div>
-              <p className="text-[10px] mt-0.5" style={{ color: S.sub }}>{card.unit}</p>
-              <p className="text-[9px] mt-1" style={{ color: dateLabel === '暂无数据' ? '#d4d1cc' : S.sub }}>{dateLabel}</p>
+              <p className="text-[12px] mt-0.5" style={{ color: S.sub }}>{card.unit}</p>
+              <p className="text-[12px] mt-1" style={{ color: dateLabel === '暂无数据' ? '#d4d1cc' : S.sub }}>{dateLabel}</p>
             </button>
           );
         })}
@@ -99,8 +99,8 @@ export function GrowthCurveControls({
 
       {staleDays != null && staleDays > 90 ? (
         <div className={`${S.radiusSm} px-3 py-2 mb-4 flex items-center gap-2`} style={{ background: '#faf8f0', border: '1px solid #e8e2d0' }}>
-          <span className="text-[13px]">📅</span>
-          <span className="text-[11px]" style={{ color: '#8a7a5a' }}>
+          <span className="text-[14px]">📅</span>
+          <span className="text-[13px]" style={{ color: '#8a7a5a' }}>
             距离上次测量已过去 {staleDays} 天，建议更新数据
           </span>
         </div>
@@ -136,7 +136,7 @@ export function GrowthCurveControls({
               <div key={standard} className="group/std relative flex items-center">
                 <button
                   onClick={() => onSelectGrowthStandard(standard)}
-                  className={`flex items-center gap-1 px-3 py-1 text-[11px] font-medium rounded-full transition-all duration-200 ${isActive ? 'text-white shadow-sm' : ''}`}
+                  className={`flex items-center gap-1 px-3 py-1 text-[13px] font-medium rounded-full transition-all duration-200 ${isActive ? 'text-white shadow-sm' : ''}`}
                   style={isActive ? { background: standard === 'china' ? '#e25c5c' : '#4a90d9', color: '#fff' } : { color: S.sub }}
                 >
                   {GROWTH_STANDARD_LABELS[standard]}
@@ -146,7 +146,7 @@ export function GrowthCurveControls({
                   </svg>
                 </button>
                 <div
-                  className="pointer-events-none absolute left-0 top-8 z-50 w-[280px] rounded-xl p-3 text-[11px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover/std:pointer-events-auto group-hover/std:opacity-100 whitespace-pre-line"
+                  className="pointer-events-none absolute left-0 top-8 z-50 w-[280px] rounded-xl p-3 text-[13px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover/std:pointer-events-auto group-hover/std:opacity-100 whitespace-pre-line"
                   style={{ background: '#1e293b', color: '#f1f5f9', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}
                 >
                   {getGrowthStandardTooltip(standard)}

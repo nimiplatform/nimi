@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { S } from '../../app-shell/page-style.js';
 import type { JournalTagInsertRow } from '../../bridge/sqlite-bridge.js';
 import { ulid } from '../../bridge/ulid.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 import type { ObservationDimension } from '../../knowledge-base/index.js';
 import { suggestJournalTags } from './ai-journal-tagging.js';
 import type { JournalTagSuggestion } from './ai-journal-tagging.js';
@@ -27,7 +28,7 @@ export function AutoTagBar({ status, suggestion, selectedTags, selectedDimension
     return (
       <div className="flex items-center gap-2 py-1.5">
         <div className="w-3 h-3 rounded-full animate-pulse" style={{ background: S.accent }} />
-        <span className="text-[11px]" style={{ color: S.sub }}>AI 正在分析...</span>
+        <span className="text-[13px]" style={{ color: S.sub }}>AI 正在分析...</span>
       </div>
     );
   }
@@ -35,8 +36,8 @@ export function AutoTagBar({ status, suggestion, selectedTags, selectedDimension
   if (status === 'failed') {
     return (
       <div className="flex items-center gap-2 py-1.5">
-        <span className="text-[10px]" style={{ color: S.sub }}>AI 成长关键词暂不可用</span>
-        <button onClick={onRetry} className="text-[10px] underline" style={{ color: S.accent }}>重试</button>
+        <span className="text-[12px]" style={{ color: S.sub }}>AI 成长关键词暂不可用</span>
+        <button onClick={onRetry} className="text-[12px] underline" style={{ color: S.accent }}>重试</button>
       </div>
     );
   }
@@ -52,16 +53,16 @@ export function AutoTagBar({ status, suggestion, selectedTags, selectedDimension
   return (
     <div className={`flex items-center gap-2 flex-wrap py-1.5 px-2 ${S.radiusSm}`}
       style={{ background: '#f4f7ea', border: `1px solid ${S.accent}30` }}>
-      <span className="text-[10px] shrink-0" style={{ color: S.accent }}>✨</span>
+      <span className="text-[12px] shrink-0" style={{ color: S.accent }}>✨</span>
       {selectedDimension !== suggestion.dimensionId && (
-        <span className="text-[10px] rounded-full px-1.5 py-0.5 font-medium"
+        <span className="text-[12px] rounded-full px-1.5 py-0.5 font-medium"
           style={{ background: S.accent + '20', color: S.accent }}>
           成长方向 · {dim.displayName}
         </span>
       )}
       {suggestedTags.map((tag) => (
         <button key={tag} onClick={() => onToggleTag(tag)}
-          className="rounded-full px-2 py-0.5 text-[10px] transition-colors"
+          className="rounded-full px-2 py-0.5 text-[12px] transition-colors"
           style={selectedTags.includes(tag)
             ? { background: S.accent, color: '#fff' }
             : { background: '#fff', color: S.accent, border: `1px solid ${S.accent}40` }}>
@@ -89,7 +90,7 @@ export function PhotoBar({ drafts, onRemove, inputRef }: PhotoBarProps) {
         <div key={i} className="relative w-14 h-14 shrink-0">
           <img src={d.previewUrl} alt="" className={`w-14 h-14 ${S.radiusSm} object-cover`} />
           <button onClick={() => onRemove(i)}
-            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center leading-none">
+            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[12px] flex items-center justify-center leading-none">
             ✕
           </button>
         </div>
@@ -105,7 +106,7 @@ export function PhotoBar({ drafts, onRemove, inputRef }: PhotoBarProps) {
             <circle cx="8.5" cy="8.5" r="1.5" />
             <path d="m21 15-5-5L5 21" />
           </svg>
-          <span className="text-[8px]">添加</span>
+          <span className="text-[12px]">添加</span>
         </button>
       )}
     </div>
@@ -130,19 +131,19 @@ export function VoiceCapture({ voiceDraft, recordingSupported, voiceRuntimeAvail
     <div className={`space-y-3 ${S.radiusSm} p-4`} style={{ border: `1px dashed ${S.border}` }}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[12px] font-medium" style={{ color: S.text }}>
+          <p className="text-[14px] font-medium" style={{ color: S.text }}>
             {voiceDraft.status === 'recording' ? '🔴 录音中...' : voiceDraft.status === 'transcribing' ? '转写中...' : '语音记录'}
           </p>
-          {voiceDraft.status === 'ready' && <p className="text-[10px]" style={{ color: S.sub }}>可转写为文字或直接保存</p>}
+          {voiceDraft.status === 'ready' && <p className="text-[12px]" style={{ color: S.sub }}>可转写为文字或直接保存</p>}
         </div>
         <div className="flex gap-1.5">
           {voiceDraft.status === 'recording' ? (
-            <button onClick={onStop} className={`${S.radiusSm} px-3 py-1.5 text-[12px] text-white`} style={{ background: '#ef4444' }}>
+            <button onClick={onStop} className={`${S.radiusSm} px-3 py-1.5 text-[14px] text-white`} style={{ background: '#ef4444' }}>
               停止
             </button>
           ) : (
             <button onClick={onStart} disabled={!recordingSupported}
-              className={`${S.radiusSm} px-3 py-1.5 text-[12px] text-white disabled:opacity-50`} style={{ background: S.accent }}>
+              className={`${S.radiusSm} px-3 py-1.5 text-[14px] text-white disabled:opacity-50`} style={{ background: S.accent }}>
               开始录音
             </button>
           )}
@@ -150,24 +151,24 @@ export function VoiceCapture({ voiceDraft, recordingSupported, voiceRuntimeAvail
             <>
               <button onClick={onTranscribe}
                 disabled={voiceDraft.status === 'transcribing' || voiceRuntimeAvailable === false}
-                className={`${S.radiusSm} px-3 py-1.5 text-[12px] text-white disabled:opacity-50`} style={{ background: S.accent }}>
+                className={`${S.radiusSm} px-3 py-1.5 text-[14px] text-white disabled:opacity-50`} style={{ background: S.accent }}>
                 {voiceDraft.status === 'transcribing' ? '转写中...' : '转文字'}
               </button>
-              <button onClick={onClear} className={`${S.radiusSm} px-3 py-1.5 text-[12px]`}
+              <button onClick={onClear} className={`${S.radiusSm} px-3 py-1.5 text-[14px]`}
                 style={{ background: '#f0f0ec', color: S.sub }}>删除</button>
             </>
           )}
         </div>
       </div>
 
-      {!recordingSupported && <p className="text-[10px] text-red-500">当前环境不支持录音，请在桌面端使用并授权麦克风。</p>}
-      {voiceRuntimeAvailable === false && <p className="text-[10px] text-amber-600">语音转写暂不可用，仍可保存语音记录。</p>}
-      {voiceDraft.error && <p className="text-[10px] text-red-500">{voiceDraft.error}</p>}
+      {!recordingSupported && <p className="text-[12px] text-red-500">当前环境不支持录音，请在桌面端使用并授权麦克风。</p>}
+      {voiceRuntimeAvailable === false && <p className="text-[12px] text-amber-600">语音转写暂不可用，仍可保存语音记录。</p>}
+      {voiceDraft.error && <p className="text-[12px] text-red-500">{voiceDraft.error}</p>}
       {voiceDraft.previewUrl && <audio controls src={voiceDraft.previewUrl} className="w-full" />}
       {voiceDraft.previewUrl && (
         <textarea value={voiceDraft.transcript} onChange={(e) => onTranscriptChange(e.target.value)}
           placeholder="转写结果可编辑..."
-          className={`w-full resize-none ${S.radiusSm} p-3 text-[12px]`}
+          className={`w-full resize-none ${S.radiusSm} p-3 text-[14px]`}
           style={{ border: `1px solid ${S.border}` }} rows={3} />
       )}
     </div>
@@ -221,7 +222,7 @@ export function SaveConfirmationModal({
       })
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
-        console.warn('[journal] AI tag analysis failed:', msg);
+        catchLog('journal', 'ai-tag-analysis-failed', 'warn')(err);
         setAiError(msg);
         setAiSuggestion(null);
         setAiStatus('failed');
@@ -264,7 +265,7 @@ export function SaveConfirmationModal({
       })
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
-        console.warn('[journal] AI tag analysis retry failed:', msg);
+        catchLog('journal', 'ai-tag-analysis-retry-failed', 'warn')(err);
         setAiError(msg);
         setAiSuggestion(null);
         setAiStatus('failed');
@@ -303,7 +304,7 @@ export function SaveConfirmationModal({
         {/* Text preview */}
         <div className={`${S.radiusSm} mb-4 max-h-[160px] overflow-y-auto p-3`}
           style={{ background: '#fafaf8', border: `1px solid ${S.border}` }}>
-          <p className="whitespace-pre-wrap text-[12px] leading-relaxed" style={{ color: S.sub }}>
+          <p className="whitespace-pre-wrap text-[14px] leading-relaxed" style={{ color: S.sub }}>
             {textPreview || '（无文字内容）'}
           </p>
         </div>
@@ -311,16 +312,16 @@ export function SaveConfirmationModal({
         {/* Manual dimension + tags (display-only) */}
         {(manualDim || selectedTags.length > 0) && (
           <div className="mb-4">
-            <p className="mb-1.5 text-[11px] font-medium" style={{ color: S.sub }}>已选分类</p>
+            <p className="mb-1.5 text-[13px] font-medium" style={{ color: S.sub }}>已选分类</p>
             <div className="flex flex-wrap items-center gap-1.5">
               {manualDim && (
-                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                <span className="rounded-full px-2 py-0.5 text-[12px] font-medium"
                   style={{ background: S.accent + '20', color: S.accent }}>
                   {manualDim.displayName}
                 </span>
               )}
               {selectedTags.map((tag) => (
-                <span key={tag} className="rounded-full px-2 py-0.5 text-[10px]"
+                <span key={tag} className="rounded-full px-2 py-0.5 text-[12px]"
                   style={{ background: '#f0f0ec', color: S.text }}>
                   {tag}
                 </span>
@@ -331,44 +332,44 @@ export function SaveConfirmationModal({
 
         {/* AI tag analysis section */}
         <div className="mb-5">
-          <p className="mb-1.5 text-[11px] font-medium" style={{ color: S.sub }}>AI 成长关键词</p>
+          <p className="mb-1.5 text-[13px] font-medium" style={{ color: S.sub }}>AI 成长关键词</p>
 
           {aiStatus === 'suggesting' && (
             <div className="flex items-center gap-2 py-2">
               <div className="h-3 w-3 animate-pulse rounded-full" style={{ background: S.accent }} />
-              <span className="text-[11px]" style={{ color: S.sub }}>AI 正在分析成长关键词...</span>
+              <span className="text-[13px]" style={{ color: S.sub }}>AI 正在分析成长关键词...</span>
             </div>
           )}
 
           {aiStatus === 'failed' && (
             <div className="py-2">
               <div className="flex items-center gap-2">
-                <span className="text-[10px]" style={{ color: S.sub }}>AI 分析暂不可用</span>
-                <button onClick={handleRetry} className="text-[10px] underline" style={{ color: S.accent }}>重试</button>
+                <span className="text-[12px]" style={{ color: S.sub }}>AI 分析暂不可用</span>
+                <button onClick={handleRetry} className="text-[12px] underline" style={{ color: S.accent }}>重试</button>
               </div>
               {aiError && (
-                <p className="mt-1 text-[9px] break-all" style={{ color: '#b45309' }}>{aiError}</p>
+                <p className="mt-1 text-[12px] break-all" style={{ color: '#b45309' }}>{aiError}</p>
               )}
             </div>
           )}
 
           {aiStatus === 'ready' && !aiReady && (
-            <p className="py-2 text-[10px]" style={{ color: S.sub }}>AI 未识别到成长关键词</p>
+            <p className="py-2 text-[12px]" style={{ color: S.sub }}>AI 未识别到成长关键词</p>
           )}
 
           {aiReady && (
             <div className={`flex flex-wrap items-center gap-2 px-2 py-2 ${S.radiusSm}`}
               style={{ background: '#f4f7ea', border: `1px solid ${S.accent}30` }}>
-              <span className="shrink-0 text-[10px]" style={{ color: S.accent }}>✨</span>
+              <span className="shrink-0 text-[12px]" style={{ color: S.accent }}>✨</span>
               {aiDim && selectedDimension !== aiSuggestion!.dimensionId && (
-                <span className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                <span className="rounded-full px-1.5 py-0.5 text-[12px] font-medium"
                   style={{ background: S.accent + '20', color: S.accent }}>
                   成长方向 · {aiDim.displayName}
                 </span>
               )}
               {aiSuggestion!.tags.map((tag) => (
                 <button key={tag} onClick={() => handleToggleAiTag(tag)}
-                  className="rounded-full px-2 py-0.5 text-[10px] transition-colors"
+                  className="rounded-full px-2 py-0.5 text-[12px] transition-colors"
                   style={selectedAiTags.has(tag)
                     ? { background: S.accent, color: '#fff' }
                     : { background: '#fff', color: S.accent, border: `1px solid ${S.accent}40` }}>
@@ -379,19 +380,19 @@ export function SaveConfirmationModal({
           )}
 
           {aiStatus === 'idle' && draftTextForTagging.trim().length < 10 && (
-            <p className="py-2 text-[10px]" style={{ color: S.sub }}>文字内容较短，跳过 AI 分析</p>
+            <p className="py-2 text-[12px]" style={{ color: S.sub }}>文字内容较短，跳过 AI 分析</p>
           )}
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2">
           <button type="button" onClick={onCancel}
-            className={`${S.radiusSm} px-4 py-2 text-[12px] transition-colors`}
+            className={`${S.radiusSm} px-4 py-2 text-[14px] transition-colors`}
             style={{ background: '#f3f4f6', color: S.sub }}>
             取消
           </button>
           <button type="button" onClick={handleConfirm}
-            className={`${S.radiusSm} px-4 py-2 text-[12px] font-medium text-white transition-colors`}
+            className={`${S.radiusSm} px-4 py-2 text-[14px] font-medium text-white transition-colors`}
             style={{ background: S.accent }}>
             {aiStatus === 'suggesting' ? '保存（跳过 AI 分析）' : '保存'}
           </button>

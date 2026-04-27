@@ -51,8 +51,8 @@ export function GrowthCurveHistoryTable({
   return (
     <>
       <div className={`mt-6 ${S.radius} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
-        <h3 className="text-[13px] font-semibold mb-3" style={{ color: S.text }}>历史记录</h3>
-        <table className="w-full text-[12px]" style={{ color: S.text }}>
+        <h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>历史记录</h3>
+        <table className="w-full text-[14px]" style={{ color: S.text }}>
           <thead>
             <tr className="text-left" style={{ color: S.sub, borderBottom: `1px solid ${S.border}` }}>
               <th className="pb-2">日期</th>
@@ -77,7 +77,7 @@ export function GrowthCurveHistoryTable({
                           type="date"
                           value={editDate}
                           onChange={(event) => onEditDateChange(event.target.value)}
-                          className="text-[12px] px-1.5 py-0.5 rounded border w-[120px]"
+                          className="text-[14px] px-1.5 py-0.5 rounded border w-[120px]"
                           style={{ borderColor: S.border }}
                         />
                       ) : measurement.measuredAt.split('T')[0]}
@@ -94,7 +94,7 @@ export function GrowthCurveHistoryTable({
                           step="0.1"
                           value={editValue}
                           onChange={(event) => onEditValueChange(event.target.value)}
-                          className="text-[12px] px-1.5 py-0.5 rounded border w-[80px]"
+                          className="text-[14px] px-1.5 py-0.5 rounded border w-[80px]"
                           style={{ borderColor: S.border }}
                         />
                       ) : <>{measurement.value} {typeInfo?.unit}</>}
@@ -114,7 +114,7 @@ export function GrowthCurveHistoryTable({
                           <>
                             <button
                               onClick={() => onSaveEdit(measurement)}
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[12px] transition-colors hover:bg-green-50"
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-green-50"
                               title="保存"
                               style={{ color: '#16a34a' }}
                             >
@@ -122,7 +122,7 @@ export function GrowthCurveHistoryTable({
                             </button>
                             <button
                               onClick={onCancelEdit}
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[12px] transition-colors hover:bg-gray-100"
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-gray-100"
                               title="取消"
                               style={{ color: S.sub }}
                             >
@@ -133,14 +133,14 @@ export function GrowthCurveHistoryTable({
                           <>
                             <button
                               onClick={() => onAnalyze(measurement)}
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-[#f0f0ec]"
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-[16px] transition-colors hover:bg-[#f0f0ec]"
                               title="AI 分析此数据"
                             >
                               💬
                             </button>
                             <button
                               onClick={() => onStartEdit(measurement)}
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[12px] transition-colors hover:bg-blue-50"
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-blue-50"
                               title="编辑"
                               style={{ color: '#2563eb' }}
                             >
@@ -148,7 +148,7 @@ export function GrowthCurveHistoryTable({
                             </button>
                             <button
                               onClick={() => onRequestDelete(measurement.measurementId)}
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[12px] transition-colors hover:bg-red-50"
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-red-50"
                               title="删除"
                               style={{ color: '#dc2626' }}
                             >
@@ -176,21 +176,21 @@ export function GrowthCurveHistoryTable({
             style={{ background: S.card, boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
             onClick={(event) => event.stopPropagation()}
           >
-            <h3 className="text-[15px] font-semibold mb-2" style={{ color: S.text }}>确认删除</h3>
-            <p className="text-[12px] leading-[1.6] mb-5" style={{ color: S.sub }}>
+            <h3 className="text-[16px] font-semibold mb-2" style={{ color: S.text }}>确认删除</h3>
+            <p className="text-[14px] leading-[1.6] mb-5" style={{ color: S.sub }}>
               删除后数据无法恢复，确定要删除这条记录吗？
             </p>
             <div className="flex justify-end gap-2">
               <button
                 onClick={onCancelDelete}
-                className="text-[12px] px-4 py-1.5 rounded-full font-medium transition-colors hover:opacity-80"
+                className="text-[14px] px-4 py-1.5 rounded-full font-medium transition-colors hover:opacity-80"
                 style={{ background: '#f5f3ef', color: S.text }}
               >
                 取消
               </button>
               <button
                 onClick={() => onConfirmDelete(deletingId)}
-                className="text-[12px] px-4 py-1.5 rounded-full text-white font-medium transition-colors hover:opacity-90"
+                className="text-[14px] px-4 py-1.5 rounded-full text-white font-medium transition-colors hover:opacity-90"
                 style={{ background: '#dc2626' }}
               >
                 确认删除

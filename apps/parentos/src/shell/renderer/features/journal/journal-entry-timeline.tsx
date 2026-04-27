@@ -117,7 +117,7 @@ function EntryActionMenu({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setOpen(false); onEdit(); }}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition-colors hover:bg-[#f5f3ef]"
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] transition-colors hover:bg-[#f5f3ef]"
             style={{ color: S.text }}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -129,7 +129,7 @@ function EntryActionMenu({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setOpen(false); onDelete(); }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition-colors hover:bg-[#fef2f2]"
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] transition-colors hover:bg-[#fef2f2]"
               style={{ color: '#dc2626' }}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -166,13 +166,13 @@ export function JournalEntryTimeline({
   return (
     <section>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-[14px] font-semibold" style={{ color: S.text }}>随记列表</h2>
+        <h2 className="text-[16px] font-semibold" style={{ color: S.text }}>随记列表</h2>
         <div className="flex flex-wrap gap-1">
           {FILTER_OPTIONS.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => onFilterChange(key)}
-              className="rounded-full px-2 py-0.5 text-[10px] transition-colors"
+              className="rounded-full px-2 py-0.5 text-[12px] transition-colors"
               style={entryFilter === key
                 ? { background: S.accent, color: '#fff' }
                 : { background: '#f0f0ec', color: S.sub }}
@@ -185,12 +185,12 @@ export function JournalEntryTimeline({
 
       {entries.length === 0 ? (
         <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[13px]" style={{ color: S.sub }}>还没有随记，先写下一条吧</p>
+          <p className="text-[14px]" style={{ color: S.sub }}>还没有随记，先写下一条吧</p>
         </div>
       ) : filteredEntries.length === 0 ? (
         <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[13px]" style={{ color: S.text }}>还没有珍藏的成长瞬间</p>
-          <p className="mt-2 text-[11px] leading-relaxed" style={{ color: S.sub }}>
+          <p className="text-[14px]" style={{ color: S.text }}>还没有珍藏的成长瞬间</p>
+          <p className="mt-2 text-[13px] leading-relaxed" style={{ color: S.sub }}>
             遇到第一次、获奖、读完一本书或特别想留住的片刻时，可以把随记标记为珍藏。
           </p>
         </div>
@@ -208,8 +208,8 @@ export function JournalEntryTimeline({
               </div>
 
               <div className="mb-2 flex items-center gap-2">
-                <span className="text-[12px] font-bold" style={{ color: S.text }}>{formatDateLabel(date)}</span>
-                <span className="text-[10px]" style={{ color: S.sub }}>{dayEntries.length} 条</span>
+                <span className="text-[14px] font-bold" style={{ color: S.text }}>{formatDateLabel(date)}</span>
+                <span className="text-[12px]" style={{ color: S.sub }}>{dayEntries.length} 条</span>
               </div>
 
               <div className="space-y-2.5">
@@ -237,12 +237,12 @@ export function JournalEntryTimeline({
                       <div className="p-4">
                         <div className="mb-2.5 flex items-center justify-between gap-3">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[11px] font-medium" style={{ color: S.text }}>
+                            <span className="text-[13px] font-medium" style={{ color: S.text }}>
                               {entry.recordedAt.split('T')[1]?.slice(0, 5)}
                             </span>
                             {dimension ? (
                               <span
-                                className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                                className="rounded-full px-2 py-0.5 text-[12px] font-medium"
                                 style={{ background: '#f3f4f6', color: '#6b7280' }}
                               >
                                 {dimension.displayName}
@@ -252,7 +252,7 @@ export function JournalEntryTimeline({
 
                           <div className="flex items-center gap-1">
                             {entry.voicePath ? (
-                              <span className="mr-1 rounded px-1.5 py-0.5 text-[10px]" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+                              <span className="mr-1 rounded px-1.5 py-0.5 text-[12px]" style={{ background: '#e0f2fe', color: '#0284c7' }}>
                                 {entry.contentType === 'mixed' ? '语音 + 文字' : '语音'}
                               </span>
                             ) : null}
@@ -303,13 +303,13 @@ export function JournalEntryTimeline({
                         </div>
 
                         {isKeepsake && entry.keepsakeTitle ? (
-                          <p className="mb-2 text-[14px] font-semibold leading-[1.5]" style={{ color: S.text }}>
+                          <p className="mb-2 text-[16px] font-semibold leading-[1.5]" style={{ color: S.text }}>
                             {entry.keepsakeTitle}
                           </p>
                         ) : null}
 
                         {bodyText ? (
-                          <p className="text-[13px] leading-[1.7]" style={{ color: S.text }}>{bodyText}</p>
+                          <p className="text-[14px] leading-[1.7]" style={{ color: S.text }}>{bodyText}</p>
                         ) : null}
 
                         {entryPhotos.length > 0 ? (
@@ -330,7 +330,7 @@ export function JournalEntryTimeline({
                           <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-2.5" style={{ borderColor: S.border }}>
                             {keepsakeReasonLabel ? (
                               <span
-                                className="rounded-full px-2.5 py-1 text-[10px] font-medium"
+                                className="rounded-full px-2.5 py-1 text-[12px] font-medium"
                                 style={{ background: '#fef3c7', color: '#a16207' }}
                               >
                                 珍藏原因 · {keepsakeReasonLabel}
@@ -339,7 +339,7 @@ export function JournalEntryTimeline({
                             {tags.map((tag) => (
                               <span
                                 key={tag}
-                                className="rounded-full px-2.5 py-1 text-[10px] font-medium"
+                                className="rounded-full px-2.5 py-1 text-[12px] font-medium"
                                 style={{ background: '#f5f3ef', color: S.sub }}
                               >
                                 {tag}

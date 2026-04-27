@@ -45,19 +45,19 @@ export function OutdoorSummaryCard({ childId }: { childId: string }) {
     >
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[13px] font-medium" style={{ color: S.text }}>本周户外活动</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#ecfdf5', color: '#15803d' }}>
+          <span className="text-[14px] font-medium" style={{ color: S.text }}>本周户外活动</span>
+          <span className="text-[12px] px-1.5 py-0.5 rounded" style={{ background: '#ecfdf5', color: '#15803d' }}>
             近视防控
           </span>
         </div>
-        <span className="text-[11px]" style={{ color: S.sub }}>查看详情 →</span>
+        <span className="text-[13px]" style={{ color: S.sub }}>查看详情 →</span>
       </div>
       <div className="mb-2 flex items-baseline gap-2">
         <span className="text-[18px] font-bold tabular-nums" style={{ color: S.text }}>
           {summary.totalMinutes}
         </span>
-        <span className="text-[11px]" style={{ color: S.sub }}>/ {goalMinutes} 分钟</span>
-        <span className="ml-auto text-[11px] font-medium tabular-nums" style={{ color: barColor }}>
+        <span className="text-[13px]" style={{ color: S.sub }}>/ {goalMinutes} 分钟</span>
+        <span className="ml-auto text-[13px] font-medium tabular-nums" style={{ color: barColor }}>
           {percent}%
         </span>
       </div>

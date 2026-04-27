@@ -23,7 +23,7 @@ export function AdvisorSuggestions({
               type="button"
               disabled={disabled}
               onClick={() => onSelect(item.question)}
-              className="rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-[12px] text-slate-600 transition-all hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-[14px] text-slate-600 transition-all hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {item.question}
             </button>

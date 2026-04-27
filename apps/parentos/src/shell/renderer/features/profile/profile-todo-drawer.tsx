@@ -102,7 +102,7 @@ export function ProfileTodoDrawer() {
         </svg>
         {pendingCount > 0 ? (
           <span
-            className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold"
+            className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[12px] font-bold"
             style={{ background: '#4ECCA3', color: '#ffffff', border: '2px solid #ffffff' }}
           >
             {pendingCount > 99 ? '99+' : pendingCount}
@@ -139,10 +139,10 @@ export function ProfileTodoDrawer() {
           >
             <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: '#eceae4' }}>
               <div>
-                <h2 className="text-[15px] font-semibold tracking-tight" style={{ color: '#1e293b', letterSpacing: '-0.3px' }}>
+                <h2 className="text-[16px] font-semibold tracking-tight" style={{ color: '#1e293b', letterSpacing: '-0.3px' }}>
                   待办事项
                 </h2>
-                <p className="mt-0.5 text-[11px]" style={{ color: '#64748b' }}>
+                <p className="mt-0.5 text-[13px]" style={{ color: '#64748b' }}>
                   {child.displayName} · {pendingCount > 0 ? `${pendingCount} 条未完成` : '全部已完成'}
                 </p>
               </div>
@@ -150,7 +150,7 @@ export function ProfileTodoDrawer() {
                 <Link
                   to="/reminders"
                   onClick={closeDrawer}
-                  className="text-[11px] font-medium transition-colors hover:underline"
+                  className="text-[13px] font-medium transition-colors hover:underline"
                   style={{ color: '#475569' }}
                 >
                   查看全部
@@ -180,7 +180,7 @@ export function ProfileTodoDrawer() {
                   }}
                 />
                 {todoList.length === 0 ? (
-                  <p className="px-6 py-10 text-center text-[12px]" style={{ color: '#9CA0A6' }}>
+                  <p className="px-6 py-10 text-center text-[14px]" style={{ color: '#9CA0A6' }}>
                     还没有待办，添加一条开始吧
                   </p>
                 ) : (
