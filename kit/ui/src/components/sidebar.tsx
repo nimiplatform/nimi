@@ -1,4 +1,4 @@
-import React, { createElement, type CSSProperties, type ComponentPropsWithoutRef, type ElementType, type MouseEvent, type ReactNode } from 'react';
+import React, { createElement, useEffect, useRef, useState, type CSSProperties, type ComponentPropsWithoutRef, type ElementType, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { IconButton } from './button.js';
 import { cn, type SidebarItemKind } from '../design-tokens.js';
 
@@ -67,6 +67,7 @@ type SidebarSearchProps = {
   onClear?: () => void;
   clearLabel?: string;
   primaryAction?: ReactNode;
+  collapsible?: boolean;
   className?: string;
 };
 
@@ -78,32 +79,86 @@ export function SidebarSearch({
   onClear,
   clearLabel = 'Clear',
   primaryAction,
+  collapsible = false,
   className,
 }: SidebarSearchProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [expanded, setExpanded] = useState<boolean>(!collapsible || value.trim().length > 0);
+
+  useEffect(() => {
+    if (collapsible && value.trim().length > 0 && !expanded) {
+      setExpanded(true);
+    }
+  }, [collapsible, value, expanded]);
+
+  useEffect(() => {
+    if (collapsible && expanded) {
+      inputRef.current?.focus();
+    }
+  }, [collapsible, expanded]);
+
+  const handleBlur = () => {
+    if (collapsible && !value.trim()) {
+      setExpanded(false);
+    }
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      onClear?.();
+      if (collapsible) {
+        setExpanded(false);
+      }
+    }
+  };
+
+  const handleClear = () => {
+    onClear?.();
+    if (collapsible) {
+      setExpanded(false);
+    }
+  };
+
+  const showCollapsedTrigger = collapsible && !expanded;
+
   return (
     <div className={cn('px-2 pb-1', className)}>
-      <div className="flex min-h-10 items-center gap-2">
-        <div className="flex min-w-0 flex-1 items-center px-2">
-          <span className="shrink-0 text-[var(--nimi-text-muted)]">{SEARCH_ICON}</span>
-          <input
-            className="ml-1 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--nimi-field-placeholder)]"
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
-            placeholder={placeholder}
+      <div className={cn('flex min-h-10 items-center gap-2', showCollapsedTrigger ? 'justify-end' : undefined)}>
+        {showCollapsedTrigger ? (
+          <IconButton
+            icon={SEARCH_ICON}
+            tone="ghost"
+            onClick={() => setExpanded(true)}
+            className="h-9 w-9 shrink-0 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)]"
             aria-label={ariaLabel || placeholder}
+            title={placeholder}
           />
-          {value && onClear ? (
-            <IconButton
-              icon={CLEAR_ICON}
-              size="sm"
-              tone="ghost"
-              onClick={onClear}
-              className="ml-1 h-6 w-6 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]"
-              aria-label={clearLabel}
-              title={clearLabel}
+        ) : (
+          <div className="flex min-w-0 flex-1 items-center px-2">
+            <span className="shrink-0 text-[var(--nimi-text-muted)]">{SEARCH_ICON}</span>
+            <input
+              ref={inputRef}
+              className="ml-1 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--nimi-field-placeholder)]"
+              value={value}
+              onChange={(event) => onChange(event.target.value)}
+              onBlur={handleBlur}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              aria-label={ariaLabel || placeholder}
             />
-          ) : null}
-        </div>
+            {value && onClear ? (
+              <IconButton
+                icon={CLEAR_ICON}
+                size="sm"
+                tone="ghost"
+                onClick={handleClear}
+                className="ml-1 h-6 w-6 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]"
+                aria-label={clearLabel}
+                title={clearLabel}
+              />
+            ) : null}
+          </div>
+        )}
         {primaryAction ? <div className="shrink-0">{primaryAction}</div> : null}
       </div>
     </div>

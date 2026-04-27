@@ -13,6 +13,9 @@ export {
   FieldToggle,
   FieldSlider,
   SubSectionLabel,
+  SectionGroupHeader,
+  NumberStepperField,
+  CollapsibleSection,
   PreviewBadge,
 } from './components/field-primitives.js';
 
