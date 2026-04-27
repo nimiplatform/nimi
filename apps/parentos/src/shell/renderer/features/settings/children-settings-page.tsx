@@ -11,26 +11,18 @@ import { AvatarCropModal } from './avatar-crop-modal.js';
 import { ProfileDatePicker } from '../profile/profile-date-picker.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { ChildAvatar } from '../../shared/child-avatar.js';
+import { S } from '../../app-shell/page-style.js';
 
 /** Convert a local filesystem path to a Tauri 2 asset URL */
 function assetUrl(path: string): string {
   try { return convertFileSrc(path); } catch { return path; }
 }
 
-/* ── design tokens ───────────────────────────────────────── */
-
-const S = {
-  bg: '#f1f5f9',
-  card: '#ffffff',
-  text: '#1e293b',
-  sub: '#475569',
-  blue: '#BDE0F5',
-  accent: '#1e293b',
-  border: '#f1f5f9',
-  shadow: '0 2px 12px rgba(0,0,0,0.06)',
-  radius: 'rounded-[18px]',
-  radiusSm: 'rounded-[14px]',
-} as const;
+/* ── design tokens — shared theme palette from `app-shell/page-style.ts`.
+ * Inner card-on-card separators use a tangible literal (#f1f5f9) because
+ * `S.border` (rgba(255,255,255,0.7)) is calibrated for glass surfaces and
+ * would vanish against a white card background. */
+const INNER_BORDER = '#f1f5f9';
 
 /* ── recorder presets ────────────────────────────────────── */
 
@@ -213,7 +205,7 @@ export default function ChildrenSettingsPage() {
     setForm((prev) => ({ ...prev, recorder: { ...prev.recorder, name: prev.customRecorderName || '', emoji: '👤' } }));
   };
 
-  const inp = 'w-full rounded-xl border-0 px-3.5 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#BDE0F5]/40';
+  const inp = 'w-full rounded-xl border-0 px-3.5 py-2.5 text-[13px] outline-none transition-shadow focus:ring-2 focus:ring-[#818CF8]/40';
   const inputBg = { background: '#f5f3ef', color: S.text };
 
   /** For number inputs: seed from placeholder on first arrow click, then let native step take over */
@@ -251,7 +243,7 @@ export default function ChildrenSettingsPage() {
           {!showForm && (
             <button onClick={() => { setForm(EMPTY_FORM); setShowForm(true); }}
               className="flex items-center gap-1.5 px-5 py-2.5 rounded-full text-[13px] font-medium text-white transition-all hover:scale-[1.02] hover:shadow-md"
-              style={{ background: S.blue, boxShadow: '0 2px 8px rgba(134,175,218,0.3)' }}>
+              style={{ background: S.blue, boxShadow: '0 2px 8px rgba(129,140,248,0.3)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               添加孩子
             </button>
@@ -448,7 +440,7 @@ export default function ChildrenSettingsPage() {
                   <button key={p.name} onClick={() => selectRecorder(p)}
                     className={`${S.radiusSm} px-3.5 py-2 text-[12px] flex items-center gap-1.5 transition-all`}
                     style={active
-                      ? { background: S.blue, color: '#fff', boxShadow: '0 2px 8px rgba(134,175,218,0.3)' }
+                      ? { background: S.blue, color: '#fff', boxShadow: '0 2px 8px rgba(129,140,248,0.3)' }
                       : { background: '#f5f3ef', color: S.text }}>
                     <span>{p.emoji}</span> {p.name}
                   </button>
@@ -457,7 +449,7 @@ export default function ChildrenSettingsPage() {
               <button onClick={selectCustomRecorder}
                 className={`${S.radiusSm} px-3.5 py-2 text-[12px] flex items-center gap-1 transition-all`}
                 style={isCustom
-                  ? { background: S.blue, color: '#fff', boxShadow: '0 2px 8px rgba(134,175,218,0.3)' }
+                  ? { background: S.blue, color: '#fff', boxShadow: '0 2px 8px rgba(129,140,248,0.3)' }
                   : { background: '#f5f3ef', color: S.sub }}>
                 👤 自定义
               </button>
@@ -470,10 +462,10 @@ export default function ChildrenSettingsPage() {
             <div className="mb-5" />
 
             {/* Actions */}
-            <div className="flex gap-3 pt-2" style={{ borderTop: `1px solid ${S.border}` }}>
+            <div className="flex gap-3 pt-2" style={{ borderTop: `1px solid ${INNER_BORDER}` }}>
               <button onClick={() => void (editingId ? handleUpdate() : handleAdd())}
                 className="px-6 py-2.5 rounded-full text-[13px] font-medium text-white transition-all hover:opacity-90"
-                style={{ background: S.blue, boxShadow: '0 2px 8px rgba(134,175,218,0.3)' }}>
+                style={{ background: S.blue, boxShadow: '0 2px 8px rgba(129,140,248,0.3)' }}>
                 {editingId ? '保存' : '添加'}
               </button>
               <button onClick={resetForm}

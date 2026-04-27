@@ -4,15 +4,13 @@ import { NURTURE_MODES, REMINDER_DOMAINS } from '../../knowledge-base/index.js';
 import { updateChild } from '../../bridge/sqlite-bridge.js';
 import { isoNow } from '../../bridge/ulid.js';
 import { AppSelect } from '../../app-shell/app-select.js';
+import { S } from '../../app-shell/page-style.js';
 
-/* ── design tokens (aligned with dashboard) ────────────────── */
-
-const C = {
-  bg: '#f1f5f9', card: '#ffffff', text: '#1e293b', sub: '#475569',
-  accent: '#1e293b', border: '#f1f5f9',
-  shadow: '0 2px 12px rgba(0,0,0,0.06)',
-  radius: 'rounded-[18px]', radiusSm: 'rounded-[14px]',
-} as const;
+/* ── design tokens — shared theme palette from `app-shell/page-style.ts`.
+ * Inner card-on-card separators use a tangible literal (#f1f5f9) because
+ * `S.border` (rgba(255,255,255,0.7)) is calibrated for glass surfaces and
+ * would vanish against a white card background. */
+const INNER_BORDER = '#f1f5f9';
 
 /* ── labels ─────────────────────────────────────────────────── */
 
@@ -52,8 +50,8 @@ export default function NurtureModeSettingsPage() {
     return (
       <div className="h-full overflow-y-auto" style={{ background: 'transparent' }}>
         <div className="max-w-3xl mx-auto px-6 pb-6" style={{ paddingTop: 86 }}>
-          <Link to="/settings" className="text-[12px] hover:underline" style={{ color: C.sub }}>← 返回设置</Link>
-          <p className="mt-6 text-[13px]" style={{ color: C.sub }}>请先选择一个孩子</p>
+          <Link to="/settings" className="text-[12px] hover:underline" style={{ color: S.sub }}>← 返回设置</Link>
+          <p className="mt-6 text-[13px]" style={{ color: S.sub }}>请先选择一个孩子</p>
         </div>
       </div>
     );
@@ -116,32 +114,32 @@ export default function NurtureModeSettingsPage() {
     <div className="h-full overflow-y-auto" style={{ background: 'transparent' }}>
       <div className="max-w-3xl mx-auto px-6 pb-6" style={{ paddingTop: 86 }}>
 
-        <Link to="/settings" className="inline-flex items-center gap-1 text-[12px] mb-5 hover:underline" style={{ color: C.sub }}>
+        <Link to="/settings" className="inline-flex items-center gap-1 text-[12px] mb-5 hover:underline" style={{ color: S.sub }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
           返回设置
         </Link>
 
         {/* ── Header ─────────────────────────────────────── */}
         <div className="mb-6">
-          <h1 className="text-xl font-bold" style={{ color: C.text }}>{child.displayName} 的养育模式</h1>
-          <p className="text-[12px] mt-0.5" style={{ color: C.sub }}>
+          <h1 className="text-xl font-bold" style={{ color: S.text }}>{child.displayName} 的养育模式</h1>
+          <p className="text-[12px] mt-0.5" style={{ color: S.sub }}>
             控制提醒频率和内容深度，底线安全规则在任何模式下均不降级
           </p>
         </div>
 
         {/* ── Global mode selector ───────────────────────── */}
-        <div className={`${C.radius} p-5 mb-5`} style={{ background: C.card, boxShadow: C.shadow }}>
-          <h2 className="text-[14px] font-bold mb-4" style={{ color: C.text }}>全局模式</h2>
+        <div className={`${S.radius} p-5 mb-5`} style={{ background: S.card, boxShadow: S.shadow }}>
+          <h2 className="text-[14px] font-bold mb-4" style={{ color: S.text }}>全局模式</h2>
           <div className="grid grid-cols-3 gap-3">
             {NURTURE_MODES.map((m) => {
               const active = child.nurtureMode === m.modeId;
-              const meta = MODE_META[m.modeId] ?? { emoji: '📋', color: C.accent, border: C.accent, activeBg: '#f4f7ea' };
+              const meta = MODE_META[m.modeId] ?? { emoji: '📋', color: S.accent, border: S.accent, activeBg: '#f4f7ea' };
               return (
                 <button key={m.modeId} onClick={() => void handleModeChange(m.modeId)}
-                  className={`${C.radiusSm} p-4 text-left transition-all duration-200 ${active ? '' : 'hover:shadow-md hover:scale-[1.01]'}`}
+                  className={`${S.radiusSm} p-4 text-left transition-all duration-200 ${active ? '' : 'hover:shadow-md hover:scale-[1.01]'}`}
                   style={{
-                    background: active ? meta.activeBg : C.card,
-                    border: `2px solid ${active ? meta.border : C.border}`,
+                    background: active ? meta.activeBg : S.card,
+                    border: `2px solid ${active ? meta.border : INNER_BORDER}`,
                   }}>
                   {/* Mode icon + name */}
                   <div className="flex items-center gap-2 mb-2">
@@ -176,14 +174,14 @@ export default function NurtureModeSettingsPage() {
         </div>
 
         {/* ── Domain overrides ───────────────────────────── */}
-        <div className={`${C.radius} p-5`} style={{ background: C.card, boxShadow: C.shadow }}>
+        <div className={`${S.radius} p-5`} style={{ background: S.card, boxShadow: S.shadow }}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-[14px] font-bold" style={{ color: C.text }}>按领域自定义</h2>
-              <p className="text-[11px] mt-0.5" style={{ color: C.sub }}>可为不同领域设置不同的养育模式</p>
+              <h2 className="text-[14px] font-bold" style={{ color: S.text }}>按领域自定义</h2>
+              <p className="text-[11px] mt-0.5" style={{ color: S.sub }}>可为不同领域设置不同的养育模式</p>
             </div>
             {overrideCount > 0 && (
-              <span className="text-[10px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#f4f7ea', color: C.accent }}>
+              <span className="text-[10px] px-2.5 py-1 rounded-full font-medium" style={{ background: '#f4f7ea', color: S.accent }}>
                 {overrideCount} 项自定义
               </span>
             )}
@@ -202,7 +200,7 @@ export default function NurtureModeSettingsPage() {
                     <div className="w-[28px] h-[28px] rounded-[8px] flex items-center justify-center text-[14px]" style={{ background: group.color }}>
                       {group.emoji}
                     </div>
-                    <h3 className="text-[12px] font-bold" style={{ color: C.text }}>{group.label}</h3>
+                    <h3 className="text-[12px] font-bold" style={{ color: S.text }}>{group.label}</h3>
                   </div>
                   {/* Domain rows */}
                   <div className="space-y-1.5">
@@ -211,12 +209,12 @@ export default function NurtureModeSettingsPage() {
                       const overrideMeta = override ? MODE_META[override] : null;
                       return (
                         <div key={domain}
-                          className={`flex items-center justify-between ${C.radiusSm} px-4 py-2.5 transition-all`}
+                          className={`flex items-center justify-between ${S.radiusSm} px-4 py-2.5 transition-all`}
                           style={{
                             background: override ? overrideMeta?.activeBg ?? '#f4f7ea' : '#fafaf8',
-                            border: `1px solid ${override ? (overrideMeta?.border ?? C.accent) + '60' : C.border}`,
+                            border: `1px solid ${override ? (overrideMeta?.border ?? S.accent) + '60' : INNER_BORDER}`,
                           }}>
-                          <span className="text-[12px] font-medium" style={{ color: C.text }}>{DOMAIN_LABELS[domain] ?? domain}</span>
+                          <span className="text-[12px] font-medium" style={{ color: S.text }}>{DOMAIN_LABELS[domain] ?? domain}</span>
                           <AppSelect
                             value={override ?? ''}
                             onChange={(v) => void handleDomainOverride(domain, v ? v as NurtureMode : null)}
@@ -226,7 +224,7 @@ export default function NurtureModeSettingsPage() {
                               { value: 'balanced', label: '⚖️ 均衡养' },
                               { value: 'advanced', label: '🔬 进阶养' },
                             ]}
-                            style={{ color: override ? (overrideMeta?.color ?? C.accent) : '#4B5563' }} />
+                            style={{ color: override ? (overrideMeta?.color ?? S.accent) : '#4B5563' }} />
                         </div>
                       );
                     })}
