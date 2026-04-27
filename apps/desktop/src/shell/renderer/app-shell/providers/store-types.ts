@@ -89,6 +89,22 @@ export type ModWorkspaceTab = {
   lastAccessedAt: number;
 };
 
+export type RuntimeModHydrationStatus =
+  | 'not_requested'
+  | 'scheduled'
+  | 'hydrating'
+  | 'hydrated'
+  | 'failed';
+
+export type RuntimeModHydrationRecord = {
+  modId: string;
+  status: RuntimeModHydrationStatus;
+  generation: string;
+  updatedAt: string;
+  stage?: RuntimeModRegisterFailure['stage'];
+  error?: string;
+};
+
 export type AppStoreState = {
   bootstrapReady: boolean;
   bootstrapError: string | null;
@@ -133,6 +149,7 @@ export type AppStoreState = {
   runtimeModDisabledIds: string[];
   runtimeModUninstalledIds: string[];
   runtimeModSettingsById: RuntimeModSettingsMap;
+  runtimeModHydrationById: Record<string, RuntimeModHydrationRecord>;
   modWorkspaceTabs: ModWorkspaceTab[];
   fusedRuntimeMods: Record<string, { reason: string; lastError: string; at: string }>;
   runtimeModFailures: RuntimeModRegisterFailure[];
@@ -203,6 +220,8 @@ export type AppStoreState = {
   setRuntimeModDisabledIds: (modIds: string[]) => void;
   setRuntimeModUninstalledIds: (modIds: string[]) => void;
   setRuntimeModSettings: (modId: string, settings: Record<string, unknown>) => void;
+  setRuntimeModHydrationRecords: (records: RuntimeModHydrationRecord[]) => void;
+  clearRuntimeModHydrationRecords: () => void;
   openModWorkspaceTab: (tabId: `mod:${string}`, title: string, modId: string) => OpenModWorkspaceTabResult;
   closeModWorkspaceTab: (tabId: `mod:${string}`) => void;
   touchModWorkspaceTab: (tabId: `mod:${string}`) => void;

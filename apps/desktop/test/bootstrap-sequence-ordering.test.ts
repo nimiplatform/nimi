@@ -53,39 +53,59 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     );
   });
 
-  test('D-BOOT-005: runtime host assembly precedes runtime mod registration', () => {
+  test('D-BOOT-005: runtime host assembly precedes post-ready runtime mod hydration eligibility', () => {
     const hostCapabilitiesIndex = bootstrapSource.indexOf('buildRuntimeHostCapabilities(');
-    const runtimeModsIndex = bootstrapSource.indexOf('registerBootstrapRuntimeMods({');
+    const hydrationEligibleIndex = bootstrapSource.indexOf('shouldSchedulePostReadyRuntimeModHydration = true;');
     assert.ok(hostCapabilitiesIndex !== -1, 'buildRuntimeHostCapabilities( must appear in bootstrap source');
-    assert.ok(runtimeModsIndex !== -1, 'registerBootstrapRuntimeMods({ must appear in bootstrap source');
+    assert.ok(hydrationEligibleIndex !== -1, 'post-ready runtime mod hydration eligibility must appear in bootstrap source');
     assert.ok(
-      hostCapabilitiesIndex < runtimeModsIndex,
-      `buildRuntimeHostCapabilities( (pos ${hostCapabilitiesIndex}) must appear before registerBootstrapRuntimeMods({ (pos ${runtimeModsIndex})`,
+      hostCapabilitiesIndex < hydrationEligibleIndex,
+      `buildRuntimeHostCapabilities( (pos ${hostCapabilitiesIndex}) must appear before post-ready hydration eligibility (pos ${hydrationEligibleIndex})`,
     );
   });
 
-  test('D-BOOT-006: external agent bridge bootstrap is scheduled after runtime mod registration', () => {
-    const runtimeModsIndex = bootstrapSource.indexOf('registerBootstrapRuntimeMods({');
+  test('D-BOOT-005: post-ready runtime mod hydration is scheduled after bootstrapReady', () => {
+    const readyIndex = bootstrapSource.indexOf('useAppStore.getState().setBootstrapReady(true);');
+    const scheduleIndex = bootstrapSource.indexOf('schedulePostReadyRuntimeModHydration({ flowId });');
+    const registerIndex = bootstrapSource.indexOf('registerBootstrapRuntimeMods({');
+    const hydratingProjectionIndex = bootstrapSource.indexOf("status: 'hydrating'");
+    assert.ok(readyIndex !== -1, 'setBootstrapReady(true); must appear in bootstrap source');
+    assert.ok(scheduleIndex !== -1, 'schedulePostReadyRuntimeModHydration({ flowId }); must appear in bootstrap source');
+    assert.ok(registerIndex !== -1, 'registerBootstrapRuntimeMods({ must appear in bootstrap source');
+    assert.ok(hydratingProjectionIndex !== -1, 'post-ready runtime mod hydration must project hydrating state');
+    assert.ok(
+      readyIndex < scheduleIndex,
+      'post-ready runtime mod hydration must be scheduled only after bootstrapReady is set',
+    );
+    assert.doesNotMatch(
+      bootstrapSource,
+      /await withBootstrapStepTimeout\(\s*['"]runtime mod bootstrap registration['"]/,
+      'runtime mod registration must not be awaited in the bootstrap critical path',
+    );
+  });
+
+  test('D-BOOT-006: external agent bridge bootstrap is scheduled after runtime host readiness', () => {
+    const hydrationEligibleIndex = bootstrapSource.indexOf('shouldSchedulePostReadyRuntimeModHydration = true;');
     const tier1ActionsIndex = bootstrapSource.indexOf('registerExternalAgentTier1Actions(hookRuntime);');
     const bridgeStartIndex = bootstrapSource.indexOf("step: 'external agent action bridge startup'");
     const descriptorSyncIndex = bootstrapSource.indexOf("step: 'external agent descriptor resync'");
-    assert.ok(runtimeModsIndex !== -1, 'registerBootstrapRuntimeMods({ must appear in bootstrap source');
+    assert.ok(hydrationEligibleIndex !== -1, 'post-ready runtime mod hydration eligibility must appear in bootstrap source');
     assert.ok(tier1ActionsIndex !== -1, 'registerExternalAgentTier1Actions(hookRuntime); must appear in bootstrap source');
     assert.ok(bridgeStartIndex !== -1, 'external agent bridge startup must be scheduled in bootstrap source');
     assert.ok(descriptorSyncIndex !== -1, 'external agent descriptor resync must be scheduled in bootstrap source');
-    assert.ok(runtimeModsIndex < tier1ActionsIndex, 'external agent tier-1 action registration must happen after runtime mod registration');
+    assert.ok(hydrationEligibleIndex < tier1ActionsIndex, 'external agent tier-1 action registration must happen after runtime host readiness is established');
     assert.ok(tier1ActionsIndex < bridgeStartIndex, 'action bridge scheduling must happen after tier-1 action registration');
     assert.ok(bridgeStartIndex < descriptorSyncIndex, 'descriptor resync scheduling must happen after bridge startup scheduling');
   });
 
   test('D-BOOT-007: auth bootstrap completes before runtime host work that can issue scheduling probes', () => {
     const authSessionIndex = bootstrapSource.indexOf('await bootstrapAuthSession({');
-    const runtimeModsIndex = bootstrapSource.indexOf('registerBootstrapRuntimeMods({');
+    const hydrationEligibleIndex = bootstrapSource.indexOf('shouldSchedulePostReadyRuntimeModHydration = true;');
     const bootstrapReadyIndex = bootstrapSource.indexOf('useAppStore.getState().setBootstrapReady(true);');
     assert.ok(authSessionIndex !== -1, 'await bootstrapAuthSession({ must appear in bootstrap source');
-    assert.ok(runtimeModsIndex !== -1, 'registerBootstrapRuntimeMods({ must appear in bootstrap source');
+    assert.ok(hydrationEligibleIndex !== -1, 'post-ready runtime mod hydration eligibility must appear in bootstrap source');
     assert.ok(bootstrapReadyIndex !== -1, 'setBootstrapReady(true); must appear in bootstrap source');
-    assert.ok(authSessionIndex < runtimeModsIndex, 'bootstrapAuthSession must run before runtime mod registration can trigger scheduler.peek()');
+    assert.ok(authSessionIndex < hydrationEligibleIndex, 'bootstrapAuthSession must run before runtime host work can schedule mod hydration');
     assert.ok(authSessionIndex < bootstrapReadyIndex, 'bootstrapAuthSession must complete before bootstrapReady is set');
   });
 
@@ -252,8 +272,8 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
       'bootstrap must define a timeout for non-critical startup work',
     );
     assert.ok(
-      bootstrapSource.includes("withBootstrapStepTimeout(\n        'runtime mod bootstrap registration'"),
-      'runtime mod registration must be timeout-bounded',
+      bootstrapSource.includes("step: 'post-ready runtime mod hydration'"),
+      'runtime mod hydration must be treated as a post-ready deferred step',
     );
     assert.ok(
       bootstrapSource.includes("step: 'external agent action bridge startup'"),

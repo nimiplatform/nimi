@@ -1,4 +1,5 @@
 import type { AppStoreSet, AppStoreState } from './store-types';
+import type { RuntimeModHydrationRecord } from './store-types';
 import { MAX_OPEN_MOD_TABS, type OpenModWorkspaceTabResult } from './mod-workspace-policy';
 import {
   loadRuntimeModLifecycleState,
@@ -30,6 +31,7 @@ type ModWorkspaceSlice = Pick<AppStoreState,
   | 'runtimeModDisabledIds'
   | 'runtimeModUninstalledIds'
   | 'runtimeModSettingsById'
+  | 'runtimeModHydrationById'
   | 'modWorkspaceTabs'
   | 'fusedRuntimeMods'
   | 'runtimeModFailures'
@@ -42,6 +44,8 @@ type ModWorkspaceSlice = Pick<AppStoreState,
   | 'setRuntimeModDisabledIds'
   | 'setRuntimeModUninstalledIds'
   | 'setRuntimeModSettings'
+  | 'setRuntimeModHydrationRecords'
+  | 'clearRuntimeModHydrationRecords'
   | 'openModWorkspaceTab'
   | 'closeModWorkspaceTab'
   | 'touchModWorkspaceTab'
@@ -64,6 +68,7 @@ export function createModWorkspaceSlice(set: AppStoreSet): ModWorkspaceSlice {
     runtimeModDisabledIds: initialLifecycleState.disabledModIds,
     runtimeModUninstalledIds: initialLifecycleState.uninstalledModIds,
     runtimeModSettingsById: initialRuntimeModSettingsState,
+    runtimeModHydrationById: {},
     modWorkspaceTabs: [],
     fusedRuntimeMods: {},
     runtimeModFailures: [],
@@ -114,6 +119,20 @@ export function createModWorkspaceSlice(set: AppStoreSet): ModWorkspaceSlice {
           runtimeModSettingsById: nextRuntimeModSettingsById,
         };
       }),
+    setRuntimeModHydrationRecords: (records: RuntimeModHydrationRecord[]) =>
+      set((state) => {
+        const next = { ...state.runtimeModHydrationById };
+        for (const record of records) {
+          const normalizedModId = String(record.modId || '').trim();
+          if (!normalizedModId) continue;
+          next[normalizedModId] = {
+            ...record,
+            modId: normalizedModId,
+          };
+        }
+        return { runtimeModHydrationById: next };
+      }),
+    clearRuntimeModHydrationRecords: () => set({ runtimeModHydrationById: {} }),
     openModWorkspaceTab: (tabId, title, modId) => {
       let result: OpenModWorkspaceTabResult = 'rejected-limit';
       set((state) => {

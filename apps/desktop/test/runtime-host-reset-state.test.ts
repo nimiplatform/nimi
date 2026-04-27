@@ -61,3 +61,14 @@ test('resetRuntimeHostState clears registered mods, providers, and mod sdk host 
     'clearing the internal mod sdk host must remove the global mod sdk host residue',
   );
 });
+
+test('setInternalModSdkHost replaces desktop-owned host residue on renderer re-entry', () => {
+  const firstHost = { host: 'desktop-runtime:first' } as Parameters<typeof setInternalModSdkHost>[0];
+  const secondHost = { host: 'desktop-runtime:second' } as Parameters<typeof setInternalModSdkHost>[0];
+
+  setInternalModSdkHost(firstHost);
+  assert.equal(getModSdkHost(), firstHost);
+
+  assert.doesNotThrow(() => setInternalModSdkHost(secondHost));
+  assert.equal(getModSdkHost(), secondHost);
+});

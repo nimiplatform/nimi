@@ -21,7 +21,6 @@ import {
   setRuntimeModSdkContextProvider,
   setRuntimeHttpContextProvider,
   setInternalModSdkHost,
-  type RuntimeModRegisterFailure,
 } from '@runtime/mod';
 import { setRuntimeLogger } from '@runtime/telemetry/logger';
 import { createDesktopWorldEvolutionSelectorReadAdapter } from '@runtime/world-evolution/selector-read-adapter';
@@ -71,6 +70,7 @@ let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
 let offlineCoordinatorBindingsReady = false;
 let pendingRebootstrap = false;
+let postReadyRuntimeModHydrationGeneration = 0;
 const NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS = 5_000;
 
 function createBootstrapStepTimeoutError(step: string, timeoutMs: number): Error {
@@ -120,6 +120,98 @@ function startNonCriticalBootstrapStep(input: {
         error: safeErrorMessage(error),
       },
     });
+  });
+}
+
+function nextPostReadyRuntimeModHydrationGeneration(): string {
+  postReadyRuntimeModHydrationGeneration += 1;
+  return `bootstrap-${postReadyRuntimeModHydrationGeneration}`;
+}
+
+function isCurrentPostReadyRuntimeModHydrationGeneration(generation: string): boolean {
+  return generation === `bootstrap-${postReadyRuntimeModHydrationGeneration}`;
+}
+
+function schedulePostReadyRuntimeModHydration(input: {
+  flowId: string;
+}): void {
+  const generation = nextPostReadyRuntimeModHydrationGeneration();
+  const updatedAt = new Date().toISOString();
+  useAppStore.getState().setRuntimeModHydrationRecords([{
+    modId: 'runtime.bootstrap-mod-hydration',
+    status: 'scheduled',
+    generation,
+    updatedAt,
+  }]);
+  logRendererEvent({
+    level: 'info',
+    area: 'renderer-bootstrap',
+    message: 'phase:post-ready-runtime-mod-hydration:scheduled',
+    flowId: input.flowId,
+    details: { generation },
+  });
+  startNonCriticalBootstrapStep({
+    flowId: input.flowId,
+    step: 'post-ready runtime mod hydration',
+    task: (async () => {
+      if (isCurrentPostReadyRuntimeModHydrationGeneration(generation)) {
+        useAppStore.getState().setRuntimeModHydrationRecords([{
+          modId: 'runtime.bootstrap-mod-hydration',
+          status: 'hydrating',
+          generation,
+          updatedAt: new Date().toISOString(),
+        }]);
+      }
+      let result: Awaited<ReturnType<typeof registerBootstrapRuntimeMods>>;
+      try {
+        result = await registerBootstrapRuntimeMods({
+          flowId: input.flowId,
+          generation,
+          isCurrent: () => isCurrentPostReadyRuntimeModHydrationGeneration(generation),
+        });
+      } catch (error) {
+        if (isCurrentPostReadyRuntimeModHydrationGeneration(generation)) {
+          useAppStore.getState().setRuntimeModHydrationRecords([{
+            modId: 'runtime.bootstrap-mod-hydration',
+            status: 'failed',
+            generation,
+            error: safeErrorMessage(error),
+            updatedAt: new Date().toISOString(),
+          }]);
+        }
+        throw error;
+      }
+      if (!isCurrentPostReadyRuntimeModHydrationGeneration(generation)) {
+        logRendererEvent({
+          level: 'warn',
+          area: 'renderer-bootstrap',
+          message: 'phase:post-ready-runtime-mod-hydration:stale-result-ignored',
+          flowId: input.flowId,
+          details: { generation },
+        });
+        return;
+      }
+      useAppStore.getState().setRuntimeModHydrationRecords([{
+        modId: 'runtime.bootstrap-mod-hydration',
+        status: result.runtimeModFailures.length > 0 ? 'failed' : 'hydrated',
+        generation,
+        updatedAt: new Date().toISOString(),
+      }]);
+      logRendererEvent({
+        level: result.runtimeModFailures.length > 0 ? 'warn' : 'info',
+        area: 'renderer-bootstrap',
+        message: result.runtimeModFailures.length > 0
+          ? 'phase:post-ready-runtime-mod-hydration:done-with-failures'
+          : 'phase:post-ready-runtime-mod-hydration:done',
+        flowId: input.flowId,
+        details: {
+          generation,
+          manifestCount: result.manifestCount,
+          runtimeModFailureCount: result.runtimeModFailures.length,
+          runtimeModCount: listRegisteredRuntimeModIds().length,
+        },
+      });
+    })(),
   });
 }
 
@@ -206,6 +298,7 @@ function runtimeDaemonUnavailable(status: { running: boolean; lastError?: string
 }
 
 async function teardownBootstrapState(): Promise<void> {
+  postReadyRuntimeModHydrationGeneration += 1;
   stopAuthStateWatcher();
   stopExternalAgentActionBridge();
   resetRuntimeHostState();
@@ -545,8 +638,7 @@ export function bootstrapRuntime(): Promise<void> {
       skipWarmLoads: skipHeavyBootstrapForMacosSmoke,
     });
 
-    let runtimeModFailures: RuntimeModRegisterFailure[] = [];
-    let manifestCount = 0;
+    let shouldSchedulePostReadyRuntimeModHydration = false;
 
     if (flags.enableRuntimeBootstrap && !macosSmokeContext.disableRuntimeBootstrap) {
       setRuntimeHttpContextProvider(() => {
@@ -584,32 +676,7 @@ export function bootstrapRuntime(): Promise<void> {
       });
       await ensureCoreWorldDataCapabilitiesRegistered();
 
-      const runtimeModResult = await withBootstrapStepTimeout(
-        'runtime mod bootstrap registration',
-        registerBootstrapRuntimeMods({
-          flowId,
-        }),
-        NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
-      ).catch((error) => {
-        logRendererEvent({
-          level: 'warn',
-          area: 'renderer-bootstrap',
-          message: 'phase:register-runtime-mods:deferred',
-          flowId,
-          details: {
-            error: safeErrorMessage(error),
-          },
-        });
-        appStore.setLocalManifestSummaries([]);
-        appStore.setRegisteredRuntimeModIds([]);
-        appStore.setRuntimeModFailures([]);
-        return {
-          runtimeModFailures: [] as RuntimeModRegisterFailure[],
-          manifestCount: 0,
-        };
-      });
-      runtimeModFailures = runtimeModResult.runtimeModFailures;
-      manifestCount = runtimeModResult.manifestCount;
+      shouldSchedulePostReadyRuntimeModHydration = true;
       registerExternalAgentTier1Actions(hookRuntime);
       startNonCriticalBootstrapStep({
         flowId,
@@ -625,6 +692,7 @@ export function bootstrapRuntime(): Promise<void> {
       appStore.setLocalManifestSummaries([]);
       appStore.setRegisteredRuntimeModIds([]);
       appStore.setRuntimeModFailures([]);
+      appStore.clearRuntimeModHydrationRecords();
       if (macosSmokeContext.disableRuntimeBootstrap) {
         logRendererEvent({
           level: 'info',
@@ -665,17 +733,19 @@ export function bootstrapRuntime(): Promise<void> {
       skipHeavyBootstrapForMacosSmoke,
     }).catch(() => {});
     logRendererEvent({
-      level: runtimeModFailures.length > 0 ? 'warn' : 'info',
+      level: 'info',
       area: 'renderer-bootstrap',
-      message: runtimeModFailures.length > 0 ? 'phase:bootstrap:done-with-mod-failures' : 'phase:bootstrap:done',
+      message: 'phase:bootstrap:done',
       flowId,
       costMs: Number((performance.now() - startedAt).toFixed(2)),
       details: {
         runtimeModCount: flags.enableRuntimeBootstrap ? listRegisteredRuntimeModIds().length : 0,
-        manifestCount,
-        runtimeModFailureCount: runtimeModFailures.length,
+        postReadyRuntimeModHydrationScheduled: shouldSchedulePostReadyRuntimeModHydration,
       },
     });
+    if (shouldSchedulePostReadyRuntimeModHydration) {
+      schedulePostReadyRuntimeModHydration({ flowId });
+    }
   })().catch(async (error) => {
     // D-BOOT-008 + D-OFFLINE-001: Bootstrap failure → L2 degradation
     getOfflineCoordinator().markRuntimeReachable(false);
