@@ -1,0 +1,21 @@
+{
+  "pageTitle": "Language & Region",
+  "pageDescription": "Customize your language and regional preferences",
+  "sectionDisplayLanguage": "Display Language",
+  "language": "Language",
+  "languageHelper": "Changes will apply immediately",
+  "sectionRegionSettings": "Region Settings",
+  "timezone": "Timezone",
+  "dateFormat": "Date Format",
+  "timezoneCst": "(UTC+8) China Standard Time",
+  "timezoneJst": "(UTC+9) Japan Standard Time",
+  "timezoneEt": "(UTC-5) Eastern Time",
+  "timezonePt": "(UTC-8) Pacific Time",
+  "timezoneGmt": "(UTC+0) Greenwich Mean Time",
+  "timezoneCet": "(UTC+1) Central European Time",
+  "dateFormatIso": "2026-02-15 (ISO)",
+  "dateFormatUs": "02/15/2026 (US)",
+  "dateFormatEu": "15/02/2026 (EU)",
+  "dateFormatDe": "15.02.2026 (DE)",
+  "changeLanguageError": "Failed to change language"
+}

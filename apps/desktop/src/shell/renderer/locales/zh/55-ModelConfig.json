@@ -1,0 +1,54 @@
+{
+  "profile": {
+    "sectionTitle": "配置预设",
+    "summaryLabel": "AI 预设",
+    "emptySummaryLabel": "未应用预设",
+    "applyButtonLabel": "应用预设",
+    "changeButtonLabel": "更改",
+    "manageButtonTitle": "管理预设",
+    "modalTitle": "应用 AI 预设",
+    "modalHint": "选择预设将覆盖当前所有能力绑定，此操作不可撤销。",
+    "loadingLabel": "正在加载预设...",
+    "emptyLabel": "暂无可用预设。",
+    "currentBadgeLabel": "当前",
+    "cancelLabel": "取消",
+    "confirmLabel": "确认应用",
+    "applyingLabel": "应用中...",
+    "reloadLabel": "刷新",
+    "importLabel": "导入 AI 预设"
+  },
+  "section": {
+    "chat": {
+      "title": "对话"
+    },
+    "tts": {
+      "title": "文本转语音"
+    },
+    "stt": {
+      "title": "语音转文本"
+    },
+    "image": {
+      "title": "图像"
+    },
+    "video": {
+      "title": "视频"
+    },
+    "voice": {
+      "title": "语音"
+    },
+    "embed": {
+      "title": "嵌入"
+    },
+    "world": {
+      "title": "世界"
+    }
+  },
+  "hub": {
+    "title": "AI 模型",
+    "backLabel": "返回",
+    "aggregateReady": "{{count}} 已就绪",
+    "aggregateAttention": "{{count}} 需要配置",
+    "aggregateNeutral": "{{count}} 未设置",
+    "aggregateEmpty": "未配置任何能力"
+  }
+}

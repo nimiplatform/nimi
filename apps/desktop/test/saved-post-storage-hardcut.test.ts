@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { readDesktopLocaleSource } from './helpers/read-desktop-locale';
 
 function readWorkspaceFile(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, '..', relativePath), 'utf8');
@@ -15,8 +16,8 @@ const postCardSource = readWorkspaceFile('src/shell/renderer/features/home/post-
 const articleSource = readWorkspaceFile('src/shell/renderer/features/home/article.tsx');
 const collectionsTabSource = readWorkspaceFile('src/shell/renderer/features/profile/collections-tab.tsx');
 const contactDetailTabsSource = readWorkspaceFile('src/shell/renderer/features/contacts/contact-detail-view-tabs.tsx');
-const enLocaleSource = readWorkspaceFile('src/shell/renderer/locales/en.json');
-const zhLocaleSource = readWorkspaceFile('src/shell/renderer/locales/zh.json');
+const enLocaleSource = readDesktopLocaleSource('en');
+const zhLocaleSource = readDesktopLocaleSource('zh');
 const packetSource = readRepoFile('.nimi/topics/closed/2026-04-24-governance-runtime-desktop-gate-repair/packet-wave-2-desktop-saved-post-storage-hardcut.md');
 
 const savedPostTruthPatterns = [

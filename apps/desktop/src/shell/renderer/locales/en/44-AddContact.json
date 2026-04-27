@@ -1,0 +1,6 @@
+{
+  "inputRequired": "Please input a user handle.",
+  "legacyPrefixUnsupported": "Use a handle or ID without @ or ~.",
+  "searchFailed": "Failed to find this user.",
+  "addFailed": "Failed to add this contact."
+}

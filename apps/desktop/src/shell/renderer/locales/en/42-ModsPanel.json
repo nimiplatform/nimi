@@ -1,0 +1,22 @@
+{
+  "title": "Mods",
+  "subtitle": "Open the mods that are currently enabled.",
+  "searchPlaceholder": "Search mods...",
+  "open": "Open",
+  "openDir": "Open Dir",
+  "enable": "Enable",
+  "disable": "Disable",
+  "uninstall": "Uninstall",
+  "settings": "Settings",
+  "retry": "Retry",
+  "crashed": "Crashed",
+  "enabledSection": "Enabled",
+  "disabledSection": "Disabled",
+  "devBadge": "dev",
+  "devTooltip": "Loaded from a developer source.",
+  "noMods": "No mods installed",
+  "noModsHint": "Discover and install mods from Mod Hub.",
+  "noEnabledMods": "No enabled mods yet",
+  "noEnabledModsHint": "Enable an installed mod from Mod Hub to open it here.",
+  "noSearchResults": "No mods match your search"
+}

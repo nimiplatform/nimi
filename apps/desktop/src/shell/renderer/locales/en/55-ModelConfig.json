@@ -1,0 +1,54 @@
+{
+  "profile": {
+    "sectionTitle": "Profile",
+    "summaryLabel": "AI Profile",
+    "emptySummaryLabel": "No profile applied",
+    "applyButtonLabel": "Apply profile",
+    "changeButtonLabel": "Change",
+    "manageButtonTitle": "Manage profiles",
+    "modalTitle": "Apply AI Profile",
+    "modalHint": "Selecting a profile will overwrite all current capability bindings. This action cannot be undone.",
+    "loadingLabel": "Loading profiles...",
+    "emptyLabel": "No profiles available.",
+    "currentBadgeLabel": "Current",
+    "cancelLabel": "Cancel",
+    "confirmLabel": "Confirm & Apply",
+    "applyingLabel": "Applying...",
+    "reloadLabel": "Reload",
+    "importLabel": "Import AI Profile"
+  },
+  "section": {
+    "chat": {
+      "title": "Chat"
+    },
+    "tts": {
+      "title": "Text to speech"
+    },
+    "stt": {
+      "title": "Speech to text"
+    },
+    "image": {
+      "title": "Image"
+    },
+    "video": {
+      "title": "Video"
+    },
+    "voice": {
+      "title": "Voice"
+    },
+    "embed": {
+      "title": "Embeddings"
+    },
+    "world": {
+      "title": "World"
+    }
+  },
+  "hub": {
+    "title": "AI Models",
+    "backLabel": "Back",
+    "aggregateReady": "{{count}} ready",
+    "aggregateAttention": "{{count}} need attention",
+    "aggregateNeutral": "{{count}} unset",
+    "aggregateEmpty": "No capabilities configured"
+  }
+}

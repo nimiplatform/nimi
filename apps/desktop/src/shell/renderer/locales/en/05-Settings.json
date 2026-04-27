@@ -1,0 +1,18 @@
+{
+  "sectionAccount": "Account",
+  "sectionPrivacySecurity": "Privacy & Security",
+  "sectionPreferences": "Preferences",
+  "sectionExtensions": "Extensions",
+  "sectionAdvanced": "Advanced",
+  "resizeSidebarAriaLabel": "Resize settings sidebar",
+  "menuProfile": "Profile",
+  "menuLanguage": "Language & Region",
+  "menuPrivacy": "Privacy",
+  "menuSecurity": "Security",
+  "menuData": "Data Management",
+  "menuNotifications": "Notifications",
+  "menuPerformance": "Performance",
+  "menuModSettings": "Mod Settings",
+  "menuWallet": "Wallet",
+  "menuDeveloper": "Mod Developer"
+}

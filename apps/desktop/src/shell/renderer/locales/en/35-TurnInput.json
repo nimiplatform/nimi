@@ -1,0 +1,20 @@
+{
+  "selectChatFirst": "Please select a chat first",
+  "inputMessageRequired": "Please enter a message",
+  "sendFailed": "Failed to send message",
+  "runtimeUnavailableReadOnly": "Runtime unavailable. Chat is currently read-only.",
+  "runtimeUnavailableUpload": "Runtime unavailable. Upload is disabled in read-only mode.",
+  "runtimeUnavailablePlaceholder": "Runtime unavailable. Read-only mode.",
+  "typeMessage": "Type a message...",
+  "previousPage": "Previous page",
+  "nextPage": "Next page",
+  "emoji": "Emoji",
+  "components": "Components",
+  "files": "Files",
+  "moreTools": "More tools",
+  "send": "Send",
+  "uploadFile": "Upload file",
+  "removeAttachment": "Remove attachment",
+  "uploadFailed": "Upload failed",
+  "unsupportedFileType": "Unsupported file type, please upload an image or video"
+}

@@ -1,0 +1,10 @@
+{
+  "accept": "接受",
+  "acceptFailed": "接受礼物失败",
+  "accepted": "已接受",
+  "expired": "已过期",
+  "openWallet": "前往钱包",
+  "reject": "拒绝",
+  "rejectFailed": "拒绝礼物失败",
+  "rejected": "已拒绝"
+}

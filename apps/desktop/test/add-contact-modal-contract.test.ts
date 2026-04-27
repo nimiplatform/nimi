@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { readDesktopLocaleSource } from './helpers/read-desktop-locale';
 
 function readSource(relativePath: string): string {
   return readFileSync(path.join(import.meta.dirname, relativePath), 'utf8');
@@ -9,8 +10,8 @@ function readSource(relativePath: string): string {
 
 test('add contact modal maps legacy handle prefix errors to user-facing copy', () => {
   const modalSource = readSource('../src/shell/renderer/features/contacts/add-contact-modal.tsx');
-  const enSource = readSource('../src/shell/renderer/locales/en.json');
-  const zhSource = readSource('../src/shell/renderer/locales/zh.json');
+  const enSource = readDesktopLocaleSource('en');
+  const zhSource = readDesktopLocaleSource('zh');
 
   assert.match(modalSource, /next === 'HANDLE_PREFIX_UNSUPPORTED'/);
   assert.match(modalSource, /AddContact\.legacyPrefixUnsupported/);

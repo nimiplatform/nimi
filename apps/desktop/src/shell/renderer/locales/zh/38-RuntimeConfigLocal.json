@@ -1,0 +1,4 @@
+{
+  "runtimeUnavailableTitle": "Runtime 不可用 / 本地模型写操作已暂停",
+  "runtimeUnavailableBody": "在 Runtime 恢复前，安装、导入、启动、停止、重启和移除本地模型的操作都已禁用。"
+}

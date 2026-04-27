@@ -4,6 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { RUNTIME_PAGE_META } from '../src/shell/renderer/features/runtime-config/runtime-config-meta-v11';
+import { readDesktopLocale } from './helpers/read-desktop-locale';
 
 const sidebarSource = readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-sidebar.tsx'),
@@ -30,15 +31,8 @@ const knowledgeServiceSource = readFileSync(
   'utf8',
 );
 
-const enLocale = JSON.parse(readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/locales/en.json'),
-  'utf8',
-));
-
-const zhLocale = JSON.parse(readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/locales/zh.json'),
-  'utf8',
-));
+const enLocale = readDesktopLocale('en');
+const zhLocale = readDesktopLocale('zh');
 
 test('runtime config sidebar exposes knowledge as an operations page', () => {
   assert.match(

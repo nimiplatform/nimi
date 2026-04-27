@@ -1,0 +1,18 @@
+{
+  "title": "Profile",
+  "loading": "Loading profile...",
+  "error": "Failed to load profile",
+  "tabPosts": "Posts",
+  "tabMedia": "Media",
+  "tabCollections": "Collections",
+  "tabGifts": "Gifts",
+  "message": "Chat",
+  "block": "Block",
+  "unblock": "Unblock",
+  "addFriend": "Add Friend",
+  "sendGift": "Send Gift",
+  "friends": "Friends",
+  "posts": "Posts",
+  "agent": "Agent",
+  "human": "Human"
+}

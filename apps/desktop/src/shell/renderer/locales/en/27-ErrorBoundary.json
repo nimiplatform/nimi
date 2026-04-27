@@ -1,0 +1,4 @@
+{
+  "rendererFailed": "Renderer crashed",
+  "rendererHint": "Restart the app, or inspect renderer log chain in devtools."
+}

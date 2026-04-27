@@ -1,0 +1,16 @@
+{
+  "sendGift": "送礼物",
+  "selectGift": "选择礼物",
+  "sparkCost": "Spark 成本",
+  "sparkUnit": "SPARK",
+  "loadingCatalog": "正在加载礼物...",
+  "loadCatalogFailed": "加载礼物失败。",
+  "retryLoadCatalog": "重试",
+  "emptyCatalog": "暂无可赠送礼物",
+  "emptyCatalogDescription": "礼物目录当前不可用。",
+  "sendGiftFailed": "发送礼物失败",
+  "messageOptional": "留言（可选）",
+  "addNiceMessage": "添加一条留言...",
+  "onlyRecipientCanSee": "仅收件人可见",
+  "sending": "发送中..."
+}

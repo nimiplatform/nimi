@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { readDesktopLocale } from './helpers/read-desktop-locale';
 
 /**
  * Scheduling Warning UI Consumption contract tests (K-SCHED-001 five-state).
@@ -22,11 +23,7 @@ function readSource(relativePath: string): string {
 }
 
 function readLocale(locale: string): Record<string, unknown> {
-  const raw = fs.readFileSync(
-    path.join(desktopDir, `src/shell/renderer/locales/${locale}.json`),
-    'utf8',
-  );
-  return JSON.parse(raw);
+  return readDesktopLocale(locale);
 }
 
 // ---------------------------------------------------------------------------

@@ -462,10 +462,10 @@ export default defineConfig(({ mode }) => {
             ) {
               return 'runtime-bridge';
             }
-            if (normalizedId.endsWith('/apps/desktop/src/shell/renderer/locales/en.json')) {
+            if (normalizedId.includes('/apps/desktop/src/shell/renderer/locales/en/')) {
               return 'vendor-shell-locale-en';
             }
-            if (normalizedId.endsWith('/apps/desktop/src/shell/renderer/locales/zh.json')) {
+            if (normalizedId.includes('/apps/desktop/src/shell/renderer/locales/zh/')) {
               return 'vendor-shell-locale-zh';
             }
 

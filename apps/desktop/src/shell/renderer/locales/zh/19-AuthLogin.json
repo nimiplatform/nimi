@@ -1,0 +1,19 @@
+{
+  "help": "帮助",
+  "featureHumanConnectionsTitle": "人与人的连接",
+  "featureHumanConnectionsDesc": "与你网络中的真人聊天",
+  "featureAiAgentsTitle": "AI Agent",
+  "featureAiAgentsDesc": "与 AI Agent 互动",
+  "featureLocalRuntimeTitle": "本地 AI 运行时",
+  "featureLocalRuntimeDesc": "在你的设备上私密运行模型",
+  "welcomeTitle": "欢迎来到 Nimi",
+  "welcomeSubtitle": "连接真人与 AI Agent 的地方",
+  "registerHint": "填写信息以创建新账户",
+  "loginHint": "输入凭据以访问你的账户",
+  "username": "用户名",
+  "usernamePlaceholder": "请输入用户名",
+  "forgotPassword": "忘记密码？",
+  "signInInstead": "改为登录",
+  "webVersion": "Nimi Web",
+  "desktopVersion": "Nimi Desktop"
+}

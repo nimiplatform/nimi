@@ -1,0 +1,132 @@
+{
+  "title": "世界",
+  "subtitle": "探索和管理你的世界",
+  "searchPlaceholder": "搜索世界...",
+  "searchByNameOrDescription": "按名称或描述搜索世界...",
+  "loading": "正在加载世界...",
+  "loadError": "加载世界失败",
+  "mainWorld": "主世界",
+  "subWorlds": "子世界",
+  "searchResults": "搜索结果",
+  "noWorlds": "暂无子世界",
+  "noSearchResults": "未找到世界",
+  "syncedFromDesktop": "已从桌面同步",
+  "primaryInstance": "主实例",
+  "totalPlayers": "总玩家数",
+  "averageSession": "平均会话时长",
+  "worldStability": "世界稳定度",
+  "totalAgent": "Agent 总数",
+  "time": "时间",
+  "worldScoring": "世界评分",
+  "syncTicker": "世界同步",
+  "chronoFlow": "时间流速：{{value}}X",
+  "header": {
+    "kicker": "空间 · 你的世界",
+    "description": "可进入、塑造、分享的持续模拟。每个世界都有自己的时钟与规则。"
+  },
+  "toolbar": {
+    "heading": "你的世界",
+    "filterPlaceholder": "按名称或标签筛选…",
+    "gridView": "网格视图",
+    "listView": "列表视图",
+    "sort": {
+      "active": "最活跃",
+      "recent": "最近更新",
+      "alpha": "名称 A–Z",
+      "inhabitants": "居民数"
+    }
+  },
+  "sidebar": {
+    "create": "创建世界",
+    "library": "库",
+    "collections": "合集",
+    "pulse": "你的动态",
+    "activeWorlds": "活跃世界",
+    "activeWorldsSub": "共 {{total}} 个",
+    "inhabitants": "居民总数",
+    "inhabitantsSub": "跨所有世界",
+    "weeklyVisits": "本周访问",
+    "filters": {
+      "all": "全部世界",
+      "main": "主世界",
+      "sub": "子世界",
+      "archived": "已归档"
+    },
+    "noCollections": "暂无合集"
+  },
+  "status": {
+    "active": "活跃",
+    "idle": "静默"
+  },
+  "stats": {
+    "inhabitants": "居民",
+    "online": "在线",
+    "day": "天数",
+    "flow": "流速"
+  },
+  "card": {
+    "enter": "进入世界",
+    "featured": "精选世界",
+    "noMatch": "没有匹配的世界。"
+  },
+  "createAgent": {
+    "title": "创建新 Agent",
+    "subtitle": "在 {{worldName}} 中塑造一个新角色",
+    "close": "关闭创建 Agent 抽屉",
+    "uploadAvatar": "上传头像",
+    "changeAvatar": "更换头像",
+    "avatarPreview": "Agent 头像预览",
+    "avatarImageRequired": "请选择图片文件。",
+    "avatarTooLarge": "头像图片必须不超过 5MB。",
+    "avatarReadFailed": "读取头像图片失败。",
+    "sections": {
+      "identity": "身份",
+      "character": "角色",
+      "personality": "人格 DNA",
+      "wakeStrategy": "唤醒策略"
+    },
+    "handle": "Handle",
+    "handlePlaceholder": "agent_unique_id",
+    "displayName": "显示名称",
+    "displayNamePlaceholder": "对外展示的身份名称",
+    "concept": "核心概念",
+    "conceptPlaceholder": "角色的核心本质",
+    "description": "描述",
+    "descriptionPlaceholder": "面向公众的介绍",
+    "scenario": "场景",
+    "scenarioPlaceholder": "所处世界背景",
+    "greeting": "开场白",
+    "greetingPlaceholder": "Ta 会如何介绍自己",
+    "primaryTrait": "主特质",
+    "secondaryTraitsLabel": "次级特质",
+    "wakeStrategyPassiveTitle": "被动",
+    "wakeStrategyPassiveDescription": "等待明确触发后再行动。",
+    "wakeStrategyProactiveTitle": "主动",
+    "wakeStrategyProactiveDescription": "当世界发生变化时可主动发起反应。",
+    "primaryTraits": {
+      "CARING": "体贴",
+      "PLAYFUL": "活泼",
+      "INTELLECTUAL": "理性",
+      "CONFIDENT": "自信",
+      "MYSTERIOUS": "神秘",
+      "ROMANTIC": "浪漫"
+    },
+    "secondaryTraits": {
+      "HUMOROUS": "幽默",
+      "SARCASTIC": "讽刺",
+      "GENTLE": "温柔",
+      "DIRECT": "直接",
+      "OPTIMISTIC": "乐观",
+      "REALISTIC": "现实",
+      "DRAMATIC": "戏剧化",
+      "PASSIONATE": "热烈",
+      "REBELLIOUS": "叛逆",
+      "INNOCENT": "纯真",
+      "WISE": "睿智",
+      "ECCENTRIC": "古怪"
+    },
+    "cancel": "取消",
+    "creating": "创建中...",
+    "submit": "创建 Agent"
+  }
+}

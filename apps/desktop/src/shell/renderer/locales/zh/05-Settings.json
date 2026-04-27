@@ -1,0 +1,18 @@
+{
+  "sectionAccount": "账户",
+  "sectionPrivacySecurity": "隐私与安全",
+  "sectionPreferences": "偏好设置",
+  "sectionExtensions": "扩展",
+  "sectionAdvanced": "高级设置",
+  "resizeSidebarAriaLabel": "调整设置侧边栏宽度",
+  "menuProfile": "个人资料",
+  "menuLanguage": "语言与地区",
+  "menuPrivacy": "隐私",
+  "menuSecurity": "安全",
+  "menuData": "数据管理",
+  "menuNotifications": "通知",
+  "menuPerformance": "性能",
+  "menuModSettings": "Mod 设置",
+  "menuWallet": "钱包",
+  "menuDeveloper": "Mod 开发"
+}

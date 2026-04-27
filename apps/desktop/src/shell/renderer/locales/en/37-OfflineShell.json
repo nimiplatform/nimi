@@ -1,0 +1,6 @@
+{
+  "cloudOfflineTitle": "Cloud offline / Offline mode",
+  "cloudOfflineBody": "Cached data and local queues are active. Pending operations will replay when cloud connectivity returns.",
+  "runtimeUnavailableTitle": "Runtime unavailable / Read-only mode",
+  "runtimeUnavailableBody": "AI, mods, and local model writes are paused. Runtime bootstrap will retry after reconnection."
+}

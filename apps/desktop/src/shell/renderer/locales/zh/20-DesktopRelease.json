@@ -1,0 +1,5 @@
+{
+  "runtimeUnavailableTitle": "内置 Runtime 不可用",
+  "runtimeUnavailableBody": "桌面壳已启动，但内置 runtime 未能完成 staging 或版本校验。请打开设置查看发布错误详情。",
+  "openUpdates": "打开更新设置"
+}

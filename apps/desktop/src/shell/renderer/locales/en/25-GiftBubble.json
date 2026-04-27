@@ -1,0 +1,10 @@
+{
+  "accept": "Accept",
+  "acceptFailed": "Failed to accept gift",
+  "accepted": "Accepted",
+  "expired": "Expired",
+  "openWallet": "Open Wallet",
+  "reject": "Reject",
+  "rejectFailed": "Failed to reject gift",
+  "rejected": "Rejected"
+}

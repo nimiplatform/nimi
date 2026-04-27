@@ -1,0 +1,4 @@
+{
+  "runtimeUnavailableTitle": "Runtime unavailable / Local model writes paused",
+  "runtimeUnavailableBody": "Local model install, import, start, stop, restart, and remove actions are disabled until the runtime reconnects."
+}

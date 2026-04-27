@@ -1,0 +1,20 @@
+{
+  "openModFailedWithChain": "Mod {{modId}} failed to open. Error chain: {{chain}}",
+  "renderFailedWithChain": "Mod {{modId}} render failed. Error chain: {{chain}}",
+  "developerHostSubscriptionError": "Runtime mod developer host failed during {{stage}}: {{error}}",
+  "tabPageMissingComponent": "tab-page is missing a renderable component",
+  "unknownUiExtensionType": "Unknown UI extension type: {{extensionType}}",
+  "modFusedTitle": "Mod fused",
+  "retrying": "Retrying...",
+  "retry": "Retry",
+  "closeTab": "Close tab",
+  "extensionFailedTitle": "Mod extension failed",
+  "retryBlockedDisabled": "Mod {{modId}} is disabled. Enable it in Mod Hub before retrying.",
+  "retryBlockedUninstalled": "Mod {{modId}} is uninstalled. Install it in Mod Hub before retrying.",
+  "retryFailed": "Mod {{modId}} retry failed: {{error}}",
+  "retryRecovered": "Mod {{modId}} recovered",
+  "retryException": "Mod {{modId}} retry exception: {{error}}",
+  "bootstrapPartialFailure": "{{count}} mods failed to load. Error chain: {{chain}}",
+  "queryLoading": "Loading...",
+  "queryRun": "Run"
+}

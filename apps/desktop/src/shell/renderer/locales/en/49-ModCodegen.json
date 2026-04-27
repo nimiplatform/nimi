@@ -1,0 +1,7 @@
+{
+  "t0AutoGrant": "T0 Auto Grant",
+  "t1ConsentRequired": "T1 Consent Required",
+  "t2HardDeny": "T2 Hard Deny",
+  "catalogTitle": "Mod Codegen Capability Catalog",
+  "catalogDescription": "Codegen mods use dedicated `sourceType=codegen` policy: T0 auto-grant, T1 requires consent, T2 hard-deny."
+}

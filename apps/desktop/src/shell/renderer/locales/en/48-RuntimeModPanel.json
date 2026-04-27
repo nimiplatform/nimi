@@ -1,0 +1,9 @@
+{
+  "title": "Runtime Mod Panel",
+  "revision": "Revision: {{count}}",
+  "registeredMods": "Registered Mods",
+  "hookSlots": "Hook Slots",
+  "registrySlots": "Registry Slots",
+  "empty": "None",
+  "devtoolsBase": "Runtime devtools slot base"
+}

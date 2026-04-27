@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* global console, process */
 /**
- * i18n:check — Compare locale files against en.json (source of truth).
+ * i18n:check — Compare locale bundles against English (source of truth).
  *
  * Usage:
  *   node scripts/i18n-check.mjs                Check shell locales
@@ -57,6 +57,38 @@ function loadJson(filePath) {
   }
 }
 
+function namespaceFromLocaleFileName(fileName) {
+  return fileName.slice(0, -'.json'.length).replace(/^\d+-/, '');
+}
+
+function loadLocaleBundle(localesDir, locale) {
+  const flatPath = join(localesDir, `${locale}.json`);
+  if (existsSync(flatPath)) {
+    return loadJson(flatPath);
+  }
+
+  const localeDir = join(localesDir, locale);
+  let entries;
+  try {
+    entries = readdirSync(localeDir, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+
+  const bundle = {};
+  for (const entry of entries
+    .filter((item) => item.isFile() && item.name.endsWith('.json'))
+    .sort((left, right) => left.name.localeCompare(right.name))) {
+    const key = namespaceFromLocaleFileName(entry.name);
+    const section = loadJson(join(localeDir, entry.name));
+    if (!section) {
+      return null;
+    }
+    bundle[key] = section;
+  }
+  return bundle;
+}
+
 function loadConfig() {
   const config = loadJson(CONFIG_PATH);
   if (!config) {
@@ -97,14 +129,14 @@ function checkScope({ scope, localesDir, supportedLocales }) {
   console.log(`\n=== i18n:check [${scope}] ===\n`);
   console.log(`Locales: ${supportedLocales.join(', ')}`);
 
-  const enData = loadJson(join(localesDir, 'en.json'));
+  const enData = loadLocaleBundle(localesDir, 'en');
   if (!enData) {
-    console.error('❌ en.json not found — cannot proceed.');
+    console.error('❌ English locale bundle not found — cannot proceed.');
     return { ok: false, missing: 1, extra: 0 };
   }
 
   const enKeys = new Set(flattenKeys(enData));
-  console.log(`✅ en.json  — ${enKeys.size} keys`);
+  console.log(`✅ en locale — ${enKeys.size} keys`);
 
   let totalMissing = 0;
   let totalExtra = 0;
@@ -113,11 +145,11 @@ function checkScope({ scope, localesDir, supportedLocales }) {
   for (const locale of supportedLocales) {
     if (locale === 'en') continue;
 
-    const data = loadJson(join(localesDir, `${locale}.json`));
+    const data = loadLocaleBundle(localesDir, locale);
     if (!data) {
       const missingForLocale = enKeys.size;
       totalMissing += missingForLocale;
-      console.log(`❌ ${locale}.json — not found | missing: ${missingForLocale} | extra: 0`);
+      console.log(`❌ ${locale} locale — not found | missing: ${missingForLocale} | extra: 0`);
       continue;
     }
 
@@ -130,7 +162,7 @@ function checkScope({ scope, localesDir, supportedLocales }) {
     checkedLocales.push(locale);
 
     const status = missing.length === 0 ? '✅' : '❌';
-    console.log(`${status} ${locale}.json  — ${localeKeys.size} keys | missing: ${missing.length} | extra: ${extra.length}`);
+    console.log(`${status} ${locale} locale — ${localeKeys.size} keys | missing: ${missing.length} | extra: ${extra.length}`);
 
     if (missing.length > 0) {
       console.log('   Missing keys:');
@@ -142,7 +174,7 @@ function checkScope({ scope, localesDir, supportedLocales }) {
       }
     }
     if (extra.length > 0) {
-      console.log('   Extra keys (not in en.json):');
+      console.log('   Extra keys (not in English locale):');
       for (const key of extra.slice(0, 10)) {
         console.log(`     + ${key}`);
       }

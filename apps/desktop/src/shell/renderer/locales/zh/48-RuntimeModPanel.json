@@ -1,0 +1,9 @@
+{
+  "title": "运行时 Mod 面板",
+  "revision": "修订版本：{{count}}",
+  "registeredMods": "已注册 Mod",
+  "hookSlots": "Hook 槽位",
+  "registrySlots": "注册表槽位",
+  "empty": "无",
+  "devtoolsBase": "运行时开发工具槽位基础内容"
+}

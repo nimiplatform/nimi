@@ -114,8 +114,8 @@ function syncDocumentState(locale: SupportedLocale): void {
 
 async function loadMessages(locale: SupportedLocale): Promise<Record<string, unknown>> {
   switch (locale) {
-    case 'en': return (await import('../locales/en.json')).default as Record<string, unknown>;
-    case 'zh': return (await import('../locales/zh.json')).default as Record<string, unknown>;
+    case 'en': return (await import('../locales/en')).default as Record<string, unknown>;
+    case 'zh': return (await import('../locales/zh')).default as Record<string, unknown>;
   }
 }
 

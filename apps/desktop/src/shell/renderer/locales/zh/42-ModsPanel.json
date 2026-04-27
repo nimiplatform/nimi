@@ -1,0 +1,22 @@
+{
+  "title": "Mods",
+  "subtitle": "打开当前已启用的 Mod。",
+  "searchPlaceholder": "搜索 Mod...",
+  "open": "打开",
+  "openDir": "打开目录",
+  "enable": "启用",
+  "disable": "禁用",
+  "uninstall": "卸载",
+  "settings": "设置",
+  "retry": "重试",
+  "crashed": "已崩溃",
+  "enabledSection": "已启用",
+  "disabledSection": "已禁用",
+  "devBadge": "dev",
+  "devTooltip": "该 Mod 来自开发目录。",
+  "noMods": "暂无已安装 Mod",
+  "noModsHint": "前往 Mod Hub 发现并安装 Mod。",
+  "noEnabledMods": "暂无已启用 Mod",
+  "noEnabledModsHint": "请先在 Mod Hub 中启用已安装的 Mod。",
+  "noSearchResults": "没有匹配的 Mod"
+}

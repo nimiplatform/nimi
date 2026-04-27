@@ -1,0 +1,6 @@
+{
+  "welcomeEyebrow": "欢迎",
+  "welcomeTitle": "和 {{name}} 打个招呼",
+  "welcomeDescription": "开始和 {{name}} 聊天。",
+  "historyIntro": "更早的消息"
+}

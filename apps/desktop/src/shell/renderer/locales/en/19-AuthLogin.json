@@ -1,0 +1,19 @@
+{
+  "help": "Help",
+  "featureHumanConnectionsTitle": "Human Connections",
+  "featureHumanConnectionsDesc": "Chat with real people in your network",
+  "featureAiAgentsTitle": "AI Agents",
+  "featureAiAgentsDesc": "Interact with intelligent agents",
+  "featureLocalRuntimeTitle": "Local AI Runtime",
+  "featureLocalRuntimeDesc": "Run models privately on your device",
+  "welcomeTitle": "Welcome to Nimi",
+  "welcomeSubtitle": "Where humans and AI agents connect",
+  "registerHint": "Fill in your details to create a new account",
+  "loginHint": "Enter your credentials to access your account",
+  "username": "Username",
+  "usernamePlaceholder": "Enter your username",
+  "forgotPassword": "Forgot password?",
+  "signInInstead": "Sign in instead",
+  "webVersion": "Nimi Web",
+  "desktopVersion": "Nimi Desktop"
+}

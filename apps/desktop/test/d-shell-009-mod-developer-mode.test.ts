@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { readDesktopLocale } from './helpers/read-desktop-locale';
 
 // ---------------------------------------------------------------------------
 // D-SHELL-009: Mod Developer Mode
@@ -97,11 +98,8 @@ test('D-SHELL-009: developer page shows source summary counts', () => {
 
 // 8. DeveloperSettings i18n keys exist in both locales
 test('D-SHELL-009: DeveloperSettings i18n keys are present in en.json and zh.json', () => {
-  const enPath = resolve(import.meta.dirname, '../src/shell/renderer/locales/en.json');
-  const zhPath = resolve(import.meta.dirname, '../src/shell/renderer/locales/zh.json');
-
-  const en = JSON.parse(readFileSync(enPath, 'utf-8'));
-  const zh = JSON.parse(readFileSync(zhPath, 'utf-8'));
+  const en = readDesktopLocale('en');
+  const zh = readDesktopLocale('zh');
 
   assert.ok(en.DeveloperSettings, 'en.json must have DeveloperSettings section');
   assert.ok(zh.DeveloperSettings, 'zh.json must have DeveloperSettings section');

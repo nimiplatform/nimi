@@ -10,6 +10,7 @@ import {
   resolveCoreRuleLayout,
 } from '../src/shell/renderer/features/world/world-detail-layout.js';
 import type { WorldSemanticData } from '../src/shell/renderer/features/world/world-detail-types.js';
+import { readDesktopLocaleSource } from './helpers/read-desktop-locale';
 
 // scenario_id: world.surface-layout
 const worldTemplateSource = readFileSync(
@@ -36,14 +37,8 @@ const worldVisualsSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-visuals.tsx'),
   'utf8',
 );
-const localesEnSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/locales/en.json'),
-  'utf8',
-);
-const localesZhSource = readFileSync(
-  resolve(import.meta.dirname, '../src/shell/renderer/locales/zh.json'),
-  'utf8',
-);
+const localesEnSource = readDesktopLocaleSource('en');
+const localesZhSource = readDesktopLocaleSource('zh');
 
 function makeSemantic(): WorldSemanticData {
   return {

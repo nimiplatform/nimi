@@ -1,0 +1,132 @@
+{
+  "title": "Worlds",
+  "subtitle": "Explore and manage your worlds",
+  "searchPlaceholder": "Search worlds...",
+  "searchByNameOrDescription": "Search worlds by name or description...",
+  "loading": "Loading worlds...",
+  "loadError": "Failed to load worlds",
+  "mainWorld": "Main World",
+  "subWorlds": "Sub Worlds",
+  "searchResults": "Search Results",
+  "noWorlds": "No sub worlds",
+  "noSearchResults": "No worlds found",
+  "syncedFromDesktop": "Synced from Desktop",
+  "primaryInstance": "Primary Instance",
+  "totalPlayers": "Total Players",
+  "averageSession": "Average Session",
+  "worldStability": "World Stability",
+  "totalAgent": "Total Agent",
+  "time": "Time",
+  "worldScoring": "World Scoring",
+  "syncTicker": "World Sync",
+  "chronoFlow": "Chrono Flow: {{value}}X",
+  "header": {
+    "kicker": "Space · your worlds",
+    "description": "Persistent simulations you can enter, shape, and share. Each world runs on its own clock and rules."
+  },
+  "toolbar": {
+    "heading": "Your worlds",
+    "filterPlaceholder": "Filter by name or tag…",
+    "gridView": "Grid view",
+    "listView": "List view",
+    "sort": {
+      "active": "Most active",
+      "recent": "Recently updated",
+      "alpha": "Name A–Z",
+      "inhabitants": "Inhabitants"
+    }
+  },
+  "sidebar": {
+    "create": "Create world",
+    "library": "Library",
+    "collections": "Collections",
+    "pulse": "Your pulse",
+    "activeWorlds": "Active worlds",
+    "activeWorldsSub": "of {{total}} total",
+    "inhabitants": "Total inhabitants",
+    "inhabitantsSub": "across all worlds",
+    "weeklyVisits": "Weekly visits",
+    "filters": {
+      "all": "All worlds",
+      "main": "Main world",
+      "sub": "Sub worlds",
+      "archived": "Archived"
+    },
+    "noCollections": "No collections yet"
+  },
+  "status": {
+    "active": "Active",
+    "idle": "Idle"
+  },
+  "stats": {
+    "inhabitants": "Inhabitants",
+    "online": "Online",
+    "day": "Day",
+    "flow": "Flow"
+  },
+  "card": {
+    "enter": "Enter world",
+    "featured": "Featured world",
+    "noMatch": "No worlds match that filter."
+  },
+  "createAgent": {
+    "title": "Create New Agent",
+    "subtitle": "Bring a new character to life in {{worldName}}",
+    "close": "Close create agent drawer",
+    "uploadAvatar": "Upload avatar",
+    "changeAvatar": "Change avatar",
+    "avatarPreview": "Agent avatar preview",
+    "avatarImageRequired": "Please choose an image file.",
+    "avatarTooLarge": "Avatar image must be 5MB or smaller.",
+    "avatarReadFailed": "Failed to read avatar image.",
+    "sections": {
+      "identity": "Identity",
+      "character": "Character",
+      "personality": "Personality DNA",
+      "wakeStrategy": "Wake Strategy"
+    },
+    "handle": "Handle",
+    "handlePlaceholder": "agent_unique_id",
+    "displayName": "Display Name",
+    "displayNamePlaceholder": "Public identity name",
+    "concept": "Concept",
+    "conceptPlaceholder": "The core essence",
+    "description": "Description",
+    "descriptionPlaceholder": "Public-facing",
+    "scenario": "Scenario",
+    "scenarioPlaceholder": "The world context",
+    "greeting": "Greeting",
+    "greetingPlaceholder": "How they introduce themselves",
+    "primaryTrait": "Primary Trait",
+    "secondaryTraitsLabel": "Secondary Traits",
+    "wakeStrategyPassiveTitle": "Passive",
+    "wakeStrategyPassiveDescription": "Waits for a direct trigger before acting.",
+    "wakeStrategyProactiveTitle": "Proactive",
+    "wakeStrategyProactiveDescription": "Can initiate reactions when the world shifts.",
+    "primaryTraits": {
+      "CARING": "Caring",
+      "PLAYFUL": "Playful",
+      "INTELLECTUAL": "Intellectual",
+      "CONFIDENT": "Confident",
+      "MYSTERIOUS": "Mysterious",
+      "ROMANTIC": "Romantic"
+    },
+    "secondaryTraits": {
+      "HUMOROUS": "Humorous",
+      "SARCASTIC": "Sarcastic",
+      "GENTLE": "Gentle",
+      "DIRECT": "Direct",
+      "OPTIMISTIC": "Optimistic",
+      "REALISTIC": "Realistic",
+      "DRAMATIC": "Dramatic",
+      "PASSIONATE": "Passionate",
+      "REBELLIOUS": "Rebellious",
+      "INNOCENT": "Innocent",
+      "WISE": "Wise",
+      "ECCENTRIC": "Eccentric"
+    },
+    "cancel": "Cancel",
+    "creating": "Creating...",
+    "submit": "Create Agent"
+  }
+}

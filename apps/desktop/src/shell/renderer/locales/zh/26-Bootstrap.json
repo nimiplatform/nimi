@@ -1,0 +1,9 @@
+{
+  "initializingRuntime": "正在初始化运行时...",
+  "initializingRuntimeDescription": "正在准备本地服务并同步你的会话。",
+  "bootSequenceLabel": "启动流程",
+  "webDegraded": "Web 初始化超时，已进入降级模式。",
+  "runtimeInitTimeout": "运行时初始化超时，请检查桌面桥接与后端连接。",
+  "startFailedPrefix": "启动失败",
+  "startFailedTitle": "启动失败"
+}

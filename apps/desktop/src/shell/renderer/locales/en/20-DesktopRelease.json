@@ -1,0 +1,5 @@
+{
+  "runtimeUnavailableTitle": "Bundled runtime unavailable",
+  "runtimeUnavailableBody": "The desktop shell started, but the bundled runtime could not be staged or validated. Open Settings to inspect the release error.",
+  "openUpdates": "Open updates"
+}

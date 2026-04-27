@@ -1,0 +1,7 @@
+{
+  "t0AutoGrant": "T0 自动授权",
+  "t1ConsentRequired": "T1 需要授权",
+  "t2HardDeny": "T2 强制拒绝",
+  "catalogTitle": "Mod Codegen 能力目录",
+  "catalogDescription": "Codegen mod 使用专用的 `sourceType=codegen` 策略：T0 自动授权，T1 需要同意，T2 强制拒绝。"
+}

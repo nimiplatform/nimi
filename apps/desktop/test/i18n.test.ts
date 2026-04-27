@@ -11,10 +11,9 @@ import {
   onI18nIssue,
   resetI18nIssueTrackingForTests,
 } from '../src/shell/renderer/i18n';
+import { readDesktopLocale } from './helpers/read-desktop-locale';
 
 const RENDERER_ROOT = resolve(import.meta.dirname, '../src/shell/renderer');
-const EN_LOCALE_PATH = resolve(import.meta.dirname, '../src/shell/renderer/locales/en.json');
-const ZH_LOCALE_PATH = resolve(import.meta.dirname, '../src/shell/renderer/locales/zh.json');
 const RUNTIME_CONFIG_PANEL_VIEW_PATH = resolve(
   import.meta.dirname,
   '../src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx',
@@ -53,10 +52,6 @@ async function collectRendererSourceFiles(dir: string): Promise<string[]> {
     return /\.(ts|tsx|html)$/.test(entry.name) ? [fullPath] : [];
   }));
   return nested.flat();
-}
-
-async function readJson(filePath: string): Promise<Record<string, unknown>> {
-  return JSON.parse(await readFile(filePath, 'utf8')) as Record<string, unknown>;
 }
 
 function installDomGlobals(): () => void {
@@ -189,7 +184,10 @@ test('duplicate missing renderer translation keys emit a single issue per sessio
 });
 
 test('auth runtime locale keys exist in both desktop locales', async () => {
-  const localePaths = [EN_LOCALE_PATH, ZH_LOCALE_PATH];
+  const localeEntries = [
+    ['en', readDesktopLocale('en')],
+    ['zh', readDesktopLocale('zh')],
+  ] as const;
   const requiredKeys = [
     'passwordLoginFailed',
     'requestEmailOtpFailed',
@@ -200,22 +198,21 @@ test('auth runtime locale keys exist in both desktop locales', async () => {
     'oauthLoginFailed',
   ];
 
-  for (const localePath of localePaths) {
-    const source = await readFile(localePath, 'utf8');
-    const auth = (JSON.parse(source) as { Auth?: Record<string, unknown> }).Auth || {};
+  for (const [locale, localeData] of localeEntries) {
+    const auth = (localeData as { Auth?: Record<string, unknown> }).Auth || {};
     for (const key of requiredKeys) {
       assert.equal(
         typeof auth[key],
         'string',
-        `${localePath} is missing Auth.${key}`,
+        `${locale} locale is missing Auth.${key}`,
       );
-      assert.match(String(auth[key] || ''), /\S/, `${localePath} has empty Auth.${key}`);
+      assert.match(String(auth[key] || ''), /\S/, `${locale} locale has empty Auth.${key}`);
     }
   }
 });
 
 test('renderer translation key usages resolve in en locale', async () => {
-  const en = await readJson(EN_LOCALE_PATH);
+  const en = readDesktopLocale('en');
   const enKeys = new Set(flattenLocaleKeys(en));
   const sourceFiles = await collectRendererSourceFiles(RENDERER_ROOT);
   const directKeyPattern = /\b(?:i18n\.t|t|tModHub|deps\.translate)\(\s*['"]([^'"]+)['"]/g;
@@ -245,8 +242,8 @@ test('renderer translation key usages resolve in en locale', async () => {
 
 test('known dynamic desktop locale keys exist in both locales', async () => {
   const localeEntries = [
-    ['en', await readJson(EN_LOCALE_PATH)],
-    ['zh', await readJson(ZH_LOCALE_PATH)],
+    ['en', readDesktopLocale('en')],
+    ['zh', readDesktopLocale('zh')],
   ] as const;
   const requiredKeys = [
     'SecuritySettings.copySecretSuccess',
@@ -314,7 +311,7 @@ test('known dynamic desktop locale keys exist in both locales', async () => {
 
 test('runtime config sidebar section keys are defined in en locale', async () => {
   const panelViewSource = await readFile(RUNTIME_CONFIG_PANEL_VIEW_PATH, 'utf8');
-  const en = await readJson(EN_LOCALE_PATH);
+  const en = readDesktopLocale('en');
   const requiredKeys = [
     'runtimeConfig.sidebar.section.core',
     'runtimeConfig.sidebar.section.connectors',

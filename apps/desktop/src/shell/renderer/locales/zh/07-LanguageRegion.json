@@ -1,0 +1,21 @@
+{
+  "pageTitle": "语言与地区",
+  "pageDescription": "自定义语言和地区偏好",
+  "sectionDisplayLanguage": "显示语言",
+  "language": "语言",
+  "languageHelper": "更改将立即生效",
+  "sectionRegionSettings": "地区设置",
+  "timezone": "时区",
+  "dateFormat": "日期格式",
+  "timezoneCst": "(UTC+8) 中国标准时间",
+  "timezoneJst": "(UTC+9) 日本标准时间",
+  "timezoneEt": "(UTC-5) 美国东部时间",
+  "timezonePt": "(UTC-8) 美国太平洋时间",
+  "timezoneGmt": "(UTC+0) 格林威治标准时间",
+  "timezoneCet": "(UTC+1) 中欧时间",
+  "dateFormatIso": "2026-02-15 (ISO)",
+  "dateFormatUs": "02/15/2026 (美国)",
+  "dateFormatEu": "15/02/2026 (欧洲)",
+  "dateFormatDe": "15.02.2026 (德国)",
+  "changeLanguageError": "切换语言失败"
+}

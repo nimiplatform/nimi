@@ -1,0 +1,6 @@
+{
+  "welcomeEyebrow": "Welcome",
+  "welcomeTitle": "Say hi to {{name}}",
+  "welcomeDescription": "Start chatting with {{name}}.",
+  "historyIntro": "Earlier messages"
+}

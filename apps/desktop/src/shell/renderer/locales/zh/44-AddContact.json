@@ -1,0 +1,6 @@
+{
+  "inputRequired": "请输入用户账号",
+  "legacyPrefixUnsupported": "请直接输入 handle 或 ID，不要带 @ 或 ~。",
+  "searchFailed": "未找到该用户。",
+  "addFailed": "添加该联系人失败。"
+}

@@ -1,0 +1,6 @@
+{
+  "cloudOfflineTitle": "云端离线 / 离线模式",
+  "cloudOfflineBody": "当前使用缓存与本地队列；云端恢复后会自动重放待处理操作。",
+  "runtimeUnavailableTitle": "Runtime 不可用 / 只读模式",
+  "runtimeUnavailableBody": "AI、mod 和本地模型写操作已暂停；连接恢复后会重新 bootstrap。"
+}

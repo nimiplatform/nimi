@@ -1,0 +1,20 @@
+{
+  "openModFailedWithChain": "Mod {{modId}} 打开失败。错误链：{{chain}}",
+  "renderFailedWithChain": "Mod {{modId}} 渲染异常。错误链：{{chain}}",
+  "developerHostSubscriptionError": "Runtime Mod 开发宿主在 {{stage}} 阶段失败：{{error}}",
+  "tabPageMissingComponent": "tab-page 缺少可渲染 component",
+  "unknownUiExtensionType": "未识别的 UI 扩展类型：{{extensionType}}",
+  "modFusedTitle": "Mod 已熔断",
+  "retrying": "重试中...",
+  "retry": "重试",
+  "closeTab": "关闭标签页",
+  "extensionFailedTitle": "Mod 扩展渲染失败",
+  "retryBlockedDisabled": "Mod {{modId}} 已被禁用，请先在 Mod Hub 启用后重试。",
+  "retryBlockedUninstalled": "Mod {{modId}} 已卸载，请先在 Mod Hub 安装后重试。",
+  "retryFailed": "Mod {{modId}} 重试失败：{{error}}",
+  "retryRecovered": "Mod {{modId}} 已恢复",
+  "retryException": "Mod {{modId}} 重试异常：{{error}}",
+  "bootstrapPartialFailure": "部分 Mod 加载失败（{{count}}）。错误链：{{chain}}",
+  "queryLoading": "加载中...",
+  "queryRun": "运行"
+}

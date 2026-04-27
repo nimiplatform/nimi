@@ -1,0 +1,4 @@
+{
+  "rendererFailed": "渲染层发生异常",
+  "rendererHint": "请重启应用，或在 devtools 中查看 renderer 相关日志链路。"
+}

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { readDesktopLocale } from './helpers/read-desktop-locale';
 
 const modalSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/economy/send-gift-modal.tsx'),
@@ -23,14 +24,8 @@ const profileCardSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/turns/message-timeline-profile-card.tsx'),
   'utf8',
 );
-const enLocale = JSON.parse(fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/locales/en.json'),
-  'utf8',
-)) as Record<string, Record<string, string>>;
-const zhLocale = JSON.parse(fs.readFileSync(
-  path.join(import.meta.dirname, '../src/shell/renderer/locales/zh.json'),
-  'utf8',
-)) as Record<string, Record<string, string>>;
+const enLocale = readDesktopLocale('en') as Record<string, Record<string, string>>;
+const zhLocale = readDesktopLocale('zh') as Record<string, Record<string, string>>;
 
 test('send gift modal loads dynamic gift catalog and sends selected gift ids', () => {
   assert.match(modalSource, /useRealmSendGiftDialog\(\{/);

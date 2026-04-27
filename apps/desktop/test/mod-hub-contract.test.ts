@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { readDesktopLocale } from './helpers/read-desktop-locale';
 
 import {
   buildDockMods,
@@ -296,17 +297,8 @@ test('buildManagementSections filters by search query', () => {
 // ---------------------------------------------------------------------------
 
 test('ModHub i18n keys are complete in both en.json and zh.json', () => {
-  const enPath = resolve(
-    import.meta.dirname,
-    '../src/shell/renderer/locales/en.json',
-  );
-  const zhPath = resolve(
-    import.meta.dirname,
-    '../src/shell/renderer/locales/zh.json',
-  );
-
-  const en = JSON.parse(readFileSync(enPath, 'utf-8'));
-  const zh = JSON.parse(readFileSync(zhPath, 'utf-8'));
+  const en = readDesktopLocale('en');
+  const zh = readDesktopLocale('zh');
 
   assert.ok(en.ModHub, 'en.json must have ModHub section');
   assert.ok(zh.ModHub, 'zh.json must have ModHub section');

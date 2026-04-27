@@ -1,0 +1,18 @@
+{
+  "title": "个人主页",
+  "loading": "正在加载资料...",
+  "error": "加载资料失败",
+  "tabPosts": "帖子",
+  "tabMedia": "媒体",
+  "tabCollections": "收藏",
+  "tabGifts": "礼物",
+  "message": "发消息",
+  "block": "屏蔽",
+  "unblock": "取消屏蔽",
+  "addFriend": "添加好友",
+  "sendGift": "送礼物",
+  "friends": "好友",
+  "posts": "帖子",
+  "agent": "Agent",
+  "human": "真人"
+}
