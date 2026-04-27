@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AIConfig, RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import type { CanonicalCapabilitySectionId } from '@nimiplatform/nimi-kit/core/runtime-capabilities';
 import { ScrollArea, IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
 import {
   SidebarAffordanceChevron,
@@ -28,8 +29,7 @@ import { VideoGeneratePanel } from './panels/panel-video-generate.js';
 import { WorldTourPanel } from './panels/panel-world-tour.js';
 import { AudioSynthesizePanel } from './panels/panel-audio-synthesize.js';
 import { AudioTranscribePanel } from './panels/panel-audio-transcribe.js';
-import { TextStreamPanel } from './panels/panel-text-stream.js';
-import { VoiceClonePanel, VoiceDesignPanel } from './panels/panel-voice-stubs.js';
+import { VoiceAssetPanel } from './panels/panel-voice-stubs.js';
 import { TESTER_AI_SCOPE_REF, bindingFromTesterConfig, bootstrapTesterAIConfigScope, createEmptyTesterAIConfig } from './tester-ai-config';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { CAP_META } from './tester-cap-meta.js';
@@ -38,10 +38,10 @@ import { TesterHistoryPanel } from './tester-history-panel.js';
 import { useTesterHistory } from './tester-history.js';
 
 const SIDEBAR_GROUPS: Array<{ label: string; ids: CapabilityId[] }> = [
-  { label: 'Text', ids: ['text.generate', 'text.stream', 'text.embed'] },
-  { label: 'Media', ids: ['image.generate', 'image.create-job', 'video.create-job'] },
+  { label: 'Text', ids: ['text.generate', 'text.embed'] },
+  { label: 'Media', ids: ['image.generate', 'video.create-job'] },
   { label: 'World', ids: ['world.generate'] },
-  { label: 'Audio', ids: ['audio.synthesize', 'audio.transcribe', 'voice_workflow.tts_v2v', 'voice_workflow.tts_t2v'] },
+  { label: 'Audio', ids: ['audio.synthesize', 'audio.transcribe', 'voice_workflow.tts_v2v'] },
 ];
 
 const SETTINGS_GEAR_ICON = (
@@ -144,6 +144,21 @@ function videoParamsFromConfig(config: AIConfig) {
 function mergeBindingIntoState(state: CapabilityState, binding: RuntimeRouteBinding | null): CapabilityState {
   return { ...state, binding };
 }
+
+const CAPABILITY_TO_SECTION: Record<CapabilityId, CanonicalCapabilitySectionId> = {
+  'text.generate': 'chat',
+  'text.stream': 'chat',
+  'text.embed': 'embed',
+  'image.generate': 'image',
+  'image.create-job': 'image',
+  'video.generate': 'video',
+  'video.create-job': 'video',
+  'world.generate': 'world',
+  'audio.synthesize': 'tts',
+  'audio.transcribe': 'stt',
+  'voice_workflow.tts_v2v': 'voice',
+  'voice_workflow.tts_t2v': 'voice',
+};
 
 export function TesterPage() {
   const { t } = useTranslation();
@@ -263,17 +278,11 @@ export function TesterPage() {
   const renderPanel = () => {
     switch (activeCapability) {
       case 'text.generate':
+      case 'text.stream':
         return (
           <TextGeneratePanel
             state={activeState}
             onStateChange={(updater) => updateCapabilityState('text.generate', updater)}
-          />
-        );
-      case 'text.stream':
-        return (
-          <TextStreamPanel
-            state={activeState}
-            onStateChange={(updater) => updateCapabilityState('text.stream', updater)}
           />
         );
       case 'text.embed':
@@ -284,23 +293,13 @@ export function TesterPage() {
           />
         );
       case 'image.generate':
+      case 'image.create-job':
         return (
           <ImageGeneratePanel
-            mode="generate"
             state={activeState}
             draft={imageDraft}
             onDraftChange={handleImageDraftChange}
             onStateChange={(updater) => updateCapabilityState('image.generate', updater)}
-          />
-        );
-      case 'image.create-job':
-        return (
-          <ImageGeneratePanel
-            mode="job"
-            state={mergeBindingIntoState(states['image.create-job'], bindingFromTesterConfig(testerConfig, 'image.generate'))}
-            draft={imageDraft}
-            onDraftChange={handleImageDraftChange}
-            onStateChange={(updater) => updateCapabilityState('image.create-job', updater)}
           />
         );
       case 'video.create-job':
@@ -336,17 +335,17 @@ export function TesterPage() {
           />
         );
       case 'voice_workflow.tts_v2v':
-        return (
-          <VoiceClonePanel
-            state={activeState}
-            onStateChange={(updater) => updateCapabilityState('voice_workflow.tts_v2v', updater)}
-          />
-        );
       case 'voice_workflow.tts_t2v':
         return (
-          <VoiceDesignPanel
-            state={activeState}
-            onStateChange={(updater) => updateCapabilityState('voice_workflow.tts_t2v', updater)}
+          <VoiceAssetPanel
+            mode={activeCapability === 'voice_workflow.tts_v2v' ? 'clone' : 'design'}
+            onModeChange={(next) =>
+              setActiveCapability(next === 'clone' ? 'voice_workflow.tts_v2v' : 'voice_workflow.tts_t2v')
+            }
+            cloneState={mergeBindingIntoState(states['voice_workflow.tts_v2v'], bindingFromTesterConfig(testerConfig, 'voice_workflow.tts_v2v'))}
+            onCloneStateChange={(updater) => updateCapabilityState('voice_workflow.tts_v2v', updater)}
+            designState={mergeBindingIntoState(states['voice_workflow.tts_t2v'], bindingFromTesterConfig(testerConfig, 'voice_workflow.tts_t2v'))}
+            onDesignStateChange={(updater) => updateCapabilityState('voice_workflow.tts_t2v', updater)}
           />
         );
     }
@@ -362,7 +361,8 @@ export function TesterPage() {
               <SidebarSection key={group.label} label={group.label}>
                 {CAPABILITIES.filter((c) => group.ids.includes(c.id)).map((capability) => {
                   const labels = CAPABILITY_LABELS[capability.id];
-                  const isActive = activeCapability === capability.id;
+                  const isActive = activeCapability === capability.id
+                    || (capability.id === 'voice_workflow.tts_v2v' && activeCapability === 'voice_workflow.tts_t2v');
                   return (
                     <div
                       key={capability.id}
@@ -418,21 +418,45 @@ export function TesterPage() {
 
             {renderPanel()}
 
-            <TesterHistoryPanel
-              capabilityLabel={activeLabels.label}
-              entries={activeHistory}
-              onClear={() => clearCapability(activeCapability)}
-              onRemoveEntry={(entryId) => removeEntry(activeCapability, entryId)}
-            />
+            {activeCapability !== 'image.generate'
+              && activeCapability !== 'video.create-job'
+              && activeCapability !== 'video.generate' ? (
+              <TesterHistoryPanel
+                capabilityLabel={activeLabels.label}
+                entries={activeHistory}
+                onClear={() => clearCapability(activeCapability)}
+                onRemoveEntry={(entryId) => removeEntry(activeCapability, entryId)}
+              />
+            ) : null}
           </RuntimePageShell>
         </ScrollArea>
       </Surface>
 
-      <TesterSettingsPanel
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        config={testerConfig}
-      />
+      {settingsOpen ? (
+        (() => {
+          const imageGenerateState = mergeBindingIntoState(
+            states['image.generate'],
+            bindingFromTesterConfig(testerConfig, 'image.generate'),
+          );
+          return (
+            <TesterSettingsPanel
+              open={settingsOpen}
+              onClose={() => setSettingsOpen(false)}
+              config={testerConfig}
+              initialSection={CAPABILITY_TO_SECTION[activeCapability] ?? null}
+              imageContext={{
+                state: imageGenerateState,
+                draft: imageDraft,
+                onDraftChange: handleImageDraftChange,
+              }}
+              videoContext={{
+                params: currentVideoParams,
+                onParamsChange: (next) => handleSettingsParamsChange('video.generate', next as unknown as Record<string, unknown>),
+              }}
+            />
+          );
+        })()
+      ) : null}
     </div>
   );
 }

@@ -166,6 +166,21 @@ export type ImageGenerationRecord = {
   elapsed?: number;
 };
 
+export type VideoGenerationRecord = {
+  id: string;
+  timestamp: number;
+  mode: string;
+  prompt: string;
+  negativePrompt: string;
+  ratio: string;
+  durationSec: string;
+  result: 'passed' | 'failed';
+  error?: string;
+  videoUri: string;
+  rawResponse: string;
+  elapsed?: number;
+};
+
 export const CAPABILITY_LABELS: Record<CapabilityId, { label: string; description: string }> = {
   'text.generate': { label: 'Chat', description: 'Text generation' },
   'text.stream': { label: 'Chat Stream', description: 'Streaming text generation' },
@@ -177,6 +192,6 @@ export const CAPABILITY_LABELS: Record<CapabilityId, { label: string; descriptio
   'world.generate': { label: 'World Tour', description: 'World generation route and acceptance surface' },
   'audio.synthesize': { label: 'TTS', description: 'Text to speech' },
   'audio.transcribe': { label: 'STT', description: 'Speech to text' },
-  'voice_workflow.tts_v2v': { label: 'Voice Clone', description: 'Clone voice' },
-  'voice_workflow.tts_t2v': { label: 'Voice Design', description: 'Design voice' },
+  'voice_workflow.tts_v2v': { label: 'Voice', description: 'Clone or design a voice asset' },
+  'voice_workflow.tts_t2v': { label: 'Voice', description: 'Clone or design a voice asset' },
 };
