@@ -43,6 +43,14 @@
       "title": "World"
     }
   },
+  "editor": {
+    "textGenerate": {
+      "generationDefaultsLabel": "Generation Defaults",
+      "responseControlsLabel": "Response Controls",
+      "advancedLabel": "Advanced",
+      "advancedDescription": "Presence and frequency penalties"
+    }
+  },
   "hub": {
     "title": "AI Models",
     "backLabel": "Back",

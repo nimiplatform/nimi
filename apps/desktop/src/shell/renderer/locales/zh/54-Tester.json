@@ -7,7 +7,27 @@
   "settings": {
     "title": "AI 测试器设置",
     "back": "返回",
-    "detailSubtitle": "配置模型与默认值"
+    "detailSubtitle": "配置模型与默认值",
+    "generalGroup": "通用",
+    "reset": "重置",
+    "save": "保存更改"
+  },
+  "chatSettings": {
+    "generationModel": "聊天模型",
+    "generationDefaults": "生成默认值",
+    "temperature": "温度",
+    "maxTokens": "最大令牌数",
+    "topP": "Top P",
+    "topK": "Top K",
+    "responseControls": "响应控制",
+    "timeoutMs": "超时（毫秒）",
+    "stopSequences": "停止序列",
+    "stopSequencesHint": "每行一个，最多 {{max}} 个",
+    "stopSequencesPlaceholder": "例如\\n\\n###",
+    "advanced": "高级",
+    "presencePenalty": "存在惩罚",
+    "frequencyPenalty": "频率惩罚",
+    "penaltyRangeHint": "范围：-2.0 到 2.0"
   },
   "history": {
     "title": "历史",

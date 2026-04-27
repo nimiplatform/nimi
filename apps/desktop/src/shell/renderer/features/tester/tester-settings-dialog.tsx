@@ -4,6 +4,7 @@ import type { AIConfig } from '@nimiplatform/sdk/mod';
 import {
   ModelConfigCapabilityDetail,
   ProfileConfigSection,
+  SectionGroupHeader,
 } from '@nimiplatform/nimi-kit/features/model-config';
 import {
   CANONICAL_CAPABILITY_CATALOG_BY_ID,
@@ -22,6 +23,7 @@ import { ScrollArea, Surface, cn } from '@nimiplatform/nimi-kit/ui';
 import { DesktopIconToggleAction } from '@renderer/components/action';
 import { useTesterModelConfigController } from './tester-model-config-hook';
 import type { CapabilityState, ImageWorkflowDraftState } from './tester-types.js';
+import { TesterChatSectionBody } from './panels/panel-chat-settings.js';
 import { TesterImageSectionBody } from './panels/panel-image-settings.js';
 import { TesterVideoSectionBody } from './panels/panel-video-settings.js';
 import type { VideoParamsState } from '@nimiplatform/nimi-kit/features/model-config';
@@ -185,6 +187,7 @@ type SectionDetailProps = {
 };
 
 function SectionDetail({ section, surface, config, imageContext, videoContext }: SectionDetailProps) {
+  const t = surface.i18n.t;
   const descriptors = React.useMemo(
     () => selectEnabledDescriptors(surface.enabledCapabilities, CANONICAL_CAPABILITY_CATALOG_BY_ID),
     [surface.enabledCapabilities],
@@ -217,18 +220,48 @@ function SectionDetail({ section, surface, config, imageContext, videoContext }:
     );
   }
 
+  if (section === 'chat') {
+    return <TesterChatSectionBody surface={surface} config={config} />;
+  }
+
+  const generalLabel = t('Tester.settings.generalGroup', { defaultValue: 'General' });
+
   return (
-    <div className="space-y-4">
-      {sectionDescriptors.map((d) => (
-        <ModelConfigCapabilityDetail
-          key={d.capabilityId}
-          capabilityId={d.capabilityId}
-          surface={surface}
-          config={config}
-        />
-      ))}
+    <div className="space-y-5">
+      <section className="space-y-3">
+        <SectionGroupHeader label={generalLabel} />
+        <div className="space-y-4">
+          {sectionDescriptors.map((d) => (
+            <ModelConfigCapabilityDetail
+              key={d.capabilityId}
+              capabilityId={d.capabilityId}
+              surface={surface}
+              config={config}
+            />
+          ))}
+        </div>
+      </section>
     </div>
   );
+}
+
+function clearSectionParams(
+  surface: AppModelConfigSurface,
+  capabilityIds: ReadonlyArray<string>,
+): void {
+  const service = surface.aiConfigService;
+  const current = service.aiConfig.get(surface.scopeRef);
+  const nextParams = { ...current.capabilities.selectedParams };
+  for (const id of capabilityIds) {
+    delete nextParams[id];
+  }
+  service.aiConfig.update(surface.scopeRef, {
+    ...current,
+    capabilities: {
+      ...current.capabilities,
+      selectedParams: nextParams,
+    },
+  });
 }
 
 export function TesterSettingsPanel(props: TesterSettingsPanelProps) {
@@ -325,6 +358,53 @@ export function TesterSettingsPanel(props: TesterSettingsPanelProps) {
           />
         )}
       </ScrollArea>
+
+      {inDetail ? (
+        <DetailFooter
+          onReset={() => {
+            const ids = selectEnabledDescriptors(surface.enabledCapabilities, CANONICAL_CAPABILITY_CATALOG_BY_ID)
+              .filter((d) => d.section === activeSection)
+              .map((d) => d.capabilityId);
+            clearSectionParams(surface, ids);
+          }}
+          onDone={onClose}
+          resetLabel={t('Tester.settings.reset', { defaultValue: 'Reset' })}
+          doneLabel={t('Tester.settings.save', { defaultValue: 'Save Changes' })}
+        />
+      ) : null}
     </Surface>
+  );
+}
+
+function DetailFooter(props: {
+  onReset: () => void;
+  onDone: () => void;
+  resetLabel: string;
+  doneLabel: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 border-t border-white/60 bg-white/40 px-5 py-3">
+      <button
+        type="button"
+        onClick={props.onReset}
+        className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--nimi-border-subtle,#e2e8f0)] bg-white text-[13px] font-medium text-[var(--nimi-text-secondary,#475569)] transition-colors hover:border-[var(--nimi-border-strong,#cbd5e1)] hover:text-[var(--nimi-text-primary,#0f172a)]"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 12a9 9 0 1 0 3-6.7" />
+          <polyline points="3 4 3 10 9 10" />
+        </svg>
+        {props.resetLabel}
+      </button>
+      <button
+        type="button"
+        onClick={props.onDone}
+        className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-emerald-600"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 6L9 17l-5-5" />
+        </svg>
+        {props.doneLabel}
+      </button>
+    </div>
   );
 }

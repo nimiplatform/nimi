@@ -21,6 +21,7 @@ Contacts 内部左侧栏属于 governed sidebar family：
 
 - `contacts-view` 必须登记到 `renderer-design-sidebars.yaml`。
 - category-row、entity-row、search、primary action 与 resize handle 必须通过 shared sidebar primitive 表达。
+- search 必须默认折叠为图标触发态：未输入时仅渲染搜索图标按钮，点击后向左展开为输入框；输入框失去焦点且为空时自动收起，按下 `Escape` 时清空并收起。该行为通过 `SidebarSearch` 的 `collapsible` 入口表达，禁止以始终展开的形式重新实现。
 
 ### DataSync (D-DSYNC-004)
 

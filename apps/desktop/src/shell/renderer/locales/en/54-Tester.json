@@ -7,7 +7,27 @@
   "settings": {
     "title": "AI Tester Settings",
     "back": "Back",
-    "detailSubtitle": "Configure models and defaults"
+    "detailSubtitle": "Configure models and defaults",
+    "generalGroup": "General",
+    "reset": "Reset",
+    "save": "Save Changes"
+  },
+  "chatSettings": {
+    "generationModel": "Chat Model",
+    "generationDefaults": "Generation Defaults",
+    "temperature": "Temperature",
+    "maxTokens": "Max Tokens",
+    "topP": "Top P",
+    "topK": "Top K",
+    "responseControls": "Response Controls",
+    "timeoutMs": "Timeout (ms)",
+    "stopSequences": "Stop Sequences",
+    "stopSequencesHint": "One per line - up to {{max}}",
+    "stopSequencesPlaceholder": "e.g.\\n\\n###",
+    "advanced": "Advanced",
+    "presencePenalty": "Presence Penalty",
+    "frequencyPenalty": "Frequency Penalty",
+    "penaltyRangeHint": "Range: -2.0 to 2.0"
   },
   "history": {
     "title": "History",
