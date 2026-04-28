@@ -4,6 +4,7 @@ const ZH_TAB_MODS = `import { createPlatformClient } from '@nimiplatform/sdk';
 
 const { runtime } = await createPlatformClient({
   appId: 'landing.mods',
+  authMode: 'web-cloud',
 });
 
 await runtime.registerMod({
@@ -17,9 +18,9 @@ const result = await runtime.generate({
 
 console.log(result.text);`;
 
-const ZH_TAB_LOCAL = `import { createPlatformClient } from '@nimiplatform/sdk';
+const ZH_TAB_LOCAL = `import { createLocalFirstPartyRuntimePlatformClient } from '@nimiplatform/sdk';
 
-const { runtime } = await createPlatformClient({
+const { runtime } = await createLocalFirstPartyRuntimePlatformClient({
   appId: 'landing.local',
 });
 
@@ -33,6 +34,7 @@ const ZH_TAB_CLOUD = `import { createPlatformClient } from '@nimiplatform/sdk';
 
 const { runtime } = await createPlatformClient({
   appId: 'landing.cloud',
+  authMode: 'web-cloud',
 });
 
 const result = await runtime.generate({
@@ -46,6 +48,7 @@ const ZH_TAB_STREAMING = `import { createPlatformClient } from '@nimiplatform/sd
 
 const { runtime } = await createPlatformClient({
   appId: 'landing.streaming',
+  authMode: 'web-cloud',
 });
 
 const stream = await runtime.stream({

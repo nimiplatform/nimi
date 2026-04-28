@@ -11,10 +11,12 @@ test('tester model config contract: tester settings uses dedicated AIConfig scop
   const scopeSource = readDesktopSource('tester-ai-config.ts');
   const pageSource = readDesktopSource('tester-page.tsx');
   const settingsSource = readDesktopSource('tester-settings-dialog.tsx');
+  const hookSource = readDesktopSource('tester-model-config-hook.ts');
 
   assert.match(scopeSource, /surfaceId:\s*'tester'/);
-  assert.match(settingsSource, /ModelConfigAiModelHub/);
-  assert.match(settingsSource, /useModelConfigProfileController/);
+  assert.match(hookSource, /useModelConfigProfileController/);
+  assert.match(settingsSource, /ModelConfigCapabilityDetail/);
+  assert.match(settingsSource, /ProfileConfigSection/);
   // Hub composition: tester no longer builds MODULE_DESCRIPTORS or local profile copy.
   assert.doesNotMatch(settingsSource, /MODULE_DESCRIPTORS/);
   assert.doesNotMatch(settingsSource, /createProfileCopy/);

@@ -1,8 +1,8 @@
 import type { LandingContent } from './landing-content.js';
 
-const EN_TAB_LOCAL = `import { createPlatformClient } from '@nimiplatform/sdk';
+const EN_TAB_LOCAL = `import { createLocalFirstPartyRuntimePlatformClient } from '@nimiplatform/sdk';
 
-const { runtime } = await createPlatformClient({
+const { runtime } = await createLocalFirstPartyRuntimePlatformClient({
   appId: 'landing.local',
 });
 
@@ -16,6 +16,7 @@ const EN_TAB_CLOUD = `import { createPlatformClient } from '@nimiplatform/sdk';
 
 const { runtime } = await createPlatformClient({
   appId: 'landing.cloud',
+  authMode: 'web-cloud',
 });
 
 const result = await runtime.generate({
@@ -29,6 +30,7 @@ const EN_TAB_STREAMING = `import { createPlatformClient } from '@nimiplatform/sd
 
 const { runtime } = await createPlatformClient({
   appId: 'landing.streaming',
+  authMode: 'web-cloud',
 });
 
 const stream = await runtime.stream({
@@ -43,6 +45,7 @@ const EN_TAB_WORKFLOW = `import { createPlatformClient } from '@nimiplatform/sdk
 
 const { runtime } = await createPlatformClient({
   appId: 'landing.workflow',
+  authMode: 'web-cloud',
 });
 
 const draft = await runtime.generate({
