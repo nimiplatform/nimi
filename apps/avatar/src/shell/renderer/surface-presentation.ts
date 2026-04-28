@@ -1,7 +1,4 @@
-import type {
-  AvatarAppState,
-  AvatarAuthFailureReason,
-} from './app-shell/app-store.js';
+import type { AvatarAppState } from './app-shell/app-store.js';
 
 export type SurfaceTone = 'loading' | 'ready' | 'degraded' | 'error';
 
@@ -25,7 +22,6 @@ type DeriveSurfacePresentationInput = {
   model: AvatarAppState['model'];
   driver: AvatarAppState['driver'];
   consume: AvatarAppState['consume'];
-  auth: AvatarAppState['auth'];
   launchContext: AvatarAppState['launch']['context'];
   bundle: AvatarAppState['bundle'];
 };
@@ -62,51 +58,6 @@ function unavailableMeta(anchor: string, carrier: string): Array<{ label: string
   ];
 }
 
-function humanizeAuthFailure(reason: AvatarAuthFailureReason | null): {
-  title: string;
-  summary: string;
-  recovery: string;
-  accent: string;
-} {
-  switch (reason) {
-    case 'shared_session_missing':
-      return {
-        title: 'Desktop session ended',
-        summary: 'This shell lost the trusted desktop session, so the live companion path closed immediately.',
-        recovery: 'Sign in again on desktop, then relaunch this companion surface.',
-        accent: 'Session lost',
-      };
-    case 'shared_session_invalid':
-      return {
-        title: 'Desktop session invalid',
-        summary: 'The shared desktop session no longer passes verification for a trusted live companion bind.',
-        recovery: 'Refresh the desktop session, then relaunch this companion surface.',
-        accent: 'Session invalid',
-      };
-    case 'shared_session_realm_mismatch':
-      return {
-        title: 'Desktop realm changed',
-        summary: 'The active desktop realm no longer matches the realm this shell was launched against.',
-        recovery: 'Confirm the active desktop realm, then relaunch the avatar.',
-        accent: 'Realm changed',
-      };
-    case 'shared_session_user_mismatch':
-      return {
-        title: 'Desktop user changed',
-        summary: 'This shell closed its live path because the shared desktop session switched to a different user.',
-        recovery: 'Launch a fresh avatar surface for the active desktop user.',
-        accent: 'User changed',
-      };
-    default:
-      return {
-        title: 'Companion paused',
-        summary: 'This companion is waiting for desktop trust to recover before it can reopen the live path.',
-        recovery: 'Return to desktop and relaunch once the session is healthy again.',
-        accent: 'Trust paused',
-      };
-  }
-}
-
 function classifyBootstrapError(error: string): {
   badge: string;
   title: string;
@@ -124,20 +75,11 @@ function classifyBootstrapError(error: string): {
       accent: 'Handoff required',
     };
   }
-  if (lowered.includes('auth') || lowered.includes('session')) {
-    return {
-      badge: 'Session required',
-      title: 'Desktop session required',
-      summary: 'A trusted shared desktop session was not available, so the live companion bind stayed fail-closed.',
-      recovery: 'Sign in from desktop and relaunch the avatar.',
-      accent: 'Auth blocked',
-    };
-  }
   if (lowered.includes('daemon') || lowered.includes('runtime')) {
     return {
       badge: 'Runtime unavailable',
       title: 'Runtime connection blocked',
-      summary: 'The live runtime path was unavailable. This shell did not switch to mock mode, so startup stopped.',
+      summary: 'The runtime interaction path was unavailable. The visual embodiment stays local and does not switch to mock mode.',
       recovery: 'Restore the runtime daemon, then launch again from desktop.',
       accent: 'Runtime blocked',
     };
@@ -160,13 +102,10 @@ export function deriveSurfacePresentation(
   const postureFamily = normalizeMessage(input.bundle?.posture.action_family ?? null);
   const readyPresence = bundleActivity || statusText || executionState;
   const readyPosture = postureFamily || 'Unavailable';
-  const boundOperator = normalizeMessage(input.auth.user?.displayName ?? null)
-    || normalizeMessage(input.auth.user?.id ?? null)
-    || 'Unavailable';
   const anchorId = normalizeMessage(input.consume.conversationAnchorId ?? input.launchContext?.conversationAnchorId ?? null);
   const fixtureId = normalizeMessage(input.consume.fixtureId ?? null) || 'default';
 
-  if (input.bootstrapError) {
+  if (input.bootstrapError && input.model.loadState !== 'loaded') {
     const failure = classifyBootstrapError(input.bootstrapError);
     return {
       tone: 'error',
@@ -195,7 +134,7 @@ export function deriveSurfacePresentation(
       tone: 'loading',
       badge: 'Warming up',
       title: 'Preparing your desktop companion',
-      summary: 'Trusted launch, auth, and runtime bindings are settling into place for this companion shell.',
+      summary: 'The local visual package is loading while the runtime binding is prepared through the desktop handoff.',
       recovery: 'Keep this surface open while desktop finalizes the live companion bind.',
       accent: stageValue,
       stageLabel: 'Bring-up',
@@ -229,7 +168,7 @@ export function deriveSurfacePresentation(
       badge: 'Fixture mode',
       title: 'Fixture companion ready',
       summary: statusText || 'This shell is running from an explicit fixture scenario, not a live desktop bind.',
-      recovery: 'Fixture mode stays isolated from launch, auth, and runtime truth.',
+      recovery: 'Fixture mode stays isolated from launch and runtime truth.',
       accent: readyPresence,
       stageLabel: 'Fixture cue',
       stageValue: readyPresence,
@@ -246,33 +185,17 @@ export function deriveSurfacePresentation(
     };
   }
 
-  if (input.consume.authority === 'runtime' && input.auth.status !== 'authenticated') {
-    const failure = humanizeAuthFailure(input.auth.failureReason);
-    return {
-      tone: 'degraded',
-      badge: failure.accent,
-      title: failure.title,
-      summary: failure.summary,
-      recovery: failure.recovery,
-      accent: failure.accent,
-      stageLabel: 'Trust state',
-      stageValue: failure.accent,
-      meta: unavailableMeta('Not bound', 'Binding closed'),
-      contextCards: [],
-    };
-  }
-
   if (input.driver.status === 'error' || input.driver.status === 'stopped') {
     return {
       tone: 'degraded',
       badge: 'Connection paused',
-      title: 'Companion stream paused',
-      summary: 'The shell is still present, but the live companion stream is not currently running.',
+      title: 'Interaction unavailable',
+      summary: 'The visual embodiment is present, but the runtime interaction stream is not currently bound.',
       recovery: 'Relaunch from desktop once the runtime path is healthy.',
       accent: input.driver.status === 'error' ? 'Driver error' : 'Driver stopped',
       stageLabel: 'Driver state',
       stageValue: input.driver.status,
-      meta: unavailableMeta('Unavailable', input.driver.status === 'error' ? 'Driver error' : 'Driver stopped'),
+      meta: unavailableMeta(anchorId ? `Not bound (${shortenId(anchorId)})` : 'Not bound', input.driver.status === 'error' ? 'Driver error' : 'Runtime unavailable'),
       contextCards: [],
     };
   }
@@ -293,11 +216,11 @@ export function deriveSurfacePresentation(
       { label: 'Presence', value: executionState },
       { label: 'Posture', value: readyPosture },
       { label: 'Anchor', value: anchorId ? `Bound (${shortenId(anchorId)})` : 'Unavailable' },
-      { label: 'Carrier', value: 'Trusted runtime' },
+      { label: 'Carrier', value: 'Runtime IPC' },
     ],
     contextCards: [
       { label: 'Current presence', value: readyPresence },
-      { label: 'Bound operator', value: boundOperator },
+      { label: 'Runtime binding', value: anchorId ? `Bound (${shortenId(anchorId)})` : 'Bound' },
     ],
   };
 }

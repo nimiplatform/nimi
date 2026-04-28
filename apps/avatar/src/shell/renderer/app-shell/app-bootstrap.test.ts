@@ -4,24 +4,17 @@ import { useAvatarStore } from './app-store.js';
 
 let driverKind: 'sdk' | 'mock' = 'sdk';
 const createDriverMock = vi.fn();
-const createPlatformClientMock = vi.fn();
-const clearPlatformClientMock = vi.fn();
-const resolveDesktopBootstrapAuthSessionMock = vi.fn();
-const bootstrapAuthSessionMock = vi.fn();
-const startAvatarRuntimeCarrierMock = vi.fn();
+const RuntimeMock = vi.fn();
+const runtimeCloseMock = vi.fn();
+const startAvatarVisualCarrierMock = vi.fn();
 const resolveAgentCenterAvatarPackageManifestMock = vi.fn();
 const getAvatarLaunchContextMock = vi.fn();
 const getRuntimeDefaultsMock = vi.fn();
 const hasTauriInvokeMock = vi.fn();
-const loadAuthSessionMock = vi.fn();
-const saveAuthSessionMock = vi.fn();
-const clearAuthSessionMock = vi.fn();
-const watchAuthSessionChangesMock = vi.fn();
 const startDaemonMock = vi.fn();
 const onShellReadyMock = vi.fn();
 const setAlwaysOnTopMock = vi.fn();
 const openConversationAnchorMock = vi.fn();
-const getAgentMock = vi.fn();
 const registerAppMock = vi.fn();
 const authorizeExternalPrincipalMock = vi.fn();
 const requestTurnMock = vi.fn();
@@ -30,22 +23,6 @@ const routeListOptionsMock = vi.fn();
 const routeCheckHealthMock = vi.fn();
 const sttTranscribeMock = vi.fn();
 const driverStopMock = vi.fn();
-let watchedAuthSessionChange:
-  | ((session: {
-    realmBaseUrl: string;
-    accessToken: string;
-    refreshToken?: string;
-    updatedAt: string;
-    expiresAt?: string;
-    user: {
-      id: string;
-      displayName: string;
-      email?: string;
-      avatarUrl?: string;
-    } | null;
-  } | null) => Promise<void> | void)
-  | null = null;
-let watchedAuthSessionError: ((error: Error) => Promise<void> | void) | null = null;
 
 function launchContext(overrides: Partial<{
   agentId: string;
@@ -78,36 +55,23 @@ vi.mock('../driver/factory.js', () => ({
 }));
 
 vi.mock('../carrier/avatar-carrier.js', () => ({
-  startAvatarRuntimeCarrier: (...args: unknown[]) => startAvatarRuntimeCarrierMock(...args),
+  startAvatarRuntimeCarrier: (...args: unknown[]) => startAvatarVisualCarrierMock(...args),
+  startAvatarVisualCarrier: (...args: unknown[]) => startAvatarVisualCarrierMock(...args),
 }));
 
 vi.mock('../live2d/model-loader.js', () => ({
   resolveAgentCenterAvatarPackageManifest: (...args: unknown[]) => resolveAgentCenterAvatarPackageManifestMock(...args),
 }));
 
-vi.mock('@nimiplatform/sdk', () => ({
-  createPlatformClient: (...args: unknown[]) => createPlatformClientMock(...args),
-  clearPlatformClient: (...args: unknown[]) => clearPlatformClientMock(...args),
-}));
-
-vi.mock('@nimiplatform/nimi-kit/auth', () => ({
-  resolveDesktopBootstrapAuthSession: (...args: unknown[]) => resolveDesktopBootstrapAuthSessionMock(...args),
-  persistSharedDesktopAuthSession: vi.fn(),
+vi.mock('@nimiplatform/sdk/runtime/browser', () => ({
+  Runtime: RuntimeMock,
 }));
 
 vi.mock('@renderer/bridge', () => ({
   getAvatarLaunchContext: (...args: unknown[]) => getAvatarLaunchContextMock(...args),
   getRuntimeDefaults: (...args: unknown[]) => getRuntimeDefaultsMock(...args),
   hasTauriInvoke: (...args: unknown[]) => hasTauriInvokeMock(...args),
-  loadAuthSession: (...args: unknown[]) => loadAuthSessionMock(...args),
-  saveAuthSession: (...args: unknown[]) => saveAuthSessionMock(...args),
-  clearAuthSession: (...args: unknown[]) => clearAuthSessionMock(...args),
-  watchAuthSessionChanges: (...args: unknown[]) => watchAuthSessionChangesMock(...args),
   startDaemon: (...args: unknown[]) => startDaemonMock(...args),
-}));
-
-vi.mock('./bootstrap-auth.js', () => ({
-  bootstrapAuthSession: (...args: unknown[]) => bootstrapAuthSessionMock(...args),
 }));
 
 vi.mock('./tauri-lifecycle.js', () => ({
@@ -181,60 +145,22 @@ function createFakeDriver(kind: 'sdk' | 'mock'): AgentDataDriver {
   };
 }
 
-function presentationProfileMetadata(input: {
-  backendKind?: string;
-  avatarAssetRef?: string;
-} = {}) {
-  return {
-    fields: {
-      presentationProfile: {
-        kind: {
-          oneofKind: 'structValue',
-          structValue: {
-            fields: {
-              backendKind: {
-                kind: {
-                  oneofKind: 'stringValue',
-                  stringValue: input.backendKind || 'live2d',
-                },
-              },
-              avatarAssetRef: {
-                kind: {
-                  oneofKind: 'stringValue',
-                  stringValue: input.avatarAssetRef || '/models/runtime-profile-ren',
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  };
-}
-
 describe('bootstrapAvatar', () => {
   beforeEach(() => {
     useAvatarStore.setState(useAvatarStore.getInitialState(), true);
     driverKind = 'sdk';
     createDriverMock.mockReset();
-    createPlatformClientMock.mockReset();
-    resolveDesktopBootstrapAuthSessionMock.mockReset();
-    clearPlatformClientMock.mockReset();
-    bootstrapAuthSessionMock.mockReset();
-    startAvatarRuntimeCarrierMock.mockReset();
+    RuntimeMock.mockReset();
+    runtimeCloseMock.mockReset();
+    startAvatarVisualCarrierMock.mockReset();
     resolveAgentCenterAvatarPackageManifestMock.mockReset();
     getAvatarLaunchContextMock.mockReset();
     getRuntimeDefaultsMock.mockReset();
     hasTauriInvokeMock.mockReset();
-    loadAuthSessionMock.mockReset();
-    saveAuthSessionMock.mockReset();
-    clearAuthSessionMock.mockReset();
-    watchAuthSessionChangesMock.mockReset();
     startDaemonMock.mockReset();
     onShellReadyMock.mockReset();
     setAlwaysOnTopMock.mockReset();
     openConversationAnchorMock.mockReset();
-    getAgentMock.mockReset();
     registerAppMock.mockReset();
     authorizeExternalPrincipalMock.mockReset();
     requestTurnMock.mockReset();
@@ -243,12 +169,16 @@ describe('bootstrapAvatar', () => {
     routeCheckHealthMock.mockReset();
     sttTranscribeMock.mockReset();
     driverStopMock.mockReset();
-    watchedAuthSessionChange = null;
-    watchedAuthSessionError = null;
     window.localStorage.clear();
     vi.stubEnv('VITE_AVATAR_MODEL_PATH', '/models/ren');
-    startAvatarRuntimeCarrierMock.mockResolvedValue({
+    runtimeCloseMock.mockResolvedValue(undefined);
+    createDriverMock.mockImplementation((input: { kind: 'sdk' | 'mock' }) => createFakeDriver(input.kind));
+    startAvatarVisualCarrierMock.mockImplementation(async () => {
+      useAvatarStore.getState().setModelLoaded('ren');
+      return {
       shutdown: vi.fn(),
+      attachRuntimeDriver: vi.fn(),
+      detachRuntimeDriver: vi.fn(),
       model: {
         runtimeDir: '/models/ren/runtime',
         modelId: 'ren',
@@ -269,6 +199,7 @@ describe('bootstrapAvatar', () => {
         applyCommand: vi.fn(),
         unload: vi.fn(),
       },
+      };
     });
     resolveAgentCenterAvatarPackageManifestMock.mockResolvedValue({
       runtimeDir: '/agent-center/packages/live2d/live2d_ab12cd34ef56/files',
@@ -279,17 +210,6 @@ describe('bootstrapAvatar', () => {
     });
     onShellReadyMock.mockResolvedValue(() => {});
     setAlwaysOnTopMock.mockResolvedValue(undefined);
-    watchAuthSessionChangesMock.mockImplementation((input: {
-      onChange: typeof watchedAuthSessionChange;
-      onError?: typeof watchedAuthSessionError;
-    }) => {
-      watchedAuthSessionChange = input.onChange ?? null;
-      watchedAuthSessionError = input.onError ?? null;
-      return () => {
-        watchedAuthSessionChange = null;
-        watchedAuthSessionError = null;
-      };
-    });
     hasTauriInvokeMock.mockReturnValue(true);
     getAvatarLaunchContextMock.mockResolvedValue(launchContext());
     getRuntimeDefaultsMock.mockResolvedValue({
@@ -315,35 +235,7 @@ describe('bootstrapAvatar', () => {
         userConfirmedUpload: false,
       },
     });
-    resolveDesktopBootstrapAuthSessionMock.mockResolvedValue({
-      source: 'persisted',
-      resolution: 'persisted-session',
-      session: {
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-      },
-      shouldClearPersistedSession: false,
-    });
-    bootstrapAuthSessionMock.mockImplementation(async () => {
-      useAvatarStore.getState().setAuthSession(
-        {
-          id: 'user-1',
-          displayName: 'Avatar User',
-        },
-        'access-token',
-        'refresh-token',
-      );
-      return {
-        id: 'user-1',
-        displayName: 'Avatar User',
-      };
-    });
     startDaemonMock.mockResolvedValue({ running: true });
-    getAgentMock.mockResolvedValue({
-      agent: {
-        metadata: presentationProfileMetadata(),
-      },
-    });
     registerAppMock.mockResolvedValue({ accepted: true });
     authorizeExternalPrincipalMock.mockResolvedValue({
       tokenId: 'protected-token-id',
@@ -353,37 +245,36 @@ describe('bootstrapAvatar', () => {
         nanos: 0,
       },
     });
-    createPlatformClientMock.mockResolvedValue({
-      runtime: {
-        appId: 'nimi.desktop',
-        ready: async () => undefined,
-        auth: {
-          registerApp: (...args: unknown[]) => registerAppMock(...args),
-        },
-        appAuth: {
-          authorizeExternalPrincipal: (...args: unknown[]) => authorizeExternalPrincipalMock(...args),
-        },
-        route: {
-          listOptions: (...args: unknown[]) => routeListOptionsMock(...args),
-          checkHealth: (...args: unknown[]) => routeCheckHealthMock(...args),
-        },
-        media: {
-          stt: {
-            transcribe: (...args: unknown[]) => sttTranscribeMock(...args),
-          },
-        },
-        agent: {
-          getAgent: (...args: unknown[]) => getAgentMock(...args),
-          anchors: {
-            open: (...args: unknown[]) => openConversationAnchorMock(...args),
-          },
-          turns: {
-            request: (...args: unknown[]) => requestTurnMock(...args),
-            interrupt: (...args: unknown[]) => interruptTurnMock(...args),
-          },
+    RuntimeMock.mockImplementation(function RuntimeCtor() {
+      return {
+      appId: 'nimi.desktop',
+      ready: async () => undefined,
+      close: (...args: unknown[]) => runtimeCloseMock(...args),
+      auth: {
+        registerApp: (...args: unknown[]) => registerAppMock(...args),
+      },
+      appAuth: {
+        authorizeExternalPrincipal: (...args: unknown[]) => authorizeExternalPrincipalMock(...args),
+      },
+      route: {
+        listOptions: (...args: unknown[]) => routeListOptionsMock(...args),
+        checkHealth: (...args: unknown[]) => routeCheckHealthMock(...args),
+      },
+      media: {
+        stt: {
+          transcribe: (...args: unknown[]) => sttTranscribeMock(...args),
         },
       },
-      realm: {},
+      agent: {
+        anchors: {
+          open: (...args: unknown[]) => openConversationAnchorMock(...args),
+        },
+        turns: {
+          request: (...args: unknown[]) => requestTurnMock(...args),
+          interrupt: (...args: unknown[]) => interruptTurnMock(...args),
+        },
+      },
+      };
     });
     openConversationAnchorMock.mockResolvedValue({ conversationAnchorId: 'anchor-opened' });
     routeListOptionsMock.mockResolvedValue({
@@ -431,7 +322,7 @@ describe('bootstrapAvatar', () => {
         agentId: 'agent-launch',
         conversationAnchorId: 'anchor-launch',
         activeWorldId: 'world-1',
-        activeUserId: 'user-1',
+        activeUserId: '',
       }),
     }));
     expect(createDriverMock.mock.calls[0]?.[0]).not.toHaveProperty('scenarioJson');
@@ -446,8 +337,7 @@ describe('bootstrapAvatar', () => {
         agentId: 'runtime-default-agent',
       }),
     }));
-    expect(startAvatarRuntimeCarrierMock).toHaveBeenCalledWith(expect.objectContaining({
-      driver: expect.any(Object),
+    expect(startAvatarVisualCarrierMock).toHaveBeenCalledWith(expect.objectContaining({
       modelManifest: expect.objectContaining({
         model3JsonPath: '/agent-center/packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json',
       }),
@@ -459,7 +349,6 @@ describe('bootstrapAvatar', () => {
       avatarPackageId: 'live2d_ab12cd34ef56',
       avatarPackageSchemaVersion: 1,
     });
-    expect(getAgentMock).not.toHaveBeenCalled();
     expect(handle.carrier).toEqual(expect.objectContaining({
       backendSession: expect.objectContaining({
         applyCommand: expect.any(Function),
@@ -469,6 +358,38 @@ describe('bootstrapAvatar', () => {
     expect(openConversationAnchorMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().consume.authority).toBe('runtime');
     expect(useAvatarStore.getState().consume.avatarInstanceId).toBe('instance-1');
+
+    await handle.shutdown();
+  });
+
+  it('loads the local visual carrier without auth bootstrap or Realm client creation', async () => {
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+
+    expect(resolveAgentCenterAvatarPackageManifestMock).toHaveBeenCalledWith({
+      agentCenterAccountId: 'account_1',
+      agentId: 'agent-launch',
+      avatarPackageKind: 'live2d',
+      avatarPackageId: 'live2d_ab12cd34ef56',
+      avatarPackageSchemaVersion: 1,
+    });
+    expect(startAvatarVisualCarrierMock).toHaveBeenCalledWith(expect.objectContaining({
+      modelManifest: expect.objectContaining({
+        model3JsonPath: '/agent-center/packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json',
+      }),
+    }));
+    expect(handle.driver).toBeTruthy();
+    expect(handle.carrier).toBeTruthy();
+    expect(RuntimeMock).toHaveBeenCalledWith(expect.objectContaining({
+      appId: 'nimi.desktop',
+      transport: expect.objectContaining({ type: 'tauri-ipc' }),
+    }));
+    expect(RuntimeMock.mock.calls[0]?.[0]).not.toHaveProperty('auth');
+    expect(RuntimeMock.mock.calls[0]?.[0]).not.toHaveProperty('realmBaseUrl');
+    expect(RuntimeMock.mock.calls[0]?.[0]).not.toHaveProperty('subjectContext');
+    expect(useAvatarStore.getState().consume.authority).toBe('runtime');
+    expect(useAvatarStore.getState().model.loadState).toBe('loaded');
 
     await handle.shutdown();
   });
@@ -586,92 +507,31 @@ describe('bootstrapAvatar', () => {
     await assertion;
   });
 
-  it('fails closed when runtime daemon cannot start instead of falling back to mock', async () => {
+  it('keeps the visual carrier alive when runtime daemon cannot start instead of falling back to mock', async () => {
     startDaemonMock.mockResolvedValue({ running: false, lastError: 'daemon failed hard' });
     createDriverMock.mockReturnValue(createFakeDriver('sdk'));
     const { bootstrapAvatar } = await import('./app-bootstrap.js');
 
-    await expect(bootstrapAvatar()).rejects.toThrow(/daemon failed hard/);
+    const handle = await bootstrapAvatar();
+
+    expect(handle.carrier).toEqual(expect.objectContaining({
+      backendSession: expect.any(Object),
+    }));
     expect(createDriverMock).not.toHaveBeenCalledWith(expect.objectContaining({ kind: 'mock' }));
-    expect(clearPlatformClientMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('updates local auth state when the shared session rotates for the same user', async () => {
-    createDriverMock.mockReturnValue(createFakeDriver('sdk'));
-    const { bootstrapAvatar } = await import('./app-bootstrap.js');
-
-    const handle = await bootstrapAvatar();
-    expect(watchAuthSessionChangesMock).toHaveBeenCalledTimes(1);
-
-    await watchedAuthSessionChange?.({
-      realmBaseUrl: 'http://localhost:3002',
-      accessToken: 'rotated-access-token',
-      refreshToken: 'rotated-refresh-token',
-      updatedAt: '2026-04-22T08:00:00.000Z',
-      expiresAt: '2026-04-22T09:00:00.000Z',
-      user: {
-        id: 'user-1',
-        displayName: 'Avatar User Updated',
-        email: 'avatar@example.com',
-      },
-    });
-
-    expect(useAvatarStore.getState().auth).toEqual(expect.objectContaining({
-      status: 'authenticated',
-      accessToken: 'rotated-access-token',
-      refreshToken: 'rotated-refresh-token',
-      failureReason: null,
-      user: expect.objectContaining({
-        id: 'user-1',
-        displayName: 'Avatar User Updated',
-        email: 'avatar@example.com',
-      }),
-    }));
-    expect(driverStopMock).not.toHaveBeenCalled();
-    expect(clearPlatformClientMock).not.toHaveBeenCalled();
-
+    expect(useAvatarStore.getState().model.loadState).toBe('loaded');
+    expect(useAvatarStore.getState().driver.status).toBe('stopped');
+    expect(useAvatarStore.getState().consume.conversationAnchorId).toBeNull();
     await handle.shutdown();
   });
 
-  it('fails closed when the shared desktop session disappears after bootstrap', async () => {
+  it('does not call auth session or Realm bootstrap while binding runtime', async () => {
     createDriverMock.mockReturnValue(createFakeDriver('sdk'));
     const { bootstrapAvatar } = await import('./app-bootstrap.js');
 
     const handle = await bootstrapAvatar();
-    await watchedAuthSessionChange?.(null);
 
-    expect(driverStopMock).toHaveBeenCalledTimes(1);
-    expect(clearPlatformClientMock).toHaveBeenCalledTimes(1);
-    expect(useAvatarStore.getState().auth).toEqual(expect.objectContaining({
-      status: 'anonymous',
-      failureReason: 'shared_session_missing',
-    }));
-    expect(useAvatarStore.getState().bundle).toBeNull();
-    expect(useAvatarStore.getState().consume.conversationAnchorId).toBeNull();
-    expect(useAvatarStore.getState().driver.status).toBe('stopped');
-
-    await handle.shutdown();
-  });
-
-  it('fails closed immediately when sdk refresh failure clears the auth session', async () => {
-    createDriverMock.mockReturnValue(createFakeDriver('sdk'));
-    const { bootstrapAvatar } = await import('./app-bootstrap.js');
-
-    const handle = await bootstrapAvatar();
-    const sessionStore = createPlatformClientMock.mock.calls[0]?.[0]?.sessionStore;
-
-    await sessionStore?.clearAuthSession?.();
-
-    expect(clearAuthSessionMock).toHaveBeenCalledTimes(1);
-    expect(driverStopMock).toHaveBeenCalledTimes(1);
-    expect(clearPlatformClientMock).toHaveBeenCalledTimes(1);
-    expect(useAvatarStore.getState().auth).toEqual(expect.objectContaining({
-      status: 'anonymous',
-      failureReason: 'shared_session_invalid',
-    }));
-    expect(useAvatarStore.getState().bundle).toBeNull();
-    expect(useAvatarStore.getState().consume.conversationAnchorId).toBeNull();
-    expect(useAvatarStore.getState().driver.status).toBe('stopped');
+    expect(RuntimeMock).toHaveBeenCalledTimes(1);
+    expect(useAvatarStore.getState().consume.authority).toBe('runtime');
 
     await handle.shutdown();
   });

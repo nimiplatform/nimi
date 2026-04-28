@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Live2DBackendSession } from './backend-session.js';
 import {
   createLive2DCarrierVisualHost,
+  Live2DCarrierVisualFrameError,
   type Live2DCarrierVisualFrameStats,
   type Live2DCarrierVisualHost,
 } from './carrier-visual-host.js';
@@ -52,6 +53,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
     let animationFrame = 0;
     let resizeObserver: ResizeObserver | null = null;
     let visualHost: Live2DCarrierVisualHost | null = null;
+    let visualProofAttempts = 0;
     setStatus('loading');
     setError(null);
     setStats(null);
@@ -68,6 +70,7 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
         return;
       }
       try {
+        visualProofAttempts += 1;
         const nextStats = visualHost.renderFrame();
         setStats(nextStats);
         setStatus('ready');
@@ -86,6 +89,14 @@ export function Live2DCarrierVisualSurface({ session }: Live2DCarrierVisualSurfa
         }
       } catch (renderError) {
         const message = describeError(renderError);
+        if (
+          renderError instanceof Live2DCarrierVisualFrameError
+          && visualProofAttempts < 90
+        ) {
+          setStatus('loading');
+          animationFrame = requestAnimationFrame(renderLoop);
+          return;
+        }
         setStatus('error');
         setError(message);
         recordAvatarEvidenceEventually({

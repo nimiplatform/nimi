@@ -93,8 +93,10 @@ export function AvatarShellView(props: AvatarShellViewProps) {
     shellControlEffects,
     shellControlHint,
     shellControlSummary,
+    showShellControlsPanel,
     shellSettings,
     showRecoveryPanel,
+    showSurfaceStatusCopy,
     stageClassName,
     stageInteractionRef,
     textModeActive,
@@ -591,12 +593,14 @@ return (
                 </>
               ) : null}
             </section>
+            {showSurfaceStatusCopy ? (
             <div className="avatar-panel__copy">
               <p className="avatar-panel__kicker">First-party avatar surface</p>
               <h1 className="avatar-panel__title">{displayPresentation.title}</h1>
               <p className="avatar-panel__summary">{displayPresentation.summary}</p>
               <p className="avatar-panel__recovery">{displayPresentation.recovery}</p>
             </div>
+            ) : null}
           </section>
           <section className="avatar-panel">
             {showRecoveryPanel ? (
@@ -644,6 +648,7 @@ return (
                 </div>
               </section>
             ) : null}
+            {showShellControlsPanel ? (
             <section className="avatar-settings-card" aria-label="Avatar shell controls">
               <div className="avatar-settings-card__header">
                 <div className="avatar-settings-card__copy">
@@ -665,6 +670,7 @@ return (
               </div>
               <p className="avatar-settings-card__hint">{shellControlHint}</p>
             </section>
+            ) : null}
             {displayPresentation.contextCards.length > 0 ? (
               <div className="avatar-presence">
                 {displayPresentation.contextCards.map((item: { label: string; value: string }) => (
@@ -694,7 +700,7 @@ return (
                 <div className="avatar-settings__header">
                   <strong className="avatar-settings__title">Companion settings</strong>
                   <p className="avatar-settings__summary">
-                    These are the admitted avatar-shell-local controls from existing app authority. Launch, auth, and runtime truth stay upstream.
+                    These are the admitted avatar-shell-local controls from existing app authority. Launch and runtime truth stay upstream.
                   </p>
                 </div>
                 <div className="avatar-settings__group">
@@ -707,7 +713,7 @@ return (
                   <label className="avatar-settings__toggle">
                     <span className="avatar-settings__copy">
                       <strong>Always on top</strong>
-                      <span>Keeps this shell above other windows. It does not alter launch, auth, runtime, or focus truth.</span>
+                      <span>Keeps this shell above other windows. It does not alter launch, runtime, or focus truth.</span>
                     </span>
                     <input
                       aria-label="Always on top"

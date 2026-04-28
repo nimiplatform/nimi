@@ -1,10 +1,6 @@
 export {
   hasTauriInvoke,
   getRuntimeDefaults,
-  loadAuthSession,
-  saveAuthSession,
-  clearAuthSession,
-  watchAuthSessionChanges,
   getDaemonStatus,
   startDaemon,
 } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
@@ -16,7 +12,6 @@ export {
 export type {
   RuntimeDefaults,
   RuntimeBridgeDaemonStatus,
-  SharedDesktopAuthSessionWatchOptions,
 } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
 export type {
   AvatarLaunchAnchorMode,

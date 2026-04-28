@@ -32,6 +32,8 @@ export type AvatarRuntimeCarrier = {
   registry: HandlerRegistry;
   commandBus: Live2DCommandBus;
   backendSession: Live2DBackendSession;
+  attachRuntimeDriver(driver: AgentDataDriver): Promise<void>;
+  detachRuntimeDriver(): void;
   shutdown(): void;
 };
 
@@ -93,7 +95,7 @@ async function renderCarrierVisualFrameWithRetry(
 function toCarrierVisualFailureDetail(error: unknown, attempts: number | null): Record<string, unknown> {
   const detail: Record<string, unknown> = {
     status: 'error',
-    source: 'avatar-runtime-carrier-bootstrap',
+    source: 'avatar-visual-carrier-bootstrap',
     error: error instanceof Error ? error.message : String(error || 'Live2D bootstrap carrier visual proof failed'),
   };
   if (typeof attempts === 'number') {
@@ -105,7 +107,10 @@ function toCarrierVisualFailureDetail(error: unknown, attempts: number | null): 
   return detail;
 }
 
-async function recordBootstrapCarrierVisualProof(session: Live2DBackendSession): Promise<void> {
+async function recordBootstrapCarrierVisualProof(
+  session: Live2DBackendSession,
+  source = 'avatar-visual-carrier-bootstrap',
+): Promise<void> {
   if (typeof document === 'undefined' || !session.execution?.loaded) {
     return;
   }
@@ -116,7 +121,7 @@ async function recordBootstrapCarrierVisualProof(session: Live2DBackendSession):
       kind: 'avatar.carrier.visual',
       detail: {
         status: 'loading',
-        source: 'avatar-runtime-carrier-bootstrap',
+        source,
       },
     });
     const canvas = document.createElement('canvas');
@@ -137,7 +142,7 @@ async function recordBootstrapCarrierVisualProof(session: Live2DBackendSession):
       kind: 'avatar.carrier.visual',
       detail: {
         status: 'ready',
-        source: 'avatar-runtime-carrier-bootstrap',
+        source,
         visible_pixels: stats.visiblePixels,
         visible_drawable_count: stats.visibleDrawableCount,
         canvas_width: stats.width,
@@ -163,9 +168,21 @@ export async function startAvatarRuntimeCarrier(input: {
   modelPath?: string;
   modelManifest?: ModelManifest;
 }): Promise<AvatarRuntimeCarrier> {
+  const carrier = await startAvatarVisualCarrier({
+    modelPath: input.modelPath,
+    modelManifest: input.modelManifest,
+  });
+  await carrier.attachRuntimeDriver(input.driver);
+  return carrier;
+}
+
+export async function startAvatarVisualCarrier(input: {
+  modelPath?: string;
+  modelManifest?: ModelManifest;
+}): Promise<AvatarRuntimeCarrier> {
   const modelPath = input.modelPath?.trim() || input.modelManifest?.runtimeDir.trim() || '';
   if (!modelPath) {
-    throw new Error('avatar runtime carrier requires configured model_path');
+    throw new Error('avatar visual carrier requires configured model_path');
   }
   const store = useAvatarStore.getState();
   store.setModelPath(modelPath);
@@ -181,19 +198,13 @@ export async function startAvatarRuntimeCarrier(input: {
   }
 
   const registry = createHandlerRegistry();
-  let stopNasHotReload: (() => Promise<void>) | null = null;
   if (model.nimiDir) {
     const manifest = await scanNasHandlers(model.nimiDir);
     await populateRegistry(registry, manifest);
-    stopNasHotReload = await startNasHandlerHotReload({
-      modelId: model.modelId,
-      nimiDir: model.nimiDir,
-      registry,
-      emit: (event) => input.driver.emit(event),
-    });
   }
 
   const commandBus = createCommandBus();
+  let stopNasHotReload: (() => Promise<void>) | null = null;
   let backendSession: Live2DBackendSession;
   try {
     const adapterManifest = await loadEmbeddedAdapterManifest(model);
@@ -203,9 +214,6 @@ export async function startAvatarRuntimeCarrier(input: {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     store.setModelError(message);
-    await stopNasHotReload?.().catch((err: unknown) => {
-      console.warn(`[avatar:nas] failed to stop hot reload watcher after backend failure: ${err instanceof Error ? err.message : String(err)}`);
-    });
     disposeRegistry(registry);
     throw error;
   }
@@ -229,41 +237,40 @@ export async function startAvatarRuntimeCarrier(input: {
   });
   const executor = new HandlerExecutor();
   const interactionPhysics = createInteractionPhysicsController({ projection });
-  const unwireDispatch = wireEventDispatch({
-    driver: input.driver,
-    registry,
-    executor,
-    projection,
-    interactionPhysics,
-  });
-  const unwireVoiceLipsync = wireAvatarVoiceLipsync({
-    driver: input.driver,
-    projection,
-    mouthSignalId: backendSession.compatibility.mouthOpenParameterId,
-  });
-  const continuous = new ContinuousScheduler(
-    registry,
-    () => input.driver.getBundle(),
-    projection,
-  );
-  continuous.start();
+  let unwireDispatch: (() => void) | null = null;
+  let unwireVoiceLipsync: (() => void) | null = null;
+  let continuous: ContinuousScheduler | null = null;
+  let attachedDriver: AgentDataDriver | null = null;
+  const detachRuntimeDriver = () => {
+    continuous?.stop();
+    continuous = null;
+    unwireVoiceLipsync?.();
+    unwireVoiceLipsync = null;
+    unwireDispatch?.();
+    unwireDispatch = null;
+    void stopNasHotReload?.().catch((err: unknown) => {
+      console.warn(`[avatar:nas] failed to stop hot reload watcher: ${err instanceof Error ? err.message : String(err)}`);
+    });
+    stopNasHotReload = null;
+    attachedDriver = null;
+  };
   store.setModelLoaded(model.modelId);
+  const modelLoadDetail = {
+    model_id: model.modelId,
+    model_path: modelPath,
+    runtime_dir: model.runtimeDir,
+    nas_handler_count: countHandlers(registry),
+    compatibility_tier: backendSession.compatibility.tier,
+    adapter_id: backendSession.compatibility.adapter?.adapter_id ?? null,
+  };
+  recordAvatarEvidenceEventually({
+    kind: 'avatar.visual.model-loaded',
+    detail: modelLoadDetail,
+  });
   const modelLoadEvent = {
     name: 'avatar.model.load',
-    detail: {
-      model_id: model.modelId,
-      model_path: modelPath,
-      runtime_dir: model.runtimeDir,
-      nas_handler_count: countHandlers(registry),
-      compatibility_tier: backendSession.compatibility.tier,
-      adapter_id: backendSession.compatibility.adapter?.adapter_id ?? null,
-    },
+    detail: modelLoadDetail,
   };
-  input.driver.emit(modelLoadEvent);
-  recordAvatarEvidenceEventually({
-    kind: 'avatar.model.load',
-    detail: modelLoadEvent.detail,
-  });
   void recordBootstrapCarrierVisualProof(backendSession);
 
   return {
@@ -271,16 +278,49 @@ export async function startAvatarRuntimeCarrier(input: {
     registry,
     commandBus,
     backendSession,
+    async attachRuntimeDriver(driver) {
+      if (attachedDriver) {
+        throw new Error('avatar visual carrier runtime driver is already attached');
+      }
+      attachedDriver = driver;
+      if (model.nimiDir) {
+        stopNasHotReload = await startNasHandlerHotReload({
+          modelId: model.modelId,
+          nimiDir: model.nimiDir,
+          registry,
+          emit: (event) => driver.emit(event),
+        });
+      }
+      unwireDispatch = wireEventDispatch({
+        driver,
+        registry,
+        executor,
+        projection,
+        interactionPhysics,
+      });
+      unwireVoiceLipsync = wireAvatarVoiceLipsync({
+        driver,
+        projection,
+        mouthSignalId: backendSession.compatibility.mouthOpenParameterId,
+      });
+      continuous = new ContinuousScheduler(
+        registry,
+        () => driver.getBundle(),
+        projection,
+      );
+      continuous.start();
+      driver.emit(modelLoadEvent);
+      recordAvatarEvidenceEventually({
+        kind: 'avatar.model.load',
+        detail: modelLoadEvent.detail,
+      });
+    },
+    detachRuntimeDriver,
     shutdown() {
-      continuous.stop();
-      unwireVoiceLipsync();
-      unwireDispatch();
+      detachRuntimeDriver();
       unwireBackend();
       interactionPhysics.reset();
       executor.cancelAll();
-      void stopNasHotReload?.().catch((err: unknown) => {
-        console.warn(`[avatar:nas] failed to stop hot reload watcher: ${err instanceof Error ? err.message : String(err)}`);
-      });
       disposeRegistry(registry);
       backendSession.unload();
     },

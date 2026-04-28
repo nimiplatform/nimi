@@ -11,22 +11,7 @@
   },
   "app": {
     "withGlobalTauri": false,
-    "windows": [
-      {
-        "label": "avatar",
-        "title": "Nimi Avatar",
-        "url": "/",
-        "width": 400,
-        "height": 600,
-        "transparent": true,
-        "decorations": false,
-        "alwaysOnTop": true,
-        "resizable": true,
-        "skipTaskbar": true,
-        "shadow": false,
-        "dragDropEnabled": false
-      }
-    ],
+    "windows": [],
     "security": {
       "assetProtocol": {
         "enable": true,

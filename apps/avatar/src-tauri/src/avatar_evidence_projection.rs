@@ -184,13 +184,13 @@ mod tests {
             launched_by: "nimi.desktop".to_string(),
             runtime_app_id: Some("nimi.desktop".to_string()),
             source_surface: Some("desktop-agent-chat".to_string()),
-            realm_base_url: Some("http://localhost:3002".to_string()),
             world_id: Some("world-1".to_string()),
         }
     }
 
     #[test]
     fn append_evidence_record_writes_context_and_records() {
+        let _guard = crate::test_env_guard();
         let temp_home =
             std::env::temp_dir().join(format!("nimi-avatar-evidence-{}", std::process::id()));
         let previous_home = std::env::var("HOME").ok();

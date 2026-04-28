@@ -96,7 +96,6 @@ export function App() {
   const model = useAvatarStore((s) => s.model);
   const driver = useAvatarStore((s) => s.driver);
   const consume = useAvatarStore((s) => s.consume);
-  const auth = useAvatarStore((s) => s.auth);
   const launchContext = useAvatarStore((s) => s.launch.context);
   const persistShellSettings = (next: AvatarShellSettings): void => {
     setShellSettings(next);
@@ -225,7 +224,7 @@ export function App() {
         : 'new anchor';
       scheduleShellReload({
         title: 'Desktop update received',
-        summary: `Rebinding this shell to ${shortenId(payload.agentId)} / ${reboundAnchor}. Runtime and auth truth stay fail-closed until the new handoff is live.`,
+        summary: `Rebinding this shell to ${shortenId(payload.agentId)} / ${reboundAnchor}. Runtime interaction stays closed until the new handoff is live.`,
       });
     }).then((dispose) => {
       unlisten = dispose;
@@ -242,7 +241,6 @@ export function App() {
     model,
     driver,
     consume,
-    auth,
     launchContext,
     bundle,
   });
@@ -274,13 +272,13 @@ export function App() {
     bootstrapHandle
     && companionBinding
     && consume.authority === 'runtime'
-    && auth.status === 'authenticated'
     && presentation.tone === 'ready'
     && !relaunchNotice,
   );
   const companionBusy = companion.sendState === 'sending' || bundle?.execution_state === 'CHAT_ACTIVE';
   const companionVisible = companion.bubbleVisible || companion.inputVisible || voice.panelVisible;
-  const embodiedSurfaceReady = companionAvailable;
+  const visualEmbodimentReady = model.loadState === 'loaded' && Boolean(bootstrapHandle?.carrier?.backendSession);
+  const embodiedSurfaceReady = companionAvailable || visualEmbodimentReady;
   useEffect(() => {
     if (embodiedSurfaceReady) {
       return;
@@ -510,7 +508,17 @@ export function App() {
     shellSettings.bubbleAutoCollapse,
     voice.panelVisible,
   ]);
-  const showRecoveryPanel = Boolean(relaunchNotice || settingsError || presentation.tone !== 'ready');
+  const showRecoveryPanel = Boolean(
+    relaunchNotice
+    || settingsError
+    || (presentation.tone !== 'ready' && !visualEmbodimentReady),
+  );
+  const showShellControlsPanel = Boolean(settingsOpen || !visualEmbodimentReady);
+  const showSurfaceStatusCopy = Boolean(
+    showRecoveryPanel
+    || companionAvailable
+    || consume.authority === 'fixture',
+  );
   const displayPresentation = relaunchNotice
     ? {
       tone: 'degraded' as const,
@@ -542,23 +550,23 @@ export function App() {
   const recoveryHint = relaunchNotice
     ? 'Local draft, unread cue, and foreground voice capture or caption state clear before this shell binds the next desktop-selected context.'
     : settingsError
-      ? 'This only resets avatar-shell-local controls. Launch, auth, and runtime truth remain upstream.'
-      : 'Reloading this shell only clears avatar-local transient state. Desktop launch, shared auth, and runtime still decide whether the next bind is allowed.';
+      ? 'This only resets avatar-shell-local controls. Launch and runtime truth remain upstream.'
+      : 'Reloading this shell only clears avatar-local transient state. Desktop launch and runtime decide whether the next bind is allowed.';
   const recoveryChecklist = relaunchNotice
     ? [
       'Clears local draft, unread cue, and foreground voice capture or caption state before rebinding.',
-      'Does not invent auth, session, or runtime fallback inside the avatar app.',
+      'Does not invent runtime fallback inside the avatar app.',
     ]
     : settingsError
       ? [
         'Reopens a clean surface for the four admitted avatar-shell-local controls.',
-        'Does not bypass desktop launch, shared auth, or runtime requirements.',
+        'Does not bypass desktop launch or runtime requirements.',
       ]
       : [
-        'Reloads this avatar shell only. No in-app auth, session, or runtime repair is attempted.',
+        'Reloads this avatar shell only. No in-app runtime repair is attempted.',
         'Clears avatar-local draft, unread cue, and foreground voice state before the next bind.',
       ];
-  const shellControlSummary = 'Four avatar-shell behaviors only. Launch, auth, and runtime stay upstream.';
+  const shellControlSummary = 'Four avatar-shell behaviors only. Launch and runtime stay upstream.';
   const shellControlHint = settingsOpen
     ? 'The toggles below change only this shell. They never open transcript history, background voice, or desktop-side repair.'
     : 'Open shell settings to review or change these four local behaviors without turning the avatar into a larger preferences panel.';
@@ -568,7 +576,7 @@ export function App() {
       value: shellSettings.alwaysOnTop ? 'Pinned above other windows' : 'Moves with the normal window stack',
       detail: shellSettings.alwaysOnTop
         ? 'Focus still follows the active app. Always-on-top is not focus.'
-        : 'Launch, auth, and runtime posture stay unchanged.',
+        : 'Launch and runtime posture stay unchanged.',
     },
     {
       label: 'Fresh replies',
@@ -801,4 +809,4 @@ export function App() {
     ambientMode === 'unread' ? 'avatar-companion--attention-unread' : '',
     focusVisibleWithinStage ? 'avatar-companion--focus-visible' : '',
   ].filter(Boolean).join(' ');
-  return <AvatarShellView {...{ activeTurnCue, applyAlwaysOnTopSetting, beginVoiceOperation, bootstrapHandle, canInterruptVoiceReply, canSwitchToTextMode, canSwitchToVoiceMode, clearVoiceOperation, closeCompanionSurface, closeVoiceMode, companion, companionAvailable, companionBinding, companionBody, companionBusy, companionClassName, companionStatusLabel, companionStatusTone, companionTitle, companionVisible, displayPresentation, embodiedSurfaceReady, focusVisibleWithinStage, interactionModality, openTextMode, openVoiceMode, persistShellSettings, presentation, recoveryChecklist, recoveryGuidance, recoveryHint, recoverySummary, recoveryTitle, relaunchNotice, settingsError, settingsOpen, setBodyHovered, setBodyPointerContact, setCompanion, setFocusVisibleWithinStage, setSettingsError, setSettingsOpen, setVoice, shell, shellClassName, shellControlEffects, shellControlHint, shellControlSummary, shellSettings, showRecoveryPanel, stageClassName, stageInteractionRef, textModeActive, triggerRowClassName, voice, voiceCaptureSessionRef, voiceModeActive, voicePrimaryActionDisabled, voicePrimaryActionLabel, voiceSubmitAbortRef, voiceUnavailable, isVoiceOperationCurrent, companionAnchorKey }} />;}
+  return <AvatarShellView {...{ activeTurnCue, applyAlwaysOnTopSetting, beginVoiceOperation, bootstrapHandle, canInterruptVoiceReply, canSwitchToTextMode, canSwitchToVoiceMode, clearVoiceOperation, closeCompanionSurface, closeVoiceMode, companion, companionAvailable, companionBinding, companionBody, companionBusy, companionClassName, companionStatusLabel, companionStatusTone, companionTitle, companionVisible, displayPresentation, embodiedSurfaceReady, focusVisibleWithinStage, interactionModality, openTextMode, openVoiceMode, persistShellSettings, presentation, recoveryChecklist, recoveryGuidance, recoveryHint, recoverySummary, recoveryTitle, relaunchNotice, settingsError, settingsOpen, setBodyHovered, setBodyPointerContact, setCompanion, setFocusVisibleWithinStage, setSettingsError, setSettingsOpen, setVoice, shell, shellClassName, shellControlEffects, shellControlHint, shellControlSummary, shellSettings, showRecoveryPanel, showShellControlsPanel, showSurfaceStatusCopy, stageClassName, stageInteractionRef, textModeActive, triggerRowClassName, voice, voiceCaptureSessionRef, voiceModeActive, voicePrimaryActionDisabled, voicePrimaryActionLabel, voiceSubmitAbortRef, voiceUnavailable, isVoiceOperationCurrent, companionAnchorKey }} />;}

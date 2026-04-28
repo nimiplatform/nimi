@@ -7,19 +7,6 @@ export type ShellVisibility = 'on_screen' | 'off_screen' | 'tray_minimized';
 export type ModelLoadState = 'idle' | 'loading' | 'loaded' | 'error';
 export type DriverMode = 'sdk' | 'mock';
 export type DriverAuthority = 'runtime' | 'fixture';
-export type AuthStateStatus = 'anonymous' | 'authenticated';
-export type AvatarAuthFailureReason =
-  | 'shared_session_missing'
-  | 'shared_session_invalid'
-  | 'shared_session_realm_mismatch'
-  | 'shared_session_user_mismatch';
-
-export type AvatarAuthUser = {
-  id: string;
-  displayName: string;
-  email?: string;
-  avatarUrl?: string;
-};
 
 export type AvatarAppState = {
   shell: {
@@ -46,13 +33,6 @@ export type AvatarAppState = {
   };
   launch: {
     context: AvatarLaunchContext | null;
-  };
-  auth: {
-    status: AuthStateStatus;
-    user: AvatarAuthUser | null;
-    accessToken: string;
-    refreshToken: string;
-    failureReason: AvatarAuthFailureReason | null;
   };
   runtime: {
     defaults: RuntimeDefaults | null;
@@ -84,8 +64,6 @@ export type AvatarAppState = {
   clearRuntimeBinding(): void;
   setLaunchContext(context: AvatarLaunchContext): void;
   setRuntimeDefaults(defaults: RuntimeDefaults): void;
-  setAuthSession(user: AvatarAuthUser, accessToken: string, refreshToken?: string): void;
-  clearAuthSession(reason?: AvatarAuthFailureReason | null): void;
   setDriverStatus(status: DriverStatus): void;
   setBundle(bundle: AgentDataBundle): void;
   clearBundle(): void;
@@ -116,13 +94,6 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
   },
   launch: {
     context: null,
-  },
-  auth: {
-    status: 'anonymous',
-    user: null,
-    accessToken: '',
-    refreshToken: '',
-    failureReason: null,
   },
   runtime: {
     defaults: null,
@@ -198,28 +169,6 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
   },
   setRuntimeDefaults(defaults) {
     set({ runtime: { defaults } });
-  },
-  setAuthSession(user, accessToken, refreshToken = '') {
-    set({
-      auth: {
-        status: 'authenticated',
-        user,
-        accessToken: String(accessToken || '').trim(),
-        refreshToken: String(refreshToken || '').trim(),
-        failureReason: null,
-      },
-    });
-  },
-  clearAuthSession(reason = null) {
-    set({
-      auth: {
-        status: 'anonymous',
-        user: null,
-        accessToken: '',
-        refreshToken: '',
-        failureReason: reason,
-      },
-    });
   },
   setDriverStatus(status) {
     set({ driver: { status } });

@@ -18,7 +18,6 @@ use avatar_launch_context::{
     parse_avatar_deep_link_request, resolve_initial_avatar_request, AvatarCloseRequest,
     AvatarDeepLinkRequest, AvatarLaunchContext, AVATAR_LAUNCH_SCHEME,
 };
-use nimi_kit_shell_tauri::auth_session_commands;
 use nimi_kit_shell_tauri::runtime_bridge;
 use nimi_kit_shell_tauri::runtime_defaults as defaults;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
@@ -30,6 +29,15 @@ use tauri::{
     WebviewWindowBuilder,
 };
 
+#[cfg(test)]
+pub(crate) fn test_env_guard() -> std::sync::MutexGuard<'static, ()> {
+    static GUARD: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
+    GUARD
+        .get_or_init(|| std::sync::Mutex::new(()))
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 #[derive(Clone, Serialize)]
 struct ReadyPayload {
     label: String,
@@ -37,7 +45,6 @@ struct ReadyPayload {
     height: u32,
 }
 
-const AVATAR_WINDOW_LABEL: &str = "avatar";
 const AVATAR_WINDOW_LABEL_PREFIX: &str = "avatar-instance";
 const AVATAR_LAUNCH_CONTEXT_UPDATED_EVENT: &str = "avatar://launch-context-updated";
 
@@ -164,7 +171,7 @@ fn avatar_window_label_for_instance(avatar_instance_id: &str) -> String {
 }
 
 fn is_avatar_window_label(label: &str) -> bool {
-    label == AVATAR_WINDOW_LABEL || label.starts_with(&format!("{AVATAR_WINDOW_LABEL_PREFIX}-"))
+    label.starts_with(&format!("{AVATAR_WINDOW_LABEL_PREFIX}-"))
 }
 
 fn emit_avatar_shell_ready_for_webview(webview: &tauri::Webview) {
@@ -289,28 +296,6 @@ fn route_avatar_launch_context(
 ) -> Result<(), String> {
     if let Some(window_label) = registry.window_label_for_instance(&context.avatar_instance_id)? {
         if let Some(window) = app.get_webview_window(&window_label) {
-            registry.bind_window(window.label().to_string(), context.clone())?;
-            sync_avatar_window_to_launch_context(
-                &window,
-                &context,
-                emit_update_event_for_reused_window,
-            );
-            sync_avatar_instance_projection(registry);
-            record_avatar_backend_evidence(
-                &context,
-                "avatar.launch.context-bound",
-                json!({
-                    "source": "avatar-backend",
-                    "window_label": window.label(),
-                    "window_reused": true
-                }),
-            );
-            return Ok(());
-        }
-    }
-
-    if let Some(window) = app.get_webview_window(AVATAR_WINDOW_LABEL) {
-        if !registry.is_window_bound(window.label())? {
             registry.bind_window(window.label().to_string(), context.clone())?;
             sync_avatar_window_to_launch_context(
                 &window,
@@ -985,9 +970,6 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             defaults::runtime_defaults,
-            auth_session_commands::auth_session_load,
-            auth_session_commands::auth_session_save,
-            auth_session_commands::auth_session_clear,
             runtime_bridge::runtime_bridge_unary,
             runtime_bridge::runtime_bridge_stream_open,
             runtime_bridge::runtime_bridge_stream_close,
@@ -1046,9 +1028,6 @@ fn main() {
                 }
             });
 
-            if let Some(window) = app.get_webview_window(AVATAR_WINDOW_LABEL) {
-                attach_avatar_window_lifecycle(&window, app.handle());
-            }
             {
                 let registry = app.state::<AvatarInstanceRegistry>();
                 sync_avatar_instance_projection(&registry);
@@ -1074,15 +1053,6 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::{Mutex, OnceLock};
-
-    fn env_guard() -> std::sync::MutexGuard<'static, ()> {
-        static GUARD: OnceLock<Mutex<()>> = OnceLock::new();
-        GUARD
-            .get_or_init(|| Mutex::new(()))
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
 
     fn unique_temp_dir(name: &str) -> PathBuf {
         let suffix = format!(
@@ -1213,7 +1183,7 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn resolve_agent_center_avatar_package_returns_live2d_model_manifest() {
-        let _guard = env_guard();
+        let _guard = test_env_guard();
         let home = unique_temp_dir("agent-center-package");
         fs::create_dir_all(&home).unwrap();
         let previous_home = std::env::var("HOME").ok();
@@ -1253,7 +1223,7 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn resolve_agent_center_avatar_package_accepts_runtime_scoped_agent_id() {
-        let _guard = env_guard();
+        let _guard = test_env_guard();
         let home = unique_temp_dir("agent-center-package-runtime-agent");
         fs::create_dir_all(&home).unwrap();
         let previous_home = std::env::var("HOME").ok();
@@ -1292,7 +1262,7 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn resolve_agent_center_avatar_package_accepts_opaque_runtime_agent_id() {
-        let _guard = env_guard();
+        let _guard = test_env_guard();
         let home = unique_temp_dir("agent-center-package-opaque-agent");
         fs::create_dir_all(&home).unwrap();
         let previous_home = std::env::var("HOME").ok();
@@ -1332,7 +1302,7 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn resolve_agent_center_avatar_package_accepts_opaque_account_id() {
-        let _guard = env_guard();
+        let _guard = test_env_guard();
         let home = unique_temp_dir("agent-center-package-opaque-account");
         fs::create_dir_all(&home).unwrap();
         let previous_home = std::env::var("HOME").ok();
@@ -1376,7 +1346,7 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     async fn resolve_agent_center_avatar_package_rejects_vrm_and_digest_mismatch() {
-        let _guard = env_guard();
+        let _guard = test_env_guard();
         let home = unique_temp_dir("agent-center-package-invalid");
         fs::create_dir_all(&home).unwrap();
         let previous_home = std::env::var("HOME").ok();

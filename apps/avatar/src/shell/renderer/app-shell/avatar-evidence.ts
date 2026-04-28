@@ -10,6 +10,11 @@ export type AvatarEvidenceKind =
   | 'avatar.window.page-loaded'
   | 'avatar.startup.runtime-bound'
   | 'avatar.startup.failed'
+  | 'avatar.visual.package-resolved'
+  | 'avatar.visual.model3-found'
+  | 'avatar.visual.model-loaded'
+  | 'avatar.runtime.bind-failed'
+  | 'avatar.runtime.bound'
   | 'avatar.model.load'
   | 'avatar.carrier.visual';
 

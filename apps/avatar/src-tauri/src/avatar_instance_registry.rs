@@ -71,13 +71,6 @@ impl AvatarInstanceRegistry {
             .map_err(|_| "failed to lock avatar instance registry".to_string())
     }
 
-    pub fn is_window_bound(&self, window_label: &str) -> Result<bool, String> {
-        self.state
-            .lock()
-            .map(|guard| guard.label_to_context.contains_key(window_label))
-            .map_err(|_| "failed to lock avatar instance registry".to_string())
-    }
-
     pub fn remove_window(&self, window_label: &str) -> Result<(), String> {
         let mut guard = self
             .state
@@ -138,7 +131,6 @@ mod tests {
             launched_by: "nimi.desktop".to_string(),
             runtime_app_id: Some("nimi.desktop".to_string()),
             source_surface: Some("desktop-agent-chat".to_string()),
-            realm_base_url: Some("http://localhost:3002".to_string()),
             world_id: Some("world-1".to_string()),
         }
     }

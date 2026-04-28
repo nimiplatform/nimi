@@ -1,4 +1,4 @@
-import type { PlatformClient } from '@nimiplatform/sdk';
+import type { Runtime } from '@nimiplatform/sdk/runtime/browser';
 import type {
   RuntimeAgentConsumeEvent as SdkRuntimeAgentConsumeEvent,
   RuntimeAgentSessionSnapshot as SdkRuntimeAgentSessionSnapshot,
@@ -90,7 +90,7 @@ type BundleActivityIntensity = NonNullable<AgentDataBundle['activity']>['intensi
 type BundleCurrentEmotion = NonNullable<AgentDataBundle['emotion']>['current'];
 
 export type SdkDriverOptions = {
-  runtime: PlatformClient['runtime'];
+  runtime: Runtime;
   agentId: string;
   conversationAnchorId: string;
   activeWorldId: string;
@@ -237,7 +237,7 @@ function normalizeRuntimeTimelineForAvatar(event: RuntimeAgentConsumeEvent): Rec
 export class SdkDriver implements AgentDataDriver {
   readonly kind = 'sdk' as const;
   private _status: DriverStatus = 'idle';
-  private readonly runtime: PlatformClient['runtime'];
+  private readonly runtime: Runtime;
   private readonly agentId: string;
   private readonly conversationAnchorId: string;
   private readonly activeWorldId: string;

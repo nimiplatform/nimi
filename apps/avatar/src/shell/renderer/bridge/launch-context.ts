@@ -14,7 +14,6 @@ export type AvatarLaunchContext = {
   launchedBy: string;
   runtimeAppId?: string | null;
   sourceSurface: string | null;
-  realmBaseUrl?: string | null;
   worldId?: string | null;
 };
 
@@ -79,7 +78,6 @@ export function parseAvatarLaunchContext(value: unknown): AvatarLaunchContext {
     launchedBy: normalizeRequiredString(record.launchedBy, 'launchedBy'),
     runtimeAppId: normalizeOptionalString(record.runtimeAppId),
     sourceSurface: normalizeOptionalString(record.sourceSurface),
-    realmBaseUrl: normalizeOptionalString(record.realmBaseUrl),
     worldId: normalizeOptionalString(record.worldId),
   };
   if (context.anchorMode === 'existing' && !context.conversationAnchorId) {

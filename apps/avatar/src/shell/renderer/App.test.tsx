@@ -126,15 +126,6 @@ function seedReadyState(): void {
     worldId: 'world-01',
   });
   useAvatarStore.getState().setLaunchContext(launchContext());
-  useAvatarStore.getState().setAuthSession(
-    {
-      id: 'user-01',
-      displayName: 'Nimi Operator',
-      email: 'nimi@example.com',
-    },
-    'access-token',
-    'refresh-token',
-  );
   useAvatarStore.getState().setDriverStatus('running');
   useAvatarStore.getState().setBundle({
     posture: {
@@ -176,9 +167,9 @@ function seedReadyState(): void {
 }
 
 function expectNonReadySurface(): void {
-  expect(screen.queryByText('Bound operator')).toBeNull();
+  expect(screen.queryByText('Runtime binding')).toBeNull();
   expect(screen.queryByText('Current presence')).toBeNull();
-  expect(screen.queryByText('Trusted runtime')).toBeNull();
+  expect(screen.queryByText('Runtime IPC')).toBeNull();
   expect(screen.queryByText(/Bound \(/)).toBeNull();
 }
 
@@ -332,7 +323,7 @@ describe('App surface foundation', () => {
 
     fireEvent.pointerMove(stage, { button: 0, clientX: 180, clientY: 180 });
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(true);
-    expect(handle.driver.emit).not.toHaveBeenCalled();
+    expect(handle.driver!.emit).not.toHaveBeenCalled();
 
     fireEvent.pointerMove(stage, { button: 0, clientX: 60, clientY: 70 });
     fireEvent.pointerDown(stage, { button: 0, clientX: 60, clientY: 70 });
@@ -340,7 +331,7 @@ describe('App surface foundation', () => {
     fireEvent.pointerDown(stage, { button: 2, clientX: 60, clientY: 180 });
 
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
-    const emitMock = vi.mocked(handle.driver.emit);
+    const emitMock = vi.mocked(handle.driver!.emit);
     expect(emitMock.mock.calls.map((call) => call[0].name)).toEqual([
       'avatar.user.hover',
       'avatar.user.click',
@@ -518,7 +509,7 @@ describe('App surface foundation', () => {
     render(<App />);
 
     expect(await screen.findByText('Shell controls')).toBeTruthy();
-    expect(screen.getByText('Four avatar-shell behaviors only. Launch, auth, and runtime stay upstream.')).toBeTruthy();
+    expect(screen.getByText('Four avatar-shell behaviors only. Launch and runtime stay upstream.')).toBeTruthy();
     expect(screen.getByText('Window stack')).toBeTruthy();
     expect(screen.getByText('Fresh replies')).toBeTruthy();
     expect(screen.getByText('Quiet bubble')).toBeTruthy();
@@ -640,15 +631,16 @@ describe('App surface foundation', () => {
     expect(textbox.value).toBe('');
   });
 
-  it('does not reveal companion input when runtime trust is unavailable', async () => {
+  it('does not reveal companion input when runtime binding is unavailable', async () => {
     seedReadyState();
-    useAvatarStore.getState().clearAuthSession('shared_session_missing');
+    useAvatarStore.getState().clearRuntimeBinding();
+    useAvatarStore.getState().setDriverStatus('stopped');
     const handle = createBootstrapHandle();
     bootstrapAvatarMock.mockResolvedValue(handle);
 
     render(<App />);
 
-    expect(await screen.findByText('Desktop session ended')).toBeTruthy();
+    expect(await screen.findByText('Interaction unavailable')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Open avatar companion input' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Open avatar voice companion' })).toBeNull();
   });
@@ -679,12 +671,13 @@ describe('App surface foundation', () => {
 
   it('damps embodied reaction classes when the shell is not ready', async () => {
     seedReadyState();
-    useAvatarStore.getState().clearAuthSession('shared_session_missing');
+    useAvatarStore.getState().clearRuntimeBinding();
+    useAvatarStore.getState().setDriverStatus('stopped');
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
 
-    expect(await screen.findByText('Desktop session ended')).toBeTruthy();
+    expect(await screen.findByText('Interaction unavailable')).toBeTruthy();
     const shell = screen.getByTestId('avatar-shell');
     const stage = screen.getByTestId('avatar-stage');
 
@@ -1066,14 +1059,14 @@ describe('App surface foundation', () => {
     });
 
     expect(screen.getAllByText('Desktop update received').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Runtime and auth truth stay fail-closed/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Runtime interaction stays closed/i).length).toBeGreaterThan(0);
     expect(screen.getByText('Reload shell now')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Reload shell' })).toBeNull();
     expect(screen.getByText(/Local draft, unread cue, and foreground voice capture or caption state clear/i)).toBeTruthy();
-    expect(screen.getByText(/Does not invent auth, session, or runtime fallback inside the avatar app/i)).toBeTruthy();
+    expect(screen.getByText(/Does not invent runtime fallback inside the avatar app/i)).toBeTruthy();
     expect(screen.queryByDisplayValue('Draft before rebind')).toBeNull();
     expect(screen.queryByText('Desktop companion ready')).toBeNull();
-    expect(screen.queryByText('Trusted runtime')).toBeNull();
+    expect(screen.queryByText('Runtime IPC')).toBeNull();
     expect(screen.queryByText(/Bound \(anchor-01\)/)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Reload shell now' }));
@@ -1095,7 +1088,7 @@ describe('App surface foundation', () => {
     expect(await screen.findByText(/Unable to update always-on-top right now: native toggle failed/i)).toBeTruthy();
     expect(screen.getByText('Reload this shell to reopen a clean shell-local settings surface for the admitted controls only.')).toBeTruthy();
     expect(screen.getByText('Reopens a clean surface for the four admitted avatar-shell-local controls.')).toBeTruthy();
-    expect(screen.getByText('Does not bypass desktop launch, shared auth, or runtime requirements.')).toBeTruthy();
+    expect(screen.getByText('Does not bypass desktop launch or runtime requirements.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Reload shell' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Reload shell now' })).toBeTruthy();
   });
@@ -1112,18 +1105,17 @@ describe('App surface foundation', () => {
     expect(screen.getAllByText('Start the avatar again from the desktop orchestrator.').length).toBeGreaterThan(0);
   });
 
-  it('renders a degraded session-lost surface after bootstrap succeeds', async () => {
+  it('renders a degraded runtime-unbound surface after bootstrap succeeds', async () => {
     seedReadyState();
-    useAvatarStore.getState().clearAuthSession('shared_session_missing');
+    useAvatarStore.getState().clearRuntimeBinding();
     useAvatarStore.getState().setDriverStatus('stopped');
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
 
-    expect(await screen.findByText('Desktop session ended')).toBeTruthy();
-    expect(screen.getAllByText(/lost the trusted desktop session/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Sign in again on desktop, then relaunch this companion surface.').length).toBeGreaterThan(0);
-    expect(screen.getByText('Binding closed')).toBeTruthy();
+    expect(await screen.findByText('Interaction unavailable')).toBeTruthy();
+    expect(screen.getAllByText(/runtime interaction stream is not currently bound/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Runtime unavailable').length).toBeGreaterThan(0);
     expectNonReadySurface();
   });
 
@@ -1145,7 +1137,7 @@ describe('App surface foundation', () => {
     render(<App />);
 
     expect(await screen.findByText('Runtime connection blocked')).toBeTruthy();
-    expect(screen.getAllByText(/did not switch to mock mode/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/does not switch to mock mode/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Runtime unavailable').length).toBeGreaterThan(0);
     expectNonReadySurface();
   });
@@ -1170,8 +1162,8 @@ describe('App surface foundation', () => {
 
     render(<App />);
 
-    expect(await screen.findByText('Companion stream paused')).toBeTruthy();
-    expect(screen.getByText('Driver stopped')).toBeTruthy();
+    expect(await screen.findByText('Interaction unavailable')).toBeTruthy();
+    expect(screen.getByText('Runtime unavailable')).toBeTruthy();
     expectNonReadySurface();
   });
 
@@ -1182,7 +1174,7 @@ describe('App surface foundation', () => {
 
     render(<App />);
 
-    expect(await screen.findByText('Companion stream paused')).toBeTruthy();
+    expect(await screen.findByText('Interaction unavailable')).toBeTruthy();
     expect(screen.getByText('Driver error')).toBeTruthy();
     expectNonReadySurface();
   });
@@ -1238,7 +1230,7 @@ describe('App surface foundation', () => {
     expect(screen.getByText('Presence script')).toBeTruthy();
     expect(screen.getByText('Operator scope')).toBeTruthy();
     expect(screen.getAllByText('Not bound').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Bound operator')).toBeNull();
-    expect(screen.queryByText('Trusted runtime')).toBeNull();
+    expect(screen.queryByText('Runtime binding')).toBeNull();
+    expect(screen.queryByText('Runtime IPC')).toBeNull();
   });
 });

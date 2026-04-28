@@ -26,7 +26,6 @@ pub struct AvatarLaunchContext {
     pub launched_by: String,
     pub runtime_app_id: Option<String>,
     pub source_surface: Option<String>,
-    pub realm_base_url: Option<String>,
     pub world_id: Option<String>,
 }
 
@@ -127,7 +126,6 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
     let mut launched_by = None;
     let mut runtime_app_id = None;
     let mut source_surface = None;
-    let mut realm_base_url = None;
     let mut world_id = None;
 
     for (key, value) in parsed.query_pairs() {
@@ -145,9 +143,8 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
             "launched_by" => launched_by = Some(value.into_owned()),
             "runtime_app_id" => runtime_app_id = Some(value.into_owned()),
             "source_surface" => source_surface = Some(value.into_owned()),
-            "realm_base_url" => realm_base_url = Some(value.into_owned()),
             "world_id" => world_id = Some(value.into_owned()),
-            "access_token" | "refresh_token" | "subject_user_id" | "manifest_path"
+            "access_token" | "refresh_token" | "subject_user_id" | "realm_base_url" | "manifest_path"
             | "package_path" | "source_path" | "config_path" => {
                 return Err(format!(
                     "forbidden avatar launch query parameter: {}",
@@ -211,7 +208,6 @@ pub fn parse_avatar_launch_context(raw_url: &str) -> Result<AvatarLaunchContext,
         launched_by,
         runtime_app_id: normalize_optional_query_value(runtime_app_id),
         source_surface: normalize_optional_query_value(source_surface),
-        realm_base_url: normalize_optional_query_value(realm_base_url),
         world_id: normalize_optional_query_value(world_id),
     })
 }
