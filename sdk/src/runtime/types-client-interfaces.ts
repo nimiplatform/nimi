@@ -13,6 +13,28 @@ import type {
   RevokeSessionRequest,
 } from './generated/runtime/v1/auth';
 import type {
+  AccountSessionEvent,
+  BeginLoginRequest,
+  BeginLoginResponse,
+  CompleteLoginRequest,
+  CompleteLoginResponse,
+  GetAccessTokenRequest,
+  GetAccessTokenResponse,
+  GetAccountSessionStatusRequest,
+  GetAccountSessionStatusResponse,
+  IssueScopedAppBindingRequest,
+  IssueScopedAppBindingResponse,
+  LogoutRequest,
+  LogoutResponse,
+  RefreshAccountSessionRequest,
+  RefreshAccountSessionResponse,
+  RevokeScopedAppBindingRequest,
+  RevokeScopedAppBindingResponse,
+  SubscribeAccountSessionEventsRequest,
+  SwitchAccountRequest,
+  SwitchAccountResponse,
+} from './generated/runtime/v1/account';
+import type {
   AuthorizeExternalPrincipalRequest,
   AuthorizeExternalPrincipalResponse,
   IssueDelegatedAccessTokenRequest,
@@ -328,6 +350,19 @@ export type RuntimeAppAuthClient = {
   listTokenChain(request: ListTokenChainRequest, options?: RuntimeCallOptions): Promise<ListTokenChainResponse>;
 };
 
+export type RuntimeAccountClient = {
+  getAccountSessionStatus(request: GetAccountSessionStatusRequest, options?: RuntimeCallOptions): Promise<GetAccountSessionStatusResponse>;
+  subscribeAccountSessionEvents(request: SubscribeAccountSessionEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<AccountSessionEvent>>;
+  beginLogin(request: BeginLoginRequest, options?: RuntimeCallOptions): Promise<BeginLoginResponse>;
+  completeLogin(request: CompleteLoginRequest, options?: RuntimeCallOptions): Promise<CompleteLoginResponse>;
+  getAccessToken(request: GetAccessTokenRequest, options?: RuntimeCallOptions): Promise<GetAccessTokenResponse>;
+  refreshAccountSession(request: RefreshAccountSessionRequest, options?: RuntimeCallOptions): Promise<RefreshAccountSessionResponse>;
+  logout(request: LogoutRequest, options?: RuntimeCallOptions): Promise<LogoutResponse>;
+  switchAccount(request: SwitchAccountRequest, options?: RuntimeCallOptions): Promise<SwitchAccountResponse>;
+  issueScopedAppBinding(request: IssueScopedAppBindingRequest, options?: RuntimeCallOptions): Promise<IssueScopedAppBindingResponse>;
+  revokeScopedAppBinding(request: RevokeScopedAppBindingRequest, options?: RuntimeCallOptions): Promise<RevokeScopedAppBindingResponse>;
+};
+
 export type RuntimeAiClient = {
   executeScenario(request: ExecuteScenarioRequest, options?: RuntimeCallOptions): Promise<ExecuteScenarioResponse>;
   streamScenario(request: StreamScenarioRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<StreamScenarioEvent>>;
@@ -537,6 +572,7 @@ export type RuntimeClient = {
   transport: RuntimeTransportConfig;
   auth: RuntimeAuthClient;
   appAuth: RuntimeAppAuthClient;
+  account: RuntimeAccountClient;
   ai: RuntimeAiClient;
   workflow: RuntimeWorkflowClient;
   model: RuntimeModelClient;

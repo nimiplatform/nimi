@@ -222,6 +222,18 @@ export type RuntimeAgentExecutionBinding = {
 
 export type RuntimeAgentReasoningConfig = NimiReasoningConfig;
 
+export type RuntimeScopedBindingAttachment = {
+  bindingId: string;
+  bindingHandle?: string;
+  runtimeAppId?: string;
+  appInstanceId?: string;
+  windowId?: string;
+  avatarInstanceId?: string;
+  agentId?: string;
+  conversationAnchorId?: string;
+  worldId?: string;
+};
+
 export type RuntimeAgentTurnRequest = {
   agentId: string;
   conversationAnchorId: string;
@@ -233,19 +245,24 @@ export type RuntimeAgentTurnRequest = {
   messages: RuntimeAgentMessage[];
   executionBinding: RuntimeAgentExecutionBinding;
   reasoning?: RuntimeAgentReasoningConfig;
+  scopedBinding?: RuntimeScopedBindingAttachment;
 };
 
 export type RuntimeAgentTurnInterruptRequest = {
   agentId: string;
   conversationAnchorId: string;
+  worldId?: string;
   turnId?: string;
   reason?: string;
+  scopedBinding?: RuntimeScopedBindingAttachment;
 };
 
 export type RuntimeAgentSessionSnapshotRequest = {
   agentId: string;
   conversationAnchorId: string;
+  worldId?: string;
   requestId?: string;
+  scopedBinding?: RuntimeScopedBindingAttachment;
 };
 
 export type RuntimeAgentConsumeRequest = {
@@ -254,6 +271,7 @@ export type RuntimeAgentConsumeRequest = {
   cursor?: string;
   subjectUserId?: string;
   includeAgentEvents?: boolean;
+  scopedBinding?: RuntimeScopedBindingAttachment;
 };
 
 export type RuntimeAgentTimelineChannel =

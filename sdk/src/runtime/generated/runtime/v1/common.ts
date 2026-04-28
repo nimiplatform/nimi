@@ -12,6 +12,47 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 /**
+ * @generated from protobuf message nimi.runtime.v1.ScopedRuntimeBindingAttachment
+ */
+export interface ScopedRuntimeBindingAttachment {
+    /**
+     * @generated from protobuf field: string binding_id = 1
+     */
+    bindingId: string;
+    /**
+     * @generated from protobuf field: string binding_handle = 2
+     */
+    bindingHandle: string;
+    /**
+     * @generated from protobuf field: string runtime_app_id = 3
+     */
+    runtimeAppId: string;
+    /**
+     * @generated from protobuf field: string app_instance_id = 4
+     */
+    appInstanceId: string;
+    /**
+     * @generated from protobuf field: string window_id = 5
+     */
+    windowId: string;
+    /**
+     * @generated from protobuf field: string avatar_instance_id = 6
+     */
+    avatarInstanceId: string;
+    /**
+     * @generated from protobuf field: string agent_id = 7
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 8
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string world_id = 9
+     */
+    worldId: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.UsageStats
  */
 export interface UsageStats {
@@ -739,6 +780,117 @@ export enum CallerKind {
      */
     THIRD_PARTY_SERVICE = 4
 }
+// @generated message type with reflection information, may provide speed optimized methods
+class ScopedRuntimeBindingAttachment$Type extends MessageType<ScopedRuntimeBindingAttachment> {
+    constructor() {
+        super("nimi.runtime.v1.ScopedRuntimeBindingAttachment", [
+            { no: 1, name: "binding_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "binding_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "runtime_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "app_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "window_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "avatar_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "world_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ScopedRuntimeBindingAttachment>): ScopedRuntimeBindingAttachment {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bindingId = "";
+        message.bindingHandle = "";
+        message.runtimeAppId = "";
+        message.appInstanceId = "";
+        message.windowId = "";
+        message.avatarInstanceId = "";
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        message.worldId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ScopedRuntimeBindingAttachment>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ScopedRuntimeBindingAttachment): ScopedRuntimeBindingAttachment {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string binding_id */ 1:
+                    message.bindingId = reader.string();
+                    break;
+                case /* string binding_handle */ 2:
+                    message.bindingHandle = reader.string();
+                    break;
+                case /* string runtime_app_id */ 3:
+                    message.runtimeAppId = reader.string();
+                    break;
+                case /* string app_instance_id */ 4:
+                    message.appInstanceId = reader.string();
+                    break;
+                case /* string window_id */ 5:
+                    message.windowId = reader.string();
+                    break;
+                case /* string avatar_instance_id */ 6:
+                    message.avatarInstanceId = reader.string();
+                    break;
+                case /* string agent_id */ 7:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 8:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string world_id */ 9:
+                    message.worldId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ScopedRuntimeBindingAttachment, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string binding_id = 1; */
+        if (message.bindingId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.bindingId);
+        /* string binding_handle = 2; */
+        if (message.bindingHandle !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bindingHandle);
+        /* string runtime_app_id = 3; */
+        if (message.runtimeAppId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.runtimeAppId);
+        /* string app_instance_id = 4; */
+        if (message.appInstanceId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.appInstanceId);
+        /* string window_id = 5; */
+        if (message.windowId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.windowId);
+        /* string avatar_instance_id = 6; */
+        if (message.avatarInstanceId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.avatarInstanceId);
+        /* string agent_id = 7; */
+        if (message.agentId !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 8; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string world_id = 9; */
+        if (message.worldId !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.worldId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ScopedRuntimeBindingAttachment
+ */
+export const ScopedRuntimeBindingAttachment = new ScopedRuntimeBindingAttachment$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class UsageStats$Type extends MessageType<UsageStats> {
     constructor() {

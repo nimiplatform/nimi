@@ -14,6 +14,7 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { ReasonCode } from "./common";
+import { ScopedRuntimeBindingAttachment } from "./common";
 import { Struct } from "../../google/protobuf/struct";
 /**
  * @generated from protobuf message nimi.runtime.v1.SendAppMessageRequest
@@ -43,6 +44,10 @@ export interface SendAppMessageRequest {
      * @generated from protobuf field: bool require_ack = 6
      */
     requireAck: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 7
+     */
+    scopedBinding?: ScopedRuntimeBindingAttachment;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SendAppMessageResponse
@@ -81,6 +86,10 @@ export interface SubscribeAppMessagesRequest {
      * @generated from protobuf field: repeated string from_app_ids = 4
      */
     fromAppIds: string[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 5
+     */
+    scopedBinding?: ScopedRuntimeBindingAttachment;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AppMessageEvent
@@ -161,7 +170,8 @@ class SendAppMessageRequest$Type extends MessageType<SendAppMessageRequest> {
             { no: 3, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "message_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "payload", kind: "message", T: () => Struct },
-            { no: 6, name: "require_ack", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 6, name: "require_ack", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "scoped_binding", kind: "message", T: () => ScopedRuntimeBindingAttachment }
         ]);
     }
     create(value?: PartialMessage<SendAppMessageRequest>): SendAppMessageRequest {
@@ -198,6 +208,9 @@ class SendAppMessageRequest$Type extends MessageType<SendAppMessageRequest> {
                 case /* bool require_ack */ 6:
                     message.requireAck = reader.bool();
                     break;
+                case /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding */ 7:
+                    message.scopedBinding = ScopedRuntimeBindingAttachment.internalBinaryRead(reader, reader.uint32(), options, message.scopedBinding);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -228,6 +241,9 @@ class SendAppMessageRequest$Type extends MessageType<SendAppMessageRequest> {
         /* bool require_ack = 6; */
         if (message.requireAck !== false)
             writer.tag(6, WireType.Varint).bool(message.requireAck);
+        /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 7; */
+        if (message.scopedBinding)
+            ScopedRuntimeBindingAttachment.internalBinaryWrite(message.scopedBinding, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -308,7 +324,8 @@ class SubscribeAppMessagesRequest$Type extends MessageType<SubscribeAppMessagesR
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "cursor", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "from_app_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "from_app_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "scoped_binding", kind: "message", T: () => ScopedRuntimeBindingAttachment }
         ]);
     }
     create(value?: PartialMessage<SubscribeAppMessagesRequest>): SubscribeAppMessagesRequest {
@@ -338,6 +355,9 @@ class SubscribeAppMessagesRequest$Type extends MessageType<SubscribeAppMessagesR
                 case /* repeated string from_app_ids */ 4:
                     message.fromAppIds.push(reader.string());
                     break;
+                case /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding */ 5:
+                    message.scopedBinding = ScopedRuntimeBindingAttachment.internalBinaryRead(reader, reader.uint32(), options, message.scopedBinding);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -362,6 +382,9 @@ class SubscribeAppMessagesRequest$Type extends MessageType<SubscribeAppMessagesR
         /* repeated string from_app_ids = 4; */
         for (let i = 0; i < message.fromAppIds.length; i++)
             writer.tag(4, WireType.LengthDelimited).string(message.fromAppIds[i]);
+        /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 5; */
+        if (message.scopedBinding)
+            ScopedRuntimeBindingAttachment.internalBinaryWrite(message.scopedBinding, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

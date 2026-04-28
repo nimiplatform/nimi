@@ -22,6 +22,7 @@ message SendAppMessageRequest {
   string message_type = 4;
   google.protobuf.Struct payload = 5;
   bool require_ack = 6;
+  ScopedRuntimeBindingAttachment scoped_binding = 7;
 }
 
 message SendAppMessageResponse {
@@ -35,6 +36,7 @@ message SubscribeAppMessagesRequest {
   string subject_user_id = 2;
   string cursor = 3;
   repeated string from_app_ids = 4;
+  ScopedRuntimeBindingAttachment scoped_binding = 5;
 }
 
 message AppMessageEvent {

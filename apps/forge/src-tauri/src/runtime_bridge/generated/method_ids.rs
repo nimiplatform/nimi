@@ -2,6 +2,16 @@
 // DO NOT EDIT MANUALLY.
 
 pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
+    "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
+    "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
+    "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
+    "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
+    "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
+    "/nimi.runtime.v1.RuntimeAccountService/Logout",
+    "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
+    "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
+    "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
+    "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
     "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
     "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
@@ -146,6 +156,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
 ];
 
 pub const RUNTIME_BRIDGE_STREAM_METHODS: &[&str] = &[
+    "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAiService/StreamScenario",

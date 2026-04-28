@@ -11,6 +11,7 @@ import type {
 } from './runtime-method-contracts.js';
 import type {
   RuntimeAppAuthClient,
+  RuntimeAccountClient,
   RuntimeAgentModule,
   RuntimeAuditClient,
   RuntimeAuthClient,
@@ -114,6 +115,7 @@ export class Runtime {
   readonly appId: string;
   readonly auth: RuntimeAuthClient;
   readonly appAuth: RuntimeAppAuthClient;
+  readonly account: RuntimeAccountClient;
   readonly ai: RuntimeAiModule;
   readonly media: RuntimeMediaModule;
   readonly workflow: RuntimeWorkflowClient;
@@ -259,6 +261,7 @@ export class Runtime {
       invokeWithClient: (operation) => this.#invokeWithClient(operation),
     });
     this.auth = passthrough.auth;
+    this.account = passthrough.account;
     this.workflow = passthrough.workflow;
     this.model = passthrough.model;
     this.local = passthrough.local;

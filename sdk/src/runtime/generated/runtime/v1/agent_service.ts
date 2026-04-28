@@ -24,6 +24,7 @@ import { ReasonCode } from "./common";
 import { Struct } from "../../google/protobuf/struct";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { Duration } from "../../google/protobuf/duration";
+import { ScopedRuntimeBindingAttachment } from "./common";
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentRequestContext
  */
@@ -36,6 +37,10 @@ export interface AgentRequestContext {
      * @generated from protobuf field: string subject_user_id = 2
      */
     subjectUserId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 3
+     */
+    scopedBinding?: ScopedRuntimeBindingAttachment;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentAutonomyConfig
@@ -1848,7 +1853,8 @@ class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
     constructor() {
         super("nimi.runtime.v1.AgentRequestContext", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "scoped_binding", kind: "message", T: () => ScopedRuntimeBindingAttachment }
         ]);
     }
     create(value?: PartialMessage<AgentRequestContext>): AgentRequestContext {
@@ -1870,6 +1876,9 @@ class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
                 case /* string subject_user_id */ 2:
                     message.subjectUserId = reader.string();
                     break;
+                case /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding */ 3:
+                    message.scopedBinding = ScopedRuntimeBindingAttachment.internalBinaryRead(reader, reader.uint32(), options, message.scopedBinding);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1888,6 +1897,9 @@ class AgentRequestContext$Type extends MessageType<AgentRequestContext> {
         /* string subject_user_id = 2; */
         if (message.subjectUserId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.subjectUserId);
+        /* nimi.runtime.v1.ScopedRuntimeBindingAttachment scoped_binding = 3; */
+        if (message.scopedBinding)
+            ScopedRuntimeBindingAttachment.internalBinaryWrite(message.scopedBinding, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

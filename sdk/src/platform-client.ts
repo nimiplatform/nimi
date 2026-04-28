@@ -9,7 +9,7 @@ import { Realm } from './realm/client.js';
 import type { RealmFetchImpl, RealmTokenRefreshResult } from './realm/client-types.js';
 import type { RealmServiceArgs, RealmServiceResult } from './realm/generated/type-helpers.js';
 import { createNimiError } from './runtime/errors.js';
-import { AppMode, WorldRelation } from './runtime/generated/runtime/v1/auth.js';
+import { AccountCallerMode, AccountSessionState } from './runtime/generated/runtime/v1/account.js';
 import { Runtime } from './runtime/runtime.js';
 import type { ListConnectorsRequest, ListConnectorsResponse } from './runtime/generated/runtime/v1/connector.js';
 import type { RuntimeCallOptions, RuntimeClientDefaults, RuntimeOptions, RuntimeTransportConfig } from './runtime/types.js';
@@ -26,6 +26,8 @@ import type {
   WorldEvolutionSupervisionSelector,
 } from './runtime/world-evolution-selector-read.js';
 import { ReasonCode } from './types/index.js';
+import { detectTauriTransport } from './platform-client-tauri.js';
+import { createRuntimeFullAppRegistration } from './platform-client-runtime-registration.js';
 
 type PlatformSessionUser = JsonObject | null;
 type RealmServices = Realm['services'];
@@ -60,6 +62,7 @@ export type PlatformAuthSessionStore = {
 };
 
 export type PlatformClientInput = {
+  authMode?: 'local-first-party-runtime' | 'web-cloud' | 'external-principal';
   appId?: string;
   realmBaseUrl?: string;
   accessToken?: string;
@@ -190,39 +193,6 @@ const PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX = '.platform-runtime-session'
 const PLATFORM_RUNTIME_SESSION_DEVICE_ID = 'platform-runtime-session';
 const PLATFORM_RUNTIME_SESSION_TTL_SECONDS = 3600;
 const PLATFORM_RUNTIME_SESSION_REFRESH_SKEW_MS = 30_000;
-
-function detectTauriTransport(): RuntimeTransportConfig | null {
-  const globalRecord = globalThis as {
-    __NIMI_TAURI_TEST__?: unknown;
-    __TAURI__?: unknown;
-    __TAURI_INTERNALS__?: unknown;
-    __TAURI_IPC__?: unknown;
-    window?: {
-      __NIMI_TAURI_TEST__?: unknown;
-      __TAURI__?: unknown;
-      __TAURI_INTERNALS__?: unknown;
-      __TAURI_IPC__?: unknown;
-    };
-  };
-  const tauriRuntime = (
-    globalRecord.__NIMI_TAURI_TEST__
-    || globalRecord.__TAURI_INTERNALS__
-    || globalRecord.__TAURI_IPC__
-    || globalRecord.__TAURI__
-    || globalRecord.window?.__NIMI_TAURI_TEST__
-    || globalRecord.window?.__TAURI_INTERNALS__
-    || globalRecord.window?.__TAURI_IPC__
-    || globalRecord.window?.__TAURI__
-  );
-  if (!tauriRuntime) {
-    return null;
-  }
-  return {
-    type: 'tauri-ipc',
-    commandNamespace: 'runtime_bridge',
-    eventNamespace: 'runtime_bridge',
-  };
-}
 
 function readProcessEnv(name: string): string {
   if (typeof process === 'undefined' || typeof process.env === 'undefined') {
@@ -393,7 +363,16 @@ function createDisabledRuntime(appId: string): Runtime {
   });
 }
 
-function createDomains(runtime: Runtime, realm: Realm): PlatformDomains {
+function createLocalFirstPartyAuthRouteError(route: string): never {
+  throw createNimiError({
+    message: `local first-party Runtime mode does not expose Realm ${route} as account truth`,
+    reasonCode: ReasonCode.SDK_AUTH_MODE_INVALID,
+    actionHint: 'use_runtime_account_browser_login',
+    source: 'sdk',
+  });
+}
+
+function createDomains(runtime: Runtime, realm: Realm, authMode: PlatformClientInput['authMode']): PlatformDomains {
   const toListConnectorsInput = (input?: Partial<ListConnectorsInput>): ListConnectorsInput => ({
     pageSize: Number(input?.pageSize || 0),
     pageToken: String(input?.pageToken || ''),
@@ -403,7 +382,18 @@ function createDomains(runtime: Runtime, realm: Realm): PlatformDomains {
   });
 
   return {
-    auth: {
+    auth: authMode === 'local-first-party-runtime' ? {
+      checkEmail: async () => createLocalFirstPartyAuthRouteError('checkEmail'),
+      passwordLogin: async () => createLocalFirstPartyAuthRouteError('passwordLogin'),
+      oauthLogin: async () => createLocalFirstPartyAuthRouteError('oauthLogin'),
+      requestEmailOtp: async () => createLocalFirstPartyAuthRouteError('requestEmailOtp'),
+      verifyEmailOtp: async () => createLocalFirstPartyAuthRouteError('verifyEmailOtp'),
+      verifyTwoFactor: async () => createLocalFirstPartyAuthRouteError('verifyTwoFactor'),
+      walletChallenge: async () => createLocalFirstPartyAuthRouteError('walletChallenge'),
+      walletLogin: async () => createLocalFirstPartyAuthRouteError('walletLogin'),
+      updatePassword: (input) => realm.services.AuthService.updatePassword(input),
+      getCurrentUser: async () => createLocalFirstPartyAuthRouteError('MeService.getMe'),
+    } : {
       checkEmail: (input) => realm.services.AuthService.checkEmail(input),
       passwordLogin: (input) => realm.services.AuthService.passwordLogin({
         identifier: normalizeText(input.identifier || input.email),
@@ -498,17 +488,72 @@ function createPlatformWorldEvolution(runtime: Runtime): PlatformWorldEvolution 
 
 export async function createPlatformClient(input: PlatformClientInput): Promise<PlatformClient> {
   const appId = normalizeText(input.appId) || DEFAULT_PLATFORM_APP_ID;
+  const authMode = input.authMode || 'web-cloud';
   const tokenValue = normalizeText(input.accessToken);
   const sessionStore = input.sessionStore ?? null;
   const realmBaseUrl = resolvePlatformRealmBaseUrl(input.realmBaseUrl);
+  const isLocalFirstPartyRuntime = authMode === 'local-first-party-runtime';
 
-  const runtimeAccessTokenProvider = async () => discardExpiredRuntimeAccessToken(await resolveToken(
-    tokenValue,
-    input.accessTokenProvider,
-    sessionStore?.getAccessToken,
-  ));
+  if (isLocalFirstPartyRuntime && (
+    tokenValue
+    || input.accessTokenProvider
+    || input.refreshTokenProvider
+    || input.subjectUserIdProvider
+    || sessionStore
+  )) {
+    throw createNimiError({
+      message: 'local first-party Runtime mode rejects app-owned token, refresh, subject, and session store inputs',
+      reasonCode: ReasonCode.SDK_AUTH_MODE_INVALID,
+      actionHint: 'remove_app_owned_auth_inputs',
+      source: 'sdk',
+    });
+  }
+
+  const accountCaller = {
+    appId,
+    appInstanceId: `${appId}.local-first-party`,
+    deviceId: 'local-first-party-device',
+    mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+    scopes: [],
+  };
+
+  const runtimeAccountAccessTokenProvider = async () => {
+    const response = await runtime.account.getAccessToken({
+      caller: accountCaller,
+      requestedScopes: [],
+    });
+    const accessToken = normalizeText(response.accessToken);
+    if (!response.accepted || !accessToken) {
+      throw createNimiError({
+        message: `runtime account access token unavailable: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`,
+        reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
+        actionHint: 'complete_runtime_account_login',
+        source: 'runtime',
+      });
+    }
+    return accessToken;
+  };
+
+  const runtimeAccountProjectionUserIdProvider = async () => {
+    const response = await runtime.account.getAccountSessionStatus({ caller: accountCaller });
+    if (response.state !== AccountSessionState.AUTHENTICATED || !response.accountProjection?.accountId) {
+      return '';
+    }
+    return normalizeText(response.accountProjection.accountId);
+  };
+
+  const runtimeAccessTokenProvider = async () => isLocalFirstPartyRuntime
+    ? runtimeAccountAccessTokenProvider()
+    : discardExpiredRuntimeAccessToken(await resolveToken(
+      tokenValue,
+      input.accessTokenProvider,
+      sessionStore?.getAccessToken,
+    ));
 
   const runtimeSubjectUserIdProvider = async () => {
+    if (isLocalFirstPartyRuntime) {
+      return runtimeAccountProjectionUserIdProvider();
+    }
     if (sessionStore?.getSubjectUserId) {
       const subjectUserId = normalizeText(await sessionStore.getSubjectUserId());
       if (subjectUserId) {
@@ -525,7 +570,6 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
   };
 
   let runtime!: Runtime;
-  let runtimeSessionRegisterPromise: Promise<void> | null = null;
   let runtimeSessionCache:
     | {
       subjectUserId: string;
@@ -536,40 +580,12 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
     | null = null;
   let runtimeSessionInflight: Promise<{ sessionId: string; sessionToken: string } | undefined> | null = null;
 
-  const ensureRuntimeSessionRegistered = async (): Promise<void> => {
-    if (runtimeSessionRegisterPromise) {
-      return runtimeSessionRegisterPromise;
-    }
-    runtimeSessionRegisterPromise = (async () => {
-      const response = await runtime.auth.registerApp({
-        appId,
-        appInstanceId: `${appId}${PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX}`,
-        deviceId: PLATFORM_RUNTIME_SESSION_DEVICE_ID,
-        appVersion: '1',
-        capabilities: [],
-        modeManifest: {
-          appMode: AppMode.FULL,
-          runtimeRequired: true,
-          realmRequired: true,
-          worldRelation: WorldRelation.NONE,
-        },
-      });
-      if (!response.accepted) {
-        throw createNimiError({
-          message: `platform runtime session registration rejected: ${String(response.reasonCode || 'unknown')}`,
-          reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-          actionHint: 'register_runtime_app_first',
-          source: 'runtime',
-        });
-      }
-    })();
-    try {
-      await runtimeSessionRegisterPromise;
-    } catch (error) {
-      runtimeSessionRegisterPromise = null;
-      throw error;
-    }
-  };
+  const ensureRuntimeSessionRegistered = createRuntimeFullAppRegistration(() => runtime, {
+    appId,
+    appInstanceId: `${appId}${PLATFORM_RUNTIME_SESSION_APP_INSTANCE_SUFFIX}`,
+    deviceId: PLATFORM_RUNTIME_SESSION_DEVICE_ID,
+    rejectionLabel: 'platform runtime session registration rejected',
+  });
 
   const runtimeAppSessionProvider = async () => {
     const subjectUserId = normalizeText(await runtimeSubjectUserIdProvider());
@@ -644,11 +660,26 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
         },
       });
 
+  const ensureLocalFirstPartyAccountCallerRegistered = createRuntimeFullAppRegistration(() => runtime, {
+    appId,
+    appInstanceId: accountCaller.appInstanceId,
+    deviceId: accountCaller.deviceId,
+    rejectionLabel: 'local first-party Runtime account caller registration rejected',
+  });
+
+  if (isLocalFirstPartyRuntime) {
+    await ensureLocalFirstPartyAccountCallerRegistered();
+  }
+
   let realm!: Realm;
   realm = new Realm({
     baseUrl: realmBaseUrl,
-    auth: input.allowAnonymousRealm && !tokenValue && !input.accessTokenProvider && !sessionStore?.getAccessToken
+    auth: input.allowAnonymousRealm && !isLocalFirstPartyRuntime && !tokenValue && !input.accessTokenProvider && !sessionStore?.getAccessToken
       ? null
+      : isLocalFirstPartyRuntime
+        ? {
+            accessToken: runtimeAccountAccessTokenProvider,
+          }
       : {
           accessToken: async () => resolveToken(
             tokenValue,
@@ -680,11 +711,28 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
   const client: PlatformClient = {
     runtime,
     realm,
-    domains: createDomains(runtime, realm),
+    domains: createDomains(runtime, realm, authMode),
     worldEvolution: createPlatformWorldEvolution(runtime),
   };
   currentPlatformClient = client;
   return client;
+}
+
+export function createLocalFirstPartyRuntimePlatformClient(
+  input: Omit<PlatformClientInput,
+    'authMode'
+    | 'accessToken'
+    | 'accessTokenProvider'
+    | 'refreshTokenProvider'
+    | 'subjectUserIdProvider'
+    | 'sessionStore'
+    | 'allowAnonymousRealm'
+  >,
+): Promise<PlatformClient> {
+  return createPlatformClient({
+    ...input,
+    authMode: 'local-first-party-runtime',
+  });
 }
 
 export function getPlatformClient(): PlatformClient {

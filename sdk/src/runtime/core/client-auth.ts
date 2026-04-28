@@ -1,4 +1,5 @@
 import {
+  isRuntimeAccountMethod,
   isRuntimeAppSessionBootstrapMethod,
   isRuntimeLocalAnonymousMethod,
   isRuntimeWriteMethod,
@@ -67,6 +68,9 @@ async function resolveAuthorization(
     return undefined;
   }
   if (isRuntimeAppSessionBootstrapMethod(methodId)) {
+    return undefined;
+  }
+  if (isRuntimeAccountMethod(methodId)) {
     return undefined;
   }
   if (

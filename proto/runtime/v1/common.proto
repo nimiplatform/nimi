@@ -209,6 +209,18 @@ enum CallerKind {
   CALLER_KIND_THIRD_PARTY_SERVICE = 4;
 }
 
+message ScopedRuntimeBindingAttachment {
+  string binding_id = 1;
+  string binding_handle = 2;
+  string runtime_app_id = 3;
+  string app_instance_id = 4;
+  string window_id = 5;
+  string avatar_instance_id = 6;
+  string agent_id = 7;
+  string conversation_anchor_id = 8;
+  string world_id = 9;
+}
+
 message UsageStats {
   int64 input_tokens = 1;
   int64 output_tokens = 2;

@@ -3,6 +3,7 @@ export type { NimiError, VersionCompatibilityStatus } from './types/index.js';
 export { ReasonCode, isRetryableReasonCode } from './types/index.js';
 export {
   createPlatformClient,
+  createLocalFirstPartyRuntimePlatformClient,
   getPlatformClient,
   clearPlatformClient,
   unstable_attachPlatformWorldEvolutionSelectorReadProvider,

@@ -7,10 +7,13 @@ import { fileURLToPath } from 'node:url';
 import {
   clearPlatformClient,
   createPlatformClient,
+  createLocalFirstPartyRuntimePlatformClient,
   getPlatformClient,
   unstable_attachPlatformWorldEvolutionSelectorReadProvider,
 } from '../src/index.js';
 import { GetRuntimeHealthResponse, setNodeGrpcBridge } from '../src/runtime/index.js';
+import { GetAccessTokenResponse } from '../src/runtime/generated/runtime/v1/account.js';
+import { RegisterAppResponse } from '../src/runtime/generated/runtime/v1/auth.js';
 import { ReasonCode } from '../src/types/index.js';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
@@ -331,6 +334,195 @@ test('createPlatformClient allows anonymous realm access without authorization h
   await client.realm.ready();
   assert.equal(authorizationHeader, null);
 });
+
+test('local first-party Runtime platform client rejects app-owned auth seams', async () => {
+  clearPlatformClient();
+  await assert.rejects(
+    () => createPlatformClient({
+      authMode: 'local-first-party-runtime',
+      appId: 'nimi.sdk.local.reject-explicit-token',
+      realmBaseUrl: 'https://realm.example',
+      accessToken: 'app-token',
+      runtimeTransport: null,
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_AUTH_MODE_INVALID);
+      return true;
+    },
+  );
+  await assert.rejects(
+    () => createPlatformClient({
+      authMode: 'local-first-party-runtime',
+      appId: 'nimi.sdk.local.reject-token',
+      realmBaseUrl: 'https://realm.example',
+      accessTokenProvider: async () => 'app-token',
+      runtimeTransport: null,
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_AUTH_MODE_INVALID);
+      return true;
+    },
+  );
+  await assert.rejects(
+    () => createPlatformClient({
+      authMode: 'local-first-party-runtime',
+      appId: 'nimi.sdk.local.reject-refresh',
+      realmBaseUrl: 'https://realm.example',
+      refreshTokenProvider: async () => 'app-refresh-token',
+      runtimeTransport: null,
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_AUTH_MODE_INVALID);
+      return true;
+    },
+  );
+  await assert.rejects(
+    () => createPlatformClient({
+      authMode: 'local-first-party-runtime',
+      appId: 'nimi.sdk.local.reject-subject',
+      realmBaseUrl: 'https://realm.example',
+      subjectUserIdProvider: async () => 'caller-subject',
+      runtimeTransport: null,
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_AUTH_MODE_INVALID);
+      return true;
+    },
+  );
+  await assert.rejects(
+    () => createPlatformClient({
+      authMode: 'local-first-party-runtime',
+      appId: 'nimi.sdk.local.reject-session',
+      realmBaseUrl: 'https://realm.example',
+      sessionStore: {
+        getAccessToken: async () => 'store-token',
+      },
+      runtimeTransport: null,
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_AUTH_MODE_INVALID);
+      return true;
+    },
+  );
+});
+
+test('local first-party Runtime wrapper does not accept app-owned auth inputs at compile boundary', () => {
+  assert.equal(typeof createLocalFirstPartyRuntimePlatformClient, 'function');
+});
+
+test('local first-party Runtime platform client uses Runtime access token for Realm data calls', async () => {
+  clearPlatformClient();
+  let runtimeMethodId = '';
+  let runtimeAuthorizationHeader: string | undefined;
+  let authorizationHeader = '';
+  setNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      runtimeMethodId = input.methodId;
+      runtimeAuthorizationHeader = input.authorization;
+      if (input.methodId.endsWith('/RegisterApp')) {
+        return RegisterAppResponse.toBinary(RegisterAppResponse.create({
+          accepted: true,
+        }));
+      }
+      return GetAccessTokenResponse.toBinary(GetAccessTokenResponse.create({
+        accepted: true,
+        accessToken: 'runtime-issued-short-lived-token',
+      }));
+    },
+    openStream: async () => ({
+      async *[Symbol.asyncIterator]() {
+        // no-op
+      },
+    }),
+    closeStream: async () => {},
+  });
+
+  try {
+    const client = await createPlatformClient({
+      authMode: 'local-first-party-runtime',
+      appId: 'nimi.sdk.local.runtime-token',
+      realmBaseUrl: 'https://realm.example',
+      runtimeTransport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      realmFetchImpl: async (input, init) => {
+        authorizationHeader = readAuthorizationHeader(input, init);
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      },
+    });
+    await client.realm.ready();
+    assert.equal(runtimeMethodId, '/nimi.runtime.v1.RuntimeAccountService/GetAccessToken');
+    assert.equal(runtimeAuthorizationHeader, undefined);
+    assert.equal(authorizationHeader, 'Bearer runtime-issued-short-lived-token');
+    await assert.rejects(
+      () => client.domains.auth.getCurrentUser(),
+      /local first-party Runtime mode/,
+    );
+  } finally {
+    setNodeGrpcBridge(null);
+  }
+});
+
+test('local first-party Runtime Realm provider fails closed after Runtime revokes account projection', async () => {
+  clearPlatformClient();
+  let revoked = false;
+  setNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId.endsWith('/RegisterApp')) {
+        return RegisterAppResponse.toBinary(RegisterAppResponse.create({
+          accepted: true,
+        }));
+      }
+      return GetAccessTokenResponse.toBinary(GetAccessTokenResponse.create(
+      revoked
+        ? {
+            accepted: false,
+            accountReasonCode: 1,
+          }
+        : {
+            accepted: true,
+            accessToken: 'runtime-issued-before-revoke',
+          },
+      ));
+    },
+    openStream: async () => ({
+      async *[Symbol.asyncIterator]() {
+        // no-op
+      },
+    }),
+    closeStream: async () => {},
+  });
+
+  try {
+    const client = await createPlatformClient({
+      authMode: 'local-first-party-runtime',
+      appId: 'nimi.sdk.local.runtime-token-revoked',
+      realmBaseUrl: 'https://realm.example',
+      runtimeTransport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      realmFetchImpl: async () => new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    });
+
+    await client.realm.unsafeRaw.request({ method: 'GET', path: '/api/protected' });
+    revoked = true;
+    await assert.rejects(
+      () => client.realm.unsafeRaw.request({ method: 'GET', path: '/api/protected' }),
+      /runtime account access token unavailable/i,
+    );
+  } finally {
+    setNodeGrpcBridge(null);
+  }
+});
+
 
 test('createPlatformClient runtime auth provider does not forward expired bearer tokens', async () => {
   clearPlatformClient();

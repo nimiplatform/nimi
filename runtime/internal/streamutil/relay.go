@@ -115,6 +115,17 @@ func (r *Relay[T]) Close() {
 	r.mu.Unlock()
 }
 
+// CloseWithError requests shutdown with a typed terminal error after queued
+// items drain.
+func (r *Relay[T]) CloseWithError(err error) {
+	r.mu.Lock()
+	r.pendingClose = false
+	r.closed = true
+	r.resultErr = err
+	r.signalLocked()
+	r.mu.Unlock()
+}
+
 func (r *Relay[T]) Run(ctx context.Context, send func(T) error) error {
 	for {
 		item, err := r.next(ctx)

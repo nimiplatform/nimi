@@ -76,13 +76,14 @@ func (AppMessageEventType) EnumDescriptor() ([]byte, []int) {
 }
 
 type SendAppMessageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	FromAppId     string                 `protobuf:"bytes,1,opt,name=from_app_id,json=fromAppId,proto3" json:"from_app_id,omitempty"`
-	ToAppId       string                 `protobuf:"bytes,2,opt,name=to_app_id,json=toAppId,proto3" json:"to_app_id,omitempty"`
-	SubjectUserId string                 `protobuf:"bytes,3,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	MessageType   string                 `protobuf:"bytes,4,opt,name=message_type,json=messageType,proto3" json:"message_type,omitempty"`
-	Payload       *structpb.Struct       `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
-	RequireAck    bool                   `protobuf:"varint,6,opt,name=require_ack,json=requireAck,proto3" json:"require_ack,omitempty"`
+	state         protoimpl.MessageState          `protogen:"open.v1"`
+	FromAppId     string                          `protobuf:"bytes,1,opt,name=from_app_id,json=fromAppId,proto3" json:"from_app_id,omitempty"`
+	ToAppId       string                          `protobuf:"bytes,2,opt,name=to_app_id,json=toAppId,proto3" json:"to_app_id,omitempty"`
+	SubjectUserId string                          `protobuf:"bytes,3,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
+	MessageType   string                          `protobuf:"bytes,4,opt,name=message_type,json=messageType,proto3" json:"message_type,omitempty"`
+	Payload       *structpb.Struct                `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
+	RequireAck    bool                            `protobuf:"varint,6,opt,name=require_ack,json=requireAck,proto3" json:"require_ack,omitempty"`
+	ScopedBinding *ScopedRuntimeBindingAttachment `protobuf:"bytes,7,opt,name=scoped_binding,json=scopedBinding,proto3" json:"scoped_binding,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -159,6 +160,13 @@ func (x *SendAppMessageRequest) GetRequireAck() bool {
 	return false
 }
 
+func (x *SendAppMessageRequest) GetScopedBinding() *ScopedRuntimeBindingAttachment {
+	if x != nil {
+		return x.ScopedBinding
+	}
+	return nil
+}
+
 type SendAppMessageResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	MessageId     string                 `protobuf:"bytes,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
@@ -220,11 +228,12 @@ func (x *SendAppMessageResponse) GetReasonCode() ReasonCode {
 }
 
 type SubscribeAppMessagesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	SubjectUserId string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	Cursor        string                 `protobuf:"bytes,3,opt,name=cursor,proto3" json:"cursor,omitempty"`
-	FromAppIds    []string               `protobuf:"bytes,4,rep,name=from_app_ids,json=fromAppIds,proto3" json:"from_app_ids,omitempty"`
+	state         protoimpl.MessageState          `protogen:"open.v1"`
+	AppId         string                          `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	SubjectUserId string                          `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
+	Cursor        string                          `protobuf:"bytes,3,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	FromAppIds    []string                        `protobuf:"bytes,4,rep,name=from_app_ids,json=fromAppIds,proto3" json:"from_app_ids,omitempty"`
+	ScopedBinding *ScopedRuntimeBindingAttachment `protobuf:"bytes,5,opt,name=scoped_binding,json=scopedBinding,proto3" json:"scoped_binding,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -283,6 +292,13 @@ func (x *SubscribeAppMessagesRequest) GetCursor() string {
 func (x *SubscribeAppMessagesRequest) GetFromAppIds() []string {
 	if x != nil {
 		return x.FromAppIds
+	}
+	return nil
+}
+
+func (x *SubscribeAppMessagesRequest) GetScopedBinding() *ScopedRuntimeBindingAttachment {
+	if x != nil {
+		return x.ScopedBinding
 	}
 	return nil
 }
@@ -415,7 +431,7 @@ var File_runtime_v1_app_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_app_proto_rawDesc = "" +
 	"\n" +
-	"\x14runtime/v1/app.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\"\xf2\x01\n" +
+	"\x14runtime/v1/app.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\"\xca\x02\n" +
 	"\x15SendAppMessageRequest\x12\x1e\n" +
 	"\vfrom_app_id\x18\x01 \x01(\tR\tfromAppId\x12\x1a\n" +
 	"\tto_app_id\x18\x02 \x01(\tR\atoAppId\x12&\n" +
@@ -423,19 +439,21 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\fmessage_type\x18\x04 \x01(\tR\vmessageType\x121\n" +
 	"\apayload\x18\x05 \x01(\v2\x17.google.protobuf.StructR\apayload\x12\x1f\n" +
 	"\vrequire_ack\x18\x06 \x01(\bR\n" +
-	"requireAck\"\x91\x01\n" +
+	"requireAck\x12V\n" +
+	"\x0escoped_binding\x18\a \x01(\v2/.nimi.runtime.v1.ScopedRuntimeBindingAttachmentR\rscopedBinding\"\x91\x01\n" +
 	"\x16SendAppMessageResponse\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x01 \x01(\tR\tmessageId\x12\x1a\n" +
 	"\baccepted\x18\x02 \x01(\bR\baccepted\x12<\n" +
 	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
-	"reasonCode\"\x96\x01\n" +
+	"reasonCode\"\xee\x01\n" +
 	"\x1bSubscribeAppMessagesRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
 	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12\x16\n" +
 	"\x06cursor\x18\x03 \x01(\tR\x06cursor\x12 \n" +
 	"\ffrom_app_ids\x18\x04 \x03(\tR\n" +
-	"fromAppIds\"\xde\x03\n" +
+	"fromAppIds\x12V\n" +
+	"\x0escoped_binding\x18\x05 \x01(\v2/.nimi.runtime.v1.ScopedRuntimeBindingAttachmentR\rscopedBinding\"\xde\x03\n" +
 	"\x0fAppMessageEvent\x12C\n" +
 	"\n" +
 	"event_type\x18\x01 \x01(\x0e2$.nimi.runtime.v1.AppMessageEventTypeR\teventType\x12\x1a\n" +
@@ -476,31 +494,34 @@ func file_runtime_v1_app_proto_rawDescGZIP() []byte {
 var file_runtime_v1_app_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_runtime_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_runtime_v1_app_proto_goTypes = []any{
-	(AppMessageEventType)(0),            // 0: nimi.runtime.v1.AppMessageEventType
-	(*SendAppMessageRequest)(nil),       // 1: nimi.runtime.v1.SendAppMessageRequest
-	(*SendAppMessageResponse)(nil),      // 2: nimi.runtime.v1.SendAppMessageResponse
-	(*SubscribeAppMessagesRequest)(nil), // 3: nimi.runtime.v1.SubscribeAppMessagesRequest
-	(*AppMessageEvent)(nil),             // 4: nimi.runtime.v1.AppMessageEvent
-	(*structpb.Struct)(nil),             // 5: google.protobuf.Struct
-	(ReasonCode)(0),                     // 6: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),       // 7: google.protobuf.Timestamp
+	(AppMessageEventType)(0),               // 0: nimi.runtime.v1.AppMessageEventType
+	(*SendAppMessageRequest)(nil),          // 1: nimi.runtime.v1.SendAppMessageRequest
+	(*SendAppMessageResponse)(nil),         // 2: nimi.runtime.v1.SendAppMessageResponse
+	(*SubscribeAppMessagesRequest)(nil),    // 3: nimi.runtime.v1.SubscribeAppMessagesRequest
+	(*AppMessageEvent)(nil),                // 4: nimi.runtime.v1.AppMessageEvent
+	(*structpb.Struct)(nil),                // 5: google.protobuf.Struct
+	(*ScopedRuntimeBindingAttachment)(nil), // 6: nimi.runtime.v1.ScopedRuntimeBindingAttachment
+	(ReasonCode)(0),                        // 7: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),          // 8: google.protobuf.Timestamp
 }
 var file_runtime_v1_app_proto_depIdxs = []int32{
-	5, // 0: nimi.runtime.v1.SendAppMessageRequest.payload:type_name -> google.protobuf.Struct
-	6, // 1: nimi.runtime.v1.SendAppMessageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	0, // 2: nimi.runtime.v1.AppMessageEvent.event_type:type_name -> nimi.runtime.v1.AppMessageEventType
-	5, // 3: nimi.runtime.v1.AppMessageEvent.payload:type_name -> google.protobuf.Struct
-	6, // 4: nimi.runtime.v1.AppMessageEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	7, // 5: nimi.runtime.v1.AppMessageEvent.timestamp:type_name -> google.protobuf.Timestamp
-	1, // 6: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
-	3, // 7: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
-	2, // 8: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
-	4, // 9: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
-	8, // [8:10] is the sub-list for method output_type
-	6, // [6:8] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	5,  // 0: nimi.runtime.v1.SendAppMessageRequest.payload:type_name -> google.protobuf.Struct
+	6,  // 1: nimi.runtime.v1.SendAppMessageRequest.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
+	7,  // 2: nimi.runtime.v1.SendAppMessageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	6,  // 3: nimi.runtime.v1.SubscribeAppMessagesRequest.scoped_binding:type_name -> nimi.runtime.v1.ScopedRuntimeBindingAttachment
+	0,  // 4: nimi.runtime.v1.AppMessageEvent.event_type:type_name -> nimi.runtime.v1.AppMessageEventType
+	5,  // 5: nimi.runtime.v1.AppMessageEvent.payload:type_name -> google.protobuf.Struct
+	7,  // 6: nimi.runtime.v1.AppMessageEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	8,  // 7: nimi.runtime.v1.AppMessageEvent.timestamp:type_name -> google.protobuf.Timestamp
+	1,  // 8: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
+	3,  // 9: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
+	2,  // 10: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
+	4,  // 11: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
+	10, // [10:12] is the sub-list for method output_type
+	8,  // [8:10] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_app_proto_init() }

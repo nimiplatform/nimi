@@ -168,10 +168,15 @@ func appIDFromRequest(req any) string {
 		return ""
 	}
 	item, ok := req.(interface{ GetAppId() string })
-	if !ok {
-		return ""
+	if ok {
+		return strings.TrimSpace(item.GetAppId())
 	}
-	return strings.TrimSpace(item.GetAppId())
+	if accountReq, ok := req.(interface {
+		GetCaller() *runtimev1.AccountCaller
+	}); ok {
+		return strings.TrimSpace(accountReq.GetCaller().GetAppId())
+	}
+	return ""
 }
 
 func domainFromRequest(req any) string {

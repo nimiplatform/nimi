@@ -35,9 +35,17 @@ import {
   SubscribeAIProviderHealthEventsRequest,
   SubscribeRuntimeHealthEventsRequest,
 } from '../generated/runtime/v1/audit';
+import {
+  AccountSessionEvent,
+  SubscribeAccountSessionEventsRequest,
+} from '../generated/runtime/v1/account';
 import type { RuntimeStreamMethodCodecMap } from './method-codecs-types';
 
 export const runtimeStreamMethodCodecs: RuntimeStreamMethodCodecMap = {
+  [RuntimeMethodIds.account.subscribeAccountSessionEvents]: {
+    requestType: SubscribeAccountSessionEventsRequest,
+    eventType: AccountSessionEvent,
+  },
   [RuntimeMethodIds.ai.streamScenario]: {
     requestType: StreamScenarioRequest,
     eventType: StreamScenarioEvent,

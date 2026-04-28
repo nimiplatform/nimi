@@ -1,0 +1,295 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+
+enum AccountSessionState {
+  ACCOUNT_SESSION_STATE_UNSPECIFIED = 0;
+  ACCOUNT_SESSION_STATE_ANONYMOUS = 1;
+  ACCOUNT_SESSION_STATE_LOGIN_PENDING = 2;
+  ACCOUNT_SESSION_STATE_AUTHENTICATED = 3;
+  ACCOUNT_SESSION_STATE_REFRESH_PENDING = 4;
+  ACCOUNT_SESSION_STATE_EXPIRED = 5;
+  ACCOUNT_SESSION_STATE_REAUTH_REQUIRED = 6;
+  ACCOUNT_SESSION_STATE_SWITCHING = 7;
+  ACCOUNT_SESSION_STATE_LOGGING_OUT = 8;
+  ACCOUNT_SESSION_STATE_UNAVAILABLE = 9;
+}
+
+enum AccountEventType {
+  ACCOUNT_EVENT_TYPE_UNSPECIFIED = 0;
+  ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS = 1;
+  ACCOUNT_EVENT_TYPE_LOGIN_STARTED = 2;
+  ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED = 3;
+  ACCOUNT_EVENT_TYPE_LOGIN_FAILED = 4;
+  ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT = 5;
+  ACCOUNT_EVENT_TYPE_REFRESH_STARTED = 6;
+  ACCOUNT_EVENT_TYPE_REFRESH_COMPLETED = 7;
+  ACCOUNT_EVENT_TYPE_REFRESH_FAILED = 8;
+  ACCOUNT_EVENT_TYPE_LOGOUT_STARTED = 9;
+  ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED = 10;
+  ACCOUNT_EVENT_TYPE_SWITCH_STARTED = 11;
+  ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED = 12;
+  ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE = 13;
+  ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED = 14;
+  ACCOUNT_EVENT_TYPE_BINDING_ISSUED = 15;
+  ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED = 16;
+  ACCOUNT_EVENT_TYPE_BINDING_SUSPENDED = 17;
+  ACCOUNT_EVENT_TYPE_BINDING_REVOKED = 18;
+  ACCOUNT_EVENT_TYPE_BINDING_EXPIRED = 19;
+  ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED = 20;
+  ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED = 21;
+}
+
+enum AccountReasonCode {
+  ACCOUNT_REASON_CODE_UNSPECIFIED = 0;
+  ACCOUNT_REASON_CODE_ACTION_EXECUTED = 1;
+  ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED = 2;
+  ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE = 3;
+  ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE = 4;
+  ACCOUNT_REASON_CODE_PROOF_EXPIRED = 5;
+  ACCOUNT_REASON_CODE_PROOF_MISMATCHED = 6;
+  ACCOUNT_REASON_CODE_PROOF_CONSUMED = 7;
+  ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED = 8;
+  ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED = 9;
+  ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED = 10;
+  ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY = 11;
+  ACCOUNT_REASON_CODE_MOD_TOKEN_FORBIDDEN = 12;
+  ACCOUNT_REASON_CODE_BINDING_NOT_FOUND = 13;
+  ACCOUNT_REASON_CODE_BINDING_STALE = 14;
+  ACCOUNT_REASON_CODE_BINDING_REPLAY = 15;
+  ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE = 16;
+}
+
+enum AccountCallerMode {
+  ACCOUNT_CALLER_MODE_UNSPECIFIED = 0;
+  ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP = 1;
+  ACCOUNT_CALLER_MODE_DESKTOP_SHELL = 2;
+  ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR = 3;
+  ACCOUNT_CALLER_MODE_MOD = 4;
+  ACCOUNT_CALLER_MODE_WEB_CLOUD = 5;
+  ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL = 6;
+}
+
+enum ScopedAppBindingState {
+  SCOPED_APP_BINDING_STATE_UNSPECIFIED = 0;
+  SCOPED_APP_BINDING_STATE_ISSUED = 1;
+  SCOPED_APP_BINDING_STATE_ACTIVE = 2;
+  SCOPED_APP_BINDING_STATE_SUSPENDED = 3;
+  SCOPED_APP_BINDING_STATE_REVOKED = 4;
+  SCOPED_APP_BINDING_STATE_EXPIRED = 5;
+  SCOPED_APP_BINDING_STATE_SUPERSEDED = 6;
+}
+
+enum ScopedAppBindingPurpose {
+  SCOPED_APP_BINDING_PURPOSE_UNSPECIFIED = 0;
+  SCOPED_APP_BINDING_PURPOSE_AVATAR_INTERACTION_CONSUME = 1;
+  SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME = 2;
+}
+
+message AccountProjection {
+  string account_id = 1;
+  string display_name = 2;
+  string realm_environment_id = 3;
+}
+
+message AccountCaller {
+  string app_id = 1;
+  string app_instance_id = 2;
+  string device_id = 3;
+  AccountCallerMode mode = 4;
+  repeated string scopes = 5;
+}
+
+message ScopedAppBindingRelation {
+  string binding_id = 1;
+  string runtime_app_id = 2;
+  string app_instance_id = 3;
+  string window_id = 4;
+  string avatar_instance_id = 5;
+  string agent_id = 6;
+  string conversation_anchor_id = 7;
+  string world_id = 8;
+  ScopedAppBindingPurpose purpose = 9;
+  repeated string scopes = 10;
+  google.protobuf.Timestamp issued_at = 11;
+  google.protobuf.Timestamp expires_at = 12;
+  ScopedAppBindingState state = 13;
+  AccountReasonCode reason_code = 14;
+}
+
+message AccountSessionEvent {
+  string event_id = 1;
+  uint64 sequence = 2;
+  google.protobuf.Timestamp emitted_at = 3;
+  AccountEventType event_type = 4;
+  AccountSessionState state = 5;
+  ReasonCode reason_code = 6;
+  AccountReasonCode account_reason_code = 7;
+  AccountProjection account_projection = 8;
+  string binding_id = 9;
+  ScopedAppBindingRelation binding_relation = 10;
+  bool replay_truncated = 11;
+}
+
+message GetAccountSessionStatusRequest {
+  AccountCaller caller = 1;
+}
+
+message GetAccountSessionStatusResponse {
+  AccountSessionState state = 1;
+  AccountProjection account_projection = 2;
+  ReasonCode reason_code = 3;
+  AccountReasonCode account_reason_code = 4;
+  bool production_inert = 5;
+}
+
+message SubscribeAccountSessionEventsRequest {
+  AccountCaller caller = 1;
+  uint64 after_sequence = 2;
+}
+
+message BeginLoginRequest {
+  AccountCaller caller = 1;
+  string redirect_uri = 2;
+  string callback_origin = 3;
+  repeated string requested_scopes = 4;
+  int32 ttl_seconds = 5;
+}
+
+message BeginLoginResponse {
+  bool accepted = 1;
+  string login_attempt_id = 2;
+  string oauth_authorization_url = 3;
+  string callback_origin = 4;
+  string state = 5;
+  string nonce = 6;
+  string pkce_challenge = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  ReasonCode reason_code = 9;
+  AccountReasonCode account_reason_code = 10;
+  bool production_inert = 11;
+}
+
+message CompleteLoginRequest {
+  AccountCaller caller = 1;
+  string login_attempt_id = 2;
+  string code = 3;
+  string state = 4;
+  string nonce = 5;
+  string redirect_uri = 6;
+  string callback_origin = 7;
+  string ux_trace_id = 8;
+  string sealed_completion_ticket = 9;
+  string refresh_token = 10;
+}
+
+message CompleteLoginResponse {
+  bool accepted = 1;
+  AccountSessionState state = 2;
+  AccountProjection account_projection = 3;
+  ReasonCode reason_code = 4;
+  AccountReasonCode account_reason_code = 5;
+  bool production_inert = 6;
+}
+
+message GetAccessTokenRequest {
+  AccountCaller caller = 1;
+  repeated string requested_scopes = 2;
+}
+
+message GetAccessTokenResponse {
+  bool accepted = 1;
+  string access_token = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  ReasonCode reason_code = 4;
+  AccountReasonCode account_reason_code = 5;
+  bool production_inert = 6;
+}
+
+message RefreshAccountSessionRequest {
+  AccountCaller caller = 1;
+}
+
+message RefreshAccountSessionResponse {
+  bool accepted = 1;
+  AccountSessionState state = 2;
+  AccountProjection account_projection = 3;
+  ReasonCode reason_code = 4;
+  AccountReasonCode account_reason_code = 5;
+  bool production_inert = 6;
+}
+
+message LogoutRequest {
+  AccountCaller caller = 1;
+  string reason = 2;
+}
+
+message LogoutResponse {
+  bool accepted = 1;
+  AccountSessionState state = 2;
+  ReasonCode reason_code = 3;
+  AccountReasonCode account_reason_code = 4;
+  bool production_inert = 5;
+}
+
+message SwitchAccountRequest {
+  AccountCaller caller = 1;
+  string reason = 2;
+}
+
+message SwitchAccountResponse {
+  bool accepted = 1;
+  AccountSessionState state = 2;
+  AccountProjection account_projection = 3;
+  ReasonCode reason_code = 4;
+  AccountReasonCode account_reason_code = 5;
+  bool production_inert = 6;
+}
+
+message IssueScopedAppBindingRequest {
+  AccountCaller caller = 1;
+  ScopedAppBindingRelation relation = 2;
+  int32 ttl_seconds = 3;
+}
+
+message IssueScopedAppBindingResponse {
+  bool accepted = 1;
+  string binding_id = 2;
+  string binding_carrier = 3;
+  ScopedAppBindingRelation relation = 4;
+  ReasonCode reason_code = 5;
+  AccountReasonCode account_reason_code = 6;
+  bool production_inert = 7;
+}
+
+message RevokeScopedAppBindingRequest {
+  AccountCaller caller = 1;
+  string binding_id = 2;
+  AccountReasonCode reason_code = 3;
+}
+
+message RevokeScopedAppBindingResponse {
+  bool accepted = 1;
+  ScopedAppBindingRelation relation = 2;
+  ReasonCode reason_code = 3;
+  AccountReasonCode account_reason_code = 4;
+  bool production_inert = 5;
+}
+
+service RuntimeAccountService {
+  rpc GetAccountSessionStatus(GetAccountSessionStatusRequest) returns (GetAccountSessionStatusResponse);
+  rpc SubscribeAccountSessionEvents(SubscribeAccountSessionEventsRequest) returns (stream AccountSessionEvent);
+  rpc BeginLogin(BeginLoginRequest) returns (BeginLoginResponse);
+  rpc CompleteLogin(CompleteLoginRequest) returns (CompleteLoginResponse);
+  rpc GetAccessToken(GetAccessTokenRequest) returns (GetAccessTokenResponse);
+  rpc RefreshAccountSession(RefreshAccountSessionRequest) returns (RefreshAccountSessionResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc SwitchAccount(SwitchAccountRequest) returns (SwitchAccountResponse);
+  rpc IssueScopedAppBinding(IssueScopedAppBindingRequest) returns (IssueScopedAppBindingResponse);
+  rpc RevokeScopedAppBinding(RevokeScopedAppBindingRequest) returns (RevokeScopedAppBindingResponse);
+}

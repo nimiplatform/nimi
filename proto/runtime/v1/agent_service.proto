@@ -130,6 +130,7 @@ enum ConversationAnchorStatus {
 message AgentRequestContext {
   string app_id = 1;
   string subject_user_id = 2;
+  ScopedRuntimeBindingAttachment scoped_binding = 3;
 }
 
 message AgentAutonomyConfig {

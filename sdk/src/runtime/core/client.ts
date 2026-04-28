@@ -210,6 +210,18 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       issueDelegatedToken: unary(RuntimeMethodIds.appAuth.issueDelegatedToken),
       listTokenChain: unary(RuntimeMethodIds.appAuth.listTokenChain),
     },
+    account: {
+      getAccountSessionStatus: unary(RuntimeMethodIds.account.getAccountSessionStatus),
+      subscribeAccountSessionEvents: stream(RuntimeMethodIds.account.subscribeAccountSessionEvents),
+      beginLogin: unary(RuntimeMethodIds.account.beginLogin),
+      completeLogin: unary(RuntimeMethodIds.account.completeLogin),
+      getAccessToken: unary(RuntimeMethodIds.account.getAccessToken),
+      refreshAccountSession: unary(RuntimeMethodIds.account.refreshAccountSession),
+      logout: unary(RuntimeMethodIds.account.logout),
+      switchAccount: unary(RuntimeMethodIds.account.switchAccount),
+      issueScopedAppBinding: unary(RuntimeMethodIds.account.issueScopedAppBinding),
+      revokeScopedAppBinding: unary(RuntimeMethodIds.account.revokeScopedAppBinding),
+    },
     ai: {
       executeScenario: unary(RuntimeMethodIds.ai.executeScenario),
       streamScenario: stream(RuntimeMethodIds.ai.streamScenario),

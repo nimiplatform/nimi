@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 )
@@ -45,6 +46,23 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	appSvc := server.AppService()
 	if appSvc == nil {
 		t.Fatal("expected app service")
+	}
+	accountSvc := server.AccountService()
+	if accountSvc == nil {
+		t.Fatal("expected active account service")
+	}
+	status, err := accountSvc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{
+		Caller: &runtimev1.AccountCaller{
+			AppId:         "nimi.desktop",
+			AppInstanceId: "desktop-test",
+			Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL,
+		},
+	})
+	if err != nil {
+		t.Fatalf("account status: %v", err)
+	}
+	if status.GetProductionInert() {
+		t.Fatal("account service must be production-active in wave-3")
 	}
 	if !agentSvc.HasLifeTrackExecutor() {
 		t.Fatal("expected life-track executor to be configured")

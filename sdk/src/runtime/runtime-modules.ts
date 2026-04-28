@@ -29,6 +29,7 @@ import {
 import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 import type {
   RuntimeAiModule,
+  RuntimeAccountClient,
   RuntimeAiExecuteScenarioRequestInput,
   RuntimeAiOpenRealtimeSessionRequestInput,
   RuntimeAiStreamScenarioRequestInput,
@@ -62,6 +63,7 @@ type RuntimeAiUploadModule = typeof import('./runtime-ai-upload.js');
 
 type RuntimePassthroughModuleKey =
   'auth'
+  | 'account'
   | 'workflow'
   | 'model'
   | 'local'
@@ -100,6 +102,7 @@ function loadRuntimeAiUploadModule(): Promise<RuntimeAiUploadModule> {
 
 export type RuntimeCorePassthroughClients = {
   auth: RuntimeAuthClient;
+  account: RuntimeAccountClient;
   workflow: RuntimeWorkflowClient;
   model: RuntimeModelClient;
   local: RuntimeLocalServiceClient;
@@ -119,6 +122,18 @@ const AUTH_METHODS = [
   'openExternalPrincipalSession',
   'revokeExternalPrincipalSession',
 ] as const satisfies readonly RuntimePassthroughMethod<RuntimeAuthClient>[];
+
+const ACCOUNT_METHODS = [
+  'getAccountSessionStatus',
+  'beginLogin',
+  'completeLogin',
+  'getAccessToken',
+  'refreshAccountSession',
+  'logout',
+  'switchAccount',
+  'issueScopedAppBinding',
+  'revokeScopedAppBinding',
+] as const satisfies readonly RuntimePassthroughMethod<RuntimeAccountClient>[];
 
 const MODEL_METHODS = [
   'list',
@@ -299,6 +314,14 @@ export function createCorePassthroughClients(input: {
   const guard = (mod: RuntimePassthroughModuleKey, method: string) => assertMethodAvailable(mod, method);
 
   const auth: RuntimeAuthClient = createPassthroughModule('auth', AUTH_METHODS, { guard, invokeWithClient });
+  const accountBase = createPassthroughModule('account', ACCOUNT_METHODS, { guard, invokeWithClient });
+  const account: RuntimeAccountClient = {
+    ...accountBase,
+    subscribeAccountSessionEvents: async (request, optionsValue) => {
+      guard('account', 'subscribeAccountSessionEvents');
+      return invokeWithClient(async (client) => client.account.subscribeAccountSessionEvents(request, optionsValue));
+    },
+  };
 
   const workflowBase = createPassthroughModule('workflow', ['submit', 'get', 'cancel'] as const, { guard, invokeWithClient });
   const workflow: RuntimeWorkflowClient = {
@@ -345,7 +368,7 @@ export function createCorePassthroughClients(input: {
 
   const audit: RuntimeAuditClient = createPassthroughModule('audit', AUDIT_METHODS, { guard, invokeWithClient });
 
-  return { auth, workflow, model, local, connector, knowledge, memory, agent, audit };
+  return { auth, account, workflow, model, local, connector, knowledge, memory, agent, audit };
 }
 
 export function createAppClient(input: {

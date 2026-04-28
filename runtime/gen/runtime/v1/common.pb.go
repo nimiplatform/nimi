@@ -595,6 +595,114 @@ func (CallerKind) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_common_proto_rawDescGZIP(), []int{2}
 }
 
+type ScopedRuntimeBindingAttachment struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	BindingId            string                 `protobuf:"bytes,1,opt,name=binding_id,json=bindingId,proto3" json:"binding_id,omitempty"`
+	BindingHandle        string                 `protobuf:"bytes,2,opt,name=binding_handle,json=bindingHandle,proto3" json:"binding_handle,omitempty"`
+	RuntimeAppId         string                 `protobuf:"bytes,3,opt,name=runtime_app_id,json=runtimeAppId,proto3" json:"runtime_app_id,omitempty"`
+	AppInstanceId        string                 `protobuf:"bytes,4,opt,name=app_instance_id,json=appInstanceId,proto3" json:"app_instance_id,omitempty"`
+	WindowId             string                 `protobuf:"bytes,5,opt,name=window_id,json=windowId,proto3" json:"window_id,omitempty"`
+	AvatarInstanceId     string                 `protobuf:"bytes,6,opt,name=avatar_instance_id,json=avatarInstanceId,proto3" json:"avatar_instance_id,omitempty"`
+	AgentId              string                 `protobuf:"bytes,7,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	ConversationAnchorId string                 `protobuf:"bytes,8,opt,name=conversation_anchor_id,json=conversationAnchorId,proto3" json:"conversation_anchor_id,omitempty"`
+	WorldId              string                 `protobuf:"bytes,9,opt,name=world_id,json=worldId,proto3" json:"world_id,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *ScopedRuntimeBindingAttachment) Reset() {
+	*x = ScopedRuntimeBindingAttachment{}
+	mi := &file_runtime_v1_common_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScopedRuntimeBindingAttachment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScopedRuntimeBindingAttachment) ProtoMessage() {}
+
+func (x *ScopedRuntimeBindingAttachment) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_common_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScopedRuntimeBindingAttachment.ProtoReflect.Descriptor instead.
+func (*ScopedRuntimeBindingAttachment) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *ScopedRuntimeBindingAttachment) GetBindingId() string {
+	if x != nil {
+		return x.BindingId
+	}
+	return ""
+}
+
+func (x *ScopedRuntimeBindingAttachment) GetBindingHandle() string {
+	if x != nil {
+		return x.BindingHandle
+	}
+	return ""
+}
+
+func (x *ScopedRuntimeBindingAttachment) GetRuntimeAppId() string {
+	if x != nil {
+		return x.RuntimeAppId
+	}
+	return ""
+}
+
+func (x *ScopedRuntimeBindingAttachment) GetAppInstanceId() string {
+	if x != nil {
+		return x.AppInstanceId
+	}
+	return ""
+}
+
+func (x *ScopedRuntimeBindingAttachment) GetWindowId() string {
+	if x != nil {
+		return x.WindowId
+	}
+	return ""
+}
+
+func (x *ScopedRuntimeBindingAttachment) GetAvatarInstanceId() string {
+	if x != nil {
+		return x.AvatarInstanceId
+	}
+	return ""
+}
+
+func (x *ScopedRuntimeBindingAttachment) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *ScopedRuntimeBindingAttachment) GetConversationAnchorId() string {
+	if x != nil {
+		return x.ConversationAnchorId
+	}
+	return ""
+}
+
+func (x *ScopedRuntimeBindingAttachment) GetWorldId() string {
+	if x != nil {
+		return x.WorldId
+	}
+	return ""
+}
+
 type UsageStats struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	InputTokens   int64                  `protobuf:"varint,1,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
@@ -606,7 +714,7 @@ type UsageStats struct {
 
 func (x *UsageStats) Reset() {
 	*x = UsageStats{}
-	mi := &file_runtime_v1_common_proto_msgTypes[0]
+	mi := &file_runtime_v1_common_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -618,7 +726,7 @@ func (x *UsageStats) String() string {
 func (*UsageStats) ProtoMessage() {}
 
 func (x *UsageStats) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_common_proto_msgTypes[0]
+	mi := &file_runtime_v1_common_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -631,7 +739,7 @@ func (x *UsageStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UsageStats.ProtoReflect.Descriptor instead.
 func (*UsageStats) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{0}
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *UsageStats) GetInputTokens() int64 {
@@ -667,7 +775,7 @@ type ResourceSelectors struct {
 
 func (x *ResourceSelectors) Reset() {
 	*x = ResourceSelectors{}
-	mi := &file_runtime_v1_common_proto_msgTypes[1]
+	mi := &file_runtime_v1_common_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -679,7 +787,7 @@ func (x *ResourceSelectors) String() string {
 func (*ResourceSelectors) ProtoMessage() {}
 
 func (x *ResourceSelectors) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_common_proto_msgTypes[1]
+	mi := &file_runtime_v1_common_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -692,7 +800,7 @@ func (x *ResourceSelectors) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceSelectors.ProtoReflect.Descriptor instead.
 func (*ResourceSelectors) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{1}
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ResourceSelectors) GetConversationIds() []string {
@@ -734,7 +842,7 @@ type ConsentRef struct {
 
 func (x *ConsentRef) Reset() {
 	*x = ConsentRef{}
-	mi := &file_runtime_v1_common_proto_msgTypes[2]
+	mi := &file_runtime_v1_common_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -746,7 +854,7 @@ func (x *ConsentRef) String() string {
 func (*ConsentRef) ProtoMessage() {}
 
 func (x *ConsentRef) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_common_proto_msgTypes[2]
+	mi := &file_runtime_v1_common_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -759,7 +867,7 @@ func (x *ConsentRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConsentRef.ProtoReflect.Descriptor instead.
 func (*ConsentRef) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{2}
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ConsentRef) GetSubjectUserId() string {
@@ -794,7 +902,7 @@ type ErrorInfo struct {
 
 func (x *ErrorInfo) Reset() {
 	*x = ErrorInfo{}
-	mi := &file_runtime_v1_common_proto_msgTypes[3]
+	mi := &file_runtime_v1_common_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -806,7 +914,7 @@ func (x *ErrorInfo) String() string {
 func (*ErrorInfo) ProtoMessage() {}
 
 func (x *ErrorInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_common_proto_msgTypes[3]
+	mi := &file_runtime_v1_common_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -819,7 +927,7 @@ func (x *ErrorInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ErrorInfo.ProtoReflect.Descriptor instead.
 func (*ErrorInfo) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{3}
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ErrorInfo) GetReasonCode() ReasonCode {
@@ -854,7 +962,7 @@ type Ack struct {
 
 func (x *Ack) Reset() {
 	*x = Ack{}
-	mi := &file_runtime_v1_common_proto_msgTypes[4]
+	mi := &file_runtime_v1_common_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -866,7 +974,7 @@ func (x *Ack) String() string {
 func (*Ack) ProtoMessage() {}
 
 func (x *Ack) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_common_proto_msgTypes[4]
+	mi := &file_runtime_v1_common_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -879,7 +987,7 @@ func (x *Ack) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Ack.ProtoReflect.Descriptor instead.
 func (*Ack) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Ack) GetOk() bool {
@@ -907,7 +1015,18 @@ var File_runtime_v1_common_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_common_proto_rawDesc = "" +
 	"\n" +
-	"\x17runtime/v1/common.proto\x12\x0fnimi.runtime.v1\"s\n" +
+	"\x17runtime/v1/common.proto\x12\x0fnimi.runtime.v1\"\xeb\x02\n" +
+	"\x1eScopedRuntimeBindingAttachment\x12\x1d\n" +
+	"\n" +
+	"binding_id\x18\x01 \x01(\tR\tbindingId\x12%\n" +
+	"\x0ebinding_handle\x18\x02 \x01(\tR\rbindingHandle\x12$\n" +
+	"\x0eruntime_app_id\x18\x03 \x01(\tR\fruntimeAppId\x12&\n" +
+	"\x0fapp_instance_id\x18\x04 \x01(\tR\rappInstanceId\x12\x1b\n" +
+	"\twindow_id\x18\x05 \x01(\tR\bwindowId\x12,\n" +
+	"\x12avatar_instance_id\x18\x06 \x01(\tR\x10avatarInstanceId\x12\x19\n" +
+	"\bagent_id\x18\a \x01(\tR\aagentId\x124\n" +
+	"\x16conversation_anchor_id\x18\b \x01(\tR\x14conversationAnchorId\x12\x19\n" +
+	"\bworld_id\x18\t \x01(\tR\aworldId\"s\n" +
 	"\n" +
 	"UsageStats\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12#\n" +
@@ -1105,20 +1224,21 @@ func file_runtime_v1_common_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_common_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_runtime_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_runtime_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_runtime_v1_common_proto_goTypes = []any{
-	(ReasonCode)(0),            // 0: nimi.runtime.v1.ReasonCode
-	(ExternalPrincipalType)(0), // 1: nimi.runtime.v1.ExternalPrincipalType
-	(CallerKind)(0),            // 2: nimi.runtime.v1.CallerKind
-	(*UsageStats)(nil),         // 3: nimi.runtime.v1.UsageStats
-	(*ResourceSelectors)(nil),  // 4: nimi.runtime.v1.ResourceSelectors
-	(*ConsentRef)(nil),         // 5: nimi.runtime.v1.ConsentRef
-	(*ErrorInfo)(nil),          // 6: nimi.runtime.v1.ErrorInfo
-	(*Ack)(nil),                // 7: nimi.runtime.v1.Ack
-	nil,                        // 8: nimi.runtime.v1.ResourceSelectors.LabelsEntry
+	(ReasonCode)(0),                        // 0: nimi.runtime.v1.ReasonCode
+	(ExternalPrincipalType)(0),             // 1: nimi.runtime.v1.ExternalPrincipalType
+	(CallerKind)(0),                        // 2: nimi.runtime.v1.CallerKind
+	(*ScopedRuntimeBindingAttachment)(nil), // 3: nimi.runtime.v1.ScopedRuntimeBindingAttachment
+	(*UsageStats)(nil),                     // 4: nimi.runtime.v1.UsageStats
+	(*ResourceSelectors)(nil),              // 5: nimi.runtime.v1.ResourceSelectors
+	(*ConsentRef)(nil),                     // 6: nimi.runtime.v1.ConsentRef
+	(*ErrorInfo)(nil),                      // 7: nimi.runtime.v1.ErrorInfo
+	(*Ack)(nil),                            // 8: nimi.runtime.v1.Ack
+	nil,                                    // 9: nimi.runtime.v1.ResourceSelectors.LabelsEntry
 }
 var file_runtime_v1_common_proto_depIdxs = []int32{
-	8, // 0: nimi.runtime.v1.ResourceSelectors.labels:type_name -> nimi.runtime.v1.ResourceSelectors.LabelsEntry
+	9, // 0: nimi.runtime.v1.ResourceSelectors.labels:type_name -> nimi.runtime.v1.ResourceSelectors.LabelsEntry
 	0, // 1: nimi.runtime.v1.ErrorInfo.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	0, // 2: nimi.runtime.v1.Ack.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3, // [3:3] is the sub-list for method output_type
@@ -1139,7 +1259,7 @@ func file_runtime_v1_common_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_common_proto_rawDesc), len(file_runtime_v1_common_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

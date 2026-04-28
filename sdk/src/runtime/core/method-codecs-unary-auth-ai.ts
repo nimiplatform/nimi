@@ -26,6 +26,26 @@ import {
   ValidateAppAccessTokenResponse,
 } from '../generated/runtime/v1/grant';
 import {
+  BeginLoginRequest,
+  BeginLoginResponse,
+  CompleteLoginRequest,
+  CompleteLoginResponse,
+  GetAccessTokenRequest,
+  GetAccessTokenResponse,
+  GetAccountSessionStatusRequest,
+  GetAccountSessionStatusResponse,
+  IssueScopedAppBindingRequest,
+  IssueScopedAppBindingResponse,
+  LogoutRequest,
+  LogoutResponse,
+  RefreshAccountSessionRequest,
+  RefreshAccountSessionResponse,
+  RevokeScopedAppBindingRequest,
+  RevokeScopedAppBindingResponse,
+  SwitchAccountRequest,
+  SwitchAccountResponse,
+} from '../generated/runtime/v1/account';
+import {
   AppendRealtimeInputRequest,
   AppendRealtimeInputResponse,
   CancelScenarioJobRequest,
@@ -125,6 +145,42 @@ export const runtimeUnaryMethodCodecsAuthAi: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.appAuth.listTokenChain]: {
     requestType: ListTokenChainRequest,
     responseType: ListTokenChainResponse,
+  },
+  [RuntimeMethodIds.account.getAccountSessionStatus]: {
+    requestType: GetAccountSessionStatusRequest,
+    responseType: GetAccountSessionStatusResponse,
+  },
+  [RuntimeMethodIds.account.beginLogin]: {
+    requestType: BeginLoginRequest,
+    responseType: BeginLoginResponse,
+  },
+  [RuntimeMethodIds.account.completeLogin]: {
+    requestType: CompleteLoginRequest,
+    responseType: CompleteLoginResponse,
+  },
+  [RuntimeMethodIds.account.getAccessToken]: {
+    requestType: GetAccessTokenRequest,
+    responseType: GetAccessTokenResponse,
+  },
+  [RuntimeMethodIds.account.refreshAccountSession]: {
+    requestType: RefreshAccountSessionRequest,
+    responseType: RefreshAccountSessionResponse,
+  },
+  [RuntimeMethodIds.account.logout]: {
+    requestType: LogoutRequest,
+    responseType: LogoutResponse,
+  },
+  [RuntimeMethodIds.account.switchAccount]: {
+    requestType: SwitchAccountRequest,
+    responseType: SwitchAccountResponse,
+  },
+  [RuntimeMethodIds.account.issueScopedAppBinding]: {
+    requestType: IssueScopedAppBindingRequest,
+    responseType: IssueScopedAppBindingResponse,
+  },
+  [RuntimeMethodIds.account.revokeScopedAppBinding]: {
+    requestType: RevokeScopedAppBindingRequest,
+    responseType: RevokeScopedAppBindingResponse,
   },
   [RuntimeMethodIds.ai.executeScenario]: {
     requestType: ExecuteScenarioRequest,

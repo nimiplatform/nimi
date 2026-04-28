@@ -6,6 +6,7 @@ lint:
     - STANDARD
   ignore_only:
     PACKAGE_DIRECTORY_MATCH:
+      - runtime/v1/account.proto
       - runtime/v1/ai.proto
       - runtime/v1/ai_scheduling.proto
       - runtime/v1/app.proto
@@ -30,6 +31,7 @@ lint:
       - runtime/v1/common.proto
       - runtime/v1/workflow.proto
     RPC_RESPONSE_STANDARD_NAME:
+      - runtime/v1/account.proto
       - runtime/v1/ai.proto
       - runtime/v1/agent_service.proto
       - runtime/v1/app.proto

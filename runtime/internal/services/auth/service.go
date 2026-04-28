@@ -160,7 +160,7 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 		RegisteredAt:  now,
 	}
 
-	if err := s.registry.Upsert(appID, req.GetModeManifest(), req.GetCapabilities()); err != nil {
+	if err := s.registry.UpsertInstance(appID, instanceID, req.GetDeviceId(), req.GetModeManifest(), req.GetCapabilities()); err != nil {
 		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
 	}
 	s.mu.Lock()

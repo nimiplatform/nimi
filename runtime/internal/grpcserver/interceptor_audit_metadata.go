@@ -130,6 +130,11 @@ func appIDFromRequest(req any) string {
 	if ok {
 		return strings.TrimSpace(item.GetAppId())
 	}
+	if accountReq, ok := req.(interface {
+		GetCaller() *runtimev1.AccountCaller
+	}); ok {
+		return strings.TrimSpace(accountReq.GetCaller().GetAppId())
+	}
 	if memoryReq, ok := req.(interface {
 		GetContext() *runtimev1.MemoryRequestContext
 	}); ok {
@@ -225,6 +230,8 @@ func methodDescriptor(fullMethod string) (string, string, string) {
 		domain = "runtime.grant"
 	case strings.Contains(service, "RuntimeAuthService"):
 		domain = "runtime.auth"
+	case strings.Contains(service, "RuntimeAccountService"):
+		domain = "runtime.account"
 	case strings.Contains(service, "RuntimeCognitionService"):
 		domain = cognitionMethodDomain(method)
 	case strings.Contains(service, "RuntimeAppService"):

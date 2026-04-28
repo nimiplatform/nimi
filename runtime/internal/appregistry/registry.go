@@ -19,6 +19,13 @@ type Record struct {
 	Manifest     *runtimev1.AppModeManifest
 	UpdatedAt    time.Time
 	Capabilities []string
+	Instances    map[string]InstanceRecord
+}
+
+type InstanceRecord struct {
+	AppInstanceID string
+	DeviceID      string
+	RegisteredAt  time.Time
 }
 
 // Registry stores app registration state in-memory.
@@ -40,13 +47,95 @@ func (r *Registry) Upsert(appID string, manifest *runtimev1.AppModeManifest, cap
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.apps[appID] = Record{
-		AppID:        appID,
-		Manifest:     cloneManifest(manifest),
-		Capabilities: append([]string(nil), capabilities...),
-		UpdatedAt:    time.Now().UTC(),
+	record := r.apps[appID]
+	record.AppID = appID
+	record.Manifest = cloneManifest(manifest)
+	record.Capabilities = append([]string(nil), capabilities...)
+	record.UpdatedAt = time.Now().UTC()
+	if record.Instances == nil {
+		record.Instances = make(map[string]InstanceRecord)
 	}
+	r.apps[appID] = record
 	return nil
+}
+
+func (r *Registry) UpsertInstance(appID string, appInstanceID string, deviceID string, manifest *runtimev1.AppModeManifest, capabilities []string) error {
+	appID = strings.TrimSpace(appID)
+	appInstanceID = strings.TrimSpace(appInstanceID)
+	if appID == "" || appInstanceID == "" {
+		return fmt.Errorf("appregistry.UpsertInstance: %w", ErrEmptyAppID)
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	now := time.Now().UTC()
+	record := r.apps[appID]
+	record.AppID = appID
+	record.Manifest = cloneManifest(manifest)
+	record.Capabilities = append([]string(nil), capabilities...)
+	record.UpdatedAt = now
+	if record.Instances == nil {
+		record.Instances = make(map[string]InstanceRecord)
+	}
+	record.Instances[appInstanceID] = InstanceRecord{
+		AppInstanceID: appInstanceID,
+		DeviceID:      strings.TrimSpace(deviceID),
+		RegisteredAt:  now,
+	}
+	r.apps[appID] = record
+	return nil
+}
+
+func (r *Registry) IsInstanceRegistered(appID string, appInstanceID string) bool {
+	appID = strings.TrimSpace(appID)
+	appInstanceID = strings.TrimSpace(appInstanceID)
+	if appID == "" || appInstanceID == "" {
+		return false
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	record, ok := r.apps[appID]
+	if !ok {
+		return false
+	}
+	_, ok = record.Instances[appInstanceID]
+	return ok
+}
+
+func (r *Registry) AdmitLocalFirstPartyInstance(appID string, appInstanceID string) bool {
+	appID = strings.TrimSpace(appID)
+	appInstanceID = strings.TrimSpace(appInstanceID)
+	if appID == "" || appInstanceID == "" {
+		return false
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	record, ok := r.apps[appID]
+	if !ok {
+		return false
+	}
+	if _, ok := record.Instances[appInstanceID]; !ok {
+		return false
+	}
+	if reasonCode, _, ok := ValidateManifest(record.Manifest); !ok || reasonCode != runtimev1.ReasonCode_ACTION_EXECUTED {
+		return false
+	}
+	switch record.Manifest.GetAppMode() {
+	case runtimev1.AppMode_APP_MODE_FULL:
+		return record.Manifest.GetRuntimeRequired() && record.Manifest.GetRealmRequired()
+	default:
+		return false
+	}
+}
+
+func cloneInstances(input map[string]InstanceRecord) map[string]InstanceRecord {
+	if len(input) == 0 {
+		return nil
+	}
+	output := make(map[string]InstanceRecord, len(input))
+	for key, value := range input {
+		output[key] = value
+	}
+	return output
 }
 
 func (r *Registry) Get(appID string) (Record, bool) {
@@ -62,6 +151,7 @@ func (r *Registry) Get(appID string) (Record, bool) {
 	}
 	record.Manifest = cloneManifest(record.Manifest)
 	record.Capabilities = append([]string(nil), record.Capabilities...)
+	record.Instances = cloneInstances(record.Instances)
 	return record, true
 }
 

@@ -3,7 +3,7 @@ import type { RuntimeClient } from './types-client-interfaces.js';
 
 type RuntimeClientModuleKey = Extract<
   keyof RuntimeClient,
-  'auth' | 'appAuth' | 'ai' | 'workflow' | 'model' | 'local' | 'connector' | 'knowledge' | 'memory' | 'agent' | 'app' | 'audit'
+  'auth' | 'appAuth' | 'account' | 'ai' | 'workflow' | 'model' | 'local' | 'connector' | 'knowledge' | 'memory' | 'agent' | 'app' | 'audit'
 >;
 
 type RuntimeClientMethodContract<
@@ -29,6 +29,15 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.appAuth.revokeToken]: RuntimeClientMethodContract<'appAuth', 'revokeToken'>;
   [RuntimeMethodIds.appAuth.issueDelegatedToken]: RuntimeClientMethodContract<'appAuth', 'issueDelegatedToken'>;
   [RuntimeMethodIds.appAuth.listTokenChain]: RuntimeClientMethodContract<'appAuth', 'listTokenChain'>;
+  [RuntimeMethodIds.account.getAccountSessionStatus]: RuntimeClientMethodContract<'account', 'getAccountSessionStatus'>;
+  [RuntimeMethodIds.account.beginLogin]: RuntimeClientMethodContract<'account', 'beginLogin'>;
+  [RuntimeMethodIds.account.completeLogin]: RuntimeClientMethodContract<'account', 'completeLogin'>;
+  [RuntimeMethodIds.account.getAccessToken]: RuntimeClientMethodContract<'account', 'getAccessToken'>;
+  [RuntimeMethodIds.account.refreshAccountSession]: RuntimeClientMethodContract<'account', 'refreshAccountSession'>;
+  [RuntimeMethodIds.account.logout]: RuntimeClientMethodContract<'account', 'logout'>;
+  [RuntimeMethodIds.account.switchAccount]: RuntimeClientMethodContract<'account', 'switchAccount'>;
+  [RuntimeMethodIds.account.issueScopedAppBinding]: RuntimeClientMethodContract<'account', 'issueScopedAppBinding'>;
+  [RuntimeMethodIds.account.revokeScopedAppBinding]: RuntimeClientMethodContract<'account', 'revokeScopedAppBinding'>;
   [RuntimeMethodIds.ai.executeScenario]: RuntimeClientMethodContract<'ai', 'executeScenario'>;
   [RuntimeMethodIds.ai.submitScenarioJob]: RuntimeClientMethodContract<'ai', 'submitScenarioJob'>;
   [RuntimeMethodIds.ai.getScenarioJob]: RuntimeClientMethodContract<'ai', 'getScenarioJob'>;
@@ -150,6 +159,7 @@ export type RuntimeUnaryMethodContractMap = {
 };
 
 export type RuntimeStreamMethodContractMap = {
+  [RuntimeMethodIds.account.subscribeAccountSessionEvents]: RuntimeClientMethodContract<'account', 'subscribeAccountSessionEvents'>;
   [RuntimeMethodIds.ai.streamScenario]: RuntimeClientMethodContract<'ai', 'streamScenario'>;
   [RuntimeMethodIds.ai.subscribeScenarioJobEvents]: RuntimeClientMethodContract<'ai', 'subscribeScenarioJobEvents'>;
   [RuntimeMethodIds.aiRealtime.readRealtimeEvents]: RuntimeClientMethodContract<'ai', 'readRealtimeEvents'>;

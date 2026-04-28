@@ -23,6 +23,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/scopecatalog"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	aiservice "github.com/nimiplatform/nimi/runtime/internal/services/ai"
 	appservice "github.com/nimiplatform/nimi/runtime/internal/services/app"
 	auditservice "github.com/nimiplatform/nimi/runtime/internal/services/audit"
@@ -51,6 +52,7 @@ type Server struct {
 	rpcRegistry      *activeRPCRegistry
 	aiHealth         *providerhealth.Tracker
 	auditStore       *auditlog.Store
+	accountService   *accountservice.Service
 	aiSvc            *aiservice.Service
 	appService       *appservice.Service
 	localService     *localservice.Service
@@ -104,6 +106,10 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		logger, appRegistry, auditStore,
 		int32(cfg.SessionTTLMinSeconds), int32(cfg.SessionTTLMaxSeconds),
 	)
+	accountSvc := accountservice.NewProduction(logger, accountservice.ProductionConfig{
+		RealmBaseURL: cfg.AuthJWTIssuer,
+		AppRegistry:  appRegistry,
+	})
 
 	// AuthN validator — JWKS mode (K-AUTHN-004)
 	authnValidator, authnErr := authn.NewValidator(cfg.AuthJWTJWKSURL, cfg.AuthJWTIssuer, cfg.AuthJWTAudience)
@@ -189,6 +195,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		_ = memorySvc.Close()
 		return nil, fmt.Errorf("init agent core service: %w", err)
 	}
+	agentSvc.SetScopedBindingValidator(accountSvc)
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
 	runtimev1.RegisterRuntimeAgentServiceServer(g, agentSvc)
 
@@ -306,8 +313,9 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 
 	runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
+	runtimev1.RegisterRuntimeAccountServiceServer(g, accountSvc)
 	runtimev1.RegisterRuntimeCognitionServiceServer(g, cognitionSvc)
-	appSvc := appservice.New(logger, appservice.WithSessionValidator(authSvc))
+	appSvc := appservice.New(logger, appservice.WithSessionValidator(authSvc), appservice.WithScopedBindingValidator(accountSvc))
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
 	agentSvc.SetPublicChatAppEmitter(func(ctx context.Context, req *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
@@ -327,6 +335,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		rpcRegistry:      rpcRegistry,
 		aiHealth:         aiHealth,
 		auditStore:       auditStore,
+		accountService:   accountSvc,
 		aiSvc:            aiSvc,
 		appService:       appSvc,
 		localService:     localSvc,
@@ -344,6 +353,10 @@ func (s *Server) AIHealthTracker() *providerhealth.Tracker {
 
 func (s *Server) AuditStore() *auditlog.Store {
 	return s.auditStore
+}
+
+func (s *Server) AccountService() *accountservice.Service {
+	return s.accountService
 }
 
 func (s *Server) AIService() *aiservice.Service {
@@ -648,6 +661,7 @@ func (s *Server) SyncServingState() {
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAgentService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeGrantService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAuthService_ServiceDesc.ServiceName, servingStatus)
+	s.healthServer.SetServingStatus(runtimev1.RuntimeAccountService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeAppService_ServiceDesc.ServiceName, servingStatus)
 	s.healthServer.SetServingStatus(runtimev1.RuntimeConnectorService_ServiceDesc.ServiceName, servingStatus)
 }

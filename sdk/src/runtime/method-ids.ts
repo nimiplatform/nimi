@@ -15,6 +15,18 @@ export const RuntimeMethodIds = {
     issueDelegatedToken: '/nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken',
     listTokenChain: '/nimi.runtime.v1.RuntimeGrantService/ListTokenChain',
   },
+  account: {
+    getAccountSessionStatus: '/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus',
+    subscribeAccountSessionEvents: '/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents',
+    beginLogin: '/nimi.runtime.v1.RuntimeAccountService/BeginLogin',
+    completeLogin: '/nimi.runtime.v1.RuntimeAccountService/CompleteLogin',
+    getAccessToken: '/nimi.runtime.v1.RuntimeAccountService/GetAccessToken',
+    refreshAccountSession: '/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession',
+    logout: '/nimi.runtime.v1.RuntimeAccountService/Logout',
+    switchAccount: '/nimi.runtime.v1.RuntimeAccountService/SwitchAccount',
+    issueScopedAppBinding: '/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding',
+    revokeScopedAppBinding: '/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding',
+  },
   ai: {
     executeScenario: '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario',
     streamScenario: '/nimi.runtime.v1.RuntimeAiService/StreamScenario',
@@ -174,6 +186,7 @@ export const RuntimeAllowlistedMethodIds: readonly string[] = Object.freeze(
 );
 
 export const RuntimeStreamMethodIds: readonly string[] = Object.freeze([
+  RuntimeMethodIds.account.subscribeAccountSessionEvents,
   RuntimeMethodIds.ai.streamScenario,
   RuntimeMethodIds.ai.subscribeScenarioJobEvents,
   RuntimeMethodIds.aiRealtime.readRealtimeEvents,
@@ -195,6 +208,13 @@ export const RuntimeWriteMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.auth.registerExternalPrincipal,
   RuntimeMethodIds.auth.openExternalPrincipalSession,
   RuntimeMethodIds.auth.revokeExternalPrincipalSession,
+  RuntimeMethodIds.account.beginLogin,
+  RuntimeMethodIds.account.completeLogin,
+  RuntimeMethodIds.account.refreshAccountSession,
+  RuntimeMethodIds.account.logout,
+  RuntimeMethodIds.account.switchAccount,
+  RuntimeMethodIds.account.issueScopedAppBinding,
+  RuntimeMethodIds.account.revokeScopedAppBinding,
   RuntimeMethodIds.appAuth.authorizeExternalPrincipal,
   RuntimeMethodIds.appAuth.revokeToken,
   RuntimeMethodIds.appAuth.issueDelegatedToken,
@@ -283,6 +303,7 @@ export const RuntimeLocalAnonymousMethodIds: readonly string[] = Object.freeze([
 const RuntimeStreamMethodIdSet: ReadonlySet<string> = new Set(RuntimeStreamMethodIds);
 const RuntimeWriteMethodIdSet: ReadonlySet<string> = new Set(RuntimeWriteMethodIds);
 const RuntimeLocalAnonymousMethodIdSet: ReadonlySet<string> = new Set(RuntimeLocalAnonymousMethodIds);
+const RuntimeAccountMethodIdSet: ReadonlySet<string> = new Set(Object.values(RuntimeMethodIds.account));
 const RuntimeAppSessionBootstrapMethodIdSet: ReadonlySet<string> = new Set([
   RuntimeMethodIds.auth.registerApp,
   RuntimeMethodIds.auth.openSession,
@@ -298,6 +319,10 @@ export function isRuntimeWriteMethod(methodId: string): boolean {
 
 export function isRuntimeLocalAnonymousMethod(methodId: string): boolean {
   return RuntimeLocalAnonymousMethodIdSet.has(methodId);
+}
+
+export function isRuntimeAccountMethod(methodId: string): boolean {
+  return RuntimeAccountMethodIdSet.has(methodId);
 }
 
 export function isRuntimeAppSessionBootstrapMethod(methodId: string): boolean {

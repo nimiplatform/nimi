@@ -29,6 +29,8 @@ var readOnlyMethods = map[string]bool{
 	"/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents":         true,
 	"/nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken":          true,
 	"/nimi.runtime.v1.RuntimeGrantService/ListTokenChain":                  true,
+	"/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus":       true,
+	"/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents": true,
 	"/nimi.runtime.v1.RuntimeCognitionService/GetBank":                     true,
 	"/nimi.runtime.v1.RuntimeCognitionService/ListBanks":                   true,
 	"/nimi.runtime.v1.RuntimeCognitionService/Recall":                      true,
