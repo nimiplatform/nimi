@@ -12,24 +12,11 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func (s *Service) ListLocalAssets(ctx context.Context, req *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {
+func (s *Service) ListLocalAssets(_ context.Context, req *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {
 	startedAt := time.Now()
 	statusFilter := req.GetStatusFilter()
 	engineFilter := strings.ToLower(strings.TrimSpace(req.GetEngineFilter()))
 	kindFilter := req.GetKindFilter()
-
-	normalizeStartedAt := time.Now()
-	s.normalizeManagedSupervisedManagedStatuses(ctx)
-	s.observeLatency("runtime.local_assets.list_inventory_normalize_ms", normalizeStartedAt,
-		"status_filter", statusFilter.String(),
-		"engine_filter", engineFilter,
-		"kind_filter", kindFilter.String(),
-	)
-	s.observeCounter("runtime_local_assets_list_inventory_normalize_total", 1,
-		"status_filter", statusFilter.String(),
-		"engine_filter", engineFilter,
-		"kind_filter", kindFilter.String(),
-	)
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()

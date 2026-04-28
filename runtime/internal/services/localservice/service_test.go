@@ -1400,6 +1400,61 @@ func TestLocalRecoverySweepPromotesUnhealthyModel(t *testing.T) {
 	}
 }
 
+func TestProbeLocalModelEndpointJoinsConcurrentSameAssetProbe(t *testing.T) {
+	probeStarted := make(chan struct{}, 2)
+	releaseProbe := make(chan struct{})
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		probeStarted <- struct{}{}
+		<-releaseProbe
+		return endpointProbeResult{
+			healthy:   true,
+			responded: true,
+			detail:    "probe succeeded",
+			probeURL:  endpoint,
+			models:    []string{"local/concurrent-probe-model"},
+		}
+	})
+	model := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "local-asset-concurrent-probe",
+		AssetId:      "local/concurrent-probe-model",
+		Engine:       "llama",
+		Endpoint:     "http://127.0.0.1:18888/v1",
+	}
+
+	errs := make(chan error, 2)
+	for i := 0; i < 2; i++ {
+		go func() {
+			probe := svc.probeLocalModelEndpoint(context.Background(), model, model.GetEndpoint())
+			if !probe.healthy || !probe.responded {
+				errs <- fmt.Errorf("probe = healthy:%v responded:%v, want healthy/responded", probe.healthy, probe.responded)
+				return
+			}
+			errs <- nil
+		}()
+	}
+
+	select {
+	case <-probeStarted:
+	case <-time.After(time.Second):
+		t.Fatal("expected first probe to start")
+	}
+	select {
+	case <-probeStarted:
+		t.Fatal("concurrent same-asset health checks must join the in-flight probe")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(releaseProbe)
+
+	for i := 0; i < 2; i++ {
+		if err := <-errs; err != nil {
+			t.Fatalf("concurrent health check %d failed: %v", i+1, err)
+		}
+	}
+	if got := len(probeStarted); got != 0 {
+		t.Fatalf("unexpected additional probe calls after join: %d", got)
+	}
+}
+
 func TestLocalRecoverySweepManagedSpeechProjectsColdAfterThreshold(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
@@ -1486,8 +1541,10 @@ func TestLocalRecoverySweepManagedSpeechProjectsColdAfterThreshold(t *testing.T)
 	}
 }
 
-func TestListLocalAssetsManagedSpeechProbeFailureTransitionsCold(t *testing.T) {
+func TestListLocalAssetsManagedSpeechDoesNotProbeOrMutateState(t *testing.T) {
+	probeCalls := 0
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		probeCalls++
 		return endpointProbeResult{
 			healthy:  false,
 			detail:   fmt.Sprintf("probe request failed: Get %q: connection refused", endpoint),
@@ -1528,11 +1585,14 @@ func TestListLocalAssetsManagedSpeechProbeFailureTransitionsCold(t *testing.T) {
 	if row.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 		t.Fatalf("list row status = %s, want ACTIVE", row.GetStatus())
 	}
-	if row.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
-		t.Fatalf("list row warm_state = %s, want COLD", row.GetWarmState())
+	if row.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY {
+		t.Fatalf("list row warm_state = %s, want READY", row.GetWarmState())
 	}
-	if !strings.Contains(row.GetHealthDetail(), "connection refused") {
-		t.Fatalf("unexpected list row detail: %q", row.GetHealthDetail())
+	if row.GetHealthDetail() != managedLocalModelReadyDetail() {
+		t.Fatalf("list row detail = %q, want ready detail", row.GetHealthDetail())
+	}
+	if probeCalls != 0 {
+		t.Fatalf("ListLocalAssets must not probe managed speech endpoint, got %d probe calls", probeCalls)
 	}
 
 	stored := svc.modelByID(installed.GetLocalAssetId())
@@ -1542,13 +1602,34 @@ func TestListLocalAssetsManagedSpeechProbeFailureTransitionsCold(t *testing.T) {
 	if stored.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 		t.Fatalf("stored status = %s, want ACTIVE", stored.GetStatus())
 	}
+	if stored.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY {
+		t.Fatalf("stored warm_state = %s, want READY", stored.GetWarmState())
+	}
+
+	svc.runRecoverySweep(context.Background())
+
+	stored = svc.modelByID(installed.GetLocalAssetId())
+	if stored == nil {
+		t.Fatal("expected stored managed speech asset after recovery sweep")
+	}
+	if stored.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("stored status after recovery sweep = %s, want ACTIVE", stored.GetStatus())
+	}
 	if stored.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
-		t.Fatalf("stored warm_state = %s, want COLD", stored.GetWarmState())
+		t.Fatalf("stored warm_state after recovery sweep = %s, want COLD", stored.GetWarmState())
+	}
+	if !strings.Contains(stored.GetHealthDetail(), "connection refused") {
+		t.Fatalf("stored detail after recovery sweep = %q, want probe failure detail", stored.GetHealthDetail())
+	}
+	if probeCalls != 1 {
+		t.Fatalf("recovery sweep should own the single managed speech probe, got %d probe calls", probeCalls)
 	}
 }
 
-func TestListLocalAssetsManagedSpeechRecoveryProjectsColdAfterThreshold(t *testing.T) {
+func TestListLocalAssetsDoesNotDriveManagedSpeechRecovery(t *testing.T) {
+	probeCalls := 0
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		probeCalls++
 		return endpointProbeResult{
 			healthy:   true,
 			responded: true,
@@ -1583,55 +1664,36 @@ func TestListLocalAssetsManagedSpeechRecoveryProjectsColdAfterThreshold(t *testi
 		t.Fatalf("seed managed speech unhealthy state: %v", err)
 	}
 
-	for i := 1; i <= 2; i++ {
-		if i > 1 {
-			svc.mu.Lock()
-			state := svc.assetProbeState[installed.GetLocalAssetId()]
-			if state == nil {
-				svc.mu.Unlock()
-				t.Fatal("expected speech probe state to exist")
-			}
-			state.lastProbeAt = time.Now().UTC().Add(-localRecoveryDefaultProbeInterval)
-			svc.mu.Unlock()
-		}
+	for i := 1; i <= 3; i++ {
 		resp, err := svc.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
 		if err != nil {
-			t.Fatalf("ListLocalAssets recovery #%d: %v", i, err)
+			t.Fatalf("ListLocalAssets #%d: %v", i, err)
 		}
 		if len(resp.GetAssets()) != 1 {
-			t.Fatalf("expected one managed speech asset at recovery #%d, got %d", i, len(resp.GetAssets()))
+			t.Fatalf("expected one managed speech asset at list #%d, got %d", i, len(resp.GetAssets()))
 		}
 		row := resp.GetAssets()[0]
 		if row.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
-			t.Fatalf("list recovery #%d status = %s, want UNHEALTHY", i, row.GetStatus())
+			t.Fatalf("list #%d status = %s, want UNHEALTHY", i, row.GetStatus())
 		}
 	}
+	if probeCalls != 0 {
+		t.Fatalf("ListLocalAssets must not drive managed speech recovery, got %d probe calls", probeCalls)
+	}
+	if state := svc.assetProbeState[installed.GetLocalAssetId()]; state != nil {
+		t.Fatalf("ListLocalAssets must not create recovery state, got %+v", state)
+	}
 
-	svc.mu.Lock()
-	state := svc.assetProbeState[installed.GetLocalAssetId()]
-	if state == nil {
-		svc.mu.Unlock()
-		t.Fatal("expected speech probe state before final list recovery")
+	svc.runRecoverySweep(context.Background())
+	if probeCalls != 1 {
+		t.Fatalf("recovery sweep should perform first managed speech probe, got %d", probeCalls)
 	}
-	state.lastProbeAt = time.Now().UTC().Add(-localRecoveryDefaultProbeInterval)
-	svc.mu.Unlock()
-
-	resp, err := svc.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
-	if err != nil {
-		t.Fatalf("ListLocalAssets final recovery: %v", err)
+	current := svc.modelByID(installed.GetLocalAssetId())
+	if current == nil {
+		t.Fatal("speech asset should still exist")
 	}
-	if len(resp.GetAssets()) != 1 {
-		t.Fatalf("expected one managed speech asset after recovery, got %d", len(resp.GetAssets()))
-	}
-	row := resp.GetAssets()[0]
-	if row.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
-		t.Fatalf("final list recovery status = %s, want ACTIVE", row.GetStatus())
-	}
-	if row.GetWarmState() != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
-		t.Fatalf("final list recovery warm_state = %s, want COLD", row.GetWarmState())
-	}
-	if row.GetHealthDetail() != managedLocalModelColdDetail() {
-		t.Fatalf("final list recovery detail = %q", row.GetHealthDetail())
+	if current.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("first recovery sweep status = %s, want UNHEALTHY", current.GetStatus())
 	}
 }
 
@@ -4187,6 +4249,92 @@ func TestCheckManagedSupervisedLlamaHealthProjectsUnloadedModelCold(t *testing.T
 	}
 	if got := stored.GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 		t.Fatalf("stored status = %v, want ACTIVE", got)
+	}
+}
+
+func TestCheckManagedSupervisedLlamaHealthFailClosesWhenEndpointDoesNotRespond(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:   false,
+			responded: false,
+			detail:    "probe request failed: context deadline exceeded",
+			probeURL:  endpoint,
+		}
+	})
+	model := addManagedLlamaAssetForTest(
+		t,
+		svc,
+		"asset_alpha",
+		"local/alpha-model",
+		"nimi/alpha-model",
+		"alpha.gguf",
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
+	)
+	svc.setCurrentManagedLlamaLoadedLocalAssetID(model.GetLocalAssetId())
+
+	health, err := svc.checkManagedSupervisedLlamaHealth(context.Background(), model)
+	if err != nil {
+		t.Fatalf("checkManagedSupervisedLlamaHealth: %v", err)
+	}
+	if got := health.GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("health status = %v, want UNHEALTHY", got)
+	}
+	stored := svc.modelByID(model.GetLocalAssetId())
+	if stored == nil {
+		t.Fatal("expected stored asset")
+	}
+	if got := stored.GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("stored status = %v, want UNHEALTHY", got)
+	}
+	if got := stored.GetWarmState(); got != runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED {
+		t.Fatalf("stored warm_state = %v, want FAILED", got)
+	}
+	if !strings.Contains(stored.GetHealthDetail(), "consecutive_failures=1") {
+		t.Fatalf("stored detail = %q, want recovery failure count", stored.GetHealthDetail())
+	}
+	if got := svc.currentManagedLlamaLoadedLocalAssetID(); got != "" {
+		t.Fatalf("current loaded llama id = %q, want cleared", got)
+	}
+}
+
+func TestRecoverySweepSkipsFailedManagedLlamaBeforeProbeInterval(t *testing.T) {
+	probeCalls := 0
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		probeCalls++
+		return endpointProbeResult{
+			healthy:   false,
+			responded: false,
+			detail:    "probe request failed: context deadline exceeded",
+			probeURL:  endpoint,
+		}
+	})
+	model := addManagedLlamaAssetForTest(
+		t,
+		svc,
+		"asset_alpha",
+		"local/alpha-model",
+		"nimi/alpha-model",
+		"alpha.gguf",
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
+	)
+
+	svc.runRecoverySweep(context.Background())
+	if probeCalls != 1 {
+		t.Fatalf("first recovery sweep probe calls = %d, want 1", probeCalls)
+	}
+	current := svc.modelByID(model.GetLocalAssetId())
+	if current == nil {
+		t.Fatal("expected stored asset")
+	}
+	if current.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("status after failed sweep = %s, want UNHEALTHY", current.GetStatus())
+	}
+
+	svc.runRecoverySweep(context.Background())
+	if probeCalls != 1 {
+		t.Fatalf("second recovery sweep before interval should not reprobe, got %d calls", probeCalls)
 	}
 }
 

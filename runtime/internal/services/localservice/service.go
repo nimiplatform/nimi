@@ -69,6 +69,7 @@ type Service struct {
 	managedImageProfiles           map[string]managedImageProfileState
 	managedImageLoadCache          map[string]managedImageLoadedState
 	managedImageLoadInflight       map[string]*managedImageLoadInflight
+	localAssetProbeInflight        map[string]*localAssetProbeInflight
 	engineMgr                      EngineManager
 	managedLlamaRegistrations      map[string]managedLlamaRegistration
 	primaryManagedLlamaModelName   string
@@ -134,6 +135,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		managedImageProfiles:         make(map[string]managedImageProfileState),
 		managedImageLoadCache:        make(map[string]managedImageLoadedState),
 		managedImageLoadInflight:     make(map[string]*managedImageLoadInflight),
+		localAssetProbeInflight:      make(map[string]*localAssetProbeInflight),
 		managedLlamaRegistrations:    make(map[string]managedLlamaRegistration),
 		warmedModelKeys:              make(map[string]struct{}),
 		warmedModelOrder:             make([]string, 0, 512),

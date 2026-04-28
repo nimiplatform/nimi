@@ -430,7 +430,7 @@ func TestCheckLocalModelHealthRejectsLegacyUnhealthyRecord(t *testing.T) {
 	}
 }
 
-func TestListLocalModelsNormalizesManagedUnhealthyRecordToInstalled(t *testing.T) {
+func TestListLocalModelsDoesNotNormalizeManagedUnhealthyRecord(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
 
@@ -448,7 +448,9 @@ func TestListLocalModelsNormalizesManagedUnhealthyRecordToInstalled(t *testing.T
 		t.Fatalf("New: %v", err)
 	}
 	defer svc.Close()
+	probeCalls := 0
 	svc.endpointProbe = func(_ context.Context, _ string, endpoint string) endpointProbeResult {
+		probeCalls++
 		return endpointProbeResult{
 			healthy:   false,
 			responded: false,
@@ -466,18 +468,18 @@ func TestListLocalModelsNormalizesManagedUnhealthyRecordToInstalled(t *testing.T
 	if len(resp.GetAssets()) != 1 {
 		t.Fatalf("models = %d", len(resp.GetAssets()))
 	}
-	if got := resp.GetAssets()[0].GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+	if got := resp.GetAssets()[0].GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 		t.Fatalf("status = %s detail=%q", got, resp.GetAssets()[0].GetHealthDetail())
 	}
-	if got := resp.GetAssets()[0].GetWarmState(); got != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
-		t.Fatalf("warm_state = %s", got)
+	if probeCalls != 0 {
+		t.Fatalf("ListLocalAssets must not probe or normalize managed unhealthy records, got %d probe calls", probeCalls)
 	}
-	if detail := resp.GetAssets()[0].GetHealthDetail(); !strings.Contains(detail, "managed local model available (cold)") {
-		t.Fatalf("detail = %q", detail)
+	if detail := resp.GetAssets()[0].GetHealthDetail(); strings.Contains(detail, "managed local model available (cold)") {
+		t.Fatalf("ListLocalAssets must not replace snapshot detail with cold availability, got %q", detail)
 	}
 }
 
-func TestListLocalModelsHealsManagedAttachedRuntimeModeToInstalled(t *testing.T) {
+func TestListLocalModelsDoesNotHealManagedAttachedRuntimeMode(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
 
@@ -495,7 +497,9 @@ func TestListLocalModelsHealsManagedAttachedRuntimeModeToInstalled(t *testing.T)
 		t.Fatalf("New: %v", err)
 	}
 	defer svc.Close()
+	probeCalls := 0
 	svc.endpointProbe = func(_ context.Context, _ string, endpoint string) endpointProbeResult {
+		probeCalls++
 		return endpointProbeResult{
 			healthy:   false,
 			responded: false,
@@ -513,13 +517,13 @@ func TestListLocalModelsHealsManagedAttachedRuntimeModeToInstalled(t *testing.T)
 	if len(resp.GetAssets()) != 1 {
 		t.Fatalf("models = %d", len(resp.GetAssets()))
 	}
-	if got := resp.GetAssets()[0].GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+	if got := resp.GetAssets()[0].GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 		t.Fatalf("status = %s detail=%q", got, resp.GetAssets()[0].GetHealthDetail())
 	}
-	if got := resp.GetAssets()[0].GetWarmState(); got != runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD {
-		t.Fatalf("warm_state = %s", got)
+	if probeCalls != 0 {
+		t.Fatalf("ListLocalAssets must not probe or heal managed runtime mode, got %d probe calls", probeCalls)
 	}
-	if mode := svc.modelRuntimeMode(localModelID); mode != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+	if mode := svc.modelRuntimeMode(localModelID); mode != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT {
 		t.Fatalf("runtime mode = %s", mode.String())
 	}
 }

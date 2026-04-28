@@ -130,13 +130,13 @@ func (s *Service) collectUnhealthyRecoveryTargets() ([]modelRecoveryTarget, []se
 		if model == nil {
 			continue
 		}
-		if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
-			continue
+		mode := s.assetRuntimeModes[model.GetLocalAssetId()]
+		if shouldCollectModelRecoveryTarget(model, mode) {
+			models = append(models, modelRecoveryTarget{
+				record: cloneLocalAsset(model),
+				mode:   mode,
+			})
 		}
-		models = append(models, modelRecoveryTarget{
-			record: cloneLocalAsset(model),
-			mode:   s.assetRuntimeModes[model.GetLocalAssetId()],
-		})
 	}
 	services := make([]serviceRecoveryTarget, 0, len(s.services))
 	for _, service := range s.services {
@@ -152,6 +152,21 @@ func (s *Service) collectUnhealthyRecoveryTargets() ([]modelRecoveryTarget, []se
 		})
 	}
 	return models, services
+}
+
+func shouldCollectModelRecoveryTarget(model *runtimev1.LocalAssetRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
+	if model == nil {
+		return false
+	}
+	switch model.GetStatus() {
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
+		return true
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
+		return isManagedSupervisedLlamaModel(model, mode) || isManagedSupervisedSpeechModel(model, mode)
+	default:
+		return false
+	}
 }
 
 func (s *Service) shouldProbeModelNow(localModelID string, now time.Time) bool {
