@@ -45,6 +45,8 @@
   "resendCode": "重新发送验证码",
   "twoFaHint": "请输入 2FA 验证码。",
   "authorizing": "授权中...",
+  "loginPending": "正在打开浏览器...",
+  "loginWithNimi": "使用 Nimi 登录",
   "authorizeDesktopButton": "授权桌面",
   "useAnotherAccount": "使用其他账户",
   "clickToConnect": "点击连接",

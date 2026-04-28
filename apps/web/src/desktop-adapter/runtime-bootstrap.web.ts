@@ -22,6 +22,8 @@ type RuntimeBootstrapWebDeps = {
   persistAuthSession: PersistAuthSession;
 };
 
+export const WEB_CLOUD_ADAPTER_AUTH_MODE = 'web-cloud-adapter' as const;
+
 type AuthSessionSnapshot = {
   status: string;
   user: Record<string, unknown> | null;
@@ -134,27 +136,6 @@ function applyAuthSessionSnapshot(
   deps.useAppStore.getState().clearAuthSession();
 }
 
-async function recoverDesktopCallbackAccessToken(
-  deps: RuntimeBootstrapWebDeps,
-): Promise<{ accessToken: string; refreshToken: string }> {
-  const result = await deps.dataSync.callApi(
-    (realm) => realm.services.AuthService.refreshToken(),
-    'Failed to restore web session for desktop authorization',
-  );
-  const record = result && typeof result === 'object'
-    ? (result as Record<string, unknown>)
-    : {};
-  const accessToken = String(record.accessToken || '').trim();
-  const refreshToken = String(record.refreshToken || '').trim();
-  if (!accessToken) {
-    throw new Error('desktop callback session refresh missing accessToken');
-  }
-  return {
-    accessToken,
-    refreshToken,
-  };
-}
-
 async function bootstrapAuthSession(input: {
   flowId: string;
   accessToken: string;
@@ -169,24 +150,6 @@ async function bootstrapAuthSession(input: {
   if (!resolvedToken && input.preservePersistedAuthSession && hasAuthenticatedSnapshot(input.authSessionSnapshot)) {
     resolvedToken = input.authSessionSnapshot.token;
     resolvedRefreshToken = input.authSessionSnapshot.refreshToken;
-  }
-
-  if (!resolvedToken && input.preservePersistedAuthSession) {
-    try {
-      const refreshed = await recoverDesktopCallbackAccessToken(deps);
-      resolvedToken = refreshed.accessToken;
-      resolvedRefreshToken = refreshed.refreshToken;
-    } catch (error) {
-      deps.logRendererEvent({
-        level: 'info',
-        area: 'renderer-bootstrap',
-        message: 'phase:auto-login:session-refresh-skipped',
-        flowId: input.flowId,
-        details: {
-          error: safeErrorMessage(error),
-        },
-      });
-    }
   }
 
   if (!resolvedToken) {

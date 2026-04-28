@@ -284,6 +284,7 @@ export async function handleConfirmDesktopAuthorization(
     submitDesktopCallbackResult({
       request: desktopCtx.desktopCallbackRequest,
       code: accessToken,
+      refreshToken,
     });
   } catch (error) {
     setters.setLoginError(

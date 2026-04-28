@@ -104,6 +104,7 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
       try {
         const result = await performDesktopWebAuth(desktopBrowserAuth.bridge, {
           baseUrl: desktopBrowserAuth.baseUrl,
+          runtimeAccountBroker: desktopBrowserAuth.runtimeAccountBroker,
           onOpened: () => {
             session.setStatusBanner?.({
               kind: 'info',
@@ -116,11 +117,24 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
           return;
         }
 
-        await adapter.applyToken(result.accessToken);
+        if (result.runtimeAccountCompleted) {
+          const user = result.user ?? await adapter.loadCurrentUser();
+          session.setAuthSession?.(user, '');
+          await adapter.syncAfterLogin?.();
+          await adapter.onLoginComplete?.();
+          session.setStatusBanner?.({
+            kind: 'success',
+            message: copy?.desktopAuthSuccessMessage || '网页登录授权成功，已登录。',
+          });
+          return;
+        }
+
+        await adapter.applyToken(result.accessToken, result.refreshToken);
         const user = await adapter.loadCurrentUser();
         session.setAuthSession?.(user, result.accessToken);
         await adapter.persistSession?.({
           accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
           user,
         });
         await adapter.syncAfterLogin?.();

@@ -266,6 +266,7 @@ test('platform runtime call injects bearer token from accessTokenProvider', asyn
   const restoreTauri = installTauriRuntime(calls);
   try {
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => 'token-provider-value',
     });
@@ -286,6 +287,7 @@ test('platform runtime call resolves fresh token on each invocation', async () =
   let currentToken = 'token-initial';
   try {
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => currentToken,
     });
@@ -308,6 +310,7 @@ test('platform runtime call injects subjectUserId from subjectUserIdProvider', a
   const restoreTauri = installTauriRuntime(calls);
   try {
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => createJwtWithSub('jwt-subject-user'),
       subjectUserIdProvider: () => 'subject-from-provider',
@@ -325,6 +328,7 @@ test('platform runtime call falls back to jwt sub when subjectUserIdProvider is 
   const restoreTauri = installTauriRuntime(calls);
   try {
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => createJwtWithSub('jwt-subject-fallback'),
       subjectUserIdProvider: () => '',
@@ -342,6 +346,7 @@ test('platform runtime call omits authorization when token provider returns empt
   const restoreTauri = installTauriRuntime(calls);
   try {
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => '',
     });
@@ -361,6 +366,7 @@ test('platform local ai call omits authorization even when token provider return
   const restoreTauri = installTauriRuntime(calls);
   try {
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => 'stale-realm-token',
     });
@@ -383,6 +389,7 @@ test('platform local read-only calls omit authorization even when token provider
   const restoreTauri = installTauriRuntime(calls);
   try {
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => 'stale-realm-token',
     });
@@ -416,6 +423,7 @@ test('platform cloud ai call still injects authorization', async () => {
   const restoreTauri = installTauriRuntime(calls);
   try {
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => 'fresh-realm-token',
       subjectUserIdProvider: () => 'subject-user',
@@ -439,6 +447,7 @@ test('platform runtime app call injects runtime app session transparently', asyn
   const restoreTauri = installTauriRuntime(calls);
   try {
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => createJwtWithSub('jwt-subject-user'),
       subjectUserIdProvider: () => 'subject-user',
@@ -484,6 +493,7 @@ test('platform runtime agent anchor call injects runtime app session transparent
   const restoreTauri = installTauriRuntime(calls);
   try {
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => createJwtWithSub('jwt-subject-user'),
       subjectUserIdProvider: () => 'subject-user',

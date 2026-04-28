@@ -9,7 +9,7 @@ import {
 } from '@runtime/llm-adapter';
 import {
   clearPlatformClient,
-  createPlatformClient,
+  createLocalFirstPartyRuntimePlatformClient,
   unstable_attachPlatformWorldEvolutionSelectorReadProvider,
   withRealmContextLock,
 } from '@nimiplatform/sdk';
@@ -31,12 +31,6 @@ import { queryClient } from '@renderer/infra/query-client/query-client';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getOfflineCoordinator } from '@runtime/offline';
-import {
-  clearSharedDesktopSession,
-  loadResolvedSharedDesktopBootstrapAuthSession,
-  persistSharedDesktopSession,
-} from '@renderer/features/auth/shared-auth-session';
-import { bootstrapAuthSession } from './runtime-bootstrap-auth';
 import {
   ensureCoreWorldDataCapabilitiesRegistered,
   isCoreWorldDataCapability,
@@ -458,113 +452,41 @@ export function bootstrapRuntime(): Promise<void> {
       throw new Error(versionResult.message);
     }
     registerExitHandler({ managed: daemonStatus.managed });
-    const resolvedBootstrapAuthSession = await loadResolvedSharedDesktopBootstrapAuthSession({
-      realmBaseUrl: defaults.realm.realmBaseUrl,
-      envAccessToken: defaults.realm.accessToken,
-    });
-    logRendererEvent({
-      level: 'info',
-      area: 'renderer-bootstrap',
-      message: 'phase:bootstrap-auth-session:resolved',
-      flowId,
-      details: {
-        source: resolvedBootstrapAuthSession.source,
-        resolution: resolvedBootstrapAuthSession.resolution,
-        hasSession: Boolean(resolvedBootstrapAuthSession.session),
-        hasAccessToken: Boolean(String(resolvedBootstrapAuthSession.session?.accessToken || '').trim()),
-        hasRefreshToken: Boolean(String(resolvedBootstrapAuthSession.session?.refreshToken || '').trim()),
-        shouldClearPersistedSession: resolvedBootstrapAuthSession.shouldClearPersistedSession,
-      },
-    });
-    let bootstrapAccessToken = String(resolvedBootstrapAuthSession.session?.accessToken || '').trim();
-    let bootstrapRefreshToken = String(resolvedBootstrapAuthSession.session?.refreshToken || '').trim();
-    const clearPersistedDesktopSession = async () => {
-      bootstrapAccessToken = '';
-      bootstrapRefreshToken = '';
-      await clearSharedDesktopSession();
-    };
-
-    const resolveCurrentAccessToken = () => {
-      const store = useAppStore.getState();
-      const authToken = String(store.auth.token || '').trim();
-      if (authToken) {
-        return authToken;
-      }
-      if (store.auth.status === 'bootstrapping') {
-        return bootstrapAccessToken;
-      }
-      return '';
-    };
-    const resolveCurrentRefreshToken = () => {
-      const storeRefreshToken = String(useAppStore.getState().auth.refreshToken || '').trim();
-      if (storeRefreshToken) {
-        return storeRefreshToken;
-      }
-      if (useAppStore.getState().auth.status === 'bootstrapping') {
-        return bootstrapRefreshToken;
-      }
-      return '';
-    };
-
-    const resolveCurrentSubjectUserId = () => {
-      const store = useAppStore.getState();
-      const authUser = store.auth.user;
-      if (!authUser || typeof authUser !== 'object' || Array.isArray(authUser)) {
-        return '';
-      }
-      const user = authUser as Record<string, unknown>;
-      const id = String(user.id || '').trim();
-      if (id) {
-        return id;
-      }
-      const userId = String(user.userId || '').trim();
-      if (userId) {
-        return userId;
-      }
-      return String(user.accountId || '').trim();
-    };
     const proxyFetch = createProxyFetch();
     void pingDesktopMacosSmoke('bootstrap-platform-client-start', {
       skipHeavyBootstrapForMacosSmoke,
     }).catch(() => {});
     clearPlatformClient();
-    const platformClient = await createPlatformClient({
+    const platformClient = await createLocalFirstPartyRuntimePlatformClient({
       appId: 'nimi.desktop',
       realmBaseUrl: defaults.realm.realmBaseUrl,
-      accessToken: bootstrapAccessToken,
-      refreshTokenProvider: resolveCurrentRefreshToken,
       realmFetchImpl: proxyFetch,
       runtimeTransport: {
         type: 'tauri-ipc',
         commandNamespace: 'runtime_bridge',
         eventNamespace: 'runtime_bridge',
       },
-      sessionStore: {
-        getAccessToken: resolveCurrentAccessToken,
-        getRefreshToken: resolveCurrentRefreshToken,
-        getSubjectUserId: resolveCurrentSubjectUserId,
-        getCurrentUser: () => useAppStore.getState().auth.user,
-        setAuthSession: (user, accessToken, refreshToken) => {
-          bootstrapAccessToken = String(accessToken || '').trim();
-          if (refreshToken !== undefined) {
-            bootstrapRefreshToken = String(refreshToken || '').trim();
-          }
-          useAppStore.getState().setAuthSession(user, accessToken, refreshToken);
-          void persistSharedDesktopSession({
-            realmBaseUrl: defaults.realm.realmBaseUrl,
-            accessToken,
-            refreshToken,
-            user: (user as Record<string, unknown> | null | undefined) ?? null,
-          });
-        },
-        clearAuthSession: () => {
-          bootstrapAccessToken = '';
-          bootstrapRefreshToken = '';
-          useAppStore.getState().clearAuthSession();
-          void clearPersistedDesktopSession();
-        },
-      },
     });
+    const accountCaller = {
+      appId: 'nimi.desktop',
+      appInstanceId: 'nimi.desktop.local-first-party',
+      deviceId: 'desktop-shell',
+      mode: 2,
+      scopes: [],
+    };
+    const accountStatus = await platformClient.runtime.account.getAccountSessionStatus({
+      caller: accountCaller,
+    });
+    const accountProjection = accountStatus.accountProjection;
+    if (accountProjection?.accountId) {
+      useAppStore.getState().setAuthSession({
+        id: accountProjection.accountId,
+        displayName: accountProjection.displayName,
+        realmEnvironmentId: accountProjection.realmEnvironmentId,
+      }, '', '');
+    } else {
+      useAppStore.getState().clearAuthSession();
+    }
     unstable_attachPlatformWorldEvolutionSelectorReadProvider(
       platformClient,
       createDesktopWorldEvolutionSelectorReadAdapter(),
@@ -594,30 +516,25 @@ export function bootstrapRuntime(): Promise<void> {
 
     dataSync.initApi({
       realmBaseUrl: defaults.realm.realmBaseUrl,
-      accessToken: bootstrapAccessToken,
-      refreshToken: bootstrapRefreshToken,
+      accessTokenProvider: async () => {
+        const response = await platformClient.runtime.account.getAccessToken({
+          caller: accountCaller,
+          requestedScopes: [],
+        });
+        if (!response.accepted || !response.accessToken) {
+          throw new Error(`Runtime account access token unavailable: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`);
+        }
+        return response.accessToken;
+      },
       fetchImpl: proxyFetch,
     });
 
     dataSync.setAuthCallbacks({
-      setAuth: (user, token, refreshToken) => {
-        bootstrapAccessToken = String(token || '').trim();
-        if (refreshToken !== undefined) {
-          bootstrapRefreshToken = String(refreshToken || '').trim();
-        }
-        useAppStore.getState().setAuthSession(user ?? null, token, refreshToken);
-        void persistSharedDesktopSession({
-          realmBaseUrl: defaults.realm.realmBaseUrl,
-          accessToken: token,
-          refreshToken,
-          user: user ?? null,
-        });
+      setAuth: (user) => {
+        useAppStore.getState().setAuthSession(user ?? null, '', '');
       },
       clearAuth: () => {
-        bootstrapAccessToken = '';
-        bootstrapRefreshToken = '';
         useAppStore.getState().clearAuthSession();
-        void clearPersistedDesktopSession();
       },
       getCurrentUser: () => {
         return useAppStore.getState().auth.user;
@@ -627,17 +544,6 @@ export function bootstrapRuntime(): Promise<void> {
 
     startAuthStateWatcher();
 
-    await bootstrapAuthSession({
-      flowId,
-      realmBaseUrl: defaults.realm.realmBaseUrl,
-      accessToken: bootstrapAccessToken,
-      refreshToken: bootstrapRefreshToken,
-      source: resolvedBootstrapAuthSession.source,
-      resolution: resolvedBootstrapAuthSession.resolution,
-      clearPersistedSession: clearPersistedDesktopSession,
-      skipWarmLoads: skipHeavyBootstrapForMacosSmoke,
-    });
-
     let shouldSchedulePostReadyRuntimeModHydration = false;
 
     if (flags.enableRuntimeBootstrap && !macosSmokeContext.disableRuntimeBootstrap) {
@@ -646,7 +552,7 @@ export function bootstrapRuntime(): Promise<void> {
         const runtimeDefaultsRealmBaseUrl = String(store.runtimeDefaults?.realm?.realmBaseUrl || '').trim();
         return {
           realmBaseUrl: runtimeDefaultsRealmBaseUrl || defaults.realm.realmBaseUrl,
-          accessToken: resolveCurrentAccessToken(),
+          accessToken: '',
           fetchImpl: proxyFetch,
         };
       });

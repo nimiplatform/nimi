@@ -131,6 +131,28 @@ export type ShellAuthDesktopBrowserAuth = {
   baseUrl?: string;
   onRootPointerDown?: (event: ReactMouseEvent<HTMLElement>) => void;
   hintVisibility?: 'always' | 'hover-or-status';
+  runtimeAccountBroker?: {
+    begin: (input: {
+      callbackUrl: string;
+      baseUrl?: string;
+      timeoutMs: number;
+    }) => Promise<{
+      loginAttemptId: string;
+      authorizationUrl: string;
+      state: string;
+      nonce: string;
+    }>;
+    complete: (input: {
+      loginAttemptId: string;
+      accessToken: string;
+      refreshToken: string;
+      state: string;
+      nonce: string;
+      callbackUrl: string;
+    }) => Promise<{
+      user: Record<string, unknown> | null;
+    }>;
+  };
 };
 
 export type ShellAuthCopy = {

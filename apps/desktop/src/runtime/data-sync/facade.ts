@@ -70,6 +70,7 @@ type DataSyncNotificationType = NonNullable<NotificationDto['type']>;
 export class DataSync {
   private realmBaseUrl = '';
   private accessToken = '';
+  private accessTokenProvider: (() => string | Promise<string>) | null = null;
   private refreshToken = '';
   private fetchImpl: FetchImpl | null = null;
   private realmClient: Realm | null = null;
@@ -106,25 +107,28 @@ export class DataSync {
     const hotState = readDataSyncHotState();
     if (!hotState) return false;
     this.realmBaseUrl = hotState.realmBaseUrl;
-    this.accessToken = hotState.accessToken;
-    this.refreshToken = hotState.refreshToken;
+    this.accessToken = '';
+    this.refreshToken = '';
+    this.accessTokenProvider = null;
     this.fetchImpl = hotState.fetchImpl;
     return true;
   }
 
   private persistApiToHotState() {
     if (!this.realmBaseUrl) return;
-    writeDataSyncHotState({ realmBaseUrl: this.realmBaseUrl, accessToken: this.accessToken, refreshToken: this.refreshToken, fetchImpl: this.fetchImpl });
+    writeDataSyncHotState({ realmBaseUrl: this.realmBaseUrl, accessToken: '', refreshToken: '', fetchImpl: this.fetchImpl });
   }
 
   initApi(config?: DataSyncApiConfig) {
     const nextRealmBaseUrl = normalizeRealmBaseUrl(config?.realmBaseUrl);
     const nextFetchImpl = typeof config?.fetchImpl === 'function' ? config.fetchImpl : null;
-    const shouldResetRealmClient = this.realmBaseUrl !== nextRealmBaseUrl || this.fetchImpl !== nextFetchImpl;
+    const nextAccessTokenProvider = typeof config?.accessTokenProvider === 'function' ? config.accessTokenProvider : null;
+    const shouldResetRealmClient = this.realmBaseUrl !== nextRealmBaseUrl || this.fetchImpl !== nextFetchImpl || this.accessTokenProvider !== nextAccessTokenProvider;
 
     this.realmBaseUrl = nextRealmBaseUrl;
-    this.accessToken = String(config?.accessToken || '');
-    this.refreshToken = String(config?.refreshToken || '');
+    this.accessTokenProvider = nextAccessTokenProvider;
+    this.accessToken = this.accessTokenProvider ? '' : String(config?.accessToken || '');
+    this.refreshToken = this.accessTokenProvider ? '' : String(config?.refreshToken || '');
     this.fetchImpl = nextFetchImpl;
     if (shouldResetRealmClient) {
       this.resetRealmClient();
@@ -134,11 +138,21 @@ export class DataSync {
   }
 
   setRefreshToken(token: string | null | undefined) {
+    if (this.accessTokenProvider) {
+      this.refreshToken = '';
+      this.persistApiToHotState();
+      return;
+    }
     this.refreshToken = String(token || '');
     this.persistApiToHotState();
   }
 
   setToken(token: string | null | undefined) {
+    if (this.accessTokenProvider) {
+      this.accessToken = '';
+      this.persistApiToHotState();
+      return;
+    }
     this.accessToken = String(token || '');
     this.persistApiToHotState();
   }
@@ -178,7 +192,9 @@ export class DataSync {
 
     const realm = createRealmClient({
       baseUrl: this.realmBaseUrl,
-      auth: {
+      auth: this.accessTokenProvider ? {
+        accessToken: this.accessTokenProvider,
+      } : {
         accessToken: () => this.accessToken,
         refreshToken: () => this.refreshToken,
         onTokenRefreshed: (refreshResult: RealmTokenRefreshResult) => {
@@ -446,6 +462,7 @@ export class DataSync {
     await this.actions.logout();
     this.accessToken = '';
     this.refreshToken = '';
+    this.accessTokenProvider = null;
     this.persistApiToHotState();
     this.clearProactiveRefreshTimer();
   }
@@ -529,6 +546,7 @@ export class DataSync {
     this.realmBaseUrl = '';
     this.accessToken = '';
     this.refreshToken = '';
+    this.accessTokenProvider = null;
     this.fetchImpl = null;
   }
 }

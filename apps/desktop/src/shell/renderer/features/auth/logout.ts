@@ -1,11 +1,10 @@
-import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { clearPersistedAccessToken } from '@nimiplatform/nimi-kit/auth';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { i18n } from '@renderer/i18n';
 import { clearAllStreams } from '@renderer/features/turns/stream-controller';
-import { clearSharedDesktopSession } from './shared-auth-session';
 
 type LogoutAndClearSessionInput = {
   clearAuthSession: AppStoreState['clearAuthSession'];
@@ -30,9 +29,19 @@ type LogoutDependencies = {
 };
 
 const defaultLogoutDependencies: LogoutDependencies = {
-  logout: () => dataSync.logout(),
+  logout: async () => {
+    await getPlatformClient().runtime.account.logout({
+      caller: {
+        appId: 'nimi.desktop',
+        appInstanceId: 'nimi.desktop.local-first-party',
+        deviceId: 'desktop-shell',
+        mode: 2,
+        scopes: [],
+      },
+      reason: 'desktop_logout',
+    });
+  },
   clearPersistedSession: async () => {
-    await clearSharedDesktopSession();
     clearPersistedAccessToken();
   },
   clearAllStreams,

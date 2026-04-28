@@ -45,6 +45,8 @@
   "resendCode": "Resend code",
   "twoFaHint": "Enter your 2FA verification code.",
   "authorizing": "Authorizing...",
+  "loginPending": "Opening browser...",
+  "loginWithNimi": "Log in with Nimi",
   "authorizeDesktopButton": "Authorize desktop",
   "useAnotherAccount": "Use another account",
   "clickToConnect": "Click to connect",

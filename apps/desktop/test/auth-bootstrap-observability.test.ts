@@ -12,19 +12,17 @@ const runtimeBootstrapAuthSource = readFileSync(
   'utf8',
 );
 
-test('desktop bootstrap logs shared auth-session resolution before auto-login runs', () => {
-  assert.match(runtimeBootstrapSource, /message: 'phase:bootstrap-auth-session:resolved'/);
-  assert.match(runtimeBootstrapSource, /resolution: resolvedBootstrapAuthSession\.resolution/);
-  assert.match(runtimeBootstrapSource, /shouldClearPersistedSession: resolvedBootstrapAuthSession\.shouldClearPersistedSession/);
-  assert.match(runtimeBootstrapSource, /hasAccessToken: Boolean\(String\(resolvedBootstrapAuthSession\.session\?\.accessToken \|\| ''\)\.trim\(\)\)/);
+test('desktop bootstrap reads Runtime account projection instead of shared auth-session truth', () => {
+  assert.match(runtimeBootstrapSource, /createLocalFirstPartyRuntimePlatformClient\(/);
+  assert.match(runtimeBootstrapSource, /runtime\.account\.getAccountSessionStatus\(\{/);
+  assert.match(runtimeBootstrapSource, /runtime\.account\.getAccessToken\(\{/);
+  assert.match(runtimeBootstrapSource, /accessTokenProvider: async \(\) => \{/);
+  assert.doesNotMatch(runtimeBootstrapSource, /bootstrapAuthSession\(/);
+  assert.doesNotMatch(runtimeBootstrapSource, /resolvedBootstrapAuthSession/);
 });
 
-test('desktop bootstrap auth logs missing-token skip reason instead of silently clearing auth', () => {
-  assert.match(runtimeBootstrapAuthSource, /message: 'phase:auto-login:skipped'/);
-  assert.match(runtimeBootstrapAuthSource, /reason: 'missing-token'/);
-  assert.match(runtimeBootstrapAuthSource, /resolution: input\.resolution \|\| 'unknown'/);
-  assert.doesNotMatch(
-    runtimeBootstrapAuthSource,
-    /if \(!envToken\) \{\s*useAppStore\.getState\(\)\.clearAuthSession\(\);\s*return;\s*\}/,
-  );
+test('retired desktop bootstrap auth helper is hard-blocked', () => {
+  assert.match(runtimeBootstrapAuthSource, /RuntimeAccountService owns local account truth/);
+  assert.doesNotMatch(runtimeBootstrapAuthSource, /persistSharedDesktopSession/);
+  assert.doesNotMatch(runtimeBootstrapAuthSource, /dataSync\.loadCurrentUser/);
 });

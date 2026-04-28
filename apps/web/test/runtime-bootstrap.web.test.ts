@@ -73,38 +73,23 @@ test('runtime-bootstrap.web preserves persisted web auth storage during desktop 
   assert.match(runtimeBootstrapWebSource, /if \(!input\.preservePersistedAuthSession\) \{\s*deps\.clearPersistedAccessToken\(\);/s);
 });
 
-test('runtime-bootstrap.web desktop callback refreshes access token from same-origin session and preserves auth store', async () => {
+test('runtime-bootstrap.web desktop callback does not call same-origin refresh before login', async () => {
   const callLog: string[] = [];
   let authState = {
-    status: 'authenticated',
-    user: { id: 'persisted-user' },
-    token: 'persisted-token',
-    refreshToken: 'persisted-refresh',
+    status: 'anonymous',
+    user: null as Record<string, unknown> | null,
+    token: '',
+    refreshToken: '',
   };
   const deps = {
     dataSync: {
-      callApi: async (task: (realm: {
-        services: {
-          AuthService: {
-            refreshToken: () => Promise<{ accessToken: string; refreshToken: string }>;
-          };
-        };
-      }) => Promise<unknown>) => {
+      callApi: async () => {
         callLog.push('refreshToken');
-        return task({
-          services: {
-            AuthService: {
-              refreshToken: async () => ({
-                accessToken: 'cookie-session-token',
-                refreshToken: 'cookie-session-refresh',
-              }),
-            },
-          },
-        });
+        throw new Error('desktop callback bootstrap must not call /api/auth/refresh');
       },
       loadCurrentUser: async () => {
         callLog.push('loadCurrentUser');
-        return { id: 'current-user' };
+        throw new Error('desktop callback bootstrap must not load current user before login');
       },
       setToken: (token: string) => {
         callLog.push(`setToken:${token}`);
@@ -149,22 +134,19 @@ test('runtime-bootstrap.web desktop callback refreshes access token from same-or
     refreshToken: '',
     preservePersistedAuthSession: true,
     authSessionSnapshot: {
-      status: 'authenticated',
-      user: { id: 'persisted-user' },
+      status: 'anonymous',
+      user: null,
       token: '',
       refreshToken: '',
     },
   }, deps as never);
 
   assert.deepEqual(callLog, [
-    'refreshToken',
-    'setToken:cookie-session-token',
-    'setRefreshToken:cookie-session-refresh',
-    'loadCurrentUser',
-    'persist:cookie-session-token:cookie-session-refresh',
+    'setToken:',
+    'setRefreshToken:',
   ]);
-  assert.equal(authState.status, 'authenticated');
-  assert.equal(authState.token, 'cookie-session-token');
+  assert.equal(authState.status, 'anonymous');
+  assert.equal(authState.token, '');
 });
 
 test('runtime-bootstrap.web desktop callback restores prior auth snapshot when current-user load fails', async () => {

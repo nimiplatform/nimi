@@ -5,40 +5,41 @@ import { resolve } from 'node:path';
 
 const BOOTSTRAP_PATH = resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts');
 const bootstrapSource = readFileSync(BOOTSTRAP_PATH, 'utf-8');
+const PLATFORM_CLIENT_INIT = 'createLocalFirstPartyRuntimePlatformClient(';
 
 describe('bootstrap sequence ordering (D-BOOT)', () => {
   test('D-BOOT-001: bootstrap loads runtime defaults before platform client init', () => {
     const defaultsIndex = bootstrapSource.indexOf('getRuntimeDefaults()');
-    const platformClientIndex = bootstrapSource.indexOf('createPlatformClient(');
+    const platformClientIndex = bootstrapSource.indexOf(PLATFORM_CLIENT_INIT);
     assert.ok(defaultsIndex !== -1, 'getRuntimeDefaults() must appear in bootstrap source');
-    assert.ok(platformClientIndex !== -1, 'createPlatformClient( must appear in bootstrap source');
+    assert.ok(platformClientIndex !== -1, `${PLATFORM_CLIENT_INIT} must appear in bootstrap source`);
     assert.ok(
       defaultsIndex < platformClientIndex,
-      `getRuntimeDefaults() (pos ${defaultsIndex}) must appear before createPlatformClient( (pos ${platformClientIndex})`,
+      `getRuntimeDefaults() (pos ${defaultsIndex}) must appear before ${PLATFORM_CLIENT_INIT} (pos ${platformClientIndex})`,
     );
   });
 
   test('D-BOOT-002: platform client init precedes DataSync init', () => {
-    const platformClientIndex = bootstrapSource.indexOf('createPlatformClient(');
+    const platformClientIndex = bootstrapSource.indexOf(PLATFORM_CLIENT_INIT);
     const dataSyncIndex = bootstrapSource.indexOf('dataSync.initApi(');
-    assert.ok(platformClientIndex !== -1, 'createPlatformClient( must appear in bootstrap source');
+    assert.ok(platformClientIndex !== -1, `${PLATFORM_CLIENT_INIT} must appear in bootstrap source`);
     assert.ok(dataSyncIndex !== -1, 'dataSync.initApi( must appear in bootstrap source');
     assert.ok(
       platformClientIndex < dataSyncIndex,
-      `createPlatformClient( (pos ${platformClientIndex}) must appear before dataSync.initApi( (pos ${dataSyncIndex})`,
+      `${PLATFORM_CLIENT_INIT} (pos ${platformClientIndex}) must appear before dataSync.initApi( (pos ${dataSyncIndex})`,
     );
   });
 
   test('D-BOOT-003: world evolution selector-read provider attaches after platform client init and before DataSync init', () => {
-    const platformClientIndex = bootstrapSource.indexOf('createPlatformClient(');
+    const platformClientIndex = bootstrapSource.indexOf(PLATFORM_CLIENT_INIT);
     const attachIndex = bootstrapSource.indexOf('unstable_attachPlatformWorldEvolutionSelectorReadProvider(');
     const dataSyncIndex = bootstrapSource.indexOf('dataSync.initApi(');
-    assert.ok(platformClientIndex !== -1, 'createPlatformClient( must appear in bootstrap source');
+    assert.ok(platformClientIndex !== -1, `${PLATFORM_CLIENT_INIT} must appear in bootstrap source`);
     assert.ok(attachIndex !== -1, 'unstable_attachPlatformWorldEvolutionSelectorReadProvider( must appear in bootstrap source');
     assert.ok(dataSyncIndex !== -1, 'dataSync.initApi( must appear in bootstrap source');
     assert.ok(
       platformClientIndex < attachIndex,
-      `createPlatformClient( (pos ${platformClientIndex}) must appear before unstable_attachPlatformWorldEvolutionSelectorReadProvider( (pos ${attachIndex})`,
+      `${PLATFORM_CLIENT_INIT} (pos ${platformClientIndex}) must appear before unstable_attachPlatformWorldEvolutionSelectorReadProvider( (pos ${attachIndex})`,
     );
     assert.ok(
       attachIndex < dataSyncIndex,
@@ -99,14 +100,14 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
   });
 
   test('D-BOOT-007: auth bootstrap completes before runtime host work that can issue scheduling probes', () => {
-    const authSessionIndex = bootstrapSource.indexOf('await bootstrapAuthSession({');
+    const authSessionIndex = bootstrapSource.indexOf('getAccountSessionStatus({');
     const hydrationEligibleIndex = bootstrapSource.indexOf('shouldSchedulePostReadyRuntimeModHydration = true;');
     const bootstrapReadyIndex = bootstrapSource.indexOf('useAppStore.getState().setBootstrapReady(true);');
-    assert.ok(authSessionIndex !== -1, 'await bootstrapAuthSession({ must appear in bootstrap source');
+    assert.ok(authSessionIndex !== -1, 'Runtime account status bootstrap must appear in bootstrap source');
     assert.ok(hydrationEligibleIndex !== -1, 'post-ready runtime mod hydration eligibility must appear in bootstrap source');
     assert.ok(bootstrapReadyIndex !== -1, 'setBootstrapReady(true); must appear in bootstrap source');
-    assert.ok(authSessionIndex < hydrationEligibleIndex, 'bootstrapAuthSession must run before runtime host work can schedule mod hydration');
-    assert.ok(authSessionIndex < bootstrapReadyIndex, 'bootstrapAuthSession must complete before bootstrapReady is set');
+    assert.ok(authSessionIndex < hydrationEligibleIndex, 'Runtime account status bootstrap must run before runtime host work can schedule mod hydration');
+    assert.ok(authSessionIndex < bootstrapReadyIndex, 'Runtime account status bootstrap must complete before bootstrapReady is set');
   });
 
   test('D-BOOT-008: bootstrap failure sets bootstrapError and clears auth', () => {
@@ -140,13 +141,13 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     const setReachableIndex = bootstrapSource.indexOf('getOfflineCoordinator().markRuntimeReachable(daemonStatus.running)');
     assert.ok(setReachableIndex !== -1, 'markRuntimeReachable(daemonStatus.running) must appear in bootstrap source');
 
-    // setRuntimeReachable(true) should appear after the core bootstrap steps
-    // (after bootstrapAuthSession), confirming realm connectivity is not a gate.
-    const authSessionIndex = bootstrapSource.indexOf('bootstrapAuthSession(');
-    assert.ok(authSessionIndex !== -1, 'bootstrapAuthSession must appear in bootstrap source');
+    // Runtime reachability should be marked after the core bootstrap steps
+    // (after Runtime account projection), confirming realm connectivity is not a gate.
+    const authSessionIndex = bootstrapSource.indexOf('getAccountSessionStatus({');
+    assert.ok(authSessionIndex !== -1, 'Runtime account projection bootstrap must appear in bootstrap source');
     assert.ok(
       setReachableIndex > authSessionIndex,
-      'markRuntimeReachable(daemonStatus.running) must appear after bootstrapAuthSession, confirming realm reachability is not a precondition',
+      'markRuntimeReachable(daemonStatus.running) must appear after Runtime account projection bootstrap, confirming realm reachability is not a precondition',
     );
   });
 
@@ -244,26 +245,11 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     );
   });
 
-  test('D-BOOT-014: auth bootstrap bounds remote session loading and does not block ready on warm loads', () => {
+  test('D-BOOT-014: retired shared auth bootstrap remains hard-blocked', () => {
     const authBootstrapPath = resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-auth.ts');
     const authBootstrapSource = readFileSync(authBootstrapPath, 'utf-8');
-    assert.ok(
-      authBootstrapSource.includes('AUTO_LOGIN_USER_LOAD_TIMEOUT_MS'),
-      'bootstrap auth must define a bounded timeout for current-user loading',
-    );
-    assert.ok(
-      authBootstrapSource.includes("withBootstrapStepTimeout(\n      'bootstrap auth user load'"),
-      'bootstrap auth must wrap loadCurrentUser in a startup timeout',
-    );
-    assert.ok(
-      authBootstrapSource.includes("void withBootstrapStepTimeout(\n        'bootstrap auth warm loads'"),
-      'bootstrap auth warm loads must run in a detached timeout-bounded task',
-    );
-    assert.doesNotMatch(
-      authBootstrapSource,
-      /await Promise\.allSettled\(\[\s*dataSync\.loadChats\(\),\s*dataSync\.loadContacts\(\),?\s*\]\)/,
-      'bootstrap auth warm loads must not block bootstrap completion',
-    );
+    assert.match(authBootstrapSource, /RuntimeAccountService owns local account truth/);
+    assert.doesNotMatch(authBootstrapSource, /loadCurrentUser|persistSharedDesktopSession|withBootstrapStepTimeout/);
   });
 
   test('D-BOOT-015: non-critical runtime bootstrap work is timeout-bounded or deferred', () => {

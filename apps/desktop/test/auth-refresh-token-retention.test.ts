@@ -181,29 +181,26 @@ test('desktop-browser auth persists the restored session immediately after brows
   );
   assert.match(
     shellAuthPageSource,
-    /await adapter\.persistSession\?\.\(\{\s*accessToken: result\.accessToken,\s*user,\s*\}\);/s,
+    /await adapter\.persistSession\?\.\(\{\s*accessToken: result\.accessToken,\s*refreshToken: result\.refreshToken,\s*user,\s*\}\);/s,
   );
 });
 
-test('auth state watcher persists shared desktop session after desktop auth becomes authenticated', () => {
-  assert.match(authStateWatcherSource, /import \{ persistSharedDesktopSession \} from '@renderer\/features\/auth\/shared-auth-session';/);
-  assert.match(
-    authStateWatcherSource,
-    /void persistSharedDesktopSession\(\{\s*realmBaseUrl,\s*accessToken: auth\.token,\s*refreshToken: auth\.refreshToken,\s*user: state\.auth\.user,\s*\}\)/s,
-  );
-  assert.match(authStateWatcherSource, /message: 'phase:auth-persist:done'/);
-  assert.match(authStateWatcherSource, /message: 'phase:auth-persist:failed'/);
+test('auth state watcher observes Runtime projection without shared desktop session persistence', () => {
+  assert.doesNotMatch(authStateWatcherSource, /persistSharedDesktopSession/);
+  assert.doesNotMatch(authStateWatcherSource, /auth_session_save|auth_session_load|auth_session_clear/);
+  assert.match(authStateWatcherSource, /message: 'phase:auth-projection-observed'/);
+  assert.match(authStateWatcherSource, /dataSync\.setToken\(''\)/);
+  assert.match(authStateWatcherSource, /dataSync\.setRefreshToken\(''\)/);
+  assert.match(authStateWatcherSource, /dataSync\.clearProactiveRefreshTimer\(\)/);
 });
 
-test('desktop bootstrap starts auth state watcher before auto-login sets auth session', () => {
+test('desktop bootstrap reads Runtime account projection and has no shared-auth auto-login owner', () => {
   const watcherIndex = runtimeBootstrapSource.indexOf('startAuthStateWatcher();');
-  const bootstrapAuthIndex = runtimeBootstrapSource.indexOf('await bootstrapAuthSession({');
   assert.notEqual(watcherIndex, -1);
-  assert.notEqual(bootstrapAuthIndex, -1);
-  assert.ok(
-    watcherIndex < bootstrapAuthIndex,
-    'auth state watcher must observe bootstrap auto-login so shared desktop auth is persisted',
-  );
+  assert.doesNotMatch(runtimeBootstrapSource, /bootstrapAuthSession\(/);
+  assert.match(runtimeBootstrapSource, /createLocalFirstPartyRuntimePlatformClient\(/);
+  assert.match(runtimeBootstrapSource, /runtime\.account\.getAccountSessionStatus\(\{\s*caller: accountCaller,\s*\}\)/s);
+  assert.match(runtimeBootstrapSource, /runtime\.account\.getAccessToken\(\{\s*caller: accountCaller,\s*requestedScopes: \[\],\s*\}\)/s);
 });
 
 test('web auth adapter stores browser metadata instead of calling shared desktop session persistence in web mode', () => {
@@ -223,8 +220,8 @@ test('web auth adapter stores browser metadata instead of calling shared desktop
     desktopAuthAdapterSource,
     /if \(isWebShellMode\(\)\) \{\s*clearPersistedAccessToken\(\);\s*return;\s*\}/s,
   );
-  assert.match(desktopAuthAdapterSource, /restoreSession: async \(\) => \{/);
-  assert.match(desktopAuthAdapterSource, /realm\.services\.AuthService\.refreshToken\(\)/);
+  assert.match(desktopAuthAdapterSource, /restoreSession: async \(\) => localFirstPartyBlocked\('restoreSession'\)/);
+  assert.doesNotMatch(desktopAuthAdapterSource, /realm\.services\.AuthService\.refreshToken\(\)/);
 });
 
 test('auth view types include email_set_password', () => {

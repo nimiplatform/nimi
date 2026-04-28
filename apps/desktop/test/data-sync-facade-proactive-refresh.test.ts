@@ -17,22 +17,22 @@ function clearHotState(): void {
   delete (globalThis as Record<string, unknown>).__NIMI_DATA_SYNC_API_CONFIG__;
 }
 
-test('DataSync proactive refresh success updates tokens, persists hot state, and reschedules refresh', async () => {
+test('DataSync Runtime token provider keeps tokens out of hot state and disables proactive refresh ownership', async () => {
   clearHotState();
   const originalRefreshAccessToken = Realm.refreshAccessToken;
   const originalSetTimeout = globalThis.setTimeout;
   const originalClearTimeout = globalThis.clearTimeout;
 
-  const nextAccessToken = makeJwt(3600);
   const scheduled: Array<{ callback: () => void; delayMs: number }> = [];
   const setAuthCalls: Array<{ user: Record<string, unknown> | null; token: string; refreshToken?: string }> = [];
   let clearAuthCalls = 0;
   let stopAllPollingCalls = 0;
+  let refreshCalls = 0;
 
-  Realm.refreshAccessToken = async () => ({
-    accessToken: nextAccessToken,
-    refreshToken: 'refresh-2',
-  });
+  Realm.refreshAccessToken = async () => {
+    refreshCalls += 1;
+    throw new Error('DataSync must not own refresh when Runtime token provider is active');
+  };
   globalThis.setTimeout = ((callback: () => void, delayMs?: number) => {
     scheduled.push({ callback, delayMs: Number(delayMs || 0) });
     return Symbol('timeout') as never;
@@ -43,9 +43,10 @@ test('DataSync proactive refresh success updates tokens, persists hot state, and
     const dataSync = new DataSync();
     dataSync.initApi({
       realmBaseUrl: 'https://realm.example',
-      accessToken: makeJwt(1200),
-      refreshToken: 'refresh-1',
+      accessTokenProvider: async () => 'runtime-account-access-token',
     });
+    dataSync.setToken(makeJwt(1200));
+    dataSync.setRefreshToken('refresh-1');
     dataSync.setAuthCallbacks({
       setAuth: (user, token, refreshToken) => {
         setAuthCalls.push({ user: user ?? null, token, refreshToken });
@@ -60,21 +61,17 @@ test('DataSync proactive refresh success updates tokens, persists hot state, and
       stopAllPollingCalls += 1;
     }) as typeof dataSync.stopAllPolling;
 
+    dataSync.scheduleProactiveRefresh(makeJwt(1200));
     await (dataSync as unknown as { doProactiveRefresh(): Promise<void> }).doProactiveRefresh();
 
     const hotState = readDataSyncHotState();
-    assert.equal(hotState?.accessToken, nextAccessToken);
-    assert.equal(hotState?.refreshToken, 'refresh-2');
-    assert.equal(setAuthCalls.length, 1);
-    assert.deepEqual(setAuthCalls[0], {
-      user: { id: 'user-1' },
-      token: nextAccessToken,
-      refreshToken: 'refresh-2',
-    });
+    assert.equal(hotState?.accessToken, '');
+    assert.equal(hotState?.refreshToken, '');
+    assert.equal(refreshCalls, 0);
+    assert.equal(setAuthCalls.length, 0);
     assert.equal(clearAuthCalls, 0);
     assert.equal(stopAllPollingCalls, 0);
-    assert.equal(scheduled.length, 1);
-    assert.ok(scheduled[0]!.delayMs >= 1000);
+    assert.equal(scheduled.length, 0);
   } finally {
     Realm.refreshAccessToken = originalRefreshAccessToken;
     globalThis.setTimeout = originalSetTimeout;
@@ -83,7 +80,7 @@ test('DataSync proactive refresh success updates tokens, persists hot state, and
   }
 });
 
-test('DataSync proactive refresh failure clears auth, stops polling, and clears the timer', async () => {
+test('DataSync legacy refresh path remains unavailable when Runtime provider owns token projection', async () => {
   clearHotState();
   const originalRefreshAccessToken = Realm.refreshAccessToken;
   const originalClearTimeout = globalThis.clearTimeout;
@@ -91,8 +88,10 @@ test('DataSync proactive refresh failure clears auth, stops polling, and clears 
   let clearAuthCalls = 0;
   let stopAllPollingCalls = 0;
   const clearedTimers: unknown[] = [];
+  let refreshCalls = 0;
 
   Realm.refreshAccessToken = async () => {
+    refreshCalls += 1;
     throw new Error('refresh failed');
   };
   globalThis.clearTimeout = ((handle?: unknown) => {
@@ -103,9 +102,9 @@ test('DataSync proactive refresh failure clears auth, stops polling, and clears 
     const dataSync = new DataSync();
     dataSync.initApi({
       realmBaseUrl: 'https://realm.example',
-      accessToken: makeJwt(1200),
-      refreshToken: 'refresh-1',
+      accessTokenProvider: async () => 'runtime-account-access-token',
     });
+    dataSync.setRefreshToken('refresh-1');
     dataSync.setAuthCallbacks({
       setAuth: () => undefined,
       clearAuth: () => {
@@ -121,13 +120,50 @@ test('DataSync proactive refresh failure clears auth, stops polling, and clears 
 
     await (dataSync as unknown as { doProactiveRefresh(): Promise<void> }).doProactiveRefresh();
 
-    assert.equal(clearAuthCalls, 1);
-    assert.equal(stopAllPollingCalls, 1);
-    assert.deepEqual(clearedTimers, ['timer-handle']);
-    assert.equal((dataSync as unknown as { proactiveRefreshTimer: unknown }).proactiveRefreshTimer, null);
+    assert.equal(refreshCalls, 0);
+    assert.equal(clearAuthCalls, 0);
+    assert.equal(stopAllPollingCalls, 0);
+    assert.deepEqual(clearedTimers, []);
+    assert.equal((dataSync as unknown as { proactiveRefreshTimer: unknown }).proactiveRefreshTimer, 'timer-handle');
   } finally {
     Realm.refreshAccessToken = originalRefreshAccessToken;
     globalThis.clearTimeout = originalClearTimeout;
     clearHotState();
   }
+});
+
+test('DataSync Runtime token provider fails Realm access closed after logout or user switch revokes projection', async () => {
+  clearHotState();
+  let revoked = false;
+  const dataSync = new DataSync();
+  dataSync.initApi({
+    realmBaseUrl: 'https://realm.example',
+    accessTokenProvider: async () => {
+      if (revoked) {
+        throw new Error('Runtime account access token unavailable: revoked');
+      }
+      return 'runtime-account-access-token';
+    },
+    fetchImpl: async (_input, init) => {
+      const auth = _input instanceof Request
+        ? _input.headers.get('authorization') || ''
+        : new Headers(init?.headers as HeadersInit | undefined).get('authorization') || '';
+      assert.equal(auth, 'Bearer runtime-account-access-token');
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    },
+  });
+
+  await dataSync.callApi((realm) => realm.unsafeRaw.request({ method: 'GET', path: '/api/protected' }));
+  revoked = true;
+  await assert.rejects(
+    () => dataSync.callApi((realm) => realm.unsafeRaw.request({ method: 'GET', path: '/api/protected' })),
+    /Runtime account access token unavailable: revoked/,
+  );
+  const hotState = readDataSyncHotState();
+  assert.equal(hotState?.accessToken, '');
+  assert.equal(hotState?.refreshToken, '');
+  clearHotState();
 });

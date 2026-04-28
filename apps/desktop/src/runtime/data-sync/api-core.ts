@@ -5,6 +5,7 @@ export type FetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promis
 export type DataSyncApiConfig = {
   realmBaseUrl?: string;
   accessToken?: string;
+  accessTokenProvider?: () => string | Promise<string>;
   refreshToken?: string;
   fetchImpl?: FetchImpl;
 };

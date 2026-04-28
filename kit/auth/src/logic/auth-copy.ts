@@ -13,6 +13,7 @@ export const AUTH_COPY = {
   desktopBrowserOpenFailed: '无法打开系统浏览器',
   desktopBrowserStateInvalid: '网页登录回调 state 校验失败',
   desktopBrowserAccessTokenMissing: '网页登录回调缺少 access token',
+  desktopBrowserRefreshTokenMissing: '网页登录回调缺少 refresh token，Runtime 无法接管登录态',
   desktopBrowserLaunchProtocolInvalid: '桌面网页登录地址仅支持 http/https 协议',
   emailRequired: '请输入邮箱',
   emailAndPasswordRequired: '请输入邮箱和密码',

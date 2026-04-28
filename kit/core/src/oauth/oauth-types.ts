@@ -29,6 +29,7 @@ export type OauthListenForCodePayload = {
 export type OauthListenForCodeResult = {
   callbackUrl: string;
   code?: string;
+  refreshToken?: string;
   state?: string;
   error?: string;
 };
@@ -93,6 +94,7 @@ export function parseOauthListenForCodeResult(value: unknown): OauthListenForCod
   return {
     callbackUrl: parseRequiredString(record.callbackUrl, 'callbackUrl', 'oauth_listen_for_code'),
     code: parseOptionalString(record.code),
+    refreshToken: parseOptionalString(record.refreshToken),
     state: parseOptionalString(record.state),
     error: parseOptionalString(record.error),
   };

@@ -12,8 +12,11 @@ import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import type { WebAuthMenuMode } from '@nimiplatform/nimi-kit/auth';
 import { DesktopShellAuthPage } from '@nimiplatform/nimi-kit/auth';
 import '@nimiplatform/nimi-kit/auth/styles.css';
-import { desktopOAuthBridge } from './desktop-auth-adapter.js';
-import { createDesktopAuthAdapter } from './desktop-auth-adapter.js';
+import {
+  createDesktopAuthAdapter,
+  createDesktopRuntimeAccountBrowserBroker,
+  desktopOAuthBridge,
+} from './desktop-auth-adapter.js';
 import { toAuthUserRecord } from './auth-session-utils.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
@@ -30,6 +33,7 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   const context = useUiExtensionContext();
   const mode = props.mode || 'embedded';
   const adapter = useMemo(() => createDesktopAuthAdapter(), []);
+  const runtimeAccountBroker = useMemo(() => createDesktopRuntimeAccountBrowserBroker(), []);
   const authStatus = useAppStore((state) => state.auth.status);
   const authToken = useAppStore((state) => state.auth.token);
   const authUser = useAppStore((state) => state.auth.user);
@@ -102,6 +106,7 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
           ? {
               bridge: desktopOAuthBridge,
               onRootPointerDown: handleRootMouseDown,
+              runtimeAccountBroker,
             }
           : undefined
       }

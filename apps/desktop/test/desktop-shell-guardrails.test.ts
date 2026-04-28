@@ -279,7 +279,8 @@ test('desktop shell source guardrails keep particle cleanup and auth helpers cen
   assert.doesNotMatch(desktopTauriConfigSource, /"pubkey"\s*:\s*"dev-placeholder"/);
   assert.doesNotMatch(authAdapterSource, /as Promise</);
   assert.doesNotMatch(authAdapterSource, /发送验证码失败|验证码登录失败|2FA 验证失败|获取钱包签名挑战失败|钱包登录失败|OAuth 登录失败/);
-  assert.match(bootstrapAuthSource, /toAuthUserRecord\(user\)/);
+  assert.match(bootstrapAuthSource, /RuntimeAccountService owns local account truth/);
+  assert.doesNotMatch(bootstrapAuthSource, /auth_session_load|auth_session_save|auth_session_clear/);
   assert.doesNotMatch(bootstrapAuthSource, /as Record<string, unknown>/);
   assert.match(gatewayServerSource, /host\.eq_ignore_ascii_case\("localhost"\)/);
   assert.match(sessionLoggingSource, /ns_window_ptr\.is_null\(\)/);

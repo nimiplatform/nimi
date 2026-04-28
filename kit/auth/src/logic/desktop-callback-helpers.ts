@@ -177,6 +177,7 @@ export function buildDesktopCallbackReturnUrl(input: {
 export function submitDesktopCallbackResult(input: {
   request: DesktopCallbackRequest;
   code?: string;
+  refreshToken?: string;
   state?: string;
   error?: string;
 }): void {
@@ -192,6 +193,10 @@ export function submitDesktopCallbackResult(input: {
   const code = String(input.code || '').trim();
   if (code) {
     fields.set('code', code);
+  }
+  const refreshToken = String(input.refreshToken || '').trim();
+  if (refreshToken) {
+    fields.set('refresh_token', refreshToken);
   }
   const state = String(input.state || input.request.state || '').trim();
   if (state) {

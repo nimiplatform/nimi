@@ -85,6 +85,7 @@ export async function applyTokens(
     submitDesktopCallbackResult({
       request: desktopCtx.desktopCallbackRequest,
       code: accessToken,
+      refreshToken,
     });
     return;
   }
