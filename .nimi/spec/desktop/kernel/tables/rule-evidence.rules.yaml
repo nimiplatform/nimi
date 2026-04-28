@@ -55,7 +55,7 @@
     - avatar_spec_consistency_gate
     - avatar_lint_gate
     - avatar_test_gate
-  note: "First-party local consumer revalidation is implemented in avatar and must fail closed on shared-session loss, invalidation, realm mismatch, or user switch."
+  note: "Shared-session revalidation excludes Avatar; Avatar coverage now proves local visual bootstrap plus runtime-binding fail-closed behavior."
 - rule_id: D-BOOT-001
   status: covered
   evidence_refs:
@@ -577,6 +577,13 @@
   evidence_refs:
     - desktop_kernel_consistency
   note: "Desktop companion app-event convention; executable coverage lands with downstream cross-surface implementation."
+- rule_id: D-LLM-072
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - avatar_spec_consistency_gate
+    - avatar_test_gate
+  note: "Desktop-owned Avatar runtime binding boundary; Avatar must not own auth, Realm, or subject truth."
 - rule_id: D-MBAR-001
   status: covered
   evidence_refs:

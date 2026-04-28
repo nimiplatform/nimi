@@ -29,7 +29,7 @@ Avatar carrier visual evidence is classified as:
 
 | Class | Meaning | Can close carrier visual proof |
 | --- | --- | --- |
-| real runtime path | Desktop-selected launch context + shared auth + runtime bridge + SDK driver + Avatar carrier | Yes |
+| real runtime path | Desktop-selected launch context + local Agent Center package + runtime IPC bridge + SDK driver + Avatar carrier | Yes |
 | deterministic harness | Controlled Avatar app harness exercising the real carrier draw path with stable inputs | Yes, if it exercises the Avatar carrier canvas/WebGL path |
 | fixture/mock path | Explicit `VITE_AVATAR_DRIVER=mock` or mock scenario data source | Regression evidence only |
 | Desktop renderer evidence | Desktop chat Live2D renderer smoke or pixel evidence | No |

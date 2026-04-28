@@ -90,7 +90,7 @@ projection 触发）：
 | Event | 语义 | Rate tier | Cancellable |
 |---|---|---|---|
 | `avatar.app.start` | App 启动（normal path 由 desktop handoff 选定 target；fixture / dev path 可显式独立启动） | Burst | — |
-| `avatar.app.ready` | 初始化完成（runtime 连上 + model 加载好） | Burst | — |
+| `avatar.app.ready` | visual carrier 初始化完成；runtime binding 状态单独由 runtime/driver surface 表达 | Burst | — |
 | `avatar.app.focus.change` | Avatar 形象获得/失去焦点 | Low | — |
 | `avatar.app.visibility.change` | Avatar 可见性（on-screen / off-screen / tray-minimized） | Low | — |
 | `avatar.app.shutdown` | App 关闭 | Burst | — |

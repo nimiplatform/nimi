@@ -17,12 +17,12 @@ avatar_lint_gate:
   type: lint_gate
   command: pnpm --filter @nimiplatform/avatar lint
   path: apps/avatar/package.json
-  description: Avatar implementation typecheck, ESLint, and Rust compile coverage for shared-session fail-closed behavior.
+  description: Avatar implementation typecheck, ESLint, and Rust compile coverage for runtime-binding fail-closed behavior.
 avatar_test_gate:
   type: test_gate
   command: pnpm --filter @nimiplatform/avatar test
   path: apps/avatar/package.json
-  description: Avatar behavior regression coverage for launch handoff continuity and shared-session revalidation semantics.
+  description: Avatar behavior regression coverage for launch handoff continuity, local visual bootstrap, and runtime-binding revalidation semantics.
 desktop_lint_gate:
   type: lint_gate
   command: pnpm --filter @nimiplatform/desktop lint

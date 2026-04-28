@@ -27,19 +27,19 @@ Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agen
 
 - 正常启动必须带 desktop-selected launch context：`agent_id`、`avatar_instance_id`，以及显式 `conversation_anchor_id` 或 `open_new` mode
 - 缺少 launch context：fail closed；avatar app 不会默认 bootstrap 单个 agent
-- 身份 bootstrap 来自 shared auth session / shared JWT source，不来自 handoff payload
-- handoff payload 不携带 raw JWT、refresh token、或 `subject_user_id`
-- running avatar 会持续 revalidate shared auth session；同一 user 的 token rotation 只更新本地 auth state
-- desktop logout、shared-session clear、invalid persisted session、realm mismatch、或 user switch 后，avatar 立即清空本地 auth、停止 runtime consume，并丢弃 stale authenticated state
+- visual bootstrap 来自本机 Agent Center package；Avatar 只加载本地 Live2D / VRM visual package
+- runtime bootstrap 只通过 Desktop/Runtime IPC bridge；Avatar 不读取 shared auth、不创建 Realm HTTP client、不拥有 login/session truth
+- handoff payload 不携带 raw JWT、refresh token、`subject_user_id`、或 Realm base URL
+- runtime binding 不可用时，Avatar 停止 interaction/voice/activity consume，但已加载的 visual carrier 必须保持可见
 
 ## Runtime Primary, Mock Fixture Secondary
 
 `apps/avatar` 当前正常启动路径已经切到 real runtime/SDK consume chain。Mock fixtures 仍保留，但只作为显式 dev/test evidence surface：
 
-- 默认正常路径：desktop-selected launch context + shared desktop auth session + runtime bridge + SDK consume
+- 默认正常路径：desktop-selected launch context + local visual package + runtime IPC bridge + SDK consume
 - 显式 fixture：`VITE_AVATAR_DRIVER=mock`
-- runtime 不可用：fail closed，显示启动错误；不会 silent fallback 到 mock
-- shared auth session 失效：fail closed，保持 app 可见但不继续维持 authenticated runtime state
+- runtime 不可用：interaction/voice/activity fail closed；不会 silent fallback 到 mock，visual model 保持可见
+- auth / Realm truth 归 Desktop/Runtime；Avatar 不做 shared-session revalidation
 
 ## Tech Stack
 
@@ -145,5 +145,5 @@ tracked reader guide is [Live2D Companion Architecture](../../docs/architecture/
 - `SdkDriver` is the canonical carrier driver.
 - `MockDriver` remains admitted only for explicit fixture runs and tests.
 - App-local docs/spec must not describe mock as the current normal boot path.
-- Desktop/avatar relationship is bridge / handoff orchestration plus shared runtime/auth truth, not the old independent default-boot framing.
+- Desktop/avatar relationship is bridge / handoff orchestration plus Desktop/Runtime-owned binding truth, not the old independent default-boot framing.
 - Live2D is the current backend-specific branch, not the semantic home of avatar/kernel truth.

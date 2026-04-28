@@ -121,6 +121,13 @@ ConnectorService 在 `CreateConnector` / `UpdateConnector` 上的 credential req
 8. `CheckLocalAssetHealth`
 9. `WarmLocalAsset`
 
+Tier 1 的读写边界固定如下：
+
+- `ListLocalAssets` 只返回 runtime 已承认的 local asset inventory snapshot；它不是 probe、bootstrap、warm、recovery 或 status-normalization 入口。
+- `CheckLocalAssetHealth` 是显式 health probe surface；它可以执行 endpoint probe 与 readiness projection，但必须 fail-close，并不得把 no-response / timeout 投影成可用。
+- `StartLocalAsset` 与 `WarmLocalAsset` 是显式 lifecycle/readiness surface；它们可以启动受管引擎、执行 warm/minimal execution、更新 warm/status projection，并记录结构化失败。
+- runtime-owned background health maintainer 可以异步维护 health projection，但它是 runtime 内部执行路径，不得被 Desktop/SDK/Mods 以 list polling 方式替代或放大。
+
 **Tier 2 — 目录、伴随资产、intake 与 transfer：**
 
 10. `ListVerifiedAssets`

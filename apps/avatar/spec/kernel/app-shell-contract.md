@@ -128,8 +128,8 @@ Wave 4 shipped settings 只允许 avatar-shell 自有行为：
 
 Settings UI 必须保持 product-light：
 
-- 不得暴露 transcript-heavy、desktop-parity、background voice、或 auth/runtime owner-crossing setting
-- 不得把 settings 当作 launch/auth/runtime fail-closed posture 的 bypass
+- 不得暴露 transcript-heavy、desktop-parity、background voice、或 runtime owner-crossing setting
+- 不得把 settings 当作 launch/runtime fail-closed posture 的 bypass
 
 ### 4.3 Focus Event
 
@@ -171,7 +171,7 @@ Settings UI 必须保持 product-light：
 - bubble 只承载**当前 launch-selected `agent_id + conversation_anchor_id`** 下的 latest-message cue；不得扩写成 full transcript panel
 - floating input 只允许向当前显式 anchor 提交一个 bounded text turn；不得因为 same-agent convenience 推断或切换 anchor
 - app-local bubble state 只可保留 latest assistant cue + bounded user echo 作为 presentation cache；不得提升为 canonical transcript truth
-- launch/auth/runtime 不可用时，button / bubble / input 必须一起 fail closed；不得留下 fake-send surface
+- launch/runtime binding 不可用时，button / bubble / input 必须一起 fail closed；不得留下 fake-send surface
 
 ### 6.3 Hotkey (Phase 2)
 
@@ -209,31 +209,43 @@ Settings UI 必须保持 product-light：
 1. Tauri window created
 2. Renderer bootstrap (React mount)
 3. Emit avatar.app.start
-4. Connect to runtime/SDK consume path (default) or explicit fixture mode (`VITE_AVATAR_DRIVER=mock`)
-5. Load current backend resources from configured path
+4. Load current local Agent Center visual package (Live2D / VRM branch)
+5. Attempt runtime IPC consume binding (default) or explicit fixture mode (`VITE_AVATAR_DRIVER=mock`)
 6. Scan <model>/runtime/nimi/ for NAS handlers (§agent-script-contract)
 7. Compute initial hit region + resize window to surface bounds
 8. Emit avatar.app.ready
 ```
 
-### 7.2 Auth Session Revalidation
+### 7.2 Runtime Binding Revalidation
 
-当 normal path 以 shared desktop auth session 启动时，app shell 必须持续 revalidate 该 shared session，而不是把 bootstrap token 当成独立 durable truth。
+Supersedes the earlier shared desktop auth session revalidation rule. Avatar is
+not an auth/session owner and must not read shared auth, bootstrap Realm login,
+call Realm HTTP, or treat Realm/user identity as local truth.
 
-- same-user token rotation：允许只更新 renderer-local auth state，保持当前 handoff / anchor / carrier 关系不变
-- shared session clear、schema/decrypt invalidation、realm mismatch、或 user switch：必须立即 fail closed
-- 对当前 Phase 1 avatar carrier，fail-closed 动作为：
-  - 清空本地 auth session state
-  - 停止 runtime/SDK consume driver
-  - 丢弃 stale runtime bundle / binding
-- 该规则不允许 silent downgrade 到 mock fixture
+Normal path boundary:
+
+- visual bootstrap：Desktop-selected Agent Center package → local Live2D/VRM render
+- runtime bootstrap：runtime IPC/bridge only
+- Desktop/Runtime own auth, Realm, runtime binding, agent, and anchor truth
+- Avatar consumes only the explicit launch context, local visual package, and
+  runtime IPC projections
+
+Runtime binding failure handling:
+
+- missing/unavailable runtime IPC affects only interaction, voice, activity,
+  and runtime-driven presentation
+- the loaded visual carrier must remain visible when the local package is valid
+- stale runtime bundle / binding must be discarded on bind failure or rebind
+- failure must not silently downgrade to mock fixture
+- failure copy must use runtime/binding product language and must not mention
+  login, Realm, CORS, or shared auth
 
 ### 7.2.1 Recovery Posture (Wave 4)
 
-当 shell 处于 invalid-session、missing-runtime、launch handoff update、或其他 degraded posture 时：
+当 shell 处于 missing-runtime、runtime-unbound、launch handoff update、或其他 degraded posture 时：
 
 - renderer 可以显示 product-grade recovery copy 与显式 `reload shell` affordance
-- `reload shell` 只允许触发 app reload / relaunch 流程；不得发明 app-local auth/session/runtime fallback
+- `reload shell` 只允许触发 app reload / relaunch 流程；不得发明 app-local runtime fallback
 - desktop 更新 launch context 时，shell 可以先显示短暂 relaunch/rebind notice，再显式 reload
 - relaunch/rebind 前必须清空 avatar-local transient companion state（draft、bubble echo、foreground voice capture/caption 等），避免 stale state 泄漏到新 anchor / session
 

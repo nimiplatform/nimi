@@ -349,6 +349,9 @@ on current active code, not by citing closed-topic artifacts:
 - missing launch context, missing agent id, missing anchor/open-new targeting,
   stale live instance identity, or unavailable runtime path must fail closed
   instead of reporting demo success
+- Desktop-to-Avatar handoff must not transmit raw JWT, refresh token,
+  `subject_user_id`, Realm base URL, shared auth session material, or any
+  app-local login bootstrap hint
 - Desktop-rendered Live2D smoke evidence may validate Desktop chat renderer
   behavior, but it cannot close `apps/avatar` carrier WebGL/canvas proof
 
@@ -383,6 +386,9 @@ Fixed rules:
 - every desktop-to-avatar handoff event must resolve to explicit `agent_id`,
   `avatar_instance_id`, and either a committed `conversation_anchor_id` or the
   explicit `open_new` anchor mode before leaving Desktop shell ownership
+- Desktop owns auth, Realm, subject, agent, and anchor truth for launch
+  selection. Avatar receives target selection and runtime binding projections
+  only; it must not rederive that truth through shared auth or Realm HTTP.
 - Desktop app events may be used as first-party UI cues, but they must not
   replace `runtime.agent.turn.*`, `runtime.agent.presentation.*`,
   `runtime.agent.state.*`, or `runtime.agent.hook.*` projection truth
@@ -397,6 +403,29 @@ Fixed rules:
 - unsupported desktop companion events must be ignored with observable
   diagnostics or rejected at the sender boundary; they must not silently become
   product success
+
+## D-LLM-072 — Desktop-Owned Avatar Runtime Binding
+
+Desktop/Runtime own the Avatar runtime interaction bind. Avatar is a separate
+first-party embodiment app, but it must consume only a scoped runtime binding
+projection, not Desktop auth truth.
+
+Fixed rules:
+
+- Desktop must not solve Avatar runtime bind by adding backend CORS allowance
+  for `tauri://localhost`, passing Realm endpoints/tokens in handoff, or asking
+  Avatar to bootstrap login independently.
+- If Avatar needs `RuntimeAppService` app session or protected access material,
+  Desktop/Runtime must provide an opaque scoped binding for the selected
+  `runtime_app_id + avatar_instance_id + agent_id + conversation_anchor_id`
+  relation.
+- The scoped binding must be revocable on desktop logout, user switch, anchor
+  switch, avatar close, daemon restart, or explicit runtime unbind, but the
+  revocation signal remains Desktop/Runtime-owned.
+- Avatar may present runtime/binding unavailable state and keep the local
+  visual carrier visible when binding is missing or revoked.
+- Desktop must not treat Avatar visual success as proof that runtime
+  interaction binding succeeded.
 
 ## Fact Sources
 

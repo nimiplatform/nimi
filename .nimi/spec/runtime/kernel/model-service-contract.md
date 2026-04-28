@@ -103,6 +103,8 @@
 - `RuntimeModelService.ListModels` 是 Desktop/SDK 的统一模型目录入口。
 - local model center、artifact intake、transfer/lifecycle 等本地模型管理 UI 可以并且应当直接依赖 `RuntimeLocalService`，而不是经 desktop host 维护第二套本地状态。
 - `ListLocalAssets` / `ListLocalTransfers` 是本地控制面权威细节视图，不再被视为 desktop 专属降级镜像。
+- `ListLocalAssets` 是权威细节视图的 inventory snapshot，不是 health orchestration surface。它不得同步触发本地 endpoint probe、engine bootstrap、warm execution、recovery accounting、状态迁移或持久化写入。
+- 本地模型健康新鲜度由显式 `CheckLocalAssetHealth` / `WarmLocalAsset` / `StartLocalAsset` 与 runtime-owned background health maintainer 维护；Desktop/SDK 不得通过 list polling 或 renderer cache 建立第二套 health truth。
 
 ## K-MODEL-008 ModelStatus 状态机
 

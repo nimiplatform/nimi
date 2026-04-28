@@ -173,3 +173,33 @@ Fixed rules:
 - malformed payloads, missing explicit identity, unauthorized app ids, or
   unsupported message types must fail closed rather than being converted into
   local UI cues
+
+## K-APP-010 Avatar Runtime Binding Boundary
+
+Avatar runtime interaction consumes `RuntimeAppService` / `runtime.agent`
+projection through a Desktop/Runtime-owned binding. Avatar is not an auth,
+Realm, subject, agent, or anchor truth owner.
+
+Fixed rules:
+
+- Avatar must not read shared desktop auth session, call Realm HTTP, call
+  Realm `MeService`, or create an app-level Realm client to satisfy
+  `RuntimeAppService` session/protected-access requirements.
+- Avatar launch context may identify the selected target
+  (`agent_id`, `avatar_instance_id`, `conversation_anchor_id` or `open_new`)
+  and local visual package selection, but must not carry raw Realm JWT,
+  refresh token, `subject_user_id`, Realm base URL, or app-local login state.
+- Any runtime app session or protected access needed for Avatar's
+  `runtime.agent` consume path must be minted or delegated by Desktop/Runtime
+  as a scoped runtime binding for the selected
+  `runtime_app_id + avatar_instance_id + agent_id + conversation_anchor_id`
+  relation.
+- A scoped Avatar runtime binding may expose only opaque runtime IPC binding
+  material to Avatar; it must not expose Realm token, refresh token, or
+  durable subject/user truth.
+- Runtime binding failure must close only interaction, voice, activity,
+  app-message subscribe/send, and runtime-driven presentation. A valid local
+  Agent Center visual package must continue to render.
+- Missing runtime binding must fail closed and observable. It must not silently
+  downgrade to mock fixture mode, same-agent fallback, anonymous subject,
+  app-local login, or Realm direct access.

@@ -77,21 +77,25 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 embodiment projection la
 - normal path 必须带 desktop-selected launch context
 - launch context 至少包含 `agent_id`、`avatar_instance_id`，以及显式 `conversation_anchor_id` 或 `open_new` anchor mode
 - 缺少 launch context 必须 fail closed；avatar app 不得默认 bootstrap 单个 agent
-- avatar identity bootstrap 来自 shared auth session / shared JWT source
-- launch handoff payload 不携带 raw JWT、refresh token、或 `subject_user_id`
+- visual bootstrap 来自本机 Agent Center package；Avatar 只加载本地 Live2D / VRM visual package
+- runtime bootstrap 只通过 Desktop/Runtime IPC bridge
+- Avatar 不读取 shared auth、不创建 Realm HTTP client、不做 login bootstrap、不拥有 auth/session/user truth
+- launch handoff payload 不携带 raw JWT、refresh token、`subject_user_id`、或 Realm base URL
 - bounded close handoff 只允许携带 `avatar_instance_id` 和 surface attribution；
   avatar app 负责按 live instance identity 执行 close，缺少 target 时 fail closed
 
-当前 running-session posture 同时固定为：
+当前 running-session posture 同时固定为 runtime binding revalidation。下列规则 supersede 早期 shared desktop auth session revalidation 描述：
 
-- avatar 不只在 bootstrap 时读取 shared auth session；正常路径下会持续 revalidate 本机 durable session truth
-- same-user shared-session token rotation 只更新 avatar 本地 auth state，不重开 handoff，也不发明 per-app grant
-- desktop logout、shared-session clear、persisted session invalidation、realm mismatch、或 user switch 后，avatar 必须立即停止 authenticated runtime/SDK consume path 并 clear stale authenticated state
+- Desktop/Runtime 拥有 auth、Realm、runtime binding、agent、anchor truth
+- Avatar 只消费 explicit launch context、本地 visual package、以及 runtime IPC projections
+- runtime binding 不可用时，Avatar 必须停止 interaction/voice/activity consume 并清空 stale runtime bundle / binding
+- 只要本地 visual package 有效，runtime binding 失败不得隐藏或卸载 visual carrier
+- user-facing degraded copy 必须使用 runtime/binding 语言，不出现 login、Realm、CORS、或 shared auth
 
 Wave 4 recovery posture 额外固定为：
 
 - user-facing surface 可以给出 calm degraded copy、explicit reload/relaunch guidance、以及 desktop launch-context update notice
-- recovery affordance 只允许 reload / relaunch 当前 shell；不得在 avatar app 内新增 auth/session/runtime fallback
+- recovery affordance 只允许 reload / relaunch 当前 shell；不得在 avatar app 内新增 runtime fallback
 - launch-context update、anchor rebind、或 relaunch 前，avatar-local transient bubble / draft / foreground voice UI 必须清空，避免 stale state 跨 continuity 泄漏
 
 ## Product Form 详细
@@ -159,13 +163,13 @@ Nimi Avatar 和 Desktop App 仍然是两个 first-party app，但当前 owner-do
 - Desktop app 是 multi-instance avatar launcher / orchestrator
 - Avatar app 是唯一 first-party avatar carrier line
 - Desktop 负责显式 handoff：`agent_id`、`avatar_instance_id`、以及 anchor targeting
-- Avatar app 负责 consume handoff、加载 shared auth session、并建立 real runtime/SDK carrier path
-- Desktop handoff 只传 target selection，不传 raw JWT
+- Avatar app 负责 consume handoff、加载本地 visual package、并通过 runtime IPC 建立 real runtime/SDK carrier path
+- Desktop handoff 只传 target selection，不传 raw JWT、subject identity、或 Realm endpoint
 
 ## Relationship to Runtime Refactor
 
 RuntimeAgent 的 admitted consume surface已经成为 `apps/avatar` 的 primary carrier line：
 
-- normal path 使用 desktop-selected launch context + shared desktop auth + runtime bridge + SDK consume
+- normal path 使用 desktop-selected launch context + local visual package + runtime IPC bridge + SDK consume
 - mock fixtures 继续保留为 explicit fixture / integration test corpus
-- runtime 不可用时 fail closed，不允许 silent downgrade 到 mock
+- runtime 不可用时 interaction/voice/activity fail closed，不允许 silent downgrade 到 mock；visual carrier 保持可见

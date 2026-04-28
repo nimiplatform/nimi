@@ -24,6 +24,7 @@ Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/c
 - authenticated local consumer 可以基于 `auth_session_load` 做周期性 revalidation，以 shared session 持续校验本地 durable auth truth。
 - 该 revalidation surface 只服务于 shared-session coherence；不得借机引入 raw JWT handoff、per-app token grant、或 local permission UX。
 - consumer 发现 shared session 缺失、无效、realm mismatch、或 user mismatch 时，必须 fail closed。
+- `apps/avatar` 不得调用该 shared auth session surface。Avatar 只允许通过 desktop-selected launch context、本地 visual package、以及 runtime IPC binding surface 消费上游 truth；不得把 `auth_session_load` 当作 runtime bind 前置。
 
 ## D-IPC-002 — Daemon 生命周期命令
 

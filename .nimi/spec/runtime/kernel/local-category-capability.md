@@ -547,6 +547,9 @@ hashes:                        # 必填，所有文件须有对应 hash
 - desktop / web / mods 对本地资产的产品访问必须经 `RuntimeLocalService` typed surface；desktop host 仅保留 picker、reveal、notification 与等价 shell-native/helper 能力。
 - future CLI / Web 路径扩展时必须继续复用 runtime 作为统一本地资产控制面，不得复制第二套执行面。
 - passive asset 的生命周期（install / remove / transfer）与 runnable asset 共享同一执行管道与状态机（`K-LOCAL-005`），但 passive asset 不参与 Service 绑定与 Node 生成。
+- `ListLocalAssets` 是 runtime-owned local inventory 的快照视图；它不得触发 endpoint probe、engine bootstrap、warm execution、recovery accounting、状态迁移或持久化写入。
+- local asset health probe 的执行权只属于 `CheckLocalAssetHealth`、`StartLocalAsset`、`WarmLocalAsset`、真实 consume 前的 runtime-owned readiness 路径，以及 runtime-owned background health maintainer。SDK、Desktop、Web 与 Mods 不得以 poll list、host cache、renderer-local probe 或 app-local retry state 形成第二套 health truth。
+- runtime-owned background health maintainer 可以维护 supervised asset 的 health/readiness projection，但必须遵循 per-asset due gating、recovery interval 与 in-flight 合并；不得因多个 list/poll caller 放大为 N callers × M assets 的 endpoint probe。
 
 ## K-LOCAL-029 LocalAuditEvent 扩展字段契约
 
@@ -579,6 +582,8 @@ hashes:                        # 必填，所有文件须有对应 hash
 - `page_size>200` 必须裁剪为 `200`，不得回退为默认值；
 - `page_token` 为空表示首页；
 - 非法 `page_token` 返回 `INVALID_ARGUMENT` + `PAGE_TOKEN_INVALID`。
+- 所有 list/search RPC 必须保持 read-snapshot 语义。特别是 `ListLocalAssets` 只能读取 runtime 已持久化或内存中已承认的 local asset inventory projection；它不得为了“normalize”或“freshen”结果同步执行 health probe、engine bootstrap、warm、status mutation 或 persistence side effect。
+- 需要 fresh health truth 的 caller 必须使用显式 health/warm/start RPC 或等待 runtime-owned background health maintainer 的投影更新；不得把 `ListLocalAssets` 作为隐式 health refresh API。
 
 ## K-LOCAL-031 engineSlot 规则
 
