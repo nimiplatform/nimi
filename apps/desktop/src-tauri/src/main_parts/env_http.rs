@@ -479,6 +479,10 @@ pub(super) fn oauth_listen_for_code_blocking(
                     callback_params.insert(key, value);
                 }
                 let code = callback_params.get("code").cloned();
+                let refresh_token = callback_params
+                    .get("refresh_token")
+                    .or_else(|| callback_params.get("refreshToken"))
+                    .cloned();
                 let state = callback_params.get("state").cloned();
                 let error = callback_params.get("error").cloned();
 
@@ -487,6 +491,7 @@ pub(super) fn oauth_listen_for_code_blocking(
                 return Ok(OauthListenForCodeResult {
                     callback_url,
                     code,
+                    refresh_token,
                     state,
                     error,
                 });

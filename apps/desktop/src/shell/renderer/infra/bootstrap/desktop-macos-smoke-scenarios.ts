@@ -325,8 +325,8 @@ export async function runDesktopMacosSmokeScenario(
       case 'chat.live2d-avatar-product-smoke': {
         record('wait-chat-panel');
         await deps.waitForTestId(E2E_IDS.panel('chat'));
-        record('verify-shared-auth-session');
-        await deps.verifySharedAuthSession();
+        record('verify-runtime-account-projection');
+        await deps.verifyRuntimeAccountProjection();
         record('clear-stale-anchor-bindings');
         await deps.clearAgentConversationAnchorBindings();
         record('select-agent-target');

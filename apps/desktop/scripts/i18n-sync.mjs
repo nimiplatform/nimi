@@ -154,7 +154,7 @@ function writeLocaleBundle(localesDir, locale, data, modular) {
       rmSync(join(localeDir, entry.name));
     }
   }
-  Object.entries(data).forEach(([key, value], index) => {
+  Object.entries(data).forEach(([, value], index) => {
     writeJson(join(localeDir, fileNames[index]), value);
   });
   writeLocaleIndex(localeDir, data, fileNames);

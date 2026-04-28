@@ -15,7 +15,6 @@ import { CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT } from '@renderer/features/chat/
 import { clearAllAgentConversationAnchorBindings } from '@renderer/features/chat/chat-agent-anchor-binding-storage';
 import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
 import { refreshConversationCapabilityProjections } from '@renderer/features/chat/conversation-capability-projection';
-import { desktopBridge } from '@renderer/bridge';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { createRuntimeProtectedScopeHelper } from '@nimiplatform/sdk/runtime';
 import {
@@ -361,35 +360,35 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
         has_runtime_turn: Boolean(lastTurnId || activeTurnId || lastMessageId),
       };
     },
-    async verifySharedAuthSession() {
-      const realmBaseUrl = String(useAppStore.getState().runtimeDefaults?.realm?.realmBaseUrl || '').trim();
-      if (!realmBaseUrl) {
-        throw new Error('cannot verify shared auth session without Desktop runtimeDefaults.realm.realmBaseUrl');
-      }
+    async verifyRuntimeAccountProjection() {
+      const accountCaller = {
+        appId: 'nimi.desktop',
+        appInstanceId: 'nimi.desktop.local-first-party',
+        deviceId: 'desktop-shell',
+        mode: 2,
+        scopes: [],
+      };
       const deadline = Date.now() + 5_000;
       let lastError = 'not checked';
       while (Date.now() < deadline) {
-        const auth = useAppStore.getState().auth;
-        const accessToken = String(auth.token || '').trim();
-        if (auth.status !== 'authenticated' || !accessToken) {
-          lastError = `Desktop auth status=${auth.status || 'unknown'} token_present=${Boolean(accessToken)}`;
-          await new Promise((resolve) => setTimeout(resolve, 250));
-          continue;
-        }
         try {
-          const persisted = await withSmokeTimeout('shared auth session readback', desktopBridge.loadAuthSession(), 2_000);
-          const persistedRealmBaseUrl = String(persisted?.realmBaseUrl || '').trim();
-          const persistedAccessToken = String(persisted?.accessToken || '').trim();
-          if (persistedRealmBaseUrl === realmBaseUrl && persistedAccessToken === accessToken) {
+          const account = await withSmokeTimeout(
+            'Runtime account projection readback',
+            getPlatformClient().runtime.account.getAccountSessionStatus({ caller: accountCaller }),
+            2_000,
+          );
+          const accountId = String(account.accountProjection?.accountId || '').trim();
+          const isAuthenticated = Number(account.state) === 3 || String(account.state) === 'authenticated';
+          if (isAuthenticated && accountId) {
             return;
           }
-          lastError = `persisted realm/token mismatch realm_ok=${persistedRealmBaseUrl === realmBaseUrl} token_ok=${persistedAccessToken === accessToken}`;
+          lastError = `Runtime account state=${String(account.state || 'unknown')} account_present=${Boolean(accountId)}`;
         } catch (error) {
-          lastError = error instanceof Error ? error.message : String(error || 'shared auth read failed');
+          lastError = error instanceof Error ? error.message : String(error || 'Runtime account projection read failed');
         }
         await new Promise((resolve) => setTimeout(resolve, 250));
       }
-      throw new Error(`Desktop authenticated session was not available through shared auth: ${lastError}`);
+      throw new Error(`Desktop authenticated session was not available through Runtime account projection: ${lastError}`);
     },
     async setChatAvatarInteractionOverride(override) {
       const runtimeWindow = window as typeof window & {
