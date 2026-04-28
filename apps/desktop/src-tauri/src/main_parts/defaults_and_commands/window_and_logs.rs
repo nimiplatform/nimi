@@ -1,4 +1,5 @@
 use super::*;
+use std::path::PathBuf;
 use std::process::Command;
 
 const AVATAR_HANDOFF_SCHEME: &str = "nimi-avatar";
@@ -162,9 +163,6 @@ fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Resu
         serializer.append_pair("conversation_anchor_id", conversation_anchor_id.as_str());
     }
     if let Ok(defaults) = runtime_defaults() {
-        if !defaults.realm.realm_base_url.trim().is_empty() {
-            serializer.append_pair("realm_base_url", defaults.realm.realm_base_url.trim());
-        }
         if !defaults.runtime.world_id.trim().is_empty() {
             serializer.append_pair("world_id", defaults.runtime.world_id.trim());
         }
@@ -248,20 +246,16 @@ fn open_avatar_handoff_uri(uri: &str) -> Result<(), String> {
     }
 }
 
-fn open_avatar_handoff_binary(uri: &str) -> Result<(), String> {
-    let binary_path = std::env::var("NIMI_AVATAR_BINARY_PATH")
-        .map(|value| value.trim().to_string())
-        .unwrap_or_default();
-    if binary_path.is_empty() {
-        return Err("NIMI_AVATAR_BINARY_PATH is not configured".to_string());
-    }
-    let path = std::path::PathBuf::from(&binary_path);
+fn spawn_avatar_handoff_binary(path: PathBuf, uri: &str) -> Result<(), String> {
     if !path.is_absolute() {
-        return Err("NIMI_AVATAR_BINARY_PATH must be absolute".to_string());
+        return Err(format!(
+            "avatar binary path must be absolute: {}",
+            path.display()
+        ));
     }
     if !path.is_file() {
         return Err(format!(
-            "NIMI_AVATAR_BINARY_PATH does not point to a file: {}",
+            "avatar binary path does not point to a file: {}",
             path.display()
         ));
     }
@@ -274,15 +268,19 @@ fn open_avatar_handoff_binary(uri: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn open_avatar_handoff_binary(uri: &str) -> Result<(), String> {
+    let binary_path = std::env::var("NIMI_AVATAR_BINARY_PATH")
+        .map(|value| value.trim().to_string())
+        .unwrap_or_default();
+    if binary_path.is_empty() {
+        return Err("NIMI_AVATAR_BINARY_PATH is not configured".to_string());
+    }
+    spawn_avatar_handoff_binary(PathBuf::from(&binary_path), uri)
+}
+
 fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
     let defaults = runtime_defaults()?;
     let mut pairs = vec![
-        ("NIMI_REALM_URL", defaults.realm.realm_base_url),
-        ("NIMI_REALTIME_URL", defaults.realm.realtime_url),
-        ("NIMI_REALM_JWKS_URL", defaults.realm.jwks_url),
-        ("NIMI_REALM_REVOCATION_URL", defaults.realm.revocation_url),
-        ("NIMI_REALM_JWT_ISSUER", defaults.realm.jwt_issuer),
-        ("NIMI_REALM_JWT_AUDIENCE", defaults.realm.jwt_audience),
         (
             "NIMI_LOCAL_PROVIDER_ENDPOINT",
             defaults.runtime.local_provider_endpoint,
@@ -316,8 +314,6 @@ fn avatar_runtime_env_pairs() -> Result<Vec<(&'static str, String)>, String> {
         "NIMI_RUNTIME_HTTP_ADDR",
         "NIMI_RUNTIME_LOCAL_STATE_PATH",
         "NIMI_RUNTIME_BRIDGE_DEBUG",
-        "NIMI_E2E_AUTH_SESSION_STORAGE",
-        "NIMI_E2E_AUTH_SESSION_MASTER_KEY",
         "NIMI_E2E_PROFILE",
         "NIMI_E2E_FIXTURE_PATH",
     ] {
@@ -338,20 +334,16 @@ fn apply_avatar_runtime_env(command: &mut Command) -> Result<(), String> {
 }
 
 #[cfg(target_os = "macos")]
-fn open_avatar_handoff_app(uri: &str) -> Result<(), String> {
-    let app_path = std::env::var("NIMI_AVATAR_APP_PATH")
-        .map(|value| value.trim().to_string())
-        .unwrap_or_default();
-    if app_path.is_empty() {
-        return Err("NIMI_AVATAR_APP_PATH is not configured".to_string());
-    }
-    let path = std::path::PathBuf::from(&app_path);
+fn spawn_avatar_handoff_app(path: PathBuf, uri: &str) -> Result<(), String> {
     if !path.is_absolute() {
-        return Err("NIMI_AVATAR_APP_PATH must be absolute".to_string());
+        return Err(format!(
+            "avatar app bundle path must be absolute: {}",
+            path.display()
+        ));
     }
     if !path.is_dir() {
         return Err(format!(
-            "NIMI_AVATAR_APP_PATH does not point to an app bundle: {}",
+            "avatar app bundle path does not point to an app bundle: {}",
             path.display()
         ));
     }
@@ -374,9 +366,89 @@ fn open_avatar_handoff_app(uri: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
+fn open_avatar_handoff_app(uri: &str) -> Result<(), String> {
+    let app_path = std::env::var("NIMI_AVATAR_APP_PATH")
+        .map(|value| value.trim().to_string())
+        .unwrap_or_default();
+    if app_path.is_empty() {
+        return Err("NIMI_AVATAR_APP_PATH is not configured".to_string());
+    }
+    spawn_avatar_handoff_app(PathBuf::from(&app_path), uri)
+}
+
 #[cfg(not(target_os = "macos"))]
 fn open_avatar_handoff_app(_uri: &str) -> Result<(), String> {
     Err("NIMI_AVATAR_APP_PATH launch is supported only on macOS".to_string())
+}
+
+fn repo_root_candidates() -> Vec<PathBuf> {
+    let mut seeds = Vec::new();
+    if let Ok(current_dir) = std::env::current_dir() {
+        seeds.push(current_dir);
+    }
+    if let Ok(current_exe) = std::env::current_exe() {
+        if let Some(parent) = current_exe.parent() {
+            seeds.push(parent.to_path_buf());
+        }
+    }
+
+    let mut candidates = Vec::new();
+    for seed in seeds {
+        for ancestor in seed.ancestors() {
+            let candidate = ancestor.to_path_buf();
+            if !candidates.iter().any(|existing| existing == &candidate) {
+                candidates.push(candidate);
+            }
+        }
+    }
+    candidates
+}
+
+#[cfg(target_os = "macos")]
+fn inferred_avatar_app_path() -> Option<PathBuf> {
+    repo_root_candidates()
+        .into_iter()
+        .map(|root| {
+            root.join("apps")
+                .join("avatar")
+                .join("src-tauri")
+                .join("target")
+                .join("release")
+                .join("bundle")
+                .join("macos")
+                .join("Nimi Avatar.app")
+        })
+        .find(|path| path.is_dir())
+}
+
+fn inferred_avatar_binary_path() -> Option<PathBuf> {
+    repo_root_candidates()
+        .into_iter()
+        .map(|root| {
+            root.join("apps")
+                .join("avatar")
+                .join("src-tauri")
+                .join("target")
+                .join("release")
+                .join(if cfg!(target_os = "windows") {
+                    "nimiplatform-avatar.exe"
+                } else {
+                    "nimiplatform-avatar"
+                })
+        })
+        .find(|path| path.is_file())
+}
+
+fn open_inferred_avatar_handoff_target(uri: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    if let Some(app_path) = inferred_avatar_app_path() {
+        return spawn_avatar_handoff_app(app_path, uri);
+    }
+    if let Some(binary_path) = inferred_avatar_binary_path() {
+        return spawn_avatar_handoff_binary(binary_path, uri);
+    }
+    Err("repo-local Avatar app/binary is not built; run pnpm build:avatar".to_string())
 }
 
 fn open_avatar_handoff_uri_or_binary(uri: &str) -> Result<(), String> {
@@ -391,15 +463,18 @@ fn open_avatar_handoff_uri_or_binary(uri: &str) -> Result<(), String> {
         });
     }
 
-    match open_avatar_handoff_uri(uri) {
+    match open_inferred_avatar_handoff_target(uri) {
         Ok(()) => Ok(()),
-        Err(primary_error) => match open_avatar_handoff_app(uri) {
+        Err(inferred_error) => match open_avatar_handoff_uri(uri) {
             Ok(()) => Ok(()),
-            Err(app_error) => open_avatar_handoff_binary(uri).map_err(|binary_error| {
-                format!(
-                    "{primary_error}; app fallback failed: {app_error}; binary fallback failed: {binary_error}"
-                )
-            }),
+            Err(primary_error) => match open_avatar_handoff_app(uri) {
+                Ok(()) => Ok(()),
+                Err(app_error) => open_avatar_handoff_binary(uri).map_err(|binary_error| {
+                    format!(
+                        "inferred target failed: {inferred_error}; {primary_error}; app fallback failed: {app_error}; binary fallback failed: {binary_error}"
+                    )
+                }),
+            },
         },
     }
 }
@@ -695,6 +770,7 @@ mod tests {
         assert!(uri.contains("runtime_app_id=nimi.desktop"));
         assert!(!uri.contains("subject_user_id"));
         assert!(!uri.contains("access_token"));
+        assert!(!uri.contains("realm_base_url"));
         assert!(!uri.contains("manifest_path"));
         assert!(!uri.contains("package_path"));
     }
@@ -711,7 +787,7 @@ mod tests {
     }
 
     #[test]
-    fn avatar_runtime_env_pairs_forward_realm_and_runtime_defaults_without_token() {
+    fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
         let _guard = test_guard();
         let keys = [
             "NIMI_E2E_FIXTURE_PATH",
@@ -779,13 +855,8 @@ mod tests {
             }
         }
 
-        assert!(pairs.contains(&("NIMI_REALM_URL", "http://127.0.0.1:50803".to_string())));
         assert!(pairs.contains(&("NIMI_WORLD_ID", "world-e2e-1".to_string())));
         assert!(pairs.contains(&("NIMI_AGENT_ID", "agent-e2e-alpha".to_string())));
-        assert!(pairs.contains(&(
-            "NIMI_E2E_AUTH_SESSION_STORAGE",
-            "encrypted-file".to_string()
-        )));
         assert!(pairs.contains(&(
             "NIMI_E2E_PROFILE",
             "chat.live2d-avatar-product-smoke".to_string()
@@ -810,6 +881,8 @@ mod tests {
                 .to_string_lossy()
                 .to_string()
         )));
+        assert!(!pairs.iter().any(|(key, _)| key.starts_with("NIMI_REALM")));
+        assert!(!pairs.iter().any(|(key, _)| key.contains("AUTH_SESSION")));
         assert!(!pairs.iter().any(|(key, _)| key.contains("ACCESS_TOKEN")));
         let _ = fs::remove_dir_all(fixture_dir);
     }
