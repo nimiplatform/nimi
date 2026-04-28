@@ -7,8 +7,15 @@ pub(crate) struct DesktopAvatarInstanceRegistryRecord {
     pub(crate) agent_id: String,
     pub(crate) conversation_anchor_id: Option<String>,
     pub(crate) anchor_mode: String,
+    pub(crate) scoped_binding: Option<DesktopAvatarInstanceScopedBinding>,
     pub(crate) launched_by: String,
     pub(crate) source_surface: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct DesktopAvatarInstanceScopedBinding {
+    pub(crate) binding_id: String,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]

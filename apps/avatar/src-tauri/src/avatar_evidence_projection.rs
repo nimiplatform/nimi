@@ -169,22 +169,41 @@ mod tests {
     use serde_json::json;
 
     use super::{append_evidence_record, AvatarEvidenceRecordInput};
-    use crate::avatar_launch_context::{AvatarAnchorMode, AvatarLaunchContext};
+    use crate::avatar_launch_context::{AvatarLaunchContext, AvatarScopedBindingProjection};
 
     fn context() -> AvatarLaunchContext {
         AvatarLaunchContext {
-            agent_center_account_id: "account_1".to_string(),
             agent_id: "agent-1".to_string(),
             avatar_package_kind: "live2d".to_string(),
             avatar_package_id: "live2d_ab12cd34ef56".to_string(),
             avatar_package_schema_version: 1,
             avatar_instance_id: "instance-1".to_string(),
-            conversation_anchor_id: Some("anchor-1".to_string()),
-            anchor_mode: AvatarAnchorMode::Existing,
+            conversation_anchor_id: "anchor-1".to_string(),
             launched_by: "nimi.desktop".to_string(),
             runtime_app_id: Some("nimi.desktop".to_string()),
             source_surface: Some("desktop-agent-chat".to_string()),
             world_id: Some("world-1".to_string()),
+            scoped_binding: AvatarScopedBindingProjection {
+                binding_id: "binding-1".to_string(),
+                binding_handle: None,
+                runtime_app_id: "nimi.desktop".to_string(),
+                app_instance_id: "nimi.desktop.local-first-party".to_string(),
+                window_id: "desktop-agent-chat".to_string(),
+                avatar_instance_id: "instance-1".to_string(),
+                agent_id: "agent-1".to_string(),
+                conversation_anchor_id: "anchor-1".to_string(),
+                world_id: Some("world-1".to_string()),
+                purpose: "avatar.interaction.consume".to_string(),
+                scopes: vec![
+                    "runtime.agent.turn.read".to_string(),
+                    "runtime.agent.presentation.read".to_string(),
+                    "runtime.agent.state.read".to_string(),
+                ],
+                issued_at: None,
+                expires_at: None,
+                state: "active".to_string(),
+                reason_code: "action_executed".to_string(),
+            },
         }
     }
 

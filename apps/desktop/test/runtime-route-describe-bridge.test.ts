@@ -100,6 +100,7 @@ test('describeRuntimeRouteMetadata decodes text.generate typed metadata from run
   try {
     clearPlatformClient();
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       subjectUserIdProvider: () => 'subject-user-001',
     });
@@ -147,6 +148,7 @@ test('describeRuntimeRouteMetadata keeps Desktop inline cloud route fail-closed'
   try {
     clearPlatformClient();
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       subjectUserIdProvider: () => 'subject-user-001',
     });
@@ -197,6 +199,7 @@ test('describeRuntimeRouteMetadata decodes voice workflow typed metadata from ru
   try {
     clearPlatformClient();
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       subjectUserIdProvider: () => 'subject-user-001',
     });
@@ -262,6 +265,7 @@ test('describeRuntimeRouteMetadata decodes audio.synthesize typed metadata from 
   try {
     clearPlatformClient();
     await createPlatformClient({
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
       subjectUserIdProvider: () => 'subject-user-001',
     });

@@ -53,7 +53,7 @@ export function createBaseDriver(
     async readLocalStorageItem() {
       return null;
     },
-    async verifySharedAuthSession() {},
+    async verifyRuntimeAccountProjection() {},
     async clearAgentConversationAnchorBindings() {},
     async configureRuntimeTextRoute() {},
     async verifyRuntimeConversationAnchor() {},

@@ -20,11 +20,12 @@ type DeriveSurfacePresentationInput = {
   bootstrapComplete: boolean;
   shell: AvatarAppState['shell'];
   model: AvatarAppState['model'];
-  driver: AvatarAppState['driver'];
-  consume: AvatarAppState['consume'];
-  launchContext: AvatarAppState['launch']['context'];
-  bundle: AvatarAppState['bundle'];
-};
+	  driver: AvatarAppState['driver'];
+	  consume: AvatarAppState['consume'];
+	  runtimeBinding: AvatarAppState['runtime']['binding'];
+	  launchContext: AvatarAppState['launch']['context'];
+	  bundle: AvatarAppState['bundle'];
+	};
 
 function normalizeMessage(value: string | null): string {
   return String(value || '').trim();
@@ -185,7 +186,22 @@ export function deriveSurfacePresentation(
     };
   }
 
-  if (input.driver.status === 'error' || input.driver.status === 'stopped') {
+	  if (input.runtimeBinding.status !== 'active') {
+	    return {
+	      tone: 'degraded',
+	      badge: 'Binding unavailable',
+	      title: 'Interaction unavailable',
+	      summary: `The visual embodiment is present, but the runtime interaction stream is not currently bound because the scoped binding is ${input.runtimeBinding.status}.`,
+	      recovery: 'Relaunch from desktop once the runtime binding is available.',
+	      accent: `Binding ${input.runtimeBinding.status}`,
+	      stageLabel: 'Binding state',
+	      stageValue: input.runtimeBinding.status,
+	      meta: unavailableMeta(anchorId ? `Not bound (${shortenId(anchorId)})` : 'Not bound', 'Runtime unavailable'),
+	      contextCards: [],
+	    };
+	  }
+
+	  if (input.driver.status === 'error' || input.driver.status === 'stopped') {
     return {
       tone: 'degraded',
       badge: 'Connection paused',

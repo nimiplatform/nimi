@@ -14,12 +14,12 @@ import (
 
 const (
 	runtimeAgentStateSchemaVersion = 1
-	defaultAgentPageSize        = 50
-	maxAgentPageSize            = 200
-	defaultHookPageSize         = 50
-	maxHookPageSize             = 200
-	maxEventLogSize             = 256
-	subscriberBuffer            = 32
+	defaultAgentPageSize           = 50
+	maxAgentPageSize               = 200
+	defaultHookPageSize            = 50
+	maxHookPageSize                = 200
+	maxEventLogSize                = 256
+	subscriberBuffer               = 32
 )
 
 type agentEntry struct {
@@ -29,26 +29,32 @@ type agentEntry struct {
 }
 
 type subscriber struct {
-	id           uint64
-	agentID      string
-	eventFilters map[runtimev1.AgentEventType]struct{}
-	ch           chan *runtimev1.AgentEvent
+	id            uint64
+	agentID       string
+	eventFilters  map[runtimev1.AgentEventType]struct{}
+	scopedBinding *runtimev1.ScopedRuntimeBindingAttachment
+	ch            chan *runtimev1.AgentEvent
+}
+
+type scopedBindingValidator interface {
+	ValidateScopedBinding(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool)
 }
 
 type Service struct {
 	runtimev1.UnimplementedRuntimeAgentServiceServer
 
-	logger        *slog.Logger
-	memorySvc     *memoryservice.Service
-	statePath     string
-	backend       *runtimepersistence.Backend
-	stateRepo     *runtimeAgentStateRepository
-	chatStateRepo *publicChatSurfaceStateRepository
-	reviews       reviewPersistence
-	postures      behavioralPosturePersistence
-	chatAppEmit   publicChatAppMessageEmitter
-	aiBridgeMu    sync.RWMutex
-	aiBridge      *RuntimePrivateAIBridge
+	logger           *slog.Logger
+	memorySvc        *memoryservice.Service
+	statePath        string
+	backend          *runtimepersistence.Backend
+	stateRepo        *runtimeAgentStateRepository
+	chatStateRepo    *publicChatSurfaceStateRepository
+	reviews          reviewPersistence
+	postures         behavioralPosturePersistence
+	chatAppEmit      publicChatAppMessageEmitter
+	bindingValidator scopedBindingValidator
+	aiBridgeMu       sync.RWMutex
+	aiBridge         *RuntimePrivateAIBridge
 
 	mu               sync.RWMutex
 	agents           map[string]*agentEntry
@@ -62,9 +68,9 @@ type Service struct {
 	// chatAnchors holds runtime-owned ConversationAnchor truth keyed by
 	// conversation_anchor_id. Per K-AGCORE-034 this is the only admitted
 	// cross-surface continuity scope; agent identity is not continuity.
-	chatAnchors       map[string]*publicChatAnchorState
-	chatTurns         map[string]*publicChatTurnState
-	chatFollowUps     map[string]*publicChatFollowUpState
+	chatAnchors   map[string]*publicChatAnchorState
+	chatTurns     map[string]*publicChatTurnState
+	chatFollowUps map[string]*publicChatFollowUpState
 	// chatActiveByAgent tracks the currently-active chat turn per agent.
 	// With per-anchor isolation, each agent may still run only one active
 	// chat turn at a time across anchors to preserve single-speaker truth.
@@ -133,6 +139,10 @@ func (s *Service) isClosed() bool {
 
 func (s *Service) SubscribeAgentEvents(req *runtimev1.SubscribeAgentEventsRequest, stream runtimev1.RuntimeAgentService_SubscribeAgentEventsServer) error {
 	return s.eventStreamRuntime().subscribe(req, stream)
+}
+
+func (s *Service) SetScopedBindingValidator(validator scopedBindingValidator) {
+	s.bindingValidator = validator
 }
 
 func (s *Service) SetLifeTrackExecutor(executor LifeTrackExecutor) {

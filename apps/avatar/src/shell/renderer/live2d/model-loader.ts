@@ -9,7 +9,6 @@ export type ModelManifest = {
 };
 
 export type AgentCenterAvatarPackageReference = {
-  agentCenterAccountId: string;
   agentId: string;
   avatarPackageKind: 'live2d' | 'vrm';
   avatarPackageId: string;

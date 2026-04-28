@@ -13,31 +13,68 @@ const onLaunchContextUpdatedMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
 let tauriRuntime = false;
 let launchContextUpdatedHandler: ((payload: {
-  agentCenterAccountId: string;
   agentId: string;
   avatarPackageKind: 'live2d' | 'vrm';
   avatarPackageId: string;
   avatarPackageSchemaVersion: 1;
   avatarInstanceId: string;
-  conversationAnchorId: string | null;
-  anchorMode: 'existing' | 'open_new';
+  conversationAnchorId: string;
   launchedBy: string;
   sourceSurface: string | null;
+  scopedBinding: {
+    bindingId: string;
+    bindingHandle: string | null;
+    runtimeAppId: string;
+    appInstanceId: string;
+    windowId: string;
+    avatarInstanceId: string;
+    agentId: string;
+    conversationAnchorId: string;
+    worldId: string | null;
+    purpose: 'avatar.interaction.consume';
+    scopes: string[];
+    issuedAt: string | null;
+    expiresAt: string | null;
+    state: string;
+    reasonCode: string;
+  };
 }) => void) | null = null;
 
 function launchContext(overrides: Partial<Parameters<NonNullable<typeof launchContextUpdatedHandler>>[0]> = {}) {
-  return {
-    agentCenterAccountId: 'account_1',
+  const base = {
     agentId: 'agent-product-01',
     avatarPackageKind: 'live2d' as const,
     avatarPackageId: 'live2d_ab12cd34ef56',
     avatarPackageSchemaVersion: 1 as const,
     avatarInstanceId: 'avatar-instance-01',
     conversationAnchorId: 'anchor-01',
-    anchorMode: 'existing' as const,
     launchedBy: 'desktop',
     sourceSurface: 'desktop-avatar-launcher',
     ...overrides,
+  };
+  return {
+    ...base,
+    scopedBinding: overrides.scopedBinding || {
+      bindingId: `binding-${base.conversationAnchorId}`,
+      bindingHandle: `binding:${base.conversationAnchorId}`,
+      runtimeAppId: 'nimi.desktop',
+      appInstanceId: 'nimi.desktop.local-first-party',
+      windowId: 'desktop-agent-chat',
+      avatarInstanceId: base.avatarInstanceId,
+      agentId: base.agentId,
+      conversationAnchorId: base.conversationAnchorId,
+      worldId: null,
+      purpose: 'avatar.interaction.consume' as const,
+      scopes: [
+        'runtime.agent.turn.read',
+        'runtime.agent.presentation.read',
+        'runtime.agent.state.read',
+      ],
+      issuedAt: null,
+      expiresAt: null,
+      state: 'active',
+      reasonCode: 'action_executed',
+    },
   };
 }
 

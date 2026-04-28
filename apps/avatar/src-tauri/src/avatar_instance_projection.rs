@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use nimi_kit_shell_tauri::desktop_paths::resolve_nimi_data_dir;
 use serde::{Deserialize, Serialize};
 
-use crate::avatar_launch_context::AvatarAnchorMode;
+use crate::avatar_launch_context::{AvatarAnchorMode, AvatarScopedBindingProjection};
 
 const AVATAR_INSTANCE_PROJECTION_DIR: &str = "avatar-instance-registry";
 const AVATAR_INSTANCE_PROJECTION_FILE: &str = "instances.json";
@@ -16,6 +16,7 @@ pub struct AvatarInstanceProjectionRecord {
     pub agent_id: String,
     pub conversation_anchor_id: Option<String>,
     pub anchor_mode: AvatarAnchorMode,
+    pub scoped_binding: Option<AvatarScopedBindingProjection>,
     pub launched_by: String,
     pub source_surface: Option<String>,
 }
@@ -121,6 +122,7 @@ mod tests {
                 agent_id: "agent-1".to_string(),
                 conversation_anchor_id: Some("anchor-1".to_string()),
                 anchor_mode: AvatarAnchorMode::Existing,
+                scoped_binding: None,
                 launched_by: "desktop".to_string(),
                 source_surface: Some("desktop-agent-chat".to_string()),
             }],

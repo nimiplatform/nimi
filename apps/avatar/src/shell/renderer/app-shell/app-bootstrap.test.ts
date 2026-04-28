@@ -23,29 +23,52 @@ const routeListOptionsMock = vi.fn();
 const routeCheckHealthMock = vi.fn();
 const sttTranscribeMock = vi.fn();
 const driverStopMock = vi.fn();
+let latestDriverStatusHandler: ((status: DriverStatus) => void) | null = null;
 
 function launchContext(overrides: Partial<{
   agentId: string;
   avatarInstanceId: string;
-  conversationAnchorId: string | null;
-  anchorMode: 'existing' | 'open_new';
+  conversationAnchorId: string;
   launchedBy: string;
   runtimeAppId: string;
   sourceSurface: string | null;
 }> = {}) {
-  return {
-    agentCenterAccountId: 'account_1',
-    agentId: 'agent-launch',
+	  const base = {
+	    agentId: 'agent-launch',
     avatarPackageKind: 'live2d' as const,
     avatarPackageId: 'live2d_ab12cd34ef56',
     avatarPackageSchemaVersion: 1 as const,
     avatarInstanceId: 'instance-1',
     conversationAnchorId: 'anchor-launch',
-    anchorMode: 'existing' as const,
     launchedBy: 'nimi.desktop',
     runtimeAppId: 'nimi.desktop',
     sourceSurface: 'desktop-agent-chat',
     ...overrides,
+  };
+  return {
+    ...base,
+    scopedBinding: {
+      bindingId: `binding-${base.conversationAnchorId}`,
+      bindingHandle: `binding:${base.conversationAnchorId}`,
+      runtimeAppId: base.runtimeAppId,
+      appInstanceId: 'nimi.desktop.local-first-party',
+      windowId: 'desktop-agent-chat',
+      avatarInstanceId: base.avatarInstanceId,
+      agentId: base.agentId,
+      conversationAnchorId: base.conversationAnchorId,
+      worldId: null,
+      purpose: 'avatar.interaction.consume' as const,
+      scopes: [
+        'runtime.agent.turn.read',
+        'runtime.agent.turn.write',
+        'runtime.agent.presentation.read',
+        'runtime.agent.state.read',
+      ],
+      issuedAt: '2026-04-28T00:00:00.000Z',
+	      expiresAt: '2999-04-28T01:00:00.000Z',
+      state: 'active',
+      reasonCode: 'action_executed',
+    },
   };
 }
 
@@ -137,8 +160,12 @@ function createFakeDriver(kind: 'sdk' | 'mock'): AgentDataDriver {
     },
     onStatusChange(handler) {
       statusHandler = handler;
+      latestDriverStatusHandler = handler;
       return () => {
         statusHandler = null;
+        if (latestDriverStatusHandler === handler) {
+          latestDriverStatusHandler = null;
+        }
       };
     },
     emit() {},
@@ -167,8 +194,9 @@ describe('bootstrapAvatar', () => {
     interruptTurnMock.mockReset();
     routeListOptionsMock.mockReset();
     routeCheckHealthMock.mockReset();
-    sttTranscribeMock.mockReset();
+	    sttTranscribeMock.mockReset();
     driverStopMock.mockReset();
+    latestDriverStatusHandler = null;
     window.localStorage.clear();
     vi.stubEnv('VITE_AVATAR_MODEL_PATH', '/models/ren');
     runtimeCloseMock.mockResolvedValue(undefined);
@@ -260,12 +288,12 @@ describe('bootstrapAvatar', () => {
         listOptions: (...args: unknown[]) => routeListOptionsMock(...args),
         checkHealth: (...args: unknown[]) => routeCheckHealthMock(...args),
       },
-      media: {
-        stt: {
-          transcribe: (...args: unknown[]) => sttTranscribeMock(...args),
-        },
-      },
-      agent: {
+	      media: {
+	        stt: {
+	          transcribe: (...args: unknown[]) => sttTranscribeMock(...args),
+	        },
+	      },
+	      agent: {
         anchors: {
           open: (...args: unknown[]) => openConversationAnchorMock(...args),
         },
@@ -298,12 +326,12 @@ describe('bootstrapAvatar', () => {
       actionHint: 'none',
       reasonCode: 'RUNTIME_ROUTE_HEALTHY',
     });
-    sttTranscribeMock.mockResolvedValue({
-      text: 'spoken anchor note',
-      artifacts: [],
-      trace: {},
-      job: {} as never,
-    });
+	    sttTranscribeMock.mockResolvedValue({
+	      text: 'spoken anchor note',
+	      artifacts: [],
+	      trace: {},
+	      job: {} as never,
+	    });
   });
 
   afterEach(() => {
@@ -318,12 +346,19 @@ describe('bootstrapAvatar', () => {
 
     expect(createDriverMock).toHaveBeenCalledWith(expect.objectContaining({
       kind: 'sdk',
-      sdk: expect.objectContaining({
-        agentId: 'agent-launch',
-        conversationAnchorId: 'anchor-launch',
-        activeWorldId: 'world-1',
-        activeUserId: '',
-      }),
+	      sdk: expect.objectContaining({
+	        agentId: 'agent-launch',
+	        conversationAnchorId: 'anchor-launch',
+	        activeWorldId: 'world-1',
+	        activeUserId: '',
+	        scopedBinding: expect.objectContaining({
+	          bindingId: 'binding-anchor-launch',
+	          appInstanceId: 'nimi.desktop.local-first-party',
+	          windowId: 'desktop-agent-chat',
+	          agentId: 'agent-launch',
+	          conversationAnchorId: 'anchor-launch',
+	        }),
+	      }),
     }));
     expect(createDriverMock.mock.calls[0]?.[0]).not.toHaveProperty('scenarioJson');
     expect(createDriverMock.mock.calls[0]?.[0]).toEqual(expect.objectContaining({
@@ -342,9 +377,8 @@ describe('bootstrapAvatar', () => {
         model3JsonPath: '/agent-center/packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json',
       }),
     }));
-    expect(resolveAgentCenterAvatarPackageManifestMock).toHaveBeenCalledWith({
-      agentCenterAccountId: 'account_1',
-      agentId: 'agent-launch',
+	    expect(resolveAgentCenterAvatarPackageManifestMock).toHaveBeenCalledWith({
+	      agentId: 'agent-launch',
       avatarPackageKind: 'live2d',
       avatarPackageId: 'live2d_ab12cd34ef56',
       avatarPackageSchemaVersion: 1,
@@ -367,9 +401,8 @@ describe('bootstrapAvatar', () => {
 
     const handle = await bootstrapAvatar();
 
-    expect(resolveAgentCenterAvatarPackageManifestMock).toHaveBeenCalledWith({
-      agentCenterAccountId: 'account_1',
-      agentId: 'agent-launch',
+	    expect(resolveAgentCenterAvatarPackageManifestMock).toHaveBeenCalledWith({
+	      agentId: 'agent-launch',
       avatarPackageKind: 'live2d',
       avatarPackageId: 'live2d_ab12cd34ef56',
       avatarPackageSchemaVersion: 1,
@@ -410,11 +443,10 @@ describe('bootstrapAvatar', () => {
     await handle.shutdown();
   });
 
-  it('opens a new anchor only when launch context explicitly requires it', async () => {
+  it('does not open anchors during bootstrap and uses the desktop-committed anchor', async () => {
     getAvatarLaunchContextMock.mockResolvedValue(launchContext({
-      avatarInstanceId: 'instance-new-anchor',
-      conversationAnchorId: null,
-      anchorMode: 'open_new',
+      avatarInstanceId: 'instance-committed-anchor',
+      conversationAnchorId: 'anchor-committed',
     }));
     createDriverMock.mockReturnValue(createFakeDriver('sdk'));
     const { bootstrapAvatar } = await import('./app-bootstrap.js');
@@ -425,16 +457,10 @@ describe('bootstrapAvatar', () => {
       kind: 'sdk',
       sdk: expect.objectContaining({
         agentId: 'agent-launch',
-        conversationAnchorId: 'anchor-opened',
+        conversationAnchorId: 'anchor-committed',
       }),
     }));
-    expect(openConversationAnchorMock).toHaveBeenCalledWith({
-      agentId: 'agent-launch',
-      metadata: expect.objectContaining({
-        avatarInstanceId: 'instance-new-anchor',
-        launchedBy: 'nimi.desktop',
-      }),
-    });
+    expect(openConversationAnchorMock).not.toHaveBeenCalled();
 
     await handle.shutdown();
   });
@@ -446,7 +472,6 @@ describe('bootstrapAvatar', () => {
     getAvatarLaunchContextMock.mockResolvedValueOnce(launchContext({
       avatarInstanceId: 'instance-anchor-a',
       conversationAnchorId: 'anchor-a',
-      anchorMode: 'existing',
     }));
     const firstHandle = await bootstrapAvatar();
     const firstSdkConfig = createDriverMock.mock.calls[0]?.[0]?.sdk;
@@ -456,7 +481,6 @@ describe('bootstrapAvatar', () => {
     getAvatarLaunchContextMock.mockResolvedValueOnce(launchContext({
       avatarInstanceId: 'instance-anchor-b',
       conversationAnchorId: 'anchor-b',
-      anchorMode: 'existing',
     }));
     const secondHandle = await bootstrapAvatar();
     const secondSdkConfig = createDriverMock.mock.calls[1]?.[0]?.sdk;
@@ -531,7 +555,23 @@ describe('bootstrapAvatar', () => {
     const handle = await bootstrapAvatar();
 
     expect(RuntimeMock).toHaveBeenCalledTimes(1);
+    expect(RuntimeMock.mock.results[0]?.value).not.toHaveProperty('account');
     expect(useAvatarStore.getState().consume.authority).toBe('runtime');
+
+    await handle.shutdown();
+  });
+
+  it('marks scoped interaction unavailable when the binding-only runtime stream fails', async () => {
+    createDriverMock.mockReturnValue(createFakeDriver('sdk'));
+    const { bootstrapAvatar } = await import('./app-bootstrap.js');
+
+    const handle = await bootstrapAvatar();
+    latestDriverStatusHandler?.('error');
+    await Promise.resolve();
+
+    expect(useAvatarStore.getState().runtime.binding.status).toBe('unavailable');
+    expect(useAvatarStore.getState().runtime.binding.reason).toBe('runtime_agent_binding_stream_unavailable');
+    expect(useAvatarStore.getState().runtime.binding.projection).not.toHaveProperty('accountProjection');
 
     await handle.shutdown();
   });
@@ -564,12 +604,20 @@ describe('bootstrapAvatar', () => {
       conversationAnchorId: 'anchor-launch',
       worldId: 'world-1',
       messages: [{ role: 'user', content: 'hello from avatar' }],
-      executionBinding: {
-        route: 'cloud',
-        modelId: 'gpt-5.4-mini',
-        connectorId: 'connector-text',
-      },
-    });
+	      executionBinding: {
+	        route: 'cloud',
+	        modelId: 'gpt-5.4-mini',
+	        connectorId: 'connector-text',
+	      },
+	      scopedBinding: expect.objectContaining({
+	        bindingId: 'binding-anchor-launch',
+	        appInstanceId: 'nimi.desktop.local-first-party',
+	        windowId: 'desktop-agent-chat',
+	        agentId: 'agent-launch',
+	        conversationAnchorId: 'anchor-launch',
+	        worldId: 'world-1',
+	      }),
+	    });
 
     await handle.shutdown();
   });
@@ -583,7 +631,7 @@ describe('bootstrapAvatar', () => {
       agentId: 'agent-launch',
       conversationAnchorId: 'anchor-other',
       text: 'wrong anchor',
-    })).rejects.toThrow('avatar companion input requires the current explicit agent and anchor binding');
+	    })).rejects.toThrow('Runtime interaction requires the current scoped binding target');
     expect(requestTurnMock).not.toHaveBeenCalled();
 
     await handle.shutdown();
@@ -636,12 +684,18 @@ describe('bootstrapAvatar', () => {
       conversationAnchorId: 'anchor-launch',
       worldId: 'world-1',
       messages: [{ role: 'user', content: 'spoken anchor note' }],
-      executionBinding: {
-        route: 'cloud',
-        modelId: 'gpt-5.4-mini',
-        connectorId: 'connector-text',
-      },
-    });
+	      executionBinding: {
+	        route: 'cloud',
+	        modelId: 'gpt-5.4-mini',
+	        connectorId: 'connector-text',
+	      },
+	      scopedBinding: expect.objectContaining({
+	        bindingId: 'binding-anchor-launch',
+	        agentId: 'agent-launch',
+	        conversationAnchorId: 'anchor-launch',
+	        worldId: 'world-1',
+	      }),
+	    });
     expect(result).toEqual({
       transcript: 'spoken anchor note',
     });
@@ -660,7 +714,7 @@ describe('bootstrapAvatar', () => {
       conversationAnchorId: 'anchor-other',
       audioBytes: new Uint8Array([1]),
       mimeType: 'audio/webm',
-    })).rejects.toThrow('Foreground voice requires the current explicit agent and anchor binding');
+	    })).rejects.toThrow('Runtime interaction requires the current scoped binding target');
     expect(sttTranscribeMock).not.toHaveBeenCalled();
     expect(requestTurnMock).not.toHaveBeenCalled();
 
@@ -724,13 +778,18 @@ describe('bootstrapAvatar', () => {
       },
     });
 
-    sttTranscribeMock.mockImplementationOnce(async () => {
-      useAvatarStore.getState().setRuntimeBinding({
-        avatarInstanceId: 'instance-2',
-        conversationAnchorId: 'anchor-rebound',
-        agentId: 'agent-launch',
-        worldId: 'world-1',
-      });
+	    sttTranscribeMock.mockImplementationOnce(async () => {
+	      const reboundLaunch = launchContext({
+	        avatarInstanceId: 'instance-2',
+	        conversationAnchorId: 'anchor-rebound',
+	      });
+	      useAvatarStore.getState().setRuntimeBinding({
+	        avatarInstanceId: 'instance-2',
+	        conversationAnchorId: 'anchor-rebound',
+	        agentId: 'agent-launch',
+	        worldId: 'world-1',
+	        scopedBinding: reboundLaunch.scopedBinding,
+	      });
       return {
         text: 'spoken anchor note',
         artifacts: [],
@@ -744,7 +803,7 @@ describe('bootstrapAvatar', () => {
       conversationAnchorId: 'anchor-launch',
       audioBytes: new Uint8Array([9, 8, 7]),
       mimeType: 'audio/webm',
-    })).rejects.toThrow('Foreground voice requires the current explicit agent and anchor binding');
+	    })).rejects.toThrow('Runtime interaction requires the current scoped binding target');
     expect(requestTurnMock).not.toHaveBeenCalled();
 
     await handle.shutdown();

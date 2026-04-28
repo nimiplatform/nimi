@@ -371,7 +371,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
   const clicked: string[] = [];
   const clickedSelectors: string[] = [];
   const values: Array<{ selector: string; value: string }> = [];
-  let sharedAuthVerified = false;
+  let runtimeAccountProjectionVerified = false;
   let routeConfigured = false;
   let staleAnchorsCleared = false;
   let runtimeAnchorVerified = false;
@@ -389,8 +389,8 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
     async setValueBySelector(selector, value) {
       values.push({ selector, value });
     },
-    async verifySharedAuthSession() {
-      sharedAuthVerified = true;
+    async verifyRuntimeAccountProjection() {
+      runtimeAccountProjectionVerified = true;
     },
     async configureRuntimeTextRoute() {
       routeConfigured = true;
@@ -434,6 +434,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
         agentId: 'agent-e2e-alpha',
         conversationAnchorId: 'anchor-1',
         anchorMode: 'existing',
+        scopedBinding: { bindingId: 'binding-1' },
         launchedBy: 'desktop',
         sourceSurface: 'desktop-agent-chat',
       }];
@@ -496,7 +497,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
     selector: '[data-chat-composer-textarea="true"]',
     value: 'Wave 2 product smoke anchor turn.',
   }]);
-  assert.equal(sharedAuthVerified, true);
+  assert.equal(runtimeAccountProjectionVerified, true);
   assert.equal(routeConfigured, true);
   assert.equal(staleAnchorsCleared, true);
   assert.equal(runtimeAnchorVerified, true);
@@ -507,7 +508,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
   assert.equal(report.ok, true);
   assert.deepEqual(report.steps, [
     'wait-chat-panel',
-    'verify-shared-auth-session',
+    'verify-runtime-account-projection',
     'clear-stale-anchor-bindings',
     'select-agent-target',
     'wait-agent-target-selected',

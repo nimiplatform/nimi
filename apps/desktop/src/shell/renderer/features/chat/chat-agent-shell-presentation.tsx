@@ -1,25 +1,10 @@
-import { useCallback, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type ChatComposerSubmitInput,
 } from '@nimiplatform/nimi-kit/features/chat';
-import type {
-  CanonicalMessageAccessorySlot,
-  CanonicalMessageContentSlot,
-  ConversationCanonicalMessage,
-  ConversationMessageViewModel,
-  ConversationSetupState,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
-import { useTranslation } from 'react-i18next';
-import type {
-  AgentLocalTargetSnapshot,
-  AgentLocalThreadBundle,
-  AgentLocalThreadSummary,
-} from '@renderer/bridge/runtime-bridge/types';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
-import { ChatSettingsPanel } from './chat-shared-settings-panel';
 import { RuntimeStreamFooter } from './chat-shared-runtime-stream-ui';
-import { AgentCenterPanel } from './chat-agent-center-panel';
 import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
 import {
   buildDesktopAvatarInstanceId,
@@ -43,9 +28,7 @@ import {
   validateAgentCenterAvatarPackage,
 } from '@renderer/bridge/runtime-bridge/chat-agent-center-local-config-store';
 import { cancelStream } from '../turns/stream-controller';
-import type { AgentConversationSelection } from './chat-shell-types';
-import type { AgentHostFlowFooterState } from './chat-agent-shell-host-flow';
-import { createInitialAgentTurnLifecycleState, type AgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
+import { createInitialAgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
 import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
 import { resolveAgentFooterViewState } from './chat-agent-shell-footer-state';
 import { resolveAgentConversationSurfaceState } from './chat-agent-shell-visible-state';
@@ -58,108 +41,18 @@ import {
   resolveAgentTargetSummaries,
 } from './chat-agent-shell-view-model';
 import { toConversationThreadSummary } from './chat-agent-thread-model';
-import type { InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
-import type { ChatThinkingPreference } from './chat-shared-thinking';
-import type { StreamState } from '../turns/stream-controller';
-import type { RouteModelPickerSelection } from '@nimiplatform/nimi-kit/features/model-picker';
-import type { AISchedulingJudgement } from '@nimiplatform/sdk/mod';
 import { resolveExecutionSchedulingGuardDecision } from './chat-shared-execution-scheduling-guard';
-import type { AgentChatExperienceSettings } from './chat-settings-storage';
-import type {
-  RuntimeAgentInspectEventSummary,
-  RuntimeAgentInspectSnapshot,
-} from '@renderer/infra/runtime-agent-inspect';
 import {
   resolveAgentComposerVoiceState,
-  type AgentVoiceSessionShellState,
 } from './chat-agent-voice-session';
-import type { PendingAttachment } from '../turns/turn-input-attachments';
 import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
-import { AgentDiagnosticsPanel } from './chat-agent-diagnostics';
+import { AgentConversationDiagnosticsContent, AgentConversationSettingsContent } from './chat-agent-shell-presentation-settings';
 import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
 import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-shared-content-layout';
+import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
+import type { PendingAttachment } from '../turns/turn-input-attachments';
 
-type UseAgentConversationPresentationInput = {
-  activeTarget: AgentLocalTargetSnapshot | null;
-  accountId: string | null;
-  activeThreadId: string | null;
-  activeConversationAnchorId: string | null;
-  bundle: AgentLocalThreadBundle | null;
-  bundleError: unknown;
-  composerReady: boolean;
-  currentDraftTextRef: { current: string };
-  currentFooterHostState: {
-    footerState: AgentHostFlowFooterState;
-    lifecycle: AgentTurnLifecycleState;
-  } | null;
-  mutationPendingAction: string | null;
-  onCancelPendingHook: (hookId: string) => void;
-  onClearDyadicContext: () => void;
-  onClearWorldContext: () => void;
-  onDisableAutonomy: () => void;
-  onEnableAutonomy: () => void;
-  onRefreshInspect: () => void;
-  onUpdateRuntimeState: (input: { statusText: string; worldId: string; userId: string }) => void;
-  onUpdateAutonomyConfig: (input: { mode: string; dailyTokenBudget: string; maxTokensPerHook: string }) => void;
-  recentRuntimeEvents: readonly RuntimeAgentInspectEventSummary[];
-  handleSubmit: (input: { text: string; attachments: readonly PendingAttachment[] }) => Promise<void>;
-  hostFeedback: InlineFeedbackState | null;
-  initialModelSelection?: Partial<RouteModelPickerSelection>;
-  inputSelectionAgentId: AgentConversationSelection['agentId'];
-  isBundleLoading: boolean;
-  messages: readonly ConversationMessageViewModel[];
-  pendingAttachments: readonly PendingAttachment[];
-  onDismissHostFeedback: () => void;
-  onAttachmentsChange: (attachments: readonly PendingAttachment[]) => void;
-  onMessageContextMenu?: (message: ConversationCanonicalMessage, event: MouseEvent<HTMLDivElement>) => void;
-  onModelSelectionChange: (selection: RouteModelPickerSelection) => void;
-  reasoningLabel: string;
-  renderMessageAccessory?: CanonicalMessageAccessorySlot;
-  renderMessageContent: CanonicalMessageContentSlot;
-  routeReady: boolean;
-  runtimeInspect: RuntimeAgentInspectSnapshot | null;
-  runtimeInspectLoading: boolean;
-  schedulingJudgement: AISchedulingJudgement | null;
-  selectedTargetId: string | null;
-  behaviorSettings: AgentChatExperienceSettings;
-  setBehaviorSettings: (value: AgentChatExperienceSettings) => void;
-  cognitionContent?: ReactNode;
-  onDiagnosticsVisibilityChange?: (visible: boolean) => void;
-  onOpenAgentCenter?: () => void;
-  voiceSessionState: AgentVoiceSessionShellState;
-  voiceCaptureState: {
-    active: boolean;
-    amplitude: number;
-  } | null;
-  voicePlaybackState: {
-    conversationAnchorId: string;
-    messageId: string;
-    active: boolean;
-    amplitude: number;
-    visemeId: 'aa' | 'ee' | 'ih' | 'oh' | 'ou' | null;
-  } | null;
-  onVoiceSessionToggle: () => void;
-  onVoiceSessionCancel: () => void;
-  onEnterHandsFreeVoiceSession: () => void;
-  onExitHandsFreeVoiceSession: () => void;
-  setupState: ConversationSetupState;
-  streamState: StreamState | null;
-  submittingThreadId: string | null;
-  t: ReturnType<typeof useTranslation>['t'];
-  targetSummariesInput: {
-    targets: readonly AgentLocalTargetSnapshot[];
-    threads: readonly AgentLocalThreadSummary[];
-  };
-  targetsPending: boolean;
-  thinkingPreference: ChatThinkingPreference;
-  thinkingSupported: boolean;
-  thinkingUnsupportedReason: string | null;
-  agentRouteReady: boolean;
-  clearChatsTargetName?: string | null;
-  clearChatsDisabled?: boolean;
-  onClearAgentHistory?: () => Promise<void> | void;
-};
 
 const AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS = 'pb-[clamp(140px,16vh,200px)]';
 
@@ -488,10 +381,10 @@ export function useAgentConversationPresentation(
     refetchOnWindowFocus: true,
     refetchInterval: avatarHandoffReady && avatarPackageValid && input.activeTarget?.agentId ? 5_000 : false,
   });
-  const avatarRunning = Boolean(
-    avatarInstanceId
-    && avatarLiveInstancesQuery.data?.some((instance) => instance.avatarInstanceId === avatarInstanceId),
-  );
+  const runningAvatarInstance = avatarInstanceId
+    ? avatarLiveInstancesQuery.data?.find((instance) => instance.avatarInstanceId === avatarInstanceId) || null
+    : null;
+  const avatarRunning = Boolean(runningAvatarInstance);
   const handleComposerAvatarAction = useCallback(async () => {
     if (
       !input.accountId
@@ -510,6 +403,7 @@ export function useAgentConversationPresentation(
       if (avatarRunning) {
         const result = await closeDesktopAvatarHandoff({
           avatarInstanceId,
+          bindingId: runningAvatarInstance?.scopedBinding?.bindingId || null,
           closedBy: 'desktop',
           sourceSurface: 'desktop-agent-chat',
         });
@@ -523,7 +417,6 @@ export function useAgentConversationPresentation(
       }
       const anchorMode = input.activeConversationAnchorId ? 'existing' : 'open_new';
       const result = await launchDesktopAvatarHandoff({
-        accountId: input.accountId,
         agentId: input.activeTarget.agentId,
         avatarPackage: {
           kind: selectedAvatarPackage.kind,
@@ -535,6 +428,7 @@ export function useAgentConversationPresentation(
         launchedBy: 'nimi.desktop',
         runtimeAppId: 'nimi.desktop',
         sourceSurface: 'desktop-agent-chat',
+        worldId: input.activeTarget.worldId,
       });
       await avatarLiveInstancesQuery.refetch();
       return {
@@ -558,6 +452,7 @@ export function useAgentConversationPresentation(
     input.accountId,
     input.onOpenAgentCenter,
     input.t,
+    runningAvatarInstance,
     selectedAvatarPackage,
   ]);
   const avatarComposerActionState = !avatarConfigured
@@ -685,45 +580,7 @@ export function useAgentConversationPresentation(
     characterData,
     hostView,
   }), [canonicalMessages, characterData, hostView, input.activeThreadId, targetSummaries]);
-  const diagnosticsContent = useMemo(() => (
-    <AgentDiagnosticsPanel
-      activeTarget={input.activeTarget}
-      lifecycle={input.currentFooterHostState?.lifecycle || null}
-      mutationPendingAction={input.mutationPendingAction}
-      onCancelHook={input.onCancelPendingHook}
-      onClearDyadicContext={input.onClearDyadicContext}
-      onClearWorldContext={input.onClearWorldContext}
-      onDisableAutonomy={input.onDisableAutonomy}
-      onEnableAutonomy={input.onEnableAutonomy}
-      onRefreshInspect={input.onRefreshInspect}
-      onUpdateRuntimeState={input.onUpdateRuntimeState}
-      onUpdateAutonomyConfig={input.onUpdateAutonomyConfig}
-      recentRuntimeEvents={input.recentRuntimeEvents}
-      routeReady={input.routeReady}
-      runtimeInspect={input.runtimeInspect}
-      runtimeInspectLoading={input.runtimeInspectLoading}
-      t={input.t}
-      targetsPending={input.targetsPending}
-    />
-  ), [
-    input.activeTarget,
-    input.currentFooterHostState?.lifecycle,
-    input.mutationPendingAction,
-    input.onCancelPendingHook,
-    input.onClearDyadicContext,
-    input.onClearWorldContext,
-    input.onDisableAutonomy,
-    input.onEnableAutonomy,
-    input.onRefreshInspect,
-    input.onUpdateRuntimeState,
-    input.onUpdateAutonomyConfig,
-    input.recentRuntimeEvents,
-    input.routeReady,
-    input.runtimeInspect,
-    input.runtimeInspectLoading,
-    input.t,
-    input.targetsPending,
-  ]);
+  const diagnosticsContent = <AgentConversationDiagnosticsContent input={input} />;
   const hostFeedbackNode = input.hostFeedback ? (
     <InlineFeedback feedback={input.hostFeedback} onDismiss={input.onDismissHostFeedback} />
   ) : null;
@@ -766,173 +623,26 @@ export function useAgentConversationPresentation(
     stagePanelProps: undefined,
     topContent: schedulingFeedbackNode,
     settingsContent: (
-      <AgentCenterPanel
-        activeTarget={input.activeTarget}
-        runtimeInspect={input.runtimeInspect}
-        runtimeInspectLoading={input.runtimeInspectLoading}
-        routeReady={input.agentRouteReady}
-        mutationPendingAction={input.mutationPendingAction}
-        avatarConfigured={avatarPackageValid}
-        backgroundConfigured={Boolean(backgroundValid)}
-        avatarContent={(
-          <div className="space-y-3">
-            <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-xs font-semibold text-slate-950">
-                    {input.t('Chat.agentCenterAvatarPackage', { defaultValue: 'Avatar package' })}
-                  </div>
-                  <div className="mt-1 text-[11px] leading-4 text-slate-500">
-                    {avatarPackageValid
-                      ? input.t('Chat.agentCenterAvatarPackageReady', { defaultValue: 'A local package is selected and ready to launch from the composer.' })
-                      : avatarPackageChecking
-                        ? input.t('Chat.agentCenterAvatarPackageChecking', { defaultValue: 'Checking the selected local package.' })
-                        : selectedAvatarPackage
-                          ? input.t('Chat.agentCenterAvatarPackageNeedsFix', { defaultValue: 'The selected local package needs attention before launch.' })
-                          : input.t('Chat.agentCenterAvatarPackageMissing', { defaultValue: 'Import a local Live2D folder or VRM file to enable avatar launch.' })}
-                  </div>
-                </div>
-                <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600">
-                  {avatarPackageValid
-                    ? input.t('Chat.agentCenterReady', { defaultValue: 'Ready' })
-                    : avatarPackageChecking
-                      ? input.t('Chat.agentCenterChecking', { defaultValue: 'Checking' })
-                      : input.t('Chat.agentCenterNeedsSetup', { defaultValue: 'Needs setup' })}
-                </span>
-              </div>
-              {avatarPackageValidationQuery.data?.errors?.[0]?.message ? (
-                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-800">
-                  {avatarPackageValidationQuery.data.errors[0].message}
-                </div>
-              ) : null}
-              {(avatarImportError || (clearAvatarPackageMutation.error instanceof Error ? clearAvatarPackageMutation.error.message : null)) ? (
-                <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700">
-                  {avatarImportError || (clearAvatarPackageMutation.error instanceof Error ? clearAvatarPackageMutation.error.message : null)}
-                </div>
-              ) : null}
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                disabled={avatarImportDisabled}
-                onClick={() => avatarPackageImportMutation.mutate('live2d')}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                {avatarPackageImportMutation.isPending
-                  ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing…' })
-                  : input.t('Chat.agentCenterImportLive2d', { defaultValue: 'Import Live2D folder' })}
-              </button>
-              <button
-                type="button"
-                disabled={avatarImportDisabled}
-                onClick={() => avatarPackageImportMutation.mutate('vrm')}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                {avatarPackageImportMutation.isPending
-                  ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing…' })
-                  : input.t('Chat.agentCenterImportVrm', { defaultValue: 'Import VRM file' })}
-              </button>
-            </div>
-            {selectedAvatarPackage ? (
-              <button
-                type="button"
-                disabled={clearAvatarPackageMutation.isPending || avatarActionPending}
-                onClick={() => clearAvatarPackageMutation.mutate()}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                {clearAvatarPackageMutation.isPending
-                  ? input.t('Chat.agentCenterAvatarClearing', { defaultValue: 'Clearing…' })
-                  : input.t('Chat.agentCenterClearAvatarSelection', { defaultValue: 'Remove avatar package' })}
-              </button>
-            ) : null}
-            {!hasTauriInvoke() ? (
-              <div className="text-[11px] leading-4 text-slate-500">
-                {input.t('Chat.agentCenterAvatarImportDesktopOnly', { defaultValue: 'Avatar package import is available in the desktop app.' })}
-              </div>
-            ) : null}
-          </div>
-        )}
-        localAppearanceContent={(
-          <div className="space-y-3">
-            <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-xs font-semibold text-slate-950">
-                    {input.t('Chat.agentCenterBackground', { defaultValue: 'Background' })}
-                  </div>
-                  <div className="mt-1 text-[11px] leading-4 text-slate-500">
-                    {backgroundValid
-                      ? input.t('Chat.agentCenterBackgroundReadyHint', { defaultValue: 'A local background is selected for this agent.' })
-                      : selectedBackgroundAssetId
-                        ? input.t('Chat.agentCenterBackgroundNeedsFix', { defaultValue: 'The selected local background needs attention.' })
-                        : input.t('Chat.agentCenterBackgroundMissingHint', { defaultValue: 'Import a png, jpeg, or webp image for this agent.' })}
-                  </div>
-                </div>
-                <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600">
-                  {backgroundValid
-                    ? input.t('Chat.agentCenterReady', { defaultValue: 'Ready' })
-                    : backgroundAssetQuery.isFetching
-                      ? input.t('Chat.agentCenterChecking', { defaultValue: 'Checking' })
-                      : input.t('Chat.agentCenterNeedsSetup', { defaultValue: 'Needs setup' })}
-                </span>
-              </div>
-              {backgroundValidation?.errors?.[0]?.message ? (
-                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-800">
-                  {backgroundValidation.errors[0].message}
-                </div>
-              ) : null}
-              {(backgroundImportError || (clearBackgroundMutation.error instanceof Error ? clearBackgroundMutation.error.message : null)) ? (
-                <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700">
-                  {backgroundImportError || (clearBackgroundMutation.error instanceof Error ? clearBackgroundMutation.error.message : null)}
-                </div>
-              ) : null}
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                disabled={backgroundImportDisabled}
-                onClick={() => backgroundImportMutation.mutate()}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                {backgroundImportMutation.isPending
-                  ? input.t('Chat.agentCenterBackgroundImporting', { defaultValue: 'Importing…' })
-                  : input.t('Chat.agentCenterImportBackground', { defaultValue: 'Import background image' })}
-              </button>
-              <button
-                type="button"
-                disabled={!selectedBackgroundAssetId || clearBackgroundMutation.isPending}
-                onClick={() => clearBackgroundMutation.mutate()}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                {clearBackgroundMutation.isPending
-                  ? input.t('Chat.agentCenterBackgroundClearing', { defaultValue: 'Clearing…' })
-                  : input.t('Chat.agentCenterClearBackgroundSelection', { defaultValue: 'Remove background' })}
-              </button>
-            </div>
-          </div>
-        )}
-        modelContent={(
-          <ChatSettingsPanel
-            onDiagnosticsVisibilityChange={input.onDiagnosticsVisibilityChange}
-            onModelSelectionChange={input.onModelSelectionChange}
-            initialModelSelection={input.initialModelSelection}
-            diagnosticsContent={diagnosticsContent}
-            clearChatsTargetName={input.clearChatsTargetName}
-            clearChatsDisabled={input.clearChatsDisabled}
-            onClearAgentHistory={input.onClearAgentHistory}
-            showPresenceContent={false}
-            showDiagnosticsFooter={false}
-            showClearHistoryAction={false}
-          />
-        )}
-        cognitionContent={input.cognitionContent}
+      <AgentConversationSettingsContent
+        input={input}
         diagnosticsContent={diagnosticsContent}
-        onEnableAutonomy={input.onEnableAutonomy}
-        onDisableAutonomy={input.onDisableAutonomy}
-        onUpdateAutonomyConfig={input.onUpdateAutonomyConfig}
-        clearChatsTargetName={input.clearChatsTargetName}
-        clearChatsDisabled={input.clearChatsDisabled}
-        onClearAgentHistory={input.onClearAgentHistory}
+        avatarPackageValid={avatarPackageValid}
+        backgroundValid={backgroundValid}
+        avatarPackageChecking={avatarPackageChecking}
+        selectedAvatarPackage={selectedAvatarPackage}
+        avatarPackageValidationQuery={avatarPackageValidationQuery}
+        avatarImportError={avatarImportError}
+        clearAvatarPackageMutation={clearAvatarPackageMutation}
+        avatarImportDisabled={avatarImportDisabled}
+        avatarPackageImportMutation={avatarPackageImportMutation}
+        avatarActionPending={avatarActionPending}
+        selectedBackgroundAssetId={selectedBackgroundAssetId}
+        backgroundAssetQuery={backgroundAssetQuery}
+        backgroundValidation={backgroundValidation}
+        backgroundImportError={backgroundImportError}
+        clearBackgroundMutation={clearBackgroundMutation}
+        backgroundImportDisabled={backgroundImportDisabled}
+        backgroundImportMutation={backgroundImportMutation}
       />
     ),
     settingsDrawerTitle: input.t('Chat.agentCenterTitle', { defaultValue: 'Agent Center' }),

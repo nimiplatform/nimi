@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod agent_center_avatar_package;
 mod avatar_evidence_projection;
 mod avatar_instance_projection;
 mod avatar_instance_registry;
@@ -11,17 +12,21 @@ use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+use agent_center_avatar_package::{
+    nimi_avatar_resolve_agent_center_avatar_package, AgentCenterAvatarPackageResolvePayload,
+    ModelManifest,
+};
 use avatar_evidence_projection::AvatarEvidenceRecordInput;
 use avatar_instance_projection::{persist_projection, AvatarInstanceProjectionRecord};
 use avatar_instance_registry::AvatarInstanceRegistry;
 use avatar_launch_context::{
-    parse_avatar_deep_link_request, resolve_initial_avatar_request, AvatarCloseRequest,
-    AvatarDeepLinkRequest, AvatarLaunchContext, AVATAR_LAUNCH_SCHEME,
+    parse_avatar_deep_link_request, resolve_initial_avatar_request, AvatarAnchorMode,
+    AvatarCloseRequest, AvatarDeepLinkRequest, AvatarLaunchContext, AVATAR_LAUNCH_SCHEME,
 };
 use nimi_kit_shell_tauri::runtime_bridge;
 use nimi_kit_shell_tauri::runtime_defaults as defaults;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use tauri::{
@@ -47,71 +52,6 @@ struct ReadyPayload {
 
 const AVATAR_WINDOW_LABEL_PREFIX: &str = "avatar-instance";
 const AVATAR_LAUNCH_CONTEXT_UPDATED_EVENT: &str = "avatar://launch-context-updated";
-
-#[derive(Debug, Serialize)]
-struct ModelManifest {
-    runtime_dir: String,
-    model_id: String,
-    model3_json_path: String,
-    nimi_dir: Option<String>,
-    adapter_manifest_path: Option<String>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct AgentCenterAvatarPackageResolvePayload {
-    agent_center_account_id: String,
-    agent_id: String,
-    avatar_package_kind: String,
-    avatar_package_id: String,
-    avatar_package_schema_version: u8,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AgentCenterAvatarPackageManifest {
-    manifest_version: u8,
-    package_version: String,
-    package_id: String,
-    kind: String,
-    loader_min_version: String,
-    display_name: String,
-    #[serde(default)]
-    display_name_i18n: serde_json::Map<String, serde_json::Value>,
-    entry_file: String,
-    required_files: Vec<String>,
-    content_digest: String,
-    files: Vec<AgentCenterAvatarPackageManifestFile>,
-    limits: AgentCenterAvatarPackageManifestLimits,
-    capabilities: serde_json::Value,
-    import: AgentCenterAvatarPackageManifestImport,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AgentCenterAvatarPackageManifestFile {
-    path: String,
-    sha256: String,
-    bytes: u64,
-    mime: String,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AgentCenterAvatarPackageManifestLimits {
-    max_manifest_bytes: u64,
-    max_package_bytes: u64,
-    max_file_bytes: u64,
-    max_file_count: usize,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AgentCenterAvatarPackageManifestImport {
-    imported_at: String,
-    source_label: String,
-    source_fingerprint: String,
-}
 
 #[derive(Serialize)]
 struct NasHandlerManifest {
@@ -230,8 +170,9 @@ fn sync_avatar_instance_projection(registry: &AvatarInstanceRegistry) {
         .map(|entry| AvatarInstanceProjectionRecord {
             avatar_instance_id: entry.context.avatar_instance_id,
             agent_id: entry.context.agent_id,
-            conversation_anchor_id: entry.context.conversation_anchor_id,
-            anchor_mode: entry.context.anchor_mode,
+            conversation_anchor_id: Some(entry.context.conversation_anchor_id),
+            anchor_mode: AvatarAnchorMode::Existing,
+            scoped_binding: Some(entry.context.scoped_binding),
             launched_by: entry.context.launched_by,
             source_surface: entry.context.source_surface,
         })
@@ -479,9 +420,59 @@ fn resolve_runtime_dir(input: &Path) -> Result<PathBuf, String> {
     Err(format!("no runtime/ subdirectory at {}", input.display()))
 }
 
+fn path_is_within(path: &Path, root: &Path) -> bool {
+    path == root || path.starts_with(root)
+}
+
+fn is_agent_center_visual_package_file(path: &Path, home: &Path) -> bool {
+    let account_data_root = home.join(".nimi").join("data").join("accounts");
+    let Ok(relative) = path.strip_prefix(&account_data_root) else {
+        return false;
+    };
+    let segments = relative
+        .components()
+        .filter_map(|component| component.as_os_str().to_str())
+        .collect::<Vec<_>>();
+    if segments.len() < 11 {
+        return false;
+    }
+    if segments.get(1) != Some(&"agents") {
+        return false;
+    }
+    segments.windows(7).any(|window| {
+        window[0] == "agent-center"
+            && window[1] == "modules"
+            && window[2] == "avatar_package"
+            && window[3] == "packages"
+            && window[6] == "files"
+    })
+}
+
+fn validated_avatar_visual_path(path: &Path) -> Result<PathBuf, String> {
+    let canonical = path
+        .canonicalize()
+        .map_err(|e| format!("resolve {} failed: {}", path.display(), e))?;
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .ok_or_else(|| "HOME is required for avatar visual path validation".to_string())?;
+    let canonical_home = home
+        .canonicalize()
+        .map_err(|e| format!("resolve HOME {} failed: {}", home.display(), e))?;
+    let nimi_root = canonical_home.join(".nimi");
+    if path_is_within(&canonical, &nimi_root)
+        && !is_agent_center_visual_package_file(&canonical, &canonical_home)
+    {
+        return Err(format!(
+            "avatar file access is limited to launch-approved visual package files: {}",
+            path.display()
+        ));
+    }
+    Ok(canonical)
+}
+
 #[tauri::command]
 async fn nimi_avatar_resolve_model(path: String) -> Result<ModelManifest, String> {
-    let root = PathBuf::from(&path);
+    let root = validated_avatar_visual_path(&PathBuf::from(&path))?;
     if !root.exists() {
         return Err(format!("model path does not exist: {}", path));
     }
@@ -529,266 +520,6 @@ async fn nimi_avatar_resolve_model(path: String) -> Result<ModelManifest, String
     })
 }
 
-fn validate_agent_center_id(value: &str, field: &str) -> Result<String, String> {
-    let normalized = value.trim();
-    if normalized.is_empty() {
-        return Err(format!("{field} is required"));
-    }
-    if normalized.len() > 256 {
-        return Err(format!("{field} must use normalized local id characters"));
-    }
-    if normalized == "." || normalized == ".." || normalized.contains("://") {
-        return Err(format!("{field} must use normalized local id characters"));
-    }
-    if !normalized.chars().any(|ch| ch.is_ascii_alphanumeric()) {
-        return Err(format!("{field} must use normalized local id characters"));
-    }
-    for ch in normalized.chars() {
-        let allowed =
-            ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-' | '.' | '~' | ':' | '@' | '+');
-        if !allowed {
-            return Err(format!("{field} must use normalized local id characters"));
-        }
-    }
-    Ok(normalized.to_string())
-}
-
-fn can_use_raw_agent_center_path_segment(value: &str) -> bool {
-    let body = value.strip_prefix('~').unwrap_or(value);
-    if body.is_empty() || value.len() > 128 {
-        return false;
-    }
-    let mut chars = body.chars();
-    matches!(chars.next(), Some(first) if first.is_ascii_lowercase() || first.is_ascii_digit())
-        && body
-            .chars()
-            .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_' || ch == '-')
-}
-
-fn agent_center_path_segment(value: &str) -> String {
-    if can_use_raw_agent_center_path_segment(value) {
-        return value.to_string();
-    }
-    let mut hasher = Sha256::new();
-    hasher.update(value.as_bytes());
-    let digest = format!("{:x}", hasher.finalize());
-    format!("id_{}", &digest[..24])
-}
-
-fn validate_avatar_package_id(value: &str, kind: &str) -> Result<String, String> {
-    let normalized = value.trim();
-    let expected_prefix = format!("{kind}_");
-    if !normalized.starts_with(expected_prefix.as_str()) {
-        return Err("avatar_package_id must match avatar_package_kind".to_string());
-    }
-    let suffix = &normalized[expected_prefix.len()..];
-    if suffix.len() != 12
-        || !suffix
-            .chars()
-            .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
-    {
-        return Err(
-            "avatar_package_id must use a 12-character lowercase hex digest suffix".to_string(),
-        );
-    }
-    Ok(normalized.to_string())
-}
-
-fn is_safe_package_relative_path(value: &str) -> bool {
-    let path = Path::new(value);
-    !value.trim().is_empty()
-        && !value.contains('\\')
-        && !path.is_absolute()
-        && path
-            .components()
-            .all(|component| matches!(component, std::path::Component::Normal(_)))
-}
-
-fn sha256_file_hex(path: &Path) -> Result<(u64, String), String> {
-    let mut file = fs::File::open(path)
-        .map_err(|error| format!("failed to open package file {}: {error}", path.display()))?;
-    let mut hasher = Sha256::new();
-    let mut size = 0_u64;
-    let mut buffer = [0_u8; 64 * 1024];
-    loop {
-        let read = std::io::Read::read(&mut file, &mut buffer)
-            .map_err(|error| format!("failed to read package file {}: {error}", path.display()))?;
-        if read == 0 {
-            break;
-        }
-        size += read as u64;
-        hasher.update(&buffer[..read]);
-    }
-    Ok((size, format!("{:x}", hasher.finalize())))
-}
-
-fn resolve_home_data_root() -> Result<PathBuf, String> {
-    let home = std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .or_else(dirs::home_dir)
-        .ok_or_else(|| "home directory is unavailable".to_string())?;
-    Ok(home.join(".nimi").join("data"))
-}
-
-#[tauri::command]
-async fn nimi_avatar_resolve_agent_center_avatar_package(
-    payload: AgentCenterAvatarPackageResolvePayload,
-) -> Result<ModelManifest, String> {
-    let account_id =
-        validate_agent_center_id(&payload.agent_center_account_id, "agent_center_account_id")?;
-    let agent_id = validate_agent_center_id(&payload.agent_id, "agent_id")?;
-    let kind = payload.avatar_package_kind.trim();
-    if kind != "live2d" {
-        return Err("avatar package loader currently supports Live2D packages only".to_string());
-    }
-    if payload.avatar_package_schema_version != 1 {
-        return Err("avatar_package_schema_version must be 1".to_string());
-    }
-    let package_id = validate_avatar_package_id(&payload.avatar_package_id, kind)?;
-    let data_root = resolve_home_data_root()?;
-    let package_dir = data_root
-        .join("accounts")
-        .join(agent_center_path_segment(&account_id))
-        .join("agents")
-        .join(agent_center_path_segment(&agent_id))
-        .join("agent-center")
-        .join("modules")
-        .join("avatar_package")
-        .join("packages")
-        .join(kind)
-        .join(package_id.as_str());
-    let canonical_data_root = data_root
-        .canonicalize()
-        .map_err(|error| format!("agent center data root is unavailable: {error}"))?;
-    let canonical_package_dir = package_dir
-        .canonicalize()
-        .map_err(|error| format!("avatar package is unavailable: {error}"))?;
-    if !canonical_package_dir.starts_with(&canonical_data_root) {
-        return Err("avatar package path escaped the Agent Center data root".to_string());
-    }
-
-    let manifest_path = canonical_package_dir.join("manifest.json");
-    let manifest_meta = fs::symlink_metadata(&manifest_path)
-        .map_err(|error| format!("avatar package manifest is unavailable: {error}"))?;
-    if !manifest_meta.is_file() || manifest_meta.file_type().is_symlink() {
-        return Err("avatar package manifest must be a regular file".to_string());
-    }
-    if manifest_meta.len() > 262_144 {
-        return Err("avatar package manifest exceeds the admitted size cap".to_string());
-    }
-    let manifest_raw = fs::read_to_string(&manifest_path)
-        .map_err(|error| format!("failed to read avatar package manifest: {error}"))?;
-    let manifest: AgentCenterAvatarPackageManifest = serde_json::from_str(&manifest_raw)
-        .map_err(|error| format!("invalid avatar package manifest: {error}"))?;
-    if manifest.manifest_version != 1 {
-        return Err("avatar package manifest_version must be 1".to_string());
-    }
-    if manifest.package_id != package_id || manifest.kind != kind {
-        return Err("avatar package manifest identity does not match launch context".to_string());
-    }
-    if manifest.loader_min_version.trim() != "1.0.0" {
-        return Err("avatar package loader_min_version is not admitted".to_string());
-    }
-    if !is_safe_package_relative_path(&manifest.entry_file)
-        || !manifest.entry_file.starts_with("files/")
-        || !manifest.entry_file.ends_with(".model3.json")
-    {
-        return Err(
-            "avatar package entry_file must point at a Live2D model3 file under files/".to_string(),
-        );
-    }
-    if !manifest
-        .required_files
-        .iter()
-        .any(|path| path == &manifest.entry_file)
-    {
-        return Err("avatar package required_files must include entry_file".to_string());
-    }
-    if manifest.limits.max_manifest_bytes != 262_144
-        || manifest.limits.max_package_bytes != 524_288_000
-        || manifest.limits.max_file_bytes != 104_857_600
-        || manifest.limits.max_file_count != 2_048
-    {
-        return Err("avatar package limits do not match the admitted loader caps".to_string());
-    }
-
-    let entry_file_record = manifest
-        .files
-        .iter()
-        .find(|file| file.path == manifest.entry_file)
-        .ok_or_else(|| "avatar package files must describe entry_file".to_string())?;
-    if entry_file_record.mime != "application/json" {
-        return Err("avatar package entry_file must be application/json".to_string());
-    }
-    if !entry_file_record
-        .sha256
-        .chars()
-        .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
-        || entry_file_record.sha256.len() != 64
-    {
-        return Err("avatar package entry_file digest is invalid".to_string());
-    }
-    let entry_path = canonical_package_dir.join(&manifest.entry_file);
-    let entry_meta = fs::symlink_metadata(&entry_path)
-        .map_err(|error| format!("avatar package entry_file is unavailable: {error}"))?;
-    if !entry_meta.is_file() || entry_meta.file_type().is_symlink() {
-        return Err("avatar package entry_file must be a regular file".to_string());
-    }
-    let canonical_entry_path = entry_path
-        .canonicalize()
-        .map_err(|error| format!("avatar package entry_file cannot be resolved: {error}"))?;
-    if !canonical_entry_path.starts_with(&canonical_package_dir) {
-        return Err("avatar package entry_file escaped the package root".to_string());
-    }
-    let (entry_bytes, entry_sha256) = sha256_file_hex(&canonical_entry_path)?;
-    if entry_bytes != entry_file_record.bytes || entry_sha256 != entry_file_record.sha256 {
-        return Err("avatar package entry_file content differs from manifest".to_string());
-    }
-    let runtime_dir = canonical_entry_path
-        .parent()
-        .ok_or_else(|| "avatar package entry_file has no parent directory".to_string())?
-        .to_path_buf();
-    let model_id = canonical_entry_path
-        .file_name()
-        .and_then(|value| value.to_str())
-        .and_then(|value| value.strip_suffix(".model3.json"))
-        .ok_or_else(|| "failed to infer model_id from package entry_file".to_string())?
-        .to_string();
-    let nimi_dir = {
-        let candidate = runtime_dir.join("nimi");
-        if candidate.is_dir() {
-            Some(candidate.display().to_string())
-        } else {
-            None
-        }
-    };
-    let adapter_manifest_path = {
-        let candidate = runtime_dir.join("nimi").join("live2d-adapter.json");
-        if candidate.is_file() {
-            Some(candidate.display().to_string())
-        } else {
-            None
-        }
-    };
-    let _ = (
-        manifest.package_version,
-        manifest.display_name,
-        manifest.display_name_i18n,
-        manifest.content_digest,
-        manifest.capabilities,
-        manifest.import.imported_at,
-        manifest.import.source_label,
-        manifest.import.source_fingerprint,
-    );
-    Ok(ModelManifest {
-        runtime_dir: runtime_dir.display().to_string(),
-        model_id,
-        model3_json_path: canonical_entry_path.display().to_string(),
-        nimi_dir,
-        adapter_manifest_path,
-    })
-}
-
 fn scan_handler_dir(root: &Path) -> Vec<NasHandlerEntry> {
     let Ok(entries) = fs::read_dir(root) else {
         return Vec::new();
@@ -822,7 +553,7 @@ fn scan_handler_dir(root: &Path) -> Vec<NasHandlerEntry> {
 
 #[tauri::command]
 async fn nimi_avatar_scan_nas_handlers(nimi_dir: String) -> Result<NasHandlerManifest, String> {
-    let root = PathBuf::from(&nimi_dir);
+    let root = validated_avatar_visual_path(&PathBuf::from(&nimi_dir))?;
     if !root.is_dir() {
         return Err(format!("nimi directory does not exist: {}", nimi_dir));
     }
@@ -844,12 +575,14 @@ async fn nimi_avatar_scan_nas_handlers(nimi_dir: String) -> Result<NasHandlerMan
 
 #[tauri::command]
 async fn nimi_avatar_read_text_file(path: String) -> Result<String, String> {
-    fs::read_to_string(&path).map_err(|e| format!("read {} failed: {}", path, e))
+    let canonical = validated_avatar_visual_path(&PathBuf::from(&path))?;
+    fs::read_to_string(&canonical).map_err(|e| format!("read {} failed: {}", path, e))
 }
 
 #[tauri::command]
 async fn nimi_avatar_read_binary_file(path: String) -> Result<Vec<u8>, String> {
-    fs::read(&path).map_err(|e| format!("read {} failed: {}", path, e))
+    let canonical = validated_avatar_visual_path(&PathBuf::from(&path))?;
+    fs::read(&canonical).map_err(|e| format!("read {} failed: {}", path, e))
 }
 
 fn nas_reload_mode_for_event(kind: &EventKind) -> &'static str {
@@ -868,7 +601,7 @@ async fn nimi_avatar_watch_nas_handlers(
     nimi_dir: String,
     watcher_id: String,
 ) -> Result<(), String> {
-    let root = PathBuf::from(&nimi_dir);
+    let root = validated_avatar_visual_path(&PathBuf::from(&nimi_dir))?;
     if !root.is_dir() {
         return Err(format!("nimi directory does not exist: {}", nimi_dir));
     }
@@ -1051,340 +784,4 @@ fn main() {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn unique_temp_dir(name: &str) -> PathBuf {
-        let suffix = format!(
-            "{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        );
-        std::env::temp_dir().join(format!("nimi-avatar-{name}-{suffix}"))
-    }
-
-    #[test]
-    fn scan_handler_dir_returns_only_public_js_files_sorted() {
-        let root = unique_temp_dir("scan-handlers");
-        fs::create_dir_all(&root).unwrap();
-        fs::write(root.join("zeta.js"), "export default {}").unwrap();
-        fs::write(root.join("alpha.js"), "export default {}").unwrap();
-        fs::write(root.join("_private.js"), "export default {}").unwrap();
-        fs::write(root.join("notes.txt"), "ignore").unwrap();
-        fs::create_dir_all(root.join("nested.js")).unwrap();
-
-        let entries = scan_handler_dir(&root);
-
-        assert_eq!(
-            entries
-                .iter()
-                .map(|entry| entry.file_stem.as_str())
-                .collect::<Vec<_>>(),
-            vec!["alpha", "zeta"]
-        );
-        assert!(entries
-            .iter()
-            .all(|entry| entry.absolute_path.ends_with(".js")));
-
-        let _ = fs::remove_dir_all(&root);
-    }
-
-    #[test]
-    fn resolve_runtime_dir_accepts_package_root_or_runtime_dir_only() {
-        let root = unique_temp_dir("runtime-dir");
-        let runtime = root.join("runtime");
-        fs::create_dir_all(&runtime).unwrap();
-
-        assert_eq!(resolve_runtime_dir(&root).unwrap(), runtime);
-        assert_eq!(resolve_runtime_dir(&root.join("runtime")).unwrap(), runtime);
-        assert!(resolve_runtime_dir(&root.join("missing")).is_err());
-
-        let _ = fs::remove_dir_all(&root);
-    }
-
-    fn write_agent_center_live2d_package_for_agent(
-        home: &Path,
-        agent_id: &str,
-        entry_content: &str,
-    ) -> PathBuf {
-        write_agent_center_live2d_package_for_account_agent(
-            home,
-            "account_1",
-            agent_id,
-            entry_content,
-        )
-    }
-
-    fn write_agent_center_live2d_package_for_account_agent(
-        home: &Path,
-        account_id: &str,
-        agent_id: &str,
-        entry_content: &str,
-    ) -> PathBuf {
-        let package_dir = home
-            .join(".nimi/data/accounts")
-            .join(agent_center_path_segment(account_id))
-            .join("agents")
-            .join(agent_center_path_segment(agent_id))
-            .join("agent-center/modules/avatar_package/packages/live2d/live2d_ab12cd34ef56");
-        let files_dir = package_dir.join("files");
-        fs::create_dir_all(&files_dir).unwrap();
-        let entry_path = files_dir.join("ren.model3.json");
-        fs::write(&entry_path, entry_content).unwrap();
-        let digest = {
-            let mut hasher = Sha256::new();
-            hasher.update(entry_content.as_bytes());
-            format!("{:x}", hasher.finalize())
-        };
-        let manifest = json!({
-            "manifest_version": 1,
-            "package_version": "1.0.0",
-            "package_id": "live2d_ab12cd34ef56",
-            "kind": "live2d",
-            "loader_min_version": "1.0.0",
-            "display_name": "Ren",
-            "display_name_i18n": {},
-            "entry_file": "files/ren.model3.json",
-            "required_files": ["files/ren.model3.json"],
-            "content_digest": format!("sha256:{digest}"),
-            "files": [{
-                "path": "files/ren.model3.json",
-                "sha256": digest,
-                "bytes": entry_content.len(),
-                "mime": "application/json"
-            }],
-            "limits": {
-                "max_manifest_bytes": 262144,
-                "max_package_bytes": 524288000,
-                "max_file_bytes": 104857600,
-                "max_file_count": 2048
-            },
-            "capabilities": {},
-            "import": {
-                "imported_at": "2026-04-27T00:00:00Z",
-                "source_label": "ren",
-                "source_fingerprint": format!("sha256:{digest}")
-            }
-        });
-        fs::write(
-            package_dir.join("manifest.json"),
-            serde_json::to_string_pretty(&manifest).unwrap(),
-        )
-        .unwrap();
-        package_dir
-    }
-
-    fn write_agent_center_live2d_package(home: &Path, entry_content: &str) -> PathBuf {
-        write_agent_center_live2d_package_for_agent(home, "agent_1", entry_content)
-    }
-
-    #[tokio::test(flavor = "current_thread")]
-    async fn resolve_agent_center_avatar_package_returns_live2d_model_manifest() {
-        let _guard = test_env_guard();
-        let home = unique_temp_dir("agent-center-package");
-        fs::create_dir_all(&home).unwrap();
-        let previous_home = std::env::var("HOME").ok();
-        std::env::set_var("HOME", &home);
-        let package_dir = write_agent_center_live2d_package(&home, r#"{"Version":3}"#);
-
-        let manifest = nimi_avatar_resolve_agent_center_avatar_package(
-            AgentCenterAvatarPackageResolvePayload {
-                agent_center_account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-                avatar_package_kind: "live2d".to_string(),
-                avatar_package_id: "live2d_ab12cd34ef56".to_string(),
-                avatar_package_schema_version: 1,
-            },
-        )
-        .await
-        .expect("resolve package manifest");
-
-        assert_eq!(manifest.model_id, "ren");
-        assert!(manifest.model3_json_path.ends_with("files/ren.model3.json"));
-        assert_eq!(
-            manifest.runtime_dir,
-            package_dir
-                .join("files")
-                .canonicalize()
-                .unwrap()
-                .display()
-                .to_string()
-        );
-
-        match previous_home {
-            Some(value) => std::env::set_var("HOME", value),
-            None => std::env::remove_var("HOME"),
-        }
-        let _ = fs::remove_dir_all(&home);
-    }
-
-    #[tokio::test(flavor = "current_thread")]
-    async fn resolve_agent_center_avatar_package_accepts_runtime_scoped_agent_id() {
-        let _guard = test_env_guard();
-        let home = unique_temp_dir("agent-center-package-runtime-agent");
-        fs::create_dir_all(&home).unwrap();
-        let previous_home = std::env::var("HOME").ok();
-        std::env::set_var("HOME", &home);
-        let package_dir =
-            write_agent_center_live2d_package_for_agent(&home, "~agent_1_tffk", r#"{"Version":3}"#);
-
-        let manifest = nimi_avatar_resolve_agent_center_avatar_package(
-            AgentCenterAvatarPackageResolvePayload {
-                agent_center_account_id: "account_1".to_string(),
-                agent_id: "~agent_1_tffk".to_string(),
-                avatar_package_kind: "live2d".to_string(),
-                avatar_package_id: "live2d_ab12cd34ef56".to_string(),
-                avatar_package_schema_version: 1,
-            },
-        )
-        .await
-        .expect("resolve runtime scoped package manifest");
-
-        assert_eq!(
-            manifest.runtime_dir,
-            package_dir
-                .join("files")
-                .canonicalize()
-                .unwrap()
-                .display()
-                .to_string()
-        );
-
-        match previous_home {
-            Some(value) => std::env::set_var("HOME", value),
-            None => std::env::remove_var("HOME"),
-        }
-        let _ = fs::remove_dir_all(&home);
-    }
-
-    #[tokio::test(flavor = "current_thread")]
-    async fn resolve_agent_center_avatar_package_accepts_opaque_runtime_agent_id() {
-        let _guard = test_env_guard();
-        let home = unique_temp_dir("agent-center-package-opaque-agent");
-        fs::create_dir_all(&home).unwrap();
-        let previous_home = std::env::var("HOME").ok();
-        std::env::set_var("HOME", &home);
-        let agent_id = "agent:abc.def+1";
-        let package_dir =
-            write_agent_center_live2d_package_for_agent(&home, agent_id, r#"{"Version":3}"#);
-
-        let manifest = nimi_avatar_resolve_agent_center_avatar_package(
-            AgentCenterAvatarPackageResolvePayload {
-                agent_center_account_id: "account_1".to_string(),
-                agent_id: agent_id.to_string(),
-                avatar_package_kind: "live2d".to_string(),
-                avatar_package_id: "live2d_ab12cd34ef56".to_string(),
-                avatar_package_schema_version: 1,
-            },
-        )
-        .await
-        .expect("resolve opaque runtime scoped package manifest");
-
-        assert_eq!(
-            manifest.runtime_dir,
-            package_dir
-                .join("files")
-                .canonicalize()
-                .unwrap()
-                .display()
-                .to_string()
-        );
-
-        match previous_home {
-            Some(value) => std::env::set_var("HOME", value),
-            None => std::env::remove_var("HOME"),
-        }
-        let _ = fs::remove_dir_all(&home);
-    }
-
-    #[tokio::test(flavor = "current_thread")]
-    async fn resolve_agent_center_avatar_package_accepts_opaque_account_id() {
-        let _guard = test_env_guard();
-        let home = unique_temp_dir("agent-center-package-opaque-account");
-        fs::create_dir_all(&home).unwrap();
-        let previous_home = std::env::var("HOME").ok();
-        std::env::set_var("HOME", &home);
-        let account_id = "account:abc.def+1";
-        let package_dir = write_agent_center_live2d_package_for_account_agent(
-            &home,
-            account_id,
-            "agent_1",
-            r#"{"Version":3}"#,
-        );
-
-        let manifest = nimi_avatar_resolve_agent_center_avatar_package(
-            AgentCenterAvatarPackageResolvePayload {
-                agent_center_account_id: account_id.to_string(),
-                agent_id: "agent_1".to_string(),
-                avatar_package_kind: "live2d".to_string(),
-                avatar_package_id: "live2d_ab12cd34ef56".to_string(),
-                avatar_package_schema_version: 1,
-            },
-        )
-        .await
-        .expect("resolve opaque account package manifest");
-
-        assert_eq!(
-            manifest.runtime_dir,
-            package_dir
-                .join("files")
-                .canonicalize()
-                .unwrap()
-                .display()
-                .to_string()
-        );
-
-        match previous_home {
-            Some(value) => std::env::set_var("HOME", value),
-            None => std::env::remove_var("HOME"),
-        }
-        let _ = fs::remove_dir_all(&home);
-    }
-
-    #[tokio::test(flavor = "current_thread")]
-    async fn resolve_agent_center_avatar_package_rejects_vrm_and_digest_mismatch() {
-        let _guard = test_env_guard();
-        let home = unique_temp_dir("agent-center-package-invalid");
-        fs::create_dir_all(&home).unwrap();
-        let previous_home = std::env::var("HOME").ok();
-        std::env::set_var("HOME", &home);
-        write_agent_center_live2d_package(&home, r#"{"Version":3}"#);
-
-        let vrm_error = nimi_avatar_resolve_agent_center_avatar_package(
-            AgentCenterAvatarPackageResolvePayload {
-                agent_center_account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-                avatar_package_kind: "vrm".to_string(),
-                avatar_package_id: "vrm_ab12cd34ef56".to_string(),
-                avatar_package_schema_version: 1,
-            },
-        )
-        .await
-        .expect_err("vrm loader is unavailable");
-        assert!(vrm_error.contains("Live2D"));
-
-        let entry = home.join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/modules/avatar_package/packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json");
-        fs::write(entry, r#"{"Version":4}"#).unwrap();
-        let digest_error = nimi_avatar_resolve_agent_center_avatar_package(
-            AgentCenterAvatarPackageResolvePayload {
-                agent_center_account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-                avatar_package_kind: "live2d".to_string(),
-                avatar_package_id: "live2d_ab12cd34ef56".to_string(),
-                avatar_package_schema_version: 1,
-            },
-        )
-        .await
-        .expect_err("digest mismatch should fail closed");
-        assert!(digest_error.contains("differs from manifest"));
-
-        match previous_home {
-            Some(value) => std::env::set_var("HOME", value),
-            None => std::env::remove_var("HOME"),
-        }
-        let _ = fs::remove_dir_all(&home);
-    }
-}
+mod main_tests;

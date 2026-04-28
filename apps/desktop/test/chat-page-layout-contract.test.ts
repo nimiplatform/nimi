@@ -16,6 +16,7 @@ const chatNimiModeSource = readWorkspaceFile('src/shell/renderer/features/chat/c
 const chatAgentSceneBackgroundSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-scene-background.tsx');
 const chatAgentModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-mode-content.tsx');
 const chatAgentPresentationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx');
+const chatAgentPresentationSettingsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-presentation-settings.tsx');
 const chatAgentCanonicalComposerSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-canonical-composer.tsx');
 const chatGroupModeSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
 const chatSideSheetSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-shared-side-sheet.tsx');
@@ -71,7 +72,7 @@ test('chat page startup keeps agent mode lazy-loaded while removing the desktop-
 test('agent shell presentation disables stage panel props so desktop chat cannot present a co-equal local avatar carrier route', () => {
   assert.match(chatAgentPresentationSource, /stagePanelProps:\s*undefined/);
   assert.match(chatAgentPresentationSource, /topContent:\s*schedulingFeedbackNode/);
-  assert.match(chatAgentPresentationSource, /AgentCenterPanel/);
+  assert.match(chatAgentPresentationSettingsSource, /AgentCenterPanel/);
   assert.match(chatAgentPresentationSource, /importAgentCenterAvatarPackage/);
   assert.match(chatAgentPresentationSource, /getAgentCenterBackgroundAsset/);
   assert.doesNotMatch(chatAgentPresentationSource, /ChatAgentAvatarSettingsPanel/u);

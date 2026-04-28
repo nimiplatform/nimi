@@ -657,6 +657,7 @@ export function parseOauthListenForCodeResult(value: unknown): OauthListenForCod
   return {
     callbackUrl: parseRequiredString(record.callbackUrl, 'callbackUrl', 'oauth_listen_for_code'),
     code: parseOptionalString(record.code),
+    refreshToken: parseOptionalString(record.refreshToken),
     state: parseOptionalString(record.state),
     error: parseOptionalString(record.error),
   };

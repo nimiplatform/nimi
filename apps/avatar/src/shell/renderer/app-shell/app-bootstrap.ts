@@ -1,13 +1,5 @@
-import { Runtime } from '@nimiplatform/sdk/runtime/browser';
-import { invoke as tauriInvoke, type InvokeArgs } from '@tauri-apps/api/core';
-import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event';
-import {
-  getAvatarLaunchContext,
-  getRuntimeDefaults,
-  hasTauriInvoke,
-  startDaemon,
-  type AvatarLaunchContext,
-} from '@renderer/bridge';
+import { Runtime, type RuntimeScopedBindingAttachment } from '@nimiplatform/sdk/runtime/browser';
+import { getRuntimeDefaults, hasTauriInvoke, startDaemon, type AvatarLaunchContext } from '@renderer/bridge';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
 import { startAvatarVisualCarrier, type AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { resolveAgentCenterAvatarPackageManifest } from '../live2d/model-loader.js';
@@ -15,9 +7,25 @@ import { readAvatarShellSettings } from '../settings-state.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import { startAvatarVoiceCaptureSession, type AvatarVoiceCaptureSession } from '../voice-capture.js';
 import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
-import { useAvatarStore } from './app-store.js';
+import { type RuntimeBindingStatus, useAvatarStore } from './app-store.js';
 import { isTauriRuntime, onShellReady } from './tauri-lifecycle.js';
 import { setAlwaysOnTop } from './tauri-commands.js';
+import {
+  applyLaunchContextRuntimeDefaults,
+  bindingStatusFromProjection,
+  bindingUnavailableMessage,
+  createAbortError,
+  errorMessage,
+  installTauriRuntimeSdkHook,
+  loadDefaultMockScenarioJson,
+  readNormalizedString,
+  resolveCapabilityBinding,
+  resolveConversationAnchorId,
+  resolveExecutionBinding,
+  resolveRuntimeAppId,
+  waitForAvatarLaunchContext,
+  toRuntimeScopedBindingAttachment,
+} from './app-bootstrap-helpers.js';
 
 export type BootstrapHandle = {
   driver?: AgentDataDriver | null;
@@ -58,223 +66,6 @@ export type BootstrapHandle = {
   shutdown(): Promise<void>;
 };
 
-function readNormalizedString(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-type TauriRuntimeSdkHook = {
-  invoke: (command: string, payload?: unknown) => Promise<unknown>;
-  listen: (
-    eventName: string,
-    handler: (event: { event?: string; id?: number; payload: unknown }) => void,
-  ) => Promise<UnlistenFn>;
-};
-
-function installTauriRuntimeSdkHook(): void {
-  if (!hasTauriInvoke()) {
-    return;
-  }
-  const hook: TauriRuntimeSdkHook = {
-    invoke: (command, payload) => tauriInvoke(command, payload as InvokeArgs | undefined),
-    listen: (eventName, handler) => tauriListen(eventName, handler),
-  };
-  const target = globalThis as typeof globalThis & {
-    __NIMI_TAURI_RUNTIME__?: TauriRuntimeSdkHook;
-    window?: Window & { __NIMI_TAURI_RUNTIME__?: TauriRuntimeSdkHook };
-  };
-  target.__NIMI_TAURI_RUNTIME__ = hook;
-  if (target.window) {
-    target.window.__NIMI_TAURI_RUNTIME__ = hook;
-  }
-}
-
-function applyLaunchContextRuntimeDefaults(
-  runtimeDefaults: Awaited<ReturnType<typeof getRuntimeDefaults>>,
-  launchContext: AvatarLaunchContext,
-): Awaited<ReturnType<typeof getRuntimeDefaults>> {
-  const worldId = readNormalizedString(launchContext.worldId);
-  if (!worldId) {
-    return runtimeDefaults;
-  }
-  return {
-    ...runtimeDefaults,
-    runtime: {
-      ...runtimeDefaults.runtime,
-      ...(worldId ? { worldId } : {}),
-    },
-  };
-}
-
-function createAbortError(message: string): Error {
-  const error = new Error(message);
-  error.name = 'AbortError';
-  return error;
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-async function wait(ms: number): Promise<void> {
-  await new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
-}
-
-async function waitForAvatarLaunchContext(timeoutMs: number): Promise<AvatarLaunchContext> {
-  const startedAt = Date.now();
-  let lastError: unknown = null;
-  while (Date.now() - startedAt < timeoutMs) {
-    try {
-      return await getAvatarLaunchContext();
-    } catch (error) {
-      lastError = error;
-      await wait(100);
-    }
-  }
-  throw new Error(`avatar launch context was not bound within ${timeoutMs}ms: ${errorMessage(lastError)}`);
-}
-
-function resolveRuntimeAppId(launchContext: AvatarLaunchContext): string {
-  const explicitRuntimeAppId = readNormalizedString(launchContext.runtimeAppId);
-  if (explicitRuntimeAppId) {
-    return explicitRuntimeAppId;
-  }
-  const launchedBy = readNormalizedString(launchContext.launchedBy);
-  if (launchedBy === 'desktop') {
-    return 'nimi.desktop';
-  }
-  return launchedBy || 'nimi.avatar';
-}
-
-type RuntimeExecutionBinding = {
-  route: 'local' | 'cloud';
-  modelId: string;
-  connectorId?: string;
-};
-
-type RuntimeWithRoute = Runtime & {
-  route: {
-    listOptions: (input: { capability: 'audio.transcribe' }) => Promise<{
-      selected: {
-        source: 'local' | 'cloud';
-        connectorId?: string;
-        model?: string;
-        modelId?: string;
-        localModelId?: string;
-      } | null;
-      resolvedDefault?: {
-        source: 'local' | 'cloud';
-        connectorId?: string;
-        model?: string;
-        modelId?: string;
-        localModelId?: string;
-      } | null;
-    }>;
-    checkHealth: (input: {
-      capability: 'audio.transcribe';
-      binding: {
-        source: 'local' | 'cloud';
-        connectorId?: string;
-        model?: string;
-        modelId?: string;
-        localModelId?: string;
-      };
-    }) => Promise<{ healthy: boolean }>;
-  };
-};
-
-async function loadDefaultMockScenarioJson(): Promise<string> {
-  const module = await import('../mock/scenarios/default.mock.json?raw');
-  return module.default;
-}
-
-async function resolveConversationAnchorId(
-  runtime: Runtime,
-  launchContext: AvatarLaunchContext,
-): Promise<string> {
-  if (launchContext.anchorMode === 'existing') {
-    return launchContext.conversationAnchorId || '';
-  }
-  const opened = await runtime.agent.anchors.open({
-    agentId: launchContext.agentId,
-    metadata: {
-      surface: 'avatar-carrier',
-      launchedBy: launchContext.launchedBy,
-      avatarInstanceId: launchContext.avatarInstanceId,
-      sourceSurface: launchContext.sourceSurface || 'desktop-avatar-launcher',
-    },
-  });
-  const record = opened as unknown as Record<string, unknown>;
-  const conversationAnchorId = readNormalizedString(
-    record.conversationAnchorId ?? record.conversation_anchor_id,
-  );
-  if (!conversationAnchorId) {
-    throw new Error('runtime.agent anchor open did not return conversationAnchorId');
-  }
-  return conversationAnchorId;
-}
-
-function resolveExecutionBinding(input: {
-  runtimeDefaults: ReturnType<typeof useAvatarStore.getState>['runtime']['defaults'];
-  bundle: ReturnType<typeof useAvatarStore.getState>['bundle'];
-}): RuntimeExecutionBinding | null {
-  const executionBinding = input.bundle?.custom?.['execution_binding'];
-  if (executionBinding && typeof executionBinding === 'object') {
-    const record = executionBinding as Record<string, unknown>;
-    const route = readNormalizedString(record.route);
-    const modelId = readNormalizedString(record.modelId);
-    const connectorId = readNormalizedString(record.connectorId);
-    if ((route === 'local' || route === 'cloud') && modelId) {
-      return {
-        route,
-        modelId,
-        ...(connectorId ? { connectorId } : {}),
-      };
-    }
-  }
-
-  const runtimeFields = input.runtimeDefaults?.runtime;
-  const modelId = readNormalizedString(runtimeFields?.localProviderModel);
-  const connectorId = readNormalizedString(runtimeFields?.connectorId);
-  if (!modelId) {
-    return null;
-  }
-  return {
-    route: connectorId ? 'cloud' : 'local',
-    modelId,
-    ...(connectorId ? { connectorId } : {}),
-  };
-}
-
-async function resolveCapabilityBinding(
-  runtime: Runtime,
-  capability: 'audio.transcribe',
-): Promise<RuntimeExecutionBinding> {
-  const runtimeWithRoute = runtime as RuntimeWithRoute;
-  const options = await runtimeWithRoute.route.listOptions({ capability });
-  const selected = options.selected ?? options.resolvedDefault ?? null;
-  if (!selected) {
-    throw new Error('Foreground voice requires an admitted transcribe route.');
-  }
-  const modelId = readNormalizedString(selected.modelId || selected.model || selected.localModelId);
-  if (!modelId) {
-    throw new Error('Foreground voice requires a resolved transcribe model.');
-  }
-  const health = await runtimeWithRoute.route.checkHealth({
-    capability,
-    binding: selected,
-  });
-  if (!health.healthy) {
-    throw new Error('Foreground voice is unavailable because the transcribe route is not ready.');
-  }
-  return {
-    route: selected.source,
-    modelId,
-    ...(readNormalizedString(selected.connectorId) ? { connectorId: readNormalizedString(selected.connectorId) } : {}),
-  };
-}
-
 export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   const store = useAvatarStore.getState();
 
@@ -284,6 +75,8 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let runtimeClient: Runtime | null = null;
   let unsubscribeStatus = () => {};
   let unsubscribeBundle = () => {};
+  let invalidateRuntimeBindingFromDriver: ((status: RuntimeBindingStatus, reason: string) => Promise<void>) | null = null;
+  let activeVoiceCapture: AvatarVoiceCaptureSession | null = null;
   let cleanedUp = false;
   let getVoiceInputAvailability: BootstrapHandle['getVoiceInputAvailability'] = async () => ({
     available: false,
@@ -301,7 +94,11 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let requestTextTurn: BootstrapHandle['requestTextTurn'] = async () => {
     throw new Error('avatar companion input is unavailable outside runtime-bound mode');
   };
-  let finishRuntimeBindFailure: ((reason: string, error: unknown) => Promise<BootstrapHandle>) | null = null;
+  let finishRuntimeBindFailure: ((
+    reason: string,
+    error: unknown,
+    status?: RuntimeBindingStatus,
+  ) => Promise<BootstrapHandle>) | null = null;
 
   const cleanup = async () => {
     if (cleanedUp) {
@@ -310,6 +107,8 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     cleanedUp = true;
     unsubscribeStatus();
     unsubscribeBundle();
+    activeVoiceCapture?.cancel();
+    activeVoiceCapture = null;
     shellUnlisten?.();
     carrier?.shutdown();
     carrier = null;
@@ -391,7 +190,6 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         fixturePlaying: false,
       });
       const modelManifest = await resolveAgentCenterAvatarPackageManifest({
-        agentCenterAccountId: launchContext.agentCenterAccountId,
         agentId,
         avatarPackageKind: launchContext.avatarPackageKind,
         avatarPackageId: launchContext.avatarPackageId,
@@ -400,7 +198,6 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       recordAvatarEvidenceEventually({
         kind: 'avatar.visual.package-resolved',
         detail: {
-          agent_center_account_id: launchContext.agentCenterAccountId,
           agent_id: agentId,
           avatar_package_kind: launchContext.avatarPackageKind,
           avatar_package_id: launchContext.avatarPackageId,
@@ -416,13 +213,15 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         },
       });
       carrier = await startAvatarVisualCarrier({ modelManifest });
-      finishRuntimeBindFailure = async (
-        reason: string,
-        error: unknown,
-      ): Promise<BootstrapHandle> => {
-        useAvatarStore.getState().clearBundle();
-        useAvatarStore.getState().clearRuntimeBinding();
-        useAvatarStore.getState().setDriverStatus('stopped');
+	      finishRuntimeBindFailure = async (
+	        reason: string,
+	        error: unknown,
+	        status: RuntimeBindingStatus = 'unavailable',
+	      ): Promise<BootstrapHandle> => {
+	        useAvatarStore.getState().clearBundle();
+	        useAvatarStore.getState().clearRuntimeBinding();
+	        useAvatarStore.getState().setRuntimeBindingStatus({ status, reason });
+	        useAvatarStore.getState().setDriverStatus('stopped');
         carrier?.detachRuntimeDriver();
         if (driver) {
           await driver.stop().catch(() => {});
@@ -485,24 +284,78 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
 
       let conversationAnchorId: string;
       try {
-        conversationAnchorId = await resolveConversationAnchorId(runtime, launchContext);
+        conversationAnchorId = await resolveConversationAnchorId(launchContext);
       } catch (error) {
         return finishRuntimeBindFailure!('conversation_anchor_failed', error);
       }
-      if (!conversationAnchorId) {
-        return finishRuntimeBindFailure!(
-          'conversation_anchor_missing',
-          'avatar launch context did not resolve conversationAnchorId',
-        );
-      }
-      useAvatarStore.getState().setRuntimeBinding({
-        avatarInstanceId: launchContext.avatarInstanceId,
-        conversationAnchorId,
-        agentId,
-        worldId,
-      });
-      recordAvatarEvidenceEventually({
-        kind: 'avatar.startup.runtime-bound',
+	      if (!conversationAnchorId) {
+	        return finishRuntimeBindFailure!(
+	          'conversation_anchor_missing',
+	          'avatar launch context did not resolve conversationAnchorId',
+	        );
+	      }
+	      const launchBindingStatus = bindingStatusFromProjection(launchContext.scopedBinding);
+	      useAvatarStore.getState().setRuntimeBinding({
+	        avatarInstanceId: launchContext.avatarInstanceId,
+	        conversationAnchorId,
+	        agentId,
+	        worldId,
+	        scopedBinding: launchContext.scopedBinding,
+	      });
+	      if (launchBindingStatus !== 'active') {
+	        return finishRuntimeBindFailure!(
+	          'scoped_binding_unavailable',
+	          bindingUnavailableMessage(launchBindingStatus, launchContext.scopedBinding.reasonCode),
+	          launchBindingStatus,
+	        );
+	      }
+	      const scopedBinding = toRuntimeScopedBindingAttachment({
+	        binding: launchContext.scopedBinding,
+	        runtimeAppId,
+	        agentId,
+	        conversationAnchorId,
+	        worldId,
+	      });
+	      const invalidateRuntimeBinding = async (status: RuntimeBindingStatus, reason: string) => {
+	        useAvatarStore.getState().setRuntimeBindingStatus({ status, reason });
+	        useAvatarStore.getState().clearBundle();
+	        activeVoiceCapture?.cancel();
+	        activeVoiceCapture = null;
+	        if (driver) {
+	          await driver.stop().catch(() => {});
+	        }
+	        carrier?.detachRuntimeDriver();
+	      };
+	      invalidateRuntimeBindingFromDriver = invalidateRuntimeBinding;
+	      const requireActiveBinding = (input: {
+	        agentId: string;
+	        conversationAnchorId: string;
+	      }): RuntimeScopedBindingAttachment => {
+	        const current = useAvatarStore.getState();
+	        const currentStatus = bindingStatusFromProjection(current.runtime.binding.projection);
+	        if (currentStatus !== 'active') {
+	          useAvatarStore.getState().setRuntimeBindingStatus({
+	            status: currentStatus,
+	            reason: current.runtime.binding.reason,
+	          });
+	          throw new Error(bindingUnavailableMessage(currentStatus, current.runtime.binding.reason));
+	        }
+	        if (current.runtime.binding.status !== 'active') {
+	          throw new Error(bindingUnavailableMessage(current.runtime.binding.status, current.runtime.binding.reason));
+	        }
+	        if (
+	          current.consume.authority !== 'runtime'
+	          || current.consume.agentId !== input.agentId
+	          || current.consume.conversationAnchorId !== input.conversationAnchorId
+	          || current.consume.avatarInstanceId !== launchContext.avatarInstanceId
+	          || current.consume.worldId !== worldId
+	        ) {
+	          throw new Error('Runtime interaction requires the current scoped binding target.');
+	        }
+	        return scopedBinding;
+	      };
+	      recordAvatarEvidenceEventually({
+	        kind: 'avatar.startup.runtime-bound',
         detail: {
           driver_kind: 'sdk',
           authority: 'runtime',
@@ -513,17 +366,19 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           launched_by: launchContext.launchedBy,
           runtime_app_id: runtimeAppId,
           source_surface: launchContext.sourceSurface || null,
-        },
-      });
-      driver = createDriver({
-        kind: 'sdk',
-        sdk: {
-          runtime,
+	          binding_id: launchContext.scopedBinding.bindingId,
+	        },
+	      });
+	      driver = createDriver({
+	        kind: 'sdk',
+	        sdk: {
+	          runtime,
           agentId,
-          conversationAnchorId,
-          activeWorldId: worldId,
-          activeUserId: '',
-          locale: navigator.language || 'en-US',
+	          conversationAnchorId,
+	          activeWorldId: worldId,
+	          activeUserId: '',
+	          scopedBinding,
+	          locale: navigator.language || 'en-US',
           windowInfo: () => {
             const state = useAvatarStore.getState();
             return {
@@ -555,19 +410,14 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         if (!normalizedText) {
           throw new Error('avatar companion input requires non-empty text');
         }
-        if (cleanedUp) {
-          throw new Error('avatar companion input is unavailable after shutdown');
-        }
-        const state = useAvatarStore.getState();
-        if (state.consume.authority !== 'runtime' || !state.consume.conversationAnchorId) {
-          throw new Error('avatar companion input requires an active runtime binding');
-        }
-        if (input.agentId !== agentId || input.conversationAnchorId !== conversationAnchorId) {
-          throw new Error('avatar companion input requires the current explicit agent and anchor binding');
-        }
-        const executionBinding = resolveExecutionBinding({
-          runtimeDefaults,
-          bundle: state.bundle,
+	        if (cleanedUp) {
+	          throw new Error('avatar companion input is unavailable after shutdown');
+	        }
+	        const state = useAvatarStore.getState();
+	        const activeScopedBinding = requireActiveBinding(input);
+	        const executionBinding = resolveExecutionBinding({
+	          runtimeDefaults,
+	          bundle: state.bundle,
         });
         if (!executionBinding) {
           throw new Error('avatar companion input requires an explicit execution binding');
@@ -575,25 +425,21 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         await runtime.agent.turns.request({
           agentId: input.agentId,
           conversationAnchorId: input.conversationAnchorId,
-          worldId,
-          messages: [{ role: 'user', content: normalizedText }],
-          executionBinding,
-        });
-      };
+	          worldId,
+	          messages: [{ role: 'user', content: normalizedText }],
+	          executionBinding,
+	          scopedBinding: activeScopedBinding,
+	        });
+	      };
 
       getVoiceInputAvailability = async (input) => {
         try {
-          if (cleanedUp) {
-            throw new Error('Foreground voice is unavailable after shutdown.');
-          }
-          const state = useAvatarStore.getState();
-          if (state.consume.authority !== 'runtime' || !state.consume.conversationAnchorId) {
-            throw new Error('Foreground voice requires an active runtime binding.');
-          }
-          if (input.agentId !== agentId || input.conversationAnchorId !== conversationAnchorId) {
-            throw new Error('Foreground voice requires the current explicit agent and anchor binding.');
-          }
-          await resolveCapabilityBinding(runtime, 'audio.transcribe');
+	          if (cleanedUp) {
+	            throw new Error('Foreground voice is unavailable after shutdown.');
+	          }
+	          const state = useAvatarStore.getState();
+	          requireActiveBinding(input);
+	          await resolveCapabilityBinding(runtime, 'audio.transcribe');
           const executionBinding = resolveExecutionBinding({
             runtimeDefaults,
             bundle: state.bundle,
@@ -614,24 +460,19 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       };
 
       startVoiceCapture = async (input) => {
-        if (cleanedUp) {
-          throw new Error('Foreground voice is unavailable after shutdown');
-        }
-        const state = useAvatarStore.getState();
-        if (state.consume.authority !== 'runtime' || !state.consume.conversationAnchorId) {
-          throw new Error('Foreground voice requires an active runtime binding');
-        }
-        if (input.agentId !== agentId || input.conversationAnchorId !== conversationAnchorId) {
-          throw new Error('Foreground voice requires the current explicit agent and anchor binding');
-        }
-        const availability = await getVoiceInputAvailability(input);
+	        if (cleanedUp) {
+	          throw new Error('Foreground voice is unavailable after shutdown');
+	        }
+	        requireActiveBinding(input);
+	        const availability = await getVoiceInputAvailability(input);
         if (!availability.available) {
           throw new Error(availability.reason || 'Foreground voice is unavailable for the current anchor.');
         }
-        return startAvatarVoiceCaptureSession({
-          onLevelChange: input.onLevelChange,
-        });
-      };
+	        activeVoiceCapture = await startAvatarVoiceCaptureSession({
+	          onLevelChange: input.onLevelChange,
+	        });
+	        return activeVoiceCapture;
+	      };
 
       submitVoiceCaptureTurn = async (input) => {
         if (!(input.audioBytes instanceof Uint8Array) || input.audioBytes.length === 0) {
@@ -641,17 +482,11 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         if (!mimeType) {
           throw new Error('Foreground voice requires an audio mimeType.');
         }
-        if (cleanedUp) {
-          throw new Error('Foreground voice is unavailable after shutdown');
-        }
-        const state = useAvatarStore.getState();
-        if (state.consume.authority !== 'runtime' || !state.consume.conversationAnchorId) {
-          throw new Error('Foreground voice requires an active runtime binding');
-        }
-        if (input.agentId !== agentId || input.conversationAnchorId !== conversationAnchorId) {
-          throw new Error('Foreground voice requires the current explicit agent and anchor binding');
-        }
-        const transcribeBinding = await resolveCapabilityBinding(runtime, 'audio.transcribe');
+	        if (cleanedUp) {
+	          throw new Error('Foreground voice is unavailable after shutdown');
+	        }
+	        requireActiveBinding(input);
+	        const transcribeBinding = await resolveCapabilityBinding(runtime, 'audio.transcribe');
         const transcriptResult = await runtime.media.stt.transcribe({
           model: transcribeBinding.modelId,
           audio: {
@@ -671,18 +506,10 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         if (input.signal?.aborted) {
           throw createAbortError('Foreground voice request aborted before reply submission.');
         }
-        const currentState = useAvatarStore.getState();
-        if (currentState.consume.authority !== 'runtime' || !currentState.consume.conversationAnchorId) {
-          throw new Error('Foreground voice requires an active runtime binding');
-        }
-        if (
-          currentState.consume.agentId !== input.agentId
-          || currentState.consume.conversationAnchorId !== input.conversationAnchorId
-        ) {
-          throw new Error('Foreground voice requires the current explicit agent and anchor binding');
-        }
-        const executionBinding = resolveExecutionBinding({
-          runtimeDefaults,
+	        const activeScopedBinding = requireActiveBinding(input);
+	        const currentState = useAvatarStore.getState();
+	        const executionBinding = resolveExecutionBinding({
+	          runtimeDefaults,
           bundle: currentState.bundle,
         });
         if (!executionBinding) {
@@ -691,30 +518,27 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         await runtime.agent.turns.request({
           agentId: input.agentId,
           conversationAnchorId: input.conversationAnchorId,
-          worldId,
-          messages: [{ role: 'user', content: transcript }],
-          executionBinding,
-        });
-        return { transcript };
-      };
+	          worldId,
+	          messages: [{ role: 'user', content: transcript }],
+	          executionBinding,
+	          scopedBinding: activeScopedBinding,
+	        });
+	        return { transcript };
+	      };
 
       interruptTurn = async (input) => {
-        if (cleanedUp) {
-          throw new Error('Foreground voice is unavailable after shutdown');
-        }
-        const state = useAvatarStore.getState();
-        if (state.consume.authority !== 'runtime' || !state.consume.conversationAnchorId) {
-          throw new Error('Foreground voice requires an active runtime binding');
-        }
-        if (input.agentId !== agentId || input.conversationAnchorId !== conversationAnchorId) {
-          throw new Error('Foreground voice requires the current explicit agent and anchor binding');
-        }
-        await runtime.agent.turns.interrupt({
-          agentId: input.agentId,
-          conversationAnchorId: input.conversationAnchorId,
-          ...(readNormalizedString(input.turnId) ? { turnId: readNormalizedString(input.turnId) } : {}),
-          ...(readNormalizedString(input.reason) ? { reason: readNormalizedString(input.reason) } : {}),
-        });
+	        if (cleanedUp) {
+	          throw new Error('Foreground voice is unavailable after shutdown');
+	        }
+	        const activeScopedBinding = requireActiveBinding(input);
+	        await runtime.agent.turns.interrupt({
+	          agentId: input.agentId,
+	          conversationAnchorId: input.conversationAnchorId,
+	          worldId,
+	          scopedBinding: activeScopedBinding,
+	          ...(readNormalizedString(input.turnId) ? { turnId: readNormalizedString(input.turnId) } : {}),
+	          ...(readNormalizedString(input.reason) ? { reason: readNormalizedString(input.reason) } : {}),
+	        });
       };
     }
 
@@ -724,6 +548,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
 
     unsubscribeStatus = driver.onStatusChange((status) => {
       useAvatarStore.getState().setDriverStatus(status);
+      if (status === 'error' && invalidateRuntimeBindingFromDriver) {
+        void invalidateRuntimeBindingFromDriver('unavailable', 'runtime_agent_binding_stream_unavailable');
+      }
     });
 
     unsubscribeBundle = driver.onBundleChange((bundle) => {

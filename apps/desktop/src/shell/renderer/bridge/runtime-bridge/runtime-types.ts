@@ -343,6 +343,7 @@ export type OauthListenForCodePayload = {
 export type OauthListenForCodeResult = {
   callbackUrl: string;
   code?: string;
+  refreshToken?: string;
   state?: string;
   error?: string;
 };

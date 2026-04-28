@@ -16,7 +16,7 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
-          "$HOME/.nimi/**",
+          "$HOME/.nimi/data/accounts/*/agents/*/agent-center/modules/avatar_package/packages/*/*/files/**",
           "$HOME/ai/**"
         ]
       },

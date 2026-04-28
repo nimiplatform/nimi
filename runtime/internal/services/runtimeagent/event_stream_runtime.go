@@ -24,6 +24,16 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 	if agentID == "" {
 		return status.Error(codes.InvalidArgument, "agent_id is required")
 	}
+	requestContext := req.GetContext()
+	scopedBinding := requestContext.GetScopedBinding()
+	if scopedBinding == nil && strings.TrimSpace(requestContext.GetAppId()) != "" && strings.TrimSpace(requestContext.GetSubjectUserId()) == "" {
+		return runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
+	}
+	if scopedBinding != nil {
+		if err := r.svc.validateScopedBindingAttachment(scopedBinding, requestContext.GetAppId(), agentID, runtimeAgentEventReadScope); err != nil {
+			return err
+		}
+	}
 	filterMap := make(map[runtimev1.AgentEventType]struct{}, len(req.GetEventFilters()))
 	for _, filter := range req.GetEventFilters() {
 		if filter != runtimev1.AgentEventType_AGENT_EVENT_TYPE_UNSPECIFIED {
@@ -35,9 +45,10 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 		return err
 	}
 	sub := &subscriber{
-		agentID:      agentID,
-		eventFilters: filterMap,
-		ch:           make(chan *runtimev1.AgentEvent, subscriberBuffer),
+		agentID:       agentID,
+		eventFilters:  filterMap,
+		scopedBinding: cloneScopedBindingAttachment(scopedBinding),
+		ch:            make(chan *runtimev1.AgentEvent, subscriberBuffer),
 	}
 	r.svc.mu.Lock()
 	r.svc.nextSubscriberID++
@@ -56,6 +67,9 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 	defer r.removeSubscriber(sub.id)
 
 	for _, event := range backlog {
+		if err := r.validateSubscriberBinding(sub, requestContext.GetAppId()); err != nil {
+			return err
+		}
 		if err := stream.Send(event); err != nil {
 			return err
 		}
@@ -68,11 +82,21 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 			if !ok {
 				return nil
 			}
+			if err := r.validateSubscriberBinding(sub, requestContext.GetAppId()); err != nil {
+				return err
+			}
 			if err := stream.Send(cloneAgentEvent(event)); err != nil {
 				return err
 			}
 		}
 	}
+}
+
+func (r eventStreamRuntime) validateSubscriberBinding(sub *subscriber, fallbackRuntimeAppID string) error {
+	if sub == nil || sub.scopedBinding == nil {
+		return nil
+	}
+	return r.svc.validateScopedBindingAttachment(sub.scopedBinding, fallbackRuntimeAppID, sub.agentID, runtimeAgentEventReadScope)
 }
 
 func (r eventStreamRuntime) appendEventsLocked(events ...*runtimev1.AgentEvent) []*runtimev1.AgentEvent {

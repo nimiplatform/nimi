@@ -11,6 +11,9 @@ export type DesktopAvatarLiveInstanceRecord = {
   agentId: string;
   conversationAnchorId: string | null;
   anchorMode: 'existing' | 'open_new';
+  scopedBinding: {
+    bindingId: string;
+  } | null;
   launchedBy: string;
   sourceSurface: string | null;
 };
@@ -35,11 +38,18 @@ function parseAnchorMode(value: unknown): DesktopAvatarLiveInstanceRecord['ancho
 
 export function parseDesktopAvatarLiveInstanceRecord(value: unknown): DesktopAvatarLiveInstanceRecord {
   const record = assertRecord(value, 'desktop avatar instance registry is invalid');
+  const scopedBindingRecord = record.scopedBinding && typeof record.scopedBinding === 'object'
+    ? record.scopedBinding as Record<string, unknown>
+    : null;
+  const bindingId = scopedBindingRecord
+    ? parseOptionalString(scopedBindingRecord.bindingId)
+    : null;
   return {
     avatarInstanceId: parseRequiredString(record.avatarInstanceId, 'avatarInstanceId', 'desktop avatar instance registry'),
     agentId: parseRequiredString(record.agentId, 'agentId', 'desktop avatar instance registry'),
     conversationAnchorId: parseOptionalString(record.conversationAnchorId) || null,
     anchorMode: parseAnchorMode(record.anchorMode),
+    scopedBinding: bindingId ? { bindingId } : null,
     launchedBy: parseRequiredString(record.launchedBy, 'launchedBy', 'desktop avatar instance registry'),
     sourceSurface: parseOptionalString(record.sourceSurface) || null,
   };

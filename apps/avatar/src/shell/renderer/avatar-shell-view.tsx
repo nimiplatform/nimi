@@ -22,27 +22,9 @@ import {
 import { Live2DCarrierVisualSurface } from './live2d/Live2DCarrierVisualSurface.js';
 import { createAvatarHitRegionSnapshot, rectFromElement } from './interaction/avatar-hit-region.js';
 import { AvatarInteractionController } from './interaction/avatar-interaction-controller.js';
+import { createAbortError, isInteractiveTarget, normalizeText, shortenId, toErrorMessage } from './avatar-shell-utils.js';
 
 type AvatarShellViewProps = Record<string, any>;
-function normalizeText(value: string | null | undefined): string {
-  return String(value || '').trim();
-}
-function shortenId(value: string | null | undefined): string {
-  const normalized = normalizeText(value);
-  if (!normalized) return 'Unavailable';
-  return normalized.length > 16 ? `${normalized.slice(0, 8)}…${normalized.slice(-4)}` : normalized;
-}
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-function createAbortError(): Error {
-  const error = new Error('Foreground voice request aborted.');
-  error.name = 'AbortError';
-  return error;
-}
-function isInteractiveTarget(target: EventTarget | null): boolean {
-  return target instanceof Element && Boolean(target.closest('button, input, textarea, select, a, form'));
-}
 export function AvatarShellView(props: AvatarShellViewProps) {
   const {
     activeTurnCue,

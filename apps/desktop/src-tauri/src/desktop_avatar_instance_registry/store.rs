@@ -202,6 +202,7 @@ mod tests {
             agent_id: "agent-1".to_string(),
             conversation_anchor_id: Some("anchor-1".to_string()),
             anchor_mode: "existing".to_string(),
+            scoped_binding: None,
             launched_by: "desktop".to_string(),
             source_surface: Some("desktop-agent-chat".to_string()),
         }

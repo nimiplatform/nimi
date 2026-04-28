@@ -178,11 +178,7 @@ test('agent submit session keeps assistant invisible until first-beat and then g
   });
   session = firstBeatStep.state;
   assert.equal(firstBeatStep.visibleBundle?.messages.at(-1)?.contentText, 'sealed first beat');
-  assert.deepEqual(firstBeatStep.streamEvent, {
-    type: 'done',
-    finalText: 'sealed first beat',
-    finalReasoningText: '',
-  });
+  assert.equal(firstBeatStep.streamEvent, undefined);
   assert.equal(session.assistantVisible, true);
 
   const postFirstBeatText = reduceAgentSubmitSessionEvent(session, {
@@ -256,7 +252,7 @@ test('agent submit session keeps the sealed message visible', () => {
   assert.equal(session.assistantVisible, true);
 });
 
-test('agent submit session treats message sealed as visible done without terminal lifecycle completion', () => {
+test('agent submit session treats message sealed as visible without terminal lifecycle completion', () => {
   const session = createSession();
 
   const sealedStep = reduceAgentSubmitSessionEvent(session, {
@@ -270,11 +266,7 @@ test('agent submit session treats message sealed as visible done without termina
     updatedAtMs: 130,
   });
 
-  assert.deepEqual(sealedStep.streamEvent, {
-    type: 'done',
-    finalText: 'visible answer',
-    finalReasoningText: '',
-  });
+  assert.equal(sealedStep.streamEvent, undefined);
   assert.equal(sealedStep.state.lifecycle.terminal, 'running');
 
   const completedStep = reduceAgentSubmitSessionEvent(sealedStep.state, {

@@ -38,34 +38,10 @@ import {
   setVoiceReplyingTurn,
   setVoiceTranscriptSubmitted,
 } from './voice-companion-state.js';
-import {
-  defaultAvatarShellSettings,
-  readAvatarShellSettings,
-  writeAvatarShellSettings,
-  type AvatarShellSettings,
-} from './settings-state.js';
+import { defaultAvatarShellSettings, readAvatarShellSettings, writeAvatarShellSettings, type AvatarShellSettings } from './settings-state.js';
 import { reloadAvatarShell } from './shell-reload.js';
 import { AvatarShellView } from './avatar-shell-view.js';
-function normalizeText(value: string | null | undefined): string {
-  return String(value || '').trim();
-}
-function shortenId(value: string | null | undefined): string {
-  const normalized = normalizeText(value);
-  if (!normalized) {
-    return 'Unavailable';
-  }
-  return normalized.length > 16
-    ? `${normalized.slice(0, 8)}…${normalized.slice(-4)}`
-    : normalized;
-}
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-function createAbortError(): Error {
-  const error = new Error('Foreground voice request aborted.');
-  error.name = 'AbortError';
-  return error;
-}
+import { createAbortError, normalizeText, shortenId, toErrorMessage } from './avatar-shell-utils.js';
 export function App() {
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [bootstrapComplete, setBootstrapComplete] = useState(false);
@@ -96,6 +72,7 @@ export function App() {
   const model = useAvatarStore((s) => s.model);
   const driver = useAvatarStore((s) => s.driver);
   const consume = useAvatarStore((s) => s.consume);
+  const runtimeBinding = useAvatarStore((s) => s.runtime.binding);
   const launchContext = useAvatarStore((s) => s.launch.context);
   const persistShellSettings = (next: AvatarShellSettings): void => {
     setShellSettings(next);
@@ -236,14 +213,15 @@ export function App() {
   }, []);
   const presentation = deriveSurfacePresentation({
     bootstrapError,
-    bootstrapComplete,
-    shell,
-    model,
-    driver,
-    consume,
-    launchContext,
-    bundle,
-  });
+	    bootstrapComplete,
+	    shell,
+	    model,
+	    driver,
+	    consume,
+	    runtimeBinding,
+	    launchContext,
+	    bundle,
+	  });
   const companionBinding = useMemo<CompanionAnchorBinding | null>(() => {
     const agentId = normalizeText(consume.agentId);
     const conversationAnchorId = normalizeText(consume.conversationAnchorId);
@@ -269,12 +247,13 @@ export function App() {
     [bundle, companionBinding],
   );
   const companionAvailable = Boolean(
-    bootstrapHandle
-    && companionBinding
-    && consume.authority === 'runtime'
-    && presentation.tone === 'ready'
-    && !relaunchNotice,
-  );
+	    bootstrapHandle
+	    && companionBinding
+	    && consume.authority === 'runtime'
+	    && runtimeBinding.status === 'active'
+	    && presentation.tone === 'ready'
+	    && !relaunchNotice,
+	  );
   const companionBusy = companion.sendState === 'sending' || bundle?.execution_state === 'CHAT_ACTIVE';
   const companionVisible = companion.bubbleVisible || companion.inputVisible || voice.panelVisible;
   const visualEmbodimentReady = model.loadState === 'loaded' && Boolean(bootstrapHandle?.carrier?.backendSession);
@@ -330,8 +309,8 @@ export function App() {
       voiceOperationRef.current = null;
     }
   };
-  useEffect(() => {
-    currentAnchorKeyRef.current = companionAnchorKey;
+	  useEffect(() => {
+	    currentAnchorKeyRef.current = companionAnchorKey;
     voiceOperationRef.current = null;
     voiceCaptureSessionRef.current?.cancel();
     voiceCaptureSessionRef.current = null;
@@ -339,7 +318,13 @@ export function App() {
     voiceSubmitAbortRef.current = null;
     setCompanion((current) => bindCompanionState(current, companionBinding));
     setVoice((current) => bindVoiceCompanionState(current, companionBinding));
-  }, [companionAnchorKey, companionBinding]);
+	  }, [companionAnchorKey, companionBinding]);
+	  useEffect(() => {
+	    if (runtimeBinding.status === 'active') {
+	      return;
+	    }
+	    resetTransientSurfaceState();
+	  }, [runtimeBinding.status]);
   useEffect(() => {
     if (!companionAvailable || !bootstrapHandle || !companionBinding) {
       return;
@@ -514,11 +499,12 @@ export function App() {
     || (presentation.tone !== 'ready' && !visualEmbodimentReady),
   );
   const showShellControlsPanel = Boolean(settingsOpen || !visualEmbodimentReady);
-  const showSurfaceStatusCopy = Boolean(
-    showRecoveryPanel
-    || companionAvailable
-    || consume.authority === 'fixture',
-  );
+	  const showSurfaceStatusCopy = Boolean(
+	    showRecoveryPanel
+	    || companionAvailable
+	    || consume.authority === 'fixture'
+	    || runtimeBinding.status !== 'active',
+	  );
   const displayPresentation = relaunchNotice
     ? {
       tone: 'degraded' as const,

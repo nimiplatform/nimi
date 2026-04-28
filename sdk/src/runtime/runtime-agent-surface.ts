@@ -19,6 +19,7 @@ import {
   type AgentPostureProjection,
   type HookTriggerDetail,
 } from './generated/runtime/v1/agent_service.js';
+import type { ScopedRuntimeBindingAttachment } from './generated/runtime/v1/common.js';
 import type {
   RuntimeCallOptions,
   RuntimeStreamCallOptions,
@@ -30,6 +31,7 @@ import type {
   RuntimeAgentMessage,
   RuntimeAgentModule,
   RuntimeAgentSessionSnapshotRequest,
+  RuntimeScopedBindingAttachment,
   RuntimeAgentTurnInterruptRequest,
   RuntimeAgentTurnRequest,
   RuntimeAgentTurnsModule,
@@ -79,7 +81,8 @@ type RuntimeAgentAppClient = {
   sendMessage(request: {
     fromAppId: string;
     toAppId: string;
-    subjectUserId: string;
+    subjectUserId?: string;
+    scopedBinding?: ScopedRuntimeBindingAttachment;
     messageType: string;
     payload?: Struct;
     requireAck?: boolean;
@@ -87,6 +90,7 @@ type RuntimeAgentAppClient = {
   subscribeMessages(request: {
     appId: string;
     subjectUserId?: string;
+    scopedBinding?: ScopedRuntimeBindingAttachment;
     cursor?: string;
     fromAppIds?: string[];
   }, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<{
@@ -109,6 +113,31 @@ function optionalString(value: unknown): string | undefined {
 }
 function optionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+function toScopedBindingAttachment(
+  input: RuntimeScopedBindingAttachment | undefined,
+  defaults: {
+    runtimeAppId: string;
+    agentId?: string;
+    conversationAnchorId?: string;
+    worldId?: string;
+  },
+): ScopedRuntimeBindingAttachment | undefined {
+  const bindingId = optionalString(input?.bindingId);
+  if (!bindingId) {
+    return undefined;
+  }
+  return {
+    bindingId,
+    bindingHandle: optionalString(input?.bindingHandle) || '',
+    runtimeAppId: optionalString(input?.runtimeAppId) || defaults.runtimeAppId,
+    appInstanceId: optionalString(input?.appInstanceId) || '',
+    windowId: optionalString(input?.windowId) || '',
+    avatarInstanceId: optionalString(input?.avatarInstanceId) || '',
+    agentId: optionalString(input?.agentId) || optionalString(defaults.agentId) || '',
+    conversationAnchorId: optionalString(input?.conversationAnchorId) || optionalString(defaults.conversationAnchorId) || '',
+    worldId: optionalString(input?.worldId) || optionalString(defaults.worldId) || '',
+  };
 }
 function toTurnPayload(request: RuntimeAgentTurnRequest): Record<string, unknown> {
   return {
@@ -144,6 +173,9 @@ function toTurnPayload(request: RuntimeAgentTurnRequest): Record<string, unknown
 }
 function makeStreamOptions(base: RuntimeCallOptions, signal?: AbortSignal): RuntimeStreamCallOptions {
   return signal ? { ...base, signal } : base;
+}
+function baseCallOptions(options?: RuntimeCallOptions): RuntimeCallOptions {
+  return options ? { ...options } : {};
 }
 function assertAccepted(response: SendAppMessageResponse, messageType: string): SendAppMessageResponse {
   if (response.accepted) {
@@ -214,27 +246,36 @@ export function createRuntimeAgentTurnsModule(input: {
 }): RuntimeAgentTurnsModule {
   return {
     async subscribe(request, options) {
-      const subjectUserId = await input.resolveSubjectUserId(request.subjectUserId);
-      const subscribeBaseOptions = await input.protectedAccess.getCallOptions([TURN_READ_SCOPE], options);
+      const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
+        runtimeAppId: input.appId,
+        agentId: request.agentId,
+        conversationAnchorId: request.conversationAnchorId,
+      });
+      const subjectUserId = scopedBinding ? undefined : await input.resolveSubjectUserId(request.subjectUserId);
+      const subscribeBaseOptions = scopedBinding
+        ? baseCallOptions(options)
+        : await input.protectedAccess.getCallOptions([TURN_READ_SCOPE], options);
       const appStreamHandle = await input.app.subscribeMessages({
         appId: input.appId,
-        subjectUserId,
+        ...(subjectUserId ? { subjectUserId } : {}),
+        ...(scopedBinding ? { scopedBinding } : {}),
         cursor: optionalString(request.cursor) || '',
         fromAppIds: [RUNTIME_AGENT_APP_ID],
       }, makeStreamOptions(subscribeBaseOptions, options?.signal));
       const includeAgentEvents = request.includeAgentEvents !== false;
       const agentSubscribeOptions = includeAgentEvents
-        ? await input.protectedAccess.getCallOptions([AGENT_READ_SCOPE], options)
+        ? scopedBinding
+          ? baseCallOptions(options)
+          : await input.protectedAccess.getCallOptions([AGENT_READ_SCOPE], options)
         : null;
       const agentStreamHandle = includeAgentEvents
         ? await input.agent.subscribeEvents({
           agentId: request.agentId,
           cursor: optionalString(request.cursor) || '',
           eventFilters: [AgentEventType.HOOK, AgentEventType.STATE],
-          context: {
-            appId: input.appId,
-            subjectUserId,
-          },
+          context: scopedBinding
+            ? { appId: input.appId, subjectUserId: '', scopedBinding }
+            : { appId: input.appId, subjectUserId: subjectUserId || '' },
         }, makeStreamOptions(agentSubscribeOptions || {}, options?.signal))
         : null;
       return {
@@ -270,54 +311,114 @@ export function createRuntimeAgentTurnsModule(input: {
       };
     },
     async request(request, options) {
-      const subjectUserId = await input.resolveSubjectUserId(undefined);
-      const response = await input.protectedAccess.withScopes([TURN_WRITE_SCOPE], (writeOptions) => input.app.sendMessage({
-        fromAppId: input.appId,
-        toAppId: RUNTIME_AGENT_APP_ID,
-        subjectUserId,
-        messageType: TURN_REQUEST_TYPE,
-        payload: toProtoStruct(toTurnPayload(request)),
-        requireAck: false,
-      }, writeOptions), options);
+      const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
+        runtimeAppId: input.appId,
+        agentId: request.agentId,
+        conversationAnchorId: request.conversationAnchorId,
+        worldId: request.worldId,
+      });
+      const response = scopedBinding
+        ? await input.app.sendMessage({
+          fromAppId: input.appId,
+          toAppId: RUNTIME_AGENT_APP_ID,
+          scopedBinding,
+          messageType: TURN_REQUEST_TYPE,
+          payload: toProtoStruct(toTurnPayload(request)),
+          requireAck: false,
+        }, options)
+        : await input.protectedAccess.withScopes([TURN_WRITE_SCOPE], async (writeOptions) => {
+          const subjectUserId = await input.resolveSubjectUserId(undefined);
+          return input.app.sendMessage({
+            fromAppId: input.appId,
+            toAppId: RUNTIME_AGENT_APP_ID,
+            subjectUserId,
+            messageType: TURN_REQUEST_TYPE,
+            payload: toProtoStruct(toTurnPayload(request)),
+            requireAck: false,
+          }, writeOptions);
+        }, options);
       return assertAccepted(response, TURN_REQUEST_TYPE);
     },
     async interrupt(request, options) {
-      const subjectUserId = await input.resolveSubjectUserId(undefined);
-      const response = await input.protectedAccess.withScopes([TURN_WRITE_SCOPE], (writeOptions) => input.app.sendMessage({
-        fromAppId: input.appId,
-        toAppId: RUNTIME_AGENT_APP_ID,
-        subjectUserId,
-        messageType: TURN_INTERRUPT_TYPE,
-        payload: toProtoStruct({
-          conversation_anchor_id: request.conversationAnchorId,
-          ...(optionalString(request.turnId) ? { turn_id: optionalString(request.turnId) } : {}),
-          ...(optionalString(request.reason) ? { reason: optionalString(request.reason) } : {}),
-        }),
-        requireAck: false,
-      }, writeOptions), options);
+      const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
+        runtimeAppId: input.appId,
+        agentId: request.agentId,
+        conversationAnchorId: request.conversationAnchorId,
+        worldId: request.worldId,
+      });
+      const payload = toProtoStruct({
+        agent_id: request.agentId,
+        conversation_anchor_id: request.conversationAnchorId,
+        ...(optionalString(request.worldId) ? { world_id: optionalString(request.worldId) } : {}),
+        ...(optionalString(request.turnId) ? { turn_id: optionalString(request.turnId) } : {}),
+        ...(optionalString(request.reason) ? { reason: optionalString(request.reason) } : {}),
+      });
+      const response = scopedBinding
+        ? await input.app.sendMessage({
+          fromAppId: input.appId,
+          toAppId: RUNTIME_AGENT_APP_ID,
+          scopedBinding,
+          messageType: TURN_INTERRUPT_TYPE,
+          payload,
+          requireAck: false,
+        }, options)
+        : await input.protectedAccess.withScopes([TURN_WRITE_SCOPE], async (writeOptions) => {
+          const subjectUserId = await input.resolveSubjectUserId(undefined);
+          return input.app.sendMessage({
+            fromAppId: input.appId,
+            toAppId: RUNTIME_AGENT_APP_ID,
+            subjectUserId,
+            messageType: TURN_INTERRUPT_TYPE,
+            payload,
+            requireAck: false,
+          }, writeOptions);
+        }, options);
       return assertAccepted(response, TURN_INTERRUPT_TYPE);
     },
     async getSessionSnapshot(request, options) {
-      const subjectUserId = await input.resolveSubjectUserId(undefined);
       const requestId = optionalString(request.requestId);
-      const subscribeBaseOptions = await input.protectedAccess.getCallOptions([TURN_READ_SCOPE], options);
+      const scopedBinding = toScopedBindingAttachment(request.scopedBinding, {
+        runtimeAppId: input.appId,
+        agentId: request.agentId,
+        conversationAnchorId: request.conversationAnchorId,
+        worldId: request.worldId,
+      });
+      const subjectUserId = scopedBinding ? undefined : await input.resolveSubjectUserId(undefined);
+      const subscribeBaseOptions = scopedBinding
+        ? baseCallOptions(options)
+        : await input.protectedAccess.getCallOptions([TURN_READ_SCOPE], options);
       const streamHandle = await input.app.subscribeMessages({
         appId: input.appId,
-        subjectUserId,
+        ...(subjectUserId ? { subjectUserId } : {}),
+        ...(scopedBinding ? { scopedBinding } : {}),
         cursor: '',
         fromAppIds: [RUNTIME_AGENT_APP_ID],
       }, makeStreamOptions(subscribeBaseOptions, options?.signal));
-      await input.protectedAccess.withScopes([TURN_WRITE_SCOPE], (writeOptions) => input.app.sendMessage({
-        fromAppId: input.appId,
-        toAppId: RUNTIME_AGENT_APP_ID,
-        subjectUserId,
-        messageType: SESSION_SNAPSHOT_REQUEST_TYPE,
-        payload: toProtoStruct({
-          conversation_anchor_id: request.conversationAnchorId,
-          ...(requestId ? { request_id: requestId } : {}),
-        }),
-        requireAck: false,
-      }, writeOptions), options);
+      const snapshotPayload = toProtoStruct({
+        agent_id: request.agentId,
+        conversation_anchor_id: request.conversationAnchorId,
+        ...(optionalString(request.worldId) ? { world_id: optionalString(request.worldId) } : {}),
+        ...(requestId ? { request_id: requestId } : {}),
+      });
+      if (scopedBinding) {
+        await input.app.sendMessage({
+          fromAppId: input.appId,
+          toAppId: RUNTIME_AGENT_APP_ID,
+          scopedBinding,
+          messageType: SESSION_SNAPSHOT_REQUEST_TYPE,
+          payload: snapshotPayload,
+          requireAck: false,
+        }, options);
+      } else {
+        await input.protectedAccess.withScopes([TURN_WRITE_SCOPE], (writeOptions) => input.app.sendMessage({
+          fromAppId: input.appId,
+          toAppId: RUNTIME_AGENT_APP_ID,
+          subjectUserId,
+          messageType: SESSION_SNAPSHOT_REQUEST_TYPE,
+          payload: snapshotPayload,
+          requireAck: false,
+        }, writeOptions), options);
+      }
       for await (const event of streamHandle) {
         const messageType = normalizeText(event.messageType);
         if (messageType !== 'runtime.agent.session.snapshot') {

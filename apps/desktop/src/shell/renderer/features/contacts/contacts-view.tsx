@@ -401,7 +401,7 @@ export function ContactsView(props: ContactsViewProps) {
       {/* 左侧联系人列表 */}
       <SidebarShell
         width={sidebarWidth}
-        className="rounded-3xl border border-white/60 border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)] bg-[var(--nimi-sidebar-canvas)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        className="rounded-[2rem] border border-white/60 border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)] bg-[var(--nimi-sidebar-canvas)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         data-testid={E2E_IDS.panel('contacts')}
       >
         <SidebarHeader
@@ -488,7 +488,7 @@ export function ContactsView(props: ContactsViewProps) {
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
       >
         {props.feedback ? (
           <div className="px-6 pt-4">

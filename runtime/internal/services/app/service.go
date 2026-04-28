@@ -31,6 +31,10 @@ type sessionValidator interface {
 	ValidateAppSession(appID string, sessionID string, sessionToken string) (runtimev1.ReasonCode, bool)
 }
 
+type scopedBindingValidator interface {
+	ValidateScopedBinding(bindingID string, actual *runtimev1.ScopedAppBindingRelation, requiredScope string) (runtimev1.AccountReasonCode, bool)
+}
+
 type Option func(*Service)
 
 type subscriber struct {
@@ -38,6 +42,7 @@ type subscriber struct {
 	appID         string
 	subjectUserID string
 	fromAppFilter map[string]bool
+	scopedBinding *runtimev1.ScopedRuntimeBindingAttachment
 	relay         *streamutil.Relay[*runtimev1.AppMessageEvent]
 }
 
@@ -55,6 +60,7 @@ type Service struct {
 	internalConsumers map[string]InternalConsumer
 	now               func() time.Time
 	sessionValidator  sessionValidator
+	bindingValidator  scopedBindingValidator
 	rateLimiter       *appRateLimiter
 	loopDetector      *appLoopDetector
 }
@@ -62,6 +68,12 @@ type Service struct {
 func WithSessionValidator(validator sessionValidator) Option {
 	return func(s *Service) {
 		s.sessionValidator = validator
+	}
+}
+
+func WithScopedBindingValidator(validator scopedBindingValidator) Option {
+	return func(s *Service) {
+		s.bindingValidator = validator
 	}
 }
 
@@ -117,6 +129,11 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		sessionID, sessionToken, _ := envelope.ParseSessionFromContext(ctx)
 		if reasonCode, ok := s.sessionValidator.ValidateAppSession(fromAppID, sessionID, sessionToken); !ok {
 			return nil, grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)
+		}
+	}
+	if toAppID == "runtime.agent" {
+		if err := s.validateRuntimeAgentBinding(req.GetScopedBinding(), fromAppID, requiredRuntimeAgentSendScope(messageType)); err != nil {
+			return nil, err
 		}
 	}
 
@@ -211,6 +228,11 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 			return grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)
 		}
 	}
+	if subscribesRuntimeAgent(req) {
+		if err := s.validateRuntimeAgentBinding(req.GetScopedBinding(), strings.TrimSpace(req.GetAppId()), "runtime.agent.turn.read"); err != nil {
+			return err
+		}
+	}
 	if err := stream.SendHeader(metadata.MD{}); err != nil {
 		return err
 	}
@@ -268,6 +290,7 @@ func (s *Service) addSubscriber(req *runtimev1.SubscribeAppMessagesRequest) subs
 		appID:         strings.TrimSpace(req.GetAppId()),
 		subjectUserID: strings.TrimSpace(req.GetSubjectUserId()),
 		fromAppFilter: filter,
+		scopedBinding: cloneScopedBindingAttachment(req.GetScopedBinding()),
 		relay: streamutil.NewRelay(streamutil.RelayOptions[*runtimev1.AppMessageEvent]{
 			Budget:              32,
 			MaxConsecutiveDrops: 3,
@@ -304,6 +327,12 @@ func (s *Service) publish(event *runtimev1.AppMessageEvent) {
 	for _, sub := range targets {
 		if !matches(sub, event) {
 			continue
+		}
+		if event.GetFromAppId() == "runtime.agent" && sub.scopedBinding != nil {
+			if err := s.validateRuntimeAgentBinding(sub.scopedBinding, sub.appID, "runtime.agent.turn.read"); err != nil {
+				sub.relay.CloseWithError(err)
+				continue
+			}
 		}
 		if err := sub.relay.Enqueue(cloneEvent(event)); err != nil && s.logger != nil {
 			s.logger.Warn("app subscriber relay closed", "subscriber_id", sub.id, "error", err)
@@ -345,6 +374,82 @@ func clonePayload(input *structpb.Struct) *structpb.Struct {
 	}
 	cloned := proto.Clone(input)
 	out, ok := cloned.(*structpb.Struct)
+	if !ok {
+		return nil
+	}
+	return out
+}
+
+func subscribesRuntimeAgent(req *runtimev1.SubscribeAppMessagesRequest) bool {
+	for _, appID := range req.GetFromAppIds() {
+		if strings.TrimSpace(appID) == "runtime.agent" {
+			return true
+		}
+	}
+	return false
+}
+
+func requiredRuntimeAgentSendScope(messageType string) string {
+	switch strings.TrimSpace(messageType) {
+	case "runtime.agent.session.snapshot.request":
+		return "runtime.agent.turn.read"
+	default:
+		return "runtime.agent.turn.write"
+	}
+}
+
+func (s *Service) validateRuntimeAgentBinding(attachment *runtimev1.ScopedRuntimeBindingAttachment, fallbackRuntimeAppID string, requiredScope string) error {
+	if attachment == nil || strings.TrimSpace(attachment.GetBindingId()) == "" {
+		return runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
+	}
+	if s.bindingValidator == nil {
+		return runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE)
+	}
+	actual := relationFromAttachment(attachment, fallbackRuntimeAppID)
+	if reason, ok := s.bindingValidator.ValidateScopedBinding(strings.TrimSpace(attachment.GetBindingId()), actual, requiredScope); !ok {
+		return runtimeAgentBindingError(reason)
+	}
+	return nil
+}
+
+func relationFromAttachment(attachment *runtimev1.ScopedRuntimeBindingAttachment, fallbackRuntimeAppID string) *runtimev1.ScopedAppBindingRelation {
+	if attachment == nil {
+		return nil
+	}
+	runtimeAppID := strings.TrimSpace(attachment.GetRuntimeAppId())
+	if runtimeAppID == "" {
+		runtimeAppID = strings.TrimSpace(fallbackRuntimeAppID)
+	}
+	return &runtimev1.ScopedAppBindingRelation{
+		RuntimeAppId:         runtimeAppID,
+		AppInstanceId:        strings.TrimSpace(attachment.GetAppInstanceId()),
+		WindowId:             strings.TrimSpace(attachment.GetWindowId()),
+		AvatarInstanceId:     strings.TrimSpace(attachment.GetAvatarInstanceId()),
+		AgentId:              strings.TrimSpace(attachment.GetAgentId()),
+		ConversationAnchorId: strings.TrimSpace(attachment.GetConversationAnchorId()),
+		WorldId:              strings.TrimSpace(attachment.GetWorldId()),
+	}
+}
+
+func runtimeAgentBindingError(reason runtimev1.AccountReasonCode) error {
+	code := codes.PermissionDenied
+	if reason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND {
+		code = codes.InvalidArgument
+	}
+	return grpcerr.WithReasonCodeOptions(code, runtimev1.ReasonCode_APP_GRANT_INVALID, grpcerr.ReasonOptions{
+		ActionHint: "attach_active_scoped_runtime_binding",
+		Metadata: map[string]string{
+			"account_reason_code": reason.String(),
+		},
+	})
+}
+
+func cloneScopedBindingAttachment(input *runtimev1.ScopedRuntimeBindingAttachment) *runtimev1.ScopedRuntimeBindingAttachment {
+	if input == nil {
+		return nil
+	}
+	cloned := proto.Clone(input)
+	out, ok := cloned.(*runtimev1.ScopedRuntimeBindingAttachment)
 	if !ok {
 		return nil
 	}

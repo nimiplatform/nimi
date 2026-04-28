@@ -32,6 +32,7 @@ async function main(): Promise<void> {
   const fixtureAudio = loadGoldFixtureAudioInput(fixture);
   const subjectUserId = requireGoldSubjectUserId();
   const { runtime } = await createPlatformClient({
+    authMode: 'external-principal',
     appId: 'nimi.desktop.ai.gold',
     runtimeTransport: {
       type: 'node-grpc',

@@ -14,6 +14,6 @@ export type {
   RuntimeBridgeDaemonStatus,
 } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
 export type {
-  AvatarLaunchAnchorMode,
   AvatarLaunchContext,
+  AvatarScopedBindingProjection,
 } from './launch-context.js';
