@@ -212,7 +212,26 @@ fn normalize_master_key_read_result(
     }
 }
 
-fn load_master_key() -> Result<Vec<u8>, String> {
+fn load_existing_master_key() -> Result<Option<Vec<u8>>, String> {
+    let entry = keyring_entry()?;
+    match normalize_master_key_read_result(entry.get_password())? {
+        Some(encoded) => {
+            let decoded = BASE64_STANDARD
+                .decode(encoded.trim())
+                .map_err(|error| format!("auth session master key 解码失败: {error}"))?;
+            if decoded.len() != AES_KEY_LEN {
+                return Err(format!(
+                    "auth session master key 长度无效: expected={AES_KEY_LEN} actual={}",
+                    decoded.len()
+                ));
+            }
+            Ok(Some(decoded))
+        }
+        None => Ok(None),
+    }
+}
+
+fn load_or_create_master_key() -> Result<Vec<u8>, String> {
     let entry = keyring_entry()?;
     read_or_create_master_key(
         || normalize_master_key_read_result(entry.get_password()),
@@ -410,21 +429,16 @@ fn load_auth_session_from_path(
         }
     };
 
-    let parsed = match serde_json::from_str::<AuthSessionFile>(&raw) {
-        Ok(value) => value,
-        Err(error) => {
-            let _ = clear_session_file(path);
-            return Err(format!(
-                "解析 auth session 文件失败并已清理 ({}): {error}",
-                path.display()
-            ));
-        }
-    };
+    let parsed = serde_json::from_str::<AuthSessionFile>(&raw).map_err(|error| {
+        format!(
+            "解析 auth session 文件失败，已忽略当前 session ({}): {error}",
+            path.display()
+        )
+    })?;
 
     if parsed.schema_version != AUTH_SESSION_SCHEMA_VERSION {
-        let _ = clear_session_file(path);
         return Err(format!(
-            "auth session schemaVersion 无效并已清理: expected={} actual={}",
+            "auth session schemaVersion 无效，已忽略当前 session: expected={} actual={}",
             AUTH_SESSION_SCHEMA_VERSION, parsed.schema_version
         ));
     }
@@ -432,21 +446,17 @@ fn load_auth_session_from_path(
     let access_token = match decrypt_secret(key, parsed.access_token_ciphertext.as_str()) {
         Ok(value) if !value.trim().is_empty() => value,
         Ok(_) => {
-            let _ = clear_session_file(path);
-            return Err("auth session access token 为空并已清理".to_string());
+            return Err("auth session access token 为空，已忽略当前 session".to_string());
         }
         Err(error) => {
-            let _ = clear_session_file(path);
-            return Err(format!("{error}; auth session 已清理"));
+            return Err(format!("{error}; auth session 已忽略"));
         }
     };
 
     let refresh_token = match parsed.refresh_token_ciphertext.as_deref() {
         Some(value) => {
-            let decrypted = decrypt_secret(key, value).map_err(|error| {
-                let _ = clear_session_file(path);
-                format!("{error}; auth session 已清理")
-            })?;
+            let decrypted = decrypt_secret(key, value)
+                .map_err(|error| format!("{error}; auth session 已忽略"))?;
             let normalized = decrypted.trim().to_string();
             if normalized.is_empty() {
                 None
@@ -467,11 +477,11 @@ fn load_auth_session_from_path(
     }))
 }
 
-fn coerce_cleared_session_load_result(
+fn coerce_unreadable_session_load_result(
     result: Result<Option<AuthSessionLoadResult>, String>,
 ) -> Result<Option<AuthSessionLoadResult>, String> {
     match result {
-        Err(error) if error.contains("已清理") => Ok(None),
+        Err(error) if error.contains("已忽略") => Ok(None),
         other => other,
     }
 }
@@ -490,14 +500,19 @@ pub fn auth_session_load() -> Result<Option<AuthSessionLoadResult>, String> {
     ) {
         let path = auth_session_e2e_path()?;
         let key = load_e2e_master_key()?;
-        return coerce_cleared_session_load_result(load_auth_session_from_path(
+        return coerce_unreadable_session_load_result(load_auth_session_from_path(
             path.as_path(),
             key.as_slice(),
         ));
     }
     let path = auth_session_path()?;
-    let key = load_master_key()?;
-    coerce_cleared_session_load_result(load_auth_session_from_path(path.as_path(), key.as_slice()))
+    let Some(key) = load_existing_master_key()? else {
+        return Ok(None);
+    };
+    coerce_unreadable_session_load_result(load_auth_session_from_path(
+        path.as_path(),
+        key.as_slice(),
+    ))
 }
 
 #[tauri::command]
@@ -512,7 +527,7 @@ pub fn auth_session_save(payload: AuthSessionSavePayload) -> Result<(), String> 
         return clear_legacy_plaintext_dev_session_file();
     }
     let path = auth_session_path()?;
-    let key = load_master_key()?;
+    let key = load_or_create_master_key()?;
     save_auth_session_to_path(path.as_path(), key.as_slice(), &payload)?;
     clear_legacy_plaintext_dev_session_file()
 }
@@ -534,7 +549,7 @@ pub fn auth_session_clear() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        clear_session_file, coerce_cleared_session_load_result, load_auth_session_from_path,
+        clear_session_file, coerce_unreadable_session_load_result, load_auth_session_from_path,
         load_e2e_master_key, normalize_master_key_read_result, read_or_create_master_key,
         save_auth_session_to_path, should_use_e2e_encrypted_file_storage_from_env,
         should_use_keyring_session_storage_from_env, AuthSessionLoadResult, AuthSessionSavePayload,
@@ -620,22 +635,42 @@ mod tests {
     }
 
     #[test]
-    fn corrupt_session_is_cleared_fail_closed() {
+    fn corrupt_session_is_ignored_without_deleting_shared_session() {
         let path = session_path("corrupt");
         fs::write(&path, "{not-json").expect("write corrupt file");
 
         let error = load_auth_session_from_path(path.as_path(), fixed_key().as_slice())
             .expect_err("load should fail");
-        assert!(error.contains("已清理"));
-        assert!(!path.exists());
+        assert!(error.contains("已忽略"));
+        assert!(path.exists());
     }
 
     #[test]
-    fn cleared_session_load_error_is_coerced_to_none() {
-        let normalized = coerce_cleared_session_load_result(Err(
-            "解密 auth session 字段失败: aead::Error; auth session 已清理".to_string(),
+    fn decrypt_failure_is_ignored_without_deleting_shared_session() {
+        let path = session_path("wrong-key");
+        let payload = AuthSessionSavePayload {
+            realm_base_url: "https://realm.nimi.test".to_string(),
+            access_token: "access-token".to_string(),
+            refresh_token: Some("refresh-token".to_string()),
+            user: None,
+            updated_at: "2026-04-05T10:00:00.000Z".to_string(),
+            expires_at: Some("2026-04-05T11:00:00.000Z".to_string()),
+        };
+        save_auth_session_to_path(path.as_path(), fixed_key().as_slice(), &payload).expect("save");
+
+        let wrong_key = vec![8_u8; AES_KEY_LEN];
+        let error = load_auth_session_from_path(path.as_path(), wrong_key.as_slice())
+            .expect_err("load with wrong key should fail");
+        assert!(error.contains("已忽略"));
+        assert!(path.exists());
+    }
+
+    #[test]
+    fn unreadable_session_load_error_is_coerced_to_none() {
+        let normalized = coerce_unreadable_session_load_result(Err(
+            "解密 auth session 字段失败: aead::Error; auth session 已忽略".to_string(),
         ))
-        .expect("coerce cleared session error");
+        .expect("coerce unreadable session error");
         assert_eq!(normalized, None);
     }
 
