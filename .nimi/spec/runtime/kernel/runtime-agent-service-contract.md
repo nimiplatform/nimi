@@ -618,3 +618,32 @@ Fixed rules:
 - current transport authorization and subscription posture for this seam
   remains governed by the admitted `RuntimeAppService` / app-messaging path
   until a later dedicated capability admission says otherwise
+
+## K-AGCORE-052 Scoped Binding Attachment For App-Facing Consume
+
+Desktop-launched Avatar and any binding-only first-party consume mode must
+attach a Runtime-issued scoped binding to every app-facing reactive consume
+operation.
+
+Fixed rules:
+
+- `runtime.agent.turn.request`, `runtime.agent.turn.interrupt`, and
+  `runtime.agent.session.snapshot.request` carried over `RuntimeAppService`
+  must include `ScopedRuntimeBindingAttachment` with at least `binding_id`.
+- `RuntimeAppService.SubscribeAppMessages` used to consume
+  `runtime.agent.turn.*`, `runtime.agent.session.*`, or
+  `runtime.agent.presentation.*` projections must include the same attachment.
+- `RuntimeAgentService.SubscribeAgentEvents` used by binding-only consumers to
+  merge `runtime.agent.state.*`, hook, or presentation-adjacent projections
+  must include the attachment on `AgentRequestContext`.
+- Runtime must validate the attachment against the binding relation:
+  `runtime_app_id`, app/window relation where available, `avatar_instance_id`
+  where available, `agent_id`, `conversation_anchor_id` for anchor-scoped
+  surfaces, optional `world_id`, required scope, state, expiry, and current
+  authenticated account state.
+- Missing, revoked, expired, stale, suspended, superseded, replayed,
+  relation-mismatched, scope-mismatched, or account-non-authenticated bindings
+  fail closed with typed unavailable / permission status.
+- `subject_user_id` remains available for unrelated Web/cloud or
+  external-principal paths, but it is never Desktop-launched Avatar scoped
+  binding proof.

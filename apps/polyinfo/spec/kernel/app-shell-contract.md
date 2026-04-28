@@ -4,6 +4,9 @@
 
 ## PI-SHELL-001: Sector Workspace Is Primary
 
+Authority fence: `ACCOUNT_HARDCUT_NON_ADMITTED_APP_SLICE_FENCE`.
+Polyinfo is not currently admitted as an active local first-party Runtime account/session authority for the `2026-04-28-runtime-core-account-session-broker-hardcut` topic. Existing app-local token/session bootstrap seams are fenced legacy slice behavior and must not be treated as hardcut-compliant local account truth until migrated to Runtime-issued short-lived token projection and admitted caller registration.
+
 The sector workspace is the primary home surface of Polyinfo.
 
 - analysts arrive in a sector workspace rather than a dashboard

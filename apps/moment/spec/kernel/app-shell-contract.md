@@ -4,6 +4,9 @@
 
 ## MM-SHELL-001: Standalone App Shape
 
+Authority fence: `ACCOUNT_HARDCUT_NON_ADMITTED_APP_SLICE_FENCE`.
+Moment is not currently admitted as an active local first-party Runtime account/session authority for the `2026-04-28-runtime-core-account-session-broker-hardcut` topic. Existing app-local token/session bootstrap seams are fenced legacy slice behavior and must not be treated as hardcut-compliant local account truth until migrated to Runtime-issued short-lived token projection and admitted caller registration.
+
 Moment is a standalone app with a single front-door home surface.
 
 - shell responsibility: seed intake, threshold stage, short-play continuation, local shelf access

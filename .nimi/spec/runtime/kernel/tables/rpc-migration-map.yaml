@@ -30,6 +30,11 @@ service_mappings:
   mapping_status: aligned
   phase: phase1
   source_rule: K-GRANT-002
+- design_service: RuntimeAccountService
+  proto_service: ""
+  mapping_status: design_only_pending_proto
+  phase: phase1
+  source_rule: K-ACCSVC-002
 - design_service: RuntimeWorkflowService
   proto_service: RuntimeWorkflowService
   mapping_status: aligned
@@ -465,6 +470,56 @@ method_mappings:
   design_method: ListTokenChain
   proto_service: RuntimeGrantService
   proto_method: ListTokenChain
+  mapping_status: aligned
+- design_service: RuntimeAccountService
+  design_method: GetAccountSessionStatus
+  proto_service: RuntimeAccountService
+  proto_method: GetAccountSessionStatus
+  mapping_status: aligned
+- design_service: RuntimeAccountService
+  design_method: SubscribeAccountSessionEvents
+  proto_service: RuntimeAccountService
+  proto_method: SubscribeAccountSessionEvents
+  mapping_status: aligned
+- design_service: RuntimeAccountService
+  design_method: BeginLogin
+  proto_service: RuntimeAccountService
+  proto_method: BeginLogin
+  mapping_status: aligned
+- design_service: RuntimeAccountService
+  design_method: CompleteLogin
+  proto_service: RuntimeAccountService
+  proto_method: CompleteLogin
+  mapping_status: aligned
+- design_service: RuntimeAccountService
+  design_method: GetAccessToken
+  proto_service: RuntimeAccountService
+  proto_method: GetAccessToken
+  mapping_status: aligned
+- design_service: RuntimeAccountService
+  design_method: RefreshAccountSession
+  proto_service: RuntimeAccountService
+  proto_method: RefreshAccountSession
+  mapping_status: aligned
+- design_service: RuntimeAccountService
+  design_method: Logout
+  proto_service: RuntimeAccountService
+  proto_method: Logout
+  mapping_status: aligned
+- design_service: RuntimeAccountService
+  design_method: SwitchAccount
+  proto_service: RuntimeAccountService
+  proto_method: SwitchAccount
+  mapping_status: aligned
+- design_service: RuntimeAccountService
+  design_method: IssueScopedAppBinding
+  proto_service: RuntimeAccountService
+  proto_method: IssueScopedAppBinding
+  mapping_status: aligned
+- design_service: RuntimeAccountService
+  design_method: RevokeScopedAppBinding
+  proto_service: RuntimeAccountService
+  proto_method: RevokeScopedAppBinding
   mapping_status: aligned
 - design_service: RuntimeWorkflowService
   design_method: SubmitWorkflow

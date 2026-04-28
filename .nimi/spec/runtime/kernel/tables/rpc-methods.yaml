@@ -180,6 +180,29 @@ services:
         type: unary
       - name: ListTokenChain
         type: unary
+  - name: RuntimeAccountService
+    source_rule: K-ACCSVC-002
+    methods:
+      - name: GetAccountSessionStatus
+        type: unary
+      - name: SubscribeAccountSessionEvents
+        type: server_stream
+      - name: BeginLogin
+        type: unary
+      - name: CompleteLogin
+        type: unary
+      - name: GetAccessToken
+        type: unary
+      - name: RefreshAccountSession
+        type: unary
+      - name: Logout
+        type: unary
+      - name: SwitchAccount
+        type: unary
+      - name: IssueScopedAppBinding
+        type: unary
+      - name: RevokeScopedAppBinding
+        type: unary
   - name: RuntimeWorkflowService
     source_rule: K-WF-003
     methods:

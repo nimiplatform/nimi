@@ -79,6 +79,39 @@
 | `K-AUTHSVC-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-AUTHSVC-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-AUTHSVC-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-ACCSVC-001` | `deferred` | — |
+| `K-ACCSVC-002` | `deferred` | — |
+| `K-ACCSVC-003` | `deferred` | — |
+| `K-ACCSVC-004` | `deferred` | — |
+| `K-ACCSVC-005` | `deferred` | — |
+| `K-ACCSVC-006` | `deferred` | — |
+| `K-ACCSVC-007` | `deferred` | — |
+| `K-ACCSVC-008` | `deferred` | — |
+| `K-ACCSVC-009` | `deferred` | — |
+| `K-ACCSVC-010` | `deferred` | — |
+| `K-ACCSVC-011` | `deferred` | — |
+| `K-ACCSVC-012` | `deferred` | — |
+| `K-ACCSVC-013` | `deferred` | — |
+| `K-ACCSVC-014` | `deferred` | — |
+| `K-ACCSVC-015` | `deferred` | — |
+| `K-ACCSVC-016` | `deferred` | — |
+| `K-ACCSVC-017` | `deferred` | — |
+| `K-ACCSVC-018` | `deferred` | — |
+| `K-BIND-001` | `deferred` | — |
+| `K-BIND-002` | `deferred` | — |
+| `K-BIND-003` | `deferred` | — |
+| `K-BIND-004` | `deferred` | — |
+| `K-BIND-005` | `deferred` | — |
+| `K-BIND-006` | `deferred` | — |
+| `K-BIND-007` | `deferred` | — |
+| `K-BIND-008` | `deferred` | — |
+| `K-BIND-009` | `deferred` | — |
+| `K-BIND-010` | `deferred` | — |
+| `K-BIND-011` | `deferred` | — |
+| `K-BIND-012` | `deferred` | — |
+| `K-BIND-013` | `deferred` | — |
+| `K-BIND-014` | `deferred` | — |
+| `K-BIND-015` | `deferred` | — |
 | `K-CFG-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-CFG-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-CFG-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -511,6 +544,7 @@
 | `K-AGCORE-049` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-AGCORE-050` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-AGCORE-051` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-052` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-RPC-004a` | `deferred` | — |
 | `K-RPC-004b` | `deferred` | — |
 | `K-RPC-004c` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |

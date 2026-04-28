@@ -6,6 +6,8 @@
 
 `RuntimeAuthService` 负责应用会话与外部主体会话生命周期，不承载授权决策（授权由 `RuntimeGrantService` 负责）。
 
+`RuntimeAuthService` **不负责** local machine account session、login lifecycle、custody、refresh、logout、user switch、daemon restart recovery、或首方 scoped app binding；这些权威由 `RuntimeAccountService`（`K-ACCSVC-*`，见 `account-session-contract.md`）拥有。`RuntimeAuthService` 与 `RuntimeAccountService` 不重叠，且 `K-AUTHSVC-002` 的方法集合冻结。
+
 ## K-AUTHSVC-002 方法集合（权威）
 
 `RuntimeAuthService` 方法固定为：
@@ -81,12 +83,23 @@
 - TTL 下限由 `sessionTtlMinSeconds`（默认 60s）控制，上限由 `sessionTtlMaxSeconds`（默认 86400s）控制，两者均通过 `K-DAEMON-009` 配置文件或环境变量设置。
 - 缺省 `ttl_seconds` 时使用默认值。
 
-## K-AUTHSVC-012 Session 存储与重启行为
+## K-AUTHSVC-012 Session 存储与重启行为（split rule）
+
+本规则在 wave-1（topic `2026-04-28-runtime-core-account-session-broker-hardcut`）后被 split 为两个独立 owner 域：
+
+**App session / external-principal session（`RuntimeAuthService` 拥有）：**
 
 - Phase 1 session 存储使用进程内内存 map，不跨重启持久化。
-- daemon 重启后所有 session 失效，客户端需重新调用 `OpenSession` 或 `OpenExternalPrincipalSession` 建立新会话。
+- daemon 重启后所有 app session / external-principal session 失效，客户端需重新调用 `OpenSession` 或 `OpenExternalPrincipalSession` 建立新会话。
 - 客户端应实现 session 失效后的自动重连逻辑（检测到 `UNAUTHENTICATED` 后重新 `OpenSession`）。
 - 未来版本可引入持久化存储（如文件或嵌入式 KV），但 Phase 1 明确不要求。
+
+**Local machine account session（`RuntimeAccountService` 拥有，见 `account-session-contract.md` `K-ACCSVC-007`、`K-ACCSVC-011`）：**
+
+- Account session 必须使用 secure Runtime custody（macOS keychain / Windows credential vault / Linux secret service），由 daemon 拥有；调用方 / Desktop / app 不得拥有 durable account token custody。
+- daemon 重启时必须从 secure custody 尝试恢复 account session：恢复成功 → `authenticated`；不可用 → `unavailable`；过期 → `expired`；不一致 → `reauth_required`。
+- account session 与所有 scoped app binding 在 daemon 重启时全部失效；消费方必须重新申请。
+- `OpenSession` / `OpenExternalPrincipalSession` 路径不允许作为 local machine account truth 入口；调用方提供的 `subject_user_id` 不得用于 local first-party account / binding 派生。
 
 **跨消费方恢复协议差异（K-AUTHSVC-012）**：
 

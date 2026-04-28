@@ -115,6 +115,23 @@ Source: `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `IssueDelegatedAccessToken` | `S-SURFACE-002` |
 | `ListTokenChain` | `S-SURFACE-002` |
 
+## account_service_projection
+
+Source: `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
+
+| Method | Source Rule |
+|---|---|
+| `GetAccountSessionStatus` | `S-RUNTIME-109` |
+| `SubscribeAccountSessionEvents` | `S-RUNTIME-109` |
+| `BeginLogin` | `S-RUNTIME-109` |
+| `CompleteLogin` | `S-RUNTIME-109` |
+| `GetAccessToken` | `S-RUNTIME-109` |
+| `RefreshAccountSession` | `S-RUNTIME-109` |
+| `Logout` | `S-RUNTIME-109` |
+| `SwitchAccount` | `S-RUNTIME-109` |
+| `IssueScopedAppBinding` | `S-RUNTIME-109` |
+| `RevokeScopedAppBinding` | `S-RUNTIME-109` |
+
 ## workflow_service_projection
 
 Source: `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 2

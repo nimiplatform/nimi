@@ -35,6 +35,8 @@ const kernelFiles = [
   '.nimi/spec/runtime/kernel/authz-ownership.md',
   '.nimi/spec/runtime/kernel/authn-token-validation.md',
   '.nimi/spec/runtime/kernel/auth-service.md',
+  '.nimi/spec/runtime/kernel/account-session-contract.md',
+  '.nimi/spec/runtime/kernel/scoped-app-binding-contract.md',
   '.nimi/spec/runtime/kernel/grant-service.md',
   '.nimi/spec/runtime/kernel/key-source-routing.md',
   '.nimi/spec/runtime/kernel/scenario-job-lifecycle.md',

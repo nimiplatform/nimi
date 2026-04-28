@@ -80,6 +80,9 @@ Fixed rules:
   particular update originated from one anchor/turn
 - apps must consume these admitted runtime projection families rather than raw
   `apml.*` parser events as their durable product path
+- Desktop-launched Avatar / binding-only consumers must receive these
+  projections only through streams that validated the scoped binding attachment
+  required by `K-BIND-012` and `K-AGCORE-052`
 - APML is admitted only as the model-facing output wire syntax defined by
   `agent-output-wire-contract.md`; runtime must project APML into these typed
   families before first-party consumers treat it as durable product truth

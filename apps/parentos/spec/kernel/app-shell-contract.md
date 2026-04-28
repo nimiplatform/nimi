@@ -22,6 +22,9 @@ Governing fact sources:
 
 ## PO-SHELL-001 Bootstrap Order
 
+Authority fence: `ACCOUNT_HARDCUT_NON_ADMITTED_APP_SLICE_FENCE`.
+ParentOS is Pre-Alpha and is not currently admitted as an active local first-party Runtime account/session authority for the `2026-04-28-runtime-core-account-session-broker-hardcut` topic. Existing app-local token/session bootstrap seams are fenced legacy slice behavior and must not be treated as hardcut-compliant local account truth until migrated to Runtime-issued short-lived token projection and admitted caller registration.
+
 The desktop shell bootstrap path must execute in this order:
 
 1. initialize SDK/runtime access needed by the app shell

@@ -132,6 +132,8 @@
 | `S-RUNTIME-106` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-RUNTIME-107` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_boundary_gate` |
 | `S-RUNTIME-108` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-109` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-110` | `covered` | `sdk_kernel_consistency` |
 | `S-WORLD-001` | `covered` | `sdk_kernel_consistency` |
 | `S-WORLD-002` | `covered` | `sdk_kernel_consistency` |
 | `S-WORLD-003` | `covered` | `sdk_kernel_consistency` |

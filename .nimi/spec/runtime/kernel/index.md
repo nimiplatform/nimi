@@ -33,6 +33,8 @@
 | `authz-ownership.md` | `K-AUTH-*` | JWT、owner、信息隐藏、访问门禁 |
 | `authn-token-validation.md` | `K-AUTHN-*` | JWT/JWKS 验签、缓存刷新、时钟偏差、会话失效 |
 | `auth-service.md` | `K-AUTHSVC-*` | RuntimeAuthService 契约与会话生命周期 |
+| `account-session-contract.md` | `K-ACCSVC-*` | RuntimeAccountService 契约：local first-party account session、login lifecycle、secure custody、refresh、short-lived app access-token projection、logout、user switch、daemon restart recovery、scoped binding issuance |
+| `scoped-app-binding-contract.md` | `K-BIND-*` | Runtime-issued scoped app binding：carrier 分类、生命周期、relation tuple、revocation、replay、Avatar/Mod/Desktop binding 规则 |
 | `grant-service.md` | `K-GRANT-*` | RuntimeGrantService 契约与 delegated token 约束 |
 | `key-source-routing.md` | `K-KEYSRC-*` | `connector_id`/inline 与 metadata 契约 |
 | `scenario-job-lifecycle.md` | `K-JOB-*` | ScenarioJob 生命周期与 owner/credential 快照 |

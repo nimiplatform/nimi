@@ -12,6 +12,7 @@
 | `RuntimeLocalService` | `RuntimeLocalService` | `aligned` | `phase1` | `K-RPC-004` |
 | `RuntimeAuthService` | `RuntimeAuthService` | `aligned` | `phase1` | `K-AUTHSVC-002` |
 | `RuntimeGrantService` | `RuntimeGrantService` | `aligned` | `phase1` | `K-GRANT-002` |
+| `RuntimeAccountService` | `—` | `design_only_pending_proto` | `phase1` | `K-ACCSVC-002` |
 | `RuntimeWorkflowService` | `RuntimeWorkflowService` | `aligned` | `phase2` | `K-WF-003` |
 | `RuntimeAuditService` | `RuntimeAuditService` | `aligned` | `phase2` | `K-AUDIT-013` |
 | `RuntimeModelService` | `RuntimeModelService` | `aligned` | `phase2` | `K-MODEL-004` |
@@ -104,6 +105,16 @@
 | `RuntimeGrantService` | `RevokeAppAccessToken` | `RuntimeGrantService` | `RevokeAppAccessToken` | `aligned` |
 | `RuntimeGrantService` | `IssueDelegatedAccessToken` | `RuntimeGrantService` | `IssueDelegatedAccessToken` | `aligned` |
 | `RuntimeGrantService` | `ListTokenChain` | `RuntimeGrantService` | `ListTokenChain` | `aligned` |
+| `RuntimeAccountService` | `GetAccountSessionStatus` | `RuntimeAccountService` | `GetAccountSessionStatus` | `aligned` |
+| `RuntimeAccountService` | `SubscribeAccountSessionEvents` | `RuntimeAccountService` | `SubscribeAccountSessionEvents` | `aligned` |
+| `RuntimeAccountService` | `BeginLogin` | `RuntimeAccountService` | `BeginLogin` | `aligned` |
+| `RuntimeAccountService` | `CompleteLogin` | `RuntimeAccountService` | `CompleteLogin` | `aligned` |
+| `RuntimeAccountService` | `GetAccessToken` | `RuntimeAccountService` | `GetAccessToken` | `aligned` |
+| `RuntimeAccountService` | `RefreshAccountSession` | `RuntimeAccountService` | `RefreshAccountSession` | `aligned` |
+| `RuntimeAccountService` | `Logout` | `RuntimeAccountService` | `Logout` | `aligned` |
+| `RuntimeAccountService` | `SwitchAccount` | `RuntimeAccountService` | `SwitchAccount` | `aligned` |
+| `RuntimeAccountService` | `IssueScopedAppBinding` | `RuntimeAccountService` | `IssueScopedAppBinding` | `aligned` |
+| `RuntimeAccountService` | `RevokeScopedAppBinding` | `RuntimeAccountService` | `RevokeScopedAppBinding` | `aligned` |
 | `RuntimeWorkflowService` | `SubmitWorkflow` | `RuntimeWorkflowService` | `SubmitWorkflow` | `aligned` |
 | `RuntimeWorkflowService` | `GetWorkflow` | `RuntimeWorkflowService` | `GetWorkflow` | `aligned` |
 | `RuntimeWorkflowService` | `CancelWorkflow` | `RuntimeWorkflowService` | `CancelWorkflow` | `aligned` |

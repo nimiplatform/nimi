@@ -528,6 +528,14 @@ rules:
     status: covered
     evidence_refs: [sdk_kernel_consistency]
     note: "PresentationTimeline consume boundary is admitted; concrete SDK parser/API evidence is owned by the follow-on SDK/Desktop consume wave"
+  - rule_id: S-RUNTIME-109
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Wave-1 admitted authority for local first-party Runtime account projection, Runtime-backed short-lived access-token provider, and binding consumer (topic 2026-04-28-runtime-core-account-session-broker-hardcut). SDK code projection lands at wave-3 active owner switch."
+  - rule_id: S-RUNTIME-110
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Wave-1 admitted authority for SDK login adapter surface (Runtime BeginLogin/CompleteLogin pass-through). SDK code projection lands at wave-3 active owner switch."
 
   # --- World Contract (S-WORLD) ---
   - rule_id: S-WORLD-001

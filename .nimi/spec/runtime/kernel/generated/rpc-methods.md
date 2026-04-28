@@ -125,6 +125,23 @@ Source: `K-GRANT-002`
 | `IssueDelegatedAccessToken` | `unary` |
 | `ListTokenChain` | `unary` |
 
+## RuntimeAccountService
+
+Source: `K-ACCSVC-002`
+
+| Method | Type |
+|---|---|
+| `GetAccountSessionStatus` | `unary` |
+| `SubscribeAccountSessionEvents` | `server_stream` |
+| `BeginLogin` | `unary` |
+| `CompleteLogin` | `unary` |
+| `GetAccessToken` | `unary` |
+| `RefreshAccountSession` | `unary` |
+| `Logout` | `unary` |
+| `SwitchAccount` | `unary` |
+| `IssueScopedAppBinding` | `unary` |
+| `RevokeScopedAppBinding` | `unary` |
+
 ## RuntimeWorkflowService
 
 Source: `K-WF-003`

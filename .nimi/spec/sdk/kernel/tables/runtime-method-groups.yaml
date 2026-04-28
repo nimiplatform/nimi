@@ -119,6 +119,28 @@ groups:
       - IssueDelegatedAccessToken
       - ListTokenChain
     source_rule: S-SURFACE-002
+  - group: account_service_projection
+    service: RuntimeAccountService
+    phase: 1
+    status: deferred
+    note: >
+      Wave-1 spec authority admitted (K-ACCSVC-002 frozen method set). Proto + Go
+      implementation deferred to wave-2 inert substrate and wave-3 active owner
+      switch (topic 2026-04-28-runtime-core-account-session-broker-hardcut).
+      SDK projection lands at S-RUNTIME-109 / S-RUNTIME-110 only after wave-3.
+    source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
+    methods:
+      - GetAccountSessionStatus
+      - SubscribeAccountSessionEvents
+      - BeginLogin
+      - CompleteLogin
+      - GetAccessToken
+      - RefreshAccountSession
+      - Logout
+      - SwitchAccount
+      - IssueScopedAppBinding
+      - RevokeScopedAppBinding
+    source_rule: S-RUNTIME-109
   - group: workflow_service_projection
     service: RuntimeWorkflowService
     phase: 2

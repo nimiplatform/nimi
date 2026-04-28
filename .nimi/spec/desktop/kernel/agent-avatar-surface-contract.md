@@ -350,8 +350,8 @@ on current active code, not by citing closed-topic artifacts:
   stale live instance identity, or unavailable runtime path must fail closed
   instead of reporting demo success
 - Desktop-to-Avatar handoff must not transmit raw JWT, refresh token,
-  `subject_user_id`, Realm base URL, shared auth session material, or any
-  app-local login bootstrap hint
+  `subject_user_id`, account id, user id, Realm base URL, shared auth session
+  material, or any app-local login bootstrap hint
 - Desktop-rendered Live2D smoke evidence may validate Desktop chat renderer
   behavior, but it cannot close `apps/avatar` carrier WebGL/canvas proof
 
@@ -410,6 +410,9 @@ Desktop/Runtime own the Avatar runtime interaction bind. Avatar is a separate
 first-party embodiment app, but it must consume only a scoped runtime binding
 projection, not Desktop auth truth.
 
+> **Hard Cut Status (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)**：
+> 本规则的 normative authority 为 `K-BIND-*`（`.nimi/spec/runtime/kernel/scoped-app-binding-contract.md`）。Desktop launch handoff 字段必须严格匹配 `K-BIND-002` Avatar relation tuple，并使用 `K-BIND-003` `allowed` 或 `allowed-only-behind-runtime-bridge` carrier。`open_new` anchor 创建/预约由 Desktop/Runtime 拥有（`K-BIND-008`）；Avatar 不得自创 anchor。binding revocation 顺序遵循 `K-ACCSVC-010` 与 `K-BIND-005`。
+
 Fixed rules:
 
 - Desktop must not solve Avatar runtime bind by adding backend CORS allowance
@@ -426,6 +429,14 @@ Fixed rules:
   visual carrier visible when binding is missing or revoked.
 - Desktop must not treat Avatar visual success as proof that runtime
   interaction binding succeeded.
+- Desktop launch handoff payload to Avatar may contain only typed fields per
+  `K-BIND-002` Avatar relation tuple plus an opaque non-account visual package
+  descriptor/capability selected by Desktop.
+  Forbidden fields in handoff: Realm URL, Runtime-issued account access token,
+  refresh token, raw JWT, `subject_user_id`, account id, user id, shared auth
+  payload, any auth UX route.
+- Desktop/Runtime owns `open_new` anchor creation/reservation. Avatar cannot
+  call `runtime.agent.anchors.open` or any anchor creation path.
 
 ## Fact Sources
 

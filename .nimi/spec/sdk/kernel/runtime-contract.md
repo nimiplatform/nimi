@@ -103,12 +103,21 @@ Runtime 分页具体默认值（`K-PAGE-001`）：
 
 ## S-RUNTIME-067 鉴权与主体上下文分离
 
+> **Hard Cut Status (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)**：
+> 本规则仅在 **Web/cloud 与 external-principal 模式** 保留为 app-provided auth/subject seam。Local first-party Runtime 模式下，本规则被 superseded：local first-party SDK 不允许接收 app 提供的 `auth.accessToken`、`subjectContext`、refresh-token provider、session store、或 subject provider；account 上下文必须通过 Runtime account projection（`K-ACCSVC-005`）、Runtime-issued short-lived access-token provider（`GetAccessToken`）、和 scoped binding（`K-BIND-*`）消费。详见 `S-RUNTIME-109`。
+
 Runtime SDK 必须将“鉴权 token”与“业务主体标识”分离建模：
 
 - `auth.accessToken`：用于 Runtime AuthN（`authorization` 注入）。
 - `subjectContext`：用于填充请求体 `subjectUserId`。
 
 两者语义独立，不得复用同一配置字段。
+
+**模式适用范围（wave-1 split）：**
+
+- Web / cloud 显式 adapter 模式：保留。
+- external-principal 模式：保留。
+- Local first-party Runtime account 模式：app-provided `auth.accessToken` / `subjectContext` provider **禁止**；仅允许 SDK 内部使用 Runtime-backed short-lived access-token provider。
 
 Runtime SDK 还必须保持 multi-agent truth boundary：
 
@@ -359,3 +368,47 @@ Fixed rules:
 
 Closed 2026-04-20 SDK Event API and PresentationTimeline designs are evidence
 only and cannot close SDK timeline support without current tests.
+
+
+## S-RUNTIME-109 Local First-Party Account Projection And Binding Consumer
+
+> Authority: SDK kernel (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)
+>
+> Upstream Runtime authority: `K-ACCSVC-*`（`account-session-contract.md`）、`K-BIND-*`（`scoped-app-binding-contract.md`）。
+
+Local first-party Runtime mode 下，SDK 必须以 Runtime-owned account projection、Runtime-backed short-lived access-token provider、与 scoped binding 作为唯一权威来源。不得让 app 注入 token、refresh token、subject、session store、或独立 Realm identity bootstrap。
+
+固定规则：
+
+- SDK 必须暴露 typed Runtime account projection consumer：状态查询（映射 `GetAccountSessionStatus`）、事件订阅（映射 `SubscribeAccountSessionEvents`）。
+- SDK 必须暴露或内部使用 Runtime-backed short-lived access-token provider（映射 `GetAccessToken` 或等价方法），用于 admitted local first-party Realm data client。
+- SDK 必须暴露 typed scoped binding consumer：解析 binding 状态、订阅 binding 事件、关闭使用方时通知 Runtime。
+- SDK 不得在 local first-party mode 接收 app-provided `auth.accessToken`、`auth.refreshToken`、`subjectContext`、`subject_user_id`、token provider、refresh callback、session store、或 JWT 解析 hook。
+- SDK 可在 local first-party mode 暴露 Realm data client，但只能使用 Runtime-backed short-lived access-token provider；不得暴露 Realm identity bootstrap、`MeService.getMe` 作为 account truth、Realm `passwordLogin` / `oauthLogin` / `requestEmailOtp` / `verifyEmailOtp` / `walletLogin` 直接登录调用面、或 SDK-owned 401 refresh token flow。
+- SDK 必须在 account state 非 `authenticated` 时对依赖 account 的 capability fail-close（不得返回 anonymous / fixture / mock 投影）。
+- SDK 必须在 binding state 非 `active` 时对 scoped 操作 fail-close。
+- SDK `runtime.agent.turns` 必须暴露 Desktop-launched Avatar binding-only
+  consume mode：`subscribe`、`request`、`interrupt`、`getSessionSnapshot` 必须
+  接收 scoped binding attachment（`bindingId`、可选 opaque handle、以及
+  non-secret relation selectors），并将其投影到 `RuntimeAppService` /
+  `RuntimeAgentService` request；该 mode 不得 resolve、要求、或发送
+  `subjectUserId` 作为 proof。
+- SDK binding-only mode 必须把 missing / stale / revoked / expired /
+  suspended / superseded / replay / relation mismatch / scope mismatch 作为 typed
+  binding unavailable / permission failure 投影给使用方，使用方据此关闭
+  interaction / voice / activity 而不影响 visual carrier。
+- SDK 必须使用稳定 mode discriminator（`local-first-party` vs `web-cloud-adapter` vs `external-principal`），且 mode 一旦确定不可在运行期跨切换。
+- SDK 必须把 Runtime account / binding 事件以 typed 投影暴露，不得使 app 直接读取底层事件 envelope。
+- SDK 必须保留对 Runtime account projection 缺失字段、未知 state、或断流（`replay_truncated`）的 fail-close 行为。
+
+Web/cloud adapter 与 external-principal mode 仍可保留 app-provided token / subject provider 输入，但这些 mode 必须在公共 surface 上显式 fenced，且不得对 local first-party 消费可达。
+
+## S-RUNTIME-110 Login Adapter Surface
+
+local first-party login UX 由 kit / Desktop 提供 UX，登录结果通过 Runtime `BeginLogin` / `CompleteLogin`（`K-ACCSVC-005`）回流。SDK 在该 mode 仅扮演投影：
+
+- SDK 必须暴露 typed `beginLogin(...)`、`completeLogin(...)` 包装，转发到 Runtime；不得在 SDK 层完成 token exchange 或解码 JWT。
+- SDK 不得在 local first-party mode 暴露 Realm 直接登录路径；登录只允许通过 Runtime Nimi Auth Browser callback proof。
+- SDK 必须把 Runtime 返回的 UX instruction envelope（不含 PKCE verifier）原样投影给 kit / Desktop。
+- SDK 必须把 `CompleteLogin` proof envelope 视为不透明字节包，不得检查、解析或重写 token 字段。
+- 登录失败 reason code 必须按 `K-ACCSVC-008` 投影；不得合并、改写、或以 anonymous fallback 替代。

@@ -8,6 +8,11 @@
 > - [Live2D render contract](live2d-render-contract.md)
 > - [Agent script contract](agent-script-contract.md)
 > - [Avatar event contract](avatar-event-contract.md)
+>
+> **Hard Cut Status (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)**：
+> 本 contract 约束 **Desktop-launched Avatar embodiment instance**。该 instance 不参与 login、不持有 account session truth、不持有 Realm client、不请求 Runtime account access token、不调用 `MeService.getMe`、不直接调用 `RuntimeAuthService.RegisterApp` / `OpenSession`、不创建或持有 conversation anchor。runtime interaction 通过 Desktop/Runtime 发出的 scoped binding（`K-BIND-*`，见 `.nimi/spec/runtime/kernel/scoped-app-binding-contract.md`）消费。runtime binding 不可用只关闭 interaction/voice/activity，不得隐藏已加载的 local visual carrier。Tauri permission 必须排除 auth/session capability（详见下文 `NAV-SHELL-RUNTIME-BINDING`）。
+>
+> Future Avatar-as-primary-app 是单独 mode，若后续 admit，必须按 Runtime-brokered local first-party app 使用 `RuntimeAccountService`，不得拥有 refresh token、durable auth session、shared auth truth、或 independent Realm auth truth。
 
 ---
 
@@ -209,7 +214,8 @@ Settings UI 必须保持 product-light：
 1. Tauri window created
 2. Renderer bootstrap (React mount)
 3. Emit avatar.app.start
-4. Load current local Agent Center visual package (Live2D / VRM branch)
+4. Load Desktop-selected local Agent Center visual package through an opaque
+   non-account package descriptor/capability (Live2D / VRM branch)
 5. Attempt runtime IPC consume binding (default) or explicit fixture mode (`VITE_AVATAR_DRIVER=mock`)
 6. Scan <model>/runtime/nimi/ for NAS handlers (§agent-script-contract)
 7. Compute initial hit region + resize window to surface bounds
@@ -224,11 +230,11 @@ call Realm HTTP, or treat Realm/user identity as local truth.
 
 Normal path boundary:
 
-- visual bootstrap：Desktop-selected Agent Center package → local Live2D/VRM render
+- visual bootstrap：Desktop-selected non-account Agent Center package descriptor/capability → local Live2D/VRM render
 - runtime bootstrap：runtime IPC/bridge only
 - Desktop/Runtime own auth, Realm, runtime binding, agent, and anchor truth
-- Avatar consumes only the explicit launch context, local visual package, and
-  runtime IPC projections
+- Avatar consumes only the explicit launch context, local visual package
+  descriptor/capability, and runtime IPC projections
 
 Runtime binding failure handling:
 
@@ -324,6 +330,74 @@ Minimum permission set for Phase 1 shell：
 - 改变 hit-region algorithm → major bump
 - 新增 lifecycle event → `avatar-event-contract.md` minor bump
 - Platform-level window 行为变更 → 必须同步 `agent-script-contract.md` ctx.app 字段
+
+---
+
+## 11. Runtime Binding Boundary (NAV-SHELL-RUNTIME-BINDING)
+
+> 本节由 topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1 admit。
+> Upstream authority：`.nimi/spec/runtime/kernel/account-session-contract.md`（`K-ACCSVC-*`）、`.nimi/spec/runtime/kernel/scoped-app-binding-contract.md`（`K-BIND-*`）。
+
+### 11.1 Desktop-launched Avatar 禁止的能力 (NAV-SHELL-RUNTIME-BINDING-001)
+
+Desktop-launched Avatar embodiment app shell 不允许：
+
+- 读取 Desktop shared auth session（`~/.nimi/auth/session.v1.json`）或调用 `auth_session_load` / `auth_session_save` / `auth_session_clear`
+- 创建或持有 `Realm` HTTP 客户端
+- 调用 `MeService.getMe`、`RealmAuthService.passwordLogin` / `oauthLogin` / `requestEmailOtp` / `verifyEmailOtp` / `walletLogin` 或任何 Realm 认证路径
+- 调用 `RuntimeAuthService.RegisterApp`、`OpenSession`、`RegisterExternalPrincipal`、`OpenExternalPrincipalSession`
+- 调用 `RuntimeAccountService` 的 account / token owner 方法（包括 `BeginLogin` / `CompleteLogin` / `GetAccessToken` / `Logout` / `SwitchAccount` / `IssueScopedAppBinding`）
+- 创建或预约 conversation anchor（`open_new` 路径必须由 Desktop / Runtime 拥有，见 `K-BIND-008`）
+- 持有、缓存、或转交 access token、refresh token、raw JWT、`subject_user_id`
+- 在 mock 之外回退到 fixture 模式以隐藏 runtime binding 不可用
+- 在 Tauri permission set 中包含 auth / session / account 相关 capability
+
+### 11.2 Desktop-launched Avatar 允许的能力 (NAV-SHELL-RUNTIME-BINDING-002)
+
+Desktop-launched Avatar embodiment app shell 仅允许：
+
+- 加载 Desktop / Runtime 在启动时投递的 launch context：`runtime_app_id`、`avatar_instance_id`、`agent_id`、`conversation_anchor_id`、`world_id`（如适用）、binding handle / id，以及用于 `K-BIND-012` relation 校验的非账号 selector（`app_instance_id`、`window_id`）
+- 通过 SDK Runtime 投影面（`S-RUNTIME-109` / `S-RUNTIME-110`）订阅 binding 事件、agent 事件
+- 在 binding 不可用时关闭 interaction / voice / activity 消费，但保持已加载的 visual carrier 可见
+
+### 11.3 Binding 失败语义 (NAV-SHELL-RUNTIME-BINDING-003)
+
+Runtime binding 不可用、binding state 非 `active`、或事件流不可用时：
+
+- Avatar 必须显示 typed unavailable state（不显示 fixture 数据）
+- 如果 visual model 已加载且仍合法，必须保持可见（仅关闭 interaction）
+- 不允许尝试自行重新 binding 或 fallback 到 Realm / shared auth
+- 不允许把 Tauri 错误投影成"伪登录"路径
+
+### 11.4 Tauri Permission 排除 (NAV-SHELL-RUNTIME-BINDING-004)
+
+Avatar Tauri capability 文件不允许包含：
+
+- `auth_session_*` IPC 命令
+- `runtime.account.*` 的 direct account / token owner 调用面
+- `runtime.auth.*` 的 `RegisterApp` / `OpenSession` 直接调用面
+- 任何允许从 disk 读取 `~/.nimi/auth/**` 的 fs scope
+
+guardrail 必须在 `wave-6` 落地（见 `negative-test-matrix.md` 与 `guardrail-scan-plan.md`）。
+
+### 11.5 Launch Handoff 字段 (NAV-SHELL-RUNTIME-BINDING-005)
+
+Desktop 启动 Desktop-launched Avatar embodiment 时只允许传递 typed launch context：
+
+- `runtime_app_id`、`avatar_instance_id`、`agent_id`、`conversation_anchor_id`、`world_id`（如适用）
+- Runtime-issued binding id 或 bridge-side opaque handle（`K-BIND-003` `allowed` / `allowed-only-behind-runtime-bridge`）
+- opaque non-account visual model package descriptor/capability（例如 package kind/id 或 bridge-side local package reference）
+
+禁止字段：Realm URL、access token、refresh token、raw JWT、`subject_user_id`、account id、user id、shared auth payload、any auth UX route。
+
+### 11.6 Avatar-as-primary-app 非本 contract 范围 (NAV-SHELL-RUNTIME-BINDING-006)
+
+Avatar-as-primary-app 不由本 Desktop-launched embodiment contract admit。若后续产品需要 Avatar 作为主入口，它必须新建或扩展 spec，按 local first-party Runtime-brokered app mode 接入：
+
+- login 通过 Runtime Nimi Auth Browser callback `code/state`
+- refresh token / durable session 仍由 Runtime custody 拥有
+- direct Realm data access 只能使用 Runtime-backed short-lived access-token provider
+- 不允许复用 Desktop-launched embodiment binding carrier 作为 account token
 
 ---
 

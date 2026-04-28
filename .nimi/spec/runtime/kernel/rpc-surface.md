@@ -6,13 +6,14 @@
 
 Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 design-first service surface：
 
-**Phase 1（AI 执行平面 + Auth Core）：**
+**Phase 1（AI 执行平面 + Auth Core + Account Core）：**
 
 - `AIService`（design 名称，映射到 proto `RuntimeAiService`）
 - `ConnectorService`（design-first，proto 仍在迁移）
 - `RuntimeLocalService`
 - `RuntimeAuthService`
 - `RuntimeGrantService`
+- `RuntimeAccountService`（local first-party account session / scoped app binding 权威，方法集合见 `account-session-contract.md` `K-ACCSVC-002`，与 `RuntimeAuthService` 不重叠）
 
 **Phase 2（完整 Runtime 服务）：**
 

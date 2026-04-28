@@ -1,6 +1,16 @@
 # SDK Realm Contract
 
 > Owner Domain: `S-REALM-*`
+>
+> **Hard Cut Status (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)**：
+> 本契约被分为两种显式 mode：
+>
+> - **Local first-party Runtime mode**：允许 Realm data client，但只能使用 Runtime-backed short-lived access-token provider（`RuntimeAccountService.GetAccessToken` 或等价方法）。禁止 app-provided token provider、refresh token provider、session store、JWT subject decode、`MeService.getMe` 作为 account truth、Realm 登录路由（`passwordLogin` / `oauthLogin` / `requestEmailOtp` / `verifyEmailOtp` / `walletLogin` / `walletChallenge` / `checkEmail`）以及 SDK-owned 401 refresh token flow。
+> - **Web / cloud adapter 与 external-principal mode**：可保留本契约的 app-provided token / subject / Realm route seams，但必须显式 fenced。
+>
+> Local first-party account / login / refresh-token custody 真相由 `RuntimeAccountService`（`K-ACCSVC-*`）拥有；SDK 投影由 `S-RUNTIME-109` / `S-RUNTIME-110` 约束。
+>
+> Web / cloud adapter mode 必须显式声明 mode 标记，且与 local first-party Runtime mode 在公共 surface 上严格 fenced；不得在 local first-party 消费者中可达。
 
 ## S-REALM-010 Instance Isolation
 

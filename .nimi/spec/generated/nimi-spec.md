@@ -67,13 +67,14 @@ Nimi Runtime 是一个 gRPC 守护进程，负责 AI 推理执行、模型管理
 
 Runtime kernel 的 RPC 覆盖范围为 admitted proto 服务与已定义的 design-first service surface：
 
-**Phase 1（AI 执行平面 + Auth Core）：**
+**Phase 1（AI 执行平面 + Auth Core + Account Core）：**
 
 - `AIService`（design 名称，映射到 proto `RuntimeAiService`）
 - `ConnectorService`（design-first，proto 仍在迁移）
 - `RuntimeLocalService`
 - `RuntimeAuthService`
 - `RuntimeGrantService`
+- `RuntimeAccountService`（local first-party account session / scoped app binding 权威，方法集合见 `account-session-contract.md` `K-ACCSVC-002`，与 `RuntimeAuthService` 不重叠）
 
 **Phase 2（完整 Runtime 服务）：**
 
@@ -345,6 +346,8 @@ AuthN 与 AuthZ 之间有明确的分层边界：AuthN 失败直接返回 `UNAUT
 **K-AUTHSVC-001 — 服务职责**
 
 `RuntimeAuthService` 负责应用会话与外部主体会话生命周期，不承载授权决策（授权由 `RuntimeGrantService` 负责）。
+
+`RuntimeAuthService` **不负责** local machine account session、login lifecycle、custody、refresh、logout、user switch、daemon restart recovery、或首方 scoped app binding；这些权威由 `RuntimeAccountService`（`K-ACCSVC-*`，见 `account-session-contract.md`）拥有。`RuntimeAuthService` 与 `RuntimeAccountService` 不重叠，且 `K-AUTHSVC-002` 的方法集合冻结。
 
 **K-AUTHSVC-002 — 方法集合（权威）**
 
@@ -1926,6 +1929,9 @@ hydration 伪装成空成功。
 
 **D-BOOT-007 — Auth Session 引导**
 
+> **Hard Cut Status (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)**：
+> 本规则在 wave-1 标记 superseded。replacement authority：`K-ACCSVC-005` `GetAccountSessionStatus` / `SubscribeAccountSessionEvents`，以及 Runtime-backed short-lived access-token provider（`GetAccessToken`）。wave-3 active owner switch 必须将 Desktop bootstrap 改为 query Runtime account state，并删除 `bootstrapAuthSession` token 交换 / 匿名回退路径与共享 auth session 写入逻辑（`K-ACCSVC-013`）。保留的 Desktop Realm/DataSync data client 必须通过 Runtime-issued access token 初始化，不得读取 shared auth token。
+
 调用 `bootstrapAuthSession` 执行 token 交换或匿名回退。
 
 - 成功时设置 `auth.status = 'authenticated'`。
@@ -1993,13 +1999,16 @@ IPC 层的基础设施先于具体命令。统一的 `invoke()` 入口先检查 
 
 **D-IPC-001 — Bootstrap / Auth Session 命令**
 
+> **Hard Cut Status (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)**：
+> 共享 auth session 命令（`auth_session_load` / `auth_session_save` / `auth_session_clear`）作为 local first-party account truth surface 在 wave-1 被标记 superseded。replacement authority 为 `RuntimeAccountService`（`K-ACCSVC-*`）；wave-3 active owner switch 必须删除或 hard-block 本节描述的 `auth_session_*` IPC 路径，不允许保留 dual-read。`runtime_defaults` 中 `realm.accessToken` / `realm.jwksUrl` / `realm.revocationUrl` 不得在 wave-3 之后继续作为 local first-party account truth source（仅允许 explicit Web/cloud adapter 模式或 dev-only override 使用，且必须 fenced）。local first-party Desktop data clients 若需要 Realm access token，必须通过 Runtime `GetAccessToken` 或等价 provider 获取短期 token。
+
 `runtime_defaults` 命令返回 `RuntimeDefaults`，包含：
 - `realm: RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、revocationUrl、jwtIssuer、jwtAudience）
 - `runtime: RuntimeExecutionDefaults`（provider、model 与可透传的 runtime execution 字段）
 
 所有字段通过 `parseRuntimeDefaults` 防御性解析。
 
-共享 auth session 命令集：
+共享 auth session 命令集（**wave-1: superseded for local first-party account truth；wave-3 active cut 后删除/封禁**）：
 - `auth_session_load`：读取并解密 `~/.nimi/auth/session.v1.json`，返回 normalized shared desktop auth session 或 `null`。corrupt / invalid schema 文件必须在读取时删除。
 - `auth_session_save`：原子覆写共享 auth session 文件；renderer 只提交 normalized user + tokens，backend 负责加密与落盘。
 - `auth_session_clear`：删除共享 auth session 文件。
@@ -4239,6 +4248,21 @@ Fixed rules:
 | IssueDelegatedAccessToken | unary |
 | ListTokenChain | unary |
 
+**RuntimeAccountService**
+
+| 方法 | 类型 |
+|---|---|
+| GetAccountSessionStatus | unary |
+| SubscribeAccountSessionEvents | server_stream |
+| BeginLogin | unary |
+| CompleteLogin | unary |
+| GetAccessToken | unary |
+| RefreshAccountSession | unary |
+| Logout | unary |
+| SwitchAccount | unary |
+| IssueScopedAppBinding | unary |
+| RevokeScopedAppBinding | unary |
+
 **RuntimeWorkflowService**
 
 | 方法 | 类型 |
@@ -5156,6 +5180,19 @@ Fixed rules:
 - RevokeAppAccessToken
 - IssueDelegatedAccessToken
 - ListTokenChain
+
+**account_service_projection** → RuntimeAccountService
+
+- GetAccountSessionStatus
+- SubscribeAccountSessionEvents
+- BeginLogin
+- CompleteLogin
+- GetAccessToken
+- RefreshAccountSession
+- Logout
+- SwitchAccount
+- IssueScopedAppBinding
+- RevokeScopedAppBinding
 
 **workflow_service_projection** → RuntimeWorkflowService
 

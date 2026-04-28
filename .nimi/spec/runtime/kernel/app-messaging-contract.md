@@ -21,6 +21,7 @@
 | `message_type` | string | 否 | 消息类型标识 |
 | `payload` | Struct | 否 | 消息载荷（任意 JSON） |
 | `require_ack` | bool | 否 | 是否需要确认 |
+| `scoped_binding` | ScopedRuntimeBindingAttachment | 条件必填 | `to_app_id=runtime.agent` 且消息族属于 K-APP-008 时必填；包含 binding id / optional handle / non-secret relation selectors |
 
 返回 `message_id`（ULID）、`accepted`、`reason_code`。
 
@@ -33,6 +34,9 @@
 - `subject_user_id`：过滤关联用户（可选）。
 - `cursor`：续传游标（可选）。
 - `from_app_ids`：过滤发送方列表（repeated，可选）。
+- `scoped_binding`：当订阅 `from_app_ids` 包含 `runtime.agent` 或该
+  stream 用于 Desktop-launched Avatar binding-only consume 时必填；携带
+  non-secret binding id / optional handle / relation selectors。
 
 `AppMessageEvent` 字段：
 
@@ -139,8 +143,13 @@ AppService 的跨域消费契约状态：
   family:
   - admitted ingress via `SendAppMessage` to `to_app_id=runtime.agent` with an
     admitted ingress message type requires `runtime.agent.turn.write`
-  - admitted `SubscribeAppMessages` reads that filter `from_app_ids` including
+- admitted `SubscribeAppMessages` reads that filter `from_app_ids` including
     `runtime.agent` require `runtime.agent.turn.read`
+  - admitted ingress / subscribe for Desktop-launched Avatar binding-only
+    consume must carry a scoped binding attachment and Runtime must validate it
+    against `K-BIND-006` / `K-BIND-012`, including current authenticated account
+    state; `subject_user_id` remains available for unrelated modes but is not
+    proof for Desktop-launched Avatar
   - generic cross-app app-bus traffic outside this reserved seam continues to
     use `runtime.app.send.cross_app`
 - `runtime.agent.*` RPC projection remains separate and covers
@@ -197,6 +206,9 @@ Fixed rules:
 - A scoped Avatar runtime binding may expose only opaque runtime IPC binding
   material to Avatar; it must not expose Realm token, refresh token, or
   durable subject/user truth.
+- Runtime must reject the binding once account state leaves authenticated
+  custody; Avatar may keep the local visual carrier visible while interaction
+  becomes unavailable.
 - Runtime binding failure must close only interaction, voice, activity,
   app-message subscribe/send, and runtime-driven presentation. A valid local
   Agent Center visual package must continue to render.

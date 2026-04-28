@@ -5,6 +5,9 @@
 
 ## SJ-SHELL-001 — Bootstrap Sequence
 
+Authority fence: `ACCOUNT_HARDCUT_NON_ADMITTED_APP_SLICE_FENCE`.
+ShiJi is not currently admitted as an active local first-party Runtime account/session authority for the `2026-04-28-runtime-core-account-session-broker-hardcut` topic. Existing app-local token/session bootstrap seams are fenced legacy slice behavior and must not be treated as hardcut-compliant local account truth until migrated to Runtime-issued short-lived token projection and admitted caller registration.
+
 App bootstrap follows the standard nimi Tauri app sequence:
 
 1. Tauri shell starts, renderer loads `main.tsx`
