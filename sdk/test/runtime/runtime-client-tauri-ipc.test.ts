@@ -28,7 +28,6 @@ import {
 import {
   ConversationAnchor,
   ConversationAnchorStatus,
-  GetPublicChatSessionSnapshotResponse,
   OpenConversationAnchorResponse,
 } from '../../src/runtime/generated/runtime/v1/agent_service.js';
 import { ListModelsResponse } from '../../src/runtime/generated/runtime/v1/model';
@@ -601,13 +600,6 @@ test('tauri-ipc Runtime agent turns surface includes protected tokens for stream
               ).toString('base64'),
             };
           }
-          if (captured.methodId === RuntimeMethodIds.agent.getPublicChatSessionSnapshot) {
-            return {
-              responseBytesBase64: Buffer.from(
-                GetPublicChatSessionSnapshotResponse.toBinary(GetPublicChatSessionSnapshotResponse.create({})),
-              ).toString('base64'),
-            };
-          }
         }
         if (command === 'runtime_bridge_stream_open') {
           capturedPayloads.push(captured);
@@ -643,10 +635,6 @@ test('tauri-ipc Runtime agent turns surface includes protected tokens for stream
       },
     });
 
-    await runtime.agent.turns.getSessionSnapshot({
-      agentId: 'agent-1',
-      conversationAnchorId: 'anchor-1',
-    });
     await runtime.agent.turns.subscribe({
       agentId: 'agent-1',
       conversationAnchorId: 'anchor-1',
@@ -660,12 +648,10 @@ test('tauri-ipc Runtime agent turns surface includes protected tokens for stream
 
     const appSubscribePayload = capturedPayloads.find((captured) => captured.methodId === RuntimeMethodIds.app.subscribeAppMessages);
     const agentSubscribePayload = capturedPayloads.find((captured) => captured.methodId === RuntimeMethodIds.agent.subscribeEvents);
-    const snapshotPayload = capturedPayloads.find((captured) => captured.methodId === RuntimeMethodIds.agent.getPublicChatSessionSnapshot);
     const sendPayload = capturedPayloads.find((captured) => captured.methodId === RuntimeMethodIds.app.sendAppMessage);
 
     assert.ok(appSubscribePayload);
     assert.ok(agentSubscribePayload);
-    assert.ok(snapshotPayload);
     assert.ok(sendPayload);
     assert.deepEqual(authorizeRequests.map((request) => request.scopes), [
       ['runtime.agent.turn.read'],
@@ -675,14 +661,6 @@ test('tauri-ipc Runtime agent turns surface includes protected tokens for stream
     assert.deepEqual(appSubscribePayload.protectedAccessToken, {
       tokenId: 'runtime-agent-turn-read-token',
       secret: 'runtime-agent-turn-read-secret',
-    });
-    assert.deepEqual(snapshotPayload.protectedAccessToken, {
-      tokenId: 'runtime-agent-turn-read-token',
-      secret: 'runtime-agent-turn-read-secret',
-    });
-    assert.deepEqual(snapshotPayload.appSession, {
-      sessionId: 'runtime-session-id',
-      sessionToken: 'runtime-session-token',
     });
     assert.deepEqual(agentSubscribePayload.protectedAccessToken, {
       tokenId: 'runtime-agent-read-token',
