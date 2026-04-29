@@ -511,7 +511,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
       timeoutMs: 180_000,
       source: resolved.source,
     });
-    const workflowRequest: DesktopReplayJobRequest = input.fixture.capability === 'voice.clone'
+    const workflowRequest: DesktopReplayJobRequest = input.fixture.capability === 'voice_workflow.voice_clone'
       ? {
         head: {
           appId: input.runtime.appId,

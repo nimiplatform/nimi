@@ -44,7 +44,7 @@ type AgentCommitInput = Parameters<ReturnType<typeof createAgentLocalChatContinu
 type AgentRuntimeStreamRequest = Parameters<AgentLocalChatRuntimeAdapter['streamText']>[0];
 type TestVoiceWorkflowSubmitRequest = {
   workflowIntent: {
-    workflowType: 'tts_v2v' | 'tts_t2v';
+    workflowType: 'voice_clone' | 'voice_design';
   };
   referenceAudio?: {
     bytes: Uint8Array;
@@ -2014,7 +2014,7 @@ test('agent local chat provider submits workflow voice actions without silently 
             actionId: 'action-voice-clone',
             actionIndex: 0,
             modality: 'voice',
-            operation: 'voice_workflow.tts_v2v',
+            operation: 'voice_workflow.voice_clone',
             promptText: '参考这句的温柔低声线，保留亲密但清晰的咬字。',
             sourceMessageId: 'beat-voice-clone',
             sourceBeatIndex: 0,
@@ -2074,28 +2074,28 @@ test('agent local chat provider submits workflow voice actions without silently 
         imageProjection: null,
         voiceProjection: null,
         voiceWorkflowProjections: {
-          'voice_workflow.tts_v2v': {
-            capability: 'voice_workflow.tts_v2v',
+          'voice_workflow.voice_clone': {
+            capability: 'voice_workflow.voice_clone',
             selectedBinding: { source: 'cloud', connectorId: 'connector-voice-clone', model: 'qwen3-tts-vc' },
-            resolvedBinding: { capability: 'voice_workflow.tts_v2v', source: 'cloud', provider: 'dashscope', model: 'qwen3-tts-vc', modelId: 'qwen3-tts-vc', connectorId: 'connector-voice-clone' },
+            resolvedBinding: { capability: 'voice_workflow.voice_clone', source: 'cloud', provider: 'dashscope', model: 'qwen3-tts-vc', modelId: 'qwen3-tts-vc', connectorId: 'connector-voice-clone' },
             health: null,
             metadata: {
-              capability: 'voice_workflow.tts_v2v',
+              capability: 'voice_workflow.voice_clone',
               metadataVersion: 'v1',
               resolvedBindingRef: 'voice-clone-ref',
-              metadataKind: 'voice_workflow.tts_v2v',
+              metadataKind: 'voice_workflow.voice_clone',
               metadata: {
-                workflowType: 'tts_v2v',
+                workflowType: 'voice_clone',
               },
             },
             supported: true,
             reasonCode: null,
           },
-          'voice_workflow.tts_t2v': null,
+          'voice_workflow.voice_design': null,
         },
         voiceWorkflowReadyByCapability: {
-          'voice_workflow.tts_v2v': true,
-          'voice_workflow.tts_t2v': false,
+          'voice_workflow.voice_clone': true,
+          'voice_workflow.voice_design': false,
         },
         imageReady: false,
         voiceReady: false,
@@ -2108,12 +2108,12 @@ test('agent local chat provider submits workflow voice actions without silently 
         transcriptText: '帮我定一个新的声音分身吧',
       },
       voiceWorkflowExecutionSnapshotByCapability: {
-        'voice_workflow.tts_v2v': {
+        'voice_workflow.voice_clone': {
           executionId: 'workflow-clone-snapshot',
           conversationCapabilitySlice: {
-            capability: 'voice_workflow.tts_v2v',
+            capability: 'voice_workflow.voice_clone',
             resolvedBinding: {
-              capability: 'voice_workflow.tts_v2v',
+              capability: 'voice_workflow.voice_clone',
             },
           },
         },
@@ -2145,7 +2145,7 @@ test('agent local chat provider fails close when workflow voice clone has no cur
             actionId: 'action-voice-clone',
             actionIndex: 0,
             modality: 'voice',
-            operation: 'voice_workflow.tts_v2v',
+            operation: 'voice_workflow.voice_clone',
             promptText: '参考这句的温柔低声线，保留亲密但清晰的咬字。',
             sourceMessageId: 'beat-voice-clone',
             sourceBeatIndex: 0,
@@ -2205,28 +2205,28 @@ test('agent local chat provider fails close when workflow voice clone has no cur
         imageProjection: null,
         voiceProjection: null,
         voiceWorkflowProjections: {
-          'voice_workflow.tts_v2v': {
-            capability: 'voice_workflow.tts_v2v',
+          'voice_workflow.voice_clone': {
+            capability: 'voice_workflow.voice_clone',
             selectedBinding: { source: 'cloud', connectorId: 'connector-voice-clone', model: 'qwen3-tts-vc' },
-            resolvedBinding: { capability: 'voice_workflow.tts_v2v', source: 'cloud', provider: 'dashscope', model: 'qwen3-tts-vc', modelId: 'qwen3-tts-vc', connectorId: 'connector-voice-clone' },
+            resolvedBinding: { capability: 'voice_workflow.voice_clone', source: 'cloud', provider: 'dashscope', model: 'qwen3-tts-vc', modelId: 'qwen3-tts-vc', connectorId: 'connector-voice-clone' },
             health: null,
             metadata: {
-              capability: 'voice_workflow.tts_v2v',
+              capability: 'voice_workflow.voice_clone',
               metadataVersion: 'v1',
               resolvedBindingRef: 'voice-clone-ref',
-              metadataKind: 'voice_workflow.tts_v2v',
+              metadataKind: 'voice_workflow.voice_clone',
               metadata: {
-                workflowType: 'tts_v2v',
+                workflowType: 'voice_clone',
               },
             },
             supported: true,
             reasonCode: null,
           },
-          'voice_workflow.tts_t2v': null,
+          'voice_workflow.voice_design': null,
         },
         voiceWorkflowReadyByCapability: {
-          'voice_workflow.tts_v2v': true,
-          'voice_workflow.tts_t2v': false,
+          'voice_workflow.voice_clone': true,
+          'voice_workflow.voice_design': false,
         },
         imageReady: false,
         voiceReady: false,
@@ -2234,12 +2234,12 @@ test('agent local chat provider fails close when workflow voice clone has no cur
       textExecutionSnapshot: { executionId: 'text-snapshot' },
       voiceExecutionSnapshot: null,
       voiceWorkflowExecutionSnapshotByCapability: {
-        'voice_workflow.tts_v2v': {
+        'voice_workflow.voice_clone': {
           executionId: 'workflow-clone-snapshot',
           conversationCapabilitySlice: {
-            capability: 'voice_workflow.tts_v2v',
+            capability: 'voice_workflow.voice_clone',
             resolvedBinding: {
-              capability: 'voice_workflow.tts_v2v',
+              capability: 'voice_workflow.voice_clone',
             },
           },
         },

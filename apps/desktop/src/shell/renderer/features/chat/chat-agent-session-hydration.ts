@@ -167,6 +167,9 @@ export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
   if (!conversationAnchorId || transcript.length === 0) {
     return null;
   }
+  if (!input.bundle) {
+    return null;
+  }
   if (input.bundle?.messages.some((message) => message.status === 'pending')) {
     return null;
   }

@@ -84,7 +84,7 @@ export async function runResolvedEnvelopeActions(input: {
                 voiceWorkflowExecutionSnapshot: input.metadata.voiceWorkflowExecutionSnapshotByCapability[
                   voiceDecision.workflowIntent.capability
                 ] || null,
-                referenceAudio: voiceDecision.workflowIntent.workflowType === 'tts_v2v'
+                referenceAudio: voiceDecision.workflowIntent.workflowType === 'voice_clone'
                   ? input.metadata.latestVoiceCapture
                   : null,
                 signal: createAgentTailAbortSignal(input.threadId, input.signal),

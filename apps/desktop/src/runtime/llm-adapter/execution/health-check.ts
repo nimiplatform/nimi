@@ -102,7 +102,7 @@ function withPlaneDetail(
 
 function isVoiceWorkflowCapability(value: unknown): boolean {
   const normalized = normalizeCapability(value);
-  return normalized === 'voice_workflow.tts_v2v' || normalized === 'voice_workflow.tts_t2v';
+  return normalized === 'voice_workflow.voice_clone' || normalized === 'voice_workflow.voice_design';
 }
 
 function hasRuntimeAuthoritativeLocalModelRef(input: CheckLlmHealthInput): boolean {
@@ -115,6 +115,12 @@ function hasRuntimeAuthoritativeLocalModelRef(input: CheckLlmHealthInput): boole
 
 function usesRuntimeAuthoritativeLocalModelHealth(engine: ReturnType<typeof normalizeLocalEngine>): boolean {
   return engine === 'llama';
+}
+
+function isRecoverableSupervisedIdleProbe(detail: string): boolean {
+  const normalized = String(detail || '').trim().toLowerCase();
+  return normalized.includes('plane=local-supervised')
+    && normalized.includes('connect: connection refused');
 }
 
 function usesRuntimeAuthoritativeLocalMediaHealth(
@@ -179,6 +185,16 @@ async function checkRuntimeAuthoritativeLocalModelHealth(
   }
 
   if (candidate.status === 'unhealthy') {
+    if (isRecoverableSupervisedIdleProbe(candidate.healthDetail)) {
+      return {
+        provider,
+        endpoint,
+        model,
+        status: 'degraded',
+        detail: 'managed local model ready to warm',
+        checkedAt: new Date().toISOString(),
+      };
+    }
     return {
       provider,
       endpoint,

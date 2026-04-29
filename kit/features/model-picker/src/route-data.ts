@@ -305,8 +305,8 @@ const CAPABILITY_ALIASES: Record<string, readonly string[]> = {
   'tts': ['audio.synthesize', 'tts'],
   'audio.transcribe': ['audio.transcribe', 'stt'],
   'stt': ['audio.transcribe', 'stt'],
-  'voice_workflow.tts_v2v': ['voice_workflow.tts_v2v', 'audio.synthesize', 'tts'],
-  'voice_workflow.tts_t2v': ['voice_workflow.tts_t2v', 'audio.synthesize', 'tts'],
+  'voice_workflow.voice_clone': ['voice_workflow.voice_clone', 'audio.synthesize', 'tts'],
+  'voice_workflow.voice_design': ['voice_workflow.voice_design', 'audio.synthesize', 'tts'],
   'video.generate': ['video.generate', 'video'],
   'video': ['video.generate', 'video'],
 };

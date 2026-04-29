@@ -101,7 +101,7 @@ describe('TextGenerateParamsEditor', () => {
 });
 
 describe('AudioSynthesizeParamsEditor', () => {
-  it('propagates provider voice reference updates', async () => {
+  it('renders voice reference as host-provided selection instead of manual text input', async () => {
     let next: AudioSynthesizeParamsState = { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS };
     await render(
       <AudioSynthesizeParamsEditor
@@ -120,12 +120,17 @@ describe('AudioSynthesizeParamsEditor', () => {
       />,
     );
     expect(container?.textContent).toContain('Voice reference');
-    const voiceInput = (Array.from(container?.querySelectorAll('input') || []) as HTMLInputElement[])[0];
+    const select = container?.querySelector('select') as HTMLSelectElement;
+    expect(select).toBeTruthy();
+    expect(select.value).toBe('__default_voice__');
+    const voiceInputs = Array.from(container?.querySelectorAll('input') || []) as HTMLInputElement[];
+    expect(voiceInputs.some((input) => input.value === 'alloy')).toBe(false);
     await act(async () => {
-      setInputValue(voiceInput, 'alloy');
+      select.value = '__default_voice__';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
       await flush();
     });
-    expect(next.voiceRef).toEqual({ kind: 'provider_voice_ref', providerVoiceRef: 'alloy' });
+    expect(next.voiceRef).toEqual(null);
   });
 
   it('renders voice choices when provided by the host surface', async () => {
@@ -224,18 +229,26 @@ describe('VoiceWorkflowParamsEditor', () => {
       <VoiceWorkflowParamsEditor
         copy={{
           parametersLabel: 'Parameters',
+          cloneParametersLabel: 'Voice clone parameters',
+          designParametersLabel: 'Voice design parameters',
           referenceAssetLabel: 'Reference asset',
           referenceTextLabel: 'Reference text',
           voiceDesignPromptLabel: 'Voice design prompt',
+          previewTextLabel: 'Preview text',
+          languageLabel: 'Language',
+          preferredNameLabel: 'Preferred name',
           durationLabel: 'Duration',
           seedLabel: 'Seed',
           timeoutLabel: 'Timeout',
         }}
+        mode="voice_clone"
         params={next}
         onParamsChange={(value) => { next = value; }}
       />,
     );
-    expect(container?.textContent).toContain('Voice design prompt');
+    expect(container?.textContent).toContain('Voice clone parameters');
+    expect(container?.textContent).toContain('Reference text');
+    expect(container?.textContent).not.toContain('Voice design prompt');
     const textareas = Array.from(container?.querySelectorAll('textarea') || []) as HTMLTextAreaElement[];
     expect(textareas.length).toBeGreaterThan(0);
     const referenceTextarea = textareas[0];

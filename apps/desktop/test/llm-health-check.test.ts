@@ -49,6 +49,28 @@ test('local llama health returns unreachable when runtime authoritative model is
   assert.equal(mockFetch.mock.callCount(), 0);
 });
 
+test('local llama health keeps supervised idle connection-refused probes ready to warm', async () => {
+  const mockFetch = mock.fn(async () => new Response('Service Unavailable', { status: 503 }));
+  const result = await checkLocalLlmHealth({
+    provider: 'llama',
+    localProviderEndpoint: 'http://127.0.0.1:1234/v1',
+    localProviderModel: 'llama3',
+    listRuntimeLocalModelsSnapshot: async () => ([{
+      localAssetId: 'local-1',
+      assetId: 'llama3',
+      engine: 'llama',
+      status: 'unhealthy',
+      endpoint: 'http://127.0.0.1:1234/v1',
+      healthDetail: 'probe request failed: Get "probe_endpoint": dial tcp 127.0.0.1:1234: connect: connection refused; plane=local-supervised; consecutive_failures=3; next_probe_in=30s',
+    }]),
+    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  });
+
+  assert.equal(result.status, 'degraded');
+  assert.equal(result.detail, 'managed local model ready to warm');
+  assert.equal(mockFetch.mock.callCount(), 0);
+});
+
 test('local llama health returns unreachable when runtime authoritative model is missing', async () => {
   const mockFetch = mock.fn(async () => { throw new Error('ECONNREFUSED'); });
   const result = await checkLocalLlmHealth({
@@ -190,7 +212,7 @@ test('local speech workflow health fails closed without borrowing plain speech r
 
   const result = await checkLocalLlmHealth({
     provider: 'speech',
-    capability: 'voice_workflow.tts_t2v',
+    capability: 'voice_workflow.voice_design',
     localProviderEndpoint: 'http://127.0.0.1:8330/v1',
     localProviderModel: 'speech/qwen3-tts',
     fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,

@@ -38,8 +38,8 @@ pub fn default_adapter_for_capability(capability: &str) -> LocalAiProviderAdapte
         | "tts"
         | "audio.transcribe"
         | "audio.synthesize"
-        | "voice_workflow.tts_v2v"
-        | "voice_workflow.tts_t2v" => LocalAiProviderAdapterKind::SpeechNativeAdapter,
+        | "voice_workflow.voice_clone"
+        | "voice_workflow.voice_design" => LocalAiProviderAdapterKind::SpeechNativeAdapter,
         "music" => LocalAiProviderAdapterKind::SidecarMusicAdapter,
         _ => LocalAiProviderAdapterKind::LlamaNativeAdapter,
     }
@@ -118,7 +118,7 @@ fn speech_probe_model_matches_capability(model_id: &str, capability: &str) -> bo
                 || normalized.contains("stt")
                 || normalized.contains("transcrib")
         }
-        "tts" | "audio.synthesize" | "voice_workflow.tts_v2v" | "voice_workflow.tts_t2v" => {
+        "tts" | "audio.synthesize" | "voice_workflow.voice_clone" | "voice_workflow.voice_design" => {
             normalized.contains("kokoro")
                 || normalized.contains("qwen3")
                 || normalized.contains("tts")
@@ -164,16 +164,16 @@ pub fn infer_backend_hint_for_provider(
         }
         ("speech", "tts")
         | ("speech", "audio.synthesize")
-        | ("speech", "voice_workflow.tts_v2v")
-        | ("speech", "voice_workflow.tts_t2v")
+        | ("speech", "voice_workflow.voice_clone")
+        | ("speech", "voice_workflow.voice_design")
             if normalized_model.contains("kokoro") =>
         {
             Some("kokoro".to_string())
         }
         ("speech", "tts")
         | ("speech", "audio.synthesize")
-        | ("speech", "voice_workflow.tts_v2v")
-        | ("speech", "voice_workflow.tts_t2v")
+        | ("speech", "voice_workflow.voice_clone")
+        | ("speech", "voice_workflow.voice_design")
             if normalized_model.contains("qwen3-tts") =>
         {
             Some("qwen3_tts".to_string())
@@ -342,8 +342,8 @@ pub fn adapter_supports_capability(adapter: &LocalAiProviderAdapterKind, capabil
         | "tts"
         | "audio.transcribe"
         | "audio.synthesize"
-        | "voice_workflow.tts_v2v"
-        | "voice_workflow.tts_t2v" => {
+        | "voice_workflow.voice_clone"
+        | "voice_workflow.voice_design" => {
             matches!(adapter, LocalAiProviderAdapterKind::SpeechNativeAdapter)
         }
         "music" => matches!(adapter, LocalAiProviderAdapterKind::SidecarMusicAdapter),
@@ -374,8 +374,8 @@ pub fn adapter_supports_capability_for_provider(
                         | "tts"
                         | "audio.transcribe"
                         | "audio.synthesize"
-                        | "voice_workflow.tts_v2v"
-                        | "voice_workflow.tts_t2v"
+                        | "voice_workflow.voice_clone"
+                        | "voice_workflow.voice_design"
                 )
         }
         "sidecar" => {
@@ -416,8 +416,8 @@ pub fn provider_available_for_capability(provider: &str, capability: &str) -> bo
                 | "tts"
                 | "audio.transcribe"
                 | "audio.synthesize"
-                | "voice_workflow.tts_v2v"
-                | "voice_workflow.tts_t2v"
+                | "voice_workflow.voice_clone"
+                | "voice_workflow.voice_design"
         ),
         "sidecar" => matches!(normalize_capability(capability).as_str(), "music"),
         _ => true,
@@ -463,7 +463,7 @@ mod tests {
         assert_eq!(
             infer_backend_hint_for_provider(
                 "speech",
-                "voice_workflow.tts_t2v",
+                "voice_workflow.voice_design",
                 Some("qwen3-tts-12hz-1.7b-voicedesign")
             ),
             Some("qwen3_tts".to_string())
@@ -485,15 +485,15 @@ mod tests {
     fn speech_provider_admits_local_workflow_capabilities() {
         assert!(provider_available_for_capability(
             "speech",
-            "voice_workflow.tts_t2v"
+            "voice_workflow.voice_design"
         ));
         assert!(adapter_supports_capability_for_provider(
             "speech",
             &LocalAiProviderAdapterKind::SpeechNativeAdapter,
-            "voice_workflow.tts_v2v"
+            "voice_workflow.voice_clone"
         ));
         assert_eq!(
-            infer_backend_hint_for_provider("speech", "voice_workflow.tts_t2v", Some("qwen3-tts")),
+            infer_backend_hint_for_provider("speech", "voice_workflow.voice_design", Some("qwen3-tts")),
             Some("qwen3_tts".to_string())
         );
     }

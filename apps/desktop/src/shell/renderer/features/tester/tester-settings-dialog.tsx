@@ -238,6 +238,7 @@ function SectionDetail({ section, surface, config, imageContext, videoContext }:
               capabilityId={d.capabilityId}
               surface={surface}
               config={config}
+              activeModelLabel={sectionDescriptors.length > 1 ? t(d.i18nKeys.title) : undefined}
             />
           ))}
         </div>

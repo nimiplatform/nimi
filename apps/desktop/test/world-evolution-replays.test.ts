@@ -129,8 +129,8 @@ test('runDesktopBridgeReplay updates the same replay record on terminal failure 
   const result = await runDesktopBridgeReplay({
     runtime,
     fixture: {
-      fixture_id: 'replay.voice.design',
-      capability: 'voice.design',
+      fixture_id: 'replay.voice_workflow.voice_design',
+      capability: 'voice_workflow.voice_design',
       provider: 'dashscope',
       model_id: 'qwen3-tts-vd',
       target_model_id: 'qwen3-tts-vd-2026-01-26',

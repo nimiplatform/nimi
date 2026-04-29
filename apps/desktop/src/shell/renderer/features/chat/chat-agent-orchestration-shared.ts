@@ -156,7 +156,7 @@ export function isAbortLikeError(error: unknown): boolean {
 export function resolveVoiceWorkflowProgressMessage(
   workflowType: AgentChatVoiceWorkflowMessageMetadata['workflowType'],
 ): string {
-  return workflowType === 'tts_v2v'
+  return workflowType === 'voice_clone'
     ? 'Creating a custom voice from current-thread reference audio…'
     : 'Designing a custom voice for this thread…';
 }

@@ -170,8 +170,8 @@ const CAPABILITY_TO_SECTION: Record<CapabilityId, CanonicalCapabilitySectionId> 
   'world.generate': 'world',
   'audio.synthesize': 'tts',
   'audio.transcribe': 'stt',
-  'voice_workflow.tts_v2v': 'voice',
-  'voice_workflow.tts_t2v': 'voice',
+  'voice_workflow.voice_clone': 'voice',
+  'voice_workflow.voice_design': 'voice',
 };
 
 export function TesterPage() {
@@ -284,9 +284,33 @@ export function TesterPage() {
   const selectedVoiceAssetId = currentAudioSynthesizeParams.voiceRef?.kind === 'voice_asset_id'
     ? currentAudioSynthesizeParams.voiceRef.voiceAssetId
     : '';
-  const handleVoiceAssetCreated = useCallback(() => {
+  const selectVoiceAssetForTts = useCallback((voiceAssetId: string) => {
+    const normalizedVoiceAssetId = asText(voiceAssetId);
+    if (!normalizedVoiceAssetId) return;
+    persistTesterConfig((current) => {
+      const storedAudioParams = parseAudioSynthesizeParams(
+        (current.capabilities.selectedParams['audio.synthesize'] || {}) as Record<string, unknown>,
+      );
+      return {
+        ...current,
+        capabilities: {
+          ...current.capabilities,
+          selectedParams: {
+            ...current.capabilities.selectedParams,
+            'audio.synthesize': {
+              ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS,
+              ...storedAudioParams,
+              voiceRef: { kind: 'voice_asset_id', voiceAssetId: normalizedVoiceAssetId },
+            },
+          },
+        },
+      };
+    });
+  }, [persistTesterConfig]);
+  const handleVoiceAssetCreated = useCallback((voiceAssetId: string) => {
     setVoiceAssetRefreshRevision((value) => value + 1);
-  }, []);
+    selectVoiceAssetForTts(voiceAssetId);
+  }, [selectVoiceAssetForTts]);
   const handleUseVoiceAssetInTts = useCallback((asset: VoiceAssetSelection) => {
     const targetModelId = asText(asset.targetModelId) || asText(asset.modelId);
     persistTesterConfig((current) => {
@@ -392,10 +416,10 @@ export function TesterPage() {
               <VoiceAssetPanel
                 mode={voiceAssetMode}
                 onModeChange={setVoiceAssetMode}
-                cloneState={mergeBindingIntoState(states['voice_workflow.tts_v2v'], bindingFromTesterConfig(testerConfig, 'voice_workflow.tts_v2v'))}
-                onCloneStateChange={(updater) => updateCapabilityState('voice_workflow.tts_v2v', updater)}
-                designState={mergeBindingIntoState(states['voice_workflow.tts_t2v'], bindingFromTesterConfig(testerConfig, 'voice_workflow.tts_t2v'))}
-                onDesignStateChange={(updater) => updateCapabilityState('voice_workflow.tts_t2v', updater)}
+                cloneState={mergeBindingIntoState(states['voice_workflow.voice_clone'], bindingFromTesterConfig(testerConfig, 'voice_workflow.voice_clone'))}
+                onCloneStateChange={(updater) => updateCapabilityState('voice_workflow.voice_clone', updater)}
+                designState={mergeBindingIntoState(states['voice_workflow.voice_design'], bindingFromTesterConfig(testerConfig, 'voice_workflow.voice_design'))}
+                onDesignStateChange={(updater) => updateCapabilityState('voice_workflow.voice_design', updater)}
                 selectedVoiceAssetId={selectedVoiceAssetId}
                 onUseVoiceAsset={handleUseVoiceAssetInTts}
                 onVoiceAssetCreated={handleVoiceAssetCreated}
@@ -410,8 +434,8 @@ export function TesterPage() {
             onStateChange={(updater) => updateCapabilityState('audio.transcribe', updater)}
           />
         );
-      case 'voice_workflow.tts_v2v':
-      case 'voice_workflow.tts_t2v':
+      case 'voice_workflow.voice_clone':
+      case 'voice_workflow.voice_design':
         return null;
     }
   };

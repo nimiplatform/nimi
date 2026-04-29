@@ -365,6 +365,9 @@
   "audioSynthesize": {
     "options": "语音选项",
     "textPlaceholder": "输入要合成的文本...",
+    "voiceReference": "语音",
+    "customVoiceAssets": "自定义语音资产",
+    "presetVoices": "预设语音",
     "presetVoice": "预设语音",
     "audioFormat": "音频格式",
     "manualVoiceOverride": "手动语音 ID 覆盖",
@@ -438,6 +441,14 @@
     "modeClone": "克隆",
     "modeDesign": "设计",
     "modeCloneDesc": "用一段参考音频复刻一个声音",
-    "modeDesignDesc": "用一段文字描述创造一个声音"
+    "modeDesignDesc": "用一段文字描述创造一个声音",
+    "createVoice": "创建语音",
+    "assetsTitle": "语音资产",
+    "noAssets": "暂无自定义语音资产",
+    "selectedForTts": "已用于 TTS",
+    "useInTts": "用于 TTS"
+  },
+  "status": {
+    "loading": "加载中"
   }
 }

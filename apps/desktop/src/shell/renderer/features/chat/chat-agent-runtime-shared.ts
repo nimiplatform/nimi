@@ -92,8 +92,8 @@ export function resolveExecutionSlice(
     | 'image.generate'
     | 'audio.synthesize'
     | 'audio.transcribe'
-    | 'voice_workflow.tts_v2v'
-    | 'voice_workflow.tts_t2v',
+    | 'voice_workflow.voice_clone'
+    | 'voice_workflow.voice_design',
 ): NonNullable<AISnapshot['conversationCapabilitySlice']> {
   const slice = snapshot?.conversationCapabilitySlice;
   if (!slice || slice.capability !== capability || !slice.resolvedBinding) {

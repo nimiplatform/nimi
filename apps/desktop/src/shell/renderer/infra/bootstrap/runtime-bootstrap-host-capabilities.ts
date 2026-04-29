@@ -199,8 +199,8 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
             payload.capability !== 'text.generate'
             && payload.capability !== 'audio.synthesize'
             && payload.capability !== 'audio.transcribe'
-            && payload.capability !== 'voice_workflow.tts_v2v'
-            && payload.capability !== 'voice_workflow.tts_t2v'
+            && payload.capability !== 'voice_workflow.voice_clone'
+            && payload.capability !== 'voice_workflow.voice_design'
         ) {
             throw new Error('RUNTIME_ROUTE_DESCRIBE_CAPABILITY_UNSUPPORTED');
         }

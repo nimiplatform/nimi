@@ -26,8 +26,8 @@ const VOICE_DESIGN_ROUTE_DESCRIBE_PROBE_NAMESPACE = 'nimi.scenario.voice_design.
 const TEXT_GENERATE_ROUTE_DESCRIBE_PROBE_TEXT = 'runtime.route.describe(text.generate)';
 const SPEECH_SYNTHESIZE_ROUTE_DESCRIBE_PROBE_TEXT = 'runtime.route.describe(audio.synthesize)';
 const SPEECH_TRANSCRIBE_ROUTE_DESCRIBE_PROBE_BYTES = new Uint8Array([0x01]);
-const VOICE_CLONE_ROUTE_DESCRIBE_PROBE_TEXT = 'runtime.route.describe(voice_workflow.tts_v2v)';
-const VOICE_DESIGN_ROUTE_DESCRIBE_PROBE_TEXT = 'runtime.route.describe(voice_workflow.tts_t2v)';
+const VOICE_CLONE_ROUTE_DESCRIBE_PROBE_TEXT = 'runtime.route.describe(voice_workflow.voice_clone)';
+const VOICE_DESIGN_ROUTE_DESCRIBE_PROBE_TEXT = 'runtime.route.describe(voice_workflow.voice_design)';
 const VOICE_CLONE_ROUTE_DESCRIBE_REFERENCE_AUDIO_URI = 'https://nimi.invalid/route-describe-reference.wav';
 const VOICE_CLONE_ROUTE_DESCRIBE_REFERENCE_AUDIO_BYTES = new Uint8Array([0x01]);
 const VOICE_CLONE_ROUTE_DESCRIBE_PREFERRED_NAME = 'runtime-route-describe-probe';
@@ -39,8 +39,8 @@ type RouteDescribeCapability =
   | 'text.generate'
   | 'audio.synthesize'
   | 'audio.transcribe'
-  | 'voice_workflow.tts_v2v'
-  | 'voice_workflow.tts_t2v';
+  | 'voice_workflow.voice_clone'
+  | 'voice_workflow.voice_design';
 
 type RuntimeCallOptionsWithResponseMetadataObserver = RuntimeCallOptions & {
   _responseMetadataObserver?: (metadata: Record<string, string>) => void;
@@ -93,7 +93,7 @@ function buildDescribeProbeExtensions(
       ? SPEECH_SYNTHESIZE_ROUTE_DESCRIBE_PROBE_NAMESPACE
       : capability === 'audio.transcribe'
         ? SPEECH_TRANSCRIBE_ROUTE_DESCRIBE_PROBE_NAMESPACE
-    : capability === 'voice_workflow.tts_v2v'
+    : capability === 'voice_workflow.voice_clone'
       ? VOICE_CLONE_ROUTE_DESCRIBE_PROBE_NAMESPACE
       : VOICE_DESIGN_ROUTE_DESCRIBE_PROBE_NAMESPACE;
   return [{
@@ -180,7 +180,7 @@ function buildDescribeProbeSpec(
     };
   }
 
-  if (capability === 'voice_workflow.tts_v2v') {
+  if (capability === 'voice_workflow.voice_clone') {
     return {
       spec: {
         oneofKind: 'voiceClone' as const,
@@ -225,7 +225,7 @@ function toRouteDescribeScenarioType(capability: RouteDescribeCapability): Scena
   if (capability === 'audio.transcribe') {
     return ScenarioType.SPEECH_TRANSCRIBE;
   }
-  if (capability === 'voice_workflow.tts_v2v') {
+  if (capability === 'voice_workflow.voice_clone') {
     return ScenarioType.VOICE_CLONE;
   }
   return ScenarioType.VOICE_DESIGN;

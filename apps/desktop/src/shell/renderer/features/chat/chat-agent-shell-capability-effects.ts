@@ -14,8 +14,8 @@ const AGENT_CONVERSATION_DEFERRED_CAPABILITIES: readonly ConversationCapability[
   'video.generate',
   'audio.synthesize',
   'audio.transcribe',
-  'voice_workflow.tts_v2v',
-  'voice_workflow.tts_t2v',
+  'voice_workflow.voice_clone',
+  'voice_workflow.voice_design',
 ];
 
 type UseAgentConversationCapabilityEffectsInput = {

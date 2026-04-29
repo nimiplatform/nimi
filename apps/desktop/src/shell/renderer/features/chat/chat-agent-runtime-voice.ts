@@ -157,7 +157,7 @@ export async function submitChatAgentVoiceWorkflowRuntime(
       timeoutMs: 180_000,
       connectorId: normalizeText(resolved.connectorId),
     },
-    scenarioType: input.workflowIntent.workflowType === 'tts_v2v'
+    scenarioType: input.workflowIntent.workflowType === 'voice_clone'
       ? ScenarioType.VOICE_CLONE
       : ScenarioType.VOICE_DESIGN,
     executionMode: ExecutionMode.ASYNC_JOB,
@@ -170,7 +170,7 @@ export async function submitChatAgentVoiceWorkflowRuntime(
       beat_id: input.beatId,
     },
     extensions: [],
-    spec: input.workflowIntent.workflowType === 'tts_v2v'
+    spec: input.workflowIntent.workflowType === 'voice_clone'
       ? {
         spec: {
           oneofKind: 'voiceClone' as const,

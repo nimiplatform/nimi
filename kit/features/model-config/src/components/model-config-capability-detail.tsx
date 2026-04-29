@@ -59,6 +59,7 @@ export type ModelConfigCapabilityDetailProps = {
   capabilityId: string;
   surface: AppModelConfigSurface;
   config: AIConfig;
+  activeModelLabel?: string | null;
 };
 
 function readParams(config: AIConfig, capabilityId: string): Record<string, unknown> {
@@ -232,6 +233,7 @@ function renderEditor(
             params={params}
             assets={[...voiceAssets]}
             assetsLoading={surface.localAssetSource?.loading}
+            mode={descriptor.capabilityId === 'voice_workflow.voice_design' ? 'voice_design' : 'voice_clone'}
             onParamsChange={(next) => writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, { params: { ...DEFAULT_VOICE_WORKFLOW_PARAMS, ...next } })}
           />
         ),
@@ -326,6 +328,7 @@ export function ModelConfigCapabilityDetail({
   capabilityId,
   surface,
   config,
+  activeModelLabel,
 }: ModelConfigCapabilityDetailProps) {
   const descriptor = CANONICAL_CAPABILITY_CATALOG_BY_ID[capabilityId];
   const override = resolveOverride(surface, capabilityId);
@@ -353,7 +356,9 @@ export function ModelConfigCapabilityDetail({
     routeCapability: descriptor.sourceRef.capability,
     label: t(descriptor.i18nKeys.title),
     detail: override.detail ?? t(descriptor.i18nKeys.detail),
-    activeModelLabel: t('ModelConfig.hub.activeModelLabel', { defaultValue: 'Active Model' }),
+    activeModelLabel: activeModelLabel === null
+      ? undefined
+      : (activeModelLabel ?? t('ModelConfig.hub.activeModelLabel', { defaultValue: 'Active Model' })),
     binding,
     provider,
     onBindingChange: handleBindingChange,

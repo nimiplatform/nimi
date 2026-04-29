@@ -66,6 +66,12 @@ export async function resolveRouteInput(
   }
   const slice = resolveExecutionSlice(input.executionSnapshot, 'text.generate');
   const resolved = slice.resolvedBinding as AgentRuntimeResolvedBinding;
+  return resolveRouteInputFromTextResolvedBinding(resolved);
+}
+
+export function resolveRouteInputFromTextResolvedBinding(
+  resolved: AgentRuntimeResolvedBinding,
+): ResolvedAgentRuntimeRouteInput {
   if (resolved.source === 'local') {
     return {
       modId: CORE_CHAT_AGENT_MOD_ID,

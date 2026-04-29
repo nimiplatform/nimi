@@ -44,7 +44,7 @@ test('resolveSourceAndModel preserves explicit cloud provider and prefixes cloud
   assert.equal(resolved.routePolicy, 2);
 });
 
-test('resolveSourceAndModel prefixes llama selectors for local routes', () => {
+test('resolveSourceAndModel preserves llama engine model ids for local text routes', () => {
   const resolved = resolveSourceAndModel({
     provider: 'llama',
     model: 'qwen3-chat',
@@ -66,7 +66,7 @@ test('resolveSourceAndModel keeps generic local selector when provider is legacy
   assert.equal(resolved.modelId, 'local/qwen-rerank');
 });
 
-test('resolveSourceAndModel prefixes media selectors for local routes', () => {
+test('resolveSourceAndModel preserves media engine model ids for local image routes', () => {
   const resolved = resolveSourceAndModel({
     provider: 'media',
     model: 'flux.1-schnell',

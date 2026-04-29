@@ -43,7 +43,7 @@ fn capability_is_synthesize(value: &str) -> bool {
 }
 
 fn capability_is_voice_workflow(value: &str) -> bool {
-    capability_matches(value, &["voice_workflow.tts_v2v", "voice_workflow.tts_t2v"])
+    capability_matches(value, &["voice_workflow.voice_clone", "voice_workflow.voice_design"])
 }
 
 pub fn default_preferred_engine_for_capabilities(capabilities: &[String]) -> String {
@@ -395,7 +395,7 @@ mod tests {
     #[test]
     fn default_artifact_roles_include_voice_workflow_roles() {
         assert_eq!(
-            default_artifact_roles_for_capabilities(&["voice_workflow.tts_v2v".to_string()]),
+            default_artifact_roles_for_capabilities(&["voice_workflow.voice_clone".to_string()]),
             vec![
                 "voice_workflow_model".to_string(),
                 "speech_tokenizer".to_string(),

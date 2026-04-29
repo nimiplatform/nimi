@@ -389,7 +389,7 @@ export async function runTesterVoiceClone(input: {
     idempotencyKey: requestId,
     labels: {
       surface: 'desktop-tester',
-      capability: 'voice_workflow.tts_v2v',
+      capability: 'voice_workflow.voice_clone',
     },
     extensions: [],
     spec: {
@@ -474,7 +474,7 @@ export async function runTesterVoiceDesign(input: {
     idempotencyKey: requestId,
     labels: {
       surface: 'desktop-tester',
-      capability: 'voice_workflow.tts_t2v',
+      capability: 'voice_workflow.voice_design',
     },
     extensions: [],
     spec: {

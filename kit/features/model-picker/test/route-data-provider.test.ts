@@ -118,7 +118,7 @@ describe('createSnapshotRouteDataProvider', () => {
 
   it('uses the snapshot capability for connector models without per-model capabilities', async () => {
     const snapshot = makeSnapshot({
-      capability: 'voice_workflow.tts_v2v',
+      capability: 'voice_workflow.voice_clone',
       connectors: [
         {
           id: 'connector-dashscope',
@@ -134,7 +134,7 @@ describe('createSnapshotRouteDataProvider', () => {
 
     expect(models).toHaveLength(1);
     expect(models[0]!.modelId).toBe('qwen3-tts-vc');
-    expect(models[0]!.capabilities).toEqual(['voice_workflow.tts_v2v']);
+    expect(models[0]!.capabilities).toEqual(['voice_workflow.voice_clone']);
   });
 
   it('returns empty list for unknown connector id', async () => {

@@ -99,12 +99,12 @@ function createAudioSynthesizeDescribeResult(ref: string): RuntimeRouteDescribeR
 
 function createVoiceWorkflowV2vDescribeResult(ref: string): RuntimeRouteDescribeResult {
   return {
-    capability: 'voice_workflow.tts_v2v',
+    capability: 'voice_workflow.voice_clone',
     metadataVersion: 'v1',
     resolvedBindingRef: ref,
-    metadataKind: 'voice_workflow.tts_v2v',
+    metadataKind: 'voice_workflow.voice_clone',
     metadata: {
-      workflowType: 'tts_v2v',
+      workflowType: 'voice_clone',
       requiresTargetSynthesisBinding: true,
       textPromptMode: 'unsupported',
       supportsLanguageHints: true,
@@ -118,12 +118,12 @@ function createVoiceWorkflowV2vDescribeResult(ref: string): RuntimeRouteDescribe
 
 function createVoiceWorkflowT2vDescribeResult(ref: string): RuntimeRouteDescribeResult {
   return {
-    capability: 'voice_workflow.tts_t2v',
+    capability: 'voice_workflow.voice_design',
     metadataVersion: 'v1',
     resolvedBindingRef: ref,
-    metadataKind: 'voice_workflow.tts_t2v',
+    metadataKind: 'voice_workflow.voice_design',
     metadata: {
-      workflowType: 'tts_t2v',
+      workflowType: 'voice_design',
       requiresTargetSynthesisBinding: true,
       instructionTextMode: 'required',
       previewTextMode: 'optional',
@@ -140,10 +140,10 @@ function createDescribeResult(
   if (capability === 'audio.synthesize') {
     return createAudioSynthesizeDescribeResult(ref);
   }
-  if (capability === 'voice_workflow.tts_v2v') {
+  if (capability === 'voice_workflow.voice_clone') {
     return createVoiceWorkflowV2vDescribeResult(ref);
   }
-  if (capability === 'voice_workflow.tts_t2v') {
+  if (capability === 'voice_workflow.voice_design') {
     return createVoiceWorkflowT2vDescribeResult(ref);
   }
   return createTextDescribeResult(ref);
@@ -326,19 +326,19 @@ test('audio.synthesize projection fails closed when selection missing', async ()
 
 // --- voice_workflow projection tests (with describe required) ---
 
-test('voice_workflow.tts_v2v projection fails closed when describe metadata missing', async () => {
+test('voice_workflow.voice_clone projection fails closed when describe metadata missing', async () => {
   const store = updateConversationCapabilityBinding(
     createDefaultConversationCapabilitySelectionStore(),
-    'voice_workflow.tts_v2v',
+    'voice_workflow.voice_clone',
     { source: 'cloud', connectorId: 'connector-1', model: 'voice-clone' },
   );
   const routeRuntime = createMockRouteRuntime({
-    resolveResult: createCloudResolvedBinding('voice_workflow.tts_v2v', 'voice-clone'),
+    resolveResult: createCloudResolvedBinding('voice_workflow.voice_clone', 'voice-clone'),
     healthResult: createHealthyResult(),
     describeError: new Error('describe not available'),
   });
   const projection = await buildConversationCapabilityProjection({
-    capability: 'voice_workflow.tts_v2v',
+    capability: 'voice_workflow.voice_clone',
     selectionStore: store,
     routeRuntime,
   });
@@ -346,14 +346,14 @@ test('voice_workflow.tts_v2v projection fails closed when describe metadata miss
   assert.equal(projection.reasonCode, 'metadata_missing');
 });
 
-test('voice_workflow.tts_t2v treated as independent capability, not audio.synthesize alias', async () => {
+test('voice_workflow.voice_design treated as independent capability, not audio.synthesize alias', async () => {
   const store = updateConversationCapabilityBinding(
     updateConversationCapabilityBinding(
       createDefaultConversationCapabilitySelectionStore(),
       'audio.synthesize',
       { source: 'cloud', connectorId: 'connector-1', model: 'tts-1' },
     ),
-    'voice_workflow.tts_t2v',
+    'voice_workflow.voice_design',
     null,
   );
   const routeRuntime = createMockRouteRuntime();
@@ -363,7 +363,7 @@ test('voice_workflow.tts_t2v treated as independent capability, not audio.synthe
     routeRuntime,
   });
   const voiceProjection = await buildConversationCapabilityProjection({
-    capability: 'voice_workflow.tts_t2v',
+    capability: 'voice_workflow.voice_design',
     selectionStore: store,
     routeRuntime,
   });
@@ -400,7 +400,7 @@ test('buildConversationCapabilityProjectionMap refreshes all capabilities includ
       'audio.synthesize',
       { source: 'local', connectorId: '', model: 'tts-1' },
     ),
-    'voice_workflow.tts_v2v',
+    'voice_workflow.voice_clone',
     { source: 'local', connectorId: '', model: 'voice-clone' },
   );
   const projections = await buildConversationCapabilityProjectionMap({
@@ -410,14 +410,14 @@ test('buildConversationCapabilityProjectionMap refreshes all capabilities includ
   assert.ok(projections['text.generate']);
   assert.ok(projections['image.generate']);
   assert.ok(projections['audio.synthesize']);
-  assert.ok(projections['voice_workflow.tts_v2v']);
+  assert.ok(projections['voice_workflow.voice_clone']);
   assert.equal(projections['image.generate']!.supported, true);
   assert.equal(projections['image.generate']!.reasonCode, null);
   assert.equal(projections['image.generate']!.metadata, null);
   assert.equal(projections['audio.synthesize']!.supported, true);
   assert.ok(resolvedCapabilities.includes('image.generate'));
   assert.ok(resolvedCapabilities.includes('audio.synthesize'));
-  assert.ok(resolvedCapabilities.includes('voice_workflow.tts_v2v'));
+  assert.ok(resolvedCapabilities.includes('voice_workflow.voice_clone'));
 });
 
 test('buildConversationCapabilityProjectionMap supports image.generate without typed route metadata', async () => {
@@ -520,7 +520,7 @@ test('toRuntimeCanonicalCapability maps image.edit to image.generate for host bo
   assert.equal(toRuntimeCanonicalCapability('image.edit'), 'image.generate');
   assert.equal(toRuntimeCanonicalCapability('image.generate'), 'image.generate');
   assert.equal(toRuntimeCanonicalCapability('audio.synthesize'), 'audio.synthesize');
-  assert.equal(toRuntimeCanonicalCapability('voice_workflow.tts_v2v'), 'voice_workflow.tts_v2v');
+  assert.equal(toRuntimeCanonicalCapability('voice_workflow.voice_clone'), 'voice_workflow.voice_clone');
 });
 
 test('image.edit projection fails closed when selection missing', async () => {

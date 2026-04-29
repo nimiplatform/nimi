@@ -39,7 +39,7 @@ test('conversation capability UI contract: runtimeFields projection still only r
   assert.match(runtimeSliceSource, /const textProjection = nextProjectionByCapability\['text\.generate'\] \|\| null;/);
   assert.doesNotMatch(runtimeSliceSource, /nextProjectionByCapability\['image\.generate'\]/);
   assert.doesNotMatch(runtimeSliceSource, /nextProjectionByCapability\['audio\.synthesize'\]/);
-  assert.doesNotMatch(runtimeSliceSource, /nextProjectionByCapability\['voice_workflow\.tts_v2v'\]/);
+  assert.doesNotMatch(runtimeSliceSource, /nextProjectionByCapability\['voice_workflow\.voice_clone'\]/);
 });
 
 test('conversation capability UI contract: conversationExecution stays confined to host media authority path', () => {

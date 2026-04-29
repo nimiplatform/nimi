@@ -42,8 +42,8 @@ test('desktop replay voice design uses async-job enum values without injecting s
   const result = await runDesktopBridgeReplay({
     runtime,
     fixture: {
-      fixture_id: 'dashscope.voice.design',
-      capability: 'voice.design',
+      fixture_id: 'dashscope.voice_workflow.voice_design',
+      capability: 'voice_workflow.voice_design',
       provider: 'dashscope',
       model_id: 'qwen3-tts-vd',
       target_model_id: 'qwen3-tts-vd-2026-01-26',

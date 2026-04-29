@@ -110,7 +110,7 @@ const ALL_SECTION_CAPABILITIES = [
   'audio.transcribe', // stt
   'image.generate', // image
   'video.generate', // video
-  'voice_workflow.tts_v2v', // voice
+  'voice_workflow.voice_clone', // tts workflow
   'text.embed', // embed
   'world.generate', // world
 ];
@@ -143,8 +143,9 @@ describe('ModelConfigAiModelHub', () => {
       .filter((button) => button.textContent?.includes('Import AI Profile'));
     expect(importButtonsStrict.length).toBe(1);
 
-    // Section cards for all 8 sections rendered (section.chat.title etc. appears once each).
-    const sectionKeys = ['chat', 'tts', 'stt', 'image', 'video', 'voice', 'embed', 'world'];
+    // Section cards for all configured sections rendered. Voice workflow capabilities
+    // live under TTS, so there is no separate voice section.
+    const sectionKeys = ['chat', 'tts', 'stt', 'image', 'video', 'embed', 'world'];
     for (const section of sectionKeys) {
       expect(container?.textContent, `section ${section} title missing`).toContain(`ModelConfig.section.${section}.title`);
     }

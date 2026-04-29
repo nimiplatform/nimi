@@ -215,14 +215,6 @@ export async function submitAgentConversationTurn(input: {
     input.hostInput.setSubmittingThreadId(effectiveThreadId);
     input.hostInput.setFooterHostState(effectiveThreadId, null);
 
-    const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({
-      t: input.hostInput.t,
-    });
-    await assertAgentSubmitSchedulingAllowed({
-      aiConfig: input.hostInput.aiConfig,
-      t: input.hostInput.t,
-    });
-
     const uploadedAttachments = input.payload.attachments.length > 0
       ? await Promise.all(input.payload.attachments.map((attachment) => uploadPendingAttachment(input.hostInput, attachment)))
       : [];
@@ -330,6 +322,19 @@ export async function submitAgentConversationTurn(input: {
       submittedText,
       workingBundle: userBundle,
     });
+
+    const refreshedAgentResolution = await ensureAgentConversationSubmitRouteReady({
+      t: input.hostInput.t,
+    });
+    await assertAgentSubmitSchedulingAllowed({
+      aiConfig: input.hostInput.aiConfig,
+      t: input.hostInput.t,
+    });
+    if (!refreshedAgentResolution.textProjection?.resolvedBinding) {
+      throw new Error(input.hostInput.t('Chat.agentSubmitRouteUnavailable', {
+        defaultValue: 'Choose a ready AI route before sending a message.',
+      }));
+    }
 
     const runtimeEvidence = await peekDesktopAISchedulingForEvidence({
       scopeRef: input.hostInput.aiConfig.scopeRef,

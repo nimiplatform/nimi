@@ -138,6 +138,9 @@ export type VoiceWorkflowParamsState = {
   referenceAssetId: string;
   referenceText: string;
   voiceDesignPrompt: string;
+  previewText: string;
+  language: string;
+  preferredName: string;
   durationSec: string;
   seed: string;
   timeoutMs: string;

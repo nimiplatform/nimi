@@ -177,12 +177,12 @@ test('describeRuntimeRouteMetadata keeps Desktop inline cloud route fail-closed'
 test('describeRuntimeRouteMetadata decodes voice workflow typed metadata from runtime response header', async () => {
   const calls: TauriInvokeCall[] = [];
   const encoded = Buffer.from(JSON.stringify({
-    capability: 'voice_workflow.tts_v2v',
+    capability: 'voice_workflow.voice_clone',
     metadataVersion: 'v1',
     resolvedBindingRef: 'binding-voice-cloud-001',
-    metadataKind: 'voice_workflow.tts_v2v',
+    metadataKind: 'voice_workflow.voice_clone',
     metadata: {
-      workflowType: 'tts_v2v',
+      workflowType: 'voice_clone',
       requiresTargetSynthesisBinding: true,
       textPromptMode: 'unsupported',
       supportsLanguageHints: false,
@@ -206,10 +206,10 @@ test('describeRuntimeRouteMetadata decodes voice workflow typed metadata from ru
 
     const result = await describeRuntimeRouteMetadata({
       modId: 'core:runtime',
-      capability: 'voice_workflow.tts_v2v',
+      capability: 'voice_workflow.voice_clone',
       resolvedBindingRef: 'binding-voice-cloud-001',
       resolvedBinding: {
-        capability: 'voice_workflow.tts_v2v',
+        capability: 'voice_workflow.voice_clone',
         source: 'cloud',
         provider: 'elevenlabs',
         model: 'voice-clone-v1',
@@ -218,11 +218,11 @@ test('describeRuntimeRouteMetadata decodes voice workflow typed metadata from ru
       },
     });
 
-    assert.equal(result.metadataKind, 'voice_workflow.tts_v2v');
-    if (result.metadataKind !== 'voice_workflow.tts_v2v') {
+    assert.equal(result.metadataKind, 'voice_workflow.voice_clone');
+    if (result.metadataKind !== 'voice_workflow.voice_clone') {
       assert.fail('expected voice workflow route metadata');
     }
-    assert.equal(result.metadata.workflowType, 'tts_v2v');
+    assert.equal(result.metadata.workflowType, 'voice_clone');
     assert.equal(result.metadata.requiresTargetSynthesisBinding, true);
     assert.equal(result.metadata.textPromptMode, 'unsupported');
     assert.equal(result.metadata.referenceAudioUriInput, true);

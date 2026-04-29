@@ -22,11 +22,12 @@ function readTesterPanel(relativePath: string): string {
 
 test('tester speech panel contract: voice workflow panels call real runtime helpers', () => {
   const voicePanelSource = readTesterPanel('panel-voice-stubs.tsx');
+  const voiceAssetPanelSource = readTesterPanel('panel-voice-asset.tsx');
 
   assert.match(voicePanelSource, /runTesterVoiceClone\(/);
   assert.match(voicePanelSource, /runTesterVoiceDesign\(/);
-  assert.match(voicePanelSource, /listTesterVoiceAssets\(modClient/);
-  assert.match(voicePanelSource, /onUseVoiceAsset/);
+  assert.match(voiceAssetPanelSource, /listTesterVoiceAssets\(modClient/);
+  assert.match(voiceAssetPanelSource, /onUseVoiceAsset/);
   assert.doesNotMatch(voicePanelSource, /sdkMethodUnavailable/);
 });
 

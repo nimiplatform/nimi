@@ -1,6 +1,6 @@
 import type { ModRuntimeLocalAssetKind, RuntimeCanonicalCapability, RuntimeRouteBinding, RuntimeRouteOptionsSnapshot } from '@nimiplatform/sdk/mod';
 
-export type CapabilityId = 'text.generate' | 'text.stream' | 'text.embed' | 'image.generate' | 'image.create-job' | 'video.generate' | 'video.create-job' | 'world.generate' | 'audio.synthesize' | 'audio.transcribe' | 'voice_workflow.tts_v2v' | 'voice_workflow.tts_t2v';
+export type CapabilityId = 'text.generate' | 'text.stream' | 'text.embed' | 'image.generate' | 'image.create-job' | 'video.generate' | 'video.create-job' | 'world.generate' | 'audio.synthesize' | 'audio.transcribe' | 'voice_workflow.voice_clone' | 'voice_workflow.voice_design';
 
 export type CapabilityMeta = {
   id: CapabilityId;
@@ -19,8 +19,8 @@ export const CAPABILITIES: CapabilityMeta[] = [
   { id: 'world.generate', hasRoute: true, routeCapability: 'world.generate' },
   { id: 'audio.synthesize', hasRoute: true, routeCapability: 'audio.synthesize' },
   { id: 'audio.transcribe', hasRoute: true, routeCapability: 'audio.transcribe' },
-  { id: 'voice_workflow.tts_v2v', hasRoute: true, routeCapability: 'voice_workflow.tts_v2v' },
-  { id: 'voice_workflow.tts_t2v', hasRoute: true, routeCapability: 'voice_workflow.tts_t2v' },
+  { id: 'voice_workflow.voice_clone', hasRoute: true, routeCapability: 'voice_workflow.voice_clone' },
+  { id: 'voice_workflow.voice_design', hasRoute: true, routeCapability: 'voice_workflow.voice_design' },
 ];
 
 export type VoiceOption = {
@@ -199,6 +199,6 @@ export const CAPABILITY_LABELS: Record<CapabilityId, { label: string; descriptio
   'world.generate': { label: 'World Tour', description: 'World generation route and acceptance surface' },
   'audio.synthesize': { label: 'TTS', description: 'Text to speech' },
   'audio.transcribe': { label: 'STT', description: 'Speech to text' },
-  'voice_workflow.tts_v2v': { label: 'Voice', description: 'Clone or design a voice asset' },
-  'voice_workflow.tts_t2v': { label: 'Voice', description: 'Clone or design a voice asset' },
+  'voice_workflow.voice_clone': { label: 'Voice', description: 'Clone or design a voice asset' },
+  'voice_workflow.voice_design': { label: 'Voice', description: 'Clone or design a voice asset' },
 };

@@ -34,12 +34,12 @@ function createAgentResolution(
     imageProjection: null,
     voiceProjection: null,
     voiceWorkflowProjections: {
-      'voice_workflow.tts_v2v': null,
-      'voice_workflow.tts_t2v': null,
+      'voice_workflow.voice_clone': null,
+      'voice_workflow.voice_design': null,
     },
     voiceWorkflowReadyByCapability: {
-      'voice_workflow.tts_v2v': false,
-      'voice_workflow.tts_t2v': false,
+      'voice_workflow.voice_clone': false,
+      'voice_workflow.voice_design': false,
     },
     imageReady: false,
     voiceReady: false,

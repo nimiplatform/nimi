@@ -111,21 +111,32 @@ function normalizeModelRoot(model: string): string {
   return normalized;
 }
 
-function inferLocalEngine(provider: string): string {
-  const normalized = String(provider || '').trim().toLowerCase();
-  if (normalized.includes('sidecar')) return 'sidecar';
-  if (normalized.includes('media')) return 'media';
-  if (normalized.includes('llama') || normalized.includes('local')) return 'llama';
-  return 'local';
-}
-
 function normalizeEngineName(value: string): string {
   const normalized = String(value || '').trim().toLowerCase();
   if (!normalized) return '';
   if (normalized.includes('llama')) return 'llama';
   if (normalized.includes('media')) return 'media';
+  if (normalized.includes('speech')) return 'speech';
   if (normalized.includes('sidecar')) return 'sidecar';
   return normalized;
+}
+
+function inferLocalRouteEngine(model: string, provider: string): string {
+  const normalizedModel = String(model || '').trim().toLowerCase();
+  if (normalizedModel.startsWith('llama/')) return 'llama';
+  if (normalizedModel.startsWith('media/')) return 'media';
+  if (normalizedModel.startsWith('speech/')) return 'speech';
+  if (normalizedModel.startsWith('sidecar/')) return 'sidecar';
+  const normalizedProvider = normalizeEngineName(provider);
+  if (
+    normalizedProvider === 'llama'
+    || normalizedProvider === 'media'
+    || normalizedProvider === 'speech'
+    || normalizedProvider === 'sidecar'
+  ) {
+    return normalizedProvider;
+  }
+  return 'local';
 }
 
 function resolveWarmTimeoutMs(timeoutMs: number | undefined): number {
@@ -385,11 +396,7 @@ function ensureRouteModelId(model: string, routePolicy: number, provider: string
     });
   }
   if (routePolicy === ROUTE_POLICY_CLOUD) return `cloud/${modelRoot}`;
-  const engine = inferLocalEngine(provider);
-  if (engine === 'llama' || engine === 'media' || engine === 'speech' || engine === 'sidecar') {
-    return `${engine}/${modelRoot}`;
-  }
-  return `local/${modelRoot}`;
+  return `${inferLocalRouteEngine(model, provider)}/${modelRoot}`;
 }
 
 export function getRuntimeClient() {

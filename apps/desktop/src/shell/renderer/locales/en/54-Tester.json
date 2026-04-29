@@ -365,6 +365,9 @@
   "audioSynthesize": {
     "options": "Voice options",
     "textPlaceholder": "Enter text to synthesize...",
+    "voiceReference": "Voice",
+    "customVoiceAssets": "Custom voice assets",
+    "presetVoices": "Preset voices",
     "presetVoice": "Preset Voice",
     "audioFormat": "Audio Format",
     "manualVoiceOverride": "Manual voice ID override",
@@ -438,6 +441,14 @@
     "modeClone": "Clone",
     "modeDesign": "Design",
     "modeCloneDesc": "Replicate a voice from a reference audio",
-    "modeDesignDesc": "Create a voice from a text description"
+    "modeDesignDesc": "Create a voice from a text description",
+    "createVoice": "Create voice",
+    "assetsTitle": "Voice assets",
+    "noAssets": "No custom voice assets",
+    "selectedForTts": "Selected for TTS",
+    "useInTts": "Use in TTS"
+  },
+  "status": {
+    "loading": "Loading"
   }
 }

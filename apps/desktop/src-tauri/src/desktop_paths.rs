@@ -4,6 +4,8 @@ use std::path::{Component, Path, PathBuf};
 
 const NIMI_DIR_NAME: &str = ".nimi";
 const NIMI_DATA_DIR_NAME: &str = "data";
+const NIMI_RUNTIME_DIR_NAME: &str = "runtime";
+const LOCAL_RUNTIME_STATE_FILE: &str = "local-state.json";
 const DESKTOP_PATHS_CONFIG_FILE: &str = "desktop-paths.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -148,13 +150,19 @@ pub fn set_nimi_data_dir(path: &str) -> Result<DesktopStorageDirsPayload, String
 pub fn describe_desktop_storage_dirs() -> Result<DesktopStorageDirsPayload, String> {
     let nimi_dir = resolve_nimi_dir()?;
     let nimi_data_dir = resolve_nimi_data_dir()?;
+    let runtime_dir = nimi_dir.join(NIMI_RUNTIME_DIR_NAME);
     let installed_mods_dir = nimi_data_dir.join("mods");
     let media_cache_dir = nimi_data_dir.join("cache").join("media");
     let local_models_dir = nimi_data_dir.join("models");
-    let local_runtime_state_path = nimi_data_dir.join("state.json");
+    let local_runtime_state_path = runtime_dir.join(LOCAL_RUNTIME_STATE_FILE);
     let runtime_mod_db_path = nimi_data_dir.join("runtime-mod.db");
 
-    for dir in [&installed_mods_dir, &media_cache_dir, &local_models_dir] {
+    for dir in [
+        &runtime_dir,
+        &installed_mods_dir,
+        &media_cache_dir,
+        &local_models_dir,
+    ] {
         fs::create_dir_all(dir)
             .map_err(|error| format!("创建目录失败 ({}): {error}", dir.display()))?;
     }
@@ -220,11 +228,20 @@ mod tests {
                     .display()
                     .to_string()
             );
+            assert_eq!(
+                dirs.local_runtime_state_path,
+                home.join(".nimi")
+                    .join("runtime")
+                    .join("local-state.json")
+                    .display()
+                    .to_string()
+            );
+            assert!(home.join(".nimi").join("runtime").exists());
         });
     }
 
     #[test]
-    fn switching_nimi_data_dir_switches_installed_mods_dir_without_migration() {
+    fn switching_nimi_data_dir_keeps_runtime_state_under_nimi_runtime() {
         let home = temp_home("set-data-dir");
         let custom_data_dir = home.join("custom-data-root");
         with_env(&[("HOME", home.to_str())], || {
@@ -236,8 +253,17 @@ mod tests {
                 dirs.installed_mods_dir,
                 custom_data_dir.join("mods").display().to_string()
             );
+            assert_eq!(
+                dirs.local_runtime_state_path,
+                home.join(".nimi")
+                    .join("runtime")
+                    .join("local-state.json")
+                    .display()
+                    .to_string()
+            );
             assert!(custom_data_dir.exists());
             assert!(custom_data_dir.join("mods").exists());
+            assert!(home.join(".nimi").join("runtime").exists());
         });
     }
 }

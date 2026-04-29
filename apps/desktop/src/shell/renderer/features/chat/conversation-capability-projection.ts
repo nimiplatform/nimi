@@ -33,8 +33,8 @@ export function refreshAgentEffectiveCapabilityResolution(): void {
   const textProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['text.generate'] || null;
   const imageProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['image.generate'] || null;
   const voiceProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['audio.synthesize'] || null;
-  const voiceWorkflowCloneProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['voice_workflow.tts_v2v'] || null;
-  const voiceWorkflowDesignProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['voice_workflow.tts_t2v'] || null;
+  const voiceWorkflowCloneProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['voice_workflow.voice_clone'] || null;
+  const voiceWorkflowDesignProjection = useAppStore.getState().conversationCapabilityProjectionByCapability['voice_workflow.voice_design'] || null;
   useAppStore.getState().setAgentEffectiveCapabilityResolution(
     buildAgentEffectiveCapabilityResolution({
       textProjection,

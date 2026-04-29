@@ -78,13 +78,15 @@
       "title": "视频生成",
       "subtitle": "根据提示词生成视频"
     },
-    "voiceWorkflowTtsT2v": {
+    "voiceWorkflowVoiceDesign": {
       "title": "语音设计",
-      "subtitle": "根据说明创建语音"
+      "subtitle": "根据说明创建语音",
+      "detail": "通过选中的语音设计工作流模型创建 text-to-voice 语音资产。"
     },
-    "voiceWorkflowTtsV2v": {
+    "voiceWorkflowVoiceClone": {
       "title": "语音克隆",
-      "subtitle": "根据参考音频创建语音"
+      "subtitle": "根据参考音频创建语音",
+      "detail": "通过选中的语音克隆工作流模型创建参考音频语音资产。"
     },
     "worldGenerate": {
       "title": "世界生成",
@@ -143,14 +145,22 @@
     },
     "voiceWorkflow": {
       "parametersLabel": "参数",
+      "cloneParametersLabel": "语音克隆参数",
+      "designParametersLabel": "语音设计参数",
       "referenceAssetLabel": "参考语音",
       "referenceAssetHint": "可用时使用已有本地语音资产。",
       "referenceTextLabel": "参考文本",
       "voiceDesignPromptLabel": "设计提示词",
       "voiceDesignPromptHint": "描述要生成的语音风格。",
+      "previewTextLabel": "试听文本",
+      "languageLabel": "语言",
+      "preferredNameLabel": "偏好名称",
       "durationLabel": "时长",
       "referenceTextPlaceholder": "参考音频的可选转写文本",
       "voiceDesignPromptPlaceholder": "温暖、自然、适合对话的声音",
+      "previewTextPlaceholder": "用于试听设计语音的文本",
+      "languagePlaceholder": "语言（可选）",
+      "preferredNamePlaceholder": "语音资产偏好名称",
       "referenceAssetPlaceholder": "选择语音资产"
     },
     "image": {

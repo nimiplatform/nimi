@@ -116,8 +116,8 @@ fn provider_priority(capability: &str, provider: &str) -> i32 {
         | "tts"
         | "audio.transcribe"
         | "audio.synthesize"
-        | "voice_workflow.tts_v2v"
-        | "voice_workflow.tts_t2v" => match provider.trim().to_ascii_lowercase().as_str() {
+        | "voice_workflow.voice_clone"
+        | "voice_workflow.voice_design" => match provider.trim().to_ascii_lowercase().as_str() {
             "speech" => 3,
             "llama" => 1,
             _ => 0,

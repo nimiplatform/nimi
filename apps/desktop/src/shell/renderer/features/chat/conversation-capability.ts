@@ -40,17 +40,17 @@ export const CONVERSATION_CAPABILITIES = [
   'video.generate',
   'audio.synthesize',
   'audio.transcribe',
-  'voice_workflow.tts_v2v',
-  'voice_workflow.tts_t2v',
+  'voice_workflow.voice_clone',
+  'voice_workflow.voice_design',
 ] as const;
 
 export type ConversationCapability = (typeof CONVERSATION_CAPABILITIES)[number];
 export const AGENT_VOICE_WORKFLOW_CAPABILITIES = [
-  'voice_workflow.tts_v2v',
-  'voice_workflow.tts_t2v',
+  'voice_workflow.voice_clone',
+  'voice_workflow.voice_design',
 ] as const;
 export type AgentVoiceWorkflowCapability = (typeof AGENT_VOICE_WORKFLOW_CAPABILITIES)[number];
-export type AgentVoiceWorkflowType = 'tts_v2v' | 'tts_t2v';
+export type AgentVoiceWorkflowType = 'voice_clone' | 'voice_design';
 
 const CONVERSATION_CAPABILITY_RUNTIME_MAP: Partial<Record<ConversationCapability, RuntimeCanonicalCapability>> = {
   'image.edit': 'image.generate',
@@ -400,17 +400,17 @@ export function buildAgentEffectiveCapabilityResolution(input: {
   const imageProjection = input.imageProjection || null;
   const voiceProjection = input.voiceProjection || null;
   const voiceWorkflowProjections: AgentVoiceWorkflowProjectionMap = {
-    'voice_workflow.tts_v2v': input.voiceWorkflowCloneProjection || null,
-    'voice_workflow.tts_t2v': input.voiceWorkflowDesignProjection || null,
+    'voice_workflow.voice_clone': input.voiceWorkflowCloneProjection || null,
+    'voice_workflow.voice_design': input.voiceWorkflowDesignProjection || null,
   };
   const voiceWorkflowReadyByCapability: AgentVoiceWorkflowReadyMap = {
-    'voice_workflow.tts_v2v': Boolean(
-      voiceWorkflowProjections['voice_workflow.tts_v2v']?.supported
-        && voiceWorkflowProjections['voice_workflow.tts_v2v']?.resolvedBinding,
+    'voice_workflow.voice_clone': Boolean(
+      voiceWorkflowProjections['voice_workflow.voice_clone']?.supported
+        && voiceWorkflowProjections['voice_workflow.voice_clone']?.resolvedBinding,
     ),
-    'voice_workflow.tts_t2v': Boolean(
-      voiceWorkflowProjections['voice_workflow.tts_t2v']?.supported
-        && voiceWorkflowProjections['voice_workflow.tts_t2v']?.resolvedBinding,
+    'voice_workflow.voice_design': Boolean(
+      voiceWorkflowProjections['voice_workflow.voice_design']?.supported
+        && voiceWorkflowProjections['voice_workflow.voice_design']?.resolvedBinding,
     ),
   };
   const imageReady = Boolean(imageProjection?.supported && imageProjection?.resolvedBinding);

@@ -273,7 +273,7 @@ test('buildSelectedBinding infers speech engine for local audio.transcribe bindi
 
 test('buildSelectedBinding infers speech engine for local voice clone bindings without explicit engine', () => {
   const selected = buildSelectedBinding({
-    capability: 'voice_workflow.tts_v2v',
+    capability: 'voice_workflow.voice_clone',
     selectedBinding: {
       source: 'local',
       connectorId: '',
@@ -295,7 +295,7 @@ test('buildSelectedBinding infers speech engine for local voice clone bindings w
 
 test('buildSelectedBinding infers speech engine for local voice design bindings without explicit engine', () => {
   const selected = buildSelectedBinding({
-    capability: 'voice_workflow.tts_t2v',
+    capability: 'voice_workflow.voice_design',
     selectedBinding: {
       source: 'local',
       connectorId: '',

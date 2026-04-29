@@ -68,8 +68,8 @@ function fallbackLocalEngine(capability?: RuntimeCanonicalCapability): string {
     if (
         capability === 'audio.synthesize'
         || capability === 'audio.transcribe'
-        || capability === 'voice_workflow.tts_v2v'
-        || capability === 'voice_workflow.tts_t2v'
+        || capability === 'voice_workflow.voice_clone'
+        || capability === 'voice_workflow.voice_design'
     ) {
         return 'speech';
     }

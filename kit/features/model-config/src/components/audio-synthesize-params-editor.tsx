@@ -60,10 +60,6 @@ function voiceReferenceEquals(left: SpeechVoiceReference | null, right: SpeechVo
   return voiceReferenceKey(left) === voiceReferenceKey(right);
 }
 
-function providerVoiceRefValue(value: SpeechVoiceReference | null): string {
-  return value?.kind === 'provider_voice_ref' ? value.providerVoiceRef : '';
-}
-
 export function createAudioSynthesizeEditorCopy(
   t: (key: string, vars?: Record<string, string | number>) => string,
 ): AudioSynthesizeParamsEditorCopy {
@@ -107,18 +103,16 @@ export function AudioSynthesizeParamsEditor(props: AudioSynthesizeParamsEditorPr
   };
 
   const configuredVoiceOptions = props.voiceOptions || [];
-  const voiceSelectOptions = configuredVoiceOptions.length > 0
-    ? [
-        { value: DEFAULT_VOICE_SENTINEL, label: copy.defaultPlaceholder || 'Default' },
-        ...configuredVoiceOptions.map((option) => ({
-          value: voiceReferenceKey(option.value),
-          label: option.label,
-        })),
-        ...(params.voiceRef && !configuredVoiceOptions.some((option) => voiceReferenceEquals(option.value, params.voiceRef))
-          ? [{ value: voiceReferenceKey(params.voiceRef), label: voiceReferenceKey(params.voiceRef) }]
-          : []),
-      ]
-    : [];
+  const voiceSelectOptions = [
+    { value: DEFAULT_VOICE_SENTINEL, label: copy.defaultPlaceholder || 'Default' },
+    ...configuredVoiceOptions.map((option) => ({
+      value: voiceReferenceKey(option.value),
+      label: option.label,
+    })),
+    ...(params.voiceRef && !configuredVoiceOptions.some((option) => voiceReferenceEquals(option.value, params.voiceRef))
+      ? [{ value: voiceReferenceKey(params.voiceRef), label: voiceReferenceKey(params.voiceRef) }]
+      : []),
+  ];
   const voiceOptionsByKey = new Map(configuredVoiceOptions.map((option) => [voiceReferenceKey(option.value), option.value]));
   const voiceSectionLabel = copy.voiceSectionLabel ?? copy.parametersLabel;
   const audioTuningSectionLabel = copy.audioTuningSectionLabel ?? copy.parametersLabel;
@@ -131,19 +125,11 @@ export function AudioSynthesizeParamsEditor(props: AudioSynthesizeParamsEditorPr
       <section className="space-y-3.5">
         <EditorSectionTitle label={voiceSectionLabel} />
         <StackedFieldRow label={copy.voiceRefLabel} hint={copy.voiceRefHint}>
-          {voiceSelectOptions.length > 0 ? (
-            <PlainSelect
-              value={voiceReferenceKey(params.voiceRef)}
-              onChange={(value) => updateParam('voiceRef', value === DEFAULT_VOICE_SENTINEL ? null : (voiceOptionsByKey.get(value) || params.voiceRef))}
-              options={voiceSelectOptions}
-            />
-          ) : (
-            <PlainTextInput
-              value={providerVoiceRefValue(params.voiceRef)}
-              onChange={(value) => updateParam('voiceRef', value.trim() ? { kind: 'provider_voice_ref', providerVoiceRef: value } : null)}
-              placeholder={copy.defaultPlaceholder}
-            />
-          )}
+          <PlainSelect
+            value={voiceReferenceKey(params.voiceRef)}
+            onChange={(value) => updateParam('voiceRef', value === DEFAULT_VOICE_SENTINEL ? null : (voiceOptionsByKey.get(value) || params.voiceRef))}
+            options={voiceSelectOptions}
+          />
         </StackedFieldRow>
         <StackedFieldRow label={copy.languageHintLabel} hint={copy.languageHintHint}>
           <PlainTextInput

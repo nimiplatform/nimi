@@ -99,7 +99,7 @@ export type AgentLocalChatVoiceState =
 
 export type AgentVoiceWorkflowIntent = {
   capability: AgentVoiceWorkflowCapability;
-  workflowType: 'tts_v2v' | 'tts_t2v';
+  workflowType: 'voice_clone' | 'voice_design';
   operation: string;
 };
 
@@ -159,7 +159,7 @@ function isPromptLikelyNsfw(text: string): boolean {
 }
 
 function resolveVoiceWorkflowLabel(intent: AgentVoiceWorkflowIntent): string {
-  return intent.workflowType === 'tts_v2v'
+  return intent.workflowType === 'voice_clone'
     ? 'Voice clone workflow'
     : 'Voice design workflow';
 }
@@ -171,17 +171,17 @@ function resolveVoiceActionWorkflowIntent(
   if (!operation || operation === 'generate' || operation === 'audio.synthesize') {
     return null;
   }
-  if (operation === 'voice_workflow.tts_v2v') {
+  if (operation === 'voice_workflow.voice_clone') {
     return {
-      capability: 'voice_workflow.tts_v2v',
-      workflowType: 'tts_v2v',
+      capability: 'voice_workflow.voice_clone',
+      workflowType: 'voice_clone',
       operation,
     };
   }
-  if (operation === 'voice_workflow.tts_t2v') {
+  if (operation === 'voice_workflow.voice_design') {
     return {
-      capability: 'voice_workflow.tts_t2v',
-      workflowType: 'tts_t2v',
+      capability: 'voice_workflow.voice_design',
+      workflowType: 'voice_design',
       operation,
     };
   }

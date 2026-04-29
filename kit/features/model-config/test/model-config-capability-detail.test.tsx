@@ -253,18 +253,36 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
   });
 
-  it('routes voice_workflow.tts_v2v to VoiceWorkflowParamsEditor (editorKind=voice-workflow)', async () => {
-    const surface = makeSurface('voice_workflow.tts_v2v');
+  it('routes voice_workflow.voice_clone to VoiceWorkflowParamsEditor (editorKind=voice-workflow)', async () => {
+    const surface = makeSurface('voice_workflow.voice_clone');
     await render(
       wrap(
         <ModelConfigCapabilityDetail
-          capabilityId="voice_workflow.tts_v2v"
+          capabilityId="voice_workflow.voice_clone"
           surface={surface}
           config={baseConfig}
         />,
       ),
     );
     expect(container?.textContent).toContain('ModelConfig.editor.voiceWorkflow.referenceTextLabel');
+    expect(container?.textContent).not.toContain('ModelConfig.editor.voiceWorkflow.voiceDesignPromptLabel');
+    expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
+  });
+
+  it('routes voice_workflow.voice_design to design-specific VoiceWorkflowParamsEditor fields', async () => {
+    const surface = makeSurface('voice_workflow.voice_design');
+    await render(
+      wrap(
+        <ModelConfigCapabilityDetail
+          capabilityId="voice_workflow.voice_design"
+          surface={surface}
+          config={baseConfig}
+        />,
+      ),
+    );
+    expect(container?.textContent).toContain('ModelConfig.editor.voiceWorkflow.voiceDesignPromptLabel');
+    expect(container?.textContent).toContain('ModelConfig.editor.voiceWorkflow.previewTextLabel');
+    expect(container?.textContent).not.toContain('ModelConfig.editor.voiceWorkflow.referenceAssetLabel');
     expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
   });
 
@@ -284,6 +302,7 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
     expect(container?.textContent).not.toContain('ModelConfig.editor.textGenerate.temperatureLabel');
     expect(container?.textContent).not.toContain('ModelConfig.editor.audioTranscribe.languageLabel');
     expect(container?.textContent).not.toContain('ModelConfig.editor.voiceWorkflow.referenceTextLabel');
+    expect(container?.textContent).not.toContain('ModelConfig.editor.voiceWorkflow.voiceDesignPromptLabel');
   });
 
   it('returns null for an unknown capability id (catalog miss)', async () => {

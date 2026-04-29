@@ -6,7 +6,7 @@ import {
   toAgentVoicePlaybackCueEnvelopeJson,
 } from './chat-agent-voice-playback-envelope';
 
-export type AgentChatVoiceWorkflowType = 'tts_v2v' | 'tts_t2v';
+export type AgentChatVoiceWorkflowType = 'voice_clone' | 'voice_design';
 
 export type AgentChatVoiceReferenceMeaning =
   | {
@@ -75,11 +75,11 @@ function isWorkflowStatus(value: string): value is AgentChatVoiceWorkflowStatus 
 }
 
 function isWorkflowType(value: string): value is AgentChatVoiceWorkflowType {
-  return value === 'tts_v2v' || value === 'tts_t2v';
+  return value === 'voice_clone' || value === 'voice_design';
 }
 
 function isWorkflowCapability(value: string): value is AgentVoiceWorkflowCapability {
-  return value === 'voice_workflow.tts_v2v' || value === 'voice_workflow.tts_t2v';
+  return value === 'voice_workflow.voice_clone' || value === 'voice_workflow.voice_design';
 }
 
 export function toAgentChatVoiceWorkflowMetadataJson(

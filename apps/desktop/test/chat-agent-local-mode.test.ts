@@ -266,7 +266,7 @@ test('agent local mode resolves the selected agent to its existing thread before
   }), 'thread-agent-1');
 });
 
-test('agent session hydration rebuilds visible transcript from runtime snapshot truth', () => {
+test('agent session hydration does not replace missing local bundle with text-only runtime snapshot', () => {
   const thread = {
     id: 'thread-1',
     agentId: 'agent-1',
@@ -302,26 +302,7 @@ test('agent session hydration rebuilds visible transcript from runtime snapshot 
     nowMs: 5000,
   });
 
-  assert.ok(hydrated);
-  assert.deepEqual(hydrated?.messages.map((message) => ({
-    id: message.id,
-    role: message.role,
-    text: message.contentText,
-    parentMessageId: message.parentMessageId,
-  })), [
-    {
-      id: 'anchor-1:session:0',
-      role: 'user',
-      text: 'hello',
-      parentMessageId: null,
-    },
-    {
-      id: 'anchor-1:session:1',
-      role: 'assistant',
-      text: 'hi there',
-      parentMessageId: 'anchor-1:session:0',
-    },
-  ]);
+  assert.equal(hydrated, null);
 });
 
 test('agent session hydration preserves local pending projections over runtime snapshot replay', () => {
@@ -3290,15 +3271,15 @@ test('agent capability resolution keeps image and voice optional while exposing 
   assert.equal(withoutImage.imageReady, false);
   assert.equal(withoutImage.voiceProjection, null);
   assert.equal(withoutImage.voiceReady, false);
-  assert.equal(withoutImage.voiceWorkflowReadyByCapability['voice_workflow.tts_v2v'], false);
-  assert.equal(withoutImage.voiceWorkflowReadyByCapability['voice_workflow.tts_t2v'], false);
+  assert.equal(withoutImage.voiceWorkflowReadyByCapability['voice_workflow.voice_clone'], false);
+  assert.equal(withoutImage.voiceWorkflowReadyByCapability['voice_workflow.voice_design'], false);
 
   const readyVoiceWorkflowCloneProjection = {
-    capability: 'voice_workflow.tts_v2v' as const,
+    capability: 'voice_workflow.voice_clone' as const,
     selectedBinding: { source: 'cloud' as const, connectorId: 'connector-voice-clone', model: 'qwen3-tts-vc' },
     resolvedBinding: {
-      capability: 'voice_workflow.tts_v2v' as const,
-      resolvedBindingRef: 'cloud:voice_workflow.tts_v2v:connector-voice-clone:qwen3-tts-vc',
+      capability: 'voice_workflow.voice_clone' as const,
+      resolvedBindingRef: 'cloud:voice_workflow.voice_clone:connector-voice-clone:qwen3-tts-vc',
       source: 'cloud' as const,
       provider: 'dashscope',
       model: 'qwen3-tts-vc',
@@ -3307,12 +3288,12 @@ test('agent capability resolution keeps image and voice optional while exposing 
     },
     health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
     metadata: {
-      capability: 'voice_workflow.tts_v2v' as const,
+      capability: 'voice_workflow.voice_clone' as const,
       metadataVersion: 'v1' as const,
-      resolvedBindingRef: 'cloud:voice_workflow.tts_v2v:connector-voice-clone:qwen3-tts-vc',
-      metadataKind: 'voice_workflow.tts_v2v' as const,
+      resolvedBindingRef: 'cloud:voice_workflow.voice_clone:connector-voice-clone:qwen3-tts-vc',
+      metadataKind: 'voice_workflow.voice_clone' as const,
       metadata: {
-        workflowType: 'tts_v2v' as const,
+        workflowType: 'voice_clone' as const,
         requiresTargetSynthesisBinding: true,
         textPromptMode: 'unsupported' as const,
         supportsLanguageHints: false,
@@ -3326,11 +3307,11 @@ test('agent capability resolution keeps image and voice optional while exposing 
     reasonCode: null,
   };
   const readyVoiceWorkflowDesignProjection = {
-    capability: 'voice_workflow.tts_t2v' as const,
+    capability: 'voice_workflow.voice_design' as const,
     selectedBinding: { source: 'cloud' as const, connectorId: 'connector-voice-design', model: 'qwen3-tts-vd' },
     resolvedBinding: {
-      capability: 'voice_workflow.tts_t2v' as const,
-      resolvedBindingRef: 'cloud:voice_workflow.tts_t2v:connector-voice-design:qwen3-tts-vd',
+      capability: 'voice_workflow.voice_design' as const,
+      resolvedBindingRef: 'cloud:voice_workflow.voice_design:connector-voice-design:qwen3-tts-vd',
       source: 'cloud' as const,
       provider: 'dashscope',
       model: 'qwen3-tts-vd',
@@ -3339,12 +3320,12 @@ test('agent capability resolution keeps image and voice optional while exposing 
     },
     health: { healthy: true, status: 'healthy' as const, detail: 'ready' },
     metadata: {
-      capability: 'voice_workflow.tts_t2v' as const,
+      capability: 'voice_workflow.voice_design' as const,
       metadataVersion: 'v1' as const,
-      resolvedBindingRef: 'cloud:voice_workflow.tts_t2v:connector-voice-design:qwen3-tts-vd',
-      metadataKind: 'voice_workflow.tts_t2v' as const,
+      resolvedBindingRef: 'cloud:voice_workflow.voice_design:connector-voice-design:qwen3-tts-vd',
+      metadataKind: 'voice_workflow.voice_design' as const,
       metadata: {
-        workflowType: 'tts_t2v' as const,
+        workflowType: 'voice_design' as const,
         requiresTargetSynthesisBinding: true,
         instructionTextMode: 'required' as const,
         previewTextMode: 'optional' as const,
@@ -3368,10 +3349,10 @@ test('agent capability resolution keeps image and voice optional while exposing 
   assert.equal(withReadyImage.imageReady, true);
   assert.equal(withReadyImage.voiceProjection?.capability, 'audio.synthesize');
   assert.equal(withReadyImage.voiceReady, true);
-  assert.equal(withReadyImage.voiceWorkflowProjections['voice_workflow.tts_v2v']?.capability, 'voice_workflow.tts_v2v');
-  assert.equal(withReadyImage.voiceWorkflowProjections['voice_workflow.tts_t2v']?.capability, 'voice_workflow.tts_t2v');
-  assert.equal(withReadyImage.voiceWorkflowReadyByCapability['voice_workflow.tts_v2v'], true);
-  assert.equal(withReadyImage.voiceWorkflowReadyByCapability['voice_workflow.tts_t2v'], true);
+  assert.equal(withReadyImage.voiceWorkflowProjections['voice_workflow.voice_clone']?.capability, 'voice_workflow.voice_clone');
+  assert.equal(withReadyImage.voiceWorkflowProjections['voice_workflow.voice_design']?.capability, 'voice_workflow.voice_design');
+  assert.equal(withReadyImage.voiceWorkflowReadyByCapability['voice_workflow.voice_clone'], true);
+  assert.equal(withReadyImage.voiceWorkflowReadyByCapability['voice_workflow.voice_design'], true);
 
   const unresolvedImage = buildAgentEffectiveCapabilityResolution({
     textProjection,
@@ -3391,7 +3372,7 @@ test('agent capability resolution keeps image and voice optional while exposing 
   assert.equal(unresolvedImage.ready, true);
   assert.equal(unresolvedImage.imageReady, false);
   assert.equal(unresolvedImage.voiceReady, false);
-  assert.equal(unresolvedImage.voiceWorkflowReadyByCapability['voice_workflow.tts_v2v'], false);
+  assert.equal(unresolvedImage.voiceWorkflowReadyByCapability['voice_workflow.voice_clone'], false);
 });
 
 test('agent local mode creates image execution snapshot for runtime-authoritative local image routes with endpoint', () => {
@@ -3518,6 +3499,7 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(hostActionHelpersSource, /runtime\.agent\.initializeAgent/);
   assert.match(hostActionHelpersSource, /runtime\.agent\.anchors\.getSnapshot/);
   assert.match(hostActionHelpersSource, /clearAgentConversationAnchorBinding/);
+  assert.doesNotMatch(hostActionHelpersSource, /runtimeAgentExecutionBindingsMatch/);
   assert.match(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.turn\.write'\]/);
   assert.match(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.turn\.read'\]/);
   assert.match(hostActionHelpersSource, /record\.anchor/);
@@ -3533,7 +3515,9 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(hostActionSubmitSource, /resolveAuthoritativeAgentThreadBundle/);
   assert.match(hostActionSubmitRunSource, /assertAgentTurnLifecycleCompleted/);
   assert.match(hostActionSubmitSource, /const activeTarget = input\.hostInput\.activeTarget;/);
+  assert.doesNotMatch(hostActionSubmitSource, /resolveRuntimeAgentExecutionBindingFromTextResolvedBinding/);
   assert.match(hostActionSubmitSource, /const threadContext = await ensureThreadAnchorBindingForTarget\(\{/);
+  assert.doesNotMatch(hostActionSubmitSource, /expectedExecutionBinding,/);
   assert.match(hostActionSubmitSource, /setSubmittingThreadId\(effectiveThreadId\)/);
   assert.match(hostActionSubmitSource, /setFooterHostState\(effectiveThreadId,\s*null\)/);
   assert.match(hostActionSubmitSource, /releaseSubmittingIfCurrent/);
