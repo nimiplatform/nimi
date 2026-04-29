@@ -68,6 +68,33 @@ func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) e
 	return svc
 }
 
+func TestNewUsesConfiguredLocalModelsPathForUnregisteredScan(t *testing.T) {
+	t.Helper()
+	modelsDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(modelsDir, "custom.gguf"), []byte("gguf"), 0o644); err != nil {
+		t.Fatalf("write model file: %v", err)
+	}
+	statePath := filepath.Join(t.TempDir(), "local-state.json")
+	svc, err := New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 0, modelsDir)
+	if err != nil {
+		t.Fatalf("create local service: %v", err)
+	}
+	t.Cleanup(func() {
+		svc.Close()
+	})
+
+	resp, err := svc.ScanUnregisteredAssets(context.Background(), &runtimev1.ScanUnregisteredAssetsRequest{})
+	if err != nil {
+		t.Fatalf("scan unregistered assets: %v", err)
+	}
+	if len(resp.GetItems()) != 1 {
+		t.Fatalf("expected configured models path scan to find 1 item, got %d", len(resp.GetItems()))
+	}
+	if got := resp.GetItems()[0].GetPath(); got != filepath.Join(modelsDir, "custom.gguf") {
+		t.Fatalf("unexpected scan path: got=%q", got)
+	}
+}
+
 func setLocalRuntimePlatformForTest(t *testing.T, goos string, goarch string) {
 	t.Helper()
 	originalGOOS := localRuntimeGOOS

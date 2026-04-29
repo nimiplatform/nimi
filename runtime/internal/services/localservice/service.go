@@ -110,12 +110,16 @@ type entryHashCacheState struct {
 	sha256          string
 }
 
-func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int) (*Service, error) {
+func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int, localModelsPathOverride ...string) (*Service, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	if localAuditCapacity <= 0 {
 		localAuditCapacity = defaultLocalAuditCapacity
+	}
+	localModelsPath := ""
+	if len(localModelsPathOverride) > 0 {
+		localModelsPath = localModelsPathOverride[0]
 	}
 	verified := defaultVerifiedAssets()
 	svc := &Service{
@@ -123,7 +127,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		auditStore:                   store,
 		stateStorePath:               resolveLocalStatePath(stateStorePath),
 		localAuditCap:                localAuditCapacity,
-		localModelsPath:              resolveLocalModelsPath(""),
+		localModelsPath:              resolveLocalModelsPath(localModelsPath),
 		managedLlamaModelsConfigPath: resolveGeneratedLlamaModelsConfigPath(""),
 		assets:                       make(map[string]*runtimev1.LocalAssetRecord),
 		assetRuntimeModes:            make(map[string]runtimev1.LocalEngineRuntimeMode),
