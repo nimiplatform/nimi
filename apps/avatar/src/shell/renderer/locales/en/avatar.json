@@ -20,7 +20,9 @@
       "mic_commit_aria": "Stop listening and submit voice turn",
       "interrupt_aria": "Interrupt current reply",
       "settings_aria": "Open companion settings",
-      "voice_capture_inactive_error": "Foreground voice capture is no longer active."
+      "voice_capture_inactive_error": "Foreground voice capture is no longer active.",
+      "audio_unavailable": "Audio playback is unavailable; lipsync continues from frames only.",
+      "lipsync_disabled": "Lipsync is disabled for this model."
     },
     "bubble": {
       "close_aria": "Close assistant bubble"
@@ -35,7 +37,8 @@
         "reason_code": "Reason code",
         "account_reason_code": "Account reason code",
         "action_hint": "Action hint",
-        "stage": "Stage"
+        "stage": "Stage",
+        "audio_artifact_synthetic": "Audio is a synthetic frame-only artifact; no playback was attempted."
       },
       "loading": {
         "badge": "Warming up",

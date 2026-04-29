@@ -1,5 +1,15 @@
 import type { AgentDataDriver, AgentEvent } from '../driver/types.js';
 import type { EmbodimentProjectionApi } from '../nas/embodiment-projection-api.js';
+import {
+  AudioPlaybackController,
+  getSharedAudioPlaybackController,
+  type AudioPlaybackPlayInput,
+} from '../audio/audio-playback.js';
+import {
+  getSharedVoiceLipsyncStateBus,
+  type VoiceLipsyncStateBus,
+} from './voice-lipsync-state-bus.js';
+import type { AudioPlaybackState } from '../voice-companion-state.js';
 
 export const AVATAR_MOUTH_OPEN_SIGNAL = 'ParamMouthOpenY';
 
@@ -220,13 +230,23 @@ export function createAvatarVoiceLipsyncPipeline(input: {
   driver: AgentDataDriver;
   projection: EmbodimentProjectionApi;
   mouthSignalId?: string;
+  stateBus?: VoiceLipsyncStateBus;
+  audioPlayback?: AudioPlaybackController;
+  fetchAudioBytes?: (audioArtifactId: string) => Promise<ArrayBuffer>;
 }): AvatarVoiceLipsyncPipeline {
   const canceled = new Set<string>();
   let disposed = false;
   const mouthSignalId = input.mouthSignalId ?? AVATAR_MOUTH_OPEN_SIGNAL;
+  const stateBus = input.stateBus ?? getSharedVoiceLipsyncStateBus();
+  const audioPlayback = input.audioPlayback ?? getSharedAudioPlaybackController();
+  const fetchAudioBytes = input.fetchAudioBytes;
 
   function resetMouth(): void {
     input.projection.setSignal(mouthSignalId, 0, 1);
+  }
+
+  function publishPlaybackState(state: AudioPlaybackState): void {
+    stateBus.publish({ kind: 'audio_playback_state', state });
   }
 
   function handleInterrupt(event: AgentEvent, detail: Record<string, unknown>): void {
@@ -237,7 +257,10 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       return;
     }
     canceled.add(`${turnId}:${streamId}`);
+    audioPlayback.stop('interrupted');
     resetMouth();
+    stateBus.publish({ kind: 'deactivate' });
+    publishPlaybackState('interrupted');
     if (timeline) {
       emitDriverEvent(input.driver, 'avatar.speak.interrupt', timeline, {
         source_event_name: event.name,
@@ -250,21 +273,60 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       return false;
     }
     const state = readString(detail, 'playbackState') ?? readString(detail, 'playback_state');
-    if (state !== 'interrupted' && state !== 'canceled' && state !== 'failed') {
+    if (state === null) {
       return false;
     }
     const timeline = parseRuntimeTimeline(detail);
-    if (!timeline || timeline.channel !== 'voice') {
+    const audioArtifactId =
+      readString(detail, 'audioArtifactId') ?? readString(detail, 'audio_artifact_id');
+    const audioMimeType =
+      readString(detail, 'audioMimeType') ?? readString(detail, 'audio_mime_type');
+
+    if (state === 'requested') {
+      if (!timeline || timeline.channel !== 'voice' || !audioArtifactId || !audioMimeType) {
+        return true;
+      }
+      stateBus.publish({ kind: 'activate', audioArtifactId });
+      const playInput: AudioPlaybackPlayInput = { audioArtifactId, audioMimeType };
+      if (fetchAudioBytes) {
+        playInput.fetchBytes = () => fetchAudioBytes(audioArtifactId);
+      }
+      // Audio controller pushes `started/completed/failed` snapshots to its
+      // own subscribers; the App-shell mirror subscribes there. Errors are
+      // swallowed because the controller already publishes a `failed` state.
+      void audioPlayback.play(playInput);
+      publishPlaybackState('requested');
       return true;
     }
-    canceled.add(timelineIdentity(timeline));
-    resetMouth();
-    emitDriverEvent(input.driver, 'avatar.speak.interrupt', timeline, {
-      source_event_name: event.name,
-      playback_state: state,
-      audio_artifact_id: readString(detail, 'audioArtifactId') ?? readString(detail, 'audio_artifact_id'),
-    });
-    return true;
+
+    if (state === 'started') {
+      publishPlaybackState('started');
+      return true;
+    }
+
+    if (state === 'completed') {
+      publishPlaybackState('completed');
+      return true;
+    }
+
+    if (state === 'interrupted' || state === 'canceled' || state === 'failed') {
+      if (!timeline || timeline.channel !== 'voice') {
+        return true;
+      }
+      canceled.add(timelineIdentity(timeline));
+      audioPlayback.stop('interrupted');
+      resetMouth();
+      stateBus.publish({ kind: 'deactivate' });
+      publishPlaybackState(state === 'failed' ? 'failed' : 'interrupted');
+      emitDriverEvent(input.driver, 'avatar.speak.interrupt', timeline, {
+        source_event_name: event.name,
+        playback_state: state,
+        audio_artifact_id: audioArtifactId,
+      });
+      return true;
+    }
+
+    return false;
   }
 
   function handleVoiceEvent(event: AgentEvent, detail: Record<string, unknown>): void {
@@ -282,6 +344,9 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     if (canceled.has(identity)) {
       return;
     }
+    if (voiceTiming.audioArtifactId) {
+      stateBus.publish({ kind: 'activate', audioArtifactId: voiceTiming.audioArtifactId });
+    }
     emitDriverEvent(input.driver, 'avatar.speak.start', timeline, {
       source_event_name: event.name,
       voice_adapter_id: voiceTiming.adapterId,
@@ -291,9 +356,12 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     for (const frame of voiceTiming.frames) {
       if (canceled.has(identity) || disposed) {
         resetMouth();
+        stateBus.publish({ kind: 'mouth_open_y', value: 0 });
+        stateBus.publish({ kind: 'deactivate' });
         return;
       }
       input.projection.setSignal(mouthSignalId, frame.mouthOpenY, 1);
+      stateBus.publish({ kind: 'mouth_open_y', value: frame.mouthOpenY });
       emitDriverEvent(input.driver, 'avatar.lipsync.frame', timeline, {
         source_event_name: event.name,
         audio_artifact_id: voiceTiming.audioArtifactId ?? null,
@@ -302,6 +370,8 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       });
     }
     resetMouth();
+    stateBus.publish({ kind: 'mouth_open_y', value: 0 });
+    stateBus.publish({ kind: 'deactivate' });
     emitDriverEvent(input.driver, 'avatar.speak.end', timeline, {
       source_event_name: event.name,
       voice_adapter_id: voiceTiming.adapterId,
@@ -329,7 +399,11 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     },
     dispose() {
       disposed = true;
+      audioPlayback.stop('interrupted');
       resetMouth();
+      stateBus.publish({ kind: 'mouth_open_y', value: 0 });
+      stateBus.publish({ kind: 'deactivate' });
+      publishPlaybackState('idle');
       canceled.clear();
     },
   };
@@ -339,6 +413,9 @@ export function wireAvatarVoiceLipsync(input: {
   driver: AgentDataDriver;
   projection: EmbodimentProjectionApi;
   mouthSignalId?: string;
+  stateBus?: VoiceLipsyncStateBus;
+  audioPlayback?: AudioPlaybackController;
+  fetchAudioBytes?: (audioArtifactId: string) => Promise<ArrayBuffer>;
 }): () => void {
   const pipeline = createAvatarVoiceLipsyncPipeline(input);
   const unwire = input.driver.onEvent((event) => pipeline.handleEvent(event));

@@ -80,6 +80,12 @@ namespaces:
       - key: Avatar.status.voice_capture_inactive_error
         english_baseline: "Foreground voice capture is no longer active."
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.audio_unavailable
+        english_baseline: "Audio playback is unavailable; lipsync continues from frames only."
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.lipsync_disabled
+        english_baseline: "Lipsync is disabled for this model."
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
 
   - id: bubble
     spec_anchor: "app-shell-contract.md §7.4 NAV-SHELL-COMPANION-004"
@@ -119,6 +125,9 @@ namespaces:
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
       - key: Avatar.degraded.diagnostics.stage
         english_baseline: "Stage"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.audio_artifact_synthetic
+        english_baseline: "Audio is a synthetic frame-only artifact; no playback was attempted."
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
 
       # state: loading

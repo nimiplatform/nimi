@@ -122,7 +122,6 @@ const EVENT_REGISTRY: readonly string[] = [
   'runtime.agent.turn.failed',
   'runtime.agent.turn.interrupted',
   'runtime.agent.turn.interrupt_ack',
-  'runtime.agent.session.snapshot',
   'runtime.agent.presentation.activity_requested',
   'runtime.agent.presentation.motion_requested',
   'runtime.agent.presentation.expression_requested',

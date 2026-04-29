@@ -20,7 +20,9 @@
       "mic_commit_aria": "结束聆听并提交语音轮次",
       "interrupt_aria": "打断当前回复",
       "settings_aria": "打开 Companion 设置",
-      "voice_capture_inactive_error": "前台语音采集已结束。"
+      "voice_capture_inactive_error": "前台语音采集已结束。",
+      "audio_unavailable": "音频播放不可用，仅依靠 lipsync 帧驱动嘴型。",
+      "lipsync_disabled": "当前模型已禁用 lipsync。"
     },
     "bubble": {
       "close_aria": "关闭助手气泡"
@@ -35,7 +37,8 @@
         "reason_code": "原因代码",
         "account_reason_code": "账户原因代码",
         "action_hint": "操作提示",
-        "stage": "阶段"
+        "stage": "阶段",
+        "audio_artifact_synthetic": "当前音频载体为合成的纯帧 artifact，不会发起播放。"
       },
       "loading": {
         "badge": "正在准备",

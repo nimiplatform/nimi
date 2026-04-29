@@ -11,6 +11,18 @@ export type VoiceCompanionStatus =
   | 'interrupted'
   | 'error';
 
+// Wave 3 — runtime.agent.presentation.voice_playback_requested playback_state
+// projection per K-AGCORE-051. The avatar surface mirrors the runtime-owned
+// playback lifecycle 1:1; `idle` is the avatar-local resting state when no
+// committed turn is driving playback.
+export type AudioPlaybackState =
+  | 'idle'
+  | 'requested'
+  | 'started'
+  | 'completed'
+  | 'interrupted'
+  | 'failed';
+
 export type VoiceCompanionCaption = CompanionMessageCue & {
   live: boolean;
 };
@@ -28,6 +40,11 @@ export type VoiceCompanionState = {
   errorMessage: string | null;
   userCaption: VoiceCompanionCaption | null;
   assistantCaption: VoiceCompanionCaption | null;
+  // Wave 3 lipsync slice (runtime-driven, K-AGCORE-051)
+  lipsyncActive: boolean;
+  currentMouthOpenY: number;
+  audioArtifactId: string | null;
+  audioPlaybackState: AudioPlaybackState;
 };
 
 export const initialVoiceCompanionState: VoiceCompanionState = {
@@ -43,6 +60,10 @@ export const initialVoiceCompanionState: VoiceCompanionState = {
   errorMessage: null,
   userCaption: null,
   assistantCaption: null,
+  lipsyncActive: false,
+  currentMouthOpenY: 0,
+  audioArtifactId: null,
+  audioPlaybackState: 'idle',
 };
 
 function normalizeText(value: unknown): string {
@@ -80,6 +101,10 @@ export function closeVoiceCompanion(state: VoiceCompanionState): VoiceCompanionS
     currentTurnId: null,
     interruptedTurnId: null,
     errorMessage: null,
+    lipsyncActive: false,
+    currentMouthOpenY: 0,
+    audioArtifactId: null,
+    audioPlaybackState: 'idle',
   };
 }
 
@@ -222,5 +247,69 @@ export function interruptVoiceCompanion(
     interruptedTurnId: normalizeText(input.turnId) || null,
     errorMessage: normalizeText(input.message) || 'Current anchor reply was interrupted.',
     level: 0,
+    lipsyncActive: false,
+    currentMouthOpenY: 0,
+    audioArtifactId: null,
+    audioPlaybackState: 'interrupted',
+  };
+}
+
+// Wave 3 — lipsync slice helpers (runtime.agent.presentation.lipsync_frame_batch
+// + voice_playback_requested driven). All helpers are pure reducers; consumers
+// MUST set `audioArtifactId` via `activateLipsync` before pushing frames so the
+// state stays internally consistent.
+
+export function activateLipsync(
+  state: VoiceCompanionState,
+  input: { audioArtifactId: string },
+): VoiceCompanionState {
+  const audioArtifactId = normalizeText(input.audioArtifactId);
+  if (!audioArtifactId) {
+    return state;
+  }
+  return {
+    ...state,
+    lipsyncActive: true,
+    currentMouthOpenY: 0,
+    audioArtifactId,
+  };
+}
+
+export function setMouthOpenY(state: VoiceCompanionState, value: number): VoiceCompanionState {
+  if (!Number.isFinite(value)) {
+    return state;
+  }
+  const clamped = Math.max(0, Math.min(1, value));
+  if (clamped === state.currentMouthOpenY) {
+    return state;
+  }
+  return {
+    ...state,
+    currentMouthOpenY: clamped,
+  };
+}
+
+export function deactivateLipsync(state: VoiceCompanionState): VoiceCompanionState {
+  if (!state.lipsyncActive && state.currentMouthOpenY === 0 && state.audioArtifactId === null) {
+    return state;
+  }
+  return {
+    ...state,
+    lipsyncActive: false,
+    currentMouthOpenY: 0,
+    audioArtifactId: null,
+  };
+}
+
+export function setAudioPlaybackState(
+  state: VoiceCompanionState,
+  next: AudioPlaybackState,
+): VoiceCompanionState {
+  if (state.audioPlaybackState === next) {
+    return state;
+  }
+  return {
+    ...state,
+    audioPlaybackState: next,
   };
 }

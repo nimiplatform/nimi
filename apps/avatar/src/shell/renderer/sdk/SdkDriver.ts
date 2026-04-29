@@ -550,9 +550,6 @@ export class SdkDriver implements AgentDataDriver {
       };
     }
     switch (event.eventName) {
-      case 'runtime.agent.session.snapshot':
-        this.applySessionSnapshot(event.detail.snapshot);
-        return;
       case 'runtime.agent.presentation.activity_requested': {
         const timestampNow = this.now();
         const category = requireRuntimeActivityCategory(event.detail.category);

@@ -27,15 +27,21 @@ import {
   type CompanionAnchorBinding,
 } from './companion-state.js';
 import {
+  activateLipsync,
   bindVoiceCompanionState,
   closeVoiceCompanion,
   completeVoiceReplying,
+  deactivateLipsync,
   initialVoiceCompanionState,
   interruptVoiceCompanion,
+  setAudioPlaybackState,
+  setMouthOpenY,
   setVoiceAssistantCaption,
   setVoiceCompanionAvailability,
   setVoiceReplyingTurn,
 } from './voice-companion-state.js';
+import { getSharedVoiceLipsyncStateBus } from './voice-lipsync/voice-lipsync-state-bus.js';
+import { getSharedAudioPlaybackController } from './audio/audio-playback.js';
 import {
   defaultAvatarShellSettings,
   readAvatarShellSettings,
@@ -114,6 +120,40 @@ export function App() {
       voiceSubmitAbortRef.current = null;
       setBootstrapHandle(null);
       void handle?.shutdown();
+    };
+  }, []);
+
+  // ── Wave 3 lipsync state subscription ────────────────────────────────────────
+  // The avatar-voice-lipsync pipeline (wired from carrier/avatar-carrier.ts)
+  // publishes `activate / mouth_open_y / audio_playback_state / deactivate`
+  // events into the shared bus; the audio playback controller publishes its
+  // own snapshots. We mirror both into voice-companion-state so the companion
+  // surface can render mouth + playback indicators in lockstep with Live2D.
+  useEffect(() => {
+    const bus = getSharedVoiceLipsyncStateBus();
+    const audio = getSharedAudioPlaybackController();
+    const unsubscribeBus = bus.subscribe((event) => {
+      setVoice((current) => {
+        switch (event.kind) {
+          case 'activate':
+            return activateLipsync(current, { audioArtifactId: event.audioArtifactId });
+          case 'mouth_open_y':
+            return setMouthOpenY(current, event.value);
+          case 'audio_playback_state':
+            return setAudioPlaybackState(current, event.state);
+          case 'deactivate':
+            return deactivateLipsync(current);
+          default:
+            return current;
+        }
+      });
+    });
+    const unsubscribeAudio = audio.subscribe((snapshot) => {
+      setVoice((current) => setAudioPlaybackState(current, snapshot.state));
+    });
+    return () => {
+      unsubscribeBus();
+      unsubscribeAudio();
     };
   }, []);
 
