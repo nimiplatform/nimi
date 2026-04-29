@@ -27,9 +27,6 @@ import type {
   RuntimeAgentSessionSnapshot,
   RuntimeAgentSessionTurnSnapshot,
 } from './types-runtime-modules.js';
-const TURN_REQUEST_TYPE = 'runtime.agent.turn.request';
-const TURN_INTERRUPT_TYPE = 'runtime.agent.turn.interrupt';
-const SESSION_SNAPSHOT_REQUEST_TYPE = 'runtime.agent.session.snapshot.request';
 type RuntimeAgentHookEventName =
   | 'runtime.agent.hook.intent_proposed'
   | 'runtime.agent.hook.pending'
@@ -179,7 +176,7 @@ function parsePendingFollowUp(value: unknown): RuntimeAgentPendingFollowUpSnapsh
     ...(optionalString(payload.source_action_id) ? { sourceActionId: optionalString(payload.source_action_id) } : {}),
   };
 }
-function parseSessionSnapshot(value: unknown): RuntimeAgentSessionSnapshot {
+export function parseSessionSnapshot(value: unknown): RuntimeAgentSessionSnapshot {
   const payload = asRecord(value);
   return {
     ...(optionalString(payload.request_id) ? { requestId: optionalString(payload.request_id) } : {}),
@@ -564,15 +561,6 @@ export function parseAppConsumeEvent(messageType: string, payload: Record<string
         },
       };
     }
-    case 'runtime.agent.session.snapshot':
-      return {
-        eventName: messageType,
-        agentId,
-        conversationAnchorId,
-        detail: {
-          snapshot: parseSessionSnapshot(detail.snapshot),
-        },
-      };
     default:
       throw createNimiError({
         message: `unsupported runtime agent consume family: ${messageType}`,

@@ -20,6 +20,8 @@ import {
   ConversationAnchorStatus,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
+  GetPublicChatSessionSnapshotRequest,
+  GetPublicChatSessionSnapshotResponse,
   HookAdmissionState,
   HookEffect,
   HookTriggerFamily,
@@ -595,6 +597,7 @@ test('runtime agent turns binding-only mode sends scoped binding and does not re
   const capturedMessages: SendAppMessageRequest[] = [];
   let capturedAppSubscribeRequest: SubscribeAppMessagesRequest | null = null;
   let capturedAgentSubscribeRequest: SubscribeAgentEventsRequest | null = null;
+  let capturedSessionSnapshotRequest: GetPublicChatSessionSnapshotRequest | null = null;
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
@@ -623,26 +626,19 @@ test('runtime agent turns binding-only mode sends scoped binding and does not re
           reasonCode: RuntimeProtoReasonCode.ACTION_EXECUTED,
         }));
       }
+      if (input.methodId === RuntimeMethodIds.agent.getPublicChatSessionSnapshot) {
+        capturedSessionSnapshotRequest = GetPublicChatSessionSnapshotRequest.fromBinary(input.request);
+        return GetPublicChatSessionSnapshotResponse.toBinary(GetPublicChatSessionSnapshotResponse.create({
+          snapshot: Struct.fromJson({ request_id: 'snapshot-1', session_status: 'idle' } as never),
+        }));
+      }
       throw new Error(`unexpected method: ${input.methodId}`);
     },
     openStream: async (_config, input) => {
       if (input.methodId === RuntimeMethodIds.app.subscribeAppMessages) {
         capturedAppSubscribeRequest = SubscribeAppMessagesRequest.fromBinary(input.request);
         return {
-          async *[Symbol.asyncIterator]() {
-            yield createAppEvent('runtime.agent.session.snapshot', {
-              agent_id: 'agent-1',
-              conversation_anchor_id: 'anchor-1',
-              turn_id: 'turn-1',
-              stream_id: 'stream-1',
-              detail: {
-                snapshot: {
-                  request_id: 'snapshot-1',
-                  session_status: 'idle',
-                },
-              },
-            });
-          },
+          async *[Symbol.asyncIterator]() {},
         };
       }
       if (input.methodId === RuntimeMethodIds.agent.subscribeEvents) {
@@ -702,7 +698,12 @@ test('runtime agent turns binding-only mode sends scoped binding and does not re
     assert.equal(capturedAppSubscribeRequest?.scopedBinding?.avatarInstanceId, 'avatar-instance-1');
     assert.equal(capturedAgentSubscribeRequest?.context?.subjectUserId, '');
     assert.equal(capturedAgentSubscribeRequest?.context?.scopedBinding?.bindingId, 'binding-1');
-    assert.equal(capturedMessages.length, 3);
+    assert.equal(capturedSessionSnapshotRequest?.context?.subjectUserId, '');
+    assert.equal(capturedSessionSnapshotRequest?.context?.scopedBinding?.bindingId, 'binding-1');
+    assert.equal(capturedSessionSnapshotRequest?.agentId, 'agent-1');
+    assert.equal(capturedSessionSnapshotRequest?.conversationAnchorId, 'anchor-1');
+    assert.equal(capturedSessionSnapshotRequest?.worldId, 'world-1');
+    assert.equal(capturedMessages.length, 2);
     for (const message of capturedMessages) {
       assert.equal(message.subjectUserId, '');
       assert.equal(message.scopedBinding?.bindingId, 'binding-1');
@@ -993,6 +994,7 @@ test('runtime agent turns subscribe parses Wave 2 hook projection events with or
 test('runtime agent session snapshot recovery stays anchor-native and consumer-owned', async () => {
   const capturedMessages: SendAppMessageRequest[] = [];
   const protectedTokens: Array<{ methodId: string; tokenId: string; secret: string }> = [];
+  let capturedSessionSnapshotRequest: GetPublicChatSessionSnapshotRequest | null = null;
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
@@ -1029,62 +1031,30 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
           reasonCode: RuntimeProtoReasonCode.ACTION_EXECUTED,
         }));
       }
+      if (input.methodId === RuntimeMethodIds.agent.getPublicChatSessionSnapshot) {
+        capturedSessionSnapshotRequest = GetPublicChatSessionSnapshotRequest.fromBinary(input.request);
+        protectedTokens.push({
+          methodId: input.methodId,
+          tokenId: input.protectedAccessToken?.tokenId || '',
+          secret: input.protectedAccessToken?.secret || '',
+        });
+        return GetPublicChatSessionSnapshotResponse.toBinary(GetPublicChatSessionSnapshotResponse.create({
+          snapshot: Struct.fromJson({
+            request_id: 'req-1',
+            thread_id: 'thread-1',
+            subject_user_id: 'subject-1',
+            session_status: 'active',
+            transcript_message_count: 2,
+            transcript: [{ role: 'user', content: 'hello' }, { role: 'assistant', content: 'hi there' }],
+            execution_binding: { route: 'local', model_id: 'local/qwen2.5' },
+            active_turn: { turn_id: 'turn-1', status: 'running', stream_sequence: 3 },
+          } as never),
+        }));
+      }
       throw new Error(`unexpected method: ${input.methodId}`);
     },
     openStream: async (_config, input) => {
-      if (input.methodId !== RuntimeMethodIds.app.subscribeAppMessages) {
-        throw new Error(`unexpected stream method: ${input.methodId}`);
-      }
-      protectedTokens.push({
-        methodId: input.methodId,
-        tokenId: input.protectedAccessToken?.tokenId || '',
-        secret: input.protectedAccessToken?.secret || '',
-      });
-      return {
-        async *[Symbol.asyncIterator]() {
-          yield createAppEvent('runtime.agent.session.snapshot', {
-            agent_id: 'agent-2',
-            conversation_anchor_id: 'anchor-other',
-            detail: {
-              snapshot: {
-                request_id: 'req-1',
-              },
-            },
-          });
-          yield createAppEvent('runtime.agent.session.snapshot', {
-            agent_id: 'agent-1',
-            conversation_anchor_id: 'anchor-1',
-            detail: {
-              snapshot: {
-                request_id: 'req-1',
-                thread_id: 'thread-1',
-                subject_user_id: 'subject-1',
-                session_status: 'active',
-                transcript_message_count: 2,
-                transcript: [
-                  {
-                    role: 'user',
-                    content: 'hello',
-                  },
-                  {
-                    role: 'assistant',
-                    content: 'hi there',
-                  },
-                ],
-                execution_binding: {
-                  route: 'local',
-                  model_id: 'local/qwen2.5',
-                },
-                active_turn: {
-                  turn_id: 'turn-1',
-                  status: 'running',
-                  stream_sequence: 3,
-                },
-              },
-            },
-          });
-        },
-      };
+      throw new Error(`unexpected stream method: ${input.methodId}`);
     },
     closeStream: async () => {},
   });
@@ -1107,37 +1077,24 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
       requestId: 'req-1',
     });
 
-    const requestPayload = Struct.toJson(capturedMessages[0]?.payload as Struct) as Record<string, unknown>;
-    assert.equal(capturedMessages[0]?.messageType, 'runtime.agent.session.snapshot.request');
-    assert.equal(requestPayload.conversation_anchor_id, 'anchor-1');
-    assert.equal('agent_id' in requestPayload, false);
-    assert.equal('world_id' in requestPayload, false);
-    assert.equal('session_id' in requestPayload, false);
+    assert.equal(capturedMessages.length, 0);
+    assert.equal(capturedSessionSnapshotRequest?.agentId, 'agent-1');
+    assert.equal(capturedSessionSnapshotRequest?.conversationAnchorId, 'anchor-1');
+    assert.equal(capturedSessionSnapshotRequest?.requestId, 'req-1');
+    assert.equal(capturedSessionSnapshotRequest?.worldId, '');
+    assert.equal(capturedSessionSnapshotRequest?.context?.appId, APP_ID);
+    assert.equal(capturedSessionSnapshotRequest?.context?.subjectUserId, 'subject-1');
     assert.deepEqual(protectedTokens, [
       {
-        methodId: RuntimeMethodIds.app.subscribeAppMessages,
+        methodId: RuntimeMethodIds.agent.getPublicChatSessionSnapshot,
         tokenId: 'read-token',
         secret: 'read-secret',
-      },
-      {
-        methodId: RuntimeMethodIds.app.sendAppMessage,
-        tokenId: 'write-token',
-        secret: 'write-secret',
       },
     ]);
     assert.equal(snapshot.requestId, 'req-1');
     assert.equal(snapshot.threadId, 'thread-1');
     assert.equal(snapshot.sessionStatus, 'active');
-    assert.deepEqual(snapshot.transcript, [
-      {
-        role: 'user',
-        content: 'hello',
-      },
-      {
-        role: 'assistant',
-        content: 'hi there',
-      },
-    ]);
+    assert.deepEqual(snapshot.transcript, [{ role: 'user', content: 'hello' }, { role: 'assistant', content: 'hi there' }]);
     assert.equal(snapshot.executionBinding?.modelId, 'local/qwen2.5');
     assert.equal(snapshot.activeTurn?.turnId, 'turn-1');
     assert.equal(snapshot.activeTurn?.streamSequence, 3);

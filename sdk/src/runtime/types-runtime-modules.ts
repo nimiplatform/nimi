@@ -510,15 +510,6 @@ export type RuntimeAgentTurnInterruptAckEvent = RuntimeAgentTurnEnvelope & {
   };
 };
 
-export type RuntimeAgentSessionSnapshotEvent = {
-  eventName: 'runtime.agent.session.snapshot';
-  agentId: string;
-  conversationAnchorId: string;
-  detail: {
-    snapshot: RuntimeAgentSessionSnapshot;
-  };
-};
-
 export type RuntimeAgentPresentationActivityRequestedEvent = RuntimeAgentPresentationEnvelope & {
   eventName: 'runtime.agent.presentation.activity_requested';
   detail: {
@@ -704,7 +695,6 @@ export type RuntimeAgentConsumeEvent =
   | RuntimeAgentTurnFailedEvent
   | RuntimeAgentTurnInterruptedEvent
   | RuntimeAgentTurnInterruptAckEvent
-  | RuntimeAgentSessionSnapshotEvent
   | RuntimeAgentPresentationActivityRequestedEvent
   | RuntimeAgentPresentationMotionRequestedEvent
   | RuntimeAgentPresentationExpressionRequestedEvent

@@ -11,6 +11,7 @@ import { Struct } from './generated/google/protobuf/struct.js';
 import {
   AgentEventType,
   AgentExecutionState,
+  type GetPublicChatSessionSnapshotRequest,
   AgentStateEventFamily,
   HookAdmissionState,
   HookEffect,
@@ -38,14 +39,13 @@ import type {
 } from './types-runtime-modules.js';
 import type { RuntimeAgentClient } from './types-client-interfaces.js';
 import type { SendAppMessageResponse } from './generated/runtime/v1/app.js';
-import { fromProtoStruct, matchesConsumeRequest, mergeAsyncIterables, parseAgentConsumeEvent, parseAppConsumeEvent } from './runtime-agent-surface-parsers.js';
+import { fromProtoStruct, matchesConsumeRequest, mergeAsyncIterables, parseAgentConsumeEvent, parseAppConsumeEvent, parseSessionSnapshot } from './runtime-agent-surface-parsers.js';
 const RUNTIME_AGENT_APP_ID = 'runtime.agent';
 const AGENT_READ_SCOPE = 'runtime.agent.read';
 const TURN_WRITE_SCOPE = 'runtime.agent.turn.write';
 const TURN_READ_SCOPE = 'runtime.agent.turn.read';
 const TURN_REQUEST_TYPE = 'runtime.agent.turn.request';
 const TURN_INTERRUPT_TYPE = 'runtime.agent.turn.interrupt';
-const SESSION_SNAPSHOT_REQUEST_TYPE = 'runtime.agent.session.snapshot.request';
 type RuntimeAgentHookEventName =
   | 'runtime.agent.hook.intent_proposed'
   | 'runtime.agent.hook.pending'
@@ -67,7 +67,6 @@ const CONSUME_MESSAGE_TYPES = new Set<string>([
   'runtime.agent.turn.failed',
   'runtime.agent.turn.interrupted',
   'runtime.agent.turn.interrupt_ack',
-  'runtime.agent.session.snapshot',
   'runtime.agent.presentation.activity_requested',
   'runtime.agent.presentation.motion_requested',
   'runtime.agent.presentation.expression_requested',
@@ -378,50 +377,18 @@ export function createRuntimeAgentTurnsModule(input: {
       // Always issue a protected access token even when a scoped binding is attached;
       // the runtime gRPC authz interceptor enforces capability-bound tokens, the binding
       // only carries scope/anchor/window relations.
-      const subscribeBaseOptions = await input.protectedAccess.getCallOptions([TURN_READ_SCOPE], options);
-      const streamHandle = await input.app.subscribeMessages({
-        appId: input.appId,
-        ...(subjectUserId ? { subjectUserId } : {}),
-        ...(scopedBinding ? { scopedBinding } : {}),
-        cursor: '',
-        fromAppIds: [RUNTIME_AGENT_APP_ID],
-      }, makeStreamOptions(subscribeBaseOptions, options?.signal));
-      const snapshotPayload = toProtoStruct({
-        conversation_anchor_id: request.conversationAnchorId,
-        ...(requestId ? { request_id: requestId } : {}),
-      });
-      await input.protectedAccess.withScopes([TURN_WRITE_SCOPE], (writeOptions) => input.app.sendMessage({
-        fromAppId: input.appId,
-        toAppId: RUNTIME_AGENT_APP_ID,
-        ...(subjectUserId ? { subjectUserId } : {}),
-        ...(scopedBinding ? { scopedBinding } : {}),
-        messageType: SESSION_SNAPSHOT_REQUEST_TYPE,
-        payload: snapshotPayload,
-        requireAck: false,
-      }, writeOptions), options);
-      for await (const event of streamHandle) {
-        const messageType = normalizeText(event.messageType);
-        if (messageType !== 'runtime.agent.session.snapshot') {
-          continue;
-        }
-        const parsed = parseAppConsumeEvent(messageType, fromProtoStruct(event.payload));
-        if (parsed.eventName !== 'runtime.agent.session.snapshot') {
-          continue;
-        }
-        if (parsed.agentId !== request.agentId || parsed.conversationAnchorId !== request.conversationAnchorId) {
-          continue;
-        }
-        if (requestId && parsed.detail.snapshot.requestId !== requestId) {
-          continue;
-        }
-        return parsed.detail.snapshot;
-      }
-      throw createNimiError({
-        message: `runtime.agent.session.snapshot unavailable for anchor ${request.conversationAnchorId}`,
-        reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-        actionHint: 'retry_runtime_agent_session_snapshot',
-        source: 'runtime',
-      });
+      const callOptions = await input.protectedAccess.getCallOptions([TURN_READ_SCOPE], options);
+      const snapshotRequest: GetPublicChatSessionSnapshotRequest = {
+        agentId: request.agentId,
+        conversationAnchorId: request.conversationAnchorId,
+        requestId: requestId || '',
+        worldId: optionalString(request.worldId) || '',
+        context: scopedBinding
+          ? { appId: input.appId, subjectUserId: '', scopedBinding }
+          : { appId: input.appId, subjectUserId: subjectUserId || '' },
+      };
+      const response = await input.agent.getPublicChatSessionSnapshot(snapshotRequest, callOptions);
+      return parseSessionSnapshot(fromProtoStruct(response.snapshot));
     },
   };
 }
