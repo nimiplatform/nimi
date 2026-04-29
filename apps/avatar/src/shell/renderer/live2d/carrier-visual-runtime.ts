@@ -7,6 +7,7 @@ export type Live2DVisualRuntime = OfficialCubismFrameworkRuntime & {
     createRenderer: (width: number, height: number, maskBufferCount?: number) => void;
     getRenderer: () => {
       startUp: (gl: WebGLRenderingContext | WebGL2RenderingContext) => void;
+      loadShaders: (shaderPath: string) => void;
       bindTexture: (modelTextureNo: number, glTexture: WebGLTexture) => void;
       getBindedTextures: () => Map<number, WebGLTexture>;
       setIsPremultipliedAlpha: (value: boolean) => void;

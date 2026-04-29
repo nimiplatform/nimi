@@ -133,6 +133,8 @@ async function createVisualModel(input: {
     private modelSetting: InstanceType<Live2DVisualRuntime['CubismModelSettingJson']> | null = null;
     private readonly textures: WebGLTexture[] = [];
     private baseModelMatrix: Float32Array | null = null;
+    private widePortraitMode: boolean = false;
+    private defaultFramebuffer: WebGLFramebuffer | null = null;
     private breath: {
       setParameters: (params: unknown[]) => void;
       updateParameters: (model: Live2DVisualModelShape, deltaTimeSeconds: number) => void;
@@ -150,10 +152,12 @@ async function createVisualModel(input: {
       await this.loadExpressions();
       await this.loadPhysics();
       await this.loadPose();
+      this.defaultFramebuffer = input.gl.getParameter(input.gl.FRAMEBUFFER_BINDING) as WebGLFramebuffer | null;
       this.createRenderer(width, height);
       const renderer = this.getRenderer();
       renderer.startUp(input.gl);
       renderer.setIsPremultipliedAlpha(true);
+      renderer.loadShaders(resolveLive2DShaderRootUrl());
       for (const [index, texturePath] of input.session.resources.texturePaths.entries()) {
         const textureBytes = await input.readBinary(texturePath);
         const texture = await input.loadTexture({
@@ -177,15 +181,16 @@ async function createVisualModel(input: {
         return;
       }
       modelMatrix.loadIdentity();
-      // Honor the model3.json Layout block (this is what the official
-      // CubismWebSamples LAppModel.setupLayout does at lappmodel.ts:471–485).
-      // The per-frame projection branch in renderFrame() handles aspect-fit
-      // correction (e.g. setting Width=2 when a wide-source model is shown
-      // in a portrait viewport, per LAppLive2DManager.onUpdate).
       const layout = new Map<string, number>();
       this.modelSetting?.getLayoutMap?.(layout);
+      const model = getModelRef(this);
+      const canvasWidth = model ? model.getCanvasWidth() : 1;
+      this.widePortraitMode = canvasWidth > 1.0 && width < height;
       if (layout.size > 0) {
         modelMatrix.setupFromLayout(layout);
+      }
+      if (this.widePortraitMode) {
+        modelMatrix.setWidth(2);
       } else {
         modelMatrix.setHeight(2);
       }
@@ -218,19 +223,11 @@ async function createVisualModel(input: {
       input.gl.clearColor(0, 0, 0, 0);
       input.gl.clear(input.gl.COLOR_BUFFER_BIT | input.gl.DEPTH_BUFFER_BIT | input.gl.STENCIL_BUFFER_BIT);
 
-      // Per CubismWebSamples LAppLive2DManager.onUpdate (lapplive2dmanager.ts:86–118):
-      // when the model is wider than tall AND the viewport is portrait, lock
-      // model X to clip-space [-1, 1] (setWidth(2)) and shrink projection Y
-      // by w/h. Otherwise (landscape viewport, or tall-source model) shrink
-      // projection X by h/w. This ensures the full model fits without
-      // cropping head/feet on portrait pet windows.
       const projectionMatrix = new runtime.CubismMatrix44();
-      const canvasWidth = model.getCanvasWidth();
-      if (canvasWidth > 1.0 && inputFrame.width < inputFrame.height) {
-        modelMatrix.setWidth(2.0);
-        projectionMatrix.scale(1.0, inputFrame.width / Math.max(inputFrame.height, 1));
+      if (this.widePortraitMode) {
+        projectionMatrix.scale(1, inputFrame.width / Math.max(inputFrame.height, 1));
       } else {
-        projectionMatrix.scale(inputFrame.height / Math.max(inputFrame.width, 1), 1.0);
+        projectionMatrix.scale(inputFrame.height / Math.max(inputFrame.width, 1), 1);
       }
       projectionMatrix.multiplyByMatrix(modelMatrix);
 
@@ -239,7 +236,7 @@ async function createVisualModel(input: {
       try {
         const renderer = this.getRenderer();
         renderer.setMvpMatrix(projectionMatrix);
-        renderer.setRenderState(input.gl.getParameter(input.gl.FRAMEBUFFER_BINDING) as WebGLFramebuffer | null, [
+        renderer.setRenderState(this.defaultFramebuffer, [
           0,
           0,
           inputFrame.width,

@@ -229,6 +229,8 @@ fn build_avatar_window(
         .build()
         .map_err(|error| format!("failed to build avatar window: {error}"))?;
     let _ = window.set_always_on_top(true);
+    #[cfg(debug_assertions)]
+    window.open_devtools();
     Ok(window)
 }
 

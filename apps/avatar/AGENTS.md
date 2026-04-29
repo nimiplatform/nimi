@@ -138,6 +138,144 @@ Normal app boot is **sdk/runtime-backed**. Mock remains bounded to explicit fixt
 
 Cubism SDK for Web 按 Live2D 官方 licensing terms 使用。App bundle 仅包含 Cubism runtime；不 redistribute 任何 Live2D 官方 sample models。Model creators for Nimi Avatar 各自负责其 model 的 Live2D 分发授权。
 
+### Cubism 5 (r.5) Integration Pitfalls — READ BEFORE DEBUGGING LIVE2D
+
+**Version naming**（避免混淆）：
+- **Cubism Editor**: 5.3 (latest editor version)
+- **Cubism SDK for Web**: `5-r.5` (latest SDK release; `r.N` = release number, NOT "5.N")
+- **Cubism Core**: 6.0.1 (binary lib bundled with SDK 5-r.5)
+- 我们用 `5-r.5`，pinned in `vite.config.ts` (`CUBISM_WEB_SDK_VERSION`). 不要降回 r.3 — desktop app 用 r.3 但缺 r.5 的新功能 (blend modes, copy shaders)。
+
+**Required init sequence** for r.5 (官方 sample reference: `lappmodel.ts:518-524`):
+
+```ts
+this.createRenderer(width, height);
+const renderer = this.getRenderer();
+renderer.startUp(gl);
+renderer.setIsPremultipliedAlpha(true);
+renderer.loadShaders(shaderPath);  // ← R.5 新增必需调用！缺则 vertex attribute mismatch
+// then bindTexture / resize
+```
+
+`loadShaders` 是 r.5 b1de66b commit 引入的新 init 调用（旧 r.3 不需要，drawModel 内部 lazy load）。**漏调会报 `WebGL: INVALID_OPERATION: glDrawElements: Vertex shader input type does not match`** — fail mode 看起来像 GL state 错乱，实际是 shader programs 没编译/链接。
+
+**Default framebuffer caching**（官方 sample: `lappsubdelegate.ts:74-76`）：
+
+```ts
+// init 时（在 createRenderer/startUp 之前）cache，此时 binding 是 canvas default (null)
+this.defaultFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+
+// renderFrame 里：
+offscreen.beginFrameProcess(gl);   // ← 内部会切走 FBO binding 到 mask render target
+try {
+  renderer.setRenderState(this.defaultFramebuffer, viewport);  // ← 必须用 cached default，不能用 getParameter
+  renderer.drawModel(shaderPath);
+}
+```
+
+**绝对不要**在 `beginFrameProcess` 之后才 `gl.getParameter(FRAMEBUFFER_BINDING)` —— 那时拿到的是 offscreen mask FBO，drawModel 会画到 mask buffer 而不是 canvas。表现：canvas 完全空白但 status=ready / drawables 非零 / visible_pixels 误报有值。
+
+**WebGL2 required**（不能 fallback WebGL1）：
+- Cubism r.5 用 `gl.copyBufferSubData` 做 clip mask buffer copy，这是 WebGL2-only API
+- 强制 WebGL1 会 fail with `WebGL2RenderingContext is required for buffer copy`
+- macOS WKWebView 默认 WebGL2 (`WebKit WebGL` renderer, GLSL ES 3.00) — 兼容
+
+**Projection matrix for portrait window**（官方 sample: `lapplive2dmanager.ts:96-103`）：
+
+```ts
+if (model.getCanvasWidth() > 1.0 && width < height) {
+  // wide model on portrait window
+  modelMatrix.setWidth(2.0);                    // 在 resize() 调，避免每帧 drift
+  projection.scale(1.0, width / height);
+} else {
+  projection.scale(height / width, 1.0);
+}
+```
+
+`setWidth/setHeight` **只在 resize()** 调，写入 `baseModelMatrix`；renderFrame 每帧 `setMatrix(baseModelMatrix)` 复位，**不要**在 renderFrame 里调 `setWidth(2.0)` —— per-frame 累积 scale drift 会让 model 消失。
+
+**Shader assets** 必须存在 `src/shell/renderer/public/assets/js/live2d-cubism-framework-shaders/WebGL/`（13 个文件，r.5 比 r.3 多了 blend / copy shaders）。`vite.config.ts` 的 `ensureCubismFrameworkCache` 自动从 SDK zip 解压并复制。
+
+### Live2D Debugging Workflow
+
+**Devtools access**（avatar 透明无边框窗口右键菜单被吞，devtools 默认打不开）：
+- `apps/avatar/src-tauri/src/main.rs` 的 `build_avatar_window` 后已加 `#[cfg(debug_assertions)] window.open_devtools()`
+- 必须从 desktop 启动 avatar 才能复现 launch context（直接 `open .app` 没 launch context 看不到内容）
+
+**Build + launch debug bundle**：
+
+```bash
+# 1. Build debug bundle
+pnpm --filter @nimiplatform/avatar exec tauri build --bundles app --no-sign --debug
+
+# 2. 让 desktop 启动 debug bundle 而非 release（同一 shell 跑 desktop dev）
+export NIMI_AVATAR_APP_PATH="$PWD/apps/avatar/src-tauri/target/debug/bundle/macos/Nimi Avatar.app"
+pnpm --filter @nimiplatform/desktop tauri dev
+```
+
+`apps/desktop/src-tauri/src/main_parts/defaults_and_commands/window_and_logs.rs:337` 的 `open_avatar_handoff_uri_or_binary` 优先读 `NIMI_AVATAR_APP_PATH` env。
+
+**Diagnostic console snippets**（在 avatar webview devtools 跑）：
+
+```js
+// 1. Check carrier status (drawables, visible pixels, error)
+document.querySelector('[data-testid=avatar-live2d-carrier-visual]').dataset
+
+// 2. Check GL context (WebGL2 + GLSL ES 3.00 expected)
+const c = document.querySelector('canvas.avatar-live2d-carrier__canvas');
+const gl = c.getContext('webgl2');
+console.log({ version: gl.getParameter(gl.VERSION), glsl: gl.getParameter(gl.SHADING_LANGUAGE_VERSION) });
+
+// 3. Snapshot current canvas frame (绕过 CSS / 合成层，看 GL 真实输出)
+//    visible/blank/garbage 决定 root cause 在 GL 还是 DOM
+const c = document.querySelector('canvas.avatar-live2d-carrier__canvas');
+const img = new Image();
+img.src = c.toDataURL();
+img.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;border:2px solid red;background:#fff;width:200px;height:auto;';
+document.body.appendChild(img);
+```
+
+**`visiblePixels` stat 解读**：carrier 在 24×24=576 grid 上 sample 像素。**156/576 = 27% 是正常 model 显示比例**，不是"几乎不可见"。0 / 接近 0 才是真问题。
+
+**`readPixels` 在 console 二次 `getContext` 不可信** — Tauri webview 二次 getContext 可能拿到不一致 context，读到 system memory garbage（如 `(55, 51, 49, 255)` 这种均匀暗色）。**始终以 `toDataURL` 为 ground truth**。
+
+### Symptom → Root Cause Map
+
+| Symptom | Likely root cause | Fix reference |
+|---|---|---|
+| `INVALID_OPERATION: glDrawElements: Vertex shader input type does not match` | `loadShaders` 没调 | 上文 init sequence |
+| `WebGL2RenderingContext is required for buffer copy` | 强制 WebGL1 | 必须 WebGL2 |
+| Canvas blank (`toDataURL` 空白) but status=ready / drawables>0 | 画到了 offscreen mask FBO | 上文 framebuffer caching |
+| Model visible but 全部 cropped 在边缘 | projection 公式或 modelMatrix scale 错 | 上文 projection 公式 |
+| Model 每帧逐渐缩小消失 | renderFrame 里调了累积型 `setWidth/setHeight` | 把它移到 resize() |
+| `Live2DCubismCore not available within timeout` | `index.html` 没加载 cubismcore.min.js | 检查 `src/shell/renderer/index.html` script tag |
+| Banner "Live2D Cubism SDK Core Version 6.0.1" 打两次 | 已知 cosmetic，不影响功能（双 framework loader 都 hit `s_isStarted` guard）| 可忽略 |
+
+### Reference Resources
+
+**Authoritative SDK refs**（GitHub upstream，按优先级）：
+
+> SDK 文件本地存在 `apps/avatar/.cache/assets/js/CubismSdkForWeb-5-r.5/...`（首次 `pnpm dev` / `tauri build` 自动从 zip 解压），但 `.cache` 是 **gitignored**。先 link GitHub URL，本地 `.cache/` 路径仅在已 build 后可用作离线 mirror。
+
+1. `lappmodel.ts` — canonical model lifecycle (init / setupModel / draw / release)  
+   <https://github.com/Live2D/CubismWebSamples/blob/5-r.5/Samples/TypeScript/Demo/src/lappmodel.ts>
+2. `lapplive2dmanager.ts` — projection logic per frame  
+   <https://github.com/Live2D/CubismWebSamples/blob/5-r.5/Samples/TypeScript/Demo/src/lapplive2dmanager.ts>
+3. `lappsubdelegate.ts` — framebuffer caching pattern  
+   <https://github.com/Live2D/CubismWebSamples/blob/5-r.5/Samples/TypeScript/Demo/src/lappsubdelegate.ts>
+4. `cubismshader_webgl.ts` — shader source layout (CubismWebFramework repo)  
+   <https://github.com/Live2D/CubismWebFramework/blob/5-r.5/src/rendering/cubismshader_webgl.ts>
+
+**External docs**：
+- Cubism SDK manual: <https://docs.live2d.com/en/cubism-sdk-manual/>
+- Editor 5.3 compat (matches SDK 5-r.5): <https://docs.live2d.com/en/cubism-sdk-manual/compatibility-with-cubism-5-3/>
+- Cubism Web Samples GitHub: <https://github.com/Live2D/CubismWebSamples>
+- Cubism Web Framework GitHub: <https://github.com/Live2D/CubismWebFramework>
+- R.5 integration commit (loadShaders 等 r.5 必需 init): <https://github.com/Live2D/CubismWebSamples/commit/b1de66b0b1f1cb881d95fb6158622aeb6a2827bd>
+- Live2D Community (issue search): <https://community.live2d.com/>
+
+**Reading order for new debug session**：先这个 AGENTS.md → 上面 4 个 SDK upstream 文件（GitHub link 或本地 `.cache/` mirror）→ 我们的 `src/shell/renderer/live2d/carrier-visual-host.ts` → 再看 console 输出。**不要绕过 SDK sample 直接猜**。
+
 ### Model Package Integrity
 
 当前 Live2D backend branch 从 `<model-pkg>/runtime/` 加载：

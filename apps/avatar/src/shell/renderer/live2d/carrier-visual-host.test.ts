@@ -151,6 +151,7 @@ function createFakeRuntime(gl: ReturnType<typeof createFakeGl>): Live2DVisualRun
     };
     private readonly renderer = {
       startUp: vi.fn(),
+      loadShaders: vi.fn(),
       bindTexture: vi.fn((index: number, texture: WebGLTexture) => {
         this.boundTextures.set(index, texture);
       }),

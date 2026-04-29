@@ -75,6 +75,23 @@ button {
   pointer-events: none;
 }
 
+/* Live2D carrier surface — fills the embodiment-stage minus a small inset
+ * so model outlines aren't clipped by the window edge. The carrier div is
+ * the host for the Cubism WebGL canvas; without an explicit size the
+ * canvas would render at 0×0 and the model would be invisible. */
+.avatar-live2d-carrier {
+  position: absolute;
+  inset: 12px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.avatar-live2d-carrier__canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 /* ── Companion Surface (NAV-SHELL-COMPANION-*) ────────────────────────── */
 
 .avatar-companion-surface {
