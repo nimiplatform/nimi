@@ -213,6 +213,37 @@ function firstPartyUnavailableDetail(error: unknown): FirstPartyBootstrapErrorDe
   };
 }
 
+function recordDriverStartFailure(error: unknown, input: {
+  agentId: string;
+  avatarInstanceId: string | null;
+  launchSource: string | null;
+  runtimeAppId: string;
+}): void {
+  const unavailable = firstPartyUnavailableDetail(error);
+  useAvatarStore.getState().setRuntimeBindingStatus({
+    status: 'unavailable',
+    reason: unavailable.reason,
+  });
+  useAvatarStore.getState().setDriverStatus('error');
+  recordAvatarEvidenceEventually({
+    kind: 'avatar.runtime.bind-failed',
+    detail: {
+      agentId: input.agentId,
+      avatar_instance_id: input.avatarInstanceId,
+      launch_source: input.launchSource,
+      runtime_app_id: input.runtimeAppId,
+      reason: unavailable.reason,
+      error_stage: unavailable.stage,
+      error_reason_code: unavailable.reasonCode,
+      error_account_reason_code: unavailable.accountReasonCode,
+      error_action_hint: unavailable.actionHint,
+      error_source: unavailable.source,
+      error_retryable: unavailable.retryable,
+      error_message: unavailable.message,
+    },
+  });
+}
+
 export type BootstrapHandle = {
   driver?: AgentDataDriver | null;
   carrier?: AvatarRuntimeCarrier | null;
@@ -585,11 +616,28 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       useAvatarStore.getState().setBundle(bundle);
     });
 
-    await runFirstPartyStageWithTimeout(
-      'driver_start',
-      AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS,
-      () => driver?.start() ?? Promise.resolve(),
-    );
+    const activeDriver = driver;
+    if (activeDriver?.kind === 'sdk') {
+      void runFirstPartyStageWithTimeout(
+        'driver_start',
+        AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS,
+        () => activeDriver.start(),
+      ).catch((error) => {
+        const state = useAvatarStore.getState();
+        recordDriverStartFailure(error, {
+          agentId: state.consume.agentId || state.launch.context?.agentId || '',
+          avatarInstanceId: state.consume.avatarInstanceId || state.launch.context?.avatarInstanceId || null,
+          launchSource: state.launch.context?.launchSource || null,
+          runtimeAppId: AVATAR_FIRST_PARTY_APP_ID,
+        });
+      });
+    } else {
+      await runFirstPartyStageWithTimeout(
+        'driver_start',
+        AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS,
+        () => activeDriver?.start() ?? Promise.resolve(),
+      );
+    }
 
     return buildHandle();
   } catch (error) {

@@ -685,7 +685,7 @@ describe('bootstrapAvatar', () => {
     await handle.shutdown();
   });
 
-  it('fails closed instead of leaving bootstrap pending when driver start hangs', async () => {
+  it('keeps visual bootstrap available and degrades interaction when driver start hangs', async () => {
     vi.useFakeTimers();
     createDriverMock.mockReturnValue({
       ...createFakeDriver('sdk'),
@@ -693,13 +693,24 @@ describe('bootstrapAvatar', () => {
     });
     const { bootstrapAvatar } = await import('./app-bootstrap.js');
 
-    const bootstrap = bootstrapAvatar();
-    const assertion = expect(bootstrap).rejects.toThrow('driver_start timed out after 12000ms');
-    await vi.advanceTimersByTimeAsync(12_000);
-    await assertion;
+    const handle = await bootstrapAvatar();
 
+    expect(handle.driver).not.toBeNull();
+    expect(handle.carrier).not.toBeNull();
     expect(startAvatarRuntimeCarrierMock).toHaveBeenCalledTimes(1);
-    expect(useAvatarStore.getState().driver.status).not.toBe('starting');
+    expect(useAvatarStore.getState().runtime.binding.status).toBe('active');
+
+    await vi.advanceTimersByTimeAsync(12_000);
+    await Promise.resolve();
+
+    expect(useAvatarStore.getState().runtime.binding.status).toBe('unavailable');
+    expect(useAvatarStore.getState().runtime.binding.reason).toBe(
+      'driver_start: driver_start timed out after 12000ms',
+    );
+    expect(startAvatarRuntimeCarrierMock).toHaveBeenCalledTimes(1);
+    expect(useAvatarStore.getState().driver.status).toBe('error');
+
+    await handle.shutdown();
   });
 
   it('uses mock fixture only when explicitly requested', async () => {
