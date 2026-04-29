@@ -15,6 +15,11 @@ export {
 } from './generated/runtime/v1/ai.js';
 export { ModelStatus } from './generated/runtime/v1/model.js';
 export {
+  VoiceAssetStatus,
+  VoiceWorkflowType,
+  VoiceReferenceKind,
+} from './voice-enums.js';
+export {
   ModelCatalogProviderSource,
   CatalogModelSource,
   ConnectorAuthKind,

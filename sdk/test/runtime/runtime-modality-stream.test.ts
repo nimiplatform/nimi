@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { RoutePolicy } from '../../src/runtime/generated/runtime/v1/ai.js';
+import { VoiceReferenceKind } from '../../src/runtime/generated/runtime/v1/voice.js';
 import { ReasonCode } from '../../src/types/index.js';
 import {
   runtimeStreamSpeech,
@@ -206,7 +207,7 @@ test('runtimeStreamSpeechSynthesis: started event sets model and route for subse
   const stream = await runtimeStreamSpeechSynthesis(ctx, {
     model: 'tts-model',
     text: 'hello',
-    voice: 'alice',
+    voiceRef: { kind: 'provider_voice_ref', providerVoiceRef: 'alice' },
     voiceRenderHints: { stability: 0.5, similarityBoost: 0.8, style: 0.1, useSpeakerBoost: true, speed: 1.0 },
   });
 
@@ -345,7 +346,7 @@ test('runtimeStreamSpeechSynthesis: failed event with empty fields uses defaults
   );
 });
 
-test('runtimeStreamSpeechSynthesis: without voice — voiceRef is undefined', async () => {
+test('runtimeStreamSpeechSynthesis: without voiceRef - voiceRef is undefined', async () => {
   let capturedRequest: Record<string, unknown> | undefined;
   const ctx = createMockCtx({
     invokeWithClient: async (op) => op({
@@ -414,7 +415,7 @@ test('runtimeStreamSpeechSynthesis: without voiceRenderHints — hints are undef
   const stream = await runtimeStreamSpeechSynthesis(ctx, {
     model: 'tts-model',
     text: 'no hints',
-    voice: 'alice',
+    voiceRef: { kind: 'voice_asset_id', voiceAssetId: 'asset-alice' },
   });
 
   for await (const _chunk of stream) {
@@ -424,7 +425,10 @@ test('runtimeStreamSpeechSynthesis: without voiceRenderHints — hints are undef
   const spec = (capturedRequest as Record<string, unknown>)?.spec as Record<string, unknown> | undefined;
   const speechSpec = spec?.spec as { speechSynthesize?: { voiceRenderHints?: unknown; voiceRef?: unknown } } | undefined;
   assert.equal(speechSpec?.speechSynthesize?.voiceRenderHints, undefined);
-  assert.ok(speechSpec?.speechSynthesize?.voiceRef);
+  const voiceRef = speechSpec?.speechSynthesize?.voiceRef as { kind?: number; reference?: { oneofKind?: string } } | undefined;
+  assert.ok(voiceRef);
+  assert.equal(voiceRef.kind, VoiceReferenceKind.VOICE_ASSET);
+  assert.equal(voiceRef.reference?.oneofKind, 'voiceAssetId');
 });
 
 test('runtimeStreamSpeechSynthesis: cloud route requires subject, local does not', async () => {

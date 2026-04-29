@@ -499,11 +499,12 @@ func TestBuildVoiceWorkflowPayloadCloneUsesCanonicalInputShape(t *testing.T) {
 	payload := buildVoiceWorkflowPayload(req, catalog.ResolveVoiceWorkflowResult{
 		Provider:        "dashscope",
 		ModelID:         "dashscope/qwen3-tts-vc",
+		APIModelID:      "qwen3-tts-vc-2026-01-22",
 		WorkflowType:    "tts_v2v",
 		WorkflowModelID: "qwen-voice-enrollment",
 	}, nil)
 
-	if got := strings.TrimSpace(nimillm.ValueAsString(payload["target_model_id"])); got != "dashscope/qwen3-tts-vc" {
+	if got := strings.TrimSpace(nimillm.ValueAsString(payload["target_model_id"])); got != "qwen3-tts-vc-2026-01-22" {
 		t.Fatalf("unexpected target_model_id: %q", got)
 	}
 	input, ok := payload["input"].(map[string]any)
@@ -529,7 +530,7 @@ func TestBuildVoiceWorkflowPayloadDesignUsesCanonicalInputShape(t *testing.T) {
 		WorkflowModelID: "elevenlabs-voice-design",
 	}, nil)
 
-	if got := strings.TrimSpace(nimillm.ValueAsString(payload["target_model_id"])); got != "elevenlabs/eleven_ttv_v3" {
+	if got := strings.TrimSpace(nimillm.ValueAsString(payload["target_model_id"])); got != "eleven_ttv_v3" {
 		t.Fatalf("unexpected target_model_id: %q", got)
 	}
 	input, ok := payload["input"].(map[string]any)
@@ -543,6 +544,78 @@ func TestBuildVoiceWorkflowPayloadDesignUsesCanonicalInputShape(t *testing.T) {
 		if _, ok := payload[legacyKey]; ok {
 			t.Fatalf("unexpected legacy top-level key %q in canonical payload", legacyKey)
 		}
+	}
+}
+
+func TestBuildVoiceWorkflowPayloadDesignUsesAPIModelIDForProviderTarget(t *testing.T) {
+	req := voiceDesignRequest()
+	req.Head.ModelId = "dashscope/qwen3-tts-vd"
+	req.Spec.GetVoiceDesign().TargetModelId = "dashscope/qwen3-tts-vd"
+	payload := buildVoiceWorkflowPayload(req, catalog.ResolveVoiceWorkflowResult{
+		Provider:        "dashscope",
+		ModelID:         "qwen3-tts-vd",
+		APIModelID:      "qwen3-tts-vd-2026-01-26",
+		WorkflowType:    "tts_t2v",
+		WorkflowModelID: "qwen-voice-design",
+	}, nil)
+
+	if got := strings.TrimSpace(nimillm.ValueAsString(payload["target_model_id"])); got != "qwen3-tts-vd-2026-01-26" {
+		t.Fatalf("unexpected target_model_id: %q", got)
+	}
+}
+
+func TestNormalizeVoiceWorkflowTargetModelID(t *testing.T) {
+	cases := []struct {
+		name     string
+		provider string
+		target   string
+		resolved string
+		api      string
+		want     string
+	}{
+		{
+			name:     "dashscope provider scoped design target",
+			provider: "dashscope",
+			target:   "dashscope/qwen3-tts-vd",
+			resolved: "qwen3-tts-vd",
+			api:      "qwen3-tts-vd-2026-01-26",
+			want:     "qwen3-tts-vd-2026-01-26",
+		},
+		{
+			name:     "cloud scoped provider target",
+			provider: "dashscope",
+			target:   "cloud/dashscope/qwen3-tts-vd-2026-01-26",
+			resolved: "qwen3-tts-vd",
+			api:      "qwen3-tts-vd-2026-01-26",
+			want:     "qwen3-tts-vd-2026-01-26",
+		},
+		{
+			name:     "local speech engine prefix is semantic",
+			provider: "local",
+			target:   "speech/qwen3tts",
+			resolved: "speech/qwen3tts",
+			want:     "speech/qwen3tts",
+		},
+		{
+			name:     "empty target falls back to resolved catalog model",
+			provider: "dashscope",
+			target:   "",
+			resolved: "qwen3-tts-vd",
+			api:      "qwen3-tts-vd-2026-01-26",
+			want:     "qwen3-tts-vd-2026-01-26",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := normalizeVoiceWorkflowTargetModelID(tc.target, catalog.ResolveVoiceWorkflowResult{
+				Provider:   tc.provider,
+				ModelID:    tc.resolved,
+				APIModelID: tc.api,
+			})
+			if got != tc.want {
+				t.Fatalf("normalizeVoiceWorkflowTargetModelID()=%q, want=%q", got, tc.want)
+			}
+		})
 	}
 }
 

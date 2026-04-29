@@ -15,6 +15,7 @@ import {
 import { ReasonCode } from '../types/index.js';
 import { withOptionalHeadSubjectUserId } from './model-factory-shared.js';
 import { ExecutionMode, ScenarioType } from '../runtime/generated/runtime/v1/ai.js';
+import { toRuntimeVoiceReference } from '../runtime/speech-voice-reference.js';
 
 export function createSpeechModelImpl(
   runtime: RuntimeForAiProvider,
@@ -52,15 +53,7 @@ export function createSpeechModelImpl(
                 pitch: Number(options.pitch || 0),
                 volume: Number(options.volume || 0),
                 emotion: normalizeText(options.emotion),
-                voiceRef: normalizeText(options.voice)
-                  ? {
-                    kind: 3,
-                    reference: {
-                      oneofKind: 'providerVoiceRef' as const,
-                      providerVoiceRef: normalizeText(options.voice),
-                    },
-                  }
-                  : undefined,
+                voiceRef: toRuntimeVoiceReference(options.voiceRef),
                 timingMode: 0,
               },
             },

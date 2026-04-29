@@ -11,6 +11,7 @@ import {
 import type { ListPresetVoicesRequest, VoicePresetDescriptor } from './generated/runtime/v1/voice';
 import type { RuntimeInternalContext } from './internal-context.js';
 import { buildMusicIterationExtensions, toSpeechTimingMode } from './runtime-media.js';
+import { toRuntimeVoiceReference } from './speech-voice-reference.js';
 import type {
   ImageGenerateInput,
   ImageGenerateOutput,
@@ -378,15 +379,7 @@ export async function runtimeStreamSpeechSynthesis(
           pitch: Number(input.pitch || 0),
           volume: Number(input.volume || 0),
           emotion: normalizeText(input.emotion),
-          voiceRef: normalizeText(input.voice)
-            ? {
-              kind: 3,
-              reference: {
-                oneofKind: 'providerVoiceRef' as const,
-                providerVoiceRef: normalizeText(input.voice),
-              },
-            }
-            : undefined,
+          voiceRef: toRuntimeVoiceReference(input.voiceRef),
           timingMode: toSpeechTimingMode(input.timingMode),
           voiceRenderHints: input.voiceRenderHints
             ? {

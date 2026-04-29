@@ -4,6 +4,7 @@ import type {
   LanguageModelV3,
 } from '@ai-sdk/provider';
 import type { Runtime, RuntimeCallOptions } from '../runtime/browser.js';
+import type { SpeechVoiceReference } from '../runtime/types.js';
 import type { AiRoutePolicy } from '../types/index.js';
 
 export const ROUTE_POLICY_LOCAL = 1;
@@ -84,7 +85,7 @@ export type NimiRuntimeVideoModel = {
 export type NimiRuntimeSpeechModel = {
   synthesize(options: {
     text: string;
-    voice?: string;
+    voiceRef?: SpeechVoiceReference;
     language?: string;
     audioFormat?: string;
     sampleRateHz?: number;

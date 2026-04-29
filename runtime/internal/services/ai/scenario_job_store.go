@@ -588,7 +588,21 @@ func (s *Service) executeScenarioAsyncJob(
 		err           error
 	)
 	if req.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE {
-		err = validateConnectorTTSModelSupport(ctx, s.logger, req, modelResolved, remoteTarget, s.selector.cloudProvider, s.speechCatalog)
+		originalReq := req
+		var effectiveSpec *runtimev1.SpeechSynthesizeScenarioSpec
+		effectiveSpec, err = s.resolveSynthesizeSpeechSpecVoiceRef(modelResolved, req.GetSpec().GetSpeechSynthesize())
+		if err == nil && effectiveSpec != nil && effectiveSpec != req.GetSpec().GetSpeechSynthesize() {
+			clonedReq := cloneSubmitScenarioJobRequest(req)
+			if clonedReq == nil || clonedReq.GetSpec() == nil {
+				err = grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+			} else {
+				clonedReq.Spec.Spec = &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: effectiveSpec}
+				req = clonedReq
+			}
+		}
+		if err == nil {
+			err = validateConnectorTTSModelSupport(ctx, s.logger, originalReq, effectiveSpec, modelResolved, remoteTarget, s.selector.cloudProvider, s.speechCatalog)
+		}
 	}
 	if err == nil {
 		switch adapterName {

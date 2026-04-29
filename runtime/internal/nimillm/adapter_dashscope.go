@@ -191,15 +191,18 @@ func ExecuteAlibabaNative(
 		}
 		requestedVoice := strings.TrimSpace(scenarioVoiceRef(spec))
 		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
+		sampleRateHz := spec.GetSampleRateHz()
 		parameters := map[string]any{
-			"voice":       requestedVoice,
-			"language":    strings.TrimSpace(spec.GetLanguage()),
-			"emotion":     strings.TrimSpace(spec.GetEmotion()),
-			"speed":       spec.GetSpeed(),
-			"pitch":       spec.GetPitch(),
-			"volume":      spec.GetVolume(),
-			"format":      strings.TrimSpace(spec.GetAudioFormat()),
-			"sample_rate": spec.GetSampleRateHz(),
+			"voice":    requestedVoice,
+			"language": strings.TrimSpace(spec.GetLanguage()),
+			"emotion":  strings.TrimSpace(spec.GetEmotion()),
+			"speed":    spec.GetSpeed(),
+			"pitch":    spec.GetPitch(),
+			"volume":   spec.GetVolume(),
+			"format":   strings.TrimSpace(spec.GetAudioFormat()),
+		}
+		if sampleRateHz > 0 {
+			parameters["sample_rate"] = sampleRateHz
 		}
 		applyAlibabaTTSScenarioExtensions(parameters, scenarioExtensions)
 		payload := map[string]any{
@@ -208,10 +211,12 @@ func ExecuteAlibabaNative(
 				"text":  strings.TrimSpace(spec.GetText()),
 				"voice": requestedVoice,
 			},
-			"parameters":     parameters,
-			"text":           strings.TrimSpace(spec.GetText()),
-			"audio_format":   strings.TrimSpace(spec.GetAudioFormat()),
-			"sample_rate_hz": spec.GetSampleRateHz(),
+			"parameters":   parameters,
+			"text":         strings.TrimSpace(spec.GetText()),
+			"audio_format": strings.TrimSpace(spec.GetAudioFormat()),
+		}
+		if sampleRateHz > 0 {
+			payload["sample_rate_hz"] = sampleRateHz
 		}
 		if len(scenarioExtensions) > 0 {
 			payload["extensions"] = scenarioExtensions

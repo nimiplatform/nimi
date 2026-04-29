@@ -416,8 +416,8 @@ func TestScenarioJobStoreDetachedVideoJobCompletesAfterLongPoll(t *testing.T) {
 			}
 			videoBytes := []byte("fake-video-bytes")
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"id":     "task-long-1",
-				"status": "succeeded",
+				"id":      "task-long-1",
+				"status":  "succeeded",
 				"b64_mp4": base64.StdEncoding.EncodeToString(videoBytes),
 			})
 		default:
@@ -908,6 +908,72 @@ func TestScenarioJobStoreVoiceFallbackPaths(t *testing.T) {
 	}
 	if len(collector.events) == 0 {
 		t.Fatalf("expected voice scenario events backlog")
+	}
+}
+
+func TestSubmitScenarioJobDashScopeVoiceDesignUsesAPIModelTarget(t *testing.T) {
+	var capturedPayload map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/audio/tts/customization" {
+			http.NotFound(w, r)
+			return
+		}
+		if err := json.NewDecoder(r.Body).Decode(&capturedPayload); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"output": map[string]any{
+				"voice": "dashscope-design-voice",
+			},
+		})
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{
+			"dashscope": {BaseURL: server.URL + "/compatible-mode/v1", APIKey: "test-key"},
+		},
+	})
+	ctx := scenarioJobContext("nimi.desktop")
+
+	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "dashscope/qwen3-tts-vd",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     10_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceDesign{
+				VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+					TargetModelId: "dashscope/qwen3-tts-vd",
+					Input: &runtimev1.VoiceT2VInput{
+						InstructionText: "Warm, clear Mandarin speaking voice with steady pacing.",
+						PreviewText:     "Hello from the desktop tester voice design workflow.",
+						PreferredName:   "tester-design",
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit voice design scenario job: %v", err)
+	}
+	job := waitScenarioJobTerminal(t, svc, submitResp.GetJob().GetJobId(), 3*time.Second)
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+		t.Fatalf("voice design job status=%s reason=%s detail=%q", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
+	}
+	input, ok := capturedPayload["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected captured input map, got=%T payload=%v", capturedPayload["input"], capturedPayload)
+	}
+	if got := strings.TrimSpace(nimillm.ValueAsString(input["target_model"])); got != "qwen3-tts-vd-2026-01-26" {
+		t.Fatalf("target_model=%q, want qwen3-tts-vd-2026-01-26", got)
 	}
 }
 

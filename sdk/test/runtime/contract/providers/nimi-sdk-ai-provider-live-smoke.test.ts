@@ -1034,7 +1034,7 @@ async function runSdkCapabilityLiveSmoke(endpoint: string, provider: string, cap
     const output = await runtime.media.tts.synthesize({
       model: routedModelId,
       text: 'Nimi SDK matrix live smoke speech synthesis.',
-      voice,
+      voiceRef: { kind: 'preset_voice_id', presetVoiceId: voice },
       subjectUserId: SUBJECT_USER_ID,
       route,
       fallback: 'deny',

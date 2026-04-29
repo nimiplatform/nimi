@@ -170,8 +170,8 @@ func normalizeDashScopePreferredName(value string) string {
 	if first >= '0' && first <= '9' {
 		normalized = "voice_" + normalized
 	}
-	if len(normalized) > 32 {
-		normalized = strings.Trim(normalized[:32], "_")
+	if len(normalized) > 16 {
+		normalized = strings.Trim(normalized[:16], "_")
 	}
 	if normalized == "" {
 		return "nimi_voice"

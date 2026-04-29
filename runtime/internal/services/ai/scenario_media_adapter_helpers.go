@@ -247,7 +247,7 @@ func resolveConnectorTTSModelID(
 	if target == "" || voiceCatalog == nil {
 		return "", false
 	}
-	if _, _, _, err := resolveSpeechVoicesForModelWithProviderType(target, strings.TrimSpace(providerType), voiceCatalog); err == nil {
+	if _, err := voiceCatalog.ResolveModelEntry(strings.TrimSpace(providerType), target); err == nil {
 		return target, true
 	}
 	return "", false

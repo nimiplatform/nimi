@@ -807,6 +807,10 @@ function generateProviderCatalog(doc) {
         pricing: { ...pricing },
         source_ref: { ...modelSourceRef },
       };
+      const apiModelID = normalizeString(model?.api_model_id);
+      if (apiModelID) {
+        modelEntry.api_model_id = apiModelID;
+      }
       if (resolvedVoiceSetID) {
         modelEntry.voice_set_id = resolvedVoiceSetID;
         modelEntry.voice_discovery_mode = dynamicVoiceSet ? dynamicVoiceSetMode : 'static_catalog';

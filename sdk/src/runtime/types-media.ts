@@ -228,11 +228,16 @@ export type WorldGenerateInput = {
   signal?: AbortSignal;
 };
 
+export type SpeechVoiceReference =
+  | { kind: 'preset_voice_id'; presetVoiceId: string }
+  | { kind: 'voice_asset_id'; voiceAssetId: string }
+  | { kind: 'provider_voice_ref'; providerVoiceRef: string };
+
 export type SpeechSynthesizeInput = {
   model: string;
   text: string;
   subjectUserId?: string;
-  voice?: string;
+  voiceRef?: SpeechVoiceReference;
   language?: string;
   audioFormat?: string;
   sampleRateHz?: number;

@@ -299,6 +299,7 @@ func (r *Resolver) ResolveVoiceWorkflowForSubject(subjectUserID string, provider
 		return ResolveVoiceWorkflowResult{
 			Provider:                       provider,
 			ModelID:                        strings.TrimSpace(modelEntry.ModelID),
+			APIModelID:                     strings.TrimSpace(modelEntry.ApiModelID),
 			WorkflowType:                   normalizedWorkflowType,
 			WorkflowModelID:                strings.TrimSpace(workflowModel.WorkflowModelID),
 			WorkflowFamily:                 inferWorkflowFamily(workflowModel.WorkflowModelID, modelEntry.ModelID),

@@ -31,6 +31,7 @@ import {
   toRoutePolicy,
 } from './helpers.js';
 import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
+import { toRuntimeVoiceReference } from './speech-voice-reference.js';
 
 export async function runtimeBuildSubmitScenarioJobRequestForMedia(
   ctx: RuntimeInternalContext,
@@ -177,7 +178,7 @@ export async function runtimeBuildSubmitScenarioJobRequestForMedia(
               pitch: Number(value.pitch || 0),
               volume: Number(value.volume || 0),
               emotion: normalizeText(value.emotion),
-              voiceRef: toVoiceRef(value.voice),
+              voiceRef: toRuntimeVoiceReference(value.voiceRef),
               timingMode: toSpeechTimingMode(value.timingMode),
               voiceRenderHints: value.voiceRenderHints
                 ? {
@@ -328,23 +329,6 @@ function toSpeechTranscribeAudioSource(
         },
       };
   }
-}
-
-function toVoiceRef(voice: string | undefined): {
-  kind: number;
-  reference: { oneofKind: 'providerVoiceRef'; providerVoiceRef: string };
-} | undefined {
-  const providerVoiceRef = normalizeText(voice);
-  if (!providerVoiceRef) {
-    return undefined;
-  }
-  return {
-    kind: 3,
-    reference: {
-      oneofKind: 'providerVoiceRef',
-      providerVoiceRef,
-    },
-  };
 }
 
 function scenarioTypeFromModal(modal: ScenarioJobSubmitInput['modal']): ScenarioType {

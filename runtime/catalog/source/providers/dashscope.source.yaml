@@ -319,6 +319,7 @@ models:
       - qwen3-tts-flash-2025-09-18
       - qwen3-tts-flash-2025-11-27
   - model_id: qwen3-tts-vc
+    api_model_id: qwen3-tts-vc-2026-01-22
     updated_at: 2026-01-22
     capabilities: [audio.synthesize]
     voice:
@@ -328,6 +329,7 @@ models:
     aliases:
       - qwen3-tts-vc-2026-01-22
   - model_id: qwen3-tts-vd
+    api_model_id: qwen3-tts-vd-2026-01-26
     updated_at: 2026-01-26
     capabilities: [audio.synthesize]
     voice:

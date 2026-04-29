@@ -125,6 +125,7 @@ models:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
+    api_model_id: qwen3-tts-vc-2026-01-22
     voice_set_id: dashscope:qwen3-tts-vc-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: &a3
@@ -147,6 +148,7 @@ models:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
+    api_model_id: qwen3-tts-vc-2026-01-22
     voice_set_id: dashscope:qwen3-tts-vc-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a3
@@ -167,6 +169,7 @@ models:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
+    api_model_id: qwen3-tts-vd-2026-01-26
     voice_set_id: dashscope:qwen3-tts-vd-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: &a4
@@ -189,6 +192,7 @@ models:
       url: https://bailian.console.aliyun.com/cn-beijing/?tab=doc#/doc/?type=model&url=2879134
       retrieved_at: 2026-03-05
       note: dashscope official model documentation
+    api_model_id: qwen3-tts-vd-2026-01-26
     voice_set_id: dashscope:qwen3-tts-vd-dynamic
     voice_discovery_mode: dynamic_user_scoped
     voice_ref_kinds: *a4

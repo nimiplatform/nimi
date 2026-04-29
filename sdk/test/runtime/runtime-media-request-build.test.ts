@@ -7,6 +7,7 @@ import {
   VideoContentType,
   VideoMode,
 } from '../../src/runtime/generated/runtime/v1/ai.js';
+import { VoiceReferenceKind } from '../../src/runtime/generated/runtime/v1/voice.js';
 import {
   buildMusicIterationExtensions,
   runtimeBuildSubmitScenarioJobRequestForMedia,
@@ -379,7 +380,7 @@ test('build request: tts modal with all options including voiceRenderHints', asy
     input: {
       model: 'tts-model',
       text: 'hello world',
-      voice: 'nova',
+      voiceRef: { kind: 'provider_voice_ref', providerVoiceRef: 'nova' },
       language: 'en',
       audioFormat: 'mp3',
       sampleRateHz: 44100,
@@ -411,7 +412,8 @@ test('build request: tts modal with all options including voiceRenderHints', asy
     assert.equal(spec.emotion, 'happy');
     assert.equal(spec.timingMode, SpeechTimingMode.WORD);
     assert.ok(spec.voiceRef);
-    assert.equal(spec.voiceRef.kind, 3);
+    assert.equal(spec.voiceRef.kind, VoiceReferenceKind.PROVIDER_VOICE_REF);
+    assert.equal(spec.voiceRef.reference.oneofKind, 'providerVoiceRef');
     assert.ok(spec.voiceRenderHints);
     assert.equal(spec.voiceRenderHints.stability, 0.5);
     assert.equal(spec.voiceRenderHints.similarityBoost, 0.7);
@@ -436,7 +438,7 @@ test('build request: tts modal without voiceRenderHints', async () => {
   }
 });
 
-test('build request: tts modal without voice returns undefined voiceRef', async () => {
+test('build request: tts modal without voiceRef returns undefined voiceRef', async () => {
   const ctx = createMockContext();
   const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
     modal: 'tts',
@@ -451,19 +453,63 @@ test('build request: tts modal without voice returns undefined voiceRef', async 
   }
 });
 
-test('build request: tts modal with empty voice returns undefined voiceRef', async () => {
+test('build request: tts modal with empty provider voice ref returns undefined voiceRef', async () => {
   const ctx = createMockContext();
   const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
     modal: 'tts',
     input: {
       model: 'tts-model',
       text: 'empty voice',
-      voice: '  ',
+      voiceRef: { kind: 'provider_voice_ref', providerVoiceRef: '  ' },
     },
   });
 
   if (result.spec?.spec.oneofKind === 'speechSynthesize') {
     assert.equal(result.spec.spec.speechSynthesize.voiceRef, undefined);
+  }
+});
+
+test('build request: tts modal maps preset voice ref', async () => {
+  const ctx = createMockContext();
+  const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
+    modal: 'tts',
+    input: {
+      model: 'tts-model',
+      text: 'preset voice',
+      voiceRef: { kind: 'preset_voice_id', presetVoiceId: 'Cherry' },
+    },
+  });
+
+  if (result.spec?.spec.oneofKind === 'speechSynthesize') {
+    const voiceRef = result.spec.spec.speechSynthesize.voiceRef;
+    assert.ok(voiceRef);
+    assert.equal(voiceRef.kind, VoiceReferenceKind.PRESET);
+    assert.equal(voiceRef.reference.oneofKind, 'presetVoiceId');
+    if (voiceRef.reference.oneofKind === 'presetVoiceId') {
+      assert.equal(voiceRef.reference.presetVoiceId, 'Cherry');
+    }
+  }
+});
+
+test('build request: tts modal maps voice asset ref', async () => {
+  const ctx = createMockContext();
+  const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
+    modal: 'tts',
+    input: {
+      model: 'tts-model',
+      text: 'asset voice',
+      voiceRef: { kind: 'voice_asset_id', voiceAssetId: 'voice_asset_123' },
+    },
+  });
+
+  if (result.spec?.spec.oneofKind === 'speechSynthesize') {
+    const voiceRef = result.spec.spec.speechSynthesize.voiceRef;
+    assert.ok(voiceRef);
+    assert.equal(voiceRef.kind, VoiceReferenceKind.VOICE_ASSET);
+    assert.equal(voiceRef.reference.oneofKind, 'voiceAssetId');
+    if (voiceRef.reference.oneofKind === 'voiceAssetId') {
+      assert.equal(voiceRef.reference.voiceAssetId, 'voice_asset_123');
+    }
   }
 });
 

@@ -245,6 +245,9 @@ func TestResolveVoiceWorkflowDashScope(t *testing.T) {
 	if strings.TrimSpace(resolved.WorkflowModelID) == "" {
 		t.Fatalf("workflow model id must be set")
 	}
+	if got := strings.TrimSpace(resolved.APIModelID); got != "qwen3-tts-vc-2026-01-22" {
+		t.Fatalf("api model id mismatch: got=%q", got)
+	}
 	if got := strings.TrimSpace(resolved.WorkflowFamily); got != "dashscope" {
 		t.Fatalf("workflow family mismatch: got=%q", got)
 	}

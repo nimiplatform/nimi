@@ -382,10 +382,7 @@ func buildVoiceWorkflowPayload(
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
 		clone := req.GetSpec().GetVoiceClone()
 		input := clone.GetInput()
-		targetModelID := strings.TrimSpace(clone.GetTargetModelId())
-		if targetModelID == "" {
-			targetModelID = strings.TrimSpace(resolution.ModelID)
-		}
+		targetModelID := normalizeVoiceWorkflowTargetModelID(clone.GetTargetModelId(), resolution)
 		resolvedPreferredName := resolveVoiceWorkflowPreferredName(req)
 		payload["target_model_id"] = targetModelID
 
@@ -403,10 +400,7 @@ func buildVoiceWorkflowPayload(
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
 		design := req.GetSpec().GetVoiceDesign()
 		input := design.GetInput()
-		targetModelID := strings.TrimSpace(design.GetTargetModelId())
-		if targetModelID == "" {
-			targetModelID = strings.TrimSpace(resolution.ModelID)
-		}
+		targetModelID := normalizeVoiceWorkflowTargetModelID(design.GetTargetModelId(), resolution)
 		instruction := strings.TrimSpace(input.GetInstructionText())
 		previewText := strings.TrimSpace(input.GetPreviewText())
 		language := strings.TrimSpace(input.GetLanguage())
@@ -423,6 +417,49 @@ func buildVoiceWorkflowPayload(
 		}
 	}
 	return payload
+}
+
+func normalizeVoiceWorkflowTargetModelID(targetModelID string, resolution catalog.ResolveVoiceWorkflowResult) string {
+	value := strings.TrimSpace(targetModelID)
+	if value == "" {
+		value = strings.TrimSpace(resolution.ModelID)
+	}
+	if value == "" {
+		return ""
+	}
+	apiModelID := normalizeVoiceWorkflowProviderModelID(resolution.APIModelID, resolution.Provider)
+	catalogModelID := normalizeVoiceWorkflowProviderModelID(resolution.ModelID, resolution.Provider)
+	value = normalizeVoiceWorkflowProviderModelID(value, resolution.Provider)
+	if apiModelID != "" && catalogModelID != "" && strings.EqualFold(value, catalogModelID) {
+		return apiModelID
+	}
+	return value
+}
+
+func normalizeVoiceWorkflowProviderModelID(modelID string, provider string) string {
+	value := strings.TrimSpace(modelID)
+	if value == "" {
+		return ""
+	}
+	for {
+		lower := strings.ToLower(value)
+		switch {
+		case strings.HasPrefix(lower, "cloud/"):
+			value = strings.TrimSpace(value[len("cloud/"):])
+		case strings.HasPrefix(lower, "token/"):
+			value = strings.TrimSpace(value[len("token/"):])
+		default:
+			normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
+			if normalizedProvider == "" {
+				return value
+			}
+			prefix := normalizedProvider + "/"
+			if strings.HasPrefix(strings.ToLower(value), prefix) {
+				return strings.TrimSpace(value[len(prefix):])
+			}
+			return value
+		}
+	}
 }
 
 func validateVoiceWorkflowRequestAgainstMetadata(

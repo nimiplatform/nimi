@@ -54,6 +54,7 @@ func TestExecuteAlibabaNativeTTSPreservesRequestedVoice(t *testing.T) {
 	var capturedVoice string
 	var capturedInstructions string
 	var capturedOptimizeInstructions bool
+	var capturedPayload map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/services/aigc/multimodal-generation/generation" {
 			http.NotFound(w, r)
@@ -61,6 +62,7 @@ func TestExecuteAlibabaNativeTTSPreservesRequestedVoice(t *testing.T) {
 		}
 		var payload map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&payload)
+		capturedPayload = payload
 		input, _ := payload["input"].(map[string]any)
 		capturedVoice = strings.TrimSpace(toString(input["voice"]))
 		parameters, _ := payload["parameters"].(map[string]any)
@@ -120,6 +122,13 @@ func TestExecuteAlibabaNativeTTSPreservesRequestedVoice(t *testing.T) {
 	}
 	if !capturedOptimizeInstructions {
 		t.Fatal("expected optimize_instructions extension to map to parameters.optimize_instructions")
+	}
+	parameters, _ := capturedPayload["parameters"].(map[string]any)
+	if _, ok := parameters["sample_rate"]; ok {
+		t.Fatalf("unset sample rate must be omitted from dashscope parameters: %#v", parameters["sample_rate"])
+	}
+	if _, ok := capturedPayload["sample_rate_hz"]; ok {
+		t.Fatalf("unset sample rate must be omitted from dashscope payload: %#v", capturedPayload["sample_rate_hz"])
 	}
 }
 
@@ -614,11 +623,14 @@ func TestExecuteDashScopeVoiceWorkflowUsesCustomizationContractForDesign(t *test
 }
 
 func TestNormalizeDashScopePreferredName(t *testing.T) {
-	if got := normalizeDashScopePreferredName("nimi-voice-01ABCD"); got != "nimi_voice_01abcd" {
+	if got := normalizeDashScopePreferredName("nimi-voice-01ABCD"); got != "nimi_voice_01abc" {
 		t.Fatalf("unexpected normalized name: %q", got)
 	}
 	if got := normalizeDashScopePreferredName(""); got != "nimi_voice" {
 		t.Fatalf("unexpected empty fallback name: %q", got)
+	}
+	if got := normalizeDashScopePreferredName("nimi-voice-01KQCDABCDE123456789"); len(got) > 16 {
+		t.Fatalf("normalized preferred_name exceeds DashScope 16-char limit: %q", got)
 	}
 }
 

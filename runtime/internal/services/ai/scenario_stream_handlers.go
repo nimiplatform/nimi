@@ -670,6 +670,16 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	if err != nil {
 		return failAndStop(err)
 	}
+	validationReq := &runtimev1.SubmitScenarioJobRequest{
+		Head:          req.GetHead(),
+		ScenarioType:  req.GetScenarioType(),
+		ExecutionMode: req.GetExecutionMode(),
+		Spec:          req.GetSpec(),
+		Extensions:    req.GetExtensions(),
+	}
+	if err := validateConnectorTTSModelSupport(requestCtx, s.logger, validationReq, effectiveSpeechSpec, backendModelID, remoteTarget, s.selector.cloudProvider, s.speechCatalog); err != nil {
+		return failAndStop(err)
+	}
 	scenarioExtensions := nimillm.ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
 	payload, usage, synthErr := backend.SynthesizeSpeech(requestCtx, backendModelID, effectiveSpeechSpec, scenarioExtensions)
 	if synthErr != nil {

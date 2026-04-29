@@ -242,6 +242,7 @@ type ResolveVoicesResult struct {
 type ResolveVoiceWorkflowResult struct {
 	Provider                       string
 	ModelID                        string
+	APIModelID                     string
 	WorkflowType                   string
 	WorkflowModelID                string
 	WorkflowFamily                 string
