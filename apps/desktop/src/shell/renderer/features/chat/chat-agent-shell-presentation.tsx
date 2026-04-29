@@ -357,16 +357,16 @@ export function useAgentConversationPresentation(
     },
   });
   const avatarHandoffReady = hasTauriInvoke();
+  const avatarRuntimeAccountReady = Boolean(input.accountId);
   const [avatarActionPending, setAvatarActionPending] = useState(false);
   const avatarInstanceId = useMemo(() => (
     input.activeTarget
       ? buildDesktopAvatarInstanceId({
         agentId: input.activeTarget.agentId,
         threadId: input.activeThreadId,
-        conversationAnchorId: input.activeConversationAnchorId,
       })
       : null
-  ), [input.activeConversationAnchorId, input.activeTarget, input.activeThreadId]);
+  ), [input.activeTarget, input.activeThreadId]);
   const avatarLiveInstancesQuery = useQuery({
     queryKey: input.activeTarget?.agentId
       ? desktopAvatarInstanceRegistryQueryKey(input.activeTarget.agentId)
@@ -376,10 +376,10 @@ export function useAgentConversationPresentation(
         ? listDesktopAvatarLiveInstances(input.activeTarget.agentId)
         : []
     ),
-    enabled: avatarHandoffReady && avatarPackageValid && Boolean(input.activeTarget?.agentId),
+    enabled: avatarHandoffReady && Boolean(input.activeTarget?.agentId),
     staleTime: 5_000,
     refetchOnWindowFocus: true,
-    refetchInterval: avatarHandoffReady && avatarPackageValid && input.activeTarget?.agentId ? 5_000 : false,
+    refetchInterval: avatarHandoffReady && input.activeTarget?.agentId ? 5_000 : false,
   });
   const runningAvatarInstance = avatarInstanceId
     ? avatarLiveInstancesQuery.data?.find((instance) => instance.avatarInstanceId === avatarInstanceId) || null
@@ -387,23 +387,33 @@ export function useAgentConversationPresentation(
   const avatarRunning = Boolean(runningAvatarInstance);
   const handleComposerAvatarAction = useCallback(async () => {
     if (
-      !input.accountId
-      || !input.activeTarget
-      || !selectedAvatarPackage
-      || !avatarConfigured
-      || !avatarPackageValid
-      || !avatarHandoffReady
+      !input.activeTarget
       || !avatarInstanceId
     ) {
       input.onOpenAgentCenter?.();
       return null;
+    }
+    if (!avatarHandoffReady) {
+      return {
+        kind: 'warning' as const,
+        message: input.t('Chat.agentCenterAvatarStartRuntimeUnavailable', {
+          defaultValue: 'Avatar launch requires the desktop Runtime bridge.',
+        }),
+      };
+    }
+    if (!avatarRuntimeAccountReady) {
+      return {
+        kind: 'warning' as const,
+        message: input.t('Chat.agentCenterAvatarStartAccountRequired', {
+          defaultValue: 'Sign in with the Runtime-backed desktop account before opening Avatar.',
+        }),
+      };
     }
     setAvatarActionPending(true);
     try {
       if (avatarRunning) {
         const result = await closeDesktopAvatarHandoff({
           avatarInstanceId,
-          bindingId: runningAvatarInstance?.scopedBinding?.bindingId || null,
           closedBy: 'desktop',
           sourceSurface: 'desktop-agent-chat',
         });
@@ -415,59 +425,38 @@ export function useAgentConversationPresentation(
             : input.t('Chat.agentCenterAvatarStopUnconfirmed', { defaultValue: 'Close request was sent, but the OS did not confirm it.' }),
         };
       }
-      const anchorMode = input.activeConversationAnchorId ? 'existing' : 'open_new';
       const result = await launchDesktopAvatarHandoff({
         agentId: input.activeTarget.agentId,
-        avatarPackage: {
-          kind: selectedAvatarPackage.kind,
-          packageId: selectedAvatarPackage.package_id,
-        },
         avatarInstanceId,
-        conversationAnchorId: input.activeConversationAnchorId,
-        anchorMode,
-        launchedBy: 'nimi.desktop',
-        runtimeAppId: 'nimi.desktop',
         sourceSurface: 'desktop-agent-chat',
-        worldId: input.activeTarget.worldId,
       });
       await avatarLiveInstancesQuery.refetch();
       return {
         kind: result.opened ? 'success' as const : 'warning' as const,
         message: result.opened
-          ? input.t('Chat.agentCenterAvatarStartSuccess', { defaultValue: 'Avatar opened in Nimi Avatar.' })
+          ? input.t('Chat.agentCenterAvatarStartSuccess', { defaultValue: 'Avatar launch requested. Waiting for the avatar to come online.' })
           : input.t('Chat.agentCenterAvatarStartUnconfirmed', { defaultValue: 'Launch request was sent, but the OS did not confirm it.' }),
       };
     } finally {
       setAvatarActionPending(false);
     }
   }, [
-    avatarConfigured,
-    avatarPackageValid,
     avatarHandoffReady,
+    avatarRuntimeAccountReady,
     avatarInstanceId,
     avatarLiveInstancesQuery,
     avatarRunning,
-    input.activeConversationAnchorId,
     input.activeTarget,
-    input.accountId,
     input.onOpenAgentCenter,
     input.t,
-    runningAvatarInstance,
-    selectedAvatarPackage,
   ]);
-  const avatarComposerActionState = !avatarConfigured
-    ? 'not_configured'
-    : avatarPackageChecking
-      ? 'pending'
-      : !avatarPackageValid
-        ? 'package_invalid'
-        : avatarActionPending
-          ? 'pending'
-          : !avatarHandoffReady
-            ? 'unavailable'
-            : avatarRunning
-              ? 'running'
-              : 'ready_stopped';
+  const avatarComposerActionState = avatarActionPending
+    ? 'pending'
+    : !avatarHandoffReady || !avatarRuntimeAccountReady
+      ? 'unavailable'
+      : avatarRunning
+        ? 'running'
+        : 'ready_stopped';
   const characterData = useMemo(() => ({
     ...surfaceState.character,
     theme: {
@@ -733,6 +722,7 @@ export function useAgentConversationPresentation(
     avatarComposerActionState,
     avatarActionPending,
     avatarHandoffReady,
+    avatarRuntimeAccountReady,
     avatarRunning,
     backgroundImportDisabled,
     backgroundImportError,

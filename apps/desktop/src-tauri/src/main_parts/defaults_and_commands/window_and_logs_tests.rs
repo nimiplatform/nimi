@@ -1,8 +1,7 @@
 use super::{
     avatar_runtime_env_pairs, build_avatar_close_handoff_uri, build_avatar_handoff_uri,
     confirm_dialog, ConfirmDialogPayload, DesktopAvatarCloseHandoffPayload,
-    DesktopAvatarLaunchHandoffPayload, DesktopAvatarScopedBindingProjection,
-    DESKTOP_RUNTIME_APP_ID,
+    DesktopAvatarLaunchHandoffPayload,
 };
 use crate::test_support::test_guard;
 use std::{fs, path::PathBuf};
@@ -17,44 +16,12 @@ fn make_temp_dir(prefix: &str) -> PathBuf {
     dir
 }
 
-fn scoped_binding(anchor_id: &str) -> DesktopAvatarScopedBindingProjection {
-    DesktopAvatarScopedBindingProjection {
-        binding_id: "binding-1".to_string(),
-        binding_handle: Some("binding:binding-1".to_string()),
-        runtime_app_id: DESKTOP_RUNTIME_APP_ID.to_string(),
-        app_instance_id: "nimi.desktop.local-first-party".to_string(),
-        window_id: "desktop-agent-chat".to_string(),
-        avatar_instance_id: "instance-1".to_string(),
-        agent_id: "agent-1".to_string(),
-        conversation_anchor_id: anchor_id.to_string(),
-        world_id: Some("world-1".to_string()),
-        purpose: "avatar.interaction.consume".to_string(),
-        scopes: vec![
-            "runtime.agent.turn.read".to_string(),
-            "runtime.agent.turn.write".to_string(),
-            "runtime.agent.presentation.read".to_string(),
-            "runtime.agent.state.read".to_string(),
-        ],
-        issued_at: Some("2026-04-28T00:00:00.000Z".to_string()),
-        expires_at: Some("2026-04-28T01:00:00.000Z".to_string()),
-        state: "active".to_string(),
-        reason_code: "action_executed".to_string(),
-    }
-}
-
-fn launch_payload(conversation_anchor_id: &str) -> DesktopAvatarLaunchHandoffPayload {
+fn launch_payload() -> DesktopAvatarLaunchHandoffPayload {
     DesktopAvatarLaunchHandoffPayload {
         agent_id: "agent-1".to_string(),
-        avatar_package_kind: "live2d".to_string(),
-        avatar_package_id: "live2d_ab12cd34ef56".to_string(),
-        avatar_package_schema_version: Some(1),
-        avatar_instance_id: "instance-1".to_string(),
-        conversation_anchor_id: conversation_anchor_id.to_string(),
-        launched_by: Some(DESKTOP_RUNTIME_APP_ID.to_string()),
-        runtime_app_id: Some(DESKTOP_RUNTIME_APP_ID.to_string()),
+        avatar_instance_id: Some("instance-1".to_string()),
+        launch_source: None,
         source_surface: Some("desktop-agent-chat".to_string()),
-        world_id: Some("world-1".to_string()),
-        scoped_binding: scoped_binding(conversation_anchor_id),
     }
 }
 
@@ -109,21 +76,23 @@ fn confirm_dialog_uses_desktop_e2e_override_sequence() {
 }
 
 #[test]
-fn avatar_handoff_uri_includes_existing_anchor_context_without_identity_leak() {
-    let uri = build_avatar_handoff_uri(&launch_payload("anchor-1")).expect("valid handoff uri");
+fn avatar_handoff_uri_includes_only_minimal_launch_intent() {
+    let uri = build_avatar_handoff_uri(&launch_payload()).expect("valid handoff uri");
 
     assert!(uri.starts_with("nimi-avatar://launch?"));
     assert!(uri.contains("agent_id=agent-1"));
-    assert!(uri.contains("avatar_package_kind=live2d"));
-    assert!(uri.contains("avatar_package_id=live2d_ab12cd34ef56"));
-    assert!(uri.contains("avatar_package_schema_version=1"));
     assert!(uri.contains("avatar_instance_id=instance-1"));
-    assert!(uri.contains("conversation_anchor_id=anchor-1"));
-    assert!(uri.contains("runtime_app_id=nimi.desktop"));
-    assert!(uri.contains("binding_id=binding-1"));
-    assert!(uri.contains("binding_app_instance_id=nimi.desktop.local-first-party"));
-    assert!(uri.contains("binding_window_id=desktop-agent-chat"));
-    assert!(uri.contains("binding_purpose=avatar.interaction.consume"));
+    assert!(uri.contains("launch_source=desktop-agent-chat"));
+    assert!(!uri.contains("avatar_package_kind"));
+    assert!(!uri.contains("avatar_package_id"));
+    assert!(!uri.contains("avatar_package_schema_version"));
+    assert!(!uri.contains("conversation_anchor_id"));
+    assert!(!uri.contains("runtime_app_id"));
+    assert!(!uri.contains("world_id"));
+    assert!(!uri.contains("binding_id"));
+    assert!(!uri.contains("binding_app_instance_id"));
+    assert!(!uri.contains("binding_window_id"));
+    assert!(!uri.contains("binding_purpose"));
     assert!(!uri.contains("anchor_mode=open_new"));
     assert!(!uri.contains("subject_user_id"));
     assert!(!uri.contains("agent_center_account_id"));
@@ -239,9 +208,14 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
 }
 
 #[test]
-fn avatar_handoff_uri_rejects_missing_anchor_for_existing_mode() {
-    let error = build_avatar_handoff_uri(&launch_payload(" "))
-        .expect_err("missing anchor should fail");
+fn avatar_handoff_uri_rejects_missing_agent_id() {
+    let error = build_avatar_handoff_uri(&DesktopAvatarLaunchHandoffPayload {
+        agent_id: " ".to_string(),
+        avatar_instance_id: Some("instance-1".to_string()),
+        launch_source: None,
+        source_surface: Some("desktop-agent-chat".to_string()),
+    })
+    .expect_err("missing agent should fail");
 
     let payload: serde_json::Value =
         serde_json::from_str(error.as_str()).expect("structured error json");

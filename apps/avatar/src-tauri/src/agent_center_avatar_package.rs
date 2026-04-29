@@ -16,10 +16,8 @@ pub(crate) struct ModelManifest {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct AgentCenterAvatarPackageResolvePayload {
+    pub(crate) account_id: String,
     pub(crate) agent_id: String,
-    pub(crate) avatar_package_kind: String,
-    pub(crate) avatar_package_id: String,
-    pub(crate) avatar_package_schema_version: u8,
 }
 
 #[derive(Deserialize)]
@@ -66,6 +64,37 @@ struct AgentCenterAvatarPackageManifestImport {
     imported_at: String,
     source_label: String,
     source_fingerprint: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AgentCenterLocalConfig {
+    schema_version: u8,
+    config_kind: String,
+    account_id: String,
+    agent_id: String,
+    modules: AgentCenterLocalConfigModules,
+}
+
+#[derive(Deserialize)]
+struct AgentCenterLocalConfigModules {
+    avatar_package: AgentCenterAvatarPackageModule,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AgentCenterAvatarPackageModule {
+    schema_version: u8,
+    selected_package: Option<AgentCenterSelectedAvatarPackage>,
+    last_validated_at: Option<String>,
+    last_launch_package_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AgentCenterSelectedAvatarPackage {
+    kind: String,
+    package_id: String,
 }
 
 fn validate_agent_center_id(value: &str, field: &str) -> Result<String, String> {
@@ -169,63 +198,105 @@ fn resolve_home_data_root() -> Result<PathBuf, String> {
     Ok(home.join(".nimi").join("data"))
 }
 
-fn find_agent_center_avatar_package_dir(
+fn resolve_agent_center_avatar_package_dir(
     data_root: &Path,
+    account_id: &str,
     agent_id: &str,
     kind: &str,
     package_id: &str,
 ) -> Result<PathBuf, String> {
-    let accounts_root = data_root.join("accounts");
-    let agent_segment = agent_center_path_segment(agent_id);
-    let mut matches = Vec::new();
-    let entries = fs::read_dir(&accounts_root)
-        .map_err(|error| format!("agent center accounts root is unavailable: {error}"))?;
-    for entry in entries {
-        let entry =
-            entry.map_err(|error| format!("failed to read account package root: {error}"))?;
-        let file_type = entry
-            .file_type()
-            .map_err(|error| format!("failed to inspect account package root: {error}"))?;
-        if !file_type.is_dir() {
-            continue;
-        }
-        let candidate = entry
-            .path()
-            .join("agents")
-            .join(agent_segment.as_str())
-            .join("agent-center")
-            .join("modules")
-            .join("avatar_package")
-            .join("packages")
-            .join(kind)
-            .join(package_id);
-        if candidate.exists() {
-            matches.push(candidate);
-        }
+    Ok(data_root
+        .join("accounts")
+        .join(agent_center_path_segment(account_id))
+        .join("agents")
+        .join(agent_center_path_segment(agent_id))
+        .join("agent-center")
+        .join("modules")
+        .join("avatar_package")
+        .join("packages")
+        .join(kind)
+        .join(package_id))
+}
+
+fn read_selected_avatar_package(
+    data_root: &Path,
+    account_id: &str,
+    agent_id: &str,
+) -> Result<(String, String), String> {
+    let config_path = data_root
+        .join("accounts")
+        .join(agent_center_path_segment(account_id))
+        .join("agents")
+        .join(agent_center_path_segment(agent_id))
+        .join("agent-center")
+        .join("config.json");
+    let raw = fs::read_to_string(&config_path)
+        .map_err(|error| format!("agent center local config is unavailable: {error}"))?;
+    if raw.len() > 262_144 {
+        return Err("agent center local config exceeds the admitted size cap".to_string());
     }
-    match matches.len() {
-        1 => Ok(matches.remove(0)),
-        0 => Err("avatar package is unavailable".to_string()),
-        _ => Err("avatar package descriptor is ambiguous".to_string()),
+    let config: AgentCenterLocalConfig = serde_json::from_str(&raw)
+        .map_err(|error| format!("invalid agent center local config: {error}"))?;
+    if config.schema_version != 1 || config.config_kind != "agent_center_local_config" {
+        return Err("agent center local config identity is not admitted".to_string());
     }
+    if validate_agent_center_id(&config.account_id, "config.account_id")? != account_id
+        || validate_agent_center_id(&config.agent_id, "config.agent_id")? != agent_id
+    {
+        return Err(
+            "agent center local config scope does not match Runtime account projection".to_string(),
+        );
+    }
+    if config.modules.avatar_package.schema_version != 1 {
+        return Err("modules.avatar_package.schema_version must be 1".to_string());
+    }
+    let selected = config
+        .modules
+        .avatar_package
+        .selected_package
+        .ok_or_else(|| "avatar package is not selected".to_string())?;
+    let kind = selected.kind.trim().to_string();
+    if kind != "live2d" {
+        return Err("avatar package loader currently supports Live2D packages only".to_string());
+    }
+    let package_id = validate_avatar_package_id(&selected.package_id, kind.as_str())?;
+    let _ = (
+        config.modules.avatar_package.last_validated_at,
+        config.modules.avatar_package.last_launch_package_id,
+    );
+    Ok((kind, package_id))
+}
+
+fn find_agent_center_avatar_package_dir(
+    data_root: &Path,
+    account_id: &str,
+    agent_id: &str,
+    kind: &str,
+    package_id: &str,
+) -> Result<PathBuf, String> {
+    let candidate =
+        resolve_agent_center_avatar_package_dir(data_root, account_id, agent_id, kind, package_id)?;
+    if candidate.exists() {
+        return Ok(candidate);
+    }
+    Err("avatar package is unavailable".to_string())
 }
 
 #[tauri::command]
 pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
     payload: AgentCenterAvatarPackageResolvePayload,
 ) -> Result<ModelManifest, String> {
+    let account_id = validate_agent_center_id(&payload.account_id, "account_id")?;
     let agent_id = validate_agent_center_id(&payload.agent_id, "agent_id")?;
-    let kind = payload.avatar_package_kind.trim();
-    if kind != "live2d" {
-        return Err("avatar package loader currently supports Live2D packages only".to_string());
-    }
-    if payload.avatar_package_schema_version != 1 {
-        return Err("avatar_package_schema_version must be 1".to_string());
-    }
-    let package_id = validate_avatar_package_id(&payload.avatar_package_id, kind)?;
     let data_root = resolve_home_data_root()?;
-    let package_dir =
-        find_agent_center_avatar_package_dir(&data_root, &agent_id, kind, package_id.as_str())?;
+    let (kind, package_id) = read_selected_avatar_package(&data_root, &account_id, &agent_id)?;
+    let package_dir = find_agent_center_avatar_package_dir(
+        &data_root,
+        &account_id,
+        &agent_id,
+        kind.as_str(),
+        package_id.as_str(),
+    )?;
     let canonical_data_root = data_root
         .canonicalize()
         .map_err(|error| format!("agent center data root is unavailable: {error}"))?;
@@ -253,7 +324,10 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
         return Err("avatar package manifest_version must be 1".to_string());
     }
     if manifest.package_id != package_id || manifest.kind != kind {
-        return Err("avatar package manifest identity does not match launch context".to_string());
+        return Err(
+            "avatar package manifest identity does not match selected Agent Center package"
+                .to_string(),
+        );
     }
     if manifest.loader_min_version.trim() != "1.0.0" {
         return Err("avatar package loader_min_version is not admitted".to_string());

@@ -116,11 +116,93 @@ fn write_agent_center_live2d_package_for_account_agent(
         serde_json::to_string_pretty(&manifest).unwrap(),
     )
     .unwrap();
+    write_agent_center_local_config(
+        home,
+        account_id,
+        agent_id,
+        Some(("live2d", "live2d_ab12cd34ef56")),
+    );
     package_dir
 }
 
 fn write_agent_center_live2d_package(home: &Path, entry_content: &str) -> PathBuf {
     write_agent_center_live2d_package_for_agent(home, "agent_1", entry_content)
+}
+
+#[test]
+fn normalize_avatar_launch_instance_id_writes_generated_id_when_omitted() {
+    let mut context = AvatarLaunchContext {
+        agent_id: "agent_1".to_string(),
+        avatar_instance_id: None,
+        launch_source: Some("desktop-agent-chat".to_string()),
+    };
+
+    let instance_id =
+        normalize_avatar_launch_instance_id(&mut context, "avatar-generated".to_string());
+
+    assert_eq!(instance_id, "avatar-generated");
+    assert_eq!(
+        context.avatar_instance_id.as_deref(),
+        Some("avatar-generated")
+    );
+}
+
+#[test]
+fn normalize_avatar_launch_instance_id_preserves_explicit_id() {
+    let mut context = AvatarLaunchContext {
+        agent_id: "agent_1".to_string(),
+        avatar_instance_id: Some("instance-explicit".to_string()),
+        launch_source: None,
+    };
+
+    let instance_id =
+        normalize_avatar_launch_instance_id(&mut context, "avatar-generated".to_string());
+
+    assert_eq!(instance_id, "instance-explicit");
+    assert_eq!(
+        context.avatar_instance_id.as_deref(),
+        Some("instance-explicit")
+    );
+}
+
+fn write_agent_center_local_config(
+    home: &Path,
+    account_id: &str,
+    agent_id: &str,
+    selected_package: Option<(&str, &str)>,
+) {
+    let config_dir = home
+        .join(".nimi/data/accounts")
+        .join(agent_center_path_segment(account_id))
+        .join("agents")
+        .join(agent_center_path_segment(agent_id))
+        .join("agent-center");
+    fs::create_dir_all(&config_dir).unwrap();
+    let selected_package = selected_package.map(|(kind, package_id)| {
+        json!({
+            "kind": kind,
+            "package_id": package_id,
+        })
+    });
+    let config = json!({
+        "schema_version": 1,
+        "config_kind": "agent_center_local_config",
+        "account_id": account_id,
+        "agent_id": agent_id,
+        "modules": {
+            "avatar_package": {
+                "schema_version": 1,
+                "selected_package": selected_package,
+                "last_validated_at": "2026-04-27T00:00:00Z",
+                "last_launch_package_id": null
+            }
+        }
+    });
+    fs::write(
+        config_dir.join("config.json"),
+        serde_json::to_string_pretty(&config).unwrap(),
+    )
+    .unwrap();
 }
 
 #[test]
@@ -195,10 +277,8 @@ async fn resolve_agent_center_avatar_package_returns_live2d_model_manifest() {
 
     let manifest =
         nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
+            account_id: "account_1".to_string(),
             agent_id: "agent_1".to_string(),
-            avatar_package_kind: "live2d".to_string(),
-            avatar_package_id: "live2d_ab12cd34ef56".to_string(),
-            avatar_package_schema_version: 1,
         })
         .await
         .expect("resolve package manifest");
@@ -234,10 +314,8 @@ async fn resolve_agent_center_avatar_package_accepts_runtime_scoped_agent_id() {
 
     let manifest =
         nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
+            account_id: "account_1".to_string(),
             agent_id: "~agent_1_tffk".to_string(),
-            avatar_package_kind: "live2d".to_string(),
-            avatar_package_id: "live2d_ab12cd34ef56".to_string(),
-            avatar_package_schema_version: 1,
         })
         .await
         .expect("resolve runtime scoped package manifest");
@@ -272,10 +350,8 @@ async fn resolve_agent_center_avatar_package_accepts_opaque_runtime_agent_id() {
 
     let manifest =
         nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
+            account_id: "account_1".to_string(),
             agent_id: agent_id.to_string(),
-            avatar_package_kind: "live2d".to_string(),
-            avatar_package_id: "live2d_ab12cd34ef56".to_string(),
-            avatar_package_schema_version: 1,
         })
         .await
         .expect("resolve opaque runtime scoped package manifest");
@@ -298,7 +374,7 @@ async fn resolve_agent_center_avatar_package_accepts_opaque_runtime_agent_id() {
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn resolve_agent_center_avatar_package_uses_non_account_descriptor() {
+async fn resolve_agent_center_avatar_package_uses_runtime_account_projection_scope() {
     let _guard = test_env_guard();
     let home = unique_temp_dir("agent-center-package-opaque-account");
     fs::create_dir_all(&home).unwrap();
@@ -314,13 +390,11 @@ async fn resolve_agent_center_avatar_package_uses_non_account_descriptor() {
 
     let manifest =
         nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
+            account_id: account_id.to_string(),
             agent_id: "agent_1".to_string(),
-            avatar_package_kind: "live2d".to_string(),
-            avatar_package_id: "live2d_ab12cd34ef56".to_string(),
-            avatar_package_schema_version: 1,
         })
         .await
-        .expect("resolve package manifest without account identity");
+        .expect("resolve package manifest with Runtime account projection");
 
     assert_eq!(
         manifest.runtime_dir,
@@ -347,26 +421,34 @@ async fn resolve_agent_center_avatar_package_rejects_vrm_and_digest_mismatch() {
     let previous_home = std::env::var("HOME").ok();
     std::env::set_var("HOME", &home);
     write_agent_center_live2d_package(&home, r#"{"Version":3}"#);
+    write_agent_center_local_config(
+        &home,
+        "account_1",
+        "agent_1",
+        Some(("vrm", "vrm_ab12cd34ef56")),
+    );
 
     let vrm_error =
         nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
+            account_id: "account_1".to_string(),
             agent_id: "agent_1".to_string(),
-            avatar_package_kind: "vrm".to_string(),
-            avatar_package_id: "vrm_ab12cd34ef56".to_string(),
-            avatar_package_schema_version: 1,
         })
         .await
         .expect_err("vrm loader is unavailable");
     assert!(vrm_error.contains("Live2D"));
 
     let entry = home.join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/modules/avatar_package/packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json");
+    write_agent_center_local_config(
+        &home,
+        "account_1",
+        "agent_1",
+        Some(("live2d", "live2d_ab12cd34ef56")),
+    );
     fs::write(entry, r#"{"Version":4}"#).unwrap();
     let digest_error =
         nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
+            account_id: "account_1".to_string(),
             agent_id: "agent_1".to_string(),
-            avatar_package_kind: "live2d".to_string(),
-            avatar_package_id: "live2d_ab12cd34ef56".to_string(),
-            avatar_package_schema_version: 1,
         })
         .await
         .expect_err("digest mismatch should fail closed");

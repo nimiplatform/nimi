@@ -37,15 +37,48 @@ function installTauriInvokeMock(
   };
 }
 
-test('desktop avatar live instance parser rejects invalid anchor mode', () => {
+test('desktop avatar live instance parser rejects missing minimal identity', () => {
+  assert.throws(() => {
+    parseDesktopAvatarLiveInstanceRecord({
+      avatarInstanceId: 'instance-1',
+    });
+  }, /agentId/);
+});
+
+test('desktop avatar live instance parser rejects old authority fields', () => {
   assert.throws(() => {
     parseDesktopAvatarLiveInstanceRecord({
       avatarInstanceId: 'instance-1',
       agentId: 'agent-1',
-      anchorMode: 'bad',
-      launchedBy: 'desktop',
+      launchSource: 'desktop-agent-chat',
+      conversationAnchorId: 'anchor-1',
     });
-  }, /anchorMode is invalid/);
+  }, /forbidden authority field: conversationAnchorId/);
+
+  assert.throws(() => {
+    parseDesktopAvatarLiveInstanceRecord({
+      avatarInstanceId: 'instance-1',
+      agentId: 'agent-1',
+      avatarPackageId: 'live2d_ab12cd34ef56',
+    });
+  }, /forbidden authority field: avatarPackageId/);
+});
+
+test('desktop avatar live instance bridge rejects authority-bearing projection records', async () => {
+  const restore = installTauriInvokeMock(async () => [{
+    avatarInstanceId: 'instance-1',
+    agentId: 'agent-1',
+    bindingId: 'binding-1',
+  }]);
+
+  try {
+    await assert.rejects(
+      listDesktopAvatarLiveInstances('agent-1'),
+      /forbidden authority field: bindingId/,
+    );
+  } finally {
+    restore();
+  }
 });
 
 test('desktop avatar ephemeral instance id extends deterministic base with nonce', () => {
@@ -137,10 +170,7 @@ test('desktop avatar live instance bridge invokes fixed command and payload shap
     return [{
       avatarInstanceId: 'instance-1',
       agentId: 'agent-1',
-      conversationAnchorId: 'anchor-1',
-      anchorMode: 'existing',
-      launchedBy: 'desktop',
-      sourceSurface: 'desktop-agent-chat',
+      launchSource: 'desktop-agent-chat',
     }];
   });
 

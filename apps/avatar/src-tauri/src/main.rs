@@ -1,17 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
 mod agent_center_avatar_package;
 mod avatar_evidence_projection;
 mod avatar_instance_projection;
 mod avatar_instance_registry;
 mod avatar_launch_context;
-
-use std::collections::HashMap;
-use std::fs;
-use std::hash::{Hash, Hasher};
-use std::path::{Path, PathBuf};
-use std::sync::Mutex;
-
 use agent_center_avatar_package::{
     nimi_avatar_resolve_agent_center_avatar_package, AgentCenterAvatarPackageResolvePayload,
     ModelManifest,
@@ -20,8 +12,8 @@ use avatar_evidence_projection::AvatarEvidenceRecordInput;
 use avatar_instance_projection::{persist_projection, AvatarInstanceProjectionRecord};
 use avatar_instance_registry::AvatarInstanceRegistry;
 use avatar_launch_context::{
-    parse_avatar_deep_link_request, resolve_initial_avatar_request, AvatarAnchorMode,
-    AvatarCloseRequest, AvatarDeepLinkRequest, AvatarLaunchContext, AVATAR_LAUNCH_SCHEME,
+    parse_avatar_deep_link_request, resolve_initial_avatar_request, AvatarCloseRequest,
+    AvatarDeepLinkRequest, AvatarLaunchContext, AVATAR_LAUNCH_SCHEME,
 };
 use nimi_kit_shell_tauri::runtime_bridge;
 use nimi_kit_shell_tauri::runtime_defaults as defaults;
@@ -29,11 +21,15 @@ use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use serde_json::json;
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
+use std::fs;
+use std::hash::{Hash, Hasher};
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use tauri::{
     Emitter, Manager, PhysicalPosition, PhysicalSize, State, WebviewUrl, WebviewWindow,
     WebviewWindowBuilder,
 };
-
 #[cfg(test)]
 pub(crate) fn test_env_guard() -> std::sync::MutexGuard<'static, ()> {
     static GUARD: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
@@ -42,17 +38,14 @@ pub(crate) fn test_env_guard() -> std::sync::MutexGuard<'static, ()> {
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
-
 #[derive(Clone, Serialize)]
 struct ReadyPayload {
     label: String,
     width: u32,
     height: u32,
 }
-
 const AVATAR_WINDOW_LABEL_PREFIX: &str = "avatar-instance";
 const AVATAR_LAUNCH_CONTEXT_UPDATED_EVENT: &str = "avatar://launch-context-updated";
-
 #[derive(Serialize)]
 struct NasHandlerManifest {
     activity: Vec<NasHandlerEntry>,
@@ -60,18 +53,15 @@ struct NasHandlerManifest {
     continuous: Vec<NasHandlerEntry>,
     config_json_path: Option<String>,
 }
-
 #[derive(Serialize)]
 struct NasHandlerEntry {
     file_stem: String,
     absolute_path: String,
 }
-
 #[derive(Default)]
 struct NasWatcherRegistry {
     watchers: Mutex<HashMap<String, RecommendedWatcher>>,
 }
-
 #[derive(Clone, Serialize)]
 struct NasHandlersChangedPayload {
     watcher_id: String,
@@ -79,9 +69,7 @@ struct NasHandlersChangedPayload {
     changed_files: Vec<String>,
     reload_mode: String,
 }
-
 const NAS_HANDLERS_CHANGED_EVENT: &str = "avatar://nas-handlers-changed";
-
 fn sanitize_window_label_component(input: &str) -> String {
     let mut sanitized = String::new();
     for ch in input.chars() {
@@ -129,7 +117,11 @@ fn sync_avatar_window_to_launch_context(
     context: &AvatarLaunchContext,
     emit_update_event: bool,
 ) {
-    let _ = window.set_title(&format!("Nimi Avatar · {}", context.avatar_instance_id));
+    let title_instance = context
+        .avatar_instance_id
+        .as_deref()
+        .unwrap_or_else(|| window.label());
+    let _ = window.set_title(&format!("Nimi Avatar · {}", title_instance));
     let _ = window.show();
     let _ = window.set_focus();
     if emit_update_event {
@@ -168,13 +160,12 @@ fn sync_avatar_instance_projection(registry: &AvatarInstanceRegistry) {
     let projection = snapshot
         .into_iter()
         .map(|entry| AvatarInstanceProjectionRecord {
-            avatar_instance_id: entry.context.avatar_instance_id,
+            avatar_instance_id: entry
+                .context
+                .avatar_instance_id
+                .unwrap_or_else(|| entry.window_label.clone()),
             agent_id: entry.context.agent_id,
-            conversation_anchor_id: Some(entry.context.conversation_anchor_id),
-            anchor_mode: AvatarAnchorMode::Existing,
-            scoped_binding: Some(entry.context.scoped_binding),
-            launched_by: entry.context.launched_by,
-            source_surface: entry.context.source_surface,
+            launch_source: entry.context.launch_source,
         })
         .collect::<Vec<_>>();
     if let Err(error) = persist_projection(std::process::id(), published_at_ms, projection) {
@@ -229,13 +220,28 @@ fn build_avatar_window(
     Ok(window)
 }
 
+fn normalize_avatar_launch_instance_id(
+    context: &mut AvatarLaunchContext,
+    fallback_instance_id: String,
+) -> String {
+    match context.avatar_instance_id.clone() {
+        Some(instance_id) => instance_id,
+        None => {
+            context.avatar_instance_id = Some(fallback_instance_id.clone());
+            fallback_instance_id
+        }
+    }
+}
+
 fn route_avatar_launch_context(
     app: &tauri::AppHandle,
     registry: &AvatarInstanceRegistry,
-    context: AvatarLaunchContext,
+    mut context: AvatarLaunchContext,
     emit_update_event_for_reused_window: bool,
 ) -> Result<(), String> {
-    if let Some(window_label) = registry.window_label_for_instance(&context.avatar_instance_id)? {
+    let instance_id =
+        normalize_avatar_launch_instance_id(&mut context, format!("avatar-{}", now_ms()));
+    if let Some(window_label) = registry.window_label_for_instance(&instance_id)? {
         if let Some(window) = app.get_webview_window(&window_label) {
             registry.bind_window(window.label().to_string(), context.clone())?;
             sync_avatar_window_to_launch_context(
@@ -257,7 +263,7 @@ fn route_avatar_launch_context(
         }
     }
 
-    let window_label = avatar_window_label_for_instance(&context.avatar_instance_id);
+    let window_label = avatar_window_label_for_instance(&instance_id);
     let window = build_avatar_window(app, &window_label)?;
     attach_avatar_window_lifecycle(&window, app);
     registry.bind_window(window.label().to_string(), context.clone())?;

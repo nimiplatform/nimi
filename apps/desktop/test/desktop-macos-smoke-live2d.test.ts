@@ -432,11 +432,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
       return [{
         avatarInstanceId: 'desktop-avatar-agent-e2e-alpha-anchor-1',
         agentId: 'agent-e2e-alpha',
-        conversationAnchorId: 'anchor-1',
-        anchorMode: 'existing',
-        scopedBinding: { bindingId: 'binding-1' },
-        launchedBy: 'desktop',
-        sourceSurface: 'desktop-agent-chat',
+        launchSource: 'desktop-agent-chat',
       }];
     },
     async readAvatarEvidence(avatarInstanceId) {

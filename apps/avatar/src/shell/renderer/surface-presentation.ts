@@ -20,12 +20,12 @@ type DeriveSurfacePresentationInput = {
   bootstrapComplete: boolean;
   shell: AvatarAppState['shell'];
   model: AvatarAppState['model'];
-	  driver: AvatarAppState['driver'];
-	  consume: AvatarAppState['consume'];
-	  runtimeBinding: AvatarAppState['runtime']['binding'];
-	  launchContext: AvatarAppState['launch']['context'];
-	  bundle: AvatarAppState['bundle'];
-	};
+  driver: AvatarAppState['driver'];
+  consume: AvatarAppState['consume'];
+  runtimeBinding: AvatarAppState['runtime']['binding'];
+  launchContext: AvatarAppState['launch']['context'];
+  bundle: AvatarAppState['bundle'];
+};
 
 function normalizeMessage(value: string | null): string {
   return String(value || '').trim();
@@ -48,6 +48,62 @@ function shortenId(value: string | null | undefined): string {
   return normalized.length > 14
     ? `${normalized.slice(0, 8)}…${normalized.slice(-4)}`
     : normalized;
+}
+
+function formatRuntimeBindingReason(reason: string): {
+  label: string;
+  recovery: string;
+} | null {
+  const lowered = reason.toLowerCase();
+  if (lowered.includes('runtime_daemon_prepare') || lowered.includes('runtime_bridge_daemon')) {
+    return {
+      label: 'Local Runtime daemon is not ready',
+      recovery: 'Restore the local Runtime daemon, then relaunch this surface from desktop.',
+    };
+  }
+  if (lowered.includes('account_session_unavailable')
+    || lowered.includes('account_session_status')
+    || lowered.includes('runtime_account_session_unavailable')) {
+    return {
+      label: 'Runtime account session is not authenticated',
+      recovery: 'Sign in through the desktop account flow, then relaunch this surface.',
+    };
+  }
+  if (lowered.includes('account_access_token')
+    || lowered.includes('runtime_account_access_token_unavailable')) {
+    return {
+      label: 'Runtime declined to issue an access token',
+      recovery: 'Re-authenticate from the desktop account flow, then relaunch this surface.',
+    };
+  }
+  if (lowered.includes('runtime_scoped_binding')
+    || lowered.includes('app_grant_invalid')
+    || lowered.includes('attach_active_scoped_runtime_binding')
+    || lowered.includes('check_runtime_scoped_binding_admission')) {
+    return {
+      label: 'Runtime rejected the avatar scoped binding',
+      recovery: 'Confirm Runtime authorization for this avatar app, then relaunch this surface.',
+    };
+  }
+  if (lowered.includes('conversation_context')) {
+    return {
+      label: 'Runtime did not return a conversation anchor',
+      recovery: 'Check the agent and Runtime anchor service, then relaunch this surface.',
+    };
+  }
+  if (lowered.includes('avatar_package_manifest')) {
+    return {
+      label: 'Avatar package manifest is not available',
+      recovery: 'Verify the agent visual package, then relaunch this surface.',
+    };
+  }
+  if (lowered.includes('driver_create') || lowered.includes('driver_start')) {
+    return {
+      label: 'Runtime driver failed to start',
+      recovery: 'Inspect the Runtime daemon logs, then relaunch this surface.',
+    };
+  }
+  return null;
 }
 
 function unavailableMeta(anchor: string, carrier: string): Array<{ label: string; value: string }> {
@@ -76,7 +132,21 @@ function classifyBootstrapError(error: string): {
       accent: 'Handoff required',
     };
   }
-  if (lowered.includes('daemon') || lowered.includes('runtime')) {
+  if (
+    lowered.includes('app_grant_invalid')
+    || lowered.includes('attach_active_scoped_runtime_binding')
+    || lowered.includes('principal_unauthorized')
+    || lowered.includes('check_request_and_app_auth')
+  ) {
+    return {
+      badge: 'Runtime unavailable',
+      title: 'Runtime authorization blocked',
+      summary: 'The runtime interaction path rejected this avatar request. The visual embodiment stays local and does not switch to mock mode.',
+      recovery: 'Re-establish Runtime app authorization from desktop, then relaunch this surface.',
+      accent: 'Runtime auth blocked',
+    };
+  }
+  if (lowered.includes('daemon') || lowered.includes('runtime') || lowered.includes('driver_start')) {
     return {
       badge: 'Runtime unavailable',
       title: 'Runtime connection blocked',
@@ -103,10 +173,10 @@ export function deriveSurfacePresentation(
   const postureFamily = normalizeMessage(input.bundle?.posture.action_family ?? null);
   const readyPresence = bundleActivity || statusText || executionState;
   const readyPosture = postureFamily || 'Unavailable';
-  const anchorId = normalizeMessage(input.consume.conversationAnchorId ?? input.launchContext?.conversationAnchorId ?? null);
+  const anchorId = normalizeMessage(input.consume.conversationAnchorId ?? null);
   const fixtureId = normalizeMessage(input.consume.fixtureId ?? null) || 'default';
 
-  if (input.bootstrapError && input.model.loadState !== 'loaded') {
+  if (input.bootstrapError) {
     const failure = classifyBootstrapError(input.bootstrapError);
     return {
       tone: 'error',
@@ -117,7 +187,7 @@ export function deriveSurfacePresentation(
       accent: failure.accent,
       stageLabel: 'Startup state',
       stageValue: failure.accent,
-      meta: unavailableMeta('Not bound', failure.badge === 'Runtime unavailable' ? 'Runtime unavailable' : 'Unavailable'),
+      meta: unavailableMeta('Not ready', failure.badge === 'Runtime unavailable' ? 'Runtime unavailable' : 'Unavailable'),
       contextCards: [],
     };
   }
@@ -129,20 +199,20 @@ export function deriveSurfacePresentation(
       : input.driver.status === 'starting'
         ? 'Starting runtime link'
         : input.launchContext
-          ? 'Binding launch'
+          ? 'Preparing launch'
           : 'Waiting for desktop handoff';
     return {
       tone: 'loading',
       badge: 'Warming up',
       title: 'Preparing your desktop companion',
-      summary: 'The local visual package is loading while the runtime binding is prepared through the desktop handoff.',
-      recovery: 'Keep this surface open while desktop finalizes the live companion bind.',
+      summary: 'The local visual package is loading while the first-party Runtime path is prepared from the desktop handoff.',
+      recovery: 'Keep this surface open while Runtime prepares the live companion path.',
       accent: stageValue,
       stageLabel: 'Bring-up',
       stageValue,
       meta: unavailableMeta(
-        waitingForLaunch ? 'Pending handoff' : 'Not bound',
-        input.driver.status === 'starting' ? 'Binding runtime' : 'Not bound',
+        waitingForLaunch ? 'Pending handoff' : 'Not ready',
+        input.driver.status === 'starting' ? 'Preparing Runtime' : 'Not ready',
       ),
       contextCards: [],
     };
@@ -186,32 +256,43 @@ export function deriveSurfacePresentation(
     };
   }
 
-	  if (input.runtimeBinding.status !== 'active') {
-	    return {
-	      tone: 'degraded',
-	      badge: 'Binding unavailable',
-	      title: 'Interaction unavailable',
-	      summary: `The visual embodiment is present, but the runtime interaction stream is not currently bound because the scoped binding is ${input.runtimeBinding.status}.`,
-	      recovery: 'Relaunch from desktop once the runtime binding is available.',
-	      accent: `Binding ${input.runtimeBinding.status}`,
-	      stageLabel: 'Binding state',
-	      stageValue: input.runtimeBinding.status,
-	      meta: unavailableMeta(anchorId ? `Not bound (${shortenId(anchorId)})` : 'Not bound', 'Runtime unavailable'),
-	      contextCards: [],
-	    };
-	  }
+  if (input.runtimeBinding.status !== 'active') {
+    const reason = normalizeMessage(input.runtimeBinding.reason);
+    const mapped = reason ? formatRuntimeBindingReason(reason) : null;
+    const summaryReason = mapped
+      ? ` ${mapped.label}.`
+      : reason ? ` Reason: ${toSentenceCase(reason)}.` : '';
+    const recovery = mapped
+      ? mapped.recovery
+      : 'Sign in through the Runtime-backed desktop account flow or restore Runtime, then relaunch from desktop.';
+    const stageValue = mapped
+      ? mapped.label
+      : reason ? toSentenceCase(reason) : toSentenceCase(input.runtimeBinding.status);
+    return {
+      tone: 'degraded',
+      badge: 'Runtime unavailable',
+      title: 'Interaction unavailable',
+      summary: `The visual embodiment is present, but the first-party Runtime interaction path is not ready.${summaryReason}`,
+      recovery,
+      accent: `Runtime ${input.runtimeBinding.status}`,
+      stageLabel: 'Runtime state',
+      stageValue,
+      meta: unavailableMeta(anchorId ? `Not ready (${shortenId(anchorId)})` : 'Not ready', 'Runtime unavailable'),
+      contextCards: [],
+    };
+  }
 
-	  if (input.driver.status === 'error' || input.driver.status === 'stopped') {
+  if (input.driver.status === 'error' || input.driver.status === 'stopped') {
     return {
       tone: 'degraded',
       badge: 'Connection paused',
       title: 'Interaction unavailable',
-      summary: 'The visual embodiment is present, but the runtime interaction stream is not currently bound.',
+      summary: 'The visual embodiment is present, but the first-party Runtime interaction path is currently paused.',
       recovery: 'Relaunch from desktop once the runtime path is healthy.',
       accent: input.driver.status === 'error' ? 'Driver error' : 'Driver stopped',
       stageLabel: 'Driver state',
       stageValue: input.driver.status,
-      meta: unavailableMeta(anchorId ? `Not bound (${shortenId(anchorId)})` : 'Not bound', input.driver.status === 'error' ? 'Driver error' : 'Runtime unavailable'),
+      meta: unavailableMeta(anchorId ? `Not ready (${shortenId(anchorId)})` : 'Not ready', input.driver.status === 'error' ? 'Driver error' : 'Runtime unavailable'),
       contextCards: [],
     };
   }
@@ -224,19 +305,19 @@ export function deriveSurfacePresentation(
     title: 'Desktop companion ready',
     summary: statusText
       || 'Present on the desktop and ready to continue on the current anchor.',
-    recovery: `Bound to agent ${agentValue} through the current desktop launch context.`,
+    recovery: `Ready for agent ${agentValue} through the current desktop launch context.`,
     accent: readyAccent,
     stageLabel: 'Presence',
     stageValue: readyAccent,
     meta: [
       { label: 'Presence', value: executionState },
       { label: 'Posture', value: readyPosture },
-      { label: 'Anchor', value: anchorId ? `Bound (${shortenId(anchorId)})` : 'Unavailable' },
+      { label: 'Anchor', value: anchorId ? `Ready (${shortenId(anchorId)})` : 'Unavailable' },
       { label: 'Carrier', value: 'Runtime IPC' },
     ],
     contextCards: [
       { label: 'Current presence', value: readyPresence },
-      { label: 'Runtime binding', value: anchorId ? `Bound (${shortenId(anchorId)})` : 'Bound' },
+      { label: 'Runtime path', value: anchorId ? `Ready (${shortenId(anchorId)})` : 'Ready' },
     ],
   };
 }

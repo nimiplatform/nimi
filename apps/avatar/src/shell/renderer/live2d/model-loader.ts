@@ -9,10 +9,8 @@ export type ModelManifest = {
 };
 
 export type AgentCenterAvatarPackageReference = {
+  accountId: string;
   agentId: string;
-  avatarPackageKind: 'live2d' | 'vrm';
-  avatarPackageId: string;
-  avatarPackageSchemaVersion: 1;
 };
 
 type RustModelManifest = {

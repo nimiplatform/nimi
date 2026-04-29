@@ -31,17 +31,24 @@ impl AvatarInstanceRegistry {
         context: AvatarLaunchContext,
     ) -> Result<(), String> {
         let window_label = window_label.into();
+        let instance_id = context
+            .avatar_instance_id
+            .clone()
+            .unwrap_or_else(|| window_label.clone());
         let mut guard = self
             .state
             .lock()
             .map_err(|_| "failed to lock avatar instance registry".to_string())?;
         if let Some(previous_context) = guard.label_to_context.get(&window_label) {
-            let previous_instance_id = previous_context.avatar_instance_id.clone();
+            let previous_instance_id = previous_context
+                .avatar_instance_id
+                .clone()
+                .unwrap_or_else(|| window_label.clone());
             guard.instance_to_label.remove(&previous_instance_id);
         }
         if let Some(previous_label) = guard
             .instance_to_label
-            .insert(context.avatar_instance_id.clone(), window_label.clone())
+            .insert(instance_id, window_label.clone())
         {
             if previous_label != window_label {
                 guard.label_to_context.remove(&previous_label);
@@ -77,9 +84,10 @@ impl AvatarInstanceRegistry {
             .lock()
             .map_err(|_| "failed to lock avatar instance registry".to_string())?;
         if let Some(previous_context) = guard.label_to_context.remove(window_label) {
-            guard
-                .instance_to_label
-                .remove(&previous_context.avatar_instance_id);
+            let previous_instance_id = previous_context
+                .avatar_instance_id
+                .unwrap_or_else(|| window_label.to_string());
+            guard.instance_to_label.remove(&previous_instance_id);
         }
         Ok(())
     }
@@ -99,7 +107,15 @@ impl AvatarInstanceRegistry {
                 entries.sort_by(|left, right| {
                     left.context
                         .avatar_instance_id
-                        .cmp(&right.context.avatar_instance_id)
+                        .as_deref()
+                        .unwrap_or(left.window_label.as_str())
+                        .cmp(
+                            right
+                                .context
+                                .avatar_instance_id
+                                .as_deref()
+                                .unwrap_or(right.window_label.as_str()),
+                        )
                         .then_with(|| left.window_label.cmp(&right.window_label))
                 });
                 entries
@@ -110,43 +126,15 @@ impl AvatarInstanceRegistry {
 
 #[cfg(test)]
 mod tests {
-    use crate::avatar_launch_context::{AvatarLaunchContext, AvatarScopedBindingProjection};
+    use crate::avatar_launch_context::AvatarLaunchContext;
 
     use super::AvatarInstanceRegistry;
 
-    fn sample_context(instance_id: &str, anchor_id: Option<&str>) -> AvatarLaunchContext {
+    fn sample_context(instance_id: &str) -> AvatarLaunchContext {
         AvatarLaunchContext {
             agent_id: "agent-1".to_string(),
-            avatar_package_kind: "live2d".to_string(),
-            avatar_package_id: "live2d_ab12cd34ef56".to_string(),
-            avatar_package_schema_version: 1,
-            avatar_instance_id: instance_id.to_string(),
-            conversation_anchor_id: anchor_id.unwrap_or("anchor-committed").to_string(),
-            launched_by: "nimi.desktop".to_string(),
-            runtime_app_id: Some("nimi.desktop".to_string()),
-            source_surface: Some("desktop-agent-chat".to_string()),
-            world_id: Some("world-1".to_string()),
-            scoped_binding: AvatarScopedBindingProjection {
-                binding_id: format!("binding-{instance_id}"),
-                binding_handle: None,
-                runtime_app_id: "nimi.desktop".to_string(),
-                app_instance_id: "nimi.desktop.local-first-party".to_string(),
-                window_id: "desktop-agent-chat".to_string(),
-                avatar_instance_id: instance_id.to_string(),
-                agent_id: "agent-1".to_string(),
-                conversation_anchor_id: anchor_id.unwrap_or("anchor-committed").to_string(),
-                world_id: Some("world-1".to_string()),
-                purpose: "avatar.interaction.consume".to_string(),
-                scopes: vec![
-                    "runtime.agent.turn.read".to_string(),
-                    "runtime.agent.presentation.read".to_string(),
-                    "runtime.agent.state.read".to_string(),
-                ],
-                issued_at: None,
-                expires_at: None,
-                state: "active".to_string(),
-                reason_code: "action_executed".to_string(),
-            },
+            avatar_instance_id: Some(instance_id.to_string()),
+            launch_source: Some("desktop-agent-chat".to_string()),
         }
     }
 
@@ -154,13 +142,10 @@ mod tests {
     fn registry_keeps_distinct_instances_separate() {
         let registry = AvatarInstanceRegistry::new();
         registry
-            .bind_window("avatar", sample_context("instance-1", Some("anchor-1")))
+            .bind_window("avatar", sample_context("instance-1"))
             .expect("bind instance 1");
         registry
-            .bind_window(
-                "avatar-instance-2",
-                sample_context("instance-2", Some("anchor-2")),
-            )
+            .bind_window("avatar-instance-2", sample_context("instance-2"))
             .expect("bind instance 2");
 
         assert_eq!(
@@ -183,32 +168,29 @@ mod tests {
     fn registry_updates_same_instance_without_overwriting_other_windows() {
         let registry = AvatarInstanceRegistry::new();
         registry
-            .bind_window("avatar", sample_context("instance-1", Some("anchor-1")))
+            .bind_window("avatar", sample_context("instance-1"))
             .expect("bind original");
         registry
-            .bind_window(
-                "avatar-instance-2",
-                sample_context("instance-2", Some("anchor-2")),
-            )
+            .bind_window("avatar-instance-2", sample_context("instance-2"))
             .expect("bind other instance");
 
         registry
-            .bind_window("avatar", sample_context("instance-1", Some("anchor-3")))
+            .bind_window("avatar", sample_context("instance-1"))
             .expect("rebind original");
 
         assert_eq!(
             registry
                 .context_for_window("avatar")
                 .expect("context for avatar")
-                .map(|context| context.conversation_anchor_id),
-            Some("anchor-3".to_string())
+                .and_then(|context| context.avatar_instance_id),
+            Some("instance-1".to_string())
         );
         assert_eq!(
             registry
                 .context_for_window("avatar-instance-2")
                 .expect("context for second window")
-                .map(|context| context.conversation_anchor_id),
-            Some("anchor-2".to_string())
+                .and_then(|context| context.avatar_instance_id),
+            Some("instance-2".to_string())
         );
     }
 
@@ -216,7 +198,7 @@ mod tests {
     fn registry_cleanup_removes_stale_window_bindings() {
         let registry = AvatarInstanceRegistry::new();
         registry
-            .bind_window("avatar", sample_context("instance-1", Some("anchor-1")))
+            .bind_window("avatar", sample_context("instance-1"))
             .expect("bind original");
 
         registry.remove_window("avatar").expect("remove avatar");
@@ -239,19 +221,22 @@ mod tests {
     fn registry_snapshot_returns_sorted_window_entries() {
         let registry = AvatarInstanceRegistry::new();
         registry
-            .bind_window(
-                "avatar-instance-2",
-                sample_context("instance-2", Some("anchor-2")),
-            )
+            .bind_window("avatar-instance-2", sample_context("instance-2"))
             .expect("bind second");
         registry
-            .bind_window("avatar", sample_context("instance-1", Some("anchor-1")))
+            .bind_window("avatar", sample_context("instance-1"))
             .expect("bind first");
 
         let snapshot = registry.snapshot().expect("snapshot");
 
         assert_eq!(snapshot.len(), 2);
-        assert_eq!(snapshot[0].context.avatar_instance_id, "instance-1");
-        assert_eq!(snapshot[1].context.avatar_instance_id, "instance-2");
+        assert_eq!(
+            snapshot[0].context.avatar_instance_id.as_deref(),
+            Some("instance-1")
+        );
+        assert_eq!(
+            snapshot[1].context.avatar_instance_id.as_deref(),
+            Some("instance-2")
+        );
     }
 }

@@ -1,9 +1,8 @@
 import { Runtime } from '@nimiplatform/sdk/runtime/browser';
-import type { RuntimeScopedBindingAttachment } from '@nimiplatform/sdk/runtime/browser';
 import { invoke as tauriInvoke, type InvokeArgs } from '@tauri-apps/api/core';
 import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event';
 import { getAvatarLaunchContext, getRuntimeDefaults, hasTauriInvoke, type AvatarLaunchContext } from '@renderer/bridge';
-import { type RuntimeBindingStatus, useAvatarStore } from './app-store.js';
+import { useAvatarStore } from './app-store.js';
 
 export function readNormalizedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -37,19 +36,9 @@ export function installTauriRuntimeSdkHook(): void {
 
 export function applyLaunchContextRuntimeDefaults(
   runtimeDefaults: Awaited<ReturnType<typeof getRuntimeDefaults>>,
-  launchContext: AvatarLaunchContext,
+  _launchContext: AvatarLaunchContext,
 ): Awaited<ReturnType<typeof getRuntimeDefaults>> {
-  const worldId = readNormalizedString(launchContext.worldId);
-  if (!worldId) {
-    return runtimeDefaults;
-  }
-  return {
-    ...runtimeDefaults,
-    runtime: {
-      ...runtimeDefaults.runtime,
-      ...(worldId ? { worldId } : {}),
-    },
-  };
+  return runtimeDefaults;
 }
 
 export function createAbortError(message: string): Error {
@@ -82,74 +71,8 @@ export async function waitForAvatarLaunchContext(timeoutMs: number): Promise<Ava
   throw new Error(`avatar launch context was not bound within ${timeoutMs}ms: ${errorMessage(lastError)}`);
 }
 
-export function resolveRuntimeAppId(launchContext: AvatarLaunchContext): string {
-  const explicitRuntimeAppId = readNormalizedString(launchContext.runtimeAppId);
-  if (explicitRuntimeAppId) {
-    return explicitRuntimeAppId;
-  }
-  const launchedBy = readNormalizedString(launchContext.launchedBy);
-  if (launchedBy === 'desktop') {
-    return 'nimi.desktop';
-  }
-  return launchedBy || 'nimi.avatar';
-}
-
-export function bindingStatusFromProjection(binding: AvatarLaunchContext['scopedBinding'] | null): RuntimeBindingStatus {
-  if (!binding) {
-    return 'unavailable';
-  }
-  const state = readNormalizedString(binding.state).toLowerCase();
-  if (state === 'revoked' || state === 'suspended' || state === 'superseded') {
-    return 'revoked';
-  }
-  if (state === 'expired') {
-    return 'expired';
-  }
-  const expiresAt = readNormalizedString(binding.expiresAt);
-  if (expiresAt) {
-    const expiresAtMs = Date.parse(expiresAt);
-    if (Number.isFinite(expiresAtMs) && expiresAtMs <= Date.now()) {
-      return 'expired';
-    }
-  }
-  return state === 'active' ? 'active' : 'stale';
-}
-
-export function toRuntimeScopedBindingAttachment(input: {
-  binding: AvatarLaunchContext['scopedBinding'];
-  runtimeAppId: string;
-  agentId: string;
-  conversationAnchorId: string;
-  worldId: string;
-}): RuntimeScopedBindingAttachment {
-  return {
-    bindingId: input.binding.bindingId,
-    bindingHandle: input.binding.bindingHandle ?? undefined,
-    runtimeAppId: input.binding.runtimeAppId || input.runtimeAppId,
-    appInstanceId: input.binding.appInstanceId,
-    windowId: input.binding.windowId,
-    avatarInstanceId: input.binding.avatarInstanceId,
-    agentId: input.binding.agentId || input.agentId,
-    conversationAnchorId: input.binding.conversationAnchorId || input.conversationAnchorId,
-    worldId: input.binding.worldId || input.worldId,
-  };
-}
-
-export function bindingUnavailableMessage(status: RuntimeBindingStatus, reason?: string | null): string {
-  const suffix = reason ? ` (${reason})` : '';
-  switch (status) {
-    case 'revoked':
-      return `Runtime interaction is unavailable because the scoped binding was revoked${suffix}.`;
-    case 'expired':
-      return `Runtime interaction is unavailable because the scoped binding expired${suffix}.`;
-    case 'stale':
-      return `Runtime interaction is unavailable because the scoped binding is stale${suffix}.`;
-    case 'unavailable':
-      return `Runtime interaction is unavailable because the scoped binding is unavailable${suffix}.`;
-    case 'active':
-    default:
-      return 'Runtime interaction is unavailable.';
-  }
+export function resolveRuntimeAppId(_launchContext: AvatarLaunchContext): string {
+  return 'nimi.avatar';
 }
 
 export type RuntimeExecutionBinding = {
@@ -192,16 +115,6 @@ type RuntimeWithRoute = Runtime & {
 export async function loadDefaultMockScenarioJson(): Promise<string> {
   const module = await import('../mock/scenarios/default.mock.json?raw');
   return module.default;
-}
-
-export async function resolveConversationAnchorId(
-  launchContext: AvatarLaunchContext,
-): Promise<string> {
-  const conversationAnchorId = readNormalizedString(launchContext.conversationAnchorId);
-  if (!conversationAnchorId) {
-    throw new Error('avatar launch context did not include committed conversationAnchorId');
-  }
-  return conversationAnchorId;
 }
 
 export function resolveExecutionBinding(input: {

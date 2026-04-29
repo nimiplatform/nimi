@@ -262,7 +262,7 @@ export function failCompanionSubmit(
     inputVisible: true,
     sendState: 'error',
     draft: input.draft,
-    sendError: normalizeText(input.message) || 'Unable to send this anchor-bound note right now.',
+    sendError: normalizeText(input.message) || 'Unable to send this desktop-selected note right now.',
   };
 }
 

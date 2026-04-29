@@ -66,7 +66,7 @@ function recordTimeMs(record: Record<string, unknown>): number {
 async function waitForAvatarLiveInstance(
   deps: DesktopMacosSmokeDriverDeps,
   agentId: string,
-  expectedConversationAnchorId: string | null = null,
+  _expectedConversationAnchorId: string | null = null,
   timeoutMs = SMOKE_STEP_TIMEOUT_MS,
 ) {
   const deadline = Date.now() + timeoutMs;
@@ -74,12 +74,7 @@ async function waitForAvatarLiveInstance(
   while (Date.now() < deadline) {
     const instances = await deps.listAvatarLiveInstances(agentId);
     lastCount = instances.length;
-    const current = instances.find((instance) => (
-      instance.agentId === agentId
-      && instance.anchorMode === 'existing'
-      && Boolean(instance.conversationAnchorId)
-      && (!expectedConversationAnchorId || instance.conversationAnchorId === expectedConversationAnchorId)
-    ));
+    const current = instances.find((instance) => instance.agentId === agentId);
     if (current) {
       return current;
     }
@@ -87,7 +82,7 @@ async function waitForAvatarLiveInstance(
   }
   throw new Error(
     `missing same-anchor Avatar live instance for ${agentId}`
-    + `${expectedConversationAnchorId ? ` anchor=${expectedConversationAnchorId}` : ''}; observed ${lastCount} instance(s)`,
+    + `; observed ${lastCount} instance(s)`,
   );
 }
 

@@ -4,25 +4,19 @@ use std::path::{Path, PathBuf};
 use nimi_kit_shell_tauri::desktop_paths::resolve_nimi_data_dir;
 use serde::{Deserialize, Serialize};
 
-use crate::avatar_launch_context::{AvatarAnchorMode, AvatarScopedBindingProjection};
-
 const AVATAR_INSTANCE_PROJECTION_DIR: &str = "avatar-instance-registry";
 const AVATAR_INSTANCE_PROJECTION_FILE: &str = "instances.json";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AvatarInstanceProjectionRecord {
     pub avatar_instance_id: String,
     pub agent_id: String,
-    pub conversation_anchor_id: Option<String>,
-    pub anchor_mode: AvatarAnchorMode,
-    pub scoped_binding: Option<AvatarScopedBindingProjection>,
-    pub launched_by: String,
-    pub source_surface: Option<String>,
+    pub launch_source: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AvatarInstanceProjectionFile {
     pub schema_version: u32,
     pub publisher_pid: u32,
@@ -98,8 +92,6 @@ mod tests {
     use super::{
         persist_projection_to_path, AvatarInstanceProjectionFile, AvatarInstanceProjectionRecord,
     };
-    use crate::avatar_launch_context::AvatarAnchorMode;
-
     fn temp_projection_path() -> std::path::PathBuf {
         let root = std::env::temp_dir().join(format!(
             "nimi-avatar-instance-projection-{}-{}",
@@ -120,11 +112,7 @@ mod tests {
             instances: vec![AvatarInstanceProjectionRecord {
                 avatar_instance_id: "instance-1".to_string(),
                 agent_id: "agent-1".to_string(),
-                conversation_anchor_id: Some("anchor-1".to_string()),
-                anchor_mode: AvatarAnchorMode::Existing,
-                scoped_binding: None,
-                launched_by: "desktop".to_string(),
-                source_surface: Some("desktop-agent-chat".to_string()),
+                launch_source: Some("desktop-agent-chat".to_string()),
             }],
         };
 

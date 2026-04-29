@@ -591,7 +591,7 @@ return (
                   <strong className="avatar-recovery__title">{recoveryTitle}</strong>
                   <div className="avatar-recovery__badges">
                     <span className={`avatar-badge avatar-badge--${displayPresentation.tone}`}>
-                      {relaunchNotice ? 'Rebinding' : presentation.badge}
+                      {relaunchNotice ? 'Preparing' : presentation.badge}
                     </span>
                     <span className="avatar-badge avatar-badge--neutral">Reload-only</span>
                   </div>

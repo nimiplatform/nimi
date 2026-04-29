@@ -285,7 +285,7 @@ export class SdkDriver implements AgentDataDriver {
         {
 	          agentId: this.agentId,
 	          conversationAnchorId: this.conversationAnchorId,
-	          worldId: this.activeWorldId,
+	          ...(this.activeWorldId ? { worldId: this.activeWorldId } : {}),
 	          ...(this.scopedBinding ? { scopedBinding: this.scopedBinding } : {}),
 	        },
         { signal: this.streamAbort.signal },

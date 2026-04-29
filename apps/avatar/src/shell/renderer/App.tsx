@@ -196,12 +196,12 @@ export function App() {
         return;
       }
       useAvatarStore.getState().setLaunchContext(payload);
-      const reboundAnchor = payload.conversationAnchorId
-        ? shortenId(payload.conversationAnchorId)
-        : 'new anchor';
+      const reboundInstance = payload.avatarInstanceId
+        ? shortenId(payload.avatarInstanceId)
+        : 'new instance';
       scheduleShellReload({
         title: 'Desktop update received',
-        summary: `Rebinding this shell to ${shortenId(payload.agentId)} / ${reboundAnchor}. Runtime interaction stays closed until the new handoff is live.`,
+        summary: `Preparing this shell for ${shortenId(payload.agentId)} / ${reboundInstance}. Runtime interaction stays closed until the new handoff is live.`,
       });
     }).then((dispose) => {
       unlisten = dispose;
@@ -508,13 +508,13 @@ export function App() {
   const displayPresentation = relaunchNotice
     ? {
       tone: 'degraded' as const,
-      badge: 'Rebinding',
+      badge: 'Preparing',
       title: relaunchNotice.title,
       summary: relaunchNotice.summary,
-      recovery: 'Reload this shell to bind the new desktop-selected context. No prior ready/bound state is kept alive locally.',
-      accent: 'Rebinding',
+      recovery: 'Reload this shell to prepare the new desktop-selected context. No prior ready state is kept alive locally.',
+      accent: 'Launch update',
       stageLabel: 'Launch update',
-      stageValue: 'Rebinding',
+      stageValue: 'Preparing',
       meta: [] as Array<{ label: string; value: string }>,
       contextCards: [] as Array<{ label: string; value: string }>,
     }
@@ -529,18 +529,18 @@ export function App() {
     || settingsError
     || presentation.summary;
   const recoveryGuidance = relaunchNotice
-    ? 'Reload this shell to bind the new desktop-selected context. No prior ready or bound state is kept alive locally.'
+    ? 'Reload this shell to prepare the new desktop-selected context. No prior ready state is kept alive locally.'
     : settingsError
       ? 'Reload this shell to reopen a clean shell-local settings surface for the admitted controls only.'
       : presentation.recovery;
   const recoveryHint = relaunchNotice
-    ? 'Local draft, unread cue, and foreground voice capture or caption state clear before this shell binds the next desktop-selected context.'
+    ? 'Local draft, unread cue, and foreground voice capture or caption state clear before this shell prepares the next desktop-selected context.'
     : settingsError
       ? 'This only resets avatar-shell-local controls. Launch and runtime truth remain upstream.'
-      : 'Reloading this shell only clears avatar-local transient state. Desktop launch and runtime decide whether the next bind is allowed.';
+      : 'Reloading this shell only clears avatar-local transient state. Desktop launch and runtime decide whether the next Runtime preparation is allowed.';
   const recoveryChecklist = relaunchNotice
     ? [
-      'Clears local draft, unread cue, and foreground voice capture or caption state before rebinding.',
+      'Clears local draft, unread cue, and foreground voice capture or caption state before preparing the next context.',
       'Does not invent runtime fallback inside the avatar app.',
     ]
     : settingsError
@@ -550,7 +550,7 @@ export function App() {
       ]
       : [
         'Reloads this avatar shell only. No in-app runtime repair is attempted.',
-        'Clears avatar-local draft, unread cue, and foreground voice state before the next bind.',
+        'Clears avatar-local draft, unread cue, and foreground voice state before the next Runtime preparation.',
       ];
   const shellControlSummary = 'Four avatar-shell behaviors only. Launch and runtime stay upstream.';
   const shellControlHint = settingsOpen
@@ -670,14 +670,14 @@ export function App() {
         ? 'Sending a bounded note on the current anchor. Reply truth still waits for authoritative evidence.'
         : normalizeText(companion.draft)
           ? 'This draft stays bounded to the current explicit anchor. Foreground voice remains a separate explicit action inside the same companion.'
-          : 'Type a bounded note without leaving this anchor-bound companion surface.'
+          : 'Type a bounded note without leaving this desktop-selected companion surface.'
     )
     : voiceModeActive
       ? (
         voiceUnavailable
           ? (voice.availabilityMessage || 'Foreground voice is unavailable for this anchor. Text note stays available inside the same companion.')
           : voice.status === 'listening'
-            ? 'Microphone capture is foreground-only and bound to this explicit agent and conversation anchor.'
+            ? 'Microphone capture is foreground-only and scoped to this explicit agent and conversation anchor.'
             : voice.status === 'transcribing'
               ? 'Recorded audio is being transcribed before it re-enters the same anchor continuity.'
               : voice.status === 'pending'

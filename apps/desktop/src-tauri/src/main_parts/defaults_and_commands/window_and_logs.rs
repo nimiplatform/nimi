@@ -5,7 +5,6 @@ use std::process::Command;
 const AVATAR_HANDOFF_SCHEME: &str = "nimi-avatar";
 const AVATAR_HANDOFF_LAUNCH_HOST: &str = "launch";
 const AVATAR_HANDOFF_CLOSE_HOST: &str = "close";
-const DESKTOP_RUNTIME_APP_ID: &str = "nimi.desktop";
 
 fn structured_avatar_handoff_error(reason_code: &str, message: &str) -> String {
     json!({
@@ -35,160 +34,21 @@ fn normalize_optional_handoff_value(value: Option<&str>) -> Option<String> {
     }
 }
 
-fn validate_avatar_package_kind(value: &str) -> Result<String, String> {
-    let normalized = normalize_required_handoff_value(value, "avatar_package_kind")?;
-    if normalized != "live2d" && normalized != "vrm" {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff avatar_package_kind must be live2d or vrm",
-        ));
-    }
-    Ok(normalized)
-}
-
-fn validate_avatar_package_id(value: &str, kind: &str) -> Result<String, String> {
-    let normalized = normalize_required_handoff_value(value, "avatar_package_id")?;
-    let expected_prefix = format!("{kind}_");
-    if !normalized.starts_with(expected_prefix.as_str()) {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff avatar_package_id must match avatar_package_kind",
-        ));
-    }
-    let suffix = &normalized[expected_prefix.len()..];
-    if suffix.len() != 12
-        || !suffix
-            .chars()
-            .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
-    {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff avatar_package_id must use a 12-character lowercase hex digest suffix",
-        ));
-    }
-    Ok(normalized)
-}
-
 fn build_avatar_handoff_uri(payload: &DesktopAvatarLaunchHandoffPayload) -> Result<String, String> {
     let agent_id = normalize_required_handoff_value(payload.agent_id.as_str(), "agent_id")?;
-    let avatar_package_kind = validate_avatar_package_kind(payload.avatar_package_kind.as_str())?;
-    let avatar_package_id = validate_avatar_package_id(
-        payload.avatar_package_id.as_str(),
-        avatar_package_kind.as_str(),
-    )?;
-    let avatar_package_schema_version = payload.avatar_package_schema_version.unwrap_or(1);
-    if avatar_package_schema_version != 1 {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff avatar_package_schema_version must be 1",
-        ));
-    }
-    let avatar_instance_id = normalize_required_handoff_value(
-        payload.avatar_instance_id.as_str(),
-        "avatar_instance_id",
-    )?;
-    let launched_by = normalize_optional_handoff_value(payload.launched_by.as_deref())
-        .unwrap_or_else(|| DESKTOP_RUNTIME_APP_ID.to_string());
-    let runtime_app_id = normalize_optional_handoff_value(payload.runtime_app_id.as_deref())
-        .unwrap_or_else(|| DESKTOP_RUNTIME_APP_ID.to_string());
-    if runtime_app_id != DESKTOP_RUNTIME_APP_ID {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff runtime_app_id must be nimi.desktop",
-        ));
-    }
-    let source_surface = normalize_optional_handoff_value(payload.source_surface.as_deref())
-        .unwrap_or_else(|| "desktop-agent-chat".to_string());
-    let conversation_anchor_id = normalize_required_handoff_value(
-        payload.conversation_anchor_id.as_str(),
-        "conversation_anchor_id",
-    )?;
-    let binding_id = normalize_required_handoff_value(
-        payload.scoped_binding.binding_id.as_str(),
-        "scoped_binding.binding_id",
-    )?;
-    let binding_app_instance_id = normalize_required_handoff_value(
-        payload.scoped_binding.app_instance_id.as_str(),
-        "scoped_binding.app_instance_id",
-    )?;
-    let binding_window_id = normalize_required_handoff_value(
-        payload.scoped_binding.window_id.as_str(),
-        "scoped_binding.window_id",
-    )?;
-    if payload.scoped_binding.runtime_app_id.trim() != runtime_app_id
-        || payload.scoped_binding.avatar_instance_id.trim() != avatar_instance_id
-        || payload.scoped_binding.agent_id.trim() != agent_id
-        || payload.scoped_binding.conversation_anchor_id.trim() != conversation_anchor_id
-    {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff scoped binding relation must match launch target",
-        ));
-    }
-    if payload.scoped_binding.purpose.trim() != "avatar.interaction.consume" {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff scoped binding purpose must be avatar.interaction.consume",
-        ));
-    }
-    if payload.scoped_binding.scopes.is_empty() {
-        return Err(structured_avatar_handoff_error(
-            "DESKTOP_AVATAR_HANDOFF_INVALID",
-            "avatar handoff scoped binding scopes are required",
-        ));
-    }
-    let world_id = normalize_optional_handoff_value(payload.world_id.as_deref())
-        .or_else(|| normalize_optional_handoff_value(payload.scoped_binding.world_id.as_deref()))
-        .or_else(|| {
-            runtime_defaults().ok().and_then(|defaults| {
-                normalize_optional_handoff_value(Some(defaults.runtime.world_id.as_str()))
-            })
-        });
+    let avatar_instance_id =
+        normalize_optional_handoff_value(payload.avatar_instance_id.as_deref());
+    let launch_source = normalize_optional_handoff_value(payload.launch_source.as_deref())
+        .or_else(|| normalize_optional_handoff_value(payload.source_surface.as_deref()));
 
     let mut serializer = url::form_urlencoded::Serializer::new(String::new());
     serializer.append_pair("agent_id", agent_id.as_str());
-    serializer.append_pair("avatar_package_kind", avatar_package_kind.as_str());
-    serializer.append_pair("avatar_package_id", avatar_package_id.as_str());
-    serializer.append_pair(
-        "avatar_package_schema_version",
-        avatar_package_schema_version.to_string().as_str(),
-    );
-    serializer.append_pair("avatar_instance_id", avatar_instance_id.as_str());
-    serializer.append_pair("launched_by", launched_by.as_str());
-    serializer.append_pair("runtime_app_id", runtime_app_id.as_str());
-    serializer.append_pair("source_surface", source_surface.as_str());
-    serializer.append_pair("conversation_anchor_id", conversation_anchor_id.as_str());
-    if let Some(world_id) = world_id {
-        serializer.append_pair("world_id", world_id.as_str());
+    if let Some(avatar_instance_id) = avatar_instance_id {
+        serializer.append_pair("avatar_instance_id", avatar_instance_id.as_str());
     }
-    serializer.append_pair("binding_id", binding_id.as_str());
-    if let Some(binding_handle) =
-        normalize_optional_handoff_value(payload.scoped_binding.binding_handle.as_deref())
-    {
-        serializer.append_pair("binding_handle", binding_handle.as_str());
+    if let Some(launch_source) = launch_source {
+        serializer.append_pair("launch_source", launch_source.as_str());
     }
-    serializer.append_pair("binding_app_instance_id", binding_app_instance_id.as_str());
-    serializer.append_pair("binding_window_id", binding_window_id.as_str());
-    serializer.append_pair("binding_purpose", payload.scoped_binding.purpose.trim());
-    serializer.append_pair(
-        "binding_scopes",
-        payload.scoped_binding.scopes.join(",").as_str(),
-    );
-    if let Some(issued_at) =
-        normalize_optional_handoff_value(payload.scoped_binding.issued_at.as_deref())
-    {
-        serializer.append_pair("binding_issued_at", issued_at.as_str());
-    }
-    if let Some(expires_at) =
-        normalize_optional_handoff_value(payload.scoped_binding.expires_at.as_deref())
-    {
-        serializer.append_pair("binding_expires_at", expires_at.as_str());
-    }
-    serializer.append_pair("binding_state", payload.scoped_binding.state.trim());
-    serializer.append_pair(
-        "binding_reason_code",
-        payload.scoped_binding.reason_code.trim(),
-    );
     Ok(format!(
         "{AVATAR_HANDOFF_SCHEME}://{AVATAR_HANDOFF_LAUNCH_HOST}?{}",
         serializer.finish()

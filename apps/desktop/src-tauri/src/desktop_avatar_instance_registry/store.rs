@@ -71,37 +71,6 @@ fn required_trimmed(value: &str, field: &str) -> Result<(), String> {
 fn validate_instance_record(record: &DesktopAvatarInstanceRegistryRecord) -> Result<(), String> {
     required_trimmed(&record.avatar_instance_id, "avatar_instance_id")?;
     required_trimmed(&record.agent_id, "agent_id")?;
-    required_trimmed(&record.launched_by, "launched_by")?;
-
-    match record.anchor_mode.trim() {
-        "existing" => {
-            let anchor_id = record
-                .conversation_anchor_id
-                .as_deref()
-                .map(str::trim)
-                .unwrap_or("");
-            if anchor_id.is_empty() {
-                return Err(
-                    "avatar instance registry record conversation_anchor_id is required for existing anchor mode"
-                        .to_string(),
-                );
-            }
-        }
-        "open_new" => {}
-        _ => {
-            return Err("avatar instance registry record anchor_mode is invalid".to_string());
-        }
-    }
-
-    let source_surface = record
-        .source_surface
-        .as_deref()
-        .map(str::trim)
-        .unwrap_or("");
-    if source_surface.is_empty() {
-        return Err("avatar instance registry record source_surface is required".to_string());
-    }
-
     Ok(())
 }
 
@@ -200,11 +169,7 @@ mod tests {
         super::DesktopAvatarInstanceRegistryRecord {
             avatar_instance_id: "instance-1".to_string(),
             agent_id: "agent-1".to_string(),
-            conversation_anchor_id: Some("anchor-1".to_string()),
-            anchor_mode: "existing".to_string(),
-            scoped_binding: None,
-            launched_by: "desktop".to_string(),
-            source_surface: Some("desktop-agent-chat".to_string()),
+            launch_source: Some("desktop-agent-chat".to_string()),
         }
     }
 
@@ -242,10 +207,7 @@ mod tests {
     {
       "avatarInstanceId": "instance-1",
       "agentId": "agent-1",
-      "conversationAnchorId": "anchor-1",
-      "anchorMode": "existing",
-      "launchedBy": "desktop",
-      "sourceSurface": "desktop-agent-chat"
+      "launchSource": "desktop-agent-chat"
     }
   ]
 }"#,
@@ -338,46 +300,35 @@ mod tests {
     }
 
     #[test]
-    fn list_instances_rejects_invalid_anchor_mode() {
-        let mut record = valid_record();
-        record.anchor_mode = "tail".to_string();
-
-        let result = list_instances_from_file(live_registry_file(vec![record]), None);
-
-        assert!(result
-            .expect_err("invalid anchor mode must fail closed")
-            .contains("anchor_mode"));
+    fn load_registry_from_path_rejects_authority_bearing_record_fields() {
+        let path = temp_registry_path();
+        fs::write(
+            &path,
+            r#"{
+  "schemaVersion": 1,
+  "publisherPid": 7,
+  "publishedAtMs": 100,
+  "instances": [
+    {
+      "avatarInstanceId": "instance-1",
+      "agentId": "agent-1",
+      "conversationAnchorId": "anchor-1"
     }
+  ]
+}"#,
+        )
+        .expect("write registry");
 
-    #[test]
-    fn list_instances_rejects_existing_anchor_without_conversation_anchor_id() {
-        let mut record = valid_record();
-        record.conversation_anchor_id = None;
+        let error = load_registry_from_path(&path).expect_err("old projection fields must fail");
 
-        let result = list_instances_from_file(live_registry_file(vec![record]), None);
-
-        assert!(result
-            .expect_err("missing existing anchor id must fail closed")
-            .contains("conversation_anchor_id"));
-    }
-
-    #[test]
-    fn list_instances_rejects_missing_source_surface() {
-        let mut record = valid_record();
-        record.source_surface = None;
-
-        let result = list_instances_from_file(live_registry_file(vec![record]), None);
-
-        assert!(result
-            .expect_err("missing source surface must fail closed")
-            .contains("source_surface"));
+        assert!(error.contains("conversationAnchorId"));
     }
 
     #[test]
     fn list_instances_validates_records_before_filtering() {
         let mut invalid_non_matching_record = valid_record();
         invalid_non_matching_record.agent_id = "other-agent".to_string();
-        invalid_non_matching_record.source_surface = None;
+        invalid_non_matching_record.avatar_instance_id = " ".to_string();
 
         let result = list_instances_from_file(
             live_registry_file(vec![valid_record(), invalid_non_matching_record]),
@@ -386,7 +337,7 @@ mod tests {
 
         assert!(result
             .expect_err("invalid non-matching record must still fail closed")
-            .contains("source_surface"));
+            .contains("avatar_instance_id"));
     }
 
     #[test]

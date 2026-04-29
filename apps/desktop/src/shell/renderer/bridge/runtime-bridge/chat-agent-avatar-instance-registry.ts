@@ -9,14 +9,41 @@ import {
 export type DesktopAvatarLiveInstanceRecord = {
   avatarInstanceId: string;
   agentId: string;
-  conversationAnchorId: string | null;
-  anchorMode: 'existing' | 'open_new';
-  scopedBinding: {
-    bindingId: string;
-  } | null;
-  launchedBy: string;
-  sourceSurface: string | null;
+  launchSource: string | null;
 };
+
+const FORBIDDEN_LIVE_INSTANCE_FIELDS = new Set([
+  'avatarPackage',
+  'avatarPackageKind',
+  'avatarPackageId',
+  'avatarPackageSchemaVersion',
+  'conversationAnchorId',
+  'anchorMode',
+  'runtimeAppId',
+  'worldId',
+  'scopedBinding',
+  'bindingId',
+  'bindingHandle',
+  'bindingAppInstanceId',
+  'bindingWindowId',
+  'bindingPurpose',
+  'bindingScopes',
+  'bindingState',
+  'bindingReason',
+  'scopes',
+  'state',
+  'reason',
+  'accountId',
+  'userId',
+  'subjectUserId',
+  'auth',
+  'realmBaseUrl',
+  'realmUrl',
+  'accessToken',
+  'accountAccessToken',
+  'refreshToken',
+  'jwt',
+]);
 
 function requireTauri(commandName: string) {
   if (!hasTauriInvoke()) {
@@ -28,30 +55,17 @@ export function desktopAvatarInstanceRegistryQueryKey(agentId: string) {
   return ['desktop-avatar-instance-registry', agentId] as const;
 }
 
-function parseAnchorMode(value: unknown): DesktopAvatarLiveInstanceRecord['anchorMode'] {
-  const normalized = parseRequiredString(value, 'anchorMode', 'desktop avatar instance registry');
-  if (normalized !== 'existing' && normalized !== 'open_new') {
-    throw new Error('desktop avatar instance registry: anchorMode is invalid');
-  }
-  return normalized;
-}
-
 export function parseDesktopAvatarLiveInstanceRecord(value: unknown): DesktopAvatarLiveInstanceRecord {
   const record = assertRecord(value, 'desktop avatar instance registry is invalid');
-  const scopedBindingRecord = record.scopedBinding && typeof record.scopedBinding === 'object'
-    ? record.scopedBinding as Record<string, unknown>
-    : null;
-  const bindingId = scopedBindingRecord
-    ? parseOptionalString(scopedBindingRecord.bindingId)
-    : null;
+  for (const field of FORBIDDEN_LIVE_INSTANCE_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(record, field)) {
+      throw new Error(`desktop avatar instance registry contains forbidden authority field: ${field}`);
+    }
+  }
   return {
     avatarInstanceId: parseRequiredString(record.avatarInstanceId, 'avatarInstanceId', 'desktop avatar instance registry'),
     agentId: parseRequiredString(record.agentId, 'agentId', 'desktop avatar instance registry'),
-    conversationAnchorId: parseOptionalString(record.conversationAnchorId) || null,
-    anchorMode: parseAnchorMode(record.anchorMode),
-    scopedBinding: bindingId ? { bindingId } : null,
-    launchedBy: parseRequiredString(record.launchedBy, 'launchedBy', 'desktop avatar instance registry'),
-    sourceSurface: parseOptionalString(record.sourceSurface) || null,
+    launchSource: parseOptionalString(record.launchSource) || null,
   };
 }
 

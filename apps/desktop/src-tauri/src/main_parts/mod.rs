@@ -201,39 +201,13 @@ struct OpenExternalUrlResult {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAvatarLaunchHandoffPayload {
     agent_id: String,
-    avatar_package_kind: String,
-    avatar_package_id: String,
-    avatar_package_schema_version: Option<u8>,
-    avatar_instance_id: String,
-    conversation_anchor_id: String,
-    launched_by: Option<String>,
-    runtime_app_id: Option<String>,
+    avatar_instance_id: Option<String>,
+    launch_source: Option<String>,
     source_surface: Option<String>,
-    world_id: Option<String>,
-    scoped_binding: DesktopAvatarScopedBindingProjection,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct DesktopAvatarScopedBindingProjection {
-    binding_id: String,
-    binding_handle: Option<String>,
-    runtime_app_id: String,
-    app_instance_id: String,
-    window_id: String,
-    avatar_instance_id: String,
-    agent_id: String,
-    conversation_anchor_id: String,
-    world_id: Option<String>,
-    purpose: String,
-    scopes: Vec<String>,
-    issued_at: Option<String>,
-    expires_at: Option<String>,
-    state: String,
-    reason_code: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -244,6 +218,7 @@ pub(crate) struct DesktopAvatarLaunchHandoffResult {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAvatarCloseHandoffPayload {
     avatar_instance_id: String,

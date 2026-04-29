@@ -13,6 +13,9 @@ import {
   GetConversationAnchorSnapshotResponse,
   OpenConversationAnchorResponse,
 } from '@nimiplatform/sdk/runtime/generated/runtime/v1/agent_service';
+import {
+  AuthorizeExternalPrincipalResponse,
+} from '@nimiplatform/sdk/runtime/generated/runtime/v1/grant';
 
 type TauriInvokeCall = {
   command: string;
@@ -101,6 +104,23 @@ function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
                   issuedAt: Timestamp.create({ seconds: '1700000000', nanos: 0 }),
                   expiresAt: Timestamp.create({ seconds: '4700000000', nanos: 0 }),
                   reasonCode: 1,
+                })),
+              ).toString('base64'),
+            };
+          }
+          if (methodId === '/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal') {
+            return {
+              responseBytesBase64: Buffer.from(
+                AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
+                  tokenId: 'runtime-agent-anchor-token',
+                  secret: 'runtime-agent-anchor-secret',
+                  appId: 'nimi.desktop',
+                  subjectUserId: 'subject-user',
+                  externalPrincipalId: 'nimi.desktop',
+                  effectiveScopes: ['runtime.agent.turn.read'],
+                  policyVersion: '1.0.0',
+                  issuedScopeCatalogVersion: '1.0.0',
+                  canDelegate: false,
                 })),
               ).toString('base64'),
             };
@@ -512,6 +532,10 @@ test('platform runtime agent anchor call injects runtime app session transparent
     assert.deepEqual(snapshotCall.payload.appSession, {
       sessionId: 'runtime-session-id',
       sessionToken: 'runtime-session-token',
+    });
+    assert.deepEqual(snapshotCall.payload.protectedAccessToken, {
+      tokenId: 'runtime-agent-anchor-token',
+      secret: 'runtime-agent-anchor-secret',
     });
   } finally {
     restoreTauri();

@@ -73,10 +73,11 @@ fn sanitize_path_component(input: &str) -> String {
 }
 
 fn evidence_path_for_context(context: &AvatarLaunchContext) -> Result<PathBuf, String> {
-    Ok(evidence_root_dir()?.join(format!(
-        "{}.json",
-        sanitize_path_component(&context.avatar_instance_id)
-    )))
+    let instance_id = context
+        .avatar_instance_id
+        .as_deref()
+        .unwrap_or("avatar-instance");
+    Ok(evidence_root_dir()?.join(format!("{}.json", sanitize_path_component(instance_id))))
 }
 
 fn read_projection(path: &Path) -> Result<Option<AvatarEvidenceProjection>, String> {
@@ -169,41 +170,13 @@ mod tests {
     use serde_json::json;
 
     use super::{append_evidence_record, AvatarEvidenceRecordInput};
-    use crate::avatar_launch_context::{AvatarLaunchContext, AvatarScopedBindingProjection};
+    use crate::avatar_launch_context::AvatarLaunchContext;
 
     fn context() -> AvatarLaunchContext {
         AvatarLaunchContext {
             agent_id: "agent-1".to_string(),
-            avatar_package_kind: "live2d".to_string(),
-            avatar_package_id: "live2d_ab12cd34ef56".to_string(),
-            avatar_package_schema_version: 1,
-            avatar_instance_id: "instance-1".to_string(),
-            conversation_anchor_id: "anchor-1".to_string(),
-            launched_by: "nimi.desktop".to_string(),
-            runtime_app_id: Some("nimi.desktop".to_string()),
-            source_surface: Some("desktop-agent-chat".to_string()),
-            world_id: Some("world-1".to_string()),
-            scoped_binding: AvatarScopedBindingProjection {
-                binding_id: "binding-1".to_string(),
-                binding_handle: None,
-                runtime_app_id: "nimi.desktop".to_string(),
-                app_instance_id: "nimi.desktop.local-first-party".to_string(),
-                window_id: "desktop-agent-chat".to_string(),
-                avatar_instance_id: "instance-1".to_string(),
-                agent_id: "agent-1".to_string(),
-                conversation_anchor_id: "anchor-1".to_string(),
-                world_id: Some("world-1".to_string()),
-                purpose: "avatar.interaction.consume".to_string(),
-                scopes: vec![
-                    "runtime.agent.turn.read".to_string(),
-                    "runtime.agent.presentation.read".to_string(),
-                    "runtime.agent.state.read".to_string(),
-                ],
-                issued_at: None,
-                expires_at: None,
-                state: "active".to_string(),
-                reason_code: "action_executed".to_string(),
-            },
+            avatar_instance_id: Some("instance-1".to_string()),
+            launch_source: Some("desktop-agent-chat".to_string()),
         }
     }
 
@@ -234,7 +207,7 @@ mod tests {
 
         let raw = fs::read_to_string(path).expect("read evidence");
         assert!(raw.contains("\"avatarInstanceId\": \"instance-1\""));
-        assert!(raw.contains("\"conversationAnchorId\": \"anchor-1\""));
+        assert!(raw.contains("\"launchSource\": \"desktop-agent-chat\""));
         assert!(raw.contains("\"kind\": \"avatar.model.load\""));
         let _ = fs::remove_dir_all(temp_home);
     }
