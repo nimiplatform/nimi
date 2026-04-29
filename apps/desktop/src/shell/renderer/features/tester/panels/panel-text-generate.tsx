@@ -146,6 +146,7 @@ export function TextGeneratePanel(props: TextGeneratePanelProps) {
   const [mode, setMode] = React.useState<Mode>('sync');
   const media = useMediaAttachments();
   const abortRef = React.useRef<AbortController | null>(null);
+  const runLockRef = React.useRef(false);
   const outputRef = React.useRef('');
   const reasoningRef = React.useRef('');
   const [reasoningText, setReasoningText] = React.useState('');
@@ -365,19 +366,30 @@ export function TextGeneratePanel(props: TextGeneratePanelProps) {
   }, [prompt, system, temperature, maxTokens, state.snapshot, state.binding, onStateChange, handleStop, media.attachments, t]);
 
   const handleRun = React.useCallback(async () => {
+    if (runLockRef.current) {
+      return;
+    }
     if (!asString(prompt)) {
       onStateChange((prev) => ({ ...prev, error: t('Tester.textGenerate.promptEmpty') }));
       return;
     }
-    if (mode === 'stream') {
-      await runStream();
-    } else {
-      await runSync();
+    runLockRef.current = true;
+    try {
+      if (mode === 'stream') {
+        await runStream();
+      } else {
+        await runSync();
+      }
+    } finally {
+      runLockRef.current = false;
     }
   }, [mode, prompt, runStream, runSync, onStateChange, t]);
 
   React.useEffect(() => {
-    return () => { abortRef.current?.abort(); };
+    return () => {
+      runLockRef.current = false;
+      abortRef.current?.abort();
+    };
   }, []);
 
   const canSubmit = !state.busy && Boolean(prompt.trim());
