@@ -71,7 +71,7 @@ Phase-1 方法集合为冻结集合。任何新增方法必须经过新规则 ad
 - `SubscribeAccountSessionEvents`: server-stream，必须先返回 `account.status` snapshot，再按单调 sequence 顺序投递事件。重连时若 replay 不可用，必须发出 `replay_truncated` 标志。
 - `BeginLogin`: 创建 login attempt，返回 UX instruction envelope（如 `oauth_authorization_url`、`callback_origin`、`pkce_challenge`、`state`、`expires_at`）。kit / Desktop 不得获得 PKCE verifier。
 - `CompleteLogin`: 接受 typed proof envelope（见 K-ACCSVC-008）。Runtime 验证后写入 custody 并转换状态。
-- `GetAccessToken`: 向 admitted local first-party app instance 返回当前 short-lived access token，或在 Runtime 内部 refresh 后返回新 access token。不得返回 refresh token、durable session、raw subject、或任何可由 app 自行刷新 token 的材料。Desktop-launched Avatar embodiment 与未被授权的 Mod 必须被拒绝。
+- `GetAccessToken`: 向 admitted local first-party app instance 返回当前 short-lived access token，或在 Runtime 内部 refresh 后返回新 access token。不得返回 refresh token、durable session、raw subject、或任何可由 app 自行刷新 token 的材料。Explicit binding-only Avatar embodiment 与未被授权的 Mod 必须被拒绝；default `nimi.avatar` first-party app instance may use this method when registry-admitted.
 - `RefreshAccountSession`: Runtime 主动或被动刷新；调用方不得提交 refresh token。
 - `Logout`: Runtime 撤销 local session 与所有 binding；幂等。
 - `SwitchAccount`: 原子转换；旧 binding 在新 projection 之前 revoke。
@@ -225,8 +225,8 @@ binding 在 daemon 重启时全部失效；调用方必须重新申请。Runtime
 |---|---|---|---|---|
 | Desktop shell | Runtime-mediated app registration | `authenticated` 或 anonymous（仅 UX shell） | Runtime account broker + optional short-lived access-token projection | durable token custody、refresh token、app-owned login |
 | SDK local first-party app | Runtime local mode 注册 | 操作要求 authenticated 时必须 `authenticated` | Runtime-issued binding + optional short-lived access-token projection | app-provided token / subject providers、refresh token、session store |
-| Desktop-launched Avatar embodiment | 不允许直接 app registration | N/A | Desktop / Runtime 发的 Avatar binding | `RegisterApp`、`OpenSession`、anchor 创建、account access token |
-| Avatar-as-primary-app | 仅在独立 spec admit 后允许 Runtime local mode 注册 | 同 local first-party app | Runtime account broker + scoped bindings | independent auth truth、refresh token、durable session |
+| Default Avatar app (`nimi.avatar`) | Runtime local first-party app registration | 同 local first-party app | Runtime account broker + optional short-lived access-token projection | independent auth truth、refresh token、durable session、Desktop launch auth/package/anchor truth |
+| Binding-only Avatar mode | 不允许直接 account registration | N/A | Runtime-issued scoped binding from owner surface | account access token、refresh token、anchor 创建、independent auth truth |
 | Web / cloud app | 显式 Web/cloud adapter | Web/cloud session | Web/cloud adapter | local Runtime account authority claim |
 | External principal | 现有 external-principal 注册 | external proof | external-principal session / grant | local account projection claim |
 | Mod host | host 注册并发 mod-scoped capability | host account projection | host-scoped binding | 暴露 account service 给 mod |
@@ -275,7 +275,7 @@ scoped binding 的 subject 必须由 Runtime 从 account custody 内部派生，
 
 ## K-ACCSVC-017 Web / Cloud 边界
 
-Web / cloud 模式不属于 local first-party Runtime account 模式。Web 应用可能没有本地 daemon，必须使用显式 Web/cloud adapter 与 Realm 直接交互。Web / cloud adapter 不得在 local first-party SDK / Desktop / Desktop-launched Avatar embodiment 中可达。
+Web / cloud 模式不属于 local first-party Runtime account 模式。Web 应用可能没有本地 daemon，必须使用显式 Web/cloud adapter 与 Realm 直接交互。Web / cloud adapter 不得在 local first-party SDK / Desktop / default Avatar app 中可达。
 
 任何 Web / cloud exception 都必须显式 fence，禁止泄漏到 local first-party Runtime 模式。
 

@@ -337,17 +337,17 @@ not as Avatar carrier execution proof.
 Current first-30-second Desktop-to-Avatar acceptance must prove the following
 on current active code, not by citing closed-topic artifacts:
 
-- Desktop selects a target and invokes the admitted avatar handoff path with
-  explicit `agent_id`, `avatar_instance_id`, and either an existing
-  `conversation_anchor_id` or explicit `open_new` anchor mode
-- the target relation remains anchor-native and does not fall back to same-agent
+- Desktop selects a target and invokes the admitted Avatar launch path with
+  explicit `agent_id` and optional `avatar_instance_id`; Desktop does not
+  pre-create or pass conversation anchors for the default Avatar launch path
+- the target relation remains explicit and does not fall back to same-agent
   conversation guessing, desktop-local avatar binding, or runtime-default agent
   truth
 - the acceptance run distinguishes real runtime/SDK handoff evidence from
   explicit fixture/mock evidence; fixture evidence may support regression
   checks but cannot close real demo acceptance
-- missing launch context, missing agent id, missing anchor/open-new targeting,
-  stale live instance identity, or unavailable runtime path must fail closed
+- missing launch context, missing agent id, stale live instance identity, or
+  unavailable runtime path must fail closed
   instead of reporting demo success
 - Desktop-to-Avatar handoff must not transmit raw JWT, refresh token,
   `subject_user_id`, account id, user id, Realm base URL, shared auth session
@@ -383,12 +383,11 @@ Admitted desktop-local companion event names:
 
 Fixed rules:
 
-- every desktop-to-avatar handoff event must resolve to explicit `agent_id`,
-  `avatar_instance_id`, and either a committed `conversation_anchor_id` or the
-  explicit `open_new` anchor mode before leaving Desktop shell ownership
-- Desktop owns auth, Realm, subject, agent, and anchor truth for launch
-  selection. Avatar receives target selection and runtime binding projections
-  only; it must not rederive that truth through shared auth or Realm HTTP.
+- every desktop-to-avatar launch event must resolve to explicit `agent_id` and
+  optional `avatar_instance_id` before leaving Desktop shell ownership
+- Desktop owns launch intent only. Avatar / Runtime / SDK own account
+  projection, agent authorization, visual package descriptor resolution, and
+  conversation context for the default Avatar app path.
 - Desktop app events may be used as first-party UI cues, but they must not
   replace `runtime.agent.turn.*`, `runtime.agent.presentation.*`,
   `runtime.agent.state.*`, or `runtime.agent.hook.*` projection truth
@@ -404,39 +403,37 @@ Fixed rules:
   diagnostics or rejected at the sender boundary; they must not silently become
   product success
 
-## D-LLM-072 — Desktop-Owned Avatar Runtime Binding
+## D-LLM-072 — Desktop Avatar Launch Intent
 
-Desktop/Runtime own the Avatar runtime interaction bind. Avatar is a separate
-first-party embodiment app, but it must consume only a scoped runtime binding
-projection, not Desktop auth truth.
+Desktop owns only the user action that launches Avatar. Default Avatar launch
+is not a Desktop-owned scoped runtime binding. Avatar is a Runtime-admitted
+local first-party app (`nimi.avatar`) and resolves account, agent, package,
+data, and conversation context through Runtime / SDK authority.
 
-> **Hard Cut Status (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)**：
-> 本规则的 normative authority 为 `K-BIND-*`（`.nimi/spec/runtime/kernel/scoped-app-binding-contract.md`）。Desktop launch handoff 字段必须严格匹配 `K-BIND-002` Avatar relation tuple，并使用 `K-BIND-003` `allowed` 或 `allowed-only-behind-runtime-bridge` carrier。`open_new` anchor 创建/预约由 Desktop/Runtime 拥有（`K-BIND-008`）；Avatar 不得自创 anchor。binding revocation 顺序遵循 `K-ACCSVC-010` 与 `K-BIND-005`。
+> **Hard Cut Status (topic `2026-04-29-avatar-first-party-app-launch-hardcut` wave-1)**：
+> This rule supersedes the prior Desktop-owned Avatar scoped binding default.
+> `K-BIND-*` remains authoritative only for explicit binding-only / embedded /
+> delegated Avatar modes, not the default Desktop launch path.
 
 Fixed rules:
 
-- Desktop must not solve Avatar runtime bind by adding backend CORS allowance
-  for `tauri://localhost`, passing Realm endpoints/tokens in handoff, or asking
-  Avatar to bootstrap login independently.
-- If Avatar needs `RuntimeAppService` app session or protected access material,
-  Desktop/Runtime must provide an opaque scoped binding for the selected
-  `runtime_app_id + avatar_instance_id + agent_id + conversation_anchor_id`
-  relation.
-- The scoped binding must be revocable on desktop logout, user switch, anchor
-  switch, avatar close, daemon restart, or explicit runtime unbind, but the
-  revocation signal remains Desktop/Runtime-owned.
-- Avatar may present runtime/binding unavailable state and keep the local
-  visual carrier visible when binding is missing or revoked.
-- Desktop must not treat Avatar visual success as proof that runtime
-  interaction binding succeeded.
-- Desktop launch handoff payload to Avatar may contain only typed fields per
-  `K-BIND-002` Avatar relation tuple plus an opaque non-account visual package
-  descriptor/capability selected by Desktop.
-  Forbidden fields in handoff: Realm URL, Runtime-issued account access token,
-  refresh token, raw JWT, `subject_user_id`, account id, user id, shared auth
-  payload, any auth UX route.
-- Desktop/Runtime owns `open_new` anchor creation/reservation. Avatar cannot
-  call `runtime.agent.anchors.open` or any anchor creation path.
+- Desktop default Avatar launch payload may contain only `agent_id`, optional
+  `avatar_instance_id`, and optional non-authoritative `launch_source`.
+- Desktop must not issue `RuntimeAccountService.IssueScopedAppBinding` as a
+  default Avatar launch precondition.
+- Desktop must not call `runtime.agent.anchors.open` or pass
+  `conversation_anchor_id` as a default Avatar launch precondition.
+- Desktop must not pass visual package id/path/descriptor, account id, user id,
+  `subject_user_id`, Realm URL, access token, refresh token, raw JWT, shared
+  auth payload, or auth UX route in Avatar launch context.
+- `agent_id` is launch intent only; Avatar / Runtime must validate access
+  before private data or visual package descriptor loads.
+- Avatar owns first-party runtime bootstrap, including account projection,
+  short-lived access-token provider use, agent validation, visual package
+  descriptor resolution, and Avatar-owned conversation context.
+- Desktop may request bounded live-instance reveal/close operations by
+  `avatar_instance_id`, but it must not treat those operations as proof of
+  account, binding, package, or conversation authority.
 
 ## Fact Sources
 

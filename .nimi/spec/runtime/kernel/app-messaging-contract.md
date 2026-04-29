@@ -34,8 +34,8 @@
 - `subject_user_id`：过滤关联用户（可选）。
 - `cursor`：续传游标（可选）。
 - `from_app_ids`：过滤发送方列表（repeated，可选）。
-- `scoped_binding`：当订阅 `from_app_ids` 包含 `runtime.agent` 或该
-  stream 用于 Desktop-launched Avatar binding-only consume 时必填；携带
+- `scoped_binding`：当订阅 `from_app_ids` 包含 `runtime.agent` 且该
+  stream 用于 explicit binding-only consume 时必填；携带
   non-secret binding id / optional handle / relation selectors。
 
 `AppMessageEvent` 字段：
@@ -145,11 +145,11 @@ AppService 的跨域消费契约状态：
     admitted ingress message type requires `runtime.agent.turn.write`
 - admitted `SubscribeAppMessages` reads that filter `from_app_ids` including
     `runtime.agent` require `runtime.agent.turn.read`
-  - admitted ingress / subscribe for Desktop-launched Avatar binding-only
-    consume must carry a scoped binding attachment and Runtime must validate it
-    against `K-BIND-006` / `K-BIND-012`, including current authenticated account
-    state; `subject_user_id` remains available for unrelated modes but is not
-    proof for Desktop-launched Avatar
+  - admitted ingress / subscribe for explicit binding-only consume must carry a
+    scoped binding attachment and Runtime must validate it against `K-BIND-006`
+    / `K-BIND-012`, including current authenticated account state;
+    `subject_user_id` remains available for unrelated modes but is not scoped
+    binding proof
   - generic cross-app app-bus traffic outside this reserved seam continues to
     use `runtime.app.send.cross_app`
 - `runtime.agent.*` RPC projection remains separate and covers
@@ -183,35 +183,24 @@ Fixed rules:
   unsupported message types must fail closed rather than being converted into
   local UI cues
 
-## K-APP-010 Avatar Runtime Binding Boundary
-
-Avatar runtime interaction consumes `RuntimeAppService` / `runtime.agent`
-projection through a Desktop/Runtime-owned binding. Avatar is not an auth,
-Realm, subject, agent, or anchor truth owner.
+## K-APP-010 Avatar Runtime Boundary
 
 Fixed rules:
 
-- Avatar must not read shared desktop auth session, call Realm HTTP, call
-  Realm `MeService`, or create an app-level Realm client to satisfy
-  `RuntimeAppService` session/protected-access requirements.
-- Avatar launch context may identify the selected target
-  (`agent_id`, `avatar_instance_id`, `conversation_anchor_id` or `open_new`)
-  and local visual package selection, but must not carry raw Realm JWT,
-  refresh token, `subject_user_id`, Realm base URL, or app-local login state.
-- Any runtime app session or protected access needed for Avatar's
-  `runtime.agent` consume path must be minted or delegated by Desktop/Runtime
-  as a scoped runtime binding for the selected
-  `runtime_app_id + avatar_instance_id + agent_id + conversation_anchor_id`
-  relation.
-- A scoped Avatar runtime binding may expose only opaque runtime IPC binding
-  material to Avatar; it must not expose Realm token, refresh token, or
-  durable subject/user truth.
-- Runtime must reject the binding once account state leaves authenticated
-  custody; Avatar may keep the local visual carrier visible while interaction
-  becomes unavailable.
-- Runtime binding failure must close only interaction, voice, activity,
-  app-message subscribe/send, and runtime-driven presentation. A valid local
-  Agent Center visual package must continue to render.
-- Missing runtime binding must fail closed and observable. It must not silently
-  downgrade to mock fixture mode, same-agent fallback, anonymous subject,
-  app-local login, or Realm direct access.
+- Default Avatar is a Runtime-admitted local first-party app (`nimi.avatar`).
+  It may consume `RuntimeAppService` / `runtime.agent` projection through normal
+  first-party Runtime / SDK account and agent authorization paths.
+- Avatar must not read shared desktop auth session, receive refresh token,
+  maintain independent login truth, or use caller-supplied subject/user/JWT
+  truth.
+- Avatar launch context may carry only minimal launch intent: `agent_id`,
+  optional `avatar_instance_id`, and optional non-authoritative `launch_source`.
+  It must not carry scoped binding, conversation anchor, visual package,
+  account/user, Realm, or auth material in the default path.
+- Avatar may use Runtime-issued short-lived access tokens through SDK
+  local-first-party mode for direct Realm data access; this is not a scoped
+  binding carrier and must not expose refresh-token custody.
+- Avatar must validate `agent_id` and resolve visual package / private data
+  through Runtime / SDK authority before loading private agent data.
+- Explicit binding-only Avatar modes must use `K-BIND-*` scoped binding
+  attachment and must fail closed when binding is missing or invalid.

@@ -378,6 +378,12 @@ only and cannot close SDK timeline support without current tests.
 
 Local first-party Runtime mode 下，SDK 必须以 Runtime-owned account projection、Runtime-backed short-lived access-token provider、与 scoped binding 作为唯一权威来源。不得让 app 注入 token、refresh token、subject、session store、或独立 Realm identity bootstrap。
 
+Default Nimi Avatar (`nimi.avatar`) is a local first-party Runtime-mode app.
+It may use the same Runtime-backed short-lived access-token provider as other
+admitted local first-party apps, and it must follow the same ban on app-owned
+refresh/session/subject truth. It is not forced into binding-only mode merely
+because Desktop launched it.
+
 固定规则：
 
 - SDK 必须暴露 typed Runtime account projection consumer：状态查询（映射 `GetAccountSessionStatus`）、事件订阅（映射 `SubscribeAccountSessionEvents`）。
@@ -387,12 +393,14 @@ Local first-party Runtime mode 下，SDK 必须以 Runtime-owned account project
 - SDK 可在 local first-party mode 暴露 Realm data client，但只能使用 Runtime-backed short-lived access-token provider；不得暴露 Realm identity bootstrap、`MeService.getMe` 作为 account truth、Realm `passwordLogin` / `oauthLogin` / `requestEmailOtp` / `verifyEmailOtp` / `walletLogin` 直接登录调用面、或 SDK-owned 401 refresh token flow。
 - SDK 必须在 account state 非 `authenticated` 时对依赖 account 的 capability fail-close（不得返回 anonymous / fixture / mock 投影）。
 - SDK 必须在 binding state 非 `active` 时对 scoped 操作 fail-close。
-- SDK `runtime.agent.turns` 必须暴露 Desktop-launched Avatar binding-only
-  consume mode：`subscribe`、`request`、`interrupt`、`getSessionSnapshot` 必须
-  接收 scoped binding attachment（`bindingId`、可选 opaque handle、以及
-  non-secret relation selectors），并将其投影到 `RuntimeAppService` /
-  `RuntimeAgentService` request；该 mode 不得 resolve、要求、或发送
-  `subjectUserId` 作为 proof。
+- SDK `runtime.agent.turns` 必须暴露 explicit binding-only consume mode：
+  `subscribe`、`request`、`interrupt`、`getSessionSnapshot` 必须接收 scoped
+  binding attachment（`bindingId`、可选 opaque handle、以及 non-secret relation
+  selectors），并将其投影到 `RuntimeAppService` / `RuntimeAgentService`
+  request；该 mode 不得 resolve、要求、或发送 `subjectUserId` 作为 proof。
+- SDK must also allow default local first-party Avatar to use the normal
+  first-party account / agent authorization path without scoped binding
+  attachment.
 - SDK binding-only mode 必须把 missing / stale / revoked / expired /
   suspended / superseded / replay / relation mismatch / scope mismatch 作为 typed
   binding unavailable / permission failure 投影给使用方，使用方据此关闭

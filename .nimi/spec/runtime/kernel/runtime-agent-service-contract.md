@@ -621,9 +621,10 @@ Fixed rules:
 
 ## K-AGCORE-052 Scoped Binding Attachment For App-Facing Consume
 
-Desktop-launched Avatar and any binding-only first-party consume mode must
-attach a Runtime-issued scoped binding to every app-facing reactive consume
-operation.
+Explicit binding-only first-party consume modes must attach a Runtime-issued
+scoped binding to every app-facing reactive consume operation. Default Nimi
+Avatar launch is not binding-only; it consumes runtime-agent through admitted
+local first-party Runtime / SDK account and agent authorization paths.
 
 Fixed rules:
 
@@ -645,5 +646,6 @@ Fixed rules:
   relation-mismatched, scope-mismatched, or account-non-authenticated bindings
   fail closed with typed unavailable / permission status.
 - `subject_user_id` remains available for unrelated Web/cloud or
-  external-principal paths, but it is never Desktop-launched Avatar scoped
-  binding proof.
+  external-principal paths, but it is never scoped binding proof.
+- Default local first-party Avatar must not be forced through this binding
+  attachment path solely because Desktop launched it.

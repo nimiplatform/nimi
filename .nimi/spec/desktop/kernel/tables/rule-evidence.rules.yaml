@@ -583,7 +583,7 @@
     - desktop_kernel_consistency
     - avatar_spec_consistency_gate
     - avatar_test_gate
-  note: "Desktop-owned Avatar runtime binding boundary; Avatar must not own auth, Realm, or subject truth."
+  note: "Desktop Avatar launch-intent boundary; Avatar must not receive Desktop auth, Realm, package, anchor, or subject truth."
 - rule_id: D-MBAR-001
   status: covered
   evidence_refs:
