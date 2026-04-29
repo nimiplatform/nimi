@@ -191,11 +191,15 @@ function assertAccepted(response: SendAppMessageResponse, messageType: string): 
 export function createRuntimeAgentAnchorsModule(input: {
   appId: string;
   agent: RuntimeAgentClient;
+  protectedAccess: ProtectedScopeHelper;
   resolveSubjectUserId: (explicit?: string) => Promise<string>;
 }): RuntimeAgentAnchorsModule {
   return {
     async open(request, options) {
       const subjectUserId = await input.resolveSubjectUserId(request.subjectUserId);
+      const openOptions = options?.protectedAccessToken
+        ? baseCallOptions(options)
+        : await input.protectedAccess.getCallOptions([TURN_WRITE_SCOPE], options);
       const response = await input.agent.openConversationAnchor({
         agentId: request.agentId,
         subjectUserId,
@@ -204,7 +208,7 @@ export function createRuntimeAgentAnchorsModule(input: {
           appId: input.appId,
           subjectUserId,
         },
-      }, options);
+      }, openOptions);
       if (!response.snapshot) {
         throw createNimiError({
           message: 'OpenConversationAnchor response missing snapshot',
@@ -217,6 +221,9 @@ export function createRuntimeAgentAnchorsModule(input: {
     },
     async getSnapshot(request, options) {
       const subjectUserId = await input.resolveSubjectUserId(request.subjectUserId);
+      const snapshotOptions = options?.protectedAccessToken
+        ? baseCallOptions(options)
+        : await input.protectedAccess.getCallOptions([TURN_READ_SCOPE], options);
       const response = await input.agent.getConversationAnchorSnapshot({
         agentId: request.agentId,
         conversationAnchorId: request.conversationAnchorId,
@@ -224,7 +231,7 @@ export function createRuntimeAgentAnchorsModule(input: {
           appId: input.appId,
           subjectUserId,
         },
-      }, options);
+      }, snapshotOptions);
       if (!response.snapshot) {
         throw createNimiError({
           message: 'GetConversationAnchorSnapshot response missing snapshot',
@@ -252,9 +259,11 @@ export function createRuntimeAgentTurnsModule(input: {
         conversationAnchorId: request.conversationAnchorId,
       });
       const subjectUserId = scopedBinding ? undefined : await input.resolveSubjectUserId(request.subjectUserId);
-      const subscribeBaseOptions = scopedBinding
-        ? baseCallOptions(options)
-        : await input.protectedAccess.getCallOptions([TURN_READ_SCOPE], options);
+      // A scoped binding identifies the avatar surface but does NOT replace the
+      // protected access token that the runtime authz interceptor requires for
+      // capability validation. Always issue a protected token; the binding rides
+      // alongside as an extra carrier on the request.
+      const subscribeBaseOptions = await input.protectedAccess.getCallOptions([TURN_READ_SCOPE], options);
       const appStreamHandle = await input.app.subscribeMessages({
         appId: input.appId,
         ...(subjectUserId ? { subjectUserId } : {}),
@@ -264,9 +273,7 @@ export function createRuntimeAgentTurnsModule(input: {
       }, makeStreamOptions(subscribeBaseOptions, options?.signal));
       const includeAgentEvents = request.includeAgentEvents !== false;
       const agentSubscribeOptions = includeAgentEvents
-        ? scopedBinding
-          ? baseCallOptions(options)
-          : await input.protectedAccess.getCallOptions([AGENT_READ_SCOPE], options)
+        ? await input.protectedAccess.getCallOptions([AGENT_READ_SCOPE], options)
         : null;
       const agentStreamHandle = includeAgentEvents
         ? await input.agent.subscribeEvents({
@@ -317,26 +324,18 @@ export function createRuntimeAgentTurnsModule(input: {
         conversationAnchorId: request.conversationAnchorId,
         worldId: request.worldId,
       });
-      const response = scopedBinding
-        ? await input.app.sendMessage({
+      const response = await input.protectedAccess.withScopes([TURN_WRITE_SCOPE], async (writeOptions) => {
+        const subjectUserId = scopedBinding ? undefined : await input.resolveSubjectUserId(undefined);
+        return input.app.sendMessage({
           fromAppId: input.appId,
           toAppId: RUNTIME_AGENT_APP_ID,
-          scopedBinding,
+          ...(subjectUserId ? { subjectUserId } : {}),
+          ...(scopedBinding ? { scopedBinding } : {}),
           messageType: TURN_REQUEST_TYPE,
           payload: toProtoStruct(toTurnPayload(request)),
           requireAck: false,
-        }, options)
-        : await input.protectedAccess.withScopes([TURN_WRITE_SCOPE], async (writeOptions) => {
-          const subjectUserId = await input.resolveSubjectUserId(undefined);
-          return input.app.sendMessage({
-            fromAppId: input.appId,
-            toAppId: RUNTIME_AGENT_APP_ID,
-            subjectUserId,
-            messageType: TURN_REQUEST_TYPE,
-            payload: toProtoStruct(toTurnPayload(request)),
-            requireAck: false,
-          }, writeOptions);
-        }, options);
+        }, writeOptions);
+      }, options);
       return assertAccepted(response, TURN_REQUEST_TYPE);
     },
     async interrupt(request, options) {
@@ -353,26 +352,18 @@ export function createRuntimeAgentTurnsModule(input: {
         ...(optionalString(request.turnId) ? { turn_id: optionalString(request.turnId) } : {}),
         ...(optionalString(request.reason) ? { reason: optionalString(request.reason) } : {}),
       });
-      const response = scopedBinding
-        ? await input.app.sendMessage({
+      const response = await input.protectedAccess.withScopes([TURN_WRITE_SCOPE], async (writeOptions) => {
+        const subjectUserId = scopedBinding ? undefined : await input.resolveSubjectUserId(undefined);
+        return input.app.sendMessage({
           fromAppId: input.appId,
           toAppId: RUNTIME_AGENT_APP_ID,
-          scopedBinding,
+          ...(subjectUserId ? { subjectUserId } : {}),
+          ...(scopedBinding ? { scopedBinding } : {}),
           messageType: TURN_INTERRUPT_TYPE,
           payload,
           requireAck: false,
-        }, options)
-        : await input.protectedAccess.withScopes([TURN_WRITE_SCOPE], async (writeOptions) => {
-          const subjectUserId = await input.resolveSubjectUserId(undefined);
-          return input.app.sendMessage({
-            fromAppId: input.appId,
-            toAppId: RUNTIME_AGENT_APP_ID,
-            subjectUserId,
-            messageType: TURN_INTERRUPT_TYPE,
-            payload,
-            requireAck: false,
-          }, writeOptions);
-        }, options);
+        }, writeOptions);
+      }, options);
       return assertAccepted(response, TURN_INTERRUPT_TYPE);
     },
     async getSessionSnapshot(request, options) {
@@ -384,9 +375,10 @@ export function createRuntimeAgentTurnsModule(input: {
         worldId: request.worldId,
       });
       const subjectUserId = scopedBinding ? undefined : await input.resolveSubjectUserId(undefined);
-      const subscribeBaseOptions = scopedBinding
-        ? baseCallOptions(options)
-        : await input.protectedAccess.getCallOptions([TURN_READ_SCOPE], options);
+      // Always issue a protected access token even when a scoped binding is attached;
+      // the runtime gRPC authz interceptor enforces capability-bound tokens, the binding
+      // only carries scope/anchor/window relations.
+      const subscribeBaseOptions = await input.protectedAccess.getCallOptions([TURN_READ_SCOPE], options);
       const streamHandle = await input.app.subscribeMessages({
         appId: input.appId,
         ...(subjectUserId ? { subjectUserId } : {}),
@@ -395,30 +387,18 @@ export function createRuntimeAgentTurnsModule(input: {
         fromAppIds: [RUNTIME_AGENT_APP_ID],
       }, makeStreamOptions(subscribeBaseOptions, options?.signal));
       const snapshotPayload = toProtoStruct({
-        agent_id: request.agentId,
         conversation_anchor_id: request.conversationAnchorId,
-        ...(optionalString(request.worldId) ? { world_id: optionalString(request.worldId) } : {}),
         ...(requestId ? { request_id: requestId } : {}),
       });
-      if (scopedBinding) {
-        await input.app.sendMessage({
-          fromAppId: input.appId,
-          toAppId: RUNTIME_AGENT_APP_ID,
-          scopedBinding,
-          messageType: SESSION_SNAPSHOT_REQUEST_TYPE,
-          payload: snapshotPayload,
-          requireAck: false,
-        }, options);
-      } else {
-        await input.protectedAccess.withScopes([TURN_WRITE_SCOPE], (writeOptions) => input.app.sendMessage({
-          fromAppId: input.appId,
-          toAppId: RUNTIME_AGENT_APP_ID,
-          subjectUserId,
-          messageType: SESSION_SNAPSHOT_REQUEST_TYPE,
-          payload: snapshotPayload,
-          requireAck: false,
-        }, writeOptions), options);
-      }
+      await input.protectedAccess.withScopes([TURN_WRITE_SCOPE], (writeOptions) => input.app.sendMessage({
+        fromAppId: input.appId,
+        toAppId: RUNTIME_AGENT_APP_ID,
+        ...(subjectUserId ? { subjectUserId } : {}),
+        ...(scopedBinding ? { scopedBinding } : {}),
+        messageType: SESSION_SNAPSHOT_REQUEST_TYPE,
+        payload: snapshotPayload,
+        requireAck: false,
+      }, writeOptions), options);
       for await (const event of streamHandle) {
         const messageType = normalizeText(event.messageType);
         if (messageType !== 'runtime.agent.session.snapshot') {

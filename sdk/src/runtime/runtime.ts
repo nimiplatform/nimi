@@ -305,6 +305,7 @@ export class Runtime {
       anchors: createRuntimeAgentAnchorsModule({
         appId: this.appId,
         agent: passthrough.agent,
+        protectedAccess: protectedScopeHelper,
         resolveSubjectUserId: (explicit) => this.#ctx.resolveSubjectUserId(explicit),
       }),
       turns: createRuntimeAgentTurnsModule({

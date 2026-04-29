@@ -148,17 +148,53 @@ async function collectRuntimeAgentEvents(
 test('runtime agent anchors project explicit agentId and conversationAnchorId through runtime truth', async () => {
   let capturedOpenRequest: OpenConversationAnchorRequest | null = null;
   let capturedSnapshotRequest: GetConversationAnchorSnapshotRequest | null = null;
+  const authorizeRequests: AuthorizeExternalPrincipalRequest[] = [];
+  const protectedTokens: Array<{ methodId: string; tokenId: string; secret: string }> = [];
+  let registerCalls = 0;
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.auth.registerApp) {
+        registerCalls += 1;
+        const request = RegisterAppRequest.fromBinary(input.request);
+        assert.equal(request.appId, APP_ID);
+        return RegisterAppResponse.toBinary(RegisterAppResponse.create({
+          accepted: true,
+        }));
+      }
+      if (input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
+        const request = AuthorizeExternalPrincipalRequest.fromBinary(input.request);
+        authorizeRequests.push(request);
+        return AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
+          tokenId: `anchor-token-${authorizeRequests.length}`,
+          appId: APP_ID,
+          subjectUserId: 'subject-1',
+          externalPrincipalId: APP_ID,
+          effectiveScopes: request.scopes,
+          policyVersion: '1.0.0',
+          issuedScopeCatalogVersion: '1.0.0',
+          canDelegate: false,
+          secret: `anchor-secret-${authorizeRequests.length}`,
+        }));
+      }
       if (input.methodId === OPEN_CONVERSATION_ANCHOR_METHOD) {
         capturedOpenRequest = OpenConversationAnchorRequest.fromBinary(input.request);
+        protectedTokens.push({
+          methodId: input.methodId,
+          tokenId: input.protectedAccessToken?.tokenId || '',
+          secret: input.protectedAccessToken?.secret || '',
+        });
         return OpenConversationAnchorResponse.toBinary(OpenConversationAnchorResponse.create({
           snapshot: createAnchorSnapshot('anchor-1', 'agent-1'),
         }));
       }
       if (input.methodId === GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD) {
         capturedSnapshotRequest = GetConversationAnchorSnapshotRequest.fromBinary(input.request);
+        protectedTokens.push({
+          methodId: input.methodId,
+          tokenId: input.protectedAccessToken?.tokenId || '',
+          secret: input.protectedAccessToken?.secret || '',
+        });
         return GetConversationAnchorSnapshotResponse.toBinary(GetConversationAnchorSnapshotResponse.create({
           snapshot: createAnchorSnapshot('anchor-1', 'agent-1'),
         }));
@@ -203,6 +239,23 @@ test('runtime agent anchors project explicit agentId and conversationAnchorId th
     assert.equal(capturedSnapshotRequest?.conversationAnchorId, 'anchor-1');
     assert.equal(capturedSnapshotRequest?.context?.appId, APP_ID);
     assert.equal(capturedSnapshotRequest?.context?.subjectUserId, 'subject-1');
+    assert.equal(registerCalls, 1);
+    assert.deepEqual(authorizeRequests.map((request) => request.scopes), [
+      ['runtime.agent.turn.write'],
+      ['runtime.agent.turn.read'],
+    ]);
+    assert.deepEqual(protectedTokens, [
+      {
+        methodId: OPEN_CONVERSATION_ANCHOR_METHOD,
+        tokenId: 'anchor-token-1',
+        secret: 'anchor-secret-1',
+      },
+      {
+        methodId: GET_CONVERSATION_ANCHOR_SNAPSHOT_METHOD,
+        tokenId: 'anchor-token-2',
+        secret: 'anchor-secret-2',
+      },
+    ]);
   } finally {
     clearNodeGrpcBridge();
   }
@@ -210,6 +263,7 @@ test('runtime agent anchors project explicit agentId and conversationAnchorId th
 
 test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native runtime.agent families', async () => {
   const capturedMessages: SendAppMessageRequest[] = [];
+  const protectedTokens: Array<{ methodId: string; tokenId: string; secret: string }> = [];
   let capturedAgentSubscribeRequest: SubscribeAgentEventsRequest | null = null;
   let registerCalls = 0;
   let authorizeCalls = 0;
@@ -249,6 +303,11 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
       if (input.methodId === RuntimeMethodIds.app.sendAppMessage) {
         const request = SendAppMessageRequest.fromBinary(input.request);
         capturedMessages.push(request);
+        protectedTokens.push({
+          methodId: input.methodId,
+          tokenId: input.protectedAccessToken?.tokenId || '',
+          secret: input.protectedAccessToken?.secret || '',
+        });
         return SendAppMessageResponse.toBinary(SendAppMessageResponse.create({
           messageId: `ack-${capturedMessages.length}`,
           accepted: true,
@@ -260,6 +319,11 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
     openStream: async (_config, input) => {
       if (input.methodId === RuntimeMethodIds.app.subscribeAppMessages) {
         appSubscribeCalls += 1;
+        protectedTokens.push({
+          methodId: input.methodId,
+          tokenId: input.protectedAccessToken?.tokenId || '',
+          secret: input.protectedAccessToken?.secret || '',
+        });
         return {
           async *[Symbol.asyncIterator]() {
             yield createAppEvent('runtime.agent.turn.started', {
@@ -315,6 +379,11 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
       if (input.methodId === RuntimeMethodIds.agent.subscribeEvents) {
         agentSubscribeCalls += 1;
         capturedAgentSubscribeRequest = SubscribeAgentEventsRequest.fromBinary(input.request);
+        protectedTokens.push({
+          methodId: input.methodId,
+          tokenId: input.protectedAccessToken?.tokenId || '',
+          secret: input.protectedAccessToken?.secret || '',
+        });
         return {
           async *[Symbol.asyncIterator]() {
             yield createAgentEvent({
@@ -376,7 +445,7 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
         };
       }
       throw new Error(`unexpected stream method: ${input.methodId}`);
-    },    
+    },
     closeStream: async () => {},
   });
 
@@ -419,6 +488,28 @@ test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native 
     assert.equal(agentSubscribeCalls, 1);
     assert.equal(authorizeCalls, 3);
     assert.equal(capturedMessages.length, 2);
+    assert.deepEqual(protectedTokens, [
+      {
+        methodId: RuntimeMethodIds.app.subscribeAppMessages,
+        tokenId: 'token-1',
+        secret: 'secret-1',
+      },
+      {
+        methodId: RuntimeMethodIds.agent.subscribeEvents,
+        tokenId: 'token-2',
+        secret: 'secret-2',
+      },
+      {
+        methodId: RuntimeMethodIds.app.sendAppMessage,
+        tokenId: 'token-3',
+        secret: 'secret-3',
+      },
+      {
+        methodId: RuntimeMethodIds.app.sendAppMessage,
+        tokenId: 'token-3',
+        secret: 'secret-3',
+      },
+    ]);
     assert.equal(capturedAgentSubscribeRequest?.agentId, 'agent-1');
     assert.deepEqual(capturedAgentSubscribeRequest?.eventFilters, [
       AgentEventType.HOOK,
@@ -507,8 +598,21 @@ test('runtime agent turns binding-only mode sends scoped binding and does not re
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
-      if (input.methodId === RuntimeMethodIds.auth.registerApp || input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
-        throw new Error(`binding-only mode must not request auth surface ${input.methodId}`);
+      // Binding mode still goes through the protected access surface for the
+      // gRPC authz interceptor token check; only the app-level subjectUserId
+      // in SendAppMessage / SubscribeAppMessages is suppressed.
+      if (input.methodId === RuntimeMethodIds.auth.registerApp) {
+        return RegisterAppResponse.toBinary(RegisterAppResponse.create({
+          accepted: true,
+          reasonCode: RuntimeProtoReasonCode.ACTION_EXECUTED,
+        }));
+      }
+      if (input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
+        return AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
+          tokenId: 'binding-mode-token',
+          secret: 'binding-mode-secret',
+          reasonCode: RuntimeProtoReasonCode.ACTION_EXECUTED,
+        }));
       }
       if (input.methodId === RuntimeMethodIds.app.sendAppMessage) {
         const request = SendAppMessageRequest.fromBinary(input.request);
@@ -558,6 +662,9 @@ test('runtime agent turns binding-only mode sends scoped binding and does not re
       transport: {
         type: 'node-grpc',
         endpoint: '127.0.0.1:46371',
+      },
+      subjectContext: {
+        subjectUserId: 'binding-mode-subject',
       },
     });
 
@@ -885,6 +992,7 @@ test('runtime agent turns subscribe parses Wave 2 hook projection events with or
 
 test('runtime agent session snapshot recovery stays anchor-native and consumer-owned', async () => {
   const capturedMessages: SendAppMessageRequest[] = [];
+  const protectedTokens: Array<{ methodId: string; tokenId: string; secret: string }> = [];
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
@@ -894,21 +1002,27 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
         }));
       }
       if (input.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
+        const request = AuthorizeExternalPrincipalRequest.fromBinary(input.request);
         return AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
-          tokenId: 'token-1',
+          tokenId: request.scopes.includes('runtime.agent.turn.write') ? 'write-token' : 'read-token',
           appId: APP_ID,
           subjectUserId: 'subject-1',
           externalPrincipalId: APP_ID,
-          effectiveScopes: ['runtime.agent.turn.read', 'runtime.agent.turn.write'],
+          effectiveScopes: request.scopes,
           policyVersion: '1.0.0',
           issuedScopeCatalogVersion: '1.0.0',
           canDelegate: false,
-          secret: 'secret-1',
+          secret: request.scopes.includes('runtime.agent.turn.write') ? 'write-secret' : 'read-secret',
         }));
       }
       if (input.methodId === RuntimeMethodIds.app.sendAppMessage) {
         const request = SendAppMessageRequest.fromBinary(input.request);
         capturedMessages.push(request);
+        protectedTokens.push({
+          methodId: input.methodId,
+          tokenId: input.protectedAccessToken?.tokenId || '',
+          secret: input.protectedAccessToken?.secret || '',
+        });
         return SendAppMessageResponse.toBinary(SendAppMessageResponse.create({
           messageId: 'ack-1',
           accepted: true,
@@ -921,6 +1035,11 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
       if (input.methodId !== RuntimeMethodIds.app.subscribeAppMessages) {
         throw new Error(`unexpected stream method: ${input.methodId}`);
       }
+      protectedTokens.push({
+        methodId: input.methodId,
+        tokenId: input.protectedAccessToken?.tokenId || '',
+        secret: input.protectedAccessToken?.secret || '',
+      });
       return {
         async *[Symbol.asyncIterator]() {
           yield createAppEvent('runtime.agent.session.snapshot', {
@@ -991,7 +1110,21 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
     const requestPayload = Struct.toJson(capturedMessages[0]?.payload as Struct) as Record<string, unknown>;
     assert.equal(capturedMessages[0]?.messageType, 'runtime.agent.session.snapshot.request');
     assert.equal(requestPayload.conversation_anchor_id, 'anchor-1');
+    assert.equal('agent_id' in requestPayload, false);
+    assert.equal('world_id' in requestPayload, false);
     assert.equal('session_id' in requestPayload, false);
+    assert.deepEqual(protectedTokens, [
+      {
+        methodId: RuntimeMethodIds.app.subscribeAppMessages,
+        tokenId: 'read-token',
+        secret: 'read-secret',
+      },
+      {
+        methodId: RuntimeMethodIds.app.sendAppMessage,
+        tokenId: 'write-token',
+        secret: 'write-secret',
+      },
+    ]);
     assert.equal(snapshot.requestId, 'req-1');
     assert.equal(snapshot.threadId, 'thread-1');
     assert.equal(snapshot.sessionStatus, 'active');

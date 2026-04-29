@@ -19,12 +19,20 @@ import {
   RegisterAppResponse,
 } from '../../src/runtime/generated/runtime/v1/auth';
 import {
+  SendAppMessageResponse,
+} from '../../src/runtime/generated/runtime/v1/app';
+import {
+  AuthorizeExternalPrincipalRequest,
+  AuthorizeExternalPrincipalResponse,
+} from '../../src/runtime/generated/runtime/v1/grant';
+import {
   ConversationAnchor,
   ConversationAnchorStatus,
   OpenConversationAnchorResponse,
 } from '../../src/runtime/generated/runtime/v1/agent_service.js';
 import { ListModelsResponse } from '../../src/runtime/generated/runtime/v1/model';
 import { RuntimeUnaryMethodCodecs } from '../../src/runtime/core/method-codecs';
+import { Runtime } from '../../src/runtime/runtime.js';
 import {
   isRuntimeWriteMethod,
   RuntimeMethodIds,
@@ -434,6 +442,235 @@ test('tauri-ipc runtime agent anchor unary request includes runtime app session'
     assert.ok(capturedPayload);
     assert.equal(capturedPayload.methodId, RuntimeMethodIds.agent.openConversationAnchor);
     assert.deepEqual(capturedPayload.appSession, {
+      sessionId: 'runtime-session-id',
+      sessionToken: 'runtime-session-token',
+    });
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('tauri-ipc Runtime agent anchor surface includes protected token and app session', async () => {
+  const capturedPayloads: Record<string, unknown>[] = [];
+  const authorizeRequests: AuthorizeExternalPrincipalRequest[] = [];
+  const restoreTauri = installTauriRuntime({
+    core: {
+      invoke: async (command: string, payload?: unknown) => {
+        if (command === 'runtime_bridge_unary') {
+          const captured = unwrapTauriInvokePayload(payload);
+          capturedPayloads.push(captured);
+          if (captured.methodId === RuntimeMethodIds.auth.registerApp) {
+            return {
+              responseBytesBase64: Buffer.from(
+                RegisterAppResponse.toBinary(RegisterAppResponse.create({ accepted: true })),
+              ).toString('base64'),
+            };
+          }
+          if (captured.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
+            authorizeRequests.push(AuthorizeExternalPrincipalRequest.fromBinary(
+              Buffer.from(String(captured.requestBytesBase64 || ''), 'base64'),
+            ));
+            return {
+              responseBytesBase64: Buffer.from(
+                AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
+                  tokenId: 'runtime-agent-anchor-token',
+                  secret: 'runtime-agent-anchor-secret',
+                  appId: APP_ID,
+                  subjectUserId: 'user-1',
+                  externalPrincipalId: APP_ID,
+                  effectiveScopes: ['runtime.agent.turn.write'],
+                  policyVersion: 'runtime-protected-access-v1',
+                  issuedScopeCatalogVersion: 'sdk-v2',
+                })),
+              ).toString('base64'),
+            };
+          }
+          if (captured.methodId === RuntimeMethodIds.agent.openConversationAnchor) {
+            return {
+              responseBytesBase64: Buffer.from(
+                OpenConversationAnchorResponse.toBinary(
+                  OpenConversationAnchorResponse.create({
+                    snapshot: {
+                      anchor: ConversationAnchor.create({
+                        conversationAnchorId: 'anchor-1',
+                        agentId: 'agent-1',
+                        subjectUserId: 'user-1',
+                        status: ConversationAnchorStatus.ACTIVE,
+                      }),
+                    },
+                  }),
+                ),
+              ).toString('base64'),
+            };
+          }
+        }
+        throw new Error(`unexpected tauri command: ${command}`);
+      },
+    },
+    event: {
+      listen: () => () => {},
+    },
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'tauri-ipc',
+        commandNamespace: 'runtime_bridge',
+        eventNamespace: 'runtime_bridge',
+      },
+      auth: {
+        appSession: () => ({
+          sessionId: 'runtime-session-id',
+          sessionToken: 'runtime-session-token',
+        }),
+      },
+      subjectContext: {
+        subjectUserId: 'user-1',
+      },
+    });
+
+    await runtime.agent.anchors.open({
+      agentId: 'agent-1',
+    });
+
+    const openPayload = capturedPayloads.find((captured) => captured.methodId === RuntimeMethodIds.agent.openConversationAnchor);
+    assert.ok(openPayload);
+    assert.deepEqual(openPayload.appSession, {
+      sessionId: 'runtime-session-id',
+      sessionToken: 'runtime-session-token',
+    });
+    assert.deepEqual(openPayload.protectedAccessToken, {
+      tokenId: 'runtime-agent-anchor-token',
+      secret: 'runtime-agent-anchor-secret',
+    });
+    assert.deepEqual(authorizeRequests.map((request) => request.scopes), [
+      ['runtime.agent.turn.write'],
+    ]);
+  } finally {
+    restoreTauri();
+  }
+});
+
+test('tauri-ipc Runtime agent turns surface includes protected tokens for streams and writes', async () => {
+  const capturedPayloads: Record<string, unknown>[] = [];
+  const authorizeRequests: AuthorizeExternalPrincipalRequest[] = [];
+  const restoreTauri = installTauriRuntime({
+    core: {
+      invoke: async (command: string, payload?: unknown) => {
+        const captured = unwrapTauriInvokePayload(payload);
+        if (command === 'runtime_bridge_unary') {
+          capturedPayloads.push(captured);
+          if (captured.methodId === RuntimeMethodIds.auth.registerApp) {
+            return {
+              responseBytesBase64: Buffer.from(
+                RegisterAppResponse.toBinary(RegisterAppResponse.create({ accepted: true })),
+              ).toString('base64'),
+            };
+          }
+          if (captured.methodId === RuntimeMethodIds.appAuth.authorizeExternalPrincipal) {
+            const request = AuthorizeExternalPrincipalRequest.fromBinary(
+              Buffer.from(String(captured.requestBytesBase64 || ''), 'base64'),
+            );
+            authorizeRequests.push(request);
+            const scopeKey = request.scopes.join('+').replaceAll('.', '-');
+            return {
+              responseBytesBase64: Buffer.from(
+                AuthorizeExternalPrincipalResponse.toBinary(AuthorizeExternalPrincipalResponse.create({
+                  tokenId: `${scopeKey}-token`,
+                  secret: `${scopeKey}-secret`,
+                  appId: APP_ID,
+                  subjectUserId: 'user-1',
+                  externalPrincipalId: APP_ID,
+                  effectiveScopes: request.scopes,
+                  policyVersion: 'runtime-protected-access-v1',
+                  issuedScopeCatalogVersion: 'sdk-v2',
+                })),
+              ).toString('base64'),
+            };
+          }
+          if (captured.methodId === RuntimeMethodIds.app.sendAppMessage) {
+            return {
+              responseBytesBase64: Buffer.from(
+                SendAppMessageResponse.toBinary(SendAppMessageResponse.create({
+                  messageId: 'turn-request-ack',
+                  accepted: true,
+                })),
+              ).toString('base64'),
+            };
+          }
+        }
+        if (command === 'runtime_bridge_stream_open') {
+          capturedPayloads.push(captured);
+          return { streamId: `stream-${capturedPayloads.length}` };
+        }
+        if (command === 'runtime_bridge_stream_close') {
+          return {};
+        }
+        throw new Error(`unexpected tauri command: ${command}`);
+      },
+    },
+    event: {
+      listen: () => () => {},
+    },
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'tauri-ipc',
+        commandNamespace: 'runtime_bridge',
+        eventNamespace: 'runtime_bridge',
+      },
+      auth: {
+        appSession: () => ({
+          sessionId: 'runtime-session-id',
+          sessionToken: 'runtime-session-token',
+        }),
+      },
+      subjectContext: {
+        subjectUserId: 'user-1',
+      },
+    });
+
+    await runtime.agent.turns.subscribe({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+    });
+    await runtime.agent.turns.request({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+      messages: [{ role: 'user', content: 'hello' }],
+      executionBinding: { route: 'local', modelId: 'local/qwen2.5' },
+    });
+
+    const appSubscribePayload = capturedPayloads.find((captured) => captured.methodId === RuntimeMethodIds.app.subscribeAppMessages);
+    const agentSubscribePayload = capturedPayloads.find((captured) => captured.methodId === RuntimeMethodIds.agent.subscribeEvents);
+    const sendPayload = capturedPayloads.find((captured) => captured.methodId === RuntimeMethodIds.app.sendAppMessage);
+
+    assert.ok(appSubscribePayload);
+    assert.ok(agentSubscribePayload);
+    assert.ok(sendPayload);
+    assert.deepEqual(authorizeRequests.map((request) => request.scopes), [
+      ['runtime.agent.turn.read'],
+      ['runtime.agent.read'],
+      ['runtime.agent.turn.write'],
+    ]);
+    assert.deepEqual(appSubscribePayload.protectedAccessToken, {
+      tokenId: 'runtime-agent-turn-read-token',
+      secret: 'runtime-agent-turn-read-secret',
+    });
+    assert.deepEqual(agentSubscribePayload.protectedAccessToken, {
+      tokenId: 'runtime-agent-read-token',
+      secret: 'runtime-agent-read-secret',
+    });
+    assert.deepEqual(sendPayload.protectedAccessToken, {
+      tokenId: 'runtime-agent-turn-write-token',
+      secret: 'runtime-agent-turn-write-secret',
+    });
+    assert.deepEqual(sendPayload.appSession, {
       sessionId: 'runtime-session-id',
       sessionToken: 'runtime-session-token',
     });

@@ -101,6 +101,22 @@ export type {
 } from './generated/runtime/v1/audit.js';
 export { CallerKind } from './generated/runtime/v1/common.js';
 export { ReasonCode as RuntimeReasonCode, ExternalPrincipalType } from './generated/runtime/v1/common.js';
+export {
+  AccountCallerMode,
+  AccountSessionState,
+  AccountReasonCode,
+  ScopedAppBindingPurpose,
+  ScopedAppBindingState,
+} from './generated/runtime/v1/account.js';
+export type {
+  AccountCaller,
+  AccountProjection,
+  ScopedAppBindingRelation,
+  IssueScopedAppBindingRequest,
+  IssueScopedAppBindingResponse,
+  RevokeScopedAppBindingRequest,
+  RevokeScopedAppBindingResponse,
+} from './generated/runtime/v1/account.js';
 export { ExternalProofType, AppMode, WorldRelation } from './generated/runtime/v1/auth.js';
 export { PolicyMode, AuthorizationPreset as RuntimeAuthorizationPreset } from './generated/runtime/v1/grant.js';
 export { WorkflowStatus, WorkflowEventType, WorkflowExecutionMode } from './generated/runtime/v1/workflow.js';
