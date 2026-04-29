@@ -240,14 +240,20 @@ export function createSnapshotRouteDataProvider(
       const snapshot = await getSnapshot();
       const connector = (snapshot.connectors || []).find((c) => c.id === connectorId);
       if (!connector) return [];
+      const snapshotCapability = String(snapshot.capability || '').trim();
       return connector.models
         .filter((modelId) => String(modelId || '').trim())
-        .map((modelId) => ({
-          modelId: String(modelId),
-          modelLabel: String(modelId),
-          available: true,
-          capabilities: connector.modelCapabilities?.[modelId] || [],
-        }));
+        .map((modelId) => {
+          const capabilities = connector.modelCapabilities?.[modelId] || [];
+          return {
+            modelId: String(modelId),
+            modelLabel: String(modelId),
+            available: true,
+            capabilities: capabilities.length > 0
+              ? capabilities
+              : (snapshotCapability ? [snapshotCapability] : []),
+          };
+        });
     },
     invalidate,
   };
@@ -271,6 +277,8 @@ export type RouteModelPickerSelection = {
   source: RouteModelPickerSource;
   connectorId: string;
   model: string;
+  /** Cloud provider resolved from the selected connector when source === 'cloud'. */
+  provider?: string;
   /** Human-readable model display name resolved at selection time. */
   modelLabel?: string;
   /** Local model metadata — populated when source === 'local'. */
@@ -407,9 +415,19 @@ export function useRouteModelPickerData({
   const [connectorId, setConnectorId] = useState(initialSelection?.connectorId ?? '');
   const [model, setModel] = useState(initialSelection?.model ?? '');
 
+  const selectedConnectorProvider = useMemo(
+    () => connectors.find((connector) => connector.connectorId === connectorId)?.provider || '',
+    [connectorId, connectors],
+  );
+
   const selection: RouteModelPickerSelection = useMemo(
-    () => ({ source, connectorId, model }),
-    [source, connectorId, model],
+    () => ({
+      source,
+      connectorId,
+      model,
+      provider: source === 'cloud' ? selectedConnectorProvider || undefined : undefined,
+    }),
+    [connectorId, model, selectedConnectorProvider, source],
   );
 
   // --- Data fetching ---
@@ -506,8 +524,12 @@ export function useRouteModelPickerData({
         };
       }
     }
-    return { ...sel, modelLabel };
-  }, [localModels, availableModels]);
+    return {
+      ...sel,
+      provider: sel.source === 'cloud' ? selectedConnectorProvider || undefined : undefined,
+      modelLabel,
+    };
+  }, [localModels, availableModels, selectedConnectorProvider]);
 
   // Sync initial auto-selection to callback when models first become available
   // (e.g. only one model → auto-selected but user never clicks)

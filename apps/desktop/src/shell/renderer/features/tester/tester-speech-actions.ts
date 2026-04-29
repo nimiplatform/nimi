@@ -89,6 +89,48 @@ function toScenarioRoutePolicy(route: string | undefined): number {
     : ROUTE_POLICY_LOCAL;
 }
 
+function routeScopedModelRoot(model: string): string {
+  const normalized = asString(model);
+  const slashIndex = normalized.indexOf('/');
+  if (slashIndex <= 0) return normalized;
+  const prefix = normalized.slice(0, slashIndex).toLowerCase();
+  if (prefix === 'cloud' || prefix === 'token') {
+    return normalized.slice(slashIndex + 1);
+  }
+  return normalized;
+}
+
+function providerScopedVoiceWorkflowModel(input: {
+  binding: RuntimeRouteBinding | undefined;
+  runtimeModel: string;
+  workflowLabel: string;
+}): string {
+  const runtimeModel = asString(input.runtimeModel);
+  const source = asString(input.binding?.source).toLowerCase();
+  if (source !== 'cloud' || !runtimeModel) return runtimeModel;
+
+  const firstSlash = runtimeModel.indexOf('/');
+  if (firstSlash > 0) {
+    const prefix = runtimeModel.slice(0, firstSlash).toLowerCase();
+    if (prefix !== 'cloud' && prefix !== 'token') {
+      return runtimeModel;
+    }
+  }
+
+  const provider = asString(input.binding?.provider);
+  const providerToken = provider.toLowerCase();
+  const modelRoot = routeScopedModelRoot(runtimeModel);
+  if (!provider || providerToken === 'cloud' || providerToken === 'token') {
+    const selectedModel = asString(input.binding?.modelId || input.binding?.model) || modelRoot || runtimeModel;
+    throw new Error(`${input.workflowLabel} route is missing provider metadata for selected cloud model "${selectedModel}". The model is selected, but the runtime needs the connector provider to resolve a voice workflow pipeline.`);
+  }
+  if (!modelRoot) return runtimeModel;
+  if (modelRoot.toLowerCase().startsWith(`${providerToken}/`)) {
+    return modelRoot;
+  }
+  return `${provider}/${modelRoot}`;
+}
+
 async function waitForScenarioJobCompletion(input: {
   runtimeClient: RuntimeClientLike;
   jobId: string;
@@ -286,10 +328,15 @@ export async function runTesterVoiceClone(input: {
     ...(input.binding ? { binding: input.binding } : {}),
   };
   const requestId = createRuntimeTraceId('tester-voice-clone');
+  const workflowModel = providerScopedVoiceWorkflowModel({
+    binding: input.binding,
+    runtimeModel: callParams.model,
+    workflowLabel: 'Voice clone',
+  });
   const submitResponse = await runtimeClient.ai.submitScenarioJob({
     head: {
       appId: runtimeClient.appId,
-      modelId: callParams.model,
+      modelId: workflowModel,
       routePolicy: toScenarioRoutePolicy(callParams.route),
       timeoutMs: TESTER_VOICE_WORKFLOW_TIMEOUT_MS,
       connectorId: callParams.connectorId || '',
@@ -307,7 +354,7 @@ export async function runTesterVoiceClone(input: {
       spec: {
         oneofKind: 'voiceClone' as const,
         voiceClone: {
-          targetModelId: callParams.model,
+          targetModelId: workflowModel,
           input: {
             referenceAudioBytes: input.referenceAudio.kind === 'bytes' ? input.referenceAudio.bytes : new Uint8Array(),
             referenceAudioUri: input.referenceAudio.kind === 'url' ? input.referenceAudio.url : '',
@@ -366,10 +413,15 @@ export async function runTesterVoiceDesign(input: {
     ...(input.binding ? { binding: input.binding } : {}),
   };
   const requestId = createRuntimeTraceId('tester-voice-design');
+  const workflowModel = providerScopedVoiceWorkflowModel({
+    binding: input.binding,
+    runtimeModel: callParams.model,
+    workflowLabel: 'Voice design',
+  });
   const submitResponse = await runtimeClient.ai.submitScenarioJob({
     head: {
       appId: runtimeClient.appId,
-      modelId: callParams.model,
+      modelId: workflowModel,
       routePolicy: toScenarioRoutePolicy(callParams.route),
       timeoutMs: TESTER_VOICE_WORKFLOW_TIMEOUT_MS,
       connectorId: callParams.connectorId || '',
@@ -387,7 +439,7 @@ export async function runTesterVoiceDesign(input: {
       spec: {
         oneofKind: 'voiceDesign' as const,
         voiceDesign: {
-          targetModelId: callParams.model,
+          targetModelId: workflowModel,
           input: {
             instructionText: input.instructionText,
             previewText: input.previewText,

@@ -22,6 +22,9 @@ export function bindingToPickerSelection(
     model: binding.source === 'local'
       ? (normalizeText(binding.localModelId) || normalizeText(binding.model))
       : (normalizeText(binding.model) || normalizeText(binding.modelId)),
+    provider: binding.source === 'cloud'
+      ? (normalizeText(binding.provider) || undefined)
+      : undefined,
     modelLabel: normalizeText(binding.modelLabel) || undefined,
     localModelId: binding.source === 'local'
       ? (normalizeText(binding.localModelId) || undefined)
@@ -71,6 +74,7 @@ export function pickerSelectionToBinding(
     source: 'cloud',
     connectorId,
     model,
+    provider: normalizeText(selection.provider) || undefined,
     modelLabel: normalizeText(selection.modelLabel) || undefined,
   };
 }

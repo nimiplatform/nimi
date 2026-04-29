@@ -36,6 +36,18 @@ test('tester speech panel contract: stt and voice clone panels retain file input
   assert.match(voicePanelSource, /type="file"/);
 });
 
+test('tester speech panel contract: stt and voice clone panels retain recorder path', () => {
+  const transcribePanelSource = readTesterPanel('panel-audio-transcribe.tsx');
+  const voicePanelSource = readTesterPanel('panel-voice-stubs.tsx');
+
+  assert.match(transcribePanelSource, /useTesterAudioRecorder\(/);
+  assert.match(transcribePanelSource, /normalizeRecordedAudioForCloudTranscription\(/);
+  assert.match(transcribePanelSource, /audio-transcribe-record/);
+  assert.match(voicePanelSource, /useTesterAudioRecorder\(/);
+  assert.match(voicePanelSource, /normalizeRecordedAudioForCloudTranscription\(/);
+  assert.match(voicePanelSource, /voice-clone-record/);
+});
+
 test('tester speech panel contract: tts panel uses persisted synthesize params', () => {
   const synthesizePanelSource = readTesterPanel('panel-audio-synthesize.tsx');
 

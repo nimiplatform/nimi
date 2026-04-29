@@ -8,6 +8,13 @@ import { makeEmptyDiagnostics } from '../tester-state.js';
 import { DiagnosticsPanel, ErrorBox, RawJsonSection } from '../tester-diagnostics.js';
 import { buildTesterSpeechFailure, runTesterAudioTranscribe } from '../tester-speech-actions.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import {
+  normalizeAudioFileForCloudTranscription,
+  createRecordedAudioFile,
+  normalizeRecordedAudioForCloudTranscription,
+  TesterAudioRecordButton,
+  useTesterAudioRecorder,
+} from '../tester-audio-recording.js';
 
 type AudioTranscribePanelProps = {
   state: CapabilityState;
@@ -153,6 +160,18 @@ export function AudioTranscribePanel(props: AudioTranscribePanelProps) {
   const [language, setLanguage] = React.useState('');
   const [mimeType, setMimeType] = React.useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const audioRecorder = useTesterAudioRecorder({
+    onCaptured: async (result) => {
+      const normalized = await normalizeRecordedAudioForCloudTranscription(result);
+      setAudioFile(createRecordedAudioFile(normalized, 'stt-recording'));
+      setAudioUri('');
+      setMimeType(normalized.mimeType);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    },
+    onError: (message) => {
+      onStateChange((prev) => ({ ...prev, error: message }));
+    },
+  });
 
   const handleRun = React.useCallback(async () => {
     if (!audioFile && !asString(audioUri)) {
@@ -162,13 +181,24 @@ export function AudioTranscribePanel(props: AudioTranscribePanelProps) {
     onStateChange((prev) => ({ ...prev, busy: true, error: '', diagnostics: makeEmptyDiagnostics() }));
     const t0 = Date.now();
     const binding = resolveEffectiveBinding(state.snapshot, state.binding) || undefined;
-    const inferredMimeType = asString(mimeType) || asString(audioFile?.type);
-    const audio = audioFile
-      ? { kind: 'bytes' as const, bytes: new Uint8Array(await audioFile.arrayBuffer()) }
+    const effectiveAudioFile = audioFile
+      ? await normalizeAudioFileForCloudTranscription(audioFile, 'stt-recording')
+      : null;
+    const convertedAudioFile = Boolean(effectiveAudioFile && effectiveAudioFile !== audioFile);
+    if (effectiveAudioFile && convertedAudioFile) {
+      setAudioFile(effectiveAudioFile);
+      setMimeType(effectiveAudioFile.type);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+    const inferredMimeType = convertedAudioFile
+      ? asString(effectiveAudioFile?.type)
+      : asString(mimeType) || asString(effectiveAudioFile?.type);
+    const audio = effectiveAudioFile
+      ? { kind: 'bytes' as const, bytes: new Uint8Array(await effectiveAudioFile.arrayBuffer()) }
       : { kind: 'url' as const, url: audioUri };
     const requestParams: Record<string, unknown> = {
-      audio: audioFile
-        ? { kind: 'bytes', bytes: `[${audioFile.size} bytes]`, fileName: audioFile.name }
+      audio: effectiveAudioFile
+        ? { kind: 'bytes', bytes: `[${effectiveAudioFile.size} bytes]`, fileName: effectiveAudioFile.name }
         : { kind: 'url', url: audioUri },
       ...(language ? { language } : {}),
       ...(inferredMimeType ? { mimeType: inferredMimeType } : {}),
@@ -266,6 +296,15 @@ export function AudioTranscribePanel(props: AudioTranscribePanelProps) {
             />
           </div>
           <div className="flex items-center gap-1.5">
+            <TesterAudioRecordButton
+              recording={audioRecorder.recording}
+              stopping={audioRecorder.stopping}
+              disabled={state.busy}
+              label={t('Tester.audioTranscribe.record', { defaultValue: 'Record audio' })}
+              stopLabel={t('Tester.audioTranscribe.stopRecording', { defaultValue: 'Stop recording' })}
+              onClick={audioRecorder.toggle}
+              testId={E2E_IDS.testerInput('audio-transcribe-record')}
+            />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}

@@ -212,6 +212,69 @@ test('tester speech actions submit voice clone workflow and fetch asset', async 
   assert.ok(calls.some((call) => call.kind === 'voice.getAsset'));
 });
 
+test('tester speech actions submit cloud voice clone with provider-scoped workflow model', async () => {
+  const { runtimeClient, calls } = createMockRuntimeClient();
+  await runTesterVoiceClone({
+    binding: {
+      source: 'cloud',
+      provider: 'dashscope',
+      model: 'qwen3-tts-vc',
+      modelId: 'qwen3-tts-vc',
+      connectorId: 'connector-dashscope',
+    },
+    prompt: 'hello clone',
+    preferredName: 'clone-voice',
+    referenceAudio: { kind: 'bytes', bytes: new Uint8Array([1, 2, 3]) },
+    referenceAudioMime: 'audio/wav',
+  }, {
+    getRuntimeClientImpl: () => runtimeClient as never,
+    resolveCallParamsImpl: async () => ({
+      ...mockCallParams,
+      model: 'cloud/qwen3-tts-vc',
+      route: 'cloud',
+      connectorId: 'connector-dashscope',
+    }),
+  });
+
+  const submitCall = calls.find((call) => call.kind === 'ai.submitScenarioJob');
+  assert.ok(submitCall);
+  const submitInput = submitCall.input as Record<string, unknown>;
+  assert.equal((submitInput.head as Record<string, unknown>).modelId, 'dashscope/qwen3-tts-vc');
+  assert.equal((submitInput.head as Record<string, unknown>).routePolicy, 2);
+  assert.equal((submitInput.head as Record<string, unknown>).connectorId, 'connector-dashscope');
+  assert.equal(
+    ((((submitInput.spec as Record<string, unknown>).spec as Record<string, unknown>).voiceClone as Record<string, unknown>).targetModelId),
+    'dashscope/qwen3-tts-vc',
+  );
+});
+
+test('tester speech actions explain missing cloud voice workflow provider metadata', async () => {
+  const { runtimeClient } = createMockRuntimeClient();
+  await assert.rejects(
+    () => runTesterVoiceClone({
+      binding: {
+        source: 'cloud',
+        model: 'qwen3-tts-vc',
+        modelId: 'qwen3-tts-vc',
+        connectorId: 'connector-dashscope',
+      },
+      prompt: 'hello clone',
+      preferredName: 'clone-voice',
+      referenceAudio: { kind: 'bytes', bytes: new Uint8Array([1, 2, 3]) },
+      referenceAudioMime: 'audio/wav',
+    }, {
+      getRuntimeClientImpl: () => runtimeClient as never,
+      resolveCallParamsImpl: async () => ({
+        ...mockCallParams,
+        model: 'cloud/qwen3-tts-vc',
+        route: 'cloud',
+        connectorId: 'connector-dashscope',
+      }),
+    }),
+    /Voice clone route is missing provider metadata for selected cloud model "qwen3-tts-vc". The model is selected/,
+  );
+});
+
 test('tester speech actions submit voice design workflow and fetch asset', async () => {
   const { runtimeClient, calls } = createMockRuntimeClient();
   const result = await runTesterVoiceDesign({
@@ -238,6 +301,39 @@ test('tester speech actions submit voice design workflow and fetch asset', async
   assert.equal(
     ((((submitCall?.input as Record<string, unknown>).spec as Record<string, unknown>).spec as Record<string, unknown>).oneofKind),
     'voiceDesign',
+  );
+});
+
+test('tester speech actions submit cloud voice design with provider-scoped workflow model', async () => {
+  const { runtimeClient, calls } = createMockRuntimeClient();
+  await runTesterVoiceDesign({
+    binding: {
+      source: 'cloud',
+      provider: 'dashscope',
+      model: 'qwen3-tts-vd',
+      modelId: 'qwen3-tts-vd',
+      connectorId: 'connector-dashscope',
+    },
+    instructionText: 'warm cinematic female voice',
+    previewText: 'hello design',
+    preferredName: 'design-voice',
+  }, {
+    getRuntimeClientImpl: () => runtimeClient as never,
+    resolveCallParamsImpl: async () => ({
+      ...mockCallParams,
+      model: 'cloud/qwen3-tts-vd',
+      route: 'cloud',
+      connectorId: 'connector-dashscope',
+    }),
+  });
+
+  const submitCall = calls.find((call) => call.kind === 'ai.submitScenarioJob');
+  assert.ok(submitCall);
+  const submitInput = submitCall.input as Record<string, unknown>;
+  assert.equal((submitInput.head as Record<string, unknown>).modelId, 'dashscope/qwen3-tts-vd');
+  assert.equal(
+    ((((submitInput.spec as Record<string, unknown>).spec as Record<string, unknown>).voiceDesign as Record<string, unknown>).targetModelId),
+    'dashscope/qwen3-tts-vd',
   );
 });
 

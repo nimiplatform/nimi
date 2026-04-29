@@ -8,6 +8,13 @@ import { makeEmptyDiagnostics } from '../tester-state.js';
 import { DiagnosticsPanel, ErrorBox, RawJsonSection } from '../tester-diagnostics.js';
 import { buildTesterSpeechFailure, runTesterVoiceClone, runTesterVoiceDesign } from '../tester-speech-actions.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import {
+  normalizeAudioFileForCloudTranscription,
+  createRecordedAudioFile,
+  normalizeRecordedAudioForCloudTranscription,
+  TesterAudioRecordButton,
+  useTesterAudioRecorder,
+} from '../tester-audio-recording.js';
 
 const ARROW_UP_ICON = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
@@ -216,6 +223,18 @@ export function VoiceClonePanel(props: VoiceClonePanelProps) {
   const [referenceAudioFile, setReferenceAudioFile] = React.useState<File | null>(null);
   const [referenceAudioMime, setReferenceAudioMime] = React.useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const audioRecorder = useTesterAudioRecorder({
+    onCaptured: async (result) => {
+      const normalized = await normalizeRecordedAudioForCloudTranscription(result);
+      setReferenceAudioFile(createRecordedAudioFile(normalized, 'voice-reference-recording'));
+      setReferenceAudioUri('');
+      setReferenceAudioMime(normalized.mimeType);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    },
+    onError: (message) => {
+      onStateChange((prev) => ({ ...prev, error: message }));
+    },
+  });
 
   const handleRun = React.useCallback(async () => {
     if (!asString(prompt)) {
@@ -227,22 +246,33 @@ export function VoiceClonePanel(props: VoiceClonePanelProps) {
       return;
     }
     const binding = resolveEffectiveBinding(state.snapshot, state.binding) || undefined;
-    const inferredMimeType = asString(referenceAudioMime) || asString(referenceAudioFile?.type);
+    const effectiveReferenceAudioFile = referenceAudioFile
+      ? await normalizeAudioFileForCloudTranscription(referenceAudioFile, 'voice-reference-recording')
+      : null;
+    const convertedReferenceAudioFile = Boolean(effectiveReferenceAudioFile && effectiveReferenceAudioFile !== referenceAudioFile);
+    if (effectiveReferenceAudioFile && convertedReferenceAudioFile) {
+      setReferenceAudioFile(effectiveReferenceAudioFile);
+      setReferenceAudioMime(effectiveReferenceAudioFile.type);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+    const inferredMimeType = convertedReferenceAudioFile
+      ? asString(effectiveReferenceAudioFile?.type)
+      : asString(referenceAudioMime) || asString(effectiveReferenceAudioFile?.type);
     if (!inferredMimeType) {
       onStateChange((prev) => ({ ...prev, error: t('Tester.voiceClone.referenceAudioMimeRequired', { defaultValue: 'Reference audio MIME type is required.' }) }));
       return;
     }
     onStateChange((prev) => ({ ...prev, busy: true, error: '', diagnostics: makeEmptyDiagnostics() }));
     const t0 = Date.now();
-    const referenceAudio = referenceAudioFile
-      ? { kind: 'bytes' as const, bytes: new Uint8Array(await referenceAudioFile.arrayBuffer()) }
+    const referenceAudio = effectiveReferenceAudioFile
+      ? { kind: 'bytes' as const, bytes: new Uint8Array(await effectiveReferenceAudioFile.arrayBuffer()) }
       : { kind: 'url' as const, url: referenceAudioUri };
     const requestParams: Record<string, unknown> = {
       prompt,
       preferredName,
       referenceAudioMime: inferredMimeType,
-      referenceAudio: referenceAudioFile
-        ? { kind: 'bytes', bytes: `[${referenceAudioFile.size} bytes]`, fileName: referenceAudioFile.name }
+      referenceAudio: effectiveReferenceAudioFile
+        ? { kind: 'bytes', bytes: `[${effectiveReferenceAudioFile.size} bytes]`, fileName: effectiveReferenceAudioFile.name }
         : { kind: 'url', url: referenceAudioUri },
       ...(binding ? { binding } : {}),
     };
@@ -343,6 +373,15 @@ export function VoiceClonePanel(props: VoiceClonePanelProps) {
             />
           </div>
           <div className="flex items-center gap-1.5">
+            <TesterAudioRecordButton
+              recording={audioRecorder.recording}
+              stopping={audioRecorder.stopping}
+              disabled={state.busy}
+              label={t('Tester.voiceClone.record', { defaultValue: 'Record reference audio' })}
+              stopLabel={t('Tester.voiceClone.stopRecording', { defaultValue: 'Stop recording' })}
+              onClick={audioRecorder.toggle}
+              testId={E2E_IDS.testerInput('voice-clone-record')}
+            />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}

@@ -123,6 +123,7 @@ export function ModelPickerModal({
       source: selection.source,
       connectorId: selection.connectorId,
       model: modelId,
+      provider: selection.provider,
       modelLabel,
     };
     if (selection.source === 'local') {
