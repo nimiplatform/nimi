@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { syncRuntimeLocalModelsConfig } from '@renderer/infra/bootstrap/runtime-bootstrap-local-models-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { refreshRuntimeModDeveloperHostState } from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
 import { reconcileRuntimeLocalMods } from '@renderer/mod-ui/lifecycle/runtime-mod-developer-host';
@@ -35,21 +34,12 @@ export function DeveloperPage() {
   const runtimeModDiagnostics = useAppStore((state) => state.runtimeModDiagnostics);
   const runtimeModRecentReloads = useAppStore((state) => state.runtimeModRecentReloads);
   const [sourceDirInput, setSourceDirInput] = useState('');
-  const [nimiDataDirInput, setNimiDataDirInput] = useState('');
-  const [resolvedNimiDir, setResolvedNimiDir] = useState('');
-  const [resolvedNimiDataDir, setResolvedNimiDataDir] = useState('');
-  const [resolvedInstalledModsDir, setResolvedInstalledModsDir] = useState('');
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   useEffect(() => {
     void refreshRuntimeModDeveloperHostState();
-    void desktopBridge.getRuntimeModStorageDirs().then((dirs) => {
-      setResolvedNimiDir(dirs.nimiDir);
-      setResolvedNimiDataDir(dirs.nimiDataDir);
-      setResolvedInstalledModsDir(dirs.installedModsDir);
-      setNimiDataDirInput(dirs.nimiDataDir);
-    }).catch((error) => {
+    void desktopBridge.getRuntimeModStorageDirs().catch((error) => {
       logRendererEvent({
         level: 'warn',
         area: 'settings-developer',
@@ -114,49 +104,6 @@ export function DeveloperPage() {
       setFeedback({
         kind: 'error',
         message: error instanceof Error ? error.message : t('DeveloperSettings.sourceAddFailed'),
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const saveNimiDataDir = async () => {
-    const normalized = nimiDataDirInput.trim();
-    if (!normalized) {
-      setFeedback({ kind: 'warning', message: t('DeveloperSettings.enterDataDirFirst') });
-      return;
-    }
-    setSaving(true);
-    try {
-      const dirs = await desktopBridge.setRuntimeModDataDir(normalized);
-      let feedbackMessage = t('DeveloperSettings.dataDirUpdated');
-      setResolvedNimiDir(dirs.nimiDir);
-      setResolvedNimiDataDir(dirs.nimiDataDir);
-      setResolvedInstalledModsDir(dirs.installedModsDir);
-      setNimiDataDirInput(dirs.nimiDataDir);
-      try {
-        const daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
-        await syncRuntimeLocalModelsConfig({
-          daemonStatus,
-          localModelsPath: dirs.localModelsDir,
-          bridge: {
-            getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
-            setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
-            restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
-          },
-        });
-      } catch (error) {
-        feedbackMessage = error instanceof Error ? error.message : t('DeveloperSettings.dataDirUpdated');
-      }
-      await refreshRuntimeModDeveloperHostState();
-      setFeedback({
-        kind: 'warning',
-        message: feedbackMessage,
-      });
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: error instanceof Error ? error.message : t('DeveloperSettings.dataDirUpdateFailed'),
       });
     } finally {
       setSaving(false);
@@ -303,39 +250,6 @@ export function DeveloperPage() {
           <p className="text-xs text-gray-500">
             {t('DeveloperSettings.sourceHelp')}
           </p>
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <SectionTitle>{t('DeveloperSettings.dataDirTitle')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
-          <div className="space-y-1 text-xs text-gray-500">
-            <p>{t('DeveloperSettings.nimiDirLabel')}: <span className="break-all text-gray-700">{resolvedNimiDir || '-'}</span></p>
-            <p>{t('DeveloperSettings.installedModsDirLabel')}: <span className="break-all text-gray-700">{resolvedInstalledModsDir || '-'}</span></p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-            <input
-              value={nimiDataDirInput}
-              onChange={(event) => setNimiDataDirInput(event.target.value)}
-              placeholder={t('DeveloperSettings.dataDirPlaceholder')}
-              className="rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
-            />
-            <Button onClick={() => { void saveNimiDataDir(); }} disabled={saving}>
-              {t('DeveloperSettings.saveDataDirButton')}
-            </Button>
-          </div>
-          <p className="text-xs text-amber-700">
-            {t('DeveloperSettings.dataDirHelp')}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => { void openModDir(resolvedNimiDataDir); }}
-              disabled={saving || !resolvedNimiDataDir}
-            >
-              {t('DeveloperSettings.openDataDir')}
-            </Button>
-          </div>
         </div>
       </section>
 

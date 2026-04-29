@@ -44,8 +44,8 @@ test('D-MOD-015: nimi_data_dir configuration is available via bridge', () => {
   assert.match(source, /'runtime_mod_data_dir_set'/, 'Must invoke Tauri command runtime_mod_data_dir_set');
 });
 
-// 3. Developer settings page provides UI for all developer operations
-test('D-MOD-015: settings developer page provides UI for developer operations', () => {
+// 3. Developer settings page provides UI for mod developer operations
+test('D-MOD-015: settings developer page provides UI for mod developer operations', () => {
   const source = readFileSync(
     resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-developer-page.tsx'),
     'utf8',
@@ -55,9 +55,8 @@ test('D-MOD-015: settings developer page provides UI for developer operations', 
   assert.match(source, /upsertRuntimeModSource/, 'Must have source add via upsertRuntimeModSource');
   assert.match(source, /removeRuntimeModSource/, 'Must have source remove via removeRuntimeModSource');
 
-  // nimi_data_dir configuration
-  assert.match(source, /setRuntimeModDataDir/, 'Must have data dir configuration via setRuntimeModDataDir');
-  assert.match(source, /syncRuntimeLocalModelsConfig/, 'Must sync runtime local models config after data dir changes');
+  assert.doesNotMatch(source, /setRuntimeModDataDir/, 'Mod Developer must not own global data dir configuration');
+  assert.doesNotMatch(source, /syncRuntimeLocalModelsConfig/, 'Mod Developer must not own runtime storage path sync');
 
   // Developer mode toggle
   assert.match(source, /setRuntimeModDeveloperMode/, 'Must have developer mode toggle');
@@ -67,6 +66,18 @@ test('D-MOD-015: settings developer page provides UI for developer operations', 
 
   // Diagnostics display
   assert.match(source, /runtimeModDiagnostics/, 'Must display diagnostics');
+});
+
+test('D-MOD-015: data management page owns nimi_data_dir configuration', () => {
+  const source = readFileSync(
+    resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-data-management-page.tsx'),
+    'utf8',
+  );
+
+  assert.match(source, /setRuntimeModDataDir/, 'Data Management must configure nimi_data_dir via bridge');
+  assert.match(source, /syncRuntimeLocalModelsConfig/, 'Data Management must sync runtime storage config after data dir changes');
+  assert.match(source, /resolvedLocalModelsDir/, 'Data Management must display resolved runtime local models dir');
+  assert.match(source, /resolvedLocalRuntimeStatePath/, 'Data Management must display resolved runtime local state path');
 });
 
 // 4. No startup parameter dependency in developer settings page
@@ -82,7 +93,7 @@ test('D-MOD-015: developer settings page has no startup parameter references', (
 });
 
 // 5. StorageDirs type exposes required paths per spec
-test('D-MOD-015: RuntimeModStorageDirs exposes nimiDir, nimiDataDir, installedModsDir', () => {
+test('D-MOD-015: RuntimeModStorageDirs exposes data, mod, model, and state paths', () => {
   const typesSource = readFileSync(
     resolve(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/runtime-types.ts'),
     'utf8',
@@ -91,16 +102,21 @@ test('D-MOD-015: RuntimeModStorageDirs exposes nimiDir, nimiDataDir, installedMo
   assert.match(typesSource, /nimiDir:\s*string/, 'Must have nimiDir field');
   assert.match(typesSource, /nimiDataDir:\s*string/, 'Must have nimiDataDir field');
   assert.match(typesSource, /installedModsDir:\s*string/, 'Must have installedModsDir field');
+  assert.match(typesSource, /localModelsDir:\s*string/, 'Must have localModelsDir field');
+  assert.match(typesSource, /localRuntimeStatePath:\s*string/, 'Must have localRuntimeStatePath field');
 });
 
-// 6. Developer page displays resolved directory paths
-test('D-MOD-015: developer page displays resolved storage directory paths', () => {
+// 6. Data Management page displays resolved directory paths
+test('D-MOD-015: data management page displays resolved storage directory paths', () => {
   const source = readFileSync(
-    resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-developer-page.tsx'),
+    resolve(import.meta.dirname, '../src/shell/renderer/features/settings/settings-data-management-page.tsx'),
     'utf8',
   );
 
   assert.match(source, /resolvedNimiDir/, 'Must display resolved .nimi_dir');
+  assert.match(source, /resolvedNimiDataDir/, 'Must display resolved nimi_data_dir');
   assert.match(source, /resolvedInstalledModsDir/, 'Must display resolved installed mods dir');
+  assert.match(source, /resolvedLocalModelsDir/, 'Must display resolved runtime local models dir');
+  assert.match(source, /resolvedLocalRuntimeStatePath/, 'Must display resolved runtime local state path');
   assert.match(source, /nimiDataDirInput/, 'Must have input for nimi_data_dir');
 });

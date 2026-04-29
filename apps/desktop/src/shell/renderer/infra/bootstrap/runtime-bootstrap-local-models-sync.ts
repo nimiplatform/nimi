@@ -26,12 +26,18 @@ function normalize(value: unknown): string {
 export function mergeRuntimeLocalModelsConfig(
   baseConfig: Record<string, unknown>,
   localModelsPath: string,
+  localStatePath?: string,
 ): { nextConfig: Record<string, unknown>; changed: boolean } {
   const currentConfig = asRecord(baseConfig);
   const currentLocalModelsPath = normalize(currentConfig.localModelsPath);
   const nextLocalModelsPath = normalize(localModelsPath);
+  const currentLocalStatePath = normalize(currentConfig.localStatePath);
+  const nextLocalStatePath = normalize(localStatePath);
 
-  if (!nextLocalModelsPath || currentLocalModelsPath === nextLocalModelsPath) {
+  const shouldUpdateLocalModelsPath = nextLocalModelsPath && currentLocalModelsPath !== nextLocalModelsPath;
+  const shouldUpdateLocalStatePath = nextLocalStatePath && currentLocalStatePath !== nextLocalStatePath;
+
+  if (!shouldUpdateLocalModelsPath && !shouldUpdateLocalStatePath) {
     return {
       nextConfig: currentConfig,
       changed: false,
@@ -41,7 +47,8 @@ export function mergeRuntimeLocalModelsConfig(
   return {
     nextConfig: {
       ...currentConfig,
-      localModelsPath: nextLocalModelsPath,
+      ...(shouldUpdateLocalModelsPath ? { localModelsPath: nextLocalModelsPath } : {}),
+      ...(shouldUpdateLocalStatePath ? { localStatePath: nextLocalStatePath } : {}),
     },
     changed: true,
   };
@@ -50,12 +57,13 @@ export function mergeRuntimeLocalModelsConfig(
 export async function syncRuntimeLocalModelsConfig(input: {
   daemonStatus: RuntimeBridgeDaemonStatus;
   localModelsPath: string;
+  localStatePath?: string;
   bridge: RuntimeLocalModelsConfigSyncBridge;
 }): Promise<RuntimeBridgeDaemonStatus> {
-  const { daemonStatus, localModelsPath, bridge } = input;
+  const { daemonStatus, localModelsPath, localStatePath, bridge } = input;
 
   const current = await bridge.getRuntimeBridgeConfig();
-  const { nextConfig, changed } = mergeRuntimeLocalModelsConfig(current.config, localModelsPath);
+  const { nextConfig, changed } = mergeRuntimeLocalModelsConfig(current.config, localModelsPath, localStatePath);
   if (!changed) {
     return daemonStatus;
   }

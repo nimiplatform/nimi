@@ -4,7 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { dataSync } from '@runtime/data-sync';
+import { desktopBridge } from '@renderer/bridge';
+import { syncRuntimeLocalModelsConfig } from '@renderer/infra/bootstrap/runtime-bootstrap-local-models-sync';
+import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
+  Button,
   FormFeedback,
   PageShell,
   SectionTitle,
@@ -59,7 +63,14 @@ export function DataManagementPage() {
   const { t } = useTranslation();
   const clearAuthSession = useAppStore((s) => s.clearAuthSession);
   const [deleting, setDeleting] = useState(false);
+  const [savingDataDir, setSavingDataDir] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const [nimiDataDirInput, setNimiDataDirInput] = useState('');
+  const [resolvedNimiDir, setResolvedNimiDir] = useState('');
+  const [resolvedNimiDataDir, setResolvedNimiDataDir] = useState('');
+  const [resolvedInstalledModsDir, setResolvedInstalledModsDir] = useState('');
+  const [resolvedLocalModelsDir, setResolvedLocalModelsDir] = useState('');
+  const [resolvedLocalRuntimeStatePath, setResolvedLocalRuntimeStatePath] = useState('');
   const [storage, setStorage] = useState<StorageSnapshot>({
     queryCacheBytes: 0,
     localStorageBytes: 0,
@@ -94,6 +105,30 @@ export function DataManagementPage() {
     void refreshStorageSnapshot();
   }, [refreshStorageSnapshot]);
 
+  const applyStorageDirs = useCallback((dirs: Awaited<ReturnType<typeof desktopBridge.getRuntimeModStorageDirs>>) => {
+    setResolvedNimiDir(dirs.nimiDir);
+    setResolvedNimiDataDir(dirs.nimiDataDir);
+    setResolvedInstalledModsDir(dirs.installedModsDir);
+    setResolvedLocalModelsDir(dirs.localModelsDir);
+    setResolvedLocalRuntimeStatePath(dirs.localRuntimeStatePath);
+    setNimiDataDirInput(dirs.nimiDataDir);
+  }, []);
+
+  useEffect(() => {
+    void desktopBridge.getRuntimeModStorageDirs()
+      .then(applyStorageDirs)
+      .catch((error) => {
+        logRendererEvent({
+          level: 'warn',
+          area: 'settings-data-management',
+          message: 'get-runtime-storage-dirs:failed',
+          details: {
+            error: error instanceof Error ? error.message : String(error || ''),
+          },
+        });
+      });
+  }, [applyStorageDirs]);
+
   const totalTrackedBytes = useMemo(
     () => storage.queryCacheBytes + storage.localStorageBytes + storage.estimatedUsageBytes,
     [storage.estimatedUsageBytes, storage.localStorageBytes, storage.queryCacheBytes],
@@ -107,6 +142,61 @@ export function DataManagementPage() {
     queryClient.clear();
     setFeedback({ kind: 'success', message: t('DataManagement.cacheCleared') });
     void refreshStorageSnapshot();
+  };
+
+  const handleSaveNimiDataDir = async () => {
+    const normalized = nimiDataDirInput.trim();
+    if (!normalized) {
+      setFeedback({ kind: 'warning', message: t('DataManagement.enterDataDirFirst') });
+      return;
+    }
+    setSavingDataDir(true);
+    try {
+      const dirs = await desktopBridge.setRuntimeModDataDir(normalized);
+      applyStorageDirs(dirs);
+      let feedbackMessage = t('DataManagement.dataDirUpdated');
+      try {
+        const daemonStatus = await desktopBridge.getRuntimeBridgeStatus();
+        await syncRuntimeLocalModelsConfig({
+          daemonStatus,
+          localModelsPath: dirs.localModelsDir,
+          localStatePath: dirs.localRuntimeStatePath,
+          bridge: {
+            getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
+            setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
+            restartRuntimeBridge: () => desktopBridge.restartRuntimeBridge(),
+          },
+        });
+      } catch (error) {
+        feedbackMessage = error instanceof Error ? error.message : t('DataManagement.dataDirUpdated');
+      }
+      setFeedback({
+        kind: 'warning',
+        message: feedbackMessage,
+      });
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: error instanceof Error ? error.message : t('DataManagement.dataDirUpdateFailed'),
+      });
+    } finally {
+      setSavingDataDir(false);
+    }
+  };
+
+  const handleOpenDataDir = async () => {
+    const normalized = String(resolvedNimiDataDir || '').trim();
+    if (!normalized) {
+      return;
+    }
+    try {
+      await desktopBridge.openRuntimeModDir(normalized);
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: error instanceof Error ? error.message : t('DataManagement.openDataDirFailed'),
+      });
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -181,6 +271,42 @@ export function DataManagementPage() {
                 ? `${usagePercent}% of ${formatBytes(storage.estimatedQuotaBytes)} used`
                 : t('DataManagement.storageUsageFootnote')}
             </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-8">
+        <SectionTitle>{t('DataManagement.dataDirTitle')}</SectionTitle>
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+          <div className="space-y-1 text-xs text-gray-500">
+            <p>{t('DataManagement.nimiDirLabel')}: <span className="break-all text-gray-700">{resolvedNimiDir || '-'}</span></p>
+            <p>{t('DataManagement.nimiDataDirLabel')}: <span className="break-all text-gray-700">{resolvedNimiDataDir || '-'}</span></p>
+            <p>{t('DataManagement.installedModsDirLabel')}: <span className="break-all text-gray-700">{resolvedInstalledModsDir || '-'}</span></p>
+            <p>{t('DataManagement.localModelsDirLabel')}: <span className="break-all text-gray-700">{resolvedLocalModelsDir || '-'}</span></p>
+            <p>{t('DataManagement.localRuntimeStatePathLabel')}: <span className="break-all text-gray-700">{resolvedLocalRuntimeStatePath || '-'}</span></p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+            <input
+              value={nimiDataDirInput}
+              onChange={(event) => setNimiDataDirInput(event.target.value)}
+              placeholder={t('DataManagement.dataDirPlaceholder')}
+              className="rounded-[10px] border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
+            />
+            <Button onClick={() => { void handleSaveNimiDataDir(); }} disabled={savingDataDir}>
+              {t('DataManagement.saveDataDirButton')}
+            </Button>
+          </div>
+          <p className="text-xs text-amber-700">
+            {t('DataManagement.dataDirHelp')}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => { void handleOpenDataDir(); }}
+              disabled={savingDataDir || !resolvedNimiDataDir}
+            >
+              {t('DataManagement.openDataDir')}
+            </Button>
           </div>
         </div>
       </section>

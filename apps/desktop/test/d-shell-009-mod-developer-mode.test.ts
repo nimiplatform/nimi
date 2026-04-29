@@ -113,7 +113,6 @@ test('D-SHELL-009: DeveloperSettings i18n keys are present in en.json and zh.jso
     'disableAutoReload',
     'reloadAll',
     'addSourceTitle',
-    'dataDirTitle',
     'registeredSourcesTitle',
     'diagnosticsTitle',
   ];

@@ -18,14 +18,20 @@ function createDaemonStatus(overrides: Partial<RuntimeBridgeDaemonStatus> = {}):
   };
 }
 
-test('mergeRuntimeLocalModelsConfig writes localModelsPath when it differs', () => {
+test('mergeRuntimeLocalModelsConfig writes localModelsPath and localStatePath when they differ', () => {
   const { nextConfig, changed } = mergeRuntimeLocalModelsConfig(
-    { schemaVersion: 1, localModelsPath: 'C:\\Users\\Eric\\.nimi\\data\\models' },
+    {
+      schemaVersion: 1,
+      localModelsPath: 'C:\\Users\\Eric\\.nimi\\data\\models',
+      localStatePath: 'C:\\Users\\Eric\\.nimi\\runtime\\local-state.json',
+    },
     'D:\\nimi_data\\models',
+    'D:\\nimi_data\\state.json',
   );
 
   assert.equal(changed, true);
   assert.equal(nextConfig.localModelsPath, 'D:\\nimi_data\\models');
+  assert.equal(nextConfig.localStatePath, 'D:\\nimi_data\\state.json');
 });
 
 test('syncRuntimeLocalModelsConfig restarts managed running daemon on CONFIG_RESTART_REQUIRED', async () => {
@@ -36,11 +42,16 @@ test('syncRuntimeLocalModelsConfig restarts managed running daemon on CONFIG_RES
   const result = await syncRuntimeLocalModelsConfig({
     daemonStatus: createDaemonStatus({ running: true, managed: true, pid: 1001 }),
     localModelsPath: 'D:\\nimi_data\\models',
+    localStatePath: 'D:\\nimi_data\\state.json',
     bridge: {
       async getRuntimeBridgeConfig() {
         return {
           path: '/tmp/config.json',
-          config: { schemaVersion: 1, localModelsPath: 'C:\\Users\\Eric\\.nimi\\data\\models' },
+          config: {
+            schemaVersion: 1,
+            localModelsPath: 'C:\\Users\\Eric\\.nimi\\data\\models',
+            localStatePath: 'C:\\Users\\Eric\\.nimi\\runtime\\local-state.json',
+          },
         };
       },
       async setRuntimeBridgeConfig(configJson: string) {
@@ -66,6 +77,7 @@ test('syncRuntimeLocalModelsConfig restarts managed running daemon on CONFIG_RES
 
   const parsed = JSON.parse(writtenConfig) as Record<string, unknown>;
   assert.equal(parsed.localModelsPath, 'D:\\nimi_data\\models');
+  assert.equal(parsed.localStatePath, 'D:\\nimi_data\\state.json');
 });
 
 test('syncRuntimeLocalModelsConfig does not restart when daemon is stopped', async () => {
@@ -144,11 +156,16 @@ test('syncRuntimeLocalModelsConfig skips write when localModelsPath already matc
   const result = await syncRuntimeLocalModelsConfig({
     daemonStatus: createDaemonStatus({ running: true, managed: true, pid: 3003 }),
     localModelsPath: 'D:\\nimi_data\\models',
+    localStatePath: 'D:\\nimi_data\\state.json',
     bridge: {
       async getRuntimeBridgeConfig() {
         return {
           path: '/tmp/config.json',
-          config: { schemaVersion: 1, localModelsPath: 'D:\\nimi_data\\models' },
+          config: {
+            schemaVersion: 1,
+            localModelsPath: 'D:\\nimi_data\\models',
+            localStatePath: 'D:\\nimi_data\\state.json',
+          },
         };
       },
       async setRuntimeBridgeConfig(configJson: string) {

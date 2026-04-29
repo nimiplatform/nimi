@@ -372,6 +372,7 @@ export function bootstrapRuntime(): Promise<void> {
         daemonStatus = await syncRuntimeLocalModelsConfig({
           daemonStatus,
           localModelsPath: runtimeStorageDirs.localModelsDir,
+          localStatePath: runtimeStorageDirs.localRuntimeStatePath,
           bridge: {
             getRuntimeBridgeConfig: () => desktopBridge.getRuntimeBridgeConfig(),
             setRuntimeBridgeConfig: (configJson: string) => desktopBridge.setRuntimeBridgeConfig(configJson),
