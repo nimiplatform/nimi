@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AIConfig } from '@nimiplatform/sdk/mod';
 import { applyAIProfileToConfig } from '@nimiplatform/sdk/mod';
+import type { SpeechListVoicesOutput, SpeechVoiceReference } from '@nimiplatform/sdk/runtime';
+import { VoiceAssetStatus, VoiceWorkflowType } from '@nimiplatform/sdk/runtime';
 import {
   defaultModelConfigProfileCopy,
   useModelConfigProfileController,
@@ -16,6 +18,7 @@ import { getDesktopRouteModelPickerProvider } from '../runtime-config/desktop-ro
 import { useLocalAssets } from '../chat/capability-settings-shared';
 import { bindingFromTesterConfig, TESTER_AI_SCOPE_REF } from './tester-ai-config';
 import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
+import { listTesterVoiceAssets, type TesterVoiceAsset } from './tester-voice-assets';
 
 const TESTER_ENABLED_CAPABILITIES = [
   'text.generate',
@@ -35,13 +38,19 @@ export type TesterModelConfigController = {
   profile: ModelConfigProfileController;
 };
 
-export function useTesterModelConfigController(config: AIConfig): TesterModelConfigController {
+function asText(value: unknown): string {
+  return String(value ?? '').trim();
+}
+
+type PresetVoice = SpeechListVoicesOutput['voices'][number];
+
+export function useTesterModelConfigController(config: AIConfig, voiceAssetRefreshRevision = 0): TesterModelConfigController {
   const { t } = useTranslation();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const aiConfigService = useMemo(() => getDesktopAIConfigService(), []);
   const assetsQuery = useLocalAssets();
   const ttsBinding = useMemo(() => bindingFromTesterConfig(config, 'audio.synthesize'), [config]);
-  const [ttsVoiceOptions, setTtsVoiceOptions] = useState<ReadonlyArray<{ value: string; label: string }>>([]);
+  const [ttsVoiceOptions, setTtsVoiceOptions] = useState<ReadonlyArray<{ value: SpeechVoiceReference; label: string }>>([]);
 
   useEffect(() => {
     if (!ttsBinding) {
@@ -52,18 +61,53 @@ export function useTesterModelConfigController(config: AIConfig): TesterModelCon
     void (async () => {
       try {
         const client = createModRuntimeClient('core:runtime');
-        const response = await client.media.tts.listVoices({ binding: ttsBinding });
+        const [voiceResponse, assetResponse] = await Promise.all([
+          client.media.tts.listVoices({ binding: ttsBinding }),
+          listTesterVoiceAssets(client, {
+            modelId: '',
+            targetModelId: '',
+            workflowType: VoiceWorkflowType.UNSPECIFIED,
+            status: VoiceAssetStatus.ACTIVE,
+            pageSize: 100,
+            pageToken: '',
+            connectorId: asText(ttsBinding.connectorId),
+          }),
+        ]);
         if (cancelled) return;
-        setTtsVoiceOptions(response.voices.map((voice) => ({
-          value: voice.voiceId,
+        const presetOptions = voiceResponse.voices.map((voice: PresetVoice) => ({
+          value: { kind: 'preset_voice_id', presetVoiceId: voice.voiceId } as SpeechVoiceReference,
           label: `${voice.name} [${voice.lang}]`,
-        })));
+        }));
+        const assetOptions = (assetResponse.assets || [])
+          .map((asset: TesterVoiceAsset) => {
+            const voiceAssetId = asText(asset.voiceAssetId);
+            const targetModelId = asText(asset.targetModelId) || asText(asset.modelId);
+            if (!voiceAssetId) return null;
+            return {
+              value: { kind: 'voice_asset_id', voiceAssetId } as SpeechVoiceReference,
+              label: `${asText(asset.providerVoiceRef) || voiceAssetId} · asset`,
+              ...(targetModelId
+                ? {
+                  binding: {
+                    source: ttsBinding.source === 'local' ? 'local' as const : 'cloud' as const,
+                    connectorId: asText(ttsBinding.connectorId),
+                    model: targetModelId,
+                    modelId: targetModelId,
+                    modelLabel: targetModelId,
+                    provider: asText(asset.provider) || asText(ttsBinding.provider),
+                  },
+                }
+                : {}),
+            };
+          })
+          .filter((option): option is NonNullable<typeof option> => Boolean(option));
+        setTtsVoiceOptions([...assetOptions, ...presetOptions]);
       } catch {
         if (!cancelled) setTtsVoiceOptions([]);
       }
     })();
     return () => { cancelled = true; };
-  }, [ttsBinding]);
+  }, [ttsBinding, voiceAssetRefreshRevision]);
 
   const surface: AppModelConfigSurface = useMemo(() => ({
     scopeRef: TESTER_AI_SCOPE_REF,

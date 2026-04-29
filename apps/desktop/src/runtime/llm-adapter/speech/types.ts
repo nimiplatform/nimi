@@ -1,9 +1,11 @@
+import type { SpeechVoiceReference } from '@nimiplatform/sdk/runtime';
+
 export type SpeechFormat = 'mp3' | 'wav' | 'opus' | 'pcm';
 
 export type SpeechSynthesizeRequest = {
   model: string;
   text: string;
-  voice?: string;
+  voiceRef?: SpeechVoiceReference;
   format?: SpeechFormat;
   speed?: number;
   sampleRateHz?: number;

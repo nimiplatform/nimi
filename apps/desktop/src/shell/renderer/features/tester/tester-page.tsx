@@ -23,6 +23,7 @@ import {
   type CapabilityId,
   type CapabilityState,
   type ImageWorkflowDraftState,
+  type VoiceAssetSelection,
 } from './tester-types.js';
 import { loadRouteSnapshot, makeInitialCapabilityStates } from './tester-state.js';
 import { TesterSettingsPanel } from './tester-settings-dialog.js';
@@ -45,7 +46,7 @@ const SIDEBAR_GROUPS: Array<{ label: string; ids: CapabilityId[] }> = [
   { label: 'Text', ids: ['text.generate', 'text.embed'] },
   { label: 'Media', ids: ['image.generate', 'video.create-job'] },
   { label: 'World', ids: ['world.generate'] },
-  { label: 'Audio', ids: ['audio.synthesize', 'audio.transcribe', 'voice_workflow.tts_v2v'] },
+  { label: 'Audio', ids: ['audio.synthesize', 'audio.transcribe'] },
 ];
 
 const SETTINGS_GEAR_ICON = (
@@ -150,6 +151,10 @@ function audioSynthesizeParamsFromConfig(config: AIConfig) {
   return parseAudioSynthesizeParams(stored);
 }
 
+function asText(value: unknown): string {
+  return String(value ?? '').trim();
+}
+
 function mergeBindingIntoState(state: CapabilityState, binding: RuntimeRouteBinding | null): CapabilityState {
   return { ...state, binding };
 }
@@ -178,6 +183,8 @@ export function TesterPage() {
   const [activeCapability, setActiveCapability] = useState<CapabilityId>('text.generate');
   const [states, setStates] = useState(makeInitialCapabilityStates);
   const [imageDraft, setImageDraft] = useState<ImageWorkflowDraftState>(createInitialImageWorkflowDraftState);
+  const [voiceAssetMode, setVoiceAssetMode] = useState<'clone' | 'design'>('design');
+  const [voiceAssetRefreshRevision, setVoiceAssetRefreshRevision] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [testerConfig, setTesterConfig] = useState<AIConfig>(() => {
     try {
@@ -274,6 +281,48 @@ export function TesterPage() {
   const activeLabels = CAPABILITY_LABELS[activeCapability];
   const currentVideoParams = useMemo(() => videoParamsFromConfig(testerConfig), [testerConfig]);
   const currentAudioSynthesizeParams = useMemo(() => audioSynthesizeParamsFromConfig(testerConfig), [testerConfig]);
+  const selectedVoiceAssetId = currentAudioSynthesizeParams.voiceRef?.kind === 'voice_asset_id'
+    ? currentAudioSynthesizeParams.voiceRef.voiceAssetId
+    : '';
+  const handleVoiceAssetCreated = useCallback(() => {
+    setVoiceAssetRefreshRevision((value) => value + 1);
+  }, []);
+  const handleUseVoiceAssetInTts = useCallback((asset: VoiceAssetSelection) => {
+    const targetModelId = asText(asset.targetModelId) || asText(asset.modelId);
+    persistTesterConfig((current) => {
+      const existingBinding = bindingFromTesterConfig(current, 'audio.synthesize');
+      const storedAudioParams = parseAudioSynthesizeParams(
+        (current.capabilities.selectedParams['audio.synthesize'] || {}) as Record<string, unknown>,
+      );
+      const nextBinding = targetModelId && existingBinding
+        ? {
+          ...existingBinding,
+          model: targetModelId,
+          modelId: targetModelId,
+          modelLabel: targetModelId,
+        }
+        : existingBinding;
+      return {
+        ...current,
+        capabilities: {
+          ...current.capabilities,
+          selectedBindings: {
+            ...current.capabilities.selectedBindings,
+            ...(nextBinding ? { 'audio.synthesize': nextBinding } : {}),
+          },
+          selectedParams: {
+            ...current.capabilities.selectedParams,
+            'audio.synthesize': {
+              ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS,
+              ...storedAudioParams,
+              voiceRef: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId },
+            },
+          },
+        },
+      };
+    });
+    setActiveCapability('audio.synthesize');
+  }, [persistTesterConfig]);
   const { history, clearCapability, removeEntry } = useTesterHistory(states);
   const activeHistory = history[activeCapability] ?? [];
   const activeMeta = CAP_META[activeCapability];
@@ -337,6 +386,21 @@ export function TesterPage() {
             params={currentAudioSynthesizeParams}
             onParamsChange={(next) => handleSettingsParamsChange('audio.synthesize', { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS, ...next })}
             onStateChange={(updater) => updateCapabilityState('audio.synthesize', updater)}
+            voiceAssetRefreshRevision={voiceAssetRefreshRevision}
+            onUseVoiceAsset={handleUseVoiceAssetInTts}
+            voiceComposer={(
+              <VoiceAssetPanel
+                mode={voiceAssetMode}
+                onModeChange={setVoiceAssetMode}
+                cloneState={mergeBindingIntoState(states['voice_workflow.tts_v2v'], bindingFromTesterConfig(testerConfig, 'voice_workflow.tts_v2v'))}
+                onCloneStateChange={(updater) => updateCapabilityState('voice_workflow.tts_v2v', updater)}
+                designState={mergeBindingIntoState(states['voice_workflow.tts_t2v'], bindingFromTesterConfig(testerConfig, 'voice_workflow.tts_t2v'))}
+                onDesignStateChange={(updater) => updateCapabilityState('voice_workflow.tts_t2v', updater)}
+                selectedVoiceAssetId={selectedVoiceAssetId}
+                onUseVoiceAsset={handleUseVoiceAssetInTts}
+                onVoiceAssetCreated={handleVoiceAssetCreated}
+              />
+            )}
           />
         );
       case 'audio.transcribe':
@@ -348,18 +412,7 @@ export function TesterPage() {
         );
       case 'voice_workflow.tts_v2v':
       case 'voice_workflow.tts_t2v':
-        return (
-          <VoiceAssetPanel
-            mode={activeCapability === 'voice_workflow.tts_v2v' ? 'clone' : 'design'}
-            onModeChange={(next) =>
-              setActiveCapability(next === 'clone' ? 'voice_workflow.tts_v2v' : 'voice_workflow.tts_t2v')
-            }
-            cloneState={mergeBindingIntoState(states['voice_workflow.tts_v2v'], bindingFromTesterConfig(testerConfig, 'voice_workflow.tts_v2v'))}
-            onCloneStateChange={(updater) => updateCapabilityState('voice_workflow.tts_v2v', updater)}
-            designState={mergeBindingIntoState(states['voice_workflow.tts_t2v'], bindingFromTesterConfig(testerConfig, 'voice_workflow.tts_t2v'))}
-            onDesignStateChange={(updater) => updateCapabilityState('voice_workflow.tts_t2v', updater)}
-          />
-        );
+        return null;
     }
   };
 
@@ -373,8 +426,7 @@ export function TesterPage() {
               <SidebarSection key={group.label} label={group.label}>
                 {CAPABILITIES.filter((c) => group.ids.includes(c.id)).map((capability) => {
                   const labels = CAPABILITY_LABELS[capability.id];
-                  const isActive = activeCapability === capability.id
-                    || (capability.id === 'voice_workflow.tts_v2v' && activeCapability === 'voice_workflow.tts_t2v');
+                  const isActive = activeCapability === capability.id;
                   return (
                     <div
                       key={capability.id}
@@ -456,6 +508,7 @@ export function TesterPage() {
               onClose={() => setSettingsOpen(false)}
               config={testerConfig}
               initialSection={CAPABILITY_TO_SECTION[activeCapability] ?? null}
+              voiceAssetRefreshRevision={voiceAssetRefreshRevision}
               imageContext={{
                 state: imageGenerateState,
                 draft: imageDraft,

@@ -25,6 +25,8 @@ test('tester speech panel contract: voice workflow panels call real runtime help
 
   assert.match(voicePanelSource, /runTesterVoiceClone\(/);
   assert.match(voicePanelSource, /runTesterVoiceDesign\(/);
+  assert.match(voicePanelSource, /listTesterVoiceAssets\(modClient/);
+  assert.match(voicePanelSource, /onUseVoiceAsset/);
   assert.doesNotMatch(voicePanelSource, /sdkMethodUnavailable/);
 });
 
@@ -53,7 +55,7 @@ test('tester speech panel contract: tts panel uses persisted synthesize params',
 
   assert.match(synthesizePanelSource, /params:\s*AudioSynthesizeParamsState/);
   assert.match(synthesizePanelSource, /onParamsChange/);
-  assert.match(synthesizePanelSource, /params\.voiceId/);
+  assert.match(synthesizePanelSource, /params\.voiceRef/);
   assert.match(synthesizePanelSource, /params\.responseFormat/);
   assert.match(synthesizePanelSource, /params\.speakingRate/);
   assert.match(synthesizePanelSource, /params\.volume/);
@@ -61,5 +63,8 @@ test('tester speech panel contract: tts panel uses persisted synthesize params',
   assert.match(synthesizePanelSource, /params\.languageHint/);
   assert.match(synthesizePanelSource, /params\.timeoutMs/);
   assert.match(synthesizePanelSource, /lastAutoVoiceBindingRef/);
-  assert.match(synthesizePanelSource, /updateParams\(\{\s*voiceId:\s*fallbackVoiceId\s*\}\)/);
+  assert.match(synthesizePanelSource, /updateParams\(\{\s*voiceRef:\s*fallbackVoiceRef\s*\}\)/);
+  assert.match(synthesizePanelSource, /customVoiceAssets/);
+  assert.match(synthesizePanelSource, /presetVoices/);
+  assert.match(synthesizePanelSource, /kind:\s*'voice_asset_id'/);
 });

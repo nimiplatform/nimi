@@ -1,6 +1,7 @@
 import { ExecutionMode, ScenarioJobStatus, ScenarioType } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
+import type { SpeechVoiceReference } from '@nimiplatform/sdk/runtime';
 import { asString, isTerminalScenarioJobStatus, scenarioJobStatusLabel, stripArtifacts, toArtifactPreviewUri, toPrettyJson } from './tester-utils.js';
 import { bindingToRouteInfo, createRuntimeTraceId, getRuntimeClient, resolveCallParams } from './tester-runtime.js';
 
@@ -203,10 +204,44 @@ function makeVoiceWorkflowSuccess(input: {
   };
 }
 
+function voiceAssetIdFromReference(voiceRef: SpeechVoiceReference | undefined): string {
+  return voiceRef?.kind === 'voice_asset_id' ? asString(voiceRef.voiceAssetId) : '';
+}
+
+async function resolveSynthesizeBindingForVoiceAsset(input: {
+  runtimeClient: RuntimeClientLike;
+  binding: RuntimeRouteBinding | undefined;
+  voiceRef: SpeechVoiceReference | undefined;
+}): Promise<{
+  binding: RuntimeRouteBinding | undefined;
+  asset: Record<string, unknown> | null;
+}> {
+  const voiceAssetId = voiceAssetIdFromReference(input.voiceRef);
+  if (!voiceAssetId) {
+    return { binding: input.binding, asset: null };
+  }
+  const response = await input.runtimeClient.ai.getVoiceAsset({ voiceAssetId });
+  const asset = ((response as unknown as Record<string, unknown>).asset || {}) as Record<string, unknown>;
+  const targetModelId = asString(asset.targetModelId) || asString(asset.modelId);
+  if (!targetModelId || !input.binding) {
+    return { binding: input.binding, asset };
+  }
+  return {
+    binding: {
+      ...input.binding,
+      model: targetModelId,
+      modelId: targetModelId,
+      modelLabel: targetModelId,
+      provider: asString(asset.provider) || asString(input.binding.provider),
+    },
+    asset,
+  };
+}
+
 export async function runTesterAudioSynthesize(input: {
   binding: RuntimeRouteBinding | undefined;
   text: string;
-  voice?: string;
+  voiceRef?: SpeechVoiceReference;
   audioFormat: string;
   language?: string;
   speed?: number;
@@ -215,25 +250,32 @@ export async function runTesterAudioSynthesize(input: {
   timeoutMs?: number;
 }, deps?: TesterSpeechActionDeps): Promise<TesterSpeechSuccess> {
   const runtimeClient = (deps?.getRuntimeClientImpl || getRuntimeClient)();
-  const callParams = await (deps?.resolveCallParamsImpl || resolveCallParams)(input.binding);
+  const resolvedVoiceAssetRoute = await resolveSynthesizeBindingForVoiceAsset({
+    runtimeClient,
+    binding: input.binding,
+    voiceRef: input.voiceRef,
+  });
+  const effectiveBinding = resolvedVoiceAssetRoute.binding;
+  const callParams = await (deps?.resolveCallParamsImpl || resolveCallParams)(effectiveBinding);
   const t0 = nowMs(deps);
   const requestParams: Record<string, unknown> = {
     text: input.text,
-    ...(input.voice ? { voice: input.voice } : {}),
+    ...(input.voiceRef ? { voiceRef: input.voiceRef } : {}),
     audioFormat: input.audioFormat,
     ...(input.language ? { language: input.language } : {}),
     ...(input.speed !== undefined ? { speed: input.speed } : {}),
     ...(input.pitch !== undefined ? { pitch: input.pitch } : {}),
     ...(input.volume !== undefined ? { volume: input.volume } : {}),
     ...(input.timeoutMs !== undefined ? { timeoutMs: input.timeoutMs } : {}),
-    ...(input.binding ? { binding: input.binding } : {}),
+    ...(effectiveBinding ? { binding: effectiveBinding } : {}),
+    ...(resolvedVoiceAssetRoute.asset ? { voiceAsset: resolvedVoiceAssetRoute.asset } : {}),
   };
   const result = await runtimeClient.media.tts.synthesize({
     model: callParams.model,
     route: callParams.route,
     connectorId: callParams.connectorId,
     text: input.text,
-    ...(input.voice ? { voice: input.voice } : {}),
+    ...(input.voiceRef ? { voiceRef: input.voiceRef } : {}),
     audioFormat: input.audioFormat,
     language: input.language,
     speed: input.speed,
@@ -253,7 +295,7 @@ export async function runTesterAudioSynthesize(input: {
     rawResponse: toPrettyJson({ request: requestParams, response: stripArtifacts(result) }),
     diagnostics: {
       requestParams,
-      resolvedRoute: bindingToRouteInfo(input.binding),
+      resolvedRoute: bindingToRouteInfo(effectiveBinding),
       responseMetadata: {
         jobId: asString((result.job as unknown as Record<string, unknown>)?.jobId) || undefined,
         artifactCount: result.artifacts.length,

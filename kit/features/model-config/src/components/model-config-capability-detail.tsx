@@ -34,6 +34,7 @@ import type {
   VideoParamsState,
   VoiceWorkflowParamsState,
 } from '../types.js';
+import type { SpeechVoiceReference } from '@nimiplatform/sdk/runtime';
 import { CapabilityModelCard } from './capability-model-card.js';
 import {
   TextGenerateParamsEditor,
@@ -139,6 +140,21 @@ function resolveOverride(
   return surface.capabilityOverrides?.[capabilityId] ?? {};
 }
 
+function sameSpeechVoiceReference(left: SpeechVoiceReference | null, right: SpeechVoiceReference | null): boolean {
+  if (!left || !right || left.kind !== right.kind) {
+    return !left && !right;
+  }
+  switch (left.kind) {
+    case 'preset_voice_id':
+      return left.presetVoiceId === (right.kind === 'preset_voice_id' ? right.presetVoiceId : '');
+    case 'voice_asset_id':
+      return left.voiceAssetId === (right.kind === 'voice_asset_id' ? right.voiceAssetId : '');
+    case 'provider_voice_ref':
+      return left.providerVoiceRef === (right.kind === 'provider_voice_ref' ? right.providerVoiceRef : '');
+  }
+  return false;
+}
+
 function renderEditor(
   descriptor: CanonicalCapabilityDescriptor,
   surface: AppModelConfigSurface,
@@ -179,7 +195,15 @@ function renderEditor(
             copy={createAudioSynthesizeEditorCopy(t)}
             params={params}
             voiceOptions={override.audioSynthesizeVoiceOptions}
-            onParamsChange={(next) => writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, { params: { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS, ...next } })}
+            onParamsChange={(next) => {
+              const selectedOption = (override.audioSynthesizeVoiceOptions || []).find((option) => (
+                sameSpeechVoiceReference(option.value, next.voiceRef)
+              ));
+              writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, {
+                ...(selectedOption?.binding ? { binding: selectedOption.binding } : {}),
+                params: { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS, ...next },
+              });
+            }}
           />
         ),
       };

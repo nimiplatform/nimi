@@ -43,6 +43,7 @@ test('tester model config contract: tester execution reads canonical scope bindi
   const pageSource = readDesktopSource('tester-page.tsx');
   const videoPanelSource = readDesktopSource(path.join('panels', 'panel-video-generate.tsx'));
   const hookSource = readDesktopSource('tester-model-config-hook.ts');
+  const voiceAssetSource = readDesktopSource('tester-voice-assets.ts');
 
   assert.match(pageSource, /bindingFromTesterConfig\(testerConfig, activeCapability\)/);
   assert.match(pageSource, /handleSettingsParamsChange\('image\.generate'/);
@@ -50,7 +51,11 @@ test('tester model config contract: tester execution reads canonical scope bindi
   assert.match(pageSource, /parseAudioSynthesizeParams/);
   assert.match(pageSource, /handleSettingsParamsChange\('audio\.synthesize'/);
   assert.match(hookSource, /media\.tts\.listVoices/);
+  assert.match(hookSource, /listTesterVoiceAssets/);
+  assert.match(voiceAssetSource, /getAccountSessionStatus/);
+  assert.match(voiceAssetSource, /client\.voice\.listAssets/);
   assert.match(hookSource, /audioSynthesizeVoiceOptions/);
+  assert.match(hookSource, /kind:\s*'voice_asset_id'/);
   assert.match(videoPanelSource, /params:\s*VideoParamsState/);
   assert.match(videoPanelSource, /props\.binding \?\? state\.binding/);
 });
@@ -59,8 +64,8 @@ test('tester model config contract: audio synthesize editor locale keys exist', 
   const requiredKeys = [
     'capability.audioSynthesize.title',
     'editor.audioSynthesize.parametersLabel',
-    'editor.audioSynthesize.voiceIdLabel',
-    'editor.audioSynthesize.voiceIdHint',
+    'editor.audioSynthesize.voiceRefLabel',
+    'editor.audioSynthesize.voiceRefHint',
     'editor.audioSynthesize.speakingRateLabel',
     'editor.audioSynthesize.volumeLabel',
     'editor.audioSynthesize.pitchSemitonesLabel',

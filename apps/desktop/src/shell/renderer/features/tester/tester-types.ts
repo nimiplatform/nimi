@@ -29,6 +29,13 @@ export type VoiceOption = {
   lang: string;
 };
 
+export type VoiceAssetSelection = {
+  voiceAssetId: string;
+  modelId: string;
+  targetModelId: string;
+  providerVoiceRef: string;
+};
+
 export type RouteState = {
   snapshot: RuntimeRouteOptionsSnapshot | null;
   binding: RuntimeRouteBinding | null;

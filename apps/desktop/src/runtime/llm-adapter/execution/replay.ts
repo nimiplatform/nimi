@@ -1,4 +1,4 @@
-import type { Runtime } from '@nimiplatform/sdk/runtime';
+import type { Runtime, SpeechVoiceReference } from '@nimiplatform/sdk/runtime';
 import { ExecutionMode, ScenarioJobStatus, ScenarioType } from '@nimiplatform/sdk/runtime';
 import {
   createDesktopWorldEvolutionReplayRecord,
@@ -16,6 +16,20 @@ import {
 } from './runtime-ai-bridge.js';
 
 const DESKTOP_REPLAY_MOD_ID = 'core.desktop.ai-gold-path';
+
+function replayVoiceRef(input: DesktopReplayFixture['voice_ref']): SpeechVoiceReference | undefined {
+  const id = String(input?.id || '').trim();
+  if (!id) return undefined;
+  switch (input?.kind) {
+    case 'voice_asset_id':
+      return { kind: 'voice_asset_id', voiceAssetId: id };
+    case 'provider_voice_ref':
+      return { kind: 'provider_voice_ref', providerVoiceRef: id };
+    case 'preset_voice_id':
+    default:
+      return { kind: 'preset_voice_id', presetVoiceId: id };
+  }
+}
 
 export type DesktopReplayFixture = {
   fixture_id: string;
@@ -441,7 +455,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
       const response = await input.runtime.media.tts.synthesize({
         model: resolved.modelId,
         text: String(input.fixture.request.text || '').trim(),
-        voice: String(input.fixture.voice_ref?.id || '').trim() || undefined,
+        voiceRef: replayVoiceRef(input.fixture.voice_ref),
         language: String(input.fixture.request.language || '').trim() || undefined,
         audioFormat: String(input.fixture.request.audio_format || '').trim() || undefined,
         route: resolved.source,

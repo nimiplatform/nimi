@@ -1,11 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { SelectField, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import { TextareaField } from '@nimiplatform/nimi-kit/ui';
 import {
   AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS,
   type AudioSynthesizeParamsState,
 } from '@nimiplatform/nimi-kit/features/model-config';
-import type { CapabilityState, VoiceOption } from '../tester-types.js';
+import type { SpeechVoiceReference } from '@nimiplatform/sdk/runtime';
+import { VoiceAssetStatus, VoiceWorkflowType } from '@nimiplatform/sdk/runtime';
+import type { CapabilityState, VoiceAssetSelection, VoiceOption } from '../tester-types.js';
 import { asString } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';
 import { makeEmptyDiagnostics } from '../tester-state.js';
@@ -13,12 +15,16 @@ import { DiagnosticsPanel, ErrorBox, RawJsonSection } from '../tester-diagnostic
 import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
 import { buildTesterSpeechFailure, runTesterAudioSynthesize } from '../tester-speech-actions.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { listTesterVoiceAssets, type TesterVoiceAsset } from '../tester-voice-assets';
 
 type AudioSynthesizePanelProps = {
   state: CapabilityState;
   params: AudioSynthesizeParamsState;
   onParamsChange: (next: AudioSynthesizeParamsState) => void;
   onStateChange: (updater: (prev: CapabilityState) => CapabilityState) => void;
+  voiceAssetRefreshRevision?: number;
+  voiceComposer?: React.ReactNode;
+  onUseVoiceAsset?: (asset: VoiceAssetSelection) => void;
 };
 
 const ARROW_UP_ICON = (
@@ -68,12 +74,18 @@ function useDismissable(open: boolean, onDismiss: () => void) {
   return wrapperRef;
 }
 
+type VoiceChoice = {
+  key: string;
+  label: string;
+  group: 'preset' | 'asset';
+  voiceRef: SpeechVoiceReference;
+  asset?: VoiceAssetSelection;
+};
+
 function VoicePopover(props: {
-  voices: VoiceOption[];
-  selectedVoiceId: string;
-  onSelectedVoiceIdChange: (next: string) => void;
-  manualVoiceId: string;
-  onManualVoiceIdChange: (next: string) => void;
+  voiceChoices: VoiceChoice[];
+  selectedVoiceKey: string;
+  onSelectedVoiceKeyChange: (choice: VoiceChoice | null) => void;
   audioFormat: string;
   onAudioFormatChange: (next: string) => void;
 }) {
@@ -81,21 +93,15 @@ function VoicePopover(props: {
   const [open, setOpen] = React.useState(false);
   const wrapperRef = useDismissable(open, () => setOpen(false));
 
-  const VOICE_NONE = '__none__';
-  const voiceOptions = React.useMemo(() => [
-    { value: VOICE_NONE, label: t('Tester.route.none') },
-    ...props.voices.map((v) => ({ value: v.voiceId, label: `${v.name} [${v.lang}]` })),
-  ], [props.voices, t]);
+  const presetChoices = props.voiceChoices.filter((choice) => choice.group === 'preset');
+  const assetChoices = props.voiceChoices.filter((choice) => choice.group === 'asset');
 
   const formatOptions = AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS.map((item) => ({ value: item, label: item }));
 
   const triggerLabel = t('Tester.audioSynthesize.options', { defaultValue: 'Voice options' });
-  const configuredVoice = asString(props.manualVoiceId);
-  const summaryVoice = configuredVoice
-    ? (props.voices.find((v) => v.voiceId === configuredVoice)?.name || configuredVoice)
-    : (props.selectedVoiceId
-      ? (props.voices.find((v) => v.voiceId === props.selectedVoiceId)?.name || props.selectedVoiceId)
-      : t('Tester.route.none'));
+  const summaryVoice = props.selectedVoiceKey
+    ? (props.voiceChoices.find((choice) => choice.key === props.selectedVoiceKey)?.label || props.selectedVoiceKey)
+    : t('Tester.route.none');
 
   return (
     <div ref={wrapperRef} className="relative inline-flex">
@@ -127,24 +133,69 @@ function VoicePopover(props: {
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-[var(--nimi-text-muted)]">
-                {t('Tester.audioSynthesize.presetVoice')}
+                {t('Tester.audioSynthesize.voiceReference', { defaultValue: 'Voice' })}
               </div>
-              <SelectField
-                options={voiceOptions}
-                value={props.selectedVoiceId || VOICE_NONE}
-                onValueChange={(v) => props.onSelectedVoiceIdChange(v === VOICE_NONE ? '' : v)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-[var(--nimi-text-muted)]">
-                {t('Tester.audioSynthesize.manualVoiceOverride')}
+              <div className="max-h-52 overflow-y-auto rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-1">
+                <button
+                  type="button"
+                  onClick={() => props.onSelectedVoiceKeyChange(null)}
+                  className={`flex w-full items-center justify-between rounded-[var(--nimi-radius-sm)] px-2 py-1.5 text-left text-[11px] transition-colors ${
+                    !props.selectedVoiceKey
+                      ? 'bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]'
+                      : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-surface-card)]'
+                  }`}
+                >
+                  <span className="truncate">{t('Tester.route.none')}</span>
+                </button>
+                {assetChoices.length > 0 ? (
+                  <div className="mt-1">
+                    <div className="px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.5px] text-[var(--nimi-text-muted)]">
+                      {t('Tester.audioSynthesize.customVoiceAssets', { defaultValue: 'Custom voice assets' })}
+                    </div>
+                    {assetChoices.map((choice) => {
+                      const active = props.selectedVoiceKey === choice.key;
+                      return (
+                        <button
+                          key={choice.key}
+                          type="button"
+                          onClick={() => props.onSelectedVoiceKeyChange(choice)}
+                          className={`flex w-full items-center justify-between rounded-[var(--nimi-radius-sm)] px-2 py-1.5 text-left text-[11px] transition-colors ${
+                            active
+                              ? 'bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]'
+                              : 'text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-surface-card)]'
+                          }`}
+                        >
+                          <span className="min-w-0 flex-1 truncate">{choice.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+                {presetChoices.length > 0 ? (
+                  <div className="mt-1">
+                    <div className="px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.5px] text-[var(--nimi-text-muted)]">
+                      {t('Tester.audioSynthesize.presetVoices', { defaultValue: 'Preset voices' })}
+                    </div>
+                    {presetChoices.map((choice) => {
+                      const active = props.selectedVoiceKey === choice.key;
+                      return (
+                        <button
+                          key={choice.key}
+                          type="button"
+                          onClick={() => props.onSelectedVoiceKeyChange(choice)}
+                          className={`flex w-full items-center justify-between rounded-[var(--nimi-radius-sm)] px-2 py-1.5 text-left text-[11px] transition-colors ${
+                            active
+                              ? 'bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]'
+                              : 'text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-surface-card)]'
+                          }`}
+                        >
+                          <span className="min-w-0 flex-1 truncate">{choice.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
-              <TextField
-                className="font-mono text-xs"
-                value={props.manualVoiceId}
-                onChange={(event) => props.onManualVoiceIdChange(event.target.value)}
-                placeholder={t('Tester.audioSynthesize.manualVoicePlaceholder')}
-              />
             </div>
             <div className="flex flex-col gap-1.5">
               <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-[var(--nimi-text-muted)]">
@@ -190,13 +241,27 @@ function optionalPositiveInt(value: string): number | undefined {
   return Math.round(numeric);
 }
 
+function voiceReferenceKey(value: SpeechVoiceReference | null | undefined): string {
+  if (!value) return '';
+  switch (value.kind) {
+    case 'preset_voice_id':
+      return `preset:${value.presetVoiceId}`;
+    case 'voice_asset_id':
+      return `asset:${value.voiceAssetId}`;
+    case 'provider_voice_ref':
+      return `provider:${value.providerVoiceRef}`;
+  }
+}
+
 export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
   const { t } = useTranslation();
-  const { state, params, onParamsChange, onStateChange } = props;
+  const { state, params, onParamsChange, onStateChange, voiceAssetRefreshRevision = 0, voiceComposer, onUseVoiceAsset } = props;
   const [text, setText] = React.useState('Hello, this is a test of text to speech synthesis.');
   const [voices, setVoices] = React.useState<VoiceOption[]>([]);
+  const [voiceAssets, setVoiceAssets] = React.useState<Array<VoiceAssetSelection & { preferredName: string }>>([]);
+  const [createVoiceOpen, setCreateVoiceOpen] = React.useState(false);
   const lastAutoVoiceBindingRef = React.useRef('');
-  const configuredVoiceId = asString(params.voiceId);
+  const configuredVoiceKey = voiceReferenceKey(params.voiceRef);
   const audioFormat = asString(params.responseFormat) || 'mp3';
 
   const updateParams = React.useCallback((nextPatch: Partial<AudioSynthesizeParamsState>) => {
@@ -215,6 +280,7 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
     ].join('|');
     if (!effectiveBinding) {
       setVoices([]);
+      setVoiceAssets([]);
       lastAutoVoiceBindingRef.current = '';
       return;
     }
@@ -222,34 +288,74 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
     void (async () => {
       try {
         const modClient = createModRuntimeClient('core:runtime');
-        const result = await modClient.media.tts.listVoices({ binding: effectiveBinding });
+        const [result, assetResult] = await Promise.all([
+          modClient.media.tts.listVoices({ binding: effectiveBinding }),
+          listTesterVoiceAssets(modClient, {
+            modelId: '',
+            targetModelId: '',
+            workflowType: VoiceWorkflowType.UNSPECIFIED,
+            status: VoiceAssetStatus.ACTIVE,
+            pageSize: 100,
+            pageToken: '',
+            connectorId: asString(effectiveBinding.connectorId),
+          }),
+        ]);
         if (cancelled) return;
         setVoices(result.voices);
-        const fallbackVoiceId = result.voices[0]?.voiceId || '';
-        if (!configuredVoiceId && fallbackVoiceId && lastAutoVoiceBindingRef.current !== bindingKey) {
+        const assets = (assetResult.assets || [])
+          .map((asset: TesterVoiceAsset) => ({
+            voiceAssetId: asString(asset.voiceAssetId),
+            preferredName: asString(asset.providerVoiceRef) || asString(asset.voiceAssetId),
+            providerVoiceRef: asString(asset.providerVoiceRef),
+            modelId: asString(asset.modelId),
+            targetModelId: asString(asset.targetModelId),
+          }))
+          .filter((asset) => asset.voiceAssetId);
+        setVoiceAssets(assets);
+        const fallbackVoiceRef: SpeechVoiceReference | null = result.voices[0]?.voiceId
+          ? { kind: 'preset_voice_id', presetVoiceId: result.voices[0].voiceId }
+          : (assets[0]?.voiceAssetId ? { kind: 'voice_asset_id', voiceAssetId: assets[0].voiceAssetId } : null);
+        if (!configuredVoiceKey && fallbackVoiceRef && lastAutoVoiceBindingRef.current !== bindingKey) {
           lastAutoVoiceBindingRef.current = bindingKey;
-          updateParams({ voiceId: fallbackVoiceId });
+          updateParams({ voiceRef: fallbackVoiceRef });
         }
       } catch {
         if (cancelled) return;
         setVoices([]);
+        setVoiceAssets([]);
       }
     })();
     return () => { cancelled = true; };
-  }, [configuredVoiceId, state.snapshot, state.binding, updateParams]);
+  }, [configuredVoiceKey, state.snapshot, state.binding, updateParams, voiceAssetRefreshRevision]);
+
+  const voiceChoices = React.useMemo<VoiceChoice[]>(() => [
+    ...voices.map((voice) => ({
+      key: `preset:${voice.voiceId}`,
+      label: `${voice.name} [${voice.lang}]`,
+      group: 'preset' as const,
+      voiceRef: { kind: 'preset_voice_id', presetVoiceId: voice.voiceId } as SpeechVoiceReference,
+    })),
+    ...voiceAssets.map((asset) => ({
+      key: `asset:${asset.voiceAssetId}`,
+      label: asset.preferredName,
+      group: 'asset' as const,
+      voiceRef: { kind: 'voice_asset_id', voiceAssetId: asset.voiceAssetId } as SpeechVoiceReference,
+      asset,
+    })),
+  ], [voiceAssets, voices]);
 
   const handleRun = React.useCallback(async () => {
     if (!asString(text)) {
       onStateChange((prev) => ({ ...prev, error: t('Tester.audioSynthesize.inputEmpty') }));
       return;
     }
-    const voice = configuredVoiceId;
+    const voiceRef = params.voiceRef || undefined;
     onStateChange((prev) => ({ ...prev, busy: true, error: '', diagnostics: makeEmptyDiagnostics() }));
     const t0 = Date.now();
     const binding = resolveEffectiveBinding(state.snapshot, state.binding) || undefined;
     const requestParams: Record<string, unknown> = {
       text,
-      voice,
+      voiceRef,
       audioFormat,
       language: asString(params.languageHint) || undefined,
       speed: optionalFiniteNumber(params.speakingRate),
@@ -262,7 +368,7 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
       const result = await runTesterAudioSynthesize({
         binding,
         text,
-        voice,
+        voiceRef,
         audioFormat,
         language: asString(params.languageHint) || undefined,
         speed: optionalFiniteNumber(params.speakingRate),
@@ -294,7 +400,7 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
         diagnostics: failed.diagnostics,
       }));
     }
-  }, [audioFormat, configuredVoiceId, onStateChange, params.languageHint, params.pitchSemitones, params.speakingRate, params.timeoutMs, params.volume, state.binding, state.snapshot, text, t]);
+  }, [audioFormat, onStateChange, params.languageHint, params.pitchSemitones, params.speakingRate, params.timeoutMs, params.voiceRef, params.volume, state.binding, state.snapshot, text, t]);
 
   const audioOutput = state.output as { audioUri?: string; mimeType?: string; durationMs?: number } | null;
   const canSubmit = !state.busy && Boolean(text.trim());
@@ -321,34 +427,60 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
         </div>
         <div className="mt-2 flex items-center justify-between gap-2">
           <VoicePopover
-            voices={voices}
-            selectedVoiceId={configuredVoiceId}
-            onSelectedVoiceIdChange={(next) => updateParams({ voiceId: next })}
-            manualVoiceId={params.voiceId}
-            onManualVoiceIdChange={(next) => updateParams({ voiceId: next })}
+            voiceChoices={voiceChoices}
+            selectedVoiceKey={configuredVoiceKey}
+            onSelectedVoiceKeyChange={(choice) => {
+              updateParams({ voiceRef: choice?.voiceRef || null });
+              if (choice?.asset) {
+                onUseVoiceAsset?.(choice.asset);
+              }
+            }}
             audioFormat={audioFormat}
             onAudioFormatChange={(next) => updateParams({ responseFormat: next })}
           />
-          <button
-            type="button"
-            onClick={() => { void handleRun(); }}
-            disabled={!canSubmit}
-            aria-label={runLabel}
-            title={runLabel}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {state.busy ? (
-              <span className="inline-flex items-center gap-0.5">
-                <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.2s]" />
-                <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.1s]" />
-                <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80" />
-              </span>
-            ) : (
-              ARROW_UP_ICON
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            {voiceComposer ? (
+              <button
+                type="button"
+                data-testid={E2E_IDS.testerInput('create-voice')}
+                onClick={() => setCreateVoiceOpen((value) => !value)}
+                className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-medium transition-colors ${
+                  createVoiceOpen
+                    ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]'
+                    : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-border-strong)] hover:text-[var(--nimi-text-primary)]'
+                }`}
+              >
+                <span>{t('Tester.voiceAsset.createVoice', { defaultValue: 'Create voice' })}</span>
+                {CHEVRON_DOWN}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => { void handleRun(); }}
+              disabled={!canSubmit}
+              aria-label={runLabel}
+              title={runLabel}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {state.busy ? (
+                <span className="inline-flex items-center gap-0.5">
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.2s]" />
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80 [animation-delay:-0.1s]" />
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-current opacity-80" />
+                </span>
+              ) : (
+                ARROW_UP_ICON
+              )}
+            </button>
+          </div>
         </div>
       </div>
+
+      {createVoiceOpen && voiceComposer ? (
+        <div className="rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-3">
+          {voiceComposer}
+        </div>
+      ) : null}
 
       {state.error ? <ErrorBox message={state.error} onDismiss={() => onStateChange((prev) => ({ ...prev, error: '' }))} /> : null}
       {audioOutput?.audioUri ? (

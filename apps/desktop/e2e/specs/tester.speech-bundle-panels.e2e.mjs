@@ -12,17 +12,12 @@ describe('tester.speech-bundle-panels', () => {
     await clickByTestId(E2E_IDS.testerCapabilityTab('audio.synthesize'));
     await waitForTestId(E2E_IDS.testerPanel('audio.synthesize'));
     await waitForTestId(E2E_IDS.testerInput('audio-synthesize-text'));
+    await clickByTestId(E2E_IDS.testerInput('create-voice'));
+    await waitForTestId(E2E_IDS.testerPanel('voice_workflow.asset'));
+    await waitForTestId(E2E_IDS.testerInput('voice-design-instruction'));
 
     await clickByTestId(E2E_IDS.testerCapabilityTab('audio.transcribe'));
     await waitForTestId(E2E_IDS.testerPanel('audio.transcribe'));
     await waitForTestId(E2E_IDS.testerInput('audio-transcribe-file'));
-
-    await clickByTestId(E2E_IDS.testerCapabilityTab('voice_workflow.tts_v2v'));
-    await waitForTestId(E2E_IDS.testerPanel('voice_workflow.tts_v2v'));
-    await waitForTestId(E2E_IDS.testerInput('voice-clone-file'));
-
-    await clickByTestId(E2E_IDS.testerCapabilityTab('voice_workflow.tts_t2v'));
-    await waitForTestId(E2E_IDS.testerPanel('voice_workflow.tts_t2v'));
-    await waitForTestId(E2E_IDS.testerInput('voice-design-instruction'));
   });
 });

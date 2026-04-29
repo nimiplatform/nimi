@@ -126,20 +126,17 @@ test('desktop macos smoke tester speech bundle scenario follows the expected ste
   assert.deepEqual(clicked, [
     E2E_IDS.navTab('tester'),
     E2E_IDS.testerCapabilityTab('audio.synthesize'),
+    E2E_IDS.testerInput('create-voice'),
     E2E_IDS.testerCapabilityTab('audio.transcribe'),
-    E2E_IDS.testerCapabilityTab('voice_workflow.tts_v2v'),
-    E2E_IDS.testerCapabilityTab('voice_workflow.tts_t2v'),
   ]);
   assert.deepEqual(waited, [
     E2E_IDS.panel('tester'),
     E2E_IDS.testerPanel('audio.synthesize'),
     E2E_IDS.testerInput('audio-synthesize-text'),
+    E2E_IDS.testerPanel('voice_workflow.asset'),
+    E2E_IDS.testerInput('voice-design-instruction'),
     E2E_IDS.testerPanel('audio.transcribe'),
     E2E_IDS.testerInput('audio-transcribe-file'),
-    E2E_IDS.testerPanel('voice_workflow.tts_v2v'),
-    E2E_IDS.testerInput('voice-clone-file'),
-    E2E_IDS.testerPanel('voice_workflow.tts_t2v'),
-    E2E_IDS.testerInput('voice-design-instruction'),
   ]);
   assert.equal(writtenReports.length, 1);
   assert.deepEqual(writtenReports[0], {
@@ -149,16 +146,13 @@ test('desktop macos smoke tester speech bundle scenario follows the expected ste
       'wait-tester-panel',
       'open-tts-panel',
       'wait-tts-input',
+      'open-create-voice',
+      'wait-create-voice-input',
       'open-stt-panel',
       'wait-stt-input',
-      'open-voice-clone-panel',
-      'wait-voice-clone-input',
-      'open-voice-design-panel',
-      'wait-voice-design-input',
       'write-pass-report',
     ],
     route: '/tester',
     htmlSnapshot: '<html>tester</html>',
   });
 });
-

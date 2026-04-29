@@ -106,7 +106,12 @@ test('openStream throws when no publisher configured', async () => {
     () => engine.openStream({
       model: 'tts-1',
       routeSource: 'cloud',
-      request: { model: 'tts-1', text: 'hello', voice: 'alloy', format: 'mp3' },
+      request: {
+        model: 'tts-1',
+        text: 'hello',
+        voiceRef: { kind: 'preset_voice_id', presetVoiceId: 'alloy' },
+        format: 'mp3',
+      },
       open: { format: 'mp3' },
     }),
     (error: Error) => {

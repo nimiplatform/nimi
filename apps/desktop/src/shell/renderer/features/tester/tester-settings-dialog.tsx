@@ -55,6 +55,7 @@ export type TesterSettingsPanelProps = {
   onClose: () => void;
   config: AIConfig;
   initialSection?: CanonicalCapabilitySectionId | null;
+  voiceAssetRefreshRevision?: number;
   imageContext?: TesterImageSectionContext;
   videoContext?: TesterVideoSectionContext;
 };
@@ -265,9 +266,9 @@ function clearSectionParams(
 }
 
 export function TesterSettingsPanel(props: TesterSettingsPanelProps) {
-  const { open, onClose, config, initialSection, imageContext, videoContext } = props;
+  const { open, onClose, config, initialSection, voiceAssetRefreshRevision = 0, imageContext, videoContext } = props;
   const { t } = useTranslation();
-  const { surface, profile } = useTesterModelConfigController(config);
+  const { surface, profile } = useTesterModelConfigController(config, voiceAssetRefreshRevision);
   const liveConfig = useLiveConfig(surface, config);
   const [activeSection, setActiveSection] = React.useState<CanonicalCapabilitySectionId | null>(initialSection ?? null);
 

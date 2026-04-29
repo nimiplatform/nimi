@@ -120,7 +120,7 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
       ),
     );
     expect(container?.textContent).toContain('ModelConfig.editor.textGenerate.temperatureLabel');
-    expect(container?.textContent).toContain('ModelConfig.capability.textGenerate.title');
+    expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
   });
 
   it('routes image.generate to ImageParamsEditor (editorKind=image)', async () => {
@@ -135,8 +135,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
       ),
     );
     // Image editor has showEditorWhen='local'; without a local binding the body
-    // is not rendered, but the capability card title is.
-    expect(container?.textContent).toContain('ModelConfig.capability.imageGenerate.title');
+    // is not rendered, but the shared model selector remains visible.
+    expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
   });
 
   it('passes image companion slots and local assets through the shared detail editor', async () => {
@@ -220,7 +220,7 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
         />,
       ),
     );
-    expect(container?.textContent).toContain('ModelConfig.capability.videoGenerate.title');
+    expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
   });
 
   it('routes audio.transcribe to AudioTranscribeParamsEditor (editorKind=audio-transcribe)', async () => {
@@ -235,7 +235,7 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
       ),
     );
     expect(container?.textContent).toContain('ModelConfig.editor.audioTranscribe.languageLabel');
-    expect(container?.textContent).toContain('ModelConfig.capability.audioTranscribe.title');
+    expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
   });
 
   it('routes audio.synthesize to AudioSynthesizeParamsEditor (editorKind=audio-synthesize)', async () => {
@@ -249,8 +249,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
         />,
       ),
     );
-    expect(container?.textContent).toContain('ModelConfig.editor.audioSynthesize.voiceIdLabel');
-    expect(container?.textContent).toContain('ModelConfig.capability.audioSynthesize.title');
+    expect(container?.textContent).toContain('ModelConfig.editor.audioSynthesize.voiceRefLabel');
+    expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
   });
 
   it('routes voice_workflow.tts_v2v to VoiceWorkflowParamsEditor (editorKind=voice-workflow)', async () => {
@@ -265,7 +265,7 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
       ),
     );
     expect(container?.textContent).toContain('ModelConfig.editor.voiceWorkflow.referenceTextLabel');
-    expect(container?.textContent).toContain('ModelConfig.capability.voiceWorkflowTtsV2v.title');
+    expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
   });
 
   it('renders no params editor for text.embed (editorKind=null)', async () => {
@@ -279,8 +279,8 @@ describe('ModelConfigCapabilityDetail editorKind routing', () => {
         />,
       ),
     );
-    // Null editorKind: capability card renders, but no params-editor label appears.
-    expect(container?.textContent).toContain('ModelConfig.capability.textEmbed.title');
+    // Null editorKind: model selector renders, but no params-editor label appears.
+    expect(container?.textContent).toContain('ModelConfig.hub.activeModelLabel');
     expect(container?.textContent).not.toContain('ModelConfig.editor.textGenerate.temperatureLabel');
     expect(container?.textContent).not.toContain('ModelConfig.editor.audioTranscribe.languageLabel');
     expect(container?.textContent).not.toContain('ModelConfig.editor.voiceWorkflow.referenceTextLabel');

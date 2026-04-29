@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 
 import {
   buildTesterSpeechFailure,
@@ -83,6 +84,9 @@ function createMockRuntimeClient() {
           asset: {
             voiceAssetId: String(input.voiceAssetId || ''),
             providerVoiceRef: 'provider-voice-ref-1',
+            provider: 'dashscope',
+            modelId: 'dashscope/qwen3-tts-vd',
+            targetModelId: 'dashscope/qwen3-tts-vd',
             status: 'ACTIVE',
             preferredName: 'tester-voice',
           },
@@ -111,7 +115,7 @@ test('tester speech actions synthesize through runtime media.tts', async () => {
       connectorId: '',
     },
     text: 'hello tester tts',
-    voice: 'ryan',
+    voiceRef: { kind: 'preset_voice_id', presetVoiceId: 'ryan' },
     audioFormat: 'mp3',
     language: 'en',
     speed: 1.2,
@@ -126,7 +130,7 @@ test('tester speech actions synthesize through runtime media.tts', async () => {
   assert.equal(result.result, 'passed');
   assert.equal((result.output as { audioUri?: string }).audioUri, 'file:///tmp/test.mp3');
   assert.equal(calls[0]?.kind, 'tts.synthesize');
-  assert.equal((calls[0]?.input as Record<string, unknown>).voice, 'ryan');
+  assert.deepEqual((calls[0]?.input as Record<string, unknown>).voiceRef, { kind: 'preset_voice_id', presetVoiceId: 'ryan' });
   assert.equal((calls[0]?.input as Record<string, unknown>).language, 'en');
   assert.equal((calls[0]?.input as Record<string, unknown>).speed, 1.2);
   assert.equal((calls[0]?.input as Record<string, unknown>).pitch, -1);
@@ -146,7 +150,6 @@ test('tester speech actions allow provider default voice', async () => {
       connectorId: 'dashscope',
     },
     text: 'hello default voice',
-    voice: '',
     audioFormat: 'mp3',
   }, {
     getRuntimeClientImpl: () => runtimeClient as never,
@@ -154,7 +157,43 @@ test('tester speech actions allow provider default voice', async () => {
   });
 
   assert.equal(calls[0]?.kind, 'tts.synthesize');
-  assert.equal(Object.prototype.hasOwnProperty.call(calls[0]?.input as Record<string, unknown>, 'voice'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(calls[0]?.input as Record<string, unknown>, 'voiceRef'), false);
+});
+
+test('tester speech actions route voice assets through their target model', async () => {
+  const { runtimeClient, calls } = createMockRuntimeClient();
+  let resolvedBinding: RuntimeRouteBinding | undefined;
+  await runTesterAudioSynthesize({
+    binding: {
+      source: 'cloud',
+      provider: 'dashscope',
+      model: 'qwen3-tts-instruct-flash',
+      modelId: 'qwen3-tts-instruct-flash',
+      modelLabel: 'qwen3-tts-instruct-flash',
+      connectorId: 'dashscope-connector',
+    },
+    text: 'hello custom voice',
+    voiceRef: { kind: 'voice_asset_id', voiceAssetId: 'voice-asset-1' },
+    audioFormat: 'mp3',
+  }, {
+    getRuntimeClientImpl: () => runtimeClient as never,
+    resolveCallParamsImpl: async (binding) => {
+      resolvedBinding = binding;
+      return {
+        model: String(binding?.model || ''),
+        route: 'cloud',
+        connectorId: String(binding?.connectorId || ''),
+        metadata: { traceId: 'trace-meta' },
+      };
+    },
+  });
+
+  assert.equal(calls[0]?.kind, 'voice.getAsset');
+  assert.deepEqual(calls[0]?.input, { voiceAssetId: 'voice-asset-1' });
+  assert.equal(calls[1]?.kind, 'tts.synthesize');
+  assert.equal((calls[1]?.input as Record<string, unknown>).model, 'dashscope/qwen3-tts-vd');
+  assert.equal(resolvedBinding?.model, 'dashscope/qwen3-tts-vd');
+  assert.equal(resolvedBinding?.modelId, 'dashscope/qwen3-tts-vd');
 });
 
 test('tester speech actions transcribe bytes through runtime media.stt', async () => {

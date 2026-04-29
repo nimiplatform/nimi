@@ -166,7 +166,7 @@ export function parseTextGenerateParams(stored: Record<string, unknown>): TextGe
 export const AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS = ['mp3', 'wav', 'ogg', 'opus', 'flac'];
 
 export const DEFAULT_AUDIO_SYNTHESIZE_PARAMS: AudioSynthesizeParamsState = {
-  voiceId: '',
+  voiceRef: null,
   speakingRate: '',
   volume: '',
   pitchSemitones: '',
@@ -175,9 +175,30 @@ export const DEFAULT_AUDIO_SYNTHESIZE_PARAMS: AudioSynthesizeParamsState = {
   timeoutMs: '',
 };
 
+function parseSpeechVoiceReference(value: unknown): AudioSynthesizeParamsState['voiceRef'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  switch (record.kind) {
+    case 'preset_voice_id': {
+      const presetVoiceId = typeof record.presetVoiceId === 'string' ? record.presetVoiceId.trim() : '';
+      return presetVoiceId ? { kind: 'preset_voice_id', presetVoiceId } : null;
+    }
+    case 'voice_asset_id': {
+      const voiceAssetId = typeof record.voiceAssetId === 'string' ? record.voiceAssetId.trim() : '';
+      return voiceAssetId ? { kind: 'voice_asset_id', voiceAssetId } : null;
+    }
+    case 'provider_voice_ref': {
+      const providerVoiceRef = typeof record.providerVoiceRef === 'string' ? record.providerVoiceRef.trim() : '';
+      return providerVoiceRef ? { kind: 'provider_voice_ref', providerVoiceRef } : null;
+    }
+    default:
+      return null;
+  }
+}
+
 export function parseAudioSynthesizeParams(stored: Record<string, unknown>): AudioSynthesizeParamsState {
   return {
-    voiceId: typeof stored.voiceId === 'string' ? stored.voiceId : DEFAULT_AUDIO_SYNTHESIZE_PARAMS.voiceId,
+    voiceRef: parseSpeechVoiceReference(stored.voiceRef),
     speakingRate: typeof stored.speakingRate === 'string' ? stored.speakingRate : DEFAULT_AUDIO_SYNTHESIZE_PARAMS.speakingRate,
     volume: typeof stored.volume === 'string' ? stored.volume : DEFAULT_AUDIO_SYNTHESIZE_PARAMS.volume,
     pitchSemitones: typeof stored.pitchSemitones === 'string' ? stored.pitchSemitones : DEFAULT_AUDIO_SYNTHESIZE_PARAMS.pitchSemitones,

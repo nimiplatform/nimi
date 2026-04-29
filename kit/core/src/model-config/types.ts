@@ -16,6 +16,7 @@ import type {
   AIProfileRef,
   AIScopeRef,
 } from '@nimiplatform/sdk/mod';
+import type { SpeechVoiceReference } from '@nimiplatform/sdk/runtime';
 import type {
   CanonicalCapabilityDescriptor,
 } from '@nimiplatform/nimi-kit/core/runtime-capabilities';
@@ -108,7 +109,20 @@ export interface CapabilityItemOverride {
   readonly placeholder?: string;
   readonly detail?: string;
   readonly disabled?: boolean;
-  readonly audioSynthesizeVoiceOptions?: ReadonlyArray<{ value: string; label: string }>;
+  readonly audioSynthesizeVoiceOptions?: ReadonlyArray<{
+    value: SpeechVoiceReference;
+    label: string;
+    binding?: {
+      source: ModelConfigRouteSource;
+      connectorId: string;
+      model: string;
+      modelId?: string;
+      modelLabel?: string;
+      localModelId?: string;
+      provider?: string;
+      engine?: string;
+    };
+  }>;
 }
 
 export interface AppModelConfigSurface {

@@ -1,4 +1,5 @@
 import type { AudioSynthesizeParamsState } from '../types.js';
+import type { SpeechVoiceReference } from '@nimiplatform/sdk/runtime';
 import { AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS } from '../constants.js';
 import {
   EditorSectionTitle,
@@ -16,8 +17,8 @@ export type AudioSynthesizeParamsEditorCopy = {
   voiceSectionLabel?: string;
   audioTuningSectionLabel?: string;
   outputSectionLabel?: string;
-  voiceIdLabel: string;
-  voiceIdHint?: string;
+  voiceRefLabel: string;
+  voiceRefHint?: string;
   speakingRateLabel: string;
   volumeLabel: string;
   pitchSemitonesLabel: string;
@@ -28,14 +29,40 @@ export type AudioSynthesizeParamsEditorCopy = {
   defaultPlaceholder?: string;
 };
 
+export type AudioSynthesizeVoiceOption = {
+  value: SpeechVoiceReference;
+  label: string;
+};
+
 export type AudioSynthesizeParamsEditorProps = {
   params: AudioSynthesizeParamsState;
   onParamsChange: (next: AudioSynthesizeParamsState) => void;
   copy: AudioSynthesizeParamsEditorCopy;
-  voiceOptions?: ReadonlyArray<{ value: string; label: string }>;
+  voiceOptions?: ReadonlyArray<AudioSynthesizeVoiceOption>;
 };
 
 const DEFAULT_VOICE_SENTINEL = '__default_voice__';
+
+function voiceReferenceKey(value: SpeechVoiceReference | null): string {
+  if (!value) return DEFAULT_VOICE_SENTINEL;
+  switch (value.kind) {
+    case 'preset_voice_id':
+      return `preset:${value.presetVoiceId}`;
+    case 'voice_asset_id':
+      return `asset:${value.voiceAssetId}`;
+    case 'provider_voice_ref':
+      return `provider:${value.providerVoiceRef}`;
+  }
+  return '';
+}
+
+function voiceReferenceEquals(left: SpeechVoiceReference | null, right: SpeechVoiceReference | null): boolean {
+  return voiceReferenceKey(left) === voiceReferenceKey(right);
+}
+
+function providerVoiceRefValue(value: SpeechVoiceReference | null): string {
+  return value?.kind === 'provider_voice_ref' ? value.providerVoiceRef : '';
+}
 
 export function createAudioSynthesizeEditorCopy(
   t: (key: string, vars?: Record<string, string | number>) => string,
@@ -48,9 +75,9 @@ export function createAudioSynthesizeEditorCopy(
       defaultValue: 'Audio Tuning',
     }),
     outputSectionLabel: t('ModelConfig.editor.audioSynthesize.outputSectionLabel', { defaultValue: 'Output' }),
-    voiceIdLabel: t('ModelConfig.editor.audioSynthesize.voiceIdLabel', { defaultValue: 'Voice ID' }),
-    voiceIdHint: t('ModelConfig.editor.audioSynthesize.voiceIdHint', {
-      defaultValue: 'Provider-specific voice identifier.',
+    voiceRefLabel: t('ModelConfig.editor.audioSynthesize.voiceRefLabel', { defaultValue: 'Voice reference' }),
+    voiceRefHint: t('ModelConfig.editor.audioSynthesize.voiceRefHint', {
+      defaultValue: 'Preset voice, custom voice asset, or provider voice reference.',
     }),
     speakingRateLabel: t('ModelConfig.editor.audioSynthesize.speakingRateLabel', { defaultValue: 'Speaking rate' }),
     volumeLabel: t('ModelConfig.editor.audioSynthesize.volumeLabel', { defaultValue: 'Volume' }),
@@ -83,12 +110,16 @@ export function AudioSynthesizeParamsEditor(props: AudioSynthesizeParamsEditorPr
   const voiceSelectOptions = configuredVoiceOptions.length > 0
     ? [
         { value: DEFAULT_VOICE_SENTINEL, label: copy.defaultPlaceholder || 'Default' },
-        ...configuredVoiceOptions,
-        ...(params.voiceId && !configuredVoiceOptions.some((option) => option.value === params.voiceId)
-          ? [{ value: params.voiceId, label: params.voiceId }]
+        ...configuredVoiceOptions.map((option) => ({
+          value: voiceReferenceKey(option.value),
+          label: option.label,
+        })),
+        ...(params.voiceRef && !configuredVoiceOptions.some((option) => voiceReferenceEquals(option.value, params.voiceRef))
+          ? [{ value: voiceReferenceKey(params.voiceRef), label: voiceReferenceKey(params.voiceRef) }]
           : []),
       ]
     : [];
+  const voiceOptionsByKey = new Map(configuredVoiceOptions.map((option) => [voiceReferenceKey(option.value), option.value]));
   const voiceSectionLabel = copy.voiceSectionLabel ?? copy.parametersLabel;
   const audioTuningSectionLabel = copy.audioTuningSectionLabel ?? copy.parametersLabel;
   const outputSectionLabel = copy.outputSectionLabel ?? copy.parametersLabel;
@@ -99,17 +130,17 @@ export function AudioSynthesizeParamsEditor(props: AudioSynthesizeParamsEditorPr
           top so users can pin the speaker before tuning prosody. */}
       <section className="space-y-3.5">
         <EditorSectionTitle label={voiceSectionLabel} />
-        <StackedFieldRow label={copy.voiceIdLabel} hint={copy.voiceIdHint}>
+        <StackedFieldRow label={copy.voiceRefLabel} hint={copy.voiceRefHint}>
           {voiceSelectOptions.length > 0 ? (
             <PlainSelect
-              value={params.voiceId || DEFAULT_VOICE_SENTINEL}
-              onChange={(value) => updateParam('voiceId', value === DEFAULT_VOICE_SENTINEL ? '' : value)}
+              value={voiceReferenceKey(params.voiceRef)}
+              onChange={(value) => updateParam('voiceRef', value === DEFAULT_VOICE_SENTINEL ? null : (voiceOptionsByKey.get(value) || params.voiceRef))}
               options={voiceSelectOptions}
             />
           ) : (
             <PlainTextInput
-              value={params.voiceId}
-              onChange={(value) => updateParam('voiceId', value)}
+              value={providerVoiceRefValue(params.voiceRef)}
+              onChange={(value) => updateParam('voiceRef', value.trim() ? { kind: 'provider_voice_ref', providerVoiceRef: value } : null)}
               placeholder={copy.defaultPlaceholder}
             />
           )}

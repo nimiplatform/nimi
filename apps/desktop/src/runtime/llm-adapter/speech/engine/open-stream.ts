@@ -38,7 +38,7 @@ export async function openSpeechStream(input: {
     const stream = await runtime.media.tts.stream({
       model: input.model,
       text: input.request.text,
-      voice: input.request.voice,
+      voiceRef: input.request.voiceRef,
       audioFormat: input.request.format,
       sampleRateHz: input.request.sampleRateHz,
       route: input.routeSource,

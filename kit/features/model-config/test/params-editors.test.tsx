@@ -101,13 +101,13 @@ describe('TextGenerateParamsEditor', () => {
 });
 
 describe('AudioSynthesizeParamsEditor', () => {
-  it('propagates voiceId updates', async () => {
+  it('propagates provider voice reference updates', async () => {
     let next: AudioSynthesizeParamsState = { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS };
     await render(
       <AudioSynthesizeParamsEditor
         copy={{
           parametersLabel: 'Parameters',
-          voiceIdLabel: 'Voice ID',
+          voiceRefLabel: 'Voice reference',
           speakingRateLabel: 'Speaking rate',
           volumeLabel: 'Volume',
           pitchSemitonesLabel: 'Pitch',
@@ -119,22 +119,22 @@ describe('AudioSynthesizeParamsEditor', () => {
         onParamsChange={(value) => { next = value; }}
       />,
     );
-    expect(container?.textContent).toContain('Voice ID');
+    expect(container?.textContent).toContain('Voice reference');
     const voiceInput = (Array.from(container?.querySelectorAll('input') || []) as HTMLInputElement[])[0];
     await act(async () => {
       setInputValue(voiceInput, 'alloy');
       await flush();
     });
-    expect(next.voiceId).toBe('alloy');
+    expect(next.voiceRef).toEqual({ kind: 'provider_voice_ref', providerVoiceRef: 'alloy' });
   });
 
   it('renders voice choices when provided by the host surface', async () => {
-    let next: AudioSynthesizeParamsState = { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS, voiceId: 'arthur' };
+    let next: AudioSynthesizeParamsState = { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS, voiceRef: { kind: 'preset_voice_id', presetVoiceId: 'arthur' } };
     await render(
       <AudioSynthesizeParamsEditor
         copy={{
           parametersLabel: 'Parameters',
-          voiceIdLabel: 'Voice ID',
+          voiceRefLabel: 'Voice reference',
           speakingRateLabel: 'Speaking rate',
           volumeLabel: 'Volume',
           pitchSemitonesLabel: 'Pitch',
@@ -144,11 +144,47 @@ describe('AudioSynthesizeParamsEditor', () => {
           defaultPlaceholder: 'Default',
         }}
         params={next}
-        voiceOptions={[{ value: 'arthur', label: 'Arthur [zh-cn]' }]}
+        voiceOptions={[{ value: { kind: 'preset_voice_id', presetVoiceId: 'arthur' }, label: 'Arthur [zh-cn]' }]}
         onParamsChange={(value) => { next = value; }}
       />,
     );
     expect(container?.textContent).toContain('Arthur [zh-cn]');
+  });
+
+  it('selects custom voice assets from host-provided choices', async () => {
+    let next: AudioSynthesizeParamsState = { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS };
+    await render(
+      <AudioSynthesizeParamsEditor
+        copy={{
+          parametersLabel: 'Parameters',
+          voiceRefLabel: 'Voice reference',
+          speakingRateLabel: 'Speaking rate',
+          volumeLabel: 'Volume',
+          pitchSemitonesLabel: 'Pitch',
+          languageHintLabel: 'Language',
+          responseFormatLabel: 'Response format',
+          timeoutLabel: 'Timeout',
+          defaultPlaceholder: 'Default',
+        }}
+        params={next}
+        voiceOptions={[{
+          value: { kind: 'voice_asset_id', voiceAssetId: '01KQCHXDMP0E65RZBV4X9XQ27Q' },
+          label: 'tester-design · asset',
+        }]}
+        onParamsChange={(value) => { next = value; }}
+      />,
+    );
+    expect(container?.textContent).toContain('tester-design · asset');
+    const select = container?.querySelector('select') as HTMLSelectElement;
+    await act(async () => {
+      select.value = 'asset:01KQCHXDMP0E65RZBV4X9XQ27Q';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      await flush();
+    });
+    expect(next.voiceRef).toEqual({
+      kind: 'voice_asset_id',
+      voiceAssetId: '01KQCHXDMP0E65RZBV4X9XQ27Q',
+    });
   });
 });
 

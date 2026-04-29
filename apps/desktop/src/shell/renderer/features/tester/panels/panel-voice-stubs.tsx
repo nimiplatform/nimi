@@ -1,13 +1,16 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
-import type { CapabilityState } from '../tester-types.js';
+import { VoiceAssetStatus, VoiceWorkflowType } from '@nimiplatform/sdk/runtime';
+import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
+import type { CapabilityState, VoiceAssetSelection } from '../tester-types.js';
 import { asString } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';
 import { makeEmptyDiagnostics } from '../tester-state.js';
 import { DiagnosticsPanel, ErrorBox, RawJsonSection } from '../tester-diagnostics.js';
 import { buildTesterSpeechFailure, runTesterVoiceClone, runTesterVoiceDesign } from '../tester-speech-actions.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { listTesterVoiceAssets, type TesterVoiceAsset } from '../tester-voice-assets';
 import {
   normalizeAudioFileForCloudTranscription,
   createRecordedAudioFile,
@@ -127,6 +130,7 @@ function WorkflowOutputCard({ output }: { output: VoiceWorkflowOutput }) {
 type VoiceClonePanelProps = {
   state: CapabilityState;
   onStateChange: (updater: (prev: CapabilityState) => CapabilityState) => void;
+  onVoiceAssetCreated?: (voiceAssetId: string) => void;
   modeChip?: React.ReactNode;
 };
 
@@ -216,7 +220,7 @@ function VoiceCloneOptionsPopover(props: {
 
 export function VoiceClonePanel(props: VoiceClonePanelProps) {
   const { t } = useTranslation();
-  const { state, onStateChange, modeChip } = props;
+  const { state, onStateChange, onVoiceAssetCreated, modeChip } = props;
   const [prompt, setPrompt] = React.useState('Hello from the desktop tester voice clone workflow.');
   const [preferredName, setPreferredName] = React.useState('tester-clone');
   const [referenceAudioUri, setReferenceAudioUri] = React.useState('');
@@ -284,6 +288,10 @@ export function VoiceClonePanel(props: VoiceClonePanelProps) {
         referenceAudio,
         referenceAudioMime: inferredMimeType,
       });
+      const createdVoiceAssetId = asString((result.output as VoiceWorkflowOutput)?.voiceAssetId);
+      if (createdVoiceAssetId) {
+        onVoiceAssetCreated?.(createdVoiceAssetId);
+      }
       onStateChange((prev) => ({
         ...prev,
         busy: false,
@@ -308,7 +316,7 @@ export function VoiceClonePanel(props: VoiceClonePanelProps) {
         diagnostics: failed.diagnostics,
       }));
     }
-  }, [onStateChange, preferredName, prompt, referenceAudioFile, referenceAudioMime, referenceAudioUri, state.binding, state.snapshot, t]);
+  }, [onStateChange, onVoiceAssetCreated, preferredName, prompt, referenceAudioFile, referenceAudioMime, referenceAudioUri, state.binding, state.snapshot, t]);
 
   const output = state.output as VoiceWorkflowOutput;
   const canSubmit = !state.busy && Boolean(prompt.trim()) && Boolean(referenceAudioFile || referenceAudioUri.trim());
@@ -408,6 +416,7 @@ export function VoiceClonePanel(props: VoiceClonePanelProps) {
 type VoiceDesignPanelProps = {
   state: CapabilityState;
   onStateChange: (updater: (prev: CapabilityState) => CapabilityState) => void;
+  onVoiceAssetCreated?: (voiceAssetId: string) => void;
   modeChip?: React.ReactNode;
 };
 
@@ -497,7 +506,7 @@ function VoiceDesignOptionsPopover(props: {
 
 export function VoiceDesignPanel(props: VoiceDesignPanelProps) {
   const { t } = useTranslation();
-  const { state, onStateChange, modeChip } = props;
+  const { state, onStateChange, onVoiceAssetCreated, modeChip } = props;
   const [instructionText, setInstructionText] = React.useState('Warm, clear Mandarin speaking voice with steady pacing.');
   const [previewText, setPreviewText] = React.useState('Hello from the desktop tester voice design workflow.');
   const [language, setLanguage] = React.useState('');
@@ -526,6 +535,10 @@ export function VoiceDesignPanel(props: VoiceDesignPanelProps) {
         language,
         preferredName,
       });
+      const createdVoiceAssetId = asString((result.output as VoiceWorkflowOutput)?.voiceAssetId);
+      if (createdVoiceAssetId) {
+        onVoiceAssetCreated?.(createdVoiceAssetId);
+      }
       onStateChange((prev) => ({
         ...prev,
         busy: false,
@@ -550,7 +563,7 @@ export function VoiceDesignPanel(props: VoiceDesignPanelProps) {
         diagnostics: failed.diagnostics,
       }));
     }
-  }, [instructionText, language, onStateChange, preferredName, previewText, state.binding, state.snapshot, t]);
+  }, [instructionText, language, onStateChange, onVoiceAssetCreated, preferredName, previewText, state.binding, state.snapshot, t]);
 
   const output = state.output as VoiceWorkflowOutput;
   const canSubmit = !state.busy && Boolean(instructionText.trim());
@@ -615,6 +628,9 @@ export type VoiceAssetPanelProps = {
   onCloneStateChange: (updater: (prev: CapabilityState) => CapabilityState) => void;
   designState: CapabilityState;
   onDesignStateChange: (updater: (prev: CapabilityState) => CapabilityState) => void;
+  selectedVoiceAssetId?: string;
+  onUseVoiceAsset?: (asset: VoiceAssetSelection) => void;
+  onVoiceAssetCreated?: (voiceAssetId: string) => void;
 };
 
 const VOICE_WAVE_ICON = (
@@ -700,16 +716,186 @@ function VoiceModeChip(props: { mode: VoiceAssetMode; onChange: (next: VoiceAsse
   );
 }
 
-export function VoiceAssetPanel(props: VoiceAssetPanelProps) {
-  const { mode, onModeChange, cloneState, onCloneStateChange, designState, onDesignStateChange } = props;
-  const modeChip = <VoiceModeChip mode={mode} onChange={onModeChange} />;
+type VoiceAssetRow = {
+  voiceAssetId: string;
+  providerVoiceRef: string;
+  preferredName: string;
+  workflowType: string;
+  modelId: string;
+  targetModelId: string;
+};
+
+function VoiceAssetInventory(props: {
+  state: CapabilityState;
+  refreshRevision: number;
+  recentCreatedVoiceAssetId: string;
+  selectedVoiceAssetId: string;
+  onUseVoiceAsset?: (asset: VoiceAssetSelection) => void;
+}) {
+  const { t } = useTranslation();
+  const [assets, setAssets] = React.useState<VoiceAssetRow[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  React.useEffect(() => {
+    const effectiveBinding = resolveEffectiveBinding(props.state.snapshot, props.state.binding);
+    if (!effectiveBinding) {
+      setAssets([]);
+      setError('');
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+    void (async () => {
+      try {
+        const modClient = createModRuntimeClient('core:runtime');
+        const response = await listTesterVoiceAssets(modClient, {
+          modelId: '',
+          targetModelId: '',
+          workflowType: VoiceWorkflowType.UNSPECIFIED,
+          status: VoiceAssetStatus.ACTIVE,
+          pageSize: 100,
+          pageToken: '',
+          connectorId: asString(effectiveBinding.connectorId),
+        });
+        if (cancelled) return;
+        setAssets((response.assets || [])
+          .map((asset: TesterVoiceAsset) => ({
+            voiceAssetId: asString(asset.voiceAssetId),
+            providerVoiceRef: asString(asset.providerVoiceRef),
+            preferredName: asString(asset.providerVoiceRef) || asString(asset.voiceAssetId),
+            workflowType: asString(asset.workflowType),
+            modelId: asString(asset.modelId),
+            targetModelId: asString(asset.targetModelId),
+          }))
+          .filter((asset) => asset.voiceAssetId));
+      } catch (err) {
+        if (cancelled) return;
+        setAssets([]);
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [props.refreshRevision, props.state.binding, props.state.snapshot]);
+
   return (
-    <div data-testid={E2E_IDS.testerPanel('voice_workflow.asset')}>
+    <div className="rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.5px] text-[var(--nimi-text-muted)]">
+          {t('Tester.voiceAsset.assetsTitle', { defaultValue: 'Voice assets' })}
+        </div>
+        {loading ? (
+          <div className="text-[11px] text-[var(--nimi-text-muted)]">
+            {t('Tester.status.loading', { defaultValue: 'Loading' })}
+          </div>
+        ) : null}
+      </div>
+      {error ? (
+        <div className="rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-accent-danger)]/30 bg-[var(--nimi-accent-danger)]/5 px-2 py-1.5 text-[11px] text-[var(--nimi-accent-danger)]">
+          {error}
+        </div>
+      ) : null}
+      {!error && assets.length === 0 ? (
+        <div className="rounded-[var(--nimi-radius-sm)] border border-dashed border-[var(--nimi-border-subtle)] px-3 py-3 text-[12px] text-[var(--nimi-text-muted)]">
+          {t('Tester.voiceAsset.noAssets', { defaultValue: 'No custom voice assets' })}
+        </div>
+      ) : null}
+      {assets.length > 0 ? (
+        <div className="flex flex-col gap-1.5">
+          {assets.map((asset) => {
+            const selected = asset.voiceAssetId === props.selectedVoiceAssetId;
+            const recent = asset.voiceAssetId === props.recentCreatedVoiceAssetId;
+            return (
+              <div
+                key={asset.voiceAssetId}
+                className={`flex items-center gap-2 rounded-[var(--nimi-radius-md)] border px-2.5 py-2 ${
+                  selected
+                    ? 'border-[var(--nimi-action-primary-bg)]/40 bg-[var(--nimi-action-primary-bg)]/8'
+                    : recent
+                      ? 'border-[var(--nimi-action-primary-bg)]/25 bg-[var(--nimi-surface-canvas)]'
+                      : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)]'
+                }`}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[12px] font-medium text-[var(--nimi-text-primary)]">
+                    {asset.preferredName}
+                  </div>
+                  <div className="truncate font-mono text-[10px] text-[var(--nimi-text-muted)]">
+                    {asset.voiceAssetId}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={selected}
+                  onClick={() => props.onUseVoiceAsset?.(asset)}
+                  className={`shrink-0 rounded-[var(--nimi-radius-sm)] border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    selected
+                      ? 'cursor-default border-[var(--nimi-action-primary-bg)]/30 bg-[var(--nimi-action-primary-bg)]/10 text-[var(--nimi-action-primary-bg)]'
+                      : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-action-primary-bg)]/40 hover:text-[var(--nimi-action-primary-bg)]'
+                  }`}
+                >
+                  {selected
+                    ? t('Tester.voiceAsset.selectedForTts', { defaultValue: 'Selected for TTS' })
+                    : t('Tester.voiceAsset.useInTts', { defaultValue: 'Use in TTS' })}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function VoiceAssetPanel(props: VoiceAssetPanelProps) {
+  const {
+    mode,
+    onModeChange,
+    cloneState,
+    onCloneStateChange,
+    designState,
+    onDesignStateChange,
+    selectedVoiceAssetId = '',
+    onUseVoiceAsset,
+    onVoiceAssetCreated,
+  } = props;
+  const [refreshRevision, setRefreshRevision] = React.useState(0);
+  const [recentCreatedVoiceAssetId, setRecentCreatedVoiceAssetId] = React.useState('');
+  const modeChip = <VoiceModeChip mode={mode} onChange={onModeChange} />;
+  const activeState = mode === 'clone' ? cloneState : designState;
+  const handleVoiceAssetCreated = React.useCallback((voiceAssetId: string) => {
+    setRecentCreatedVoiceAssetId(voiceAssetId);
+    setRefreshRevision((value) => value + 1);
+    onVoiceAssetCreated?.(voiceAssetId);
+  }, [onVoiceAssetCreated]);
+  return (
+    <div data-testid={E2E_IDS.testerPanel('voice_workflow.asset')} className="flex flex-col gap-3">
       {mode === 'clone' ? (
-        <VoiceClonePanel state={cloneState} onStateChange={onCloneStateChange} modeChip={modeChip} />
+        <VoiceClonePanel
+          state={cloneState}
+          onStateChange={onCloneStateChange}
+          onVoiceAssetCreated={handleVoiceAssetCreated}
+          modeChip={modeChip}
+        />
       ) : (
-        <VoiceDesignPanel state={designState} onStateChange={onDesignStateChange} modeChip={modeChip} />
+        <VoiceDesignPanel
+          state={designState}
+          onStateChange={onDesignStateChange}
+          onVoiceAssetCreated={handleVoiceAssetCreated}
+          modeChip={modeChip}
+        />
       )}
+      <VoiceAssetInventory
+        state={activeState}
+        refreshRevision={refreshRevision}
+        recentCreatedVoiceAssetId={recentCreatedVoiceAssetId}
+        selectedVoiceAssetId={selectedVoiceAssetId}
+        onUseVoiceAsset={onUseVoiceAsset}
+      />
     </div>
   );
 }

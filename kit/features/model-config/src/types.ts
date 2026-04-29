@@ -1,4 +1,5 @@
 import type { RouteModelPickerDataProvider } from '@nimiplatform/nimi-kit/features/model-picker';
+import type { SpeechVoiceReference } from '@nimiplatform/sdk/runtime';
 import type { ReactNode } from 'react';
 
 export type ModelConfigRouteBinding = {
@@ -114,7 +115,7 @@ export type TextGenerateParamsState = {
 };
 
 export type AudioSynthesizeParamsState = {
-  voiceId: string;
+  voiceRef: SpeechVoiceReference | null;
   speakingRate: string;
   volume: string;
   pitchSemitones: string;
