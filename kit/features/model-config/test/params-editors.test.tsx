@@ -127,6 +127,29 @@ describe('AudioSynthesizeParamsEditor', () => {
     });
     expect(next.voiceId).toBe('alloy');
   });
+
+  it('renders voice choices when provided by the host surface', async () => {
+    let next: AudioSynthesizeParamsState = { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS, voiceId: 'arthur' };
+    await render(
+      <AudioSynthesizeParamsEditor
+        copy={{
+          parametersLabel: 'Parameters',
+          voiceIdLabel: 'Voice ID',
+          speakingRateLabel: 'Speaking rate',
+          volumeLabel: 'Volume',
+          pitchSemitonesLabel: 'Pitch',
+          languageHintLabel: 'Language',
+          responseFormatLabel: 'Response format',
+          timeoutLabel: 'Timeout',
+          defaultPlaceholder: 'Default',
+        }}
+        params={next}
+        voiceOptions={[{ value: 'arthur', label: 'Arthur [zh-cn]' }]}
+        onParamsChange={(value) => { next = value; }}
+      />,
+    );
+    expect(container?.textContent).toContain('Arthur [zh-cn]');
+  });
 });
 
 describe('AudioTranscribeParamsEditor', () => {

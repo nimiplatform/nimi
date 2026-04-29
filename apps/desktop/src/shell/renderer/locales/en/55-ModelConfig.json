@@ -43,11 +43,63 @@
       "title": "World"
     }
   },
+  "capability": {
+    "audioSynthesize": {
+      "title": "Text to speech",
+      "subtitle": "Generate speech audio from text",
+      "detail": "Routes text-to-speech requests through the selected local or cloud speech model."
+    },
+    "audioTranscribe": {
+      "title": "Speech to text",
+      "subtitle": "Transcribe audio to text",
+      "detail": "Routes transcription requests through the selected speech recognition model."
+    },
+    "imageEdit": {
+      "title": "Image edit",
+      "subtitle": "Edit images with a prompt"
+    },
+    "imageGenerate": {
+      "title": "Image generation",
+      "subtitle": "Generate images from prompts"
+    },
+    "textEmbed": {
+      "title": "Embeddings",
+      "subtitle": "Generate vector embeddings"
+    },
+    "textGenerate": {
+      "title": "Chat",
+      "subtitle": "Text generation"
+    },
+    "textGenerateVision": {
+      "title": "Vision chat",
+      "subtitle": "Generate text from image and text input"
+    },
+    "videoGenerate": {
+      "title": "Video generation",
+      "subtitle": "Generate videos from prompts"
+    },
+    "voiceWorkflowTtsT2v": {
+      "title": "Voice design",
+      "subtitle": "Create a voice from instructions"
+    },
+    "voiceWorkflowTtsV2v": {
+      "title": "Voice clone",
+      "subtitle": "Create a voice from reference audio"
+    },
+    "worldGenerate": {
+      "title": "World generation",
+      "subtitle": "Generate world scenes"
+    }
+  },
   "editor": {
     "common": {
       "timeoutLabel": "Timeout",
       "defaultPlaceholder": "Default",
-      "previewBadgeLabel": "Preview"
+      "previewBadgeLabel": "Preview",
+      "seedLabel": "Seed",
+      "seedHint": "Leave empty to use the provider default.",
+      "randomPlaceholder": "Random",
+      "noneLabel": "None"
     },
     "textGenerate": {
       "parametersLabel": "Parameters",
@@ -70,13 +122,60 @@
       "audioTuningSectionLabel": "Audio Tuning",
       "outputSectionLabel": "Output",
       "voiceIdLabel": "Voice ID",
-      "voiceIdHint": "Provider-specific voice identifier.",
+      "voiceIdHint": "Provider voice ID or preset voice reference.",
       "speakingRateLabel": "Speaking Rate",
       "volumeLabel": "Volume",
       "pitchSemitonesLabel": "Pitch (semitones)",
       "languageHintLabel": "Language Hint",
       "languageHintHint": "BCP-47 tag, e.g. en-US.",
       "responseFormatLabel": "Response Format"
+    },
+    "audioTranscribe": {
+      "parametersLabel": "Parameters",
+      "languageLabel": "Language",
+      "languageHint": "BCP-47 language hint, such as en or zh-CN.",
+      "responseFormatLabel": "Response format",
+      "speakerCountLabel": "Speakers",
+      "promptLabel": "Prompt",
+      "timestampsLabel": "Timestamps",
+      "diarizationLabel": "Diarization",
+      "promptPlaceholder": "Optional vocabulary or context"
+    },
+    "voiceWorkflow": {
+      "parametersLabel": "Parameters",
+      "referenceAssetLabel": "Reference voice",
+      "referenceAssetHint": "Use an existing local voice asset when available.",
+      "referenceTextLabel": "Reference text",
+      "voiceDesignPromptLabel": "Design prompt",
+      "voiceDesignPromptHint": "Describe the voice style to generate.",
+      "durationLabel": "Duration",
+      "referenceTextPlaceholder": "Optional transcript for the reference audio",
+      "voiceDesignPromptPlaceholder": "Warm, natural, conversational voice",
+      "referenceAssetPlaceholder": "Select a voice asset"
+    },
+    "image": {
+      "companionModelsLabel": "Companion models",
+      "parametersLabel": "Parameters",
+      "sizeLabel": "Size",
+      "responseFormatLabel": "Response format",
+      "stepsLabel": "Steps",
+      "cfgScaleLabel": "CFG scale",
+      "samplerLabel": "Sampler",
+      "schedulerLabel": "Scheduler",
+      "customOptionsLabel": "Custom options",
+      "customOptionsHint": "Advanced provider-specific options, one per line.",
+      "oneOptionPerLinePlaceholder": "key=value, one per line"
+    },
+    "video": {
+      "parametersLabel": "Parameters",
+      "modeLabel": "Mode",
+      "ratioLabel": "Ratio",
+      "durationLabel": "Duration",
+      "durationHint": "Duration in seconds.",
+      "resolutionLabel": "Resolution",
+      "fpsLabel": "FPS",
+      "cameraFixedLabel": "Fixed camera",
+      "generateAudioLabel": "Generate audio"
     }
   },
   "hub": {

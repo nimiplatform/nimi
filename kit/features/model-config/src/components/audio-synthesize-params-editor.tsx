@@ -32,7 +32,10 @@ export type AudioSynthesizeParamsEditorProps = {
   params: AudioSynthesizeParamsState;
   onParamsChange: (next: AudioSynthesizeParamsState) => void;
   copy: AudioSynthesizeParamsEditorCopy;
+  voiceOptions?: ReadonlyArray<{ value: string; label: string }>;
 };
+
+const DEFAULT_VOICE_SENTINEL = '__default_voice__';
 
 export function createAudioSynthesizeEditorCopy(
   t: (key: string, vars?: Record<string, string | number>) => string,
@@ -76,6 +79,16 @@ export function AudioSynthesizeParamsEditor(props: AudioSynthesizeParamsEditorPr
     props.onParamsChange({ ...params, [key]: value });
   };
 
+  const configuredVoiceOptions = props.voiceOptions || [];
+  const voiceSelectOptions = configuredVoiceOptions.length > 0
+    ? [
+        { value: DEFAULT_VOICE_SENTINEL, label: copy.defaultPlaceholder || 'Default' },
+        ...configuredVoiceOptions,
+        ...(params.voiceId && !configuredVoiceOptions.some((option) => option.value === params.voiceId)
+          ? [{ value: params.voiceId, label: params.voiceId }]
+          : []),
+      ]
+    : [];
   const voiceSectionLabel = copy.voiceSectionLabel ?? copy.parametersLabel;
   const audioTuningSectionLabel = copy.audioTuningSectionLabel ?? copy.parametersLabel;
   const outputSectionLabel = copy.outputSectionLabel ?? copy.parametersLabel;
@@ -87,11 +100,19 @@ export function AudioSynthesizeParamsEditor(props: AudioSynthesizeParamsEditorPr
       <section className="space-y-3.5">
         <EditorSectionTitle label={voiceSectionLabel} />
         <StackedFieldRow label={copy.voiceIdLabel} hint={copy.voiceIdHint}>
-          <PlainTextInput
-            value={params.voiceId}
-            onChange={(value) => updateParam('voiceId', value)}
-            placeholder={copy.defaultPlaceholder}
-          />
+          {voiceSelectOptions.length > 0 ? (
+            <PlainSelect
+              value={params.voiceId || DEFAULT_VOICE_SENTINEL}
+              onChange={(value) => updateParam('voiceId', value === DEFAULT_VOICE_SENTINEL ? '' : value)}
+              options={voiceSelectOptions}
+            />
+          ) : (
+            <PlainTextInput
+              value={params.voiceId}
+              onChange={(value) => updateParam('voiceId', value)}
+              placeholder={copy.defaultPlaceholder}
+            />
+          )}
         </StackedFieldRow>
         <StackedFieldRow label={copy.languageHintLabel} hint={copy.languageHintHint}>
           <PlainTextInput

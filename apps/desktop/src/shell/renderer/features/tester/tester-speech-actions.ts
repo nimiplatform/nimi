@@ -164,16 +164,26 @@ function makeVoiceWorkflowSuccess(input: {
 export async function runTesterAudioSynthesize(input: {
   binding: RuntimeRouteBinding | undefined;
   text: string;
-  voice: string;
+  voice?: string;
   audioFormat: string;
+  language?: string;
+  speed?: number;
+  pitch?: number;
+  volume?: number;
+  timeoutMs?: number;
 }, deps?: TesterSpeechActionDeps): Promise<TesterSpeechSuccess> {
   const runtimeClient = (deps?.getRuntimeClientImpl || getRuntimeClient)();
   const callParams = await (deps?.resolveCallParamsImpl || resolveCallParams)(input.binding);
   const t0 = nowMs(deps);
   const requestParams: Record<string, unknown> = {
     text: input.text,
-    voice: input.voice,
+    ...(input.voice ? { voice: input.voice } : {}),
     audioFormat: input.audioFormat,
+    ...(input.language ? { language: input.language } : {}),
+    ...(input.speed !== undefined ? { speed: input.speed } : {}),
+    ...(input.pitch !== undefined ? { pitch: input.pitch } : {}),
+    ...(input.volume !== undefined ? { volume: input.volume } : {}),
+    ...(input.timeoutMs !== undefined ? { timeoutMs: input.timeoutMs } : {}),
     ...(input.binding ? { binding: input.binding } : {}),
   };
   const result = await runtimeClient.media.tts.synthesize({
@@ -181,8 +191,13 @@ export async function runTesterAudioSynthesize(input: {
     route: callParams.route,
     connectorId: callParams.connectorId,
     text: input.text,
-    voice: input.voice,
+    ...(input.voice ? { voice: input.voice } : {}),
     audioFormat: input.audioFormat,
+    language: input.language,
+    speed: input.speed,
+    pitch: input.pitch,
+    volume: input.volume,
+    timeoutMs: input.timeoutMs,
     metadata: callParams.metadata,
   });
   const artifact = result.artifacts[0];

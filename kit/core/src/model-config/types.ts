@@ -108,6 +108,7 @@ export interface CapabilityItemOverride {
   readonly placeholder?: string;
   readonly detail?: string;
   readonly disabled?: boolean;
+  readonly audioSynthesizeVoiceOptions?: ReadonlyArray<{ value: string; label: string }>;
 }
 
 export interface AppModelConfigSurface {

@@ -43,11 +43,63 @@
       "title": "世界"
     }
   },
+  "capability": {
+    "audioSynthesize": {
+      "title": "文本转语音",
+      "subtitle": "从文本生成语音音频",
+      "detail": "通过选中的本地或云端语音模型运行文本转语音请求。"
+    },
+    "audioTranscribe": {
+      "title": "语音转文本",
+      "subtitle": "将音频转写为文本",
+      "detail": "通过选中的语音识别模型运行转写请求。"
+    },
+    "imageEdit": {
+      "title": "图像编辑",
+      "subtitle": "按提示词编辑图像"
+    },
+    "imageGenerate": {
+      "title": "图像生成",
+      "subtitle": "根据提示词生成图像"
+    },
+    "textEmbed": {
+      "title": "嵌入",
+      "subtitle": "生成向量嵌入"
+    },
+    "textGenerate": {
+      "title": "对话",
+      "subtitle": "文本生成"
+    },
+    "textGenerateVision": {
+      "title": "视觉对话",
+      "subtitle": "基于图像和文本生成回复"
+    },
+    "videoGenerate": {
+      "title": "视频生成",
+      "subtitle": "根据提示词生成视频"
+    },
+    "voiceWorkflowTtsT2v": {
+      "title": "语音设计",
+      "subtitle": "根据说明创建语音"
+    },
+    "voiceWorkflowTtsV2v": {
+      "title": "语音克隆",
+      "subtitle": "根据参考音频创建语音"
+    },
+    "worldGenerate": {
+      "title": "世界生成",
+      "subtitle": "生成世界场景"
+    }
+  },
   "editor": {
     "common": {
       "timeoutLabel": "超时",
       "defaultPlaceholder": "默认",
-      "previewBadgeLabel": "预览"
+      "previewBadgeLabel": "预览",
+      "seedLabel": "种子",
+      "seedHint": "留空则使用提供方默认值。",
+      "randomPlaceholder": "随机",
+      "noneLabel": "无"
     },
     "textGenerate": {
       "parametersLabel": "参数",
@@ -70,13 +122,60 @@
       "audioTuningSectionLabel": "音频调节",
       "outputSectionLabel": "输出",
       "voiceIdLabel": "声音 ID",
-      "voiceIdHint": "服务方提供的声音标识。",
+      "voiceIdHint": "提供方语音 ID 或预设语音引用。",
       "speakingRateLabel": "语速",
       "volumeLabel": "音量",
       "pitchSemitonesLabel": "音调（半音）",
       "languageHintLabel": "语言提示",
       "languageHintHint": "BCP-47 标签，如 zh-CN。",
       "responseFormatLabel": "返回格式"
+    },
+    "audioTranscribe": {
+      "parametersLabel": "参数",
+      "languageLabel": "语言",
+      "languageHint": "BCP-47 语言提示，例如 en 或 zh-CN。",
+      "responseFormatLabel": "响应格式",
+      "speakerCountLabel": "说话人数",
+      "promptLabel": "提示词",
+      "timestampsLabel": "时间戳",
+      "diarizationLabel": "说话人分离",
+      "promptPlaceholder": "可选词汇或上下文"
+    },
+    "voiceWorkflow": {
+      "parametersLabel": "参数",
+      "referenceAssetLabel": "参考语音",
+      "referenceAssetHint": "可用时使用已有本地语音资产。",
+      "referenceTextLabel": "参考文本",
+      "voiceDesignPromptLabel": "设计提示词",
+      "voiceDesignPromptHint": "描述要生成的语音风格。",
+      "durationLabel": "时长",
+      "referenceTextPlaceholder": "参考音频的可选转写文本",
+      "voiceDesignPromptPlaceholder": "温暖、自然、适合对话的声音",
+      "referenceAssetPlaceholder": "选择语音资产"
+    },
+    "image": {
+      "companionModelsLabel": "伴随模型",
+      "parametersLabel": "参数",
+      "sizeLabel": "尺寸",
+      "responseFormatLabel": "响应格式",
+      "stepsLabel": "步数",
+      "cfgScaleLabel": "CFG Scale",
+      "samplerLabel": "采样器",
+      "schedulerLabel": "调度器",
+      "customOptionsLabel": "自定义选项",
+      "customOptionsHint": "高级提供方特定选项，每行一条。",
+      "oneOptionPerLinePlaceholder": "key=value，每行一条"
+    },
+    "video": {
+      "parametersLabel": "参数",
+      "modeLabel": "模式",
+      "ratioLabel": "比例",
+      "durationLabel": "时长",
+      "durationHint": "单位为秒。",
+      "resolutionLabel": "分辨率",
+      "fpsLabel": "FPS",
+      "cameraFixedLabel": "固定镜头",
+      "generateAudioLabel": "生成音频"
     }
   },
   "hub": {

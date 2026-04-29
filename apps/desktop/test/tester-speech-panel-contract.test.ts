@@ -35,3 +35,19 @@ test('tester speech panel contract: stt and voice clone panels retain file input
   assert.match(transcribePanelSource, /type="file"/);
   assert.match(voicePanelSource, /type="file"/);
 });
+
+test('tester speech panel contract: tts panel uses persisted synthesize params', () => {
+  const synthesizePanelSource = readTesterPanel('panel-audio-synthesize.tsx');
+
+  assert.match(synthesizePanelSource, /params:\s*AudioSynthesizeParamsState/);
+  assert.match(synthesizePanelSource, /onParamsChange/);
+  assert.match(synthesizePanelSource, /params\.voiceId/);
+  assert.match(synthesizePanelSource, /params\.responseFormat/);
+  assert.match(synthesizePanelSource, /params\.speakingRate/);
+  assert.match(synthesizePanelSource, /params\.volume/);
+  assert.match(synthesizePanelSource, /params\.pitchSemitones/);
+  assert.match(synthesizePanelSource, /params\.languageHint/);
+  assert.match(synthesizePanelSource, /params\.timeoutMs/);
+  assert.match(synthesizePanelSource, /lastAutoVoiceBindingRef/);
+  assert.match(synthesizePanelSource, /updateParams\(\{\s*voiceId:\s*fallbackVoiceId\s*\}\)/);
+});

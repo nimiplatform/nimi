@@ -178,6 +178,7 @@ function renderEditor(
           <AudioSynthesizeParamsEditor
             copy={createAudioSynthesizeEditorCopy(t)}
             params={params}
+            voiceOptions={override.audioSynthesizeVoiceOptions}
             onParamsChange={(next) => writeCapabilityPatch(service, scopeRef, descriptor.capabilityId, { params: { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS, ...next } })}
           />
         ),

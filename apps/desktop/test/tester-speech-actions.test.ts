@@ -113,6 +113,11 @@ test('tester speech actions synthesize through runtime media.tts', async () => {
     text: 'hello tester tts',
     voice: 'ryan',
     audioFormat: 'mp3',
+    language: 'en',
+    speed: 1.2,
+    pitch: -1,
+    volume: 0.8,
+    timeoutMs: 120000,
   }, {
     getRuntimeClientImpl: () => runtimeClient as never,
     resolveCallParamsImpl: async () => mockCallParams,
@@ -122,6 +127,34 @@ test('tester speech actions synthesize through runtime media.tts', async () => {
   assert.equal((result.output as { audioUri?: string }).audioUri, 'file:///tmp/test.mp3');
   assert.equal(calls[0]?.kind, 'tts.synthesize');
   assert.equal((calls[0]?.input as Record<string, unknown>).voice, 'ryan');
+  assert.equal((calls[0]?.input as Record<string, unknown>).language, 'en');
+  assert.equal((calls[0]?.input as Record<string, unknown>).speed, 1.2);
+  assert.equal((calls[0]?.input as Record<string, unknown>).pitch, -1);
+  assert.equal((calls[0]?.input as Record<string, unknown>).volume, 0.8);
+  assert.equal((calls[0]?.input as Record<string, unknown>).timeoutMs, 120000);
+  assert.equal(result.diagnostics.requestParams.language, 'en');
+});
+
+test('tester speech actions allow provider default voice', async () => {
+  const { runtimeClient, calls } = createMockRuntimeClient();
+  await runTesterAudioSynthesize({
+    binding: {
+      source: 'cloud',
+      provider: 'speech',
+      model: 'speech/qwen3-tts',
+      modelId: 'speech/qwen3-tts',
+      connectorId: 'dashscope',
+    },
+    text: 'hello default voice',
+    voice: '',
+    audioFormat: 'mp3',
+  }, {
+    getRuntimeClientImpl: () => runtimeClient as never,
+    resolveCallParamsImpl: async () => ({ ...mockCallParams, route: 'cloud', connectorId: 'dashscope' }),
+  });
+
+  assert.equal(calls[0]?.kind, 'tts.synthesize');
+  assert.equal(Object.prototype.hasOwnProperty.call(calls[0]?.input as Record<string, unknown>, 'voice'), false);
 });
 
 test('tester speech actions transcribe bytes through runtime media.stt', async () => {

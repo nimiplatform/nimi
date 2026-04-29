@@ -4,6 +4,10 @@ import type { AIConfig, RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import type { CanonicalCapabilitySectionId } from '@nimiplatform/nimi-kit/core/runtime-capabilities';
 import { ScrollArea, IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
 import {
+  DEFAULT_AUDIO_SYNTHESIZE_PARAMS,
+  parseAudioSynthesizeParams,
+} from '@nimiplatform/nimi-kit/features/model-config';
+import {
   SidebarAffordanceChevron,
   SidebarHeader,
   SidebarItem,
@@ -141,6 +145,11 @@ function videoParamsFromConfig(config: AIConfig) {
   };
 }
 
+function audioSynthesizeParamsFromConfig(config: AIConfig) {
+  const stored = (config.capabilities.selectedParams['audio.synthesize'] || {}) as Record<string, unknown>;
+  return parseAudioSynthesizeParams(stored);
+}
+
 function mergeBindingIntoState(state: CapabilityState, binding: RuntimeRouteBinding | null): CapabilityState {
   return { ...state, binding };
 }
@@ -264,6 +273,7 @@ export function TesterPage() {
   );
   const activeLabels = CAPABILITY_LABELS[activeCapability];
   const currentVideoParams = useMemo(() => videoParamsFromConfig(testerConfig), [testerConfig]);
+  const currentAudioSynthesizeParams = useMemo(() => audioSynthesizeParamsFromConfig(testerConfig), [testerConfig]);
   const { history, clearCapability, removeEntry } = useTesterHistory(states);
   const activeHistory = history[activeCapability] ?? [];
   const activeMeta = CAP_META[activeCapability];
@@ -324,6 +334,8 @@ export function TesterPage() {
         return (
           <AudioSynthesizePanel
             state={activeState}
+            params={currentAudioSynthesizeParams}
+            onParamsChange={(next) => handleSettingsParamsChange('audio.synthesize', { ...DEFAULT_AUDIO_SYNTHESIZE_PARAMS, ...next })}
             onStateChange={(updater) => updateCapabilityState('audio.synthesize', updater)}
           />
         );

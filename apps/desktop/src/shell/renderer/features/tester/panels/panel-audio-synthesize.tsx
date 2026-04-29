@@ -1,6 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { SelectField, TextareaField, TextField } from '@nimiplatform/nimi-kit/ui';
+import {
+  AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS,
+  type AudioSynthesizeParamsState,
+} from '@nimiplatform/nimi-kit/features/model-config';
 import type { CapabilityState, VoiceOption } from '../tester-types.js';
 import { asString } from '../tester-utils.js';
 import { resolveEffectiveBinding } from '../tester-route.js';
@@ -12,6 +16,8 @@ import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 type AudioSynthesizePanelProps = {
   state: CapabilityState;
+  params: AudioSynthesizeParamsState;
+  onParamsChange: (next: AudioSynthesizeParamsState) => void;
   onStateChange: (updater: (prev: CapabilityState) => CapabilityState) => void;
 };
 
@@ -81,16 +87,13 @@ function VoicePopover(props: {
     ...props.voices.map((v) => ({ value: v.voiceId, label: `${v.name} [${v.lang}]` })),
   ], [props.voices, t]);
 
-  const formatOptions = [
-    { value: 'mp3', label: 'mp3' },
-    { value: 'wav', label: 'wav' },
-    { value: 'ogg', label: 'ogg' },
-    { value: 'pcm', label: 'pcm' },
-  ];
+  const formatOptions = AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS.map((item) => ({ value: item, label: item }));
 
   const triggerLabel = t('Tester.audioSynthesize.options', { defaultValue: 'Voice options' });
-  const summaryVoice = asString(props.manualVoiceId)
-    || (props.selectedVoiceId
+  const configuredVoice = asString(props.manualVoiceId);
+  const summaryVoice = configuredVoice
+    ? (props.voices.find((v) => v.voiceId === configuredVoice)?.name || configuredVoice)
+    : (props.selectedVoiceId
       ? (props.voices.find((v) => v.voiceId === props.selectedVoiceId)?.name || props.selectedVoiceId)
       : t('Tester.route.none'));
 
@@ -174,20 +177,45 @@ function VoicePopover(props: {
   );
 }
 
+function optionalFiniteNumber(value: string): number | undefined {
+  const text = asString(value);
+  if (!text) return undefined;
+  const numeric = Number(text);
+  return Number.isFinite(numeric) ? numeric : undefined;
+}
+
+function optionalPositiveInt(value: string): number | undefined {
+  const numeric = optionalFiniteNumber(value);
+  if (numeric === undefined || numeric <= 0) return undefined;
+  return Math.round(numeric);
+}
+
 export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
   const { t } = useTranslation();
-  const { state, onStateChange } = props;
+  const { state, params, onParamsChange, onStateChange } = props;
   const [text, setText] = React.useState('Hello, this is a test of text to speech synthesis.');
   const [voices, setVoices] = React.useState<VoiceOption[]>([]);
-  const [selectedVoiceId, setSelectedVoiceId] = React.useState('');
-  const [manualVoiceId, setManualVoiceId] = React.useState('');
-  const [audioFormat, setAudioFormat] = React.useState('mp3');
+  const lastAutoVoiceBindingRef = React.useRef('');
+  const configuredVoiceId = asString(params.voiceId);
+  const audioFormat = asString(params.responseFormat) || 'mp3';
+
+  const updateParams = React.useCallback((nextPatch: Partial<AudioSynthesizeParamsState>) => {
+    onParamsChange({ ...params, ...nextPatch });
+  }, [onParamsChange, params]);
 
   React.useEffect(() => {
     const effectiveBinding = resolveEffectiveBinding(state.snapshot, state.binding);
+    const bindingKey = [
+      effectiveBinding?.source || '',
+      effectiveBinding?.connectorId || '',
+      effectiveBinding?.model || '',
+      effectiveBinding?.modelId || '',
+      effectiveBinding?.localModelId || '',
+      effectiveBinding?.goRuntimeLocalModelId || '',
+    ].join('|');
     if (!effectiveBinding) {
       setVoices([]);
-      setSelectedVoiceId('');
+      lastAutoVoiceBindingRef.current = '';
       return;
     }
     let cancelled = false;
@@ -197,35 +225,51 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
         const result = await modClient.media.tts.listVoices({ binding: effectiveBinding });
         if (cancelled) return;
         setVoices(result.voices);
-        setSelectedVoiceId((prev) => {
-          if (prev && result.voices.some((v) => v.voiceId === prev)) return prev;
-          return result.voices[0]?.voiceId || '';
-        });
+        const fallbackVoiceId = result.voices[0]?.voiceId || '';
+        if (!configuredVoiceId && fallbackVoiceId && lastAutoVoiceBindingRef.current !== bindingKey) {
+          lastAutoVoiceBindingRef.current = bindingKey;
+          updateParams({ voiceId: fallbackVoiceId });
+        }
       } catch {
         if (cancelled) return;
         setVoices([]);
-        setSelectedVoiceId('');
       }
     })();
     return () => { cancelled = true; };
-  }, [state.snapshot, state.binding]);
+  }, [configuredVoiceId, state.snapshot, state.binding, updateParams]);
 
   const handleRun = React.useCallback(async () => {
     if (!asString(text)) {
       onStateChange((prev) => ({ ...prev, error: t('Tester.audioSynthesize.inputEmpty') }));
       return;
     }
-    const voice = asString(manualVoiceId) || asString(selectedVoiceId);
-    if (!voice) {
-      onStateChange((prev) => ({ ...prev, error: t('Tester.audioSynthesize.noVoiceSelected') }));
-      return;
-    }
+    const voice = configuredVoiceId;
     onStateChange((prev) => ({ ...prev, busy: true, error: '', diagnostics: makeEmptyDiagnostics() }));
     const t0 = Date.now();
     const binding = resolveEffectiveBinding(state.snapshot, state.binding) || undefined;
-    const requestParams: Record<string, unknown> = { text, voice, audioFormat, ...(binding ? { binding } : {}) };
+    const requestParams: Record<string, unknown> = {
+      text,
+      voice,
+      audioFormat,
+      language: asString(params.languageHint) || undefined,
+      speed: optionalFiniteNumber(params.speakingRate),
+      volume: optionalFiniteNumber(params.volume),
+      pitch: optionalFiniteNumber(params.pitchSemitones),
+      timeoutMs: optionalPositiveInt(params.timeoutMs),
+      ...(binding ? { binding } : {}),
+    };
     try {
-      const result = await runTesterAudioSynthesize({ binding, text, voice, audioFormat });
+      const result = await runTesterAudioSynthesize({
+        binding,
+        text,
+        voice,
+        audioFormat,
+        language: asString(params.languageHint) || undefined,
+        speed: optionalFiniteNumber(params.speakingRate),
+        volume: optionalFiniteNumber(params.volume),
+        pitch: optionalFiniteNumber(params.pitchSemitones),
+        timeoutMs: optionalPositiveInt(params.timeoutMs),
+      });
       onStateChange((prev) => ({
         ...prev,
         busy: false,
@@ -250,7 +294,7 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
         diagnostics: failed.diagnostics,
       }));
     }
-  }, [audioFormat, manualVoiceId, onStateChange, selectedVoiceId, state.binding, state.snapshot, text, t]);
+  }, [audioFormat, configuredVoiceId, onStateChange, params.languageHint, params.pitchSemitones, params.speakingRate, params.timeoutMs, params.volume, state.binding, state.snapshot, text, t]);
 
   const audioOutput = state.output as { audioUri?: string; mimeType?: string; durationMs?: number } | null;
   const canSubmit = !state.busy && Boolean(text.trim());
@@ -278,12 +322,12 @@ export function AudioSynthesizePanel(props: AudioSynthesizePanelProps) {
         <div className="mt-2 flex items-center justify-between gap-2">
           <VoicePopover
             voices={voices}
-            selectedVoiceId={selectedVoiceId}
-            onSelectedVoiceIdChange={setSelectedVoiceId}
-            manualVoiceId={manualVoiceId}
-            onManualVoiceIdChange={setManualVoiceId}
+            selectedVoiceId={configuredVoiceId}
+            onSelectedVoiceIdChange={(next) => updateParams({ voiceId: next })}
+            manualVoiceId={params.voiceId}
+            onManualVoiceIdChange={(next) => updateParams({ voiceId: next })}
             audioFormat={audioFormat}
-            onAudioFormatChange={setAudioFormat}
+            onAudioFormatChange={(next) => updateParams({ responseFormat: next })}
           />
           <button
             type="button"

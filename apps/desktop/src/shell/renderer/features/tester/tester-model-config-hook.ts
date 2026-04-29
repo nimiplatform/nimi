@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AIConfig } from '@nimiplatform/sdk/mod';
 import { applyAIProfileToConfig } from '@nimiplatform/sdk/mod';
@@ -14,7 +14,8 @@ import { dispatchRuntimeConfigOpenPage } from '../runtime-config/runtime-config-
 import { loadUserProfiles } from '../runtime-config/runtime-config-profile-storage';
 import { getDesktopRouteModelPickerProvider } from '../runtime-config/desktop-route-model-picker-provider';
 import { useLocalAssets } from '../chat/capability-settings-shared';
-import { TESTER_AI_SCOPE_REF } from './tester-ai-config';
+import { bindingFromTesterConfig, TESTER_AI_SCOPE_REF } from './tester-ai-config';
+import { createModRuntimeClient } from '@nimiplatform/sdk/mod';
 
 const TESTER_ENABLED_CAPABILITIES = [
   'text.generate',
@@ -39,6 +40,30 @@ export function useTesterModelConfigController(config: AIConfig): TesterModelCon
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const aiConfigService = useMemo(() => getDesktopAIConfigService(), []);
   const assetsQuery = useLocalAssets();
+  const ttsBinding = useMemo(() => bindingFromTesterConfig(config, 'audio.synthesize'), [config]);
+  const [ttsVoiceOptions, setTtsVoiceOptions] = useState<ReadonlyArray<{ value: string; label: string }>>([]);
+
+  useEffect(() => {
+    if (!ttsBinding) {
+      setTtsVoiceOptions([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const client = createModRuntimeClient('core:runtime');
+        const response = await client.media.tts.listVoices({ binding: ttsBinding });
+        if (cancelled) return;
+        setTtsVoiceOptions(response.voices.map((voice) => ({
+          value: voice.voiceId,
+          label: `${voice.name} [${voice.lang}]`,
+        })));
+      } catch {
+        if (!cancelled) setTtsVoiceOptions([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [ttsBinding]);
 
   const surface: AppModelConfigSurface = useMemo(() => ({
     scopeRef: TESTER_AI_SCOPE_REF,
@@ -51,8 +76,13 @@ export function useTesterModelConfigController(config: AIConfig): TesterModelCon
       list: () => assetsQuery.data || [],
       loading: assetsQuery.isLoading,
     },
+    capabilityOverrides: {
+      'audio.synthesize': {
+        audioSynthesizeVoiceOptions: ttsVoiceOptions,
+      },
+    },
     i18n: { t },
-  }), [aiConfigService, assetsQuery.data, assetsQuery.isLoading, t]);
+  }), [aiConfigService, assetsQuery.data, assetsQuery.isLoading, t, ttsVoiceOptions]);
 
   const profileCopy = useMemo(() => defaultModelConfigProfileCopy(t), [t]);
   const userProfilesSource = useMemo(() => ({ list: () => loadUserProfiles() }), []);
