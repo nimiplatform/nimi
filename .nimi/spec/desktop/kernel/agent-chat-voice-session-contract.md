@@ -73,7 +73,7 @@ adjacent authority 边界固定为：
 - `llm-adapter-contract.md`（`D-LLM-005`）继续拥有 runtime-aligned TTS / STT route 和 API
   truth
 - `.nimi/spec/runtime/kernel/voice-contract.md`（`K-VOICE-*`）继续拥有
-  `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v`、preset/custom voice discovery、voice
+  `voice_workflow.voice_clone`、`voice_workflow.voice_design`、preset/custom voice discovery、voice
   asset 与 scenario job truth
 
 若任一 consumer 需要 broader voice session 决策，必须先读取同一份 desktop-owned

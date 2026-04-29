@@ -28,8 +28,8 @@ type ProviderRecord struct {
 	SupportsSTT bool
 	SupportsMusic bool
 	SupportsMusicIteration bool
-	SupportsTTSV2V bool
-	SupportsTTST2V bool
+	SupportsVoiceClone bool
+	SupportsVoiceDesign bool
 }
 
 var AllProviders = []string{
@@ -125,6 +125,7 @@ var SourceProviders = []string{
 	"stepfun",
 	"together",
 	"volcengine",
+	"volcengine_openspeech",
 	"worldlabs",
 	"xai",
 }
@@ -204,8 +205,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"aws_polly": {
 		ID: "aws_polly",
@@ -232,8 +233,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"azure": {
 		ID: "azure",
@@ -260,8 +261,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"azure_speech": {
 		ID: "azure_speech",
@@ -288,8 +289,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"bedrock": {
 		ID: "bedrock",
@@ -316,8 +317,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"cohere": {
 		ID: "cohere",
@@ -344,8 +345,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"dashscope": {
 		ID: "dashscope",
@@ -372,8 +373,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: true,
-		SupportsTTST2V: true,
+		SupportsVoiceClone: true,
+		SupportsVoiceDesign: true,
 	},
 	"deepseek": {
 		ID: "deepseek",
@@ -400,8 +401,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"elevenlabs": {
 		ID: "elevenlabs",
@@ -428,8 +429,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: true,
-		SupportsTTST2V: true,
+		SupportsVoiceClone: true,
+		SupportsVoiceDesign: true,
 	},
 	"fireworks": {
 		ID: "fireworks",
@@ -456,8 +457,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"fish_audio": {
 		ID: "fish_audio",
@@ -484,8 +485,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: true,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: true,
+		SupportsVoiceDesign: false,
 	},
 	"flux": {
 		ID: "flux",
@@ -512,8 +513,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"gemini": {
 		ID: "gemini",
@@ -540,8 +541,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"glm": {
 		ID: "glm",
@@ -568,8 +569,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"google_cloud_tts": {
 		ID: "google_cloud_tts",
@@ -596,8 +597,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"google_veo": {
 		ID: "google_veo",
@@ -624,8 +625,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"groq": {
 		ID: "groq",
@@ -652,8 +653,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"hunyuan": {
 		ID: "hunyuan",
@@ -680,8 +681,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"ideogram": {
 		ID: "ideogram",
@@ -708,8 +709,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"kimi": {
 		ID: "kimi",
@@ -736,8 +737,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"kling": {
 		ID: "kling",
@@ -764,8 +765,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"local": {
 		ID: "local",
@@ -792,8 +793,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: true,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: true,
-		SupportsTTST2V: true,
+		SupportsVoiceClone: true,
+		SupportsVoiceDesign: true,
 	},
 	"loudly": {
 		ID: "loudly",
@@ -820,8 +821,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: true,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"luma": {
 		ID: "luma",
@@ -848,8 +849,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"minimax": {
 		ID: "minimax",
@@ -876,8 +877,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"mistral": {
 		ID: "mistral",
@@ -904,8 +905,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"mubert": {
 		ID: "mubert",
@@ -932,8 +933,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: true,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"nimillm": {
 		ID: "nimillm",
@@ -960,8 +961,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"openai": {
 		ID: "openai",
@@ -988,8 +989,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"openai_codex": {
 		ID: "openai_codex",
@@ -1016,8 +1017,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"openai_compatible": {
 		ID: "openai_compatible",
@@ -1044,8 +1045,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"openrouter": {
 		ID: "openrouter",
@@ -1072,8 +1073,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"perplexity": {
 		ID: "perplexity",
@@ -1100,8 +1101,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"pika": {
 		ID: "pika",
@@ -1128,8 +1129,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"qianfan": {
 		ID: "qianfan",
@@ -1156,8 +1157,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"runway": {
 		ID: "runway",
@@ -1184,8 +1185,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"siliconflow": {
 		ID: "siliconflow",
@@ -1212,8 +1213,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"soundverse": {
 		ID: "soundverse",
@@ -1240,8 +1241,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: true,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"spark": {
 		ID: "spark",
@@ -1268,8 +1269,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"spark_reasoning": {
 		ID: "spark_reasoning",
@@ -1296,8 +1297,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"stability": {
 		ID: "stability",
@@ -1324,8 +1325,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: true,
 		SupportsMusicIteration: true,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"stepfun": {
 		ID: "stepfun",
@@ -1352,8 +1353,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: true,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: true,
+		SupportsVoiceDesign: false,
 	},
 	"together": {
 		ID: "together",
@@ -1380,8 +1381,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"volcengine": {
 		ID: "volcengine",
@@ -1408,8 +1409,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"volcengine_openspeech": {
 		ID: "volcengine_openspeech",
@@ -1436,8 +1437,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"worldlabs": {
 		ID: "worldlabs",
@@ -1464,8 +1465,8 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: false,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 	"xai": {
 		ID: "xai",
@@ -1492,7 +1493,7 @@ var Records = map[string]ProviderRecord{
 		SupportsSTT: true,
 		SupportsMusic: false,
 		SupportsMusicIteration: false,
-		SupportsTTSV2V: false,
-		SupportsTTST2V: false,
+		SupportsVoiceClone: false,
+		SupportsVoiceDesign: false,
 	},
 }

@@ -11,7 +11,7 @@ Phase 1 本地执行引擎固定为：
 - `speech`：本地语音引擎族。当前 ordinary-user admitted baseline 固定围绕 baseline `Qwen3` family line：
   - `audio.transcribe` default lane: `Qwen3-ASR-0.6B`
   - `audio.synthesize` default lane: `Qwen3-TTS-12Hz-0.6B-CustomVoice`
-  - `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 只有在真实本地 workflow execution plane 被显式 cutover admitted 后才能升格为 local truth
+  - `voice_workflow.voice_clone`、`voice_workflow.voice_design` 只有在真实本地 workflow execution plane 被显式 cutover admitted 后才能升格为 local truth
   - 当前 baseline admitted local workflow family 边界固定为 `qwen3_tts`，不得被扩写成 generic local workflow truth
 - `sidecar`：外部自托管 music sidecar，使用 Nimi music canonical HTTP 协议；当前仅支持 `ATTACHED_ENDPOINT`
 
@@ -95,7 +95,7 @@ speech product posture:
   - capability materialization 默认按 requested capability 懒加载：
     - `audio.transcribe` 只 materialize 当前 admitted `qwen3_asr` slice
     - `audio.synthesize` 只 materialize 当前 admitted `qwen3_tts` plain synth slice
-    - future-admitted `voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` 也必须分别按自身 slice 懒加载，不得因为 plain `TTS` 已请求就自动预取
+    - future-admitted `voice_workflow.voice_clone` / `voice_workflow.voice_design` 也必须分别按自身 slice 懒加载，不得因为 plain `TTS` 已请求就自动预取
   - runtime/desktop 必须复用已验证的 env/cache/materialized slice；除非 repair/remove 明确要求，否则不得默认重下载或重 bootstrap
 - `media.diffusers`：只在 `media` 不支持 family / artifact completeness / pipeline variant 时作为内部 fallback 启动。当前 kernel 基线仍规定 `media.diffusers` 不得作为 public engine target，不得在未完成规范修订前直接升格为 matrix-supported canonical path。
 
@@ -444,7 +444,7 @@ v1 固定 internal reason key 集合（audit / health / structured error detail 
 - `audio.synthesize` 必须至少验证 TTS driver 与主 artifact 完整；只有 target logical model 已 admitted 且投影一致、catalog 顶层 `ready=true`、target row `ready=true`、row capability 命中 `audio.synthesize`，且 supervised path 下 target endpoint 与 managed speech endpoint 一致时，才允许投影为 admitted local ready。
 - placeholder host 与 admitted plain-speech host 必须显式分离：在 admitted local plain-speech execution plane 尚未 materialize 前，speech canonical HTTP surface 可以存在，但必须保持 non-ready / fail-close；不得借 `ACTIVE`、`READY`、generic health 或静态 catalog 投影成 admitted success。
 - speech supervised data-boundary minimum 属于 admitted contract：temp files 必须有 bounded lifecycle；public detail 不得暴露 raw bootstrap path、raw probe URL 或 raw request payload；reference audio、transcription text、voice design prompt 不得因 generic logging 默认进入长期保留路径。
-- 当未来 local workflow 被 admission 时，`voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` 必须验证 workflow driver 可用；在 admission 之前，缺失独立 workflow readiness truth 时必须 fail-close，不得投影为 local admitted success。
+- 当未来 local workflow 被 admission 时，`voice_workflow.voice_clone` / `voice_workflow.voice_design` 必须验证 workflow driver 可用；在 admission 之前，缺失独立 workflow readiness truth 时必须 fail-close，不得投影为 local admitted success。
 - 对 baseline admitted local workflow，workflow driver/readiness truth 也必须保持 family-scoped：当前只允许 `qwen3_tts` 进入 admitted execution proof，其成功不得隐式放宽到其它 local workflow family。
 
 `sidecar` 当前不进入标准 supervised 健康探测，attached endpoint 的可用性由实际 music 请求 fail-close。

@@ -37,11 +37,11 @@ mappings:
     source: canonical
     asset_kind: stt
 
-  - token: voice_workflow.tts_v2v
+  - token: voice_workflow.voice_clone
     source: canonical
     asset_kind: tts
 
-  - token: voice_workflow.tts_t2v
+  - token: voice_workflow.voice_design
     source: canonical
     asset_kind: tts
 

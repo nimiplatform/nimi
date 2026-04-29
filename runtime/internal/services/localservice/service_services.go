@@ -542,7 +542,7 @@ func unsupportedProviderCapabilityPolicyGate(provider string, capability string)
 func isKnownLocalCapability(capability string) bool {
 	switch localrouting.NormalizeCapability(capability) {
 	case "text.generate", "text.embed", "image.generate", "image.edit", "video.generate", "i2v", "image.understand", "audio.understand", "music.generate",
-		"audio.synthesize", "audio.transcribe", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+		"audio.synthesize", "audio.transcribe", "voice_workflow.voice_clone", "voice_workflow.voice_design":
 		return true
 	default:
 		return false

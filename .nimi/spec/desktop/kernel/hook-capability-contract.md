@@ -105,7 +105,7 @@ Capability 检查流程：
 
 - Hook permission key 负责授权 mod 是否可以调用某个 desktop/runtime facade 方法。
 - Runtime canonical capability token 负责在 `runtime.route.listOptions/resolve/checkHealth` 中判定 connector/model/workflow 的支持面。
-- Hook permission key 不是 provider/model 能力真相；Desktop 不得用 `runtime.*` permission 反推 `text.generate` / `audio.synthesize` / `voice_workflow.tts_v2v` 等 runtime canonical capability。
+- Hook permission key 不是 provider/model 能力真相；Desktop 不得用 `runtime.*` permission 反推 `text.generate` / `audio.synthesize` / `voice_workflow.voice_clone` 等 runtime canonical capability。
 
 ## D-HOOK-009 — Runtime Capability 域
 

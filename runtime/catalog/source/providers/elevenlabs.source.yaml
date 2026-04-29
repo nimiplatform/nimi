@@ -220,8 +220,8 @@ models:
 
 voice_workflow_models:
   - workflow_model_id: elevenlabs-voice-clone
-    workflow_type: tts_v2v
-    input_contract_ref: elevenlabs_tts_v2v_input_v1
+    workflow_type: voice_clone
+    input_contract_ref: elevenlabs_voice_clone_input_v1
     output_persistence: provider_persistent
     request_options:
       text_prompt_mode: unsupported
@@ -236,8 +236,8 @@ voice_workflow_models:
     langs_ref: short_multilingual_v1
     source_ids: [elevenlabs_voice_clone]
   - workflow_model_id: elevenlabs-voice-design
-    workflow_type: tts_t2v
-    input_contract_ref: elevenlabs_tts_t2v_input_v1
+    workflow_type: voice_design
+    input_contract_ref: elevenlabs_voice_design_input_v1
     output_persistence: provider_persistent
     request_options:
       instruction_text_mode: required
@@ -253,20 +253,20 @@ voice_workflow_models:
 model_workflow_bindings:
   - model_id: eleven_multilingual_sts_v2
     workflow_model_refs: [elevenlabs-voice-clone]
-    workflow_types: [tts_v2v]
+    workflow_types: [voice_clone]
   - model_id: eleven_english_sts_v2
     workflow_model_refs: [elevenlabs-voice-clone]
-    workflow_types: [tts_v2v]
+    workflow_types: [voice_clone]
   - model_id: eleven_ttv_v3
     workflow_model_refs: [elevenlabs-voice-design]
-    workflow_types: [tts_t2v]
+    workflow_types: [voice_design]
   - model_id: eleven_multilingual_ttv_v2
     workflow_model_refs: [elevenlabs-voice-design]
-    workflow_types: [tts_t2v]
+    workflow_types: [voice_design]
 
 voice_handle_policies:
   - policy_id: elevenlabs_provider_persistent_default
-    applies_to_workflow_types: [tts_v2v, tts_t2v]
+    applies_to_workflow_types: [voice_clone, voice_design]
     persistence: provider_persistent
     default_ttl: none
     scope: user_scoped

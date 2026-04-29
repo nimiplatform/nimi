@@ -40,7 +40,7 @@ SDK 稳定 typed result `RuntimeRouteDescribeResult` 必须保持以下公共字
 字段和值域必须与 `K-RPC-017` 同形：
 
 - `TextGenerateRouteMetadata.traceModeSupport` 只能是 `'none' | 'hide' | 'separate'`
-- `VoiceWorkflow*RouteMetadata.workflowType` 只能是 `'tts_v2v'` 或 `'tts_t2v'`
+- `VoiceWorkflow*RouteMetadata.workflowType` 只能是 `'voice_clone'` 或 `'voice_design'`
 - 不得把结果降格为 `Struct`、`Record<string, unknown>`、provider raw payload 或自由字符串 map
 
 ## S-RUNTIME-076 Fail-Close Projection

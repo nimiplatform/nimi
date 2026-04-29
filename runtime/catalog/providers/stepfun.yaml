@@ -700,8 +700,8 @@ selection_profiles:
     rationale: StepFun's current flagship general-purpose reasoning model, while step-3.5-flash-2603 stays admitted as the optimized agentic variant.
 voice_workflow_models:
   - workflow_model_id: stepfun-voice-clone
-    workflow_type: tts_v2v
-    input_contract_ref: stepfun_tts_v2v_input_v2
+    workflow_type: voice_clone
+    input_contract_ref: stepfun_voice_clone_input_v2
     output_persistence: provider_persistent
     request_options:
       text_prompt_mode: required
@@ -727,11 +727,11 @@ model_workflow_bindings:
     workflow_model_refs:
       - stepfun-voice-clone
     workflow_types:
-      - tts_v2v
+      - voice_clone
 voice_handle_policies:
   - policy_id: stepfun_provider_persistent_default
     applies_to_workflow_types:
-      - tts_v2v
+      - voice_clone
     persistence: provider_persistent
     default_ttl: none
     scope: user_scoped

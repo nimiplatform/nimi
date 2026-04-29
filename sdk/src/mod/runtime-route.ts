@@ -14,8 +14,8 @@ export type RuntimeCanonicalCapability =
   | 'audio.synthesize'
   | 'audio.transcribe'
   | 'music.generate'
-  | 'voice_workflow.tts_v2v'
-  | 'voice_workflow.tts_t2v';
+  | 'voice_workflow.voice_clone'
+  | 'voice_workflow.voice_design';
 
 export type RuntimeRouteBinding = {
   source: RuntimeRouteSource;
@@ -39,8 +39,8 @@ export type RuntimeRouteMetadataKind =
   | 'text.generate'
   | 'audio.synthesize'
   | 'audio.transcribe'
-  | 'voice_workflow.tts_v2v'
-  | 'voice_workflow.tts_t2v';
+  | 'voice_workflow.voice_clone'
+  | 'voice_workflow.voice_design';
 
 export type TextGenerateRouteMetadata = {
   supportsThinking: boolean;
@@ -89,8 +89,8 @@ export type SpeechTranscribeRouteMetadata = {
 
 export type VoiceWorkflowFieldMode = 'unsupported' | 'optional' | 'required';
 
-export type VoiceWorkflowTtsV2vRouteMetadata = {
-  workflowType: 'tts_v2v';
+export type VoiceWorkflowVoiceCloneRouteMetadata = {
+  workflowType: 'voice_clone';
   requiresTargetSynthesisBinding: boolean;
   textPromptMode: VoiceWorkflowFieldMode;
   supportsLanguageHints: boolean;
@@ -102,8 +102,8 @@ export type VoiceWorkflowTtsV2vRouteMetadata = {
   providerExtensionSchemaVersion?: string;
 };
 
-export type VoiceWorkflowTtsT2vRouteMetadata = {
-  workflowType: 'tts_t2v';
+export type VoiceWorkflowVoiceDesignRouteMetadata = {
+  workflowType: 'voice_design';
   requiresTargetSynthesisBinding: boolean;
   instructionTextMode: VoiceWorkflowFieldMode;
   previewTextMode: VoiceWorkflowFieldMode;
@@ -136,18 +136,18 @@ export type RuntimeRouteDescribeResult =
     metadata: SpeechTranscribeRouteMetadata;
   }
   | {
-    capability: 'voice_workflow.tts_v2v';
+    capability: 'voice_workflow.voice_clone';
     metadataVersion: RuntimeRouteMetadataVersion;
     resolvedBindingRef: RuntimeRouteResolvedBindingRef;
-    metadataKind: 'voice_workflow.tts_v2v';
-    metadata: VoiceWorkflowTtsV2vRouteMetadata;
+    metadataKind: 'voice_workflow.voice_clone';
+    metadata: VoiceWorkflowVoiceCloneRouteMetadata;
   }
   | {
-    capability: 'voice_workflow.tts_t2v';
+    capability: 'voice_workflow.voice_design';
     metadataVersion: RuntimeRouteMetadataVersion;
     resolvedBindingRef: RuntimeRouteResolvedBindingRef;
-    metadataKind: 'voice_workflow.tts_t2v';
-    metadata: VoiceWorkflowTtsT2vRouteMetadata;
+    metadataKind: 'voice_workflow.voice_design';
+    metadata: VoiceWorkflowVoiceDesignRouteMetadata;
   };
 
 export const RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY = 'x-nimi-route-describe-result';
@@ -211,8 +211,8 @@ export function parseRuntimeCanonicalCapability(value: unknown): RuntimeCanonica
     || normalized === 'audio.synthesize'
     || normalized === 'audio.transcribe'
     || normalized === 'music.generate'
-    || normalized === 'voice_workflow.tts_v2v'
-    || normalized === 'voice_workflow.tts_t2v'
+    || normalized === 'voice_workflow.voice_clone'
+    || normalized === 'voice_workflow.voice_design'
   ) {
     return normalized;
   }
@@ -227,8 +227,8 @@ export function parseRuntimeRouteMetadataKind(value: unknown): RuntimeRouteMetad
     capability === 'text.generate'
     || capability === 'audio.synthesize'
     || capability === 'audio.transcribe'
-    || capability === 'voice_workflow.tts_v2v'
-    || capability === 'voice_workflow.tts_t2v'
+    || capability === 'voice_workflow.voice_clone'
+    || capability === 'voice_workflow.voice_design'
   ) {
     return capability;
   }
@@ -498,14 +498,14 @@ function parseSpeechTranscribeRouteMetadata(value: unknown): SpeechTranscribeRou
   };
 }
 
-function parseVoiceWorkflowTtsV2vRouteMetadata(value: unknown): VoiceWorkflowTtsV2vRouteMetadata | null {
+function parseVoiceWorkflowVoiceCloneRouteMetadata(value: unknown): VoiceWorkflowVoiceCloneRouteMetadata | null {
   const record = asRecord(value);
   const textPromptMode = String(record.textPromptMode || '').trim();
   const allowedReferenceAudioMimeTypes = Array.isArray(record.allowedReferenceAudioMimeTypes)
     ? record.allowedReferenceAudioMimeTypes.map((item) => String(item || '').trim()).filter(Boolean)
     : [];
   if (
-    record.workflowType !== 'tts_v2v'
+    record.workflowType !== 'voice_clone'
     || (textPromptMode !== 'unsupported' && textPromptMode !== 'optional' && textPromptMode !== 'required')
     || typeof record.requiresTargetSynthesisBinding !== 'boolean'
     || typeof record.supportsLanguageHints !== 'boolean'
@@ -517,7 +517,7 @@ function parseVoiceWorkflowTtsV2vRouteMetadata(value: unknown): VoiceWorkflowTts
     return null;
   }
   return {
-    workflowType: 'tts_v2v',
+    workflowType: 'voice_clone',
     requiresTargetSynthesisBinding: record.requiresTargetSynthesisBinding,
     textPromptMode,
     supportsLanguageHints: record.supportsLanguageHints,
@@ -530,12 +530,12 @@ function parseVoiceWorkflowTtsV2vRouteMetadata(value: unknown): VoiceWorkflowTts
   };
 }
 
-function parseVoiceWorkflowTtsT2vRouteMetadata(value: unknown): VoiceWorkflowTtsT2vRouteMetadata | null {
+function parseVoiceWorkflowVoiceDesignRouteMetadata(value: unknown): VoiceWorkflowVoiceDesignRouteMetadata | null {
   const record = asRecord(value);
   const instructionTextMode = String(record.instructionTextMode || '').trim();
   const previewTextMode = String(record.previewTextMode || '').trim();
   if (
-    record.workflowType !== 'tts_t2v'
+    record.workflowType !== 'voice_design'
     || typeof record.requiresTargetSynthesisBinding !== 'boolean'
     || (instructionTextMode !== 'unsupported' && instructionTextMode !== 'optional' && instructionTextMode !== 'required')
     || (previewTextMode !== 'unsupported' && previewTextMode !== 'optional' && previewTextMode !== 'required')
@@ -545,7 +545,7 @@ function parseVoiceWorkflowTtsT2vRouteMetadata(value: unknown): VoiceWorkflowTts
     return null;
   }
   return {
-    workflowType: 'tts_t2v',
+    workflowType: 'voice_design',
     requiresTargetSynthesisBinding: record.requiresTargetSynthesisBinding,
     instructionTextMode,
     previewTextMode,
@@ -651,25 +651,25 @@ export function parseRuntimeRouteDescribeResult(value: unknown): RuntimeRouteDes
     };
   }
 
-  if (capability === 'voice_workflow.tts_v2v') {
-    const metadata = parseVoiceWorkflowTtsV2vRouteMetadata(record.metadata);
+  if (capability === 'voice_workflow.voice_clone') {
+    const metadata = parseVoiceWorkflowVoiceCloneRouteMetadata(record.metadata);
     if (!metadata) return null;
     return {
-      capability: 'voice_workflow.tts_v2v',
+      capability: 'voice_workflow.voice_clone',
       metadataVersion: 'v1',
       resolvedBindingRef,
-      metadataKind: 'voice_workflow.tts_v2v',
+      metadataKind: 'voice_workflow.voice_clone',
       metadata,
     };
   }
 
-  const metadata = parseVoiceWorkflowTtsT2vRouteMetadata(record.metadata);
+  const metadata = parseVoiceWorkflowVoiceDesignRouteMetadata(record.metadata);
   if (!metadata) return null;
   return {
-    capability: 'voice_workflow.tts_t2v',
+    capability: 'voice_workflow.voice_design',
     metadataVersion: 'v1',
     resolvedBindingRef,
-    metadataKind: 'voice_workflow.tts_t2v',
+    metadataKind: 'voice_workflow.voice_design',
     metadata,
   };
 }

@@ -166,8 +166,8 @@ func catalogConnectorModelCapabilities(
 		seen[capability] = struct{}{}
 		capabilities = append(capabilities, capability)
 	}
-	appendIfSupported(runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, aicapabilities.VoiceWorkflowTTSV2V)
-	appendIfSupported(runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN, aicapabilities.VoiceWorkflowTTST2V)
+	appendIfSupported(runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, aicapabilities.VoiceWorkflowVoiceClone)
+	appendIfSupported(runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN, aicapabilities.VoiceWorkflowVoiceDesign)
 	return capabilities
 }
 

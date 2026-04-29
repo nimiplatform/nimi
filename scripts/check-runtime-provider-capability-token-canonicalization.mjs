@@ -35,8 +35,8 @@ const canonicalCapabilityTokens = [
   'audio.transcribe',
   'music.generate',
   'music.generate.iteration',
-  'voice_workflow.tts_v2v',
-  'voice_workflow.tts_t2v',
+  'voice_workflow.voice_clone',
+  'voice_workflow.voice_design',
 ];
 
 let failed = false;

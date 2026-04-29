@@ -453,20 +453,19 @@ test('build request: tts modal without voiceRef returns undefined voiceRef', asy
   }
 });
 
-test('build request: tts modal with empty provider voice ref returns undefined voiceRef', async () => {
+test('build request: tts modal with empty provider voice ref fails closed', async () => {
   const ctx = createMockContext();
-  const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
-    modal: 'tts',
-    input: {
-      model: 'tts-model',
-      text: 'empty voice',
-      voiceRef: { kind: 'provider_voice_ref', providerVoiceRef: '  ' },
-    },
-  });
-
-  if (result.spec?.spec.oneofKind === 'speechSynthesize') {
-    assert.equal(result.spec.spec.speechSynthesize.voiceRef, undefined);
-  }
+  await assert.rejects(
+    () => runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
+      modal: 'tts',
+      input: {
+        model: 'tts-model',
+        text: 'empty voice',
+        voiceRef: { kind: 'provider_voice_ref', providerVoiceRef: '  ' },
+      },
+    }),
+    /provider_voice_ref requires providerVoiceRef/,
+  );
 });
 
 test('build request: tts modal maps preset voice ref', async () => {

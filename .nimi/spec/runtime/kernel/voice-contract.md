@@ -6,8 +6,8 @@
 
 Voice 是 Runtime 一等能力，负责 Voice 创建场景与 voice 资产生命周期：
 
-- `tts_v2v`（voice/audio -> voice）
-- `tts_t2v`（text -> voice）
+- `voice_clone`（voice/audio -> voice）
+- `voice_design`（text -> voice）
 
 Voice 创建必须通过 Scenario 抽象统一执行：
 
@@ -163,8 +163,8 @@ workflow-capable speech family 的验收必须保持 family-level 边界，不�
 - workflow-capable local speech family（例如当前 baseline 规划线的
   `qwen3_tts`，或后续可能 admitted 的其它 family）可用于验证：
   - `audio.synthesize`
-  - `voice_workflow.tts_t2v`
-  - `voice_workflow.tts_v2v`
+  - `voice_workflow.voice_design`
+  - `voice_workflow.voice_clone`
 - 但它们不得被当作 `audio.transcribe` 的替代验收对象
 
 `audio.transcribe` 必须继续通过独立 STT family 的 admitted truth 验证，禁止以 workflow-capable TTS family 的成功结果隐式覆盖 STT readiness。
@@ -186,8 +186,8 @@ workflow-capable speech family 的验收必须保持 family-level 边界，不�
   - design workflow default lane:
     - `Qwen3-TTS-12Hz-1.7B-VoiceDesign`
 - admitted workflow types 仅限：
-  - `tts_v2v`
-  - `tts_t2v`
+  - `voice_clone`
+  - `voice_design`
 
 边界要求：
 

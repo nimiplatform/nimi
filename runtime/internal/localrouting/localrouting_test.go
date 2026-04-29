@@ -16,7 +16,7 @@ func TestProviderSupportsCapability(t *testing.T) {
 		{provider: "media", capability: "image.generate", want: true},
 		{provider: "media", capability: "text.generate", want: false},
 		{provider: "speech", capability: "audio.transcribe", want: true},
-		{provider: "speech", capability: "voice_workflow.tts_t2v", want: true},
+		{provider: "speech", capability: "voice_workflow.voice_design", want: true},
 		{provider: "speech", capability: "video.generate", want: false},
 		{provider: "sidecar", capability: "music.generate", want: true},
 		{provider: "sidecar", capability: "audio.transcribe", want: false},
@@ -33,15 +33,15 @@ func TestProviderSupportsCapability(t *testing.T) {
 
 func TestPreferenceOrderHardCutByCapability(t *testing.T) {
 	testCases := map[string][]string{
-		"text.generate":    {"llama"},
-		"text.embed":       {"llama"},
-		"audio.understand": {"llama"},
-		"image.generate":   {"media"},
-		"video.generate":   {"media"},
-		"audio.transcribe": {"speech"},
-		"audio.synthesize": {"speech"},
-		"voice_workflow.tts_t2v": {"speech"},
-		"music.generate":   {"sidecar"},
+		"text.generate":               {"llama"},
+		"text.embed":                  {"llama"},
+		"audio.understand":            {"llama"},
+		"image.generate":              {"media"},
+		"video.generate":              {"media"},
+		"audio.transcribe":            {"speech"},
+		"audio.synthesize":            {"speech"},
+		"voice_workflow.voice_design": {"speech"},
+		"music.generate":              {"sidecar"},
 	}
 
 	for capability, want := range testCases {

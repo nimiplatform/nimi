@@ -867,7 +867,7 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 					continue
 				}
 				foundImageModels[modelID] = true
-			case "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+			case "voice_workflow.voice_clone", "voice_workflow.voice_design":
 				foundVoiceWorkflowCapabilities[modelID] = strings.TrimSpace(capability)
 			}
 		}
@@ -875,11 +875,11 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 	if len(foundImageModels) != len(expectedImageModels) {
 		t.Fatalf("expected representative dashscope image models %v, found %v", expectedImageModels, foundImageModels)
 	}
-	if foundVoiceWorkflowCapabilities["qwen3-tts-vc"] != "voice_workflow.tts_v2v" {
-		t.Fatalf("expected qwen3-tts-vc voice_workflow.tts_v2v, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vc"])
+	if foundVoiceWorkflowCapabilities["qwen3-tts-vc"] != "voice_workflow.voice_clone" {
+		t.Fatalf("expected qwen3-tts-vc voice_workflow.voice_clone, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vc"])
 	}
-	if foundVoiceWorkflowCapabilities["qwen3-tts-vd"] != "voice_workflow.tts_t2v" {
-		t.Fatalf("expected qwen3-tts-vd voice_workflow.tts_t2v, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vd"])
+	if foundVoiceWorkflowCapabilities["qwen3-tts-vd"] != "voice_workflow.voice_design" {
+		t.Fatalf("expected qwen3-tts-vd voice_workflow.voice_design, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vd"])
 	}
 }
 func TestListConnectorModelsForceRefreshIsNoOpAndDoesNotOutbound(t *testing.T) {

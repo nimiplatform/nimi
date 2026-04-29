@@ -38,13 +38,13 @@
 | `tts` | `voice_render_hints.style` | `false` | optional voice render style hint | `K-MMPROV-021` |
 | `tts` | `voice_render_hints.use_speaker_boost` | `false` | optional voice render speaker boost toggle | `K-MMPROV-021` |
 | `tts` | `voice_render_hints.speed` | `false` | optional provider-side render speed hint | `K-MMPROV-021` |
-| `voice` | `workflow_type` | `true` | voice workflow selector (tts_v2v or tts_t2v) | `K-VOICE-002` |
+| `voice` | `workflow_type` | `true` | voice workflow selector (voice_clone or voice_design) | `K-VOICE-002` |
 | `voice` | `target_model_id` | `true` | synthesis target model to bind created voice asset | `K-VOICE-007` |
-| `voice` | `v2v.reference_audio_uri` | `false` | optional remote audio input for tts_v2v create voice | `K-MMPROV-019` |
-| `voice` | `v2v.reference_audio_bytes` | `false` | optional inline audio input for tts_v2v create voice | `K-MMPROV-019` |
-| `voice` | `v2v.reference_audio_mime` | `false` | reference audio mime type for tts_v2v | `K-MMPROV-019` |
-| `voice` | `v2v.text` | `false` | optional transcript or text description of the reference audio for tts_v2v | `K-MMPROV-019` |
-| `voice` | `t2v.instruction_text` | `false` | voice design instruction text for tts_t2v | `K-MMPROV-019` |
-| `voice` | `t2v.preview_text` | `false` | optional preview synthesis text for tts_t2v | `K-MMPROV-019` |
-| `voice` | `t2v.language` | `false` | optional language hint for tts_t2v design | `K-MMPROV-019` |
+| `voice` | `voice_clone.reference_audio_uri` | `false` | optional remote audio input for voice_clone create voice | `K-MMPROV-019` |
+| `voice` | `voice_clone.reference_audio_bytes` | `false` | optional inline audio input for voice_clone create voice | `K-MMPROV-019` |
+| `voice` | `voice_clone.reference_audio_mime` | `false` | reference audio mime type for voice_clone | `K-MMPROV-019` |
+| `voice` | `voice_clone.text` | `false` | optional transcript or text description of the reference audio for voice_clone | `K-MMPROV-019` |
+| `voice` | `voice_design.instruction_text` | `false` | voice design instruction text for voice_design | `K-MMPROV-019` |
+| `voice` | `voice_design.preview_text` | `false` | optional preview synthesis text for voice_design | `K-MMPROV-019` |
+| `voice` | `voice_design.language` | `false` | optional language hint for voice_design design | `K-MMPROV-019` |
 | `stt` | `audio_source` | `true` | transcription audio input | `K-MMPROV-005` |

@@ -6,20 +6,20 @@ import (
 )
 
 const (
-	TextGenerate           = "text.generate"
-	TextGenerateVision     = "text.generate.vision"
-	TextGenerateAudio      = "text.generate.audio"
-	TextGenerateVideo      = "text.generate.video"
-	TextEmbed              = "text.embed"
-	ImageGenerate          = "image.generate"
-	VideoGenerate          = "video.generate"
-	WorldGenerate          = "world.generate"
-	AudioSynthesize        = "audio.synthesize"
-	AudioTranscribe        = "audio.transcribe"
-	VoiceWorkflowTTSV2V    = "voice_workflow.tts_v2v"
-	VoiceWorkflowTTST2V    = "voice_workflow.tts_t2v"
-	MusicGenerate          = "music.generate"
-	MusicGenerateIteration = "music.generate.iteration"
+	TextGenerate             = "text.generate"
+	TextGenerateVision       = "text.generate.vision"
+	TextGenerateAudio        = "text.generate.audio"
+	TextGenerateVideo        = "text.generate.video"
+	TextEmbed                = "text.embed"
+	ImageGenerate            = "image.generate"
+	VideoGenerate            = "video.generate"
+	WorldGenerate            = "world.generate"
+	AudioSynthesize          = "audio.synthesize"
+	AudioTranscribe          = "audio.transcribe"
+	VoiceWorkflowVoiceClone  = "voice_workflow.voice_clone"
+	VoiceWorkflowVoiceDesign = "voice_workflow.voice_design"
+	MusicGenerate            = "music.generate"
+	MusicGenerateIteration   = "music.generate.iteration"
 )
 
 var ErrUnknownCatalogCapability = errors.New("unknown catalog capability")
@@ -48,10 +48,10 @@ func NormalizeCatalogCapability(value string) (string, error) {
 		return AudioSynthesize, nil
 	case AudioTranscribe:
 		return AudioTranscribe, nil
-	case VoiceWorkflowTTSV2V:
-		return VoiceWorkflowTTSV2V, nil
-	case VoiceWorkflowTTST2V:
-		return VoiceWorkflowTTST2V, nil
+	case VoiceWorkflowVoiceClone:
+		return VoiceWorkflowVoiceClone, nil
+	case VoiceWorkflowVoiceDesign:
+		return VoiceWorkflowVoiceDesign, nil
 	case MusicGenerate:
 		return MusicGenerate, nil
 	case MusicGenerateIteration:

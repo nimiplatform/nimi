@@ -67,12 +67,12 @@ func TestLiveSmokeProviderCapabilityMatrix(t *testing.T) {
 					runLiveSmokeMediaForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE)
 				})
 			}
-			if record.SupportsTTSV2V && providerID != "local" {
+			if record.SupportsVoiceClone && providerID != "local" {
 				t.Run("voice_clone", func(t *testing.T) {
 					runLiveSmokeVoiceWorkflowForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE)
 				})
 			}
-			if record.SupportsTTST2V && providerID != "local" {
+			if record.SupportsVoiceDesign && providerID != "local" {
 				t.Run("voice_design", func(t *testing.T) {
 					runLiveSmokeVoiceWorkflowForProvider(t, providerID, record, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN)
 				})
@@ -902,7 +902,7 @@ func TestLiveSmokeLocalQwen3VoiceDesign(t *testing.T) {
 	runLocalSpeechHostPreflight(t, baseURL, apiKey, modelID)
 
 	record, ok := providerregistry.Lookup("local")
-	if !ok || !record.SupportsTTST2V {
+	if !ok || !record.SupportsVoiceDesign {
 		t.Skip("local provider does not advertise the admitted qwen3 voice design slice")
 	}
 	t.Setenv("NIMI_LIVE_LOCAL_BASE_URL", baseURL)
@@ -935,7 +935,7 @@ func TestLiveSmokeLocalQwen3VoiceClone(t *testing.T) {
 	runLocalSpeechHostPreflight(t, baseURL, apiKey, modelID)
 
 	record, ok := providerregistry.Lookup("local")
-	if !ok || !record.SupportsTTSV2V {
+	if !ok || !record.SupportsVoiceClone {
 		t.Skip("local provider does not advertise the admitted qwen3 voice clone slice")
 	}
 	if liveEnvFirst("NIMI_LIVE_VOICE_REFERENCE_AUDIO_PATH", "NIMI_LIVE_VOICE_REFERENCE_AUDIO_URI") == "" {
@@ -971,7 +971,7 @@ func TestLiveSmokeLocalQwen3VoiceAssetLifecycle(t *testing.T) {
 	runLocalSpeechHostPreflight(t, baseURL, apiKey, modelID)
 
 	record, ok := providerregistry.Lookup("local")
-	if !ok || !record.SupportsTTST2V || !record.SupportsTTS {
+	if !ok || !record.SupportsVoiceDesign || !record.SupportsTTS {
 		t.Skip("local provider does not advertise required qwen3 speech workflow capabilities")
 	}
 

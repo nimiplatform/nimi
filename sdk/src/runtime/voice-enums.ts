@@ -1,7 +1,7 @@
 export const VoiceWorkflowType = {
   UNSPECIFIED: 0,
-  TTS_V2V: 1,
-  TTS_T2V: 2,
+  VOICE_CLONE: 1,
+  VOICE_DESIGN: 2,
 } as const;
 
 export type VoiceWorkflowType = (typeof VoiceWorkflowType)[keyof typeof VoiceWorkflowType];

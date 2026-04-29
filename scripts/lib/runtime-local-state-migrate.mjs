@@ -45,8 +45,8 @@ function inferAssetKindFromCapabilities(capabilities) {
         return 3;
       case 'tts':
       case 'audio.synthesize':
-      case 'voice_workflow.tts_v2v':
-      case 'voice_workflow.tts_t2v':
+      case 'voice_workflow.voice_clone':
+      case 'voice_workflow.voice_design':
         return 4;
       case 'stt':
       case 'audio.transcribe':

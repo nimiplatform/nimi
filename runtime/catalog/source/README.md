@@ -76,8 +76,8 @@ Canonical capability tokens are:
 - `audio.transcribe`
 - `music.generate`
 - `music.generate.iteration`
-- `voice_workflow.tts_v2v`
-- `voice_workflow.tts_t2v`
+- `voice_workflow.voice_clone`
+- `voice_workflow.voice_design`
 
 Legacy capability synonyms such as `chat`, `embedding`, `image`, `tts`, `stt`, `video_generation`, `llm.text.generate`, `llm.embed`, `llm.image.generate`, `llm.video.generate`, `llm.speech.synthesize`, and `llm.speech.transcribe` are not valid source declarations.
 
@@ -202,7 +202,7 @@ For `discovery_mode=dynamic_user_scoped`:
 If `voice_workflow_models` is provided, each entry should define:
 
 - `workflow_model_id`
-- `workflow_type` (`tts_v2v|tts_t2v`)
+- `workflow_type` (`voice_clone|voice_design`)
 - `input_contract_ref`
 - `output_persistence`
 - `request_options`
@@ -212,7 +212,7 @@ If `voice_workflow_models` is provided, each entry should define:
 `voice_workflow_models[].request_options` is the source-authored workflow metadata
 home for route describe / validation projection.
 
-For `tts_v2v`, `request_options` must define:
+For `voice_clone`, `request_options` must define:
 
 - `text_prompt_mode` (`unsupported|optional|required`)
 - `supports_language_hints` (explicit boolean)
@@ -222,7 +222,7 @@ For `tts_v2v`, `request_options` must define:
 - `allowed_reference_audio_mime_types`
 - `provider_extensions` (optional)
 
-For `tts_t2v`, `request_options` must define:
+For `voice_design`, `request_options` must define:
 
 - `instruction_text_mode` (`unsupported|optional|required`)
 - `preview_text_mode` (`unsupported|optional|required`)

@@ -7,8 +7,8 @@
 | Workflow Type | Enum Name | Enum Value | Description | Source |
 |---|---|---:|---|---|
 | `unspecified` | `VOICE_WORKFLOW_TYPE_UNSPECIFIED` | 0 | proto zero sentinel for unset workflow type | `K-VOICE-002` |
-| `tts_v2v` | `VOICE_WORKFLOW_TYPE_TTS_V2V` | 1 | create voice asset from reference voice/audio input | `K-VOICE-002` |
-| `tts_t2v` | `VOICE_WORKFLOW_TYPE_TTS_T2V` | 2 | create voice asset from text instruction | `K-VOICE-002` |
+| `voice_clone` | `VOICE_WORKFLOW_TYPE_VOICE_CLONE` | 1 | create voice asset from reference voice/audio input | `K-VOICE-002` |
+| `voice_design` | `VOICE_WORKFLOW_TYPE_VOICE_DESIGN` | 2 | create voice asset from text instruction | `K-VOICE-002` |
 
 ## Reference Kinds
 

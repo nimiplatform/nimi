@@ -542,6 +542,42 @@ func TestValidateLocalModelRequestIncludesUnhealthyDetail(t *testing.T) {
 	}
 }
 
+func TestValidateLocalModelRequestUnhealthySupervisedLlamaRetriesStartAndRecovers(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := newTestService(logger)
+	lister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{
+			LocalAssetId: "local-llama-idle",
+			AssetId:      "local-import/gemma-4-26B-A4B-it-Q8_0",
+			Engine:       "llama",
+			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+			Capabilities: []string{"chat"},
+			Endpoint:     "http://127.0.0.1:1234/v1",
+			HealthDetail: `probe request failed: Get "probe_endpoint": dial tcp 127.0.0.1:1234: connect: connection refused; plane=local-supervised; consecutive_failures=3; next_probe_in=30s`,
+		}},
+	}},
+		startResp: &runtimev1.StartLocalAssetResponse{
+			Asset: &runtimev1.LocalAssetRecord{
+				LocalAssetId: "local-llama-idle",
+				AssetId:      "local-import/gemma-4-26B-A4B-it-Q8_0",
+				Engine:       "llama",
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+				Capabilities: []string{"chat"},
+				Endpoint:     "http://127.0.0.1:1234/v1",
+				HealthDetail: "managed local model ready",
+			},
+		},
+	}
+	svc.localModel = lister
+
+	if err := svc.validateLocalModelRequest(context.Background(), "local/local-import/gemma-4-26B-A4B-it-Q8_0", nil, runtimev1.Modal_MODAL_TEXT); err != nil {
+		t.Fatalf("expected unhealthy supervised llama idle probe to recover via start, got %v", err)
+	}
+	if lister.startCalls != 1 {
+		t.Fatalf("expected unhealthy supervised llama local model to retry start once, got %d", lister.startCalls)
+	}
+}
+
 func TestLocalSpeechReasonCodeFromDetailSupportsDownloadConfirmationRequired(t *testing.T) {
 	reason, ok := localSpeechReasonCodeFromDetail("Explicit download confirmation is required before local speech setup can continue.")
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED {

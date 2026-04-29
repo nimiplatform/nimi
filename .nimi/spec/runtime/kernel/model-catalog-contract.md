@@ -173,7 +173,7 @@ DashScope published voices for these models MUST be represented in `runtime/cata
 `voice_workflow_models` 必须显式声明创建音色模型能力：
 
 - `workflow_model_id`
-- `workflow_type`（`tts_v2v|tts_t2v`）
+- `workflow_type`（`voice_clone|voice_design`）
 - `input_contract_ref`
 - `output_persistence`
 - `target_model_refs`
@@ -230,8 +230,8 @@ ElevenLabs provider source 必须使用 schema v3，并满足以下最小结构�
 
 - `models`：仅列出可用于 `audio.synthesize` 的模型，provider-global preset voices 必须以 `static_catalog` + `voice_set_ref` 方式枚举。
 - `voice_workflow_models`：至少包含
-  - `elevenlabs-voice-clone`（`workflow_type=tts_v2v`，映射 `/v1/voices/add`）
-  - `elevenlabs-voice-design`（`workflow_type=tts_t2v`，映射 `create-previews + create-voice-from-preview`）
+  - `elevenlabs-voice-clone`（`workflow_type=voice_clone`，映射 `/v1/voices/add`）
+  - `elevenlabs-voice-design`（`workflow_type=voice_design`，映射 `create-previews + create-voice-from-preview`）
 - `model_workflow_bindings`：显式声明 workflow -> synthesis model 兼容矩阵。
 - `voice_handle_policies`：默认 `provider_persistent + user_scoped`。
 
@@ -288,7 +288,7 @@ Runtime 仅允许加载 `runtime/catalog/providers/*.yaml`。
 Provider 纳入必须分层：
 
 - `audio.synthesize` 是纳入基础门槛；
-- `voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` 属于可选能力增量；
+- `voice_workflow.voice_clone` / `voice_workflow.voice_design` 属于可选能力增量；
 - 仅支持 synthesize 的 provider 不得被强制声明 `voice_workflow_models`；
 - 云厂训练型 Custom Voice（长周期训练）在未形成跨 provider 强类型抽象前，必须标记为 deferred/provider extension。
 
@@ -299,7 +299,7 @@ Runtime 实际可用性必须与 source/snapshot 激活面一致；未接入实�
 
 ## K-MCAT-023 TTS Provider Capability Matrix SSOT
 
-`tables/tts-provider-capability-matrix.yaml` 是主流 TTS provider 运行平面（remote/local）与能力分层（synthesize/v2v/t2v/timing/discovery mode）的结构化事实源。
+`tables/tts-provider-capability-matrix.yaml` 是主流 TTS provider 运行平面（remote/local）与能力分层（synthesize/voice_clone/voice_design/timing/discovery mode）的结构化事实源。
 
 ## K-MCAT-024 Canonical Capability Vocabulary
 
@@ -313,8 +313,8 @@ source、snapshot、registry、resolver、scenario guard、live-provider checks 
 - `audio.transcribe`
 - `music.generate`
 - `music.generate.iteration`
-- `voice_workflow.tts_v2v`
-- `voice_workflow.tts_t2v`
+- `voice_workflow.voice_clone`
+- `voice_workflow.voice_design`
 
 `chat`、`embedding`、`image`、`tts`、`stt`、`video_generation`、`llm.text.generate`、`llm.embed`、`llm.image.generate`、`llm.video.generate`、`llm.speech.synthesize`、`llm.speech.transcribe` 不得作为有效 capability 声明值继续存在于 source 或 snapshot 中。
 

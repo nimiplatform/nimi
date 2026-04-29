@@ -61,7 +61,7 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForManagedCloudR
 		t.Fatalf("model resolved must be set")
 	}
 	payload := decodeRouteDescribeHeader(t, transport.header)
-	if got := payload["capability"]; got != "voice_workflow.tts_v2v" {
+	if got := payload["capability"]; got != "voice_workflow.voice_clone" {
 		t.Fatalf("capability mismatch: got=%v", got)
 	}
 	if got := payload["resolvedBindingRef"]; got != "binding-voice-cloud-001" {
@@ -71,7 +71,7 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForManagedCloudR
 	if !ok {
 		t.Fatalf("metadata payload missing: %#v", payload["metadata"])
 	}
-	if got := metadataPayload["workflowType"]; got != "tts_v2v" {
+	if got := metadataPayload["workflowType"]; got != "voice_clone" {
 		t.Fatalf("workflowType mismatch: got=%v", got)
 	}
 	if got := metadataPayload["textPromptMode"]; got != "unsupported" {
@@ -154,7 +154,7 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalQwenRout
 		t.Fatalf("model resolved mismatch: got=%q", got)
 	}
 	payload := decodeRouteDescribeHeader(t, transport.header)
-	if got := payload["capability"]; got != "voice_workflow.tts_v2v" {
+	if got := payload["capability"]; got != "voice_workflow.voice_clone" {
 		t.Fatalf("capability mismatch: got=%v", got)
 	}
 	if got := payload["resolvedBindingRef"]; got != "binding-voice-local-qwen3-001" {
@@ -164,7 +164,7 @@ func TestExecuteScenarioVoiceCloneRouteDescribeProbeWritesHeaderForLocalQwenRout
 	if !ok {
 		t.Fatalf("metadata payload missing: %#v", payload["metadata"])
 	}
-	if got := metadataPayload["workflowType"]; got != "tts_v2v" {
+	if got := metadataPayload["workflowType"]; got != "voice_clone" {
 		t.Fatalf("workflowType mismatch: got=%v", got)
 	}
 	if got := metadataPayload["textPromptMode"]; got != "optional" {

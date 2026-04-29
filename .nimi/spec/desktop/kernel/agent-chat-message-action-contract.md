@@ -183,7 +183,7 @@ product relation truth；执行层只消费。
 - admitted `voice` action envelope 不等于 broader voice execution 已完成产品落地；
   `video` action 仍保持 deferred；
   admitted `voice` action 也不等于 richer voice workflow semantics 已被 admit；
-  `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v`、agent chat voice identity /
+  `voice_workflow.voice_clone`、`voice_workflow.voice_design`、agent chat voice identity /
   `VoiceReference`、preset/custom voice selection、以及 packet-bounded clone/design
   trigger semantics 固定由 `agent-chat-voice-workflow-contract.md`
   （`D-LLM-047` ~ `D-LLM-052`）拥有；

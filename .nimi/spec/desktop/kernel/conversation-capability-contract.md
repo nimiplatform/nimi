@@ -174,7 +174,7 @@ Agent chat 总是在 desktop 本地执行，不需要后端路由决策。
   readiness；resolved modality action 是否存在、其 relation 是什么、以及
   `promptPayload` 是什么，固定由 `agent-chat-message-action-contract.md` 拥有，capability
   layer 不得从 healthy projection 反推 action existence
-- `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` projection healthy 同样只表达
+- `voice_workflow.voice_clone`、`voice_workflow.voice_design` projection healthy 同样只表达
   execution readiness；某个 richer workflow 是否被 admit、属于哪种 workflow type、
   使用什么 voice identity、以及 workflow result 如何回到当前 conversation anchor，固定由
   `agent-chat-voice-workflow-contract.md`（`D-LLM-047` ~ `D-LLM-052`）拥有，capability
@@ -222,7 +222,7 @@ thread-level `routeSnapshot` 不再是允许的规范 contract。
 
 ## D-LLM-020 — Voice Workflow Capability Semantics
 
-`voice_workflow.tts_v2v` 与 `voice_workflow.tts_t2v` 在 Desktop projection 中必须与 `audio.synthesize` 保持独立 capability key、独立 selected binding、独立 resolved binding、独立 health、独立 describe metadata。
+`voice_workflow.voice_clone` 与 `voice_workflow.voice_design` 在 Desktop projection 中必须与 `audio.synthesize` 保持独立 capability key、独立 selected binding、独立 resolved binding、独立 health、独立 describe metadata。
 
 - `audio.synthesize` healthy 不得自动使 `voice_workflow.*` projection `supported=true`
 - workflow capability 缺独立 binding/metadata/compatibility proof 时必须映射为 `binding_unresolved`、`route_unhealthy`、`metadata_missing` 或 `capability_unsupported`

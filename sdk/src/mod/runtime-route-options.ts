@@ -45,8 +45,8 @@ function inferCanonicalLocalEngine(
   if (
     capability === 'audio.synthesize'
     || capability === 'audio.transcribe'
-    || capability === 'voice_workflow.tts_v2v'
-    || capability === 'voice_workflow.tts_t2v'
+    || capability === 'voice_workflow.voice_clone'
+    || capability === 'voice_workflow.voice_design'
   ) {
     return 'speech';
   }
@@ -177,8 +177,8 @@ export function normalizeRuntimeRouteCapabilityToken(value: unknown): RuntimeCan
     || normalized === 'audio.synthesize'
     || normalized === 'audio.transcribe'
     || normalized === 'music.generate'
-    || normalized === 'voice_workflow.tts_v2v'
-    || normalized === 'voice_workflow.tts_t2v'
+    || normalized === 'voice_workflow.voice_clone'
+    || normalized === 'voice_workflow.voice_design'
   ) {
     return normalized;
   }

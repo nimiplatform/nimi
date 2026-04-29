@@ -31,8 +31,8 @@ voice session truth；`conversation-capability-contract.md`（`D-LLM-015` ~ `D-L
 （`D-LLM-005`）继续拥有 runtime-aligned voice route/API truth；
 `agent-avatar-surface-contract.md`（`D-LLM-053` ~ `D-LLM-058`）继续拥有 richer workflow
 signals 如何变成 avatar transient surface cues 的 truth；
-`.nimi/spec/runtime/kernel/voice-contract.md`（`K-VOICE-*`）继续拥有 `voice_workflow.tts_v2v`、
-`voice_workflow.tts_t2v`、`VoiceReference`、`VoiceAsset`、scenario job lifecycle、
+`.nimi/spec/runtime/kernel/voice-contract.md`（`K-VOICE-*`）继续拥有 `voice_workflow.voice_clone`、
+`voice_workflow.voice_design`、`VoiceReference`、`VoiceAsset`、scenario job lifecycle、
 `ListPresetVoices`、以及 `ListVoiceAssets` 的 runtime canonical truth。
 
 workflow helper、voice picker、scenario poller、asset store、playback helper、scheduler、
@@ -47,8 +47,8 @@ Desktop agent chat 的 canonical richer voice workflow owner 固定为本文件�
 
 - 当前 agent chat `voice` action / workflow intent 是否进入 richer voice workflow
   semantics，而不是 narrow `audio.synthesize` playback semantics
-- admitted workflow path 属于 `voice_workflow.tts_v2v` 还是
-  `voice_workflow.tts_t2v`
+- admitted workflow path 属于 `voice_workflow.voice_clone` 还是
+  `voice_workflow.voice_design`
 - 当前 conversation anchor 中使用的 voice identity / `VoiceReference` product meaning 是什么
 - preset/custom voice selection 与 packet-bounded clone / design trigger 的
   desktop product meaning 是什么
@@ -92,14 +92,14 @@ readiness、voice inventory、或 narrow playback helper readiness 反推成立�
   `voice_workflow.*` healthy、存在 custom voice、或 runtime 已支持场景 job 都不构成
   workflow admission
 - 当前首包 admitted workflow type 固定为：
-  - `voice_workflow.tts_v2v`
-  - `voice_workflow.tts_t2v`
+  - `voice_workflow.voice_clone`
+  - `voice_workflow.voice_design`
 - 每个 admitted richer workflow intent 必须与一个 capability key 和一个 workflow type
   一一对应；不得同时声明两种 workflow type，也不得把 `audio.synthesize` 结果静默升级为
   workflow success
-- `voice_workflow.tts_v2v` 在 desktop product meaning 中表达“当前 conversation anchor 内通过参考语音
+- `voice_workflow.voice_clone` 在 desktop product meaning 中表达“当前 conversation anchor 内通过参考语音
   / 音频驱动 voice creation”
-- `voice_workflow.tts_t2v` 在 desktop product meaning 中表达“当前 conversation anchor 内通过文本设计
+- `voice_workflow.voice_design` 在 desktop product meaning 中表达“当前 conversation anchor 内通过文本设计
   / 指令驱动 voice creation”
 - resolved `promptPayload` 或等价 typed workflow input 若无法与所声明的 workflow type
   建立合法对应，必须 fail-close；不得靠 provider heuristic、helper template、或 guessed

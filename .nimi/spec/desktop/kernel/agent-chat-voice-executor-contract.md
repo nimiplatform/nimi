@@ -52,7 +52,7 @@ adjacent authority 边界固定为：
   capability selection/projection/execution snapshot truth，而不是 voice action
   是否存在或 playback outcome 应如何被 product 化
 - `.nimi/spec/runtime/kernel/voice-contract.md`（`K-VOICE-*`）继续拥有
-  `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v`、preset/custom voice discovery、
+  `voice_workflow.voice_clone`、`voice_workflow.voice_design`、preset/custom voice discovery、
   voice asset 与 scenario job truth
 
 若任一 consumer 需要 agent chat voice executor 决策，必须先读取同一份 resolved
@@ -82,13 +82,13 @@ agent chat voice executor 的首包 execution semantics 固定为：
 
 - 只允许 text-to-speech style playback outcome
 - execution path 固定消费 `audio.synthesize`
-- 不得借道升级成 `voice_workflow.tts_v2v` 或 `voice_workflow.tts_t2v`
+- 不得借道升级成 `voice_workflow.voice_clone` 或 `voice_workflow.voice_design`
 
 固定约束：
 
 - executor 必须先读取 capability-scoped `audio.synthesize` projection / resolved
   binding，再经 `runtime.media.tts.synthesize` 执行
-- `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 即使 projection healthy，也不得在首包
+- `voice_workflow.voice_clone`、`voice_workflow.voice_design` 即使 projection healthy，也不得在首包
   代替 `audio.synthesize` 成为 executor path
 - 首包不得把 preset/custom voice discovery、voice asset selection、workflow metadata、
   或 scenario job lifecycle 升格为 agent chat voice executor 的 required truth

@@ -69,9 +69,9 @@ func scenarioRequiredCapabilities(scenarioType runtimev1.ScenarioType) []string 
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE:
 		return []string{aicapabilities.AudioTranscribe}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		return []string{aicapabilities.VoiceWorkflowTTSV2V}
+		return []string{aicapabilities.VoiceWorkflowVoiceClone}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		return []string{aicapabilities.VoiceWorkflowTTST2V}
+		return []string{aicapabilities.VoiceWorkflowVoiceDesign}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return []string{aicapabilities.MusicGenerate}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:

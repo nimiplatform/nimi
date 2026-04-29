@@ -16,7 +16,7 @@ import (
 )
 
 func executeFishAudioVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
-	if strings.ToLower(strings.TrimSpace(req.WorkflowType)) != "tts_v2v" {
+	if strings.ToLower(strings.TrimSpace(req.WorkflowType)) != "voice_clone" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
 	}
 

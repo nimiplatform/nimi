@@ -1906,8 +1906,8 @@ pub struct ListPresetVoicesResponse {
 #[repr(i32)]
 pub enum VoiceWorkflowType {
     Unspecified = 0,
-    TtsV2v = 1,
-    TtsT2v = 2,
+    VoiceClone = 1,
+    VoiceDesign = 2,
 }
 impl VoiceWorkflowType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -1917,16 +1917,16 @@ impl VoiceWorkflowType {
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "VOICE_WORKFLOW_TYPE_UNSPECIFIED",
-            Self::TtsV2v => "VOICE_WORKFLOW_TYPE_TTS_V2V",
-            Self::TtsT2v => "VOICE_WORKFLOW_TYPE_TTS_T2V",
+            Self::VoiceClone => "VOICE_WORKFLOW_TYPE_VOICE_CLONE",
+            Self::VoiceDesign => "VOICE_WORKFLOW_TYPE_VOICE_DESIGN",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "VOICE_WORKFLOW_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
-            "VOICE_WORKFLOW_TYPE_TTS_V2V" => Some(Self::TtsV2v),
-            "VOICE_WORKFLOW_TYPE_TTS_T2V" => Some(Self::TtsT2v),
+            "VOICE_WORKFLOW_TYPE_VOICE_CLONE" => Some(Self::VoiceClone),
+            "VOICE_WORKFLOW_TYPE_VOICE_DESIGN" => Some(Self::VoiceDesign),
             _ => None,
         }
     }

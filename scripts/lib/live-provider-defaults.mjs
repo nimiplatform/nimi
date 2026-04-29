@@ -15,8 +15,8 @@ const MODEL_CAPABILITY_ENV_SUFFIX = new Map([
 ]);
 
 const WORKFLOW_ENV_SUFFIX = new Map([
-  ['tts_v2v', { modelKey: 'VOICE_CLONE_MODEL_ID', targetKey: 'VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID' }],
-  ['tts_t2v', { modelKey: 'VOICE_DESIGN_MODEL_ID', targetKey: 'VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID' }],
+  ['voice_clone', { modelKey: 'VOICE_CLONE_MODEL_ID', targetKey: 'VOICE_CLONE_MODEL_ID_TARGET_MODEL_ID' }],
+  ['voice_design', { modelKey: 'VOICE_DESIGN_MODEL_ID', targetKey: 'VOICE_DESIGN_MODEL_ID_TARGET_MODEL_ID' }],
 ]);
 
 function providerEnvToken(provider) {

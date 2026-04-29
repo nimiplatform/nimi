@@ -70,11 +70,11 @@ export function createCatalogChecks(context) {
     const workflows = Array.isArray(parsed?.voice_workflow_models) ? parsed.voice_workflow_models : [];
     for (const workflow of workflows) {
       const workflowType = String(workflow?.workflow_type || '').trim().toLowerCase();
-      if (workflowType === 'tts_v2v') {
-        capabilitySet.add('voice_workflow.tts_v2v');
+      if (workflowType === 'voice_clone') {
+        capabilitySet.add('voice_workflow.voice_clone');
       }
-      if (workflowType === 'tts_t2v') {
-        capabilitySet.add('voice_workflow.tts_t2v');
+      if (workflowType === 'voice_design') {
+        capabilitySet.add('voice_workflow.voice_design');
       }
     }
     return [...capabilitySet].sort((a, b) => a.localeCompare(b));
@@ -614,8 +614,8 @@ export function createCatalogChecks(context) {
 
       for (const field of [
         'supports_tts_synthesize',
-        'supports_tts_v2v',
-        'supports_tts_t2v',
+        'supports_voice_clone',
+        'supports_voice_design',
         'supports_timing_alignment',
       ]) {
         if (typeof entry?.[field] !== 'boolean') {
@@ -668,13 +668,13 @@ export function createCatalogChecks(context) {
       }
 
       const workflowModels = Array.isArray(sourceDoc?.voice_workflow_models) ? sourceDoc.voice_workflow_models : [];
-      const inferredSupportsV2V = workflowModels.some((workflow) => String(workflow?.workflow_type || '').trim() === 'tts_v2v');
-      const inferredSupportsT2V = workflowModels.some((workflow) => String(workflow?.workflow_type || '').trim() === 'tts_t2v');
-      if (Boolean(entry?.supports_tts_v2v) !== inferredSupportsV2V) {
-        fail(`${tablePath} provider ${providerID} supports_tts_v2v mismatch (matrix=${Boolean(entry?.supports_tts_v2v)}, inferred=${inferredSupportsV2V})`);
+      const inferredSupportsClone = workflowModels.some((workflow) => String(workflow?.workflow_type || '').trim() === 'voice_clone');
+      const inferredSupportsDesign = workflowModels.some((workflow) => String(workflow?.workflow_type || '').trim() === 'voice_design');
+      if (Boolean(entry?.supports_voice_clone) !== inferredSupportsClone) {
+        fail(`${tablePath} provider ${providerID} supports_voice_clone mismatch (matrix=${Boolean(entry?.supports_voice_clone)}, inferred=${inferredSupportsClone})`);
       }
-      if (Boolean(entry?.supports_tts_t2v) !== inferredSupportsT2V) {
-        fail(`${tablePath} provider ${providerID} supports_tts_t2v mismatch (matrix=${Boolean(entry?.supports_tts_t2v)}, inferred=${inferredSupportsT2V})`);
+      if (Boolean(entry?.supports_voice_design) !== inferredSupportsDesign) {
+        fail(`${tablePath} provider ${providerID} supports_voice_design mismatch (matrix=${Boolean(entry?.supports_voice_design)}, inferred=${inferredSupportsDesign})`);
       }
 
       const snapshotModels = Array.isArray(snapshotDoc?.models) ? snapshotDoc.models : [];

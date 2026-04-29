@@ -509,7 +509,7 @@ func TestExecuteDashScopeVoiceWorkflowUsesCustomizationContractForClone(t *testi
 
 	result, err := executeDashScopeVoiceWorkflow(context.Background(), VoiceWorkflowRequest{
 		Provider:        "dashscope",
-		WorkflowType:    "tts_v2v",
+		WorkflowType:    "voice_clone",
 		WorkflowModelID: "qwen-voice-enrollment",
 		ModelID:         "qwen3-tts-vc-2026-01-22",
 		Payload: map[string]any{
@@ -576,7 +576,7 @@ func TestExecuteDashScopeVoiceWorkflowUsesCustomizationContractForDesign(t *test
 
 	result, err := executeDashScopeVoiceWorkflow(context.Background(), VoiceWorkflowRequest{
 		Provider:        "dashscope",
-		WorkflowType:    "tts_t2v",
+		WorkflowType:    "voice_design",
 		WorkflowModelID: "qwen-voice-design",
 		ModelID:         "qwen3-tts-vd-2026-01-26",
 		Payload: map[string]any{

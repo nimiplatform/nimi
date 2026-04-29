@@ -110,10 +110,10 @@ func executeProviderRawReplay(timeout time.Duration, fixture *aiGoldFixture) (*a
 		payload.ArtifactSummary["outputTokens"] = safeUsageOutputTokens(usage)
 		payload.ArtifactSummary["computeMs"] = safeUsageComputeMs(usage)
 	case "voice.clone", "voice.design":
-		workflowType := "tts_v2v"
+		workflowType := "voice_clone"
 		providerPayload := map[string]any{}
 		if strings.EqualFold(strings.TrimSpace(fixture.Capability), "voice.design") {
-			workflowType = "tts_t2v"
+			workflowType = "voice_design"
 			providerPayload["text"] = strings.TrimSpace(fixture.Request.InstructionText)
 			providerPayload["instruction_text"] = strings.TrimSpace(fixture.Request.InstructionText)
 		} else {

@@ -232,14 +232,14 @@ func TestResolveVoiceWorkflowDashScope(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-vc", "tts_v2v")
+	resolved, err := resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-vc", "voice_clone")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
 	if resolved.Provider != "dashscope" {
 		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
 	}
-	if resolved.WorkflowType != "tts_v2v" {
+	if resolved.WorkflowType != "voice_clone" {
 		t.Fatalf("workflow type mismatch: got=%s", resolved.WorkflowType)
 	}
 	if strings.TrimSpace(resolved.WorkflowModelID) == "" {
@@ -262,20 +262,47 @@ func TestResolveVoiceWorkflowDashScope(t *testing.T) {
 	}
 }
 
+func TestResolveVoiceWorkflowDashScopeDesign(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	resolved, err := resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-vd", "voice_design")
+	if err != nil {
+		t.Fatalf("ResolveVoiceWorkflow: %v", err)
+	}
+	if resolved.Provider != "dashscope" {
+		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
+	}
+	if resolved.WorkflowType != "voice_design" {
+		t.Fatalf("workflow type mismatch: got=%s", resolved.WorkflowType)
+	}
+	if strings.TrimSpace(resolved.WorkflowModelID) == "" {
+		t.Fatalf("workflow model id must be set")
+	}
+	if got := strings.TrimSpace(resolved.APIModelID); got != "qwen3-tts-vd-2026-01-26" {
+		t.Fatalf("api model id mismatch: got=%q", got)
+	}
+	if got := strings.TrimSpace(resolved.WorkflowFamily); got != "dashscope" {
+		t.Fatalf("workflow family mismatch: got=%q", got)
+	}
+}
+
 func TestResolveVoiceWorkflowElevenLabsClone(t *testing.T) {
 	resolver, err := NewResolver(ResolverConfig{})
 	if err != nil {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_multilingual_sts_v2", "tts_v2v")
+	resolved, err := resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_multilingual_sts_v2", "voice_clone")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
 	if resolved.Provider != "elevenlabs" {
 		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
 	}
-	if resolved.WorkflowType != "tts_v2v" {
+	if resolved.WorkflowType != "voice_clone" {
 		t.Fatalf("workflow type mismatch: got=%s", resolved.WorkflowType)
 	}
 	if resolved.WorkflowModelID != "elevenlabs-voice-clone" {
@@ -295,23 +322,38 @@ func TestResolveVoiceWorkflowElevenLabsDesignUsesDedicatedModels(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_ttv_v3", "tts_t2v")
+	resolved, err := resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_ttv_v3", "voice_design")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
 	if resolved.Provider != "elevenlabs" {
 		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
 	}
-	if resolved.WorkflowType != "tts_t2v" {
+	if resolved.WorkflowType != "voice_design" {
 		t.Fatalf("workflow type mismatch: got=%s", resolved.WorkflowType)
 	}
 	if resolved.WorkflowModelID != "elevenlabs-voice-design" {
 		t.Fatalf("unexpected workflow model id: %s", resolved.WorkflowModelID)
 	}
 
-	_, err = resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_multilingual_v2", "tts_t2v")
+	_, err = resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_multilingual_v2", "voice_design")
 	if err == nil {
-		t.Fatalf("expected ordinary ElevenLabs TTS model to reject tts_t2v")
+		t.Fatalf("expected ordinary ElevenLabs TTS model to reject voice_design")
+	}
+	if err != ErrVoiceWorkflowUnsupported {
+		t.Fatalf("expected ErrVoiceWorkflowUnsupported, got=%v", err)
+	}
+}
+
+func TestResolveVoiceWorkflowDesignOnlyModelRejectsClone(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	_, err = resolver.ResolveVoiceWorkflow("elevenlabs", "eleven_ttv_v3", "voice_clone")
+	if err == nil {
+		t.Fatalf("expected design-only model to reject voice_clone")
 	}
 	if err != ErrVoiceWorkflowUnsupported {
 		t.Fatalf("expected ErrVoiceWorkflowUnsupported, got=%v", err)
@@ -324,18 +366,33 @@ func TestResolveVoiceWorkflowFishAudioClone(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("fish_audio", "s1", "tts_v2v")
+	resolved, err := resolver.ResolveVoiceWorkflow("fish_audio", "s1", "voice_clone")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
 	if resolved.Provider != "fish_audio" {
 		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
 	}
-	if resolved.WorkflowType != "tts_v2v" {
+	if resolved.WorkflowType != "voice_clone" {
 		t.Fatalf("workflow type mismatch: got=%s", resolved.WorkflowType)
 	}
 	if resolved.WorkflowModelID != "fish-audio-create-model" {
 		t.Fatalf("unexpected workflow model id: %s", resolved.WorkflowModelID)
+	}
+}
+
+func TestResolveVoiceWorkflowCloneOnlyModelRejectsDesign(t *testing.T) {
+	resolver, err := NewResolver(ResolverConfig{})
+	if err != nil {
+		t.Fatalf("NewResolver: %v", err)
+	}
+
+	_, err = resolver.ResolveVoiceWorkflow("fish_audio", "s1", "voice_design")
+	if err == nil {
+		t.Fatalf("expected clone-only model to reject voice_design")
+	}
+	if err != ErrVoiceWorkflowUnsupported {
+		t.Fatalf("expected ErrVoiceWorkflowUnsupported, got=%v", err)
 	}
 }
 
@@ -345,14 +402,14 @@ func TestResolveVoiceWorkflowStepFunClone(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("stepfun", "step-tts-2", "tts_v2v")
+	resolved, err := resolver.ResolveVoiceWorkflow("stepfun", "step-tts-2", "voice_clone")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
 	if resolved.Provider != "stepfun" {
 		t.Fatalf("provider mismatch: got=%s", resolved.Provider)
 	}
-	if resolved.WorkflowType != "tts_v2v" {
+	if resolved.WorkflowType != "voice_clone" {
 		t.Fatalf("workflow type mismatch: got=%s", resolved.WorkflowType)
 	}
 	if resolved.WorkflowModelID != "stepfun-voice-clone" {
@@ -372,7 +429,7 @@ func TestResolveVoiceWorkflowLocalQwenClone(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("local", "qwen3-tts-local", "tts_v2v")
+	resolved, err := resolver.ResolveVoiceWorkflow("local", "qwen3-tts-local", "voice_clone")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
@@ -411,7 +468,7 @@ func TestResolveVoiceWorkflowLocalQwenDesign(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	resolved, err := resolver.ResolveVoiceWorkflow("local", "speech/qwen3tts", "tts_t2v")
+	resolved, err := resolver.ResolveVoiceWorkflow("local", "speech/qwen3tts", "voice_design")
 	if err != nil {
 		t.Fatalf("ResolveVoiceWorkflow: %v", err)
 	}
@@ -438,7 +495,7 @@ func TestResolveVoiceWorkflowUnsupportedReturnsError(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	_, err = resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-instruct-flash", "tts_v2v")
+	_, err = resolver.ResolveVoiceWorkflow("dashscope", "qwen3-tts-instruct-flash", "voice_clone")
 	if err == nil {
 		t.Fatalf("expected voice workflow unsupported error")
 	}
@@ -453,7 +510,7 @@ func TestResolveVoiceWorkflowLocalUnsupportedReturnsError(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	_, err = resolver.ResolveVoiceWorkflow("local", "kokoro-local", "tts_v2v")
+	_, err = resolver.ResolveVoiceWorkflow("local", "kokoro-local", "voice_clone")
 	if err == nil {
 		t.Fatalf("expected local voice workflow unsupported error")
 	}
@@ -468,7 +525,7 @@ func TestResolveVoiceWorkflowLocalUnsupportedDesignReturnsError(t *testing.T) {
 		t.Fatalf("NewResolver: %v", err)
 	}
 
-	_, err = resolver.ResolveVoiceWorkflow("local", "kokoro-local", "tts_t2v")
+	_, err = resolver.ResolveVoiceWorkflow("local", "kokoro-local", "voice_design")
 	if err == nil {
 		t.Fatalf("expected local voice design unsupported error")
 	}

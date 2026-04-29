@@ -66,7 +66,7 @@ func adapterForProviderCapability(provider string, capability string) string {
 		}
 	case "speech":
 		switch normalizedCapability {
-		case "audio.transcribe", "audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+		case "audio.transcribe", "audio.synthesize", "voice_workflow.voice_clone", "voice_workflow.voice_design":
 			return "speech_native_adapter"
 		default:
 			return "openai_compat_adapter"
@@ -105,9 +105,9 @@ func apiPathForProviderCapability(provider string, capability string) string {
 		return "/v1/audio/speech"
 	case "audio.transcribe":
 		return "/v1/audio/transcriptions"
-	case "voice_workflow.tts_v2v":
+	case "voice_workflow.voice_clone":
 		return "/v1/voice/clone"
-	case "voice_workflow.tts_t2v":
+	case "voice_workflow.voice_design":
 		return "/v1/voice/design"
 	default:
 		return "/v1/chat/completions"
@@ -346,7 +346,7 @@ func defaultVerifiedAssets() []*runtimev1.LocalVerifiedAssetDescriptor {
 			LogicalModelId:  "nimi/voice-qwen3-tts-base",
 			Repo:            "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
 			Revision:        "main",
-			Capabilities:    []string{"audio.synthesize", "voice_workflow.tts_v2v"},
+			Capabilities:    []string{"audio.synthesize", "voice_workflow.voice_clone"},
 			Engine:          "speech",
 			Entry:           "model.safetensors",
 			Files:           []string{"model.safetensors", "speech_tokenizer/model.safetensors"},
@@ -368,7 +368,7 @@ func defaultVerifiedAssets() []*runtimev1.LocalVerifiedAssetDescriptor {
 			LogicalModelId:  "nimi/voice-qwen3-tts-voicedesign",
 			Repo:            "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
 			Revision:        "main",
-			Capabilities:    []string{"audio.synthesize", "voice_workflow.tts_t2v"},
+			Capabilities:    []string{"audio.synthesize", "voice_workflow.voice_design"},
 			Engine:          "speech",
 			Entry:           "model.safetensors",
 			Files:           []string{"model.safetensors", "speech_tokenizer/model.safetensors"},

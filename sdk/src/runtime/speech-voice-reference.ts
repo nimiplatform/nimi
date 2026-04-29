@@ -10,7 +10,7 @@ export function toRuntimeVoiceReference(input: SpeechVoiceReference | undefined)
     case 'preset_voice_id': {
       const presetVoiceId = normalizeText(input.presetVoiceId);
       if (!presetVoiceId) {
-        return undefined;
+        throw new Error('speech voice reference preset_voice_id requires presetVoiceId');
       }
       return {
         kind: VoiceReferenceKind.PRESET,
@@ -23,7 +23,7 @@ export function toRuntimeVoiceReference(input: SpeechVoiceReference | undefined)
     case 'voice_asset_id': {
       const voiceAssetId = normalizeText(input.voiceAssetId);
       if (!voiceAssetId) {
-        return undefined;
+        throw new Error('speech voice reference voice_asset_id requires voiceAssetId');
       }
       return {
         kind: VoiceReferenceKind.VOICE_ASSET,
@@ -36,7 +36,7 @@ export function toRuntimeVoiceReference(input: SpeechVoiceReference | undefined)
     case 'provider_voice_ref': {
       const providerVoiceRef = normalizeText(input.providerVoiceRef);
       if (!providerVoiceRef) {
-        return undefined;
+        throw new Error('speech voice reference provider_voice_ref requires providerVoiceRef');
       }
       return {
         kind: VoiceReferenceKind.PROVIDER_VOICE_REF,

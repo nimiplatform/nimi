@@ -561,7 +561,7 @@ function normalizeVoiceWorkflowRequestOptions(raw, provider, workflowModelID, wo
     return value;
   };
 
-  if (normalizedWorkflowType === 'tts_v2v') {
+  if (normalizedWorkflowType === 'voice_clone') {
     out.text_prompt_mode = normalizeMode('text_prompt_mode');
     out.supports_language_hints = readExplicitBoolean('supports_language_hints');
     out.supports_preferred_name = readExplicitBoolean('supports_preferred_name');
@@ -574,7 +574,7 @@ function normalizeVoiceWorkflowRequestOptions(raw, provider, workflowModelID, wo
     if (out.allowed_reference_audio_mime_types.length === 0) {
       throw new Error(`${provider} workflow model ${workflowModelID} request_options.allowed_reference_audio_mime_types must not be empty`);
     }
-  } else if (normalizedWorkflowType === 'tts_t2v') {
+  } else if (normalizedWorkflowType === 'voice_design') {
     out.instruction_text_mode = normalizeMode('instruction_text_mode');
     out.preview_text_mode = normalizeMode('preview_text_mode');
     out.supports_language = readExplicitBoolean('supports_language');
@@ -653,10 +653,10 @@ function normalizeWorkflowType(value) {
   if (!normalized) {
     return '';
   }
-  if (normalized === 'tts_v2v' || normalized === 'tts_t2v') {
+  if (normalized === 'voice_clone' || normalized === 'voice_design') {
     return normalized;
   }
-  throw new Error(`voice workflow type must be tts_v2v or tts_t2v, got: ${normalized}`);
+  throw new Error(`voice workflow type must be voice_clone or voice_design, got: ${normalized}`);
 }
 
 function generateProviderCatalog(doc) {

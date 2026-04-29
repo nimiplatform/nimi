@@ -26,22 +26,22 @@ const (
 type VoiceWorkflowType int32
 
 const (
-	VoiceWorkflowType_VOICE_WORKFLOW_TYPE_UNSPECIFIED VoiceWorkflowType = 0
-	VoiceWorkflowType_VOICE_WORKFLOW_TYPE_TTS_V2V     VoiceWorkflowType = 1
-	VoiceWorkflowType_VOICE_WORKFLOW_TYPE_TTS_T2V     VoiceWorkflowType = 2
+	VoiceWorkflowType_VOICE_WORKFLOW_TYPE_UNSPECIFIED  VoiceWorkflowType = 0
+	VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE  VoiceWorkflowType = 1
+	VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_DESIGN VoiceWorkflowType = 2
 )
 
 // Enum value maps for VoiceWorkflowType.
 var (
 	VoiceWorkflowType_name = map[int32]string{
 		0: "VOICE_WORKFLOW_TYPE_UNSPECIFIED",
-		1: "VOICE_WORKFLOW_TYPE_TTS_V2V",
-		2: "VOICE_WORKFLOW_TYPE_TTS_T2V",
+		1: "VOICE_WORKFLOW_TYPE_VOICE_CLONE",
+		2: "VOICE_WORKFLOW_TYPE_VOICE_DESIGN",
 	}
 	VoiceWorkflowType_value = map[string]int32{
-		"VOICE_WORKFLOW_TYPE_UNSPECIFIED": 0,
-		"VOICE_WORKFLOW_TYPE_TTS_V2V":     1,
-		"VOICE_WORKFLOW_TYPE_TTS_T2V":     2,
+		"VOICE_WORKFLOW_TYPE_UNSPECIFIED":  0,
+		"VOICE_WORKFLOW_TYPE_VOICE_CLONE":  1,
+		"VOICE_WORKFLOW_TYPE_VOICE_DESIGN": 2,
 	}
 )
 
@@ -1283,11 +1283,11 @@ const file_runtime_v1_voice_proto_rawDesc = "" +
 	"\x18ListPresetVoicesResponse\x12>\n" +
 	"\x06voices\x18\x01 \x03(\v2&.nimi.runtime.v1.VoicePresetDescriptorR\x06voices\x12%\n" +
 	"\x0emodel_resolved\x18\x02 \x01(\tR\rmodelResolved\x12\x19\n" +
-	"\btrace_id\x18\x03 \x01(\tR\atraceId*z\n" +
+	"\btrace_id\x18\x03 \x01(\tR\atraceId*\x83\x01\n" +
 	"\x11VoiceWorkflowType\x12#\n" +
-	"\x1fVOICE_WORKFLOW_TYPE_UNSPECIFIED\x10\x00\x12\x1f\n" +
-	"\x1bVOICE_WORKFLOW_TYPE_TTS_V2V\x10\x01\x12\x1f\n" +
-	"\x1bVOICE_WORKFLOW_TYPE_TTS_T2V\x10\x02*\xae\x01\n" +
+	"\x1fVOICE_WORKFLOW_TYPE_UNSPECIFIED\x10\x00\x12#\n" +
+	"\x1fVOICE_WORKFLOW_TYPE_VOICE_CLONE\x10\x01\x12$\n" +
+	" VOICE_WORKFLOW_TYPE_VOICE_DESIGN\x10\x02*\xae\x01\n" +
 	"\x12VoiceReferenceKind\x12$\n" +
 	" VOICE_REFERENCE_KIND_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bVOICE_REFERENCE_KIND_PRESET\x10\x01\x12$\n" +

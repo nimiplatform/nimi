@@ -125,8 +125,8 @@ models:
 
 voice_workflow_models:
   - workflow_model_id: fish-audio-create-model
-    workflow_type: tts_v2v
-    input_contract_ref: fish_audio_tts_v2v_input_v1
+    workflow_type: voice_clone
+    input_contract_ref: fish_audio_voice_clone_input_v1
     output_persistence: provider_persistent
     request_options:
       text_prompt_mode: unsupported
@@ -142,14 +142,14 @@ voice_workflow_models:
 model_workflow_bindings:
   - model_id: s1
     workflow_model_refs: [fish-audio-create-model]
-    workflow_types: [tts_v2v]
+    workflow_types: [voice_clone]
   - model_id: s2-pro
     workflow_model_refs: [fish-audio-create-model]
-    workflow_types: [tts_v2v]
+    workflow_types: [voice_clone]
 
 voice_handle_policies:
   - policy_id: fish_audio_provider_persistent_default
-    applies_to_workflow_types: [tts_v2v]
+    applies_to_workflow_types: [voice_clone]
     persistence: provider_persistent
     default_ttl: none
     scope: user_scoped

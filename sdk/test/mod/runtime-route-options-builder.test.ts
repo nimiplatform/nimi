@@ -10,8 +10,8 @@ import {
 
 test('runtime route model capability matcher keeps workflow capability independent from plain tts aliases', () => {
   assert.equal(runtimeRouteModelSupportsCapability(['chat'], 'text.generate'), true);
-  assert.equal(runtimeRouteModelSupportsCapability(['tts'], 'voice_workflow.tts_t2v'), false);
-  assert.equal(runtimeRouteModelSupportsCapability(['voice_workflow.tts_t2v'], 'voice_workflow.tts_t2v'), true);
+  assert.equal(runtimeRouteModelSupportsCapability(['tts'], 'voice_workflow.voice_design'), false);
+  assert.equal(runtimeRouteModelSupportsCapability(['voice_workflow.voice_design'], 'voice_workflow.voice_design'), true);
   assert.equal(runtimeRouteModelSupportsCapability(['speech.transcribe'], 'audio.transcribe'), true);
   assert.equal(runtimeRouteModelSupportsCapability(['image'], 'text.generate'), false);
 });
@@ -19,7 +19,7 @@ test('runtime route model capability matcher keeps workflow capability independe
 test('runtime route local kind matcher keeps kind fallback for local assets without canonical capabilities', () => {
   assert.equal(runtimeRouteLocalKindSupportsCapability('chat', 'text.generate'), true);
   assert.equal(runtimeRouteLocalKindSupportsCapability('stt', 'audio.transcribe'), true);
-  assert.equal(runtimeRouteLocalKindSupportsCapability('tts', 'voice_workflow.tts_t2v'), false);
+  assert.equal(runtimeRouteLocalKindSupportsCapability('tts', 'voice_workflow.voice_design'), false);
   assert.equal(runtimeRouteLocalKindSupportsCapability('image', 'world.generate'), false);
   assert.equal(runtimeRouteLocalKindSupportsCapability('image', 'text.generate'), false);
 });
@@ -107,7 +107,7 @@ test('buildRuntimeRouteSelectedBinding canonicalizes local plain-speech bindings
   });
 
   const voiceCloneSelected = buildRuntimeRouteSelectedBinding({
-    capability: 'voice_workflow.tts_v2v',
+    capability: 'voice_workflow.voice_clone',
     selectedBinding: {
       source: 'local',
       connectorId: '',
@@ -131,7 +131,7 @@ test('buildRuntimeRouteSelectedBinding canonicalizes local plain-speech bindings
   });
 
   const voiceDesignSelected = buildRuntimeRouteSelectedBinding({
-    capability: 'voice_workflow.tts_t2v',
+    capability: 'voice_workflow.voice_design',
     selectedBinding: {
       source: 'local',
       connectorId: '',

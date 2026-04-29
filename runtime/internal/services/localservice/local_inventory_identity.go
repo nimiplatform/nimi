@@ -119,7 +119,7 @@ func inferAssetKindFromCapabilities(capabilities []string) runtimev1.LocalAssetK
 	if localAssetHasCapability(normalizedCapabilities, "video", "video.generate") {
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO
 	}
-	if localAssetHasCapability(normalizedCapabilities, "tts", "audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v") {
+	if localAssetHasCapability(normalizedCapabilities, "tts", "audio.synthesize", "voice_workflow.voice_clone", "voice_workflow.voice_design") {
 		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS
 	}
 	if localAssetHasCapability(normalizedCapabilities, "stt", "audio.transcribe") {

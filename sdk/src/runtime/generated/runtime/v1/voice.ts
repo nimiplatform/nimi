@@ -334,13 +334,13 @@ export enum VoiceWorkflowType {
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: VOICE_WORKFLOW_TYPE_TTS_V2V = 1;
+     * @generated from protobuf enum value: VOICE_WORKFLOW_TYPE_VOICE_CLONE = 1;
      */
-    TTS_V2V = 1,
+    VOICE_CLONE = 1,
     /**
-     * @generated from protobuf enum value: VOICE_WORKFLOW_TYPE_TTS_T2V = 2;
+     * @generated from protobuf enum value: VOICE_WORKFLOW_TYPE_VOICE_DESIGN = 2;
      */
-    TTS_T2V = 2
+    VOICE_DESIGN = 2
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.VoiceReferenceKind

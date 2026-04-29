@@ -467,7 +467,7 @@ route capability surface 的职责固定拆分如下：
 - `runtime.route.describe(...)`：只返回 resolved route 的 typed metadata；不得承担 selection resolution、health 探测、provider fallback、或 Desktop-owned projection 组装。
 - 对 `audio.synthesize` 与 `audio.transcribe`，`runtime.route.checkHealth(...)` 必须回答 capability-scoped readiness，而不是 generic `speech` provider/engine reachability。
 - 对 plain speech，即使共享同一 `speech` engine，`audio.synthesize` 与 `audio.transcribe` 也允许 health truth 分离；任一 capability 缺失独立 admitted ready proof 时必须 fail-close。
-- richer plain-speech health/readiness truth 不得被 Desktop/SDK 或其它消费面倒推出 `voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` admitted success；workflow independence 约束继续成立。
+- richer plain-speech health/readiness truth 不得被 Desktop/SDK 或其它消费面倒推出 `voice_workflow.voice_clone` / `voice_workflow.voice_design` admitted success；workflow independence 约束继续成立。
 
 实现层允许共享底层 resolver/cached lookup，但 public contract 上述四者的语义边界不得合并。
 
@@ -478,7 +478,7 @@ route capability surface 的职责固定拆分如下：
 - `capability`：canonical capability token（必须来自 `K-MCAT-024`）
 - `metadataVersion`：固定为 `v1`
 - `resolvedBindingRef`：由 `runtime.route.resolve(...)` 产生并可复核的 resolved binding reference；`describe` 不接受 Desktop heuristically assembled route
-- `metadataKind`：`text.generate | audio.synthesize | audio.transcribe | voice_workflow.tts_v2v | voice_workflow.tts_t2v`
+- `metadataKind`：`text.generate | audio.synthesize | audio.transcribe | voice_workflow.voice_clone | voice_workflow.voice_design`
 - `metadata`：与 `metadataKind` 对应的 typed object
 
 `metadataKind=text.generate` 时，`metadata` 最小必填字段固定为：
@@ -490,9 +490,9 @@ route capability surface 的职责固定拆分如下：
 - `supportsVideoInput: boolean`
 - `supportsArtifactRefInput: boolean`
 
-`metadataKind=voice_workflow.tts_v2v` 时，`metadata` 最小必填字段固定为：
+`metadataKind=voice_workflow.voice_clone` 时，`metadata` 最小必填字段固定为：
 
-- `workflowType: 'tts_v2v'`
+- `workflowType: 'voice_clone'`
 - `requiresTargetSynthesisBinding: boolean`
 - `textPromptMode: 'unsupported' | 'optional' | 'required'`
 - `supportsLanguageHints: boolean`
@@ -510,9 +510,9 @@ route capability surface 的职责固定拆分如下：
 extension-key allowlist、transport override 键或 runtime-private schema
 内容。
 
-`metadataKind=voice_workflow.tts_t2v` 时，`metadata` 最小必填字段固定为：
+`metadataKind=voice_workflow.voice_design` 时，`metadata` 最小必填字段固定为：
 
-- `workflowType: 'tts_t2v'`
+- `workflowType: 'voice_design'`
 - `requiresTargetSynthesisBinding: boolean`
 - `instructionTextMode: 'unsupported' | 'optional' | 'required'`
 - `previewTextMode: 'unsupported' | 'optional' | 'required'`
@@ -569,7 +569,7 @@ Phase 1 未在本规则列出的 capability，不得借由自由对象、provide
   - 单向派生自 runtime 对 `artifact_ref` 可解析后目标模态的 capability truth；Desktop 不得维护第二份 artifact modality matrix。
 - `text.generate.supportsThinking | traceModeSupport`
   - 单向派生自 `K-MMPROV-037` 的 typed reasoning capability truth。
-- `voice_workflow.tts_v2v | voice_workflow.tts_t2v`
+- `voice_workflow.voice_clone | voice_workflow.voice_design`
   - 单向派生自 source-authored workflow `request_options` + `K-MMPROV-019`、`K-MMPROV-020`、`K-MCAT-013`、`K-MCAT-014`、`K-MCAT-021` 以及 local `speech` capability truth（含 `K-LOCAL-017`）。
 - `audio.synthesize`
   - 单向派生自 source-authored `voice.request_options` + resolved model `audio.synthesize` catalog truth。
@@ -606,9 +606,9 @@ fail-close 时不得：
 
 ## K-RPC-021 Voice Workflow Capability Independence
 
-`voice_workflow.tts_v2v` 与 `voice_workflow.tts_t2v` 在 selection / resolve / checkHealth / describe 上必须被视为独立 capability，而不是 `audio.synthesize` 的隐式附属面。
+`voice_workflow.voice_clone` 与 `voice_workflow.voice_design` 在 selection / resolve / checkHealth / describe 上必须被视为独立 capability，而不是 `audio.synthesize` 的隐式附属面。
 
-- selection truth 必须按 `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 各自 capability key 记录；不得复用 `audio.synthesize` 的 selected binding。
+- selection truth 必须按 `voice_workflow.voice_clone`、`voice_workflow.voice_design` 各自 capability key 记录；不得复用 `audio.synthesize` 的 selected binding。
 - `resolve(...)` 对 workflow capability 必须解析 workflow model binding；当 binding matrix 要求目标 synthesis model 时，还必须显式解析 compatibility，而不是继承 `audio.synthesize` 的任意 route。
 - `checkHealth(...)` 对 workflow capability 必须检查 workflow driver/readiness；当 `requiresTargetSynthesisBinding=true` 时，还必须把目标 synthesis binding readiness 作为同一路径的组成条件。
 - `describe(...)` 对 workflow capability 只返回 workflow metadata；不得返回 `audio.synthesize` 的 voice list/synthesis metadata 代替。
@@ -639,4 +639,4 @@ workflow-capable speech family 的 app-facing consume 与健康验证必须保�
 
 - workflow family 的 plain TTS / workflow 成功，不得被 host、SDK、Desktop、或 tests 隐式提升成 `audio.transcribe` 成功
 - STT 必须继续由独立 STT family 的 resolved binding / health / execution truth 验证
-- family-level acceptance matrix 若缺失独立 STT sentinel，则不得宣称整条 `tts + stt + tts_t2v + tts_v2v` 链路已经 admitted
+- family-level acceptance matrix 若缺失独立 STT sentinel，则不得宣称整条 `tts + stt + voice_design + voice_clone` 链路已经 admitted

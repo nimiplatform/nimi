@@ -19,7 +19,7 @@
 - `VISION` 表示“可接受视觉输入”的能力标记，不是独立执行模态。
 - `IMAGE/TTS/STT` 与同名执行模态映射。
 - `CUSTOM` 的 capability 来自模型元数据声明。
-- `TTS` / `STT` 只映射 plain speech capability；不得把 `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 视为由 `TTS` category 自动隐含。
+- `TTS` / `STT` 只映射 plain speech capability；不得把 `voice_workflow.voice_clone`、`voice_workflow.voice_design` 视为由 `TTS` category 自动隐含。
 - baseline local `Qwen3-TTS` workflow line 不改变上述规则；即使 `Qwen3-TTS`
   同时承担 plain synth / clone / design，workflow capability 仍必须显式声明为
   `voice_workflow.*`，不得通过 `TTS` category 自动推导。
@@ -313,7 +313,7 @@ Node 的 `adapter` 字段按以下规则确定（以 `tables/local-adapter-routi
 | `media/` | 仅匹配 `media` 引擎的已安装模型 |
 | `speech/` | 仅匹配 `speech` 引擎的已安装模型 |
 | `sidecar/` | 仅匹配 `sidecar` 引擎的已安装模型 |
-| `local/` | 按 host + capability 做 engine-first 路由：`text.generate/text.embed/image.understand/audio.understand -> llama`，`image.generate/image.edit/video.generate/i2v -> media`，`audio.transcribe/audio.synthesize -> speech`，仅当 `media` 不支持当前 family 或 artifact completeness 不满足时，才允许 runtime 内部回退到 `media.diffusers`；`voice_workflow.tts_v2v/voice_workflow.tts_t2v` 在显式 local workflow admission 前不得被 `local/*` 投影为 canonical local speech success |
+| `local/` | 按 host + capability 做 engine-first 路由：`text.generate/text.embed/image.understand/audio.understand -> llama`，`image.generate/image.edit/video.generate/i2v -> media`，`audio.transcribe/audio.synthesize -> speech`，仅当 `media` 不支持当前 family 或 artifact completeness 不满足时，才允许 runtime 内部回退到 `media.diffusers`；`voice_workflow.voice_clone/voice_workflow.voice_design` 在显式 local workflow admission 前不得被 `local/*` 投影为 canonical local speech success |
 | 无前缀 | 按已安装模型的 `model_id` 精确匹配 |
 
 前缀在匹配时剥除（`llama/qwen2.5-7b-instruct` 匹配 `model_id=qwen2.5-7b-instruct` 且 `engine=llama`；`media/flux.1-schnell` 匹配 `model_id=flux.1-schnell` 且 `engine=media`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。

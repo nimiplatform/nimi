@@ -371,7 +371,7 @@ class SpeechServerTests(unittest.TestCase):
             self.assertEqual(len(state.models), 1)
             self.assertEqual(state.models[0].capability_drivers["audio.synthesize"], "qwen3_tts")
             self.assertTrue(state.models[0].ready)
-            self.assertIn("voice_workflow.tts_v2v", state.models[0].ready_capabilities)
+            self.assertIn("voice_workflow.voice_clone", state.models[0].ready_capabilities)
 
     def test_build_host_state_rejects_qwen3_tts_model_when_preflight_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

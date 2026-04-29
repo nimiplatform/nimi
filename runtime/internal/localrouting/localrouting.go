@@ -47,10 +47,10 @@ func NormalizeCapability(capability string) string {
 		return "image.edit"
 	case "i2v":
 		return "i2v"
-	case "voice_workflow.tts_v2v":
-		return "voice_workflow.tts_v2v"
-	case "voice_workflow.tts_t2v":
-		return "voice_workflow.tts_t2v"
+	case "voice_workflow.voice_clone":
+		return "voice_workflow.voice_clone"
+	case "voice_workflow.voice_design":
+		return "voice_workflow.voice_design"
 	case "audio.understand":
 		return "audio.understand"
 	default:
@@ -125,7 +125,7 @@ func providersForNormalizedCapability(capability string) []string {
 	switch capability {
 	case "image.generate", "image.edit", "video.generate", "i2v":
 		return supportedProvidersInOrder(capability, "media")
-	case "audio.synthesize", "audio.transcribe", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+	case "audio.synthesize", "audio.transcribe", "voice_workflow.voice_clone", "voice_workflow.voice_design":
 		return supportedProvidersInOrder(capability, "speech")
 	case "text.generate", "text.embed", "image.understand", "audio.understand":
 		return supportedProvidersInOrder(capability, "llama")
@@ -145,8 +145,8 @@ func providerSupportsNormalizedCapability(provider string, capability string) bo
 	case "speech":
 		return capability == "audio.synthesize" ||
 			capability == "audio.transcribe" ||
-			capability == "voice_workflow.tts_v2v" ||
-			capability == "voice_workflow.tts_t2v"
+			capability == "voice_workflow.voice_clone" ||
+			capability == "voice_workflow.voice_design"
 	case "sidecar":
 		return capability == "music.generate"
 	default:

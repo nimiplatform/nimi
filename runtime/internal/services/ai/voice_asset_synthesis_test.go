@@ -44,7 +44,7 @@ func TestLocalQwenVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 		LocalAssetId: "local-qwen3-tts-001",
 		AssetId:      "speech/qwen3tts",
 		Engine:       "speech",
-		Capabilities: []string{"audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v"},
+		Capabilities: []string{"audio.synthesize", "voice_workflow.voice_clone", "voice_workflow.voice_design"},
 		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 		Endpoint:     server.URL + "/v1",
 	}, 12)}

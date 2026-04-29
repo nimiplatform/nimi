@@ -30,9 +30,9 @@ const maxVoiceWorkflowReferenceAudioBytes = 20 * 1024 * 1024
 func workflowTypeFromScenarioType(scenarioType runtimev1.ScenarioType) string {
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		return "tts_v2v"
+		return "voice_clone"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		return "tts_t2v"
+		return "voice_design"
 	default:
 		return ""
 	}
@@ -272,9 +272,9 @@ func executeVoiceWorkflowViaLocalSpeechHost(
 	}
 	path := ""
 	switch strings.TrimSpace(resolution.WorkflowType) {
-	case "tts_v2v":
+	case "voice_clone":
 		path = "/v1/voice/clone"
-	case "tts_t2v":
+	case "voice_design":
 		path = "/v1/voice/design"
 	default:
 		return voiceWorkflowExecutionResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)

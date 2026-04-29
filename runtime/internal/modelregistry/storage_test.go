@@ -213,7 +213,7 @@ func TestInferNativeProjectionForVoiceWorkflowModel(t *testing.T) {
 	withIsolatedResolvedBundles(t)
 	projection, err := InferNativeProjection(
 		"speech/qwen3tts",
-		[]string{"voice_workflow.tts_v2v"},
+		[]string{"voice_workflow.voice_clone"},
 		[]string{"model.safetensors"},
 		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 	)

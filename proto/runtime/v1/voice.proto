@@ -10,8 +10,8 @@ import "runtime/v1/common.proto";
 
 enum VoiceWorkflowType {
   VOICE_WORKFLOW_TYPE_UNSPECIFIED = 0;
-  VOICE_WORKFLOW_TYPE_TTS_V2V = 1;
-  VOICE_WORKFLOW_TYPE_TTS_T2V = 2;
+  VOICE_WORKFLOW_TYPE_VOICE_CLONE = 1;
+  VOICE_WORKFLOW_TYPE_VOICE_DESIGN = 2;
 }
 
 enum VoiceReferenceKind {

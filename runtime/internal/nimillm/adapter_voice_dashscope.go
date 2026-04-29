@@ -18,9 +18,9 @@ func executeDashScopeVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest
 	workflow := strings.ToLower(strings.TrimSpace(req.WorkflowType))
 	var defaults []string
 	switch workflow {
-	case "tts_v2v":
+	case "voice_clone":
 		defaults = []string{"/api/v1/services/audio/tts/customization"}
-	case "tts_t2v":
+	case "voice_design":
 		defaults = []string{"/api/v1/services/audio/tts/customization"}
 	default:
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
@@ -51,7 +51,7 @@ func buildDashScopeVoiceWorkflowPayload(req VoiceWorkflowRequest) map[string]any
 	))
 	safeName := normalizeDashScopePreferredName(name)
 	switch workflow {
-	case "tts_v2v":
+	case "voice_clone":
 		audioData := strings.TrimSpace(FirstNonEmpty(
 			ValueAsString(req.Payload["audio_url"]),
 			ValueAsString(req.Payload["reference_audio_uri"]),
@@ -83,7 +83,7 @@ func buildDashScopeVoiceWorkflowPayload(req VoiceWorkflowRequest) map[string]any
 			"model": workflowModelID,
 			"input": input,
 		}
-	case "tts_t2v":
+	case "voice_design":
 		voicePrompt := strings.TrimSpace(FirstNonEmpty(
 			ValueAsString(req.Payload["instruction_text"]),
 			ValueAsString(req.Payload["description"]),

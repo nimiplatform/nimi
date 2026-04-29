@@ -35,8 +35,8 @@ const (
 )
 
 type resolvedBundleManifestIndex struct {
-	rootModTime    time.Time
-	manifestByID   map[string]string
+	rootModTime  time.Time
+	manifestByID map[string]string
 }
 
 var (
@@ -481,7 +481,7 @@ func inferPreferredEngine(capabilities []string) string {
 		switch strings.ToLower(strings.TrimSpace(capability)) {
 		case "image.generate", "image.edit", "video.generate", "i2v":
 			return "media"
-		case "audio.transcribe", "audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+		case "audio.transcribe", "audio.synthesize", "voice_workflow.voice_clone", "voice_workflow.voice_design":
 			return "speech"
 		}
 	}
@@ -556,7 +556,7 @@ func inferHostRequirements(capabilities []string) *runtimev1.LocalHostRequiremen
 		case "audio.synthesize":
 			requirements.PythonRuntimeRequired = true
 			addBackends("qwen3_tts")
-		case "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+		case "voice_workflow.voice_clone", "voice_workflow.voice_design":
 			requirements.GpuRequired = true
 			requirements.PythonRuntimeRequired = true
 			addBackends("qwen3_tts")

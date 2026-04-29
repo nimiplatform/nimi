@@ -313,12 +313,12 @@ test('decodeRuntimeRouteDescribeResultFromMetadata decodes typed payload from re
 
 test('decodeRuntimeRouteDescribeResultFromMetadata decodes voice workflow typed payload from response metadata', () => {
   const encoded = Buffer.from(JSON.stringify({
-    capability: 'voice_workflow.tts_v2v',
+    capability: 'voice_workflow.voice_clone',
     metadataVersion: 'v1',
     resolvedBindingRef: 'binding-voice-001',
-    metadataKind: 'voice_workflow.tts_v2v',
+    metadataKind: 'voice_workflow.voice_clone',
     metadata: {
-      workflowType: 'tts_v2v',
+      workflowType: 'voice_clone',
       requiresTargetSynthesisBinding: true,
       textPromptMode: 'optional',
       supportsLanguageHints: false,
@@ -333,15 +333,15 @@ test('decodeRuntimeRouteDescribeResultFromMetadata decodes voice workflow typed 
     metadata: {
       [RUNTIME_ROUTE_DESCRIBE_RESULT_RESPONSE_METADATA_KEY]: encoded,
     },
-    expectedCapability: 'voice_workflow.tts_v2v',
+    expectedCapability: 'voice_workflow.voice_clone',
     expectedResolvedBindingRef: 'binding-voice-001',
   });
 
-  assert.equal(parsed.metadataKind, 'voice_workflow.tts_v2v');
-  if (parsed.metadataKind !== 'voice_workflow.tts_v2v') {
+  assert.equal(parsed.metadataKind, 'voice_workflow.voice_clone');
+  if (parsed.metadataKind !== 'voice_workflow.voice_clone') {
     assert.fail('expected voice workflow route metadata');
   }
-  assert.equal(parsed.metadata.workflowType, 'tts_v2v');
+  assert.equal(parsed.metadata.workflowType, 'voice_clone');
   assert.equal(parsed.metadata.requiresTargetSynthesisBinding, true);
   assert.equal(parsed.metadata.textPromptMode, 'optional');
   assert.deepEqual(parsed.metadata.allowedReferenceAudioMimeTypes, ['audio/wav', 'audio/mpeg']);

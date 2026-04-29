@@ -149,10 +149,10 @@ function capabilityFromModelCapability(value) {
 
 function workflowCapability(workflowType) {
   const normalized = String(workflowType || '').trim().toLowerCase();
-  if (normalized === 'tts_v2v') {
+  if (normalized === 'voice_clone') {
     return 'voice_clone';
   }
-  if (normalized === 'tts_t2v') {
+  if (normalized === 'voice_design') {
     return 'voice_design';
   }
   return '';

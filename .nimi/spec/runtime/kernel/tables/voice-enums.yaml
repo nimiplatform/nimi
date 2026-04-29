@@ -5,13 +5,13 @@ workflow_types:
     enum_value: 0
     description: proto zero sentinel for unset workflow type
     source_rule: K-VOICE-002
-  - workflow_type: tts_v2v
-    enum_name: VOICE_WORKFLOW_TYPE_TTS_V2V
+  - workflow_type: voice_clone
+    enum_name: VOICE_WORKFLOW_TYPE_VOICE_CLONE
     enum_value: 1
     description: create voice asset from reference voice/audio input
     source_rule: K-VOICE-002
-  - workflow_type: tts_t2v
-    enum_name: VOICE_WORKFLOW_TYPE_TTS_T2V
+  - workflow_type: voice_design
+    enum_name: VOICE_WORKFLOW_TYPE_VOICE_DESIGN
     enum_value: 2
     description: create voice asset from text instruction
     source_rule: K-VOICE-002

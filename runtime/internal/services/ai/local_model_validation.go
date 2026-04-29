@@ -358,6 +358,9 @@ func shouldRetryUnhealthyLocalModelStart(model *runtimev1.LocalAssetRecord, moda
 	if strings.TrimSpace(model.GetLocalAssetId()) == "" {
 		return false
 	}
+	if shouldRetryUnhealthyManagedLlamaStart(model, modal) {
+		return true
+	}
 	switch modal {
 	case runtimev1.Modal_MODAL_IMAGE:
 	default:
@@ -369,6 +372,31 @@ func shouldRetryUnhealthyLocalModelStart(model *runtimev1.LocalAssetRecord, moda
 	for _, capability := range model.GetCapabilities() {
 		normalized := strings.ToLower(strings.TrimSpace(capability))
 		if normalized == "image" || normalized == "image.generate" {
+			return true
+		}
+	}
+	return false
+}
+
+func shouldRetryUnhealthyManagedLlamaStart(model *runtimev1.LocalAssetRecord, modal runtimev1.Modal) bool {
+	if model == nil {
+		return false
+	}
+	switch modal {
+	case runtimev1.Modal_MODAL_UNSPECIFIED, runtimev1.Modal_MODAL_TEXT, runtimev1.Modal_MODAL_EMBEDDING:
+	default:
+		return false
+	}
+	if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama") {
+		return false
+	}
+	detail := strings.ToLower(strings.TrimSpace(model.GetHealthDetail()))
+	if !strings.Contains(detail, "plane=local-supervised") || !strings.Contains(detail, "connect: connection refused") {
+		return false
+	}
+	for _, capability := range model.GetCapabilities() {
+		normalized := strings.ToLower(strings.TrimSpace(capability))
+		if normalized == "chat" || normalized == "text.generate" || normalized == "embedding" || normalized == "text.embed" {
 			return true
 		}
 	}

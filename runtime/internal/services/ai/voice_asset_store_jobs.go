@@ -27,10 +27,10 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 	targetModelID := ""
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		workflowType = runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_TTS_V2V
+		workflowType = runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE
 		targetModelID = strings.TrimSpace(spec.GetVoiceClone().GetTargetModelId())
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		workflowType = runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_TTS_T2V
+		workflowType = runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_DESIGN
 		targetModelID = strings.TrimSpace(spec.GetVoiceDesign().GetTargetModelId())
 	}
 	provider := strings.TrimSpace(input.Provider)

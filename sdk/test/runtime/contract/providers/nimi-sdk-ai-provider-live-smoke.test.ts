@@ -678,10 +678,10 @@ function loadSourceProviderCapabilityMatrix(): ProviderCapabilityMatrix {
     const workflowModels = Array.isArray(doc?.voice_workflow_models) ? doc.voice_workflow_models : [];
     for (const workflowModel of workflowModels) {
       const workflowType = String(workflowModel?.workflow_type || '').trim().toLowerCase();
-      if (workflowType === 'tts_v2v') {
+      if (workflowType === 'voice_clone') {
         set.add('voice_clone');
       }
-      if (workflowType === 'tts_t2v') {
+      if (workflowType === 'voice_design') {
         set.add('voice_design');
       }
     }

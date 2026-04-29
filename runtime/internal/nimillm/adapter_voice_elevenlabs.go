@@ -19,9 +19,9 @@ import (
 func executeElevenLabsVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
 	workflow := strings.ToLower(strings.TrimSpace(req.WorkflowType))
 	switch workflow {
-	case "tts_v2v":
+	case "voice_clone":
 		return executeElevenLabsInstantVoiceClone(ctx, req, cfg)
-	case "tts_t2v":
+	case "voice_design":
 		return executeElevenLabsTwoPhaseDesign(ctx, req, cfg)
 	default:
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
@@ -62,7 +62,7 @@ func executeElevenLabsTwoPhaseDesign(ctx context.Context, req VoiceWorkflowReque
 		previewPayload["extensions"] = req.ExtPayload
 	}
 
-	previewPaths := resolveVoiceEndpointPaths("tts_t2v", req.ExtPayload, nil)
+	previewPaths := resolveVoiceEndpointPaths("voice_design", req.ExtPayload, nil)
 	// Use preview-specific extension keys if provided.
 	if extPaths := valueAsTrimmedStringSliceVoice(req.ExtPayload["preview_paths"]); len(extPaths) > 0 {
 		previewPaths = extPaths

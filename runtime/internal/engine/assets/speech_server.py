@@ -231,7 +231,7 @@ def create_app() -> FastAPI:
                 {
                     "driver": "qwen3_tts",
                     "operation": "voice.clone",
-                    "workflow_type": "tts_v2v",
+                    "workflow_type": "voice_clone",
                     "workflow_model_id": workflow_model_id,
                     "target_model_id": model.model_id,
                     "manifest_path": model.manifest_path,
@@ -266,7 +266,7 @@ def create_app() -> FastAPI:
                 {
                     "driver": "qwen3_tts",
                     "operation": "voice.design",
-                    "workflow_type": "tts_t2v",
+                    "workflow_type": "voice_design",
                     "workflow_model_id": workflow_model_id,
                     "target_model_id": model.model_id,
                     "manifest_path": model.manifest_path,

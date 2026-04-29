@@ -160,9 +160,9 @@ TTS v2 合成请求主入口必须是强类型 `voice_ref`，不允许回退到�
 
 ## K-MMPROV-019 Voice Workflow Canonical Inputs
 
-Voice 工作流 canonical 输入字段（`tts_v2v` / `tts_t2v`）由 `multimodal-canonical-fields.yaml` 管理，provider 不得以隐式参数替代必填字段约束。
+Voice 工作流 canonical 输入字段（`voice_clone` / `voice_design`）由 `multimodal-canonical-fields.yaml` 管理，provider 不得以隐式参数替代必填字段约束。
 
-对 `tts_v2v`，canonical 输入允许可选 `v2v.text`。当 provider 明确要求提供参考音频的 transcript / text 描述时，必须显式透传并在缺失时 fail-close；禁止 runtime 伪造 transcript。
+对 `voice_clone`，canonical 输入允许可选 `voice_clone.text`。当 provider 明确要求提供参考音频的 transcript / text 描述时，必须显式透传并在缺失时 fail-close；禁止 runtime 伪造 transcript。
 
 provider extension 若暴露 `base_url` 覆写入口，仅允许与当前 provider 基线 endpoint 保持同一 scheme、host 与 canonical base path。不得借由 same-origin 不同 path 的覆写把请求转发到管理端点、私有运维路径或其它非 voice workflow API 面。
 
@@ -274,13 +274,13 @@ provider 异步任务状态必须归一化到：
 TTS provider 纳入执行以下分层规则：
 
 - `tts_synthesize` 为基础必备能力；
-- `tts_v2v` 与 `tts_t2v` 为可选增量能力；
+- `voice_clone` 与 `voice_design` 为可选增量能力；
 - 对仅 synthesize provider，不得要求其提供 voice workflow 强行对齐。
 
 ## K-MMPROV-029 Deferred Custom Voice Extension
 
 云厂训练型 Custom Voice（训练作业、审批流程或长期部署语义）在本轮必须保持 provider extension 形态。
-在形成跨 provider 可验证强类型抽象前，不得强行映射为标准 `tts_v2v` / `tts_t2v` 成功语义。
+在形成跨 provider 可验证强类型抽象前，不得强行映射为标准 `voice_clone` / `voice_design` 成功语义。
 
 ## K-MMPROV-030 Text Chat Multimodal Preflight Guard
 

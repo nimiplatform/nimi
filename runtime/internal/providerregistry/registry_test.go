@@ -28,3 +28,53 @@ func TestSortedProviderIDsReturnsSortedCopy(t *testing.T) {
 		t.Fatal("expected SortedProviderIDs to return a defensive copy")
 	}
 }
+
+func TestVoiceWorkflowProviderFamilyFlagsDoNotOverclaim(t *testing.T) {
+	cases := []struct {
+		provider          string
+		wantTTS           bool
+		wantVoiceClone    bool
+		wantVoiceDesign   bool
+		coverageInvariant string
+	}{
+		{
+			provider:          "aws_polly",
+			wantTTS:           true,
+			wantVoiceClone:    false,
+			wantVoiceDesign:   false,
+			coverageInvariant: "plain TTS only provider must not advertise voice workflows",
+		},
+		{
+			provider:          "fish_audio",
+			wantTTS:           true,
+			wantVoiceClone:    true,
+			wantVoiceDesign:   false,
+			coverageInvariant: "clone-capable provider must not advertise design unless source catalog has design workflow",
+		},
+		{
+			provider:          "dashscope",
+			wantTTS:           true,
+			wantVoiceClone:    true,
+			wantVoiceDesign:   true,
+			coverageInvariant: "full TTS2 provider must advertise both workflow lanes",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.provider, func(t *testing.T) {
+			record, ok := Lookup(c.provider)
+			if !ok {
+				t.Fatalf("provider %s not found", c.provider)
+			}
+			if record.SupportsTTS != c.wantTTS {
+				t.Fatalf("%s SupportsTTS=%v, want %v (%s)", c.provider, record.SupportsTTS, c.wantTTS, c.coverageInvariant)
+			}
+			if record.SupportsVoiceClone != c.wantVoiceClone {
+				t.Fatalf("%s SupportsVoiceClone=%v, want %v (%s)", c.provider, record.SupportsVoiceClone, c.wantVoiceClone, c.coverageInvariant)
+			}
+			if record.SupportsVoiceDesign != c.wantVoiceDesign {
+				t.Fatalf("%s SupportsVoiceDesign=%v, want %v (%s)", c.provider, record.SupportsVoiceDesign, c.wantVoiceDesign, c.coverageInvariant)
+			}
+		})
+	}
+}

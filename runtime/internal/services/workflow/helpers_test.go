@@ -182,7 +182,7 @@ func TestValidateDefinitionRejectsVoiceWorkflowNodesUntilImplemented(t *testing.
 			TypeConfig: &runtimev1.WorkflowNode_AiTtsCreateVoiceConfig{
 				AiTtsCreateVoiceConfig: &runtimev1.AiTtsCreateVoiceNodeConfig{
 					ModelId:       "speech/qwen3-tts",
-					WorkflowType:  runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_TTS_V2V,
+					WorkflowType:  runtimev1.VoiceWorkflowType_VOICE_WORKFLOW_TYPE_VOICE_CLONE,
 					TargetModelId: "speech/qwen3-tts",
 				},
 			},

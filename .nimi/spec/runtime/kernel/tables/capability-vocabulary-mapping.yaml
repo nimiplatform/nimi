@@ -23,8 +23,8 @@ canonical_tokens:
   - audio.transcribe
   - music.generate
   - music.generate.iteration
-  - voice_workflow.tts_v2v
-  - voice_workflow.tts_t2v
+  - voice_workflow.voice_clone
+  - voice_workflow.voice_design
 
 # Local runtime tokens (K-LOCAL-026 manifest capabilities field)
 local_manifest_tokens:
@@ -105,10 +105,10 @@ canonical_only:
     note: Music generation remains provider-routed; no Phase 1 local manifest token exists
   - canonical_token: music.generate.iteration
     note: Iterative music generation remains provider-routed; no Phase 1 local manifest token exists
-  - canonical_token: voice_workflow.tts_v2v
-    note: Voice-to-voice workflow; requires orchestrated pipeline, not single-model local execution
-  - canonical_token: voice_workflow.tts_t2v
-    note: Text-to-voice workflow; requires orchestrated pipeline, not single-model local execution
+  - canonical_token: voice_workflow.voice_clone
+    note: Voice clone workflow; requires orchestrated pipeline, not single-model local execution
+  - canonical_token: voice_workflow.voice_design
+    note: Voice design workflow; requires orchestrated pipeline, not single-model local execution
   - canonical_token: world.generate
     note: Explorable world generation remains provider-routed; no Phase 1 local manifest token exists
 

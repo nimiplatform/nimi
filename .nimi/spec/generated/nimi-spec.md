@@ -471,7 +471,7 @@ message Connector {
 - `VISION` 表示“可接受视觉输入”的能力标记，不是独立执行模态。
 - `IMAGE/TTS/STT` 与同名执行模态映射。
 - `CUSTOM` 的 capability 来自模型元数据声明。
-- `TTS` / `STT` 只映射 plain speech capability；不得把 `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 视为由 `TTS` category 自动隐含。
+- `TTS` / `STT` 只映射 plain speech capability；不得把 `voice_workflow.voice_clone`、`voice_workflow.voice_design` 视为由 `TTS` category 自动隐含。
 - baseline local `Qwen3-TTS` workflow line 不改变上述规则；即使 `Qwen3-TTS`
   同时承担 plain synth / clone / design，workflow capability 仍必须显式声明为
   `voice_workflow.*`，不得通过 `TTS` category 自动推导。
@@ -669,7 +669,7 @@ Phase 1 本地执行引擎固定为：
 - `speech`：本地语音引擎族。当前 ordinary-user admitted baseline 固定围绕 baseline `Qwen3` family line：
   - `audio.transcribe` default lane: `Qwen3-ASR-0.6B`
   - `audio.synthesize` default lane: `Qwen3-TTS-12Hz-0.6B-CustomVoice`
-  - `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 只有在真实本地 workflow execution plane 被显式 cutover admitted 后才能升格为 local truth
+  - `voice_workflow.voice_clone`、`voice_workflow.voice_design` 只有在真实本地 workflow execution plane 被显式 cutover admitted 后才能升格为 local truth
   - 当前 baseline admitted local workflow family 边界固定为 `qwen3_tts`，不得被扩写成 generic local workflow truth
 - `sidecar`：外部自托管 music sidecar，使用 Nimi music canonical HTTP 协议；当前仅支持 `ATTACHED_ENDPOINT`
 
@@ -778,7 +778,7 @@ speech product posture:
 - `audio.synthesize` 必须至少验证 TTS driver 与主 artifact 完整；只有 target logical model 已 admitted 且投影一致、catalog 顶层 `ready=true`、target row `ready=true`、row capability 命中 `audio.synthesize`，且 supervised path 下 target endpoint 与 managed speech endpoint 一致时，才允许投影为 admitted local ready。
 - placeholder host 与 admitted plain-speech host 必须显式分离：在 admitted local plain-speech execution plane 尚未 materialize 前，speech canonical HTTP surface 可以存在，但必须保持 non-ready / fail-close；不得借 `ACTIVE`、`READY`、generic health 或静态 catalog 投影成 admitted success。
 - speech supervised data-boundary minimum 属于 admitted contract：temp files 必须有 bounded lifecycle；public detail 不得暴露 raw bootstrap path、raw probe URL 或 raw request payload；reference audio、transcription text、voice design prompt 不得因 generic logging 默认进入长期保留路径。
-- 当未来 local workflow 被 admission 时，`voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` 必须验证 workflow driver 可用；在 admission 之前，缺失独立 workflow readiness truth 时必须 fail-close，不得投影为 local admitted success。
+- 当未来 local workflow 被 admission 时，`voice_workflow.voice_clone` / `voice_workflow.voice_design` 必须验证 workflow driver 可用；在 admission 之前，缺失独立 workflow readiness truth 时必须 fail-close，不得投影为 local admitted success。
 - 对 baseline admitted local workflow，workflow driver/readiness truth 也必须保持 family-scoped：当前只允许 `qwen3_tts` 进入 admitted execution proof，其成功不得隐式放宽到其它 local workflow family。
 
 `sidecar` 当前不进入标准 supervised 健康探测，attached endpoint 的可用性由实际 music 请求 fail-close。
@@ -1004,7 +1004,7 @@ AI 执行路径根据 model_id 前缀确定引擎：
 | `media/` | 仅匹配 `media` 引擎的已安装模型 |
 | `speech/` | 仅匹配 `speech` 引擎的已安装模型 |
 | `sidecar/` | 仅匹配 `sidecar` 引擎的已安装模型 |
-| `local/` | 按 host + capability 做 engine-first 路由：`text.generate/text.embed/image.understand/audio.understand -> llama`，`image.generate/image.edit/video.generate/i2v -> media`，`audio.transcribe/audio.synthesize -> speech`，仅当 `media` 不支持当前 family 或 artifact completeness 不满足时，才允许 runtime 内部回退到 `media.diffusers`；`voice_workflow.tts_v2v/voice_workflow.tts_t2v` 在显式 local workflow admission 前不得被 `local/*` 投影为 canonical local speech success |
+| `local/` | 按 host + capability 做 engine-first 路由：`text.generate/text.embed/image.understand/audio.understand -> llama`，`image.generate/image.edit/video.generate/i2v -> media`，`audio.transcribe/audio.synthesize -> speech`，仅当 `media` 不支持当前 family 或 artifact completeness 不满足时，才允许 runtime 内部回退到 `media.diffusers`；`voice_workflow.voice_clone/voice_workflow.voice_design` 在显式 local workflow admission 前不得被 `local/*` 投影为 canonical local speech success |
 | 无前缀 | 按已安装模型的 `model_id` 精确匹配 |
 
 前缀在匹配时剥除（`llama/qwen2.5-7b-instruct` 匹配 `model_id=qwen2.5-7b-instruct` 且 `engine=llama`；`media/flux.1-schnell` 匹配 `model_id=flux.1-schnell` 且 `engine=media`；`sidecar/musicgen` 匹配 `model_id=musicgen` 且 `engine=sidecar`）。
@@ -2655,7 +2655,7 @@ Capability 检查流程：
 
 - Hook permission key 负责授权 mod 是否可以调用某个 desktop/runtime facade 方法。
 - Runtime canonical capability token 负责在 `runtime.route.listOptions/resolve/checkHealth` 中判定 connector/model/workflow 的支持面。
-- Hook permission key 不是 provider/model 能力真相；Desktop 不得用 `runtime.*` permission 反推 `text.generate` / `audio.synthesize` / `voice_workflow.tts_v2v` 等 runtime canonical capability。
+- Hook permission key 不是 provider/model 能力真相；Desktop 不得用 `runtime.*` permission 反推 `text.generate` / `audio.synthesize` / `voice_workflow.voice_clone` 等 runtime canonical capability。
 
 **D-HOOK-009 — Runtime Capability 域**
 
@@ -2910,11 +2910,11 @@ Desktop 侧 speech engine 只暴露 runtime-aligned 语音能力：
 
 选路规则固定为：
 - `audio.synthesize`：先走 `runtime.route.listOptions({ capability: 'audio.synthesize' })` 选 binding，再调用 `runtime.media.tts.listVoices/synthesize/stream`
-- `voice_workflow.tts_v2v|voice_workflow.tts_t2v`：必须对对应 capability 独立执行 `runtime.route.listOptions -> resolve -> checkHealth -> describe`，再提交 runtime media job；不得复用 `audio.synthesize` 的 route truth
+- `voice_workflow.voice_clone|voice_workflow.voice_design`：必须对对应 capability 独立执行 `runtime.route.listOptions -> resolve -> checkHealth -> describe`，再提交 runtime media job；不得复用 `audio.synthesize` 的 route truth
 - 缺有效 binding 或缺 route-resolved model 时必须 fail-close，不得返回空 voice 列表作为静默 fallback
 - AI Chat、Agent Chat、Runtime Config 对 text/audio/voice workflow 的 capability projection 必须共用 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）规定的 shared builder，不得在本地 heuristic 中重建 route metadata truth
 - 本契约只拥有 runtime-aligned voice route/API truth；agent chat richer workflow 是否被
-  admit、属于 `tts_v2v` 还是 `tts_t2v`、使用什么 voice identity、以及 workflow result
+  admit、属于 `voice_clone` 还是 `voice_design`、使用什么 voice identity、以及 workflow result
   如何回到当前 conversation anchor，固定由 `agent-chat-voice-workflow-contract.md`
   （`D-LLM-047` ~ `D-LLM-052`）拥有
 - 本契约只拥有 runtime-aligned TTS route/API truth；agent chat resolved `voice`

@@ -28,7 +28,7 @@ type voiceWorkflowRouteDescribeProbe struct {
 	resolvedBindingRef string
 }
 
-type voiceWorkflowTtsV2vRouteDescribeMetadataPayload struct {
+type voiceWorkflowCloneRouteDescribeMetadataPayload struct {
 	WorkflowType                   string   `json:"workflowType"`
 	RequiresTargetSynthesisBinding bool     `json:"requiresTargetSynthesisBinding"`
 	TextPromptMode                 string   `json:"textPromptMode"`
@@ -41,7 +41,7 @@ type voiceWorkflowTtsV2vRouteDescribeMetadataPayload struct {
 	ProviderExtensionSchemaVersion string   `json:"providerExtensionSchemaVersion,omitempty"`
 }
 
-type voiceWorkflowTtsT2vRouteDescribeMetadataPayload struct {
+type voiceWorkflowDesignRouteDescribeMetadataPayload struct {
 	WorkflowType                   string `json:"workflowType"`
 	RequiresTargetSynthesisBinding bool   `json:"requiresTargetSynthesisBinding"`
 	InstructionTextMode            string `json:"instructionTextMode"`
@@ -100,9 +100,9 @@ func voiceWorkflowRouteDescribeProbeFromExtensions(
 func voiceWorkflowCapabilityFromScenarioType(scenarioType runtimev1.ScenarioType) string {
 	switch scenarioType {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		return aicapabilities.VoiceWorkflowTTSV2V
+		return aicapabilities.VoiceWorkflowVoiceClone
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		return aicapabilities.VoiceWorkflowTTST2V
+		return aicapabilities.VoiceWorkflowVoiceDesign
 	default:
 		return ""
 	}
@@ -184,12 +184,12 @@ func buildVoiceWorkflowRouteDescribeMetadata(resolution catalog.ResolveVoiceWork
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
 	switch strings.ToLower(strings.TrimSpace(resolution.WorkflowType)) {
-	case "tts_v2v":
+	case "voice_clone":
 		if options.SupportsLanguageHints == nil || options.SupportsPreferredName == nil || options.ReferenceAudioURIInput == nil || options.ReferenceAudioBytesInput == nil {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 		}
-		payload := voiceWorkflowTtsV2vRouteDescribeMetadataPayload{
-			WorkflowType:                   "tts_v2v",
+		payload := voiceWorkflowCloneRouteDescribeMetadataPayload{
+			WorkflowType:                   "voice_clone",
 			RequiresTargetSynthesisBinding: resolution.RequiresTargetSynthesisBinding,
 			TextPromptMode:                 strings.TrimSpace(options.TextPromptMode),
 			SupportsLanguageHints:          *options.SupportsLanguageHints,
@@ -206,12 +206,12 @@ func buildVoiceWorkflowRouteDescribeMetadata(resolution catalog.ResolveVoiceWork
 			payload.ProviderExtensionSchemaVersion = strings.TrimSpace(options.ProviderExtensions.SchemaVersion)
 		}
 		return payload, nil
-	case "tts_t2v":
+	case "voice_design":
 		if options.SupportsLanguage == nil || options.SupportsPreferredName == nil {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 		}
-		payload := voiceWorkflowTtsT2vRouteDescribeMetadataPayload{
-			WorkflowType:                   "tts_t2v",
+		payload := voiceWorkflowDesignRouteDescribeMetadataPayload{
+			WorkflowType:                   "voice_design",
 			RequiresTargetSynthesisBinding: resolution.RequiresTargetSynthesisBinding,
 			InstructionTextMode:            strings.TrimSpace(options.InstructionTextMode),
 			PreviewTextMode:                strings.TrimSpace(options.PreviewTextMode),

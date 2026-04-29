@@ -21,8 +21,8 @@ DRIVER_TIMEOUT_MS_ENV = "NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS"
 DEFAULT_DRIVER_TIMEOUT_MS = 60_000
 DEFAULT_MODELS_ROOT = os.path.expanduser("~/.nimi/data/models")
 WORKFLOW_CAPABILITIES = [
-    "voice_workflow.tts_v2v",
-    "voice_workflow.tts_t2v",
+    "voice_workflow.voice_clone",
+    "voice_workflow.voice_design",
 ]
 PLAIN_SPEECH_CAPABILITIES = [
     "audio.synthesize",
@@ -270,11 +270,11 @@ def qwen3_tts_driver_preflight(command: list[str], model_id: str, entry_path: st
 def inferred_qwen3_workflow_capabilities(model_id: str) -> list[str]:
     normalized = model_id.strip().lower()
     if "qwen3-tts-base" in normalized or "qwen3tts-base" in normalized:
-        return ["voice_workflow.tts_v2v"]
+        return ["voice_workflow.voice_clone"]
     if "voicedesign" in normalized or "qwen3tts-design" in normalized:
-        return ["voice_workflow.tts_t2v"]
+        return ["voice_workflow.voice_design"]
     if "qwen3-tts" in normalized or "qwen3tts" in normalized:
-        return ["voice_workflow.tts_v2v", "voice_workflow.tts_t2v"]
+        return ["voice_workflow.voice_clone", "voice_workflow.voice_design"]
     return []
 
 

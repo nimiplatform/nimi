@@ -1081,8 +1081,8 @@ models:
 
 voice_workflow_models:
   - workflow_model_id: qwen-voice-enrollment
-    workflow_type: tts_v2v
-    input_contract_ref: dashscope_tts_v2v_input_v1
+    workflow_type: voice_clone
+    input_contract_ref: dashscope_voice_clone_input_v1
     output_persistence: provider_persistent
     request_options:
       text_prompt_mode: unsupported
@@ -1098,8 +1098,8 @@ voice_workflow_models:
     langs_ref: short_v1
     source_ids: [dashscope_voice_cloning_doc, dashscope_qwen_realtime_tts_doc]
   - workflow_model_id: qwen-voice-design
-    workflow_type: tts_t2v
-    input_contract_ref: dashscope_tts_t2v_input_v1
+    workflow_type: voice_design
+    input_contract_ref: dashscope_voice_design_input_v1
     output_persistence: provider_persistent
     request_options:
       instruction_text_mode: required
@@ -1116,26 +1116,26 @@ voice_workflow_models:
 model_workflow_bindings:
   - model_id: qwen3-tts-vc
     workflow_model_refs: [qwen-voice-enrollment]
-    workflow_types: [tts_v2v]
+    workflow_types: [voice_clone]
   - model_id: qwen3-tts-vc-2026-01-22
     workflow_model_refs: [qwen-voice-enrollment]
-    workflow_types: [tts_v2v]
+    workflow_types: [voice_clone]
   - model_id: qwen3-tts-vd
     workflow_model_refs: [qwen-voice-design]
-    workflow_types: [tts_t2v]
+    workflow_types: [voice_design]
   - model_id: qwen3-tts-vd-2026-01-26
     workflow_model_refs: [qwen-voice-design]
-    workflow_types: [tts_t2v]
+    workflow_types: [voice_design]
   - model_id: qwen3-tts-vc-realtime-2026-01-15
     workflow_model_refs: [qwen-voice-enrollment]
-    workflow_types: [tts_v2v]
+    workflow_types: [voice_clone]
   - model_id: qwen3-tts-vd-realtime-2026-01-15
     workflow_model_refs: [qwen-voice-design]
-    workflow_types: [tts_t2v]
+    workflow_types: [voice_design]
 
 voice_handle_policies:
   - policy_id: dashscope_provider_persistent_default
-    applies_to_workflow_types: [tts_v2v, tts_t2v]
+    applies_to_workflow_types: [voice_clone, voice_design]
     persistence: provider_persistent
     default_ttl: none
     scope: user_scoped

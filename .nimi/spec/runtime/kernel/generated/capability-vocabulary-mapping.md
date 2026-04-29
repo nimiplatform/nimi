@@ -16,8 +16,8 @@
 - `audio.transcribe`
 - `music.generate`
 - `music.generate.iteration`
-- `voice_workflow.tts_v2v`
-- `voice_workflow.tts_t2v`
+- `voice_workflow.voice_clone`
+- `voice_workflow.voice_design`
 
 ## Local Manifest Tokens
 
@@ -60,8 +60,8 @@
 |---|---|
 | `music.generate` | Music generation remains provider-routed; no Phase 1 local manifest token exists |
 | `music.generate.iteration` | Iterative music generation remains provider-routed; no Phase 1 local manifest token exists |
-| `voice_workflow.tts_v2v` | Voice-to-voice workflow; requires orchestrated pipeline, not single-model local execution |
-| `voice_workflow.tts_t2v` | Text-to-voice workflow; requires orchestrated pipeline, not single-model local execution |
+| `voice_workflow.voice_clone` | Voice clone workflow; requires orchestrated pipeline, not single-model local execution |
+| `voice_workflow.voice_design` | Voice design workflow; requires orchestrated pipeline, not single-model local execution |
 | `world.generate` | Explorable world generation remains provider-routed; no Phase 1 local manifest token exists |
 
 ## HuggingFace Inference Mapping

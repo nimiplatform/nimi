@@ -19,8 +19,8 @@ func TestScenarioRequiredCapabilitiesUseCanonicalTokens(t *testing.T) {
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, []string{aicapabilities.VideoGenerate}},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, []string{aicapabilities.AudioSynthesize}},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, []string{aicapabilities.AudioTranscribe}},
-		{runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, []string{aicapabilities.VoiceWorkflowTTSV2V}},
-		{runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN, []string{aicapabilities.VoiceWorkflowTTST2V}},
+		{runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, []string{aicapabilities.VoiceWorkflowVoiceClone}},
+		{runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN, []string{aicapabilities.VoiceWorkflowVoiceDesign}},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE, []string{aicapabilities.WorldGenerate}},
 	}
 

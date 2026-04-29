@@ -48,7 +48,7 @@ func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
 				catalog.ResolveVoiceWorkflowResult{
 					Provider:        provider,
 					ModelID:         provider + "/model-a",
-					WorkflowType:    "tts_v2v",
+					WorkflowType:    "voice_clone",
 					WorkflowModelID: provider + "-wf-clone",
 				},
 				nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
@@ -144,7 +144,7 @@ func TestStepFunVoiceCloneWorkflowSuccess(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "stepfun",
 			ModelID:         "stepfun/step-tts-2",
-			WorkflowType:    "tts_v2v",
+			WorkflowType:    "voice_clone",
 			WorkflowModelID: "stepfun-voice-clone",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
@@ -197,7 +197,7 @@ func TestStepFunVoiceCloneWorkflowRequiresText(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "stepfun",
 			ModelID:         "stepfun/step-tts-2",
-			WorkflowType:    "tts_v2v",
+			WorkflowType:    "voice_clone",
 			WorkflowModelID: "stepfun-voice-clone",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: "https://example.invalid", APIKey: "test-key"},
@@ -227,7 +227,7 @@ func TestVoiceWorkflowMetadataValidationRejectsUnsupportedReferenceAudioMIME(t *
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "stepfun",
 			ModelID:         "stepfun/step-tts-2",
-			WorkflowType:    "tts_v2v",
+			WorkflowType:    "voice_clone",
 			WorkflowModelID: "stepfun-voice-clone",
 			RequestOptions: &catalog.VoiceWorkflowRequestOptions{
 				TextPromptMode:                 "required",
@@ -263,7 +263,7 @@ func TestVoiceWorkflowMetadataValidationRejectsMissingRequiredInstruction(t *tes
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vd",
-			WorkflowType:    "tts_t2v",
+			WorkflowType:    "voice_design",
 			WorkflowModelID: "qwen-voice-design",
 			RequestOptions: &catalog.VoiceWorkflowRequestOptions{
 				InstructionTextMode:   "required",
@@ -333,7 +333,7 @@ func TestFishAudioVoiceCloneWorkflowSuccess(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "fish_audio",
 			ModelID:         "fish_audio/s1",
-			WorkflowType:    "tts_v2v",
+			WorkflowType:    "voice_clone",
 			WorkflowModelID: "fish-audio-create-model",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
@@ -405,7 +405,7 @@ func TestElevenLabsVoiceCloneWorkflowSuccess(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "elevenlabs",
 			ModelID:         "elevenlabs/eleven_multilingual_sts_v2",
-			WorkflowType:    "tts_v2v",
+			WorkflowType:    "voice_clone",
 			WorkflowModelID: "elevenlabs-voice-clone",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
@@ -460,7 +460,7 @@ func TestElevenLabsVoiceDesignWorkflowSuccess(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "elevenlabs",
 			ModelID:         "elevenlabs/eleven_ttv_v3",
-			WorkflowType:    "tts_t2v",
+			WorkflowType:    "voice_design",
 			WorkflowModelID: "elevenlabs-voice-design",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
@@ -500,7 +500,7 @@ func TestBuildVoiceWorkflowPayloadCloneUsesCanonicalInputShape(t *testing.T) {
 		Provider:        "dashscope",
 		ModelID:         "dashscope/qwen3-tts-vc",
 		APIModelID:      "qwen3-tts-vc-2026-01-22",
-		WorkflowType:    "tts_v2v",
+		WorkflowType:    "voice_clone",
 		WorkflowModelID: "qwen-voice-enrollment",
 	}, nil)
 
@@ -526,7 +526,7 @@ func TestBuildVoiceWorkflowPayloadDesignUsesCanonicalInputShape(t *testing.T) {
 	payload := buildVoiceWorkflowPayload(req, catalog.ResolveVoiceWorkflowResult{
 		Provider:        "elevenlabs",
 		ModelID:         "elevenlabs/eleven_ttv_v3",
-		WorkflowType:    "tts_t2v",
+		WorkflowType:    "voice_design",
 		WorkflowModelID: "elevenlabs-voice-design",
 	}, nil)
 
@@ -555,7 +555,7 @@ func TestBuildVoiceWorkflowPayloadDesignUsesAPIModelIDForProviderTarget(t *testi
 		Provider:        "dashscope",
 		ModelID:         "qwen3-tts-vd",
 		APIModelID:      "qwen3-tts-vd-2026-01-26",
-		WorkflowType:    "tts_t2v",
+		WorkflowType:    "voice_design",
 		WorkflowModelID: "qwen-voice-design",
 	}, nil)
 
@@ -633,7 +633,7 @@ func TestVoiceWorkflowFailCloseOnInvalidProviderResponse(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vc",
-			WorkflowType:    "tts_v2v",
+			WorkflowType:    "voice_clone",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
@@ -661,7 +661,7 @@ func TestVoiceWorkflowRejectsJobOnlyProviderResponse(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vc",
-			WorkflowType:    "tts_v2v",
+			WorkflowType:    "voice_clone",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
@@ -689,7 +689,7 @@ func TestVoiceWorkflowDoesNotSynthesizeProviderJobID(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vc",
-			WorkflowType:    "tts_v2v",
+			WorkflowType:    "voice_clone",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
@@ -718,7 +718,7 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 		},
 	})
 	req := voiceCloneRequest()
-	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "dashscope", "dashscope/qwen3-tts-vc", "tts_v2v")
+	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "dashscope", "dashscope/qwen3-tts-vc", "voice_clone")
 	if err != nil {
 		t.Fatalf("resolveVoiceWorkflow: %v", err)
 	}
@@ -783,7 +783,7 @@ func TestVoiceWorkflowRejectsUndeclaredStrictExtensionField(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vc",
-			WorkflowType:    "tts_v2v",
+			WorkflowType:    "voice_clone",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: "https://example.invalid", APIKey: "test-key"},
@@ -818,7 +818,7 @@ func TestVoiceWorkflowRejectsLegacyExtensionKeys(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vc",
-			WorkflowType:    "tts_v2v",
+			WorkflowType:    "voice_clone",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: "https://example.invalid", APIKey: "test-key"},
@@ -845,7 +845,7 @@ func TestVoiceWorkflowRejectsOversizedReferenceAudio(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "dashscope",
 			ModelID:         "dashscope/qwen3-tts-vc",
-			WorkflowType:    "tts_v2v",
+			WorkflowType:    "voice_clone",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
 		nimillm.MediaAdapterConfig{BaseURL: "https://example.invalid", APIKey: "test-key"},
@@ -872,7 +872,7 @@ func TestLocalVoiceWorkflowFailClose(t *testing.T) {
 		catalog.ResolveVoiceWorkflowResult{
 			Provider:        "local",
 			ModelID:         "local/qwen3-tts-local",
-			WorkflowType:    "tts_v2v",
+			WorkflowType:    "voice_clone",
 			WorkflowModelID: "qwen3-local-voice-clone-prompt",
 		},
 		nimillm.MediaAdapterConfig{},
@@ -957,7 +957,7 @@ func TestExecuteVoiceWorkflowJobLocalQwenFailCloseUsesFamilySpecificDetail(t *te
 	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
 
-	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/qwen3tts", "tts_v2v")
+	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/qwen3tts", "voice_clone")
 	if err != nil {
 		t.Fatalf("resolveVoiceWorkflow(local qwen3): %v", err)
 	}
@@ -1044,7 +1044,7 @@ func TestExecuteVoiceWorkflowJobLocalQwenSucceedsViaSpeechHost(t *testing.T) {
 	req.Spec.GetVoiceClone().Input.ReferenceAudioMime = "audio/wav"
 	req.Spec.GetVoiceClone().Input.ReferenceAudioUri = ""
 
-	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/qwen3tts", "tts_v2v")
+	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "local", "speech/qwen3tts", "voice_clone")
 	if err != nil {
 		t.Fatalf("resolveVoiceWorkflow(local qwen3): %v", err)
 	}

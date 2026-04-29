@@ -79,11 +79,11 @@ Desktop 侧 speech engine 只暴露 runtime-aligned 语音能力：
 
 选路规则固定为：
 - `audio.synthesize`：先走 `runtime.route.listOptions({ capability: 'audio.synthesize' })` 选 binding，再调用 `runtime.media.tts.listVoices/synthesize/stream`
-- `voice_workflow.tts_v2v|voice_workflow.tts_t2v`：必须对对应 capability 独立执行 `runtime.route.listOptions -> resolve -> checkHealth -> describe`，再提交 runtime media job；不得复用 `audio.synthesize` 的 route truth
+- `voice_workflow.voice_clone|voice_workflow.voice_design`：必须对对应 capability 独立执行 `runtime.route.listOptions -> resolve -> checkHealth -> describe`，再提交 runtime media job；不得复用 `audio.synthesize` 的 route truth
 - 缺有效 binding 或缺 route-resolved model 时必须 fail-close，不得返回空 voice 列表作为静默 fallback
 - AI Chat、Agent Chat、Runtime Config 对 text/audio/voice workflow 的 capability projection 必须共用 `conversation-capability-contract.md`（`D-LLM-015` ~ `D-LLM-021`）规定的 shared builder，不得在本地 heuristic 中重建 route metadata truth
 - 本契约只拥有 runtime-aligned voice route/API truth；agent chat richer workflow 是否被
-  admit、属于 `tts_v2v` 还是 `tts_t2v`、使用什么 voice identity、以及 workflow result
+  admit、属于 `voice_clone` 还是 `voice_design`、使用什么 voice identity、以及 workflow result
   如何回到当前 conversation anchor，固定由 `agent-chat-voice-workflow-contract.md`
   （`D-LLM-047` ~ `D-LLM-052`）拥有
 - 本契约只拥有 runtime-aligned TTS route/API truth；agent chat resolved `voice`

@@ -395,7 +395,7 @@ func validateVoiceWorkflowRequestOptions(
 		return fmt.Errorf("voice workflow model %s:%s missing request_options", provider, workflowModelID)
 	}
 	switch normalizeWorkflowType(workflowType) {
-	case "tts_v2v":
+	case "voice_clone":
 		if !isAllowedVoiceWorkflowMode(options.TextPromptMode) {
 			return fmt.Errorf("voice workflow model %s:%s request_options.text_prompt_mode must be unsupported|optional|required", provider, workflowModelID)
 		}
@@ -417,7 +417,7 @@ func validateVoiceWorkflowRequestOptions(
 		if len(options.AllowedReferenceAudioMimeTypes) == 0 {
 			return fmt.Errorf("voice workflow model %s:%s request_options.allowed_reference_audio_mime_types must not be empty", provider, workflowModelID)
 		}
-	case "tts_t2v":
+	case "voice_design":
 		if !isAllowedVoiceWorkflowMode(options.InstructionTextMode) {
 			return fmt.Errorf("voice workflow model %s:%s request_options.instruction_text_mode must be unsupported|optional|required", provider, workflowModelID)
 		}

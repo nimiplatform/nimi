@@ -59,7 +59,7 @@ func TestAdapterForProviderCapabilityUsesHardCutAdapters(t *testing.T) {
 	if got := adapterForProviderCapability("speech", "audio.synthesize"); got != "speech_native_adapter" {
 		t.Fatalf("speech synth adapter mismatch: %s", got)
 	}
-	if got := adapterForProviderCapability("speech", "voice_workflow.tts_t2v"); got != "speech_native_adapter" {
+	if got := adapterForProviderCapability("speech", "voice_workflow.voice_design"); got != "speech_native_adapter" {
 		t.Fatalf("speech workflow adapter mismatch: %s", got)
 	}
 	if got := adapterForProviderCapability("sidecar", "music"); got != "sidecar_music_adapter" {
@@ -68,10 +68,10 @@ func TestAdapterForProviderCapabilityUsesHardCutAdapters(t *testing.T) {
 }
 
 func TestAPIPathForProviderCapabilityUsesSpeechWorkflowEndpoints(t *testing.T) {
-	if got := apiPathForProviderCapability("speech", "voice_workflow.tts_v2v"); got != "/v1/voice/clone" {
+	if got := apiPathForProviderCapability("speech", "voice_workflow.voice_clone"); got != "/v1/voice/clone" {
 		t.Fatalf("speech clone api path mismatch: %s", got)
 	}
-	if got := apiPathForProviderCapability("speech", "voice_workflow.tts_t2v"); got != "/v1/voice/design" {
+	if got := apiPathForProviderCapability("speech", "voice_workflow.voice_design"); got != "/v1/voice/design" {
 		t.Fatalf("speech design api path mismatch: %s", got)
 	}
 }

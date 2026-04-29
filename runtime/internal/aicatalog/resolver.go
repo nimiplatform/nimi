@@ -362,7 +362,7 @@ func (r *Resolver) SupportsScenarioForSubject(subjectUserID string, providerType
 	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 		return hasAny(aicapabilities.WorldGenerate), nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE:
-		_, workflowErr := r.ResolveVoiceWorkflowForSubject(subjectUserID, providerType, modelID, "tts_v2v")
+		_, workflowErr := r.ResolveVoiceWorkflowForSubject(subjectUserID, providerType, modelID, "voice_clone")
 		if workflowErr == nil {
 			return true, nil
 		}
@@ -371,7 +371,7 @@ func (r *Resolver) SupportsScenarioForSubject(subjectUserID string, providerType
 		}
 		return false, workflowErr
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
-		_, workflowErr := r.ResolveVoiceWorkflowForSubject(subjectUserID, providerType, modelID, "tts_t2v")
+		_, workflowErr := r.ResolveVoiceWorkflowForSubject(subjectUserID, providerType, modelID, "voice_design")
 		if workflowErr == nil {
 			return true, nil
 		}

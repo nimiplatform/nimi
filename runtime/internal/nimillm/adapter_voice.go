@@ -17,7 +17,7 @@ import (
 // VoiceWorkflowRequest captures the unified input for a voice workflow adapter.
 type VoiceWorkflowRequest struct {
 	Provider        string
-	WorkflowType    string // "tts_v2v" or "tts_t2v"
+	WorkflowType    string // "voice_clone" or "voice_design"
 	WorkflowModelID string
 	ModelID         string
 	Payload         map[string]any
@@ -322,10 +322,10 @@ func resolveVoiceEndpointPaths(workflowType string, extPayload map[string]any, d
 		return nil
 	}
 	keys := []string{"workflow_paths"}
-	if workflow == "tts_v2v" {
+	if workflow == "voice_clone" {
 		keys = append(keys, "clone_paths")
 	}
-	if workflow == "tts_t2v" {
+	if workflow == "voice_design" {
 		keys = append(keys, "design_paths")
 	}
 
