@@ -130,7 +130,8 @@ function runtimeMethodRequiresAppSession(methodId: string): boolean {
   return methodId === RuntimeMethodIds.app.sendAppMessage
     || methodId === RuntimeMethodIds.app.subscribeAppMessages
     || methodId === RuntimeMethodIds.agent.openConversationAnchor
-    || methodId === RuntimeMethodIds.agent.getConversationAnchorSnapshot;
+    || methodId === RuntimeMethodIds.agent.getConversationAnchorSnapshot
+    || methodId === RuntimeMethodIds.agent.getPublicChatSessionSnapshot;
 }
 
 async function resolveAppSession(

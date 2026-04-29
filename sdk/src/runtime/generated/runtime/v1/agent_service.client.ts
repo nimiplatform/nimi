@@ -28,6 +28,8 @@ import type { UpdateAgentStateResponse } from "./agent_service";
 import type { UpdateAgentStateRequest } from "./agent_service";
 import type { GetAgentStateResponse } from "./agent_service";
 import type { GetAgentStateRequest } from "./agent_service";
+import type { GetPublicChatSessionSnapshotResponse } from "./agent_service";
+import type { GetPublicChatSessionSnapshotRequest } from "./agent_service";
 import type { GetConversationAnchorSnapshotResponse } from "./agent_service";
 import type { GetConversationAnchorSnapshotRequest } from "./agent_service";
 import type { OpenConversationAnchorResponse } from "./agent_service";
@@ -71,6 +73,10 @@ export interface IRuntimeAgentServiceClient {
      * @generated from protobuf rpc: GetConversationAnchorSnapshot
      */
     getConversationAnchorSnapshot(input: GetConversationAnchorSnapshotRequest, options?: RpcOptions): UnaryCall<GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse>;
+    /**
+     * @generated from protobuf rpc: GetPublicChatSessionSnapshot
+     */
+    getPublicChatSessionSnapshot(input: GetPublicChatSessionSnapshotRequest, options?: RpcOptions): UnaryCall<GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse>;
     /**
      * @generated from protobuf rpc: GetAgentState
      */
@@ -168,80 +174,87 @@ export class RuntimeAgentServiceClient implements IRuntimeAgentServiceClient, Se
         return stackIntercept<GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse>("unary", this._transport, method, opt, input);
     }
     /**
+     * @generated from protobuf rpc: GetPublicChatSessionSnapshot
+     */
+    getPublicChatSessionSnapshot(input: GetPublicChatSessionSnapshotRequest, options?: RpcOptions): UnaryCall<GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse> {
+        const method = this.methods[6], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
      * @generated from protobuf rpc: GetAgentState
      */
     getAgentState(input: GetAgentStateRequest, options?: RpcOptions): UnaryCall<GetAgentStateRequest, GetAgentStateResponse> {
-        const method = this.methods[6], opt = this._transport.mergeOptions(options);
+        const method = this.methods[7], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetAgentStateRequest, GetAgentStateResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: UpdateAgentState
      */
     updateAgentState(input: UpdateAgentStateRequest, options?: RpcOptions): UnaryCall<UpdateAgentStateRequest, UpdateAgentStateResponse> {
-        const method = this.methods[7], opt = this._transport.mergeOptions(options);
+        const method = this.methods[8], opt = this._transport.mergeOptions(options);
         return stackIntercept<UpdateAgentStateRequest, UpdateAgentStateResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: SetAgentPresentationProfile
      */
     setAgentPresentationProfile(input: SetAgentPresentationProfileRequest, options?: RpcOptions): UnaryCall<SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse> {
-        const method = this.methods[8], opt = this._transport.mergeOptions(options);
+        const method = this.methods[9], opt = this._transport.mergeOptions(options);
         return stackIntercept<SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: EnableAutonomy
      */
     enableAutonomy(input: EnableAutonomyRequest, options?: RpcOptions): UnaryCall<EnableAutonomyRequest, EnableAutonomyResponse> {
-        const method = this.methods[9], opt = this._transport.mergeOptions(options);
+        const method = this.methods[10], opt = this._transport.mergeOptions(options);
         return stackIntercept<EnableAutonomyRequest, EnableAutonomyResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: DisableAutonomy
      */
     disableAutonomy(input: DisableAutonomyRequest, options?: RpcOptions): UnaryCall<DisableAutonomyRequest, DisableAutonomyResponse> {
-        const method = this.methods[10], opt = this._transport.mergeOptions(options);
+        const method = this.methods[11], opt = this._transport.mergeOptions(options);
         return stackIntercept<DisableAutonomyRequest, DisableAutonomyResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: SetAutonomyConfig
      */
     setAutonomyConfig(input: SetAutonomyConfigRequest, options?: RpcOptions): UnaryCall<SetAutonomyConfigRequest, SetAutonomyConfigResponse> {
-        const method = this.methods[11], opt = this._transport.mergeOptions(options);
+        const method = this.methods[12], opt = this._transport.mergeOptions(options);
         return stackIntercept<SetAutonomyConfigRequest, SetAutonomyConfigResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: ListPendingHooks
      */
     listPendingHooks(input: ListPendingHooksRequest, options?: RpcOptions): UnaryCall<ListPendingHooksRequest, ListPendingHooksResponse> {
-        const method = this.methods[12], opt = this._transport.mergeOptions(options);
+        const method = this.methods[13], opt = this._transport.mergeOptions(options);
         return stackIntercept<ListPendingHooksRequest, ListPendingHooksResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: CancelHook
      */
     cancelHook(input: CancelHookRequest, options?: RpcOptions): UnaryCall<CancelHookRequest, CancelHookResponse> {
-        const method = this.methods[13], opt = this._transport.mergeOptions(options);
+        const method = this.methods[14], opt = this._transport.mergeOptions(options);
         return stackIntercept<CancelHookRequest, CancelHookResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: QueryAgentMemory
      */
     queryAgentMemory(input: QueryAgentMemoryRequest, options?: RpcOptions): UnaryCall<QueryAgentMemoryRequest, QueryAgentMemoryResponse> {
-        const method = this.methods[14], opt = this._transport.mergeOptions(options);
+        const method = this.methods[15], opt = this._transport.mergeOptions(options);
         return stackIntercept<QueryAgentMemoryRequest, QueryAgentMemoryResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: WriteAgentMemory
      */
     writeAgentMemory(input: WriteAgentMemoryRequest, options?: RpcOptions): UnaryCall<WriteAgentMemoryRequest, WriteAgentMemoryResponse> {
-        const method = this.methods[15], opt = this._transport.mergeOptions(options);
+        const method = this.methods[16], opt = this._transport.mergeOptions(options);
         return stackIntercept<WriteAgentMemoryRequest, WriteAgentMemoryResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: SubscribeAgentEvents
      */
     subscribeAgentEvents(input: SubscribeAgentEventsRequest, options?: RpcOptions): ServerStreamingCall<SubscribeAgentEventsRequest, AgentEvent> {
-        const method = this.methods[16], opt = this._transport.mergeOptions(options);
+        const method = this.methods[17], opt = this._transport.mergeOptions(options);
         return stackIntercept<SubscribeAgentEventsRequest, AgentEvent>("serverStreaming", this._transport, method, opt, input);
     }
 }

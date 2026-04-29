@@ -164,6 +164,7 @@
 | `RuntimeAgentService` | `ListAgents` | `RuntimeAgentService` | `ListAgents` | `aligned` |
 | `RuntimeAgentService` | `OpenConversationAnchor` | `RuntimeAgentService` | `OpenConversationAnchor` | `aligned` |
 | `RuntimeAgentService` | `GetConversationAnchorSnapshot` | `RuntimeAgentService` | `GetConversationAnchorSnapshot` | `aligned` |
+| `RuntimeAgentService` | `GetPublicChatSessionSnapshot` | `RuntimeAgentService` | `GetPublicChatSessionSnapshot` | `aligned` |
 | `RuntimeAgentService` | `GetAgentState` | `RuntimeAgentService` | `GetAgentState` | `aligned` |
 | `RuntimeAgentService` | `UpdateAgentState` | `RuntimeAgentService` | `UpdateAgentState` | `aligned` |
 | `RuntimeAgentService` | `EnableAutonomy` | `RuntimeAgentService` | `EnableAutonomy` | `aligned` |

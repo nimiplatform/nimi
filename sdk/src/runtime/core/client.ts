@@ -19,6 +19,8 @@ import {
 import {
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
+  GetPublicChatSessionSnapshotRequest,
+  GetPublicChatSessionSnapshotResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
 } from '../generated/runtime/v1/agent_service.js';
@@ -351,6 +353,10 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       getConversationAnchorSnapshot: customUnary(RuntimeMethodIds.agent.getConversationAnchorSnapshot, {
         requestType: GetConversationAnchorSnapshotRequest,
         responseType: GetConversationAnchorSnapshotResponse,
+      }),
+      getPublicChatSessionSnapshot: customUnary(RuntimeMethodIds.agent.getPublicChatSessionSnapshot, {
+        requestType: GetPublicChatSessionSnapshotRequest,
+        responseType: GetPublicChatSessionSnapshotResponse,
       }),
       getAgentState: unary(RuntimeMethodIds.agent.getAgentState),
       updateAgentState: unary(RuntimeMethodIds.agent.updateAgentState),

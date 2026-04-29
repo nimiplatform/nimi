@@ -238,6 +238,7 @@ const AGENT_METHODS = [
   'listAgents',
   'openConversationAnchor',
   'getConversationAnchorSnapshot',
+  'getPublicChatSessionSnapshot',
   'getAgentState',
   'updateAgentState',
   'setPresentationProfile',

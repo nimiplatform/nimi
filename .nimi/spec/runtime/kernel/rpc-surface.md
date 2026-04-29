@@ -253,16 +253,17 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 4. `ListAgents`
 5. `OpenConversationAnchor`
 6. `GetConversationAnchorSnapshot`
-7. `GetAgentState`
-8. `UpdateAgentState`
-9. `EnableAutonomy`
-10. `DisableAutonomy`
-11. `SetAutonomyConfig`
-12. `ListPendingHooks`
-13. `CancelHook`
-14. `QueryAgentMemory`
-15. `WriteAgentMemory`
-16. `SubscribeAgentEvents`
+7. `GetPublicChatSessionSnapshot`
+8. `GetAgentState`
+9. `UpdateAgentState`
+10. `EnableAutonomy`
+11. `DisableAutonomy`
+12. `SetAutonomyConfig`
+13. `ListPendingHooks`
+14. `CancelHook`
+15. `QueryAgentMemory`
+16. `WriteAgentMemory`
+17. `SubscribeAgentEvents`
 
 固定约束：
 
@@ -287,7 +288,7 @@ name。design/proto 关系以 `tables/rpc-migration-map.yaml` 为准。
 最小 access matrix：
 
 - `InitializeAgent` / `TerminateAgent`：`runtime.agent.admin`
-- `GetAgent` / `ListAgents` / `GetConversationAnchorSnapshot` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
+- `GetAgent` / `ListAgents` / `GetConversationAnchorSnapshot` / `GetPublicChatSessionSnapshot` / `GetAgentState` / `ListPendingHooks` / `QueryAgentMemory` / `SubscribeAgentEvents`：`runtime.agent.read`
 - `OpenConversationAnchor`：`runtime.agent.write`
 - `UpdateAgentState` / `WriteAgentMemory` / `CancelHook`：`runtime.agent.write`
 - `EnableAutonomy` / `DisableAutonomy` / `SetAutonomyConfig`：`runtime.agent.autonomy.write`

@@ -38,7 +38,6 @@ The admitted runtime-owned stable projection families are:
 - `runtime.agent.turn.failed`
 - `runtime.agent.turn.interrupted`
 - `runtime.agent.turn.interrupt_ack`
-- `runtime.agent.session.snapshot`
 - `runtime.agent.presentation.activity_requested`
 - `runtime.agent.presentation.motion_requested`
 - `runtime.agent.presentation.expression_requested`
@@ -57,7 +56,6 @@ Family-specific envelope requirements are pinned in
   `turn_id`, and `stream_id`
 - `runtime.agent.presentation.*` requires `agent_id`,
   `conversation_anchor_id`, `turn_id`, and `stream_id`
-- `runtime.agent.session.*` requires `agent_id` and `conversation_anchor_id`
 - `runtime.agent.state.*` requires `agent_id`; origin linkage back to
   `conversation_anchor_id` / `originating_turn_id` / `originating_stream_id`
   remains optional and is present only when the state projection is traceable to

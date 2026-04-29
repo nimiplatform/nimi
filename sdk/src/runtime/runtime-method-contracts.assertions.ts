@@ -2,6 +2,8 @@ import type {
   AgentEvent,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
+  GetPublicChatSessionSnapshotRequest,
+  GetPublicChatSessionSnapshotResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
   QueryAgentMemoryRequest,
@@ -51,6 +53,7 @@ const runtimeAgentPresentationResult = runtime.call(
 );
 const runtimeAgentOpenAnchorResult = runtime.agent.openConversationAnchor({} as OpenConversationAnchorRequest);
 const runtimeAgentGetAnchorSnapshotResult = runtime.agent.getConversationAnchorSnapshot({} as GetConversationAnchorSnapshotRequest);
+const runtimeAgentGetPublicChatSessionSnapshotResult = runtime.agent.getPublicChatSessionSnapshot({} as GetPublicChatSessionSnapshotRequest);
 const fallbackRawResult = raw.call('/nimi.runtime.v1.Custom/Unknown', {});
 
 type _GuardRawUnaryResult = Assert<IsEqual<
@@ -100,6 +103,10 @@ type _GuardRuntimeAgentOpenAnchorResult = Assert<IsEqual<
 type _GuardRuntimeAgentGetAnchorSnapshotResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentGetAnchorSnapshotResult>,
   GetConversationAnchorSnapshotResponse
+>>;
+type _GuardRuntimeAgentGetPublicChatSessionSnapshotResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentGetPublicChatSessionSnapshotResult>,
+  GetPublicChatSessionSnapshotResponse
 >>;
 type _GuardFallbackRawResult = Assert<IsEqual<
   Awaited<typeof fallbackRawResult>,

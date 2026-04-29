@@ -136,12 +136,6 @@ turn_events:
     detail:
       interrupted_turn_id: string
 
-session_events:
-  - event: runtime.agent.session.snapshot
-    source_rule: K-AGCORE-032
-    detail:
-      snapshot: struct
-
 presentation_events:
   - event: runtime.agent.presentation.activity_requested
     source_rule: K-AGCORE-049

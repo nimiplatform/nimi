@@ -18,6 +18,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
+    "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent",
     "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
     "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks",

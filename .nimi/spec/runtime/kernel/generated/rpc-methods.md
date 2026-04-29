@@ -232,6 +232,7 @@ Source: `K-RPC-004b`
 | `ListAgents` | `unary` |
 | `OpenConversationAnchor` | `unary` |
 | `GetConversationAnchorSnapshot` | `unary` |
+| `GetPublicChatSessionSnapshot` | `unary` |
 | `GetAgentState` | `unary` |
 | `UpdateAgentState` | `unary` |
 | `EnableAutonomy` | `unary` |

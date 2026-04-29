@@ -398,6 +398,10 @@ because Desktop launched it.
   binding attachment（`bindingId`、可选 opaque handle、以及 non-secret relation
   selectors），并将其投影到 `RuntimeAppService` / `RuntimeAgentService`
   request；该 mode 不得 resolve、要求、或发送 `subjectUserId` 作为 proof。
+- SDK `runtime.agent.turns.getSessionSnapshot` 是 query surface，必须投影为
+  `RuntimeAgentService.GetPublicChatSessionSnapshot` unary call；不得通过
+  `RuntimeAppService.SendAppMessage` / `SubscribeAppMessages` 构造
+  `runtime.agent.session.snapshot.request` request/reply。
 - SDK must also allow default local first-party Avatar to use the normal
   first-party account / agent authorization path without scoped binding
   attachment.

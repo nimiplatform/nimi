@@ -66,6 +66,8 @@ import {
   GetAgentStateResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
+  GetPublicChatSessionSnapshotRequest,
+  GetPublicChatSessionSnapshotResponse,
   InitializeAgentRequest,
   InitializeAgentResponse,
   ListAgentsRequest,
@@ -320,6 +322,10 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.agent.getConversationAnchorSnapshot]: {
     requestType: GetConversationAnchorSnapshotRequest,
     responseType: GetConversationAnchorSnapshotResponse,
+  },
+  [RuntimeMethodIds.agent.getPublicChatSessionSnapshot]: {
+    requestType: GetPublicChatSessionSnapshotRequest,
+    responseType: GetPublicChatSessionSnapshotResponse,
   },
   [RuntimeMethodIds.agent.getAgentState]: {
     requestType: GetAgentStateRequest,

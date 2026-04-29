@@ -119,8 +119,7 @@ AppService 的跨域消费契约状态：
   以通过该 target 传输
 - admitted ingress families 固定为：
   `runtime.agent.turn.request`,
-  `runtime.agent.turn.interrupt`,
-  `runtime.agent.session.snapshot.request`
+  `runtime.agent.turn.interrupt`
 - admitted projection families 固定为：
   `runtime.agent.turn.accepted`,
   `runtime.agent.turn.started`,
@@ -132,8 +131,10 @@ AppService 的跨域消费契约状态：
   `runtime.agent.turn.completed`,
   `runtime.agent.turn.failed`,
   `runtime.agent.turn.interrupted`,
-  `runtime.agent.turn.interrupt_ack`,
-  `runtime.agent.session.snapshot`
+  `runtime.agent.turn.interrupt_ack`
+- public chat session snapshot is a query surface and must use
+  `RuntimeAgentService.GetPublicChatSessionSnapshot`; it is not admitted as
+  `RuntimeAppService` request/reply traffic.
 - semantic ownership of these families remains on `RuntimeAgentService` even
   when the transport owner is `RuntimeAppService`
 - first-party consumers may use `SendAppMessage` /

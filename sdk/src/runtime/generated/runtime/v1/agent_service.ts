@@ -1515,6 +1515,40 @@ export interface GetConversationAnchorSnapshotResponse {
     snapshot?: ConversationAnchorSnapshot;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.GetPublicChatSessionSnapshotRequest
+ */
+export interface GetPublicChatSessionSnapshotRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 3
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: string request_id = 4
+     */
+    requestId: string;
+    /**
+     * @generated from protobuf field: string world_id = 5
+     */
+    worldId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetPublicChatSessionSnapshotResponse
+ */
+export interface GetPublicChatSessionSnapshotResponse {
+    /**
+     * @generated from protobuf field: google.protobuf.Struct snapshot = 1
+     */
+    snapshot?: Struct;
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.AgentLifecycleStatus
  */
 export enum AgentLifecycleStatus {
@@ -6536,6 +6570,130 @@ class GetConversationAnchorSnapshotResponse$Type extends MessageType<GetConversa
  * @generated MessageType for protobuf message nimi.runtime.v1.GetConversationAnchorSnapshotResponse
  */
 export const GetConversationAnchorSnapshotResponse = new GetConversationAnchorSnapshotResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetPublicChatSessionSnapshotRequest$Type extends MessageType<GetPublicChatSessionSnapshotRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetPublicChatSessionSnapshotRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "request_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "world_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetPublicChatSessionSnapshotRequest>): GetPublicChatSessionSnapshotRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        message.requestId = "";
+        message.worldId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetPublicChatSessionSnapshotRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetPublicChatSessionSnapshotRequest): GetPublicChatSessionSnapshotRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* string request_id */ 4:
+                    message.requestId = reader.string();
+                    break;
+                case /* string world_id */ 5:
+                    message.worldId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetPublicChatSessionSnapshotRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* string request_id = 4; */
+        if (message.requestId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.requestId);
+        /* string world_id = 5; */
+        if (message.worldId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.worldId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetPublicChatSessionSnapshotRequest
+ */
+export const GetPublicChatSessionSnapshotRequest = new GetPublicChatSessionSnapshotRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetPublicChatSessionSnapshotResponse$Type extends MessageType<GetPublicChatSessionSnapshotResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetPublicChatSessionSnapshotResponse", [
+            { no: 1, name: "snapshot", kind: "message", T: () => Struct }
+        ]);
+    }
+    create(value?: PartialMessage<GetPublicChatSessionSnapshotResponse>): GetPublicChatSessionSnapshotResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetPublicChatSessionSnapshotResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetPublicChatSessionSnapshotResponse): GetPublicChatSessionSnapshotResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* google.protobuf.Struct snapshot */ 1:
+                    message.snapshot = Struct.internalBinaryRead(reader, reader.uint32(), options, message.snapshot);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetPublicChatSessionSnapshotResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* google.protobuf.Struct snapshot = 1; */
+        if (message.snapshot)
+            Struct.internalBinaryWrite(message.snapshot, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetPublicChatSessionSnapshotResponse
+ */
+export const GetPublicChatSessionSnapshotResponse = new GetPublicChatSessionSnapshotResponse$Type();
 /**
  * @generated ServiceType for protobuf service nimi.runtime.v1.RuntimeAgentService
  */
@@ -6546,6 +6704,7 @@ export const RuntimeAgentService = new ServiceType("nimi.runtime.v1.RuntimeAgent
     { name: "ListAgents", options: {}, I: ListAgentsRequest, O: ListAgentsResponse },
     { name: "OpenConversationAnchor", options: {}, I: OpenConversationAnchorRequest, O: OpenConversationAnchorResponse },
     { name: "GetConversationAnchorSnapshot", options: {}, I: GetConversationAnchorSnapshotRequest, O: GetConversationAnchorSnapshotResponse },
+    { name: "GetPublicChatSessionSnapshot", options: {}, I: GetPublicChatSessionSnapshotRequest, O: GetPublicChatSessionSnapshotResponse },
     { name: "GetAgentState", options: {}, I: GetAgentStateRequest, O: GetAgentStateResponse },
     { name: "UpdateAgentState", options: {}, I: UpdateAgentStateRequest, O: UpdateAgentStateResponse },
     { name: "SetAgentPresentationProfile", options: {}, I: SetAgentPresentationProfileRequest, O: SetAgentPresentationProfileResponse },

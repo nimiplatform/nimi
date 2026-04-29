@@ -25,6 +25,7 @@ const (
 	RuntimeAgentService_ListAgents_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
 	RuntimeAgentService_OpenConversationAnchor_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
 	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
+	RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName  = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
 	RuntimeAgentService_GetAgentState_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
 	RuntimeAgentService_UpdateAgentState_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState"
 	RuntimeAgentService_SetAgentPresentationProfile_FullMethodName   = "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile"
@@ -48,6 +49,7 @@ type RuntimeAgentServiceClient interface {
 	ListAgents(ctx context.Context, in *ListAgentsRequest, opts ...grpc.CallOption) (*ListAgentsResponse, error)
 	OpenConversationAnchor(ctx context.Context, in *OpenConversationAnchorRequest, opts ...grpc.CallOption) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(ctx context.Context, in *GetConversationAnchorSnapshotRequest, opts ...grpc.CallOption) (*GetConversationAnchorSnapshotResponse, error)
+	GetPublicChatSessionSnapshot(ctx context.Context, in *GetPublicChatSessionSnapshotRequest, opts ...grpc.CallOption) (*GetPublicChatSessionSnapshotResponse, error)
 	GetAgentState(ctx context.Context, in *GetAgentStateRequest, opts ...grpc.CallOption) (*GetAgentStateResponse, error)
 	UpdateAgentState(ctx context.Context, in *UpdateAgentStateRequest, opts ...grpc.CallOption) (*UpdateAgentStateResponse, error)
 	SetAgentPresentationProfile(ctx context.Context, in *SetAgentPresentationProfileRequest, opts ...grpc.CallOption) (*SetAgentPresentationProfileResponse, error)
@@ -123,6 +125,16 @@ func (c *runtimeAgentServiceClient) GetConversationAnchorSnapshot(ctx context.Co
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetConversationAnchorSnapshotResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) GetPublicChatSessionSnapshot(ctx context.Context, in *GetPublicChatSessionSnapshotRequest, opts ...grpc.CallOption) (*GetPublicChatSessionSnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPublicChatSessionSnapshotResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -258,6 +270,7 @@ type RuntimeAgentServiceServer interface {
 	ListAgents(context.Context, *ListAgentsRequest) (*ListAgentsResponse, error)
 	OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error)
+	GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error)
 	GetAgentState(context.Context, *GetAgentStateRequest) (*GetAgentStateResponse, error)
 	UpdateAgentState(context.Context, *UpdateAgentStateRequest) (*UpdateAgentStateResponse, error)
 	SetAgentPresentationProfile(context.Context, *SetAgentPresentationProfileRequest) (*SetAgentPresentationProfileResponse, error)
@@ -295,6 +308,9 @@ func (UnimplementedRuntimeAgentServiceServer) OpenConversationAnchor(context.Con
 }
 func (UnimplementedRuntimeAgentServiceServer) GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetConversationAnchorSnapshot not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetPublicChatSessionSnapshot not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetAgentState(context.Context, *GetAgentStateRequest) (*GetAgentStateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAgentState not implemented")
@@ -453,6 +469,24 @@ func _RuntimeAgentService_GetConversationAnchorSnapshot_Handler(srv interface{},
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).GetConversationAnchorSnapshot(ctx, req.(*GetConversationAnchorSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_GetPublicChatSessionSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPublicChatSessionSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetPublicChatSessionSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetPublicChatSessionSnapshot(ctx, req.(*GetPublicChatSessionSnapshotRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -678,6 +712,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetConversationAnchorSnapshot",
 			Handler:    _RuntimeAgentService_GetConversationAnchorSnapshot_Handler,
+		},
+		{
+			MethodName: "GetPublicChatSessionSnapshot",
+			Handler:    _RuntimeAgentService_GetPublicChatSessionSnapshot_Handler,
 		},
 		{
 			MethodName: "GetAgentState",

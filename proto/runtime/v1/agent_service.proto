@@ -663,6 +663,18 @@ message GetConversationAnchorSnapshotResponse {
   ConversationAnchorSnapshot snapshot = 1;
 }
 
+message GetPublicChatSessionSnapshotRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  string request_id = 4;
+  string world_id = 5;
+}
+
+message GetPublicChatSessionSnapshotResponse {
+  google.protobuf.Struct snapshot = 1;
+}
+
 service RuntimeAgentService {
   rpc InitializeAgent(InitializeAgentRequest) returns (InitializeAgentResponse);
   rpc TerminateAgent(TerminateAgentRequest) returns (TerminateAgentResponse);
@@ -670,6 +682,7 @@ service RuntimeAgentService {
   rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
   rpc OpenConversationAnchor(OpenConversationAnchorRequest) returns (OpenConversationAnchorResponse);
   rpc GetConversationAnchorSnapshot(GetConversationAnchorSnapshotRequest) returns (GetConversationAnchorSnapshotResponse);
+  rpc GetPublicChatSessionSnapshot(GetPublicChatSessionSnapshotRequest) returns (GetPublicChatSessionSnapshotResponse);
   rpc GetAgentState(GetAgentStateRequest) returns (GetAgentStateResponse);
   rpc UpdateAgentState(UpdateAgentStateRequest) returns (UpdateAgentStateResponse);
   rpc SetAgentPresentationProfile(SetAgentPresentationProfileRequest) returns (SetAgentPresentationProfileResponse);

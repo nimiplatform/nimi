@@ -118,6 +118,7 @@ Apps may not:
 - `ListAgents`
 - `OpenConversationAnchor`
 - `GetConversationAnchorSnapshot`
+- `GetPublicChatSessionSnapshot`
 - `GetAgentState`
 - `UpdateAgentState`
 - `EnableAutonomy`
@@ -582,8 +583,7 @@ Fixed rules:
   target `runtime.agent`
 - the admitted ingress families on that target are:
   `runtime.agent.turn.request`,
-  `runtime.agent.turn.interrupt`,
-  and `runtime.agent.session.snapshot.request`
+  and `runtime.agent.turn.interrupt`
 - the admitted projection families on that target are:
   `runtime.agent.turn.accepted`,
   `runtime.agent.turn.started`,
@@ -595,10 +595,13 @@ Fixed rules:
   `runtime.agent.turn.completed`,
   `runtime.agent.turn.failed`,
   `runtime.agent.turn.interrupted`,
-  `runtime.agent.turn.interrupt_ack`,
-  and `runtime.agent.session.snapshot`
+  and `runtime.agent.turn.interrupt_ack`
+- full public chat session snapshot is a query and must use
+  `RuntimeAgentService.GetPublicChatSessionSnapshot`; it must not be modeled as
+  an app-message request/reply pair
 - `runtime.agent.*` remains the steady-state lifecycle/state/memory/admin/read
-  RPC projection and must not be restated as a second reactive-chat RPC family
+  RPC projection and must not be restated as a second reactive-chat app-message
+  family
 - the reserved app target is only the carrier for this seam; semantic
   ownership of `runtime.agent.turn.*` / `runtime.agent.session.*` remains on
   `RuntimeAgentService`
@@ -615,9 +618,10 @@ Fixed rules:
 - typed chat-sidecar / structured projection on this seam remains runtime-owned
   semantic output; hosts may render or act on it, but must not reinterpret raw
   provider output as canonical chat truth
-- current transport authorization and subscription posture for this seam
-  remains governed by the admitted `RuntimeAppService` / app-messaging path
-  until a later dedicated capability admission says otherwise
+- current transport authorization and subscription posture for turn ingress and
+  turn projection remains governed by the admitted `RuntimeAppService` /
+  app-messaging path; query surfaces are owned by `RuntimeAgentService` unary
+  RPCs
 
 ## K-AGCORE-052 Scoped Binding Attachment For App-Facing Consume
 
@@ -628,12 +632,14 @@ local first-party Runtime / SDK account and agent authorization paths.
 
 Fixed rules:
 
-- `runtime.agent.turn.request`, `runtime.agent.turn.interrupt`, and
-  `runtime.agent.session.snapshot.request` carried over `RuntimeAppService`
-  must include `ScopedRuntimeBindingAttachment` with at least `binding_id`.
+- `runtime.agent.turn.request` and `runtime.agent.turn.interrupt` carried over
+  `RuntimeAppService` must include `ScopedRuntimeBindingAttachment` with at
+  least `binding_id`.
 - `RuntimeAppService.SubscribeAppMessages` used to consume
-  `runtime.agent.turn.*`, `runtime.agent.session.*`, or
-  `runtime.agent.presentation.*` projections must include the same attachment.
+  `runtime.agent.turn.*` or `runtime.agent.presentation.*` projections must
+  include the same attachment.
+- `RuntimeAgentService.GetPublicChatSessionSnapshot` used by binding-only
+  consumers must include the same attachment on `AgentRequestContext`.
 - `RuntimeAgentService.SubscribeAgentEvents` used by binding-only consumers to
   merge `runtime.agent.state.*`, hook, or presentation-adjacent projections
   must include the attachment on `AgentRequestContext`.

@@ -256,6 +256,8 @@ import type {
   ListPendingHooksResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  GetPublicChatSessionSnapshotRequest,
+  GetPublicChatSessionSnapshotResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   SetAgentPresentationProfileRequest,
@@ -454,6 +456,10 @@ export type RuntimeAgentClient = {
     request: GetConversationAnchorSnapshotRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetConversationAnchorSnapshotResponse>;
+  getPublicChatSessionSnapshot(
+    request: GetPublicChatSessionSnapshotRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<GetPublicChatSessionSnapshotResponse>;
   getAgentState(request: GetAgentStateRequest, options?: RuntimeCallOptions): Promise<GetAgentStateResponse>;
   updateAgentState(request: UpdateAgentStateRequest, options?: RuntimeCallOptions): Promise<UpdateAgentStateResponse>;
   setPresentationProfile(

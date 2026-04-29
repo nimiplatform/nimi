@@ -137,6 +137,7 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.agent.listAgents]: RuntimeClientMethodContract<'agent', 'listAgents'>;
   [RuntimeMethodIds.agent.openConversationAnchor]: RuntimeClientMethodContract<'agent', 'openConversationAnchor'>;
   [RuntimeMethodIds.agent.getConversationAnchorSnapshot]: RuntimeClientMethodContract<'agent', 'getConversationAnchorSnapshot'>;
+  [RuntimeMethodIds.agent.getPublicChatSessionSnapshot]: RuntimeClientMethodContract<'agent', 'getPublicChatSessionSnapshot'>;
   [RuntimeMethodIds.agent.getAgentState]: RuntimeClientMethodContract<'agent', 'getAgentState'>;
   [RuntimeMethodIds.agent.updateAgentState]: RuntimeClientMethodContract<'agent', 'updateAgentState'>;
   [RuntimeMethodIds.agent.setPresentationProfile]: RuntimeClientMethodContract<'agent', 'setPresentationProfile'>;
