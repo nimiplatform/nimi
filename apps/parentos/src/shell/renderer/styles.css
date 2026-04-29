@@ -12,18 +12,19 @@
  *
  * Font Families
  * ─────────────
- *   --font-sans (UI/Body)
- *     "Noto Sans SC"          Web font (Google Fonts CDN, unicode-range subsetting)
- *     "Inter"                 Web font (Google Fonts CDN, Latin/numbers)
+ *   --font-sans (UI/Body, hero) — defined by nimi-kit, consumed via @theme
+ *     "Inter"                 Latin & numerals (Google Fonts CDN) — first for
+ *                             precision; reversing order would let Noto's
+ *                             bundled Latin glyphs shadow Inter
+ *     "Noto Sans SC"          CJK glyphs (Google Fonts CDN, subsetted)
+ *     "Source Han Sans SC"    Adobe-named alias for the same family
  *     "PingFang SC"           macOS system fallback
  *     "Microsoft YaHei UI"    Windows system fallback
  *     system-ui, sans-serif   Ultimate fallback
  *
- *   --font-display (Titles/Hero)
- *     Same stack, relies on heavier weight + tighter letter-spacing
- *
- *   --font-mono (Data/Code)
- *     Inherited from nimi-kit (JetBrains Mono → SF Mono → Fira Code)
+ *   --font-mono (Data/Tabular numbers) — inherited from nimi-kit
+ *     "JetBrains Mono"        Loaded via Google Fonts CDN in index.html
+ *     "SF Mono" / "Fira Code" / ui-monospace fallbacks
  *
  * Weight Scale
  * ────────────
@@ -35,21 +36,23 @@
  *
  * Chinese Optimizations
  * ─────────────────────
- *   - Noto Sans SC first: ensures CJK & Latin glyphs are visually harmonized
+ *   - Inter first for Latin/numerals; Noto Sans SC handles CJK glyphs
  *   - Body line-height 1.7: Chinese characters need more vertical breathing
  *   - Body letter-spacing 0.02em: slight spacing improves CJK readability
  *   - Title letter-spacing -0.01em: tighter tracking creates density/impact
  *   - Subpixel antialiasing: sharper rendering on high-DPI screens
  *
- * Loaded Weights (Google Fonts CDN)
- * ─────────────────────────────────
- *   Noto Sans SC:  300, 400, 500, 700
- *   Inter:         300, 400, 500, 600, 700
+ * Loaded Weights (Google Fonts CDN — see index.html)
+ * ──────────────────────────────────────────────────
+ *   Inter:           300, 400, 500, 600, 700
+ *   Noto Sans SC:    300, 400, 500, 600, 700  (600 required to avoid faux-bold)
+ *   JetBrains Mono:  400, 500, 700
+ *
+ * Known Risk
+ * ──────────
+ *   Google Fonts CDN can be blocked in mainland China. Self-hosting Noto Sans
+ *   SC subset under Tauri's asset:// scheme is a planned follow-up.
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-@theme {
-  --font-sans: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
-}
 
 :root {
   --color-primary: #1e293b;
@@ -66,10 +69,6 @@
   --color-accent: #4ECCA3;
   --color-bg-dashboard: #f1f5f9;
   --color-navy: #1e293b;
-
-  /* ParentOS font overrides — Chinese-first premium stack */
-  --font-display: "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
-  --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", Georgia, serif;
 }
 
 html, body, #root {

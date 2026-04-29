@@ -197,7 +197,7 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
         }}
       >
         {/* Header */}
-        <div className="flex items-start gap-3 border-b px-6 py-5" style={{ borderColor: '#eceae4' }}>
+        <div className="flex items-start gap-3 border-b px-6 py-6" style={{ borderColor: '#eceae4' }}>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span
@@ -215,10 +215,10 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
                 </span>
               ) : null}
             </div>
-            <h2 className="mt-1.5 text-[16px] font-semibold leading-snug tracking-tight" style={{ color: '#0f172a' }}>
+            <h2 className="mt-3 text-[17px] font-semibold leading-[1.45] tracking-tight" style={{ color: '#0f172a' }}>
               {reminder.rule.title}
             </h2>
-            <p className="mt-1 text-[14px] leading-relaxed" style={{ color: '#475569' }}>
+            <p className="mt-2.5 text-[14px] leading-[1.8]" style={{ color: '#475569' }}>
               {reminder.rule.description}
             </p>
           </div>
@@ -236,21 +236,21 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-6 py-6">
           {!complete ? (
             <ExplainIncompletePlaceholder kind={reminder.kind} />
           ) : explain ? (
             <>
               {explain.whyNow && (
                 <Section title="为什么现在">
-                  <p className="text-[14px] leading-relaxed" style={{ color: '#1e293b' }}>{explain.whyNow}</p>
+                  <p className="text-[14px] leading-[1.8]" style={{ color: '#1e293b' }}>{explain.whyNow}</p>
                 </Section>
               )}
               {explain.howTo && explain.howTo.length > 0 && (
                 <Section title="怎么做">
-                  <ol className="ml-4 list-decimal space-y-1.5">
+                  <ol className="ml-4 list-decimal space-y-3">
                     {explain.howTo.map((step, index) => (
-                      <li key={index} className="text-[14px] leading-relaxed" style={{ color: '#1e293b' }}>
+                      <li key={index} className="pl-1 text-[14px] leading-[1.8]" style={{ color: '#1e293b' }}>
                         {step}
                       </li>
                     ))}
@@ -259,14 +259,14 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
               )}
               {explain.doneWhen && (
                 <Section title="做到什么算到位">
-                  <p className="text-[14px] leading-relaxed" style={{ color: '#1e293b' }}>{explain.doneWhen}</p>
+                  <p className="text-[14px] leading-[1.8]" style={{ color: '#1e293b' }}>{explain.doneWhen}</p>
                 </Section>
               )}
               {explain.pitfalls && explain.pitfalls.length > 0 && (
                 <Section title="常见陷阱">
-                  <ul className="ml-4 list-disc space-y-1">
+                  <ul className="ml-4 list-disc space-y-2.5">
                     {explain.pitfalls.map((item, index) => (
-                      <li key={index} className="text-[14px] leading-relaxed" style={{ color: '#475569' }}>
+                      <li key={index} className="pl-1 text-[14px] leading-[1.8]" style={{ color: '#475569' }}>
                         {item}
                       </li>
                     ))}
@@ -275,14 +275,14 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
               )}
               {explain.ifNotNow && (
                 <Section title="现在不方便">
-                  <p className="text-[14px] leading-relaxed" style={{ color: '#475569' }}>{explain.ifNotNow}</p>
+                  <p className="text-[14px] leading-[1.8]" style={{ color: '#475569' }}>{explain.ifNotNow}</p>
                 </Section>
               )}
               {explain.sources && explain.sources.length > 0 && (
                 <Section title="依据">
-                  <ul className="space-y-1">
+                  <ul className="space-y-2">
                     {explain.sources.map((source, index) => (
-                      <li key={index} className="text-[13px]" style={{ color: '#64748b' }}>
+                      <li key={index} className="text-[13px] leading-[1.7]" style={{ color: '#64748b' }}>
                         {source.url ? (
                           <a
                             href={source.url}
@@ -303,7 +303,7 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
             </>
           ) : (
             // Task rules are allowed to omit explain. Render title + description only.
-            <p className="text-[14px] leading-relaxed" style={{ color: '#475569' }}>
+            <p className="text-[14px] leading-[1.8]" style={{ color: '#475569' }}>
               {reminder.rule.description}
             </p>
           )}
@@ -382,8 +382,8 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-5">
-      <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#8d93a0' }}>
+    <section className="mb-7">
+      <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#8d93a0' }}>
         {title}
       </h3>
       {children}
