@@ -613,8 +613,8 @@ fail-close 时不得：
 - `describe(...)` 对 workflow capability 只返回 workflow metadata；不得返回 `audio.synthesize` 的 voice list/synthesis metadata 代替。
 - workflow metadata 必须继续单向派生自 source-authored workflow metadata；不得借用 plain `audio.synthesize` / `audio.transcribe` metadata，亦不得因 provider/engine 共享同一 `speech` host 就推断 workflow metadata 存在。
 - 任一 workflow capability 缺失独立 selection、resolution、health、或 metadata truth 时必须 fail-close，不得降级到 `audio.synthesize` 成功路径。
-- 对 local workflow execution admitted wave，workflow success 也必须保持 family-scoped：
-  - 首轮 admitted family 当前固定为 `qwen3_tts`
+- 对 local workflow execution admission，workflow success 也必须保持 family-scoped：
+  - baseline admitted family 当前固定为 `qwen3_tts`
   - `resolve(...)` / `checkHealth(...)` / `describe(...)` 对 `qwen3_tts` 的成功不得被解释为 generic local workflow success
   - 其它 local workflow family（包括 `voxcpm`、`omnivoice`）在未独立 admitted 前必须继续 fail-close
 

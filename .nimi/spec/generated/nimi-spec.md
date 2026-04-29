@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `/.nimi/spec/` 规范树的人类可读投影。
-> 生成时间: 2026-04-28
+> 生成时间: 2026-04-29
 >
 > 权威规则定义位于 `/.nimi/spec/` 原始文件中。如需修改，请编辑当前 canonical spec 后重新生成。
 
@@ -472,7 +472,7 @@ message Connector {
 - `IMAGE/TTS/STT` 与同名执行模态映射。
 - `CUSTOM` 的 capability 来自模型元数据声明。
 - `TTS` / `STT` 只映射 plain speech capability；不得把 `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 视为由 `TTS` category 自动隐含。
-- first-wave local `Qwen3-TTS` workflow line 不改变上述规则；即使 `Qwen3-TTS`
+- baseline local `Qwen3-TTS` workflow line 不改变上述规则；即使 `Qwen3-TTS`
   同时承担 plain synth / clone / design，workflow capability 仍必须显式声明为
   `voice_workflow.*`，不得通过 `TTS` category 自动推导。
 
@@ -666,11 +666,11 @@ Phase 1 本地执行引擎固定为：
 
 - `llama`：`llama.cpp` / `llama-server`，负责 `text.generate`、`text.embed`、`image.understand`、`audio.understand`
 - `media`：`stable-diffusion.cpp` 主 driver，负责 `image.generate`、`image.edit`、`video.generate`、`i2v`
-- `speech`：本地语音引擎族。当前 ordinary-user admitted baseline 固定围绕 first-wave `Qwen3` family line：
+- `speech`：本地语音引擎族。当前 ordinary-user admitted baseline 固定围绕 baseline `Qwen3` family line：
   - `audio.transcribe` default lane: `Qwen3-ASR-0.6B`
   - `audio.synthesize` default lane: `Qwen3-TTS-12Hz-0.6B-CustomVoice`
   - `voice_workflow.tts_v2v`、`voice_workflow.tts_t2v` 只有在真实本地 workflow execution plane 被显式 cutover admitted 后才能升格为 local truth
-  - 当前首轮 admitted local workflow family 边界固定为 `qwen3_tts`，不得被扩写成 generic local workflow truth
+  - 当前 baseline admitted local workflow family 边界固定为 `qwen3_tts`，不得被扩写成 generic local workflow truth
 - `sidecar`：外部自托管 music sidecar，使用 Nimi music canonical HTTP 协议；当前仅支持 `ATTACHED_ENDPOINT`
 
 `media.diffusers` 仅允许作为 `media` 的 runtime 内部 fallback driver；不是 public engine target。若要把 `media.diffusers` 升格为 matrix-supported canonical backend family，必须在同一轮 cutover 中同步修订 `K-LENG-004`、`K-MMPROV-010`、`K-PROV-002` 的对应规则。
@@ -779,7 +779,7 @@ speech product posture:
 - placeholder host 与 admitted plain-speech host 必须显式分离：在 admitted local plain-speech execution plane 尚未 materialize 前，speech canonical HTTP surface 可以存在，但必须保持 non-ready / fail-close；不得借 `ACTIVE`、`READY`、generic health 或静态 catalog 投影成 admitted success。
 - speech supervised data-boundary minimum 属于 admitted contract：temp files 必须有 bounded lifecycle；public detail 不得暴露 raw bootstrap path、raw probe URL 或 raw request payload；reference audio、transcription text、voice design prompt 不得因 generic logging 默认进入长期保留路径。
 - 当未来 local workflow 被 admission 时，`voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` 必须验证 workflow driver 可用；在 admission 之前，缺失独立 workflow readiness truth 时必须 fail-close，不得投影为 local admitted success。
-- 对 first admitted local workflow wave，workflow driver/readiness truth 也必须保持 family-scoped：当前只允许 `qwen3_tts` 进入 admitted execution proof，其成功不得隐式放宽到其它 local workflow family。
+- 对 baseline admitted local workflow，workflow driver/readiness truth 也必须保持 family-scoped：当前只允许 `qwen3_tts` 进入 admitted execution proof，其成功不得隐式放宽到其它 local workflow family。
 
 `sidecar` 当前不进入标准 supervised 健康探测，attached endpoint 的可用性由实际 music 请求 fail-close。
 
@@ -1929,8 +1929,8 @@ hydration 伪装成空成功。
 
 **D-BOOT-007 — Auth Session 引导**
 
-> **Hard Cut Status (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)**：
-> 本规则在 wave-1 标记 superseded。replacement authority：`K-ACCSVC-005` `GetAccountSessionStatus` / `SubscribeAccountSessionEvents`，以及 Runtime-backed short-lived access-token provider（`GetAccessToken`）。wave-3 active owner switch 必须将 Desktop bootstrap 改为 query Runtime account state，并删除 `bootstrapAuthSession` token 交换 / 匿名回退路径与共享 auth session 写入逻辑（`K-ACCSVC-013`）。保留的 Desktop Realm/DataSync data client 必须通过 Runtime-issued access token 初始化，不得读取 shared auth token。
+> **Authority Disposition**：
+> 本规则已 superseded。Replacement authority：`K-ACCSVC-005` `GetAccountSessionStatus` / `SubscribeAccountSessionEvents`，以及 Runtime-backed short-lived access-token provider（`GetAccessToken`）。`K-ACCSVC-013` 要求 Desktop bootstrap query Runtime account state，并删除 `bootstrapAuthSession` token 交换 / 匿名回退路径与共享 auth session 写入逻辑。保留的 Desktop Realm/DataSync data client 必须通过 Runtime-issued access token 初始化，不得读取 shared auth token。
 
 调用 `bootstrapAuthSession` 执行 token 交换或匿名回退。
 
@@ -1999,8 +1999,8 @@ IPC 层的基础设施先于具体命令。统一的 `invoke()` 入口先检查 
 
 **D-IPC-001 — Bootstrap / Auth Session 命令**
 
-> **Hard Cut Status (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)**：
-> 共享 auth session 命令（`auth_session_load` / `auth_session_save` / `auth_session_clear`）作为 local first-party account truth surface 在 wave-1 被标记 superseded。replacement authority 为 `RuntimeAccountService`（`K-ACCSVC-*`）；wave-3 active owner switch 必须删除或 hard-block 本节描述的 `auth_session_*` IPC 路径，不允许保留 dual-read。`runtime_defaults` 中 `realm.accessToken` / `realm.jwksUrl` / `realm.revocationUrl` 不得在 wave-3 之后继续作为 local first-party account truth source（仅允许 explicit Web/cloud adapter 模式或 dev-only override 使用，且必须 fenced）。local first-party Desktop data clients 若需要 Realm access token，必须通过 Runtime `GetAccessToken` 或等价 provider 获取短期 token。
+> **Authority Disposition**：
+> 共享 auth session 命令（`auth_session_load` / `auth_session_save` / `auth_session_clear`）作为 local first-party account truth surface 已 superseded。Replacement authority 为 `RuntimeAccountService`（`K-ACCSVC-*`）；`auth_session_*` IPC 路径必须删除或 hard-block，不允许保留 dual-read。`runtime_defaults` 中 `realm.accessToken` / `realm.jwksUrl` / `realm.revocationUrl` 不得继续作为 local first-party account truth source（仅允许 explicit Web/cloud adapter 模式或 dev-only override 使用，且必须 fenced）。local first-party Desktop data clients 若需要 Realm access token，必须通过 Runtime `GetAccessToken` 或等价 provider 获取短期 token。
 
 `runtime_defaults` 命令返回 `RuntimeDefaults`，包含：
 - `realm: RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、revocationUrl、jwtIssuer、jwtAudience）
@@ -2008,7 +2008,7 @@ IPC 层的基础设施先于具体命令。统一的 `invoke()` 入口先检查 
 
 所有字段通过 `parseRuntimeDefaults` 防御性解析。
 
-共享 auth session 命令集（**wave-1: superseded for local first-party account truth；wave-3 active cut 后删除/封禁**）：
+共享 auth session 命令集（**superseded for local first-party account truth；必须删除或封禁**）：
 - `auth_session_load`：读取并解密 `~/.nimi/auth/session.v1.json`，返回 normalized shared desktop auth session 或 `null`。corrupt / invalid schema 文件必须在读取时删除。
 - `auth_session_save`：原子覆写共享 auth session 文件；renderer 只提交 normalized user + tokens，backend 负责加密与落盘。
 - `auth_session_clear`：删除共享 auth session 文件。
@@ -3056,7 +3056,7 @@ Desktop 的错误来自 4 个来源：Runtime gRPC 错误、Realm HTTP 错误、
 
 **D-ERR-003 — Speech Bundle Download / Init 错误码**
 
-first-wave local speech 的 Desktop 错误投影必须按 bundle-aware download/init 语义解释，而不是按单一 `Qwen TTS bootstrap` 语义解释。
+baseline local speech 的 Desktop 错误投影必须按 bundle-aware download/init 语义解释，而不是按单一 `Qwen TTS bootstrap` 语义解释。
 
 Speech 引擎依赖检查错误：
 

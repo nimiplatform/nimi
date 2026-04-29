@@ -26,7 +26,6 @@ function readYaml(rel) {
 const requiredFiles = [
   '.nimi/spec/cognition/index.md',
   '.nimi/spec/cognition/kernel/index.md',
-  '.nimi/spec/cognition/kernel/coverage-review.md',
   '.nimi/spec/cognition/kernel/cognition-contract.md',
   '.nimi/spec/cognition/kernel/family-contract.md',
   '.nimi/spec/cognition/kernel/surface-contract.md',

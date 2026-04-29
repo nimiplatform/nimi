@@ -74,9 +74,9 @@ local provider 的能力暴露必须与本地 engine/capability 合同一致。
 - 在 local workflow execution plane 尚未 admitted 前，`/v1/voice/clone` 与 `/v1/voice/design` 必须明确返回 capability-not-admitted / fail-close 语义，而不是 generic speech success 或静默降级。
 - plain-speech admitted driver family 不得被隐式提升为 workflow-family admission truth；后续 workflow-capable local family（包括历史讨论过的 `voxcpm`、`omnivoice`）若要 admitted，必须拥有独立的 workflow model / binding / handle policy truth。
 - workflow-capable TTS family 的成功结果不得替代 `audio.transcribe` 验收；speech 全链路成功必须继续保留独立 STT family truth。
-- 当 local workflow execution 进入 first-family admitted wave 时：
+- 当 local workflow execution 进入 first-family admission 时：
   - `/v1/voice/clone` 与 `/v1/voice/design` 只允许对 admitted family 返回成功
-  - 当前首轮 admitted family 边界固定为 `qwen3_tts`
+  - 当前 baseline admitted family 边界固定为 `qwen3_tts`
   - unsupported local workflow family（包括 `voxcpm`、`omnivoice`）必须继续返回 family-scoped fail-close，而不是 generic local speech success
   - `GET /healthz` 与 `GET /v1/catalog` 仍不得把某一 admitted workflow family 的成功投影为 generic local workflow-ready
 

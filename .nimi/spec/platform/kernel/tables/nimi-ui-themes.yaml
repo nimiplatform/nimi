@@ -147,9 +147,9 @@ packs:
       material.glass_thick.border: "rgba(226,232,240,0.40)"
       material.glass_chrome.bg: "rgba(255,255,255,0.85)"
       material.glass_chrome.border: "rgba(226,232,240,0.50)"
-      # backdrop.blur_regular value updated 2026-04-18 per topic 2026-04-18-nimi-ui-glassmorphism-system-uplift Phase 2 (prior value: "24px"; re-anchored to mid-stop of 10/18/24/28 4-stop gradient)
+      # backdrop.blur_regular is anchored to the mid-stop of the 10/18/24/28 4-stop gradient.
       backdrop.blur_regular: "18px"
-      # backdrop.blur_strong value updated 2026-04-18 per topic 2026-04-18-nimi-ui-glassmorphism-system-uplift Phase 2 (prior value: "32px"; re-anchored to the "thick" 3rd stop of the 10/18/24/28 4-stop gradient)
+      # backdrop.blur_strong is anchored to the "thick" 3rd stop of the 10/18/24/28 4-stop gradient.
       backdrop.blur_strong: "24px"
       backdrop.blur_thin: "10px"
       backdrop.blur_chrome: "28px"
@@ -316,9 +316,9 @@ packs:
       material.glass_thick.border: "rgba(51,65,85,0.40)"
       material.glass_chrome.bg: "rgba(15,23,42,0.85)"
       material.glass_chrome.border: "rgba(51,65,85,0.50)"
-      # backdrop.blur_regular value updated 2026-04-18 per topic 2026-04-18-nimi-ui-glassmorphism-system-uplift Phase 2 (prior value: "24px"; re-anchored to mid-stop of 10/18/24/28 4-stop gradient)
+      # backdrop.blur_regular is anchored to the mid-stop of the 10/18/24/28 4-stop gradient.
       backdrop.blur_regular: "18px"
-      # backdrop.blur_strong value updated 2026-04-18 per topic 2026-04-18-nimi-ui-glassmorphism-system-uplift Phase 2 (prior value: "32px"; re-anchored to the "thick" 3rd stop of the 10/18/24/28 4-stop gradient)
+      # backdrop.blur_strong is anchored to the "thick" 3rd stop of the 10/18/24/28 4-stop gradient.
       backdrop.blur_strong: "24px"
       backdrop.blur_thin: "10px"
       backdrop.blur_chrome: "28px"

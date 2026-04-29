@@ -33,9 +33,9 @@ It does not own:
 - renderer-driver implementation semantics
 - branch-local simulation semantics
 
-## S-WORLD-002 First-Wave Family Set
+## S-WORLD-002 Baseline Family Set
 
-The first-wave `sdk/world` family set is fixed to:
+The baseline `sdk/world` family set is fixed to:
 
 - `truth`
 - `generate`
@@ -94,7 +94,7 @@ It may compose:
 It does not transfer ownership of chat, agent, cognition, or renderer truth
 into the world-domain facade.
 
-## S-WORLD-007 First-Wave Exclusions
+## S-WORLD-007 Baseline Exclusions
 
 The first `sdk/world` cut excludes:
 

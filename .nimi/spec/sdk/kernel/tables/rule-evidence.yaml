@@ -527,15 +527,15 @@ rules:
   - rule_id: S-RUNTIME-108
     status: covered
     evidence_refs: [sdk_kernel_consistency]
-    note: "PresentationTimeline consume boundary is admitted; concrete SDK parser/API evidence is owned by the follow-on SDK/Desktop consume wave"
+    note: "PresentationTimeline consume boundary is admitted; concrete SDK parser/API evidence is owned by downstream SDK/Desktop consume implementation"
   - rule_id: S-RUNTIME-109
     status: covered
     evidence_refs: [sdk_kernel_consistency]
-    note: "Wave-1 admitted authority for local first-party Runtime account projection, Runtime-backed short-lived access-token provider, and binding consumer (topic 2026-04-28-runtime-core-account-session-broker-hardcut). SDK code projection lands at wave-3 active owner switch."
+    note: "Admitted authority for local first-party Runtime account projection, Runtime-backed short-lived access-token provider, and binding consumer. SDK code projection depends on the active owner switch."
   - rule_id: S-RUNTIME-110
     status: covered
     evidence_refs: [sdk_kernel_consistency]
-    note: "Wave-1 admitted authority for SDK login adapter surface (Runtime BeginLogin/CompleteLogin pass-through). SDK code projection lands at wave-3 active owner switch."
+    note: "Admitted authority for SDK login adapter surface (Runtime BeginLogin/CompleteLogin pass-through). SDK code projection depends on the active owner switch."
 
   # --- World Contract (S-WORLD) ---
   - rule_id: S-WORLD-001
@@ -545,7 +545,7 @@ rules:
   - rule_id: S-WORLD-002
     status: covered
     evidence_refs: [sdk_kernel_consistency]
-    note: "First-wave family set is closed to truth, generate, fixture, render, and session in coarse-grained form"
+    note: "Baseline family set is closed to truth, generate, fixture, render, and session in coarse-grained form"
   - rule_id: S-WORLD-003
     status: covered
     evidence_refs: [sdk_kernel_consistency]
@@ -565,7 +565,7 @@ rules:
   - rule_id: S-WORLD-007
     status: covered
     evidence_refs: [sdk_kernel_consistency]
-    note: "First-wave exclusions keep shared projection truth, simulation semantics, provider-native authoring, renderer-driver APIs, and direct Realm mutation outside the sdk/world cut"
+    note: "Baseline exclusions keep shared projection truth, simulation semantics, provider-native authoring, renderer-driver APIs, and direct Realm mutation outside the sdk/world cut"
 
   # --- Scope Contract (S-SCOPE) ---
   - rule_id: S-SCOPE-001

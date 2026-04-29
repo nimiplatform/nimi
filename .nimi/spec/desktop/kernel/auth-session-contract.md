@@ -2,8 +2,8 @@
 
 > Authority: Desktop Kernel
 >
-> **Hard Cut Status (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)**：
-> Desktop 不再拥有 local first-party 机器层 account session truth、token custody、refresh、logout、user-switch 权威。该权威由 `RuntimeAccountService`（`K-ACCSVC-*`，见 `.nimi/spec/runtime/kernel/account-session-contract.md`）拥有。本契约下列规则在 wave-1 被显式标记：
+> **Authority Disposition**：
+> Desktop 不再拥有 local first-party 机器层 account session truth、token custody、refresh、logout、user-switch 权威。该权威由 `RuntimeAccountService`（`K-ACCSVC-*`，见 `.nimi/spec/runtime/kernel/account-session-contract.md`）拥有。本契约下列规则的 disposition 固定为：
 >
 > | Rule | Disposition | Replacement Authority |
 > |---|---|---|
@@ -17,15 +17,15 @@
 > | `D-AUTH-014` | superseded | `K-BIND-006` scoped binding stale-request rejection；Runtime 拥有 revalidation 真相 |
 > | `D-AUTH-010` / `D-AUTH-011` / `D-AUTH-012` | retained | external-principal UI 仍由 Desktop 拥有，与 account session 分离 |
 >
-> Desktop 在 wave-3 之后可以保留 direct Realm data calls，但只能通过 Runtime-backed short-lived access-token provider；Desktop 不得持有 refresh token、durable session、或 app-owned login truth。
+> Desktop 可以保留 direct Realm data calls，但只能通过 Runtime-backed short-lived access-token provider；Desktop 不得持有 refresh token、durable session、或 app-owned login truth。
 >
-> wave-1 仅标记 disposition；实际 active owner switch 与代码删除属于 wave-3 闭合一次性 hard cut（见 `K-ACCSVC-013`）。
+> Active owner switch 与代码删除由 `K-ACCSVC-013` 约束；不得保留 dual-read / fallback。
 
 ## Scope
 
 Desktop 认证会话生命周期契约。定义 desktop 和 web 两种环境下的 token 获取、持久化、刷新和失效策略。
 
-> **wave-1 Authority Note**：在 wave-3 active owner switch 之前，本契约现有规则保留为 superseded-pending-cut 状态，仅供历史参照；wave-3 必须在同一 wave 内删除或 hard-block 这些规则对应的 product code 路径，且不得保留 dual-read / fallback。
+> **Authority Note**：superseded 规则仅供历史参照；对应 product code 路径必须删除或 hard-block，且不得保留 dual-read / fallback。
 
 ## D-AUTH-001 — Session Bootstrap
 

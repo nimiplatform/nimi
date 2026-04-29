@@ -50,7 +50,3 @@ updated: 2026-04-16
 - `generated/prompt-serving-lanes.md`
 - `generated/completion-gates.md`
 - `generated/rule-evidence.md`
-
-## Reports
-
-- `coverage-review.md`

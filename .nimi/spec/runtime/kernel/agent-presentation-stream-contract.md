@@ -175,7 +175,7 @@ Active owner map:
 - SDK may consume admitted runtime agent projections but does not own platform
   event ontology
 
-Deferred or not admitted in this wave:
+Deferred or not admitted in the current authority set:
 
 - a general cross-app event broker for `desktop.*`, `avatar.*`, `system.*`, or
   third-party app namespaces
@@ -229,7 +229,7 @@ Fixed rules:
   provider-produced timing/audio-level evidence, but it must not hardcode a
   provider or model as timeline authority
 
-Implementation waves must not report this rule as product-complete until
+Implementation work must not report this rule as product-complete until
 runtime, SDK/Desktop, Avatar, and cross-surface acceptance evidence all exist.
 
 ## Fact Sources

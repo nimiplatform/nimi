@@ -26,14 +26,14 @@ It still does not own:
 - AgentCore prompt-assembly knowledge lanes
 - cross-service citation/relation truth
 
-## K-KNOW-002 Wave 1 Bank Scope And Owner Boundary
+## K-KNOW-002 Baseline Bank Scope And Owner Boundary
 
-Wave 1 public knowledge scopes are fixed to:
+Baseline public knowledge scopes are fixed to:
 
 - `APP_PRIVATE`
 - `WORKSPACE_PRIVATE`
 
-Wave 1 public surface must reject:
+Baseline public surface must reject:
 
 - `AGENT_CORE`
 - `AGENT_DYADIC`
@@ -46,7 +46,7 @@ Fixed rules:
 - `APP_PRIVATE` knowledge banks are app-owned
 - `WORKSPACE_PRIVATE` knowledge banks are workspace-owned
 - illegal scope/owner combinations must fail close
-- page access inherits bank authorization; Wave 1 does not admit a separate page owner model
+- page access inherits bank authorization; the baseline does not admit a separate page owner model
 
 ## K-KNOW-003 Superseded Knowledge Public Surface Baseline
 
@@ -76,20 +76,20 @@ Fixed rules:
 
 - this absorbed knowledge slice replaces the older design-first 3-method index
   draft as the admitted design authority
-- `CreateKnowledgeBank` / `DeleteKnowledgeBank` are admitted only for Wave 1 infra scopes
+- `CreateKnowledgeBank` / `DeleteKnowledgeBank` are admitted only for baseline infra scopes
 - `PutPage` creates or updates one page inside one admitted bank
 - `DeletePage` is page-level delete; `DeleteKnowledgeBank` is bank-level delete
 - `ListKnowledgeBanks` and `ListPages` are paginated list surfaces
-- `SearchKeyword` remains the Wave 1 lexical / FTS-only surface
-- `SearchHybrid` is the only Wave 2A retrieval-expansion delta
-- Wave 2B admits only same-bank page-to-page graph / backlink surfaces
+- `SearchKeyword` remains the baseline lexical / FTS-only surface
+- `SearchHybrid` is the only hybrid retrieval expansion
+- the graph/backlink expansion admits only same-bank page-to-page graph / backlink surfaces
 - `AddLink` and `RemoveLink` operate on runtime-local page links inside one admitted bank
 - `ListLinks` returns outgoing links for one page inside one admitted bank
 - `ListBacklinks` returns incoming links for one page inside one admitted bank
 - `TraverseGraph` returns same-bank graph expansion from one root page and does not imply cross-bank or cross-service citation
-- Wave 2C admits only single-document async ingest plus explicit task polling
+- the ingest/progress expansion admits only single-document async ingest plus explicit task polling
 - `IngestDocument` accepts one runtime-local document payload and returns one ingest task rather than synchronously returning a page write result
-- `GetIngestTask` is the only admitted Wave 2C progress surface; Wave 2C does not admit ingest event streams or batch task lists
+- `GetIngestTask` is the only admitted progress surface; the ingest/progress expansion does not admit ingest event streams or batch task lists
 - public proto, runtime implementation, CLI, and SDK projection must align to
   this admitted surface through `RuntimeCognitionService`
 - legacy `BuildIndex` / `SearchIndex` / `DeleteIndex` names remain migration-only and must not be treated as stable public contract
@@ -101,11 +101,11 @@ knowledge family.
 
 Fixed rules:
 
-- Wave 1 keyword search does not require an embedding profile
-- Wave 1 does not admit vector search
-- Wave 1 does not admit hybrid search / RRF fusion
-- Wave 1 does not admit graph expansion
-- Wave 1 does not admit multi-query expansion
+- baseline keyword search does not require an embedding profile
+- baseline lexical search does not admit vector search
+- baseline lexical search does not admit hybrid search / RRF fusion
+- baseline lexical search does not admit graph expansion
+- baseline lexical search does not admit multi-query expansion
 - search results remain runtime-local knowledge hits; they do not imply AgentCore or canonical-memory admission
 
 ## K-KNOW-004a SearchHybrid Semantics
@@ -149,15 +149,15 @@ on the absorbed knowledge family.
 
 Fixed rules:
 
-- Wave 2C admits only single-document ingest; it does not admit multi-document batch ingest
+- the ingest/progress expansion admits only single-document ingest; it does not admit multi-document batch ingest
 - `IngestDocument` must validate bank existence and bank authorization before accepting a task
 - `IngestDocument` must fail close on invalid envelopes; it must not silently coerce missing `bank_id`, `slug`, or `content`
 - accepted ingest work is represented as a runtime-local knowledge ingest task with explicit status and `progress_percent`
 - `GetIngestTask` must return task state by explicit `task_id`; missing task ids must fail close
 - ingest task completion may create or update one page inside one admitted bank
-- Wave 2C ingest does not admit timeline/version/revert semantics
-- Wave 2C ingest does not admit cross-bank ingest, cross-service citation, shared truth, or AgentCore admission
-- Wave 2C progress is poll-based; it does not imply workflow-service reuse or server-stream task events
+- the ingest/progress expansion does not admit timeline/version/revert semantics
+- the ingest/progress expansion does not admit cross-bank ingest, cross-service citation, shared truth, or AgentCore admission
+- progress is poll-based; it does not imply workflow-service reuse or server-stream task events
 
 ## K-KNOW-005 Supporting Requirements
 
@@ -166,14 +166,14 @@ Supporting contract requirements are fixed:
 - bank/page authorization is bank-scoped and must fail close
 - `ListKnowledgeBanks` and `ListPages` must use admitted pagination semantics from `K-PAGE-*`
 - admitted write paths must emit audit events under `K-AUDIT-*`
-- admitted Wave 1 failures must map to explicit knowledge reason codes
+- admitted baseline failures must map to explicit knowledge reason codes
 - `SearchHybrid` pagination semantics and unavailable states must be explicit
-- Wave 2B graph reads must use explicit pagination semantics
-- Wave 2B graph writes must remain same-bank only and auditable
-- Wave 2C ingest task reads and writes must remain runtime-local, explicit, and auditable
+- graph/backlink reads must use explicit pagination semantics
+- graph/backlink writes must remain same-bank only and auditable
+- ingest task reads and writes must remain runtime-local, explicit, and auditable
 - if page writes affect durable hybrid retrieval readiness, the resulting indexing-side-effect posture must be explicit and auditable
 
-Minimum Wave 1 audited writes:
+Minimum baseline audited writes:
 
 - `CreateKnowledgeBank`
 - `DeleteKnowledgeBank`
@@ -183,7 +183,7 @@ Minimum Wave 1 audited writes:
 - `RemoveLink`
 - `IngestDocument`
 
-Minimum Wave 1 paginated reads:
+Minimum baseline paginated reads:
 
 - `ListKnowledgeBanks`
 - `ListPages`
@@ -195,19 +195,19 @@ Minimum Wave 1 paginated reads:
 
 KnowledgeService 的跨域消费契约状态：
 
-| 消费层 | 当前状态 | Wave 1 启动前必须 |
+| 消费层 | 当前状态 | Baseline 必须保持 |
 |---|---|---|
-| **SDK 方法投影** | admitted / landed | 保持 Wave 1 SDK 方法投影与 runtime proto / reason-code / pagination 语义对齐 |
-| **Desktop UI Spec** | admitted / landed | 保持 Knowledge Wave 1 UI spec 与 Runtime-path authz / unavailable / pagination / method surface 对齐 |
-| **knowledge-base mod (Desktop host sqlite)** | 独立实现 | KB mod 当前不消费 RuntimeCognitionService；Wave 1 不要求该 mod 迁移，只要求不再把旧 index-only draft或 RuntimeKnowledgeService 当作 Runtime 稳定目标 |
+| **SDK 方法投影** | admitted / landed | 保持 baseline SDK 方法投影与 runtime proto / reason-code / pagination 语义对齐 |
+| **Desktop UI Spec** | admitted / landed | 保持 Knowledge baseline UI spec 与 Runtime-path authz / unavailable / pagination / method surface 对齐 |
+| **knowledge-base mod (Desktop host sqlite)** | 独立实现 | KB mod 当前不消费 RuntimeCognitionService；baseline 不要求该 mod 迁移，只要求不再把旧 index-only draft或 RuntimeKnowledgeService 当作 Runtime 稳定目标 |
 
 > **设计完整性注意**：当前 admitted knowledge slice 只定义 runtime-local infra-scoped ownership；AgentCore integration、shared truth、cross-service citation redesign 仍未交付。Runtime、CLI、SDK、Desktop UI spec 已就绪，但 Desktop/Forge 产品消费实现仍属于后续交付。
 >
-> **Wave 2A 注意**：`SearchHybrid` 只扩 retrieval surface；它不改变 Wave 1 bank/page ownership、也不引入 graph、AgentCore、shared truth 或 citation admission。
+> **Hybrid retrieval 注意**：`SearchHybrid` 只扩 retrieval surface；它不改变 baseline bank/page ownership、也不引入 graph、AgentCore、shared truth 或 citation admission。
 >
-> **Wave 2B 注意**：graph/backlink 只扩同 bank page-to-page runtime-local relations；它不引入 cross-bank relation truth、cross-service citation、shared truth 或 AgentCore knowledge lane。
+> **Graph/backlink 注意**：graph/backlink 只扩同 bank page-to-page runtime-local relations；它不引入 cross-bank relation truth、cross-service citation、shared truth 或 AgentCore knowledge lane。
 >
-> **Wave 2C 注意**：ingest/progress 只扩 runtime-local single-document async ingest 与 task polling；它不引入 batch ingest、timeline/version、workflow-service ownership、shared truth 或 AgentCore admission。
+> **Ingest/progress 注意**：ingest/progress 只扩 runtime-local single-document async ingest 与 task polling；它不引入 batch ingest、timeline/version、workflow-service ownership、shared truth 或 AgentCore admission。
 
 ## K-KNOW-006 Explicit Deferrals
 

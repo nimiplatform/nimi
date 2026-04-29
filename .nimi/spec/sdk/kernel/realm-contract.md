@@ -2,7 +2,7 @@
 
 > Owner Domain: `S-REALM-*`
 >
-> **Hard Cut Status (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)**：
+> **Authority Disposition**：
 > 本契约被分为两种显式 mode：
 >
 > - **Local first-party Runtime mode**：允许 Realm data client，但只能使用 Runtime-backed short-lived access-token provider（`RuntimeAccountService.GetAccessToken` 或等价方法）。禁止 app-provided token provider、refresh token provider、session store、JWT subject decode、`MeService.getMe` 作为 account truth、Realm 登录路由（`passwordLogin` / `oauthLogin` / `requestEmailOtp` / `verifyEmailOtp` / `walletLogin` / `walletChallenge` / `checkEmail`）以及 SDK-owned 401 refresh token flow。

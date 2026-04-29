@@ -8,16 +8,12 @@
 > table or a new rule ID. It pins the 5-tier material taxonomy, declares
 > the perf-downgrade hook-point interface at the spec level, fixes the
 > a11y contrast threshold, and reserves an empty admitted-exceptions
-> section for Phase 3a.
+> section for future controlled exceptions.
 >
-> Admission history: this contract was admitted 2026-04-18 under topic
-> `2026-04-18-nimi-ui-glassmorphism-system-uplift` Phase 2. It supersedes
-> the W1 3-tier material admission (`solid`, `glass-regular`,
-> `glass-thick`) landed under parent topic
-> `2026-04-16-kit-glass-material-and-parentos-alignment`, preserving the
-> 3 prior tier names byte-for-byte while admitting 2 new tiers
-> (`glass-thin`, `glass-chrome`) and re-anchoring the backdrop blur
-> radii gradient.
+> Compatibility: this contract supersedes the prior 3-tier material taxonomy
+> (`solid`, `glass-regular`, `glass-thick`), preserving those tier names
+> byte-for-byte while admitting `glass-thin` and `glass-chrome` and
+> re-anchoring the backdrop blur radii gradient.
 
 ## 1. Material Consumption Boundary
 
@@ -56,10 +52,8 @@ the W1 `24 / 32` two-value anchor.
 ## 2. Perf-Downgrade Hook-Point Interface (Spec-Level)
 
 This contract declares the interface signature for runtime
-perf-downgrade of material tiers. The runtime implementation lives
-under Phase 3b of the topic
-`2026-04-18-nimi-ui-glassmorphism-system-uplift` and is **not**
-authored by Phase 2.
+perf-downgrade of material tiers. Runtime implementation remains a separate
+consumer responsibility and does not change the material taxonomy.
 
 **Interface signature (spec-level; React-context-free expression):**
 

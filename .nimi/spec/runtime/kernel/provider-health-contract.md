@@ -66,8 +66,8 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 - `local-speech` 作为完整 supervised engine，与 `local` / `local-media` 一样按显式 Base URL 配置参与 provider health 探测。
 - `local-speech` 的 canonical provider probe 固定为 `/healthz` → `/v1/catalog`；不得错误回落到 `/v1/models`。
 - `local-speech` provider health 只回答 provider-facing reachability 与 canonical provider probe truth；不得被解释为 `audio.synthesize` / `audio.transcribe` capability-route readiness 或 admitted plain-speech success。
-- local workflow execution 即使进入 admitted wave，`local-speech` provider health 也仍只回答 provider-facing reachability；workflow-ready 只能由 family-scoped route/host execution proof 回答。
-- 首轮 admitted local workflow family 当前固定为 `qwen3_tts`；其成功不得在 provider health 层被泛化成 generic local workflow healthy。
+- local workflow execution 即使被 admitted，`local-speech` provider health 也仍只回答 provider-facing reachability；workflow-ready 只能由 family-scoped route/host execution proof 回答。
+- baseline admitted local workflow family 当前固定为 `qwen3_tts`；其成功不得在 provider health 层被泛化成 generic local workflow healthy。
 - route health、model health、asset health 可以消费 provider health 作为 reachability 输入，但不得回写、覆盖、或替代 provider health truth owner。
 - `local-media` 的 `/healthz` 必须只在依赖、设备、默认模型与默认管线全部 ready 后返回 `2xx`；不得使用静态 `"ok"` 健康响应伪装就绪。
 - v2 观测字段（`backend_family`、`backend_class`、`product_state`、`control_plane`、`execution_plane`）以及任何后续 speech-specific provider detail，本轮只允许落在 runtime-private resolved detail、provider hints `extra`、audit detail；不新增 `AIProviderHealthSnapshot` typed 字段。

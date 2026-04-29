@@ -17,8 +17,7 @@ spec_generation_audit:
       - .nimi/spec
     structure_roots:
       - .
-    human_note_paths:
-      - .nimi/topics/closed/2026-04-11-nimicoding-canonical-spec-model-redesign/design.md
+    human_note_paths: []
     benchmark_blueprint_root: null
   files:
     - canonical_path: .nimi/spec/INDEX.md
@@ -3289,6 +3288,13 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/account-session-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/runtime/kernel/account-session-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
     - canonical_path: .nimi/spec/runtime/kernel/ai-profile-execution-contract.md
       file_class: kernel_markdown
       source_refs:
@@ -6026,13 +6032,6 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
-    - canonical_path: .nimi/spec/cognition/kernel/coverage-review.md
-      file_class: kernel_markdown
-      source_refs:
-        - .nimi/spec/cognition/kernel/coverage-review.md
-      source_basis: grounded
-      coverage_status: complete
-      unresolved_items: []
     - canonical_path: .nimi/spec/cognition/kernel/family-contract.md
       file_class: kernel_markdown
       source_refs:
@@ -6454,6 +6453,20 @@ spec_generation_audit:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/agent-output-wire-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/runtime/kernel/agent-output-wire-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/scoped-app-binding-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/runtime/kernel/scoped-app-binding-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
     - canonical_path: .nimi/spec/runtime/kernel/generated/connector-auth-profiles.md
       file_class: kernel_generated
       source_refs:
@@ -6486,6 +6499,13 @@ spec_generation_audit:
       file_class: kernel_tables
       source_refs:
         - .nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []

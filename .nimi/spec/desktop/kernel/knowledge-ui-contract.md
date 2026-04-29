@@ -21,14 +21,14 @@ Knowledge UI 必须通过 Runtime 路径消费以下 admitted 方法：
 - `ListPages`
 - `DeletePage`
 - `SearchKeyword`
-- `SearchHybrid`（仅在 Wave 2A retrieval expansion admitted 时）
-- `IngestDocument` / `GetIngestTask`（仅在 Wave 2C single-document ingest admitted 时）
+- `SearchHybrid`（仅在 hybrid retrieval expansion admitted 时）
+- `IngestDocument` / `GetIngestTask`（仅在 single-document ingest expansion admitted 时）
 
 固定约束：
 
 - Desktop 不得为 Knowledge UI 创建 Realm-side parallel truth 或 REST bypass
 - Desktop 不得把旧 `BuildIndex` / `SearchIndex` / `DeleteIndex` draft 当作稳定 surface
-- Desktop 只消费 Wave 1 admitted scope：`APP_PRIVATE`、`WORKSPACE_PRIVATE`
+- Desktop 只消费 baseline admitted scope：`APP_PRIVATE`、`WORKSPACE_PRIVATE`
 - Desktop 不得在 UI 层暗示 shared truth / replication / AgentCore knowledge lane
 - Desktop 不得把 `SearchHybrid` 解释成 graph、citation、canonical truth 或 AgentCore admission
 - Desktop 不得把 `IngestDocument` / `GetIngestTask` 解释成 shared-truth ingest、workflow-service ownership、或 batch ingest admission
@@ -82,7 +82,7 @@ Desktop Knowledge UI 必须定义 `SearchKeyword` 的结果消费和异常投影
 
 ## D-DSYNC-018 — Hybrid Search Projection
 
-Desktop 只有在 Wave 2A retrieval expansion admitted 时才可以暴露 `SearchHybrid`。
+Desktop 只有在 hybrid retrieval expansion admitted 时才可以暴露 `SearchHybrid`。
 
 固定约束：
 
@@ -90,11 +90,11 @@ Desktop 只有在 Wave 2A retrieval expansion admitted 时才可以暴露 `Searc
 - `SearchHybrid` unavailable / capability-missing / index-not-ready 必须投影为显式 unavailable state
 - Desktop 不得把 `SearchHybrid` 静默回退为 `SearchKeyword`
 - `SearchHybrid` 命中仍只代表 runtime-local retrieval，不代表 graph expansion、shared truth、AgentCore admission 或 citation expansion
-- Wave 2A 优先扩展现有 `runtime-config` knowledge surface；本规则不要求产品级 discovery UI 同步交付
+- Hybrid retrieval 优先扩展现有 `runtime-config` knowledge surface；本规则不要求产品级 discovery UI 同步交付
 
 ## D-DSYNC-019 — Graph / Backlink Projection
 
-Desktop 只有在 Wave 2B same-bank graph admission 落地后才可以暴露知识链接和
+Desktop 只有在 same-bank graph admission 落地后才可以暴露知识链接和
 backlink surface。
 
 固定约束：
@@ -105,18 +105,18 @@ backlink surface。
 - `ListLinks` / `ListBacklinks` / `TraverseGraph` 必须消费 runtime page token，不得自行改写排序/分页语义
 - `KNOWLEDGE_LINK_NOT_FOUND` / `KNOWLEDGE_LINK_ALREADY_EXISTS` / `KNOWLEDGE_LINK_INVALID` / `KNOWLEDGE_GRAPH_DEPTH_INVALID` 必须投影为显式 graph state，而不是静默空列表
 - `TraverseGraph` 结果只代表 runtime-local same-bank graph expansion，不代表 citation redesign、AgentCore admission 或 canonical truth
-- Wave 2B 优先扩展现有 `runtime-config` knowledge surface；本规则不要求产品级 graph explorer UI 同步交付
+- Graph/backlink 优先扩展现有 `runtime-config` knowledge surface；本规则不要求产品级 graph explorer UI 同步交付
 
 ## D-DSYNC-020 — Ingest / Progress Projection
 
-Desktop 只有在 Wave 2C single-document ingest admission 落地后才可以暴露
+Desktop 只有在 single-document ingest admission 落地后才可以暴露
 `IngestDocument` / `GetIngestTask`。
 
 固定约束：
 
-- UI 只可以消费单文档 ingest；不得在 Wave 2C UI 层暗示 batch ingest 已 admitted
+- UI 只可以消费单文档 ingest；不得在 UI 层暗示 batch ingest 已 admitted
 - `IngestDocument` 必须返回显式 task acceptance；Desktop 不得伪装成同步 `PutPage`
 - `GetIngestTask` 必须投影显式 `status` / `progress_percent` / `reason_code`
 - `KNOWLEDGE_INGEST_TASK_NOT_FOUND` 必须投影为显式 task-missing state，而不是 generic empty state
 - task progress 只代表 runtime-local ingest 执行进度；不代表 timeline/version、shared truth、AgentCore admission 或 workflow-service ownership
-- Wave 2C 优先扩展现有 `runtime-config` knowledge surface；本规则不要求产品级 bulk ingest UI 同步交付
+- Ingest/progress 优先扩展现有 `runtime-config` knowledge surface；本规则不要求产品级 bulk ingest UI 同步交付

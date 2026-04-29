@@ -85,7 +85,7 @@
 
 ## K-AUTHSVC-012 Session 存储与重启行为（split rule）
 
-本规则在 wave-1（topic `2026-04-28-runtime-core-account-session-broker-hardcut`）后被 split 为两个独立 owner 域：
+本规则已 split 为两个独立 owner 域：
 
 **App session / external-principal session（`RuntimeAuthService` 拥有）：**
 

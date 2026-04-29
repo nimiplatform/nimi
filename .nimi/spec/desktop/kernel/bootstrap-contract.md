@@ -113,8 +113,8 @@ hydration 伪装成空成功。
 
 ## D-BOOT-007 — Auth Session 引导
 
-> **Hard Cut Status (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)**：
-> 本规则在 wave-1 标记 superseded。replacement authority：`K-ACCSVC-005` `GetAccountSessionStatus` / `SubscribeAccountSessionEvents`，以及 Runtime-backed short-lived access-token provider（`GetAccessToken`）。wave-3 active owner switch 必须将 Desktop bootstrap 改为 query Runtime account state，并删除 `bootstrapAuthSession` token 交换 / 匿名回退路径与共享 auth session 写入逻辑（`K-ACCSVC-013`）。保留的 Desktop Realm/DataSync data client 必须通过 Runtime-issued access token 初始化，不得读取 shared auth token。
+> **Authority Disposition**：
+> 本规则已 superseded。Replacement authority：`K-ACCSVC-005` `GetAccountSessionStatus` / `SubscribeAccountSessionEvents`，以及 Runtime-backed short-lived access-token provider（`GetAccessToken`）。`K-ACCSVC-013` 要求 Desktop bootstrap query Runtime account state，并删除 `bootstrapAuthSession` token 交换 / 匿名回退路径与共享 auth session 写入逻辑。保留的 Desktop Realm/DataSync data client 必须通过 Runtime-issued access token 初始化，不得读取 shared auth token。
 
 调用 `bootstrapAuthSession` 执行 token 交换或匿名回退。
 

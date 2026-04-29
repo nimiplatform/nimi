@@ -25,7 +25,7 @@
 9. `IssueScopedAppBinding`
 10. `RevokeScopedAppBinding`
 
-Phase-1 方法集合为冻结集合。任何新增方法必须经过新规则 admit 后才允许加入 proto / RPC 表。
+Admitted 方法集合为冻结集合。任何新增方法必须经过新规则 admit 后才允许加入 proto / RPC 表。
 
 ## K-ACCSVC-003 Account Session 状态机
 
@@ -242,7 +242,7 @@ account broker 实现允许在 Desktop / SDK 切换前作为 inert substrate 落
 - 不得读取 / 镜像 / 调和 Desktop shared auth
 - 不得成为 Desktop / SDK local auth fallback
 
-active owner switch 必须为单 wave 闭环：Runtime broker 激活、SDK / kit local first-party seam 移除、Desktop login UX adapter 转换三件事必须在同一 wave 内闭合，并在 wave 关闭前删除或 hard-block 替换的 Desktop shared-auth 与 SDK local token / subject owner 路径。
+active owner switch 必须原子闭合：Runtime broker 激活、SDK / kit local first-party seam 移除、Desktop login UX adapter 转换三件事必须在同一 authority transition 内闭合，并在 transition 完成前删除或 hard-block 替换的 Desktop shared-auth 与 SDK local token / subject owner 路径。
 
 同一 active owner switch 还必须激活 Runtime-backed short-lived access-token provider，使保留 direct Realm data calls 的 admitted apps 不需要 app-owned refresh/session truth。
 
@@ -252,7 +252,7 @@ active owner switch 必须为单 wave 闭环：Runtime broker 激活、SDK / kit
 - app session 回答 “哪个已注册 app instance 在调用”，由 `RuntimeAuthService` 拥有。
 - external-principal session / grant 回答 “哪个外部主体被授权执行 scoped 操作”，由 `RuntimeAuthService` / `RuntimeGrantService` 拥有。
 
-`K-AUTHSVC-012` 在 wave-1 必须被 split：app session 保持内存且重启即失，account session 使用 secure Runtime custody 与重启恢复（见 K-ACCSVC-007、K-ACCSVC-011）。
+`K-AUTHSVC-012` 必须被 split：app session 保持内存且重启即失，account session 使用 secure Runtime custody 与重启恢复（见 K-ACCSVC-007、K-ACCSVC-011）。
 
 scoped binding 的 subject 必须由 Runtime 从 account custody 内部派生，禁止使用调用方的 `subject_user_id`。
 

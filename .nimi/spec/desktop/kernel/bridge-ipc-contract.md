@@ -8,8 +8,8 @@ Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/c
 
 ## D-IPC-001 — Bootstrap / Auth Session 命令
 
-> **Hard Cut Status (topic `2026-04-28-runtime-core-account-session-broker-hardcut` wave-1)**：
-> 共享 auth session 命令（`auth_session_load` / `auth_session_save` / `auth_session_clear`）作为 local first-party account truth surface 在 wave-1 被标记 superseded。replacement authority 为 `RuntimeAccountService`（`K-ACCSVC-*`）；wave-3 active owner switch 必须删除或 hard-block 本节描述的 `auth_session_*` IPC 路径，不允许保留 dual-read。`runtime_defaults` 中 `realm.accessToken` / `realm.jwksUrl` / `realm.revocationUrl` 不得在 wave-3 之后继续作为 local first-party account truth source（仅允许 explicit Web/cloud adapter 模式或 dev-only override 使用，且必须 fenced）。local first-party Desktop data clients 若需要 Realm access token，必须通过 Runtime `GetAccessToken` 或等价 provider 获取短期 token。
+> **Authority Disposition**：
+> 共享 auth session 命令（`auth_session_load` / `auth_session_save` / `auth_session_clear`）作为 local first-party account truth surface 已 superseded。Replacement authority 为 `RuntimeAccountService`（`K-ACCSVC-*`）；`auth_session_*` IPC 路径必须删除或 hard-block，不允许保留 dual-read。`runtime_defaults` 中 `realm.accessToken` / `realm.jwksUrl` / `realm.revocationUrl` 不得继续作为 local first-party account truth source（仅允许 explicit Web/cloud adapter 模式或 dev-only override 使用，且必须 fenced）。local first-party Desktop data clients 若需要 Realm access token，必须通过 Runtime `GetAccessToken` 或等价 provider 获取短期 token。
 
 `runtime_defaults` 命令返回 `RuntimeDefaults`，包含：
 - `realm: RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、revocationUrl、jwtIssuer、jwtAudience）
@@ -17,7 +17,7 @@ Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/c
 
 所有字段通过 `parseRuntimeDefaults` 防御性解析。
 
-共享 auth session 命令集（**wave-1: superseded for local first-party account truth；wave-3 active cut 后删除/封禁**）：
+共享 auth session 命令集（**superseded for local first-party account truth；必须删除或封禁**）：
 - `auth_session_load`：读取并解密 `~/.nimi/auth/session.v1.json`，返回 normalized shared desktop auth session 或 `null`。corrupt / invalid schema 文件必须在读取时删除。
 - `auth_session_save`：原子覆写共享 auth session 文件；renderer 只提交 normalized user + tokens，backend 负责加密与落盘。
 - `auth_session_clear`：删除共享 auth session 文件。
@@ -319,7 +319,7 @@ Desktop 作为 mod developer host 时，开发态 source 管理与 reload 能力
 
 ## D-IPC-017 — Desktop-Local Avatar Carrier IPC Decommission Boundary
 
-After Wave 4 Exec Pack 4, desktop no longer ships desktop-local avatar import,
+After desktop-local avatar carrier decommission, desktop no longer ships desktop-local avatar import,
 registry, binding, or asset-read IPC commands as an admitted carrier path.
 
 Decommissioned command family:

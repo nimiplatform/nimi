@@ -158,7 +158,7 @@ cross-session persistence truth。
 
 ## D-LLM-059 — Desktop Local Avatar Carrier Decommission Boundary
 
-After Wave 4 Exec Pack 4, desktop no longer owns a local avatar resource
+After desktop-local avatar carrier decommission, desktop no longer owns a local avatar resource
 registry, import path, or renderer/backend path as an admitted first-party
 carrier line.
 
@@ -202,7 +202,7 @@ Fixed rules:
 
 ## D-LLM-062 — Retained Non-Carrier Shell Scope
 
-Exec Pack 4 does not remove every desktop-local cosmetic surface. The remaining
+Desktop-local avatar carrier decommission does not remove every desktop-local cosmetic surface. The remaining
 admitted desktop-local scope is narrow shell-owned configuration that does not
 constitute avatar carrier truth.
 
@@ -410,7 +410,7 @@ is not a Desktop-owned scoped runtime binding. Avatar is a Runtime-admitted
 local first-party app (`nimi.avatar`) and resolves account, agent, package,
 data, and conversation context through Runtime / SDK authority.
 
-> **Hard Cut Status (topic `2026-04-29-avatar-first-party-app-launch-hardcut` wave-1)**：
+> **Authority Disposition**：
 > This rule supersedes the prior Desktop-owned Avatar scoped binding default.
 > `K-BIND-*` remains authoritative only for explicit binding-only / embedded /
 > delegated Avatar modes, not the default Desktop launch path.

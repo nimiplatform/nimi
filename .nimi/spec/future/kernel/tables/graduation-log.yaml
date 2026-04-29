@@ -28,4 +28,4 @@ entries:
       Runtime-local knowledge slice specified in K-KNOW-* rule family. Covers
       infra-scoped knowledge bank lifecycle, page lifecycle, and keyword
       search. Shared truth, vector/hybrid retrieval, and AgentCore knowledge
-      integration remain deferred beyond the Wave 1 slice.
+      integration remain deferred beyond the baseline slice.

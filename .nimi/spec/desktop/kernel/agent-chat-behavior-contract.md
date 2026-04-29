@@ -192,7 +192,7 @@ Fixed rules:
   must not depend on desktop-local VRM / Live2D binding state
 - retired desktop-local avatar binding must not re-enter behavior semantics as a
   hidden render-selection input or fallback path
-- shell settings that remain after Wave 4 Exec Pack 4 are limited to non-carrier
+- shell settings that remain after desktop-local avatar carrier decommission are limited to non-carrier
   scope and must not recreate avatar binding persistence through behavior-owned
   state
 

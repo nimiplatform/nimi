@@ -188,7 +188,7 @@ Fixed rules:
 - a future exported `/live2d` surface must be registered and shipped explicitly before
   consumers may treat it as an available package export; this rule admits the backend
   family now without fabricating a shipped export
-- first-wave Live2D admission is bounded to avatar-stage rendering semantics; pointer
+- initial Live2D admission is bounded to avatar-stage rendering semantics; pointer
   interaction parity, camera choreography, authoring flows, and backend-specific model
   inspection behavior remain deferred unless later admitted explicitly
 

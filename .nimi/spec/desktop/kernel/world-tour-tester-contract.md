@@ -4,7 +4,7 @@
 
 ## Scope
 
-Desktop tester `world tour` product semantics。定义 first-wave
+Desktop tester `world tour` product semantics。定义 baseline
 `world.generate` 的 tester acceptance surface、required in-app chain、以及
 fail-close acceptance behavior。
 
@@ -16,7 +16,7 @@ fail-close acceptance behavior。
 
 ## D-LLM-066 — World Tour Acceptance Surface
 
-Desktop tester 必须把 `world tour` 作为 `world.generate` 的 first-wave
+Desktop tester 必须把 `world tour` 作为 `world.generate` 的 baseline
 operator-visible acceptance surface。
 
 - `world tour` 是最终端到端验收入口，不是可选 demo。
@@ -32,7 +32,7 @@ operator-visible acceptance surface。
 4. fetch typed world result
 5. render provider-delivered SPZ assets through Spark 2.0 in-app
 
-若链路缺失任一步，不得宣称 first-wave acceptance 成功。
+若链路缺失任一步，不得宣称 baseline acceptance 成功。
 
 ## D-LLM-068 — Fail-Close Acceptance
 

@@ -124,10 +124,9 @@ groups:
     phase: 1
     status: deferred
     note: >
-      Wave-1 spec authority admitted (K-ACCSVC-002 frozen method set). Proto + Go
-      implementation deferred to wave-2 inert substrate and wave-3 active owner
-      switch (topic 2026-04-28-runtime-core-account-session-broker-hardcut).
-      SDK projection lands at S-RUNTIME-109 / S-RUNTIME-110 only after wave-3.
+      Runtime account authority is admitted by K-ACCSVC-002 as a frozen method
+      set. Proto + Go implementation and active owner switch are prerequisites
+      for SDK projection at S-RUNTIME-109 / S-RUNTIME-110.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - GetAccountSessionStatus
@@ -210,12 +209,12 @@ groups:
     note: >
       Runtime-facing knowledge projection is carried by
       `RuntimeCognitionService`, not a standalone `RuntimeKnowledgeService`.
-      Wave 1 runtime-local knowledge projection is admitted and landed. Wave
-      2A extends the same projection with explicit hybrid retrieval while
-      keeping `SearchKeyword` stable and lexical-only. Wave 2B extends the
-      same projection with same-bank graph / backlink reads and writes. Wave
-      2C extends the same projection with single-document async ingest plus
-      explicit task polling.
+      The baseline runtime-local knowledge projection is admitted and landed.
+      Hybrid retrieval extends the same projection with explicit hybrid recall
+      while keeping `SearchKeyword` stable and lexical-only. Graph/backlink
+      extends the same projection with same-bank graph / backlink reads and
+      writes. Ingest/progress extends the same projection with single-document
+      async ingest plus explicit task polling.
       Consumer surfaces must not imply cross-service citation, AgentCore, or
       shared-truth behavior.
       SDK projection must stay aligned with runtime proto, reason-code, and
