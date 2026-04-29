@@ -42,9 +42,23 @@
 
 .nimi-shell-auth-root[data-shell-auth-theme='desktop'] {
   /*
-   * Keep the established desktop auth palette scoped to the auth shell.
+   * Match the in-app glassmorphism surface used by AmbientBackground
+   * variant="mesh" (kit/ui ambient-background.tsx). We reference the
+   * canonical --nimi-ambient-mesh-* tokens declared in
+   * kit/ui/src/generated/themes/light.css so the auth shell and inner
+   * pages share a single source of truth.
+   *
+   * Do not replace with a literal solid color (e.g. #f3f1ee). If the
+   * mesh palette needs to change, edit nimi-ui-themes.yaml — never
+   * hardcode RGBA values here, or the auth shell will drift from the
+   * kit ambient surface again.
    */
-  --nimi-app-background: #f3f1ee;
+  --nimi-app-background:
+    radial-gradient(ellipse at 0% 0%, var(--nimi-ambient-mesh-color-1) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 0%, var(--nimi-ambient-mesh-color-2) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, var(--nimi-ambient-mesh-color-3) 0%, transparent 50%),
+    radial-gradient(ellipse at 0% 100%, var(--nimi-ambient-mesh-color-4) 0%, transparent 50%),
+    linear-gradient(135deg, var(--nimi-ambient-mesh-base-start) 0%, var(--nimi-ambient-mesh-base-end) 100%);
   --nimi-surface-card: #fffdf9;
   --nimi-surface-overlay: rgba(255, 255, 255, 0.95);
   --nimi-text-primary: #3b352c;
