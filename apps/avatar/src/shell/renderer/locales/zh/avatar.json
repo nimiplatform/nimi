@@ -1,0 +1,113 @@
+{
+  "Avatar": {
+    "composer": {
+      "placeholder": "输入消息……",
+      "aria_label": "向当前 anchor 发送一条消息",
+      "send_aria": "发送消息",
+      "send_failed_prefix": "发送失败"
+    },
+    "status": {
+      "idle": "空闲",
+      "listening": "聆听中……",
+      "transcribing": "转写中……",
+      "pending": "等待回复",
+      "replying": "回复中",
+      "interrupted": "已打断",
+      "error": "语音不可用",
+      "sending": "发送中……",
+      "toolbar_aria": "Companion 状态",
+      "mic_listen_aria": "开始前台语音聆听",
+      "mic_commit_aria": "结束聆听并提交语音轮次",
+      "interrupt_aria": "打断当前回复",
+      "settings_aria": "打开 Companion 设置",
+      "voice_capture_inactive_error": "前台语音采集已结束。"
+    },
+    "bubble": {
+      "close_aria": "关闭助手气泡"
+    },
+    "degraded": {
+      "surface_aria": "Avatar 表面不可用",
+      "reload": "重新加载界面",
+      "diagnostics": {
+        "summary": "诊断信息",
+        "composition_state": "Composition 状态",
+        "reason": "原因",
+        "reason_code": "原因代码",
+        "account_reason_code": "账户原因代码",
+        "action_hint": "操作提示",
+        "stage": "阶段"
+      },
+      "loading": {
+        "badge": "正在准备",
+        "title": "正在准备 Avatar",
+        "summary": "本地视觉载体加载中，正在按 desktop 启动握手准备 first-party Runtime 路径。",
+        "recovery": "请保持此界面打开，等待 Runtime 准备好实时 companion 路径。"
+      },
+      "degraded_reauth_required": {
+        "badge": "需要登录",
+        "title": "Runtime 账号会话未通过认证",
+        "summary": "Avatar 需要已登录的 Runtime 账号才能挂载实时载体。",
+        "summary_with_reason": "Avatar 需要已登录的 Runtime 账号。原因：{{reason}}。",
+        "recovery": "请通过桌面账号流程完成登录，然后重新启动此 Avatar 表面。"
+      },
+      "degraded_runtime_unavailable": {
+        "badge": "Runtime 不可用",
+        "title": "Runtime 交互通道未就绪",
+        "summary": "本地 Runtime 当前未提供 Avatar 载体。",
+        "summary_with_reason": "Runtime 拒绝或未交付 Avatar 载体。原因：{{reason}}。",
+        "recovery": "请恢复本地 Runtime 守护进程，然后从 desktop 重新启动此表面。"
+      },
+      "degraded_launch_context_invalid": {
+        "badge": "需要重新启动",
+        "title": "启动上下文无效",
+        "summary": "此 Avatar 实例未携带有效的启动握手。Avatar 必须由 desktop orchestrator 携带真实 agent 目标启动。",
+        "recovery": "请从 desktop orchestrator 重新启动 Avatar。"
+      },
+      "error_bootstrap_fatal": {
+        "badge": "界面不可用",
+        "title": "Avatar 界面启动失败",
+        "summary": "未分类的 bootstrap 错误终止了 shell 挂载。",
+        "summary_with_reason": "未分类的 bootstrap 错误终止了 shell。原因：{{reason}}。",
+        "recovery": "请重新加载 Avatar 界面；若失败重复出现，请检查 Runtime 守护进程日志。"
+      },
+      "relaunch_pending": {
+        "badge": "正在切换",
+        "title": "Desktop 推送了新的启动上下文",
+        "summary": "Desktop orchestrator 推送了新的启动上下文。本界面将重新加载以绑定新的 agent / instance。",
+        "recovery": "请重新加载界面以接管新的 desktop 选定上下文。本地不会保留先前的 ready 状态。"
+      },
+      "unknown": {
+        "badge": "界面已暂停",
+        "title": "Avatar 界面已暂停",
+        "summary": "Shell 处于未预期的 composition 状态。这是防御性的降级姿态。",
+        "recovery": "请重新加载 Avatar 界面以恢复已知姿态。"
+      }
+    },
+    "settings": {
+      "popover_aria": "Companion 设置",
+      "header": "Companion 设置",
+      "close_aria": "关闭设置",
+      "always_on_top": {
+        "label": "始终置顶",
+        "help": "将 Avatar 钉在其他窗口之上。"
+      },
+      "bubble_auto_open": {
+        "label": "自动展开新回复",
+        "help": "助手有新回复时立即展开气泡。"
+      },
+      "bubble_auto_collapse": {
+        "label": "安静后自动收起气泡",
+        "help": "在一段安静后自动收起气泡。"
+      },
+      "show_voice_captions": {
+        "label": "显示语音字幕",
+        "help": "仅显示受限的前台语音字幕。",
+        "note": "无论是否开启，语音字幕始终被限制在当前显式 anchor 范围内。"
+      }
+    },
+    "shell": {
+      "companion_aria": "Avatar Companion",
+      "document_title": "Nimi Avatar"
+    }
+  }
+}

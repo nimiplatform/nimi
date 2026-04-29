@@ -1,0 +1,240 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Avatar shell visual snapshots > degraded surface — relaunch pending (rejects bootstrap fatal flow) 1`] = `
+<div
+  class="avatar-root avatar-root--error avatar-root--damped"
+  data-composition="error_bootstrap_fatal"
+  data-testid="avatar-root"
+>
+  <section
+    aria-label="Avatar surface unavailable"
+    class="avatar-degraded-surface avatar-degraded-surface--error"
+    data-composition-state="error_bootstrap_fatal"
+    data-testid="avatar-degraded-surface"
+    role="alert"
+  >
+    <div
+      class="avatar-degraded-surface__banner"
+    >
+      <span
+        class="avatar-degraded-surface__badge avatar-degraded-surface__badge--error"
+      >
+        Surface unavailable
+      </span>
+    </div>
+    <h1
+      class="avatar-degraded-surface__title"
+    >
+      Avatar surface failed to start
+    </h1>
+    <p
+      class="avatar-degraded-surface__summary"
+    >
+      An untyped bootstrap error stopped the shell. Reason: untyped bootstrap failure during snapshot test.
+    </p>
+    <p
+      class="avatar-degraded-surface__recovery"
+    >
+      Reload the avatar shell. If the failure repeats, check Runtime daemon logs.
+    </p>
+    <div
+      class="avatar-degraded-surface__actions"
+    >
+      <button
+        class="avatar-degraded-surface__reload"
+        data-testid="avatar-degraded-reload"
+        type="button"
+      >
+        Reload shell
+      </button>
+    </div>
+    <details
+      class="avatar-degraded-surface__diagnostics"
+    >
+      <summary>
+        Diagnostics
+      </summary>
+      <dl>
+        <div>
+          <dt>
+            Composition state
+          </dt>
+          <dd>
+            error_bootstrap_fatal
+          </dd>
+        </div>
+        <div>
+          <dt>
+            Reason
+          </dt>
+          <dd>
+            untyped bootstrap failure during snapshot test
+          </dd>
+        </div>
+      </dl>
+    </details>
+  </section>
+</div>
+`;
+
+exports[`Avatar shell visual snapshots > degraded surface — runtime unavailable 1`] = `
+<div
+  class="avatar-root avatar-root--degraded avatar-root--damped"
+  data-composition="degraded_runtime_unavailable"
+  data-testid="avatar-root"
+>
+  <section
+    aria-label="Avatar surface unavailable"
+    class="avatar-degraded-surface avatar-degraded-surface--degraded"
+    data-composition-state="degraded_runtime_unavailable"
+    data-testid="avatar-degraded-surface"
+    role="alert"
+  >
+    <div
+      class="avatar-degraded-surface__banner"
+    >
+      <span
+        class="avatar-degraded-surface__badge avatar-degraded-surface__badge--degraded"
+      >
+        Runtime unavailable
+      </span>
+    </div>
+    <h1
+      class="avatar-degraded-surface__title"
+    >
+      Runtime interaction path is not ready
+    </h1>
+    <p
+      class="avatar-degraded-surface__summary"
+    >
+      Runtime rejected or did not deliver the avatar carrier. Reason: runtime_scoped_binding: APP_GRANT_INVALID.
+    </p>
+    <p
+      class="avatar-degraded-surface__recovery"
+    >
+      Restore the local Runtime daemon, then relaunch this surface from desktop.
+    </p>
+    <div
+      class="avatar-degraded-surface__actions"
+    >
+      <button
+        class="avatar-degraded-surface__reload"
+        data-testid="avatar-degraded-reload"
+        type="button"
+      >
+        Reload shell
+      </button>
+    </div>
+    <details
+      class="avatar-degraded-surface__diagnostics"
+    >
+      <summary>
+        Diagnostics
+      </summary>
+      <dl>
+        <div>
+          <dt>
+            Composition state
+          </dt>
+          <dd>
+            degraded_runtime_unavailable
+          </dd>
+        </div>
+        <div>
+          <dt>
+            Reason
+          </dt>
+          <dd>
+            runtime_scoped_binding: APP_GRANT_INVALID
+          </dd>
+        </div>
+      </dl>
+    </details>
+  </section>
+</div>
+`;
+
+exports[`Avatar shell visual snapshots > ready surface (embodiment-stage + companion-surface) 1`] = `
+<div
+  class="avatar-root avatar-root--live avatar-root--ready"
+  data-composition="ready"
+  data-testid="avatar-root"
+>
+  <section
+    class="avatar-embodiment-stage"
+    data-testid="avatar-embodiment-stage"
+  >
+    <div
+      class="avatar-embodiment-stage__body"
+      data-testid="avatar-body-hit-region"
+    />
+  </section>
+  <section
+    aria-label="Avatar companion"
+    class="avatar-companion-surface avatar-companion-surface--idle"
+    data-testid="avatar-companion-surface"
+  >
+    <div
+      aria-label="Companion status"
+      class="avatar-companion-surface__status-row"
+      role="toolbar"
+    >
+      <button
+        aria-label="Start foreground voice listening"
+        aria-pressed="false"
+        class="avatar-companion-surface__mic avatar-companion-surface__mic--idle"
+        data-testid="avatar-companion-mic"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="avatar-companion-surface__mic-icon"
+        >
+          🎙
+        </span>
+      </button>
+      <span
+        class="avatar-companion-surface__status-label"
+        data-testid="avatar-companion-status"
+      >
+        Idle
+      </span>
+      <span
+        aria-hidden="true"
+        class="avatar-companion-surface__speaker"
+      >
+        🔈
+      </span>
+      <button
+        aria-controls="avatar-companion-settings-popover"
+        aria-expanded="false"
+        aria-label="Open companion settings"
+        class="avatar-companion-surface__settings"
+        type="button"
+      >
+        ⚙
+      </button>
+    </div>
+    <form
+      class="avatar-companion-surface__composer"
+      data-testid="avatar-companion-composer"
+    >
+      <textarea
+        aria-label="Type a message to send to this anchor"
+        class="avatar-companion-surface__composer-input"
+        maxlength="400"
+        placeholder="Type a message…"
+        rows="1"
+      />
+      <button
+        aria-label="Send message"
+        class="avatar-companion-surface__composer-send"
+        disabled=""
+        type="submit"
+      >
+        ➤
+      </button>
+    </form>
+  </section>
+</div>
+`;

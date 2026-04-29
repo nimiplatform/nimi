@@ -18,25 +18,24 @@
 
 ## 0. 阅读指南
 
-本 contract 定义 Nimi Avatar app 作为 first-party event producer / subscriber 的 event spec，遵守 runtime HookIntent / presentation projection authority 与 app-local event convention。Avatar 是独立 app，但 current canonical normal path 由 desktop bridge / handoff 启动；owner 为 `avatar.*`。合计 31 events（8 user + 18 avatar + 5 app）。
+本 contract 定义 Nimi Avatar app 作为 first-party event producer / subscriber 的 event spec，遵守 runtime HookIntent / presentation projection authority 与 app-local event convention。Avatar 是独立 app，但 current canonical normal path 由 desktop bridge / handoff 启动；owner 为 `avatar.*`。合计 47 events（8 user + 18 avatar + 5 app + 9 companion + 4 composition + 3 shell）。
 
 Avatar app 的 rendering backend（Live2D / VRM / 3D / Lottie / 极简 blob）具体选型**不影响**本 spec 的 event 定义。Runtime presentation/activity projection 与 app-local `tables/activity-mapping.yaml` 把语义映射从 rendering 解耦；closed activity ontology 只保留为设计证据，不是本 app 的活动 authority。
 
-Voice/lipsync admission hard cut: `avatar.speak.*` and `avatar.lipsync.frame`
-are no longer closed-topic-only ideas, but they are unavailable as product
-success until the runtime-owned PresentationTimeline branch admitted by
-`K-AGCORE-051` and this topic's Avatar implementation wave provide current
-evidence. Current code must not emit placeholder speak/lipsync success.
-Consumers must treat these names as unavailable unless the event is backed by
-runtime timeline identity, voice timing/audio-level input, and Avatar-owned
-Live2D mouth parameter proof.
+Voice/lipsync admission Wave 3 admit: `avatar.speak.*` and `avatar.lipsync.frame`
+are admitted as Wave 3 product surface. The implementation pipeline (runtime
+`runtime.agent.presentation.lipsync_frame_batch` / `voice_playback_requested`
+emitter → SDK consume → avatar Live2D `ParamMouthOpenY` bridge) lands together
+in Wave 3; no wave is allowed to ship a partial pipeline. Consumers must treat
+these names as unavailable until Wave 3 admit; current code must not emit
+placeholder speak/lipsync success.
 
 ---
 
 ## 1. Namespace Declaration
 
 - App namespace: `avatar` (first-party reserved)
-- Sub-namespaces: `avatar.user.*` / `avatar.*` / `avatar.app.*`
+- Sub-namespaces: `avatar.user.*` / `avatar.*` / `avatar.app.*` / `avatar.companion.*` / `avatar.composition.*` / `avatar.shell.*`
 - Before-event namespace: `avatar.before.*`
 
 ---
@@ -79,11 +78,11 @@ projection 触发）：
 | `avatar.pose.set` | `<pose>` 设置 | Low | — |
 | `avatar.pose.clear` | `<clear-pose/>` | Low | — |
 | `avatar.lookat.set` | `<lookat>` 触发 | Low | — |
-| `avatar.lipsync.frame` | Admitted lip-sync frame; unavailable until runtime timeline and Avatar mouth-parameter proof land | **Very high (opt-in)** | — |
-| `avatar.speak.start` | Admitted TTS playback start; unavailable until runtime timeline and Avatar voice adapter proof land | Low | — |
-| `avatar.speak.chunk` | Admitted TTS chunk; unavailable until runtime timeline and Avatar voice adapter proof land | Medium | — |
-| `avatar.speak.end` | Admitted TTS playback completion; unavailable until runtime timeline and Avatar voice adapter proof land | Low | — |
-| `avatar.speak.interrupt` | Admitted TTS interrupt; unavailable until runtime timeline and Avatar cancellation proof land | Low | — |
+| `avatar.lipsync.frame` | Wave 3 admitted lip-sync frame；由 SDK 消费 runtime `runtime.agent.presentation.lipsync_frame_batch` 并桥接到 Live2D `ParamMouthOpenY` | **Very high (opt-in)** | — |
+| `avatar.speak.start` | Wave 3 admitted TTS playback start；与 runtime `runtime.agent.presentation.voice_playback_requested` 时间戳对齐 | Low | — |
+| `avatar.speak.chunk` | Wave 3 admitted TTS chunk；audio playback chunk 对齐 lipsync frame batch | Medium | — |
+| `avatar.speak.end` | Wave 3 admitted TTS playback completion；voice playback state == `completed` | Low | — |
+| `avatar.speak.interrupt` | Wave 3 admitted TTS interrupt；voice playback state ∈ `{interrupted, canceled}` | Low | — |
 
 ### 2.3 App Lifecycle (5 events, `avatar.app.*`)
 
@@ -94,6 +93,43 @@ projection 触发）：
 | `avatar.app.focus.change` | Avatar 形象获得/失去焦点 | Low | — |
 | `avatar.app.visibility.change` | Avatar 可见性（on-screen / off-screen / tray-minimized） | Low | — |
 | `avatar.app.shutdown` | App 关闭 | Burst | — |
+
+### 2.4 Companion Surface (9 events, `avatar.companion.*`)
+
+Companion Surface 三层结构（assistant-bubble / status-row / composer）的 user 与系统交互。所有 events 必须显式绑定当前 launch-selected `agent_id + conversation_anchor_id`：
+
+| Event | 语义 | Rate tier | Cancellable |
+|---|---|---|---|
+| `avatar.companion.bubble.opened` | Assistant bubble 展开（auto-open / 用户点击重开） | Low | — |
+| `avatar.companion.bubble.dismissed` | Assistant bubble 关闭（× 按钮 / 自动收起 / anchor 切换） | Low | — |
+| `avatar.companion.composer.submitted` | Composer 提交一次 bounded text turn | Low | — |
+| `avatar.companion.composer.send-failed` | Composer 提交失败（runtime / binding / network reason） | Low | — |
+| `avatar.companion.voice.listen-start` | 用户显式触发 mic listening | Low | — |
+| `avatar.companion.voice.listen-commit` | 用户显式 commit 当前 listening session | Low | — |
+| `avatar.companion.voice.transcribe-start` | Transcription pipeline 开始（commit 后） | Low | — |
+| `avatar.companion.voice.interrupt` | 用户对当前 anchor active turn 显式 interrupt | Low | — |
+| `avatar.companion.settings.changed` | Settings popover 中 4 个 toggle 之一被改变 | Low | — |
+
+### 2.5 Composition State (4 events, `avatar.composition.*`)
+
+Composition state 转移与 surface mount/unmount 证据。具体 state 枚举见 `app-shell-contract.md` §6.1：
+
+| Event | 语义 | Rate tier | Cancellable |
+|---|---|---|---|
+| `avatar.composition.transition` | Composition state 切换（含 from/to/reason） | Low | — |
+| `avatar.composition.relaunch-pending` | Desktop 推送了 launch context update，进入 relaunch-pending 状态 | Low | — |
+| `avatar.composition.surface-mounted` | embodiment-stage / companion-surface / degraded-surface 挂载完成 | Low | — |
+| `avatar.composition.surface-unmounted` | 上述任一 surface 卸载完成 | Low | — |
+
+### 2.6 Shell Lifecycle (3 events, `avatar.shell.*`)
+
+Shell-level reload / relaunch / window 行为：
+
+| Event | 语义 | Rate tier | Cancellable |
+|---|---|---|---|
+| `avatar.shell.reload-requested` | 用户在 degraded-surface 触发 reload | Low | — |
+| `avatar.shell.reload-resumed` | Reload 完成后回到 loading composition state | Low | — |
+| `avatar.shell.window-bounds-changed` | Dynamic window sizing 重算后 set_size 完成 | Medium | — |
 
 ---
 
@@ -146,6 +182,71 @@ avatar.speak.start:
     duration_estimate_ms: int
     stream_id: string
     turn_id: string
+
+avatar.companion.composer.submitted:
+  detail:
+    agent_id: string
+    conversation_anchor_id: string
+    text_length: int                               # bounded text turn body size
+    submitted_at: string                           # ISO 8601
+
+avatar.companion.composer.send-failed:
+  detail:
+    agent_id: string
+    conversation_anchor_id: string
+    reason_code: string
+    account_reason_code: string?
+    action_hint: string?
+    failed_at: string                              # ISO 8601
+
+avatar.companion.voice.listen-start:
+  detail:
+    agent_id: string
+    conversation_anchor_id: string
+    started_at: string
+
+avatar.companion.voice.interrupt:
+  detail:
+    agent_id: string
+    conversation_anchor_id: string
+    turn_id: string
+    interrupt_at: string
+
+avatar.companion.settings.changed:
+  detail:
+    key: enum(always_on_top|bubble_auto_open|bubble_auto_collapse|show_voice_captions)
+    value: bool
+    changed_at: string
+
+avatar.composition.transition:
+  detail:
+    from: string                                   # composition state name
+    to: string
+    reason_code: string?
+    account_reason_code: string?
+    stage: string?
+    recorded_at: string                            # ISO 8601
+
+avatar.composition.relaunch-pending:
+  detail:
+    next_launch_context:
+      agent_id: string
+      avatar_instance_id: string?
+      launch_source: string?
+    notified_at: string
+
+avatar.shell.reload-requested:
+  detail:
+    from_state: string                             # composition state name
+    requested_at: string
+
+avatar.shell.window-bounds-changed:
+  detail:
+    width: int
+    height: int
+    embodiment_bounds: { x: int, y: int, width: int, height: int }
+    companion_footprint: { width: int, height: int }
+    changed_at: string
 ```
 
 ---

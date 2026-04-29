@@ -1,0 +1,109 @@
+/* Wave 2 — Avatar design tokens.
+ *
+ * Single source of truth for surface, spacing, motion, color, and typography
+ * values consumed by the avatar shell renderer. Components (companion-surface,
+ * embodiment-stage, degraded-surface, settings popover) MUST reference these
+ * tokens — no magic numbers, no ad-hoc rgba() at the call site.
+ *
+ * Spec anchors:
+ *   - app-shell-contract.md §1 (window) / §6 (composition) / §7 (companion) / §8 (degraded)
+ *   - feature-matrix.yaml wave_2.scope.design_tokens_css
+ *
+ * The values below derive from the OLV reference (dark glass companion +
+ * transparent stage) and Nimi-kit baseline; tweaking these tokens is the
+ * authoritative way to change the visual system.
+ */
+
+:root {
+  /* ── Surface / glass ────────────────────────────────────────────────── */
+  --surface-glass-bg: rgba(15, 23, 42, 0.78);
+  --surface-glass-bg-strong: rgba(15, 23, 42, 0.92);
+  --surface-glass-border: rgba(148, 163, 184, 0.18);
+  --surface-glass-border-strong: rgba(148, 163, 184, 0.34);
+  --surface-glass-blur: 18px;
+  --surface-glass-shadow: 0 18px 48px rgba(2, 6, 23, 0.55);
+  --surface-glass-shadow-soft: 0 8px 24px rgba(2, 6, 23, 0.4);
+
+  /* ── Radius ─────────────────────────────────────────────────────────── */
+  --surface-radius-xs: 6px;
+  --surface-radius-sm: 8px;
+  --surface-radius-md: 12px;
+  --surface-radius-lg: 16px;
+  --surface-radius-pill: 9999px;
+
+  /* ── Spacing ────────────────────────────────────────────────────────── */
+  --spacing-2xs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+
+  /* ── Motion ─────────────────────────────────────────────────────────── */
+  --motion-duration-instant: 80ms;
+  --motion-duration-fast: 160ms;
+  --motion-duration-medium: 280ms;
+  --motion-duration-slow: 480ms;
+  --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-easing-emphasis: cubic-bezier(0.2, 0, 0.1, 1);
+  --motion-easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+
+  /* ── Color: neutral palette ─────────────────────────────────────────── */
+  --color-text-primary: rgba(248, 250, 252, 0.96);
+  --color-text-secondary: rgba(203, 213, 225, 0.84);
+  --color-text-muted: rgba(148, 163, 184, 0.78);
+  --color-text-on-accent: rgba(15, 23, 42, 0.96);
+
+  /* ── Color: accent ──────────────────────────────────────────────────── */
+  --color-accent: #7dd3fc;
+  --color-accent-strong: #38bdf8;
+  --color-accent-soft: rgba(125, 211, 252, 0.22);
+
+  /* ── Color: status (mic + companion mode) ──────────────────────────── */
+  --color-status-idle: rgba(148, 163, 184, 0.78);
+  --color-status-listening: #22d3ee;
+  --color-status-transcribing: #f0abfc;
+  --color-status-pending: #fcd34d;
+  --color-status-replying: #34d399;
+  --color-status-interrupted: #fb923c;
+  --color-status-error: #f87171;
+  --color-status-sending: #a5b4fc;
+
+  /* ── Color: degraded surface tone ───────────────────────────────────── */
+  --color-degraded-loading: #93c5fd;
+  --color-degraded-reauth: #fcd34d;
+  --color-degraded-runtime: #fb923c;
+  --color-degraded-launch: #c4b5fd;
+  --color-degraded-fatal: #f87171;
+  --color-degraded-relaunch: #93c5fd;
+
+  /* ── Typography ─────────────────────────────────────────────────────── */
+  --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", "Roboto Mono", monospace;
+
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-lg: 15px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 22px;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-loose: 1.7;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ── Layout ─────────────────────────────────────────────────────────── */
+  --companion-surface-width: 320px;
+  --companion-surface-offset: var(--spacing-lg);
+  --companion-bubble-max-height: 168px;
+
+  --degraded-surface-max-width: 480px;
+
+  --settings-popover-width: 280px;
+}

@@ -1,122 +1,142 @@
-version: 1
+version: 2
 description: >
-  Feature phasing for Nimi Avatar. Phase 1 focuses on the embodiment carrier
-  slice: backend-agnostic embodiment projection + current Live2D backend branch
-  + real runtime/SDK consume path. Mock remains explicit dev/test fixture
-  tooling. Phase 2 adds chat + voice companion UX. Phase 3 extends to
-  cross-app integration and advanced features.
+  Wave-based feature delivery matrix for Nimi Avatar. Each wave is an
+  end-to-end deliverable capability slice; partial / mid-state delivery is
+  forbidden by design principle (no MVP, no half-finished). Wave 0 is the
+  spec admit gate; Wave 1-4 are the implementation waves admitted by
+  app-shell-contract.md and nimi-avatar.md.
 
-phases:
-  phase_1:
-    title: "Avatar carrier landing"
-    status: active
-    start_date: "2026-04-21"
-    target: "Self-contained avatar app consuming runtime agent presentation/state as the primary embodiment carrier path with product-grade quality"
+waves:
+  wave_0:
+    title: "Spec admit gate"
+    status: done
+    target: "Industrial spec baseline for surface composition + companion + degraded surfaces; wave schedule recorded in spec; lipsync upstream contract校核 done."
     scope:
-      - id: embodiment_projection_protocol
-        title: "Embodiment projection protocol"
-        desc: "Agent semantics -> embodiment projection -> backend-specific execution"
-      - id: live2d_sdk_integration
-        title: "Current Live2D backend branch"
-        desc: "官方 Cubism Web SDK 接入,作为当前 shipped backend branch"
-      - id: model_loading
-        title: "Model loading from official runtime folder"
-        desc: "从 <model>/runtime/*.model3.json 加载 Live2D model + assets"
-      - id: nas_handler_discovery
-        title: "NAS handler 自动发现"
-        desc: "扫描 <model>/runtime/nimi/ 目录 (activity/event/continuous/lib)"
-      - id: nas_handler_execution
-        title: "Handler 执行引擎"
-        desc: "Activity / event / continuous handler 调度 + abort signal 支持"
-      - id: live2d_api_v1
-        title: "Embodiment backend API v1"
-        desc: "handler-facing backend API；当前 shipped branch 由 Live2D 实现"
-      - id: default_fallback
-        title: "Convention-based default fallback"
-        desc: "Handler 缺失时按 Activity_<CamelCase> 查 motion group"
-      - id: window_drag
-        title: "Window drag"
-        desc: "拖动 pet 到桌面任意位置"
-      - id: always_on_top
-        title: "Always-on-top"
-        desc: "默认置顶,配置可覆盖"
-      - id: click_through
-        title: "Click-through outside embodiment surface"
-        desc: "Pet 形状外区域穿透鼠标到下层 app"
-      - id: transparent_window
-        title: "Transparent window"
-        desc: "无 chrome、透明背景"
-      - id: dynamic_size
-        title: "Dynamic window size"
-        desc: "窗口尺寸跟随当前 embodiment surface bounds"
-      - id: user_click_event
-        title: "User click event → handler"
-        desc: "点击 pet body 触发 avatar.user.click → NAS handler"
-      - id: runtime_sdk_consumer_primary
-        title: "Runtime/SDK consumer primary path"
-        desc: "默认启动路径消费 runtime agent presentation/state/turn surfaces"
-      - id: mock_scenario_fixture
-        title: "Mock scenario fixture"
-        desc: "scenario 文件仅作为显式 dev/test fixture 注入 activity events"
-      - id: hot_reload_nas
-        title: "NAS handler hot reload (dev + prod)"
-        desc: "File watcher + ES module reload + in-flight continue"
+      - id: app_shell_contract_rewrite
+        title: "Rewrite app-shell-contract.md surface composition / companion / degraded sections"
+        desc: "NAV-SHELL-COMPOSITION-* / NAV-SHELL-COMPANION-* / NAV-SHELL-DEGRADED-* admitted; legacy 'Phase 2 small button' path removed"
+      - id: nimi_avatar_guide_rewrite
+        title: "Rewrite nimi-avatar.md as wave-based guide"
+        desc: "Phase 1/2/3 framing replaced with Wave 0-4 schedule + reading path"
+      - id: avatar_event_contract_extension
+        title: "Avatar event contract extension"
+        desc: "avatar.companion.* / avatar.composition.* / avatar.shell.* event families admitted; lipsync/speak status promoted to Wave 3 admitted"
+      - id: feature_matrix_v2
+        title: "feature-matrix.yaml v2 wave-based"
+        desc: "Replaces phase_1/2/3 schema with wave_0..wave_4"
+      - id: runtime_lipsync_spec_xref
+        title: "Runtime lipsync upstream contract校核"
+        desc: "K-AGCORE-051 + tables/runtime-agent-event-projection.yaml lipsync_frame_batch / voice_playback_requested 已 admit；Wave 3 实现以此为契约"
+      - id: agents_md_sync
+        title: "apps/avatar/AGENTS.md sync"
+        desc: "Phase 1/2 段落改为 wave-based identity；guide 与 spec 一致"
 
-  phase_2:
-    title: "Chat + Voice Companion UX"
-    status: deferred
-    estimated_start: "after_runtime_refactor_complete"
+  wave_1:
+    title: "Surface composition implementation"
+    status: done
+    target: "Ready 状态视觉与 OLV 截图等价：embodiment-stage 全屏 + companion-surface 浮于一角；degraded 状态独立 surface；ready/degraded 互斥不混合。"
     scope:
-      - id: chat_bubble_ui
-        title: "Chat bubble UI (latest message)"
-        desc: "Pet 旁显示最近一条 message,无历史"
-      - id: floating_chat_input
-        title: "Floating input box"
-        desc: "点击 small button 出现,提交后消失"
-      - id: small_button_trigger
-        title: "Small UI button for chat trigger"
-        desc: "Pet 旁小 button,激活 chat"
-      - id: voice_input
-        title: "Voice input via runtime STT"
-        desc: "Push-to-talk or VAD,STT 在 runtime 端"
-      - id: voice_output
-        title: "Voice output via runtime TTS"
-        desc: "TTS 由 runtime 产生 audio + voice.level stream"
-      - id: lipsync_from_voice_level
-        title: "Lipsync from voice.level events"
-        desc: "订阅 runtime 广播的 voice.level,驱动 ParamMouthOpenY"
-      - id: presentation_timeline_integration
-        title: "Presentation timeline coordination"
-        desc: "多 channel 对齐 + interrupt 传播"
+      - id: embodiment_stage_module
+        title: "embodiment-stage/ submodule"
+        desc: "占据全 viewport 的 Live2D canvas + interaction controller；接管现有 avatar-stage 的 layout 责任"
+      - id: companion_surface_module
+        title: "companion-surface/ submodule (always-visible stack)"
+        desc: "assistant-bubble.tsx / status-row.tsx / composer.tsx + 容器 companion-surface.tsx；删除 trigger toggle"
+      - id: degraded_surface_module
+        title: "degraded-surface/ submodule"
+        desc: "loading / runtime-unavailable / reauth-required / launch-context-invalid / error / relaunch-pending 形态统一承载；独立组件，不与 ready surface 混合"
+      - id: app_root_rewrite
+        title: "App.tsx + avatar-shell-view.tsx rewrite"
+        desc: "顶层三选一渲染：<EmbodimentStage>+<CompanionSurface> | <DegradedSurface kind=loading|degraded|error|relaunch> ；删除 ready 时 recovery panel / shell-controls panel 渲染分支"
+      - id: composition_state_machine
+        title: "Composition state machine + transition evidence"
+        desc: "状态机覆盖 NAV-SHELL-COMPOSITION-001..005；avatar.composition.transition / surface-mounted / surface-unmounted evidence 必须实际产生"
+      - id: hard_cut_legacy_paths
+        title: "Hard-cut legacy toggle paths"
+        desc: "avatar-companion-trigger-row、surface-presentation 中 ready 区 meta/contextCards/recovery 投影、companionAvailable mid-state 兜底全部删除"
+      - id: surface_unit_tests
+        title: "Surface 三态 unit tests"
+        desc: "embodiment-stage / companion-surface / degraded-surface 各自 unit test + App-level integration test 覆盖三态切换"
 
-  phase_3:
-    title: "Desktop integration + Advanced"
-    status: deferred
+  wave_2:
+    title: "i18n + Design tokens 工业化"
+    status: in_progress
+    target: "所有文案 i18n 化、所有视觉值 token 化；avatar 第一次拥有正式设计系统基础。"
     scope:
-      - id: cross_app_events
-        title: "Cross-app event subscription"
-        desc: "Subscribe desktop.chat.* 做协调反应"
-      - id: desktop_app_integration
-        title: "Desktop app integration"
-        desc: "两 app 一致的 agent state / memory projection"
-      - id: global_hotkey
-        title: "Optional global hotkey (future)"
-        desc: "系统级 hotkey 激活 avatar / chat"
-      - id: model_marketplace_integration
-        title: "Model marketplace integration (future)"
-        desc: "发现 / 下载 / update 第三方 model packages"
-      - id: multi_backend_rendering
-        title: "VRM / 3D rendering backend (future)"
-        desc: "Rendering backend 抽象,支持 VRM / 3D / Lottie"
-      - id: voice_conversation_mode
-        title: "Continuous voice conversation mode"
-        desc: "免 trigger 常驻语音对话"
-      - id: thin_client_protocol
-        title: "Thin client for mobile / hub (future)"
-        desc: "Mobile companion / home hub 设备投影"
+      - id: i18n_framework_wiring
+        title: "i18n 框架接通"
+        desc: "复用 desktop 端同款 i18next + react-i18next；avatar 一次性接通"
+      - id: locales_en_avatar_json
+        title: "locales/en/avatar.json"
+        desc: "Avatar.{composer,status,bubble,degraded,settings,…} 顶层 namespace 完整文案"
+      - id: locales_zh_avatar_json
+        title: "locales/zh/avatar.json"
+        desc: "中文文案与英文 1:1 对齐；包含 fail-close 时所有 reason 的精确说明"
+      - id: design_tokens_css
+        title: "app-shell/tokens.css"
+        desc: "--surface-glass-bg / --surface-glass-border / --surface-radius-* / --motion-duration-* 等 token 集中"
+      - id: bem_normalization
+        title: "BEM 化全部组件 className"
+        desc: ".avatar-shell--* / .avatar-companion__* 等；删除散落 ad-hoc utility 类"
+      - id: i18n_keys_spec_table
+        title: "kernel/tables/i18n-keys.yaml"
+        desc: "i18n key 与 spec 对齐表，由 nimi-coding 校验"
+      - id: snapshot_visual_tests
+        title: "三态视觉 snapshot test"
+        desc: "dark glass / radius / spacing 三态稳定"
+
+  wave_3:
+    title: "Lipsync end-to-end"
+    status: pending
+    target: "runtime → SDK → avatar Live2D 的 lipsync 链路工业级跑通；audio playback 与 Live2D 嘴型同步；runtime 端缺 emitter 一并补完。"
+    scope:
+      - id: runtime_lipsync_emitter_audit
+        title: "Runtime lipsync emitter 审计"
+        desc: "确认 runtime/internal/services/runtimeagent 是否实际产生 runtime.agent.presentation.lipsync_frame_batch 与 voice_playback_requested；缺则补完"
+      - id: sdk_lipsync_consume
+        title: "SDK lipsync consume"
+        desc: "SdkDriver 已识别 RuntimeAgentLipsyncFrameBatchEvent / RuntimeAgentVoicePlaybackEvent；接入 frame queue 与 audio playback hook"
+      - id: live2d_lipsync_bridge
+        title: "live2d/lipsync-bridge.ts"
+        desc: "把 frame queue 投到 ParamMouthOpenY（核心）+ ParamMouthForm（model 支持时）；与 audio playback 时间同步用 monotonic_with_wall_anchor"
+      - id: voice_state_lipsync_slice
+        title: "voice-companion-state lipsync slice"
+        desc: "lipsyncActive / currentMouthLevel / playbackState 由实际 frame batch / voice playback event driven"
+      - id: lipsync_fail_close
+        title: "Lipsync fail-close"
+        desc: "frame batch 缺失 / 非法 / model 不支持时 → 嘴型静止 + log warn；不假装在动；fail-close 与 spec K-AGCORE-051 对齐"
+      - id: lipsync_e2e_test
+        title: "Lipsync end-to-end test"
+        desc: "fixture audio + frame batch sequence 跑过 unit test；e2e 验证 desktop 发消息 → avatar 嘴型动"
+
+  wave_4:
+    title: "Window + Settings 工业级"
+    status: pending
+    target: "window 形状跟随 Live2D + companion footprint；drag 区限定到 embodiment-stage；settings popover 替代主区 4-toggle 大块。"
+    scope:
+      - id: dynamic_window_bounds
+        title: "Dynamic window bounds (embodiment + companion footprint)"
+        desc: "启动时 + Live2D model 切换时 + companion footprint 变化时重算 set_size；持久化到 settings-state"
+      - id: drag_region_limit_to_stage
+        title: "Drag region 限定到 embodiment-stage"
+        desc: "hit-region 计算把 drag-allowed 区域限定为 model body 内部；companion 与 degraded surface 区域不开启 drag；模型外区域 click-through"
+      - id: settings_popover
+        title: "Settings popover"
+        desc: "右下 status-row 的 settings cog 触发；浮动 layer 不抢主舞台；4 个 toggle (always_on_top/bubble_auto_open/bubble_auto_collapse/show_voice_captions) 即时生效"
+      - id: window_bounds_policy_table
+        title: "kernel/tables/window-bounds-policy.yaml"
+        desc: "动态 window sizing 规则：embodiment_bounds + companion_footprint padding / minimum visible / multi-monitor 行为"
+      - id: window_bounds_e2e
+        title: "Window bounds e2e test"
+        desc: "Tauri 端 cargo test 覆盖 dynamic resize；renderer 端 unit test 覆盖 footprint 计算"
 
 constraints:
   drift_checks:
-    - description: "每个实现的 feature 必须对应 feature-matrix 里已声明的 id"
-    - description: "Phase 1 scope 以外的 feature 不允许进入 Phase 1 代码"
-    - description: "Phase 1 未完成的 scope item 不允许跳过进 Phase 2"
+    - description: "每个实现的 feature 必须对应 feature-matrix wave_X.scope 里已声明的 id"
+    - description: "Wave 顺序严格 0 → 1 → 2 → 3 → 4 串行；不允许跨 wave 提前合入未 admit 的能力"
+    - description: "Wave 内任一 scope item 未完成不允许进入下一个 wave"
+    - description: "未在 spec 中 admit 的 surface / event / state 不允许出现在实现中"
+  legacy_blocked:
+    - description: "Phase 1 / Phase 2 / Phase 3 framing 已废弃（v1 schema），不允许在 spec / guide / code 中再引用"
+    - description: "Small chat button trigger 路径已废弃（被 always-visible companion-surface 取代）"
+    - description: "Recovery panel 在 ready 状态混合渲染路径已废弃（被 degraded-surface 互斥结构取代）"

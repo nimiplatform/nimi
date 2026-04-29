@@ -1,0 +1,287 @@
+version: 1
+description: >
+  Wave 2 admitted i18n key table for Nimi Avatar. Lists every i18n key used by
+  the avatar shell renderer along with its English baseline copy, the
+  `app-shell-contract.md` anchor that authorizes the surface fragment, and the
+  consuming component path. Both `locales/en/avatar.json` and
+  `locales/zh/avatar.json` MUST cover every key listed here in 1:1 alignment;
+  drift is a CI failure (see `nimi-coding` validators).
+
+  Hard rules:
+  - Keys MUST be dot-namespaced under `Avatar.{section}.{leaf}`.
+  - Surface fragments expressing fail-close reasons MUST use Runtime / account /
+    binding language, never CORS / shared auth / workaround leakage (see
+    NAV-SHELL-DEGRADED-002 + NAV-SHELL-FIRST-PARTY-RUNTIME hard rules).
+  - No empty strings, no TODO placeholders.
+  - When introducing or removing a key, update this table FIRST, then both
+    locale JSON files, then the consuming component.
+
+namespaces:
+  - id: composer
+    spec_anchor: "app-shell-contract.md §7.6 NAV-SHELL-COMPANION-006"
+    description: "Companion composer (text input + send button)."
+    keys:
+      - key: Avatar.composer.placeholder
+        english_baseline: "Type a message…"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.composer.aria_label
+        english_baseline: "Type a message to send to this anchor"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.composer.send_aria
+        english_baseline: "Send message"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.composer.send_failed_prefix
+        english_baseline: "Send failed"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+
+  - id: status
+    spec_anchor: "app-shell-contract.md §7.5 NAV-SHELL-COMPANION-005"
+    description: "Status row (mic toggle, mode label, speaker, settings cog)."
+    keys:
+      - key: Avatar.status.idle
+        english_baseline: "Idle"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.listening
+        english_baseline: "Listening…"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.transcribing
+        english_baseline: "Transcribing…"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.pending
+        english_baseline: "Reply pending"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.replying
+        english_baseline: "Reply active"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.interrupted
+        english_baseline: "Interrupted"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.error
+        english_baseline: "Voice unavailable"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.sending
+        english_baseline: "Sending…"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.toolbar_aria
+        english_baseline: "Companion status"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.mic_listen_aria
+        english_baseline: "Start foreground voice listening"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.mic_commit_aria
+        english_baseline: "Stop listening and submit voice turn"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.interrupt_aria
+        english_baseline: "Interrupt current reply"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.settings_aria
+        english_baseline: "Open companion settings"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.voice_capture_inactive_error
+        english_baseline: "Foreground voice capture is no longer active."
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+
+  - id: bubble
+    spec_anchor: "app-shell-contract.md §7.4 NAV-SHELL-COMPANION-004"
+    description: "Assistant bubble (latest message + close affordance)."
+    keys:
+      - key: Avatar.bubble.close_aria
+        english_baseline: "Close assistant bubble"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+
+  - id: degraded
+    spec_anchor: "app-shell-contract.md §8 NAV-SHELL-DEGRADED-*"
+    description: "Degraded surface: badge / title / summary / recovery + diagnostics for every composition state."
+    keys:
+      - key: Avatar.degraded.surface_aria
+        english_baseline: "Avatar surface unavailable"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.reload
+        english_baseline: "Reload shell"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.summary
+        english_baseline: "Diagnostics"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.composition_state
+        english_baseline: "Composition state"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.reason
+        english_baseline: "Reason"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.reason_code
+        english_baseline: "Reason code"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.account_reason_code
+        english_baseline: "Account reason code"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.action_hint
+        english_baseline: "Action hint"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.diagnostics.stage
+        english_baseline: "Stage"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+
+      # state: loading
+      - key: Avatar.degraded.loading.badge
+        english_baseline: "Warming up"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.loading.title
+        english_baseline: "Preparing the avatar"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.loading.summary
+        english_baseline: "The local visual carrier is loading and the first-party Runtime path is being prepared from the desktop launch handoff."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.loading.recovery
+        english_baseline: "Keep this surface open while Runtime prepares the live companion path."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+
+      # state: degraded_reauth_required
+      - key: Avatar.degraded.degraded_reauth_required.badge
+        english_baseline: "Sign-in required"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_reauth_required.title
+        english_baseline: "Runtime account session is not authenticated"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_reauth_required.summary
+        english_baseline: "Avatar requires an authenticated Runtime account before it can mount the live carrier."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_reauth_required.summary_with_reason
+        english_baseline: "Avatar requires an authenticated Runtime account. Reason: {{reason}}."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_reauth_required.recovery
+        english_baseline: "Sign in through the desktop account flow, then relaunch this avatar surface."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+
+      # state: degraded_runtime_unavailable
+      - key: Avatar.degraded.degraded_runtime_unavailable.badge
+        english_baseline: "Runtime unavailable"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_runtime_unavailable.title
+        english_baseline: "Runtime interaction path is not ready"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_runtime_unavailable.summary
+        english_baseline: "The local Runtime is not currently delivering the avatar carrier."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_runtime_unavailable.summary_with_reason
+        english_baseline: "Runtime rejected or did not deliver the avatar carrier. Reason: {{reason}}."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_runtime_unavailable.recovery
+        english_baseline: "Restore the local Runtime daemon, then relaunch this surface from desktop."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+
+      # state: degraded_launch_context_invalid
+      - key: Avatar.degraded.degraded_launch_context_invalid.badge
+        english_baseline: "Launch required"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_launch_context_invalid.title
+        english_baseline: "Launch context invalid"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_launch_context_invalid.summary
+        english_baseline: "This avatar instance was reached without a valid launch handoff. Avatar must be opened from a desktop orchestrator with a real agent target."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.degraded_launch_context_invalid.recovery
+        english_baseline: "Start the avatar again from the desktop orchestrator."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+
+      # state: error_bootstrap_fatal
+      - key: Avatar.degraded.error_bootstrap_fatal.badge
+        english_baseline: "Surface unavailable"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.error_bootstrap_fatal.title
+        english_baseline: "Avatar surface failed to start"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.error_bootstrap_fatal.summary
+        english_baseline: "An untyped bootstrap error stopped the shell before it could mount."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.error_bootstrap_fatal.summary_with_reason
+        english_baseline: "An untyped bootstrap error stopped the shell. Reason: {{reason}}."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.error_bootstrap_fatal.recovery
+        english_baseline: "Reload the avatar shell. If the failure repeats, check Runtime daemon logs."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+
+      # state: relaunch_pending
+      - key: Avatar.degraded.relaunch_pending.badge
+        english_baseline: "Preparing"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.relaunch_pending.title
+        english_baseline: "Desktop sent a launch update"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.relaunch_pending.summary
+        english_baseline: "The desktop orchestrator pushed a new launch context. This shell will reload to bind the new agent / instance."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.relaunch_pending.recovery
+        english_baseline: "Reload the shell to prepare the new desktop-selected context. No prior ready state is kept alive locally."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+
+      # defensive unknown bucket
+      - key: Avatar.degraded.unknown.badge
+        english_baseline: "Surface paused"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.unknown.title
+        english_baseline: "Avatar surface paused"
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.unknown.summary
+        english_baseline: "The shell is in an unexpected composition state. This is a defensive degraded posture."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+      - key: Avatar.degraded.unknown.recovery
+        english_baseline: "Reload the avatar shell to restore a known posture."
+        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
+
+  - id: settings
+    spec_anchor: "app-shell-contract.md §4.2 + §7.9 NAV-SHELL-COMPANION-009"
+    description: "Settings popover (4 toggles) anchored to status-row cog."
+    keys:
+      - key: Avatar.settings.popover_aria
+        english_baseline: "Companion settings"
+        usage: "src/shell/renderer/App.tsx"
+      - key: Avatar.settings.header
+        english_baseline: "Companion settings"
+        usage: "src/shell/renderer/App.tsx"
+      - key: Avatar.settings.close_aria
+        english_baseline: "Close settings"
+        usage: "src/shell/renderer/App.tsx"
+      - key: Avatar.settings.always_on_top.label
+        english_baseline: "Always on top"
+        usage: "src/shell/renderer/App.tsx"
+      - key: Avatar.settings.always_on_top.help
+        english_baseline: "Pin avatar above other windows."
+        usage: "src/shell/renderer/App.tsx"
+      - key: Avatar.settings.bubble_auto_open.label
+        english_baseline: "Auto-open new replies"
+        usage: "src/shell/renderer/App.tsx"
+      - key: Avatar.settings.bubble_auto_open.help
+        english_baseline: "Reveal fresh assistant replies immediately."
+        usage: "src/shell/renderer/App.tsx"
+      - key: Avatar.settings.bubble_auto_collapse.label
+        english_baseline: "Auto-collapse quiet bubble"
+        usage: "src/shell/renderer/App.tsx"
+      - key: Avatar.settings.bubble_auto_collapse.help
+        english_baseline: "Settle the bubble after a calm pause."
+        usage: "src/shell/renderer/App.tsx"
+      - key: Avatar.settings.show_voice_captions.label
+        english_baseline: "Show voice captions"
+        usage: "src/shell/renderer/App.tsx"
+      - key: Avatar.settings.show_voice_captions.help
+        english_baseline: "Bounded foreground voice captions only."
+        usage: "src/shell/renderer/App.tsx"
+      - key: Avatar.settings.show_voice_captions.note
+        english_baseline: "Voice captions remain bounded to the current explicit anchor either way."
+        usage: "src/shell/renderer/App.tsx"
+
+  - id: shell
+    spec_anchor: "app-shell-contract.md §7 NAV-SHELL-COMPANION-* (companion surface aria)"
+    description: "Shell-wide labels (companion aria + document title)."
+    keys:
+      - key: Avatar.shell.companion_aria
+        english_baseline: "Avatar companion"
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.shell.document_title
+        english_baseline: "Nimi Avatar"
+        usage: "src/shell/renderer/i18n/index.ts"
+
+constraints:
+  - description: "Both `locales/en/avatar.json` and `locales/zh/avatar.json` MUST contain every key listed in this table; missing key in either file is a build break."
+  - description: "Adding new user-visible copy MUST update this table first; component code referencing an undeclared key fails CI."
+  - description: "Locale files MUST mirror the dot-namespace structure here (e.g. `Avatar.composer.placeholder`)."
+  - description: "All `summary_with_reason` keys MUST use `{{reason}}` interpolation; do not concatenate at the call site."

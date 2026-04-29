@@ -1,0 +1,113 @@
+{
+  "Avatar": {
+    "composer": {
+      "placeholder": "Type a message…",
+      "aria_label": "Type a message to send to this anchor",
+      "send_aria": "Send message",
+      "send_failed_prefix": "Send failed"
+    },
+    "status": {
+      "idle": "Idle",
+      "listening": "Listening…",
+      "transcribing": "Transcribing…",
+      "pending": "Reply pending",
+      "replying": "Reply active",
+      "interrupted": "Interrupted",
+      "error": "Voice unavailable",
+      "sending": "Sending…",
+      "toolbar_aria": "Companion status",
+      "mic_listen_aria": "Start foreground voice listening",
+      "mic_commit_aria": "Stop listening and submit voice turn",
+      "interrupt_aria": "Interrupt current reply",
+      "settings_aria": "Open companion settings",
+      "voice_capture_inactive_error": "Foreground voice capture is no longer active."
+    },
+    "bubble": {
+      "close_aria": "Close assistant bubble"
+    },
+    "degraded": {
+      "surface_aria": "Avatar surface unavailable",
+      "reload": "Reload shell",
+      "diagnostics": {
+        "summary": "Diagnostics",
+        "composition_state": "Composition state",
+        "reason": "Reason",
+        "reason_code": "Reason code",
+        "account_reason_code": "Account reason code",
+        "action_hint": "Action hint",
+        "stage": "Stage"
+      },
+      "loading": {
+        "badge": "Warming up",
+        "title": "Preparing the avatar",
+        "summary": "The local visual carrier is loading and the first-party Runtime path is being prepared from the desktop launch handoff.",
+        "recovery": "Keep this surface open while Runtime prepares the live companion path."
+      },
+      "degraded_reauth_required": {
+        "badge": "Sign-in required",
+        "title": "Runtime account session is not authenticated",
+        "summary": "Avatar requires an authenticated Runtime account before it can mount the live carrier.",
+        "summary_with_reason": "Avatar requires an authenticated Runtime account. Reason: {{reason}}.",
+        "recovery": "Sign in through the desktop account flow, then relaunch this avatar surface."
+      },
+      "degraded_runtime_unavailable": {
+        "badge": "Runtime unavailable",
+        "title": "Runtime interaction path is not ready",
+        "summary": "The local Runtime is not currently delivering the avatar carrier.",
+        "summary_with_reason": "Runtime rejected or did not deliver the avatar carrier. Reason: {{reason}}.",
+        "recovery": "Restore the local Runtime daemon, then relaunch this surface from desktop."
+      },
+      "degraded_launch_context_invalid": {
+        "badge": "Launch required",
+        "title": "Launch context invalid",
+        "summary": "This avatar instance was reached without a valid launch handoff. Avatar must be opened from a desktop orchestrator with a real agent target.",
+        "recovery": "Start the avatar again from the desktop orchestrator."
+      },
+      "error_bootstrap_fatal": {
+        "badge": "Surface unavailable",
+        "title": "Avatar surface failed to start",
+        "summary": "An untyped bootstrap error stopped the shell before it could mount.",
+        "summary_with_reason": "An untyped bootstrap error stopped the shell. Reason: {{reason}}.",
+        "recovery": "Reload the avatar shell. If the failure repeats, check Runtime daemon logs."
+      },
+      "relaunch_pending": {
+        "badge": "Preparing",
+        "title": "Desktop sent a launch update",
+        "summary": "The desktop orchestrator pushed a new launch context. This shell will reload to bind the new agent / instance.",
+        "recovery": "Reload the shell to prepare the new desktop-selected context. No prior ready state is kept alive locally."
+      },
+      "unknown": {
+        "badge": "Surface paused",
+        "title": "Avatar surface paused",
+        "summary": "The shell is in an unexpected composition state. This is a defensive degraded posture.",
+        "recovery": "Reload the avatar shell to restore a known posture."
+      }
+    },
+    "settings": {
+      "popover_aria": "Companion settings",
+      "header": "Companion settings",
+      "close_aria": "Close settings",
+      "always_on_top": {
+        "label": "Always on top",
+        "help": "Pin avatar above other windows."
+      },
+      "bubble_auto_open": {
+        "label": "Auto-open new replies",
+        "help": "Reveal fresh assistant replies immediately."
+      },
+      "bubble_auto_collapse": {
+        "label": "Auto-collapse quiet bubble",
+        "help": "Settle the bubble after a calm pause."
+      },
+      "show_voice_captions": {
+        "label": "Show voice captions",
+        "help": "Bounded foreground voice captions only.",
+        "note": "Voice captions remain bounded to the current explicit anchor either way."
+      }
+    },
+    "shell": {
+      "companion_aria": "Avatar companion",
+      "document_title": "Nimi Avatar"
+    }
+  }
+}

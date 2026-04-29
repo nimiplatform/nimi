@@ -8,7 +8,7 @@
 - **App name (English)**: Nimi Avatar
 - **App ID**: `app.nimi.avatar`
 - **One-line**: 桌面悬浮 embodiment carrier，agent 的视觉化身；通过 NAS handler 把 agent semantics 投影到当前 backend branch。
-- **Status**: Pre-MVP, Wave 4 carrier landing active. Real runtime/SDK consume path is primary; mock is dev/test-only.
+- **Status**: Pre-MVP. Wave 0 spec admit complete; Wave 1 surface composition implementation done; Wave 2 i18n + design tokens 工业化 active. Real runtime/SDK consume path is primary; mock is explicit fixture-only.
 
 ## Architecture
 
@@ -27,37 +27,34 @@
 
 Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 embodiment surface**：
 
-- 透明背景（形状跟随当前 embodiment backend 产出的 surface bounds）
+- 透明背景（形状跟随当前 embodiment backend 产出的 surface bounds + companion-surface footprint）
 - 无 title bar / close / minimize buttons
 - Always-on-top default
-- Window drag 可在桌面自由移动
-- Click-through 在模型边界外（点空白穿透到下层 app）
-- Pet 旁有小 button 触发 chat（Phase 2）
-- Chat bubble 显示最近一条消息（不显示历史）
-- 输入浮动框在 chat 激活时出现，提交后消失（Phase 2）
-- STT / TTS 通过 runtime 消费（Phase 2）
+- Window drag 仅在 embodiment-stage 区域开启；companion / degraded 区域不开启 drag
+- Click-through 在 embodiment 形状外 + companion 矩形外（点空白穿透到下层 app）
+- Companion Surface（assistant bubble + status row + composer）固定 always-visible，绑定当前 launch-selected `agent_id + conversation_anchor_id`
+- Degraded Surface 单独承载 loading / error / reauth / launch-context-invalid / relaunch-pending 形态，与 ready surface 互斥
+- STT / TTS 通过 runtime 消费；lipsync 由 `runtime.agent.presentation.lipsync_frame_batch` 驱动 Live2D `ParamMouthOpenY`
 
-## Phase 1 Scope (current)
+## Wave Schedule
 
-目标：embodiment projection 主干完成，并且 `apps/avatar` 正常启动路径成为 real runtime/SDK consume path。
+Avatar 重构分 5 个 wave；每个 wave 必须是端到端可交付能力切片，不允许半成品中间态。详细 scope 见 `spec/kernel/tables/feature-matrix.yaml`。
 
-- Embodiment projection protocol 作为 app-local canonical truth
-- Current Live2D backend branch 接入
-- Model loading from `<model>/runtime/` current Live2D package layout
-- NAS handler discovery from `<model>/runtime/nimi/` (activity / event / continuous / lib)
-- Handler execution with embodiment projection API v1（当前由 Live2D branch 实现）
-- Default fallback（convention-based motion group lookup）
-- 基础交互：click → `avatar.user.click` event → NAS handler；drag → window move；always-on-top
-- Runtime/SDK primary consume chain：presentation/state/turn events 进入 avatar app
-- Mock activity driver：仅显式 dev/test fixture，不能作为默认启动路径
-- **Product-grade quality**（不是 prototype，是最终可交付 UI/UX/code）
+| Wave | 主题 | 状态 |
+|---|---|---|
+| 0 | Spec 重构（surface composition / companion / degraded / event 体系 / wave-based feature matrix） | done |
+| 1 | Surface composition implementation（embodiment-stage / companion-surface / degraded-surface 三互斥结构 + hard-cut 旧 toggle 路径） | done |
+| 2 | i18n + Design tokens 工业化（locales/{en,zh}/avatar.json + tokens.css + i18n-keys.yaml） | active |
+| 3 | Lipsync end-to-end（runtime emitter + SDK 消费 + Live2D bridge + voice-companion-state slice） | pending |
+| 4 | Window + Settings 工业化（dynamic window bounds + drag region 限定 + settings popover + window-bounds-policy.yaml） | pending |
 
-## Phase 2 Scope (deferred)
+工程原则：
 
-- Chat bubble UI + floating input
-- Small button UI trigger for chat
-- Voice I/O via runtime（STT + TTS + lipsync from `apml.voice.level`）
-- Desktop app cross-app event subscription
+- 项目未上线，不留 legacy shim；Phase 1/2/3 框架已废弃，只用 wave-based 模型
+- 不做 MVP / 不做半成品中间态；每 wave 端到端交付
+- spec 先行（`apps/avatar/spec/kernel/**` 与 `.nimi/spec/**`），spec admit 后再做实现
+- 不做伪实现 / 伪返回；i18n、design tokens、lipsync 必须真实接通
+- nimi-coding 为核心工作流；每 wave 跑完整 spec validators + code 验证
 
 ## Spec Authority & Sync
 
@@ -88,9 +85,11 @@ Nimi Avatar-specific contracts in this spec/kernel do not re-define upstream;只
 
 | Table | Governs |
 |-------|---------|
-| `feature-matrix.yaml` | Phase 1 / 2 / 3 feature phasing |
+| `feature-matrix.yaml` | Wave 0..4 wave-based feature delivery matrix（v2 schema） |
 | `activity-mapping.yaml` | 当前 Live2D backend branch 的 activity → motion-group fallback naming |
 | `scenario-catalog.yaml` | Dev/test fixture scenarios |
+| `i18n-keys.yaml` | i18n key 与 spec 对齐表（Wave 2 admitted） |
+| `window-bounds-policy.yaml` | （Wave 4 admit）dynamic window sizing 规则 |
 
 ### Sync Rules
 
