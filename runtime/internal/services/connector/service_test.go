@@ -855,32 +855,31 @@ func TestListConnectorModelsDashScopeIncludesRepresentativeImageModels(t *testin
 	if len(resp.GetModels()) == 0 {
 		t.Fatalf("expected dashscope catalog-derived model list")
 	}
-	expectedImageModels := map[string]bool{
-		"qwen-image-2.0-pro": true,
-		"qwen-image-2.0":     true,
-		"z-image-turbo":      true,
-		"wan2.6-t2i":         true,
-		"wan2.7-image-pro":   true,
-		"wan2.7-image":       true,
-		"flux-schnell":       true,
-		"flux-dev":           true,
-		"flux-merged":        true,
-	}
+	expectedImageModels := map[string]bool{"qwen-image-2.0-pro": true, "qwen-image-2.0": true, "z-image-turbo": true, "wan2.6-t2i": true, "wan2.7-image-pro": true, "wan2.7-image": true, "flux-schnell": true, "flux-dev": true, "flux-merged": true}
 	foundImageModels := map[string]bool{}
+	foundVoiceWorkflowCapabilities := map[string]string{}
 	for _, model := range resp.GetModels() {
 		modelID := strings.TrimSpace(model.GetModelId())
-		if !expectedImageModels[modelID] {
-			continue
-		}
 		for _, capability := range model.GetCapabilities() {
-			if strings.TrimSpace(capability) == "image.generate" {
+			switch strings.TrimSpace(capability) {
+			case "image.generate":
+				if !expectedImageModels[modelID] {
+					continue
+				}
 				foundImageModels[modelID] = true
-				break
+			case "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+				foundVoiceWorkflowCapabilities[modelID] = strings.TrimSpace(capability)
 			}
 		}
 	}
 	if len(foundImageModels) != len(expectedImageModels) {
 		t.Fatalf("expected representative dashscope image models %v, found %v", expectedImageModels, foundImageModels)
+	}
+	if foundVoiceWorkflowCapabilities["qwen3-tts-vc"] != "voice_workflow.tts_v2v" {
+		t.Fatalf("expected qwen3-tts-vc voice_workflow.tts_v2v, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vc"])
+	}
+	if foundVoiceWorkflowCapabilities["qwen3-tts-vd"] != "voice_workflow.tts_t2v" {
+		t.Fatalf("expected qwen3-tts-vd voice_workflow.tts_t2v, found %q", foundVoiceWorkflowCapabilities["qwen3-tts-vd"])
 	}
 }
 func TestListConnectorModelsForceRefreshIsNoOpAndDoesNotOutbound(t *testing.T) {

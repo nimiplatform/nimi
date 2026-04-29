@@ -593,25 +593,12 @@ func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
 	requirePublicChatPostTurnHookIntent(t, firstPostTurn, "action-follow-up-1", "pending", 20)
 	// Poll the committed session snapshot until follow-up cancellation lands.
 	// Exec Pack 1 does not admit a public runtime.agent.follow_up.* event
-	// family; cancellation is observed through the admitted session_envelope
-	// projection only (`session.snapshot.last_turn.follow_up.status`).
+	// family; cancellation is observed through the unary public chat session
+	// snapshot only (`last_turn.follow_up.status`).
 	deadline := time.Now().Add(2 * time.Second)
 	var lastSnapshotPayload map[string]any
 	for time.Now().Before(deadline) {
-		err = svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
-			ToAppId:       publicChatRuntimeAppID,
-			FromAppId:     "desktop.app",
-			SubjectUserId: "user-1",
-			MessageType:   publicChatSessionSnapshotRequestType,
-			Payload: publicChatStructPayload(t, map[string]any{
-				"conversation_anchor_id": anchorID,
-				"request_id":             "snapshot-follow-up-launch-failed",
-			}),
-		})
-		if err != nil {
-			t.Fatalf("ConsumePublicChatAppMessage(snapshot): %v", err)
-		}
-		snapshot := capture.waitForMessageType(t, publicChatSessionSnapshotType)
+		snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-follow-up-launch-failed")
 		lastSnapshotPayload = publicChatSessionSnapshotDetail(t, snapshot)
 		if lastTurn, ok := lastSnapshotPayload["last_turn"].(map[string]any); ok {
 			if fu, ok := lastTurn["follow_up"].(map[string]any); ok && fu["status"] == "canceled" {
@@ -622,20 +609,7 @@ func TestPublicChatFollowUpCanceledProjectsRuntimeActionHint(t *testing.T) {
 	}
 	// Emit one more snapshot request so the assertion block below consumes
 	// a fresh snapshot (mirrors original test shape).
-	err = svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
-		ToAppId:       publicChatRuntimeAppID,
-		FromAppId:     "desktop.app",
-		SubjectUserId: "user-1",
-		MessageType:   publicChatSessionSnapshotRequestType,
-		Payload: publicChatStructPayload(t, map[string]any{
-			"conversation_anchor_id": anchorID,
-			"request_id":             "snapshot-follow-up-launch-failed",
-		}),
-	})
-	if err != nil {
-		t.Fatalf("ConsumePublicChatAppMessage(snapshot): %v", err)
-	}
-	snapshot := capture.waitForMessageType(t, publicChatSessionSnapshotType)
+	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-follow-up-launch-failed")
 	lastTurn := publicChatLastTurnSnapshot(t, snapshot)
 	lastTurnFollowUp := lastTurn["follow_up"].(map[string]any)
 	if got := lastTurnFollowUp["status"]; got != "canceled" {
@@ -739,20 +713,7 @@ func TestPublicChatSessionSnapshotPersistsLastTurnAcrossRestart(t *testing.T) {
 	defer closeRecovered()
 	recoveredCapture := newPublicChatEmitCapture()
 	recoveredSvc.SetPublicChatAppEmitter(recoveredCapture.emit)
-	err = recoveredSvc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
-		ToAppId:       publicChatRuntimeAppID,
-		FromAppId:     "desktop.app",
-		SubjectUserId: "user-1",
-		MessageType:   publicChatSessionSnapshotRequestType,
-		Payload: publicChatStructPayload(t, map[string]any{
-			"conversation_anchor_id": anchorID,
-			"request_id":             "restart-snapshot-1",
-		}),
-	})
-	if err != nil {
-		t.Fatalf("ConsumePublicChatAppMessage(snapshot after restart): %v", err)
-	}
-	snapshot := recoveredCapture.waitForMessageType(t, publicChatSessionSnapshotType)
+	snapshot := requestPublicChatSessionSnapshot(t, recoveredSvc, recoveredCapture, anchorID, "restart-snapshot-1")
 	payload := publicChatSessionSnapshotDetail(t, snapshot)
 	if got := payload["request_id"]; got != "restart-snapshot-1" {
 		t.Fatalf("expected request_id echo, got=%v", payload)

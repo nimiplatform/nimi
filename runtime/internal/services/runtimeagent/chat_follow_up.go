@@ -82,8 +82,8 @@ func (o publicChatFollowUpOutcome) payload() map[string]any {
 // publicChatAcceptedDetail builds the
 // `runtime.agent.turn.accepted.detail` payload per yaml. Only `request_id`
 // is admitted on the detail; transcript/binding/session_status etc. are
-// session-level execution truth and live exclusively on
-// `runtime.agent.session.snapshot.detail.snapshot`. RequestID is the
+// session-level execution truth and live exclusively on the unary public chat
+// session snapshot payload. RequestID is the
 // inbound `runtime.agent.turn.request` message id (or, for follow-up
 // turns, the runtime-owned follow-up id) — when neither is available we
 // emit `{}` rather than fabricating one.
@@ -100,8 +100,8 @@ func publicChatAcceptedDetail(requestID string) map[string]any {
 // action selected at turn-close, when present) and `hook_intent?` (a
 // turn-close indication; canonical hook lifecycle is on
 // `runtime.agent.hook.*`). Runtime execution truth (assistant_memory,
-// chat_sidecar, follow_up scheduling) is NOT carried here; consumers
-// recover it from `session.snapshot.detail.snapshot.last_turn`.
+// chat_sidecar, follow_up scheduling) is NOT carried here; consumers recover
+// it from the unary public chat session snapshot `last_turn`.
 func publicChatPostTurnIndicationDetail(structured *publicChatStructuredEnvelope, followUp publicChatFollowUpOutcome) map[string]any {
 	out := map[string]any{}
 	action := firstPublicChatTopLevelAction(structured)

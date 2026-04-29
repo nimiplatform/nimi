@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
+	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
 	"github.com/nimiplatform/nimi/runtime/internal/streamutil"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -132,6 +133,9 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		}
 	}
 	if toAppID == "runtime.agent" {
+		if !runtimeagentservice.IsPublicChatIngressMessageType(messageType) {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
 		if err := s.validateRuntimeAgentAdmission(ctx, req.GetScopedBinding(), fromAppID, requiredRuntimeAgentSendScope(messageType), requiredRuntimeAgentSendProtectedScope(messageType)); err != nil {
 			return nil, err
 		}
@@ -390,21 +394,11 @@ func subscribesRuntimeAgent(req *runtimev1.SubscribeAppMessagesRequest) bool {
 }
 
 func requiredRuntimeAgentSendScope(messageType string) string {
-	switch strings.TrimSpace(messageType) {
-	case "runtime.agent.session.snapshot.request":
-		return "runtime.agent.turn.read"
-	default:
-		return "runtime.agent.turn.write"
-	}
+	return "runtime.agent.turn.write"
 }
 
 func requiredRuntimeAgentSendProtectedScope(messageType string) string {
-	switch strings.TrimSpace(messageType) {
-	case "runtime.agent.session.snapshot.request":
-		return "runtime.agent.turn.write"
-	default:
-		return "runtime.agent.turn.write"
-	}
+	return "runtime.agent.turn.write"
 }
 
 func (s *Service) validateRuntimeAgentAdmission(ctx context.Context, attachment *runtimev1.ScopedRuntimeBindingAttachment, fallbackRuntimeAppID string, requiredBindingScope string, requiredProtectedScope string) error {

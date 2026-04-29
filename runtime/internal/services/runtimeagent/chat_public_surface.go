@@ -22,30 +22,28 @@ import (
 // are not admitted anywhere in the primary runtime path; no parallel runtime
 // event family is minted under the reserved runtime.agent app target by this
 // exec pack. Follow-up cancellation remains internal runtime bookkeeping and
-// surfaces only through the admitted session_envelope projection
-// (`session.snapshot.last_turn.follow_up.status`). No stealth
+// surfaces only through the unary public chat session snapshot
+// (`last_turn.follow_up.status`). No stealth
 // `runtime.agent.follow_up.*` public family is emitted.
 const (
-	publicChatRuntimeAppID                     = "runtime.agent"
-	publicChatTurnRequestType                  = "runtime.agent.turn.request"
-	publicChatTurnInterruptType                = "runtime.agent.turn.interrupt"
-	publicChatSessionSnapshotRequestType       = "runtime.agent.session.snapshot.request"
-	publicChatTurnAcceptedType                 = "runtime.agent.turn.accepted"
-	publicChatTurnStartedType                  = "runtime.agent.turn.started"
-	publicChatTurnTextDeltaType                = "runtime.agent.turn.text_delta"
-	publicChatTurnReasoningDeltaType           = "runtime.agent.turn.reasoning_delta"
-	publicChatTurnStructuredType               = "runtime.agent.turn.structured"
-	publicChatTurnMessageCommittedType         = "runtime.agent.turn.message_committed"
-	publicChatTurnPostTurnType                 = "runtime.agent.turn.post_turn"
-	publicChatTurnCompletedType                = "runtime.agent.turn.completed"
-	publicChatTurnFailedType                   = "runtime.agent.turn.failed"
-	publicChatTurnInterruptedType              = "runtime.agent.turn.interrupted"
-	publicChatTurnInterruptAckType             = "runtime.agent.turn.interrupt_ack"
-	publicChatSessionSnapshotType              = "runtime.agent.session.snapshot"
-	publicChatAssistantMemorySource            = "runtime.agent.chat"
-	publicChatAssistantMemoryPolicy            = "runtime_agent_chat_assistant_turn"
-	publicChatDefaultTurnTimeoutMs       int32 = 120_000
-	publicChatMaxFollowUpTurns                 = 8
+	publicChatRuntimeAppID                   = "runtime.agent"
+	publicChatTurnRequestType                = "runtime.agent.turn.request"
+	publicChatTurnInterruptType              = "runtime.agent.turn.interrupt"
+	publicChatTurnAcceptedType               = "runtime.agent.turn.accepted"
+	publicChatTurnStartedType                = "runtime.agent.turn.started"
+	publicChatTurnTextDeltaType              = "runtime.agent.turn.text_delta"
+	publicChatTurnReasoningDeltaType         = "runtime.agent.turn.reasoning_delta"
+	publicChatTurnStructuredType             = "runtime.agent.turn.structured"
+	publicChatTurnMessageCommittedType       = "runtime.agent.turn.message_committed"
+	publicChatTurnPostTurnType               = "runtime.agent.turn.post_turn"
+	publicChatTurnCompletedType              = "runtime.agent.turn.completed"
+	publicChatTurnFailedType                 = "runtime.agent.turn.failed"
+	publicChatTurnInterruptedType            = "runtime.agent.turn.interrupted"
+	publicChatTurnInterruptAckType           = "runtime.agent.turn.interrupt_ack"
+	publicChatAssistantMemorySource          = "runtime.agent.chat"
+	publicChatAssistantMemoryPolicy          = "runtime_agent_chat_assistant_turn"
+	publicChatDefaultTurnTimeoutMs     int32 = 120_000
+	publicChatMaxFollowUpTurns               = 8
 )
 const PublicChatRuntimeAppID = publicChatRuntimeAppID
 const (
@@ -168,10 +166,6 @@ type publicChatTurnInterruptPayload struct {
 	TurnID               string `json:"turn_id,omitempty"`
 	Reason               string `json:"reason,omitempty"`
 }
-type publicChatSessionSnapshotRequestPayload struct {
-	ConversationAnchorID string `json:"conversation_anchor_id"`
-	RequestID            string `json:"request_id,omitempty"`
-}
 type PublicChatTurnExecutionRequest struct {
 	AppID         string
 	SubjectUserID string
@@ -228,7 +222,7 @@ func (rejectingPublicChatTurnExecutor) StreamChatTurn(context.Context, *PublicCh
 }
 func IsPublicChatIngressMessageType(messageType string) bool {
 	switch strings.TrimSpace(messageType) {
-	case publicChatTurnRequestType, publicChatTurnInterruptType, publicChatSessionSnapshotRequestType:
+	case publicChatTurnRequestType, publicChatTurnInterruptType:
 		return true
 	default:
 		return false
@@ -347,12 +341,6 @@ func (s *Service) handlePublicChatTurnInterrupt(
 	req publicChatTurnInterruptPayload,
 ) error {
 	return s.publicChatRuntime().handleTurnInterrupt(event, req)
-}
-func (s *Service) handlePublicChatSessionSnapshotRequest(
-	event *runtimev1.AppMessageEvent,
-	req publicChatSessionSnapshotRequestPayload,
-) error {
-	return s.publicChatRuntime().handleSessionSnapshotRequest(event, req)
 }
 func (s *Service) runPublicChatTurn(
 	ctx context.Context,
@@ -607,29 +595,6 @@ func decodePublicChatTurnInterruptPayload(payload any) (publicChatTurnInterruptP
 	}
 	if strings.TrimSpace(decoded.ConversationAnchorID) == "" {
 		return publicChatTurnInterruptPayload{}, status.Error(codes.InvalidArgument, "public chat interrupt payload requires conversation_anchor_id")
-	}
-	return decoded, nil
-}
-func decodePublicChatSessionSnapshotRequestPayload(payload any) (publicChatSessionSnapshotRequestPayload, error) {
-	raw, err := decodePublicChatStructPayload(payload)
-	if err != nil {
-		return publicChatSessionSnapshotRequestPayload{}, err
-	}
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.DisallowUnknownFields()
-	var decoded publicChatSessionSnapshotRequestPayload
-	if err := decoder.Decode(&decoded); err != nil {
-		return publicChatSessionSnapshotRequestPayload{}, status.Error(codes.InvalidArgument, "public chat session snapshot payload invalid")
-	}
-	var trailing any
-	if err := decoder.Decode(&trailing); err != io.EOF {
-		if err == nil {
-			return publicChatSessionSnapshotRequestPayload{}, status.Error(codes.InvalidArgument, "public chat session snapshot payload must contain one object")
-		}
-		return publicChatSessionSnapshotRequestPayload{}, status.Error(codes.InvalidArgument, "public chat session snapshot payload invalid")
-	}
-	if strings.TrimSpace(decoded.ConversationAnchorID) == "" {
-		return publicChatSessionSnapshotRequestPayload{}, status.Error(codes.InvalidArgument, "public chat session snapshot payload requires conversation_anchor_id")
 	}
 	return decoded, nil
 }

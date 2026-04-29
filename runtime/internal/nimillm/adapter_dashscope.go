@@ -274,24 +274,23 @@ func ExecuteDashScopeTranscribe(
 	if resolvedInlineMIME == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	resolvedInlineFormat := resolveInlineAudioFormat(mimeType, audioBytes)
-	if resolvedInlineFormat == "" {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
 
 	audioPayload := map[string]any{
 		"data": strings.TrimSpace(audioURI),
 	}
 	if audioPayload["data"] == "" {
 		audioPayload["data"] = encodeInlineAudioDataURI(audioBytes, mimeType)
-		audioPayload["format"] = resolvedInlineFormat
 	}
 
 	systemMessage := buildCoreTranscriptionInstruction(spec)
 	messages := []map[string]any{
 		{
-			"role":    "system",
-			"content": systemMessage,
+			"role": "system",
+			"content": []map[string]any{
+				{
+					"text": systemMessage,
+				},
+			},
 		},
 		{
 			"role": "user",
@@ -316,9 +315,7 @@ func ExecuteDashScopeTranscribe(
 		asrOptions["enable_itn"] = ValueAsBool(value)
 	}
 	if len(asrOptions) > 0 {
-		payload["extra_body"] = map[string]any{
-			"asr_options": asrOptions,
-		}
+		payload["asr_options"] = asrOptions
 	}
 
 	endpoint := resolveAlibabaSTTPath(scenarioExtensions)

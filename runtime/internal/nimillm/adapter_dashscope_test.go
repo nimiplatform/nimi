@@ -203,6 +203,21 @@ func TestExecuteDashScopeTranscribeUsesCompatibleChatPath(t *testing.T) {
 	if !ok || len(messages) != 2 {
 		t.Fatalf("expected system+user messages, got=%T len=%d", captured["messages"], len(messages))
 	}
+	systemMessage, ok := messages[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected system message map, got=%T", messages[0])
+	}
+	systemContent, ok := systemMessage["content"].([]any)
+	if !ok || len(systemContent) != 1 {
+		t.Fatalf("expected system content text array, got=%T len=%d", systemMessage["content"], len(systemContent))
+	}
+	systemText, ok := systemContent[0].(map[string]any)
+	if !ok {
+		t.Fatalf("expected system text item map, got=%T", systemContent[0])
+	}
+	if got := strings.TrimSpace(ValueAsString(systemText["text"])); !strings.Contains(got, "Domain terms: Nimi Realm") {
+		t.Fatalf("expected system text context, got=%q", got)
+	}
 	userMessage, ok := messages[1].(map[string]any)
 	if !ok {
 		t.Fatalf("expected user message map, got=%T", messages[1])
@@ -219,19 +234,18 @@ func TestExecuteDashScopeTranscribeUsesCompatibleChatPath(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected input_audio payload, got=%T", audioItem["input_audio"])
 	}
-	if got := strings.TrimSpace(ValueAsString(inputAudio["format"])); got != "wav" {
-		t.Fatalf("expected wav format, got=%q", got)
+	if _, exists := inputAudio["format"]; exists {
+		t.Fatalf("dashscope qwen3-asr input_audio must not include format field: %#v", inputAudio["format"])
 	}
 	if got := strings.TrimSpace(ValueAsString(inputAudio["data"])); !strings.HasPrefix(got, "data:audio/wav;base64,") {
 		t.Fatalf("expected inline audio data url, got=%q", got)
 	}
-	extraBody, ok := captured["extra_body"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected extra_body payload, got=%T", captured["extra_body"])
+	if _, exists := captured["extra_body"]; exists {
+		t.Fatalf("dashscope qwen3-asr REST payload must not include extra_body: %#v", captured["extra_body"])
 	}
-	asrOptions, ok := extraBody["asr_options"].(map[string]any)
+	asrOptions, ok := captured["asr_options"].(map[string]any)
 	if !ok {
-		t.Fatalf("expected asr_options payload, got=%T", extraBody["asr_options"])
+		t.Fatalf("expected top-level asr_options payload, got=%T", captured["asr_options"])
 	}
 	if got := strings.TrimSpace(ValueAsString(asrOptions["language"])); got != "en" {
 		t.Fatalf("expected language hint, got=%q", got)

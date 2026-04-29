@@ -227,27 +227,20 @@ func publicChatTurnDetail(t *testing.T, req *runtimev1.SendAppMessageRequest) ma
 	return detail
 }
 
-// publicChatSessionSnapshotDetail extracts the inner
-// session.snapshot.detail.snapshot map per yaml session_events.
-// Runtime carrier execution truth lives only inside this map.
-func publicChatSessionSnapshotDetail(t *testing.T, req *runtimev1.SendAppMessageRequest) map[string]any {
+// publicChatSessionSnapshotDetail extracts the unary public chat session
+// snapshot map. Runtime carrier execution truth lives only inside this map.
+func publicChatSessionSnapshotDetail(t *testing.T, snapshot *structpb.Struct) map[string]any {
 	t.Helper()
-	payload := publicChatPayloadMap(t, req)
-	detail, ok := payload["detail"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected session.snapshot detail object, got payload=%v", payload)
+	if snapshot == nil {
+		t.Fatalf("expected public chat session snapshot")
 	}
-	snapshot, ok := detail["snapshot"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected session.snapshot detail.snapshot object, got detail=%v", detail)
-	}
-	return snapshot
+	return snapshot.AsMap()
 }
 
-// publicChatActiveTurnSnapshot returns session.snapshot.detail.snapshot.active_turn.
-func publicChatActiveTurnSnapshot(t *testing.T, req *runtimev1.SendAppMessageRequest) map[string]any {
+// publicChatActiveTurnSnapshot returns session snapshot active_turn.
+func publicChatActiveTurnSnapshot(t *testing.T, snapshot *structpb.Struct) map[string]any {
 	t.Helper()
-	snap := publicChatSessionSnapshotDetail(t, req)
+	snap := publicChatSessionSnapshotDetail(t, snapshot)
 	active, ok := snap["active_turn"].(map[string]any)
 	if !ok {
 		t.Fatalf("expected snapshot.active_turn map, got snap=%v", snap)
@@ -255,10 +248,10 @@ func publicChatActiveTurnSnapshot(t *testing.T, req *runtimev1.SendAppMessageReq
 	return active
 }
 
-// publicChatLastTurnSnapshot returns session.snapshot.detail.snapshot.last_turn.
-func publicChatLastTurnSnapshot(t *testing.T, req *runtimev1.SendAppMessageRequest) map[string]any {
+// publicChatLastTurnSnapshot returns session snapshot last_turn.
+func publicChatLastTurnSnapshot(t *testing.T, snapshot *structpb.Struct) map[string]any {
 	t.Helper()
-	snap := publicChatSessionSnapshotDetail(t, req)
+	snap := publicChatSessionSnapshotDetail(t, snapshot)
 	last, ok := snap["last_turn"].(map[string]any)
 	if !ok {
 		t.Fatalf("expected snapshot.last_turn map, got snap=%v", snap)
@@ -312,23 +305,46 @@ func requestPublicChatSessionSnapshot(
 	capture *publicChatEmitCapture,
 	anchorID string,
 	requestID string,
-) *runtimev1.SendAppMessageRequest {
+) *structpb.Struct {
 	t.Helper()
-	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
-		ToAppId:       publicChatRuntimeAppID,
-		FromAppId:     "desktop.app",
-		SubjectUserId: "user-1",
-		MessageType:   publicChatSessionSnapshotRequestType,
-		Payload: publicChatStructPayload(t, map[string]any{
-			"conversation_anchor_id": anchorID,
-			"request_id":             requestID,
-		}),
+	_ = capture
+	svc.chatSurfaceMu.Lock()
+	anchor := svc.chatAnchors[anchorID]
+	if anchor == nil {
+		svc.chatSurfaceMu.Unlock()
+		t.Fatalf("anchor not found for snapshot: %s", anchorID)
+	}
+	agentID := anchor.AgentID
+	callerAppID := anchor.CallerAppID
+	subjectUserID := anchor.SubjectUserID
+	svc.chatSurfaceMu.Unlock()
+	resp, err := svc.GetPublicChatSessionSnapshot(context.Background(), &runtimev1.GetPublicChatSessionSnapshotRequest{
+		Context:              &runtimev1.AgentRequestContext{AppId: callerAppID, SubjectUserId: subjectUserID},
+		AgentId:              agentID,
+		ConversationAnchorId: anchorID,
+		RequestId:            requestID,
 	})
 	if err != nil {
-		t.Fatalf("ConsumePublicChatAppMessage(snapshot %s): %v", requestID, err)
+		t.Fatalf("GetPublicChatSessionSnapshot(%s): %v", requestID, err)
 	}
-	return capture.waitForMessageType(t, publicChatSessionSnapshotType)
+	return resp.GetSnapshot()
 }
+
+func TestPublicChatSessionSnapshotUnaryDoesNotRequireAppEmitter(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+
+	snapshot := requestPublicChatSessionSnapshot(t, svc, nil, anchorID, "snapshot-without-emitter")
+	payload := publicChatSessionSnapshotDetail(t, snapshot)
+	if got := payload["request_id"]; got != "snapshot-without-emitter" {
+		t.Fatalf("expected request_id echo, got=%v", payload)
+	}
+	if got := payload["session_status"]; got != "idle" {
+		t.Fatalf("expected idle snapshot without app emitter, got=%v", payload)
+	}
+}
+
 func waitForPublicChatAgentIdle(t *testing.T, svc *Service, agentID string) {
 	t.Helper()
 	deadline := time.Now().Add(2 * time.Second)
@@ -790,20 +806,7 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	if got := publicChatPayloadMap(t, accepted)["conversation_anchor_id"].(string); got != anchorID {
 		t.Fatalf("expected accepted conversation_anchor_id=%s, got=%s", anchorID, got)
 	}
-	err = svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
-		ToAppId:       publicChatRuntimeAppID,
-		FromAppId:     "desktop.app",
-		SubjectUserId: "user-1",
-		MessageType:   publicChatSessionSnapshotRequestType,
-		Payload: publicChatStructPayload(t, map[string]any{
-			"conversation_anchor_id": anchorID,
-			"request_id":             "snapshot-live-1",
-		}),
-	})
-	if err != nil {
-		t.Fatalf("ConsumePublicChatAppMessage(snapshot-live): %v", err)
-	}
-	liveSnapshot := capture.waitForMessageType(t, publicChatSessionSnapshotType)
+	liveSnapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-live-1")
 	liveSnap := publicChatSessionSnapshotDetail(t, liveSnapshot)
 	if got := liveSnap["request_id"]; got != "snapshot-live-1" {
 		t.Fatalf("expected snapshot.detail.snapshot.request_id, got=%v", liveSnap)
@@ -830,20 +833,7 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
 	_ = capture.waitForMessageType(t, publicChatTurnPostTurnType)
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
-	err = svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
-		ToAppId:       publicChatRuntimeAppID,
-		FromAppId:     "desktop.app",
-		SubjectUserId: "user-1",
-		MessageType:   publicChatSessionSnapshotRequestType,
-		Payload: publicChatStructPayload(t, map[string]any{
-			"conversation_anchor_id": anchorID,
-			"request_id":             "snapshot-live-2",
-		}),
-	})
-	if err != nil {
-		t.Fatalf("ConsumePublicChatAppMessage(snapshot-terminal): %v", err)
-	}
-	terminalSnapshot := capture.waitForMessageType(t, publicChatSessionSnapshotType)
+	terminalSnapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-live-2")
 	terminalSnap := publicChatSessionSnapshotDetail(t, terminalSnapshot)
 	if got := terminalSnap["request_id"]; got != "snapshot-live-2" {
 		t.Fatalf("expected terminal snapshot request_id, got=%v", terminalSnap)
@@ -979,20 +969,7 @@ func TestPublicChatTurnRequestAllowsRouteOmissionWhenRuntimeResolvesBinding(t *t
 		t.Fatalf("expected accepted envelope turn_id, got=%v", acceptedPayload)
 	}
 	// Snapshot is the only admitted carrier for execution-binding truth.
-	err = svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
-		ToAppId:       publicChatRuntimeAppID,
-		FromAppId:     "desktop.app",
-		SubjectUserId: "user-1",
-		MessageType:   publicChatSessionSnapshotRequestType,
-		Payload: publicChatStructPayload(t, map[string]any{
-			"conversation_anchor_id": anchorID,
-			"request_id":             "snapshot-route-omission",
-		}),
-	})
-	if err != nil {
-		t.Fatalf("ConsumePublicChatAppMessage(snapshot): %v", err)
-	}
-	snapshot := capture.waitForMessageType(t, publicChatSessionSnapshotType)
+	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-route-omission")
 	snapMap := publicChatSessionSnapshotDetail(t, snapshot)
 	executionBinding := snapMap["execution_binding"].(map[string]any)
 	if got := executionBinding["route"]; got != "local" {

@@ -183,6 +183,8 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.turn.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot":
 		return "runtime.agent.turn.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":
+		return "runtime.agent.turn.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentState":
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState":

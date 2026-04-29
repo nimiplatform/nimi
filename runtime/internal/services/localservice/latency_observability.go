@@ -11,7 +11,7 @@ func (s *Service) observeLatency(stage string, startedAt time.Time, attrs ...any
 		"duration_ms", time.Since(startedAt).Milliseconds(),
 	}
 	fields = append(fields, attrs...)
-	s.logger.Info("runtime latency observation", fields...)
+	s.logger.Debug("runtime latency observation", fields...)
 }
 
 func (s *Service) observeCounter(counter string, value int64, attrs ...any) {
@@ -23,5 +23,5 @@ func (s *Service) observeCounter(counter string, value int64, attrs ...any) {
 		"value", value,
 	}
 	fields = append(fields, attrs...)
-	s.logger.Info("runtime counter observation", fields...)
+	s.logger.Debug("runtime counter observation", fields...)
 }

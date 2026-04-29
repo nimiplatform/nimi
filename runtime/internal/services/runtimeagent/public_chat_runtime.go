@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 	"strings"
 	"time"
 )
@@ -42,12 +43,6 @@ func (r publicChatRuntime) consumeAppMessage(ctx context.Context, event *runtime
 			return err
 		}
 		return r.handleTurnInterrupt(event, req)
-	case publicChatSessionSnapshotRequestType:
-		req, err := decodePublicChatSessionSnapshotRequestPayload(event.GetPayload())
-		if err != nil {
-			return err
-		}
-		return r.handleSessionSnapshotRequest(event, req)
 	default:
 		return status.Error(codes.InvalidArgument, "public chat app message type invalid")
 	}
@@ -138,25 +133,22 @@ func (r publicChatRuntime) handleTurnInterrupt(
 	}
 	return nil
 }
-func (r publicChatRuntime) handleSessionSnapshotRequest(
-	event *runtimev1.AppMessageEvent,
-	req publicChatSessionSnapshotRequestPayload,
-) error {
+func (r publicChatRuntime) buildSessionSnapshot(
+	callerAppID string,
+	anchorID string,
+	requestID string,
+) (*structpb.Struct, publicChatAnchorState, bool, bool, bool, error) {
 	startedAt := time.Now()
-	if r.svc == nil || r.svc.isClosed() || r.svc.chatAppEmit == nil {
-		return status.Error(codes.FailedPrecondition, "runtime public chat surface unavailable")
+	if r.svc == nil || r.svc.isClosed() {
+		return nil, publicChatAnchorState{}, false, false, false, status.Error(codes.FailedPrecondition, "runtime public chat surface unavailable")
 	}
-	session, activeTurn, lastTurn, pendingFollowUp, err := r.svc.snapshotPublicChatAnchorForCaller(strings.TrimSpace(event.GetFromAppId()), req.ConversationAnchorID)
+	session, activeTurn, lastTurn, pendingFollowUp, err := r.svc.snapshotPublicChatAnchorForCaller(strings.TrimSpace(callerAppID), anchorID)
 	if err != nil {
-		return err
+		return nil, publicChatAnchorState{}, false, false, false, err
 	}
-	// K-AGCORE-037 session_envelope requires agent_id + conversation_anchor_id
-	// at the envelope; per `runtime-agent-event-projection.yaml`
-	// `session_events.runtime.agent.session.snapshot.detail.snapshot` is the
-	// only admitted carrier for committed continuity / execution / follow-up
-	// truth. Runtime carrier execution truth (model_resolved, trace_id,
-	// transcript metadata, follow-up state, etc.) lives ONLY inside this
-	// `detail.snapshot` projection — never on `runtime.agent.turn.*`.
+	// Full public chat session snapshot is a unary query projection. Runtime
+	// carrier execution truth (model_resolved, trace_id, transcript metadata,
+	// follow-up state, etc.) lives in this snapshot, never on turn delta events.
 	snapshotDetail := map[string]any{
 		"thread_id":                session.ThreadID,
 		"subject_user_id":          session.SubjectUserID,
@@ -165,7 +157,7 @@ func (r publicChatRuntime) handleSessionSnapshotRequest(
 		"transcript":               publicChatMessageEnvelopePayloads(session.Transcript),
 		"execution_binding":        publicChatExecutionBindingProjectionPayload(session.Binding),
 	}
-	if trimmed := strings.TrimSpace(req.RequestID); trimmed != "" {
+	if trimmed := strings.TrimSpace(requestID); trimmed != "" {
 		snapshotDetail["request_id"] = trimmed
 	}
 	if strings.TrimSpace(session.SystemPrompt) != "" {
@@ -190,33 +182,29 @@ func (r publicChatRuntime) handleSessionSnapshotRequest(
 	if pendingFollowUp != nil {
 		snapshotDetail["pending_follow_up"] = publicChatPendingFollowUpPayload(pendingFollowUp)
 	}
-	payload := map[string]any{
-		"agent_id":               session.AgentID,
-		"conversation_anchor_id": session.ConversationAnchorID,
-		"detail": map[string]any{
-			"snapshot": snapshotDetail,
-		},
+	snapshot, err := structpb.NewStruct(snapshotDetail)
+	if err != nil {
+		return nil, publicChatAnchorState{}, false, false, false, status.Errorf(codes.Internal, "public chat session snapshot invalid: %v", err)
 	}
-	err = r.emitEvent(session.CallerAppID, session.SubjectUserID, publicChatSessionSnapshotType, payload)
-	r.svc.observeCounter("runtime_agent_session_snapshot_request_total", 1,
-		"caller_app_id", strings.TrimSpace(event.GetFromAppId()),
+	r.svc.observeCounter("runtime_agent_session_snapshot_query_total", 1,
+		"caller_app_id", strings.TrimSpace(callerAppID),
 		"agent_id", session.AgentID,
 		"conversation_anchor_id", session.ConversationAnchorID,
-		"request_id", strings.TrimSpace(req.RequestID),
+		"request_id", strings.TrimSpace(requestID),
 		"has_active_turn", activeTurn != nil,
 		"has_last_turn", lastTurn != nil,
 		"has_pending_follow_up", pendingFollowUp != nil,
 	)
-	r.svc.observeLatency("runtime.agent.session.snapshot_request_ms", startedAt,
-		"caller_app_id", strings.TrimSpace(event.GetFromAppId()),
+	r.svc.observeLatency("runtime.agent.session.snapshot_query_ms", startedAt,
+		"caller_app_id", strings.TrimSpace(callerAppID),
 		"agent_id", session.AgentID,
 		"conversation_anchor_id", session.ConversationAnchorID,
-		"request_id", strings.TrimSpace(req.RequestID),
+		"request_id", strings.TrimSpace(requestID),
 		"has_active_turn", activeTurn != nil,
 		"has_last_turn", lastTurn != nil,
 		"has_pending_follow_up", pendingFollowUp != nil,
 	)
-	return err
+	return snapshot, session, activeTurn != nil, lastTurn != nil, pendingFollowUp != nil, nil
 }
 func (r publicChatRuntime) runTurn(
 	ctx context.Context,
@@ -504,6 +492,11 @@ func (r publicChatRuntime) runTurn(
 	if err := r.emitTurnMessageCommitted(session, turn.TurnID, structured.Message.MessageID, structured.Message.Text); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit public chat message_committed event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
 	}
+	// K-AGCORE-051 voice/lipsync projection: derive runtime-owned timeline
+	// events (`voice_playback_requested` + `lipsync_frame_batch`) from the
+	// committed assistant text. Synthesizer + emit failures are logged but
+	// do not block turn completion (parallels projectCommittedStatusCue).
+	r.projectCommittedVoiceLipsync(session, turn, structured)
 	r.svc.observeCounter("runtime_agent_turn_message_committed_total", 1,
 		"caller_app_id", session.CallerAppID,
 		"agent_id", session.AgentID,
@@ -531,7 +524,7 @@ func (r publicChatRuntime) runTurn(
 	// yaml `turn.post_turn.detail` admits indication-only `action?` and
 	// `hook_intent?`. Runtime execution truth (assistant_memory result,
 	// chat_sidecar outcome, follow-up scheduling state, trace_id) lives on
-	// `runtime.agent.session.snapshot.detail.snapshot.last_turn` only;
+	// the unary public chat session snapshot `last_turn` only;
 	// canonical hook lifecycle remains on `runtime.agent.hook.*`.
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnPostTurnType, publicChatPostTurnIndicationDetail(structured, postTurnOutcome.FollowUp)); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit public chat post-turn event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
@@ -569,7 +562,7 @@ func (r publicChatRuntime) runTurn(
 	// committed message text/message_id is on `turn.message_committed`;
 	// usage / finish_reason / stream_simulated / model_resolved /
 	// route_decision are runtime execution truth and live on
-	// `session.snapshot.detail.snapshot.last_turn` only.
+	// the unary public chat session snapshot `last_turn` only.
 	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnCompletedType, publicChatTurnCompletedDetail(finish.GetFinishReason())); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit public chat completion failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
 	}

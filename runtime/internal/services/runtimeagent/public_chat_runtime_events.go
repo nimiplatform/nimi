@@ -56,7 +56,7 @@ func (r publicChatRuntime) setExecutionStateWithOrigin(agentID string, subjectUs
 
 // emitTurnInterrupted projects yaml `turn.interrupted.detail.reason`.
 // trace_id / model_resolved / route_decision belong to runtime execution
-// truth and surface only via session.snapshot.detail.snapshot.last_turn.
+// truth and surface only via the unary public chat session snapshot `last_turn`.
 func (r publicChatRuntime) emitTurnInterrupted(session publicChatAnchorState, turn publicChatTurnState, _ string, _ string, _ runtimev1.RoutePolicy, reason string) {
 	payload := map[string]any{
 		"reason": firstNonEmpty(reason, "interrupt_requested"),
@@ -69,7 +69,7 @@ func (r publicChatRuntime) emitTurnInterrupted(session publicChatAnchorState, tu
 // emitTurnFailed projects yaml `turn.failed.detail` admitting only
 // `reason_code` (required) and `message?`. action_hint / trace_id /
 // model_resolved / route_decision are runtime execution truth and live
-// on session.snapshot.detail.snapshot.last_turn only.
+// on the unary public chat session snapshot `last_turn` only.
 func (r publicChatRuntime) emitTurnFailed(session publicChatAnchorState, turn publicChatTurnState, _ string, _ string, _ runtimev1.RoutePolicy, reasonCode runtimev1.ReasonCode, message string, _ string) {
 	payload := map[string]any{
 		"reason_code": publicChatReasonCodeLabel(reasonCode),
@@ -157,6 +157,77 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 	}
 }
 
+// projectCommittedVoiceLipsync synthesizes voice/lipsync timeline events from
+// the committed assistant text per K-AGCORE-051. Runtime owns the voice
+// playback request + lipsync frame batch projection; provider selection is
+// outside the rule. The synthesizer adapter (default: deterministic synthetic)
+// produces frames whose `audio_artifact_id` carries a `synthetic://lipsync/...`
+// scheme and `audio_mime_type=application/x-nimi-synthetic-lipsync`, so any
+// app-side audio consumer fails closed instead of attempting playback.
+//
+// Empty committed text → silent skip (no events). Synthesizer error → log warn
+// and skip; turn commit is not blocked. Failure / interrupt paths do NOT call
+// this projection (callers gate on the committed text path).
+func (r publicChatRuntime) projectCommittedVoiceLipsync(session publicChatAnchorState, turn publicChatTurnState, structured *publicChatStructuredEnvelope) {
+	if r.svc == nil || r.svc.isClosed() || structured == nil {
+		return
+	}
+	if r.svc.voiceLipsync == nil {
+		return
+	}
+	text := strings.TrimSpace(structured.Message.Text)
+	messageID := strings.TrimSpace(structured.Message.MessageID)
+	turnID := strings.TrimSpace(turn.TurnID)
+	if text == "" || messageID == "" || turnID == "" {
+		return
+	}
+	out, err := r.svc.voiceLipsync.synthesize(voiceLipsyncSynthesisInput{
+		TurnID:    turnID,
+		MessageID: messageID,
+		Text:      text,
+	})
+	if err != nil {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("voice lipsync synthesis failed",
+				"agent_id", session.AgentID,
+				"turn_id", turnID,
+				"message_id", messageID,
+				"error", err,
+			)
+		}
+		return
+	}
+	if len(out.Frames) == 0 || strings.TrimSpace(out.AudioArtifactID) == "" {
+		return
+	}
+	if err := r.emitVoicePlaybackTimelineEvent(session, turn, publicChatVoicePlaybackProjection{
+		AudioArtifactID: out.AudioArtifactID,
+		AudioMimeType:   out.AudioMimeType,
+		DurationMs:      out.DurationMs,
+		PlaybackState:   "requested",
+	}); err != nil && r.svc.logger != nil {
+		r.svc.logger.Warn("emit voice_playback_requested failed",
+			"agent_id", session.AgentID,
+			"turn_id", turnID,
+			"audio_artifact_id", out.AudioArtifactID,
+			"error", err,
+		)
+		return
+	}
+	if err := r.emitLipsyncFrameBatchTimelineEvent(session, turn, publicChatLipsyncFrameBatchProjection{
+		AudioArtifactID: out.AudioArtifactID,
+		Frames:          out.Frames,
+	}); err != nil && r.svc.logger != nil {
+		r.svc.logger.Warn("emit lipsync_frame_batch failed",
+			"agent_id", session.AgentID,
+			"turn_id", turnID,
+			"audio_artifact_id", out.AudioArtifactID,
+			"frame_count", len(out.Frames),
+			"error", err,
+		)
+	}
+}
+
 // emitTurnEvent composes the runtime.agent.turn.* envelope per
 // K-AGCORE-037 / runtime-agent-event-projection.yaml `turn_envelope`:
 // payload top level carries the required envelope fields (`agent_id`,
@@ -165,7 +236,7 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 // schema. Runtime execution truth (model_resolved, trace_id,
 // follow_up_depth, transcript metadata, etc.) is NOT carried on
 // `runtime.agent.turn.*` projection events; it is recovered exclusively
-// through `runtime.agent.session.snapshot.detail.snapshot`. Per
+// through the unary public chat session snapshot. Per
 // K-AGCORE-030 stream identity is distinct from turn identity and is
 // allocated at turn open onto `publicChatTurnState.StreamID`.
 //

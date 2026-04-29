@@ -156,23 +156,20 @@ func TestSendRuntimeAgentMessageAllowsValidatedProtectedCapabilityWithoutScopedB
 	}
 }
 
-func TestSendRuntimeAgentSnapshotRequestAllowsValidatedProtectedWriteCapabilityWithoutScopedBinding(t *testing.T) {
+func TestSendRuntimeAgentSnapshotRequestIsNotAdmittedAppMessageIngress(t *testing.T) {
 	validator := &testScopedBindingValidator{t: t, ok: false}
 	svc := newTestService(WithScopedBindingValidator(validator))
 	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "nimi.avatar", "runtime.agent.turn.write")
-	resp, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
+	_, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
 		FromAppId:   "nimi.avatar",
 		ToAppId:     "runtime.agent",
 		MessageType: "runtime.agent.session.snapshot.request",
 	})
-	if err != nil {
-		t.Fatalf("SendAppMessage session snapshot with protected capability: %v", err)
-	}
-	if !resp.GetAccepted() {
-		t.Fatalf("expected accepted response: %#v", resp)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument for snapshot app-message ingress, got %v", err)
 	}
 	if validator.calls != 0 {
-		t.Fatalf("scoped binding validator must not be called for protected capability, got %d", validator.calls)
+		t.Fatalf("scoped binding validator must not be called for non-admitted message, got %d", validator.calls)
 	}
 }
 

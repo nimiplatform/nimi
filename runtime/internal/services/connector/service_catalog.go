@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	aicatalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
@@ -133,10 +134,41 @@ func (s *Service) listCatalogConnectorModels(subjectUserID string, provider stri
 			ModelId:      model.Model.ModelID,
 			ModelLabel:   model.Model.ModelID,
 			Available:    true,
-			Capabilities: append([]string(nil), model.Model.Capabilities...),
+			Capabilities: catalogConnectorModelCapabilities(modelCatalog, subjectUserID, provider, model.Model.ModelID, model.Model.Capabilities),
 		})
 	}
 	return descriptors, nil
+}
+
+func catalogConnectorModelCapabilities(
+	modelCatalog *aicatalog.Resolver,
+	subjectUserID string,
+	provider string,
+	modelID string,
+	baseCapabilities []string,
+) []string {
+	capabilities := append([]string(nil), baseCapabilities...)
+	seen := make(map[string]struct{}, len(capabilities)+2)
+	for _, capability := range capabilities {
+		normalized := strings.TrimSpace(capability)
+		if normalized != "" {
+			seen[normalized] = struct{}{}
+		}
+	}
+	appendIfSupported := func(scenarioType runtimev1.ScenarioType, capability string) {
+		if _, ok := seen[capability]; ok || modelCatalog == nil {
+			return
+		}
+		supported, err := modelCatalog.SupportsScenarioForSubject(subjectUserID, provider, modelID, scenarioType)
+		if err != nil || !supported {
+			return
+		}
+		seen[capability] = struct{}{}
+		capabilities = append(capabilities, capability)
+	}
+	appendIfSupported(runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, aicapabilities.VoiceWorkflowTTSV2V)
+	appendIfSupported(runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN, aicapabilities.VoiceWorkflowTTST2V)
+	return capabilities
 }
 
 func modelMatchesCategory(model *runtimev1.LocalAssetRecord, category runtimev1.LocalConnectorCategory) bool {
