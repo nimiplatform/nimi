@@ -14,6 +14,7 @@ const utilityNavItems = [
   { to: '/signals', label: 'Signals' },
   { to: '/runtime', label: 'Runtime' },
   { to: '/settings', label: 'Settings' },
+  ...(import.meta.env.DEV ? [{ to: '/__smoke', label: 'Smoke' }] : []),
 ];
 const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 72;
 

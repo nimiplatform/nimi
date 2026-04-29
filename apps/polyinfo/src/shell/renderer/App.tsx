@@ -8,10 +8,21 @@ function BootstrapGate({ children }: { children: React.ReactNode }) {
   const authStatus = useAppStore((state) => state.auth.status);
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const bootstrapError = useAppStore((state) => state.bootstrapError);
+  const shouldOpenSmokeOnBoot = import.meta.env.DEV
+    && import.meta.env.VITE_POLYINFO_OPEN_SMOKE_ON_BOOT === '1';
 
   useEffect(() => {
     void runPolyinfoBootstrap();
   }, []);
+
+  useEffect(() => {
+    if (!shouldOpenSmokeOnBoot || !bootstrapReady || authStatus === 'bootstrapping') {
+      return;
+    }
+    if (window.location.hash !== '#/__smoke') {
+      window.location.hash = '#/__smoke';
+    }
+  }, [authStatus, bootstrapReady, shouldOpenSmokeOnBoot]);
 
   if (bootstrapError) {
     return (

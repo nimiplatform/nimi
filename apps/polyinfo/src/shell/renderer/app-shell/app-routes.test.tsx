@@ -41,6 +41,10 @@ vi.mock('@renderer/features/runtime-config/runtime-page.js', () => ({
   RuntimePage: () => <div>runtime-screen</div>,
 }));
 
+vi.mock('@renderer/features/devtools/polyinfo-smoke-page.js', () => ({
+  PolyinfoSmokePage: () => <div>polyinfo-smoke-screen</div>,
+}));
+
 function renderRoutes() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -108,5 +112,17 @@ describe('app routes', () => {
       expect(window.location.hash).toBe('#/sectors/iran');
     });
     expect(await screen.findByText('sector-workspace-screen')).toBeTruthy();
+  });
+
+  it('exposes the hidden smoke route for desktop app validation', async () => {
+    fetchFrontendRootCategoriesMock.mockResolvedValue([
+      { id: 'iran', label: 'Iran', slug: 'iran' },
+    ]);
+
+    window.location.hash = '#/__smoke';
+    renderRoutes();
+
+    expect(await screen.findByText('polyinfo-smoke-screen')).toBeTruthy();
+    expect(window.location.hash).toBe('#/__smoke');
   });
 });

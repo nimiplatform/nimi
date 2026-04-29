@@ -22,6 +22,11 @@ const RuntimePage = lazy(async () => {
   const module = await import('@renderer/features/runtime-config/runtime-page.js');
   return { default: module.RuntimePage };
 });
+const PolyinfoSmokePage = lazy(async () => {
+  const module = await import('@renderer/features/devtools/polyinfo-smoke-page.js');
+  return { default: module.PolyinfoSmokePage };
+});
+const smokeRouteEnabled = import.meta.env.DEV || import.meta.env.VITE_POLYINFO_ENABLE_SMOKE === '1';
 
 function RouteFallback() {
   return (
@@ -92,6 +97,7 @@ export function AppRoutes() {
             <Route path="sectors/:_rootSlug/:sectorId" element={<NestedSectorRedirect />} />
             <Route path="signals" element={<SignalHistoryPage />} />
             <Route path="runtime" element={<RuntimePage />} />
+            {smokeRouteEnabled ? <Route path="__smoke" element={<PolyinfoSmokePage />} /> : null}
             <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
