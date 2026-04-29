@@ -32,4 +32,4 @@ export { ModelConfigPanel } from './components/model-config-panel.js';
 export { ModelConfigCapabilityDetail } from './components/model-config-capability-detail.js';
 export { ModelConfigAiModelHub } from './components/model-config-ai-model-hub.js';
 export type { ModelConfigCapabilityDetailProps } from './components/model-config-capability-detail.js';
-export type { ModelConfigAiModelHubProps } from './components/model-config-ai-model-hub.js';
+export type { ModelConfigAiModelHubProps, ModelConfigSuperSection } from './components/model-config-ai-model-hub.js';

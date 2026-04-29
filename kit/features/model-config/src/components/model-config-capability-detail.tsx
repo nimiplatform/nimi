@@ -328,6 +328,7 @@ export function ModelConfigCapabilityDetail({
     routeCapability: descriptor.sourceRef.capability,
     label: t(descriptor.i18nKeys.title),
     detail: override.detail ?? t(descriptor.i18nKeys.detail),
+    activeModelLabel: t('ModelConfig.hub.activeModelLabel', { defaultValue: 'Active Model' }),
     binding,
     provider,
     onBindingChange: handleBindingChange,

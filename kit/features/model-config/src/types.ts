@@ -32,6 +32,10 @@ export type ModelConfigCapabilityItem = {
   routeCapability: string;
   label: string;
   detail?: string;
+  /** Optional small uppercase header rendered above the model selector. When set,
+   *  the card renders this instead of the per-capability `label` row and hides the
+   *  inline status dot/badge — page-level chrome carries the status. */
+  activeModelLabel?: string;
   binding: ModelConfigRouteBinding | null;
   provider: RouteModelPickerDataProvider | null;
   onBindingChange: (binding: ModelConfigRouteBinding | null) => void;

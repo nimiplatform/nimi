@@ -44,11 +44,25 @@
     }
   },
   "editor": {
+    "common": {
+      "timeoutLabel": "超时",
+      "defaultPlaceholder": "默认",
+      "previewBadgeLabel": "预览"
+    },
     "textGenerate": {
+      "parametersLabel": "参数",
       "generationDefaultsLabel": "生成默认值",
       "responseControlsLabel": "响应控制",
-      "advancedLabel": "高级",
-      "advancedDescription": "存在惩罚与频率惩罚"
+      "advancedLabel": "高级设置",
+      "temperatureLabel": "温度",
+      "topPLabel": "Top P",
+      "topKLabel": "Top K",
+      "maxTokensLabel": "最大 Token 数",
+      "stopSequencesLabel": "停止序列",
+      "stopSequencesHint": "最多 {{max}} 条，每行一条。",
+      "stopSequencesPlaceholder": "输入后按回车…",
+      "presencePenaltyLabel": "存在惩罚",
+      "frequencyPenaltyLabel": "频率惩罚"
     }
   },
   "hub": {
@@ -57,6 +71,11 @@
     "aggregateReady": "{{count}} 已就绪",
     "aggregateAttention": "{{count}} 需要配置",
     "aggregateNeutral": "{{count}} 未设置",
-    "aggregateEmpty": "未配置任何能力"
+    "aggregateEmpty": "未配置任何能力",
+    "detailTitleFormat": "{{section}}配置",
+    "activeModelLabel": "活跃模型",
+    "detailStatusReady": "运行就绪",
+    "detailStatusAttention": "需要配置",
+    "detailStatusNeutral": "未配置"
   }
 }

@@ -54,7 +54,12 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
   const connectorDetail = source === 'cloud' && selection.connectorId ? selection.connectorId : null;
   const statusClasses = statusToneClasses(item.status);
 
-  const labelNode = item.detail ? (
+  const headerLabel = item.activeModelLabel;
+  const labelNode = headerLabel ? (
+    <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted,#94a3b8)]">
+      {headerLabel}
+    </span>
+  ) : item.detail ? (
     <Tooltip content={item.detail} placement="top">
       <span className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]">{item.label}</span>
     </Tooltip>
@@ -66,10 +71,10 @@ export function CapabilityModelCard({ item }: CapabilityModelCardProps) {
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         {labelNode}
-        {item.status ? (
+        {!headerLabel && item.status ? (
           <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusClasses.dot}`} />
         ) : null}
-        {item.status?.badgeLabel ? (
+        {!headerLabel && item.status?.badgeLabel ? (
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusClasses.badge}`}>
             {item.status.badgeLabel}
           </span>

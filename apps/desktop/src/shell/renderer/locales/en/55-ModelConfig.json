@@ -44,11 +44,25 @@
     }
   },
   "editor": {
+    "common": {
+      "timeoutLabel": "Timeout",
+      "defaultPlaceholder": "Default",
+      "previewBadgeLabel": "Preview"
+    },
     "textGenerate": {
+      "parametersLabel": "Parameters",
       "generationDefaultsLabel": "Generation Defaults",
       "responseControlsLabel": "Response Controls",
-      "advancedLabel": "Advanced",
-      "advancedDescription": "Presence and frequency penalties"
+      "advancedLabel": "Advanced Settings",
+      "temperatureLabel": "Temperature",
+      "topPLabel": "Top P",
+      "topKLabel": "Top K",
+      "maxTokensLabel": "Max Tokens",
+      "stopSequencesLabel": "Stop Sequences",
+      "stopSequencesHint": "Up to {{max}} sequences, one per line.",
+      "stopSequencesPlaceholder": "Type and press enter…",
+      "presencePenaltyLabel": "Presence Penalty",
+      "frequencyPenaltyLabel": "Frequency Penalty"
     }
   },
   "hub": {
@@ -57,6 +71,11 @@
     "aggregateReady": "{{count}} ready",
     "aggregateAttention": "{{count}} need attention",
     "aggregateNeutral": "{{count}} unset",
-    "aggregateEmpty": "No capabilities configured"
+    "aggregateEmpty": "No capabilities configured",
+    "detailTitleFormat": "{{section}} Configuration",
+    "activeModelLabel": "Active Model",
+    "detailStatusReady": "Runtime Ready",
+    "detailStatusAttention": "Needs Setup",
+    "detailStatusNeutral": "Not Configured"
   }
 }
