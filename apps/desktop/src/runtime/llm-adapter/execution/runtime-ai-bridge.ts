@@ -17,6 +17,7 @@ type RuntimeLocalWarmCandidate = {
   engine: string;
   endpoint: string;
   updatedAt: string;
+  status: number;
 };
 
 const warmedLocalModelKeys = new Set<string>();
@@ -145,7 +146,7 @@ function localWarmCacheKey(candidate: RuntimeLocalWarmCandidate): string {
   ].join('|');
 }
 
-function selectRuntimeLocalWarmCandidate(
+export function selectRuntimeLocalWarmCandidate(
   input: Omit<EnsureRuntimeLocalModelWarmInput, 'modId' | 'timeoutMs' | 'onStateChange'>,
   models: Array<Record<string, unknown>>,
 ): RuntimeLocalWarmCandidate | null {
@@ -163,7 +164,7 @@ function selectRuntimeLocalWarmCandidate(
       updatedAt: String(item.updatedAt || '').trim(),
       status: Number(item.status || 0),
     }))
-    .filter((item) => item.localAssetId && item.assetId && item.status !== 3 && item.status !== 4);
+    .filter((item) => item.localAssetId && item.assetId && item.status !== 4);
 
   if (targetLocalModelId) {
     const direct = candidates.find((item) => item.localAssetId === targetLocalModelId) || null;
@@ -286,7 +287,7 @@ export async function ensureRuntimeLocalModelWarm(input: EnsureRuntimeLocalModel
   }
 
   const initialCacheKey = localWarmCacheKey(initialCandidate);
-  if (warmedLocalModelKeys.has(initialCacheKey)) {
+  if (initialCandidate.status === 2 && warmedLocalModelKeys.has(initialCacheKey)) {
     logDesktopRuntimeAgentCounter({
       counter: 'desktop_runtime_agent_local_warm_cache_hit_total',
       details: {

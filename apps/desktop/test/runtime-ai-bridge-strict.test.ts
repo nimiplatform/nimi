@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { resolveSourceAndModel } from '../src/runtime/llm-adapter/execution/runtime-ai-bridge';
+import {
+  resolveSourceAndModel,
+  selectRuntimeLocalWarmCandidate,
+} from '../src/runtime/llm-adapter/execution/runtime-ai-bridge';
 
 test('resolveSourceAndModel rejects missing provider', () => {
   assert.throws(
@@ -72,4 +75,41 @@ test('resolveSourceAndModel prefixes media selectors for local routes', () => {
 
   assert.equal(resolved.source, 'local');
   assert.equal(resolved.modelId, 'media/flux.1-schnell');
+});
+
+test('selectRuntimeLocalWarmCandidate keeps unhealthy local assets recoverable', () => {
+  const selected = selectRuntimeLocalWarmCandidate({
+    source: 'local',
+    modelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+    localModelId: '01KN9BRF4X5MBRV108VQD8EX13',
+    goRuntimeLocalModelId: '01KN9BRF4X5MBRV108VQD8EX13',
+    engine: 'llama',
+    endpoint: 'http://127.0.0.1:1234/v1',
+  }, [{
+    localAssetId: '01KN9BRF4X5MBRV108VQD8EX13',
+    assetId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+    engine: 'llama',
+    endpoint: 'http://127.0.0.1:1234/v1',
+    status: 3,
+  }]);
+
+  assert.equal(selected?.localAssetId, '01KN9BRF4X5MBRV108VQD8EX13');
+  assert.equal(selected?.status, 3);
+});
+
+test('selectRuntimeLocalWarmCandidate still excludes removed local assets', () => {
+  const selected = selectRuntimeLocalWarmCandidate({
+    source: 'local',
+    modelId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+    engine: 'llama',
+    endpoint: 'http://127.0.0.1:1234/v1',
+  }, [{
+    localAssetId: 'removed-model',
+    assetId: 'local-import/gemma-4-26B-A4B-it-Q8_0',
+    engine: 'llama',
+    endpoint: 'http://127.0.0.1:1234/v1',
+    status: 4,
+  }]);
+
+  assert.equal(selected, null);
 });
