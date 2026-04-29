@@ -26,6 +26,7 @@ import {
   type VoiceCompanionState,
 } from '../voice-companion-state.js';
 import { createAbortError, normalizeText, toErrorMessage } from '../avatar-shell-utils.js';
+import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 import type { AvatarShellSettings } from '../settings-state.js';
 import type { BootstrapHandle } from '../app-shell/app-bootstrap.js';
 import type { AvatarVoiceCaptureSession } from '../voice-capture.js';
@@ -37,6 +38,10 @@ export type CompanionSurfaceProps = {
   companion: CompanionState;
   voice: VoiceCompanionState;
   shellSettings: AvatarShellSettings;
+  // composition state (NAV-SHELL-COMPOSITION-001) at mount time. Required so
+  // the surface-mounted/unmounted evidence carries the correct posture
+  // annotation (`ready` vs `fixture_active`).
+  compositionState: string;
   setCompanion: (updater: (current: CompanionState) => CompanionState) => void;
   setVoice: (updater: (current: VoiceCompanionState) => VoiceCompanionState) => void;
   voiceCaptureSessionRef: RefObject<AvatarVoiceCaptureSession | null>;
@@ -80,6 +85,7 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
     companion,
     voice,
     shellSettings,
+    compositionState,
     setCompanion,
     setVoice,
     voiceCaptureSessionRef,
@@ -90,6 +96,8 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
     onSettingsToggle,
     settingsOpen,
   } = props;
+
+  useSurfaceMountEvidence('companion-surface', compositionState);
 
   const { t } = useTranslation();
   const status = deriveStatus(companion, voice);

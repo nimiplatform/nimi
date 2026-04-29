@@ -24,6 +24,7 @@ export type Live2DVisualRuntime = OfficialCubismFrameworkRuntime & {
       setupFromLayout: (layout: Map<string, number>) => void;
       scaleRelative: (x: number, y: number) => void;
       translateRelative: (x: number, y: number) => void;
+      setCenterPosition: (x: number, y: number) => void;
     } | null;
     release(): void;
   };

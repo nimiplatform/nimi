@@ -111,7 +111,7 @@ waves:
 
   wave_4:
     title: "Window + Settings 工业级"
-    status: pending
+    status: done
     target: "window 形状跟随 Live2D + companion footprint；drag 区限定到 embodiment-stage；settings popover 替代主区 4-toggle 大块。"
     scope:
       - id: dynamic_window_bounds

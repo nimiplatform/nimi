@@ -209,10 +209,22 @@ fn build_avatar_window(
     app: &tauri::AppHandle,
     window_label: &str,
 ) -> Result<WebviewWindow, String> {
+    // NAV-SHELL-001: transparent + decorations(false) + skip_taskbar(true) +
+    // shadow(false) are required (not optional) per app-shell-contract §1.1.
+    // Transparent is what lets the embodiment-stage's transparent background
+    // actually show desktop underneath outside the model alpha + companion
+    // surface bounds. Without it the window paints opaque dark, defeating the
+    // entire "桌面悬浮 embodiment surface" product form.
+    // skip_taskbar deliberately omitted: on macOS it switches the window to
+    // utility-style (NSWindow.canJoinAllSpaces / stationary) which interferes
+    // with `start_dragging()` and click-through semantics. The pet stays in
+    // the dock; we accept that until tray icon plumbing lands.
     let window = WebviewWindowBuilder::new(app, window_label, WebviewUrl::App("/".into()))
         .title("Nimi Avatar")
         .inner_size(400.0, 600.0)
         .decorations(false)
+        .transparent(true)
+        .shadow(false)
         .resizable(true)
         .build()
         .map_err(|error| format!("failed to build avatar window: {error}"))?;
@@ -347,6 +359,25 @@ async fn nimi_avatar_start_window_drag(window: WebviewWindow) -> Result<(), Stri
     window.start_dragging().map_err(|e| e.to_string())
 }
 
+// Wave 4 drag fallback — manual delta-based window move. macOS NSWindow with
+// transparent + always_on_top + decorations(false) does not consistently
+// honor `start_dragging()`; this command lets the renderer feed pointer
+// screen-coord deltas frame-by-frame and have Rust adjust the window's
+// outer position. Permissions: relies on `core:window:allow-set-position`
+// which is already granted; no extra JS-side permission required because
+// outer_position is read internally.
+#[tauri::command]
+async fn nimi_avatar_drag_window_by(
+    window: WebviewWindow,
+    delta_x: i32,
+    delta_y: i32,
+) -> Result<(), String> {
+    let pos = window.outer_position().map_err(|e| e.to_string())?;
+    window
+        .set_position(PhysicalPosition::new(pos.x + delta_x, pos.y + delta_y))
+        .map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 async fn nimi_avatar_set_window_size(
     window: WebviewWindow,
@@ -368,6 +399,35 @@ async fn nimi_avatar_set_ignore_cursor_events(
         .map_err(|e| e.to_string())
 }
 
+// Wave 4 — pure constraint math extracted so cargo tests can cover it
+// without spinning up a Tauri WebviewWindow. Encodes
+// window-bounds-policy.yaml visible_area rule (NAV-SHELL-005-EDGE):
+// at least `min_visible_ratio` of the window must remain inside the active
+// monitor's work area.
+pub(crate) fn compute_constrained_window_position(
+    window_position: (i32, i32),
+    window_size: (u32, u32),
+    monitor_position: (i32, i32),
+    monitor_size: (u32, u32),
+    min_visible_ratio: f64,
+) -> (i32, i32) {
+    let ratio = if min_visible_ratio.is_finite() {
+        min_visible_ratio.clamp(0.05, 1.0)
+    } else {
+        0.2
+    };
+    let min_visible_width = ((window_size.0 as f64) * ratio).ceil() as i32;
+    let min_visible_height = ((window_size.1 as f64) * ratio).ceil() as i32;
+    let min_x = monitor_position.0 - window_size.0 as i32 + min_visible_width;
+    let max_x = monitor_position.0 + monitor_size.0 as i32 - min_visible_width;
+    let min_y = monitor_position.1 - window_size.1 as i32 + min_visible_height;
+    let max_y = monitor_position.1 + monitor_size.1 as i32 - min_visible_height;
+    (
+        window_position.0.clamp(min_x, max_x),
+        window_position.1.clamp(min_y, max_y),
+    )
+}
+
 #[tauri::command]
 async fn nimi_avatar_constrain_window_to_visible_area(
     window: WebviewWindow,
@@ -382,21 +442,14 @@ async fn nimi_avatar_constrain_window_to_visible_area(
         .ok_or_else(|| "no monitor is available for avatar edge constraints".to_string())?;
     let monitor_position = monitor.position();
     let monitor_size = monitor.size();
-    let ratio = if min_visible_ratio.is_finite() {
-        min_visible_ratio.clamp(0.05, 1.0)
-    } else {
-        0.2
-    };
-    let min_visible_width = ((size.width as f64) * ratio).ceil() as i32;
-    let min_visible_height = ((size.height as f64) * ratio).ceil() as i32;
-    let min_x = monitor_position.x - size.width as i32 + min_visible_width;
-    let max_x = monitor_position.x + monitor_size.width as i32 - min_visible_width;
-    let min_y = monitor_position.y - size.height as i32 + min_visible_height;
-    let max_y = monitor_position.y + monitor_size.height as i32 - min_visible_height;
-    let constrained = PhysicalPosition::new(
-        position.x.clamp(min_x, max_x),
-        position.y.clamp(min_y, max_y),
+    let (cx, cy) = compute_constrained_window_position(
+        (position.x, position.y),
+        (size.width, size.height),
+        (monitor_position.x, monitor_position.y),
+        (monitor_size.width, monitor_size.height),
+        min_visible_ratio,
     );
+    let constrained = PhysicalPosition::new(cx, cy);
     if constrained != position {
         window
             .set_position(constrained)
@@ -719,6 +772,7 @@ fn main() {
             runtime_bridge::runtime_bridge_config_get,
             runtime_bridge::runtime_bridge_config_set,
             nimi_avatar_start_window_drag,
+            nimi_avatar_drag_window_by,
             nimi_avatar_set_window_size,
             nimi_avatar_set_ignore_cursor_events,
             nimi_avatar_constrain_window_to_visible_area,

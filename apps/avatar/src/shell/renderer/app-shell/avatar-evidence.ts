@@ -16,7 +16,22 @@ export type AvatarEvidenceKind =
   | 'avatar.runtime.bind-failed'
   | 'avatar.runtime.bound'
   | 'avatar.model.load'
-  | 'avatar.carrier.visual';
+  | 'avatar.carrier.visual'
+  // Wave 1 NAV-SHELL-COMPOSITION-004 — composition state machine evidence.
+  | 'avatar.composition.transition'
+  | 'avatar.composition.relaunch-pending'
+  | 'avatar.composition.surface-mounted'
+  | 'avatar.composition.surface-unmounted'
+  // Wave 4 NAV-SHELL-002 — dynamic window-bounds recompute evidence.
+  // Per avatar-event-contract.md §2.6 + §4 detail schemas.
+  | 'avatar.shell.window-bounds-changed';
+
+// Surface identifier carried on `avatar.composition.surface-mounted` /
+// `surface-unmounted` evidence per avatar-event-contract.md §4.
+export type AvatarCompositionSurface =
+  | 'embodiment-stage'
+  | 'companion-surface'
+  | 'degraded-surface';
 
 export type AvatarEvidencePayload = {
   kind: AvatarEvidenceKind;

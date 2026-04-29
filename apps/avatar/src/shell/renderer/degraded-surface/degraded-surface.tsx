@@ -10,6 +10,7 @@
 
 import { useTranslation } from '../i18n/index.js';
 import { reloadAvatarShell } from '../shell-reload.js';
+import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 import type { CompositionDerivation } from '../app-shell/composition-state.js';
 
 export type DegradedSurfaceProps = {
@@ -50,6 +51,7 @@ const REASON_AWARE_STATES = new Set<CompositionDerivation['state']>([
 
 export function DegradedSurface(props: DegradedSurfaceProps) {
   const { composition } = props;
+  useSurfaceMountEvidence('degraded-surface', composition.state);
   const { t } = useTranslation();
   const tone = composition.variant;
   const keyPrefix = stateKeyPrefix(composition.state);

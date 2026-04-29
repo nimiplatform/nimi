@@ -28,6 +28,7 @@ const requiredPaths = [
   'spec/kernel/tables/live2d-compatibility-tiers.yaml',
   'spec/kernel/tables/scenario-catalog.yaml',
   'spec/kernel/tables/i18n-keys.yaml',
+  'spec/kernel/tables/window-bounds-policy.yaml',
   'spec/nimi-avatar.md',
   'src/shell/renderer/locales/en/avatar.json',
   'src/shell/renderer/locales/zh/avatar.json',

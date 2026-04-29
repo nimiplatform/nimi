@@ -1,6 +1,105 @@
 use super::*;
 use crate::agent_center_avatar_package::agent_center_path_segment;
 
+// Wave 4 — `compute_constrained_window_position` covers
+// window-bounds-policy.yaml `visible_area` rule (NAV-SHELL-005-EDGE):
+// at least `min_visible_ratio` of the window must remain inside the active
+// monitor's work area.
+
+#[test]
+fn constrain_keeps_window_inside_when_fully_visible() {
+    let result = compute_constrained_window_position(
+        (100, 100),
+        (400, 600),
+        (0, 0),
+        (1920, 1080),
+        0.2,
+    );
+    assert_eq!(result, (100, 100));
+}
+
+#[test]
+fn constrain_pulls_window_back_when_dragged_off_right_edge() {
+    // Window 400 wide; monitor 1920. min_visible = 80px (20%).
+    // max_x = 0 + 1920 - 80 = 1840. Drag to x=2500 → clamp to 1840.
+    let result = compute_constrained_window_position(
+        (2500, 100),
+        (400, 600),
+        (0, 0),
+        (1920, 1080),
+        0.2,
+    );
+    assert_eq!(result.0, 1840);
+}
+
+#[test]
+fn constrain_pulls_window_back_when_dragged_off_left_edge() {
+    // min_x = 0 - 400 + 80 = -320. Drag to x=-1000 → clamp to -320.
+    let result = compute_constrained_window_position(
+        (-1000, 100),
+        (400, 600),
+        (0, 0),
+        (1920, 1080),
+        0.2,
+    );
+    assert_eq!(result.0, -320);
+}
+
+#[test]
+fn constrain_clamps_vertical_axis_independently() {
+    // min_visible_height = 600 * 0.2 = 120
+    // max_y = 0 + 1080 - 120 = 960
+    let result = compute_constrained_window_position(
+        (100, 5000),
+        (400, 600),
+        (0, 0),
+        (1920, 1080),
+        0.2,
+    );
+    assert_eq!(result.1, 960);
+}
+
+#[test]
+fn constrain_handles_secondary_monitor_with_negative_origin() {
+    // Secondary monitor sitting to the left of primary, position (-1920, 0).
+    // min_x = -1920 - 400 + 80 = -2240. max_x = -1920 + 1920 - 80 = -80.
+    let result = compute_constrained_window_position(
+        (-3000, 50),
+        (400, 600),
+        (-1920, 0),
+        (1920, 1080),
+        0.2,
+    );
+    assert_eq!(result.0, -2240);
+}
+
+#[test]
+fn constrain_falls_back_to_default_ratio_when_input_is_non_finite() {
+    // Non-finite ratio defaults to 0.2 → same result as the off-right test.
+    let result = compute_constrained_window_position(
+        (2500, 100),
+        (400, 600),
+        (0, 0),
+        (1920, 1080),
+        f64::NAN,
+    );
+    assert_eq!(result.0, 1840);
+}
+
+#[test]
+fn constrain_clamps_ratio_to_05_minimum() {
+    // Asking for 0.01 ratio is clamped up to 0.05 (5% min visible per policy).
+    // min_visible_width = 400 * 0.05 = 20. max_x = 1920 - 20 = 1900.
+    let result = compute_constrained_window_position(
+        (5000, 100),
+        (400, 600),
+        (0, 0),
+        (1920, 1080),
+        0.01,
+    );
+    assert_eq!(result.0, 1900);
+}
+
 fn unique_temp_dir(name: &str) -> PathBuf {
     let suffix = format!(
         "{}-{}",

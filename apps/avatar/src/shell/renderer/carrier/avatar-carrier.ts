@@ -26,16 +26,25 @@ import {
   type Live2DCarrierVisualFrameStats,
   type Live2DCarrierVisualHost,
 } from '../live2d/carrier-visual-host.js';
+import type { EmbodimentProjectionApi } from '../nas/embodiment-projection-api.js';
 
 export type AvatarRuntimeCarrier = {
   model: ModelManifest;
   registry: HandlerRegistry;
   commandBus: Live2DCommandBus;
   backendSession: Live2DBackendSession;
+  projection: EmbodimentProjectionApi;
   attachRuntimeDriver(driver: AgentDataDriver): Promise<void>;
   detachRuntimeDriver(): void;
   shutdown(): void;
 };
+
+const LIVE2D_NOMINAL_SURFACE_BOUNDS = Object.freeze({
+  x: 0,
+  y: 0,
+  width: 400,
+  height: 600,
+});
 
 function countHandlers(registry: HandlerRegistry): number {
   return registry.activity.size + registry.event.size + registry.continuous.size;
@@ -226,13 +235,7 @@ export async function startAvatarVisualCarrier(input: {
     parameterState,
     compatibility: backendSession.compatibility,
     bounds: () => {
-      const state = useAvatarStore.getState();
-      return {
-        x: 0,
-        y: 0,
-        width: state.shell.windowSize.width,
-        height: state.shell.windowSize.height,
-      };
+      return LIVE2D_NOMINAL_SURFACE_BOUNDS;
     },
   });
   const executor = new HandlerExecutor();
@@ -278,6 +281,7 @@ export async function startAvatarVisualCarrier(input: {
     registry,
     commandBus,
     backendSession,
+    projection,
     async attachRuntimeDriver(driver) {
       if (attachedDriver) {
         throw new Error('avatar visual carrier runtime driver is already attached');

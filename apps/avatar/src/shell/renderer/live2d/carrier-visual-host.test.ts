@@ -172,6 +172,7 @@ function createFakeRuntime(gl: ReturnType<typeof createFakeGl>): Live2DVisualRun
       setupFromLayout: vi.fn(),
       scaleRelative: vi.fn(),
       translateRelative: vi.fn(),
+      setCenterPosition: vi.fn(),
     };
     private readonly boundTextures = new Map<number, WebGLTexture>();
     public _model: Live2DVisualModelShape | null = null;

@@ -4,14 +4,19 @@
 // The legacy mixed `recovery panel` + `trigger toggle` paths from Phase 1/2 are
 // hard-cut; companion-surface is always-visible while ready.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from './i18n/index.js';
 import { bootstrapAvatar, type BootstrapHandle } from './app-shell/app-bootstrap.js';
 import { useAvatarStore } from './app-shell/app-store.js';
 import { recordAvatarEvidenceEventually } from './app-shell/avatar-evidence.js';
 import { setAlwaysOnTop } from './app-shell/tauri-commands.js';
+import { useWindowBoundsSync } from './app-shell/use-window-bounds-sync.js';
 import { isTauriRuntime, onLaunchContextUpdated } from './app-shell/tauri-lifecycle.js';
 import { deriveCompositionState, type CompositionDerivation } from './app-shell/composition-state.js';
+import {
+  emitCompositionRelaunchPending,
+  emitCompositionTransition,
+} from './app-shell/composition-events.js';
 import { EmbodimentStage } from './embodiment-stage/embodiment-stage.js';
 import { CompanionSurface } from './companion-surface/companion-surface.js';
 import { DegradedSurface } from './degraded-surface/degraded-surface.js';
@@ -157,6 +162,22 @@ export function App() {
     };
   }, []);
 
+  const getEmbodimentBounds = useCallback(() => {
+    const bounds = bootstrapHandle?.carrier?.projection?.getSurfaceBounds?.() ?? null;
+    if (!bounds || bounds.width <= 0 || bounds.height <= 0) {
+      return null;
+    }
+    return { width: bounds.width, height: bounds.height };
+  }, [bootstrapHandle]);
+
+  // ── Wave 4 dynamic window bounds sync ────────────────────────────────────────
+  // The bounds source must be backend-owned, not the embodiment-stage DOM rect;
+  // reading a window-sized DOM node here would feed set_size back into itself.
+  useWindowBoundsSync({
+    isReady: bootstrapComplete,
+    getEmbodimentBounds,
+  });
+
   // ── Always-on-top settings sync ──────────────────────────────────────────────
   useEffect(() => {
     useAvatarStore.getState().setAlwaysOnTop(shellSettings.alwaysOnTop);
@@ -193,6 +214,11 @@ export function App() {
       if (!active) return;
       useAvatarStore.getState().setLaunchContext(payload);
       setRelaunchPending(true);
+      emitCompositionRelaunchPending({
+        agentId: payload.agentId,
+        avatarInstanceId: payload.avatarInstanceId ?? null,
+        launchSource: payload.launchSource ?? null,
+      });
       voiceCaptureSessionRef.current?.cancel();
       voiceCaptureSessionRef.current = null;
       voiceSubmitAbortRef.current?.abort();
@@ -447,6 +473,25 @@ export function App() {
     ],
   );
 
+  // ── Composition transition evidence (NAV-SHELL-COMPOSITION-004) ──────────────
+  // Observes composition derivation changes and emits
+  // `avatar.composition.transition` whenever the state field actually flips.
+  // The first observation establishes the baseline (no `from`) so we can
+  // record the initial mount as a transition from `null`. Variant / reason
+  // toggles within the same state are ignored to avoid spam.
+  const previousCompositionRef = useRef<CompositionDerivation | null>(null);
+  useEffect(() => {
+    const previous = previousCompositionRef.current;
+    if (!previous || previous.state !== composition.state) {
+      emitCompositionTransition(previous, composition);
+      previousCompositionRef.current = composition;
+    } else {
+      // Update the cached snapshot so future comparisons see the latest reason
+      // values without re-emitting transition.
+      previousCompositionRef.current = composition;
+    }
+  }, [composition]);
+
   // Defensive hover/contact reset when no longer ready.
   useEffect(() => {
     if (composition.ready) return;
@@ -486,6 +531,7 @@ export function App() {
         visualSession={bootstrapHandle?.carrier?.backendSession ?? null}
         windowSize={shell.windowSize ?? { width: 400, height: 600 }}
         embodied={composition.ready}
+        compositionState={composition.state}
         emit={(event) => bootstrapHandle?.driver?.emit(event)}
         setBodyHovered={setBodyHovered}
         setBodyPointerContact={setBodyPointerContact}
@@ -499,6 +545,7 @@ export function App() {
         companion={companion}
         voice={voice}
         shellSettings={shellSettings}
+        compositionState={composition.state}
         setCompanion={setCompanion}
         setVoice={setVoice}
         voiceCaptureSessionRef={voiceCaptureSessionRef}

@@ -8,7 +8,7 @@
 - **App name (English)**: Nimi Avatar
 - **App ID**: `app.nimi.avatar`
 - **One-line**: 桌面悬浮 embodiment carrier，agent 的视觉化身；通过 NAS handler 把 agent semantics 投影到当前 backend branch。
-- **Status**: Pre-MVP. Wave 0 spec admit complete; Wave 1 surface composition implementation done; Wave 2 i18n + design tokens 工业化 done; Wave 3 lipsync end-to-end done; Wave 4 window + settings 工业化 pending. Real runtime/SDK consume path is primary; mock is explicit fixture-only.
+- **Status**: Pre-MVP. Wave 0 spec admit complete; Wave 1 surface composition implementation done; Wave 2 i18n + design tokens 工业化 done; Wave 3 lipsync end-to-end done (orchestrator + live2d/lipsync-bridge split + ParamMouthForm opt-in + audio time anchor + e2e fixture test); Wave 4 window + settings 工业化 done (window-bounds-policy.yaml admitted + dynamic resize wired + drag region limited to embodiment-stage + settings popover + Tauri visible-area constraint + cargo unit tests). Real runtime/SDK consume path is primary; mock is explicit fixture-only.
 
 ## Architecture
 
@@ -46,7 +46,7 @@ Avatar 重构分 5 个 wave；每个 wave 必须是端到端可交付能力切�
 | 1 | Surface composition implementation（embodiment-stage / companion-surface / degraded-surface 三互斥结构 + hard-cut 旧 toggle 路径） | done |
 | 2 | i18n + Design tokens 工业化（locales/{en,zh}/avatar.json + tokens.css + i18n-keys.yaml） | done |
 | 3 | Lipsync end-to-end（runtime emitter + SDK 消费 + Live2D bridge + voice-companion-state slice） | done |
-| 4 | Window + Settings 工业化（dynamic window bounds + drag region 限定 + settings popover + window-bounds-policy.yaml） | pending |
+| 4 | Window + Settings 工业化（dynamic window bounds + drag region 限定 + settings popover + window-bounds-policy.yaml） | done |
 
 工程原则：
 
@@ -89,7 +89,7 @@ Nimi Avatar-specific contracts in this spec/kernel do not re-define upstream;只
 | `activity-mapping.yaml` | 当前 Live2D backend branch 的 activity → motion-group fallback naming |
 | `scenario-catalog.yaml` | Dev/test fixture scenarios |
 | `i18n-keys.yaml` | i18n key 与 spec 对齐表（Wave 2 admitted） |
-| `window-bounds-policy.yaml` | （Wave 4 admit）dynamic window sizing 规则 |
+| `window-bounds-policy.yaml` | Dynamic window sizing rules（Wave 4 admitted） |
 
 ### Sync Rules
 

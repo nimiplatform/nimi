@@ -14,10 +14,12 @@ import {
 import { AvatarInteractionController } from '../interaction/avatar-interaction-controller.js';
 import {
   constrainWindowToVisibleArea,
+  dragWindowBy,
   setIgnoreCursorEvents,
   startWindowDrag,
 } from '../app-shell/tauri-commands.js';
 import { isTauriRuntime } from '../app-shell/tauri-lifecycle.js';
+import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
 import { isInteractiveTarget } from '../avatar-shell-utils.js';
 import type { Live2DBackendSession } from '../live2d/backend-session.js';
 import type { AppOriginEvent } from '../driver/types.js';
@@ -26,6 +28,10 @@ export type EmbodimentStageProps = {
   visualSession: Live2DBackendSession | null;
   windowSize: { width: number; height: number };
   embodied: boolean;
+  // composition state (NAV-SHELL-COMPOSITION-001) at the time the surface is
+  // mounted. Required so the surface-mounted/unmounted evidence carries the
+  // correct posture annotation (`ready` vs `fixture_active`).
+  compositionState: string;
   emit?: (event: AppOriginEvent) => void;
   setBodyHovered?: (value: boolean) => void;
   setBodyPointerContact?: (value: boolean) => void;
@@ -38,6 +44,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     visualSession,
     windowSize,
     embodied,
+    compositionState,
     emit,
     setBodyHovered,
     setBodyPointerContact,
@@ -45,7 +52,36 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     onFocusVisibleChange,
   } = props;
 
+  useSurfaceMountEvidence('embodiment-stage', compositionState);
+
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  // Wave 4 manual drag fallback state. macOS NSWindow with transparent +
+  // always_on_top + decorations(false) doesn't honor `start_dragging()`,
+  // so we track screen-coord deltas during pointermove. To keep dragging
+  // smooth on high-frequency pointer devices, deltas are accumulated and
+  // flushed once per animation frame instead of per pointermove (which fires
+  // at 60–120 Hz on macOS and would otherwise produce one IPC round-trip
+  // per event).
+  const dragRef = useRef<{
+    lastScreenX: number;
+    lastScreenY: number;
+    pointerId: number;
+    pendingDx: number;
+    pendingDy: number;
+    rafHandle: number | null;
+  } | null>(null);
+
+  const flushDragDelta = (): void => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    drag.rafHandle = null;
+    const dx = drag.pendingDx;
+    const dy = drag.pendingDy;
+    if (dx === 0 && dy === 0) return;
+    drag.pendingDx = 0;
+    drag.pendingDy = 0;
+    void dragWindowBy(dx, dy);
+  };
 
   const controller = useMemo(
     () =>
@@ -105,6 +141,26 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         controller.pointerMove(event);
       }}
       onPointerMove={(event) => {
+        // Wave 4 manual drag: accumulate screen-coord deltas, flush once
+        // per animation frame. macOS pointermove can fire 60–120 Hz; one
+        // IPC per event makes drag feel laggy. Coalescing to RAF cadence
+        // matches the compositor refresh and keeps the window glued to
+        // the cursor without saturating the IPC channel.
+        if (dragRef.current && (event.buttons & 1) === 1) {
+          const drag = dragRef.current;
+          const dx = event.screenX - drag.lastScreenX;
+          const dy = event.screenY - drag.lastScreenY;
+          if (dx !== 0 || dy !== 0) {
+            drag.lastScreenX = event.screenX;
+            drag.lastScreenY = event.screenY;
+            drag.pendingDx += dx;
+            drag.pendingDy += dy;
+            if (drag.rafHandle === null) {
+              drag.rafHandle = requestAnimationFrame(flushDragDelta);
+            }
+          }
+          return;
+        }
         if (isInteractiveTarget(event.target)) return;
         controller.pointerMove(event);
       }}
@@ -113,13 +169,44 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
       }}
       onPointerDown={(event) => {
         if (isInteractiveTarget(event.target)) return;
+        if (event.button === 0) {
+          // Capture pointer so subsequent move/up events fire here even when
+          // the cursor leaves the element while dragging.
+          (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+          dragRef.current = {
+            lastScreenX: event.screenX,
+            lastScreenY: event.screenY,
+            pointerId: event.pointerId,
+            pendingDx: 0,
+            pendingDy: 0,
+            rafHandle: null,
+          };
+        }
         controller.pointerDown(event);
       }}
       onPointerUp={(event) => {
+        const drag = dragRef.current;
+        if (drag && drag.pointerId === event.pointerId) {
+          (event.currentTarget as HTMLElement).releasePointerCapture?.(event.pointerId);
+          if (drag.rafHandle !== null) {
+            cancelAnimationFrame(drag.rafHandle);
+            // Flush any residual delta synchronously so the cursor and window
+            // end the drag in lock-step (otherwise a few unflushed pixels are
+            // dropped on pointer release).
+            flushDragDelta();
+          }
+          dragRef.current = null;
+          void constrainWindowToVisibleArea();
+        }
         if (isInteractiveTarget(event.target)) return;
         controller.pointerUp(event);
       }}
       onPointerCancel={() => {
+        const drag = dragRef.current;
+        if (drag && drag.rafHandle !== null) {
+          cancelAnimationFrame(drag.rafHandle);
+        }
+        dragRef.current = null;
         controller.pointerCancel();
       }}
       onFocusCapture={() => {

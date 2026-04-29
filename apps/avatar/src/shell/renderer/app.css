@@ -62,8 +62,11 @@ button {
   width: 100%;
   height: 100%;
   background: transparent;
-  -webkit-app-region: drag;
-  app-region: drag;
+  /* Window drag is handled programmatically by AvatarInteractionController via
+   * Tauri `startDragging`. We do NOT use -webkit-app-region (Electron-style)
+   * because Tauri WebView intercepts those regions at the OS layer and
+   * silently swallows the React pointer events the controller relies on for
+   * hit-region detection — leaving the stage feeling unresponsive. */
 }
 
 .avatar-embodiment-stage__body {

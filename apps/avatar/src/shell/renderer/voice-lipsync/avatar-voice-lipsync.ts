@@ -10,8 +10,11 @@ import {
   type VoiceLipsyncStateBus,
 } from './voice-lipsync-state-bus.js';
 import type { AudioPlaybackState } from '../voice-companion-state.js';
+import { Live2DLipsyncBridge, LIVE2D_PARAM_MOUTH_OPEN } from '../live2d/lipsync-bridge.js';
 
-export const AVATAR_MOUTH_OPEN_SIGNAL = 'ParamMouthOpenY';
+// Re-export for backward compat — orchestrator no longer owns this constant
+// directly but tests / consumers may still reference it.
+export const AVATAR_MOUTH_OPEN_SIGNAL = LIVE2D_PARAM_MOUTH_OPEN;
 
 type RuntimeTimelineDetail = {
   turn_id: string;
@@ -240,9 +243,17 @@ export function createAvatarVoiceLipsyncPipeline(input: {
   const stateBus = input.stateBus ?? getSharedVoiceLipsyncStateBus();
   const audioPlayback = input.audioPlayback ?? getSharedAudioPlaybackController();
   const fetchAudioBytes = input.fetchAudioBytes;
+  // Live2D-specific projection writes are owned by the bridge per Wave 3
+  // feature-matrix wave_3.scope.live2d_lipsync_bridge. The orchestrator stays
+  // embodiment-agnostic and only delegates per-frame mouth/form parameter
+  // updates here.
+  const live2dBridge = new Live2DLipsyncBridge({
+    projection: input.projection,
+    mouthOpenSignalId: mouthSignalId,
+  });
 
   function resetMouth(): void {
-    input.projection.setSignal(mouthSignalId, 0, 1);
+    live2dBridge.reset();
   }
 
   function publishPlaybackState(state: AudioPlaybackState): void {
@@ -360,7 +371,15 @@ export function createAvatarVoiceLipsyncPipeline(input: {
         stateBus.publish({ kind: 'deactivate' });
         return;
       }
-      input.projection.setSignal(mouthSignalId, frame.mouthOpenY, 1);
+      live2dBridge.applyFrame({
+        offsetMs: frame.offsetMs,
+        mouthOpenY: frame.mouthOpenY,
+        // parseRuntimeLipsyncFrameBatch / parseVoiceTiming both lose audio
+        // level on the way to VoiceFrame; default to 0.5 mid-form so the
+        // bridge writes a neutral ParamMouthForm for now. Future work: thread
+        // audio_level through the orchestrator's VoiceFrame type.
+        audioLevel: 0.5,
+      });
       stateBus.publish({ kind: 'mouth_open_y', value: frame.mouthOpenY });
       emitDriverEvent(input.driver, 'avatar.lipsync.frame', timeline, {
         source_event_name: event.name,

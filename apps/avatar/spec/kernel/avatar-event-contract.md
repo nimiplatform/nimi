@@ -235,6 +235,18 @@ avatar.composition.relaunch-pending:
       launch_source: string?
     notified_at: string
 
+avatar.composition.surface-mounted:
+  detail:
+    surface: enum(embodiment-stage|companion-surface|degraded-surface)
+    composition_state: string                      # composition state at mount time
+    mounted_at: string                             # ISO 8601
+
+avatar.composition.surface-unmounted:
+  detail:
+    surface: enum(embodiment-stage|companion-surface|degraded-surface)
+    composition_state: string                      # composition state at unmount time
+    unmounted_at: string                           # ISO 8601
+
 avatar.shell.reload-requested:
   detail:
     from_state: string                             # composition state name
