@@ -130,6 +130,10 @@ func appIDFromRequest(req any) string {
 	if ok {
 		return strings.TrimSpace(item.GetAppId())
 	}
+	fromAppCarrier, ok := req.(interface{ GetFromAppId() string })
+	if ok {
+		return strings.TrimSpace(fromAppCarrier.GetFromAppId())
+	}
 	if accountReq, ok := req.(interface {
 		GetCaller() *runtimev1.AccountCaller
 	}); ok {

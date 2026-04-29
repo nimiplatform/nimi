@@ -54,7 +54,6 @@ const LOCAL_FIRST_PARTY_APP_OWNED_INPUTS = [
 const AVATAR_FORBIDDEN_PATTERNS = [
   { label: 'shared auth IPC', pattern: /\bauth_session_(?:load|save|clear)\b/g },
   { label: 'Runtime account session event subscription', pattern: /\bSubscribeAccountSessionEvents\b|\bsubscribeAccountSessionEvents\s*\(/g },
-  { label: 'Runtime account access token', pattern: /\bGetAccessToken\b|\bgetAccessToken\s*\(/g },
   { label: 'Runtime scoped binding issue', pattern: /\bIssueScopedAppBinding\b|\bissueScopedAppBinding\s*\(/g },
   { label: 'Runtime login begin', pattern: /\bBeginLogin\b|\bbeginLogin\s*\(/g },
   { label: 'Runtime login complete', pattern: /\bCompleteLogin\b|\bcompleteLogin\s*\(/g },
@@ -62,10 +61,73 @@ const AVATAR_FORBIDDEN_PATTERNS = [
   { label: 'Runtime auth open session', pattern: /\bOpenSession\b|\bopenSession\s*\(/g },
   { label: 'Realm current user authority', pattern: /\bMeService\.getMe\b|\bgetMe\s*\(/g },
   { label: 'Realm auth/client authority', pattern: /\bRealmAuthService\b|\bnew\s+Realm\s*\(|\bcreateRealmClient\s*\(/g },
-  { label: 'Avatar anchor owner', pattern: /\bruntime\.agent\.anchors\.open\b|\banchors\.open\s*\(/g },
-  { label: 'caller subject truth', pattern: /\bsubject_user_id\b|\bsubjectUserId\b/g },
-  { label: 'account projection', pattern: /\bAccountProjection\b|\baccountProjection\b/g },
-  { label: 'raw account token', pattern: /\baccount_access_token\b|\baccessToken\b|\brefreshToken\b|\brawJwt\b/g },
+  { label: 'Desktop-launched Avatar account caller mode', pattern: /\bDESKTOP_LAUNCHED_AVATAR\b/g },
+  { label: 'Avatar default binding-only failure', pattern: /\bscoped_binding_unavailable\b|\bscoped binding is\b/gi },
+  { label: 'Avatar app-owned access token provider', pattern: /\baccessTokenProvider\b/g },
+  { label: 'Avatar refresh-token custody', pattern: /\brefreshTokenProvider\b|\brefreshToken\b|\brefresh_token\b/g },
+  { label: 'Avatar subject provider', pattern: /\bsubjectUserIdProvider\b/g },
+  { label: 'Avatar raw JWT custody', pattern: /\brawJwt\b|\braw_jwt\b/g },
+];
+
+const DESKTOP_AVATAR_LAUNCH_FORBIDDEN_FIELDS = [
+  'avatarPackage',
+  'avatarPackageKind',
+  'avatarPackageId',
+  'avatarPackageSchemaVersion',
+  'conversationAnchorId',
+  'anchorMode',
+  'runtimeAppId',
+  'worldId',
+  'scopedBinding',
+  'bindingId',
+  'bindingHandle',
+  'bindingScopes',
+  'bindingState',
+  'bindingReasonCode',
+  'bindingAppInstanceId',
+  'bindingWindowId',
+  'accountId',
+  'agentCenterAccountId',
+  'userId',
+  'subjectUserId',
+  'realmBaseUrl',
+  'realmUrl',
+  'accessToken',
+  'accountAccessToken',
+  'refreshToken',
+  'jwt',
+];
+
+const AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS = [
+  'avatar_package',
+  'avatar_package_kind',
+  'avatar_package_id',
+  'avatar_package_schema_version',
+  'conversation_anchor_id',
+  'anchor_mode',
+  'runtime_app_id',
+  'world_id',
+  'scoped_binding',
+  'binding_id',
+  'binding_handle',
+  'binding_app_instance_id',
+  'binding_window_id',
+  'binding_scopes',
+  'binding_state',
+  'binding_reason_code',
+  'agent_center_account_id',
+  'account_id',
+  'user_id',
+  'subject_user_id',
+  'realm_base_url',
+  'realm_url',
+  'access_token',
+  'account_access_token',
+  'refresh_token',
+  'jwt',
+  'raw_jwt',
+  'shared_auth',
+  'login_route',
 ];
 
 const AVATAR_CAPABILITY_FORBIDDEN = [
@@ -408,13 +470,13 @@ function scanAvatarBoundary(files, violations) {
     for (const check of AVATAR_FORBIDDEN_PATTERNS) {
       check.pattern.lastIndex = 0;
       for (const match of file.source.matchAll(check.pattern)) {
-        pushViolation(
-          violations,
-          file.relPath,
-          file.source,
-          match.index || 0,
-          `Avatar forbidden ${check.label}`,
-          'Desktop-launched Avatar must consume only scoped Runtime binding projection',
+          pushViolation(
+            violations,
+            file.relPath,
+            file.source,
+            match.index || 0,
+            `Avatar forbidden ${check.label}`,
+          'Default Avatar must use Runtime first-party account authority without shared auth, refresh-token custody, or Desktop scoped-binding launch truth',
         );
       }
     }
@@ -545,12 +607,19 @@ function requireSource(file, violations, relPath) {
   return file.source;
 }
 
+function runtimeAccountServiceSources(files) {
+  return files
+    .filter((item) => item.relPath.startsWith('runtime/internal/services/account/') && item.relPath.endsWith('.go') && !item.relPath.endsWith('_test.go'))
+    .sort((left, right) => left.relPath.localeCompare(right.relPath));
+}
+
 function scanRuntimeCallerAdmission(files, violations) {
   const file = files.find((item) => item.relPath === 'runtime/internal/services/account/service.go');
   const source = requireSource(file, violations, 'runtime/internal/services/account/service.go');
   if (!source) {
     return;
   }
+  const accountServiceSource = runtimeAccountServiceSources(files).map((item) => item.source).join('\n');
   const requireMethodAdmission = ({
     methodName,
     tokenRequest,
@@ -678,7 +747,7 @@ function scanRuntimeCallerAdmission(files, violations) {
       'RevokeScopedAppBinding must reject caller/relation app or instance mismatches',
     );
   }
-  if (!/AdmitLocalFirstPartyInstance\(/u.test(source)) {
+  if (!/AdmitLocalFirstPartyInstance\(/u.test(accountServiceSource)) {
     pushViolation(
       violations,
       'runtime/internal/services/account/service.go',
@@ -696,6 +765,7 @@ function scanRuntimeBindingAuthenticatedState(files, violations) {
   if (!source) {
     return;
   }
+  const accountFiles = runtimeAccountServiceSources(files);
   if (!/ValidateScopedBinding[\s\S]*s\.state\s*!=\s*runtimev1\.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED/u.test(source)) {
     pushViolation(
       violations,
@@ -708,14 +778,16 @@ function scanRuntimeBindingAuthenticatedState(files, violations) {
   }
   for (const marker of ['markCustodyUnavailable', 'transitionToReauthRequired', 'ObserveRefreshToken']) {
     const defPattern = new RegExp(`func \\(s \\*Service\\) ${marker}\\b`);
-    const defMatch = defPattern.exec(source);
+    const markerFile = accountFiles.find((item) => defPattern.test(item.source));
+    const markerSource = markerFile ? markerFile.source : source;
+    const defMatch = markerFile ? defPattern.exec(markerSource) : null;
     const markerIndex = defMatch ? defMatch.index : -1;
-    const block = markerIndex >= 0 ? source.slice(markerIndex, markerIndex + 1200) : '';
+    const block = markerIndex >= 0 ? markerSource.slice(markerIndex, markerIndex + 1200) : '';
     if (!block.includes('revokeBindingsLocked')) {
       pushViolation(
         violations,
-        'runtime/internal/services/account/service.go',
-        source,
+        markerFile ? markerFile.relPath : 'runtime/internal/services/account/service.go',
+        markerSource,
         markerIndex >= 0 ? markerIndex : 0,
         'Runtime binding non-auth revocation',
         `${marker} must revoke or suspend active scoped bindings when account state leaves authenticated`,
@@ -724,10 +796,11 @@ function scanRuntimeBindingAuthenticatedState(files, violations) {
   }
 }
 
-function scanAvatarLaunchIdentityLeak(files, violations) {
+function scanDesktopAvatarLaunchAuthority(files, violations) {
   const desktopLauncher = files.find((item) => item.relPath === 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-launcher.ts');
   if (desktopLauncher) {
-    for (const pattern of [/\bagentCenterAccountId\b/u, /\bagent_center_account_id\b/u, /\baccountId\s*:/u, /\bsubjectUserId\b/u, /\buserId\s*:/u]) {
+    for (const field of DESKTOP_AVATAR_LAUNCH_FORBIDDEN_FIELDS) {
+      const pattern = new RegExp(`\\b(?:payload|launchPayload|handoffPayload)\\b\\s*(?::[^=]+)?=\\s*\\{[^}]*\\b${field}\\b(?:\\s*:|\\s*[,}])`, 'su');
       const match = pattern.exec(desktopLauncher.source);
       if (match) {
         pushViolation(
@@ -735,28 +808,96 @@ function scanAvatarLaunchIdentityLeak(files, violations) {
           desktopLauncher.relPath,
           desktopLauncher.source,
           match.index,
-          'Desktop Avatar launch account identity leak',
-          'Desktop-launched Avatar handoff must not carry account/user identity',
+          'Desktop Avatar launch authority field',
+          `Desktop-launched Avatar handoff must not carry ${field}`,
+        );
+      }
+    }
+    for (const pattern of [/\bissueScopedAppBinding\s*\(/u, /\bruntime\.account\.issueScopedAppBinding\b/u, /\bruntime\.agent\.anchors\.open\b/u]) {
+      const match = pattern.exec(desktopLauncher.source);
+      if (match) {
+        pushViolation(
+          violations,
+          desktopLauncher.relPath,
+          desktopLauncher.source,
+          match.index,
+          'Desktop Avatar launch precondition authority',
+          'Desktop must not issue scoped bindings or reserve Runtime anchors before launching default Avatar',
         );
       }
     }
   }
 
-  const avatarPackageResolver = files.find((item) => item.relPath === 'apps/avatar/src-tauri/src/agent_center_avatar_package.rs');
-  if (avatarPackageResolver) {
-    for (const pattern of [/\bagent_center_account_id\b/u, /\baccount_id\b/u, /\bsubject_user_id\b/u, /\buser_id\b/u]) {
-      const match = pattern.exec(avatarPackageResolver.source);
+  const desktopTauriHandoff = files.find((item) => item.relPath === 'apps/desktop/src-tauri/src/main_parts/defaults_and_commands/window_and_logs.rs');
+  if (desktopTauriHandoff) {
+    for (const parameter of AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS) {
+      const pattern = new RegExp(`append_pair\\(\\s*["']${parameter}["']`, 'u');
+      const match = pattern.exec(desktopTauriHandoff.source);
       if (match) {
         pushViolation(
           violations,
-          avatarPackageResolver.relPath,
-          avatarPackageResolver.source,
+          desktopTauriHandoff.relPath,
+          desktopTauriHandoff.source,
           match.index,
-          'Avatar package resolver account identity dependency',
-          'Avatar visual package resolution must consume only a non-account descriptor/capability',
+          'Desktop Avatar handoff URI authority field',
+          `Desktop Avatar handoff URI must not serialize ${parameter}`,
         );
       }
     }
+  }
+}
+
+function scanAvatarLaunchParserGuardrail(files, violations) {
+  for (const relPath of [
+    'apps/avatar/src/shell/renderer/bridge/launch-context.ts',
+    'apps/avatar/src-tauri/src/avatar_launch_context.rs',
+  ]) {
+    const file = files.find((item) => item.relPath === relPath);
+    const source = requireSource(file, violations, relPath);
+    if (!source) {
+      continue;
+    }
+    for (const parameter of AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS) {
+      if (!source.includes(parameter)) {
+        pushViolation(
+          violations,
+          relPath,
+          source,
+          0,
+          'Avatar launch parser missing forbidden field',
+          `Avatar launch parser must reject ${parameter}`,
+        );
+      }
+    }
+  }
+}
+
+function scanDesktopLocalAvatarCarrierDecommission(files, violations) {
+  const store = files.find((item) => item.relPath === 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts');
+  const source = requireSource(store, violations, 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts');
+  if (!source) {
+    return;
+  }
+  if (!source.includes('DESKTOP_AVATAR_STORE_DECOMMISSIONED_MESSAGE')) {
+    pushViolation(
+      violations,
+      'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts',
+      source,
+      0,
+      'Desktop local avatar carrier decommission guard',
+      'decommissioned Desktop avatar store must retain an explicit hard-block message',
+    );
+  }
+  const invokeMatch = /\binvokeChecked\s*\(/u.exec(source);
+  if (invokeMatch) {
+    pushViolation(
+      violations,
+      'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts',
+      source,
+      invokeMatch.index,
+      'Desktop local avatar carrier IPC revival',
+      'decommissioned Desktop avatar store must not call Tauri IPC resource or binding commands',
+    );
   }
 }
 
@@ -816,7 +957,9 @@ export function scanAccountSessionHardcut(files) {
   scanRuntimeAccountBroker(files, violations);
   scanRuntimeCallerAdmission(files, violations);
   scanRuntimeBindingAuthenticatedState(files, violations);
-  scanAvatarLaunchIdentityLeak(files, violations);
+  scanDesktopAvatarLaunchAuthority(files, violations);
+  scanAvatarLaunchParserGuardrail(files, violations);
+  scanDesktopLocalAvatarCarrierDecommission(files, violations);
   scanWebCloudFence(files, violations);
   scanModsBoundary(files, violations);
   scanLocalAppSliceAuthDrift(files, violations);
@@ -931,6 +1074,22 @@ func (s *Service) ObserveRefreshToken() { s.revokeBindingsLocked(reason) }
 	      source: 'export const payload = { agentId, avatarPackageId };',
 	    },
 	    {
+	      relPath: 'apps/desktop/src-tauri/src/main_parts/defaults_and_commands/window_and_logs.rs',
+	      source: 'serializer.append_pair("agent_id", agent_id.as_str());',
+	    },
+	    {
+	      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts',
+	      source: 'const DESKTOP_AVATAR_STORE_DECOMMISSIONED_MESSAGE = "closed"; export async function listDesktopAgentAvatarResources() { throw new Error(DESKTOP_AVATAR_STORE_DECOMMISSIONED_MESSAGE); }',
+	    },
+	    {
+	      relPath: 'apps/avatar/src/shell/renderer/bridge/launch-context.ts',
+	      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
+	    },
+	    {
+	      relPath: 'apps/avatar/src-tauri/src/avatar_launch_context.rs',
+	      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
+	    },
+	    {
 	      relPath: 'apps/avatar/src-tauri/src/agent_center_avatar_package.rs',
 	      source: 'struct Payload { agent_id: String, avatar_package_id: String }',
 	    },
@@ -965,11 +1124,10 @@ func (s *Service) ObserveRefreshToken() { s.revokeBindingsLocked(reason) }
   assert.equal(violations.some((item) => item.includes('good.ts') && item.includes('Avatar forbidden')), false);
   assert.equal(violations.some((item) => item.includes('bad.json') && item.includes('Avatar forbidden Tauri permission')), true);
   assert.equal(violations.some((item) => item.includes('default.json') && item.includes('Avatar forbidden Tauri permission')), false);
-  assert.equal(violations.some((item) => item.includes('tauri.conf.json') && item.includes('Avatar broad .nimi asset scope')), false);
+	  assert.equal(violations.some((item) => item.includes('tauri.conf.json') && item.includes('Avatar broad .nimi asset scope')), false);
   assert.equal(violations.some((item) => item.includes('apps/shiji/src') && item.includes('Local app slice')), false);
 	  assert.equal(violations.some((item) => item.includes('bad.go') && item.includes('Runtime account broker')), true);
-	  assert.equal(violations.some((item) => item.includes('chat-agent-avatar-launcher.ts') && item.includes('Desktop Avatar launch account identity leak')), false);
-	  assert.equal(violations.some((item) => item.includes('agent_center_avatar_package.rs') && item.includes('Avatar package resolver account identity dependency')), false);
+	  assert.equal(violations.some((item) => item.includes('chat-agent-avatar-launcher.ts') && item.includes('Desktop Avatar launch authority field')), true);
 	  assert.equal(violations.some((item) => item.includes('runtime-bootstrap.web.ts')), false);
   assert.equal(violations.some((item) => item.includes('apps/web/src/negative.ts')), true);
   assert.equal(violations.some((item) => item.includes('apps/web/src/positive.ts')), false);
@@ -1014,6 +1172,22 @@ func (s *Service) ObserveRefreshToken() {}
 	      source: 'export const payload = { agentCenterAccountId: accountId, agentId };',
 	    },
 	    {
+	      relPath: 'apps/desktop/src-tauri/src/main_parts/defaults_and_commands/window_and_logs.rs',
+	      source: 'serializer.append_pair("binding_id", binding_id.as_str());',
+	    },
+	    {
+	      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts',
+	      source: 'export async function listDesktopAgentAvatarResources() { return invokeChecked("desktop_agent_avatar_resource_list", {}, parse); }',
+	    },
+	    {
+	      relPath: 'apps/avatar/src/shell/renderer/bridge/launch-context.ts',
+	      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
+	    },
+	    {
+	      relPath: 'apps/avatar/src-tauri/src/avatar_launch_context.rs',
+	      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
+	    },
+	    {
 	      relPath: 'apps/avatar/src-tauri/src/agent_center_avatar_package.rs',
 	      source: 'struct Payload { agent_center_account_id: String, subject_user_id: String }',
 	    },
@@ -1054,8 +1228,9 @@ func (s *Service) ObserveRefreshToken() {}
 	  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding revoke relation admission')), true);
 	  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding authenticated-state validation')), true);
 	  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding non-auth revocation')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop Avatar launch account identity leak')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Avatar package resolver account identity dependency')), true);
+	  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop Avatar launch authority field')), true);
+	  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop Avatar handoff URI authority field')), true);
+	  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop local avatar carrier')), true);
 	  assert.equal(p1NegativeViolations.some((item) => item.includes('Avatar broad .nimi asset scope')), true);
 	  assert.equal(p1NegativeViolations.some((item) => item.includes('Local app slice auth fence')), true);
 	  assert.equal(p1NegativeViolations.some((item) => item.includes('Local app slice app-owned provider seam')), true);

@@ -11,6 +11,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	authservice "github.com/nimiplatform/nimi/runtime/internal/services/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -132,6 +133,46 @@ func TestSendRuntimeAgentMessageRequiresScopedBinding(t *testing.T) {
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_APP_GRANT_INVALID {
 		t.Fatalf("unexpected reason: %v ok=%v err=%v", reason, ok, err)
+	}
+}
+
+func TestSendRuntimeAgentMessageAllowsValidatedProtectedCapabilityWithoutScopedBinding(t *testing.T) {
+	validator := &testScopedBindingValidator{t: t, ok: false}
+	svc := newTestService(WithScopedBindingValidator(validator))
+	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "nimi.avatar", "runtime.agent.turn.write")
+	resp, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
+		FromAppId:   "nimi.avatar",
+		ToAppId:     "runtime.agent",
+		MessageType: "runtime.agent.turn.request",
+	})
+	if err != nil {
+		t.Fatalf("SendAppMessage with protected capability: %v", err)
+	}
+	if !resp.GetAccepted() {
+		t.Fatalf("expected accepted response: %#v", resp)
+	}
+	if validator.calls != 0 {
+		t.Fatalf("scoped binding validator must not be called for protected capability, got %d", validator.calls)
+	}
+}
+
+func TestSendRuntimeAgentSnapshotRequestAllowsValidatedProtectedWriteCapabilityWithoutScopedBinding(t *testing.T) {
+	validator := &testScopedBindingValidator{t: t, ok: false}
+	svc := newTestService(WithScopedBindingValidator(validator))
+	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "nimi.avatar", "runtime.agent.turn.write")
+	resp, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
+		FromAppId:   "nimi.avatar",
+		ToAppId:     "runtime.agent",
+		MessageType: "runtime.agent.session.snapshot.request",
+	})
+	if err != nil {
+		t.Fatalf("SendAppMessage session snapshot with protected capability: %v", err)
+	}
+	if !resp.GetAccepted() {
+		t.Fatalf("expected accepted response: %#v", resp)
+	}
+	if validator.calls != 0 {
+		t.Fatalf("scoped binding validator must not be called for protected capability, got %d", validator.calls)
 	}
 }
 
@@ -436,6 +477,37 @@ func TestSubscribeRuntimeAgentMessagesRequiresScopedBinding(t *testing.T) {
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_APP_GRANT_INVALID {
 		t.Fatalf("unexpected reason: %v ok=%v err=%v", reason, ok, err)
+	}
+}
+
+func TestSubscribeRuntimeAgentMessagesAllowsValidatedProtectedCapabilityWithoutScopedBinding(t *testing.T) {
+	validator := &testScopedBindingValidator{t: t, ok: false}
+	svc := newTestService(WithScopedBindingValidator(validator))
+	ctx, cancel := context.WithCancel(envelope.WithValidatedProtectedCapability(
+		appContext("nimi.avatar"),
+		"nimi.avatar",
+		"runtime.agent.turn.read",
+	))
+	stream := &appMessageStreamCollector{ctx: ctx}
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{
+			AppId:      "nimi.avatar",
+			FromAppIds: []string{"runtime.agent"},
+		}, stream)
+	}()
+	time.Sleep(20 * time.Millisecond)
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil && !errors.Is(err, context.Canceled) {
+			t.Fatalf("SubscribeAppMessages returned unexpected error: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("SubscribeAppMessages did not stop after cancel")
+	}
+	if validator.calls != 0 {
+		t.Fatalf("scoped binding validator must not be called for protected capability, got %d", validator.calls)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -206,7 +207,7 @@ func TestUnaryAuthzInterceptorProtectedCapability(t *testing.T) {
 		t.Fatalf("expected permission denied without token")
 	}
 	st, _ := status.FromError(err)
-	if st.Code() != codes.PermissionDenied || st.Message() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED.String() {
+	if st.Code() != codes.PermissionDenied || !strings.Contains(st.Message(), runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED.String()) {
 		t.Fatalf("unexpected error without token: %v", err)
 	}
 

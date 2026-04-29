@@ -34,9 +34,12 @@ func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.Una
 		if appID == "" {
 			appID = appIDFromRequest(req)
 		}
-		if reasonCode, _, ok := authorizer.ValidateProtectedCapability(appID, tokenID, secret, capability); !ok {
-			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, reasonCode)
+		if reasonCode, actionHint, ok := authorizer.ValidateProtectedCapability(appID, tokenID, secret, capability); !ok {
+			return nil, grpcerr.WithReasonCodeOptions(codes.PermissionDenied, reasonCode, grpcerr.ReasonOptions{
+				ActionHint: actionHint,
+			})
 		}
+		ctx = envelope.WithValidatedProtectedCapability(ctx, appID, capability)
 		return handler(ctx, req)
 	}
 }
@@ -70,8 +73,18 @@ type authzStream struct {
 	secret        string
 	capability    string
 	metadataAppID string
+	ctx           context.Context
 	checked       bool
 	mu            sync.Mutex
+}
+
+func (s *authzStream) Context() context.Context {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.ctx != nil {
+		return s.ctx
+	}
+	return s.ServerStream.Context()
 }
 
 func (s *authzStream) RecvMsg(m any) error {
@@ -95,9 +108,12 @@ func (s *authzStream) RecvMsg(m any) error {
 	if appID == "" {
 		appID = appIDFromRequest(m)
 	}
-	if reasonCode, _, ok := s.authorizer.ValidateProtectedCapability(appID, s.tokenID, s.secret, s.capability); !ok {
-		return grpcerr.WithReasonCode(codes.PermissionDenied, reasonCode)
+	if reasonCode, actionHint, ok := s.authorizer.ValidateProtectedCapability(appID, s.tokenID, s.secret, s.capability); !ok {
+		return grpcerr.WithReasonCodeOptions(codes.PermissionDenied, reasonCode, grpcerr.ReasonOptions{
+			ActionHint: actionHint,
+		})
 	}
+	s.ctx = envelope.WithValidatedProtectedCapability(s.ServerStream.Context(), appID, s.capability)
 	return nil
 }
 

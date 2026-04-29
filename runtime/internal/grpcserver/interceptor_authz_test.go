@@ -3,9 +3,11 @@ package grpcserver
 import (
 	"context"
 	"io"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -180,6 +182,7 @@ type authzTestAuthorizer struct {
 	lastCap    string
 	allow      bool
 	reason     runtimev1.ReasonCode
+	actionHint string
 }
 
 func (a *authzTestAuthorizer) ValidateProtectedCapability(appID string, tokenID string, secret string, capability string) (runtimev1.ReasonCode, string, bool) {
@@ -188,7 +191,7 @@ func (a *authzTestAuthorizer) ValidateProtectedCapability(appID string, tokenID 
 	a.lastToken = tokenID
 	a.lastSecret = secret
 	a.lastCap = capability
-	return a.reason, "", a.allow
+	return a.reason, a.actionHint, a.allow
 }
 
 type authzTestStream struct {
@@ -257,7 +260,7 @@ func TestStreamAuthzInterceptorUsesFirstRequestAppID(t *testing.T) {
 }
 
 func TestStreamAuthzInterceptorRejectsUnauthorizedFirstRequest(t *testing.T) {
-	authorizer := &authzTestAuthorizer{allow: false, reason: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED}
+	authorizer := &authzTestAuthorizer{allow: false, reason: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, actionHint: "provide_access_token_credentials"}
 	interceptor := newStreamAuthzInterceptor(authorizer)
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"x-nimi-access-token-id", "tok-1",
@@ -283,6 +286,9 @@ func TestStreamAuthzInterceptorRejectsUnauthorizedFirstRequest(t *testing.T) {
 	}
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("unexpected status code: %v", status.Code(err))
+	}
+	if !strings.Contains(status.Convert(err).Message(), "provide_access_token_credentials") {
+		t.Fatalf("expected structured action hint, got %q", status.Convert(err).Message())
 	}
 }
 
@@ -315,6 +321,33 @@ func TestUnaryAuthzInterceptorUsesNestedContextAppID(t *testing.T) {
 	}
 	if authorizer.lastCap != "runtime.agent.read" {
 		t.Fatalf("unexpected capability: %q", authorizer.lastCap)
+	}
+}
+
+func TestUnaryAuthzInterceptorMarksValidatedProtectedCapability(t *testing.T) {
+	authorizer := &authzTestAuthorizer{allow: true, reason: runtimev1.ReasonCode_ACTION_EXECUTED}
+	interceptor := newUnaryAuthzInterceptor(authorizer)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-access-token-id", "tok-chat-1",
+		"x-nimi-access-token-secret", "sec-chat-1",
+	))
+	req := &runtimev1.SendAppMessageRequest{
+		FromAppId:   "nimi.avatar",
+		ToAppId:     "runtime.agent",
+		MessageType: "runtime.agent.turn.request",
+	}
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
+	}
+
+	_, err := interceptor(ctx, req, info, func(ctx context.Context, request any) (any, error) {
+		if !envelope.HasValidatedProtectedCapability(ctx, "nimi.avatar", "runtime.agent.turn.write") {
+			t.Fatal("expected handler context to carry validated protected capability")
+		}
+		return request, nil
+	})
+	if err != nil {
+		t.Fatalf("expected unary authz to allow request, got %v", err)
 	}
 }
 
@@ -389,6 +422,42 @@ func TestStreamAuthzInterceptorUsesRuntimeAgentChatCapabilityForAppSubscriptions
 	}
 	if authorizer.lastCap != "runtime.agent.turn.read" {
 		t.Fatalf("unexpected capability: %q", authorizer.lastCap)
+	}
+}
+
+func TestStreamAuthzInterceptorMarksValidatedProtectedCapability(t *testing.T) {
+	authorizer := &authzTestAuthorizer{allow: true, reason: runtimev1.ReasonCode_ACTION_EXECUTED}
+	interceptor := newStreamAuthzInterceptor(authorizer)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-access-token-id", "tok-chat-1",
+		"x-nimi-access-token-secret", "sec-chat-1",
+	))
+	stream := &authzTestStream{
+		ctx: ctx,
+		requests: []proto.Message{
+			&runtimev1.SubscribeAppMessagesRequest{
+				AppId:      "nimi.avatar",
+				FromAppIds: []string{"runtime.agent"},
+			},
+		},
+	}
+	info := &grpc.StreamServerInfo{
+		FullMethod:     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
+		IsServerStream: true,
+	}
+
+	err := interceptor(nil, stream, info, func(_ any, ss grpc.ServerStream) error {
+		var got runtimev1.SubscribeAppMessagesRequest
+		if err := ss.RecvMsg(&got); err != nil {
+			return err
+		}
+		if !envelope.HasValidatedProtectedCapability(ss.Context(), "nimi.avatar", "runtime.agent.turn.read") {
+			t.Fatal("expected stream context to carry validated protected capability")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("expected stream authz to allow runtime.agent app stream, got %v", err)
 	}
 }
 

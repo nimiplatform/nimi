@@ -132,7 +132,7 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		}
 	}
 	if toAppID == "runtime.agent" {
-		if err := s.validateRuntimeAgentBinding(req.GetScopedBinding(), fromAppID, requiredRuntimeAgentSendScope(messageType)); err != nil {
+		if err := s.validateRuntimeAgentAdmission(ctx, req.GetScopedBinding(), fromAppID, requiredRuntimeAgentSendScope(messageType), requiredRuntimeAgentSendProtectedScope(messageType)); err != nil {
 			return nil, err
 		}
 	}
@@ -229,7 +229,7 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 		}
 	}
 	if subscribesRuntimeAgent(req) {
-		if err := s.validateRuntimeAgentBinding(req.GetScopedBinding(), strings.TrimSpace(req.GetAppId()), "runtime.agent.turn.read"); err != nil {
+		if err := s.validateRuntimeAgentAdmission(stream.Context(), req.GetScopedBinding(), strings.TrimSpace(req.GetAppId()), "runtime.agent.turn.read", "runtime.agent.turn.read"); err != nil {
 			return err
 		}
 	}
@@ -396,6 +396,22 @@ func requiredRuntimeAgentSendScope(messageType string) string {
 	default:
 		return "runtime.agent.turn.write"
 	}
+}
+
+func requiredRuntimeAgentSendProtectedScope(messageType string) string {
+	switch strings.TrimSpace(messageType) {
+	case "runtime.agent.session.snapshot.request":
+		return "runtime.agent.turn.write"
+	default:
+		return "runtime.agent.turn.write"
+	}
+}
+
+func (s *Service) validateRuntimeAgentAdmission(ctx context.Context, attachment *runtimev1.ScopedRuntimeBindingAttachment, fallbackRuntimeAppID string, requiredBindingScope string, requiredProtectedScope string) error {
+	if envelope.HasValidatedProtectedCapability(ctx, fallbackRuntimeAppID, requiredProtectedScope) {
+		return nil
+	}
+	return s.validateRuntimeAgentBinding(attachment, fallbackRuntimeAppID, requiredBindingScope)
 }
 
 func (s *Service) validateRuntimeAgentBinding(attachment *runtimev1.ScopedRuntimeBindingAttachment, fallbackRuntimeAppID string, requiredScope string) error {
