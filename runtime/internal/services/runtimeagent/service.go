@@ -55,6 +55,11 @@ type Service struct {
 	bindingValidator scopedBindingValidator
 	aiBridgeMu       sync.RWMutex
 	aiBridge         *RuntimePrivateAIBridge
+	// voiceLipsync is the K-AGCORE-051 synthesizer that turns committed
+	// assistant text into runtime-owned lipsync frames. Constructor injects
+	// the deterministic synthetic adapter; real TTS providers can implement
+	// voiceLipsyncSynthesizer for future provider integration.
+	voiceLipsync voiceLipsyncSynthesizer
 
 	mu               sync.RWMutex
 	agents           map[string]*agentEntry
@@ -111,6 +116,7 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		chatTurns:         make(map[string]*publicChatTurnState),
 		chatFollowUps:     make(map[string]*publicChatFollowUpState),
 		chatActiveByAgent: make(map[string]string),
+		voiceLipsync:      newSyntheticVoiceLipsyncSynthesizer(),
 	}
 	if err := svc.loadState(); err != nil {
 		return nil, err
