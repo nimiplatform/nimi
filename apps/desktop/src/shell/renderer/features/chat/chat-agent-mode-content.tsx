@@ -158,11 +158,16 @@ export function ChatAgentModeContent({
       {selectedTarget && settingsOpen && host.settingsContent ? (
         <ChatSideSheet
           sheetKey="settings"
-          title={host.settingsDrawerTitle || 'Settings'}
-          subtitle={host.settingsDrawerSubtitle || host.characterData?.name || selectedTarget.title}
+          eyebrow={host.settingsDrawerTitle || 'Agent Center'}
+          title={host.settingsDrawerSubtitle || host.characterData?.name || selectedTarget.title}
+          subtitle={selectedTarget.handle ? `~${selectedTarget.handle}` : null}
+          world={host.settingsDrawerWorld ?? null}
+          avatarUrl={host.characterData?.avatarUrl ?? selectedTarget.avatarUrl ?? null}
+          avatarFallback={host.characterData?.avatarFallback ?? selectedTarget.avatarFallback ?? undefined}
+          avatarAlt={host.characterData?.name ?? selectedTarget.title}
           onClose={onCloseSettings}
         >
-          <div className="px-3 py-3">
+          <div className="px-5 py-3">
             {host.settingsContent}
           </div>
         </ChatSideSheet>

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useEffect, type ReactNode, type MouseEvent, type CSSProperties } from 'react';
+import { Suspense, lazy, useRef, useState, useEffect, type ReactNode, type MouseEvent, type CSSProperties } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
@@ -152,8 +152,8 @@ function SharedStatusShell(props: {
           100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.0; }
         }
         @keyframes nimi-progress-glow {
-          0%, 100% { box-shadow: 0 0 6px 1px rgba(73,201,165,0.55), 0 0 16px 4px rgba(31,155,171,0.30); }
-          50%      { box-shadow: 0 0 10px 2px rgba(73,201,165,0.85), 0 0 24px 6px rgba(31,155,171,0.45); }
+          0%, 100% { box-shadow: 0 0 6px 1px rgba(78,204,163,0.55), 0 0 16px 4px rgba(61,187,150,0.30); }
+          50%      { box-shadow: 0 0 10px 2px rgba(78,204,163,0.85), 0 0 24px 6px rgba(61,187,150,0.45); }
         }
       `}</style>
       <BootstrapAmbientParticles />
@@ -208,17 +208,30 @@ function SharedStatusShell(props: {
 function LoadingScreen() {
   const { t } = useTranslation();
   const [progress, setProgress] = useState(0);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // Simulate progress animation
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) return prev;
-        return prev + Math.random() * 15;
-      });
-    }, 300);
-    return () => clearInterval(interval);
+    const start = performance.now();
+    const target = 90;
+    const duration = 6500;
+
+    const tick = (now: number) => {
+      const elapsed = now - start;
+      const t = Math.min(1, elapsed / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setProgress(target * eased);
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
   }, []);
+
+  const clamped = Math.min(100, progress);
 
   return (
     <SharedStatusShell
@@ -229,30 +242,30 @@ function LoadingScreen() {
       <div data-testid={E2E_IDS.appLoadingScreen} className="mt-8 w-full max-w-[18rem]">
         <div className="relative h-2 overflow-visible rounded-full bg-[#e7eef0]">
           <div
-            className="absolute inset-y-0 left-0 rounded-full bg-[linear-gradient(90deg,#49c9a5_0%,#1f9bab_100%)] transition-all duration-300 ease-out"
-            style={{ width: `${Math.min(100, progress)}%` }}
+            className="absolute inset-y-0 left-0 rounded-full bg-[linear-gradient(90deg,#4ECCA3_0%,#3DBB96_100%)]"
+            style={{ width: `${clamped}%` }}
           />
           {/* Glowing leading-edge particle — echoes the landing's micro-particles. */}
           <div
             className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
-            style={{ left: `${Math.min(100, progress)}%` }}
+            style={{ left: `${clamped}%` }}
             aria-hidden
           >
             <span
-              className="block h-3 w-3 rounded-full bg-[radial-gradient(circle,#ffffff_0%,#49c9a5_55%,rgba(31,155,171,0.0)_100%)]"
+              className="block h-3 w-3 rounded-full bg-[radial-gradient(circle,#ffffff_0%,#4ECCA3_55%,rgba(61,187,150,0.0)_100%)]"
               style={{ animation: 'nimi-progress-glow 1.6s ease-in-out infinite' }}
             />
           </div>
         </div>
         <div className="mt-3 flex items-center justify-between text-xs text-[#7b8794]">
           <span>{t('Bootstrap.bootSequenceLabel')}</span>
-          <span>{Math.round(Math.min(100, progress))}%</span>
+          <span>{Math.round(clamped)}%</span>
         </div>
         <div className="mt-5 flex items-center justify-center gap-2">
           {[0, 1, 2].map((i) => (
             <span
               key={i}
-              className="h-2.5 w-2.5 rounded-full bg-[radial-gradient(circle,#49c9a5_0%,#1f9bab_70%)] shadow-[0_0_8px_rgba(73,201,165,0.55)]"
+              className="h-2.5 w-2.5 rounded-full bg-[radial-gradient(circle,#4ECCA3_0%,#3DBB96_70%)] shadow-[0_0_8px_rgba(78,204,163,0.55)]"
               style={{
                 animation: 'nimi-dot 1.4s ease-in-out infinite',
                 animationDelay: `${i * 0.18}s`,

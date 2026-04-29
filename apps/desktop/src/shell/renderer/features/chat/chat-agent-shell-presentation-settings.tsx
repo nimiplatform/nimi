@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { hasTauriInvoke } from '@renderer/bridge/runtime-bridge/env';
-import { AgentCenterPanel } from './chat-agent-center-panel';
+import { AdvBlock, AgentCenterPanel } from './chat-agent-center-panel';
 import { ChatSettingsPanel } from './chat-shared-settings-panel';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import { AgentDiagnosticsPanel } from './chat-agent-diagnostics';
@@ -83,6 +83,21 @@ export function AgentConversationDiagnosticsContent({
       runtimeInspectLoading={input.runtimeInspectLoading}
       t={input.t}
       targetsPending={input.targetsPending}
+      renderShell={(sections) => (
+        <div>
+          {sections.map((section, index) => (
+            <AdvBlock
+              key={section.id}
+              title={section.title}
+              defaultOpen={index === 0}
+              dirty={section.dirty}
+              headerAction={section.headerAction}
+            >
+              {section.body}
+            </AdvBlock>
+          ))}
+        </div>
+      )}
     />
   );
 }
@@ -127,15 +142,6 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                   <div className="text-xs font-semibold text-slate-950">
                     {input.t('Chat.agentCenterAvatarPackage', { defaultValue: 'Avatar package' })}
                   </div>
-                  <div className="mt-1 text-[11px] leading-4 text-slate-500">
-                    {avatarPackageValid
-                      ? input.t('Chat.agentCenterAvatarPackageReady', { defaultValue: 'A local package is selected and ready to launch from the composer.' })
-                      : avatarPackageChecking
-                        ? input.t('Chat.agentCenterAvatarPackageChecking', { defaultValue: 'Checking the selected local package.' })
-                        : selectedAvatarPackage
-                          ? input.t('Chat.agentCenterAvatarPackageNeedsFix', { defaultValue: 'The selected local package needs attention before launch.' })
-                          : input.t('Chat.agentCenterAvatarPackageMissing', { defaultValue: 'Import a local Live2D folder or VRM file to enable avatar launch.' })}
-                  </div>
                 </div>
                 <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-600">
                   {avatarPackageValid
@@ -161,21 +167,35 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                 type="button"
                 disabled={avatarImportDisabled}
                 onClick={() => avatarPackageImportMutation.mutate('live2d')}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+                className="group flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 bg-white/70 px-3 py-3 text-center text-xs font-semibold text-slate-700 transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-emerald-400 hover:bg-emerald-50/60 hover:text-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.08)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:border-slate-300 disabled:hover:bg-white/70 disabled:hover:text-slate-700 disabled:hover:shadow-none"
               >
-                {avatarPackageImportMutation.isPending
-                  ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing…' })
-                  : input.t('Chat.agentCenterImportLive2d', { defaultValue: 'Import Live2D folder' })}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-400 transition-colors group-hover:text-emerald-500">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>
+                  {avatarPackageImportMutation.isPending
+                    ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing…' })
+                    : input.t('Chat.agentCenterImportLive2d', { defaultValue: 'Import Live2D folder' })}
+                </span>
               </button>
               <button
                 type="button"
                 disabled={avatarImportDisabled}
                 onClick={() => avatarPackageImportMutation.mutate('vrm')}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+                className="group flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 bg-white/70 px-3 py-3 text-center text-xs font-semibold text-slate-700 transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-emerald-400 hover:bg-emerald-50/60 hover:text-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.08)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:border-slate-300 disabled:hover:bg-white/70 disabled:hover:text-slate-700 disabled:hover:shadow-none"
               >
-                {avatarPackageImportMutation.isPending
-                  ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing…' })
-                  : input.t('Chat.agentCenterImportVrm', { defaultValue: 'Import VRM file' })}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-400 transition-colors group-hover:text-emerald-500">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>
+                  {avatarPackageImportMutation.isPending
+                    ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing…' })
+                    : input.t('Chat.agentCenterImportVrm', { defaultValue: 'Import VRM file' })}
+                </span>
               </button>
             </div>
             {selectedAvatarPackage ? (
@@ -237,11 +257,18 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                 type="button"
                 disabled={backgroundImportDisabled}
                 onClick={() => backgroundImportMutation.mutate()}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
+                className="group flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 bg-white/70 px-3 py-3 text-center text-xs font-semibold text-slate-700 transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-emerald-400 hover:bg-emerald-50/60 hover:text-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.08)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:border-slate-300 disabled:hover:bg-white/70 disabled:hover:text-slate-700 disabled:hover:shadow-none"
               >
-                {backgroundImportMutation.isPending
-                  ? input.t('Chat.agentCenterBackgroundImporting', { defaultValue: 'Importing…' })
-                  : input.t('Chat.agentCenterImportBackground', { defaultValue: 'Import background image' })}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-400 transition-colors group-hover:text-emerald-500">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>
+                  {backgroundImportMutation.isPending
+                    ? input.t('Chat.agentCenterBackgroundImporting', { defaultValue: 'Importing…' })
+                    : input.t('Chat.agentCenterImportBackground', { defaultValue: 'Import background image' })}
+                </span>
               </button>
               <button
                 type="button"
@@ -268,6 +295,12 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
             showPresenceContent={false}
             showDiagnosticsFooter={false}
             showClearHistoryAction={false}
+            superSections={[
+              { id: 'conversation', label: input.t('Chat.agentCenterSuperSectionConversation', { defaultValue: 'Conversation' }), sections: ['chat', 'embed'] },
+              { id: 'voice', label: input.t('Chat.agentCenterSuperSectionVoice', { defaultValue: 'Voice' }), sections: ['tts', 'stt', 'voice'] },
+              { id: 'media', label: input.t('Chat.agentCenterSuperSectionMedia', { defaultValue: 'Media' }), sections: ['image', 'video'] },
+              { id: 'world', label: input.t('Chat.agentCenterSuperSectionWorld', { defaultValue: 'World' }), sections: ['world'] },
+            ]}
           />
         )}
         cognitionContent={input.cognitionContent}

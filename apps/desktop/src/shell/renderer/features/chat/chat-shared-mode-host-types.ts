@@ -24,6 +24,8 @@ export type DesktopConversationModeHost = {
   settingsContent?: ReactNode;
   settingsDrawerTitle?: string;
   settingsDrawerSubtitle?: string | null;
+  /** Optional world (worldview) label rendered in the settings drawer header next to the handle. */
+  settingsDrawerWorld?: string | null;
   profileContent?: ReactNode;
   profileDrawerTitle?: string;
   profileDrawerSubtitle?: string | null;

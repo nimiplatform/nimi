@@ -72,25 +72,36 @@
 [data-canonical-transcript-root="true"] {
   scrollbar-gutter: stable both-edges;
   scrollbar-width: auto !important;
-  scrollbar-color: rgba(15, 23, 42, 0.35) transparent !important;
+  /* scrollbar-color intentionally omitted: setting it opts Chromium/WebView2
+     into the native scrollbar renderer, which ignores ::-webkit-scrollbar-*
+     customizations and draws OS arrow buttons that cannot be hidden. */
   overflow-y: auto !important;
 }
 [data-canonical-transcript-root="true"]::-webkit-scrollbar {
-  width: 10px !important;
-  height: 10px !important;
+  width: 6px !important;
+  height: 6px !important;
   display: block !important;
 }
 [data-canonical-transcript-root="true"]::-webkit-scrollbar-track {
   background: transparent;
 }
 [data-canonical-transcript-root="true"]::-webkit-scrollbar-thumb {
-  background-color: rgba(15, 23, 42, 0.28) !important;
-  border-radius: 10px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
+  background-color: rgba(15, 23, 42, 0.16) !important;
+  border-radius: 8px;
 }
 [data-canonical-transcript-root="true"]::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(15, 23, 42, 0.45) !important;
+  background-color: rgba(15, 23, 42, 0.30) !important;
+}
+[data-canonical-transcript-root="true"]::-webkit-scrollbar-button,
+[data-canonical-transcript-root="true"]::-webkit-scrollbar-button:single-button,
+[data-canonical-transcript-root="true"]::-webkit-scrollbar-button:vertical:start,
+[data-canonical-transcript-root="true"]::-webkit-scrollbar-button:vertical:end,
+[data-canonical-transcript-root="true"]::-webkit-scrollbar-button:horizontal:start,
+[data-canonical-transcript-root="true"]::-webkit-scrollbar-button:horizontal:end {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 
 /* ---- Custom utilities ---- */

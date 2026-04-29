@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { DesktopCompactAction } from '@renderer/components/action';
 import { DesktopCardSurface } from '@renderer/components/surface';
 import {
@@ -55,15 +55,45 @@ function ActionButton(props: {
   );
 }
 
+/** Local ghost-red action — same visual contract as the one in chat-agent-diagnostics.tsx
+ *  but kept inline here so this file stays self-contained for the bodyOnly export path. */
+function DangerGhostButton(props: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      disabled={props.disabled}
+      className="inline-flex h-[30px] items-center justify-center whitespace-nowrap rounded-xl border border-transparent bg-transparent px-3 text-[12px] font-medium text-red-700 transition-colors hover:border-red-200 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      {props.label}
+    </button>
+  );
+}
+
 export function AgentDiagnosticsAvatarOverrideCard(props: {
   t: DiagnosticsTranslate;
   disabled: boolean;
+  bodyOnly?: boolean;
 }) {
   const [form, setForm] = useState(() => resolveChatAgentAvatarDebugFormState(readChatAgentAvatarDebugOverride()));
+  // Snapshot of the last-applied (or read-on-mount) state so we can compute dirty without
+  // re-reading from storage every render.
+  const [appliedSnapshot, setAppliedSnapshot] = useState(form);
   const setPhase = (phase: ChatAgentAvatarDebugPhaseOption) => setForm((current) => ({ ...current, phase }));
   const setEmotion = (emotion: ChatAgentAvatarDebugEmotionOption) => setForm((current) => ({ ...current, emotion }));
   const setLabel = (label: string) => setForm((current) => ({ ...current, label }));
   const setAmplitude = (amplitude: string) => setForm((current) => ({ ...current, amplitude }));
+  const overrideDirty = useMemo(
+    () => form.phase !== appliedSnapshot.phase
+      || form.emotion !== appliedSnapshot.emotion
+      || form.label !== appliedSnapshot.label
+      || form.amplitude !== appliedSnapshot.amplitude,
+    [form, appliedSnapshot],
+  );
   const applyOverride = () => {
     const amplitude = Number(form.amplitude);
     applyChatAgentAvatarDebugOverride({
@@ -72,19 +102,24 @@ export function AgentDiagnosticsAvatarOverrideCard(props: {
       label: form.label,
       amplitude: Number.isFinite(amplitude) ? amplitude : undefined,
     });
+    setAppliedSnapshot(form);
   };
   const clearOverride = () => {
     clearChatAgentAvatarDebugOverride();
-    setForm(resolveChatAgentAvatarDebugFormState(null));
+    const cleared = resolveChatAgentAvatarDebugFormState(null);
+    setForm(cleared);
+    setAppliedSnapshot(cleared);
   };
 
-  return (
-    <SectionCard
-      title={props.t('Chat.agentDiagnosticsAvatarOverrideTitle', { defaultValue: 'Avatar Override' })}
-      hint={props.t('Chat.agentDiagnosticsAvatarOverrideDetail', {
-        defaultValue: 'Debug-only override for avatar phase and mood. Does not mutate RuntimeAgent status.',
-      })}
-    >
+  const body = (
+    <>
+      {props.bodyOnly ? (
+        <p className="m-0 text-[11px] leading-[1.5] text-slate-500">
+          {props.t('Chat.agentDiagnosticsAvatarOverrideDetail', {
+            defaultValue: 'Debug-only override for avatar phase and mood. Does not mutate RuntimeAgent status.',
+          })}
+        </p>
+      ) : null}
       <div className="grid grid-cols-2 gap-2">
         <FieldLabel label={props.t('Chat.agentDiagnosticsAvatarOverridePhaseLabel', { defaultValue: 'Phase' })}>
           <select
@@ -132,19 +167,34 @@ export function AgentDiagnosticsAvatarOverrideCard(props: {
           />
         </FieldLabel>
       </div>
-      <div className="flex flex-wrap gap-2 pt-1">
+      <div className="flex flex-wrap items-center gap-2 pt-1">
         <ActionButton
           tone="primary"
           label={props.t('Chat.agentDiagnosticsApplyAvatarOverride', { defaultValue: 'Apply avatar override' })}
           onClick={applyOverride}
-          disabled={props.disabled}
+          disabled={props.disabled || !overrideDirty}
         />
-        <ActionButton
+        <DangerGhostButton
           label={props.t('Chat.agentDiagnosticsClearAvatarOverride', { defaultValue: 'Clear avatar override' })}
           onClick={clearOverride}
           disabled={props.disabled}
         />
       </div>
+    </>
+  );
+
+  if (props.bodyOnly) {
+    return <div className="space-y-3">{body}</div>;
+  }
+
+  return (
+    <SectionCard
+      title={props.t('Chat.agentDiagnosticsAvatarOverrideTitle', { defaultValue: 'Avatar Override' })}
+      hint={props.t('Chat.agentDiagnosticsAvatarOverrideDetail', {
+        defaultValue: 'Debug-only override for avatar phase and mood. Does not mutate RuntimeAgent status.',
+      })}
+    >
+      {body}
     </SectionCard>
   );
 }

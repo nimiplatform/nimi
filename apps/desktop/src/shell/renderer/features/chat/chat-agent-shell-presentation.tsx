@@ -647,6 +647,7 @@ export function useAgentConversationPresentation(
     ),
     settingsDrawerTitle: input.t('Chat.agentCenterTitle', { defaultValue: 'Agent Center' }),
     settingsDrawerSubtitle: resolvedAgentDisplayName,
+    settingsDrawerWorld: input.activeTarget?.worldName || null,
     composerContent: (
       adapter.composerAdapter ? (
         <div className="space-y-3">

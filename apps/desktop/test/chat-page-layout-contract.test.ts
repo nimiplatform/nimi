@@ -34,7 +34,7 @@ test('chat page uses transient side sheets; agent mode keeps the scene backgroun
   assert.match(chatPageSource, /nimiThreadListOpen/);
   assert.match(chatSideSheetSource, /data-chat-shared-side-sheet=/);
   assert.match(chatSideSheetSource, /sheetKey === 'settings'/);
-  assert.match(chatSideSheetSource, /w-\[min\(620px,calc\(100vw-96px\)\)\]/);
+  assert.match(chatSideSheetSource, /w-\[min\(500px,calc\(100vw-96px\)\)\]/);
   assert.match(chatSideSheetSource, /w-\[min\(340px,calc\(100vw-96px\)\)\]/);
   assert.match(chatNimiSheetSource, /ChatSideSheet/);
   assert.doesNotMatch(chatNimiSheetSource, /Assistant status/u);
