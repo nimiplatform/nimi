@@ -63,6 +63,20 @@
       "stopSequencesPlaceholder": "Type and press enter…",
       "presencePenaltyLabel": "Presence Penalty",
       "frequencyPenaltyLabel": "Frequency Penalty"
+    },
+    "audioSynthesize": {
+      "parametersLabel": "Parameters",
+      "voiceSectionLabel": "Voice",
+      "audioTuningSectionLabel": "Audio Tuning",
+      "outputSectionLabel": "Output",
+      "voiceIdLabel": "Voice ID",
+      "voiceIdHint": "Provider-specific voice identifier.",
+      "speakingRateLabel": "Speaking Rate",
+      "volumeLabel": "Volume",
+      "pitchSemitonesLabel": "Pitch (semitones)",
+      "languageHintLabel": "Language Hint",
+      "languageHintHint": "BCP-47 tag, e.g. en-US.",
+      "responseFormatLabel": "Response Format"
     }
   },
   "hub": {

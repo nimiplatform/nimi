@@ -63,6 +63,20 @@
       "stopSequencesPlaceholder": "输入后按回车…",
       "presencePenaltyLabel": "存在惩罚",
       "frequencyPenaltyLabel": "频率惩罚"
+    },
+    "audioSynthesize": {
+      "parametersLabel": "参数",
+      "voiceSectionLabel": "声音",
+      "audioTuningSectionLabel": "音频调节",
+      "outputSectionLabel": "输出",
+      "voiceIdLabel": "声音 ID",
+      "voiceIdHint": "服务方提供的声音标识。",
+      "speakingRateLabel": "语速",
+      "volumeLabel": "音量",
+      "pitchSemitonesLabel": "音调（半音）",
+      "languageHintLabel": "语言提示",
+      "languageHintHint": "BCP-47 标签，如 zh-CN。",
+      "responseFormatLabel": "返回格式"
     }
   },
   "hub": {

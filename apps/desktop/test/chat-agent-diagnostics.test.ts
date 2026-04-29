@@ -625,7 +625,7 @@ test('agent diagnostics panel renders runtime control actions when inspect data 
   assert.match(markup, /Status text/u);
   assert.match(markup, /World context/u);
   assert.match(markup, /Dyadic user/u);
-  assert.match(markup, /Apply autonomy config/u);
+  assert.match(markup, /Apply Config/u);
   assert.match(markup, /Daily token budget/u);
   assert.match(markup, /Max tokens per hook/u);
   assert.match(markup, /Disable autonomy/u);
@@ -634,8 +634,8 @@ test('agent diagnostics panel renders runtime control actions when inspect data 
   assert.match(markup, /Phase/u);
   assert.match(markup, /Mood/u);
   assert.match(markup, /Amplitude/u);
-  assert.match(markup, /Apply avatar override/u);
-  assert.match(markup, /Clear avatar override/u);
+  assert.match(markup, /Apply Override/u);
+  assert.match(markup, /Clear/u);
   assert.match(markup, /Cancel hook-1/u);
   assert.match(markup, /Cancel hook-2/u);
   assert.match(markup, /Runtime autonomy is on/u);

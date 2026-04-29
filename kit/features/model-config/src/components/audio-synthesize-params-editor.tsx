@@ -1,16 +1,28 @@
 import type { AudioSynthesizeParamsState } from '../types.js';
 import { AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS } from '../constants.js';
-import { FieldInput, FieldRow, FieldSelect, SubSectionLabel } from './field-primitives.js';
+import {
+  EditorSectionTitle,
+  InlineFieldRow,
+  PlainNumberInput,
+  PlainSelect,
+  PlainTextInput,
+  SliderRow,
+  StackedFieldRow,
+} from './editor-shared.js';
 
 export type AudioSynthesizeParamsEditorCopy = {
   parametersLabel: string;
   previewBadgeLabel?: string;
+  voiceSectionLabel?: string;
+  audioTuningSectionLabel?: string;
+  outputSectionLabel?: string;
   voiceIdLabel: string;
   voiceIdHint?: string;
   speakingRateLabel: string;
   volumeLabel: string;
   pitchSemitonesLabel: string;
   languageHintLabel: string;
+  languageHintHint?: string;
   responseFormatLabel: string;
   timeoutLabel: string;
   defaultPlaceholder?: string;
@@ -26,17 +38,31 @@ export function createAudioSynthesizeEditorCopy(
   t: (key: string, vars?: Record<string, string | number>) => string,
 ): AudioSynthesizeParamsEditorCopy {
   return {
-    parametersLabel: t('ModelConfig.editor.audioSynthesize.parametersLabel'),
-    previewBadgeLabel: t('ModelConfig.editor.common.previewBadgeLabel'),
-    voiceIdLabel: t('ModelConfig.editor.audioSynthesize.voiceIdLabel'),
-    voiceIdHint: t('ModelConfig.editor.audioSynthesize.voiceIdHint'),
-    speakingRateLabel: t('ModelConfig.editor.audioSynthesize.speakingRateLabel'),
-    volumeLabel: t('ModelConfig.editor.audioSynthesize.volumeLabel'),
-    pitchSemitonesLabel: t('ModelConfig.editor.audioSynthesize.pitchSemitonesLabel'),
-    languageHintLabel: t('ModelConfig.editor.audioSynthesize.languageHintLabel'),
-    responseFormatLabel: t('ModelConfig.editor.audioSynthesize.responseFormatLabel'),
-    timeoutLabel: t('ModelConfig.editor.common.timeoutLabel'),
-    defaultPlaceholder: t('ModelConfig.editor.common.defaultPlaceholder'),
+    parametersLabel: t('ModelConfig.editor.audioSynthesize.parametersLabel', { defaultValue: 'Parameters' }),
+    previewBadgeLabel: t('ModelConfig.editor.common.previewBadgeLabel', { defaultValue: 'Preview' }),
+    voiceSectionLabel: t('ModelConfig.editor.audioSynthesize.voiceSectionLabel', { defaultValue: 'Voice' }),
+    audioTuningSectionLabel: t('ModelConfig.editor.audioSynthesize.audioTuningSectionLabel', {
+      defaultValue: 'Audio Tuning',
+    }),
+    outputSectionLabel: t('ModelConfig.editor.audioSynthesize.outputSectionLabel', { defaultValue: 'Output' }),
+    voiceIdLabel: t('ModelConfig.editor.audioSynthesize.voiceIdLabel', { defaultValue: 'Voice ID' }),
+    voiceIdHint: t('ModelConfig.editor.audioSynthesize.voiceIdHint', {
+      defaultValue: 'Provider-specific voice identifier.',
+    }),
+    speakingRateLabel: t('ModelConfig.editor.audioSynthesize.speakingRateLabel', { defaultValue: 'Speaking rate' }),
+    volumeLabel: t('ModelConfig.editor.audioSynthesize.volumeLabel', { defaultValue: 'Volume' }),
+    pitchSemitonesLabel: t('ModelConfig.editor.audioSynthesize.pitchSemitonesLabel', {
+      defaultValue: 'Pitch (semitones)',
+    }),
+    languageHintLabel: t('ModelConfig.editor.audioSynthesize.languageHintLabel', { defaultValue: 'Language hint' }),
+    languageHintHint: t('ModelConfig.editor.audioSynthesize.languageHintHint', {
+      defaultValue: 'BCP-47 tag, e.g. en-US.',
+    }),
+    responseFormatLabel: t('ModelConfig.editor.audioSynthesize.responseFormatLabel', {
+      defaultValue: 'Response format',
+    }),
+    timeoutLabel: t('ModelConfig.editor.common.timeoutLabel', { defaultValue: 'Timeout (ms)' }),
+    defaultPlaceholder: t('ModelConfig.editor.common.defaultPlaceholder', { defaultValue: 'Default' }),
   };
 }
 
@@ -50,68 +76,86 @@ export function AudioSynthesizeParamsEditor(props: AudioSynthesizeParamsEditorPr
     props.onParamsChange({ ...params, [key]: value });
   };
 
+  const voiceSectionLabel = copy.voiceSectionLabel ?? copy.parametersLabel;
+  const audioTuningSectionLabel = copy.audioTuningSectionLabel ?? copy.parametersLabel;
+  const outputSectionLabel = copy.outputSectionLabel ?? copy.parametersLabel;
+
   return (
-    <div className="space-y-3">
-      <SubSectionLabel label={copy.parametersLabel} previewLabel={copy.previewBadgeLabel} />
-
-      <FieldRow label={copy.voiceIdLabel} tooltip={copy.voiceIdHint}>
-        <FieldInput
-          value={params.voiceId}
-          onChange={(value) => updateParam('voiceId', value)}
-          placeholder={copy.defaultPlaceholder}
-        />
-      </FieldRow>
-
-      <div className="grid grid-cols-2 gap-3">
-        <FieldRow label={copy.speakingRateLabel}>
-          <FieldInput
-            value={params.speakingRate}
-            onChange={(value) => updateParam('speakingRate', value)}
+    <div className="space-y-6">
+      {/* VOICE — provider voice identifier and language hint live together at the
+          top so users can pin the speaker before tuning prosody. */}
+      <section className="space-y-3.5">
+        <EditorSectionTitle label={voiceSectionLabel} />
+        <StackedFieldRow label={copy.voiceIdLabel} hint={copy.voiceIdHint}>
+          <PlainTextInput
+            value={params.voiceId}
+            onChange={(value) => updateParam('voiceId', value)}
             placeholder={copy.defaultPlaceholder}
           />
-        </FieldRow>
-        <FieldRow label={copy.volumeLabel}>
-          <FieldInput
-            value={params.volume}
-            onChange={(value) => updateParam('volume', value)}
-            placeholder={copy.defaultPlaceholder}
-          />
-        </FieldRow>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <FieldRow label={copy.pitchSemitonesLabel}>
-          <FieldInput
-            value={params.pitchSemitones}
-            onChange={(value) => updateParam('pitchSemitones', value)}
-            placeholder={copy.defaultPlaceholder}
-          />
-        </FieldRow>
-        <FieldRow label={copy.languageHintLabel}>
-          <FieldInput
+        </StackedFieldRow>
+        <StackedFieldRow label={copy.languageHintLabel} hint={copy.languageHintHint}>
+          <PlainTextInput
             value={params.languageHint}
             onChange={(value) => updateParam('languageHint', value)}
             placeholder={copy.defaultPlaceholder}
           />
-        </FieldRow>
-      </div>
+        </StackedFieldRow>
+      </section>
 
-      <div className="grid grid-cols-2 gap-3">
-        <FieldRow label={copy.responseFormatLabel}>
-          <FieldSelect
+      {/* AUDIO TUNING — sliders for the three prosody knobs so users can drag-to-set
+          (mirrors Temperature / MaxTokens treatment in the chat editor). */}
+      <section className="space-y-3.5">
+        <EditorSectionTitle label={audioTuningSectionLabel} />
+        <SliderRow
+          label={copy.speakingRateLabel}
+          value={params.speakingRate}
+          defaultValue={1}
+          min={0.5}
+          max={2}
+          step={0.05}
+          onChange={(value) => updateParam('speakingRate', value)}
+        />
+        <SliderRow
+          label={copy.volumeLabel}
+          value={params.volume}
+          defaultValue={1}
+          min={0}
+          max={2}
+          step={0.05}
+          onChange={(value) => updateParam('volume', value)}
+        />
+        <SliderRow
+          label={copy.pitchSemitonesLabel}
+          value={params.pitchSemitones}
+          defaultValue={0}
+          min={-12}
+          max={12}
+          step={1}
+          inputMode="numeric"
+          onChange={(value) => updateParam('pitchSemitones', value)}
+        />
+      </section>
+
+      {/* OUTPUT — encode format + timeout, both single-line scalars rendered
+          inline (matches the chat editor's Timeout row). */}
+      <section className="space-y-3.5">
+        <EditorSectionTitle label={outputSectionLabel} />
+        <InlineFieldRow label={copy.responseFormatLabel} controlWidthClass="w-40">
+          <PlainSelect
             value={params.responseFormat}
             onChange={(value) => updateParam('responseFormat', value)}
             options={AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS.map((item) => ({ value: item, label: item }))}
           />
-        </FieldRow>
-        <FieldRow label={copy.timeoutLabel}>
-          <FieldInput
+        </InlineFieldRow>
+        <InlineFieldRow label={copy.timeoutLabel}>
+          <PlainNumberInput
             value={params.timeoutMs}
             onChange={(value) => updateParam('timeoutMs', value)}
-            placeholder={copy.defaultPlaceholder}
+            placeholder="120000"
+            inputMode="numeric"
           />
-        </FieldRow>
-      </div>
+        </InlineFieldRow>
+      </section>
     </div>
   );
 }

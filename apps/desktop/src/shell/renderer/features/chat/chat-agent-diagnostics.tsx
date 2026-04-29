@@ -319,24 +319,34 @@ export function AgentDiagnosticsPanel(props: {
           />
         </DiagnosticsInlineField>
       </div>
-      {/* Single primary "Apply" + ghost-red destructive recovery actions (no equal-weight reds). */}
-      <div className="flex flex-wrap items-center gap-2 pt-1">
-        <RuntimeInspectActionButton
-          tone="primary"
-          label={t('Chat.agentDiagnosticsApplyRuntimeState', { defaultValue: 'Apply runtime state' })}
+      {/* Apply renders as a solid emerald pill (the single primary action). Clear World /
+          Clear Dyadic are flat red-text links — no bg/border — so destructive recovery doesn't
+          compete visually with Apply. Matches the Advanced page Runtime State reference. */}
+      <div className="flex flex-wrap items-center gap-3 pt-1">
+        <button
+          type="button"
           onClick={() => props.onUpdateRuntimeState?.({ statusText, worldId, userId })}
           disabled={!props.onUpdateRuntimeState || mutationPending || !runtimeStateDirty}
-        />
-        <DiagnosticsDangerGhostButton
-          label={t('Chat.agentDiagnosticsClearWorldContext', { defaultValue: 'Clear world context' })}
+          className="inline-flex min-h-[36px] items-center justify-center whitespace-normal rounded-2xl bg-emerald-500 px-4 py-1.5 text-center text-[12.5px] font-semibold leading-tight text-white shadow-[0_4px_10px_rgba(16,185,129,0.25)] transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
+        >
+          {t('Chat.agentDiagnosticsApplyRuntimeState', { defaultValue: 'Apply runtime state' })}
+        </button>
+        <button
+          type="button"
           onClick={() => props.onClearWorldContext?.()}
           disabled={!props.onClearWorldContext || mutationPending}
-        />
-        <DiagnosticsDangerGhostButton
-          label={t('Chat.agentDiagnosticsClearDyadicContext', { defaultValue: 'Clear dyadic context' })}
+          className="inline-flex items-center text-[12.5px] font-medium text-red-600 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-red-600"
+        >
+          {t('Chat.agentDiagnosticsClearWorldContext', { defaultValue: 'Clear world context' })}
+        </button>
+        <button
+          type="button"
           onClick={() => props.onClearDyadicContext?.()}
           disabled={!props.onClearDyadicContext || mutationPending}
-        />
+          className="inline-flex items-center text-[12.5px] font-medium text-red-600 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-red-600"
+        >
+          {t('Chat.agentDiagnosticsClearDyadicContext', { defaultValue: 'Clear dyadic context' })}
+        </button>
       </div>
     </div>
   ) : null;
@@ -395,31 +405,40 @@ export function AgentDiagnosticsPanel(props: {
           </DiagnosticsFieldLabel>
         </div>
       </div>
-      {/* Single primary "Apply" + ghost-red Disable so the hierarchy reads at a glance. */}
+      {/* Apply Config (outlined, white) sits as the secondary action; Enable Autonomy is the
+          solid emerald primary. When autonomy is already on, the primary slot flips to a red
+          filled "Disable autonomy" so the destructive intent is unmistakable. */}
       <div className="flex flex-wrap items-center gap-2 pt-1">
-        <RuntimeInspectActionButton
-          tone="primary"
-          label={t('Chat.agentDiagnosticsApplyAutonomyConfig', { defaultValue: 'Apply autonomy config' })}
+        <button
+          type="button"
           onClick={() => props.onUpdateAutonomyConfig?.({ mode: autonomyMode, dailyTokenBudget, maxTokensPerHook })}
           disabled={!props.onUpdateAutonomyConfig || mutationPending || !autonomyConfigDirty}
-        />
+          className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-slate-200 bg-white px-4 text-[12.5px] font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          {t('Chat.agentDiagnosticsApplyAutonomyConfig', { defaultValue: 'Apply Config' })}
+        </button>
         {runtimeStateInspect.autonomyEnabled === true ? (
-          <DiagnosticsDangerGhostButton
-            label={t('Chat.disableAgentAutonomyTitle', { defaultValue: 'Disable autonomy' })}
+          <button
+            type="button"
             onClick={() => props.onDisableAutonomy?.()}
             disabled={!props.onDisableAutonomy || mutationPending}
-          />
+            className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-transparent bg-red-500 px-4 text-[12.5px] font-semibold text-white shadow-[0_4px_10px_rgba(239,68,68,0.25)] transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
+          >
+            {t('Chat.disableAgentAutonomyTitle', { defaultValue: 'Disable autonomy' })}
+          </button>
         ) : (
-          <RuntimeInspectActionButton
-            tone="primary"
-            label={t('Chat.agentDiagnosticsEnableAutonomy', { defaultValue: 'Enable autonomy' })}
+          <button
+            type="button"
             onClick={() => props.onEnableAutonomy?.()}
             disabled={
               !props.onEnableAutonomy
               || mutationPending
               || runtimeStateInspect.autonomyMode === 'off'
             }
-          />
+            className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-transparent bg-emerald-500 px-4 text-[12.5px] font-semibold text-white shadow-[0_4px_10px_rgba(16,185,129,0.25)] transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
+          >
+            {t('Chat.agentDiagnosticsEnableAutonomy', { defaultValue: 'Enable Autonomy' })}
+          </button>
         )}
       </div>
       {runtimeStateInspect.pendingHooks.length > 0 ? (
@@ -566,25 +585,31 @@ export function AgentDiagnosticsPanel(props: {
                 />
               </DiagnosticsFieldLabel>
             </div>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <RuntimeInspectActionButton
-                tone="primary"
-                label={t('Chat.agentDiagnosticsApplyRuntimeState', { defaultValue: 'Apply runtime state' })}
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <button
+                type="button"
                 onClick={() => props.onUpdateRuntimeState?.({ statusText, worldId, userId })}
-                disabled={!props.onUpdateRuntimeState || mutationPending}
-              />
-              <RuntimeInspectActionButton
-                tone="danger"
-                label={t('Chat.agentDiagnosticsClearWorldContext', { defaultValue: 'Clear world context' })}
+                disabled={!props.onUpdateRuntimeState || mutationPending || !runtimeStateDirty}
+                className="inline-flex min-h-[36px] items-center justify-center whitespace-normal rounded-2xl bg-emerald-500 px-4 py-1.5 text-center text-[12.5px] font-semibold leading-tight text-white shadow-[0_4px_10px_rgba(16,185,129,0.25)] transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
+              >
+                {t('Chat.agentDiagnosticsApplyRuntimeState', { defaultValue: 'Apply runtime state' })}
+              </button>
+              <button
+                type="button"
                 onClick={() => props.onClearWorldContext?.()}
                 disabled={!props.onClearWorldContext || mutationPending}
-              />
-              <RuntimeInspectActionButton
-                tone="danger"
-                label={t('Chat.agentDiagnosticsClearDyadicContext', { defaultValue: 'Clear dyadic context' })}
+                className="inline-flex items-center text-[12.5px] font-medium text-red-600 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-red-600"
+              >
+                {t('Chat.agentDiagnosticsClearWorldContext', { defaultValue: 'Clear world context' })}
+              </button>
+              <button
+                type="button"
                 onClick={() => props.onClearDyadicContext?.()}
                 disabled={!props.onClearDyadicContext || mutationPending}
-              />
+                className="inline-flex items-center text-[12.5px] font-medium text-red-600 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-red-600"
+              >
+                {t('Chat.agentDiagnosticsClearDyadicContext', { defaultValue: 'Clear dyadic context' })}
+              </button>
             </div>
           </DiagnosticsSectionCard>
 
@@ -643,31 +668,37 @@ export function AgentDiagnosticsPanel(props: {
                 </DiagnosticsFieldLabel>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <RuntimeInspectActionButton
-                tone="primary"
-                label={t('Chat.agentDiagnosticsApplyAutonomyConfig', { defaultValue: 'Apply autonomy config' })}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
                 onClick={() => props.onUpdateAutonomyConfig?.({ mode: autonomyMode, dailyTokenBudget, maxTokensPerHook })}
-                disabled={!props.onUpdateAutonomyConfig || mutationPending}
-              />
+                disabled={!props.onUpdateAutonomyConfig || mutationPending || !autonomyConfigDirty}
+                className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-slate-200 bg-white px-4 text-[12.5px] font-semibold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {t('Chat.agentDiagnosticsApplyAutonomyConfig', { defaultValue: 'Apply Config' })}
+              </button>
               {props.runtimeInspect.autonomyEnabled === true ? (
-                <RuntimeInspectActionButton
-                  tone="danger"
-                  label={t('Chat.disableAgentAutonomyTitle', { defaultValue: 'Disable autonomy' })}
+                <button
+                  type="button"
                   onClick={() => props.onDisableAutonomy?.()}
                   disabled={!props.onDisableAutonomy || mutationPending}
-                />
+                  className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-transparent bg-red-500 px-4 text-[12.5px] font-semibold text-white shadow-[0_4px_10px_rgba(239,68,68,0.25)] transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
+                >
+                  {t('Chat.disableAgentAutonomyTitle', { defaultValue: 'Disable autonomy' })}
+                </button>
               ) : (
-                <RuntimeInspectActionButton
-                  tone="primary"
-                  label={t('Chat.agentDiagnosticsEnableAutonomy', { defaultValue: 'Enable autonomy' })}
+                <button
+                  type="button"
                   onClick={() => props.onEnableAutonomy?.()}
                   disabled={
                     !props.onEnableAutonomy
                     || mutationPending
                     || props.runtimeInspect.autonomyMode === 'off'
                   }
-                />
+                  className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-transparent bg-emerald-500 px-4 text-[12.5px] font-semibold text-white shadow-[0_4px_10px_rgba(16,185,129,0.25)] transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
+                >
+                  {t('Chat.agentDiagnosticsEnableAutonomy', { defaultValue: 'Enable Autonomy' })}
+                </button>
               )}
               <RuntimeInspectActionButton
                 label={t('Chat.agentDiagnosticsRefreshInspect', { defaultValue: 'Refresh inspect' })}
