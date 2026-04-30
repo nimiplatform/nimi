@@ -13,6 +13,7 @@ import { readAvatarShellSettings } from '../settings-state.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import { startAvatarVoiceCaptureSession, type AvatarVoiceCaptureSession } from '../voice-capture.js';
 import { recordAvatarEvidenceEventually } from './avatar-evidence.js';
+import { detectDeviceTier } from './device-tier-detector.js';
 import { resolveAvatarConversationContext } from './avatar-conversation-context.js';
 import { useAvatarStore } from './app-store.js';
 import { isTauriRuntime, onShellReady } from './tauri-lifecycle.js';
@@ -339,6 +340,26 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   });
 
   try {
+    // Wave 4 chunk 4-C: one-shot device-tier detection (cached). The
+    // result drives alpha-mask vs bbox-only fallback in the per-backend
+    // hit-region constructors. If detection throws, we proceed — the
+    // hit-region constructors fall back to tier C (bbox-only) per
+    // app-shell-contract.md §2.3.2.
+    try {
+      const tierDetection = detectDeviceTier();
+      recordAvatarEvidenceEventually({
+        kind: 'avatar.device.tier_detected',
+        detail: {
+          tier: tierDetection.tier,
+          reason: tierDetection.reason,
+          renderer_string: tierDetection.rendererString,
+          webgl_available: tierDetection.webglAvailable,
+        },
+      });
+    } catch (error) {
+      console.warn('[avatar:bootstrap] device tier detection threw; falling back to tier C', error);
+    }
+
     if (isTauriRuntime()) {
       const shellSettings = readAvatarShellSettings();
       useAvatarStore.getState().setAlwaysOnTop(shellSettings.alwaysOnTop);

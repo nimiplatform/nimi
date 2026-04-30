@@ -1,13 +1,16 @@
 // Wave 1 NAV-SHELL-COMPOSITION-001..002 + topic
-// `2026-04-30-avatar-vrm-backend-branch` wave_1 step_4 — per-surface
-// unit test for embodiment-stage covering:
+// `2026-04-30-avatar-vrm-backend-branch` wave_1 step_4 + wave_4 chunk
+// 4-C — per-surface unit test for embodiment-stage covering:
 //  * render presence under ready / fixture_active composition states
 //  * surface-mounted / surface-unmounted evidence emission
 //  * BackendBranch surface mount + the three lifecycle callbacks
 //    (audio-consumer registration, hit-region throttle, lifecycle
 //    evidence record) introduced in step_4
+//  * pointermove → setIgnoreCursorEvents alpha-mask + bbox fallback
+//    routing (chunk 4-C)
+//  * 60Hz cap on rapid pointermove (chunk 4-C acceptance_invariant 7)
 
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ComponentType } from 'react';
 import { useEffect } from 'react';
@@ -188,7 +191,7 @@ describe('EmbodimentStage — BackendBranch surface mount (wave_1 step_4)', () =
     expect(registerLipsyncSinkMock).toHaveBeenCalledWith(consumer);
   });
 
-  it('routes onHitRegionChange through setIgnoreCursorEvents', () => {
+  it('does NOT fire setIgnoreCursorEvents on hit-region change alone (chunk 4-C: pointermove drives it)', () => {
     const backend = createMockBackend({
       hitRegion: {
         body: { left: 0, top: 0, right: 1, bottom: 1 },
@@ -197,8 +200,10 @@ describe('EmbodimentStage — BackendBranch surface mount (wave_1 step_4)', () =
       },
     });
     render(<EmbodimentStage {...baseProps} backend={backend} />);
-    // body rect is non-zero → carrier interactive → ignore=false.
-    expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
+    // The Tauri IPC fires only in response to pointermove events
+    // (acceptance_invariant 7); the bbox snapshot itself does not
+    // toggle click-through.
+    expect(setIgnoreCursorEventsMock).not.toHaveBeenCalled();
   });
 
   it('forwards onLifecycleEvidence as avatar.carrier.visual evidence with lifecycle phase', () => {
@@ -223,5 +228,111 @@ describe('EmbodimentStage — BackendBranch surface mount (wave_1 step_4)', () =
     const { unmount } = render(<EmbodimentStage {...baseProps} backend={backend} />);
     unmount();
     expect(unregister).toHaveBeenCalled();
+  });
+});
+
+// Wave 4 chunk 4-C: pointer hit-test → throttled setIgnoreCursorEvents.
+describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('alpha-mask path: opaque point → setIgnore(false) on pointermove', () => {
+    const isOpaqueAtClientPoint = vi.fn((x: number, _y: number) => x > 100);
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    fireEvent.pointerMove(stage, { clientX: 200, clientY: 200 });
+    expect(isOpaqueAtClientPoint).toHaveBeenCalled();
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
+  });
+
+  it('alpha-mask path: transparent point → setIgnore(true) on pointermove', () => {
+    const isOpaqueAtClientPoint = vi.fn(() => false);
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    fireEvent.pointerMove(stage, { clientX: 50, clientY: 50 });
+    // After leading-edge fire the IPC has been called with `true`
+    // (transparent → ignore=true). Drain any queued trailing edge.
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(true);
+  });
+
+  it('bbox fallback: alpha-mask null + point inside body → setIgnore(false)', () => {
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint: null,
+      },
+    });
+    const { container } = render(
+      <EmbodimentStage {...baseProps} backend={backend} />,
+    );
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    // jsdom layout returns 0×0; force a non-zero rect via a stub so the
+    // bbox math has something to work against.
+    const stageEl = stage as HTMLElement;
+    stageEl.getBoundingClientRect = (() => ({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 400,
+      bottom: 600,
+      width: 400,
+      height: 600,
+      toJSON: () => ({}),
+    })) as typeof stageEl.getBoundingClientRect;
+    fireEvent.pointerMove(stage, { clientX: 200, clientY: 300 });
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
+    expect(container).toBeTruthy();
+  });
+
+  it('60Hz cap: 1000 rapid pointermove events → ≤ 2 IPC calls', () => {
+    let opaque = true;
+    const isOpaqueAtClientPoint = vi.fn(() => opaque);
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    // Alternate opaque / transparent so dedup doesn't suppress all calls.
+    for (let i = 0; i < 1000; i += 1) {
+      opaque = i % 2 === 0;
+      fireEvent.pointerMove(stage, { clientX: 100 + i, clientY: 100 });
+    }
+    // Within the same simulated tick (no timer advance) at most the
+    // leading edge has fired.
+    expect(setIgnoreCursorEventsMock.mock.calls.length).toBeLessThanOrEqual(1);
+    // Drain any queued trailing edge.
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    // After drain: leading + at most 1 trailing = ≤ 2 total per the
+    // 60Hz cap (packet acceptance_invariant 7 + negative_test #3).
+    expect(setIgnoreCursorEventsMock.mock.calls.length).toBeLessThanOrEqual(2);
   });
 });

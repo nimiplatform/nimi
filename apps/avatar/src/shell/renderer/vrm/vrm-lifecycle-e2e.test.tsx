@@ -50,6 +50,10 @@ vi.mock('@react-three/fiber', () => ({
   // No-op useFrame in jsdom (chunk 3-D mounts a per-frame tick chain
   // inside <Canvas>; lifecycle assertions don't depend on RAF).
   useFrame: () => {},
+  // Wave 4 chunk 4-C: VrmRenderTargetCaptureLoop calls useThree to read
+  // gl/scene/camera. Stubs are fine — the lifecycle assertions don't
+  // depend on the alpha-mask probe.
+  useThree: () => ({ gl: {}, scene: {}, camera: {} }),
 }));
 
 type ScenarioVrmLifecycle = {

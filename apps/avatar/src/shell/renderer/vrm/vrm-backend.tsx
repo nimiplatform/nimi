@@ -54,6 +54,10 @@ import { createVrmMotionPresetRegistry } from './vrm-motion-preset-registry.js';
 import { loadVrmMotionPresetTable } from './load-vrm-motion-preset-table.js';
 import { createVrmLipsyncDriver } from './vrm-lipsync-driver.js';
 import type { ActivityMapping } from './vrm-projection-adapter.js';
+import {
+  createVrmRenderTarget,
+  type VrmRenderTarget,
+} from './vrm-render-target.js';
 
 // Wave 2 chunk 2-E: nominalBounds is the BOOT placeholder used by
 // embodiment-stage for the very first window-resize tick (before VRM
@@ -199,6 +203,10 @@ export type CreateVrmBackendBranchOptions = {
    *  JSON dynamic import). Returning null keeps the audio consumer in
    *  the silent path (matches the live2d profile-missing fallback). */
   loadProfileOverride?: () => Promise<Profile | null>;
+  /** Test seam: provide a pre-built render target (e.g. stub mode for
+   *  jsdom). Default: real WebGL-backed `VrmRenderTarget`. The carrier
+   *  surface drives `capture()` at ~10Hz throttle inside useFrame. */
+  renderTargetOverride?: VrmRenderTarget;
 };
 
 export async function createVrmBackendBranch(
@@ -232,6 +240,13 @@ export async function createVrmBackendBranch(
 
   const deferredProjection = createDeferredProjection();
 
+  // Wave 4 chunk 4-C: per-backend render target for alpha-mask hit-test
+  // probing. The surface drives `capture()` from useFrame (throttled to
+  // ~10Hz so the synchronous readPixels stall stays under the per-frame
+  // budget). Tests pass a stub render target via `renderTargetOverride`.
+  const renderTarget: VrmRenderTarget =
+    options.renderTargetOverride ?? createVrmRenderTarget();
+
   let surface: BackendSurface;
   let surfaceShutdown: () => void = () => {};
   if (mode === 'dev_preview') {
@@ -246,6 +261,7 @@ export async function createVrmBackendBranch(
       activityMapping,
       setProjectionAdapter: deferredProjection.setAdapter,
       runtimeOptions: options.runtimeOptions,
+      renderTarget,
     });
     surface = { Component: handle.Component };
     surfaceShutdown = handle.shutdown;
@@ -274,6 +290,12 @@ export async function createVrmBackendBranch(
       audioConsumer.silent();
       deferredProjection.reset();
       surfaceShutdown();
+      try {
+        renderTarget.dispose();
+      } catch {
+        // Defensive: render-target disposal is idempotent in real impl,
+        // but stubs may have already been disposed by tests.
+      }
     },
   };
   return {

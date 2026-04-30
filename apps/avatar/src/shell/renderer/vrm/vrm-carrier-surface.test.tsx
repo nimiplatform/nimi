@@ -18,6 +18,7 @@ import type { VrmEmoteState } from './vrm-emote-state.js';
 import type { VrmLipsyncDriver } from './vrm-lipsync-driver.js';
 import type { VrmMotionPresetRegistry } from './vrm-motion-preset-registry.js';
 import type { ActivityMapping } from './vrm-projection-adapter.js';
+import { createVrmRenderTarget } from './vrm-render-target.js';
 
 vi.mock('@react-three/fiber', () => ({
   // Render a plain <canvas> wrapper so the surface's webglcontextlost
@@ -32,6 +33,10 @@ vi.mock('@react-three/fiber', () => ({
   // exercise tick chain wiring via integration tests that drive the
   // useFrame callback directly (not through R3F's RAF loop).
   useFrame: () => {},
+  // Wave 4 chunk 4-C: VrmRenderTargetCaptureLoop calls useThree to read
+  // gl/scene/camera. Stubs are fine — the alpha-mask capture is wrapped
+  // in try/catch and the surface tests cover lifecycle, not the probe.
+  useThree: () => ({ gl: {}, scene: {}, camera: {} }),
 }));
 
 function manifest(): VrmAvatarModelManifest {
@@ -108,6 +113,7 @@ function commonExtras(): {
   lipsyncDriver: VrmLipsyncDriver;
   activityMapping: ActivityMapping;
   setProjectionAdapter: (adapter: BackendProjection) => void;
+  renderTarget: ReturnType<typeof createVrmRenderTarget>;
 } {
   return {
     emoteState: emoteStateStub(),
@@ -115,6 +121,11 @@ function commonExtras(): {
     lipsyncDriver: lipsyncDriverStub(),
     activityMapping: activityMappingStub(),
     setProjectionAdapter: () => {},
+    // Wave 4 chunk 4-C: stub render target keeps the surface test fast +
+    // jsdom-friendly. Tier C (default in jsdom — no WebGL renderer string)
+    // means the alpha-mask probe is skipped, the hit region is bbox-only,
+    // and the surface emits a `hit_region_degraded` evidence call.
+    renderTarget: createVrmRenderTarget({ stubMode: true }),
   };
 }
 

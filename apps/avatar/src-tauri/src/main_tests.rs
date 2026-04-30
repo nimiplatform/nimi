@@ -100,6 +100,96 @@ fn constrain_clamps_ratio_to_05_minimum() {
     assert_eq!(result.0, 1900);
 }
 
+// Wave 4 chunk 4-D — explicit VRM nominal-bounds coverage.
+// Per `apps/avatar/spec/kernel/tables/window-bounds-policy.yaml`
+// `backends.vrm.nominal_bounds_default`, the VRM baseline window is
+// 360 × 720 (taller, narrower than Live2D's 400 × 600). The constraint
+// math is generic over (width, height); these tests document that the
+// VRM baseline is admitted by the same `compute_constrained_window_position`
+// helper without special-casing.
+
+#[test]
+fn vrm_nominal_bounds_constrain_within_visible_area() {
+    // VRM 360 × 720 baseline + 1080p primary monitor + 0.2 ratio.
+    // min_visible_width  = ceil(360 * 0.2) = 72
+    // max_x              = 0 + 1920 - 72   = 1848
+    // Window dragged near right edge at x=1900 → clamp to 1848.
+    let result = compute_constrained_window_position(
+        (1900, 100),
+        (360, 720),
+        (0, 0),
+        (1920, 1080),
+        0.2,
+    );
+    assert_eq!(
+        result.0, 1848,
+        "VRM 360-wide baseline must clamp to 1848 (max_x with 20% visible ratio)",
+    );
+    // y=100 keeps the entire window vertically inside [0,1080], so y is
+    // unmodified. min_visible_height = ceil(720 * 0.2) = 144;
+    // [min_y=-576, max_y=936] → 100 is in range.
+    assert_eq!(
+        result.1, 100,
+        "Y stays unchanged when window is fully within vertical bounds",
+    );
+}
+
+#[test]
+fn vrm_nominal_bounds_off_left_edge_clamped_to_min_x() {
+    // min_x = 0 - 360 + ceil(360*0.2)=72 → -288. Drag to x=-1000 → clamp to -288.
+    let result = compute_constrained_window_position(
+        (-1000, 100),
+        (360, 720),
+        (0, 0),
+        (1920, 1080),
+        0.2,
+    );
+    assert_eq!(result.0, -288);
+}
+
+#[test]
+fn vrm_nominal_bounds_off_bottom_edge_clamped_to_max_y() {
+    // VRM is taller (720); min_visible_height = ceil(720*0.2) = 144.
+    // max_y = 0 + 1080 - 144 = 936. Drag to y=5000 → clamp to 936.
+    let result = compute_constrained_window_position(
+        (100, 5000),
+        (360, 720),
+        (0, 0),
+        (1920, 1080),
+        0.2,
+    );
+    assert_eq!(result.1, 936);
+}
+
+#[test]
+fn vrm_and_live2d_baselines_both_uncontrained_at_origin() {
+    // Both VRM (360×720) and Live2D (400×600) at origin on a 1080p monitor
+    // are fully on-screen; the helper must return their position unchanged.
+    // Documents that `compute_constrained_window_position` handles both
+    // policy baselines identically without backend-specific branching.
+    let monitor_position = (0, 0);
+    let monitor_size = (1920, 1080);
+    let ratio = 0.2;
+
+    let vrm_constrained = compute_constrained_window_position(
+        (0, 0),
+        (360, 720),
+        monitor_position,
+        monitor_size,
+        ratio,
+    );
+    let live2d_constrained = compute_constrained_window_position(
+        (0, 0),
+        (400, 600),
+        monitor_position,
+        monitor_size,
+        ratio,
+    );
+
+    assert_eq!(vrm_constrained, (0, 0));
+    assert_eq!(live2d_constrained, (0, 0));
+}
+
 fn unique_temp_dir(name: &str) -> PathBuf {
     let suffix = format!(
         "{}-{}",
@@ -226,6 +316,63 @@ fn write_agent_center_live2d_package_for_account_agent(
 
 fn write_agent_center_live2d_package(home: &Path, entry_content: &str) -> PathBuf {
     write_agent_center_live2d_package_for_agent(home, "agent_1", entry_content)
+}
+
+fn write_agent_center_vrm_package(home: &Path, entry_content: &[u8]) -> PathBuf {
+    let package_dir = home
+        .join(".nimi/data/accounts/account_1/agents/agent_1")
+        .join("agent-center/modules/avatar_package/packages/vrm/vrm_ab12cd34ef56");
+    let files_dir = package_dir.join("files");
+    fs::create_dir_all(&files_dir).unwrap();
+    let entry_path = files_dir.join("model.vrm");
+    fs::write(&entry_path, entry_content).unwrap();
+    let digest = {
+        let mut hasher = Sha256::new();
+        hasher.update(entry_content);
+        format!("{:x}", hasher.finalize())
+    };
+    let manifest = json!({
+        "manifest_version": 1,
+        "package_version": "1.0.0",
+        "package_id": "vrm_ab12cd34ef56",
+        "kind": "vrm",
+        "loader_min_version": "1.0.0",
+        "display_name": "VRM",
+        "display_name_i18n": {},
+        "entry_file": "files/model.vrm",
+        "required_files": ["files/model.vrm"],
+        "content_digest": format!("sha256:{digest}"),
+        "files": [{
+            "path": "files/model.vrm",
+            "sha256": digest,
+            "bytes": entry_content.len(),
+            "mime": "model/vrm"
+        }],
+        "limits": {
+            "max_manifest_bytes": 262144,
+            "max_package_bytes": 524288000,
+            "max_file_bytes": 104857600,
+            "max_file_count": 2048
+        },
+        "capabilities": {},
+        "import": {
+            "imported_at": "2026-04-27T00:00:00Z",
+            "source_label": "model.vrm",
+            "source_fingerprint": format!("sha256:{digest}")
+        }
+    });
+    fs::write(
+        package_dir.join("manifest.json"),
+        serde_json::to_string_pretty(&manifest).unwrap(),
+    )
+    .unwrap();
+    write_agent_center_local_config(
+        home,
+        "account_1",
+        "agent_1",
+        Some(("vrm", "vrm_ab12cd34ef56")),
+    );
+    package_dir
 }
 
 #[test]
@@ -383,7 +530,11 @@ async fn resolve_agent_center_avatar_package_returns_live2d_model_manifest() {
         .expect("resolve package manifest");
 
     assert_eq!(manifest.model_id, "ren");
-    assert!(manifest.model3_json_path.ends_with("files/ren.model3.json"));
+    assert!(manifest
+        .model3_json_path
+        .as_deref()
+        .unwrap()
+        .ends_with("files/ren.model3.json"));
     assert_eq!(
         manifest.runtime_dir,
         package_dir
@@ -513,29 +664,32 @@ async fn resolve_agent_center_avatar_package_uses_runtime_account_projection_sco
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn resolve_agent_center_avatar_package_rejects_vrm_and_digest_mismatch() {
+async fn resolve_agent_center_avatar_package_returns_vrm_model_manifest_and_rejects_digest_mismatch() {
     let _guard = test_env_guard();
     let home = unique_temp_dir("agent-center-package-invalid");
     fs::create_dir_all(&home).unwrap();
     let previous_home = std::env::var("HOME").ok();
     std::env::set_var("HOME", &home);
-    write_agent_center_live2d_package(&home, r#"{"Version":3}"#);
-    write_agent_center_local_config(
-        &home,
-        "account_1",
-        "agent_1",
-        Some(("vrm", "vrm_ab12cd34ef56")),
-    );
+    let vrm_package_dir = write_agent_center_vrm_package(&home, b"vrm-bytes");
 
-    let vrm_error =
+    let vrm_manifest =
         nimi_avatar_resolve_agent_center_avatar_package(AgentCenterAvatarPackageResolvePayload {
             account_id: "account_1".to_string(),
             agent_id: "agent_1".to_string(),
         })
         .await
-        .expect_err("vrm loader is unavailable");
-    assert!(vrm_error.contains("Live2D"));
+        .expect("resolve VRM package manifest");
+    assert_eq!(vrm_manifest.kind, "vrm");
+    assert_eq!(vrm_manifest.model_id, "model");
+    assert!(vrm_manifest
+        .vrm_file_path
+        .as_deref()
+        .unwrap()
+        .ends_with("files/model.vrm"));
+    assert!(vrm_manifest.model3_json_path.is_none());
+    assert!(vrm_package_dir.join("files/model.vrm").exists());
 
+    write_agent_center_live2d_package(&home, r#"{"Version":3}"#);
     let entry = home.join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/modules/avatar_package/packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json");
     write_agent_center_local_config(
         &home,

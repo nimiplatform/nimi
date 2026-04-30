@@ -124,7 +124,12 @@ export async function createLive2DBackendBranch(
 
   const parameterState = new Map<string, number>();
   const nominalBounds = computeLive2DNominalBounds({ model: null });
-  const hitRegion: BackendHitRegion = computeLive2DHitRegion({
+  // Wave 4 chunk 4-C: dynamic hit-region (alpha-mask on tier A/B,
+  // bbox-only fallback on tier C) is constructed inside the surface
+  // adapter (`live2d-carrier-surface`), where the cubism canvas DOM
+  // ref is available. The static `computeLive2DHitRegion` snapshot is
+  // retained in metadata() for back-compat / diagnostics consumers.
+  const staticHitRegionSnapshot: BackendHitRegion = computeLive2DHitRegion({
     compatibility: backendSession.compatibility,
   });
 
@@ -151,7 +156,6 @@ export async function createLive2DBackendBranch(
   const surface = createLive2DCarrierSurface({
     session: backendSession,
     audioConsumer,
-    hitRegion,
   });
 
   const live2dExtension = createLive2DExtension(commandBus);
@@ -168,7 +172,7 @@ export async function createLive2DBackendBranch(
       param_mouth_form_supported:
         backendSession.compatibility.adapter?.semantics?.lipsync?.disposition?.status ===
         'supported',
-      hit_region_default: hitRegion,
+      hit_region_default: staticHitRegionSnapshot,
       lipsync_profile_present: profile !== null,
     }),
     shutdown() {

@@ -24,7 +24,11 @@ export type AvatarEvidenceKind =
   | 'avatar.composition.surface-unmounted'
   // Wave 4 NAV-SHELL-002 — dynamic window-bounds recompute evidence.
   // Per avatar-event-contract.md §2.6 + §4 detail schemas.
-  | 'avatar.shell.window-bounds-changed';
+  | 'avatar.shell.window-bounds-changed'
+  // Topic 2026-04-30 wave_4 chunk 4-C — device tier detection (one-shot
+  // at avatar boot, drives alpha-mask vs bbox-only fallback in the
+  // per-backend hit-region constructors).
+  | 'avatar.device.tier_detected';
 
 // Surface identifier carried on `avatar.composition.surface-mounted` /
 // `surface-unmounted` evidence per avatar-event-contract.md §4.

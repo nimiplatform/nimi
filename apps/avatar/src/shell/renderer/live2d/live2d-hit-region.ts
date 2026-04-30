@@ -1,22 +1,51 @@
-// Wave 1 (step 2) of topic 2026-04-30-avatar-vrm-backend-branch.
+// Wave 1 (step 2) + Wave 4 chunk 4-B of topic 2026-04-30-avatar-vrm-backend-branch.
 //
-// Computes BackendHitRegion for the Live2D branch. Wave_1 ships the
-// bbox snapshot path only (body+drag rectangles cover the full nominal
-// viewport so OS-level click-through fallback works); the precise
-// alpha-mask `isOpaqueAtClientPoint` query is deferred to wave_4 per
-// `live2d-render-contract.md §"Hit Testing"` and the topic packet's
-// `acceptance_invariants` (alpha-mask not required at this wave).
+// Computes BackendHitRegion for the Live2D branch.
+//
+// `computeLive2DHitRegion` (wave_1) ships the bbox snapshot path only
+// (body+drag rectangles cover the full nominal viewport so OS-level
+// click-through fallback works) and is consumed by
+// `live2d-backend-branch.ts` to derive an immediate static region from
+// the compatibility report.
+//
+// `createLive2DHitRegion` (wave_4 chunk 4-B) wires the alpha-mask
+// `isOpaqueAtClientPoint` query against the live cubism canvas via
+// `gl.readPixels` (1×1 only — full-canvas reads are forbidden per
+// packet wave-4 forbidden_shortcuts). On device tier C (or capability
+// failure) it degrades to bbox-only with `isOpaqueAtClientPoint = null`
+// and fires `onDegraded({ reason_code: 'device_tier_c' })` once.
 //
 // Spec authorities:
+//   - apps/avatar/spec/kernel/app-shell-contract.md §2.3.1
+//     (alpha-mask threshold = 10/255; alpha-mask precedes bbox; null
+//      `isOpaqueAtClientPoint` indicates device tier C / not-supported)
 //   - apps/avatar/spec/kernel/backend-branch-contract.md §BackendHitRegion
 //   - apps/avatar/spec/kernel/live2d-render-contract.md §"Hit Testing"
 //   - apps/avatar/spec/kernel/live2d-asset-compatibility-contract.md §6
+//
+// Alpha-mask threshold is centralized as a NAMED constant per packet
+// acceptance_invariant 13: drift audits forbid scattered float / byte
+// literals in the function body. Tests verify the constant is exported.
 
 import type { BackendHitRegion } from '../carrier/backend-branch.js';
+import { getCachedDeviceTier } from '../app-shell/device-tier-detector.js';
+import type { DeviceTier } from '../app-shell/device-tier-detector.js';
 import type { Live2DCompatibilityReport } from './compatibility.js';
 
+/** Alpha-mask threshold: pixels with alpha < 10/255 are treated as
+ *  transparent for hit-test purposes. Source: app-shell-contract.md
+ *  §2.3.1; airi industrial baseline. Centralized constant per packet
+ *  acceptance_invariant 13. */
+export const LIVE2D_ALPHA_MASK_THRESHOLD = 10 / 255;
+
+/** Byte-equivalent of {@link LIVE2D_ALPHA_MASK_THRESHOLD}. Used inside
+ *  the probe because the gl.readPixels output is a UNSIGNED_BYTE
+ *  [0, 255]. */
+export const LIVE2D_ALPHA_MASK_THRESHOLD_BYTE = 10;
+
 /** Default: full-viewport bbox; drag rect equals body rect.
- *  alpha-mask is null (wave_4 hard-cut deferred). */
+ *  alpha-mask is null in this static path (the dynamic
+ *  `createLive2DHitRegion` factory wires it for tier A/B). */
 export const LIVE2D_DEFAULT_HIT_REGION: BackendHitRegion = Object.freeze({
   body: { left: 0, top: 0, right: 1, bottom: 1 },
   drag: { left: 0, top: 0, right: 1, bottom: 1 },
@@ -41,6 +70,13 @@ const ZERO_REGION: BackendHitRegion = Object.freeze({
   isOpaqueAtClientPoint: null,
 });
 
+const FULL_VIEWPORT_RECT: BackendHitRegion['body'] = Object.freeze({
+  left: 0,
+  top: 0,
+  right: 1,
+  bottom: 1,
+});
+
 export function computeLive2DHitRegion(
   input: Live2DHitRegionInput = {},
 ): BackendHitRegion {
@@ -51,4 +87,148 @@ export function computeLive2DHitRegion(
     return ZERO_REGION;
   }
   return LIVE2D_DEFAULT_HIT_REGION;
+}
+
+// ---------------------------------------------------------------------------
+// Wave 4 chunk 4-B: alpha-mask isOpaqueAtClientPoint factory
+// ---------------------------------------------------------------------------
+
+export type Live2DHitRegionDegradedDetail = {
+  reason_code: 'device_tier_c';
+  /** ISO-8601 timestamp captured at the moment degradation was decided. */
+  recordedAt: string;
+};
+
+export type CreateLive2DHitRegionInputs = {
+  /** Returns the live2d cubism canvas element (or null if not mounted). */
+  getCanvas: () => HTMLCanvasElement | null;
+  /** Returns the canvas's bounding client rect (left/top in window
+   *  coords; width/height in CSS pixels). */
+  getViewport: () => {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null;
+  /** Test seam: device tier override. Default: cached detection from
+   *  `getCachedDeviceTier()`; falls back to 'C' when detection has not
+   *  yet run. */
+  deviceTierOverride?: DeviceTier;
+  /** Fires once per `createLive2DHitRegion` call when the degraded path
+   *  is taken (tier C). Lets the carrier surface emit
+   *  `avatar.hit_region.degraded` evidence upstream. */
+  onDegraded?: (detail: Live2DHitRegionDegradedDetail) => void;
+};
+
+function resolveTier(override: DeviceTier | undefined): DeviceTier {
+  if (override !== undefined) return override;
+  return getCachedDeviceTier()?.tier ?? 'C';
+}
+
+function nowIsoString(): string {
+  return new Date().toISOString();
+}
+
+/** Read pixel alpha at the given canvas-pixel coordinate via the gl
+ *  context bound on the cubism canvas. 1×1 readback only — full-canvas
+ *  reads are forbidden by packet wave-4 forbidden_shortcuts. Returns
+ *  null on any failure (no canvas, no gl context, readPixels throw).
+ *
+ *  NOTE on concurrent renders: cubism's render() may be in flight when
+ *  this is called; reading pixels right after the visible render
+ *  captures the most recent frame. A small race is acceptable per the
+ *  per-frame budget. */
+function readAlphaByteFromCanvas(
+  canvas: HTMLCanvasElement,
+  canvasX: number,
+  canvasY: number,
+): number | null {
+  let gl: WebGL2RenderingContext | WebGLRenderingContext | null = null;
+  try {
+    gl =
+      (canvas.getContext('webgl2') as WebGL2RenderingContext | null) ??
+      (canvas.getContext('webgl') as WebGLRenderingContext | null);
+  } catch {
+    return null;
+  }
+  if (gl == null) return null;
+  try {
+    const pixels = new Uint8Array(4);
+    gl.readPixels(canvasX, canvasY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    return pixels[3] ?? 0;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build a `BackendHitRegion` for the Live2D backend with alpha-mask
+ * support.
+ *
+ * On tier A or B → `isOpaqueAtClientPoint` is a real function that
+ * reads pixel alpha from the cubism canvas via 1×1 `gl.readPixels` and
+ * compares against the (overridable) alpha-mask threshold.
+ *
+ * On tier C → `isOpaqueAtClientPoint` is `null`, indicating bbox-only;
+ * `onDegraded` fires once at construction time with
+ * `reason_code: 'device_tier_c'`.
+ */
+export function createLive2DHitRegion(
+  input: CreateLive2DHitRegionInputs,
+): BackendHitRegion {
+  const tier = resolveTier(input.deviceTierOverride);
+
+  if (tier === 'C') {
+    input.onDegraded?.({
+      reason_code: 'device_tier_c',
+      recordedAt: nowIsoString(),
+    });
+    return {
+      body: FULL_VIEWPORT_RECT,
+      drag: FULL_VIEWPORT_RECT,
+      isOpaqueAtClientPoint: null,
+    };
+  }
+
+  const { getCanvas, getViewport } = input;
+
+  const isOpaqueAtClientPoint = (
+    clientX: number,
+    clientY: number,
+    threshold?: number,
+  ): boolean => {
+    const canvas = getCanvas();
+    if (canvas == null) return false;
+    const viewport = getViewport();
+    if (viewport == null) return false;
+    if (viewport.width <= 0 || viewport.height <= 0) return false;
+    // Map client coord → viewport-relative [0, 1] → canvas pixel.
+    const relX = (clientX - viewport.left) / viewport.width;
+    const relYTop = (clientY - viewport.top) / viewport.height;
+    if (relX < 0 || relX >= 1 || relYTop < 0 || relYTop >= 1) return false;
+    const canvasW = canvas.width;
+    const canvasH = canvas.height;
+    if (canvasW <= 0 || canvasH <= 0) return false;
+    const canvasX = Math.min(
+      canvasW - 1,
+      Math.max(0, Math.floor(relX * canvasW)),
+    );
+    const canvasYTopLeft = Math.min(
+      canvasH - 1,
+      Math.max(0, Math.floor(relYTop * canvasH)),
+    );
+    // gl.readPixels Y origin is bottom-left; flip from window top-left.
+    const canvasY = canvasH - 1 - canvasYTopLeft;
+    const alphaByte = readAlphaByteFromCanvas(canvas, canvasX, canvasY);
+    if (alphaByte == null) return false;
+    const effectiveThreshold = threshold ?? LIVE2D_ALPHA_MASK_THRESHOLD;
+    const thresholdByte = effectiveThreshold * 255;
+    return alphaByte > thresholdByte;
+  };
+
+  return {
+    body: FULL_VIEWPORT_RECT,
+    drag: FULL_VIEWPORT_RECT,
+    isOpaqueAtClientPoint,
+  };
 }

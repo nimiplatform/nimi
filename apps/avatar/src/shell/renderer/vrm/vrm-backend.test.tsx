@@ -31,6 +31,11 @@ vi.mock('@react-three/fiber', () => ({
   // inside <Canvas>, but the unit tests rely on the runtime lifecycle
   // state, not on RAF.
   useFrame: () => {},
+  // Wave 4 chunk 4-C: VrmRenderTargetCaptureLoop reads gl/scene/camera
+  // through useThree for the per-tick capture(). Stubs are fine — the
+  // capture is wrapped in try/catch, and the alpha-mask probe only
+  // matters in real-WebGL builds.
+  useThree: () => ({ gl: {}, scene: {}, camera: {} }),
 }));
 
 function vrmManifest(): VrmAvatarModelManifest {

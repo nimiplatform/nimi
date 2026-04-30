@@ -28,6 +28,8 @@ import type {
   BackendHitRegion,
 } from '../carrier/backend-branch.js';
 import { getSharedAudioPipelineController } from '../audio/audio-pipeline.js';
+import { createThrottledCursorEvents } from '../app-shell/throttled-cursor-events.js';
+import { createThrottledEmit } from '../app-shell/throttled-emit.js';
 
 export type EmbodimentStageProps = {
   /** Active BackendBranch supplying the surface component, audio
@@ -63,18 +65,30 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
 
   useSurfaceMountEvidence('embodiment-stage', compositionState);
 
-  // ── BackendSurface lifecycle wiring (wave_1 step_4) ─────────────────────
+  // ── BackendSurface lifecycle wiring (wave_1 step_4 + wave_4 chunk 4-C) ──
   // The active BackendBranch exposes a Component that publishes three
   // lifecycle channels: audio-consumer, hit-region, evidence. Each one
   // bridges into an existing app-shell concern:
   //   * onAudioConsumerReady → register sink with the shared audio
   //     pipeline (lipsync), unregister on backend swap / unmount.
-  //   * onHitRegionChange    → throttle through setIgnoreCursorEvents so
-  //     OS-level click-through follows the carrier's bbox snapshot.
+  //   * onHitRegionChange    → store the latest region (throttled via
+  //     `createThrottledEmit` so per-frame snapshot updates are capped at
+  //     ≤ 1 per 100ms per packet acceptance_invariant 8). Pointer hit
+  //     testing (alpha-mask + bbox fallback) drives the 60Hz-capped
+  //     `setIgnoreCursorEvents` throttle below.
   //   * onLifecycleEvidence  → record into the avatar evidence stream so
   //     mounted/unmounted/load-error transitions surface in telemetry.
   const sinkRegistrationRef = useRef<(() => void) | null>(null);
-  const lastClickThroughRef = useRef<boolean | null>(null);
+  const currentHitRegionRef = useRef<BackendHitRegion | null>(null);
+
+  // 60Hz-capped throttle around the Tauri set_ignore_cursor_events IPC.
+  // Per packet acceptance_invariant 7 + negative_test #3, rapid pointermove
+  // (1000+ events in 10ms) must not saturate the IPC channel. The throttle
+  // dedupes same-value calls and coalesces with trailing-edge fire.
+  const cursorEventsThrottleRef = useMemo(
+    () => createThrottledCursorEvents(),
+    [],
+  );
 
   const handleAudioConsumerReady = useCallback(
     (consumer: BackendAudioConsumer) => {
@@ -86,20 +100,35 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     [],
   );
 
+  // 100ms-cap throttle around the bbox-snapshot consumer fan-out. The
+  // backend surface may emit on every captured frame; the consumer
+  // (window-bounds resize wiring etc.) only needs at most 10 updates per
+  // second per packet acceptance_invariant 8.
+  const hitRegionEmitThrottleRef = useMemo(
+    () =>
+      createThrottledEmit<BackendHitRegion>({
+        callback: (region) => {
+          // Fan-out point: today the only downstream consumer is the
+          // ref store used by pointermove; future wiring (e.g. Tauri
+          // set_size for dynamic window bounds) attaches here.
+          currentHitRegionRef.current = region;
+        },
+      }),
+    [],
+  );
+
   const handleHitRegionChange = useCallback(
     (region: BackendHitRegion) => {
-      // Throttle: only flip click-through when the bbox/alpha-mask
-      // dispostion actually changed. Wave_1 only ships a bbox path
-      // (alpha-mask deferred), so we approximate "interactive vs
-      // pass-through" as "any non-zero body rect → capture cursor".
-      const interactive =
-        region.body.right > region.body.left && region.body.bottom > region.body.top;
-      const ignore = !interactive;
-      if (lastClickThroughRef.current === ignore) return;
-      lastClickThroughRef.current = ignore;
-      void setIgnoreCursorEvents(ignore);
+      // Always update the ref synchronously so the very first region is
+      // available to the pointermove handler immediately on backend mount
+      // (the throttle's leading edge fires the consumer too, but we don't
+      // want to gate "any region at all" behind it).
+      if (currentHitRegionRef.current == null) {
+        currentHitRegionRef.current = region;
+      }
+      hitRegionEmitThrottleRef.emit(region);
     },
-    [],
+    [hitRegionEmitThrottleRef],
   );
 
   const handleLifecycleEvidence = useCallback(
@@ -122,14 +151,22 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     [compositionState],
   );
 
-  // Sink unregistration on unmount / backend swap.
+  // Sink unregistration + throttle disposal on unmount / backend swap.
   useEffect(
     () => () => {
       sinkRegistrationRef.current?.();
       sinkRegistrationRef.current = null;
-      lastClickThroughRef.current = null;
+      currentHitRegionRef.current = null;
     },
     [backend],
+  );
+
+  useEffect(
+    () => () => {
+      cursorEventsThrottleRef.dispose();
+      hitRegionEmitThrottleRef.dispose();
+    },
+    [cursorEventsThrottleRef, hitRegionEmitThrottleRef],
   );
 
   const bodyRef = useRef<HTMLDivElement | null>(null);
@@ -160,6 +197,49 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     drag.pendingDy = 0;
     void dragWindowBy(dx, dy);
   };
+
+  // Wave 4 chunk 4-C: pointer hit-test driver. Per app-shell-contract.md
+  // §2.3.1 the alpha-mask probe takes precedence over the bbox; the
+  // backend-supplied `isOpaqueAtClientPoint` returns null when the
+  // backend is on tier C / capability detection failed, in which case we
+  // fall back to a body-bbox check (viewport-normalized → absolute).
+  const computeIgnoreForPoint = useCallback(
+    (clientX: number, clientY: number): boolean => {
+      const region = currentHitRegionRef.current;
+      // Pre-region (backend not yet announced) → conservative: capture
+      // pointer (ignore=false) so the user can interact with the
+      // embodiment-stage even before alpha-mask is wired.
+      if (region == null) return false;
+      if (region.isOpaqueAtClientPoint) {
+        return !region.isOpaqueAtClientPoint(clientX, clientY);
+      }
+      // Bbox fallback. The body rect is viewport-normalized [0,1]; map
+      // to absolute window coords via the embodiment-stage rect.
+      const stageEl = bodyRef.current?.parentElement;
+      if (stageEl == null) return false;
+      const stageRect = stageEl.getBoundingClientRect();
+      if (stageRect.width <= 0 || stageRect.height <= 0) return true;
+      const absLeft = stageRect.left + region.body.left * stageRect.width;
+      const absRight = stageRect.left + region.body.right * stageRect.width;
+      const absTop = stageRect.top + region.body.top * stageRect.height;
+      const absBottom = stageRect.top + region.body.bottom * stageRect.height;
+      const inside =
+        clientX >= absLeft &&
+        clientX < absRight &&
+        clientY >= absTop &&
+        clientY < absBottom;
+      return !inside;
+    },
+    [],
+  );
+
+  const updateClickThroughForPointer = useCallback(
+    (clientX: number, clientY: number): void => {
+      const ignore = computeIgnoreForPoint(clientX, clientY);
+      cursorEventsThrottleRef.setIgnore(ignore);
+    },
+    [computeIgnoreForPoint, cursorEventsThrottleRef],
+  );
 
   const controller = useMemo(
     () =>
@@ -216,6 +296,10 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
       data-testid="avatar-embodiment-stage"
       onPointerEnter={(event) => {
         if (isInteractiveTarget(event.target)) return;
+        // Wave 4 chunk 4-C: alpha-mask-aware click-through via the 60Hz
+        // throttle. Same call from onPointerMove; placing it on enter
+        // covers the case where the pointer enters at an opaque region.
+        updateClickThroughForPointer(event.clientX, event.clientY);
         controller.pointerMove(event);
       }}
       onPointerMove={(event) => {
@@ -239,6 +323,11 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           }
           return;
         }
+        // Wave 4 chunk 4-C: alpha-mask-aware click-through via the 60Hz
+        // throttle. The throttle dedupes same-state calls (so rapid
+        // pointermove inside an opaque region does not saturate the IPC
+        // channel) and fires Tauri at most once per ~16.67ms.
+        updateClickThroughForPointer(event.clientX, event.clientY);
         if (isInteractiveTarget(event.target)) return;
         controller.pointerMove(event);
       }}

@@ -90,7 +90,7 @@ vi.mock('../mock/scenarios/default.mock.json?raw', () => ({
   default: JSON.stringify({ fixture: true }),
 }));
 
-vi.mock('../live2d/model-loader.js', () => ({
+vi.mock('../carrier/model-resolver.js', () => ({
   resolveAgentCenterAvatarPackageManifest: (...args: unknown[]) =>
     resolveAgentCenterAvatarPackageManifestMock(...args),
 }));

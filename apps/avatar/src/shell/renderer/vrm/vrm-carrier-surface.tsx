@@ -33,7 +33,7 @@
 //   5. vrm.update(deltaSec)   <-- REQUIRED for VRM expression
 //                                interpolation + secondary motion physics
 
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Component as ReactComponent } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -63,6 +63,8 @@ import {
   createVrmProjectionAdapter,
   type ActivityMapping,
 } from './vrm-projection-adapter.js';
+import { createVrmHitRegion } from './vrm-hit-region.js';
+import type { VrmRenderTarget } from './vrm-render-target.js';
 
 export type VrmCarrierSurfaceInput = {
   manifest: VrmAvatarModelManifest;
@@ -81,6 +83,9 @@ export type VrmCarrierSurfaceInput = {
     VrmRuntimeOptions,
     'loaderOverride' | 'setTimeoutFn' | 'clearTimeoutFn' | 'nowFn'
   >;
+  /** Wave 4 chunk 4-C: render target driving the alpha-mask probe. The
+   *  surface drives `capture()` from useFrame at ~10Hz throttle. */
+  renderTarget: VrmRenderTarget;
 };
 
 export type VrmCarrierSurfaceHandle = {
@@ -142,15 +147,43 @@ export function createVrmCarrierSurface(
       }
       if (!regionAnnouncedRef.current) {
         regionAnnouncedRef.current = true;
-        props.onHitRegionChange?.({
-          body: { left: 0, top: 0, right: 1, bottom: 1 },
-          drag: { left: 0, top: 0, right: 1, bottom: 1 },
-          // Alpha-mask hit-test is deferred to wave_4. `null` signals
-          // bbox-only (carrier abstraction supports both paths).
-          isOpaqueAtClientPoint: null,
+        // Wave 4 chunk 4-C: real alpha-mask (or tier-C bbox fallback)
+        // hit region. The render target was already constructed at the
+        // BackendBranch factory; we wire the viewport through a closure
+        // reading the canvas element's bounding rect each probe so the
+        // region works correctly across resize / drag.
+        const hitRegion = createVrmHitRegion({
+          renderTarget: input.renderTarget,
+          getViewport: () => {
+            const container = canvasContainerRef.current;
+            if (!container) return null;
+            const canvas = container.querySelector('canvas');
+            if (!canvas) return null;
+            const rect = canvas.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return null;
+            return {
+              left: rect.left,
+              top: rect.top,
+              width: rect.width,
+              height: rect.height,
+            };
+          },
+          onDegraded: (detail) => {
+            props.onLifecycleEvidence?.('hit_region_degraded', {
+              source: 'vrm-carrier-surface',
+              reason_code: detail.reason_code,
+              recorded_at: detail.recordedAt,
+            });
+          },
         });
+        props.onHitRegionChange?.(hitRegion);
       }
-    }, [state.kind, props.onAudioConsumerReady, props.onHitRegionChange]);
+    }, [
+      state.kind,
+      props.onAudioConsumerReady,
+      props.onHitRegionChange,
+      props.onLifecycleEvidence,
+    ]);
 
     // Wire webglcontextlost / restored once the canvas DOM mounts.
     useEffect(() => {
@@ -277,13 +310,19 @@ export function createVrmCarrierSurface(
         >
           <VrmScene vrm={vrm} />
           {state.kind === 'ready' && vrm ? (
-            <VrmFrameLoop
-              vrm={vrm}
-              audioConsumer={input.audioConsumer}
-              lipsyncDriver={input.lipsyncDriver}
-              emoteState={input.emoteState}
-              motionRegistry={input.motionRegistry}
-            />
+            <>
+              <VrmFrameLoop
+                vrm={vrm}
+                audioConsumer={input.audioConsumer}
+                lipsyncDriver={input.lipsyncDriver}
+                emoteState={input.emoteState}
+                motionRegistry={input.motionRegistry}
+              />
+              <VrmRenderTargetCaptureLoop
+                vrm={vrm}
+                renderTarget={input.renderTarget}
+              />
+            </>
           ) : null}
         </SafeCanvas>
       </div>
@@ -338,6 +377,51 @@ function VrmFrameLoop({
     // + secondary motion physics depend on this per-frame call.
     if (typeof (vrm as { update?: (dt: number) => void }).update === 'function') {
       (vrm as { update: (dt: number) => void }).update(dt);
+    }
+  });
+  return null;
+}
+
+/**
+ * Wave 4 chunk 4-C: drives the alpha-mask hit-test render-target capture
+ * at ~10Hz (≥100ms between captures). Per packet wave-4
+ * forbidden_shortcuts the capture must not run every frame: full-canvas
+ * readPixels is forbidden, and even a 1×1 readback after `renderer.render`
+ * is a synchronous GPU stall. 10Hz matches the 100ms hit-region snapshot
+ * throttle (acceptance_invariant 8) — finer cadence buys nothing because
+ * the consumer cannot deliver bbox updates faster.
+ */
+const VRM_RENDER_TARGET_CAPTURE_INTERVAL_MS = 100;
+
+function VrmRenderTargetCaptureLoop({
+  vrm,
+  renderTarget,
+}: {
+  vrm: VRM;
+  renderTarget: VrmRenderTarget;
+}): null {
+  const lastCapturedAtMsRef = useRef<number>(-Infinity);
+  const { gl, scene, camera } = useThree();
+  useFrame(() => {
+    const now =
+      typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now();
+    if (now - lastCapturedAtMsRef.current < VRM_RENDER_TARGET_CAPTURE_INTERVAL_MS) {
+      return;
+    }
+    lastCapturedAtMsRef.current = now;
+    try {
+      renderTarget.capture({
+        renderer: gl as unknown as Parameters<VrmRenderTarget['capture']>[0]['renderer'],
+        scene,
+        camera,
+        vrm,
+      });
+    } catch {
+      // Render-target capture is best-effort; on transient failure the
+      // probe falls back to its last-good FBO (probeAlphaAtClient returns
+      // null if no snapshot yet — hit region resolves to false).
     }
   });
   return null;
