@@ -4,6 +4,7 @@ import type {
   LocalRuntimeAssetKind,
   LocalRuntimeAssetRecord,
   LocalRuntimeCatalogItemDescriptor,
+  LocalRuntimeDependencyDescriptor,
   GgufVariantDescriptor,
   LocalRuntimeUnregisteredAssetDescriptor,
   LocalRuntimeVerifiedAssetDescriptor,
@@ -44,6 +45,8 @@ type LocalModelCenterRuntimeViewProps = {
   discovering: boolean;
   filteredInstalledDependencyAssets: LocalRuntimeAssetRecord[];
   filteredInstalledRunnableAssets: LocalRuntimeAssetRecord[];
+  sharedRuntimeDependency?: LocalRuntimeDependencyDescriptor;
+  runtimeDependencyByAssetId: Record<string, LocalRuntimeDependencyDescriptor | undefined>;
   hasSearchQuery: boolean;
   importFileAssetKind: LocalRuntimeAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
@@ -97,6 +100,7 @@ type LocalModelCenterRuntimeViewProps = {
   onRefreshUnregisteredAssets: () => void;
   onRemoveAsset: (localAssetId: string) => void;
   onRepairAsset: (localAssetId: string, endpoint: string) => void;
+  onSetupRuntimeDependency: () => void;
   onRescanAsset: (localAssetId: string) => void;
   onResumeDownload: DownloadState['onResumeDownload'];
   onSearchQueryChange: (value: string) => void;
@@ -192,9 +196,11 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           pendingTemplateIds={props.assetPendingTemplateIds}
           onRetryTask={props.onInstallAsset}
         />
-        <LocalModelCenterInstalledAssetsSection
-          filteredInstalledRunnableAssets={props.filteredInstalledRunnableAssets}
-          filteredInstalledDependencyAssets={props.filteredInstalledDependencyAssets}
+      <LocalModelCenterInstalledAssetsSection
+        filteredInstalledRunnableAssets={props.filteredInstalledRunnableAssets}
+        filteredInstalledDependencyAssets={props.filteredInstalledDependencyAssets}
+        sharedRuntimeDependency={props.sharedRuntimeDependency}
+        runtimeDependencyByAssetId={props.runtimeDependencyByAssetId}
           loadingInstalledAssets={props.loadingInstalledAssets}
           loadingVerifiedAssets={props.loadingVerifiedAssets}
           assetKindFilter={props.assetKindFilter}
@@ -203,6 +209,7 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onRefreshAssets={props.onRefreshAssets}
           onRemoveAsset={props.onRemoveAsset}
           onRepairAsset={props.onRepairAsset}
+          onSetupRuntimeDependency={props.onSetupRuntimeDependency}
           onRescanAsset={props.onRescanAsset}
         />
         {!props.hasSearchQuery ? (

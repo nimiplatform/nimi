@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type {
   LocalRuntimeAssetKind,
   LocalRuntimeAssetRecord,
+  LocalRuntimeDependencyDescriptor,
 } from '@runtime/local-runtime';
 import { i18n } from '@renderer/i18n';
 import { RuntimeSelect } from './runtime-config-primitives';
@@ -24,6 +25,8 @@ import {
 type InstalledAssetsSectionProps = {
   filteredInstalledRunnableAssets: LocalRuntimeAssetRecord[];
   filteredInstalledDependencyAssets: LocalRuntimeAssetRecord[];
+  sharedRuntimeDependency?: LocalRuntimeDependencyDescriptor;
+  runtimeDependencyByAssetId: Record<string, LocalRuntimeDependencyDescriptor | undefined>;
   loadingInstalledAssets: boolean;
   loadingVerifiedAssets: boolean;
   assetKindFilter: 'all' | LocalRuntimeAssetKind;
@@ -32,6 +35,7 @@ type InstalledAssetsSectionProps = {
   onRefreshAssets: () => void;
   onRemoveAsset: (localAssetId: string) => void;
   onRepairAsset: (localAssetId: string, endpoint: string) => void;
+  onSetupRuntimeDependency: () => void;
   onRescanAsset: (localAssetId: string) => void;
 };
 
@@ -66,14 +70,61 @@ function assetSupportsBundleRescan(asset: LocalRuntimeAssetRecord): boolean {
   return String(asset.source.repo || '').trim().toLowerCase().startsWith('file://');
 }
 
+function runtimeDependencyNeedsSetup(
+  dependency?: LocalRuntimeDependencyDescriptor,
+): boolean {
+  return (
+    dependency?.dependencyId === 'nvidia-cuda-user-space-runtime'
+    && dependency.state === 'materializable_requires_confirmation'
+    && dependency.confirmationRequired === true
+  );
+}
+
+function assetHasRuntimeDependencyWarning(
+  asset: LocalRuntimeAssetRecord,
+  dependency?: LocalRuntimeDependencyDescriptor,
+): boolean {
+  const detail = String(asset.healthDetail || '').trim().toLowerCase();
+  return (
+    asset.kind === 'image'
+    && (
+      (
+        asset.status === 'unhealthy'
+        && detail.includes('cuda_user_space_runtime')
+        && detail.includes('materializable_requires_confirmation')
+      )
+      || runtimeDependencyNeedsSetup(dependency)
+    )
+  );
+}
+
+function runtimeDependencyDetail(
+  asset: LocalRuntimeAssetRecord,
+  dependency?: LocalRuntimeDependencyDescriptor,
+): string {
+  const healthDetail = String(asset.healthDetail || '').trim();
+  if (healthDetail) {
+    return healthDetail;
+  }
+  if (!dependency) {
+    return '';
+  }
+  return String(dependency.message || dependency.reasonCode || dependency.state || '').trim();
+}
+
 export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSectionProps) {
   const [confirmRemoveAssetId, setConfirmRemoveAssetId] = useState('');
   const [repairAssetId, setRepairAssetId] = useState('');
   const [repairEndpoint, setRepairEndpoint] = useState('');
+  const [confirmSharedRuntimeDependencySetup, setConfirmSharedRuntimeDependencySetup] = useState(false);
 
   const runnableCount = props.filteredInstalledRunnableAssets.length;
   const dependencyCount = props.filteredInstalledDependencyAssets.length;
   const totalCount = runnableCount + dependencyCount;
+  const sharedRuntimeDependencyNeedsSetup = runtimeDependencyNeedsSetup(props.sharedRuntimeDependency);
+  const sharedRuntimeDependencyDetail = props.sharedRuntimeDependency
+    ? String(props.sharedRuntimeDependency.message || props.sharedRuntimeDependency.reasonCode || props.sharedRuntimeDependency.state || '').trim()
+    : '';
 
   return (
     <div className="overflow-visible rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
@@ -114,6 +165,63 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
         </div>
       </div>
 
+      {sharedRuntimeDependencyNeedsSetup ? (
+        <div className="border-b border-[color-mix(in_srgb,var(--nimi-status-warning)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,transparent)] px-5 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[var(--nimi-status-warning)]">
+                {i18n.t('runtimeConfig.localModelCenter.cudaRuntimeSetupTitle', {
+                  defaultValue: 'Local GPU runtime setup required',
+                })}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-[color-mix(in_srgb,var(--nimi-status-warning)_82%,var(--nimi-text-secondary))]">
+                {i18n.t('runtimeConfig.localModelCenter.cudaDependencyConfirm', {
+                  defaultValue: 'Nimi will install the CUDA runtime dependency into the Nimi data dependency directory. System CUDA, user PATH, and machine PATH will not be changed.',
+                })}
+              </p>
+              {sharedRuntimeDependencyDetail ? (
+                <p className="mt-1 line-clamp-2 text-[11px] text-[color-mix(in_srgb,var(--nimi-status-warning)_76%,var(--nimi-text-secondary))]">
+                  {sharedRuntimeDependencyDetail}
+                </p>
+              ) : null}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {confirmSharedRuntimeDependencySetup ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmSharedRuntimeDependencySetup(false);
+                      props.onSetupRuntimeDependency();
+                    }}
+                    disabled={props.assetBusy}
+                    className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
+                  >
+                    {i18n.t('runtimeConfig.localModelCenter.confirmSetup', { defaultValue: 'Confirm' })}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmSharedRuntimeDependencySetup(false)}
+                    className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
+                  >
+                    {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmSharedRuntimeDependencySetup(true)}
+                  disabled={props.assetBusy}
+                  className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
+                >
+                  {i18n.t('runtimeConfig.localModelCenter.setupDependency', { defaultValue: 'Set Up' })}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div>
         <div className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-5 py-2">
           <PackageIcon className="h-4 w-4 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
@@ -128,6 +236,9 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
           <div className="divide-y divide-gray-200/80">
             {props.filteredInstalledRunnableAssets.map((asset) => {
               const needsRepair = assetNeedsAttachedEndpointRepair(asset);
+              const runtimeDependency = props.runtimeDependencyByAssetId[asset.localAssetId];
+              const hasRuntimeDependencyWarning = assetHasRuntimeDependencyWarning(asset, runtimeDependency);
+              const dependencyDetail = runtimeDependencyDetail(asset, runtimeDependency);
               const isRepairing = repairAssetId === asset.localAssetId;
               const supportsRescan = assetSupportsBundleRescan(asset);
               const unhealthyReasonSummary = asset.status === 'unhealthy'
@@ -156,9 +267,13 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
                         {recommendationSummary(asset.recommendation)}
                       </p>
                     ) : null}
-                    {asset.status === 'unhealthy' && String(asset.healthDetail || '').trim() ? (
-                      <p className="mt-1 line-clamp-3 text-[11px] text-[var(--nimi-status-danger)]">
-                        {String(asset.healthDetail || '').trim()}
+                    {(asset.status === 'unhealthy' || hasRuntimeDependencyWarning) && dependencyDetail ? (
+                      <p className={`mt-1 line-clamp-3 text-[11px] ${
+                        hasRuntimeDependencyWarning
+                          ? 'text-[var(--nimi-status-warning)]'
+                          : 'text-[var(--nimi-status-danger)]'
+                      }`}>
+                        {dependencyDetail}
                       </p>
                     ) : null}
                     {asset.status === 'unhealthy' && String(asset.reasonCode || '').trim() ? (

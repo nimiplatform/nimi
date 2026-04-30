@@ -14,6 +14,7 @@ import type {
   LocalRuntimeDownloadState,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
+  LocalRuntimeDependencyDescriptor,
   LocalRuntimeTransferSessionKind,
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeAssetHealth,
@@ -127,6 +128,27 @@ export function parseAssetHealth(value: unknown): LocalRuntimeAssetHealth {
     detail: asString(record.detail),
     endpoint: asString(record.endpoint),
     reasonCode: asString(record.reasonCode) || undefined,
+  };
+}
+
+export function parseRuntimeDependencyDescriptor(value: unknown): LocalRuntimeDependencyDescriptor {
+  const record = asRecord(value);
+  const transfer = asRecord(record.transfer);
+  return {
+    dependencyId: asString(record.dependencyId),
+    consumerId: asString(record.consumerId) || undefined,
+    kind: asString(record.kind),
+    state: asString(record.state),
+    source: asString(record.source),
+    hostProfileId: asString(record.hostProfileId) || undefined,
+    selectedSourceRecordId: asString(record.selectedSourceRecordId) || undefined,
+    canonicalRoot: asString(record.canonicalRoot) || undefined,
+    confirmationRequired: Boolean(record.confirmationRequired),
+    message: asString(record.message) || undefined,
+    reasonCode: asString(record.reasonCode) || undefined,
+    installLocation: asString(record.installLocation) || undefined,
+    systemPathMutation: Boolean(record.systemPathMutation),
+    transfer: Object.keys(transfer).length > 0 ? parseDownloadSessionSummary(transfer) : undefined,
   };
 }
 

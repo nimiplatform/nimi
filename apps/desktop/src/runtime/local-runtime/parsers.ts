@@ -49,6 +49,7 @@ export {
   parseCatalogRecommendation,
   parseDownloadProgressEvent,
   parseDownloadSessionSummary,
+  parseRuntimeDependencyDescriptor,
   parseGgufVariantDescriptor,
   parseAssetHealth,
   parseUnregisteredAssetDescriptor,

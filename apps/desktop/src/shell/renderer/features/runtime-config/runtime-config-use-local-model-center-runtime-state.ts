@@ -23,10 +23,8 @@ import {
   type CapabilityOption,
   type InstallEngineOption,
   type LocalModelCenterProps,
-  parseTimestamp,
 } from './runtime-config-model-center-utils';
 import {
-  filterInstalledAssets,
   isAssetTaskTerminal,
   relatedPassiveAssetsForRunnable,
   sortVerifiedAssetsForDisplay,
@@ -48,6 +46,10 @@ import {
 import { toCanonicalLocalLookupKey } from '@runtime/local-runtime/local-id';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
+import {
+  useLocalModelCenterRuntimeDependencies,
+} from './runtime-config-use-local-model-center-runtime-readiness';
+import { useLocalModelCenterInstalledAssetViews } from './runtime-config-use-local-model-center-installed-assets';
 
 type UseLocalModelCenterRuntimeStateInput = {
   isModMode: boolean;
@@ -102,53 +104,16 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     return () => document.removeEventListener('mousedown', handler);
   }, [showImportMenu]);
 
-  const sortedInstalledAssets = useMemo(
-    () => [...installedAssets].sort((left, right) => {
-      const leftRank = parseTimestamp(left.installedAt) || parseTimestamp(left.updatedAt);
-      const rightRank = parseTimestamp(right.installedAt) || parseTimestamp(right.updatedAt);
-      if (leftRank !== rightRank) {
-        return rightRank - leftRank;
-      }
-      return String(right.localAssetId || '').localeCompare(String(left.localAssetId || ''));
-    }),
-    [installedAssets],
-  );
-
-  const visibleInstalledAssets = useMemo(
-    () => sortedInstalledAssets.filter((asset) => asset.status !== 'removed'),
-    [sortedInstalledAssets],
-  );
-
-  const sortedInstalledRunnableAssets = useMemo(
-    () => visibleInstalledAssets.filter((asset) => RUNNABLE_ASSET_KINDS.has(asset.kind)),
-    [visibleInstalledAssets],
-  );
-
-  const filteredInstalledRunnableAssets = useMemo(() => {
-    if (!deferredSearchQuery.trim()) {
-      return sortedInstalledRunnableAssets;
-    }
-    const query = deferredSearchQuery.toLowerCase().trim();
-    return sortedInstalledRunnableAssets.filter((asset) => (
-      asset.assetId.toLowerCase().includes(query)
-      || asset.localAssetId.toLowerCase().includes(query)
-      || asset.engine.toLowerCase().includes(query)
-      || asset.kind.toLowerCase().includes(query)
-      || asset.logicalModelId?.toLowerCase().includes(query)
-      || asset.source.repo.toLowerCase().includes(query)
-      || (asset.capabilities || []).some((capability) => capability.toLowerCase().includes(query))
-    ));
-  }, [deferredSearchQuery, sortedInstalledRunnableAssets]);
-
-  const sortedInstalledDependencyAssets = useMemo(
-    () => visibleInstalledAssets.filter((asset) => !RUNNABLE_ASSET_KINDS.has(asset.kind)),
-    [visibleInstalledAssets],
-  );
-
-  const filteredInstalledDependencyAssets = useMemo(
-    () => filterInstalledAssets(sortedInstalledDependencyAssets, assetKindFilter, deferredSearchQuery.toLowerCase().trim()),
-    [assetKindFilter, deferredSearchQuery, sortedInstalledDependencyAssets],
-  );
+  const {
+    filteredInstalledDependencyAssets,
+    filteredInstalledRunnableAssets,
+    sortedInstalledRunnableAssets,
+    visibleInstalledAssets,
+  } = useLocalModelCenterInstalledAssetViews({
+    assetKindFilter,
+    deferredSearchQuery,
+    installedAssets,
+  });
 
   const installedRunnableAssetIds = useMemo(
     () => new Set(sortedInstalledRunnableAssets.map((asset) => toCanonicalLocalLookupKey(asset.assetId)).filter(Boolean)),
@@ -393,9 +358,25 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     [assetTasks],
   );
 
-  const refreshAssetSections = useCallback(async () => {
+  const refreshAssetInventorySections = useCallback(async () => {
     await Promise.all([refreshInstalledAssets(), refreshVerifiedAssets()]);
   }, [refreshInstalledAssets, refreshVerifiedAssets]);
+
+  const {
+    refreshRuntimeDependencies,
+    runtimeDependencyByAssetId,
+    setupRuntimeDependency,
+    sharedRuntimeDependency,
+  } = useLocalModelCenterRuntimeDependencies({
+    assets: sortedInstalledRunnableAssets,
+    refreshAssetInventorySections,
+    setAssetBusy,
+  });
+
+  const refreshAssetSections = useCallback(async () => {
+    await refreshAssetInventorySections();
+    refreshRuntimeDependencies();
+  }, [refreshAssetInventorySections, refreshRuntimeDependencies]);
 
   const markAssetPending = useCallback((templateId: string, pending: boolean) => {
     const normalized = String(templateId || '').trim();
@@ -760,11 +741,13 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     onPauseDownload: importActions.onPauseDownload, onResumeDownload: importActions.onResumeDownload,
     refreshAssetSections, refreshUnregisteredAssets, refreshVerifiedModels,
     repairInstalledAsset, relatedAssetsByModelTemplate, removeInstalledAsset,
+    runtimeDependencyByAssetId,
     resolveUnregisteredAssetDraft, searchQuery, selectedCatalogCapability, selectedCatalogEngine,
     setAssetKindFilter, setCatalogCapability, setCatalogCapabilityOverrides,
     setCatalogDisplayCount, setCatalogEngineOverrides,
     setImportFileAssetKind, setImportFileAuxiliaryEngine, setImportFileEndpoint,
     setSearchQuery, setShowImportFileDialog, setShowImportMenu,
+    setupRuntimeDependency, sharedRuntimeDependency,
     setUnregisteredAssetKind, setUnregisteredAuxiliaryEngine, setUnregisteredEndpoint,
     showImportFileDialog, showImportMenu, canChooseImportFile, canChooseImportDirectory,
     toggleVariantPicker: importActions.toggleVariantPicker,

@@ -592,6 +592,41 @@ export type LocalRuntimeDownloadControlPayload = {
   installSessionId: string;
 };
 
+export type LocalRuntimeDependencyState =
+  | 'ready_system'
+  | 'ready_managed'
+  | 'materializable_requires_confirmation'
+  | 'unsupported'
+  | string;
+
+export type LocalRuntimeDependencyDescriptor = {
+  dependencyId: string;
+  consumerId?: string;
+  kind: string;
+  state: LocalRuntimeDependencyState;
+  source: string;
+  hostProfileId?: string;
+  selectedSourceRecordId?: string;
+  canonicalRoot?: string;
+  confirmationRequired: boolean;
+  message?: string;
+  reasonCode?: string;
+  installLocation?: string;
+  systemPathMutation: boolean;
+  transfer?: LocalRuntimeDownloadSessionSummary;
+};
+
+export type LocalRuntimeDependencySetupPayload = {
+  dependencyId?: string;
+  localAssetId?: string;
+  consumerId?: string;
+};
+
+export type LocalRuntimeDependencySetupResult = {
+  dependency: LocalRuntimeDependencyDescriptor;
+  transfer?: LocalRuntimeDownloadSessionSummary;
+};
+
 export type LocalRuntimeAssetDeclaration = {
   assetKind: LocalRuntimeAssetKind;
   engine?: string;

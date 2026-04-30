@@ -19,6 +19,10 @@ const localModelCenterStatePath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-runtime-state.ts',
 );
+const localModelCenterInstalledAssetsPath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-installed-assets.ts',
+);
 const localModelCenterImportActionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-import-actions.ts',
@@ -64,6 +68,7 @@ const installedSectionSource = readFileSync(installedSectionPath, 'utf-8');
 const controllerSource = readFileSync(controllerPath, 'utf-8');
 const localPageSource = readFileSync(localPagePath, 'utf-8');
 const localModelCenterStateSource = readFileSync(localModelCenterStatePath, 'utf-8');
+const localModelCenterInstalledAssetsSource = readFileSync(localModelCenterInstalledAssetsPath, 'utf-8');
 const localModelCenterImportActionsSource = readFileSync(localModelCenterImportActionsPath, 'utf-8');
 const localModelCenterImportFilePlanSource = readFileSync(localModelCenterImportFilePlanPath, 'utf-8');
 const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath, 'utf-8');
@@ -93,9 +98,9 @@ test('desktop local page no longer wires start\\/stop\\/restart product actions 
 });
 
 test('local model center hides removed tombstones from installed sections and reinstall indexes', () => {
-  assert.match(localModelCenterStateSource, /const visibleInstalledAssets = useMemo\(/);
-  assert.match(localModelCenterStateSource, /sortedInstalledAssets\.filter\(\(asset\) => asset\.status !== 'removed'\)/);
-  assert.match(localModelCenterStateSource, /visibleInstalledAssets\.filter\(\(asset\) => RUNNABLE_ASSET_KINDS\.has\(asset\.kind\)\)/);
+  assert.match(localModelCenterInstalledAssetsSource, /const visibleInstalledAssets = useMemo\(/);
+  assert.match(localModelCenterInstalledAssetsSource, /sortedInstalledAssets\.filter\(\(asset\) => asset\.status !== 'removed'\)/);
+  assert.match(localModelCenterInstalledAssetsSource, /visibleInstalledAssets\.filter\(\(asset\) => RUNNABLE_ASSET_KINDS\.has\(asset\.kind\)\)/);
   assert.match(localModelCenterStateSource, /new Map\(visibleInstalledAssets\.map\(\(asset\) => \[toCanonicalLocalLookupKey\(asset\.assetId\), asset\] as const\)\)/);
 });
 

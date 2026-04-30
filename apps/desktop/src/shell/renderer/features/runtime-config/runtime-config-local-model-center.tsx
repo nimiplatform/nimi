@@ -139,6 +139,8 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       discovering={props.discovering}
       filteredInstalledDependencyAssets={runtimeState.filteredInstalledDependencyAssets}
       filteredInstalledRunnableAssets={runtimeState.filteredInstalledRunnableAssets}
+      sharedRuntimeDependency={runtimeState.sharedRuntimeDependency}
+      runtimeDependencyByAssetId={runtimeState.runtimeDependencyByAssetId}
       hasSearchQuery={hasSearchQuery}
       importFileAssetKind={runtimeState.importFileAssetKind}
       importFileAuxiliaryEngine={runtimeState.importFileAuxiliaryEngine}
@@ -231,6 +233,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       onRefreshUnregisteredAssets={() => { void runtimeState.refreshUnregisteredAssets(); }}
       onRemoveAsset={(localAssetId) => { void runtimeState.removeInstalledAsset(localAssetId); }}
       onRepairAsset={(localAssetId, endpoint) => { void runtimeState.repairInstalledAsset(localAssetId, endpoint); }}
+      onSetupRuntimeDependency={() => { void runtimeState.setupRuntimeDependency(); }}
       onRescanAsset={(localAssetId) => { void runtimeState.rescanInstalledAsset(localAssetId); }}
       onResumeDownload={runtimeState.onResumeDownload}
       onSearchQueryChange={runtimeState.setSearchQuery}

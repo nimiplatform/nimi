@@ -16,6 +16,7 @@ import {
   searchLocalRuntimeCatalog,
   listLocalRuntimeRepoGgufVariants,
   resolveLocalRuntimeInstallPlan,
+  resolveLocalRuntimeDependency,
   listLocalRuntimeDownloadSessions,
   pauseLocalRuntimeDownload,
   resumeLocalRuntimeDownload,
@@ -43,6 +44,7 @@ import {
   stopLocalRuntimeAsset,
   scanLocalRuntimeUnregisteredAssets,
   scaffoldLocalRuntimeOrphanAsset,
+  startLocalRuntimeDependencySetup,
   resolveLocalRuntimeProfile,
 } from './commands';
 import type {
@@ -109,6 +111,9 @@ import type {
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeScaffoldOrphanPayload,
   LocalRuntimeRescanBundlePayload,
+  LocalRuntimeDependencyDescriptor,
+  LocalRuntimeDependencySetupPayload,
+  LocalRuntimeDependencySetupResult,
 } from './types';
 import {
   queryLocalRuntimeAssetsByCapability,
@@ -189,6 +194,9 @@ export type {
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeScaffoldOrphanPayload,
   LocalRuntimeRescanBundlePayload,
+  LocalRuntimeDependencyDescriptor,
+  LocalRuntimeDependencySetupPayload,
+  LocalRuntimeDependencySetupResult,
 };
 
 export type LocalRuntimeFacade = {
@@ -277,6 +285,11 @@ export type LocalRuntimeFacade = {
     options?: LocalRuntimeWriteOptions,
   ) => Promise<LocalRuntimeAssetRecord>;
   health: (localAssetId?: string) => Promise<LocalRuntimeAssetHealth[]>;
+  resolveDependency: (payload?: LocalRuntimeDependencySetupPayload) => Promise<LocalRuntimeDependencyDescriptor>;
+  startDependencySetup: (
+    payload?: LocalRuntimeDependencySetupPayload,
+    options?: LocalRuntimeWriteOptions,
+  ) => Promise<LocalRuntimeDependencySetupResult>;
   appendAudit: (payload: LocalRuntimeAuditPayload) => Promise<void>;
   appendInferenceAudit: (payload: LocalRuntimeInferenceAuditPayload) => Promise<void>;
   listAudits: (query?: LocalRuntimeAuditQuery) => Promise<LocalRuntimeAuditEvent[]>;
@@ -341,6 +354,8 @@ export const localRuntime: LocalRuntimeFacade = {
   start: startLocalRuntimeAsset,
   stop: stopLocalRuntimeAsset,
   health: healthLocalRuntimeAssets,
+  resolveDependency: resolveLocalRuntimeDependency,
+  startDependencySetup: startLocalRuntimeDependencySetup,
   appendAudit: appendLocalRuntimeAudit,
   appendInferenceAudit: appendLocalRuntimeInferenceAudit,
   listAudits: listLocalRuntimeAudits,

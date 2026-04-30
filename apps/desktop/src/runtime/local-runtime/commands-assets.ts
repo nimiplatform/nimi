@@ -5,6 +5,9 @@ import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
+  LocalRuntimeDependencyDescriptor,
+  LocalRuntimeDependencySetupPayload,
+  LocalRuntimeDependencySetupResult,
   LocalRuntimeImportAssetFilePayload,
   LocalRuntimeImportAssetPayload,
   LocalRuntimeImportBundlePayload,
@@ -23,6 +26,7 @@ import {
   parseAssetRecord,
   parseDownloadProgressEvent,
   parseDownloadSessionSummary,
+  parseRuntimeDependencyDescriptor,
   parseUnregisteredAssetDescriptor,
 } from './parsers';
 import { invokeLocalRuntimeCommand } from './parsers';
@@ -199,6 +203,39 @@ export async function healthLocalRuntimeAssets(localAssetId?: string): Promise<L
   const raw = asRecord(response);
   const assets = Array.isArray(raw.assets) ? raw.assets : [];
   return assets.map((item) => parseAssetHealth(item));
+}
+
+export async function resolveLocalRuntimeDependency(
+  payload?: LocalRuntimeDependencySetupPayload,
+): Promise<LocalRuntimeDependencyDescriptor> {
+  const runtime = requireSdkLocal();
+  const response = await runtime.resolveLocalRuntimeDependency({
+    dependencyId: String(payload?.dependencyId || 'nvidia-cuda-user-space-runtime').trim(),
+    localAssetId: String(payload?.localAssetId || '').trim(),
+    consumerId: String(payload?.consumerId || '').trim(),
+  });
+  return parseRuntimeDependencyDescriptor(asRecord(response).dependency);
+}
+
+export async function startLocalRuntimeDependencySetup(
+  payload?: LocalRuntimeDependencySetupPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeDependencySetupResult> {
+  assertLifecycleWriteAllowed('runtime_local_dependency_setup_start', options?.caller);
+  const runtime = requireSdkLocal();
+  const response = await runtime.startLocalRuntimeDependencySetup({
+    dependencyId: String(payload?.dependencyId || 'nvidia-cuda-user-space-runtime').trim(),
+    localAssetId: String(payload?.localAssetId || '').trim(),
+    consumerId: String(payload?.consumerId || '').trim(),
+    confirmed: true,
+  });
+  const raw = asRecord(response);
+  const dependency = parseRuntimeDependencyDescriptor(raw.dependency);
+  const transfer = parseDownloadSessionSummary(raw.transfer);
+  return {
+    dependency,
+    transfer: transfer.installSessionId ? transfer : dependency.transfer,
+  };
 }
 
 export async function revealLocalRuntimeAssetInFolder(localAssetId: string): Promise<void> {
