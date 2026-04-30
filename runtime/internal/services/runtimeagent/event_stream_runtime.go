@@ -5,6 +5,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -66,6 +67,9 @@ func (r eventStreamRuntime) subscribe(req *runtimev1.SubscribeAgentEventsRequest
 	r.svc.mu.Unlock()
 	defer r.removeSubscriber(sub.id)
 
+	if err := stream.SendHeader(metadata.MD{}); err != nil {
+		return err
+	}
 	for _, event := range backlog {
 		if err := r.validateSubscriberBinding(sub, requestContext.GetAppId()); err != nil {
 			return err

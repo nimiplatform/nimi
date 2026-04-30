@@ -212,6 +212,41 @@ func TestRuntimeAgentSubscribeAgentEventsRejectsMissingAgentID(t *testing.T) {
 	}
 }
 
+func TestRuntimeAgentSubscribeAgentEventsSendsHeadersBeforeFirstEvent(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentTestService(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	stream := newAgentEventCaptureStreamLimit(ctx, 0)
+	stream.headerSent = make(chan struct{}, 1)
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+			AgentId:      "agent-empty-stream",
+			EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
+		}, stream)
+	}()
+
+	select {
+	case <-stream.headerSent:
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("expected subscribe agent events to send headers before first event")
+	}
+
+	cancel()
+
+	select {
+	case err := <-done:
+		if err != nil && !errors.Is(err, context.Canceled) {
+			t.Fatalf("SubscribeAgentEvents returned unexpected error after cancel: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("SubscribeAgentEvents did not stop after context cancellation")
+	}
+}
+
 func TestRuntimeAgentAutonomyDefaultsOffWithoutImplicitEnable(t *testing.T) {
 	t.Parallel()
 
@@ -4904,10 +4939,11 @@ func (f *runtimeAgentFakeBridgeAdapter) SyncPendingMemory(_ context.Context, ite
 }
 
 type agentEventCaptureStream struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-	events []*runtimev1.AgentEvent
-	max    int
+	ctx        context.Context
+	cancel     context.CancelFunc
+	events     []*runtimev1.AgentEvent
+	max        int
+	headerSent chan struct{}
 }
 
 func newAgentEventCaptureStream(parent context.Context) *agentEventCaptureStream {
@@ -4919,12 +4955,20 @@ func newAgentEventCaptureStreamLimit(parent context.Context, max int) *agentEven
 	return &agentEventCaptureStream{ctx: ctx, cancel: cancel, max: max}
 }
 
-func (s *agentEventCaptureStream) SetHeader(metadata.MD) error  { return nil }
-func (s *agentEventCaptureStream) SendHeader(metadata.MD) error { return nil }
-func (s *agentEventCaptureStream) SetTrailer(metadata.MD)       {}
-func (s *agentEventCaptureStream) Context() context.Context     { return s.ctx }
-func (s *agentEventCaptureStream) SendMsg(any) error            { return nil }
-func (s *agentEventCaptureStream) RecvMsg(any) error            { return nil }
+func (s *agentEventCaptureStream) SetHeader(metadata.MD) error { return nil }
+func (s *agentEventCaptureStream) SendHeader(metadata.MD) error {
+	if s.headerSent != nil {
+		select {
+		case s.headerSent <- struct{}{}:
+		default:
+		}
+	}
+	return nil
+}
+func (s *agentEventCaptureStream) SetTrailer(metadata.MD)   {}
+func (s *agentEventCaptureStream) Context() context.Context { return s.ctx }
+func (s *agentEventCaptureStream) SendMsg(any) error        { return nil }
+func (s *agentEventCaptureStream) RecvMsg(any) error        { return nil }
 
 func (s *agentEventCaptureStream) Send(event *runtimev1.AgentEvent) error {
 	s.events = append(s.events, proto.Clone(event).(*runtimev1.AgentEvent))
