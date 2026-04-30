@@ -15,6 +15,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
 
 func realtimeContext(appID string) context.Context {
@@ -23,6 +24,8 @@ func realtimeContext(appID string) context.Context {
 
 func TestUploadArtifactStoresArtifact(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	artifactStore := runtimeartifact.NewMemoryStore()
+	svc.SetRuntimeArtifactStore(artifactStore)
 	stream := &mockUploadArtifactStream{
 		ctx: context.Background(),
 		reqs: []*runtimev1.UploadArtifactRequest{
@@ -66,6 +69,13 @@ func TestUploadArtifactStoresArtifact(t *testing.T) {
 	}
 	if string(stored.GetBytes()) != "wave-bytes" {
 		t.Fatalf("unexpected stored bytes: %q", string(stored.GetBytes()))
+	}
+	record, ok := artifactStore.Get(artifact.GetArtifactId())
+	if !ok {
+		t.Fatal("expected uploaded artifact to be available through runtime artifact store")
+	}
+	if string(record.Bytes) != "wave-bytes" || record.MimeType != "audio/wav" {
+		t.Fatalf("unexpected runtime artifact record: bytes=%q mime=%q", string(record.Bytes), record.MimeType)
 	}
 }
 

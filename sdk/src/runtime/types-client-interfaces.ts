@@ -13,6 +13,10 @@ import type {
   RevokeSessionRequest,
 } from './generated/runtime/v1/auth';
 import type {
+  ReadArtifactBytesRequest,
+  ReadArtifactBytesResponse,
+} from './generated/runtime/v1/artifact_service';
+import type {
   AccountSessionEvent,
   BeginLoginRequest,
   BeginLoginResponse,
@@ -593,6 +597,10 @@ export type RuntimeConnectorClient = {
   ): Promise<DeleteCatalogModelOverlayResponse>;
 };
 
+export type RuntimeArtifactClient = {
+  readArtifactBytes(request: ReadArtifactBytesRequest, options?: RuntimeCallOptions): Promise<ReadArtifactBytesResponse>;
+};
+
 export type RuntimeAuditClient = {
   listAuditEvents(request: ListAuditEventsRequest, options?: RuntimeCallOptions): Promise<ListAuditEventsResponse>;
   exportAuditEvents(request: ExportAuditEventsRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<AuditExportChunk>>;
@@ -610,6 +618,7 @@ export type RuntimeClient = {
   appAuth: RuntimeAppAuthClient;
   account: RuntimeAccountClient;
   ai: RuntimeAiClient;
+  artifact: RuntimeArtifactClient;
   workflow: RuntimeWorkflowClient;
   model: RuntimeModelClient;
   memory: RuntimeMemoryClient;

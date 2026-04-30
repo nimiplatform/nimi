@@ -49,6 +49,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
     "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
+    "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes",
     "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",
     "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth",
     "/nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth",

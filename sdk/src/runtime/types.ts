@@ -10,6 +10,7 @@ import type {
 export type * from './types-media.js';
 export type * from './types-client-interfaces.js';
 export type * from './types-runtime-modules.js';
+export type * from './runtime-artifacts.js';
 
 export type RuntimeCallerKind =
   | 'desktop-core'

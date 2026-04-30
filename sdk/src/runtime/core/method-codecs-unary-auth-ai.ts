@@ -70,6 +70,10 @@ import {
   PeekSchedulingResponse,
 } from '../generated/runtime/v1/ai_scheduling';
 import {
+  ReadArtifactBytesRequest,
+  ReadArtifactBytesResponse,
+} from '../generated/runtime/v1/artifact_service';
+import {
   DeleteVoiceAssetRequest,
   DeleteVoiceAssetResponse,
   GetVoiceAssetRequest,
@@ -145,6 +149,10 @@ export const runtimeUnaryMethodCodecsAuthAi: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.appAuth.listTokenChain]: {
     requestType: ListTokenChainRequest,
     responseType: ListTokenChainResponse,
+  },
+  [RuntimeMethodIds.artifact.readArtifactBytes]: {
+    requestType: ReadArtifactBytesRequest,
+    responseType: ReadArtifactBytesResponse,
   },
   [RuntimeMethodIds.account.getAccountSessionStatus]: {
     requestType: GetAccountSessionStatusRequest,

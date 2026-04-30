@@ -22,6 +22,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
 
 const (
@@ -55,6 +56,7 @@ type Service struct {
 	scenarioJobs                           *scenarioJobStore
 	realtimeSessions                       *realtimeSessionStore
 	voiceAssets                            *voiceAssetStore
+	runtimeArtifacts                       runtimeartifact.Store
 	connStore                              *connector.ConnectorStore
 	localModel                             localModelLister
 	localImageProfile                      localImageProfileResolver
@@ -168,6 +170,12 @@ func (s *Service) SetModelRegistryPersistencePath(path string) {
 // SetLocalModelLister wires RuntimeLocalService for local model availability checks.
 func (s *Service) SetLocalModelLister(localSvc localModelLister) {
 	s.localModel = localSvc
+}
+
+// SetRuntimeArtifactStore wires the generic by-id artifact byte store used by
+// RuntimeArtifactService. Producers write before emitting ids to consumers.
+func (s *Service) SetRuntimeArtifactStore(store runtimeartifact.Store) {
+	s.runtimeArtifacts = store
 }
 
 // RegisterSchedulerDenialCheck adds a K-SCHED-004 denial check to the scheduler.

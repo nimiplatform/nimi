@@ -143,4 +143,10 @@ export {
   buildMusicIterationExtensions,
   buildLocalProfileExtensions,
 } from './runtime-media.js';
+export type {
+  RuntimeArtifactsModule,
+  RuntimeArtifactsReadBytesInput,
+  RuntimeArtifactsReadBytesResult,
+} from './runtime-artifacts.js';
+export type * from './generated/runtime/v1/artifact_service.js';
 export { toProtoStruct } from './helpers.js';

@@ -748,6 +748,19 @@ func (s *Service) executeScenarioAsyncJob(
 	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
 		return
 	}
+	if storeErr := s.storeRuntimeArtifacts(artifacts); storeErr != nil {
+		if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED, func(job *runtimev1.ScenarioJob) {
+			if providerJobID != "" {
+				job.ProviderJobId = providerJobID
+			}
+			job.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+			job.ReasonDetail = storeErr.Error()
+			job.ReasonMetadata = nil
+		}); !ok {
+			s.logger.Warn("scenario job transition to FAILED after artifact store failure failed", "job_id", jobID, "error", storeErr)
+		}
+		return
+	}
 	if _, ok := s.scenarioJobs.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, func(job *runtimev1.ScenarioJob) {
 		job.ScenarioType = req.GetScenarioType()
 		job.ExecutionMode = runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB

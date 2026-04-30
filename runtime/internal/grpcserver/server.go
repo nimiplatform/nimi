@@ -36,6 +36,7 @@ import (
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	modelservice "github.com/nimiplatform/nimi/runtime/internal/services/model"
 	runtimeagentservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeagent"
+	runtimeartifactservice "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 	workflowservice "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
 	"google.golang.org/grpc"
 	grpcHealth "google.golang.org/grpc/health"
@@ -62,7 +63,8 @@ type Server struct {
 }
 
 const (
-	maxGRPCMessageBytes      = 8 << 20
+	maxGRPCRecvMessageBytes  = 8 << 20
+	maxGRPCSendMessageBytes  = runtimeartifactservice.MaxInlineBytes + (1 << 20)
 	maxGRPCConcurrentStreams = 128
 	grpcIOBufferBytes        = 32 << 10
 )
@@ -120,8 +122,8 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	authnValidator.SetRevocationURL(cfg.AuthJWTRevocationURL)
 
 	g := grpc.NewServer(
-		grpc.MaxRecvMsgSize(maxGRPCMessageBytes),
-		grpc.MaxSendMsgSize(maxGRPCMessageBytes),
+		grpc.MaxRecvMsgSize(maxGRPCRecvMessageBytes),
+		grpc.MaxSendMsgSize(maxGRPCSendMessageBytes),
 		grpc.MaxConcurrentStreams(maxGRPCConcurrentStreams),
 		grpc.ReadBufferSize(grpcIOBufferBytes),
 		grpc.WriteBufferSize(grpcIOBufferBytes),
@@ -162,10 +164,12 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		return nil, fmt.Errorf("ensure cloud connectors: %w", err)
 	}
 
+	artifactStore := runtimeartifactservice.NewMemoryStore()
 	aiSvc, err := aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("init ai service: %w", err)
 	}
+	aiSvc.SetRuntimeArtifactStore(artifactStore)
 	aiSvc.SetModelRegistryPersistencePath(registryPath)
 	runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
 	runtimev1.RegisterRuntimeAiRealtimeServiceServer(g, aiSvc)
@@ -325,6 +329,9 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		return appSvc.SendAppMessage(appservice.WithTrustedInternalCaller(ctx, req.GetFromAppId()), req)
 	})
 	runtimev1.RegisterRuntimeAppServiceServer(g, appSvc) // Phase 2 Draft
+
+	artifactSvc := runtimeartifactservice.New(artifactStore, logger)
+	runtimev1.RegisterRuntimeArtifactServiceServer(g, artifactSvc)
 
 	s := &Server{
 		addr:             addr,

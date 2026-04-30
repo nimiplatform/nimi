@@ -232,6 +232,12 @@ pub enum ReasonCode {
     KnowledgeLinkInvalid = 543,
     KnowledgeGraphDepthInvalid = 544,
     KnowledgeIngestTaskNotFound = 545,
+    /// ARTIFACT family (600+) — K-AGCORE-053 runtime-artifact-contract
+    ArtifactInvalidInput = 600,
+    ArtifactNotFound = 601,
+    ArtifactTooLarge = 602,
+    ArtifactForbidden = 603,
+    ArtifactMimeMismatch = 604,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -390,6 +396,11 @@ impl ReasonCode {
             Self::KnowledgeLinkInvalid => "KNOWLEDGE_LINK_INVALID",
             Self::KnowledgeGraphDepthInvalid => "KNOWLEDGE_GRAPH_DEPTH_INVALID",
             Self::KnowledgeIngestTaskNotFound => "KNOWLEDGE_INGEST_TASK_NOT_FOUND",
+            Self::ArtifactInvalidInput => "ARTIFACT_INVALID_INPUT",
+            Self::ArtifactNotFound => "ARTIFACT_NOT_FOUND",
+            Self::ArtifactTooLarge => "ARTIFACT_TOO_LARGE",
+            Self::ArtifactForbidden => "ARTIFACT_FORBIDDEN",
+            Self::ArtifactMimeMismatch => "ARTIFACT_MIME_MISMATCH",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -567,6 +578,11 @@ impl ReasonCode {
             "KNOWLEDGE_LINK_INVALID" => Some(Self::KnowledgeLinkInvalid),
             "KNOWLEDGE_GRAPH_DEPTH_INVALID" => Some(Self::KnowledgeGraphDepthInvalid),
             "KNOWLEDGE_INGEST_TASK_NOT_FOUND" => Some(Self::KnowledgeIngestTaskNotFound),
+            "ARTIFACT_INVALID_INPUT" => Some(Self::ArtifactInvalidInput),
+            "ARTIFACT_NOT_FOUND" => Some(Self::ArtifactNotFound),
+            "ARTIFACT_TOO_LARGE" => Some(Self::ArtifactTooLarge),
+            "ARTIFACT_FORBIDDEN" => Some(Self::ArtifactForbidden),
+            "ARTIFACT_MIME_MISMATCH" => Some(Self::ArtifactMimeMismatch),
             _ => None,
         }
     }

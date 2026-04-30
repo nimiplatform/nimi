@@ -384,6 +384,9 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       sendAppMessage: unary(RuntimeMethodIds.app.sendAppMessage),
       subscribeAppMessages: stream(RuntimeMethodIds.app.subscribeAppMessages),
     },
+    artifact: {
+      readArtifactBytes: unary(RuntimeMethodIds.artifact.readArtifactBytes),
+    },
     audit: {
       listAuditEvents: unary(RuntimeMethodIds.audit.listAuditEvents),
       exportAuditEvents: stream(RuntimeMethodIds.audit.exportAuditEvents),

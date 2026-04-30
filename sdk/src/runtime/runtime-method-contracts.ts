@@ -3,7 +3,7 @@ import type { RuntimeClient } from './types-client-interfaces.js';
 
 type RuntimeClientModuleKey = Extract<
   keyof RuntimeClient,
-  'auth' | 'appAuth' | 'account' | 'ai' | 'workflow' | 'model' | 'local' | 'connector' | 'knowledge' | 'memory' | 'agent' | 'app' | 'audit'
+  'auth' | 'appAuth' | 'account' | 'ai' | 'artifact' | 'workflow' | 'model' | 'local' | 'connector' | 'knowledge' | 'memory' | 'agent' | 'app' | 'audit'
 >;
 
 type RuntimeClientMethodContract<
@@ -24,6 +24,7 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.auth.registerExternalPrincipal]: RuntimeClientMethodContract<'auth', 'registerExternalPrincipal'>;
   [RuntimeMethodIds.auth.openExternalPrincipalSession]: RuntimeClientMethodContract<'auth', 'openExternalPrincipalSession'>;
   [RuntimeMethodIds.auth.revokeExternalPrincipalSession]: RuntimeClientMethodContract<'auth', 'revokeExternalPrincipalSession'>;
+  [RuntimeMethodIds.artifact.readArtifactBytes]: RuntimeClientMethodContract<'artifact', 'readArtifactBytes'>;
   [RuntimeMethodIds.appAuth.authorizeExternalPrincipal]: RuntimeClientMethodContract<'appAuth', 'authorizeExternalPrincipal'>;
   [RuntimeMethodIds.appAuth.validateToken]: RuntimeClientMethodContract<'appAuth', 'validateToken'>;
   [RuntimeMethodIds.appAuth.revokeToken]: RuntimeClientMethodContract<'appAuth', 'revokeToken'>;

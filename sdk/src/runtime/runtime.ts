@@ -67,6 +67,10 @@ import {
   createRuntimeAgentAnchorsModule,
   createRuntimeAgentTurnsModule,
 } from './runtime-agent-surface.js';
+import {
+  type RuntimeArtifactsModule,
+  createRuntimeArtifactsModule,
+} from './runtime-artifacts.js';
 import { createRuntimeProtectedScopeHelper } from './protected-access.js';
 import {
   ensureRuntimeClientForCall,
@@ -117,6 +121,7 @@ export class Runtime {
   readonly appAuth: RuntimeAppAuthClient;
   readonly account: RuntimeAccountClient;
   readonly ai: RuntimeAiModule;
+  readonly artifacts: RuntimeArtifactsModule;
   readonly media: RuntimeMediaModule;
   readonly workflow: RuntimeWorkflowClient;
   readonly model: RuntimeModelClient;
@@ -328,6 +333,8 @@ export class Runtime {
       invokeWithClient: (operation) => this.#invokeWithClient(operation),
       ctx,
     });
+
+    this.artifacts = createRuntimeArtifactsModule({ ctx });
 
     this.media = createMediaModule(ctx);
 

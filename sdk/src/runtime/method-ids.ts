@@ -8,6 +8,9 @@ export const RuntimeMethodIds = {
     openExternalPrincipalSession: '/nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession',
     revokeExternalPrincipalSession: '/nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession',
   },
+  artifact: {
+    readArtifactBytes: '/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes',
+  },
   appAuth: {
     authorizeExternalPrincipal: '/nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal',
     validateToken: '/nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken',
