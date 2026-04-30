@@ -1,0 +1,62 @@
+{
+  "scenario_id": "vrm-speaking-with-audio",
+  "version": "1",
+  "description": "Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives the AudioPipelineController voice playback path with a NON-synthetic audio mime (audio/wav). Exercises runtime.artifacts.readBytes → decodeAudioData → source.start → BackendAudioConsumer.attachAudioSource → wLipSync snapshot → vrm-lipsync-driver tick → emote state setLipsyncActive(true) → viseme suppression coordination. Audio playback state machine progresses idle → requested → started → completed; sink.silent on completion.",
+  "duration_ms": 4000,
+  "loop": false,
+
+  "agent_bootstrap": {
+    "active_world_id": "world-mock-vrm-speaking-audio",
+    "active_user_id": "user-mock-vrm-speaking-audio",
+    "locale": "zh-CN",
+    "initial_posture": {
+      "posture_class": "baseline_observer",
+      "action_family": "engage",
+      "interrupt_mode": "welcome",
+      "transition_reason": "scenario_start",
+      "truth_basis_ids": []
+    },
+    "initial_status_text": "vrm speaking with audio fixture",
+    "initial_execution_state": "CHAT_ACTIVE"
+  },
+
+  "events": [
+    { "kind": "time", "at_ms": 0, "type": "runtime.agent.presentation.voice_playback_requested", "detail": { "audio_artifact_id": "mock-artifact-001", "audio_mime_type": "audio/wav", "duration_ms": 512, "source": "mock" } }
+  ],
+
+  "vrm_mock_scenario": {
+    "category": "vrm_speaking",
+    "model_manifest": {
+      "kind": "vrm",
+      "modelId": "vrm-mock-speaking-audio",
+      "runtimeDir": ".cache/assets/vrm-models",
+      "vrm": {
+        "vrmFile": ".cache/assets/vrm-models/AvatarSample_Mock.vrm",
+        "motionPresetsDir": null
+      },
+      "nimiDir": null,
+      "posterPath": null
+    },
+    "audio": {
+      "artifact_id": "mock-artifact-001",
+      "mime_type": "audio/wav",
+      "size_bytes": 1024,
+      "phases": [
+        { "atMs": 0,   "kind": "active_voice", "weights": { "A": 0.6, "E": 0.1, "I": 0.05, "O": 0.05, "U": 0.05, "S": 0.0 }, "volume": 0.5, "duration_ms": 256 },
+        { "atMs": 256, "kind": "silent",       "weights": { "A": 0.0, "E": 0.0, "I": 0.0,  "O": 0.0,  "U": 0.0,  "S": 0.0 }, "volume": 0.0, "duration_ms": 256 }
+      ]
+    },
+    "expected": [
+      { "kind": "audio_pipeline_state_sequence", "where": "AudioPipelineController", "details": { "states": ["idle", "requested", "started", "completed"] } },
+      { "kind": "sink_attached", "where": "BackendAudioConsumer.attachAudioSource", "details": { "callCount": 1 } },
+      { "kind": "lipsync_active_during_voice", "where": "vrmLipsyncDriver.tick", "details": { "active": true } },
+      { "kind": "emote_viseme_suppressed_during_voice", "where": "emoteState.tick", "details": { "skippedCount_gt": 0 } },
+      { "kind": "lipsync_silent_after_voice", "where": "vrmLipsyncDriver.tick (post-silent phase)", "details": { "active": false } }
+    ],
+    "human_acceptance_checks": [
+      "嘴型与音频同步可见；emote 配方期间不与 lipsync 双写",
+      "audio playback 状态机正确切换（requested → started → completed）",
+      "phase=silent 后 emote viseme 写入恢复（lipsyncActive=false）"
+    ]
+  }
+}

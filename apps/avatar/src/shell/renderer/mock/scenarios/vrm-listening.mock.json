@@ -1,0 +1,56 @@
+{
+  "scenario_id": "vrm-listening",
+  "version": "1",
+  "description": "Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives applyActivity('listening') through the VRM BackendBranch projection chain. Per activity-mapping.yaml v2 the listening route resolves to vrm.motion='listen_lean' (loop=true, fade=0.3). D plan: only idle_subtle.vrma is admitted on disk; listen_lean.vrma is NOT loaded — motionRegistry.play returns {played: false, reason: 'preset_not_loaded'} as expected partial-degrade behavior. The fixture documents this fail-close honestly (no fake motion).",
+  "duration_ms": 6000,
+  "loop": false,
+
+  "agent_bootstrap": {
+    "active_world_id": "world-mock-vrm-listening",
+    "active_user_id": "user-mock-vrm-listening",
+    "locale": "zh-CN",
+    "initial_posture": {
+      "posture_class": "baseline_observer",
+      "action_family": "observe",
+      "interrupt_mode": "welcome",
+      "transition_reason": "scenario_start",
+      "truth_basis_ids": []
+    },
+    "initial_status_text": "vrm listening fixture",
+    "initial_execution_state": "IDLE"
+  },
+
+  "events": [
+    { "kind": "time", "at_ms": 0,    "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "listening", "category": "interaction", "intensity": null, "source": "mock" } }
+  ],
+
+  "vrm_mock_scenario": {
+    "category": "vrm_lifecycle",
+    "model_manifest": {
+      "kind": "vrm",
+      "modelId": "vrm-mock-listening",
+      "runtimeDir": ".cache/assets/vrm-models",
+      "vrm": {
+        "vrmFile": ".cache/assets/vrm-models/AvatarSample_Mock.vrm",
+        "motionPresetsDir": null
+      },
+      "nimiDir": null,
+      "posterPath": null
+    },
+    "drives": [
+      { "atMs": 0, "kind": "applyActivity", "input": { "name": "listening", "intensity": null } }
+    ],
+    "expected": [
+      { "kind": "lifecycle_evidence", "where": "carrier-surface", "details": { "kind": "load_started" } },
+      { "kind": "lifecycle_state", "where": "carrier-surface", "details": { "kind": "ready" } },
+      { "kind": "lifecycle_evidence", "where": "carrier-surface", "details": { "kind": "motion_presets_loaded", "loaded_ids": ["idle_subtle"], "failed_ids_contains": ["listen_lean", "nod_yes", "shake_no"] } },
+      { "kind": "motion_play_result", "where": "motionRegistry.play({presetId: 'listen_lean'})", "details": { "played": false, "reason": "preset_not_loaded" } },
+      { "kind": "surface_visible", "where": "avatar-vrm-carrier", "details": { "data_avatar_vrm_state": "ready" } }
+    ],
+    "human_acceptance_checks": [
+      "model 微前倾视觉效果暂时缺失（preset_not_loaded; defer to wave_5 differentiated asset author follow-up）",
+      "carrier surface 仍可见且未 fail_close（partial-degrade 正确）",
+      "motion_presets_loaded evidence 显示 listen_lean 在 failed_ids 中"
+    ]
+  }
+}

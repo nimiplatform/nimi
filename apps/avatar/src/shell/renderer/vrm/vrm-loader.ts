@@ -142,26 +142,8 @@ export async function loadVrmFromManifest(manifest: VrmAvatarModelManifest): Pro
   }
 }
 
-/**
- * Companion loader for `.vrma` motion preset files. Uses the same
- * singleton loader; VRMAnimationLoaderPlugin populates
- * `gltf.userData.vrmAnimations` on success. Returns the first VRMAnimation
- * (the convention is one preset per file) or `null` if the asset has no
- * VRMC_vrm_animation extension. Caller is responsible for wrapping in
- * `clipFromVRMAnimation` when binding to a target VRM (wave_3 territory).
- *
- * Suspend wrap is applied identically to VRM loads — `.vrma` files often
- * carry no textures, but the wrap is cheap and keeps a uniform code path
- * across both asset kinds.
- */
-export async function loadVrmAnimation(url: string): Promise<unknown> {
-  const restore = suspendCreateImageBitmapForTauriVrmLoad();
-  try {
-    const gltf = await getVrmLoader().loadAsync(url);
-    const animations = (gltf.userData as { vrmAnimations?: unknown[] }).vrmAnimations;
-    if (!Array.isArray(animations) || animations.length === 0) return null;
-    return animations[0];
-  } finally {
-    restore();
-  }
-}
+// `.vrma` loader was moved to vrm-animation-loader.ts (chunk 3-B) so the
+// `clipFromVRMAnimation` retargeting wrapper can sit alongside it. Both
+// names are re-exported here for back-compat with chunk 2-B import sites
+// (vrm-loader.test.ts + future motion preset registry).
+export { clipFromVRMAnimation, loadVrmAnimation } from './vrm-animation-loader.js';

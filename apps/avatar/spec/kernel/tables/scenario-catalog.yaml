@@ -125,6 +125,115 @@ scenarios:
       - "Second context loss escalates to context_lost_twice fail-close"
       - "Asset switch disposes prior runtime + boots a new one"
 
+  - id: "vrm-listening"
+    title: "VRM listening activity (preset_not_loaded fail-close)"
+    file: "src/shell/renderer/mock/scenarios/vrm-listening.mock.json"
+    duration_ms: 6000
+    loop: false
+    description: >
+      Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives
+      applyActivity('listening') through the VRM BackendBranch projection
+      chain. Per activity-mapping.yaml v2 listening → vrm.motion='listen_lean'
+      (loop=true, fade=0.3). D plan: listen_lean.vrma is NOT admitted —
+      motionRegistry.play returns {played: false, reason: 'preset_not_loaded'}
+      (expected partial-degrade behavior). Documents the fail-close honestly
+      (no fake motion); model surface stays visible, lifecycle stays at ready.
+    tags: ["phase-3", "vrm", "lifecycle", "partial-asset"]
+    model_kind: "vrm"
+    requires_assets: ["listen_lean", "nod_yes", "shake_no"]
+    validates:
+      - "applyActivity('listening') → motionRegistry.play({presetId: 'listen_lean'})"
+      - "preset_not_loaded fail-close (D plan partial-asset)"
+      - "motion_presets_loaded evidence: only idle_subtle in loaded_ids"
+      - "Carrier surface remains visible (no fail_closed)"
+
+  - id: "vrm-thinking"
+    title: "VRM thinking activity (idle_subtle fallback)"
+    file: "src/shell/renderer/mock/scenarios/vrm-thinking.mock.json"
+    duration_ms: 6000
+    loop: false
+    description: >
+      Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives
+      applyActivity('thinking') through the VRM projection chain. Per
+      activity-mapping.yaml v2 thinking → vrm.motion='idle_subtle' (wave_0
+      fallback; wave_3 切到 think_chin_touch — deferred under D plan). Since
+      idle_subtle.vrma IS the one admitted asset, motionRegistry.play returns
+      {played: true} and the model loops idle_subtle.
+    tags: ["phase-3", "vrm", "lifecycle", "partial-asset"]
+    model_kind: "vrm"
+    requires_assets: ["idle_subtle"]
+    validates:
+      - "applyActivity('thinking') → motionRegistry.play({presetId: 'idle_subtle'})"
+      - "Played path returns {played: true} (idle_subtle is admitted)"
+      - "Registry snapshot.activePresetId === 'idle_subtle'"
+
+  - id: "vrm-speaking-with-audio"
+    title: "VRM speaking with non-synthetic audio (lipsync coordination)"
+    file: "src/shell/renderer/mock/scenarios/vrm-speaking-with-audio.mock.json"
+    duration_ms: 4000
+    loop: false
+    description: >
+      Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives the
+      AudioPipelineController voice playback path with a NON-synthetic audio
+      mime (audio/wav). Exercises runtime.artifacts.readBytes →
+      decodeAudioData → source.start → BackendAudioConsumer.attachAudioSource
+      → wLipSync snapshot → vrm-lipsync-driver tick → emote state
+      setLipsyncActive(true) → viseme suppression coordination. Audio pipeline
+      state machine progresses idle → requested → started → completed.
+    tags: ["phase-3", "vrm", "speaking", "lipsync"]
+    model_kind: "vrm"
+    requires_assets: []
+    validates:
+      - "AudioPipelineController state idle → requested → started → completed"
+      - "BackendAudioConsumer.attachAudioSource called once during started phase"
+      - "vrm-lipsync-driver tick reports {active: true} during voice phase"
+      - "emote state suppresses viseme writes while lipsyncActive=true (skippedCount > 0)"
+      - "Post-silent phase lipsync returns to {active: false}"
+
+  - id: "vrm-speaking-silent-audio"
+    title: "VRM speaking with synthetic mime (silent fail-close)"
+    file: "src/shell/renderer/mock/scenarios/vrm-speaking-silent-audio.mock.json"
+    duration_ms: 2000
+    loop: false
+    description: >
+      Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives the
+      AudioPipelineController voice playback path with the SYNTHETIC mime
+      application/x-nimi-synthetic-lipsync. Per design-05 §'Synthetic mime
+      fail-close' the controller fast-paths: NO decodeAudioData call, NO
+      sink.attachAudioSource, sink.silent() invoked, state progresses idle →
+      requested → completed (consumer state machine still advances). Mouth
+      stays at zero throughout — explicit silent voice + silent mouth.
+    tags: ["phase-3", "vrm", "speaking", "synthetic-fail-close"]
+    model_kind: "vrm"
+    requires_assets: []
+    validates:
+      - "Synthetic mime fast-path: no AudioContext.decodeAudioData call"
+      - "AudioPipelineController state idle → requested → completed (with synthetic_audio_no_playback reason)"
+      - "BackendAudioConsumer.silent() invoked at least once"
+      - "BackendAudioConsumer.attachAudioSource NOT invoked"
+      - "vrm-lipsync-driver remains {active: false}"
+
+  - id: "vrm-emote-cycle"
+    title: "VRM emote crossfade cycle (cap + skipped_count invariants)"
+    file: "src/shell/renderer/mock/scenarios/vrm-emote-cycle.mock.json"
+    duration_ms: 2000
+    loop: false
+    description: >
+      Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Cycles
+      neutral → happy → sad → relaxed → neutral via applyEmotion to validate
+      the chunk 3-A emote bundle crossfade (per-bundle blend_duration_sec
+      ramp), the primary expressive weight cap (≤ 0.8 per
+      vrm-emote-states.yaml constraint), and avatar.emote.applied evidence
+      (skipped_count=0 since lipsync inactive).
+    tags: ["phase-3", "vrm", "emote", "crossfade"]
+    model_kind: "vrm"
+    requires_assets: []
+    validates:
+      - "Sequential applyEmotion updates emoteState.snapshot().activeEmote in order"
+      - "Primary expressive weight per emote ≤ 0.8 (cap; neutral preset exempt)"
+      - "skippedCount=0 when lipsyncActive=false"
+      - "VRM.expressionManager.setValue called for each emote bundle's preset names"
+
 constraints:
   drift_checks:
     - description: "每个 scenario file 必须存在于指定路径"

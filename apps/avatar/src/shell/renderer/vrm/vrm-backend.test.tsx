@@ -27,6 +27,10 @@ vi.mock('@react-three/fiber', () => ({
       {children}
     </div>
   ),
+  // No-op useFrame in jsdom — chunk 3-D wires a per-frame tick chain
+  // inside <Canvas>, but the unit tests rely on the runtime lifecycle
+  // state, not on RAF.
+  useFrame: () => {},
 }));
 
 function vrmManifest(): VrmAvatarModelManifest {
@@ -68,6 +72,7 @@ describe('VRM backend branch (chunk 2-C)', () => {
     const { createVrmBackendBranch } = await import('./vrm-backend.js');
     const handle = await createVrmBackendBranch(vrmManifest(), {
       runtimeOptions: { loaderOverride: async () => stubVrm() },
+      loadProfileOverride: async () => null,
     });
     expect(handle.branch.kind).toBe('vrm');
     expect(handle.branch.metadata()).toEqual(
@@ -104,7 +109,9 @@ describe('VRM backend branch (chunk 2-C)', () => {
   it('mounts dev preview placeholder when VITE_AVATAR_DEV_VRM_PREVIEW=true', async () => {
     (import.meta.env as Record<string, unknown>).VITE_AVATAR_DEV_VRM_PREVIEW = 'true';
     const { createVrmBackendBranch } = await import('./vrm-backend.js');
-    const handle = await createVrmBackendBranch(vrmManifest());
+    const handle = await createVrmBackendBranch(vrmManifest(), {
+      loadProfileOverride: async () => null,
+    });
     expect(handle.branch.metadata()).toEqual(
       expect.objectContaining({ mode: 'dev_preview' }),
     );

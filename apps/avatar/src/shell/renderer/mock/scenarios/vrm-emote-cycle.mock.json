@@ -1,0 +1,64 @@
+{
+  "scenario_id": "vrm-emote-cycle",
+  "version": "1",
+  "description": "Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Emotion-only sequence neutral → happy → sad → relaxed → neutral driving the chunk 3-A VrmEmoteState through the BackendProjection.applyEmotion path. Validates emote bundle crossfade (each blend_duration_sec ramps), primary expressive weight stays ≤ 0.8 (cap; per vrm-emote-states.yaml constraint), and avatar.emote.applied evidence shape (skipped_count=0 since lipsync inactive). VRM expressionManager.setValue is invoked for each emote bundle's preset names (happy/sad/relaxed/aa/oh/ih/...).",
+  "duration_ms": 2000,
+  "loop": false,
+
+  "agent_bootstrap": {
+    "active_world_id": "world-mock-vrm-emote-cycle",
+    "active_user_id": "user-mock-vrm-emote-cycle",
+    "locale": "zh-CN",
+    "initial_posture": {
+      "posture_class": "baseline_observer",
+      "action_family": "engage",
+      "interrupt_mode": "welcome",
+      "transition_reason": "scenario_start",
+      "truth_basis_ids": []
+    },
+    "initial_status_text": "vrm emote cycle fixture",
+    "initial_execution_state": "CHAT_ACTIVE"
+  },
+
+  "events": [
+    { "kind": "time", "at_ms": 0,    "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "neutral",  "category": "emotion", "intensity": null, "source": "mock" } },
+    { "kind": "time", "at_ms": 400,  "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "happy",    "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 800,  "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "sad",      "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 1200, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "relaxed",  "category": "emotion", "intensity": "moderate", "source": "mock" } },
+    { "kind": "time", "at_ms": 1600, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "neutral",  "category": "emotion", "intensity": null, "source": "mock" } }
+  ],
+
+  "vrm_mock_scenario": {
+    "category": "vrm_emote",
+    "model_manifest": {
+      "kind": "vrm",
+      "modelId": "vrm-mock-emote-cycle",
+      "runtimeDir": ".cache/assets/vrm-models",
+      "vrm": {
+        "vrmFile": ".cache/assets/vrm-models/AvatarSample_Mock.vrm",
+        "motionPresetsDir": null
+      },
+      "nimiDir": null,
+      "posterPath": null
+    },
+    "drives": [
+      { "atMs": 0,    "kind": "applyEmotion", "input": { "current": "neutral",  "previous": null } },
+      { "atMs": 400,  "kind": "applyEmotion", "input": { "current": "happy",    "previous": "neutral" } },
+      { "atMs": 800,  "kind": "applyEmotion", "input": { "current": "sad",      "previous": "happy" } },
+      { "atMs": 1200, "kind": "applyEmotion", "input": { "current": "relaxed",  "previous": "sad" } },
+      { "atMs": 1600, "kind": "applyEmotion", "input": { "current": "neutral",  "previous": "relaxed" } }
+    ],
+    "expected": [
+      { "kind": "active_emote_after_each_apply", "where": "emoteState.snapshot()", "details": { "sequence": ["neutral", "happy", "sad", "relaxed", "neutral"] } },
+      { "kind": "primary_expressive_weight_cap", "where": "emoteState.tick (post-blend)", "details": { "primary_weight_lte": 0.8 } },
+      { "kind": "lipsync_inactive_throughout", "where": "emoteState.snapshot().lipsyncActive", "details": { "value": false } },
+      { "kind": "skipped_count_zero", "where": "emoteState.tick", "details": { "skippedCount": 0 } },
+      { "kind": "expression_manager_set_value_calls", "where": "VRM.expressionManager.setValue", "details": { "called_for_presets": ["neutral", "happy", "sad", "relaxed"] } }
+    ],
+    "human_acceptance_checks": [
+      "emote crossfade 平滑（中间帧 currentWeights 在 0..target 之间）",
+      "primary expression weight ≤ 0.8（exempt: neutral 本身）",
+      "emote 间无跳变；lipsyncActive=false 时 viseme 不被 suppress（skippedCount=0）"
+    ]
+  }
+}

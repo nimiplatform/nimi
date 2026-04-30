@@ -47,6 +47,9 @@ vi.mock('@react-three/fiber', () => ({
       {children}
     </div>
   ),
+  // No-op useFrame in jsdom (chunk 3-D mounts a per-frame tick chain
+  // inside <Canvas>; lifecycle assertions don't depend on RAF).
+  useFrame: () => {},
 }));
 
 type ScenarioVrmLifecycle = {
@@ -101,6 +104,7 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
 
     const handle = await createVrmBackendBranch(manifest, {
       runtimeOptions: { loaderOverride: async () => stubVrm() },
+      loadProfileOverride: async () => null,
     });
 
     // Backend metadata reflects vrm semantics — this is the surface the
@@ -148,6 +152,7 @@ describe('VRM lifecycle end-to-end (chunk 2-D)', () => {
           throw new Error('asset_missing');
         },
       },
+      loadProfileOverride: async () => null,
     });
 
     const Surface = handle.branch.surface.Component;

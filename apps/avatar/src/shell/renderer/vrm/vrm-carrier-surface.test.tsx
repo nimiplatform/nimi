@@ -10,7 +10,14 @@ import type { VRM } from '@pixiv/three-vrm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import type { VrmAvatarModelManifest } from '../carrier/model-resolver.js';
-import type { BackendAudioConsumer } from '../carrier/backend-branch.js';
+import type {
+  BackendAudioConsumer,
+  BackendProjection,
+} from '../carrier/backend-branch.js';
+import type { VrmEmoteState } from './vrm-emote-state.js';
+import type { VrmLipsyncDriver } from './vrm-lipsync-driver.js';
+import type { VrmMotionPresetRegistry } from './vrm-motion-preset-registry.js';
+import type { ActivityMapping } from './vrm-projection-adapter.js';
 
 vi.mock('@react-three/fiber', () => ({
   // Render a plain <canvas> wrapper so the surface's webglcontextlost
@@ -21,6 +28,10 @@ vi.mock('@react-three/fiber', () => ({
       {children}
     </div>
   ),
+  // useFrame is replaced with a no-op in jsdom — the chunk 3-D tests
+  // exercise tick chain wiring via integration tests that drive the
+  // useFrame callback directly (not through R3F's RAF loop).
+  useFrame: () => {},
 }));
 
 function manifest(): VrmAvatarModelManifest {
@@ -48,6 +59,65 @@ function audioConsumer(): BackendAudioConsumer {
   };
 }
 
+function emoteStateStub(): VrmEmoteState {
+  return {
+    setEmote() {},
+    applyTransientExpression() {},
+    setLipsyncActive() {},
+    tick: () => ({ skippedCount: 0 }),
+    reset() {},
+    snapshot: () => ({
+      activeEmote: null,
+      targetWeights: Object.freeze({}),
+      currentWeights: Object.freeze({}),
+      lipsyncActive: false,
+    }),
+  };
+}
+
+function motionRegistryStub(): VrmMotionPresetRegistry {
+  return {
+    loadAll: async () => ({ loadedIds: [], failedIds: [] }),
+    play: () => ({ played: false, reason: 'preset_not_loaded' }),
+    stopAll() {},
+    tick() {},
+    snapshot: () => ({ loaded: [], activePresetId: null, fadeRemainingSec: 0 }),
+    dispose() {},
+  };
+}
+
+function lipsyncDriverStub(): VrmLipsyncDriver {
+  return {
+    tick: () => ({ active: false }),
+    silent() {},
+    snapshot: () => ({
+      smoothState: Object.freeze({ A: 0, E: 0, I: 0, O: 0, U: 0 }),
+      lastActiveAtMs: 0,
+      isActive: false,
+    }),
+  };
+}
+
+function activityMappingStub(): ActivityMapping {
+  return { resolveVrmRoute: () => null };
+}
+
+function commonExtras(): {
+  emoteState: VrmEmoteState;
+  motionRegistry: VrmMotionPresetRegistry;
+  lipsyncDriver: VrmLipsyncDriver;
+  activityMapping: ActivityMapping;
+  setProjectionAdapter: (adapter: BackendProjection) => void;
+} {
+  return {
+    emoteState: emoteStateStub(),
+    motionRegistry: motionRegistryStub(),
+    lipsyncDriver: lipsyncDriverStub(),
+    activityMapping: activityMappingStub(),
+    setProjectionAdapter: () => {},
+  };
+}
+
 function stubVrm(): VRM {
   // Returned by the loader stub; the scene component is rendered into the
   // mocked canvas, so the precise shape doesn't matter for surface wiring.
@@ -71,6 +141,7 @@ describe('createVrmCarrierSurface', () => {
     const handle = createVrmCarrierSurface({
       manifest: manifest(),
       audioConsumer: audioConsumer(),
+      ...commonExtras(),
       runtimeOptions: {
         loaderOverride: async () => stubVrm(),
       },
@@ -121,6 +192,7 @@ describe('createVrmCarrierSurface', () => {
     const handle = createVrmCarrierSurface({
       manifest: manifest(),
       audioConsumer: audioConsumer(),
+      ...commonExtras(),
       runtimeOptions: {
         loaderOverride: async () => stubVrm(),
         // Capture the timer so the test deterministically holds the
@@ -169,6 +241,7 @@ describe('createVrmCarrierSurface', () => {
     const handle = createVrmCarrierSurface({
       manifest: manifest(),
       audioConsumer: audioConsumer(),
+      ...commonExtras(),
       runtimeOptions: {
         loaderOverride: async () => stubVrm(),
         setTimeoutFn: () => 1,
@@ -215,6 +288,7 @@ describe('createVrmCarrierSurface', () => {
     const handle = createVrmCarrierSurface({
       manifest: manifest(),
       audioConsumer: audioConsumer(),
+      ...commonExtras(),
       runtimeOptions: {
         loaderOverride: async () => {
           throw new Error('asset_missing');
@@ -249,6 +323,7 @@ describe('createVrmCarrierSurface', () => {
     const handle = createVrmCarrierSurface({
       manifest: manifest(),
       audioConsumer: audioConsumer(),
+      ...commonExtras(),
       runtimeOptions: {
         loaderOverride: async () => stubVrm(),
       },

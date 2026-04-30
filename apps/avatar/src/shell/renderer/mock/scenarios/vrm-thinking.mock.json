@@ -1,0 +1,54 @@
+{
+  "scenario_id": "vrm-thinking",
+  "version": "1",
+  "description": "Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives applyActivity('thinking') through the VRM BackendBranch projection chain. Per activity-mapping.yaml v2 the thinking route resolves to vrm.motion='idle_subtle' (wave_0 fallback; wave_3 切到 think_chin_touch — deferred under D plan). Since idle_subtle.vrma IS the one admitted asset, motionRegistry.play returns {played: true} and the model remains in the idle_subtle loop.",
+  "duration_ms": 6000,
+  "loop": false,
+
+  "agent_bootstrap": {
+    "active_world_id": "world-mock-vrm-thinking",
+    "active_user_id": "user-mock-vrm-thinking",
+    "locale": "zh-CN",
+    "initial_posture": {
+      "posture_class": "baseline_observer",
+      "action_family": "reflect",
+      "interrupt_mode": "focused",
+      "transition_reason": "scenario_start",
+      "truth_basis_ids": []
+    },
+    "initial_status_text": "vrm thinking fixture",
+    "initial_execution_state": "IDLE"
+  },
+
+  "events": [
+    { "kind": "time", "at_ms": 0,    "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "thinking", "category": "interaction", "intensity": null, "source": "mock" } }
+  ],
+
+  "vrm_mock_scenario": {
+    "category": "vrm_lifecycle",
+    "model_manifest": {
+      "kind": "vrm",
+      "modelId": "vrm-mock-thinking",
+      "runtimeDir": ".cache/assets/vrm-models",
+      "vrm": {
+        "vrmFile": ".cache/assets/vrm-models/AvatarSample_Mock.vrm",
+        "motionPresetsDir": null
+      },
+      "nimiDir": null,
+      "posterPath": null
+    },
+    "drives": [
+      { "atMs": 0, "kind": "applyActivity", "input": { "name": "thinking", "intensity": null } }
+    ],
+    "expected": [
+      { "kind": "lifecycle_state", "where": "carrier-surface", "details": { "kind": "ready" } },
+      { "kind": "lifecycle_evidence", "where": "carrier-surface", "details": { "kind": "motion_presets_loaded", "loaded_ids": ["idle_subtle"] } },
+      { "kind": "motion_play_result", "where": "motionRegistry.play({presetId: 'idle_subtle'})", "details": { "played": true } },
+      { "kind": "registry_active_preset", "where": "motionRegistry.snapshot()", "details": { "activePresetId": "idle_subtle" } }
+    ],
+    "human_acceptance_checks": [
+      "模型保持 idle subtle 动作（wave_3 think_chin_touch deferred to wave_5）",
+      "motion registry 当前 active preset 为 idle_subtle"
+    ]
+  }
+}

@@ -1,10 +1,9 @@
-// Wave 2 chunk 2-C of topic 2026-04-30-avatar-vrm-backend-branch.
+// Wave 3 chunk 3-D of topic 2026-04-30-avatar-vrm-backend-branch.
 //
-// VRM BackendBranch surface — replaces the wave_1 step_5 dev-preview
-// placeholder. Mounts an @react-three/fiber <Canvas>, drives the lifecycle
-// via VrmRuntime (vrm-runtime.ts), and forwards lifecycle evidence /
-// audio-consumer / hit-region back to embodiment-stage via the
-// BackendSurfaceProps callbacks.
+// VRM BackendBranch surface — extends the wave_2 chunk 2-C scaffolding
+// with the chunk 3-D integration: emote state, motion preset registry,
+// lipsync driver, and projection adapter are all wired through the
+// surface useFrame loop.
 //
 // Wiring rules (vrm-backend-contract.md §2.3 + AGENTS.md "VRM Backend
 // Pitfalls"):
@@ -20,17 +19,28 @@
 //     context_lost_twice / no_webgl) renders null; embodiment-stage
 //     surfaces its degraded layer above
 //
-// Audio consumer is constructed by the BackendBranch factory (chunk 2-D
-// owns the real implementation; wave_2 carries the existing stub) and
-// passed in. The surface itself does not register the consumer with the
-// audio pipeline — it only forwards the reference via onAudioConsumerReady.
+// Adapter construction + motionRegistry.loadAll happen in a one-shot
+// effect keyed on the loaded VRM identity. failedIds in loadAll is
+// expected partial-degrade behavior (D plan: only `idle_subtle.vrma`
+// is admitted; other preset ids fail to load) — surfaced as a warning
+// + lifecycle evidence, not a fail-close.
+//
+// useFrame chain (per frame, inside <Canvas>):
+//   1. lipsyncDriver.tick({vrm, deltaSec, lipsyncSnapshot})
+//   2. emoteState.setLipsyncActive(lipResult.active)
+//   3. emoteState.tick({vrm, deltaSec})
+//   4. motionRegistry.tick(deltaSec)
+//   5. vrm.update(deltaSec)   <-- REQUIRED for VRM expression
+//                                interpolation + secondary motion physics
 
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { Component as ReactComponent } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { VRM } from '@pixiv/three-vrm';
 import type {
   BackendAudioConsumer,
+  BackendProjection,
   BackendSurfaceProps,
 } from '../carrier/backend-branch.js';
 import type { VrmAvatarModelManifest } from '../carrier/model-resolver.js';
@@ -46,10 +56,25 @@ import {
   type VrmRuntimeOptions,
 } from './vrm-runtime.js';
 import { VrmScene } from './vrm-scene.js';
+import type { VrmEmoteState } from './vrm-emote-state.js';
+import type { VrmMotionPresetRegistry } from './vrm-motion-preset-registry.js';
+import type { VrmLipsyncDriver } from './vrm-lipsync-driver.js';
+import {
+  createVrmProjectionAdapter,
+  type ActivityMapping,
+} from './vrm-projection-adapter.js';
 
 export type VrmCarrierSurfaceInput = {
   manifest: VrmAvatarModelManifest;
   audioConsumer: BackendAudioConsumer;
+  emoteState: VrmEmoteState;
+  motionRegistry: VrmMotionPresetRegistry;
+  lipsyncDriver: VrmLipsyncDriver;
+  activityMapping: ActivityMapping;
+  /** Receives the real BackendProjection adapter once the VRM is loaded;
+   *  the BackendBranch factory's deferred projection shim flushes any
+   *  queued calls when this fires. */
+  setProjectionAdapter: (adapter: BackendProjection) => void;
   /** Test seam forwarded to createVrmRuntime — keeps unit tests fast and
    *  deterministic without spinning up real Three.js / WebGL. */
   runtimeOptions?: Pick<
@@ -76,6 +101,7 @@ export function createVrmCarrierSurface(
   const Component: ComponentType<BackendSurfaceProps> = (props) => {
     const audioAnnouncedRef = useRef(false);
     const regionAnnouncedRef = useRef(false);
+    const adapterAnnouncedRef = useRef<VRM | null>(null);
     const canvasContainerRef = useRef<HTMLDivElement | null>(null);
     const [state, setState] = useState<VrmLifecycleState>({ kind: 'idle' });
     const [canvasError, setCanvasError] = useState(false);
@@ -149,6 +175,48 @@ export function createVrmCarrierSurface(
 
     const vrm = state.kind === 'ready' || state.kind === 'context_lost' ? state.vrm : null;
 
+    // Adapter construction + motion preset asset load (one-shot per VRM).
+    // Keyed on `vrm` identity so a context_lost → ready bounce that
+    // returns the same VRM instance does not re-register the adapter,
+    // but a fresh load (post-failed_closed scenario) would.
+    useEffect(() => {
+      if (!vrm) return;
+      if (adapterAnnouncedRef.current === vrm) return;
+      adapterAnnouncedRef.current = vrm;
+      const adapter = createVrmProjectionAdapter({
+        vrm,
+        emoteState: input.emoteState,
+        motionRegistry: input.motionRegistry,
+        activityMapping: input.activityMapping,
+      });
+      input.setProjectionAdapter(adapter);
+      // Async motion preset asset load; failedIds is expected partial-
+      // degrade behavior (D plan: only `idle_subtle.vrma` admitted).
+      void input.motionRegistry
+        .loadAll({ vrm })
+        .then((result) => {
+          props.onLifecycleEvidence?.('motion_presets_loaded', {
+            loaded_ids: result.loadedIds,
+            failed_ids: result.failedIds,
+          });
+          if (result.failedIds.length > 0) {
+            console.warn(
+              '[avatar:vrm] motion preset partial-load (D plan deferred .vrma):',
+              result.failedIds,
+            );
+          }
+        })
+        .catch((err) => {
+          // Defensive: registry.loadAll itself does not throw (per-id
+          // errors are captured into failedIds), but if a non-id-bound
+          // crash escapes (e.g. AnimationMixer construction on degenerate
+          // scene), surface it as evidence rather than swallowing it.
+          props.onLifecycleEvidence?.('motion_preset_load_crashed', {
+            reason: err instanceof Error ? err.message : String(err),
+          });
+        });
+    }, [vrm, props.onLifecycleEvidence]);
+
     // Wave 2 chunk 2-E: derive camera framing from the loaded VRM scene
     // bbox + the bottom-companion default (vrm-backend-contract.md §4).
     // The result is fed into <Canvas camera={...}>; recomputed only when
@@ -208,6 +276,15 @@ export function createVrmCarrierSurface(
           }}
         >
           <VrmScene vrm={vrm} />
+          {state.kind === 'ready' && vrm ? (
+            <VrmFrameLoop
+              vrm={vrm}
+              audioConsumer={input.audioConsumer}
+              lipsyncDriver={input.lipsyncDriver}
+              emoteState={input.emoteState}
+              motionRegistry={input.motionRegistry}
+            />
+          ) : null}
         </SafeCanvas>
       </div>
     );
@@ -220,6 +297,50 @@ export function createVrmCarrierSurface(
       runtimeRef = null;
     },
   };
+}
+
+/**
+ * Per-frame tick chain. Mounted only when the runtime is `ready` so the
+ * VRM instance is guaranteed non-null. Lives inside <Canvas> so it has
+ * access to R3F's useFrame context.
+ *
+ * Tick order (mandated by chunk 3-D contract):
+ *   1. lipsync driver — translates wlipsync snapshot to viseme writes
+ *      and reports {active} so the emote layer suppresses its viseme
+ *      writes for the same frame
+ *   2. emote state — flushes bundle + transient overlays to expression
+ *      manager (skipping visemes when lipsync is active)
+ *   3. motion registry — advances AnimationMixer (motion preset clips)
+ *   4. vrm.update — REQUIRED to advance VRM expression interpolation +
+ *      secondary motion physics (per AGENTS.md pitfall #5/#10)
+ */
+function VrmFrameLoop({
+  vrm,
+  audioConsumer,
+  lipsyncDriver,
+  emoteState,
+  motionRegistry,
+}: {
+  vrm: VRM;
+  audioConsumer: BackendAudioConsumer;
+  lipsyncDriver: VrmLipsyncDriver;
+  emoteState: VrmEmoteState;
+  motionRegistry: VrmMotionPresetRegistry;
+}): null {
+  useFrame((_state, deltaSec) => {
+    const dt = Math.max(0, deltaSec);
+    const lipsyncSnapshot = audioConsumer.snapshot();
+    const lipResult = lipsyncDriver.tick({ vrm, deltaSec: dt, lipsyncSnapshot });
+    emoteState.setLipsyncActive(lipResult.active);
+    emoteState.tick({ vrm, deltaSec: dt });
+    motionRegistry.tick(dt);
+    // VRM internal animation update is critical: expression interpolation
+    // + secondary motion physics depend on this per-frame call.
+    if (typeof (vrm as { update?: (dt: number) => void }).update === 'function') {
+      (vrm as { update: (dt: number) => void }).update(dt);
+    }
+  });
+  return null;
 }
 
 // React error boundary — function components cannot trap render-phase
