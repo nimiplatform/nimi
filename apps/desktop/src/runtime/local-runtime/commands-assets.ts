@@ -5,9 +5,18 @@ import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
-  LocalRuntimeDependencyDescriptor,
-  LocalRuntimeDependencySetupPayload,
-  LocalRuntimeDependencySetupResult,
+  LocalRuntimeEnvironmentActivationGate,
+  LocalRuntimeEnvironmentActivationGatePayload,
+  LocalRuntimeEnvironmentDependencyJobCancelPayload,
+  LocalRuntimeEnvironmentDependencyJob,
+  LocalRuntimeEnvironmentDependencyJobsPayload,
+  LocalRuntimeEnvironmentDependencyJobRetryPayload,
+  LocalRuntimeEnvironmentDependencyJobStartPayload,
+  LocalRuntimeEnvironmentDependencyRepairPayload,
+  LocalRuntimeEnvironmentPlan,
+  LocalRuntimeEnvironmentPlanPayload,
+  LocalRuntimeEnvironmentSelectedSourceRecord,
+  LocalRuntimeEnvironmentSelectedSourcesPayload,
   LocalRuntimeImportAssetFilePayload,
   LocalRuntimeImportAssetPayload,
   LocalRuntimeImportBundlePayload,
@@ -26,7 +35,10 @@ import {
   parseAssetRecord,
   parseDownloadProgressEvent,
   parseDownloadSessionSummary,
-  parseRuntimeDependencyDescriptor,
+  parseLocalRuntimeEnvironmentActivationGate,
+  parseLocalRuntimeEnvironmentDependencyJob,
+  parseLocalRuntimeEnvironmentPlan,
+  parseLocalRuntimeEnvironmentSelectedSourceRecord,
   parseUnregisteredAssetDescriptor,
 } from './parsers';
 import { invokeLocalRuntimeCommand } from './parsers';
@@ -205,37 +217,113 @@ export async function healthLocalRuntimeAssets(localAssetId?: string): Promise<L
   return assets.map((item) => parseAssetHealth(item));
 }
 
-export async function resolveLocalRuntimeDependency(
-  payload?: LocalRuntimeDependencySetupPayload,
-): Promise<LocalRuntimeDependencyDescriptor> {
+export async function resolveLocalRuntimeEnvironmentPlan(
+  payload: LocalRuntimeEnvironmentPlanPayload,
+): Promise<LocalRuntimeEnvironmentPlan> {
   const runtime = requireSdkLocal();
-  const response = await runtime.resolveLocalRuntimeDependency({
-    dependencyId: String(payload?.dependencyId || 'nvidia-cuda-user-space-runtime').trim(),
-    localAssetId: String(payload?.localAssetId || '').trim(),
-    consumerId: String(payload?.consumerId || '').trim(),
+  const response = await runtime.resolveLocalEnvironmentPlan({
+    packId: String(payload.packId || '').trim(),
+    consumerScope: String(payload.consumerScope || '').trim(),
+    runtimeDataRoot: String(payload.runtimeDataRoot || '').trim(),
   });
-  return parseRuntimeDependencyDescriptor(asRecord(response).dependency);
+  return parseLocalRuntimeEnvironmentPlan(asRecord(response).plan);
 }
 
-export async function startLocalRuntimeDependencySetup(
-  payload?: LocalRuntimeDependencySetupPayload,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeDependencySetupResult> {
-  assertLifecycleWriteAllowed('runtime_local_dependency_setup_start', options?.caller);
+export async function listLocalRuntimeEnvironmentSelectedSources(
+  payload?: LocalRuntimeEnvironmentSelectedSourcesPayload,
+): Promise<LocalRuntimeEnvironmentSelectedSourceRecord[]> {
   const runtime = requireSdkLocal();
-  const response = await runtime.startLocalRuntimeDependencySetup({
-    dependencyId: String(payload?.dependencyId || 'nvidia-cuda-user-space-runtime').trim(),
-    localAssetId: String(payload?.localAssetId || '').trim(),
-    consumerId: String(payload?.consumerId || '').trim(),
-    confirmed: true,
+  const response = await runtime.listLocalEnvironmentSelectedSources({
+    dependencyFamily: String(payload?.dependencyFamily || '').trim(),
+    consumerScope: String(payload?.consumerScope || '').trim(),
   });
-  const raw = asRecord(response);
-  const dependency = parseRuntimeDependencyDescriptor(raw.dependency);
-  const transfer = parseDownloadSessionSummary(raw.transfer);
-  return {
-    dependency,
-    transfer: transfer.installSessionId ? transfer : dependency.transfer,
-  };
+  const sources = asRecord(response).sources;
+  return Array.isArray(sources)
+    ? sources.map((item) => parseLocalRuntimeEnvironmentSelectedSourceRecord(item))
+    : [];
+}
+
+export async function listLocalRuntimeEnvironmentDependencyJobs(
+  payload?: LocalRuntimeEnvironmentDependencyJobsPayload,
+): Promise<LocalRuntimeEnvironmentDependencyJob[]> {
+  const runtime = requireSdkLocal();
+  const response = await runtime.listLocalEnvironmentDependencyJobs({
+    environmentKey: String(payload?.environmentKey || '').trim(),
+    state: String(payload?.state || '').trim(),
+  });
+  const jobs = asRecord(response).jobs;
+  return Array.isArray(jobs)
+    ? jobs.map((item) => parseLocalRuntimeEnvironmentDependencyJob(item))
+    : [];
+}
+
+export async function resolveLocalRuntimeEnvironmentActivationGate(
+  payload: LocalRuntimeEnvironmentActivationGatePayload,
+): Promise<LocalRuntimeEnvironmentActivationGate> {
+  const runtime = requireSdkLocal();
+  const response = await runtime.resolveLocalEnvironmentActivationGate({
+    consumerId: String(payload.consumerId || '').trim(),
+    packId: String(payload.packId || '').trim(),
+    runtimeDataRoot: String(payload.runtimeDataRoot || '').trim(),
+  });
+  return parseLocalRuntimeEnvironmentActivationGate(asRecord(response).gate);
+}
+
+export async function startLocalRuntimeEnvironmentDependencyJob(
+  payload: LocalRuntimeEnvironmentDependencyJobStartPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeEnvironmentDependencyJob> {
+  assertLifecycleWriteAllowed('runtime_local_environment_dependency_job_start', options?.caller);
+  const runtime = requireSdkLocal();
+  const response = await runtime.startLocalEnvironmentDependencyJob({
+    environmentKey: String(payload.environmentKey || '').trim(),
+    dependencyFamily: String(payload.dependencyFamily || '').trim(),
+    dependencyId: String(payload.dependencyId || '').trim(),
+    sourceKind: String(payload.sourceKind || '').trim(),
+    confirmed: Boolean(payload.confirmed),
+  });
+  return parseLocalRuntimeEnvironmentDependencyJob(asRecord(response).job);
+}
+
+export async function cancelLocalRuntimeEnvironmentDependencyJob(
+  payload: LocalRuntimeEnvironmentDependencyJobCancelPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeEnvironmentDependencyJob> {
+  assertLifecycleWriteAllowed('runtime_local_environment_dependency_job_cancel', options?.caller);
+  const runtime = requireSdkLocal();
+  const response = await runtime.cancelLocalEnvironmentDependencyJob({
+    jobId: String(payload.jobId || '').trim(),
+  });
+  return parseLocalRuntimeEnvironmentDependencyJob(asRecord(response).job);
+}
+
+export async function retryLocalRuntimeEnvironmentDependencyJob(
+  payload: LocalRuntimeEnvironmentDependencyJobRetryPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeEnvironmentDependencyJob> {
+  assertLifecycleWriteAllowed('runtime_local_environment_dependency_job_retry', options?.caller);
+  const runtime = requireSdkLocal();
+  const response = await runtime.retryLocalEnvironmentDependencyJob({
+    jobId: String(payload.jobId || '').trim(),
+    confirmed: Boolean(payload.confirmed),
+  });
+  return parseLocalRuntimeEnvironmentDependencyJob(asRecord(response).job);
+}
+
+export async function repairLocalRuntimeEnvironmentDependency(
+  payload: LocalRuntimeEnvironmentDependencyRepairPayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeEnvironmentDependencyJob> {
+  assertLifecycleWriteAllowed('runtime_local_environment_dependency_repair', options?.caller);
+  const runtime = requireSdkLocal();
+  const response = await runtime.repairLocalEnvironmentDependency({
+    environmentKey: String(payload.environmentKey || '').trim(),
+    dependencyFamily: String(payload.dependencyFamily || '').trim(),
+    dependencyId: String(payload.dependencyId || '').trim(),
+    confirmed: Boolean(payload.confirmed),
+    reasonCode: String(payload.reasonCode || '').trim(),
+  });
+  return parseLocalRuntimeEnvironmentDependencyJob(asRecord(response).job);
 }
 
 export async function revealLocalRuntimeAssetInFolder(localAssetId: string): Promise<void> {

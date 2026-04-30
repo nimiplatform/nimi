@@ -363,10 +363,14 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [refreshInstalledAssets, refreshVerifiedAssets]);
 
   const {
+    cancelRuntimeDependencyJob,
     refreshRuntimeDependencies,
+    repairRuntimeDependency,
+    retryRuntimeDependencyJob,
     runtimeDependencyByAssetId,
     setupRuntimeDependency,
     sharedRuntimeDependency,
+    sharedRuntimeDependencyJobs,
   } = useLocalModelCenterRuntimeDependencies({
     assets: sortedInstalledRunnableAssets,
     refreshAssetInventorySections,
@@ -741,13 +745,14 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     onPauseDownload: importActions.onPauseDownload, onResumeDownload: importActions.onResumeDownload,
     refreshAssetSections, refreshUnregisteredAssets, refreshVerifiedModels,
     repairInstalledAsset, relatedAssetsByModelTemplate, removeInstalledAsset,
+    cancelRuntimeDependencyJob, repairRuntimeDependency, retryRuntimeDependencyJob,
     runtimeDependencyByAssetId,
     resolveUnregisteredAssetDraft, searchQuery, selectedCatalogCapability, selectedCatalogEngine,
     setAssetKindFilter, setCatalogCapability, setCatalogCapabilityOverrides,
     setCatalogDisplayCount, setCatalogEngineOverrides,
     setImportFileAssetKind, setImportFileAuxiliaryEngine, setImportFileEndpoint,
     setSearchQuery, setShowImportFileDialog, setShowImportMenu,
-    setupRuntimeDependency, sharedRuntimeDependency,
+    setupRuntimeDependency, sharedRuntimeDependency, sharedRuntimeDependencyJobs,
     setUnregisteredAssetKind, setUnregisteredAuxiliaryEngine, setUnregisteredEndpoint,
     showImportFileDialog, showImportMenu, canChooseImportFile, canChooseImportDirectory,
     toggleVariantPicker: importActions.toggleVariantPicker,

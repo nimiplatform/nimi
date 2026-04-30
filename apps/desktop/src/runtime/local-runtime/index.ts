@@ -16,7 +16,14 @@ import {
   searchLocalRuntimeCatalog,
   listLocalRuntimeRepoGgufVariants,
   resolveLocalRuntimeInstallPlan,
-  resolveLocalRuntimeDependency,
+  resolveLocalRuntimeEnvironmentActivationGate,
+  resolveLocalRuntimeEnvironmentPlan,
+  startLocalRuntimeEnvironmentDependencyJob,
+  cancelLocalRuntimeEnvironmentDependencyJob,
+  retryLocalRuntimeEnvironmentDependencyJob,
+  repairLocalRuntimeEnvironmentDependency,
+  listLocalRuntimeEnvironmentDependencyJobs,
+  listLocalRuntimeEnvironmentSelectedSources,
   listLocalRuntimeDownloadSessions,
   pauseLocalRuntimeDownload,
   resumeLocalRuntimeDownload,
@@ -44,7 +51,6 @@ import {
   stopLocalRuntimeAsset,
   scanLocalRuntimeUnregisteredAssets,
   scaffoldLocalRuntimeOrphanAsset,
-  startLocalRuntimeDependencySetup,
   resolveLocalRuntimeProfile,
 } from './commands';
 import type {
@@ -111,9 +117,19 @@ import type {
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeScaffoldOrphanPayload,
   LocalRuntimeRescanBundlePayload,
-  LocalRuntimeDependencyDescriptor,
-  LocalRuntimeDependencySetupPayload,
-  LocalRuntimeDependencySetupResult,
+  LocalRuntimeEnvironmentActivationGate,
+  LocalRuntimeEnvironmentActivationGatePayload,
+  LocalRuntimeEnvironmentDependencyJob,
+  LocalRuntimeEnvironmentDependencyJobCancelPayload,
+  LocalRuntimeEnvironmentDependencyJobsPayload,
+  LocalRuntimeEnvironmentDependencyJobRetryPayload,
+  LocalRuntimeEnvironmentDependencyJobStartPayload,
+  LocalRuntimeEnvironmentDependencyRepairPayload,
+  LocalRuntimeEnvironmentPlan,
+  LocalRuntimeEnvironmentPlanDependency,
+  LocalRuntimeEnvironmentPlanPayload,
+  LocalRuntimeEnvironmentSelectedSourceRecord,
+  LocalRuntimeEnvironmentSelectedSourcesPayload,
 } from './types';
 import {
   queryLocalRuntimeAssetsByCapability,
@@ -194,9 +210,19 @@ export type {
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeScaffoldOrphanPayload,
   LocalRuntimeRescanBundlePayload,
-  LocalRuntimeDependencyDescriptor,
-  LocalRuntimeDependencySetupPayload,
-  LocalRuntimeDependencySetupResult,
+  LocalRuntimeEnvironmentActivationGate,
+  LocalRuntimeEnvironmentActivationGatePayload,
+  LocalRuntimeEnvironmentDependencyJob,
+  LocalRuntimeEnvironmentDependencyJobCancelPayload,
+  LocalRuntimeEnvironmentDependencyJobsPayload,
+  LocalRuntimeEnvironmentDependencyJobRetryPayload,
+  LocalRuntimeEnvironmentDependencyJobStartPayload,
+  LocalRuntimeEnvironmentDependencyRepairPayload,
+  LocalRuntimeEnvironmentPlan,
+  LocalRuntimeEnvironmentPlanDependency,
+  LocalRuntimeEnvironmentPlanPayload,
+  LocalRuntimeEnvironmentSelectedSourceRecord,
+  LocalRuntimeEnvironmentSelectedSourcesPayload,
 };
 
 export type LocalRuntimeFacade = {
@@ -285,11 +311,32 @@ export type LocalRuntimeFacade = {
     options?: LocalRuntimeWriteOptions,
   ) => Promise<LocalRuntimeAssetRecord>;
   health: (localAssetId?: string) => Promise<LocalRuntimeAssetHealth[]>;
-  resolveDependency: (payload?: LocalRuntimeDependencySetupPayload) => Promise<LocalRuntimeDependencyDescriptor>;
-  startDependencySetup: (
-    payload?: LocalRuntimeDependencySetupPayload,
+  resolveEnvironmentPlan: (payload: LocalRuntimeEnvironmentPlanPayload) => Promise<LocalRuntimeEnvironmentPlan>;
+  listEnvironmentSelectedSources: (
+    payload?: LocalRuntimeEnvironmentSelectedSourcesPayload,
+  ) => Promise<LocalRuntimeEnvironmentSelectedSourceRecord[]>;
+  listEnvironmentDependencyJobs: (
+    payload?: LocalRuntimeEnvironmentDependencyJobsPayload,
+  ) => Promise<LocalRuntimeEnvironmentDependencyJob[]>;
+  resolveEnvironmentActivationGate: (
+    payload: LocalRuntimeEnvironmentActivationGatePayload,
+  ) => Promise<LocalRuntimeEnvironmentActivationGate>;
+  startEnvironmentDependencyJob: (
+    payload: LocalRuntimeEnvironmentDependencyJobStartPayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeDependencySetupResult>;
+  ) => Promise<LocalRuntimeEnvironmentDependencyJob>;
+  cancelEnvironmentDependencyJob: (
+    payload: LocalRuntimeEnvironmentDependencyJobCancelPayload,
+    options?: LocalRuntimeWriteOptions,
+  ) => Promise<LocalRuntimeEnvironmentDependencyJob>;
+  retryEnvironmentDependencyJob: (
+    payload: LocalRuntimeEnvironmentDependencyJobRetryPayload,
+    options?: LocalRuntimeWriteOptions,
+  ) => Promise<LocalRuntimeEnvironmentDependencyJob>;
+  repairEnvironmentDependency: (
+    payload: LocalRuntimeEnvironmentDependencyRepairPayload,
+    options?: LocalRuntimeWriteOptions,
+  ) => Promise<LocalRuntimeEnvironmentDependencyJob>;
   appendAudit: (payload: LocalRuntimeAuditPayload) => Promise<void>;
   appendInferenceAudit: (payload: LocalRuntimeInferenceAuditPayload) => Promise<void>;
   listAudits: (query?: LocalRuntimeAuditQuery) => Promise<LocalRuntimeAuditEvent[]>;
@@ -354,8 +401,14 @@ export const localRuntime: LocalRuntimeFacade = {
   start: startLocalRuntimeAsset,
   stop: stopLocalRuntimeAsset,
   health: healthLocalRuntimeAssets,
-  resolveDependency: resolveLocalRuntimeDependency,
-  startDependencySetup: startLocalRuntimeDependencySetup,
+  resolveEnvironmentPlan: resolveLocalRuntimeEnvironmentPlan,
+  listEnvironmentSelectedSources: listLocalRuntimeEnvironmentSelectedSources,
+  listEnvironmentDependencyJobs: listLocalRuntimeEnvironmentDependencyJobs,
+  resolveEnvironmentActivationGate: resolveLocalRuntimeEnvironmentActivationGate,
+  startEnvironmentDependencyJob: startLocalRuntimeEnvironmentDependencyJob,
+  cancelEnvironmentDependencyJob: cancelLocalRuntimeEnvironmentDependencyJob,
+  retryEnvironmentDependencyJob: retryLocalRuntimeEnvironmentDependencyJob,
+  repairEnvironmentDependency: repairLocalRuntimeEnvironmentDependency,
   appendAudit: appendLocalRuntimeAudit,
   appendInferenceAudit: appendLocalRuntimeInferenceAudit,
   listAudits: listLocalRuntimeAudits,

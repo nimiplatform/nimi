@@ -129,7 +129,10 @@ async function main() {
     abs: path.join(repoRoot, rel),
   }));
 
-  const missingRoots = roots.filter((root) => !path.isAbsolute(root.abs) || !root.abs.startsWith(repoRoot) || !root.abs.includes('/apps/desktop/'));
+  const missingRoots = roots.filter((root) => {
+    const rel = toRepoRelative(root.abs);
+    return !path.isAbsolute(root.abs) || !root.abs.startsWith(repoRoot) || !rel.startsWith('apps/desktop/');
+  });
   if (missingRoots.length > 0) {
     process.stderr.write('desktop cloud runtime-only check misconfigured: invalid scan root(s)\n');
     for (const root of missingRoots) {

@@ -44,8 +44,11 @@ test('wave 5 closeout: Desktop does not read retired local state or create CUDA 
 });
 
 test('wave 5 closeout: Desktop state and dependency actions go through Runtime facade', () => {
-  assert.match(desktopProjectionSources, /resolveLocalStateReconciliation/);
-  assert.match(desktopProjectionSources, /executeLocalStateCutover/);
-  assert.match(desktopProjectionSources, /resolveDependency/);
-  assert.match(desktopProjectionSources, /startDependencySetup/);
+  assert.match(desktopProjectionSources, /resolveEnvironmentPlan/);
+  assert.match(desktopProjectionSources, /listEnvironmentDependencyJobs/);
+  assert.match(desktopProjectionSources, /startEnvironmentDependencyJob/);
+  assert.match(desktopProjectionSources, /cancelEnvironmentDependencyJob/);
+  assert.match(desktopProjectionSources, /retryEnvironmentDependencyJob/);
+  assert.match(desktopProjectionSources, /repairEnvironmentDependency/);
+  assert.doesNotMatch(desktopProjectionSources, /startDependencySetup|startLocalRuntimeDependencySetup/);
 });

@@ -14,7 +14,11 @@ import type {
   LocalRuntimeDownloadState,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
-  LocalRuntimeDependencyDescriptor,
+  LocalRuntimeEnvironmentActivationGate,
+  LocalRuntimeEnvironmentDependencyJob,
+  LocalRuntimeEnvironmentPlan,
+  LocalRuntimeEnvironmentPlanDependency,
+  LocalRuntimeEnvironmentSelectedSourceRecord,
   LocalRuntimeTransferSessionKind,
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeAssetHealth,
@@ -131,24 +135,108 @@ export function parseAssetHealth(value: unknown): LocalRuntimeAssetHealth {
   };
 }
 
-export function parseRuntimeDependencyDescriptor(value: unknown): LocalRuntimeDependencyDescriptor {
+export function parseLocalRuntimeEnvironmentPlanDependency(value: unknown): LocalRuntimeEnvironmentPlanDependency {
   const record = asRecord(value);
-  const transfer = asRecord(record.transfer);
   return {
+    dependencyFamily: asString(record.dependencyFamily),
     dependencyId: asString(record.dependencyId),
-    consumerId: asString(record.consumerId) || undefined,
-    kind: asString(record.kind),
+    required: Boolean(record.required),
     state: asString(record.state),
-    source: asString(record.source),
-    hostProfileId: asString(record.hostProfileId) || undefined,
-    selectedSourceRecordId: asString(record.selectedSourceRecordId) || undefined,
-    canonicalRoot: asString(record.canonicalRoot) || undefined,
+    sourceKind: asString(record.sourceKind),
     confirmationRequired: Boolean(record.confirmationRequired),
-    message: asString(record.message) || undefined,
+    selectedSourceRecordId: asString(record.selectedSourceRecordId) || undefined,
+    environmentKey: asString(record.environmentKey),
+    canonicalRoot: asString(record.canonicalRoot) || undefined,
     reasonCode: asString(record.reasonCode) || undefined,
-    installLocation: asString(record.installLocation) || undefined,
-    systemPathMutation: Boolean(record.systemPathMutation),
-    transfer: Object.keys(transfer).length > 0 ? parseDownloadSessionSummary(transfer) : undefined,
+    detail: asString(record.detail) || undefined,
+  };
+}
+
+export function parseLocalRuntimeEnvironmentPlan(value: unknown): LocalRuntimeEnvironmentPlan {
+  const record = asRecord(value);
+  const dependencies = Array.isArray(record.dependencies)
+    ? record.dependencies.map((item) => parseLocalRuntimeEnvironmentPlanDependency(item))
+    : [];
+  return {
+    planId: asString(record.planId),
+    packId: asString(record.packId),
+    productLabel: asString(record.productLabel),
+    hostProfileId: asString(record.hostProfileId),
+    platformTuple: asString(record.platformTuple),
+    runtimeDataRoot: asString(record.runtimeDataRoot) || undefined,
+    consumerScope: asString(record.consumerScope) || undefined,
+    cloudOnlyImpact: asString(record.cloudOnlyImpact) || undefined,
+    state: asString(record.state),
+    reasonCode: asString(record.reasonCode) || undefined,
+    dependencies,
+  };
+}
+
+export function parseLocalRuntimeEnvironmentSelectedSourceRecord(value: unknown): LocalRuntimeEnvironmentSelectedSourceRecord {
+  const record = asRecord(value);
+  const hashes = asRecord(record.hashes);
+  return {
+    recordId: asString(record.recordId),
+    dependencyFamily: asString(record.dependencyFamily),
+    dependencyId: asString(record.dependencyId),
+    environmentKey: asString(record.environmentKey),
+    sourceKind: asString(record.sourceKind),
+    canonicalRoot: asString(record.canonicalRoot) || undefined,
+    version: asString(record.version) || undefined,
+    compatibilityEvidence: Array.isArray(record.compatibilityEvidence)
+      ? record.compatibilityEvidence.map((item) => asString(item)).filter(Boolean)
+      : [],
+    verifiedArtifacts: Array.isArray(record.verifiedArtifacts)
+      ? record.verifiedArtifacts.map((item) => asString(item)).filter(Boolean)
+      : [],
+    hashes: Object.fromEntries(
+      Object.entries(hashes).map(([key, hash]) => [String(key), asString(hash)]),
+    ),
+    selectedConsumers: Array.isArray(record.selectedConsumers)
+      ? record.selectedConsumers.map((item) => asString(item)).filter(Boolean)
+      : [],
+    activationEnvDelta: Array.isArray(record.activationEnvDelta)
+      ? record.activationEnvDelta.map((item) => asString(item)).filter(Boolean)
+      : [],
+    selectedAt: asString(record.selectedAt) || undefined,
+    lastVerifiedAt: asString(record.lastVerifiedAt) || undefined,
+    repairState: asString(record.repairState) || undefined,
+    auditReasonCode: asString(record.auditReasonCode) || undefined,
+  };
+}
+
+export function parseLocalRuntimeEnvironmentDependencyJob(value: unknown): LocalRuntimeEnvironmentDependencyJob {
+  const record = asRecord(value);
+  return {
+    jobId: asString(record.jobId),
+    environmentKey: asString(record.environmentKey),
+    dependencyFamily: asString(record.dependencyFamily),
+    dependencyId: asString(record.dependencyId),
+    state: asString(record.state),
+    sourceKind: asString(record.sourceKind),
+    canonicalRoot: asString(record.canonicalRoot) || undefined,
+    selectedSourceRecordId: asString(record.selectedSourceRecordId) || undefined,
+    failureDetail: asString(record.failureDetail) || undefined,
+    retryable: Boolean(record.retryable),
+    createdAt: asString(record.createdAt) || undefined,
+    updatedAt: asString(record.updatedAt) || undefined,
+  };
+}
+
+export function parseLocalRuntimeEnvironmentActivationGate(value: unknown): LocalRuntimeEnvironmentActivationGate {
+  const record = asRecord(value);
+  return {
+    consumerId: asString(record.consumerId),
+    packId: asString(record.packId),
+    state: asString(record.state),
+    reasonCode: asString(record.reasonCode) || undefined,
+    detail: asString(record.detail) || undefined,
+    blockingDependencies: Array.isArray(record.blockingDependencies)
+      ? record.blockingDependencies.map((item) => parseLocalRuntimeEnvironmentPlanDependency(item))
+      : [],
+    dependencies: Array.isArray(record.dependencies)
+      ? record.dependencies.map((item) => parseLocalRuntimeEnvironmentPlanDependency(item))
+      : [],
   };
 }
 

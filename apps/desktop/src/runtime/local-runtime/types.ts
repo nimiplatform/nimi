@@ -592,39 +592,123 @@ export type LocalRuntimeDownloadControlPayload = {
   installSessionId: string;
 };
 
-export type LocalRuntimeDependencyState =
-  | 'ready_system'
-  | 'ready_managed'
-  | 'materializable_requires_confirmation'
-  | 'unsupported'
-  | string;
-
-export type LocalRuntimeDependencyDescriptor = {
+export type LocalRuntimeEnvironmentPlanDependency = {
+  dependencyFamily: string;
   dependencyId: string;
-  consumerId?: string;
-  kind: string;
-  state: LocalRuntimeDependencyState;
-  source: string;
-  hostProfileId?: string;
-  selectedSourceRecordId?: string;
-  canonicalRoot?: string;
+  required: boolean;
+  state: string;
+  sourceKind: string;
   confirmationRequired: boolean;
-  message?: string;
+  selectedSourceRecordId?: string;
+  environmentKey: string;
+  canonicalRoot?: string;
   reasonCode?: string;
-  installLocation?: string;
-  systemPathMutation: boolean;
-  transfer?: LocalRuntimeDownloadSessionSummary;
+  detail?: string;
 };
 
-export type LocalRuntimeDependencySetupPayload = {
-  dependencyId?: string;
-  localAssetId?: string;
-  consumerId?: string;
+export type LocalRuntimeEnvironmentPlan = {
+  planId: string;
+  packId: string;
+  productLabel: string;
+  hostProfileId: string;
+  platformTuple: string;
+  runtimeDataRoot?: string;
+  consumerScope?: string;
+  cloudOnlyImpact?: string;
+  state: string;
+  reasonCode?: string;
+  dependencies: LocalRuntimeEnvironmentPlanDependency[];
 };
 
-export type LocalRuntimeDependencySetupResult = {
-  dependency: LocalRuntimeDependencyDescriptor;
-  transfer?: LocalRuntimeDownloadSessionSummary;
+export type LocalRuntimeEnvironmentPlanPayload = {
+  packId: string;
+  consumerScope?: string;
+  runtimeDataRoot?: string;
+};
+
+export type LocalRuntimeEnvironmentSelectedSourceRecord = {
+  recordId: string;
+  dependencyFamily: string;
+  dependencyId: string;
+  environmentKey: string;
+  sourceKind: string;
+  canonicalRoot?: string;
+  version?: string;
+  compatibilityEvidence: string[];
+  verifiedArtifacts: string[];
+  hashes: Record<string, string>;
+  selectedConsumers: string[];
+  activationEnvDelta: string[];
+  selectedAt?: string;
+  lastVerifiedAt?: string;
+  repairState?: string;
+  auditReasonCode?: string;
+};
+
+export type LocalRuntimeEnvironmentSelectedSourcesPayload = {
+  dependencyFamily?: string;
+  consumerScope?: string;
+};
+
+export type LocalRuntimeEnvironmentDependencyJob = {
+  jobId: string;
+  environmentKey: string;
+  dependencyFamily: string;
+  dependencyId: string;
+  state: string;
+  sourceKind: string;
+  canonicalRoot?: string;
+  selectedSourceRecordId?: string;
+  failureDetail?: string;
+  retryable: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type LocalRuntimeEnvironmentDependencyJobsPayload = {
+  environmentKey?: string;
+  state?: string;
+};
+
+export type LocalRuntimeEnvironmentDependencyJobStartPayload = {
+  environmentKey: string;
+  dependencyFamily: string;
+  dependencyId: string;
+  sourceKind: string;
+  confirmed: boolean;
+};
+
+export type LocalRuntimeEnvironmentDependencyJobCancelPayload = {
+  jobId: string;
+};
+
+export type LocalRuntimeEnvironmentDependencyJobRetryPayload = {
+  jobId: string;
+  confirmed: boolean;
+};
+
+export type LocalRuntimeEnvironmentDependencyRepairPayload = {
+  environmentKey: string;
+  dependencyFamily: string;
+  dependencyId: string;
+  confirmed: boolean;
+  reasonCode?: string;
+};
+
+export type LocalRuntimeEnvironmentActivationGate = {
+  consumerId: string;
+  packId: string;
+  state: string;
+  reasonCode?: string;
+  detail?: string;
+  blockingDependencies: LocalRuntimeEnvironmentPlanDependency[];
+  dependencies: LocalRuntimeEnvironmentPlanDependency[];
+};
+
+export type LocalRuntimeEnvironmentActivationGatePayload = {
+  consumerId: string;
+  packId: string;
+  runtimeDataRoot?: string;
 };
 
 export type LocalRuntimeAssetDeclaration = {

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import type {
   LocalRuntimeAssetKind,
   LocalRuntimeAssetRecord,
-  LocalRuntimeDependencyDescriptor,
+  LocalRuntimeEnvironmentDependencyJob,
+  LocalRuntimeEnvironmentPlanDependency,
 } from '@runtime/local-runtime';
 import { i18n } from '@renderer/i18n';
 import { RuntimeSelect } from './runtime-config-primitives';
@@ -25,8 +26,9 @@ import {
 type InstalledAssetsSectionProps = {
   filteredInstalledRunnableAssets: LocalRuntimeAssetRecord[];
   filteredInstalledDependencyAssets: LocalRuntimeAssetRecord[];
-  sharedRuntimeDependency?: LocalRuntimeDependencyDescriptor;
-  runtimeDependencyByAssetId: Record<string, LocalRuntimeDependencyDescriptor | undefined>;
+  sharedRuntimeDependency?: LocalRuntimeEnvironmentPlanDependency;
+  sharedRuntimeDependencyJobs: LocalRuntimeEnvironmentDependencyJob[];
+  runtimeDependencyByAssetId: Record<string, LocalRuntimeEnvironmentPlanDependency | undefined>;
   loadingInstalledAssets: boolean;
   loadingVerifiedAssets: boolean;
   assetKindFilter: 'all' | LocalRuntimeAssetKind;
@@ -36,6 +38,9 @@ type InstalledAssetsSectionProps = {
   onRemoveAsset: (localAssetId: string) => void;
   onRepairAsset: (localAssetId: string, endpoint: string) => void;
   onSetupRuntimeDependency: () => void;
+  onCancelRuntimeDependencyJob: (jobId: string) => void;
+  onRetryRuntimeDependencyJob: (jobId: string) => void;
+  onRepairRuntimeDependency: () => void;
   onRescanAsset: (localAssetId: string) => void;
 };
 
@@ -71,18 +76,32 @@ function assetSupportsBundleRescan(asset: LocalRuntimeAssetRecord): boolean {
 }
 
 function runtimeDependencyNeedsSetup(
-  dependency?: LocalRuntimeDependencyDescriptor,
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
 ): boolean {
   return (
     dependency?.dependencyId === 'nvidia-cuda-user-space-runtime'
-    && dependency.state === 'materializable_requires_confirmation'
+    && dependency.state === 'needs_confirmation'
     && dependency.confirmationRequired === true
   );
 }
 
+const ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES = new Set(['queued', 'downloading', 'verifying', 'installing']);
+const RETRYABLE_RUNTIME_DEPENDENCY_JOB_STATES = new Set(['failed', 'cancelled', 'unsupported']);
+
+function runtimeDependencyJobUpdatedAtMs(job: LocalRuntimeEnvironmentDependencyJob): number {
+  const updatedAtMs = Date.parse(String(job.updatedAt || job.createdAt || ''));
+  return Number.isFinite(updatedAtMs) ? updatedAtMs : 0;
+}
+
+function latestRuntimeDependencyJob(
+  jobs: LocalRuntimeEnvironmentDependencyJob[],
+): LocalRuntimeEnvironmentDependencyJob | undefined {
+  return jobs.slice().sort((left, right) => runtimeDependencyJobUpdatedAtMs(right) - runtimeDependencyJobUpdatedAtMs(left))[0];
+}
+
 function assetHasRuntimeDependencyWarning(
   asset: LocalRuntimeAssetRecord,
-  dependency?: LocalRuntimeDependencyDescriptor,
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
 ): boolean {
   const detail = String(asset.healthDetail || '').trim().toLowerCase();
   return (
@@ -91,7 +110,7 @@ function assetHasRuntimeDependencyWarning(
       (
         asset.status === 'unhealthy'
         && detail.includes('cuda_user_space_runtime')
-        && detail.includes('materializable_requires_confirmation')
+        && detail.includes('needs_confirmation')
       )
       || runtimeDependencyNeedsSetup(dependency)
     )
@@ -100,8 +119,13 @@ function assetHasRuntimeDependencyWarning(
 
 function runtimeDependencyDetail(
   asset: LocalRuntimeAssetRecord,
-  dependency?: LocalRuntimeDependencyDescriptor,
+  dependency?: LocalRuntimeEnvironmentPlanDependency,
 ): string {
+  if (runtimeDependencyNeedsSetup(dependency)) {
+    return i18n.t('runtimeConfig.localModelCenter.cudaModelWaitingForSetup', {
+      defaultValue: 'Waiting for local GPU support to be set up.',
+    });
+  }
   const healthDetail = String(asset.healthDetail || '').trim();
   if (healthDetail) {
     return healthDetail;
@@ -109,7 +133,7 @@ function runtimeDependencyDetail(
   if (!dependency) {
     return '';
   }
-  return String(dependency.message || dependency.reasonCode || dependency.state || '').trim();
+  return String(dependency.detail || dependency.reasonCode || dependency.state || '').trim();
 }
 
 export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSectionProps) {
@@ -122,9 +146,24 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
   const dependencyCount = props.filteredInstalledDependencyAssets.length;
   const totalCount = runnableCount + dependencyCount;
   const sharedRuntimeDependencyNeedsSetup = runtimeDependencyNeedsSetup(props.sharedRuntimeDependency);
-  const sharedRuntimeDependencyDetail = props.sharedRuntimeDependency
-    ? String(props.sharedRuntimeDependency.message || props.sharedRuntimeDependency.reasonCode || props.sharedRuntimeDependency.state || '').trim()
-    : '';
+  const currentRuntimeDependencyJob = latestRuntimeDependencyJob(props.sharedRuntimeDependencyJobs);
+  const currentRuntimeDependencyJobState = String(currentRuntimeDependencyJob?.state || '');
+  const canCancelRuntimeDependencyJob = Boolean(
+    currentRuntimeDependencyJob?.jobId
+    && ACTIVE_RUNTIME_DEPENDENCY_JOB_STATES.has(currentRuntimeDependencyJobState),
+  );
+  const canRetryRuntimeDependencyJob = Boolean(
+    currentRuntimeDependencyJob?.jobId
+    && currentRuntimeDependencyJob.retryable
+    && RETRYABLE_RUNTIME_DEPENDENCY_JOB_STATES.has(currentRuntimeDependencyJobState),
+  );
+  const canRepairRuntimeDependency = Boolean(
+    props.sharedRuntimeDependency
+    && (
+      props.sharedRuntimeDependency.state === 'repair_required'
+      || currentRuntimeDependencyJobState === 'repair_required'
+    ),
+  );
 
   return (
     <div className="overflow-visible rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
@@ -171,21 +210,61 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-[var(--nimi-status-warning)]">
                 {i18n.t('runtimeConfig.localModelCenter.cudaRuntimeSetupTitle', {
-                  defaultValue: 'Local GPU runtime setup required',
+                  defaultValue: 'Set up local GPU support',
                 })}
               </p>
               <p className="mt-1 text-xs leading-5 text-[color-mix(in_srgb,var(--nimi-status-warning)_82%,var(--nimi-text-secondary))]">
                 {i18n.t('runtimeConfig.localModelCenter.cudaDependencyConfirm', {
-                  defaultValue: 'Nimi will install the CUDA runtime dependency into the Nimi data dependency directory. System CUDA, user PATH, and machine PATH will not be changed.',
+                  defaultValue: 'This PC has an NVIDIA GPU. Nimi needs one local CUDA runtime package before local models can use GPU acceleration. It will be stored in Nimi data and will not change system CUDA, user PATH, or machine PATH.',
                 })}
               </p>
-              {sharedRuntimeDependencyDetail ? (
-                <p className="mt-1 line-clamp-2 text-[11px] text-[color-mix(in_srgb,var(--nimi-status-warning)_76%,var(--nimi-text-secondary))]">
-                  {sharedRuntimeDependencyDetail}
-                </p>
+              {currentRuntimeDependencyJob ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[color-mix(in_srgb,var(--nimi-status-warning)_82%,var(--nimi-text-secondary))]">
+                  <span className="font-medium">
+                    {i18n.t('runtimeConfig.localModelCenter.runtimeDependencyJobState', {
+                      defaultValue: 'Runtime job: {{state}}',
+                      state: currentRuntimeDependencyJob.state,
+                    })}
+                  </span>
+                  {currentRuntimeDependencyJob.failureDetail ? (
+                    <span className="max-w-xl truncate">
+                      {currentRuntimeDependencyJob.failureDetail}
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              {canCancelRuntimeDependencyJob && currentRuntimeDependencyJob ? (
+                <button
+                  type="button"
+                  onClick={() => props.onCancelRuntimeDependencyJob(currentRuntimeDependencyJob.jobId)}
+                  disabled={props.assetBusy}
+                  className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
+                >
+                  {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+                </button>
+              ) : null}
+              {canRetryRuntimeDependencyJob && currentRuntimeDependencyJob ? (
+                <button
+                  type="button"
+                  onClick={() => props.onRetryRuntimeDependencyJob(currentRuntimeDependencyJob.jobId)}
+                  disabled={props.assetBusy}
+                  className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
+                >
+                  {i18n.t('runtimeConfig.localModelCenter.retry', { defaultValue: 'Retry' })}
+                </button>
+              ) : null}
+              {canRepairRuntimeDependency ? (
+                <button
+                  type="button"
+                  onClick={() => props.onRepairRuntimeDependency()}
+                  disabled={props.assetBusy}
+                  className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] disabled:opacity-50"
+                >
+                  {i18n.t('runtimeConfig.localModelCenter.repair', { defaultValue: 'Repair' })}
+                </button>
+              ) : null}
               {confirmSharedRuntimeDependencySetup ? (
                 <>
                   <button

@@ -9,6 +9,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 const sdkRoot = path.join(repoRoot, 'sdk');
+const pnpmBin = 'pnpm';
+
+function quoteCmdArg(value) {
+  if (!/[ \t"&|<>^]/.test(value)) {
+    return value;
+  }
+  return `"${value.replace(/"/g, '\\"')}"`;
+}
+
+function runPnpm(args) {
+  if (process.platform === 'win32') {
+    return spawnSync('cmd.exe', ['/d', '/s', '/c', [pnpmBin, ...args].map(quoteCmdArg).join(' ')], {
+      cwd: repoRoot,
+      env: process.env,
+      stdio: 'inherit',
+    });
+  }
+  return spawnSync(pnpmBin, args, {
+    cwd: repoRoot,
+    env: process.env,
+    stdio: 'inherit',
+  });
+}
 
 const coverageChecks = [
   {
@@ -35,11 +58,7 @@ const coverageChecks = [
 ];
 
 function runNodeTestCoverage(check) {
-  const buildResult = spawnSync('pnpm', ['--filter', '@nimiplatform/sdk', 'build'], {
-    cwd: repoRoot,
-    env: process.env,
-    stdio: 'inherit',
-  });
+  const buildResult = runPnpm(['--filter', '@nimiplatform/sdk', 'build']);
   if (buildResult.status !== 0) {
     throw new Error(
       `[check-sdk-coverage] failed to build @nimiplatform/sdk before coverage with exit code ${String(buildResult.status ?? 'unknown')}`,
@@ -72,11 +91,7 @@ function runNodeTestCoverage(check) {
     `[check-sdk-coverage] ${check.label}: lines>=${check.thresholds.lines}, branches>=${check.thresholds.branches}, functions>=${check.thresholds.functions}\n`,
   );
 
-  const result = spawnSync('pnpm', args, {
-    cwd: repoRoot,
-    env: process.env,
-    stdio: 'inherit',
-  });
+  const result = runPnpm(args);
 
   if (result.status !== 0) {
     throw new Error(

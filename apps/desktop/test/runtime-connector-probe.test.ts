@@ -12,9 +12,7 @@ import {
   vendorToProvider,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service';
 import { createPlatformClient } from '@nimiplatform/sdk';
-import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
-import { GetAccessTokenResponse } from '../../../sdk/src/runtime/generated/runtime/v1/account.js';
-import { RegisterAppResponse } from '../../../sdk/src/runtime/generated/runtime/v1/auth.js';
+import { GetAccessTokenResponse, RegisterAppResponse, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 
 const CONNECTOR_SERVICE_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.ts'),
