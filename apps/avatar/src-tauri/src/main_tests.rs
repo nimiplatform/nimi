@@ -100,6 +100,37 @@ fn constrain_clamps_ratio_to_05_minimum() {
     assert_eq!(result.0, 1900);
 }
 
+#[test]
+fn cursor_client_position_converts_physical_screen_to_css_client_coords() {
+    let result = compute_avatar_cursor_client_position(
+        PhysicalPosition::new(2500.0, 840.0),
+        PhysicalPosition::new(2100, 240),
+        2.0,
+    );
+    assert_eq!(
+        result,
+        AvatarCursorClientPosition {
+            screen_x: 2500.0,
+            screen_y: 840.0,
+            client_x: 200.0,
+            client_y: 300.0,
+            scale_factor: 2.0,
+        },
+    );
+}
+
+#[test]
+fn cursor_client_position_falls_back_to_unit_scale_for_invalid_scale() {
+    let result = compute_avatar_cursor_client_position(
+        PhysicalPosition::new(250.0, 360.0),
+        PhysicalPosition::new(100, 60),
+        0.0,
+    );
+    assert_eq!(result.client_x, 150.0);
+    assert_eq!(result.client_y, 300.0);
+    assert_eq!(result.scale_factor, 1.0);
+}
+
 // Wave 4 chunk 4-D — explicit VRM nominal-bounds coverage.
 // Per `apps/avatar/spec/kernel/tables/window-bounds-policy.yaml`
 // `backends.vrm.nominal_bounds_default`, the VRM baseline window is

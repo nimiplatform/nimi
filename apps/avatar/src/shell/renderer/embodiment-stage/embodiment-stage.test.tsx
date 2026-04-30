@@ -8,6 +8,8 @@
 //    evidence record) introduced in step_4
 //  * pointermove → setIgnoreCursorEvents alpha-mask + bbox fallback
 //    routing (chunk 4-C)
+//  * global cursor poll recovery after click-through is enabled, preventing
+//    macOS ignoreCursorEvents deadlock
 //  * 60Hz cap on rapid pointermove (chunk 4-C acceptance_invariant 7)
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
@@ -24,6 +26,7 @@ import type {
 
 const recordAvatarEvidenceEventuallyMock = vi.fn();
 const setIgnoreCursorEventsMock = vi.fn();
+const getCursorClientPositionMock = vi.fn();
 const registerLipsyncSinkMock = vi.fn();
 
 vi.mock('../app-shell/avatar-evidence.js', () => ({
@@ -35,6 +38,7 @@ vi.mock('../app-shell/tauri-commands.js', () => ({
   startWindowDrag: vi.fn(),
   dragWindowBy: vi.fn(),
   setIgnoreCursorEvents: (...args: unknown[]) => setIgnoreCursorEventsMock(...args),
+  getCursorClientPosition: (...args: unknown[]) => getCursorClientPositionMock(...args),
   constrainWindowToVisibleArea: vi.fn(),
   setAlwaysOnTop: vi.fn(),
 }));
@@ -111,6 +115,14 @@ function createMockBackend(input?: {
 beforeEach(() => {
   recordAvatarEvidenceEventuallyMock.mockReset();
   setIgnoreCursorEventsMock.mockReset();
+  getCursorClientPositionMock.mockReset();
+  getCursorClientPositionMock.mockResolvedValue({
+    screenX: 200,
+    screenY: 200,
+    clientX: 200,
+    clientY: 200,
+    scaleFactor: 1,
+  });
   registerLipsyncSinkMock.mockReset();
   registerLipsyncSinkMock.mockReturnValue(() => undefined);
 });
@@ -191,7 +203,7 @@ describe('EmbodimentStage — BackendBranch surface mount (wave_1 step_4)', () =
     expect(registerLipsyncSinkMock).toHaveBeenCalledWith(consumer);
   });
 
-  it('does NOT fire setIgnoreCursorEvents on hit-region change alone (chunk 4-C: pointermove drives it)', () => {
+  it('does not fire click-through from hit-region change alone beyond mount reset', () => {
     const backend = createMockBackend({
       hitRegion: {
         body: { left: 0, top: 0, right: 1, bottom: 1 },
@@ -200,10 +212,11 @@ describe('EmbodimentStage — BackendBranch surface mount (wave_1 step_4)', () =
       },
     });
     render(<EmbodimentStage {...baseProps} backend={backend} />);
-    // The Tauri IPC fires only in response to pointermove events
-    // (acceptance_invariant 7); the bbox snapshot itself does not
-    // toggle click-through.
-    expect(setIgnoreCursorEventsMock).not.toHaveBeenCalled();
+    // Mount resets a possibly stale native ignoreCursorEvents=true state.
+    // The bbox snapshot itself must not trigger an additional click-through
+    // toggle; pointermove remains the normal driver.
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledTimes(1);
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
   });
 
   it('forwards onLifecycleEvidence as avatar.carrier.visual evidence with lifecycle phase', () => {
@@ -250,6 +263,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
       },
     });
     render(<EmbodimentStage {...baseProps} backend={backend} />);
+    setIgnoreCursorEventsMock.mockClear();
     const stage = screen.getByTestId('avatar-embodiment-stage');
     fireEvent.pointerMove(stage, { clientX: 200, clientY: 200 });
     expect(isOpaqueAtClientPoint).toHaveBeenCalled();
@@ -266,6 +280,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
       },
     });
     render(<EmbodimentStage {...baseProps} backend={backend} />);
+    setIgnoreCursorEventsMock.mockClear();
     const stage = screen.getByTestId('avatar-embodiment-stage');
     fireEvent.pointerMove(stage, { clientX: 50, clientY: 50 });
     // After leading-edge fire the IPC has been called with `true`
@@ -302,9 +317,42 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
       height: 600,
       toJSON: () => ({}),
     })) as typeof stageEl.getBoundingClientRect;
+    setIgnoreCursorEventsMock.mockClear();
     fireEvent.pointerMove(stage, { clientX: 200, clientY: 300 });
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
     expect(container).toBeTruthy();
+  });
+
+  it('global cursor poll restores setIgnore(false) after transparent click-through re-enters opaque pixels', async () => {
+    const isOpaqueAtClientPoint = vi.fn((x: number, _y: number) => x > 100);
+    getCursorClientPositionMock.mockResolvedValue({
+      screenX: 200,
+      screenY: 200,
+      clientX: 200,
+      clientY: 200,
+      scaleFactor: 1,
+    });
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    setIgnoreCursorEventsMock.mockClear();
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+
+    fireEvent.pointerMove(stage, { clientX: 50, clientY: 50 });
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(true);
+
+    await act(async () => {
+      vi.advanceTimersByTime(50);
+      await Promise.resolve();
+    });
+
+    expect(getCursorClientPositionMock).toHaveBeenCalled();
+    expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(false);
   });
 
   it('60Hz cap: 1000 rapid pointermove events → ≤ 2 IPC calls', () => {
@@ -318,6 +366,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
       },
     });
     render(<EmbodimentStage {...baseProps} backend={backend} />);
+    setIgnoreCursorEventsMock.mockClear();
     const stage = screen.getByTestId('avatar-embodiment-stage');
     // Alternate opaque / transparent so dedup doesn't suppress all calls.
     for (let i = 0; i < 1000; i += 1) {

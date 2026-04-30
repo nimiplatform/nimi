@@ -14,6 +14,7 @@ import { AvatarInteractionController } from '../interaction/avatar-interaction-c
 import {
   constrainWindowToVisibleArea,
   dragWindowBy,
+  getCursorClientPosition,
   setIgnoreCursorEvents,
   startWindowDrag,
 } from '../app-shell/tauri-commands.js';
@@ -49,6 +50,8 @@ export type EmbodimentStageProps = {
   interactionModality: 'keyboard' | 'pointer';
   onFocusVisibleChange?: (value: boolean) => void;
 };
+
+const CLICK_THROUGH_RECOVERY_POLL_INTERVAL_MS = 50;
 
 export function EmbodimentStage(props: EmbodimentStageProps) {
   const {
@@ -89,6 +92,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     () => createThrottledCursorEvents(),
     [],
   );
+  const clickThroughRecoveryPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const handleAudioConsumerReady = useCallback(
     (consumer: BackendAudioConsumer) => {
@@ -161,14 +165,6 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     [backend],
   );
 
-  useEffect(
-    () => () => {
-      cursorEventsThrottleRef.dispose();
-      hitRegionEmitThrottleRef.dispose();
-    },
-    [cursorEventsThrottleRef, hitRegionEmitThrottleRef],
-  );
-
   const bodyRef = useRef<HTMLDivElement | null>(null);
   // Wave 4 manual drag fallback state. macOS NSWindow with transparent +
   // always_on_top + decorations(false) doesn't honor `start_dragging()`,
@@ -197,6 +193,26 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     drag.pendingDy = 0;
     void dragWindowBy(dx, dy);
   };
+
+  const stopClickThroughRecoveryPoll = useCallback((): void => {
+    if (clickThroughRecoveryPollRef.current === null) return;
+    clearInterval(clickThroughRecoveryPollRef.current);
+    clickThroughRecoveryPollRef.current = null;
+  }, []);
+
+  useEffect(
+    () => () => {
+      stopClickThroughRecoveryPoll();
+      void setIgnoreCursorEvents(false);
+      cursorEventsThrottleRef.dispose();
+      hitRegionEmitThrottleRef.dispose();
+    },
+    [
+      cursorEventsThrottleRef,
+      hitRegionEmitThrottleRef,
+      stopClickThroughRecoveryPoll,
+    ],
+  );
 
   // Wave 4 chunk 4-C: pointer hit-test driver. Per app-shell-contract.md
   // §2.3.1 the alpha-mask probe takes precedence over the bbox; the
@@ -233,12 +249,47 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     [],
   );
 
+  const startClickThroughRecoveryPoll = useCallback((): void => {
+    if (clickThroughRecoveryPollRef.current !== null) return;
+    clickThroughRecoveryPollRef.current = setInterval(() => {
+      void getCursorClientPosition()
+        .then((position) => {
+          if (computeIgnoreForPoint(position.clientX, position.clientY)) {
+            return;
+          }
+          stopClickThroughRecoveryPoll();
+          cursorEventsThrottleRef.setIgnore(false);
+        })
+        .catch(() => undefined);
+    }, CLICK_THROUGH_RECOVERY_POLL_INTERVAL_MS);
+  }, [
+    computeIgnoreForPoint,
+    cursorEventsThrottleRef,
+    stopClickThroughRecoveryPoll,
+  ]);
+
+  const setClickThrough = useCallback(
+    (ignore: boolean): void => {
+      if (ignore) {
+        startClickThroughRecoveryPoll();
+      } else {
+        stopClickThroughRecoveryPoll();
+      }
+      cursorEventsThrottleRef.setIgnore(ignore);
+    },
+    [
+      cursorEventsThrottleRef,
+      startClickThroughRecoveryPoll,
+      stopClickThroughRecoveryPoll,
+    ],
+  );
+
   const updateClickThroughForPointer = useCallback(
     (clientX: number, clientY: number): void => {
       const ignore = computeIgnoreForPoint(clientX, clientY);
-      cursorEventsThrottleRef.setIgnore(ignore);
+      setClickThrough(ignore);
     },
-    [computeIgnoreForPoint, cursorEventsThrottleRef],
+    [computeIgnoreForPoint, setClickThrough],
   );
 
   const controller = useMemo(
@@ -267,7 +318,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         setPointerContact: (contact) => {
           setBodyPointerContact?.(contact);
         },
-        setClickThrough: (ignore) => setIgnoreCursorEvents(ignore),
+        setClickThrough,
         startWindowDrag,
         constrainWindowToVisibleArea,
         nowMs: () => performance.now(),
@@ -278,6 +329,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
       emit,
       setBodyHovered,
       setBodyPointerContact,
+      setClickThrough,
       windowSize.width,
       windowSize.height,
     ],
@@ -290,6 +342,16 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     [controller],
   );
 
+  // Reset NSWindow.ignoreCursorEvents on mount. Prevents a stuck
+  // click-through state from a prior renderer session (or from an old
+  // build that toggled ignoreCursorEvents=true on transparent regions
+  // and never recovered) from leaving the avatar permanently
+  // unclickable.
+  useEffect(() => {
+    stopClickThroughRecoveryPoll();
+    void setIgnoreCursorEvents(false);
+  }, [stopClickThroughRecoveryPoll]);
+
   return (
     <section
       className="avatar-embodiment-stage"
@@ -298,7 +360,10 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         if (isInteractiveTarget(event.target)) return;
         // Wave 4 chunk 4-C: alpha-mask-aware click-through via the 60Hz
         // throttle. Same call from onPointerMove; placing it on enter
-        // covers the case where the pointer enters at an opaque region.
+        // covers the case where the pointer enters at an opaque region. If
+        // this flips to click-through, a global cursor poll keeps watching
+        // for re-entry onto opaque pixels so macOS does not strand the
+        // window in ignoreCursorEvents=true.
         updateClickThroughForPointer(event.clientX, event.clientY);
         controller.pointerMove(event);
       }}
@@ -326,7 +391,9 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         // Wave 4 chunk 4-C: alpha-mask-aware click-through via the 60Hz
         // throttle. The throttle dedupes same-state calls (so rapid
         // pointermove inside an opaque region does not saturate the IPC
-        // channel) and fires Tauri at most once per ~16.67ms.
+        // channel) and fires Tauri at most once per ~16.67ms. When the
+        // window becomes click-through, the global cursor poll is the
+        // recovery path because the webview no longer receives pointermove.
         updateClickThroughForPointer(event.clientX, event.clientY);
         if (isInteractiveTarget(event.target)) return;
         controller.pointerMove(event);

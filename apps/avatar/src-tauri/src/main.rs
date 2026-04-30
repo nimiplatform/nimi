@@ -46,6 +46,16 @@ struct ReadyPayload {
     width: u32,
     height: u32,
 }
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AvatarCursorClientPosition {
+    screen_x: f64,
+    screen_y: f64,
+    client_x: f64,
+    client_y: f64,
+    scale_factor: f64,
+}
 const AVATAR_WINDOW_LABEL_PREFIX: &str = "avatar-instance";
 const AVATAR_LAUNCH_CONTEXT_UPDATED_EVENT: &str = "avatar://launch-context-updated";
 #[derive(Serialize)]
@@ -401,6 +411,39 @@ async fn nimi_avatar_set_ignore_cursor_events(
     window
         .set_ignore_cursor_events(ignore)
         .map_err(|e| e.to_string())
+}
+
+fn compute_avatar_cursor_client_position(
+    cursor_position: PhysicalPosition<f64>,
+    content_position: PhysicalPosition<i32>,
+    scale_factor: f64,
+) -> AvatarCursorClientPosition {
+    let scale = if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
+    };
+    AvatarCursorClientPosition {
+        screen_x: cursor_position.x,
+        screen_y: cursor_position.y,
+        client_x: (cursor_position.x - f64::from(content_position.x)) / scale,
+        client_y: (cursor_position.y - f64::from(content_position.y)) / scale,
+        scale_factor: scale,
+    }
+}
+
+#[tauri::command]
+async fn nimi_avatar_get_cursor_client_position(
+    window: WebviewWindow,
+) -> Result<AvatarCursorClientPosition, String> {
+    let cursor_position = window.cursor_position().map_err(|e| e.to_string())?;
+    let content_position = window.inner_position().map_err(|e| e.to_string())?;
+    let scale_factor = window.scale_factor().map_err(|e| e.to_string())?;
+    Ok(compute_avatar_cursor_client_position(
+        cursor_position,
+        content_position,
+        scale_factor,
+    ))
 }
 
 // Wave 4 — pure constraint math extracted so cargo tests can cover it
@@ -824,6 +867,7 @@ fn main() {
             nimi_avatar_drag_window_by,
             nimi_avatar_set_window_size,
             nimi_avatar_set_ignore_cursor_events,
+            nimi_avatar_get_cursor_client_position,
             nimi_avatar_constrain_window_to_visible_area,
             nimi_avatar_set_always_on_top,
             nimi_avatar_get_launch_context,
