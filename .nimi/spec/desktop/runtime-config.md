@@ -99,6 +99,44 @@ memory execution truth owner。
 - 现有 private loopback convenience path（例如 canonical-bind 之类的
   endpoint）不得被 Runtime Config 长成正式产品 contract
 
+### Local Compute Setup In Runtime Config
+
+Runtime Config may host the Local Compute Setup product surface only as a
+Runtime projection and confirmation surface.
+
+Runtime Config must keep the base client and Cloud API configuration path
+usable without local compute setup. Opening Runtime Config, reading provider
+configuration, signing in, editing cloud connectors, or viewing daemon status
+must not install or bootstrap local engines, CUDA, uv, Python, Torch, model
+assets, or package sets.
+
+When Runtime projects a local environment plan, Runtime Config may display:
+
+- local compute pack status
+- dependency families grouped by purpose
+- expected download size when known
+- Nimi data/runtime storage category
+- affected local capabilities
+- Runtime job progress, cancel, retry, and repair actions
+
+Runtime Config must not use renderer-local form state, private loopback HTTP,
+Tauri host helpers, filesystem scans, PATH checks, or script output as local
+dependency truth. All local compute setup state must come from Runtime typed
+projection.
+
+Runtime Config job actions must use dependency-first Runtime APIs:
+
+- confirmation starts `StartLocalEnvironmentDependencyJob` with the dependency
+  environment resolved from the current Runtime plan
+- cancel targets `CancelLocalEnvironmentDependencyJob` by Runtime job id
+- retry targets `RetryLocalEnvironmentDependencyJob` by terminal retryable
+  Runtime job id
+- repair targets `RepairLocalEnvironmentDependency` by dependency environment
+
+Desktop must not store a job id as long-lived dependency truth. After each job
+action, it must refresh Runtime plan, job list, selected source, and activation
+gate projection.
+
 ### Security (D-SEC-001)
 
 本地端点回环限制：仅允许 `localhost`、`127.0.0.1`、`[::1]`。

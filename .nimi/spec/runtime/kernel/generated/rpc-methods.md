@@ -98,6 +98,14 @@ Source: `K-RPC-004`
 | `StartEngine` | `unary` |
 | `StopEngine` | `unary` |
 | `GetEngineStatus` | `unary` |
+| `ResolveLocalEnvironmentPlan` | `unary` |
+| `ListLocalEnvironmentSelectedSources` | `unary` |
+| `ListLocalEnvironmentDependencyJobs` | `unary` |
+| `ResolveLocalEnvironmentActivationGate` | `unary` |
+| `StartLocalEnvironmentDependencyJob` | `unary` |
+| `CancelLocalEnvironmentDependencyJob` | `unary` |
+| `RetryLocalEnvironmentDependencyJob` | `unary` |
+| `RepairLocalEnvironmentDependency` | `unary` |
 
 ## RuntimeAuthService
 

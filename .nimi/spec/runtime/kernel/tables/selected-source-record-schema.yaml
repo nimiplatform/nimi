@@ -1,0 +1,58 @@
+version: 1
+
+# Canonical selected source record schema for local environment dependencies.
+
+schema:
+  owner: runtime_local_environment_plan
+  cardinality: one_active_record_per_dependency_environment
+  environment_key_fields:
+    - dependency_family
+    - dependency_id
+    - host_profile_id
+    - platform_tuple
+    - runtime_data_root
+    - consumer_scope
+  fields:
+    - record_id
+    - dependency_family
+    - dependency_id
+    - environment_key
+    - source_kind
+    - canonical_root
+    - version
+    - compatibility_evidence
+    - verified_artifacts
+    - hashes
+    - selected_consumers
+    - activation_env_delta
+    - selected_at
+    - last_verified_at
+    - repair_state
+    - audit_reason_code
+  source_kinds:
+    - system
+    - managed
+    - bundled
+    - imported
+    - unavailable
+  repair_states:
+    - none
+    - repair_required
+    - repair_running
+    - repair_failed
+
+invalidation_reasons:
+  - verification_failed
+  - explicit_repair_started
+  - dependency_removed
+  - host_profile_incompatible
+  - required_artifact_missing
+  - version_or_abi_incompatible
+  - package_lock_changed
+  - runtime_data_root_changed
+
+rules:
+  - consumers must reference the Runtime-selected source record and must not independently re-resolve sources
+  - selected source records are runtime-private truth; SDK and Desktop may receive bounded projection only
+  - imported model assets may produce asset selected source records but must not become DLL, Python, uv, or package roots
+  - record invalidation must fail closed for affected consumers

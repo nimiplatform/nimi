@@ -1,0 +1,279 @@
+version: 1
+
+# Canonical Runtime local environment dependency graph authority.
+# This table supersedes dependency truth scattered across engine installers,
+# Desktop projection, model import rows, and developer scripts.
+
+dependency_families:
+  - family_id: accelerator.cuda.runtime
+    owner: runtime_local_environment_plan
+    dependency_kind: shared_accelerator_runtime
+    environment_key_fields:
+      - dependency_id
+      - host_profile_id
+      - platform_tuple
+      - runtime_data_root
+    source_policy: system-first-managed-fallback
+    source_candidates:
+      - source_kind: system
+        priority: 1
+        admission: positive_compatibility_proof_required
+      - source_kind: managed
+        priority: 2
+        admission: explicit_confirmation_before_first_network_materialization
+      - source_kind: bundled
+        priority: 3
+        admission: not_admitted_for_default_consumer_path
+      - source_kind: unavailable
+        priority: 4
+        admission: fail_closed
+    managed_root: nimi_data_runtime_dependencies
+    activation_env_delta: path_prepend_process_only
+    persistent_mutation:
+      user_path: forbidden
+      machine_path: forbidden
+      shell_profile: forbidden
+      system_cuda: forbidden
+    required_proof:
+      - canonical_root
+      - required_artifact_set
+      - version_metadata_or_binary_version
+      - driver_compatibility
+      - selected_source_record
+
+  - family_id: native-engine-package.llama
+    owner: runtime_local_environment_plan
+    dependency_kind: native_engine_package
+    environment_key_fields:
+      - engine_id
+      - package_variant
+      - platform_tuple
+      - runtime_data_root
+    source_policy: declared-managed-package-only
+    source_candidates:
+      - source_kind: managed
+        priority: 1
+        admission: explicit_confirmation_before_first_network_materialization
+      - source_kind: unavailable
+        priority: 2
+        admission: fail_closed
+    managed_root: nimi_data_runtime_engines
+    activation_env_delta: process_env_only
+    required_proof:
+      - declared_package_source
+      - archive_hash
+      - canonical_root
+      - executable_artifact
+      - selected_source_record
+
+  - family_id: native-engine-package.stablediffusion-ggml
+    owner: runtime_local_environment_plan
+    dependency_kind: native_engine_package
+    environment_key_fields:
+      - engine_id
+      - backend_family
+      - package_variant
+      - platform_tuple
+      - runtime_data_root
+    source_policy: declared-managed-package-only
+    source_candidates:
+      - source_kind: managed
+        priority: 1
+        admission: explicit_confirmation_before_first_network_materialization
+      - source_kind: unavailable
+        priority: 2
+        admission: fail_closed
+    managed_root: nimi_data_runtime_engines
+    activation_env_delta: process_env_only
+    required_proof:
+      - declared_package_source
+      - archive_hash
+      - canonical_root
+      - executable_artifact
+      - selected_source_record
+
+  - family_id: python.tool.uv
+    owner: runtime_local_environment_plan
+    dependency_kind: python_tool
+    environment_key_fields:
+      - tool_id
+      - platform_tuple
+      - runtime_data_root
+    source_policy: system-first-managed-fallback
+    source_candidates:
+      - source_kind: system
+        priority: 1
+        admission: positive_compatibility_proof_required
+      - source_kind: managed
+        priority: 2
+        admission: explicit_confirmation_before_first_network_materialization
+      - source_kind: unavailable
+        priority: 3
+        admission: fail_closed
+    managed_root: nimi_data_runtime_dependencies
+    activation_env_delta: process_env_only
+    required_proof:
+      - canonical_executable
+      - version_metadata
+      - selected_source_record
+
+  - family_id: python.runtime
+    owner: runtime_local_environment_plan
+    dependency_kind: python_interpreter
+    environment_key_fields:
+      - python_version
+      - platform_tuple
+      - runtime_data_root
+    source_policy: uv-managed-python
+    source_candidates:
+      - source_kind: managed
+        priority: 1
+        admission: explicit_confirmation_before_first_network_materialization
+      - source_kind: unavailable
+        priority: 2
+        admission: fail_closed
+    managed_root: nimi_data_runtime_dependencies
+    activation_env_delta: process_env_only
+    required_proof:
+      - uv_selected_python_record
+      - canonical_interpreter
+      - python_version
+      - selected_source_record
+
+  - family_id: python.venv
+    owner: runtime_local_environment_plan
+    dependency_kind: python_virtual_environment
+    environment_key_fields:
+      - engine_id
+      - backend_family
+      - python_version
+      - package_lock_hash
+      - platform_tuple
+      - runtime_data_root
+    source_policy: runtime-built-from-managed-python
+    source_candidates:
+      - source_kind: managed
+        priority: 1
+        admission: explicit_confirmation_for_missing_materialization
+      - source_kind: unavailable
+        priority: 2
+        admission: fail_closed
+    managed_root: nimi_data_runtime_dependencies
+    activation_env_delta: process_env_only
+    required_proof:
+      - canonical_venv_root
+      - interpreter_binding
+      - package_lock_hash
+      - selected_source_record
+
+  - family_id: python.package-set
+    owner: runtime_local_environment_plan
+    dependency_kind: python_package_set
+    environment_key_fields:
+      - engine_id
+      - backend_family
+      - package_lock_hash
+      - platform_tuple
+      - runtime_data_root
+    source_policy: declared-lock-or-package-set-only
+    source_candidates:
+      - source_kind: managed
+        priority: 1
+        admission: explicit_confirmation_before_first_network_materialization
+      - source_kind: unavailable
+        priority: 2
+        admission: fail_closed
+    managed_root: nimi_data_runtime_dependencies
+    activation_env_delta: process_env_only
+    required_proof:
+      - package_lock_hash
+      - installed_distribution_set
+      - import_probe
+      - selected_source_record
+
+  - family_id: python.torch-wheel
+    owner: runtime_local_environment_plan
+    dependency_kind: python_native_wheel
+    environment_key_fields:
+      - torch_version
+      - accelerator_plane
+      - cuda_abi
+      - platform_tuple
+      - runtime_data_root
+    source_policy: declared-wheel-index-or-artifact-only
+    source_candidates:
+      - source_kind: managed
+        priority: 1
+        admission: explicit_confirmation_before_first_network_materialization
+      - source_kind: unavailable
+        priority: 2
+        admission: fail_closed
+    managed_root: nimi_data_runtime_dependencies
+    activation_env_delta: process_env_only
+    required_proof:
+      - wheel_source
+      - wheel_hash_or_lock
+      - torch_version
+      - accelerator_abi_compatibility
+      - import_probe
+      - selected_source_record
+
+  - family_id: model.asset
+    owner: runtime_local_environment_plan
+    dependency_kind: model_payload
+    environment_key_fields:
+      - asset_id
+      - model_family
+      - runtime_data_root
+    source_policy: verified-asset-catalog-or-explicit-import
+    source_candidates:
+      - source_kind: managed
+        priority: 1
+        admission: explicit_confirmation_before_first_network_materialization
+      - source_kind: system
+        priority: 2
+        admission: explicit_user_import_with_integrity_record
+      - source_kind: unavailable
+        priority: 3
+        admission: fail_closed
+    managed_root: nimi_data_local_models
+    activation_env_delta: none
+    required_proof:
+      - asset_record
+      - integrity_hash_or_declared_local_import
+      - capability_mapping
+      - selected_source_record
+
+  - family_id: model.companion-asset
+    owner: runtime_local_environment_plan
+    dependency_kind: companion_payload
+    environment_key_fields:
+      - asset_id
+      - companion_kind
+      - runtime_data_root
+    source_policy: verified-asset-catalog-or-explicit-import
+    source_candidates:
+      - source_kind: managed
+        priority: 1
+        admission: explicit_confirmation_before_first_network_materialization
+      - source_kind: system
+        priority: 2
+        admission: explicit_user_import_with_integrity_record
+      - source_kind: unavailable
+        priority: 3
+        admission: fail_closed
+    managed_root: nimi_data_local_models
+    activation_env_delta: none
+    required_proof:
+      - asset_record
+      - integrity_hash_or_declared_local_import
+      - parent_asset_binding
+      - selected_source_record
+
+graph_rules:
+  - dependency families are resolved by Runtime local environment plan before activation
+  - uv, Python, venv, package sets, and Torch wheels are managed dependency families, not user prerequisites
+  - engine package selection consumes dependency graph truth and must not select private prerequisites
+  - model import may request a plan but must not become dependency source truth
+  - no dependency family may mutate user PATH, machine PATH, shell profiles, or system CUDA
+  - missing, incompatible, corrupt, cancelled, or unconfirmed dependencies fail closed

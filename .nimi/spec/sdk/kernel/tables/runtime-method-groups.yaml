@@ -92,6 +92,14 @@ groups:
       - StartEngine
       - StopEngine
       - GetEngineStatus
+      - ResolveLocalEnvironmentPlan
+      - ListLocalEnvironmentSelectedSources
+      - ListLocalEnvironmentDependencyJobs
+      - ResolveLocalEnvironmentActivationGate
+      - StartLocalEnvironmentDependencyJob
+      - CancelLocalEnvironmentDependencyJob
+      - RetryLocalEnvironmentDependencyJob
+      - RepairLocalEnvironmentDependency
     source_rule: S-SURFACE-002
   - group: auth_service_projection
     service: RuntimeAuthService

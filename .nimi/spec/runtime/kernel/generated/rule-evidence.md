@@ -550,6 +550,11 @@
 | `K-RPC-004a` | `deferred` | — |
 | `K-RPC-004b` | `deferred` | — |
 | `K-RPC-004c` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-RPC-024` | `covered` | `runtime_kernel_consistency` |
+| `K-LENG-024` | `covered` | `runtime_kernel_consistency` |
+| `K-LENG-025` | `covered` | `runtime_kernel_consistency` |
+| `K-LENG-026` | `covered` | `runtime_kernel_consistency` |
+| `K-LENG-027` | `covered` | `runtime_kernel_consistency` |
 | `K-SCHED-001` | `deferred` | — |
 | `K-SCHED-002` | `deferred` | — |
 | `K-SCHED-003` | `deferred` | — |

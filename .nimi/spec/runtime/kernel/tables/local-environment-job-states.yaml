@@ -1,0 +1,103 @@
+version: 1
+
+# Canonical local environment dependency job lifecycle authority.
+
+states:
+  - state: unknown
+    terminal: false
+    user_visible: false
+    meaning: Runtime has not resolved the dependency environment.
+
+  - state: needs_confirmation
+    terminal: false
+    user_visible: true
+    meaning: Runtime has a plan but must not perform heavy materialization until confirmation.
+
+  - state: queued
+    terminal: false
+    user_visible: true
+    meaning: User confirmation is accepted and the job is waiting to run.
+
+  - state: downloading
+    terminal: false
+    user_visible: true
+    meaning: Runtime is fetching declared dependency artifacts.
+
+  - state: verifying
+    terminal: false
+    user_visible: true
+    meaning: Runtime is checking hash, version, canonical path, ABI, and compatibility proof.
+
+  - state: installing
+    terminal: false
+    user_visible: true
+    meaning: Runtime is staging, extracting, linking, or building the dependency environment.
+
+  - state: ready_system
+    terminal: true
+    user_visible: true
+    meaning: Runtime verified and selected a compatible system source.
+
+  - state: ready_managed
+    terminal: true
+    user_visible: true
+    meaning: Runtime verified and selected a compatible managed source.
+
+  - state: repair_required
+    terminal: false
+    user_visible: true
+    meaning: Runtime found missing, corrupt, or invalidated material and requires repair before activation.
+
+  - state: failed
+    terminal: true
+    user_visible: true
+    meaning: Runtime failed the job or compatibility proof and must not project ready.
+
+  - state: unsupported
+    terminal: true
+    user_visible: true
+    meaning: Runtime proved the host or requested consumer is not supported by admitted sources.
+
+  - state: cancelled
+    terminal: true
+    user_visible: true
+    meaning: User or Runtime cancelled before promotion; activation remains blocked.
+
+job_rules:
+  - one active job may exist per dependency environment
+  - duplicate consumer requests must attach to the same active job
+  - cancellation must stop before promotion or leave the previous selected source intact
+  - repair locks must block activation until verification restores ready_system or ready_managed
+  - Desktop may display, confirm, cancel, retry, or repair Runtime jobs only through Runtime APIs
+  - Runtime core readiness must not wait on local environment jobs
+
+control_surface:
+  owner: RuntimeLocalService
+  target_identity: dependency_environment
+  commands:
+    - name: StartLocalEnvironmentDependencyJob
+      target: environment_key + dependency_family + dependency_id
+      confirmation_required: true
+      idempotency: returns active non-terminal job for the same dependency environment
+      ready_rule: may promote ready only through verified selected source record
+    - name: CancelLocalEnvironmentDependencyJob
+      target: job_id
+      confirmation_required: false
+      idempotency: terminal jobs remain immutable
+      ready_rule: cancellation never projects ready
+    - name: RetryLocalEnvironmentDependencyJob
+      target: terminal retryable job_id
+      confirmation_required: true
+      idempotency: creates or returns active retry job for the same dependency environment
+      ready_rule: retry must re-verify before ready_system or ready_managed
+    - name: RepairLocalEnvironmentDependency
+      target: environment_key + dependency_family + dependency_id
+      confirmation_required: true
+      idempotency: creates or returns active repair job for the same dependency environment
+      ready_rule: repair locks activation until selected source verification succeeds
+  forbidden:
+    - desktop_source_selection
+    - engine_local_installer
+    - path_mutation
+    - script_only_product_path
+    - pseudo_ready_from_job_existence

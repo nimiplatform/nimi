@@ -192,9 +192,18 @@ confirmation/job/status surface with these semantics:
 - expose selected source record references in runtime-private audit/detail so
   consumers cannot independently re-resolve CUDA source
 
-This surface may be implemented by new RPC methods or by extending existing
-local transfer/install job projection, but there must be exactly one runtime
-truth owner for dependency job state.
+The dependency-first job-control RPC surface is:
+
+- `StartLocalEnvironmentDependencyJob`
+- `CancelLocalEnvironmentDependencyJob`
+- `RetryLocalEnvironmentDependencyJob`
+- `RepairLocalEnvironmentDependency`
+
+These methods target Runtime dependency environments and Runtime job ids. They
+must not target Desktop model rows, engine-local installers, shell scripts, or
+local transfer ids as the source of dependency truth. Local transfer projection
+may remain diagnostic/progress detail, but selected source records and local
+environment dependency jobs are the authority for dependency readiness.
 
 ### K-RPC-004-state Runtime Local State And Config Reconciliation
 
@@ -705,6 +714,44 @@ fail-close 时不得：
 - 对 `runtime_authoritative_delete`，runtime 删除 `VoiceAsset` 即构成公共删除成功
 - 对 `best_effort_provider_delete`，runtime 允许先删除本地 `VoiceAsset`，provider cleanup 作为 best-effort follow-up
 - 对未 admitted 的更强语义，必须 fail-close，不得借由模糊 ack 冒充成功
+
+## K-RPC-024 RuntimeLocalService Local Environment Plan Surface
+
+`RuntimeLocalService` owns app-facing projection and command surfaces for local
+environment plans. These surfaces are downstream of `K-LENG-024` through
+`K-LENG-027`; they must not create a second dependency truth owner.
+
+Required logical operations:
+
+1. Read host capability profile.
+2. Resolve local environment plan for a requested local compute pack,
+   capability, model install, model import, or repair request.
+3. Read local environment dependency graph and selected source record
+   projection.
+4. Confirm dependency materialization when network or heavy setup is required.
+5. Start, observe, cancel, retry, and repair Runtime-owned dependency jobs.
+6. Project activation gate status for native engines and Python pipelines.
+
+The concrete transport may use new RPC methods or extend existing
+`RuntimeLocalService` local plan/job projection, but the public semantics must
+preserve these constraints:
+
+- cloud-only reads and Cloud API setup must not resolve or start local compute
+  dependency materialization
+- plan resolution is allowed to inspect Runtime-owned host capability evidence
+  but must not trigger download or install
+- first network materialization requires explicit confirmation or a surrounding
+  model/capability install confirmation that clearly names the covered
+  dependency families
+- selected source records are Runtime truth; SDK and Desktop receive bounded
+  projection only
+- dependency job projection must include enough state to distinguish
+  `needs_confirmation`, `queued`, `downloading`, `verifying`, `installing`,
+  `ready_system`, `ready_managed`, `repair_required`, `failed`, `unsupported`,
+  and `cancelled`
+- no Desktop, SDK, mod, engine, or app-level REST bypass may execute installers,
+  probes, source selection, PATH mutation, or pseudo-ready projection on behalf
+  of this surface
 
 ## K-RPC-023 Workflow Family Validation Boundary
 

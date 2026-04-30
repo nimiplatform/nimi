@@ -27,6 +27,7 @@
 | `error-projection.md` | `S-ERROR-*` | 错误投影、重试语义、合成码治理 |
 | `boundary-contract.md` | `S-BOUNDARY-*` | 跨包导入边界与禁止路径 |
 | `runtime-contract.md` | `S-RUNTIME-*` | runtime 子路径连接语义、事件与重试基线、agent presentation projection boundary、以及 World Evolution Engine app-facing logical facade boundary 与 selector-read publication profile |
+| `local-environment-projection-contract.md` | `S-RUNTIME-*` | SDK typed projection boundary for Runtime-owned local environment plans, dependency jobs, selected source records, and local compute activation gates |
 | `runtime-route-contract.md` | `S-RUNTIME-*` | app-facing `runtime.route.*` typed surface 与 route metadata projection |
 | `world-evolution-engine-projection-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 typed projection-only 边界 |
 | `world-evolution-engine-consumer-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 app/mod consumer-facing API landing、selector-read stable method matrix、shared typed building blocks 与 no-leak hardcut |

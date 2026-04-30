@@ -240,9 +240,18 @@ confirmation/job/status surface with these semantics:
 - expose selected source record references in runtime-private audit/detail so
   consumers cannot independently re-resolve CUDA source
 
-This surface may be implemented by new RPC methods or by extending existing
-local transfer/install job projection, but there must be exactly one runtime
-truth owner for dependency job state.
+The dependency-first job-control RPC surface is:
+
+- `StartLocalEnvironmentDependencyJob`
+- `CancelLocalEnvironmentDependencyJob`
+- `RetryLocalEnvironmentDependencyJob`
+- `RepairLocalEnvironmentDependency`
+
+These methods target Runtime dependency environments and Runtime job ids. They
+must not target Desktop model rows, engine-local installers, shell scripts, or
+local transfer ids as the source of dependency truth. Local transfer projection
+may remain diagnostic/progress detail, but selected source records and local
+environment dependency jobs are the authority for dependency readiness.
 
 ### K-RPC-004-state Runtime Local State And Config Reconciliation
 
@@ -4298,6 +4307,14 @@ Fixed rules:
 | StartEngine | unary |
 | StopEngine | unary |
 | GetEngineStatus | unary |
+| ResolveLocalEnvironmentPlan | unary |
+| ListLocalEnvironmentSelectedSources | unary |
+| ListLocalEnvironmentDependencyJobs | unary |
+| ResolveLocalEnvironmentActivationGate | unary |
+| StartLocalEnvironmentDependencyJob | unary |
+| CancelLocalEnvironmentDependencyJob | unary |
+| RetryLocalEnvironmentDependencyJob | unary |
+| RepairLocalEnvironmentDependency | unary |
 
 **RuntimeAuthService**
 
@@ -5236,6 +5253,14 @@ Fixed rules:
 - StartEngine
 - StopEngine
 - GetEngineStatus
+- ResolveLocalEnvironmentPlan
+- ListLocalEnvironmentSelectedSources
+- ListLocalEnvironmentDependencyJobs
+- ResolveLocalEnvironmentActivationGate
+- StartLocalEnvironmentDependencyJob
+- CancelLocalEnvironmentDependencyJob
+- RetryLocalEnvironmentDependencyJob
+- RepairLocalEnvironmentDependency
 
 **auth_service_projection** → RuntimeAuthService
 

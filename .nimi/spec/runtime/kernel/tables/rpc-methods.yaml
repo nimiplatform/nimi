@@ -150,6 +150,22 @@ services:
         type: unary
       - name: GetEngineStatus
         type: unary
+      - name: ResolveLocalEnvironmentPlan
+        type: unary
+      - name: ListLocalEnvironmentSelectedSources
+        type: unary
+      - name: ListLocalEnvironmentDependencyJobs
+        type: unary
+      - name: ResolveLocalEnvironmentActivationGate
+        type: unary
+      - name: StartLocalEnvironmentDependencyJob
+        type: unary
+      - name: CancelLocalEnvironmentDependencyJob
+        type: unary
+      - name: RetryLocalEnvironmentDependencyJob
+        type: unary
+      - name: RepairLocalEnvironmentDependency
+        type: unary
   - name: RuntimeAuthService
     source_rule: K-AUTHSVC-002
     methods:

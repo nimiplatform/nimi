@@ -101,6 +101,50 @@
 - `pnpm exec nimicoding validate-spec-governance --profile nimi --scope desktop-consistency`
 - `pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope desktop --check`
 
+## Local Compute Setup Projection Boundary
+
+Desktop owns only ordinary-user projection and confirmation for Runtime local
+environment plans. Runtime remains the sole owner of host capability profile,
+local compute pack resolution, dependency graph, dependency jobs, selected
+source records, repair truth, and activation gates.
+
+Desktop may:
+
+- display cloud-only readiness separately from local compute readiness
+- display Runtime-projected local compute packs and environment plans
+- ask for explicit user confirmation before Runtime performs heavy dependency
+  materialization
+- show active Runtime dependency jobs with product-safe names
+- invoke Runtime cancel, retry, or repair APIs
+- start Runtime dependency jobs only with a dependency environment from the
+  current Runtime plan
+- expose raw dependency ids, selected source records, hashes, paths, and logs
+  only in diagnostics
+
+Desktop must not:
+
+- probe GPU, CUDA, Python, uv, Torch, package sets, model directories, or PATH as
+  dependency truth
+- choose dependency sources or selected source records
+- run PowerShell, bash, Chocolatey, WSL, package-manager, engine-local, or
+  script-only installers as the ordinary product path
+- mutate user PATH, machine PATH, shell profiles, system CUDA, global Python, or
+  package-manager global state
+- project `ready` from file existence, endpoint reachability, import success,
+  model row state, transfer completion, or stale host-local cache
+- split one Runtime dependency job into engine-private installers
+- treat a stored Runtime job id as durable dependency truth after the next plan
+  refresh
+
+Normal UI copy must be environment-centered. A model row may say that it is
+waiting for local GPU support, Python runtime setup, repair, or activation, but
+the row must link to the Runtime environment plan rather than becoming a
+separate installer.
+
+Cloud API configuration, sign-in, provider connector setup, and cloud-backed
+chat must remain usable when no local compute pack is selected, when local
+dependency probing fails, and when local dependency repair is required.
+
 ## Offline / Degradation
 
 Realm 离线不阻断本地模型管理；Runtime 不可达时，本域所有 local model 管理、transfer 与 lifecycle 路径必须 fail-close。详细降级语义回指 `kernel/offline-degradation-contract.md`。

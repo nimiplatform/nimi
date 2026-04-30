@@ -33,10 +33,10 @@ canonical_public_contract:
 #   host_match expresses platform / hardware / driver visibility only. It must
 #   not require that global CUDA Toolkit, nvcc, CUDA_PATH, or CUDA_HOME already
 #   exist on the host. CUDA user-space runtime readiness is expressed through
-#   dependency_requirements that reference
-#   tables/shared-accelerator-dependencies.yaml. This matrix owns image
-#   topology only; it must not own CUDA source selection, install, repair, or
-#   selected source records.
+#   dependency_requirements that reference the Runtime local environment graph.
+#   Accelerator-specific tables may project CUDA details, but this matrix owns
+#   image topology only; it must not own CUDA source selection, install, repair,
+#   or selected source records.
 #
 # linux/arm64 is listed in local-engine-catalog.yaml as a media supervised supported_platform,
 # but no image-specific backend topology is currently defined or supported for linux/arm64.
@@ -127,8 +127,9 @@ entries:
     dependency_requirements:
       - dependency_id: nvidia-cuda-user-space-runtime
         consumer_id: stable-diffusion.cpp.cuda
-        readiness_owner: runtime_shared_dependency_resolver
-        source_policy: system-first-managed-fallback
+        readiness_owner: runtime_local_environment_plan
+        source_policy_ref: local-environment-dependencies.yaml#accelerator.cuda.runtime
+        accelerator_projection_ref: shared-accelerator-dependencies.yaml#nvidia-cuda-user-space-runtime
         first_network_materialization_requires_confirmation: true
     control_plane: runtime
     execution_plane: media

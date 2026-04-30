@@ -50,8 +50,9 @@ entries:
     dependency_requirements:
       - dependency_id: nvidia-cuda-user-space-runtime
         consumer_id: stable-diffusion.cpp.cuda
-        readiness_owner: runtime_shared_dependency_resolver
-        source_table: shared-accelerator-dependencies.yaml
+        readiness_owner: runtime_local_environment_plan
+        source_table: local-environment-dependencies.yaml
+        accelerator_projection_table: shared-accelerator-dependencies.yaml
         first_network_materialization_requires_confirmation: true
     executable_candidates: [sd.exe, sd-cli.exe]
     launch_mode: runtime_wrapper

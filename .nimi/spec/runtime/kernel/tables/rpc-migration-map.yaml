@@ -327,14 +327,54 @@ method_mappings:
   proto_method: WatchLocalTransfers
   mapping_status: aligned
 - design_service: RuntimeLocalService
-  design_method: ResolveLocalRuntimeDependency
+  design_method: ResolveLocalEnvironmentPlan
   proto_service: RuntimeLocalService
-  proto_method: ResolveLocalRuntimeDependency
+  proto_method: ResolveLocalEnvironmentPlan
   mapping_status: aligned
 - design_service: RuntimeLocalService
-  design_method: StartLocalRuntimeDependencySetup
+  design_method: ListLocalEnvironmentSelectedSources
   proto_service: RuntimeLocalService
-  proto_method: StartLocalRuntimeDependencySetup
+  proto_method: ListLocalEnvironmentSelectedSources
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ListLocalEnvironmentDependencyJobs
+  proto_service: RuntimeLocalService
+  proto_method: ListLocalEnvironmentDependencyJobs
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ResolveLocalEnvironmentActivationGate
+  proto_service: RuntimeLocalService
+  proto_method: ResolveLocalEnvironmentActivationGate
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: StartLocalEnvironmentDependencyJob
+  proto_service: RuntimeLocalService
+  proto_method: StartLocalEnvironmentDependencyJob
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: CancelLocalEnvironmentDependencyJob
+  proto_service: RuntimeLocalService
+  proto_method: CancelLocalEnvironmentDependencyJob
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: RetryLocalEnvironmentDependencyJob
+  proto_service: RuntimeLocalService
+  proto_method: RetryLocalEnvironmentDependencyJob
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: RepairLocalEnvironmentDependency
+  proto_service: RuntimeLocalService
+  proto_method: RepairLocalEnvironmentDependency
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ResolveLocalStateReconciliation
+  proto_service: RuntimeLocalService
+  proto_method: ResolveLocalStateReconciliation
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ExecuteLocalStateCutover
+  proto_service: RuntimeLocalService
+  proto_method: ExecuteLocalStateCutover
   mapping_status: aligned
 - design_service: RuntimeLocalService
   design_method: ListLocalServices

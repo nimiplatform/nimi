@@ -88,6 +88,14 @@ Source: `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `StartEngine` | `S-SURFACE-002` |
 | `StopEngine` | `S-SURFACE-002` |
 | `GetEngineStatus` | `S-SURFACE-002` |
+| `ResolveLocalEnvironmentPlan` | `S-SURFACE-002` |
+| `ListLocalEnvironmentSelectedSources` | `S-SURFACE-002` |
+| `ListLocalEnvironmentDependencyJobs` | `S-SURFACE-002` |
+| `ResolveLocalEnvironmentActivationGate` | `S-SURFACE-002` |
+| `StartLocalEnvironmentDependencyJob` | `S-SURFACE-002` |
+| `CancelLocalEnvironmentDependencyJob` | `S-SURFACE-002` |
+| `RetryLocalEnvironmentDependencyJob` | `S-SURFACE-002` |
+| `RepairLocalEnvironmentDependency` | `S-SURFACE-002` |
 
 ## auth_service_projection
 

@@ -585,13 +585,16 @@ The authority layers are fixed:
 - `tables/host-accelerator-profiles.yaml` owns host accelerator profile shape,
   evidence sources, staleness, refresh triggers, multi-GPU policy, degraded
   reasons, and profile states.
-- `tables/shared-accelerator-dependencies.yaml` owns shared dependency source
-  policy, source candidates, compatibility proof, managed package provenance,
-  selected source record cardinality, activation policy, repair policy, and
-  dependency states.
-- `tables/accelerator-consumer-requirements.yaml` owns consumer requirements for
-  `llama.cpp`, `stable-diffusion.cpp`, diffusers / Torch-style Python native
-  media execution, and future accelerator consumers.
+- `tables/shared-accelerator-dependencies.yaml` is an accelerator-specific
+  projection of canonical local environment dependency authority. It may carry
+  CUDA compatibility and package provenance detail, but source policy, selected
+  source record schema, activation policy, repair policy, and dependency job
+  lifecycle are owned by the local environment tables.
+- `tables/accelerator-consumer-requirements.yaml` is an accelerator-specific
+  projection of canonical local environment consumer requirements. It may carry
+  CUDA consumer projection detail, but it must preserve distinct `failed`,
+  `unsupported`, `repair_required`, and `cancelled` semantics and must not
+  become a parallel consumer authority.
 - Image topology/package tables may reference dependency ids and consumer ids,
   but they must not own CUDA source selection, installation, repair, or selected
   source records.
@@ -725,3 +728,62 @@ unavailable.
 If a startup background task fails before the daemon reaches `READY`, Runtime
 must transition through `READY` before projecting `DEGRADED`, so consumers can
 observe a consistent service-available state with explicit degradation detail.
+
+## K-LENG-024 Runtime Local Environment Authority
+
+Runtime owns local environment setup truth. The setup unit is a Runtime local environment plan, not a model row, engine installer, Desktop workflow, package-manager command, developer script, or provider health probe.
+
+The normative table split is fixed across `host-capability-profiles`,
+`local-compute-packs`, `local-environment-dependencies`,
+`local-environment-consumer-requirements`, `local-environment-job-states`, and
+`selected-source-record-schema`.
+
+Local environment plans must resolve requested compute pack/capability, installed/imported assets, host profile, consumer requirements, dependency source policy, and current selected source records into dependency state, confirmation requirements, activation gates, repair requirements, and product-safe Desktop projection. Existing accelerator tables remain accelerator-specific projections only; they must not become parallel truth.
+
+Runtime core readiness and cloud-only usage are outside local environment
+setup. Cloud API setup, account/session, provider connector configuration, and
+Runtime core status must not require local engines, Python, Torch, CUDA,
+models, or accelerator dependency materialization.
+
+## K-LENG-025 Managed Dependency Families And Activation
+
+CUDA is one dependency family, not the setup model. Runtime-managed dependency
+families include CUDA runtime, native engine packages, `uv`, managed Python,
+venv, package sets, Torch wheels, model assets, and companion assets as defined
+by `local-environment-dependencies.yaml`.
+
+System sources require positive canonicalized proof. Managed sources must live
+under Runtime-owned roots. Runtime must not mutate user PATH, machine PATH,
+shell profiles, global Python, system CUDA, or package-manager global state.
+
+## K-LENG-026 Consumer Activation Gates
+
+Consumers declare requirements; Runtime resolves plans. Native engines and Python pipelines must consume Runtime selected source records and must not re-resolve sources, install hidden dependencies, or bypass activation gates.
+Activation fails closed for missing, unconfirmed, cancelled, corrupt,
+incompatible, unsupported, or repair-locked dependencies. File existence,
+endpoint reachability, package directories, PATH precedence, import directory
+contents, and script results never project readiness without selected source
+records.
+
+## K-LENG-027 Runtime Dependency Job Control
+
+Dependency materialization and repair run as Runtime-owned jobs, idempotent per dependency environment. Network materialization requires explicit confirmation covering dependency family, known size, storage category, and no system mutation policy. Startup, route resolution, Desktop page load, passive import review, health probes, and SDK reads must not start heavy downloads.
+
+Repair is first-class: repair locks block activation until Runtime verification
+restores `ready_system` or `ready_managed`. Repair must not collapse into
+unsupported, ready, or automatic reinstall unless the dependency family policy
+admits it.
+
+The public command target is the resolved dependency environment
+(`environment_key`, `dependency_family`, `dependency_id`), except cancel/retry
+which target Runtime job id. Admitted commands are
+`StartLocalEnvironmentDependencyJob`, `CancelLocalEnvironmentDependencyJob`,
+`RetryLocalEnvironmentDependencyJob`, and `RepairLocalEnvironmentDependency`.
+Command semantics, terminal states, retryability, and forbidden shortcuts are
+owned by `local-environment-job-states.yaml`.
+
+Desktop, SDK, mods, and engines may invoke these commands only through
+RuntimeLocalService or downstream SDK projection. They must not choose sources,
+create selected source records, mutate PATH, run package-manager scripts, or
+project `ready` from job existence, transfer completion, endpoint reachability,
+file existence, or local cache.

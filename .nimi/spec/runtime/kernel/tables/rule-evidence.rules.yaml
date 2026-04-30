@@ -1611,6 +1611,21 @@
 - rule_id: K-RPC-004c
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-RPC-024
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-LENG-024
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-LENG-025
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-LENG-026
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-LENG-027
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
 # Scheduling five-state judgement (K-SCHED-*)
 - rule_id: K-SCHED-001
   status: deferred

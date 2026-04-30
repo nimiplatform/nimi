@@ -64,7 +64,19 @@
 - runtime image helper `buildLocalProfileExtensions()`，用于编码 `entry_overrides` 与 `profile_overrides`
 - runtime music helper `buildMusicIterationExtensions()`，仅作为低层 escape hatch；官方主路径是 `runtime.media.music.iterate()`
 
-## 4. 非目标
+## 4. Local Environment Projection Boundary
+
+Runtime local environment SDK projection is governed by
+`kernel/local-environment-projection-contract.md` (`S-RUNTIME-109`).
+
+The runtime SDK may expose typed reads and commands for Runtime local
+environment plans, dependency jobs, selected source record references, and
+confirmation/cancel/retry/repair requests only as downstream Runtime
+projection. It must not probe local dependency readiness, choose sources,
+execute installers, mutate PATH, or provide app-level REST bypass around
+RuntimeLocalService.
+
+## 5. 非目标
 
 - 不在本文件定义本地规则体系。
 - 不在 domain 文档维护实现态测试清单。

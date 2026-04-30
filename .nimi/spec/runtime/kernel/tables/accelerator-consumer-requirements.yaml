@@ -1,8 +1,9 @@
 version: 1
 
-# Canonical consumer requirement declarations for shared accelerator
-# dependencies. Consumers request dependency plans; they do not own CUDA
-# readiness, source selection, install, repair, or activation truth.
+# Accelerator-specific projection of canonical local environment consumer
+# requirements. The canonical cross-family consumer graph is
+# `local-environment-consumer-requirements.yaml`; this file preserves CUDA
+# consumer projection rows without becoming a parallel truth system.
 
 consumers:
   - consumer_id: llama.cpp.cuda
@@ -37,8 +38,9 @@ consumers:
       verifying: blocked_materializing
       installing: blocked_materializing
       repair_required: blocked_repair_required
-      failed: unsupported
+      failed: blocked_setup_failed
       unsupported: unsupported
+      cancelled: blocked_cancelled
     audit_fields:
       - selected_source_record_id
       - selected_package_variant
@@ -73,15 +75,16 @@ consumers:
       verifying: blocked_materializing
       installing: blocked_materializing
       repair_required: blocked_repair_required
-      failed: unsupported
+      failed: blocked_setup_failed
       unsupported: unsupported
+      cancelled: blocked_cancelled
     audit_fields:
       - selected_source_record_id
       - selected_package_variant
       - backend_entry_id
 
   - consumer_id: media.diffusers.cuda
-    consumer_kind: python_engine_package_variant
+    consumer_kind: python_pipeline
     engine: media
     backend_family: diffusers
     package_variant: diffusers-windows-amd64-cuda
@@ -93,19 +96,13 @@ consumers:
     accelerator_plane: cuda
     dependency_ids:
       - nvidia-cuda-user-space-runtime
-      - python-env.media.diffusers
-      - torch-cuda-wheel.media.diffusers
+    canonical_consumer_ref: local-environment-consumer-requirements.yaml#media.diffusers.cuda
     version_constraints:
       cuda_major: 12
-      torch_cuda_abi: package_declared
-      python_env: uv_managed
     activation_gate:
       required_dependency_states:
         - ready_system
         - ready_managed
-      additional_dependency_families:
-        - python-env
-        - torch-wheel
     fallback_policy:
       fallback_variants: []
       fallback_requires_explicit_runtime_policy: true
@@ -117,10 +114,9 @@ consumers:
       verifying: blocked_materializing
       installing: blocked_materializing
       repair_required: blocked_repair_required
-      failed: unsupported
+      failed: blocked_setup_failed
       unsupported: unsupported
+      cancelled: blocked_cancelled
     audit_fields:
       - selected_source_record_id
-      - python_env_record_id
-      - torch_wheel_record_id
       - selected_package_variant
