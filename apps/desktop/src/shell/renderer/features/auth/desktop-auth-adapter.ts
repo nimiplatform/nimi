@@ -9,6 +9,7 @@ import type { TauriOAuthBridge } from '@nimiplatform/nimi-kit/core/oauth';
 import { isWebShellMode } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { OAuthProvider, type RealmModel } from '@nimiplatform/sdk/realm';
 import { getPlatformClient } from '@nimiplatform/sdk';
+import { AccountReasonCode } from '@nimiplatform/sdk/runtime/browser';
 import { dataSync } from '@runtime/data-sync';
 import { bootstrapRuntime } from '@renderer/infra/bootstrap/runtime-bootstrap';
 import { queryClient } from '@renderer/infra/query-client/query-client';
@@ -42,17 +43,32 @@ const desktopRuntimeAccountCaller = {
   scopes: [],
 };
 
+async function clearRuntimeAccountForReauth(reason: string): Promise<void> {
+  await getPlatformClient().runtime.account.logout({
+    caller: desktopRuntimeAccountCaller,
+    reason,
+  });
+}
+
+async function beginRuntimeAccountLogin(input: { callbackUrl: string; timeoutMs: number }) {
+  return getPlatformClient().runtime.account.beginLogin({
+    caller: desktopRuntimeAccountCaller,
+    redirectUri: input.callbackUrl,
+    callbackOrigin: new URL(input.callbackUrl).origin,
+    requestedScopes: [],
+    ttlSeconds: Math.max(10, Math.ceil(input.timeoutMs / 1000)),
+  });
+}
+
 export function createDesktopRuntimeAccountBrowserBroker() {
   return {
     begin: async (input: { callbackUrl: string; baseUrl?: string; timeoutMs: number }) => {
       await ensureAuthApiReady();
-      const response = await getPlatformClient().runtime.account.beginLogin({
-        caller: desktopRuntimeAccountCaller,
-        redirectUri: input.callbackUrl,
-        callbackOrigin: new URL(input.callbackUrl).origin,
-        requestedScopes: [],
-        ttlSeconds: Math.max(10, Math.ceil(input.timeoutMs / 1000)),
-      });
+      let response = await beginRuntimeAccountLogin(input);
+      if (!response.accepted && response.accountReasonCode === AccountReasonCode.ACCOUNT_UNAVAILABLE) {
+        await clearRuntimeAccountForReauth('desktop_login_reauth');
+        response = await beginRuntimeAccountLogin(input);
+      }
       if (!response.accepted || !response.loginAttemptId || !response.oauthAuthorizationUrl || !response.state || !response.nonce) {
         throw new Error(`Runtime account login could not start: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`);
       }

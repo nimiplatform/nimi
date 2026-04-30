@@ -286,7 +286,8 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     assert.ok(dataSyncInitIndex < callbacksIndex, 'DataSync init must precede callback installation');
     assert.ok(callbacksIndex < hydrateIndex, 'auth callbacks must be active before profile hydration can fail closed');
     assert.ok(hydrateIndex < watcherIndex, 'initial profile hydration must happen before the auth watcher begins observing updates');
-    assert.match(bootstrapSource, /hydrateDesktopAccountProfile\(\{\s*accountProjection,\s*flowId,\s*\}\)/s);
+    assert.match(bootstrapSource, /hydrateDesktopAccountProfile\(\{\s*accountProjection,\s*flowId,\s*onReauthenticationRequired:/s);
+    assert.match(bootstrapSource, /runtime\.account\.logout\(\{[\s\S]*reason: 'desktop_bootstrap_reauth_required'/);
     assert.match(bootstrapSource, /dataSync\.loadCurrentUser\(\)/);
     assert.doesNotMatch(
       bootstrapSource,

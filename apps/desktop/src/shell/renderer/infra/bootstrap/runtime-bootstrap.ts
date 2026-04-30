@@ -3,6 +3,7 @@ import {
   getCachedContacts,
   isFriendInContacts,
 } from '@runtime/data-sync';
+import { extractRuntimeErrorFields } from '@runtime/telemetry/error-fields';
 import {
   checkLocalLlmHealth,
   executeLocalKernelTurn,
@@ -114,14 +115,39 @@ function mergeRuntimeAccountProjectionWithRealmProfile(input: {
   };
 }
 
+function isReauthenticationRequiredError(error: unknown): boolean {
+  const errorFields = extractRuntimeErrorFields(error);
+  const reasonCode = String(errorFields.reasonCode || '').trim().toUpperCase();
+  const actionHint = String(errorFields.actionHint || '').trim().toLowerCase();
+  const message = String(errorFields.message || (error instanceof Error ? error.message : error) || '').trim().toLowerCase();
+  return (
+    reasonCode === 'AUTH_REQUIRED'
+    || reasonCode === 'AUTH_DENIED'
+    || reasonCode === 'AUTH_TOKEN_INVALID'
+    || reasonCode === 'AUTH_TOKEN_EXPIRED'
+    || actionHint.includes('reauthenticate')
+    || actionHint.includes('refresh_realm_token')
+    || message.includes('authentication required')
+  );
+}
+
 async function hydrateDesktopAccountProfile(input: {
   accountProjection: RuntimeAccountProjection;
   flowId: string;
+  onReauthenticationRequired?: () => Promise<void>;
 }): Promise<void> {
   if (!readNonEmptyString(input.accountProjection.accountId)) {
     return;
   }
-  const realmProfile = await dataSync.loadCurrentUser();
+  let realmProfile: unknown;
+  try {
+    realmProfile = await dataSync.loadCurrentUser();
+  } catch (error) {
+    if (isReauthenticationRequiredError(error) && input.onReauthenticationRequired) {
+      await input.onReauthenticationRequired();
+    }
+    throw error;
+  }
   const hydratedUser = mergeRuntimeAccountProjectionWithRealmProfile({
     accountProjection: input.accountProjection,
     realmProfile,
@@ -624,6 +650,12 @@ export function bootstrapRuntime(): Promise<void> {
         hydrateDesktopAccountProfile({
           accountProjection,
           flowId,
+          onReauthenticationRequired: async () => {
+            await platformClient.runtime.account.logout({
+              caller: accountCaller,
+              reason: 'desktop_bootstrap_reauth_required',
+            });
+          },
         }),
         NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
       ).catch((error) => {
