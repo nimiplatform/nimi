@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -41,36 +42,50 @@ func llamaReleaseTagURL(version string) string {
 }
 
 func llamaReleaseAsset(version string) (managedBinaryReleaseAsset, error) {
-	assetName, err := llamaAssetName(version)
+	assetNames, err := llamaAssetNameCandidates(version, currentGOOS(), currentGOARCH(), detectLocalGPUVendor())
 	if err != nil {
 		return managedBinaryReleaseAsset{}, err
 	}
 
+	return llamaReleaseAssetByCandidates(version, assetNames)
+}
+
+func llamaReleaseAssetByCandidates(version string, assetNames []string) (managedBinaryReleaseAsset, error) {
 	release, err := fetchGitHubReleaseByTag(llamaReleaseTagURL(version), currentLlamaReleaseHTTPClient())
 	if err != nil {
 		return managedBinaryReleaseAsset{}, err
 	}
 
-	for _, asset := range release.Assets {
-		if strings.TrimSpace(asset.Name) != assetName {
-			continue
+	for _, assetName := range assetNames {
+		for _, asset := range release.Assets {
+			if strings.TrimSpace(asset.Name) != assetName {
+				continue
+			}
+			sha256, err := normalizeGitHubAssetDigest(asset.Digest)
+			if err != nil {
+				return managedBinaryReleaseAsset{}, err
+			}
+			downloadURL := strings.TrimSpace(asset.DownloadURL)
+			if downloadURL == "" {
+				return managedBinaryReleaseAsset{}, fmt.Errorf("%w: missing browser_download_url for %s", ErrEngineBinaryDownloadFailed, assetName)
+			}
+			return managedBinaryReleaseAsset{
+				Name:        assetName,
+				DownloadURL: downloadURL,
+				SHA256:      sha256,
+			}, nil
 		}
-		sha256, err := normalizeGitHubAssetDigest(asset.Digest)
-		if err != nil {
-			return managedBinaryReleaseAsset{}, err
-		}
-		downloadURL := strings.TrimSpace(asset.DownloadURL)
-		if downloadURL == "" {
-			return managedBinaryReleaseAsset{}, fmt.Errorf("%w: missing browser_download_url for %s", ErrEngineBinaryDownloadFailed, assetName)
-		}
-		return managedBinaryReleaseAsset{
-			Name:        assetName,
-			DownloadURL: downloadURL,
-			SHA256:      sha256,
-		}, nil
 	}
 
-	return managedBinaryReleaseAsset{}, fmt.Errorf("%w: release asset %s not found for %s", ErrEngineBinaryDownloadFailed, assetName, strings.TrimSpace(version))
+	return managedBinaryReleaseAsset{}, fmt.Errorf("%w: release asset %s not found for %s", ErrEngineBinaryDownloadFailed, strings.Join(assetNames, " or "), strings.TrimSpace(version))
+}
+
+func llamaReleaseAssetByName(version string, assetName string) (managedBinaryReleaseAsset, error) {
+	trimmedAssetName := strings.TrimSpace(assetName)
+	if trimmedAssetName == "" {
+		return managedBinaryReleaseAsset{}, fmt.Errorf("%w: release asset name is required", ErrEngineBinaryDownloadFailed)
+	}
+	return llamaReleaseAssetByCandidates(version, []string{trimmedAssetName})
 }
 
 func llamaExpectedSHA256(version string, assetName string) (string, error) {
@@ -87,6 +102,9 @@ func llamaExpectedSHA256(version string, assetName string) (string, error) {
 func fetchGitHubReleaseByTag(tagURL string, client *http.Client) (githubReleasePayload, error) {
 	resp, err := doEngineDownloadRequest(tagURL, client, 60*time.Second)
 	if err != nil {
+		if payload, fallbackErr := fetchGitHubReleaseByTagWithCurl(tagURL, err); fallbackErr == nil {
+			return payload, nil
+		}
 		return githubReleasePayload{}, fmt.Errorf("%w: fetch release metadata: %v", ErrEngineBinaryDownloadFailed, err)
 	}
 	defer resp.Body.Close()
@@ -98,6 +116,30 @@ func fetchGitHubReleaseByTag(tagURL string, client *http.Client) (githubReleaseP
 	var payload githubReleasePayload
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return githubReleasePayload{}, fmt.Errorf("%w: decode release metadata: %v", ErrEngineBinaryDownloadFailed, err)
+	}
+	return payload, nil
+}
+
+func fetchGitHubReleaseByTagWithCurl(tagURL string, requestErr error) (githubReleasePayload, error) {
+	tmp, err := os.CreateTemp("", "nimi-llama-release-*.json")
+	if err != nil {
+		return githubReleasePayload{}, err
+	}
+	tmpPath := tmp.Name()
+	_ = tmp.Close()
+	defer os.Remove(tmpPath)
+
+	if _, err := tryCurlDownload(tagURL, tmpPath, requestErr); err != nil {
+		return githubReleasePayload{}, err
+	}
+	file, err := os.Open(tmpPath)
+	if err != nil {
+		return githubReleasePayload{}, err
+	}
+	defer file.Close()
+	var payload githubReleasePayload
+	if err := json.NewDecoder(file).Decode(&payload); err != nil {
+		return githubReleasePayload{}, fmt.Errorf("%w: decode release metadata from curl fallback: %v", ErrEngineBinaryDownloadFailed, err)
 	}
 	return payload, nil
 }

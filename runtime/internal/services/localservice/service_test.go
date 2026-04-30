@@ -504,7 +504,12 @@ func TestLocalStartManagedLocalModelWarmsBeforeReportingActive(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestServiceWithProbe(t, nil)
-	mgr := &mockEngineManager{}
+	mgr := &mockEngineManager{sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
+		DependencyID: engine.NVIDIACUDAUserSpaceRuntimeDependencyID,
+		State:        engine.SharedAcceleratorDependencyReadySystem,
+		Source:       "compatible_system",
+		Detail:       "nvidia_cuda_user_space_runtime state=ready_system source=compatible_system",
+	}}
 	svc.SetEngineManager(mgr)
 	svc.SetManagedLlamaEndpoint(server.URL + "/v1")
 	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
@@ -801,7 +806,12 @@ func TestLocalDefaultProbeBuildsSingleV1ModelsPath(t *testing.T) {
 
 func TestLocalStartLocalModelBootstrapsManagedEngine(t *testing.T) {
 	svc := newTestService(t)
-	mgr := &mockEngineManager{}
+	mgr := &mockEngineManager{sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
+		DependencyID: engine.NVIDIACUDAUserSpaceRuntimeDependencyID,
+		State:        engine.SharedAcceleratorDependencyReadySystem,
+		Source:       "compatible_system",
+		Detail:       "nvidia_cuda_user_space_runtime state=ready_system source=compatible_system",
+	}}
 	svc.SetEngineManager(mgr)
 
 	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
@@ -3498,7 +3508,12 @@ func TestStartLocalAssetFailsClosedWhenManagedImageBackendTargetUnavailable(t *t
 	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
 	svc.SetManagedMediaEndpoint("http://127.0.0.1:8321/v1")
 	svc.SetManagedImageBackendConfig(false, "")
-	mgr := &mockEngineManager{}
+	mgr := &mockEngineManager{sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
+		DependencyID: engine.NVIDIACUDAUserSpaceRuntimeDependencyID,
+		State:        engine.SharedAcceleratorDependencyReadySystem,
+		Source:       "compatible_system",
+		Detail:       "nvidia_cuda_user_space_runtime state=ready_system source=compatible_system",
+	}}
 	svc.SetEngineManager(mgr)
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model-proxy-start", "asset.manifest.json")
 	rawManifest, err := json.Marshal(map[string]any{
@@ -6124,22 +6139,26 @@ func TestEngineRPCsRequireEngineName(t *testing.T) {
 
 // mockEngineManager implements EngineManager for testing with configurable errors.
 type mockEngineManager struct {
-	ensureErr error
-	startErr  error
-	stopErr   error
-	statusErr error
-	status    *EngineInfo
+	ensureErr                    error
+	ensureManagedImageBackendErr error
+	startErr                     error
+	stopErr                      error
+	statusErr                    error
+	status                       *EngineInfo
 
-	startCalls       int
-	startConfigCalls int
-	stopCalls        int
-	lastStartEngine  string
-	lastStartPort    int
-	lastStartVersion string
-	lastStartConfig  engine.EngineConfig
-	startEngines     []string
-	startConfigs     []engine.EngineConfig
-	stopEngines      []string
+	startCalls                             int
+	startConfigCalls                       int
+	stopCalls                              int
+	lastStartEngine                        string
+	lastStartPort                          int
+	lastStartVersion                       string
+	lastStartConfig                        engine.EngineConfig
+	startEngines                           []string
+	startConfigs                           []engine.EngineConfig
+	stopEngines                            []string
+	managedImageBackendConfigs             []*engine.ManagedImageBackendConfig
+	ensureSharedAcceleratorDependencyCalls int
+	sharedAcceleratorDependencyStatus      *engine.SharedAcceleratorDependencyStatus
 }
 
 func (m *mockEngineManager) ListEngines() []EngineInfo {
@@ -6150,6 +6169,51 @@ func (m *mockEngineManager) ListEngines() []EngineInfo {
 
 func (m *mockEngineManager) EnsureEngine(_ context.Context, _ string, _ string) error {
 	return m.ensureErr
+}
+
+func (m *mockEngineManager) EnsureManagedImageBackend(_ context.Context, cfg *engine.ManagedImageBackendConfig) error {
+	m.managedImageBackendConfigs = append(m.managedImageBackendConfigs, cfg)
+	return m.ensureManagedImageBackendErr
+}
+
+func (m *mockEngineManager) ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) engine.SharedAcceleratorDependencyStatus {
+	if m.sharedAcceleratorDependencyStatus != nil {
+		status := *m.sharedAcceleratorDependencyStatus
+		if strings.TrimSpace(status.DependencyID) == "" {
+			status.DependencyID = engine.NormalizeSharedAcceleratorDependencyID(dependencyID)
+		}
+		status.ConsumerID = strings.TrimSpace(consumerID)
+		return status
+	}
+	return engine.SharedAcceleratorDependencyStatus{
+		DependencyID: engine.NormalizeSharedAcceleratorDependencyID(dependencyID),
+		ConsumerID:   strings.TrimSpace(consumerID),
+		State:        engine.SharedAcceleratorDependencyMaterializableRequiresConfirmation,
+		Source:       "runtime_managed",
+		Detail:       "nvidia_cuda_user_space_runtime state=materializable_requires_confirmation; system_path_mutation=false",
+	}
+}
+
+func (m *mockEngineManager) EnsureSharedAcceleratorDependency(_ context.Context, dependencyID string) (engine.SharedAcceleratorDependencyStatus, error) {
+	m.ensureSharedAcceleratorDependencyCalls++
+	if m.sharedAcceleratorDependencyStatus != nil {
+		status := *m.sharedAcceleratorDependencyStatus
+		if strings.TrimSpace(status.DependencyID) == "" {
+			status.DependencyID = engine.NormalizeSharedAcceleratorDependencyID(dependencyID)
+		}
+		if m.ensureManagedImageBackendErr == nil {
+			status.State = engine.SharedAcceleratorDependencyReadyManaged
+			status.Source = "runtime_managed"
+		}
+		return status, m.ensureManagedImageBackendErr
+	}
+	status := engine.SharedAcceleratorDependencyStatus{
+		DependencyID: engine.NormalizeSharedAcceleratorDependencyID(dependencyID),
+		State:        engine.SharedAcceleratorDependencyReadyManaged,
+		Source:       "runtime_managed",
+		Detail:       "nvidia_cuda_user_space_runtime state=ready_managed",
+	}
+	return status, m.ensureManagedImageBackendErr
 }
 
 func (m *mockEngineManager) StartEngine(_ context.Context, engine string, port int, version string) error {

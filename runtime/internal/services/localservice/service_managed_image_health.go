@@ -44,6 +44,12 @@ func (s *Service) checkManagedSupervisedImageHealthWithReason(ctx context.Contex
 	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(localAssetID)); err != nil {
 		return s.setManagedSupervisedImageUnhealthy(model, managedLocalAssetRecordFailureDetail(err))
 	}
+	if selectionRequiresCUDAUserSpaceRuntime(selection) {
+		dependencyStatus := s.resolveSharedCUDADependencyStatus(stableDiffusionCUDAConsumerID)
+		if sharedCUDADependencyBlocksActivation(dependencyStatus) {
+			return s.setManagedSupervisedImageUnhealthy(model, sharedCUDADependencyActivationDetail(dependencyStatus))
+		}
+	}
 	if _, _, err := s.ensureManagedLocalModelBundleReady(ctx, model); err != nil {
 		return s.setManagedSupervisedImageUnhealthy(model, managedLocalModelBundleFailureDetail(err))
 	}

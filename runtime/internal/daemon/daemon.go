@@ -111,7 +111,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	backgroundCtx, cancelBackground := context.WithCancel(context.Background())
 	defer cancelBackground()
 	var backgroundWG sync.WaitGroup
-	backgroundWG.Add(3)
+	backgroundWG.Add(1)
 	go func() {
 		defer backgroundWG.Done()
 		d.sampleRuntimeResource(backgroundCtx)
@@ -123,8 +123,14 @@ func (d *Daemon) Run(ctx context.Context) error {
 	go func() {
 		errCh <- d.http.Serve()
 	}()
-	// Start supervised engines if configured.
-	d.startSupervisedEngines(ctx)
+	// Supervised engines may download or repair native dependencies. Keep that
+	// work outside the runtime readiness path and project failures through
+	// degraded health/provider detail instead of holding the daemon in STARTING.
+	backgroundWG.Add(1)
+	go func() {
+		defer backgroundWG.Done()
+		d.startSupervisedEngines(backgroundCtx)
+	}()
 	if err := d.refreshManagedEmbeddingProfile(backgroundCtx); err != nil {
 		cancelBackground()
 		backgroundWG.Wait()
@@ -161,6 +167,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 		d.transitionToDegraded(startupDegradedReason)
 		d.logger.Warn("runtime started in degraded state", "reason", startupDegradedReason)
 	}
+	backgroundWG.Add(2)
 	go func() {
 		defer backgroundWG.Done()
 		d.sampleAIProviderHealth(backgroundCtx)
@@ -398,22 +405,52 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	}
 	mgr.SetManagedImageBackend(nil)
 	managedImageBackendConfigured := false
+	managedImageDependencyBlocked := false
 	if managedImageLoopback {
-		if err := mgr.EnsureManagedImageBackend(ctx, &engine.ManagedImageBackendConfig{
-			Mode:          engine.ManagedImageBackendOfficial,
-			BackendName:   "stablediffusion-ggml",
-			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
-			Address:       "127.0.0.1:50052",
-		}); err != nil {
-			detail := fmt.Sprintf("start managed image backend: %v", err)
-			d.setDegradedStatus(detail)
-			appendStartupFailureAudit(d.auditStore, detail)
-		} else if svc != nil {
-			managedImageBackendConfigured = true
-			svc.MarkManagedEngineUsed(string(engineManagedImageBackend), "engine_bootstrap")
+		if managedImageSelection.EntryID == "windows-x64-nvidia-gguf" {
+			dependencyStatus := mgr.ResolveSharedAcceleratorDependency(engine.NVIDIACUDAUserSpaceRuntimeDependencyID, "stable-diffusion.cpp.cuda")
+			if runtime.GOOS == "windows" &&
+				dependencyStatus.State != engine.SharedAcceleratorDependencyReadySystem &&
+				dependencyStatus.State != engine.SharedAcceleratorDependencyReadyManaged {
+				managedImageDependencyBlocked = true
+				detail := strings.TrimSpace(dependencyStatus.Detail)
+				if detail == "" {
+					detail = fmt.Sprintf("cuda_user_space_runtime state=%s", dependencyStatus.State)
+				}
+				d.setDegradedStatus(detail)
+				if svc != nil {
+					svc.SetManagedImageBackendHealth(false, detail)
+				}
+			} else if err := mgr.EnsureManagedImageBackend(ctx, &engine.ManagedImageBackendConfig{
+				Mode:          engine.ManagedImageBackendOfficial,
+				BackendName:   "stablediffusion-ggml",
+				PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
+				Address:       "127.0.0.1:50052",
+			}); err != nil {
+				detail := fmt.Sprintf("start managed image backend: %v", err)
+				d.setDegradedStatus(detail)
+				appendStartupFailureAudit(d.auditStore, detail)
+			} else if svc != nil {
+				managedImageBackendConfigured = true
+				svc.MarkManagedEngineUsed(string(engineManagedImageBackend), "engine_bootstrap")
+			}
+		} else {
+			if err := mgr.EnsureManagedImageBackend(ctx, &engine.ManagedImageBackendConfig{
+				Mode:          engine.ManagedImageBackendOfficial,
+				BackendName:   "stablediffusion-ggml",
+				PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
+				Address:       "127.0.0.1:50052",
+			}); err != nil {
+				detail := fmt.Sprintf("start managed image backend: %v", err)
+				d.setDegradedStatus(detail)
+				appendStartupFailureAudit(d.auditStore, detail)
+			} else if svc != nil {
+				managedImageBackendConfigured = true
+				svc.MarkManagedEngineUsed(string(engineManagedImageBackend), "engine_bootstrap")
+			}
 		}
 	}
-	managedMediaLoopback := managedImageLoopback || (d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised)
+	managedMediaLoopback := (managedImageLoopback && !managedImageDependencyBlocked) || (d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised)
 	if svc != nil {
 		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, managedLlamaConfigPath, effectiveManagedLlama)
 		if effectiveManagedLlama {

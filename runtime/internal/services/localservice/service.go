@@ -26,6 +26,9 @@ const (
 type EngineManager interface {
 	ListEngines() []EngineInfo
 	EnsureEngine(ctx context.Context, engine string, version string) error
+	EnsureManagedImageBackend(ctx context.Context, cfg *engine.ManagedImageBackendConfig) error
+	ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) engine.SharedAcceleratorDependencyStatus
+	EnsureSharedAcceleratorDependency(ctx context.Context, dependencyID string) (engine.SharedAcceleratorDependencyStatus, error)
 	StartEngine(ctx context.Context, engine string, port int, version string) error
 	StartEngineWithConfig(ctx context.Context, cfg engine.EngineConfig) error
 	StopEngine(engine string) error

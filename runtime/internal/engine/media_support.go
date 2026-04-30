@@ -31,9 +31,6 @@ func ClassifyMediaHost(goos string, goarch string, gpuVendor string, cudaReady b
 	if !strings.EqualFold(strings.TrimSpace(gpuVendor), "nvidia") {
 		return MediaHostSupportAttachedOnly
 	}
-	if !cudaReady {
-		return MediaHostSupportAttachedOnly
-	}
 	return MediaHostSupportSupportedSupervised
 }
 
@@ -47,9 +44,6 @@ func MediaHostSupportDetail(goos string, goarch string, gpuVendor string, cudaRe
 		}
 		if !strings.EqualFold(strings.TrimSpace(gpuVendor), "nvidia") {
 			return "media supervised mode requires an NVIDIA GPU; configure an attached endpoint instead"
-		}
-		if !cudaReady {
-			return "media supervised mode requires a CUDA-ready NVIDIA runtime; configure an attached endpoint instead"
 		}
 		return "media supervised mode is unavailable on this host; configure an attached endpoint instead"
 	default:

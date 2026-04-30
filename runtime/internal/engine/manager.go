@@ -19,11 +19,12 @@ type Manager struct {
 	registry *Registry
 	onState  StateChangeFunc
 
-	llamaModelsPath          string
-	llamaModelsConfigPath    string
-	llamaBackendsPath        string
-	managedImageBackendsPath string
-	managedImageBackend      *ManagedImageBackendConfig
+	llamaModelsPath                   string
+	llamaModelsConfigPath             string
+	llamaBackendsPath                 string
+	managedImageBackendsPath          string
+	sharedAcceleratorDependenciesPath string
+	managedImageBackend               *ManagedImageBackendConfig
 
 	mu          sync.RWMutex
 	supervisors map[EngineKind]*Supervisor
@@ -65,18 +66,23 @@ func NewManager(logger *slog.Logger, baseDir string, onState StateChangeFunc) (*
 	if err != nil {
 		return nil, err
 	}
+	sharedAcceleratorDependenciesPath, err := defaultSharedAcceleratorDependenciesPath()
+	if err != nil {
+		return nil, err
+	}
 
 	return &Manager{
-		logger:                   logger,
-		baseDir:                  baseDir,
-		registry:                 registry,
-		onState:                  onState,
-		llamaModelsPath:          modelsPath,
-		llamaModelsConfigPath:    modelsConfigPath,
-		llamaBackendsPath:        backendsPath,
-		managedImageBackendsPath: managedImageBackendsPath,
-		supervisors:              make(map[EngineKind]*Supervisor),
-		starting:                 make(map[EngineKind]bool),
+		logger:                            logger,
+		baseDir:                           baseDir,
+		registry:                          registry,
+		onState:                           onState,
+		llamaModelsPath:                   modelsPath,
+		llamaModelsConfigPath:             modelsConfigPath,
+		llamaBackendsPath:                 backendsPath,
+		managedImageBackendsPath:          managedImageBackendsPath,
+		sharedAcceleratorDependenciesPath: sharedAcceleratorDependenciesPath,
+		supervisors:                       make(map[EngineKind]*Supervisor),
+		starting:                          make(map[EngineKind]bool),
 	}, nil
 }
 
@@ -145,6 +151,7 @@ func (m *Manager) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedIma
 	}
 	m.mu.RLock()
 	backendsPath := strings.TrimSpace(m.managedImageBackendsPath)
+	sharedDependenciesPath := strings.TrimSpace(m.sharedAcceleratorDependenciesPath)
 	m.mu.RUnlock()
 	installStartedAt := time.Now()
 	installRequired := false
@@ -165,7 +172,7 @@ func (m *Manager) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedIma
 			if source := managedImageBackendInstallSource(spec); source != "" {
 				attrs = append(attrs, "source", source)
 			}
-			if _, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, normalized.BackendName, spec, normalized.Address); err == nil {
+			if _, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, sharedDependenciesPath, normalized.BackendName, spec, normalized.Address); err == nil {
 				m.logger.Info("managed image backend package already installed", attrs...)
 			} else {
 				installRequired = true
@@ -174,7 +181,13 @@ func (m *Manager) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedIma
 			}
 		}
 	}
-	resolved, err := ensureManagedImageBackendInstalled(ctx, backendsPath, normalized)
+	if normalized.Mode == ManagedImageBackendOfficial && currentGOOS() == "windows" && strings.EqualFold(detectLocalGPUVendor(), "nvidia") {
+		status := m.ResolveSharedAcceleratorDependency(NVIDIACUDAUserSpaceRuntimeDependencyID, "stable-diffusion.cpp.cuda")
+		if status.State != SharedAcceleratorDependencyReadySystem && status.State != SharedAcceleratorDependencyReadyManaged {
+			return fmt.Errorf("managed image backend requires shared accelerator dependency %s to be ready before activation: state=%s detail=%s", status.DependencyID, status.State, status.Detail)
+		}
+	}
+	resolved, err := ensureManagedImageBackendInstalled(ctx, backendsPath, sharedDependenciesPath, normalized)
 	if err != nil {
 		return err
 	}
@@ -255,16 +268,26 @@ func (m *Manager) EnsureEngine(ctx context.Context, cfg EngineConfig) (EngineCon
 }
 
 func (m *Manager) ensureLlama(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
+	preferredAssetName, preferredAssetErr := preferredLlamaAssetNameForCurrentHost(cfg.Version)
 	// Check registry first.
 	entry := m.registry.Get(EngineLlama, cfg.Version)
 	if entry != nil {
 		if _, err := os.Stat(entry.BinaryPath); err == nil {
-			cfg.BinaryPath = entry.BinaryPath
-			m.logger.Info("llama binary found in registry",
-				"version", cfg.Version,
-				"path", entry.BinaryPath,
-			)
-			return cfg, nil
+			if preferredAssetErr == nil && llamaRegistryEntryRequiresReplacement(entry, preferredAssetName) {
+				m.logger.Info("llama binary registry entry does not match preferred accelerator package",
+					"version", cfg.Version,
+					"registered_asset", entry.AssetName,
+					"preferred_asset", preferredAssetName,
+				)
+				_ = m.registry.Remove(EngineLlama, cfg.Version)
+			} else {
+				cfg.BinaryPath = entry.BinaryPath
+				m.logger.Info("llama binary found in registry",
+					"version", cfg.Version,
+					"path", entry.BinaryPath,
+				)
+				return cfg, nil
+			}
 		}
 		// Binary missing from disk — re-download.
 		_ = m.registry.Remove(EngineLlama, cfg.Version)
@@ -274,18 +297,20 @@ func (m *Manager) ensureLlama(ctx context.Context, cfg EngineConfig) (EngineConf
 		"version", cfg.Version,
 	)
 
-	binaryPath, sha256hex, err := DownloadBinary(m.baseDir, EngineLlama, cfg.Version)
+	binaryPath, sha256hex, assetName, err := DownloadBinary(m.baseDir, EngineLlama, cfg.Version)
 	if err != nil {
 		return cfg, fmt.Errorf("download llama: %w", err)
 	}
 
 	if err := m.registry.Put(&RegistryEntry{
-		Engine:      EngineLlama,
-		Version:     cfg.Version,
-		BinaryPath:  binaryPath,
-		SHA256:      sha256hex,
-		Platform:    PlatformString(),
-		InstalledAt: time.Now().UTC().Format(time.RFC3339),
+		Engine:           EngineLlama,
+		Version:          cfg.Version,
+		BinaryPath:       binaryPath,
+		SHA256:           sha256hex,
+		Platform:         PlatformString(),
+		AssetName:        assetName,
+		AcceleratorPlane: llamaAcceleratorPlaneForAsset(assetName),
+		InstalledAt:      time.Now().UTC().Format(time.RFC3339),
 	}); err != nil {
 		return cfg, fmt.Errorf("persist llama registry entry version %s at %s: %w", cfg.Version, binaryPath, err)
 	}
@@ -500,6 +525,26 @@ func (m *Manager) stoppedEngineInfo(kind EngineKind) SupervisorInfo {
 }
 
 func (m *Manager) prepareLlamaStart(_ context.Context, cfg EngineConfig) (EngineConfig, error) {
+	entry := m.registry.Get(EngineLlama, cfg.Version)
+	if !llamaRegistryEntryUsesCUDA(entry) {
+		return cfg, nil
+	}
+	status := m.ResolveSharedAcceleratorDependency(NVIDIACUDAUserSpaceRuntimeDependencyID, "llama.cpp.cuda")
+	if status.State != SharedAcceleratorDependencyReadySystem && status.State != SharedAcceleratorDependencyReadyManaged {
+		return cfg, fmt.Errorf("llama.cpp CUDA package requires shared accelerator dependency %s to be ready before activation: state=%s detail=%s", status.DependencyID, status.State, status.Detail)
+	}
+	env, err := m.SharedAcceleratorDependencyProcessEnv(NVIDIACUDAUserSpaceRuntimeDependencyID)
+	if err != nil {
+		return cfg, err
+	}
+	if len(env) > 0 {
+		if cfg.CommandEnv == nil {
+			cfg.CommandEnv = make(map[string]string, len(env))
+		}
+		for key, value := range env {
+			cfg.CommandEnv[key] = value
+		}
+	}
 	return cfg, nil
 }
 

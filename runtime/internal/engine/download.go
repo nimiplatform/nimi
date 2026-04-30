@@ -32,6 +32,7 @@ var (
 )
 
 var githubReleaseRedirectHosts = map[string]struct{}{
+	"api.github.com":                       {},
 	"github.com":                           {},
 	"objects.githubusercontent.com":        {},
 	"release-assets.githubusercontent.com": {},
@@ -43,8 +44,8 @@ type managedBinaryBootstrapSpec struct {
 }
 
 // DownloadBinary downloads an engine binary to the engines base directory.
-// Returns the final binary path and SHA256 hash.
-func DownloadBinary(baseDir string, kind EngineKind, version string) (binaryPath string, sha256hex string, err error) {
+// Returns the final binary path, binary SHA256 hash, and selected release asset.
+func DownloadBinary(baseDir string, kind EngineKind, version string) (binaryPath string, sha256hex string, assetName string, err error) {
 	switch kind {
 	case EngineLlama:
 		destDir := filepath.Join(baseDir, string(kind), version)
@@ -53,60 +54,60 @@ func DownloadBinary(baseDir string, kind EngineKind, version string) (binaryPath
 			ResolveAsset: llamaReleaseAsset,
 		}, version)
 	default:
-		return "", "", fmt.Errorf("%w: engine %q not supported", ErrEngineBinaryDownloadFailed, kind)
+		return "", "", "", fmt.Errorf("%w: engine %q not supported", ErrEngineBinaryDownloadFailed, kind)
 	}
 }
 
-func downloadManagedBinary(destDir string, spec managedBinaryBootstrapSpec, version string) (string, string, error) {
+func downloadManagedBinary(destDir string, spec managedBinaryBootstrapSpec, version string) (string, string, string, error) {
 	if strings.TrimSpace(spec.BinaryName) == "" {
-		return "", "", fmt.Errorf("%w: managed binary name is required", ErrEngineBinaryDownloadFailed)
+		return "", "", "", fmt.Errorf("%w: managed binary name is required", ErrEngineBinaryDownloadFailed)
 	}
 
 	asset, err := spec.ResolveAsset(version)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	if err := os.MkdirAll(destDir, 0o755); err != nil {
-		return "", "", fmt.Errorf("%w: create engine directory: %v", ErrEngineBinaryDownloadFailed, err)
+		return "", "", "", fmt.Errorf("%w: create engine directory: %v", ErrEngineBinaryDownloadFailed, err)
 	}
 
 	tmpDir, err := os.MkdirTemp(filepath.Dir(destDir), "."+filepath.Base(destDir)+".bootstrap-*")
 	if err != nil {
-		return "", "", fmt.Errorf("%w: create bootstrap temp directory: %v", ErrEngineBinaryDownloadFailed, err)
+		return "", "", "", fmt.Errorf("%w: create bootstrap temp directory: %v", ErrEngineBinaryDownloadFailed, err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	downloadPath := filepath.Join(tmpDir, asset.Name)
 	archiveHash, err := downloadURLToFile(asset.DownloadURL, downloadPath)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	if expected := strings.TrimSpace(asset.SHA256); expected != "" && !strings.EqualFold(expected, archiveHash) {
-		return "", "", fmt.Errorf("%w: expected=%s actual=%s", ErrEngineBinaryHashMismatch, strings.ToLower(expected), archiveHash)
+		return "", "", "", fmt.Errorf("%w: expected=%s actual=%s", ErrEngineBinaryHashMismatch, strings.ToLower(expected), archiveHash)
 	}
 
 	stagedPayloadDir := filepath.Join(tmpDir, "payload")
 	finalTmpPath, err := stageManagedBinaryPayload(downloadPath, stagedPayloadDir, spec.BinaryName)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	if err := os.Chmod(finalTmpPath, 0o755); err != nil {
-		return "", "", fmt.Errorf("%w: chmod engine binary: %v", ErrEngineBinaryDownloadFailed, err)
+		return "", "", "", fmt.Errorf("%w: chmod engine binary: %v", ErrEngineBinaryDownloadFailed, err)
 	}
 
 	finalHash, err := sha256File(finalTmpPath)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	if err := installManagedBinaryPayload(destDir, stagedPayloadDir); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	destPath := filepath.Join(destDir, spec.BinaryName)
-	return destPath, finalHash, nil
+	return destPath, finalHash, asset.Name, nil
 }
 
 func downloadFromURLWithExpectedSHA256(url, destDir, binaryName, expectedSHA256 string) (string, string, error) {

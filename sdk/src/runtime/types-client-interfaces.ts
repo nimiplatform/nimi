@@ -116,6 +116,8 @@ import type {
   CheckLocalServiceHealthResponse,
   CollectDeviceProfileRequest,
   CollectDeviceProfileResponse,
+  ExecuteLocalStateCutoverRequest,
+  ExecuteLocalStateCutoverResponse,
   ImportLocalAssetRequest,
   ImportLocalAssetResponse,
   ImportLocalAssetFileRequest,
@@ -145,6 +147,10 @@ import type {
   RemoveLocalServiceResponse,
   ResumeLocalTransferRequest,
   ResumeLocalTransferResponse,
+  ResolveLocalRuntimeDependencyRequest,
+  ResolveLocalRuntimeDependencyResponse,
+  ResolveLocalStateReconciliationRequest,
+  ResolveLocalStateReconciliationResponse,
   ResolveProfileRequest,
   ResolveProfileResponse,
   ScanUnregisteredAssetsRequest,
@@ -157,6 +163,8 @@ import type {
   SearchCatalogModelsResponse,
   StartLocalAssetRequest,
   StartLocalAssetResponse,
+  StartLocalRuntimeDependencySetupRequest,
+  StartLocalRuntimeDependencySetupResponse,
   StartLocalServiceRequest,
   StartLocalServiceResponse,
   StopLocalAssetRequest,
@@ -499,6 +507,10 @@ export type RuntimeLocalServiceClient = {
   resumeLocalTransfer(request: ResumeLocalTransferRequest, options?: RuntimeCallOptions): Promise<ResumeLocalTransferResponse>;
   cancelLocalTransfer(request: CancelLocalTransferRequest, options?: RuntimeCallOptions): Promise<CancelLocalTransferResponse>;
   watchLocalTransfers(request: WatchLocalTransfersRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<LocalTransferProgressEvent>>;
+  resolveLocalRuntimeDependency(request: ResolveLocalRuntimeDependencyRequest, options?: RuntimeCallOptions): Promise<ResolveLocalRuntimeDependencyResponse>;
+  startLocalRuntimeDependencySetup(request: StartLocalRuntimeDependencySetupRequest, options?: RuntimeCallOptions): Promise<StartLocalRuntimeDependencySetupResponse>;
+  resolveLocalStateReconciliation(request: ResolveLocalStateReconciliationRequest, options?: RuntimeCallOptions): Promise<ResolveLocalStateReconciliationResponse>;
+  executeLocalStateCutover(request: ExecuteLocalStateCutoverRequest, options?: RuntimeCallOptions): Promise<ExecuteLocalStateCutoverResponse>;
   collectDeviceProfile(request: CollectDeviceProfileRequest, options?: RuntimeCallOptions): Promise<CollectDeviceProfileResponse>;
   resolveProfile(request: ResolveProfileRequest, options?: RuntimeCallOptions): Promise<ResolveProfileResponse>;
   applyProfile(request: ApplyProfileRequest, options?: RuntimeCallOptions): Promise<ApplyProfileResponse>;

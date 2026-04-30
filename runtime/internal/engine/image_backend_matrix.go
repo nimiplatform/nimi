@@ -73,7 +73,6 @@ type ImageSupervisedMatrixEntry struct {
 	OS                    string
 	Arch                  string
 	GPUVendor             string
-	CUDARequired          bool
 	AssetFamily           ImageAssetFamily
 	ArtifactFormats       []string
 	ProfileKind           ImageProfileKind
@@ -147,7 +146,6 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		OS:                    "windows",
 		Arch:                  "amd64",
 		GPUVendor:             "nvidia",
-		CUDARequired:          true,
 		AssetFamily:           ImageAssetFamilyGGUFImage,
 		ArtifactFormats:       []string{"gguf"},
 		ProfileKind:           ImageProfileKindSingleBinaryModel,
@@ -164,7 +162,6 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		OS:                    "linux",
 		Arch:                  "amd64",
 		GPUVendor:             "nvidia",
-		CUDARequired:          true,
 		AssetFamily:           ImageAssetFamilyGGUFImage,
 		ArtifactFormats:       []string{"gguf"},
 		ProfileKind:           ImageProfileKindSingleBinaryModel,
@@ -182,7 +179,6 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		OS:                    "windows",
 		Arch:                  "amd64",
 		GPUVendor:             "nvidia",
-		CUDARequired:          true,
 		AssetFamily:           ImageAssetFamilySafetensorsNativeImage,
 		ArtifactFormats:       []string{"safetensors"},
 		ProfileKind:           ImageProfileKindSingleBinaryModel,
@@ -200,7 +196,6 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		OS:                    "windows",
 		Arch:                  "amd64",
 		GPUVendor:             "nvidia",
-		CUDARequired:          true,
 		AssetFamily:           ImageAssetFamilyWorkflowSafetensorsImage,
 		ArtifactFormats:       []string{"safetensors", "json_config"},
 		ProfileKind:           ImageProfileKindWorkflowPipeline,
@@ -218,7 +213,6 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		OS:                    "linux",
 		Arch:                  "amd64",
 		GPUVendor:             "nvidia",
-		CUDARequired:          true,
 		AssetFamily:           ImageAssetFamilySafetensorsNativeImage,
 		ArtifactFormats:       []string{"safetensors"},
 		ProfileKind:           ImageProfileKindSingleBinaryModel,
@@ -236,7 +230,6 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		OS:                    "linux",
 		Arch:                  "amd64",
 		GPUVendor:             "nvidia",
-		CUDARequired:          true,
 		AssetFamily:           ImageAssetFamilyWorkflowSafetensorsImage,
 		ArtifactFormats:       []string{"safetensors", "json_config"},
 		ProfileKind:           ImageProfileKindWorkflowPipeline,
@@ -355,10 +348,6 @@ func ResolveImageSupervisedMatrix(input ImageSupervisedResolverInput) ImageSuper
 		if entry.GPUVendor != "" && !strings.EqualFold(entry.GPUVendor, normalizedGPUVendor) {
 			continue
 		}
-		if entry.CUDARequired && !input.CUDAReady {
-			continue
-		}
-
 		// 3. asset_family (if known)
 		if entry.AssetFamily != assetFamily {
 			continue

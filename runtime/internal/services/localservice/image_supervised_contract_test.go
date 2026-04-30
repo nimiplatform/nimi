@@ -61,7 +61,7 @@ func TestDeriveCanonicalImageFactsWorkflowBundle(t *testing.T) {
 func TestCanonicalSupervisedImageSelectionMatchesWindowsNvidiaGGUFHostProfile(t *testing.T) {
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
 
 	selection := canonicalSupervisedImageSelection(
 		collectDeviceProfile(),
@@ -78,7 +78,7 @@ func TestCanonicalSupervisedImageSelectionMatchesWindowsNvidiaGGUFHostProfile(t 
 		),
 	)
 	if selection.EntryID != "windows-x64-nvidia-gguf" {
-		t.Fatalf("expected windows/amd64/nvidia+cuda to resolve windows-x64-nvidia-gguf, got %q", selection.EntryID)
+		t.Fatalf("expected windows/amd64/nvidia to resolve windows-x64-nvidia-gguf without global CUDA readiness, got %q", selection.EntryID)
 	}
 }
 

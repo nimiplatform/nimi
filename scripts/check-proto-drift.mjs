@@ -66,12 +66,20 @@ async function main() {
     beforeSnapshots.set(target, await snapshotTarget(target));
   }
 
-  const run = spawnSync('pnpm', ['proto:generate'], {
+  const run = process.platform === 'win32'
+    ? spawnSync('pnpm proto:generate', {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      stdio: 'pipe',
+      shell: true,
+      maxBuffer: 32 * 1024 * 1024,
+    })
+    : spawnSync('pnpm', ['proto:generate'], {
     cwd: repoRoot,
     encoding: 'utf8',
     stdio: 'pipe',
     maxBuffer: 32 * 1024 * 1024,
-  });
+    });
   if ((run.status ?? 1) !== 0) {
     process.stderr.write(run.stdout || '');
     process.stderr.write(run.stderr || '');

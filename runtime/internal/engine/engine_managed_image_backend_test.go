@@ -86,13 +86,10 @@ func TestInstallManagedImageBackendFromOCI(t *testing.T) {
 
 func TestInstallManagedImageBackendFromDirectArchive(t *testing.T) {
 	archive := makeFakeArchiveAsset(t, "payload.zip", "sd.exe", []byte("fake-windows-backend"))
-	supplementalArchive := makeFakeArchiveAsset(t, "payload.zip", "cudart64_12.dll", []byte("fake-cudart"))
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/sd.zip":
 			_, _ = w.Write(archive)
-		case "/cudart.zip":
-			_, _ = w.Write(supplementalArchive)
 		default:
 			http.NotFound(w, r)
 		}
@@ -101,15 +98,11 @@ func TestInstallManagedImageBackendFromDirectArchive(t *testing.T) {
 
 	backendsPath := t.TempDir()
 	spec := managedImageBackendPackageSpec{
-		BackendName:    "stablediffusion-ggml",
-		InstallDirName: "sd-win-cuda12-x64-stablediffusion-ggml",
-		PackageFormat:  managedImageBackendPackageFormatDirectArchive,
-		ArchiveURL:     server.URL + "/sd.zip",
-		ArchiveSHA256:  fmt.Sprintf("%x", sha256.Sum256(archive)),
-		SupplementalArchives: []managedImageBackendArchiveSource{{
-			URL:    server.URL + "/cudart.zip",
-			SHA256: fmt.Sprintf("%x", sha256.Sum256(supplementalArchive)),
-		}},
+		BackendName:          "stablediffusion-ggml",
+		InstallDirName:       "sd-win-cuda12-x64-stablediffusion-ggml",
+		PackageFormat:        managedImageBackendPackageFormatDirectArchive,
+		ArchiveURL:           server.URL + "/sd.zip",
+		ArchiveSHA256:        fmt.Sprintf("%x", sha256.Sum256(archive)),
 		ExecutableCandidates: []string{"sd.exe"},
 		Supported:            true,
 	}
@@ -119,10 +112,6 @@ func TestInstallManagedImageBackendFromDirectArchive(t *testing.T) {
 	executablePath := filepath.Join(backendsPath, spec.InstallDirName, "sd.exe")
 	if _, err := os.Stat(executablePath); err != nil {
 		t.Fatalf("expected Windows backend executable to be installed: %v", err)
-	}
-	cudartPath := filepath.Join(backendsPath, spec.InstallDirName, "cudart64_12.dll")
-	if _, err := os.Stat(cudartPath); err != nil {
-		t.Fatalf("expected supplemental CUDA runtime DLL to be installed: %v", err)
 	}
 	metadata, err := readManagedImageBackendMetadata(filepath.Join(backendsPath, spec.InstallDirName, "metadata.json"))
 	if err != nil {
@@ -154,7 +143,7 @@ func TestDiscoverInstalledManagedImageBackendLaunchConfigRuntimeWrapper(t *testi
 		managedImageBackendCurrentExecutable = originalExecutable
 	})
 
-	launchCfg, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, "stablediffusion-ggml", managedImageBackendPackageSpec{
+	launchCfg, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, t.TempDir(), "stablediffusion-ggml", managedImageBackendPackageSpec{
 		BackendName:          "stablediffusion-ggml",
 		InstallDirName:       "sd-win-cuda12-x64-stablediffusion-ggml",
 		LaunchMode:           managedImageBackendLaunchModeRuntimeWrapper,
@@ -172,6 +161,62 @@ func TestDiscoverInstalledManagedImageBackendLaunchConfigRuntimeWrapper(t *testi
 	}
 	if launchCfg.WorkingDir != backendDir {
 		t.Fatalf("unexpected wrapper working dir: %q", launchCfg.WorkingDir)
+	}
+}
+
+func TestDiscoverInstalledManagedImageBackendLaunchConfigInjectsManagedCUDAPathProcessOnly(t *testing.T) {
+	if currentGOOS() != "windows" {
+		t.Skip("Windows-only process PATH injection")
+	}
+	backendsPath := t.TempDir()
+	dependenciesPath := t.TempDir()
+	backendDir := filepath.Join(backendsPath, "sd-win-cuda12-x64-stablediffusion-ggml")
+	dependencyDir := filepath.Join(dependenciesPath, NVIDIACUDAUserSpaceRuntimeDependencyID)
+	if err := os.MkdirAll(backendDir, 0o755); err != nil {
+		t.Fatalf("mkdir backend dir: %v", err)
+	}
+	if err := os.MkdirAll(dependencyDir, 0o755); err != nil {
+		t.Fatalf("mkdir dependency dir: %v", err)
+	}
+	for name, contents := range map[string][]byte{
+		"sd.exe":        []byte("fake-windows-backend"),
+		"metadata.json": []byte(`{"name":"sd-win-cuda12-x64-stablediffusion-ggml","alias":"stablediffusion-ggml"}`),
+	} {
+		if err := os.WriteFile(filepath.Join(backendDir, name), contents, 0o755); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+	for _, artifact := range nvidiaCUDAUserSpaceRuntimeRequiredArtifacts {
+		if err := os.WriteFile(filepath.Join(dependencyDir, artifact), []byte("fake-"+artifact), 0o755); err != nil {
+			t.Fatalf("write %s: %v", artifact, err)
+		}
+	}
+
+	originalExecutable := managedImageBackendCurrentExecutable
+	managedImageBackendCurrentExecutable = func() (string, error) {
+		return filepath.Join(t.TempDir(), "nimi.exe"), nil
+	}
+	t.Cleanup(func() {
+		managedImageBackendCurrentExecutable = originalExecutable
+	})
+	t.Setenv("PATH", `C:\Windows\System32`)
+
+	launchCfg, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, dependenciesPath, "stablediffusion-ggml", managedImageBackendPackageSpec{
+		BackendName:          "stablediffusion-ggml",
+		InstallDirName:       "sd-win-cuda12-x64-stablediffusion-ggml",
+		PackageSource:        managedImageBackendPackageSourceCanonicalRuntimeWrapper,
+		LaunchMode:           managedImageBackendLaunchModeRuntimeWrapper,
+		WrapperDriver:        "stable-diffusion.cpp",
+		ExecutableCandidates: []string{"sd.exe"},
+	}, "127.0.0.1:50052")
+	if err != nil {
+		t.Fatalf("discoverInstalledManagedImageBackendLaunchConfig: %v", err)
+	}
+	if got := launchCfg.Env["PATH"]; !strings.HasPrefix(got, dependencyDir+string(os.PathListSeparator)) {
+		t.Fatalf("expected process PATH to prepend managed CUDA dependency dir, got %q", got)
+	}
+	if got := os.Getenv("PATH"); got != `C:\Windows\System32` {
+		t.Fatalf("host PATH must not be mutated, got %q", got)
 	}
 }
 
@@ -200,6 +245,25 @@ func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaCUDA(t *testin
 	}
 	if got := strings.TrimSpace(spec.ArchiveURL); got == "" {
 		t.Fatal("expected archive URL for Windows managed image backend package")
+	}
+}
+
+func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaWithoutCUDA(t *testing.T) {
+	spec, ok := resolveManagedImageBackendPackageSpecForHost(
+		"stablediffusion-ggml",
+		"windows",
+		"amd64",
+		"nvidia",
+		false,
+	)
+	if !ok {
+		t.Fatal("expected Windows nvidia host without global CUDA to resolve a managed image backend package")
+	}
+	if !spec.Supported {
+		t.Fatalf("expected Windows managed image backend package to be supported, got %#v", spec)
+	}
+	if len(spec.ExecutableCandidates) == 0 {
+		t.Fatal("expected Windows package to declare executable candidates")
 	}
 }
 

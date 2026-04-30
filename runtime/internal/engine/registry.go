@@ -11,12 +11,14 @@ import (
 
 // RegistryEntry records a managed engine binary.
 type RegistryEntry struct {
-	Engine      EngineKind `json:"engine"`
-	Version     string     `json:"version"`
-	BinaryPath  string     `json:"binary_path"`
-	SHA256      string     `json:"sha256,omitempty"`
-	Platform    string     `json:"platform"`
-	InstalledAt string     `json:"installed_at"`
+	Engine           EngineKind `json:"engine"`
+	Version          string     `json:"version"`
+	BinaryPath       string     `json:"binary_path"`
+	SHA256           string     `json:"sha256,omitempty"`
+	Platform         string     `json:"platform"`
+	AssetName        string     `json:"asset_name,omitempty"`
+	AcceleratorPlane string     `json:"accelerator_plane,omitempty"`
+	InstalledAt      string     `json:"installed_at"`
 }
 
 // Registry manages the on-disk engine binary inventory.

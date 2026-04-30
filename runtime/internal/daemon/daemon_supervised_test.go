@@ -569,6 +569,15 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 	if err := os.MkdirAll(filepath.Join(homeDir, ".nimi", "runtime"), 0o755); err != nil {
 		t.Fatalf("create test runtime dir: %v", err)
 	}
+	managedCUDADependencyDir := filepath.Join(homeDir, ".nimi", "runtime", "accelerator-dependencies", engine.NVIDIACUDAUserSpaceRuntimeDependencyID)
+	if err := os.MkdirAll(managedCUDADependencyDir, 0o755); err != nil {
+		t.Fatalf("create managed CUDA dependency dir: %v", err)
+	}
+	for _, artifact := range []string{"cudart64_12.dll", "cublas64_12.dll", "cublasLt64_12.dll"} {
+		if err := os.WriteFile(filepath.Join(managedCUDADependencyDir, artifact), []byte("test"), 0o644); err != nil {
+			t.Fatalf("write managed CUDA dependency artifact %s: %v", artifact, err)
+		}
+	}
 	managedBackendDir := filepath.Join(homeDir, ".nimi", "runtime", "managed-image-backends", "metal-stablediffusion-ggml")
 	if err := os.MkdirAll(managedBackendDir, 0o755); err != nil {
 		t.Fatalf("create managed image backend dir: %v", err)
@@ -578,6 +587,16 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 	}
 	if err := os.WriteFile(filepath.Join(managedBackendDir, "metadata.json"), []byte(`{"name":"metal-stablediffusion-ggml","alias":"stablediffusion-ggml"}`), 0o644); err != nil {
 		t.Fatalf("write managed image backend metadata: %v", err)
+	}
+	windowsManagedBackendDir := filepath.Join(homeDir, ".nimi", "runtime", "managed-image-backends", "sd-win-cuda12-x64-stablediffusion-ggml")
+	if err := os.MkdirAll(windowsManagedBackendDir, 0o755); err != nil {
+		t.Fatalf("create Windows managed image backend dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(windowsManagedBackendDir, "sd.exe"), []byte("test"), 0o755); err != nil {
+		t.Fatalf("write Windows managed image backend executable: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(windowsManagedBackendDir, "metadata.json"), []byte(`{"name":"sd-win-cuda12-x64-stablediffusion-ggml","alias":"stablediffusion-ggml"}`), 0o644); err != nil {
+		t.Fatalf("write Windows managed image backend metadata: %v", err)
 	}
 
 	localStatePath := filepath.Join(homeDir, ".nimi", "runtime", "local-state.json")

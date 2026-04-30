@@ -37,13 +37,11 @@ type managedImageBackendPackageSpec struct {
 	OS                   string
 	Arch                 string
 	GPUVendor            string
-	CUDARequired         bool
 	InstallDirName       string
 	PackageFormat        managedImageBackendPackageFormat
 	ImageRef             string
 	ArchiveURL           string
 	ArchiveSHA256        string
-	SupplementalArchives []managedImageBackendArchiveSource
 	ExecutableCandidates []string
 	LaunchMode           managedImageBackendLaunchMode
 	WrapperDriver        string
@@ -82,22 +80,15 @@ var managedImageBackendPackageSpecs = []managedImageBackendPackageSpec{
 		Supported:     true,
 	},
 	{
-		BackendName:    "stablediffusion-ggml",
-		PackageSource:  managedImageBackendPackageSourceCanonicalRuntimeWrapper,
-		OS:             "windows",
-		Arch:           "amd64",
-		GPUVendor:      "nvidia",
-		CUDARequired:   true,
-		InstallDirName: "sd-win-cuda12-x64-stablediffusion-ggml",
-		PackageFormat:  managedImageBackendPackageFormatDirectArchive,
-		ArchiveURL:     "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-win-cuda12-x64.zip",
-		ArchiveSHA256:  "011643ec700d6097b9537f0f75ffb26856cc56a5ce765ffe9a32f2b47844e080",
-		SupplementalArchives: []managedImageBackendArchiveSource{
-			{
-				URL:    "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/cudart-sd-bin-win-cu12-x64.zip",
-				SHA256: "fe20366827d357c00797eebb58244dddab7fd9a348d70090c3871004c320f38d",
-			},
-		},
+		BackendName:          "stablediffusion-ggml",
+		PackageSource:        managedImageBackendPackageSourceCanonicalRuntimeWrapper,
+		OS:                   "windows",
+		Arch:                 "amd64",
+		GPUVendor:            "nvidia",
+		InstallDirName:       "sd-win-cuda12-x64-stablediffusion-ggml",
+		PackageFormat:        managedImageBackendPackageFormatDirectArchive,
+		ArchiveURL:           "https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-win-cuda12-x64.zip",
+		ArchiveSHA256:        "011643ec700d6097b9537f0f75ffb26856cc56a5ce765ffe9a32f2b47844e080",
 		ExecutableCandidates: []string{"sd.exe", "sd-cli.exe"},
 		LaunchMode:           managedImageBackendLaunchModeRuntimeWrapper,
 		WrapperDriver:        "stable-diffusion.cpp",
@@ -109,10 +100,9 @@ var managedImageBackendPackageSpecs = []managedImageBackendPackageSpec{
 		OS:            "linux",
 		Arch:          "amd64",
 		GPUVendor:     "nvidia",
-		CUDARequired:  true,
 		PackageFormat: managedImageBackendPackageFormatNone,
 		Supported:     false,
-		Detail:        "no published runtime-owned managed image backend package is available for linux/amd64+nvidia+cuda",
+		Detail:        "no published runtime-owned managed image backend package is available for linux/amd64+nvidia",
 	},
 }
 
@@ -136,6 +126,7 @@ func resolveManagedImageBackendPackageSpecForHost(backendName string, goos strin
 }
 
 func resolveManagedImageBackendPackageSpecForHostWithSource(backendName string, source string, goos string, goarch string, gpuVendor string, cudaReady bool) (managedImageBackendPackageSpec, bool) {
+	_ = cudaReady // CUDA user-space readiness is resolved as a runtime dependency, not package admission.
 	normalizedBackend := strings.ToLower(strings.TrimSpace(backendName))
 	rawSource := strings.TrimSpace(source)
 	normalizedSource := normalizeManagedImageBackendPackageSource(source)
@@ -143,7 +134,6 @@ func resolveManagedImageBackendPackageSpecForHostWithSource(backendName string, 
 		return managedImageBackendPackageSpec{}, false
 	}
 	hostGPUVendor := strings.ToLower(strings.TrimSpace(gpuVendor))
-	hostCUDAReady := cudaReady
 	candidates := make([]managedImageBackendPackageSpec, 0, len(managedImageBackendPackageSpecs))
 	for _, entry := range managedImageBackendPackageSpecs {
 		if !strings.EqualFold(strings.TrimSpace(entry.BackendName), normalizedBackend) {
@@ -156,9 +146,6 @@ func resolveManagedImageBackendPackageSpecForHostWithSource(backendName string, 
 			continue
 		}
 		if strings.TrimSpace(entry.GPUVendor) != "" && !strings.EqualFold(strings.TrimSpace(entry.GPUVendor), hostGPUVendor) {
-			continue
-		}
-		if entry.CUDARequired && !hostCUDAReady {
 			continue
 		}
 		candidates = append(candidates, entry)

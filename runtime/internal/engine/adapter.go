@@ -53,6 +53,18 @@ func (a *ServiceAdapter) EnsureEngine(ctx context.Context, engineName string, ve
 	return err
 }
 
+func (a *ServiceAdapter) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedImageBackendConfig) error {
+	return a.mgr.EnsureManagedImageBackend(ctx, cfg)
+}
+
+func (a *ServiceAdapter) ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) SharedAcceleratorDependencyStatus {
+	return a.mgr.ResolveSharedAcceleratorDependency(dependencyID, consumerID)
+}
+
+func (a *ServiceAdapter) EnsureSharedAcceleratorDependency(ctx context.Context, dependencyID string) (SharedAcceleratorDependencyStatus, error) {
+	return a.mgr.EnsureSharedAcceleratorDependency(ctx, dependencyID)
+}
+
 func (a *ServiceAdapter) StartEngine(ctx context.Context, engineName string, port int, version string) error {
 	cfg, err := resolveEngineConfig(engineName, version, port)
 	if err != nil {

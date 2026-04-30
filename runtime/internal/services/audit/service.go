@@ -281,6 +281,10 @@ func (s *Service) ListAIProviderHealth(context.Context, *runtimev1.ListAIProvide
 
 func (s *Service) SubscribeAIProviderHealthEvents(_ *runtimev1.SubscribeAIProviderHealthEventsRequest, stream grpc.ServerStreamingServer[runtimev1.AIProviderHealthEvent]) error {
 	if s.providerTrack == nil {
+		<-stream.Context().Done()
+		if err := rpcctx.ContextDoneError(stream.Context()); err != nil {
+			return err
+		}
 		return nil
 	}
 

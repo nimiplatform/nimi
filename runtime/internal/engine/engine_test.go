@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"sync/atomic"
@@ -81,6 +82,83 @@ func TestLlamaAssetName(t *testing.T) {
 				t.Fatalf("llamaAssetNameFor(%q,%q) = %q, want %q", tt.goos, tt.goarch, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestLlamaAssetNameCandidatesPreferWindowsNvidiaCUDA(t *testing.T) {
+	got, err := llamaAssetNameCandidates("b8712", "windows", "amd64", "nvidia")
+	if err != nil {
+		t.Fatalf("llamaAssetNameCandidates: %v", err)
+	}
+	want := []string{
+		"llama-b8712-bin-win-cuda-12.4-x64.zip",
+		"llama-b8712-bin-win-cpu-x64.zip",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("llamaAssetNameCandidates = %#v, want %#v", got, want)
+	}
+}
+
+func TestLlamaReleaseAssetPrefersWindowsNvidiaCUDAAndFallsBackToCPU(t *testing.T) {
+	if currentGOOS() != "windows" || currentGOARCH() != "amd64" {
+		t.Skip("Windows NVIDIA CUDA release selection is host-gated")
+	}
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	const version = "b8712"
+	const cudaAsset = "llama-b8712-bin-win-cuda-12.4-x64.zip"
+	const cpuAsset = "llama-b8712-bin-win-cpu-x64.zip"
+	const cudaHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	const cpuHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/"+version {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"tag_name":"%s","assets":[{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"},{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"}]}`, version, cpuAsset, version, cpuAsset, cpuHash, cudaAsset, version, cudaAsset, cudaHash)))
+	}))
+	defer server.Close()
+	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
+
+	asset, err := llamaReleaseAsset(version)
+	if err != nil {
+		t.Fatalf("llamaReleaseAsset: %v", err)
+	}
+	if asset.Name != cudaAsset || asset.SHA256 != cudaHash {
+		t.Fatalf("expected CUDA asset, got %#v", asset)
+	}
+
+	fallbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/"+version {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"tag_name":"%s","assets":[{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"}]}`, version, cpuAsset, version, cpuAsset, cpuHash)))
+	}))
+	defer fallbackServer.Close()
+	t.Cleanup(setLlamaReleaseSourceForTest(fallbackServer.URL, fallbackServer.Client()))
+
+	asset, err = llamaReleaseAsset(version)
+	if err != nil {
+		t.Fatalf("llamaReleaseAsset fallback: %v", err)
+	}
+	if asset.Name != cpuAsset || asset.SHA256 != cpuHash {
+		t.Fatalf("expected CPU fallback asset, got %#v", asset)
+	}
+}
+
+func TestLlamaRegistryEntryRequiresReplacementForLegacyCPUOnNvidiaHost(t *testing.T) {
+	entry := &RegistryEntry{
+		Engine:     EngineLlama,
+		Version:    "b8712",
+		BinaryPath: filepath.Join(t.TempDir(), llamaBinaryName()),
+		AssetName:  "llama-b8712-bin-win-cpu-x64.zip",
+	}
+	if !llamaRegistryEntryRequiresReplacement(entry, "llama-b8712-bin-win-cuda-12.4-x64.zip") {
+		t.Fatal("expected CPU registry entry to require replacement by preferred CUDA asset")
+	}
+	if llamaRegistryEntryRequiresReplacement(entry, "llama-b8712-bin-win-cpu-x64.zip") {
+		t.Fatal("expected matching CPU registry entry to be reusable")
 	}
 }
 
@@ -180,12 +258,12 @@ func TestClassifyMediaHost(t *testing.T) {
 			want:      MediaHostSupportAttachedOnly,
 		},
 		{
-			name:      "windows nvidia without cuda attached only",
+			name:      "windows nvidia without cuda supported supervised",
 			goos:      "windows",
 			goarch:    "amd64",
 			gpuVendor: "nvidia",
 			cudaReady: false,
-			want:      MediaHostSupportAttachedOnly,
+			want:      MediaHostSupportSupportedSupervised,
 		},
 		{
 			name:      "non windows attached only",

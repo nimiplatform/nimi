@@ -170,6 +170,56 @@ func TestDaemonRunTransitionsReadyBeforeStartupDegraded(t *testing.T) {
 	}
 }
 
+func TestDaemonRunReadyDoesNotWaitForSupervisedEngineBootstrap(t *testing.T) {
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		ShutdownTimeout:      2 * time.Second,
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+		EngineLlamaEnabled:   true,
+		EngineLlamaPort:      18321,
+		EngineLlamaVersion:   "test",
+	}
+	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return &engine.Manager{}, nil
+	}
+	started := make(chan struct{})
+	daemon.startEngineFn = func(ctx context.Context, _ engine.EngineKind, _ string, _ int, _ string) error {
+		close(started)
+		<-ctx.Done()
+		return ctx.Err()
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- daemon.Run(ctx)
+	}()
+
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		cancel()
+		t.Fatal("expected supervised engine bootstrap to start")
+	}
+	waitForDaemonStatus(t, daemon, health.StatusReady, 2*time.Second)
+
+	cancel()
+	if err := <-done; err != nil {
+		t.Fatalf("daemon run returned error: %v", err)
+	}
+}
+
 func TestDaemonRunRefreshesManagedEmbeddingProfileOnStartup(t *testing.T) {
 	cfg := config.Config{
 		GRPCAddr:             "127.0.0.1:0",

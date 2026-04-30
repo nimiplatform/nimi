@@ -130,7 +130,7 @@ func cloneStringMap(input map[string]string) map[string]string {
 	return cloned
 }
 
-func ensureManagedImageBackendInstalled(ctx context.Context, backendsPath string, cfg *ManagedImageBackendConfig) (*ManagedImageBackendConfig, error) {
+func ensureManagedImageBackendInstalled(ctx context.Context, backendsPath string, sharedDependenciesPath string, cfg *ManagedImageBackendConfig) (*ManagedImageBackendConfig, error) {
 	normalized := normalizeManagedImageBackendConfig(cfg)
 	if !normalized.Enabled() {
 		return normalized, nil
@@ -167,12 +167,12 @@ func ensureManagedImageBackendInstalled(ctx context.Context, backendsPath string
 		return nil, fmt.Errorf("no published runtime-owned managed image backend package is available for %s on %s/%s", normalized.BackendName, currentGOOS(), currentGOARCH())
 	}
 
-	launchCfg, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, normalized.BackendName, packageSpec, normalized.Address)
+	launchCfg, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, sharedDependenciesPath, normalized.BackendName, packageSpec, normalized.Address)
 	if err != nil {
 		if installErr := installManagedImageBackendPackage(ctx, backendsPath, normalized.BackendName, packageSpec); installErr != nil {
 			return nil, installErr
 		}
-		launchCfg, err = discoverInstalledManagedImageBackendLaunchConfig(backendsPath, normalized.BackendName, packageSpec, normalized.Address)
+		launchCfg, err = discoverInstalledManagedImageBackendLaunchConfig(backendsPath, sharedDependenciesPath, normalized.BackendName, packageSpec, normalized.Address)
 		if err != nil {
 			return nil, err
 		}
@@ -300,27 +300,6 @@ func installManagedImageBackendFromDirectArchive(ctx context.Context, backendsPa
 	}
 	if err := extractManagedPayload(archivePath, stagedDir); err != nil {
 		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
-	}
-	for index, supplemental := range spec.SupplementalArchives {
-		supplementalURL := strings.TrimSpace(supplemental.URL)
-		if supplementalURL == "" {
-			return fmt.Errorf("install managed image backend %s: supplemental archive URL is required", backendName)
-		}
-		supplementalName := filepath.Base(supplementalURL)
-		if supplementalName == "." || supplementalName == "" {
-			supplementalName = fmt.Sprintf("supplemental-%d.zip", index+1)
-		}
-		supplementalPath := filepath.Join(tmpDir, supplementalName)
-		supplementalHash, downloadErr := downloadURLToFile(supplementalURL, supplementalPath)
-		if downloadErr != nil {
-			return fmt.Errorf("install managed image backend %s: supplemental archive %d: %w", backendName, index+1, downloadErr)
-		}
-		if expected := strings.TrimSpace(supplemental.SHA256); expected != "" && !strings.EqualFold(expected, supplementalHash) {
-			return fmt.Errorf("%w: expected=%s actual=%s", ErrEngineBinaryHashMismatch, strings.ToLower(expected), supplementalHash)
-		}
-		if err := extractManagedPayload(supplementalPath, stagedDir); err != nil {
-			return fmt.Errorf("install managed image backend %s: supplemental archive %d: %w", backendName, index+1, err)
-		}
 	}
 	if _, _, err := discoverManagedImageBackendExecutablePathInDir(stagedDir, spec.ExecutableCandidates); err != nil {
 		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
@@ -534,7 +513,7 @@ func discoverInstalledManagedImageBackendRunPath(backendsPath string, backendNam
 	return candidates[0].runPath, nil
 }
 
-func discoverInstalledManagedImageBackendLaunchConfig(backendsPath string, backendName string, spec managedImageBackendPackageSpec, address string) (managedImageBackendLaunchConfig, error) {
+func discoverInstalledManagedImageBackendLaunchConfig(backendsPath string, sharedDependenciesPath string, backendName string, spec managedImageBackendPackageSpec, address string) (managedImageBackendLaunchConfig, error) {
 	switch spec.LaunchMode {
 	case managedImageBackendLaunchModePackageEntrypoint:
 		runPath, err := discoverInstalledManagedImageBackendRunPath(backendsPath, backendName)
@@ -554,6 +533,10 @@ func discoverInstalledManagedImageBackendLaunchConfig(backendsPath string, backe
 		if err != nil {
 			return managedImageBackendLaunchConfig{}, err
 		}
+		env, err := managedImageBackendRuntimeWrapperEnv(sharedDependenciesPath, spec)
+		if err != nil {
+			return managedImageBackendLaunchConfig{}, err
+		}
 		return managedImageBackendLaunchConfig{
 			Command: currentExecutable,
 			Args: []string{
@@ -564,10 +547,39 @@ func discoverInstalledManagedImageBackendLaunchConfig(backendsPath string, backe
 				"--backend-executable", backendExecutablePath,
 			},
 			WorkingDir: workingDir,
+			Env:        env,
 		}, nil
 	default:
 		return managedImageBackendLaunchConfig{}, fmt.Errorf("unsupported managed image backend launch mode %q", spec.LaunchMode)
 	}
+}
+
+func managedImageBackendRuntimeWrapperEnv(sharedDependenciesPath string, spec managedImageBackendPackageSpec) (map[string]string, error) {
+	if currentGOOS() != "windows" || spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper {
+		return nil, nil
+	}
+	canonicalRoot, err := filepath.Abs(filepath.Clean(strings.TrimSpace(sharedDependenciesPath)))
+	if err != nil {
+		return nil, fmt.Errorf("canonicalize shared accelerator dependency root: %w", err)
+	}
+	canonicalDependencyDir, err := filepath.Abs(filepath.Clean(filepath.Join(canonicalRoot, NVIDIACUDAUserSpaceRuntimeDependencyID)))
+	if err != nil {
+		return nil, fmt.Errorf("canonicalize shared CUDA dependency path: %w", err)
+	}
+	rel, err := filepath.Rel(canonicalRoot, canonicalDependencyDir)
+	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return nil, fmt.Errorf("shared CUDA dependency path must stay under shared accelerator dependency root")
+	}
+	for _, artifact := range nvidiaCUDAUserSpaceRuntimeRequiredArtifacts {
+		if ok, err := artifactExistsCaseInsensitive(canonicalDependencyDir, artifact); err != nil {
+			return nil, fmt.Errorf("read shared CUDA dependency path: %w", err)
+		} else if !ok {
+			return nil, fmt.Errorf("shared CUDA dependency DLL set is incomplete: missing %s", artifact)
+		}
+	}
+	return map[string]string{
+		"PATH": canonicalDependencyDir + string(os.PathListSeparator) + os.Getenv("PATH"),
+	}, nil
 }
 
 func discoverInstalledManagedImageBackendExecutablePath(backendsPath string, backendName string, spec managedImageBackendPackageSpec) (string, string, error) {

@@ -73,6 +73,10 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.local.stopLocalAsset]: RuntimeClientMethodContract<'local', 'stopLocalAsset'>;
   [RuntimeMethodIds.local.checkLocalAssetHealth]: RuntimeClientMethodContract<'local', 'checkLocalAssetHealth'>;
   [RuntimeMethodIds.local.warmLocalAsset]: RuntimeClientMethodContract<'local', 'warmLocalAsset'>;
+  [RuntimeMethodIds.local.resolveLocalRuntimeDependency]: RuntimeClientMethodContract<'local', 'resolveLocalRuntimeDependency'>;
+  [RuntimeMethodIds.local.startLocalRuntimeDependencySetup]: RuntimeClientMethodContract<'local', 'startLocalRuntimeDependencySetup'>;
+  [RuntimeMethodIds.local.resolveLocalStateReconciliation]: RuntimeClientMethodContract<'local', 'resolveLocalStateReconciliation'>;
+  [RuntimeMethodIds.local.executeLocalStateCutover]: RuntimeClientMethodContract<'local', 'executeLocalStateCutover'>;
   [RuntimeMethodIds.local.collectDeviceProfile]: RuntimeClientMethodContract<'local', 'collectDeviceProfile'>;
   [RuntimeMethodIds.local.resolveProfile]: RuntimeClientMethodContract<'local', 'resolveProfile'>;
   [RuntimeMethodIds.local.applyProfile]: RuntimeClientMethodContract<'local', 'applyProfile'>;

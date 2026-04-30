@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -21,7 +22,11 @@ func llamaDownloadURL(version string) (string, error) {
 // llamaAssetName returns the expected official llama.cpp release asset name for
 // the current platform.
 func llamaAssetName(version string) (string, error) {
-	return llamaAssetNameFor(version, currentGOOS(), currentGOARCH())
+	candidates, err := llamaAssetNameCandidates(version, currentGOOS(), currentGOARCH(), detectLocalGPUVendor())
+	if err != nil {
+		return "", err
+	}
+	return candidates[0], nil
 }
 
 func llamaAssetNameFor(version string, goos string, goarch string) (string, error) {
@@ -34,6 +39,68 @@ func llamaAssetNameFor(version string, goos string, goarch string) (string, erro
 		return fmt.Sprintf("llama-%s-%s", trimmedVersion, assetSuffix), nil
 	}
 	return "", fmt.Errorf("unsupported platform: %s/%s", strings.TrimSpace(goos), strings.TrimSpace(goarch))
+}
+
+func llamaAssetNameCandidates(version string, goos string, goarch string, gpuVendor string) ([]string, error) {
+	cpuAssetName, err := llamaAssetNameFor(version, goos, goarch)
+	if err != nil {
+		return nil, err
+	}
+	if strings.EqualFold(strings.TrimSpace(goos), "windows") &&
+		strings.EqualFold(strings.TrimSpace(goarch), "amd64") &&
+		strings.EqualFold(strings.TrimSpace(gpuVendor), "nvidia") {
+		trimmedVersion := strings.TrimSpace(version)
+		return []string{
+			fmt.Sprintf("llama-%s-bin-win-cuda-12.4-x64.zip", trimmedVersion),
+			cpuAssetName,
+		}, nil
+	}
+	return []string{cpuAssetName}, nil
+}
+
+func preferredLlamaAssetNameForCurrentHost(version string) (string, error) {
+	candidates, err := llamaAssetNameCandidates(version, currentGOOS(), currentGOARCH(), detectLocalGPUVendor())
+	if err != nil {
+		return "", err
+	}
+	return candidates[0], nil
+}
+
+func llamaAcceleratorPlaneForAsset(assetName string) string {
+	lower := strings.ToLower(strings.TrimSpace(assetName))
+	switch {
+	case strings.Contains(lower, "cuda"):
+		return "cuda"
+	case strings.Contains(lower, "vulkan"):
+		return "vulkan"
+	default:
+		return "cpu"
+	}
+}
+
+func llamaRegistryEntryUsesCUDA(entry *RegistryEntry) bool {
+	if entry == nil {
+		return false
+	}
+	if strings.EqualFold(strings.TrimSpace(entry.AcceleratorPlane), "cuda") {
+		return true
+	}
+	return strings.Contains(strings.ToLower(strings.TrimSpace(entry.AssetName)), "cuda")
+}
+
+func llamaRegistryEntryRequiresReplacement(entry *RegistryEntry, preferredAssetName string) bool {
+	if entry == nil {
+		return true
+	}
+	trimmedPreferred := strings.TrimSpace(preferredAssetName)
+	if trimmedPreferred == "" {
+		return false
+	}
+	registeredAsset := strings.TrimSpace(entry.AssetName)
+	if registeredAsset == "" {
+		return strings.Contains(strings.ToLower(trimmedPreferred), "cuda")
+	}
+	return registeredAsset != trimmedPreferred
 }
 
 // llamaCommand builds the exec.Cmd for starting llama-server.
@@ -94,7 +161,7 @@ func resolveManagedLlamaModelEntry(cfg EngineConfig) (string, string, llamaModel
 		if modelPath == "" {
 			continue
 		}
-		if !filepath.IsAbs(modelPath) && modelsRoot != "" {
+		if !filepath.IsAbs(modelPath) && !path.IsAbs(filepath.ToSlash(modelPath)) && modelsRoot != "" {
 			modelPath = filepath.Join(modelsRoot, filepath.FromSlash(modelPath))
 		}
 		return modelPath, strings.TrimSpace(entry.Name), entry.Parameters, nil

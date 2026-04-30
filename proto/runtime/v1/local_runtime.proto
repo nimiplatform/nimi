@@ -251,6 +251,91 @@ message CancelLocalTransferResponse {
 
 message WatchLocalTransfersRequest {}
 
+// === Runtime-managed Dependencies ===
+
+message LocalRuntimeDependencyDescriptor {
+  string dependency_id = 1;
+  string kind = 2;
+  string state = 3;
+  string source = 4;
+  bool confirmation_required = 5;
+  string message = 6;
+  string reason_code = 7;
+  string install_location = 8;
+  bool system_path_mutation = 9;
+  LocalTransferSessionSummary transfer = 10;
+  string consumer_id = 11;
+  string host_profile_id = 12;
+  string selected_source_record_id = 13;
+  string canonical_root = 14;
+}
+
+message ResolveLocalRuntimeDependencyRequest {
+  string dependency_id = 1;
+  string local_asset_id = 2;
+  string consumer_id = 3;
+}
+
+message ResolveLocalRuntimeDependencyResponse {
+  LocalRuntimeDependencyDescriptor dependency = 1;
+}
+
+message StartLocalRuntimeDependencySetupRequest {
+  string dependency_id = 1;
+  string local_asset_id = 2;
+  bool confirmed = 3;
+  string consumer_id = 4;
+}
+
+message StartLocalRuntimeDependencySetupResponse {
+  LocalRuntimeDependencyDescriptor dependency = 1;
+  LocalTransferSessionSummary transfer = 2;
+}
+
+// === Runtime-owned Local State Reconciliation ===
+
+message LocalStateReconciliationPlan {
+  string plan_id = 1;
+  string state = 2;
+  string reason_code = 3;
+  string message = 4;
+  string active_state_path = 5;
+  string local_models_path = 6;
+  string nimi_data_dir = 7;
+  string retired_state_path = 8;
+  bool retired_state_detected = 9;
+  bool active_state_detected = 10;
+  bool confirmation_required = 11;
+  int32 active_asset_count = 12;
+  int32 active_service_count = 13;
+  int32 active_transfer_count = 14;
+  int32 active_audit_count = 15;
+  int32 retired_asset_count = 16;
+  int32 retired_service_count = 17;
+  int32 retired_transfer_count = 18;
+  int32 retired_audit_count = 19;
+  int32 conflict_count = 20;
+}
+
+message ResolveLocalStateReconciliationRequest {
+  string nimi_data_dir = 1;
+}
+
+message ResolveLocalStateReconciliationResponse {
+  LocalStateReconciliationPlan plan = 1;
+}
+
+message ExecuteLocalStateCutoverRequest {
+  string nimi_data_dir = 1;
+  string plan_id = 2;
+  bool confirmed = 3;
+}
+
+message ExecuteLocalStateCutoverResponse {
+  LocalStateReconciliationPlan plan = 1;
+  LocalTransferSessionSummary transfer = 2;
+}
+
 // === Device Profile ===
 
 message CollectDeviceProfileRequest {
@@ -433,6 +518,14 @@ service RuntimeLocalService {
   rpc ResumeLocalTransfer(ResumeLocalTransferRequest) returns (ResumeLocalTransferResponse);
   rpc CancelLocalTransfer(CancelLocalTransferRequest) returns (CancelLocalTransferResponse);
   rpc WatchLocalTransfers(WatchLocalTransfersRequest) returns (stream LocalTransferProgressEvent);
+
+  // Runtime-managed dependencies
+  rpc ResolveLocalRuntimeDependency(ResolveLocalRuntimeDependencyRequest) returns (ResolveLocalRuntimeDependencyResponse);
+  rpc StartLocalRuntimeDependencySetup(StartLocalRuntimeDependencySetupRequest) returns (StartLocalRuntimeDependencySetupResponse);
+
+  // Runtime-owned local state reconciliation
+  rpc ResolveLocalStateReconciliation(ResolveLocalStateReconciliationRequest) returns (ResolveLocalStateReconciliationResponse);
+  rpc ExecuteLocalStateCutover(ExecuteLocalStateCutoverRequest) returns (ExecuteLocalStateCutoverResponse);
 
   // Device
   rpc CollectDeviceProfile(CollectDeviceProfileRequest) returns (CollectDeviceProfileResponse);

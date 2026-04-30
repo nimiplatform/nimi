@@ -728,11 +728,26 @@ func TestSubscribeAIProviderHealthEventsNilTracker(t *testing.T) {
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	stream := &providerHealthStreamCollector{ctx: ctx}
-	err := svc.SubscribeAIProviderHealthEvents(&runtimev1.SubscribeAIProviderHealthEventsRequest{}, stream)
-	if err != nil {
-		t.Fatalf("expected nil error with nil tracker, got=%v", err)
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeAIProviderHealthEvents(&runtimev1.SubscribeAIProviderHealthEventsRequest{}, stream)
+	}()
+
+	select {
+	case err := <-done:
+		t.Fatalf("nil tracker stream closed before cancel: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("expected nil error with nil tracker on cancel, got=%v", err)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("nil tracker stream did not exit after cancel")
 	}
 }
 

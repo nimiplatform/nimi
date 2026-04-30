@@ -13,6 +13,8 @@ import {
   CheckLocalServiceHealthResponse,
   CollectDeviceProfileRequest,
   CollectDeviceProfileResponse,
+  ExecuteLocalStateCutoverRequest,
+  ExecuteLocalStateCutoverResponse,
   ImportLocalAssetRequest,
   ImportLocalAssetResponse,
   ImportLocalAssetFileRequest,
@@ -39,6 +41,10 @@ import {
   RemoveLocalAssetResponse,
   RemoveLocalServiceRequest,
   RemoveLocalServiceResponse,
+  ResolveLocalRuntimeDependencyRequest,
+  ResolveLocalRuntimeDependencyResponse,
+  ResolveLocalStateReconciliationRequest,
+  ResolveLocalStateReconciliationResponse,
   ResolveModelInstallPlanRequest,
   ResolveModelInstallPlanResponse,
   ResolveProfileRequest,
@@ -53,6 +59,8 @@ import {
   SearchCatalogModelsResponse,
   StartLocalAssetRequest,
   StartLocalAssetResponse,
+  StartLocalRuntimeDependencySetupRequest,
+  StartLocalRuntimeDependencySetupResponse,
   StartLocalServiceRequest,
   StartLocalServiceResponse,
   StopLocalAssetRequest,
@@ -220,5 +228,21 @@ export const runtimeUnaryMethodCodecsLocal: Partial<RuntimeUnaryMethodCodecMap> 
   [RuntimeMethodIds.local.cancelLocalTransfer]: {
     requestType: CancelLocalTransferRequest,
     responseType: CancelLocalTransferResponse,
+  },
+  [RuntimeMethodIds.local.resolveLocalRuntimeDependency]: {
+    requestType: ResolveLocalRuntimeDependencyRequest,
+    responseType: ResolveLocalRuntimeDependencyResponse,
+  },
+  [RuntimeMethodIds.local.startLocalRuntimeDependencySetup]: {
+    requestType: StartLocalRuntimeDependencySetupRequest,
+    responseType: StartLocalRuntimeDependencySetupResponse,
+  },
+  [RuntimeMethodIds.local.resolveLocalStateReconciliation]: {
+    requestType: ResolveLocalStateReconciliationRequest,
+    responseType: ResolveLocalStateReconciliationResponse,
+  },
+  [RuntimeMethodIds.local.executeLocalStateCutover]: {
+    requestType: ExecuteLocalStateCutoverRequest,
+    responseType: ExecuteLocalStateCutoverResponse,
   },
 } satisfies Partial<RuntimeUnaryMethodCodecMap>;

@@ -19,43 +19,47 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeLocalService_ListLocalAssets_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets"
-	RuntimeLocalService_ListVerifiedAssets_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets"
-	RuntimeLocalService_InstallVerifiedAsset_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset"
-	RuntimeLocalService_ImportLocalAsset_FullMethodName        = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset"
-	RuntimeLocalService_ImportLocalAssetFile_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile"
-	RuntimeLocalService_ScanUnregisteredAssets_FullMethodName  = "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets"
-	RuntimeLocalService_ScaffoldOrphanAsset_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset"
-	RuntimeLocalService_RemoveLocalAsset_FullMethodName        = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset"
-	RuntimeLocalService_SearchCatalogModels_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels"
-	RuntimeLocalService_ResolveModelInstallPlan_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan"
-	RuntimeLocalService_StartLocalAsset_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset"
-	RuntimeLocalService_StopLocalAsset_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset"
-	RuntimeLocalService_CheckLocalAssetHealth_FullMethodName   = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth"
-	RuntimeLocalService_WarmLocalAsset_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset"
-	RuntimeLocalService_ListLocalTransfers_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers"
-	RuntimeLocalService_PauseLocalTransfer_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer"
-	RuntimeLocalService_ResumeLocalTransfer_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer"
-	RuntimeLocalService_CancelLocalTransfer_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer"
-	RuntimeLocalService_WatchLocalTransfers_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers"
-	RuntimeLocalService_CollectDeviceProfile_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile"
-	RuntimeLocalService_ResolveProfile_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile"
-	RuntimeLocalService_ApplyProfile_FullMethodName            = "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile"
-	RuntimeLocalService_ListLocalServices_FullMethodName       = "/nimi.runtime.v1.RuntimeLocalService/ListLocalServices"
-	RuntimeLocalService_InstallLocalService_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService"
-	RuntimeLocalService_StartLocalService_FullMethodName       = "/nimi.runtime.v1.RuntimeLocalService/StartLocalService"
-	RuntimeLocalService_StopLocalService_FullMethodName        = "/nimi.runtime.v1.RuntimeLocalService/StopLocalService"
-	RuntimeLocalService_CheckLocalServiceHealth_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth"
-	RuntimeLocalService_RemoveLocalService_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService"
-	RuntimeLocalService_ListNodeCatalog_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog"
-	RuntimeLocalService_ListLocalAudits_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits"
-	RuntimeLocalService_AppendInferenceAudit_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit"
-	RuntimeLocalService_AppendRuntimeAudit_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit"
-	RuntimeLocalService_ListEngines_FullMethodName             = "/nimi.runtime.v1.RuntimeLocalService/ListEngines"
-	RuntimeLocalService_EnsureEngine_FullMethodName            = "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine"
-	RuntimeLocalService_StartEngine_FullMethodName             = "/nimi.runtime.v1.RuntimeLocalService/StartEngine"
-	RuntimeLocalService_StopEngine_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/StopEngine"
-	RuntimeLocalService_GetEngineStatus_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus"
+	RuntimeLocalService_ListLocalAssets_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets"
+	RuntimeLocalService_ListVerifiedAssets_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets"
+	RuntimeLocalService_InstallVerifiedAsset_FullMethodName             = "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset"
+	RuntimeLocalService_ImportLocalAsset_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset"
+	RuntimeLocalService_ImportLocalAssetFile_FullMethodName             = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile"
+	RuntimeLocalService_ScanUnregisteredAssets_FullMethodName           = "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets"
+	RuntimeLocalService_ScaffoldOrphanAsset_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset"
+	RuntimeLocalService_RemoveLocalAsset_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset"
+	RuntimeLocalService_SearchCatalogModels_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels"
+	RuntimeLocalService_ResolveModelInstallPlan_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan"
+	RuntimeLocalService_StartLocalAsset_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset"
+	RuntimeLocalService_StopLocalAsset_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset"
+	RuntimeLocalService_CheckLocalAssetHealth_FullMethodName            = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth"
+	RuntimeLocalService_WarmLocalAsset_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset"
+	RuntimeLocalService_ListLocalTransfers_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers"
+	RuntimeLocalService_PauseLocalTransfer_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer"
+	RuntimeLocalService_ResumeLocalTransfer_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer"
+	RuntimeLocalService_CancelLocalTransfer_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer"
+	RuntimeLocalService_WatchLocalTransfers_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers"
+	RuntimeLocalService_ResolveLocalRuntimeDependency_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalRuntimeDependency"
+	RuntimeLocalService_StartLocalRuntimeDependencySetup_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/StartLocalRuntimeDependencySetup"
+	RuntimeLocalService_ResolveLocalStateReconciliation_FullMethodName  = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation"
+	RuntimeLocalService_ExecuteLocalStateCutover_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover"
+	RuntimeLocalService_CollectDeviceProfile_FullMethodName             = "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile"
+	RuntimeLocalService_ResolveProfile_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile"
+	RuntimeLocalService_ApplyProfile_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile"
+	RuntimeLocalService_ListLocalServices_FullMethodName                = "/nimi.runtime.v1.RuntimeLocalService/ListLocalServices"
+	RuntimeLocalService_InstallLocalService_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService"
+	RuntimeLocalService_StartLocalService_FullMethodName                = "/nimi.runtime.v1.RuntimeLocalService/StartLocalService"
+	RuntimeLocalService_StopLocalService_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/StopLocalService"
+	RuntimeLocalService_CheckLocalServiceHealth_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth"
+	RuntimeLocalService_RemoveLocalService_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService"
+	RuntimeLocalService_ListNodeCatalog_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog"
+	RuntimeLocalService_ListLocalAudits_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits"
+	RuntimeLocalService_AppendInferenceAudit_FullMethodName             = "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit"
+	RuntimeLocalService_AppendRuntimeAudit_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit"
+	RuntimeLocalService_ListEngines_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/ListEngines"
+	RuntimeLocalService_EnsureEngine_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine"
+	RuntimeLocalService_StartEngine_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/StartEngine"
+	RuntimeLocalService_StopEngine_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/StopEngine"
+	RuntimeLocalService_GetEngineStatus_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus"
 )
 
 // RuntimeLocalServiceClient is the client API for RuntimeLocalService service.
@@ -85,6 +89,12 @@ type RuntimeLocalServiceClient interface {
 	ResumeLocalTransfer(ctx context.Context, in *ResumeLocalTransferRequest, opts ...grpc.CallOption) (*ResumeLocalTransferResponse, error)
 	CancelLocalTransfer(ctx context.Context, in *CancelLocalTransferRequest, opts ...grpc.CallOption) (*CancelLocalTransferResponse, error)
 	WatchLocalTransfers(ctx context.Context, in *WatchLocalTransfersRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalTransferProgressEvent], error)
+	// Runtime-managed dependencies
+	ResolveLocalRuntimeDependency(ctx context.Context, in *ResolveLocalRuntimeDependencyRequest, opts ...grpc.CallOption) (*ResolveLocalRuntimeDependencyResponse, error)
+	StartLocalRuntimeDependencySetup(ctx context.Context, in *StartLocalRuntimeDependencySetupRequest, opts ...grpc.CallOption) (*StartLocalRuntimeDependencySetupResponse, error)
+	// Runtime-owned local state reconciliation
+	ResolveLocalStateReconciliation(ctx context.Context, in *ResolveLocalStateReconciliationRequest, opts ...grpc.CallOption) (*ResolveLocalStateReconciliationResponse, error)
+	ExecuteLocalStateCutover(ctx context.Context, in *ExecuteLocalStateCutoverRequest, opts ...grpc.CallOption) (*ExecuteLocalStateCutoverResponse, error)
 	// Device
 	CollectDeviceProfile(ctx context.Context, in *CollectDeviceProfileRequest, opts ...grpc.CallOption) (*CollectDeviceProfileResponse, error)
 	// Profile
@@ -318,6 +328,46 @@ func (c *runtimeLocalServiceClient) WatchLocalTransfers(ctx context.Context, in 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeLocalService_WatchLocalTransfersClient = grpc.ServerStreamingClient[LocalTransferProgressEvent]
 
+func (c *runtimeLocalServiceClient) ResolveLocalRuntimeDependency(ctx context.Context, in *ResolveLocalRuntimeDependencyRequest, opts ...grpc.CallOption) (*ResolveLocalRuntimeDependencyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveLocalRuntimeDependencyResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ResolveLocalRuntimeDependency_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) StartLocalRuntimeDependencySetup(ctx context.Context, in *StartLocalRuntimeDependencySetupRequest, opts ...grpc.CallOption) (*StartLocalRuntimeDependencySetupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartLocalRuntimeDependencySetupResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_StartLocalRuntimeDependencySetup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ResolveLocalStateReconciliation(ctx context.Context, in *ResolveLocalStateReconciliationRequest, opts ...grpc.CallOption) (*ResolveLocalStateReconciliationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveLocalStateReconciliationResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ResolveLocalStateReconciliation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ExecuteLocalStateCutover(ctx context.Context, in *ExecuteLocalStateCutoverRequest, opts ...grpc.CallOption) (*ExecuteLocalStateCutoverResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExecuteLocalStateCutoverResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ExecuteLocalStateCutover_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeLocalServiceClient) CollectDeviceProfile(ctx context.Context, in *CollectDeviceProfileRequest, opts ...grpc.CallOption) (*CollectDeviceProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CollectDeviceProfileResponse)
@@ -525,6 +575,12 @@ type RuntimeLocalServiceServer interface {
 	ResumeLocalTransfer(context.Context, *ResumeLocalTransferRequest) (*ResumeLocalTransferResponse, error)
 	CancelLocalTransfer(context.Context, *CancelLocalTransferRequest) (*CancelLocalTransferResponse, error)
 	WatchLocalTransfers(*WatchLocalTransfersRequest, grpc.ServerStreamingServer[LocalTransferProgressEvent]) error
+	// Runtime-managed dependencies
+	ResolveLocalRuntimeDependency(context.Context, *ResolveLocalRuntimeDependencyRequest) (*ResolveLocalRuntimeDependencyResponse, error)
+	StartLocalRuntimeDependencySetup(context.Context, *StartLocalRuntimeDependencySetupRequest) (*StartLocalRuntimeDependencySetupResponse, error)
+	// Runtime-owned local state reconciliation
+	ResolveLocalStateReconciliation(context.Context, *ResolveLocalStateReconciliationRequest) (*ResolveLocalStateReconciliationResponse, error)
+	ExecuteLocalStateCutover(context.Context, *ExecuteLocalStateCutoverRequest) (*ExecuteLocalStateCutoverResponse, error)
 	// Device
 	CollectDeviceProfile(context.Context, *CollectDeviceProfileRequest) (*CollectDeviceProfileResponse, error)
 	// Profile
@@ -614,6 +670,18 @@ func (UnimplementedRuntimeLocalServiceServer) CancelLocalTransfer(context.Contex
 }
 func (UnimplementedRuntimeLocalServiceServer) WatchLocalTransfers(*WatchLocalTransfersRequest, grpc.ServerStreamingServer[LocalTransferProgressEvent]) error {
 	return status.Error(codes.Unimplemented, "method WatchLocalTransfers not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ResolveLocalRuntimeDependency(context.Context, *ResolveLocalRuntimeDependencyRequest) (*ResolveLocalRuntimeDependencyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveLocalRuntimeDependency not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) StartLocalRuntimeDependencySetup(context.Context, *StartLocalRuntimeDependencySetupRequest) (*StartLocalRuntimeDependencySetupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartLocalRuntimeDependencySetup not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ResolveLocalStateReconciliation(context.Context, *ResolveLocalStateReconciliationRequest) (*ResolveLocalStateReconciliationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveLocalStateReconciliation not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ExecuteLocalStateCutover(context.Context, *ExecuteLocalStateCutoverRequest) (*ExecuteLocalStateCutoverResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ExecuteLocalStateCutover not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) CollectDeviceProfile(context.Context, *CollectDeviceProfileRequest) (*CollectDeviceProfileResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CollectDeviceProfile not implemented")
@@ -1024,6 +1092,78 @@ func _RuntimeLocalService_WatchLocalTransfers_Handler(srv interface{}, stream gr
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeLocalService_WatchLocalTransfersServer = grpc.ServerStreamingServer[LocalTransferProgressEvent]
 
+func _RuntimeLocalService_ResolveLocalRuntimeDependency_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveLocalRuntimeDependencyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ResolveLocalRuntimeDependency(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ResolveLocalRuntimeDependency_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ResolveLocalRuntimeDependency(ctx, req.(*ResolveLocalRuntimeDependencyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_StartLocalRuntimeDependencySetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartLocalRuntimeDependencySetupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).StartLocalRuntimeDependencySetup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_StartLocalRuntimeDependencySetup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).StartLocalRuntimeDependencySetup(ctx, req.(*StartLocalRuntimeDependencySetupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ResolveLocalStateReconciliation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveLocalStateReconciliationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ResolveLocalStateReconciliation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ResolveLocalStateReconciliation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ResolveLocalStateReconciliation(ctx, req.(*ResolveLocalStateReconciliationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ExecuteLocalStateCutover_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteLocalStateCutoverRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ExecuteLocalStateCutover(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ExecuteLocalStateCutover_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ExecuteLocalStateCutover(ctx, req.(*ExecuteLocalStateCutoverRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeLocalService_CollectDeviceProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CollectDeviceProfileRequest)
 	if err := dec(in); err != nil {
@@ -1426,6 +1566,22 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CancelLocalTransfer",
 			Handler:    _RuntimeLocalService_CancelLocalTransfer_Handler,
+		},
+		{
+			MethodName: "ResolveLocalRuntimeDependency",
+			Handler:    _RuntimeLocalService_ResolveLocalRuntimeDependency_Handler,
+		},
+		{
+			MethodName: "StartLocalRuntimeDependencySetup",
+			Handler:    _RuntimeLocalService_StartLocalRuntimeDependencySetup_Handler,
+		},
+		{
+			MethodName: "ResolveLocalStateReconciliation",
+			Handler:    _RuntimeLocalService_ResolveLocalStateReconciliation_Handler,
+		},
+		{
+			MethodName: "ExecuteLocalStateCutover",
+			Handler:    _RuntimeLocalService_ExecuteLocalStateCutover_Handler,
 		},
 		{
 			MethodName: "CollectDeviceProfile",

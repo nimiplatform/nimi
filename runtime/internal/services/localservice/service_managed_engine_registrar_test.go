@@ -35,6 +35,29 @@ func (m *registrarTestEngineManager) EnsureEngine(_ context.Context, _ string, _
 	return nil
 }
 
+func (m *registrarTestEngineManager) EnsureManagedImageBackend(_ context.Context, _ *engine.ManagedImageBackendConfig) error {
+	return nil
+}
+
+func (m *registrarTestEngineManager) ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) engine.SharedAcceleratorDependencyStatus {
+	return engine.SharedAcceleratorDependencyStatus{
+		DependencyID: engine.NormalizeSharedAcceleratorDependencyID(dependencyID),
+		ConsumerID:   strings.TrimSpace(consumerID),
+		State:        engine.SharedAcceleratorDependencyMaterializableRequiresConfirmation,
+		Source:       "runtime_managed",
+		Detail:       "nvidia_cuda_user_space_runtime state=materializable_requires_confirmation",
+	}
+}
+
+func (m *registrarTestEngineManager) EnsureSharedAcceleratorDependency(_ context.Context, dependencyID string) (engine.SharedAcceleratorDependencyStatus, error) {
+	return engine.SharedAcceleratorDependencyStatus{
+		DependencyID: engine.NormalizeSharedAcceleratorDependencyID(dependencyID),
+		State:        engine.SharedAcceleratorDependencyReadyManaged,
+		Source:       "runtime_managed",
+		Detail:       "nvidia_cuda_user_space_runtime state=ready_managed",
+	}, nil
+}
+
 func (m *registrarTestEngineManager) StartEngine(_ context.Context, _ string, _ int, _ string) error {
 	m.startCalls++
 	return m.startErr
