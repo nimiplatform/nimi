@@ -11,9 +11,35 @@ SDK API / presentation timeline) are consumed as upstream references.
 
 ## Contracts
 
+### [`backend-branch-contract.md`](backend-branch-contract.md)
+
+Multi-backend carrier abstraction (Wave 0 of topic
+`2026-04-30-avatar-vrm-backend-branch` admit):
+
+- `BackendKind` closed union (`'live2d' | 'vrm'`)
+- `BackendBranch` discriminated union (kind narrowing exposes Live2D-only
+  `live2dExtension`)
+- `BackendNominalBounds` / `BackendHitRegion` / `BackendAudioConsumer` /
+  `BackendProjection` / `BackendSurface` types
+- `createBackendBranch(model)` factory exhaustive switch (only allowed `kind`
+  branch site)
+
+### [`vrm-backend-contract.md`](vrm-backend-contract.md)
+
+VRM backend branch implementation contract (Wave 0 admit):
+
+- VRM lifecycle (load / context-lost recovery / dispose)
+- MToon outline policy
+- `.vrma` motion preset registry + per-model override semantics
+- VRM expression preset names (viseme + emotion)
+- Tauri webview quirks (createImageBitmap suspend)
+- Nominal bounds derivation + framing intent
+
 ### [`embodiment-projection-contract.md`](embodiment-projection-contract.md)
 
-Backend-agnostic embodiment projection truth:
+Backend-agnostic embodiment projection truth (re-anchored at Wave 0 of topic
+`2026-04-30-avatar-vrm-backend-branch` to BackendProjection ontology surface;
+parameter-id path is now Live2D-only escape hatch via `Live2DBackendExtension`):
 
 - runtime / SDK semantic bundle enters avatar app here
 - app-local projection cues are named independently from any renderer backend
@@ -110,6 +136,25 @@ Existing Live2D asset compatibility tier requirements and forbidden success stat
 ### [`tables/scenario-catalog.yaml`](tables/scenario-catalog.yaml)
 
 Named mock scenarios available for development / testing.
+
+### [`tables/vrm-emote-states.yaml`](tables/vrm-emote-states.yaml)
+
+VRM emote bundle recipes — emotion ontology id → multi-weight expression
+preset bundle. Wave 0 of topic `2026-04-30-avatar-vrm-backend-branch` admit;
+11 emotes (10 ontology emotion + `relaxed` VRM-only fallback).
+
+### [`tables/vrm-motion-presets.yaml`](tables/vrm-motion-presets.yaml)
+
+VRM motion preset registry — preset id → `.vrma` asset + license + source.
+Wave 0 admits 4 entries (`idle_subtle / listen_lean / nod_yes / shake_no`):
+`idle_subtle` is the airi MIT fork-copy PoC, while the other three are
+internal author targets. 3 external-license entries deferred to wave_3.
+
+### [`tables/window-bounds-policy.yaml`](tables/window-bounds-policy.yaml)
+
+Dynamic window sizing rules. Wave 4 admit baseline + Wave 0 of topic
+`2026-04-30-avatar-vrm-backend-branch` extension (per-backend
+nominal_bounds_default + `BackendBranch.nominalBounds` source authority).
 
 ## Upstream Platform Contracts (Referenced)
 

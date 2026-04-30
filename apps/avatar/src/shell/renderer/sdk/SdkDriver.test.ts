@@ -459,33 +459,10 @@ describe('SdkDriver', () => {
           playbackState: 'requested',
         },
       };
-      yield {
-        eventName: 'runtime.agent.presentation.lipsync_frame_batch',
-        agentId: 'agent-1',
-        conversationAnchorId: 'anchor-1',
-        turnId: 'turn-voice-1',
-        streamId: 'stream-voice-1',
-        timeline: {
-          turnId: 'turn-voice-1',
-          streamId: 'stream-voice-1',
-          channel: 'lipsync',
-          offsetMs: 0,
-          sequence: 2,
-          startedAtWall: '2026-04-25T00:00:00.000Z',
-          observedAtWall: '2026-04-25T00:00:00.030Z',
-          timebaseOwner: 'runtime',
-          projectionRuleId: 'K-AGCORE-051',
-          clockBasis: 'monotonic_with_wall_anchor',
-          providerNeutral: true,
-          appLocalAuthority: false,
-        },
-        detail: {
-          audioArtifactId: 'artifact-1',
-          frames: [
-            { frameSequence: 1, offsetMs: 0, durationMs: 80, mouthOpenY: 0.2, audioLevel: 0.1 },
-          ],
-        },
-      };
+      // Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch hard-cut:
+      // the deprecated runtime presentation per-frame mouth-batch consume
+      // path was deleted; the frame batch fixture is no longer emitted
+      // into the SdkDriver stream.
       await new Promise(() => {});
     }
 
@@ -518,17 +495,17 @@ describe('SdkDriver', () => {
 
     expect(events.map((event) => event.name)).toEqual(expect.arrayContaining([
       'runtime.agent.presentation.voice_playback_requested',
-      'runtime.agent.presentation.lipsync_frame_batch',
     ]));
-    expect(events.find((event) => event.name === 'runtime.agent.presentation.lipsync_frame_batch')?.detail)
-      .toEqual(expect.objectContaining({
-        audioArtifactId: 'artifact-1',
-        runtime_timeline: expect.objectContaining({
-          channel: 'lipsync',
-          timebase_owner: 'runtime',
-          app_local_authority: false,
-        }),
-      }));
+    // Wave 0 hard-cut: the deprecated per-frame mouth-batch presentation
+    // event is no longer in the SdkDriver event type union nor in the
+    // dispatch case set. Typecheck enforces absence; we additionally
+    // assert no presentation event other than voice_playback_requested
+    // is emitted.
+    const presentationEvents = events.filter((event) =>
+      event.name.startsWith('runtime.agent.presentation.'),
+    );
+    expect(presentationEvents.every((event) => event.name === 'runtime.agent.presentation.voice_playback_requested'))
+      .toBe(true);
 
     await driver.stop();
   });

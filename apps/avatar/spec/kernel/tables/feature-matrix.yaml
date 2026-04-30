@@ -1,10 +1,26 @@
-version: 2
+version: 3
 description: >
   Wave-based feature delivery matrix for Nimi Avatar. Each wave is an
   end-to-end deliverable capability slice; partial / mid-state delivery is
   forbidden by design principle (no MVP, no half-finished). Wave 0 is the
   spec admit gate; Wave 1-4 are the implementation waves admitted by
   app-shell-contract.md and nimi-avatar.md.
+
+  Schema v3 (Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit):
+  v2 wave_0..wave_4 status preserved as `done` and unchanged. v3 appends
+  wave_5..wave_10, mapping to topic-internal wave_0..wave_5 per design-12
+  §"Wave 编号桥接":
+
+    topic-internal wave_0 (Spec admit + platform admission)        → wave_5
+    topic-internal wave_1 (Carrier abstraction + Live2D refactor)  → wave_6
+    topic-internal wave_2 (VRM lifecycle + MToon + diagnostics)    → wave_7
+    topic-internal wave_3 (VRM motion preset + emote + activity)   → wave_8
+    topic-internal wave_4 (Window bounds + alpha-mask hit region)  → wave_9
+    topic-internal wave_5 (Smoke + closeout)                       → wave_10
+
+  topic-internal documents (candidate-wave-plan, packets, design-*)
+  always use `wave_0..wave_5`; this feature-matrix uses `wave_5..wave_10`
+  as the long-lived authority. Both refer to the same underlying scope.
 
 waves:
   wave_0:
@@ -130,13 +146,117 @@ waves:
         title: "Window bounds e2e test"
         desc: "Tauri 端 cargo test 覆盖 dynamic resize；renderer 端 unit test 覆盖 footprint 计算"
 
+  # ── v3 append: topic 2026-04-30-avatar-vrm-backend-branch ──
+
+  wave_5:
+    title: "Spec admit & contract baseline + platform spec extension (B2.A+)"
+    status: done
+    slug: spec-admit-and-platform-admission
+    target: >
+      Backend-branch / VRM backend / self-contained / wLipSync audio pipeline
+      schema / emote+motion+activity tables / event schema admit; platform
+      runtime-artifact-contract (K-AGCORE-053) + S-RUNTIME-111
+      runtime.artifacts.readBytes admit; ARTIFACT family reason codes
+      synced (proto + reason-codes.yaml + sdk types); runtimeartifact gRPC
+      service end-to-end; idle_subtle.vrma PoC.
+    deps: []
+    verification_commands:
+      - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
+      - "pnpm exec nimicoding validate-spec-governance --profile nimi --scope all"
+      - "pnpm exec nimicoding validate-ai-governance --profile nimi --scope all"
+      - "pnpm check:apps-avatar-isolation"
+      - "pnpm --filter @nimiplatform/avatar typecheck"
+      - "pnpm --filter @nimiplatform/sdk typecheck"
+      - "cd runtime && go build ./..."
+      - "cd runtime && go test ./internal/services/runtimeartifact/..."
+      - "pnpm proto:lint && pnpm proto:drift-check"
+
+  wave_6:
+    title: "Carrier abstraction extraction + Live2D refactor + audio pipeline + frame_batch hard-cut"
+    status: pending
+    slug: carrier-abstraction-and-frame-batch-hardcut
+    target: >
+      BackendBranch carrier abstraction live; Live2D conforms; audio-pipeline
+      (renamed from audio-playback) consumes runtime.artifacts.readBytes;
+      lipsync_frame_batch consume path deleted from apps/avatar/src; VRM
+      backend skeleton (degraded surface fail-close in default mode; dev
+      flag preview only).
+    deps: ["wave_5"]
+    verification_commands:
+      - "grep -rn lipsync_frame_batch apps/avatar/src/ # must return 0 hits"
+      - "grep -rn 'fetchAudioBytes\\|fetchBytes' apps/avatar/src/ # must return 0 hits"
+      - "pnpm --filter @nimiplatform/avatar typecheck"
+      - "pnpm --filter @nimiplatform/avatar test"
+      - "pnpm --filter @nimiplatform/avatar lint"
+      - "pnpm check:apps-avatar-isolation"
+
+  wave_7:
+    title: "VRM lifecycle + MToon outline + framing + diagnostics + instance cache"
+    status: pending
+    slug: vrm-lifecycle-and-diagnostics
+    target: >
+      VRM load / context-lost recovery (1500ms single retry → fail-close on
+      2nd) / dispose / asset switch / MToon outline policy / framing intent /
+      diagnostics / instance cache end-to-end. Representative VRM sample
+      mock scenario `vrm-lifecycle.mock.json`.
+    deps: ["wave_6"]
+    verification_commands:
+      - "pnpm --filter @nimiplatform/avatar typecheck"
+      - "pnpm --filter @nimiplatform/avatar test"
+      - "pnpm --filter @nimiplatform/avatar lint"
+
+  wave_8:
+    title: "VRM motion preset + emote state + projection adapter + activity mapping"
+    status: pending
+    slug: vrm-motion-emote-projection
+    target: >
+      NAS handler ontology projection → VRM motion / emote / expression
+      end-to-end. 7 .vrma files admitted (4 wave_5 internal + 3 wave_8
+      external; license + source 100% locked). 5 mock scenarios PASS.
+      emote × lipsync coordination unit test PASS.
+    deps: ["wave_7"]
+    verification_commands:
+      - "pnpm --filter @nimiplatform/avatar test"
+      - "pnpm --filter @nimiplatform/avatar check:spec-consistency"
+
+  wave_9:
+    title: "Window bounds multi-backend + alpha-mask hit region + drag region"
+    status: pending
+    slug: window-bounds-and-hit-region
+    target: >
+      Window shape + click-through + drag region all backend-aware;
+      alpha-mask + bbox dual-layer ready; drag region OS call frequency
+      ≤ 60Hz; src-tauri cargo test covers VRM nominal bounds.
+    deps: ["wave_8"]
+    verification_commands:
+      - "pnpm --filter @nimiplatform/avatar test"
+      - "cd apps/avatar/src-tauri && cargo test"
+
+  wave_10:
+    title: "Smoke evidence + representative samples + closeout"
+    status: pending
+    slug: smoke-and-closeout
+    target: >
+      21-run smoke matrix (7 scenarios × 3 representative VRM samples)
+      ALL PASS. Evidence schema admit complete. Human acceptance verdict
+      PASS. nimicoding topic closeout 4-lens ALL closed; disposition
+      complete.
+    deps: ["wave_9"]
+    verification_commands:
+      - "pnpm exec nimicoding topic validate 2026-04-30-avatar-vrm-backend-branch"
+      - "node apps/avatar/scripts/run-vrm-wave5-smoke.mjs"
+
 constraints:
   drift_checks:
     - description: "每个实现的 feature 必须对应 feature-matrix wave_X.scope 里已声明的 id"
-    - description: "Wave 顺序严格 0 → 1 → 2 → 3 → 4 串行；不允许跨 wave 提前合入未 admit 的能力"
+    - description: "Wave 顺序严格 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 串行；不允许跨 wave 提前合入未 admit 的能力"
     - description: "Wave 内任一 scope item 未完成不允许进入下一个 wave"
     - description: "未在 spec 中 admit 的 surface / event / state 不允许出现在实现中"
+    - description: "v2 wave_0..wave_4 status 永久保持 `done`；v3 schema 不修改 v2 历史"
+    - description: "topic-internal wave_X (0..5) 与 feature-matrix wave_(X+5) 一一对应；任一处文档/yaml 改名必须同步另一处"
   legacy_blocked:
     - description: "Phase 1 / Phase 2 / Phase 3 framing 已废弃（v1 schema），不允许在 spec / guide / code 中再引用"
     - description: "Small chat button trigger 路径已废弃（被 always-visible companion-surface 取代）"
     - description: "Recovery panel 在 ready 状态混合渲染路径已废弃（被 degraded-surface 互斥结构取代）"
+    - description: "lipsync_frame_batch consume path 在 wave_6 起从 apps/avatar/src 完全删除（hard-cut）"
+    - description: "fetchAudioBytes / caller-injected fetchBytes pattern 在 wave_6 起从 apps/avatar/src 完全删除（B2.A+ 替代为 runtime.artifacts.readBytes）"

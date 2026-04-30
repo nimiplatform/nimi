@@ -1,15 +1,16 @@
-// Wave 3 — Voice/lipsync state bus.
+// Voice/lipsync state bus (renderer-internal).
 //
-// `avatar-voice-lipsync.ts` publishes runtime-projected lipsync events here as
-// the canonical source of truth for `voice-companion-state`'s lipsync slice
-// (mouth_open_y / audioPlaybackState / lipsyncActive / audioArtifactId).
-// `App.tsx` subscribes once at boot and pipes events into the React state
-// reducer. Splitting it out from the driver event channel keeps avatar event
-// names (`avatar.lipsync.frame`, etc.) authoritative for downstream NAS
-// handlers while exposing a typed renderer-only sink for shell state.
+// `avatar-voice-lipsync.ts` publishes activate / mouth_open_y / deactivate /
+// audio_playback_state events here. `voice-companion-state` reduces them
+// into the lipsync slice (mouth_open_y / audioPlaybackState / lipsyncActive
+// / audioArtifactId). `App.tsx` subscribes once at boot and pipes events
+// into the React state reducer. As of wave 0 of topic
+// 2026-04-30-avatar-vrm-backend-branch, mouth_open_y values originate from
+// the wLipSync sink snapshot (BackendAudioConsumer), not from a frame batch
+// runtime event.
 //
 // Singleton scope: one bus per avatar renderer instance, parallel to the
-// shared AudioPlaybackController. This is the right scope because both
+// shared AudioPipelineController. This is the right scope because both
 // publishers (the lipsync pipeline) and subscribers (App-shell React state)
 // live inside the same renderer; constructing more than one would split the
 // lipsync truth.

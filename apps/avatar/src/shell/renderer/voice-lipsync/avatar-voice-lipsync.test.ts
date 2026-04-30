@@ -1,7 +1,30 @@
+// Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit.
+//
+// Avatar voice-lipsync orchestrator test. The hard-cut surface:
+//   - The deprecated runtime presentation per-frame mouth-batch consume
+//     path is deleted (event ignored entirely; absence enforced by the
+//     SdkDriver type union, not by a runtime guard in this orchestrator).
+//   - voice_playback_requested still routes to audioPipeline.play().
+//   - Optional `backend?: BackendBranch` argument registers the backend's
+//     audioConsumer as the lipsync sink.
+//   - Interrupt / cancel state still stops the audio pipeline.
+//
+// Tests no longer assert per-frame projection writes or per-frame avatar
+// driver emit; per-frame mouth movement is now driven by the wLipSync sink
+// in the surface useFrame loop (covered by the wLipSync e2e test in
+// lipsync-e2e.test.ts).
+
 import { describe, expect, it, vi } from 'vitest';
-import type { AgentDataBundle, AgentDataDriver, AgentEvent, AppOriginEvent, DriverStatus } from '../driver/types.js';
-import type { EmbodimentProjectionApi } from '../nas/embodiment-projection-api.js';
-import { AVATAR_MOUTH_OPEN_SIGNAL, createAvatarVoiceLipsyncPipeline } from './avatar-voice-lipsync.js';
+import type {
+  AgentDataBundle,
+  AgentDataDriver,
+  AgentEvent,
+  AppOriginEvent,
+  DriverStatus,
+} from '../driver/types.js';
+import { createAvatarVoiceLipsyncPipeline } from './avatar-voice-lipsync.js';
+import { AudioPipelineController } from '../audio/audio-pipeline.js';
+import type { BackendBranch } from '../carrier/backend-branch.js';
 
 function createDriver(): AgentDataDriver & { emitted: AppOriginEvent[] } {
   const emitted: AppOriginEvent[] = [];
@@ -27,29 +50,47 @@ function createDriver(): AgentDataDriver & { emitted: AppOriginEvent[] } {
   };
 }
 
-function createProjection() {
-  const setSignal = vi.fn();
-  const projection: EmbodimentProjectionApi = {
-    triggerMotion: vi.fn(async () => undefined),
-    stopMotion: vi.fn(),
-    setSignal,
-    getSignal: vi.fn(() => 0),
-    addSignal: vi.fn(),
-    setExpression: vi.fn(async () => undefined),
-    clearExpression: vi.fn(),
-    setPose: vi.fn(),
-    clearPose: vi.fn(),
-    wait: vi.fn(async () => undefined),
-    getSurfaceBounds: vi.fn(() => ({ x: 0, y: 0, width: 400, height: 600 })),
+function createRuntimeMock(readBytes = vi.fn(async () => ({
+  bytes: new ArrayBuffer(64),
+  mimeType: 'audio/wav',
+  sizeBytes: 64,
+}))) {
+  return {
+    artifacts: { readBytes },
+  } as never;
+}
+
+function createBackendMock(): BackendBranch & { audioConsumer: { attachAudioSource: ReturnType<typeof vi.fn>; detachAudioSource: ReturnType<typeof vi.fn>; silent: ReturnType<typeof vi.fn>; snapshot: ReturnType<typeof vi.fn> } } {
+  const audioConsumer = {
+    attachAudioSource: vi.fn(async () => undefined),
+    detachAudioSource: vi.fn(),
+    silent: vi.fn(),
+    snapshot: vi.fn(() => null),
   };
-  return { projection, setSignal };
+  const Surface = () => null;
+  return {
+    kind: 'live2d',
+    nominalBounds: { width: 400, height: 600, bodyCenterX: 0.5, bodyCenterY: 0.5 },
+    projection: {
+      applyActivity: vi.fn(),
+      applyEmotion: vi.fn(),
+      applyMotion: vi.fn(),
+      applyExpression: vi.fn(),
+      reset: vi.fn(),
+    },
+    surface: { Component: Surface },
+    metadata: () => ({}),
+    shutdown: vi.fn(),
+    live2dExtension: { setParameter: vi.fn() },
+    audioConsumer,
+  } as never;
 }
 
 function createRuntimeTimeline(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     turn_id: 'turn-1',
     stream_id: 'stream-1',
-    channel: 'text',
+    channel: 'voice',
     offset_ms: 0,
     sequence: 1,
     started_at_wall: '2026-04-25T00:00:00.000Z',
@@ -63,143 +104,96 @@ function createRuntimeTimeline(overrides: Record<string, unknown> = {}): Record<
   };
 }
 
-function createVoiceEvent(detail: Record<string, unknown> = {}): AgentEvent {
+function createVoicePlaybackRequestedEvent(detail: Record<string, unknown> = {}): AgentEvent {
   return {
-    event_id: 'event-1',
-    name: 'runtime.agent.turn.text_delta',
+    event_id: 'event-vpr-1',
+    name: 'runtime.agent.presentation.voice_playback_requested',
     timestamp: '2026-04-25T00:00:00.020Z',
     detail: {
       turn_id: 'turn-1',
       stream_id: 'stream-1',
       runtime_timeline: createRuntimeTimeline(),
-      voice_timing: {
-        adapter_id: 'runtime.voice.timeline-levels',
-        frames: [
-          { offset_ms: 0, mouth_open_y: 0.1 },
-          { offset_ms: 80, mouth_open_y: 0.75 },
-          { offset_ms: 160, mouth_open_y: 0.25 },
-        ],
-      },
-      ...detail,
-    },
-  };
-}
-
-function createRuntimeLipsyncFrameBatchEvent(detail: Record<string, unknown> = {}): AgentEvent {
-  return {
-    event_id: 'event-lipsync-1',
-    name: 'runtime.agent.presentation.lipsync_frame_batch',
-    timestamp: '2026-04-25T00:00:00.020Z',
-    detail: {
-      turn_id: 'turn-1',
-      stream_id: 'stream-1',
-      runtime_timeline: createRuntimeTimeline({ channel: 'lipsync', sequence: 2 }),
       audioArtifactId: 'artifact-1',
-      frames: [
-        { frameSequence: 1, offsetMs: 0, durationMs: 80, mouthOpenY: 0.16, audioLevel: 0.12 },
-        { frameSequence: 2, offsetMs: 80, durationMs: 90, mouthOpenY: 0.88, audioLevel: 0.7 },
-        { frameSequence: 3, offsetMs: 170, durationMs: 70, mouthOpenY: 0.24, audioLevel: 0.18 },
-      ],
+      audioMimeType: 'audio/wav',
+      playbackState: 'requested',
       ...detail,
     },
   };
 }
 
-describe('Avatar voice lipsync pipeline', () => {
-  it('writes computed voice timing frames to Live2D ParamMouthOpenY and emits Avatar speak cues', () => {
+describe('avatar-voice-lipsync orchestrator (wave 0 hard-cut)', () => {
+  it('routes voice_playback_requested → audioPipeline.play and updates state bus', async () => {
     const driver = createDriver();
-    const { projection, setSignal } = createProjection();
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, projection });
+    const audioPipeline = new AudioPipelineController({
+      audioContextFactory: () => null,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    audioPipeline.setRuntime(createRuntimeMock());
+    const playSpy = vi.spyOn(audioPipeline, 'play');
+    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
 
-    pipeline.handleEvent(createVoiceEvent());
+    pipeline.handleEvent(createVoicePlaybackRequestedEvent());
 
-    expect(setSignal).toHaveBeenCalledWith(AVATAR_MOUTH_OPEN_SIGNAL, 0.1, 1);
-    expect(setSignal).toHaveBeenCalledWith(AVATAR_MOUTH_OPEN_SIGNAL, 0.75, 1);
-    expect(setSignal).toHaveBeenCalledWith(AVATAR_MOUTH_OPEN_SIGNAL, 0.25, 1);
-    expect(setSignal).toHaveBeenLastCalledWith(AVATAR_MOUTH_OPEN_SIGNAL, 0, 1);
-    expect(driver.emitted.map((event) => event.name)).toEqual([
-      'avatar.speak.start',
-      'avatar.lipsync.frame',
-      'avatar.lipsync.frame',
-      'avatar.lipsync.frame',
-      'avatar.speak.end',
-    ]);
-  });
-
-  it('consumes runtime-owned lipsync frame batches as Live2D mouth projection input', () => {
-    const driver = createDriver();
-    const { projection, setSignal } = createProjection();
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, projection });
-
-    pipeline.handleEvent(createRuntimeLipsyncFrameBatchEvent());
-
-    expect(setSignal).toHaveBeenCalledWith(AVATAR_MOUTH_OPEN_SIGNAL, 0.16, 1);
-    expect(setSignal).toHaveBeenCalledWith(AVATAR_MOUTH_OPEN_SIGNAL, 0.88, 1);
-    expect(setSignal).toHaveBeenCalledWith(AVATAR_MOUTH_OPEN_SIGNAL, 0.24, 1);
-    expect(setSignal).toHaveBeenLastCalledWith(AVATAR_MOUTH_OPEN_SIGNAL, 0, 1);
-    expect(driver.emitted.find((event) => event.name === 'avatar.speak.start')?.detail).toEqual(
-      expect.objectContaining({
-        audio_artifact_id: 'artifact-1',
-        voice_adapter_id: 'runtime.voice.runtime-agent-lipsync-frame-batch',
-        runtime_timeline: expect.objectContaining({
-          channel: 'lipsync',
-          timebase_owner: 'runtime',
-          app_local_authority: false,
-        }),
-      }),
-    );
-  });
-
-  it('fails closed when runtime timeline identity is missing, mismatched, app-local, or voice frames are placeholder constant values', () => {
-    const driver = createDriver();
-    const { projection, setSignal } = createProjection();
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, projection });
-
-    pipeline.handleEvent(createVoiceEvent({ runtime_timeline: undefined }));
-    pipeline.handleEvent(createVoiceEvent({ runtime_timeline: createRuntimeTimeline({ stream_id: 'other-stream' }) }));
-    pipeline.handleEvent(createVoiceEvent({ runtime_timeline: createRuntimeTimeline({ app_local_authority: true }) }));
-    pipeline.handleEvent(createVoiceEvent({ runtime_timeline: createRuntimeTimeline({ sequence: 0 }) }));
-    pipeline.handleEvent(createVoiceEvent({ runtime_timeline: createRuntimeTimeline({ clock_basis: 'wall_clock_only' }) }));
-    pipeline.handleEvent(createVoiceEvent({
-      voice_timing: {
-        adapter_id: 'runtime.voice.timeline-levels',
-        frames: [
-          { offset_ms: 0, mouth_open_y: 0.4 },
-          { offset_ms: 50, mouth_open_y: 0.4 },
-        ],
-      },
-    }));
-    pipeline.handleEvent(createVoiceEvent({
-      voice_timing: {
-        adapter_id: 'runtime.voice.timeline-levels',
-        frames: [
-          { offset_ms: 80, mouth_open_y: 0.7 },
-          { offset_ms: 40, mouth_open_y: 0.2 },
-        ],
-      },
-    }));
-    pipeline.handleEvent(createRuntimeLipsyncFrameBatchEvent({
-      runtime_timeline: createRuntimeTimeline({ channel: 'voice' }),
-    }));
-
-    expect(setSignal).not.toHaveBeenCalled();
+    expect(playSpy).toHaveBeenCalledWith({
+      audioArtifactId: 'artifact-1',
+      audioMimeType: 'audio/wav',
+    });
+    // Pipeline does NOT emit avatar.speak.start / .end / .lipsync.frame anymore;
+    // those originate from runtime now (or are deprecated in
+    // avatar-event-contract.md).
     expect(driver.emitted).toEqual([]);
   });
 
-  it('rejects provider-hardcoded voice adapters and prevents late writes after interruption', () => {
+  it('registers backend.audioConsumer as the lipsync sink when backend supplied', () => {
     const driver = createDriver();
-    const { projection, setSignal } = createProjection();
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, projection });
+    const backend = createBackendMock();
+    const audioPipeline = new AudioPipelineController({
+      audioContextFactory: () => null,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    const registerSpy = vi.spyOn(audioPipeline, 'registerLipsyncSink');
+    createAvatarVoiceLipsyncPipeline({ driver, audioPipeline, backend });
 
-    pipeline.handleEvent(createVoiceEvent({
-      voice_timing: {
-        adapter_id: 'runtime.voice.openai.tts',
-        frames: [
-          { offset_ms: 0, mouth_open_y: 0.1 },
-          { offset_ms: 50, mouth_open_y: 0.6 },
-        ],
-      },
-    }));
+    expect(registerSpy).toHaveBeenCalledTimes(1);
+    expect(registerSpy.mock.calls[0]?.[0]).toBe(backend.audioConsumer);
+  });
+
+  it('throws when backend is supplied without a valid audioConsumer (fail-close, no silent stub)', () => {
+    const driver = createDriver();
+    const audioPipeline = new AudioPipelineController({
+      audioContextFactory: () => null,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    const malformedBackend = {
+      kind: 'live2d',
+      nominalBounds: { width: 0, height: 0, bodyCenterX: 0, bodyCenterY: 0 },
+      projection: {} as never,
+      surface: { Component: () => null },
+      metadata: () => ({}),
+      shutdown: () => {},
+      live2dExtension: { setParameter: () => {} },
+      // audioConsumer missing intentionally
+    } as never;
+
+    expect(() =>
+      createAvatarVoiceLipsyncPipeline({ driver, audioPipeline, backend: malformedBackend }),
+    ).toThrow(/audioConsumer missing/);
+  });
+
+  // Wave 0 hard-cut: the deprecated per-frame mouth-batch presentation event
+  // is no longer in the SdkDriver event union; typecheck enforces absence at
+  // compile time. A runtime fixture for "ignores X" is intentionally NOT
+  // included here so the hard-cut grep gate stays at 0 hits.
+
+  it('runtime.agent.turn.interrupted stops audio pipeline and emits avatar.speak.interrupt', () => {
+    const driver = createDriver();
+    const audioPipeline = new AudioPipelineController({
+      audioContextFactory: () => null,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    const stopSpy = vi.spyOn(audioPipeline, 'stop');
+    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
+
     pipeline.handleEvent({
       event_id: 'event-interrupt',
       name: 'runtime.agent.turn.interrupted',
@@ -210,17 +204,19 @@ describe('Avatar voice lipsync pipeline', () => {
         runtime_timeline: createRuntimeTimeline({ sequence: 2 }),
       },
     });
-    pipeline.handleEvent(createVoiceEvent());
 
-    expect(setSignal).toHaveBeenCalledTimes(1);
-    expect(setSignal).toHaveBeenCalledWith(AVATAR_MOUTH_OPEN_SIGNAL, 0, 1);
+    expect(stopSpy).toHaveBeenCalledWith('interrupted');
     expect(driver.emitted.map((event) => event.name)).toEqual(['avatar.speak.interrupt']);
   });
 
-  it('cancels runtime lipsync writes after runtime voice playback cancellation', () => {
+  it('voice_playback_requested with playbackState=canceled stops the audio pipeline', () => {
     const driver = createDriver();
-    const { projection, setSignal } = createProjection();
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, projection });
+    const audioPipeline = new AudioPipelineController({
+      audioContextFactory: () => null,
+      logger: { warn: vi.fn(), error: vi.fn() },
+    });
+    const stopSpy = vi.spyOn(audioPipeline, 'stop');
+    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
 
     pipeline.handleEvent({
       event_id: 'event-cancel',
@@ -229,15 +225,14 @@ describe('Avatar voice lipsync pipeline', () => {
       detail: {
         turn_id: 'turn-1',
         stream_id: 'stream-1',
-        runtime_timeline: createRuntimeTimeline({ channel: 'voice', sequence: 3 }),
+        runtime_timeline: createRuntimeTimeline({ sequence: 3 }),
         audioArtifactId: 'artifact-1',
+        audioMimeType: 'audio/wav',
         playbackState: 'canceled',
       },
     });
-    pipeline.handleEvent(createRuntimeLipsyncFrameBatchEvent());
 
-    expect(setSignal).toHaveBeenCalledTimes(1);
-    expect(setSignal).toHaveBeenCalledWith(AVATAR_MOUTH_OPEN_SIGNAL, 0, 1);
+    expect(stopSpy).toHaveBeenCalledWith('interrupted');
     expect(driver.emitted.map((event) => event.name)).toEqual(['avatar.speak.interrupt']);
   });
 });

@@ -254,10 +254,13 @@ export function interruptVoiceCompanion(
   };
 }
 
-// Wave 3 — lipsync slice helpers (runtime.agent.presentation.lipsync_frame_batch
-// + voice_playback_requested driven). All helpers are pure reducers; consumers
-// MUST set `audioArtifactId` via `activateLipsync` before pushing frames so the
-// state stays internally consistent.
+// Lipsync slice helpers (voice_playback_requested driven). All helpers are
+// pure reducers; consumers MUST set `audioArtifactId` via `activateLipsync`
+// before pushing frames so the state stays internally consistent. As of
+// wave 0 of topic 2026-04-30-avatar-vrm-backend-branch, mouth_open_y is no
+// longer driven by a frame batch event; the audio pipeline + wLipSync sink
+// own per-frame mouth movement, and this slice stores only the publish
+// mirror used by the companion surface UI.
 
 export function activateLipsync(
   state: VoiceCompanionState,

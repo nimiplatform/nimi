@@ -86,6 +86,57 @@ hit_region = union of:
 - **Out-of-region**（透明区域）：`set_ignore_cursor_events(true)` 状态，事件穿透到下层 app
 - **State transition**：mouse move 跨越 region 边界 → immediate switch；不做 hysteresis
 
+### 2.3.1 Hit Region 双层结构 (NAV-SHELL-COMPOSITION-HIT-REGION)
+
+> Wave 0 of topic `2026-04-30-avatar-vrm-backend-branch` (design-07) admit.
+> Replaces the single-layer alpha-mask path with **alpha-mask + bbox 双层互补**.
+
+Hit region 由 **两层** 数据组成：
+
+1. **alpha-mask hit query**（pixel-level，per-frame query）
+   - 来自 `BackendHitRegion.isOpaqueAtClientPoint(clientX, clientY, threshold?)`
+     —— 当前 backend 提供精确 alpha 抽样 API
+   - 实现走 **offscreen render-target** + 1/2 res sampling（airi 工业基线）
+   - 默认 `threshold = 10/255`（airi）；caller 可覆盖
+   - per-frame query budget ≤ 1ms；超预算 fallback 到当前帧 bbox
+   - 当 backend 返回 `null`（未实现 / 不可用 / device tier C 退化）→ 仅用 bbox
+
+2. **bbox snapshot**（粗粒度 rect，throttled 上报）
+   - 来自 `BackendHitRegion.body` / `BackendHitRegion.drag`
+   - 100ms minimum throttle 上报到 `embodiment-stage`；coalesce frequent
+     bbox 变化以避免刷爆 IPC `set_ignore_cursor_events` 调用
+   - 是 OS-level click-through fallback：alpha-mask 失败 / device 不支持
+     时单独工作
+
+事件触发顺序（pointermove → click-through 决策）：
+
+```
+pointermove(clientX, clientY)
+  ↓
+backend.hitRegion.isOpaqueAtClientPoint(x, y)
+  ├── true  → set_ignore_cursor_events(false)（事件归 avatar）
+  ├── false → set_ignore_cursor_events(true)（穿透到下层 app）
+  └── null  → fallback to body bbox check
+              ├── inside  → set_ignore_cursor_events(false)
+              └── outside → set_ignore_cursor_events(true)
+```
+
+`set_ignore_cursor_events` IPC 调用频率约束 ≤ 60Hz（节流强制；log assert）。
+
+### 2.3.2 Device Tier Baseline (NAV-SHELL-COMPOSITION-DEVICE-TIER)
+
+> Wave 0 admit. Per-device capability detection at carrier mount.
+
+| Tier | 设备 baseline | 能力 |
+|---|---|---|
+| **A** | M-series Apple Silicon (M1+) | 全 alpha-mask + bbox 双层 + 60Hz pointermove + VRM MToon outline |
+| **B** | Intel macOS 12+ / Win 11 / Linux Wayland with integrated GPU | 全 alpha-mask + bbox 双层 + 60Hz；MToon outline 按 GPU 报告决定 |
+| **C** | 旧设备 / capability detection failure / pointermove > 60Hz （hardware fallback） | **bbox-only**；emit `avatar.hit_region.degraded { reason_code: 'device_tier_c' }`；alpha-mask 不调用 |
+
+device tier detect：carrier 启动时通过 GPU vendor / GLSL ES 版本 / 基准帧率
+测试综合判定；结果存 `nimi.avatar.deviceTier` 全局 key。tier 一旦确定不再
+runtime 变更（除非 reload）。
+
 ### 2.4 Drag Region 限定 (NAV-SHELL-004-DRAG)
 
 Window drag（§3）仅在 embodiment-stage 内部触发：
@@ -285,7 +336,7 @@ Voice 行为约束：
 - 不允许 wake-word、background continuation、lock-screen continuation
 - voice interruption 仅作用于当前 anchor 的 active turn；不得作用于 same-agent 其他 anchor
 - 在 admitted active-turn evidence 出现前，shell 只能表达 transcript submitted / reply pending；不得本地伪装 speaking、playback active、interrupt opened
-- voice 不可用（runtime 不发 lipsync_frame_batch / capability 不允许）→ status 进入 `Voice unavailable`，mic icon disabled，不模拟听到声音
+- voice 不可用（runtime voice playback event / artifact read capability 不允许）→ status 进入 `Voice unavailable`，mic icon disabled，不模拟听到声音
 
 ### 7.6 Composer (NAV-SHELL-COMPANION-006)
 

@@ -1,18 +1,27 @@
-// Wave 3 — WebAudio playback controller for runtime-emitted voice artifacts.
+// Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit (design-05).
 //
-// The avatar renderer consumes `runtime.agent.presentation.voice_playback_requested`
-// events; runtime owns the lifecycle (`requested → started → completed | interrupted | failed`)
-// and the renderer mirrors it 1:1 here. This module is a single
-// per-renderer instance because the browser AudioContext is a per-document
-// singleton; constructing more than one wastes resources and the platform
-// rejects creating one without a user gesture, so reuse is mandatory.
+// AudioPipelineController (renamed from AudioPlaybackController). The avatar
+// audio pipeline consumes `runtime.agent.presentation.voice_playback_requested`
+// events; runtime owns the lifecycle (`requested → started → completed |
+// interrupted | failed`) and this controller mirrors it 1:1.
 //
-// Fail-close contract (K-AGCORE-051): when the runtime-supplied
-// `audio_mime_type` is the synthetic frame-only marker
-// (`application/x-nimi-synthetic-lipsync`), this controller MUST NOT attempt
-// audio decode/playback. It logs a single `synthetic_audio_no_playback`
-// warning, pushes `playbackState='completed'` so consumers move forward
-// (lipsync frames are still authoritative for mouth movement), and returns.
+// Wave 0 hard-cut (B2.A+):
+//   - The legacy caller-injected byte fetcher is removed. Bytes are read
+//     from `runtime.artifacts.readBytes({ artifactId, expectedMimePrefix:
+//     'audio/' })` (S-RUNTIME-111; admitted by this topic).
+//   - `registerLipsyncSink(consumer: BackendAudioConsumer)` connects a
+//     per-backend lipsync sink. The pipeline attaches the active
+//     AudioBufferSourceNode to the registered sink in the same lifecycle
+//     window where it connects the source to speaker output.
+//   - Synthetic mime path:  sink.silent() + publishState('completed').
+//   - All other failure paths: sink.silent() + publishState('failed', reasonCode).
+//
+// AudioContext is a per-document singleton; constructing more than one is
+// wasteful and the platform refuses to create one without a user gesture, so
+// reuse is mandatory.
+
+import type { Runtime } from '@nimiplatform/sdk/runtime/browser';
+import type { BackendAudioConsumer } from '../carrier/backend-branch.js';
 
 export type AudioPlaybackState =
   | 'idle'
@@ -33,20 +42,19 @@ export const SYNTHETIC_AUDIO_MIME_TYPE = 'application/x-nimi-synthetic-lipsync';
 
 const PLAYABLE_MIME_PREFIXES = ['audio/'];
 
-export type AudioPlaybackPlayInput = {
+export type AudioPipelinePlayInput = {
   audioArtifactId: string;
   audioMimeType: string;
   durationMs?: number;
-  fetchBytes?: () => Promise<ArrayBuffer>;
 };
 
-export type AudioPlaybackListener = (snapshot: AudioPlaybackSnapshot) => void;
+export type AudioPipelineListener = (snapshot: AudioPlaybackSnapshot) => void;
 
-type AudioPlaybackLogger = Pick<typeof console, 'warn' | 'error'>;
+type AudioPipelineLogger = Pick<typeof console, 'warn' | 'error'>;
 
-type AudioPlaybackOptions = {
+type AudioPipelineOptions = {
   audioContextFactory?: () => AudioContext | null;
-  logger?: AudioPlaybackLogger;
+  logger?: AudioPipelineLogger;
 };
 
 const idleSnapshot: AudioPlaybackSnapshot = Object.freeze({
@@ -56,25 +64,59 @@ const idleSnapshot: AudioPlaybackSnapshot = Object.freeze({
   reason: null,
 });
 
-export class AudioPlaybackController {
-  private listeners = new Set<AudioPlaybackListener>();
+export class AudioPipelineController {
+  private listeners = new Set<AudioPipelineListener>();
   private snapshot: AudioPlaybackSnapshot = idleSnapshot;
   private context: AudioContext | null = null;
   private currentSource: AudioBufferSourceNode | null = null;
   private playId = 0;
+  private runtime: Runtime | null = null;
+  private sink: BackendAudioConsumer | null = null;
   private readonly contextFactory: () => AudioContext | null;
-  private readonly logger: AudioPlaybackLogger;
+  private readonly logger: AudioPipelineLogger;
 
-  constructor(options: AudioPlaybackOptions = {}) {
+  constructor(options: AudioPipelineOptions = {}) {
     this.contextFactory = options.audioContextFactory ?? defaultAudioContextFactory;
     this.logger = options.logger ?? console;
+  }
+
+  /** Bootstrap calls this once after constructing the SDK Runtime instance.
+   *  Idempotent; subsequent calls are ignored to keep a single Runtime
+   *  authority over `play()` requests. */
+  setRuntime(runtime: Runtime): void {
+    if (!this.runtime) {
+      this.runtime = runtime;
+    }
+  }
+
+  /** Register a backend lipsync sink. One sink at a time (mutually exclusive
+   *  by design — only one BackendBranch is active per carrier). Returns an
+   *  unregister fn that detaches + clears the sink slot if still current. */
+  registerLipsyncSink(consumer: BackendAudioConsumer): () => void {
+    if (this.sink && this.sink !== consumer) {
+      this.sink.detachAudioSource();
+    }
+    this.sink = consumer;
+    if (this.currentSource && this.context) {
+      void consumer.attachAudioSource(this.currentSource, this.context).catch((err) => {
+        this.logger.warn('audio_sink_attach_failed_on_register', {
+          error: errorMessage(err),
+        });
+      });
+    }
+    return () => {
+      if (this.sink === consumer) {
+        consumer.detachAudioSource();
+        this.sink = null;
+      }
+    };
   }
 
   getSnapshot(): AudioPlaybackSnapshot {
     return this.snapshot;
   }
 
-  subscribe(listener: AudioPlaybackListener): () => void {
+  subscribe(listener: AudioPipelineListener): () => void {
     this.listeners.add(listener);
     listener(this.snapshot);
     return () => {
@@ -82,10 +124,12 @@ export class AudioPlaybackController {
     };
   }
 
-  async play(input: AudioPlaybackPlayInput): Promise<void> {
+  async play(input: AudioPipelinePlayInput): Promise<void> {
     const audioArtifactId = input.audioArtifactId.trim();
     const audioMimeType = input.audioMimeType.trim();
+    const audioMimeTypeKey = audioMimeType.toLowerCase();
     if (!audioArtifactId || !audioMimeType) {
+      this.sink?.silent();
       this.publish({
         state: 'failed',
         audioArtifactId: audioArtifactId || null,
@@ -95,7 +139,6 @@ export class AudioPlaybackController {
       return;
     }
 
-    // Stop any in-flight playback before starting a new one.
     this.cancelCurrentSource();
     const playId = ++this.playId;
 
@@ -106,15 +149,15 @@ export class AudioPlaybackController {
       reason: null,
     });
 
-    if (audioMimeType === SYNTHETIC_AUDIO_MIME_TYPE) {
-      // Fail-close: synthetic mime is frames-only. Skip audio entirely; lipsync
-      // frame batch remains the authoritative mouth driver. This is INTENTIONAL
-      // and not an error path — log once at warn so the operator can confirm
-      // synthetic vs real-TTS routing without burying real failures.
-      this.logger.warn('synthetic_audio_no_playback', {
+    if (audioMimeTypeKey === SYNTHETIC_AUDIO_MIME_TYPE) {
+      // Wave 0 hard-cut: synthetic mime is silent voice + silent mouth. The
+      // consumer state machine still progresses to `completed` so upstream
+      // lifecycle is not stuck. K-AGCORE-053 admits this fail-close.
+      this.logger.warn('synthetic_audio_no_playback_no_lipsync', {
         audio_artifact_id: audioArtifactId,
         audio_mime_type: audioMimeType,
       });
+      this.sink?.silent();
       this.publish({
         state: 'completed',
         audioArtifactId,
@@ -124,79 +167,87 @@ export class AudioPlaybackController {
       return;
     }
 
-    if (!isPlayableMimeType(audioMimeType)) {
+    if (!isPlayableMimeType(audioMimeTypeKey)) {
       this.logger.warn('unsupported_audio_mime_type', {
         audio_artifact_id: audioArtifactId,
         audio_mime_type: audioMimeType,
       });
+      this.sink?.silent();
       this.publish({
         state: 'failed',
         audioArtifactId,
         audioMimeType,
-        reason: 'unsupported_audio_mime_type',
+        reason: 'unsupported_mime',
       });
       return;
     }
 
-    if (!input.fetchBytes) {
-      this.logger.warn('audio_fetch_bytes_unavailable', {
+    if (!this.runtime) {
+      this.logger.warn('audio_pipeline_no_runtime', {
         audio_artifact_id: audioArtifactId,
-        audio_mime_type: audioMimeType,
       });
+      this.sink?.silent();
       this.publish({
         state: 'failed',
         audioArtifactId,
         audioMimeType,
-        reason: 'audio_fetch_bytes_unavailable',
+        reason: 'no_runtime',
       });
       return;
     }
 
-    let bytes: ArrayBuffer;
+    let result: { bytes: ArrayBuffer; mimeType: string; sizeBytes: number };
     try {
-      bytes = await input.fetchBytes();
+      result = await this.runtime.artifacts.readBytes({
+        artifactId: audioArtifactId,
+        expectedMimePrefix: 'audio/',
+      });
     } catch (err) {
-      this.logger.warn('audio_fetch_bytes_failed', {
+      const reasonCode = readReasonCode(err);
+      this.logger.warn('audio_artifact_read_failed', {
         audio_artifact_id: audioArtifactId,
+        reason_code: reasonCode,
         error: errorMessage(err),
       });
       if (this.playId !== playId) return;
+      this.sink?.silent();
       this.publish({
         state: 'failed',
         audioArtifactId,
         audioMimeType,
-        reason: 'audio_fetch_bytes_failed',
+        reason: reasonCode,
       });
       return;
     }
-
     if (this.playId !== playId) return;
 
     const context = this.ensureContext();
     if (!context) {
+      this.sink?.silent();
       this.publish({
         state: 'failed',
         audioArtifactId,
         audioMimeType,
-        reason: 'audio_context_unavailable',
+        reason: 'no_audio_context',
       });
       return;
     }
 
     let buffer: AudioBuffer;
     try {
-      buffer = await context.decodeAudioData(bytes.slice(0));
+      buffer = await context.decodeAudioData(result.bytes.slice(0));
     } catch (err) {
       this.logger.warn('audio_decode_failed', {
         audio_artifact_id: audioArtifactId,
         error: errorMessage(err),
       });
       if (this.playId !== playId) return;
+      this.sink?.silent();
       this.publish({
         state: 'failed',
         audioArtifactId,
         audioMimeType,
-        reason: 'audio_decode_failed',
+        reason: 'decode_failed',
       });
       return;
     }
@@ -209,7 +260,7 @@ export class AudioPlaybackController {
     source.onended = () => {
       if (this.playId !== playId) return;
       this.currentSource = null;
-      // If the snapshot is already `interrupted` / `failed`, do not overwrite.
+      this.sink?.detachAudioSource();
       if (this.snapshot.state === 'started') {
         this.publish({
           state: 'completed',
@@ -227,27 +278,48 @@ export class AudioPlaybackController {
         error: errorMessage(err),
       });
       this.currentSource = null;
+      this.sink?.silent();
       this.publish({
         state: 'failed',
         audioArtifactId,
         audioMimeType,
-        reason: 'audio_start_failed',
+        reason: 'start_failed',
       });
       return;
     }
+
     this.publish({
       state: 'started',
       audioArtifactId,
       audioMimeType,
       reason: null,
     });
+
+    if (this.sink) {
+      // attachAudioSource is async (lazy createWLipSyncNode on first call).
+      // Failure inside the sink is bounded: lipsync goes silent, audio
+      // playback continues unimpeded.
+      void this.sink.attachAudioSource(source, context).catch((err) => {
+        this.logger.warn('audio_sink_attach_failed', {
+          audio_artifact_id: audioArtifactId,
+          error: errorMessage(err),
+        });
+        this.sink?.silent();
+      });
+    }
   }
 
   stop(reason: 'interrupted' | 'completed' = 'interrupted'): void {
     this.cancelCurrentSource();
-    if (this.snapshot.state === 'idle' || this.snapshot.state === 'completed' || this.snapshot.state === 'interrupted' || this.snapshot.state === 'failed') {
+    if (
+      this.snapshot.state === 'idle' ||
+      this.snapshot.state === 'completed' ||
+      this.snapshot.state === 'interrupted' ||
+      this.snapshot.state === 'failed'
+    ) {
       return;
     }
+    this.sink?.silent();
     this.publish({
       ...this.snapshot,
       state: reason,
@@ -256,6 +328,7 @@ export class AudioPlaybackController {
 
   reset(): void {
     this.cancelCurrentSource();
+    this.sink?.silent();
     this.publish(idleSnapshot);
   }
 
@@ -268,6 +341,7 @@ export class AudioPlaybackController {
         // Already stopped or never started.
       }
       this.currentSource = null;
+      this.sink?.detachAudioSource();
     }
     this.playId += 1;
   }
@@ -297,6 +371,16 @@ function errorMessage(error: unknown): string {
   return String(error);
 }
 
+function readReasonCode(error: unknown): string {
+  if (error && typeof error === 'object' && 'reasonCode' in error) {
+    const value = (error as { reasonCode?: unknown }).reasonCode;
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return 'fetch_failed';
+}
+
 function defaultAudioContextFactory(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   const ctor: typeof AudioContext | undefined =
@@ -309,15 +393,15 @@ function defaultAudioContextFactory(): AudioContext | null {
   }
 }
 
-let sharedController: AudioPlaybackController | null = null;
+let sharedController: AudioPipelineController | null = null;
 
-export function getSharedAudioPlaybackController(): AudioPlaybackController {
+export function getSharedAudioPipelineController(): AudioPipelineController {
   if (!sharedController) {
-    sharedController = new AudioPlaybackController();
+    sharedController = new AudioPipelineController();
   }
   return sharedController;
 }
 
-export function resetSharedAudioPlaybackControllerForTesting(): void {
+export function resetSharedAudioPipelineControllerForTesting(): void {
   sharedController = null;
 }

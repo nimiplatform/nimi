@@ -1,0 +1,108 @@
+version: 1
+description: >
+  Motion preset registry for the VRM backend branch. Each preset id maps to
+  a built-in .vrma asset shipped with apps/avatar; per-model overrides may
+  live at <model_path>/motions/<preset_id>.vrma and take priority. Missing
+  preset_id at runtime fail-closes (log warn, no fake motion).
+
+  Wave 0 admit (topic 2026-04-30-avatar-vrm-backend-branch, design-04 +
+  design-08): 4 entries below are admitted. `idle_subtle` is a MIT fork-copy
+  from airi `idle_loop.vrma` (Option C-prime); the remaining 3 entries are
+  internal author targets whose actual `.vrma` files land at wave 3. The 3
+  external-license entries (greet_wave / wave_hello / think_chin_touch) are
+  deferred to wave 3 admit, when both `license` and `source` are locked to
+  concrete non-placeholder values. activity-mapping.yaml v2 routes activities
+  that would point to the 3 external entries through `idle_subtle` as fallback
+  in wave 0; wave 3 admit packet flips them back to the formal preset.
+
+  Drift checks:
+    - every entry MUST have non-placeholder `license` + `source` fields
+      (no "TBD", "candidate", "VRoid Hub 候选", etc.)
+    - activity-mapping.yaml `vrm.motion` references MUST resolve to an
+      entry in this registry; references to deferred (wave_3) entries
+      MUST fail-close at validator time
+    - per-model override at <model_path>/motions/<preset_id>.vrma must
+      target an admitted preset id; otherwise registry rejects the
+      override and falls back to the builtin
+
+builtin_dir: apps/avatar/assets/vrm-motion-presets
+
+presets:
+  - id: idle_subtle
+    file: idle_subtle.vrma
+    loop: true
+    license: MIT (forked from _external/airi)
+    source: _external/airi/packages/stage-ui-three/src/assets/vrm/animations/idle_loop.vrma
+    attribution: apps/avatar/assets/vrm-motion-presets/THIRD_PARTY_LICENSES.md
+
+  - id: listen_lean
+    file: listen_lean.vrma
+    loop: true
+    license: internal
+    source: apps/avatar/docs/vrma-authoring.md (Blender + UniVRM author)
+
+  - id: nod_yes
+    file: nod_yes.vrma
+    loop: false
+    license: internal
+    source: apps/avatar/docs/vrma-authoring.md (Blender + UniVRM author)
+
+  - id: shake_no
+    file: shake_no.vrma
+    loop: false
+    license: internal
+    source: apps/avatar/docs/vrma-authoring.md (Blender + UniVRM author)
+
+# wave_3 admit (incremental; not part of wave_0 surface):
+#   - id: greet_wave
+#     file: greet_wave.vrma
+#     loop: false
+#     license: <SPDX id or 'internal' once locked>
+#     source: <URL or 'internal' source description once locked>
+#   - id: wave_hello
+#     file: wave_hello.vrma
+#     loop: false
+#     license: <SPDX id or 'internal' once locked>
+#     source: <URL or 'internal' source description once locked>
+#   - id: think_chin_touch
+#     file: think_chin_touch.vrma
+#     loop: false
+#     license: <SPDX id or 'internal' once locked>
+#     source: <URL or 'internal' source description once locked>
+# Fetcher: apps/avatar/scripts/fetch-vrm-motion-presets.mjs (added in wave_3
+# when the external sources are locked); not git-tracked assets are recorded
+# in apps/avatar/assets/.gitignore.
+
+constraints:
+  - description: >
+      Wave 0 admit registry contains exactly the 4 entries above: one MIT
+      fork-copy (`idle_subtle`) and three internal author targets.
+      Adding wave_3 entries requires updating activity-mapping.yaml v2 in the
+      same packet to flip the fallback routes from `idle_subtle` to the
+      formal preset.
+  - description: >
+      `license` and `source` must be concrete strings (non-empty,
+      non-placeholder). Spec validator rejects entries containing "TBD",
+      "candidate", "VRoid Hub 候选", or similar placeholder tokens.
+  - description: >
+      Built-in `.vrma` files must physically exist at
+      apps/avatar/assets/vrm-motion-presets/<file> and load via
+      `@pixiv/three-vrm-animation` `loadVrmAnimation` at PoC time. Wave 0
+      close gate enforces this for `idle_subtle.vrma`; wave 3 enforces it
+      for the 3 deferred entries plus the remaining 3 internal entries
+      (`listen_lean / nod_yes / shake_no`) whose author files land at wave 3.
+  - description: >
+      Per-model override at <model_path>/motions/<preset_id>.vrma must
+      reference an admitted preset id; unknown id is rejected at registry
+      load (log warn) and the builtin is used.
+
+drift_checks:
+  - description: >
+      Any change to `presets[].id` must propagate to activity-mapping.yaml
+      `vrm.motion` references and to vrm-motion-preset-registry.ts.
+  - description: >
+      Any change to `presets[].file` must rename the corresponding asset
+      file in apps/avatar/assets/vrm-motion-presets/.
+  - description: >
+      Removing a preset id at registry level requires updating every
+      activity-mapping.yaml entry that references it in the same packet.

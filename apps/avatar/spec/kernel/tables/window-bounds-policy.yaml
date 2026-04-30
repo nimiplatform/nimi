@@ -45,10 +45,15 @@ policy:
     embodiment_bounds:
       source: embodiment_projection.getSurfaceBounds()
       shape: rect (x, y, width, height)
+      nominal_bounds_source: BackendBranch.nominalBounds
       reason: >
         Authoritative bounds for the current backend's render surface.
-        For the Live2D branch this is the model alpha bounding box; future
-        backends provide their own equivalent.
+        Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit:
+        BackendBranch.nominalBounds (per backend-branch-contract.md
+        §2.2 BackendNominalBounds) is the canonical source for the
+        starting envelope; embodiment_projection.getSurfaceBounds() is
+        the per-frame refinement (e.g. Live2D alpha bounding box may
+        shrink as motion plays).
     companion_footprint:
       source: companion-surface root element bounding rect (DOM)
       stack_axis: vertical_below_embodiment
@@ -93,6 +98,36 @@ policy:
       Avatar may be dragged onto secondary monitors. If a previously used
       monitor becomes unavailable on relaunch, fall back to the primary
       monitor at default position rather than positioning off-screen.
+
+  # Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit:
+  # per-backend nominal bounds defaults (used when BackendBranch.nominalBounds
+  # is unavailable at first model_load — e.g. before Live2D model3.json
+  # canvas-size header parses, before VRM scene bbox computes).
+  backends:
+    live2d:
+      nominal_bounds_default:
+        width_px: 400
+        height_px: 600
+      reason: >
+        Live2D model3.json canvas size carries authoritative width/height;
+        the 400×600 fallback is consumed only at the boot placeholder
+        stage before the model loads. Once model3.json `Canvas.Width` /
+        `Canvas.Height` parse, embodiment_bounds switches to the model
+        alpha bounding box (per live2d-render-contract.md).
+    vrm:
+      nominal_bounds_default:
+        width_px: 360
+        height_px: 720
+      framing_intent_default: bottom-companion
+      aspect_default: 0.45
+      reason: >
+        VRM scene bbox is computed at load time from the Three.js scene
+        traversal. The 360×720 fallback (taller, narrower) reflects the
+        default `bottom-companion` framing intent (humanoid model
+        framed from bottom-third with subtle body cut-off). aspect 0.45
+        keeps the avatar window narrow on portrait setups. Once
+        scene bbox + framing intent compute, embodiment_bounds is set
+        to the framed bbox per vrm-backend-contract.md §4.
 
 constraints:
   - description: >

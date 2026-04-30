@@ -62,15 +62,45 @@ The following evidence must not close Avatar carrier visual proof:
 - closed-topic demo screenshots, checklists, or worker results
 - command-state-only tests that do not exercise draw/pixel output
 
-## 4. Scope Boundary
+## 4. Multi-Backend Visual Proof (Wave 0 admit)
+
+> Source: topic `2026-04-30-avatar-vrm-backend-branch` design-10.
+
+`recordCarrierVisualProof` helper is extended with a `modelKind: BackendKind`
+input to support multi-backend visual evidence. Signature:
+
+```ts
+recordCarrierVisualProof(input: {
+  modelKind: 'live2d' | 'vrm';
+  // ... existing fields (canvas ref / sample grid / frame index / ...)
+}): CarrierVisualProof;
+```
+
+Per-backend evidence rules:
+
+| Aspect | Live2D | VRM |
+| --- | --- | --- |
+| `framesToWait` budget | up to 12 attempts (Cubism animation idle takes longer to stabilize) | 6 attempts (R3F renders deterministic in 1–2 frames) |
+| Sample grid | 24 × 24 = 576 cells | 24 × 24 = 576 cells |
+| Visible-pixel threshold | alpha > 0.5 in sample cell | alpha > 0.5 in sample cell |
+| Evidence event detail | includes `model_kind: 'live2d'` | includes `model_kind: 'vrm'` |
+| Failure recovery | up to 1 webglcontextlost retry within 1500ms | up to 1 webglcontextlost retry within 1500ms (per `vrm-backend-contract.md` §2.3) |
+
+Both backends must produce the same evidence shape (`visiblePixels`,
+`modelKind`, sampling result) so audit harnesses can run the same assertion
+across backends.
+
+`avatar.carrier.visual` evidence event detail is extended to carry
+`model_kind`; existing fields remain stable.
+
+## 5. Scope Boundary
 
 This contract does not admit:
 
-- Phase 2 voice output or lipsync
-- `avatar.speak.*` or `avatar.lipsync.frame` as current emitted success
+- Phase 2 voice output or lipsync (Wave 3 admitted; tracked separately)
 - shared `PresentationTimeline`
 - broad platform or SDK Event API behavior
-- VRM / 3D backend visual proof
+- 3D / Lottie / robot backend visual proof beyond Live2D + VRM
 
 Those branches require separate active authority before they can be used as
 acceptance conditions.

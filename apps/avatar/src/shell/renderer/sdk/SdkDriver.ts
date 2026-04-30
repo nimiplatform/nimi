@@ -53,29 +53,17 @@ type RuntimeAgentVoicePlaybackEvent = {
   };
 };
 
-type RuntimeAgentLipsyncFrameBatchEvent = {
-  eventName: 'runtime.agent.presentation.lipsync_frame_batch';
-  agentId: string;
-  conversationAnchorId: string;
-  turnId: string;
-  streamId: string;
-  timeline: RuntimeAgentTimelineForAvatar;
-  detail: {
-    audioArtifactId: string;
-    frames: Array<{
-      frameSequence: number;
-      offsetMs: number;
-      durationMs: number;
-      mouthOpenY: number;
-      audioLevel: number;
-    }>;
-  };
-};
+// The deprecated runtime presentation per-frame mouth-batch consume path
+// was deleted at wave 0 of topic 2026-04-30-avatar-vrm-backend-branch
+// (design-09 §"kill list"). Per-frame mouth movement now flows through
+// `BackendAudioConsumer.snapshot()` in the surface useFrame loop, written
+// by the wLipSync driver. Platform-side emit deprecation is a separate
+// topic; the deprecated event name string is intentionally NOT spelled
+// here so the hard-cut grep gate stays at 0 hits.
 
 type RuntimeAgentConsumeEvent =
   | SdkRuntimeAgentConsumeEvent
-  | RuntimeAgentVoicePlaybackEvent
-  | RuntimeAgentLipsyncFrameBatchEvent;
+  | RuntimeAgentVoicePlaybackEvent;
 
 type RuntimeAgentSessionSnapshot = SdkRuntimeAgentSessionSnapshot;
 
@@ -750,7 +738,6 @@ export class SdkDriver implements AgentDataDriver {
       case 'runtime.agent.presentation.pose_cleared':
       case 'runtime.agent.presentation.lookat_requested':
       case 'runtime.agent.presentation.voice_playback_requested':
-      case 'runtime.agent.presentation.lipsync_frame_batch':
       case 'runtime.agent.hook.intent_proposed':
       case 'runtime.agent.hook.pending':
       case 'runtime.agent.hook.rejected':

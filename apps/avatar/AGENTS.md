@@ -16,11 +16,14 @@
 |-------|-----------|----------|
 | Desktop shell | Tauri 2 (transparent, always-on-top, no-chrome) | `src-tauri/` |
 | Frontend | React 19 + Vite 7 + Tailwind 4 | `src/shell/renderer/` |
-| Embodiment projection | App-local projection + NAS runtime | `src/shell/renderer/nas/` |
-| Current backend branch | Cubism SDK for Web (official) | `src/shell/renderer/live2d/` |
+| Carrier abstraction | `BackendBranch` (multi-backend; live2d / vrm) | `src/shell/renderer/carrier/` |
+| Embodiment projection | App-local ontology projection + NAS runtime | `src/shell/renderer/nas/` |
+| Live2D backend branch | Cubism SDK for Web (official) | `src/shell/renderer/live2d/` |
+| VRM backend branch | `@pixiv/three-vrm` + `@react-three/fiber` + `wlipsync` | `src/shell/renderer/vrm/` |
+| Audio pipeline | wLipSync; reads bytes via `runtime.artifacts.readBytes` (S-RUNTIME-111) | `src/shell/renderer/audio/` |
 | State | Zustand | `src/shell/renderer/app-shell/` |
 | AI / Events | `@nimiplatform/sdk` real consume path | workspace dep |
-| UI components | `@nimiplatform/nimi-kit` | workspace dep |
+| UI components | `@nimiplatform/nimi-kit/{ui,core,auth,telemetry}` (NOT `kit/features/avatar`) | workspace dep |
 | Dev port | 1427 | `vite.config.ts` |
 
 ## Product Form
@@ -34,7 +37,7 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 embodiment surface*
 - Click-through 在 embodiment 形状外 + companion 矩形外（点空白穿透到下层 app）
 - Companion Surface（assistant bubble + status row + composer）固定 always-visible，绑定当前 launch-selected `agent_id + conversation_anchor_id`
 - Degraded Surface 单独承载 loading / error / reauth / launch-context-invalid / relaunch-pending 形态，与 ready surface 互斥
-- STT / TTS 通过 runtime 消费；lipsync 由 `runtime.agent.presentation.lipsync_frame_batch` 驱动 Live2D `ParamMouthOpenY`
+- STT / TTS 通过 runtime 消费；audio bytes 通过 `runtime.artifacts.readBytes` 获取；lipsync 由 backend `BackendAudioConsumer` + wLipSync 驱动
 
 ## Wave Schedule
 
@@ -45,8 +48,20 @@ Avatar 重构分 5 个 wave；每个 wave 必须是端到端可交付能力切�
 | 0 | Spec 重构（surface composition / companion / degraded / event 体系 / wave-based feature matrix） | done |
 | 1 | Surface composition implementation（embodiment-stage / companion-surface / degraded-surface 三互斥结构 + hard-cut 旧 toggle 路径） | done |
 | 2 | i18n + Design tokens 工业化（locales/{en,zh}/avatar.json + tokens.css + i18n-keys.yaml） | done |
-| 3 | Lipsync end-to-end（runtime emitter + SDK 消费 + Live2D bridge + voice-companion-state slice） | done |
+| 3 | Lipsync end-to-end（runtime emitter + SDK 消费 + Live2D bridge + voice-companion-state slice） | done（**lipsync_frame_batch consume path superseded by topic 2026-04-30 wave_6 wLipSync hard-cut；保留为历史**） |
 | 4 | Window + Settings 工业化（dynamic window bounds + drag region 限定 + settings popover + window-bounds-policy.yaml） | done |
+| 5 | Spec admit + platform admission（multi-backend BackendBranch / VRM contract / audio-pipeline + wLipSync / runtime-artifact-contract K-AGCORE-053 / S-RUNTIME-111） | done（topic 2026-04-30-avatar-vrm-backend-branch wave_0 closed complete） |
+| 6 | Carrier abstraction extraction + Live2D refactor + audio pipeline + frame_batch hard-cut | pending（topic-internal wave_1） |
+| 7 | VRM lifecycle + MToon + framing + diagnostics + instance cache | pending（topic-internal wave_2） |
+| 8 | VRM motion preset + emote state + projection adapter + activity mapping v2 | pending（topic-internal wave_3） |
+| 9 | Window bounds multi-backend + alpha-mask hit region + drag region | pending（topic-internal wave_4） |
+| 10 | Smoke evidence + representative samples + topic closeout | pending（topic-internal wave_5） |
+
+> **Wave 编号桥接**：feature-matrix v3 `wave_5..wave_10` ↔ topic-internal
+> wave numbering（candidate-wave-plan.md / packets / design-*）
+> `wave_0..wave_5`. 加 5 偏移；详 `feature-matrix.yaml` v3 description +
+> design-12 §"Wave 编号桥接". topic-internal docs 用 0..5；feature-matrix
+> 用 5..10. 任一改名同步另一处.
 
 工程原则：
 
@@ -317,3 +332,153 @@ Skip: `node_modules/`, `dist/`, `target/`, lockfiles.
 - Handler files are ES modules（`export default`）
 - Live2D parameter ids 用 Cubism 官方命名（如 `ParamEyeBallX`）仅适用于当前 Live2D backend branch
 - Mock data 用 `*.mock.json` 后缀区分于真实 fixture
+
+---
+
+## External Reference (Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit)
+
+### airi 算法借鉴清单（design-11 admit）
+
+`_external/airi/**` 是 reference-only。**0 行 import**（hard rule，
+self-contained policy enforced by `pnpm check:apps-avatar-isolation`）；
+仅借鉴算法 / 配比 / envelope 参数：
+
+| Item | 来源 | 位置（apps/avatar） | License |
+|---|---|---|---|
+| MToon outline fallback policy | airi `composables/vrm/material-mtoon` | `vrm/vrm-mtoon-outline-policy.ts` | airi MIT；本 repo 重写实现 |
+| VRM instance cache pattern | airi `composables/vrm/instance-cache` | `vrm/vrm-instance-cache.ts` | airi MIT；本 repo 重写实现 |
+| Framing intent → camera/scale 算法 | airi `composables/vrm/framing` | `vrm/vrm-framing.ts` + `vrm/domain/vrm-framing-domain.ts` | airi MIT；本 repo 重写实现 |
+| Hit-test render-target + alpha sample | airi `composables/render-target` + `composables/hit-test` | `vrm/vrm-render-target.ts` + `vrm/vrm-hit-region.ts` | airi MIT；本 repo 重写实现 |
+| wLipSync envelope（ATTACK/RELEASE/CAP/SILENCE_VOL/IDLE_MS）| airi `composables/vrm/lip-sync` | `vrm/vrm-lipsync-driver.ts` + `live2d/live2d-lipsync-driver.ts` | airi MIT；常量集中表 |
+
+### wlipsync 供应链兜底
+
+- npm dep `wlipsync@^1.3.0`（MIT，单 maintainer `mrxz`）
+- audio worklet processor + WASM blob inline 在包 entrypoint；vite bundling
+  无需特殊 worker plugin
+- 包失活时兜底：`apps/avatar/vendored/wlipsync/` 用作离线 fork（仅在
+  原包不可用时启用；isolation gate 已为该路径开白名单）
+- profile JSON `apps/avatar/assets/lip-sync/lip-sync-profile.json`
+  fork-copy 自 airi `_external/airi/packages/model-driver-lipsync/src/shared/wlipsync/profile.json`，
+  LICENSE source 标注
+
+### License Compliance 表
+
+| 包 | License | 用途 | 发布合规 |
+|---|---|---|---|
+| `@pixiv/three-vrm@^3.5.2` | MIT | VRM runtime | ship |
+| `@pixiv/three-vrm-animation@^3.5.2` | MIT | `.vrma` loader | ship |
+| `@pixiv/three-vrm-core@^3.5.2` | MIT | VRM core types | ship |
+| `three@^0.183.2` | MIT | Three.js engine | ship |
+| `@react-three/fiber@^9.5.0` | MIT | R3F renderer | ship |
+| `wlipsync@^1.3.0` | MIT | wLipSync worklet | ship |
+| airi `_external/airi` | MIT | algorithm reference only; 0 lines imported | NOT shipped (reference-only) |
+
+---
+
+## Self-Contained Policy (Wave 0 admit, design-12)
+
+`apps/avatar/**` 是 self-contained app；以下 import 路径**禁止**：
+
+- `@nimiplatform/nimi-kit/features/avatar/*`（cross-app 已禁；kit avatar 子模块即将整体移除是独立架构 topic）
+- `apps/desktop/**` / `apps/web/**` / `apps/forge/**` / `apps/realm-drift/**` /
+  `apps/install-gateway/**` / `apps/overtone/**`
+- `_external/**`（任何路径，runtime 引用禁止；airi 仅算法借鉴）
+
+允许的 import：
+
+- `@nimiplatform/nimi-kit/{ui,core,auth,telemetry}`（design system 核心；非 avatar 子模块）
+- `@nimiplatform/sdk/runtime` / `@nimiplatform/sdk/runtime/browser` /
+  `@nimiplatform/sdk/realm`
+- `@pixiv/three-vrm` / `@pixiv/three-vrm-animation` / `@pixiv/three-vrm-core`
+- `three` / `@react-three/fiber` / `@react-three/drei`（按需，wave_2 可加）/
+  `@react-three/postprocessing`（按需）
+- `wlipsync`
+- `react` / `react-dom` / `zustand`
+- `@tauri-apps/api`
+
+自动化 gate：`pnpm check:apps-avatar-isolation`（root + apps/avatar
+package.json scripts；详 Phase E `scripts/check-apps-avatar-isolation.mjs`）。
+
+grep gate（每 wave close gate 必跑）：
+
+- `lipsync_frame_batch` 在 `apps/avatar/src/**` 必须 0 hits（wave_6 起强制）
+- `fetchAudioBytes` / `fetchBytes` 在 `apps/avatar/src/**` 必须 0 hits（wave_6 起强制）
+- `kit/features/avatar` / `apps/desktop` / `_external/` 字符串在
+  `apps/avatar/src/**` 必须 0 hits
+
+---
+
+## VRM Backend Pitfalls (Wave 0 admit, design-01 §F must-honor)
+
+VRM 加载 / 运行时**强制**遵守的 10 项；不遵守 → 加载随机失败 / 模型隐形 /
+context-lost 不可恢复 / Tauri webview 加载 hang / 嘴型双写冲突。
+
+1. **rotateVRM0 → applyIdlePose → frustumCulled=false** 顺序强制
+   （顺序错乱导致首帧 T-pose / 错误朝向 / 边缘剔除）
+2. **createImageBitmap suspend** wrap 全部 `loader.loadAsync(.vrm/.vrma)`
+   调用（Tauri webview WKWebView 偶发 hang；详 `vrm-backend-contract.md` §6.1）
+3. **context-lost 1500ms 单次重试** + 二次失败立即 fail-close
+   （多次重试 → GPU stale → 不可用时假装活着）
+4. **scene.traverse: object.frustumCulled = false**（close-up framing 时部分
+   网格被剔除）
+5. **expressionManager.setValue 安全 wrap**（缺 preset → throw → catch + 跳过）
+6. **viseme expression preset (aa/ih/ou/ee/oh) 由 lipsync driver 独占**；
+   emote state 当 `lipsyncActive=true` 时 suppress viseme 写入（详 design-05
+   §"Coordination with emote layer"）
+7. **wLipSyncNode lazy create per AudioContext 单次**（worklet register 是
+   per-context；avatar 全局单 AudioContext，所以仅 createWLipSyncNode 一次）
+8. **AnimationMixer crossFadeFrom** 切换 motion preset；不允许累积多 active
+   clip（loop preset 替换前必须 stop）
+9. **VRMUtils.rotateVRM0 幂等**（VRM 0.x → 1.0 朝向修正；调多次安全）
+10. **scene 不在 useFrame 内修改 light intensity / position**（避免 stutter）
+
+---
+
+## Audio Pipeline (Wave 0 admit, design-05)
+
+audio-pipeline 直接 consume `runtime.artifacts.readBytes`（S-RUNTIME-111；
+admit 自本 topic platform admission gate）；**不再 caller-注入 fetchBytes**。
+
+### Synthetic mime fail-close
+
+`audio_mime_type === SYNTHETIC_AUDIO_MIME_TYPE`
+（`'application/x-nimi-synthetic-lipsync'`）时：
+
+- audio-pipeline 不解码 / 不播放 / 不 attach lipsync sink
+- `sink.silent()` 立即归零 mouth
+- evidence emit `avatar.lipsync.silent { silent_reason: 'synthetic_audio' }`
+- evidence emit `avatar.audio.playback.completed`（消费者状态机仍前进）
+- log warn `synthetic_audio_no_playback_no_lipsync`
+
+**显式语义**：synthetic mode = silent voice + silent mouth；不假装在动。
+
+### 完整 fail-close 行为表
+
+| 场景 | reason_code（emit `avatar.audio.playback.failed` / `.lipsync.silent`） |
+|---|---|
+| AudioContext 创建失败 / 无 user gesture | `no_audio_context` |
+| `createWLipSyncNode` 失败（worklet/WASM 加载失败） | `wlipsync_init_failed`（emit `avatar.audio.pipeline.failed`） |
+| `audio_mime_type === SYNTHETIC_AUDIO_MIME_TYPE` | `synthetic_audio` (silent) — see above |
+| `audio_mime_type` 不以 `audio/` 开头且非 synthetic | `unsupported_mime` |
+| `runtime.artifacts.readBytes` ARTIFACT_NOT_FOUND | `artifact_not_found` |
+| `runtime.artifacts.readBytes` ARTIFACT_TOO_LARGE | `artifact_too_large` |
+| `runtime.artifacts.readBytes` ARTIFACT_FORBIDDEN | `artifact_forbidden` |
+| `runtime.artifacts.readBytes` ARTIFACT_MIME_MISMATCH | `artifact_mime_mismatch` |
+| 其他 transport / RPC 错误 | `fetch_failed`（不重试；fail-close） |
+| `decodeAudioData` 失败 | `decode_failed` |
+| `playback_state='interrupted' \| 'canceled'` | （audioPipeline.stop；sink.silent via source.onended） |
+| voice_playback_requested 缺 `audio_artifact_id` / `audio_mime_type` | event 忽略 |
+| VRM model 缺全部 5 viseme expression preset | log warn at load；driver tick 安全 catch |
+| Live2D model 缺 `ParamMouthOpenY` | fail-close at model load（关键参数） |
+| wLipSyncNode message 异常 | log warn；当帧 snapshot=null（沿用上一帧 decay） |
+
+**`music/` is NOT a valid MIME prefix** (RFC-6838); music artifacts use
+`audio/*`. 不允许 audio-pipeline / artifact resolver 列 `music/` 作为
+expectedMimePrefix.
+
+### Reason code (S-RUNTIME-111 → SDK errors)
+
+audio-pipeline catch SDK error 时使用 **`ReasonCode.ARTIFACT_INVALID_INPUT`**
+（NOT `SDK_INVALID_INPUT`）作为 input validation 的 reason code。
+import path: `import { ReasonCode } from '@nimiplatform/sdk/types'`.

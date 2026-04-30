@@ -1,20 +1,46 @@
+// Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch admit (design-05 §
+// "avatar-voice-lipsync.ts 重构"; design-09 §"kill list").
+//
+// Wave 0 hard-cut surface:
+//   - The deprecated runtime presentation per-frame mouth-batch consume
+//     path is deleted. Per-frame mouth movement now flows through
+//     `BackendAudioConsumer.snapshot()` in the surface useFrame loop,
+//     written by the wLipSync driver. Avatar app no longer subscribes to
+//     that runtime event (platform-side emit deprecation is a separate
+//     topic).
+//   - The legacy caller-injected audio-bytes fetcher is removed. Audio
+//     bytes are read directly by AudioPipelineController via
+//     `runtime.artifacts.readBytes` (S-RUNTIME-111).
+//   - The Live2D-specific mouth bridge instance is dropped; topic-internal
+//     wave_1 lands the Live2D wLipSync driver module for the Cubism
+//     `ParamMouthOpenY` / `ParamMouthForm` write path. Wave 0 close gate
+//     accepts that the Live2D mouth is dormant until that driver lands.
+//
+// What this orchestrator still does:
+//   - Subscribe to `runtime.agent.presentation.voice_playback_requested`.
+//   - Mirror the runtime playback state machine (requested / started /
+//     completed / interrupted / canceled / failed) into the avatar voice
+//     state bus + the audio pipeline controller.
+//   - Stop / interrupt the audio pipeline on `runtime.agent.turn.interrupted`
+//     and `runtime.agent.turn.interrupt_ack`.
+//
+// Optional `backend?: BackendBranch` argument: when supplied, this
+// orchestrator registers the backend's BackendAudioConsumer with the audio
+// pipeline as its lipsync sink. Topic-internal wave_1 wires this in
+// avatar-carrier.ts; wave_0 callers pass nothing (sink stays unregistered;
+// audio still plays, mouth stays dormant).
+
 import type { AgentDataDriver, AgentEvent } from '../driver/types.js';
-import type { EmbodimentProjectionApi } from '../nas/embodiment-projection-api.js';
+import type { BackendBranch } from '../carrier/backend-branch.js';
 import {
-  AudioPlaybackController,
-  getSharedAudioPlaybackController,
-  type AudioPlaybackPlayInput,
-} from '../audio/audio-playback.js';
+  AudioPipelineController,
+  getSharedAudioPipelineController,
+} from '../audio/audio-pipeline.js';
 import {
   getSharedVoiceLipsyncStateBus,
   type VoiceLipsyncStateBus,
 } from './voice-lipsync-state-bus.js';
 import type { AudioPlaybackState } from '../voice-companion-state.js';
-import { Live2DLipsyncBridge, LIVE2D_PARAM_MOUTH_OPEN } from '../live2d/lipsync-bridge.js';
-
-// Re-export for backward compat — orchestrator no longer owns this constant
-// directly but tests / consumers may still reference it.
-export const AVATAR_MOUTH_OPEN_SIGNAL = LIVE2D_PARAM_MOUTH_OPEN;
 
 type RuntimeTimelineDetail = {
   turn_id: string;
@@ -31,17 +57,6 @@ type RuntimeTimelineDetail = {
   app_local_authority: false;
 };
 
-type VoiceFrame = {
-  offsetMs: number;
-  mouthOpenY: number;
-};
-
-type VoiceTiming = {
-  adapterId: string;
-  audioArtifactId?: string;
-  frames: VoiceFrame[];
-};
-
 export type AvatarVoiceLipsyncPipeline = {
   handleEvent(event: AgentEvent): void;
   dispose(): void;
@@ -49,7 +64,7 @@ export type AvatarVoiceLipsyncPipeline = {
 
 function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
+    ? (value as Record<string, unknown>)
     : null;
 }
 
@@ -65,9 +80,7 @@ function readFiniteNumber(record: Record<string, unknown>, key: string): number 
 
 function parseRuntimeTimeline(detail: Record<string, unknown>): RuntimeTimelineDetail | null {
   const timeline = readRecord(detail['runtime_timeline']);
-  if (!timeline) {
-    return null;
-  }
+  if (!timeline) return null;
   const turnId = readString(timeline, 'turn_id');
   const streamId = readString(timeline, 'stream_id');
   const channel = readString(timeline, 'channel');
@@ -118,96 +131,6 @@ function parseRuntimeTimeline(detail: Record<string, unknown>): RuntimeTimelineD
   };
 }
 
-function normalizeFrame(value: unknown): VoiceFrame | null {
-  const frame = readRecord(value);
-  if (!frame) {
-    return null;
-  }
-  const offsetMs = readFiniteNumber(frame, 'offset_ms') ?? readFiniteNumber(frame, 'offsetMs');
-  const mouthOpenY = readFiniteNumber(frame, 'mouth_open_y') ?? readFiniteNumber(frame, 'mouthOpenY');
-  if (offsetMs === null || mouthOpenY === null || offsetMs < 0 || mouthOpenY < 0 || mouthOpenY > 1) {
-    return null;
-  }
-  return { offsetMs, mouthOpenY };
-}
-
-function parseVoiceTiming(detail: Record<string, unknown>): VoiceTiming | null {
-  const payload = readRecord(detail['payload']);
-  const timing = readRecord(detail['voice_timing']) ?? readRecord(payload?.['voice_timing']);
-  if (!timing) {
-    return null;
-  }
-  const adapterId = readString(timing, 'adapter_id') ?? readString(timing, 'adapterId');
-  if (!adapterId || !isProviderNeutralAdapterId(adapterId)) {
-    return null;
-  }
-  const rawFrames = timing['frames'];
-  if (!Array.isArray(rawFrames)) {
-    return null;
-  }
-  const frames = rawFrames.map(normalizeFrame);
-  if (frames.some((frame) => !frame)) {
-    return null;
-  }
-  const normalized = frames as VoiceFrame[];
-  for (let index = 1; index < normalized.length; index += 1) {
-    const previous = normalized[index - 1];
-    const current = normalized[index];
-    if (!previous || !current || previous.offsetMs >= current.offsetMs) {
-      return null;
-    }
-  }
-  const uniqueMouthValues = new Set(normalized.map((frame) => frame.mouthOpenY));
-  if (normalized.length < 2 || uniqueMouthValues.size < 2) {
-    return null;
-  }
-  return { adapterId, frames: normalized };
-}
-
-function parseRuntimeLipsyncFrameBatch(
-  detail: Record<string, unknown>,
-  timeline: RuntimeTimelineDetail,
-): VoiceTiming | null {
-  if (timeline.channel !== 'lipsync') {
-    return null;
-  }
-  const audioArtifactId = readString(detail, 'audioArtifactId') ?? readString(detail, 'audio_artifact_id');
-  if (!audioArtifactId) {
-    return null;
-  }
-  const rawFrames = detail['frames'];
-  if (!Array.isArray(rawFrames)) {
-    return null;
-  }
-  const frames = rawFrames.map(normalizeFrame);
-  if (frames.some((frame) => !frame)) {
-    return null;
-  }
-  const normalized = frames as VoiceFrame[];
-  for (let index = 1; index < normalized.length; index += 1) {
-    const previous = normalized[index - 1];
-    const current = normalized[index];
-    if (!previous || !current || previous.offsetMs >= current.offsetMs) {
-      return null;
-    }
-  }
-  if (normalized.length === 0) {
-    return null;
-  }
-  return {
-    adapterId: 'runtime.voice.runtime-agent-lipsync-frame-batch',
-    audioArtifactId,
-    frames: normalized,
-  };
-}
-
-function isProviderNeutralAdapterId(adapterId: string): boolean {
-  if (!adapterId.startsWith('runtime.voice.')) {
-    return false;
-  }
-  return !/(^|[.:/])(openai|elevenlabs|minimax|bytedance|google|azure|aws|anthropic|local)([.:/]|$)/i.test(adapterId);
-}
-
 function timelineIdentity(timeline: RuntimeTimelineDetail): string {
   return `${timeline.turn_id}:${timeline.stream_id}`;
 }
@@ -231,30 +154,17 @@ function emitDriverEvent(
 
 export function createAvatarVoiceLipsyncPipeline(input: {
   driver: AgentDataDriver;
-  projection: EmbodimentProjectionApi;
-  mouthSignalId?: string;
   stateBus?: VoiceLipsyncStateBus;
-  audioPlayback?: AudioPlaybackController;
-  fetchAudioBytes?: (audioArtifactId: string) => Promise<ArrayBuffer>;
+  audioPipeline?: AudioPipelineController;
+  backend?: BackendBranch;
 }): AvatarVoiceLipsyncPipeline {
   const canceled = new Set<string>();
   let disposed = false;
-  const mouthSignalId = input.mouthSignalId ?? AVATAR_MOUTH_OPEN_SIGNAL;
   const stateBus = input.stateBus ?? getSharedVoiceLipsyncStateBus();
-  const audioPlayback = input.audioPlayback ?? getSharedAudioPlaybackController();
-  const fetchAudioBytes = input.fetchAudioBytes;
-  // Live2D-specific projection writes are owned by the bridge per Wave 3
-  // feature-matrix wave_3.scope.live2d_lipsync_bridge. The orchestrator stays
-  // embodiment-agnostic and only delegates per-frame mouth/form parameter
-  // updates here.
-  const live2dBridge = new Live2DLipsyncBridge({
-    projection: input.projection,
-    mouthOpenSignalId: mouthSignalId,
-  });
-
-  function resetMouth(): void {
-    live2dBridge.reset();
-  }
+  const audioPipeline = input.audioPipeline ?? getSharedAudioPipelineController();
+  const unregisterSink = input.backend
+    ? audioPipeline.registerLipsyncSink(getBackendAudioConsumer(input.backend))
+    : null;
 
   function publishPlaybackState(state: AudioPlaybackState): void {
     stateBus.publish({ kind: 'audio_playback_state', state });
@@ -264,12 +174,9 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     const timeline = parseRuntimeTimeline(detail);
     const streamId = timeline?.stream_id ?? readString(detail, 'stream_id');
     const turnId = timeline?.turn_id ?? readString(detail, 'turn_id');
-    if (!streamId || !turnId) {
-      return;
-    }
+    if (!streamId || !turnId) return;
     canceled.add(`${turnId}:${streamId}`);
-    audioPlayback.stop('interrupted');
-    resetMouth();
+    audioPipeline.stop('interrupted');
     stateBus.publish({ kind: 'deactivate' });
     publishPlaybackState('interrupted');
     if (timeline) {
@@ -279,14 +186,15 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     }
   }
 
-  function handleRuntimePlaybackState(event: AgentEvent, detail: Record<string, unknown>): boolean {
+  function handleVoicePlaybackRequested(
+    event: AgentEvent,
+    detail: Record<string, unknown>,
+  ): boolean {
     if (event.name !== 'runtime.agent.presentation.voice_playback_requested') {
       return false;
     }
     const state = readString(detail, 'playbackState') ?? readString(detail, 'playback_state');
-    if (state === null) {
-      return false;
-    }
+    if (state === null) return false;
     const timeline = parseRuntimeTimeline(detail);
     const audioArtifactId =
       readString(detail, 'audioArtifactId') ?? readString(detail, 'audio_artifact_id');
@@ -298,14 +206,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
         return true;
       }
       stateBus.publish({ kind: 'activate', audioArtifactId });
-      const playInput: AudioPlaybackPlayInput = { audioArtifactId, audioMimeType };
-      if (fetchAudioBytes) {
-        playInput.fetchBytes = () => fetchAudioBytes(audioArtifactId);
-      }
-      // Audio controller pushes `started/completed/failed` snapshots to its
-      // own subscribers; the App-shell mirror subscribes there. Errors are
-      // swallowed because the controller already publishes a `failed` state.
-      void audioPlayback.play(playInput);
+      void audioPipeline.play({ audioArtifactId, audioMimeType });
       publishPlaybackState('requested');
       return true;
     }
@@ -321,12 +222,9 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     }
 
     if (state === 'interrupted' || state === 'canceled' || state === 'failed') {
-      if (!timeline || timeline.channel !== 'voice') {
-        return true;
-      }
+      if (!timeline || timeline.channel !== 'voice') return true;
       canceled.add(timelineIdentity(timeline));
-      audioPlayback.stop('interrupted');
-      resetMouth();
+      audioPipeline.stop('interrupted');
       stateBus.publish({ kind: 'deactivate' });
       publishPlaybackState(state === 'failed' ? 'failed' : 'interrupted');
       emitDriverEvent(input.driver, 'avatar.speak.interrupt', timeline, {
@@ -340,101 +238,58 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     return false;
   }
 
-  function handleVoiceEvent(event: AgentEvent, detail: Record<string, unknown>): void {
-    const timeline = parseRuntimeTimeline(detail);
-    if (!timeline) {
-      return;
-    }
-    const voiceTiming = event.name === 'runtime.agent.presentation.lipsync_frame_batch'
-      ? parseRuntimeLipsyncFrameBatch(detail, timeline)
-      : parseVoiceTiming(detail);
-    if (!voiceTiming) {
-      return;
-    }
-    const identity = timelineIdentity(timeline);
-    if (canceled.has(identity)) {
-      return;
-    }
-    if (voiceTiming.audioArtifactId) {
-      stateBus.publish({ kind: 'activate', audioArtifactId: voiceTiming.audioArtifactId });
-    }
-    emitDriverEvent(input.driver, 'avatar.speak.start', timeline, {
-      source_event_name: event.name,
-      voice_adapter_id: voiceTiming.adapterId,
-      audio_artifact_id: voiceTiming.audioArtifactId ?? null,
-      frame_count: voiceTiming.frames.length,
-    });
-    for (const frame of voiceTiming.frames) {
-      if (canceled.has(identity) || disposed) {
-        resetMouth();
-        stateBus.publish({ kind: 'mouth_open_y', value: 0 });
-        stateBus.publish({ kind: 'deactivate' });
-        return;
-      }
-      live2dBridge.applyFrame({
-        offsetMs: frame.offsetMs,
-        mouthOpenY: frame.mouthOpenY,
-        // parseRuntimeLipsyncFrameBatch / parseVoiceTiming both lose audio
-        // level on the way to VoiceFrame; default to 0.5 mid-form so the
-        // bridge writes a neutral ParamMouthForm for now. Future work: thread
-        // audio_level through the orchestrator's VoiceFrame type.
-        audioLevel: 0.5,
-      });
-      stateBus.publish({ kind: 'mouth_open_y', value: frame.mouthOpenY });
-      emitDriverEvent(input.driver, 'avatar.lipsync.frame', timeline, {
-        source_event_name: event.name,
-        audio_artifact_id: voiceTiming.audioArtifactId ?? null,
-        offset_ms: frame.offsetMs,
-        mouth_open_y: frame.mouthOpenY,
-      });
-    }
-    resetMouth();
-    stateBus.publish({ kind: 'mouth_open_y', value: 0 });
-    stateBus.publish({ kind: 'deactivate' });
-    emitDriverEvent(input.driver, 'avatar.speak.end', timeline, {
-      source_event_name: event.name,
-      voice_adapter_id: voiceTiming.adapterId,
-      audio_artifact_id: voiceTiming.audioArtifactId ?? null,
-    });
-  }
-
   return {
     handleEvent(event) {
-      if (disposed) {
-        return;
-      }
+      if (disposed) return;
       const detail = readRecord(event.detail);
-      if (!detail) {
-        return;
-      }
-      if (event.name === 'runtime.agent.turn.interrupted' || event.name === 'runtime.agent.turn.interrupt_ack') {
+      if (!detail) return;
+      if (
+        event.name === 'runtime.agent.turn.interrupted' ||
+        event.name === 'runtime.agent.turn.interrupt_ack'
+      ) {
         handleInterrupt(event, detail);
         return;
       }
-      if (handleRuntimePlaybackState(event, detail)) {
-        return;
-      }
-      handleVoiceEvent(event, detail);
+      handleVoicePlaybackRequested(event, detail);
     },
     dispose() {
       disposed = true;
-      audioPlayback.stop('interrupted');
-      resetMouth();
-      stateBus.publish({ kind: 'mouth_open_y', value: 0 });
+      audioPipeline.stop('interrupted');
       stateBus.publish({ kind: 'deactivate' });
       publishPlaybackState('idle');
       canceled.clear();
+      if (unregisterSink) unregisterSink();
     },
   };
 }
 
+function getBackendAudioConsumer(backend: BackendBranch) {
+  // Wave_1 (topic-internal) attaches BackendAudioConsumer onto BackendBranch
+  // via surface lifecycle; wave_0 admits the carrier-branch types but the
+  // factory + surface mount aren't built yet. This helper reads the consumer
+  // off the backend if the field is present, else throws — never returns
+  // a stub: silent stubs hide wiring drift.
+  const consumer = (backend as unknown as { audioConsumer?: unknown }).audioConsumer;
+  if (
+    consumer &&
+    typeof consumer === 'object' &&
+    typeof (consumer as { attachAudioSource?: unknown }).attachAudioSource === 'function' &&
+    typeof (consumer as { detachAudioSource?: unknown }).detachAudioSource === 'function' &&
+    typeof (consumer as { silent?: unknown }).silent === 'function' &&
+    typeof (consumer as { snapshot?: unknown }).snapshot === 'function'
+  ) {
+    return consumer as import('../carrier/backend-branch.js').BackendAudioConsumer;
+  }
+  throw new Error(
+    'avatar-voice-lipsync: backend.audioConsumer missing (BackendAudioConsumer) — wave_1 carrier wiring required',
+  );
+}
+
 export function wireAvatarVoiceLipsync(input: {
   driver: AgentDataDriver;
-  projection: EmbodimentProjectionApi;
-  mouthSignalId?: string;
   stateBus?: VoiceLipsyncStateBus;
-  audioPlayback?: AudioPlaybackController;
-  fetchAudioBytes?: (audioArtifactId: string) => Promise<ArrayBuffer>;
+  audioPipeline?: AudioPipelineController;
+  backend?: BackendBranch;
 }): () => void {
   const pipeline = createAvatarVoiceLipsyncPipeline(input);
   const unwire = input.driver.onEvent((event) => pipeline.handleEvent(event));

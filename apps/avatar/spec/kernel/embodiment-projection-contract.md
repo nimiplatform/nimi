@@ -2,12 +2,16 @@
 
 > **App**: `@nimiplatform/avatar`
 > **Authority**: App-local kernel contract
-> **Status**: Wave 6B embodiment-first baseline
+> **Status**: Wave 0 of topic `2026-04-30-avatar-vrm-backend-branch` re-anchors
+>   this contract to the multi-backend `BackendProjection` ontology surface.
+>   Pre-multi-backend (Wave 6B Live2D-only) framing is superseded.
 > **Sibling contracts**:
+> - [Backend branch contract](backend-branch-contract.md)
+> - [VRM backend contract](vrm-backend-contract.md)
+> - [Live2D render contract](live2d-render-contract.md)
 > - [App shell contract](app-shell-contract.md)
 > - [Agent script contract](agent-script-contract.md)
 > - [Avatar event contract](avatar-event-contract.md)
-> - [Live2D render contract](live2d-render-contract.md)
 
 ---
 
@@ -148,19 +152,96 @@ Wave 6B 不移除 Live2D branch；它只把 Live2D 收回到 backend-specific au
 
 ---
 
-## 7. Deferred
+## 7. BackendProjection Ontology Surface (Wave 0 admit)
 
-本 contract 明确不在 Wave 6B 内解决：
+> Re-anchored from earlier Live2D-coupled parameter-id model. Canonical
+> structure now lives in [`backend-branch-contract.md`](backend-branch-contract.md).
+
+The projection layer is delivered to NAS handlers and the carrier as a
+backend-agnostic ontology surface:
+
+```ts
+type BackendProjection = {
+  applyActivity(input: { name: string; intensity: number | null }): void;
+  applyEmotion(input: { current: string; previous: string | null }): void;
+  applyMotion(input: { presetId: string; fade?: number; loop?: boolean }): void;
+  applyExpression(input: { name: string; weight?: number; fade?: number }): void;
+  reset(): void;
+};
+```
+
+Rules:
+
+- `name` / `presetId` / `current` / `previous` 必须来自 platform
+  `agent-activity-ontology.yaml` (K-AGCORE-049) 或 app-local
+  `vrm-emote-states.yaml` / `vrm-motion-presets.yaml` admit registry。
+- BackendProjection method **不携带** Live2D parameter id（`ParamMouthOpenY`
+  等）；parameter id 路径降级为 `Live2DBackendExtension.setParameter`
+  escape hatch（详 `backend-branch-contract.md` §2.6）。
+- Activity-mapping resolution（ontology id → backend-specific route）由
+  `tables/activity-mapping.yaml` v2 admit；每 ontology core id 必须双
+  backend route 填全（live2d + vrm）。
+- emote 名称由 `tables/vrm-emote-states.yaml` admit；name 不一定与 ontology
+  emotion id 同名（如 ontology `embarrassed` → emote state `shy` 复用）。
+
+## 8. Live2D Parameter-Id Escape Hatch
+
+Parameter-id direct write 是 Live2D-only 路径，**仅**通过 NAS handler
+显式声明 `requires: ['live2d-extension']` + `BackendBranch.live2dExtension`
+kind narrowing 暴露：
+
+```ts
+export type Live2DBackendExtension = {
+  setParameter(id: string, value: number, durationSec?: number): void;
+};
+```
+
+约束：
+
+- handler-registry 在 model 加载时按 `manifest.kind` 决定是否注入
+  `extension.live2d`；handler 引用 `extension.live2d.setParameter` 必须
+  在 manifest 显式 `requires`；缺失 → registry reject + log warn
+  （详 [`agent-script-contract.md`](agent-script-contract.md) §"NAS handler `requires`"）
+- VRM model 加载时含 `requires: ['live2d-extension']` 的 handler **必须** reject
+  （不允许 silent ignore）
+- handler 未声明 `requires` 但代码中引用 `extension.live2d` → 静态扫描
+  reject（避免 runtime undefined）
+
+## 9. NAS Handler `requires` Field
+
+NAS handler 的 manifest 必须能声明所需 BackendBranch extension：
+
+```ts
+export interface NasActivityHandler {
+  activity: string;
+  requires?: ('live2d-extension')[];
+  handle(input: {
+    bundle: AgentDataBundle;
+    projection: BackendProjection;
+    extension: { live2d?: Live2DBackendExtension };
+  }): void;
+}
+```
+
+详 [`agent-script-contract.md`](agent-script-contract.md) §"NAS handler `requires`"。
+
+## 10. Deferred
+
+本 contract 不在 Wave 0 内解决：
 
 - local trust posture / model permission model
 - runtime presentation semantic redesign
 - desktop bridge / handoff redesign
-- 新 backend branch 的具体实现
+- 新 backend branch（除 Live2D / VRM 外）的具体实现
 
 ---
 
-## 8. Evolution
+## 11. Evolution
 
-- 新 backend branch 接入：在本 contract 不变的前提下新增 backend-specific contract
-- 新增 projection cue：minor bump
-- 改 projection cue 语义 / owner cut：major bump
+- 新 backend branch 接入：本 contract 不变；新增 backend-specific contract
+  （如 `vrm-backend-contract.md`）+ 同步 `backend-branch-contract.md`
+  `BackendKind` union
+- 新增 BackendProjection method：minor bump
+- 改 BackendProjection method 语义 / 改 ontology naming：major bump
+- 新 Live2DBackendExtension capability：minor bump + 同步 `agent-script-contract.md`
+  允许的 `requires` 集合

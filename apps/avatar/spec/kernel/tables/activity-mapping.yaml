@@ -1,20 +1,33 @@
-version: 1
+version: 2
 description: >
-  Activity id → current Live2D backend branch motion-group naming convention for
-  Nimi Avatar default fallback handler. When a NAS activity handler is absent,
-  the runtime looks up the convention-based motion group name derived from the
-  activity id.
+  Activity (ontology id) → backend-specific projection routing for Nimi
+  Avatar. Each ontology-admitted activity declares BOTH `live2d` AND `vrm`
+  routes (drift check: partial entries fail validator).
 
-  Rule: split activity id by '-' and ':', CamelCase each segment,
-  prefix with 'Activity_'.
+  Wave 0 admit (topic 2026-04-30-avatar-vrm-backend-branch, design-04):
+  v2 schema replaces the v1 Live2D-only motion-group naming convention
+  table. The Live2D `motion_group` naming convention itself is preserved
+  in §naming_rule for default-fallback lookup behavior; the per-activity
+  routing below is the primary authority.
 
-  Model creators who do not provide a NAS handler for an activity MUST provide
-  the corresponding motion group in their model3.json to get default fallback
-  behavior; otherwise the runtime falls back to the 'Idle' group with a warning.
+  vrm-motion-presets.yaml admits only 4 entries at wave_0:
+  `idle_subtle / listen_lean / nod_yes / shake_no` (`idle_subtle` is the
+  airi MIT fork-copy PoC; the other three are internal author targets).
+  Activities that
+  conceptually map to `greet_wave / wave_hello / think_chin_touch`
+  (greet / farewell / thinking / celebrating / excited / focused) use
+  `idle_subtle` as fallback at wave_0; wave_3 admit packet flips them
+  back to the formal preset (each fallback is annotated below).
+
+source_authority: /.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml
 
 naming_rule:
+  description: >
+    Live2D default-fallback motion-group naming (when no NAS handler is
+    registered for an activity and the per-activity route below also
+    yields no matching model3.json group). Convention: split activity
+    id by '-' and ':', CamelCase each segment, prefix with 'Activity_'.
   prefix: "Activity_"
-  segment_separator: "_"
   splitter_chars: ["-", ":"]
   case: "CamelCase"
   examples:
@@ -25,147 +38,191 @@ naming_rule:
     - activity_id: "mod-weather:storm-watching"
       motion_group: "Activity_ModWeatherStormWatching"
 
-core_activities:
-  emotion:
-    - activity_id: "happy"
-      motion_group: "Activity_Happy"
-      description: "Joy, positive affect"
-    - activity_id: "sad"
-      motion_group: "Activity_Sad"
-      description: "Sorrow, negative affect"
-    - activity_id: "shy"
-      motion_group: "Activity_Shy"
-      description: "Bashful, self-conscious"
-    - activity_id: "angry"
-      motion_group: "Activity_Angry"
-      description: "Frustration, anger"
-    - activity_id: "surprised"
-      motion_group: "Activity_Surprised"
-      description: "Startled, astonished"
-    - activity_id: "confused"
-      motion_group: "Activity_Confused"
-      description: "Puzzled, uncertain"
-    - activity_id: "excited"
-      motion_group: "Activity_Excited"
-      description: "High energy positive"
-    - activity_id: "worried"
-      motion_group: "Activity_Worried"
-      description: "Anxious, concerned"
-    - activity_id: "embarrassed"
-      motion_group: "Activity_Embarrassed"
-      description: "Ashamed, flustered"
-    - activity_id: "neutral"
-      motion_group: "Activity_Neutral"
-      description: "Default baseline"
+# ── core ontology activities (every entry MUST have BOTH live2d AND vrm route) ──
+activities:
+  # ── interaction (no intensity) ──
+  greet:
+    live2d:
+      motion_group: tap_body
+      fallback_motion_group: tap_head
+    vrm:
+      motion: idle_subtle    # wave_0 fallback; wave_3 切到 greet_wave
+      emotion: happy
+      fade: 0.25
+  farewell:
+    live2d:
+      motion_group: tap_head
+    vrm:
+      motion: idle_subtle    # wave_0 fallback; wave_3 切到 wave_hello
+      emotion: happy
+      fade: 0.3
+  agree:
+    live2d:
+      motion_group: nod
+    vrm:
+      motion: nod_yes
+      fade: 0.2
+  disagree:
+    live2d:
+      motion_group: shake
+    vrm:
+      motion: shake_no
+      fade: 0.2
+  listening:
+    live2d:
+      motion_group: idle
+    vrm:
+      motion: listen_lean
+      fade: 0.3
+  thinking:
+    live2d:
+      motion_group: idle
+    vrm:
+      motion: idle_subtle    # wave_0 fallback; wave_3 切到 think_chin_touch
+      fade: 0.4
 
-  interaction:
-    - activity_id: "greet"
-      motion_group: "Activity_Greet"
-      description: "Wave / hello gesture"
-    - activity_id: "farewell"
-      motion_group: "Activity_Farewell"
-      description: "Wave goodbye"
-    - activity_id: "agree"
-      motion_group: "Activity_Agree"
-      description: "Nod, affirmation"
-    - activity_id: "disagree"
-      motion_group: "Activity_Disagree"
-      description: "Head shake, negation"
-    - activity_id: "listening"
-      motion_group: "Activity_Listening"
-      description: "Attentive, receiving input"
-    - activity_id: "thinking"
-      motion_group: "Activity_Thinking"
-      description: "Processing, reflecting"
+  # ── state (no intensity) ──
+  idle:
+    live2d:
+      motion_group: idle
+    vrm:
+      motion: idle_subtle
+      fade: 0.5
+  celebrating:
+    live2d:
+      motion_group: tap_body
+    vrm:
+      motion: idle_subtle    # wave_0 fallback; wave_3 切到 greet_wave
+      emotion: excited
+      fade: 0.25
+  sleeping:
+    live2d:
+      motion_group: idle
+    vrm:
+      motion: idle_subtle
+      fade: 0.6
+  focused:
+    live2d:
+      motion_group: idle
+    vrm:
+      motion: idle_subtle    # wave_0 fallback; wave_3 切到 think_chin_touch
+      fade: 0.4
 
-  state:
-    - activity_id: "idle"
-      motion_group: "Activity_Idle"
-      description: "Default resting state"
-    - activity_id: "celebrating"
-      motion_group: "Activity_Celebrating"
-      description: "Victory, praise"
-    - activity_id: "sleeping"
-      motion_group: "Activity_Sleeping"
-      description: "Low energy / inactive"
-    - activity_id: "focused"
-      motion_group: "Activity_Focused"
-      description: "Concentrated on task"
+  # ── emotion (intensity-supported; emotion expression is the primary driver,
+  #    motion is supportive) ──
+  happy:
+    live2d:
+      motion_group: tap_body
+    vrm:
+      emotion: happy
+      fade: 0.4
+  sad:
+    live2d:
+      motion_group: idle
+    vrm:
+      emotion: sad
+      fade: 0.5
+  shy:
+    live2d:
+      motion_group: idle
+    vrm:
+      emotion: relaxed       # VRM expression preset; emote bundle in vrm-emote-states.yaml
+      fade: 0.5
+  angry:
+    live2d:
+      motion_group: idle
+    vrm:
+      emotion: angry
+      fade: 0.3
+  surprised:
+    live2d:
+      motion_group: tap_head
+    vrm:
+      emotion: surprised
+      fade: 0.15
+  confused:
+    live2d:
+      motion_group: idle
+    vrm:
+      emotion: relaxed
+      fade: 0.4
+  excited:
+    live2d:
+      motion_group: tap_body
+    vrm:
+      emotion: excited
+      motion: idle_subtle    # wave_0 fallback; wave_3 切到 greet_wave (与 celebrating 同 trigger 时机)
+      fade: 0.25
+  worried:
+    live2d:
+      motion_group: idle
+    vrm:
+      emotion: sad
+      fade: 0.4
+  embarrassed:
+    live2d:
+      motion_group: idle
+    vrm:
+      emotion: shy            # ontology embarrassed → emote state shy 复用
+      fade: 0.4
+  neutral:
+    live2d:
+      motion_group: idle
+    vrm:
+      emotion: neutral
+      fade: 0.6
 
-extended_examples:
-  description: >
-    Extended activities use 'ext:' prefix and are admitted by the active runtime
-    ontology table. Model creators may use these if their model supports richer
-    presentation. Not required for core coverage.
-  samples:
-    - activity_id: "ext:apologetic"
-      motion_group: "Activity_ExtApologetic"
-    - activity_id: "ext:grateful"
-      motion_group: "Activity_ExtGrateful"
-    - activity_id: "ext:proud"
-      motion_group: "Activity_ExtProud"
-    - activity_id: "ext:lonely"
-      motion_group: "Activity_ExtLonely"
-    - activity_id: "ext:acknowledging"
-      motion_group: "Activity_ExtAcknowledging"
-    - activity_id: "ext:encouraging"
-      motion_group: "Activity_ExtEncouraging"
-    - activity_id: "ext:teasing"
-      motion_group: "Activity_ExtTeasing"
-    - activity_id: "ext:resting"
-      motion_group: "Activity_ExtResting"
-    - activity_id: "ext:playing"
-      motion_group: "Activity_ExtPlaying"
-    - activity_id: "ext:eating"
-      motion_group: "Activity_ExtEating"
+extended_activities_passthrough:
+  rule: >
+    `ext:*` activities are accepted at runtime; if not declared in this
+    table, they fail-close (log warn + no projection). Wave 0 admits the
+    table without ext:* entries; ext:* admission is a follow-up topic,
+    not in this scope.
 
-mod_custom_examples:
-  description: >
-    Mod-custom activities use 'mod-<modname>:<activity>' prefix. Declared by mods
-    extending the activity ontology. Full list depends on installed mods.
-  samples:
-    - activity_id: "mod-weather:storm-watching"
-      motion_group: "Activity_ModWeatherStormWatching"
-    - activity_id: "mod-pomodoro:break-encouragement"
-      motion_group: "Activity_ModPomodoroBreakEncouragement"
-    - activity_id: "mod-music:rhythm-nodding"
-      motion_group: "Activity_ModMusicRhythmNodding"
+custom_activities_passthrough:
+  rule: >
+    `mod-<modid>:*` activities are admitted only when the mod manifest
+    declares them. Same fail-close as extended.
 
 intensity_variants:
   description: >
-    If APML provides an 'intensity' attribute on the activity (weak / moderate /
-    strong), model creators may optionally provide intensity-suffixed motion
-    groups. When present, the default fallback picks the matching variant; when
-    absent, falls back to the base group.
-  naming_rule:
-    suffix_map:
-      weak: "_Weak"
-      moderate: ""  # default, no suffix
-      strong: "_Strong"
-  examples:
-    - activity_id: "happy"
-      intensity: "weak"
-      motion_group: "Activity_Happy_Weak"
-    - activity_id: "happy"
-      intensity: "moderate"
-      motion_group: "Activity_Happy"
-    - activity_id: "happy"
-      intensity: "strong"
-      motion_group: "Activity_Happy_Strong"
-
-lookup_algorithm:
-  description: >
-    Default fallback lookup order when no NAS handler is registered:
-
-    1. If intensity given and "<base>_<intensity_suffix>" motion group exists → use it
-    2. Else if "<base>" motion group exists → use it
-    3. Else → fall back to 'Idle' motion group + console.warn
-    4. Else → fall back to no motion + emit avatar.model.motion.unavailable
+    APML may carry an 'intensity' attribute (weak / moderate / strong).
+    Live2D Wave 0 keeps v1 intensity_suffix convention for backward
+    compat at the default-fallback layer (`Activity_Happy_Weak` /
+    `Activity_Happy_Strong`). VRM uses `applyEmotion(intensity)` to
+    scale emote bundle weights (clamp 0..1).
+  live2d_suffix_map:
+    weak: "_Weak"
+    moderate: ""
+    strong: "_Strong"
+  vrm_intensity_scaling:
+    weak: 0.5
+    moderate: 1.0
+    strong: 1.4   # capped at 1.0 by emote state machine
 
 constraints:
   drift_checks:
-    - description: "所有 core_activities 必须对齐 .nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml"
-    - description: "extended_examples 必须只使用 active runtime ontology admitted ext:* ids"
-    - description: "Motion group 名严格遵守 naming_rule（split + CamelCase + prefix）"
-    - description: "Intensity 变体若存在必须匹配 enum(weak|moderate|strong)"
-    - description: "新增 extended / mod activity 需要先更新 active runtime ontology 或 manifest-backed authority"
+    - description: >
+        Every ontology core id (10 emotion + 6 interaction + 4 state =
+        20 ids) MUST declare BOTH `live2d` AND `vrm` routes; partial
+        entries fail spec validator.
+    - description: >
+        `vrm.motion` reference MUST resolve to an admitted preset id in
+        vrm-motion-presets.yaml. References to wave_3 deferred entries
+        (greet_wave / wave_hello / think_chin_touch) at wave_0 fail
+        validator.
+    - description: >
+        `vrm.emotion` reference MUST resolve to an emote name in
+        vrm-emote-states.yaml. The emote name need not equal the
+        ontology emotion id (e.g. ontology `embarrassed` → emote `shy`
+        is admitted reuse).
+    - description: >
+        Live2D `motion_group` references SHOULD resolve to a group in
+        the loaded model3.json; missing group falls back via §naming_rule
+        + emit `avatar.motion.preset.fail_close { reason_code: 'preset_not_admitted' }`.
+        ext:/mod-: prefix activities NOT in this table fail-close
+        (log warn, no silent fallback to idle).
+    - description: >
+        Adding a wave_3 vrm-motion-preset entry MUST flip every
+        `# wave_0 fallback; wave_3 切到 <preset>` annotation in this
+        table to the formal preset id in the same packet.

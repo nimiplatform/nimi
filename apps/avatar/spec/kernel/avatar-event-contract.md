@@ -18,17 +18,28 @@
 
 ## 0. 阅读指南
 
-本 contract 定义 Nimi Avatar app 作为 first-party event producer / subscriber 的 event spec，遵守 runtime HookIntent / presentation projection authority 与 app-local event convention。Avatar 是独立 app，但 current canonical normal path 由 desktop bridge / handoff 启动；owner 为 `avatar.*`。合计 47 events（8 user + 18 avatar + 5 app + 9 companion + 4 composition + 3 shell）。
+本 contract 定义 Nimi Avatar app 作为 first-party event producer / subscriber 的 event spec，遵守 runtime HookIntent / presentation projection authority 与 app-local event convention。Avatar 是独立 app，但 current canonical normal path 由 desktop bridge / handoff 启动；owner 为 `avatar.*`。
 
 Avatar app 的 rendering backend（Live2D / VRM / 3D / Lottie / 极简 blob）具体选型**不影响**本 spec 的 event 定义。Runtime presentation/activity projection 与 app-local `tables/activity-mapping.yaml` 把语义映射从 rendering 解耦；closed activity ontology 只保留为设计证据，不是本 app 的活动 authority。
 
-Voice/lipsync admission Wave 3 admit: `avatar.speak.*` and `avatar.lipsync.frame`
-are admitted as Wave 3 product surface. The implementation pipeline (runtime
-`runtime.agent.presentation.lipsync_frame_batch` / `voice_playback_requested`
-emitter → SDK consume → avatar Live2D `ParamMouthOpenY` bridge) lands together
-in Wave 3; no wave is allowed to ship a partial pipeline. Consumers must treat
-these names as unavailable until Wave 3 admit; current code must not emit
-placeholder speak/lipsync success.
+**Wave 0 of topic `2026-04-30-avatar-vrm-backend-branch` extends the event
+surface** to cover the multi-backend BackendBranch carrier abstraction:
+
+- `avatar.audio.pipeline.*`, `avatar.audio.playback.*`, `avatar.lipsync.*`,
+  `avatar.motion.preset.*`, `avatar.emote.applied`, `avatar.hit_region.*`,
+  `avatar.carrier.lifecycle.*` are admitted as new event families.
+- `avatar.model.load` schema migrates from `compatibility_tier` / `adapter_id`
+  (Live2D-specific) to `model_kind` (`'live2d' | 'vrm'`) + `backend_meta`
+  (open object).
+- `lipsync_frame_batch` consume references are removed (avatar-side hard-cut;
+  platform-side emit deprecation is a separate topic). Synthetic-audio mime
+  triggers `avatar.lipsync.silent { silent_reason: 'synthetic_audio' }` —
+  no decode, no mouth movement.
+- `avatar.lipsync.frame` per-frame event is **deprecated** as a public surface
+  (it was an interim Wave 3 admit). Avatar consumers do not subscribe to
+  per-frame lipsync events; mouth movement is driven by
+  `BackendAudioConsumer.snapshot()` in the surface useFrame loop. Existing
+  subscribers must migrate to `avatar.lipsync.{active,silent,frame_drop}`.
 
 ---
 
@@ -78,7 +89,7 @@ projection 触发）：
 | `avatar.pose.set` | `<pose>` 设置 | Low | — |
 | `avatar.pose.clear` | `<clear-pose/>` | Low | — |
 | `avatar.lookat.set` | `<lookat>` 触发 | Low | — |
-| `avatar.lipsync.frame` | Wave 3 admitted lip-sync frame；由 SDK 消费 runtime `runtime.agent.presentation.lipsync_frame_batch` 并桥接到 Live2D `ParamMouthOpenY` | **Very high (opt-in)** | — |
+| `avatar.lipsync.frame` | **Deprecated** (Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch). Per-frame lipsync no longer flows through the event bus; consumers read `BackendAudioConsumer.snapshot()` in surface useFrame. New subscribers MUST use `avatar.lipsync.active` / `avatar.lipsync.silent` instead. | n/a (deprecated) | — |
 | `avatar.speak.start` | Wave 3 admitted TTS playback start；与 runtime `runtime.agent.presentation.voice_playback_requested` 时间戳对齐 | Low | — |
 | `avatar.speak.chunk` | Wave 3 admitted TTS chunk；audio playback chunk 对齐 lipsync frame batch | Medium | — |
 | `avatar.speak.end` | Wave 3 admitted TTS playback completion；voice playback state == `completed` | Low | — |
@@ -120,6 +131,49 @@ Composition state 转移与 surface mount/unmount 证据。具体 state 枚举�
 | `avatar.composition.relaunch-pending` | Desktop 推送了 launch context update，进入 relaunch-pending 状态 | Low | — |
 | `avatar.composition.surface-mounted` | embodiment-stage / companion-surface / degraded-surface 挂载完成 | Low | — |
 | `avatar.composition.surface-unmounted` | 上述任一 surface 卸载完成 | Low | — |
+
+### 2.5.1 Audio Pipeline & Lipsync (Wave 0 admit, multi-backend carrier)
+
+> Source: topic `2026-04-30-avatar-vrm-backend-branch` design-05 + design-09 +
+> design-10. Hard-cut delete frame_batch consume path (avatar-side only;
+> platform emit deprecation is a separate topic).
+
+| Event | 语义 | Rate tier | Cancellable |
+|---|---|---|---|
+| `avatar.audio.pipeline.ready` | AudioContext + wLipSync worklet 加载完成（per session 一次） | Burst | — |
+| `avatar.audio.pipeline.failed` | context / worklet / mime / fetch / decode 任一失败 | Burst | — |
+| `avatar.audio.playback.requested` | voice_playback_requested mirrored；audioPipeline.play 入口 | Low | — |
+| `avatar.audio.playback.started` | source.start() 完成 | Low | — |
+| `avatar.audio.playback.completed` | source.onended 自然结束 | Low | — |
+| `avatar.audio.playback.interrupted` | runtime 端 `playback_state='interrupted'` | Low | — |
+| `avatar.audio.playback.canceled` | runtime 端 `playback_state='canceled'` | Low | — |
+| `avatar.audio.playback.failed` | mime / decode / fetch / readBytes 失败 | Low | — |
+| `avatar.lipsync.active` | 进入 active phase（silent → active 转换） | Medium | — |
+| `avatar.lipsync.silent` | 进入 silent phase；`silent_reason` 之一：`amp_below` / `idle_window` / `winner_gain` / `no_source` / `synthetic_audio` / `no_expression_manager` | Medium | — |
+| `avatar.lipsync.frame_drop` | wLipSyncNode 异常或缺帧（telemetry-only） | High (opt-in) | — |
+
+### 2.5.2 Motion Preset & Emote (Wave 0 admit)
+
+| Event | 语义 | Rate tier | Cancellable |
+|---|---|---|---|
+| `avatar.motion.preset.played` | VRM motion preset crossfade 启动；Live2D motion-group 起播 | Low | — |
+| `avatar.motion.preset.fail_close` | preset id 不存在 / `.vrma` 加载失败 / asset drift | Low | — |
+| `avatar.emote.applied` | emote bundle 应用完成；含 `skipped_count`（model 缺 expression preset 跳过的条目数） | Low | — |
+
+### 2.5.3 Hit Region Snapshot (Wave 0 admit)
+
+| Event | 语义 | Rate tier | Cancellable |
+|---|---|---|---|
+| `avatar.hit_region.snapshot` | bbox snapshot 上报到 carrier（throttled 100ms minimum） | Medium | — |
+| `avatar.hit_region.degraded` | alpha-mask 不可用，仅 bbox 路径生效（device tier C） | Low | — |
+
+### 2.5.4 Carrier Lifecycle (Wave 0 admit)
+
+| Event | 语义 | Rate tier | Cancellable |
+|---|---|---|---|
+| `avatar.carrier.lifecycle.context_lost` | WebGL/AudioContext 丢失 | Burst | — |
+| `avatar.carrier.lifecycle.context_restored` | 1500ms 内单次重试恢复成功 | Burst | — |
+| `avatar.carrier.lifecycle.failed_closed` | 二次 context_lost / load_failed / 不可恢复 | Burst | — |
 
 ### 2.6 Shell Lifecycle (3 events, `avatar.shell.*`)
 
@@ -259,6 +313,135 @@ avatar.shell.window-bounds-changed:
     embodiment_bounds: { x: int, y: int, width: int, height: int }
     companion_footprint: { width: int, height: int }
     changed_at: string
+
+# ── Wave 0 (topic 2026-04-30-avatar-vrm-backend-branch) admit ──
+
+avatar.model.load:
+  detail:
+    model_id: string
+    model_kind: enum(live2d|vrm)            # replaces compatibility_tier / adapter_id
+    backend_meta: object                    # backend-specific opaque descriptor (BackendBranch.metadata())
+    nas_handler_count: int
+    loaded_at: string                       # ISO 8601
+
+avatar.audio.pipeline.ready:
+  detail:
+    audio_context_state: enum(running|suspended)
+    wlipsync_loaded: bool
+    ready_at: string
+
+avatar.audio.pipeline.failed:
+  detail:
+    reason_code: string                     # e.g. wlipsync_init_failed | no_audio_context
+    failed_at: string
+
+avatar.audio.playback.requested:
+  detail:
+    audio_artifact_id: string
+    audio_mime_type: string
+    requested_at: string
+
+avatar.audio.playback.started:
+  detail:
+    audio_artifact_id: string
+    duration_ms: int                        # decoded buffer duration
+    started_at: string
+
+avatar.audio.playback.completed:
+  detail:
+    audio_artifact_id: string
+    completed_at: string
+
+avatar.audio.playback.interrupted:
+  detail:
+    audio_artifact_id: string
+    interrupted_at: string
+
+avatar.audio.playback.canceled:
+  detail:
+    audio_artifact_id: string
+    canceled_at: string
+
+avatar.audio.playback.failed:
+  detail:
+    audio_artifact_id: string
+    reason_code: string                     # e.g. unsupported_mime | artifact_not_found |
+                                            #      artifact_too_large | artifact_forbidden |
+                                            #      artifact_mime_mismatch | fetch_failed |
+                                            #      decode_failed | no_audio_context
+    failed_at: string
+
+avatar.lipsync.active:
+  detail:
+    audio_artifact_id: string?
+    started_at: string
+
+avatar.lipsync.silent:
+  detail:
+    silent_reason: enum(amp_below|idle_window|winner_gain|no_source|synthetic_audio|no_expression_manager)
+    audio_artifact_id: string?
+    silent_at: string
+
+avatar.lipsync.frame_drop:
+  detail:
+    drop_count: int
+    window_ms: int
+    recorded_at: string
+
+avatar.motion.preset.played:
+  detail:
+    model_kind: enum(live2d|vrm)
+    preset_id: string                       # e.g. nod_yes (vrm) | Activity_Happy (live2d)
+    fade_sec: float
+    loop: bool
+    played_at: string
+
+avatar.motion.preset.fail_close:
+  detail:
+    model_kind: enum(live2d|vrm)
+    preset_id: string
+    reason_code: string                     # e.g. preset_not_admitted | vrma_load_failed | asset_drift
+    recorded_at: string
+
+avatar.emote.applied:
+  detail:
+    model_kind: enum(live2d|vrm)
+    emote: string                           # ontology emotion id or extended
+    skipped_count: int                      # expressions skipped because preset missing on loaded model
+    applied_at: string
+
+avatar.hit_region.snapshot:
+  detail:
+    model_kind: enum(live2d|vrm)
+    body: { left: float, top: float, right: float, bottom: float }    # 0..1 viewport-normalized
+    drag: { left: float, top: float, right: float, bottom: float }
+    has_alpha_mask: bool
+    snapshot_at: string
+
+avatar.hit_region.degraded:
+  detail:
+    model_kind: enum(live2d|vrm)
+    reason_code: string                     # e.g. render_target_unavailable | device_tier_c
+    recorded_at: string
+
+avatar.carrier.lifecycle.context_lost:
+  detail:
+    model_kind: enum(live2d|vrm)
+    context_kind: enum(webgl|webgl2|audio)
+    lost_at: string
+
+avatar.carrier.lifecycle.context_restored:
+  detail:
+    model_kind: enum(live2d|vrm)
+    context_kind: enum(webgl|webgl2|audio)
+    restore_duration_ms: int
+    restored_at: string
+
+avatar.carrier.lifecycle.failed_closed:
+  detail:
+    model_kind: enum(live2d|vrm)
+    reason_code: string                     # e.g. context_lost_twice | load_failed | wlipsync_init_failed
+    closed_at: string
 ```
 
 ---

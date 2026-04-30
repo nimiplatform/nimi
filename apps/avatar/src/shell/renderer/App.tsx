@@ -46,7 +46,7 @@ import {
   setVoiceReplyingTurn,
 } from './voice-companion-state.js';
 import { getSharedVoiceLipsyncStateBus } from './voice-lipsync/voice-lipsync-state-bus.js';
-import { getSharedAudioPlaybackController } from './audio/audio-playback.js';
+import { getSharedAudioPipelineController } from './audio/audio-pipeline.js';
 import {
   defaultAvatarShellSettings,
   readAvatarShellSettings,
@@ -136,7 +136,7 @@ export function App() {
   // surface can render mouth + playback indicators in lockstep with Live2D.
   useEffect(() => {
     const bus = getSharedVoiceLipsyncStateBus();
-    const audio = getSharedAudioPlaybackController();
+    const audio = getSharedAudioPipelineController();
     const unsubscribeBus = bus.subscribe((event) => {
       setVoice((current) => {
         switch (event.kind) {

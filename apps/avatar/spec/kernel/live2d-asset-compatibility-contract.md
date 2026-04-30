@@ -139,6 +139,11 @@ type Live2DSemanticMapV1 = {
   };
   lipsync: {
     mouth_open_y_parameter?: string;
+    /** Wave 0 admit (topic 2026-04-30-avatar-vrm-backend-branch, design-05):
+     *  Whether the model declares ParamMouthForm. Driver writes both
+     *  ParamMouthOpenY and ParamMouthForm when 'supported'; falls back to
+     *  OpenY-only when 'absent'. */
+    paramMouthForm?: 'supported' | 'absent';
     disposition: FeatureDisposition;
   };
   physics: {
@@ -242,10 +247,44 @@ loader success:
 Desktop chat Live2D renderer evidence and static fixture screenshots are not
 accepted.
 
-## 8. Evolution
+## 8. ParamMouthForm Winner-Key Mapping (Wave 0 admit)
+
+> Source: topic `2026-04-30-avatar-vrm-backend-branch` design-05
+> §"Live2D ParamMouthForm 映射".
+
+`ParamMouthForm` is the Cubism standard mouth-shape parameter (range
+`[-1, 1]`; -1 = round/closed, 0 = neutral, +1 = wide). When the wLipSync
+driver selects a winner viseme, it writes the following standard mapping:
+
+| Winner key | Viseme | ParamMouthForm value | 嘴型描述 |
+| --- | --- | --- | --- |
+| `A` | aa | **-0.6** | 圆张大（如 "啊"）；OpenY 较高 |
+| `E` | ee | **+0.4** | 横向半开（如 "诶"） |
+| `I` | ih | **+0.8** | 横向最窄（如 "易"） |
+| `O` | oh | **-0.2** | 中性偏圆（如 "哦"） |
+| `U` | ou | **-0.8** | 圆形收口（如 "乌"） |
+| _silent / no winner_ | — | **0** | 中性；OpenY 同时归零 |
+
+Driver constraints:
+
+- When `runner` co-contributes, `ParamMouthForm` takes the **winner-only**
+  value (no blending; avoids form jitter). `ParamMouthOpenY` may still take
+  the winner+runner blend sum (because openness is continuous).
+- `ParamMouthForm` tier check goes through `semantics.lipsync.paramMouthForm`
+  (§3.4). When the manifest reports `'absent'`, the driver writes
+  `ParamMouthOpenY` only and emits an evidence record
+  `paramMouthForm: not_supported`.
+- This mapping is reproduced verbatim as a `const` table in
+  `apps/avatar/src/shell/renderer/live2d/live2d-lipsync-driver.ts`. Scattered
+  hardcoded values across other files are forbidden (drift check).
+
+## 9. Evolution
 
 - New tiers require a minor contract bump and table update.
 - Changing tier semantics or manifest required fields requires a major contract
   bump.
 - Adding VRM/3D/Lottie support requires a separate backend compatibility
   contract, not widening this Live2D contract.
+- Changing the ParamMouthForm winner-key mapping values requires a minor bump
+  + sync to the lipsync driver `const` table + sync to evidence regression
+  fixture.

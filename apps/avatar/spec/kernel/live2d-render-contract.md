@@ -2,18 +2,54 @@
 
 > **App**: `@nimiplatform/avatar`
 > **Authority**: App-local kernel contract
-> **Status**: Phase 1 baseline draft
+> **Status**: Phase 1 baseline; Wave 0 of topic
+>   `2026-04-30-avatar-vrm-backend-branch` re-scopes this contract to
+>   **`kind: 'live2d'` BackendBranch implementation detail**.
 > **Sibling contracts**:
+> - [Backend branch contract](backend-branch-contract.md) — multi-backend carrier abstraction
+> - [VRM backend contract](vrm-backend-contract.md)
 > - [Embodiment projection contract](embodiment-projection-contract.md)
+> - [Live2D asset compatibility contract](live2d-asset-compatibility-contract.md)
 > - [App shell contract](app-shell-contract.md)
 > - [Agent script contract](agent-script-contract.md)
 > - [Avatar event contract](avatar-event-contract.md)
 
 ---
 
+## Scope (Wave 0 re-scope)
+
+This contract is the `kind: 'live2d'` BackendBranch implementation detail.
+Multi-backend carrier abstraction, BackendProjection ontology surface,
+BackendAudioConsumer wLipSync pipeline, BackendHitRegion, BackendNominalBounds,
+and BackendSurface lifecycle live in
+[`backend-branch-contract.md`](backend-branch-contract.md).
+
+This contract **does not** define the carrier-public contract; it defines how
+the Live2D branch implements `BackendBranch` using Cubism SDK for Web. Other
+backend branches (VRM in `vrm-backend-contract.md`, future 3D / robot) implement
+the same `BackendBranch` interface with their own contracts.
+
+Cross-references:
+
+- BackendProjection ontology methods (`applyActivity` / `applyEmotion` /
+  `applyMotion` / `applyExpression`) → ontology naming admit by
+  `embodiment-projection-contract.md` and `tables/activity-mapping.yaml`
+- Live2D parameter-id direct write → `Live2DBackendExtension.setParameter`
+  escape hatch (kind-narrowed; NAS handler must declare
+  `requires: ['live2d-extension']`)
+- wLipSync audio pipeline → `audio-pipeline.ts` consumes
+  `runtime.artifacts.readBytes` (S-RUNTIME-111); Live2D lipsync driver writes
+  `ParamMouthOpenY` (+ optional `ParamMouthForm` per
+  `live2d-asset-compatibility-contract.md` tier check)
+
+---
+
 ## 0. 阅读指南
 
-本 contract 定义 Nimi Avatar 当前 shipped backend branch 的 Live2D backend execution pipeline：Cubism SDK for Web 官方集成边界、model loading、motion / expression / physics / parameter API、backend command-state update、NAS continuous handler 帧调度、默认 Cubism 行为（breath / blink / lipsync）与 NAS override 边界。
+本 contract 定义 Nimi Avatar Live2D backend branch 的 Cubism SDK for Web 官方
+集成边界、model loading、motion / expression / physics / parameter API、
+backend command-state update、NAS continuous handler 帧调度、默认 Cubism 行为
+（breath / blink / lipsync）与 NAS override 边界。
 
 Wave 4 hard cut: current Avatar app evidence proves Live2D model/resource loading, command-state mutation, Cubism `model.update()`, and NAS continuous scheduling. It does **not** claim Avatar carrier WebGL canvas draw-loop proof. Desktop chat has a separate Cubism WebGL renderer; that implementation cannot be used as active proof for this Avatar app carrier branch.
 

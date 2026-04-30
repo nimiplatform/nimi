@@ -66,6 +66,46 @@ Handler 不存在 → neutral NAS layer 走 app-owned default path：
 - **Activity**: 若 backend branch 注册了 `runDefaultActivity`，则委托给 branch-owned fallback
 - **Event**: 大多数 event 无 default（silently skip）
 Model creator 只为想**自定义**的 activity / event 写 handler。零 handler 也能跑，但具体 activity default 由当前 backend branch 自己定义。
+### 2.3.1 NAS handler `requires` 字段（Wave 0 admit）
+
+> Source: topic `2026-04-30-avatar-vrm-backend-branch` design-04 + design-08.
+
+NAS handler manifest 必须能声明所需 `BackendBranch` extension：
+
+```ts
+export interface NasActivityHandler {
+  activity: string;
+  requires?: ('live2d-extension')[];
+  handle(input: {
+    bundle: AgentDataBundle;
+    projection: BackendProjection;          // ontology surface
+    extension: { live2d?: Live2DBackendExtension };
+  }): void;
+}
+
+export interface NasContinuousHandler {
+  intervalMs: number;
+  requires?: ('live2d-extension')[];
+  tick(input: {
+    bundle: AgentDataBundle;
+    projection: BackendProjection;
+    extension: { live2d?: Live2DBackendExtension };
+    deltaSec: number;
+  }): void;
+}
+```
+
+handler-registry 行为：
+
+- **加载时按 `manifest.kind` 决定 `extension.live2d` 是否注入**：Live2D
+  branch 注入；VRM branch 不注入（`extension.live2d === undefined`）
+- handler **声明** `requires: ['live2d-extension']` 但当前 backend 是 VRM
+  → registry **reject + log warn**（不悄悄无视；handler 不注册到执行表）
+- handler **未声明** `requires` 但代码静态扫描引用 `extension.live2d` →
+  registry **reject + log warn**（避免 runtime undefined）
+- 静态扫描器在 handler-registry 加载阶段对 handler source 做 AST scan；
+  扫描失败的 handler 不注册（fail-close）
+
 ### 2.4 运行位置
 NAS handler 在 **avatar app process 内**运行，由 SDK 提供 handler runtime + embodiment backend API。当前 shipped branch 对应 Live2D:
 ```
@@ -176,6 +216,46 @@ Nimi model package 的组织 **尊重 Live2D Cubism 官方目录结构**。官�
         clamp.js
       config.json                     # (optional) opt-in features (see §11)
 ```
+### 3.2.1 VRM Model Package Integrity（Wave 0 admit）
+
+> Source: topic `2026-04-30-avatar-vrm-backend-branch` design-08.
+
+VRM backend 的 model_path 也是目录形态（不是单 `.vrm` 文件直接 ship）：
+
+```
+my-vrm-character/
+├── character.vrm                        # required；VRM 1.0 / VRM 0.x glTF binary
+├── poster.png                           # optional；degraded surface fallback
+├── motions/                             # optional；per-model .vrma 覆盖内置同名 preset
+│   ├── greet_wave.vrma
+│   ├── idle_subtle.vrma
+│   └── ...
+└── nimi/                                # optional；NAS handler（与 Live2D 同 layout）
+    ├── activity/
+    ├── event/
+    ├── continuous/
+    ├── lib/
+    └── config.json
+```
+
+VRM 资产规则：
+
+- **必需**：恰好 1 个 `*.vrm` 文件（同时存在 `*.model3.json` + `*.vrm` →
+  显式 `avatar-model.json` 才允许；否则 fail-close）
+- **可选 `motions/<preset_id>.vrma`**：覆盖 builtin preset；preset id 必须
+  在 `apps/avatar/spec/kernel/tables/vrm-motion-presets.yaml` registry 中
+  admit；引用未 admit preset 的 override → registry reject 并 fall back
+  到 builtin
+- **可选 `poster.png`** / `poster.jpg`：degraded surface fallback；不影响
+  carrier visual proof
+- **可选 `nimi/`**：与 Live2D 同 NAS handler 目录 layout；handler 引用
+  `extension.live2d` **必须**在 manifest 显式 `requires: ['live2d-extension']`，
+  否则 registry reject
+
+manifest resolver（`apps/avatar/src/shell/renderer/carrier/model-resolver.ts`）
+按 `kind: 'vrm'` 探测 `*.vrm` + 可选 `motions/` + `nimi/` + `poster.*`，
+返回 `ModelManifest`（详 design-08）。
+
 ### 3.3 理由：为什么放 `runtime/nimi/`
 1. **和 Live2D 官方结构一致** —— 不破坏 model creator 熟悉的 layout
 2. **runtime/ 是分发单位** —— Model creator zip `runtime/` 就能 ship 完整 model（含 nimi handlers + Live2D assets）

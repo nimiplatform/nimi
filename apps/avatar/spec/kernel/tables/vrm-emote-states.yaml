@@ -1,0 +1,150 @@
+version: 1
+description: >
+  Emotion to VRM expression weight bundle. Emote names are anchored to the
+  platform agent-activity-ontology (K-AGCORE-049) emotion ids
+  (happy/sad/shy/angry/surprised/confused/excited/worried/embarrassed/neutral),
+  plus `relaxed` as a VRM-only fallback expression preset (NOT an ontology
+  id; activity-mapping.yaml does not reference it as an emote name directly,
+  but uses it as the VRM expression preset for ontology emotions like `shy`
+  and `confused`).
+
+  Wave 0 admit (topic 2026-04-30-avatar-vrm-backend-branch, design-04):
+  initial 11 emote bundles. Primary expression weights stay <= 0.8 to avoid
+  the "smiles too much" effect (lineage: airi useVRMEmote pattern).
+
+  Apps/avatar consumes this table at runtime and skips entries whose
+  preset name is missing on the loaded VRM (partial degrade is allowed;
+  evidence event `avatar.emote.applied { skipped_count }` records skips).
+
+  Note: viseme expression preset (aa/ih/ou/ee/oh) entries here act as
+  "subtle mouth shape garnish" for emotion expression. When wLipSync is
+  active (amplitude > silent threshold), these viseme entries MUST be
+  suppressed by the emote state machine — the lipsync driver owns viseme
+  preset writes during active speech (see design-05 §"Coordination with
+  emote layer").
+
+source_authority: /.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml
+
+emotes:
+  neutral:
+    blend_duration_sec: 0.6
+    expressions:
+      - name: neutral
+        weight: 1.0
+
+  happy:
+    blend_duration_sec: 0.4
+    expressions:
+      - name: happy
+        weight: 0.7
+      - name: aa
+        weight: 0.2
+
+  sad:
+    blend_duration_sec: 0.5
+    expressions:
+      - name: sad
+        weight: 0.7
+      - name: oh
+        weight: 0.15
+
+  shy:
+    blend_duration_sec: 0.5
+    expressions:
+      - name: relaxed
+        weight: 0.5
+      - name: ih
+        weight: 0.1
+
+  angry:
+    blend_duration_sec: 0.3
+    expressions:
+      - name: angry
+        weight: 0.7
+      - name: ee
+        weight: 0.3
+
+  surprised:
+    blend_duration_sec: 0.15
+    expressions:
+      - name: surprised
+        weight: 0.8
+      - name: oh
+        weight: 0.4
+
+  confused:
+    blend_duration_sec: 0.45
+    expressions:
+      - name: relaxed
+        weight: 0.5
+      - name: ih
+        weight: 0.15
+
+  excited:
+    blend_duration_sec: 0.3
+    expressions:
+      - name: happy
+        weight: 0.6
+      - name: ee
+        weight: 0.25
+      - name: aa
+        weight: 0.1
+
+  worried:
+    blend_duration_sec: 0.4
+    expressions:
+      - name: sad
+        weight: 0.55
+      - name: oh
+        weight: 0.1
+
+  embarrassed:
+    blend_duration_sec: 0.4
+    expressions:
+      - name: relaxed
+        weight: 0.5
+      - name: aa
+        weight: 0.15
+
+  # VRM-only fallback expression bundle (not an ontology emotion id).
+  # activity-mapping.yaml `vrm.emotion` may reference this name when a model
+  # uses `relaxed` as the canonical neutral-affect preset.
+  relaxed:
+    blend_duration_sec: 0.5
+    expressions:
+      - name: relaxed
+        weight: 0.6
+
+constraints:
+  - description: >
+      Primary expression weight (the highest-weight entry per emote) MUST
+      stay <= 0.8. This prevents over-extreme emotion display (lineage:
+      airi useVRMEmote 0.8 cap; see design-04 + design-11).
+  - description: >
+      Viseme expression entries (aa/ih/ou/ee/oh) here are emote "garnish";
+      when wLipSync is active (lipsyncActive=true in vrm-emote-state tick),
+      the emote state machine MUST suppress them. Lipsync driver writes
+      viseme presets directly; double-write would conflict.
+  - description: >
+      VRM model loading at runtime: if a model lacks a referenced
+      expression preset (e.g. no `angry` preset), the emote state machine
+      skips that bundle entry and emits `avatar.emote.applied
+      { skipped_count }`. This is allowed partial degrade, NOT fail-close.
+  - description: >
+      `relaxed` is a VRM expression preset commonly available; it is NOT
+      a platform ontology emotion id. activity-mapping.yaml uses it as
+      the route for ontology emotions like `shy` / `confused`, where the
+      emote bundle here mixes `relaxed` with subtle viseme garnish.
+
+drift_checks:
+  - description: >
+      Adding an emote name MUST also update activity-mapping.yaml
+      `vrm.emotion` references that point to it.
+  - description: >
+      Removing an emote name requires updating activity-mapping.yaml in
+      the same packet to remove the dangling reference.
+  - description: >
+      `expressions[].name` SHOULD be a VRM standard preset (neutral /
+      happy / sad / angry / relaxed / surprised / aa / ih / ou / ee / oh).
+      Custom (model-specific) preset names are allowed but trigger
+      partial-degrade skip warnings on models that lack them.

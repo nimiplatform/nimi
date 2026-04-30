@@ -39,6 +39,7 @@
     "nimicoding:generate-spec-derived-docs": "pnpm exec nimicoding generate-spec-derived-docs",
     "generate:nimi-ui-lib": "node scripts/generate-nimi-ui-lib.mjs",
     "generate:scope-catalog": "node scripts/generate-scope-catalog.mjs",
+    "check:apps-avatar-isolation": "node scripts/check-apps-avatar-isolation.mjs",
     "check:eol-noise": "node scripts/check-eol-noise.mjs",
     "check:eol-noise:staged": "node scripts/check-eol-noise.mjs --staged-only --quiet-success",
     "check:spec-semantic-completeness": "node scripts/check-spec-semantic-completeness.mjs",
