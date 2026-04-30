@@ -19,47 +19,53 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeLocalService_ListLocalAssets_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets"
-	RuntimeLocalService_ListVerifiedAssets_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets"
-	RuntimeLocalService_InstallVerifiedAsset_FullMethodName             = "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset"
-	RuntimeLocalService_ImportLocalAsset_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset"
-	RuntimeLocalService_ImportLocalAssetFile_FullMethodName             = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile"
-	RuntimeLocalService_ScanUnregisteredAssets_FullMethodName           = "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets"
-	RuntimeLocalService_ScaffoldOrphanAsset_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset"
-	RuntimeLocalService_RemoveLocalAsset_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset"
-	RuntimeLocalService_SearchCatalogModels_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels"
-	RuntimeLocalService_ResolveModelInstallPlan_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan"
-	RuntimeLocalService_StartLocalAsset_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset"
-	RuntimeLocalService_StopLocalAsset_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset"
-	RuntimeLocalService_CheckLocalAssetHealth_FullMethodName            = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth"
-	RuntimeLocalService_WarmLocalAsset_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset"
-	RuntimeLocalService_ListLocalTransfers_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers"
-	RuntimeLocalService_PauseLocalTransfer_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer"
-	RuntimeLocalService_ResumeLocalTransfer_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer"
-	RuntimeLocalService_CancelLocalTransfer_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer"
-	RuntimeLocalService_WatchLocalTransfers_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers"
-	RuntimeLocalService_ResolveLocalRuntimeDependency_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalRuntimeDependency"
-	RuntimeLocalService_StartLocalRuntimeDependencySetup_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/StartLocalRuntimeDependencySetup"
-	RuntimeLocalService_ResolveLocalStateReconciliation_FullMethodName  = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation"
-	RuntimeLocalService_ExecuteLocalStateCutover_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover"
-	RuntimeLocalService_CollectDeviceProfile_FullMethodName             = "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile"
-	RuntimeLocalService_ResolveProfile_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile"
-	RuntimeLocalService_ApplyProfile_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile"
-	RuntimeLocalService_ListLocalServices_FullMethodName                = "/nimi.runtime.v1.RuntimeLocalService/ListLocalServices"
-	RuntimeLocalService_InstallLocalService_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService"
-	RuntimeLocalService_StartLocalService_FullMethodName                = "/nimi.runtime.v1.RuntimeLocalService/StartLocalService"
-	RuntimeLocalService_StopLocalService_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/StopLocalService"
-	RuntimeLocalService_CheckLocalServiceHealth_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth"
-	RuntimeLocalService_RemoveLocalService_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService"
-	RuntimeLocalService_ListNodeCatalog_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog"
-	RuntimeLocalService_ListLocalAudits_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits"
-	RuntimeLocalService_AppendInferenceAudit_FullMethodName             = "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit"
-	RuntimeLocalService_AppendRuntimeAudit_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit"
-	RuntimeLocalService_ListEngines_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/ListEngines"
-	RuntimeLocalService_EnsureEngine_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine"
-	RuntimeLocalService_StartEngine_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/StartEngine"
-	RuntimeLocalService_StopEngine_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/StopEngine"
-	RuntimeLocalService_GetEngineStatus_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus"
+	RuntimeLocalService_ListLocalAssets_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets"
+	RuntimeLocalService_ListVerifiedAssets_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets"
+	RuntimeLocalService_InstallVerifiedAsset_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset"
+	RuntimeLocalService_ImportLocalAsset_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset"
+	RuntimeLocalService_ImportLocalAssetFile_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile"
+	RuntimeLocalService_ScanUnregisteredAssets_FullMethodName                = "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets"
+	RuntimeLocalService_ScaffoldOrphanAsset_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset"
+	RuntimeLocalService_RemoveLocalAsset_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset"
+	RuntimeLocalService_SearchCatalogModels_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels"
+	RuntimeLocalService_ResolveModelInstallPlan_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan"
+	RuntimeLocalService_StartLocalAsset_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset"
+	RuntimeLocalService_StopLocalAsset_FullMethodName                        = "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset"
+	RuntimeLocalService_CheckLocalAssetHealth_FullMethodName                 = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth"
+	RuntimeLocalService_WarmLocalAsset_FullMethodName                        = "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset"
+	RuntimeLocalService_ListLocalTransfers_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers"
+	RuntimeLocalService_PauseLocalTransfer_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer"
+	RuntimeLocalService_ResumeLocalTransfer_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer"
+	RuntimeLocalService_CancelLocalTransfer_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer"
+	RuntimeLocalService_WatchLocalTransfers_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers"
+	RuntimeLocalService_ResolveLocalEnvironmentPlan_FullMethodName           = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan"
+	RuntimeLocalService_ListLocalEnvironmentSelectedSources_FullMethodName   = "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources"
+	RuntimeLocalService_ListLocalEnvironmentDependencyJobs_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs"
+	RuntimeLocalService_ResolveLocalEnvironmentActivationGate_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate"
+	RuntimeLocalService_StartLocalEnvironmentDependencyJob_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob"
+	RuntimeLocalService_CancelLocalEnvironmentDependencyJob_FullMethodName   = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob"
+	RuntimeLocalService_RetryLocalEnvironmentDependencyJob_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob"
+	RuntimeLocalService_RepairLocalEnvironmentDependency_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency"
+	RuntimeLocalService_ResolveLocalStateReconciliation_FullMethodName       = "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation"
+	RuntimeLocalService_ExecuteLocalStateCutover_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover"
+	RuntimeLocalService_CollectDeviceProfile_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile"
+	RuntimeLocalService_ResolveProfile_FullMethodName                        = "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile"
+	RuntimeLocalService_ApplyProfile_FullMethodName                          = "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile"
+	RuntimeLocalService_ListLocalServices_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/ListLocalServices"
+	RuntimeLocalService_InstallLocalService_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/InstallLocalService"
+	RuntimeLocalService_StartLocalService_FullMethodName                     = "/nimi.runtime.v1.RuntimeLocalService/StartLocalService"
+	RuntimeLocalService_StopLocalService_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/StopLocalService"
+	RuntimeLocalService_CheckLocalServiceHealth_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth"
+	RuntimeLocalService_RemoveLocalService_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService"
+	RuntimeLocalService_ListNodeCatalog_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog"
+	RuntimeLocalService_ListLocalAudits_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits"
+	RuntimeLocalService_AppendInferenceAudit_FullMethodName                  = "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit"
+	RuntimeLocalService_AppendRuntimeAudit_FullMethodName                    = "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit"
+	RuntimeLocalService_ListEngines_FullMethodName                           = "/nimi.runtime.v1.RuntimeLocalService/ListEngines"
+	RuntimeLocalService_EnsureEngine_FullMethodName                          = "/nimi.runtime.v1.RuntimeLocalService/EnsureEngine"
+	RuntimeLocalService_StartEngine_FullMethodName                           = "/nimi.runtime.v1.RuntimeLocalService/StartEngine"
+	RuntimeLocalService_StopEngine_FullMethodName                            = "/nimi.runtime.v1.RuntimeLocalService/StopEngine"
+	RuntimeLocalService_GetEngineStatus_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/GetEngineStatus"
 )
 
 // RuntimeLocalServiceClient is the client API for RuntimeLocalService service.
@@ -89,9 +95,15 @@ type RuntimeLocalServiceClient interface {
 	ResumeLocalTransfer(ctx context.Context, in *ResumeLocalTransferRequest, opts ...grpc.CallOption) (*ResumeLocalTransferResponse, error)
 	CancelLocalTransfer(ctx context.Context, in *CancelLocalTransferRequest, opts ...grpc.CallOption) (*CancelLocalTransferResponse, error)
 	WatchLocalTransfers(ctx context.Context, in *WatchLocalTransfersRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalTransferProgressEvent], error)
-	// Runtime-managed dependencies
-	ResolveLocalRuntimeDependency(ctx context.Context, in *ResolveLocalRuntimeDependencyRequest, opts ...grpc.CallOption) (*ResolveLocalRuntimeDependencyResponse, error)
-	StartLocalRuntimeDependencySetup(ctx context.Context, in *StartLocalRuntimeDependencySetupRequest, opts ...grpc.CallOption) (*StartLocalRuntimeDependencySetupResponse, error)
+	// Runtime-owned local environment
+	ResolveLocalEnvironmentPlan(ctx context.Context, in *ResolveLocalEnvironmentPlanRequest, opts ...grpc.CallOption) (*ResolveLocalEnvironmentPlanResponse, error)
+	ListLocalEnvironmentSelectedSources(ctx context.Context, in *ListLocalEnvironmentSelectedSourcesRequest, opts ...grpc.CallOption) (*ListLocalEnvironmentSelectedSourcesResponse, error)
+	ListLocalEnvironmentDependencyJobs(ctx context.Context, in *ListLocalEnvironmentDependencyJobsRequest, opts ...grpc.CallOption) (*ListLocalEnvironmentDependencyJobsResponse, error)
+	ResolveLocalEnvironmentActivationGate(ctx context.Context, in *ResolveLocalEnvironmentActivationGateRequest, opts ...grpc.CallOption) (*ResolveLocalEnvironmentActivationGateResponse, error)
+	StartLocalEnvironmentDependencyJob(ctx context.Context, in *StartLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*StartLocalEnvironmentDependencyJobResponse, error)
+	CancelLocalEnvironmentDependencyJob(ctx context.Context, in *CancelLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*CancelLocalEnvironmentDependencyJobResponse, error)
+	RetryLocalEnvironmentDependencyJob(ctx context.Context, in *RetryLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*RetryLocalEnvironmentDependencyJobResponse, error)
+	RepairLocalEnvironmentDependency(ctx context.Context, in *RepairLocalEnvironmentDependencyRequest, opts ...grpc.CallOption) (*RepairLocalEnvironmentDependencyResponse, error)
 	// Runtime-owned local state reconciliation
 	ResolveLocalStateReconciliation(ctx context.Context, in *ResolveLocalStateReconciliationRequest, opts ...grpc.CallOption) (*ResolveLocalStateReconciliationResponse, error)
 	ExecuteLocalStateCutover(ctx context.Context, in *ExecuteLocalStateCutoverRequest, opts ...grpc.CallOption) (*ExecuteLocalStateCutoverResponse, error)
@@ -328,20 +340,80 @@ func (c *runtimeLocalServiceClient) WatchLocalTransfers(ctx context.Context, in 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeLocalService_WatchLocalTransfersClient = grpc.ServerStreamingClient[LocalTransferProgressEvent]
 
-func (c *runtimeLocalServiceClient) ResolveLocalRuntimeDependency(ctx context.Context, in *ResolveLocalRuntimeDependencyRequest, opts ...grpc.CallOption) (*ResolveLocalRuntimeDependencyResponse, error) {
+func (c *runtimeLocalServiceClient) ResolveLocalEnvironmentPlan(ctx context.Context, in *ResolveLocalEnvironmentPlanRequest, opts ...grpc.CallOption) (*ResolveLocalEnvironmentPlanResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ResolveLocalRuntimeDependencyResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ResolveLocalRuntimeDependency_FullMethodName, in, out, cOpts...)
+	out := new(ResolveLocalEnvironmentPlanResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ResolveLocalEnvironmentPlan_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeLocalServiceClient) StartLocalRuntimeDependencySetup(ctx context.Context, in *StartLocalRuntimeDependencySetupRequest, opts ...grpc.CallOption) (*StartLocalRuntimeDependencySetupResponse, error) {
+func (c *runtimeLocalServiceClient) ListLocalEnvironmentSelectedSources(ctx context.Context, in *ListLocalEnvironmentSelectedSourcesRequest, opts ...grpc.CallOption) (*ListLocalEnvironmentSelectedSourcesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(StartLocalRuntimeDependencySetupResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_StartLocalRuntimeDependencySetup_FullMethodName, in, out, cOpts...)
+	out := new(ListLocalEnvironmentSelectedSourcesResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ListLocalEnvironmentSelectedSources_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ListLocalEnvironmentDependencyJobs(ctx context.Context, in *ListLocalEnvironmentDependencyJobsRequest, opts ...grpc.CallOption) (*ListLocalEnvironmentDependencyJobsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLocalEnvironmentDependencyJobsResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ListLocalEnvironmentDependencyJobs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ResolveLocalEnvironmentActivationGate(ctx context.Context, in *ResolveLocalEnvironmentActivationGateRequest, opts ...grpc.CallOption) (*ResolveLocalEnvironmentActivationGateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveLocalEnvironmentActivationGateResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ResolveLocalEnvironmentActivationGate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) StartLocalEnvironmentDependencyJob(ctx context.Context, in *StartLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*StartLocalEnvironmentDependencyJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartLocalEnvironmentDependencyJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_StartLocalEnvironmentDependencyJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) CancelLocalEnvironmentDependencyJob(ctx context.Context, in *CancelLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*CancelLocalEnvironmentDependencyJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CancelLocalEnvironmentDependencyJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_CancelLocalEnvironmentDependencyJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) RetryLocalEnvironmentDependencyJob(ctx context.Context, in *RetryLocalEnvironmentDependencyJobRequest, opts ...grpc.CallOption) (*RetryLocalEnvironmentDependencyJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RetryLocalEnvironmentDependencyJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_RetryLocalEnvironmentDependencyJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) RepairLocalEnvironmentDependency(ctx context.Context, in *RepairLocalEnvironmentDependencyRequest, opts ...grpc.CallOption) (*RepairLocalEnvironmentDependencyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RepairLocalEnvironmentDependencyResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_RepairLocalEnvironmentDependency_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -575,9 +647,15 @@ type RuntimeLocalServiceServer interface {
 	ResumeLocalTransfer(context.Context, *ResumeLocalTransferRequest) (*ResumeLocalTransferResponse, error)
 	CancelLocalTransfer(context.Context, *CancelLocalTransferRequest) (*CancelLocalTransferResponse, error)
 	WatchLocalTransfers(*WatchLocalTransfersRequest, grpc.ServerStreamingServer[LocalTransferProgressEvent]) error
-	// Runtime-managed dependencies
-	ResolveLocalRuntimeDependency(context.Context, *ResolveLocalRuntimeDependencyRequest) (*ResolveLocalRuntimeDependencyResponse, error)
-	StartLocalRuntimeDependencySetup(context.Context, *StartLocalRuntimeDependencySetupRequest) (*StartLocalRuntimeDependencySetupResponse, error)
+	// Runtime-owned local environment
+	ResolveLocalEnvironmentPlan(context.Context, *ResolveLocalEnvironmentPlanRequest) (*ResolveLocalEnvironmentPlanResponse, error)
+	ListLocalEnvironmentSelectedSources(context.Context, *ListLocalEnvironmentSelectedSourcesRequest) (*ListLocalEnvironmentSelectedSourcesResponse, error)
+	ListLocalEnvironmentDependencyJobs(context.Context, *ListLocalEnvironmentDependencyJobsRequest) (*ListLocalEnvironmentDependencyJobsResponse, error)
+	ResolveLocalEnvironmentActivationGate(context.Context, *ResolveLocalEnvironmentActivationGateRequest) (*ResolveLocalEnvironmentActivationGateResponse, error)
+	StartLocalEnvironmentDependencyJob(context.Context, *StartLocalEnvironmentDependencyJobRequest) (*StartLocalEnvironmentDependencyJobResponse, error)
+	CancelLocalEnvironmentDependencyJob(context.Context, *CancelLocalEnvironmentDependencyJobRequest) (*CancelLocalEnvironmentDependencyJobResponse, error)
+	RetryLocalEnvironmentDependencyJob(context.Context, *RetryLocalEnvironmentDependencyJobRequest) (*RetryLocalEnvironmentDependencyJobResponse, error)
+	RepairLocalEnvironmentDependency(context.Context, *RepairLocalEnvironmentDependencyRequest) (*RepairLocalEnvironmentDependencyResponse, error)
 	// Runtime-owned local state reconciliation
 	ResolveLocalStateReconciliation(context.Context, *ResolveLocalStateReconciliationRequest) (*ResolveLocalStateReconciliationResponse, error)
 	ExecuteLocalStateCutover(context.Context, *ExecuteLocalStateCutoverRequest) (*ExecuteLocalStateCutoverResponse, error)
@@ -671,11 +749,29 @@ func (UnimplementedRuntimeLocalServiceServer) CancelLocalTransfer(context.Contex
 func (UnimplementedRuntimeLocalServiceServer) WatchLocalTransfers(*WatchLocalTransfersRequest, grpc.ServerStreamingServer[LocalTransferProgressEvent]) error {
 	return status.Error(codes.Unimplemented, "method WatchLocalTransfers not implemented")
 }
-func (UnimplementedRuntimeLocalServiceServer) ResolveLocalRuntimeDependency(context.Context, *ResolveLocalRuntimeDependencyRequest) (*ResolveLocalRuntimeDependencyResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ResolveLocalRuntimeDependency not implemented")
+func (UnimplementedRuntimeLocalServiceServer) ResolveLocalEnvironmentPlan(context.Context, *ResolveLocalEnvironmentPlanRequest) (*ResolveLocalEnvironmentPlanResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveLocalEnvironmentPlan not implemented")
 }
-func (UnimplementedRuntimeLocalServiceServer) StartLocalRuntimeDependencySetup(context.Context, *StartLocalRuntimeDependencySetupRequest) (*StartLocalRuntimeDependencySetupResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method StartLocalRuntimeDependencySetup not implemented")
+func (UnimplementedRuntimeLocalServiceServer) ListLocalEnvironmentSelectedSources(context.Context, *ListLocalEnvironmentSelectedSourcesRequest) (*ListLocalEnvironmentSelectedSourcesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLocalEnvironmentSelectedSources not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ListLocalEnvironmentDependencyJobs(context.Context, *ListLocalEnvironmentDependencyJobsRequest) (*ListLocalEnvironmentDependencyJobsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLocalEnvironmentDependencyJobs not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ResolveLocalEnvironmentActivationGate(context.Context, *ResolveLocalEnvironmentActivationGateRequest) (*ResolveLocalEnvironmentActivationGateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveLocalEnvironmentActivationGate not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) StartLocalEnvironmentDependencyJob(context.Context, *StartLocalEnvironmentDependencyJobRequest) (*StartLocalEnvironmentDependencyJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartLocalEnvironmentDependencyJob not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) CancelLocalEnvironmentDependencyJob(context.Context, *CancelLocalEnvironmentDependencyJobRequest) (*CancelLocalEnvironmentDependencyJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelLocalEnvironmentDependencyJob not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) RetryLocalEnvironmentDependencyJob(context.Context, *RetryLocalEnvironmentDependencyJobRequest) (*RetryLocalEnvironmentDependencyJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RetryLocalEnvironmentDependencyJob not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) RepairLocalEnvironmentDependency(context.Context, *RepairLocalEnvironmentDependencyRequest) (*RepairLocalEnvironmentDependencyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RepairLocalEnvironmentDependency not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) ResolveLocalStateReconciliation(context.Context, *ResolveLocalStateReconciliationRequest) (*ResolveLocalStateReconciliationResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolveLocalStateReconciliation not implemented")
@@ -1092,38 +1188,146 @@ func _RuntimeLocalService_WatchLocalTransfers_Handler(srv interface{}, stream gr
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeLocalService_WatchLocalTransfersServer = grpc.ServerStreamingServer[LocalTransferProgressEvent]
 
-func _RuntimeLocalService_ResolveLocalRuntimeDependency_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResolveLocalRuntimeDependencyRequest)
+func _RuntimeLocalService_ResolveLocalEnvironmentPlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveLocalEnvironmentPlanRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ResolveLocalRuntimeDependency(ctx, in)
+		return srv.(RuntimeLocalServiceServer).ResolveLocalEnvironmentPlan(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeLocalService_ResolveLocalRuntimeDependency_FullMethodName,
+		FullMethod: RuntimeLocalService_ResolveLocalEnvironmentPlan_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ResolveLocalRuntimeDependency(ctx, req.(*ResolveLocalRuntimeDependencyRequest))
+		return srv.(RuntimeLocalServiceServer).ResolveLocalEnvironmentPlan(ctx, req.(*ResolveLocalEnvironmentPlanRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeLocalService_StartLocalRuntimeDependencySetup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StartLocalRuntimeDependencySetupRequest)
+func _RuntimeLocalService_ListLocalEnvironmentSelectedSources_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLocalEnvironmentSelectedSourcesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).StartLocalRuntimeDependencySetup(ctx, in)
+		return srv.(RuntimeLocalServiceServer).ListLocalEnvironmentSelectedSources(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeLocalService_StartLocalRuntimeDependencySetup_FullMethodName,
+		FullMethod: RuntimeLocalService_ListLocalEnvironmentSelectedSources_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).StartLocalRuntimeDependencySetup(ctx, req.(*StartLocalRuntimeDependencySetupRequest))
+		return srv.(RuntimeLocalServiceServer).ListLocalEnvironmentSelectedSources(ctx, req.(*ListLocalEnvironmentSelectedSourcesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ListLocalEnvironmentDependencyJobs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLocalEnvironmentDependencyJobsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ListLocalEnvironmentDependencyJobs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ListLocalEnvironmentDependencyJobs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ListLocalEnvironmentDependencyJobs(ctx, req.(*ListLocalEnvironmentDependencyJobsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ResolveLocalEnvironmentActivationGate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveLocalEnvironmentActivationGateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ResolveLocalEnvironmentActivationGate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ResolveLocalEnvironmentActivationGate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ResolveLocalEnvironmentActivationGate(ctx, req.(*ResolveLocalEnvironmentActivationGateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_StartLocalEnvironmentDependencyJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartLocalEnvironmentDependencyJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).StartLocalEnvironmentDependencyJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_StartLocalEnvironmentDependencyJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).StartLocalEnvironmentDependencyJob(ctx, req.(*StartLocalEnvironmentDependencyJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_CancelLocalEnvironmentDependencyJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelLocalEnvironmentDependencyJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).CancelLocalEnvironmentDependencyJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_CancelLocalEnvironmentDependencyJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).CancelLocalEnvironmentDependencyJob(ctx, req.(*CancelLocalEnvironmentDependencyJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_RetryLocalEnvironmentDependencyJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RetryLocalEnvironmentDependencyJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).RetryLocalEnvironmentDependencyJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_RetryLocalEnvironmentDependencyJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).RetryLocalEnvironmentDependencyJob(ctx, req.(*RetryLocalEnvironmentDependencyJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_RepairLocalEnvironmentDependency_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RepairLocalEnvironmentDependencyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).RepairLocalEnvironmentDependency(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_RepairLocalEnvironmentDependency_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).RepairLocalEnvironmentDependency(ctx, req.(*RepairLocalEnvironmentDependencyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1568,12 +1772,36 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeLocalService_CancelLocalTransfer_Handler,
 		},
 		{
-			MethodName: "ResolveLocalRuntimeDependency",
-			Handler:    _RuntimeLocalService_ResolveLocalRuntimeDependency_Handler,
+			MethodName: "ResolveLocalEnvironmentPlan",
+			Handler:    _RuntimeLocalService_ResolveLocalEnvironmentPlan_Handler,
 		},
 		{
-			MethodName: "StartLocalRuntimeDependencySetup",
-			Handler:    _RuntimeLocalService_StartLocalRuntimeDependencySetup_Handler,
+			MethodName: "ListLocalEnvironmentSelectedSources",
+			Handler:    _RuntimeLocalService_ListLocalEnvironmentSelectedSources_Handler,
+		},
+		{
+			MethodName: "ListLocalEnvironmentDependencyJobs",
+			Handler:    _RuntimeLocalService_ListLocalEnvironmentDependencyJobs_Handler,
+		},
+		{
+			MethodName: "ResolveLocalEnvironmentActivationGate",
+			Handler:    _RuntimeLocalService_ResolveLocalEnvironmentActivationGate_Handler,
+		},
+		{
+			MethodName: "StartLocalEnvironmentDependencyJob",
+			Handler:    _RuntimeLocalService_StartLocalEnvironmentDependencyJob_Handler,
+		},
+		{
+			MethodName: "CancelLocalEnvironmentDependencyJob",
+			Handler:    _RuntimeLocalService_CancelLocalEnvironmentDependencyJob_Handler,
+		},
+		{
+			MethodName: "RetryLocalEnvironmentDependencyJob",
+			Handler:    _RuntimeLocalService_RetryLocalEnvironmentDependencyJob_Handler,
+		},
+		{
+			MethodName: "RepairLocalEnvironmentDependency",
+			Handler:    _RuntimeLocalService_RepairLocalEnvironmentDependency_Handler,
 		},
 		{
 			MethodName: "ResolveLocalStateReconciliation",

@@ -45,9 +45,12 @@ func (s *Service) checkManagedSupervisedImageHealthWithReason(ctx context.Contex
 		return s.setManagedSupervisedImageUnhealthy(model, managedLocalAssetRecordFailureDetail(err))
 	}
 	if selectionRequiresCUDAUserSpaceRuntime(selection) {
-		dependencyStatus := s.resolveSharedCUDADependencyStatus(stableDiffusionCUDAConsumerID)
-		if sharedCUDADependencyBlocksActivation(dependencyStatus) {
-			return s.setManagedSupervisedImageUnhealthy(model, sharedCUDADependencyActivationDetail(dependencyStatus))
+		gate := s.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
+			ConsumerID: stableDiffusionCUDAConsumerID,
+			PackID:     "local-gpu-support",
+		})
+		if gate.State != localEnvironmentActivationStateReady {
+			return s.setManagedSupervisedImageUnhealthy(model, gate.Detail)
 		}
 	}
 	if _, _, err := s.ensureManagedLocalModelBundleReady(ctx, model); err != nil {

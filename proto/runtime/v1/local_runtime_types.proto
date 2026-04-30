@@ -324,6 +324,80 @@ message LocalDeviceProfile {
   int64 available_ram_bytes             = 9;
 }
 
+// === Runtime-owned Local Environment ===
+
+message LocalEnvironmentPlanDependency {
+  string dependency_family = 1;
+  string dependency_id = 2;
+  bool required = 3;
+  string state = 4;
+  string source_kind = 5;
+  bool confirmation_required = 6;
+  string selected_source_record_id = 7;
+  string environment_key = 8;
+  string canonical_root = 9;
+  string reason_code = 10;
+  string detail = 11;
+}
+
+message LocalEnvironmentPlan {
+  string plan_id = 1;
+  string pack_id = 2;
+  string product_label = 3;
+  string host_profile_id = 4;
+  string platform_tuple = 5;
+  string runtime_data_root = 6;
+  string consumer_scope = 7;
+  string cloud_only_impact = 8;
+  string state = 9;
+  string reason_code = 10;
+  repeated LocalEnvironmentPlanDependency dependencies = 11;
+}
+
+message LocalEnvironmentSelectedSourceRecord {
+  string record_id = 1;
+  string dependency_family = 2;
+  string dependency_id = 3;
+  string environment_key = 4;
+  string source_kind = 5;
+  string canonical_root = 6;
+  string version = 7;
+  repeated string compatibility_evidence = 8;
+  repeated string verified_artifacts = 9;
+  map<string, string> hashes = 10;
+  repeated string selected_consumers = 11;
+  repeated string activation_env_delta = 12;
+  string selected_at = 13;
+  string last_verified_at = 14;
+  string repair_state = 15;
+  string audit_reason_code = 16;
+}
+
+message LocalEnvironmentDependencyJob {
+  string job_id = 1;
+  string environment_key = 2;
+  string dependency_family = 3;
+  string dependency_id = 4;
+  string state = 5;
+  string source_kind = 6;
+  string canonical_root = 7;
+  string selected_source_record_id = 8;
+  string failure_detail = 9;
+  bool retryable = 10;
+  string created_at = 11;
+  string updated_at = 12;
+}
+
+message LocalEnvironmentActivationGate {
+  string consumer_id = 1;
+  string pack_id = 2;
+  string state = 3;
+  string reason_code = 4;
+  string detail = 5;
+  repeated LocalEnvironmentPlanDependency blocking_dependencies = 6;
+  repeated LocalEnvironmentPlanDependency dependencies = 7;
+}
+
 // === Execution Descriptors ===
 
 message LocalExecutionOptionDescriptor {

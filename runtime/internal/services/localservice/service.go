@@ -61,27 +61,30 @@ type Service struct {
 	managedMediaBackendUpdatedAt   string
 	managedMediaBackendEpoch       uint64
 
-	mu                             sync.RWMutex
-	assets                         map[string]*runtimev1.LocalAssetRecord
-	assetRuntimeModes              map[string]runtimev1.LocalEngineRuntimeMode
-	services                       map[string]*runtimev1.LocalServiceDescriptor
-	serviceRuntimeModes            map[string]runtimev1.LocalEngineRuntimeMode
-	audits                         []*runtimev1.LocalAuditEvent
-	verified                       []*runtimev1.LocalVerifiedAssetDescriptor
-	catalog                        []*runtimev1.LocalCatalogModelDescriptor
-	managedImageProfiles           map[string]managedImageProfileState
-	managedImageLoadCache          map[string]managedImageLoadedState
-	managedImageLoadInflight       map[string]*managedImageLoadInflight
-	localAssetProbeInflight        map[string]*localAssetProbeInflight
-	engineMgr                      EngineManager
-	managedLlamaRegistrations      map[string]managedLlamaRegistration
-	primaryManagedLlamaModelName   string
-	managedLlamaLoadedLocalAssetID string
-	warmedModelKeys                map[string]struct{}
-	warmedModelOrder               []string
-	assetResidency                 map[string]localAssetResidencyState
-	engineResidency                map[string]localEngineResidencyState
-	managedLlamaLoadMu             sync.Mutex
+	mu                              sync.RWMutex
+	assets                          map[string]*runtimev1.LocalAssetRecord
+	assetRuntimeModes               map[string]runtimev1.LocalEngineRuntimeMode
+	services                        map[string]*runtimev1.LocalServiceDescriptor
+	serviceRuntimeModes             map[string]runtimev1.LocalEngineRuntimeMode
+	audits                          []*runtimev1.LocalAuditEvent
+	verified                        []*runtimev1.LocalVerifiedAssetDescriptor
+	catalog                         []*runtimev1.LocalCatalogModelDescriptor
+	managedImageProfiles            map[string]managedImageProfileState
+	managedImageLoadCache           map[string]managedImageLoadedState
+	managedImageLoadInflight        map[string]*managedImageLoadInflight
+	localAssetProbeInflight         map[string]*localAssetProbeInflight
+	engineMgr                       EngineManager
+	managedLlamaRegistrations       map[string]managedLlamaRegistration
+	primaryManagedLlamaModelName    string
+	managedLlamaLoadedLocalAssetID  string
+	warmedModelKeys                 map[string]struct{}
+	warmedModelOrder                []string
+	assetResidency                  map[string]localAssetResidencyState
+	engineResidency                 map[string]localEngineResidencyState
+	localEnvironmentHostProfiles    map[string]localEnvironmentHostProfileState
+	localEnvironmentSelectedSources map[string]localEnvironmentSelectedSourceRecordState
+	localEnvironmentDependencyJobs  map[string]localEnvironmentDependencyJobState
+	managedLlamaLoadMu              sync.Mutex
 
 	profileRegistry *ProfileRegistry
 
@@ -126,46 +129,49 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 	}
 	verified := defaultVerifiedAssets()
 	svc := &Service{
-		logger:                       logger,
-		auditStore:                   store,
-		stateStorePath:               resolveLocalStatePath(stateStorePath),
-		localAuditCap:                localAuditCapacity,
-		localModelsPath:              resolveLocalModelsPath(localModelsPath),
-		managedLlamaModelsConfigPath: resolveGeneratedLlamaModelsConfigPath(""),
-		assets:                       make(map[string]*runtimev1.LocalAssetRecord),
-		assetRuntimeModes:            make(map[string]runtimev1.LocalEngineRuntimeMode),
-		services:                     make(map[string]*runtimev1.LocalServiceDescriptor),
-		serviceRuntimeModes:          make(map[string]runtimev1.LocalEngineRuntimeMode),
-		audits:                       make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
-		verified:                     verified,
-		catalog:                      make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(verified)),
-		managedImageProfiles:         make(map[string]managedImageProfileState),
-		managedImageLoadCache:        make(map[string]managedImageLoadedState),
-		managedImageLoadInflight:     make(map[string]*managedImageLoadInflight),
-		localAssetProbeInflight:      make(map[string]*localAssetProbeInflight),
-		managedLlamaRegistrations:    make(map[string]managedLlamaRegistration),
-		warmedModelKeys:              make(map[string]struct{}),
-		warmedModelOrder:             make([]string, 0, 512),
-		assetResidency:               make(map[string]localAssetResidencyState),
-		engineResidency:              make(map[string]localEngineResidencyState),
-		profileRegistry:              NewProfileRegistry(),
-		endpointProbe:                defaultEndpointProbe,
-		hfCatalogSearch:              defaultHFCatalogSearch,
-		hfDownloadBaseURL:            defaultHFDownloadBaseURL,
-		artifactDownloadTimeout:      localArtifactDownloadTimeout,
-		artifactDownloadMaxBodyBytes: localArtifactDownloadMaxBodyBytes,
-		modelDownloadTimeout:         localModelDownloadTimeout,
-		modelDownloadMaxBodyBytes:    localModelDownloadMaxBodyBytes,
-		managedImageLoadModel:        managedimagebackend.LoadModel,
-		managedImageFreeModel:        managedimagebackend.FreeModel,
-		assetProbeState:              make(map[string]*probeRecoveryState),
-		serviceProbeState:            make(map[string]*probeRecoveryState),
-		transfers:                    make(map[string]*runtimev1.LocalTransferSessionSummary),
-		transferControls:             make(map[string]*localTransferControl),
-		transferSubscribers:          make(map[uint64]chan *runtimev1.LocalTransferProgressEvent),
-		entryHashCache:               make(map[string]entryHashCacheState),
-		localModelKeepAlive:          defaultLocalModelKeepAlive,
-		managedPortAvailable:         loopbackPortAvailable,
+		logger:                          logger,
+		auditStore:                      store,
+		stateStorePath:                  resolveLocalStatePath(stateStorePath),
+		localAuditCap:                   localAuditCapacity,
+		localModelsPath:                 resolveLocalModelsPath(localModelsPath),
+		managedLlamaModelsConfigPath:    resolveGeneratedLlamaModelsConfigPath(""),
+		assets:                          make(map[string]*runtimev1.LocalAssetRecord),
+		assetRuntimeModes:               make(map[string]runtimev1.LocalEngineRuntimeMode),
+		services:                        make(map[string]*runtimev1.LocalServiceDescriptor),
+		serviceRuntimeModes:             make(map[string]runtimev1.LocalEngineRuntimeMode),
+		audits:                          make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
+		verified:                        verified,
+		catalog:                         make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(verified)),
+		managedImageProfiles:            make(map[string]managedImageProfileState),
+		managedImageLoadCache:           make(map[string]managedImageLoadedState),
+		managedImageLoadInflight:        make(map[string]*managedImageLoadInflight),
+		localAssetProbeInflight:         make(map[string]*localAssetProbeInflight),
+		managedLlamaRegistrations:       make(map[string]managedLlamaRegistration),
+		warmedModelKeys:                 make(map[string]struct{}),
+		warmedModelOrder:                make([]string, 0, 512),
+		assetResidency:                  make(map[string]localAssetResidencyState),
+		engineResidency:                 make(map[string]localEngineResidencyState),
+		localEnvironmentHostProfiles:    make(map[string]localEnvironmentHostProfileState),
+		localEnvironmentSelectedSources: make(map[string]localEnvironmentSelectedSourceRecordState),
+		localEnvironmentDependencyJobs:  make(map[string]localEnvironmentDependencyJobState),
+		profileRegistry:                 NewProfileRegistry(),
+		endpointProbe:                   defaultEndpointProbe,
+		hfCatalogSearch:                 defaultHFCatalogSearch,
+		hfDownloadBaseURL:               defaultHFDownloadBaseURL,
+		artifactDownloadTimeout:         localArtifactDownloadTimeout,
+		artifactDownloadMaxBodyBytes:    localArtifactDownloadMaxBodyBytes,
+		modelDownloadTimeout:            localModelDownloadTimeout,
+		modelDownloadMaxBodyBytes:       localModelDownloadMaxBodyBytes,
+		managedImageLoadModel:           managedimagebackend.LoadModel,
+		managedImageFreeModel:           managedimagebackend.FreeModel,
+		assetProbeState:                 make(map[string]*probeRecoveryState),
+		serviceProbeState:               make(map[string]*probeRecoveryState),
+		transfers:                       make(map[string]*runtimev1.LocalTransferSessionSummary),
+		transferControls:                make(map[string]*localTransferControl),
+		transferSubscribers:             make(map[uint64]chan *runtimev1.LocalTransferProgressEvent),
+		entryHashCache:                  make(map[string]entryHashCacheState),
+		localModelKeepAlive:             defaultLocalModelKeepAlive,
+		managedPortAvailable:            loopbackPortAvailable,
 	}
 	if err := svc.restoreState(); err != nil {
 		return nil, err

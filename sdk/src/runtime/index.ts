@@ -109,7 +109,17 @@ export type * from './generated/runtime/v1/memory.js';
 export type * from './generated/runtime/v1/agent_service.js';
 export { CallerKind } from './generated/runtime/v1/common.js';
 export { ReasonCode as RuntimeReasonCode, ExternalPrincipalType } from './generated/runtime/v1/common.js';
-export { ExternalProofType, AppMode, WorldRelation } from './generated/runtime/v1/auth.js';
+export {
+  AccountSessionState,
+  GetAccessTokenResponse,
+  GetAccountSessionStatusResponse,
+} from './generated/runtime/v1/account.js';
+export {
+  AppMode,
+  ExternalProofType,
+  RegisterAppResponse,
+  WorldRelation,
+} from './generated/runtime/v1/auth.js';
 export { PolicyMode, AuthorizationPreset as RuntimeAuthorizationPreset } from './generated/runtime/v1/grant.js';
 export { WorkflowStatus, WorkflowEventType, WorkflowExecutionMode } from './generated/runtime/v1/workflow.js';
 export { createRuntimeClient } from './core/client.js';

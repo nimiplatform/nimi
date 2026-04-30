@@ -766,6 +766,263 @@ export interface LocalDeviceProfile {
      */
     availableRamBytes: string;
 }
+// === Runtime-owned Local Environment ===
+
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalEnvironmentPlanDependency
+ */
+export interface LocalEnvironmentPlanDependency {
+    /**
+     * @generated from protobuf field: string dependency_family = 1
+     */
+    dependencyFamily: string;
+    /**
+     * @generated from protobuf field: string dependency_id = 2
+     */
+    dependencyId: string;
+    /**
+     * @generated from protobuf field: bool required = 3
+     */
+    required: boolean;
+    /**
+     * @generated from protobuf field: string state = 4
+     */
+    state: string;
+    /**
+     * @generated from protobuf field: string source_kind = 5
+     */
+    sourceKind: string;
+    /**
+     * @generated from protobuf field: bool confirmation_required = 6
+     */
+    confirmationRequired: boolean;
+    /**
+     * @generated from protobuf field: string selected_source_record_id = 7
+     */
+    selectedSourceRecordId: string;
+    /**
+     * @generated from protobuf field: string environment_key = 8
+     */
+    environmentKey: string;
+    /**
+     * @generated from protobuf field: string canonical_root = 9
+     */
+    canonicalRoot: string;
+    /**
+     * @generated from protobuf field: string reason_code = 10
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: string detail = 11
+     */
+    detail: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalEnvironmentPlan
+ */
+export interface LocalEnvironmentPlan {
+    /**
+     * @generated from protobuf field: string plan_id = 1
+     */
+    planId: string;
+    /**
+     * @generated from protobuf field: string pack_id = 2
+     */
+    packId: string;
+    /**
+     * @generated from protobuf field: string product_label = 3
+     */
+    productLabel: string;
+    /**
+     * @generated from protobuf field: string host_profile_id = 4
+     */
+    hostProfileId: string;
+    /**
+     * @generated from protobuf field: string platform_tuple = 5
+     */
+    platformTuple: string;
+    /**
+     * @generated from protobuf field: string runtime_data_root = 6
+     */
+    runtimeDataRoot: string;
+    /**
+     * @generated from protobuf field: string consumer_scope = 7
+     */
+    consumerScope: string;
+    /**
+     * @generated from protobuf field: string cloud_only_impact = 8
+     */
+    cloudOnlyImpact: string;
+    /**
+     * @generated from protobuf field: string state = 9
+     */
+    state: string;
+    /**
+     * @generated from protobuf field: string reason_code = 10
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalEnvironmentPlanDependency dependencies = 11
+     */
+    dependencies: LocalEnvironmentPlanDependency[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord
+ */
+export interface LocalEnvironmentSelectedSourceRecord {
+    /**
+     * @generated from protobuf field: string record_id = 1
+     */
+    recordId: string;
+    /**
+     * @generated from protobuf field: string dependency_family = 2
+     */
+    dependencyFamily: string;
+    /**
+     * @generated from protobuf field: string dependency_id = 3
+     */
+    dependencyId: string;
+    /**
+     * @generated from protobuf field: string environment_key = 4
+     */
+    environmentKey: string;
+    /**
+     * @generated from protobuf field: string source_kind = 5
+     */
+    sourceKind: string;
+    /**
+     * @generated from protobuf field: string canonical_root = 6
+     */
+    canonicalRoot: string;
+    /**
+     * @generated from protobuf field: string version = 7
+     */
+    version: string;
+    /**
+     * @generated from protobuf field: repeated string compatibility_evidence = 8
+     */
+    compatibilityEvidence: string[];
+    /**
+     * @generated from protobuf field: repeated string verified_artifacts = 9
+     */
+    verifiedArtifacts: string[];
+    /**
+     * @generated from protobuf field: map<string, string> hashes = 10
+     */
+    hashes: {
+        [key: string]: string;
+    };
+    /**
+     * @generated from protobuf field: repeated string selected_consumers = 11
+     */
+    selectedConsumers: string[];
+    /**
+     * @generated from protobuf field: repeated string activation_env_delta = 12
+     */
+    activationEnvDelta: string[];
+    /**
+     * @generated from protobuf field: string selected_at = 13
+     */
+    selectedAt: string;
+    /**
+     * @generated from protobuf field: string last_verified_at = 14
+     */
+    lastVerifiedAt: string;
+    /**
+     * @generated from protobuf field: string repair_state = 15
+     */
+    repairState: string;
+    /**
+     * @generated from protobuf field: string audit_reason_code = 16
+     */
+    auditReasonCode: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalEnvironmentDependencyJob
+ */
+export interface LocalEnvironmentDependencyJob {
+    /**
+     * @generated from protobuf field: string job_id = 1
+     */
+    jobId: string;
+    /**
+     * @generated from protobuf field: string environment_key = 2
+     */
+    environmentKey: string;
+    /**
+     * @generated from protobuf field: string dependency_family = 3
+     */
+    dependencyFamily: string;
+    /**
+     * @generated from protobuf field: string dependency_id = 4
+     */
+    dependencyId: string;
+    /**
+     * @generated from protobuf field: string state = 5
+     */
+    state: string;
+    /**
+     * @generated from protobuf field: string source_kind = 6
+     */
+    sourceKind: string;
+    /**
+     * @generated from protobuf field: string canonical_root = 7
+     */
+    canonicalRoot: string;
+    /**
+     * @generated from protobuf field: string selected_source_record_id = 8
+     */
+    selectedSourceRecordId: string;
+    /**
+     * @generated from protobuf field: string failure_detail = 9
+     */
+    failureDetail: string;
+    /**
+     * @generated from protobuf field: bool retryable = 10
+     */
+    retryable: boolean;
+    /**
+     * @generated from protobuf field: string created_at = 11
+     */
+    createdAt: string;
+    /**
+     * @generated from protobuf field: string updated_at = 12
+     */
+    updatedAt: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalEnvironmentActivationGate
+ */
+export interface LocalEnvironmentActivationGate {
+    /**
+     * @generated from protobuf field: string consumer_id = 1
+     */
+    consumerId: string;
+    /**
+     * @generated from protobuf field: string pack_id = 2
+     */
+    packId: string;
+    /**
+     * @generated from protobuf field: string state = 3
+     */
+    state: string;
+    /**
+     * @generated from protobuf field: string reason_code = 4
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: string detail = 5
+     */
+    detail: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalEnvironmentPlanDependency blocking_dependencies = 6
+     */
+    blockingDependencies: LocalEnvironmentPlanDependency[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalEnvironmentPlanDependency dependencies = 7
+     */
+    dependencies: LocalEnvironmentPlanDependency[];
+}
 // === Execution Descriptors ===
 
 /**
@@ -3797,6 +4054,673 @@ class LocalDeviceProfile$Type extends MessageType<LocalDeviceProfile> {
  * @generated MessageType for protobuf message nimi.runtime.v1.LocalDeviceProfile
  */
 export const LocalDeviceProfile = new LocalDeviceProfile$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalEnvironmentPlanDependency$Type extends MessageType<LocalEnvironmentPlanDependency> {
+    constructor() {
+        super("nimi.runtime.v1.LocalEnvironmentPlanDependency", [
+            { no: 1, name: "dependency_family", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "dependency_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "required", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "source_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "confirmation_required", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "selected_source_record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "environment_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "canonical_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalEnvironmentPlanDependency>): LocalEnvironmentPlanDependency {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.dependencyFamily = "";
+        message.dependencyId = "";
+        message.required = false;
+        message.state = "";
+        message.sourceKind = "";
+        message.confirmationRequired = false;
+        message.selectedSourceRecordId = "";
+        message.environmentKey = "";
+        message.canonicalRoot = "";
+        message.reasonCode = "";
+        message.detail = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalEnvironmentPlanDependency>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalEnvironmentPlanDependency): LocalEnvironmentPlanDependency {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string dependency_family */ 1:
+                    message.dependencyFamily = reader.string();
+                    break;
+                case /* string dependency_id */ 2:
+                    message.dependencyId = reader.string();
+                    break;
+                case /* bool required */ 3:
+                    message.required = reader.bool();
+                    break;
+                case /* string state */ 4:
+                    message.state = reader.string();
+                    break;
+                case /* string source_kind */ 5:
+                    message.sourceKind = reader.string();
+                    break;
+                case /* bool confirmation_required */ 6:
+                    message.confirmationRequired = reader.bool();
+                    break;
+                case /* string selected_source_record_id */ 7:
+                    message.selectedSourceRecordId = reader.string();
+                    break;
+                case /* string environment_key */ 8:
+                    message.environmentKey = reader.string();
+                    break;
+                case /* string canonical_root */ 9:
+                    message.canonicalRoot = reader.string();
+                    break;
+                case /* string reason_code */ 10:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* string detail */ 11:
+                    message.detail = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalEnvironmentPlanDependency, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string dependency_family = 1; */
+        if (message.dependencyFamily !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.dependencyFamily);
+        /* string dependency_id = 2; */
+        if (message.dependencyId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.dependencyId);
+        /* bool required = 3; */
+        if (message.required !== false)
+            writer.tag(3, WireType.Varint).bool(message.required);
+        /* string state = 4; */
+        if (message.state !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.state);
+        /* string source_kind = 5; */
+        if (message.sourceKind !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.sourceKind);
+        /* bool confirmation_required = 6; */
+        if (message.confirmationRequired !== false)
+            writer.tag(6, WireType.Varint).bool(message.confirmationRequired);
+        /* string selected_source_record_id = 7; */
+        if (message.selectedSourceRecordId !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.selectedSourceRecordId);
+        /* string environment_key = 8; */
+        if (message.environmentKey !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.environmentKey);
+        /* string canonical_root = 9; */
+        if (message.canonicalRoot !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.canonicalRoot);
+        /* string reason_code = 10; */
+        if (message.reasonCode !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.reasonCode);
+        /* string detail = 11; */
+        if (message.detail !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.detail);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalEnvironmentPlanDependency
+ */
+export const LocalEnvironmentPlanDependency = new LocalEnvironmentPlanDependency$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalEnvironmentPlan$Type extends MessageType<LocalEnvironmentPlan> {
+    constructor() {
+        super("nimi.runtime.v1.LocalEnvironmentPlan", [
+            { no: 1, name: "plan_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "pack_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "product_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "host_profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "platform_tuple", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "runtime_data_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "consumer_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "cloud_only_impact", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "dependencies", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalEnvironmentPlanDependency }
+        ]);
+    }
+    create(value?: PartialMessage<LocalEnvironmentPlan>): LocalEnvironmentPlan {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.planId = "";
+        message.packId = "";
+        message.productLabel = "";
+        message.hostProfileId = "";
+        message.platformTuple = "";
+        message.runtimeDataRoot = "";
+        message.consumerScope = "";
+        message.cloudOnlyImpact = "";
+        message.state = "";
+        message.reasonCode = "";
+        message.dependencies = [];
+        if (value !== undefined)
+            reflectionMergePartial<LocalEnvironmentPlan>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalEnvironmentPlan): LocalEnvironmentPlan {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string plan_id */ 1:
+                    message.planId = reader.string();
+                    break;
+                case /* string pack_id */ 2:
+                    message.packId = reader.string();
+                    break;
+                case /* string product_label */ 3:
+                    message.productLabel = reader.string();
+                    break;
+                case /* string host_profile_id */ 4:
+                    message.hostProfileId = reader.string();
+                    break;
+                case /* string platform_tuple */ 5:
+                    message.platformTuple = reader.string();
+                    break;
+                case /* string runtime_data_root */ 6:
+                    message.runtimeDataRoot = reader.string();
+                    break;
+                case /* string consumer_scope */ 7:
+                    message.consumerScope = reader.string();
+                    break;
+                case /* string cloud_only_impact */ 8:
+                    message.cloudOnlyImpact = reader.string();
+                    break;
+                case /* string state */ 9:
+                    message.state = reader.string();
+                    break;
+                case /* string reason_code */ 10:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalEnvironmentPlanDependency dependencies */ 11:
+                    message.dependencies.push(LocalEnvironmentPlanDependency.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalEnvironmentPlan, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string plan_id = 1; */
+        if (message.planId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.planId);
+        /* string pack_id = 2; */
+        if (message.packId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.packId);
+        /* string product_label = 3; */
+        if (message.productLabel !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.productLabel);
+        /* string host_profile_id = 4; */
+        if (message.hostProfileId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.hostProfileId);
+        /* string platform_tuple = 5; */
+        if (message.platformTuple !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.platformTuple);
+        /* string runtime_data_root = 6; */
+        if (message.runtimeDataRoot !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.runtimeDataRoot);
+        /* string consumer_scope = 7; */
+        if (message.consumerScope !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.consumerScope);
+        /* string cloud_only_impact = 8; */
+        if (message.cloudOnlyImpact !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.cloudOnlyImpact);
+        /* string state = 9; */
+        if (message.state !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.state);
+        /* string reason_code = 10; */
+        if (message.reasonCode !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.reasonCode);
+        /* repeated nimi.runtime.v1.LocalEnvironmentPlanDependency dependencies = 11; */
+        for (let i = 0; i < message.dependencies.length; i++)
+            LocalEnvironmentPlanDependency.internalBinaryWrite(message.dependencies[i], writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalEnvironmentPlan
+ */
+export const LocalEnvironmentPlan = new LocalEnvironmentPlan$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalEnvironmentSelectedSourceRecord$Type extends MessageType<LocalEnvironmentSelectedSourceRecord> {
+    constructor() {
+        super("nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord", [
+            { no: 1, name: "record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "dependency_family", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "dependency_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "environment_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "source_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "canonical_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "compatibility_evidence", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "verified_artifacts", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "hashes", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
+            { no: 11, name: "selected_consumers", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "activation_env_delta", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "selected_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "last_verified_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 15, name: "repair_state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "audit_reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalEnvironmentSelectedSourceRecord>): LocalEnvironmentSelectedSourceRecord {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.recordId = "";
+        message.dependencyFamily = "";
+        message.dependencyId = "";
+        message.environmentKey = "";
+        message.sourceKind = "";
+        message.canonicalRoot = "";
+        message.version = "";
+        message.compatibilityEvidence = [];
+        message.verifiedArtifacts = [];
+        message.hashes = {};
+        message.selectedConsumers = [];
+        message.activationEnvDelta = [];
+        message.selectedAt = "";
+        message.lastVerifiedAt = "";
+        message.repairState = "";
+        message.auditReasonCode = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalEnvironmentSelectedSourceRecord>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalEnvironmentSelectedSourceRecord): LocalEnvironmentSelectedSourceRecord {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string record_id */ 1:
+                    message.recordId = reader.string();
+                    break;
+                case /* string dependency_family */ 2:
+                    message.dependencyFamily = reader.string();
+                    break;
+                case /* string dependency_id */ 3:
+                    message.dependencyId = reader.string();
+                    break;
+                case /* string environment_key */ 4:
+                    message.environmentKey = reader.string();
+                    break;
+                case /* string source_kind */ 5:
+                    message.sourceKind = reader.string();
+                    break;
+                case /* string canonical_root */ 6:
+                    message.canonicalRoot = reader.string();
+                    break;
+                case /* string version */ 7:
+                    message.version = reader.string();
+                    break;
+                case /* repeated string compatibility_evidence */ 8:
+                    message.compatibilityEvidence.push(reader.string());
+                    break;
+                case /* repeated string verified_artifacts */ 9:
+                    message.verifiedArtifacts.push(reader.string());
+                    break;
+                case /* map<string, string> hashes */ 10:
+                    this.binaryReadMap10(message.hashes, reader, options);
+                    break;
+                case /* repeated string selected_consumers */ 11:
+                    message.selectedConsumers.push(reader.string());
+                    break;
+                case /* repeated string activation_env_delta */ 12:
+                    message.activationEnvDelta.push(reader.string());
+                    break;
+                case /* string selected_at */ 13:
+                    message.selectedAt = reader.string();
+                    break;
+                case /* string last_verified_at */ 14:
+                    message.lastVerifiedAt = reader.string();
+                    break;
+                case /* string repair_state */ 15:
+                    message.repairState = reader.string();
+                    break;
+                case /* string audit_reason_code */ 16:
+                    message.auditReasonCode = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    private binaryReadMap10(map: LocalEnvironmentSelectedSourceRecord["hashes"], reader: IBinaryReader, options: BinaryReadOptions): void {
+        let len = reader.uint32(), end = reader.pos + len, key: keyof LocalEnvironmentSelectedSourceRecord["hashes"] | undefined, val: LocalEnvironmentSelectedSourceRecord["hashes"][any] | undefined;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case 1:
+                    key = reader.string();
+                    break;
+                case 2:
+                    val = reader.string();
+                    break;
+                default: throw new globalThis.Error("unknown map entry field for nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord.hashes");
+            }
+        }
+        map[key ?? ""] = val ?? "";
+    }
+    internalBinaryWrite(message: LocalEnvironmentSelectedSourceRecord, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string record_id = 1; */
+        if (message.recordId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.recordId);
+        /* string dependency_family = 2; */
+        if (message.dependencyFamily !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.dependencyFamily);
+        /* string dependency_id = 3; */
+        if (message.dependencyId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.dependencyId);
+        /* string environment_key = 4; */
+        if (message.environmentKey !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.environmentKey);
+        /* string source_kind = 5; */
+        if (message.sourceKind !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.sourceKind);
+        /* string canonical_root = 6; */
+        if (message.canonicalRoot !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.canonicalRoot);
+        /* string version = 7; */
+        if (message.version !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.version);
+        /* repeated string compatibility_evidence = 8; */
+        for (let i = 0; i < message.compatibilityEvidence.length; i++)
+            writer.tag(8, WireType.LengthDelimited).string(message.compatibilityEvidence[i]);
+        /* repeated string verified_artifacts = 9; */
+        for (let i = 0; i < message.verifiedArtifacts.length; i++)
+            writer.tag(9, WireType.LengthDelimited).string(message.verifiedArtifacts[i]);
+        /* map<string, string> hashes = 10; */
+        for (let k of globalThis.Object.keys(message.hashes))
+            writer.tag(10, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.hashes[k]).join();
+        /* repeated string selected_consumers = 11; */
+        for (let i = 0; i < message.selectedConsumers.length; i++)
+            writer.tag(11, WireType.LengthDelimited).string(message.selectedConsumers[i]);
+        /* repeated string activation_env_delta = 12; */
+        for (let i = 0; i < message.activationEnvDelta.length; i++)
+            writer.tag(12, WireType.LengthDelimited).string(message.activationEnvDelta[i]);
+        /* string selected_at = 13; */
+        if (message.selectedAt !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.selectedAt);
+        /* string last_verified_at = 14; */
+        if (message.lastVerifiedAt !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.lastVerifiedAt);
+        /* string repair_state = 15; */
+        if (message.repairState !== "")
+            writer.tag(15, WireType.LengthDelimited).string(message.repairState);
+        /* string audit_reason_code = 16; */
+        if (message.auditReasonCode !== "")
+            writer.tag(16, WireType.LengthDelimited).string(message.auditReasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord
+ */
+export const LocalEnvironmentSelectedSourceRecord = new LocalEnvironmentSelectedSourceRecord$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalEnvironmentDependencyJob$Type extends MessageType<LocalEnvironmentDependencyJob> {
+    constructor() {
+        super("nimi.runtime.v1.LocalEnvironmentDependencyJob", [
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "environment_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "dependency_family", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "dependency_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "source_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "canonical_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "selected_source_record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "failure_detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "retryable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 11, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalEnvironmentDependencyJob>): LocalEnvironmentDependencyJob {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jobId = "";
+        message.environmentKey = "";
+        message.dependencyFamily = "";
+        message.dependencyId = "";
+        message.state = "";
+        message.sourceKind = "";
+        message.canonicalRoot = "";
+        message.selectedSourceRecordId = "";
+        message.failureDetail = "";
+        message.retryable = false;
+        message.createdAt = "";
+        message.updatedAt = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalEnvironmentDependencyJob>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalEnvironmentDependencyJob): LocalEnvironmentDependencyJob {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string job_id */ 1:
+                    message.jobId = reader.string();
+                    break;
+                case /* string environment_key */ 2:
+                    message.environmentKey = reader.string();
+                    break;
+                case /* string dependency_family */ 3:
+                    message.dependencyFamily = reader.string();
+                    break;
+                case /* string dependency_id */ 4:
+                    message.dependencyId = reader.string();
+                    break;
+                case /* string state */ 5:
+                    message.state = reader.string();
+                    break;
+                case /* string source_kind */ 6:
+                    message.sourceKind = reader.string();
+                    break;
+                case /* string canonical_root */ 7:
+                    message.canonicalRoot = reader.string();
+                    break;
+                case /* string selected_source_record_id */ 8:
+                    message.selectedSourceRecordId = reader.string();
+                    break;
+                case /* string failure_detail */ 9:
+                    message.failureDetail = reader.string();
+                    break;
+                case /* bool retryable */ 10:
+                    message.retryable = reader.bool();
+                    break;
+                case /* string created_at */ 11:
+                    message.createdAt = reader.string();
+                    break;
+                case /* string updated_at */ 12:
+                    message.updatedAt = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalEnvironmentDependencyJob, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string job_id = 1; */
+        if (message.jobId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.jobId);
+        /* string environment_key = 2; */
+        if (message.environmentKey !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.environmentKey);
+        /* string dependency_family = 3; */
+        if (message.dependencyFamily !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.dependencyFamily);
+        /* string dependency_id = 4; */
+        if (message.dependencyId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.dependencyId);
+        /* string state = 5; */
+        if (message.state !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.state);
+        /* string source_kind = 6; */
+        if (message.sourceKind !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.sourceKind);
+        /* string canonical_root = 7; */
+        if (message.canonicalRoot !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.canonicalRoot);
+        /* string selected_source_record_id = 8; */
+        if (message.selectedSourceRecordId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.selectedSourceRecordId);
+        /* string failure_detail = 9; */
+        if (message.failureDetail !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.failureDetail);
+        /* bool retryable = 10; */
+        if (message.retryable !== false)
+            writer.tag(10, WireType.Varint).bool(message.retryable);
+        /* string created_at = 11; */
+        if (message.createdAt !== "")
+            writer.tag(11, WireType.LengthDelimited).string(message.createdAt);
+        /* string updated_at = 12; */
+        if (message.updatedAt !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.updatedAt);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalEnvironmentDependencyJob
+ */
+export const LocalEnvironmentDependencyJob = new LocalEnvironmentDependencyJob$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalEnvironmentActivationGate$Type extends MessageType<LocalEnvironmentActivationGate> {
+    constructor() {
+        super("nimi.runtime.v1.LocalEnvironmentActivationGate", [
+            { no: 1, name: "consumer_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "pack_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "detail", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "blocking_dependencies", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalEnvironmentPlanDependency },
+            { no: 7, name: "dependencies", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalEnvironmentPlanDependency }
+        ]);
+    }
+    create(value?: PartialMessage<LocalEnvironmentActivationGate>): LocalEnvironmentActivationGate {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.consumerId = "";
+        message.packId = "";
+        message.state = "";
+        message.reasonCode = "";
+        message.detail = "";
+        message.blockingDependencies = [];
+        message.dependencies = [];
+        if (value !== undefined)
+            reflectionMergePartial<LocalEnvironmentActivationGate>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalEnvironmentActivationGate): LocalEnvironmentActivationGate {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string consumer_id */ 1:
+                    message.consumerId = reader.string();
+                    break;
+                case /* string pack_id */ 2:
+                    message.packId = reader.string();
+                    break;
+                case /* string state */ 3:
+                    message.state = reader.string();
+                    break;
+                case /* string reason_code */ 4:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* string detail */ 5:
+                    message.detail = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalEnvironmentPlanDependency blocking_dependencies */ 6:
+                    message.blockingDependencies.push(LocalEnvironmentPlanDependency.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.LocalEnvironmentPlanDependency dependencies */ 7:
+                    message.dependencies.push(LocalEnvironmentPlanDependency.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalEnvironmentActivationGate, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string consumer_id = 1; */
+        if (message.consumerId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.consumerId);
+        /* string pack_id = 2; */
+        if (message.packId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.packId);
+        /* string state = 3; */
+        if (message.state !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.state);
+        /* string reason_code = 4; */
+        if (message.reasonCode !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.reasonCode);
+        /* string detail = 5; */
+        if (message.detail !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.detail);
+        /* repeated nimi.runtime.v1.LocalEnvironmentPlanDependency blocking_dependencies = 6; */
+        for (let i = 0; i < message.blockingDependencies.length; i++)
+            LocalEnvironmentPlanDependency.internalBinaryWrite(message.blockingDependencies[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.LocalEnvironmentPlanDependency dependencies = 7; */
+        for (let i = 0; i < message.dependencies.length; i++)
+            LocalEnvironmentPlanDependency.internalBinaryWrite(message.dependencies[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalEnvironmentActivationGate
+ */
+export const LocalEnvironmentActivationGate = new LocalEnvironmentActivationGate$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalExecutionOptionDescriptor$Type extends MessageType<LocalExecutionOptionDescriptor> {
     constructor() {

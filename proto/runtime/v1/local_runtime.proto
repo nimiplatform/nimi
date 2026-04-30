@@ -251,45 +251,87 @@ message CancelLocalTransferResponse {
 
 message WatchLocalTransfersRequest {}
 
-// === Runtime-managed Dependencies ===
+// === Runtime-owned Local Environment ===
 
-message LocalRuntimeDependencyDescriptor {
-  string dependency_id = 1;
-  string kind = 2;
-  string state = 3;
-  string source = 4;
-  bool confirmation_required = 5;
-  string message = 6;
-  string reason_code = 7;
-  string install_location = 8;
-  bool system_path_mutation = 9;
-  LocalTransferSessionSummary transfer = 10;
-  string consumer_id = 11;
-  string host_profile_id = 12;
-  string selected_source_record_id = 13;
-  string canonical_root = 14;
+message ResolveLocalEnvironmentPlanRequest {
+  string pack_id = 1;
+  string consumer_scope = 2;
+  LocalDeviceProfile host_profile = 3;
+  string runtime_data_root = 4;
 }
 
-message ResolveLocalRuntimeDependencyRequest {
-  string dependency_id = 1;
-  string local_asset_id = 2;
-  string consumer_id = 3;
+message ResolveLocalEnvironmentPlanResponse {
+  LocalEnvironmentPlan plan = 1;
 }
 
-message ResolveLocalRuntimeDependencyResponse {
-  LocalRuntimeDependencyDescriptor dependency = 1;
+message ListLocalEnvironmentSelectedSourcesRequest {
+  string dependency_family = 1;
+  string consumer_scope = 2;
 }
 
-message StartLocalRuntimeDependencySetupRequest {
-  string dependency_id = 1;
-  string local_asset_id = 2;
-  bool confirmed = 3;
-  string consumer_id = 4;
+message ListLocalEnvironmentSelectedSourcesResponse {
+  repeated LocalEnvironmentSelectedSourceRecord sources = 1;
 }
 
-message StartLocalRuntimeDependencySetupResponse {
-  LocalRuntimeDependencyDescriptor dependency = 1;
-  LocalTransferSessionSummary transfer = 2;
+message ListLocalEnvironmentDependencyJobsRequest {
+  string environment_key = 1;
+  string state = 2;
+}
+
+message ListLocalEnvironmentDependencyJobsResponse {
+  repeated LocalEnvironmentDependencyJob jobs = 1;
+}
+
+message ResolveLocalEnvironmentActivationGateRequest {
+  string consumer_id = 1;
+  string pack_id = 2;
+  LocalDeviceProfile host_profile = 3;
+  string runtime_data_root = 4;
+}
+
+message ResolveLocalEnvironmentActivationGateResponse {
+  LocalEnvironmentActivationGate gate = 1;
+}
+
+message StartLocalEnvironmentDependencyJobRequest {
+  string environment_key = 1;
+  string dependency_family = 2;
+  string dependency_id = 3;
+  string source_kind = 4;
+  bool confirmed = 5;
+}
+
+message StartLocalEnvironmentDependencyJobResponse {
+  LocalEnvironmentDependencyJob job = 1;
+}
+
+message CancelLocalEnvironmentDependencyJobRequest {
+  string job_id = 1;
+}
+
+message CancelLocalEnvironmentDependencyJobResponse {
+  LocalEnvironmentDependencyJob job = 1;
+}
+
+message RetryLocalEnvironmentDependencyJobRequest {
+  string job_id = 1;
+  bool confirmed = 2;
+}
+
+message RetryLocalEnvironmentDependencyJobResponse {
+  LocalEnvironmentDependencyJob job = 1;
+}
+
+message RepairLocalEnvironmentDependencyRequest {
+  string environment_key = 1;
+  string dependency_family = 2;
+  string dependency_id = 3;
+  bool confirmed = 4;
+  string reason_code = 5;
+}
+
+message RepairLocalEnvironmentDependencyResponse {
+  LocalEnvironmentDependencyJob job = 1;
 }
 
 // === Runtime-owned Local State Reconciliation ===
@@ -519,9 +561,15 @@ service RuntimeLocalService {
   rpc CancelLocalTransfer(CancelLocalTransferRequest) returns (CancelLocalTransferResponse);
   rpc WatchLocalTransfers(WatchLocalTransfersRequest) returns (stream LocalTransferProgressEvent);
 
-  // Runtime-managed dependencies
-  rpc ResolveLocalRuntimeDependency(ResolveLocalRuntimeDependencyRequest) returns (ResolveLocalRuntimeDependencyResponse);
-  rpc StartLocalRuntimeDependencySetup(StartLocalRuntimeDependencySetupRequest) returns (StartLocalRuntimeDependencySetupResponse);
+  // Runtime-owned local environment
+  rpc ResolveLocalEnvironmentPlan(ResolveLocalEnvironmentPlanRequest) returns (ResolveLocalEnvironmentPlanResponse);
+  rpc ListLocalEnvironmentSelectedSources(ListLocalEnvironmentSelectedSourcesRequest) returns (ListLocalEnvironmentSelectedSourcesResponse);
+  rpc ListLocalEnvironmentDependencyJobs(ListLocalEnvironmentDependencyJobsRequest) returns (ListLocalEnvironmentDependencyJobsResponse);
+  rpc ResolveLocalEnvironmentActivationGate(ResolveLocalEnvironmentActivationGateRequest) returns (ResolveLocalEnvironmentActivationGateResponse);
+  rpc StartLocalEnvironmentDependencyJob(StartLocalEnvironmentDependencyJobRequest) returns (StartLocalEnvironmentDependencyJobResponse);
+  rpc CancelLocalEnvironmentDependencyJob(CancelLocalEnvironmentDependencyJobRequest) returns (CancelLocalEnvironmentDependencyJobResponse);
+  rpc RetryLocalEnvironmentDependencyJob(RetryLocalEnvironmentDependencyJobRequest) returns (RetryLocalEnvironmentDependencyJobResponse);
+  rpc RepairLocalEnvironmentDependency(RepairLocalEnvironmentDependencyRequest) returns (RepairLocalEnvironmentDependencyResponse);
 
   // Runtime-owned local state reconciliation
   rpc ResolveLocalStateReconciliation(ResolveLocalStateReconciliationRequest) returns (ResolveLocalStateReconciliationResponse);

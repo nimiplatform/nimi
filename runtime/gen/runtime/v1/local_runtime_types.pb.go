@@ -2415,6 +2415,642 @@ func (x *LocalDeviceProfile) GetAvailableRamBytes() int64 {
 	return 0
 }
 
+type LocalEnvironmentPlanDependency struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	DependencyFamily       string                 `protobuf:"bytes,1,opt,name=dependency_family,json=dependencyFamily,proto3" json:"dependency_family,omitempty"`
+	DependencyId           string                 `protobuf:"bytes,2,opt,name=dependency_id,json=dependencyId,proto3" json:"dependency_id,omitempty"`
+	Required               bool                   `protobuf:"varint,3,opt,name=required,proto3" json:"required,omitempty"`
+	State                  string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	SourceKind             string                 `protobuf:"bytes,5,opt,name=source_kind,json=sourceKind,proto3" json:"source_kind,omitempty"`
+	ConfirmationRequired   bool                   `protobuf:"varint,6,opt,name=confirmation_required,json=confirmationRequired,proto3" json:"confirmation_required,omitempty"`
+	SelectedSourceRecordId string                 `protobuf:"bytes,7,opt,name=selected_source_record_id,json=selectedSourceRecordId,proto3" json:"selected_source_record_id,omitempty"`
+	EnvironmentKey         string                 `protobuf:"bytes,8,opt,name=environment_key,json=environmentKey,proto3" json:"environment_key,omitempty"`
+	CanonicalRoot          string                 `protobuf:"bytes,9,opt,name=canonical_root,json=canonicalRoot,proto3" json:"canonical_root,omitempty"`
+	ReasonCode             string                 `protobuf:"bytes,10,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	Detail                 string                 `protobuf:"bytes,11,opt,name=detail,proto3" json:"detail,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *LocalEnvironmentPlanDependency) Reset() {
+	*x = LocalEnvironmentPlanDependency{}
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalEnvironmentPlanDependency) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalEnvironmentPlanDependency) ProtoMessage() {}
+
+func (x *LocalEnvironmentPlanDependency) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalEnvironmentPlanDependency.ProtoReflect.Descriptor instead.
+func (*LocalEnvironmentPlanDependency) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *LocalEnvironmentPlanDependency) GetDependencyFamily() string {
+	if x != nil {
+		return x.DependencyFamily
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlanDependency) GetDependencyId() string {
+	if x != nil {
+		return x.DependencyId
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlanDependency) GetRequired() bool {
+	if x != nil {
+		return x.Required
+	}
+	return false
+}
+
+func (x *LocalEnvironmentPlanDependency) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlanDependency) GetSourceKind() string {
+	if x != nil {
+		return x.SourceKind
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlanDependency) GetConfirmationRequired() bool {
+	if x != nil {
+		return x.ConfirmationRequired
+	}
+	return false
+}
+
+func (x *LocalEnvironmentPlanDependency) GetSelectedSourceRecordId() string {
+	if x != nil {
+		return x.SelectedSourceRecordId
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlanDependency) GetEnvironmentKey() string {
+	if x != nil {
+		return x.EnvironmentKey
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlanDependency) GetCanonicalRoot() string {
+	if x != nil {
+		return x.CanonicalRoot
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlanDependency) GetReasonCode() string {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlanDependency) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+type LocalEnvironmentPlan struct {
+	state           protoimpl.MessageState            `protogen:"open.v1"`
+	PlanId          string                            `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	PackId          string                            `protobuf:"bytes,2,opt,name=pack_id,json=packId,proto3" json:"pack_id,omitempty"`
+	ProductLabel    string                            `protobuf:"bytes,3,opt,name=product_label,json=productLabel,proto3" json:"product_label,omitempty"`
+	HostProfileId   string                            `protobuf:"bytes,4,opt,name=host_profile_id,json=hostProfileId,proto3" json:"host_profile_id,omitempty"`
+	PlatformTuple   string                            `protobuf:"bytes,5,opt,name=platform_tuple,json=platformTuple,proto3" json:"platform_tuple,omitempty"`
+	RuntimeDataRoot string                            `protobuf:"bytes,6,opt,name=runtime_data_root,json=runtimeDataRoot,proto3" json:"runtime_data_root,omitempty"`
+	ConsumerScope   string                            `protobuf:"bytes,7,opt,name=consumer_scope,json=consumerScope,proto3" json:"consumer_scope,omitempty"`
+	CloudOnlyImpact string                            `protobuf:"bytes,8,opt,name=cloud_only_impact,json=cloudOnlyImpact,proto3" json:"cloud_only_impact,omitempty"`
+	State           string                            `protobuf:"bytes,9,opt,name=state,proto3" json:"state,omitempty"`
+	ReasonCode      string                            `protobuf:"bytes,10,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	Dependencies    []*LocalEnvironmentPlanDependency `protobuf:"bytes,11,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *LocalEnvironmentPlan) Reset() {
+	*x = LocalEnvironmentPlan{}
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalEnvironmentPlan) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalEnvironmentPlan) ProtoMessage() {}
+
+func (x *LocalEnvironmentPlan) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalEnvironmentPlan.ProtoReflect.Descriptor instead.
+func (*LocalEnvironmentPlan) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *LocalEnvironmentPlan) GetPlanId() string {
+	if x != nil {
+		return x.PlanId
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlan) GetPackId() string {
+	if x != nil {
+		return x.PackId
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlan) GetProductLabel() string {
+	if x != nil {
+		return x.ProductLabel
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlan) GetHostProfileId() string {
+	if x != nil {
+		return x.HostProfileId
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlan) GetPlatformTuple() string {
+	if x != nil {
+		return x.PlatformTuple
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlan) GetRuntimeDataRoot() string {
+	if x != nil {
+		return x.RuntimeDataRoot
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlan) GetConsumerScope() string {
+	if x != nil {
+		return x.ConsumerScope
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlan) GetCloudOnlyImpact() string {
+	if x != nil {
+		return x.CloudOnlyImpact
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlan) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlan) GetReasonCode() string {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentPlan) GetDependencies() []*LocalEnvironmentPlanDependency {
+	if x != nil {
+		return x.Dependencies
+	}
+	return nil
+}
+
+type LocalEnvironmentSelectedSourceRecord struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	RecordId              string                 `protobuf:"bytes,1,opt,name=record_id,json=recordId,proto3" json:"record_id,omitempty"`
+	DependencyFamily      string                 `protobuf:"bytes,2,opt,name=dependency_family,json=dependencyFamily,proto3" json:"dependency_family,omitempty"`
+	DependencyId          string                 `protobuf:"bytes,3,opt,name=dependency_id,json=dependencyId,proto3" json:"dependency_id,omitempty"`
+	EnvironmentKey        string                 `protobuf:"bytes,4,opt,name=environment_key,json=environmentKey,proto3" json:"environment_key,omitempty"`
+	SourceKind            string                 `protobuf:"bytes,5,opt,name=source_kind,json=sourceKind,proto3" json:"source_kind,omitempty"`
+	CanonicalRoot         string                 `protobuf:"bytes,6,opt,name=canonical_root,json=canonicalRoot,proto3" json:"canonical_root,omitempty"`
+	Version               string                 `protobuf:"bytes,7,opt,name=version,proto3" json:"version,omitempty"`
+	CompatibilityEvidence []string               `protobuf:"bytes,8,rep,name=compatibility_evidence,json=compatibilityEvidence,proto3" json:"compatibility_evidence,omitempty"`
+	VerifiedArtifacts     []string               `protobuf:"bytes,9,rep,name=verified_artifacts,json=verifiedArtifacts,proto3" json:"verified_artifacts,omitempty"`
+	Hashes                map[string]string      `protobuf:"bytes,10,rep,name=hashes,proto3" json:"hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	SelectedConsumers     []string               `protobuf:"bytes,11,rep,name=selected_consumers,json=selectedConsumers,proto3" json:"selected_consumers,omitempty"`
+	ActivationEnvDelta    []string               `protobuf:"bytes,12,rep,name=activation_env_delta,json=activationEnvDelta,proto3" json:"activation_env_delta,omitempty"`
+	SelectedAt            string                 `protobuf:"bytes,13,opt,name=selected_at,json=selectedAt,proto3" json:"selected_at,omitempty"`
+	LastVerifiedAt        string                 `protobuf:"bytes,14,opt,name=last_verified_at,json=lastVerifiedAt,proto3" json:"last_verified_at,omitempty"`
+	RepairState           string                 `protobuf:"bytes,15,opt,name=repair_state,json=repairState,proto3" json:"repair_state,omitempty"`
+	AuditReasonCode       string                 `protobuf:"bytes,16,opt,name=audit_reason_code,json=auditReasonCode,proto3" json:"audit_reason_code,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) Reset() {
+	*x = LocalEnvironmentSelectedSourceRecord{}
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalEnvironmentSelectedSourceRecord) ProtoMessage() {}
+
+func (x *LocalEnvironmentSelectedSourceRecord) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalEnvironmentSelectedSourceRecord.ProtoReflect.Descriptor instead.
+func (*LocalEnvironmentSelectedSourceRecord) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetRecordId() string {
+	if x != nil {
+		return x.RecordId
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetDependencyFamily() string {
+	if x != nil {
+		return x.DependencyFamily
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetDependencyId() string {
+	if x != nil {
+		return x.DependencyId
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetEnvironmentKey() string {
+	if x != nil {
+		return x.EnvironmentKey
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetSourceKind() string {
+	if x != nil {
+		return x.SourceKind
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetCanonicalRoot() string {
+	if x != nil {
+		return x.CanonicalRoot
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetCompatibilityEvidence() []string {
+	if x != nil {
+		return x.CompatibilityEvidence
+	}
+	return nil
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetVerifiedArtifacts() []string {
+	if x != nil {
+		return x.VerifiedArtifacts
+	}
+	return nil
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetHashes() map[string]string {
+	if x != nil {
+		return x.Hashes
+	}
+	return nil
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetSelectedConsumers() []string {
+	if x != nil {
+		return x.SelectedConsumers
+	}
+	return nil
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetActivationEnvDelta() []string {
+	if x != nil {
+		return x.ActivationEnvDelta
+	}
+	return nil
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetSelectedAt() string {
+	if x != nil {
+		return x.SelectedAt
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetLastVerifiedAt() string {
+	if x != nil {
+		return x.LastVerifiedAt
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetRepairState() string {
+	if x != nil {
+		return x.RepairState
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentSelectedSourceRecord) GetAuditReasonCode() string {
+	if x != nil {
+		return x.AuditReasonCode
+	}
+	return ""
+}
+
+type LocalEnvironmentDependencyJob struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	JobId                  string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	EnvironmentKey         string                 `protobuf:"bytes,2,opt,name=environment_key,json=environmentKey,proto3" json:"environment_key,omitempty"`
+	DependencyFamily       string                 `protobuf:"bytes,3,opt,name=dependency_family,json=dependencyFamily,proto3" json:"dependency_family,omitempty"`
+	DependencyId           string                 `protobuf:"bytes,4,opt,name=dependency_id,json=dependencyId,proto3" json:"dependency_id,omitempty"`
+	State                  string                 `protobuf:"bytes,5,opt,name=state,proto3" json:"state,omitempty"`
+	SourceKind             string                 `protobuf:"bytes,6,opt,name=source_kind,json=sourceKind,proto3" json:"source_kind,omitempty"`
+	CanonicalRoot          string                 `protobuf:"bytes,7,opt,name=canonical_root,json=canonicalRoot,proto3" json:"canonical_root,omitempty"`
+	SelectedSourceRecordId string                 `protobuf:"bytes,8,opt,name=selected_source_record_id,json=selectedSourceRecordId,proto3" json:"selected_source_record_id,omitempty"`
+	FailureDetail          string                 `protobuf:"bytes,9,opt,name=failure_detail,json=failureDetail,proto3" json:"failure_detail,omitempty"`
+	Retryable              bool                   `protobuf:"varint,10,opt,name=retryable,proto3" json:"retryable,omitempty"`
+	CreatedAt              string                 `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt              string                 `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *LocalEnvironmentDependencyJob) Reset() {
+	*x = LocalEnvironmentDependencyJob{}
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalEnvironmentDependencyJob) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalEnvironmentDependencyJob) ProtoMessage() {}
+
+func (x *LocalEnvironmentDependencyJob) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalEnvironmentDependencyJob.ProtoReflect.Descriptor instead.
+func (*LocalEnvironmentDependencyJob) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *LocalEnvironmentDependencyJob) GetJobId() string {
+	if x != nil {
+		return x.JobId
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentDependencyJob) GetEnvironmentKey() string {
+	if x != nil {
+		return x.EnvironmentKey
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentDependencyJob) GetDependencyFamily() string {
+	if x != nil {
+		return x.DependencyFamily
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentDependencyJob) GetDependencyId() string {
+	if x != nil {
+		return x.DependencyId
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentDependencyJob) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentDependencyJob) GetSourceKind() string {
+	if x != nil {
+		return x.SourceKind
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentDependencyJob) GetCanonicalRoot() string {
+	if x != nil {
+		return x.CanonicalRoot
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentDependencyJob) GetSelectedSourceRecordId() string {
+	if x != nil {
+		return x.SelectedSourceRecordId
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentDependencyJob) GetFailureDetail() string {
+	if x != nil {
+		return x.FailureDetail
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentDependencyJob) GetRetryable() bool {
+	if x != nil {
+		return x.Retryable
+	}
+	return false
+}
+
+func (x *LocalEnvironmentDependencyJob) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentDependencyJob) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type LocalEnvironmentActivationGate struct {
+	state                protoimpl.MessageState            `protogen:"open.v1"`
+	ConsumerId           string                            `protobuf:"bytes,1,opt,name=consumer_id,json=consumerId,proto3" json:"consumer_id,omitempty"`
+	PackId               string                            `protobuf:"bytes,2,opt,name=pack_id,json=packId,proto3" json:"pack_id,omitempty"`
+	State                string                            `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
+	ReasonCode           string                            `protobuf:"bytes,4,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	Detail               string                            `protobuf:"bytes,5,opt,name=detail,proto3" json:"detail,omitempty"`
+	BlockingDependencies []*LocalEnvironmentPlanDependency `protobuf:"bytes,6,rep,name=blocking_dependencies,json=blockingDependencies,proto3" json:"blocking_dependencies,omitempty"`
+	Dependencies         []*LocalEnvironmentPlanDependency `protobuf:"bytes,7,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *LocalEnvironmentActivationGate) Reset() {
+	*x = LocalEnvironmentActivationGate{}
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LocalEnvironmentActivationGate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LocalEnvironmentActivationGate) ProtoMessage() {}
+
+func (x *LocalEnvironmentActivationGate) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LocalEnvironmentActivationGate.ProtoReflect.Descriptor instead.
+func (*LocalEnvironmentActivationGate) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *LocalEnvironmentActivationGate) GetConsumerId() string {
+	if x != nil {
+		return x.ConsumerId
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentActivationGate) GetPackId() string {
+	if x != nil {
+		return x.PackId
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentActivationGate) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentActivationGate) GetReasonCode() string {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentActivationGate) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *LocalEnvironmentActivationGate) GetBlockingDependencies() []*LocalEnvironmentPlanDependency {
+	if x != nil {
+		return x.BlockingDependencies
+	}
+	return nil
+}
+
+func (x *LocalEnvironmentActivationGate) GetDependencies() []*LocalEnvironmentPlanDependency {
+	if x != nil {
+		return x.Dependencies
+	}
+	return nil
+}
+
 type LocalExecutionOptionDescriptor struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	EntryId       string                  `protobuf:"bytes,1,opt,name=entry_id,json=entryId,proto3" json:"entry_id,omitempty"`
@@ -2432,7 +3068,7 @@ type LocalExecutionOptionDescriptor struct {
 
 func (x *LocalExecutionOptionDescriptor) Reset() {
 	*x = LocalExecutionOptionDescriptor{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[17]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2444,7 +3080,7 @@ func (x *LocalExecutionOptionDescriptor) String() string {
 func (*LocalExecutionOptionDescriptor) ProtoMessage() {}
 
 func (x *LocalExecutionOptionDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[17]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2457,7 +3093,7 @@ func (x *LocalExecutionOptionDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalExecutionOptionDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalExecutionOptionDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{17}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *LocalExecutionOptionDescriptor) GetEntryId() string {
@@ -2534,7 +3170,7 @@ type LocalExecutionAlternativeDescriptor struct {
 
 func (x *LocalExecutionAlternativeDescriptor) Reset() {
 	*x = LocalExecutionAlternativeDescriptor{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[18]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2546,7 +3182,7 @@ func (x *LocalExecutionAlternativeDescriptor) String() string {
 func (*LocalExecutionAlternativeDescriptor) ProtoMessage() {}
 
 func (x *LocalExecutionAlternativeDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[18]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2559,7 +3195,7 @@ func (x *LocalExecutionAlternativeDescriptor) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use LocalExecutionAlternativeDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalExecutionAlternativeDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{18}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *LocalExecutionAlternativeDescriptor) GetAlternativeId() string {
@@ -2595,7 +3231,7 @@ type LocalExecutionDeclarationDescriptor struct {
 
 func (x *LocalExecutionDeclarationDescriptor) Reset() {
 	*x = LocalExecutionDeclarationDescriptor{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[19]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2607,7 +3243,7 @@ func (x *LocalExecutionDeclarationDescriptor) String() string {
 func (*LocalExecutionDeclarationDescriptor) ProtoMessage() {}
 
 func (x *LocalExecutionDeclarationDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[19]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2620,7 +3256,7 @@ func (x *LocalExecutionDeclarationDescriptor) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use LocalExecutionDeclarationDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalExecutionDeclarationDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{19}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *LocalExecutionDeclarationDescriptor) GetRequired() []*LocalExecutionOptionDescriptor {
@@ -2672,7 +3308,7 @@ type LocalExecutionEntryDescriptor struct {
 
 func (x *LocalExecutionEntryDescriptor) Reset() {
 	*x = LocalExecutionEntryDescriptor{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[20]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2684,7 +3320,7 @@ func (x *LocalExecutionEntryDescriptor) String() string {
 func (*LocalExecutionEntryDescriptor) ProtoMessage() {}
 
 func (x *LocalExecutionEntryDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[20]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2697,7 +3333,7 @@ func (x *LocalExecutionEntryDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalExecutionEntryDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalExecutionEntryDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{20}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *LocalExecutionEntryDescriptor) GetEntryId() string {
@@ -2805,7 +3441,7 @@ type LocalPreflightDecision struct {
 
 func (x *LocalPreflightDecision) Reset() {
 	*x = LocalPreflightDecision{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[21]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2817,7 +3453,7 @@ func (x *LocalPreflightDecision) String() string {
 func (*LocalPreflightDecision) ProtoMessage() {}
 
 func (x *LocalPreflightDecision) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[21]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2830,7 +3466,7 @@ func (x *LocalPreflightDecision) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalPreflightDecision.ProtoReflect.Descriptor instead.
 func (*LocalPreflightDecision) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{21}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *LocalPreflightDecision) GetEntryId() string {
@@ -2887,7 +3523,7 @@ type LocalExecutionSelectionRationale struct {
 
 func (x *LocalExecutionSelectionRationale) Reset() {
 	*x = LocalExecutionSelectionRationale{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[22]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2899,7 +3535,7 @@ func (x *LocalExecutionSelectionRationale) String() string {
 func (*LocalExecutionSelectionRationale) ProtoMessage() {}
 
 func (x *LocalExecutionSelectionRationale) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[22]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2912,7 +3548,7 @@ func (x *LocalExecutionSelectionRationale) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalExecutionSelectionRationale.ProtoReflect.Descriptor instead.
 func (*LocalExecutionSelectionRationale) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{22}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *LocalExecutionSelectionRationale) GetEntryId() string {
@@ -2960,7 +3596,7 @@ type LocalExecutionPlan struct {
 
 func (x *LocalExecutionPlan) Reset() {
 	*x = LocalExecutionPlan{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[23]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2972,7 +3608,7 @@ func (x *LocalExecutionPlan) String() string {
 func (*LocalExecutionPlan) ProtoMessage() {}
 
 func (x *LocalExecutionPlan) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[23]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2985,7 +3621,7 @@ func (x *LocalExecutionPlan) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalExecutionPlan.ProtoReflect.Descriptor instead.
 func (*LocalExecutionPlan) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{23}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *LocalExecutionPlan) GetPlanId() string {
@@ -3063,7 +3699,7 @@ type LocalExecutionStageResult struct {
 
 func (x *LocalExecutionStageResult) Reset() {
 	*x = LocalExecutionStageResult{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[24]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3075,7 +3711,7 @@ func (x *LocalExecutionStageResult) String() string {
 func (*LocalExecutionStageResult) ProtoMessage() {}
 
 func (x *LocalExecutionStageResult) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[24]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3088,7 +3724,7 @@ func (x *LocalExecutionStageResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalExecutionStageResult.ProtoReflect.Descriptor instead.
 func (*LocalExecutionStageResult) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{24}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *LocalExecutionStageResult) GetStage() string {
@@ -3139,7 +3775,7 @@ type LocalServiceDescriptor struct {
 
 func (x *LocalServiceDescriptor) Reset() {
 	*x = LocalServiceDescriptor{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[25]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3151,7 +3787,7 @@ func (x *LocalServiceDescriptor) String() string {
 func (*LocalServiceDescriptor) ProtoMessage() {}
 
 func (x *LocalServiceDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[25]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3164,7 +3800,7 @@ func (x *LocalServiceDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalServiceDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalServiceDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{25}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *LocalServiceDescriptor) GetServiceId() string {
@@ -3270,7 +3906,7 @@ type LocalExecutionApplyResult struct {
 
 func (x *LocalExecutionApplyResult) Reset() {
 	*x = LocalExecutionApplyResult{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[26]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3282,7 +3918,7 @@ func (x *LocalExecutionApplyResult) String() string {
 func (*LocalExecutionApplyResult) ProtoMessage() {}
 
 func (x *LocalExecutionApplyResult) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[26]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3295,7 +3931,7 @@ func (x *LocalExecutionApplyResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalExecutionApplyResult.ProtoReflect.Descriptor instead.
 func (*LocalExecutionApplyResult) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{26}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *LocalExecutionApplyResult) GetPlanId() string {
@@ -3387,7 +4023,7 @@ type LocalProfileRequirementDescriptor struct {
 
 func (x *LocalProfileRequirementDescriptor) Reset() {
 	*x = LocalProfileRequirementDescriptor{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[27]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3399,7 +4035,7 @@ func (x *LocalProfileRequirementDescriptor) String() string {
 func (*LocalProfileRequirementDescriptor) ProtoMessage() {}
 
 func (x *LocalProfileRequirementDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[27]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3412,7 +4048,7 @@ func (x *LocalProfileRequirementDescriptor) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use LocalProfileRequirementDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalProfileRequirementDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{27}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *LocalProfileRequirementDescriptor) GetMinGpuMemoryGb() float64 {
@@ -3469,7 +4105,7 @@ type LocalProfileEntryDescriptor struct {
 
 func (x *LocalProfileEntryDescriptor) Reset() {
 	*x = LocalProfileEntryDescriptor{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[28]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3481,7 +4117,7 @@ func (x *LocalProfileEntryDescriptor) String() string {
 func (*LocalProfileEntryDescriptor) ProtoMessage() {}
 
 func (x *LocalProfileEntryDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[28]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3494,7 +4130,7 @@ func (x *LocalProfileEntryDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalProfileEntryDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalProfileEntryDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{28}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *LocalProfileEntryDescriptor) GetEntryId() string {
@@ -3631,7 +4267,7 @@ type LocalProfileDescriptor struct {
 
 func (x *LocalProfileDescriptor) Reset() {
 	*x = LocalProfileDescriptor{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[29]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3643,7 +4279,7 @@ func (x *LocalProfileDescriptor) String() string {
 func (*LocalProfileDescriptor) ProtoMessage() {}
 
 func (x *LocalProfileDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[29]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3656,7 +4292,7 @@ func (x *LocalProfileDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalProfileDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalProfileDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *LocalProfileDescriptor) GetId() string {
@@ -3718,7 +4354,7 @@ type ProfileEntryOverride struct {
 
 func (x *ProfileEntryOverride) Reset() {
 	*x = ProfileEntryOverride{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[30]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3730,7 +4366,7 @@ func (x *ProfileEntryOverride) String() string {
 func (*ProfileEntryOverride) ProtoMessage() {}
 
 func (x *ProfileEntryOverride) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[30]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3743,7 +4379,7 @@ func (x *ProfileEntryOverride) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProfileEntryOverride.ProtoReflect.Descriptor instead.
 func (*ProfileEntryOverride) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{30}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ProfileEntryOverride) GetEntryId() string {
@@ -3779,7 +4415,7 @@ type LocalProfileResolutionPlan struct {
 
 func (x *LocalProfileResolutionPlan) Reset() {
 	*x = LocalProfileResolutionPlan{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[31]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3791,7 +4427,7 @@ func (x *LocalProfileResolutionPlan) String() string {
 func (*LocalProfileResolutionPlan) ProtoMessage() {}
 
 func (x *LocalProfileResolutionPlan) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[31]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3804,7 +4440,7 @@ func (x *LocalProfileResolutionPlan) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalProfileResolutionPlan.ProtoReflect.Descriptor instead.
 func (*LocalProfileResolutionPlan) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{31}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *LocalProfileResolutionPlan) GetPlanId() string {
@@ -3899,7 +4535,7 @@ type LocalProfileApplyResult struct {
 
 func (x *LocalProfileApplyResult) Reset() {
 	*x = LocalProfileApplyResult{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[32]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3911,7 +4547,7 @@ func (x *LocalProfileApplyResult) String() string {
 func (*LocalProfileApplyResult) ProtoMessage() {}
 
 func (x *LocalProfileApplyResult) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[32]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3924,7 +4560,7 @@ func (x *LocalProfileApplyResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalProfileApplyResult.ProtoReflect.Descriptor instead.
 func (*LocalProfileApplyResult) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{32}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *LocalProfileApplyResult) GetPlanId() string {
@@ -4000,7 +4636,7 @@ type LocalNodeDescriptor struct {
 
 func (x *LocalNodeDescriptor) Reset() {
 	*x = LocalNodeDescriptor{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[33]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4012,7 +4648,7 @@ func (x *LocalNodeDescriptor) String() string {
 func (*LocalNodeDescriptor) ProtoMessage() {}
 
 func (x *LocalNodeDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[33]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4025,7 +4661,7 @@ func (x *LocalNodeDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalNodeDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalNodeDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{33}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *LocalNodeDescriptor) GetNodeId() string {
@@ -4163,7 +4799,7 @@ type LocalAuditEvent struct {
 
 func (x *LocalAuditEvent) Reset() {
 	*x = LocalAuditEvent{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[34]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4175,7 +4811,7 @@ func (x *LocalAuditEvent) String() string {
 func (*LocalAuditEvent) ProtoMessage() {}
 
 func (x *LocalAuditEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[34]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4188,7 +4824,7 @@ func (x *LocalAuditEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAuditEvent.ProtoReflect.Descriptor instead.
 func (*LocalAuditEvent) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{34}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *LocalAuditEvent) GetId() string {
@@ -4306,7 +4942,7 @@ type LocalAuditTimeRange struct {
 
 func (x *LocalAuditTimeRange) Reset() {
 	*x = LocalAuditTimeRange{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[35]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4318,7 +4954,7 @@ func (x *LocalAuditTimeRange) String() string {
 func (*LocalAuditTimeRange) ProtoMessage() {}
 
 func (x *LocalAuditTimeRange) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[35]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4331,7 +4967,7 @@ func (x *LocalAuditTimeRange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalAuditTimeRange.ProtoReflect.Descriptor instead.
 func (*LocalAuditTimeRange) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{35}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *LocalAuditTimeRange) GetFrom() string {
@@ -4358,7 +4994,7 @@ type LocalUnregisteredAssetDeclaration struct {
 
 func (x *LocalUnregisteredAssetDeclaration) Reset() {
 	*x = LocalUnregisteredAssetDeclaration{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[36]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4370,7 +5006,7 @@ func (x *LocalUnregisteredAssetDeclaration) String() string {
 func (*LocalUnregisteredAssetDeclaration) ProtoMessage() {}
 
 func (x *LocalUnregisteredAssetDeclaration) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[36]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4383,7 +5019,7 @@ func (x *LocalUnregisteredAssetDeclaration) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use LocalUnregisteredAssetDeclaration.ProtoReflect.Descriptor instead.
 func (*LocalUnregisteredAssetDeclaration) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{36}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *LocalUnregisteredAssetDeclaration) GetAssetKind() LocalAssetKind {
@@ -4417,7 +5053,7 @@ type LocalUnregisteredAssetDescriptor struct {
 
 func (x *LocalUnregisteredAssetDescriptor) Reset() {
 	*x = LocalUnregisteredAssetDescriptor{}
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[37]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4429,7 +5065,7 @@ func (x *LocalUnregisteredAssetDescriptor) String() string {
 func (*LocalUnregisteredAssetDescriptor) ProtoMessage() {}
 
 func (x *LocalUnregisteredAssetDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[37]
+	mi := &file_runtime_v1_local_runtime_types_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4442,7 +5078,7 @@ func (x *LocalUnregisteredAssetDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LocalUnregisteredAssetDescriptor.ProtoReflect.Descriptor instead.
 func (*LocalUnregisteredAssetDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{37}
+	return file_runtime_v1_local_runtime_types_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *LocalUnregisteredAssetDescriptor) GetFilename() string {
@@ -4721,7 +5357,86 @@ const file_runtime_v1_local_runtime_types_proto_rawDesc = "" +
 	"\x0fdisk_free_bytes\x18\x06 \x01(\x03R\rdiskFreeBytes\x12<\n" +
 	"\x05ports\x18\a \x03(\v2&.nimi.runtime.v1.LocalPortAvailabilityR\x05ports\x12&\n" +
 	"\x0ftotal_ram_bytes\x18\b \x01(\x03R\rtotalRamBytes\x12.\n" +
-	"\x13available_ram_bytes\x18\t \x01(\x03R\x11availableRamBytes\"\xc1\x02\n" +
+	"\x13available_ram_bytes\x18\t \x01(\x03R\x11availableRamBytes\"\xbe\x03\n" +
+	"\x1eLocalEnvironmentPlanDependency\x12+\n" +
+	"\x11dependency_family\x18\x01 \x01(\tR\x10dependencyFamily\x12#\n" +
+	"\rdependency_id\x18\x02 \x01(\tR\fdependencyId\x12\x1a\n" +
+	"\brequired\x18\x03 \x01(\bR\brequired\x12\x14\n" +
+	"\x05state\x18\x04 \x01(\tR\x05state\x12\x1f\n" +
+	"\vsource_kind\x18\x05 \x01(\tR\n" +
+	"sourceKind\x123\n" +
+	"\x15confirmation_required\x18\x06 \x01(\bR\x14confirmationRequired\x129\n" +
+	"\x19selected_source_record_id\x18\a \x01(\tR\x16selectedSourceRecordId\x12'\n" +
+	"\x0fenvironment_key\x18\b \x01(\tR\x0eenvironmentKey\x12%\n" +
+	"\x0ecanonical_root\x18\t \x01(\tR\rcanonicalRoot\x12\x1f\n" +
+	"\vreason_code\x18\n" +
+	" \x01(\tR\n" +
+	"reasonCode\x12\x16\n" +
+	"\x06detail\x18\v \x01(\tR\x06detail\"\xc7\x03\n" +
+	"\x14LocalEnvironmentPlan\x12\x17\n" +
+	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x17\n" +
+	"\apack_id\x18\x02 \x01(\tR\x06packId\x12#\n" +
+	"\rproduct_label\x18\x03 \x01(\tR\fproductLabel\x12&\n" +
+	"\x0fhost_profile_id\x18\x04 \x01(\tR\rhostProfileId\x12%\n" +
+	"\x0eplatform_tuple\x18\x05 \x01(\tR\rplatformTuple\x12*\n" +
+	"\x11runtime_data_root\x18\x06 \x01(\tR\x0fruntimeDataRoot\x12%\n" +
+	"\x0econsumer_scope\x18\a \x01(\tR\rconsumerScope\x12*\n" +
+	"\x11cloud_only_impact\x18\b \x01(\tR\x0fcloudOnlyImpact\x12\x14\n" +
+	"\x05state\x18\t \x01(\tR\x05state\x12\x1f\n" +
+	"\vreason_code\x18\n" +
+	" \x01(\tR\n" +
+	"reasonCode\x12S\n" +
+	"\fdependencies\x18\v \x03(\v2/.nimi.runtime.v1.LocalEnvironmentPlanDependencyR\fdependencies\"\x97\x06\n" +
+	"$LocalEnvironmentSelectedSourceRecord\x12\x1b\n" +
+	"\trecord_id\x18\x01 \x01(\tR\brecordId\x12+\n" +
+	"\x11dependency_family\x18\x02 \x01(\tR\x10dependencyFamily\x12#\n" +
+	"\rdependency_id\x18\x03 \x01(\tR\fdependencyId\x12'\n" +
+	"\x0fenvironment_key\x18\x04 \x01(\tR\x0eenvironmentKey\x12\x1f\n" +
+	"\vsource_kind\x18\x05 \x01(\tR\n" +
+	"sourceKind\x12%\n" +
+	"\x0ecanonical_root\x18\x06 \x01(\tR\rcanonicalRoot\x12\x18\n" +
+	"\aversion\x18\a \x01(\tR\aversion\x125\n" +
+	"\x16compatibility_evidence\x18\b \x03(\tR\x15compatibilityEvidence\x12-\n" +
+	"\x12verified_artifacts\x18\t \x03(\tR\x11verifiedArtifacts\x12Y\n" +
+	"\x06hashes\x18\n" +
+	" \x03(\v2A.nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord.HashesEntryR\x06hashes\x12-\n" +
+	"\x12selected_consumers\x18\v \x03(\tR\x11selectedConsumers\x120\n" +
+	"\x14activation_env_delta\x18\f \x03(\tR\x12activationEnvDelta\x12\x1f\n" +
+	"\vselected_at\x18\r \x01(\tR\n" +
+	"selectedAt\x12(\n" +
+	"\x10last_verified_at\x18\x0e \x01(\tR\x0elastVerifiedAt\x12!\n" +
+	"\frepair_state\x18\x0f \x01(\tR\vrepairState\x12*\n" +
+	"\x11audit_reason_code\x18\x10 \x01(\tR\x0fauditReasonCode\x1a9\n" +
+	"\vHashesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xcd\x03\n" +
+	"\x1dLocalEnvironmentDependencyJob\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12'\n" +
+	"\x0fenvironment_key\x18\x02 \x01(\tR\x0eenvironmentKey\x12+\n" +
+	"\x11dependency_family\x18\x03 \x01(\tR\x10dependencyFamily\x12#\n" +
+	"\rdependency_id\x18\x04 \x01(\tR\fdependencyId\x12\x14\n" +
+	"\x05state\x18\x05 \x01(\tR\x05state\x12\x1f\n" +
+	"\vsource_kind\x18\x06 \x01(\tR\n" +
+	"sourceKind\x12%\n" +
+	"\x0ecanonical_root\x18\a \x01(\tR\rcanonicalRoot\x129\n" +
+	"\x19selected_source_record_id\x18\b \x01(\tR\x16selectedSourceRecordId\x12%\n" +
+	"\x0efailure_detail\x18\t \x01(\tR\rfailureDetail\x12\x1c\n" +
+	"\tretryable\x18\n" +
+	" \x01(\bR\tretryable\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\v \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\f \x01(\tR\tupdatedAt\"\xe4\x02\n" +
+	"\x1eLocalEnvironmentActivationGate\x12\x1f\n" +
+	"\vconsumer_id\x18\x01 \x01(\tR\n" +
+	"consumerId\x12\x17\n" +
+	"\apack_id\x18\x02 \x01(\tR\x06packId\x12\x14\n" +
+	"\x05state\x18\x03 \x01(\tR\x05state\x12\x1f\n" +
+	"\vreason_code\x18\x04 \x01(\tR\n" +
+	"reasonCode\x12\x16\n" +
+	"\x06detail\x18\x05 \x01(\tR\x06detail\x12d\n" +
+	"\x15blocking_dependencies\x18\x06 \x03(\v2/.nimi.runtime.v1.LocalEnvironmentPlanDependencyR\x14blockingDependencies\x12S\n" +
+	"\fdependencies\x18\a \x03(\v2/.nimi.runtime.v1.LocalEnvironmentPlanDependencyR\fdependencies\"\xc1\x02\n" +
 	"\x1eLocalExecutionOptionDescriptor\x12\x19\n" +
 	"\bentry_id\x18\x01 \x01(\tR\aentryId\x12<\n" +
 	"\x04kind\x18\x02 \x01(\x0e2(.nimi.runtime.v1.LocalExecutionEntryKindR\x04kind\x12\x1e\n" +
@@ -5035,137 +5750,147 @@ func file_runtime_v1_local_runtime_types_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_local_runtime_types_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
-var file_runtime_v1_local_runtime_types_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
+var file_runtime_v1_local_runtime_types_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
 var file_runtime_v1_local_runtime_types_proto_goTypes = []any{
-	(LocalAssetKind)(0),                         // 0: nimi.runtime.v1.LocalAssetKind
-	(LocalAssetStatus)(0),                       // 1: nimi.runtime.v1.LocalAssetStatus
-	(LocalServiceStatus)(0),                     // 2: nimi.runtime.v1.LocalServiceStatus
-	(LocalEngineRuntimeMode)(0),                 // 3: nimi.runtime.v1.LocalEngineRuntimeMode
-	(LocalBundleState)(0),                       // 4: nimi.runtime.v1.LocalBundleState
-	(LocalWarmState)(0),                         // 5: nimi.runtime.v1.LocalWarmState
-	(LocalExecutionEntryKind)(0),                // 6: nimi.runtime.v1.LocalExecutionEntryKind
-	(LocalProfileEntryKind)(0),                  // 7: nimi.runtime.v1.LocalProfileEntryKind
-	(GpuMemoryModel)(0),                         // 8: nimi.runtime.v1.GpuMemoryModel
-	(*LocalAssetSource)(nil),                    // 9: nimi.runtime.v1.LocalAssetSource
-	(*LocalHostRequirements)(nil),               // 10: nimi.runtime.v1.LocalHostRequirements
-	(*LocalAssetRecord)(nil),                    // 11: nimi.runtime.v1.LocalAssetRecord
-	(*LocalAssetHealth)(nil),                    // 12: nimi.runtime.v1.LocalAssetHealth
-	(*LocalVerifiedAssetDescriptor)(nil),        // 13: nimi.runtime.v1.LocalVerifiedAssetDescriptor
-	(*LocalProviderHintsLlama)(nil),             // 14: nimi.runtime.v1.LocalProviderHintsLlama
-	(*LocalProviderHintsMedia)(nil),             // 15: nimi.runtime.v1.LocalProviderHintsMedia
-	(*LocalProviderHintsSpeech)(nil),            // 16: nimi.runtime.v1.LocalProviderHintsSpeech
-	(*LocalProviderHintsSidecar)(nil),           // 17: nimi.runtime.v1.LocalProviderHintsSidecar
-	(*LocalProviderHints)(nil),                  // 18: nimi.runtime.v1.LocalProviderHints
-	(*LocalCatalogModelDescriptor)(nil),         // 19: nimi.runtime.v1.LocalCatalogModelDescriptor
-	(*LocalInstallPlanDescriptor)(nil),          // 20: nimi.runtime.v1.LocalInstallPlanDescriptor
-	(*LocalGpuProfile)(nil),                     // 21: nimi.runtime.v1.LocalGpuProfile
-	(*LocalPythonProfile)(nil),                  // 22: nimi.runtime.v1.LocalPythonProfile
-	(*LocalNpuProfile)(nil),                     // 23: nimi.runtime.v1.LocalNpuProfile
-	(*LocalPortAvailability)(nil),               // 24: nimi.runtime.v1.LocalPortAvailability
-	(*LocalDeviceProfile)(nil),                  // 25: nimi.runtime.v1.LocalDeviceProfile
-	(*LocalExecutionOptionDescriptor)(nil),      // 26: nimi.runtime.v1.LocalExecutionOptionDescriptor
-	(*LocalExecutionAlternativeDescriptor)(nil), // 27: nimi.runtime.v1.LocalExecutionAlternativeDescriptor
-	(*LocalExecutionDeclarationDescriptor)(nil), // 28: nimi.runtime.v1.LocalExecutionDeclarationDescriptor
-	(*LocalExecutionEntryDescriptor)(nil),       // 29: nimi.runtime.v1.LocalExecutionEntryDescriptor
-	(*LocalPreflightDecision)(nil),              // 30: nimi.runtime.v1.LocalPreflightDecision
-	(*LocalExecutionSelectionRationale)(nil),    // 31: nimi.runtime.v1.LocalExecutionSelectionRationale
-	(*LocalExecutionPlan)(nil),                  // 32: nimi.runtime.v1.LocalExecutionPlan
-	(*LocalExecutionStageResult)(nil),           // 33: nimi.runtime.v1.LocalExecutionStageResult
-	(*LocalServiceDescriptor)(nil),              // 34: nimi.runtime.v1.LocalServiceDescriptor
-	(*LocalExecutionApplyResult)(nil),           // 35: nimi.runtime.v1.LocalExecutionApplyResult
-	(*LocalProfileRequirementDescriptor)(nil),   // 36: nimi.runtime.v1.LocalProfileRequirementDescriptor
-	(*LocalProfileEntryDescriptor)(nil),         // 37: nimi.runtime.v1.LocalProfileEntryDescriptor
-	(*LocalProfileDescriptor)(nil),              // 38: nimi.runtime.v1.LocalProfileDescriptor
-	(*ProfileEntryOverride)(nil),                // 39: nimi.runtime.v1.ProfileEntryOverride
-	(*LocalProfileResolutionPlan)(nil),          // 40: nimi.runtime.v1.LocalProfileResolutionPlan
-	(*LocalProfileApplyResult)(nil),             // 41: nimi.runtime.v1.LocalProfileApplyResult
-	(*LocalNodeDescriptor)(nil),                 // 42: nimi.runtime.v1.LocalNodeDescriptor
-	(*LocalAuditEvent)(nil),                     // 43: nimi.runtime.v1.LocalAuditEvent
-	(*LocalAuditTimeRange)(nil),                 // 44: nimi.runtime.v1.LocalAuditTimeRange
-	(*LocalUnregisteredAssetDeclaration)(nil),   // 45: nimi.runtime.v1.LocalUnregisteredAssetDeclaration
-	(*LocalUnregisteredAssetDescriptor)(nil),    // 46: nimi.runtime.v1.LocalUnregisteredAssetDescriptor
-	nil,                                         // 47: nimi.runtime.v1.LocalAssetRecord.HashesEntry
-	nil,                                         // 48: nimi.runtime.v1.LocalVerifiedAssetDescriptor.HashesEntry
-	nil,                                         // 49: nimi.runtime.v1.LocalProviderHints.ExtraEntry
-	nil,                                         // 50: nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
-	nil,                                         // 51: nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
-	nil,                                         // 52: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.PreferredEntry
-	(*structpb.Struct)(nil),                     // 53: google.protobuf.Struct
-	(ReasonCode)(0),                             // 54: nimi.runtime.v1.ReasonCode
+	(LocalAssetKind)(0),                          // 0: nimi.runtime.v1.LocalAssetKind
+	(LocalAssetStatus)(0),                        // 1: nimi.runtime.v1.LocalAssetStatus
+	(LocalServiceStatus)(0),                      // 2: nimi.runtime.v1.LocalServiceStatus
+	(LocalEngineRuntimeMode)(0),                  // 3: nimi.runtime.v1.LocalEngineRuntimeMode
+	(LocalBundleState)(0),                        // 4: nimi.runtime.v1.LocalBundleState
+	(LocalWarmState)(0),                          // 5: nimi.runtime.v1.LocalWarmState
+	(LocalExecutionEntryKind)(0),                 // 6: nimi.runtime.v1.LocalExecutionEntryKind
+	(LocalProfileEntryKind)(0),                   // 7: nimi.runtime.v1.LocalProfileEntryKind
+	(GpuMemoryModel)(0),                          // 8: nimi.runtime.v1.GpuMemoryModel
+	(*LocalAssetSource)(nil),                     // 9: nimi.runtime.v1.LocalAssetSource
+	(*LocalHostRequirements)(nil),                // 10: nimi.runtime.v1.LocalHostRequirements
+	(*LocalAssetRecord)(nil),                     // 11: nimi.runtime.v1.LocalAssetRecord
+	(*LocalAssetHealth)(nil),                     // 12: nimi.runtime.v1.LocalAssetHealth
+	(*LocalVerifiedAssetDescriptor)(nil),         // 13: nimi.runtime.v1.LocalVerifiedAssetDescriptor
+	(*LocalProviderHintsLlama)(nil),              // 14: nimi.runtime.v1.LocalProviderHintsLlama
+	(*LocalProviderHintsMedia)(nil),              // 15: nimi.runtime.v1.LocalProviderHintsMedia
+	(*LocalProviderHintsSpeech)(nil),             // 16: nimi.runtime.v1.LocalProviderHintsSpeech
+	(*LocalProviderHintsSidecar)(nil),            // 17: nimi.runtime.v1.LocalProviderHintsSidecar
+	(*LocalProviderHints)(nil),                   // 18: nimi.runtime.v1.LocalProviderHints
+	(*LocalCatalogModelDescriptor)(nil),          // 19: nimi.runtime.v1.LocalCatalogModelDescriptor
+	(*LocalInstallPlanDescriptor)(nil),           // 20: nimi.runtime.v1.LocalInstallPlanDescriptor
+	(*LocalGpuProfile)(nil),                      // 21: nimi.runtime.v1.LocalGpuProfile
+	(*LocalPythonProfile)(nil),                   // 22: nimi.runtime.v1.LocalPythonProfile
+	(*LocalNpuProfile)(nil),                      // 23: nimi.runtime.v1.LocalNpuProfile
+	(*LocalPortAvailability)(nil),                // 24: nimi.runtime.v1.LocalPortAvailability
+	(*LocalDeviceProfile)(nil),                   // 25: nimi.runtime.v1.LocalDeviceProfile
+	(*LocalEnvironmentPlanDependency)(nil),       // 26: nimi.runtime.v1.LocalEnvironmentPlanDependency
+	(*LocalEnvironmentPlan)(nil),                 // 27: nimi.runtime.v1.LocalEnvironmentPlan
+	(*LocalEnvironmentSelectedSourceRecord)(nil), // 28: nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord
+	(*LocalEnvironmentDependencyJob)(nil),        // 29: nimi.runtime.v1.LocalEnvironmentDependencyJob
+	(*LocalEnvironmentActivationGate)(nil),       // 30: nimi.runtime.v1.LocalEnvironmentActivationGate
+	(*LocalExecutionOptionDescriptor)(nil),       // 31: nimi.runtime.v1.LocalExecutionOptionDescriptor
+	(*LocalExecutionAlternativeDescriptor)(nil),  // 32: nimi.runtime.v1.LocalExecutionAlternativeDescriptor
+	(*LocalExecutionDeclarationDescriptor)(nil),  // 33: nimi.runtime.v1.LocalExecutionDeclarationDescriptor
+	(*LocalExecutionEntryDescriptor)(nil),        // 34: nimi.runtime.v1.LocalExecutionEntryDescriptor
+	(*LocalPreflightDecision)(nil),               // 35: nimi.runtime.v1.LocalPreflightDecision
+	(*LocalExecutionSelectionRationale)(nil),     // 36: nimi.runtime.v1.LocalExecutionSelectionRationale
+	(*LocalExecutionPlan)(nil),                   // 37: nimi.runtime.v1.LocalExecutionPlan
+	(*LocalExecutionStageResult)(nil),            // 38: nimi.runtime.v1.LocalExecutionStageResult
+	(*LocalServiceDescriptor)(nil),               // 39: nimi.runtime.v1.LocalServiceDescriptor
+	(*LocalExecutionApplyResult)(nil),            // 40: nimi.runtime.v1.LocalExecutionApplyResult
+	(*LocalProfileRequirementDescriptor)(nil),    // 41: nimi.runtime.v1.LocalProfileRequirementDescriptor
+	(*LocalProfileEntryDescriptor)(nil),          // 42: nimi.runtime.v1.LocalProfileEntryDescriptor
+	(*LocalProfileDescriptor)(nil),               // 43: nimi.runtime.v1.LocalProfileDescriptor
+	(*ProfileEntryOverride)(nil),                 // 44: nimi.runtime.v1.ProfileEntryOverride
+	(*LocalProfileResolutionPlan)(nil),           // 45: nimi.runtime.v1.LocalProfileResolutionPlan
+	(*LocalProfileApplyResult)(nil),              // 46: nimi.runtime.v1.LocalProfileApplyResult
+	(*LocalNodeDescriptor)(nil),                  // 47: nimi.runtime.v1.LocalNodeDescriptor
+	(*LocalAuditEvent)(nil),                      // 48: nimi.runtime.v1.LocalAuditEvent
+	(*LocalAuditTimeRange)(nil),                  // 49: nimi.runtime.v1.LocalAuditTimeRange
+	(*LocalUnregisteredAssetDeclaration)(nil),    // 50: nimi.runtime.v1.LocalUnregisteredAssetDeclaration
+	(*LocalUnregisteredAssetDescriptor)(nil),     // 51: nimi.runtime.v1.LocalUnregisteredAssetDescriptor
+	nil,                                          // 52: nimi.runtime.v1.LocalAssetRecord.HashesEntry
+	nil,                                          // 53: nimi.runtime.v1.LocalVerifiedAssetDescriptor.HashesEntry
+	nil,                                          // 54: nimi.runtime.v1.LocalProviderHints.ExtraEntry
+	nil,                                          // 55: nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
+	nil,                                          // 56: nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
+	nil,                                          // 57: nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord.HashesEntry
+	nil,                                          // 58: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.PreferredEntry
+	(*structpb.Struct)(nil),                      // 59: google.protobuf.Struct
+	(ReasonCode)(0),                              // 60: nimi.runtime.v1.ReasonCode
 }
 var file_runtime_v1_local_runtime_types_proto_depIdxs = []int32{
 	0,  // 0: nimi.runtime.v1.LocalAssetRecord.kind:type_name -> nimi.runtime.v1.LocalAssetKind
 	9,  // 1: nimi.runtime.v1.LocalAssetRecord.source:type_name -> nimi.runtime.v1.LocalAssetSource
-	47, // 2: nimi.runtime.v1.LocalAssetRecord.hashes:type_name -> nimi.runtime.v1.LocalAssetRecord.HashesEntry
+	52, // 2: nimi.runtime.v1.LocalAssetRecord.hashes:type_name -> nimi.runtime.v1.LocalAssetRecord.HashesEntry
 	1,  // 3: nimi.runtime.v1.LocalAssetRecord.status:type_name -> nimi.runtime.v1.LocalAssetStatus
 	4,  // 4: nimi.runtime.v1.LocalAssetRecord.bundle_state:type_name -> nimi.runtime.v1.LocalBundleState
 	5,  // 5: nimi.runtime.v1.LocalAssetRecord.warm_state:type_name -> nimi.runtime.v1.LocalWarmState
 	10, // 6: nimi.runtime.v1.LocalAssetRecord.host_requirements:type_name -> nimi.runtime.v1.LocalHostRequirements
-	53, // 7: nimi.runtime.v1.LocalAssetRecord.engine_config:type_name -> google.protobuf.Struct
-	54, // 8: nimi.runtime.v1.LocalAssetRecord.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	53, // 9: nimi.runtime.v1.LocalAssetRecord.metadata:type_name -> google.protobuf.Struct
+	59, // 7: nimi.runtime.v1.LocalAssetRecord.engine_config:type_name -> google.protobuf.Struct
+	60, // 8: nimi.runtime.v1.LocalAssetRecord.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	59, // 9: nimi.runtime.v1.LocalAssetRecord.metadata:type_name -> google.protobuf.Struct
 	1,  // 10: nimi.runtime.v1.LocalAssetHealth.status:type_name -> nimi.runtime.v1.LocalAssetStatus
-	54, // 11: nimi.runtime.v1.LocalAssetHealth.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	60, // 11: nimi.runtime.v1.LocalAssetHealth.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	0,  // 12: nimi.runtime.v1.LocalVerifiedAssetDescriptor.kind:type_name -> nimi.runtime.v1.LocalAssetKind
-	48, // 13: nimi.runtime.v1.LocalVerifiedAssetDescriptor.hashes:type_name -> nimi.runtime.v1.LocalVerifiedAssetDescriptor.HashesEntry
-	53, // 14: nimi.runtime.v1.LocalVerifiedAssetDescriptor.metadata:type_name -> google.protobuf.Struct
-	53, // 15: nimi.runtime.v1.LocalVerifiedAssetDescriptor.engine_config:type_name -> google.protobuf.Struct
+	53, // 13: nimi.runtime.v1.LocalVerifiedAssetDescriptor.hashes:type_name -> nimi.runtime.v1.LocalVerifiedAssetDescriptor.HashesEntry
+	59, // 14: nimi.runtime.v1.LocalVerifiedAssetDescriptor.metadata:type_name -> google.protobuf.Struct
+	59, // 15: nimi.runtime.v1.LocalVerifiedAssetDescriptor.engine_config:type_name -> google.protobuf.Struct
 	10, // 16: nimi.runtime.v1.LocalVerifiedAssetDescriptor.host_requirements:type_name -> nimi.runtime.v1.LocalHostRequirements
 	14, // 17: nimi.runtime.v1.LocalProviderHints.llama:type_name -> nimi.runtime.v1.LocalProviderHintsLlama
 	15, // 18: nimi.runtime.v1.LocalProviderHints.media:type_name -> nimi.runtime.v1.LocalProviderHintsMedia
 	16, // 19: nimi.runtime.v1.LocalProviderHints.speech:type_name -> nimi.runtime.v1.LocalProviderHintsSpeech
 	17, // 20: nimi.runtime.v1.LocalProviderHints.sidecar:type_name -> nimi.runtime.v1.LocalProviderHintsSidecar
-	49, // 21: nimi.runtime.v1.LocalProviderHints.extra:type_name -> nimi.runtime.v1.LocalProviderHints.ExtraEntry
+	54, // 21: nimi.runtime.v1.LocalProviderHints.extra:type_name -> nimi.runtime.v1.LocalProviderHints.ExtraEntry
 	3,  // 22: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
 	18, // 23: nimi.runtime.v1.LocalCatalogModelDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	50, // 24: nimi.runtime.v1.LocalCatalogModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
-	53, // 25: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_config:type_name -> google.protobuf.Struct
+	55, // 24: nimi.runtime.v1.LocalCatalogModelDescriptor.hashes:type_name -> nimi.runtime.v1.LocalCatalogModelDescriptor.HashesEntry
+	59, // 25: nimi.runtime.v1.LocalCatalogModelDescriptor.engine_config:type_name -> google.protobuf.Struct
 	3,  // 26: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_runtime_mode:type_name -> nimi.runtime.v1.LocalEngineRuntimeMode
 	18, // 27: nimi.runtime.v1.LocalInstallPlanDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	51, // 28: nimi.runtime.v1.LocalInstallPlanDescriptor.hashes:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
-	53, // 29: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_config:type_name -> google.protobuf.Struct
+	56, // 28: nimi.runtime.v1.LocalInstallPlanDescriptor.hashes:type_name -> nimi.runtime.v1.LocalInstallPlanDescriptor.HashesEntry
+	59, // 29: nimi.runtime.v1.LocalInstallPlanDescriptor.engine_config:type_name -> google.protobuf.Struct
 	8,  // 30: nimi.runtime.v1.LocalGpuProfile.memory_model:type_name -> nimi.runtime.v1.GpuMemoryModel
 	21, // 31: nimi.runtime.v1.LocalDeviceProfile.gpu:type_name -> nimi.runtime.v1.LocalGpuProfile
 	22, // 32: nimi.runtime.v1.LocalDeviceProfile.python:type_name -> nimi.runtime.v1.LocalPythonProfile
 	23, // 33: nimi.runtime.v1.LocalDeviceProfile.npu:type_name -> nimi.runtime.v1.LocalNpuProfile
 	24, // 34: nimi.runtime.v1.LocalDeviceProfile.ports:type_name -> nimi.runtime.v1.LocalPortAvailability
-	6,  // 35: nimi.runtime.v1.LocalExecutionOptionDescriptor.kind:type_name -> nimi.runtime.v1.LocalExecutionEntryKind
-	26, // 36: nimi.runtime.v1.LocalExecutionAlternativeDescriptor.options:type_name -> nimi.runtime.v1.LocalExecutionOptionDescriptor
-	26, // 37: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.required:type_name -> nimi.runtime.v1.LocalExecutionOptionDescriptor
-	26, // 38: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.optional:type_name -> nimi.runtime.v1.LocalExecutionOptionDescriptor
-	27, // 39: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.alternatives:type_name -> nimi.runtime.v1.LocalExecutionAlternativeDescriptor
-	52, // 40: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.preferred:type_name -> nimi.runtime.v1.LocalExecutionDeclarationDescriptor.PreferredEntry
-	6,  // 41: nimi.runtime.v1.LocalExecutionEntryDescriptor.kind:type_name -> nimi.runtime.v1.LocalExecutionEntryKind
-	25, // 42: nimi.runtime.v1.LocalExecutionPlan.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
-	29, // 43: nimi.runtime.v1.LocalExecutionPlan.entries:type_name -> nimi.runtime.v1.LocalExecutionEntryDescriptor
-	31, // 44: nimi.runtime.v1.LocalExecutionPlan.selection_rationale:type_name -> nimi.runtime.v1.LocalExecutionSelectionRationale
-	30, // 45: nimi.runtime.v1.LocalExecutionPlan.preflight_decisions:type_name -> nimi.runtime.v1.LocalPreflightDecision
-	2,  // 46: nimi.runtime.v1.LocalServiceDescriptor.status:type_name -> nimi.runtime.v1.LocalServiceStatus
-	54, // 47: nimi.runtime.v1.LocalServiceDescriptor.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	29, // 48: nimi.runtime.v1.LocalExecutionApplyResult.entries:type_name -> nimi.runtime.v1.LocalExecutionEntryDescriptor
-	11, // 49: nimi.runtime.v1.LocalExecutionApplyResult.installed_assets:type_name -> nimi.runtime.v1.LocalAssetRecord
-	34, // 50: nimi.runtime.v1.LocalExecutionApplyResult.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
-	33, // 51: nimi.runtime.v1.LocalExecutionApplyResult.stage_results:type_name -> nimi.runtime.v1.LocalExecutionStageResult
-	30, // 52: nimi.runtime.v1.LocalExecutionApplyResult.preflight_decisions:type_name -> nimi.runtime.v1.LocalPreflightDecision
-	7,  // 53: nimi.runtime.v1.LocalProfileEntryDescriptor.kind:type_name -> nimi.runtime.v1.LocalProfileEntryKind
-	0,  // 54: nimi.runtime.v1.LocalProfileEntryDescriptor.asset_kind:type_name -> nimi.runtime.v1.LocalAssetKind
-	37, // 55: nimi.runtime.v1.LocalProfileDescriptor.entries:type_name -> nimi.runtime.v1.LocalProfileEntryDescriptor
-	36, // 56: nimi.runtime.v1.LocalProfileDescriptor.requirements:type_name -> nimi.runtime.v1.LocalProfileRequirementDescriptor
-	36, // 57: nimi.runtime.v1.LocalProfileResolutionPlan.requirements:type_name -> nimi.runtime.v1.LocalProfileRequirementDescriptor
-	32, // 58: nimi.runtime.v1.LocalProfileResolutionPlan.execution_plan:type_name -> nimi.runtime.v1.LocalExecutionPlan
-	35, // 59: nimi.runtime.v1.LocalProfileApplyResult.execution_result:type_name -> nimi.runtime.v1.LocalExecutionApplyResult
-	11, // 60: nimi.runtime.v1.LocalProfileApplyResult.installed_assets:type_name -> nimi.runtime.v1.LocalAssetRecord
-	18, // 61: nimi.runtime.v1.LocalNodeDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
-	53, // 62: nimi.runtime.v1.LocalNodeDescriptor.input_schema:type_name -> google.protobuf.Struct
-	53, // 63: nimi.runtime.v1.LocalNodeDescriptor.output_schema:type_name -> google.protobuf.Struct
-	53, // 64: nimi.runtime.v1.LocalAuditEvent.payload:type_name -> google.protobuf.Struct
-	0,  // 65: nimi.runtime.v1.LocalUnregisteredAssetDeclaration.asset_kind:type_name -> nimi.runtime.v1.LocalAssetKind
-	45, // 66: nimi.runtime.v1.LocalUnregisteredAssetDescriptor.declaration:type_name -> nimi.runtime.v1.LocalUnregisteredAssetDeclaration
-	67, // [67:67] is the sub-list for method output_type
-	67, // [67:67] is the sub-list for method input_type
-	67, // [67:67] is the sub-list for extension type_name
-	67, // [67:67] is the sub-list for extension extendee
-	0,  // [0:67] is the sub-list for field type_name
+	26, // 35: nimi.runtime.v1.LocalEnvironmentPlan.dependencies:type_name -> nimi.runtime.v1.LocalEnvironmentPlanDependency
+	57, // 36: nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord.hashes:type_name -> nimi.runtime.v1.LocalEnvironmentSelectedSourceRecord.HashesEntry
+	26, // 37: nimi.runtime.v1.LocalEnvironmentActivationGate.blocking_dependencies:type_name -> nimi.runtime.v1.LocalEnvironmentPlanDependency
+	26, // 38: nimi.runtime.v1.LocalEnvironmentActivationGate.dependencies:type_name -> nimi.runtime.v1.LocalEnvironmentPlanDependency
+	6,  // 39: nimi.runtime.v1.LocalExecutionOptionDescriptor.kind:type_name -> nimi.runtime.v1.LocalExecutionEntryKind
+	31, // 40: nimi.runtime.v1.LocalExecutionAlternativeDescriptor.options:type_name -> nimi.runtime.v1.LocalExecutionOptionDescriptor
+	31, // 41: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.required:type_name -> nimi.runtime.v1.LocalExecutionOptionDescriptor
+	31, // 42: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.optional:type_name -> nimi.runtime.v1.LocalExecutionOptionDescriptor
+	32, // 43: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.alternatives:type_name -> nimi.runtime.v1.LocalExecutionAlternativeDescriptor
+	58, // 44: nimi.runtime.v1.LocalExecutionDeclarationDescriptor.preferred:type_name -> nimi.runtime.v1.LocalExecutionDeclarationDescriptor.PreferredEntry
+	6,  // 45: nimi.runtime.v1.LocalExecutionEntryDescriptor.kind:type_name -> nimi.runtime.v1.LocalExecutionEntryKind
+	25, // 46: nimi.runtime.v1.LocalExecutionPlan.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
+	34, // 47: nimi.runtime.v1.LocalExecutionPlan.entries:type_name -> nimi.runtime.v1.LocalExecutionEntryDescriptor
+	36, // 48: nimi.runtime.v1.LocalExecutionPlan.selection_rationale:type_name -> nimi.runtime.v1.LocalExecutionSelectionRationale
+	35, // 49: nimi.runtime.v1.LocalExecutionPlan.preflight_decisions:type_name -> nimi.runtime.v1.LocalPreflightDecision
+	2,  // 50: nimi.runtime.v1.LocalServiceDescriptor.status:type_name -> nimi.runtime.v1.LocalServiceStatus
+	60, // 51: nimi.runtime.v1.LocalServiceDescriptor.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	34, // 52: nimi.runtime.v1.LocalExecutionApplyResult.entries:type_name -> nimi.runtime.v1.LocalExecutionEntryDescriptor
+	11, // 53: nimi.runtime.v1.LocalExecutionApplyResult.installed_assets:type_name -> nimi.runtime.v1.LocalAssetRecord
+	39, // 54: nimi.runtime.v1.LocalExecutionApplyResult.services:type_name -> nimi.runtime.v1.LocalServiceDescriptor
+	38, // 55: nimi.runtime.v1.LocalExecutionApplyResult.stage_results:type_name -> nimi.runtime.v1.LocalExecutionStageResult
+	35, // 56: nimi.runtime.v1.LocalExecutionApplyResult.preflight_decisions:type_name -> nimi.runtime.v1.LocalPreflightDecision
+	7,  // 57: nimi.runtime.v1.LocalProfileEntryDescriptor.kind:type_name -> nimi.runtime.v1.LocalProfileEntryKind
+	0,  // 58: nimi.runtime.v1.LocalProfileEntryDescriptor.asset_kind:type_name -> nimi.runtime.v1.LocalAssetKind
+	42, // 59: nimi.runtime.v1.LocalProfileDescriptor.entries:type_name -> nimi.runtime.v1.LocalProfileEntryDescriptor
+	41, // 60: nimi.runtime.v1.LocalProfileDescriptor.requirements:type_name -> nimi.runtime.v1.LocalProfileRequirementDescriptor
+	41, // 61: nimi.runtime.v1.LocalProfileResolutionPlan.requirements:type_name -> nimi.runtime.v1.LocalProfileRequirementDescriptor
+	37, // 62: nimi.runtime.v1.LocalProfileResolutionPlan.execution_plan:type_name -> nimi.runtime.v1.LocalExecutionPlan
+	40, // 63: nimi.runtime.v1.LocalProfileApplyResult.execution_result:type_name -> nimi.runtime.v1.LocalExecutionApplyResult
+	11, // 64: nimi.runtime.v1.LocalProfileApplyResult.installed_assets:type_name -> nimi.runtime.v1.LocalAssetRecord
+	18, // 65: nimi.runtime.v1.LocalNodeDescriptor.provider_hints:type_name -> nimi.runtime.v1.LocalProviderHints
+	59, // 66: nimi.runtime.v1.LocalNodeDescriptor.input_schema:type_name -> google.protobuf.Struct
+	59, // 67: nimi.runtime.v1.LocalNodeDescriptor.output_schema:type_name -> google.protobuf.Struct
+	59, // 68: nimi.runtime.v1.LocalAuditEvent.payload:type_name -> google.protobuf.Struct
+	0,  // 69: nimi.runtime.v1.LocalUnregisteredAssetDeclaration.asset_kind:type_name -> nimi.runtime.v1.LocalAssetKind
+	50, // 70: nimi.runtime.v1.LocalUnregisteredAssetDescriptor.declaration:type_name -> nimi.runtime.v1.LocalUnregisteredAssetDeclaration
+	71, // [71:71] is the sub-list for method output_type
+	71, // [71:71] is the sub-list for method input_type
+	71, // [71:71] is the sub-list for extension type_name
+	71, // [71:71] is the sub-list for extension extendee
+	0,  // [0:71] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_local_runtime_types_proto_init() }
@@ -5174,14 +5899,14 @@ func file_runtime_v1_local_runtime_types_proto_init() {
 		return
 	}
 	file_runtime_v1_common_proto_init()
-	file_runtime_v1_local_runtime_types_proto_msgTypes[28].OneofWrappers = []any{}
+	file_runtime_v1_local_runtime_types_proto_msgTypes[33].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_local_runtime_types_proto_rawDesc), len(file_runtime_v1_local_runtime_types_proto_rawDesc)),
 			NumEnums:      9,
-			NumMessages:   44,
+			NumMessages:   50,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

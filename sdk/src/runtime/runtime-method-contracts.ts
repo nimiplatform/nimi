@@ -73,8 +73,14 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.local.stopLocalAsset]: RuntimeClientMethodContract<'local', 'stopLocalAsset'>;
   [RuntimeMethodIds.local.checkLocalAssetHealth]: RuntimeClientMethodContract<'local', 'checkLocalAssetHealth'>;
   [RuntimeMethodIds.local.warmLocalAsset]: RuntimeClientMethodContract<'local', 'warmLocalAsset'>;
-  [RuntimeMethodIds.local.resolveLocalRuntimeDependency]: RuntimeClientMethodContract<'local', 'resolveLocalRuntimeDependency'>;
-  [RuntimeMethodIds.local.startLocalRuntimeDependencySetup]: RuntimeClientMethodContract<'local', 'startLocalRuntimeDependencySetup'>;
+  [RuntimeMethodIds.local.resolveLocalEnvironmentPlan]: RuntimeClientMethodContract<'local', 'resolveLocalEnvironmentPlan'>;
+  [RuntimeMethodIds.local.listLocalEnvironmentSelectedSources]: RuntimeClientMethodContract<'local', 'listLocalEnvironmentSelectedSources'>;
+  [RuntimeMethodIds.local.listLocalEnvironmentDependencyJobs]: RuntimeClientMethodContract<'local', 'listLocalEnvironmentDependencyJobs'>;
+  [RuntimeMethodIds.local.resolveLocalEnvironmentActivationGate]: RuntimeClientMethodContract<'local', 'resolveLocalEnvironmentActivationGate'>;
+  [RuntimeMethodIds.local.startLocalEnvironmentDependencyJob]: RuntimeClientMethodContract<'local', 'startLocalEnvironmentDependencyJob'>;
+  [RuntimeMethodIds.local.cancelLocalEnvironmentDependencyJob]: RuntimeClientMethodContract<'local', 'cancelLocalEnvironmentDependencyJob'>;
+  [RuntimeMethodIds.local.retryLocalEnvironmentDependencyJob]: RuntimeClientMethodContract<'local', 'retryLocalEnvironmentDependencyJob'>;
+  [RuntimeMethodIds.local.repairLocalEnvironmentDependency]: RuntimeClientMethodContract<'local', 'repairLocalEnvironmentDependency'>;
   [RuntimeMethodIds.local.resolveLocalStateReconciliation]: RuntimeClientMethodContract<'local', 'resolveLocalStateReconciliation'>;
   [RuntimeMethodIds.local.executeLocalStateCutover]: RuntimeClientMethodContract<'local', 'executeLocalStateCutover'>;
   [RuntimeMethodIds.local.collectDeviceProfile]: RuntimeClientMethodContract<'local', 'collectDeviceProfile'>;

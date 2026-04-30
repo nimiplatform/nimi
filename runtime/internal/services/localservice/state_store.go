@@ -23,12 +23,15 @@ const (
 // the legacy models[] + artifacts[] dual structure. SchemaVersion must be 2.
 // Runtime does NOT read v1 state — hard cut per plan §0.
 type localStateSnapshot struct {
-	SchemaVersion int                       `json:"schemaVersion"`
-	SavedAt       string                    `json:"savedAt"`
-	Assets        []localStateAssetState    `json:"assets"`
-	Services      []localStateServiceState  `json:"services"`
-	Transfers     []localStateTransferState `json:"transfers,omitempty"`
-	Audits        []localStateAuditState    `json:"audits,omitempty"`
+	SchemaVersion                   int                                         `json:"schemaVersion"`
+	SavedAt                         string                                      `json:"savedAt"`
+	Assets                          []localStateAssetState                      `json:"assets"`
+	Services                        []localStateServiceState                    `json:"services"`
+	Transfers                       []localStateTransferState                   `json:"transfers,omitempty"`
+	Audits                          []localStateAuditState                      `json:"audits,omitempty"`
+	LocalEnvironmentHostProfiles    []localEnvironmentHostProfileState          `json:"localEnvironmentHostProfiles,omitempty"`
+	LocalEnvironmentSelectedSources []localEnvironmentSelectedSourceRecordState `json:"localEnvironmentSelectedSourceRecords,omitempty"`
+	LocalEnvironmentDependencyJobs  []localEnvironmentDependencyJobState        `json:"localEnvironmentDependencyJobs,omitempty"`
 }
 
 // localStateAssetState is the unified persistence row for all asset kinds.
@@ -278,6 +281,27 @@ func (s *Service) restoreState() error {
 			s.transferControls[summary.GetInstallSessionId()] = newLocalTransferControl()
 		}
 	}
+	s.localEnvironmentHostProfiles = make(map[string]localEnvironmentHostProfileState, len(snapshot.LocalEnvironmentHostProfiles))
+	for _, item := range snapshot.LocalEnvironmentHostProfiles {
+		if strings.TrimSpace(item.HostProfileID) == "" {
+			continue
+		}
+		s.localEnvironmentHostProfiles[item.HostProfileID] = item
+	}
+	s.localEnvironmentSelectedSources = make(map[string]localEnvironmentSelectedSourceRecordState, len(snapshot.LocalEnvironmentSelectedSources))
+	for _, item := range snapshot.LocalEnvironmentSelectedSources {
+		if strings.TrimSpace(item.EnvironmentKey) == "" {
+			continue
+		}
+		s.localEnvironmentSelectedSources[item.EnvironmentKey] = item
+	}
+	s.localEnvironmentDependencyJobs = make(map[string]localEnvironmentDependencyJobState, len(snapshot.LocalEnvironmentDependencyJobs))
+	for _, item := range snapshot.LocalEnvironmentDependencyJobs {
+		if strings.TrimSpace(item.JobID) == "" {
+			continue
+		}
+		s.localEnvironmentDependencyJobs[item.JobID] = item
+	}
 	if healedSnapshot {
 		s.persistStateLocked()
 	}
@@ -292,12 +316,15 @@ func (s *Service) persistStateLocked() {
 	}
 
 	snapshot := localStateSnapshot{
-		SchemaVersion: localStateSchemaVersion,
-		SavedAt:       time.Now().UTC().Format(time.RFC3339Nano),
-		Assets:        make([]localStateAssetState, 0, len(s.assets)),
-		Services:      make([]localStateServiceState, 0, len(s.services)),
-		Transfers:     make([]localStateTransferState, 0, len(s.transfers)),
-		Audits:        make([]localStateAuditState, 0, len(s.audits)),
+		SchemaVersion:                   localStateSchemaVersion,
+		SavedAt:                         time.Now().UTC().Format(time.RFC3339Nano),
+		Assets:                          make([]localStateAssetState, 0, len(s.assets)),
+		Services:                        make([]localStateServiceState, 0, len(s.services)),
+		Transfers:                       make([]localStateTransferState, 0, len(s.transfers)),
+		Audits:                          make([]localStateAuditState, 0, len(s.audits)),
+		LocalEnvironmentHostProfiles:    make([]localEnvironmentHostProfileState, 0, len(s.localEnvironmentHostProfiles)),
+		LocalEnvironmentSelectedSources: make([]localEnvironmentSelectedSourceRecordState, 0, len(s.localEnvironmentSelectedSources)),
+		LocalEnvironmentDependencyJobs:  make([]localEnvironmentDependencyJobState, 0, len(s.localEnvironmentDependencyJobs)),
 	}
 
 	assetIDs := make([]string, 0, len(s.assets))
@@ -423,6 +450,33 @@ func (s *Service) persistStateLocked() {
 		if len(snapshot.Audits) >= s.effectiveLocalAuditCapacity() {
 			break
 		}
+	}
+
+	hostProfileIDs := make([]string, 0, len(s.localEnvironmentHostProfiles))
+	for id := range s.localEnvironmentHostProfiles {
+		hostProfileIDs = append(hostProfileIDs, id)
+	}
+	sort.Strings(hostProfileIDs)
+	for _, id := range hostProfileIDs {
+		snapshot.LocalEnvironmentHostProfiles = append(snapshot.LocalEnvironmentHostProfiles, s.localEnvironmentHostProfiles[id])
+	}
+
+	selectedSourceKeys := make([]string, 0, len(s.localEnvironmentSelectedSources))
+	for key := range s.localEnvironmentSelectedSources {
+		selectedSourceKeys = append(selectedSourceKeys, key)
+	}
+	sort.Strings(selectedSourceKeys)
+	for _, key := range selectedSourceKeys {
+		snapshot.LocalEnvironmentSelectedSources = append(snapshot.LocalEnvironmentSelectedSources, s.localEnvironmentSelectedSources[key])
+	}
+
+	dependencyJobIDs := make([]string, 0, len(s.localEnvironmentDependencyJobs))
+	for id := range s.localEnvironmentDependencyJobs {
+		dependencyJobIDs = append(dependencyJobIDs, id)
+	}
+	sort.Strings(dependencyJobIDs)
+	for _, id := range dependencyJobIDs {
+		snapshot.LocalEnvironmentDependencyJobs = append(snapshot.LocalEnvironmentDependencyJobs, s.localEnvironmentDependencyJobs[id])
 	}
 
 	if err := saveLocalStateSnapshot(path, snapshot); err != nil {

@@ -108,6 +108,8 @@ import type {
   ApplyProfileResponse,
   AppendInferenceAuditRequest,
   AppendRuntimeAuditRequest,
+  CancelLocalEnvironmentDependencyJobRequest,
+  CancelLocalEnvironmentDependencyJobResponse,
   CancelLocalTransferRequest,
   CancelLocalTransferResponse,
   CheckLocalAssetHealthRequest,
@@ -130,6 +132,10 @@ import type {
   ListLocalAssetsResponse,
   ListLocalAuditsRequest,
   ListLocalAuditsResponse,
+  ListLocalEnvironmentDependencyJobsRequest,
+  ListLocalEnvironmentDependencyJobsResponse,
+  ListLocalEnvironmentSelectedSourcesRequest,
+  ListLocalEnvironmentSelectedSourcesResponse,
   ListLocalServicesRequest,
   ListLocalServicesResponse,
   ListLocalTransfersRequest,
@@ -145,14 +151,20 @@ import type {
   RemoveLocalAssetResponse,
   RemoveLocalServiceRequest,
   RemoveLocalServiceResponse,
+  RepairLocalEnvironmentDependencyRequest,
+  RepairLocalEnvironmentDependencyResponse,
   ResumeLocalTransferRequest,
   ResumeLocalTransferResponse,
-  ResolveLocalRuntimeDependencyRequest,
-  ResolveLocalRuntimeDependencyResponse,
+  ResolveLocalEnvironmentActivationGateRequest,
+  ResolveLocalEnvironmentActivationGateResponse,
+  ResolveLocalEnvironmentPlanRequest,
+  ResolveLocalEnvironmentPlanResponse,
   ResolveLocalStateReconciliationRequest,
   ResolveLocalStateReconciliationResponse,
   ResolveProfileRequest,
   ResolveProfileResponse,
+  RetryLocalEnvironmentDependencyJobRequest,
+  RetryLocalEnvironmentDependencyJobResponse,
   ScanUnregisteredAssetsRequest,
   ScanUnregisteredAssetsResponse,
   ScaffoldOrphanAssetRequest,
@@ -163,8 +175,8 @@ import type {
   SearchCatalogModelsResponse,
   StartLocalAssetRequest,
   StartLocalAssetResponse,
-  StartLocalRuntimeDependencySetupRequest,
-  StartLocalRuntimeDependencySetupResponse,
+  StartLocalEnvironmentDependencyJobRequest,
+  StartLocalEnvironmentDependencyJobResponse,
   StartLocalServiceRequest,
   StartLocalServiceResponse,
   StopLocalAssetRequest,
@@ -507,8 +519,14 @@ export type RuntimeLocalServiceClient = {
   resumeLocalTransfer(request: ResumeLocalTransferRequest, options?: RuntimeCallOptions): Promise<ResumeLocalTransferResponse>;
   cancelLocalTransfer(request: CancelLocalTransferRequest, options?: RuntimeCallOptions): Promise<CancelLocalTransferResponse>;
   watchLocalTransfers(request: WatchLocalTransfersRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<LocalTransferProgressEvent>>;
-  resolveLocalRuntimeDependency(request: ResolveLocalRuntimeDependencyRequest, options?: RuntimeCallOptions): Promise<ResolveLocalRuntimeDependencyResponse>;
-  startLocalRuntimeDependencySetup(request: StartLocalRuntimeDependencySetupRequest, options?: RuntimeCallOptions): Promise<StartLocalRuntimeDependencySetupResponse>;
+  resolveLocalEnvironmentPlan(request: ResolveLocalEnvironmentPlanRequest, options?: RuntimeCallOptions): Promise<ResolveLocalEnvironmentPlanResponse>;
+  listLocalEnvironmentSelectedSources(request: ListLocalEnvironmentSelectedSourcesRequest, options?: RuntimeCallOptions): Promise<ListLocalEnvironmentSelectedSourcesResponse>;
+  listLocalEnvironmentDependencyJobs(request: ListLocalEnvironmentDependencyJobsRequest, options?: RuntimeCallOptions): Promise<ListLocalEnvironmentDependencyJobsResponse>;
+  resolveLocalEnvironmentActivationGate(request: ResolveLocalEnvironmentActivationGateRequest, options?: RuntimeCallOptions): Promise<ResolveLocalEnvironmentActivationGateResponse>;
+  startLocalEnvironmentDependencyJob(request: StartLocalEnvironmentDependencyJobRequest, options?: RuntimeCallOptions): Promise<StartLocalEnvironmentDependencyJobResponse>;
+  cancelLocalEnvironmentDependencyJob(request: CancelLocalEnvironmentDependencyJobRequest, options?: RuntimeCallOptions): Promise<CancelLocalEnvironmentDependencyJobResponse>;
+  retryLocalEnvironmentDependencyJob(request: RetryLocalEnvironmentDependencyJobRequest, options?: RuntimeCallOptions): Promise<RetryLocalEnvironmentDependencyJobResponse>;
+  repairLocalEnvironmentDependency(request: RepairLocalEnvironmentDependencyRequest, options?: RuntimeCallOptions): Promise<RepairLocalEnvironmentDependencyResponse>;
   resolveLocalStateReconciliation(request: ResolveLocalStateReconciliationRequest, options?: RuntimeCallOptions): Promise<ResolveLocalStateReconciliationResponse>;
   executeLocalStateCutover(request: ExecuteLocalStateCutoverRequest, options?: RuntimeCallOptions): Promise<ExecuteLocalStateCutoverResponse>;
   collectDeviceProfile(request: CollectDeviceProfileRequest, options?: RuntimeCallOptions): Promise<CollectDeviceProfileResponse>;
