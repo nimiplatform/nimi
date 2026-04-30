@@ -17,8 +17,8 @@ export type VrmSceneProps = {
 export function VrmScene({ vrm }: VrmSceneProps): JSX.Element {
   return (
     <>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[1, 1, 1]} intensity={0.8} />
+      <ambientLight intensity={1.6} />
+      <directionalLight position={[1, 1, 1]} intensity={1.4} />
       {vrm ? <primitive object={vrm.scene} /> : null}
     </>
   );

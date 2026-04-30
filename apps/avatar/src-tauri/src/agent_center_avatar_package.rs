@@ -406,7 +406,15 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
     if !canonical_entry_path.starts_with(&canonical_package_dir) {
         return Err("avatar package entry_file escaped the package root".to_string());
     }
-    let (entry_bytes, entry_sha256) = sha256_file_hex(&canonical_entry_path)?;
+    // Offload entry-file hashing to the blocking pool. VRM payloads can be
+    // 50–500MB; doing a synchronous read+SHA256 on the Tauri command worker
+    // pool serialised concurrent IPC calls (asset:// reads, runtime gRPC
+    // bridge) and pushed `driver_start` past its 12s timeout. Live2D files
+    // are small enough that the in-pool synchronous hash never tripped this.
+    let hash_path = canonical_entry_path.clone();
+    let (entry_bytes, entry_sha256) = tokio::task::spawn_blocking(move || sha256_file_hex(&hash_path))
+        .await
+        .map_err(|error| format!("avatar package digest task failed: {error}"))??;
     if entry_bytes != entry_file_record.bytes || entry_sha256 != entry_file_record.sha256 {
         return Err("avatar package entry_file content differs from manifest".to_string());
     }

@@ -273,6 +273,11 @@ export function createVrmCarrierSurface(
             framing.cameraPosition.y,
             framing.cameraPosition.z,
           ] as [number, number, number],
+          lookAt: [
+            framing.cameraLookAt.x,
+            framing.cameraLookAt.y,
+            framing.cameraLookAt.z,
+          ] as [number, number, number],
           near: 0.1,
           far: 100,
         };
@@ -433,6 +438,7 @@ function VrmRenderTargetCaptureLoop({
 type SafeCanvasCameraProps = {
   fov: number;
   position: [number, number, number];
+  lookAt: [number, number, number];
   near: number;
   far: number;
 };
@@ -457,8 +463,54 @@ class SafeCanvas extends ReactComponent<SafeCanvasProps, { errored: boolean }> {
   override render(): ReactNode {
     if (this.state.errored) return null;
     if (this.props.cameraProps) {
-      return <Canvas camera={this.props.cameraProps}>{this.props.children}</Canvas>;
+      const { lookAt, ...cameraInit } = this.props.cameraProps;
+      // R3F's Canvas `camera` prop seeds initial position/fov/near/far on
+      // the default camera but does not accept a `lookAt`. Apply lookAt
+      // via onCreated so the camera orientation matches the framing
+      // calculation — without this the camera looks at world (0,0,0)
+      // and the VRM (whose feet sit near y=0 and head at y≈totalHeight)
+      // ends up tilted off-axis and rendered ~⅓ its intended size.
+      return (
+        <Canvas
+          camera={cameraInit}
+          onCreated={(state) => {
+            state.camera.lookAt(lookAt[0], lookAt[1], lookAt[2]);
+            state.camera.updateProjectionMatrix();
+          }}
+        >
+          <SafeCanvasCameraController cameraProps={this.props.cameraProps} />
+          {this.props.children}
+        </Canvas>
+      );
     }
     return <Canvas>{this.props.children}</Canvas>;
   }
+}
+
+function SafeCanvasCameraController({
+  cameraProps,
+}: {
+  cameraProps: SafeCanvasCameraProps;
+}): null {
+  const { camera } = useThree();
+  useEffect(() => {
+    const [x, y, z] = cameraProps.position;
+    const [lookX, lookY, lookZ] = cameraProps.lookAt;
+    camera.position.set(x, y, z);
+    camera.near = cameraProps.near;
+    camera.far = cameraProps.far;
+    if ('fov' in camera) {
+      camera.fov = cameraProps.fov;
+    }
+    camera.lookAt(lookX, lookY, lookZ);
+    camera.updateProjectionMatrix();
+  }, [
+    camera,
+    cameraProps.far,
+    cameraProps.fov,
+    cameraProps.lookAt,
+    cameraProps.near,
+    cameraProps.position,
+  ]);
+  return null;
 }

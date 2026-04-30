@@ -44,7 +44,14 @@ let loaderSingleton: GLTFLoader | null = null;
 export function getVrmLoader(): GLTFLoader {
   if (loaderSingleton) return loaderSingleton;
   const loader = new GLTFLoader();
-  loader.crossOrigin = 'anonymous';
+  // Empty string disables CORS on the underlying `<img>` element used by
+  // Three.js TextureLoader. Default 'anonymous' triggers a CORS preflight
+  // that WKWebView fails for custom-scheme blob URLs ("blob:tauri://…"),
+  // causing every embedded GLB texture to error out with
+  // "THREE.GLTFLoader: Couldn't load texture". Blob URLs are inherently
+  // same-origin so disabling CORS is safe; the `<img>` still rejects
+  // cross-origin URLs by virtue of the page's CSP `img-src`.
+  loader.crossOrigin = '';
   loader.register((parser) => {
     return new VRMLoaderPlugin(
       parser as ConstructorParameters<typeof VRMLoaderPlugin>[0],

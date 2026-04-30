@@ -46,9 +46,9 @@ const FOV_DEGREES = 30;
 const FOV_RADIANS = (FOV_DEGREES * Math.PI) / 180;
 
 /** Distance multiplier vs. theoretical exact-fit; > 1.0 leaves margin. */
-const CAMERA_DISTANCE_FACTOR = 1.5;
+const CAMERA_DISTANCE_FACTOR = 1.05;
 
-const FULL_BODY_HEIGHT_MARGIN = 1.1; // 10% breathing room around the model
+const FULL_BODY_HEIGHT_MARGIN = 1.05; // 5% breathing room around the model
 
 /** Per-intent vertical framing parameters. */
 type IntentParams = {
@@ -64,8 +64,13 @@ const INTENT_PARAMS: Record<VrmFramingIntent, IntentParams> = {
     framedHeightRatio: FULL_BODY_HEIGHT_MARGIN,
   },
   'bottom-companion': {
-    cameraYOffsetRatio: 0.65, // waist-up
-    framedHeightRatio: 0.55,
+    // The avatar window is typically tall+narrow (aspect ≈ 0.4). Vertical
+    // framing alone leaves character width clipped, so the algorithm
+    // re-fits via aspect below — but the *intent* center is biased above
+    // the bbox midpoint to keep the head and shoulders prominent rather
+    // than centered like full-body.
+    cameraYOffsetRatio: 0.55,
+    framedHeightRatio: 1.0,
   },
   'head-shoulders': {
     cameraYOffsetRatio: 0.85, // chest-up
@@ -83,6 +88,15 @@ export function computeVrmFraming(inputs: VrmFramingInputs): VrmFramingResult {
   const { sceneBboxMin, sceneBboxMax, intent, aspect } = inputs;
 
   const totalHeight = sceneBboxMax.y - sceneBboxMin.y;
+  // Box3.setFromObject reads the SkinnedMesh BIND-POSE bbox (T-pose),
+  // not the current pose. After applyIdlePose lowers the arms, the bbox
+  // still reports a full arm-span horizontally — making `totalWidth`
+  // close to `totalHeight` for any humanoid VRM. Cap it at the typical
+  // standing humanoid body width (~0.45 × height) so the horizontal-fit
+  // floor below doesn't wreck framing on tall+narrow viewports.
+  const HUMANOID_BODY_WIDTH_RATIO = 0.45;
+  const rawTotalWidth = sceneBboxMax.x - sceneBboxMin.x;
+  const totalWidth = Math.min(rawTotalWidth, totalHeight * HUMANOID_BODY_WIDTH_RATIO);
   const bboxCenterX = (sceneBboxMin.x + sceneBboxMax.x) / 2;
   const bboxCenterY = (sceneBboxMin.y + sceneBboxMax.y) / 2;
   const bboxCenterZ = (sceneBboxMin.z + sceneBboxMax.z) / 2;
@@ -94,12 +108,29 @@ export function computeVrmFraming(inputs: VrmFramingInputs): VrmFramingResult {
       ? bboxCenterY
       : sceneBboxMin.y + totalHeight * params.cameraYOffsetRatio;
 
-  const framedHeight = totalHeight * params.framedHeightRatio;
+  // The intent's vertical framing target is `intentFramedHeight`. The avatar
+  // window is typically tall+narrow (aspect ≈ 0.4) — so a vertical-only fit
+  // leaves the camera so far back that the character occupies a tiny stripe
+  // in the middle of the viewport. Compute the framedHeight that would be
+  // *required* to make the character's horizontal extent (with a small
+  // safety margin) fill the horizontal viewport, and take the larger of
+  // the two so that whichever axis is the binding constraint determines
+  // the camera distance.
+  const intentFramedHeight = totalHeight * params.framedHeightRatio;
+  const HORIZONTAL_SAFETY = 1.05;
+  const horizontalFitFramedHeight =
+    aspect > 0 ? (totalWidth * HORIZONTAL_SAFETY) / aspect : intentFramedHeight;
+  const framedHeight = Math.max(intentFramedHeight, horizontalFitFramedHeight);
   const framedWidth = framedHeight * aspect;
 
-  // distance such that vertical fov fits framedHeight, with 1.5× margin
+  // Distance such that the vertical FOV exactly contains
+  // `CAMERA_DISTANCE_FACTOR × framedHeight` of world units.
+  // Perspective camera vertical viewport at `d` is `2 × d × tan(fov/2)`,
+  // so `d = factor × framedHeight / (2 × tan(fov/2))`. The factor of 2
+  // was previously missing — that bug pushed the camera 2× too far back
+  // and made the VRM render at ~½ the intended size.
   const cameraDistance =
-    (CAMERA_DISTANCE_FACTOR * framedHeight) / Math.tan(FOV_RADIANS / 2);
+    (CAMERA_DISTANCE_FACTOR * framedHeight) / (2 * Math.tan(FOV_RADIANS / 2));
 
   return {
     cameraPosition: {

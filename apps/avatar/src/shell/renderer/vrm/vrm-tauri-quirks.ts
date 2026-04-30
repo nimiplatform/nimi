@@ -1,23 +1,20 @@
 // Wave 2 chunk 2-A of topic 2026-04-30-avatar-vrm-backend-branch.
 //
-// Tauri webview (macOS WKWebView) intermittently hangs when GLTFLoader
-// invokes `createImageBitmap` during VRM texture decode. Per
-// vrm-backend-contract.md §6.1 (NAV-VRM-007), we temporarily replace
-// `window.createImageBitmap` with a function that throws — this forces
-// GLTFLoader to fall through to its `<img>` element fallback path.
+// Tauri webview (macOS WKWebView) intermittently fails when GLTFLoader's
+// `ImageBitmapLoader` decodes blob-backed VRM textures via
+// `createImageBitmap`. Per vrm-backend-contract.md §6.1 (NAV-VRM-007),
+// we set `window.createImageBitmap` to `undefined` so GLTFLoader's
+// constructor-time check (`createImageBitmap !== undefined`) picks
+// `ImageLoader` (HTMLImageElement-based) instead of `ImageBitmapLoader`.
 //
-// The returned `restore` function reinstates the original reference.
-// The implementation is idempotent and supports nested suspension:
-//   const r1 = suspend();
-//   const r2 = suspend();
-//   r2(); r1(); // safe; original restored exactly once.
-// SSR / non-browser environments are guarded — the returned restore is
-// a no-op.
-
-const SUSPEND_MARKER = Symbol.for('apps.avatar.vrm.createImageBitmap.suspended');
+// IMPORTANT: a throwing stub does NOT work. ImageBitmapLoader is chosen
+// at GLTFLoader construction time based on the truthiness of the global.
+// A throwing function is still truthy — the loader picks
+// ImageBitmapLoader and surfaces every texture decode failure as a
+// hard-fail. The fallback path is only selected when the global is
+// `undefined`.
 
 type CreateImageBitmapFn = typeof globalThis.createImageBitmap;
-type SuspendedFn = CreateImageBitmapFn & { [SUSPEND_MARKER]?: true };
 
 type WindowLike = {
   createImageBitmap?: CreateImageBitmapFn;
@@ -28,23 +25,80 @@ function getWindow(): WindowLike | null {
   return window as unknown as WindowLike;
 }
 
-function makeSuspendedStub(): SuspendedFn {
-  const stub: SuspendedFn = (() => {
-    throw new Error(
-      'createImageBitmap is suspended for Tauri VRM load (forces GLTFLoader <img> fallback path)',
-    );
-  }) as SuspendedFn;
-  stub[SUSPEND_MARKER] = true;
-  return stub;
+function isTauriRuntime(): boolean {
+  if (typeof window === 'undefined') return false;
+  const w = window as unknown as Record<string, unknown>;
+  return Boolean(w['__TAURI_INTERNALS__']) || Boolean(w['__TAURI_IPC__']);
+}
+
+function unsetCreateImageBitmap(win: WindowLike): boolean {
+  // Property may be non-configurable on some webviews — try defineProperty
+  // first (cleanest), fall back to plain assignment, and report failure
+  // via the boolean return so the caller can avoid marking install done.
+  try {
+    Object.defineProperty(win, 'createImageBitmap', {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
+    return true;
+  } catch {
+    try {
+      (win as { createImageBitmap?: CreateImageBitmapFn | undefined }).createImageBitmap = undefined;
+      return win.createImageBitmap === undefined;
+    } catch {
+      return false;
+    }
+  }
+}
+
+let permanentInstalled = false;
+
+/**
+ * Permanently install the createImageBitmap stub for the lifetime of the
+ * renderer process. Idempotent and a no-op outside the Tauri runtime.
+ *
+ * Why this is permanent (not scoped to loadVrmFromManifest):
+ * GLTFLoader continues to fetch some textures asynchronously after
+ * `loadAsync` resolves — MToon plugin afterRoot processing, blob-URL
+ * image elements that finish decoding late, and any deferred mipmap
+ * upload all hit `createImageBitmap` after the per-load suspend has
+ * been restored. On Tauri's macOS WKWebView this races and 1+ texture
+ * fetches fail with the blob URL already revoked, leaving a Texture
+ * with `image === undefined` — Three.js then throws on the first
+ * `texture.colorSpace = …` write and the WebGL context is lost.
+ *
+ * Forcing GLTFLoader's `<img>` fallback for every texture decode side-
+ * steps the WKWebView quirk entirely. The `<img>` path is slightly
+ * slower in synthetic benchmarks but is the stable code path on every
+ * platform we ship to.
+ */
+export function installCreateImageBitmapSuspendForTauri(): void {
+  if (permanentInstalled) return;
+  if (!isTauriRuntime()) return;
+  const win = getWindow();
+  if (!win) return;
+  if (unsetCreateImageBitmap(win)) {
+    permanentInstalled = true;
+  }
+}
+
+/** Test-only seam: undo the permanent install so the next install can
+ *  re-run. Production code MUST NOT call this. */
+export function __resetCreateImageBitmapSuspendForTests(): void {
+  permanentInstalled = false;
 }
 
 /**
- * Suspend `window.createImageBitmap` so GLTFLoader uses its `<img>` fallback
- * during a VRM load. Returns a `restore` function. Calling `restore` more than
- * once is safe (subsequent calls are no-ops). Nested suspension stacks: each
- * `restore` undoes its own layer.
+ * Set `window.createImageBitmap` to `undefined` so GLTFLoader uses its
+ * `<img>` fallback during a VRM load. Returns a `restore` function.
+ * Calling `restore` more than once is safe (subsequent calls are no-ops).
  *
  * In SSR / non-browser environments, returns a no-op restore.
+ *
+ * Note: when `installCreateImageBitmapSuspendForTauri()` has already run
+ * for this process, this scoped suspend is effectively a no-op — the
+ * global is already `undefined` and stays `undefined` after restore.
  */
 export function suspendCreateImageBitmapForTauriVrmLoad(): () => void {
   const win = getWindow();
@@ -52,25 +106,13 @@ export function suspendCreateImageBitmapForTauriVrmLoad(): () => void {
     return () => {};
   }
   const previous = win.createImageBitmap;
-  const stub = makeSuspendedStub();
-  win.createImageBitmap = stub;
+  unsetCreateImageBitmap(win);
   let restored = false;
   return () => {
     if (restored) return;
     restored = true;
-    // Only restore if our stub is still the active reference; if a deeper
-    // nested suspend layer is on top, we just unhook ourselves silently —
-    // the deeper layer keeps its own previous reference.
-    if (win.createImageBitmap === stub) {
-      if (previous === undefined) {
-        delete (win as { createImageBitmap?: CreateImageBitmapFn }).createImageBitmap;
-      } else {
-        win.createImageBitmap = previous;
-      }
+    if (win.createImageBitmap === undefined && previous !== undefined) {
+      win.createImageBitmap = previous;
     }
-    // If a deeper suspend wrapped over ours, that deeper restore will see
-    // its own previous (which is our stub) and re-install our stub when it
-    // unwinds — but we already marked ourselves restored, so that stub
-    // restoration is harmless until the outer restore runs.
   };
 }

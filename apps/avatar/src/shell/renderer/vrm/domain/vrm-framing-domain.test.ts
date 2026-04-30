@@ -13,6 +13,9 @@ const REF_TOTAL_HEIGHT = 1.7;
 const REF_ASPECT = 0.45; // avatar's default tall-window aspect
 const FOV = 30;
 const FOV_TAN_HALF = Math.tan((FOV * Math.PI) / 180 / 2);
+const CAMERA_DISTANCE_FACTOR = 1.05;
+const BODY_WIDTH_RATIO = 0.45;
+const HORIZONTAL_SAFETY = 1.05;
 
 function makeInputs(intent: VrmFramingInputs['intent']): VrmFramingInputs {
   return {
@@ -30,23 +33,28 @@ describe('computeVrmFraming', () => {
     expect(computeVrmFraming(makeInputs('head-shoulders')).cameraFov).toBe(30);
   });
 
-  it('full-body: framedHeight = totalHeight × 1.1, camera Y at bbox center', () => {
+  it('full-body: framedHeight = totalHeight × 1.05, camera Y at bbox center', () => {
     const r = computeVrmFraming(makeInputs('full-body'));
-    expect(r.framedHeight).toBeCloseTo(REF_TOTAL_HEIGHT * 1.1, 6);
+    expect(r.framedHeight).toBeCloseTo(REF_TOTAL_HEIGHT * 1.05, 6);
     expect(r.cameraPosition.y).toBeCloseTo((REF_BBOX_MIN.y + REF_BBOX_MAX.y) / 2, 6);
     expect(r.cameraLookAt.y).toBe(r.cameraPosition.y);
     expect(r.framedCenterY).toBe(r.cameraPosition.y);
   });
 
-  it('bottom-companion: framedHeight ≈ totalHeight × 0.55; camera Y at waist (~65%)', () => {
+  it('bottom-companion: framedHeight fits full height; camera Y is biased above center', () => {
     const r = computeVrmFraming(makeInputs('bottom-companion'));
-    expect(r.framedHeight).toBeCloseTo(REF_TOTAL_HEIGHT * 0.55, 6);
-    expect(r.cameraPosition.y).toBeCloseTo(REF_BBOX_MIN.y + REF_TOTAL_HEIGHT * 0.65, 6);
+    expect(r.framedHeight).toBeCloseTo(REF_TOTAL_HEIGHT, 6);
+    expect(r.cameraPosition.y).toBeCloseTo(REF_BBOX_MIN.y + REF_TOTAL_HEIGHT * 0.55, 6);
   });
 
-  it('head-shoulders: framedHeight ≈ totalHeight × 0.30; camera Y at chest (~85%)', () => {
+  it('head-shoulders: horizontal fit floors framedHeight on tall windows', () => {
     const r = computeVrmFraming(makeInputs('head-shoulders'));
-    expect(r.framedHeight).toBeCloseTo(REF_TOTAL_HEIGHT * 0.3, 6);
+    const cappedBodyWidth = Math.min(
+      REF_BBOX_MAX.x - REF_BBOX_MIN.x,
+      REF_TOTAL_HEIGHT * BODY_WIDTH_RATIO,
+    );
+    const horizontalFit = (cappedBodyWidth * HORIZONTAL_SAFETY) / REF_ASPECT;
+    expect(r.framedHeight).toBeCloseTo(horizontalFit, 6);
     expect(r.cameraPosition.y).toBeCloseTo(REF_BBOX_MIN.y + REF_TOTAL_HEIGHT * 0.85, 6);
   });
 
@@ -57,11 +65,11 @@ describe('computeVrmFraming', () => {
     }
   });
 
-  it('camera distance = 1.5 × framedHeight / tan(fov/2)', () => {
+  it('camera distance = 1.05 × framedHeight / (2 × tan(fov/2))', () => {
     for (const intent of ['full-body', 'bottom-companion', 'head-shoulders'] as const) {
       const r = computeVrmFraming(makeInputs(intent));
       const bboxCenterZ = (REF_BBOX_MIN.z + REF_BBOX_MAX.z) / 2;
-      const expectedDistance = (1.5 * r.framedHeight) / FOV_TAN_HALF;
+      const expectedDistance = (CAMERA_DISTANCE_FACTOR * r.framedHeight) / (2 * FOV_TAN_HALF);
       expect(r.cameraPosition.z - bboxCenterZ).toBeCloseTo(expectedDistance, 5);
     }
   });

@@ -88,8 +88,8 @@ describe('deriveVrmNominalBounds', () => {
   });
 
   it('uses the documented px-per-world-unit when bounds fall inside the clamp range', () => {
-    // A 3m character → full-body framedHeight = 1.1 * 3 = 3.3 m → 3.3 * 280 = 924 px
-    // (within [480, 960]). framedWidth = 3.3 * 0.45 = 1.485 m * 280 = 415.8 px
+    // A 3m character → full-body framedHeight = 1.05 * 3 = 3.15 m → 3.15 * 280 = 882 px
+    // (within [480, 960]). framedWidth = 3.15 * 0.45 = 1.4175 m * 280 = 396.9 px
     // (within [320, 600]).
     const vrm = makeStubVrm({ x: -0.5, y: 0, z: -0.3 }, { x: 0.5, y: 3, z: 0.3 });
     const result = deriveVrmNominalBounds({
@@ -97,8 +97,8 @@ describe('deriveVrmNominalBounds', () => {
       intent: 'full-body',
       aspect: 0.45,
     });
-    const expectedHeight = 3.3 * VRM_NOMINAL_PX_PER_WORLD_UNIT;
-    const expectedWidth = 3.3 * 0.45 * VRM_NOMINAL_PX_PER_WORLD_UNIT;
+    const expectedHeight = 3.15 * VRM_NOMINAL_PX_PER_WORLD_UNIT;
+    const expectedWidth = 3.15 * 0.45 * VRM_NOMINAL_PX_PER_WORLD_UNIT;
     expect(result.height).toBeCloseTo(expectedHeight, 4);
     expect(result.width).toBeCloseTo(expectedWidth, 4);
   });

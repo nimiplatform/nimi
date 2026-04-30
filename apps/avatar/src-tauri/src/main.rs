@@ -5,9 +5,10 @@ mod avatar_instance_projection;
 mod avatar_instance_registry;
 mod avatar_launch_context;
 use agent_center_avatar_package::{
-    nimi_avatar_resolve_agent_center_avatar_package, AgentCenterAvatarPackageResolvePayload,
-    ModelManifest,
+    nimi_avatar_resolve_agent_center_avatar_package, ModelManifest,
 };
+#[cfg(test)]
+use agent_center_avatar_package::AgentCenterAvatarPackageResolvePayload;
 use avatar_evidence_projection::AvatarEvidenceRecordInput;
 use avatar_instance_projection::{persist_projection, AvatarInstanceProjectionRecord};
 use avatar_instance_registry::AvatarInstanceRegistry;
@@ -20,6 +21,7 @@ use nimi_kit_shell_tauri::runtime_defaults as defaults;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use serde_json::json;
+#[cfg(test)]
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs;
