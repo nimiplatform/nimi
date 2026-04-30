@@ -6808,6 +6808,138 @@ pub struct LocalDeviceProfile {
     pub available_ram_bytes: i64,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalEnvironmentPlanDependency {
+    #[prost(string, tag = "1")]
+    pub dependency_family: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub dependency_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub required: bool,
+    #[prost(string, tag = "4")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub source_kind: ::prost::alloc::string::String,
+    #[prost(bool, tag = "6")]
+    pub confirmation_required: bool,
+    #[prost(string, tag = "7")]
+    pub selected_source_record_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub environment_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub canonical_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub detail: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalEnvironmentPlan {
+    #[prost(string, tag = "1")]
+    pub plan_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub pack_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub product_label: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub host_profile_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub platform_tuple: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub runtime_data_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub consumer_scope: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub cloud_only_impact: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "11")]
+    pub dependencies: ::prost::alloc::vec::Vec<LocalEnvironmentPlanDependency>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalEnvironmentSelectedSourceRecord {
+    #[prost(string, tag = "1")]
+    pub record_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub dependency_family: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub dependency_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub environment_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub source_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub canonical_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "8")]
+    pub compatibility_evidence: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "9")]
+    pub verified_artifacts: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(map = "string, string", tag = "10")]
+    pub hashes: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "11")]
+    pub selected_consumers: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "12")]
+    pub activation_env_delta: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "13")]
+    pub selected_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "14")]
+    pub last_verified_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "15")]
+    pub repair_state: ::prost::alloc::string::String,
+    #[prost(string, tag = "16")]
+    pub audit_reason_code: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalEnvironmentDependencyJob {
+    #[prost(string, tag = "1")]
+    pub job_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub environment_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub dependency_family: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub dependency_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub source_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub canonical_root: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub selected_source_record_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub failure_detail: ::prost::alloc::string::String,
+    #[prost(bool, tag = "10")]
+    pub retryable: bool,
+    #[prost(string, tag = "11")]
+    pub created_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "12")]
+    pub updated_at: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalEnvironmentActivationGate {
+    #[prost(string, tag = "1")]
+    pub consumer_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub pack_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub detail: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "6")]
+    pub blocking_dependencies: ::prost::alloc::vec::Vec<LocalEnvironmentPlanDependency>,
+    #[prost(message, repeated, tag = "7")]
+    pub dependencies: ::prost::alloc::vec::Vec<LocalEnvironmentPlanDependency>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalExecutionOptionDescriptor {
     #[prost(string, tag = "1")]
     pub entry_id: ::prost::alloc::string::String,

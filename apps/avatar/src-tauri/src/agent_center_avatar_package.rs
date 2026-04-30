@@ -6,10 +6,16 @@ use sha2::{Digest, Sha256};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct ModelManifest {
+    pub(crate) kind: String,
     pub(crate) runtime_dir: String,
     pub(crate) model_id: String,
-    pub(crate) model3_json_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) model3_json_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) vrm_file_path: Option<String>,
     pub(crate) nimi_dir: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) motion_presets_dir: Option<String>,
     pub(crate) adapter_manifest_path: Option<String>,
 }
 
@@ -256,8 +262,8 @@ fn read_selected_avatar_package(
         .selected_package
         .ok_or_else(|| "avatar package is not selected".to_string())?;
     let kind = selected.kind.trim().to_string();
-    if kind != "live2d" {
-        return Err("avatar package loader currently supports Live2D packages only".to_string());
+    if kind != "live2d" && kind != "vrm" {
+        return Err("avatar_package_kind must be live2d or vrm".to_string());
     }
     let package_id = validate_avatar_package_id(&selected.package_id, kind.as_str())?;
     let _ = (
@@ -334,11 +340,22 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
     }
     if !is_safe_package_relative_path(&manifest.entry_file)
         || !manifest.entry_file.starts_with("files/")
-        || !manifest.entry_file.ends_with(".model3.json")
     {
-        return Err(
-            "avatar package entry_file must point at a Live2D model3 file under files/".to_string(),
-        );
+        return Err("avatar package entry_file must point under files/".to_string());
+    }
+    match kind.as_str() {
+        "live2d" if !manifest.entry_file.ends_with(".model3.json") => {
+            return Err(
+                "avatar package entry_file must point at a Live2D model3 file under files/"
+                    .to_string(),
+            );
+        }
+        "vrm" if !manifest.entry_file.ends_with(".vrm") => {
+            return Err(
+                "avatar package entry_file must point at a VRM file under files/".to_string(),
+            );
+        }
+        _ => {}
     }
     if !manifest
         .required_files
@@ -360,8 +377,14 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
         .iter()
         .find(|file| file.path == manifest.entry_file)
         .ok_or_else(|| "avatar package files must describe entry_file".to_string())?;
-    if entry_file_record.mime != "application/json" {
-        return Err("avatar package entry_file must be application/json".to_string());
+    match kind.as_str() {
+        "live2d" if entry_file_record.mime != "application/json" => {
+            return Err("avatar package entry_file must be application/json".to_string());
+        }
+        "vrm" if entry_file_record.mime != "model/vrm" => {
+            return Err("avatar package entry_file must be model/vrm".to_string());
+        }
+        _ => {}
     }
     if !entry_file_record
         .sha256
@@ -391,12 +414,20 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
         .parent()
         .ok_or_else(|| "avatar package entry_file has no parent directory".to_string())?
         .to_path_buf();
-    let model_id = canonical_entry_path
-        .file_name()
-        .and_then(|value| value.to_str())
-        .and_then(|value| value.strip_suffix(".model3.json"))
-        .ok_or_else(|| "failed to infer model_id from package entry_file".to_string())?
-        .to_string();
+    let model_id = match kind.as_str() {
+        "live2d" => canonical_entry_path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .and_then(|value| value.strip_suffix(".model3.json"))
+            .ok_or_else(|| "failed to infer model_id from package entry_file".to_string())?
+            .to_string(),
+        "vrm" => canonical_entry_path
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| "failed to infer model_id from package entry_file".to_string())?
+            .to_string(),
+        _ => return Err("avatar_package_kind must be live2d or vrm".to_string()),
+    };
     let nimi_dir = {
         let candidate = runtime_dir.join("nimi");
         if candidate.is_dir() {
@@ -407,7 +438,15 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
     };
     let adapter_manifest_path = {
         let candidate = runtime_dir.join("nimi").join("live2d-adapter.json");
-        if candidate.is_file() {
+        if kind == "live2d" && candidate.is_file() {
+            Some(candidate.display().to_string())
+        } else {
+            None
+        }
+    };
+    let motion_presets_dir = {
+        let candidate = runtime_dir.join("vrm-motion-presets");
+        if kind == "vrm" && candidate.is_dir() {
             Some(candidate.display().to_string())
         } else {
             None
@@ -424,10 +463,21 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
         manifest.import.source_fingerprint,
     );
     Ok(ModelManifest {
+        kind,
         runtime_dir: runtime_dir.display().to_string(),
         model_id,
-        model3_json_path: canonical_entry_path.display().to_string(),
+        model3_json_path: if manifest.entry_file.ends_with(".model3.json") {
+            Some(canonical_entry_path.display().to_string())
+        } else {
+            None
+        },
+        vrm_file_path: if manifest.entry_file.ends_with(".vrm") {
+            Some(canonical_entry_path.display().to_string())
+        } else {
+            None
+        },
         nimi_dir,
+        motion_presets_dir,
         adapter_manifest_path,
     })
 }

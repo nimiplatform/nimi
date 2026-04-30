@@ -185,7 +185,10 @@ export default defineConfig(() => {
             if (normalizedId.includes('/react-dom/') || normalizedId.includes('/react/') || normalizedId.includes('/scheduler/')) {
               return 'vendor-react';
             }
-            if (normalizedId.includes('/zustand/')) {
+            if (
+              normalizedId.includes('/zustand/') ||
+              normalizedId.includes('/use-sync-external-store/')
+            ) {
               return 'vendor-state';
             }
             if (normalizedId.includes('/@protobuf-ts/')) {

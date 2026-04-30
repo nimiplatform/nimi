@@ -4,14 +4,13 @@
 // resolved package and returns a discriminated union the rest of the
 // renderer consumes (BackendBranch factory + carrier wiring).
 //
-// The platform-side resolver (`nimi_avatar_resolve_model`) currently only
-// handles Live2D packages; VRM Tauri-side detection lands in a follow-up
-// wave-1 step, at which point this module flips between the live2d / vrm
-// kinds based on the resolved package contents.
+// The Tauri resolver returns the selected Agent Center package kind so this
+// module can produce the backend-discriminated manifest consumed by the
+// BackendBranch factory.
 
+import { invoke } from '@tauri-apps/api/core';
 import {
   resolveModelManifest as resolveLive2DTauriManifest,
-  resolveAgentCenterAvatarPackageManifest as resolveLive2DAgentCenterPackageManifest,
   type AgentCenterAvatarPackageReference,
   type ModelManifest as Live2DTauriManifest,
 } from '../live2d/model-loader.js';
@@ -44,6 +43,30 @@ export type AvatarModelManifest = Live2DAvatarModelManifest | VrmAvatarModelMani
 
 export type { AgentCenterAvatarPackageReference };
 
+type TauriAvatarModelManifest = {
+  kind?: string;
+  runtime_dir?: string;
+  model_id?: string;
+  model3_json_path?: string | null;
+  vrm_file_path?: string | null;
+  nimi_dir?: string | null;
+  motion_presets_dir?: string | null;
+  adapter_manifest_path?: string | null;
+};
+
+function readRequiredString(value: unknown, field: string): string {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) {
+    throw new Error(`avatar model manifest missing ${field}`);
+  }
+  return normalized;
+}
+
+function readOptionalString(value: unknown): string | null {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return normalized || null;
+}
+
 export function fromLive2DTauriManifest(raw: Live2DTauriManifest): Live2DAvatarModelManifest {
   return {
     kind: 'live2d',
@@ -58,6 +81,40 @@ export function fromLive2DTauriManifest(raw: Live2DTauriManifest): Live2DAvatarM
   };
 }
 
+export function fromTauriAvatarModelManifest(raw: TauriAvatarModelManifest): AvatarModelManifest {
+  const kind = readRequiredString(raw.kind, 'kind');
+  const runtimeDir = readRequiredString(raw.runtime_dir, 'runtime_dir');
+  const modelId = readRequiredString(raw.model_id, 'model_id');
+  const nimiDir = readOptionalString(raw.nimi_dir);
+  if (kind === 'live2d') {
+    return {
+      kind: 'live2d',
+      modelId,
+      runtimeDir,
+      nimiDir,
+      posterPath: null,
+      live2d: {
+        modelJson: readRequiredString(raw.model3_json_path, 'model3_json_path'),
+        adapterManifestPath: readOptionalString(raw.adapter_manifest_path),
+      },
+    };
+  }
+  if (kind === 'vrm') {
+    return {
+      kind: 'vrm',
+      modelId,
+      runtimeDir,
+      nimiDir,
+      posterPath: null,
+      vrm: {
+        vrmFile: readRequiredString(raw.vrm_file_path, 'vrm_file_path'),
+        motionPresetsDir: readOptionalString(raw.motion_presets_dir),
+      },
+    };
+  }
+  throw new Error(`avatar model manifest kind is not admitted: ${kind}`);
+}
+
 export async function resolveAvatarModelManifest(modelPath: string): Promise<AvatarModelManifest> {
   const raw = await resolveLive2DTauriManifest(modelPath);
   return fromLive2DTauriManifest(raw);
@@ -66,6 +123,8 @@ export async function resolveAvatarModelManifest(modelPath: string): Promise<Ava
 export async function resolveAgentCenterAvatarPackageManifest(
   reference: AgentCenterAvatarPackageReference,
 ): Promise<AvatarModelManifest> {
-  const raw = await resolveLive2DAgentCenterPackageManifest(reference);
-  return fromLive2DTauriManifest(raw);
+  const raw = await invoke<TauriAvatarModelManifest>('nimi_avatar_resolve_agent_center_avatar_package', {
+    payload: reference,
+  });
+  return fromTauriAvatarModelManifest(raw);
 }

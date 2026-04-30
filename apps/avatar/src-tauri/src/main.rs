@@ -537,6 +537,48 @@ async fn nimi_avatar_resolve_model(path: String) -> Result<ModelManifest, String
     if !root.exists() {
         return Err(format!("model path does not exist: {}", path));
     }
+    if root.is_file()
+        && root
+            .file_name()
+            .and_then(|value| value.to_str())
+            .is_some_and(|name| name.ends_with(".vrm"))
+    {
+        let runtime_dir = root
+            .parent()
+            .ok_or_else(|| "VRM model file has no parent directory".to_string())?
+            .to_path_buf();
+        let model_id = root
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| "failed to infer model_id from VRM file".to_string())?
+            .to_string();
+        let nimi_dir = {
+            let candidate = runtime_dir.join("nimi");
+            if candidate.is_dir() {
+                Some(candidate.display().to_string())
+            } else {
+                None
+            }
+        };
+        let motion_presets_dir = {
+            let candidate = runtime_dir.join("vrm-motion-presets");
+            if candidate.is_dir() {
+                Some(candidate.display().to_string())
+            } else {
+                None
+            }
+        };
+        return Ok(ModelManifest {
+            kind: "vrm".to_string(),
+            runtime_dir: runtime_dir.display().to_string(),
+            model_id,
+            model3_json_path: None,
+            vrm_file_path: Some(root.display().to_string()),
+            nimi_dir,
+            motion_presets_dir,
+            adapter_manifest_path: None,
+        });
+    }
     let runtime_dir = resolve_runtime_dir(&root)?;
     let mut model3_json: Option<PathBuf> = None;
     for entry in fs::read_dir(&runtime_dir).map_err(|e| e.to_string())? {
@@ -573,10 +615,13 @@ async fn nimi_avatar_resolve_model(path: String) -> Result<ModelManifest, String
         }
     };
     Ok(ModelManifest {
+        kind: "live2d".to_string(),
         runtime_dir: runtime_dir.display().to_string(),
         model_id,
-        model3_json_path: model3.display().to_string(),
+        model3_json_path: Some(model3.display().to_string()),
+        vrm_file_path: None,
         nimi_dir,
+        motion_presets_dir: None,
         adapter_manifest_path,
     })
 }
