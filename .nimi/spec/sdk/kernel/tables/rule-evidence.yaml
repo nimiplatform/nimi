@@ -536,6 +536,10 @@ rules:
     status: covered
     evidence_refs: [sdk_kernel_consistency]
     note: "Admitted authority for SDK login adapter surface (Runtime BeginLogin/CompleteLogin pass-through). SDK code projection depends on the active owner switch."
+  - rule_id: S-RUNTIME-111
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Admitted authority for runtime.artifacts.readBytes generic by-id artifact bytes retrieval (avatar wave-0; admitted by 2026-04-30-avatar-vrm-backend-branch). SDK projection depends on Runtime class wire + RuntimeArtifactService proto."
 
   # --- World Contract (S-WORLD) ---
   - rule_id: S-WORLD-001

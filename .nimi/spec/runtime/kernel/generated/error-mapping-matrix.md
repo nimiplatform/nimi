@@ -140,3 +140,8 @@
 | `KNOWLEDGE_LINK_INVALID` | `INVALID_ARGUMENT` | `add_knowledge_link_invalid_same_bank_relation` | `grpc_status` | `K-KNOW-005` |
 | `KNOWLEDGE_GRAPH_DEPTH_INVALID` | `INVALID_ARGUMENT` | `traverse_knowledge_graph_invalid_depth` | `grpc_status` | `K-KNOW-005` |
 | `KNOWLEDGE_INGEST_TASK_NOT_FOUND` | `NOT_FOUND` | `get_knowledge_ingest_task_missing` | `grpc_status` | `K-KNOW-005` |
+| `ARTIFACT_INVALID_INPUT` | `INVALID_ARGUMENT` | `read_artifact_bytes_invalid_request` | `grpc_status` | `K-AGCORE-053` |
+| `ARTIFACT_NOT_FOUND` | `NOT_FOUND` | `read_artifact_bytes_artifact_missing` | `grpc_status` | `K-AGCORE-053` |
+| `ARTIFACT_TOO_LARGE` | `RESOURCE_EXHAUSTED` | `read_artifact_bytes_inline_size_cap` | `grpc_status` | `K-AGCORE-053` |
+| `ARTIFACT_FORBIDDEN` | `PERMISSION_DENIED` | `read_artifact_bytes_acl_violation` | `grpc_status` | `K-AGCORE-053` |
+| `ARTIFACT_MIME_MISMATCH` | `FAILED_PRECONDITION` | `read_artifact_bytes_mime_prefix_mismatch` | `grpc_status` | `K-AGCORE-053` |

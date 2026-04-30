@@ -424,3 +424,27 @@ local first-party login UX 由 kit / Desktop 提供 UX，登录结果通过 Runt
 - SDK 必须把 Runtime 返回的 UX instruction envelope（不含 PKCE verifier）原样投影给 kit / Desktop。
 - SDK 必须把 `CompleteLogin` proof envelope 视为不透明字节包，不得检查、解析或重写 token 字段。
 - 登录失败 reason code 必须按 `K-ACCSVC-008` 投影；不得合并、改写、或以 anonymous fallback 替代。
+
+## S-RUNTIME-111 Runtime Artifacts Bytes Retrieval
+
+> Upstream Runtime authority: `K-AGCORE-053`（`runtime-artifact-contract.md`）。
+
+SDK 必须暴露通用 artifact bytes 取回 surface，与 typed media projection 体系（`S-RUNTIME-073`）正交。avatar 等 first-party app 用此 surface 按 `audio_artifact_id`（来自 `voice_playback_requested.detail`）/ `lipsync_frame_batch.detail` 取回 runtime-emitted artifact 的原始 bytes，用于本地 audio decode + wLipSync 等下游消费。
+
+固定规则：
+
+- SDK 必须以 `Runtime` class `readonly artifacts: RuntimeArtifactsModule` 字段暴露 `runtime.artifacts.readBytes({ artifactId, expectedMimePrefix? }): Promise<{ bytes: ArrayBuffer; mimeType: string; sizeBytes: number; mimeInferred: boolean }>` 稳定 high-level convenience API。
+- SDK 必须以 `Runtime['client']` / RPC binding 形态暴露底层 `runtimeClient.readArtifactBytes(request: ReadArtifactBytesRequest, options?: RuntimeCallOptions): Promise<ReadArtifactBytesResponse>`，绑定到 `RuntimeArtifactService.ReadArtifactBytes` proto method id。
+- SDK 不得以 singleton const（如 `export const runtime = { artifacts }`）形式暴露 artifacts namespace；必须通过 Runtime class 实例化路径（`new Runtime(options)` 或 `createLocalFirstPartyRuntimePlatformClient(...)`）。
+- `expectedMimePrefix` 用于 SDK fail-fast：runtime 返回 `mime_type` 不以 prefix 开头（case-insensitive）时，SDK throw `NimiError(reasonCode: ARTIFACT_MIME_MISMATCH)`，不暴露 bytes。
+- SDK 必须在该 surface 上 enforce `fallback: 'deny'`（与 `runtime.media.*` 同 policy）；不允许调用方修改 fallback policy。
+- SDK 必须把 `ARTIFACT_INVALID_INPUT` / `ARTIFACT_NOT_FOUND` / `ARTIFACT_TOO_LARGE` / `ARTIFACT_FORBIDDEN` / `ARTIFACT_MIME_MISMATCH`（`K-AGCORE-053`）作为稳定 reason code，必须 fail-close 透传到 caller；不得返回空 bytes / 默认 mime / 假装成功。
+- SDK runtime client 不得在 mime 缺失时填默认值；mime 必须由 runtime 端打 `mime_inferred: true`。
+- 此 surface 不替代 `getScenarioArtifacts(jobId)`（job-typed projection；S-RUNTIME-073）或 `getVoiceAsset(GetVoiceAssetRequest)`（voice asset library）；用例正交，三者并存。
+- `runtime.artifacts.readBytes` 入参 `expectedMimePrefix` 仅接受 RFC-6838 合法 top-level type（`audio/`、`image/`、`video/`、`text/`、`application/`、`model/` 等）；`music/` 不是合法 top-level type（music artifacts 实际为 `audio/*`），SDK 不得 advertise 它为合法 prefix。
+
+drift check：
+
+- SDK 不得在 `readBytes` 失败时返回空 bytes、默认 mime、或假装成功路径。
+- SDK 不得为 `readBytes` 暴露 fallback / retry-on-decode-failure 旋钮（K-ERR-003 / S-RUNTIME-085 同 posture）。
+- SDK readBytes mime prefix check 必须 case-insensitive；不得 exact-match。

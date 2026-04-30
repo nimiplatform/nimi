@@ -554,3 +554,23 @@ codes:
     value: 565
     family: LOCAL_SPEECH
     source_rule: K-ERR-011
+  - name: ARTIFACT_INVALID_INPUT
+    value: 600
+    family: ARTIFACT
+    source_rule: K-AGCORE-053
+  - name: ARTIFACT_NOT_FOUND
+    value: 601
+    family: ARTIFACT
+    source_rule: K-AGCORE-053
+  - name: ARTIFACT_TOO_LARGE
+    value: 602
+    family: ARTIFACT
+    source_rule: K-AGCORE-053
+  - name: ARTIFACT_FORBIDDEN
+    value: 603
+    family: ARTIFACT
+    source_rule: K-AGCORE-053
+  - name: ARTIFACT_MIME_MISMATCH
+    value: 604
+    family: ARTIFACT
+    source_rule: K-AGCORE-053

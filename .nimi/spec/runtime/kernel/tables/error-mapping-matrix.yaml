@@ -689,3 +689,28 @@ mappings:
     surface: get_knowledge_ingest_task_missing
     exit_shape: grpc_status
     source_rule: K-KNOW-005
+  - reason_code: ARTIFACT_INVALID_INPUT
+    grpc_code: INVALID_ARGUMENT
+    surface: read_artifact_bytes_invalid_request
+    exit_shape: grpc_status
+    source_rule: K-AGCORE-053
+  - reason_code: ARTIFACT_NOT_FOUND
+    grpc_code: NOT_FOUND
+    surface: read_artifact_bytes_artifact_missing
+    exit_shape: grpc_status
+    source_rule: K-AGCORE-053
+  - reason_code: ARTIFACT_TOO_LARGE
+    grpc_code: RESOURCE_EXHAUSTED
+    surface: read_artifact_bytes_inline_size_cap
+    exit_shape: grpc_status
+    source_rule: K-AGCORE-053
+  - reason_code: ARTIFACT_FORBIDDEN
+    grpc_code: PERMISSION_DENIED
+    surface: read_artifact_bytes_acl_violation
+    exit_shape: grpc_status
+    source_rule: K-AGCORE-053
+  - reason_code: ARTIFACT_MIME_MISMATCH
+    grpc_code: FAILED_PRECONDITION
+    surface: read_artifact_bytes_mime_prefix_mismatch
+    exit_shape: grpc_status
+    source_rule: K-AGCORE-053

@@ -4581,6 +4581,11 @@ Fixed rules:
 | AI_LOCAL_SPEECH_HOST_INIT_FAILED | 563 | LOCAL_SPEECH |
 | AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED | 564 | LOCAL_SPEECH |
 | AI_LOCAL_SPEECH_BUNDLE_DEGRADED | 565 | LOCAL_SPEECH |
+| ARTIFACT_INVALID_INPUT | 600 | ARTIFACT |
+| ARTIFACT_NOT_FOUND | 601 | ARTIFACT |
+| ARTIFACT_TOO_LARGE | 602 | ARTIFACT |
+| ARTIFACT_FORBIDDEN | 603 | ARTIFACT |
+| ARTIFACT_MIME_MISMATCH | 604 | ARTIFACT |
 
 ### 13.3 Runtime — 错误映射矩阵
 
@@ -4722,6 +4727,11 @@ Fixed rules:
 | KNOWLEDGE_LINK_INVALID | INVALID_ARGUMENT | add_knowledge_link_invalid_same_bank_relation | grpc_status |
 | KNOWLEDGE_GRAPH_DEPTH_INVALID | INVALID_ARGUMENT | traverse_knowledge_graph_invalid_depth | grpc_status |
 | KNOWLEDGE_INGEST_TASK_NOT_FOUND | NOT_FOUND | get_knowledge_ingest_task_missing | grpc_status |
+| ARTIFACT_INVALID_INPUT | INVALID_ARGUMENT | read_artifact_bytes_invalid_request | grpc_status |
+| ARTIFACT_NOT_FOUND | NOT_FOUND | read_artifact_bytes_artifact_missing | grpc_status |
+| ARTIFACT_TOO_LARGE | RESOURCE_EXHAUSTED | read_artifact_bytes_inline_size_cap | grpc_status |
+| ARTIFACT_FORBIDDEN | PERMISSION_DENIED | read_artifact_bytes_acl_violation | grpc_status |
+| ARTIFACT_MIME_MISMATCH | FAILED_PRECONDITION | read_artifact_bytes_mime_prefix_mismatch | grpc_status |
 
 ### 13.4 Cognition — Artifact Families
 

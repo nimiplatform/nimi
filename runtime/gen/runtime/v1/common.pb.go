@@ -183,6 +183,12 @@ const (
 	ReasonCode_KNOWLEDGE_LINK_INVALID                  ReasonCode = 543
 	ReasonCode_KNOWLEDGE_GRAPH_DEPTH_INVALID           ReasonCode = 544
 	ReasonCode_KNOWLEDGE_INGEST_TASK_NOT_FOUND         ReasonCode = 545
+	// ARTIFACT family (600+) — K-AGCORE-053 runtime-artifact-contract
+	ReasonCode_ARTIFACT_INVALID_INPUT ReasonCode = 600
+	ReasonCode_ARTIFACT_NOT_FOUND     ReasonCode = 601
+	ReasonCode_ARTIFACT_TOO_LARGE     ReasonCode = 602
+	ReasonCode_ARTIFACT_FORBIDDEN     ReasonCode = 603
+	ReasonCode_ARTIFACT_MIME_MISMATCH ReasonCode = 604
 )
 
 // Enum value maps for ReasonCode.
@@ -322,6 +328,11 @@ var (
 		543: "KNOWLEDGE_LINK_INVALID",
 		544: "KNOWLEDGE_GRAPH_DEPTH_INVALID",
 		545: "KNOWLEDGE_INGEST_TASK_NOT_FOUND",
+		600: "ARTIFACT_INVALID_INPUT",
+		601: "ARTIFACT_NOT_FOUND",
+		602: "ARTIFACT_TOO_LARGE",
+		603: "ARTIFACT_FORBIDDEN",
+		604: "ARTIFACT_MIME_MISMATCH",
 	}
 	ReasonCode_value = map[string]int32{
 		"REASON_CODE_UNSPECIFIED":                        0,
@@ -458,6 +469,11 @@ var (
 		"KNOWLEDGE_LINK_INVALID":                         543,
 		"KNOWLEDGE_GRAPH_DEPTH_INVALID":                  544,
 		"KNOWLEDGE_INGEST_TASK_NOT_FOUND":                545,
+		"ARTIFACT_INVALID_INPUT":                         600,
+		"ARTIFACT_NOT_FOUND":                             601,
+		"ARTIFACT_TOO_LARGE":                             602,
+		"ARTIFACT_FORBIDDEN":                             603,
+		"ARTIFACT_MIME_MISMATCH":                         604,
 	}
 )
 
@@ -1060,7 +1076,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xc9\"\n" +
+	"actionHint*\xce#\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1197,7 +1213,12 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1dKNOWLEDGE_LINK_ALREADY_EXISTS\x10\x9e\x04\x12\x1b\n" +
 	"\x16KNOWLEDGE_LINK_INVALID\x10\x9f\x04\x12\"\n" +
 	"\x1dKNOWLEDGE_GRAPH_DEPTH_INVALID\x10\xa0\x04\x12$\n" +
-	"\x1fKNOWLEDGE_INGEST_TASK_NOT_FOUND\x10\xa1\x04\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +
+	"\x1fKNOWLEDGE_INGEST_TASK_NOT_FOUND\x10\xa1\x04\x12\x1b\n" +
+	"\x16ARTIFACT_INVALID_INPUT\x10\xd8\x04\x12\x17\n" +
+	"\x12ARTIFACT_NOT_FOUND\x10\xd9\x04\x12\x17\n" +
+	"\x12ARTIFACT_TOO_LARGE\x10\xda\x04\x12\x17\n" +
+	"\x12ARTIFACT_FORBIDDEN\x10\xdb\x04\x12\x1b\n" +
+	"\x16ARTIFACT_MIME_MISMATCH\x10\xdc\x04\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +

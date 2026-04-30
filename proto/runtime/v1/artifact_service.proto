@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+// RuntimeArtifactService provides generic by-id artifact bytes retrieval for
+// runtime-emitted artifacts (audio / image / video / music / etc.).
+//
+// Authority: K-AGCORE-053 (.nimi/spec/runtime/kernel/runtime-artifact-contract.md)
+// SDK consume surface: S-RUNTIME-111 (.nimi/spec/sdk/kernel/runtime-contract.md)
+//
+// Use cases:
+// - avatar app reads voice_playback_requested.audio_artifact_id bytes for
+//   wLipSync analysis + AudioContext decode + speaker output.
+// - future image/video/music consumers read by id without depending on
+//   ScenarioJob (artifacts may originate from realtime, cache, streaming TTS,
+//   local voice engine, or user upload).
+//
+// Orthogonal to:
+// - RuntimeAiService.GetScenarioArtifacts (job-typed media projection;
+//   S-RUNTIME-073)
+// - RuntimeAiService.GetVoiceAsset (voice asset library)
+// - RuntimeAiService.UploadArtifact (write-side; distinct semantics)
+//
+// Trust model: same as existing getScenarioArtifacts/getVoiceAsset
+// (single-process / single-user / single-tenant). Multi-tenant ACL is
+// reserved future; ARTIFACT_FORBIDDEN reason code admitted but never
+// returned by current deployment.
+service RuntimeArtifactService {
+  // Read artifact bytes by runtime-owned artifact_id.
+  //
+  // Reason codes (admitted in common.proto ARTIFACT family 600+):
+  // - ARTIFACT_INVALID_INPUT (codes.InvalidArgument): empty/malformed artifact_id
+  // - ARTIFACT_NOT_FOUND (codes.NotFound): id not in runtime storage
+  // - ARTIFACT_TOO_LARGE (codes.ResourceExhausted): exceeds 32 MiB inline cap
+  // - ARTIFACT_FORBIDDEN (codes.PermissionDenied): multi-tenant ACL violation
+  //   (reserved; current single-runtime deployment never returns this)
+  //
+  // ARTIFACT_MIME_MISMATCH is SDK-side only (client expectedMimePrefix check);
+  // server never returns it.
+  //
+  // Inline retrieval is hard-capped at 32 MiB; chunked retrieval is reserved
+  // for follow-up platform topic.
+  //
+  // Errors must be returned via grpcerr.WithReasonCode(codes.X,
+  // runtimev1.ReasonCode_ARTIFACT_*) per K-ERR-003 (ReasonCode in ErrorInfo
+  // details, not status message string).
+  rpc ReadArtifactBytes(ReadArtifactBytesRequest) returns (ReadArtifactBytesResponse) {}
+}
+
+message ReadArtifactBytesRequest {
+  // Runtime-owned, opaque, globally-unique artifact identity. Required.
+  // Sourced from runtime emit events (e.g.
+  // voice_playback_requested.audio_artifact_id,
+  // lipsync_frame_batch.audio_artifact_id).
+  string artifact_id = 1;
+}
+
+message ReadArtifactBytesResponse {
+  // Full artifact body. Inline-capped at 32 MiB (hard ceiling; larger
+  // artifacts return ARTIFACT_TOO_LARGE).
+  bytes bytes = 1;
+
+  // RFC-6838 media type. Required (must be present even if upstream
+  // provider didn't declare one; runtime fills "application/octet-stream"
+  // in that case but flags mime_inferred=true).
+  string mime_type = 2;
+
+  // Artifact total size in bytes.
+  int64 size_bytes = 3;
+
+  // True if mime_type was runtime-inferred rather than provider-declared.
+  // Consumers may log/observe but typically still consume.
+  bool mime_inferred = 4;
+}

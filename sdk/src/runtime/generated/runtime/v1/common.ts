@@ -732,7 +732,29 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: KNOWLEDGE_INGEST_TASK_NOT_FOUND = 545;
      */
-    KNOWLEDGE_INGEST_TASK_NOT_FOUND = 545
+    KNOWLEDGE_INGEST_TASK_NOT_FOUND = 545,
+    /**
+     * ARTIFACT family (600+) — K-AGCORE-053 runtime-artifact-contract
+     *
+     * @generated from protobuf enum value: ARTIFACT_INVALID_INPUT = 600;
+     */
+    ARTIFACT_INVALID_INPUT = 600,
+    /**
+     * @generated from protobuf enum value: ARTIFACT_NOT_FOUND = 601;
+     */
+    ARTIFACT_NOT_FOUND = 601,
+    /**
+     * @generated from protobuf enum value: ARTIFACT_TOO_LARGE = 602;
+     */
+    ARTIFACT_TOO_LARGE = 602,
+    /**
+     * @generated from protobuf enum value: ARTIFACT_FORBIDDEN = 603;
+     */
+    ARTIFACT_FORBIDDEN = 603,
+    /**
+     * @generated from protobuf enum value: ARTIFACT_MIME_MISMATCH = 604;
+     */
+    ARTIFACT_MIME_MISMATCH = 604
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

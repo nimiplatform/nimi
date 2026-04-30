@@ -1602,6 +1602,10 @@
 - rule_id: K-AGCORE-052
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-AGCORE-053
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+  note: "Runtime artifact bytes retrieval; admitted by 2026-04-30-avatar-vrm-backend-branch wave-0"
 - rule_id: K-RPC-004a
   status: deferred
   evidence_refs: []
