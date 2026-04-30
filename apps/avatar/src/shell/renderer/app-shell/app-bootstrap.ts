@@ -1,4 +1,5 @@
 import { createLocalFirstPartyRuntimePlatformClient } from '@nimiplatform/sdk';
+import { getSharedAudioPipelineController } from '../audio/audio-pipeline.js';
 import {
   AccountCallerMode,
   type AccountCaller,
@@ -6,7 +7,7 @@ import {
 import { getDaemonStatus, getRuntimeDefaults, hasTauriInvoke, startDaemon } from '@renderer/bridge';
 import { startAvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
-import { resolveAgentCenterAvatarPackageManifest } from '../live2d/model-loader.js';
+import { resolveAgentCenterAvatarPackageManifest } from '../carrier/model-resolver.js';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { readAvatarShellSettings } from '../settings-state.js';
 import type { AgentDataDriver } from '../driver/types.js';
@@ -407,6 +408,13 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           },
         }));
         const runtime = platformClient.runtime;
+        // Wave_1 step_4: hand the SDK Runtime instance to the shared
+        // audio pipeline so AudioPipelineController.play() can resolve
+        // `runtime.artifacts.readBytes` (S-RUNTIME-111). Idempotent —
+        // first non-null wins; subsequent rebinds (e.g. logout/login)
+        // are dropped to keep a single Runtime authority over voice
+        // playback for this session.
+        getSharedAudioPipelineController().setRuntime(runtime);
         const accountCaller = createAvatarAccountCaller(runtimeAppId);
         const accountStatus = await runFirstPartyStage('account_session_status', () => runtime.account.getAccountSessionStatus({ caller: accountCaller }));
         const accountId = readNormalizedString(accountStatus.accountProjection?.accountId);

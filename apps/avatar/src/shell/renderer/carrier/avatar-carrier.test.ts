@@ -223,12 +223,7 @@ describe('avatar runtime carrier', () => {
       driver,
       modelPath: '/models/ren',
     });
-    const commands: string[] = [];
-    const unsubscribeCommand = carrier.commandBus.on('command', (command) => {
-      if (command.kind === 'motion') {
-        commands.push(command.group);
-      }
-    });
+    backendApplyCommandMock.mockClear();
 
     driver.trigger({
       event_id: 'event-1',
@@ -242,6 +237,10 @@ describe('avatar runtime carrier', () => {
       },
     });
     await Promise.resolve();
+    const commands: string[] = backendApplyCommandMock.mock.calls
+      .map((call) => call[0] as { kind: string; group?: string })
+      .filter((command) => command.kind === 'motion')
+      .map((command) => command.group ?? '');
 
     expect(resolveModelManifestMock).toHaveBeenCalledWith('/models/ren');
     expect(scanNasHandlersMock).not.toHaveBeenCalled();
@@ -261,7 +260,6 @@ describe('avatar runtime carrier', () => {
     });
     expect(commands).toEqual(['Activity_Happy']);
 
-    unsubscribeCommand();
     carrier.shutdown();
   });
 
@@ -287,12 +285,7 @@ describe('avatar runtime carrier', () => {
       driver,
       modelPath: '/models/ren',
     });
-    const commands: string[] = [];
-    const unsubscribeCommand = carrier.commandBus.on('command', (command) => {
-      if (command.kind === 'motion') {
-        commands.push(command.group);
-      }
-    });
+    backendApplyCommandMock.mockClear();
 
     driver.trigger({
       event_id: 'event-adapter-greet',
@@ -306,10 +299,13 @@ describe('avatar runtime carrier', () => {
       },
     });
     await Promise.resolve();
+    const commands: string[] = backendApplyCommandMock.mock.calls
+      .map((call) => call[0] as { kind: string; group?: string })
+      .filter((command) => command.kind === 'motion')
+      .map((command) => command.group ?? '');
 
     expect(commands).toEqual(['RenWave']);
 
-    unsubscribeCommand();
     carrier.shutdown();
   });
 

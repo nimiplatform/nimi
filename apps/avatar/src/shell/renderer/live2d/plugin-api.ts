@@ -82,6 +82,17 @@ async function runLive2DDefaultActivityFallback(
   }
 }
 
+/**
+ * @deprecated Wave_1 step_4: this builder is kept only as the
+ * transitional `EmbodimentProjectionApi` source for the existing NAS
+ * handler sandbox + `interaction-physics` callers. New projection
+ * routing MUST go through `live2d-projection-adapter.ts`
+ * (BackendProjection ontology surface) and the
+ * `Live2DBackendExtension.setParameter` escape hatch on the
+ * BackendBranch. Removal lands once the sandbox / default-fallback /
+ * continuous-scheduler migrate to input-object signature handlers
+ * that consume BackendProjection directly (follow-up wave_1 step).
+ */
 export function createLive2DBackendApi(context: PluginApiContext): EmbodimentProjectionApi {
   return {
     async triggerMotion(motionId, opts = {}) {

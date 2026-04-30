@@ -163,7 +163,10 @@ export function App() {
   }, []);
 
   const getEmbodimentBounds = useCallback(() => {
-    const bounds = bootstrapHandle?.carrier?.projection?.getSurfaceBounds?.() ?? null;
+    // Wave_1 step_4: bounds are sourced from the active BackendBranch
+    // (`backend.nominalBounds`) so the window resize loop is decoupled
+    // from the Live2D-specific projection-api.getSurfaceBounds path.
+    const bounds = bootstrapHandle?.carrier?.backend?.nominalBounds ?? null;
     if (!bounds || bounds.width <= 0 || bounds.height <= 0) {
       return null;
     }
@@ -528,7 +531,7 @@ export function App() {
   return (
     <div className={shellClass} data-testid="avatar-root" data-composition={composition.state}>
       <EmbodimentStage
-        visualSession={bootstrapHandle?.carrier?.backendSession ?? null}
+        backend={bootstrapHandle?.carrier?.backend ?? null}
         windowSize={shell.windowSize ?? { width: 400, height: 600 }}
         embodied={composition.ready}
         compositionState={composition.state}

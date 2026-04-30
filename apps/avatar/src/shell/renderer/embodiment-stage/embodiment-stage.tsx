@@ -5,8 +5,7 @@
 // state is `ready` or `fixture_active`; it is hard-cut unmounted under any
 // degraded / loading / error / relaunch-pending state.
 
-import { useEffect, useMemo, useRef } from 'react';
-import { Live2DCarrierVisualSurface } from '../live2d/Live2DCarrierVisualSurface.js';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   createAvatarHitRegionSnapshot,
   rectFromElement,
@@ -20,12 +19,22 @@ import {
 } from '../app-shell/tauri-commands.js';
 import { isTauriRuntime } from '../app-shell/tauri-lifecycle.js';
 import { useSurfaceMountEvidence } from '../app-shell/composition-events.js';
+import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
 import { isInteractiveTarget } from '../avatar-shell-utils.js';
-import type { Live2DBackendSession } from '../live2d/backend-session.js';
 import type { AppOriginEvent } from '../driver/types.js';
+import type {
+  BackendAudioConsumer,
+  BackendBranch,
+  BackendHitRegion,
+} from '../carrier/backend-branch.js';
+import { getSharedAudioPipelineController } from '../audio/audio-pipeline.js';
 
 export type EmbodimentStageProps = {
-  visualSession: Live2DBackendSession | null;
+  /** Active BackendBranch supplying the surface component, audio
+   *  consumer, and hit-region snapshots. `null` while bootstrap is in
+   *  flight; the parent must not mount the stage before composition
+   *  reaches a `ready` / `fixture_active` posture. */
+  backend: BackendBranch | null;
   windowSize: { width: number; height: number };
   embodied: boolean;
   // composition state (NAV-SHELL-COMPOSITION-001) at the time the surface is
@@ -41,7 +50,7 @@ export type EmbodimentStageProps = {
 
 export function EmbodimentStage(props: EmbodimentStageProps) {
   const {
-    visualSession,
+    backend,
     windowSize,
     embodied,
     compositionState,
@@ -53,6 +62,75 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   } = props;
 
   useSurfaceMountEvidence('embodiment-stage', compositionState);
+
+  // ── BackendSurface lifecycle wiring (wave_1 step_4) ─────────────────────
+  // The active BackendBranch exposes a Component that publishes three
+  // lifecycle channels: audio-consumer, hit-region, evidence. Each one
+  // bridges into an existing app-shell concern:
+  //   * onAudioConsumerReady → register sink with the shared audio
+  //     pipeline (lipsync), unregister on backend swap / unmount.
+  //   * onHitRegionChange    → throttle through setIgnoreCursorEvents so
+  //     OS-level click-through follows the carrier's bbox snapshot.
+  //   * onLifecycleEvidence  → record into the avatar evidence stream so
+  //     mounted/unmounted/load-error transitions surface in telemetry.
+  const sinkRegistrationRef = useRef<(() => void) | null>(null);
+  const lastClickThroughRef = useRef<boolean | null>(null);
+
+  const handleAudioConsumerReady = useCallback(
+    (consumer: BackendAudioConsumer) => {
+      // Tear down any prior registration before installing the new sink.
+      sinkRegistrationRef.current?.();
+      const audioPipeline = getSharedAudioPipelineController();
+      sinkRegistrationRef.current = audioPipeline.registerLipsyncSink(consumer);
+    },
+    [],
+  );
+
+  const handleHitRegionChange = useCallback(
+    (region: BackendHitRegion) => {
+      // Throttle: only flip click-through when the bbox/alpha-mask
+      // dispostion actually changed. Wave_1 only ships a bbox path
+      // (alpha-mask deferred), so we approximate "interactive vs
+      // pass-through" as "any non-zero body rect → capture cursor".
+      const interactive =
+        region.body.right > region.body.left && region.body.bottom > region.body.top;
+      const ignore = !interactive;
+      if (lastClickThroughRef.current === ignore) return;
+      lastClickThroughRef.current = ignore;
+      void setIgnoreCursorEvents(ignore);
+    },
+    [],
+  );
+
+  const handleLifecycleEvidence = useCallback(
+    (kind: string, detail: Record<string, unknown>) => {
+      // BackendSurface lifecycle events flow through the existing
+      // `avatar.carrier.visual` evidence kind; the surface lifecycle
+      // phase (`mounted` / `unmounted` / `failed_closed` / …) is
+      // carried in `detail.lifecycle` so consumers don't need a new
+      // event-contract admit at this wave.
+      recordAvatarEvidenceEventually({
+        kind: 'avatar.carrier.visual',
+        detail: {
+          source: 'embodiment-stage',
+          lifecycle: kind,
+          composition_state: compositionState,
+          ...detail,
+        },
+      });
+    },
+    [compositionState],
+  );
+
+  // Sink unregistration on unmount / backend swap.
+  useEffect(
+    () => () => {
+      sinkRegistrationRef.current?.();
+      sinkRegistrationRef.current = null;
+      lastClickThroughRef.current = null;
+    },
+    [backend],
+  );
 
   const bodyRef = useRef<HTMLDivElement | null>(null);
   // Wave 4 manual drag fallback state. macOS NSWindow with transparent +
@@ -233,7 +311,16 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         });
       }}
     >
-      <Live2DCarrierVisualSurface session={visualSession} />
+      {backend ? (
+        <backend.surface.Component
+          width={Math.max(1, windowSize.width ?? 0)}
+          height={Math.max(1, windowSize.height ?? 0)}
+          embodied={embodied}
+          onAudioConsumerReady={handleAudioConsumerReady}
+          onHitRegionChange={handleHitRegionChange}
+          onLifecycleEvidence={handleLifecycleEvidence}
+        />
+      ) : null}
       <div className="avatar-embodiment-stage__body" data-testid="avatar-body-hit-region" ref={bodyRef} />
     </section>
   );

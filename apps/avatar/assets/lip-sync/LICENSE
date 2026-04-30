@@ -1,0 +1,5 @@
+Source: airi (https://github.com/moeru-ai/airi) packages/stage-ui-three/src/assets/lip-sync-profile.json
+License: MIT (airi MIT-licensed; copy admitted by topic
+  2026-04-30-avatar-vrm-backend-branch design-05/design-11)
+This profile is the wLipSync MFCC training fingerprint used by the
+Live2D / VRM backends; it is data, not code.

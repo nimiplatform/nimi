@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { AppOriginEvent } from '../driver/types.js';
+import type { BackendKind } from '../carrier/backend-branch.js';
 import {
   activityHandlerKey,
   handlerFilenameToActivityId,
@@ -14,6 +15,7 @@ import {
 import type {
   ActivityOrEventHandler,
   ContinuousHandler,
+  NasHandlerCapability,
   RegisteredActivityHandler,
   RegisteredContinuousHandler,
   RegisteredEventHandler,
@@ -23,6 +25,35 @@ import {
   createSandboxedContinuousHandler,
   type SandboxWorkerFactory,
 } from './handler-sandbox.js';
+
+const ALLOWED_CAPABILITIES: ReadonlySet<NasHandlerCapability> = new Set([
+  'live2d-extension',
+]);
+
+function readDeclaredRequires(
+  module: { requires?: unknown },
+): NasHandlerCapability[] {
+  const raw = module.requires;
+  if (!Array.isArray(raw)) return [];
+  const out: NasHandlerCapability[] = [];
+  for (const value of raw) {
+    if (typeof value !== 'string') continue;
+    if (ALLOWED_CAPABILITIES.has(value as NasHandlerCapability)) {
+      out.push(value as NasHandlerCapability);
+    }
+  }
+  return out;
+}
+
+function backendCapabilityRejection(
+  backendKind: BackendKind | null,
+  required: readonly NasHandlerCapability[],
+): NasHandlerCapability | null {
+  if (backendKind === 'vrm' && required.includes('live2d-extension')) {
+    return 'live2d-extension';
+  }
+  return null;
+}
 
 type RustHandlerEntry = { file_stem: string; absolute_path: string };
 type RustNasManifest = {
@@ -142,6 +173,12 @@ export function disposeRegistry(registry: HandlerRegistry): void {
 export type PopulateRegistryOptions = {
   createWorker?: SandboxWorkerFactory;
   failOnError?: boolean;
+  /** Loaded backend kind. Used to reject handlers whose declared
+   *  `requires` includes a capability the backend cannot satisfy
+   *  (e.g. `live2d-extension` on a VRM model). When omitted, no
+   *  capability gating runs and all handlers pass through (legacy
+   *  callers / tests that did not opt in). */
+  backendKind?: BackendKind | null;
 };
 
 function normalizeSourcePath(path: string): string {
@@ -293,11 +330,24 @@ export async function populateRegistry(
         pushValidationError(validationErrors, `[nas] activity handler ${entry.file_stem} has no execute()`);
         continue;
       }
+      const required = readDeclaredRequires(module as { requires?: unknown });
+      const rejection = backendCapabilityRejection(
+        options.backendKind ?? null,
+        required,
+      );
+      if (rejection) {
+        const message = `[nas] activity handler ${entry.file_stem} requires '${rejection}' but backend kind is '${options.backendKind}'; rejected`;
+        console.warn(message);
+        validationErrors.push(message);
+        module.dispose?.();
+        continue;
+      }
       registry.activity.set(key, {
         kind: 'activity',
         activityId: handlerFilenameToActivityId(entry.file_stem + '.js') ?? entry.file_stem,
         handler: module,
         sourcePath: entry.absolute_path,
+        requiresLive2DExtension: required.includes('live2d-extension'),
       });
     } catch (err) {
       const message = `[nas] failed to load activity handler ${entry.file_stem}: ${err instanceof Error ? err.message : String(err)}`;
@@ -331,11 +381,24 @@ export async function populateRegistry(
         pushValidationError(validationErrors, `[nas] event handler ${entry.file_stem} has no execute()`);
         continue;
       }
+      const required = readDeclaredRequires(module as { requires?: unknown });
+      const rejection = backendCapabilityRejection(
+        options.backendKind ?? null,
+        required,
+      );
+      if (rejection) {
+        const message = `[nas] event handler ${entry.file_stem} requires '${rejection}' but backend kind is '${options.backendKind}'; rejected`;
+        console.warn(message);
+        validationErrors.push(message);
+        module.dispose?.();
+        continue;
+      }
       registry.event.set(eventName, {
         kind: 'event',
         eventName,
         handler: module,
         sourcePath: entry.absolute_path,
+        requiresLive2DExtension: required.includes('live2d-extension'),
       });
     } catch (err) {
       const message = `[nas] failed to load event handler ${entry.file_stem}: ${err instanceof Error ? err.message : String(err)}`;
@@ -364,12 +427,25 @@ export async function populateRegistry(
         continue;
       }
       const fps = typeof module.fps === 'number' && module.fps > 0 ? module.fps : 60;
+      const required = readDeclaredRequires(module as { requires?: unknown });
+      const rejection = backendCapabilityRejection(
+        options.backendKind ?? null,
+        required,
+      );
+      if (rejection) {
+        const message = `[nas] continuous handler ${entry.file_stem} requires '${rejection}' but backend kind is '${options.backendKind}'; rejected`;
+        console.warn(message);
+        validationErrors.push(message);
+        module.dispose?.();
+        continue;
+      }
       registry.continuous.set(entry.file_stem, {
         kind: 'continuous',
         id: entry.file_stem,
         fps,
         handler: module,
         sourcePath: entry.absolute_path,
+        requiresLive2DExtension: required.includes('live2d-extension'),
       });
     } catch (err) {
       const message = `[nas] failed to load continuous handler ${entry.file_stem}: ${err instanceof Error ? err.message : String(err)}`;
@@ -414,12 +490,14 @@ export async function reloadRegistry(
   input: {
     reloadMode: RegistryReloadMode;
     createWorker?: SandboxWorkerFactory;
+    backendKind?: BackendKind | null;
   },
 ): Promise<RegistryReloadResult> {
   const next = createHandlerRegistry();
   const result = await populateRegistry(next, manifest, {
     createWorker: input.createWorker,
     failOnError: true,
+    backendKind: input.backendKind ?? null,
   });
   if (result.validationErrors.length > 0 || countRegistryHandlers(next) !== countManifestHandlers(manifest)) {
     disposeRegistry(next);
@@ -457,6 +535,7 @@ export async function startNasHandlerHotReload(input: {
   registry: HandlerRegistry;
   emit: (event: AppOriginEvent) => void;
   createWorker?: SandboxWorkerFactory;
+  backendKind?: BackendKind | null;
 }): Promise<() => Promise<void>> {
   const watcherId = createNasWatcherId(input.modelId);
   const retiredRegistries: HandlerRegistry[] = [];
@@ -470,6 +549,7 @@ export async function startNasHandlerHotReload(input: {
       const result = await reloadRegistry(input.registry, manifest, {
         reloadMode: payload.reload_mode,
         createWorker: input.createWorker,
+        backendKind: input.backendKind ?? null,
       });
       if (result.retiredRegistry) {
         retiredRegistries.push(result.retiredRegistry);

@@ -1,8 +1,5 @@
 import type { AgentDataDriver } from '../driver/types.js';
-import { createCommandBus, createLive2DBackendApi, type Live2DCommandBus } from '../live2d/plugin-api.js';
-import { waitForCubismCore } from '../live2d/cubism-bootstrap.js';
-import { createLive2DBackendSession, type Live2DBackendSession } from '../live2d/backend-session.js';
-import { loadOfficialCubismFrameworkRuntime } from '../live2d/cubism-framework-runtime.js';
+import type { Live2DBackendSession } from '../live2d/backend-session.js';
 import { ContinuousScheduler, wireEventDispatch } from '../nas/event-dispatch.js';
 import { HandlerExecutor } from '../nas/handler-executor.js';
 import {
@@ -13,13 +10,10 @@ import {
   startNasHandlerHotReload,
   type HandlerRegistry,
 } from '../nas/handler-registry.js';
-import { resolveModelManifest, type ModelManifest } from '../live2d/model-loader.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
 import { wireAvatarVoiceLipsync } from '../voice-lipsync/avatar-voice-lipsync.js';
 import { recordAvatarEvidenceEventually } from '../app-shell/avatar-evidence.js';
 import { createInteractionPhysicsController } from '../live2d/interaction-physics.js';
-import { parseLive2DAdapterManifest, type Live2DAdapterManifestV1 } from '../live2d/compatibility.js';
-import { readTextFile } from '../live2d/model-loader.js';
 import {
   createLive2DCarrierVisualHost,
   Live2DCarrierVisualFrameError,
@@ -27,35 +21,24 @@ import {
   type Live2DCarrierVisualHost,
 } from '../live2d/carrier-visual-host.js';
 import type { EmbodimentProjectionApi } from '../nas/embodiment-projection-api.js';
+import {
+  resolveAvatarModelManifest,
+  type AvatarModelManifest,
+} from './model-resolver.js';
+import { createBackendBranch, type BackendBranchHandle } from './create-backend-branch.js';
+import type { BackendBranch } from './backend-branch.js';
 
 export type AvatarRuntimeCarrier = {
-  model: ModelManifest;
+  model: AvatarModelManifest;
   registry: HandlerRegistry;
-  commandBus: Live2DCommandBus;
-  backendSession: Live2DBackendSession;
-  projection: EmbodimentProjectionApi;
+  backend: BackendBranch;
   attachRuntimeDriver(driver: AgentDataDriver): Promise<void>;
   detachRuntimeDriver(): void;
   shutdown(): void;
 };
 
-const LIVE2D_NOMINAL_SURFACE_BOUNDS = Object.freeze({
-  x: 0,
-  y: 0,
-  width: 400,
-  height: 600,
-});
-
 function countHandlers(registry: HandlerRegistry): number {
   return registry.activity.size + registry.event.size + registry.continuous.size;
-}
-
-async function loadEmbeddedAdapterManifest(model: ModelManifest): Promise<Live2DAdapterManifestV1 | null> {
-  if (!model.adapterManifestPath) {
-    return null;
-  }
-  const raw = await readTextFile(model.adapterManifestPath);
-  return parseLive2DAdapterManifest(raw);
 }
 
 function timeoutAfter<T>(ms: number, message: string): Promise<T> {
@@ -175,7 +158,7 @@ async function recordBootstrapCarrierVisualProof(
 export async function startAvatarRuntimeCarrier(input: {
   driver: AgentDataDriver;
   modelPath?: string;
-  modelManifest?: ModelManifest;
+  modelManifest?: AvatarModelManifest;
 }): Promise<AvatarRuntimeCarrier> {
   const carrier = await startAvatarVisualCarrier({
     modelPath: input.modelPath,
@@ -187,7 +170,7 @@ export async function startAvatarRuntimeCarrier(input: {
 
 export async function startAvatarVisualCarrier(input: {
   modelPath?: string;
-  modelManifest?: ModelManifest;
+  modelManifest?: AvatarModelManifest;
 }): Promise<AvatarRuntimeCarrier> {
   const modelPath = input.modelPath?.trim() || input.modelManifest?.runtimeDir.trim() || '';
   if (!modelPath) {
@@ -197,9 +180,9 @@ export async function startAvatarVisualCarrier(input: {
   store.setModelPath(modelPath);
   store.setModelLoading();
 
-  let model: ModelManifest;
+  let model: AvatarModelManifest;
   try {
-    model = input.modelManifest ?? await resolveModelManifest(modelPath);
+    model = input.modelManifest ?? await resolveAvatarModelManifest(modelPath);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     store.setModelError(message);
@@ -209,37 +192,28 @@ export async function startAvatarVisualCarrier(input: {
   const registry = createHandlerRegistry();
   if (model.nimiDir) {
     const manifest = await scanNasHandlers(model.nimiDir);
-    await populateRegistry(registry, manifest);
+    await populateRegistry(registry, manifest, { backendKind: model.kind });
   }
 
-  const commandBus = createCommandBus();
   let stopNasHotReload: (() => Promise<void>) | null = null;
-  let backendSession: Live2DBackendSession;
+  let backendHandle: BackendBranchHandle;
   try {
-    const adapterManifest = await loadEmbeddedAdapterManifest(model);
-    const core = await waitForCubismCore();
-    const framework = await loadOfficialCubismFrameworkRuntime();
-    backendSession = await createLive2DBackendSession(model, { core, framework, adapterManifest });
+    backendHandle = await createBackendBranch(model);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     store.setModelError(message);
     disposeRegistry(registry);
     throw error;
   }
-  const unwireBackend = commandBus.on('command', (command) => {
-    backendSession.applyCommand(command);
-  });
-  const parameterState = new Map<string, number>();
-  const projection = createLive2DBackendApi({
-    commandBus,
-    parameterState,
-    compatibility: backendSession.compatibility,
-    bounds: () => {
-      return LIVE2D_NOMINAL_SURFACE_BOUNDS;
-    },
-  });
+
+  const commandBus = backendHandle.commandBus;
+  const backendSession = backendHandle.backendSession;
+  const legacyProjection = backendHandle.legacyProjection;
+  const interactionPhysics = legacyProjection
+    ? createInteractionPhysicsController({ projection: legacyProjection })
+    : null;
   const executor = new HandlerExecutor();
-  const interactionPhysics = createInteractionPhysicsController({ projection });
+
   let unwireDispatch: (() => void) | null = null;
   let unwireVoiceLipsync: (() => void) | null = null;
   let continuous: ContinuousScheduler | null = null;
@@ -263,8 +237,14 @@ export async function startAvatarVisualCarrier(input: {
     model_path: modelPath,
     runtime_dir: model.runtimeDir,
     nas_handler_count: countHandlers(registry),
-    compatibility_tier: backendSession.compatibility.tier,
-    adapter_id: backendSession.compatibility.adapter?.adapter_id ?? null,
+    backend_kind: backendHandle.branch.kind,
+    backend_metadata: backendHandle.branch.metadata(),
+    // Wave_1 transitional fields preserved for evidence stability; the
+    // backend-specific compatibility/adapter ids now live inside
+    // backend.metadata() per backend-branch-contract §2.8.
+    compatibility_tier:
+      backendSession?.compatibility.tier ?? null,
+    adapter_id: backendSession?.compatibility.adapter?.adapter_id ?? null,
   };
   recordAvatarEvidenceEventually({
     kind: 'avatar.visual.model-loaded',
@@ -274,14 +254,14 @@ export async function startAvatarVisualCarrier(input: {
     name: 'avatar.model.load',
     detail: modelLoadDetail,
   };
-  void recordBootstrapCarrierVisualProof(backendSession);
+  if (backendSession) {
+    void recordBootstrapCarrierVisualProof(backendSession);
+  }
 
   return {
     model,
     registry,
-    commandBus,
-    backendSession,
-    projection,
+    backend: backendHandle.branch,
     async attachRuntimeDriver(driver) {
       if (attachedDriver) {
         throw new Error('avatar visual carrier runtime driver is already attached');
@@ -293,31 +273,41 @@ export async function startAvatarVisualCarrier(input: {
           nimiDir: model.nimiDir,
           registry,
           emit: (event) => driver.emit(event),
+          backendKind: model.kind,
         });
       }
-      unwireDispatch = wireEventDispatch({
-        driver,
-        registry,
-        executor,
-        projection,
-        interactionPhysics,
-      });
+      if (legacyProjection && interactionPhysics) {
+        unwireDispatch = wireEventDispatch({
+          driver,
+          registry,
+          executor,
+          projection: legacyProjection,
+          backendProjection: backendHandle.branch.projection,
+          live2dExtension:
+            backendHandle.branch.kind === 'live2d'
+              ? backendHandle.branch.live2dExtension
+              : undefined,
+          interactionPhysics,
+        });
+      }
       // Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch: voice-lipsync
       // wiring no longer takes `projection`, `mouthSignalId`, or a caller-
       // injected byte fetcher. Audio bytes are read via
       // `runtime.artifacts.readBytes` (S-RUNTIME-111) inside
       // AudioPipelineController; per-frame mouth movement comes from
-      // BackendAudioConsumer.snapshot() once topic-internal wave_1 lands the
-      // BackendBranch carrier wiring.
+      // BackendAudioConsumer.snapshot() once the BackendBranch carrier
+      // wiring (this wave_1) lands the per-backend audio consumer.
       unwireVoiceLipsync = wireAvatarVoiceLipsync({
         driver,
       });
-      continuous = new ContinuousScheduler(
-        registry,
-        () => driver.getBundle(),
-        projection,
-      );
-      continuous.start();
+      if (legacyProjection) {
+        continuous = new ContinuousScheduler(
+          registry,
+          () => driver.getBundle(),
+          legacyProjection,
+        );
+        continuous.start();
+      }
       driver.emit(modelLoadEvent);
       recordAvatarEvidenceEventually({
         kind: 'avatar.model.load',
@@ -327,11 +317,10 @@ export async function startAvatarVisualCarrier(input: {
     detachRuntimeDriver,
     shutdown() {
       detachRuntimeDriver();
-      unwireBackend();
-      interactionPhysics.reset();
+      interactionPhysics?.reset();
       executor.cancelAll();
       disposeRegistry(registry);
-      backendSession.unload();
+      backendHandle.shutdown();
     },
   };
 }
