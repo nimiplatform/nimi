@@ -67,6 +67,81 @@ let pendingRebootstrap = false;
 let postReadyRuntimeModHydrationGeneration = 0;
 const NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS = 5_000;
 
+type RuntimeAccountProjection = {
+  accountId?: string;
+  displayName?: string;
+  realmEnvironmentId?: string;
+};
+
+function toRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function readNonEmptyString(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function mergeRuntimeAccountProjectionWithRealmProfile(input: {
+  accountProjection: RuntimeAccountProjection;
+  realmProfile: unknown;
+  currentUser: Record<string, unknown> | null;
+}): Record<string, unknown> {
+  const profile = toRecord(input.realmProfile) ?? {};
+  const currentUser = input.currentUser ?? {};
+  const accountId = readNonEmptyString(input.accountProjection.accountId);
+  const realmEnvironmentId = readNonEmptyString(input.accountProjection.realmEnvironmentId);
+  const profileId = readNonEmptyString(profile.id);
+  const displayName = readNonEmptyString(profile.displayName)
+    ?? readNonEmptyString(profile.name)
+    ?? readNonEmptyString(profile.handle)
+    ?? readNonEmptyString(input.accountProjection.displayName)
+    ?? readNonEmptyString(currentUser.displayName);
+
+  return {
+    ...currentUser,
+    ...profile,
+    id: profileId ?? accountId ?? readNonEmptyString(currentUser.id) ?? '',
+    accountId: accountId ?? readNonEmptyString(profile.accountId) ?? readNonEmptyString(currentUser.accountId) ?? '',
+    ...(displayName ? { displayName } : {}),
+    ...(realmEnvironmentId ? { realmEnvironmentId } : {}),
+  };
+}
+
+async function hydrateDesktopAccountProfile(input: {
+  accountProjection: RuntimeAccountProjection;
+  flowId: string;
+}): Promise<void> {
+  if (!readNonEmptyString(input.accountProjection.accountId)) {
+    return;
+  }
+  const realmProfile = await dataSync.loadCurrentUser();
+  const hydratedUser = mergeRuntimeAccountProjectionWithRealmProfile({
+    accountProjection: input.accountProjection,
+    realmProfile,
+    currentUser: useAppStore.getState().auth.user,
+  });
+  useAppStore.getState().setAuthSession(hydratedUser, '', undefined);
+  logRendererEvent({
+    level: 'info',
+    area: 'renderer-bootstrap',
+    message: 'phase:account-profile:hydrated',
+    flowId: input.flowId,
+    details: {
+      accountId: input.accountProjection.accountId,
+      hasDisplayName: Boolean(readNonEmptyString(hydratedUser.displayName)),
+      hasEmail: Boolean(readNonEmptyString(hydratedUser.email)),
+      hasAvatar: Boolean(readNonEmptyString(hydratedUser.avatarUrl)),
+    },
+  });
+}
+
 function createBootstrapStepTimeoutError(step: string, timeoutMs: number): Error {
   return new Error(`${step} timed out after ${timeoutMs}ms`);
 }
@@ -542,6 +617,28 @@ export function bootstrapRuntime(): Promise<void> {
       },
       isFriend: (userId: string) => isFriendInContacts(getCachedContacts(), userId),
     });
+
+    if (accountProjection?.accountId) {
+      await withBootstrapStepTimeout(
+        'account profile hydrate',
+        hydrateDesktopAccountProfile({
+          accountProjection,
+          flowId,
+        }),
+        NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
+      ).catch((error) => {
+        logRendererEvent({
+          level: 'warn',
+          area: 'renderer-bootstrap',
+          message: 'phase:account-profile:hydrate-deferred',
+          flowId,
+          details: {
+            accountId: accountProjection.accountId,
+            error: safeErrorMessage(error),
+          },
+        });
+      });
+    }
 
     startAuthStateWatcher();
 

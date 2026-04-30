@@ -73,3 +73,15 @@ test('desktop auth adapter delegates post-login sync to query invalidation (no d
   const directLoadContacts = authAdapterSource.indexOf('dataSync.loadContacts()', syncAfterLoginStart);
   assert.equal(directLoadContacts, -1, 'syncAfterLogin must not call dataSync.loadContacts() directly');
 });
+
+test('desktop runtime account browser broker waits for bootstrap before RuntimeAccountService calls', () => {
+  const beginStart = authAdapterSource.indexOf('begin: async (input: { callbackUrl: string; baseUrl?: string; timeoutMs: number }) => {');
+  assert.notEqual(beginStart, -1, 'browser broker begin handler must exist');
+  const beginBlock = authAdapterSource.slice(beginStart, authAdapterSource.indexOf('complete: async', beginStart));
+  assert.match(beginBlock, /await ensureAuthApiReady\(\);[\s\S]*runtime\.account\.beginLogin\(\{/);
+
+  const completeStart = authAdapterSource.indexOf('complete: async (input: {');
+  assert.notEqual(completeStart, -1, 'browser broker complete handler must exist');
+  const completeBlock = authAdapterSource.slice(completeStart, authAdapterSource.indexOf('export async function ensureAuthApiReady', completeStart));
+  assert.match(completeBlock, /await ensureAuthApiReady\(\);[\s\S]*runtime\.account\.completeLogin\(\{/);
+});

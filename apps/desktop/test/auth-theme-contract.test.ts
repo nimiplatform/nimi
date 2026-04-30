@@ -25,8 +25,8 @@ test('shell auth theme keeps desktop beige and relay dark scoped palettes', () =
     'auth theme must define a scoped desktop palette',
   );
   assert.ok(
-    shellAuthThemeSource.includes('--nimi-app-background: #f3f1ee;'),
-    'desktop auth palette must keep the beige background',
+    shellAuthThemeSource.includes('var(--nimi-ambient-mesh-base-start)'),
+    'desktop auth palette must consume the canonical ambient mesh background tokens',
   );
   assert.ok(
     shellAuthThemeSource.includes(".nimi-shell-auth-root[data-shell-auth-theme='relay-dark']"),

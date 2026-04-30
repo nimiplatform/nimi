@@ -42,7 +42,7 @@ function DiagnosticsKv(props: { label: string; value: string; detail?: string })
   const valueClass = isLoading
     ? 'text-sky-700'
     : isReady
-      ? 'text-emerald-700 font-semibold'
+      ? 'text-[var(--nimi-status-success)] font-semibold'
       : isMonoToken
         ? 'font-mono text-[11px] text-slate-900'
         : 'text-slate-900';
@@ -319,18 +319,18 @@ export function AgentDiagnosticsPanel(props: {
           />
         </DiagnosticsInlineField>
       </div>
-      {/* Apply renders as a solid emerald pill (the single primary action). Clear World /
+      {/* Apply renders as the single primary action. Clear World /
           Clear Dyadic are flat red-text links — no bg/border — so destructive recovery doesn't
           compete visually with Apply. Matches the Advanced page Runtime State reference. */}
       <div className="flex flex-wrap items-center gap-3 pt-1">
-        <button
+        <DesktopCompactAction
           type="button"
           onClick={() => props.onUpdateRuntimeState?.({ statusText, worldId, userId })}
           disabled={!props.onUpdateRuntimeState || mutationPending || !runtimeStateDirty}
-          className="inline-flex min-h-[36px] items-center justify-center whitespace-normal rounded-2xl bg-emerald-500 px-4 py-1.5 text-center text-[12.5px] font-semibold leading-tight text-white shadow-[0_4px_10px_rgba(16,185,129,0.25)] transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
+          tone="primary"
         >
           {t('Chat.agentDiagnosticsApplyRuntimeState', { defaultValue: 'Apply runtime state' })}
-        </button>
+        </DesktopCompactAction>
         <button
           type="button"
           onClick={() => props.onClearWorldContext?.()}
@@ -406,7 +406,7 @@ export function AgentDiagnosticsPanel(props: {
         </div>
       </div>
       {/* Apply Config (outlined, white) sits as the secondary action; Enable Autonomy is the
-          solid emerald primary. When autonomy is already on, the primary slot flips to a red
+          solid primary. When autonomy is already on, the primary slot flips to a red
           filled "Disable autonomy" so the destructive intent is unmistakable. */}
       <div className="flex flex-wrap items-center gap-2 pt-1">
         <button
@@ -427,7 +427,7 @@ export function AgentDiagnosticsPanel(props: {
             {t('Chat.disableAgentAutonomyTitle', { defaultValue: 'Disable autonomy' })}
           </button>
         ) : (
-          <button
+          <DesktopCompactAction
             type="button"
             onClick={() => props.onEnableAutonomy?.()}
             disabled={
@@ -435,10 +435,10 @@ export function AgentDiagnosticsPanel(props: {
               || mutationPending
               || runtimeStateInspect.autonomyMode === 'off'
             }
-            className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-transparent bg-emerald-500 px-4 text-[12.5px] font-semibold text-white shadow-[0_4px_10px_rgba(16,185,129,0.25)] transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
+            tone="primary"
           >
             {t('Chat.agentDiagnosticsEnableAutonomy', { defaultValue: 'Enable Autonomy' })}
-          </button>
+          </DesktopCompactAction>
         )}
       </div>
       {runtimeStateInspect.pendingHooks.length > 0 ? (
@@ -586,14 +586,14 @@ export function AgentDiagnosticsPanel(props: {
               </DiagnosticsFieldLabel>
             </div>
             <div className="flex flex-wrap items-center gap-3 pt-1">
-              <button
+              <DesktopCompactAction
                 type="button"
                 onClick={() => props.onUpdateRuntimeState?.({ statusText, worldId, userId })}
                 disabled={!props.onUpdateRuntimeState || mutationPending || !runtimeStateDirty}
-                className="inline-flex min-h-[36px] items-center justify-center whitespace-normal rounded-2xl bg-emerald-500 px-4 py-1.5 text-center text-[12.5px] font-semibold leading-tight text-white shadow-[0_4px_10px_rgba(16,185,129,0.25)] transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
+                tone="primary"
               >
                 {t('Chat.agentDiagnosticsApplyRuntimeState', { defaultValue: 'Apply runtime state' })}
-              </button>
+              </DesktopCompactAction>
               <button
                 type="button"
                 onClick={() => props.onClearWorldContext?.()}
@@ -687,7 +687,7 @@ export function AgentDiagnosticsPanel(props: {
                   {t('Chat.disableAgentAutonomyTitle', { defaultValue: 'Disable autonomy' })}
                 </button>
               ) : (
-                <button
+                <DesktopCompactAction
                   type="button"
                   onClick={() => props.onEnableAutonomy?.()}
                   disabled={
@@ -695,10 +695,10 @@ export function AgentDiagnosticsPanel(props: {
                     || mutationPending
                     || props.runtimeInspect.autonomyMode === 'off'
                   }
-                  className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg border border-transparent bg-emerald-500 px-4 text-[12.5px] font-semibold text-white shadow-[0_4px_10px_rgba(16,185,129,0.25)] transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
+                  tone="primary"
                 >
                   {t('Chat.agentDiagnosticsEnableAutonomy', { defaultValue: 'Enable Autonomy' })}
-                </button>
+                </DesktopCompactAction>
               )}
               <RuntimeInspectActionButton
                 label={t('Chat.agentDiagnosticsRefreshInspect', { defaultValue: 'Refresh inspect' })}

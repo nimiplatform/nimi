@@ -181,6 +181,7 @@ export class DataSync {
       if (isRealmOfflineError(normalized)) {
         getOfflineCoordinator().markRealmRestReachable(false);
       }
+      this.handleAuthRequired(normalized);
       throw normalized;
     }
   }
@@ -253,6 +254,49 @@ export class DataSync {
     if (currentRealmClient && ownedRealmClient) {
       void currentRealmClient.close().catch(() => undefined);
     }
+  }
+
+  private isReauthenticationRequired(error: unknown): boolean {
+    const errorFields = extractRuntimeErrorFields(error);
+    const reasonCode = String(errorFields.reasonCode || '').trim().toUpperCase();
+    const actionHint = String(errorFields.actionHint || '').trim().toLowerCase();
+    const message = String(errorFields.message || (error instanceof Error ? error.message : error) || '').trim().toLowerCase();
+    return (
+      reasonCode === 'AUTH_REQUIRED'
+      || reasonCode === 'AUTH_DENIED'
+      || reasonCode === 'AUTH_TOKEN_INVALID'
+      || reasonCode === 'AUTH_TOKEN_EXPIRED'
+      || actionHint.includes('reauthenticate')
+      || actionHint.includes('refresh_realm_token')
+      || message.includes('authentication required')
+    );
+  }
+
+  private handleAuthRequired(error: unknown): void {
+    const errorFields = extractRuntimeErrorFields(error);
+    const requiresReauthentication = this.isReauthenticationRequired(error);
+    if (!requiresReauthentication) {
+      return;
+    }
+    emitRuntimeLog({
+      level: 'warn',
+      area: 'datasync',
+      message: 'action:auth-required:session-cleared',
+      traceId: errorFields.traceId,
+      details: {
+        reasonCode: errorFields.reasonCode,
+        actionHint: errorFields.actionHint,
+        retryable: false,
+        traceId: errorFields.traceId,
+      },
+    });
+    this.accessToken = '';
+    this.refreshToken = '';
+    this.persistApiToHotState();
+    this.authCallbacks?.clearAuth();
+    this.stopAllPolling();
+    this.clearProactiveRefreshTimer();
+    this.resetRealmClient();
   }
 
   private emitDataSyncError(action: string, error: unknown, details: Record<string, unknown> = {}) {
@@ -519,17 +563,21 @@ export class DataSync {
         message: 'action:proactive-refresh:success',
       });
     } catch (error) {
+      const errorFields = extractRuntimeErrorFields(error);
       emitRuntimeLog({
         level: 'warn',
         area: 'datasync',
         message: 'action:proactive-refresh:failed',
+        traceId: errorFields.traceId,
         details: {
-          error: error instanceof Error ? error.message : String(error || ''),
+          reasonCode: errorFields.reasonCode,
+          actionHint: errorFields.actionHint,
+          retryable: errorFields.retryable,
+          traceId: errorFields.traceId,
+          error: errorFields.message || (error instanceof Error ? error.message : String(error || '')),
         },
       });
-      this.authCallbacks?.clearAuth();
-      this.stopAllPolling();
-      this.clearProactiveRefreshTimer();
+      this.handleAuthRequired(error);
     }
   }
 

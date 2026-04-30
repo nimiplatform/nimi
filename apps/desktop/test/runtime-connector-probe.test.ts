@@ -443,9 +443,15 @@ test('sdkListConnectors retries read-only connector discovery without stale bear
       call.command === 'runtime_bridge_unary'
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
     ));
-    assert.equal(listConnectorCalls.length, 2);
-    assert.equal(listConnectorCalls[0]?.payload.authorization, 'Bearer stale-realm-token');
-    assert.equal(listConnectorCalls[1]?.payload.authorization, undefined);
+    const catalogCalls = calls.filter((call) => (
+      call.command === 'runtime_bridge_unary'
+      && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog'
+    ));
+    assert.equal(catalogCalls.length, 2);
+    assert.equal(catalogCalls[0]?.payload.authorization, 'Bearer stale-realm-token');
+    assert.equal(catalogCalls[1]?.payload.authorization, undefined);
+    assert.equal(listConnectorCalls.length, 1);
+    assert.equal(listConnectorCalls[0]?.payload.authorization, undefined);
   } finally {
     restoreTauri();
   }

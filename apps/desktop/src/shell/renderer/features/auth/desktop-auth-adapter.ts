@@ -45,6 +45,7 @@ const desktopRuntimeAccountCaller = {
 export function createDesktopRuntimeAccountBrowserBroker() {
   return {
     begin: async (input: { callbackUrl: string; baseUrl?: string; timeoutMs: number }) => {
+      await ensureAuthApiReady();
       const response = await getPlatformClient().runtime.account.beginLogin({
         caller: desktopRuntimeAccountCaller,
         redirectUri: input.callbackUrl,
@@ -74,6 +75,7 @@ export function createDesktopRuntimeAccountBrowserBroker() {
       nonce: string;
       callbackUrl: string;
     }) => {
+      await ensureAuthApiReady();
       const response = await getPlatformClient().runtime.account.completeLogin({
         caller: desktopRuntimeAccountCaller,
         loginAttemptId: input.loginAttemptId,

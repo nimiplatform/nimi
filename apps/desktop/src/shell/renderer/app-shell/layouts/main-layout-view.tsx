@@ -648,7 +648,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{props.displayName}</p>
-                <p className="truncate text-xs text-[var(--nimi-text-secondary)]">{props.userEmail || props.displayName.toLowerCase().replace(/\s+/g, '.') + '@nimi.app'}</p>
+                {props.userEmail ? (
+                  <p className="truncate text-xs text-[var(--nimi-text-secondary)]">{props.userEmail}</p>
+                ) : null}
               </div>
               <button
                 type="button"

@@ -6,10 +6,13 @@ import type {
   RuntimeHealthEvent,
   RuntimeStreamCallOptions,
 } from '@nimiplatform/sdk/runtime';
+import { asNimiError, Runtime } from '@nimiplatform/sdk/runtime';
 import { getPlatformClient } from '@nimiplatform/sdk';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 const HEALTH_STALE_MS = 60_000;
 const HEALTH_WATCHDOG_INTERVAL_MS = 60_000;
+const STALE_BEARER_ANONYMOUS_RETRY_MS = 60_000;
 
 const HEALTH_METADATA = {
   callerKind: 'desktop-core' as const,
@@ -26,6 +29,9 @@ const HEALTH_STREAM_OPTIONS: RuntimeStreamCallOptions = {
   metadata: HEALTH_METADATA,
 };
 
+let anonymousRuntime: Runtime | null = null;
+let anonymousReadUntilMs = 0;
+
 type RuntimeHealthCoordinatorDeps = {
   fetchRuntimeHealth: () => Promise<GetRuntimeHealthResponse>;
   fetchProviderHealth: () => Promise<{ providers: AIProviderHealthSnapshot[] }>;
@@ -40,6 +46,58 @@ type RuntimeHealthCoordinatorDeps = {
 
 function runtimeAdmin() {
   return getPlatformClient().domains.runtimeAdmin;
+}
+
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function authFailedBecauseOfStaleBearer(error: unknown): boolean {
+  const normalized = asNimiError(error, {
+    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+    actionHint: 'retry_without_stale_runtime_bearer',
+    source: 'runtime',
+  });
+  const reasonCode = normalizeText(normalized.reasonCode);
+  const message = normalizeText(normalized.message).toUpperCase();
+  return reasonCode === ReasonCode.AUTH_TOKEN_INVALID
+    || message.includes('AUTH_TOKEN_INVALID')
+    || message.includes('TOKEN SIGNATURE IS INVALID')
+    || message.includes('JWT VALIDATION FAILED');
+}
+
+function getAnonymousRuntime(): Runtime {
+  const runtime = getPlatformClient().runtime;
+  if (
+    anonymousRuntime
+    && anonymousRuntime.appId === runtime.appId
+    && anonymousRuntime.transport === runtime.transport
+  ) {
+    return anonymousRuntime;
+  }
+  anonymousRuntime = new Runtime({
+    appId: runtime.appId,
+    transport: runtime.transport,
+  });
+  return anonymousRuntime;
+}
+
+async function withAnonymousReadFallback<T>(
+  action: () => Promise<T>,
+  anonymousAction: (runtime: Runtime) => Promise<T>,
+): Promise<T> {
+  if (Date.now() < anonymousReadUntilMs) {
+    return anonymousAction(getAnonymousRuntime());
+  }
+  try {
+    return await action();
+  } catch (error) {
+    if (!authFailedBecauseOfStaleBearer(error)) {
+      throw error;
+    }
+    anonymousReadUntilMs = Date.now() + STALE_BEARER_ANONYMOUS_RETRY_MS;
+    return anonymousAction(getAnonymousRuntime());
+  }
 }
 
 export type RuntimeHealthCoordinatorState = {
@@ -164,16 +222,28 @@ export class RuntimeHealthCoordinator {
   constructor(deps?: Partial<RuntimeHealthCoordinatorDeps>) {
     this.deps = {
       fetchRuntimeHealth: async () => {
-        return runtimeAdmin().getRuntimeHealth({}, HEALTH_CALL_OPTIONS);
+        return withAnonymousReadFallback(
+          () => runtimeAdmin().getRuntimeHealth({}, HEALTH_CALL_OPTIONS),
+          (runtime) => runtime.audit.getRuntimeHealth({}, HEALTH_CALL_OPTIONS),
+        );
       },
       fetchProviderHealth: async () => {
-        return runtimeAdmin().listAIProviderHealth({}, HEALTH_CALL_OPTIONS);
+        return withAnonymousReadFallback(
+          () => runtimeAdmin().listAIProviderHealth({}, HEALTH_CALL_OPTIONS),
+          (runtime) => runtime.audit.listAIProviderHealth({}, HEALTH_CALL_OPTIONS),
+        );
       },
       subscribeRuntimeHealth: async () => {
-        return runtimeAdmin().healthEvents({}, HEALTH_STREAM_OPTIONS);
+        return withAnonymousReadFallback(
+          () => runtimeAdmin().healthEvents({}, HEALTH_STREAM_OPTIONS),
+          (runtime) => runtime.audit.subscribeRuntimeHealthEvents({}, HEALTH_STREAM_OPTIONS),
+        );
       },
       subscribeProviderHealth: async () => {
-        return runtimeAdmin().providerHealthEvents({}, HEALTH_STREAM_OPTIONS);
+        return withAnonymousReadFallback(
+          () => runtimeAdmin().providerHealthEvents({}, HEALTH_STREAM_OPTIONS),
+          (runtime) => runtime.audit.subscribeAIProviderHealthEvents({}, HEALTH_STREAM_OPTIONS),
+        );
       },
       subscribeRuntimeConnected: (listener) => getPlatformClient().runtime.events.on('runtime.connected', listener),
       subscribeRuntimeDisconnected: (listener) => getPlatformClient().runtime.events.on('runtime.disconnected', listener),

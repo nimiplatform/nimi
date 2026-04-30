@@ -3,7 +3,7 @@
   "platform": "windows-amd64",
   "archivePath": "runtime/windows-amd64/nimi-runtime.zip",
   "binaryPath": "bin/nimi.exe",
-  "sha256": "4a6c3cc48f37b445925ea08bbe71b3d7329ecbceb998f436714537f5ea86e956",
-  "builtAt": "2026-04-18T16:18:23.501Z",
-  "commit": "aae4b2e16b02070c72c138b4fd6da285cf61caac"
+  "sha256": "c2d2ed64e73a0f2f2c8fe124ebcd77899ae3363382bf52ab6864f0345312594a",
+  "builtAt": "2026-04-30T05:41:00.776Z",
+  "commit": "ef2c951326ef1921cdcbdb399e14479c777c8dc4"
 }

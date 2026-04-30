@@ -376,7 +376,10 @@
     "inputEmpty": "Text is required.",
     "noVoiceSelected": "No voice selected.",
     "durationUnknown": "duration unknown",
-    "failed": "TTS synthesis failed."
+    "failed": "TTS synthesis failed.",
+    "voiceReference": "Voice",
+    "customVoiceAssets": "Custom voice assets",
+    "presetVoices": "Preset voices"
   },
   "audioTranscribe": {
     "options": "Transcription options",

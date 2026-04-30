@@ -41,11 +41,11 @@ test('logout flow clears local state and emits success banner after successful l
   );
 
   assert.deepEqual(effects, [
-    'server-logout',
     'clear-token',
     'clear-streams',
     'clear-auth',
     'clear-query',
+    'server-logout',
   ]);
   assert.equal(bannerKind, 'info');
   assert.equal(bannerMessage, 'Signed out');
@@ -85,11 +85,11 @@ test('logout flow distinguishes transient server logout failures while still cle
   );
 
   assert.deepEqual(effects, [
-    'server-logout',
     'clear-token',
     'clear-streams',
     'clear-auth',
     'clear-query',
+    'server-logout',
   ]);
   assert.equal(bannerKind, 'warning');
   assert.match(bannerMessage, /network error/i);

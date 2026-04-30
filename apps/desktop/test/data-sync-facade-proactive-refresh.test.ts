@@ -167,3 +167,81 @@ test('DataSync Runtime token provider fails Realm access closed after logout or 
   assert.equal(hotState?.refreshToken, '');
   clearHotState();
 });
+
+test('DataSync keeps Desktop auth projection when Runtime account token is temporarily unavailable', async () => {
+  clearHotState();
+  let clearAuthCalls = 0;
+  let stopAllPollingCalls = 0;
+  const dataSync = new DataSync();
+  dataSync.initApi({
+    realmBaseUrl: 'https://realm.example',
+    accessTokenProvider: async () => {
+      throw new Error('Runtime account access token unavailable: runtime_unavailable');
+    },
+  });
+  dataSync.setAuthCallbacks({
+    setAuth: () => undefined,
+    clearAuth: () => {
+      clearAuthCalls += 1;
+    },
+    getCurrentUser: () => ({ id: 'user-1' }),
+    isFriend: () => false,
+  });
+  dataSync.stopAllPolling = (() => {
+    stopAllPollingCalls += 1;
+  }) as typeof dataSync.stopAllPolling;
+
+  await assert.rejects(
+    () => dataSync.callApi((realm) => realm.unsafeRaw.request({ method: 'GET', path: '/api/protected' })),
+    /Runtime account access token unavailable: runtime_unavailable/,
+  );
+
+  assert.equal(clearAuthCalls, 0);
+  assert.equal(stopAllPollingCalls, 0);
+  const hotState = readDataSyncHotState();
+  assert.equal(hotState?.accessToken, '');
+  assert.equal(hotState?.refreshToken, '');
+  clearHotState();
+});
+
+test('DataSync clears Desktop auth projection when Realm access requires reauthentication', async () => {
+  clearHotState();
+  let clearAuthCalls = 0;
+  let stopAllPollingCalls = 0;
+  const dataSync = new DataSync();
+  dataSync.initApi({
+    realmBaseUrl: 'https://realm.example',
+    accessTokenProvider: async () => 'runtime-account-access-token',
+  });
+  dataSync.setAuthCallbacks({
+    setAuth: () => undefined,
+    clearAuth: () => {
+      clearAuthCalls += 1;
+    },
+    getCurrentUser: () => ({ id: 'user-1' }),
+    isFriend: () => false,
+  });
+  dataSync.stopAllPolling = (() => {
+    stopAllPollingCalls += 1;
+  }) as typeof dataSync.stopAllPolling;
+  const authRequired = Object.assign(new Error('Authentication required'), {
+    reasonCode: 'AUTH_REQUIRED',
+    actionHint: 'refresh_realm_token_or_reauthenticate',
+    retryable: false,
+    traceId: 'trace-auth-required',
+  });
+
+  await assert.rejects(
+    () => dataSync.callApi(async () => {
+      throw authRequired;
+    }),
+    /Authentication required/,
+  );
+
+  assert.equal(clearAuthCalls, 1);
+  assert.equal(stopAllPollingCalls, 1);
+  const hotState = readDataSyncHotState();
+  assert.equal(hotState?.accessToken, '');
+  assert.equal(hotState?.refreshToken, '');
+  clearHotState();
+});

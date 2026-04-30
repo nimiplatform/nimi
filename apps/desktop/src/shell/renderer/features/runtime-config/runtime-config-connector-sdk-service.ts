@@ -29,6 +29,7 @@ const CONNECTOR_CALL_OPTIONS = {
 const CONNECTOR_MODELS_PAGE_SIZE = 200;
 const CONNECTOR_MODELS_MAX_PAGES = 200;
 const PROVIDER_CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
+const STALE_BEARER_ANONYMOUS_RETRY_MS = 60_000;
 
 const CONNECTOR_KIND_REMOTE_MANAGED = 2;
 const CONNECTOR_OWNER_TYPE_SYSTEM = 1;
@@ -36,6 +37,7 @@ const CONNECTOR_OWNER_TYPE_SYSTEM = 1;
 let cachedProviderCatalog: ProviderCatalogEntry[] | null = null;
 let cachedProviderCatalogAt = 0;
 let anonymousRuntime: Runtime | null = null;
+let anonymousReadUntilMs = 0;
 
 type RuntimeConnectorLike = {
   connectorId: string;
@@ -112,12 +114,16 @@ async function withAnonymousReadFallback<T>(
   action: () => Promise<T>,
   anonymousAction: (runtime: Runtime) => Promise<T>,
 ): Promise<T> {
+  if (Date.now() < anonymousReadUntilMs) {
+    return anonymousAction(getAnonymousRuntime());
+  }
   try {
     return await action();
   } catch (error) {
     if (!authFailedBecauseOfStaleBearer(error)) {
       throw error;
     }
+    anonymousReadUntilMs = Date.now() + STALE_BEARER_ANONYMOUS_RETRY_MS;
     return anonymousAction(getAnonymousRuntime());
   }
 }

@@ -542,9 +542,24 @@ export function packMod(modDir) {
       cwd: stagingDir,
       stdio: 'inherit',
     });
-    if (command.status !== 0) {
-      throw new Error(`zip command failed for ${modDir}`);
+    if (command.status === 0) {
+      return;
     }
+    if (process.platform === 'win32') {
+      const escapedOutput = outputFile.replace(/'/g, "''");
+      const fallback = spawnSync(
+        'powershell',
+        ['-NoProfile', '-Command', `Compress-Archive -Path (Join-Path $PWD '*') -DestinationPath '${escapedOutput}' -Force`],
+        {
+          cwd: stagingDir,
+          stdio: 'inherit',
+        },
+      );
+      if (fallback.status === 0) {
+        return;
+      }
+    }
+    throw new Error(`zip command failed for ${modDir}`);
   };
   buildZip();
   const archiveBytes = readFileSync(outputFile);

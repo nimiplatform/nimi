@@ -376,7 +376,10 @@
     "inputEmpty": "文本为必填项。",
     "noVoiceSelected": "未选择语音。",
     "durationUnknown": "时长未知",
-    "failed": "TTS 合成失败。"
+    "failed": "TTS 合成失败。",
+    "voiceReference": "??",
+    "customVoiceAssets": "???????",
+    "presetVoices": "????"
   },
   "audioTranscribe": {
     "options": "转录选项",

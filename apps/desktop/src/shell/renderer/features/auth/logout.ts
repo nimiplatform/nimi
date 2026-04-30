@@ -74,16 +74,16 @@ export async function logoutAndClearSession(
 ): Promise<void> {
   let logoutError: unknown = null;
 
+  await deps.clearPersistedSession();
+  deps.clearAllStreams();
+  input.clearAuthSession();
+  deps.clearQueryClient();
+
   try {
     await deps.logout();
   } catch (error) {
     logoutError = error;
   }
-
-  await deps.clearPersistedSession();
-  deps.clearAllStreams();
-  input.clearAuthSession();
-  deps.clearQueryClient();
 
   const emitFeedback = (banner: { kind: 'info' | 'warning'; message: string }) => {
     if (input.onFeedback) {

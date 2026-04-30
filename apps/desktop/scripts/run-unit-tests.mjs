@@ -54,12 +54,44 @@ const args = ['exec', 'tsx', '--tsconfig', 'tsconfig.test.json', '--test'];
 if (mode === '--i18n') {
   args.push('--test-concurrency=1');
 }
-args.push(...selectedTestFiles);
 
-const result = spawnSync(PNPM_BIN, args, {
-  cwd: workspaceRoot,
-  stdio: 'inherit',
-  shell: process.platform === 'win32',
-});
+const maxCommandLength = process.platform === 'win32' ? 3000 : 100000;
 
-process.exit(result.status ?? 1);
+function commandLength(parts) {
+  return [PNPM_BIN, ...parts].join(' ').length;
+}
+
+function buildBatches(prefixArgs, filePaths) {
+  if (process.platform === 'win32' && mode === '--rest') {
+    return filePaths.map((filePath) => [filePath]);
+  }
+  const batches = [];
+  let current = [];
+  for (const filePath of filePaths) {
+    const next = [...current, filePath];
+    if (current.length > 0 && commandLength([...prefixArgs, ...next]) > maxCommandLength) {
+      batches.push(current);
+      current = [filePath];
+      continue;
+    }
+    current = next;
+  }
+  if (current.length > 0) {
+    batches.push(current);
+  }
+  return batches;
+}
+
+let exitStatus = 0;
+for (const batch of buildBatches(args, selectedTestFiles)) {
+  const result = spawnSync(PNPM_BIN, [...args, ...batch], {
+    cwd: workspaceRoot,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
+  if ((result.status ?? 1) !== 0) {
+    exitStatus = result.status ?? 1;
+  }
+}
+
+process.exit(exitStatus);

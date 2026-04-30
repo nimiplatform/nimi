@@ -271,6 +271,30 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
     );
   });
 
+  test('D-BOOT-017: desktop account profile hydration follows Runtime account custody', () => {
+    const projectionIndex = bootstrapSource.indexOf('const accountProjection = accountStatus.accountProjection;');
+    const dataSyncInitIndex = bootstrapSource.indexOf('dataSync.initApi({');
+    const callbacksIndex = bootstrapSource.indexOf('dataSync.setAuthCallbacks({');
+    const hydrateIndex = bootstrapSource.indexOf("account profile hydrate");
+    const watcherIndex = bootstrapSource.indexOf('startAuthStateWatcher();');
+    assert.ok(projectionIndex !== -1, 'Runtime account projection must be read first');
+    assert.ok(dataSyncInitIndex !== -1, 'DataSync must be initialized before profile hydration');
+    assert.ok(callbacksIndex !== -1, 'DataSync auth callbacks must be installed before profile hydration');
+    assert.ok(hydrateIndex !== -1, 'Desktop must hydrate the Realm profile after Runtime account custody is established');
+    assert.ok(watcherIndex !== -1, 'auth state watcher must still start');
+    assert.ok(projectionIndex < dataSyncInitIndex, 'Runtime account custody must precede Realm profile DataSync setup');
+    assert.ok(dataSyncInitIndex < callbacksIndex, 'DataSync init must precede callback installation');
+    assert.ok(callbacksIndex < hydrateIndex, 'auth callbacks must be active before profile hydration can fail closed');
+    assert.ok(hydrateIndex < watcherIndex, 'initial profile hydration must happen before the auth watcher begins observing updates');
+    assert.match(bootstrapSource, /hydrateDesktopAccountProfile\(\{\s*accountProjection,\s*flowId,\s*\}\)/s);
+    assert.match(bootstrapSource, /dataSync\.loadCurrentUser\(\)/);
+    assert.doesNotMatch(
+      bootstrapSource,
+      /accountProjection\.[a-zA-Z]*(email|avatar|handle)/i,
+      'Runtime account projection must not become the owner of full Realm profile fields',
+    );
+  });
+
   test('D-BOOT-016: runtime local models config sync runs before runtime jwt sync', () => {
     const localModelsSyncIndex = bootstrapSource.indexOf('syncRuntimeLocalModelsConfig({');
     const jwtSyncIndex = bootstrapSource.indexOf('syncRuntimeJwtConfig({');

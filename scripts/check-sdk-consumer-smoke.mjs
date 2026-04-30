@@ -24,6 +24,7 @@ function runCommand(command, args, cwd) {
     cwd,
     stdio: 'inherit',
     env: process.env,
+    shell: process.platform === 'win32',
   });
   if (result.status !== 0) {
     throw new Error(`Command failed: ${command} ${args.join(' ')}`);
