@@ -109,6 +109,7 @@ fn generate_runtime_proto_client() {
     let proto_files = [
         "runtime/v1/common.proto",
         "runtime/v1/auth.proto",
+        "runtime/v1/account.proto",
         "runtime/v1/grant.proto",
         "runtime/v1/ai.proto",
         "runtime/v1/local_runtime_types.proto",
@@ -144,6 +145,7 @@ fn generate_runtime_proto_client() {
     let full_paths: Vec<PathBuf> = [
         "runtime/v1/common.proto",
         "runtime/v1/auth.proto",
+        "runtime/v1/account.proto",
         "runtime/v1/grant.proto",
         "runtime/v1/ai.proto",
         "runtime/v1/local_runtime_types.proto",

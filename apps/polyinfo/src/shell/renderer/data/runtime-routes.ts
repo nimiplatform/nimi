@@ -717,7 +717,7 @@ export function resolveTextGenerateRouteStatus(input: {
       source,
       blockingReason: 'cloud-auth-required',
       title: `云端 · ${model}`,
-      detail: '当前是云端路由。Polyinfo 会像 Desktop 一样复用登录态；请先去 Settings 登录。',
+      detail: '当前是云端路由。请先去 Settings 通过 Runtime 登录。',
       ready: false,
     };
   }

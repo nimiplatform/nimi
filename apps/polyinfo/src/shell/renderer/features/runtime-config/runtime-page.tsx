@@ -331,7 +331,7 @@ export function RuntimePage() {
                 ))}
               </select>
               <p className="mt-3 text-xs leading-5 text-slate-400">
-                云端调用需要有效登录态；Polyinfo 会像 Desktop 一样复用登录态，如果当前是游客模式会直接提示你先登录。
+                云端调用需要有效登录态；Polyinfo 会通过 Runtime 读取登录状态，如果当前是游客模式会直接提示你先登录。
               </p>
             </div>
           </div>

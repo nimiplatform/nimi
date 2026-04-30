@@ -1,31 +1,44 @@
 import {
+  getDaemonStatus,
   getRuntimeDefaults,
-  clearAuthSession as clearPersistedAuthSession,
-  loadAuthSession,
-  saveAuthSession,
+  restartDaemon,
+  startDaemon,
+  type RuntimeDefaults,
 } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
-import { createPlatformClient } from '@nimiplatform/sdk';
-import {
-  persistSharedDesktopAuthSession,
-  resolveDesktopBootstrapAuthSession,
-} from '@nimiplatform/nimi-kit/auth';
-import { bootstrapAuthSession } from './polyinfo-bootstrap-auth.js';
+import type { PlatformClient } from '@nimiplatform/sdk';
+import { clearPlatformClient } from '@nimiplatform/sdk';
 import { loadPersistedAIConfig } from '@renderer/data/runtime-routes.js';
+import {
+  createPolyinfoLocalFirstPartyPlatformClient,
+  isMissingRuntimeAccountService,
+  loadPolyinfoRuntimeAccountUser,
+  staleRuntimeAccountServiceError,
+} from './polyinfo-runtime-account.js';
 
-function toAuthUser(user: Record<string, unknown> | null) {
-  if (!user) {
-    return null;
+async function ensureRuntimeDaemonReady(): Promise<void> {
+  const status = await getDaemonStatus();
+  if (status.running) {
+    return;
   }
-  const id = String(user.id || '').trim();
-  if (!id) {
-    return null;
+  const started = await startDaemon();
+  if (!started.running) {
+    throw new Error(started.lastError?.trim() || 'runtime daemon failed to start');
   }
+}
+
+async function createRuntimeClientAndLoadAccount(
+  runtimeDefaults: RuntimeDefaults,
+): Promise<{
+  platformClient: PlatformClient;
+  runtimeAccountUser: Awaited<ReturnType<typeof loadPolyinfoRuntimeAccountUser>>;
+}> {
+  clearPlatformClient();
+  const platformClient = await createPolyinfoLocalFirstPartyPlatformClient(runtimeDefaults);
+  const runtimeAccountUser = await loadPolyinfoRuntimeAccountUser(platformClient.runtime);
   return {
-    id,
-    displayName: String(user.displayName || user.name || '').trim(),
-    email: user.email ? String(user.email) : undefined,
-    avatarUrl: user.avatarUrl ? String(user.avatarUrl) : undefined,
+    platformClient,
+    runtimeAccountUser,
   };
 }
 
@@ -36,102 +49,29 @@ export async function runPolyinfoBootstrap(): Promise<void> {
     const runtimeDefaults = await getRuntimeDefaults();
     store.setRuntimeDefaults(runtimeDefaults);
 
-    const resolvedBootstrapAuthSession = await resolveDesktopBootstrapAuthSession({
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      envAccessToken: runtimeDefaults.realm.accessToken,
-      loadPersistedSession: () => loadAuthSession(),
-    });
-
-    if (resolvedBootstrapAuthSession.shouldClearPersistedSession) {
-      await clearPersistedAuthSession();
+    await ensureRuntimeDaemonReady();
+    let runtimeAccountUser: Awaited<ReturnType<typeof loadPolyinfoRuntimeAccountUser>>;
+    try {
+      ({ runtimeAccountUser } = await createRuntimeClientAndLoadAccount(runtimeDefaults));
+    } catch (error) {
+      if (!isMissingRuntimeAccountService(error)) {
+        throw error;
+      }
+      await restartDaemon();
+      try {
+        ({ runtimeAccountUser } = await createRuntimeClientAndLoadAccount(runtimeDefaults));
+      } catch (retryError) {
+        if (isMissingRuntimeAccountService(retryError)) {
+          throw staleRuntimeAccountServiceError();
+        }
+        throw retryError;
+      }
     }
-
-    let bootstrapAccessToken = String(resolvedBootstrapAuthSession.session?.accessToken || '').trim();
-    let bootstrapRefreshToken = String(resolvedBootstrapAuthSession.session?.refreshToken || '').trim();
-
-    const resolveCurrentAccessToken = () => {
-      const authToken = String(useAppStore.getState().auth.token || '').trim();
-      if (authToken) {
-        return authToken;
-      }
-      return useAppStore.getState().auth.status === 'bootstrapping'
-        ? bootstrapAccessToken
-        : '';
-    };
-
-    const resolveCurrentRefreshToken = () => {
-      const refreshToken = String(useAppStore.getState().auth.refreshToken || '').trim();
-      if (refreshToken) {
-        return refreshToken;
-      }
-      return useAppStore.getState().auth.status === 'bootstrapping'
-        ? bootstrapRefreshToken
-        : '';
-    };
-
-    const persistDesktopSession = (user: Record<string, unknown> | null, accessToken: string, refreshToken?: string) => {
-      void persistSharedDesktopAuthSession({
-        realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-        accessToken,
-        refreshToken,
-        user,
-        saveSession: (session) => saveAuthSession(session),
-        clearSession: () => clearPersistedAuthSession(),
-      });
-    };
-
-    const clearDesktopSession = () => {
-      bootstrapAccessToken = '';
-      bootstrapRefreshToken = '';
-      void clearPersistedAuthSession();
-    };
-
-    const { realm } = await createPlatformClient({
-      appId: 'nimi.polyinfo',
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      accessToken: bootstrapAccessToken,
-      accessTokenProvider: resolveCurrentAccessToken,
-      refreshTokenProvider: resolveCurrentRefreshToken,
-      runtimeTransport: {
-        type: 'tauri-ipc',
-        commandNamespace: 'runtime_bridge',
-        eventNamespace: 'runtime_bridge',
-      },
-      sessionStore: {
-        getAccessToken: resolveCurrentAccessToken,
-        getRefreshToken: resolveCurrentRefreshToken,
-        getSubjectUserId: () => useAppStore.getState().auth.user?.id ?? '',
-        getCurrentUser: () => useAppStore.getState().auth.user,
-        setAuthSession: (user, accessToken, refreshToken) => {
-          bootstrapAccessToken = String(accessToken || '').trim();
-          if (refreshToken !== undefined) {
-            bootstrapRefreshToken = String(refreshToken || '').trim();
-          }
-          const normalizedUser = toAuthUser(user as Record<string, unknown> | null)
-            ?? useAppStore.getState().auth.user;
-          if (!normalizedUser) {
-            return;
-          }
-          useAppStore.getState().setAuthSession(normalizedUser, accessToken, refreshToken || '');
-          persistDesktopSession(normalizedUser, accessToken, refreshToken);
-        },
-        clearAuthSession: () => {
-          useAppStore.getState().clearAuthSession();
-          clearDesktopSession();
-        },
-      },
-    });
-
-    await bootstrapAuthSession({
-      realm,
-      accessToken: bootstrapAccessToken,
-      refreshToken: bootstrapRefreshToken,
-      source: resolvedBootstrapAuthSession.source,
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      clearPersistedSession: async () => {
-        clearDesktopSession();
-      },
-    });
+    if (runtimeAccountUser) {
+      store.setAuthSession(runtimeAccountUser, '', '');
+    } else {
+      store.clearAuthSession();
+    }
 
     store.setAIConfig(loadPersistedAIConfig(runtimeDefaults));
     store.setBootstrapReady(true);

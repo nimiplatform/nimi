@@ -11,6 +11,10 @@ import {
   hasTauriInvoke,
 } from '@renderer/bridge';
 import {
+  isMissingRuntimeAccountService,
+  loadPolyinfoRuntimeAccountUser,
+} from '@renderer/infra/bootstrap/polyinfo-runtime-account.js';
+import {
   fetchRuntimeHealthSummary,
   loadTextGenerateRouteOptions,
   resolveTextGenerateRouteStatus,
@@ -45,6 +49,7 @@ export type PolyinfoSmokeInput = {
 export type PolyinfoSmokeDeps = {
   hasTauriInvoke: () => boolean;
   getDaemonStatus: () => Promise<RuntimeBridgeDaemonStatus>;
+  getRuntimeAccountStatus: () => Promise<unknown>;
   loadTextGenerateRouteOptions: typeof loadTextGenerateRouteOptions;
   fetchRuntimeHealthSummary: typeof fetchRuntimeHealthSummary;
 };
@@ -52,6 +57,7 @@ export type PolyinfoSmokeDeps = {
 const defaultDeps: PolyinfoSmokeDeps = {
   hasTauriInvoke,
   getDaemonStatus,
+  getRuntimeAccountStatus: loadPolyinfoRuntimeAccountUser,
   loadTextGenerateRouteOptions,
   fetchRuntimeHealthSummary,
 };
@@ -112,6 +118,15 @@ function summarizeRuntimeHealth(summary: RuntimeHealthSummary): PolyinfoSmokeChe
     title: 'Runtime health',
     status: ready ? 'pass' : 'warn',
     detail: reason || runtimeHealth.status || 'runtime 健康状态可读取。',
+  };
+}
+
+function summarizeRuntimeAccountStatus(): PolyinfoSmokeCheck {
+  return {
+    id: 'runtime-account',
+    title: 'Runtime account',
+    status: 'pass',
+    detail: '账号服务可读取。',
   };
 }
 
@@ -182,6 +197,20 @@ export async function runPolyinfoAppSmoke(
       title: 'Runtime health',
       status: 'fail',
       detail: errorMessage(error),
+    });
+  }
+
+  try {
+    await deps.getRuntimeAccountStatus();
+    checks.push(summarizeRuntimeAccountStatus());
+  } catch (error) {
+    checks.push({
+      id: 'runtime-account',
+      title: 'Runtime account',
+      status: 'fail',
+      detail: isMissingRuntimeAccountService(error)
+        ? 'runtime 版本过旧，缺少新的账号服务。请停止旧 runtime 后用最新代码重新启动。'
+        : errorMessage(error),
     });
   }
 

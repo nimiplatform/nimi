@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev:renderer": "vite --host 127.0.0.1 --port 1426 --strictPort",
-    "dev:shell": "tauri dev --config src-tauri/tauri.conf.json",
+    "dev:shell": "NIMI_RUNTIME_BRIDGE_MODE=RUNTIME tauri dev --config src-tauri/tauri.conf.json",
     "build:renderer": "vite build",
     "typecheck": "tsc --noEmit",
     "build": "pnpm run typecheck && pnpm run build:renderer && (cd src-tauri && cargo check)",

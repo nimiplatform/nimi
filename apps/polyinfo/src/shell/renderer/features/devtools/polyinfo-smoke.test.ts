@@ -55,6 +55,7 @@ function createDeps(overrides: Partial<PolyinfoSmokeDeps> = {}): PolyinfoSmokeDe
       version: 'test',
       lastError: '',
     }),
+    getRuntimeAccountStatus: async () => null,
     fetchRuntimeHealthSummary: async () => ({
       runtimeHealth: {
         status: 'healthy',
@@ -106,6 +107,7 @@ describe('polyinfo smoke runner', () => {
 
     expect(snapshot.status).toBe('pass');
     expect(snapshot.checks.map((check) => [check.id, check.status])).toContainEqual(['desktop-shell', 'pass']);
+    expect(snapshot.checks.map((check) => [check.id, check.status])).toContainEqual(['runtime-account', 'pass']);
     expect(snapshot.checks.map((check) => [check.id, check.status])).toContainEqual(['analyst-route', 'pass']);
   });
 
@@ -132,6 +134,24 @@ describe('polyinfo smoke runner', () => {
     });
     expect(snapshot.checks.find((check) => check.id === 'runtime-bridge')).toMatchObject({
       status: 'fail',
+    });
+  });
+
+  it('reports a stale runtime when the account service is missing', async () => {
+    const snapshot = await runPolyinfoAppSmoke({
+      aiConfig: buildAIConfig(),
+      runtimeDefaults,
+      authStatus: 'anonymous',
+    }, createDeps({
+      getRuntimeAccountStatus: async () => {
+        throw new Error('unknown service nimi.runtime.v1.RuntimeAccountService');
+      },
+    }));
+
+    expect(snapshot.status).toBe('fail');
+    expect(snapshot.checks.find((check) => check.id === 'runtime-account')).toMatchObject({
+      status: 'fail',
+      detail: expect.stringContaining('runtime 版本过旧'),
     });
   });
 

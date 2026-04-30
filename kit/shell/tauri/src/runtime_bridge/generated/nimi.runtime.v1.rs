@@ -1149,6 +1149,1028 @@ pub mod runtime_auth_service_client {
         }
     }
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AccountProjection {
+    #[prost(string, tag = "1")]
+    pub account_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub realm_environment_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AccountCaller {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub app_instance_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub device_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AccountCallerMode", tag = "4")]
+    pub mode: i32,
+    #[prost(string, repeated, tag = "5")]
+    pub scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ScopedAppBindingRelation {
+    #[prost(string, tag = "1")]
+    pub binding_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub runtime_app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub app_instance_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub window_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub avatar_instance_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub agent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub world_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "ScopedAppBindingPurpose", tag = "9")]
+    pub purpose: i32,
+    #[prost(string, repeated, tag = "10")]
+    pub scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "11")]
+    pub issued_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "12")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "ScopedAppBindingState", tag = "13")]
+    pub state: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "14")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AccountSessionEvent {
+    #[prost(string, tag = "1")]
+    pub event_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub sequence: u64,
+    #[prost(message, optional, tag = "3")]
+    pub emitted_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "AccountEventType", tag = "4")]
+    pub event_type: i32,
+    #[prost(enumeration = "AccountSessionState", tag = "5")]
+    pub state: i32,
+    #[prost(enumeration = "ReasonCode", tag = "6")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "7")]
+    pub account_reason_code: i32,
+    #[prost(message, optional, tag = "8")]
+    pub account_projection: ::core::option::Option<AccountProjection>,
+    #[prost(string, tag = "9")]
+    pub binding_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "10")]
+    pub binding_relation: ::core::option::Option<ScopedAppBindingRelation>,
+    #[prost(bool, tag = "11")]
+    pub replay_truncated: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAccountSessionStatusRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAccountSessionStatusResponse {
+    #[prost(enumeration = "AccountSessionState", tag = "1")]
+    pub state: i32,
+    #[prost(message, optional, tag = "2")]
+    pub account_projection: ::core::option::Option<AccountProjection>,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "4")]
+    pub account_reason_code: i32,
+    #[prost(bool, tag = "5")]
+    pub production_inert: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SubscribeAccountSessionEventsRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(uint64, tag = "2")]
+    pub after_sequence: u64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BeginLoginRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(string, tag = "2")]
+    pub redirect_uri: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub callback_origin: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub requested_scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int32, tag = "5")]
+    pub ttl_seconds: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BeginLoginResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(string, tag = "2")]
+    pub login_attempt_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub oauth_authorization_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub callback_origin: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub nonce: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub pkce_challenge: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "8")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "ReasonCode", tag = "9")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "10")]
+    pub account_reason_code: i32,
+    #[prost(bool, tag = "11")]
+    pub production_inert: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CompleteLoginRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(string, tag = "2")]
+    pub login_attempt_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub code: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub nonce: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub redirect_uri: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub callback_origin: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub ux_trace_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub sealed_completion_ticket: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub refresh_token: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CompleteLoginResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(enumeration = "AccountSessionState", tag = "2")]
+    pub state: i32,
+    #[prost(message, optional, tag = "3")]
+    pub account_projection: ::core::option::Option<AccountProjection>,
+    #[prost(enumeration = "ReasonCode", tag = "4")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "5")]
+    pub account_reason_code: i32,
+    #[prost(bool, tag = "6")]
+    pub production_inert: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAccessTokenRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(string, repeated, tag = "2")]
+    pub requested_scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAccessTokenResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(string, tag = "2")]
+    pub access_token: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "ReasonCode", tag = "4")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "5")]
+    pub account_reason_code: i32,
+    #[prost(bool, tag = "6")]
+    pub production_inert: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RefreshAccountSessionRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RefreshAccountSessionResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(enumeration = "AccountSessionState", tag = "2")]
+    pub state: i32,
+    #[prost(message, optional, tag = "3")]
+    pub account_projection: ::core::option::Option<AccountProjection>,
+    #[prost(enumeration = "ReasonCode", tag = "4")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "5")]
+    pub account_reason_code: i32,
+    #[prost(bool, tag = "6")]
+    pub production_inert: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LogoutRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(string, tag = "2")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LogoutResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(enumeration = "AccountSessionState", tag = "2")]
+    pub state: i32,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "4")]
+    pub account_reason_code: i32,
+    #[prost(bool, tag = "5")]
+    pub production_inert: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SwitchAccountRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(string, tag = "2")]
+    pub reason: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SwitchAccountResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(enumeration = "AccountSessionState", tag = "2")]
+    pub state: i32,
+    #[prost(message, optional, tag = "3")]
+    pub account_projection: ::core::option::Option<AccountProjection>,
+    #[prost(enumeration = "ReasonCode", tag = "4")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "5")]
+    pub account_reason_code: i32,
+    #[prost(bool, tag = "6")]
+    pub production_inert: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct IssueScopedAppBindingRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(message, optional, tag = "2")]
+    pub relation: ::core::option::Option<ScopedAppBindingRelation>,
+    #[prost(int32, tag = "3")]
+    pub ttl_seconds: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct IssueScopedAppBindingResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(string, tag = "2")]
+    pub binding_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub binding_carrier: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub relation: ::core::option::Option<ScopedAppBindingRelation>,
+    #[prost(enumeration = "ReasonCode", tag = "5")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "6")]
+    pub account_reason_code: i32,
+    #[prost(bool, tag = "7")]
+    pub production_inert: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevokeScopedAppBindingRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(string, tag = "2")]
+    pub binding_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AccountReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevokeScopedAppBindingResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(message, optional, tag = "2")]
+    pub relation: ::core::option::Option<ScopedAppBindingRelation>,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "4")]
+    pub account_reason_code: i32,
+    #[prost(bool, tag = "5")]
+    pub production_inert: bool,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AccountSessionState {
+    Unspecified = 0,
+    Anonymous = 1,
+    LoginPending = 2,
+    Authenticated = 3,
+    RefreshPending = 4,
+    Expired = 5,
+    ReauthRequired = 6,
+    Switching = 7,
+    LoggingOut = 8,
+    Unavailable = 9,
+}
+impl AccountSessionState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "ACCOUNT_SESSION_STATE_UNSPECIFIED",
+            Self::Anonymous => "ACCOUNT_SESSION_STATE_ANONYMOUS",
+            Self::LoginPending => "ACCOUNT_SESSION_STATE_LOGIN_PENDING",
+            Self::Authenticated => "ACCOUNT_SESSION_STATE_AUTHENTICATED",
+            Self::RefreshPending => "ACCOUNT_SESSION_STATE_REFRESH_PENDING",
+            Self::Expired => "ACCOUNT_SESSION_STATE_EXPIRED",
+            Self::ReauthRequired => "ACCOUNT_SESSION_STATE_REAUTH_REQUIRED",
+            Self::Switching => "ACCOUNT_SESSION_STATE_SWITCHING",
+            Self::LoggingOut => "ACCOUNT_SESSION_STATE_LOGGING_OUT",
+            Self::Unavailable => "ACCOUNT_SESSION_STATE_UNAVAILABLE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ACCOUNT_SESSION_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "ACCOUNT_SESSION_STATE_ANONYMOUS" => Some(Self::Anonymous),
+            "ACCOUNT_SESSION_STATE_LOGIN_PENDING" => Some(Self::LoginPending),
+            "ACCOUNT_SESSION_STATE_AUTHENTICATED" => Some(Self::Authenticated),
+            "ACCOUNT_SESSION_STATE_REFRESH_PENDING" => Some(Self::RefreshPending),
+            "ACCOUNT_SESSION_STATE_EXPIRED" => Some(Self::Expired),
+            "ACCOUNT_SESSION_STATE_REAUTH_REQUIRED" => Some(Self::ReauthRequired),
+            "ACCOUNT_SESSION_STATE_SWITCHING" => Some(Self::Switching),
+            "ACCOUNT_SESSION_STATE_LOGGING_OUT" => Some(Self::LoggingOut),
+            "ACCOUNT_SESSION_STATE_UNAVAILABLE" => Some(Self::Unavailable),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AccountEventType {
+    Unspecified = 0,
+    AccountStatus = 1,
+    LoginStarted = 2,
+    LoginCompleted = 3,
+    LoginFailed = 4,
+    LoginTimedOut = 5,
+    RefreshStarted = 6,
+    RefreshCompleted = 7,
+    RefreshFailed = 8,
+    LogoutStarted = 9,
+    LogoutCompleted = 10,
+    SwitchStarted = 11,
+    SwitchCompleted = 12,
+    CustodyUnavailable = 13,
+    CustodyRecovered = 14,
+    BindingIssued = 15,
+    BindingActivated = 16,
+    BindingSuspended = 17,
+    BindingRevoked = 18,
+    BindingExpired = 19,
+    BindingSuperseded = 20,
+    BindingReplayDetected = 21,
+}
+impl AccountEventType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "ACCOUNT_EVENT_TYPE_UNSPECIFIED",
+            Self::AccountStatus => "ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS",
+            Self::LoginStarted => "ACCOUNT_EVENT_TYPE_LOGIN_STARTED",
+            Self::LoginCompleted => "ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED",
+            Self::LoginFailed => "ACCOUNT_EVENT_TYPE_LOGIN_FAILED",
+            Self::LoginTimedOut => "ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT",
+            Self::RefreshStarted => "ACCOUNT_EVENT_TYPE_REFRESH_STARTED",
+            Self::RefreshCompleted => "ACCOUNT_EVENT_TYPE_REFRESH_COMPLETED",
+            Self::RefreshFailed => "ACCOUNT_EVENT_TYPE_REFRESH_FAILED",
+            Self::LogoutStarted => "ACCOUNT_EVENT_TYPE_LOGOUT_STARTED",
+            Self::LogoutCompleted => "ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED",
+            Self::SwitchStarted => "ACCOUNT_EVENT_TYPE_SWITCH_STARTED",
+            Self::SwitchCompleted => "ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED",
+            Self::CustodyUnavailable => "ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE",
+            Self::CustodyRecovered => "ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED",
+            Self::BindingIssued => "ACCOUNT_EVENT_TYPE_BINDING_ISSUED",
+            Self::BindingActivated => "ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED",
+            Self::BindingSuspended => "ACCOUNT_EVENT_TYPE_BINDING_SUSPENDED",
+            Self::BindingRevoked => "ACCOUNT_EVENT_TYPE_BINDING_REVOKED",
+            Self::BindingExpired => "ACCOUNT_EVENT_TYPE_BINDING_EXPIRED",
+            Self::BindingSuperseded => "ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED",
+            Self::BindingReplayDetected => "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ACCOUNT_EVENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS" => Some(Self::AccountStatus),
+            "ACCOUNT_EVENT_TYPE_LOGIN_STARTED" => Some(Self::LoginStarted),
+            "ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED" => Some(Self::LoginCompleted),
+            "ACCOUNT_EVENT_TYPE_LOGIN_FAILED" => Some(Self::LoginFailed),
+            "ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT" => Some(Self::LoginTimedOut),
+            "ACCOUNT_EVENT_TYPE_REFRESH_STARTED" => Some(Self::RefreshStarted),
+            "ACCOUNT_EVENT_TYPE_REFRESH_COMPLETED" => Some(Self::RefreshCompleted),
+            "ACCOUNT_EVENT_TYPE_REFRESH_FAILED" => Some(Self::RefreshFailed),
+            "ACCOUNT_EVENT_TYPE_LOGOUT_STARTED" => Some(Self::LogoutStarted),
+            "ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED" => Some(Self::LogoutCompleted),
+            "ACCOUNT_EVENT_TYPE_SWITCH_STARTED" => Some(Self::SwitchStarted),
+            "ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED" => Some(Self::SwitchCompleted),
+            "ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE" => Some(Self::CustodyUnavailable),
+            "ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED" => Some(Self::CustodyRecovered),
+            "ACCOUNT_EVENT_TYPE_BINDING_ISSUED" => Some(Self::BindingIssued),
+            "ACCOUNT_EVENT_TYPE_BINDING_ACTIVATED" => Some(Self::BindingActivated),
+            "ACCOUNT_EVENT_TYPE_BINDING_SUSPENDED" => Some(Self::BindingSuspended),
+            "ACCOUNT_EVENT_TYPE_BINDING_REVOKED" => Some(Self::BindingRevoked),
+            "ACCOUNT_EVENT_TYPE_BINDING_EXPIRED" => Some(Self::BindingExpired),
+            "ACCOUNT_EVENT_TYPE_BINDING_SUPERSEDED" => Some(Self::BindingSuperseded),
+            "ACCOUNT_EVENT_TYPE_BINDING_REPLAY_DETECTED" => {
+                Some(Self::BindingReplayDetected)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AccountReasonCode {
+    Unspecified = 0,
+    ActionExecuted = 1,
+    InertNotActivated = 2,
+    CustodyUnavailable = 3,
+    AccountUnavailable = 4,
+    ProofExpired = 5,
+    ProofMismatched = 6,
+    ProofConsumed = 7,
+    ProofUnsupported = 8,
+    RefreshReuseDetected = 9,
+    CallerUnauthorized = 10,
+    AvatarBindingOnly = 11,
+    ModTokenForbidden = 12,
+    BindingNotFound = 13,
+    BindingStale = 14,
+    BindingReplay = 15,
+    LoginExchangeUnavailable = 16,
+}
+impl AccountReasonCode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "ACCOUNT_REASON_CODE_UNSPECIFIED",
+            Self::ActionExecuted => "ACCOUNT_REASON_CODE_ACTION_EXECUTED",
+            Self::InertNotActivated => "ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED",
+            Self::CustodyUnavailable => "ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE",
+            Self::AccountUnavailable => "ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE",
+            Self::ProofExpired => "ACCOUNT_REASON_CODE_PROOF_EXPIRED",
+            Self::ProofMismatched => "ACCOUNT_REASON_CODE_PROOF_MISMATCHED",
+            Self::ProofConsumed => "ACCOUNT_REASON_CODE_PROOF_CONSUMED",
+            Self::ProofUnsupported => "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED",
+            Self::RefreshReuseDetected => "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED",
+            Self::CallerUnauthorized => "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED",
+            Self::AvatarBindingOnly => "ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY",
+            Self::ModTokenForbidden => "ACCOUNT_REASON_CODE_MOD_TOKEN_FORBIDDEN",
+            Self::BindingNotFound => "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND",
+            Self::BindingStale => "ACCOUNT_REASON_CODE_BINDING_STALE",
+            Self::BindingReplay => "ACCOUNT_REASON_CODE_BINDING_REPLAY",
+            Self::LoginExchangeUnavailable => {
+                "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ACCOUNT_REASON_CODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "ACCOUNT_REASON_CODE_ACTION_EXECUTED" => Some(Self::ActionExecuted),
+            "ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED" => Some(Self::InertNotActivated),
+            "ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE" => Some(Self::CustodyUnavailable),
+            "ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE" => Some(Self::AccountUnavailable),
+            "ACCOUNT_REASON_CODE_PROOF_EXPIRED" => Some(Self::ProofExpired),
+            "ACCOUNT_REASON_CODE_PROOF_MISMATCHED" => Some(Self::ProofMismatched),
+            "ACCOUNT_REASON_CODE_PROOF_CONSUMED" => Some(Self::ProofConsumed),
+            "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED" => Some(Self::ProofUnsupported),
+            "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED" => {
+                Some(Self::RefreshReuseDetected)
+            }
+            "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED" => Some(Self::CallerUnauthorized),
+            "ACCOUNT_REASON_CODE_AVATAR_BINDING_ONLY" => Some(Self::AvatarBindingOnly),
+            "ACCOUNT_REASON_CODE_MOD_TOKEN_FORBIDDEN" => Some(Self::ModTokenForbidden),
+            "ACCOUNT_REASON_CODE_BINDING_NOT_FOUND" => Some(Self::BindingNotFound),
+            "ACCOUNT_REASON_CODE_BINDING_STALE" => Some(Self::BindingStale),
+            "ACCOUNT_REASON_CODE_BINDING_REPLAY" => Some(Self::BindingReplay),
+            "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE" => {
+                Some(Self::LoginExchangeUnavailable)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AccountCallerMode {
+    Unspecified = 0,
+    LocalFirstPartyApp = 1,
+    DesktopShell = 2,
+    DesktopLaunchedAvatar = 3,
+    Mod = 4,
+    WebCloud = 5,
+    ExternalPrincipal = 6,
+}
+impl AccountCallerMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "ACCOUNT_CALLER_MODE_UNSPECIFIED",
+            Self::LocalFirstPartyApp => "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP",
+            Self::DesktopShell => "ACCOUNT_CALLER_MODE_DESKTOP_SHELL",
+            Self::DesktopLaunchedAvatar => "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR",
+            Self::Mod => "ACCOUNT_CALLER_MODE_MOD",
+            Self::WebCloud => "ACCOUNT_CALLER_MODE_WEB_CLOUD",
+            Self::ExternalPrincipal => "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ACCOUNT_CALLER_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP" => Some(Self::LocalFirstPartyApp),
+            "ACCOUNT_CALLER_MODE_DESKTOP_SHELL" => Some(Self::DesktopShell),
+            "ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR" => {
+                Some(Self::DesktopLaunchedAvatar)
+            }
+            "ACCOUNT_CALLER_MODE_MOD" => Some(Self::Mod),
+            "ACCOUNT_CALLER_MODE_WEB_CLOUD" => Some(Self::WebCloud),
+            "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL" => Some(Self::ExternalPrincipal),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ScopedAppBindingState {
+    Unspecified = 0,
+    Issued = 1,
+    Active = 2,
+    Suspended = 3,
+    Revoked = 4,
+    Expired = 5,
+    Superseded = 6,
+}
+impl ScopedAppBindingState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SCOPED_APP_BINDING_STATE_UNSPECIFIED",
+            Self::Issued => "SCOPED_APP_BINDING_STATE_ISSUED",
+            Self::Active => "SCOPED_APP_BINDING_STATE_ACTIVE",
+            Self::Suspended => "SCOPED_APP_BINDING_STATE_SUSPENDED",
+            Self::Revoked => "SCOPED_APP_BINDING_STATE_REVOKED",
+            Self::Expired => "SCOPED_APP_BINDING_STATE_EXPIRED",
+            Self::Superseded => "SCOPED_APP_BINDING_STATE_SUPERSEDED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SCOPED_APP_BINDING_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "SCOPED_APP_BINDING_STATE_ISSUED" => Some(Self::Issued),
+            "SCOPED_APP_BINDING_STATE_ACTIVE" => Some(Self::Active),
+            "SCOPED_APP_BINDING_STATE_SUSPENDED" => Some(Self::Suspended),
+            "SCOPED_APP_BINDING_STATE_REVOKED" => Some(Self::Revoked),
+            "SCOPED_APP_BINDING_STATE_EXPIRED" => Some(Self::Expired),
+            "SCOPED_APP_BINDING_STATE_SUPERSEDED" => Some(Self::Superseded),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ScopedAppBindingPurpose {
+    Unspecified = 0,
+    AvatarInteractionConsume = 1,
+    AppScopedRuntime = 2,
+}
+impl ScopedAppBindingPurpose {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SCOPED_APP_BINDING_PURPOSE_UNSPECIFIED",
+            Self::AvatarInteractionConsume => {
+                "SCOPED_APP_BINDING_PURPOSE_AVATAR_INTERACTION_CONSUME"
+            }
+            Self::AppScopedRuntime => "SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SCOPED_APP_BINDING_PURPOSE_UNSPECIFIED" => Some(Self::Unspecified),
+            "SCOPED_APP_BINDING_PURPOSE_AVATAR_INTERACTION_CONSUME" => {
+                Some(Self::AvatarInteractionConsume)
+            }
+            "SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME" => {
+                Some(Self::AppScopedRuntime)
+            }
+            _ => None,
+        }
+    }
+}
+/// Generated client implementations.
+pub mod runtime_account_service_client {
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
+    #[derive(Debug, Clone)]
+    pub struct RuntimeAccountServiceClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl RuntimeAccountServiceClient<tonic::transport::Channel> {
+        /// Attempt to create a new client by connecting to a given endpoint.
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> RuntimeAccountServiceClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::Body>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> RuntimeAccountServiceClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+        {
+            RuntimeAccountServiceClient::new(InterceptedService::new(inner, interceptor))
+        }
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
+            self
+        }
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        pub async fn get_account_session_status(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAccountSessionStatusRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAccountSessionStatusResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "GetAccountSessionStatus",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn subscribe_account_session_events(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SubscribeAccountSessionEventsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::AccountSessionEvent>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "SubscribeAccountSessionEvents",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        pub async fn begin_login(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BeginLoginRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BeginLoginResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "BeginLogin",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn complete_login(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CompleteLoginRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CompleteLoginResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "CompleteLogin",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_access_token(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAccessTokenRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAccessTokenResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/GetAccessToken",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "GetAccessToken",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn refresh_account_session(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RefreshAccountSessionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RefreshAccountSessionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "RefreshAccountSession",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn logout(
+            &mut self,
+            request: impl tonic::IntoRequest<super::LogoutRequest>,
+        ) -> std::result::Result<tonic::Response<super::LogoutResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/Logout",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("nimi.runtime.v1.RuntimeAccountService", "Logout"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn switch_account(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SwitchAccountRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::SwitchAccountResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "SwitchAccount",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn issue_scoped_app_binding(
+            &mut self,
+            request: impl tonic::IntoRequest<super::IssueScopedAppBindingRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::IssueScopedAppBindingResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "IssueScopedAppBinding",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn revoke_scoped_app_binding(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RevokeScopedAppBindingRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RevokeScopedAppBindingResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "RevokeScopedAppBinding",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AuthorizeExternalPrincipalRequest {
     #[prost(string, tag = "1")]

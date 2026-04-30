@@ -287,6 +287,6 @@ describe('runtime route migration', () => {
       ready: false,
       title: '云端 · qwen3-max',
     });
-    expect(status.detail).toContain('像 Desktop 一样复用登录态');
+    expect(status.detail).toContain('通过 Runtime 登录');
   });
 });

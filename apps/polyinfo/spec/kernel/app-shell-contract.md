@@ -4,8 +4,8 @@
 
 ## PI-SHELL-001: Sector Workspace Is Primary
 
-Authority fence: `ACCOUNT_HARDCUT_NON_ADMITTED_APP_SLICE_FENCE`.
-Polyinfo is not currently admitted as an active local first-party Runtime account/session authority for the `2026-04-28-runtime-core-account-session-broker-hardcut` topic. Existing app-local token/session bootstrap seams are fenced legacy slice behavior and must not be treated as hardcut-compliant local account truth until migrated to Runtime-issued short-lived token projection and admitted caller registration.
+Authority fence: `ACCOUNT_HARDCUT_LOCAL_FIRST_PARTY_RUNTIME`.
+Polyinfo is a local first-party Runtime account consumer for the `2026-04-28-runtime-core-account-session-broker-hardcut` topic. Polyinfo must use Runtime account status and browser-login brokering, and must not keep app-local token custody, password login, shared auth session reads, or app-owned refresh material.
 
 The sector workspace is the primary home surface of Polyinfo.
 
@@ -27,13 +27,15 @@ Polyinfo is a standalone app rather than a desktop subpage or runtime mod.
 Bootstrap must complete in this order:
 
 1. hydrate persisted app-local state for taxonomy overlays, sector chats, snapshots, custom sectors, imported events, and last active sector
-2. read runtime defaults and shared auth session
-3. initialize platform client and runtime-backed sector-analyst capability
-4. hydrate the app-level runtime chat config used by Polyinfo analyst chat
-5. lazily load the official sector catalog when a route needs it
-6. when a sector opens, ensure that sector has local taxonomy state and a sector chat state
-7. when a custom sector opens, refresh imported-event validity against upstream
-8. only after the user explicitly requests price analysis, fetch historical price windows and attach realtime subscriptions for the current market set
+2. read runtime defaults
+3. ensure the Runtime daemon is ready and start it when needed
+4. initialize the local first-party Runtime platform client
+5. read current account status through Runtime account service
+6. hydrate the app-level runtime chat config used by Polyinfo analyst chat
+7. lazily load the official sector catalog when a route needs it
+8. when a sector opens, ensure that sector has local taxonomy state and a sector chat state
+9. when a custom sector opens, refresh imported-event validity against upstream
+10. only after the user explicitly requests price analysis, fetch historical price windows and attach realtime subscriptions for the current market set
 
 Realtime subscription attachment remains delayed until a concrete active market set exists and the user has requested price-backed analysis.
 

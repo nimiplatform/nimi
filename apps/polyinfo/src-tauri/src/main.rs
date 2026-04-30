@@ -4,7 +4,6 @@ use serde::Serialize;
 use serde_json::Value;
 use reqwest::Url;
 
-use nimi_kit_shell_tauri::auth_session_commands;
 use nimi_kit_shell_tauri::desktop_paths;
 use nimi_kit_shell_tauri::oauth_commands;
 use nimi_kit_shell_tauri::runtime_bridge;
@@ -183,9 +182,6 @@ fn main() {
             polymarket_event_by_slug,
             polymarket_batch_prices_history,
             defaults::runtime_defaults,
-            auth_session_commands::auth_session_load,
-            auth_session_commands::auth_session_save,
-            auth_session_commands::auth_session_clear,
             oauth_commands::open_external_url,
             oauth_commands::oauth_token_exchange,
             oauth_commands::oauth_listen_for_code,

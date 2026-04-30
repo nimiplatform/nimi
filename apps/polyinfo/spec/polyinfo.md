@@ -72,8 +72,9 @@ The primary user is an analyst who wants to:
 
 Polyinfo follows the SDK-first shell pattern used by other standalone nimi apps:
 
-- **Platform client** — `createPlatformClient({ appId: 'nimi.polyinfo', runtimeTransport: 'tauri-ipc', sessionStore })`
-- **Runtime** — consumed from the returned SDK client for sector analyst sessions and analysis runs
+- **Platform client** — local first-party Runtime client for `nimi.polyinfo` over the Tauri runtime bridge
+- **Runtime** — consumed from the returned SDK client for account status, sector analyst sessions, and analysis runs
+- **Account** — owned by Runtime; Polyinfo may show status, start browser login, and request logout, but must not store its own login session
 
 ## External Dependencies
 
