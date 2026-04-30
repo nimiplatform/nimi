@@ -172,4 +172,29 @@ describe('polyinfo smoke runner', () => {
       detail: 'runtime admin unavailable',
     });
   });
+
+  it('treats account-token-only runtime details as login-required while anonymous', async () => {
+    const snapshot = await runPolyinfoAppSmoke({
+      aiConfig: buildAIConfig(),
+      runtimeDefaults,
+      authStatus: 'anonymous',
+    }, createDeps({
+      fetchRuntimeHealthSummary: async () => {
+        throw new Error('runtime account access token unavailable: 4');
+      },
+      loadTextGenerateRouteOptions: async () => {
+        throw new Error('runtime account access token unavailable: 4');
+      },
+    }));
+
+    expect(snapshot.status).toBe('warn');
+    expect(snapshot.checks.find((check) => check.id === 'runtime-health')).toMatchObject({
+      status: 'warn',
+      detail: expect.stringContaining('当前未登录'),
+    });
+    expect(snapshot.checks.find((check) => check.id === 'route-options')).toMatchObject({
+      status: 'warn',
+      detail: expect.stringContaining('当前未登录'),
+    });
+  });
 });

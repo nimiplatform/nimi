@@ -12,6 +12,7 @@ import {
 } from '@nimiplatform/sdk/mod';
 import type { RuntimeDefaults, RuntimeBridgeDaemonStatus } from '@renderer/bridge';
 import { hasTauriInvoke } from '@renderer/bridge';
+import { isRuntimeAccountAccessUnavailable } from '@renderer/infra/bootstrap/polyinfo-runtime-account.js';
 import {
   clearLegacyAnalystRuntimeSettings,
   loadSavedAnalystRuntimeSettings,
@@ -467,10 +468,15 @@ export async function loadTextGenerateRouteOptions(input: {
     });
   }
 
-  const [localModels, connectors] = await Promise.all([
-    fetchRuntimeLocalModels(),
-    fetchRuntimeCloudConnectors(),
-  ]);
+  const localModels = await fetchRuntimeLocalModels();
+  let connectors: RuntimeRouteConnectorOption[] = [];
+  try {
+    connectors = await fetchRuntimeCloudConnectors();
+  } catch (error) {
+    if (!isRuntimeAccountAccessUnavailable(error)) {
+      throw error;
+    }
+  }
   return buildRuntimeRouteOptionsSnapshot({
     capability: 'text.generate',
     selectedBinding: getTextGenerateBinding(input.aiConfig),
@@ -490,10 +496,16 @@ export async function fetchRuntimeHealthSummary(): Promise<RuntimeHealthSummary>
   }
 
   const runtimeAdmin = getPlatformClient().domains.runtimeAdmin;
-  const [runtimeHealth, providerHealth] = await Promise.all([
-    runtimeAdmin.getRuntimeHealth({}, { timeoutMs: 5000 }),
-    runtimeAdmin.listAIProviderHealth({}, { timeoutMs: 5000 }),
-  ]);
+  let runtimeHealth: Awaited<ReturnType<typeof runtimeAdmin.getRuntimeHealth>> | null = null;
+  let providerHealth: Awaited<ReturnType<typeof runtimeAdmin.listAIProviderHealth>> | null = null;
+  try {
+    runtimeHealth = await runtimeAdmin.getRuntimeHealth({}, { timeoutMs: 5000 });
+    providerHealth = await runtimeAdmin.listAIProviderHealth({}, { timeoutMs: 5000 });
+  } catch (error) {
+    if (!isRuntimeAccountAccessUnavailable(error)) {
+      throw error;
+    }
+  }
 
   return {
     runtimeHealth: runtimeHealth
@@ -505,7 +517,7 @@ export async function fetchRuntimeHealthSummary(): Promise<RuntimeHealthSummary>
         activeInferenceJobs: Number(runtimeHealth.activeInferenceJobs) || 0,
       }
       : null,
-    providers: Array.isArray(providerHealth.providers)
+    providers: Array.isArray(providerHealth?.providers)
       ? providerHealth.providers.map((provider) => ({
         providerName: normalizeText(provider.providerName) || 'unknown',
         state: normalizeText(provider.state) || 'unknown',

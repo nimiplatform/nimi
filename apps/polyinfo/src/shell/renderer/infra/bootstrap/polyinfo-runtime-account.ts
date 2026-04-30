@@ -32,6 +32,12 @@ export function isMissingRuntimeAccountService(error: unknown): boolean {
     || message.includes('/nimi.runtime.v1.RuntimeAccountService/');
 }
 
+export function isRuntimeAccountAccessUnavailable(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('runtime account access token unavailable: 4')
+    || message.includes('ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE');
+}
+
 export function staleRuntimeAccountServiceError(): Error {
   return new Error(
     'Polyinfo 启动到的 runtime 版本太旧，缺少新的账号服务。请停止旧 runtime 后用最新代码重新启动 Polyinfo。',

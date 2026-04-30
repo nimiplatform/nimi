@@ -11,6 +11,7 @@ import {
   hasTauriInvoke,
 } from '@renderer/bridge';
 import {
+  isRuntimeAccountAccessUnavailable,
   isMissingRuntimeAccountService,
   loadPolyinfoRuntimeAccountUser,
 } from '@renderer/infra/bootstrap/polyinfo-runtime-account.js';
@@ -130,6 +131,15 @@ function summarizeRuntimeAccountStatus(): PolyinfoSmokeCheck {
   };
 }
 
+function summarizeLoginRequiredRuntimeDetail(id: string, title: string): PolyinfoSmokeCheck {
+  return {
+    id,
+    title,
+    status: 'warn',
+    detail: '当前未登录，已跳过需要账号的云端检查。',
+  };
+}
+
 function summarizeRouteStatus(routeStatus: TextGenerateRouteStatus): PolyinfoSmokeCheck {
   if (routeStatus.ready) {
     return {
@@ -192,12 +202,16 @@ export async function runPolyinfoAppSmoke(
     const healthSummary = await deps.fetchRuntimeHealthSummary();
     checks.push(summarizeRuntimeHealth(healthSummary));
   } catch (error) {
-    checks.push({
-      id: 'runtime-health',
-      title: 'Runtime health',
-      status: 'fail',
-      detail: errorMessage(error),
-    });
+    if (input.authStatus !== 'authenticated' && isRuntimeAccountAccessUnavailable(error)) {
+      checks.push(summarizeLoginRequiredRuntimeDetail('runtime-health', 'Runtime health'));
+    } else {
+      checks.push({
+        id: 'runtime-health',
+        title: 'Runtime health',
+        status: 'fail',
+        detail: errorMessage(error),
+      });
+    }
   }
 
   try {
@@ -233,12 +247,22 @@ export async function runPolyinfoAppSmoke(
       authStatus: input.authStatus,
     })));
   } catch (error) {
-    checks.push({
-      id: 'route-options',
-      title: 'Route options',
-      status: 'fail',
-      detail: errorMessage(error),
-    });
+    if (input.authStatus !== 'authenticated' && isRuntimeAccountAccessUnavailable(error)) {
+      checks.push(summarizeLoginRequiredRuntimeDetail('route-options', 'Route options'));
+      checks.push({
+        id: 'analyst-route',
+        title: 'Analyst route',
+        status: 'warn',
+        detail: '本地/云端路由详情需要登录后重新检查。',
+      });
+    } else {
+      checks.push({
+        id: 'route-options',
+        title: 'Route options',
+        status: 'fail',
+        detail: errorMessage(error),
+      });
+    }
   }
 
   return {

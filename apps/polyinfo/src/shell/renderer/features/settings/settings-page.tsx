@@ -48,7 +48,6 @@ function AccountSessionPanel() {
     setError('');
     try {
       await performDesktopWebAuth(tauriOAuthBridge, {
-        baseUrl: runtimeDefaults?.realm.realmBaseUrl,
         runtimeAccountBroker: createPolyinfoRuntimeAccountBrowserBroker(),
       });
       const user = await loadPolyinfoRuntimeAccountUser(getPlatformClient().runtime);
@@ -62,7 +61,7 @@ function AccountSessionPanel() {
     } finally {
       setBrowserSubmitting(false);
     }
-  }, [clearAuthSession, runtimeDefaults?.realm.realmBaseUrl, setAuthSession]);
+  }, [clearAuthSession, setAuthSession]);
 
   const handleLogout = useCallback(async () => {
     setLogoutSubmitting(true);

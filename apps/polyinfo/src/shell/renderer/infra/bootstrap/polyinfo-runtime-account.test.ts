@@ -140,6 +140,7 @@ describe('polyinfo runtime account flow', () => {
         beginLogin: vi.fn(async () => ({
           accepted: true,
           loginAttemptId: 'attempt-1',
+          oauthAuthorizationUrl: 'https://web.example/#/login?desktop_state=state-1',
           state: 'state-1',
           nonce: 'nonce-1',
         })),

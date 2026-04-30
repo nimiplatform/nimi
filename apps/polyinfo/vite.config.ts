@@ -12,6 +12,7 @@ export default defineConfig(() => {
     envPrefix: ['VITE_', 'NIMI_'],
     define: {
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('polyinfo'),
+      'globalThis.__NIMI_IMPORT_META_ENV__': 'import.meta.env',
     },
     publicDir: false as const,
     resolve: {
