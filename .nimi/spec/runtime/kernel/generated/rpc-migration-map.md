@@ -76,6 +76,8 @@
 | `RuntimeLocalService` | `ResumeLocalTransfer` | `RuntimeLocalService` | `ResumeLocalTransfer` | `aligned` |
 | `RuntimeLocalService` | `CancelLocalTransfer` | `RuntimeLocalService` | `CancelLocalTransfer` | `aligned` |
 | `RuntimeLocalService` | `WatchLocalTransfers` | `RuntimeLocalService` | `WatchLocalTransfers` | `aligned` |
+| `RuntimeLocalService` | `ResolveLocalRuntimeDependency` | `RuntimeLocalService` | `ResolveLocalRuntimeDependency` | `aligned` |
+| `RuntimeLocalService` | `StartLocalRuntimeDependencySetup` | `RuntimeLocalService` | `StartLocalRuntimeDependencySetup` | `aligned` |
 | `RuntimeLocalService` | `ListLocalServices` | `RuntimeLocalService` | `ListLocalServices` | `aligned` |
 | `RuntimeLocalService` | `InstallLocalService` | `RuntimeLocalService` | `InstallLocalService` | `aligned` |
 | `RuntimeLocalService` | `StartLocalService` | `RuntimeLocalService` | `StartLocalService` | `aligned` |

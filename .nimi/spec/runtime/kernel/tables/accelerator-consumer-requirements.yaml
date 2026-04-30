@@ -1,0 +1,126 @@
+version: 1
+
+# Canonical consumer requirement declarations for shared accelerator
+# dependencies. Consumers request dependency plans; they do not own CUDA
+# readiness, source selection, install, repair, or activation truth.
+
+consumers:
+  - consumer_id: llama.cpp.cuda
+    consumer_kind: native_engine_package_variant
+    engine: llama
+    package_variant: llama-cpp-windows-amd64-cuda
+    capability_refs:
+      - text.generate
+      - text.embed
+      - image.understand
+      - audio.understand
+    accelerator_plane: cuda
+    dependency_ids:
+      - nvidia-cuda-user-space-runtime
+    version_constraints:
+      cuda_major: 12
+      package_abi: package_declared
+    activation_gate:
+      required_dependency_states:
+        - ready_system
+        - ready_managed
+    fallback_policy:
+      fallback_variants:
+        - llama-cpp-windows-amd64-vulkan
+        - llama-cpp-windows-amd64-cpu
+      fallback_requires_explicit_runtime_policy: true
+    health_projection:
+      ready: ready
+      materializable_requires_confirmation: blocked_needs_confirmation
+      queued: blocked_materializing
+      downloading: blocked_materializing
+      verifying: blocked_materializing
+      installing: blocked_materializing
+      repair_required: blocked_repair_required
+      failed: unsupported
+      unsupported: unsupported
+    audit_fields:
+      - selected_source_record_id
+      - selected_package_variant
+      - fallback_reason
+
+  - consumer_id: stable-diffusion.cpp.cuda
+    consumer_kind: native_engine_package_variant
+    engine: media
+    backend_family: stablediffusion-ggml
+    package_variant: sd-win-cuda12-x64-stablediffusion-ggml
+    capability_refs:
+      - image.generate.t2i
+      - image.generate.i2i
+    accelerator_plane: cuda
+    dependency_ids:
+      - nvidia-cuda-user-space-runtime
+    version_constraints:
+      cuda_major: 12
+      package_abi: package_declared
+    activation_gate:
+      required_dependency_states:
+        - ready_system
+        - ready_managed
+    fallback_policy:
+      fallback_variants: []
+      fallback_requires_explicit_runtime_policy: true
+    health_projection:
+      ready: ready
+      materializable_requires_confirmation: blocked_needs_confirmation
+      queued: blocked_materializing
+      downloading: blocked_materializing
+      verifying: blocked_materializing
+      installing: blocked_materializing
+      repair_required: blocked_repair_required
+      failed: unsupported
+      unsupported: unsupported
+    audit_fields:
+      - selected_source_record_id
+      - selected_package_variant
+      - backend_entry_id
+
+  - consumer_id: media.diffusers.cuda
+    consumer_kind: python_engine_package_variant
+    engine: media
+    backend_family: diffusers
+    package_variant: diffusers-windows-amd64-cuda
+    capability_refs:
+      - image.generate.t2i
+      - image.generate.i2i
+      - video.generate
+      - i2v
+    accelerator_plane: cuda
+    dependency_ids:
+      - nvidia-cuda-user-space-runtime
+      - python-env.media.diffusers
+      - torch-cuda-wheel.media.diffusers
+    version_constraints:
+      cuda_major: 12
+      torch_cuda_abi: package_declared
+      python_env: uv_managed
+    activation_gate:
+      required_dependency_states:
+        - ready_system
+        - ready_managed
+      additional_dependency_families:
+        - python-env
+        - torch-wheel
+    fallback_policy:
+      fallback_variants: []
+      fallback_requires_explicit_runtime_policy: true
+    health_projection:
+      ready: ready
+      materializable_requires_confirmation: blocked_needs_confirmation
+      queued: blocked_materializing
+      downloading: blocked_materializing
+      verifying: blocked_materializing
+      installing: blocked_materializing
+      repair_required: blocked_repair_required
+      failed: unsupported
+      unsupported: unsupported
+    audit_fields:
+      - selected_source_record_id
+      - python_env_record_id
+      - torch_wheel_record_id
+      - selected_package_variant

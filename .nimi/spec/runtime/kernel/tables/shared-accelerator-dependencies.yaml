@@ -1,0 +1,118 @@
+version: 1
+
+# Canonical shared accelerator dependency authority.
+# These entries are runtime-wide dependencies, not model-owned, engine-owned,
+# image-owned, package-owned, or Desktop-owned installers.
+
+dependencies:
+  - dependency_id: nvidia-cuda-user-space-runtime
+    dependency_family: accelerator
+    accelerator_plane: cuda
+    host_profile_refs:
+      - windows-amd64-nvidia-cuda
+    source_policy: system-first-managed-fallback
+    source_candidates:
+      - source_kind: system
+        priority: 1
+        admission: positive_compatibility_proof_required
+      - source_kind: managed
+        priority: 2
+        admission: explicit_confirmation_before_first_network_materialization
+      - source_kind: bundled
+        priority: 3
+        admission: not_admitted_for_default_consumer_path
+      - source_kind: unavailable
+        priority: 4
+        admission: fail_closed
+    version_constraints:
+      cuda_major: 12
+      driver_compatibility: runtime_must_verify_driver_supports_selected_cuda_runtime
+      consumer_abi: selected_consumer_package_must_declare_cuda_abi_compatibility
+    required_artifacts:
+      - cudart64_12.dll
+      - cublas64_12.dll
+      - cublasLt64_12.dll
+    system_source_policy:
+      discovery_hints:
+        - nvidia_driver_api
+        - cuda_install_registry
+        - allowlisted_program_files_roots
+        - path_hint_after_canonical_verification
+      reject_sources:
+        - model_directory
+        - import_directory
+        - arbitrary_user_selected_directory
+        - unverified_path_precedence_only
+      required_proof:
+        - canonical_root
+        - required_artifact_set
+        - version_metadata_or_binary_version
+        - driver_compatibility
+        - selected_source_record
+    managed_sources:
+      - source_id: llama-cuda12.4-win-x64-runtime
+        source_owner: runtime_shared_dependency_source
+        release_owner: ggml-org/llama.cpp
+        release_tag_ref: runtime_default_llama_version
+        archive_name: cudart-llama-bin-win-cuda-12.4-x64.zip
+        archive_sha256_source: github_release_asset_digest
+        package_format: direct_archive
+        stage_policy: staged_extract_verify_atomic_promote
+        product_state: supported
+    verification_owner: runtime_shared_dependency_resolver
+    activation_policy:
+      env: path_prepend_process_only
+      persistent_path_mutation: forbidden
+      shell_profile_mutation: forbidden
+      machine_or_user_cuda_mutation: forbidden
+    repair_policy:
+      missing_artifact: repair_required
+      hash_mismatch: failed
+      incompatible_driver: failed
+      corrupt_selected_source: repair_required
+      activation_during_repair: forbidden
+      automatic_reinstall_without_allowed_confirmation: forbidden
+    states:
+      - unknown
+      - ready_system
+      - ready_managed
+      - materializable_requires_confirmation
+      - queued
+      - downloading
+      - verifying
+      - installing
+      - repair_required
+      - failed
+      - unsupported
+      - cancelled
+    selected_source_record_ref: runtime_selected_accelerator_dependency_source_record
+
+selected_source_record_schema:
+  cardinality: one_active_record_per_dependency_environment
+  environment_key_fields:
+    - host_profile_id
+    - platform_tuple
+    - runtime_data_root
+    - dependency_id
+  fields:
+    - record_id
+    - dependency_id
+    - environment_key
+    - source_kind
+    - canonical_root
+    - version
+    - driver_compatibility
+    - verified_artifacts
+    - hashes
+    - selected_at
+    - last_verified_at
+    - consumers
+    - activation_env_delta
+    - repair_state
+    - audit_reason_code
+  invalidation_reasons:
+    - verification_failed
+    - explicit_repair_started
+    - dependency_removed
+    - host_profile_incompatible
+    - required_artifact_missing

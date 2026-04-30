@@ -17,7 +17,7 @@ canonical_public_contract:
 #
 # New v2 fields: asset_family, profile_kind, backend_class, topology_state, product_state,
 #   supported_capabilities, admission_gate (optional), host_match.min_memory_gb (optional),
-#   host_match.min_vram_gb (optional)
+#   host_match.min_vram_gb (optional), dependency_requirements (optional)
 #
 # supported_capabilities interpretation:
 #   product_state=supported  -> supported_capabilities is a closed formal product promise
@@ -28,6 +28,15 @@ canonical_public_contract:
 #   Only allowed on product_state=proposed entries
 #   Single string token from admission contract names registered in K-LENG-012 prose
 #   Current registered gate tokens are documented there; this table only references them
+#
+# Runtime-managed dependency constraints:
+#   host_match expresses platform / hardware / driver visibility only. It must
+#   not require that global CUDA Toolkit, nvcc, CUDA_PATH, or CUDA_HOME already
+#   exist on the host. CUDA user-space runtime readiness is expressed through
+#   dependency_requirements that reference
+#   tables/shared-accelerator-dependencies.yaml. This matrix owns image
+#   topology only; it must not own CUDA source selection, install, repair, or
+#   selected source records.
 #
 # linux/arm64 is listed in local-engine-catalog.yaml as a media supervised supported_platform,
 # but no image-specific backend topology is currently defined or supported for linux/arm64.
@@ -109,12 +118,18 @@ entries:
       os: windows
       arch: amd64
       gpu_vendor: nvidia
-      cuda_ready: true
+      gpu_driver_visible: true
     asset_family: gguf_image
     artifact_formats: [gguf]
     profile_kind: single_binary_model
     backend_class: native_binary
     backend_family: stablediffusion-ggml
+    dependency_requirements:
+      - dependency_id: nvidia-cuda-user-space-runtime
+        consumer_id: stable-diffusion.cpp.cuda
+        readiness_owner: runtime_shared_dependency_resolver
+        source_policy: system-first-managed-fallback
+        first_network_materialization_requires_confirmation: true
     control_plane: runtime
     execution_plane: media
     supported_capabilities:
@@ -128,7 +143,7 @@ entries:
       os: linux
       arch: amd64
       gpu_vendor: nvidia
-      cuda_ready: true
+      gpu_driver_visible: true
     asset_family: gguf_image
     artifact_formats: [gguf]
     profile_kind: single_binary_model
@@ -148,7 +163,7 @@ entries:
       os: windows
       arch: amd64
       gpu_vendor: nvidia
-      cuda_ready: true
+      gpu_driver_visible: true
     asset_family: safetensors_native_image
     artifact_formats: [safetensors]
     profile_kind: single_binary_model
@@ -168,7 +183,7 @@ entries:
       os: windows
       arch: amd64
       gpu_vendor: nvidia
-      cuda_ready: true
+      gpu_driver_visible: true
       min_memory_gb: 16
       min_vram_gb: 12
     asset_family: workflow_safetensors_image
@@ -190,7 +205,7 @@ entries:
       os: linux
       arch: amd64
       gpu_vendor: nvidia
-      cuda_ready: true
+      gpu_driver_visible: true
     asset_family: safetensors_native_image
     artifact_formats: [safetensors]
     profile_kind: single_binary_model
@@ -210,7 +225,7 @@ entries:
       os: linux
       arch: amd64
       gpu_vendor: nvidia
-      cuda_ready: true
+      gpu_driver_visible: true
       min_memory_gb: 16
       min_vram_gb: 12
     asset_family: workflow_safetensors_image

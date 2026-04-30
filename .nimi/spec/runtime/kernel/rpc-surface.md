@@ -168,6 +168,79 @@ Tier 1 的读写边界固定如下：
 38. `StopEngine`
 39. `GetEngineStatus`
 
+Runtime-managed shared accelerator dependency jobs are admitted under
+`RuntimeLocalService` as the authority surface for supervised local engine
+dependency materialization. For Windows NVIDIA CUDA accelerator dependencies,
+the service must expose or project an equivalent runtime-owned
+confirmation/job/status surface with these semantics:
+
+- resolve dependency requirements from runtime authority, not Desktop probing
+- return `needs_confirmation` / `materializable_requires_confirmation` before
+  first network materialization of managed accelerator dependency packages
+- start a runtime-owned install/repair job only after explicit user confirmation
+  or an import/install confirmation that clearly covers the dependency
+- project job states through the existing job state family (`QUEUED`,
+  `RUNNING`, `COMPLETED`, `FAILED`, `CANCELED`) plus runtime-private phase detail
+  such as `downloading`, `verifying`, and `installing`
+- provide health/audit detail for `ready_system`, `ready_managed`, `failed`, and
+  `repair_required`
+- never require Desktop, SDK, mods, or a visible terminal to execute dependency
+  installation scripts
+- keep setup idempotent per dependency/environment; duplicate llama,
+  stable-diffusion.cpp, and Python-native consumer requests must attach to the
+  same active job and converge on one selected source record
+- expose selected source record references in runtime-private audit/detail so
+  consumers cannot independently re-resolve CUDA source
+
+This surface may be implemented by new RPC methods or by extending existing
+local transfer/install job projection, but there must be exactly one runtime
+truth owner for dependency job state.
+
+### K-RPC-004-state Runtime Local State And Config Reconciliation
+
+`RuntimeLocalService` and the runtime config surface jointly own local AI state
+and storage reconciliation. Runtime is the only active owner of local asset
+state. Desktop, SDK, mods, and host helpers must not maintain a second local AI
+state file or silently fall back to retired state files.
+
+Runtime must distinguish these path roles:
+
+- `localStatePath`: the single active Runtime local AI state file for assets,
+  transfers, dependency assets, setup jobs, cutover evidence, and local health
+  projection.
+- `localModelsPath`: the filesystem root for model and asset payload files.
+- Nimi data dir: a product storage root that may contain models, mods, caches,
+  and dependency payloads, but is not itself local AI state truth.
+
+When Desktop or another admitted host surface changes Nimi data dir, Runtime
+must receive or produce a reconciliation plan before local AI state is assumed
+usable. The plan must include the effective `localStatePath`, effective
+`localModelsPath`, dependency install root, detected retired state inputs,
+asset counts, conflicts, and whether user confirmation is required.
+
+Retired Desktop-local state such as `<nimi_data_dir>/state.json` may only be
+used as an explicit cutover input. It must not be used as a live fallback,
+secondary read source, or dual-write target. Cutover execution must be
+idempotent and fail closed: failure leaves the previously active Runtime state
+unchanged and projects `cutover_failed` / `repair_required` detail through
+Runtime truth.
+
+Required cutover states:
+
+| State | Meaning |
+| --- | --- |
+| `not_required` | Runtime state/config already agree with the selected storage roots |
+| `required_confirmation` | Runtime detected a retired state input or path mismatch and needs explicit user confirmation |
+| `planned` | Runtime produced an accepted cutover plan but execution has not started |
+| `running` | Runtime is validating, copying, or rewriting Runtime-owned local state |
+| `succeeded` | Runtime completed cutover and retired the input from active use |
+| `failed` | Runtime rejected or failed cutover without changing active truth |
+| `cancelled` | User cancelled before state mutation |
+
+No public state may report models as installed or dependencies as ready solely
+because files exist under Nimi data dir. Runtime must have an authoritative
+local asset record in the active Runtime state.
+
 `WarmLocalAsset` 的语义限定为 runtime-owned 的”就绪/预热”路径：允许解析已安装 local model / local service，并在首次真实请求前触发最小执行以加载模型。对于 chat/text，本地模型在 `status in {installed, active}` 时可被选择，runtime 在首次真实 text 请求前负责 warm，不得要求 desktop 先行维持第二套 start/stop 真源。
 
 ## K-RPC-004a RuntimeCognitionService 方法集合

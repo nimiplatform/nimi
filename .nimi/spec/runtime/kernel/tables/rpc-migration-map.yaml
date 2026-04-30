@@ -327,6 +327,16 @@ method_mappings:
   proto_method: WatchLocalTransfers
   mapping_status: aligned
 - design_service: RuntimeLocalService
+  design_method: ResolveLocalRuntimeDependency
+  proto_service: RuntimeLocalService
+  proto_method: ResolveLocalRuntimeDependency
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: StartLocalRuntimeDependencySetup
+  proto_service: RuntimeLocalService
+  proto_method: StartLocalRuntimeDependencySetup
+  mapping_status: aligned
+- design_service: RuntimeLocalService
   design_method: ListLocalServices
   proto_service: RuntimeLocalService
   proto_method: ListLocalServices

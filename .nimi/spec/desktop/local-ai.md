@@ -41,6 +41,47 @@
 - media/image/video 本地 readiness 不在本域放宽，继续遵循 runtime kernel 的更严格规则。
 - Local Model Center 是状态展示，不再是手动启停控制台；Desktop 不提供本地模型行内 start/stop toggle。
 - `active` 表示模型已通过 runtime readiness 校验并可被选择，不要求常驻运行；`installed` 不再等价于 ready，只表示 runtime 已登记且允许 warm-on-demand。
+- 对 runtime-owned shared accelerator dependency setup，Desktop 只提供 runtime truth projection 与用户确认入口：
+  - 当 runtime 返回 CUDA accelerator dependency `needs_confirmation` / `materializable_requires_confirmation` 时，Desktop 可以展示一次共享确认 UI，说明 Nimi 将把依赖安装到 Nimi data/runtime dependency 目录且不会修改 system CUDA、user PATH 或 machine PATH。
+  - 用户确认后，Desktop 只能调用 runtime-owned dependency install/repair job surface；不得自行运行 bash、PowerShell、Chocolatey、WSL、installer script，或自行选择 CUDA source。
+  - Desktop 可以展示 runtime job phase：`queued`、`downloading`、`verifying`、`installing`、`ready_system`、`ready_managed`、`failed`、`repair_required`、`cancelled`。
+  - 同一 CUDA dependency 被 llama、stable-diffusion.cpp、diffusers/Torch-style consumer 同时需要时，Desktop 必须投影同一个 runtime job / selected source record，不得显示成多个 engine-private installer。
+  - visible terminal / install log / diagnostic command 只能作为高级诊断或日志入口，不得成为普通用户安装路径，也不得成为 dependency state truth。
+  - dependency failure 必须投影为 fail-closed setup/repair 状态，不得伪装为 ready，不得降级为 attached endpoint。
+
+### Runtime state cutover and data-dir projection
+
+- Desktop `nimi_data_dir` is a storage-root preference, not local AI state
+  truth. Changing it must request or display a Runtime-owned reconciliation
+  plan before Local Model Center assumes models, dependency assets, or setup
+  jobs are usable.
+- Desktop must not read `<nimi_data_dir>/state.json` as a fallback inventory.
+  That file may only be displayed as a retired cutover input when Runtime
+  reports a cutover plan that references it.
+- Desktop must not dual-write retired `state.json` and Runtime
+  `localStatePath`. After cutover succeeds, Desktop must read local assets only
+  through Runtime typed APIs.
+- If Runtime reports `cutover_required_confirmation`, Desktop may show a
+  confirmation UI with source path, target path, asset counts, conflicts, and
+  non-destructive effects. The confirmation must call a Runtime-owned cutover
+  job; Desktop must not perform the migration itself.
+- If Runtime state is empty while a retired input is detected, Desktop must
+  project setup/cutover-required state. It must not project "No Installed
+  Models" as final truth without the Runtime cutover status.
+
+### Auth and bounded loading
+
+- Runtime Config pages must not keep `Discovering...`, audit, usage, Local
+  Models, or dependency setup loading indefinitely. Every Runtime read path must
+  have a bounded timeout, error projection, stale projection, or auth-invalid
+  projection.
+- `AUTH_TOKEN_INVALID` must be projected as `invalid_requires_reauth` unless
+  the target RPC is normatively anonymous-readable. Anonymous retry may be used
+  only for admitted read-only Runtime surfaces, and the credential source must
+  remain visible in audit/detail.
+- Logout must clear local persisted session, active streams, cached runtime
+  reads, and auth state before best-effort server logout. A failed server logout
+  must not leave Desktop believing the stale bearer is valid.
 
 ## Error Families
 

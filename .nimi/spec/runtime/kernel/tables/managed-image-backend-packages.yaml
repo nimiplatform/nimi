@@ -39,7 +39,7 @@ entries:
       os: windows
       arch: amd64
       gpu_vendor: nvidia
-      cuda_ready: true
+      gpu_driver_visible: true
     backend_family: stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
@@ -47,9 +47,12 @@ entries:
     image_ref: ""
     archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-win-cuda12-x64.zip
     archive_sha256: 011643ec700d6097b9537f0f75ffb26856cc56a5ce765ffe9a32f2b47844e080
-    supplemental_archives:
-      - url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/cudart-sd-bin-win-cu12-x64.zip
-        sha256: fe20366827d357c00797eebb58244dddab7fd9a348d70090c3871004c320f38d
+    dependency_requirements:
+      - dependency_id: nvidia-cuda-user-space-runtime
+        consumer_id: stable-diffusion.cpp.cuda
+        readiness_owner: runtime_shared_dependency_resolver
+        source_table: shared-accelerator-dependencies.yaml
+        first_network_materialization_requires_confirmation: true
     executable_candidates: [sd.exe, sd-cli.exe]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
@@ -60,7 +63,7 @@ entries:
       os: linux
       arch: amd64
       gpu_vendor: nvidia
-      cuda_ready: true
+      gpu_driver_visible: true
     backend_family: stablediffusion-ggml
     package_source: canonical_unavailable
     package_format: none

@@ -36,6 +36,7 @@ fields:
     reload: restart
     description: 本地状态持久化路径
     source_rule: K-LOCAL-016
+    authority_note: Runtime-owned local AI state path; the single active state truth for local assets, transfers, dependency setup jobs, cutover evidence, and health projection. Retired Desktop-local state files are cutover inputs only, never fallback truth.
 
   - key: aiHealthIntervalSeconds
     type: int
@@ -260,6 +261,7 @@ fields:
     reload: restart
     description: 本地模型存储路径
     source_rule: K-LOCAL-016
+    authority_note: Runtime-owned local model payload root. Desktop Nimi data-dir changes must reconcile this field through Runtime config authority before Local Model Center treats payload files as usable.
 
   - key: modelCatalogCustomDir
     type: string

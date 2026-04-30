@@ -132,7 +132,7 @@ speech product posture:
   - Python runtime bootstrap、venv 管理、依赖安装必须统一走 `uv` 管道（见 K-LENG-016）。
 - 对 daemon-managed `stablediffusion-ggml` backend：
   - `darwin/arm64` 属于正式支持的 canonical `gguf_image` supervised host tuple。
-  - `windows/amd64 + nvidia + cuda_ready` 也属于正式支持的 canonical `gguf_image` supervised host tuple。
+  - `windows/amd64 + nvidia driver/gpu visible` 也属于正式支持的 canonical `gguf_image` supervised host tuple；CUDA user-space runtime readiness 是 runtime shared accelerator dependency readiness，不是 host topology prerequisite。
   - runtime 不得再附加独立于 v2 matrix 之外的 Apple 代际门槛；install plan / import / registration / health 统一以 canonical matrix selection 为准，不得额外要求 `M5+` / `A19+`。
 - `engine=media` 的 `video.generate` / `i2v` 等其它能力仍可继续沿用 `media` 自身的 host support 规则，直到对应 supervised backend 明确实现。
 - 同一规则必须统一驱动 install plan、runtime mode 解析、startup warnings、health warnings 与 attached-endpoint-required 判定；不得在不同入口各自重新推断。
@@ -561,8 +561,8 @@ supervised `llama` 的 public residency truth 固定投影到 `LocalWarmState`�
 - `product_state=proposed` package entries are runtime-private experimental sources. They may be selected only by an explicit runtime-private package-source selector and must never be auto-selected, implicitly promoted, or used as a hidden fallback when the canonical source is unavailable or slow.
 - Current package admission is:
   - `darwin/arm64 + apple + stablediffusion-ggml`: supported via canonical LocalAI-derived OCI payload; official `stable-diffusion.cpp` direct archive remains runtime-private experimental only
-  - `windows/amd64 + nvidia + cuda_ready + stablediffusion-ggml`: supported via runtime-owned direct archive package + runtime wrapper launch path
-  - `linux/amd64 + nvidia + cuda_ready + stablediffusion-ggml`: unsupported until a published runtime-owned package exists
+  - `windows/amd64 + nvidia driver/gpu visible + stablediffusion-ggml`: supported via runtime-owned direct archive package + runtime wrapper launch path; CUDA user-space runtime is a shared accelerator dependency requirement resolved by runtime before activation/health success
+  - `linux/amd64 + nvidia driver/gpu visible + stablediffusion-ggml`: unsupported until a published runtime-owned package exists
 - A topology may remain recognized in `tables/local-image-supervised-backend-matrix.yaml` while package admission remains unsupported in `tables/managed-image-backend-packages.yaml`; runtime must fail-close rather than silently promoting the host tuple.
 
 ## K-LENG-021 Native-Binary Execution Cut
@@ -570,3 +570,158 @@ supervised `llama` 的 public residency truth 固定投影到 `LocalWarmState`�
 - For `backend_class=native_binary`, canonical execution must use the managed image backend gRPC contract directly (`LoadModel`, `GenerateImage`, `Free`).
 - `local-media` remains the canonical app-facing HTTP surface for image execution and health projection, but native-binary success may not depend on proxy import support.
 - Runtime must not treat llama `/models/import` as part of the canonical native-binary image path on any supported host tuple.
+
+## K-LENG-022 Runtime Shared Accelerator Dependency Readiness
+
+Runtime owns shared accelerator dependency readiness for supervised local
+execution. CUDA user-space runtime readiness is not owned by image assets,
+`llama.cpp`, `stable-diffusion.cpp`, diffusers, package installers, Desktop, SDK,
+or mods. Ordinary users must not be required to install CUDA Toolkit, configure
+`CUDA_PATH` / `CUDA_HOME`, or have `nvcc` on PATH before using an admitted
+Windows NVIDIA local execution path.
+
+The authority layers are fixed:
+
+- `tables/host-accelerator-profiles.yaml` owns host accelerator profile shape,
+  evidence sources, staleness, refresh triggers, multi-GPU policy, degraded
+  reasons, and profile states.
+- `tables/shared-accelerator-dependencies.yaml` owns shared dependency source
+  policy, source candidates, compatibility proof, managed package provenance,
+  selected source record cardinality, activation policy, repair policy, and
+  dependency states.
+- `tables/accelerator-consumer-requirements.yaml` owns consumer requirements for
+  `llama.cpp`, `stable-diffusion.cpp`, diffusers / Torch-style Python native
+  media execution, and future accelerator consumers.
+- Image topology/package tables may reference dependency ids and consumer ids,
+  but they must not own CUDA source selection, installation, repair, or selected
+  source records.
+- Desktop, SDK, mods, and app code may only project runtime dependency truth and
+  must not probe, install, or infer CUDA readiness themselves.
+
+Windows NVIDIA CUDA source policy is `system-first-managed-fallback`:
+
+1. compatible system CUDA user-space runtime, if runtime can prove compatibility
+   from canonicalized and allowlisted evidence
+2. previously verified runtime-managed CUDA dependency under the Nimi runtime
+   dependency root
+3. declared managed dependency package, after explicit user confirmation for
+   first network materialization
+
+System source proof must be positive. Runtime must fail closed when it cannot
+verify source identity, canonical root, required DLL/file set, version metadata
+or binary version, driver compatibility, and selected source record creation.
+Runtime may inspect PATH as a hint, but must never accept a source solely because
+a DLL appears earlier in PATH. Runtime must reject model directories, import
+directories, and arbitrary user-selected directories as CUDA DLL sources.
+
+Managed source proof must include declared package source, archive hash,
+staged extraction, required artifact set verification, version/driver
+compatibility where available, atomic promotion, repair metadata, and a selected
+source record before any consumer activation.
+
+Dependency resolver states are runtime-private but must be projectable through
+stable install / health / audit detail:
+
+| state | meaning |
+|---|---|
+| `unknown` | dependency evidence has not been resolved |
+| `ready_system` | compatible system accelerator dependency was verified and selected |
+| `ready_managed` | compatible runtime-managed accelerator dependency was verified and selected |
+| `materializable_requires_confirmation` | runtime can install/repair the dependency, but first network materialization needs explicit user confirmation |
+| `queued` | user confirmation has been accepted and the runtime install job is queued |
+| `downloading` | runtime is fetching a declared dependency package |
+| `verifying` | runtime is verifying archive hash, declared files, canonical path, version metadata, and driver compatibility |
+| `installing` | runtime is staging and atomically promoting the managed dependency |
+| `repair_required` | previously selected dependency is missing, corrupt, or incompatible |
+| `failed` | dependency download, verification, compatibility, or install failed |
+| `unsupported` | no admitted source can satisfy the dependency on this host |
+| `cancelled` | user cancelled before promotion; no ready state may be projected |
+
+Selected source record invariants:
+
+- exactly one active selected source record may exist per
+  `dependency_id + host_profile_id + platform_tuple + runtime_data_root`
+- all engine consumers in the same dependency environment must reference that
+  record; consumers must not independently re-resolve a different CUDA source
+- record invalidation is allowed only by runtime verification failure, explicit
+  repair, dependency removal, host profile incompatibility, or required artifact
+  loss
+- failed verification cannot produce a fallback ready state without a new
+  verified selected source record
+
+Runtime job invariants:
+
+- setup is idempotent for the same dependency/environment while a job is active
+- duplicate consumer requests attach to the same active job id
+- cancellation is explicit and stops before promotion
+- repair locks exclude activation using the corrupt dependency
+- automatic reinstall is forbidden unless the current confirmation policy allows
+  it for that repair case
+
+Windows process environment constraints:
+
+- Runtime may prepend the selected dependency directory to a supervised engine
+  process PATH only for that child process.
+- Runtime must not mutate machine PATH, user PATH, shell profile, or system CUDA
+  configuration.
+- Runtime must canonicalize dependency paths before use.
+- Runtime must record selected source and verification detail in runtime-private
+  audit / health detail.
+
+User confirmation constraints:
+
+- Health probes, route resolution, background maintenance, and passive import
+  review must not silently trigger first network download of accelerator
+  dependencies.
+- The first managed dependency download must be initiated by explicit user
+  confirmation or by a model install/import confirmation that clearly discloses
+  the dependency, approximate size when known, and Nimi data/runtime dependency
+  storage location.
+- A visible terminal, bash, PowerShell, Chocolatey, WSL, or external package
+  manager flow is not the ordinary-user installation path. It may exist only as
+  diagnostic/log export and must not be the source of truth for dependency state.
+
+Lifecycle projection:
+
+- A consumer with `materializable_requires_confirmation` may appear as
+  installable/review-needed dependency setup, but must not become `ACTIVE` or
+  health-successful.
+- Activation and ready health for accelerator-backed consumers require
+  `ready_system` or `ready_managed`.
+- `failed`, `cancelled`, and `repair_required` must project as fail-closed
+  dependency setup / repair detail, not as topology unsupported and not as
+  pseudo-success.
+
+## K-LENG-023 Runtime Readiness Is Not Engine Bootstrap Readiness
+
+Runtime daemon readiness proves that Runtime core services are available. It is
+not proof that every supervised engine, model, accelerator dependency, Python
+environment, or provider loopback is ready.
+
+The daemon may remain in `STARTING` only for bounded core initialization:
+
+- config parsed and validated
+- stores opened
+- gRPC/HTTP servers serving or ready to serve
+- core Runtime services constructed
+
+The daemon must not remain in `STARTING` while performing:
+
+- llama/media/speech/native engine download
+- CUDA or other accelerator dependency materialization
+- Python environment creation
+- Torch/diffusers dependency install
+- model warmup or minimal execution
+- provider loopback health probes
+- repair jobs
+
+Those tasks must run as Runtime-owned background jobs or health maintainers.
+Their failure may set Runtime `DEGRADED`, provider unhealthy detail, local asset
+`setup_required` / `repair_required` / `unhealthy`, or dependency
+`materializable_requires_confirmation` / `failed`, but must not make
+RuntimeLocalService, RuntimeAuditService, or config/status surfaces appear
+unavailable.
+
+If a startup background task fails before the daemon reaches `READY`, Runtime
+must transition through `READY` before projecting `DEGRADED`, so consumers can
+observe a consistent service-available state with explicit degradation detail.
