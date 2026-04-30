@@ -246,7 +246,7 @@ export const AnalystSidebar = memo(function AnalystSidebar({
         </span>
       </div>
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="space-y-3 p-4">
+        <div className="shrink-0 space-y-3 p-4">
           <div className="flex flex-wrap items-center gap-2 text-[11px]">
             <span className="rounded-md bg-white/[0.045] px-2.5 py-1.5 text-slate-300">
               {bindingSummary.title}
@@ -287,13 +287,13 @@ export const AnalystSidebar = memo(function AnalystSidebar({
             </div>
           ) : null}
         </div>
-        <div className="min-h-0 flex-1 border-t polyinfo-hairline px-4 py-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden border-t polyinfo-hairline px-4 py-4">
           {visibleConversation.length === 0 ? (
-            <div className="flex h-full min-h-0 items-center justify-center overflow-y-auto text-sm text-slate-500">
+            <div className="flex h-full min-h-0 flex-1 items-center justify-center overflow-y-auto text-sm text-slate-500">
               {emptyConversationMessage}
             </div>
           ) : (
-            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
+            <div data-testid="sector-analyst-message-scroll" className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
               {visibleConversation.map((message) => (
                 <div
                   key={message.id}
@@ -315,12 +315,12 @@ export const AnalystSidebar = memo(function AnalystSidebar({
           )}
         </div>
 
-        <div className="border-t polyinfo-hairline p-4">
+        <div className="shrink-0 border-t polyinfo-hairline p-4">
           <textarea
             value={draftText}
             onChange={(event) => setSectorDraftText(sectorId, event.target.value)}
             rows={4}
-            className="w-full rounded-lg border border-white/10 bg-slate-950/70 px-3 py-3 text-[13px] text-white outline-none placeholder:text-slate-500 focus:border-teal-300/50"
+            className="max-h-32 w-full resize-none overflow-y-auto rounded-lg border border-white/10 bg-slate-950/70 px-3 py-3 text-[13px] text-white outline-none placeholder:text-slate-500 focus:border-teal-300/50"
             placeholder="Query logic / propose changes..."
           />
           <div className="mt-3 flex gap-3">
