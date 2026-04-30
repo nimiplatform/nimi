@@ -104,6 +104,27 @@ scenarios:
       - "Handler branching on ctx.posture.action_family"
       - "Status text projection"
 
+  - id: "vrm-lifecycle"
+    title: "VRM BackendBranch lifecycle"
+    file: "src/shell/renderer/mock/scenarios/vrm-lifecycle.mock.json"
+    duration_ms: 8000
+    loop: false
+    description: >
+      Wave 2 chunk 2-D of topic 2026-04-30-avatar-vrm-backend-branch. Drives the
+      VRM BackendBranch lifecycle (manifest → carrier-surface → runtime →
+      loader) end-to-end with a representative MIT-licensed VRM sample
+      (VRM1_Constraint_Twist_Sample.vrm from pixiv/three-vrm; fetched on demand
+      via apps/avatar/scripts/fetch-vrm-models.mjs into the gitignored
+      apps/avatar/.cache/assets/vrm-models/ tree). The fixture's vrm_lifecycle
+      block is consumed by vrm-lifecycle-e2e.test.tsx via the loaderOverride
+      runtime seam (no .vrm binary required at test time).
+    tags: ["phase-2", "vrm", "lifecycle"]
+    validates:
+      - "VRM manifest → loader → ready transition"
+      - "webglcontextlost 1500ms single-retry recovery"
+      - "Second context loss escalates to context_lost_twice fail-close"
+      - "Asset switch disposes prior runtime + boots a new one"
+
 constraints:
   drift_checks:
     - description: "每个 scenario file 必须存在于指定路径"

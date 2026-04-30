@@ -1,0 +1,247 @@
+// Wave 2 chunk 2-C of topic 2026-04-30-avatar-vrm-backend-branch.
+//
+// Verifies the VRM lifecycle state machine in isolation. Uses
+// `loaderOverride` + `setTimeoutFn` + `clearTimeoutFn` + `nowFn` test
+// seams to drive the machine without R3F / WebGL / real timers.
+
+import type { VRM } from '@pixiv/three-vrm';
+import { describe, expect, it, vi } from 'vitest';
+import type { VrmAvatarModelManifest } from '../carrier/model-resolver.js';
+import {
+  createVrmRuntime,
+  VRM_CONTEXT_LOST_RETRY_MS,
+  type VrmLifecycleState,
+} from './vrm-runtime.js';
+
+function manifest(): VrmAvatarModelManifest {
+  return {
+    kind: 'vrm',
+    modelId: 'avatar-sample',
+    runtimeDir: '/models/sample/runtime',
+    nimiDir: null,
+    posterPath: null,
+    vrm: {
+      vrmFile: '/models/sample/runtime/avatar.vrm',
+      motionPresetsDir: '/models/sample/runtime/motions',
+    },
+  };
+}
+
+function stubVrm(): VRM {
+  // The state machine treats the VRM as opaque; only identity matters.
+  return { __stub: true } as unknown as VRM;
+}
+
+type FakeTimerSeam = {
+  setTimeoutFn: (handler: () => void, ms: number) => unknown;
+  clearTimeoutFn: (handle: unknown) => void;
+  fire(): void;
+  pending(): boolean;
+};
+
+function makeFakeTimer(): FakeTimerSeam {
+  let pending: { handler: () => void; handle: number } | null = null;
+  let nextHandle = 1;
+  return {
+    setTimeoutFn: (handler) => {
+      const handle = nextHandle++;
+      pending = { handler, handle };
+      return handle;
+    },
+    clearTimeoutFn: (handle) => {
+      if (pending && pending.handle === handle) pending = null;
+    },
+    fire(): void {
+      if (!pending) throw new Error('no pending timer to fire');
+      const { handler } = pending;
+      pending = null;
+      handler();
+    },
+    pending(): boolean {
+      return pending !== null;
+    },
+  };
+}
+
+describe('createVrmRuntime', () => {
+  it('start() transitions idle -> loading -> ready', async () => {
+    const vrm = stubVrm();
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: async () => vrm,
+    });
+    const states: VrmLifecycleState[] = [];
+    runtime.subscribe((s) => states.push(s));
+    expect(runtime.getState().kind).toBe('idle');
+    await runtime.start();
+    expect(runtime.getState().kind).toBe('ready');
+    // First state pushed at subscribe time (idle), then loading, then ready.
+    expect(states.map((s) => s.kind)).toEqual(['idle', 'loading', 'ready']);
+  });
+
+  it('start() loader rejection -> failed_closed with reason load_failed', async () => {
+    const evidence = vi.fn();
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: async () => {
+        throw new Error('boom');
+      },
+      onEvidence: evidence,
+    });
+    await runtime.start();
+    expect(runtime.getState()).toMatchObject({ kind: 'failed_closed', reason: 'load_failed' });
+    expect(evidence).toHaveBeenCalledWith('load_failed', expect.objectContaining({ reason: 'boom' }));
+    expect(evidence).toHaveBeenCalledWith(
+      'failed_closed',
+      expect.objectContaining({ reason: 'load_failed' }),
+    );
+  });
+
+  it('context lost -> timer fires -> retry succeeds -> ready (emits context_restored)', async () => {
+    const vrm = stubVrm();
+    const evidence = vi.fn();
+    const timer = makeFakeTimer();
+    let nowMs = 1_000_000;
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: async () => vrm,
+      onEvidence: evidence,
+      setTimeoutFn: timer.setTimeoutFn,
+      clearTimeoutFn: timer.clearTimeoutFn,
+      nowFn: () => nowMs,
+    });
+    await runtime.start();
+    expect(runtime.getState().kind).toBe('ready');
+
+    runtime.notifyContextLost();
+    expect(runtime.getState().kind).toBe('context_lost');
+    expect(timer.pending()).toBe(true);
+    expect(evidence).toHaveBeenCalledWith('context_lost', expect.objectContaining({ lostAt: 1_000_000 }));
+
+    // Advance virtual clock by exactly the retry window.
+    nowMs += VRM_CONTEXT_LOST_RETRY_MS;
+    timer.fire();
+    // Loader is async; flush microtasks so the retry promise resolves.
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(runtime.getState().kind).toBe('ready');
+    expect(evidence).toHaveBeenCalledWith(
+      'context_restored',
+      expect.objectContaining({ restoreDurationMs: VRM_CONTEXT_LOST_RETRY_MS }),
+    );
+  });
+
+  it('context_lost -> second context_lost before timer -> failed_closed (context_lost_twice)', async () => {
+    const vrm = stubVrm();
+    const evidence = vi.fn();
+    const timer = makeFakeTimer();
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: async () => vrm,
+      onEvidence: evidence,
+      setTimeoutFn: timer.setTimeoutFn,
+      clearTimeoutFn: timer.clearTimeoutFn,
+    });
+    await runtime.start();
+
+    runtime.notifyContextLost();
+    expect(timer.pending()).toBe(true);
+    runtime.notifyContextLost();
+    expect(runtime.getState()).toMatchObject({
+      kind: 'failed_closed',
+      reason: 'context_lost_twice',
+    });
+    expect(timer.pending()).toBe(false);
+    expect(evidence).toHaveBeenCalledWith(
+      'failed_closed',
+      expect.objectContaining({ reason: 'context_lost_twice' }),
+    );
+  });
+
+  it('context_lost -> notifyContextRestored before timer -> ready, timer cancelled', async () => {
+    const vrm = stubVrm();
+    const evidence = vi.fn();
+    const timer = makeFakeTimer();
+    let nowMs = 5_000;
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: async () => vrm,
+      onEvidence: evidence,
+      setTimeoutFn: timer.setTimeoutFn,
+      clearTimeoutFn: timer.clearTimeoutFn,
+      nowFn: () => nowMs,
+    });
+    await runtime.start();
+
+    runtime.notifyContextLost();
+    expect(timer.pending()).toBe(true);
+    nowMs += 200; // browser auto-recovery well before 1500ms
+    runtime.notifyContextRestored();
+    expect(timer.pending()).toBe(false);
+    expect(runtime.getState().kind).toBe('ready');
+    expect(evidence).toHaveBeenCalledWith(
+      'context_restored',
+      expect.objectContaining({ restoreDurationMs: 200 }),
+    );
+  });
+
+  it('context_lost -> timer fires -> retry rejects -> failed_closed (context_lost_recovery_failed)', async () => {
+    const vrm = stubVrm();
+    let calls = 0;
+    const timer = makeFakeTimer();
+    const evidence = vi.fn();
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: async () => {
+        calls += 1;
+        if (calls === 1) return vrm;
+        throw new Error('gpu-stale');
+      },
+      onEvidence: evidence,
+      setTimeoutFn: timer.setTimeoutFn,
+      clearTimeoutFn: timer.clearTimeoutFn,
+    });
+    await runtime.start();
+    runtime.notifyContextLost();
+    timer.fire();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(runtime.getState()).toMatchObject({
+      kind: 'failed_closed',
+      reason: 'context_lost_recovery_failed',
+    });
+    expect(evidence).toHaveBeenCalledWith(
+      'failed_closed',
+      expect.objectContaining({ reason: 'context_lost_recovery_failed' }),
+    );
+  });
+
+  it('shutdown() cancels pending retry timer', async () => {
+    const vrm = stubVrm();
+    const timer = makeFakeTimer();
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: async () => vrm,
+      setTimeoutFn: timer.setTimeoutFn,
+      clearTimeoutFn: timer.clearTimeoutFn,
+    });
+    await runtime.start();
+    runtime.notifyContextLost();
+    expect(timer.pending()).toBe(true);
+    runtime.shutdown();
+    expect(timer.pending()).toBe(false);
+  });
+
+  it('subscribe() pushes the current state immediately', () => {
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: async () => stubVrm(),
+    });
+    const seen: VrmLifecycleState[] = [];
+    const off = runtime.subscribe((s) => seen.push(s));
+    expect(seen).toHaveLength(1);
+    expect(seen[0]?.kind).toBe('idle');
+    off();
+  });
+});

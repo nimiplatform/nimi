@@ -1,0 +1,58 @@
+{
+  "scenario_id": "vrm-lifecycle",
+  "version": "1",
+  "description": "Wave 2 chunk 2-D of topic 2026-04-30-avatar-vrm-backend-branch. Drives the VRM BackendBranch lifecycle (manifest -> carrier-surface -> runtime -> loader) end-to-end with a representative MIT-licensed VRM sample. The fixture's vrm_lifecycle block is consumed by vrm-lifecycle-e2e.test.tsx; the events/agent_bootstrap blocks remain catalog-conformant and are exercised by the mock driver itself.",
+  "duration_ms": 8000,
+  "loop": false,
+
+  "agent_bootstrap": {
+    "active_world_id": "world-mock-vrm-lifecycle",
+    "active_user_id": "user-mock-vrm-lifecycle",
+    "locale": "zh-CN",
+    "initial_posture": {
+      "posture_class": "baseline_observer",
+      "action_family": "observe",
+      "interrupt_mode": "welcome",
+      "transition_reason": "scenario_start",
+      "truth_basis_ids": []
+    },
+    "initial_status_text": "vrm lifecycle fixture",
+    "initial_execution_state": "IDLE"
+  },
+
+  "events": [
+    { "kind": "time", "at_ms": 0,    "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "neutral", "category": "emotion", "intensity": null, "source": "mock" } },
+    { "kind": "time", "at_ms": 4000, "type": "runtime.agent.presentation.activity_requested", "detail": { "activity_name": "happy",   "category": "emotion", "intensity": "moderate", "source": "mock" } }
+  ],
+
+  "vrm_lifecycle": {
+    "model_manifest": {
+      "kind": "vrm",
+      "modelId": "vrm1-constraint-twist",
+      "runtimeDir": ".cache/assets/vrm-models",
+      "vrm": {
+        "vrmFile": ".cache/assets/vrm-models/VRM1_Constraint_Twist_Sample.vrm",
+        "motionPresetsDir": null
+      },
+      "nimiDir": null,
+      "posterPath": null
+    },
+    "expected_evidence": [
+      "load_started",
+      "context_lost",
+      "context_restored"
+    ],
+    "fixture_steps": [
+      { "atMs": 0,    "kind": "load_started" },
+      { "atMs": 1500, "kind": "ready_expected" },
+      { "atMs": 5000, "kind": "inject_webglcontextlost" },
+      { "atMs": 5500, "kind": "context_lost_recorded_expected" },
+      { "atMs": 7000, "kind": "context_restored_expected" }
+    ],
+    "human_acceptance_checks": [
+      "model visible in carrier viewport",
+      "no T-pose flash on initial load",
+      "post-context-lost the model rerenders identically"
+    ]
+  }
+}

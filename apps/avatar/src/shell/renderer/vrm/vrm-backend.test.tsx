@@ -1,20 +1,33 @@
-// Wave 1 (step 5) of topic 2026-04-30-avatar-vrm-backend-branch.
+// Wave 2 chunk 2-C of topic 2026-04-30-avatar-vrm-backend-branch.
 //
-// Verifies the VRM dev-preview branch toggle:
-//   * default mode keeps `metadata().mode === 'degraded_fail_closed'`
-//     and the surface returns null (no user-visible carrier);
-//   * dev-preview mode (`VITE_AVATAR_DEV_VRM_PREVIEW = 'true'`) flips
-//     the metadata mode + mounts the placeholder element + emits
-//     `dev_preview_mounted` lifecycle evidence.
+// Verifies the VRM backend branch factory:
+//   * default mode flips metadata.mode to `real_render` and the surface
+//     mounts the real BackendBranch surface (Canvas + lifecycle wiring),
+//     replacing the wave_1 step_5 dev-preview placeholder;
+//   * dev-preview mode (`VITE_AVATAR_DEV_VRM_PREVIEW = 'true'`) keeps
+//     `metadata().mode === 'dev_preview'` and mounts the placeholder
+//     element (preserves wave_1 step_5 acceptance_invariant for the
+//     opt-in debug flag).
 //
-// `import.meta.env` is mutated in-place so the change is visible to
-// the freshly imported `vrm-backend.ts` module (Vite normally
-// statically replaces this read at build time; vitest exposes
-// `import.meta.env` as a writable object so per-test overrides work).
+// `import.meta.env` is mutated in-place so the change is visible to the
+// freshly imported `vrm-backend.tsx` module (Vite normally statically
+// replaces this read at build time; vitest exposes `import.meta.env` as a
+// writable object so per-test overrides work).
 
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
+import type { VRM } from '@pixiv/three-vrm';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VrmAvatarModelManifest } from '../carrier/model-resolver.js';
+
+vi.mock('@react-three/fiber', () => ({
+  Canvas: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="r3f-canvas-mock">
+      <canvas data-testid="r3f-canvas" />
+      {children}
+    </div>
+  ),
+}));
 
 function vrmManifest(): VrmAvatarModelManifest {
   return {
@@ -28,6 +41,10 @@ function vrmManifest(): VrmAvatarModelManifest {
       motionPresetsDir: '/models/sample/runtime/motions',
     },
   };
+}
+
+function stubVrm(): VRM {
+  return { scene: { traverse() {} } } as unknown as VRM;
 }
 
 const ORIGINAL_FLAG = (import.meta.env as Record<string, unknown>)
@@ -45,29 +62,42 @@ afterEach(() => {
   }
 });
 
-describe('VRM backend dev-preview toggle', () => {
-  it('keeps degraded_fail_closed mode when VITE_AVATAR_DEV_VRM_PREVIEW is unset', async () => {
+describe('VRM backend branch (chunk 2-C)', () => {
+  it('default mode mounts the real BackendBranch surface and reports mode=real_render', async () => {
     delete (import.meta.env as Record<string, unknown>).VITE_AVATAR_DEV_VRM_PREVIEW;
     const { createVrmBackendBranch } = await import('./vrm-backend.js');
-    const handle = await createVrmBackendBranch(vrmManifest());
+    const handle = await createVrmBackendBranch(vrmManifest(), {
+      runtimeOptions: { loaderOverride: async () => stubVrm() },
+    });
     expect(handle.branch.kind).toBe('vrm');
     expect(handle.branch.metadata()).toEqual(
-      expect.objectContaining({ mode: 'degraded_fail_closed' }),
+      expect.objectContaining({ mode: 'real_render' }),
     );
+
     const Component = handle.branch.surface.Component;
     const evidence = vi.fn();
-    const { container } = render(
-      <Component
-        width={400}
-        height={720}
-        embodied
-        onLifecycleEvidence={evidence}
-      />,
-    );
-    expect(container.firstChild).toBeNull();
+
+    let result: ReturnType<typeof render>;
+    await act(async () => {
+      result = render(
+        <Component
+          width={400}
+          height={720}
+          embodied
+          onLifecycleEvidence={evidence}
+        />,
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Real surface mounts a canvas-rooted carrier shell.
+    const carrier = result!.getByTestId('avatar-vrm-carrier');
+    expect(carrier.getAttribute('data-avatar-vrm-state')).toBe('ready');
+    expect(result!.getByTestId('r3f-canvas')).toBeTruthy();
     expect(evidence).toHaveBeenCalledWith(
-      'failed_closed',
-      expect.objectContaining({ reason: 'vrm_backend_default_mode_degraded' }),
+      'load_started',
+      expect.objectContaining({ source: 'vrm-carrier-surface' }),
     );
   });
 
