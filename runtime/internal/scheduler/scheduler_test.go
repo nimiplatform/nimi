@@ -434,12 +434,44 @@ func TestPeekSlowdownRiskLowVRAM(t *testing.T) {
 	s.SetResourceAssessor(func() *ResourceSnapshot { return snap })
 	s.SetRiskThresholds(defaultRiskThresholds())
 
-	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{})
+	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{Capability: "image.generate"})
 	if j.State != StateSlowdownRisk {
 		t.Fatalf("expected slowdown_risk for low VRAM, got=%s", j.State)
 	}
 	if len(j.ResourceWarnings) == 0 {
 		t.Fatal("expected VRAM warning")
+	}
+}
+
+func TestPeekSkipsVRAMSlowdownForTextTargetWithoutVRAMDemand(t *testing.T) {
+	s := New(Config{GlobalConcurrency: 4, PerAppConcurrency: 2})
+	snap := healthyResourceSnapshot()
+	snap.AvailableVRAMBytes = 500_000_000 // below 1 GB threshold
+	s.SetResourceAssessor(func() *ResourceSnapshot { return snap })
+	s.SetRiskThresholds(defaultRiskThresholds())
+
+	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{Capability: "text.generate"})
+	if j.State != StateRunnable {
+		t.Fatalf("expected text target runnable despite low VRAM, got=%s warnings=%v", j.State, j.ResourceWarnings)
+	}
+}
+
+func TestPeekSlowdownRiskUsesResourceHintDemand(t *testing.T) {
+	s := New(Config{GlobalConcurrency: 4, PerAppConcurrency: 2})
+	snap := healthyResourceSnapshot()
+	snap.AvailableVRAMBytes = 6_000_000_000 // above threshold, below target demand
+	s.SetResourceAssessor(func() *ResourceSnapshot { return snap })
+	s.SetRiskThresholds(defaultRiskThresholds())
+
+	j := peekSingleTarget(s, "app-a", SchedulingEvaluationTarget{
+		Capability: "text.generate",
+		Hint:       &ResourceHint{EstimatedVramBytes: 8_000_000_000},
+	})
+	if j.State != StateSlowdownRisk {
+		t.Fatalf("expected slowdown_risk when available VRAM is below hint demand, got=%s", j.State)
+	}
+	if len(j.ResourceWarnings) == 0 || !strings.Contains(j.ResourceWarnings[0], "estimated demand") {
+		t.Fatalf("expected estimated demand warning, got=%v", j.ResourceWarnings)
 	}
 }
 
@@ -546,8 +578,8 @@ func TestPeekNoPreemptionRiskWithZeroOccupancy(t *testing.T) {
 	if j.State == StatePreemptionRisk {
 		t.Fatal("preemption_risk must not trigger with zero running tasks")
 	}
-	if j.State != StateRunnable {
-		t.Fatalf("expected runnable with zero occupancy, got=%s", j.State)
+	if j.State != StateSlowdownRisk {
+		t.Fatalf("expected slowdown_risk from resource hint demand with zero occupancy, got=%s", j.State)
 	}
 }
 

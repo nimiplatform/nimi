@@ -415,11 +415,19 @@ func (s *Scheduler) peekTarget(
 	// K-SCHED-005 slowdown_risk: low available resources.
 	var slowdownWarnings []string
 
-	if snapshot.AvailableVRAMBytes > 0 && thresholds.SlowdownVRAMBytes > 0 {
+	if targetUsesVRAM(target, snapshot) && snapshot.AvailableVRAMBytes > 0 && thresholds.SlowdownVRAMBytes > 0 {
 		if snapshot.AvailableVRAMBytes < thresholds.SlowdownVRAMBytes {
 			slowdownWarnings = append(slowdownWarnings,
 				fmt.Sprintf("available VRAM %d bytes below threshold %d bytes",
 					snapshot.AvailableVRAMBytes, thresholds.SlowdownVRAMBytes))
+		}
+	}
+
+	if target.Hint != nil && target.Hint.EstimatedVramBytes > 0 && snapshot.AvailableVRAMBytes > 0 {
+		if snapshot.AvailableVRAMBytes < target.Hint.EstimatedVramBytes {
+			slowdownWarnings = append(slowdownWarnings,
+				fmt.Sprintf("available VRAM %d bytes below estimated demand %d bytes",
+					snapshot.AvailableVRAMBytes, target.Hint.EstimatedVramBytes))
 		}
 	}
 
@@ -431,11 +439,27 @@ func (s *Scheduler) peekTarget(
 		}
 	}
 
+	if target.Hint != nil && target.Hint.EstimatedRamBytes > 0 && snapshot.AvailableRAMBytes > 0 {
+		if snapshot.AvailableRAMBytes < target.Hint.EstimatedRamBytes {
+			slowdownWarnings = append(slowdownWarnings,
+				fmt.Sprintf("available RAM %d bytes below estimated demand %d bytes",
+					snapshot.AvailableRAMBytes, target.Hint.EstimatedRamBytes))
+		}
+	}
+
 	if snapshot.DiskFreeBytes > 0 && thresholds.SlowdownDiskBytes > 0 {
 		if snapshot.DiskFreeBytes < thresholds.SlowdownDiskBytes {
 			slowdownWarnings = append(slowdownWarnings,
 				fmt.Sprintf("disk free %d bytes below threshold %d bytes",
 					snapshot.DiskFreeBytes, thresholds.SlowdownDiskBytes))
+		}
+	}
+
+	if target.Hint != nil && target.Hint.EstimatedDiskBytes > 0 && snapshot.DiskFreeBytes > 0 {
+		if snapshot.DiskFreeBytes < target.Hint.EstimatedDiskBytes {
+			slowdownWarnings = append(slowdownWarnings,
+				fmt.Sprintf("disk free %d bytes below estimated demand %d bytes",
+					snapshot.DiskFreeBytes, target.Hint.EstimatedDiskBytes))
 		}
 	}
 
@@ -460,6 +484,33 @@ func (s *Scheduler) peekTarget(
 		Occupancy:        occupancy,
 		ResourceWarnings: nil,
 	}
+}
+
+func targetUsesVRAM(target SchedulingEvaluationTarget, snapshot *ResourceSnapshot) bool {
+	if target.Hint != nil && target.Hint.EstimatedVramBytes > 0 {
+		return true
+	}
+	if snapshot != nil && snapshot.MemoryModel == "unified" {
+		return false
+	}
+	capability := strings.ToLower(strings.TrimSpace(target.Capability))
+	engine := ""
+	if target.Hint != nil {
+		engine = strings.ToLower(strings.TrimSpace(target.Hint.Engine))
+	}
+	identity := strings.ToLower(strings.TrimSpace(target.ModID + " " + target.ProfileID + " " + engine))
+	if capability == "" && identity == "" {
+		return true
+	}
+	if strings.Contains(capability, "image") || strings.Contains(capability, "video") {
+		return true
+	}
+	for _, marker := range []string{"gpu", "cuda", "nvidia", "diffusers", "stable-diffusion", "comfy"} {
+		if strings.Contains(identity, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 func normalizeSchedulingTargets(targets []SchedulingEvaluationTarget) []SchedulingEvaluationTarget {
