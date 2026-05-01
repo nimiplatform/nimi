@@ -62,7 +62,6 @@ type Service struct {
 	delegatedGateway          delegatedCapabilityGateway
 	delegatedFirewall         delegatedOutputFirewall
 	delegatedTransportFactory delegation.TransportFactory
-	delegatedDecisionAudit    []delegatedCapabilityDecisionAuditRecord
 	delegatedProviderProfiles map[string]*runtimev1.DelegatedProviderProfile
 	delegatedApprovalRequests map[string]*runtimev1.DelegatedApprovalRequest
 	// voiceLipsync is the K-AGCORE-051 synthesizer that turns committed

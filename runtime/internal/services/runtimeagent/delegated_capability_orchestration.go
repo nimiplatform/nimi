@@ -260,7 +260,6 @@ func (s *Service) recordDelegatedCapabilityDecision(decision *runtimeAgentDelega
 	}
 	s.delegatedMu.Lock()
 	s.ensureDelegatedControlStoresLocked()
-	s.delegatedDecisionAudit = append(s.delegatedDecisionAudit, record)
 	if record.RuntimeDecision == "approval_required" {
 		s.recordDelegatedApprovalRequestLocked(decision)
 	}
@@ -312,14 +311,7 @@ func (s *Service) delegatedCapabilityDecisionAuditSnapshot() []delegatedCapabili
 	if s == nil {
 		return nil
 	}
-	if records := s.delegatedCapabilityDecisionAuditRecordsFromRuntimeAudit(); len(records) > 0 {
-		return records
-	}
-	s.delegatedMu.RLock()
-	defer s.delegatedMu.RUnlock()
-	out := make([]delegatedCapabilityDecisionAuditRecord, len(s.delegatedDecisionAudit))
-	copy(out, s.delegatedDecisionAudit)
-	return out
+	return s.delegatedCapabilityDecisionAuditRecordsFromRuntimeAudit()
 }
 
 func (s *Service) appendDelegatedDecisionAuditEvent(record delegatedCapabilityDecisionAuditRecord) {

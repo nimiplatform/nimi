@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -257,6 +258,46 @@ func TestDelegatedReplayTraceReconstructsRuntimeOwnedLineage(t *testing.T) {
 	}
 }
 
+func TestDelegatedReplayTraceRequiresRuntimeAuditRecord(t *testing.T) {
+	svc := testDelegatedControlSurfaceServiceWithoutAudit()
+	ctx := testDelegatedControlContext()
+	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+		DecisionID:           "deleg-decision-1",
+		AgentID:              "agent-1",
+		DelegationRequestID:  "deleg-request-1",
+		DelegationResultID:   "deleg-result-1",
+		ConversationAnchorID: "anchor-1",
+		TurnID:               "turn-1",
+		ProviderID:           "calendar-mcp",
+		CapabilityID:         "calendar.read",
+		ToolName:             "calendar_lookup",
+		GatewayEvidenceID:    "evidence-1",
+		FirewallInputID:      "fw-1",
+		FirewallVerdict:      "ACCEPTED_OBSERVATION",
+		ReasonCode:           "DELEG_ACCEPTED",
+		RuntimeDecision:      "context_candidate",
+	})
+
+	diagnostics, err := svc.ListDelegatedDiagnostics(context.Background(), &runtimev1.ListDelegatedDiagnosticsRequest{
+		Context: ctx,
+		AgentId: "agent-1",
+	})
+	if err != nil {
+		t.Fatalf("list delegated diagnostics: %v", err)
+	}
+	if len(diagnostics.GetDiagnostics()) != 0 {
+		t.Fatalf("diagnostics must not be reconstructed without Runtime audit records: %+v", diagnostics.GetDiagnostics())
+	}
+	_, err = svc.GetDelegatedReplayTrace(context.Background(), &runtimev1.GetDelegatedReplayTraceRequest{
+		Context:    ctx,
+		AgentId:    "agent-1",
+		DecisionId: "deleg-decision-1",
+	})
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("expected replay to require Runtime audit record, got %v", err)
+	}
+}
+
 func TestDelegatedReplayTraceFailsClosedOnMissingJoinKeys(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
 	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
@@ -319,6 +360,12 @@ func TestDelegatedReplayTraceIncludesApprovalState(t *testing.T) {
 }
 
 func testDelegatedControlSurfaceService() *Service {
+	svc := testDelegatedControlSurfaceServiceWithoutAudit()
+	svc.auditStore = auditlog.New(128, 128)
+	return svc
+}
+
+func testDelegatedControlSurfaceServiceWithoutAudit() *Service {
 	return &Service{
 		agents: map[string]*agentEntry{
 			"agent-1": {

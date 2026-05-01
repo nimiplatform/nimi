@@ -46,6 +46,7 @@ func TestRuntimeAgentDelegatedCapabilityUsesGatewayAndFirewall(t *testing.T) {
 		ReasonCode: "",
 	}}
 	svc := &Service{}
+	svc.SetAuditStore(auditlog.New(128, 128))
 	svc.SetDelegatedCapabilityRuntime(gateway, firewall)
 
 	decision, err := svc.publicChatRuntime().executeDelegatedCapability(context.Background(), testDelegatedSession(), testDelegatedTurn(), runtimeAgentDelegatedCapabilityRequest{
