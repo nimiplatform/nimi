@@ -96,11 +96,13 @@ export function CaseFormModal({
   const [startedAt, setStartedAt] = useState(new Date().toISOString().slice(0, 10));
   const [providerInstitution, setProviderInstitution] = useState('');
   const [notes, setNotes] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (!startedAt) return;
     try {
       onError(null);
+      setLocalError(null);
       await insertOrthodonticCase({
         caseId: ulid(),
         childId,
@@ -117,12 +119,15 @@ export function CaseFormModal({
       await onSaved();
     } catch (error) {
       catchLog('ortho', 'action:insert-case-failed')(error);
-      onError(error instanceof Error ? error.message : String(error));
+      const msg = error instanceof Error ? error.message : String(error);
+      setLocalError(msg);
+      onError(msg);
     }
   };
 
   return (
     <Modal title="新建正畸疗程" onClose={onClose}>
+      {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
       <FieldSelect label="类型" value={caseType} onChange={(v) => setCaseType(v as WritableOrthodonticCaseType)}
         options={CASE_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} />
       <FieldSelect label="阶段" value={stage} onChange={(v) => setStage(v as OrthodonticStage)}
@@ -157,16 +162,20 @@ export function ApplianceFormModal({
   const [prescribedHours, setPrescribedHours] = useState<string>('');
   const [prescribedActivations, setPrescribedActivations] = useState<string>('');
   const [reviewIntervalDays, setReviewIntervalDays] = useState<string>('');
+  const [localError, setLocalError] = useState<string | null>(null);
   const needsPrescribedHours = applianceRequiresPrescribedHours(applianceType);
 
   const handleSubmit = async () => {
     if (!startedAt) return;
     if (needsPrescribedHours && !prescribedHours.trim()) {
-      onError('请填写该装置的医嘱每日佩戴小时数');
+      const msg = '请填写该装置的医嘱每日佩戴小时数';
+      setLocalError(msg);
+      onError(msg);
       return;
     }
     try {
       onError(null);
+      setLocalError(null);
       await insertOrthodonticAppliance({
         applianceId: ulid(),
         caseId,
@@ -184,7 +193,9 @@ export function ApplianceFormModal({
       await onSaved();
     } catch (error) {
       catchLog('ortho', 'action:insert-appliance-failed')(error);
-      onError(error instanceof Error ? error.message : String(error));
+      const msg = error instanceof Error ? error.message : String(error);
+      setLocalError(msg);
+      onError(msg);
     }
   };
 
@@ -197,6 +208,7 @@ export function ApplianceFormModal({
 
   return (
     <Modal title="添加装置" onClose={onClose}>
+      {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
       <FieldSelect label="装置类型" value={applianceType} onChange={(v) => setApplianceType(v as OrthodonticApplianceType)}
         options={eligibleTypes.map((o) => ({ value: o.value, label: o.label }))} />
       {eligibleTypes.length === 0 && (
@@ -260,6 +272,7 @@ export function OrthoClinicalEventModal({
   const [appliedToApplianceId, setAppliedToApplianceId] = useState<string>(
     activeAppliances[0]?.applianceId ?? '',
   );
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const advancesReview = eventTypeAdvancesReview(eventType);
 
@@ -277,15 +290,20 @@ export function OrthoClinicalEventModal({
 
   const handleSubmit = async () => {
     if (!eventDate) {
-      onError('请填写事件日期');
+      const msg = '请填写事件日期';
+      setLocalError(msg);
+      onError(msg);
       return;
     }
     if (advancesReview && activeAppliances.length > 0 && !appliedToApplianceId) {
-      onError('请选择本次复诊对应的装置');
+      const msg = '请选择本次复诊对应的装置';
+      setLocalError(msg);
+      onError(msg);
       return;
     }
     try {
       onError(null);
+      setLocalError(null);
       const now = isoNow();
       const ageMonths = computeAgeMonthsAt(childBirthDate, eventDate);
       await insertOrthoClinicalDentalRecord({
@@ -314,12 +332,15 @@ export function OrthoClinicalEventModal({
       await onSaved();
     } catch (error) {
       catchLog('ortho', 'action:insert-ortho-clinical-event-failed')(error);
-      onError(error instanceof Error ? error.message : String(error));
+      const msg = error instanceof Error ? error.message : String(error);
+      setLocalError(msg);
+      onError(msg);
     }
   };
 
   return (
     <Modal title="记录正畸临床事件" onClose={onClose}>
+      {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
       <p className="text-[13px]" style={{ color: S.sub }}>
         将写入口腔档案的临床时间线（dental_records），不参与依从率统计。
       </p>
@@ -366,6 +387,19 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
         </div>
         {children}
       </div>
+    </div>
+  );
+}
+
+export function ModalErrorBanner({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  return (
+    <div role="alert" className="text-[13px] px-3 py-2 rounded-md flex items-start justify-between gap-2"
+      style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+      <span style={{ wordBreak: 'break-word' }}>{message}</span>
+      <button type="button" onClick={onDismiss}
+        style={{ background: 'transparent', border: 0, color: '#b91c1c', cursor: 'pointer', flexShrink: 0 }}>
+        ×
+      </button>
     </div>
   );
 }

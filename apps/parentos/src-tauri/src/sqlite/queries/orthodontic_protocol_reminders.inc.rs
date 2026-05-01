@@ -20,37 +20,27 @@ pub(crate) fn dental_followup_rule_for(event_type: &str) -> Option<(&'static str
     }
 }
 fn add_months_iso(iso_date: &str, months: i64) -> String {
-    // SQLite handles month arithmetic deterministically via the date() function.
-    let conn = match get_conn() {
-        Ok(c) => c,
-        Err(_) => return iso_date.to_string(),
+    use chrono::{Months, NaiveDate};
+    let Ok(date) = NaiveDate::parse_from_str(iso_date, "%Y-%m-%d") else {
+        return iso_date.to_string();
     };
-    let conn = match conn.lock() {
-        Ok(c) => c,
-        Err(_) => return iso_date.to_string(),
+    let shifted = if months >= 0 {
+        date.checked_add_months(Months::new(months as u32))
+    } else {
+        date.checked_sub_months(Months::new((-months) as u32))
     };
-    conn.query_row(
-        "SELECT date(?1, ?2 || ' months')",
-        params![iso_date, months],
-        |row| row.get::<_, String>(0),
-    )
-    .unwrap_or_else(|_| iso_date.to_string())
+    shifted
+        .map(|d| d.format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| iso_date.to_string())
 }
 fn add_days_iso(iso_date: &str, days: i64) -> String {
-    let conn = match get_conn() {
-        Ok(c) => c,
-        Err(_) => return iso_date.to_string(),
+    use chrono::{Duration, NaiveDate};
+    let Ok(date) = NaiveDate::parse_from_str(iso_date, "%Y-%m-%d") else {
+        return iso_date.to_string();
     };
-    let conn = match conn.lock() {
-        Ok(c) => c,
-        Err(_) => return iso_date.to_string(),
-    };
-    conn.query_row(
-        "SELECT date(?1, ?2 || ' days')",
-        params![iso_date, days],
-        |row| row.get::<_, String>(0),
-    )
-    .unwrap_or_else(|_| iso_date.to_string())
+    date.checked_add_signed(Duration::days(days))
+        .map(|d| d.format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| iso_date.to_string())
 }
 fn derive_initial_review_schedule(
     appliance_type: &str,

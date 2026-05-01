@@ -19,6 +19,7 @@ import {
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { S } from '../../app-shell/page-style.js';
+import { CheckinHistoryStrip } from './orthodontic-checkin-history.js';
 import {
   ApplianceFormModal,
   CaseFormModal,
@@ -605,23 +606,12 @@ function ApplianceCard({
         </div>
       )}
 
-      {last7.length > 0 && (
-        <div className="mt-3 flex items-center gap-1">
-          {last7.map((c) => (
-            <div
-              key={c.checkinId}
-              title={`${c.checkinDate}: ${c.actualWearHours}h / ${c.prescribedHours}h`}
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: c.complianceBucket === 'done' ? '#22c55e' : c.complianceBucket === 'partial' ? '#f59e0b' : c.complianceBucket === 'missed' ? '#ef4444' : '#cbd5e1',
-              }}
-            />
-          ))}
-          <span className="text-[12px] ml-2" style={{ color: S.sub }}>近 7 天达成率近似</span>
-        </div>
-      )}
+      <CheckinHistoryStrip
+        checkins={checkins}
+        last7={last7}
+        onDeleted={onChanged}
+        onError={onError}
+      />
     </div>
   );
 }
