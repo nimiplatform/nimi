@@ -34,8 +34,8 @@ func TestDelegatedProviderProfilesAreRuntimeOwned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("upsert delegated provider profile: %v", err)
 	}
-	if upserted.GetProviderProfile().GetState() != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_ACTIVE {
-		t.Fatalf("expected active default state, got %+v", upserted.GetProviderProfile())
+	if upserted.GetProviderProfile().GetState() != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_REGISTERED {
+		t.Fatalf("expected registered default state, got %+v", upserted.GetProviderProfile())
 	}
 
 	listed, err := svc.ListDelegatedProviderProfiles(context.Background(), &runtimev1.ListDelegatedProviderProfilesRequest{
@@ -80,6 +80,78 @@ func TestDelegatedProviderProfileRejectsRawCredentialMaterial(t *testing.T) {
 	})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected raw credential material rejection, got %v", err)
+	}
+}
+
+func TestDelegatedProviderStateReadyRequiresRunnableProfile(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	ctx := testDelegatedControlContext()
+	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
+		Context: ctx,
+		AgentId: "agent-1",
+		ProviderProfile: &runtimev1.DelegatedProviderProfile{
+			ProviderProfileId: "calendar-mcp",
+			DisplayName:       "Calendar MCP",
+			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
+			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
+			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup"}},
+			TransportRef:      "runtime-transport://calendar-mcp",
+		},
+	})
+	if err != nil {
+		t.Fatalf("upsert registered delegated provider: %v", err)
+	}
+
+	_, err = svc.SetDelegatedProviderState(context.Background(), &runtimev1.SetDelegatedProviderStateRequest{
+		Context:           ctx,
+		AgentId:           "agent-1",
+		ProviderProfileId: "calendar-mcp",
+		State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY,
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected READY without command to fail closed, got %v", err)
+	}
+	listed, err := svc.ListDelegatedProviderProfiles(context.Background(), &runtimev1.ListDelegatedProviderProfilesRequest{
+		Context: ctx,
+		AgentId: "agent-1",
+	})
+	if err != nil {
+		t.Fatalf("list delegated provider profiles: %v", err)
+	}
+	if got := listed.GetProviderProfiles()[0].GetState(); got != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_REGISTERED {
+		t.Fatalf("failed READY transition mutated provider state: %s", got)
+	}
+}
+
+func TestBlockedDelegatedProviderCannotBecomeReady(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	ctx := testDelegatedControlContext()
+	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
+		Context: ctx,
+		AgentId: "agent-1",
+		ProviderProfile: &runtimev1.DelegatedProviderProfile{
+			ProviderProfileId: "calendar-mcp",
+			DisplayName:       "Calendar MCP",
+			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
+			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
+			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_BLOCKED,
+			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup"}},
+			TransportRef:      "runtime-transport://calendar-mcp",
+			Command:           "calendar-mcp",
+		},
+	})
+	if err != nil {
+		t.Fatalf("upsert blocked delegated provider: %v", err)
+	}
+
+	_, err = svc.SetDelegatedProviderState(context.Background(), &runtimev1.SetDelegatedProviderStateRequest{
+		Context:           ctx,
+		AgentId:           "agent-1",
+		ProviderProfileId: "calendar-mcp",
+		State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY,
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected blocked READY transition to fail closed, got %v", err)
 	}
 }
 

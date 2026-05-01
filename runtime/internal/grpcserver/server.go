@@ -200,6 +200,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		return nil, fmt.Errorf("init agent core service: %w", err)
 	}
 	agentSvc.SetScopedBindingValidator(accountSvc)
+	agentSvc.SetAuditStore(auditStore)
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
 	runtimev1.RegisterRuntimeAgentServiceServer(g, agentSvc)
 

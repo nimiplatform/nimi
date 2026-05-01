@@ -7,6 +7,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -34,13 +35,23 @@ func (s *Service) UpsertDelegatedProviderProfile(_ context.Context, req *runtime
 	s.delegatedMu.Lock()
 	s.ensureDelegatedControlStoresLocked()
 	key := delegatedProviderProfileKey(agentID, profile.GetProviderProfileId())
-	if existing := s.delegatedProviderProfiles[key]; existing != nil && existing.GetCreatedAt() != nil {
+	existing := s.delegatedProviderProfiles[key]
+	if existing != nil && existing.GetCreatedAt() != nil {
 		profile.CreatedAt = cloneTimestamp(existing.GetCreatedAt())
 	} else {
 		profile.CreatedAt = timestamppb.New(now)
 	}
 	profile.UpdatedAt = timestamppb.New(now)
 	s.delegatedProviderProfiles[key] = proto.Clone(profile).(*runtimev1.DelegatedProviderProfile)
+	if err := s.rebuildDelegatedGatewayLocked(); err != nil {
+		if existing != nil {
+			s.delegatedProviderProfiles[key] = proto.Clone(existing).(*runtimev1.DelegatedProviderProfile)
+		} else {
+			delete(s.delegatedProviderProfiles, key)
+		}
+		s.delegatedMu.Unlock()
+		return nil, status.Errorf(codes.InvalidArgument, "delegated provider profile cannot configure gateway: %v", err)
+	}
 	out := proto.Clone(profile).(*runtimev1.DelegatedProviderProfile)
 	s.delegatedMu.Unlock()
 	return &runtimev1.UpsertDelegatedProviderProfileResponse{ProviderProfile: out}, nil
@@ -55,9 +66,8 @@ func (s *Service) SetDelegatedProviderState(_ context.Context, req *runtimev1.Se
 	if profileID == "" {
 		return nil, status.Error(codes.InvalidArgument, "provider_profile_id is required")
 	}
-	if req.GetState() != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_ACTIVE &&
-		req.GetState() != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED {
-		return nil, status.Error(codes.InvalidArgument, "delegated provider state must be ACTIVE or DISABLED")
+	if !isAdmittedDelegatedProviderState(req.GetState()) {
+		return nil, status.Error(codes.InvalidArgument, "delegated provider state is not admitted")
 	}
 	s.delegatedMu.Lock()
 	s.ensureDelegatedControlStoresLocked()
@@ -66,10 +76,26 @@ func (s *Service) SetDelegatedProviderState(_ context.Context, req *runtimev1.Se
 		s.delegatedMu.Unlock()
 		return nil, status.Error(codes.NotFound, "delegated provider profile not found")
 	}
+	if req.GetState() == runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY {
+		if profile.GetTrustTier() == runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_BLOCKED {
+			s.delegatedMu.Unlock()
+			return nil, status.Error(codes.InvalidArgument, "blocked delegated provider cannot be READY")
+		}
+		if strings.TrimSpace(profile.GetCommand()) == "" {
+			s.delegatedMu.Unlock()
+			return nil, status.Error(codes.InvalidArgument, "READY stdio delegated provider requires command")
+		}
+	}
+	previous := proto.Clone(profile).(*runtimev1.DelegatedProviderProfile)
 	profile = proto.Clone(profile).(*runtimev1.DelegatedProviderProfile)
 	profile.State = req.GetState()
 	profile.UpdatedAt = timestamppb.New(time.Now().UTC())
 	s.delegatedProviderProfiles[delegatedProviderProfileKey(agentID, profileID)] = proto.Clone(profile).(*runtimev1.DelegatedProviderProfile)
+	if err := s.rebuildDelegatedGatewayLocked(); err != nil {
+		s.delegatedProviderProfiles[delegatedProviderProfileKey(agentID, profileID)] = previous
+		s.delegatedMu.Unlock()
+		return nil, status.Errorf(codes.InvalidArgument, "delegated provider state cannot configure gateway: %v", err)
+	}
 	out := proto.Clone(profile).(*runtimev1.DelegatedProviderProfile)
 	s.delegatedMu.Unlock()
 	return &runtimev1.SetDelegatedProviderStateResponse{ProviderProfile: out}, nil
@@ -208,6 +234,9 @@ func normalizeDelegatedProviderProfile(input *runtimev1.DelegatedProviderProfile
 	out.DisplayName = strings.TrimSpace(out.GetDisplayName())
 	out.CredentialRef = strings.TrimSpace(out.GetCredentialRef())
 	out.TransportRef = strings.TrimSpace(out.GetTransportRef())
+	out.LifecycleReasonCode = strings.TrimSpace(out.GetLifecycleReasonCode())
+	out.Command = strings.TrimSpace(out.GetCommand())
+	out.Args = normalizeStringList(out.GetArgs())
 	if out.ProviderProfileId == "" {
 		return nil, status.Error(codes.InvalidArgument, "provider_profile_id is required")
 	}
@@ -217,15 +246,24 @@ func normalizeDelegatedProviderProfile(input *runtimev1.DelegatedProviderProfile
 	if out.TransportKind != runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND {
 		return nil, status.Error(codes.InvalidArgument, "delegated transport kind must be STDIO_COMMAND")
 	}
-	if out.State == runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_UNSPECIFIED {
-		out.State = runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_ACTIVE
+	if out.TrustTier == runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_UNSPECIFIED {
+		out.TrustTier = runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED
 	}
-	if out.State != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_ACTIVE &&
-		out.State != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED {
-		return nil, status.Error(codes.InvalidArgument, "delegated provider state must be ACTIVE or DISABLED")
+	if out.State == runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_UNSPECIFIED {
+		out.State = runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_REGISTERED
+	}
+	if !isAdmittedDelegatedProviderState(out.State) {
+		return nil, status.Error(codes.InvalidArgument, "delegated provider state is not admitted")
+	}
+	if out.TrustTier == runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_BLOCKED &&
+		out.State == runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY {
+		return nil, status.Error(codes.InvalidArgument, "blocked delegated provider cannot be READY")
 	}
 	if out.TransportRef == "" {
 		return nil, status.Error(codes.InvalidArgument, "transport_ref is required")
+	}
+	if out.State == runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY && out.Command == "" {
+		return nil, status.Error(codes.InvalidArgument, "READY stdio delegated provider requires command")
 	}
 	if err := validateDelegatedCredentialRef(out.CredentialRef); err != nil {
 		return nil, err
@@ -249,6 +287,104 @@ func normalizeDelegatedProviderProfile(input *runtimev1.DelegatedProviderProfile
 		seen[tool.ToolName] = struct{}{}
 	}
 	return out, nil
+}
+
+func isAdmittedDelegatedProviderState(state runtimev1.DelegatedProviderState) bool {
+	switch state {
+	case runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_REGISTERED,
+		runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISCOVERING,
+		runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY,
+		runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DEGRADED,
+		runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED,
+		runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_QUARANTINED,
+		runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_REMOVED:
+		return true
+	default:
+		return false
+	}
+}
+
+func normalizeStringList(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
+}
+
+func (s *Service) rebuildDelegatedGatewayLocked() error {
+	if s == nil {
+		return nil
+	}
+	var profiles []delegation.ProviderProfile
+	for _, profile := range s.delegatedProviderProfiles {
+		if profile.GetState() != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY {
+			continue
+		}
+		converted, err := delegatedGatewayProfileFromProto(profile)
+		if err != nil {
+			return err
+		}
+		profiles = append(profiles, converted)
+	}
+	opts := []delegation.Option{}
+	if s.delegatedTransportFactory != nil {
+		opts = append(opts, delegation.WithTransportFactory(s.delegatedTransportFactory))
+	}
+	gateway, err := delegation.NewGateway(profiles, opts...)
+	if err != nil {
+		return err
+	}
+	firewall := s.delegatedFirewall
+	if firewall == nil {
+		var firewallErr error
+		firewall, firewallErr = delegation.NewFirewall(delegation.FirewallPolicy{})
+		if firewallErr != nil {
+			return firewallErr
+		}
+	}
+	s.delegatedGateway = gateway
+	s.delegatedFirewall = firewall
+	return nil
+}
+
+func delegatedGatewayProfileFromProto(profile *runtimev1.DelegatedProviderProfile) (delegation.ProviderProfile, error) {
+	if profile == nil {
+		return delegation.ProviderProfile{}, fmt.Errorf("nil delegated provider profile")
+	}
+	if profile.GetProviderKind() != runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER {
+		return delegation.ProviderProfile{}, fmt.Errorf("provider %q is not an MCP tool provider", profile.GetProviderProfileId())
+	}
+	if profile.GetTransportKind() != runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND {
+		return delegation.ProviderProfile{}, fmt.Errorf("provider %q must use stdio command transport", profile.GetProviderProfileId())
+	}
+	timeout := time.Duration(0)
+	if profile.GetTimeout() != nil {
+		timeout = profile.GetTimeout().AsDuration()
+	}
+	allowed := make([]delegation.ToolAllowlistEntry, 0, len(profile.GetAllowedTools()))
+	for _, tool := range profile.GetAllowedTools() {
+		allowed = append(allowed, delegation.ToolAllowlistEntry{
+			Name:              strings.TrimSpace(tool.GetToolName()),
+			InputSchemaDigest: strings.TrimSpace(tool.GetInputSchemaDigest()),
+		})
+	}
+	return delegation.ProviderProfile{
+		ID:            strings.TrimSpace(profile.GetProviderProfileId()),
+		Name:          strings.TrimSpace(profile.GetDisplayName()),
+		ProviderKind:  delegation.ProviderKindMCPToolProvider,
+		TransportKind: delegation.TransportKindStdioCommand,
+		State:         delegation.ProviderStateReady,
+		Command:       strings.TrimSpace(profile.GetCommand()),
+		Args:          append([]string(nil), profile.GetArgs()...),
+		AllowedTools:  allowed,
+		Timeout:       timeout,
+	}, nil
 }
 
 func validateDelegatedCredentialRef(ref string) error {

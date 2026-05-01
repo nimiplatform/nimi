@@ -9,7 +9,10 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type fakeDelegatedGateway struct {
@@ -97,6 +100,19 @@ func TestRuntimeAgentDelegatedCapabilityRequiresGatewayAndFirewall(t *testing.T)
 	_, err = svc.publicChatRuntime().executeDelegatedCapability(context.Background(), testDelegatedSession(), testDelegatedTurn(), validDelegatedRequest())
 	if err == nil || !strings.Contains(err.Error(), "firewall") {
 		t.Fatalf("expected missing firewall failure, got %v", err)
+	}
+}
+
+func TestRuntimeAgentServiceInstallsDefaultDelegatedRuntime(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	defer closeRuntimeAgentServiceForTest(t, svc)
+
+	gateway, firewall := svc.delegatedCapabilityRuntime()
+	if gateway == nil {
+		t.Fatal("New() did not install production delegated gateway")
+	}
+	if firewall == nil {
+		t.Fatal("New() did not install production delegated firewall")
 	}
 }
 
@@ -257,6 +273,92 @@ func TestRuntimeAgentControlledMCPIntegrationQuarantinesUnsafeOutput(t *testing.
 	}
 }
 
+func TestRuntimeAgentExecuteDelegatedCapabilityUsesControlSurfaceProfileAndRuntimeAudit(t *testing.T) {
+	discoveryGateway, descriptorHash := newControlledRuntimeAgentMCPGateway(t)
+	if discoveryGateway == nil {
+		t.Fatal("expected controlled discovery gateway")
+	}
+	auditStore := auditlog.New(128, 128)
+	svc := testDelegatedControlSurfaceService()
+	svc.SetAuditStore(auditStore)
+	svc.delegatedTransportFactory = controlledRuntimeAgentMCPTransportFactory(t)
+	svc.chatAnchors = map[string]*publicChatAnchorState{
+		"anchor-1": {
+			ConversationAnchorID: "anchor-1",
+			AgentID:              "agent-1",
+			CallerAppID:          "nimi.desktop",
+			SubjectUserID:        "user-1",
+			ThreadID:             "thread-1",
+		},
+	}
+
+	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
+		Context: testDelegatedControlContext(),
+		AgentId: "agent-1",
+		ProviderProfile: &runtimev1.DelegatedProviderProfile{
+			ProviderProfileId: "provider-1",
+			DisplayName:       "Controlled MCP",
+			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
+			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
+			State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY,
+			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_CONTROLLED_LOCAL,
+			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
+				ToolName:          "echo",
+				InputSchemaDigest: descriptorHash,
+			}},
+			TransportRef: "runtime-transport://controlled-mcp",
+			Command:      "controlled-mcp-server",
+			Timeout:      durationpb.New(time.Second),
+		},
+	})
+	if err != nil {
+		t.Fatalf("upsert delegated provider profile: %v", err)
+	}
+	gateway, firewall := svc.delegatedCapabilityRuntime()
+	if gateway == nil || firewall == nil {
+		t.Fatal("control surface profile did not rebuild active gateway/firewall")
+	}
+	args, err := structpb.NewStruct(map[string]any{"text": "calendar has three events tomorrow"})
+	if err != nil {
+		t.Fatalf("build delegated args: %v", err)
+	}
+	executed, err := svc.ExecuteDelegatedCapability(context.Background(), &runtimev1.ExecuteDelegatedCapabilityRequest{
+		Context:              testDelegatedControlContext(),
+		AgentId:              "agent-1",
+		ConversationAnchorId: "anchor-1",
+		TurnId:               "turn-1",
+		StreamId:             "stream-1",
+		RequestId:            "request-1",
+		ProviderProfileId:    "provider-1",
+		CapabilityId:         "calendar.read",
+		ToolName:             "echo",
+		Arguments:            args,
+		DescriptorHash:       descriptorHash,
+		ProtocolRevision:     "2025-06-18",
+		OutputKind:           delegation.OutputKindObservation,
+	})
+	if err != nil {
+		t.Fatalf("ExecuteDelegatedCapability returned error: %v", err)
+	}
+	if executed.GetDiagnostic().GetFirewallVerdict() != delegation.FirewallVerdictAcceptedObservation ||
+		executed.GetReplayTrace().GetOutcome() != runtimev1.DelegatedReplayOutcome_DELEGATED_REPLAY_OUTCOME_RECONSTRUCTED {
+		t.Fatalf("delegated execution did not preserve diagnostic/replay authority: %+v", executed)
+	}
+	events, err := auditStore.ListEvents(&runtimev1.ListAuditEventsRequest{
+		Domain:   "runtime.delegation",
+		PageSize: 10,
+	})
+	if err != nil {
+		t.Fatalf("list runtime audit events: %v", err)
+	}
+	if len(events.GetEvents()) != 1 {
+		t.Fatalf("expected one Runtime audit event, got %+v", events.GetEvents())
+	}
+	if got := events.GetEvents()[0].GetPayload().GetFields()["decision_id"].GetStringValue(); got != executed.GetDiagnostic().GetDiagnosticId() {
+		t.Fatalf("Runtime audit event did not own replay decision lineage: got=%q diagnostic=%q", got, executed.GetDiagnostic().GetDiagnosticId())
+	}
+}
+
 func validDelegatedRequest() runtimeAgentDelegatedCapabilityRequest {
 	return runtimeAgentDelegatedCapabilityRequest{
 		ProviderID:       "provider-1",
@@ -283,7 +385,7 @@ func newControlledRuntimeAgentMCPGateway(t *testing.T) (*delegation.Gateway, str
 		ID:            "provider-1",
 		ProviderKind:  delegation.ProviderKindMCPToolProvider,
 		TransportKind: delegation.TransportKindStdioCommand,
-		State:         delegation.ProviderStateActive,
+		State:         delegation.ProviderStateReady,
 		Command:       "controlled-mcp-server",
 		AllowedTools: []delegation.ToolAllowlistEntry{
 			{Name: "echo"},

@@ -191,6 +191,11 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			capability: "runtime.agent.delegation.read",
 		},
 		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
+			request:    &runtimev1.ExecuteDelegatedCapabilityRequest{AgentId: "agent-alpha"},
+			capability: "runtime.agent.delegation.write",
+		},
+		{
 			method: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
 			request: &runtimev1.SendAppMessageRequest{
 				FromAppId:   "nimi.desktop",

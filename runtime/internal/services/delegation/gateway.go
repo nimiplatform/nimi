@@ -167,8 +167,8 @@ func (g *Gateway) activeProfile(providerID string) (ProviderProfile, error) {
 	if !ok {
 		return ProviderProfile{}, fmt.Errorf("delegation provider %q is not registered", id)
 	}
-	if profile.State != ProviderStateActive {
-		return ProviderProfile{}, fmt.Errorf("delegation provider %q is not active", id)
+	if profile.State != ProviderStateReady {
+		return ProviderProfile{}, fmt.Errorf("delegation provider %q is not ready", id)
 	}
 	return profile, nil
 }
@@ -226,7 +226,7 @@ func normalizeProfile(profile ProviderProfile) (ProviderProfile, error) {
 		return ProviderProfile{}, fmt.Errorf("provider %q must use admitted transport %s", profile.ID, TransportKindStdioCommand)
 	}
 	if profile.State == "" {
-		profile.State = ProviderStateActive
+		profile.State = ProviderStateRegistered
 	}
 	if len(profile.AllowedTools) == 0 {
 		return ProviderProfile{}, fmt.Errorf("provider %q must define an MCP tool allowlist", profile.ID)

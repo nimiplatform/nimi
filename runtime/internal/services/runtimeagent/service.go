@@ -8,7 +8,9 @@ import (
 	"sync/atomic"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
+	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 )
 
@@ -55,9 +57,11 @@ type Service struct {
 	bindingValidator          scopedBindingValidator
 	aiBridgeMu                sync.RWMutex
 	aiBridge                  *RuntimePrivateAIBridge
+	auditStore                *auditlog.Store
 	delegatedMu               sync.RWMutex
 	delegatedGateway          delegatedCapabilityGateway
 	delegatedFirewall         delegatedOutputFirewall
+	delegatedTransportFactory delegation.TransportFactory
 	delegatedDecisionAudit    []delegatedCapabilityDecisionAuditRecord
 	delegatedProviderProfiles map[string]*runtimev1.DelegatedProviderProfile
 	delegatedApprovalRequests map[string]*runtimev1.DelegatedApprovalRequest
@@ -103,6 +107,14 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	if memorySvc == nil {
 		return nil, fmt.Errorf("memory service is required")
 	}
+	delegatedGateway, err := delegation.NewGateway(nil)
+	if err != nil {
+		return nil, err
+	}
+	delegatedFirewall, err := delegation.NewFirewall(delegation.FirewallPolicy{})
+	if err != nil {
+		return nil, err
+	}
 	statePath := runtimeAgentStatePath(localStatePath)
 	backend := memorySvc.PersistenceBackend()
 	stateRepo := newRuntimeAgentStateRepository(backend, statePath)
@@ -116,6 +128,8 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		reviews:                   newReviewPersistence(backend),
 		postures:                  newBehavioralPosturePersistence(backend),
 		aiBridge:                  newRuntimePrivateAIBridge(),
+		delegatedGateway:          delegatedGateway,
+		delegatedFirewall:         delegatedFirewall,
 		agents:                    make(map[string]*agentEntry),
 		events:                    make([]*runtimev1.AgentEvent, 0, maxEventLogSize),
 		subscribers:               make(map[uint64]*subscriber),
@@ -158,6 +172,13 @@ func (s *Service) SubscribeAgentEvents(req *runtimev1.SubscribeAgentEventsReques
 
 func (s *Service) SetScopedBindingValidator(validator scopedBindingValidator) {
 	s.bindingValidator = validator
+}
+
+func (s *Service) SetAuditStore(store *auditlog.Store) {
+	if s == nil {
+		return
+	}
+	s.auditStore = store
 }
 
 func (s *Service) SetLifeTrackExecutor(executor LifeTrackExecutor) {

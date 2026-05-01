@@ -9,8 +9,13 @@ const (
 	ProviderKindMCPToolProvider = "MCP_TOOL_PROVIDER"
 	TransportKindStdioCommand   = "stdio_command"
 
-	ProviderStateActive   = "ACTIVE"
-	ProviderStateDisabled = "DISABLED"
+	ProviderStateRegistered  = "REGISTERED"
+	ProviderStateDiscovering = "DISCOVERING"
+	ProviderStateReady       = "READY"
+	ProviderStateDegraded    = "DEGRADED"
+	ProviderStateDisabled    = "DISABLED"
+	ProviderStateQuarantined = "QUARANTINED"
+	ProviderStateRemoved     = "REMOVED"
 
 	FirewallStateNotEvaluated          = "not_evaluated"
 	FirewallVerdictAcceptedObservation = "ACCEPTED_OBSERVATION"

@@ -31,7 +31,7 @@ func TestGatewayDiscoversAllowedToolsOnly(t *testing.T) {
 		ID:            "provider-1",
 		ProviderKind:  ProviderKindMCPToolProvider,
 		TransportKind: TransportKindStdioCommand,
-		State:         ProviderStateActive,
+		State:         ProviderStateReady,
 		Command:       "test-mcp-server",
 		AllowedTools: []ToolAllowlistEntry{
 			{Name: "echo"},
@@ -59,7 +59,7 @@ func TestGatewayRejectsUnlistedToolCall(t *testing.T) {
 		ID:            "provider-1",
 		ProviderKind:  ProviderKindMCPToolProvider,
 		TransportKind: TransportKindStdioCommand,
-		State:         ProviderStateActive,
+		State:         ProviderStateReady,
 		Command:       "test-mcp-server",
 		AllowedTools: []ToolAllowlistEntry{
 			{Name: "echo"},
@@ -82,7 +82,7 @@ func TestGatewayFailsClosedOnSchemaDrift(t *testing.T) {
 		ID:            "provider-1",
 		ProviderKind:  ProviderKindMCPToolProvider,
 		TransportKind: TransportKindStdioCommand,
-		State:         ProviderStateActive,
+		State:         ProviderStateReady,
 		Command:       "test-mcp-server",
 		AllowedTools: []ToolAllowlistEntry{
 			{Name: "echo", InputSchemaDigest: "sha256:not-current"},
@@ -101,7 +101,7 @@ func TestGatewayCallToolReturnsQuarantinedEvidence(t *testing.T) {
 		ID:            "provider-1",
 		ProviderKind:  ProviderKindMCPToolProvider,
 		TransportKind: TransportKindStdioCommand,
-		State:         ProviderStateActive,
+		State:         ProviderStateReady,
 		Command:       "test-mcp-server",
 		AllowedTools: []ToolAllowlistEntry{
 			{Name: "echo"},
@@ -140,7 +140,7 @@ func TestGatewayRequiresAllowlist(t *testing.T) {
 		ID:            "provider-1",
 		ProviderKind:  ProviderKindMCPToolProvider,
 		TransportKind: TransportKindStdioCommand,
-		State:         ProviderStateActive,
+		State:         ProviderStateReady,
 		Command:       "test-mcp-server",
 	}})
 	if err == nil || !strings.Contains(err.Error(), "allowlist") {

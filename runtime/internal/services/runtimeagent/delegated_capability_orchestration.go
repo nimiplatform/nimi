@@ -265,6 +265,7 @@ func (s *Service) recordDelegatedCapabilityDecision(decision *runtimeAgentDelega
 		s.recordDelegatedApprovalRequestLocked(decision)
 	}
 	s.delegatedMu.Unlock()
+	s.appendDelegatedDecisionAuditEvent(record)
 }
 
 func (s *Service) recordDelegatedApprovalRequestLocked(decision *runtimeAgentDelegatedCapabilityDecision) {
@@ -311,11 +312,129 @@ func (s *Service) delegatedCapabilityDecisionAuditSnapshot() []delegatedCapabili
 	if s == nil {
 		return nil
 	}
+	if records := s.delegatedCapabilityDecisionAuditRecordsFromRuntimeAudit(); len(records) > 0 {
+		return records
+	}
 	s.delegatedMu.RLock()
 	defer s.delegatedMu.RUnlock()
 	out := make([]delegatedCapabilityDecisionAuditRecord, len(s.delegatedDecisionAudit))
 	copy(out, s.delegatedDecisionAudit)
 	return out
+}
+
+func (s *Service) appendDelegatedDecisionAuditEvent(record delegatedCapabilityDecisionAuditRecord) {
+	if s == nil || s.auditStore == nil || strings.TrimSpace(record.DecisionID) == "" {
+		return
+	}
+	payload, err := structpb.NewStruct(map[string]any{
+		"decision_id":            record.DecisionID,
+		"agent_id":               record.AgentID,
+		"delegation_request_id":  record.DelegationRequestID,
+		"delegation_result_id":   record.DelegationResultID,
+		"conversation_anchor_id": record.ConversationAnchorID,
+		"turn_id":                record.TurnID,
+		"stream_id":              record.StreamID,
+		"provider_profile_id":    record.ProviderID,
+		"capability_id":          record.CapabilityID,
+		"tool_name":              record.ToolName,
+		"gateway_evidence_id":    record.GatewayEvidenceID,
+		"firewall_input_id":      record.FirewallInputID,
+		"firewall_verdict":       record.FirewallVerdict,
+		"reason_code_text":       record.ReasonCode,
+		"runtime_decision":       record.RuntimeDecision,
+		"projection_disposition": record.ProjectionDisposition,
+		"action_disposition":     record.ActionDisposition,
+		"recorded_at":            record.RecordedAt.UTC().Format(time.RFC3339Nano),
+	})
+	if err != nil {
+		return
+	}
+	s.auditStore.AppendEvent(&runtimev1.AuditEventRecord{
+		AuditId:     record.DecisionID,
+		AppId:       "runtime",
+		Domain:      "runtime.delegation",
+		Operation:   "runtime.agent.delegation.decision_recorded",
+		ReasonCode:  runtimev1.ReasonCode_ACTION_EXECUTED,
+		TraceId:     firstNonEmpty(record.DelegationRequestID, record.DecisionID),
+		Timestamp:   timestamppb.New(record.RecordedAt.UTC()),
+		Payload:     payload,
+		CallerId:    "runtime.agent.service",
+		SurfaceId:   "runtime.agent.delegation",
+		Capability:  "runtime.agent.delegation.execute",
+		PrincipalId: record.AgentID,
+	})
+}
+
+func (s *Service) delegatedCapabilityDecisionAuditRecordsFromRuntimeAudit() []delegatedCapabilityDecisionAuditRecord {
+	if s == nil || s.auditStore == nil {
+		return nil
+	}
+	req := &runtimev1.ListAuditEventsRequest{
+		Domain:   "runtime.delegation",
+		PageSize: 200,
+	}
+	var records []delegatedCapabilityDecisionAuditRecord
+	for {
+		resp, err := s.auditStore.ListEvents(req)
+		if err != nil {
+			return nil
+		}
+		for _, event := range resp.GetEvents() {
+			if strings.TrimSpace(event.GetOperation()) != "runtime.agent.delegation.decision_recorded" {
+				continue
+			}
+			record, ok := delegatedDecisionAuditRecordFromRuntimeAuditEvent(event)
+			if ok {
+				records = append(records, record)
+			}
+		}
+		if strings.TrimSpace(resp.GetNextPageToken()) == "" {
+			break
+		}
+		req.PageToken = resp.GetNextPageToken()
+	}
+	return records
+}
+
+func delegatedDecisionAuditRecordFromRuntimeAuditEvent(event *runtimev1.AuditEventRecord) (delegatedCapabilityDecisionAuditRecord, bool) {
+	if event == nil || event.GetPayload() == nil {
+		return delegatedCapabilityDecisionAuditRecord{}, false
+	}
+	fields := event.GetPayload().GetFields()
+	recordedAt := event.GetTimestamp().AsTime()
+	if raw := structStringField(fields, "recorded_at"); raw != "" {
+		if parsed, err := time.Parse(time.RFC3339Nano, raw); err == nil {
+			recordedAt = parsed
+		}
+	}
+	record := delegatedCapabilityDecisionAuditRecord{
+		DecisionID:            structStringField(fields, "decision_id"),
+		AgentID:               structStringField(fields, "agent_id"),
+		DelegationRequestID:   structStringField(fields, "delegation_request_id"),
+		DelegationResultID:    structStringField(fields, "delegation_result_id"),
+		ConversationAnchorID:  structStringField(fields, "conversation_anchor_id"),
+		TurnID:                structStringField(fields, "turn_id"),
+		StreamID:              structStringField(fields, "stream_id"),
+		ProviderID:            structStringField(fields, "provider_profile_id"),
+		CapabilityID:          structStringField(fields, "capability_id"),
+		ToolName:              structStringField(fields, "tool_name"),
+		GatewayEvidenceID:     structStringField(fields, "gateway_evidence_id"),
+		FirewallInputID:       structStringField(fields, "firewall_input_id"),
+		FirewallVerdict:       structStringField(fields, "firewall_verdict"),
+		ReasonCode:            structStringField(fields, "reason_code_text"),
+		RuntimeDecision:       structStringField(fields, "runtime_decision"),
+		ProjectionDisposition: structStringField(fields, "projection_disposition"),
+		ActionDisposition:     structStringField(fields, "action_disposition"),
+		RecordedAt:            recordedAt.UTC(),
+	}
+	return record, strings.TrimSpace(record.DecisionID) != ""
+}
+
+func structStringField(fields map[string]*structpb.Value, name string) string {
+	if fields == nil {
+		return ""
+	}
+	return strings.TrimSpace(fields[name].GetStringValue())
 }
 
 func projectionDispositionForDelegatedDecision(decision *runtimeAgentDelegatedCapabilityDecision) string {
