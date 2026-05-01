@@ -412,9 +412,10 @@ pub(crate) async fn nimi_avatar_resolve_agent_center_avatar_package(
     // bridge) and pushed `driver_start` past its 12s timeout. Live2D files
     // are small enough that the in-pool synchronous hash never tripped this.
     let hash_path = canonical_entry_path.clone();
-    let (entry_bytes, entry_sha256) = tokio::task::spawn_blocking(move || sha256_file_hex(&hash_path))
-        .await
-        .map_err(|error| format!("avatar package digest task failed: {error}"))??;
+    let (entry_bytes, entry_sha256) =
+        tokio::task::spawn_blocking(move || sha256_file_hex(&hash_path))
+            .await
+            .map_err(|error| format!("avatar package digest task failed: {error}"))??;
     if entry_bytes != entry_file_record.bytes || entry_sha256 != entry_file_record.sha256 {
         return Err("avatar package entry_file content differs from manifest".to_string());
     }

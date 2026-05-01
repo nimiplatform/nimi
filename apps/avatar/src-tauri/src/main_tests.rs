@@ -1,5 +1,7 @@
 use super::*;
 use crate::agent_center_avatar_package::agent_center_path_segment;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 // Wave 4 — `compute_constrained_window_position` covers
 // window-bounds-policy.yaml `visible_area` rule (NAV-SHELL-005-EDGE):
@@ -8,13 +10,8 @@ use crate::agent_center_avatar_package::agent_center_path_segment;
 
 #[test]
 fn constrain_keeps_window_inside_when_fully_visible() {
-    let result = compute_constrained_window_position(
-        (100, 100),
-        (400, 600),
-        (0, 0),
-        (1920, 1080),
-        0.2,
-    );
+    let result =
+        compute_constrained_window_position((100, 100), (400, 600), (0, 0), (1920, 1080), 0.2);
     assert_eq!(result, (100, 100));
 }
 
@@ -22,26 +19,16 @@ fn constrain_keeps_window_inside_when_fully_visible() {
 fn constrain_pulls_window_back_when_dragged_off_right_edge() {
     // Window 400 wide; monitor 1920. min_visible = 80px (20%).
     // max_x = 0 + 1920 - 80 = 1840. Drag to x=2500 → clamp to 1840.
-    let result = compute_constrained_window_position(
-        (2500, 100),
-        (400, 600),
-        (0, 0),
-        (1920, 1080),
-        0.2,
-    );
+    let result =
+        compute_constrained_window_position((2500, 100), (400, 600), (0, 0), (1920, 1080), 0.2);
     assert_eq!(result.0, 1840);
 }
 
 #[test]
 fn constrain_pulls_window_back_when_dragged_off_left_edge() {
     // min_x = 0 - 400 + 80 = -320. Drag to x=-1000 → clamp to -320.
-    let result = compute_constrained_window_position(
-        (-1000, 100),
-        (400, 600),
-        (0, 0),
-        (1920, 1080),
-        0.2,
-    );
+    let result =
+        compute_constrained_window_position((-1000, 100), (400, 600), (0, 0), (1920, 1080), 0.2);
     assert_eq!(result.0, -320);
 }
 
@@ -49,13 +36,8 @@ fn constrain_pulls_window_back_when_dragged_off_left_edge() {
 fn constrain_clamps_vertical_axis_independently() {
     // min_visible_height = 600 * 0.2 = 120
     // max_y = 0 + 1080 - 120 = 960
-    let result = compute_constrained_window_position(
-        (100, 5000),
-        (400, 600),
-        (0, 0),
-        (1920, 1080),
-        0.2,
-    );
+    let result =
+        compute_constrained_window_position((100, 5000), (400, 600), (0, 0), (1920, 1080), 0.2);
     assert_eq!(result.1, 960);
 }
 
@@ -63,13 +45,8 @@ fn constrain_clamps_vertical_axis_independently() {
 fn constrain_handles_secondary_monitor_with_negative_origin() {
     // Secondary monitor sitting to the left of primary, position (-1920, 0).
     // min_x = -1920 - 400 + 80 = -2240. max_x = -1920 + 1920 - 80 = -80.
-    let result = compute_constrained_window_position(
-        (-3000, 50),
-        (400, 600),
-        (-1920, 0),
-        (1920, 1080),
-        0.2,
-    );
+    let result =
+        compute_constrained_window_position((-3000, 50), (400, 600), (-1920, 0), (1920, 1080), 0.2);
     assert_eq!(result.0, -2240);
 }
 
@@ -90,13 +67,8 @@ fn constrain_falls_back_to_default_ratio_when_input_is_non_finite() {
 fn constrain_clamps_ratio_to_05_minimum() {
     // Asking for 0.01 ratio is clamped up to 0.05 (5% min visible per policy).
     // min_visible_width = 400 * 0.05 = 20. max_x = 1920 - 20 = 1900.
-    let result = compute_constrained_window_position(
-        (5000, 100),
-        (400, 600),
-        (0, 0),
-        (1920, 1080),
-        0.01,
-    );
+    let result =
+        compute_constrained_window_position((5000, 100), (400, 600), (0, 0), (1920, 1080), 0.01);
     assert_eq!(result.0, 1900);
 }
 
@@ -145,13 +117,8 @@ fn vrm_nominal_bounds_constrain_within_visible_area() {
     // min_visible_width  = ceil(360 * 0.2) = 72
     // max_x              = 0 + 1920 - 72   = 1848
     // Window dragged near right edge at x=1900 → clamp to 1848.
-    let result = compute_constrained_window_position(
-        (1900, 100),
-        (360, 720),
-        (0, 0),
-        (1920, 1080),
-        0.2,
-    );
+    let result =
+        compute_constrained_window_position((1900, 100), (360, 720), (0, 0), (1920, 1080), 0.2);
     assert_eq!(
         result.0, 1848,
         "VRM 360-wide baseline must clamp to 1848 (max_x with 20% visible ratio)",
@@ -168,13 +135,8 @@ fn vrm_nominal_bounds_constrain_within_visible_area() {
 #[test]
 fn vrm_nominal_bounds_off_left_edge_clamped_to_min_x() {
     // min_x = 0 - 360 + ceil(360*0.2)=72 → -288. Drag to x=-1000 → clamp to -288.
-    let result = compute_constrained_window_position(
-        (-1000, 100),
-        (360, 720),
-        (0, 0),
-        (1920, 1080),
-        0.2,
-    );
+    let result =
+        compute_constrained_window_position((-1000, 100), (360, 720), (0, 0), (1920, 1080), 0.2);
     assert_eq!(result.0, -288);
 }
 
@@ -182,13 +144,8 @@ fn vrm_nominal_bounds_off_left_edge_clamped_to_min_x() {
 fn vrm_nominal_bounds_off_bottom_edge_clamped_to_max_y() {
     // VRM is taller (720); min_visible_height = ceil(720*0.2) = 144.
     // max_y = 0 + 1080 - 144 = 936. Drag to y=5000 → clamp to 936.
-    let result = compute_constrained_window_position(
-        (100, 5000),
-        (360, 720),
-        (0, 0),
-        (1920, 1080),
-        0.2,
-    );
+    let result =
+        compute_constrained_window_position((100, 5000), (360, 720), (0, 0), (1920, 1080), 0.2);
     assert_eq!(result.1, 936);
 }
 
@@ -561,11 +518,18 @@ async fn resolve_agent_center_avatar_package_returns_live2d_model_manifest() {
         .expect("resolve package manifest");
 
     assert_eq!(manifest.model_id, "ren");
-    assert!(manifest
-        .model3_json_path
-        .as_deref()
-        .unwrap()
-        .ends_with("files/ren.model3.json"));
+    let model3_path = PathBuf::from(manifest.model3_json_path.as_deref().unwrap());
+    assert_eq!(
+        model3_path.file_name().and_then(|value| value.to_str()),
+        Some("ren.model3.json")
+    );
+    assert_eq!(
+        model3_path
+            .parent()
+            .and_then(|value| value.file_name())
+            .and_then(|value| value.to_str()),
+        Some("files")
+    );
     assert_eq!(
         manifest.runtime_dir,
         package_dir
@@ -695,7 +659,8 @@ async fn resolve_agent_center_avatar_package_uses_runtime_account_projection_sco
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn resolve_agent_center_avatar_package_returns_vrm_model_manifest_and_rejects_digest_mismatch() {
+async fn resolve_agent_center_avatar_package_returns_vrm_model_manifest_and_rejects_digest_mismatch(
+) {
     let _guard = test_env_guard();
     let home = unique_temp_dir("agent-center-package-invalid");
     fs::create_dir_all(&home).unwrap();
@@ -712,11 +677,18 @@ async fn resolve_agent_center_avatar_package_returns_vrm_model_manifest_and_reje
         .expect("resolve VRM package manifest");
     assert_eq!(vrm_manifest.kind, "vrm");
     assert_eq!(vrm_manifest.model_id, "model");
-    assert!(vrm_manifest
-        .vrm_file_path
-        .as_deref()
-        .unwrap()
-        .ends_with("files/model.vrm"));
+    let vrm_path = PathBuf::from(vrm_manifest.vrm_file_path.as_deref().unwrap());
+    assert_eq!(
+        vrm_path.file_name().and_then(|value| value.to_str()),
+        Some("model.vrm")
+    );
+    assert_eq!(
+        vrm_path
+            .parent()
+            .and_then(|value| value.file_name())
+            .and_then(|value| value.to_str()),
+        Some("files")
+    );
     assert!(vrm_manifest.model3_json_path.is_none());
     assert!(vrm_package_dir.join("files/model.vrm").exists());
 
