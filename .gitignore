@@ -59,6 +59,7 @@ dev/
 
 # desktop generated reports/evidence
 apps/desktop/reports/
+apps/avatar/reports/
 
 # local scratch outputs
 .tmp/
