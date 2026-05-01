@@ -378,6 +378,62 @@ fn dental_record_round_trip_and_cascade_with_child_delete() {
 }
 
 #[test]
+fn vision_followup_settings_round_trip_upsert_and_cascade() {
+    let conn = Connection::open_in_memory().expect("open in-memory db");
+    conn.execute_batch("PRAGMA foreign_keys=ON;")
+        .expect("enable fk");
+    run_migrations(&conn).expect("run migrations");
+    seed_family_and_child(&conn);
+
+    // Initial insert: cadence + custom override.
+    conn.execute(
+        "INSERT INTO vision_followup_settings (childId, cadenceMonths, customNextDate, createdAt, updatedAt) VALUES (?1, ?2, ?3, ?4, ?4)",
+        params!["child-1", 6, "2026-08-01", "2026-04-29T00:00:00.000Z"],
+    )
+    .expect("insert vision settings");
+
+    let row = conn
+        .query_row(
+            "SELECT cadenceMonths, customNextDate FROM vision_followup_settings WHERE childId = ?1",
+            params!["child-1"],
+            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, Option<String>>(1)?)),
+        )
+        .expect("query vision settings");
+    assert_eq!(row.0, 6);
+    assert_eq!(row.1.as_deref(), Some("2026-08-01"));
+
+    // Upsert: same childId, change cadence, clear custom date.
+    conn.execute(
+        "INSERT INTO vision_followup_settings (childId, cadenceMonths, customNextDate, createdAt, updatedAt) VALUES (?1, ?2, ?3, ?4, ?4)
+         ON CONFLICT(childId) DO UPDATE SET cadenceMonths = excluded.cadenceMonths, customNextDate = excluded.customNextDate, updatedAt = excluded.updatedAt",
+        params!["child-1", 12, std::option::Option::<String>::None, "2026-04-30T00:00:00.000Z"],
+    )
+    .expect("upsert vision settings");
+
+    let row = conn
+        .query_row(
+            "SELECT cadenceMonths, customNextDate FROM vision_followup_settings WHERE childId = ?1",
+            params!["child-1"],
+            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, Option<String>>(1)?)),
+        )
+        .expect("query vision settings after upsert");
+    assert_eq!(row.0, 12);
+    assert!(row.1.is_none());
+
+    // Cascade on child deletion.
+    conn.execute("DELETE FROM children WHERE childId = ?1", params!["child-1"])
+        .expect("delete child");
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM vision_followup_settings",
+            [],
+            |row| row.get(0),
+        )
+        .expect("count vision settings");
+    assert_eq!(count, 0);
+}
+
+#[test]
 fn allergy_record_status_transition_round_trip() {
     let conn = Connection::open_in_memory().expect("open in-memory db");
     conn.execute_batch("PRAGMA foreign_keys=ON;")

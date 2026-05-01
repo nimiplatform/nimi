@@ -6,6 +6,7 @@ mod journal;
 mod orthodontic;
 mod outdoor;
 mod reminders;
+mod vision;
 
 pub use assessments::*;
 pub use custom_todos::*;
@@ -15,6 +16,7 @@ pub use journal::*;
 pub use orthodontic::*;
 pub use outdoor::*;
 pub use reminders::*;
+pub use vision::*;
 
 use rusqlite::params;
 use serde::{Deserialize, Serialize};

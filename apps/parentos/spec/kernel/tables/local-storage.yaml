@@ -436,6 +436,17 @@ tables:
       - { columns: [childId, activityDate] }
       - { columns: [childId, createdAt] }
 
+  # ── 视力复查节奏 ────────────────────────────────────────
+
+  - name: vision_followup_settings
+    description: "Per-child cadence configuration for the vision archive 下一步 follow-up reminder. One row per child; absence of a row means the system-recommended default cadence is used."
+    columns:
+      - { name: childId, type: TEXT, pk: true, fk: "children.childId", description: "Single row per child; child deletion cascades." }
+      - { name: cadenceMonths, type: INTEGER, nullable: false, default: 3, description: "Recurring follow-up cadence in months. Must be one of 1..36." }
+      - { name: customNextDate, type: TEXT, nullable: true, description: "ISO 8601 date (YYYY-MM-DD) overriding ONLY the next visit; subsequent visits revert to cadenceMonths." }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+
   # ── 附件归档 ─────────────────────────────────────────────
 
   - name: attachments
@@ -488,6 +499,7 @@ constraints:
   - "JSON payloads are stored as TEXT and must remain valid JSON on read/write."
   - "childId is the primary filter field for child-scoped tables."
   - "growth_reports.reportType is limited to monthly | quarterly | quarterly-letter | custom."
-  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, outdoor_records, attachments, custom_todos, orthodontic_cases, orthodontic_appliances, orthodontic_checkins."
+  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, outdoor_records, vision_followup_settings, attachments, custom_todos, orthodontic_cases, orthodontic_appliances, orthodontic_checkins."
+  - "vision_followup_settings.cadenceMonths is constrained to the integer range 1..36 at the bridge boundary; values outside this range must fail-close. customNextDate must be ISO 8601 YYYY-MM-DD when present."
   - "orthodontic_cases deletion cascades to orthodontic_appliances and orthodontic_checkins. orthodontic_appliances deletion cascades to orthodontic_checkins."
   - "children.allergies JSON array remains as a quick-access summary; allergy_records is the structured source of truth."

@@ -297,6 +297,10 @@ fn main() {
             sqlite::queries::delete_orthodontic_checkin,
             sqlite::queries::get_orthodontic_checkins,
             sqlite::queries::get_orthodontic_dashboard,
+            // Vision follow-up settings
+            sqlite::queries::get_vision_followup_settings,
+            sqlite::queries::set_vision_followup_settings,
+            sqlite::queries::clear_vision_followup_settings,
             // DB init
             sqlite::db_init,
         ])

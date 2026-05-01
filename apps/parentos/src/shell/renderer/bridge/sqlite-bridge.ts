@@ -12,3 +12,4 @@ export * from './sqlite-bridge-orthodontic.js';
 export * from './sqlite-bridge-records.js';
 export * from './sqlite-bridge-reminders.js';
 export * from './sqlite-bridge-system.js';
+export * from './sqlite-bridge-vision.js';
