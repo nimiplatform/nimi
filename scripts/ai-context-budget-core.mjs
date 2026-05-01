@@ -167,7 +167,7 @@ function buildWaiverMap(waivers) {
 }
 
 function waiverAllowedForProfile(profileId) {
-  return profileId === 'tests_and_scripts' || profileId === 'generated';
+  return profileId === 'tests_and_scripts' || profileId === 'tests' || profileId === 'scripts' || profileId === 'generated';
 }
 
 export function evaluateAiContextBudget(options = {}) {

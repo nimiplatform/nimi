@@ -90,8 +90,11 @@ ai_governance:
         warning_bytes: 61440
         error_lines: 1800
         error_bytes: 102400
-      tests_and_scripts:
+      tests:
         warning_lines: 900
+        error_lines: 1400
+      scripts:
+        warning_lines: 1000
         error_lines: 1400
       spec_yaml:
         warning_lines: 800
@@ -119,8 +122,9 @@ ai_governance:
         - .nimi/spec/_meta/spec-generation-audit.yaml
       proto_schema:
         - proto/**/*.proto
-      tests_and_scripts:
+      scripts:
         - scripts/**
+      tests:
         - "**/*.test.js"
         - "**/*.test.ts"
         - "**/*.test.mjs"
