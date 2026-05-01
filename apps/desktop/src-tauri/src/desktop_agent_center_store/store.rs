@@ -127,6 +127,13 @@ pub(super) fn validate_package_id(value: &str, field_name: &str) -> Result<(), S
     Err(format!("{field_name} must start with live2d_ or vrm_"))
 }
 
+pub(super) fn validate_live2d_adapter_manifest_ref(
+    value: &str,
+    field_name: &str,
+) -> Result<(), String> {
+    validate_hex_suffix(value, "live2d_adapter_", field_name)
+}
+
 pub(super) fn validate_utc_timestamp(value: &str, field_name: &str) -> Result<(), String> {
     if !value.ends_with('Z') {
         return Err(format!("{field_name} must use UTC Z timestamp form"));
@@ -199,6 +206,59 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
     } else if let Some(package_ref) = &config.modules.avatar_package.avatar_package_ref {
         validate_normalized_id(package_ref, "modules.avatar_package.avatar_package_ref")?;
     }
+    match config.modules.avatar_package.live2d_adapter_manifest_source {
+        AgentCenterLive2dAdapterManifestSource::None => {
+            if config
+                .modules
+                .avatar_package
+                .live2d_adapter_manifest_ref
+                .is_some()
+            {
+                return Err(
+                    "modules.avatar_package.live2d_adapter_manifest_ref requires external sidecar source"
+                        .to_string(),
+                );
+            }
+        }
+        AgentCenterLive2dAdapterManifestSource::EmbeddedCreatorManifest => {
+            if config
+                .modules
+                .avatar_package
+                .live2d_adapter_manifest_ref
+                .is_some()
+            {
+                return Err(
+                    "modules.avatar_package.live2d_adapter_manifest_ref must be empty for embedded source"
+                        .to_string(),
+                );
+            }
+            if config.modules.avatar_package.backend_kind != AgentCenterAvatarBackendKind::Live2d {
+                return Err(
+                    "modules.avatar_package.live2d_adapter_manifest_source requires live2d backend"
+                        .to_string(),
+                );
+            }
+        }
+        AgentCenterLive2dAdapterManifestSource::ExternalSidecarManifest => {
+            if config.modules.avatar_package.backend_kind != AgentCenterAvatarBackendKind::Live2d {
+                return Err(
+                    "modules.avatar_package.live2d_adapter_manifest_source requires live2d backend"
+                        .to_string(),
+                );
+            }
+            let Some(manifest_ref) = &config.modules.avatar_package.live2d_adapter_manifest_ref
+            else {
+                return Err(
+                    "modules.avatar_package.live2d_adapter_manifest_ref is required for external sidecar source"
+                        .to_string(),
+                );
+            };
+            validate_live2d_adapter_manifest_ref(
+                manifest_ref,
+                "modules.avatar_package.live2d_adapter_manifest_ref",
+            )?;
+        }
+    }
     if let Some(profile_ref) = &config.modules.avatar_package.backend_capability_profile_ref {
         validate_normalized_id(
             profile_ref,
@@ -251,6 +311,8 @@ fn default_config(account_id: String, agent_id: String) -> AgentCenterLocalConfi
                 selected_package: None,
                 conversation_anchor_scope: AgentCenterAvatarConversationAnchorScope::CurrentAnchor,
                 avatar_package_ref: None,
+                live2d_adapter_manifest_source: AgentCenterLive2dAdapterManifestSource::None,
+                live2d_adapter_manifest_ref: None,
                 avatar_instance_policy: AgentCenterAvatarInstancePolicy::ReuseActiveInstance,
                 backend_kind: AgentCenterAvatarBackendKind::Live2d,
                 backend_capability_profile_ref: None,
@@ -518,6 +580,8 @@ mod tests {
                       "selected_package": null,
                       "conversation_anchor_scope": "current_anchor",
                       "avatar_package_ref": null,
+                      "live2d_adapter_manifest_source": "none",
+                      "live2d_adapter_manifest_ref": null,
                       "avatar_instance_policy": "reuse_active_instance",
                       "backend_kind": "live2d",
                       "backend_capability_profile_ref": null,

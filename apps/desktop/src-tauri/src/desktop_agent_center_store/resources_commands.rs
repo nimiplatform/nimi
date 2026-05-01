@@ -32,6 +32,41 @@ pub(super) fn select_imported_avatar_package(
     Ok(())
 }
 
+pub(super) fn select_imported_live2d_adapter_manifest(
+    account_id: &str,
+    agent_id: &str,
+    package_id: &str,
+    manifest_ref: &str,
+) -> Result<(), String> {
+    let mut config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
+        account_id: account_id.to_string(),
+        agent_id: agent_id.to_string(),
+    })?;
+    let selected = config.modules.avatar_package.selected_package.as_ref();
+    if !selected.is_some_and(|entry| {
+        entry.kind == AgentCenterAvatarPackageKind::Live2d && entry.package_id == package_id
+    }) {
+        return Err(
+            "external Live2D adapter manifest requires the selected Live2D package".to_string(),
+        );
+    }
+    config.modules.avatar_package.live2d_adapter_manifest_source =
+        AgentCenterLive2dAdapterManifestSource::ExternalSidecarManifest;
+    config.modules.avatar_package.live2d_adapter_manifest_ref = Some(manifest_ref.to_string());
+    config.modules.avatar_package.updated_at =
+        chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+    config.modules.avatar_package.provenance = AgentCenterAvatarConfigProvenance {
+        source: AgentCenterAvatarConfigProvenanceSource::ImportValidation,
+        evidence_ref: manifest_ref.to_string(),
+    };
+    desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
+        account_id: account_id.to_string(),
+        agent_id: agent_id.to_string(),
+        config,
+    })?;
+    Ok(())
+}
+
 pub(super) fn select_imported_background(
     account_id: &str,
     agent_id: &str,
@@ -67,6 +102,9 @@ pub(super) fn clear_selected_avatar_package(
     {
         config.modules.avatar_package.selected_package = None;
         config.modules.avatar_package.avatar_package_ref = None;
+        config.modules.avatar_package.live2d_adapter_manifest_source =
+            AgentCenterLive2dAdapterManifestSource::None;
+        config.modules.avatar_package.live2d_adapter_manifest_ref = None;
         config.modules.avatar_package.backend_capability_profile_ref = None;
         config.modules.avatar_package.last_validated_at = None;
         config.modules.avatar_package.updated_at =
@@ -586,202 +624,124 @@ pub(crate) fn desktop_agent_center_avatar_package_import(
 }
 
 #[tauri::command]
-pub(crate) fn desktop_agent_center_avatar_package_remove(
-    payload: DesktopAgentCenterAvatarPackageRemovePayload,
-) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
+pub(crate) fn desktop_agent_center_live2d_adapter_manifest_import(
+    payload: DesktopAgentCenterLive2dAdapterManifestImportPayload,
+) -> Result<DesktopAgentCenterLive2dAdapterManifestImportResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
     let agent_id = validate_normalized_id(&payload.agent_id, "agentId")?;
     validate_package_id(&payload.package_id, "packageId")?;
-    if !payload
-        .package_id
-        .starts_with(package_kind_dir(payload.kind))
-    {
-        return Err("packageId must match kind".to_string());
+    if !payload.package_id.starts_with("live2d_") {
+        return Err("packageId must reference a Live2D package".to_string());
     }
-    clear_selected_avatar_package(&account_id, &agent_id, payload.kind, &payload.package_id)?;
-    let source = package_dir(&account_id, &agent_id, payload.kind, &payload.package_id)?;
-    let destination = quarantine_path(
-        &account_id,
-        &agent_id,
-        "avatar_package",
-        &payload.package_id,
-    )?;
-    let quarantined = match quarantine_dir(&source, &destination) {
-        Ok(value) => value,
-        Err(error) => {
-            let _ = record_resource_operation(
-                &account_id,
-                &agent_id,
-                "package_quarantine",
-                "avatar_package",
-                &payload.package_id,
-                "failed",
-                "user_removed",
-            );
-            return Err(error);
-        }
-    };
-    let operation_id = record_resource_operation(
-        &account_id,
-        &agent_id,
-        "package_quarantine",
-        "avatar_package",
-        &payload.package_id,
-        "completed",
-        if quarantined {
-            "user_removed"
-        } else {
-            "already_missing"
-        },
-    )?;
-    Ok(DesktopAgentCenterLocalResourceRemoveResult {
-        resource_kind: "avatar_package".to_string(),
-        resource_id: payload.package_id,
-        quarantined,
-        operation_id,
-        status: "completed".to_string(),
-    })
-}
-
-#[tauri::command]
-pub(crate) fn desktop_agent_center_background_remove(
-    payload: DesktopAgentCenterBackgroundRemovePayload,
-) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
-    let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    let agent_id = validate_normalized_id(&payload.agent_id, "agentId")?;
-    validate_background_id(&payload.background_asset_id, "backgroundAssetId")?;
-    clear_selected_background(&account_id, &agent_id, &payload.background_asset_id)?;
-    let source = background_dir(&account_id, &agent_id, &payload.background_asset_id)?;
-    let destination = quarantine_path(
-        &account_id,
-        &agent_id,
-        "background",
-        &payload.background_asset_id,
-    )?;
-    let quarantined = match quarantine_dir(&source, &destination) {
-        Ok(value) => value,
-        Err(error) => {
-            let _ = record_resource_operation(
-                &account_id,
-                &agent_id,
-                "background_quarantine",
-                "background",
-                &payload.background_asset_id,
-                "failed",
-                "user_removed",
-            );
-            return Err(error);
-        }
-    };
-    let operation_id = record_resource_operation(
-        &account_id,
-        &agent_id,
-        "background_quarantine",
-        "background",
-        &payload.background_asset_id,
-        "completed",
-        if quarantined {
-            "user_removed"
-        } else {
-            "already_missing"
-        },
-    )?;
-    Ok(DesktopAgentCenterLocalResourceRemoveResult {
-        resource_kind: "background".to_string(),
-        resource_id: payload.background_asset_id,
-        quarantined,
-        operation_id,
-        status: "completed".to_string(),
-    })
-}
-
-#[tauri::command]
-pub(crate) fn desktop_agent_center_agent_local_resources_remove(
-    payload: DesktopAgentCenterAgentLocalResourcesRemovePayload,
-) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
-    let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    let agent_id = validate_normalized_id(&payload.agent_id, "agentId")?;
-    quarantine_agent_center_tree(&account_id, &agent_id, "agent_removed")
-}
-
-#[tauri::command]
-pub(crate) fn desktop_agent_center_account_local_resources_remove(
-    payload: DesktopAgentCenterAccountLocalResourcesRemovePayload,
-) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
-    let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    let account_root = account_dir(&account_id)?;
-    let agents_root = account_root.join("agents");
-    if !agents_root.exists() {
-        let operation_id = record_account_resource_operation(
-            &account_id,
-            "account_local_resources_quarantine",
-            "account_local_resources",
-            &account_id,
-            "completed",
-            "already_missing",
-        )?;
-        return Ok(DesktopAgentCenterLocalResourceRemoveResult {
-            resource_kind: "account_local_resources".to_string(),
-            resource_id: account_id,
-            quarantined: false,
-            operation_id,
-            status: "completed".to_string(),
-        });
-    }
-
-    let mut quarantined_any = false;
-    for entry in fs::read_dir(&agents_root).map_err(|error| {
+    let source_path = PathBuf::from(&payload.source_path);
+    let metadata = fs::symlink_metadata(&source_path).map_err(|error| {
         format!(
-            "failed to read Agent Center account agents directory ({}): {error}",
-            agents_root.display()
+            "failed to read Live2D adapter manifest metadata ({}): {error}",
+            source_path.display()
         )
-    })? {
-        let entry = entry
-            .map_err(|error| format!("failed to read Agent Center account agent entry: {error}"))?;
-        let path = entry.path();
-        let metadata = fs::symlink_metadata(&path).map_err(|error| {
+    })?;
+    if metadata.file_type().is_symlink() {
+        return Err("Live2D adapter manifest source path must not be a symlink".to_string());
+    }
+    let source = fs::canonicalize(&source_path).map_err(|error| {
+        format!(
+            "failed to resolve Live2D adapter manifest source ({}): {error}",
+            source_path.display()
+        )
+    })?;
+    if !metadata.is_file() || extension_for(&source.to_string_lossy()) != "json" {
+        return Err("Live2D adapter manifest source must be a .json file".to_string());
+    }
+    let bytes = metadata.len();
+    if bytes == 0 || bytes > MAX_LIVE2D_ADAPTER_MANIFEST_BYTES {
+        return Err("Live2D adapter manifest is outside the fixed byte cap".to_string());
+    }
+    let raw = fs::read(&source).map_err(|error| {
+        format!(
+            "failed to read Live2D adapter manifest source ({}): {error}",
+            source.display()
+        )
+    })?;
+    let value: serde_json::Value = serde_json::from_slice(&raw)
+        .map_err(|error| format!("Live2D adapter manifest JSON is invalid: {error}"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| "Live2D adapter manifest must be a JSON object".to_string())?;
+    if object
+        .get("manifest_kind")
+        .and_then(serde_json::Value::as_str)
+        != Some("nimi.avatar.live2d.adapter")
+    {
+        return Err("Live2D adapter manifest_kind must be nimi.avatar.live2d.adapter".to_string());
+    }
+    if object
+        .get("schema_version")
+        .and_then(serde_json::Value::as_u64)
+        != Some(1)
+    {
+        return Err("Live2D adapter manifest schema_version must be 1".to_string());
+    }
+
+    let mut hasher = Sha256::new();
+    hasher.update(&raw);
+    let sha256 = format!("{:x}", hasher.finalize());
+    let manifest_ref = format!("live2d_adapter_{}", &sha256[..12]);
+    validate_live2d_adapter_manifest_ref(&manifest_ref, "live2dAdapterManifestRef")?;
+    let final_dir = live2d_adapter_manifest_dir(&account_id, &agent_id, &manifest_ref)?;
+    let selected = payload.select.unwrap_or(true);
+    let imported_at = checked_at();
+
+    if !final_dir.exists() {
+        fs::create_dir_all(&final_dir).map_err(|error| {
             format!(
-                "failed to inspect Agent Center account agent entry ({}): {error}",
-                path.display()
+                "failed to create Live2D adapter manifest directory ({}): {error}",
+                final_dir.display()
             )
         })?;
-        if metadata.file_type().is_symlink() {
-            return Err(format!(
-                "Agent Center account agent entry must not be a symlink ({})",
-                path.display()
-            ));
-        }
-        if !metadata.is_dir() {
-            continue;
-        }
-        let Some(agent_id_raw) = path.file_name().and_then(|value| value.to_str()) else {
-            return Err(format!(
-                "Agent Center account agent entry has invalid name ({})",
-                path.display()
-            ));
-        };
-        let agent_id = validate_normalized_id(agent_id_raw, "agentId")?;
-        let result = quarantine_agent_center_tree(&account_id, &agent_id, "account_removed")?;
-        quarantined_any = quarantined_any || result.quarantined;
+        fs::write(final_dir.join(LIVE2D_ADAPTER_FILE_NAME), &raw).map_err(|error| {
+            format!(
+                "failed to write Live2D adapter manifest custody file ({}): {error}",
+                final_dir.display()
+            )
+        })?;
     }
+    let custody = Live2dAdapterManifestCustody {
+        custody_version: 1,
+        manifest_ref: manifest_ref.clone(),
+        package_id: payload.package_id.clone(),
+        manifest_kind: "nimi.avatar.live2d.adapter".to_string(),
+        schema_version: 1,
+        sha256: sha256.clone(),
+        bytes,
+        imported_at: imported_at.clone(),
+        source_label: source_label_for(&source),
+    };
+    write_json_pretty(&final_dir.join(LIVE2D_ADAPTER_CUSTODY_FILE_NAME), &custody)?;
 
-    let operation_id = record_account_resource_operation(
+    if selected {
+        select_imported_live2d_adapter_manifest(
+            &account_id,
+            &agent_id,
+            &payload.package_id,
+            &manifest_ref,
+        )?;
+    }
+    let _ = record_resource_operation(
         &account_id,
-        "account_local_resources_quarantine",
-        "account_local_resources",
-        &account_id,
+        &agent_id,
+        "live2d_adapter_manifest_import",
+        "avatar_package",
+        &manifest_ref,
         "completed",
-        if quarantined_any {
-            "account_removed"
-        } else {
-            "already_missing"
-        },
+        "user_imported",
     )?;
-    Ok(DesktopAgentCenterLocalResourceRemoveResult {
-        resource_kind: "account_local_resources".to_string(),
-        resource_id: account_id,
-        quarantined: quarantined_any,
-        operation_id,
-        status: "completed".to_string(),
+
+    Ok(DesktopAgentCenterLive2dAdapterManifestImportResult {
+        manifest_ref,
+        package_id: payload.package_id,
+        selected,
+        sha256,
+        bytes,
+        imported_at,
     })
 }

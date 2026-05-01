@@ -43,6 +43,16 @@ pub(crate) struct DesktopAgentCenterAvatarPackageImportPayload {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportPayload {
+    pub account_id: String,
+    pub agent_id: String,
+    pub package_id: String,
+    pub source_path: String,
+    pub select: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAgentCenterAvatarPackageRemovePayload {
     pub account_id: String,
     pub agent_id: String,
@@ -70,6 +80,17 @@ pub(crate) struct DesktopAgentCenterAvatarPackageImportResult {
     pub kind: AgentCenterAvatarPackageKind,
     pub selected: bool,
     pub validation: AgentCenterAvatarPackageValidationResult,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportResult {
+    pub manifest_ref: String,
+    pub package_id: String,
+    pub selected: bool,
+    pub sha256: String,
+    pub bytes: u64,
+    pub imported_at: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -190,6 +211,14 @@ pub(crate) enum AgentCenterAvatarConfigProvenanceSource {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub(crate) enum AgentCenterLive2dAdapterManifestSource {
+    None,
+    EmbeddedCreatorManifest,
+    ExternalSidecarManifest,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub(crate) enum AgentCenterMotionPreference {
     System,
     Reduced,
@@ -236,6 +265,8 @@ pub(crate) struct AgentCenterAvatarPackageModule {
     pub selected_package: Option<AgentCenterSelectedAvatarPackage>,
     pub conversation_anchor_scope: AgentCenterAvatarConversationAnchorScope,
     pub avatar_package_ref: Option<String>,
+    pub live2d_adapter_manifest_source: AgentCenterLive2dAdapterManifestSource,
+    pub live2d_adapter_manifest_ref: Option<String>,
     pub avatar_instance_policy: AgentCenterAvatarInstancePolicy,
     pub backend_kind: AgentCenterAvatarBackendKind,
     pub backend_capability_profile_ref: Option<String>,

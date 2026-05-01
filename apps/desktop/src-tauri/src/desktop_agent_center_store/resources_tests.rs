@@ -106,6 +106,60 @@ fn write_live2d_import_source(home: &Path) -> PathBuf {
     dir
 }
 
+fn write_live2d_adapter_manifest_source(home: &Path) -> PathBuf {
+    let path = home.join("live2d-adapter.json");
+    let manifest = json!({
+        "manifest_kind": "nimi.avatar.live2d.adapter",
+        "schema_version": 1,
+        "adapter_id": "test-live2d-adapter",
+        "target_model": {
+            "model_id": "model.model3.json",
+            "model3": "auto"
+        },
+        "license": {
+            "redistribution": "allowed",
+            "evidence": "test-owned fixture",
+            "fixture_use": "committable"
+        },
+        "compatibility": {
+            "requested_tier": "semantic_basic"
+        },
+        "semantics": {
+            "motions": {
+                "idle": {"group": "Idle"},
+                "missing_activity": "diagnostic_no_success"
+            },
+            "expressions": {
+                "disposition": {"status": "not_applicable", "reason": "test fixture"}
+            },
+            "poses": {
+                "disposition": {"status": "not_applicable", "reason": "test fixture"}
+            },
+            "lipsync": {
+                "disposition": {"status": "unsupported", "reason": "test fixture"}
+            },
+            "physics": {
+                "mode": "absent",
+                "disposition": {"status": "not_applicable", "reason": "test fixture"}
+            },
+            "hit_regions": {
+                "fallback": "alpha_mask_only",
+                "disposition": {"status": "unsupported", "reason": "test fixture"}
+            },
+            "nas_fallback": {
+                "default_idle_motion": "Idle",
+                "missing_handler": "backend_default_with_diagnostic"
+            }
+        }
+    });
+    fs::write(
+        &path,
+        serde_json::to_string_pretty(&manifest).expect("adapter manifest json"),
+    )
+    .expect("adapter manifest");
+    path
+}
+
 fn write_live2d_import_source_with_third_party_extras(home: &Path) -> PathBuf {
     let dir = write_live2d_import_source(home);
     fs::write(dir.join(".DS_Store"), b"finder").expect("ds store");
@@ -240,6 +294,136 @@ fn imports_live2d_package_transactionally_and_selects_it() {
         let operations = fs::read_to_string(operation_log_path(&home)).expect("operation log");
         assert!(operations.contains("\"operation_type\":\"package_import\""));
         assert!(operations.contains("\"resource_kind\":\"avatar_package\""));
+    });
+}
+
+#[test]
+fn imports_live2d_adapter_manifest_as_external_sidecar_ref() {
+    let home = temp_home("import-live2d-adapter");
+    with_env(&[("HOME", home.to_str())], || {
+        let source = write_live2d_import_source(&home);
+        let package = desktop_agent_center_avatar_package_import(
+            DesktopAgentCenterAvatarPackageImportPayload {
+                account_id: "account_1".to_string(),
+                agent_id: "agent_1".to_string(),
+                kind: AgentCenterAvatarPackageKind::Live2d,
+                source_path: source.to_string_lossy().to_string(),
+                display_name: Some("Imported Avatar".to_string()),
+                select: Some(true),
+            },
+        )
+        .expect("import live2d package");
+        let adapter_source = write_live2d_adapter_manifest_source(&home);
+        let result = desktop_agent_center_live2d_adapter_manifest_import(
+            DesktopAgentCenterLive2dAdapterManifestImportPayload {
+                account_id: "account_1".to_string(),
+                agent_id: "agent_1".to_string(),
+                package_id: package.package_id.clone(),
+                source_path: adapter_source.to_string_lossy().to_string(),
+                select: Some(true),
+            },
+        )
+        .expect("import adapter manifest");
+
+        assert!(result.manifest_ref.starts_with("live2d_adapter_"));
+        assert_eq!(result.package_id, package.package_id);
+        let sidecar_dir = live2d_adapter_manifest_dir("account_1", "agent_1", &result.manifest_ref)
+            .expect("sidecar dir");
+        assert!(sidecar_dir.join(LIVE2D_ADAPTER_FILE_NAME).exists());
+        assert!(sidecar_dir.join(LIVE2D_ADAPTER_CUSTODY_FILE_NAME).exists());
+
+        let config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
+            account_id: "account_1".to_string(),
+            agent_id: "agent_1".to_string(),
+        })
+        .expect("config");
+        assert_eq!(
+            config.modules.avatar_package.live2d_adapter_manifest_source,
+            AgentCenterLive2dAdapterManifestSource::ExternalSidecarManifest
+        );
+        assert_eq!(
+            config
+                .modules
+                .avatar_package
+                .live2d_adapter_manifest_ref
+                .as_deref(),
+            Some(result.manifest_ref.as_str())
+        );
+    });
+}
+
+#[test]
+fn rejects_live2d_adapter_manifest_with_invalid_identity() {
+    let home = temp_home("bad-live2d-adapter");
+    with_env(&[("HOME", home.to_str())], || {
+        let source = write_live2d_import_source(&home);
+        let package = desktop_agent_center_avatar_package_import(
+            DesktopAgentCenterAvatarPackageImportPayload {
+                account_id: "account_1".to_string(),
+                agent_id: "agent_1".to_string(),
+                kind: AgentCenterAvatarPackageKind::Live2d,
+                source_path: source.to_string_lossy().to_string(),
+                display_name: Some("Imported Avatar".to_string()),
+                select: Some(true),
+            },
+        )
+        .expect("import live2d package");
+        let adapter_source = home.join("bad-adapter.json");
+        fs::write(
+            &adapter_source,
+            br#"{"manifest_kind":"wrong","schema_version":1}"#,
+        )
+        .expect("bad adapter");
+        let err = desktop_agent_center_live2d_adapter_manifest_import(
+            DesktopAgentCenterLive2dAdapterManifestImportPayload {
+                account_id: "account_1".to_string(),
+                agent_id: "agent_1".to_string(),
+                package_id: package.package_id,
+                source_path: adapter_source.to_string_lossy().to_string(),
+                select: Some(true),
+            },
+        )
+        .expect_err("invalid identity rejected");
+        assert!(err.contains("manifest_kind"));
+    });
+}
+
+#[test]
+fn rejects_live2d_adapter_manifest_symlink_source_without_custody_residue() {
+    let home = temp_home("adapter-symlink");
+    with_env(&[("HOME", home.to_str())], || {
+        let source = write_live2d_import_source(&home);
+        let package = desktop_agent_center_avatar_package_import(
+            DesktopAgentCenterAvatarPackageImportPayload {
+                account_id: "account_1".to_string(),
+                agent_id: "agent_1".to_string(),
+                kind: AgentCenterAvatarPackageKind::Live2d,
+                source_path: source.to_string_lossy().to_string(),
+                display_name: Some("Imported Avatar".to_string()),
+                select: Some(true),
+            },
+        )
+        .expect("import live2d package");
+        let adapter_source = write_live2d_adapter_manifest_source(&home);
+        #[cfg(unix)]
+        {
+            let symlink_path = home.join("linked-live2d-adapter.json");
+            std::os::unix::fs::symlink(&adapter_source, &symlink_path).expect("symlink");
+            let err = desktop_agent_center_live2d_adapter_manifest_import(
+                DesktopAgentCenterLive2dAdapterManifestImportPayload {
+                    account_id: "account_1".to_string(),
+                    agent_id: "agent_1".to_string(),
+                    package_id: package.package_id,
+                    source_path: symlink_path.to_string_lossy().to_string(),
+                    select: Some(true),
+                },
+            )
+            .expect_err("symlink rejected");
+            assert!(err.contains("symlink"));
+            assert!(!home
+                .join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/modules/avatar_package/adapter_manifests")
+                .exists());
+        }
     });
 }
 
@@ -392,6 +576,18 @@ fn removes_selected_avatar_package_by_clearing_config_and_quarantining_directory
             "2026-04-27T00:00:00Z",
         )
         .expect("select package");
+        let adapter_source = write_live2d_adapter_manifest_source(&home);
+        let adapter = desktop_agent_center_live2d_adapter_manifest_import(
+            DesktopAgentCenterLive2dAdapterManifestImportPayload {
+                account_id: "account_1".to_string(),
+                agent_id: "agent_1".to_string(),
+                package_id: "live2d_ab12cd34ef56".to_string(),
+                source_path: adapter_source.to_string_lossy().to_string(),
+                select: Some(true),
+            },
+        )
+        .expect("import adapter manifest");
+        assert!(adapter.manifest_ref.starts_with("live2d_adapter_"));
         let old_quarantine = home.join(format!(
                 ".nimi/data/accounts/account_1/agents/agent_1/agent-center/quarantine/avatar_package/live2d_deadbeef0000_{}",
                 (Utc::now() - Duration::days(8))
@@ -419,6 +615,15 @@ fn removes_selected_avatar_package_by_clearing_config_and_quarantining_directory
         .expect("config");
         assert!(config.modules.avatar_package.selected_package.is_none());
         assert!(config.modules.avatar_package.avatar_package_ref.is_none());
+        assert_eq!(
+            config.modules.avatar_package.live2d_adapter_manifest_source,
+            AgentCenterLive2dAdapterManifestSource::None
+        );
+        assert!(config
+            .modules
+            .avatar_package
+            .live2d_adapter_manifest_ref
+            .is_none());
         assert!(home.join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/quarantine/avatar_package").read_dir().expect("quarantine dir").next().is_some());
         assert!(!old_quarantine.exists());
         let operations = fs::read_to_string(operation_log_path(&home)).expect("operation log");
@@ -547,251 +752,5 @@ fn removes_selected_background_by_clearing_config_and_quarantining_directory() {
     });
 }
 
-#[test]
-fn removes_agent_local_resources_by_quarantining_agent_center_tree() {
-    let home = temp_home("remove-agent-tree");
-    with_env(&[("HOME", home.to_str())], || {
-        let agent_center = agent_center_marker(&home, "agent_1");
-
-        let result = desktop_agent_center_agent_local_resources_remove(
-            DesktopAgentCenterAgentLocalResourcesRemovePayload {
-                account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-            },
-        )
-        .expect("remove agent local resources");
-
-        assert_eq!(result.resource_kind, "agent_local_resources");
-        assert_eq!(result.resource_id, "agent_1");
-        assert!(result.quarantined);
-        assert!(!agent_center.exists());
-        let quarantine_root =
-            home.join(".nimi/data/accounts/account_1/quarantine/agent_local_resources");
-        let quarantined = quarantine_root
-            .read_dir()
-            .expect("agent quarantine dir")
-            .next()
-            .expect("quarantined agent tree")
-            .expect("quarantine entry")
-            .path();
-        assert!(quarantined.join("modules/appearance/marker.txt").exists());
-        let operations =
-            fs::read_to_string(quarantined.join("operations/agent-center-local-resources.jsonl"))
-                .expect("quarantined operation log");
-        assert!(operations.contains("\"operation_type\":\"agent_local_resources_quarantine\""));
-        assert!(operations.contains("\"reason_code\":\"agent_removed\""));
-    });
-}
-
-#[test]
-fn removes_account_local_resources_by_quarantining_each_agent_center_tree() {
-    let home = temp_home("remove-account-tree");
-    with_env(&[("HOME", home.to_str())], || {
-        let agent_one = agent_center_marker(&home, "agent_1");
-        let agent_two = agent_center_marker(&home, "agent_2");
-
-        let result = desktop_agent_center_account_local_resources_remove(
-            DesktopAgentCenterAccountLocalResourcesRemovePayload {
-                account_id: "account_1".to_string(),
-            },
-        )
-        .expect("remove account local resources");
-
-        assert_eq!(result.resource_kind, "account_local_resources");
-        assert_eq!(result.resource_id, "account_1");
-        assert!(result.quarantined);
-        assert!(!agent_one.exists());
-        assert!(!agent_two.exists());
-        let quarantine_root =
-            home.join(".nimi/data/accounts/account_1/quarantine/agent_local_resources");
-        let quarantined_count = quarantine_root
-            .read_dir()
-            .expect("account quarantine dir")
-            .filter_map(Result::ok)
-            .count();
-        assert_eq!(quarantined_count, 2);
-        let account_operations =
-            fs::read_to_string(account_operation_log_path(&home)).expect("account log");
-        assert!(account_operations
-            .contains("\"operation_type\":\"account_local_resources_quarantine\""));
-        assert!(account_operations.contains("\"reason_code\":\"account_removed\""));
-    });
-}
-
-#[test]
-fn removes_account_local_resources_for_opaque_account_ids() {
-    let home = temp_home("remove-opaque-account-tree");
-    with_env(&[("HOME", home.to_str())], || {
-        let account_id = "account:abc.def+1";
-        let account_segment = local_scope_path_segment(account_id);
-        let agent_center = agent_center_marker_for_account(&home, account_id, "agent:abc.def+1");
-
-        let result = desktop_agent_center_account_local_resources_remove(
-            DesktopAgentCenterAccountLocalResourcesRemovePayload {
-                account_id: account_id.to_string(),
-            },
-        )
-        .expect("remove opaque account local resources");
-
-        assert_eq!(result.resource_kind, "account_local_resources");
-        assert_eq!(result.resource_id, account_id);
-        assert!(result.quarantined);
-        assert!(!agent_center.exists());
-        let quarantine_root = home
-            .join(".nimi/data/accounts")
-            .join(account_segment)
-            .join("quarantine/agent_local_resources");
-        let quarantined_count = quarantine_root
-            .read_dir()
-            .expect("opaque account quarantine dir")
-            .filter_map(Result::ok)
-            .count();
-        assert_eq!(quarantined_count, 1);
-    });
-}
-
-#[test]
-fn import_rejects_svg_background_before_staging() {
-    let home = temp_home("import-background-svg");
-    with_env(&[("HOME", home.to_str())], || {
-        let source = home.join("source-background.svg");
-        fs::write(&source, b"<svg></svg>").expect("svg");
-        let err =
-            desktop_agent_center_background_import(DesktopAgentCenterBackgroundImportPayload {
-                account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-                source_path: source.to_string_lossy().to_string(),
-                display_name: None,
-                select: Some(true),
-            })
-            .expect_err("svg rejected");
-        assert!(err.contains("SVG"));
-        assert!(!home
-                .join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/modules/appearance/staging")
-                .exists());
-    });
-}
-
-#[test]
-fn rejects_manifest_that_embeds_validation_status() {
-    let home = temp_home("embedded-validation");
-    with_env(&[("HOME", home.to_str())], || {
-        let dir = write_valid_live2d_package(&home);
-        let mut value: serde_json::Value = serde_json::from_str(
-            &fs::read_to_string(dir.join(MANIFEST_FILE_NAME)).expect("read manifest"),
-        )
-        .expect("manifest");
-        value["validation"] = json!({"status": "valid"});
-        fs::write(dir.join(MANIFEST_FILE_NAME), value.to_string()).expect("write manifest");
-        let result = desktop_agent_center_avatar_package_validate(
-            DesktopAgentCenterAvatarPackageValidatePayload {
-                account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-                kind: AgentCenterAvatarPackageKind::Live2d,
-                package_id: "live2d_ab12cd34ef56".to_string(),
-            },
-        )
-        .expect("validate package");
-        assert_eq!(
-            result.status,
-            AgentCenterAvatarPackageValidationStatus::InvalidManifest
-        );
-        assert!(result
-            .errors
-            .iter()
-            .any(|entry| entry.code == "manifest_embeds_validation"));
-    });
-}
-
-#[test]
-fn rejects_digest_mismatch() {
-    let home = temp_home("digest");
-    with_env(&[("HOME", home.to_str())], || {
-        let dir = write_valid_live2d_package(&home);
-        fs::write(dir.join("files/model.model3.json"), b"changed").expect("change file");
-        let result = desktop_agent_center_avatar_package_validate(
-            DesktopAgentCenterAvatarPackageValidatePayload {
-                account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-                kind: AgentCenterAvatarPackageKind::Live2d,
-                package_id: "live2d_ab12cd34ef56".to_string(),
-            },
-        )
-        .expect("validate package");
-        assert!(result
-            .errors
-            .iter()
-            .any(|entry| entry.code == "content_digest_mismatch"));
-    });
-}
-
-#[test]
-fn rejects_parent_traversal_path() {
-    let home = temp_home("traversal");
-    with_env(&[("HOME", home.to_str())], || {
-        let dir = write_valid_live2d_package(&home);
-        let mut value: serde_json::Value = serde_json::from_str(
-            &fs::read_to_string(dir.join(MANIFEST_FILE_NAME)).expect("read manifest"),
-        )
-        .expect("manifest");
-        value["files"][0]["path"] = json!("../escape.json");
-        fs::write(dir.join(MANIFEST_FILE_NAME), value.to_string()).expect("write manifest");
-        let result = desktop_agent_center_avatar_package_validate(
-            DesktopAgentCenterAvatarPackageValidatePayload {
-                account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-                kind: AgentCenterAvatarPackageKind::Live2d,
-                package_id: "live2d_ab12cd34ef56".to_string(),
-            },
-        )
-        .expect("validate package");
-        assert_eq!(
-            result.status,
-            AgentCenterAvatarPackageValidationStatus::PathRejected
-        );
-    });
-}
-
-#[test]
-fn validates_background_and_writes_sidecar() {
-    let home = temp_home("background");
-    with_env(&[("HOME", home.to_str())], || {
-        let dir = write_valid_background(&home);
-        let result =
-            desktop_agent_center_background_validate(DesktopAgentCenterBackgroundValidatePayload {
-                account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-                background_asset_id: "bg_ab12cd34ef56".to_string(),
-            })
-            .expect("validate background");
-        assert_eq!(result.status, AgentCenterBackgroundValidationStatus::Valid);
-        assert!(dir.join(VALIDATION_FILE_NAME).exists());
-    });
-}
-
-#[test]
-fn rejects_svg_background_manifest() {
-    let home = temp_home("background-svg");
-    with_env(&[("HOME", home.to_str())], || {
-        let dir = write_valid_background(&home);
-        let mut value: serde_json::Value = serde_json::from_str(
-            &fs::read_to_string(dir.join(MANIFEST_FILE_NAME)).expect("read manifest"),
-        )
-        .expect("manifest");
-        value["image_file"] = json!("image.svg");
-        value["mime"] = json!("image/svg+xml");
-        fs::write(dir.join("image.svg"), b"<svg></svg>").expect("svg");
-        fs::write(dir.join(MANIFEST_FILE_NAME), value.to_string()).expect("write manifest");
-        let result =
-            desktop_agent_center_background_validate(DesktopAgentCenterBackgroundValidatePayload {
-                account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-                background_asset_id: "bg_ab12cd34ef56".to_string(),
-            })
-            .expect("validate background");
-        assert_eq!(
-            result.status,
-            AgentCenterBackgroundValidationStatus::UnsupportedMime
-        );
-    });
-}
+#[path = "resources_remove_tests.rs"]
+mod resources_remove_tests;

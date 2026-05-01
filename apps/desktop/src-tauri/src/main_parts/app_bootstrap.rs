@@ -399,6 +399,8 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             desktop_agent_center_store::desktop_agent_center_avatar_package_pick_source,
             desktop_agent_center_store::desktop_agent_center_avatar_package_remove,
             desktop_agent_center_store::desktop_agent_center_avatar_package_validate,
+            desktop_agent_center_store::desktop_agent_center_live2d_adapter_manifest_import,
+            desktop_agent_center_store::desktop_agent_center_live2d_adapter_manifest_pick_source,
             desktop_agent_center_store::desktop_agent_center_background_asset_get,
             desktop_agent_center_store::desktop_agent_center_background_import,
             desktop_agent_center_store::desktop_agent_center_background_pick_source,

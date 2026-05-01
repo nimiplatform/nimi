@@ -98,6 +98,18 @@ pub(super) fn background_dir(
         .join(background_asset_id))
 }
 
+pub(super) fn live2d_adapter_manifest_dir(
+    account_id: &str,
+    agent_id: &str,
+    manifest_ref: &str,
+) -> Result<PathBuf, String> {
+    Ok(agent_center_dir(account_id, agent_id)?
+        .join("modules")
+        .join("avatar_package")
+        .join("adapter_manifests")
+        .join(manifest_ref))
+}
+
 pub(super) fn is_safe_relative_path(value: &str) -> bool {
     let path = Path::new(value);
     !value.trim().is_empty()
