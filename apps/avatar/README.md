@@ -10,6 +10,7 @@ Nimi Avatar（阿凡达）— 桌面悬浮 embodiment carrier，承载 Nimi agen
 
 - [Product guide](spec/nimi-avatar.md)
 - [Spec authority map](spec/kernel/index.md)
+- [Live2D adapter authoring guide](docs/live2d-adapter-authoring.md)
 - [Phase matrix](spec/kernel/tables/feature-matrix.yaml)
 - [AGENTS.md](AGENTS.md) — Module-level rules for AI agents
 

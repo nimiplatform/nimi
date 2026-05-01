@@ -39,6 +39,8 @@ Admitted fields:
 - `agent_id`
 - `conversation_anchor_scope`
 - `avatar_package_ref`
+- `live2d_adapter_manifest_source`
+- `live2d_adapter_manifest_ref`
 - `avatar_instance_policy`
 - `backend_kind`
 - `backend_capability_profile_ref`
@@ -55,6 +57,8 @@ Forbidden fields:
 - scoped avatar binding id or carrier registry id
 - raw APML, MCP/A2A, delegated provider, Desktop app, or business data payload
 - backend command strings intended for Avatar execution
+- raw Live2D adapter manifest payload, absolute source path, semantic
+  compatibility verdict, computed tier, or Avatar diagnostic code ownership
 
 ## D-LLM-080 — Launch Payload Hard Cut
 
@@ -81,6 +85,20 @@ Resolver ownership is single-cut:
 
 No Desktop or Runtime contract admitted by this topic may become a second
 Avatar backend file resolver.
+
+External Live2D adapter sidecar custody is a Desktop storage operation only:
+
+- Desktop MAY copy an explicitly selected JSON file into the host-local Agent
+  Center store and persist an opaque `live2d_adapter_manifest_ref`.
+- Desktop MAY verify that the file is a JSON object with
+  `manifest_kind: "nimi.avatar.live2d.adapter"` and `schema_version: 1` for
+  storage classification.
+- Desktop MUST NOT compute compatibility tier, feature disposition,
+  `AVATAR_LIVE2D_COMPAT_*` diagnostics, package descriptor truth, or carrier
+  readiness from that file.
+- The configuration record MUST select exactly one source posture: `none`,
+  `embedded_creator_manifest`, or `external_sidecar_manifest`. Embedded and
+  external manifests must not be merged or silently preferred.
 
 ## D-LLM-082 — D-LLM-069 And D-LLM-074 Reconciliation
 
@@ -117,4 +135,3 @@ motion, local binding, or static carrier proof.
 - `.nimi/spec/runtime/kernel/avatar-debug-projection-contract.md`
 - `.nimi/spec/sdk/kernel/runtime-avatar-control-client-contract.md`
 - `.nimi/spec/avatar/kernel/avatar-debug-session-contract.md`
-

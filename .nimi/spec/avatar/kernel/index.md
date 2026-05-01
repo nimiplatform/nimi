@@ -161,6 +161,19 @@ Current Live2D backend branch default fallback mapping (used when NAS handler no
 
 Existing Live2D asset compatibility tier requirements and forbidden success states.
 
+### [`tables/live2d-adapter-manifest.schema.yaml`](tables/live2d-adapter-manifest.schema.yaml)
+
+Closed v1 machine schema for Avatar-owned Live2D adapter manifests. It preserves
+`manifest_kind: "nimi.avatar.live2d.adapter"`, `schema_version: 1`, exact-one
+manifest source selection, current tier names, feature dispositions, and
+fail-closed semantic mapping rules.
+
+### [`tables/live2d-adapter-diagnostics.yaml`](tables/live2d-adapter-diagnostics.yaml)
+
+Closed `AVATAR_LIVE2D_COMPAT_*` diagnostic code registry for Live2D existing
+asset adaptation. Desktop may display these typed diagnostics but does not own
+their meanings.
+
 ### [`tables/scenario-catalog.yaml`](tables/scenario-catalog.yaml)
 
 Named mock scenarios available for development / testing.

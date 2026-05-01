@@ -9,6 +9,7 @@ description: >
 required_fields:
   - agent_id
   - conversation_anchor_scope
+  - live2d_adapter_manifest_source
   - avatar_instance_policy
   - backend_kind
   - launch_mode
@@ -33,6 +34,28 @@ fields:
       - launch_payload
       - package_descriptor
       - carrier_truth
+  live2d_adapter_manifest_source:
+    type: enum
+    values:
+      - none
+      - embedded_creator_manifest
+      - external_sidecar_manifest
+    semantics: exact_one_manifest_source_selection
+    forbidden_as:
+      - launch_payload
+      - compatibility_tier_truth
+      - carrier_truth
+  live2d_adapter_manifest_ref:
+    type: string_optional
+    pattern: "^live2d_adapter_[a-f0-9]{12}$"
+    semantics: opaque_external_sidecar_control_ref
+    required_when: "live2d_adapter_manifest_source == external_sidecar_manifest"
+    forbidden_as:
+      - raw_manifest_payload
+      - absolute_source_path
+      - package_descriptor
+      - launch_payload
+      - Avatar_diagnostic_truth
   avatar_instance_policy:
     type: enum
     values:
@@ -86,6 +109,11 @@ forbidden_fields:
   - package_descriptor
   - package_path
   - launch_package_id
+  - live2d_adapter_manifest_payload
+  - live2d_adapter_manifest_path
+  - live2d_adapter_manifest_absolute_path
+  - compatibility_tier
+  - avatar_compatibility_diagnostics
   - carrier_registry_id
   - scoped_avatar_binding_id
   - account_id
@@ -104,5 +132,7 @@ forbidden_fields:
 invariants:
   - Desktop stores opaque refs only and does not dereference package descriptors.
   - The schema must not be copied into Avatar launch payload.
+  - External Live2D sidecar refs are Desktop custody refs only; Avatar remains
+    manifest resolver, compatibility validator, diagnostics, and carrier-proof owner.
+  - Embedded and external Live2D adapter manifests must not be merged or silently preferred.
   - Missing evidence produces fail-closed configuration status.
-

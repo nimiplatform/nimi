@@ -18,6 +18,14 @@ without claiming arbitrary model support. It governs compatibility tiers, the
 Avatar-owned adapter manifest, semantic mapping, validation diagnostics, legal
 fixtures, and Avatar carrier acceptance.
 
+The markdown contract and its machine-readable tables are a single Avatar
+authority surface. The tier requirements live in
+[`tables/live2d-compatibility-tiers.yaml`](tables/live2d-compatibility-tiers.yaml),
+the manifest schema lives in
+[`tables/live2d-adapter-manifest.schema.yaml`](tables/live2d-adapter-manifest.schema.yaml),
+and the diagnostic code registry lives in
+[`tables/live2d-adapter-diagnostics.yaml`](tables/live2d-adapter-diagnostics.yaml).
+
 This contract does not redefine Runtime/SDK agent semantics. Runtime and SDK
 continue to own activity, emotion, posture, turn, and timeline truth. Avatar
 owns only the Avatar-local mapping from those semantics into a model-local Live2D
@@ -83,6 +91,11 @@ If both are present, launch/import context must select one. Avatar must not merg
 manifests or silently prefer one over the other.
 
 ### 3.3 Required Fields
+
+The normative machine-readable v1 manifest schema is
+[`tables/live2d-adapter-manifest.schema.yaml`](tables/live2d-adapter-manifest.schema.yaml).
+The TypeScript shape below is an explanatory projection of that closed schema,
+not a separate app-local manifest authority.
 
 ```typescript
 type Live2DAdapterManifestV1 = {
@@ -189,6 +202,8 @@ The validator must fail closed with structured diagnostics when:
 - hit-region aliases declare `supported` regions not present in `HitAreas`;
 - `missing_activity` would treat an unsupported activity as successful.
 
+The closed diagnostic registry is
+[`tables/live2d-adapter-diagnostics.yaml`](tables/live2d-adapter-diagnostics.yaml).
 The diagnostic namespace is `AVATAR_LIVE2D_COMPAT_*`. Required codes:
 
 | Code | Meaning |

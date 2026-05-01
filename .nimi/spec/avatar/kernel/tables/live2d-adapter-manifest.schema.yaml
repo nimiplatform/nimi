@@ -1,0 +1,260 @@
+version: 1
+schema_id: "nimi.avatar.live2d-adapter-manifest.v1"
+authority: "avatar.kernel.live2d_asset_compatibility"
+status: "active"
+admitted_by:
+  topic_id: "2026-04-24-live2d-existing-assets-nimi-adaptation"
+  wave_id: "wave-1-compatibility-contract-alignment"
+description: >
+  Closed machine-readable schema authority for Live2D adapter manifests used to
+  adapt existing Cubism packages into the Nimi Avatar Live2D carrier.
+
+manifest_identity:
+  manifest_kind: "nimi.avatar.live2d.adapter"
+  schema_version: 1
+  embedded_creator_manifest_path: "<model-pkg>/runtime/nimi/live2d-adapter.json"
+  external_sidecar_manifest_source: "explicit host-local Avatar adapter store selection"
+  source_selection: "exactly_one"
+  merge_policy: "forbidden"
+  silent_preference: "forbidden"
+
+required_top_level_fields:
+  - manifest_kind
+  - schema_version
+  - adapter_id
+  - target_model
+  - license
+  - compatibility
+  - semantics
+
+closed_top_level_fields:
+  - manifest_kind
+  - schema_version
+  - adapter_id
+  - target_model
+  - license
+  - compatibility
+  - semantics
+
+fields:
+  manifest_kind:
+    type: "literal"
+    value: "nimi.avatar.live2d.adapter"
+  schema_version:
+    type: "literal"
+    value: 1
+  adapter_id:
+    type: "string"
+    stability: "stable within the selected adapter store"
+  target_model:
+    required_fields:
+      - model_id
+      - model3
+    closed_fields:
+      - model_id
+      - model3
+      - expected_runtime_digest
+    fields:
+      model_id:
+        type: "string"
+        invariant: "must match resolved *.model3.json filename unless model3 is auto"
+      model3:
+        one_of:
+          - "auto"
+          - "relative model3.json path"
+      expected_runtime_digest:
+        type: "string"
+        optional: true
+        invariant: "if present, validation fails closed when resolved runtime digest differs"
+  license:
+    required_fields:
+      - redistribution
+      - evidence
+      - fixture_use
+    closed_fields:
+      - redistribution
+      - evidence
+      - fixture_use
+    fields:
+      redistribution:
+        enum:
+          - allowed
+          - forbidden
+          - unknown
+      evidence:
+        type: "string"
+        invariant: "must point to operator-reviewed license evidence"
+      fixture_use:
+        enum:
+          - committable
+          - operator_local_only
+          - not_allowed
+  compatibility:
+    required_fields:
+      - requested_tier
+    closed_fields:
+      - requested_tier
+    fields:
+      requested_tier:
+        enum:
+          - render_only
+          - semantic_basic
+          - companion_complete
+        invariant: "validator may only return the highest tier actually proven"
+  semantics:
+    required_fields:
+      - motions
+      - expressions
+      - poses
+      - lipsync
+      - physics
+      - hit_regions
+      - nas_fallback
+    closed_fields:
+      - motions
+      - expressions
+      - poses
+      - lipsync
+      - physics
+      - hit_regions
+      - nas_fallback
+
+feature_disposition:
+  closed_fields:
+    - status
+    - reason
+  variants:
+    supported:
+      required_fields:
+        - status
+      optional_fields:
+        - reason
+    unsupported:
+      required_fields:
+        - status
+        - reason
+    not_applicable:
+      required_fields:
+        - status
+        - reason
+  status_enum:
+    - supported
+    - unsupported
+    - not_applicable
+
+semantic_map:
+  motions:
+    required_fields:
+      - idle
+      - missing_activity
+    closed_fields:
+      - idle
+      - activities
+      - missing_activity
+    fields:
+      idle:
+        required_fields:
+          - group
+        closed_fields:
+          - group
+      activities:
+        type: "map from active Runtime activity id to model-local motion mapping"
+        optional: true
+        value_closed_fields:
+          - group
+          - weak_group
+          - strong_group
+          - disposition
+      missing_activity:
+        enum:
+          - diagnostic_no_success
+          - idle_degraded_with_diagnostic
+  expressions:
+    closed_fields:
+      - map
+      - disposition
+    required_fields:
+      - disposition
+    map_value: "model-local expression id"
+  poses:
+    closed_fields:
+      - map
+      - disposition
+    required_fields:
+      - disposition
+    map_value: "model-local pose id"
+  lipsync:
+    closed_fields:
+      - mouth_open_y_parameter
+      - paramMouthForm
+      - disposition
+    required_fields:
+      - disposition
+    fields:
+      mouth_open_y_parameter:
+        type: "string"
+        optional: true
+      paramMouthForm:
+        enum:
+          - supported
+          - absent
+        optional: true
+  physics:
+    closed_fields:
+      - mode
+      - disposition
+    required_fields:
+      - mode
+      - disposition
+    fields:
+      mode:
+        enum:
+          - model_physics
+          - absent
+          - unsupported
+  hit_regions:
+    closed_fields:
+      - map
+      - fallback
+      - disposition
+    required_fields:
+      - fallback
+      - disposition
+    map_keys:
+      - head
+      - face
+      - body
+      - accessory
+    fallback_enum:
+      - alpha_mask_only
+      - fail_closed
+  nas_fallback:
+    closed_fields:
+      - default_idle_motion
+      - missing_handler
+    required_fields:
+      - default_idle_motion
+      - missing_handler
+    fields:
+      missing_handler:
+        enum:
+          - backend_default_with_diagnostic
+          - no_default
+
+forbidden_fields_and_values:
+  - "retired pre-2026-05-01 Live2D tier/class identifiers"
+  - "retired pre-2026-05-01 package manifest identity or path identifiers"
+  - "manifest merge or silent preference"
+  - "Runtime/APML/MCP/A2A ontology fields"
+
+invariants:
+  - "Manifest source selection is exactly one embedded creator manifest or explicit external sidecar."
+  - "Unknown top-level fields are not Avatar compatibility truth unless this schema is updated."
+  - "Activity keys reference active Runtime projection ids and do not create Runtime ontology."
+  - "Unsupported semantic requests emit diagnostics and are not counted as successful playback."
+  - "Desktop import or renderer evidence does not prove carrier support."
+
+refs:
+  markdown_contract: ".nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md"
+  tier_table: ".nimi/spec/avatar/kernel/tables/live2d-compatibility-tiers.yaml"
+  diagnostics_registry: ".nimi/spec/avatar/kernel/tables/live2d-adapter-diagnostics.yaml"
