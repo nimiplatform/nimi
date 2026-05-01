@@ -64,6 +64,7 @@ enum AgentEventType {
   AGENT_EVENT_TYPE_REPLICATION = 5;
   AGENT_EVENT_TYPE_STATE = 6;
   AGENT_EVENT_TYPE_PRESENTATION = 7;
+  AGENT_EVENT_TYPE_AVATAR_DEBUG = 8;
 }
 // K-AGCORE-037 AgentStateEventFamily discriminates runtime.agent.state.* event
 // families. Mapping is 1:1 to the mounted public family names
@@ -90,6 +91,19 @@ enum AgentPresentationEventFamily {
   AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED = 5;
   AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6;
 }
+enum AvatarDebugProbeKind {
+  AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED = 0; AVATAR_DEBUG_PROBE_KIND_PACKAGE_VALIDATION = 1; AVATAR_DEBUG_PROBE_KIND_LAUNCH_READINESS = 2;
+  AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD = 3; AVATAR_DEBUG_PROBE_KIND_CAPABILITY_PROFILE = 4; AVATAR_DEBUG_PROBE_KIND_ROUTE_SUPPORT_MATRIX = 5;
+  AVATAR_DEBUG_PROBE_KIND_GENERATED_MOTION = 6; AVATAR_DEBUG_PROBE_KIND_EMOTION_EXPRESSION = 7; AVATAR_DEBUG_PROBE_KIND_SPEECH_LIPSYNC = 8; AVATAR_DEBUG_PROBE_KIND_WINDOW_HIT_REGION = 9;
+}
+enum AvatarDebugProbeStatus {
+  AVATAR_DEBUG_PROBE_STATUS_UNSPECIFIED = 0; AVATAR_DEBUG_PROBE_STATUS_PASSED = 1; AVATAR_DEBUG_PROBE_STATUS_FAILED = 2;
+  AVATAR_DEBUG_PROBE_STATUS_UNSUPPORTED = 3; AVATAR_DEBUG_PROBE_STATUS_BLOCKED = 4; AVATAR_DEBUG_PROBE_STATUS_INVALID = 5;
+}
+enum AvatarDebugRequestedBy { AVATAR_DEBUG_REQUESTED_BY_UNSPECIFIED = 0; AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH = 1; AVATAR_DEBUG_REQUESTED_BY_RUNTIME_POLICY = 2; }
+enum AvatarDebugEventFamily { AVATAR_DEBUG_EVENT_FAMILY_UNSPECIFIED = 0; AVATAR_DEBUG_EVENT_FAMILY_PROBE_REQUESTED = 1; AVATAR_DEBUG_EVENT_FAMILY_PROBE_RESULT = 2; AVATAR_DEBUG_EVENT_FAMILY_REPLAY_LINKED = 3; }
+enum AvatarDebugReplayRedactionState { AVATAR_DEBUG_REPLAY_REDACTION_STATE_UNSPECIFIED = 0; AVATAR_DEBUG_REPLAY_REDACTION_STATE_REDACTED = 1; AVATAR_DEBUG_REPLAY_REDACTION_STATE_VISIBLE = 2; AVATAR_DEBUG_REPLAY_REDACTION_STATE_FORBIDDEN = 3; }
+enum AvatarDebugReplayVisibility { AVATAR_DEBUG_REPLAY_VISIBILITY_UNSPECIFIED = 0; AVATAR_DEBUG_REPLAY_VISIBILITY_DESKTOP_DEBUG_WORKBENCH = 1; AVATAR_DEBUG_REPLAY_VISIBILITY_SDK_DIAGNOSTICS = 2; AVATAR_DEBUG_REPLAY_VISIBILITY_RUNTIME_AUDIT_ONLY = 3; }
 enum AgentAutonomyMode {
   AGENT_AUTONOMY_MODE_UNSPECIFIED = 0;
   AGENT_AUTONOMY_MODE_OFF = 1;
@@ -378,6 +392,16 @@ message AgentPresentationEventDetail {
   bool lookat_has_y = 55;
   bool lookat_has_z = 56;
 }
+message AvatarDebugProbeRequestEnvelope {
+  string probe_id = 1; string agent_id = 2; string conversation_anchor_id = 3; AvatarDebugProbeKind probe_kind = 4; google.protobuf.Timestamp requested_at = 5; AvatarDebugRequestedBy requested_by = 6;
+  string turn_id = 7; string stream_id = 8; string avatar_instance_id = 9; string runtime_replay_ref = 10; bool replay_requested = 11;
+}
+message AvatarDebugProbeResultEnvelope {
+  string probe_id = 1; string agent_id = 2; string conversation_anchor_id = 3; AvatarDebugProbeKind probe_kind = 4; AvatarDebugProbeStatus status = 5; google.protobuf.Timestamp observed_at = 6;
+  repeated string evidence_refs = 7; string reason_code = 8; string result_id = 9;
+}
+message AvatarDebugReplayRef { string probe_id = 1; string replay_ref = 2; AvatarDebugReplayRedactionState redaction_state = 3; AvatarDebugReplayVisibility visibility = 4; google.protobuf.Timestamp linked_at = 5; }
+message AgentAvatarDebugEventDetail { AvatarDebugEventFamily family = 1; AvatarDebugProbeRequestEnvelope request = 2; AvatarDebugProbeResultEnvelope result = 3; AvatarDebugReplayRef replay = 4; }
 message AgentEvent {
   AgentEventType event_type = 1;
   uint64 sequence = 2;
@@ -391,6 +415,7 @@ message AgentEvent {
     AgentReplicationEventDetail replication = 14;
     AgentStateEventDetail state = 15;
     AgentPresentationEventDetail presentation = 16;
+    AgentAvatarDebugEventDetail avatar_debug = 17;
   }
 }
 message InitializeAgentRequest {
@@ -577,6 +602,19 @@ message GetPublicChatSessionSnapshotRequest {
 message GetPublicChatSessionSnapshotResponse {
   google.protobuf.Struct snapshot = 1;
 }
+message GetAvatarDebugSnapshotRequest { AgentRequestContext context = 1; string agent_id = 2; string conversation_anchor_id = 3; }
+message GetAvatarDebugSnapshotResponse {
+  string agent_id = 1; string conversation_anchor_id = 2; repeated AvatarDebugProbeResultEnvelope probe_results = 3; repeated AvatarDebugReplayRef replay_refs = 4; google.protobuf.Timestamp observed_at = 5;
+}
+message RequestAvatarDebugProbeRequest {
+  AgentRequestContext context = 1; string agent_id = 2; string conversation_anchor_id = 3; AvatarDebugProbeKind probe_kind = 4; AvatarDebugRequestedBy requested_by = 5;
+  string probe_id = 6; string turn_id = 7; string stream_id = 8; string avatar_instance_id = 9; bool replay_requested = 10;
+}
+message RequestAvatarDebugProbeResponse { AvatarDebugProbeRequestEnvelope request = 1; AvatarDebugProbeResultEnvelope result = 2; AvatarDebugReplayRef replay_ref = 3; }
+message ListAvatarDebugProbeResultsRequest { AgentRequestContext context = 1; string agent_id = 2; string conversation_anchor_id = 3; AvatarDebugProbeKind probe_kind = 4; }
+message ListAvatarDebugProbeResultsResponse { repeated AvatarDebugProbeResultEnvelope probe_results = 1; }
+message GetAvatarDebugReplayRequest { AgentRequestContext context = 1; string agent_id = 2; string probe_id = 3; string conversation_anchor_id = 4; }
+message GetAvatarDebugReplayResponse { AvatarDebugProbeRequestEnvelope request = 1; AvatarDebugProbeResultEnvelope result = 2; AvatarDebugReplayRef replay_ref = 3; }
 enum DelegatedProviderKind {
   DELEGATED_PROVIDER_KIND_UNSPECIFIED = 0;
   DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER = 1;
@@ -821,6 +859,10 @@ service RuntimeAgentService {
   rpc OpenConversationAnchor(OpenConversationAnchorRequest) returns (OpenConversationAnchorResponse);
   rpc GetConversationAnchorSnapshot(GetConversationAnchorSnapshotRequest) returns (GetConversationAnchorSnapshotResponse);
   rpc GetPublicChatSessionSnapshot(GetPublicChatSessionSnapshotRequest) returns (GetPublicChatSessionSnapshotResponse);
+  rpc GetAvatarDebugSnapshot(GetAvatarDebugSnapshotRequest) returns (GetAvatarDebugSnapshotResponse);
+  rpc RequestAvatarDebugProbe(RequestAvatarDebugProbeRequest) returns (RequestAvatarDebugProbeResponse);
+  rpc ListAvatarDebugProbeResults(ListAvatarDebugProbeResultsRequest) returns (ListAvatarDebugProbeResultsResponse);
+  rpc GetAvatarDebugReplay(GetAvatarDebugReplayRequest) returns (GetAvatarDebugReplayResponse);
   rpc GetAgentState(GetAgentStateRequest) returns (GetAgentStateResponse);
   rpc UpdateAgentState(UpdateAgentStateRequest) returns (UpdateAgentStateResponse);
   rpc SetAgentPresentationProfile(SetAgentPresentationProfileRequest) returns (SetAgentPresentationProfileResponse);

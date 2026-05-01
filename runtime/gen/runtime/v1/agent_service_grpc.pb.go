@@ -26,6 +26,10 @@ const (
 	RuntimeAgentService_OpenConversationAnchor_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
 	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
 	RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
+	RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot"
+	RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe"
+	RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults"
+	RuntimeAgentService_GetAvatarDebugReplay_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay"
 	RuntimeAgentService_GetAgentState_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
 	RuntimeAgentService_UpdateAgentState_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState"
 	RuntimeAgentService_SetAgentPresentationProfile_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile"
@@ -59,6 +63,10 @@ type RuntimeAgentServiceClient interface {
 	OpenConversationAnchor(ctx context.Context, in *OpenConversationAnchorRequest, opts ...grpc.CallOption) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(ctx context.Context, in *GetConversationAnchorSnapshotRequest, opts ...grpc.CallOption) (*GetConversationAnchorSnapshotResponse, error)
 	GetPublicChatSessionSnapshot(ctx context.Context, in *GetPublicChatSessionSnapshotRequest, opts ...grpc.CallOption) (*GetPublicChatSessionSnapshotResponse, error)
+	GetAvatarDebugSnapshot(ctx context.Context, in *GetAvatarDebugSnapshotRequest, opts ...grpc.CallOption) (*GetAvatarDebugSnapshotResponse, error)
+	RequestAvatarDebugProbe(ctx context.Context, in *RequestAvatarDebugProbeRequest, opts ...grpc.CallOption) (*RequestAvatarDebugProbeResponse, error)
+	ListAvatarDebugProbeResults(ctx context.Context, in *ListAvatarDebugProbeResultsRequest, opts ...grpc.CallOption) (*ListAvatarDebugProbeResultsResponse, error)
+	GetAvatarDebugReplay(ctx context.Context, in *GetAvatarDebugReplayRequest, opts ...grpc.CallOption) (*GetAvatarDebugReplayResponse, error)
 	GetAgentState(ctx context.Context, in *GetAgentStateRequest, opts ...grpc.CallOption) (*GetAgentStateResponse, error)
 	UpdateAgentState(ctx context.Context, in *UpdateAgentStateRequest, opts ...grpc.CallOption) (*UpdateAgentStateResponse, error)
 	SetAgentPresentationProfile(ctx context.Context, in *SetAgentPresentationProfileRequest, opts ...grpc.CallOption) (*SetAgentPresentationProfileResponse, error)
@@ -153,6 +161,46 @@ func (c *runtimeAgentServiceClient) GetPublicChatSessionSnapshot(ctx context.Con
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetPublicChatSessionSnapshotResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) GetAvatarDebugSnapshot(ctx context.Context, in *GetAvatarDebugSnapshotRequest, opts ...grpc.CallOption) (*GetAvatarDebugSnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAvatarDebugSnapshotResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) RequestAvatarDebugProbe(ctx context.Context, in *RequestAvatarDebugProbeRequest, opts ...grpc.CallOption) (*RequestAvatarDebugProbeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestAvatarDebugProbeResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ListAvatarDebugProbeResults(ctx context.Context, in *ListAvatarDebugProbeResultsRequest, opts ...grpc.CallOption) (*ListAvatarDebugProbeResultsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAvatarDebugProbeResultsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) GetAvatarDebugReplay(ctx context.Context, in *GetAvatarDebugReplayRequest, opts ...grpc.CallOption) (*GetAvatarDebugReplayResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAvatarDebugReplayResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAvatarDebugReplay_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -379,6 +427,10 @@ type RuntimeAgentServiceServer interface {
 	OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error)
 	GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error)
+	GetAvatarDebugSnapshot(context.Context, *GetAvatarDebugSnapshotRequest) (*GetAvatarDebugSnapshotResponse, error)
+	RequestAvatarDebugProbe(context.Context, *RequestAvatarDebugProbeRequest) (*RequestAvatarDebugProbeResponse, error)
+	ListAvatarDebugProbeResults(context.Context, *ListAvatarDebugProbeResultsRequest) (*ListAvatarDebugProbeResultsResponse, error)
+	GetAvatarDebugReplay(context.Context, *GetAvatarDebugReplayRequest) (*GetAvatarDebugReplayResponse, error)
 	GetAgentState(context.Context, *GetAgentStateRequest) (*GetAgentStateResponse, error)
 	UpdateAgentState(context.Context, *UpdateAgentStateRequest) (*UpdateAgentStateResponse, error)
 	SetAgentPresentationProfile(context.Context, *SetAgentPresentationProfileRequest) (*SetAgentPresentationProfileResponse, error)
@@ -428,6 +480,18 @@ func (UnimplementedRuntimeAgentServiceServer) GetConversationAnchorSnapshot(cont
 }
 func (UnimplementedRuntimeAgentServiceServer) GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPublicChatSessionSnapshot not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetAvatarDebugSnapshot(context.Context, *GetAvatarDebugSnapshotRequest) (*GetAvatarDebugSnapshotResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAvatarDebugSnapshot not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) RequestAvatarDebugProbe(context.Context, *RequestAvatarDebugProbeRequest) (*RequestAvatarDebugProbeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RequestAvatarDebugProbe not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ListAvatarDebugProbeResults(context.Context, *ListAvatarDebugProbeResultsRequest) (*ListAvatarDebugProbeResultsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAvatarDebugProbeResults not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetAvatarDebugReplay(context.Context, *GetAvatarDebugReplayRequest) (*GetAvatarDebugReplayResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAvatarDebugReplay not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetAgentState(context.Context, *GetAgentStateRequest) (*GetAgentStateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAgentState not implemented")
@@ -631,6 +695,78 @@ func _RuntimeAgentService_GetPublicChatSessionSnapshot_Handler(srv interface{}, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).GetPublicChatSessionSnapshot(ctx, req.(*GetPublicChatSessionSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_GetAvatarDebugSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAvatarDebugSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetAvatarDebugSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetAvatarDebugSnapshot(ctx, req.(*GetAvatarDebugSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_RequestAvatarDebugProbe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestAvatarDebugProbeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).RequestAvatarDebugProbe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).RequestAvatarDebugProbe(ctx, req.(*RequestAvatarDebugProbeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ListAvatarDebugProbeResults_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAvatarDebugProbeResultsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ListAvatarDebugProbeResults(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ListAvatarDebugProbeResults(ctx, req.(*ListAvatarDebugProbeResultsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_GetAvatarDebugReplay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAvatarDebugReplayRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetAvatarDebugReplay(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetAvatarDebugReplay_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetAvatarDebugReplay(ctx, req.(*GetAvatarDebugReplayRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1022,6 +1158,22 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPublicChatSessionSnapshot",
 			Handler:    _RuntimeAgentService_GetPublicChatSessionSnapshot_Handler,
+		},
+		{
+			MethodName: "GetAvatarDebugSnapshot",
+			Handler:    _RuntimeAgentService_GetAvatarDebugSnapshot_Handler,
+		},
+		{
+			MethodName: "RequestAvatarDebugProbe",
+			Handler:    _RuntimeAgentService_RequestAvatarDebugProbe_Handler,
+		},
+		{
+			MethodName: "ListAvatarDebugProbeResults",
+			Handler:    _RuntimeAgentService_ListAvatarDebugProbeResults_Handler,
+		},
+		{
+			MethodName: "GetAvatarDebugReplay",
+			Handler:    _RuntimeAgentService_GetAvatarDebugReplay_Handler,
 		},
 		{
 			MethodName: "GetAgentState",

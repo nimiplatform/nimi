@@ -185,6 +185,14 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.turn.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":
 		return "runtime.agent.turn.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot":
+		return "runtime.agent.avatar_debug.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe":
+		return "runtime.agent.avatar_debug.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults":
+		return "runtime.agent.avatar_debug.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay":
+		return "runtime.agent.avatar_debug.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles":
 		return "runtime.agent.delegation.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile":
