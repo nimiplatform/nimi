@@ -306,9 +306,9 @@ export async function streamChatAgentRuntimeAgentTurn(
           runtimeTurnTimelines.push(timeline);
         }
       };
-      const recoverTerminalSnapshot = async (reason: string): Promise<boolean> => {
+      const recoverTerminalSnapshot = async (reason: string): Promise<'none' | 'bound' | 'terminal'> => {
         if (terminalProjected || snapshotRecoveryProjected) {
-          return false;
+          return 'none';
         }
         const recovered = await recoverRuntimeAgentTerminalSnapshot({
           reason,
@@ -328,7 +328,7 @@ export async function streamChatAgentRuntimeAgentTurn(
           enqueue: eventQueue.enqueue,
           logEvent: safeLogRuntimeAgentEvent,
         });
-        if (recovered) {
+        if (recovered === 'terminal') {
           snapshotRecoveryProjected = true;
         }
         return recovered;
@@ -340,7 +340,7 @@ export async function streamChatAgentRuntimeAgentTurn(
             return;
           }
           const recovered = await recoverTerminalSnapshot('subscription_terminal_stall');
-          if (recovered) {
+          if (recovered === 'terminal') {
             return;
           }
         }
@@ -413,14 +413,14 @@ export async function streamChatAgentRuntimeAgentTurn(
           const nextResult = await eventQueue.next();
           if (nextResult.type === 'done') {
             const recovered = await recoverTerminalSnapshot('subscription_done');
-            if (recovered) {
+            if (recovered !== 'none') {
               continue;
             }
             break;
           }
           if (nextResult.type === 'error') {
             const recovered = await recoverTerminalSnapshot('subscription_error');
-            if (recovered) {
+            if (recovered !== 'none') {
               continue;
             }
             throw nextResult.error;

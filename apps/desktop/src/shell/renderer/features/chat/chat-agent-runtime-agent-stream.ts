@@ -213,6 +213,8 @@ export function buildRuntimeAgentSnapshotRecoveryEvents(options: {
   return events;
 }
 
+export type RuntimeAgentSnapshotRecoveryResult = 'none' | 'bound' | 'terminal';
+
 export async function recoverRuntimeAgentTerminalSnapshot(options: {
   reason: string;
   request: AgentLocalChatRuntimeRequest;
@@ -223,7 +225,10 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
   currentRuntimeStreamId: string;
   hasStructuredEnvelope: boolean;
   hasCommittedMessage: boolean;
-  querySnapshot: () => Promise<{ lastTurn?: RuntimeAgentSessionTurnSnapshot }>;
+  querySnapshot: () => Promise<{
+    activeTurn?: RuntimeAgentSessionTurnSnapshot;
+    lastTurn?: RuntimeAgentSessionTurnSnapshot;
+  }>;
   enqueue: (event: RuntimeAgentConsumeEvent) => void;
   logEvent: (event: {
     level: 'warn';
@@ -231,10 +236,12 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
     message: `action:${string}` | `phase:${string}`;
     details: Record<string, unknown>;
   }) => void;
-}): Promise<boolean> {
+}): Promise<RuntimeAgentSnapshotRecoveryResult> {
+  let activeTurn: RuntimeAgentSessionTurnSnapshot | undefined;
   let turn: RuntimeAgentSessionTurnSnapshot | undefined;
   try {
     const snapshot = await options.querySnapshot();
+    activeTurn = snapshot.activeTurn;
     turn = snapshot.lastTurn;
   } catch (error) {
     options.logEvent({
@@ -250,16 +257,42 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
         error: String(error instanceof Error ? error.message : error),
       },
     });
-    return false;
+    return 'none';
+  }
+  const activeTurnId = normalizeText(activeTurn?.turnId);
+  if (!options.currentTurnAccepted && activeTurnId) {
+    const streamId = options.currentRuntimeStreamId || `snapshot:${activeTurnId}`;
+    options.logEvent({
+      level: 'warn',
+      area: 'agent-chat-runtime',
+      message: 'action:runtime-agent-turn:snapshot-active-turn-bound',
+      details: {
+        agentId: options.request.agentId,
+        conversationAnchorId: options.request.conversationAnchorId,
+        threadId: options.request.threadId,
+        requestId: options.requestId,
+        runtimeTurnId: activeTurnId,
+        status: normalizeText(activeTurn?.status) || null,
+      },
+    });
+    options.enqueue({
+      eventName: 'runtime.agent.turn.accepted',
+      agentId: options.request.agentId,
+      conversationAnchorId: options.request.conversationAnchorId,
+      turnId: activeTurnId,
+      streamId,
+      detail: { requestId: options.requestId },
+    } as RuntimeAgentConsumeEvent);
+    return 'bound';
   }
   if (!snapshotTurnIsTerminal(turn)) {
-    return false;
+    return 'none';
   }
   if (!options.currentTurnAccepted || normalizeText(turn.turnId) !== options.currentRuntimeTurnId) {
-    return false;
+    return 'none';
   }
   if (!snapshotCompletedTurnHasRecoverableContent(turn)) {
-    return false;
+    return 'none';
   }
   const events = buildRuntimeAgentSnapshotRecoveryEvents({
     turn,
@@ -274,7 +307,7 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
     hasCommittedMessage: options.hasCommittedMessage,
   });
   if (events.length === 0) {
-    return false;
+    return 'none';
   }
   options.logEvent({
     level: 'warn',
@@ -298,5 +331,5 @@ export async function recoverRuntimeAgentTerminalSnapshot(options: {
   for (const event of events) {
     options.enqueue(event);
   }
-  return true;
+  return 'terminal';
 }
