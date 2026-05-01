@@ -185,6 +185,22 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.turn.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":
 		return "runtime.agent.turn.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles":
+		return "runtime.agent.delegation.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile":
+		return "runtime.agent.delegation.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState":
+		return "runtime.agent.delegation.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests":
+		return "runtime.agent.delegation.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision":
+		return "runtime.agent.delegation.write", true
+	case "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics":
+		return "runtime.agent.delegation.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace":
+		return "runtime.agent.delegation.read", true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot":
+		return "runtime.agent.delegation.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentState":
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState":

@@ -43,18 +43,24 @@ type scopedBindingValidator interface {
 type Service struct {
 	runtimev1.UnimplementedRuntimeAgentServiceServer
 
-	logger           *slog.Logger
-	memorySvc        *memoryservice.Service
-	statePath        string
-	backend          *runtimepersistence.Backend
-	stateRepo        *runtimeAgentStateRepository
-	chatStateRepo    *publicChatSurfaceStateRepository
-	reviews          reviewPersistence
-	postures         behavioralPosturePersistence
-	chatAppEmit      publicChatAppMessageEmitter
-	bindingValidator scopedBindingValidator
-	aiBridgeMu       sync.RWMutex
-	aiBridge         *RuntimePrivateAIBridge
+	logger                    *slog.Logger
+	memorySvc                 *memoryservice.Service
+	statePath                 string
+	backend                   *runtimepersistence.Backend
+	stateRepo                 *runtimeAgentStateRepository
+	chatStateRepo             *publicChatSurfaceStateRepository
+	reviews                   reviewPersistence
+	postures                  behavioralPosturePersistence
+	chatAppEmit               publicChatAppMessageEmitter
+	bindingValidator          scopedBindingValidator
+	aiBridgeMu                sync.RWMutex
+	aiBridge                  *RuntimePrivateAIBridge
+	delegatedMu               sync.RWMutex
+	delegatedGateway          delegatedCapabilityGateway
+	delegatedFirewall         delegatedOutputFirewall
+	delegatedDecisionAudit    []delegatedCapabilityDecisionAuditRecord
+	delegatedProviderProfiles map[string]*runtimev1.DelegatedProviderProfile
+	delegatedApprovalRequests map[string]*runtimev1.DelegatedApprovalRequest
 	// voiceLipsync is the K-AGCORE-051 synthesizer that turns committed
 	// assistant text into runtime-owned lipsync frames. Constructor injects
 	// the deterministic synthetic adapter; real TTS providers can implement
@@ -101,23 +107,25 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	backend := memorySvc.PersistenceBackend()
 	stateRepo := newRuntimeAgentStateRepository(backend, statePath)
 	svc := &Service{
-		logger:            logger,
-		memorySvc:         memorySvc,
-		statePath:         statePath,
-		backend:           backend,
-		stateRepo:         stateRepo,
-		chatStateRepo:     newPublicChatSurfaceStateRepository(backend, stateRepo),
-		reviews:           newReviewPersistence(backend),
-		postures:          newBehavioralPosturePersistence(backend),
-		aiBridge:          newRuntimePrivateAIBridge(),
-		agents:            make(map[string]*agentEntry),
-		events:            make([]*runtimev1.AgentEvent, 0, maxEventLogSize),
-		subscribers:       make(map[uint64]*subscriber),
-		chatAnchors:       make(map[string]*publicChatAnchorState),
-		chatTurns:         make(map[string]*publicChatTurnState),
-		chatFollowUps:     make(map[string]*publicChatFollowUpState),
-		chatActiveByAgent: make(map[string]string),
-		voiceLipsync:      newSyntheticVoiceLipsyncSynthesizer(),
+		logger:                    logger,
+		memorySvc:                 memorySvc,
+		statePath:                 statePath,
+		backend:                   backend,
+		stateRepo:                 stateRepo,
+		chatStateRepo:             newPublicChatSurfaceStateRepository(backend, stateRepo),
+		reviews:                   newReviewPersistence(backend),
+		postures:                  newBehavioralPosturePersistence(backend),
+		aiBridge:                  newRuntimePrivateAIBridge(),
+		agents:                    make(map[string]*agentEntry),
+		events:                    make([]*runtimev1.AgentEvent, 0, maxEventLogSize),
+		subscribers:               make(map[uint64]*subscriber),
+		chatAnchors:               make(map[string]*publicChatAnchorState),
+		chatTurns:                 make(map[string]*publicChatTurnState),
+		chatFollowUps:             make(map[string]*publicChatFollowUpState),
+		chatActiveByAgent:         make(map[string]string),
+		voiceLipsync:              newSyntheticVoiceLipsyncSynthesizer(),
+		delegatedProviderProfiles: make(map[string]*runtimev1.DelegatedProviderProfile),
+		delegatedApprovalRequests: make(map[string]*runtimev1.DelegatedApprovalRequest),
 	}
 	if err := svc.loadState(); err != nil {
 		return nil, err

@@ -151,6 +151,46 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			capability: "runtime.agent.turn.read",
 		},
 		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
+			request:    &runtimev1.ListDelegatedProviderProfilesRequest{AgentId: "agent-alpha"},
+			capability: "runtime.agent.delegation.read",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile",
+			request:    &runtimev1.UpsertDelegatedProviderProfileRequest{AgentId: "agent-alpha"},
+			capability: "runtime.agent.delegation.write",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState",
+			request:    &runtimev1.SetDelegatedProviderStateRequest{AgentId: "agent-alpha"},
+			capability: "runtime.agent.delegation.write",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
+			request:    &runtimev1.ListDelegatedApprovalRequestsRequest{AgentId: "agent-alpha"},
+			capability: "runtime.agent.delegation.read",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
+			request:    &runtimev1.SubmitDelegatedApprovalDecisionRequest{AgentId: "agent-alpha"},
+			capability: "runtime.agent.delegation.write",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
+			request:    &runtimev1.ListDelegatedDiagnosticsRequest{AgentId: "agent-alpha"},
+			capability: "runtime.agent.delegation.read",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace",
+			request:    &runtimev1.GetDelegatedReplayTraceRequest{AgentId: "agent-alpha"},
+			capability: "runtime.agent.delegation.read",
+		},
+		{
+			method:     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot",
+			request:    &runtimev1.GetDelegatedControlSurfaceSnapshotRequest{AgentId: "agent-alpha"},
+			capability: "runtime.agent.delegation.read",
+		},
+		{
 			method: "/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
 			request: &runtimev1.SendAppMessageRequest{
 				FromAppId:   "nimi.desktop",

@@ -1865,6 +1865,9 @@ func TestMemoryServiceAcceleratorCleanupCooldownLimitsOpportunisticRuns(t *testi
 	currentNow := baseNow
 	svc.now = func() time.Time { return currentNow }
 	svc.acceleratorCleanupCooldown = time.Hour
+	svc.acceleratorCleanupMu.Lock()
+	svc.lastAcceleratorCleanupAt = time.Time{}
+	svc.acceleratorCleanupMu.Unlock()
 
 	insertOrphanSummary := func(targetID string) {
 		t.Helper()
