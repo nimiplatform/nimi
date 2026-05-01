@@ -62,7 +62,7 @@ export type BackendProjection = {
   /** Ontology-level activity (no Live2D parameter id). intensity ∈ [0,1] | null. */
   applyActivity(input: { name: string; intensity: number | null }): void;
   applyEmotion(input: { current: string; previous: string | null }): void;
-  applyMotion(input: { presetId: string; fade?: number; loop?: boolean }): void;
+  applyMotion(input: { routeId: string; fade?: number; loop?: boolean }): void;
   applyExpression(input: { name: string; weight?: number; fade?: number }): void;
   reset(): void;
 };

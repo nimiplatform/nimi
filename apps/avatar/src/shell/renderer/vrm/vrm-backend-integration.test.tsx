@@ -8,7 +8,7 @@
 // Verifies:
 //  1. The branch's projection queues calls before the surface registers
 //     the real adapter (deferred shim contract).
-//  2. branch.shutdown() invokes motionRegistry.dispose +
+//  2. branch.shutdown() invokes generated motion runtime dispose +
 //     audioConsumer.silent + tears down the surface without throwing.
 //  3. createDeferredProjection unit behavior: calls before setAdapter
 //     are queued in arrival order then replayed; subsequent calls
@@ -38,7 +38,7 @@ describe('createDeferredProjection (chunk 3-D)', () => {
         calls.push(`emotion:${input.current}:${String(input.previous)}`);
       },
       applyMotion(input) {
-        calls.push(`motion:${input.presetId}`);
+        calls.push(`motion:${input.routeId}`);
       },
       applyExpression(input) {
         calls.push(`expression:${input.name}`);
@@ -52,7 +52,7 @@ describe('createDeferredProjection (chunk 3-D)', () => {
   it('queues calls before setAdapter, then replays in arrival order', () => {
     const handle = createDeferredProjection();
     handle.projection.applyActivity({ name: 'happy', intensity: 0.8 });
-    handle.projection.applyMotion({ presetId: 'idle_subtle' });
+    handle.projection.applyMotion({ routeId: 'idle_subtle' });
     handle.projection.applyEmotion({ current: 'happy', previous: null });
 
     const recorder = makeRecorder();
@@ -77,11 +77,11 @@ describe('createDeferredProjection (chunk 3-D)', () => {
     const handle = createDeferredProjection();
     const first = makeRecorder();
     handle.setAdapter(first);
-    handle.projection.applyMotion({ presetId: 'idle_subtle' });
+    handle.projection.applyMotion({ routeId: 'idle_subtle' });
     expect(first.calls).toEqual(['motion:idle_subtle']);
 
     handle.reset();
-    handle.projection.applyMotion({ presetId: 'nod_yes' });
+    handle.projection.applyMotion({ routeId: 'nod_yes' });
     // No calls reach the first recorder after reset.
     expect(first.calls).toEqual(['motion:idle_subtle']);
 
@@ -130,7 +130,7 @@ describe('createVrmBackendBranch (chunk 3-D wiring)', () => {
     expect(() => handle.branch.projection.reset()).not.toThrow();
 
     // Shutdown must not throw even when the surface never mounted (no
-    // VRM was ever loaded; motionRegistry has no mixer; audioConsumer
+    // VRM was ever loaded; generated motion runtime has no mixer; audioConsumer
     // never attached).
     expect(() => handle.shutdown()).not.toThrow();
   });

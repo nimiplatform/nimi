@@ -9,6 +9,7 @@
     "build:renderer": "vite build",
     "check:bundle-runtime-imports": "node scripts/check-avatar-bundle-runtime-imports.mjs",
     "smoke:agent-center-live2d": "node scripts/smoke-agent-center-live2d.mjs",
+    "smoke:vrm-wave5": "node scripts/run-vrm-wave5-smoke.mjs",
     "typecheck": "tsc --noEmit",
     "build": "pnpm run typecheck && pnpm run build:renderer && (cd src-tauri && cargo check)",
     "lint": "pnpm run typecheck && eslint . --max-warnings 0 && (cd src-tauri && cargo check)",

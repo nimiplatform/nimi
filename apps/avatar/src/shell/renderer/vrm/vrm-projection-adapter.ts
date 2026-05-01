@@ -3,7 +3,7 @@
 // VRM `BackendProjection` adapter — bridges ontology-level projection
 // methods (applyActivity / applyEmotion / applyMotion / applyExpression
 // / reset) to the chunk 3-A `VrmEmoteState` + chunk 3-B
-// `VrmMotionPresetRegistry`, routing activity ids through an injected
+// generated motion runtime, routing activity ids through an injected
 // activity-mapping resolver (NAS layer wave_1).
 //
 // Spec: design-04 §"VRM Projection Adapter".
@@ -25,7 +25,7 @@
 import type { VRM } from '@pixiv/three-vrm';
 import type { BackendProjection } from '../carrier/backend-branch.js';
 import type { VrmEmoteState } from './vrm-emote-state.js';
-import type { VrmMotionPresetRegistry } from './vrm-motion-preset-registry.js';
+import type { VrmGeneratedMotionRuntime } from './vrm-generated-motion-runtime.js';
 
 /** Per-activity VRM route. Mirrors `VrmActivityRoute` in
  *  `nas/activity-mapping-resolver.ts`. Re-declared locally so the
@@ -49,7 +49,7 @@ export type ActivityMapping = {
 export type CreateVrmProjectionAdapterInputs = {
   vrm: VRM;
   emoteState: VrmEmoteState;
-  motionRegistry: VrmMotionPresetRegistry;
+  generatedMotionRuntime: VrmGeneratedMotionRuntime;
   activityMapping: ActivityMapping;
 };
 
@@ -73,7 +73,7 @@ export function scaleByIntensity(intensity: number | null | undefined): number {
 export function createVrmProjectionAdapter(
   input: CreateVrmProjectionAdapterInputs,
 ): BackendProjection {
-  const { vrm, emoteState, motionRegistry, activityMapping } = input;
+  const { vrm, emoteState, generatedMotionRuntime, activityMapping } = input;
 
   return {
     applyActivity({ name, intensity }) {
@@ -86,8 +86,8 @@ export function createVrmProjectionAdapter(
         return;
       }
       if (route.motion) {
-        motionRegistry.play({
-          presetId: route.motion,
+        generatedMotionRuntime.play({
+          routeId: route.motion,
           intensity,
           fade: route.fade ?? DEFAULT_ACTIVITY_FADE_SEC,
         });
@@ -107,9 +107,9 @@ export function createVrmProjectionAdapter(
     applyEmotion({ current, previous }) {
       emoteState.setEmote(current, { previous });
     },
-    applyMotion({ presetId, fade, loop }) {
-      motionRegistry.play({
-        presetId,
+    applyMotion({ routeId, fade, loop }) {
+      generatedMotionRuntime.play({
+        routeId,
         fade: fade ?? DEFAULT_DIRECT_MOTION_FADE_SEC,
         loop: loop ?? false,
       });
@@ -119,7 +119,7 @@ export function createVrmProjectionAdapter(
     },
     reset() {
       emoteState.reset({ vrm });
-      motionRegistry.stopAll();
+      generatedMotionRuntime.stopAll();
     },
   };
 }

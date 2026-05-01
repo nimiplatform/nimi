@@ -96,9 +96,9 @@ export function createLive2DProjectionAdapter(
       if (!expressionId) return;
       commandBus.emit('command', { kind: 'expression', id: expressionId });
     },
-    applyMotion({ presetId }) {
-      if (!presetId) return;
-      emitMotion(commandBus, presetId, 'normal');
+    applyMotion({ routeId }) {
+      if (!routeId) return;
+      emitMotion(commandBus, routeId, 'normal');
     },
     applyExpression({ name }) {
       if (!name) return;

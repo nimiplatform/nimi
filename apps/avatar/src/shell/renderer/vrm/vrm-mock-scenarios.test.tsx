@@ -1,20 +1,19 @@
 // Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch.
 //
 // Programmatically drives the 5 chunk 3-E mock scenarios through the VRM
-// BackendBranch chain end-to-end (motion preset registry + emote state +
+// BackendBranch chain end-to-end (generated motion runtime + emote state +
 // lipsync driver + audio pipeline + projection adapter). Each scenario's
 // `.mock.json` fixture is the canonical input; the assertions here mirror
 // each fixture's `expected` block.
 //
-// D plan compliance: only `idle_subtle.vrma` is admitted on disk;
-// `listen_lean / nod_yes / shake_no` fail to load (preset_not_loaded
-// fail-close). The scenarios document this honestly — no fake motion.
+// APML auto-adapter compliance: generated motion is the product path.
+// Missing provider support fails closed and does not fall back to .vrma.
 //
 // Tick chain (per scenario where applicable):
 //   1. lipsyncDriver.tick({vrm, deltaSec, lipsyncSnapshot})
 //   2. emoteState.setLipsyncActive(active)
 //   3. emoteState.tick({vrm, deltaSec})
-//   4. motionRegistry.tick(deltaSec)
+//   4. generatedMotionRuntime.tick(deltaSec)
 //
 // useFrame is mocked no-op (vrm-lifecycle-e2e.test.tsx pattern); we drive
 // the per-frame chain manually so the test stays deterministic in jsdom.
@@ -41,6 +40,10 @@ import type {
 import { createVrmAudioConsumer } from './vrm-audio-consumer.js';
 import { createVrmEmoteState } from './vrm-emote-state.js';
 import { createVrmLipsyncDriver } from './vrm-lipsync-driver.js';
+import {
+  createMissingVrmGeneratedMotionProvider,
+  createVrmGeneratedMotionRuntime,
+} from './vrm-generated-motion-runtime.js';
 import { createVrmMotionPresetRegistry } from './vrm-motion-preset-registry.js';
 import { createVrmProjectionAdapter } from './vrm-projection-adapter.js';
 import type {
@@ -272,7 +275,7 @@ describe('chunk 3-E scenario JSON files (fixture sanity)', () => {
 });
 
 // ────────────────────────────────────────────────────────────────────
-// Scenario 1: vrm-listening — preset_not_loaded fail-close.
+// Scenario 1: vrm-listening — generated provider missing fail-close.
 // ────────────────────────────────────────────────────────────────────
 
 describe('scenario vrm-listening (chunk 3-E)', () => {
@@ -287,60 +290,62 @@ describe('scenario vrm-listening (chunk 3-E)', () => {
     expect(failedById.get('shake_no')).toBe('animation_load_failed');
   });
 
-  it('applyActivity("listening") routes to motionRegistry.play(listen_lean) → preset_not_loaded', async () => {
-    mocks.loadAnimation.mockImplementation(partialAssetFetcher());
-    const registry = createVrmMotionPresetRegistry({ table: makeMotionTable() });
+  it('applyActivity("listening") routes to generatedMotionRuntime.play(listen_lean) and fails closed when provider is missing', async () => {
     const vrm = makeFakeVrm();
-    await registry.loadAll({ vrm });
+    const generatedMotionRuntime = createVrmGeneratedMotionRuntime(
+      createMissingVrmGeneratedMotionProvider(),
+    );
+    generatedMotionRuntime.attach(vrm);
     const emoteState = createVrmEmoteState({ emoteTable: makeEmoteTable() });
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry: registry,
+      generatedMotionRuntime,
       activityMapping: makeActivityMapping(),
     });
 
-    // Spy on registry.play to inspect the fail-close result code.
-    const playSpy = vi.spyOn(registry, 'play');
+    const playSpy = vi.spyOn(generatedMotionRuntime, 'play');
     adapter.applyActivity({ name: 'listening', intensity: null });
 
     expect(playSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ presetId: 'listen_lean', fade: 0.3 }),
+      expect.objectContaining({ routeId: 'listen_lean', fade: 0.3 }),
     );
     const result = playSpy.mock.results[0]?.value as { played: boolean; reason?: string };
     expect(result.played).toBe(false);
-    expect(result.reason).toBe('preset_not_loaded');
-    expect(registry.snapshot().activePresetId).toBeNull();
+    expect(result.reason).toBe('generated_motion_provider_missing');
+    expect(generatedMotionRuntime.snapshot().activeRouteId).toBeNull();
   });
 });
 
 // ────────────────────────────────────────────────────────────────────
-// Scenario 2: vrm-thinking — idle_subtle fallback (played: true).
+// Scenario 2: vrm-thinking — generated provider missing fail-close.
 // ────────────────────────────────────────────────────────────────────
 
 describe('scenario vrm-thinking (chunk 3-E)', () => {
-  it('applyActivity("thinking") routes to motionRegistry.play(idle_subtle) → played: true', async () => {
-    mocks.loadAnimation.mockImplementation(partialAssetFetcher());
-    const registry = createVrmMotionPresetRegistry({ table: makeMotionTable() });
+  it('applyActivity("thinking") routes to generatedMotionRuntime.play(idle_subtle) and fails closed when provider is missing', async () => {
     const vrm = makeFakeVrm();
-    await registry.loadAll({ vrm });
+    const generatedMotionRuntime = createVrmGeneratedMotionRuntime(
+      createMissingVrmGeneratedMotionProvider(),
+    );
+    generatedMotionRuntime.attach(vrm);
     const emoteState = createVrmEmoteState({ emoteTable: makeEmoteTable() });
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry: registry,
+      generatedMotionRuntime,
       activityMapping: makeActivityMapping(),
     });
 
-    const playSpy = vi.spyOn(registry, 'play');
+    const playSpy = vi.spyOn(generatedMotionRuntime, 'play');
     adapter.applyActivity({ name: 'thinking', intensity: null });
 
     expect(playSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ presetId: 'idle_subtle', fade: 0.4 }),
+      expect.objectContaining({ routeId: 'idle_subtle', fade: 0.4 }),
     );
-    const result = playSpy.mock.results[0]?.value as { played: boolean };
-    expect(result.played).toBe(true);
-    expect(registry.snapshot().activePresetId).toBe('idle_subtle');
+    const result = playSpy.mock.results[0]?.value as { played: boolean; reason?: string };
+    expect(result.played).toBe(false);
+    expect(result.reason).toBe('generated_motion_provider_missing');
+    expect(generatedMotionRuntime.snapshot().activeRouteId).toBeNull();
   });
 });
 
@@ -503,14 +508,16 @@ describe('scenario vrm-speaking-silent-audio (chunk 3-E)', () => {
 describe('scenario vrm-emote-cycle (chunk 3-E)', () => {
   it('sequential applyEmotion updates emoteState.snapshot().activeEmote in order', async () => {
     mocks.loadAnimation.mockImplementation(partialAssetFetcher());
-    const registry = createVrmMotionPresetRegistry({ table: makeMotionTable() });
     const vrm = makeFakeVrm();
-    await registry.loadAll({ vrm });
+    const generatedMotionRuntime = createVrmGeneratedMotionRuntime(
+      createMissingVrmGeneratedMotionProvider(),
+    );
+    generatedMotionRuntime.attach(vrm);
     const emoteState = createVrmEmoteState({ emoteTable: makeEmoteTable() });
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry: registry,
+      generatedMotionRuntime,
       activityMapping: makeActivityMapping(),
     });
 

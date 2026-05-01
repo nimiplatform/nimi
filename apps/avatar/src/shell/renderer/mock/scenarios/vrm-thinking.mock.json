@@ -1,7 +1,7 @@
 {
   "scenario_id": "vrm-thinking",
   "version": "1",
-  "description": "Wave 3 chunk 3-E of topic 2026-04-30-avatar-vrm-backend-branch. Drives applyActivity('thinking') through the VRM BackendBranch projection chain. Per activity-mapping.yaml v2 the thinking route resolves to vrm.motion='idle_subtle' (wave_0 fallback; wave_3 切到 think_chin_touch — deferred under D plan). Since idle_subtle.vrma IS the one admitted asset, motionRegistry.play returns {played: true} and the model remains in the idle_subtle loop.",
+  "description": "Wave 3 chunk 3-E fixture updated for topic 2026-05-01-avatar-apml-auto-adapter. Drives applyActivity('thinking') through typed runtime projection into Avatar generated motion routing. The thinking route resolves to vrm.motion='idle_subtle'. With the missing-provider test path, generatedMotionRuntime.play returns {played: false, reason: 'generated_motion_provider_missing'}; idle .vrma is interchange-only evidence, not APML runtime proof.",
   "duration_ms": 6000,
   "loop": false,
 
@@ -42,13 +42,13 @@
     ],
     "expected": [
       { "kind": "lifecycle_state", "where": "carrier-surface", "details": { "kind": "ready" } },
-      { "kind": "lifecycle_evidence", "where": "carrier-surface", "details": { "kind": "motion_presets_loaded", "loaded_ids": ["idle_subtle"] } },
-      { "kind": "motion_play_result", "where": "motionRegistry.play({presetId: 'idle_subtle'})", "details": { "played": true } },
-      { "kind": "registry_active_preset", "where": "motionRegistry.snapshot()", "details": { "activePresetId": "idle_subtle" } }
+      { "kind": "lifecycle_evidence", "where": "carrier-surface", "details": { "kind": "generated_motion_runtime_attached", "provider_path": "avatar_generated_motion" } },
+      { "kind": "motion_play_result", "where": "generatedMotionRuntime.play({routeId: 'idle_subtle'})", "details": { "played": false, "reason": "generated_motion_provider_missing" } },
+      { "kind": "generated_motion_snapshot", "where": "generatedMotionRuntime.snapshot()", "details": { "activeRouteId": null } }
     ],
     "human_acceptance_checks": [
-      "模型保持 idle subtle 动作（wave_3 think_chin_touch deferred to wave_5）",
-      "motion registry 当前 active preset 为 idle_subtle"
+      "missing provider path fails closed without idle .vrma fallback",
+      "generated motion runtime 当前 active route 为 null"
     ]
   }
 }

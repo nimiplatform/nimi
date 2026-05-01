@@ -16,7 +16,7 @@ import type {
 } from '../carrier/backend-branch.js';
 import type { VrmEmoteState } from './vrm-emote-state.js';
 import type { VrmLipsyncDriver } from './vrm-lipsync-driver.js';
-import type { VrmMotionPresetRegistry } from './vrm-motion-preset-registry.js';
+import type { VrmGeneratedMotionRuntime } from './vrm-generated-motion-runtime.js';
 import type { ActivityMapping } from './vrm-projection-adapter.js';
 import { createVrmRenderTarget } from './vrm-render-target.js';
 
@@ -80,13 +80,21 @@ function emoteStateStub(): VrmEmoteState {
   };
 }
 
-function motionRegistryStub(): VrmMotionPresetRegistry {
+function generatedMotionRuntimeStub(): VrmGeneratedMotionRuntime {
   return {
-    loadAll: async () => ({ loadedIds: [], failedIds: [] }),
-    play: () => ({ played: false, reason: 'preset_not_loaded' }),
+    attach() {},
+    play: () => ({
+      played: false,
+      reason: 'generated_motion_provider_missing',
+      evidence: {
+        routeId: 'test',
+        providerKind: 'missing',
+        reasonCode: 'generated_motion_provider_missing',
+      },
+    }),
     stopAll() {},
     tick() {},
-    snapshot: () => ({ loaded: [], activePresetId: null, fadeRemainingSec: 0 }),
+    snapshot: () => ({ attached: false, activeRouteId: null, fadeRemainingSec: 0 }),
     dispose() {},
   };
 }
@@ -109,7 +117,7 @@ function activityMappingStub(): ActivityMapping {
 
 function commonExtras(): {
   emoteState: VrmEmoteState;
-  motionRegistry: VrmMotionPresetRegistry;
+  generatedMotionRuntime: VrmGeneratedMotionRuntime;
   lipsyncDriver: VrmLipsyncDriver;
   activityMapping: ActivityMapping;
   setProjectionAdapter: (adapter: BackendProjection) => void;
@@ -117,7 +125,7 @@ function commonExtras(): {
 } {
   return {
     emoteState: emoteStateStub(),
-    motionRegistry: motionRegistryStub(),
+    generatedMotionRuntime: generatedMotionRuntimeStub(),
     lipsyncDriver: lipsyncDriverStub(),
     activityMapping: activityMappingStub(),
     setProjectionAdapter: () => {},
@@ -185,6 +193,10 @@ describe('createVrmCarrierSurface', () => {
     expect(evidence).toHaveBeenCalledWith(
       'load_started',
       expect.objectContaining({ source: 'vrm-carrier-surface' }),
+    );
+    expect(evidence).toHaveBeenCalledWith(
+      'generated_motion_runtime_attached',
+      expect.objectContaining({ vrma_position: 'interchange_only' }),
     );
 
     // Audio consumer announced exactly once.

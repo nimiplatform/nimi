@@ -38,7 +38,7 @@ const ACTIVITY_ROUTES: Readonly<Record<string, ActivityRoutes>> = Object.freeze(
   // ── interaction (no intensity) ──
   greet: {
     live2d: { motionGroup: 'tap_body', fallbackMotionGroup: 'tap_head' },
-    vrm: { motion: 'idle_subtle', emotion: 'happy', fade: 0.25 },
+    vrm: { motion: 'greet_wave', emotion: 'happy', fade: 0.25 },
   },
   farewell: {
     live2d: { motionGroup: 'tap_head' },

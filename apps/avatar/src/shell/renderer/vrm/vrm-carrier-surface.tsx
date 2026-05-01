@@ -1,7 +1,7 @@
 // Wave 3 chunk 3-D of topic 2026-04-30-avatar-vrm-backend-branch.
 //
 // VRM BackendBranch surface — extends the wave_2 chunk 2-C scaffolding
-// with the chunk 3-D integration: emote state, motion preset registry,
+// with the chunk 3-D integration: emote state, generated motion runtime,
 // lipsync driver, and projection adapter are all wired through the
 // surface useFrame loop.
 //
@@ -19,17 +19,15 @@
 //     context_lost_twice / no_webgl) renders null; embodiment-stage
 //     surfaces its degraded layer above
 //
-// Adapter construction + motionRegistry.loadAll happen in a one-shot
-// effect keyed on the loaded VRM identity. failedIds in loadAll is
-// expected partial-degrade behavior (D plan: only `idle_subtle.vrma`
-// is admitted; other preset ids fail to load) — surfaced as a warning
-// + lifecycle evidence, not a fail-close.
+// Adapter construction + generated motion runtime attachment happen in a
+// one-shot effect keyed on the loaded VRM identity. Physical .vrma preset
+// loading is not part of the runtime APML support proof path.
 //
 // useFrame chain (per frame, inside <Canvas>):
 //   1. lipsyncDriver.tick({vrm, deltaSec, lipsyncSnapshot})
 //   2. emoteState.setLipsyncActive(lipResult.active)
 //   3. emoteState.tick({vrm, deltaSec})
-//   4. motionRegistry.tick(deltaSec)
+//   4. generatedMotionRuntime.tick(deltaSec)
 //   5. vrm.update(deltaSec)   <-- REQUIRED for VRM expression
 //                                interpolation + secondary motion physics
 
@@ -57,7 +55,7 @@ import {
 } from './vrm-runtime.js';
 import { VrmScene } from './vrm-scene.js';
 import type { VrmEmoteState } from './vrm-emote-state.js';
-import type { VrmMotionPresetRegistry } from './vrm-motion-preset-registry.js';
+import type { VrmGeneratedMotionRuntime } from './vrm-generated-motion-runtime.js';
 import type { VrmLipsyncDriver } from './vrm-lipsync-driver.js';
 import {
   createVrmProjectionAdapter,
@@ -70,7 +68,7 @@ export type VrmCarrierSurfaceInput = {
   manifest: VrmAvatarModelManifest;
   audioConsumer: BackendAudioConsumer;
   emoteState: VrmEmoteState;
-  motionRegistry: VrmMotionPresetRegistry;
+  generatedMotionRuntime: VrmGeneratedMotionRuntime;
   lipsyncDriver: VrmLipsyncDriver;
   activityMapping: ActivityMapping;
   /** Receives the real BackendProjection adapter once the VRM is loaded;
@@ -208,7 +206,7 @@ export function createVrmCarrierSurface(
 
     const vrm = state.kind === 'ready' || state.kind === 'context_lost' ? state.vrm : null;
 
-    // Adapter construction + motion preset asset load (one-shot per VRM).
+    // Adapter construction + generated motion runtime attach (one-shot per VRM).
     // Keyed on `vrm` identity so a context_lost → ready bounce that
     // returns the same VRM instance does not re-register the adapter,
     // but a fresh load (post-failed_closed scenario) would.
@@ -219,35 +217,15 @@ export function createVrmCarrierSurface(
       const adapter = createVrmProjectionAdapter({
         vrm,
         emoteState: input.emoteState,
-        motionRegistry: input.motionRegistry,
+        generatedMotionRuntime: input.generatedMotionRuntime,
         activityMapping: input.activityMapping,
       });
+      input.generatedMotionRuntime.attach(vrm);
       input.setProjectionAdapter(adapter);
-      // Async motion preset asset load; failedIds is expected partial-
-      // degrade behavior (D plan: only `idle_subtle.vrma` admitted).
-      void input.motionRegistry
-        .loadAll({ vrm })
-        .then((result) => {
-          props.onLifecycleEvidence?.('motion_presets_loaded', {
-            loaded_ids: result.loadedIds,
-            failed_ids: result.failedIds,
-          });
-          if (result.failedIds.length > 0) {
-            console.warn(
-              '[avatar:vrm] motion preset partial-load (D plan deferred .vrma):',
-              result.failedIds,
-            );
-          }
-        })
-        .catch((err) => {
-          // Defensive: registry.loadAll itself does not throw (per-id
-          // errors are captured into failedIds), but if a non-id-bound
-          // crash escapes (e.g. AnimationMixer construction on degenerate
-          // scene), surface it as evidence rather than swallowing it.
-          props.onLifecycleEvidence?.('motion_preset_load_crashed', {
-            reason: err instanceof Error ? err.message : String(err),
-          });
-        });
+      props.onLifecycleEvidence?.('generated_motion_runtime_attached', {
+        provider_path: 'avatar_generated_motion',
+        vrma_position: 'interchange_only',
+      });
     }, [vrm, props.onLifecycleEvidence]);
 
     // Wave 2 chunk 2-E: derive camera framing from the loaded VRM scene
@@ -321,7 +299,7 @@ export function createVrmCarrierSurface(
                 audioConsumer={input.audioConsumer}
                 lipsyncDriver={input.lipsyncDriver}
                 emoteState={input.emoteState}
-                motionRegistry={input.motionRegistry}
+                generatedMotionRuntime={input.generatedMotionRuntime}
               />
               <VrmRenderTargetCaptureLoop
                 vrm={vrm}
@@ -354,7 +332,7 @@ export function createVrmCarrierSurface(
  *      writes for the same frame
  *   2. emote state — flushes bundle + transient overlays to expression
  *      manager (skipping visemes when lipsync is active)
- *   3. motion registry — advances AnimationMixer (motion preset clips)
+ *   3. generated motion runtime — advances generated AnimationMixer clips
  *   4. vrm.update — REQUIRED to advance VRM expression interpolation +
  *      secondary motion physics (per AGENTS.md pitfall #5/#10)
  */
@@ -363,13 +341,13 @@ function VrmFrameLoop({
   audioConsumer,
   lipsyncDriver,
   emoteState,
-  motionRegistry,
+  generatedMotionRuntime,
 }: {
   vrm: VRM;
   audioConsumer: BackendAudioConsumer;
   lipsyncDriver: VrmLipsyncDriver;
   emoteState: VrmEmoteState;
-  motionRegistry: VrmMotionPresetRegistry;
+  generatedMotionRuntime: VrmGeneratedMotionRuntime;
 }): null {
   useFrame((_state, deltaSec) => {
     const dt = Math.max(0, deltaSec);
@@ -377,7 +355,7 @@ function VrmFrameLoop({
     const lipResult = lipsyncDriver.tick({ vrm, deltaSec: dt, lipsyncSnapshot });
     emoteState.setLipsyncActive(lipResult.active);
     emoteState.tick({ vrm, deltaSec: dt });
-    motionRegistry.tick(dt);
+    generatedMotionRuntime.tick(dt);
     // VRM internal animation update is critical: expression interpolation
     // + secondary motion physics depend on this per-frame call.
     if (typeof (vrm as { update?: (dt: number) => void }).update === 'function') {

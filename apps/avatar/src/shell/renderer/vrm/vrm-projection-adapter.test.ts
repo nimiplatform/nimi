@@ -22,14 +22,14 @@ import {
 import type { BackendProjection } from '../carrier/backend-branch.js';
 import type { VrmEmoteState } from './vrm-emote-state.js';
 import type {
-  VrmMotionPresetRegistry,
-  PlayResult,
-} from './vrm-motion-preset-registry.js';
+  PlayGeneratedMotionResult,
+  VrmGeneratedMotionRuntime,
+} from './vrm-generated-motion-runtime.js';
 
 function createMocks(routesByName: Record<string, VrmActivityRoute | null>): {
   vrm: VRM;
   emoteState: VrmEmoteState;
-  motionRegistry: VrmMotionPresetRegistry;
+  generatedMotionRuntime: VrmGeneratedMotionRuntime;
   activityMapping: ActivityMapping;
   spies: {
     setEmote: ReturnType<typeof vi.fn>;
@@ -64,18 +64,19 @@ function createMocks(routesByName: Record<string, VrmActivityRoute | null>): {
     snapshot: emoteSnapshot,
   };
 
-  const play = vi.fn<(...args: unknown[]) => PlayResult>(() => ({
+  const play = vi.fn<(...args: unknown[]) => PlayGeneratedMotionResult>(() => ({
     played: true,
+    evidence: { routeId: 'test', providerKind: 'test' },
   }));
   const stopAll = vi.fn();
-  const motionRegistry: VrmMotionPresetRegistry = {
-    loadAll: vi.fn(async () => ({ loadedIds: [], failedIds: [] })),
+  const generatedMotionRuntime: VrmGeneratedMotionRuntime = {
+    attach: vi.fn(),
     play,
     stopAll,
     tick: vi.fn(),
     snapshot: vi.fn(() => ({
-      loaded: [],
-      activePresetId: null,
+      attached: true,
+      activeRouteId: null,
       fadeRemainingSec: 0,
     })),
     dispose: vi.fn(),
@@ -87,7 +88,7 @@ function createMocks(routesByName: Record<string, VrmActivityRoute | null>): {
   return {
     vrm,
     emoteState,
-    motionRegistry,
+    generatedMotionRuntime,
     activityMapping,
     spies: {
       setEmote,
@@ -129,7 +130,7 @@ describe('createVrmProjectionAdapter — applyActivity', () => {
   });
 
   it('routes a motion+emotion+expression compound activity through all three branches', () => {
-    const { vrm, emoteState, motionRegistry, activityMapping, spies } =
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
       createMocks({
         compound: {
           motion: 'nod_yes',
@@ -141,7 +142,7 @@ describe('createVrmProjectionAdapter — applyActivity', () => {
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       activityMapping,
     });
 
@@ -149,7 +150,7 @@ describe('createVrmProjectionAdapter — applyActivity', () => {
 
     expect(spies.resolveVrmRoute).toHaveBeenCalledWith('compound');
     expect(spies.play).toHaveBeenCalledWith({
-      presetId: 'nod_yes',
+      routeId: 'nod_yes',
       intensity: 1,
       fade: 0.42,
     });
@@ -157,20 +158,20 @@ describe('createVrmProjectionAdapter — applyActivity', () => {
     expect(spies.setEmote).toHaveBeenCalledWith('happy');
   });
 
-  it('only triggers motionRegistry when route has motion only', () => {
-    const { vrm, emoteState, motionRegistry, activityMapping, spies } =
+  it('only triggers generatedMotionRuntime when route has motion only', () => {
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
       createMocks({ agree: { motion: 'nod_yes' } });
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       activityMapping,
     });
 
     adapter.applyActivity({ name: 'agree', intensity: 1 });
 
     expect(spies.play).toHaveBeenCalledWith({
-      presetId: 'nod_yes',
+      routeId: 'nod_yes',
       intensity: 1,
       fade: DEFAULT_ACTIVITY_FADE_SEC,
     });
@@ -179,12 +180,12 @@ describe('createVrmProjectionAdapter — applyActivity', () => {
   });
 
   it('only triggers emoteState.setEmote when route has emotion only', () => {
-    const { vrm, emoteState, motionRegistry, activityMapping, spies } =
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
       createMocks({ happy: { emotion: 'happy', fade: 0.4 } });
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       activityMapping,
     });
 
@@ -196,12 +197,12 @@ describe('createVrmProjectionAdapter — applyActivity', () => {
   });
 
   it('only triggers applyTransientExpression when route has expression only', () => {
-    const { vrm, emoteState, motionRegistry, activityMapping, spies } =
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
       createMocks({ rare_expr: { expression: 'aa' } });
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       activityMapping,
     });
 
@@ -213,12 +214,12 @@ describe('createVrmProjectionAdapter — applyActivity', () => {
   });
 
   it('scales transient expression weight by intensity', () => {
-    const { vrm, emoteState, motionRegistry, activityMapping, spies } =
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
       createMocks({ scaled: { expression: 'aa' } });
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       activityMapping,
     });
 
@@ -229,12 +230,12 @@ describe('createVrmProjectionAdapter — applyActivity', () => {
 
   it('warns and no-ops on unknown activity name (fail-close)', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const { vrm, emoteState, motionRegistry, activityMapping, spies } =
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
       createMocks({});
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       activityMapping,
     });
 
@@ -254,12 +255,12 @@ describe('createVrmProjectionAdapter — direct projection methods', () => {
   });
 
   it('applyEmotion forwards current + previous to emoteState.setEmote', () => {
-    const { vrm, emoteState, motionRegistry, activityMapping, spies } =
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
       createMocks({});
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       activityMapping,
     });
 
@@ -269,50 +270,50 @@ describe('createVrmProjectionAdapter — direct projection methods', () => {
   });
 
   it('applyMotion uses default fade=0.3 + loop=false when omitted', () => {
-    const { vrm, emoteState, motionRegistry, activityMapping, spies } =
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
       createMocks({});
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       activityMapping,
     });
 
-    adapter.applyMotion({ presetId: 'idle_subtle' });
+    adapter.applyMotion({ routeId: 'idle_subtle' });
 
     expect(spies.play).toHaveBeenCalledWith({
-      presetId: 'idle_subtle',
+      routeId: 'idle_subtle',
       fade: DEFAULT_DIRECT_MOTION_FADE_SEC,
       loop: false,
     });
   });
 
   it('applyMotion forwards explicit fade + loop', () => {
-    const { vrm, emoteState, motionRegistry, activityMapping, spies } =
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
       createMocks({});
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       activityMapping,
     });
 
-    adapter.applyMotion({ presetId: 'listen_lean', loop: true, fade: 0.5 });
+    adapter.applyMotion({ routeId: 'listen_lean', loop: true, fade: 0.5 });
 
     expect(spies.play).toHaveBeenCalledWith({
-      presetId: 'listen_lean',
+      routeId: 'listen_lean',
       fade: 0.5,
       loop: true,
     });
   });
 
   it('applyExpression forwards weight + fade', () => {
-    const { vrm, emoteState, motionRegistry, activityMapping, spies } =
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
       createMocks({});
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       activityMapping,
     });
 
@@ -326,12 +327,12 @@ describe('createVrmProjectionAdapter — direct projection methods', () => {
   });
 
   it('applyExpression defaults weight=1 when omitted', () => {
-    const { vrm, emoteState, motionRegistry, activityMapping, spies } =
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
       createMocks({});
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       activityMapping,
     });
 
@@ -344,13 +345,13 @@ describe('createVrmProjectionAdapter — direct projection methods', () => {
     );
   });
 
-  it('reset triggers emoteState.reset(vrm) + motionRegistry.stopAll', () => {
-    const { vrm, emoteState, motionRegistry, activityMapping, spies } =
+  it('reset triggers emoteState.reset(vrm) + generatedMotionRuntime.stopAll', () => {
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
       createMocks({});
     const adapter = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       activityMapping,
     });
 
@@ -363,7 +364,7 @@ describe('createVrmProjectionAdapter — direct projection methods', () => {
 
 describe('createVrmProjectionAdapter — BackendProjection conformance (negative)', () => {
   it('returns a value structurally typed as BackendProjection (no Live2D parameter id surface)', () => {
-    const { vrm, emoteState, motionRegistry, activityMapping } = createMocks(
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping } = createMocks(
       {},
     );
     // The TS compiler enforces the BackendProjection type here: any
@@ -374,7 +375,7 @@ describe('createVrmProjectionAdapter — BackendProjection conformance (negative
     const adapter: BackendProjection = createVrmProjectionAdapter({
       vrm,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       activityMapping,
     });
     expect(typeof adapter.applyActivity).toBe('function');

@@ -2,13 +2,10 @@
 //
 // VRM BackendBranch factory. Wave 3 chunk 3-D rewires the wave_2 chunk
 // 2-C scaffolding to the real chunk 3-A (emote state) + chunk 3-B
-// (motion preset registry) + chunk 3-C (lipsync driver + projection
-// adapter) + new vrm-audio-consumer. After this chunk the VRM backend
-// is fully functional in code; differentiated `.vrma` motion assets
-// remain deferred (D plan: only `idle_subtle.vrma` is admitted; other
-// preset ids will fail to load via registry.failedIds and play() will
-// return `{played: false, reason: 'preset_not_loaded'}` — a clean
-// fail-close).
+// (generated motion runtime) + chunk 3-C (lipsync driver + projection
+// adapter) + new vrm-audio-consumer. The generated motion runtime is the
+// product path; physical `.vrma` assets are interchange-only and missing
+// deterministic generation fails closed rather than falling back.
 //
 // Default product mode (`VITE_AVATAR_DEV_VRM_PREVIEW !== 'true'`):
 // - surface.Component is the real BackendBranch surface — drives the
@@ -50,8 +47,8 @@ import type { VrmRuntimeOptions } from './vrm-runtime.js';
 import { createVrmAudioConsumer } from './vrm-audio-consumer.js';
 import { createVrmEmoteState } from './vrm-emote-state.js';
 import { loadVrmEmoteTable } from './load-vrm-emote-table.js';
-import { createVrmMotionPresetRegistry } from './vrm-motion-preset-registry.js';
-import { loadVrmMotionPresetTable } from './load-vrm-motion-preset-table.js';
+import { createVrmGeneratedMotionRuntime } from './vrm-generated-motion-runtime.js';
+import { createDeterministicVrmGeneratedMotionProvider } from './vrm-deterministic-motion-provider.js';
 import { createVrmLipsyncDriver } from './vrm-lipsync-driver.js';
 import type { ActivityMapping } from './vrm-projection-adapter.js';
 import {
@@ -215,10 +212,10 @@ export async function createVrmBackendBranch(
 ): Promise<VrmBackendBranchHandle> {
   const mode = resolveRuntimeMode();
 
-  // Synchronous table loads (chunks 3-A / 3-B); both throw if the YAML
-  // drifts from the spec invariants — fail-close at construction.
+  // Synchronous emote table load throws if the YAML drifts from spec
+  // invariants. Motion generation no longer loads vrm-motion-presets.yaml on
+  // the runtime product path.
   const emoteTable = loadVrmEmoteTable();
-  const motionTable = loadVrmMotionPresetTable();
 
   // wlipsync profile is async (dynamic JSON import); profile === null
   // is an admitted degraded path (consumer warns once + silents on
@@ -228,7 +225,9 @@ export async function createVrmBackendBranch(
 
   const audioConsumer = createVrmAudioConsumer({ profile });
   const emoteState = createVrmEmoteState({ emoteTable });
-  const motionRegistry = createVrmMotionPresetRegistry({ table: motionTable });
+  const generatedMotionRuntime = createVrmGeneratedMotionRuntime(
+    createDeterministicVrmGeneratedMotionProvider(),
+  );
   const lipsyncDriver = createVrmLipsyncDriver();
 
   // NAS resolver wraps the wave_1 activity-mapping table; chunk 3-C
@@ -256,7 +255,7 @@ export async function createVrmBackendBranch(
       manifest,
       audioConsumer,
       emoteState,
-      motionRegistry,
+      generatedMotionRuntime,
       lipsyncDriver,
       activityMapping,
       setProjectionAdapter: deferredProjection.setAdapter,
@@ -276,14 +275,15 @@ export async function createVrmBackendBranch(
       model_kind: 'vrm',
       mode,
       vrm_file: manifest.vrm.vrmFile,
-      motion_presets_dir: manifest.vrm.motionPresetsDir,
+      generated_motion_provider: 'deterministic_vrm',
+      vrma_position: 'interchange_only',
       lipsync_profile_present: profile !== null,
     }),
     shutdown() {
       // Order: stop frame-driven sources first, then drain projection,
       // then tear down surface (which disposes runtime + R3F canvas).
       try {
-        motionRegistry.dispose();
+        generatedMotionRuntime.dispose();
       } catch {
         // dispose is defensive; never let it block surface shutdown.
       }
