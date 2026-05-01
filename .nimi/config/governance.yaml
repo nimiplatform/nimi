@@ -108,35 +108,6 @@ ai_governance:
         warning_lines: 2000
         error_lines: 4000
     classifiers:
-      temporary_large_production:
-        - apps/desktop/src-tauri/src/local_runtime/commands/commands_import_bundle.rs
-        - apps/desktop/src/runtime/local-runtime/commands.ts
-        - apps/desktop/src/shell/renderer/features/chat/chat-agent-behavior-resolver.ts
-        - apps/desktop/src/shell/renderer/features/chat/chat-agent-orchestration.ts
-        - apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime.ts
-        - apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx
-        - apps/desktop/src/shell/renderer/features/chat/chat-agent-shell-host-actions.ts
-        - apps/desktop/src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities.ts
-        - apps/forge/src/shell/renderer/pages/workbench/workbench-page.tsx
-        - apps/parentos/mock.json
-        - apps/parentos/src-tauri/src/sqlite/migrations.rs
-        - apps/parentos/src/shell/renderer/features/profile/growth-curve-page.tsx
-        - apps/parentos/src/shell/renderer/features/profile/medical-events-page.tsx
-        - apps/parentos/src/shell/renderer/features/profile/sleep-page.tsx
-        - apps/parentos/src/shell/renderer/features/profile/tanner-page.tsx
-        - apps/video-food-map/src-tauri/src/db.rs
-        - apps/video-food-map/src-tauri/src/probe.rs
-        - apps/video-food-map/src/shell/renderer/App.tsx
-        - nimi-coding/cli/lib/contracts.mjs
-        - nimi-coding/cli/lib/doctor.mjs
-        - nimi-coding/cli/lib/validators.mjs
-        - runtime/internal/managedimagebackend/server.go
-        - runtime/internal/services/runtimeagent/hook_lifecycle.go
-        - runtime/internal/services/runtimeagent/service.go
-        - runtime/internal/services/memory/service.go
-        - sdk/src/internal/world-evolution-selector-read.ts
-        - sdk/src/runtime/core/method-codecs.ts
-        - apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-profile-editor.tsx
       temporary_large_spec_yaml:
         - apps/parentos/spec/kernel/tables/reminder-rules.yaml
         - spec/runtime/kernel/tables/rule-evidence.rules.yaml
@@ -212,6 +183,7 @@ ai_governance:
       - "**/*.mp4"
       - "**/*.mov"
       - "**/*.webm"
+      - "**/*.vrma"
       - "**/*.css"
       - "**/locales/en.json"
       - "**/locales/zh.json"
