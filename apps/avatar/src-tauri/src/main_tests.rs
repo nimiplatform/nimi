@@ -427,8 +427,20 @@ fn write_agent_center_local_config(
             "avatar_package": {
                 "schema_version": 1,
                 "selected_package": selected_package,
+                "conversation_anchor_scope": "current_anchor",
+                "avatar_package_ref": selected_package.as_ref().and_then(|value| value.get("package_id")).cloned(),
+                "avatar_instance_policy": "reuse_active_instance",
+                "backend_kind": selected_package.as_ref().and_then(|value| value.get("kind")).and_then(|value| value.as_str()).unwrap_or("live2d"),
+                "backend_capability_profile_ref": null,
+                "generated_motion_provider_policy": "require_profile_support",
+                "launch_mode": "manual",
+                "debug_profile": "standard",
+                "updated_at": "2026-04-27T00:00:00Z",
+                "provenance": {
+                    "source": "import_validation",
+                    "evidence_ref": selected_package.as_ref().and_then(|value| value.get("package_id")).and_then(|value| value.as_str()).unwrap_or("agent-center-avatar-config-default")
+                },
                 "last_validated_at": "2026-04-27T00:00:00Z",
-                "last_launch_package_id": null
             }
         }
     });

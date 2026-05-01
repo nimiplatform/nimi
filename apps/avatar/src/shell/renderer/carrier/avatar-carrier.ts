@@ -27,11 +27,28 @@ import {
 } from './model-resolver.js';
 import { createBackendBranch, type BackendBranchHandle } from './create-backend-branch.js';
 import type { BackendBranch } from './backend-branch.js';
+import {
+  createAvatarDebugSession,
+  recordAvatarDebugSessionEvidence,
+  type AvatarDebugResolverEvidence,
+  type AvatarDebugSession,
+  type RuntimeAvatarDebugProbeEnvelope,
+} from '../avatar-debug/avatar-debug-session.js';
 
 export type AvatarRuntimeCarrier = {
   model: AvatarModelManifest;
   registry: HandlerRegistry;
   backend: BackendBranch;
+  createDebugSession(input: {
+    debugSessionId: string;
+    runtimeProbe: RuntimeAvatarDebugProbeEnvelope;
+    avatarInstanceId?: string | null;
+    avatarPackageRef?: string | null;
+    backendCapabilityProfileRef?: string | null;
+    resolverEvidence?: AvatarDebugResolverEvidence | null;
+    observedAt?: string | null;
+    recordEvidence?: boolean;
+  }): AvatarDebugSession;
   attachRuntimeDriver(driver: AgentDataDriver): Promise<void>;
   detachRuntimeDriver(): void;
   shutdown(): void;
@@ -262,6 +279,23 @@ export async function startAvatarVisualCarrier(input: {
     model,
     registry,
     backend: backendHandle.branch,
+    createDebugSession(input) {
+      const session = createAvatarDebugSession({
+        debugSessionId: input.debugSessionId,
+        runtimeProbe: input.runtimeProbe,
+        avatarInstanceId: input.avatarInstanceId,
+        avatarPackageRef: input.avatarPackageRef,
+        backendCapabilityProfileRef: input.backendCapabilityProfileRef,
+        backendKind: backendHandle.branch.kind,
+        backend: backendHandle.branch,
+        resolverEvidence: input.resolverEvidence,
+        observedAt: input.observedAt,
+      });
+      if (input.recordEvidence !== false) {
+        recordAvatarDebugSessionEvidence(session);
+      }
+      return session;
+    },
     async attachRuntimeDriver(driver) {
       if (attachedDriver) {
         throw new Error('avatar visual carrier runtime driver is already attached');

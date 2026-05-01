@@ -63,6 +63,10 @@ import {
 } from './vrm-projection-adapter.js';
 import { createVrmHitRegion } from './vrm-hit-region.js';
 import type { VrmRenderTarget } from './vrm-render-target.js';
+import {
+  createVrmCapabilityProfile,
+  type VrmCapabilityProfile,
+} from './vrm-capability-profile.js';
 
 export type VrmCarrierSurfaceInput = {
   manifest: VrmAvatarModelManifest;
@@ -75,6 +79,7 @@ export type VrmCarrierSurfaceInput = {
    *  the BackendBranch factory's deferred projection shim flushes any
    *  queued calls when this fires. */
   setProjectionAdapter: (adapter: BackendProjection) => void;
+  onCapabilityProfile?: (profile: VrmCapabilityProfile) => void;
   /** Test seam forwarded to createVrmRuntime — keeps unit tests fast and
    *  deterministic without spinning up real Three.js / WebGL. */
   runtimeOptions?: Pick<
@@ -222,9 +227,14 @@ export function createVrmCarrierSurface(
       });
       input.generatedMotionRuntime.attach(vrm);
       input.setProjectionAdapter(adapter);
+      const profile = createVrmCapabilityProfile(vrm);
+      input.onCapabilityProfile?.(profile);
       props.onLifecycleEvidence?.('generated_motion_runtime_attached', {
         provider_path: 'avatar_generated_motion',
         vrma_position: 'interchange_only',
+        capability_profile_id: profile.profileId,
+        generated_motion_routes: profile.supportedRoutes,
+        unsupported_generated_motion_routes: profile.unsupportedRoutes.map((route) => route.routeId),
       });
     }, [vrm, props.onLifecycleEvidence]);
 

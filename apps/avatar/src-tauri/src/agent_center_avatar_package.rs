@@ -92,8 +92,17 @@ struct AgentCenterLocalConfigModules {
 struct AgentCenterAvatarPackageModule {
     schema_version: u8,
     selected_package: Option<AgentCenterSelectedAvatarPackage>,
+    conversation_anchor_scope: String,
+    avatar_package_ref: Option<String>,
+    avatar_instance_policy: String,
+    backend_kind: String,
+    backend_capability_profile_ref: Option<String>,
+    generated_motion_provider_policy: String,
+    launch_mode: String,
+    debug_profile: String,
+    updated_at: String,
+    provenance: serde_json::Value,
     last_validated_at: Option<String>,
-    last_launch_package_id: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -266,9 +275,29 @@ fn read_selected_avatar_package(
         return Err("avatar_package_kind must be live2d or vrm".to_string());
     }
     let package_id = validate_avatar_package_id(&selected.package_id, kind.as_str())?;
+    if config.modules.avatar_package.backend_kind.trim() != kind {
+        return Err(
+            "modules.avatar_package.backend_kind must match selected package kind".to_string(),
+        );
+    }
+    if config.modules.avatar_package.avatar_package_ref.as_deref() != Some(package_id.as_str()) {
+        return Err(
+            "modules.avatar_package.avatar_package_ref must match selected package id".to_string(),
+        );
+    }
     let _ = (
+        config.modules.avatar_package.conversation_anchor_scope,
+        config.modules.avatar_package.avatar_instance_policy,
+        config.modules.avatar_package.backend_capability_profile_ref,
+        config
+            .modules
+            .avatar_package
+            .generated_motion_provider_policy,
+        config.modules.avatar_package.launch_mode,
+        config.modules.avatar_package.debug_profile,
+        config.modules.avatar_package.updated_at,
+        config.modules.avatar_package.provenance,
         config.modules.avatar_package.last_validated_at,
-        config.modules.avatar_package.last_launch_package_id,
     );
     Ok((kind, package_id))
 }

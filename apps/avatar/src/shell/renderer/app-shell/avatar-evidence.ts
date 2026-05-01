@@ -17,6 +17,7 @@ export type AvatarEvidenceKind =
   | 'avatar.runtime.bound'
   | 'avatar.model.load'
   | 'avatar.carrier.visual'
+  | 'avatar.debug.session-evidence'
   // Wave 1 NAV-SHELL-COMPOSITION-004 — composition state machine evidence.
   | 'avatar.composition.transition'
   | 'avatar.composition.relaunch-pending'

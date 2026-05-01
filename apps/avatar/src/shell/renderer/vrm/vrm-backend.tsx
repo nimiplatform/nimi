@@ -55,6 +55,7 @@ import {
   createVrmRenderTarget,
   type VrmRenderTarget,
 } from './vrm-render-target.js';
+import type { VrmCapabilityProfile } from './vrm-capability-profile.js';
 
 // Wave 2 chunk 2-E: nominalBounds is the BOOT placeholder used by
 // embodiment-stage for the very first window-resize tick (before VRM
@@ -245,6 +246,7 @@ export async function createVrmBackendBranch(
   // budget). Tests pass a stub render target via `renderTargetOverride`.
   const renderTarget: VrmRenderTarget =
     options.renderTargetOverride ?? createVrmRenderTarget();
+  let latestCapabilityProfile: VrmCapabilityProfile | null = null;
 
   let surface: BackendSurface;
   let surfaceShutdown: () => void = () => {};
@@ -261,6 +263,9 @@ export async function createVrmBackendBranch(
       setProjectionAdapter: deferredProjection.setAdapter,
       runtimeOptions: options.runtimeOptions,
       renderTarget,
+      onCapabilityProfile: (nextProfile) => {
+        latestCapabilityProfile = nextProfile;
+      },
     });
     surface = { Component: handle.Component };
     surfaceShutdown = handle.shutdown;
@@ -278,6 +283,11 @@ export async function createVrmBackendBranch(
       generated_motion_provider: 'deterministic_vrm',
       vrma_position: 'interchange_only',
       lipsync_profile_present: profile !== null,
+      capability_profile_id: latestCapabilityProfile?.profileId ?? null,
+      generated_motion_routes: latestCapabilityProfile?.supportedRoutes ?? [],
+      unsupported_generated_motion_routes:
+        latestCapabilityProfile?.unsupportedRoutes.map((route) => route.routeId) ?? [],
+      expression_manager_present: latestCapabilityProfile?.expressionManagerPresent ?? false,
     }),
     shutdown() {
       // Order: stop frame-driven sources first, then drain projection,

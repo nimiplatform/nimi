@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime';
 import type { AgentDataBundle, AgentDataDriver, AgentEvent, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
 
@@ -305,6 +306,41 @@ describe('avatar runtime carrier', () => {
       .map((command) => command.group ?? '');
 
     expect(commands).toEqual(['RenWave']);
+
+    carrier.shutdown();
+  });
+
+  it('creates Avatar debug session evidence from the active backend without Runtime status ownership', async () => {
+    const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
+    const driver = createDriver();
+    const carrier = await startAvatarRuntimeCarrier({
+      driver,
+      modelPath: '/models/ren',
+    });
+
+    const session = carrier.createDebugSession({
+      debugSessionId: 'debug-session-live2d',
+      runtimeProbe: {
+        probeId: 'probe-generated-motion',
+        agentId: 'agent-1',
+        probeKind: AvatarDebugProbeKind.GENERATED_MOTION,
+      },
+      avatarPackageRef: 'avatar-package-ref-1',
+      backendCapabilityProfileRef: 'profile-ref-1',
+      resolverEvidence: {
+        packageResolved: true,
+        capabilityProfileResolved: true,
+      },
+      observedAt: '2026-05-01T00:00:00.000Z',
+      recordEvidence: false,
+    });
+
+    expect(session.backendKind).toBe('live2d');
+    expect(session.evidence).toMatchObject({
+      evidenceKind: 'generated_motion_checked',
+      status: 'unsupported',
+      reasonCode: 'generated_motion_not_supported_by_backend',
+    });
 
     carrier.shutdown();
   });
