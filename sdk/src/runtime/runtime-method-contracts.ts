@@ -149,6 +149,14 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.agent.openConversationAnchor]: RuntimeClientMethodContract<'agent', 'openConversationAnchor'>;
   [RuntimeMethodIds.agent.getConversationAnchorSnapshot]: RuntimeClientMethodContract<'agent', 'getConversationAnchorSnapshot'>;
   [RuntimeMethodIds.agent.getPublicChatSessionSnapshot]: RuntimeClientMethodContract<'agent', 'getPublicChatSessionSnapshot'>;
+  [RuntimeMethodIds.agent.listDelegatedProviderProfiles]: RuntimeClientMethodContract<'agent', 'listDelegatedProviderProfiles'>;
+  [RuntimeMethodIds.agent.upsertDelegatedProviderProfile]: RuntimeClientMethodContract<'agent', 'upsertDelegatedProviderProfile'>;
+  [RuntimeMethodIds.agent.setDelegatedProviderState]: RuntimeClientMethodContract<'agent', 'setDelegatedProviderState'>;
+  [RuntimeMethodIds.agent.listDelegatedApprovalRequests]: RuntimeClientMethodContract<'agent', 'listDelegatedApprovalRequests'>;
+  [RuntimeMethodIds.agent.submitDelegatedApprovalDecision]: RuntimeClientMethodContract<'agent', 'submitDelegatedApprovalDecision'>;
+  [RuntimeMethodIds.agent.listDelegatedDiagnostics]: RuntimeClientMethodContract<'agent', 'listDelegatedDiagnostics'>;
+  [RuntimeMethodIds.agent.getDelegatedReplayTrace]: RuntimeClientMethodContract<'agent', 'getDelegatedReplayTrace'>;
+  [RuntimeMethodIds.agent.getDelegatedControlSurfaceSnapshot]: RuntimeClientMethodContract<'agent', 'getDelegatedControlSurfaceSnapshot'>;
   [RuntimeMethodIds.agent.getAgentState]: RuntimeClientMethodContract<'agent', 'getAgentState'>;
   [RuntimeMethodIds.agent.updateAgentState]: RuntimeClientMethodContract<'agent', 'updateAgentState'>;
   [RuntimeMethodIds.agent.setPresentationProfile]: RuntimeClientMethodContract<'agent', 'setPresentationProfile'>;

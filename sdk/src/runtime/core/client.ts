@@ -19,10 +19,26 @@ import {
 import {
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
+  GetDelegatedControlSurfaceSnapshotRequest,
+  GetDelegatedControlSurfaceSnapshotResponse,
+  GetDelegatedReplayTraceRequest,
+  GetDelegatedReplayTraceResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
+  ListDelegatedApprovalRequestsRequest,
+  ListDelegatedApprovalRequestsResponse,
+  ListDelegatedDiagnosticsRequest,
+  ListDelegatedDiagnosticsResponse,
+  ListDelegatedProviderProfilesRequest,
+  ListDelegatedProviderProfilesResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  SetDelegatedProviderStateRequest,
+  SetDelegatedProviderStateResponse,
+  SubmitDelegatedApprovalDecisionRequest,
+  SubmitDelegatedApprovalDecisionResponse,
+  UpsertDelegatedProviderProfileRequest,
+  UpsertDelegatedProviderProfileResponse,
 } from '../generated/runtime/v1/agent_service.js';
 import {
   decodeStreamEvent,
@@ -367,6 +383,38 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       getPublicChatSessionSnapshot: customUnary(RuntimeMethodIds.agent.getPublicChatSessionSnapshot, {
         requestType: GetPublicChatSessionSnapshotRequest,
         responseType: GetPublicChatSessionSnapshotResponse,
+      }),
+      listDelegatedProviderProfiles: customUnary(RuntimeMethodIds.agent.listDelegatedProviderProfiles, {
+        requestType: ListDelegatedProviderProfilesRequest,
+        responseType: ListDelegatedProviderProfilesResponse,
+      }),
+      upsertDelegatedProviderProfile: customUnary(RuntimeMethodIds.agent.upsertDelegatedProviderProfile, {
+        requestType: UpsertDelegatedProviderProfileRequest,
+        responseType: UpsertDelegatedProviderProfileResponse,
+      }),
+      setDelegatedProviderState: customUnary(RuntimeMethodIds.agent.setDelegatedProviderState, {
+        requestType: SetDelegatedProviderStateRequest,
+        responseType: SetDelegatedProviderStateResponse,
+      }),
+      listDelegatedApprovalRequests: customUnary(RuntimeMethodIds.agent.listDelegatedApprovalRequests, {
+        requestType: ListDelegatedApprovalRequestsRequest,
+        responseType: ListDelegatedApprovalRequestsResponse,
+      }),
+      submitDelegatedApprovalDecision: customUnary(RuntimeMethodIds.agent.submitDelegatedApprovalDecision, {
+        requestType: SubmitDelegatedApprovalDecisionRequest,
+        responseType: SubmitDelegatedApprovalDecisionResponse,
+      }),
+      listDelegatedDiagnostics: customUnary(RuntimeMethodIds.agent.listDelegatedDiagnostics, {
+        requestType: ListDelegatedDiagnosticsRequest,
+        responseType: ListDelegatedDiagnosticsResponse,
+      }),
+      getDelegatedReplayTrace: customUnary(RuntimeMethodIds.agent.getDelegatedReplayTrace, {
+        requestType: GetDelegatedReplayTraceRequest,
+        responseType: GetDelegatedReplayTraceResponse,
+      }),
+      getDelegatedControlSurfaceSnapshot: customUnary(RuntimeMethodIds.agent.getDelegatedControlSurfaceSnapshot, {
+        requestType: GetDelegatedControlSurfaceSnapshotRequest,
+        responseType: GetDelegatedControlSurfaceSnapshotResponse,
       }),
       getAgentState: unary(RuntimeMethodIds.agent.getAgentState),
       updateAgentState: unary(RuntimeMethodIds.agent.updateAgentState),

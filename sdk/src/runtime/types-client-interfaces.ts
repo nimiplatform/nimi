@@ -274,8 +274,18 @@ import type {
   GetAgentStateResponse,
   InitializeAgentRequest,
   InitializeAgentResponse,
+  GetDelegatedControlSurfaceSnapshotRequest,
+  GetDelegatedControlSurfaceSnapshotResponse,
+  GetDelegatedReplayTraceRequest,
+  GetDelegatedReplayTraceResponse,
   ListAgentsRequest,
   ListAgentsResponse,
+  ListDelegatedApprovalRequestsRequest,
+  ListDelegatedApprovalRequestsResponse,
+  ListDelegatedDiagnosticsRequest,
+  ListDelegatedDiagnosticsResponse,
+  ListDelegatedProviderProfilesRequest,
+  ListDelegatedProviderProfilesResponse,
   ListPendingHooksRequest,
   ListPendingHooksResponse,
   OpenConversationAnchorRequest,
@@ -286,14 +296,20 @@ import type {
   QueryAgentMemoryResponse,
   SetAgentPresentationProfileRequest,
   SetAgentPresentationProfileResponse,
+  SetDelegatedProviderStateRequest,
+  SetDelegatedProviderStateResponse,
   SetAutonomyConfigRequest,
   SetAutonomyConfigResponse,
+  SubmitDelegatedApprovalDecisionRequest,
+  SubmitDelegatedApprovalDecisionResponse,
   SubscribeAgentEventsRequest,
   AgentEvent,
   TerminateAgentRequest,
   TerminateAgentResponse,
   UpdateAgentStateRequest,
   UpdateAgentStateResponse,
+  UpsertDelegatedProviderProfileRequest,
+  UpsertDelegatedProviderProfileResponse,
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
 } from './generated/runtime/v1/agent_service';
@@ -484,6 +500,38 @@ export type RuntimeAgentClient = {
     request: GetPublicChatSessionSnapshotRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetPublicChatSessionSnapshotResponse>;
+  listDelegatedProviderProfiles(
+    request: ListDelegatedProviderProfilesRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<ListDelegatedProviderProfilesResponse>;
+  upsertDelegatedProviderProfile(
+    request: UpsertDelegatedProviderProfileRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<UpsertDelegatedProviderProfileResponse>;
+  setDelegatedProviderState(
+    request: SetDelegatedProviderStateRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<SetDelegatedProviderStateResponse>;
+  listDelegatedApprovalRequests(
+    request: ListDelegatedApprovalRequestsRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<ListDelegatedApprovalRequestsResponse>;
+  submitDelegatedApprovalDecision(
+    request: SubmitDelegatedApprovalDecisionRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<SubmitDelegatedApprovalDecisionResponse>;
+  listDelegatedDiagnostics(
+    request: ListDelegatedDiagnosticsRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<ListDelegatedDiagnosticsResponse>;
+  getDelegatedReplayTrace(
+    request: GetDelegatedReplayTraceRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<GetDelegatedReplayTraceResponse>;
+  getDelegatedControlSurfaceSnapshot(
+    request: GetDelegatedControlSurfaceSnapshotRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<GetDelegatedControlSurfaceSnapshotResponse>;
   getAgentState(request: GetAgentStateRequest, options?: RuntimeCallOptions): Promise<GetAgentStateResponse>;
   updateAgentState(request: UpdateAgentStateRequest, options?: RuntimeCallOptions): Promise<UpdateAgentStateResponse>;
   setPresentationProfile(

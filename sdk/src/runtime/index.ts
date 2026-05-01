@@ -84,6 +84,14 @@ export {
   HookAdmissionState,
   AgentLifecycleStatus,
   AgentTrackType,
+  DelegatedApprovalDecision,
+  DelegatedApprovalMode,
+  DelegatedApprovalRequestState,
+  DelegatedProviderKind,
+  DelegatedProviderState,
+  DelegatedReplayOutcome,
+  DelegatedTraceStageKind,
+  DelegatedTransportKind,
   HookTriggerFamily,
 } from './generated/runtime/v1/agent_service.js';
 export type {

@@ -12,6 +12,22 @@ import type { WriteAgentMemoryResponse } from "./agent_service";
 import type { WriteAgentMemoryRequest } from "./agent_service";
 import type { QueryAgentMemoryResponse } from "./agent_service";
 import type { QueryAgentMemoryRequest } from "./agent_service";
+import type { GetDelegatedControlSurfaceSnapshotResponse } from "./agent_service";
+import type { GetDelegatedControlSurfaceSnapshotRequest } from "./agent_service";
+import type { GetDelegatedReplayTraceResponse } from "./agent_service";
+import type { GetDelegatedReplayTraceRequest } from "./agent_service";
+import type { ListDelegatedDiagnosticsResponse } from "./agent_service";
+import type { ListDelegatedDiagnosticsRequest } from "./agent_service";
+import type { SubmitDelegatedApprovalDecisionResponse } from "./agent_service";
+import type { SubmitDelegatedApprovalDecisionRequest } from "./agent_service";
+import type { ListDelegatedApprovalRequestsResponse } from "./agent_service";
+import type { ListDelegatedApprovalRequestsRequest } from "./agent_service";
+import type { SetDelegatedProviderStateResponse } from "./agent_service";
+import type { SetDelegatedProviderStateRequest } from "./agent_service";
+import type { UpsertDelegatedProviderProfileResponse } from "./agent_service";
+import type { UpsertDelegatedProviderProfileRequest } from "./agent_service";
+import type { ListDelegatedProviderProfilesResponse } from "./agent_service";
+import type { ListDelegatedProviderProfilesRequest } from "./agent_service";
 import type { CancelHookResponse } from "./agent_service";
 import type { CancelHookRequest } from "./agent_service";
 import type { ListPendingHooksResponse } from "./agent_service";
@@ -109,6 +125,38 @@ export interface IRuntimeAgentServiceClient {
      * @generated from protobuf rpc: CancelHook
      */
     cancelHook(input: CancelHookRequest, options?: RpcOptions): UnaryCall<CancelHookRequest, CancelHookResponse>;
+    /**
+     * @generated from protobuf rpc: ListDelegatedProviderProfiles
+     */
+    listDelegatedProviderProfiles(input: ListDelegatedProviderProfilesRequest, options?: RpcOptions): UnaryCall<ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse>;
+    /**
+     * @generated from protobuf rpc: UpsertDelegatedProviderProfile
+     */
+    upsertDelegatedProviderProfile(input: UpsertDelegatedProviderProfileRequest, options?: RpcOptions): UnaryCall<UpsertDelegatedProviderProfileRequest, UpsertDelegatedProviderProfileResponse>;
+    /**
+     * @generated from protobuf rpc: SetDelegatedProviderState
+     */
+    setDelegatedProviderState(input: SetDelegatedProviderStateRequest, options?: RpcOptions): UnaryCall<SetDelegatedProviderStateRequest, SetDelegatedProviderStateResponse>;
+    /**
+     * @generated from protobuf rpc: ListDelegatedApprovalRequests
+     */
+    listDelegatedApprovalRequests(input: ListDelegatedApprovalRequestsRequest, options?: RpcOptions): UnaryCall<ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse>;
+    /**
+     * @generated from protobuf rpc: SubmitDelegatedApprovalDecision
+     */
+    submitDelegatedApprovalDecision(input: SubmitDelegatedApprovalDecisionRequest, options?: RpcOptions): UnaryCall<SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse>;
+    /**
+     * @generated from protobuf rpc: ListDelegatedDiagnostics
+     */
+    listDelegatedDiagnostics(input: ListDelegatedDiagnosticsRequest, options?: RpcOptions): UnaryCall<ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse>;
+    /**
+     * @generated from protobuf rpc: GetDelegatedReplayTrace
+     */
+    getDelegatedReplayTrace(input: GetDelegatedReplayTraceRequest, options?: RpcOptions): UnaryCall<GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse>;
+    /**
+     * @generated from protobuf rpc: GetDelegatedControlSurfaceSnapshot
+     */
+    getDelegatedControlSurfaceSnapshot(input: GetDelegatedControlSurfaceSnapshotRequest, options?: RpcOptions): UnaryCall<GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse>;
     /**
      * @generated from protobuf rpc: QueryAgentMemory
      */
@@ -237,24 +285,80 @@ export class RuntimeAgentServiceClient implements IRuntimeAgentServiceClient, Se
         return stackIntercept<CancelHookRequest, CancelHookResponse>("unary", this._transport, method, opt, input);
     }
     /**
+     * @generated from protobuf rpc: ListDelegatedProviderProfiles
+     */
+    listDelegatedProviderProfiles(input: ListDelegatedProviderProfilesRequest, options?: RpcOptions): UnaryCall<ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse> {
+        const method = this.methods[15], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListDelegatedProviderProfilesRequest, ListDelegatedProviderProfilesResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: UpsertDelegatedProviderProfile
+     */
+    upsertDelegatedProviderProfile(input: UpsertDelegatedProviderProfileRequest, options?: RpcOptions): UnaryCall<UpsertDelegatedProviderProfileRequest, UpsertDelegatedProviderProfileResponse> {
+        const method = this.methods[16], opt = this._transport.mergeOptions(options);
+        return stackIntercept<UpsertDelegatedProviderProfileRequest, UpsertDelegatedProviderProfileResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: SetDelegatedProviderState
+     */
+    setDelegatedProviderState(input: SetDelegatedProviderStateRequest, options?: RpcOptions): UnaryCall<SetDelegatedProviderStateRequest, SetDelegatedProviderStateResponse> {
+        const method = this.methods[17], opt = this._transport.mergeOptions(options);
+        return stackIntercept<SetDelegatedProviderStateRequest, SetDelegatedProviderStateResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ListDelegatedApprovalRequests
+     */
+    listDelegatedApprovalRequests(input: ListDelegatedApprovalRequestsRequest, options?: RpcOptions): UnaryCall<ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse> {
+        const method = this.methods[18], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListDelegatedApprovalRequestsRequest, ListDelegatedApprovalRequestsResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: SubmitDelegatedApprovalDecision
+     */
+    submitDelegatedApprovalDecision(input: SubmitDelegatedApprovalDecisionRequest, options?: RpcOptions): UnaryCall<SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse> {
+        const method = this.methods[19], opt = this._transport.mergeOptions(options);
+        return stackIntercept<SubmitDelegatedApprovalDecisionRequest, SubmitDelegatedApprovalDecisionResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ListDelegatedDiagnostics
+     */
+    listDelegatedDiagnostics(input: ListDelegatedDiagnosticsRequest, options?: RpcOptions): UnaryCall<ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse> {
+        const method = this.methods[20], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListDelegatedDiagnosticsRequest, ListDelegatedDiagnosticsResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: GetDelegatedReplayTrace
+     */
+    getDelegatedReplayTrace(input: GetDelegatedReplayTraceRequest, options?: RpcOptions): UnaryCall<GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse> {
+        const method = this.methods[21], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetDelegatedReplayTraceRequest, GetDelegatedReplayTraceResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: GetDelegatedControlSurfaceSnapshot
+     */
+    getDelegatedControlSurfaceSnapshot(input: GetDelegatedControlSurfaceSnapshotRequest, options?: RpcOptions): UnaryCall<GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse> {
+        const method = this.methods[22], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
      * @generated from protobuf rpc: QueryAgentMemory
      */
     queryAgentMemory(input: QueryAgentMemoryRequest, options?: RpcOptions): UnaryCall<QueryAgentMemoryRequest, QueryAgentMemoryResponse> {
-        const method = this.methods[15], opt = this._transport.mergeOptions(options);
+        const method = this.methods[23], opt = this._transport.mergeOptions(options);
         return stackIntercept<QueryAgentMemoryRequest, QueryAgentMemoryResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: WriteAgentMemory
      */
     writeAgentMemory(input: WriteAgentMemoryRequest, options?: RpcOptions): UnaryCall<WriteAgentMemoryRequest, WriteAgentMemoryResponse> {
-        const method = this.methods[16], opt = this._transport.mergeOptions(options);
+        const method = this.methods[24], opt = this._transport.mergeOptions(options);
         return stackIntercept<WriteAgentMemoryRequest, WriteAgentMemoryResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: SubscribeAgentEvents
      */
     subscribeAgentEvents(input: SubscribeAgentEventsRequest, options?: RpcOptions): ServerStreamingCall<SubscribeAgentEventsRequest, AgentEvent> {
-        const method = this.methods[17], opt = this._transport.mergeOptions(options);
+        const method = this.methods[25], opt = this._transport.mergeOptions(options);
         return stackIntercept<SubscribeAgentEventsRequest, AgentEvent>("serverStreaming", this._transport, method, opt, input);
     }
 }

@@ -1,11 +1,17 @@
 import type {
   AgentEvent,
+  GetDelegatedControlSurfaceSnapshotRequest,
+  GetDelegatedControlSurfaceSnapshotResponse,
+  GetDelegatedReplayTraceRequest,
+  GetDelegatedReplayTraceResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  SubmitDelegatedApprovalDecisionRequest,
+  SubmitDelegatedApprovalDecisionResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
   SetAgentPresentationProfileRequest,
@@ -54,6 +60,15 @@ const runtimeAgentPresentationResult = runtime.call(
 const runtimeAgentOpenAnchorResult = runtime.agent.openConversationAnchor({} as OpenConversationAnchorRequest);
 const runtimeAgentGetAnchorSnapshotResult = runtime.agent.getConversationAnchorSnapshot({} as GetConversationAnchorSnapshotRequest);
 const runtimeAgentGetPublicChatSessionSnapshotResult = runtime.agent.getPublicChatSessionSnapshot({} as GetPublicChatSessionSnapshotRequest);
+const runtimeAgentDelegatedSnapshotResult = runtime.agent.getDelegatedControlSurfaceSnapshot(
+  {} as GetDelegatedControlSurfaceSnapshotRequest,
+);
+const runtimeAgentDelegatedApprovalResult = runtime.agent.submitDelegatedApprovalDecision(
+  {} as SubmitDelegatedApprovalDecisionRequest,
+);
+const runtimeAgentDelegatedReplayResult = runtime.agent.getDelegatedReplayTrace(
+  {} as GetDelegatedReplayTraceRequest,
+);
 const fallbackRawResult = raw.call('/nimi.runtime.v1.Custom/Unknown', {});
 
 type _GuardRawUnaryResult = Assert<IsEqual<
@@ -107,6 +122,18 @@ type _GuardRuntimeAgentGetAnchorSnapshotResult = Assert<IsEqual<
 type _GuardRuntimeAgentGetPublicChatSessionSnapshotResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentGetPublicChatSessionSnapshotResult>,
   GetPublicChatSessionSnapshotResponse
+>>;
+type _GuardRuntimeAgentDelegatedSnapshotResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentDelegatedSnapshotResult>,
+  GetDelegatedControlSurfaceSnapshotResponse
+>>;
+type _GuardRuntimeAgentDelegatedApprovalResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentDelegatedApprovalResult>,
+  SubmitDelegatedApprovalDecisionResponse
+>>;
+type _GuardRuntimeAgentDelegatedReplayResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentDelegatedReplayResult>,
+  GetDelegatedReplayTraceResponse
 >>;
 type _GuardFallbackRawResult = Assert<IsEqual<
   Awaited<typeof fallbackRawResult>,
