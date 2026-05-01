@@ -225,6 +225,10 @@ export async function resolveLocalRuntimeEnvironmentPlan(
     packId: String(payload.packId || '').trim(),
     consumerScope: String(payload.consumerScope || '').trim(),
     runtimeDataRoot: String(payload.runtimeDataRoot || '').trim(),
+    assetId: String(payload.assetId || '').trim(),
+    localAssetId: String(payload.localAssetId || '').trim(),
+    companionAssetId: String(payload.companionAssetId || '').trim(),
+    parentAssetId: String(payload.parentAssetId || '').trim(),
   });
   return parseLocalRuntimeEnvironmentPlan(asRecord(response).plan);
 }
@@ -265,6 +269,10 @@ export async function resolveLocalRuntimeEnvironmentActivationGate(
     consumerId: String(payload.consumerId || '').trim(),
     packId: String(payload.packId || '').trim(),
     runtimeDataRoot: String(payload.runtimeDataRoot || '').trim(),
+    assetId: String(payload.assetId || '').trim(),
+    localAssetId: String(payload.localAssetId || '').trim(),
+    companionAssetId: String(payload.companionAssetId || '').trim(),
+    parentAssetId: String(payload.parentAssetId || '').trim(),
   });
   return parseLocalRuntimeEnvironmentActivationGate(asRecord(response).gate);
 }

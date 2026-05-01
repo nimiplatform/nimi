@@ -624,6 +624,10 @@ export type LocalRuntimeEnvironmentPlanPayload = {
   packId: string;
   consumerScope?: string;
   runtimeDataRoot?: string;
+  assetId?: string;
+  localAssetId?: string;
+  companionAssetId?: string;
+  parentAssetId?: string;
 };
 
 export type LocalRuntimeEnvironmentSelectedSourceRecord = {
@@ -709,6 +713,10 @@ export type LocalRuntimeEnvironmentActivationGatePayload = {
   consumerId: string;
   packId: string;
   runtimeDataRoot?: string;
+  assetId?: string;
+  localAssetId?: string;
+  companionAssetId?: string;
+  parentAssetId?: string;
 };
 
 export type LocalRuntimeAssetDeclaration = {

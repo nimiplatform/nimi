@@ -731,6 +731,22 @@ export interface ResolveLocalEnvironmentPlanRequest {
      * @generated from protobuf field: string runtime_data_root = 4
      */
     runtimeDataRoot: string;
+    /**
+     * @generated from protobuf field: string asset_id = 5
+     */
+    assetId: string;
+    /**
+     * @generated from protobuf field: string local_asset_id = 6
+     */
+    localAssetId: string;
+    /**
+     * @generated from protobuf field: string companion_asset_id = 7
+     */
+    companionAssetId: string;
+    /**
+     * @generated from protobuf field: string parent_asset_id = 8
+     */
+    parentAssetId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ResolveLocalEnvironmentPlanResponse
@@ -805,6 +821,22 @@ export interface ResolveLocalEnvironmentActivationGateRequest {
      * @generated from protobuf field: string runtime_data_root = 4
      */
     runtimeDataRoot: string;
+    /**
+     * @generated from protobuf field: string asset_id = 5
+     */
+    assetId: string;
+    /**
+     * @generated from protobuf field: string local_asset_id = 6
+     */
+    localAssetId: string;
+    /**
+     * @generated from protobuf field: string companion_asset_id = 7
+     */
+    companionAssetId: string;
+    /**
+     * @generated from protobuf field: string parent_asset_id = 8
+     */
+    parentAssetId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ResolveLocalEnvironmentActivationGateResponse
@@ -3904,7 +3936,11 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
             { no: 1, name: "pack_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "consumer_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "host_profile", kind: "message", T: () => LocalDeviceProfile },
-            { no: 4, name: "runtime_data_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "runtime_data_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "local_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "companion_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "parent_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ResolveLocalEnvironmentPlanRequest>): ResolveLocalEnvironmentPlanRequest {
@@ -3912,6 +3948,10 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
         message.packId = "";
         message.consumerScope = "";
         message.runtimeDataRoot = "";
+        message.assetId = "";
+        message.localAssetId = "";
+        message.companionAssetId = "";
+        message.parentAssetId = "";
         if (value !== undefined)
             reflectionMergePartial<ResolveLocalEnvironmentPlanRequest>(this, message, value);
         return message;
@@ -3932,6 +3972,18 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
                     break;
                 case /* string runtime_data_root */ 4:
                     message.runtimeDataRoot = reader.string();
+                    break;
+                case /* string asset_id */ 5:
+                    message.assetId = reader.string();
+                    break;
+                case /* string local_asset_id */ 6:
+                    message.localAssetId = reader.string();
+                    break;
+                case /* string companion_asset_id */ 7:
+                    message.companionAssetId = reader.string();
+                    break;
+                case /* string parent_asset_id */ 8:
+                    message.parentAssetId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3957,6 +4009,18 @@ class ResolveLocalEnvironmentPlanRequest$Type extends MessageType<ResolveLocalEn
         /* string runtime_data_root = 4; */
         if (message.runtimeDataRoot !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.runtimeDataRoot);
+        /* string asset_id = 5; */
+        if (message.assetId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.assetId);
+        /* string local_asset_id = 6; */
+        if (message.localAssetId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.localAssetId);
+        /* string companion_asset_id = 7; */
+        if (message.companionAssetId !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.companionAssetId);
+        /* string parent_asset_id = 8; */
+        if (message.parentAssetId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.parentAssetId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4224,7 +4288,11 @@ class ResolveLocalEnvironmentActivationGateRequest$Type extends MessageType<Reso
             { no: 1, name: "consumer_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "pack_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "host_profile", kind: "message", T: () => LocalDeviceProfile },
-            { no: 4, name: "runtime_data_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "runtime_data_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "local_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "companion_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "parent_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ResolveLocalEnvironmentActivationGateRequest>): ResolveLocalEnvironmentActivationGateRequest {
@@ -4232,6 +4300,10 @@ class ResolveLocalEnvironmentActivationGateRequest$Type extends MessageType<Reso
         message.consumerId = "";
         message.packId = "";
         message.runtimeDataRoot = "";
+        message.assetId = "";
+        message.localAssetId = "";
+        message.companionAssetId = "";
+        message.parentAssetId = "";
         if (value !== undefined)
             reflectionMergePartial<ResolveLocalEnvironmentActivationGateRequest>(this, message, value);
         return message;
@@ -4252,6 +4324,18 @@ class ResolveLocalEnvironmentActivationGateRequest$Type extends MessageType<Reso
                     break;
                 case /* string runtime_data_root */ 4:
                     message.runtimeDataRoot = reader.string();
+                    break;
+                case /* string asset_id */ 5:
+                    message.assetId = reader.string();
+                    break;
+                case /* string local_asset_id */ 6:
+                    message.localAssetId = reader.string();
+                    break;
+                case /* string companion_asset_id */ 7:
+                    message.companionAssetId = reader.string();
+                    break;
+                case /* string parent_asset_id */ 8:
+                    message.parentAssetId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4277,6 +4361,18 @@ class ResolveLocalEnvironmentActivationGateRequest$Type extends MessageType<Reso
         /* string runtime_data_root = 4; */
         if (message.runtimeDataRoot !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.runtimeDataRoot);
+        /* string asset_id = 5; */
+        if (message.assetId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.assetId);
+        /* string local_asset_id = 6; */
+        if (message.localAssetId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.localAssetId);
+        /* string companion_asset_id = 7; */
+        if (message.companionAssetId !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.companionAssetId);
+        /* string parent_asset_id = 8; */
+        if (message.parentAssetId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.parentAssetId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

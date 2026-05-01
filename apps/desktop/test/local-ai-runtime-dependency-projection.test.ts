@@ -80,6 +80,10 @@ test('local runtime facade exposes SDK-backed local environment projection metho
   assert.match(localRuntimeFacadeSource, /repairEnvironmentDependency:\s*repairLocalRuntimeEnvironmentDependency/);
   assert.doesNotMatch(localRuntimeFacadeSource, /startDependencySetup/);
   assert.match(localRuntimeCommandsSource, /runtime\.resolveLocalEnvironmentPlan/);
+  assert.match(localRuntimeCommandsSource, /assetId:\s*String\(payload\.assetId \|\| ''\)\.trim\(\)/);
+  assert.match(localRuntimeCommandsSource, /localAssetId:\s*String\(payload\.localAssetId \|\| ''\)\.trim\(\)/);
+  assert.match(localRuntimeCommandsSource, /companionAssetId:\s*String\(payload\.companionAssetId \|\| ''\)\.trim\(\)/);
+  assert.match(localRuntimeCommandsSource, /parentAssetId:\s*String\(payload\.parentAssetId \|\| ''\)\.trim\(\)/);
   assert.match(localRuntimeCommandsSource, /runtime\.listLocalEnvironmentSelectedSources/);
   assert.match(localRuntimeCommandsSource, /runtime\.listLocalEnvironmentDependencyJobs/);
   assert.match(localRuntimeCommandsSource, /runtime\.resolveLocalEnvironmentActivationGate/);

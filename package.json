@@ -149,7 +149,7 @@
     "run:ai-gold-path:dashscope": "node scripts/run-dashscope-gold-path.mjs",
     "proto:generate": "node scripts/run-buf.mjs generate",
     "proto:lint": "node scripts/run-buf.mjs lint",
-    "proto:breaking": "./scripts/proto-breaking.sh",
+    "proto:breaking": "node scripts/proto-breaking.mjs",
     "proto:drift-check": "node scripts/check-proto-drift.mjs",
     "check:mods-no-runtime-sdk": "node scripts/check-mods-no-runtime-sdk.mjs",
     "check:release-preflight": "./scripts/check-release-preflight.sh",
