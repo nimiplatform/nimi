@@ -544,6 +544,19 @@ func TestPublicChatTurnRequestStreamsAndAppliesPostTurnEffects(t *testing.T) {
 	if got := memoryResp.GetMemories()[0].GetRecord().GetPayload().(*runtimev1.MemoryRecord_Observational).Observational.GetObservation(); got != "hello from runtime" {
 		t.Fatalf("unexpected dyadic memory observation: %q", got)
 	}
+	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-committed-transcript")
+	snapshotDetail := publicChatSessionSnapshotDetail(t, snapshot)
+	if got := snapshotDetail["transcript_message_count"]; got != float64(2) {
+		t.Fatalf("expected committed assistant in transcript, got snapshot=%v", snapshotDetail)
+	}
+	transcript := snapshotDetail["transcript"].([]any)
+	assistant := transcript[1].(map[string]any)
+	if got := assistant["role"]; got != "assistant" {
+		t.Fatalf("expected transcript[1].role=assistant, got=%v", assistant)
+	}
+	if got := assistant["content"]; got != "hello from runtime" {
+		t.Fatalf("expected transcript[1].content=hello from runtime, got=%v", assistant)
+	}
 }
 func TestPublicChatTurnRequestDetachesExecutionFromIngressContext(t *testing.T) {
 	t.Parallel()

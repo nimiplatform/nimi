@@ -118,6 +118,24 @@ function transcriptMatchesBundle(
   });
 }
 
+function transcriptWouldDropCommittedAssistantText(
+  transcript: readonly RuntimeAgentMessage[],
+  bundle: AgentLocalThreadBundle | null | undefined,
+): boolean {
+  if (!bundle) {
+    return false;
+  }
+  const transcriptAssistantCount = transcript
+    .filter(isTranscriptTextMessage)
+    .filter((message) => normalizeText(message.role) === 'assistant')
+    .length;
+  const currentAssistantCount = bundle.messages
+    .filter(isCommittedTextProjectionMessage)
+    .filter((message) => normalizeText(message.role) === 'assistant')
+    .length;
+  return transcriptAssistantCount < currentAssistantCount;
+}
+
 function committedMediaProjectionMessages(
   bundle: AgentLocalThreadBundle | null | undefined,
 ): AgentLocalMessageRecord[] {
@@ -171,6 +189,9 @@ export function hydrateAgentThreadBundleFromRuntimeSessionSnapshot(input: {
     return null;
   }
   if (input.bundle?.messages.some((message) => message.status === 'pending')) {
+    return null;
+  }
+  if (transcriptWouldDropCommittedAssistantText(transcript, input.bundle)) {
     return null;
   }
   if (transcriptMatchesBundle(transcript, input.bundle)) {

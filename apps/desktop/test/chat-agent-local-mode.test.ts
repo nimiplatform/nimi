@@ -239,6 +239,110 @@ test('agent session hydration preserves local pending projections over runtime s
   assert.equal(hydrated, null);
 });
 
+test('agent session hydration does not drop committed assistant text when failed runtime snapshot regresses transcript', () => {
+  const thread = {
+    id: 'thread-1',
+    agentId: 'agent-1',
+    title: 'Agent One',
+    createdAtMs: 1000,
+    updatedAtMs: 3000,
+    lastMessageAtMs: 3000,
+    archivedAtMs: null,
+    targetSnapshot: {
+      agentId: 'agent-1',
+      displayName: 'Agent One',
+      handle: 'agent-one',
+      avatarUrl: null,
+      presentationProfile: null,
+      worldId: null,
+      worldName: null,
+      bio: null,
+      ownershipType: null,
+    },
+  };
+
+  const hydrated = hydrateAgentThreadBundleFromRuntimeSessionSnapshot({
+    thread,
+    bundle: {
+      thread,
+      messages: [
+        {
+          id: 'anchor-1:session:0',
+          threadId: 'thread-1',
+          role: 'user',
+          status: 'complete',
+          kind: 'text',
+          contentText: 'hello',
+          reasoningText: null,
+          error: null,
+          traceId: null,
+          parentMessageId: null,
+          mediaUrl: null,
+          mediaMimeType: null,
+          artifactId: null,
+          metadataJson: null,
+          createdAtMs: 1001,
+          updatedAtMs: 1001,
+        },
+        {
+          id: 'anchor-1:session:1',
+          threadId: 'thread-1',
+          role: 'assistant',
+          status: 'complete',
+          kind: 'text',
+          contentText: 'previous response',
+          reasoningText: null,
+          error: null,
+          traceId: null,
+          parentMessageId: 'anchor-1:session:0',
+          mediaUrl: null,
+          mediaMimeType: null,
+          artifactId: null,
+          metadataJson: null,
+          createdAtMs: 1002,
+          updatedAtMs: 1002,
+        },
+        {
+          id: 'local-user-new',
+          threadId: 'thread-1',
+          role: 'user',
+          status: 'complete',
+          kind: 'text',
+          contentText: 'today weather?',
+          reasoningText: null,
+          error: null,
+          traceId: null,
+          parentMessageId: null,
+          mediaUrl: null,
+          mediaMimeType: null,
+          artifactId: null,
+          metadataJson: null,
+          createdAtMs: 3000,
+          updatedAtMs: 3000,
+        },
+      ],
+      draft: null,
+    },
+    conversationAnchorId: 'anchor-1',
+    snapshot: {
+      transcript: [
+        { role: 'user', content: 'hello' },
+        { role: 'user', content: 'today weather?' },
+      ],
+      transcriptMessageCount: 2,
+      lastTurn: {
+        turnId: 'turn-failed',
+        status: 'failed',
+        message: 'structured chat output must be APML beginning with <message>',
+        reasonCode: 'AI_OUTPUT_INVALID',
+      },
+    },
+    nowMs: 5000,
+  });
+
+  assert.equal(hydrated, null);
+});
+
 test('agent session hydration preserves committed assistant image projection when text transcript matches', () => {
   const thread = {
     id: 'thread-1',

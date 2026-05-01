@@ -81,6 +81,152 @@ func clonePublicChatTurnProjectionState(input *publicChatTurnProjectionState) *p
 	return &out
 }
 
+func reconcilePublicChatSessionTranscript(current []*runtimev1.ChatMessage, incoming []*runtimev1.ChatMessage) []*runtimev1.ChatMessage {
+	if len(incoming) == 0 {
+		return cloneChatMessages(current)
+	}
+	if len(current) == 0 {
+		return cloneChatMessages(incoming)
+	}
+	if publicChatTranscriptHasPrefix(incoming, current) {
+		return cloneChatMessages(incoming)
+	}
+	if publicChatTranscriptHasPrefix(current, incoming) {
+		return cloneChatMessages(current)
+	}
+	if overlap := publicChatTranscriptSuffixPrefixOverlap(current, incoming); overlap > 0 {
+		merged := cloneChatMessages(current)
+		merged = append(merged, cloneChatMessages(incoming[overlap:])...)
+		return merged
+	}
+	if publicChatTranscriptAssistantCount(incoming) < publicChatTranscriptAssistantCount(current) {
+		return appendPublicChatUnmatchedIncomingTranscript(current, incoming)
+	}
+	if prefix := publicChatTranscriptCommonPrefixLength(current, incoming); prefix > 0 {
+		merged := cloneChatMessages(current)
+		merged = append(merged, cloneChatMessages(incoming[prefix:])...)
+		return merged
+	}
+	return cloneChatMessages(incoming)
+}
+
+func appendPublicChatUnmatchedIncomingTranscript(current []*runtimev1.ChatMessage, incoming []*runtimev1.ChatMessage) []*runtimev1.ChatMessage {
+	merged := cloneChatMessages(current)
+	currentIndex := 0
+	for _, incomingMessage := range incoming {
+		matched := false
+		for scanIndex := currentIndex; scanIndex < len(current); scanIndex++ {
+			if publicChatMessagesEquivalent(current[scanIndex], incomingMessage) {
+				currentIndex = scanIndex + 1
+				matched = true
+				break
+			}
+		}
+		if matched {
+			continue
+		}
+		merged = append(merged, cloneChatMessages([]*runtimev1.ChatMessage{incomingMessage})...)
+	}
+	return merged
+}
+
+func publicChatTranscriptWithCommittedAssistant(transcript []*runtimev1.ChatMessage, projection *publicChatTurnProjectionState) []*runtimev1.ChatMessage {
+	out := cloneChatMessages(transcript)
+	if projection == nil || projection.Status != publicChatTurnStatusCompleted {
+		return out
+	}
+	return appendPublicChatAssistantTranscript(out, projection.AssistantText)
+}
+
+func appendPublicChatAssistantTranscript(transcript []*runtimev1.ChatMessage, assistantText string) []*runtimev1.ChatMessage {
+	trimmedText := strings.TrimSpace(assistantText)
+	out := cloneChatMessages(transcript)
+	if trimmedText == "" {
+		return out
+	}
+	assistant := &runtimev1.ChatMessage{
+		Role:    "assistant",
+		Content: trimmedText,
+	}
+	if len(out) > 0 && publicChatMessagesEquivalent(out[len(out)-1], assistant) {
+		return out
+	}
+	out = append(out, assistant)
+	return out
+}
+
+func publicChatTranscriptHasPrefix(messages []*runtimev1.ChatMessage, prefix []*runtimev1.ChatMessage) bool {
+	if len(prefix) > len(messages) {
+		return false
+	}
+	for i := range prefix {
+		if !publicChatMessagesEquivalent(messages[i], prefix[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func publicChatTranscriptSuffixPrefixOverlap(current []*runtimev1.ChatMessage, incoming []*runtimev1.ChatMessage) int {
+	limit := len(current)
+	if len(incoming) < limit {
+		limit = len(incoming)
+	}
+	for size := limit; size > 0; size-- {
+		matches := true
+		offset := len(current) - size
+		for i := 0; i < size; i++ {
+			if !publicChatMessagesEquivalent(current[offset+i], incoming[i]) {
+				matches = false
+				break
+			}
+		}
+		if matches {
+			return size
+		}
+	}
+	return 0
+}
+
+func publicChatTranscriptCommonPrefixLength(left []*runtimev1.ChatMessage, right []*runtimev1.ChatMessage) int {
+	limit := len(left)
+	if len(right) < limit {
+		limit = len(right)
+	}
+	for i := 0; i < limit; i++ {
+		if !publicChatMessagesEquivalent(left[i], right[i]) {
+			return i
+		}
+	}
+	return limit
+}
+
+func publicChatTranscriptAssistantCount(messages []*runtimev1.ChatMessage) int {
+	count := 0
+	for _, message := range messages {
+		if strings.TrimSpace(message.GetRole()) == "assistant" && strings.TrimSpace(message.GetContent()) != "" {
+			count++
+		}
+	}
+	return count
+}
+
+func publicChatMessagesEquivalent(left *runtimev1.ChatMessage, right *runtimev1.ChatMessage) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	if strings.TrimSpace(left.GetRole()) != strings.TrimSpace(right.GetRole()) {
+		return false
+	}
+	if strings.TrimSpace(left.GetName()) != strings.TrimSpace(right.GetName()) {
+		return false
+	}
+	if left.GetContent() != right.GetContent() {
+		return false
+	}
+	return proto.Equal(left, right)
+}
+
 func (p *publicChatTurnProjectionState) payload() map[string]any {
 	if p == nil {
 		return map[string]any{}
@@ -233,6 +379,7 @@ func (s *Service) finalizePublicChatTurnProjection(turnID string, persist bool, 
 	if session := s.chatAnchors[turn.ConversationAnchorID]; session != nil {
 		session.ActiveTurnSnapshot = nil
 		session.LastTurnSnapshot = clonePublicChatTurnProjectionState(projection)
+		session.Transcript = publicChatTranscriptWithCommittedAssistant(session.Transcript, projection)
 		if strings.TrimSpace(projection.MessageID) != "" {
 			session.LastMessageID = strings.TrimSpace(projection.MessageID)
 		}
@@ -270,6 +417,9 @@ func (s *Service) snapshotPublicChatAnchorForCaller(callerAppID string, anchorID
 	snapshot.Transcript = cloneChatMessages(session.Transcript)
 	snapshot.ActiveTurnSnapshot = clonePublicChatTurnProjectionState(session.ActiveTurnSnapshot)
 	snapshot.LastTurnSnapshot = clonePublicChatTurnProjectionState(session.LastTurnSnapshot)
+	if strings.TrimSpace(snapshot.ActiveTurnID) == "" {
+		snapshot.Transcript = publicChatTranscriptWithCommittedAssistant(snapshot.Transcript, snapshot.LastTurnSnapshot)
+	}
 	var activeTurn *publicChatTurnProjectionState
 	if trimmedActiveTurnID := strings.TrimSpace(session.ActiveTurnID); trimmedActiveTurnID != "" && session.ActiveTurnSnapshot != nil {
 		if turn := s.chatTurns[trimmedActiveTurnID]; turn != nil {

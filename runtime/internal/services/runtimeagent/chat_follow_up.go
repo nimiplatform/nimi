@@ -238,10 +238,7 @@ func (s *Service) appendPublicChatAssistantMessage(anchorID string, assistantTex
 		s.chatSurfaceMu.Unlock()
 		return
 	}
-	session.Transcript = append(session.Transcript, &runtimev1.ChatMessage{
-		Role:    "assistant",
-		Content: strings.TrimSpace(assistantText),
-	})
+	session.Transcript = appendPublicChatAssistantTranscript(session.Transcript, assistantText)
 	session.UpdatedAt = time.Now().UTC()
 	s.chatSurfaceMu.Unlock()
 	s.persistCurrentPublicChatSurfaceState()

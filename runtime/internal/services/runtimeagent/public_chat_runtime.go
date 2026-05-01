@@ -695,8 +695,9 @@ func (r publicChatRuntime) reserveTurn(
 	if reasoning != nil || session.Reasoning == nil {
 		session.Reasoning = clonePublicChatReasoningConfig(reasoning)
 	}
+	session.Transcript = publicChatTranscriptWithCommittedAssistant(session.Transcript, session.LastTurnSnapshot)
 	if len(transcript) > 0 {
-		session.Transcript = transcript
+		session.Transcript = reconcilePublicChatSessionTranscript(session.Transcript, transcript)
 	}
 	// Public chat turn execution is asynchronous relative to the ingress
 	// app-message handler. The runtime-owned turn context must therefore not

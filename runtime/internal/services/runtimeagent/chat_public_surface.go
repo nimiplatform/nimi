@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"io"
+	"sort"
 	"strings"
 	"time"
 )
@@ -234,6 +235,51 @@ func NewAIBackedPublicChatTurnExecutor(ai publicChatScenarioStreamer) PublicChat
 	}
 	return &aiBackedPublicChatTurnExecutor{ai: ai}
 }
+
+const publicChatAPMLOutputContractPromptTemplate = `Runtime output contract:
+- Return APML only. The first non-whitespace characters must be <message id="message-0">.
+- Do not output Markdown, JSON, code fences, prose before APML, or <think> reasoning tags.
+- Required shape: <message id="message-0">assistant-visible reply text</message>.
+- Optional message cues, at most one each: <emotion>%s</emotion> and <activity>%s</activity>.
+- Optional image/voice action after message: <action id="action-0" kind="image"><prompt-payload kind="image"><prompt-text>generation prompt</prompt-text></prompt-payload></action> or kind="voice".
+- Optional follow-up hook after message: <time-hook id="hook-0"><delay-ms>600000</delay-ms><effect kind="follow-up-turn"><prompt-text>follow-up instruction</prompt-text></effect></time-hook>.
+- Every opened tag must close.`
+
+func publicChatAPMLOutputContractPrompt() string {
+	return fmt.Sprintf(
+		publicChatAPMLOutputContractPromptTemplate,
+		strings.Join(publicChatSortedSetKeys(admittedCurrentEmotions), "|"),
+		strings.Join(publicChatSortedStringMapKeys(admittedActivityCategories), "|"),
+	)
+}
+
+func publicChatSystemPromptWithAPMLOutputContract(base string) string {
+	trimmed := strings.TrimSpace(base)
+	contract := publicChatAPMLOutputContractPrompt()
+	if trimmed == "" {
+		return contract
+	}
+	return trimmed + "\n\n" + contract
+}
+
+func publicChatSortedSetKeys(values map[string]struct{}) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func publicChatSortedStringMapKeys(values map[string]string) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
 func (s *publicChatScenarioStreamServer) SetHeader(metadata.MD) error  { return nil }
 func (s *publicChatScenarioStreamServer) SendHeader(metadata.MD) error { return nil }
 func (s *publicChatScenarioStreamServer) SetTrailer(metadata.MD)       {}
@@ -286,7 +332,7 @@ func (e *aiBackedPublicChatTurnExecutor) StreamChatTurn(
 			Spec: &runtimev1.ScenarioSpec_TextGenerate{
 				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
 					Input:        cloneChatMessages(req.Messages),
-					SystemPrompt: strings.TrimSpace(req.SystemPrompt),
+					SystemPrompt: publicChatSystemPromptWithAPMLOutputContract(req.SystemPrompt),
 					MaxTokens:    req.MaxTokens,
 					Reasoning:    toProtoReasoningConfig(req.Reasoning),
 				},
