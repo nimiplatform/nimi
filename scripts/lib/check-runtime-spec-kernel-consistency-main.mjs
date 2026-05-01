@@ -4,7 +4,12 @@ import path from 'node:path';
 import YAML from 'yaml';
 import { createCatalogChecks } from './runtime-spec-catalog-checks.mjs';
 import { checkConfigOverrideTraceability } from './runtime-config-override-traceability.mjs';
+import { checkRpcMigrationMapCoverage as checkRpcMigrationMapCoverageImpl } from './runtime-spec-rpc-migration-checks.mjs';
 import { readYamlWithFragments } from './read-yaml-with-fragments.mjs';
+import {
+  collectReferencedRuntimeRuleIds,
+  createRuntimeSpecTraceabilityChecks,
+} from './runtime-spec-traceability-checks.mjs';
 
 const cwd = process.cwd();
 const runtimeRoot = path.join(cwd, '.nimi/spec/runtime');
@@ -140,6 +145,25 @@ const runtimeAndSdkSpecFiles = [
   ...sdkSpecFiles,
 ];
 
+const {
+  checkCapabilityVocabularyMapping,
+  checkOrphanRules,
+  checkProviderCatalogSourceTraceability,
+  checkReasonCodeSourceTraceability,
+  checkRpcMethodsSourceTraceability,
+  checkRuleEvidence,
+} = createRuntimeSpecTraceabilityChecks({
+  cwd,
+  domainFiles,
+  fail,
+  fs,
+  kernelFiles,
+  path,
+  read,
+  readYaml,
+  runtimeMarkdownFiles,
+});
+
 let failed = false;
 
 function fail(msg) {
@@ -202,7 +226,7 @@ checkMetadataKeyContract();
 checkMetadataKeyCrossReferences();
 checkKeySourceTruthTable();
 checkErrorMappingMatrix();
-checkRpcMigrationMapCoverage();
+checkRpcMigrationMapCoverageImpl({ fail, fs, protoRoot, readYaml, walk });
 checkDomainSection0ImportsCoveredInBody();
 checkDomainPrimaryRuleCoverage();
 checkConfigPathConsistency();
@@ -746,191 +770,6 @@ function checkErrorMappingMatrix() {
   }
 }
 
-function checkRpcMigrationMapCoverage() {
-  const rpcMethods = readYaml('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
-  const migration = readYaml('.nimi/spec/runtime/kernel/tables/rpc-migration-map.yaml');
-  const protoMap = parseProtoServiceMethodMap();
-
-  const services = Array.isArray(rpcMethods?.services) ? rpcMethods.services : [];
-  const serviceMethodMap = new Map();
-  for (const service of services) {
-    const serviceName = String(service?.name || '').trim();
-    if (!serviceName) continue;
-    const methods = new Set(
-      (Array.isArray(service?.methods) ? service.methods : [])
-        .map((m) => String(m?.name || '').trim())
-        .filter(Boolean),
-    );
-    serviceMethodMap.set(serviceName, methods);
-  }
-
-  const serviceMappings = Array.isArray(migration?.service_mappings) ? migration.service_mappings : [];
-  const methodMappings = Array.isArray(migration?.method_mappings) ? migration.method_mappings : [];
-  const excludedProtoMethods = Array.isArray(migration?.excluded_proto_methods) ? migration.excluded_proto_methods : [];
-
-  const serviceMappingByDesign = new Map();
-  for (const item of serviceMappings) {
-    const designService = String(item?.design_service || '').trim();
-    if (!designService) {
-      fail('rpc-migration-map service_mappings entry missing design_service');
-      continue;
-    }
-    if (serviceMappingByDesign.has(designService)) {
-      fail(`rpc-migration-map duplicate service mapping: ${designService}`);
-      continue;
-    }
-    serviceMappingByDesign.set(designService, item);
-  }
-
-  for (const designService of serviceMethodMap.keys()) {
-    if (!serviceMappingByDesign.has(designService)) {
-      fail(`rpc-migration-map missing service mapping for ${designService}`);
-    }
-  }
-
-  for (const [designService, mapping] of serviceMappingByDesign.entries()) {
-    const protoService = String(mapping?.proto_service || '').trim();
-    const status = String(mapping?.mapping_status || '').trim();
-    if (!protoService) {
-      if (status !== 'design_only_pending_proto') {
-        fail(`rpc-migration-map ${designService} has empty proto_service but status is ${status}`);
-      }
-      continue;
-    }
-    if (!protoMap.has(protoService)) {
-      fail(`rpc-migration-map ${designService} references unknown proto service: ${protoService}`);
-    }
-  }
-
-  const methodMappingByDesignMethod = new Map();
-  for (const item of methodMappings) {
-    const designService = String(item?.design_service || '').trim();
-    const designMethod = String(item?.design_method || '').trim();
-    if (!designService || !designMethod) {
-      fail('rpc-migration-map method_mappings entry missing design_service/design_method');
-      continue;
-    }
-    const key = `${designService}.${designMethod}`;
-    if (methodMappingByDesignMethod.has(key)) {
-      fail(`rpc-migration-map duplicate method mapping: ${key}`);
-      continue;
-    }
-    methodMappingByDesignMethod.set(key, item);
-
-    const protoService = String(item?.proto_service || '').trim();
-    const protoMethod = String(item?.proto_method || '').trim();
-    const status = String(item?.mapping_status || '').trim();
-    if (!protoService || !protoMethod) {
-      if (status !== 'planned') {
-        fail(`rpc-migration-map ${key} has empty proto target but status is ${status}`);
-      }
-      continue;
-    }
-    const protoMethods = protoMap.get(protoService);
-    if (!protoMethods) {
-      fail(`rpc-migration-map ${key} references unknown proto service: ${protoService}`);
-      continue;
-    }
-    if (!protoMethods.has(protoMethod)) {
-      fail(`rpc-migration-map ${key} references unknown proto method: ${protoService}.${protoMethod}`);
-    }
-  }
-
-  for (const [designService, methods] of serviceMethodMap.entries()) {
-    for (const method of methods) {
-      const key = `${designService}.${method}`;
-      if (!methodMappingByDesignMethod.has(key)) {
-        fail(`rpc-migration-map missing method mapping for ${key}`);
-      }
-    }
-  }
-
-  const excludedSet = new Set();
-  for (const item of excludedProtoMethods) {
-    const protoService = String(item?.proto_service || '').trim();
-    const protoMethod = String(item?.proto_method || '').trim();
-    if (!protoService || !protoMethod) {
-      fail('rpc-migration-map excluded_proto_methods entry missing proto_service/proto_method');
-      continue;
-    }
-    const key = `${protoService}.${protoMethod}`;
-    if (excludedSet.has(key)) {
-      fail(`rpc-migration-map duplicate excluded proto method: ${key}`);
-      continue;
-    }
-    excludedSet.add(key);
-    const protoMethods = protoMap.get(protoService);
-    if (!protoMethods || !protoMethods.has(protoMethod)) {
-      fail(`rpc-migration-map excluded proto method does not exist: ${key}`);
-    }
-  }
-
-  for (const [designService, mapping] of serviceMappingByDesign.entries()) {
-    const protoService = String(mapping?.proto_service || '').trim();
-    if (!protoService) continue;
-    const protoMethods = protoMap.get(protoService);
-    if (!protoMethods) continue;
-
-    const mappedProtoMethods = new Set();
-    for (const item of methodMappings) {
-      const serviceName = String(item?.design_service || '').trim();
-      const methodProtoService = String(item?.proto_service || '').trim();
-      const methodProtoName = String(item?.proto_method || '').trim();
-      if (serviceName !== designService) continue;
-      if (!methodProtoService || !methodProtoName) continue;
-      mappedProtoMethods.add(methodProtoName);
-    }
-
-    const status = String(mapping?.mapping_status || '').trim();
-    for (const protoMethod of protoMethods) {
-      if (mappedProtoMethods.has(protoMethod)) continue;
-      if (status === 'aligned') {
-        fail(`rpc-migration-map aligned service ${designService} leaves proto method unmapped: ${protoService}.${protoMethod}`);
-        continue;
-      }
-      const excludedKey = `${protoService}.${protoMethod}`;
-      if (!excludedSet.has(excludedKey)) {
-        fail(`rpc-migration-map missing excluded_proto_methods entry for ${excludedKey}`);
-      }
-    }
-  }
-}
-
-function parseProtoServiceMethodMap() {
-  const out = new Map();
-  const files = walk(protoRoot).filter((p) => p.endsWith('.proto'));
-  for (const file of files) {
-    const content = fs.readFileSync(file, 'utf8');
-    const lines = content.split('\n');
-    let currentService = '';
-    let braceDepth = 0;
-    for (const line of lines) {
-      const serviceMatch = line.match(/^\s*service\s+([A-Za-z0-9_]+)\s*\{/u);
-      if (serviceMatch) {
-        currentService = serviceMatch[1];
-        braceDepth = 1;
-        if (!out.has(currentService)) out.set(currentService, new Set());
-        continue;
-      }
-      if (currentService) {
-        const rpcMatch = line.match(/^\s*rpc\s+([A-Za-z0-9_]+)\s*\(/u);
-        if (rpcMatch) {
-          out.get(currentService)?.add(rpcMatch[1]);
-        }
-        for (const ch of line) {
-          if (ch === '{') braceDepth++;
-          else if (ch === '}') braceDepth--;
-        }
-        if (braceDepth <= 0) {
-          currentService = '';
-          braceDepth = 0;
-        }
-      }
-    }
-  }
-  return out;
-}
-
 function checkDomainSection0ImportsCoveredInBody() {
   for (const rel of domainFiles) {
     if (!fs.existsSync(path.join(cwd, rel))) continue;
@@ -1056,188 +895,6 @@ function checkProbeTargetProviderCoverage() {
   }
 }
 
-function checkRpcMethodsSourceTraceability(kernelRuleSet) {
-  const rpcTable = readYaml('.nimi/spec/runtime/kernel/tables/rpc-methods.yaml');
-  const services = Array.isArray(rpcTable?.services) ? rpcTable.services : [];
-  for (const service of services) {
-    const name = String(service?.name || '').trim();
-    if (!name) continue;
-    const source = String(service?.source_rule || '').trim();
-    if (!source) {
-      fail(`rpc-methods service ${name} missing source_rule`);
-      continue;
-    }
-    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(source)) {
-      fail(`rpc-methods service ${name} has invalid source_rule: ${source}`);
-      continue;
-    }
-    if (!kernelRuleSet.has(source)) {
-      fail(`rpc-methods service ${name} references undefined kernel rule: ${source}`);
-    }
-  }
-}
-
-function checkProviderCatalogSourceTraceability(kernelRuleSet) {
-  const catalog = readYaml('.nimi/spec/runtime/kernel/tables/provider-catalog.yaml');
-  const providers = Array.isArray(catalog?.providers) ? catalog.providers : [];
-  for (const item of providers) {
-    const provider = String(item?.provider || '').trim();
-    if (!provider) continue;
-    const source = String(item?.source_rule || '').trim();
-    if (!source) {
-      fail(`provider-catalog provider ${provider} missing source_rule`);
-      continue;
-    }
-    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(source)) {
-      fail(`provider-catalog provider ${provider} has invalid source_rule: ${source}`);
-      continue;
-    }
-    if (!kernelRuleSet.has(source)) {
-      fail(`provider-catalog provider ${provider} references undefined kernel rule: ${source}`);
-    }
-  }
-}
-
-function checkReasonCodeSourceTraceability(kernelRuleSet) {
-  const reasonTable = readYaml('.nimi/spec/runtime/kernel/tables/reason-codes.yaml');
-  const codes = Array.isArray(reasonTable?.codes) ? reasonTable.codes : [];
-  for (const code of codes) {
-    const name = String(code?.name || '').trim();
-    if (!name) continue;
-    const source = String(code?.source_rule || '').trim();
-    if (!source) {
-      fail(`reason-codes code ${name} missing source_rule`);
-      continue;
-    }
-    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(source)) {
-      fail(`reason-codes code ${name} has invalid source_rule: ${source}`);
-      continue;
-    }
-    if (!kernelRuleSet.has(source)) {
-      fail(`reason-codes code ${name} references undefined kernel rule: ${source}`);
-    }
-  }
-}
-
-function checkCapabilityVocabularyMapping(kernelRuleSet) {
-  const rel = '.nimi/spec/runtime/kernel/tables/capability-vocabulary-mapping.yaml';
-  const doc = readYaml(rel) || {};
-  const canonicalTokens = new Set(
-    (Array.isArray(doc?.canonical_tokens) ? doc.canonical_tokens : [])
-      .map((value) => String(value || '').trim())
-      .filter(Boolean),
-  );
-  const localTokens = new Set(
-    (Array.isArray(doc?.local_manifest_tokens) ? doc.local_manifest_tokens : [])
-      .map((value) => String(value || '').trim())
-      .filter(Boolean),
-  );
-  const localCategories = new Set(
-    (Array.isArray(doc?.local_categories) ? doc.local_categories : [])
-      .map((value) => String(value || '').trim())
-      .filter(Boolean),
-  );
-  const mappings = Array.isArray(doc?.local_to_canonical) ? doc.local_to_canonical : [];
-  const canonicalOnly = Array.isArray(doc?.canonical_only) ? doc.canonical_only : [];
-
-  if (canonicalTokens.size === 0) fail(`${rel} canonical_tokens must not be empty`);
-  if (localTokens.size === 0) fail(`${rel} local_manifest_tokens must not be empty`);
-  if (mappings.length === 0) fail(`${rel} local_to_canonical must not be empty`);
-
-  const mappedLocalTokens = new Set();
-  for (const entry of mappings) {
-    const localToken = String(entry?.local_token || '').trim();
-    const canonicalToken = String(entry?.canonical_token || '').trim();
-    const localCategory = String(entry?.local_category || '').trim();
-    const sourceRule = String(entry?.source_rule || '').trim();
-    if (!localToken || !localTokens.has(localToken)) {
-      fail(`${rel} mapping references unknown local_token: ${localToken || '<empty>'}`);
-    }
-    if (!canonicalToken || !canonicalTokens.has(canonicalToken)) {
-      fail(`${rel} mapping references unknown canonical_token: ${canonicalToken || '<empty>'}`);
-    }
-    if (localCategory && !localCategories.has(localCategory)) {
-      fail(`${rel} mapping ${localToken} uses unknown local_category: ${localCategory}`);
-    }
-    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(sourceRule) || !kernelRuleSet.has(sourceRule)) {
-      fail(`${rel} mapping ${localToken} has invalid source_rule: ${sourceRule || '<empty>'}`);
-    }
-    mappedLocalTokens.add(localToken);
-  }
-
-  for (const token of localTokens) {
-    if (!mappedLocalTokens.has(token)) {
-      fail(`${rel} local token missing mapping: ${token}`);
-    }
-  }
-
-  for (const entry of canonicalOnly) {
-    const canonicalToken = String(entry?.canonical_token || '').trim();
-    if (!canonicalToken || !canonicalTokens.has(canonicalToken)) {
-      fail(`${rel} canonical_only references unknown canonical_token: ${canonicalToken || '<empty>'}`);
-    }
-  }
-}
-
-function checkOrphanRules(kernelRuleSet) {
-  const files = [...new Set([
-    ...runtimeMarkdownFiles,
-    ...kernelFiles.filter((rel) => rel.endsWith('.yaml')),
-    ...domainFiles,
-  ])];
-  const refCounts = new Map();
-  for (const rel of files) {
-    if (!fs.existsSync(path.join(cwd, rel))) continue;
-    const content = read(rel);
-    for (const ruleId of collectReferencedRuntimeRuleIds(content, kernelRuleSet)) {
-      refCounts.set(ruleId, (refCounts.get(ruleId) || 0) + 1);
-    }
-  }
-
-  const orphans = [...kernelRuleSet].filter((ruleId) => (refCounts.get(ruleId) || 0) <= 1);
-  if (orphans.length > 0) {
-    fail(`runtime orphan kernel rules detected: ${orphans.join(', ')}`);
-  }
-}
-
-function collectReferencedRuntimeRuleIds(content, kernelRuleSet) {
-  const refs = new Set();
-
-  for (const match of content.matchAll(/\bK-[A-Z]+-\d{3}[a-z]?\b/g)) {
-    if (kernelRuleSet.has(match[0])) {
-      refs.add(match[0]);
-    }
-  }
-
-  for (const match of content.matchAll(/\b(K-[A-Z]+)-\*/g)) {
-    const prefix = `${match[1]}-`;
-    for (const ruleId of kernelRuleSet) {
-      if (ruleId.startsWith(prefix)) {
-        refs.add(ruleId);
-      }
-    }
-  }
-
-  for (const match of content.matchAll(/\b(K-[A-Z]+)-(\d{3})[~–-](\d{3})\b/g)) {
-    const prefix = `${match[1]}-`;
-    const start = Number.parseInt(match[2], 10);
-    const end = Number.parseInt(match[3], 10);
-    if (Number.isNaN(start) || Number.isNaN(end)) continue;
-    const lower = Math.min(start, end);
-    const upper = Math.max(start, end);
-    for (const ruleId of kernelRuleSet) {
-      if (!ruleId.startsWith(prefix)) continue;
-      const suffix = ruleId.slice(prefix.length);
-      const numeric = Number.parseInt(suffix.slice(0, 3), 10);
-      if (!Number.isNaN(numeric) && numeric >= lower && numeric <= upper) {
-        refs.add(ruleId);
-      }
-    }
-  }
-
-  return refs;
-}
-
 function checkNoLocalRuleIds(content, rel) {
   const localRuleIdPattern = /\b(?<![KSDPRF]-)(?:[A-Z]{2,12}-){1,2}\d{3}[a-z]?\b/g;
   const allowed = new Set(['HTTP-401', 'HTTP-403', 'HTTP-404', 'HTTP-429', 'HTTP-500', 'HTTP-501']);
@@ -1253,59 +910,6 @@ function checkNoRuleDefinitionHeadings(content, rel) {
   let match;
   while ((match = bannedHeadingPattern.exec(content)) !== null) {
     fail(`${rel} contains rule-definition style heading not allowed for thin domain docs: ${match[0]}`);
-  }
-}
-
-function checkRuleEvidence(kernelRuleSet) {
-  const table = readYaml('.nimi/spec/runtime/kernel/tables/rule-evidence.yaml');
-  if (!table) { fail('rule-evidence.yaml: failed to parse'); return; }
-
-  const catalog = table.evidence_catalog || {};
-  const catalogKeys = new Set(Object.keys(catalog));
-  const rules = Array.isArray(table.rules) ? table.rules : [];
-
-  if (rules.length === 0) {
-    fail('rule-evidence.yaml: rules list is empty');
-    return;
-  }
-
-  const evidenceRuleIds = new Set();
-  for (const entry of rules) {
-    const rid = String(entry?.rule_id || '').trim();
-    if (!rid) { fail('rule-evidence.yaml: entry missing rule_id'); continue; }
-    if (!/^K-[A-Z]+-\d{3}[a-z]?$/u.test(rid)) {
-      fail(`rule-evidence.yaml: invalid rule_id format: ${rid}`);
-    }
-    if (evidenceRuleIds.has(rid)) {
-      fail(`rule-evidence.yaml: duplicate rule_id: ${rid}`);
-    }
-    evidenceRuleIds.add(rid);
-
-    if (!kernelRuleSet.has(rid)) {
-      fail(`rule-evidence.yaml: rule_id not found in kernel: ${rid}`);
-    }
-
-    const status = String(entry?.status || '').trim();
-    if (!['covered', 'na', 'deferred'].includes(status)) {
-      fail(`rule-evidence.yaml ${rid}: invalid status: ${status}`);
-    }
-
-    const refs = Array.isArray(entry?.evidence_refs) ? entry.evidence_refs : [];
-    if (status === 'covered' && refs.length === 0) {
-      fail(`rule-evidence.yaml ${rid}: covered rule must have at least one evidence_ref`);
-    }
-    for (const ref of refs) {
-      if (!catalogKeys.has(String(ref))) {
-        fail(`rule-evidence.yaml ${rid}: unknown evidence_ref: ${ref}`);
-      }
-    }
-  }
-
-  // Every kernel rule must appear in rule-evidence
-  for (const kid of kernelRuleSet) {
-    if (!evidenceRuleIds.has(kid)) {
-      fail(`rule-evidence.yaml: missing coverage for kernel rule: ${kid}`);
-    }
   }
 }
 

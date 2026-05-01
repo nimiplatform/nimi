@@ -1,0 +1,562 @@
+import { header, mdBool, normalizeMarkdown } from './runtime-spec-kernel-doc-renderer-utils.mjs';
+
+export function renderRpcMethods(doc, sourceName) {
+  const services = Array.isArray(doc?.services) ? doc.services : [];
+  let out = header('Generated RPC Methods', sourceName);
+
+  for (const service of services) {
+    const name = String(service?.name || '').trim();
+    const methods = Array.isArray(service?.methods) ? service.methods : [];
+    if (!name) continue;
+
+    const source = String(service?.source_rule || '').trim();
+    out += `## ${name}\n\n`;
+    if (source) out += `Source: \`${source}\`\n\n`;
+    out += '| Method | Type |\n';
+    out += '|---|---|\n';
+    for (const method of methods) {
+      const methodName = String(method?.name || '').trim();
+      const type = String(method?.type || '').trim();
+      if (!methodName) continue;
+      out += `| \`${methodName}\` | \`${type || 'unknown'}\` |\n`;
+    }
+    out += '\n';
+  }
+
+  return normalizeMarkdown(out);
+}
+
+export function renderRpcMigrationMap(doc, sourceName) {
+  const serviceMappings = Array.isArray(doc?.service_mappings) ? doc.service_mappings : [];
+  const methodMappings = Array.isArray(doc?.method_mappings) ? doc.method_mappings : [];
+  const excludedProtoMethods = Array.isArray(doc?.excluded_proto_methods) ? doc.excluded_proto_methods : [];
+
+  let out = header('Generated RPC Migration Map', sourceName);
+
+  out += '## Service Mapping\n\n';
+  out += '| Design Service | Proto Service | Status | Phase | Source |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of serviceMappings) {
+    const designService = String(item?.design_service || '').trim();
+    if (!designService) continue;
+    const protoService = String(item?.proto_service || '').trim() || '—';
+    const status = String(item?.mapping_status || '').trim() || 'unknown';
+    const phase = String(item?.phase || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${designService}\` | \`${protoService}\` | \`${status}\` | \`${phase}\` | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  out += '## Method Mapping\n\n';
+  out += '| Design Service | Design Method | Proto Service | Proto Method | Status |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of methodMappings) {
+    const designService = String(item?.design_service || '').trim();
+    const designMethod = String(item?.design_method || '').trim();
+    if (!designService || !designMethod) continue;
+    const protoService = String(item?.proto_service || '').trim() || '—';
+    const protoMethod = String(item?.proto_method || '').trim() || '—';
+    const status = String(item?.mapping_status || '').trim() || 'unknown';
+    out += `| \`${designService}\` | \`${designMethod}\` | \`${protoService}\` | \`${protoMethod}\` | \`${status}\` |\n`;
+  }
+  out += '\n';
+
+  out += '## Excluded Proto Methods\n\n';
+  out += '| Proto Service | Proto Method | Reason |\n';
+  out += '|---|---|---|\n';
+  for (const item of excludedProtoMethods) {
+    const protoService = String(item?.proto_service || '').trim();
+    const protoMethod = String(item?.proto_method || '').trim();
+    const reason = String(item?.reason || '').trim();
+    if (!protoService || !protoMethod) continue;
+    out += `| \`${protoService}\` | \`${protoMethod}\` | \`${reason || '—'}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderReasonCodes(doc, sourceName) {
+  const codes = Array.isArray(doc?.codes) ? doc.codes : [];
+  let out = header('Generated ReasonCode Table', sourceName);
+
+  out += '| Name | Value | Family | Source |\n';
+  out += '|---|---:|---|---|\n';
+  for (const code of codes) {
+    const name = String(code?.name || '').trim();
+    const value = Number(code?.value);
+    const family = String(code?.family || '').trim();
+    const source = String(code?.source_rule || '').trim();
+    if (!name || Number.isNaN(value)) continue;
+    out += `| \`${name}\` | ${value} | \`${family || 'UNKNOWN'}\` | \`${source || '—'}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderMetadataKeys(doc, sourceName) {
+  const keys = Array.isArray(doc?.keys) ? doc.keys : [];
+  let out = header('Generated Metadata Keys', sourceName);
+
+  out += '| Key | Allowed Values | Required When |\n';
+  out += '|---|---|---|\n';
+  for (const item of keys) {
+    const key = String(item?.key || '').trim();
+    const allowed = Array.isArray(item?.allowed_values)
+      ? item.allowed_values.map((v) => `\`${String(v)}\``).join(', ')
+      : '—';
+    const requiredWhen = String(item?.required_when || '').trim() || '—';
+    if (!key) continue;
+    out += `| \`${key}\` | ${allowed || '—'} | ${requiredWhen} |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderKeySourceTruthTable(doc, sourceName) {
+  const cases = Array.isArray(doc?.cases) ? doc.cases : [];
+  let out = header('Generated Key Source Truth Table', sourceName);
+
+  out += '| Case | key_source | connector_id | provider_type | provider_endpoint | provider_api_key | Valid | ReasonCode | Source |\n';
+  out += '|---|---|---|---|---|---|---|---|---|\n';
+  for (const item of cases) {
+    const id = String(item?.id || '').trim();
+    if (!id) continue;
+    const keySource = String(item?.key_source || '').trim() || '—';
+    const connectorId = String(item?.connector_id || '').trim() || '—';
+    const providerType = String(item?.x_nimi_provider_type || '').trim() || '—';
+    const providerEndpoint = String(item?.x_nimi_provider_endpoint || '').trim() || '—';
+    const providerApiKey = String(item?.x_nimi_provider_api_key || '').trim() || '—';
+    const valid = mdBool(Boolean(item?.valid));
+    const reasonCode = String(item?.reason_code || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${id}\` | \`${keySource}\` | \`${connectorId}\` | \`${providerType}\` | \`${providerEndpoint}\` | \`${providerApiKey}\` | \`${valid}\` | \`${reasonCode}\` | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderConnectorAuthProfiles(doc, sourceName) {
+  const profiles = Array.isArray(doc?.profiles) ? doc.profiles : [];
+  let out = header('Generated Connector Auth Profiles', sourceName);
+
+  out += '| Profile | Auth Kind | Allowed Providers | Header Behavior | Source |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of profiles) {
+    const id = String(item?.id || '').trim();
+    if (!id) continue;
+    const authKind = String(item?.auth_kind || '').trim() || '—';
+    const allowedProviders = Array.isArray(item?.allowed_providers)
+      ? item.allowed_providers.map((provider) => `\`${String(provider).trim()}\``).join(', ')
+      : '—';
+    const headerBehavior = String(item?.header_behavior || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${id}\` | \`${authKind}\` | ${allowedProviders || '—'} | \`${headerBehavior}\` | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderProviderCatalog(doc, sourceName) {
+  const providers = Array.isArray(doc?.providers) ? doc.providers : [];
+  let out = header('Generated Provider Catalog', sourceName);
+
+  out += '| Provider | Default Endpoint | Requires Explicit Endpoint | Source |\n';
+  out += '|---|---|---|---|\n';
+  for (const item of providers) {
+    const provider = String(item?.provider || '').trim();
+    const endpoint = item?.default_endpoint == null ? '—' : `\`${String(item.default_endpoint)}\``;
+    const requiresExplicit = mdBool(Boolean(item?.requires_explicit_endpoint));
+    const source = String(item?.source_rule || '').trim();
+    if (!provider) continue;
+    out += `| \`${provider}\` | ${endpoint} | \`${requiresExplicit}\` | \`${source || '—'}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderProviderCapabilities(doc, sourceName) {
+  const providers = Array.isArray(doc?.providers) ? doc.providers : [];
+  let out = header('Generated Provider Capabilities', sourceName);
+
+  out += '| Provider | Plane | Execution Module | Managed Connector | Inline | Endpoint Requirement | Capabilities | Sources |\n';
+  out += '|---|---|---|---|---|---|---|---|\n';
+  for (const item of providers) {
+    const provider = String(item?.provider || '').trim();
+    if (!provider) continue;
+
+    const plane = String(item?.runtime_plane || '').trim() || 'unknown';
+    const moduleName = String(item?.execution_module || '').trim() || 'unknown';
+    const managed = mdBool(Boolean(item?.managed_connector_supported));
+    const inline = mdBool(Boolean(item?.inline_supported));
+    const endpointRequirement = String(item?.endpoint_requirement || '').trim() || 'unknown';
+    const capabilities = Array.isArray(item?.capabilities)
+      ? item.capabilities.map((v) => `\`${String(v)}\``).join(', ')
+      : '—';
+    const sourceRules = Array.isArray(item?.sources)
+      ? item.sources.map((v) => `\`${String(v)}\``).join(', ')
+      : '—';
+
+    out += `| \`${provider}\` | \`${plane}\` | \`${moduleName}\` | \`${managed}\` | \`${inline}\` | \`${endpointRequirement}\` | ${capabilities || '—'} | ${sourceRules || '—'} |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderProviderModelCatalog(doc, sourceName) {
+  const models = Array.isArray(doc?.models) ? doc.models : [];
+  const catalogVersion = String(doc?.catalog_version || '').trim() || '—';
+  let out = header('Generated Provider Model Catalog', sourceName);
+
+  out += `Catalog Version: \`${catalogVersion}\`\n\n`;
+  out += '| Provider | Model ID | Model Type | Updated At | Capabilities | Pricing (unit/input/output/currency/as_of) | Voice Set ID | Source Ref |\n';
+  out += '|---|---|---|---|---|---|---|---|\n';
+  for (const item of models) {
+    const provider = String(item?.provider || '').trim();
+    const modelID = String(item?.model_id || '').trim();
+    if (!provider || !modelID) continue;
+
+    const modelType = String(item?.model_type || '').trim() || '—';
+    const updatedAt = String(item?.updated_at || '').trim() || '—';
+    const capabilities = Array.isArray(item?.capabilities)
+      ? item.capabilities.map((v) => `\`${String(v)}\``).join(', ')
+      : '—';
+    const pricing = item?.pricing || {};
+    const pricingSummary = [
+      String(pricing?.unit || '').trim() || '—',
+      String(pricing?.input || '').trim() || '—',
+      String(pricing?.output || '').trim() || '—',
+      String(pricing?.currency || '').trim() || '—',
+      String(pricing?.as_of || '').trim() || '—',
+    ].map((v) => `\`${v}\``).join(' / ');
+    const voiceSetID = String(item?.voice_set_id || '').trim() || '—';
+    const sourceRef = item?.source_ref || {};
+    const sourceSummary = [
+      String(sourceRef?.url || '').trim() || '—',
+      String(sourceRef?.retrieved_at || '').trim() || '—',
+    ].map((v) => `\`${v}\``).join(' @ ');
+
+    out += `| \`${provider}\` | \`${modelID}\` | \`${modelType}\` | \`${updatedAt}\` | ${capabilities || '—'} | ${pricingSummary} | \`${voiceSetID}\` | ${sourceSummary} |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderProviderVoiceCatalog(doc, sourceName) {
+  const voices = Array.isArray(doc?.voices) ? doc.voices : [];
+  const catalogVersion = String(doc?.catalog_version || '').trim() || '—';
+  let out = header('Generated Provider Voice Catalog', sourceName);
+
+  out += `Catalog Version: \`${catalogVersion}\`\n\n`;
+  out += '| Voice Set ID | Provider | Voice ID | Name | Langs | Model IDs | Source Ref |\n';
+  out += '|---|---|---|---|---|---|---|\n';
+  for (const item of voices) {
+    const voiceSetID = String(item?.voice_set_id || '').trim();
+    const provider = String(item?.provider || '').trim();
+    const voiceID = String(item?.voice_id || '').trim();
+    if (!voiceSetID || !provider || !voiceID) continue;
+
+    const name = String(item?.name || '').trim() || '—';
+    const langs = Array.isArray(item?.langs)
+      ? item.langs.map((v) => `\`${String(v)}\``).join(', ')
+      : '—';
+    const modelIDs = Array.isArray(item?.model_ids)
+      ? item.model_ids.map((v) => `\`${String(v)}\``).join(', ')
+      : '—';
+    const sourceRef = item?.source_ref || {};
+    const sourceSummary = [
+      String(sourceRef?.url || '').trim() || '—',
+      String(sourceRef?.retrieved_at || '').trim() || '—',
+    ].map((v) => `\`${v}\``).join(' @ ');
+
+    out += `| \`${voiceSetID}\` | \`${provider}\` | \`${voiceID}\` | \`${name}\` | ${langs || '—'} | ${modelIDs || '—'} | ${sourceSummary} |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderConnectorRpcFieldRules(doc, sourceName) {
+  const rules = Array.isArray(doc?.rules) ? doc.rules : [];
+  let out = header('Generated Connector RPC Field Rules', sourceName);
+
+  out += '| RPC | Field | Requirement | Source |\n';
+  out += '|---|---|---|---|\n';
+  for (const item of rules) {
+    const rpc = String(item?.rpc || '').trim();
+    const field = String(item?.field || '').trim();
+    const requirement = String(item?.requirement || '').trim();
+    const source = String(item?.source_rule || '').trim();
+    if (!rpc || !field || !requirement) continue;
+    out += `| \`${rpc}\` | \`${field}\` | \`${requirement}\` | \`${source || '—'}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderJobStates(doc, sourceName) {
+  const states = Array.isArray(doc?.states) ? doc.states : [];
+  let out = header('Generated Scenario Job States', sourceName);
+
+  out += '| State | Terminal |\n';
+  out += '|---|---|\n';
+  for (const item of states) {
+    const state = String(item?.state || '').trim();
+    if (!state) continue;
+    out += `| \`${state}\` | \`${mdBool(Boolean(item?.terminal))}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderErrorMappingMatrix(doc, sourceName) {
+  const mappings = Array.isArray(doc?.mappings) ? doc.mappings : [];
+  let out = header('Generated Error Mapping Matrix', sourceName);
+
+  out += '| ReasonCode | gRPC Code | Surface | Exit Shape | Source |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of mappings) {
+    const reasonCode = String(item?.reason_code || '').trim();
+    const grpcCode = String(item?.grpc_code || '').trim();
+    if (!reasonCode || !grpcCode) continue;
+    const surface = String(item?.surface || '').trim() || '—';
+    const exitShape = String(item?.exit_shape || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${reasonCode}\` | \`${grpcCode}\` | \`${surface}\` | \`${exitShape}\` | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderLocalEngineCatalog(doc, sourceName) {
+  const engines = Array.isArray(doc?.engines) ? doc.engines : [];
+  let out = header('Generated Local Engine Catalog', sourceName);
+
+  out += '| Engine | Default Endpoint | Runtime Mode | Protocol | Phase 1 | Source |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const item of engines) {
+    const engine = String(item?.engine || '').trim();
+    if (!engine) continue;
+    const endpoint = String(item?.default_endpoint || '').trim() || '—';
+    const mode = String(item?.runtime_mode || '').trim() || 'unknown';
+    const protocol = String(item?.protocol || '').trim() || 'unknown';
+    const phase1 = mdBool(Boolean(item?.phase1));
+    const source = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${engine}\` | \`${endpoint}\` | \`${mode}\` | \`${protocol}\` | \`${phase1}\` | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderLocalAdapterRouting(doc, sourceName) {
+  const routes = Array.isArray(doc?.routes) ? doc.routes : [];
+  let out = header('Generated Local Adapter Routing', sourceName);
+
+  out += '| Provider | Capability | Adapter | Source |\n';
+  out += '|---|---|---|---|\n';
+  for (const item of routes) {
+    const provider = String(item?.provider || '').trim();
+    const capability = String(item?.capability || '').trim();
+    const adapter = String(item?.adapter || '').trim();
+    const source = String(item?.source_rule || '').trim() || '—';
+    if (!provider || !capability || !adapter) continue;
+    out += `| \`${provider}\` | \`${capability}\` | \`${adapter}\` | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderStateTransitions(doc, sourceName) {
+  const machines = Array.isArray(doc?.machines) ? doc.machines : [];
+  let out = header('Generated State Transitions', sourceName);
+
+  for (const machine of machines) {
+    const machineName = String(machine?.machine || '').trim();
+    if (!machineName) continue;
+
+    const states = Array.isArray(machine?.states) ? machine.states : [];
+    const transitions = Array.isArray(machine?.transitions) ? machine.transitions : [];
+
+    out += `## ${machineName}\n\n`;
+    out += `States: ${states.length > 0 ? states.map((s) => `\`${String(s)}\``).join(', ') : '—'}\n\n`;
+    out += '| From | To | Trigger | Source |\n';
+    out += '|---|---|---|---|\n';
+    for (const edge of transitions) {
+      const from = String(edge?.from || '').trim();
+      const to = String(edge?.to || '').trim();
+      const trigger = String(edge?.trigger || '').trim();
+      const source = String(edge?.source_rule || '').trim();
+      if (!from || !to || !trigger) continue;
+      out += `| \`${from}\` | \`${to}\` | \`${trigger}\` | \`${source || '—'}\` |\n`;
+    }
+    out += '\n';
+  }
+
+  return normalizeMarkdown(out);
+}
+
+export function renderDaemonHealthStates(doc, sourceName) {
+  const machines = Array.isArray(doc?.machines) ? doc.machines : [];
+  let out = header('Generated Daemon Health States', sourceName);
+
+  for (const machine of machines) {
+    const machineName = String(machine?.machine || '').trim();
+    if (!machineName) continue;
+
+    const states = Array.isArray(machine?.states) ? machine.states : [];
+    const transitions = Array.isArray(machine?.transitions) ? machine.transitions : [];
+
+    out += `## ${machineName}\n\n`;
+    out += `States: ${states.length > 0 ? states.map((s) => `\`${String(s)}\``).join(', ') : '—'}\n\n`;
+    out += '| From | To | Trigger | Source |\n';
+    out += '|---|---|---|---|\n';
+    for (const edge of transitions) {
+      const from = String(edge?.from || '').trim();
+      const to = String(edge?.to || '').trim();
+      const trigger = String(edge?.trigger || '').trim();
+      const source = String(edge?.source_rule || '').trim();
+      if (!from || !to || !trigger) continue;
+      out += `| \`${from}\` | \`${to}\` | \`${trigger}\` | \`${source || '—'}\` |\n`;
+    }
+    out += '\n';
+  }
+
+  return normalizeMarkdown(out);
+}
+
+export function renderInterceptorChain(doc, sourceName) {
+  const interceptors = Array.isArray(doc?.interceptors) ? doc.interceptors : [];
+  let out = header('Generated Interceptor Chain', sourceName);
+
+  out += '| Order | Name | Unary | Stream | Description | Source |\n';
+  out += '|---:|---|---|---|---|---|\n';
+  for (const item of interceptors) {
+    const order = Number(item?.order);
+    const name = String(item?.name || '').trim();
+    if (!name || Number.isNaN(order)) continue;
+    const unary = mdBool(Boolean(item?.unary));
+    const stream = mdBool(Boolean(item?.stream));
+    const description = String(item?.description || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
+    out += `| ${order} | \`${name}\` | \`${unary}\` | \`${stream}\` | ${description} | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderAiTimeoutDefaults(doc, sourceName) {
+  const timeouts = Array.isArray(doc?.timeouts) ? doc.timeouts : [];
+  let out = header('Generated AI Timeout Defaults', sourceName);
+
+  out += '| Operation | Default (ms) | Overridable | Source |\n';
+  out += '|---|---:|---|---|\n';
+  for (const item of timeouts) {
+    const operation = String(item?.operation || '').trim();
+    if (!operation) continue;
+    const defaultMs = Number(item?.default_ms);
+    const overridable = mdBool(Boolean(item?.overridable));
+    const source = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${operation}\` | ${Number.isNaN(defaultMs) ? '—' : defaultMs} | \`${overridable}\` | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderProviderProbeTargets(doc, sourceName) {
+  const targets = Array.isArray(doc?.targets) ? doc.targets : [];
+  let out = header('Generated Provider Probe Targets', sourceName);
+
+  out += '| Name | Base URL Env | API Key Env | Category | Source |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of targets) {
+    const name = String(item?.name || '').trim();
+    if (!name) continue;
+    const baseUrlEnv = String(item?.base_url_env || '').trim() || '—';
+    const apiKeyEnv = String(item?.api_key_env || '').trim() || '—';
+    const category = String(item?.category || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${name}\` | \`${baseUrlEnv}\` | \`${apiKeyEnv}\` | \`${category}\` | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderWorkflowNodeTypes(doc, sourceName) {
+  const nodeTypes = Array.isArray(doc?.node_types) ? doc.node_types : [];
+  let out = header('Generated Workflow Node Types', sourceName);
+
+  out += '| Type | Enum Value | Category | Config | Source |\n';
+  out += '|---|---:|---|---|---|\n';
+  for (const item of nodeTypes) {
+    const type = String(item?.type || '').trim();
+    if (!type) continue;
+    const enumValue = Number(item?.enum_value);
+    const category = String(item?.category || '').trim() || '—';
+    const config = String(item?.config || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${type}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | \`${category}\` | \`${config}\` | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+export function renderWorkflowStates(doc, sourceName) {
+  const machines = Array.isArray(doc?.machines) ? doc.machines : [];
+  let out = header('Generated Workflow States', sourceName);
+
+  for (const machine of machines) {
+    const machineName = String(machine?.machine || '').trim();
+    if (!machineName) continue;
+
+    const states = Array.isArray(machine?.states) ? machine.states : [];
+    const transitions = Array.isArray(machine?.transitions) ? machine.transitions : [];
+    const renderedStates = states
+      .map((item) => {
+        if (typeof item === 'string') {
+          const state = item.trim();
+          return state ? `\`${state}\`` : '';
+        }
+        const state = String(item?.state || '').trim();
+        if (!state) return '';
+        const enumValue = Number(item?.enum_value);
+        if (Number.isNaN(enumValue)) {
+          return `\`${state}\``;
+        }
+        return `\`${state}\`(${enumValue})`;
+      })
+      .filter(Boolean);
+
+    out += `## ${machineName}\n\n`;
+    out += `States: ${renderedStates.length > 0 ? renderedStates.join(', ') : '—'}\n\n`;
+    out += '| From | To | Trigger | Source |\n';
+    out += '|---|---|---|---|\n';
+    for (const edge of transitions) {
+      const from = String(edge?.from || '').trim();
+      const to = String(edge?.to || '').trim();
+      const trigger = String(edge?.trigger || '').trim();
+      const source = String(edge?.source_rule || '').trim();
+      if (!from || !to || !trigger) continue;
+      out += `| \`${from}\` | \`${to}\` | \`${trigger}\` | \`${source || '—'}\` |\n`;
+    }
+    out += '\n';
+  }
+
+  return normalizeMarkdown(out);
+}
+
