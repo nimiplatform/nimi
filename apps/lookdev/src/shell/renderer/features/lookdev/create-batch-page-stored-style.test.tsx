@@ -597,198 +597,134 @@ describe('CreateBatchPage', () => {
     getAgentPortraitBinding.mockResolvedValue(null);
   });
 
-  it('creates a world-scoped batch with capture selection applied', async () => {
-    const { createBatch } = seedWorkingState();
+  it('rekeys the world-style workspace when the shell locale changes', async () => {
+    seedWorkingState();
     const user = userEvent.setup();
     renderCreatePage();
 
-    await user.type(screen.getByLabelText('Batch name'), 'Night market refresh');
+    await screen.findByLabelText('World');
+    await selectFieldOption(user, 'World', /Aurora Harbor/i);
+    await user.type(screen.getByLabelText('Current reply'), 'Keep the lane grounded and readable.');
+    await user.click(screen.getByRole('button', { name: 'Send reply' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('I have the lane now. We can synthesize a draft style pack immediately, and you can still keep tightening any taboo or differentiation cue afterward.')).toBeInTheDocument();
+    });
+
+    mockRuntime.ai.text.generate.mockClear();
+    await act(async () => {
+      await changeLocale('zh');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('当前回答')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('I have the lane now. We can synthesize a draft style pack immediately, and you can still keep tightening any taboo or differentiation cue afterward.')).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('当前回答'), '请把这条世界风格 lane 继续收紧一点。');
+    await user.click(screen.getByRole('button', { name: '发送回答' }));
+
+    await waitFor(() => {
+      expect(mockRuntime.ai.text.generate).toHaveBeenCalledWith(expect.objectContaining({
+        input: expect.stringContaining('language: zh'),
+      }));
+      expect(screen.getByText('我已经抓到这条 world lane 了。现在可以直接整理风格包草案；如果你还想继续收紧禁区或角色差异，也可以继续聊。')).toBeInTheDocument();
+    });
+  });
+
+  it('reuses stored world style packs without mutating them on load', async () => {
+    const { saveWorldStylePack } = seedWorkingState();
+    const storedPack = {
+      ...createConfirmedWorldStylePack('w1', 'Aurora Harbor', 'en'),
+      name: 'Stored Aurora lane',
+      paletteDirection: 'deep teal and brass',
+      seedSource: 'style_session' as const,
+      sourceSessionId: 'lookdev-style-session-stored',
+    };
+
+    useLookdevStore.setState({
+      worldStylePacks: {
+        w1: storedPack,
+      },
+      captureStates: {
+        [createCaptureStateKey('w1', 'a1')]: makeStoredCaptureState({
+          seedSignature: buildCaptureSeedSignature({
+            agent: {
+              id: 'a1',
+              displayName: 'Iris',
+              concept: 'Anchor scout',
+              description: 'Anchor scout with a steady dockside silhouette.',
+              worldId: 'w1',
+              importance: 'PRIMARY',
+              existingPortraitUrl: null,
+            },
+            worldStylePack: storedPack,
+            captureMode: 'capture',
+          }),
+        }),
+      },
+      portraitBriefs: {
+        'w1::a1': {
+          agentId: 'a1',
+          worldId: 'w1',
+          displayName: 'Iris',
+          visualRole: 'Stored scout anchor',
+          silhouette: 'stored silhouette',
+          outfit: 'stored outfit',
+          hairstyle: 'stored hair',
+          palettePrimary: 'stored palette',
+          artStyle: storedPack.artStyle,
+          mustKeepTraits: ['stored trait'],
+          forbiddenTraits: ['stored forbidden'],
+          sourceConfidence: 'derived_from_agent_truth',
+          updatedAt: '2026-03-29T00:00:00.000Z',
+        },
+      },
+    });
+
+    const user = userEvent.setup();
+    renderCreatePage();
+
+    await screen.findByLabelText('World');
+    await selectFieldOption(user, 'World', /Aurora Harbor/i);
+
+    expect(await screen.findByDisplayValue('Stored Aurora lane')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('deep teal and brass')).toBeInTheDocument();
+    expect(screen.getByText('Confirmed style pack')).toBeInTheDocument();
+    expect(saveWorldStylePack).not.toHaveBeenCalled();
+  });
+
+  it('ignores legacy stored packs that were not derived from a world style session', async () => {
+    seedWorkingState();
+    const user = userEvent.setup();
+    useLookdevStore.setState({
+      worldStylePacks: {
+        w1: {
+          worldId: 'w1',
+          name: 'Legacy Aurora lane',
+          visualEra: 'legacy era',
+          artStyle: 'legacy style',
+          paletteDirection: 'legacy palette',
+          materialDirection: 'legacy materials',
+          silhouetteDirection: 'legacy silhouette',
+          costumeDensity: 'legacy density',
+          backgroundDirection: 'legacy background',
+          promptFrame: 'legacy prompt frame',
+          forbiddenElements: ['legacy forbidden'],
+          createdAt: '2026-03-28T00:00:00.000Z',
+          updatedAt: '2026-03-28T00:00:00.000Z',
+          confirmedAt: '2026-03-28T00:00:00.000Z',
+        } as unknown as LookdevWorldStylePack,
+      },
+    });
+
+    renderCreatePage();
+
     await screen.findByLabelText('World');
     await selectFieldOption(user, 'World', /Aurora Harbor/i);
 
     expect(await screen.findByText('World Style Session')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send reply' })).toBeInTheDocument();
-    expect(screen.getByText('Confirm the world style pack first. Capture selection only opens after the style lane is explicitly confirmed.')).toBeInTheDocument();
-
-    await completeWorldStyleSession(user);
-    expect(screen.getByText('Draft style pack')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
-
-    expect(screen.getAllByText('Iris').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Nora').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Capture').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Batch only').length).toBeGreaterThan(0);
-
-    await user.click(screen.getByRole('button', { name: /Nora.*Batch only/i }));
-    await user.click(screen.getByRole('button', { name: /Nora.*Review/i }));
-
-    expect(await screen.findByText('Embedded Capture')).toBeInTheDocument();
-    expect(screen.getByLabelText('Visual role')).toHaveValue('Clockwork guide');
-
-    await user.click(screen.getByRole('button', { name: 'Create and start processing' }));
-
-    await waitFor(() => {
-      expect(createBatch).toHaveBeenCalledTimes(1);
-    });
-
-    expect(createBatch).toHaveBeenCalledWith(expect.objectContaining({
-      name: 'Night market refresh',
-      selectionSource: 'by_world',
-      worldId: 'w1',
-      captureSelectionAgentIds: ['a1', 'a2'],
-      generationTarget: expectedGenerationTarget,
-      evaluationTarget: expectedEvaluationTarget,
-      worldStylePack: expect.objectContaining({
-        worldId: 'w1',
-        name: 'Aurora Harbor portrait style pack',
-        status: 'confirmed',
-      }),
-    }));
-  }, 30000);
-
-  it('keeps world-scoped agents in the batch when truth falls back to a limited lane', async () => {
-    const { createBatch } = seedWorkingState();
-    const user = userEvent.setup();
-    getLookdevAgentTruthBundle.mockImplementation(async (worldId: string, agentId: string) => {
-      if (agentId === 'a2') {
-        throw new Error('LOOKDEV_AGENT_TRUTH_UNREADABLE');
-      }
-      return {
-        description: 'Anchor scout with a steady dockside silhouette.',
-        scenario: `Scenario for ${worldId}/${agentId}`,
-        greeting: null,
-        wakeStrategy: 'PASSIVE',
-        dna: {
-          identity: { role: 'Dock agent', worldview: null, species: null, summary: null },
-          biological: { gender: null, visualAge: null, ethnicity: null, heightCm: null, weightKg: null },
-          appearance: { artStyle: null, hair: null, eyes: null, skin: null, fashionStyle: null, signatureItems: [] },
-          personality: { summary: null, mbti: null, interests: [], goals: [], relationshipMode: null, emotionBaseline: null },
-          communication: { summary: null, responseLength: null, formality: null, sentiment: null },
-        },
-        behavioralRules: [],
-        soulPrime: null,
-        ruleTruth: {
-          identity: { statement: null, structured: null },
-          biological: { statement: null, structured: null },
-          appearance: { statement: null, structured: null },
-          personality: { statement: null, structured: null },
-          communication: { statement: null, structured: null },
-        },
-      };
-    });
-
-    renderCreatePage();
-
-    await user.type(screen.getByLabelText('Batch name'), 'Filtered cast batch');
-    await screen.findByLabelText('World');
-    await selectFieldOption(user, 'World', /Aurora Harbor/i);
-
-    expect(await screen.findByText("1 agents in this world batch only have limited portrait truth available. Lookdev will still use each agent's available fields together with the current world style lane: Nora.")).toBeInTheDocument();
-
-    await completeWorldStyleSession(user);
-    await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeEnabled();
-    });
-    await user.click(screen.getByRole('button', { name: 'Create and start processing' }));
-
-    await waitFor(() => {
-      expect(createBatch).toHaveBeenCalledTimes(1);
-    });
-
-    expect(createBatch).toHaveBeenCalledWith(expect.objectContaining({
-      agents: [expect.objectContaining({ id: 'a1' }), expect.objectContaining({ id: 'a2' })],
-      captureSelectionAgentIds: ['a1'],
-    }));
-  }, 30000);
-
-  it('keeps the world-style lane focused on authoring before a world is selected', async () => {
-    seedWorkingState();
-    renderCreatePage();
-
-    expect(await screen.findByText('World Style Session')).toBeInTheDocument();
-    expect(screen.getByText('Pick a world first and this lane\'s style conversation will expand below.')).toBeInTheDocument();
-    expect(screen.queryByText('World Style Session reads the current dialogue route from Route Settings. The route there controls which connector + model understand the conversation and synthesize the style-pack draft.')).not.toBeInTheDocument();
-  });
-
-  it('localizes world option counts with the current shell locale', async () => {
-    seedWorkingState();
-    await act(async () => {
-      await changeLocale('zh');
-    });
-    renderCreatePage();
-
-    expect(await screen.findByRole('option', { name: 'Aurora Harbor · 2 个角色' })).toBeInTheDocument();
-  });
-
-  it('uses the current shell dialogue route for world-style authoring', async () => {
-    seedWorkingState();
-    useAppStore.setState((state) => ({
-      runtimeProbe: {
-        ...state.runtimeProbe,
-        textDefaultTargetKey: dialogueTarget.key,
-        textConnectorId: dialogueTarget.connectorId,
-        textModelId: dialogueTarget.modelId,
-        textTargets: [dialogueTarget, alternateDialogueTarget],
-      },
-      runtimeDefaults: {
-        ...(state.runtimeDefaults || {
-          realm: {
-            realmBaseUrl: 'http://localhost:3002',
-            realtimeUrl: '',
-            accessToken: '',
-            jwksUrl: 'http://localhost:3002/api/auth/jwks',
-            revocationUrl: 'http://localhost:3002/api/auth/revocation',
-            jwtIssuer: 'http://localhost:3002',
-            jwtAudience: 'nimi-runtime',
-          },
-          runtime: {
-            localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-            localProviderModel: 'local-model',
-            localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
-            connectorId: '',
-            targetType: 'AGENT',
-            targetAccountId: '',
-            agentId: '',
-            worldId: '',
-            provider: '',
-            userConfirmedUpload: false,
-          },
-        }),
-        runtime: {
-          ...(state.runtimeDefaults?.runtime || {
-            localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-            localProviderModel: 'local-model',
-            localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
-            connectorId: '',
-            targetType: 'AGENT',
-            targetAccountId: '',
-            agentId: '',
-            worldId: '',
-            provider: '',
-            userConfirmedUpload: false,
-          }),
-          connectorId: 'api-connector',
-          provider: 'gemini',
-        },
-      },
-    }));
-    useAppStore.getState().setDialogueTargetKey(alternateDialogueTarget.key);
-    const user = userEvent.setup();
-    renderCreatePage();
-
-    await screen.findByLabelText('World');
-    await selectFieldOption(user, 'World', /Aurora Harbor/i);
-
-    expect(screen.getAllByText(formatRuntimeTargetLabel(alternateDialogueTarget)).length).toBeGreaterThan(0);
-    await user.type(screen.getByLabelText('Current reply'), 'Keep the lane grounded, stable, and readable.');
-    await user.click(screen.getByRole('button', { name: 'Send reply' }));
-
-    await waitFor(() => {
-      expect(mockRuntime.ai.text.generate).toHaveBeenCalledWith(expect.objectContaining({
-        model: alternateDialogueTarget.modelId,
-        connectorId: alternateDialogueTarget.connectorId,
-      }));
-    });
+    expect(screen.queryByText('Confirmed style pack')).not.toBeInTheDocument();
   });
 });

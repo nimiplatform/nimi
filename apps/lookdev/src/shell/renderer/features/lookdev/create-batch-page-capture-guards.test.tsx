@@ -597,56 +597,60 @@ describe('CreateBatchPage', () => {
     getAgentPortraitBinding.mockResolvedValue(null);
   });
 
-  it('creates a world-scoped batch with capture selection applied', async () => {
+it('shows an error when creating a batch without any selected agents', async () => {
     const { createBatch } = seedWorkingState();
-    const user = userEvent.setup();
     renderCreatePage();
 
-    await user.type(screen.getByLabelText('Batch name'), 'Night market refresh');
+    expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeDisabled();
+    expect(createBatch).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when a selected world cannot resolve a controllable cast', async () => {
+    const { createBatch } = seedWorkingState();
+    const user = userEvent.setup();
+    listLookdevWorldAgents.mockResolvedValueOnce([]);
+    renderCreatePage();
+
     await screen.findByLabelText('World');
     await selectFieldOption(user, 'World', /Aurora Harbor/i);
 
-    expect(await screen.findByText('World Style Session')).toBeInTheDocument();
+    expect((await screen.findAllByText('Lookdev could not resolve a controllable cast for Aurora Harbor. Pick a world you can operate on or refresh runtime and try again.')).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Send reply' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeDisabled();
+    expect(createBatch).not.toHaveBeenCalled();
+  });
+
+  it('keeps world-style authoring available when a selected world only has limited truth', async () => {
+    seedWorkingState();
+    const user = userEvent.setup();
+    getLookdevAgentTruthBundle.mockRejectedValue(new Error('LOOKDEV_AGENT_TRUTH_UNREADABLE'));
+    renderCreatePage();
+
+    await screen.findByLabelText('World');
+    await selectFieldOption(user, 'World', /Aurora Harbor/i);
+
+    expect(await screen.findByText("2 agents in this world batch only have limited portrait truth available. Lookdev will still use each agent's available fields together with the current world style lane: Iris, Nora.")).toBeInTheDocument();
+    expect(screen.queryByText('Lookdev could not resolve a controllable cast for Aurora Harbor. Pick a world you can operate on or refresh runtime and try again.')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send reply' })).toBeInTheDocument();
-    expect(screen.getByText('Confirm the world style pack first. Capture selection only opens after the style lane is explicitly confirmed.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Synthesize style pack draft' })).toBeInTheDocument();
+  });
 
-    await completeWorldStyleSession(user);
-    expect(screen.getByText('Draft style pack')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
+  it('blocks world-style authoring when explicit selection spans multiple worlds', async () => {
+    seedWorkingState();
+    const user = userEvent.setup();
+    renderCreatePage();
 
-    expect(screen.getAllByText('Iris').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Nora').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Capture').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Batch only').length).toBeGreaterThan(0);
+    await screen.findByLabelText('World');
+    await user.click(screen.getByRole('button', { name: /Explicit agent selection/i }));
+    await user.click(screen.getByRole('button', { name: /Iris/i }));
+    await user.click(screen.getByRole('button', { name: /Sora/i }));
 
-    await user.click(screen.getByRole('button', { name: /Nora.*Batch only/i }));
-    await user.click(screen.getByRole('button', { name: /Nora.*Review/i }));
+    expect((await screen.findAllByText('Selected agents currently span multiple worlds. Narrow to one world before creating a batch.')).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Send reply' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeDisabled();
+  });
 
-    expect(await screen.findByText('Embedded Capture')).toBeInTheDocument();
-    expect(screen.getByLabelText('Visual role')).toHaveValue('Clockwork guide');
-
-    await user.click(screen.getByRole('button', { name: 'Create and start processing' }));
-
-    await waitFor(() => {
-      expect(createBatch).toHaveBeenCalledTimes(1);
-    });
-
-    expect(createBatch).toHaveBeenCalledWith(expect.objectContaining({
-      name: 'Night market refresh',
-      selectionSource: 'by_world',
-      worldId: 'w1',
-      captureSelectionAgentIds: ['a1', 'a2'],
-      generationTarget: expectedGenerationTarget,
-      evaluationTarget: expectedEvaluationTarget,
-      worldStylePack: expect.objectContaining({
-        worldId: 'w1',
-        name: 'Aurora Harbor portrait style pack',
-        status: 'confirmed',
-      }),
-    }));
-  }, 30000);
-
-  it('keeps world-scoped agents in the batch when truth falls back to a limited lane', async () => {
+  it('keeps explicitly selected agents in the batch when truth falls back to a limited lane', async () => {
     const { createBatch } = seedWorkingState();
     const user = userEvent.setup();
     getLookdevAgentTruthBundle.mockImplementation(async (worldId: string, agentId: string) => {
@@ -679,11 +683,13 @@ describe('CreateBatchPage', () => {
 
     renderCreatePage();
 
-    await user.type(screen.getByLabelText('Batch name'), 'Filtered cast batch');
     await screen.findByLabelText('World');
-    await selectFieldOption(user, 'World', /Aurora Harbor/i);
+    await user.click(screen.getByRole('button', { name: /Explicit agent selection/i }));
+    await user.click(screen.getByRole('button', { name: /Iris.*Select/i }));
+    await user.click(screen.getByRole('button', { name: /Nora.*Select/i }));
 
-    expect(await screen.findByText("1 agents in this world batch only have limited portrait truth available. Lookdev will still use each agent's available fields together with the current world style lane: Nora.")).toBeInTheDocument();
+    expect(await screen.findByText("1 selected agents only have limited portrait truth available. Lookdev will still use each agent's available fields together with the current world style lane: Nora.")).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Nora.*Limited truth/i })).toBeInTheDocument();
 
     await completeWorldStyleSession(user);
     await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
@@ -702,93 +708,41 @@ describe('CreateBatchPage', () => {
     }));
   }, 30000);
 
-  it('keeps the world-style lane focused on authoring before a world is selected', async () => {
+  it('shows intake loading state and disables batch creation until intake resolves', () => {
     seedWorkingState();
+    listLookdevWorlds.mockImplementation(() => new Promise(() => {}));
+    listLookdevAgents.mockImplementation(() => new Promise(() => {}));
+
     renderCreatePage();
 
-    expect(await screen.findByText('World Style Session')).toBeInTheDocument();
-    expect(screen.getByText('Pick a world first and this lane\'s style conversation will expand below.')).toBeInTheDocument();
-    expect(screen.queryByText('World Style Session reads the current dialogue route from Route Settings. The route there controls which connector + model understand the conversation and synthesize the style-pack draft.')).not.toBeInTheDocument();
+    expect(screen.getByText('Loading world and agent intake data before batch freeze…')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeDisabled();
   });
 
-  it('localizes world option counts with the current shell locale', async () => {
+  it('shows intake error state and blocks create when intake queries fail', async () => {
     seedWorkingState();
-    await act(async () => {
-      await changeLocale('zh');
+    listLookdevWorlds.mockRejectedValueOnce(new Error('world intake failed'));
+    listLookdevAgents.mockRejectedValueOnce(new Error('agent intake failed'));
+
+    renderCreatePage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Lookdev could not load the current world or agent intake data. Refresh runtime and try again.')).toBeInTheDocument();
     });
-    renderCreatePage();
-
-    expect(await screen.findByRole('option', { name: 'Aurora Harbor · 2 个角色' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeDisabled();
   });
 
-  it('uses the current shell dialogue route for world-style authoring', async () => {
+  it('does not render a fake zero agent count when control-scoped world summaries omit agentCount', async () => {
     seedWorkingState();
-    useAppStore.setState((state) => ({
-      runtimeProbe: {
-        ...state.runtimeProbe,
-        textDefaultTargetKey: dialogueTarget.key,
-        textConnectorId: dialogueTarget.connectorId,
-        textModelId: dialogueTarget.modelId,
-        textTargets: [dialogueTarget, alternateDialogueTarget],
-      },
-      runtimeDefaults: {
-        ...(state.runtimeDefaults || {
-          realm: {
-            realmBaseUrl: 'http://localhost:3002',
-            realtimeUrl: '',
-            accessToken: '',
-            jwksUrl: 'http://localhost:3002/api/auth/jwks',
-            revocationUrl: 'http://localhost:3002/api/auth/revocation',
-            jwtIssuer: 'http://localhost:3002',
-            jwtAudience: 'nimi-runtime',
-          },
-          runtime: {
-            localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-            localProviderModel: 'local-model',
-            localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
-            connectorId: '',
-            targetType: 'AGENT',
-            targetAccountId: '',
-            agentId: '',
-            worldId: '',
-            provider: '',
-            userConfirmedUpload: false,
-          },
-        }),
-        runtime: {
-          ...(state.runtimeDefaults?.runtime || {
-            localProviderEndpoint: 'http://127.0.0.1:1234/v1',
-            localProviderModel: 'local-model',
-            localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
-            connectorId: '',
-            targetType: 'AGENT',
-            targetAccountId: '',
-            agentId: '',
-            worldId: '',
-            provider: '',
-            userConfirmedUpload: false,
-          }),
-          connectorId: 'api-connector',
-          provider: 'gemini',
-        },
-      },
-    }));
-    useAppStore.getState().setDialogueTargetKey(alternateDialogueTarget.key);
-    const user = userEvent.setup();
+    listLookdevWorlds.mockResolvedValueOnce([
+      { id: 'w1', name: 'Aurora Harbor', status: 'ACTIVE', agentCount: null },
+    ]);
+
     renderCreatePage();
 
     await screen.findByLabelText('World');
-    await selectFieldOption(user, 'World', /Aurora Harbor/i);
-
-    expect(screen.getAllByText(formatRuntimeTargetLabel(alternateDialogueTarget)).length).toBeGreaterThan(0);
-    await user.type(screen.getByLabelText('Current reply'), 'Keep the lane grounded, stable, and readable.');
-    await user.click(screen.getByRole('button', { name: 'Send reply' }));
-
-    await waitFor(() => {
-      expect(mockRuntime.ai.text.generate).toHaveBeenCalledWith(expect.objectContaining({
-        model: alternateDialogueTarget.modelId,
-        connectorId: alternateDialogueTarget.connectorId,
-      }));
-    });
+    fireEvent.pointerDown(screen.getByLabelText('World'), { button: 0, ctrlKey: false });
+    expect(await screen.findByRole('option', { name: 'Aurora Harbor' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Aurora Harbor · 0 agents/i })).not.toBeInTheDocument();
   });
 });
