@@ -89,6 +89,7 @@ export {
   DelegatedApprovalRequestState,
   DelegatedProviderKind,
   DelegatedProviderState,
+  DelegatedProviderTrustTier,
   DelegatedReplayOutcome,
   DelegatedTraceStageKind,
   DelegatedTransportKind,

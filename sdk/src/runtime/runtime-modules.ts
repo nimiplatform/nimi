@@ -257,6 +257,7 @@ const AGENT_METHODS = [
   'listDelegatedDiagnostics',
   'getDelegatedReplayTrace',
   'getDelegatedControlSurfaceSnapshot',
+  'executeDelegatedCapability',
   'getAgentState',
   'updateAgentState',
   'setPresentationProfile',

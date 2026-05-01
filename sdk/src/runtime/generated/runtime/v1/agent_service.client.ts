@@ -12,6 +12,8 @@ import type { WriteAgentMemoryResponse } from "./agent_service";
 import type { WriteAgentMemoryRequest } from "./agent_service";
 import type { QueryAgentMemoryResponse } from "./agent_service";
 import type { QueryAgentMemoryRequest } from "./agent_service";
+import type { ExecuteDelegatedCapabilityResponse } from "./agent_service";
+import type { ExecuteDelegatedCapabilityRequest } from "./agent_service";
 import type { GetDelegatedControlSurfaceSnapshotResponse } from "./agent_service";
 import type { GetDelegatedControlSurfaceSnapshotRequest } from "./agent_service";
 import type { GetDelegatedReplayTraceResponse } from "./agent_service";
@@ -157,6 +159,10 @@ export interface IRuntimeAgentServiceClient {
      * @generated from protobuf rpc: GetDelegatedControlSurfaceSnapshot
      */
     getDelegatedControlSurfaceSnapshot(input: GetDelegatedControlSurfaceSnapshotRequest, options?: RpcOptions): UnaryCall<GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse>;
+    /**
+     * @generated from protobuf rpc: ExecuteDelegatedCapability
+     */
+    executeDelegatedCapability(input: ExecuteDelegatedCapabilityRequest, options?: RpcOptions): UnaryCall<ExecuteDelegatedCapabilityRequest, ExecuteDelegatedCapabilityResponse>;
     /**
      * @generated from protobuf rpc: QueryAgentMemory
      */
@@ -341,24 +347,31 @@ export class RuntimeAgentServiceClient implements IRuntimeAgentServiceClient, Se
         return stackIntercept<GetDelegatedControlSurfaceSnapshotRequest, GetDelegatedControlSurfaceSnapshotResponse>("unary", this._transport, method, opt, input);
     }
     /**
+     * @generated from protobuf rpc: ExecuteDelegatedCapability
+     */
+    executeDelegatedCapability(input: ExecuteDelegatedCapabilityRequest, options?: RpcOptions): UnaryCall<ExecuteDelegatedCapabilityRequest, ExecuteDelegatedCapabilityResponse> {
+        const method = this.methods[23], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ExecuteDelegatedCapabilityRequest, ExecuteDelegatedCapabilityResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
      * @generated from protobuf rpc: QueryAgentMemory
      */
     queryAgentMemory(input: QueryAgentMemoryRequest, options?: RpcOptions): UnaryCall<QueryAgentMemoryRequest, QueryAgentMemoryResponse> {
-        const method = this.methods[23], opt = this._transport.mergeOptions(options);
+        const method = this.methods[24], opt = this._transport.mergeOptions(options);
         return stackIntercept<QueryAgentMemoryRequest, QueryAgentMemoryResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: WriteAgentMemory
      */
     writeAgentMemory(input: WriteAgentMemoryRequest, options?: RpcOptions): UnaryCall<WriteAgentMemoryRequest, WriteAgentMemoryResponse> {
-        const method = this.methods[24], opt = this._transport.mergeOptions(options);
+        const method = this.methods[25], opt = this._transport.mergeOptions(options);
         return stackIntercept<WriteAgentMemoryRequest, WriteAgentMemoryResponse>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: SubscribeAgentEvents
      */
     subscribeAgentEvents(input: SubscribeAgentEventsRequest, options?: RpcOptions): ServerStreamingCall<SubscribeAgentEventsRequest, AgentEvent> {
-        const method = this.methods[25], opt = this._transport.mergeOptions(options);
+        const method = this.methods[26], opt = this._transport.mergeOptions(options);
         return stackIntercept<SubscribeAgentEventsRequest, AgentEvent>("serverStreaming", this._transport, method, opt, input);
     }
 }

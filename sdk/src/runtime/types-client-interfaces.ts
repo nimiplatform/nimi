@@ -264,6 +264,8 @@ import type {
   CancelHookResponse,
   DisableAutonomyRequest,
   DisableAutonomyResponse,
+  ExecuteDelegatedCapabilityRequest,
+  ExecuteDelegatedCapabilityResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
   EnableAutonomyRequest,
@@ -532,6 +534,10 @@ export type RuntimeAgentClient = {
     request: GetDelegatedControlSurfaceSnapshotRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetDelegatedControlSurfaceSnapshotResponse>;
+  executeDelegatedCapability(
+    request: ExecuteDelegatedCapabilityRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<ExecuteDelegatedCapabilityResponse>;
   getAgentState(request: GetAgentStateRequest, options?: RuntimeCallOptions): Promise<GetAgentStateResponse>;
   updateAgentState(request: UpdateAgentStateRequest, options?: RuntimeCallOptions): Promise<UpdateAgentStateResponse>;
   setPresentationProfile(

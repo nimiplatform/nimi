@@ -42,6 +42,7 @@ const (
 	RuntimeAgentService_ListDelegatedDiagnostics_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics"
 	RuntimeAgentService_GetDelegatedReplayTrace_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace"
 	RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot"
+	RuntimeAgentService_ExecuteDelegatedCapability_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability"
 	RuntimeAgentService_QueryAgentMemory_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory"
 	RuntimeAgentService_WriteAgentMemory_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
 	RuntimeAgentService_SubscribeAgentEvents_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
@@ -74,6 +75,7 @@ type RuntimeAgentServiceClient interface {
 	ListDelegatedDiagnostics(ctx context.Context, in *ListDelegatedDiagnosticsRequest, opts ...grpc.CallOption) (*ListDelegatedDiagnosticsResponse, error)
 	GetDelegatedReplayTrace(ctx context.Context, in *GetDelegatedReplayTraceRequest, opts ...grpc.CallOption) (*GetDelegatedReplayTraceResponse, error)
 	GetDelegatedControlSurfaceSnapshot(ctx context.Context, in *GetDelegatedControlSurfaceSnapshotRequest, opts ...grpc.CallOption) (*GetDelegatedControlSurfaceSnapshotResponse, error)
+	ExecuteDelegatedCapability(ctx context.Context, in *ExecuteDelegatedCapabilityRequest, opts ...grpc.CallOption) (*ExecuteDelegatedCapabilityResponse, error)
 	QueryAgentMemory(ctx context.Context, in *QueryAgentMemoryRequest, opts ...grpc.CallOption) (*QueryAgentMemoryResponse, error)
 	WriteAgentMemory(ctx context.Context, in *WriteAgentMemoryRequest, opts ...grpc.CallOption) (*WriteAgentMemoryResponse, error)
 	SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error)
@@ -317,6 +319,16 @@ func (c *runtimeAgentServiceClient) GetDelegatedControlSurfaceSnapshot(ctx conte
 	return out, nil
 }
 
+func (c *runtimeAgentServiceClient) ExecuteDelegatedCapability(ctx context.Context, in *ExecuteDelegatedCapabilityRequest, opts ...grpc.CallOption) (*ExecuteDelegatedCapabilityResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExecuteDelegatedCapabilityResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ExecuteDelegatedCapability_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAgentServiceClient) QueryAgentMemory(ctx context.Context, in *QueryAgentMemoryRequest, opts ...grpc.CallOption) (*QueryAgentMemoryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(QueryAgentMemoryResponse)
@@ -383,6 +395,7 @@ type RuntimeAgentServiceServer interface {
 	ListDelegatedDiagnostics(context.Context, *ListDelegatedDiagnosticsRequest) (*ListDelegatedDiagnosticsResponse, error)
 	GetDelegatedReplayTrace(context.Context, *GetDelegatedReplayTraceRequest) (*GetDelegatedReplayTraceResponse, error)
 	GetDelegatedControlSurfaceSnapshot(context.Context, *GetDelegatedControlSurfaceSnapshotRequest) (*GetDelegatedControlSurfaceSnapshotResponse, error)
+	ExecuteDelegatedCapability(context.Context, *ExecuteDelegatedCapabilityRequest) (*ExecuteDelegatedCapabilityResponse, error)
 	QueryAgentMemory(context.Context, *QueryAgentMemoryRequest) (*QueryAgentMemoryResponse, error)
 	WriteAgentMemory(context.Context, *WriteAgentMemoryRequest) (*WriteAgentMemoryResponse, error)
 	SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error
@@ -463,6 +476,9 @@ func (UnimplementedRuntimeAgentServiceServer) GetDelegatedReplayTrace(context.Co
 }
 func (UnimplementedRuntimeAgentServiceServer) GetDelegatedControlSurfaceSnapshot(context.Context, *GetDelegatedControlSurfaceSnapshotRequest) (*GetDelegatedControlSurfaceSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetDelegatedControlSurfaceSnapshot not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ExecuteDelegatedCapability(context.Context, *ExecuteDelegatedCapabilityRequest) (*ExecuteDelegatedCapabilityResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ExecuteDelegatedCapability not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) QueryAgentMemory(context.Context, *QueryAgentMemoryRequest) (*QueryAgentMemoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueryAgentMemory not implemented")
@@ -907,6 +923,24 @@ func _RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_Handler(srv interfa
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAgentService_ExecuteDelegatedCapability_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteDelegatedCapabilityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ExecuteDelegatedCapability(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ExecuteDelegatedCapability_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ExecuteDelegatedCapability(ctx, req.(*ExecuteDelegatedCapabilityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAgentService_QueryAgentMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(QueryAgentMemoryRequest)
 	if err := dec(in); err != nil {
@@ -1052,6 +1086,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetDelegatedControlSurfaceSnapshot",
 			Handler:    _RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_Handler,
+		},
+		{
+			MethodName: "ExecuteDelegatedCapability",
+			Handler:    _RuntimeAgentService_ExecuteDelegatedCapability_Handler,
 		},
 		{
 			MethodName: "QueryAgentMemory",

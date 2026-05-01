@@ -157,6 +157,7 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.agent.listDelegatedDiagnostics]: RuntimeClientMethodContract<'agent', 'listDelegatedDiagnostics'>;
   [RuntimeMethodIds.agent.getDelegatedReplayTrace]: RuntimeClientMethodContract<'agent', 'getDelegatedReplayTrace'>;
   [RuntimeMethodIds.agent.getDelegatedControlSurfaceSnapshot]: RuntimeClientMethodContract<'agent', 'getDelegatedControlSurfaceSnapshot'>;
+  [RuntimeMethodIds.agent.executeDelegatedCapability]: RuntimeClientMethodContract<'agent', 'executeDelegatedCapability'>;
   [RuntimeMethodIds.agent.getAgentState]: RuntimeClientMethodContract<'agent', 'getAgentState'>;
   [RuntimeMethodIds.agent.updateAgentState]: RuntimeClientMethodContract<'agent', 'updateAgentState'>;
   [RuntimeMethodIds.agent.setPresentationProfile]: RuntimeClientMethodContract<'agent', 'setPresentationProfile'>;

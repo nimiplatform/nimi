@@ -60,6 +60,8 @@ import {
   DisableAutonomyResponse,
   EnableAutonomyRequest,
   EnableAutonomyResponse,
+  ExecuteDelegatedCapabilityRequest,
+  ExecuteDelegatedCapabilityResponse,
   GetAgentRequest,
   GetAgentResponse,
   GetAgentStateRequest,
@@ -374,6 +376,10 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.agent.getDelegatedControlSurfaceSnapshot]: {
     requestType: GetDelegatedControlSurfaceSnapshotRequest,
     responseType: GetDelegatedControlSurfaceSnapshotResponse,
+  },
+  [RuntimeMethodIds.agent.executeDelegatedCapability]: {
+    requestType: ExecuteDelegatedCapabilityRequest,
+    responseType: ExecuteDelegatedCapabilityResponse,
   },
   [RuntimeMethodIds.agent.getAgentState]: {
     requestType: GetAgentStateRequest,

@@ -15,6 +15,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
     "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
+    "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",

@@ -17,6 +17,8 @@ import {
   RuntimeUnaryMethodCodecs,
 } from './method-codecs.js';
 import {
+  ExecuteDelegatedCapabilityRequest,
+  ExecuteDelegatedCapabilityResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
@@ -415,6 +417,10 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       getDelegatedControlSurfaceSnapshot: customUnary(RuntimeMethodIds.agent.getDelegatedControlSurfaceSnapshot, {
         requestType: GetDelegatedControlSurfaceSnapshotRequest,
         responseType: GetDelegatedControlSurfaceSnapshotResponse,
+      }),
+      executeDelegatedCapability: customUnary(RuntimeMethodIds.agent.executeDelegatedCapability, {
+        requestType: ExecuteDelegatedCapabilityRequest,
+        responseType: ExecuteDelegatedCapabilityResponse,
       }),
       getAgentState: unary(RuntimeMethodIds.agent.getAgentState),
       updateAgentState: unary(RuntimeMethodIds.agent.updateAgentState),
