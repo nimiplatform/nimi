@@ -5,7 +5,7 @@ import {
   normalizeText,
   upsertThreadSummary,
 } from './chat-agent-shell-core';
-import { clearAgentConversationAnchorBinding } from './chat-agent-anchor-binding-storage';
+import { clearAgentConversationAnchorBinding } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import {
   persistDraftForThread,

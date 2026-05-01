@@ -25,7 +25,7 @@ import {
   getAgentConversationAnchorBinding,
   getAgentConversationAnchorBindingVersion,
   subscribeAgentConversationAnchorBindings,
-} from './chat-agent-anchor-binding-storage';
+} from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import {
   bundleQueryKey,
   isEmptyPendingAssistantMessage,

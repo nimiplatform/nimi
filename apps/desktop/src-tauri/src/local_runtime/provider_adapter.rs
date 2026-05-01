@@ -118,7 +118,10 @@ fn speech_probe_model_matches_capability(model_id: &str, capability: &str) -> bo
                 || normalized.contains("stt")
                 || normalized.contains("transcrib")
         }
-        "tts" | "audio.synthesize" | "voice_workflow.voice_clone" | "voice_workflow.voice_design" => {
+        "tts"
+        | "audio.synthesize"
+        | "voice_workflow.voice_clone"
+        | "voice_workflow.voice_design" => {
             normalized.contains("kokoro")
                 || normalized.contains("qwen3")
                 || normalized.contains("tts")
@@ -493,7 +496,11 @@ mod tests {
             "voice_workflow.voice_clone"
         ));
         assert_eq!(
-            infer_backend_hint_for_provider("speech", "voice_workflow.voice_design", Some("qwen3-tts")),
+            infer_backend_hint_for_provider(
+                "speech",
+                "voice_workflow.voice_design",
+                Some("qwen3-tts")
+            ),
             Some("qwen3_tts".to_string())
         );
     }

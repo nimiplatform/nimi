@@ -5,6 +5,8 @@ import { resolve } from 'node:path';
 
 const BOOTSTRAP_PATH = resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts');
 const bootstrapSource = readFileSync(BOOTSTRAP_PATH, 'utf-8');
+const POST_READY_MODS_PATH = resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-post-ready-mods.ts');
+const postReadyModsSource = readFileSync(POST_READY_MODS_PATH, 'utf-8');
 const PLATFORM_CLIENT_INIT = 'createLocalFirstPartyRuntimePlatformClient(';
 
 describe('bootstrap sequence ordering (D-BOOT)', () => {
@@ -68,8 +70,8 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
   test('D-BOOT-005: post-ready runtime mod hydration is scheduled after bootstrapReady', () => {
     const readyIndex = bootstrapSource.indexOf('useAppStore.getState().setBootstrapReady(true);');
     const scheduleIndex = bootstrapSource.indexOf('schedulePostReadyRuntimeModHydration({ flowId });');
-    const registerIndex = bootstrapSource.indexOf('registerBootstrapRuntimeMods({');
-    const hydratingProjectionIndex = bootstrapSource.indexOf("status: 'hydrating'");
+    const registerIndex = postReadyModsSource.indexOf('registerBootstrapRuntimeMods({');
+    const hydratingProjectionIndex = postReadyModsSource.indexOf("status: 'hydrating'");
     assert.ok(readyIndex !== -1, 'setBootstrapReady(true); must appear in bootstrap source');
     assert.ok(scheduleIndex !== -1, 'schedulePostReadyRuntimeModHydration({ flowId }); must appear in bootstrap source');
     assert.ok(registerIndex !== -1, 'registerBootstrapRuntimeMods({ must appear in bootstrap source');
@@ -79,7 +81,7 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
       'post-ready runtime mod hydration must be scheduled only after bootstrapReady is set',
     );
     assert.doesNotMatch(
-      bootstrapSource,
+      `${bootstrapSource}\n${postReadyModsSource}`,
       /await withBootstrapStepTimeout\(\s*['"]runtime mod bootstrap registration['"]/,
       'runtime mod registration must not be awaited in the bootstrap critical path',
     );
@@ -258,7 +260,7 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
       'bootstrap must define a timeout for non-critical startup work',
     );
     assert.ok(
-      bootstrapSource.includes("step: 'post-ready runtime mod hydration'"),
+      postReadyModsSource.includes("step: 'post-ready runtime mod hydration'"),
       'runtime mod hydration must be treated as a post-ready deferred step',
     );
     assert.ok(

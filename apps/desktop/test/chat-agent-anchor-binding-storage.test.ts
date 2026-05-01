@@ -7,7 +7,7 @@ import {
   getAgentConversationAnchorBinding,
   persistAgentConversationAnchorBinding,
   subscribeAgentConversationAnchorBindings,
-} from '../src/shell/renderer/features/chat/chat-agent-anchor-binding-storage';
+} from '../src/shell/renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 
 class MemoryStorage implements Storage {
   readonly store = new Map<string, string>();

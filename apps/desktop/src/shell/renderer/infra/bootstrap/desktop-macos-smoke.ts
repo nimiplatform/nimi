@@ -12,7 +12,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getDesktopAIConfigService } from '@renderer/app-shell/providers/desktop-ai-config-service';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { CHAT_AGENT_AVATAR_SMOKE_OVERRIDE_EVENT } from '@renderer/features/chat/chat-agent-avatar-debug-override';
-import { clearAllAgentConversationAnchorBindings } from '@renderer/features/chat/chat-agent-anchor-binding-storage';
+import { clearAllAgentConversationAnchorBindings } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import { getActiveScope } from '@renderer/features/chat/chat-shared-active-ai-config-scope';
 import { refreshConversationCapabilityProjections } from '@renderer/features/chat/conversation-capability-projection';
 import { getPlatformClient } from '@nimiplatform/sdk';

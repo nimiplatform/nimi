@@ -3473,6 +3473,7 @@ test('agent local mode keeps thinking unsupported and forces effective off confi
 
 test('agent shell stays desktop-owned and uses social snapshot plus local agent store', () => {
   const adapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter.tsx');
+  const adapterSessionSnapshotSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter-session-snapshot.ts');
   const adapterStateSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-adapter-state.ts');
   const sessionHydrationSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-session-hydration.ts');
   const hostActionHelpersSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-agent-shell-host-actions-helpers.ts');
@@ -3486,11 +3487,12 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(adapterSource, /createAgentLocalChatConversationProvider/);
   assert.match(adapterSource, /useAgentConversationEffects/);
   assert.match(adapterSource, /useAgentConversationPresentation/);
-  assert.match(adapterSource, /runtime\.agent\.turns\.getSessionSnapshot/);
-  assert.match(adapterSource, /hydrateAgentThreadBundleFromRuntimeSessionSnapshot/);
-  assert.match(adapterSource, /lastRuntimeSessionSnapshotRequestKeyRef/);
-  assert.match(adapterSource, /pendingRuntimeSessionSnapshotRequestKeyRef/);
-  assert.match(adapterSource, /desktop_runtime_agent_session_snapshot_request_deduped_total/);
+  assert.match(adapterSource, /useAgentRuntimeSessionSnapshotHydration/);
+  assert.match(adapterSessionSnapshotSource, /runtime\.agent\.turns\.getSessionSnapshot/);
+  assert.match(adapterSessionSnapshotSource, /hydrateAgentThreadBundleFromRuntimeSessionSnapshot/);
+  assert.match(adapterSessionSnapshotSource, /lastRuntimeSessionSnapshotRequestKeyRef/);
+  assert.match(adapterSessionSnapshotSource, /pendingRuntimeSessionSnapshotRequestKeyRef/);
+  assert.match(adapterSessionSnapshotSource, /desktop_runtime_agent_session_snapshot_request_deduped_total/);
   assert.match(adapterStateSource, /dataSync\.loadSocialSnapshot\(\)/);
   assert.match(adapterStateSource, /getDesktopAIConfigService\(\)/);
   assert.match(sessionHydrationSource, /snapshot\.transcript/);

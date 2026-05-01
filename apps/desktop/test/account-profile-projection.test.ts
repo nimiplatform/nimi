@@ -11,6 +11,10 @@ const runtimeBootstrapSource = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts'),
   'utf8',
 );
+const runtimeBootstrapAccountProfileSource = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-account-profile.ts'),
+  'utf8',
+);
 
 test('account menu renders only a real email and never synthesizes a nimi.app address', () => {
   assert.doesNotMatch(mainLayoutViewSource, /@nimi\.app/);
@@ -22,14 +26,15 @@ test('account menu renders only a real email and never synthesizes a nimi.app ad
 });
 
 test('desktop bootstrap merges Realm profile fields without moving profile ownership into Runtime account projection', () => {
-  assert.match(runtimeBootstrapSource, /function mergeRuntimeAccountProjectionWithRealmProfile/);
-  assert.match(runtimeBootstrapSource, /realmProfile = await dataSync\.loadCurrentUser\(\);/);
-  assert.match(runtimeBootstrapSource, /isReauthenticationRequiredError\(error\)[\s\S]*await input\.onReauthenticationRequired\(\)/);
+  assert.match(runtimeBootstrapSource, /hydrateDesktopAccountProfile/);
+  assert.match(runtimeBootstrapAccountProfileSource, /function mergeRuntimeAccountProjectionWithRealmProfile/);
+  assert.match(runtimeBootstrapAccountProfileSource, /realmProfile = await dataSync\.loadCurrentUser\(\);/);
+  assert.match(runtimeBootstrapAccountProfileSource, /isReauthenticationRequiredError\(error\)[\s\S]*await input\.onReauthenticationRequired\(\)/);
   assert.match(runtimeBootstrapSource, /runtime\.account\.logout\(\{[\s\S]*reason: 'desktop_bootstrap_reauth_required'/);
-  assert.match(runtimeBootstrapSource, /setAuthSession\(hydratedUser, '', undefined\)/);
-  assert.match(runtimeBootstrapSource, /readNonEmptyString\(profile\.email\)|hasEmail: Boolean\(readNonEmptyString\(hydratedUser\.email\)\)/);
+  assert.match(runtimeBootstrapAccountProfileSource, /setAuthSession\(hydratedUser, '', undefined\)/);
+  assert.match(runtimeBootstrapAccountProfileSource, /readNonEmptyString\(profile\.email\)|hasEmail: Boolean\(readNonEmptyString\(hydratedUser\.email\)\)/);
   assert.doesNotMatch(
-    runtimeBootstrapSource,
+    runtimeBootstrapAccountProfileSource,
     /accountProjection\.(email|avatarUrl|handle)/,
     'Runtime account projection may seed account custody only; Realm profile owns email/avatar/handle',
   );

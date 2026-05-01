@@ -12,7 +12,7 @@ import {
   waitForSpeakingLive2dPose,
   waitForVisibleLive2dPixels,
 } from './desktop-macos-smoke-live2d';
-import { AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY } from '@renderer/features/chat/chat-agent-anchor-binding-storage';
+import { AGENT_CHAT_ANCHOR_BINDINGS_STORAGE_KEY } from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import {
   assertStableVrmFramingSignature,
   assertStableVrmRendererMemory,

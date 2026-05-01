@@ -3,7 +3,6 @@ import {
   getCachedContacts,
   isFriendInContacts,
 } from '@runtime/data-sync';
-import { extractRuntimeErrorFields } from '@runtime/telemetry/error-fields';
 import {
   checkLocalLlmHealth,
   executeLocalKernelTurn,
@@ -36,10 +35,7 @@ import {
   ensureCoreWorldDataCapabilitiesRegistered,
   isCoreWorldDataCapability,
 } from './runtime-bootstrap-data-capabilities';
-import { registerBootstrapRuntimeMods } from './runtime-bootstrap-runtime-mods';
-import {
-  safeErrorMessage,
-} from './runtime-bootstrap-utils';
+import { safeErrorMessage } from './runtime-bootstrap-utils';
 import {
   buildRuntimeHostCapabilities,
 } from './runtime-bootstrap-host-capabilities';
@@ -60,255 +56,14 @@ import { registerExitHandler } from './exit-handler';
 import { isRuntimeDaemonReachable } from './runtime-bootstrap-runtime-availability';
 import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
+import { hydrateDesktopAccountProfile } from './runtime-bootstrap-account-profile';
+import { schedulePostReadyRuntimeModHydration, invalidatePostReadyRuntimeModHydration } from './runtime-bootstrap-post-ready-mods';
+import { NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS, startNonCriticalBootstrapStep, withBootstrapStepTimeout } from './runtime-bootstrap-step-timeout';
 
 let bootstrapPromise: Promise<void> | null = null;
 let rebootstrapPromise: Promise<void> | null = null;
 let offlineCoordinatorBindingsReady = false;
 let pendingRebootstrap = false;
-let postReadyRuntimeModHydrationGeneration = 0;
-const NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS = 5_000;
-
-type RuntimeAccountProjection = {
-  accountId?: string;
-  displayName?: string;
-  realmEnvironmentId?: string;
-};
-
-function toRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
-}
-
-function readNonEmptyString(value: unknown): string | null {
-  if (typeof value !== 'string') {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
-}
-
-function mergeRuntimeAccountProjectionWithRealmProfile(input: {
-  accountProjection: RuntimeAccountProjection;
-  realmProfile: unknown;
-  currentUser: Record<string, unknown> | null;
-}): Record<string, unknown> {
-  const profile = toRecord(input.realmProfile) ?? {};
-  const currentUser = input.currentUser ?? {};
-  const accountId = readNonEmptyString(input.accountProjection.accountId);
-  const realmEnvironmentId = readNonEmptyString(input.accountProjection.realmEnvironmentId);
-  const profileId = readNonEmptyString(profile.id);
-  const displayName = readNonEmptyString(profile.displayName)
-    ?? readNonEmptyString(profile.name)
-    ?? readNonEmptyString(profile.handle)
-    ?? readNonEmptyString(input.accountProjection.displayName)
-    ?? readNonEmptyString(currentUser.displayName);
-
-  return {
-    ...currentUser,
-    ...profile,
-    id: profileId ?? accountId ?? readNonEmptyString(currentUser.id) ?? '',
-    accountId: accountId ?? readNonEmptyString(profile.accountId) ?? readNonEmptyString(currentUser.accountId) ?? '',
-    ...(displayName ? { displayName } : {}),
-    ...(realmEnvironmentId ? { realmEnvironmentId } : {}),
-  };
-}
-
-function isReauthenticationRequiredError(error: unknown): boolean {
-  const errorFields = extractRuntimeErrorFields(error);
-  const reasonCode = String(errorFields.reasonCode || '').trim().toUpperCase();
-  const actionHint = String(errorFields.actionHint || '').trim().toLowerCase();
-  const message = String(errorFields.message || (error instanceof Error ? error.message : error) || '').trim().toLowerCase();
-  return (
-    reasonCode === 'AUTH_REQUIRED'
-    || reasonCode === 'AUTH_DENIED'
-    || reasonCode === 'AUTH_TOKEN_INVALID'
-    || reasonCode === 'AUTH_TOKEN_EXPIRED'
-    || actionHint.includes('reauthenticate')
-    || actionHint.includes('refresh_realm_token')
-    || message.includes('authentication required')
-  );
-}
-
-async function hydrateDesktopAccountProfile(input: {
-  accountProjection: RuntimeAccountProjection;
-  flowId: string;
-  onReauthenticationRequired?: () => Promise<void>;
-}): Promise<void> {
-  if (!readNonEmptyString(input.accountProjection.accountId)) {
-    return;
-  }
-  let realmProfile: unknown;
-  try {
-    realmProfile = await dataSync.loadCurrentUser();
-  } catch (error) {
-    if (isReauthenticationRequiredError(error) && input.onReauthenticationRequired) {
-      await input.onReauthenticationRequired();
-    }
-    throw error;
-  }
-  const hydratedUser = mergeRuntimeAccountProjectionWithRealmProfile({
-    accountProjection: input.accountProjection,
-    realmProfile,
-    currentUser: useAppStore.getState().auth.user,
-  });
-  useAppStore.getState().setAuthSession(hydratedUser, '', undefined);
-  logRendererEvent({
-    level: 'info',
-    area: 'renderer-bootstrap',
-    message: 'phase:account-profile:hydrated',
-    flowId: input.flowId,
-    details: {
-      accountId: input.accountProjection.accountId,
-      hasDisplayName: Boolean(readNonEmptyString(hydratedUser.displayName)),
-      hasEmail: Boolean(readNonEmptyString(hydratedUser.email)),
-      hasAvatar: Boolean(readNonEmptyString(hydratedUser.avatarUrl)),
-    },
-  });
-}
-
-function createBootstrapStepTimeoutError(step: string, timeoutMs: number): Error {
-  return new Error(`${step} timed out after ${timeoutMs}ms`);
-}
-
-async function withBootstrapStepTimeout<T>(
-  step: string,
-  task: Promise<T>,
-  timeoutMs: number,
-): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  try {
-    return await Promise.race([
-      task,
-      new Promise<T>((_, reject) => {
-        timeoutId = setTimeout(() => {
-          reject(createBootstrapStepTimeoutError(step, timeoutMs));
-        }, timeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-  }
-}
-
-function startNonCriticalBootstrapStep(input: {
-  flowId: string;
-  step: string;
-  task: Promise<unknown>;
-  timeoutMs?: number;
-}): void {
-  void withBootstrapStepTimeout(
-    input.step,
-    input.task,
-    input.timeoutMs ?? NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
-  ).catch((error) => {
-    logRendererEvent({
-      level: 'warn',
-      area: 'renderer-bootstrap',
-      message: 'phase:bootstrap:non-critical-step-deferred',
-      flowId: input.flowId,
-      details: {
-        step: input.step,
-        error: safeErrorMessage(error),
-      },
-    });
-  });
-}
-
-function nextPostReadyRuntimeModHydrationGeneration(): string {
-  postReadyRuntimeModHydrationGeneration += 1;
-  return `bootstrap-${postReadyRuntimeModHydrationGeneration}`;
-}
-
-function isCurrentPostReadyRuntimeModHydrationGeneration(generation: string): boolean {
-  return generation === `bootstrap-${postReadyRuntimeModHydrationGeneration}`;
-}
-
-function schedulePostReadyRuntimeModHydration(input: {
-  flowId: string;
-}): void {
-  const generation = nextPostReadyRuntimeModHydrationGeneration();
-  const updatedAt = new Date().toISOString();
-  useAppStore.getState().setRuntimeModHydrationRecords([{
-    modId: 'runtime.bootstrap-mod-hydration',
-    status: 'scheduled',
-    generation,
-    updatedAt,
-  }]);
-  logRendererEvent({
-    level: 'info',
-    area: 'renderer-bootstrap',
-    message: 'phase:post-ready-runtime-mod-hydration:scheduled',
-    flowId: input.flowId,
-    details: { generation },
-  });
-  startNonCriticalBootstrapStep({
-    flowId: input.flowId,
-    step: 'post-ready runtime mod hydration',
-    task: (async () => {
-      if (isCurrentPostReadyRuntimeModHydrationGeneration(generation)) {
-        useAppStore.getState().setRuntimeModHydrationRecords([{
-          modId: 'runtime.bootstrap-mod-hydration',
-          status: 'hydrating',
-          generation,
-          updatedAt: new Date().toISOString(),
-        }]);
-      }
-      let result: Awaited<ReturnType<typeof registerBootstrapRuntimeMods>>;
-      try {
-        result = await registerBootstrapRuntimeMods({
-          flowId: input.flowId,
-          generation,
-          isCurrent: () => isCurrentPostReadyRuntimeModHydrationGeneration(generation),
-        });
-      } catch (error) {
-        if (isCurrentPostReadyRuntimeModHydrationGeneration(generation)) {
-          useAppStore.getState().setRuntimeModHydrationRecords([{
-            modId: 'runtime.bootstrap-mod-hydration',
-            status: 'failed',
-            generation,
-            error: safeErrorMessage(error),
-            updatedAt: new Date().toISOString(),
-          }]);
-        }
-        throw error;
-      }
-      if (!isCurrentPostReadyRuntimeModHydrationGeneration(generation)) {
-        logRendererEvent({
-          level: 'warn',
-          area: 'renderer-bootstrap',
-          message: 'phase:post-ready-runtime-mod-hydration:stale-result-ignored',
-          flowId: input.flowId,
-          details: { generation },
-        });
-        return;
-      }
-      useAppStore.getState().setRuntimeModHydrationRecords([{
-        modId: 'runtime.bootstrap-mod-hydration',
-        status: result.runtimeModFailures.length > 0 ? 'failed' : 'hydrated',
-        generation,
-        updatedAt: new Date().toISOString(),
-      }]);
-      logRendererEvent({
-        level: result.runtimeModFailures.length > 0 ? 'warn' : 'info',
-        area: 'renderer-bootstrap',
-        message: result.runtimeModFailures.length > 0
-          ? 'phase:post-ready-runtime-mod-hydration:done-with-failures'
-          : 'phase:post-ready-runtime-mod-hydration:done',
-        flowId: input.flowId,
-        details: {
-          generation,
-          manifestCount: result.manifestCount,
-          runtimeModFailureCount: result.runtimeModFailures.length,
-          runtimeModCount: listRegisteredRuntimeModIds().length,
-        },
-      });
-    })(),
-  });
-}
 
 function suspendRuntimeCallbacksForL2(): void {
   const hookRuntime = getRuntimeHookRuntime();
@@ -393,7 +148,7 @@ function runtimeDaemonUnavailable(status: { running: boolean; lastError?: string
 }
 
 async function teardownBootstrapState(): Promise<void> {
-  postReadyRuntimeModHydrationGeneration += 1;
+  invalidatePostReadyRuntimeModHydration();
   stopAuthStateWatcher();
   stopExternalAgentActionBridge();
   resetRuntimeHostState();

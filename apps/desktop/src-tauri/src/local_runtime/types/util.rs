@@ -43,7 +43,10 @@ fn capability_is_synthesize(value: &str) -> bool {
 }
 
 fn capability_is_voice_workflow(value: &str) -> bool {
-    capability_matches(value, &["voice_workflow.voice_clone", "voice_workflow.voice_design"])
+    capability_matches(
+        value,
+        &["voice_workflow.voice_clone", "voice_workflow.voice_design"],
+    )
 }
 
 pub fn default_preferred_engine_for_capabilities(capabilities: &[String]) -> String {

@@ -31,7 +31,7 @@ import {
   getAgentConversationAnchorBinding,
   persistAgentConversationAnchorBinding,
   type AgentConversationAnchorBinding,
-} from './chat-agent-anchor-binding-storage';
+} from '@renderer/app-shell/providers/agent-conversation-anchor-binding-storage';
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-nimi-execution-engine';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';
