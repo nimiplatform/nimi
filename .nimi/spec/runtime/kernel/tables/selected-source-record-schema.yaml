@@ -24,6 +24,8 @@ schema:
     - verified_artifacts
     - hashes
     - selected_consumers
+    - source_manifest_ref
+    - verification_evidence_ref
     - activation_env_delta
     - selected_at
     - last_verified_at
@@ -56,3 +58,7 @@ rules:
   - selected source records are runtime-private truth; SDK and Desktop may receive bounded projection only
   - imported model assets may produce asset selected source records but must not become DLL, Python, uv, or package roots
   - record invalidation must fail closed for affected consumers
+  - environment_key is composed from dependency_family plus the family-specific key fields in local-environment-dependencies.yaml
+  - consumer_scope is projection and activation-gate data unless a family is explicitly admitted to own consumer-scoped selected source records
+  - UI rows, model asset rows, transfer ids, consumer ids, and engine-private paths must not replace dependency environment keys
+  - selected source promotion requires source_manifest_ref and verification_evidence_ref matching the dependency family materializer registry

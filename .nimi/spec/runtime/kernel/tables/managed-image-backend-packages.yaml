@@ -7,6 +7,7 @@ entries:
       arch: arm64
       gpu_vendor: apple
     backend_family: stablediffusion-ggml
+    dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_localai_derived
     package_format: oci_payload
     install_dir_name: metal-stablediffusion-ggml
@@ -19,6 +20,7 @@ entries:
       arch: arm64
       gpu_vendor: apple
     backend_family: stablediffusion-ggml
+    dependency_family: native-engine-package.stablediffusion-ggml
     package_source: experimental_official_sdcpp
     package_format: direct_archive
     install_dir_name: metal-stablediffusion-ggml-official-sdcpp
@@ -41,6 +43,7 @@ entries:
       gpu_vendor: nvidia
       gpu_driver_visible: true
     backend_family: stablediffusion-ggml
+    dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
     install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml
@@ -66,6 +69,7 @@ entries:
       gpu_vendor: nvidia
       gpu_driver_visible: true
     backend_family: stablediffusion-ggml
+    dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_unavailable
     package_format: none
     install_dir_name: ""
@@ -74,3 +78,9 @@ entries:
     detail: >-
       No published runtime-owned managed image backend package is currently
       available for this host tuple.
+
+rules:
+  - package entries are source candidates for native-engine-package.stablediffusion-ggml; selected source records remain owned by local environment materializers
+  - supported package entries must provide package source identity, package format, install directory, executable candidates, launch mode, wrapper driver, and hash or digest proof before managed source promotion
+  - Runtime must not infer a stablediffusion-ggml package from engine startup branches, command-line backend installers, or ad hoc code paths
+  - startup may resolve package candidates but must not perform first heavy or network materialization without Runtime local environment dependency confirmation and job control

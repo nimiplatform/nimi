@@ -205,6 +205,15 @@ local transfer ids as the source of dependency truth. Local transfer projection
 may remain diagnostic/progress detail, but selected source records and local
 environment dependency jobs are the authority for dependency readiness.
 
+`ResolveLocalEnvironmentPlan` and `ResolveLocalEnvironmentActivationGate` must
+carry explicit asset identity for `model.asset` and `model.companion-asset`
+families. `asset_id` / `local_asset_id` identify the primary model payload;
+`companion_asset_id` identifies the companion payload; `parent_asset_id`
+identifies the parent asset binding when the caller already has it. Pack-level
+placeholders such as `*.model-asset` or `*.companion-asset` are not valid
+materializer execution identities and must fail closed instead of being promoted
+to selected source records.
+
 ### K-RPC-004-state Runtime Local State And Config Reconciliation
 
 `RuntimeLocalService` and the runtime config surface jointly own local AI state
@@ -752,6 +761,10 @@ preserve these constraints:
 - no Desktop, SDK, mod, engine, or app-level REST bypass may execute installers,
   probes, source selection, PATH mutation, or pseudo-ready projection on behalf
   of this surface
+
+## K-RPC-025 RuntimeLocalService Materializer Projection Surface
+
+Detailed RuntimeLocalService materializer projection semantics are owned by `local-environment-materializers-contract.md`. This section remains the stable RPC Surface anchor and delegates read, confirmation, command, job observation, activation-gate, and no-ordinary-user-installer rules to that file.
 
 ## K-RPC-023 Workflow Family Validation Boundary
 

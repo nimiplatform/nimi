@@ -787,3 +787,7 @@ RuntimeLocalService or downstream SDK projection. They must not choose sources,
 create selected source records, mutate PATH, run package-manager scripts, or
 project `ready` from job existence, transfer completion, endpoint reachability,
 file existence, or local cache.
+
+## K-LENG-028 Runtime Local Environment Materializers
+
+Detailed materializer authority is owned by `local-environment-materializers-contract.md`. This section remains the stable Local Engine Contract anchor and delegates registry, source manifest, verification evidence, selected source record, activation, and ordinary-user boundary rules to that file.

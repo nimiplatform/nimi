@@ -329,3 +329,7 @@ rules:
   - Python pipelines must prove uv, Python runtime, venv, package-set, and Torch or driver packages independently
   - native image activation must not require Python unless a Python pipeline consumer is selected
   - cloud-only usage has no consumer row in this table and must not resolve local compute dependencies
+  - consumers may consume activation gates and selected source record references only; they must not install, repair, or re-resolve dependency sources
+  - engine startup, Python pipeline startup, route resolution, and health checks must fail closed for missing selected source records instead of materializing hidden dependencies
+  - CUDA Torch consumers require both python.torch-wheel and accelerator.cuda.runtime selected source records; one record must not imply the other
+  - activation readiness must not be inferred from endpoint reachability, local package directories, import success, transfer completion, or script exit

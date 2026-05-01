@@ -1,0 +1,163 @@
+version: 1
+
+# Canonical Runtime materializer registry for local environment dependency
+# families. This table is downstream of local-environment-dependencies.yaml for
+# family identity and source policy, and upstream of implementation packets for
+# executor ownership. It does not admit implementation by itself.
+
+registry:
+  - materializer_id: materializer.accelerator.cuda.runtime
+    dependency_family: accelerator.cuda.runtime
+    owner: RuntimeLocalService
+    admission_state: spec_aligned
+    source_manifest_ref: managed-cuda-runtime-source
+    verification_evidence_ref: accelerator-cuda-runtime-evidence
+    confirmation_policy: first_network_materialization
+    selected_source_promotion: ready_system_or_ready_managed_after_verification
+    repair_policy: lock_activation_until_reverified
+    forbidden_readiness_inputs:
+      - path_precedence_only
+      - dll_presence_only
+      - endpoint_reachability
+      - script_exit_only
+
+  - materializer_id: materializer.native-engine-package.llama
+    dependency_family: native-engine-package.llama
+    owner: RuntimeLocalService
+    admission_state: spec_aligned
+    source_manifest_ref: managed-native-engine-package-source
+    verification_evidence_ref: native-engine-package-evidence
+    confirmation_policy: first_network_materialization
+    selected_source_promotion: ready_managed_after_verification
+    repair_policy: lock_activation_until_reverified
+    forbidden_readiness_inputs:
+      - engine_startup_branch
+      - package_directory_presence
+      - transfer_completion
+      - script_exit_only
+
+  - materializer_id: materializer.native-engine-package.stablediffusion-ggml
+    dependency_family: native-engine-package.stablediffusion-ggml
+    owner: RuntimeLocalService
+    admission_state: spec_aligned
+    source_manifest_ref: managed-image-backend-package-source
+    verification_evidence_ref: native-engine-package-evidence
+    confirmation_policy: first_network_materialization
+    selected_source_promotion: ready_managed_after_verification
+    repair_policy: lock_activation_until_reverified
+    forbidden_readiness_inputs:
+      - engine_startup_branch
+      - command_line_backend_installer
+      - package_directory_presence
+      - transfer_completion
+
+  - materializer_id: materializer.python.tool.uv
+    dependency_family: python.tool.uv
+    owner: RuntimeLocalService
+    admission_state: spec_aligned
+    source_manifest_ref: managed-uv-tool-source
+    verification_evidence_ref: python-tool-uv-evidence
+    confirmation_policy: first_network_materialization
+    selected_source_promotion: ready_system_or_ready_managed_after_verification
+    repair_policy: lock_activation_until_reverified
+    forbidden_readiness_inputs:
+      - user_path_presence
+      - package_manager_global_state
+      - shell_profile
+      - script_exit_only
+
+  - materializer_id: materializer.python.runtime
+    dependency_family: python.runtime
+    owner: RuntimeLocalService
+    admission_state: spec_aligned
+    source_manifest_ref: managed-python-runtime-source
+    verification_evidence_ref: python-runtime-evidence
+    confirmation_policy: first_network_materialization
+    selected_source_promotion: ready_managed_after_verification
+    repair_policy: lock_activation_until_reverified
+    forbidden_readiness_inputs:
+      - global_python
+      - pyenv_state
+      - system_package_manager_state
+      - script_exit_only
+
+  - materializer_id: materializer.python.venv
+    dependency_family: python.venv
+    owner: RuntimeLocalService
+    admission_state: spec_aligned
+    source_manifest_ref: managed-python-venv-source
+    verification_evidence_ref: python-venv-evidence
+    confirmation_policy: missing_materialization_confirmation
+    selected_source_promotion: ready_managed_after_verification
+    repair_policy: lock_activation_until_reverified
+    forbidden_readiness_inputs:
+      - venv_directory_presence
+      - site_packages_presence
+      - script_exit_only
+
+  - materializer_id: materializer.python.package-set
+    dependency_family: python.package-set
+    owner: RuntimeLocalService
+    admission_state: spec_aligned
+    source_manifest_ref: managed-python-package-lock-source
+    verification_evidence_ref: python-package-set-evidence
+    confirmation_policy: first_network_materialization
+    selected_source_promotion: ready_managed_after_verification
+    repair_policy: lock_activation_until_reverified
+    forbidden_readiness_inputs:
+      - site_packages_presence
+      - import_success_without_lock_identity
+      - package_directory_presence
+      - script_exit_only
+
+  - materializer_id: materializer.python.torch-wheel
+    dependency_family: python.torch-wheel
+    owner: RuntimeLocalService
+    admission_state: spec_aligned
+    source_manifest_ref: managed-torch-wheel-source
+    verification_evidence_ref: python-torch-wheel-evidence
+    confirmation_policy: first_network_materialization
+    selected_source_promotion: ready_managed_after_verification
+    repair_policy: lock_activation_until_reverified
+    forbidden_readiness_inputs:
+      - import_success_without_wheel_identity
+      - accelerator_runtime_assumption
+      - package_directory_presence
+      - script_exit_only
+
+  - materializer_id: materializer.model.asset
+    dependency_family: model.asset
+    owner: RuntimeLocalService
+    admission_state: spec_aligned
+    source_manifest_ref: managed-or-imported-model-asset-source
+    verification_evidence_ref: model-asset-evidence
+    confirmation_policy: first_network_materialization_or_explicit_import
+    selected_source_promotion: ready_system_or_ready_managed_after_verification
+    repair_policy: lock_activation_until_reverified
+    forbidden_readiness_inputs:
+      - model_file_presence
+      - model_row_presence
+      - transfer_completion
+      - endpoint_reachability
+
+  - materializer_id: materializer.model.companion-asset
+    dependency_family: model.companion-asset
+    owner: RuntimeLocalService
+    admission_state: spec_aligned
+    source_manifest_ref: managed-or-imported-companion-asset-source
+    verification_evidence_ref: model-companion-asset-evidence
+    confirmation_policy: first_network_materialization_or_explicit_import
+    selected_source_promotion: ready_system_or_ready_managed_after_verification
+    repair_policy: lock_activation_until_reverified
+    forbidden_readiness_inputs:
+      - companion_file_presence
+      - missing_parent_asset_binding
+      - transfer_completion
+      - endpoint_reachability
+
+rules:
+  - every dependency family in local-environment-dependencies.yaml must either have one registry entry or an explicit exclusion before implementation admission
+  - materializers are RuntimeLocalService-owned job executors, not Desktop workflows, engine installers, scripts, or package-manager commands
+  - a materializer may request prerequisite plan resolution but must not silently materialize another dependency family unless confirmation explicitly covers that dependency environment
+  - startup, route resolution, Desktop page load, SDK reads, passive import review, health probes, and background maintenance must not trigger first heavy or network materialization
+  - missing uv, Python, venv, package set, Torch wheel, native package, model asset, or companion asset projects Runtime local environment setup or repair state, not ordinary-user package-manager or PATH prerequisites

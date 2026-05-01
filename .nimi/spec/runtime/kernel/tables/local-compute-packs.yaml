@@ -141,3 +141,6 @@ pack_rules:
   - pack selection must not make Runtime core readiness depend on local compute readiness
   - cloud-only usage must not select a local compute pack implicitly
   - Desktop may project pack status and confirmation only; it must not materialize packs
+  - pack selection may produce a plan, dependency environments, and confirmation payloads; it must not perform first heavy or network materialization
+  - missing local pack dependencies project Runtime local environment setup, failed, unsupported, cancelled, or repair state
+  - local compute pack projection must not instruct ordinary users to install uv, Python, Torch, CUDA, native packages, model assets, or companion assets through system package managers or PATH mutation

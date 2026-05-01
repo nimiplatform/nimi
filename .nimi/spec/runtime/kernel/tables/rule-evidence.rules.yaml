@@ -1630,6 +1630,12 @@
 - rule_id: K-LENG-027
   status: covered
   evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-LENG-028
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-RPC-025
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
 # Scheduling five-state judgement (K-SCHED-*)
 - rule_id: K-SCHED-001
   status: deferred

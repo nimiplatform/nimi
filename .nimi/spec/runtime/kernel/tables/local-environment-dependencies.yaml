@@ -3,6 +3,10 @@ version: 1
 # Canonical Runtime local environment dependency graph authority.
 # This table supersedes dependency truth scattered across engine installers,
 # Desktop projection, model import rows, and developer scripts.
+# Materializer execution authority is registered in
+# local-environment-materializers.yaml. Source manifest and verification evidence
+# schema families are defined in local-environment-source-manifests.yaml and
+# local-environment-verification-evidence.yaml.
 
 dependency_families:
   - family_id: accelerator.cuda.runtime
@@ -29,6 +33,9 @@ dependency_families:
         admission: fail_closed
     managed_root: nimi_data_runtime_dependencies
     activation_env_delta: path_prepend_process_only
+    materializer_ref: materializer.accelerator.cuda.runtime
+    source_manifest_ref: managed-cuda-runtime-source
+    verification_evidence_ref: accelerator-cuda-runtime-evidence
     persistent_mutation:
       user_path: forbidden
       machine_path: forbidden
@@ -59,6 +66,9 @@ dependency_families:
         admission: fail_closed
     managed_root: nimi_data_runtime_engines
     activation_env_delta: process_env_only
+    materializer_ref: materializer.native-engine-package.llama
+    source_manifest_ref: managed-native-engine-package-source
+    verification_evidence_ref: native-engine-package-evidence
     required_proof:
       - declared_package_source
       - archive_hash
@@ -85,6 +95,9 @@ dependency_families:
         admission: fail_closed
     managed_root: nimi_data_runtime_engines
     activation_env_delta: process_env_only
+    materializer_ref: materializer.native-engine-package.stablediffusion-ggml
+    source_manifest_ref: managed-image-backend-package-source
+    verification_evidence_ref: native-engine-package-evidence
     required_proof:
       - declared_package_source
       - archive_hash
@@ -112,6 +125,9 @@ dependency_families:
         admission: fail_closed
     managed_root: nimi_data_runtime_dependencies
     activation_env_delta: process_env_only
+    materializer_ref: materializer.python.tool.uv
+    source_manifest_ref: managed-uv-tool-source
+    verification_evidence_ref: python-tool-uv-evidence
     required_proof:
       - canonical_executable
       - version_metadata
@@ -134,6 +150,9 @@ dependency_families:
         admission: fail_closed
     managed_root: nimi_data_runtime_dependencies
     activation_env_delta: process_env_only
+    materializer_ref: materializer.python.runtime
+    source_manifest_ref: managed-python-runtime-source
+    verification_evidence_ref: python-runtime-evidence
     required_proof:
       - uv_selected_python_record
       - canonical_interpreter
@@ -160,6 +179,9 @@ dependency_families:
         admission: fail_closed
     managed_root: nimi_data_runtime_dependencies
     activation_env_delta: process_env_only
+    materializer_ref: materializer.python.venv
+    source_manifest_ref: managed-python-venv-source
+    verification_evidence_ref: python-venv-evidence
     required_proof:
       - canonical_venv_root
       - interpreter_binding
@@ -185,6 +207,9 @@ dependency_families:
         admission: fail_closed
     managed_root: nimi_data_runtime_dependencies
     activation_env_delta: process_env_only
+    materializer_ref: materializer.python.package-set
+    source_manifest_ref: managed-python-package-lock-source
+    verification_evidence_ref: python-package-set-evidence
     required_proof:
       - package_lock_hash
       - installed_distribution_set
@@ -210,6 +235,9 @@ dependency_families:
         admission: fail_closed
     managed_root: nimi_data_runtime_dependencies
     activation_env_delta: process_env_only
+    materializer_ref: materializer.python.torch-wheel
+    source_manifest_ref: managed-torch-wheel-source
+    verification_evidence_ref: python-torch-wheel-evidence
     required_proof:
       - wheel_source
       - wheel_hash_or_lock
@@ -238,6 +266,9 @@ dependency_families:
         admission: fail_closed
     managed_root: nimi_data_local_models
     activation_env_delta: none
+    materializer_ref: materializer.model.asset
+    source_manifest_ref: managed-or-imported-model-asset-source
+    verification_evidence_ref: model-asset-evidence
     required_proof:
       - asset_record
       - integrity_hash_or_declared_local_import
@@ -264,6 +295,9 @@ dependency_families:
         admission: fail_closed
     managed_root: nimi_data_local_models
     activation_env_delta: none
+    materializer_ref: materializer.model.companion-asset
+    source_manifest_ref: managed-or-imported-companion-asset-source
+    verification_evidence_ref: model-companion-asset-evidence
     required_proof:
       - asset_record
       - integrity_hash_or_declared_local_import
@@ -275,5 +309,8 @@ graph_rules:
   - uv, Python, venv, package sets, and Torch wheels are managed dependency families, not user prerequisites
   - engine package selection consumes dependency graph truth and must not select private prerequisites
   - model import may request a plan but must not become dependency source truth
+  - imported model and companion assets may produce model-family selected source records only; they must not become Python, uv, CUDA, DLL, package-manager, or native engine package roots
+  - missing uv, Python runtime, venv, package set, Torch wheel, native package, model asset, or companion asset readiness projects Runtime local environment setup or repair state, not ordinary-user package-manager or PATH prerequisites
+  - startup, route resolution, Desktop page load, SDK reads, passive import review, health probes, and background maintenance must not trigger first heavy or network materialization
   - no dependency family may mutate user PATH, machine PATH, shell profiles, or system CUDA
   - missing, incompatible, corrupt, cancelled, or unconfirmed dependencies fail closed

@@ -137,6 +137,17 @@ Desktop must not store a job id as long-lived dependency truth. After each job
 action, it must refresh Runtime plan, job list, selected source, and activation
 gate projection.
 
+Runtime Config may display Runtime materializer registry and family setup state
+only as projection. It must not bootstrap local engines or materializers when
+opened, when reading provider configuration, when viewing daemon status, during
+route resolution, or during passive health refresh.
+
+If Runtime reports missing `uv`, Python runtime, venv, package set, Torch wheel,
+native package, model asset, or companion asset, Runtime Config must show local
+environment setup or repair state. It must not instruct ordinary users to
+install those dependencies through system package managers, global Python, PATH
+mutation, shell profile edits, or engine-private directories.
+
 ### Security (D-SEC-001)
 
 本地端点回环限制：仅允许 `localhost`、`127.0.0.1`、`[::1]`。

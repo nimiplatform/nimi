@@ -84,7 +84,20 @@ projection. It must not probe local dependency readiness, choose sources,
 execute installers, mutate PATH, or provide app-level REST bypass around
 RuntimeLocalService.
 
-## 5. 非目标
+## 5. Local Environment Materializer Projection
+
+Materializer projection remains downstream of Runtime truth. Runtime SDK
+methods may expose materializer family/status reads, confirmation payloads,
+selected source summaries, and dependency job commands only through
+RuntimeLocalService semantics. The SDK must not expose client-owned source
+selection, selected source record mutation, installer execution, PATH mutation,
+or materializer repair execution.
+
+Cloud provider, connector, account, and route SDK paths remain independent from
+local compute setup. Missing local `uv`, Python, Torch, CUDA, native package, or
+model dependency state must not block cloud-only SDK operations.
+
+## 6. 非目标
 
 - 不在本文件定义本地规则体系。
 - 不在 domain 文档维护实现态测试清单。

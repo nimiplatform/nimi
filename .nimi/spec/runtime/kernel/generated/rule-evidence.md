@@ -556,6 +556,8 @@
 | `K-LENG-025` | `covered` | `runtime_kernel_consistency` |
 | `K-LENG-026` | `covered` | `runtime_kernel_consistency` |
 | `K-LENG-027` | `covered` | `runtime_kernel_consistency` |
+| `K-LENG-028` | `covered` | `runtime_kernel_consistency` |
+| `K-RPC-025` | `covered` | `runtime_kernel_consistency` |
 | `K-SCHED-001` | `deferred` | — |
 | `K-SCHED-002` | `deferred` | — |
 | `K-SCHED-003` | `deferred` | — |

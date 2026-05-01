@@ -145,6 +145,36 @@ Cloud API configuration, sign-in, provider connector setup, and cloud-backed
 chat must remain usable when no local compute pack is selected, when local
 dependency probing fails, and when local dependency repair is required.
 
+### Materializer Setup Projection
+
+Desktop local AI surfaces may project Runtime materializer state for all local
+environment dependency families: CUDA runtime, native engine packages, `uv`,
+Python runtime, venv, package sets, Torch wheels, model assets, and companion
+assets.
+
+Desktop may display Runtime-projected setup, confirmation, progress, cancel,
+retry, repair, failed, unsupported, and activation-gate details. It must not
+probe these dependencies, choose sources, create selected source records, run
+installers, mutate PATH, or infer readiness.
+
+Normal user-facing copy must say that Nimi will set up the local environment
+under Runtime-owned storage after confirmation. It must not tell ordinary users
+to install `uv`, Python, Torch, CUDA, native packages, model assets, or
+companion assets through system package managers, global Python, PATH mutation,
+shell profile edits, or engine-private directories. Paths, hashes, source
+labels, selected source record ids, and logs may appear only in diagnostics.
+
+Desktop must keep one Runtime dependency environment projected as one setup job
+or selected source record even when multiple model rows or engine consumers need
+it. It must not split shared Runtime dependency truth into engine-private
+installers.
+
+For model payload dependencies, Desktop must pass concrete Runtime asset
+identity (`asset_id`, `local_asset_id`, `companion_asset_id`, and parent binding
+where available) into Runtime plan and activation-gate requests. Desktop must
+not start `model.asset` or `model.companion-asset` jobs from pack-level
+placeholder ids.
+
 ## Offline / Degradation
 
 Realm 离线不阻断本地模型管理；Runtime 不可达时，本域所有 local model 管理、transfer 与 lifecycle 路径必须 fail-close。详细降级语义回指 `kernel/offline-degradation-contract.md`。
