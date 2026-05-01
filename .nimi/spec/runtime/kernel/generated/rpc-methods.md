@@ -241,6 +241,15 @@ Source: `K-RPC-004b`
 | `OpenConversationAnchor` | `unary` |
 | `GetConversationAnchorSnapshot` | `unary` |
 | `GetPublicChatSessionSnapshot` | `unary` |
+| `ListDelegatedProviderProfiles` | `unary` |
+| `UpsertDelegatedProviderProfile` | `unary` |
+| `SetDelegatedProviderState` | `unary` |
+| `ListDelegatedApprovalRequests` | `unary` |
+| `SubmitDelegatedApprovalDecision` | `unary` |
+| `ListDelegatedDiagnostics` | `unary` |
+| `GetDelegatedReplayTrace` | `unary` |
+| `GetDelegatedControlSurfaceSnapshot` | `unary` |
+| `ExecuteDelegatedCapability` | `unary` |
 | `GetAgentState` | `unary` |
 | `UpdateAgentState` | `unary` |
 | `EnableAutonomy` | `unary` |

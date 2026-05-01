@@ -23,6 +23,7 @@ Desktop delegated capability surfaces MUST call Runtime through the SDK typed
 - `ListDelegatedDiagnostics`
 - `GetDelegatedReplayTrace`
 - `GetDelegatedControlSurfaceSnapshot`
+- `ExecuteDelegatedCapability` for Runtime-owned debug execution only
 
 Fixed constraints:
 

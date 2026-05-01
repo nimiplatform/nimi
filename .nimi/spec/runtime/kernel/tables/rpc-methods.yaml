@@ -337,6 +337,24 @@ services:
         type: unary
       - name: GetPublicChatSessionSnapshot
         type: unary
+      - name: ListDelegatedProviderProfiles
+        type: unary
+      - name: UpsertDelegatedProviderProfile
+        type: unary
+      - name: SetDelegatedProviderState
+        type: unary
+      - name: ListDelegatedApprovalRequests
+        type: unary
+      - name: SubmitDelegatedApprovalDecision
+        type: unary
+      - name: ListDelegatedDiagnostics
+        type: unary
+      - name: GetDelegatedReplayTrace
+        type: unary
+      - name: GetDelegatedControlSurfaceSnapshot
+        type: unary
+      - name: ExecuteDelegatedCapability
+        type: unary
       - name: GetAgentState
         type: unary
       - name: UpdateAgentState

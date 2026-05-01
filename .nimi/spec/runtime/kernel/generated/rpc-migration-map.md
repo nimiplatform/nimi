@@ -183,6 +183,7 @@
 | `RuntimeAgentService` | `ListDelegatedDiagnostics` | `RuntimeAgentService` | `ListDelegatedDiagnostics` | `aligned` |
 | `RuntimeAgentService` | `GetDelegatedReplayTrace` | `RuntimeAgentService` | `GetDelegatedReplayTrace` | `aligned` |
 | `RuntimeAgentService` | `GetDelegatedControlSurfaceSnapshot` | `RuntimeAgentService` | `GetDelegatedControlSurfaceSnapshot` | `aligned` |
+| `RuntimeAgentService` | `ExecuteDelegatedCapability` | `RuntimeAgentService` | `ExecuteDelegatedCapability` | `aligned` |
 | `RuntimeAgentService` | `GetAgentState` | `RuntimeAgentService` | `GetAgentState` | `aligned` |
 | `RuntimeAgentService` | `UpdateAgentState` | `RuntimeAgentService` | `UpdateAgentState` | `aligned` |
 | `RuntimeAgentService` | `EnableAutonomy` | `RuntimeAgentService` | `EnableAutonomy` | `aligned` |

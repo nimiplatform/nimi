@@ -1,4 +1,17 @@
-admissions: []
+admissions:
+  - topic_id: 2026-05-01-runtime-delegated-agent-capability-gateway
+    packet_id: wave-0-authority-admit
+    disposition: complete
+    admitted_at: "2026-05-01T10:23:36Z"
+    manager_review_owner: nimicoding-manager
+    summary: >-
+      Runtime delegated agent capability gateway authority redesign admitted as
+      Runtime-owned control plane work: Runtime retains final cognition,
+      approval, credential, firewall, projection, action, and audit authority;
+      MCP is admitted only as a quarantined adapter source, A2A remains a
+      future seam, and Desktop/Avatar/apps/mods remain typed consumers or
+      control surfaces without delegated semantic ownership.
+    source_decision_contract: .nimi/topics/closed/2026-05-01-runtime-delegated-agent-capability-gateway/packet-wave-0-authority-admit.md
 admission_rules:
   - explicit_manager_owned_decision_required_before_canonical_high_risk_admission
   - mechanically_valid_packet_identity_required_before_canonical_high_risk_admission
