@@ -85,6 +85,10 @@ Fixed rules:
 - APML is admitted only as the model-facing output wire syntax defined by
   `agent-output-wire-contract.md`; runtime must project APML into these typed
   families before first-party consumers treat it as durable product truth
+- Avatar APML auto-adapter support consumes this same typed projection boundary:
+  Avatar may map admitted `runtime.agent.presentation.activity_requested`
+  activity ids and admitted `runtime.agent.state.*` state to backend routes,
+  but it must not consume raw `apml.*` parser diagnostics as product input
 - family-specific envelopes and detail payloads for these admitted projection
   families are pinned in
   `tables/runtime-agent-event-projection.yaml`
@@ -152,6 +156,10 @@ Fixed rules:
   APML-sourced public activity projections normally omit intensity
 - renderer/app mappings may provide backend fallback behavior for admitted ids,
   but they must not re-own runtime activity category or intensity truth
+- Avatar-owned backend route ids, capability profile ids, generated motion ids,
+  and mapping confidence labels are downstream projection facts only; they are
+  not runtime activity ids, public APML tags, or runtime-owned presentation
+  payload names unless a later runtime packet admits them
 - closed-topic activity ontology documents are evidence only; the active
   runtime SSOT is this rule plus `tables/agent-activity-ontology.yaml`
 

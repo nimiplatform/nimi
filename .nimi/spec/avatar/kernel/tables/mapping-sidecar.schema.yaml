@@ -1,0 +1,82 @@
+schema_id: nimi.avatar.mapping-sidecar.v1
+owner: .nimi/spec/avatar
+status: active
+admitted_by: 2026-05-01-avatar-apml-auto-adapter/wave-0
+description: >
+  Schema for sidecar mappings from Avatar route ids to backend/model-specific
+  names. Sidecars carry confidence and evidence only. They do not own semantic
+  ids and must not contain generated keyframe math.
+
+required_fields:
+  - sidecar_id
+  - route_id
+  - backend_kind
+  - profile_id
+  - confidence
+  - threshold
+  - manual_confirmation
+  - target_fields
+  - evidence
+
+route_id_source: .nimi/spec/avatar/kernel/tables/generated-motion-routes.yaml
+default_threshold: 0.82
+confidence:
+  min: 0
+  max: 1
+  fail_closed_when_below_threshold: true
+
+manual_confirmation_enum:
+  - unconfirmed
+  - confirmed
+  - rejected
+
+source_kind_enum:
+  - deterministic_manifest
+  - static_name_match
+  - llm_semantic_match
+  - human_review
+
+target_fields:
+  required: true
+  min_items: 1
+  description: >
+    Backend/model-specific names that the sidecar maps the Avatar route to.
+    These are backend facts only and must be validated against a matching
+    capability profile before they can support a route.
+  target_kind_enum:
+    - humanoid_bone
+    - expression_preset
+    - lookat
+    - motion_group
+    - parameter_id
+    - manifest_entry
+  required_fields:
+    - target_kind
+    - name
+  optional_fields:
+    - role
+
+evidence:
+  required_fields:
+    - source_kind
+    - source_fields
+    - rationale
+  source_fields_rule: >
+    source_fields must identify the model/profile fields inspected, such as
+    expression preset names, humanoid bone names, Live2D motion groups, or
+    manifest metadata.
+
+forbidden_fields:
+  - keyframes
+  - rotations
+  - curves
+  - easing
+  - duration
+  - apml_tag
+
+invariants:
+  - LLM output is mapping-only and requires manual_confirmation: confirmed before route support.
+  - confidence below threshold is fail_closed.
+  - sidecars must not create runtime activity ids or public APML syntax.
+  - sidecars must not claim support without matching backend capability profile evidence.
+  - target_fields are backend/model facts only and must not become Avatar-local ontology.

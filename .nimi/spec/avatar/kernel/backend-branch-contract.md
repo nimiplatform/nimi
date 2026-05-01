@@ -132,18 +132,21 @@ export type BackendProjection = {
   // 不携带 backend-specific identifier（Live2D parameter id 不在此层）
   applyActivity(input: { name: string; intensity: number | null }): void;
   applyEmotion(input: { current: string; previous: string | null }): void;
-  applyMotion(input: { presetId: string; fade?: number; loop?: boolean }): void;
+  applyMotion(input: { routeId: string; fade?: number; loop?: boolean }): void;
   applyExpression(input: { name: string; weight?: number; fade?: number }): void;
   reset(): void;
 };
 ```
 
 - `applyActivity / applyEmotion / applyMotion / applyExpression / reset` 是
-  ontology-level method；name / presetId / emotion id 必须来自 platform
-  `agent-activity-ontology.yaml`（K-AGCORE-049）或 Avatar-local
-  `vrm-emote-states.yaml` / `vrm-motion-presets.yaml` admit registry
+  ontology-level method；name / routeId / emotion id 必须来自 platform
+  `agent-activity-ontology.yaml`（K-AGCORE-049）或 Avatar-local generated
+  motion/emote authority (`generated-motion-routes.yaml`,
+  `vrm-emote-states.yaml`)
 - **不允许** 任何方法携带 Live2D parameter id（如 `ParamMouthOpenY`）；
   parameter id 路径降级为 `Live2DBackendExtension.setParameter` escape hatch
+- `routeId` is an Avatar backend route id and must not be interpreted as public
+  APML syntax or runtime activity ontology ownership.
 
 ### 2.6 Live2DBackendExtension
 

@@ -1,0 +1,72 @@
+version: 1
+owner: .nimi/spec/avatar
+status: active
+admitted_by: 2026-05-01-avatar-apml-auto-adapter/wave-0
+description: >
+  Avatar backend route ids for generated motion provider support. These route
+  ids are downstream of typed runtime.agent.* projection and are not public APML
+  tags or runtime activity ontology ids.
+
+source_authority:
+  runtime_projection: .nimi/spec/runtime/kernel/agent-presentation-stream-contract.md
+  runtime_activity_ontology: .nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml
+  public_apml_wire: .nimi/spec/runtime/kernel/agent-output-wire-contract.md
+
+public_apml_syntax:
+  direct_motion_expression_lookat_pose_tags_admitted: false
+  note: >
+    Public APML <motion>, <expression>, <lookat>, <pose>, and <clear-pose>
+    remain not admitted. Routes below are Avatar backend ids only.
+
+routes:
+  - route_id: idle_subtle
+    projection_event: runtime.agent.presentation.activity_requested
+    runtime_activity_id: idle
+    category: state
+    provider_kind: deterministic_generated_motion
+    backend_targets:
+      - vrm
+    vrma_position: interchange_only
+
+  - route_id: listen_lean
+    projection_event: runtime.agent.presentation.activity_requested
+    runtime_activity_id: listening
+    category: interaction
+    provider_kind: deterministic_generated_motion
+    backend_targets:
+      - vrm
+    vrma_position: interchange_only
+
+  - route_id: nod_yes
+    projection_event: runtime.agent.presentation.activity_requested
+    runtime_activity_id: agree
+    category: interaction
+    provider_kind: deterministic_generated_motion
+    backend_targets:
+      - vrm
+    vrma_position: interchange_only
+
+  - route_id: shake_no
+    projection_event: runtime.agent.presentation.activity_requested
+    runtime_activity_id: disagree
+    category: interaction
+    provider_kind: deterministic_generated_motion
+    backend_targets:
+      - vrm
+    vrma_position: interchange_only
+
+  - route_id: greet_wave
+    projection_event: runtime.agent.presentation.activity_requested
+    runtime_activity_id: greet
+    category: interaction
+    provider_kind: deterministic_generated_motion
+    backend_targets:
+      - vrm
+    vrma_position: interchange_only
+
+invariants:
+  - route_id values are Avatar backend route ids, not public APML tags.
+  - runtime_activity_id values are references to runtime authority, not copied ontology.
+  - unsupported backend_targets fail_closed.
+  - missing capability profile support fails_closed.
+  - no route may require a .vrma file as APML runtime support proof.

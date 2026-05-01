@@ -1,0 +1,84 @@
+schema_id: nimi.avatar.backend-capability-profile.v1
+owner: .nimi/spec/avatar
+status: active
+admitted_by: 2026-05-01-avatar-apml-auto-adapter/wave-0
+description: >
+  Backend-agnostic Avatar capability profile schema. Profiles describe the
+  capabilities of a loaded Avatar backend/model for generated motion routing.
+  They are Avatar backend facts only and must not define APML syntax or runtime
+  activity ontology.
+
+required_fields:
+  - profile_id
+  - backend_kind
+  - model_fingerprint
+  - generated_motion
+  - evidence
+
+backend_kind_enum:
+  - vrm
+  - live2d
+  - future
+
+generated_motion:
+  required_fields:
+    - supported_routes
+    - unsupported_routes
+    - safety_limits
+  route_id_source: .nimi/spec/avatar/kernel/tables/generated-motion-routes.yaml
+  unsupported_route_semantics: fail_closed
+
+vrm_section:
+  required_when_backend_kind: vrm
+  required_fields:
+    - humanoid_bones
+    - expression_presets
+    - lookat
+    - pose_limits
+  humanoid_bones:
+    required_for_generated_motion:
+      - hips
+      - spine
+      - chest
+      - neck
+      - head
+      - left_upper_arm
+      - left_lower_arm
+      - left_hand
+      - right_upper_arm
+      - right_lower_arm
+      - right_hand
+      - left_upper_leg
+      - left_lower_leg
+      - right_upper_leg
+      - right_lower_leg
+  pose_limits:
+    units: degrees
+    rule: provider must clamp generated rotations to profile limits before output
+
+live2d_section:
+  required_when_backend_kind: live2d
+  required_fields:
+    - motion_groups
+    - expression_ids
+    - parameter_ids
+  rule: >
+    Live2D parameter ids are backend facts. They must not be promoted to APML
+    syntax or runtime activity ontology.
+
+evidence:
+  required_fields:
+    - source
+    - observed_at
+    - validator
+  source_enum:
+    - model_manifest
+    - runtime_probe
+    - static_asset_inspection
+    - human_review
+
+invariants:
+  - Avatar capability profiles consume runtime activity ids only as references from generated-motion-routes.yaml.
+  - Profiles must not introduce avatar-local APML ids.
+  - Missing capability for a route is fail_closed, not idle fallback.
+  - Profile validation must fail on placeholder success, unknown backend_kind, or empty evidence.

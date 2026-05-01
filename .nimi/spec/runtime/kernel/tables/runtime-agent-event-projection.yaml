@@ -144,26 +144,46 @@ presentation_events:
       category: enum(emotion|interaction|state)
       intensity: enum(weak|moderate|strong)_optional
       source: string
+    notes:
+      - Avatar may map admitted activity_name values to Avatar-owned backend
+        route ids downstream of this projection.
+      - Backend route ids and mapping confidence labels are not runtime
+        activity ids, public APML tags, or runtime-owned payload fields.
   - event: runtime.agent.presentation.motion_requested
     source_rule: K-AGCORE-037
     detail:
       motion_id: string
       priority: string_optional
       expected_duration_ms: int_optional
+    notes:
+      - This is a typed runtime presentation projection family, not public
+        APML direct <motion> syntax.
+      - Avatar must not reinterpret motion_id as an Avatar backend route id
+        unless an Avatar mapping table explicitly maps a typed runtime
+        projection into that route.
   - event: runtime.agent.presentation.expression_requested
     source_rule: K-AGCORE-037
     detail:
       expression_id: string
       expected_duration_ms: int_optional
+    notes:
+      - This is a typed runtime presentation projection family, not public
+        APML direct <expression> syntax.
   - event: runtime.agent.presentation.pose_requested
     source_rule: K-AGCORE-037
     detail:
       pose_id: string
       expected_duration_ms: int_optional
+    notes:
+      - This is a typed runtime presentation projection family, not public
+        APML direct <pose> syntax.
   - event: runtime.agent.presentation.pose_cleared
     source_rule: K-AGCORE-037
     detail:
       previous_pose_id: string_optional
+    notes:
+      - This is a typed runtime presentation projection family, not public
+        APML direct <clear-pose> syntax.
   - event: runtime.agent.presentation.lookat_requested
     source_rule: K-AGCORE-037
     detail:
@@ -171,6 +191,9 @@ presentation_events:
       x: number_optional
       y: number_optional
       z: number_optional
+    notes:
+      - This is a typed runtime presentation projection family, not public
+        APML direct <lookat> syntax.
   - event: runtime.agent.presentation.voice_playback_requested
     source_rule: K-AGCORE-051
     timeline_channel: voice

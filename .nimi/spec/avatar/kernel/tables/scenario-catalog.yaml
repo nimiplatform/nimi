@@ -142,7 +142,7 @@ scenarios:
     model_kind: "vrm"
     requires_assets: ["listen_lean", "nod_yes", "shake_no"]
     validates:
-      - "applyActivity('listening') → motionRegistry.play({presetId: 'listen_lean'})"
+      - "applyActivity('listening') -> generatedMotionProvider.play({routeId: 'listen_lean'})"
       - "preset_not_loaded fail-close (D plan partial-asset)"
       - "motion_presets_loaded evidence: only idle_subtle in loaded_ids"
       - "Carrier surface remains visible (no fail_closed)"
@@ -163,7 +163,7 @@ scenarios:
     model_kind: "vrm"
     requires_assets: ["idle_subtle"]
     validates:
-      - "applyActivity('thinking') → motionRegistry.play({presetId: 'idle_subtle'})"
+      - "applyActivity('thinking') -> generatedMotionProvider.play({routeId: 'idle_subtle'})"
       - "Played path returns {played: true} (idle_subtle is admitted)"
       - "Registry snapshot.activePresetId === 'idle_subtle'"
 

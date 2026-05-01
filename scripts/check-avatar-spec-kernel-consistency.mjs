@@ -20,14 +20,18 @@ const requiredFiles = [
   `${kernelRoot}/backend-branch-contract.md`,
   `${kernelRoot}/carrier-visual-acceptance-contract.md`,
   `${kernelRoot}/embodiment-projection-contract.md`,
+  `${kernelRoot}/generated-motion-provider-contract.md`,
   `${kernelRoot}/live2d-asset-compatibility-contract.md`,
   `${kernelRoot}/live2d-render-contract.md`,
   `${kernelRoot}/mock-fixture-contract.md`,
   `${kernelRoot}/vrm-backend-contract.md`,
   `${tablesRoot}/activity-mapping.yaml`,
+  `${tablesRoot}/backend-capability-profile.schema.yaml`,
   `${tablesRoot}/feature-matrix.yaml`,
+  `${tablesRoot}/generated-motion-routes.yaml`,
   `${tablesRoot}/i18n-keys.yaml`,
   `${tablesRoot}/live2d-compatibility-tiers.yaml`,
+  `${tablesRoot}/mapping-sidecar.schema.yaml`,
   `${tablesRoot}/scenario-catalog.yaml`,
   `${tablesRoot}/vrm-emote-states.yaml`,
   `${tablesRoot}/vrm-motion-presets.yaml`,
@@ -47,6 +51,10 @@ const activeReferenceScanRoots = [
   '.nimi/topics/proposal/2026-04-24-live2d-existing-assets-nimi-adaptation',
   '.nimi/topics/proposal/2026-05-01-avatar-apml-auto-adapter',
 ];
+const generatedMotionBoundaryFiles = new Set([
+  `${kernelRoot}/generated-motion-provider-contract.md`,
+  `${tablesRoot}/generated-motion-routes.yaml`,
+]);
 
 let failed = false;
 
@@ -113,10 +121,13 @@ for (const rel of requiredFiles) {
   if (content.includes('apps/avatar/spec')) {
     fail(`${rel} must not cite apps/avatar/spec as active authority`);
   }
-  if (/\bapml\./u.test(content)) {
+  if (!generatedMotionBoundaryFiles.has(rel) && /\bapml\./u.test(content)) {
     fail(`${rel} must not consume raw apml.* parser events`);
   }
-  if (/<(?:motion|expression|lookat|pose)\b|<clear-pose\/>/u.test(content)) {
+  if (
+    !generatedMotionBoundaryFiles.has(rel)
+    && /<(?:motion|expression|lookat|pose)\b|<clear-pose\/>/u.test(content)
+  ) {
     fail(`${rel} must not re-admit public APML motion/expression/lookat/pose syntax`);
   }
 }

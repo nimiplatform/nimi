@@ -269,6 +269,14 @@ Fixed rules:
   APML remains runtime model-facing input and SDK consumers observe only typed
   `runtime.agent.*` projections unless a later mounted runtime rule admits
   another surface
+- SDK must not publish Avatar generated motion routes, backend capability
+  profiles, mapping sidecars, or mapping confidence labels as runtime-owned
+  payload truth. Those are Avatar-owned downstream projection facts consumed
+  after typed `runtime.agent.*` delivery.
+- SDK typed projection helpers must preserve the distinction between public
+  APML wire syntax and typed runtime presentation events; no SDK helper may
+  re-admit public `<motion>`, `<expression>`, `<lookat>`, `<pose>`, or
+  `<clear-pose>` syntax by translating it client-side.
 
 ## S-RUNTIME-104 Renderer-Local Transient Non-Owner Boundary
 

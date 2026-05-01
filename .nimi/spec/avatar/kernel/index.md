@@ -30,10 +30,24 @@ VRM backend branch implementation contract (Wave 0 admit):
 
 - VRM lifecycle (load / context-lost recovery / dispose)
 - MToon outline policy
-- `.vrma` motion preset registry + per-model override semantics
+- generated motion provider integration; `.vrma` is interchange/authoring
+  evidence, not APML runtime support proof
 - VRM expression preset names (viseme + emotion)
 - Tauri webview quirks (createImageBitmap suspend)
 - Nominal bounds derivation + framing intent
+
+### [`generated-motion-provider-contract.md`](generated-motion-provider-contract.md)
+
+Avatar generated motion provider authority (Wave 0 of topic
+`2026-05-01-avatar-apml-auto-adapter` admit):
+
+- Avatar consumes typed `runtime.agent.*` projection, never parser diagnostics
+  from the APML raw namespace
+- backend route ids, capability profiles, mapping sidecars, and provider
+  fail-closed semantics live under `.nimi/spec/avatar/**`
+- public APML direct motion / expression / lookat / pose / clear-pose syntax
+  remains not admitted
+- `.vrma` is interchange-only and not runtime support proof
 
 ### [`embodiment-projection-contract.md`](embodiment-projection-contract.md)
 
@@ -145,10 +159,25 @@ preset bundle. Wave 0 of topic `2026-04-30-avatar-vrm-backend-branch` admit;
 
 ### [`tables/vrm-motion-presets.yaml`](tables/vrm-motion-presets.yaml)
 
-VRM motion preset registry — preset id → `.vrma` asset + license + source.
-Wave 0 admits 4 entries (`idle_subtle / listen_lean / nod_yes / shake_no`):
-`idle_subtle` is the airi MIT fork-copy PoC, while the other three are
-internal author targets. 3 external-license entries deferred to wave_3.
+Legacy/interchange VRM motion preset registry — preset id → `.vrma` asset +
+license + source. It is superseded by generated motion provider authority for
+APML auto-adapter runtime support and may be used only as authoring or
+interchange evidence.
+
+### [`tables/generated-motion-routes.yaml`](tables/generated-motion-routes.yaml)
+
+Avatar backend route ids for generated motion provider support. Route ids are
+downstream of typed runtime projection and are not public APML tags.
+
+### [`tables/backend-capability-profile.schema.yaml`](tables/backend-capability-profile.schema.yaml)
+
+Backend-agnostic capability profile schema with VRM and Live2D backend sections.
+Profiles describe model/backend support and fail closed on missing capability.
+
+### [`tables/mapping-sidecar.schema.yaml`](tables/mapping-sidecar.schema.yaml)
+
+Mapping sidecar schema for route-to-backend/model name correspondence with
+confidence, evidence, threshold, and manual confirmation semantics.
 
 ### [`tables/window-bounds-policy.yaml`](tables/window-bounds-policy.yaml)
 

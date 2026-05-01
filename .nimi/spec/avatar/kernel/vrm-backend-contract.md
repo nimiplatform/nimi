@@ -18,7 +18,8 @@
 本 contract 定义 Nimi Avatar **VRM backend branch** 的实现细节：模型加载
 （GLTF + VRMLoaderPlugin）、MToon outline 策略、context-lost 恢复、Tauri
 quirks、framing intent / nominal bounds 派生、expression preset 命名、
-`.vrma` motion preset 加载、audio consumer + lipsync driver 接入。
+generated motion provider 接入、`.vrma` interchange support、audio consumer +
+lipsync driver 接入。
 
 VRM backend 实现 `BackendBranch` 抽象；carrier abstraction 公共契约见
 [backend-branch-contract.md](backend-branch-contract.md)。
@@ -60,7 +61,7 @@ VRM backend 是 `apps/avatar` 内独立实现：
 7. applyIdlePose(vrm)（中性站姿；避免 T-pose 闪现）
 8. scene.traverse: object.frustumCulled = false（避免 close-up 时模型部分剔除）
 9. 计算 nominalBounds（详 §4）
-10. 加载 motion preset registry（详 §3）
+10. 初始化 generated motion provider capability profile（详 §3）
 11. emit avatar.model.load { model_kind: 'vrm', backend_meta: {...} }
 12. resume createImageBitmap
 ```
@@ -111,9 +112,29 @@ webglcontextlost → emit avatar.carrier.lifecycle.context_lost
 
 ---
 
-## 3. Motion Preset System
+## 3. Generated Motion Provider
 
-### 3.1 `.vrma` 加载 (NAV-VRM-003)
+### 3.1 Runtime Support Path (NAV-VRM-003)
+
+APML auto-adapter runtime support is proved by generated `THREE.AnimationClip`
+execution downstream of typed runtime projection, not by the presence of
+physical `.vrma` files.
+
+The VRM branch consumes:
+
+- typed `runtime.agent.presentation.*` / `runtime.agent.state.*` projection
+- Avatar route ids from `tables/generated-motion-routes.yaml`
+- backend capability profiles conforming to
+  `tables/backend-capability-profile.schema.yaml`
+- mapping sidecars conforming to `tables/mapping-sidecar.schema.yaml`
+
+Provider output is defined by
+[`generated-motion-provider-contract.md`](generated-motion-provider-contract.md):
+an executable `THREE.AnimationClip` or fail-closed evidence. Missing capability,
+unsafe pose, low-confidence mapping, or an unknown route must fail closed; idle
+fallback is not support for a non-idle route.
+
+### 3.2 `.vrma` Interchange Loading
 
 - 通过 `VRMAnimationLoaderPlugin` + `GLTFLoader.loadAsync(.vrma URL)` 加载
 - `gltf.userData.vrmAnimations[0]` → `clipFromVRMAnimation(vrmAnimation, vrm)`
@@ -121,11 +142,12 @@ webglcontextlost → emit avatar.carrier.lifecycle.context_lost
 - `THREE.AnimationMixer` 持有当前 + 上一 clip；切换走 `mixer.crossFadeFrom`
 - 每帧 `mixer.update(delta)` + `vrm.update(delta)` 同节拍
 
-### 3.2 Preset Registry (NAV-VRM-004)
+This path is admitted only for interchange, authoring, and legacy evidence. It
+must not be required for APML auto-adapter runtime support.
 
-注册表见 `tables/vrm-motion-presets.yaml`（wave_0 admit 4 entries：
-`idle_subtle / listen_lean / nod_yes / shake_no`；`idle_subtle` 为 airi MIT
-fork-copy PoC，其余三项为 internal author targets）。每 entry 必须有：
+### 3.3 Interchange Preset Registry (NAV-VRM-004)
+
+Interchange registry见 `tables/vrm-motion-presets.yaml`。每 entry 必须有：
 
 - `id`: stable ontology-anchored id
 - `file`: `.vrma` 文件名（相对 `apps/avatar/assets/vrm-motion-presets/`）
@@ -133,23 +155,27 @@ fork-copy PoC，其余三项为 internal author targets）。每 entry 必须有
 - `license`: SPDX id 或 `internal`
 - `source`: URL 或 `internal` source description（不允许占位值）
 
-加载策略：
+Interchange loading strategy:
 
 - `apps/avatar/assets/vrm-motion-presets/<id>.vrma` 是默认资产
 - `model_path/motions/<id>.vrma` 是 per-model override（探测存在则优先）
+- this registry must not be constructed or loaded on the APML auto-adapter
+  runtime support path
 
-### 3.3 Per-Model Override
+### 3.4 Per-Model Override For Interchange
 
 manifest 探测 `model_path/motions/` 子目录（详 design-08）：
 
 - 存在 → 注册 override；同 id 时覆盖 builtin
 - 不存在 → 仅用 builtin
+- override resolution is interchange-only; generated provider failure must not
+  fall back to per-model `.vrma` playback
 
-### 3.4 Play Semantics
+### 3.5 Generated Runtime Play Semantics
 
 ```ts
-motionRegistry.play({
-  presetId: 'nod_yes',
+generatedMotionRuntime.play({
+  routeId: 'nod_yes',
   fade: 0.2,        // crossfade 秒数
   loop: false,
   intensity: 1,     // 0..1 影响 crossfade 速度上界
@@ -158,8 +184,13 @@ motionRegistry.play({
 
 约束：
 
-- 引用未在 registry admit 的 `presetId` → fail-close（log warn，不假装在动）
-- `loop: true` 的 preset 在新 play 调用时必须显式被 stop（不允许累积多 loop clip）
+- 引用未在 generated motion route registry admit 的 `routeId` → fail-close
+  （log warn，不假装在动）
+- missing generated provider / missing capability profile / unsafe generated
+  pose / low-confidence mapping → fail-close, no placeholder success
+- `loop: true` 的 generated clip 在新 play 调用时必须显式被 stop（不允许累积多 loop clip）
+- APML auto-adapter support must not depend on this registry; use generated
+  provider route support instead.
 
 ---
 
@@ -331,7 +362,9 @@ throttled 上报到 carrier（详 design-07）。
   → fail-close（unit test 强制断言）
 - `BackendBranch.kind === 'vrm'` 时不允许暴露 `live2dExtension` 字段
   （discriminated union typecheck 强制）
-- `vrm-motion-presets.yaml` 引用 `.vrma` 文件不存在 → spec validator fail
+- generated motion route lacks capability profile support → fail-close
+- `vrm-motion-presets.yaml` 引用 `.vrma` 文件不存在 → interchange validator
+  fail; this is not APML runtime support proof
 - `model_path/motions/<id>.vrma` 同名 override 必须与 builtin 同 ontology
   semantics（不允许语义偏移；human review at admit）
 - `createImageBitmap` 不被 suspend 直接调用 `loader.loadAsync` → typecheck
@@ -342,6 +375,8 @@ throttled 上报到 carrier（详 design-07）。
 ## 12. Evolution
 
 - 新 VRM expression preset 命名 → minor bump + 同步 `vrm-emote-states.yaml`
+- 新 generated motion route → update `generated-motion-routes.yaml`,
+  capability profile schema expectations, and provider tests in the same packet
 - 新 framing intent → minor bump
 - 改 context-lost recovery 策略（如多次重试）→ major bump（与 fail-close
   posture 强相关）

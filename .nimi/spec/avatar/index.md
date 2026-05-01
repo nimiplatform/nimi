@@ -16,6 +16,7 @@ Reading path:
 | [kernel/embodiment-projection-contract.md](kernel/embodiment-projection-contract.md) | Backend-agnostic embodiment projection layer and protocol split |
 | [kernel/app-shell-contract.md](kernel/app-shell-contract.md) | Window behavior / drag / always-on-top / click-through / small button |
 | [kernel/live2d-render-contract.md](kernel/live2d-render-contract.md) | Current Live2D backend branch: Cubism SDK integration, model loading, rendering pipeline |
+| [kernel/generated-motion-provider-contract.md](kernel/generated-motion-provider-contract.md) | Generated motion provider contract downstream of typed runtime projection |
 | [kernel/carrier-visual-acceptance-contract.md](kernel/carrier-visual-acceptance-contract.md) | Current Avatar app carrier visual proof requirements and evidence taxonomy |
 | [kernel/agent-script-contract.md](kernel/agent-script-contract.md) | NimiAgentScript (NAS) — convention-based JS handlers for embodiment package creators |
 | [kernel/avatar-event-contract.md](kernel/avatar-event-contract.md) | `avatar.*` events produced and consumed by the app |
@@ -27,6 +28,9 @@ Reading path:
 |-------|-------|
 | [kernel/tables/feature-matrix.yaml](kernel/tables/feature-matrix.yaml) | Phase 1 / 2 / 3 feature phasing |
 | [kernel/tables/activity-mapping.yaml](kernel/tables/activity-mapping.yaml) | Current Live2D backend branch activity → motion-group naming (default fallback) |
+| [kernel/tables/generated-motion-routes.yaml](kernel/tables/generated-motion-routes.yaml) | Avatar generated motion route ids downstream of typed runtime projection |
+| [kernel/tables/backend-capability-profile.schema.yaml](kernel/tables/backend-capability-profile.schema.yaml) | Backend capability profile schema for generated motion support |
+| [kernel/tables/mapping-sidecar.schema.yaml](kernel/tables/mapping-sidecar.schema.yaml) | Mapping confidence/evidence sidecar schema |
 | [kernel/tables/scenario-catalog.yaml](kernel/tables/scenario-catalog.yaml) | Mock-driven dev scenarios |
 
 ## Upstream Platform Specs

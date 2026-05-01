@@ -152,12 +152,12 @@ Composition state 转移与 surface mount/unmount 证据。具体 state 枚举�
 | `avatar.lipsync.silent` | 进入 silent phase；`silent_reason` 之一：`amp_below` / `idle_window` / `winner_gain` / `no_source` / `synthetic_audio` / `no_expression_manager` | Medium | — |
 | `avatar.lipsync.frame_drop` | wLipSyncNode 异常或缺帧（telemetry-only） | High (opt-in) | — |
 
-### 2.5.2 Motion Preset & Emote (Wave 0 admit)
+### 2.5.2 Generated Motion & Emote (Wave 0 admit; Wave 2 hard-cut)
 
 | Event | 语义 | Rate tier | Cancellable |
 |---|---|---|---|
-| `avatar.motion.preset.played` | VRM motion preset crossfade 启动；Live2D motion-group 起播 | Low | — |
-| `avatar.motion.preset.fail_close` | preset id 不存在 / `.vrma` 加载失败 / asset drift | Low | — |
+| `avatar.motion.preset.played` | VRM generated route crossfade 启动；Live2D motion-group 起播 | Low | — |
+| `avatar.motion.preset.fail_close` | generated provider missing / route 不存在 / capability 缺失 / unsafe pose / interchange asset drift | Low | — |
 | `avatar.emote.applied` | emote bundle 应用完成；含 `skipped_count`（model 缺 expression preset 跳过的条目数） | Low | — |
 
 ### 2.5.3 Hit Region Snapshot (Wave 0 admit)
@@ -400,7 +400,7 @@ avatar.motion.preset.fail_close:
   detail:
     model_kind: enum(live2d|vrm)
     preset_id: string
-    reason_code: string                     # e.g. preset_not_admitted | vrma_load_failed | asset_drift
+    reason_code: string                     # e.g. generated_provider_missing | route_not_admitted | capability_missing | unsafe_pose | low_confidence | interchange_asset_drift
     recorded_at: string
 
 avatar.emote.applied:
@@ -505,6 +505,8 @@ subscriptions:
   - "system.focus.*"                         # 系统焦点变化
   # Layer B raw parser-event subscriptions are rejected by runtime
   # (internal-only; Avatar consumes typed runtime.agent.* projection only)
+  # Generated motion provider routing starts only after typed runtime projection;
+  # route ids never become public APML syntax or runtime activity ontology.
 ```
 
 ---
@@ -519,6 +521,10 @@ Avatar app 订阅对方 app 的 events（通过 runtime 中转）：
 | `desktop.chat.message.receive` | Agent 回复完成时，avatar 做对应情绪 activity |
 | `runtime.agent.turn.message_committed` | 同 anchor 内 chat turn commit → avatar 可做响应收尾 |
 | `runtime.agent.presentation.activity_requested` | runtime 请求 avatar 做某个 activity |
+| `runtime.agent.presentation.motion_requested` | typed runtime motion cue；Avatar 可按已 admit mapping 投影到 backend route，但不得把 route id 反向定义为 runtime payload |
+| `runtime.agent.presentation.expression_requested` | typed runtime expression cue；不是 public APML direct expression syntax |
+| `runtime.agent.presentation.pose_requested` / `pose_cleared` | typed runtime pose cue；不是 public APML direct pose / clear-pose syntax |
+| `runtime.agent.presentation.lookat_requested` | typed runtime look-at cue；不是 public APML direct look-at syntax |
 | `runtime.agent.state.posture_changed` | `PostureProjection` 变化 → avatar 调整姿态 |
 | `runtime.agent.state.emotion_changed` | emotion 变化 → avatar 调整 affect baseline |
 | `runtime.agent.state.status_text_changed` | Status 变化 → avatar 显示 status bubble |
@@ -532,6 +538,12 @@ Avatar app 订阅对方 app 的 events（通过 runtime 中转）：
 Avatar app 的 rendering backend 具体实现（Live2D Cubism SDK / VRM / 3D / Lottie / 极简 blob）不影响本 spec 的 event 定义 —— event 语义是 rendering-agnostic 的。
 
 Activity → motion/expression 的具体映射见 [activity mapping table](tables/activity-mapping.yaml)。每个 rendering backend 按其 convention + metadata 解析。
+
+Generated motion provider routing consumes only typed `runtime.agent.*`
+projection and Avatar-owned mapping/profile/route tables under
+`.nimi/spec/avatar/**`. It must not subscribe to the runtime-internal APML
+parser diagnostic namespace, define an Avatar-local activity ontology, or
+promote Avatar backend route ids into public APML syntax.
 
 ---
 

@@ -164,7 +164,7 @@ backend-agnostic ontology surface:
 type BackendProjection = {
   applyActivity(input: { name: string; intensity: number | null }): void;
   applyEmotion(input: { current: string; previous: string | null }): void;
-  applyMotion(input: { presetId: string; fade?: number; loop?: boolean }): void;
+  applyMotion(input: { routeId: string; fade?: number; loop?: boolean }): void;
   applyExpression(input: { name: string; weight?: number; fade?: number }): void;
   reset(): void;
 };
@@ -172,9 +172,11 @@ type BackendProjection = {
 
 Rules:
 
-- `name` / `presetId` / `current` / `previous` 必须来自 platform
+- `name` / `routeId` / `current` / `previous` 必须来自 platform
   `agent-activity-ontology.yaml` (K-AGCORE-049) 或 Avatar-local
-  `vrm-emote-states.yaml` / `vrm-motion-presets.yaml` admit registry。
+  `generated-motion-routes.yaml` / `vrm-emote-states.yaml` admit registry。
+- `routeId` is Avatar backend projection authority. It is not public APML
+  syntax and must not create an Avatar-local shadow activity ontology.
 - BackendProjection method **不携带** Live2D parameter id（`ParamMouthOpenY`
   等）；parameter id 路径降级为 `Live2DBackendExtension.setParameter`
   escape hatch（详 `backend-branch-contract.md` §2.6）。
@@ -243,5 +245,7 @@ export interface NasActivityHandler {
   `BackendKind` union
 - 新增 BackendProjection method：minor bump
 - 改 BackendProjection method 语义 / 改 ontology naming：major bump
+- 新 generated motion route：update `generated-motion-routes.yaml` and provider
+  contract evidence in the same packet
 - 新 Live2DBackendExtension capability：minor bump + 同步 `agent-script-contract.md`
   允许的 `requires` 集合

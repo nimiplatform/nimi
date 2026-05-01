@@ -10,14 +10,15 @@ description: >
   in §naming_rule for default-fallback lookup behavior; the per-activity
   routing below is the primary authority.
 
-  vrm-motion-presets.yaml admits only 4 entries at wave_0:
-  `idle_subtle / listen_lean / nod_yes / shake_no` (`idle_subtle` is the
-  airi MIT fork-copy PoC; the other three are internal author targets).
-  Activities that
-  conceptually map to `greet_wave / wave_hello / think_chin_touch`
-  (greet / farewell / thinking / celebrating / excited / focused) use
-  `idle_subtle` as fallback at wave_0; wave_3 admit packet flips them
-  back to the formal preset (each fallback is annotated below).
+  Wave 0 of topic 2026-05-01-avatar-apml-auto-adapter supersedes `.vrma`
+  fallback semantics for APML auto-adapter runtime support. Generated motion
+  provider routes are governed by generated-motion-routes.yaml. The initial
+  generated route set is `idle_subtle / listen_lean / nod_yes / shake_no /
+  greet_wave`. The legacy vrm-motion-presets.yaml registry is interchange-only
+  evidence and is not a runtime support gate.
+
+  This mapping remains Avatar backend routing evidence only and must not be
+  read as public APML motion syntax or runtime activity ontology ownership.
 
 source_authority: /.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml
 
@@ -46,7 +47,7 @@ activities:
       motion_group: tap_body
       fallback_motion_group: tap_head
     vrm:
-      motion: idle_subtle    # wave_0 fallback; wave_3 切到 greet_wave
+      motion: greet_wave
       emotion: happy
       fade: 0.25
   farewell:
@@ -208,10 +209,10 @@ constraints:
         20 ids) MUST declare BOTH `live2d` AND `vrm` routes; partial
         entries fail spec validator.
     - description: >
-        `vrm.motion` reference MUST resolve to an admitted preset id in
-        vrm-motion-presets.yaml. References to wave_3 deferred entries
-        (greet_wave / wave_hello / think_chin_touch) at wave_0 fail
-        validator.
+        `vrm.motion` reference MUST resolve to an admitted generated motion
+        route id in generated-motion-routes.yaml. The vrm-motion-presets.yaml
+        registry is interchange-only and must not be used as APML runtime
+        support proof.
     - description: >
         `vrm.emotion` reference MUST resolve to an emote name in
         vrm-emote-states.yaml. The emote name need not equal the
@@ -224,6 +225,5 @@ constraints:
         ext:/mod-: prefix activities NOT in this table fail-close
         (log warn, no silent fallback to idle).
     - description: >
-        Adding a wave_3 vrm-motion-preset entry MUST flip every
-        `# wave_0 fallback; wave_3 切到 <preset>` annotation in this
-        table to the formal preset id in the same packet.
+        Adding a generated motion route MUST update this table in the same
+        packet when the route is intended for activity projection.

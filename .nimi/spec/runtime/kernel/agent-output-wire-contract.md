@@ -51,6 +51,11 @@ Fixed rules:
   already been validated and projected
 - model output must be interpreted into typed runtime projection families before
   first-party apps treat it as product truth
+- Avatar APML auto-adapter support does not widen public APML syntax. Generated
+  motion provider routes, backend capability profiles, mapping sidecars, and
+  confidence labels live downstream of runtime projection under Avatar
+  authority; they are not valid public `<motion>`, `<expression>`, `<lookat>`,
+  `<pose>`, or `<clear-pose>` tags.
 - malformed APML must fail closed with observable turn failure and must not
   leave a turn in an uncommitted pending state
 - closed broad APML designs are evidence only; any future public APML widening
@@ -86,6 +91,10 @@ Fixed rules:
   unless a later mounted rule explicitly admits such events
 - APML parser diagnostics may exist for debugging, but they must not replace
   typed runtime event envelopes
+- Runtime projection for public `<activity>` remains
+  `runtime.agent.presentation.activity_requested`; Avatar-specific backend
+  route selection must happen after that projection and must not feed back into
+  APML parser acceptance or runtime activity ontology ownership
 
 ## K-AGCORE-046 Post-Turn Action And Hook Split
 

@@ -1,9 +1,17 @@
 version: 1
 description: >
-  Motion preset registry for the VRM backend branch. Each preset id maps to
-  a built-in .vrma asset shipped with apps/avatar; per-model overrides may
-  live at <model_path>/motions/<preset_id>.vrma and take priority. Missing
-  preset_id at runtime fail-closes (log warn, no fake motion).
+  Legacy/interchange motion preset registry for the VRM backend branch. Each
+  preset id maps to a built-in .vrma asset shipped with apps/avatar;
+  per-model overrides may live at <model_path>/motions/<preset_id>.vrma and
+  take priority for interchange playback. Missing preset_id fail-closes for
+  interchange playback (log warn, no fake motion).
+
+  Wave 0 of topic 2026-05-01-avatar-apml-auto-adapter supersedes this registry
+  as APML auto-adapter runtime support proof. Generated motion provider support
+  is now governed by generated-motion-routes.yaml,
+  backend-capability-profile.schema.yaml, mapping-sidecar.schema.yaml, and
+  generated-motion-provider-contract.md. .vrma remains authoring/interchange
+  evidence only.
 
   Wave 0 admit (topic 2026-04-30-avatar-vrm-backend-branch, design-04 +
   design-08): 4 entries below are admitted. `idle_subtle` is a MIT fork-copy
@@ -85,12 +93,10 @@ constraints:
       non-placeholder). Spec validator rejects entries containing "TBD",
       "candidate", "VRoid Hub 候选", or similar placeholder tokens.
   - description: >
-      Built-in `.vrma` files must physically exist at
+      Built-in `.vrma` files must physically exist for interchange playback at
       apps/avatar/assets/vrm-motion-presets/<file> and load via
-      `@pixiv/three-vrm-animation` `loadVrmAnimation` at PoC time. Wave 0
-      close gate enforces this for `idle_subtle.vrma`; wave 3 enforces it
-      for the 3 deferred entries plus the remaining 3 internal entries
-      (`listen_lean / nod_yes / shake_no`) whose author files land at wave 3.
+      `@pixiv/three-vrm-animation` `loadVrmAnimation` at PoC time. This file
+      existence check is not APML auto-adapter runtime support proof.
   - description: >
       Per-model override at <model_path>/motions/<preset_id>.vrma must
       reference an admitted preset id; unknown id is rejected at registry
