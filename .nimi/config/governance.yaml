@@ -191,21 +191,6 @@ ai_governance:
       - "**/locales/en.json"
       - "**/locales/zh.json"
     waivers:
-      - path: runtime/internal/services/localservice/service_test.go
-        until: 2026-09-30
-        reason: Large integration coverage suite retained as a single trace narrative.
-      - path: apps/desktop/test/chat-agent-local-mode.test.ts
-        until: 2026-07-31
-        reason: Desktop local-mode contract coverage remains in one matrix file pending test sharding.
-      - path: apps/desktop/test/chat-agent-orchestration-provider.test.ts
-        until: 2026-07-31
-        reason: Desktop orchestration-provider contract coverage remains in one matrix file pending test sharding.
-      - path: nimi-coding/test/nimicoding.test.mjs
-        until: 2026-07-31
-        reason: NimiCoding end-to-end coverage remains in one matrix file pending suite sharding.
-      - path: runtime/internal/services/runtimeagent/service_test.go
-        until: 2026-07-31
-        reason: Runtime agent service coverage remains in one matrix file pending test sharding.
   structure_budget:
     version: 1
     allowed_forwarding_shells:
