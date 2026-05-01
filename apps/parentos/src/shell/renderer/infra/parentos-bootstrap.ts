@@ -20,6 +20,51 @@ let bootstrapPromise: Promise<void> | null = null;
 let localDataSyncPromise: Promise<void> = Promise.resolve();
 const ACTIVE_CHILD_SETTING_KEYS = ['activeChildId', 'inspection:last-active-child-id'] as const;
 
+/**
+ * The shared desktop auth-session Tauri commands (`auth_session_load`/`save`/
+ * `clear`) were disabled when local first-party account custody moved to
+ * RuntimeAccountService. ParentOS still routes its bootstrap through the
+ * shared kit helpers, so we swallow that specific "is disabled" error and
+ * degrade to an anonymous bootstrap rather than failing the whole boot path.
+ * Other errors (encrypted-file corruption, etc.) still propagate.
+ */
+function isAuthSessionDisabledError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes('is disabled for local first-party account truth');
+}
+
+async function loadAuthSessionTolerant(): Promise<Awaited<ReturnType<typeof loadAuthSession>>> {
+  try {
+    return await loadAuthSession();
+  } catch (error) {
+    if (isAuthSessionDisabledError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function saveAuthSessionTolerant(session: Parameters<typeof saveAuthSession>[0]): Promise<void> {
+  try {
+    await saveAuthSession(session);
+  } catch (error) {
+    if (isAuthSessionDisabledError(error)) {
+      return;
+    }
+    throw error;
+  }
+}
+
+async function clearPersistedAuthSessionTolerant(): Promise<void> {
+  try {
+    await clearPersistedAuthSession();
+  } catch (error) {
+    if (isAuthSessionDisabledError(error)) {
+      return;
+    }
+    throw error;
+  }
+}
+
 function toAuthUser(user: Record<string, unknown> | null) {
   if (!user) {
     return null;
@@ -128,10 +173,10 @@ async function doRunParentOSBootstrap(): Promise<void> {
     const resolvedBootstrapAuthSession = await resolveDesktopBootstrapAuthSession({
       realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
       envAccessToken: runtimeDefaults.realm.accessToken,
-      loadPersistedSession: () => loadAuthSession(),
+      loadPersistedSession: () => loadAuthSessionTolerant(),
     });
     if (resolvedBootstrapAuthSession.shouldClearPersistedSession) {
-      await clearPersistedAuthSession();
+      await clearPersistedAuthSessionTolerant();
     }
     let bootstrapAccessToken = String(resolvedBootstrapAuthSession.session?.accessToken || '').trim();
     let bootstrapRefreshToken = String(resolvedBootstrapAuthSession.session?.refreshToken || '').trim();
@@ -161,14 +206,14 @@ async function doRunParentOSBootstrap(): Promise<void> {
         accessToken,
         refreshToken,
         user,
-        saveSession: (session) => saveAuthSession(session),
-        clearSession: () => clearPersistedAuthSession(),
+        saveSession: (session) => saveAuthSessionTolerant(session),
+        clearSession: () => clearPersistedAuthSessionTolerant(),
       });
     };
     const clearDesktopSession = () => {
       bootstrapAccessToken = '';
       bootstrapRefreshToken = '';
-      void clearPersistedAuthSession();
+      void clearPersistedAuthSessionTolerant();
     };
 
     // Step 3: Platform Client
