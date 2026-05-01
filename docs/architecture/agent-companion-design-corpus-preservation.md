@@ -18,7 +18,7 @@ semantics, SDK-owned app-event emission, direct app routing, or legacy shims.
 
 Each preserved body record uses these labels:
 
-- `active_authority_pointer`: stable spec or app-local spec that owns current
+- `active_authority_pointer`: stable spec or first-party Avatar spec that owns current
   normative product truth.
 - `retained_evidence`: design body retained for future audit and recovery.
 - `deferred_extension_intent`: future-capable design that is not required by
@@ -168,7 +168,7 @@ The ontology body preserved a canonical presentation-intent vocabulary:
 
 - `active_authority_pointer`: `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`,
   `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`, and
-  `apps/avatar/spec/kernel/tables/activity-mapping.yaml`.
+  `.nimi/spec/avatar/kernel/tables/activity-mapping.yaml`.
 - `retained_evidence`: the core/extended taxonomy, intensity rules, mapping
   fallback chain, prompt guidance, lifecycle duration guidance, and activity
   versus posture boundary.
@@ -274,8 +274,8 @@ The avatar body enumerated app-local avatar events:
 
 ### Labels
 
-- `active_authority_pointer`: `apps/avatar/spec/kernel/avatar-event-contract.md`.
-- `retained_evidence`: app-local `avatar.*` event convention, user
+- `active_authority_pointer`: `.nimi/spec/avatar/kernel/avatar-event-contract.md`.
+- `retained_evidence`: Avatar-local `avatar.*` event convention, user
   interaction vocabulary, render/lipsync/speak lifecycle vocabulary, manifest
   posture, and backend boundary.
 - `deferred_extension_intent`: renderer-specific event details and future
@@ -319,7 +319,7 @@ The interaction-flow body described the full companion chain:
   rendering backend abstraction.
 - `implementation_open`: e2e proof across chat, voice, avatar, state,
   interruption, multi-agent retargeting, and demo paths.
-- `blocked`: app-local carrier flow redefining Runtime, SDK, provider, or
+- `blocked`: Avatar carrier flow redefining Runtime, SDK, provider, or
   multi-app protocol truth.
 - `superseded`: closed diagrams where they imply broader event/API authority
   than active specs.
@@ -378,7 +378,7 @@ The NAS body described an Avatar-owned creator runtime:
 
 ### Labels
 
-- `active_authority_pointer`: `apps/avatar/spec/kernel/agent-script-contract.md`.
+- `active_authority_pointer`: `.nimi/spec/avatar/kernel/agent-script-contract.md`.
 - `retained_evidence`: convention-based handler discovery, handler export
   shape, app-local capability boundary, `AgentDataBundle`, fallback behavior,
   continuous handlers, and hot-reload intent.
@@ -514,7 +514,7 @@ The dual-entry body preserved session continuity requirements:
 
 - `active_authority_pointer`: `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`,
   `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`, and
-  `apps/avatar/spec/kernel/app-shell-contract.md`.
+  `.nimi/spec/avatar/kernel/app-shell-contract.md`.
 - `retained_evidence`: explicit agent plus anchor identity, same-anchor
   continuity, same-agent/different-anchor distinction, launch-context
   fail-closed posture, and voice/Desktop boundary.
@@ -547,7 +547,7 @@ The demo body preserved a first real-path acceptance story:
 ### Labels
 
 - `active_authority_pointer`: `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
-  and `apps/avatar/spec/kernel/carrier-visual-acceptance-contract.md`.
+  and `.nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md`.
 - `retained_evidence`: fail-closed first posture, explicit agent/anchor
   targeting, Desktop-to-Avatar handoff, same-anchor proof, multi-agent
   retarget proof, and operator readiness checks.
@@ -564,7 +564,7 @@ Source bodies: Wave 6B EPP implementation packet, audit, and closeout.
 
 ### Body Preserved
 
-The EPP body preserved the Avatar app-local protocol layer:
+The EPP body preserved the Avatar first-party protocol layer:
 
 - EPP maps Runtime/SDK semantics into backend-neutral avatar embodiment cues.
 - Backend branches such as Live2D, VRM, or future renderers remain explicit and
@@ -575,7 +575,7 @@ The EPP body preserved the Avatar app-local protocol layer:
 
 ### Labels
 
-- `active_authority_pointer`: `apps/avatar/spec/kernel/embodiment-projection-contract.md`.
+- `active_authority_pointer`: `.nimi/spec/avatar/kernel/embodiment-projection-contract.md`.
 - `retained_evidence`: backend-agnostic projection layer, explicit backend
   branches, app-local cue mapping, and non-owner boundary.
 - `deferred_extension_intent`: new backend branches and projection cue
@@ -606,7 +606,7 @@ The trust body preserved local SDK consumer safety:
 
 - `active_authority_pointer`: `.nimi/spec/sdk/kernel/runtime-contract.md`,
   `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`, and
-  `apps/avatar/spec/kernel/app-shell-contract.md`.
+  `.nimi/spec/avatar/kernel/app-shell-contract.md`.
 - `retained_evidence`: shared local auth/session posture, explicit selected
   agent/session/runtime context, fail-closed bootstrap, and running
   invalidation.
@@ -632,7 +632,7 @@ The mounting body preserved the authority split:
 - SDK kernel owns app-facing projection, reconnect, target, and consumer
   boundary.
 - Desktop kernel owns desktop product semantics consuming runtime authority.
-- `apps/avatar/spec/kernel/**` owns Avatar app shell, render, NAS, app-local
+- `.nimi/spec/avatar/kernel/**` owns Avatar app shell, render, NAS, app-local
   events, and carrier behavior.
 - Topic reports remain human-readable redesign rationale and audit trail only.
 
@@ -641,10 +641,10 @@ The mounting body preserved the authority split:
 - `active_authority_pointer`: `.nimi/spec/INDEX.md`,
   `.nimi/spec/runtime/kernel/index.md`, `.nimi/spec/sdk/kernel/index.md`,
   `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`, and
-  `apps/avatar/spec/kernel/index.md`.
-- `retained_evidence`: mounted home map, owner cut, app-local spec admission,
+  `.nimi/spec/avatar/kernel/index.md`.
+- `retained_evidence`: mounted home map, owner cut, first-party Avatar spec admission,
   and topic-as-evidence-only posture.
-- `deferred_extension_intent`: additional admitted app-local spec slices when
+- `deferred_extension_intent`: additional admitted first-party Avatar spec slices when
   they do not create parallel truth.
 - `implementation_open`: generated docs and spec governance checks as authority
   evolves.
@@ -673,10 +673,10 @@ The interaction body preserved the Avatar carrier interaction direction:
 ### Labels
 
 - `active_authority_pointer`: `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`,
-  `apps/avatar/spec/kernel/app-shell-contract.md`,
-  `apps/avatar/spec/kernel/avatar-event-contract.md`,
-  `apps/avatar/spec/kernel/agent-script-contract.md`, and
-  `apps/avatar/spec/kernel/live2d-render-contract.md`.
+  `.nimi/spec/avatar/kernel/app-shell-contract.md`,
+  `.nimi/spec/avatar/kernel/avatar-event-contract.md`,
+  `.nimi/spec/avatar/kernel/agent-script-contract.md`, and
+  `.nimi/spec/avatar/kernel/live2d-render-contract.md`.
 - `retained_evidence`: click-through, drag, app-local user event vocabulary,
   NAS response path, physics/drag feedback intent, and hit-region proof.
 - `deferred_extension_intent`: richer gestures and backend-specific physics
@@ -711,9 +711,9 @@ The Live2D asset body preserved a compatibility and packaging direction:
 
 ### Labels
 
-- `active_authority_pointer`: `apps/avatar/spec/kernel/live2d-render-contract.md`,
-  `apps/avatar/spec/kernel/carrier-visual-acceptance-contract.md`, and
-  `apps/avatar/spec/kernel/agent-script-contract.md`.
+- `active_authority_pointer`: `.nimi/spec/avatar/kernel/live2d-render-contract.md`,
+  `.nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md`, and
+  `.nimi/spec/avatar/kernel/agent-script-contract.md`.
 - `retained_evidence`: Cubism layout, licensing posture, branch-local fallback
   mapping, model package NAS convention, compatibility tier direction, and
   acceptance gate shape.

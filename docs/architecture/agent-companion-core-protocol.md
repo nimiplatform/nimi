@@ -115,21 +115,21 @@ map; normative authority remains in
 | APML LLM compliance | `.nimi/spec/runtime/kernel/agent-output-wire-contract.md` K-AGCORE-048 | Runtime | Baseline active; prompt-only compliance is insufficient. |
 | AgentActivity ontology | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` K-AGCORE-049 and `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml` | Runtime | Baseline active; productization remains downstream. |
 | Platform event contract | `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`, `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` K-AGCORE-050, and `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml` | Runtime | Narrow active; broad Event API is superseded/deferred. |
-| App event convention | `.nimi/spec/runtime/kernel/app-messaging-contract.md` K-APP-008 through K-APP-009, `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md` D-LLM-071, and `apps/avatar/spec/kernel/avatar-event-contract.md` | Runtime, Desktop, Avatar | Bounded active convention; no wildcard broker. |
+| App event convention | `.nimi/spec/runtime/kernel/app-messaging-contract.md` K-APP-008 through K-APP-009, `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md` D-LLM-071, and `.nimi/spec/avatar/kernel/avatar-event-contract.md` | Runtime, Desktop, Avatar | Bounded active convention; no wildcard broker. |
 | Desktop app events | `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md` D-LLM-071 | Desktop | Active as shell-local cues only. |
-| Avatar app events | `apps/avatar/spec/kernel/avatar-event-contract.md` | Avatar | Active app-local carrier convention. |
+| Avatar app events | `.nimi/spec/avatar/kernel/avatar-event-contract.md` | Avatar | Active Avatar carrier convention. |
 | Agent Interaction Flow | This guide plus runtime, SDK, Desktop, and Avatar anchors listed here | Shared by boundary | Tracked correspondence active; no new product code in this topic. |
 | SDK Event API | `.nimi/spec/sdk/kernel/runtime-contract.md` S-RUNTIME-103, S-RUNTIME-106, S-RUNTIME-108 | SDK | Narrow `runtime.agent.*` consume path active; broad SDK Event API not admitted. |
-| NAS boundary | `apps/avatar/spec/kernel/agent-script-contract.md` | Avatar | Active app-local creator runtime; not Runtime/SDK authority. |
+| NAS boundary | `.nimi/spec/avatar/kernel/agent-script-contract.md` | Avatar | Active Avatar creator runtime; not Runtime/SDK authority. |
 | PresentationTimeline | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` K-AGCORE-051 and `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml` | Runtime | Baseline active; production voice/lipsync remains downstream. |
 | Cross-surface state | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` K-AGCORE-037 through K-AGCORE-039 and `.nimi/spec/sdk/kernel/runtime-contract.md` S-RUNTIME-103 | Runtime, SDK | Active projection families; durability hardening remains downstream. |
 | Emotion state | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` K-AGCORE-038 and `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml` | Runtime | Baseline active; source/decay/override productization remains downstream. |
 | Dual-entry session | `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md` K-AGCORE-033 through K-AGCORE-035 | Runtime | Active anchor truth; end-to-end consistency remains downstream. |
 | Provider-neutral / multi-model posture | `.nimi/spec/runtime/kernel/model-service-contract.md`, `.nimi/spec/runtime/kernel/model-catalog-contract.md`, `.nimi/spec/runtime/kernel/nimillm-contract.md`, `.nimi/spec/runtime/kernel/multimodal-provider-contract.md`, and `.nimi/spec/sdk/kernel/runtime-contract.md` S-RUNTIME-010 through S-RUNTIME-011 | Runtime, SDK | Active posture; no provider/model hardcoding admitted. |
 | Multi-app interaction protocol | `.nimi/spec/runtime/kernel/app-messaging-contract.md` K-APP-001 through K-APP-009 | Runtime | App messaging active; not a generic event broker. |
-| Embodiment Projection Protocol | `apps/avatar/spec/kernel/embodiment-projection-contract.md` | Avatar | Active app-local bridge into carriers. |
-| Local SDK Consumer Trust | `.nimi/spec/sdk/kernel/runtime-contract.md` S-RUNTIME-107, `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md` D-LLM-070, and `apps/avatar/spec/kernel/app-shell-contract.md` | SDK, Desktop, Avatar | Active baseline; implementation evidence must stay current. |
-| Spec mounting | `.nimi/spec/INDEX.md`, `.nimi/spec/runtime/kernel/index.md`, `.nimi/spec/sdk/kernel/index.md`, `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`, and `apps/avatar/spec/kernel/index.md` | Spec owners | Active anchors mounted; lifecycle topics remain evidence only. |
+| Embodiment Projection Protocol | `.nimi/spec/avatar/kernel/embodiment-projection-contract.md` | Avatar | Active Avatar bridge into carriers. |
+| Local SDK Consumer Trust | `.nimi/spec/sdk/kernel/runtime-contract.md` S-RUNTIME-107, `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md` D-LLM-070, and `.nimi/spec/avatar/kernel/app-shell-contract.md` | SDK, Desktop, Avatar | Active baseline; implementation evidence must stay current. |
+| Spec mounting | `.nimi/spec/INDEX.md`, `.nimi/spec/runtime/kernel/index.md`, `.nimi/spec/sdk/kernel/index.md`, `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`, and `.nimi/spec/avatar/kernel/index.md` | Spec owners | Active anchors mounted; lifecycle topics remain evidence only. |
 
 ## Reader Path
 
@@ -142,7 +142,7 @@ Read in this order for companion work:
 5. `.nimi/spec/runtime/kernel/app-messaging-contract.md`
 6. `.nimi/spec/sdk/kernel/runtime-contract.md`
 7. `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
-8. `apps/avatar/spec/kernel/index.md`
+8. `.nimi/spec/avatar/kernel/index.md`
 9. `docs/architecture/agent-companion-design-memory-register.md`
 
 Lifecycle topic reports may be cited as evidence in topic closeouts, but they

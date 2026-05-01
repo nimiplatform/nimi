@@ -24,7 +24,7 @@ This page maps developer-facing topics to normative spec sources.
 - Desktop: [`spec/desktop`](https://github.com/nimiplatform/nimi/tree/main/spec/desktop)
 - Platform: [`spec/platform`](https://github.com/nimiplatform/nimi/tree/main/spec/platform)
 - Realm: [`spec/realm`](https://github.com/nimiplatform/nimi/tree/main/spec/realm)
-- Nimi Avatar app-local spec: [`apps/avatar/spec`](https://github.com/nimiplatform/nimi/tree/main/apps/avatar/spec)
+- Nimi Avatar first-party Avatar spec: [`.nimi/spec/avatar`](https://github.com/nimiplatform/nimi/tree/main/.nimi/spec/avatar)
 
 ## Rule of use
 
