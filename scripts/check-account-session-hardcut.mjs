@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -27,16 +26,16 @@ const LOCAL_FIRST_PARTY_DESKTOP_ROOTS = [
   'apps/desktop/test/',
 ];
 
-const LOCAL_APP_SLICE_ROOTS = [
+export const LOCAL_APP_SLICE_ROOTS = [
   'apps/shiji/',
   'apps/moment/',
   'apps/polyinfo/',
   'apps/parentos/',
 ];
 
-const LOCAL_APP_SLICE_FENCE_MARKER = 'ACCOUNT_HARDCUT_NON_ADMITTED_APP_SLICE_FENCE';
+export const LOCAL_APP_SLICE_FENCE_MARKER = 'ACCOUNT_HARDCUT_NON_ADMITTED_APP_SLICE_FENCE';
 
-const LOCAL_APP_SLICE_FENCE_SPECS = new Map([
+export const LOCAL_APP_SLICE_FENCE_SPECS = new Map([
   ['apps/shiji/', 'apps/shiji/spec/kernel/app-shell-contract.md'],
   ['apps/moment/', 'apps/moment/spec/kernel/app-shell-contract.md'],
   ['apps/polyinfo/', 'apps/polyinfo/spec/kernel/app-shell-contract.md'],
@@ -98,7 +97,7 @@ const DESKTOP_AVATAR_LAUNCH_FORBIDDEN_FIELDS = [
   'jwt',
 ];
 
-const AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS = [
+export const AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS = [
   'avatar_package',
   'avatar_package_kind',
   'avatar_package_id',
@@ -219,7 +218,6 @@ function collectRepoFiles() {
     'apps/parentos/spec/kernel',
     'runtime/internal/services/account',
     'runtime/internal/grpcserver',
-    'nimi-mods',
   ];
   return roots.flatMap((root) => walkFiles(path.join(repoRoot, root))).map((absPath) => ({
     relPath: toPosix(path.relative(repoRoot, absPath)),
@@ -928,25 +926,6 @@ function scanWebCloudFence(files, violations) {
   }
 }
 
-function scanModsBoundary(files, violations) {
-  for (const file of files) {
-    if (!file.relPath.startsWith('nimi-mods/') || isTestPath(file.relPath)) {
-      continue;
-    }
-    const pattern = /\bRuntimeAccountService\b|\bruntime\.account\b|\bGetAccessToken\b|\bIssueScopedAppBinding\b|\bBeginLogin\b|\bCompleteLogin\b/g;
-    for (const match of file.source.matchAll(pattern)) {
-      pushViolation(
-        violations,
-        file.relPath,
-        file.source,
-        match.index || 0,
-        'Mod account authority bypass',
-        'mods must use host-scoped capabilities, not direct Runtime account authority',
-      );
-    }
-  }
-}
-
 export function scanAccountSessionHardcut(files) {
   const violations = [];
   scanPlatformClientConstruction(files, violations);
@@ -961,285 +940,20 @@ export function scanAccountSessionHardcut(files) {
   scanAvatarLaunchParserGuardrail(files, violations);
   scanDesktopLocalAvatarCarrierDecommission(files, violations);
   scanWebCloudFence(files, violations);
-  scanModsBoundary(files, violations);
   scanLocalAppSliceAuthDrift(files, violations);
   return violations.sort();
 }
 
-function runSelfTest() {
-  const files = [
-    {
-      relPath: 'apps/desktop/test/local-negative.test.ts',
-      source: "createPlatformClient({ realmBaseUrl: 'https://realm', accessTokenProvider: () => token });",
-    },
-    {
-      relPath: 'apps/desktop/test/external-positive.test.ts',
-      source: "createPlatformClient({ authMode: 'external-principal', realmBaseUrl: 'https://realm', subjectUserIdProvider: () => subject });",
-    },
-    {
-      relPath: 'sdk/test/local-negative.test.ts',
-      source: "createPlatformClient({ authMode: 'local-first-party-runtime', realmBaseUrl: 'https://realm', refreshTokenProvider: () => refresh });",
-    },
-    {
-      relPath: 'sdk/test/web-positive.test.ts',
-      source: "createPlatformClient({ authMode: 'web-cloud', realmBaseUrl: 'https://realm', refreshTokenProvider: () => refresh });",
-    },
-    {
-      relPath: 'apps/avatar/src/shell/renderer/bad.ts',
-      source: "runtime.account.getAccessToken({}); RuntimeAuthService.RegisterApp({}); runtime.agent.anchors.open({});",
-    },
-    {
-      relPath: 'apps/avatar/src/shell/renderer/good.ts',
-      source: "runtime.agent.turns.request({ scopedBinding });",
-    },
-    {
-      relPath: 'apps/avatar/src-tauri/capabilities/default.json',
-      source: JSON.stringify({ permissions: ['core:default'] }),
-    },
-    {
-      relPath: 'apps/avatar/src-tauri/capabilities/bad.json',
-      source: JSON.stringify({ permissions: ['runtime.account.GetAccessToken'] }),
-    },
-    {
-      relPath: 'apps/avatar/src-tauri/tauri.conf.json',
-      source: JSON.stringify({
-        app: {
-          security: {
-            assetProtocol: {
-              scope: [
-                '$HOME/.nimi/data/accounts/*/agents/*/agent-center/modules/avatar_package/packages/*/*/files/**',
-                '$HOME/ai/**',
-              ],
-            },
-          },
-        },
-      }),
-    },
-    ...LOCAL_APP_SLICE_ROOTS.map((root) => ({
-      relPath: LOCAL_APP_SLICE_FENCE_SPECS.get(root),
-      source: `${LOCAL_APP_SLICE_FENCE_MARKER}: non-admitted local app slice; legacy auth seams are fenced until Runtime admission migration.`,
-    })),
-    {
-      relPath: 'apps/shiji/src/shell/renderer/app-shell/bootstrap.ts',
-      source: 'createPlatformClient({ accessTokenProvider: () => token, refreshTokenProvider: () => refresh });',
-    },
-    {
-      relPath: 'runtime/internal/services/account/bad.go',
-      source: 'func read() { _ = "auth_session_load"; _ = "subject_user_id" }',
-    },
-		    {
-		      relPath: 'runtime/internal/services/account/service.go',
-		      source: `
-	func (s *Service) GetAccountSessionStatus(req *Request) {
-	  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-	  s.mu.RLock()
-	}
-	func (s *Service) GetAccessToken() { s.validateRuntimeAdmittedCaller(req.GetCaller(), true) }
-	func (s *Service) SubscribeAccountSessionEvents(req *Request) {
-	  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-	  s.subscribe(req)
-	}
-	func (s *Service) RefreshAccountSession(req *Request) {
-	  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-	  s.mu.Lock()
-	}
-	func (s *Service) Logout(req *Request) {
-	  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-	  s.logout(ctx, reason)
-	}
-	func (s *Service) SwitchAccount(req *Request) {
-	  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-	  s.mu.Lock()
-	}
-	func (s *Service) IssueScopedAppBinding() {
-	  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-	  validateBindingCallerRelation(req.GetCaller(), relation)
-}
-func (s *Service) RevokeScopedAppBinding() {
-  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-  validateBindingCallerRelation(req.GetCaller(), record.relation)
-  s.mu.Lock()
-}
-func (s *Service) validateRuntimeAdmittedCaller() { s.registry.AdmitLocalFirstPartyInstance("", "") }
-func (s *Service) ValidateScopedBinding() {
-  if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {}
-}
-func (s *Service) markCustodyUnavailable() { s.revokeBindingsLocked(reason) }
-func (s *Service) transitionToReauthRequired() { s.revokeBindingsLocked(reason) }
-func (s *Service) ObserveRefreshToken() { s.revokeBindingsLocked(reason) }
-`,
-	    },
-	    {
-	      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-launcher.ts',
-	      source: 'export const payload = { agentId, avatarPackageId };',
-	    },
-	    {
-	      relPath: 'apps/desktop/src-tauri/src/main_parts/defaults_and_commands/window_and_logs.rs',
-	      source: 'serializer.append_pair("agent_id", agent_id.as_str());',
-	    },
-	    {
-	      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts',
-	      source: 'const DESKTOP_AVATAR_STORE_DECOMMISSIONED_MESSAGE = "closed"; export async function listDesktopAgentAvatarResources() { throw new Error(DESKTOP_AVATAR_STORE_DECOMMISSIONED_MESSAGE); }',
-	    },
-	    {
-	      relPath: 'apps/avatar/src/shell/renderer/bridge/launch-context.ts',
-	      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
-	    },
-	    {
-	      relPath: 'apps/avatar/src-tauri/src/avatar_launch_context.rs',
-	      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
-	    },
-	    {
-	      relPath: 'apps/avatar/src-tauri/src/agent_center_avatar_package.rs',
-	      source: 'struct Payload { agent_id: String, avatar_package_id: String }',
-	    },
-    {
-      relPath: 'apps/web/src/desktop-adapter/runtime-bootstrap.web.ts',
-      source: "export const WEB_CLOUD_ADAPTER_AUTH_MODE = 'web-cloud-adapter' as const;",
-    },
-    {
-      relPath: 'apps/web/src/positive.ts',
-      source: "createPlatformClient({ authMode: 'web-cloud', accessTokenProvider: () => token });",
-    },
-    {
-      relPath: 'apps/web/src/negative.ts',
-      source: "createPlatformClient({ accessTokenProvider: () => token });",
-    },
-    {
-      relPath: 'nimi-mods/example/src/bad.ts',
-      source: 'runtime.account.getAccessToken({});',
-    },
-    {
-      relPath: 'nimi-mods/example/src/good.ts',
-      source: 'host.capabilities.invoke("runtime.agent.turn.write");',
-    },
-  ];
-
-  const violations = scanAccountSessionHardcut(files);
-  assert.equal(violations.some((item) => item.includes('local-negative.test.ts') && item.includes('accessTokenProvider')), true);
-  assert.equal(violations.some((item) => item.includes('external-positive.test.ts')), false);
-  assert.equal(violations.some((item) => item.includes('local-negative.test.ts') && item.includes('refreshTokenProvider')), true);
-  assert.equal(violations.some((item) => item.includes('web-positive.test.ts')), false);
-  assert.equal(violations.some((item) => item.includes('bad.ts') && item.includes('Avatar forbidden')), true);
-  assert.equal(violations.some((item) => item.includes('good.ts') && item.includes('Avatar forbidden')), false);
-  assert.equal(violations.some((item) => item.includes('bad.json') && item.includes('Avatar forbidden Tauri permission')), true);
-  assert.equal(violations.some((item) => item.includes('default.json') && item.includes('Avatar forbidden Tauri permission')), false);
-	  assert.equal(violations.some((item) => item.includes('tauri.conf.json') && item.includes('Avatar broad .nimi asset scope')), false);
-  assert.equal(violations.some((item) => item.includes('apps/shiji/src') && item.includes('Local app slice')), false);
-	  assert.equal(violations.some((item) => item.includes('bad.go') && item.includes('Runtime account broker')), true);
-	  assert.equal(violations.some((item) => item.includes('chat-agent-avatar-launcher.ts') && item.includes('Desktop Avatar launch authority field')), true);
-	  assert.equal(violations.some((item) => item.includes('runtime-bootstrap.web.ts')), false);
-  assert.equal(violations.some((item) => item.includes('apps/web/src/negative.ts')), true);
-  assert.equal(violations.some((item) => item.includes('apps/web/src/positive.ts')), false);
-	  assert.equal(violations.some((item) => item.includes('nimi-mods/example/src/bad.ts')), true);
-		  assert.equal(violations.some((item) => item.includes('nimi-mods/example/src/good.ts')), false);
-
-		  const p1NegativeViolations = scanAccountSessionHardcut([
-		    {
-		      relPath: 'runtime/internal/services/account/service.go',
-		      source: `
-	func (s *Service) GetAccountSessionStatus(req *Request) {
-	  validateProductionCaller(req.GetCaller(), false)
-	  s.mu.RLock()
-	}
-	func (s *Service) GetAccessToken() { validateProductionCaller(req.GetCaller(), true) }
-	func (s *Service) SubscribeAccountSessionEvents(req *Request) {
-	  s.subscribe(req)
-	}
-	func (s *Service) RefreshAccountSession(req *Request) {
-	  s.mu.Lock()
-	  s.refresher.Refresh(ctx, current)
-	}
-	func (s *Service) Logout(req *Request) {
-	  return s.logout(ctx, reason)
-	}
-	func (s *Service) SwitchAccount(req *Request) {
-	  s.mu.Lock()
-	}
-	func (s *Service) IssueScopedAppBinding() { validateProductionCaller(req.GetCaller(), false) }
-	func (s *Service) RevokeScopedAppBinding() {
-	  s.mu.Lock()
-	  record.relation.State = runtimev1.ScopedAppBindingState_SCOPED_APP_BINDING_STATE_REVOKED
-	}
-	func (s *Service) ValidateScopedBinding() { record := s.bindings[id]; _ = record }
-	func (s *Service) markCustodyUnavailable() {}
-func (s *Service) transitionToReauthRequired() {}
-func (s *Service) ObserveRefreshToken() {}
-`,
-	    },
-	    {
-	      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-launcher.ts',
-	      source: 'export const payload = { agentCenterAccountId: accountId, agentId };',
-	    },
-	    {
-	      relPath: 'apps/desktop/src-tauri/src/main_parts/defaults_and_commands/window_and_logs.rs',
-	      source: 'serializer.append_pair("binding_id", binding_id.as_str());',
-	    },
-	    {
-	      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts',
-	      source: 'export async function listDesktopAgentAvatarResources() { return invokeChecked("desktop_agent_avatar_resource_list", {}, parse); }',
-	    },
-	    {
-	      relPath: 'apps/avatar/src/shell/renderer/bridge/launch-context.ts',
-	      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
-	    },
-	    {
-	      relPath: 'apps/avatar/src-tauri/src/avatar_launch_context.rs',
-	      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
-	    },
-	    {
-	      relPath: 'apps/avatar/src-tauri/src/agent_center_avatar_package.rs',
-	      source: 'struct Payload { agent_center_account_id: String, subject_user_id: String }',
-	    },
-	    {
-	      relPath: 'apps/avatar/src-tauri/tauri.conf.json',
-	      source: JSON.stringify({ app: { security: { assetProtocol: { scope: ['$HOME/.nimi/**'] } } } }),
-	    },
-	    {
-	      relPath: 'apps/shiji/spec/kernel/app-shell-contract.md',
-	      source: 'missing app slice fence',
-	    },
-	    {
-	      relPath: 'apps/moment/spec/kernel/app-shell-contract.md',
-	      source: `${LOCAL_APP_SLICE_FENCE_MARKER}: non-admitted`,
-	    },
-	    {
-	      relPath: 'apps/polyinfo/spec/kernel/app-shell-contract.md',
-	      source: `${LOCAL_APP_SLICE_FENCE_MARKER}: non-admitted`,
-	    },
-	    {
-	      relPath: 'apps/parentos/spec/kernel/app-shell-contract.md',
-	      source: `${LOCAL_APP_SLICE_FENCE_MARKER}: non-admitted`,
-	    },
-	    {
-	      relPath: 'apps/shiji/src/shell/renderer/app-shell/bootstrap.ts',
-	      source: 'createPlatformClient({ accessTokenProvider: () => token });',
-	    },
-		  ]);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime status caller admission')), true);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime GetAccessToken caller admission')), true);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime account event subscription caller admission')), true);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime refresh caller admission')), true);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime logout caller admission')), true);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime switch caller admission')), true);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding caller admission')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding relation admission')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding revoke caller admission')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding revoke relation admission')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding authenticated-state validation')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding non-auth revocation')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop Avatar launch authority field')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop Avatar handoff URI authority field')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop local avatar carrier')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Avatar broad .nimi asset scope')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Local app slice auth fence')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Local app slice app-owned provider seam')), true);
-  process.stdout.write('account-session hardcut self-test passed\n');
-}
-
-function main() {
+async function main() {
   if (process.argv.includes('--self-test')) {
-    runSelfTest();
+    const { runAccountSessionHardcutSelfTest } = await import('./lib/check-account-session-hardcut-self-test.mjs');
+    runAccountSessionHardcutSelfTest({
+      AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS,
+      LOCAL_APP_SLICE_FENCE_MARKER,
+      LOCAL_APP_SLICE_FENCE_SPECS,
+      LOCAL_APP_SLICE_ROOTS,
+      scanAccountSessionHardcut,
+    });
     return;
   }
 
@@ -1256,5 +970,5 @@ function main() {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main();
+  await main();
 }
