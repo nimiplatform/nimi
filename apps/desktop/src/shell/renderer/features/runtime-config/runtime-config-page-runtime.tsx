@@ -12,6 +12,7 @@ import { UsageStatsSection } from './runtime-config-usage-stats-section.js';
 import { LocalDebugSection } from './runtime-config-local-debug-section.js';
 import { useGlobalAuditData } from './runtime-config-use-global-audit-data.js';
 import { ExternalAgentAccessPanel } from './runtime-config-external-agent-access';
+import { DelegatedCapabilityControlPanel } from './runtime-config-delegated-capability-panel';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
 import { localSpeechReasonSummary } from './runtime-config-model-center-utils';
@@ -772,6 +773,8 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
         <>
           {/* External Agent Access */}
           <ExternalAgentAccessPanel />
+
+          <DelegatedCapabilityControlPanel />
 
           {/* Local Debug */}
           <LocalDebugSection collapsed={!auditData.localDebugExpanded} onToggle={auditData.toggleLocalDebug} />
