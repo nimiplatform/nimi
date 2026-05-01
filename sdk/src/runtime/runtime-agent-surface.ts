@@ -36,7 +36,7 @@ import type {
   RuntimeAgentTurnInterruptRequest,
   RuntimeAgentTurnRequest,
   RuntimeAgentTurnsModule,
-} from './types-runtime-modules.js';
+} from './types-runtime-agent.js';
 import type { RuntimeAgentClient } from './types-client-interfaces.js';
 import type { SendAppMessageResponse } from './generated/runtime/v1/app.js';
 import { fromProtoStruct, matchesConsumeRequest, mergeAsyncIterables, parseAgentConsumeEvent, parseAppConsumeEvent, parseSessionSnapshot } from './runtime-agent-surface-parsers.js';

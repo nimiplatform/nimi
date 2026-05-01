@@ -1,5 +1,5 @@
 import { asRecord, normalizeText } from './helpers.js';
-import type { RuntimeAgentMessage } from './types-runtime-modules.js';
+import type { RuntimeAgentMessage } from './types-runtime-agent.js';
 
 function optionalString(value: unknown): string | undefined {
   const normalized = normalizeText(value);

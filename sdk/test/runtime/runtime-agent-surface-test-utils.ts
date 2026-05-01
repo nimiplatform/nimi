@@ -38,7 +38,7 @@ import { Runtime } from '../../src/runtime/runtime.js';
 import { parseAgentConsumeEvent, parseAppConsumeEvent } from '../../src/runtime/runtime-agent-surface-parsers.js';
 import { RuntimeMethodIds } from '../../src/runtime/method-ids.js';
 import { setNodeGrpcBridge, type NodeGrpcBridge } from '../../src/runtime/transports/node-grpc.js';
-import type { RuntimeAgentConsumeEvent } from '../../src/runtime/types-runtime-modules.js';
+import type { RuntimeAgentConsumeEvent } from '../../src/runtime/types-runtime-agent.js';
 
 const APP_ID = 'nimi.runtime.agent.surface.test';
 const OPEN_CONVERSATION_ANCHOR_METHOD = '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor';

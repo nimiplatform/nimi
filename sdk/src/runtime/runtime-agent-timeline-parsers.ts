@@ -4,7 +4,7 @@ import { asRecord, normalizeText } from './helpers.js';
 import type {
   RuntimeAgentTimelineChannel,
   RuntimeAgentTimelineEnvelope,
-} from './types-runtime-modules.js';
+} from './types-runtime-agent.js';
 
 function expectString(value: unknown, fieldName: string, messageType: string): string {
   const normalized = normalizeText(value);

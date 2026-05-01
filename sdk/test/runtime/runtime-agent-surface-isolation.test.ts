@@ -20,7 +20,7 @@ import { ReasonCode as RuntimeProtoReasonCode } from '../../src/runtime/generate
 import { Runtime } from '../../src/runtime/runtime.js';
 import { RuntimeMethodIds } from '../../src/runtime/method-ids.js';
 import { setNodeGrpcBridge, type NodeGrpcBridge } from '../../src/runtime/transports/node-grpc.js';
-import type { RuntimeAgentConsumeEvent } from '../../src/runtime/types-runtime-modules.js';
+import type { RuntimeAgentConsumeEvent } from '../../src/runtime/types-runtime-agent.js';
 
 const APP_ID = 'nimi.runtime.agent.surface.test';
 const TIMELINE_STARTED_AT = '2026-04-25T00:00:00.000Z';

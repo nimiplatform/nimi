@@ -11,7 +11,7 @@ import type {
 } from './generated/runtime/v1/agent_service.js';
 import type { RuntimeCallOptions } from './types.js';
 import type { RuntimeAgentClient } from './types-client-interfaces.js';
-import type { RuntimeScopedBindingAttachment } from './types-runtime-modules.js';
+import type { RuntimeScopedBindingAttachment } from './types-runtime-agent.js';
 
 const AVATAR_DEBUG_READ_SCOPE = 'runtime.agent.avatar_debug.read';
 const AVATAR_DEBUG_WRITE_SCOPE = 'runtime.agent.avatar_debug.write';

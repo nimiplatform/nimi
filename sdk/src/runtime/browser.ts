@@ -48,6 +48,9 @@ export {
 export {
   AgentEventType,
   AgentExecutionState,
+  AvatarDebugProbeKind,
+  AvatarDebugProbeStatus,
+  AvatarDebugRequestedBy,
   HookAdmissionState,
   AgentLifecycleStatus,
   AgentTrackType,
