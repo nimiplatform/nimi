@@ -17,6 +17,7 @@ test('Agent Center local config validates the admitted module platform shape', (
     kind: 'live2d',
     package_id: 'live2d_ab12cd34ef56',
   };
+  config.modules.avatar_package.avatar_package_ref = 'live2d_ab12cd34ef56';
   config.modules.avatar_package.last_validated_at = '2026-04-27T00:00:00Z';
 
   const result = validateAgentCenterLocalConfig(config);
@@ -99,6 +100,8 @@ test('Agent Center avatar package module fails closed on kind/package mismatch',
     kind: 'vrm',
     package_id: 'live2d_ab12cd34ef56',
   };
+  config.modules.avatar_package.avatar_package_ref = 'live2d_ab12cd34ef56';
+  config.modules.avatar_package.backend_kind = 'vrm';
 
   const result = validateAgentCenterLocalConfig(config);
 

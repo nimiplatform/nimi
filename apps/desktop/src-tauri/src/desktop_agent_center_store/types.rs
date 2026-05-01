@@ -133,6 +133,63 @@ pub(crate) enum AgentCenterAvatarPackageKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub(crate) enum AgentCenterAvatarBackendKind {
+    Live2d,
+    Vrm,
+    Future,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum AgentCenterAvatarConversationAnchorScope {
+    CurrentAnchor,
+    ExplicitDebugAnchor,
+    NoAnchor,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum AgentCenterAvatarInstancePolicy {
+    ReuseActiveInstance,
+    LaunchNewInstance,
+    RequireUserSelection,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum AgentCenterGeneratedMotionProviderPolicy {
+    RequireProfileSupport,
+    DisableGeneratedMotion,
+    DebugOnly,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum AgentCenterAvatarLaunchMode {
+    Manual,
+    DebugSession,
+    StartWithChat,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum AgentCenterAvatarDebugProfile {
+    Standard,
+    StrictBackendEvidence,
+    RouteMatrix,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum AgentCenterAvatarConfigProvenanceSource {
+    UserSelection,
+    ImportValidation,
+    RuntimeProjection,
+    AvatarBackendEvidence,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub(crate) enum AgentCenterMotionPreference {
     System,
     Reduced,
@@ -159,6 +216,13 @@ pub(crate) struct AgentCenterSelectedAvatarPackage {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub(crate) struct AgentCenterAvatarConfigProvenance {
+    pub source: AgentCenterAvatarConfigProvenanceSource,
+    pub evidence_ref: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct AgentCenterAppearanceModule {
     pub schema_version: u8,
     pub background_asset_id: Option<String>,
@@ -170,8 +234,17 @@ pub(crate) struct AgentCenterAppearanceModule {
 pub(crate) struct AgentCenterAvatarPackageModule {
     pub schema_version: u8,
     pub selected_package: Option<AgentCenterSelectedAvatarPackage>,
+    pub conversation_anchor_scope: AgentCenterAvatarConversationAnchorScope,
+    pub avatar_package_ref: Option<String>,
+    pub avatar_instance_policy: AgentCenterAvatarInstancePolicy,
+    pub backend_kind: AgentCenterAvatarBackendKind,
+    pub backend_capability_profile_ref: Option<String>,
+    pub generated_motion_provider_policy: AgentCenterGeneratedMotionProviderPolicy,
+    pub launch_mode: AgentCenterAvatarLaunchMode,
+    pub debug_profile: AgentCenterAvatarDebugProfile,
+    pub updated_at: String,
+    pub provenance: AgentCenterAvatarConfigProvenance,
     pub last_validated_at: Option<String>,
-    pub last_launch_package_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

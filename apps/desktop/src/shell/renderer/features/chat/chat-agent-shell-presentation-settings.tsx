@@ -4,6 +4,15 @@ import { AdvBlock, AgentCenterPanel } from './chat-agent-center-panel';
 import { ChatSettingsPanel } from './chat-shared-settings-panel';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
 import { AgentDiagnosticsPanel } from './chat-agent-diagnostics';
+import { AgentCenterAvatarDebugWorkbench } from './chat-agent-center-avatar-debug-workbench';
+import type {
+  AgentCenterAvatarDebugProfile,
+  AgentCenterAvatarConfigPatch,
+  AgentCenterAvatarInstancePolicy,
+  AgentCenterAvatarLaunchMode,
+  AgentCenterAvatarPackageModule,
+  AgentCenterGeneratedMotionProviderPolicy,
+} from './chat-agent-center-avatar-config-types';
 
 type SelectedAvatarPackage = {
   kind: 'live2d' | 'vrm';
@@ -44,11 +53,13 @@ type AgentConversationSettingsContentProps = {
   backgroundValid: boolean;
   avatarPackageChecking: boolean;
   selectedAvatarPackage: SelectedAvatarPackage;
+  avatarPackageConfig: AgentCenterAvatarPackageModule | null;
   avatarPackageValidationQuery: ValidationQueryLike;
   avatarImportError: string | null;
   clearAvatarPackageMutation: MutationLike;
   avatarImportDisabled: boolean;
   avatarPackageImportMutation: MutationLike<'live2d' | 'vrm'>;
+  avatarConfigMutation: MutationLike<AgentCenterAvatarConfigPatch>;
   avatarActionPending: boolean;
   selectedBackgroundAssetId: string | null | undefined;
   backgroundAssetQuery: BackgroundQueryLike;
@@ -110,11 +121,13 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
     backgroundValid,
     avatarPackageChecking,
     selectedAvatarPackage,
+    avatarPackageConfig,
     avatarPackageValidationQuery,
     avatarImportError,
     clearAvatarPackageMutation,
     avatarImportDisabled,
     avatarPackageImportMutation,
+    avatarConfigMutation,
     avatarActionPending,
     selectedBackgroundAssetId,
     backgroundAssetQuery,
@@ -124,6 +137,35 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
     backgroundImportDisabled,
     backgroundImportMutation,
   } = props;
+  const avatarBackendKind = selectedAvatarPackage?.kind || avatarPackageConfig?.backend_kind || 'live2d';
+  const avatarInstancePolicy = avatarPackageConfig?.avatar_instance_policy || 'reuse_active_instance';
+  const generatedMotionProviderPolicy = avatarPackageConfig?.generated_motion_provider_policy || 'require_profile_support';
+  const avatarLaunchMode = avatarPackageConfig?.launch_mode || 'manual';
+  const avatarDebugProfile = avatarPackageConfig?.debug_profile || 'standard';
+  const avatarConfigDisabled = avatarConfigMutation.isPending || !hasTauriInvoke();
+  const renderOptionSelect = <TValue extends string>(inputProps: {
+    label: string;
+    value: TValue;
+    disabled?: boolean;
+    options: Array<{ value: TValue; label: string }>;
+    onChange: (value: TValue) => void;
+  }) => (
+    <label className="block rounded-lg border border-slate-100 bg-white px-3 py-2">
+      <span className="block text-[10px] font-semibold uppercase text-slate-500">
+        {inputProps.label}
+      </span>
+      <select
+        value={inputProps.value}
+        disabled={avatarConfigDisabled || inputProps.disabled}
+        onChange={(event) => inputProps.onChange(event.target.value as TValue)}
+        className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-800 outline-none transition-colors focus:border-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+      >
+        {inputProps.options.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+      </select>
+    </label>
+  );
 
   return (
     <AgentCenterPanel
@@ -156,6 +198,24 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                   {avatarPackageValidationQuery.data.errors[0].message}
                 </div>
               ) : null}
+              <div className="mt-3 grid gap-2 text-[11px] leading-4 text-slate-500 sm:grid-cols-2">
+                <div className="rounded-md bg-white px-2.5 py-2">
+                  <span className="font-semibold text-slate-700">
+                    {input.t('Chat.agentCenterAvatarBackend', { defaultValue: 'Backend' })}
+                  </span>
+                  <span className="ml-1 uppercase">{avatarBackendKind}</span>
+                </div>
+                <div className="rounded-md bg-white px-2.5 py-2">
+                  <span className="font-semibold text-slate-700">
+                    {input.t('Chat.agentCenterAvatarCapabilityProfile', { defaultValue: 'Capability profile' })}
+                  </span>
+                  <span className="ml-1">
+                    {avatarPackageConfig?.backend_capability_profile_ref
+                      ? input.t('Chat.agentCenterAvatarProfileLinked', { defaultValue: 'Linked' })
+                      : input.t('Chat.agentCenterAvatarProfilePending', { defaultValue: 'Pending evidence' })}
+                  </span>
+                </div>
+              </div>
               {(avatarImportError || (clearAvatarPackageMutation.error instanceof Error ? clearAvatarPackageMutation.error.message : null)) ? (
                 <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700">
                   {avatarImportError || (clearAvatarPackageMutation.error instanceof Error ? clearAvatarPackageMutation.error.message : null)}
@@ -210,6 +270,72 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                   : input.t('Chat.agentCenterClearAvatarSelection', { defaultValue: 'Remove avatar package' })}
               </button>
             ) : null}
+            <div className="grid gap-2 sm:grid-cols-2">
+              {renderOptionSelect<'live2d' | 'vrm' | 'future'>({
+                label: input.t('Chat.agentCenterAvatarBackendKind', { defaultValue: 'Backend kind' }),
+                value: avatarBackendKind,
+                disabled: Boolean(selectedAvatarPackage),
+                options: [
+                  { value: 'live2d', label: 'Live2D' },
+                  { value: 'vrm', label: 'VRM' },
+                  { value: 'future', label: input.t('Chat.agentCenterAvatarBackendFuture', { defaultValue: 'Future' }) },
+                ],
+                onChange: (backend_kind) => avatarConfigMutation.mutate({ backend_kind }),
+              })}
+              {renderOptionSelect<AgentCenterAvatarInstancePolicy>({
+                label: input.t('Chat.agentCenterAvatarInstancePolicy', { defaultValue: 'Instance policy' }),
+                value: avatarInstancePolicy,
+                options: [
+                  { value: 'reuse_active_instance', label: input.t('Chat.agentCenterAvatarReuseActive', { defaultValue: 'Reuse active' }) },
+                  { value: 'launch_new_instance', label: input.t('Chat.agentCenterAvatarLaunchNew', { defaultValue: 'Launch new' }) },
+                  { value: 'require_user_selection', label: input.t('Chat.agentCenterAvatarRequireSelection', { defaultValue: 'Ask every time' }) },
+                ],
+                onChange: (avatar_instance_policy) => avatarConfigMutation.mutate({ avatar_instance_policy }),
+              })}
+              {renderOptionSelect<AgentCenterGeneratedMotionProviderPolicy>({
+                label: input.t('Chat.agentCenterAvatarMotionPolicy', { defaultValue: 'Generated motion' }),
+                value: generatedMotionProviderPolicy,
+                options: [
+                  { value: 'require_profile_support', label: input.t('Chat.agentCenterAvatarMotionRequireProfile', { defaultValue: 'Require profile' }) },
+                  { value: 'disable_generated_motion', label: input.t('Chat.agentCenterAvatarMotionDisabled', { defaultValue: 'Disabled' }) },
+                  { value: 'debug_only', label: input.t('Chat.agentCenterAvatarMotionDebugOnly', { defaultValue: 'Debug only' }) },
+                ],
+                onChange: (generated_motion_provider_policy) => avatarConfigMutation.mutate({ generated_motion_provider_policy }),
+              })}
+              {renderOptionSelect<AgentCenterAvatarLaunchMode>({
+                label: input.t('Chat.agentCenterAvatarLaunchMode', { defaultValue: 'Launch mode' }),
+                value: avatarLaunchMode,
+                options: [
+                  { value: 'manual', label: input.t('Chat.agentCenterAvatarLaunchManual', { defaultValue: 'Manual' }) },
+                  { value: 'debug_session', label: input.t('Chat.agentCenterAvatarLaunchDebug', { defaultValue: 'Debug session' }) },
+                  { value: 'start_with_chat', label: input.t('Chat.agentCenterAvatarLaunchWithChat', { defaultValue: 'Start with chat' }) },
+                ],
+                onChange: (launch_mode) => avatarConfigMutation.mutate({ launch_mode }),
+              })}
+              {renderOptionSelect<AgentCenterAvatarDebugProfile>({
+                label: input.t('Chat.agentCenterAvatarDebugProfile', { defaultValue: 'Debug profile' }),
+                value: avatarDebugProfile,
+                options: [
+                  { value: 'standard', label: input.t('Chat.agentCenterAvatarDebugStandard', { defaultValue: 'Standard' }) },
+                  { value: 'strict_backend_evidence', label: input.t('Chat.agentCenterAvatarDebugStrict', { defaultValue: 'Strict evidence' }) },
+                  { value: 'route_matrix', label: input.t('Chat.agentCenterAvatarDebugRoutes', { defaultValue: 'Route matrix' }) },
+                ],
+                onChange: (debug_profile) => avatarConfigMutation.mutate({ debug_profile }),
+              })}
+            </div>
+            {avatarConfigMutation.error instanceof Error ? (
+              <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700">
+                {avatarConfigMutation.error.message}
+              </div>
+            ) : null}
+            <AgentCenterAvatarDebugWorkbench
+              input={input}
+              avatarPackageConfig={avatarPackageConfig}
+              avatarPackageValid={avatarPackageValid}
+              avatarPackageChecking={avatarPackageChecking}
+              selectedAvatarPackage={selectedAvatarPackage}
+              validationMessage={avatarPackageValidationQuery.data?.errors?.[0]?.message || null}
+            />
             {!hasTauriInvoke() ? (
               <div className="text-[11px] leading-4 text-slate-500">
                 {input.t('Chat.agentCenterAvatarImportDesktopOnly', { defaultValue: 'Avatar package import is available in the desktop app.' })}

@@ -48,6 +48,7 @@ import {
 } from './chat-agent-voice-session';
 import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
 import { AgentConversationDiagnosticsContent, AgentConversationSettingsContent } from './chat-agent-shell-presentation-settings';
+import { useAgentCenterAvatarConfigMutation } from './chat-agent-center-avatar-config-mutation';
 import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
 import { CHAT_CONTENT_POSITION_CLASS, CHAT_CONTENT_WIDTH_CLASS } from './chat-shared-content-layout';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
@@ -182,6 +183,7 @@ export function useAgentConversationPresentation(
     staleTime: 30_000,
   });
   const selectedAvatarPackage = agentCenterLocalConfigQuery.data?.modules.avatar_package.selected_package || null;
+  const avatarPackageConfig = agentCenterLocalConfigQuery.data?.modules.avatar_package || null;
   const selectedBackgroundAssetId = agentCenterLocalConfigQuery.data?.modules.appearance.background_asset_id || null;
   const backgroundAssetQuery = useQuery({
     queryKey: input.accountId && input.activeTarget?.agentId && selectedBackgroundAssetId
@@ -229,9 +231,9 @@ export function useAgentConversationPresentation(
     staleTime: 30_000,
   });
   const avatarConfigured = Boolean(selectedAvatarPackage);
-  const avatarPackageLaunchSupported = !selectedAvatarPackage || selectedAvatarPackage.kind === 'live2d';
-  const avatarPackageValid = avatarPackageLaunchSupported && avatarPackageValidationQuery.data?.status === 'valid';
+  const avatarPackageValid = avatarPackageValidationQuery.data?.status === 'valid';
   const avatarPackageChecking = Boolean(selectedAvatarPackage && avatarPackageValidationQuery.isFetching);
+  const avatarConfigMutation = useAgentCenterAvatarConfigMutation(input, queryClient, agentCenterLocalConfigQuery.data);
   const backgroundValidation = backgroundAssetQuery.data?.validation || null;
   const backgroundValid = backgroundValidation?.status === 'valid';
   const avatarPackageImportMutation = useMutation({
@@ -619,11 +621,13 @@ export function useAgentConversationPresentation(
         backgroundValid={backgroundValid}
         avatarPackageChecking={avatarPackageChecking}
         selectedAvatarPackage={selectedAvatarPackage}
+        avatarPackageConfig={avatarPackageConfig}
         avatarPackageValidationQuery={avatarPackageValidationQuery}
         avatarImportError={avatarImportError}
         clearAvatarPackageMutation={clearAvatarPackageMutation}
         avatarImportDisabled={avatarImportDisabled}
         avatarPackageImportMutation={avatarPackageImportMutation}
+        avatarConfigMutation={avatarConfigMutation}
         avatarActionPending={avatarActionPending}
         selectedBackgroundAssetId={selectedBackgroundAssetId}
         backgroundAssetQuery={backgroundAssetQuery}
@@ -716,6 +720,7 @@ export function useAgentConversationPresentation(
     avatarImportDisabled,
     avatarImportError,
     avatarPackageChecking,
+    avatarConfigMutation,
     avatarPackageImportMutation,
     avatarPackageValidationQuery.data,
     avatarPackageValid,

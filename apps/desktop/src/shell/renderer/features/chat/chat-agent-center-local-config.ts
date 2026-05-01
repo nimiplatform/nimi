@@ -1,3 +1,19 @@
+import { createDefaultAgentCenterAvatarPackageModule } from './chat-agent-center-avatar-config-types';
+import type { AgentCenterAvatarPackageModule } from './chat-agent-center-avatar-config-types';
+import { validateAvatarPackageModule } from './chat-agent-center-avatar-config-validation';
+
+export type {
+  AgentCenterAvatarBackendKind,
+  AgentCenterAvatarConfigProvenance,
+  AgentCenterAvatarConfigProvenanceSource,
+  AgentCenterAvatarConversationAnchorScope,
+  AgentCenterAvatarDebugProfile,
+  AgentCenterAvatarInstancePolicy,
+  AgentCenterAvatarLaunchMode,
+  AgentCenterAvatarPackageModule,
+  AgentCenterGeneratedMotionProviderPolicy,
+} from './chat-agent-center-avatar-config-types';
+
 export const AGENT_CENTER_LOCAL_CONFIG_SCHEMA_VERSION = 1;
 export const AGENT_CENTER_LOCAL_CONFIG_KIND = 'agent_center_local_config';
 
@@ -29,13 +45,6 @@ export type AgentCenterAppearanceModule = {
   schema_version: 1;
   background_asset_id: string | null;
   motion: 'system' | 'reduced' | 'full';
-};
-
-export type AgentCenterAvatarPackageModule = {
-  schema_version: 1;
-  selected_package: AgentCenterSelectedAvatarPackage | null;
-  last_validated_at: string | null;
-  last_launch_package_id: string | null;
 };
 
 export type AgentCenterLocalHistoryModule = {
@@ -171,8 +180,6 @@ const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})
 const ROOT_KEYS = ['schema_version', 'config_kind', 'account_id', 'agent_id', 'modules'] as const;
 const MODULES_KEYS = AGENT_CENTER_LOCAL_CONFIG_MODULE_IDS;
 const APPEARANCE_KEYS = ['schema_version', 'background_asset_id', 'motion'] as const;
-const AVATAR_PACKAGE_KEYS = ['schema_version', 'selected_package', 'last_validated_at', 'last_launch_package_id'] as const;
-const SELECTED_PACKAGE_KEYS = ['kind', 'package_id'] as const;
 const LOCAL_HISTORY_KEYS = ['schema_version', 'last_cleared_at'] as const;
 const UI_KEYS = ['schema_version', 'last_section'] as const;
 
@@ -306,43 +313,6 @@ function validateAppearanceModule(value: unknown, errors: string[]): AgentCenter
   };
 }
 
-function validateSelectedPackage(value: unknown, path: string, errors: string[]): AgentCenterSelectedAvatarPackage | null {
-  if (value === null) {
-    return null;
-  }
-  const record = requireRecord(value, path, errors);
-  if (!record) {
-    return null;
-  }
-  collectUnknownKeys(record, SELECTED_PACKAGE_KEYS, path, errors);
-  const kind = readString(record.kind, `${path}.kind`, errors);
-  if (kind && !PACKAGE_KIND_VALUES.has(kind)) {
-    errors.push(`${path}.kind: invalid package kind`);
-  }
-  const packageId = validatePackageId(record.package_id, `${path}.package_id`, errors);
-  if (kind && packageId && !packageId.startsWith(`${kind}_`)) {
-    errors.push(`${path}.package_id: package id must match kind`);
-  }
-  return {
-    kind: PACKAGE_KIND_VALUES.has(kind || '') ? kind as AgentCenterAvatarPackageKind : 'live2d',
-    package_id: packageId || '',
-  };
-}
-
-function validateAvatarPackageModule(value: unknown, errors: string[]): AgentCenterAvatarPackageModule {
-  const path = 'modules.avatar_package';
-  const record = requireRecord(value, path, errors) ?? {};
-  collectUnknownKeys(record, AVATAR_PACKAGE_KEYS, path, errors);
-  requireSchemaVersion(record, path, errors);
-
-  return {
-    schema_version: 1,
-    selected_package: validateSelectedPackage(record.selected_package, `${path}.selected_package`, errors),
-    last_validated_at: validateTimestamp(record.last_validated_at, `${path}.last_validated_at`, errors),
-    last_launch_package_id: validatePackageId(record.last_launch_package_id, `${path}.last_launch_package_id`, errors),
-  };
-}
-
 function validateLocalHistoryModule(value: unknown, errors: string[]): AgentCenterLocalHistoryModule {
   const path = 'modules.local_history';
   const record = requireRecord(value, path, errors) ?? {};
@@ -423,12 +393,7 @@ export function createDefaultAgentCenterLocalConfig(input: { accountId: string; 
         background_asset_id: null,
         motion: 'system',
       },
-      avatar_package: {
-        schema_version: 1,
-        selected_package: null,
-        last_validated_at: null,
-        last_launch_package_id: null,
-      },
+      avatar_package: createDefaultAgentCenterAvatarPackageModule(),
       local_history: {
         schema_version: 1,
         last_cleared_at: null,

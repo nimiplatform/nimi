@@ -15,7 +15,15 @@ pub(super) fn select_imported_avatar_package(
         kind,
         package_id: package_id.to_string(),
     });
+    config.modules.avatar_package.avatar_package_ref = Some(package_id.to_string());
+    config.modules.avatar_package.backend_kind = avatar_backend_kind_for_package(kind);
     config.modules.avatar_package.last_validated_at = Some(checked_at.to_string());
+    config.modules.avatar_package.updated_at =
+        chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+    config.modules.avatar_package.provenance = AgentCenterAvatarConfigProvenance {
+        source: AgentCenterAvatarConfigProvenanceSource::ImportValidation,
+        evidence_ref: package_id.to_string(),
+    };
     desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
         account_id: account_id.to_string(),
         agent_id: agent_id.to_string(),
@@ -58,16 +66,15 @@ pub(super) fn clear_selected_avatar_package(
         .is_some_and(|entry| entry.kind == kind && entry.package_id == package_id)
     {
         config.modules.avatar_package.selected_package = None;
+        config.modules.avatar_package.avatar_package_ref = None;
+        config.modules.avatar_package.backend_capability_profile_ref = None;
         config.modules.avatar_package.last_validated_at = None;
-        if config
-            .modules
-            .avatar_package
-            .last_launch_package_id
-            .as_deref()
-            == Some(package_id)
-        {
-            config.modules.avatar_package.last_launch_package_id = None;
-        }
+        config.modules.avatar_package.updated_at =
+            chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+        config.modules.avatar_package.provenance = AgentCenterAvatarConfigProvenance {
+            source: AgentCenterAvatarConfigProvenanceSource::UserSelection,
+            evidence_ref: "agent-center-avatar-package-cleared".to_string(),
+        };
         desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
             account_id: account_id.to_string(),
             agent_id: agent_id.to_string(),

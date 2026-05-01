@@ -1,0 +1,42 @@
+{
+  "manifest_version": 1,
+  "package_version": "1.0.0",
+  "package_id": "vrm_601945ec0495",
+  "kind": "vrm",
+  "loader_min_version": "1.0.0",
+  "display_name": "VRM1 Constraint Twist Sample",
+  "display_name_i18n": {},
+  "entry_file": "files/VRM1_Constraint_Twist_Sample.vrm",
+  "required_files": [
+    "files/VRM1_Constraint_Twist_Sample.vrm"
+  ],
+  "content_digest": "sha256:601945ec0495676c3b686ee3dbeace53910d0ae692ae37a5cf09049b28934876",
+  "files": [
+    {
+      "path": "files/VRM1_Constraint_Twist_Sample.vrm",
+      "sha256": "12c2b97e95e700783a6a550dc0eee2d7880aeedccef9ae67bc4c5a2f0f2631a2",
+      "bytes": 10776032,
+      "mime": "model/vrm"
+    }
+  ],
+  "limits": {
+    "max_manifest_bytes": 262144,
+    "max_package_bytes": 524288000,
+    "max_file_bytes": 104857600,
+    "max_file_count": 2048
+  },
+  "capabilities": {
+    "backend_kind": "vrm",
+    "generated_motion_routes": [
+      "generated_motion.vrm.expression",
+      "generated_motion.vrm.lookat",
+      "generated_motion.vrm.pose"
+    ],
+    "profile_source": "real_vrm_fixture"
+  },
+  "import": {
+    "imported_at": "2026-05-01T00:00:00Z",
+    "source_label": "VRM1_Constraint_Twist_Sample.vrm",
+    "source_fingerprint": "sha256:601945ec0495676c3b686ee3dbeace53910d0ae692ae37a5cf09049b28934876"
+  }
+}

@@ -1,7 +1,7 @@
 use super::store::{
-    agent_center_dir, desktop_agent_center_config_get, desktop_agent_center_config_put,
-    local_scope_path_segment, validate_background_id, validate_normalized_id, validate_package_id,
-    validate_utc_timestamp,
+    agent_center_dir, avatar_backend_kind_for_package, desktop_agent_center_config_get,
+    desktop_agent_center_config_put, local_scope_path_segment, validate_background_id,
+    validate_normalized_id, validate_package_id, validate_utc_timestamp,
 };
 use super::types::*;
 use chrono::{Duration, Utc};

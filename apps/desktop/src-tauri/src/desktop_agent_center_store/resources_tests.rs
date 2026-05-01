@@ -229,6 +229,14 @@ fn imports_live2d_package_transactionally_and_selects_it() {
                 .package_id,
             result.package_id
         );
+        assert_eq!(
+            config.modules.avatar_package.avatar_package_ref.as_deref(),
+            Some(result.package_id.as_str())
+        );
+        assert_eq!(
+            config.modules.avatar_package.backend_kind,
+            AgentCenterAvatarBackendKind::Live2d
+        );
         let operations = fs::read_to_string(operation_log_path(&home)).expect("operation log");
         assert!(operations.contains("\"operation_type\":\"package_import\""));
         assert!(operations.contains("\"resource_kind\":\"avatar_package\""));
@@ -324,6 +332,10 @@ fn imports_live2d_package_for_runtime_scoped_agent_id() {
                 .package_id,
             result.package_id
         );
+        assert_eq!(
+            config.modules.avatar_package.avatar_package_ref.as_deref(),
+            Some(result.package_id.as_str())
+        );
     });
 }
 
@@ -406,12 +418,8 @@ fn removes_selected_avatar_package_by_clearing_config_and_quarantining_directory
         })
         .expect("config");
         assert!(config.modules.avatar_package.selected_package.is_none());
-        assert!(home
-                .join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/quarantine/avatar_package")
-                .read_dir()
-                .expect("quarantine dir")
-                .next()
-                .is_some());
+        assert!(config.modules.avatar_package.avatar_package_ref.is_none());
+        assert!(home.join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/quarantine/avatar_package").read_dir().expect("quarantine dir").next().is_some());
         assert!(!old_quarantine.exists());
         let operations = fs::read_to_string(operation_log_path(&home)).expect("operation log");
         assert!(operations.contains("\"operation_type\":\"package_quarantine\""));
