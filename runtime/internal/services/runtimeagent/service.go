@@ -80,6 +80,7 @@ type Service struct {
 	// With per-anchor isolation, each agent may still run only one active
 	// chat turn at a time across anchors to preserve single-speaker truth.
 	chatActiveByAgent map[string]string
+	chatAsyncWG       sync.WaitGroup
 
 	lifeLoopMu     sync.Mutex
 	lifeLoopCancel context.CancelFunc

@@ -26,6 +26,18 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+func closeMemoryServiceForTest(t *testing.T, svc *Service) {
+	t.Helper()
+	t.Cleanup(func() {
+		if svc == nil {
+			return
+		}
+		if err := svc.Close(); err != nil {
+			t.Fatalf("Close: %v", err)
+		}
+	})
+}
+
 func TestMemoryServiceCreateRetainRecallDelete(t *testing.T) {
 	t.Parallel()
 
@@ -36,6 +48,7 @@ func TestMemoryServiceCreateRetainRecallDelete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 
 	ctx := context.Background()
 	createResp, err := svc.CreateBank(ctx, &runtimev1.CreateBankRequest{
@@ -145,6 +158,7 @@ func TestMemoryServiceRecallUsesInjectedEmbeddingExecutor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 	profile := &runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "local/embed-memory-test",
@@ -337,6 +351,7 @@ func TestMemoryServiceRetainSemanticDedupDoesNotRunForNullProfileBanks(t *testin
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 
 	ctx := context.Background()
 	locator := &runtimev1.MemoryBankLocator{
@@ -403,6 +418,7 @@ func TestMemoryServiceCreateBankWithoutInstalledProvider(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 
 	resp, err := svc.CreateBank(context.Background(), &runtimev1.CreateBankRequest{
 		Locator: &runtimev1.PublicMemoryBankLocator{
@@ -434,6 +450,7 @@ func TestMemoryServiceBoundProfileFailClosesWithoutManagedEmbedding(t *testing.T
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 
 	profile := &runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
@@ -578,6 +595,7 @@ func TestMemoryServiceImportLegacyJSONIntoSQLiteAndRename(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New(import): %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 
 	historyResp, err := svc.History(context.Background(), &runtimev1.HistoryRequest{
 		Bank:  locator,
@@ -626,6 +644,7 @@ func TestMemoryServiceImportLegacyJSONIntoSQLiteAndRename(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New(restart): %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 	defer func() {
 		if err := svc.PersistenceBackend().Close(); err != nil {
 			t.Fatalf("Close(second backend): %v", err)
@@ -819,6 +838,7 @@ func TestMemoryServiceRecallFeedbackIsIdempotentAndBiasesRanking(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 	ctx := context.Background()
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
@@ -913,6 +933,7 @@ func TestMemoryServiceRecallFeedbackRejectsConflictingPayloadForSameID(t *testin
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 	ctx := context.Background()
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
@@ -981,6 +1002,7 @@ func TestMemoryServiceRecallExpandsCanonicalReviewRelations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 	ctx := context.Background()
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
@@ -1923,6 +1945,7 @@ func TestMemoryServiceStartupAcceleratorCleanupRemovesExpiredAliasRows(t *testin
 	if err != nil {
 		t.Fatalf("New(first): %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
@@ -1963,6 +1986,7 @@ func TestMemoryServiceStartupAcceleratorCleanupRemovesExpiredAliasRows(t *testin
 	if err != nil {
 		t.Fatalf("New(reopen): %v", err)
 	}
+	closeMemoryServiceForTest(t, reopened)
 	defer reopened.Close()
 
 	var count int
@@ -1988,6 +2012,7 @@ func TestMemoryServiceClusterCanonicalReviewInputsUsesPersistedEmbeddingsAndDefe
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
@@ -2078,6 +2103,7 @@ func TestMemoryServiceCanonicalBindRequiresManagedProfileAndIsIdempotent(t *test
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 	locator := &runtimev1.MemoryBankLocator{
 		Scope: runtimev1.MemoryBankScope_MEMORY_BANK_SCOPE_AGENT_CORE,
 		Owner: &runtimev1.MemoryBankLocator_AgentCore{
@@ -2546,6 +2572,7 @@ func TestMemoryServicePendingBacklogMetadataSurvivesRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
@@ -2603,6 +2630,7 @@ func TestMemoryServicePendingBacklogMetadataSurvivesRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New(restart): %v", err)
 	}
+	closeMemoryServiceForTest(t, restarted)
 	defer func() {
 		if err := restarted.PersistenceBackend().Close(); err != nil {
 			t.Fatalf("Close(second backend): %v", err)
@@ -2638,6 +2666,7 @@ func TestMemoryServiceTerminalBacklogDoesNotReviveAfterRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
@@ -2702,6 +2731,7 @@ func TestMemoryServiceTerminalBacklogDoesNotReviveAfterRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New(restart): %v", err)
 	}
+	closeMemoryServiceForTest(t, restarted)
 	defer func() {
 		if err := restarted.PersistenceBackend().Close(); err != nil {
 			t.Fatalf("Close(second backend): %v", err)
@@ -2735,6 +2765,7 @@ func newTestMemoryRecord(t *testing.T) (*Service, *runtimev1.MemoryBankLocator, 
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 	ctx := context.Background()
 	createResp, err := svc.CreateBank(ctx, &runtimev1.CreateBankRequest{
 		Context: &runtimev1.MemoryRequestContext{AppId: "app.test"},
@@ -2789,6 +2820,7 @@ func newCanonicalTestMemoryRecord(t *testing.T) (*Service, *runtimev1.MemoryBank
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
@@ -2837,6 +2869,7 @@ func newBoundSemanticDedupTestBank(t *testing.T) (*Service, *runtimev1.MemoryBan
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	closeMemoryServiceForTest(t, svc)
 	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",

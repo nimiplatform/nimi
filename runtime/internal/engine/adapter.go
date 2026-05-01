@@ -53,8 +53,40 @@ func (a *ServiceAdapter) EnsureEngine(ctx context.Context, engineName string, ve
 	return err
 }
 
+func (a *ServiceAdapter) EnsureEngineBinaryDependency(ctx context.Context, engineName string, version string) (EngineBinaryDependencyStatus, error) {
+	cfg, err := resolveEngineConfig(engineName, version, 0)
+	if err != nil {
+		return EngineBinaryDependencyStatus{}, err
+	}
+	return a.mgr.EnsureEngineBinaryDependency(ctx, cfg)
+}
+
+func (a *ServiceAdapter) EnsureUVToolDependency(ctx context.Context) (UVToolDependencyStatus, error) {
+	return a.mgr.EnsureUVToolDependency(ctx)
+}
+
+func (a *ServiceAdapter) EnsurePythonRuntimeDependency(ctx context.Context, uvPath string, engineName string, version string, pythonVersion string) (PythonRuntimeDependencyStatus, error) {
+	return a.mgr.EnsurePythonRuntimeDependency(ctx, uvPath, engineName, version, pythonVersion)
+}
+
+func (a *ServiceAdapter) EnsurePythonVenvDependency(ctx context.Context, uvPath string, pythonRuntimePath string, engineName string, version string) (PythonVenvDependencyStatus, error) {
+	return a.mgr.EnsurePythonVenvDependency(ctx, uvPath, pythonRuntimePath, engineName, version)
+}
+
+func (a *ServiceAdapter) EnsurePythonPackageSetDependency(ctx context.Context, uvPath string, venvRoot string, consumer string) (PythonPackageSetDependencyStatus, error) {
+	return a.mgr.EnsurePythonPackageSetDependency(ctx, uvPath, venvRoot, consumer)
+}
+
+func (a *ServiceAdapter) EnsurePythonTorchWheelDependency(ctx context.Context, uvPath string, venvRoot string, consumer string) (PythonTorchWheelDependencyStatus, error) {
+	return a.mgr.EnsurePythonTorchWheelDependency(ctx, uvPath, venvRoot, consumer)
+}
+
 func (a *ServiceAdapter) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedImageBackendConfig) error {
 	return a.mgr.EnsureManagedImageBackend(ctx, cfg)
+}
+
+func (a *ServiceAdapter) EnsureManagedImageBackendDependency(ctx context.Context, cfg *ManagedImageBackendConfig) (ManagedImageBackendDependencyStatus, error) {
+	return a.mgr.EnsureManagedImageBackendDependency(ctx, cfg)
 }
 
 func (a *ServiceAdapter) ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) SharedAcceleratorDependencyStatus {

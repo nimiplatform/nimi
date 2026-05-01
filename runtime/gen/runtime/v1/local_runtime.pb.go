@@ -2339,13 +2339,17 @@ func (*WatchLocalTransfersRequest) Descriptor() ([]byte, []int) {
 }
 
 type ResolveLocalEnvironmentPlanRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	PackId          string                 `protobuf:"bytes,1,opt,name=pack_id,json=packId,proto3" json:"pack_id,omitempty"`
-	ConsumerScope   string                 `protobuf:"bytes,2,opt,name=consumer_scope,json=consumerScope,proto3" json:"consumer_scope,omitempty"`
-	HostProfile     *LocalDeviceProfile    `protobuf:"bytes,3,opt,name=host_profile,json=hostProfile,proto3" json:"host_profile,omitempty"`
-	RuntimeDataRoot string                 `protobuf:"bytes,4,opt,name=runtime_data_root,json=runtimeDataRoot,proto3" json:"runtime_data_root,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	PackId           string                 `protobuf:"bytes,1,opt,name=pack_id,json=packId,proto3" json:"pack_id,omitempty"`
+	ConsumerScope    string                 `protobuf:"bytes,2,opt,name=consumer_scope,json=consumerScope,proto3" json:"consumer_scope,omitempty"`
+	HostProfile      *LocalDeviceProfile    `protobuf:"bytes,3,opt,name=host_profile,json=hostProfile,proto3" json:"host_profile,omitempty"`
+	RuntimeDataRoot  string                 `protobuf:"bytes,4,opt,name=runtime_data_root,json=runtimeDataRoot,proto3" json:"runtime_data_root,omitempty"`
+	AssetId          string                 `protobuf:"bytes,5,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	LocalAssetId     string                 `protobuf:"bytes,6,opt,name=local_asset_id,json=localAssetId,proto3" json:"local_asset_id,omitempty"`
+	CompanionAssetId string                 `protobuf:"bytes,7,opt,name=companion_asset_id,json=companionAssetId,proto3" json:"companion_asset_id,omitempty"`
+	ParentAssetId    string                 `protobuf:"bytes,8,opt,name=parent_asset_id,json=parentAssetId,proto3" json:"parent_asset_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ResolveLocalEnvironmentPlanRequest) Reset() {
@@ -2402,6 +2406,34 @@ func (x *ResolveLocalEnvironmentPlanRequest) GetHostProfile() *LocalDeviceProfil
 func (x *ResolveLocalEnvironmentPlanRequest) GetRuntimeDataRoot() string {
 	if x != nil {
 		return x.RuntimeDataRoot
+	}
+	return ""
+}
+
+func (x *ResolveLocalEnvironmentPlanRequest) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+func (x *ResolveLocalEnvironmentPlanRequest) GetLocalAssetId() string {
+	if x != nil {
+		return x.LocalAssetId
+	}
+	return ""
+}
+
+func (x *ResolveLocalEnvironmentPlanRequest) GetCompanionAssetId() string {
+	if x != nil {
+		return x.CompanionAssetId
+	}
+	return ""
+}
+
+func (x *ResolveLocalEnvironmentPlanRequest) GetParentAssetId() string {
+	if x != nil {
+		return x.ParentAssetId
 	}
 	return ""
 }
@@ -2643,13 +2675,17 @@ func (x *ListLocalEnvironmentDependencyJobsResponse) GetJobs() []*LocalEnvironme
 }
 
 type ResolveLocalEnvironmentActivationGateRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ConsumerId      string                 `protobuf:"bytes,1,opt,name=consumer_id,json=consumerId,proto3" json:"consumer_id,omitempty"`
-	PackId          string                 `protobuf:"bytes,2,opt,name=pack_id,json=packId,proto3" json:"pack_id,omitempty"`
-	HostProfile     *LocalDeviceProfile    `protobuf:"bytes,3,opt,name=host_profile,json=hostProfile,proto3" json:"host_profile,omitempty"`
-	RuntimeDataRoot string                 `protobuf:"bytes,4,opt,name=runtime_data_root,json=runtimeDataRoot,proto3" json:"runtime_data_root,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	ConsumerId       string                 `protobuf:"bytes,1,opt,name=consumer_id,json=consumerId,proto3" json:"consumer_id,omitempty"`
+	PackId           string                 `protobuf:"bytes,2,opt,name=pack_id,json=packId,proto3" json:"pack_id,omitempty"`
+	HostProfile      *LocalDeviceProfile    `protobuf:"bytes,3,opt,name=host_profile,json=hostProfile,proto3" json:"host_profile,omitempty"`
+	RuntimeDataRoot  string                 `protobuf:"bytes,4,opt,name=runtime_data_root,json=runtimeDataRoot,proto3" json:"runtime_data_root,omitempty"`
+	AssetId          string                 `protobuf:"bytes,5,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	LocalAssetId     string                 `protobuf:"bytes,6,opt,name=local_asset_id,json=localAssetId,proto3" json:"local_asset_id,omitempty"`
+	CompanionAssetId string                 `protobuf:"bytes,7,opt,name=companion_asset_id,json=companionAssetId,proto3" json:"companion_asset_id,omitempty"`
+	ParentAssetId    string                 `protobuf:"bytes,8,opt,name=parent_asset_id,json=parentAssetId,proto3" json:"parent_asset_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ResolveLocalEnvironmentActivationGateRequest) Reset() {
@@ -2706,6 +2742,34 @@ func (x *ResolveLocalEnvironmentActivationGateRequest) GetHostProfile() *LocalDe
 func (x *ResolveLocalEnvironmentActivationGateRequest) GetRuntimeDataRoot() string {
 	if x != nil {
 		return x.RuntimeDataRoot
+	}
+	return ""
+}
+
+func (x *ResolveLocalEnvironmentActivationGateRequest) GetAssetId() string {
+	if x != nil {
+		return x.AssetId
+	}
+	return ""
+}
+
+func (x *ResolveLocalEnvironmentActivationGateRequest) GetLocalAssetId() string {
+	if x != nil {
+		return x.LocalAssetId
+	}
+	return ""
+}
+
+func (x *ResolveLocalEnvironmentActivationGateRequest) GetCompanionAssetId() string {
+	if x != nil {
+		return x.CompanionAssetId
+	}
+	return ""
+}
+
+func (x *ResolveLocalEnvironmentActivationGateRequest) GetParentAssetId() string {
+	if x != nil {
+		return x.ParentAssetId
 	}
 	return ""
 }
@@ -5175,12 +5239,16 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x12install_session_id\x18\x01 \x01(\tR\x10installSessionId\"g\n" +
 	"\x1bCancelLocalTransferResponse\x12H\n" +
 	"\btransfer\x18\x01 \x01(\v2,.nimi.runtime.v1.LocalTransferSessionSummaryR\btransfer\"\x1c\n" +
-	"\x1aWatchLocalTransfersRequest\"\xd8\x01\n" +
+	"\x1aWatchLocalTransfersRequest\"\xef\x02\n" +
 	"\"ResolveLocalEnvironmentPlanRequest\x12\x17\n" +
 	"\apack_id\x18\x01 \x01(\tR\x06packId\x12%\n" +
 	"\x0econsumer_scope\x18\x02 \x01(\tR\rconsumerScope\x12F\n" +
 	"\fhost_profile\x18\x03 \x01(\v2#.nimi.runtime.v1.LocalDeviceProfileR\vhostProfile\x12*\n" +
-	"\x11runtime_data_root\x18\x04 \x01(\tR\x0fruntimeDataRoot\"`\n" +
+	"\x11runtime_data_root\x18\x04 \x01(\tR\x0fruntimeDataRoot\x12\x19\n" +
+	"\basset_id\x18\x05 \x01(\tR\aassetId\x12$\n" +
+	"\x0elocal_asset_id\x18\x06 \x01(\tR\flocalAssetId\x12,\n" +
+	"\x12companion_asset_id\x18\a \x01(\tR\x10companionAssetId\x12&\n" +
+	"\x0fparent_asset_id\x18\b \x01(\tR\rparentAssetId\"`\n" +
 	"#ResolveLocalEnvironmentPlanResponse\x129\n" +
 	"\x04plan\x18\x01 \x01(\v2%.nimi.runtime.v1.LocalEnvironmentPlanR\x04plan\"\x80\x01\n" +
 	"*ListLocalEnvironmentSelectedSourcesRequest\x12+\n" +
@@ -5192,13 +5260,17 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\x0fenvironment_key\x18\x01 \x01(\tR\x0eenvironmentKey\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\"p\n" +
 	"*ListLocalEnvironmentDependencyJobsResponse\x12B\n" +
-	"\x04jobs\x18\x01 \x03(\v2..nimi.runtime.v1.LocalEnvironmentDependencyJobR\x04jobs\"\xdc\x01\n" +
+	"\x04jobs\x18\x01 \x03(\v2..nimi.runtime.v1.LocalEnvironmentDependencyJobR\x04jobs\"\xf3\x02\n" +
 	",ResolveLocalEnvironmentActivationGateRequest\x12\x1f\n" +
 	"\vconsumer_id\x18\x01 \x01(\tR\n" +
 	"consumerId\x12\x17\n" +
 	"\apack_id\x18\x02 \x01(\tR\x06packId\x12F\n" +
 	"\fhost_profile\x18\x03 \x01(\v2#.nimi.runtime.v1.LocalDeviceProfileR\vhostProfile\x12*\n" +
-	"\x11runtime_data_root\x18\x04 \x01(\tR\x0fruntimeDataRoot\"t\n" +
+	"\x11runtime_data_root\x18\x04 \x01(\tR\x0fruntimeDataRoot\x12\x19\n" +
+	"\basset_id\x18\x05 \x01(\tR\aassetId\x12$\n" +
+	"\x0elocal_asset_id\x18\x06 \x01(\tR\flocalAssetId\x12,\n" +
+	"\x12companion_asset_id\x18\a \x01(\tR\x10companionAssetId\x12&\n" +
+	"\x0fparent_asset_id\x18\b \x01(\tR\rparentAssetId\"t\n" +
 	"-ResolveLocalEnvironmentActivationGateResponse\x12C\n" +
 	"\x04gate\x18\x01 \x01(\v2/.nimi.runtime.v1.LocalEnvironmentActivationGateR\x04gate\"\xe5\x01\n" +
 	")StartLocalEnvironmentDependencyJobRequest\x12'\n" +

@@ -1,0 +1,392 @@
+package localservice
+
+import (
+	"context"
+	"errors"
+	"strings"
+
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
+)
+
+const defaultLocalEnvironmentPythonVersion = "3.12"
+
+func (s *Service) executePythonUVEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+	if strings.TrimSpace(job.DependencyID) != "uv" {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateUnsupported,
+			SourceKind:      localEnvironmentSourceUnavailable,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
+		}, nil
+	}
+	mgr := s.engineManagerOrNil()
+	if mgr == nil {
+		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
+	}
+	status, err := mgr.EnsureUVToolDependency(ctx)
+	if err != nil {
+		return localEnvironmentDependencyJobResult{}, err
+	}
+	if strings.TrimSpace(status.ExecutablePath) == "" || strings.TrimSpace(status.Version) == "" || strings.TrimSpace(status.ArchiveSHA256) == "" {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateRepairRequired,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
+		}, nil
+	}
+	return localEnvironmentDependencyJobResult{
+		State:                 localEnvironmentStateReadyManaged,
+		SourceKind:            localEnvironmentSourceManaged,
+		CanonicalRoot:         strings.TrimSpace(status.ExecutablePath),
+		Version:               strings.TrimSpace(status.Version),
+		CompatibilityEvidence: []string{strings.TrimSpace(status.Detail), "asset=" + strings.TrimSpace(status.ArchiveAssetName), "platform=" + strings.TrimSpace(status.Platform)},
+		VerifiedArtifacts:     normalizeStringSlice([]string{strings.TrimSpace(status.ExecutablePath)}),
+		Hashes:                map[string]string{"archive_sha256": strings.TrimSpace(status.ArchiveSHA256)},
+		SelectedConsumers:     pythonSelectedConsumers(job.EnvironmentKey),
+		AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+	}, nil
+}
+
+func (s *Service) executePythonRuntimeEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+	if strings.TrimSpace(job.DependencyID) != "python.runtime" {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateUnsupported,
+			SourceKind:      localEnvironmentSourceUnavailable,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
+		}, nil
+	}
+	consumer := consumerScopeFromEnvironmentKey(job.EnvironmentKey)
+	uvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonUV, consumer)
+	if !ok {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateFailed,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
+		}, nil
+	}
+	if strings.TrimSpace(uvRecord.CanonicalRoot) == "" {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateRepairRequired,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
+		}, nil
+	}
+	mgr := s.engineManagerOrNil()
+	if mgr == nil {
+		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
+	}
+	engineName, version := pythonRuntimeEngineTarget(consumer)
+	status, err := mgr.EnsurePythonRuntimeDependency(ctx, uvRecord.CanonicalRoot, engineName, version, defaultLocalEnvironmentPythonVersion)
+	if err != nil {
+		return localEnvironmentDependencyJobResult{}, err
+	}
+	if strings.TrimSpace(status.InterpreterPath) == "" || strings.TrimSpace(status.PythonVersion) == "" {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateRepairRequired,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
+		}, nil
+	}
+	return localEnvironmentDependencyJobResult{
+		State:                 localEnvironmentStateReadyManaged,
+		SourceKind:            localEnvironmentSourceManaged,
+		CanonicalRoot:         strings.TrimSpace(status.InterpreterPath),
+		Version:               strings.TrimSpace(status.PythonVersion),
+		CompatibilityEvidence: []string{strings.TrimSpace(status.Detail), "selected_uv_record=" + strings.TrimSpace(uvRecord.RecordID)},
+		VerifiedArtifacts:     normalizeStringSlice([]string{strings.TrimSpace(status.InterpreterPath), strings.TrimSpace(status.UVExecutable)}),
+		Hashes:                map[string]string{"selected_uv_record": strings.TrimSpace(uvRecord.RecordID)},
+		SelectedConsumers:     pythonSelectedConsumers(job.EnvironmentKey),
+		AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+	}, nil
+}
+
+func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+	if !strings.HasSuffix(strings.TrimSpace(job.DependencyID), ".venv") {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateUnsupported,
+			SourceKind:      localEnvironmentSourceUnavailable,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
+		}, nil
+	}
+	consumer := consumerScopeFromEnvironmentKey(job.EnvironmentKey)
+	uvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonUV, consumer)
+	if !ok {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateFailed,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
+		}, nil
+	}
+	runtimeRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonRuntime, consumer)
+	if !ok {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateFailed,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
+		}, nil
+	}
+	if strings.TrimSpace(uvRecord.CanonicalRoot) == "" || strings.TrimSpace(runtimeRecord.CanonicalRoot) == "" {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateRepairRequired,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
+		}, nil
+	}
+	mgr := s.engineManagerOrNil()
+	if mgr == nil {
+		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
+	}
+	engineName, version := pythonRuntimeEngineTarget(consumer)
+	status, err := mgr.EnsurePythonVenvDependency(ctx, uvRecord.CanonicalRoot, runtimeRecord.CanonicalRoot, engineName, version)
+	if err != nil {
+		return localEnvironmentDependencyJobResult{}, err
+	}
+	if strings.TrimSpace(status.VenvRoot) == "" || strings.TrimSpace(status.InterpreterPath) == "" {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateRepairRequired,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
+		}, nil
+	}
+	return localEnvironmentDependencyJobResult{
+		State:                 localEnvironmentStateReadyManaged,
+		SourceKind:            localEnvironmentSourceManaged,
+		CanonicalRoot:         strings.TrimSpace(status.VenvRoot),
+		Version:               strings.TrimSpace(runtimeRecord.Version),
+		CompatibilityEvidence: []string{strings.TrimSpace(status.Detail), "selected_uv_record=" + strings.TrimSpace(uvRecord.RecordID), "selected_python_runtime_record=" + strings.TrimSpace(runtimeRecord.RecordID)},
+		VerifiedArtifacts:     normalizeStringSlice([]string{strings.TrimSpace(status.InterpreterPath), strings.TrimSpace(status.PythonRuntime), strings.TrimSpace(status.UVExecutable)}),
+		Hashes: map[string]string{
+			"selected_uv_record":             strings.TrimSpace(uvRecord.RecordID),
+			"selected_python_runtime_record": strings.TrimSpace(runtimeRecord.RecordID),
+		},
+		SelectedConsumers: pythonSelectedConsumers(job.EnvironmentKey),
+		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+	}, nil
+}
+
+func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+	if !strings.HasSuffix(strings.TrimSpace(job.DependencyID), ".package-set") {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateUnsupported,
+			SourceKind:      localEnvironmentSourceUnavailable,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
+		}, nil
+	}
+	consumer := consumerScopeFromEnvironmentKey(job.EnvironmentKey)
+	uvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonUV, consumer)
+	if !ok {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateFailed,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
+		}, nil
+	}
+	venvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonVenv, consumer)
+	if !ok {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateFailed,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
+		}, nil
+	}
+	if strings.TrimSpace(uvRecord.CanonicalRoot) == "" || strings.TrimSpace(venvRecord.CanonicalRoot) == "" {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateRepairRequired,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
+		}, nil
+	}
+	mgr := s.engineManagerOrNil()
+	if mgr == nil {
+		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
+	}
+	status, err := mgr.EnsurePythonPackageSetDependency(ctx, uvRecord.CanonicalRoot, venvRecord.CanonicalRoot, consumer)
+	if err != nil {
+		return localEnvironmentDependencyJobResult{}, err
+	}
+	if strings.TrimSpace(status.PackageSetID) == "" || strings.TrimSpace(status.LockHash) == "" || len(status.InstalledDistributions) == 0 || len(status.ImportProbes) == 0 {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateRepairRequired,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
+		}, nil
+	}
+	verifiedArtifacts := normalizeStringSlice([]string{strings.TrimSpace(status.InterpreterPath), strings.TrimSpace(status.UVExecutable)})
+	for _, dist := range status.InstalledDistributions {
+		verifiedArtifacts = append(verifiedArtifacts, "distribution="+strings.TrimSpace(dist))
+	}
+	compatibilityEvidence := []string{
+		strings.TrimSpace(status.Detail),
+		"package_set_id=" + strings.TrimSpace(status.PackageSetID),
+		"selected_uv_record=" + strings.TrimSpace(uvRecord.RecordID),
+		"selected_venv_record=" + strings.TrimSpace(venvRecord.RecordID),
+	}
+	for _, probe := range status.ImportProbes {
+		compatibilityEvidence = append(compatibilityEvidence, "import_probe="+strings.TrimSpace(probe))
+	}
+	return localEnvironmentDependencyJobResult{
+		State:                 localEnvironmentStateReadyManaged,
+		SourceKind:            localEnvironmentSourceManaged,
+		CanonicalRoot:         strings.TrimSpace(status.VenvRoot),
+		Version:               strings.TrimSpace(status.LockHash),
+		CompatibilityEvidence: normalizeStringSlice(compatibilityEvidence),
+		VerifiedArtifacts:     normalizeStringSlice(verifiedArtifacts),
+		Hashes: map[string]string{
+			"package_lock_hash":    strings.TrimSpace(status.LockHash),
+			"selected_uv_record":   strings.TrimSpace(uvRecord.RecordID),
+			"selected_venv_record": strings.TrimSpace(venvRecord.RecordID),
+		},
+		SelectedConsumers: pythonSelectedConsumers(job.EnvironmentKey),
+		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+	}, nil
+}
+
+func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+	if !strings.HasSuffix(strings.TrimSpace(job.DependencyID), ".torch-wheel") {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateUnsupported,
+			SourceKind:      localEnvironmentSourceUnavailable,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
+		}, nil
+	}
+	consumer := consumerScopeFromEnvironmentKey(job.EnvironmentKey)
+	if !strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateUnsupported,
+			SourceKind:      localEnvironmentSourceUnavailable,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
+		}, nil
+	}
+	uvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonUV, consumer)
+	if !ok {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateFailed,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
+		}, nil
+	}
+	venvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonVenv, consumer)
+	if !ok {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateFailed,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
+		}, nil
+	}
+	if strings.Contains(strings.TrimSpace(consumer), ".cuda") {
+		if _, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyCUDA, consumer); !ok {
+			return localEnvironmentDependencyJobResult{
+				State:           localEnvironmentStateFailed,
+				SourceKind:      localEnvironmentSourceManaged,
+				AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_PREREQUISITE_MISSING",
+			}, nil
+		}
+	}
+	if strings.TrimSpace(uvRecord.CanonicalRoot) == "" || strings.TrimSpace(venvRecord.CanonicalRoot) == "" {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateRepairRequired,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
+		}, nil
+	}
+	mgr := s.engineManagerOrNil()
+	if mgr == nil {
+		return localEnvironmentDependencyJobResult{}, errors.New("runtime engine manager unavailable")
+	}
+	status, err := mgr.EnsurePythonTorchWheelDependency(ctx, uvRecord.CanonicalRoot, venvRecord.CanonicalRoot, consumer)
+	if err != nil {
+		return localEnvironmentDependencyJobResult{}, err
+	}
+	if strings.TrimSpace(status.TorchVersion) == "" || strings.TrimSpace(status.WheelLockHash) == "" || strings.TrimSpace(status.WheelIndex) == "" || len(status.ImportProbes) == 0 {
+		return localEnvironmentDependencyJobResult{
+			State:           localEnvironmentStateRepairRequired,
+			SourceKind:      localEnvironmentSourceManaged,
+			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
+		}, nil
+	}
+	hashes := map[string]string{
+		"wheel_lock_hash":      strings.TrimSpace(status.WheelLockHash),
+		"selected_uv_record":   strings.TrimSpace(uvRecord.RecordID),
+		"selected_venv_record": strings.TrimSpace(venvRecord.RecordID),
+	}
+	if cudaRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyCUDA, consumer); ok {
+		hashes["selected_cuda_record"] = strings.TrimSpace(cudaRecord.RecordID)
+	}
+	compatibilityEvidence := []string{
+		strings.TrimSpace(status.Detail),
+		"wheel_index=" + strings.TrimSpace(status.WheelIndex),
+		"accelerator_plane=" + strings.TrimSpace(status.AcceleratorPlane),
+		"cuda_abi=" + strings.TrimSpace(status.CUDAABI),
+		"selected_uv_record=" + strings.TrimSpace(uvRecord.RecordID),
+		"selected_venv_record=" + strings.TrimSpace(venvRecord.RecordID),
+	}
+	for _, probe := range status.ImportProbes {
+		compatibilityEvidence = append(compatibilityEvidence, "import_probe="+strings.TrimSpace(probe))
+	}
+	return localEnvironmentDependencyJobResult{
+		State:                 localEnvironmentStateReadyManaged,
+		SourceKind:            localEnvironmentSourceManaged,
+		CanonicalRoot:         strings.TrimSpace(status.VenvRoot),
+		Version:               strings.TrimSpace(status.TorchVersion),
+		CompatibilityEvidence: normalizeStringSlice(compatibilityEvidence),
+		VerifiedArtifacts: normalizeStringSlice([]string{
+			strings.TrimSpace(status.InterpreterPath),
+			strings.TrimSpace(status.UVExecutable),
+			"torch=" + strings.TrimSpace(status.TorchVersion),
+			strings.TrimSpace(status.TorchvisionSpec),
+		}),
+		Hashes:            hashes,
+		SelectedConsumers: pythonSelectedConsumers(job.EnvironmentKey),
+		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+	}, nil
+}
+
+func pythonSelectedConsumers(environmentKey string) []string {
+	for _, consumer := range []string{
+		"media.diffusers.cuda",
+		"media.diffusers.cpu",
+		"media.video-python.cuda",
+		"media.video-python.cpu",
+		"speech.qwen3-asr.python",
+		"speech.qwen3-tts.python",
+	} {
+		if strings.Contains(environmentKey, "|"+consumer) {
+			return []string{consumer}
+		}
+	}
+	return []string{"python.pipeline"}
+}
+
+func consumerScopeFromEnvironmentKey(environmentKey string) string {
+	parts := strings.Split(strings.TrimSpace(environmentKey), "|")
+	if len(parts) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(parts[len(parts)-1])
+}
+
+func pythonRuntimeEngineTarget(consumer string) (string, string) {
+	switch {
+	case strings.HasPrefix(strings.TrimSpace(consumer), "speech."):
+		cfg := engine.DefaultSpeechConfig()
+		return "speech", cfg.Version
+	default:
+		cfg := engine.DefaultMediaConfig()
+		return "media", cfg.Version
+	}
+}
+
+func (s *Service) selectedSourceForFamilyAndConsumer(family string, consumer string) (localEnvironmentSelectedSourceRecordState, bool) {
+	trimmedFamily := strings.TrimSpace(family)
+	trimmedConsumer := strings.TrimSpace(consumer)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, record := range s.localEnvironmentSelectedSources {
+		if record.DependencyFamily != trimmedFamily {
+			continue
+		}
+		if trimmedConsumer == "" || stringSliceContains(record.SelectedConsumers, trimmedConsumer) || strings.HasSuffix(record.EnvironmentKey, "|"+trimmedConsumer) {
+			return record, true
+		}
+	}
+	return localEnvironmentSelectedSourceRecordState{}, false
+}

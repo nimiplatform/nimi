@@ -6140,7 +6140,14 @@ func TestEngineRPCsRequireEngineName(t *testing.T) {
 // mockEngineManager implements EngineManager for testing with configurable errors.
 type mockEngineManager struct {
 	ensureErr                    error
+	engineBinaryDependencyStatus *engine.EngineBinaryDependencyStatus
+	uvToolDependencyStatus       *engine.UVToolDependencyStatus
+	pythonRuntimeStatus          *engine.PythonRuntimeDependencyStatus
+	pythonVenvStatus             *engine.PythonVenvDependencyStatus
+	pythonPackageSetStatus       *engine.PythonPackageSetDependencyStatus
+	pythonTorchWheelStatus       *engine.PythonTorchWheelDependencyStatus
 	ensureManagedImageBackendErr error
+	managedImageBackendStatus    *engine.ManagedImageBackendDependencyStatus
 	startErr                     error
 	stopErr                      error
 	statusErr                    error
@@ -6171,9 +6178,116 @@ func (m *mockEngineManager) EnsureEngine(_ context.Context, _ string, _ string) 
 	return m.ensureErr
 }
 
+func (m *mockEngineManager) EnsureEngineBinaryDependency(_ context.Context, engineName string, _ string) (engine.EngineBinaryDependencyStatus, error) {
+	if m.engineBinaryDependencyStatus != nil {
+		return *m.engineBinaryDependencyStatus, m.ensureErr
+	}
+	return engine.EngineBinaryDependencyStatus{
+		Engine:           engineName,
+		Version:          engine.DefaultLlamaConfig().Version,
+		BinaryPath:       "test-llama",
+		SHA256:           "abc123",
+		Platform:         engine.PlatformString(),
+		AssetName:        "test-asset",
+		AcceleratorPlane: "cpu",
+		Detail:           "test engine package ready",
+	}, m.ensureErr
+}
+
+func (m *mockEngineManager) EnsureUVToolDependency(_ context.Context) (engine.UVToolDependencyStatus, error) {
+	if m.uvToolDependencyStatus != nil {
+		return *m.uvToolDependencyStatus, m.ensureErr
+	}
+	return engine.UVToolDependencyStatus{
+		Version:          "0.11.8",
+		ExecutablePath:   "uv.exe",
+		SourceRoot:       "uv-root",
+		ArchiveSHA256:    "abc123",
+		ArchiveAssetName: "uv-x86_64-pc-windows-msvc.zip",
+		Platform:         "windows/amd64",
+		Detail:           "test uv ready",
+	}, m.ensureErr
+}
+
+func (m *mockEngineManager) EnsurePythonRuntimeDependency(_ context.Context, uvPath string, engineName string, _ string, _ string) (engine.PythonRuntimeDependencyStatus, error) {
+	if m.pythonRuntimeStatus != nil {
+		return *m.pythonRuntimeStatus, m.ensureErr
+	}
+	return engine.PythonRuntimeDependencyStatus{
+		PythonVersion:   "Python 3.12.0",
+		InterpreterPath: "python.exe",
+		RuntimeRoot:     "python-root",
+		UVExecutable:    uvPath,
+		Detail:          "test python runtime ready for " + engineName,
+	}, m.ensureErr
+}
+
+func (m *mockEngineManager) EnsurePythonVenvDependency(_ context.Context, uvPath string, pythonRuntimePath string, engineName string, _ string) (engine.PythonVenvDependencyStatus, error) {
+	if m.pythonVenvStatus != nil {
+		return *m.pythonVenvStatus, m.ensureErr
+	}
+	return engine.PythonVenvDependencyStatus{
+		VenvRoot:        "venv-root",
+		InterpreterPath: "venv-python.exe",
+		PythonRuntime:   pythonRuntimePath,
+		UVExecutable:    uvPath,
+		Detail:          "test python venv ready for " + engineName,
+	}, m.ensureErr
+}
+
+func (m *mockEngineManager) EnsurePythonPackageSetDependency(_ context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonPackageSetDependencyStatus, error) {
+	if m.pythonPackageSetStatus != nil {
+		return *m.pythonPackageSetStatus, m.ensureErr
+	}
+	return engine.PythonPackageSetDependencyStatus{
+		PackageSetID:           "test-python-package-set",
+		LockHash:               "lock123",
+		VenvRoot:               venvRoot,
+		InterpreterPath:        "venv-python.exe",
+		UVExecutable:           uvPath,
+		Packages:               []string{"fastapi==0.121.1"},
+		InstalledDistributions: []string{"fastapi==0.121.1"},
+		ImportProbes:           []string{"fastapi"},
+		Detail:                 "test python package set ready for " + consumer,
+	}, m.ensureErr
+}
+
+func (m *mockEngineManager) EnsurePythonTorchWheelDependency(_ context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonTorchWheelDependencyStatus, error) {
+	if m.pythonTorchWheelStatus != nil {
+		return *m.pythonTorchWheelStatus, m.ensureErr
+	}
+	return engine.PythonTorchWheelDependencyStatus{
+		TorchVersion:     "2.7.1+cu126",
+		TorchvisionSpec:  "torchvision==0.22.1",
+		AcceleratorPlane: "cuda",
+		CUDAABI:          "cu126",
+		WheelIndex:       "https://download.pytorch.org/whl/cu126",
+		WheelLockHash:    "torchlock123",
+		VenvRoot:         venvRoot,
+		InterpreterPath:  "venv-python.exe",
+		UVExecutable:     uvPath,
+		ImportProbes:     []string{"torch", "torchvision"},
+		Detail:           "test torch wheel ready for " + consumer,
+	}, m.ensureErr
+}
+
 func (m *mockEngineManager) EnsureManagedImageBackend(_ context.Context, cfg *engine.ManagedImageBackendConfig) error {
 	m.managedImageBackendConfigs = append(m.managedImageBackendConfigs, cfg)
 	return m.ensureManagedImageBackendErr
+}
+
+func (m *mockEngineManager) EnsureManagedImageBackendDependency(_ context.Context, cfg *engine.ManagedImageBackendConfig) (engine.ManagedImageBackendDependencyStatus, error) {
+	m.managedImageBackendConfigs = append(m.managedImageBackendConfigs, cfg)
+	if m.managedImageBackendStatus != nil {
+		return *m.managedImageBackendStatus, m.ensureManagedImageBackendErr
+	}
+	return engine.ManagedImageBackendDependencyStatus{
+		BackendName:       "stablediffusion-ggml",
+		PackageSource:     "test",
+		CanonicalRoot:     "test-root",
+		VerifiedArtifacts: []string{"sd.exe"},
+		Detail:            "test managed image backend ready",
+	}, m.ensureManagedImageBackendErr
 }
 
 func (m *mockEngineManager) ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) engine.SharedAcceleratorDependencyStatus {

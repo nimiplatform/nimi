@@ -481,6 +481,23 @@ func (s *Service) emitPublicChatEvent(
 func (s *Service) shutdownPublicChatSurface() {
 	s.publicChatRuntime().shutdownSurface()
 }
+func (s *Service) startPublicChatAsync(fn func()) bool {
+	if s == nil || fn == nil {
+		return false
+	}
+	s.chatSurfaceMu.Lock()
+	if s.isClosed() {
+		s.chatSurfaceMu.Unlock()
+		return false
+	}
+	s.chatAsyncWG.Add(1)
+	s.chatSurfaceMu.Unlock()
+	go func() {
+		defer s.chatAsyncWG.Done()
+		fn()
+	}()
+	return true
+}
 func (s *Service) applyPublicChatPostTurn(
 	ctx context.Context,
 	session publicChatAnchorState,

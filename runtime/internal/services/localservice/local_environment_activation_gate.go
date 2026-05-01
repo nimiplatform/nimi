@@ -27,10 +27,14 @@ const (
 )
 
 type localEnvironmentConsumerActivationGateRequest struct {
-	ConsumerID      string
-	PackID          string
-	HostProfile     *runtimev1.LocalDeviceProfile
-	RuntimeDataRoot string
+	ConsumerID       string
+	PackID           string
+	HostProfile      *runtimev1.LocalDeviceProfile
+	RuntimeDataRoot  string
+	AssetID          string
+	LocalAssetID     string
+	CompanionAssetID string
+	ParentAssetID    string
 }
 
 type localEnvironmentConsumerActivationGate struct {
@@ -65,10 +69,14 @@ func (s *Service) resolveLocalEnvironmentConsumerActivationGate(req localEnviron
 	}
 
 	plan := s.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:          packID,
-		ConsumerScope:   consumerID,
-		HostProfile:     req.HostProfile,
-		RuntimeDataRoot: req.RuntimeDataRoot,
+		PackID:           packID,
+		ConsumerScope:    consumerID,
+		HostProfile:      req.HostProfile,
+		RuntimeDataRoot:  req.RuntimeDataRoot,
+		AssetID:          req.AssetID,
+		LocalAssetID:     req.LocalAssetID,
+		CompanionAssetID: req.CompanionAssetID,
+		ParentAssetID:    req.ParentAssetID,
 	})
 	gate := localEnvironmentConsumerActivationGate{
 		ConsumerID:   consumerID,

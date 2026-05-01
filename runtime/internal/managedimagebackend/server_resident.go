@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"path"
 	"regexp"
 	"runtime"
 	"strings"
@@ -132,17 +132,17 @@ func stableDiffusionCPPEnvironment(executablePath string, base []string) []strin
 	if managedImageBackendGOOS != "darwin" {
 		return nil
 	}
-	executableDir := strings.TrimSpace(filepath.Dir(strings.TrimSpace(executablePath)))
+	executableDir := strings.TrimSpace(path.Dir(strings.TrimSpace(executablePath)))
 	if executableDir == "" || executableDir == "." {
 		return nil
 	}
 	env := append([]string(nil), base...)
-	env = upsertPathListEnv(env, "DYLD_LIBRARY_PATH", executableDir)
-	env = upsertPathListEnv(env, "DYLD_FALLBACK_LIBRARY_PATH", executableDir)
+	env = upsertPathListEnv(env, "DYLD_LIBRARY_PATH", executableDir, ":")
+	env = upsertPathListEnv(env, "DYLD_FALLBACK_LIBRARY_PATH", executableDir, ":")
 	return env
 }
 
-func upsertPathListEnv(env []string, key string, value string) []string {
+func upsertPathListEnv(env []string, key string, value string, separator string) []string {
 	trimmedKey := strings.TrimSpace(key)
 	trimmedValue := strings.TrimSpace(value)
 	if trimmedKey == "" || trimmedValue == "" {
@@ -154,13 +154,13 @@ func upsertPathListEnv(env []string, key string, value string) []string {
 			continue
 		}
 		current := strings.TrimSpace(strings.TrimPrefix(entry, prefix))
-		env[index] = prefix + prependPathListValue(current, trimmedValue)
+		env[index] = prefix + prependPathListValue(current, trimmedValue, separator)
 		return env
 	}
 	return append(env, prefix+trimmedValue)
 }
 
-func prependPathListValue(current string, prepend string) string {
+func prependPathListValue(current string, prepend string, separator string) string {
 	trimmedPrepend := strings.TrimSpace(prepend)
 	if trimmedPrepend == "" {
 		return strings.TrimSpace(current)
@@ -169,12 +169,15 @@ func prependPathListValue(current string, prepend string) string {
 	if trimmedCurrent == "" {
 		return trimmedPrepend
 	}
-	for _, candidate := range strings.Split(trimmedCurrent, string(os.PathListSeparator)) {
+	if separator == "" {
+		separator = string(os.PathListSeparator)
+	}
+	for _, candidate := range strings.Split(trimmedCurrent, separator) {
 		if strings.TrimSpace(candidate) == trimmedPrepend {
 			return trimmedCurrent
 		}
 	}
-	return trimmedPrepend + string(os.PathListSeparator) + trimmedCurrent
+	return trimmedPrepend + separator + trimmedCurrent
 }
 
 func (c *managedImageLogCapture) Append(line string) {

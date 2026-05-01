@@ -38,6 +38,7 @@ func TestDaemonRunTransitionsStartupAndShutdownStates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -120,6 +121,7 @@ func TestDaemonRunTransitionsReadyBeforeStartupDegraded(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -187,6 +189,7 @@ func TestDaemonRunReadyDoesNotWaitForSupervisedEngineBootstrap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -234,6 +237,7 @@ func TestDaemonRunRefreshesManagedEmbeddingProfileOnStartup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -297,6 +301,7 @@ func TestDaemonBindCanonicalMemoryStandardIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -354,6 +359,7 @@ func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -433,6 +439,7 @@ func TestDaemonRunStartsRuntimeAgentLifeTrackLoop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -484,6 +491,7 @@ func TestDaemonRunDoesNotStartMemoryReplicationLoopByDefault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -505,6 +513,7 @@ func TestDaemonRunDoesNotStartMemoryReplicationLoopByDefault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon restart: %v", err)
 	}
+	closeDaemonForTest(t, daemon2)
 	if svc := daemon2.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -544,6 +553,7 @@ func TestDaemonNewImportsLegacyStateBeforeReadiness(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	defer func() {
 		if svc := daemon.grpc.MemoryService(); svc != nil {
 			_ = svc.Close()
@@ -576,6 +586,7 @@ func TestDaemonRunCreatesSQLiteBackupOnShutdown(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -635,6 +646,7 @@ func TestDaemonNewRestoresHealthySQLiteBackup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -676,6 +688,7 @@ func TestDaemonNewRestoresHealthySQLiteBackup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon(restored): %v", err)
 	}
+	closeDaemonForTest(t, restored)
 	defer func() {
 		if svc := restored.grpc.MemoryService(); svc != nil {
 			_ = svc.Close()

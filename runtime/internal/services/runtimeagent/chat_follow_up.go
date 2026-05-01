@@ -480,7 +480,7 @@ func (s *Service) armPublicChatFollowUp(followUp *publicChatFollowUpState) {
 	followUp.Cancel = cancel
 	followUp.Armed = true
 	s.chatSurfaceMu.Unlock()
-	go func() {
+	if !s.startPublicChatAsync(func() {
 		delay := time.Until(followUp.ScheduledFor)
 		if delay < 0 {
 			delay = 0
@@ -493,7 +493,9 @@ func (s *Service) armPublicChatFollowUp(followUp *publicChatFollowUpState) {
 			return
 		}
 		s.launchPublicChatFollowUp(followUp.FollowUpID)
-	}()
+	}) {
+		cancel()
+	}
 }
 
 func (s *Service) canRunPublicChatFollowUps() bool {

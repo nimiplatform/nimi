@@ -66,6 +66,81 @@ type ManagedImageBackendConfig struct {
 	ShutdownTimeout time.Duration
 }
 
+type ManagedImageBackendDependencyStatus struct {
+	BackendName       string
+	PackageSource     string
+	PackageFormat     string
+	LaunchMode        string
+	CanonicalRoot     string
+	VerifiedArtifacts []string
+	Detail            string
+}
+
+type EngineBinaryDependencyStatus struct {
+	Engine           string
+	Version          string
+	BinaryPath       string
+	BinarySizeBytes  int64
+	SHA256           string
+	Platform         string
+	AssetName        string
+	AcceleratorPlane string
+	Detail           string
+}
+
+type UVToolDependencyStatus struct {
+	Version          string
+	ExecutablePath   string
+	SourceRoot       string
+	ArchiveURL       string
+	ArchiveSHA256    string
+	ArchiveAssetName string
+	Platform         string
+	Detail           string
+}
+
+type PythonRuntimeDependencyStatus struct {
+	PythonVersion   string
+	InterpreterPath string
+	RuntimeRoot     string
+	UVExecutable    string
+	Detail          string
+}
+
+type PythonVenvDependencyStatus struct {
+	VenvRoot        string
+	InterpreterPath string
+	PythonRuntime   string
+	UVExecutable    string
+	Detail          string
+}
+
+type PythonPackageSetDependencyStatus struct {
+	PackageSetID           string
+	LockHash               string
+	VenvRoot               string
+	InterpreterPath        string
+	UVExecutable           string
+	Packages               []string
+	InstalledDistributions []string
+	ImportProbes           []string
+	Detail                 string
+}
+
+type PythonTorchWheelDependencyStatus struct {
+	TorchVersion     string
+	TorchvisionSpec  string
+	AcceleratorPlane string
+	CUDAABI          string
+	WheelIndex       string
+	WheelLockHash    string
+	VenvRoot         string
+	InterpreterPath  string
+	UVExecutable     string
+	ImportProbes     []string
+	Detail           string
+}
+
 // ManagedLlamaTarget explicitly selects the supervised llama model that a
 // single worker should load for this engine start.
 type ManagedLlamaTarget struct {

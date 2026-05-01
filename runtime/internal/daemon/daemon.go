@@ -406,6 +406,26 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	mgr.SetManagedImageBackend(nil)
 	managedImageBackendConfigured := false
 	managedImageDependencyBlocked := false
+	startInstalledManagedImageBackend := func() bool {
+		err := mgr.StartInstalledManagedImageBackend(ctx, &engine.ManagedImageBackendConfig{
+			Mode:          engine.ManagedImageBackendOfficial,
+			BackendName:   "stablediffusion-ggml",
+			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
+			Address:       "127.0.0.1:50052",
+		})
+		if err == nil {
+			return true
+		}
+		detail := fmt.Sprintf("managed image backend local environment dependency is not ready: %v", err)
+		d.setDegradedStatus(detail)
+		if svc != nil {
+			svc.SetManagedImageBackendHealth(false, detail)
+		}
+		if !errors.Is(err, engine.ErrManagedImageBackendMaterializationRequired) {
+			appendStartupFailureAudit(d.auditStore, detail)
+		}
+		return false
+	}
 	if managedImageLoopback {
 		if managedImageSelection.EntryID == "windows-x64-nvidia-gguf" {
 			dependencyStatus := mgr.ResolveSharedAcceleratorDependency(engine.NVIDIACUDAUserSpaceRuntimeDependencyID, "stable-diffusion.cpp.cuda")
@@ -421,30 +441,12 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 				if svc != nil {
 					svc.SetManagedImageBackendHealth(false, detail)
 				}
-			} else if err := mgr.EnsureManagedImageBackend(ctx, &engine.ManagedImageBackendConfig{
-				Mode:          engine.ManagedImageBackendOfficial,
-				BackendName:   "stablediffusion-ggml",
-				PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
-				Address:       "127.0.0.1:50052",
-			}); err != nil {
-				detail := fmt.Sprintf("start managed image backend: %v", err)
-				d.setDegradedStatus(detail)
-				appendStartupFailureAudit(d.auditStore, detail)
-			} else if svc != nil {
+			} else if startInstalledManagedImageBackend() && svc != nil {
 				managedImageBackendConfigured = true
 				svc.MarkManagedEngineUsed(string(engineManagedImageBackend), "engine_bootstrap")
 			}
 		} else {
-			if err := mgr.EnsureManagedImageBackend(ctx, &engine.ManagedImageBackendConfig{
-				Mode:          engine.ManagedImageBackendOfficial,
-				BackendName:   "stablediffusion-ggml",
-				PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
-				Address:       "127.0.0.1:50052",
-			}); err != nil {
-				detail := fmt.Sprintf("start managed image backend: %v", err)
-				d.setDegradedStatus(detail)
-				appendStartupFailureAudit(d.auditStore, detail)
-			} else if svc != nil {
+			if startInstalledManagedImageBackend() && svc != nil {
 				managedImageBackendConfigured = true
 				svc.MarkManagedEngineUsed(string(engineManagedImageBackend), "engine_bootstrap")
 			}

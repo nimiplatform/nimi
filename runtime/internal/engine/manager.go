@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -11,6 +12,8 @@ import (
 	"sync"
 	"time"
 )
+
+var ErrManagedImageBackendMaterializationRequired = errors.New("managed image backend package materialization requires local environment dependency confirmation")
 
 // Manager is the facade for engine lifecycle management.
 type Manager struct {
@@ -213,6 +216,61 @@ func (m *Manager) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedIma
 	return m.startManagedImageBackend(ctx, auxCfg)
 }
 
+func (m *Manager) EnsureManagedImageBackendDependency(ctx context.Context, cfg *ManagedImageBackendConfig) (ManagedImageBackendDependencyStatus, error) {
+	normalized := normalizeManagedImageBackendConfig(cfg)
+	if !normalized.Enabled() {
+		return ManagedImageBackendDependencyStatus{}, nil
+	}
+	m.mu.RLock()
+	backendsPath := strings.TrimSpace(m.managedImageBackendsPath)
+	sharedDependenciesPath := strings.TrimSpace(m.sharedAcceleratorDependenciesPath)
+	m.mu.RUnlock()
+	if normalized.Mode == ManagedImageBackendOfficial && currentGOOS() == "windows" && strings.EqualFold(detectLocalGPUVendor(), "nvidia") {
+		status := m.ResolveSharedAcceleratorDependency(NVIDIACUDAUserSpaceRuntimeDependencyID, "stable-diffusion.cpp.cuda")
+		if status.State != SharedAcceleratorDependencyReadySystem && status.State != SharedAcceleratorDependencyReadyManaged {
+			return ManagedImageBackendDependencyStatus{}, fmt.Errorf("managed image backend requires shared accelerator dependency %s to be ready before activation: state=%s detail=%s", status.DependencyID, status.State, status.Detail)
+		}
+	}
+	resolved, err := ensureManagedImageBackendInstalled(ctx, backendsPath, sharedDependenciesPath, normalized)
+	if err != nil {
+		return ManagedImageBackendDependencyStatus{}, err
+	}
+	spec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource(resolved.BackendName, resolved.PackageSource)
+	if !ok {
+		return ManagedImageBackendDependencyStatus{}, fmt.Errorf("managed image backend package source record unavailable for %s", resolved.BackendName)
+	}
+	return managedImageBackendDependencyStatusFromConfig(resolved, spec), nil
+}
+
+// StartInstalledManagedImageBackend starts a previously materialized runtime-owned
+// image backend. It never downloads or installs packages; missing packages must
+// be handled through local environment dependency jobs.
+func (m *Manager) StartInstalledManagedImageBackend(ctx context.Context, cfg *ManagedImageBackendConfig) error {
+	normalized := normalizeManagedImageBackendConfig(cfg)
+	if !normalized.Enabled() {
+		return nil
+	}
+	m.mu.RLock()
+	backendsPath := strings.TrimSpace(m.managedImageBackendsPath)
+	sharedDependenciesPath := strings.TrimSpace(m.sharedAcceleratorDependenciesPath)
+	m.mu.RUnlock()
+	if normalized.Mode == ManagedImageBackendOfficial && currentGOOS() == "windows" && strings.EqualFold(detectLocalGPUVendor(), "nvidia") {
+		status := m.ResolveSharedAcceleratorDependency(NVIDIACUDAUserSpaceRuntimeDependencyID, "stable-diffusion.cpp.cuda")
+		if status.State != SharedAcceleratorDependencyReadySystem && status.State != SharedAcceleratorDependencyReadyManaged {
+			return fmt.Errorf("managed image backend requires shared accelerator dependency %s to be ready before activation: state=%s detail=%s", status.DependencyID, status.State, status.Detail)
+		}
+	}
+	resolved, err := resolveInstalledManagedImageBackendConfig(backendsPath, sharedDependenciesPath, normalized)
+	if err != nil {
+		return err
+	}
+	auxCfg, err := managedImageBackendEngineConfig(resolved)
+	if err != nil {
+		return err
+	}
+	return m.startManagedImageBackend(ctx, auxCfg)
+}
+
 func managedImageBackendInstallSource(spec managedImageBackendPackageSpec) string {
 	switch spec.PackageFormat {
 	case managedImageBackendPackageFormatDirectArchive:
@@ -264,6 +322,41 @@ func (m *Manager) EnsureEngine(ctx context.Context, cfg EngineConfig) (EngineCon
 		return ensureSpeech(ctx, m.baseDir, cfg)
 	default:
 		return cfg, fmt.Errorf("unknown engine kind: %s", cfg.Kind)
+	}
+}
+
+func (m *Manager) EnsureEngineBinaryDependency(ctx context.Context, cfg EngineConfig) (EngineBinaryDependencyStatus, error) {
+	cfg = m.applyLlamaPaths(cfg)
+	switch cfg.Kind {
+	case EngineLlama:
+		ensured, err := m.ensureLlama(ctx, cfg)
+		if err != nil {
+			return EngineBinaryDependencyStatus{}, err
+		}
+		entry := m.registry.Get(EngineLlama, ensured.Version)
+		if entry == nil {
+			return EngineBinaryDependencyStatus{}, fmt.Errorf("llama registry entry missing after materialization")
+		}
+		if strings.TrimSpace(entry.BinaryPath) == "" {
+			return EngineBinaryDependencyStatus{}, fmt.Errorf("llama registry entry missing binary path after materialization")
+		}
+		fi, err := os.Stat(entry.BinaryPath)
+		if err != nil {
+			return EngineBinaryDependencyStatus{}, fmt.Errorf("verify llama binary path %s: %w", entry.BinaryPath, err)
+		}
+		return EngineBinaryDependencyStatus{
+			Engine:           string(EngineLlama),
+			Version:          strings.TrimSpace(entry.Version),
+			BinaryPath:       strings.TrimSpace(entry.BinaryPath),
+			BinarySizeBytes:  fi.Size(),
+			SHA256:           strings.TrimSpace(entry.SHA256),
+			Platform:         strings.TrimSpace(entry.Platform),
+			AssetName:        strings.TrimSpace(entry.AssetName),
+			AcceleratorPlane: strings.TrimSpace(entry.AcceleratorPlane),
+			Detail:           "llama engine package verified from Runtime registry",
+		}, nil
+	default:
+		return EngineBinaryDependencyStatus{}, fmt.Errorf("engine binary dependency is not admitted for %s", cfg.Kind)
 	}
 }
 

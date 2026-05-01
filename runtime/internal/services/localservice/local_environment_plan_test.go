@@ -25,10 +25,12 @@ func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) 
 	defer svc.Close()
 
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:          "local-image-python",
-		ConsumerScope:   "media.diffusers.cuda",
-		HostProfile:     localEnvironmentNvidiaProfile(),
-		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+		PackID:           "local-image-python",
+		ConsumerScope:    "media.diffusers.cuda",
+		HostProfile:      localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot:  filepath.Join(t.TempDir(), "runtime-data"),
+		LocalAssetID:     "asset-image-python",
+		CompanionAssetID: "asset-image-companion",
 	})
 
 	if plan.State != localEnvironmentStateNeedsConfirmation {
@@ -49,6 +51,29 @@ func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) 
 	}
 }
 
+func TestResolveLocalEnvironmentPlanRequiresAssetSpecificModelDependency(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer svc.Close()
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-image-python",
+		ConsumerScope:   "media.diffusers.cpu",
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+	})
+
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyModelAsset)
+	if dep.State != localEnvironmentStateUnsupported {
+		t.Fatalf("model asset dep state = %q, want unsupported", dep.State)
+	}
+	if dep.ReasonCode != "LOCAL_ENVIRONMENT_ASSET_ID_REQUIRED" {
+		t.Fatalf("reason = %q, want asset id required", dep.ReasonCode)
+	}
+	if dep.DependencyID != "" {
+		t.Fatalf("dependency id = %q, want empty without explicit asset identity", dep.DependencyID)
+	}
+}
+
 func TestResolveLocalEnvironmentPlanIncludesTextAndOptionalCUDA(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer svc.Close()
@@ -58,6 +83,7 @@ func TestResolveLocalEnvironmentPlanIncludesTextAndOptionalCUDA(t *testing.T) {
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     localEnvironmentNvidiaProfile(),
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+		LocalAssetID:    "asset-text",
 	})
 
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyNativeLlama)

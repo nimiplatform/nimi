@@ -14,7 +14,7 @@ const speechPythonVersion = "3.12"
 var nimiSpeechPackages = []string{
 	"fastapi==0.121.1",
 	"uvicorn[standard]==0.38.0",
-	"python-multipart",
+	"python-multipart==0.0.26",
 }
 
 var speechPassThroughEnvKeys = []string{

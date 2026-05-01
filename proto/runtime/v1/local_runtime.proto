@@ -258,6 +258,10 @@ message ResolveLocalEnvironmentPlanRequest {
   string consumer_scope = 2;
   LocalDeviceProfile host_profile = 3;
   string runtime_data_root = 4;
+  string asset_id = 5;
+  string local_asset_id = 6;
+  string companion_asset_id = 7;
+  string parent_asset_id = 8;
 }
 
 message ResolveLocalEnvironmentPlanResponse {
@@ -287,6 +291,10 @@ message ResolveLocalEnvironmentActivationGateRequest {
   string pack_id = 2;
   LocalDeviceProfile host_profile = 3;
   string runtime_data_root = 4;
+  string asset_id = 5;
+  string local_asset_id = 6;
+  string companion_asset_id = 7;
+  string parent_asset_id = 8;
 }
 
 message ResolveLocalEnvironmentActivationGateResponse {

@@ -103,7 +103,12 @@ func (r publicChatRuntime) handleTurnRequest(
 		return err
 	}
 	released = true
-	go r.runTurn(turnCtx, session, turn, req)
+	if !r.svc.startPublicChatAsync(func() {
+		r.runTurn(turnCtx, session, turn, req)
+	}) {
+		r.releaseTurn(session.ConversationAnchorID, turn.TurnID)
+		return status.Error(codes.FailedPrecondition, "runtime public chat surface unavailable")
+	}
 	return nil
 }
 func (r publicChatRuntime) handleTurnInterrupt(

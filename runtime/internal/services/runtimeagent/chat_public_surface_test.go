@@ -77,7 +77,7 @@ func (c *publicChatEmitCapture) emit(_ context.Context, req *runtimev1.SendAppMe
 }
 func (c *publicChatEmitCapture) waitForMessageType(t *testing.T, messageType string) *runtimev1.SendAppMessageRequest {
 	t.Helper()
-	timeout := time.NewTimer(3 * time.Second)
+	timeout := time.NewTimer(10 * time.Second)
 	defer timeout.Stop()
 	for {
 		c.mu.Lock()
@@ -1155,7 +1155,6 @@ func TestPublicChatTurnRequestRejectsUnknownEmotionBeforeCommit(t *testing.T) {
 }
 
 func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
-	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()

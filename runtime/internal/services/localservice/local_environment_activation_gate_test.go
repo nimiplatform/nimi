@@ -13,9 +13,17 @@ import (
 
 func TestLocalEnvironmentActivationGateBlocksMissingSourceRecords(t *testing.T) {
 	svc := newTestService(t)
+	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/gate-missing",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+	})
 
 	gate := svc.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
-		ConsumerID: "media.diffusers.cpu",
+		ConsumerID:   "speech.qwen3-tts.python",
+		PackID:       "local-speech",
+		LocalAssetID: model.GetLocalAssetId(),
 	})
 
 	if gate.State != localEnvironmentActivationStateSetupRequired {
@@ -31,8 +39,16 @@ func TestLocalEnvironmentActivationGateBlocksMissingSourceRecords(t *testing.T) 
 
 func TestLocalEnvironmentActivationGateAdmitsReadyRecords(t *testing.T) {
 	svc := newTestService(t)
+	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/gate-ready",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+	})
 	req := localEnvironmentConsumerActivationGateRequest{
-		ConsumerID: "media.diffusers.cpu",
+		ConsumerID:   "speech.qwen3-tts.python",
+		PackID:       "local-speech",
+		LocalAssetID: model.GetLocalAssetId(),
 	}
 	markLocalEnvironmentPlanReadyForTest(t, svc, req)
 
@@ -48,8 +64,16 @@ func TestLocalEnvironmentActivationGateAdmitsReadyRecords(t *testing.T) {
 
 func TestLocalEnvironmentActivationGateBlocksRepairRequiredSourceRecord(t *testing.T) {
 	svc := newTestService(t)
+	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/gate-repair",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+	})
 	req := localEnvironmentConsumerActivationGateRequest{
-		ConsumerID: "media.diffusers.cpu",
+		ConsumerID:   "speech.qwen3-tts.python",
+		PackID:       "local-speech",
+		LocalAssetID: model.GetLocalAssetId(),
 	}
 	deps := markLocalEnvironmentPlanReadyForTest(t, svc, req)
 	if len(deps) == 0 {
@@ -88,10 +112,21 @@ func TestLocalEnvironmentActivationGatePreservesCancelledAndFailedJobs(t *testin
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			svc := newTestService(t)
-			req := localEnvironmentConsumerActivationGateRequest{ConsumerID: "media.diffusers.cpu"}
+			model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+				assetID:      "speech/gate-job-" + tc.name,
+				capabilities: []string{"audio.synthesize"},
+				engine:       "speech",
+				entry:        "model.onnx",
+			})
+			req := localEnvironmentConsumerActivationGateRequest{
+				ConsumerID:   "speech.qwen3-tts.python",
+				PackID:       "local-speech",
+				LocalAssetID: model.GetLocalAssetId(),
+			}
 			plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-				PackID:        "local-image-python",
+				PackID:        req.PackID,
 				ConsumerScope: req.ConsumerID,
+				LocalAssetID:  req.LocalAssetID,
 			})
 			if len(plan.Dependencies) == 0 {
 				t.Fatal("expected plan dependencies")
@@ -156,10 +191,14 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 		packID = requirement.PackID
 	}
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:          packID,
-		ConsumerScope:   req.ConsumerID,
-		HostProfile:     req.HostProfile,
-		RuntimeDataRoot: req.RuntimeDataRoot,
+		PackID:           packID,
+		ConsumerScope:    req.ConsumerID,
+		HostProfile:      req.HostProfile,
+		RuntimeDataRoot:  req.RuntimeDataRoot,
+		AssetID:          req.AssetID,
+		LocalAssetID:     req.LocalAssetID,
+		CompanionAssetID: req.CompanionAssetID,
+		ParentAssetID:    req.ParentAssetID,
 	})
 	for _, dep := range plan.Dependencies {
 		sourceKind := localEnvironmentSourceManaged

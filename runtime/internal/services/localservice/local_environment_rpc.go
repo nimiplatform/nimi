@@ -10,10 +10,14 @@ import (
 
 func (s *Service) ResolveLocalEnvironmentPlan(_ context.Context, req *runtimev1.ResolveLocalEnvironmentPlanRequest) (*runtimev1.ResolveLocalEnvironmentPlanResponse, error) {
 	plan := s.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
-		PackID:          req.GetPackId(),
-		ConsumerScope:   req.GetConsumerScope(),
-		HostProfile:     req.GetHostProfile(),
-		RuntimeDataRoot: req.GetRuntimeDataRoot(),
+		PackID:           req.GetPackId(),
+		ConsumerScope:    req.GetConsumerScope(),
+		HostProfile:      req.GetHostProfile(),
+		RuntimeDataRoot:  req.GetRuntimeDataRoot(),
+		AssetID:          req.GetAssetId(),
+		LocalAssetID:     req.GetLocalAssetId(),
+		CompanionAssetID: req.GetCompanionAssetId(),
+		ParentAssetID:    req.GetParentAssetId(),
 	})
 	return &runtimev1.ResolveLocalEnvironmentPlanResponse{
 		Plan: localEnvironmentPlanToProto(plan),
@@ -75,10 +79,14 @@ func (s *Service) ListLocalEnvironmentDependencyJobs(_ context.Context, req *run
 
 func (s *Service) ResolveLocalEnvironmentActivationGate(_ context.Context, req *runtimev1.ResolveLocalEnvironmentActivationGateRequest) (*runtimev1.ResolveLocalEnvironmentActivationGateResponse, error) {
 	gate := s.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
-		ConsumerID:      req.GetConsumerId(),
-		PackID:          req.GetPackId(),
-		HostProfile:     req.GetHostProfile(),
-		RuntimeDataRoot: req.GetRuntimeDataRoot(),
+		ConsumerID:       req.GetConsumerId(),
+		PackID:           req.GetPackId(),
+		HostProfile:      req.GetHostProfile(),
+		RuntimeDataRoot:  req.GetRuntimeDataRoot(),
+		AssetID:          req.GetAssetId(),
+		LocalAssetID:     req.GetLocalAssetId(),
+		CompanionAssetID: req.GetCompanionAssetId(),
+		ParentAssetID:    req.GetParentAssetId(),
 	})
 	return &runtimev1.ResolveLocalEnvironmentActivationGateResponse{
 		Gate: localEnvironmentActivationGateToProto(gate),

@@ -26,7 +26,14 @@ const (
 type EngineManager interface {
 	ListEngines() []EngineInfo
 	EnsureEngine(ctx context.Context, engine string, version string) error
+	EnsureEngineBinaryDependency(ctx context.Context, engine string, version string) (engine.EngineBinaryDependencyStatus, error)
+	EnsureUVToolDependency(ctx context.Context) (engine.UVToolDependencyStatus, error)
+	EnsurePythonRuntimeDependency(ctx context.Context, uvPath string, engine string, version string, pythonVersion string) (engine.PythonRuntimeDependencyStatus, error)
+	EnsurePythonVenvDependency(ctx context.Context, uvPath string, pythonRuntimePath string, engine string, version string) (engine.PythonVenvDependencyStatus, error)
+	EnsurePythonPackageSetDependency(ctx context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonPackageSetDependencyStatus, error)
+	EnsurePythonTorchWheelDependency(ctx context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonTorchWheelDependencyStatus, error)
 	EnsureManagedImageBackend(ctx context.Context, cfg *engine.ManagedImageBackendConfig) error
+	EnsureManagedImageBackendDependency(ctx context.Context, cfg *engine.ManagedImageBackendConfig) (engine.ManagedImageBackendDependencyStatus, error)
 	ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) engine.SharedAcceleratorDependencyStatus
 	EnsureSharedAcceleratorDependency(ctx context.Context, dependencyID string) (engine.SharedAcceleratorDependencyStatus, error)
 	StartEngine(ctx context.Context, engine string, port int, version string) error

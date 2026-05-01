@@ -35,10 +35,14 @@ const (
 )
 
 type localEnvironmentPlanRequest struct {
-	PackID          string
-	ConsumerScope   string
-	HostProfile     *runtimev1.LocalDeviceProfile
-	RuntimeDataRoot string
+	PackID           string
+	ConsumerScope    string
+	HostProfile      *runtimev1.LocalDeviceProfile
+	RuntimeDataRoot  string
+	AssetID          string
+	LocalAssetID     string
+	CompanionAssetID string
+	ParentAssetID    string
 }
 
 type localEnvironmentPlan struct {
@@ -115,10 +119,10 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 
 	dependencies := make([]localEnvironmentPlanDependency, 0, len(def.RequiredDependencyFamilies)+len(def.OptionalDependencyFamilies))
 	for _, family := range def.RequiredDependencyFamilies {
-		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, true, hostState, platformTuple, runtimeDataRoot, consumerScope))
+		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, true, hostState, platformTuple, runtimeDataRoot, consumerScope, req))
 	}
 	for _, family := range def.OptionalDependencyFamilies {
-		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, false, hostState, platformTuple, runtimeDataRoot, consumerScope))
+		dependencies = append(dependencies, s.resolveLocalEnvironmentDependency(def, family, false, hostState, platformTuple, runtimeDataRoot, consumerScope, req))
 	}
 
 	state := localEnvironmentStateReadyManaged
@@ -155,8 +159,8 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 	}
 }
 
-func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string) localEnvironmentPlanDependency {
-	dependencyID := defaultLocalEnvironmentDependencyID(def.PackID, family)
+func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string, req localEnvironmentPlanRequest) localEnvironmentPlanDependency {
+	dependencyID := s.localEnvironmentDependencyID(def.PackID, family, req)
 	environmentKey := localEnvironmentKey(family, dependencyID, hostState.HostProfileID, platformTuple, runtimeDataRoot, consumerScope)
 	dep := localEnvironmentPlanDependency{
 		DependencyFamily: family,
@@ -166,6 +170,15 @@ func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefiniti
 		State:            localEnvironmentStateNeedsConfirmation,
 		SourceKind:       localEnvironmentSourceManaged,
 		ReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_CONFIRMATION_REQUIRED",
+	}
+
+	if (family == localEnvironmentFamilyModelAsset || family == localEnvironmentFamilyModelCompanion) && strings.TrimSpace(dependencyID) == "" {
+		dep.State = localEnvironmentStateUnsupported
+		dep.SourceKind = localEnvironmentSourceUnavailable
+		dep.ConfirmationRequired = false
+		dep.ReasonCode = "LOCAL_ENVIRONMENT_ASSET_ID_REQUIRED"
+		dep.Detail = "model asset dependencies require explicit asset identity"
+		return dep
 	}
 
 	if family == localEnvironmentFamilyCUDA && !localEnvironmentHostSupportsCUDA(hostState) {
@@ -201,6 +214,27 @@ func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefiniti
 
 	dep.ConfirmationRequired = true
 	return dep
+}
+
+func (s *Service) localEnvironmentDependencyID(packID string, family string, req localEnvironmentPlanRequest) string {
+	switch family {
+	case localEnvironmentFamilyModelAsset:
+		return localEnvironmentAssetDependencyID(strings.TrimSpace(req.LocalAssetID), strings.TrimSpace(req.AssetID))
+	case localEnvironmentFamilyModelCompanion:
+		return localEnvironmentAssetDependencyID(strings.TrimSpace(req.CompanionAssetID), "")
+	default:
+		return defaultLocalEnvironmentDependencyID(packID, family)
+	}
+}
+
+func localEnvironmentAssetDependencyID(localAssetID string, assetID string) string {
+	if trimmed := strings.TrimSpace(localAssetID); trimmed != "" {
+		return "asset:" + trimmed
+	}
+	if trimmed := strings.TrimSpace(assetID); trimmed != "" {
+		return "asset-id:" + trimmed
+	}
+	return ""
 }
 
 func localEnvironmentHostSupportsCUDA(host localEnvironmentHostProfileState) bool {

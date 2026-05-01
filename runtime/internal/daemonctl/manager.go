@@ -424,10 +424,10 @@ func (m *Manager) followLogFile(ctx context.Context, path string, w io.Writer) e
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 
 	info, err := file.Stat()
 	if err != nil {
+		_ = file.Close()
 		return err
 	}
 	offset := info.Size()
@@ -436,14 +436,19 @@ func (m *Manager) followLogFile(ctx context.Context, path string, w io.Writer) e
 	base := filepath.Base(path)
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
+		_ = file.Close()
 		return err
 	}
 	defer watcher.Close()
 	if err := watcher.Add(dir); err != nil {
+		_ = file.Close()
 		return err
 	}
 	fallbackTicker := time.NewTicker(followLogFallbackInterval)
 	defer fallbackTicker.Stop()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	drainAppendedLog := func() error {
 		stat, err := m.statFile(path)

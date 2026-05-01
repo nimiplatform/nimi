@@ -17,6 +17,11 @@ func newMemoryEmbeddingRuntimePrivateService(t *testing.T) *Service {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	t.Cleanup(func() {
+		if err := svc.Close(); err != nil {
+			t.Fatalf("Close: %v", err)
+		}
+	})
 	return svc
 }
 

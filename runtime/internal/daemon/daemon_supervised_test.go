@@ -24,67 +24,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
 
-func newTestDaemon(t *testing.T, logger *slog.Logger) *Daemon {
-	t.Helper()
-	daemon, err := New(config.Config{
-		GRPCAddr:            "127.0.0.1:0",
-		HTTPAddr:            "127.0.0.1:0",
-		LocalStatePath:      filepath.Join(t.TempDir(), "local-state.json"),
-		IdempotencyCapacity: 32,
-	}, logger, "test")
-	if err != nil {
-		t.Fatalf("create daemon: %v", err)
-	}
-	if svc := daemon.grpc.LocalService(); svc != nil {
-		t.Cleanup(func() { svc.Close() })
-	}
-	return daemon
-}
-
-func setDaemonTestHome(t *testing.T, homeDir string) {
-	t.Helper()
-	t.Setenv("HOME", homeDir)
-	t.Setenv("USERPROFILE", homeDir)
-	t.Setenv("NIMI_RUNTIME_CONNECTOR_STORE_PATH", filepath.Join(homeDir, ".nimi-connectors"))
-	volume := filepath.VolumeName(homeDir)
-	if volume == "" {
-		volume = "C:"
-	}
-	homePath := strings.TrimPrefix(homeDir, volume)
-	if homePath == "" {
-		homePath = string(os.PathSeparator)
-	}
-	t.Setenv("HOMEDRIVE", volume)
-	t.Setenv("HOMEPATH", homePath)
-}
-
-func newHealthyEngineManager(t *testing.T, kind engine.EngineKind, port int) *engine.Manager {
-	t.Helper()
-	manager, err := engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
-	if err != nil {
-		t.Fatalf("create engine manager: %v", err)
-	}
-	supervisor := engine.NewSupervisor(engine.EngineConfig{Kind: kind, Port: port}, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
-	supervisor.SetStateForTesting(engine.StatusHealthy, time.Now())
-	manager.SetSupervisorForTesting(kind, supervisor)
-	return manager
-}
-
-func waitForProviderState(t *testing.T, tracker *providerhealth.Tracker, providerName string, expected providerhealth.State) providerhealth.Snapshot {
-	t.Helper()
-	deadline := time.Now().Add(2 * time.Second)
-	for time.Now().Before(deadline) {
-		snapshot := tracker.SnapshotOf(providerName)
-		if snapshot.State == expected {
-			return snapshot
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	snapshot := tracker.SnapshotOf(providerName)
-	t.Fatalf("provider %s did not reach state %s, got %#v", providerName, expected, snapshot)
-	return providerhealth.Snapshot{}
-}
-
 func TestOnEngineStateChangeHealthyDoesNotReinjectAfterCleanBootstrap(t *testing.T) {
 	var logBuf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
@@ -193,6 +132,7 @@ func TestSampleAIProviderHealthSkipsManagedLoopbackProbeWhenEngineIsIdle(t *test
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -264,6 +204,7 @@ func TestSampleAIProviderHealthProbesManagedLoopbackWhenActiveSupervisedAssetExi
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -416,6 +357,7 @@ func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T)
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -470,6 +412,7 @@ func TestStartSupervisedEnginesDoesNotExposeManagedMediaLoopbackOnAttachedOnlyHo
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -530,6 +473,7 @@ func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *tes
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -654,6 +598,7 @@ func TestStartSupervisedEnginesEnablesManagedImageBackendOnImageSupportedAttache
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -778,6 +723,7 @@ func TestStartSupervisedEnginesFailsClosedOnManagedImageBootstrapConflict(t *tes
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -863,6 +809,7 @@ func TestStartSupervisedEnginesCachesUnsupportedImageSelectionWithoutBootstrappi
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -980,6 +927,7 @@ func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *tes
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -1121,6 +1069,7 @@ func TestStartSupervisedEnginesBootstrapsManagedLlamaControlPlaneFromState(t *te
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	svc := daemon.grpc.LocalService()
 	if svc == nil {
 		t.Fatalf("expected local service")
@@ -1169,6 +1118,7 @@ func TestStartSupervisedEnginesSkipsBootstrapWhenNoManagedEnginesEnabled(t *test
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -1260,6 +1210,7 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	svc := daemon.grpc.LocalService()
 	if svc == nil {
 		t.Fatalf("expected local service")
@@ -1363,6 +1314,7 @@ func TestStartSupervisedEnginesFailsClosedForUnsupportedSidecar(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
 	}
+	closeDaemonForTest(t, daemon)
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}

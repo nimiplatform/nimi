@@ -37,6 +37,12 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 		if svc := server.MemoryService(); svc != nil {
 			_ = svc.Close()
 		}
+		if svc := server.CognitionService(); svc != nil {
+			_ = svc.Close()
+		}
+		if svc := server.AgentService(); svc != nil {
+			svc.Close()
+		}
 	})
 
 	agentSvc := server.AgentService()

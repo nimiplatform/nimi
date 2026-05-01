@@ -185,6 +185,84 @@ func ensureManagedImageBackendInstalled(ctx context.Context, backendsPath string
 	return normalized, nil
 }
 
+func resolveInstalledManagedImageBackendConfig(backendsPath string, sharedDependenciesPath string, cfg *ManagedImageBackendConfig) (*ManagedImageBackendConfig, error) {
+	normalized := normalizeManagedImageBackendConfig(cfg)
+	if !normalized.Enabled() {
+		return normalized, nil
+	}
+	if normalized.Mode != ManagedImageBackendOfficial {
+		return normalized, nil
+	}
+	validatedBackendName, err := validateOfficialManagedImageBackendName(normalized.BackendName)
+	if err != nil {
+		return nil, err
+	}
+	normalized.BackendName = validatedBackendName
+	if strings.TrimSpace(backendsPath) == "" {
+		return nil, fmt.Errorf("managed image backends path is required")
+	}
+	packageSpec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource(normalized.BackendName, normalized.PackageSource)
+	if !ok {
+		if source := strings.TrimSpace(normalized.PackageSource); source != "" {
+			return nil, fmt.Errorf("no published runtime-owned managed image backend package is available for %s on %s/%s with package source %q", normalized.BackendName, currentGOOS(), currentGOARCH(), source)
+		}
+		return nil, fmt.Errorf("no published runtime-owned managed image backend package is available for %s on %s/%s", normalized.BackendName, currentGOOS(), currentGOARCH())
+	}
+	if !packageSpec.Supported {
+		if strings.TrimSpace(packageSpec.Detail) != "" {
+			return nil, fmt.Errorf("%s", strings.TrimSpace(packageSpec.Detail))
+		}
+		if source := strings.TrimSpace(normalized.PackageSource); source != "" {
+			return nil, fmt.Errorf("no published runtime-owned managed image backend package is available for %s on %s/%s with package source %q", normalized.BackendName, currentGOOS(), currentGOARCH(), source)
+		}
+		return nil, fmt.Errorf("no published runtime-owned managed image backend package is available for %s on %s/%s", normalized.BackendName, currentGOOS(), currentGOARCH())
+	}
+	launchCfg, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, sharedDependenciesPath, normalized.BackendName, packageSpec, normalized.Address)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrManagedImageBackendMaterializationRequired, err)
+	}
+	normalized.Command = launchCfg.Command
+	normalized.Args = append([]string(nil), launchCfg.Args...)
+	normalized.WorkingDir = strings.TrimSpace(launchCfg.WorkingDir)
+	normalized.Env = cloneStringMap(launchCfg.Env)
+	return normalized, nil
+}
+
+func managedImageBackendDependencyStatusFromConfig(cfg *ManagedImageBackendConfig, spec managedImageBackendPackageSpec) ManagedImageBackendDependencyStatus {
+	status := ManagedImageBackendDependencyStatus{
+		BackendName:       strings.TrimSpace(cfg.BackendName),
+		PackageSource:     strings.TrimSpace(string(spec.PackageSource)),
+		PackageFormat:     strings.TrimSpace(string(spec.PackageFormat)),
+		LaunchMode:        strings.TrimSpace(string(spec.LaunchMode)),
+		VerifiedArtifacts: normalizeManagedImageBackendVerifiedArtifacts(cfg, spec),
+	}
+	if root := strings.TrimSpace(cfg.WorkingDir); root != "" {
+		status.CanonicalRoot = root
+	} else if command := strings.TrimSpace(cfg.Command); command != "" {
+		status.CanonicalRoot = filepath.Dir(command)
+	}
+	if status.PackageSource != "" {
+		status.Detail = "managed image backend package verified from " + status.PackageSource
+	} else {
+		status.Detail = "managed image backend package verified"
+	}
+	return status
+}
+
+func normalizeManagedImageBackendVerifiedArtifacts(cfg *ManagedImageBackendConfig, spec managedImageBackendPackageSpec) []string {
+	artifacts := make([]string, 0, 1+len(spec.ExecutableCandidates))
+	if command := strings.TrimSpace(cfg.Command); command != "" {
+		artifacts = append(artifacts, command)
+	}
+	for _, candidate := range spec.ExecutableCandidates {
+		trimmed := strings.TrimSpace(candidate)
+		if trimmed != "" {
+			artifacts = append(artifacts, trimmed)
+		}
+	}
+	return artifacts
+}
+
 func installManagedImageBackendPackage(ctx context.Context, backendsPath string, backendName string, spec managedImageBackendPackageSpec) error {
 	validatedBackendName, err := validateOfficialManagedImageBackendName(backendName)
 	if err != nil {

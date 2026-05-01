@@ -24,6 +24,27 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+func closeRuntimeAgentMemoryServiceForTest(t *testing.T, svc *memoryservice.Service) {
+	t.Helper()
+	t.Cleanup(func() {
+		if svc == nil {
+			return
+		}
+		if err := svc.Close(); err != nil {
+			t.Fatalf("memory.Close: %v", err)
+		}
+	})
+}
+
+func closeRuntimeAgentServiceForTest(t *testing.T, svc *Service) {
+	t.Helper()
+	t.Cleanup(func() {
+		if svc != nil {
+			svc.Close()
+		}
+	})
+}
+
 func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	t.Parallel()
 
@@ -35,6 +56,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	memorySvc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
@@ -48,6 +70,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 
 	ctx := context.Background()
 	initResp, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
@@ -737,10 +760,12 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testi
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	svc, err := New(nil, localStatePath, memorySvc)
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
@@ -847,10 +872,12 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackRejectsMismatchedBank(t *tes
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	svc, err := New(nil, localStatePath, memorySvc)
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
@@ -979,10 +1006,12 @@ func testRuntimeAgentImportsLegacyJSONIntoSQLiteAndRenameRetired(t *testing.T) {
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	svc, err := New(nil, localStatePath, memorySvc)
 	if err != nil {
 		t.Fatalf("runtimeagent.New(import): %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 
 	entry, err := svc.agentByID(agent.GetAgentId())
 	if err != nil {
@@ -1027,6 +1056,7 @@ func testRuntimeAgentImportsLegacyJSONIntoSQLiteAndRenameRetired(t *testing.T) {
 	if err != nil {
 		t.Fatalf("memory.New(restart): %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	defer func() {
 		if err := memorySvc.PersistenceBackend().Close(); err != nil {
 			t.Fatalf("Close(second backend): %v", err)
@@ -1036,6 +1066,7 @@ func testRuntimeAgentImportsLegacyJSONIntoSQLiteAndRenameRetired(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runtimeagent.New(restart): %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 	entry, err = svc.agentByID(agent.GetAgentId())
 	if err != nil {
 		t.Fatalf("agentByID(restart): %v", err)
@@ -1089,10 +1120,12 @@ func TestRuntimeAgentBehavioralPosturePersistsAcrossRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	svc, err := New(nil, localStatePath, memorySvc)
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-posture",
@@ -1124,6 +1157,7 @@ func TestRuntimeAgentBehavioralPosturePersistsAcrossRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("memory.New(restart): %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	defer func() {
 		if err := memorySvc.PersistenceBackend().Close(); err != nil {
 			t.Fatalf("Close(second backend): %v", err)
@@ -1133,6 +1167,7 @@ func TestRuntimeAgentBehavioralPosturePersistsAcrossRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runtimeagent.New(restart): %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 
 	got, err := svc.GetBehavioralPosture(ctx, "agent-posture")
 	if err != nil {
@@ -1166,10 +1201,12 @@ func TestRuntimeAgentRecoversPreparedReviewRunAndCommitsMemory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	svc, err := New(nil, localStatePath, memorySvc)
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-review",
@@ -1245,6 +1282,7 @@ func TestRuntimeAgentRecoversPreparedReviewRunAndCommitsMemory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("memory.New(restart): %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	defer func() {
 		if err := memorySvc.PersistenceBackend().Close(); err != nil {
 			t.Fatalf("Close(second backend): %v", err)
@@ -1254,6 +1292,7 @@ func TestRuntimeAgentRecoversPreparedReviewRunAndCommitsMemory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runtimeagent.New(restart): %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 
 	var statusValue string
 	if err := svc.backend.DB().QueryRow(`SELECT status FROM runtime_agent_review_run WHERE review_run_id = ?`, "review-run-1").Scan(&statusValue); err != nil {
@@ -1297,10 +1336,12 @@ func TestRuntimeAgentRecoveryDowngradesWave4TruthBelowAdmissionFloor(t *testing.
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	svc, err := New(nil, localStatePath, memorySvc)
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-wave4-threshold",
@@ -1373,6 +1414,7 @@ func TestRuntimeAgentRecoveryDowngradesWave4TruthBelowAdmissionFloor(t *testing.
 	if err != nil {
 		t.Fatalf("memory.New(restart): %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	defer func() {
 		if err := memorySvc.PersistenceBackend().Close(); err != nil {
 			t.Fatalf("Close(second backend): %v", err)
@@ -1382,6 +1424,7 @@ func TestRuntimeAgentRecoveryDowngradesWave4TruthBelowAdmissionFloor(t *testing.
 	if err != nil {
 		t.Fatalf("runtimeagent.New(restart): %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 
 	var truthStatus string
 	if err := memorySvc.PersistenceBackend().DB().QueryRow(`
@@ -1414,6 +1457,7 @@ func TestRuntimeAgentExecuteCanonicalReviewCommitsExecutorOutputs(t *testing.T) 
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	memorySvc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
@@ -1426,6 +1470,7 @@ func TestRuntimeAgentExecuteCanonicalReviewCommitsExecutorOutputs(t *testing.T) 
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-canonical-review",
@@ -2096,6 +2141,7 @@ func TestRuntimeAgentExecuteCanonicalReviewWithAIBackedExecutorAppliesWave4Norma
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	memorySvc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
@@ -2108,6 +2154,7 @@ func TestRuntimeAgentExecuteCanonicalReviewWithAIBackedExecutorAppliesWave4Norma
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-canonical-review-ai",
@@ -2244,10 +2291,12 @@ func TestRuntimeAgentRecoversMemoryCommittedReviewRunWithoutRecommittingMemory(t
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	svc, err := New(nil, localStatePath, memorySvc)
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-review-committed",
@@ -2317,6 +2366,7 @@ func TestRuntimeAgentRecoversMemoryCommittedReviewRunWithoutRecommittingMemory(t
 	if err != nil {
 		t.Fatalf("memory.New(restart): %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	defer func() {
 		if err := memorySvc.PersistenceBackend().Close(); err != nil {
 			t.Fatalf("Close(second backend): %v", err)
@@ -2326,6 +2376,7 @@ func TestRuntimeAgentRecoversMemoryCommittedReviewRunWithoutRecommittingMemory(t
 	if err != nil {
 		t.Fatalf("runtimeagent.New(restart): %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 
 	var statusValue string
 	if err := svc.backend.DB().QueryRow(`SELECT status FROM runtime_agent_review_run WHERE review_run_id = ?`, "review-run-committed").Scan(&statusValue); err != nil {
@@ -2362,10 +2413,12 @@ func TestRuntimeAgentRecoveryFailClosesOnInvalidReviewLocatorKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	svc, err := New(nil, localStatePath, memorySvc)
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if err := svc.SavePreparedReviewRun(ctx, ReviewRunRecord{
 		ReviewRunID:     "review-run-invalid-locator",
@@ -2390,6 +2443,7 @@ func TestRuntimeAgentRecoveryFailClosesOnInvalidReviewLocatorKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("memory.New(restart): %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	defer func() {
 		if err := memorySvc.PersistenceBackend().Close(); err != nil {
 			t.Fatalf("Close(second backend): %v", err)
@@ -2399,6 +2453,7 @@ func TestRuntimeAgentRecoveryFailClosesOnInvalidReviewLocatorKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runtimeagent.New(restart): %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 
 	var statusValue string
 	var failureMessage string
@@ -2441,10 +2496,12 @@ func TestRuntimeAgentRecoveryWritesFollowUpExactlyOnceAcrossRestarts(t *testing.
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	svc, err := New(nil, localStatePath, memorySvc)
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{
 		AgentId: "agent-followup-once",
@@ -2509,10 +2566,12 @@ func TestRuntimeAgentRecoveryWritesFollowUpExactlyOnceAcrossRestarts(t *testing.
 	if err != nil {
 		t.Fatalf("memory.New(first restart): %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	svc, err = New(nil, localStatePath, memorySvc)
 	if err != nil {
 		t.Fatalf("runtimeagent.New(first restart): %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 	if err := memorySvc.PersistenceBackend().Close(); err != nil {
 		t.Fatalf("Close(second backend): %v", err)
 	}
@@ -2524,6 +2583,7 @@ func TestRuntimeAgentRecoveryWritesFollowUpExactlyOnceAcrossRestarts(t *testing.
 	if err != nil {
 		t.Fatalf("memory.New(second restart): %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	defer func() {
 		if err := memorySvc.PersistenceBackend().Close(); err != nil {
 			t.Fatalf("Close(third backend): %v", err)
@@ -2533,6 +2593,7 @@ func TestRuntimeAgentRecoveryWritesFollowUpExactlyOnceAcrossRestarts(t *testing.
 	if err != nil {
 		t.Fatalf("runtimeagent.New(second restart): %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 
 	var followUpCount int
 	if err := svc.backend.DB().QueryRow(`
@@ -4879,6 +4940,7 @@ func newRuntimeAgentTestService(t *testing.T) *Service {
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	memorySvc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
@@ -4892,6 +4954,7 @@ func newRuntimeAgentTestService(t *testing.T) *Service {
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 	return svc
 }
 

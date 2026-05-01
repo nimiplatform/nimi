@@ -10,10 +10,17 @@ import (
 
 func TestResolveLocalEnvironmentPlanProjectsSetupRequired(t *testing.T) {
 	svc := newTestService(t)
+	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/test-qwen3",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+	})
 
 	resp, err := svc.ResolveLocalEnvironmentPlan(context.Background(), &runtimev1.ResolveLocalEnvironmentPlanRequest{
-		PackId:        "local-image-python",
-		ConsumerScope: "media.diffusers.cpu",
+		PackId:        "local-speech",
+		ConsumerScope: "speech.qwen3-tts.python",
+		LocalAssetId:  model.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("ResolveLocalEnvironmentPlan: %v", err)
@@ -32,12 +39,23 @@ func TestResolveLocalEnvironmentPlanProjectsSetupRequired(t *testing.T) {
 
 func TestLocalEnvironmentRPCProjectsReadySourcesAndGate(t *testing.T) {
 	svc := newTestService(t)
-	req := localEnvironmentConsumerActivationGateRequest{ConsumerID: "media.diffusers.cpu"}
+	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/test-qwen3-ready",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+	})
+	req := localEnvironmentConsumerActivationGateRequest{
+		ConsumerID:   "speech.qwen3-tts.python",
+		PackID:       "local-speech",
+		LocalAssetID: model.GetLocalAssetId(),
+	}
 	markLocalEnvironmentPlanReadyForTest(t, svc, req)
 
 	planResp, err := svc.ResolveLocalEnvironmentPlan(context.Background(), &runtimev1.ResolveLocalEnvironmentPlanRequest{
-		PackId:        "local-image-python",
+		PackId:        req.PackID,
 		ConsumerScope: req.ConsumerID,
+		LocalAssetId:  req.LocalAssetID,
 	})
 	if err != nil {
 		t.Fatalf("ResolveLocalEnvironmentPlan: %v", err)
@@ -57,7 +75,9 @@ func TestLocalEnvironmentRPCProjectsReadySourcesAndGate(t *testing.T) {
 	}
 
 	gateResp, err := svc.ResolveLocalEnvironmentActivationGate(context.Background(), &runtimev1.ResolveLocalEnvironmentActivationGateRequest{
-		ConsumerId: req.ConsumerID,
+		ConsumerId:   req.ConsumerID,
+		PackId:       req.PackID,
+		LocalAssetId: req.LocalAssetID,
 	})
 	if err != nil {
 		t.Fatalf("ResolveLocalEnvironmentActivationGate: %v", err)

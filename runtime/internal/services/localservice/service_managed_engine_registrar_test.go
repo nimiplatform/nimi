@@ -35,8 +35,93 @@ func (m *registrarTestEngineManager) EnsureEngine(_ context.Context, _ string, _
 	return nil
 }
 
+func (m *registrarTestEngineManager) EnsureEngineBinaryDependency(_ context.Context, _ string, _ string) (engine.EngineBinaryDependencyStatus, error) {
+	return engine.EngineBinaryDependencyStatus{
+		Engine:           "llama",
+		Version:          engine.DefaultLlamaConfig().Version,
+		BinaryPath:       "test-llama",
+		SHA256:           "abc123",
+		Platform:         engine.PlatformString(),
+		AssetName:        "test-asset",
+		AcceleratorPlane: "cpu",
+		Detail:           "test llama package ready",
+	}, nil
+}
+
+func (m *registrarTestEngineManager) EnsureUVToolDependency(_ context.Context) (engine.UVToolDependencyStatus, error) {
+	return engine.UVToolDependencyStatus{
+		Version:          "0.11.8",
+		ExecutablePath:   "uv.exe",
+		SourceRoot:       "uv-root",
+		ArchiveSHA256:    "abc123",
+		ArchiveAssetName: "uv-x86_64-pc-windows-msvc.zip",
+		Platform:         "windows/amd64",
+		Detail:           "test uv ready",
+	}, nil
+}
+
+func (m *registrarTestEngineManager) EnsurePythonRuntimeDependency(_ context.Context, uvPath string, engineName string, _ string, _ string) (engine.PythonRuntimeDependencyStatus, error) {
+	return engine.PythonRuntimeDependencyStatus{
+		PythonVersion:   "Python 3.12.0",
+		InterpreterPath: "python.exe",
+		RuntimeRoot:     "python-root",
+		UVExecutable:    uvPath,
+		Detail:          "test python runtime ready for " + engineName,
+	}, nil
+}
+
+func (m *registrarTestEngineManager) EnsurePythonVenvDependency(_ context.Context, uvPath string, pythonRuntimePath string, engineName string, _ string) (engine.PythonVenvDependencyStatus, error) {
+	return engine.PythonVenvDependencyStatus{
+		VenvRoot:        "venv-root",
+		InterpreterPath: "venv-python.exe",
+		PythonRuntime:   pythonRuntimePath,
+		UVExecutable:    uvPath,
+		Detail:          "test python venv ready for " + engineName,
+	}, nil
+}
+
+func (m *registrarTestEngineManager) EnsurePythonPackageSetDependency(_ context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonPackageSetDependencyStatus, error) {
+	return engine.PythonPackageSetDependencyStatus{
+		PackageSetID:           "test-python-package-set",
+		LockHash:               "lock123",
+		VenvRoot:               venvRoot,
+		InterpreterPath:        "venv-python.exe",
+		UVExecutable:           uvPath,
+		Packages:               []string{"fastapi==0.121.1"},
+		InstalledDistributions: []string{"fastapi==0.121.1"},
+		ImportProbes:           []string{"fastapi"},
+		Detail:                 "test python package set ready for " + consumer,
+	}, nil
+}
+
+func (m *registrarTestEngineManager) EnsurePythonTorchWheelDependency(_ context.Context, uvPath string, venvRoot string, consumer string) (engine.PythonTorchWheelDependencyStatus, error) {
+	return engine.PythonTorchWheelDependencyStatus{
+		TorchVersion:     "2.7.1+cu126",
+		TorchvisionSpec:  "torchvision==0.22.1",
+		AcceleratorPlane: "cuda",
+		CUDAABI:          "cu126",
+		WheelIndex:       "https://download.pytorch.org/whl/cu126",
+		WheelLockHash:    "torchlock123",
+		VenvRoot:         venvRoot,
+		InterpreterPath:  "venv-python.exe",
+		UVExecutable:     uvPath,
+		ImportProbes:     []string{"torch", "torchvision"},
+		Detail:           "test torch wheel ready for " + consumer,
+	}, nil
+}
+
 func (m *registrarTestEngineManager) EnsureManagedImageBackend(_ context.Context, _ *engine.ManagedImageBackendConfig) error {
 	return nil
+}
+
+func (m *registrarTestEngineManager) EnsureManagedImageBackendDependency(_ context.Context, _ *engine.ManagedImageBackendConfig) (engine.ManagedImageBackendDependencyStatus, error) {
+	return engine.ManagedImageBackendDependencyStatus{
+		BackendName:       "stablediffusion-ggml",
+		PackageSource:     "test",
+		CanonicalRoot:     "test-root",
+		VerifiedArtifacts: []string{"sd.exe"},
+		Detail:            "test managed image backend ready",
+	}, nil
 }
 
 func (m *registrarTestEngineManager) ResolveSharedAcceleratorDependency(dependencyID string, consumerID string) engine.SharedAcceleratorDependencyStatus {

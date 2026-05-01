@@ -52,6 +52,7 @@ type Backend struct {
 	writeDB *sql.DB
 
 	writeCh   chan writeRequest
+	writeDone chan struct{}
 	closeOnce sync.Once
 	closed    atomic.Bool
 }
@@ -84,6 +85,7 @@ func Open(logger *slog.Logger, localStatePath string) (*Backend, error) {
 		backupDir: filepath.Join(filepath.Dir(path), backupDirName),
 		writeDB:   writeDB,
 		writeCh:   make(chan writeRequest, writeQueueBuffer),
+		writeDone: make(chan struct{}),
 	}
 	if err := backend.ensureHealthyOrRestore(); err != nil {
 		_ = writeDB.Close()
@@ -131,6 +133,9 @@ func (b *Backend) Close() error {
 	b.closeOnce.Do(func() {
 		b.closed.Store(true)
 		close(b.writeCh)
+		if b.writeDone != nil {
+			<-b.writeDone
+		}
 		var errs []error
 		if b.readDB != nil {
 			errs = append(errs, b.readDB.Close())
@@ -173,6 +178,7 @@ func (b *Backend) BackupNow(ctx context.Context) (string, error) {
 }
 
 func (b *Backend) runWriteLoop() {
+	defer close(b.writeDone)
 	for req := range b.writeCh {
 		req.res <- req.op(req.ctx)
 		close(req.res)

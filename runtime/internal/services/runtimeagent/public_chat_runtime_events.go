@@ -309,14 +309,17 @@ func (r publicChatRuntime) emitEvent(callerAppID string, subjectUserID string, m
 	if r.svc == nil || r.svc.isClosed() {
 		return nil
 	}
-	if r.svc.chatAppEmit == nil {
+	r.svc.chatSurfaceMu.Lock()
+	emitter := r.svc.chatAppEmit
+	r.svc.chatSurfaceMu.Unlock()
+	if emitter == nil {
 		return fmt.Errorf("runtime public chat app emitter unavailable")
 	}
 	structPayload, err := structpb.NewStruct(payload)
 	if err != nil {
 		return err
 	}
-	_, err = r.svc.chatAppEmit(context.Background(), &runtimev1.SendAppMessageRequest{
+	_, err = emitter(context.Background(), &runtimev1.SendAppMessageRequest{
 		FromAppId:     publicChatRuntimeAppID,
 		ToAppId:       strings.TrimSpace(callerAppID),
 		SubjectUserId: strings.TrimSpace(subjectUserID),
@@ -339,7 +342,6 @@ func (r publicChatRuntime) shutdownSurface() {
 			followUps = append(followUps, followUp)
 		}
 	}
-	r.svc.chatAppEmit = nil
 	r.svc.chatSurfaceMu.Unlock()
 	r.svc.setPublicChatTurnExecutor(nil)
 	for _, turn := range turns {
@@ -352,6 +354,10 @@ func (r publicChatRuntime) shutdownSurface() {
 			followUp.Cancel()
 		}
 	}
+	r.svc.chatAsyncWG.Wait()
+	r.svc.chatSurfaceMu.Lock()
+	r.svc.chatAppEmit = nil
+	r.svc.chatSurfaceMu.Unlock()
 }
 func (r publicChatRuntime) applyPostTurn(
 	ctx context.Context,

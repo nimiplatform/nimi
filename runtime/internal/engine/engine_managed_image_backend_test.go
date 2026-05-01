@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -217,6 +218,26 @@ func TestDiscoverInstalledManagedImageBackendLaunchConfigInjectsManagedCUDAPathP
 	}
 	if got := os.Getenv("PATH"); got != `C:\Windows\System32` {
 		t.Fatalf("host PATH must not be mutated, got %q", got)
+	}
+}
+
+func TestResolveInstalledManagedImageBackendRequiresMaterializerWithoutCreatingRoot(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	_, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource("stablediffusion-ggml", "")
+	if !ok {
+		t.Skip("current host has no managed image backend package spec")
+	}
+	backendsPath := filepath.Join(t.TempDir(), "managed-image-backends")
+	_, err := resolveInstalledManagedImageBackendConfig(backendsPath, t.TempDir(), &ManagedImageBackendConfig{
+		Mode:        ManagedImageBackendOfficial,
+		BackendName: "stablediffusion-ggml",
+		Address:     "127.0.0.1:50052",
+	})
+	if !errors.Is(err, ErrManagedImageBackendMaterializationRequired) {
+		t.Fatalf("expected materialization-required error, got %v", err)
+	}
+	if _, statErr := os.Stat(backendsPath); !os.IsNotExist(statErr) {
+		t.Fatalf("installed-only resolution must not create backend root, stat err=%v", statErr)
 	}
 }
 

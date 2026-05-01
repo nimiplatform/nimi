@@ -37,6 +37,7 @@ func TestWave1ExecPack3PostureProjectionAndEnvelopeInvariants(t *testing.T) {
 	if err != nil {
 		t.Fatalf("memory.New: %v", err)
 	}
+	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
 	defer func() {
 		_ = memorySvc.PersistenceBackend().Close()
 	}()
@@ -44,6 +45,7 @@ func TestWave1ExecPack3PostureProjectionAndEnvelopeInvariants(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runtimeagent.New: %v", err)
 	}
+	closeRuntimeAgentServiceForTest(t, svc)
 
 	ctx := context.Background()
 	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{

@@ -18,6 +18,9 @@ const (
 var mediaPackages = []string{
 	"torch==2.7.1",
 	"torchvision==0.22.1",
+}
+
+var mediaPythonPipelinePackages = []string{
 	"diffusers==0.37.0",
 	"transformers==5.3.0",
 	"accelerate==1.13.0",
@@ -27,6 +30,10 @@ var mediaPackages = []string{
 	"pillow==12.1.0",
 	"imageio==2.37.3",
 	"imageio-ffmpeg==0.6.0",
+}
+
+func init() {
+	mediaPackages = append(mediaPackages, mediaPythonPipelinePackages...)
 }
 
 // MediaMode identifies the NIMI_MEDIA_MODE value for the media server process.
