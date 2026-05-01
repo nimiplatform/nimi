@@ -1,0 +1,93 @@
+[
+  {
+    "recordId": "vac-muchen-001",
+    "childId": "child-lin-muchen",
+    "ruleId": "PO-REM-VAC-001",
+    "vaccineName": "乙肝疫苗（第1剂）",
+    "vaccinatedAt": "2025-08-04",
+    "ageMonths": 0,
+    "batchNumber": "HB202508A1",
+    "hospital": "浦东妇幼保健院",
+    "adverseReaction": null,
+    "photoPath": null,
+    "createdAt": "2025-08-04T11:00:00+08:00"
+  },
+  {
+    "recordId": "vac-muchen-002",
+    "childId": "child-lin-muchen",
+    "ruleId": "PO-REM-VAC-002",
+    "vaccineName": "卡介苗",
+    "vaccinatedAt": "2025-08-05",
+    "ageMonths": 0,
+    "batchNumber": "BCG202508C2",
+    "hospital": "浦东妇幼保健院",
+    "adverseReaction": "局部红点，已自行消退",
+    "photoPath": null,
+    "createdAt": "2025-08-05T09:20:00+08:00"
+  },
+  {
+    "recordId": "vac-muchen-003",
+    "childId": "child-lin-muchen",
+    "ruleId": "PO-REM-VAC-003",
+    "vaccineName": "乙肝疫苗（第2剂）",
+    "vaccinatedAt": "2025-10-03",
+    "ageMonths": 2,
+    "batchNumber": "HB202510B7",
+    "hospital": "社区接种门诊",
+    "adverseReaction": null,
+    "photoPath": null,
+    "createdAt": "2025-10-03T10:15:00+08:00"
+  },
+  {
+    "recordId": "vac-muchen-004",
+    "childId": "child-lin-muchen",
+    "ruleId": "PO-REM-VAC-004",
+    "vaccineName": "五联疫苗（第1剂）",
+    "vaccinatedAt": "2025-10-03",
+    "ageMonths": 2,
+    "batchNumber": "DTP202510M5",
+    "hospital": "社区接种门诊",
+    "adverseReaction": "当晚低热 37.6℃",
+    "photoPath": null,
+    "createdAt": "2025-10-03T10:20:00+08:00"
+  },
+  {
+    "recordId": "vac-muchen-005",
+    "childId": "child-lin-muchen",
+    "ruleId": "PO-REM-VAC-005",
+    "vaccineName": "五联疫苗（第2剂）",
+    "vaccinatedAt": "2025-12-08",
+    "ageMonths": 4,
+    "batchNumber": "DTP202512K2",
+    "hospital": "社区接种门诊",
+    "adverseReaction": null,
+    "photoPath": null,
+    "createdAt": "2025-12-08T14:30:00+08:00"
+  },
+  {
+    "recordId": "vac-keran-001",
+    "childId": "child-lin-keran",
+    "ruleId": "PO-REM-VAC-015",
+    "vaccineName": "流感疫苗",
+    "vaccinatedAt": "2025-11-02",
+    "ageMonths": 48,
+    "batchNumber": "FLU202511X1",
+    "hospital": "儿科门诊",
+    "adverseReaction": null,
+    "photoPath": null,
+    "createdAt": "2025-11-02T17:40:00+08:00"
+  },
+  {
+    "recordId": "vac-zhiyao-001",
+    "childId": "child-lin-zhiyao",
+    "ruleId": "PO-REM-VAC-017",
+    "vaccineName": "HPV 疫苗（第2剂）",
+    "vaccinatedAt": "2025-12-20",
+    "ageMonths": 157,
+    "batchNumber": "HPV202512Q9",
+    "hospital": "青少年保健门诊",
+    "adverseReaction": "注射部位酸胀一天",
+    "photoPath": null,
+    "createdAt": "2025-12-20T11:15:00+08:00"
+  }
+]

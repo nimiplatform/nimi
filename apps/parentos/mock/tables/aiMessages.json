@@ -1,0 +1,50 @@
+[
+  {
+    "messageId": "msg-keran-user",
+    "conversationId": "conv-keran-202604",
+    "role": "user",
+    "content": "可然最近几天总是拖到 22 点以后睡，视力筛查又提示右眼偏低，我应该先抓哪件事？",
+    "contextSnapshot": "{\"childId\":\"child-lin-keran\",\"sleepTrend\":\"late-bedtime\",\"vision\":\"left 0.9 / right 0.8 / hyperopia reserve 1.25\"}",
+    "createdAt": "2026-04-09T21:00:00+08:00"
+  },
+  {
+    "messageId": "msg-keran-assistant",
+    "conversationId": "conv-keran-202604",
+    "role": "assistant",
+    "content": "可以先同时做两件低成本动作：一是把睡前流程固定到 21:15 前开始，连续观察 7 天；二是在 1 个月内安排一次视力复查，尤其关注远视储备是否继续下降。",
+    "contextSnapshot": "{\"suggestions\":[\"固定睡前流程\",\"尽快复查视力\"],\"riskLevel\":\"medium\"}",
+    "createdAt": "2026-04-09T21:08:00+08:00"
+  },
+  {
+    "messageId": "msg-muchen-user",
+    "conversationId": "conv-muchen-202603",
+    "role": "user",
+    "content": "7 月龄开始加辅食了，维 D 28、铁蛋白 24、血红蛋白 118 需要担心吗？",
+    "contextSnapshot": "{\"childId\":\"child-lin-muchen\",\"ageMonths\":7,\"labs\":{\"vitaminD\":28,\"ferritin\":24,\"hemoglobin\":118}}",
+    "createdAt": "2026-03-30T09:15:00+08:00"
+  },
+  {
+    "messageId": "msg-muchen-assistant",
+    "conversationId": "conv-muchen-202603",
+    "role": "assistant",
+    "content": "从这组数值看暂时没有明显异常，重点是继续规律补充维 D，并在辅食里逐步增加含铁食物，下一次儿保时再看趋势。",
+    "contextSnapshot": "{\"assessment\":\"watch-trend\",\"priority\":\"nutrition\"}",
+    "createdAt": "2026-03-30T09:18:00+08:00"
+  },
+  {
+    "messageId": "msg-zhiyao-user",
+    "conversationId": "conv-zhiyao-202604",
+    "role": "user",
+    "content": "知遥训练量比较大，但最近说看远有点糊，怎么安排学习、训练和近视控制更稳妥？",
+    "contextSnapshot": "{\"childId\":\"child-lin-zhiyao\",\"myopia\":{\"left\":-2.75,\"right\":-3.0},\"training\":\"school-team\"}",
+    "createdAt": "2026-04-03T20:30:00+08:00"
+  },
+  {
+    "messageId": "msg-zhiyao-assistant",
+    "conversationId": "conv-zhiyao-202604",
+    "role": "assistant",
+    "content": "训练可以继续，但建议把每周 2 次的晚间高负荷训练后屏幕时间压缩掉，并保持每 3 个月视力复查一次，重点跟踪轴长和戴镜后的清晰度。",
+    "contextSnapshot": "{\"plan\":[\"减少训练后屏幕时间\",\"维持季度复查\"],\"followUp\":\"vision\"}",
+    "createdAt": "2026-04-03T20:35:00+08:00"
+  }
+]

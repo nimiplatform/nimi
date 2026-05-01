@@ -147,7 +147,7 @@ export default function SettingsPage() {
                   <p className="text-[14px] mt-0.5 leading-snug" style={{ color: C.sub }}>
                     {seedStatus === 'done' ? seedResult
                       : seedStatus === 'error' ? seedResult
-                      : '从 mock.json 导入 3 个孩子及全部测试数据到 SQLite'}
+                      : '从 mock fixtures 导入 3 个孩子及全部测试数据到 SQLite'}
                   </p>
                 </div>
                 <button

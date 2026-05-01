@@ -1,0 +1,24 @@
+[
+  {
+    "assessmentId": "ta-zhiyao-202509",
+    "childId": "child-lin-zhiyao",
+    "assessedAt": "2025-09-21",
+    "ageMonths": 154,
+    "breastOrGenitalStage": 3,
+    "pubicHairStage": 2,
+    "assessedBy": "青少年保健门诊",
+    "notes": "发育进程与年龄基本一致",
+    "createdAt": "2025-09-21T10:00:00+08:00"
+  },
+  {
+    "assessmentId": "ta-zhiyao-202603",
+    "childId": "child-lin-zhiyao",
+    "assessedAt": "2026-03-28",
+    "ageMonths": 159,
+    "breastOrGenitalStage": 4,
+    "pubicHairStage": 3,
+    "assessedBy": "青少年保健门诊",
+    "notes": "继续规律观察即可",
+    "createdAt": "2026-03-28T15:10:00+08:00"
+  }
+]

@@ -1,0 +1,72 @@
+[
+  {
+    "recordId": "dr-keran-001",
+    "childId": "child-lin-keran",
+    "eventType": "eruption",
+    "toothId": "A",
+    "toothSet": "primary",
+    "eventDate": "2022-06-15",
+    "ageMonths": 8,
+    "severity": null,
+    "hospital": null,
+    "notes": "左上乳中切牙萌出",
+    "photoPath": null,
+    "createdAt": "2025-08-01T10:00:00+08:00"
+  },
+  {
+    "recordId": "dr-keran-002",
+    "childId": "child-lin-keran",
+    "eventType": "caries",
+    "toothId": "B",
+    "toothSet": "primary",
+    "eventDate": "2026-03-06",
+    "ageMonths": 52,
+    "severity": "mild",
+    "hospital": "儿童口腔门诊",
+    "notes": "右上乳侧切牙浅龋，建议尽快复查",
+    "photoPath": null,
+    "createdAt": "2026-03-06T15:20:00+08:00"
+  },
+  {
+    "recordId": "dr-keran-003",
+    "childId": "child-lin-keran",
+    "eventType": "filling",
+    "toothId": "B",
+    "toothSet": "primary",
+    "eventDate": "2026-03-22",
+    "ageMonths": 53,
+    "severity": null,
+    "hospital": "儿童口腔门诊",
+    "notes": "已补牙",
+    "photoPath": null,
+    "createdAt": "2026-03-22T17:10:00+08:00"
+  },
+  {
+    "recordId": "dr-zhiyao-001",
+    "childId": "child-lin-zhiyao",
+    "eventType": "sealant",
+    "toothId": "16",
+    "toothSet": "permanent",
+    "eventDate": "2025-08-16",
+    "ageMonths": 153,
+    "severity": null,
+    "hospital": "青少年口腔科",
+    "notes": "第一恒磨牙窝沟封闭",
+    "photoPath": null,
+    "createdAt": "2025-08-16T10:20:00+08:00"
+  },
+  {
+    "recordId": "dr-zhiyao-002",
+    "childId": "child-lin-zhiyao",
+    "eventType": "checkup",
+    "toothId": null,
+    "toothSet": "permanent",
+    "eventDate": "2026-02-18",
+    "ageMonths": 158,
+    "severity": null,
+    "hospital": "青少年口腔科",
+    "notes": "常规口腔检查，未见新龋",
+    "photoPath": null,
+    "createdAt": "2026-02-18T09:10:00+08:00"
+  }
+]

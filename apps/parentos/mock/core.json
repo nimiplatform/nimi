@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "datasetName": "ParentOS inspection mock data",
+    "generatedAt": "2026-04-10T10:30:00+08:00",
+    "targetApp": "apps/parentos",
+    "description": "用于整体验收的模拟数据，尽量贴近 ParentOS 当前 SQLite bridge 的表结构与字段命名。",
+    "notes": [
+      "大多数字段直接对齐 bridge row 结构，便于后续改造成导入脚本。",
+      "部分数据库中本来以字符串保存的 JSON 字段，这里也保留为 JSON 字符串形态。",
+      "当前默认聚焦孩子是学龄前儿童，可覆盖成长、日记、提醒、睡眠、视力、口腔与 AI 报告页面。"
+    ]
+  },
+  "inspectionFlows": [
+    {
+      "childId": "child-lin-keran",
+      "focus": "主验收对象",
+      "pages": [
+        "首页/时间线",
+        "成长曲线",
+        "视力",
+        "睡眠",
+        "口腔",
+        "日记",
+        "提醒",
+        "报告"
+      ]
+    },
+    {
+      "childId": "child-lin-muchen",
+      "focus": "婴幼儿流程",
+      "pages": [
+        "疫苗",
+        "早期里程碑",
+        "睡眠",
+        "体检/化验"
+      ]
+    },
+    {
+      "childId": "child-lin-zhiyao",
+      "focus": "青春期流程",
+      "pages": [
+        "骨龄",
+        "Tanner 发育",
+        "体能/体态",
+        "视力复查"
+      ]
+    }
+  ],
+  "family": {
+    "familyId": "fam-lin-001",
+    "displayName": "林家",
+    "createdAt": "2025-08-01T09:00:00+08:00",
+    "updatedAt": "2026-04-10T09:45:00+08:00"
+  },
+  "appState": {
+    "bootstrapReady": true,
+    "familyId": "fam-lin-001",
+    "activeChildId": "child-lin-keran"
+  }
+}

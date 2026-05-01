@@ -1,8 +1,25 @@
 /**
- * mock-seed.ts — Dev-only mock data import from mock.json into SQLite via bridge.
+ * mock-seed.ts — Dev-only mock data import from split JSON fixtures into SQLite via bridge.
  */
 
-import mockData from '../../../../mock.json';
+import mockCore from '../../../../mock/core.json';
+import allergyRecords from '../../../../mock/tables/allergyRecords.json';
+import aiMessages from '../../../../mock/tables/aiMessages.json';
+import appSettings from '../../../../mock/tables/appSettings.json';
+import children from '../../../../mock/tables/children.json';
+import conversations from '../../../../mock/tables/conversations.json';
+import dentalRecords from '../../../../mock/tables/dentalRecords.json';
+import fitnessAssessments from '../../../../mock/tables/fitnessAssessments.json';
+import growthReports from '../../../../mock/tables/growthReports.json';
+import journalEntries from '../../../../mock/tables/journalEntries.json';
+import journalTags from '../../../../mock/tables/journalTags.json';
+import measurements from '../../../../mock/tables/measurements.json';
+import medicalEvents from '../../../../mock/tables/medicalEvents.json';
+import milestoneRecords from '../../../../mock/tables/milestoneRecords.json';
+import reminderStates from '../../../../mock/tables/reminderStates.json';
+import sleepRecords from '../../../../mock/tables/sleepRecords.json';
+import tannerAssessments from '../../../../mock/tables/tannerAssessments.json';
+import vaccineRecords from '../../../../mock/tables/vaccineRecords.json';
 import {
   dbInit,
   createFamily,
@@ -27,6 +44,29 @@ import {
 } from '../bridge/sqlite-bridge.js';
 import { mapChildRow } from '../bridge/mappers.js';
 import { useAppStore } from '../app-shell/app-store.js';
+
+const mockData = {
+  ...mockCore,
+  tables: {
+    allergyRecords,
+    aiMessages,
+    appSettings,
+    children,
+    conversations,
+    dentalRecords,
+    fitnessAssessments,
+    growthReports,
+    journalEntries,
+    journalTags,
+    measurements,
+    medicalEvents,
+    milestoneRecords,
+    reminderStates,
+    sleepRecords,
+    tannerAssessments,
+    vaccineRecords,
+  },
+};
 
 type MockTables = typeof mockData.tables;
 
