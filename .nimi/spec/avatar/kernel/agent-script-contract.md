@@ -776,34 +776,7 @@ Examples:
   runtime.agent.hook.completed             → runtime_agent_hook_completed.js
   system.focus.gained                      → system_focus_gained.js
 ```
-## 附录 C: Embodiment Backend API v1 Cheatsheet
-```typescript
-// Motion
-await projection.triggerMotion(id, { priority, loop, fadeIn, fadeOut });
-projection.stopMotion();
-// Signals / control channels
-projection.setSignal(id, value, weight?);
-const v = projection.getSignal(id);
-projection.addSignal(id, delta);
-// Expression
-await projection.setExpression(id);
-projection.clearExpression();
-// Pose (durable)
-projection.setPose(id, loop?);
-projection.clearPose();
-// Utility
-await projection.wait(ms);
-const bounds = projection.getSurfaceBounds();
-```
-## 附录 D: ctx 快速参考
-```typescript
-ctx.activity?.{name, category, intensity, source}
-ctx.posture.{posture_class, action_family, interrupt_mode, transition_reason, truth_basis_ids}
-ctx.status_text
-ctx.execution_state
-ctx.active_world_id / active_user_id
-ctx.history?.{last_activity, last_motion, last_expression}   // opt-in
-ctx.event?.{event_name, event_id, timestamp, detail}
-ctx.app.{namespace, surface_id, visible, focused, window, cursor_x, cursor_y}
-ctx.runtime.{now, session_id, locale}
-```
+
+## Reference Appendices
+
+API cheatsheet and ctx quick reference moved to [`agent-script-reference.md`](agent-script-reference.md) in the same kernel authority root, so this contract stays focused on handler convention, sandbox, discovery, and execution model.

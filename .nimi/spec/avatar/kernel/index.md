@@ -103,6 +103,8 @@ Avatar app carrier visual acceptance:
 
 ### [`agent-script-contract.md`](agent-script-contract.md)
 
+Reference appendices: [`agent-script-reference.md`](agent-script-reference.md)
+
 NimiAgentScript (NAS) handler convention:
 
 - Directory layout (`<model>/runtime/nimi/activity/` / `event/` / `continuous/` / `lib/`)
