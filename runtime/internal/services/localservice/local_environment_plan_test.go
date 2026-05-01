@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
 func TestLocalEnvironmentServiceConstructionDoesNotResolveLocalCompute(t *testing.T) {
@@ -29,8 +30,9 @@ func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) 
 		ConsumerScope:    "media.diffusers.cuda",
 		HostProfile:      localEnvironmentNvidiaProfile(),
 		RuntimeDataRoot:  filepath.Join(t.TempDir(), "runtime-data"),
-		LocalAssetID:     "asset-image-python",
-		CompanionAssetID: "asset-image-companion",
+		AssetID:          "image/test-python",
+		CompanionAssetID: "image/test-companion",
+		ParentAssetID:    "image/test-python",
 	})
 
 	if plan.State != localEnvironmentStateNeedsConfirmation {
@@ -83,12 +85,83 @@ func TestResolveLocalEnvironmentPlanIncludesTextAndOptionalCUDA(t *testing.T) {
 		ConsumerScope:   "llama.cpp.cuda",
 		HostProfile:     localEnvironmentNvidiaProfile(),
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
-		LocalAssetID:    "asset-text",
+		AssetID:         "text/test-model",
 	})
 
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyNativeLlama)
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyModelAsset)
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyCUDA)
+}
+
+func TestResolveLocalEnvironmentPlanPromotesReadyManagedCUDAProjection(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer svc.Close()
+	svc.SetEngineManager(&mockEngineManager{
+		sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
+			DependencyID:      cudaUserSpaceRuntimeDependencyID,
+			State:             engine.SharedAcceleratorDependencyReadyManaged,
+			Source:            "runtime_managed",
+			CanonicalRoot:     `C:\Users\admin\.nimi\runtime\accelerator-dependencies\nvidia-cuda-user-space-runtime`,
+			Detail:            "nvidia_cuda_user_space_runtime state=ready_managed source=runtime_managed",
+			RequiredArtifacts: []string{"cudart64_12.dll", "cublas64_12.dll", "cublasLt64_12.dll"},
+		},
+	})
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-gpu-support",
+		ConsumerScope:   "desktop.local-model-center",
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+	})
+
+	if plan.State != localEnvironmentStateReadyManaged {
+		t.Fatalf("plan state = %q, want ready_managed", plan.State)
+	}
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
+	if dep.State != localEnvironmentStateReadyManaged {
+		t.Fatalf("CUDA dependency state = %q, want ready_managed: %+v", dep.State, dep)
+	}
+	if dep.ConfirmationRequired {
+		t.Fatalf("ready managed CUDA dependency must not require confirmation: %+v", dep)
+	}
+	if dep.SelectedSourceRecordID == "" || dep.CanonicalRoot == "" {
+		t.Fatalf("expected selected source record and canonical root: %+v", dep)
+	}
+	if _, ok := svc.localEnvironmentSelectedSourceRecord(dep.EnvironmentKey); !ok {
+		t.Fatalf("expected plan projection to persist selected source record for %q", dep.EnvironmentKey)
+	}
+}
+
+func TestResolveLocalEnvironmentPlanProjectsCUDARepairRequired(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer svc.Close()
+	svc.SetEngineManager(&mockEngineManager{
+		sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
+			DependencyID:  cudaUserSpaceRuntimeDependencyID,
+			State:         engine.SharedAcceleratorDependencyRepairRequired,
+			Source:        "runtime_managed",
+			CanonicalRoot: `C:\Users\admin\.nimi\runtime\accelerator-dependencies\nvidia-cuda-user-space-runtime`,
+			Detail:        "managed CUDA dependency artifact missing: cublasLt64_12.dll",
+		},
+	})
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-gpu-support",
+		ConsumerScope:   "desktop.local-model-center",
+		HostProfile:     localEnvironmentNvidiaProfile(),
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+	})
+
+	if plan.State != localEnvironmentStateRepairRequired {
+		t.Fatalf("plan state = %q, want repair_required", plan.State)
+	}
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
+	if dep.State != localEnvironmentStateRepairRequired {
+		t.Fatalf("CUDA dependency state = %q, want repair_required: %+v", dep.State, dep)
+	}
+	if dep.ConfirmationRequired {
+		t.Fatalf("repair-required CUDA dependency must not be projected as first-confirmation setup: %+v", dep)
+	}
 }
 
 func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing.T) {

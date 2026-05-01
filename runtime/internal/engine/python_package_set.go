@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -90,6 +91,9 @@ func (m *Manager) EnsurePythonPackageSetDependency(ctx context.Context, uvPath s
 			return PythonPackageSetDependencyStatus{}, err
 		}
 	}
+	if err := materializePythonPipelineServerScript(trimmedVenvRoot, consumer); err != nil {
+		return PythonPackageSetDependencyStatus{}, err
+	}
 	return PythonPackageSetDependencyStatus{
 		PackageSetID:           manifest.ID,
 		LockHash:               lockHash,
@@ -101,6 +105,21 @@ func (m *Manager) EnsurePythonPackageSetDependency(ctx context.Context, uvPath s
 		ImportProbes:           append([]string{}, manifest.ImportProbes...),
 		Detail:                 "Runtime-managed Python package set verified from declared lock manifest",
 	}, nil
+}
+
+func materializePythonPipelineServerScript(root string, consumer string) error {
+	trimmedRoot := strings.TrimSpace(root)
+	if trimmedRoot == "" {
+		return fmt.Errorf("python pipeline script root is required")
+	}
+	switch {
+	case strings.HasPrefix(strings.TrimSpace(consumer), "media."):
+		return os.WriteFile(filepath.Join(trimmedRoot, "media_server.py"), []byte(mediaServerScript), 0o755)
+	case strings.HasPrefix(strings.TrimSpace(consumer), "speech."):
+		return os.WriteFile(filepath.Join(trimmedRoot, "speech_server.py"), []byte(speechServerScript), 0o755)
+	default:
+		return fmt.Errorf("python pipeline server script is not admitted for consumer %s", consumer)
+	}
 }
 
 func normalizePackageFreezeLines(output string) []string {

@@ -100,14 +100,13 @@ func localEnvironmentPlatformTuple(profile localEnvironmentHostProfileState) str
 	return osName + "/" + arch
 }
 
-func localEnvironmentKey(dependencyFamily string, dependencyID string, hostProfileID string, platformTuple string, runtimeDataRoot string, consumerScope string) string {
+func localEnvironmentKey(dependencyFamily string, dependencyID string, hostProfileID string, platformTuple string, runtimeDataRoot string) string {
 	parts := []string{
 		strings.TrimSpace(dependencyFamily),
 		strings.TrimSpace(dependencyID),
 		strings.TrimSpace(hostProfileID),
 		strings.TrimSpace(platformTuple),
 		strings.TrimSpace(runtimeDataRoot),
-		strings.TrimSpace(consumerScope),
 	}
 	return strings.Join(parts, "|")
 }

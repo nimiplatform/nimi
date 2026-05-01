@@ -22,6 +22,22 @@ func TestResolveConfiguredMediaModeRequiresExplicitMode(t *testing.T) {
 	}
 }
 
+func TestEnsureMediaDoesNotMaterializeHiddenDependencies(t *testing.T) {
+	baseDir := t.TempDir()
+	cfg := DefaultMediaConfig()
+	cfg.MediaMode = MediaModePipelineSupervised
+	_, err := ensureMedia(context.Background(), baseDir, cfg)
+	if err == nil {
+		t.Fatal("expected media startup to fail closed without selected sources")
+	}
+	if strings.Contains(err.Error(), "ensure uv") || strings.Contains(err.Error(), "install media dependencies") {
+		t.Fatalf("media startup attempted hidden materialization: %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(baseDir, "uv")); !os.IsNotExist(statErr) {
+		t.Fatalf("media startup created uv root or unexpected stat error: %v", statErr)
+	}
+}
+
 func TestResolveConfiguredMediaModeRejectsSelectionMismatch(t *testing.T) {
 	selection := ImageSupervisedMatrixSelection{
 		Matched:        true,

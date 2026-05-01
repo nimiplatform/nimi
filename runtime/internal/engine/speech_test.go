@@ -1,8 +1,10 @@
 package engine
 
 import (
+	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -29,6 +31,20 @@ func TestSpeechCommandEnvIncludesDriverConfiguration(t *testing.T) {
 	}
 	if got := env["NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS"]; got != "45000" {
 		t.Fatalf("NIMI_RUNTIME_SPEECH_DRIVER_TIMEOUT_MS = %q", got)
+	}
+}
+
+func TestEnsureSpeechDoesNotMaterializeHiddenDependencies(t *testing.T) {
+	baseDir := t.TempDir()
+	_, err := ensureSpeech(context.Background(), baseDir, DefaultSpeechConfig())
+	if err == nil {
+		t.Fatal("expected speech startup to fail closed without selected sources")
+	}
+	if strings.Contains(err.Error(), "ensure uv") || strings.Contains(err.Error(), "install speech dependencies") {
+		t.Fatalf("speech startup attempted hidden materialization: %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(baseDir, "uv")); !os.IsNotExist(statErr) {
+		t.Fatalf("speech startup created uv root or unexpected stat error: %v", statErr)
 	}
 }
 

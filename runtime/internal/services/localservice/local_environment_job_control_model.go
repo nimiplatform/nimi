@@ -49,8 +49,8 @@ func (s *Service) executeModelAssetEnvironmentDependencyJob(ctx context.Context,
 }
 
 func (s *Service) executeModelCompanionEnvironmentDependencyJob(ctx context.Context, job localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
-	consumer := consumerScopeFromEnvironmentKey(job.EnvironmentKey)
-	parentRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyModelAsset, consumer)
+	parentAssetID := companionParentAssetIDFromDependencyID(job.DependencyID)
+	parentRecord, ok := s.selectedModelAssetSourceForAssetID(parentAssetID)
 	if !ok || strings.TrimSpace(parentRecord.RecordID) == "" {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateFailed,
@@ -73,7 +73,7 @@ func (s *Service) executeModelCompanionEnvironmentDependencyJob(ctx context.Cont
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED",
 		}, nil
 	}
-	if strings.TrimSpace(model.GetLocalAssetId()) == strings.TrimPrefix(strings.TrimSpace(parentRecord.DependencyID), "asset:") {
+	if strings.TrimSpace(model.GetAssetId()) == parentAssetID {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateFailed,
 			SourceKind:      sourceKind,
@@ -155,6 +155,9 @@ func (s *Service) localEnvironmentAssetByDependencyID(dependencyID string) (*run
 		return model, nil
 	case strings.HasPrefix(trimmed, "asset-id:"):
 		assetID := strings.TrimSpace(strings.TrimPrefix(trimmed, "asset-id:"))
+		if index := strings.Index(assetID, "|"); index >= 0 {
+			assetID = strings.TrimSpace(assetID[:index])
+		}
 		if assetID == "" {
 			return nil, errors.New("model asset id is required")
 		}
@@ -212,6 +215,34 @@ func modelAssetSelectedConsumers(environmentKey string) []string {
 		}
 	}
 	return []string{"local.model"}
+}
+
+func companionParentAssetIDFromDependencyID(dependencyID string) string {
+	parts := strings.Split(strings.TrimSpace(dependencyID), "|")
+	for _, part := range parts {
+		if strings.HasPrefix(strings.TrimSpace(part), "parent-asset-id:") {
+			return strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(part), "parent-asset-id:"))
+		}
+	}
+	return ""
+}
+
+func (s *Service) selectedModelAssetSourceForAssetID(assetID string) (localEnvironmentSelectedSourceRecordState, bool) {
+	trimmedAssetID := strings.TrimSpace(assetID)
+	if trimmedAssetID == "" {
+		return localEnvironmentSelectedSourceRecordState{}, false
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, record := range s.localEnvironmentSelectedSources {
+		if record.DependencyFamily != localEnvironmentFamilyModelAsset {
+			continue
+		}
+		if strings.TrimSpace(record.DependencyID) == "asset-id:"+trimmedAssetID {
+			return record, true
+		}
+	}
+	return localEnvironmentSelectedSourceRecordState{}, false
 }
 
 func mergeStringMaps(base map[string]string, overlay map[string]string) map[string]string {

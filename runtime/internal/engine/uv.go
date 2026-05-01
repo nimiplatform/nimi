@@ -166,16 +166,25 @@ func ensureManagedPython(ctx context.Context, uvPath string, root string, versio
 }
 
 func (m *Manager) EnsurePythonRuntimeDependency(ctx context.Context, uvPath string, engineName string, version string, pythonVersion string) (PythonRuntimeDependencyStatus, error) {
-	kind, err := parseEngineKind(engineName)
-	if err != nil {
-		return PythonRuntimeDependencyStatus{}, err
+	trimmedEngine := strings.TrimSpace(engineName)
+	trimmedVersion := strings.TrimSpace(version)
+	if trimmedVersion == "" {
+		trimmedVersion = strings.TrimSpace(pythonVersion)
 	}
-	switch kind {
-	case EngineMedia, EngineSpeech:
-	default:
-		return PythonRuntimeDependencyStatus{}, fmt.Errorf("python runtime dependency is not admitted for engine %s", engineName)
+	kind := EngineKind("python")
+	if trimmedEngine != "" && trimmedEngine != "python" {
+		parsedKind, err := parseEngineKind(trimmedEngine)
+		if err != nil {
+			return PythonRuntimeDependencyStatus{}, err
+		}
+		switch parsedKind {
+		case EngineMedia, EngineSpeech:
+			kind = parsedKind
+		default:
+			return PythonRuntimeDependencyStatus{}, fmt.Errorf("python runtime dependency is not admitted for engine %s", engineName)
+		}
 	}
-	root := engineVersionDir(m.baseDir, kind, version)
+	root := engineVersionDir(m.baseDir, kind, trimmedVersion)
 	interpreterPath, observedVersion, err := ensureManagedPythonRuntime(ctx, uvPath, root, pythonVersion)
 	if err != nil {
 		return PythonRuntimeDependencyStatus{}, err

@@ -9,8 +9,6 @@ import (
 	"strings"
 )
 
-const speechPythonVersion = "3.12"
-
 var nimiSpeechPackages = []string{
 	"fastapi==0.121.1",
 	"uvicorn[standard]==0.38.0",
@@ -40,39 +38,15 @@ func speechCommandEnv() map[string]string {
 	return env
 }
 
-func speechDependencyStampContents() []byte {
-	return []byte(strings.Join(nimiSpeechPackages, "\n") + "\n")
-}
-
-func ensureSpeech(ctx context.Context, baseDir string, cfg EngineConfig) (EngineConfig, error) {
+func ensureSpeech(_ context.Context, baseDir string, cfg EngineConfig) (EngineConfig, error) {
 	root := engineVersionDir(baseDir, EngineSpeech, cfg.Version)
-	uvRoot := filepath.Join(baseDir, "uv")
-	uvPath, err := ensureUV(ctx, uvRoot)
-	if err != nil {
-		return cfg, fmt.Errorf("ensure uv for speech: %w", err)
-	}
-	pythonPath, err := ensureManagedPython(ctx, uvPath, root, speechPythonVersion)
-	if err != nil {
-		return cfg, fmt.Errorf("ensure managed python for speech: %w", err)
-	}
-
+	pythonPath := managedPythonPath(root)
 	scriptPath := filepath.Join(root, "speech_server.py")
-	if writeErr := os.WriteFile(scriptPath, []byte(speechServerScript), 0o755); writeErr != nil {
-		return cfg, fmt.Errorf("write speech server script: %w", writeErr)
+	if _, err := os.Stat(pythonPath); err != nil {
+		return cfg, fmt.Errorf("speech python selected source is not ready at %s: %w", pythonPath, err)
 	}
-
-	stampPath := filepath.Join(root, ".deps-installed")
-	stampCurrent := false
-	if stampRaw, readErr := os.ReadFile(stampPath); readErr == nil {
-		stampCurrent = string(stampRaw) == string(speechDependencyStampContents())
-	}
-	if !stampCurrent {
-		if installErr := uvPipInstall(ctx, uvPath, pythonPath, nimiSpeechPackages); installErr != nil {
-			return cfg, fmt.Errorf("install speech dependencies: %w", installErr)
-		}
-		if writeErr := os.WriteFile(stampPath, speechDependencyStampContents(), 0o644); writeErr != nil {
-			return cfg, fmt.Errorf("write speech dependency stamp: %w", writeErr)
-		}
+	if _, err := os.Stat(scriptPath); err != nil {
+		return cfg, fmt.Errorf("speech package-set selected source is not ready at %s: %w", scriptPath, err)
 	}
 
 	cfg.BinaryPath = pythonPath

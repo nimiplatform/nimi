@@ -46,7 +46,7 @@ const (
 	MediaModePipelineSupervised MediaMode = "pipeline_supervised"
 )
 
-func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineConfig, error) {
+func ensureMedia(_ context.Context, baseDir string, cfg EngineConfig) (EngineConfig, error) {
 	mediaMode, err := resolveConfiguredMediaMode(cfg)
 	if err != nil {
 		return cfg, err
@@ -54,41 +54,13 @@ func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineC
 	cfg.MediaMode = mediaMode
 
 	root := engineVersionDir(baseDir, EngineMedia, cfg.Version)
-	uvRoot := filepath.Join(baseDir, "uv")
-	uvPath, err := ensureUV(ctx, uvRoot)
-	if err != nil {
-		return cfg, fmt.Errorf("ensure uv for media: %w", err)
-	}
-	pythonPath, err := ensureManagedPython(ctx, uvPath, root, mediaPythonVersion)
-	if err != nil {
-		return cfg, fmt.Errorf("ensure managed python for media: %w", err)
-	}
-
+	pythonPath := managedPythonPath(root)
 	scriptPath := filepath.Join(root, "media_server.py")
-	if writeErr := os.WriteFile(scriptPath, []byte(mediaServerScript), 0o755); writeErr != nil {
-		return cfg, fmt.Errorf("write media server script: %w", writeErr)
+	if _, err := os.Stat(pythonPath); err != nil {
+		return cfg, fmt.Errorf("media python selected source is not ready at %s: %w", pythonPath, err)
 	}
-
-	stampPath := filepath.Join(root, ".deps-installed")
-	if mediaMode == MediaModePipelineSupervised {
-		if _, err := os.Stat(stampPath); err != nil {
-			extraArgs := []string{}
-			if indexURL := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_ENGINE_NIMI_MEDIA_TORCH_INDEX_URL")); indexURL != "" {
-				extraArgs = append(extraArgs, "--extra-index-url", indexURL)
-			} else {
-				extraArgs = append(extraArgs, "--extra-index-url", defaultMediaTorchIndexURL)
-			}
-			if installErr := uvPipInstall(ctx, uvPath, pythonPath, mediaPackages, extraArgs...); installErr != nil {
-				return cfg, fmt.Errorf("install media dependencies: %w", installErr)
-			}
-			if writeErr := os.WriteFile(stampPath, []byte(strings.Join(mediaPackages, "\n")), 0o644); writeErr != nil {
-				return cfg, fmt.Errorf("write media dependency stamp: %w", writeErr)
-			}
-		}
-	} else if _, err := os.Stat(stampPath); err != nil {
-		if writeErr := os.WriteFile(stampPath, []byte("proxy_execution\n"), 0o644); writeErr != nil {
-			return cfg, fmt.Errorf("write media proxy dependency stamp: %w", writeErr)
-		}
+	if _, err := os.Stat(scriptPath); err != nil {
+		return cfg, fmt.Errorf("media package-set selected source is not ready at %s: %w", scriptPath, err)
 	}
 
 	cacheRoot := filepath.Join(root, "cache")

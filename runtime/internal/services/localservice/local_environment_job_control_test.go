@@ -403,8 +403,8 @@ func TestStartPythonUVDependencyJobPromotesVerifiedSelectedSource(t *testing.T) 
 	if got := source.GetHashes()["archive_sha256"]; got != "c84629a56e0706b69a47ea35862208af827cb6fbfa1d0ca763c52c67594637e8" {
 		t.Fatalf("archive hash = %q, want pinned uv archive hash", got)
 	}
-	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
-		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
+	if got := source.GetSelectedConsumers(); !stringSliceContains(got, "media.diffusers.cuda") || !stringSliceContains(got, "speech.qwen3-tts.python") {
+		t.Fatalf("selected consumers = %v, want shared python consumers", got)
 	}
 }
 
@@ -494,8 +494,8 @@ func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testin
 	if got := source.GetHashes()["selected_uv_record"]; got != uvRecord.RecordID {
 		t.Fatalf("selected uv record hash = %q, want %q", got, uvRecord.RecordID)
 	}
-	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
-		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
+	if got := source.GetSelectedConsumers(); !stringSliceContains(got, "media.diffusers.cuda") || !stringSliceContains(got, "media.diffusers.cpu") {
+		t.Fatalf("selected consumers = %v, want local-image python consumers", got)
 	}
 }
 
@@ -588,8 +588,8 @@ func TestStartPythonVenvDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 	if got := source.GetHashes()["selected_python_runtime_record"]; got != runtimeRecord.RecordID {
 		t.Fatalf("selected python runtime record hash = %q, want %q", got, runtimeRecord.RecordID)
 	}
-	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
-		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
+	if got := source.GetSelectedConsumers(); !stringSliceContains(got, "media.diffusers.cuda") || !stringSliceContains(got, "media.diffusers.cpu") {
+		t.Fatalf("selected consumers = %v, want local-image python consumers", got)
 	}
 }
 
@@ -686,8 +686,8 @@ func TestStartPythonPackageSetDependencyJobPromotesVerifiedSelectedSource(t *tes
 	if got := source.GetHashes()["selected_venv_record"]; got != venvRecord.RecordID {
 		t.Fatalf("selected venv record hash = %q, want %q", got, venvRecord.RecordID)
 	}
-	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "speech.qwen3-tts.python" {
-		t.Fatalf("selected consumers = %v, want speech.qwen3-tts.python", got)
+	if got := source.GetSelectedConsumers(); !stringSliceContains(got, "speech.qwen3-tts.python") || !stringSliceContains(got, "speech.qwen3-asr.python") {
+		t.Fatalf("selected consumers = %v, want speech consumers", got)
 	}
 }
 
@@ -808,8 +808,8 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 	if got := source.GetHashes()["selected_cuda_record"]; got != cudaRecord.RecordID {
 		t.Fatalf("selected cuda record hash = %q, want %q", got, cudaRecord.RecordID)
 	}
-	if got := source.GetSelectedConsumers(); len(got) != 1 || got[0] != "media.diffusers.cuda" {
-		t.Fatalf("selected consumers = %v, want media.diffusers.cuda", got)
+	if got := source.GetSelectedConsumers(); !stringSliceContains(got, "media.diffusers.cuda") || !stringSliceContains(got, "media.diffusers.cpu") {
+		t.Fatalf("selected consumers = %v, want local-image python consumers", got)
 	}
 }
 
@@ -914,8 +914,8 @@ func TestStartModelCompanionDependencyJobPromotesVerifiedSelectedSource(t *testi
 	writeLocalEnvironmentAssetEntryForTest(t, svc, companion, "verified-companion")
 	parentRecord := svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyModelAsset,
-		DependencyID:      "asset:" + parent.GetLocalAssetId(),
-		EnvironmentKey:    "model.asset|asset:" + parent.GetLocalAssetId() + "|host|windows/amd64|root|media.diffusers.cpu",
+		DependencyID:      "asset-id:" + parent.GetAssetId(),
+		EnvironmentKey:    "model.asset|asset-id:" + parent.GetAssetId() + "|host|windows/amd64|root",
 		SourceKind:        localEnvironmentSourceManaged,
 		CanonicalRoot:     "parent-root",
 		Hashes:            map[string]string{"local_asset_id": parent.GetLocalAssetId()},
@@ -923,9 +923,9 @@ func TestStartModelCompanionDependencyJobPromotesVerifiedSelectedSource(t *testi
 	})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
-		EnvironmentKey:   "model.companion-asset|asset:" + companion.GetLocalAssetId() + "|host|windows/amd64|root|media.diffusers.cpu",
+		EnvironmentKey:   "model.companion-asset|asset-id:" + companion.GetAssetId() + "|parent-asset-id:" + parent.GetAssetId() + "|host|windows/amd64|root",
 		DependencyFamily: localEnvironmentFamilyModelCompanion,
-		DependencyId:     "asset:" + companion.GetLocalAssetId(),
+		DependencyId:     "asset-id:" + companion.GetAssetId() + "|parent-asset-id:" + parent.GetAssetId(),
 		Confirmed:        true,
 	})
 	if err != nil {

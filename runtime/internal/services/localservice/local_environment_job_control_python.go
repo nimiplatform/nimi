@@ -41,7 +41,7 @@ func (s *Service) executePythonUVEnvironmentDependencyJob(ctx context.Context, j
 		CompatibilityEvidence: []string{strings.TrimSpace(status.Detail), "asset=" + strings.TrimSpace(status.ArchiveAssetName), "platform=" + strings.TrimSpace(status.Platform)},
 		VerifiedArtifacts:     normalizeStringSlice([]string{strings.TrimSpace(status.ExecutablePath)}),
 		Hashes:                map[string]string{"archive_sha256": strings.TrimSpace(status.ArchiveSHA256)},
-		SelectedConsumers:     pythonSelectedConsumers(job.EnvironmentKey),
+		SelectedConsumers:     pythonSelectedConsumersForDependency(job.DependencyID),
 		AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
@@ -54,7 +54,7 @@ func (s *Service) executePythonRuntimeEnvironmentDependencyJob(ctx context.Conte
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
 		}, nil
 	}
-	consumer := consumerScopeFromEnvironmentKey(job.EnvironmentKey)
+	consumer := pythonMaterializerConsumerForDependency(job.DependencyID)
 	uvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonUV, consumer)
 	if !ok {
 		return localEnvironmentDependencyJobResult{
@@ -94,7 +94,7 @@ func (s *Service) executePythonRuntimeEnvironmentDependencyJob(ctx context.Conte
 		CompatibilityEvidence: []string{strings.TrimSpace(status.Detail), "selected_uv_record=" + strings.TrimSpace(uvRecord.RecordID)},
 		VerifiedArtifacts:     normalizeStringSlice([]string{strings.TrimSpace(status.InterpreterPath), strings.TrimSpace(status.UVExecutable)}),
 		Hashes:                map[string]string{"selected_uv_record": strings.TrimSpace(uvRecord.RecordID)},
-		SelectedConsumers:     pythonSelectedConsumers(job.EnvironmentKey),
+		SelectedConsumers:     pythonSelectedConsumersForDependency(job.DependencyID),
 		AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
@@ -107,7 +107,7 @@ func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context,
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
 		}, nil
 	}
-	consumer := consumerScopeFromEnvironmentKey(job.EnvironmentKey)
+	consumer := pythonMaterializerConsumerForDependency(job.DependencyID)
 	uvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonUV, consumer)
 	if !ok {
 		return localEnvironmentDependencyJobResult{
@@ -158,7 +158,7 @@ func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context,
 			"selected_uv_record":             strings.TrimSpace(uvRecord.RecordID),
 			"selected_python_runtime_record": strings.TrimSpace(runtimeRecord.RecordID),
 		},
-		SelectedConsumers: pythonSelectedConsumers(job.EnvironmentKey),
+		SelectedConsumers: pythonSelectedConsumersForDependency(job.DependencyID),
 		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
@@ -171,7 +171,7 @@ func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Co
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
 		}, nil
 	}
-	consumer := consumerScopeFromEnvironmentKey(job.EnvironmentKey)
+	consumer := pythonMaterializerConsumerForDependency(job.DependencyID)
 	uvRecord, ok := s.selectedSourceForFamilyAndConsumer(localEnvironmentFamilyPythonUV, consumer)
 	if !ok {
 		return localEnvironmentDependencyJobResult{
@@ -235,7 +235,7 @@ func (s *Service) executePythonPackageSetEnvironmentDependencyJob(ctx context.Co
 			"selected_uv_record":   strings.TrimSpace(uvRecord.RecordID),
 			"selected_venv_record": strings.TrimSpace(venvRecord.RecordID),
 		},
-		SelectedConsumers: pythonSelectedConsumers(job.EnvironmentKey),
+		SelectedConsumers: pythonSelectedConsumersForDependency(job.DependencyID),
 		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
@@ -248,7 +248,7 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 			AuditReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_UNSUPPORTED",
 		}, nil
 	}
-	consumer := consumerScopeFromEnvironmentKey(job.EnvironmentKey)
+	consumer := pythonMaterializerConsumerForDependency(job.DependencyID)
 	if !strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
@@ -335,33 +335,44 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 			strings.TrimSpace(status.TorchvisionSpec),
 		}),
 		Hashes:            hashes,
-		SelectedConsumers: pythonSelectedConsumers(job.EnvironmentKey),
+		SelectedConsumers: pythonSelectedConsumersForDependency(job.DependencyID),
 		AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 	}, nil
 }
 
-func pythonSelectedConsumers(environmentKey string) []string {
-	for _, consumer := range []string{
-		"media.diffusers.cuda",
-		"media.diffusers.cpu",
-		"media.video-python.cuda",
-		"media.video-python.cpu",
-		"speech.qwen3-asr.python",
-		"speech.qwen3-tts.python",
-	} {
-		if strings.Contains(environmentKey, "|"+consumer) {
-			return []string{consumer}
+func pythonSelectedConsumersForDependency(dependencyID string) []string {
+	switch {
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-image-python."):
+		return []string{"media.diffusers.cpu", "media.diffusers.cuda"}
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-video-python."):
+		return []string{"media.video-python.cpu", "media.video-python.cuda"}
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech."):
+		return []string{"speech.qwen3-asr.python", "speech.qwen3-tts.python"}
+	case strings.TrimSpace(dependencyID) == "python.runtime", strings.TrimSpace(dependencyID) == "uv":
+		return []string{
+			"media.diffusers.cpu",
+			"media.diffusers.cuda",
+			"media.video-python.cpu",
+			"media.video-python.cuda",
+			"speech.qwen3-asr.python",
+			"speech.qwen3-tts.python",
 		}
+	default:
+		return []string{"python.pipeline"}
 	}
-	return []string{"python.pipeline"}
 }
 
-func consumerScopeFromEnvironmentKey(environmentKey string) string {
-	parts := strings.Split(strings.TrimSpace(environmentKey), "|")
-	if len(parts) == 0 {
+func pythonMaterializerConsumerForDependency(dependencyID string) string {
+	switch {
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-image-python."):
+		return "media.diffusers.cuda"
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-video-python."):
+		return "media.video-python.cuda"
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-speech."):
+		return "speech.qwen3-tts.python"
+	default:
 		return ""
 	}
-	return strings.TrimSpace(parts[len(parts)-1])
 }
 
 func pythonRuntimeEngineTarget(consumer string) (string, string) {
@@ -369,6 +380,8 @@ func pythonRuntimeEngineTarget(consumer string) (string, string) {
 	case strings.HasPrefix(strings.TrimSpace(consumer), "speech."):
 		cfg := engine.DefaultSpeechConfig()
 		return "speech", cfg.Version
+	case strings.TrimSpace(consumer) == "":
+		return "python", defaultLocalEnvironmentPythonVersion
 	default:
 		cfg := engine.DefaultMediaConfig()
 		return "media", cfg.Version
@@ -384,7 +397,7 @@ func (s *Service) selectedSourceForFamilyAndConsumer(family string, consumer str
 		if record.DependencyFamily != trimmedFamily {
 			continue
 		}
-		if trimmedConsumer == "" || stringSliceContains(record.SelectedConsumers, trimmedConsumer) || strings.HasSuffix(record.EnvironmentKey, "|"+trimmedConsumer) {
+		if trimmedConsumer == "" || stringSliceContains(record.SelectedConsumers, trimmedConsumer) {
 			return record, true
 		}
 	}

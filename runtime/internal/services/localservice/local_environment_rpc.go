@@ -33,7 +33,7 @@ func (s *Service) ListLocalEnvironmentSelectedSources(_ context.Context, req *ru
 		if familyFilter != "" && source.DependencyFamily != familyFilter {
 			continue
 		}
-		if consumerFilter != "" && !stringSliceContains(source.SelectedConsumers, consumerFilter) && !strings.Contains(source.EnvironmentKey, "|"+consumerFilter) {
+		if consumerFilter != "" && !stringSliceContains(source.SelectedConsumers, consumerFilter) {
 			continue
 		}
 		sources = append(sources, source)

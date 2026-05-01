@@ -161,7 +161,7 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 
 func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefinition, family string, required bool, hostState localEnvironmentHostProfileState, platformTuple string, runtimeDataRoot string, consumerScope string, req localEnvironmentPlanRequest) localEnvironmentPlanDependency {
 	dependencyID := s.localEnvironmentDependencyID(def.PackID, family, req)
-	environmentKey := localEnvironmentKey(family, dependencyID, hostState.HostProfileID, platformTuple, runtimeDataRoot, consumerScope)
+	environmentKey := localEnvironmentKey(family, dependencyID, hostState.HostProfileID, platformTuple, runtimeDataRoot)
 	dep := localEnvironmentPlanDependency{
 		DependencyFamily: family,
 		DependencyID:     dependencyID,
@@ -212,6 +212,11 @@ func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefiniti
 		return dep
 	}
 
+	if family == localEnvironmentFamilyCUDA {
+		promoted, _ := s.promoteLocalEnvironmentCUDAProjection(dep, consumerScope)
+		return promoted
+	}
+
 	dep.ConfirmationRequired = true
 	return dep
 }
@@ -219,22 +224,38 @@ func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefiniti
 func (s *Service) localEnvironmentDependencyID(packID string, family string, req localEnvironmentPlanRequest) string {
 	switch family {
 	case localEnvironmentFamilyModelAsset:
-		return localEnvironmentAssetDependencyID(strings.TrimSpace(req.LocalAssetID), strings.TrimSpace(req.AssetID))
+		return s.localEnvironmentModelAssetDependencyID(strings.TrimSpace(req.LocalAssetID), strings.TrimSpace(req.AssetID))
 	case localEnvironmentFamilyModelCompanion:
-		return localEnvironmentAssetDependencyID(strings.TrimSpace(req.CompanionAssetID), "")
+		return s.localEnvironmentCompanionAssetDependencyID(strings.TrimSpace(req.CompanionAssetID), strings.TrimSpace(req.ParentAssetID), strings.TrimSpace(req.LocalAssetID))
 	default:
 		return defaultLocalEnvironmentDependencyID(packID, family)
 	}
 }
 
-func localEnvironmentAssetDependencyID(localAssetID string, assetID string) string {
-	if trimmed := strings.TrimSpace(localAssetID); trimmed != "" {
-		return "asset:" + trimmed
-	}
+func (s *Service) localEnvironmentModelAssetDependencyID(localAssetID string, assetID string) string {
 	if trimmed := strings.TrimSpace(assetID); trimmed != "" {
 		return "asset-id:" + trimmed
 	}
+	if model := s.modelByID(strings.TrimSpace(localAssetID)); model != nil {
+		if trimmed := strings.TrimSpace(model.GetAssetId()); trimmed != "" {
+			return "asset-id:" + trimmed
+		}
+	}
 	return ""
+}
+
+func (s *Service) localEnvironmentCompanionAssetDependencyID(companionAssetID string, parentAssetID string, parentLocalAssetID string) string {
+	companion := strings.TrimSpace(companionAssetID)
+	parent := strings.TrimSpace(parentAssetID)
+	if parent == "" {
+		if model := s.modelByID(strings.TrimSpace(parentLocalAssetID)); model != nil {
+			parent = strings.TrimSpace(model.GetAssetId())
+		}
+	}
+	if companion == "" || parent == "" {
+		return ""
+	}
+	return "asset-id:" + companion + "|parent-asset-id:" + parent
 }
 
 func localEnvironmentHostSupportsCUDA(host localEnvironmentHostProfileState) bool {
