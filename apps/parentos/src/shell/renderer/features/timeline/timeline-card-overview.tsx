@@ -195,8 +195,9 @@ export function ChildContextCard({ child, childList, ageMonths }: { child: Child
   const meshBackground = getProfileMeshBackground(child.gender);
   return (
     <div
-      className="col-span-2 row-span-2 relative z-10"
+      className="relative z-10 shrink-0"
       style={{
+        width: 240,
         borderRadius: 24,
         background: '#ffffff',
         boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 4px 14px rgba(15,23,42,0.04), 0 18px 36px rgba(15,23,42,0.04)',
@@ -225,7 +226,7 @@ export function ChildContextCard({ child, childList, ageMonths }: { child: Child
             <span className="mr-1.5 inline-block h-[6px] w-[6px] rounded-full" style={{ background: '#34c759' }} />
             {describeNurtureMode(child.nurtureMode)}
           </span>
-          <Link to="/profile" className="flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-[14px] font-medium transition-colors hover:bg-black/[0.04]" style={{ color: '#1d1d1f' }}>
+          <Link to="/profile" className="flex w-full items-center justify-center whitespace-nowrap rounded-xl px-4 py-2.5 text-[14px] font-medium transition-colors hover:bg-black/[0.04]" style={{ color: '#1d1d1f' }}>
             查看完整档案
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 opacity-60">
               <path d="M9 5l7 7-7 7" />
@@ -292,7 +293,7 @@ export function RecentChangesHeroCard({ items }: { items: RecentChangeItem[] }) 
   const secondary = items.slice(1);
 
   return (
-    <Cd cls="col-span-6 row-span-2" material="glass-thick">
+    <Cd cls="min-w-0 flex-1" material="glass-thick">
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>
           <p className="text-[13px] font-medium tracking-[0.08em]" style={{ color: textSoft }}>最近 7 天</p>

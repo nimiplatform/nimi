@@ -154,6 +154,36 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   display: none;
 }
 
+/* Dashboard add-todo textarea — thin light scrollbar, no arrows, no hover-darken */
+.todo-input-textarea,
+.todo-input-textarea:hover {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 23, 42, 0.08) transparent;
+}
+.todo-input-textarea::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.todo-input-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+.todo-input-textarea::-webkit-scrollbar-thumb,
+.todo-input-textarea:hover::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.08);
+  border-radius: 4px;
+}
+.todo-input-textarea::-webkit-scrollbar-button,
+.todo-input-textarea::-webkit-scrollbar-button:single-button:vertical:decrement,
+.todo-input-textarea::-webkit-scrollbar-button:single-button:vertical:increment,
+.todo-input-textarea::-webkit-scrollbar-button:double-button:vertical:decrement,
+.todo-input-textarea::-webkit-scrollbar-button:double-button:vertical:increment,
+.todo-input-textarea::-webkit-scrollbar-button:start:decrement,
+.todo-input-textarea::-webkit-scrollbar-button:end:increment {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* Time picker scroll columns — hidden scrollbar */
 .time-picker-col {
   scrollbar-width: none;

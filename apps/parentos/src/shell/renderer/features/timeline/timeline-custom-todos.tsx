@@ -157,14 +157,13 @@ export function CustomTodoComposer({
   return (
     <div className="px-5 pb-3 pt-3">
       <div
-        className="rounded-2xl px-4 pb-3 pt-3.5 transition-all"
+        className="todo-input-card rounded-2xl px-4 pb-3 pt-3.5 transition-all"
         style={{
           background: '#ffffff',
           border: '1.5px solid #3BB88A',
           boxShadow: '0 8px 22px rgba(59, 184, 138, 0.14)',
         }}
       >
-        <div className="mb-1 text-[16px] font-semibold" style={{ color: '#111827' }}>要做什么？</div>
         <textarea
           ref={inputRef}
           value={newTitle}
@@ -184,7 +183,7 @@ export function CustomTodoComposer({
           placeholder="比如：提醒我每晚读 10 分钟绘本"
           disabled={adding}
           rows={1}
-          className="block w-full resize-none overflow-y-auto border-0 bg-transparent py-1 text-[14px] leading-[1.55] outline-none placeholder:text-[#9ca3af]"
+          className="todo-input-textarea block w-full resize-none overflow-y-auto border-0 bg-transparent py-1 text-[14px] leading-[1.55] outline-none placeholder:text-[#9ca3af]"
           style={{ color: '#1e293b' }}
         />
 

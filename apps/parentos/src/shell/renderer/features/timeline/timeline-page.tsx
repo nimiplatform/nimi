@@ -200,9 +200,11 @@ export default function TimelinePage() {
         }}
       />
       <div className="hide-scrollbar relative z-[1] min-w-0 flex-1 overflow-y-auto px-6 pb-8" style={{ paddingTop: 28 }}>
-        <div className="grid auto-rows-min grid-cols-8 gap-6">
+        <div className="mb-6 flex gap-6">
           <ChildContextCard child={child} childList={childList} ageMonths={ageMonths} />
           <RecentChangesHeroCard items={homeVm.recentChanges} />
+        </div>
+        <div className="grid auto-rows-min grid-cols-8 gap-6">
           <QuickLinksStrip ageMonths={ageMonths} />
           {/* Growth snapshot (left) + Sleep trend & Vision (right, stacked) */}
           <div className="col-span-8 flex gap-6">
