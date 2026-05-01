@@ -919,6 +919,337 @@ test('agent runtime turn stream binds to the current request_id and ignores back
   }
 });
 
+test('agent runtime turn starts consuming subscription events before request ack', async () => {
+  clearPlatformClient();
+  const client = await createPlatformClient({
+    appId: 'nimi.desktop.test.anchor-agent-eager-subscription',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+  });
+  const requestCalls: Array<{
+    agentId: string;
+    conversationAnchorId: string;
+    requestId?: string;
+    threadId: string;
+  }> = [];
+  let subscriptionIteratorStarted = false;
+  (client as unknown as { runtime: unknown }).runtime = {
+    local: {
+      listLocalAssets: async () => ({
+        assets: [{
+          localAssetId: 'local-model-1',
+          assetId: 'llama3',
+          engine: 'llama',
+          endpoint: 'http://127.0.0.1:11434/v1',
+          updatedAt: '2026-04-23T00:00:00.000Z',
+          status: 2,
+        }],
+        nextPageToken: '',
+      }),
+      warmLocalAsset: async () => ({
+        asset: {
+          localAssetId: 'local-model-1',
+        },
+      }),
+    },
+    agent: {
+      turns: {
+        subscribe: async () => ({
+          async *[Symbol.asyncIterator]() {
+            subscriptionIteratorStarted = true;
+            while (!requestCalls[0]?.requestId) {
+              await Promise.resolve();
+            }
+            const requestId = requestCalls[0]?.requestId || '';
+            yield {
+              eventName: 'runtime.agent.turn.accepted' as const,
+              turnId: 'turn-eager',
+              streamId: 'stream-eager',
+              detail: { requestId },
+            };
+            yield {
+              eventName: 'runtime.agent.turn.started' as const,
+              turnId: 'turn-eager',
+              streamId: 'stream-eager',
+              detail: {},
+            };
+            yield {
+              eventName: 'runtime.agent.turn.structured' as const,
+              turnId: 'turn-eager',
+              streamId: 'stream-eager',
+              detail: {
+                kind: 'agent_resolved_message_action_envelope',
+                payload: {
+                  message: {
+                    message_id: 'assistant-eager',
+                    text: 'hello from runtime',
+                  },
+                  actions: [],
+                },
+              },
+            };
+            yield {
+              eventName: 'runtime.agent.turn.message_committed' as const,
+              turnId: 'turn-eager',
+              streamId: 'stream-eager',
+              messageId: 'assistant-eager',
+              detail: {
+                messageId: 'assistant-eager',
+                text: 'hello from runtime',
+              },
+            };
+            yield {
+              eventName: 'runtime.agent.turn.completed' as const,
+              turnId: 'turn-eager',
+              streamId: 'stream-eager',
+              detail: {
+                terminalReason: 'stop',
+              },
+            };
+          },
+        }),
+        request: async (request: {
+          agentId: string;
+          conversationAnchorId: string;
+          requestId?: string;
+          threadId: string;
+        }) => {
+          requestCalls.push(request);
+          await Promise.resolve();
+          assert.equal(subscriptionIteratorStarted, true);
+          return { messageId: 'runtime-request-message-1' };
+        },
+        interrupt: async () => undefined,
+      },
+    },
+  };
+
+  try {
+    const projection = createLocalTextProjection();
+    const agentResolution = buildAgentEffectiveCapabilityResolution({
+      textProjection: projection,
+    });
+    const executionSnapshot = createAISnapshot({
+      config: createEmptyAIConfig(),
+      capability: 'text.generate',
+      projection,
+      agentResolution,
+    });
+
+    const result = await streamChatAgentRuntimeAgentTurn({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-eager',
+      threadId: 'thread-eager',
+      messages: [{ role: 'user', text: 'hello eager' }],
+      reasoningPreference: 'off',
+      agentResolution,
+      textExecutionSnapshot: executionSnapshot,
+      runtimeConfigState: null,
+      runtimeFields: {
+        targetType: '',
+        targetAccountId: '',
+        agentId: 'agent-1',
+        targetId: '',
+        worldId: '',
+        provider: 'llama',
+        runtimeModelType: 'chat',
+        localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+        localProviderModel: 'llama3',
+        localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
+        connectorId: '',
+        mode: 'STORY',
+        turnIndex: 1,
+        userConfirmedUpload: false,
+      },
+      signal: new AbortController().signal,
+    });
+    const parts: Array<{
+      type: string;
+      outputText?: string;
+    }> = [];
+    for await (const part of result.stream) {
+      parts.push(part as {
+        type: string;
+        outputText?: string;
+      });
+    }
+
+    assert.equal(requestCalls.length, 1);
+    assert.equal(subscriptionIteratorStarted, true);
+    assert.deepEqual(
+      parts.map((part) => part.type),
+      ['message-sealed', 'turn-completed'],
+    );
+    assert.equal(parts[1]?.outputText, 'hello from runtime');
+  } finally {
+    clearPlatformClient();
+  }
+});
+
+test('agent runtime turn recovers terminal projection from authoritative runtime snapshot when subscription misses commit events', async () => {
+  clearPlatformClient();
+  const client = await createPlatformClient({
+    appId: 'nimi.desktop.test.anchor-agent-snapshot-recovery',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+  });
+  const requestCalls: Array<{
+    agentId: string;
+    conversationAnchorId: string;
+    requestId?: string;
+    threadId: string;
+  }> = [];
+  const snapshotCalls: Array<{
+    agentId: string;
+    conversationAnchorId: string;
+    requestId?: string;
+  }> = [];
+  (client as unknown as { runtime: unknown }).runtime = {
+    local: {
+      listLocalAssets: async () => ({
+        assets: [{
+          localAssetId: 'local-model-1',
+          assetId: 'llama3',
+          engine: 'llama',
+          endpoint: 'http://127.0.0.1:11434/v1',
+          updatedAt: '2026-04-23T00:00:00.000Z',
+          status: 2,
+        }],
+        nextPageToken: '',
+      }),
+      warmLocalAsset: async () => ({
+        asset: {
+          localAssetId: 'local-model-1',
+        },
+      }),
+    },
+    agent: {
+      turns: {
+        subscribe: async () => ({
+          async *[Symbol.asyncIterator]() {
+            while (!requestCalls[0]?.requestId) {
+              await Promise.resolve();
+            }
+            const requestId = requestCalls[0]?.requestId || '';
+            yield {
+              eventName: 'runtime.agent.turn.accepted' as const,
+              turnId: 'turn-snapshot',
+              streamId: 'stream-snapshot',
+              detail: { requestId },
+            };
+            yield {
+              eventName: 'runtime.agent.turn.started' as const,
+              turnId: 'turn-snapshot',
+              streamId: 'stream-snapshot',
+              detail: {},
+            };
+          },
+        }),
+        getSessionSnapshot: async (request: {
+          agentId: string;
+          conversationAnchorId: string;
+          requestId?: string;
+        }) => {
+          snapshotCalls.push(request);
+          return {
+            requestId: request.requestId,
+            threadId: 'thread-snapshot',
+            lastTurn: {
+              turnId: 'turn-snapshot',
+              status: 'completed',
+              messageId: 'assistant-snapshot',
+              text: 'snapshot recovered response',
+              finishReason: 'stop',
+              structured: {
+                schema_id: 'agent_resolved_message_action_envelope',
+                message: {
+                  message_id: 'assistant-snapshot',
+                  text: 'snapshot recovered response',
+                },
+                actions: [],
+              },
+            },
+          };
+        },
+        request: async (request: {
+          agentId: string;
+          conversationAnchorId: string;
+          requestId?: string;
+          threadId: string;
+        }) => {
+          requestCalls.push(request);
+          return { messageId: 'runtime-request-message-snapshot' };
+        },
+        interrupt: async () => undefined,
+      },
+    },
+  };
+
+  try {
+    const projection = createLocalTextProjection();
+    const agentResolution = buildAgentEffectiveCapabilityResolution({
+      textProjection: projection,
+    });
+    const executionSnapshot = createAISnapshot({
+      config: createEmptyAIConfig(),
+      capability: 'text.generate',
+      projection,
+      agentResolution,
+    });
+
+    const result = await streamChatAgentRuntimeAgentTurn({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-snapshot',
+      threadId: 'thread-snapshot',
+      messages: [{ role: 'user', text: 'hello snapshot' }],
+      reasoningPreference: 'off',
+      agentResolution,
+      textExecutionSnapshot: executionSnapshot,
+      runtimeConfigState: null,
+      runtimeFields: {
+        targetType: '',
+        targetAccountId: '',
+        agentId: 'agent-1',
+        targetId: '',
+        worldId: '',
+        provider: 'llama',
+        runtimeModelType: 'chat',
+        localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+        localProviderModel: 'llama3',
+        localOpenAiEndpoint: 'http://127.0.0.1:11434/v1',
+        connectorId: '',
+        mode: 'STORY',
+        turnIndex: 1,
+        userConfirmedUpload: false,
+      },
+      signal: new AbortController().signal,
+    });
+    const parts: Array<{
+      type: string;
+      outputText?: string;
+    }> = [];
+    for await (const part of result.stream) {
+      parts.push(part as {
+        type: string;
+        outputText?: string;
+      });
+    }
+
+    assert.equal(requestCalls.length, 1);
+    assert.equal(snapshotCalls.length >= 1, true);
+    assert.equal(snapshotCalls[0]?.requestId, requestCalls[0]?.requestId);
+    assert.deepEqual(
+      parts.map((part) => part.type),
+      ['message-sealed', 'turn-completed'],
+    );
+    assert.equal(parts[1]?.outputText, 'snapshot recovered response');
+  } finally {
+    clearPlatformClient();
+  }
+});
+
 test('agent runtime turn consumes runtime-owned projection events from anchor app messages', async () => {
   clearPlatformClient();
   const client = await createPlatformClient({

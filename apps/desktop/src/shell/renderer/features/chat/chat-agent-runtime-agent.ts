@@ -2,16 +2,12 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { asNimiError } from '@nimiplatform/sdk/runtime';
 import type { RuntimeAgentConsumeEvent } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import type {
-  ConversationRuntimeTrace,
-} from '@nimiplatform/nimi-kit/features/chat/headless';
+import type { ConversationRuntimeTrace } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   resolveSourceAndModel,
 } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
-import {
-  type AgentResolvedMessageActionEnvelope,
-} from './chat-agent-behavior';
+import { type AgentResolvedMessageActionEnvelope } from './chat-agent-behavior';
 import type {
   AgentLocalChatRuntimeRequest,
   AgentLocalChatTurnStreamPart,
@@ -32,6 +28,11 @@ import {
   resolveChatThinkingConfig,
   resolveTextExecutionSnapshotThinkingSupport,
 } from './chat-shared-thinking';
+import {
+  createRuntimeAgentEventQueue,
+  delay,
+  recoverRuntimeAgentTerminalSnapshot,
+} from './chat-agent-runtime-agent-stream';
 import {
   buildRuntimeAgentDiagnostics,
   cloneEnvelopeWithCommittedMessage,
@@ -155,6 +156,7 @@ export async function streamChatAgentRuntimeAgentTurn(
   let currentRuntimeTurnId = '';
   let currentRuntimeStreamId = '';
   const acceptedRequestIds = new Set<string>([requestId]);
+  const eventQueue = createRuntimeAgentEventQueue(subscribed);
 
   const requestInterrupt = () => {
     if (interruptRequested || !requestSubmitted) {
@@ -167,6 +169,10 @@ export async function streamChatAgentRuntimeAgentTurn(
       ...(normalizeText(currentRuntimeTurnId) ? { turnId: currentRuntimeTurnId } : {}),
       reason: 'desktop_agent_chat_abort',
     }).catch(() => undefined);
+  };
+  const cleanupSubscription = () => {
+    request.signal?.removeEventListener('abort', requestInterrupt);
+    eventQueue.stop();
   };
 
   request.signal?.addEventListener('abort', requestInterrupt, { once: true });
@@ -226,9 +232,15 @@ export async function streamChatAgentRuntimeAgentTurn(
   } catch (error) {
     const normalized = asNimiError(error, { source: 'runtime' });
     if (normalized.reasonCode !== ReasonCode.PROTOCOL_ENVELOPE_INVALID) {
+      cleanupSubscription();
       throw error;
     }
-    requestResponse = await runtime.agent.turns.request(requestPayloadBase);
+    try {
+      requestResponse = await runtime.agent.turns.request(requestPayloadBase);
+    } catch (fallbackError) {
+      cleanupSubscription();
+      throw fallbackError;
+    }
   }
   const requestMessageId = normalizeText(requestResponse && typeof requestResponse === 'object' ? requestResponse.messageId : '');
   if (requestMessageId) {
@@ -276,9 +288,11 @@ export async function streamChatAgentRuntimeAgentTurn(
       let startedAt = 0;
       let firstDeltaObserved = false;
       let messageCommittedAt = 0;
+      let terminalProjected = false;
+      let snapshotRecoveryProjected = false;
+      const snapshotRecoveryController = new AbortController();
       const runtimeProjectionEvents: RuntimeAgentProjectionSummary[] = [];
       const runtimeTurnTimelines: RuntimeAgentTimelineSummary[] = [];
-      const iterator = subscribed[Symbol.asyncIterator]();
 
       const timelineDiagnostics = () => runtimeTurnTimelines.length > 0
         ? { runtimeTurnTimelines: [...runtimeTurnTimelines] }
@@ -292,6 +306,45 @@ export async function streamChatAgentRuntimeAgentTurn(
           runtimeTurnTimelines.push(timeline);
         }
       };
+      const recoverTerminalSnapshot = async (reason: string): Promise<boolean> => {
+        if (terminalProjected || snapshotRecoveryProjected) {
+          return false;
+        }
+        const recovered = await recoverRuntimeAgentTerminalSnapshot({
+          reason,
+          request,
+          requestId,
+          requestMessageId,
+          currentTurnAccepted,
+          currentRuntimeTurnId,
+          currentRuntimeStreamId,
+          hasStructuredEnvelope: Boolean(structuredEnvelope),
+          hasCommittedMessage: Boolean(committedMessage),
+          querySnapshot: () => runtime.agent.turns.getSessionSnapshot({
+            agentId: request.agentId,
+            conversationAnchorId: request.conversationAnchorId,
+            requestId,
+          }),
+          enqueue: eventQueue.enqueue,
+          logEvent: safeLogRuntimeAgentEvent,
+        });
+        if (recovered) {
+          snapshotRecoveryProjected = true;
+        }
+        return recovered;
+      };
+      void (async () => {
+        while (!terminalProjected && !snapshotRecoveryController.signal.aborted) {
+          await delay(1000, snapshotRecoveryController.signal);
+          if (terminalProjected || snapshotRecoveryController.signal.aborted) {
+            return;
+          }
+          const recovered = await recoverTerminalSnapshot('subscription_terminal_stall');
+          if (recovered) {
+            return;
+          }
+        }
+      })();
 
       const maybeYieldCommittedMessage = function* (
         trace?: ConversationRuntimeTrace,
@@ -357,11 +410,22 @@ export async function streamChatAgentRuntimeAgentTurn(
 
       try {
         while (true) {
-          const nextResult = await iterator.next();
-          if (nextResult.done) {
+          const nextResult = await eventQueue.next();
+          if (nextResult.type === 'done') {
+            const recovered = await recoverTerminalSnapshot('subscription_done');
+            if (recovered) {
+              continue;
+            }
             break;
           }
-          const event = nextResult.value;
+          if (nextResult.type === 'error') {
+            const recovered = await recoverTerminalSnapshot('subscription_error');
+            if (recovered) {
+              continue;
+            }
+            throw nextResult.error;
+          }
+          const event = nextResult.event;
           recordTurnTimeline(event);
           const trace = resolveRuntimeTrace();
           switch (event.eventName) {
@@ -568,6 +632,7 @@ export async function streamChatAgentRuntimeAgentTurn(
               if (!currentTurnAccepted || event.turnId !== currentRuntimeTurnId) {
                 break;
               }
+              terminalProjected = true;
               safeLogRuntimeAgentEvent({
                 level: 'info',
                 area: 'agent-chat-runtime',
@@ -649,6 +714,7 @@ export async function streamChatAgentRuntimeAgentTurn(
               if (!currentTurnAccepted || event.turnId !== currentRuntimeTurnId) {
                 break;
               }
+              terminalProjected = true;
               safeLogRuntimeAgentEvent({
                 level: 'warn',
                 area: 'agent-chat-runtime',
@@ -694,6 +760,7 @@ export async function streamChatAgentRuntimeAgentTurn(
               if (!currentTurnAccepted || event.turnId !== currentRuntimeTurnId) {
                 break;
               }
+              terminalProjected = true;
               yield {
                 type: 'turn-canceled',
                 scope: 'turn',
@@ -720,8 +787,8 @@ export async function streamChatAgentRuntimeAgentTurn(
           }
         }
       } finally {
-        request.signal?.removeEventListener('abort', requestInterrupt);
-        await iterator.return?.();
+        snapshotRecoveryController.abort();
+        cleanupSubscription();
       }
       throw new Error('runtime.agent turn stream ended without a terminal event');
     })(),
