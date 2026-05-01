@@ -23,6 +23,9 @@ func newDigestStore(t *testing.T) *storage.SQLiteBackend {
 	if err != nil {
 		t.Fatalf("new store: %v", err)
 	}
+	t.Cleanup(func() {
+		_ = store.Close()
+	})
 	return store
 }
 

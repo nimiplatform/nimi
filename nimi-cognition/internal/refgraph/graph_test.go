@@ -14,11 +14,20 @@ import (
 
 var ts = time.Date(2026, 4, 16, 12, 0, 0, 0, time.UTC)
 
-func TestService_RemoveBlockers_IgnoresRemovedSourceArtifacts(t *testing.T) {
+func newTestStore(t *testing.T) *storage.SQLiteBackend {
+	t.Helper()
 	store, err := storage.NewSQLiteBackend(t.TempDir())
 	if err != nil {
 		t.Fatalf("new backend: %v", err)
 	}
+	t.Cleanup(func() {
+		_ = store.Close()
+	})
+	return store
+}
+
+func TestService_RemoveBlockers_IgnoresRemovedSourceArtifacts(t *testing.T) {
+	store := newTestStore(t)
 
 	target := memory.Record{
 		RecordID:  "m1",
@@ -80,10 +89,7 @@ func TestService_RemoveBlockers_IgnoresRemovedSourceArtifacts(t *testing.T) {
 }
 
 func TestService_BrokenTargets_TreatsRemovedTargetsAsBroken(t *testing.T) {
-	store, err := storage.NewSQLiteBackend(t.TempDir())
-	if err != nil {
-		t.Fatalf("new backend: %v", err)
-	}
+	store := newTestStore(t)
 
 	target := memory.Record{
 		RecordID:  "m1",
@@ -130,10 +136,7 @@ func TestService_BrokenTargets_TreatsRemovedTargetsAsBroken(t *testing.T) {
 }
 
 func TestService_RemoveBlockers_ExposeActiveStrongActiveWeakAndArchivedWeakContext(t *testing.T) {
-	store, err := storage.NewSQLiteBackend(t.TempDir())
-	if err != nil {
-		t.Fatalf("new backend: %v", err)
-	}
+	store := newTestStore(t)
 
 	target := memory.Record{
 		RecordID:  "m1",
@@ -256,10 +259,7 @@ func TestService_RemoveBlockers_ExposeActiveStrongActiveWeakAndArchivedWeakConte
 }
 
 func TestService_OutgoingHealth_ExplainsBrokenDependency(t *testing.T) {
-	store, err := storage.NewSQLiteBackend(t.TempDir())
-	if err != nil {
-		t.Fatalf("new backend: %v", err)
-	}
+	store := newTestStore(t)
 
 	service := New(store)
 	health, err := service.OutgoingHealth("a1", []artifactref.Ref{{

@@ -21,6 +21,9 @@ func newTestEngine(t *testing.T) (*Engine, *storage.SQLiteBackend) {
 	if err != nil {
 		t.Fatalf("new backend: %v", err)
 	}
+	t.Cleanup(func() {
+		_ = store.Close()
+	})
 	return NewEngine(store, clock.NewTestClock(ts)), store
 }
 

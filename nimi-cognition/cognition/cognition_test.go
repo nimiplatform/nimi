@@ -20,6 +20,9 @@ func newTestCognition(t *testing.T) *Cognition {
 	if err != nil {
 		t.Fatalf("new cognition: %v", err)
 	}
+	t.Cleanup(func() {
+		_ = c.Close()
+	})
 	return c
 }
 
@@ -29,6 +32,9 @@ func newTestCognitionAt(t *testing.T, root string) *Cognition {
 	if err != nil {
 		t.Fatalf("new cognition: %v", err)
 	}
+	t.Cleanup(func() {
+		_ = c.Close()
+	})
 	return c
 }
 

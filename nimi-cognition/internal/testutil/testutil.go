@@ -16,5 +16,8 @@ func NewTestBackend(t *testing.T) *storage.SQLiteBackend {
 	if err != nil {
 		t.Fatalf("new test backend: %v", err)
 	}
+	t.Cleanup(func() {
+		_ = b.Close()
+	})
 	return b
 }
