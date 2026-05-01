@@ -1,0 +1,99 @@
+version: 1
+
+# Canonical activation gate reason-code ownership.
+# Activation reasons are Runtime projection, not consumer-local readiness truth.
+
+reason_codes:
+  - reason_code: engine_package_missing
+    owner_kind: dependency_family
+    owner_ref: native-engine-package.*
+    activation_state: setup_required
+    audit_shape: dependency_blocking
+
+  - reason_code: model_asset_missing
+    owner_kind: dependency_family
+    owner_ref: model.asset
+    activation_state: setup_required
+    audit_shape: dependency_blocking
+
+  - reason_code: companion_asset_missing
+    owner_kind: dependency_family
+    owner_ref: model.companion-asset
+    activation_state: setup_required
+    audit_shape: dependency_blocking
+
+  - reason_code: selected_source_record_missing
+    owner_kind: selected_source_record
+    owner_ref: any_required_dependency
+    activation_state: setup_required
+    audit_shape: dependency_blocking
+
+  - reason_code: accelerator_runtime_missing
+    owner_kind: dependency_family
+    owner_ref: accelerator.cuda.runtime
+    activation_state: setup_required
+    audit_shape: dependency_blocking
+
+  - reason_code: accelerator_runtime_unconfirmed
+    owner_kind: dependency_family
+    owner_ref: accelerator.cuda.runtime
+    activation_state: setup_required
+    audit_shape: confirmation_blocking
+
+  - reason_code: uv_missing
+    owner_kind: dependency_family
+    owner_ref: python.tool.uv
+    activation_state: setup_required
+    audit_shape: dependency_blocking
+
+  - reason_code: python_runtime_missing
+    owner_kind: dependency_family
+    owner_ref: python.runtime
+    activation_state: setup_required
+    audit_shape: dependency_blocking
+
+  - reason_code: python_venv_missing
+    owner_kind: dependency_family
+    owner_ref: python.venv
+    activation_state: setup_required
+    audit_shape: dependency_blocking
+
+  - reason_code: python_package_set_missing
+    owner_kind: dependency_family
+    owner_ref: python.package-set
+    activation_state: setup_required
+    audit_shape: dependency_blocking
+
+  - reason_code: torch_wheel_missing
+    owner_kind: dependency_family
+    owner_ref: python.torch-wheel
+    activation_state: setup_required
+    audit_shape: dependency_blocking
+
+  - reason_code: vulkan_runtime_unavailable
+    owner_kind: host_capability_projection
+    owner_ref: host_profile.vulkan
+    activation_state: unsupported
+    audit_shape: host_capability_blocking
+
+  - reason_code: metal_runtime_unavailable
+    owner_kind: host_capability_projection
+    owner_ref: host_profile.metal
+    activation_state: unsupported
+    audit_shape: host_capability_blocking
+
+state_priority:
+  - unsupported
+  - repair_required
+  - failed
+  - cancelled
+  - setup_in_progress
+  - setup_required
+  - ready
+
+rules:
+  - reason codes are Runtime-owned activation projection and must not be invented by consumers
+  - dependency-family reason codes require dependency family, dependency id, environment key, selected source record id when present, dependency state, activation state, and bounded detail
+  - host capability projection reason codes must not create dependency families or selected source records
+  - speech driver readiness is folded into python.package-set evidence and uses python_package_set_missing when blocked
+  - non-ready activation states must not project active, degraded-ready, best-effort-ready, endpoint-ready, or import-ready

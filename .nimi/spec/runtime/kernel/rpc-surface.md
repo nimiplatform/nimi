@@ -761,10 +761,14 @@ preserve these constraints:
 - no Desktop, SDK, mod, engine, or app-level REST bypass may execute installers,
   probes, source selection, PATH mutation, or pseudo-ready projection on behalf
   of this surface
+- activation gate projection exposes the logical operation
+  `ResolveLocalEnvironmentConsumerActivation`; request, response, audit
+  envelope, and reason-code semantics are owned by
+  `local-environment-consumer-activation-contract.md`
 
 ## K-RPC-025 RuntimeLocalService Materializer Projection Surface
 
-Detailed RuntimeLocalService materializer projection semantics are owned by `local-environment-materializers-contract.md`. This section remains the stable RPC Surface anchor and delegates read, confirmation, command, job observation, activation-gate, and no-ordinary-user-installer rules to that file.
+Detailed RuntimeLocalService materializer projection semantics are owned by `local-environment-materializers-contract.md`; detailed activation-gate projection semantics are owned by `local-environment-consumer-activation-contract.md`. This section remains the stable RPC Surface anchor and delegates read, confirmation, command, job observation, activation-gate, and no-ordinary-user-installer rules to those files.
 
 ## K-RPC-023 Workflow Family Validation Boundary
 

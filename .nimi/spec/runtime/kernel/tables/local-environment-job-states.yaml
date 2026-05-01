@@ -134,4 +134,5 @@ projection_rules:
     - transfer_completion
     - package_directory_presence
     - path_precedence
+    - import_success
     - script_exit

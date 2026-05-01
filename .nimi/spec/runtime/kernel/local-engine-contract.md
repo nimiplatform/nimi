@@ -765,6 +765,11 @@ endpoint reachability, package directories, PATH precedence, import directory
 contents, and script results never project readiness without selected source
 records.
 
+Detailed activation authority, request/response shape, environment key
+derivation, process-local deltas, reason-code ownership, pack boundary, and
+forbidden ready inputs are owned by
+`local-environment-consumer-activation-contract.md`.
+
 ## K-LENG-027 Runtime Dependency Job Control
 
 Dependency materialization and repair run as Runtime-owned jobs, idempotent per dependency environment. Network materialization requires explicit confirmation covering dependency family, known size, storage category, and no system mutation policy. Startup, route resolution, Desktop page load, passive import review, health probes, and SDK reads must not start heavy downloads.

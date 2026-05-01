@@ -1,7 +1,7 @@
 # Local Environment Materializers Contract
 
 > Owner Domain: `K-LENV-MAT-*`
-> Delegated Anchors: `K-LENG-028`, `K-RPC-025`
+> Delegated Anchors: `K-LENG-028`, `K-RPC-025`, `K-LENV-ACT-*`
 
 This file owns the detailed runtime local environment materializer authority delegated from the Local Engine Contract and Runtime RPC Surface. It does not create a second truth owner; it keeps materializer rules in one AI-context-sized kernel spec while preserving the stable upstream anchors.
 
@@ -62,10 +62,10 @@ CUDA, DLL, package-manager, Torch, or native engine package roots.
 Selected source record identity is the dependency environment key. The
 environment key is composed from the dependency family and family-specific key
 fields in `tables/local-environment-dependencies.yaml`. `consumer_scope` is
-projection and activation-gate data unless a future spec cut explicitly admits
-consumer-scoped selected source ownership for a family. UI rows, transfer ids,
-consumer ids, model asset rows, and engine-private paths must not replace the
-dependency environment key.
+not default key material; it is projection and activation-gate data unless a
+future spec cut explicitly admits consumer-scoped selected source ownership for
+a family. UI rows, transfer ids, consumer ids, model asset rows, and
+engine-private paths must not replace the dependency environment key.
 
 Runtime core readiness remains independent from materializers. Runtime may
 reach core `READY` while local dependency jobs are missing, failed, cancelled,
@@ -88,6 +88,10 @@ the semantics are fixed:
 5. Start, observe, cancel, retry, and repair materializer jobs by dependency
    environment and Runtime job id.
 6. Project activation gate failures without probing or installing dependencies.
+
+Detailed consumer activation request, response, reason-code, and process-local
+delta semantics are owned by
+`local-environment-consumer-activation-contract.md`.
 
 The surface must return Runtime setup or repair state for missing `uv`, Python
 runtime, venv, package set, Torch wheel, native package, model asset, or

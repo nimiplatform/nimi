@@ -294,7 +294,7 @@ consumers:
         - uv_missing
         - python_runtime_missing
         - python_venv_missing
-        - speech_driver_missing
+        - python_package_set_missing
         - model_asset_missing
         - selected_source_record_missing
 
@@ -320,13 +320,15 @@ consumers:
         - uv_missing
         - python_runtime_missing
         - python_venv_missing
-        - speech_driver_missing
+        - python_package_set_missing
         - model_asset_missing
         - selected_source_record_missing
 
 rules:
   - consumer declarations are table truth; engine-local installers must not add hidden dependencies
   - Python pipelines must prove uv, Python runtime, venv, package-set, and Torch or driver packages independently
+  - speech driver packages are verified as python.package-set evidence and must not become engine-local installer truth
+  - vulkan_runtime_unavailable and metal_runtime_unavailable are host capability projection reasons, not dependency family materializers
   - native image activation must not require Python unless a Python pipeline consumer is selected
   - cloud-only usage has no consumer row in this table and must not resolve local compute dependencies
   - consumers may consume activation gates and selected source record references only; they must not install, repair, or re-resolve dependency sources

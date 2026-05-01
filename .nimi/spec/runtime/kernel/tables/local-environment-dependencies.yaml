@@ -280,6 +280,7 @@ dependency_families:
     dependency_kind: companion_payload
     environment_key_fields:
       - asset_id
+      - parent_asset_id
       - companion_kind
       - runtime_data_root
     source_policy: verified-asset-catalog-or-explicit-import
@@ -311,6 +312,7 @@ graph_rules:
   - model import may request a plan but must not become dependency source truth
   - imported model and companion assets may produce model-family selected source records only; they must not become Python, uv, CUDA, DLL, package-manager, or native engine package roots
   - missing uv, Python runtime, venv, package set, Torch wheel, native package, model asset, or companion asset readiness projects Runtime local environment setup or repair state, not ordinary-user package-manager or PATH prerequisites
+  - companion asset dependency identity includes parent asset binding so companion records cannot collide across parent model assets
   - startup, route resolution, Desktop page load, SDK reads, passive import review, health probes, and background maintenance must not trigger first heavy or network materialization
   - no dependency family may mutate user PATH, machine PATH, shell profiles, or system CUDA
   - missing, incompatible, corrupt, cancelled, or unconfirmed dependencies fail closed
