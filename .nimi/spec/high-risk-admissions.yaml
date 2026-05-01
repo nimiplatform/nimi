@@ -1,4 +1,22 @@
 admissions:
+  - topic_id: 2026-05-01-desktop-avatar-configuration-debug-workbench
+    packet_id: wave-0-authority-admit
+    disposition: complete
+    admitted_at: "2026-05-01T12:08:38Z"
+    manager_review_owner: nimicoding-manager
+    summary: >-
+      Desktop Avatar configuration debug workbench authority redesign admitted
+      as a hard-cut product control surface: Desktop may own Agent Chat Settings
+      Avatar configuration, launch controls, debug workbench views, remediation
+      UX, and local control-record persistence only; Runtime retains typed
+      runtime.agent.* projection, avatar probe/replay/audit/authorization
+      semantics; SDK remains typed client only; Avatar remains backend resolver,
+      capability/profile evidence, carrier diagnostics, and typed debug-session
+      consumer. Desktop configuration records are not launch payload, package
+      descriptor truth, carrier truth, backend truth, or binding truth, and the
+      admitted Avatar launch payload remains agent_id plus optional
+      avatar_instance_id and optional non-authoritative launch_source.
+    source_decision_contract: .nimi/topics/ongoing/2026-05-01-desktop-avatar-configuration-debug-workbench/packet-wave-0-authority-admit.md
   - topic_id: 2026-05-01-runtime-delegated-agent-capability-gateway
     packet_id: wave-0-authority-admit
     disposition: complete

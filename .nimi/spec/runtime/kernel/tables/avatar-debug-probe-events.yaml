@@ -1,0 +1,65 @@
+version: 1
+owner: .nimi/spec/runtime
+source_rule: K-AGCORE-055
+status: active
+probe_kinds:
+  - id: package_validation
+    request_owner: runtime
+    result_owner: runtime
+    backend_evidence_owner: desktop_import_or_avatar_backend
+  - id: launch_readiness
+    request_owner: runtime
+    result_owner: runtime
+    backend_evidence_owner: runtime_authorization
+  - id: backend_load
+    request_owner: runtime
+    result_owner: runtime
+    backend_evidence_owner: avatar
+  - id: capability_profile
+    request_owner: runtime
+    result_owner: runtime
+    backend_evidence_owner: avatar
+  - id: route_support_matrix
+    request_owner: runtime
+    result_owner: runtime
+    backend_evidence_owner: avatar
+  - id: generated_motion
+    request_owner: runtime
+    result_owner: runtime
+    backend_evidence_owner: avatar
+  - id: emotion_expression
+    request_owner: runtime
+    result_owner: runtime
+    backend_evidence_owner: avatar
+  - id: speech_lipsync
+    request_owner: runtime
+    result_owner: runtime
+    backend_evidence_owner: avatar
+  - id: window_hit_region
+    request_owner: runtime
+    result_owner: runtime
+    backend_evidence_owner: avatar
+
+result_status_enum:
+  - passed
+  - failed
+  - unsupported
+  - blocked
+  - invalid
+
+forbidden_payloads:
+  - raw_apml
+  - raw_mcp
+  - raw_a2a
+  - raw_provider_output
+  - app_business_data
+  - package_descriptor
+  - package_path
+  - token
+  - backend_command
+
+invariants:
+  - Probe kind names are Runtime-owned debug projection names.
+  - Avatar backend route ids are evidence refs, not Runtime probe kind names.
+  - Passed status requires concrete evidence refs.
+

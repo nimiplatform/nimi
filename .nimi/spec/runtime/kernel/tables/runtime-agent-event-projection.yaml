@@ -76,6 +76,19 @@ schema_aliases:
     source_rule: K-AGCORE-037
     equals: runtime.agent.state.posture_changed.detail.current_posture
 
+avatar_debug_envelope:
+  source_rule: K-AGCORE-058
+  required_fields:
+    - probe_id
+    - agent_id
+    - probe_kind
+    - observed_at
+  optional_origin_fields:
+    - conversation_anchor_id
+    - turn_id
+    - stream_id
+    - avatar_instance_id
+
 governance:
   source_rule: K-AGCORE-037
   stable_projection_payload_schema_truth: true
@@ -135,6 +148,42 @@ turn_events:
     source_rule: K-AGCORE-032
     detail:
       interrupted_turn_id: string
+
+avatar_debug_events:
+  - event: runtime.agent.avatar_debug.probe_requested
+    source_rule: K-AGCORE-058
+    detail:
+      probe_id: string
+      probe_kind: enum(package_validation|launch_readiness|backend_load|capability_profile|route_support_matrix|generated_motion|emotion_expression|speech_lipsync|window_hit_region)
+      requested_by: enum(desktop_debug_workbench|runtime_policy)
+      replay_requested: boolean
+    notes:
+      - Probe requests are Runtime-owned debug projection events, not public
+        APML syntax and not Avatar-owned semantic event names.
+      - Payload must not include package descriptors, package paths, backend
+        commands, raw provider output, or auth material.
+  - event: runtime.agent.avatar_debug.probe_result
+    source_rule: K-AGCORE-058
+    detail:
+      probe_id: string
+      probe_kind: enum(package_validation|launch_readiness|backend_load|capability_profile|route_support_matrix|generated_motion|emotion_expression|speech_lipsync|window_hit_region)
+      status: enum(passed|failed|unsupported|blocked|invalid)
+      reason_code: string
+      evidence_refs: string_array
+    notes:
+      - Passed status requires concrete Runtime or Avatar evidence refs.
+      - Avatar backend evidence may support the result, but Runtime owns the
+        public result envelope and replay semantics.
+  - event: runtime.agent.avatar_debug.replay_linked
+    source_rule: K-AGCORE-058
+    detail:
+      probe_id: string
+      replay_ref: string
+      redaction_state: enum(redacted|visible|forbidden)
+      visibility: enum(desktop_debug_workbench|sdk_diagnostics|runtime_audit_only)
+    notes:
+      - Replay refs are Runtime-owned. Desktop and SDK may display them but
+        must not reconstruct replay from local state.
 
 presentation_events:
   - event: runtime.agent.presentation.activity_requested

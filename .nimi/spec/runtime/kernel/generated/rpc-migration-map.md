@@ -184,6 +184,10 @@
 | `RuntimeAgentService` | `GetDelegatedReplayTrace` | `RuntimeAgentService` | `GetDelegatedReplayTrace` | `aligned` |
 | `RuntimeAgentService` | `GetDelegatedControlSurfaceSnapshot` | `RuntimeAgentService` | `GetDelegatedControlSurfaceSnapshot` | `aligned` |
 | `RuntimeAgentService` | `ExecuteDelegatedCapability` | `RuntimeAgentService` | `ExecuteDelegatedCapability` | `aligned` |
+| `RuntimeAgentService` | `GetAvatarDebugSnapshot` | `RuntimeAgentService` | `GetAvatarDebugSnapshot` | `aligned` |
+| `RuntimeAgentService` | `RequestAvatarDebugProbe` | `RuntimeAgentService` | `RequestAvatarDebugProbe` | `aligned` |
+| `RuntimeAgentService` | `ListAvatarDebugProbeResults` | `RuntimeAgentService` | `ListAvatarDebugProbeResults` | `aligned` |
+| `RuntimeAgentService` | `GetAvatarDebugReplay` | `RuntimeAgentService` | `GetAvatarDebugReplay` | `aligned` |
 | `RuntimeAgentService` | `GetAgentState` | `RuntimeAgentService` | `GetAgentState` | `aligned` |
 | `RuntimeAgentService` | `UpdateAgentState` | `RuntimeAgentService` | `UpdateAgentState` | `aligned` |
 | `RuntimeAgentService` | `EnableAutonomy` | `RuntimeAgentService` | `EnableAutonomy` | `aligned` |

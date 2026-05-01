@@ -125,6 +125,18 @@ NimiAgentScript (NAS) handler convention:
 - `avatar.speak.*` / `avatar.lipsync.*` (Phase 2)
 - `avatar.app.*` lifecycle
 
+### [`avatar-debug-session-contract.md`](avatar-debug-session-contract.md)
+
+Avatar debug session intake and backend evidence for Desktop Avatar
+configuration/debug workbench:
+
+- consumes Runtime-owned typed probe envelopes
+- emits Avatar-owned backend evidence
+- keeps package/profile resolver execution in Avatar after authorized
+  Runtime/SDK projection
+- forbids Desktop launch payload descriptors, raw APML, MCP/A2A, delegated
+  provider output, app data, and auth material
+
 ### [`mock-fixture-contract.md`](mock-fixture-contract.md)
 
 Explicit fixture tooling:
@@ -177,6 +189,11 @@ Backend-agnostic capability profile schema with VRM and Live2D backend sections.
 Profiles describe model/backend support and fail closed on missing capability.
 
 ### [`tables/mapping-sidecar.schema.yaml`](tables/mapping-sidecar.schema.yaml)
+
+### [`tables/avatar-debug-session.schema.yaml`](tables/avatar-debug-session.schema.yaml)
+
+Avatar debug session intake/evidence schema. It consumes Runtime probe ids and
+Avatar backend refs; it does not own public Runtime probe status.
 
 Mapping sidecar schema for route-to-backend/model name correspondence with
 confidence, evidence, threshold, and manual confirmation semantics.

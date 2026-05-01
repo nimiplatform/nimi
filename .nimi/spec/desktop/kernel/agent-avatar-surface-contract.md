@@ -450,3 +450,14 @@ Fixed rules:
 - `.nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md` — Avatar carrier visual proof requirements
 - `docs/architecture/agent-companion-core-protocol.md` — core substrate reader guide and correspondence matrix
 - `docs/architecture/live2d-companion.md` — reader guide and first-30-second demo correspondence
+
+## D-LLM-078a Cross-Reference — Configuration And Debug Workbench
+
+`agent-avatar-configuration-contract.md` and
+`agent-avatar-debug-workbench-contract.md` own the Agent Chat Settings Avatar
+configuration and debug workbench product surfaces.
+
+This contract continues to own transient avatar surface and handoff semantics.
+The configuration/debug contracts must not reopen Desktop-local carrier
+registry, per-agent avatar binding truth, or launch payload widening prohibited
+by D-LLM-059 through D-LLM-072.

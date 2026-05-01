@@ -1,0 +1,44 @@
+version: 1
+owner: .nimi/spec/runtime
+source_rule: K-AGCORE-057
+status: active
+replay_keys:
+  - key: probe_id
+    required: true
+    owner: runtime
+  - key: request_event_id
+    required: true
+    owner: runtime
+  - key: result_event_id
+    required: true
+    owner: runtime
+  - key: authorization_verdict_id
+    required: true
+    owner: runtime
+  - key: projection_lineage_id
+    required: true
+    owner: runtime
+  - key: avatar_backend_evidence_ref
+    required: false
+    owner: avatar
+  - key: redaction_state
+    required: true
+    owner: runtime
+  - key: replay_visibility
+    required: true
+    owner: runtime
+
+redaction_state_enum:
+  - redacted
+  - visible
+  - forbidden
+
+replay_visibility_enum:
+  - desktop_debug_workbench
+  - sdk_diagnostics
+  - runtime_audit_only
+
+invariants:
+  - Runtime audit/replay remains the canonical replay source.
+  - Desktop may display replay refs but must not reconstruct replay locally.
+

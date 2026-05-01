@@ -1,0 +1,47 @@
+version: 1
+owner: .nimi/spec/sdk
+source_rule: S-RUNTIME-116
+status: active
+methods:
+  - name: runtime.avatarConfiguration.get
+    category: read
+    input_ref: agent-avatar-configuration.schema.yaml
+    output_ref: agent-avatar-configuration.schema.yaml
+    semantic_owner: desktop_control_surface
+  - name: runtime.avatarConfiguration.upsert
+    category: command
+    input_ref: agent-avatar-configuration.schema.yaml
+    output_ref: agent-avatar-configuration.schema.yaml
+    semantic_owner: desktop_control_surface
+  - name: runtime.avatarDebug.snapshot
+    category: read
+    input_ref: avatar-debug-probe-events.yaml
+    output_ref: agent-avatar-debug-workbench-probes.yaml
+    semantic_owner: runtime_probe
+  - name: runtime.avatarDebug.requestProbe
+    category: command
+    input_ref: avatar-debug-probe-events.yaml
+    output_ref: avatar-debug-probe-events.yaml
+    semantic_owner: runtime_probe
+  - name: runtime.avatarDebug.listProbeResults
+    category: read
+    input_ref: avatar-debug-probe-events.yaml
+    output_ref: avatar-debug-probe-events.yaml
+    semantic_owner: runtime_probe
+  - name: runtime.avatarDebug.getReplay
+    category: read
+    input_ref: avatar-debug-replay-keys.yaml
+    output_ref: avatar-debug-replay-keys.yaml
+    semantic_owner: runtime_audit
+
+forbidden_type_shapes:
+  - any
+  - Record<string, unknown>
+  - free_form_map
+  - raw_apml
+  - raw_mcp
+  - raw_a2a
+  - raw_backend_payload
+
+implementation_status: contract_only_until_later_wave
+

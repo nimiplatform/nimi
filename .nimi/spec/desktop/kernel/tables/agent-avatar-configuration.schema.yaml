@@ -1,0 +1,108 @@
+schema_id: nimi.desktop.agent-avatar-configuration.v1
+owner: .nimi/spec/desktop
+status: active
+source_rule: D-LLM-079
+description: >
+  Closed Desktop control-record schema for Agent Chat Settings Avatar
+  configuration. This schema is not Avatar launch payload and not carrier truth.
+
+required_fields:
+  - agent_id
+  - conversation_anchor_scope
+  - avatar_instance_policy
+  - backend_kind
+  - launch_mode
+  - debug_profile
+  - updated_at
+  - provenance
+
+fields:
+  agent_id:
+    type: string
+    owner: runtime_projection_identity
+  conversation_anchor_scope:
+    type: enum
+    values:
+      - current_anchor
+      - explicit_debug_anchor
+      - no_anchor
+  avatar_package_ref:
+    type: string_optional
+    semantics: opaque_control_ref
+    forbidden_as:
+      - launch_payload
+      - package_descriptor
+      - carrier_truth
+  avatar_instance_policy:
+    type: enum
+    values:
+      - reuse_active_instance
+      - launch_new_instance
+      - require_user_selection
+  backend_kind:
+    type: enum
+    values:
+      - vrm
+      - live2d
+      - future
+  backend_capability_profile_ref:
+    type: string_optional
+    semantics: opaque_control_ref
+    forbidden_as:
+      - backend_capability_truth
+      - launch_payload
+  generated_motion_provider_policy:
+    type: enum
+    values:
+      - require_profile_support
+      - disable_generated_motion
+      - debug_only
+  launch_mode:
+    type: enum
+    values:
+      - manual
+      - debug_session
+      - start_with_chat
+  debug_profile:
+    type: enum
+    values:
+      - standard
+      - strict_backend_evidence
+      - route_matrix
+  updated_at:
+    type: iso8601_utc_timestamp
+  provenance:
+    type: object
+    required_fields:
+      - source
+      - evidence_ref
+    source_enum:
+      - user_selection
+      - import_validation
+      - runtime_projection
+      - avatar_backend_evidence
+
+forbidden_fields:
+  - package_descriptor
+  - package_path
+  - launch_package_id
+  - carrier_registry_id
+  - scoped_avatar_binding_id
+  - account_id
+  - user_id
+  - realm_url
+  - token
+  - refresh_token
+  - jwt
+  - auth_payload
+  - raw_apml
+  - raw_mcp
+  - raw_a2a
+  - raw_provider_output
+  - backend_command
+
+invariants:
+  - Desktop stores opaque refs only and does not dereference package descriptors.
+  - The schema must not be copied into Avatar launch payload.
+  - Missing evidence produces fail-closed configuration status.
+
