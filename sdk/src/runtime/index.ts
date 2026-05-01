@@ -81,6 +81,12 @@ export {
 export {
   AgentEventType,
   AgentExecutionState,
+  AvatarDebugEventFamily,
+  AvatarDebugProbeKind,
+  AvatarDebugProbeStatus,
+  AvatarDebugReplayRedactionState,
+  AvatarDebugReplayVisibility,
+  AvatarDebugRequestedBy,
   HookAdmissionState,
   AgentLifecycleStatus,
   AgentTrackType,
@@ -157,5 +163,12 @@ export type {
   RuntimeArtifactsReadBytesInput,
   RuntimeArtifactsReadBytesResult,
 } from './runtime-artifacts.js';
+export type {
+  RuntimeAvatarDebugListProbeResultsRequest,
+  RuntimeAvatarDebugModule,
+  RuntimeAvatarDebugReplayRequest,
+  RuntimeAvatarDebugRequestProbeRequest,
+  RuntimeAvatarDebugSnapshotRequest,
+} from './runtime-avatar-debug.js';
 export type * from './generated/runtime/v1/artifact_service.js';
 export { toProtoStruct } from './helpers.js';

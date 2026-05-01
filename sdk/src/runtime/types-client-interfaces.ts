@@ -274,6 +274,10 @@ import type {
   GetAgentResponse,
   GetAgentStateRequest,
   GetAgentStateResponse,
+  GetAvatarDebugReplayRequest,
+  GetAvatarDebugReplayResponse,
+  GetAvatarDebugSnapshotRequest,
+  GetAvatarDebugSnapshotResponse,
   InitializeAgentRequest,
   InitializeAgentResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
@@ -288,6 +292,8 @@ import type {
   ListDelegatedDiagnosticsResponse,
   ListDelegatedProviderProfilesRequest,
   ListDelegatedProviderProfilesResponse,
+  ListAvatarDebugProbeResultsRequest,
+  ListAvatarDebugProbeResultsResponse,
   ListPendingHooksRequest,
   ListPendingHooksResponse,
   OpenConversationAnchorRequest,
@@ -296,6 +302,8 @@ import type {
   GetPublicChatSessionSnapshotResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
+  RequestAvatarDebugProbeRequest,
+  RequestAvatarDebugProbeResponse,
   SetAgentPresentationProfileRequest,
   SetAgentPresentationProfileResponse,
   SetDelegatedProviderStateRequest,
@@ -502,6 +510,22 @@ export type RuntimeAgentClient = {
     request: GetPublicChatSessionSnapshotRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetPublicChatSessionSnapshotResponse>;
+  getAvatarDebugSnapshot(
+    request: GetAvatarDebugSnapshotRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<GetAvatarDebugSnapshotResponse>;
+  requestAvatarDebugProbe(
+    request: RequestAvatarDebugProbeRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<RequestAvatarDebugProbeResponse>;
+  listAvatarDebugProbeResults(
+    request: ListAvatarDebugProbeResultsRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<ListAvatarDebugProbeResultsResponse>;
+  getAvatarDebugReplay(
+    request: GetAvatarDebugReplayRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<GetAvatarDebugReplayResponse>;
   listDelegatedProviderProfiles(
     request: ListDelegatedProviderProfilesRequest,
     options?: RuntimeCallOptions,

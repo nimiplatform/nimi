@@ -68,6 +68,10 @@ import {
   createRuntimeAgentTurnsModule,
 } from './runtime-agent-surface.js';
 import {
+  createRuntimeAvatarDebugModule,
+  type RuntimeAvatarDebugModule,
+} from './runtime-avatar-debug.js';
+import {
   type RuntimeArtifactsModule,
   createRuntimeArtifactsModule,
 } from './runtime-artifacts.js';
@@ -130,6 +134,7 @@ export class Runtime {
   readonly knowledge: RuntimeKnowledgeClient;
   readonly memory: RuntimeMemoryClient;
   readonly agent: RuntimeAgentModule;
+  readonly avatarDebug: RuntimeAvatarDebugModule;
   readonly app: {
     sendMessage: RuntimeClient['app']['sendAppMessage'];
     subscribeMessages: RuntimeClient['app']['subscribeAppMessages'];
@@ -320,6 +325,12 @@ export class Runtime {
         protectedAccess: protectedScopeHelper,
         resolveSubjectUserId: (explicit) => this.#ctx.resolveSubjectUserId(explicit),
       }),
+    });
+    this.avatarDebug = createRuntimeAvatarDebugModule({
+      appId: this.appId,
+      agent: passthrough.agent,
+      protectedAccess: protectedScopeHelper,
+      resolveSubjectUserId: (explicit) => this.#ctx.resolveSubjectUserId(explicit),
     });
 
     this.scope = createScopeClient({

@@ -66,6 +66,10 @@ import {
   GetAgentResponse,
   GetAgentStateRequest,
   GetAgentStateResponse,
+  GetAvatarDebugReplayRequest,
+  GetAvatarDebugReplayResponse,
+  GetAvatarDebugSnapshotRequest,
+  GetAvatarDebugSnapshotResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
@@ -78,6 +82,8 @@ import {
   InitializeAgentResponse,
   ListAgentsRequest,
   ListAgentsResponse,
+  ListAvatarDebugProbeResultsRequest,
+  ListAvatarDebugProbeResultsResponse,
   ListDelegatedApprovalRequestsRequest,
   ListDelegatedApprovalRequestsResponse,
   ListDelegatedDiagnosticsRequest,
@@ -90,6 +96,8 @@ import {
   OpenConversationAnchorResponse,
   QueryAgentMemoryRequest,
   QueryAgentMemoryResponse,
+  RequestAvatarDebugProbeRequest,
+  RequestAvatarDebugProbeResponse,
   SetAgentPresentationProfileRequest,
   SetAgentPresentationProfileResponse,
   SetAutonomyConfigRequest,
@@ -344,6 +352,22 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.agent.getPublicChatSessionSnapshot]: {
     requestType: GetPublicChatSessionSnapshotRequest,
     responseType: GetPublicChatSessionSnapshotResponse,
+  },
+  [RuntimeMethodIds.agent.getAvatarDebugSnapshot]: {
+    requestType: GetAvatarDebugSnapshotRequest,
+    responseType: GetAvatarDebugSnapshotResponse,
+  },
+  [RuntimeMethodIds.agent.requestAvatarDebugProbe]: {
+    requestType: RequestAvatarDebugProbeRequest,
+    responseType: RequestAvatarDebugProbeResponse,
+  },
+  [RuntimeMethodIds.agent.listAvatarDebugProbeResults]: {
+    requestType: ListAvatarDebugProbeResultsRequest,
+    responseType: ListAvatarDebugProbeResultsResponse,
+  },
+  [RuntimeMethodIds.agent.getAvatarDebugReplay]: {
+    requestType: GetAvatarDebugReplayRequest,
+    responseType: GetAvatarDebugReplayResponse,
   },
   [RuntimeMethodIds.agent.listDelegatedProviderProfiles]: {
     requestType: ListDelegatedProviderProfilesRequest,

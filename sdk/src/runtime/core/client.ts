@@ -19,6 +19,10 @@ import {
 import {
   ExecuteDelegatedCapabilityRequest,
   ExecuteDelegatedCapabilityResponse,
+  GetAvatarDebugReplayRequest,
+  GetAvatarDebugReplayResponse,
+  GetAvatarDebugSnapshotRequest,
+  GetAvatarDebugSnapshotResponse,
   GetConversationAnchorSnapshotRequest,
   GetConversationAnchorSnapshotResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
@@ -27,6 +31,8 @@ import {
   GetDelegatedReplayTraceResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
+  ListAvatarDebugProbeResultsRequest,
+  ListAvatarDebugProbeResultsResponse,
   ListDelegatedApprovalRequestsRequest,
   ListDelegatedApprovalRequestsResponse,
   ListDelegatedDiagnosticsRequest,
@@ -35,6 +41,8 @@ import {
   ListDelegatedProviderProfilesResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
+  RequestAvatarDebugProbeRequest,
+  RequestAvatarDebugProbeResponse,
   SetDelegatedProviderStateRequest,
   SetDelegatedProviderStateResponse,
   SubmitDelegatedApprovalDecisionRequest,
@@ -385,6 +393,22 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       getPublicChatSessionSnapshot: customUnary(RuntimeMethodIds.agent.getPublicChatSessionSnapshot, {
         requestType: GetPublicChatSessionSnapshotRequest,
         responseType: GetPublicChatSessionSnapshotResponse,
+      }),
+      getAvatarDebugSnapshot: customUnary(RuntimeMethodIds.agent.getAvatarDebugSnapshot, {
+        requestType: GetAvatarDebugSnapshotRequest,
+        responseType: GetAvatarDebugSnapshotResponse,
+      }),
+      requestAvatarDebugProbe: customUnary(RuntimeMethodIds.agent.requestAvatarDebugProbe, {
+        requestType: RequestAvatarDebugProbeRequest,
+        responseType: RequestAvatarDebugProbeResponse,
+      }),
+      listAvatarDebugProbeResults: customUnary(RuntimeMethodIds.agent.listAvatarDebugProbeResults, {
+        requestType: ListAvatarDebugProbeResultsRequest,
+        responseType: ListAvatarDebugProbeResultsResponse,
+      }),
+      getAvatarDebugReplay: customUnary(RuntimeMethodIds.agent.getAvatarDebugReplay, {
+        requestType: GetAvatarDebugReplayRequest,
+        responseType: GetAvatarDebugReplayResponse,
       }),
       listDelegatedProviderProfiles: customUnary(RuntimeMethodIds.agent.listDelegatedProviderProfiles, {
         requestType: ListDelegatedProviderProfilesRequest,

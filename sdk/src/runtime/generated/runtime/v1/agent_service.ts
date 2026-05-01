@@ -867,6 +867,142 @@ export interface AgentPresentationEventDetail {
     lookatHasZ: boolean;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
+ */
+export interface AvatarDebugProbeRequestEnvelope {
+    /**
+     * @generated from protobuf field: string probe_id = 1
+     */
+    probeId: string;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 3
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugProbeKind probe_kind = 4
+     */
+    probeKind: AvatarDebugProbeKind;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp requested_at = 5
+     */
+    requestedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugRequestedBy requested_by = 6
+     */
+    requestedBy: AvatarDebugRequestedBy;
+    /**
+     * @generated from protobuf field: string turn_id = 7
+     */
+    turnId: string;
+    /**
+     * @generated from protobuf field: string stream_id = 8
+     */
+    streamId: string;
+    /**
+     * @generated from protobuf field: string avatar_instance_id = 9
+     */
+    avatarInstanceId: string;
+    /**
+     * @generated from protobuf field: string runtime_replay_ref = 10
+     */
+    runtimeReplayRef: string;
+    /**
+     * @generated from protobuf field: bool replay_requested = 11
+     */
+    replayRequested: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+ */
+export interface AvatarDebugProbeResultEnvelope {
+    /**
+     * @generated from protobuf field: string probe_id = 1
+     */
+    probeId: string;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 3
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugProbeKind probe_kind = 4
+     */
+    probeKind: AvatarDebugProbeKind;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugProbeStatus status = 5
+     */
+    status: AvatarDebugProbeStatus;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp observed_at = 6
+     */
+    observedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: repeated string evidence_refs = 7
+     */
+    evidenceRefs: string[];
+    /**
+     * @generated from protobuf field: string reason_code = 8
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: string result_id = 9
+     */
+    resultId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AvatarDebugReplayRef
+ */
+export interface AvatarDebugReplayRef {
+    /**
+     * @generated from protobuf field: string probe_id = 1
+     */
+    probeId: string;
+    /**
+     * @generated from protobuf field: string replay_ref = 2
+     */
+    replayRef: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugReplayRedactionState redaction_state = 3
+     */
+    redactionState: AvatarDebugReplayRedactionState;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugReplayVisibility visibility = 4
+     */
+    visibility: AvatarDebugReplayVisibility;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp linked_at = 5
+     */
+    linkedAt?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AgentAvatarDebugEventDetail
+ */
+export interface AgentAvatarDebugEventDetail {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugEventFamily family = 1
+     */
+    family: AvatarDebugEventFamily;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope request = 2
+     */
+    request?: AvatarDebugProbeRequestEnvelope;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugProbeResultEnvelope result = 3
+     */
+    result?: AvatarDebugProbeResultEnvelope;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugReplayRef replay = 4
+     */
+    replay?: AvatarDebugReplayRef;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.AgentEvent
  */
 export interface AgentEvent {
@@ -931,6 +1067,12 @@ export interface AgentEvent {
          * @generated from protobuf field: nimi.runtime.v1.AgentPresentationEventDetail presentation = 16
          */
         presentation: AgentPresentationEventDetail;
+    } | {
+        oneofKind: "avatarDebug";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AgentAvatarDebugEventDetail avatar_debug = 17
+         */
+        avatarDebug: AgentAvatarDebugEventDetail;
     } | {
         oneofKind: undefined;
     };
@@ -1547,6 +1689,178 @@ export interface GetPublicChatSessionSnapshotResponse {
      * @generated from protobuf field: google.protobuf.Struct snapshot = 1
      */
     snapshot?: Struct;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAvatarDebugSnapshotRequest
+ */
+export interface GetAvatarDebugSnapshotRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 3
+     */
+    conversationAnchorId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAvatarDebugSnapshotResponse
+ */
+export interface GetAvatarDebugSnapshotResponse {
+    /**
+     * @generated from protobuf field: string agent_id = 1
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 2
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AvatarDebugProbeResultEnvelope probe_results = 3
+     */
+    probeResults: AvatarDebugProbeResultEnvelope[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AvatarDebugReplayRef replay_refs = 4
+     */
+    replayRefs: AvatarDebugReplayRef[];
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp observed_at = 5
+     */
+    observedAt?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RequestAvatarDebugProbeRequest
+ */
+export interface RequestAvatarDebugProbeRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 3
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugProbeKind probe_kind = 4
+     */
+    probeKind: AvatarDebugProbeKind;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugRequestedBy requested_by = 5
+     */
+    requestedBy: AvatarDebugRequestedBy;
+    /**
+     * @generated from protobuf field: string probe_id = 6
+     */
+    probeId: string;
+    /**
+     * @generated from protobuf field: string turn_id = 7
+     */
+    turnId: string;
+    /**
+     * @generated from protobuf field: string stream_id = 8
+     */
+    streamId: string;
+    /**
+     * @generated from protobuf field: string avatar_instance_id = 9
+     */
+    avatarInstanceId: string;
+    /**
+     * @generated from protobuf field: bool replay_requested = 10
+     */
+    replayRequested: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RequestAvatarDebugProbeResponse
+ */
+export interface RequestAvatarDebugProbeResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope request = 1
+     */
+    request?: AvatarDebugProbeRequestEnvelope;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugProbeResultEnvelope result = 2
+     */
+    result?: AvatarDebugProbeResultEnvelope;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugReplayRef replay_ref = 3
+     */
+    replayRef?: AvatarDebugReplayRef;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListAvatarDebugProbeResultsRequest
+ */
+export interface ListAvatarDebugProbeResultsRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 3
+     */
+    conversationAnchorId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugProbeKind probe_kind = 4
+     */
+    probeKind: AvatarDebugProbeKind;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListAvatarDebugProbeResultsResponse
+ */
+export interface ListAvatarDebugProbeResultsResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AvatarDebugProbeResultEnvelope probe_results = 1
+     */
+    probeResults: AvatarDebugProbeResultEnvelope[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAvatarDebugReplayRequest
+ */
+export interface GetAvatarDebugReplayRequest {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
+     */
+    context?: AgentRequestContext;
+    /**
+     * @generated from protobuf field: string agent_id = 2
+     */
+    agentId: string;
+    /**
+     * @generated from protobuf field: string probe_id = 3
+     */
+    probeId: string;
+    /**
+     * @generated from protobuf field: string conversation_anchor_id = 4
+     */
+    conversationAnchorId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAvatarDebugReplayResponse
+ */
+export interface GetAvatarDebugReplayResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugProbeRequestEnvelope request = 1
+     */
+    request?: AvatarDebugProbeRequestEnvelope;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugProbeResultEnvelope result = 2
+     */
+    result?: AvatarDebugProbeResultEnvelope;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AvatarDebugReplayRef replay_ref = 3
+     */
+    replayRef?: AvatarDebugReplayRef;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.DelegatedToolAllowlistEntry
@@ -2357,7 +2671,11 @@ export enum AgentEventType {
     /**
      * @generated from protobuf enum value: AGENT_EVENT_TYPE_PRESENTATION = 7;
      */
-    PRESENTATION = 7
+    PRESENTATION = 7,
+    /**
+     * @generated from protobuf enum value: AGENT_EVENT_TYPE_AVATAR_DEBUG = 8;
+     */
+    AVATAR_DEBUG = 8
 }
 /**
  * K-AGCORE-037 AgentStateEventFamily discriminates runtime.agent.state.* event
@@ -2427,6 +2745,160 @@ export enum AgentPresentationEventFamily {
      * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6;
      */
     LOOKAT_REQUESTED = 6
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AvatarDebugProbeKind
+ */
+export enum AvatarDebugProbeKind {
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_KIND_PACKAGE_VALIDATION = 1;
+     */
+    PACKAGE_VALIDATION = 1,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_KIND_LAUNCH_READINESS = 2;
+     */
+    LAUNCH_READINESS = 2,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD = 3;
+     */
+    BACKEND_LOAD = 3,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_KIND_CAPABILITY_PROFILE = 4;
+     */
+    CAPABILITY_PROFILE = 4,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_KIND_ROUTE_SUPPORT_MATRIX = 5;
+     */
+    ROUTE_SUPPORT_MATRIX = 5,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_KIND_GENERATED_MOTION = 6;
+     */
+    GENERATED_MOTION = 6,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_KIND_EMOTION_EXPRESSION = 7;
+     */
+    EMOTION_EXPRESSION = 7,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_KIND_SPEECH_LIPSYNC = 8;
+     */
+    SPEECH_LIPSYNC = 8,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_KIND_WINDOW_HIT_REGION = 9;
+     */
+    WINDOW_HIT_REGION = 9
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AvatarDebugProbeStatus
+ */
+export enum AvatarDebugProbeStatus {
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_STATUS_PASSED = 1;
+     */
+    PASSED = 1,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_STATUS_FAILED = 2;
+     */
+    FAILED = 2,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_STATUS_UNSUPPORTED = 3;
+     */
+    UNSUPPORTED = 3,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_STATUS_BLOCKED = 4;
+     */
+    BLOCKED = 4,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_PROBE_STATUS_INVALID = 5;
+     */
+    INVALID = 5
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AvatarDebugRequestedBy
+ */
+export enum AvatarDebugRequestedBy {
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_REQUESTED_BY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH = 1;
+     */
+    DESKTOP_DEBUG_WORKBENCH = 1,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_REQUESTED_BY_RUNTIME_POLICY = 2;
+     */
+    RUNTIME_POLICY = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AvatarDebugEventFamily
+ */
+export enum AvatarDebugEventFamily {
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_EVENT_FAMILY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_EVENT_FAMILY_PROBE_REQUESTED = 1;
+     */
+    PROBE_REQUESTED = 1,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_EVENT_FAMILY_PROBE_RESULT = 2;
+     */
+    PROBE_RESULT = 2,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_EVENT_FAMILY_REPLAY_LINKED = 3;
+     */
+    REPLAY_LINKED = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AvatarDebugReplayRedactionState
+ */
+export enum AvatarDebugReplayRedactionState {
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_REPLAY_REDACTION_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_REPLAY_REDACTION_STATE_REDACTED = 1;
+     */
+    REDACTED = 1,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_REPLAY_REDACTION_STATE_VISIBLE = 2;
+     */
+    VISIBLE = 2,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_REPLAY_REDACTION_STATE_FORBIDDEN = 3;
+     */
+    FORBIDDEN = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AvatarDebugReplayVisibility
+ */
+export enum AvatarDebugReplayVisibility {
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_REPLAY_VISIBILITY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_REPLAY_VISIBILITY_DESKTOP_DEBUG_WORKBENCH = 1;
+     */
+    DESKTOP_DEBUG_WORKBENCH = 1,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_REPLAY_VISIBILITY_SDK_DIAGNOSTICS = 2;
+     */
+    SDK_DIAGNOSTICS = 2,
+    /**
+     * @generated from protobuf enum value: AVATAR_DEBUG_REPLAY_VISIBILITY_RUNTIME_AUDIT_ONLY = 3;
+     */
+    RUNTIME_AUDIT_ONLY = 3
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentAutonomyMode
@@ -5141,6 +5613,388 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
  */
 export const AgentPresentationEventDetail = new AgentPresentationEventDetail$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AvatarDebugProbeRequestEnvelope$Type extends MessageType<AvatarDebugProbeRequestEnvelope> {
+    constructor() {
+        super("nimi.runtime.v1.AvatarDebugProbeRequestEnvelope", [
+            { no: 1, name: "probe_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "probe_kind", kind: "enum", T: () => ["nimi.runtime.v1.AvatarDebugProbeKind", AvatarDebugProbeKind, "AVATAR_DEBUG_PROBE_KIND_"] },
+            { no: 5, name: "requested_at", kind: "message", T: () => Timestamp },
+            { no: 6, name: "requested_by", kind: "enum", T: () => ["nimi.runtime.v1.AvatarDebugRequestedBy", AvatarDebugRequestedBy, "AVATAR_DEBUG_REQUESTED_BY_"] },
+            { no: 7, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "avatar_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "runtime_replay_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "replay_requested", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AvatarDebugProbeRequestEnvelope>): AvatarDebugProbeRequestEnvelope {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.probeId = "";
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        message.probeKind = 0;
+        message.requestedBy = 0;
+        message.turnId = "";
+        message.streamId = "";
+        message.avatarInstanceId = "";
+        message.runtimeReplayRef = "";
+        message.replayRequested = false;
+        if (value !== undefined)
+            reflectionMergePartial<AvatarDebugProbeRequestEnvelope>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AvatarDebugProbeRequestEnvelope): AvatarDebugProbeRequestEnvelope {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string probe_id */ 1:
+                    message.probeId = reader.string();
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugProbeKind probe_kind */ 4:
+                    message.probeKind = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp requested_at */ 5:
+                    message.requestedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.requestedAt);
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugRequestedBy requested_by */ 6:
+                    message.requestedBy = reader.int32();
+                    break;
+                case /* string turn_id */ 7:
+                    message.turnId = reader.string();
+                    break;
+                case /* string stream_id */ 8:
+                    message.streamId = reader.string();
+                    break;
+                case /* string avatar_instance_id */ 9:
+                    message.avatarInstanceId = reader.string();
+                    break;
+                case /* string runtime_replay_ref */ 10:
+                    message.runtimeReplayRef = reader.string();
+                    break;
+                case /* bool replay_requested */ 11:
+                    message.replayRequested = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AvatarDebugProbeRequestEnvelope, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string probe_id = 1; */
+        if (message.probeId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.probeId);
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* nimi.runtime.v1.AvatarDebugProbeKind probe_kind = 4; */
+        if (message.probeKind !== 0)
+            writer.tag(4, WireType.Varint).int32(message.probeKind);
+        /* google.protobuf.Timestamp requested_at = 5; */
+        if (message.requestedAt)
+            Timestamp.internalBinaryWrite(message.requestedAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AvatarDebugRequestedBy requested_by = 6; */
+        if (message.requestedBy !== 0)
+            writer.tag(6, WireType.Varint).int32(message.requestedBy);
+        /* string turn_id = 7; */
+        if (message.turnId !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.turnId);
+        /* string stream_id = 8; */
+        if (message.streamId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.streamId);
+        /* string avatar_instance_id = 9; */
+        if (message.avatarInstanceId !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.avatarInstanceId);
+        /* string runtime_replay_ref = 10; */
+        if (message.runtimeReplayRef !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.runtimeReplayRef);
+        /* bool replay_requested = 11; */
+        if (message.replayRequested !== false)
+            writer.tag(11, WireType.Varint).bool(message.replayRequested);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AvatarDebugProbeRequestEnvelope
+ */
+export const AvatarDebugProbeRequestEnvelope = new AvatarDebugProbeRequestEnvelope$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AvatarDebugProbeResultEnvelope$Type extends MessageType<AvatarDebugProbeResultEnvelope> {
+    constructor() {
+        super("nimi.runtime.v1.AvatarDebugProbeResultEnvelope", [
+            { no: 1, name: "probe_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "probe_kind", kind: "enum", T: () => ["nimi.runtime.v1.AvatarDebugProbeKind", AvatarDebugProbeKind, "AVATAR_DEBUG_PROBE_KIND_"] },
+            { no: 5, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.AvatarDebugProbeStatus", AvatarDebugProbeStatus, "AVATAR_DEBUG_PROBE_STATUS_"] },
+            { no: 6, name: "observed_at", kind: "message", T: () => Timestamp },
+            { no: 7, name: "evidence_refs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "result_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AvatarDebugProbeResultEnvelope>): AvatarDebugProbeResultEnvelope {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.probeId = "";
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        message.probeKind = 0;
+        message.status = 0;
+        message.evidenceRefs = [];
+        message.reasonCode = "";
+        message.resultId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AvatarDebugProbeResultEnvelope>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AvatarDebugProbeResultEnvelope): AvatarDebugProbeResultEnvelope {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string probe_id */ 1:
+                    message.probeId = reader.string();
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugProbeKind probe_kind */ 4:
+                    message.probeKind = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugProbeStatus status */ 5:
+                    message.status = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp observed_at */ 6:
+                    message.observedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.observedAt);
+                    break;
+                case /* repeated string evidence_refs */ 7:
+                    message.evidenceRefs.push(reader.string());
+                    break;
+                case /* string reason_code */ 8:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* string result_id */ 9:
+                    message.resultId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AvatarDebugProbeResultEnvelope, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string probe_id = 1; */
+        if (message.probeId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.probeId);
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* nimi.runtime.v1.AvatarDebugProbeKind probe_kind = 4; */
+        if (message.probeKind !== 0)
+            writer.tag(4, WireType.Varint).int32(message.probeKind);
+        /* nimi.runtime.v1.AvatarDebugProbeStatus status = 5; */
+        if (message.status !== 0)
+            writer.tag(5, WireType.Varint).int32(message.status);
+        /* google.protobuf.Timestamp observed_at = 6; */
+        if (message.observedAt)
+            Timestamp.internalBinaryWrite(message.observedAt, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string evidence_refs = 7; */
+        for (let i = 0; i < message.evidenceRefs.length; i++)
+            writer.tag(7, WireType.LengthDelimited).string(message.evidenceRefs[i]);
+        /* string reason_code = 8; */
+        if (message.reasonCode !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.reasonCode);
+        /* string result_id = 9; */
+        if (message.resultId !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.resultId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AvatarDebugProbeResultEnvelope
+ */
+export const AvatarDebugProbeResultEnvelope = new AvatarDebugProbeResultEnvelope$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AvatarDebugReplayRef$Type extends MessageType<AvatarDebugReplayRef> {
+    constructor() {
+        super("nimi.runtime.v1.AvatarDebugReplayRef", [
+            { no: 1, name: "probe_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "replay_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "redaction_state", kind: "enum", T: () => ["nimi.runtime.v1.AvatarDebugReplayRedactionState", AvatarDebugReplayRedactionState, "AVATAR_DEBUG_REPLAY_REDACTION_STATE_"] },
+            { no: 4, name: "visibility", kind: "enum", T: () => ["nimi.runtime.v1.AvatarDebugReplayVisibility", AvatarDebugReplayVisibility, "AVATAR_DEBUG_REPLAY_VISIBILITY_"] },
+            { no: 5, name: "linked_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<AvatarDebugReplayRef>): AvatarDebugReplayRef {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.probeId = "";
+        message.replayRef = "";
+        message.redactionState = 0;
+        message.visibility = 0;
+        if (value !== undefined)
+            reflectionMergePartial<AvatarDebugReplayRef>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AvatarDebugReplayRef): AvatarDebugReplayRef {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string probe_id */ 1:
+                    message.probeId = reader.string();
+                    break;
+                case /* string replay_ref */ 2:
+                    message.replayRef = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugReplayRedactionState redaction_state */ 3:
+                    message.redactionState = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugReplayVisibility visibility */ 4:
+                    message.visibility = reader.int32();
+                    break;
+                case /* google.protobuf.Timestamp linked_at */ 5:
+                    message.linkedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.linkedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AvatarDebugReplayRef, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string probe_id = 1; */
+        if (message.probeId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.probeId);
+        /* string replay_ref = 2; */
+        if (message.replayRef !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.replayRef);
+        /* nimi.runtime.v1.AvatarDebugReplayRedactionState redaction_state = 3; */
+        if (message.redactionState !== 0)
+            writer.tag(3, WireType.Varint).int32(message.redactionState);
+        /* nimi.runtime.v1.AvatarDebugReplayVisibility visibility = 4; */
+        if (message.visibility !== 0)
+            writer.tag(4, WireType.Varint).int32(message.visibility);
+        /* google.protobuf.Timestamp linked_at = 5; */
+        if (message.linkedAt)
+            Timestamp.internalBinaryWrite(message.linkedAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AvatarDebugReplayRef
+ */
+export const AvatarDebugReplayRef = new AvatarDebugReplayRef$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AgentAvatarDebugEventDetail$Type extends MessageType<AgentAvatarDebugEventDetail> {
+    constructor() {
+        super("nimi.runtime.v1.AgentAvatarDebugEventDetail", [
+            { no: 1, name: "family", kind: "enum", T: () => ["nimi.runtime.v1.AvatarDebugEventFamily", AvatarDebugEventFamily, "AVATAR_DEBUG_EVENT_FAMILY_"] },
+            { no: 2, name: "request", kind: "message", T: () => AvatarDebugProbeRequestEnvelope },
+            { no: 3, name: "result", kind: "message", T: () => AvatarDebugProbeResultEnvelope },
+            { no: 4, name: "replay", kind: "message", T: () => AvatarDebugReplayRef }
+        ]);
+    }
+    create(value?: PartialMessage<AgentAvatarDebugEventDetail>): AgentAvatarDebugEventDetail {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.family = 0;
+        if (value !== undefined)
+            reflectionMergePartial<AgentAvatarDebugEventDetail>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AgentAvatarDebugEventDetail): AgentAvatarDebugEventDetail {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AvatarDebugEventFamily family */ 1:
+                    message.family = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugProbeRequestEnvelope request */ 2:
+                    message.request = AvatarDebugProbeRequestEnvelope.internalBinaryRead(reader, reader.uint32(), options, message.request);
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugProbeResultEnvelope result */ 3:
+                    message.result = AvatarDebugProbeResultEnvelope.internalBinaryRead(reader, reader.uint32(), options, message.result);
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugReplayRef replay */ 4:
+                    message.replay = AvatarDebugReplayRef.internalBinaryRead(reader, reader.uint32(), options, message.replay);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AgentAvatarDebugEventDetail, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AvatarDebugEventFamily family = 1; */
+        if (message.family !== 0)
+            writer.tag(1, WireType.Varint).int32(message.family);
+        /* nimi.runtime.v1.AvatarDebugProbeRequestEnvelope request = 2; */
+        if (message.request)
+            AvatarDebugProbeRequestEnvelope.internalBinaryWrite(message.request, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AvatarDebugProbeResultEnvelope result = 3; */
+        if (message.result)
+            AvatarDebugProbeResultEnvelope.internalBinaryWrite(message.result, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AvatarDebugReplayRef replay = 4; */
+        if (message.replay)
+            AvatarDebugReplayRef.internalBinaryWrite(message.replay, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AgentAvatarDebugEventDetail
+ */
+export const AgentAvatarDebugEventDetail = new AgentAvatarDebugEventDetail$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class AgentEvent$Type extends MessageType<AgentEvent> {
     constructor() {
         super("nimi.runtime.v1.AgentEvent", [
@@ -5154,7 +6008,8 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
             { no: 13, name: "budget", kind: "message", oneof: "detail", T: () => AgentBudgetEventDetail },
             { no: 14, name: "replication", kind: "message", oneof: "detail", T: () => AgentReplicationEventDetail },
             { no: 15, name: "state", kind: "message", oneof: "detail", T: () => AgentStateEventDetail },
-            { no: 16, name: "presentation", kind: "message", oneof: "detail", T: () => AgentPresentationEventDetail }
+            { no: 16, name: "presentation", kind: "message", oneof: "detail", T: () => AgentPresentationEventDetail },
+            { no: 17, name: "avatar_debug", kind: "message", oneof: "detail", T: () => AgentAvatarDebugEventDetail }
         ]);
     }
     create(value?: PartialMessage<AgentEvent>): AgentEvent {
@@ -5226,6 +6081,12 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
                         presentation: AgentPresentationEventDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).presentation)
                     };
                     break;
+                case /* nimi.runtime.v1.AgentAvatarDebugEventDetail avatar_debug */ 17:
+                    message.detail = {
+                        oneofKind: "avatarDebug",
+                        avatarDebug: AgentAvatarDebugEventDetail.internalBinaryRead(reader, reader.uint32(), options, (message.detail as any).avatarDebug)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -5271,6 +6132,9 @@ class AgentEvent$Type extends MessageType<AgentEvent> {
         /* nimi.runtime.v1.AgentPresentationEventDetail presentation = 16; */
         if (message.detail.oneofKind === "presentation")
             AgentPresentationEventDetail.internalBinaryWrite(message.detail.presentation, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AgentAvatarDebugEventDetail avatar_debug = 17; */
+        if (message.detail.oneofKind === "avatarDebug")
+            AgentAvatarDebugEventDetail.internalBinaryWrite(message.detail.avatarDebug, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7537,6 +8401,571 @@ class GetPublicChatSessionSnapshotResponse$Type extends MessageType<GetPublicCha
  */
 export const GetPublicChatSessionSnapshotResponse = new GetPublicChatSessionSnapshotResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class GetAvatarDebugSnapshotRequest$Type extends MessageType<GetAvatarDebugSnapshotRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetAvatarDebugSnapshotRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetAvatarDebugSnapshotRequest>): GetAvatarDebugSnapshotRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetAvatarDebugSnapshotRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAvatarDebugSnapshotRequest): GetAvatarDebugSnapshotRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAvatarDebugSnapshotRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAvatarDebugSnapshotRequest
+ */
+export const GetAvatarDebugSnapshotRequest = new GetAvatarDebugSnapshotRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAvatarDebugSnapshotResponse$Type extends MessageType<GetAvatarDebugSnapshotResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetAvatarDebugSnapshotResponse", [
+            { no: 1, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "probe_results", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AvatarDebugProbeResultEnvelope },
+            { no: 4, name: "replay_refs", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AvatarDebugReplayRef },
+            { no: 5, name: "observed_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<GetAvatarDebugSnapshotResponse>): GetAvatarDebugSnapshotResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        message.probeResults = [];
+        message.replayRefs = [];
+        if (value !== undefined)
+            reflectionMergePartial<GetAvatarDebugSnapshotResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAvatarDebugSnapshotResponse): GetAvatarDebugSnapshotResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_id */ 1:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.AvatarDebugProbeResultEnvelope probe_results */ 3:
+                    message.probeResults.push(AvatarDebugProbeResultEnvelope.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.AvatarDebugReplayRef replay_refs */ 4:
+                    message.replayRefs.push(AvatarDebugReplayRef.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* google.protobuf.Timestamp observed_at */ 5:
+                    message.observedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.observedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAvatarDebugSnapshotResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_id = 1; */
+        if (message.agentId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* repeated nimi.runtime.v1.AvatarDebugProbeResultEnvelope probe_results = 3; */
+        for (let i = 0; i < message.probeResults.length; i++)
+            AvatarDebugProbeResultEnvelope.internalBinaryWrite(message.probeResults[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.AvatarDebugReplayRef replay_refs = 4; */
+        for (let i = 0; i < message.replayRefs.length; i++)
+            AvatarDebugReplayRef.internalBinaryWrite(message.replayRefs[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp observed_at = 5; */
+        if (message.observedAt)
+            Timestamp.internalBinaryWrite(message.observedAt, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAvatarDebugSnapshotResponse
+ */
+export const GetAvatarDebugSnapshotResponse = new GetAvatarDebugSnapshotResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RequestAvatarDebugProbeRequest$Type extends MessageType<RequestAvatarDebugProbeRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RequestAvatarDebugProbeRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "probe_kind", kind: "enum", T: () => ["nimi.runtime.v1.AvatarDebugProbeKind", AvatarDebugProbeKind, "AVATAR_DEBUG_PROBE_KIND_"] },
+            { no: 5, name: "requested_by", kind: "enum", T: () => ["nimi.runtime.v1.AvatarDebugRequestedBy", AvatarDebugRequestedBy, "AVATAR_DEBUG_REQUESTED_BY_"] },
+            { no: 6, name: "probe_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "turn_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "avatar_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "replay_requested", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RequestAvatarDebugProbeRequest>): RequestAvatarDebugProbeRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        message.probeKind = 0;
+        message.requestedBy = 0;
+        message.probeId = "";
+        message.turnId = "";
+        message.streamId = "";
+        message.avatarInstanceId = "";
+        message.replayRequested = false;
+        if (value !== undefined)
+            reflectionMergePartial<RequestAvatarDebugProbeRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RequestAvatarDebugProbeRequest): RequestAvatarDebugProbeRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugProbeKind probe_kind */ 4:
+                    message.probeKind = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugRequestedBy requested_by */ 5:
+                    message.requestedBy = reader.int32();
+                    break;
+                case /* string probe_id */ 6:
+                    message.probeId = reader.string();
+                    break;
+                case /* string turn_id */ 7:
+                    message.turnId = reader.string();
+                    break;
+                case /* string stream_id */ 8:
+                    message.streamId = reader.string();
+                    break;
+                case /* string avatar_instance_id */ 9:
+                    message.avatarInstanceId = reader.string();
+                    break;
+                case /* bool replay_requested */ 10:
+                    message.replayRequested = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RequestAvatarDebugProbeRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* nimi.runtime.v1.AvatarDebugProbeKind probe_kind = 4; */
+        if (message.probeKind !== 0)
+            writer.tag(4, WireType.Varint).int32(message.probeKind);
+        /* nimi.runtime.v1.AvatarDebugRequestedBy requested_by = 5; */
+        if (message.requestedBy !== 0)
+            writer.tag(5, WireType.Varint).int32(message.requestedBy);
+        /* string probe_id = 6; */
+        if (message.probeId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.probeId);
+        /* string turn_id = 7; */
+        if (message.turnId !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.turnId);
+        /* string stream_id = 8; */
+        if (message.streamId !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.streamId);
+        /* string avatar_instance_id = 9; */
+        if (message.avatarInstanceId !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.avatarInstanceId);
+        /* bool replay_requested = 10; */
+        if (message.replayRequested !== false)
+            writer.tag(10, WireType.Varint).bool(message.replayRequested);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RequestAvatarDebugProbeRequest
+ */
+export const RequestAvatarDebugProbeRequest = new RequestAvatarDebugProbeRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RequestAvatarDebugProbeResponse$Type extends MessageType<RequestAvatarDebugProbeResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RequestAvatarDebugProbeResponse", [
+            { no: 1, name: "request", kind: "message", T: () => AvatarDebugProbeRequestEnvelope },
+            { no: 2, name: "result", kind: "message", T: () => AvatarDebugProbeResultEnvelope },
+            { no: 3, name: "replay_ref", kind: "message", T: () => AvatarDebugReplayRef }
+        ]);
+    }
+    create(value?: PartialMessage<RequestAvatarDebugProbeResponse>): RequestAvatarDebugProbeResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<RequestAvatarDebugProbeResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RequestAvatarDebugProbeResponse): RequestAvatarDebugProbeResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AvatarDebugProbeRequestEnvelope request */ 1:
+                    message.request = AvatarDebugProbeRequestEnvelope.internalBinaryRead(reader, reader.uint32(), options, message.request);
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugProbeResultEnvelope result */ 2:
+                    message.result = AvatarDebugProbeResultEnvelope.internalBinaryRead(reader, reader.uint32(), options, message.result);
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugReplayRef replay_ref */ 3:
+                    message.replayRef = AvatarDebugReplayRef.internalBinaryRead(reader, reader.uint32(), options, message.replayRef);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RequestAvatarDebugProbeResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AvatarDebugProbeRequestEnvelope request = 1; */
+        if (message.request)
+            AvatarDebugProbeRequestEnvelope.internalBinaryWrite(message.request, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AvatarDebugProbeResultEnvelope result = 2; */
+        if (message.result)
+            AvatarDebugProbeResultEnvelope.internalBinaryWrite(message.result, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AvatarDebugReplayRef replay_ref = 3; */
+        if (message.replayRef)
+            AvatarDebugReplayRef.internalBinaryWrite(message.replayRef, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RequestAvatarDebugProbeResponse
+ */
+export const RequestAvatarDebugProbeResponse = new RequestAvatarDebugProbeResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListAvatarDebugProbeResultsRequest$Type extends MessageType<ListAvatarDebugProbeResultsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListAvatarDebugProbeResultsRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "probe_kind", kind: "enum", T: () => ["nimi.runtime.v1.AvatarDebugProbeKind", AvatarDebugProbeKind, "AVATAR_DEBUG_PROBE_KIND_"] }
+        ]);
+    }
+    create(value?: PartialMessage<ListAvatarDebugProbeResultsRequest>): ListAvatarDebugProbeResultsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.conversationAnchorId = "";
+        message.probeKind = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ListAvatarDebugProbeResultsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListAvatarDebugProbeResultsRequest): ListAvatarDebugProbeResultsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 3:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugProbeKind probe_kind */ 4:
+                    message.probeKind = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListAvatarDebugProbeResultsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string conversation_anchor_id = 3; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.conversationAnchorId);
+        /* nimi.runtime.v1.AvatarDebugProbeKind probe_kind = 4; */
+        if (message.probeKind !== 0)
+            writer.tag(4, WireType.Varint).int32(message.probeKind);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListAvatarDebugProbeResultsRequest
+ */
+export const ListAvatarDebugProbeResultsRequest = new ListAvatarDebugProbeResultsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListAvatarDebugProbeResultsResponse$Type extends MessageType<ListAvatarDebugProbeResultsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListAvatarDebugProbeResultsResponse", [
+            { no: 1, name: "probe_results", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AvatarDebugProbeResultEnvelope }
+        ]);
+    }
+    create(value?: PartialMessage<ListAvatarDebugProbeResultsResponse>): ListAvatarDebugProbeResultsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.probeResults = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListAvatarDebugProbeResultsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListAvatarDebugProbeResultsResponse): ListAvatarDebugProbeResultsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.AvatarDebugProbeResultEnvelope probe_results */ 1:
+                    message.probeResults.push(AvatarDebugProbeResultEnvelope.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListAvatarDebugProbeResultsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.AvatarDebugProbeResultEnvelope probe_results = 1; */
+        for (let i = 0; i < message.probeResults.length; i++)
+            AvatarDebugProbeResultEnvelope.internalBinaryWrite(message.probeResults[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListAvatarDebugProbeResultsResponse
+ */
+export const ListAvatarDebugProbeResultsResponse = new ListAvatarDebugProbeResultsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAvatarDebugReplayRequest$Type extends MessageType<GetAvatarDebugReplayRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetAvatarDebugReplayRequest", [
+            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
+            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "probe_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "conversation_anchor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetAvatarDebugReplayRequest>): GetAvatarDebugReplayRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentId = "";
+        message.probeId = "";
+        message.conversationAnchorId = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetAvatarDebugReplayRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAvatarDebugReplayRequest): GetAvatarDebugReplayRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
+                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
+                    break;
+                case /* string agent_id */ 2:
+                    message.agentId = reader.string();
+                    break;
+                case /* string probe_id */ 3:
+                    message.probeId = reader.string();
+                    break;
+                case /* string conversation_anchor_id */ 4:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAvatarDebugReplayRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AgentRequestContext context = 1; */
+        if (message.context)
+            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string agent_id = 2; */
+        if (message.agentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
+        /* string probe_id = 3; */
+        if (message.probeId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.probeId);
+        /* string conversation_anchor_id = 4; */
+        if (message.conversationAnchorId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.conversationAnchorId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAvatarDebugReplayRequest
+ */
+export const GetAvatarDebugReplayRequest = new GetAvatarDebugReplayRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAvatarDebugReplayResponse$Type extends MessageType<GetAvatarDebugReplayResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetAvatarDebugReplayResponse", [
+            { no: 1, name: "request", kind: "message", T: () => AvatarDebugProbeRequestEnvelope },
+            { no: 2, name: "result", kind: "message", T: () => AvatarDebugProbeResultEnvelope },
+            { no: 3, name: "replay_ref", kind: "message", T: () => AvatarDebugReplayRef }
+        ]);
+    }
+    create(value?: PartialMessage<GetAvatarDebugReplayResponse>): GetAvatarDebugReplayResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetAvatarDebugReplayResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAvatarDebugReplayResponse): GetAvatarDebugReplayResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AvatarDebugProbeRequestEnvelope request */ 1:
+                    message.request = AvatarDebugProbeRequestEnvelope.internalBinaryRead(reader, reader.uint32(), options, message.request);
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugProbeResultEnvelope result */ 2:
+                    message.result = AvatarDebugProbeResultEnvelope.internalBinaryRead(reader, reader.uint32(), options, message.result);
+                    break;
+                case /* nimi.runtime.v1.AvatarDebugReplayRef replay_ref */ 3:
+                    message.replayRef = AvatarDebugReplayRef.internalBinaryRead(reader, reader.uint32(), options, message.replayRef);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAvatarDebugReplayResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AvatarDebugProbeRequestEnvelope request = 1; */
+        if (message.request)
+            AvatarDebugProbeRequestEnvelope.internalBinaryWrite(message.request, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AvatarDebugProbeResultEnvelope result = 2; */
+        if (message.result)
+            AvatarDebugProbeResultEnvelope.internalBinaryWrite(message.result, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AvatarDebugReplayRef replay_ref = 3; */
+        if (message.replayRef)
+            AvatarDebugReplayRef.internalBinaryWrite(message.replayRef, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAvatarDebugReplayResponse
+ */
+export const GetAvatarDebugReplayResponse = new GetAvatarDebugReplayResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class DelegatedToolAllowlistEntry$Type extends MessageType<DelegatedToolAllowlistEntry> {
     constructor() {
         super("nimi.runtime.v1.DelegatedToolAllowlistEntry", [
@@ -9477,6 +10906,10 @@ export const RuntimeAgentService = new ServiceType("nimi.runtime.v1.RuntimeAgent
     { name: "OpenConversationAnchor", options: {}, I: OpenConversationAnchorRequest, O: OpenConversationAnchorResponse },
     { name: "GetConversationAnchorSnapshot", options: {}, I: GetConversationAnchorSnapshotRequest, O: GetConversationAnchorSnapshotResponse },
     { name: "GetPublicChatSessionSnapshot", options: {}, I: GetPublicChatSessionSnapshotRequest, O: GetPublicChatSessionSnapshotResponse },
+    { name: "GetAvatarDebugSnapshot", options: {}, I: GetAvatarDebugSnapshotRequest, O: GetAvatarDebugSnapshotResponse },
+    { name: "RequestAvatarDebugProbe", options: {}, I: RequestAvatarDebugProbeRequest, O: RequestAvatarDebugProbeResponse },
+    { name: "ListAvatarDebugProbeResults", options: {}, I: ListAvatarDebugProbeResultsRequest, O: ListAvatarDebugProbeResultsResponse },
+    { name: "GetAvatarDebugReplay", options: {}, I: GetAvatarDebugReplayRequest, O: GetAvatarDebugReplayResponse },
     { name: "GetAgentState", options: {}, I: GetAgentStateRequest, O: GetAgentStateResponse },
     { name: "UpdateAgentState", options: {}, I: UpdateAgentStateRequest, O: UpdateAgentStateResponse },
     { name: "SetAgentPresentationProfile", options: {}, I: SetAgentPresentationProfileRequest, O: SetAgentPresentationProfileResponse },
