@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Live2DBackendResources } from './backend-session.js';
 import type { Model3Settings, ModelManifest } from './model-loader.js';
@@ -116,6 +118,13 @@ function createBasicManifest(overrides: Partial<Live2DAdapterManifestV1> = {}): 
   return { ...base, ...overrides };
 }
 
+function loadCommittedFixture(): Live2DAdapterManifestV1 {
+  return parseLive2DAdapterManifest(readFileSync(
+    resolve(process.cwd(), 'fixtures/live2d-adapter/semantic-basic.live2d-adapter.json'),
+    'utf8',
+  ));
+}
+
 describe('Live2D compatibility validation', () => {
   it('defaults official Cubism packages without an adapter to render_only', () => {
     const report = validateLive2DCompatibility({ model, settings, resources });
@@ -138,6 +147,25 @@ describe('Live2D compatibility validation', () => {
     expect(report.diagnostics).toEqual([]);
     expect(report.activityMotionGroups.get('greet')?.group).toBe('RenGreet');
     expect(report.missingActivity).toBe('diagnostic_no_success');
+  });
+
+  it('validates the committed synthetic fixture manifest as semantic_basic behavior', () => {
+    const adapter = loadCommittedFixture();
+    const report = validateLive2DCompatibility({
+      model,
+      settings,
+      resources,
+      adapter,
+    });
+
+    expect(adapter.license).toEqual(expect.objectContaining({
+      redistribution: 'allowed',
+      fixture_use: 'committable',
+    }));
+    expect(adapter.license.evidence).toContain('no Live2D model asset bytes');
+    expect(report.tier).toBe('semantic_basic');
+    expect(report.diagnostics).toEqual([]);
+    expect(report.activityMotionGroups.get('thinking')?.group).toBe('RenThinking');
   });
 
   it('fails closed when a manifest claims missing mapped features', () => {
@@ -169,6 +197,41 @@ describe('Live2D compatibility validation', () => {
       'AVATAR_LIVE2D_COMPAT_LIPSYNC_PARAMETER_MISSING',
     ]));
     expect(() => assertLive2DCompatibilitySupported(report)).toThrow('AVATAR_LIVE2D_COMPAT_MOTION_MISSING');
+  });
+
+  it('fails closed when a committable fixture lacks redistribution rights', () => {
+    const report = validateLive2DCompatibility({
+      model,
+      settings,
+      resources,
+      adapter: createBasicManifest({
+        license: {
+          redistribution: 'forbidden',
+          evidence: 'Negative fixture: committable metadata cannot claim forbidden redistribution.',
+          fixture_use: 'committable',
+        },
+      }),
+    });
+
+    expect(report.tier).toBe('unsupported');
+    expect(report.diagnostics.map((entry) => entry.code)).toContain('AVATAR_LIVE2D_COMPAT_LICENSE_UNVERIFIED');
+  });
+
+  it('fails closed when adapter target model does not match the loaded model', () => {
+    const report = validateLive2DCompatibility({
+      model,
+      settings,
+      resources,
+      adapter: createBasicManifest({
+        target_model: {
+          model_id: 'other-live2d-model',
+          model3: 'other.model3.json',
+        },
+      }),
+    });
+
+    expect(report.tier).toBe('unsupported');
+    expect(report.diagnostics.map((entry) => entry.code)).toContain('AVATAR_LIVE2D_COMPAT_MODEL_ID_MISMATCH');
   });
 
   it('rejects malformed adapter manifests before loader success', () => {
