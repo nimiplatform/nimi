@@ -6,6 +6,7 @@ export type AgentCenterAvatarInstancePolicy = 'reuse_active_instance' | 'launch_
 export type AgentCenterGeneratedMotionProviderPolicy = 'require_profile_support' | 'disable_generated_motion' | 'debug_only';
 export type AgentCenterAvatarLaunchMode = 'manual' | 'debug_session' | 'start_with_chat';
 export type AgentCenterAvatarDebugProfile = 'standard' | 'strict_backend_evidence' | 'route_matrix';
+export type AgentCenterLive2dAdapterManifestSource = 'none' | 'embedded_creator_manifest' | 'external_sidecar_manifest';
 export type AgentCenterAvatarConfigProvenanceSource =
   | 'user_selection'
   | 'import_validation'
@@ -22,6 +23,8 @@ export type AgentCenterAvatarPackageModule = {
   selected_package: AgentCenterSelectedAvatarPackage | null;
   conversation_anchor_scope: AgentCenterAvatarConversationAnchorScope;
   avatar_package_ref: string | null;
+  live2d_adapter_manifest_source: AgentCenterLive2dAdapterManifestSource;
+  live2d_adapter_manifest_ref: string | null;
   avatar_instance_policy: AgentCenterAvatarInstancePolicy;
   backend_kind: AgentCenterAvatarBackendKind;
   backend_capability_profile_ref: string | null;
@@ -48,6 +51,7 @@ export const AVATAR_INSTANCE_POLICY_VALUES = ['reuse_active_instance', 'launch_n
 export const GENERATED_MOTION_PROVIDER_POLICY_VALUES = ['require_profile_support', 'disable_generated_motion', 'debug_only'] as const;
 export const AVATAR_LAUNCH_MODE_VALUES = ['manual', 'debug_session', 'start_with_chat'] as const;
 export const AVATAR_DEBUG_PROFILE_VALUES = ['standard', 'strict_backend_evidence', 'route_matrix'] as const;
+export const LIVE2D_ADAPTER_MANIFEST_SOURCE_VALUES = ['none', 'embedded_creator_manifest', 'external_sidecar_manifest'] as const;
 export const AVATAR_CONFIG_PROVENANCE_SOURCE_VALUES = ['user_selection', 'import_validation', 'runtime_projection', 'avatar_backend_evidence'] as const;
 
 export function createDefaultAgentCenterAvatarPackageModule(): AgentCenterAvatarPackageModule {
@@ -56,6 +60,8 @@ export function createDefaultAgentCenterAvatarPackageModule(): AgentCenterAvatar
     selected_package: null,
     conversation_anchor_scope: 'current_anchor',
     avatar_package_ref: null,
+    live2d_adapter_manifest_source: 'none',
+    live2d_adapter_manifest_ref: null,
     avatar_instance_policy: 'reuse_active_instance',
     backend_kind: 'live2d',
     backend_capability_profile_ref: null,

@@ -21,15 +21,17 @@ import {
   getAgentCenterLocalConfig,
   importAgentCenterBackground,
   importAgentCenterAvatarPackage,
+  importAgentCenterLive2dAdapterManifest,
   pickAgentCenterBackgroundSource,
   pickAgentCenterAvatarPackageSource,
+  pickAgentCenterLive2dAdapterManifestSource,
   removeAgentCenterAvatarPackage,
   removeAgentCenterBackground,
   validateAgentCenterAvatarPackage,
 } from '@renderer/bridge/runtime-bridge/chat-agent-center-local-config-store';
 import { cancelStream } from '../turns/stream-controller';
 import { createInitialAgentTurnLifecycleState } from './chat-agent-shell-lifecycle';
-import { parseAgentTextTurnDebugMetadata } from './chat-agent-debug-metadata';
+import { assetUrlFromFileUrl, resolveLatestAgentStatusCue } from './chat-agent-shell-presentation-status';
 import { resolveAgentFooterViewState } from './chat-agent-shell-footer-state';
 import { resolveAgentConversationSurfaceState } from './chat-agent-shell-visible-state';
 import type { RuntimeCommittedStatusProjection } from './chat-agent-shell-visible-state';
@@ -56,16 +58,6 @@ import type { PendingAttachment } from '../turns/turn-input-attachments';
 
 
 const AGENT_TRANSCRIPT_BOTTOM_RESERVE_CLASS = 'pb-[clamp(140px,16vh,200px)]';
-
-function assetUrlFromFileUrl(fileUrl: string | null | undefined): string | undefined {
-  const normalized = String(fileUrl || '').trim();
-  if (!normalized) {
-    return undefined;
-  }
-  return normalized.startsWith('file://')
-    ? normalized.replace(/^file:\/\//, 'asset://localhost')
-    : normalized;
-}
 
 export function useAgentConversationPresentation(
   input: UseAgentConversationPresentationInput,
@@ -108,18 +100,7 @@ export function useAgentConversationPresentation(
     isSubmitting: input.submittingThreadId === input.activeThreadId,
   }), [input.activeThreadId, input.currentFooterHostState?.footerState, input.currentFooterHostState?.lifecycle, input.streamState, input.submittingThreadId]);
   const latestStatusCue = useMemo(() => {
-    const messages = input.bundle?.messages || [];
-    for (let index = messages.length - 1; index >= 0; index -= 1) {
-      const message = messages[index];
-      if (!message || message.role !== 'assistant' || message.kind !== 'text' || message.status !== 'complete') {
-        continue;
-      }
-      const metadata = parseAgentTextTurnDebugMetadata(message.metadataJson);
-      if (metadata?.statusCue) {
-        return metadata.statusCue;
-      }
-    }
-    return null;
+    return resolveLatestAgentStatusCue(input.bundle?.messages);
   }, [input.bundle]);
   const runtimeCommittedStatus = useMemo<RuntimeCommittedStatusProjection | null>(() => {
     if (!input.runtimeInspect) {
@@ -274,6 +255,34 @@ export function useAgentConversationPresentation(
   const avatarImportError = avatarPackageImportMutation.error instanceof Error
     ? avatarPackageImportMutation.error.message
     : null;
+  const live2dAdapterManifestImportMutation = useMutation({
+    mutationFn: async () => {
+      if (!input.accountId || !input.activeTarget?.agentId || selectedAvatarPackage?.kind !== 'live2d') {
+        throw new Error(input.t('Chat.agentCenterLive2dAdapterManifestPackageRequired', {
+          defaultValue: 'Select a Live2D package before importing an adapter manifest.',
+        }));
+      }
+      const sourcePath = await pickAgentCenterLive2dAdapterManifestSource();
+      if (!sourcePath) {
+        return null;
+      }
+      return importAgentCenterLive2dAdapterManifest({
+        accountId: input.accountId,
+        agentId: input.activeTarget.agentId,
+        packageId: selectedAvatarPackage.package_id,
+        sourcePath,
+        select: true,
+      });
+    },
+    onSuccess: async (result) => {
+      if (!result || !input.accountId || !input.activeTarget?.agentId) {
+        return;
+      }
+      await queryClient.invalidateQueries({
+        queryKey: agentCenterLocalConfigQueryKey(input.accountId, input.activeTarget.agentId),
+      });
+    },
+  });
   const clearAvatarPackageMutation = useMutation({
     mutationFn: async () => {
       if (!input.accountId || !input.activeTarget?.agentId || !selectedAvatarPackage) {
@@ -627,6 +636,7 @@ export function useAgentConversationPresentation(
         clearAvatarPackageMutation={clearAvatarPackageMutation}
         avatarImportDisabled={avatarImportDisabled}
         avatarPackageImportMutation={avatarPackageImportMutation}
+        live2dAdapterManifestImportMutation={live2dAdapterManifestImportMutation}
         avatarConfigMutation={avatarConfigMutation}
         avatarActionPending={avatarActionPending}
         selectedBackgroundAssetId={selectedBackgroundAssetId}
@@ -722,6 +732,7 @@ export function useAgentConversationPresentation(
     avatarPackageChecking,
     avatarConfigMutation,
     avatarPackageImportMutation,
+    live2dAdapterManifestImportMutation,
     avatarPackageValidationQuery.data,
     avatarPackageValid,
     avatarComposerActionState,

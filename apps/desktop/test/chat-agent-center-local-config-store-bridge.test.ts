@@ -5,6 +5,7 @@ import {
   createDefaultAgentCenterLocalConfig,
   validateAgentCenterAvatarPackageValidationResult,
   validateAgentCenterAvatarPackageImportResult,
+  validateAgentCenterLive2dAdapterManifestImportResult,
   validateAgentCenterBackgroundAssetResult,
   validateAgentCenterBackgroundImportResult,
   validateAgentCenterBackgroundValidationResult,
@@ -35,6 +36,8 @@ test('Agent Center local config bridge parser accepts Rust store payload shape',
         },
         conversation_anchor_scope: 'current_anchor',
         avatar_package_ref: 'vrm_ab12cd34ef56',
+        live2d_adapter_manifest_source: 'none',
+        live2d_adapter_manifest_ref: null,
         avatar_instance_policy: 'reuse_active_instance',
         backend_kind: 'vrm',
         backend_capability_profile_ref: null,
@@ -82,6 +85,8 @@ test('Agent Center local config bridge rejects backend kind drift from selected 
         },
         conversation_anchor_scope: 'current_anchor',
         avatar_package_ref: 'vrm_ab12cd34ef56',
+        live2d_adapter_manifest_source: 'none',
+        live2d_adapter_manifest_ref: null,
         avatar_instance_policy: 'reuse_active_instance',
         backend_kind: 'live2d',
         backend_capability_profile_ref: null,
@@ -126,6 +131,8 @@ test('Agent Center local config default includes closed avatar configuration fie
 
   assert.deepEqual(config.modules.avatar_package.selected_package, null);
   assert.equal(config.modules.avatar_package.backend_kind, 'live2d');
+  assert.equal(config.modules.avatar_package.live2d_adapter_manifest_source, 'none');
+  assert.equal(config.modules.avatar_package.live2d_adapter_manifest_ref, null);
   assert.equal(config.modules.avatar_package.avatar_instance_policy, 'reuse_active_instance');
   assert.equal(config.modules.avatar_package.generated_motion_provider_policy, 'require_profile_support');
   assert.equal(config.modules.avatar_package.launch_mode, 'manual');
@@ -151,6 +158,8 @@ test('Agent Center local config bridge rejects retired launch package config fie
         selected_package: null,
         conversation_anchor_scope: 'current_anchor',
         avatar_package_ref: null,
+        live2d_adapter_manifest_source: 'none',
+        live2d_adapter_manifest_ref: null,
         avatar_instance_policy: 'reuse_active_instance',
         backend_kind: 'live2d',
         backend_capability_profile_ref: null,
@@ -220,6 +229,19 @@ test('Agent Center avatar package import parser accepts Rust payload shape', () 
       errors: [],
       warnings: [],
     },
+  });
+
+  assert.equal(result.ok, true);
+});
+
+test('Agent Center Live2D adapter manifest import parser accepts Rust payload shape', () => {
+  const result = validateAgentCenterLive2dAdapterManifestImportResult({
+    manifest_ref: 'live2d_adapter_ab12cd34ef56',
+    package_id: 'live2d_ab12cd34ef56',
+    selected: true,
+    sha256: 'a'.repeat(64),
+    bytes: 128,
+    imported_at: '2026-05-01T00:00:00Z',
   });
 
   assert.equal(result.ok, true);

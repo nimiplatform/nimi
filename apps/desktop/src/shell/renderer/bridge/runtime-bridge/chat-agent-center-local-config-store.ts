@@ -3,6 +3,7 @@ import { invokeChecked } from './invoke';
 import {
   validateAgentCenterLocalConfig,
   validateAgentCenterAvatarPackageImportResult,
+  validateAgentCenterLive2dAdapterManifestImportResult,
   validateAgentCenterAvatarPackageValidationResult,
   validateAgentCenterBackgroundAssetResult,
   validateAgentCenterBackgroundImportResult,
@@ -10,6 +11,7 @@ import {
   validateAgentCenterLocalResourceRemoveResult,
   type AgentCenterAvatarPackageKind,
   type AgentCenterAvatarPackageImportResult,
+  type AgentCenterLive2dAdapterManifestImportResult,
   type AgentCenterAvatarPackageValidationResult,
   type AgentCenterBackgroundAssetResult,
   type AgentCenterBackgroundImportResult,
@@ -44,6 +46,14 @@ function parseAgentCenterAvatarPackageImportResult(value: unknown): AgentCenterA
   const result = validateAgentCenterAvatarPackageImportResult(value);
   if (!result.ok) {
     throw new Error(`Agent Center avatar package import payload is invalid: ${result.errors.join('; ')}`);
+  }
+  return result.result;
+}
+
+function parseAgentCenterLive2dAdapterManifestImportResult(value: unknown): AgentCenterLive2dAdapterManifestImportResult {
+  const result = validateAgentCenterLive2dAdapterManifestImportResult(value);
+  if (!result.ok) {
+    throw new Error(`Agent Center Live2D adapter manifest import payload is invalid: ${result.errors.join('; ')}`);
   }
   return result.result;
 }
@@ -125,6 +135,11 @@ export async function pickAgentCenterAvatarPackageSource(input: {
   }, parseOptionalPath);
 }
 
+export async function pickAgentCenterLive2dAdapterManifestSource(): Promise<string | null> {
+  requireTauri('desktop_agent_center_live2d_adapter_manifest_pick_source');
+  return invokeChecked('desktop_agent_center_live2d_adapter_manifest_pick_source', {}, parseOptionalPath);
+}
+
 export async function pickAgentCenterBackgroundSource(): Promise<string | null> {
   requireTauri('desktop_agent_center_background_pick_source');
   return invokeChecked('desktop_agent_center_background_pick_source', {}, parseOptionalPath);
@@ -142,6 +157,19 @@ export async function importAgentCenterAvatarPackage(input: {
   return invokeChecked('desktop_agent_center_avatar_package_import', {
     payload: input,
   }, parseAgentCenterAvatarPackageImportResult);
+}
+
+export async function importAgentCenterLive2dAdapterManifest(input: {
+  accountId: string;
+  agentId: string;
+  packageId: string;
+  sourcePath: string;
+  select?: boolean;
+}): Promise<AgentCenterLive2dAdapterManifestImportResult> {
+  requireTauri('desktop_agent_center_live2d_adapter_manifest_import');
+  return invokeChecked('desktop_agent_center_live2d_adapter_manifest_import', {
+    payload: input,
+  }, parseAgentCenterLive2dAdapterManifestImportResult);
 }
 
 export async function removeAgentCenterAvatarPackage(input: {

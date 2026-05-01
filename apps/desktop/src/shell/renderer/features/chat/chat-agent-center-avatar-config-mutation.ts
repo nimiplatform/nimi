@@ -29,6 +29,10 @@ export function useAgentCenterAvatarConfigMutation(input: UseAgentConversationPr
         nextAvatarPackage.backend_kind = nextAvatarPackage.selected_package.kind;
         nextAvatarPackage.avatar_package_ref = nextAvatarPackage.selected_package.package_id;
       }
+      if (nextAvatarPackage.backend_kind !== 'live2d') {
+        nextAvatarPackage.live2d_adapter_manifest_source = 'none';
+        nextAvatarPackage.live2d_adapter_manifest_ref = null;
+      }
       return putAgentCenterLocalConfig({
         accountId: input.accountId,
         agentId: input.activeTarget.agentId,

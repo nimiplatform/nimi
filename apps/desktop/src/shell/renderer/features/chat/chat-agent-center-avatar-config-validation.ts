@@ -6,6 +6,7 @@ import {
   AVATAR_INSTANCE_POLICY_VALUES,
   AVATAR_LAUNCH_MODE_VALUES,
   GENERATED_MOTION_PROVIDER_POLICY_VALUES,
+  LIVE2D_ADAPTER_MANIFEST_SOURCE_VALUES,
 } from './chat-agent-center-avatar-config-types';
 import type {
   AgentCenterAvatarBackendKind,
@@ -17,11 +18,13 @@ import type {
   AgentCenterAvatarLaunchMode,
   AgentCenterAvatarPackageModule,
   AgentCenterGeneratedMotionProviderPolicy,
+  AgentCenterLive2dAdapterManifestSource,
 } from './chat-agent-center-avatar-config-types';
 import type { AgentCenterAvatarPackageKind, AgentCenterSelectedAvatarPackage } from './chat-agent-center-local-config';
 
 const NORMALIZED_ID_PATTERN = /^(?=.*[A-Za-z0-9])(?!\.{1,2}$)(?!.*:\/\/)[A-Za-z0-9._~:@+-]{1,256}$/u;
 const PACKAGE_ID_PATTERN = /^(live2d|vrm)_[a-f0-9]{12}$/u;
+const LIVE2D_ADAPTER_MANIFEST_REF_PATTERN = /^live2d_adapter_[a-f0-9]{12}$/u;
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/u;
 const PACKAGE_KIND_SET = new Set(['live2d', 'vrm']);
 const SELECTED_PACKAGE_KEYS = ['kind', 'package_id'] as const;
@@ -31,6 +34,8 @@ const AVATAR_PACKAGE_KEYS = [
   'selected_package',
   'conversation_anchor_scope',
   'avatar_package_ref',
+  'live2d_adapter_manifest_source',
+  'live2d_adapter_manifest_ref',
   'avatar_instance_policy',
   'backend_kind',
   'backend_capability_profile_ref',
@@ -100,6 +105,14 @@ function validatePackageId(value: unknown, path: string, errors: string[]): stri
   const id = readNullableString(value, path, errors);
   if (id !== null && !PACKAGE_ID_PATTERN.test(id)) {
     errors.push(`${path}: invalid package id`);
+  }
+  return id;
+}
+
+function validateLive2dAdapterManifestRef(value: unknown, path: string, errors: string[]): string | null {
+  const id = readNullableString(value, path, errors);
+  if (id !== null && !LIVE2D_ADAPTER_MANIFEST_REF_PATTERN.test(id)) {
+    errors.push(`${path}: invalid Live2D adapter manifest ref`);
   }
   return id;
 }
@@ -193,11 +206,29 @@ export function validateAvatarPackageModule(value: unknown, errors: string[]): A
     'invalid backend kind',
   );
   const avatarPackageRef = validateNullableNormalizedId(record.avatar_package_ref, `${path}.avatar_package_ref`, errors);
+  const manifestSource = validateEnum<AgentCenterLive2dAdapterManifestSource>(
+    record.live2d_adapter_manifest_source,
+    `${path}.live2d_adapter_manifest_source`,
+    errors,
+    new Set(LIVE2D_ADAPTER_MANIFEST_SOURCE_VALUES),
+    'none',
+    'invalid Live2D adapter manifest source',
+  );
+  const manifestRef = validateLive2dAdapterManifestRef(record.live2d_adapter_manifest_ref, `${path}.live2d_adapter_manifest_ref`, errors);
   if (selectedPackage && backendKind !== selectedPackage.kind) {
     errors.push(`${path}.backend_kind: backend kind must match selected package kind`);
   }
   if (selectedPackage && avatarPackageRef && avatarPackageRef !== selectedPackage.package_id) {
     errors.push(`${path}.avatar_package_ref: avatar package ref must match selected package id`);
+  }
+  if (manifestSource !== 'none' && backendKind !== 'live2d') {
+    errors.push(`${path}.live2d_adapter_manifest_source: requires live2d backend`);
+  }
+  if (manifestSource === 'external_sidecar_manifest' && !manifestRef) {
+    errors.push(`${path}.live2d_adapter_manifest_ref: required for external sidecar manifest source`);
+  }
+  if (manifestSource !== 'external_sidecar_manifest' && manifestRef) {
+    errors.push(`${path}.live2d_adapter_manifest_ref: requires external sidecar manifest source`);
   }
 
   return {
@@ -205,6 +236,8 @@ export function validateAvatarPackageModule(value: unknown, errors: string[]): A
     selected_package: selectedPackage,
     conversation_anchor_scope: validateEnum<AgentCenterAvatarConversationAnchorScope>(record.conversation_anchor_scope, `${path}.conversation_anchor_scope`, errors, new Set(AVATAR_CONVERSATION_ANCHOR_SCOPE_VALUES), 'current_anchor', 'invalid anchor scope'),
     avatar_package_ref: avatarPackageRef,
+    live2d_adapter_manifest_source: manifestSource,
+    live2d_adapter_manifest_ref: manifestRef,
     avatar_instance_policy: validateEnum<AgentCenterAvatarInstancePolicy>(record.avatar_instance_policy, `${path}.avatar_instance_policy`, errors, new Set(AVATAR_INSTANCE_POLICY_VALUES), 'reuse_active_instance', 'invalid avatar instance policy'),
     backend_kind: backendKind,
     backend_capability_profile_ref: validateNullableNormalizedId(record.backend_capability_profile_ref, `${path}.backend_capability_profile_ref`, errors),

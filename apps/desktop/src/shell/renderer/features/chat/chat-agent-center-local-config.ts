@@ -12,6 +12,7 @@ export type {
   AgentCenterAvatarLaunchMode,
   AgentCenterAvatarPackageModule,
   AgentCenterGeneratedMotionProviderPolicy,
+  AgentCenterLive2dAdapterManifestSource,
 } from './chat-agent-center-avatar-config-types';
 
 export const AGENT_CENTER_LOCAL_CONFIG_SCHEMA_VERSION = 1;
@@ -116,6 +117,19 @@ export type AgentCenterAvatarPackageImportParseResult =
   | { ok: true; result: AgentCenterAvatarPackageImportResult }
   | { ok: false; errors: string[] };
 
+export type AgentCenterLive2dAdapterManifestImportResult = {
+  manifest_ref: string;
+  package_id: string;
+  selected: boolean;
+  sha256: string;
+  bytes: number;
+  imported_at: string;
+};
+
+export type AgentCenterLive2dAdapterManifestImportParseResult =
+  | { ok: true; result: AgentCenterLive2dAdapterManifestImportResult }
+  | { ok: false; errors: string[] };
+
 export type AgentCenterLocalResourceRemoveResult = {
   resource_kind: 'avatar_package' | 'background' | 'agent_local_resources' | 'account_local_resources';
   resource_id: string;
@@ -174,6 +188,7 @@ export type AgentCenterBackgroundAssetParseResult =
 const NORMALIZED_ID_PATTERN = /^(?=.*[A-Za-z0-9])(?!\.{1,2}$)(?!.*:\/\/)[A-Za-z0-9._~:@+-]{1,256}$/u;
 const BACKGROUND_ID_PATTERN = /^bg_[a-f0-9]{12}$/u;
 const PACKAGE_ID_PATTERN = /^(live2d|vrm)_[a-f0-9]{12}$/u;
+const LIVE2D_ADAPTER_MANIFEST_REF_PATTERN = /^live2d_adapter_[a-f0-9]{12}$/u;
 const OPERATION_ID_PATTERN = /^(op|tx)_[a-f0-9]{12}$/u;
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/u;
 
@@ -504,6 +519,50 @@ export function validateAgentCenterAvatarPackageImportResult(
       kind: kind as AgentCenterAvatarPackageKind,
       selected: root.selected as boolean,
       validation: validation.result,
+    },
+  };
+}
+
+export function validateAgentCenterLive2dAdapterManifestImportResult(
+  value: unknown,
+): AgentCenterLive2dAdapterManifestImportParseResult {
+  const errors: string[] = [];
+  const root = requireRecord(value, 'live2dAdapterManifestImportResult', errors);
+  if (!root) {
+    return { ok: false, errors };
+  }
+  collectUnknownKeys(root, ['manifest_ref', 'package_id', 'selected', 'sha256', 'bytes', 'imported_at'], 'live2dAdapterManifestImportResult', errors);
+  const manifestRef = readString(root.manifest_ref, 'live2dAdapterManifestImportResult.manifest_ref', errors) || '';
+  if (manifestRef && !LIVE2D_ADAPTER_MANIFEST_REF_PATTERN.test(manifestRef)) {
+    errors.push('live2dAdapterManifestImportResult.manifest_ref: invalid Live2D adapter manifest ref');
+  }
+  const packageId = validatePackageId(root.package_id, 'live2dAdapterManifestImportResult.package_id', errors) || '';
+  if (packageId && !packageId.startsWith('live2d_')) {
+    errors.push('live2dAdapterManifestImportResult.package_id: expected Live2D package id');
+  }
+  if (typeof root.selected !== 'boolean') {
+    errors.push('live2dAdapterManifestImportResult.selected: expected boolean');
+  }
+  const sha256 = readString(root.sha256, 'live2dAdapterManifestImportResult.sha256', errors) || '';
+  if (sha256 && !/^[a-f0-9]{64}$/u.test(sha256)) {
+    errors.push('live2dAdapterManifestImportResult.sha256: invalid sha256');
+  }
+  if (typeof root.bytes !== 'number' || !Number.isSafeInteger(root.bytes) || root.bytes <= 0) {
+    errors.push('live2dAdapterManifestImportResult.bytes: expected positive integer');
+  }
+  const importedAt = validateTimestamp(root.imported_at, 'live2dAdapterManifestImportResult.imported_at', errors) || '';
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+  return {
+    ok: true,
+    result: {
+      manifest_ref: manifestRef,
+      package_id: packageId,
+      selected: root.selected as boolean,
+      sha256,
+      bytes: root.bytes as number,
+      imported_at: importedAt,
     },
   };
 }

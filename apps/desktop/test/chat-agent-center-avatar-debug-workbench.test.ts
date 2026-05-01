@@ -19,6 +19,8 @@ function buildConfig(overrides: Partial<AgentCenterAvatarPackageModule> = {}): A
     selected_package: { kind: 'vrm', package_id: 'pkg-vrm-1' },
     conversation_anchor_scope: 'current_anchor',
     avatar_package_ref: 'avatar-package:pkg-vrm-1',
+    live2d_adapter_manifest_source: 'none',
+    live2d_adapter_manifest_ref: null,
     avatar_instance_policy: 'reuse_active_instance',
     backend_kind: 'vrm',
     backend_capability_profile_ref: 'avatar-profile:pkg-vrm-1',
