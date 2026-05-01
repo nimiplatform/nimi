@@ -181,6 +181,28 @@ func (s *Service) ensureManagedSupervisedLlamaLeaseReady(ctx context.Context, mo
 		}
 		return nil, errors.New(detail)
 	}
+	if managedLlamaLeaseRequiresWarmExecution(reason) {
+		warmStartedAt := time.Now()
+		if _, err := s.performWarmLocalModelExecution(ctx, current, endpoint, managedLlamaLeaseWarmTimeout(ctx)); err != nil {
+			detail := warmExecutionFailureDetail(err)
+			if _, updateErr := s.updateModelAvailabilityAndWarmState(
+				localAssetID,
+				runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+				runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED,
+				detail,
+				true,
+			); updateErr != nil {
+				return nil, updateErr
+			}
+			return nil, errors.New(detail)
+		}
+		s.observeLatency("runtime.ai.local.lease_warm_execution_ms", warmStartedAt,
+			"local_asset_id", localAssetID,
+			"requested_reason", strings.TrimSpace(reason),
+			"restart_required", mustStart,
+			"engine_healthy", hasEngine,
+		)
+	}
 
 	readyModel, err := s.updateModelAvailabilityAndWarmState(
 		localAssetID,
@@ -236,6 +258,29 @@ func (s *Service) tryAdoptManagedLlamaResident(
 	}
 	s.setCurrentManagedLlamaLoadedLocalAssetID(model.GetLocalAssetId())
 	return readyModel, nil
+}
+
+func managedLlamaLeaseRequiresWarmExecution(reason string) bool {
+	switch strings.TrimSpace(reason) {
+	case "text_generate_request", "stream_text_generate_request":
+		return true
+	default:
+		return false
+	}
+}
+
+func managedLlamaLeaseWarmTimeout(ctx context.Context) time.Duration {
+	timeout := defaultWarmLocalModelTimeout
+	if deadline, ok := ctx.Deadline(); ok {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return time.Millisecond
+		}
+		if remaining < timeout {
+			return remaining
+		}
+	}
+	return timeout
 }
 
 func managedLlamaEngineInfo(mgr EngineManager) (EngineInfo, bool) {

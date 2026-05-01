@@ -188,6 +188,17 @@ func addManagedLlamaAssetForTest(
 	return record
 }
 
+func recordManagedLlamaWarmKeyForTest(t *testing.T, svc *Service, model *runtimev1.LocalAssetRecord, endpoint string) {
+	t.Helper()
+	key := warmCacheKey(
+		model,
+		endpoint,
+		normalizeWarmResolvedModelID(model.GetAssetId()),
+		warmCapabilityForModel(model),
+	)
+	svc.recordWarmKey(key)
+}
+
 func mustInstallUnsupportedSafetensorsNativeImageForTest(t *testing.T, svc *Service, assetID string) *runtimev1.LocalAssetRecord {
 	t.Helper()
 	record, err := svc.installLocalAssetRecord(
@@ -4107,6 +4118,7 @@ func TestAcquireLocalAssetLeaseKeepsIdleManagedImageResidentWhenCurrentTextWorke
 		runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
 	)
 	svc.setCurrentManagedLlamaLoadedLocalAssetID(beta.GetLocalAssetId())
+	recordManagedLlamaWarmKeyForTest(t, svc, beta, defaultLocalEndpoint)
 
 	if err := svc.AcquireLocalAssetLease(context.Background(), beta.GetLocalAssetId(), "stream_text_generate_request"); err != nil {
 		t.Fatalf("AcquireLocalAssetLease: %v", err)
@@ -4213,6 +4225,7 @@ func TestAcquireLocalAssetLeaseReclaimsIdleManagedImageResidentBeforeTextWorkerS
 		runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
 	)
 	svc.setCurrentManagedLlamaLoadedLocalAssetID(alpha.GetLocalAssetId())
+	recordManagedLlamaWarmKeyForTest(t, svc, beta, defaultLocalEndpoint)
 
 	if err := svc.AcquireLocalAssetLease(context.Background(), beta.GetLocalAssetId(), "stream_text_generate_request"); err != nil {
 		t.Fatalf("AcquireLocalAssetLease: %v", err)
@@ -4405,6 +4418,7 @@ func TestAcquireLocalAssetLeaseStartsExplicitManagedLlamaTarget(t *testing.T) {
 		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 		runtimev1.LocalWarmState_LOCAL_WARM_STATE_COLD,
 	)
+	recordManagedLlamaWarmKeyForTest(t, svc, beta, defaultLocalEndpoint)
 
 	if err := svc.AcquireLocalAssetLease(context.Background(), beta.GetLocalAssetId(), "text_generate_request"); err != nil {
 		t.Fatalf("AcquireLocalAssetLease: %v", err)
@@ -4423,6 +4437,60 @@ func TestAcquireLocalAssetLeaseStartsExplicitManagedLlamaTarget(t *testing.T) {
 	}
 	if got := svc.currentManagedLlamaLoadedLocalAssetID(); got != beta.GetLocalAssetId() {
 		t.Fatalf("loaded local asset id = %q, want %q", got, beta.GetLocalAssetId())
+	}
+}
+
+func TestAcquireLocalAssetLeaseWarmsResidentManagedLlamaBeforeTextExecution(t *testing.T) {
+	chatCompletions := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/v1/models":
+			_, _ = io.WriteString(w, `{"data":[{"id":"beta-model"}]}`)
+		case "/v1/chat/completions":
+			chatCompletions++
+			_, _ = io.WriteString(w, `{"choices":[{"finish_reason":"stop","message":{"content":"ready"}}],"usage":{"prompt_tokens":1,"completion_tokens":1}}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	svc := newTestServiceWithProbe(t, nil)
+	svc.SetEngineManager(&mockEngineManager{
+		status: &EngineInfo{
+			Engine:   "llama",
+			Version:  engine.DefaultLlamaConfig().Version,
+			Status:   "healthy",
+			Port:     1234,
+			Endpoint: server.URL,
+		},
+	})
+	svc.SetManagedLlamaRegistrationConfig(svc.localModelsPath, svc.managedLlamaModelsConfigPath, true)
+	beta := addManagedLlamaAssetForTest(
+		t,
+		svc,
+		"asset_beta",
+		"local/beta-model",
+		"nimi/beta-model",
+		"beta.gguf",
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY,
+	)
+	svc.setCurrentManagedLlamaLoadedLocalAssetID(beta.GetLocalAssetId())
+
+	if err := svc.AcquireLocalAssetLease(context.Background(), beta.GetLocalAssetId(), "stream_text_generate_request"); err != nil {
+		t.Fatalf("AcquireLocalAssetLease: %v", err)
+	}
+	if chatCompletions != 1 {
+		t.Fatalf("expected text lease to prove execution readiness once, got %d", chatCompletions)
+	}
+
+	if err := svc.AcquireLocalAssetLease(context.Background(), beta.GetLocalAssetId(), "stream_text_generate_request"); err != nil {
+		t.Fatalf("AcquireLocalAssetLease cached: %v", err)
+	}
+	if chatCompletions != 1 {
+		t.Fatalf("expected cached text lease readiness proof, got %d calls", chatCompletions)
 	}
 }
 

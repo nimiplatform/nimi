@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	defaultWarmLocalModelTimeout  = 60 * time.Second
+	defaultWarmLocalModelTimeout  = 120 * time.Second
 	maxWarmLocalModelTimeout      = 5 * time.Minute
 	warmManagedProbeRetryInterval = 200 * time.Millisecond
 )
