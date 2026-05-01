@@ -16,6 +16,7 @@ import {
 
 const NOTE_PREFIXES = {
   hospital: '医院: ',
+  doctor: '医生: ',
   pupil: '瞳孔: ',
   screenTime: '日近距离用眼: ',
   outdoorTime: '日户外: ',
@@ -24,6 +25,7 @@ const NOTE_PREFIXES = {
 
 type VisionRecordNoteDraft = {
   hospital: string;
+  doctor: string;
   pupil: string;
   screenTime: string;
   outdoorTime: string;
@@ -36,6 +38,7 @@ function parseVisionRecordNoteDraft(record?: VisionRecord): VisionRecordNoteDraf
   if (!record) {
     return {
       hospital: '',
+      doctor: '',
       pupil: '',
       screenTime: '',
       outdoorTime: '',
@@ -49,6 +52,7 @@ function parseVisionRecordNoteDraft(record?: VisionRecord): VisionRecordNoteDraf
   const extrasByType = new Map<string, string[]>();
   const unknownTokenSets: Array<Set<string>> = [];
   let hospital = '';
+  let doctor = '';
   let pupil = '';
   let screenTime = '';
   let outdoorTime = '';
@@ -64,6 +68,10 @@ function parseVisionRecordNoteDraft(record?: VisionRecord): VisionRecordNoteDraf
     for (const token of tokens) {
       if (token.startsWith(NOTE_PREFIXES.hospital)) {
         hospital ||= token.slice(NOTE_PREFIXES.hospital.length).trim();
+        continue;
+      }
+      if (token.startsWith(NOTE_PREFIXES.doctor)) {
+        doctor ||= token.slice(NOTE_PREFIXES.doctor.length).trim();
         continue;
       }
       if (token.startsWith(NOTE_PREFIXES.pupil)) {
@@ -107,6 +115,7 @@ function parseVisionRecordNoteDraft(record?: VisionRecord): VisionRecordNoteDraf
 
   return {
     hospital,
+    doctor,
     pupil,
     screenTime,
     outdoorTime,
@@ -268,6 +277,7 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
   const initialNoteDraft = parseVisionRecordNoteDraft(initialRecord);
   const [date, setDate] = useState(initialRecord?.date ?? new Date().toISOString().slice(0, 10));
   const [hospital, setHospital] = useState(initialNoteDraft.hospital);
+  const [doctor, setDoctor] = useState(initialNoteDraft.doctor);
   const [pupil, setPupil] = useState<string>(initialNoteDraft.pupil);
   const [values, setValues] = useState<Record<string, string>>(initVals);
   const [hrValue, setHrValue] = useState(initVals['hyperopia-reserve'] ?? '');
@@ -363,11 +373,12 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
     if (hrValue.trim()) nextEntries.push(['hyperopia-reserve', hrValue.trim()]);
 
     const nextNoteParts: string[] = [];
-    if (hospital) nextNoteParts.push(`鍖婚櫌: ${hospital}`);
-    if (pupil) nextNoteParts.push(`鐬冲瓟: ${pupil}`);
-    if (screenTime) nextNoteParts.push(`鏃ヨ繎璺濈敤鐪? ${screenTime}`);
-    if (outdoorTime) nextNoteParts.push(`鏃ユ埛澶? ${outdoorTime}`);
-    if (controls) nextNoteParts.push(`闃叉帶: ${controls}`);
+    if (hospital) nextNoteParts.push(`${NOTE_PREFIXES.hospital}${hospital}`);
+    if (doctor) nextNoteParts.push(`${NOTE_PREFIXES.doctor}${doctor}`);
+    if (pupil) nextNoteParts.push(`${NOTE_PREFIXES.pupil}${pupil}`);
+    if (screenTime) nextNoteParts.push(`${NOTE_PREFIXES.screenTime}${screenTime}`);
+    if (outdoorTime) nextNoteParts.push(`${NOTE_PREFIXES.outdoorTime}${outdoorTime}`);
+    if (controls) nextNoteParts.push(`${NOTE_PREFIXES.controls}${controls}`);
     if (notes) nextNoteParts.push(notes);
     const nextNoteStr = nextNoteParts.length > 0 ? nextNoteParts.join(' | ') : null;
 
@@ -430,42 +441,6 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
     } finally {
       setSaving(false);
     }
-    return;
-
-    setSaving(true);
-    const ageMonths = computeAgeMonthsAt(birthDate, date);
-    const now = isoNow();
-    const entries = Object.entries(values).filter(([, v]) => v.trim() !== '');
-    if (hrValue.trim()) entries.push(['hyperopia-reserve', hrValue.trim()]);
-
-    const noteParts: string[] = [];
-    if (hospital) noteParts.push(`医院: ${hospital}`);
-    if (pupil) noteParts.push(`瞳孔: ${pupil}`);
-    if (screenTime) noteParts.push(`日近距用眼: ${screenTime}`);
-    if (outdoorTime) noteParts.push(`日户外: ${outdoorTime}`);
-    if (controls) noteParts.push(`防控: ${controls}`);
-    if (notes) noteParts.push(notes);
-    const noteStr = noteParts.length > 0 ? noteParts.join(' | ') : null;
-
-    for (const [typeId, val] of entries) {
-      const parsed = parseFloat(val);
-      if (isNaN(parsed)) continue;
-      const measurementNotes = joinNoteParts(noteStr, ocrNotesByType[typeId]);
-      try {
-        await insertMeasurement({
-          measurementId: ulid(), childId, typeId, value: parsed,
-          measuredAt: date,
-          ageMonths,
-          percentile: null,
-          source: ocrImportedTypes.has(typeId) ? 'ocr' : 'manual',
-          notes: measurementNotes,
-          now,
-        });
-      } catch { /* duplicate or bridge error */ }
-    }
-    onSave();
-    onClose();
-    setSaving(false);
   };
 
   const filledCount = Object.values(values).filter((v) => v.trim()).length + (hrValue.trim() ? 1 : 0);
@@ -500,15 +475,10 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
       )}
 
       {/* Basic info */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-3">
         <div>
           <label className="text-[13px] block mb-1" style={{ color: S.sub }}>检查日期 *</label>
           <ProfileDatePicker value={date} onChange={setDate} className={inp} style={{ background: '#f5f3ef', color: S.text }} />
-        </div>
-        <div>
-          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>医院/机构</label>
-          <input value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填"
-            className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
         </div>
         <div>
           <label className="text-[13px] block mb-1" style={{ color: S.sub }}>瞳孔状态</label>
@@ -521,6 +491,18 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
               </button>
             ))}
           </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>医院/机构</label>
+          <input value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填"
+            className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
+        </div>
+        <div>
+          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>就诊医生</label>
+          <input value={doctor} onChange={(e) => setDoctor(e.target.value)} placeholder="选填"
+            className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
         </div>
       </div>
 

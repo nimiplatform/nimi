@@ -1,9 +1,36 @@
+/**
+ * Vision archive page — timeline-document view.
+ *
+ * Layout (top→bottom):
+ *   profile header → AI summary → glance chips → trend chart → exam timeline
+ *   (vertical-rail dot list with expandable details, including early screenings)
+ *   → next steps → footer.
+ *
+ * Quantitative exams come from `growth_measurements` (grouped by date), early
+ * screenings come from `medical_events` rows whose notes start with `vision:`.
+ * Both streams are merged into a single ExamView list via `buildExamViews`.
+ */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { computeAgeMonths, computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
-import { deleteMeasurement, getMeasurements, getMedicalEvents, insertMedicalEvent } from '../../bridge/sqlite-bridge.js';
-import type { MeasurementRow, MedicalEventRow } from '../../bridge/sqlite-bridge.js';
+import {
+  clearVisionFollowupSettings,
+  deleteMeasurement,
+  getMeasurements,
+  getMedicalEvents,
+  getVisionFollowupSettings,
+  insertMedicalEvent,
+  setVisionFollowupSettings,
+  VISION_FOLLOWUP_CADENCE_DEFAULT,
+  VISION_FOLLOWUP_CADENCE_MAX,
+  VISION_FOLLOWUP_CADENCE_MIN,
+} from '../../bridge/sqlite-bridge.js';
+import type {
+  MeasurementRow,
+  MedicalEventRow,
+  VisionFollowupSettings,
+} from '../../bridge/sqlite-bridge.js';
 import { GROWTH_STANDARDS } from '../../knowledge-base/index.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 import { S } from '../../app-shell/page-style.js';
@@ -13,19 +40,30 @@ import { AISummaryCard } from './ai-summary-card.js';
 import { readImageFileAsDataUrl, analyzeCheckupSheetOCR } from './checkup-ocr.js';
 import type { OCRMeasurementCandidate } from './checkup-ocr.js';
 import {
-  EYE_SET, CHART_OPTIONS, CARD_REFRACTION_ROWS, CARD_AXIAL_ROWS,
-  groupByDate, fmtAge, getAxialRef,
-  type VisionRecord,
+  EYE_SET, CHART_OPTIONS,
+  buildExamViews, computeGlanceMetrics, deriveMeasurementExamKind, findLatestFullRecord,
+  fmtAge, groupByDate,
+  type ExamView, type VisionRecord,
 } from './vision-data.js';
 import { BatchForm } from './vision-batch-form.js';
 import { VisionGuide } from './vision-guide.js';
 import { OutdoorSummaryCard } from './outdoor-summary-card.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
+import {
+  AgeFilter,
+  EmptyTimelineCard,
+  ExamTimelineCard,
+  GlanceChip,
+  OlderRecordsToggle,
+  SectionLabel,
+} from './vision-page-cards.js';
 
-/* ── Early vision screening types (0-36 months) ─────────── */
+const MONO = "var(--nimi-font-mono, 'JetBrains Mono', 'SF Mono', ui-monospace, monospace)";
 
 const EARLY_SCREENING_MAX_AGE_MONTHS = 72;
+const VISION_SCREENING_PREFIX = 'vision:';
+const RECENT_EXAM_COUNT = 3;
 
 const SCREENING_TYPES = [
   { key: 'red-reflex', label: '红光反射', emoji: '🔴', desc: '筛查先天性白内障', minAge: 0, maxAge: 12 },
@@ -37,477 +75,682 @@ const SCREENING_TYPES = [
 ] as const;
 
 const SCREENING_RESULT_OPTIONS = [
-  { key: 'pass', label: '通过', color: '#22c55e' },
+  { key: 'pass', label: '通过', color: '#10b981' },
   { key: 'refer', label: '转诊', color: '#ef4444' },
   { key: 'inconclusive', label: '待定', color: '#f59e0b' },
 ] as const;
 
-const VISION_SCREENING_PREFIX = 'vision:';
+/* ── ScreeningModal — admit a new early screening to medical_events ─ */
 
-/* ================================================================
-   RECORD CARD — displays one exam session
-   ================================================================ */
-
-function RecordCard({ record, index, gender, onEdit, onDelete, meta }: {
-  record: VisionRecord;
-  index: number;
-  gender: string;
-  onEdit: () => void;
-  onDelete: () => void;
-  meta?: { hospital?: string; pupil?: string; notes?: string };
+function ScreeningModal({
+  childId,
+  birthDate,
+  ageMonths,
+  onClose,
+  onSave,
+}: {
+  childId: string;
+  birthDate: string;
+  ageMonths: number;
+  onClose: () => void;
+  onSave: () => void;
 }) {
-  const hasRefraction = CARD_REFRACTION_ROWS.some((r) => record.data.has(r.od) || record.data.has(r.os));
-  const hasAxial = CARD_AXIAL_ROWS.some((r) => record.data.has(r.od) || record.data.has(r.os));
-  const fmt = (k: string) => { const val = record.data.get(k); return val != null ? String(val) : ''; };
-  const val = (k: string) => record.data.get(k);
-
-  // Reference data for axial section
-  const ref = getAxialRef(record.ageMonths, gender);
-  const alOD = val('axial-length-right');
-  const alOS = val('axial-length-left');
-  const kOD = val('corneal-curvature-right');
-  const kOS = val('corneal-curvature-left');
-  const surplusOD = ref && alOD != null ? +(ref.critical - alOD).toFixed(2) : null;
-  const surplusOS = ref && alOS != null ? +(ref.critical - alOS).toFixed(2) : null;
-
-  const renderRows = (rows: typeof CARD_REFRACTION_ROWS) => rows.map((row, i) => {
-    const odVal = fmt(row.od), osVal = fmt(row.os);
-    if (!odVal && !osVal) return null;
-    return (
-      <div key={row.label} className="grid grid-cols-[1.2fr_1fr_1fr] items-center text-center py-2 px-4 border-t"
-        style={{ borderColor: '#f0f0ec', background: i % 2 === 0 ? S.card : '#fafcfb' }}>
-        <span className="text-left text-[13px]" style={{ color: S.sub }}>{row.label}</span>
-        <span className="text-[16px] font-bold" style={{ color: odVal ? S.text : '#d4d1cc' }}>{odVal || '—'}</span>
-        <span className="text-[16px] font-bold" style={{ color: osVal ? S.text : '#d4d1cc' }}>{osVal || '—'}</span>
-      </div>
-    );
-  }).filter(Boolean);
-
-  // Color for surplus value: green if >= 0.5, orange if 0-0.5, red if < 0
-  const surplusColor = (v: number | null) => {
-    if (v == null) return '#d4d1cc';
-    if (v >= 0.5) return '#22c55e';
-    if (v >= 0) return '#f59e0b';
-    return '#ef4444';
-  };
-
-  return (
-    <div className={`${S.radius} overflow-hidden mb-4`} style={{ boxShadow: S.shadow }}>
-      {/* Header */}
-      <div className="px-5 py-3 flex items-center justify-between"
-        style={{ background: 'linear-gradient(135deg, #6a82a8, #BDE0F5)' }}>
-        <div className="flex items-center gap-3">
-          <span className="w-7 h-7 rounded-lg flex items-center justify-center text-white/80 text-[14px] font-bold"
-            style={{ background: 'rgba(255,255,255,0.2)' }}>{index + 1}</span>
-          <span className="text-[16px] font-semibold text-white">{record.date}</span>
-          {meta?.pupil && <span className="text-[12px] px-2 py-0.5 rounded-full bg-white/20 text-white/80">{meta.pupil}</span>}
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="text-right">
-            <span className="text-[13px] text-white/60">{fmtAge(record.ageMonths)}</span>
-            {meta?.hospital && <span className="block text-[12px] text-white/40">{meta.hospital}</span>}
-          </div>
-          <button onClick={onEdit} title="编辑此记录"
-            className="w-7 h-7 rounded-full flex items-center justify-center transition-colors hover:bg-white/20"
-            style={{ color: 'rgba(255,255,255,0.6)' }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-            </svg>
-          </button>
-          <button
-            onClick={onDelete}
-            title="删除这条记录"
-            aria-label={`delete-vision-record-${record.date}`}
-            className="w-7 h-7 rounded-full flex items-center justify-center transition-colors hover:bg-white/20"
-            style={{ color: 'rgba(255,255,255,0.72)' }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 6h18" />
-              <path d="M8 6V4h8v2" />
-              <path d="M19 6l-1 14H6L5 6" />
-              <path d="M10 11v6M14 11v6" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div style={{ background: S.card }}>
-        {/* Refraction section */}
-        {hasRefraction && (
-          <>
-            <div className="grid grid-cols-[1.2fr_1fr_1fr] text-center text-[12px] font-medium py-2 px-4"
-              style={{ color: S.sub, background: '#f8faf9' }}>
-              <span className="text-left">验光单</span>
-              <span>OD 右眼</span>
-              <span>OS 左眼</span>
-            </div>
-            {renderRows(CARD_REFRACTION_ROWS)}
-          </>
-        )}
-
-        {/* Axial section */}
-        {hasAxial && (
-          <>
-            <div className="grid grid-cols-[1.2fr_1fr_1fr] text-center text-[12px] font-medium py-2 px-4 border-t"
-              style={{ color: S.sub, background: '#f8faf9', borderColor: '#f1f5f9' }}>
-              <span className="text-left">眼轴单</span>
-              <span>OD 右眼</span>
-              <span>OS 左眼</span>
-            </div>
-            {renderRows(CARD_AXIAL_ROWS)}
-
-            {/* Reference data rows (only when we have axial length + ref data) */}
-            {ref && (alOD != null || alOS != null) && (
-              <>
-                {/* Peer average */}
-                <div className="grid grid-cols-[1.2fr_1fr_1fr] items-center text-center py-2 px-4 border-t"
-                  style={{ borderColor: '#f1f5f9', background: '#f0f5f4' }}>
-                  <div className="text-left">
-                    <span className="text-[12px] font-medium" style={{ color: S.sub }}>同龄均值</span>
-                  </div>
-                  <div>
-                    <span className="text-[14px] font-medium" style={{ color: S.sub }}>{ref.mean.toFixed(2)}</span>
-                    {kOD != null && <span className="block text-[12px]" style={{ color: '#b0b5bc' }}>K{ref.kMean.toFixed(2)}</span>}
-                  </div>
-                  <div>
-                    <span className="text-[14px] font-medium" style={{ color: S.sub }}>{ref.mean.toFixed(2)}</span>
-                    {kOS != null && <span className="block text-[12px]" style={{ color: '#b0b5bc' }}>K{ref.kMean.toFixed(2)}</span>}
-                  </div>
-                </div>
-
-                {/* Critical threshold */}
-                <div className="grid grid-cols-[1.2fr_1fr_1fr] items-center text-center py-2 px-4 border-t"
-                  style={{ borderColor: '#f0f0ec', background: '#fafafa' }}>
-                  <div className="text-left">
-                    <span className="text-[12px] font-medium" style={{ color: S.sub }}>{Math.round(record.ageMonths / 12)}岁</span>
-                    <span className="ml-1 text-[12px]" style={{ color: '#b0b5bc' }}>临界</span>
-                  </div>
-                  <span className="text-[14px] font-medium" style={{ color: S.sub }}>{ref.critical.toFixed(2)}</span>
-                  <span className="text-[14px] font-medium" style={{ color: S.sub }}>{ref.critical.toFixed(2)}</span>
-                </div>
-
-                {/* Axial surplus */}
-                <div className="grid grid-cols-[1.2fr_1fr_1fr] items-center text-center py-2.5 px-4 border-t"
-                  style={{ borderColor: '#f1f5f9', background: '#f8faf8' }}>
-                  <div className="text-left">
-                    <span className="text-[13px] font-semibold" style={{ color: S.text }}>轴余</span>
-                  </div>
-                  <span className="text-[16px] font-bold" style={{ color: surplusColor(surplusOD) }}>
-                    {surplusOD != null ? surplusOD.toFixed(2) : '—'}
-                  </span>
-                  <span className="text-[16px] font-bold" style={{ color: surplusColor(surplusOS) }}>
-                    {surplusOS != null ? surplusOS.toFixed(2) : '—'}
-                  </span>
-                </div>
-              </>
-            )}
-          </>
-        )}
-
-        {/* Hyperopia reserve */}
-        {record.data.has('hyperopia-reserve') && (
-          <div className="flex items-center justify-between py-2.5 px-4 border-t" style={{ borderColor: '#f0f0ec' }}>
-            <span className="text-[13px]" style={{ color: S.sub }}>远视储备</span>
-            <span className="text-[16px] font-bold" style={{ color: S.text }}>{fmt('hyperopia-reserve')} D</span>
-          </div>
-        )}
-
-        {/* Notes */}
-        {meta?.notes && (
-          <div className="px-4 py-2.5 border-t text-[13px]" style={{ borderColor: '#f0f0ec', color: S.sub }}>
-            <span className="font-medium" style={{ color: S.text }}>备注：</span>{meta.notes}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ================================================================
-   SCREENING SECTION — early vision screening (0-36+ months)
-   ================================================================ */
-
-function ScreeningSection({ childId, birthDate, ageMonths, screeningRecords, onSave }: {
-  childId: string; birthDate: string; ageMonths: number;
-  screeningRecords: MedicalEventRow[]; onSave: () => void;
-}) {
-  const hasHistoricalRecords = screeningRecords.length > 0;
-  const isArchiveOnly = ageMonths > EARLY_SCREENING_MAX_AGE_MONTHS;
-  const shouldRenderSection = !isArchiveOnly || hasHistoricalRecords;
-  const [showForm, setShowForm] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(!isArchiveOnly);
-  const [formType, setFormType] = useState('eye-checkup');
+  const availableTypes = SCREENING_TYPES.filter((t) => ageMonths >= t.minAge && ageMonths <= t.maxAge);
+  const [formType, setFormType] = useState<string>(availableTypes[0]?.key ?? 'eye-checkup');
   const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 10));
   const [formResult, setFormResult] = useState('pass');
   const [formHospital, setFormHospital] = useState('');
   const [formNotes, setFormNotes] = useState('');
-
-  const availableTypes = useMemo(
-    () => SCREENING_TYPES.filter((t) => ageMonths >= t.minAge && ageMonths <= t.maxAge),
-    [ageMonths],
-  );
-
-  useEffect(() => {
-    setIsExpanded(!isArchiveOnly);
-    setShowForm(false);
-  }, [childId, isArchiveOnly]);
-
-  const resetForm = () => {
-    setFormType('eye-checkup'); setFormDate(new Date().toISOString().slice(0, 10));
-    setFormResult('pass'); setFormHospital(''); setFormNotes(''); setShowForm(false);
-  };
 
   const handleSubmit = async () => {
     if (!formDate) return;
     const screeningMeta = SCREENING_TYPES.find((t) => t.key === formType);
     const now = isoNow();
     await insertMedicalEvent({
-      eventId: ulid(), childId, eventType: 'checkup',
+      eventId: ulid(),
+      childId,
+      eventType: 'checkup',
       title: `${screeningMeta?.label ?? formType}检查`,
-      eventDate: formDate, endDate: null,
+      eventDate: formDate,
+      endDate: null,
       ageMonths: computeAgeMonthsAt(birthDate, formDate),
-      severity: null, result: formResult,
-      hospital: formHospital || null, medication: null, dosage: null,
+      severity: null,
+      result: formResult,
+      hospital: formHospital || null,
+      medication: null,
+      dosage: null,
       notes: `${VISION_SCREENING_PREFIX}${formType}${formNotes ? `\n${formNotes}` : ''}`,
-      photoPath: null, now,
+      photoPath: null,
+      now,
     });
-    resetForm();
     onSave();
+    onClose();
   };
 
-  const resultLabel = (r: string | null) => SCREENING_RESULT_OPTIONS.find((o) => o.key === r) ?? { label: r ?? '—', color: S.sub };
-  const sorted = [...screeningRecords].sort((a, b) => b.eventDate.localeCompare(a.eventDate));
-  const sectionTitle = isArchiveOnly ? '早期筛查史' : '早期眼科筛查';
-
-  if (!shouldRenderSection) return null;
-
   return (
-    <div className="mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <h2 className="text-[14px] font-semibold" style={{ color: S.text }}>{sectionTitle}</h2>
-          {isArchiveOnly && hasHistoricalRecords && (
-            <span
-              className={`px-2 py-0.5 text-[12px] font-medium ${S.radiusSm}`}
-              style={{ background: '#f0f5f4', color: S.sub }}
-            >
-              {sorted.length} 条
-            </span>
-          )}
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
+      <div className={`w-[560px] max-h-[85vh] overflow-y-auto ${S.radius} p-5 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>添加筛查记录</h3>
+          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
         </div>
-        <div className="flex items-center gap-2">
-          {isArchiveOnly && hasHistoricalRecords && (
+
+        <p className="text-[13px] mb-2" style={{ color: S.sub }}>筛查项目</p>
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {availableTypes.map((t) => (
             <button
-              onClick={() => setIsExpanded((prev) => !prev)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium ${S.radiusSm} transition-all`}
-              style={{ background: '#f5f3ef', color: S.sub }}
+              key={t.key}
+              onClick={() => setFormType(t.key)}
+              className={`flex items-center gap-1 px-3 py-1.5 text-[13px] ${S.radiusSm} transition-all`}
+              style={formType === t.key
+                ? { background: S.accent, color: '#fff' }
+                : { background: '#f5f3ef', color: S.sub }}
             >
-              {isExpanded ? '收起' : '展开'}
-              <svg
-                width="11"
-                height="11"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-              >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
+              <span>{t.emoji}</span> {t.label}
             </button>
-          )}
-          {!isArchiveOnly && !showForm && (
-            <button onClick={() => setShowForm(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
-              style={{ background: S.accent }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-              添加筛查
+          ))}
+        </div>
+
+        <p className="text-[13px] mb-2" style={{ color: S.sub }}>检查结果</p>
+        <div className="flex gap-1.5 mb-4">
+          {SCREENING_RESULT_OPTIONS.map((r) => (
+            <button
+              key={r.key}
+              onClick={() => setFormResult(r.key)}
+              className={`px-3 py-1.5 text-[13px] ${S.radiusSm} transition-all font-medium`}
+              style={formResult === r.key
+                ? { background: r.color, color: '#fff' }
+                : { background: '#f5f3ef', color: S.sub }}
+            >
+              {r.label}
             </button>
-          )}
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <p className="text-[13px] mb-1" style={{ color: S.sub }}>日期</p>
+            <ProfileDatePicker value={formDate} onChange={setFormDate} style={{ background: '#f5f3ef', color: S.text }} />
+          </div>
+          <div>
+            <p className="text-[13px] mb-1" style={{ color: S.sub }}>医院/诊所</p>
+            <input
+              type="text" value={formHospital} onChange={(e) => setFormHospital(e.target.value)}
+              placeholder="选填"
+              className={`w-full px-3 py-2 text-[14px] ${S.radiusSm} border-0 outline-none`}
+              style={{ background: '#f5f3ef', color: S.text }}
+            />
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <p className="text-[13px] mb-1" style={{ color: S.sub }}>备注</p>
+          <input
+            type="text" value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
+            placeholder="选填"
+            className={`w-full px-3 py-2 text-[14px] ${S.radiusSm} border-0 outline-none`}
+            style={{ background: '#f5f3ef', color: S.text }}
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => void handleSubmit()}
+            className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} hover:opacity-90 transition-all`}
+            style={{ background: S.accent }}
+          >
+            保存
+          </button>
+          <button
+            onClick={onClose}
+            className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-all`}
+            style={{ background: '#f5f3ef', color: S.sub }}
+          >
+            取消
+          </button>
         </div>
       </div>
-
-      {isArchiveOnly && isExpanded && (
-        <div
-          className={`${S.radiusSm} px-4 py-3 mb-3 text-[13px]`}
-          style={{ background: '#f8faf9', color: S.sub, border: `1px solid ${S.border}` }}
-        >
-          已进入学龄阶段，当前重点请结合下方的检查记录、眼轴和趋势变化继续跟踪。
-        </div>
-      )}
-
-      {isExpanded && (
-        <>
-          {/* Add screening form — modal */}
-          {showForm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={() => resetForm()}>
-            <div className={`w-[560px] max-h-[85vh] overflow-y-auto ${S.radius} p-5 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>添加筛查记录</h3>
-                <button onClick={resetForm} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
-              </div>
-
-              {/* Screening type selector */}
-              <p className="text-[13px] mb-2" style={{ color: S.sub }}>筛查项目</p>
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                {availableTypes.map((t) => (
-                  <button key={t.key} onClick={() => setFormType(t.key)}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-[13px] ${S.radiusSm} transition-all`}
-                    style={formType === t.key
-                      ? { background: S.accent, color: '#fff' }
-                      : { background: '#f5f3ef', color: S.sub }}>
-                    <span>{t.emoji}</span> {t.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Result selector */}
-              <p className="text-[13px] mb-2" style={{ color: S.sub }}>检查结果</p>
-              <div className="flex gap-1.5 mb-4">
-                {SCREENING_RESULT_OPTIONS.map((r) => (
-                  <button key={r.key} onClick={() => setFormResult(r.key)}
-                    className={`px-3 py-1.5 text-[13px] ${S.radiusSm} transition-all font-medium`}
-                    style={formResult === r.key
-                      ? { background: r.color, color: '#fff' }
-                      : { background: '#f5f3ef', color: S.sub }}>
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Date + hospital */}
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                  <p className="text-[13px] mb-1" style={{ color: S.sub }}>日期</p>
-                  <ProfileDatePicker value={formDate} onChange={setFormDate} style={{ background: '#f5f3ef', color: S.text }} />
-                </div>
-                <div>
-                  <p className="text-[13px] mb-1" style={{ color: S.sub }}>医院/诊所</p>
-                  <input type="text" value={formHospital} onChange={(e) => setFormHospital(e.target.value)}
-                    placeholder="选填" className={`w-full px-3 py-2 text-[14px] ${S.radiusSm} border-0 outline-none`}
-                    style={{ background: '#f5f3ef', color: S.text }} />
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="mb-4">
-                <p className="text-[13px] mb-1" style={{ color: S.sub }}>备注</p>
-                <input type="text" value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
-                  placeholder="选填" className={`w-full px-3 py-2 text-[14px] ${S.radiusSm} border-0 outline-none`}
-                  style={{ background: '#f5f3ef', color: S.text }} />
-              </div>
-
-              {/* Submit */}
-              <div className="flex gap-2">
-                <button onClick={handleSubmit}
-                  className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} hover:opacity-90 transition-all`}
-                  style={{ background: S.accent }}>保存</button>
-                <button onClick={resetForm}
-                  className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-all`}
-                  style={{ background: '#f5f3ef', color: S.sub }}>取消</button>
-              </div>
-            </div>
-            </div>
-          )}
-
-          {/* Screening record list */}
-          {sorted.length > 0 ? (
-            <div className="space-y-2">
-              {sorted.map((rec) => {
-                const screeningKey = rec.notes?.startsWith(VISION_SCREENING_PREFIX)
-                  ? rec.notes.split('\n')[0]!.slice(VISION_SCREENING_PREFIX.length)
-                  : null;
-                const meta = screeningKey ? SCREENING_TYPES.find((t) => t.key === screeningKey) : null;
-                const rl = resultLabel(rec.result);
-                const userNotes = rec.notes?.includes('\n') ? rec.notes.split('\n').slice(1).join('\n') : null;
-                return (
-                  <div key={rec.eventId} className={`${S.radiusSm} px-4 py-3 flex items-center justify-between`}
-                    style={{ background: S.card, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-[16px]">{meta?.emoji ?? '🩺'}</span>
-                      <div>
-                        <span className="text-[14px] font-medium" style={{ color: S.text }}>{rec.title}</span>
-                        <span className="block text-[12px]" style={{ color: S.sub }}>
-                          {rec.eventDate.replace(/-/g, '/')} · {Math.floor(rec.ageMonths / 12)}岁{rec.ageMonths % 12}月
-                          {rec.hospital ? ` · ${rec.hospital}` : ''}
-                        </span>
-                        {userNotes && <span className="block text-[12px] mt-0.5" style={{ color: S.sub }}>{userNotes}</span>}
-                      </div>
-                    </div>
-                    <span className={`px-2.5 py-0.5 text-[12px] font-semibold ${S.radiusSm}`}
-                      style={{ background: `${rl.color}18`, color: rl.color }}>
-                      {rl.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          ) : !showForm && (
-            <div className={`${S.radiusSm} p-5 text-center`} style={{ background: S.card, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-              <p className="text-[14px]" style={{ color: S.sub }}>暂无筛查记录</p>
-            </div>
-          )}
-        </>
-      )}
     </div>
   );
 }
 
-/* ================================================================
-   MAIN PAGE
-   ================================================================ */
+/* ── Sources tooltip ─────────────────────────────────────────────── */
 
-export default function VisionPage() {
-  const { activeChildId, setActiveChildId, children } = useAppStore();
-  const child = children.find((c) => c.childId === activeChildId);
-  const [measurements, setMeasurements] = useState<MeasurementRow[]>([]);
-  const [medicalEvents, setMedicalEvents] = useState<MedicalEventRow[]>([]);
-  const [chartType, setChartType] = useState<GrowthTypeId>('axial-length-right');
-  const [showForm, setShowForm] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<VisionRecord | null>(null);
-  const [showGuide, setShowGuide] = useState(false);
-  const [ocrScanning, setOcrScanning] = useState(false);
-  const [ocrDraft, setOCRDraft] = useState<OCRMeasurementCandidate[] | null>(null);
-  const [ocrError, setOCRError] = useState<string | null>(null);
-  const ocrInputRef = useRef<HTMLInputElement>(null);
+function SourcesTooltip() {
+  return (
+    <div className="group relative">
+      <div
+        className="w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-help transition-colors hover:bg-[#f0f0ec]"
+        style={{ color: 'var(--nimi-fg-3)' }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+      </div>
+      <div
+        className="pointer-events-none absolute left-0 top-7 z-50 w-[340px] rounded-xl p-4 text-[13px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
+        style={{ background: '#1e293b', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}
+      >
+        <p className="text-[14px] font-semibold text-white mb-2.5">数据参考文献</p>
+        <ul className="space-y-2.5">
+          <li>
+            <span className="text-[#4ECCA3] font-medium">眼轴 P50/P75 百分位（分性别 · 4-18岁）</span>
+            <span className="block text-[12px] text-[#a0a8b4] mt-0.5">He X, Sankaridurg P, Naduvilath T, et al. Normative data and percentile curves for axial length and axial length/corneal curvature in Chinese children and adolescents aged 4-18 years.</span>
+            <span className="block text-[12px] text-[#7a8090]">Br J Ophthalmol 2023;107:167-175</span>
+          </li>
+          <li>
+            <span className="text-[#4ECCA3] font-medium">远视储备 · 角膜曲率参考区间（6-15岁）</span>
+            <span className="block text-[12px] text-[#a0a8b4] mt-0.5">中华预防医学会公共卫生眼科分会. 中国学龄儿童眼球远视储备、眼轴长度、角膜曲率参考区间及相关遗传因素专家共识（2022年）.</span>
+            <span className="block text-[12px] text-[#7a8090]">中华眼科杂志 2022;58(2):96-102</span>
+          </li>
+          <li>
+            <span className="text-[#4ECCA3] font-medium">眼轴防控应用共识</span>
+            <span className="block text-[12px] text-[#a0a8b4] mt-0.5">中华医学会眼科学分会眼视光学组. 眼轴长度在近视防控管理中的应用专家共识（2023）.</span>
+          </li>
+          <li>
+            <span className="text-[#4ECCA3] font-medium">近视防控技术指南</span>
+            <span className="block text-[12px] text-[#a0a8b4] mt-0.5">国家卫生健康委员会. 儿童青少年近视防控适宜技术指南（更新版）. 2023</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+/* ── Next-steps card — system-recommended OR user-customised cadence ─ */
+
+const CADENCE_PRESETS: Array<{ months: number; label: string }> = [
+  { months: 1, label: '1 个月' },
+  { months: 3, label: '3 个月' },
+  { months: 6, label: '6 个月' },
+  { months: 12, label: '12 个月' },
+];
+
+interface NextStepsResolved {
+  /** ISO date the parent should schedule the next visit. */
+  visitDate: string;
+  /** True when the parent overrode the next visit with a manual date. */
+  isCustomDate: boolean;
+  /** Months between visits — either the user's setting or the default. */
+  cadenceMonths: number;
+  /** True when the user has saved any override (cadence or custom date). */
+  isUserOverride: boolean;
+}
+
+function addMonths(iso: string, months: number): string {
+  const d = new Date(iso);
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
+
+function monthsUntil(iso: string, today: Date): number {
+  const d = new Date(iso);
+  const ms = d.getTime() - today.getTime();
+  return Math.round(ms / (30 * 24 * 3600 * 1000));
+}
+
+function fmtRelative(iso: string, today: Date): string {
+  const m = monthsUntil(iso, today);
+  if (m < 0) return `已过 ${Math.abs(m)} 个月`;
+  if (m === 0) return '本月内';
+  return `约 ${m} 个月后`;
+}
+
+function resolveNextVisit(
+  latestExamDate: string | null,
+  settings: VisionFollowupSettings | null,
+): NextStepsResolved | null {
+  const cadence = settings?.cadenceMonths ?? VISION_FOLLOWUP_CADENCE_DEFAULT;
+  if (settings?.customNextDate) {
+    return {
+      visitDate: settings.customNextDate,
+      isCustomDate: true,
+      cadenceMonths: cadence,
+      isUserOverride: true,
+    };
+  }
+  if (!latestExamDate) return null;
+  return {
+    visitDate: addMonths(latestExamDate, cadence),
+    isCustomDate: false,
+    cadenceMonths: cadence,
+    isUserOverride: settings != null,
+  };
+}
+
+function NextStepsCard({
+  childId,
+  latestBiometricDate,
+}: {
+  childId: string;
+  /** Latest exam date of any type — anchors the next-visit cadence. */
+  latestBiometricDate: string | null;
+}) {
+  const [settings, setSettings] = useState<VisionFollowupSettings | null>(null);
+  const [editing, setEditing] = useState(false);
+  const today = useMemo(() => new Date(), []);
 
   useEffect(() => {
-    if (!activeChildId) return;
-    getMeasurements(activeChildId).then(setMeasurements).catch(catchLog('vision', 'action:load-measurements-failed'));
-    getMedicalEvents(activeChildId).then(setMedicalEvents).catch(catchLog('vision', 'action:load-medical-events-failed'));
-  }, [activeChildId]);
+    let cancelled = false;
+    getVisionFollowupSettings(childId)
+      .then((row) => { if (!cancelled) setSettings(row); })
+      .catch(catchLog('vision', 'action:load-followup-settings-failed'));
+    return () => { cancelled = true; };
+  }, [childId]);
 
-  const records = useMemo(() => groupByDate(measurements), [measurements]);
-  const reload = () => {
-    if (!activeChildId) return;
-    getMeasurements(activeChildId).then(setMeasurements).catch(catchLog('vision', 'action:load-measurements-failed'));
-    getMedicalEvents(activeChildId).then(setMedicalEvents).catch(catchLog('vision', 'action:load-medical-events-failed'));
-  };
-
-  const handleDeleteRecord = async (record: VisionRecord) => {
-    const confirmed = window.confirm(`确认删除 ${record.date} 的检查记录吗？`);
-    if (!confirmed) return;
-    await Promise.all(
-      [...record.measurementsByType.values()].map((measurement) => deleteMeasurement(measurement.measurementId)),
-    );
-    reload();
-  };
-
-  // Filter medical events to vision screenings only (notes starts with "vision:")
-  const screeningRecords = useMemo(
-    () => medicalEvents.filter((e) => e.notes?.startsWith(VISION_SCREENING_PREFIX)),
-    [medicalEvents],
+  const resolved = useMemo(
+    () => resolveNextVisit(latestBiometricDate, settings),
+    [latestBiometricDate, settings],
   );
 
+  if (!resolved) return null;
+
+  return (
+    <div>
+      <SectionLabel
+        right={
+          <button
+            onClick={() => setEditing((e) => !e)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] cursor-pointer transition-all border-0"
+            style={{
+              background: editing ? 'var(--nimi-accent-soft)' : 'rgba(15,23,42,0.05)',
+              color: editing ? 'var(--nimi-accent)' : 'var(--nimi-fg-2)',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6 1.65 1.65 0 0010 3.09V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.13.31.2.65.2 1v.09a2 2 0 010 4H20" />
+            </svg>
+            提醒设置
+          </button>
+        }
+      >
+        下一步
+      </SectionLabel>
+      <div
+        className="rounded-[22px] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)]"
+        style={{ padding: 6, boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }}
+      >
+        <div className="flex items-center gap-3" style={{ padding: '12px 14px' }}>
+          <div
+            className="grid place-items-center flex-shrink-0 rounded-[12px]"
+            style={{
+              width: 32, height: 32,
+              background: 'var(--nimi-accent-soft)',
+              color: 'var(--nimi-accent)',
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[14px] font-medium" style={{ color: 'var(--nimi-fg-1)' }}>
+                下次眼科复查（眼轴 + 验光）
+              </span>
+              {resolved.isCustomDate && (
+                <span
+                  className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                  style={{ background: 'rgba(14,165,233,0.10)', color: '#0369a1' }}
+                >
+                  自定义
+                </span>
+              )}
+              {!resolved.isCustomDate && resolved.isUserOverride && (
+                <span
+                  className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                  style={{ background: 'rgba(15,23,42,0.05)', color: 'var(--nimi-fg-3)' }}
+                >
+                  每 {resolved.cadenceMonths} 个月
+                </span>
+              )}
+            </div>
+            <div className="text-[11px] mt-0.5" style={{ color: 'var(--nimi-fg-3)', fontFamily: MONO }}>
+              {resolved.visitDate} · {fmtRelative(resolved.visitDate, today)}
+            </div>
+          </div>
+        </div>
+
+        {editing && (
+          <NextStepsEditor
+            childId={childId}
+            latestExamDate={latestBiometricDate}
+            settings={settings}
+            onClose={() => setEditing(false)}
+            onSaved={(next) => {
+              setSettings(next);
+              setEditing(false);
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NextStepsEditor({
+  childId,
+  latestExamDate,
+  settings,
+  onClose,
+  onSaved,
+}: {
+  childId: string;
+  latestExamDate: string | null;
+  settings: VisionFollowupSettings | null;
+  onClose: () => void;
+  onSaved: (next: VisionFollowupSettings | null) => void;
+}) {
+  const [cadence, setCadence] = useState<number>(settings?.cadenceMonths ?? VISION_FOLLOWUP_CADENCE_DEFAULT);
+  const [customDate, setCustomDate] = useState<string>(settings?.customNextDate ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const isCustomCadence = !CADENCE_PRESETS.some((p) => p.months === cadence);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      if (cadence < VISION_FOLLOWUP_CADENCE_MIN || cadence > VISION_FOLLOWUP_CADENCE_MAX) {
+        setError(`提醒频率需在 ${VISION_FOLLOWUP_CADENCE_MIN}–${VISION_FOLLOWUP_CADENCE_MAX} 个月之间`);
+        return;
+      }
+      const trimmedDate = customDate.trim();
+      const customNextDate = trimmedDate ? trimmedDate : null;
+      if (customNextDate && !/^\d{4}-\d{2}-\d{2}$/.test(customNextDate)) {
+        setError('自定义日期格式需为 YYYY-MM-DD');
+        return;
+      }
+      await setVisionFollowupSettings({
+        childId,
+        cadenceMonths: cadence,
+        customNextDate,
+        now: isoNow(),
+      });
+      onSaved({
+        childId,
+        cadenceMonths: cadence,
+        customNextDate,
+        createdAt: settings?.createdAt ?? isoNow(),
+        updatedAt: isoNow(),
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '保存失败，请重试');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetToSystem = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      await clearVisionFollowupSettings(childId);
+      onSaved(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '保存失败，请重试');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="rounded-[18px] mt-1 mb-1 mx-1"
+      style={{
+        padding: '14px 14px 12px',
+        background: 'rgba(15,23,42,0.025)',
+        border: '1px solid rgba(15,23,42,0.06)',
+      }}
+    >
+      <div className="text-[11px] font-semibold uppercase tracking-[0.06em] mb-2" style={{ color: 'var(--nimi-fg-3)' }}>
+        提醒频率
+      </div>
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {CADENCE_PRESETS.map((p) => (
+          <button
+            key={p.months}
+            onClick={() => setCadence(p.months)}
+            className="px-3 py-1.5 text-[12px] rounded-full border-0 cursor-pointer transition-all"
+            style={cadence === p.months
+              ? { background: 'var(--nimi-accent)', color: 'white' }
+              : { background: 'rgba(15,23,42,0.04)', color: 'var(--nimi-fg-2)' }}
+          >
+            {p.label}
+          </button>
+        ))}
+        <div
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+          style={isCustomCadence
+            ? { background: 'var(--nimi-accent-soft)', color: 'var(--nimi-accent)' }
+            : { background: 'rgba(15,23,42,0.04)', color: 'var(--nimi-fg-3)' }}
+        >
+          <span className="text-[12px]">自定义</span>
+          <input
+            type="number"
+            min={VISION_FOLLOWUP_CADENCE_MIN}
+            max={VISION_FOLLOWUP_CADENCE_MAX}
+            value={cadence}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              if (Number.isFinite(n)) setCadence(Math.round(n));
+            }}
+            className="w-12 text-center bg-transparent border-0 outline-none text-[12px] tabular-nums"
+            style={{ color: 'inherit', fontFamily: MONO }}
+            aria-label="vision-followup-cadence-custom"
+          />
+          <span className="text-[12px]">个月</span>
+        </div>
+      </div>
+
+      <div className="text-[11px] font-semibold uppercase tracking-[0.06em] mb-2" style={{ color: 'var(--nimi-fg-3)' }}>
+        指定下次复查日期 <span className="font-normal normal-case lowercase" style={{ color: 'var(--nimi-fg-4)' }}>· 仅覆盖下一次</span>
+      </div>
+      <div className="flex items-center gap-2 mb-1">
+        <ProfileDatePicker
+          value={customDate}
+          onChange={setCustomDate}
+          className="flex-1 text-[13px] rounded-[10px] px-3 py-2 border-0 outline-none"
+          style={{ background: 'white', color: 'var(--nimi-fg-1)' }}
+        />
+        {customDate && (
+          <button
+            onClick={() => setCustomDate('')}
+            className="text-[11px] px-2.5 py-1.5 rounded-full border-0 cursor-pointer"
+            style={{ background: 'rgba(15,23,42,0.05)', color: 'var(--nimi-fg-3)' }}
+            aria-label="vision-followup-clear-custom-date"
+          >
+            清除
+          </button>
+        )}
+      </div>
+      <div className="text-[11px] mb-3" style={{ color: 'var(--nimi-fg-4)' }}>
+        {latestExamDate
+          ? `按 ${cadence} 个月节奏，建议 ${addMonths(latestExamDate, cadence)}`
+          : '暂无检查记录可用作锚点，请直接指定日期'}
+      </div>
+
+      {error && (
+        <div
+          className="rounded-[10px] mb-2 px-3 py-2 text-[12px]"
+          style={{ background: 'rgba(239,68,68,0.08)', color: '#b91c1c' }}
+        >
+          {error}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        {settings ? (
+          <button
+            onClick={() => void handleResetToSystem()}
+            disabled={saving}
+            className="text-[11px] cursor-pointer border-0 bg-transparent disabled:opacity-50"
+            style={{ color: 'var(--nimi-fg-3)' }}
+          >
+            恢复系统推荐
+          </button>
+        ) : <span />}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="text-[12px] px-3 py-1.5 rounded-full border-0 cursor-pointer disabled:opacity-50"
+            style={{ background: 'rgba(15,23,42,0.05)', color: 'var(--nimi-fg-2)' }}
+          >
+            取消
+          </button>
+          <button
+            onClick={() => void handleSave()}
+            disabled={saving}
+            aria-label="vision-followup-save"
+            className="text-[12px] px-4 py-1.5 rounded-full border-0 cursor-pointer text-white disabled:opacity-50"
+            style={{ background: 'var(--nimi-accent)' }}
+          >
+            {saving ? '保存中…' : '保存'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Trend chart card ────────────────────────────────────────────── */
+
+function TrendChartCard({
+  measurements,
+  chartType,
+  onChartTypeChange,
+}: {
+  measurements: MeasurementRow[];
+  chartType: GrowthTypeId;
+  onChartTypeChange: (v: GrowthTypeId) => void;
+}) {
   const typeInfo = GROWTH_STANDARDS.find((s) => s.typeId === chartType);
   const chartData = measurements
     .filter((m) => m.typeId === chartType)
     .sort((a, b) => a.ageMonths - b.ageMonths)
     .map((m) => ({ age: m.ageMonths, value: m.value, date: m.measuredAt.split('T')[0] }));
 
-  const latestMemo = useMemo(() => {
+  return (
+    <div
+      className="rounded-[22px] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)]"
+      style={{ padding: 20, boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }}
+    >
+      <div className="flex items-baseline justify-between mb-3.5">
+        <div>
+          <div className="text-[14px] font-semibold" style={{ color: 'var(--nimi-fg-1)' }}>
+            {typeInfo?.displayName ?? '趋势'}曲线
+          </div>
+          <div className="text-[11px] mt-0.5" style={{ color: 'var(--nimi-fg-3)' }}>
+            共 {chartData.length} 次测量
+          </div>
+        </div>
+        <AppSelect
+          value={chartType}
+          onChange={(v) => onChartTypeChange(v as GrowthTypeId)}
+          options={CHART_OPTIONS.map((o) => ({ value: o.typeId, label: o.label }))}
+        />
+      </div>
+      {chartData.length === 0 ? (
+        <div className="p-8 text-center" style={{ color: 'var(--nimi-fg-3)' }}>
+          <span className="text-[13px]">暂无{typeInfo?.displayName ?? ''}记录</span>
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.06)" />
+            <XAxis
+              dataKey="age"
+              tick={{ fontSize: 10 }}
+              label={{ value: '月龄', position: 'insideBottom', offset: -4, fontSize: 10 }}
+            />
+            <YAxis
+              tick={{ fontSize: 10 }}
+              label={{ value: typeInfo?.unit ?? '', angle: -90, position: 'insideLeft', fontSize: 10 }}
+            />
+            <Tooltip
+              formatter={(v: number) => [`${v} ${typeInfo?.unit ?? ''}`, typeInfo?.displayName]}
+              labelFormatter={(a) => `${a} 个月`}
+            />
+            <Line type="monotone" dataKey="value" stroke="var(--nimi-accent)" strokeWidth={2} dot={{ r: 3, fill: 'var(--nimi-accent)' }} />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
+
+/* ── Page ────────────────────────────────────────────────────────── */
+
+export default function VisionPage() {
+  const { activeChildId, setActiveChildId, children } = useAppStore();
+  const child = children.find((c) => c.childId === activeChildId);
+
+  const [measurements, setMeasurements] = useState<MeasurementRow[]>([]);
+  const [medicalEvents, setMedicalEvents] = useState<MedicalEventRow[]>([]);
+  const [chartType, setChartType] = useState<GrowthTypeId>('axial-length-right');
+
+  const [showForm, setShowForm] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<VisionRecord | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
+  const [showScreeningModal, setShowScreeningModal] = useState(false);
+  const [openExamId, setOpenExamId] = useState<string | null>(null);
+  const [showAllOlder, setShowAllOlder] = useState(false);
+  const [showAgeFilter, setShowAgeFilter] = useState(false);
+  const [selectedAge, setSelectedAge] = useState<number | null>(null);
+
+  const [ocrScanning, setOcrScanning] = useState(false);
+  const [ocrDraft, setOCRDraft] = useState<OCRMeasurementCandidate[] | null>(null);
+  const [ocrError, setOCRError] = useState<string | null>(null);
+  const ocrInputRef = useRef<HTMLInputElement>(null);
+
+  const reload = () => {
+    if (!activeChildId) return;
+    getMeasurements(activeChildId).then(setMeasurements).catch(catchLog('vision', 'action:load-measurements-failed'));
+    getMedicalEvents(activeChildId).then(setMedicalEvents).catch(catchLog('vision', 'action:load-medical-events-failed'));
+  };
+
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChildId]);
+
+  const records = useMemo(() => groupByDate(measurements), [measurements]);
+  const exams = useMemo(() => buildExamViews(records, medicalEvents), [records, medicalEvents]);
+
+  // Auto-open the latest exam on first load.
+  useEffect(() => {
+    if (openExamId == null && exams.length > 0) setOpenExamId(exams[0]!.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exams.length === 0 ? null : exams[0]?.id]);
+
+  const filteredExams = useMemo(() => {
+    if (selectedAge == null || !child) return exams;
+    const bday = new Date(child.birthDate);
+    return exams.filter((e) => {
+      const age = (new Date(e.date).getTime() - bday.getTime()) / (365.25 * 24 * 3600 * 1000);
+      return Math.floor(age) === selectedAge;
+    });
+  }, [exams, selectedAge, child]);
+
+  const recentExams = filteredExams.slice(0, RECENT_EXAM_COUNT);
+  const olderExams = filteredExams.slice(RECENT_EXAM_COUNT);
+
+  const latestFullRecord = useMemo(() => findLatestFullRecord(records), [records]);
+  const glanceMetrics = useMemo(() => computeGlanceMetrics(latestFullRecord), [latestFullRecord]);
+
+  const trendPoints = useMemo(() => measurements, [measurements]);
+
+  const latestBiometricDate = useMemo(
+    () => exams.find((e) => e.kind === 'full' || e.kind === 'biometric')?.date ?? null,
+    [exams],
+  );
+
+  // Latest values for AI context (computed before the !child early return so
+  // the hook order stays stable across renders — see React rules of hooks).
+  const latest = useMemo(() => {
     const next = new Map<string, MeasurementRow>();
     for (const record of measurements) {
       if (!EYE_SET.has(record.typeId)) continue;
@@ -519,10 +762,26 @@ export default function VisionPage() {
     return next;
   }, [measurements]);
 
-  if (!child) return <div className="flex items-center justify-center h-full" style={{ color: S.sub }}>请先添加孩子档案</div>;
+  const handleDeleteRecord = async (record: VisionRecord) => {
+    const confirmed = window.confirm(`确认删除 ${record.date} 的检查记录吗？`);
+    if (!confirmed) return;
+    await Promise.all(
+      [...record.measurementsByType.values()].map((measurement) => deleteMeasurement(measurement.measurementId)),
+    );
+    reload();
+  };
 
-  const ageMonths = child ? computeAgeMonths(child.birthDate) : 0;
-  const latestMeasurements = latestMemo;
+  if (!child) {
+    return (
+      <div className="flex items-center justify-center h-full" style={{ color: 'var(--nimi-fg-3)' }}>
+        请先添加孩子档案
+      </div>
+    );
+  }
+
+  const ageMonths = computeAgeMonths(child.birthDate);
+  const supportsScreening = ageMonths <= EARLY_SCREENING_MAX_AGE_MONTHS;
+  const supportsQuantitative = ageMonths >= 36;
 
   const openManualForm = () => {
     setOCRDraft(null);
@@ -533,7 +792,6 @@ export default function VisionPage() {
 
   const handleVisionOCRUpload = async (file: File | null) => {
     if (!file) return;
-
     setOcrScanning(true);
     setOCRError(null);
     try {
@@ -544,7 +802,6 @@ export default function VisionPage() {
         setOCRError('未识别到可导入的视力/眼轴数据，请确认图片清晰且为验光单或眼轴单。');
         return;
       }
-
       setEditingRecord(null);
       setOCRDraft(eyeMeasurements);
       setShowForm(true);
@@ -552,100 +809,89 @@ export default function VisionPage() {
       setOCRError(error instanceof Error ? error.message : '智能识别失败，请重试。');
     } finally {
       setOcrScanning(false);
-      if (ocrInputRef.current) {
-        ocrInputRef.current.value = '';
-      }
+      if (ocrInputRef.current) ocrInputRef.current.value = '';
     }
   };
 
-  // Latest values for AI context
-  const latest = latestMeasurements;
-
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
-      <div className="flex items-center gap-2 mb-5">
-        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
+      <div className="flex items-center gap-2 mb-4">
+        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: 'var(--nimi-fg-3)' }}>← 返回档案</Link>
       </div>
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold" style={{ color: S.text }}>视力档案</h1>
-          {/* Info icon with sources tooltip */}
-          <div className="group relative">
-            <div className="w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-help transition-colors hover:bg-[#f0f0ec]" style={{ color: S.sub }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-              </svg>
-            </div>
-            <div className="pointer-events-none absolute left-0 top-7 z-50 w-[340px] rounded-xl p-4 text-[13px] leading-relaxed opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100"
-              style={{ background: '#1e293b', color: '#e0e4e8', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
-              <p className="text-[14px] font-semibold text-white mb-2.5">数据参考文献</p>
-              <ul className="space-y-2.5">
-                <li>
-                  <span className="text-[#4ECCA3] font-medium">眼轴 P50/P75 百分位（分性别 · 4-18岁）</span>
-                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">He X, Sankaridurg P, Naduvilath T, et al. Normative data and percentile curves for axial length and axial length/corneal curvature in Chinese children and adolescents aged 4-18 years.</span>
-                  <span className="block text-[12px] text-[#7a8090]">Br J Ophthalmol 2023;107:167-175</span>
-                  <span className="block text-[12px] text-[#606878]">DOI: 10.1136/bjophthalmol-2021-319431 · 样本: 14,127名 · STAR研究等3项队列</span>
-                </li>
-                <li>
-                  <span className="text-[#4ECCA3] font-medium">远视储备 · 角膜曲率参考区间（6-15岁）</span>
-                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">中华预防医学会公共卫生眼科分会. 中国学龄儿童眼球远视储备、眼轴长度、角膜曲率参考区间及相关遗传因素专家共识（2022年）.</span>
-                  <span className="block text-[12px] text-[#7a8090]">中华眼科杂志 2022;58(2):96-102</span>
-                  <span className="block text-[12px] text-[#606878]">DOI: 10.3760/cma.j.cn112142-20210603-00267 · 安阳/山东/甘肃调查</span>
-                </li>
-                <li>
-                  <span className="text-[#4ECCA3] font-medium">眼轴防控应用共识</span>
-                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">中华医学会眼科学分会眼视光学组. 眼轴长度在近视防控管理中的应用专家共识（2023）.</span>
-                  <span className="block text-[12px] text-[#7a8090]">中华实验眼科杂志 2024;42(1):1-8</span>
-                </li>
-                <li>
-                  <span className="text-[#4ECCA3] font-medium">近视防控技术指南</span>
-                  <span className="block text-[12px] text-[#a0a8b4] mt-0.5">国家卫生健康委员会. 儿童青少年近视防控适宜技术指南（更新版）. 2023</span>
-                </li>
-              </ul>
-              <p className="text-[12px] mt-2.5 pt-2 border-t border-white/10 text-[#808890]">P50 = 同龄同性别中位数 · P75 = 第75百分位（临界值） · 轴余 = P75 − 当前眼轴 · 覆盖: 4-18岁男/女</p>
-            </div>
+      {/* Child switcher */}
+      <div className="mb-3">
+        <AppSelect
+          value={activeChildId ?? ''}
+          onChange={(v) => setActiveChildId(v || null)}
+          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${fmtAge(computeAgeMonths(c.birthDate))}` }))}
+        />
+      </div>
+
+      {/* Page header */}
+      <header className="flex items-center gap-4 mb-5 flex-wrap">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold" style={{ color: 'var(--nimi-fg-1)' }}>
+              {child.displayName} 的视力档案
+            </h1>
+            <SourcesTooltip />
           </div>
         </div>
-        {/* Quantitative data buttons — only for 3+ years */}
-        {ageMonths >= 36 && (
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowGuide(!showGuide)}
-              className={`flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium ${S.radiusSm} transition-all`}
-              style={showGuide ? { background: S.accent, color: '#fff' } : { background: '#f0f0ec', color: S.sub }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {supportsQuantitative && (
+            <button
+              onClick={() => setShowGuide(!showGuide)}
+              className={`flex items-center gap-1 px-3 py-1.5 text-[12px] font-medium rounded-full transition-all`}
+              style={showGuide ? { background: 'var(--nimi-accent-soft)', color: 'var(--nimi-accent)' } : { background: 'rgba(15,23,42,0.05)', color: 'var(--nimi-fg-2)' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01" />
               </svg>
               录入指引
             </button>
-            <button onClick={() => ocrInputRef.current?.click()} disabled={ocrScanning}
-              className={`group relative flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium ${S.radiusSm} transition-all hover:opacity-90 disabled:opacity-50`}
-              style={{ background: '#BDE0F5', color: '#fff' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h4M7 12h10M7 16h6" />
+          )}
+          {supportsQuantitative && (
+            <button
+              onClick={() => ocrInputRef.current?.click()}
+              disabled={ocrScanning}
+              className="group relative flex items-center gap-1 px-3 py-1.5 text-[12px] font-medium rounded-full transition-all disabled:opacity-50"
+              style={{ background: 'rgba(186,230,253,0.45)', color: 'var(--nimi-fg-2)', border: '1px solid rgba(14,165,233,0.20)' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
               </svg>
               {ocrScanning ? '识别中...' : '智能识别'}
-              <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-0.5 text-[12px] font-normal text-white opacity-0 group-hover:opacity-100 z-50"
-                style={{ background: '#1e293b' }}>上传验光单/眼轴单自动识别</span>
             </button>
-            {!showForm && (
-              <button onClick={openManualForm}
-                className={`flex items-center gap-1.5 px-4 py-2 text-[14px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
-                style={{ background: S.accent }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-                录入数据
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-      <div className="mb-5">
-        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
-          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${fmtAge(computeAgeMonths(c.birthDate))}` }))} />
-      </div>
+          )}
+          {supportsScreening && (
+            <button
+              onClick={() => setShowScreeningModal(true)}
+              className="flex items-center gap-1 px-3 py-1.5 text-[12px] font-medium rounded-full transition-all"
+              style={{ background: 'rgba(15,23,42,0.05)', color: 'var(--nimi-fg-2)' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" />
+              </svg>
+              添加筛查
+            </button>
+          )}
+          {supportsQuantitative && (
+            <button
+              onClick={openManualForm}
+              className="flex items-center gap-1 px-3.5 py-1.5 text-[12px] font-medium text-white rounded-full transition-all hover:opacity-90"
+              style={{ background: 'var(--nimi-accent)' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              录入数据
+            </button>
+          )}
+        </div>
+      </header>
 
-      {/* ── Interactive guide ────────────────────────────────── */}
+      {/* OCR file input + error */}
       <input
         ref={ocrInputRef}
         type="file"
@@ -654,11 +900,10 @@ export default function VisionPage() {
         className="hidden"
         onChange={(event) => void handleVisionOCRUpload(event.target.files?.[0] ?? null)}
       />
-
       {ocrError && (
         <div
-          className={`${S.radiusSm} px-4 py-3 mb-5 text-[14px]`}
-          style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}
+          className="rounded-[14px] px-4 py-3 mb-4 text-[13px]"
+          style={{ background: 'rgba(239,68,68,0.06)', color: '#b91c1c', border: '1px solid rgba(239,68,68,0.20)' }}
           data-testid="vision-ocr-error"
         >
           {ocrError}
@@ -667,96 +912,219 @@ export default function VisionPage() {
 
       {showGuide && <VisionGuide onClose={() => setShowGuide(false)} />}
 
-      {/* Outdoor-activity cross-link — myopia prevention context */}
-      <OutdoorSummaryCard childId={child.childId} />
+      <div className="flex flex-col gap-5">
+        {/* Outdoor cross-link */}
+        <OutdoorSummaryCard childId={child.childId} />
 
-      {/* AI Summary */}
-      <AISummaryCard domain="vision" childName={child.displayName} childId={child.childId}
-        ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`} gender={child.gender}
-        dataContext={(() => {
-          const lines: string[] = [];
-          const vl = latest.get('vision-left'), vr = latest.get('vision-right');
-          if (vl) lines.push(`左眼视力: ${vl.value}`); if (vr) lines.push(`右眼视力: ${vr.value}`);
-          const al = latest.get('axial-length-left'), ar = latest.get('axial-length-right');
-          if (al) lines.push(`左眼眼轴: ${al.value}mm`); if (ar) lines.push(`右眼眼轴: ${ar.value}mm`);
-          return lines.join('\n');
-        })()} />
+        {/* AI Summary */}
+        <AISummaryCard
+          domain="vision"
+          childName={child.displayName}
+          childId={child.childId}
+          ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`}
+          gender={child.gender}
+          dataContext={(() => {
+            const lines: string[] = [];
+            const vl = latest.get('vision-left'), vr = latest.get('vision-right');
+            if (vl) lines.push(`左眼视力: ${vl.value}`);
+            if (vr) lines.push(`右眼视力: ${vr.value}`);
+            const al = latest.get('axial-length-left'), ar = latest.get('axial-length-right');
+            if (al) lines.push(`左眼眼轴: ${al.value}mm`);
+            if (ar) lines.push(`右眼眼轴: ${ar.value}mm`);
+            return lines.join('\n');
+          })()}
+        />
 
-      {/* ── Early vision screening section ──────────────────── */}
-      <ScreeningSection childId={child.childId} birthDate={child.birthDate}
-        ageMonths={ageMonths} screeningRecords={screeningRecords} onSave={reload} />
+        {/* At-a-glance chips */}
+        {latestFullRecord && (
+          <div className="grid grid-cols-3 gap-2.5">
+            {glanceMetrics.map((m) => (
+              <GlanceChip key={m.label} metric={m} />
+            ))}
+          </div>
+        )}
 
-      {/* ── Batch input form (quantitative, 3+ years) ────────── */}
-      {ageMonths >= 36 && showForm && (
-        <BatchForm childId={child.childId} birthDate={child.birthDate} onSave={reload}
-          onClose={() => {
-            setShowForm(false);
-            setEditingRecord(null);
-            setOCRDraft(null);
-            setOCRError(null);
-          }}
-          ocrDraft={ocrDraft}
-          initialRecord={editingRecord ?? undefined} />
-      )}
+        {/* Trend chart */}
+        {records.length > 0 && (
+          <TrendChartCard
+            measurements={trendPoints}
+            chartType={chartType}
+            onChartTypeChange={setChartType}
+          />
+        )}
 
-      {/* ── Exam record cards (quantitative) ─────────────────── */}
-      {records.length > 0 ? (
-        <div className="mb-6">
-          <h2 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>检查记录（{records.length} 次）</h2>
-          {records.map((rec, i) => <RecordCard key={rec.date} record={rec} index={records.length - 1 - i} gender={child.gender}
-            onEdit={() => {
+        {/* Quantitative form modal */}
+        {supportsQuantitative && showForm && (
+          <BatchForm
+            childId={child.childId}
+            birthDate={child.birthDate}
+            onSave={reload}
+            onClose={() => {
+              setShowForm(false);
+              setEditingRecord(null);
               setOCRDraft(null);
               setOCRError(null);
-              setEditingRecord(rec);
-              setShowForm(true);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            onDelete={() => {
-              void handleDeleteRecord(rec);
-            }} />)}
-        </div>
-      ) : ageMonths >= 36 && !showForm && (
-        <div className={`${S.radius} p-8 text-center mb-6`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <div className="w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center" style={{ background: '#f5f3ef' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c0bdb8" strokeWidth="1.5" strokeLinecap="round">
-              <circle cx="12" cy="12" r="3" /><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
-            </svg>
-          </div>
-          <p className="text-[14px] font-medium" style={{ color: S.text }}>还没有视力检查记录</p>
-          <p className="text-[13px] mt-1" style={{ color: S.sub }}>点击上方按钮录入第一次检查数据</p>
-        </div>
-      )}
+            ocrDraft={ocrDraft}
+            initialRecord={editingRecord ?? undefined}
+          />
+        )}
 
-      {/* ── Trend chart ──────────────────────────────────────── */}
-      {records.length > 0 && (
-        <div className={`${S.radius} p-4 mb-6`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[14px] font-semibold" style={{ color: S.text }}>趋势曲线</h3>
-            <AppSelect value={chartType} onChange={(v) => setChartType(v as GrowthTypeId)}
-              options={CHART_OPTIONS.map((o) => ({ value: o.typeId, label: o.label }))} />
-          </div>
-          {chartData.length === 0 ? (
-            <div className="p-8 text-center">
-              <span className="text-[24px]">👁️</span>
-              <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>还没有{typeInfo?.displayName ?? chartType}记录</p>
-              <p className="text-[13px] mt-1" style={{ color: S.sub }}>点击右上角添加第一条记录</p>
-            </div>
+        {/* Screening form modal */}
+        {showScreeningModal && (
+          <ScreeningModal
+            childId={child.childId}
+            birthDate={child.birthDate}
+            ageMonths={ageMonths}
+            onClose={() => setShowScreeningModal(false)}
+            onSave={reload}
+          />
+        )}
+
+        {/* Exam timeline */}
+        <div>
+          <SectionLabel
+            right={
+              exams.length > 0 ? (
+                <button
+                  onClick={() => setShowAgeFilter((s) => !s)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] cursor-pointer transition-all border-0"
+                  style={{
+                    background: showAgeFilter ? 'var(--nimi-accent-soft)' : 'rgba(15,23,42,0.05)',
+                    color: showAgeFilter ? 'var(--nimi-accent)' : 'var(--nimi-fg-2)',
+                  }}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18M7 12h10M11 18h2" />
+                  </svg>
+                  {selectedAge != null ? `${selectedAge}岁` : '按年龄'}
+                  {selectedAge != null && (
+                    <span
+                      onClick={(e) => { e.stopPropagation(); setSelectedAge(null); }}
+                      className="ml-0.5 opacity-70 text-[13px] leading-none"
+                    >
+                      ×
+                    </span>
+                  )}
+                </button>
+              ) : undefined
+            }
+          >
+            检查记录 · 时间线
+            <span className="ml-2 text-[10px]" style={{ color: 'var(--nimi-fg-4)', textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>
+              共 {exams.length} 次
+            </span>
+          </SectionLabel>
+
+          {showAgeFilter && (
+            <AgeFilter
+              exams={exams}
+              birthDate={child.birthDate}
+              selectedAge={selectedAge}
+              onPick={setSelectedAge}
+              activeExamId={openExamId}
+              onExamClick={(id) => {
+                const idx = exams.findIndex((e) => e.id === id);
+                if (idx < 0) return;
+                if (idx >= RECENT_EXAM_COUNT) setShowAllOlder(true);
+                setOpenExamId(id);
+                // Defer to next frame so the older list (if just expanded)
+                // and the open-state re-render have committed before we scroll.
+                requestAnimationFrame(() => {
+                  const el = document.querySelector<HTMLElement>(`[data-exam-id="${id}"]`);
+                  el?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                });
+              }}
+            />
+          )}
+
+          {exams.length === 0 ? (
+            <EmptyTimelineCard message={supportsQuantitative ? '还没有视力检查记录，点击右上方按钮录入第一次检查' : '还没有视力检查记录'} />
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                <XAxis dataKey="age" tick={{ fontSize: 10 }}
-                  label={{ value: '月龄', position: 'insideBottom', offset: -4, fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }}
-                  label={{ value: typeInfo?.unit ?? '', angle: -90, position: 'insideLeft', fontSize: 10 }} />
-                <Tooltip formatter={(v: number) => [`${v} ${typeInfo?.unit ?? ''}`, typeInfo?.displayName]}
-                  labelFormatter={(a) => `${a} 个月`} />
-                <Line type="monotone" dataKey="value" stroke={S.accent} strokeWidth={2} dot={{ r: 3, fill: S.accent }} />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="relative" style={{ paddingLeft: 24 }}>
+              <div
+                className="absolute"
+                style={{
+                  left: 9, top: 16, bottom: 16, width: 2, borderRadius: 1,
+                  background: 'linear-gradient(to bottom, rgba(15,23,42,0.10), rgba(15,23,42,0.04))',
+                }}
+              />
+              <div className="flex flex-col gap-3.5">
+                {recentExams.map((e, i) => (
+                  <ExamTimelineCard
+                    key={e.id}
+                    exam={e}
+                    prev={recentExams[i + 1] ?? olderExams[0]}
+                    gender={child.gender}
+                    isLatest={i === 0 && filteredExams[0]?.id === e.id}
+                    isOpen={openExamId === e.id}
+                    onToggle={() => setOpenExamId(openExamId === e.id ? null : e.id)}
+                    onEdit={e.source === 'measurement' && e.record ? () => {
+                      const rec = e.record!;
+                      setOCRDraft(null);
+                      setOCRError(null);
+                      setEditingRecord(rec);
+                      setShowForm(true);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } : undefined}
+                    onDelete={e.source === 'measurement' && e.record ? () => {
+                      void handleDeleteRecord(e.record!);
+                    } : undefined}
+                  />
+                ))}
+
+                {olderExams.length > 0 && (
+                  <OlderRecordsToggle
+                    count={olderExams.length}
+                    expanded={showAllOlder}
+                    onToggle={() => setShowAllOlder((s) => !s)}
+                  />
+                )}
+
+                {showAllOlder && olderExams.map((e, i) => (
+                  <ExamTimelineCard
+                    key={e.id}
+                    exam={e}
+                    prev={olderExams[i + 1]}
+                    gender={child.gender}
+                    isLatest={false}
+                    isOpen={openExamId === e.id}
+                    onToggle={() => setOpenExamId(openExamId === e.id ? null : e.id)}
+                    onEdit={e.source === 'measurement' && e.record ? () => {
+                      const rec = e.record!;
+                      setOCRDraft(null);
+                      setOCRError(null);
+                      setEditingRecord(rec);
+                      setShowForm(true);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } : undefined}
+                    onDelete={e.source === 'measurement' && e.record ? () => {
+                      void handleDeleteRecord(e.record!);
+                    } : undefined}
+                  />
+                ))}
+              </div>
+            </div>
           )}
         </div>
-      )}
+
+        {/* Next steps */}
+        <NextStepsCard childId={child.childId} latestBiometricDate={latestBiometricDate} />
+
+        {/* Footer */}
+        <div
+          className="flex justify-between items-center"
+          style={{ padding: '16px 4px 0', borderTop: '1px solid rgba(15,23,42,0.06)' }}
+        >
+          <div className="text-[11px]" style={{ color: 'var(--nimi-fg-4)' }}>
+            所有数据加密存储 · 仅家庭可见
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+
+// `deriveMeasurementExamKind` exported here for tests that want to assert on
+// kind-buckets without importing the data module directly.
+export { deriveMeasurementExamKind };

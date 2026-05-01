@@ -1,5 +1,5 @@
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
-import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
+import type { MeasurementRow, MedicalEventRow } from '../../bridge/sqlite-bridge.js';
 
 /* ── Eye type IDs ────────────────────────────────────────── */
 
@@ -59,6 +59,342 @@ export function fmtAge(am: number): string {
   if (am < 24) return `${am}月`;
   const y = Math.floor(am / 12), r = am % 12;
   return r > 0 ? `${y}岁${r}月` : `${y}岁`;
+}
+
+/* ── Exam meta extraction (shared with vision-batch-form's writer) ── */
+
+const EXAM_NOTE_PREFIXES = {
+  hospital: '医院: ',
+  doctor: '医生: ',
+  pupil: '瞳孔: ',
+  screenTime: '日近距离用眼: ',
+  outdoorTime: '日户外: ',
+  controls: '防控: ',
+} as const;
+
+export interface ExamMeta {
+  hospital: string | null;
+  doctor: string | null;
+  pupil: string | null;
+  notes: string | null;
+}
+
+/** Pull common exam-level metadata from any of a record's measurement notes. */
+export function parseExamMeta(record: VisionRecord): ExamMeta {
+  const out: ExamMeta = { hospital: null, doctor: null, pupil: null, notes: null };
+  const otherTokens: string[] = [];
+  const seenOther = new Set<string>();
+
+  for (const m of record.measurementsByType.values()) {
+    const tokens = (m.notes ?? '').split(' | ').map((t) => t.trim()).filter(Boolean);
+    for (const t of tokens) {
+      if (t.startsWith(EXAM_NOTE_PREFIXES.hospital)) {
+        if (!out.hospital) out.hospital = t.slice(EXAM_NOTE_PREFIXES.hospital.length).trim();
+      } else if (t.startsWith(EXAM_NOTE_PREFIXES.doctor)) {
+        if (!out.doctor) out.doctor = t.slice(EXAM_NOTE_PREFIXES.doctor.length).trim();
+      } else if (t.startsWith(EXAM_NOTE_PREFIXES.pupil)) {
+        if (!out.pupil) out.pupil = t.slice(EXAM_NOTE_PREFIXES.pupil.length).trim();
+      } else if (
+        t.startsWith(EXAM_NOTE_PREFIXES.screenTime)
+        || t.startsWith(EXAM_NOTE_PREFIXES.outdoorTime)
+        || t.startsWith(EXAM_NOTE_PREFIXES.controls)
+      ) {
+        // Known behavioural prefix that does not surface as exam-level meta.
+      } else if (!seenOther.has(t)) {
+        seenOther.add(t);
+        otherTokens.push(t);
+      }
+    }
+  }
+
+  if (otherTokens.length > 0) out.notes = otherTokens.join(' · ');
+  return out;
+}
+
+/* ── Unified timeline ExamView (quantitative exams + early screenings) ── */
+
+export type ExamKind = 'full' | 'biometric' | 'screen';
+
+export interface ExamView {
+  /** Stable identifier — 'measurement-<date>' or 'event-<eventId>'. */
+  id: string;
+  source: 'measurement' | 'screening';
+  date: string;
+  ageMonths: number;
+  kind: ExamKind;
+  hospital: string | null;
+  doctor: string | null;
+  notes: string | null;
+  /** ISO date difference vs today, in days. */
+  daysAgo: number;
+
+  // Measurement-source fields (undefined for screenings):
+  record?: VisionRecord;
+  pupil?: string | null;
+
+  // Screening-source fields (undefined for measurement exams):
+  screeningKey?: string | null;
+  result?: string | null;
+}
+
+/** A measurement record is "full" if it includes any refraction or vision data,
+ *  else "biometric" if it has axial-length data; otherwise still "biometric"
+ *  to keep the UI bucketed. */
+export function deriveMeasurementExamKind(record: VisionRecord): 'full' | 'biometric' {
+  const hasRefraction = record.data.has('refraction-sph-right')
+    || record.data.has('refraction-sph-left')
+    || record.data.has('refraction-cyl-right')
+    || record.data.has('refraction-cyl-left');
+  const hasVision = record.data.has('vision-right') || record.data.has('vision-left');
+  if (hasRefraction || hasVision) return 'full';
+  return 'biometric';
+}
+
+const VISION_SCREENING_PREFIX = 'vision:';
+
+export function isVisionScreeningEvent(e: MedicalEventRow): boolean {
+  return e.notes?.startsWith(VISION_SCREENING_PREFIX) ?? false;
+}
+
+export function parseScreeningEvent(e: MedicalEventRow): {
+  screeningKey: string | null;
+  userNotes: string | null;
+} {
+  if (!e.notes?.startsWith(VISION_SCREENING_PREFIX)) {
+    return { screeningKey: null, userNotes: e.notes };
+  }
+  const lines = e.notes.split('\n');
+  const firstLine = lines[0] ?? '';
+  const screeningKey = firstLine.slice(VISION_SCREENING_PREFIX.length) || null;
+  const userNotes = lines.length > 1 ? lines.slice(1).join('\n') : null;
+  return { screeningKey, userNotes };
+}
+
+function daysBetween(date: string, today: Date): number {
+  const d = new Date(date);
+  const ms = today.getTime() - d.getTime();
+  return Math.max(0, Math.floor(ms / (24 * 3600 * 1000)));
+}
+
+/** Merge VisionRecords + screening MedicalEventRows into a single newest-first
+ *  exam timeline. Today's date is injected for testability. */
+export function buildExamViews(
+  records: VisionRecord[],
+  events: MedicalEventRow[],
+  today: Date = new Date(),
+): ExamView[] {
+  const views: ExamView[] = [];
+
+  for (const rec of records) {
+    const meta = parseExamMeta(rec);
+    views.push({
+      id: `measurement-${rec.date}`,
+      source: 'measurement',
+      date: rec.date,
+      ageMonths: rec.ageMonths,
+      kind: deriveMeasurementExamKind(rec),
+      hospital: meta.hospital,
+      doctor: meta.doctor,
+      notes: meta.notes,
+      daysAgo: daysBetween(rec.date, today),
+      record: rec,
+      pupil: meta.pupil,
+    });
+  }
+
+  for (const e of events) {
+    if (!isVisionScreeningEvent(e)) continue;
+    const { screeningKey, userNotes } = parseScreeningEvent(e);
+    views.push({
+      id: `event-${e.eventId}`,
+      source: 'screening',
+      date: e.eventDate,
+      ageMonths: e.ageMonths,
+      kind: 'screen',
+      hospital: e.hospital,
+      doctor: null,
+      notes: userNotes,
+      daysAgo: daysBetween(e.eventDate, today),
+      screeningKey,
+      result: e.result,
+    });
+  }
+
+  return views.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/* ── Exam metric groups (drives the expanded timeline card) ───────── */
+
+export interface MetricRowDef {
+  /** Stable key used for prev-comparison lookups. */
+  key: string;
+  label: string;
+  unit: string;
+  /** OD/OS lookup keys against VisionRecord.data — null when value is computed. */
+  odKey: GrowthTypeId | null;
+  osKey: GrowthTypeId | null;
+  format?: (v: number) => string;
+  /** Compute value from a VisionRecord when the metric is derived (eg SE). */
+  compute?: (data: Map<string, number>, eye: 'OD' | 'OS') => number | null;
+  important?: boolean;
+  muted?: boolean;
+  /** Smaller-than threshold below which delta is treated as ≈0. */
+  deltaEpsilon?: number;
+}
+
+export interface MetricGroupDef {
+  key: string;
+  label: string;
+  metrics: MetricRowDef[];
+}
+
+const fmt2 = (v: number) => v.toFixed(2);
+const fmt1 = (v: number) => v.toFixed(1);
+const fmtSigned2 = (v: number) => (v >= 0 ? '+' : '') + v.toFixed(2);
+const fmtAxis = (v: number) => v.toFixed(0);
+
+function readSE(data: Map<string, number>, eye: 'OD' | 'OS'): number | null {
+  const sphKey = eye === 'OD' ? 'refraction-sph-right' : 'refraction-sph-left';
+  const cylKey = eye === 'OD' ? 'refraction-cyl-right' : 'refraction-cyl-left';
+  const sph = data.get(sphKey);
+  const cyl = data.get(cylKey);
+  if (sph == null) return null;
+  return +(sph + (cyl ?? 0) / 2).toFixed(2);
+}
+
+export const EXAM_METRIC_GROUPS: MetricGroupDef[] = [
+  {
+    key: 'vision', label: '视力',
+    metrics: [
+      {
+        key: 'vision_naked', label: '裸眼视力', unit: '',
+        odKey: 'vision-right', osKey: 'vision-left',
+        format: fmt1, important: true, deltaEpsilon: 0.05,
+      },
+      {
+        key: 'vision_corrected', label: '矫正视力', unit: '',
+        odKey: 'corrected-vision-right', osKey: 'corrected-vision-left',
+        format: fmt1, deltaEpsilon: 0.05,
+      },
+    ],
+  },
+  {
+    key: 'refraction', label: '屈光（验光）',
+    metrics: [
+      {
+        key: 'sphere', label: '球镜 S', unit: 'D',
+        odKey: 'refraction-sph-right', osKey: 'refraction-sph-left',
+        format: fmtSigned2,
+      },
+      {
+        key: 'cylinder', label: '柱镜 C', unit: 'D',
+        odKey: 'refraction-cyl-right', osKey: 'refraction-cyl-left',
+        format: fmt2,
+      },
+      {
+        key: 'axis', label: '轴向 A', unit: '°',
+        odKey: 'refraction-axis-right', osKey: 'refraction-axis-left',
+        format: fmtAxis,
+      },
+      {
+        key: 'se', label: '等效球镜 SE', unit: 'D',
+        odKey: null, osKey: null, compute: readSE,
+        format: fmtSigned2, important: true,
+      },
+    ],
+  },
+  {
+    key: 'biometric', label: '眼轴',
+    metrics: [
+      {
+        key: 'al', label: 'AL 眼轴长', unit: 'mm',
+        odKey: 'axial-length-right', osKey: 'axial-length-left',
+        format: fmt2, important: true, deltaEpsilon: 0.005,
+      },
+      {
+        key: 'ad', label: 'AD 前房深度', unit: 'mm',
+        odKey: 'acd-right', osKey: 'acd-left',
+        format: fmt2,
+      },
+      {
+        key: 'k1', label: 'K1 角膜曲率（平）', unit: 'D',
+        odKey: 'corneal-k1-right', osKey: 'corneal-k1-left',
+        format: fmt2,
+      },
+      {
+        key: 'k2', label: 'K2 角膜曲率（陡）', unit: 'D',
+        odKey: 'corneal-k2-right', osKey: 'corneal-k2-left',
+        format: fmt2,
+      },
+    ],
+  },
+];
+
+/** Resolve a metric value from a record, honouring derived `compute` rows. */
+export function readMetric(record: VisionRecord, metric: MetricRowDef, eye: 'OD' | 'OS'): number | null {
+  if (metric.compute) return metric.compute(record.data, eye);
+  const key = eye === 'OD' ? metric.odKey : metric.osKey;
+  if (!key) return null;
+  const v = record.data.get(key);
+  return v ?? null;
+}
+
+/* ── Glance metrics (top of page) ─────────────────────────────────── */
+
+export type GlanceStatus = 'ok' | 'warn' | 'danger';
+
+export interface GlanceMetric {
+  label: string;
+  unit: string;
+  od: number | null;
+  os: number | null;
+  format: (v: number) => string;
+  status: GlanceStatus;
+  tag: string;
+}
+
+/** Build the three at-a-glance chips from the latest measurement record.
+ *  Status thresholds use conservative rules: details on which threshold drove
+ *  a 'warn' should always come from the underlying exam card, not this chip. */
+export function computeGlanceMetrics(latestFull: VisionRecord | null): GlanceMetric[] {
+  if (!latestFull) {
+    return [
+      { label: '远视储备 SE', unit: 'D', od: null, os: null, format: fmtSigned2, status: 'ok', tag: '—' },
+      { label: '眼轴', unit: 'mm', od: null, os: null, format: fmt2, status: 'ok', tag: '—' },
+      { label: '裸眼视力', unit: '', od: null, os: null, format: fmt1, status: 'ok', tag: '—' },
+    ];
+  }
+  const seOD = readSE(latestFull.data, 'OD');
+  const seOS = readSE(latestFull.data, 'OS');
+  const minSE = (seOD != null && seOS != null) ? Math.min(seOD, seOS) : null;
+  const seStatus: GlanceStatus = minSE == null ? 'ok' : minSE >= 0.75 ? 'ok' : minSE >= 0 ? 'warn' : 'danger';
+  const seTag = minSE == null ? '—' : minSE >= 0.75 ? '充足' : minSE >= 0 ? '偏低' : '近视';
+
+  const alOD = latestFull.data.get('axial-length-right') ?? null;
+  const alOS = latestFull.data.get('axial-length-left') ?? null;
+  const alStatus: GlanceStatus = 'ok';
+  const alTag = (alOD != null || alOS != null) ? '已记录' : '—';
+
+  const vnOD = latestFull.data.get('vision-right') ?? null;
+  const vnOS = latestFull.data.get('vision-left') ?? null;
+  const minVision = (vnOD != null && vnOS != null) ? Math.min(vnOD, vnOS) : null;
+  const visionStatus: GlanceStatus = minVision == null ? 'ok' : minVision >= 1.0 ? 'ok' : minVision >= 0.8 ? 'warn' : 'danger';
+  const visionTag = minVision == null ? '—' : minVision >= 1.0 ? '达标' : minVision >= 0.8 ? '观察' : '偏低';
+
+  return [
+    { label: '远视储备 SE', unit: 'D', od: seOD, os: seOS, format: fmtSigned2, status: seStatus, tag: seTag },
+    { label: '眼轴', unit: 'mm', od: alOD, os: alOS, format: fmt2, status: alStatus, tag: alTag },
+    { label: '裸眼视力', unit: '', od: vnOD, os: vnOS, format: fmt1, status: visionStatus, tag: visionTag },
+  ];
+}
+
+/** Find the latest measurement record that has the data needed to feed the
+ *  GlanceChip cards (refraction or vision). Returns null if none found. */
+export function findLatestFullRecord(records: VisionRecord[]): VisionRecord | null {
+  for (const r of records) {
+    if (deriveMeasurementExamKind(r) === 'full') return r;
+  }
+  return records[0] ?? null;
 }
 
 /* ── Form field definitions ──────────────────────────────── */

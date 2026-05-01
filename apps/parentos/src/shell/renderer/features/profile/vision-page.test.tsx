@@ -13,6 +13,9 @@ const {
   deleteMeasurementMock,
   insertMeasurementMock,
   insertMedicalEventMock,
+  getVisionFollowupSettingsMock,
+  setVisionFollowupSettingsMock,
+  clearVisionFollowupSettingsMock,
   analyzeCheckupSheetOCRMock,
   readImageFileAsDataUrlMock,
 } = vi.hoisted(() => ({
@@ -21,6 +24,9 @@ const {
   deleteMeasurementMock: vi.fn().mockResolvedValue(undefined),
   insertMeasurementMock: vi.fn().mockResolvedValue(undefined),
   insertMedicalEventMock: vi.fn().mockResolvedValue(undefined),
+  getVisionFollowupSettingsMock: vi.fn().mockResolvedValue(null),
+  setVisionFollowupSettingsMock: vi.fn().mockResolvedValue(undefined),
+  clearVisionFollowupSettingsMock: vi.fn().mockResolvedValue(undefined),
   analyzeCheckupSheetOCRMock: vi.fn().mockResolvedValue({
     measurements: [
       {
@@ -46,6 +52,12 @@ vi.mock('../../bridge/sqlite-bridge.js', () => ({
   getMedicalEvents: getMedicalEventsMock,
   insertMedicalEvent: insertMedicalEventMock,
   insertMeasurement: insertMeasurementMock,
+  getVisionFollowupSettings: getVisionFollowupSettingsMock,
+  setVisionFollowupSettings: setVisionFollowupSettingsMock,
+  clearVisionFollowupSettings: clearVisionFollowupSettingsMock,
+  VISION_FOLLOWUP_CADENCE_MIN: 1,
+  VISION_FOLLOWUP_CADENCE_MAX: 36,
+  VISION_FOLLOWUP_CADENCE_DEFAULT: 3,
 }));
 
 vi.mock('recharts', () => ({
@@ -82,6 +94,9 @@ describe('VisionPage OCR intake', () => {
     deleteMeasurementMock.mockClear();
     insertMeasurementMock.mockClear();
     insertMedicalEventMock.mockClear();
+    getVisionFollowupSettingsMock.mockClear();
+    setVisionFollowupSettingsMock.mockClear();
+    clearVisionFollowupSettingsMock.mockClear();
     analyzeCheckupSheetOCRMock.mockClear();
     readImageFileAsDataUrlMock.mockClear();
 
@@ -184,6 +199,90 @@ describe('VisionPage OCR intake', () => {
     });
     expect(insertMeasurementMock).not.toHaveBeenCalled();
   });
+  it('persists vision follow-up cadence + custom next-visit date through the bridge', async () => {
+    getVisionFollowupSettingsMock.mockResolvedValueOnce(null);
+    getMeasurementsMock.mockResolvedValueOnce([
+      {
+        measurementId: 'm-anchor',
+        childId: 'child-1',
+        typeId: 'axial-length-right',
+        value: 22.84,
+        measuredAt: '2026-04-06',
+        ageMonths: 99,
+        percentile: null,
+        source: 'manual',
+        notes: null,
+        createdAt: '2026-04-06T08:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <MemoryRouter>
+        <VisionPage />
+      </MemoryRouter>,
+    );
+
+    // Open the editor via 提醒设置.
+    const settingsBtn = await screen.findByRole('button', { name: /提醒设置/ });
+    fireEvent.click(settingsBtn);
+
+    // Pick the 6-month preset.
+    fireEvent.click(await screen.findByRole('button', { name: '6 个月' }));
+
+    fireEvent.click(screen.getByLabelText('vision-followup-save'));
+
+    await waitFor(() => {
+      expect(setVisionFollowupSettingsMock).toHaveBeenCalledTimes(1);
+    });
+    expect(setVisionFollowupSettingsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        childId: 'child-1',
+        cadenceMonths: 6,
+        customNextDate: null,
+      }),
+    );
+  });
+
+  it('clears the custom override and reverts to system recommendation', async () => {
+    getVisionFollowupSettingsMock.mockResolvedValueOnce({
+      childId: 'child-1',
+      cadenceMonths: 6,
+      customNextDate: '2026-08-01',
+      createdAt: '2026-04-01T00:00:00.000Z',
+      updatedAt: '2026-04-01T00:00:00.000Z',
+    });
+    getMeasurementsMock.mockResolvedValueOnce([
+      {
+        measurementId: 'm-anchor',
+        childId: 'child-1',
+        typeId: 'axial-length-right',
+        value: 22.84,
+        measuredAt: '2026-04-06',
+        ageMonths: 99,
+        percentile: null,
+        source: 'manual',
+        notes: null,
+        createdAt: '2026-04-06T08:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <MemoryRouter>
+        <VisionPage />
+      </MemoryRouter>,
+    );
+
+    const settingsBtn = await screen.findByRole('button', { name: /提醒设置/ });
+    fireEvent.click(settingsBtn);
+
+    fireEvent.click(await screen.findByRole('button', { name: '恢复系统推荐' }));
+
+    await waitFor(() => {
+      expect(clearVisionFollowupSettingsMock).toHaveBeenCalledTimes(1);
+    });
+    expect(clearVisionFollowupSettingsMock).toHaveBeenCalledWith('child-1');
+  });
+
   it('deletes every measurement belonging to a grouped vision record', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     getMeasurementsMock.mockResolvedValueOnce([
