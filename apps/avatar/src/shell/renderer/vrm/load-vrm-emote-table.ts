@@ -1,7 +1,7 @@
 // Wave 3 chunk 3-A of topic 2026-04-30-avatar-vrm-backend-branch.
 //
 // Synchronously loads the VRM emote recipe table from
-// apps/avatar/spec/kernel/tables/vrm-emote-states.yaml. Vite's `?raw`
+// .nimi/spec/avatar/kernel/tables/vrm-emote-states.yaml. Vite's `?raw`
 // suffix inlines the file as a string at bundle time; we parse with
 // `yaml` at runtime. The state machine itself does no filesystem I/O.
 //
@@ -10,7 +10,7 @@
 // (vs a less-specific construction failure inside the state machine).
 
 import { parse as parseYaml } from 'yaml';
-import emoteTableYaml from '../../../../spec/kernel/tables/vrm-emote-states.yaml?raw';
+import emoteTableYaml from '../../../../../../.nimi/spec/avatar/kernel/tables/vrm-emote-states.yaml?raw';
 import {
   PRIMARY_EXPRESSION_WEIGHT_CAP,
   type VrmEmoteBundle,

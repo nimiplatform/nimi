@@ -1,7 +1,7 @@
 # Embodiment Projection Contract
 
 > **App**: `@nimiplatform/avatar`
-> **Authority**: App-local kernel contract
+> **Authority**: Avatar kernel contract
 > **Status**: Wave 0 of topic `2026-04-30-avatar-vrm-backend-branch` re-anchors
 >   this contract to the multi-backend `BackendProjection` ontology surface.
 >   Pre-multi-backend (Wave 6B Live2D-only) framing is superseded.
@@ -173,7 +173,7 @@ type BackendProjection = {
 Rules:
 
 - `name` / `presetId` / `current` / `previous` 必须来自 platform
-  `agent-activity-ontology.yaml` (K-AGCORE-049) 或 app-local
+  `agent-activity-ontology.yaml` (K-AGCORE-049) 或 Avatar-local
   `vrm-emote-states.yaml` / `vrm-motion-presets.yaml` admit registry。
 - BackendProjection method **不携带** Live2D parameter id（`ParamMouthOpenY`
   等）；parameter id 路径降级为 `Live2DBackendExtension.setParameter`

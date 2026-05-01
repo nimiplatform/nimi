@@ -1,7 +1,7 @@
 # Carrier Visual Acceptance Contract
 
 > **App**: `@nimiplatform/avatar`
-> **Authority**: App-local kernel contract
+> **Authority**: Avatar kernel contract
 > **Status**: Active acceptance boundary for current Live2D carrier proof
 > **Sibling contracts**:
 > - [Live2D render contract](live2d-render-contract.md)

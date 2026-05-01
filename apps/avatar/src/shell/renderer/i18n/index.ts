@@ -9,7 +9,7 @@
 //   2. navigator.language → first matching SUPPORTED_LOCALES prefix
 //   3. 'en'
 //
-// All keys are declared in spec/kernel/tables/i18n-keys.yaml (Wave 2 admit).
+// All keys are declared in .nimi/spec/avatar/kernel/tables/i18n-keys.yaml.
 // `pnpm --filter @nimiplatform/avatar check:spec-consistency` enforces 1:1
 // alignment between the spec table and both locale JSON files.
 

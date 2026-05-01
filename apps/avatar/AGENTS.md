@@ -41,7 +41,7 @@ Nimi Avatar 不是常规软件窗口，而是 **桌面悬浮 embodiment surface*
 
 ## Wave Schedule
 
-Avatar 重构分 5 个 wave；每个 wave 必须是端到端可交付能力切片，不允许半成品中间态。详细 scope 见 `spec/kernel/tables/feature-matrix.yaml`。
+Avatar 重构分 5 个 wave；每个 wave 必须是端到端可交付能力切片，不允许半成品中间态。详细 scope 见 `.nimi/spec/avatar/kernel/tables/feature-matrix.yaml`。
 
 | Wave | 主题 | 状态 |
 |---|---|---|
@@ -67,21 +67,21 @@ Avatar 重构分 5 个 wave；每个 wave 必须是端到端可交付能力切�
 
 - 项目未上线，不留 legacy shim；Phase 1/2/3 框架已废弃，只用 wave-based 模型
 - 不做 MVP / 不做半成品中间态；每 wave 端到端交付
-- spec 先行（`apps/avatar/spec/kernel/**` 与 `.nimi/spec/**`），spec admit 后再做实现
+- spec 先行（`.nimi/spec/avatar/kernel/**` 与 `.nimi/spec/**`），spec admit 后再做实现
 - 不做伪实现 / 伪返回；i18n、design tokens、lipsync 必须真实接通
 - nimi-coding 为核心工作流；每 wave 跑完整 spec validators + code 验证
 
 ## Spec Authority & Sync
 
-`apps/avatar/spec/**` is Nimi Avatar's admitted app-local authority landing. Normative content belongs only in `spec/kernel/*.md` and `spec/kernel/tables/**`; `spec/INDEX.md` and `spec/nimi-avatar.md` are guides.
+`.nimi/spec/avatar/**` is Nimi Avatar's admitted first-party authority root. Normative content belongs under `.nimi/spec/avatar/kernel/*.md` and `.nimi/spec/avatar/kernel/tables/**`; `.nimi/spec/avatar/index.md` and `.nimi/spec/avatar/nimi-avatar.md` are guides.
 
 ### Migrated Contract Lineage
 
 The following contracts were crystallized from lifecycle-topic evidence into
-admitted app-local authority:
+admitted first-party Avatar authority:
 
-- `spec/kernel/agent-script-contract.md` ← `nimi-agent-script.md` (议题 4b)
-- `spec/kernel/avatar-event-contract.md` ← `avatar-event-spec.md` (议题 3b)
+- `.nimi/spec/avatar/kernel/agent-script-contract.md` ← `nimi-agent-script.md` (议题 4b)
+- `.nimi/spec/avatar/kernel/avatar-event-contract.md` ← `avatar-event-spec.md` (议题 3b)
 
 ### Platform-Level Upstream
 
@@ -94,7 +94,7 @@ Platform contracts are consumed from active `.nimi/spec/**` authority:
 - SDK runtime consume surface → `.nimi/spec/sdk/kernel/runtime-contract.md`
 - Presentation Timeline boundary → `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`
 
-Nimi Avatar-specific contracts in this spec/kernel do not re-define upstream;只定义 app-local 行为 + downstream implementation binding。
+Nimi Avatar-specific contracts in `.nimi/spec/avatar/kernel/**` do not re-define upstream; they define Avatar-local behavior and downstream implementation binding.
 
 ### Key Tables
 
@@ -320,7 +320,7 @@ advertising the workflow as canonical.
 
 ## Retrieval Defaults
 
-Start with: `spec/kernel/tables/`, `spec/kernel/`, `src/shell/renderer/nas/`, `src/shell/renderer/live2d/`, `src/shell/renderer/app-shell/`, `src-tauri/src/`.
+Start with: `.nimi/spec/avatar/kernel/tables/`, `.nimi/spec/avatar/kernel/`, `src/shell/renderer/nas/`, `src/shell/renderer/live2d/`, `src/shell/renderer/app-shell/`, `src-tauri/src/`.
 
 Skip: `node_modules/`, `dist/`, `target/`, lockfiles.
 

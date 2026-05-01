@@ -1,7 +1,7 @@
 # Backend Branch Contract
 
 > **App**: `@nimiplatform/avatar`
-> **Authority**: App-local kernel contract
+> **Authority**: Avatar kernel contract
 > **Status**: Wave 0 admit (topic `2026-04-30-avatar-vrm-backend-branch`, design-02)
 > **Sibling contracts**:
 > - [VRM backend contract](vrm-backend-contract.md)
@@ -31,7 +31,7 @@ window-bounds / hit-region 共同消费的统一接口。任何 backend（Live2D
 
 `BackendBranch` 是 `apps/avatar` 私有契约：
 
-- 在 `apps/avatar/spec/kernel/` 内 admit；不导出到 `kit/**`
+- 在 `.nimi/spec/avatar/kernel/` 内 admit；不导出到 `kit/**`
 - 不被其他 app 直接消费（自包含；详 design-12）
 - `kind` 分支只在 `createBackendBranch(model)` 一个工厂位置出现；其余代码
   必须按 `BackendBranch` interface 编程（不允许散落 `if (kind === ...)`）
@@ -140,7 +140,7 @@ export type BackendProjection = {
 
 - `applyActivity / applyEmotion / applyMotion / applyExpression / reset` 是
   ontology-level method；name / presetId / emotion id 必须来自 platform
-  `agent-activity-ontology.yaml`（K-AGCORE-049）或 app-local
+  `agent-activity-ontology.yaml`（K-AGCORE-049）或 Avatar-local
   `vrm-emote-states.yaml` / `vrm-motion-presets.yaml` admit registry
 - **不允许** 任何方法携带 Live2D parameter id（如 `ParamMouthOpenY`）；
   parameter id 路径降级为 `Live2DBackendExtension.setParameter` escape hatch

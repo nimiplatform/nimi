@@ -4,7 +4,7 @@
 // VRM scene + framing intent. Replaces the static placeholder previously
 // hard-coded in `vrm-backend.tsx`. The default (vrm == null / pre-load)
 // matches the policy admitted in
-// `apps/avatar/spec/kernel/tables/window-bounds-policy.yaml`
+// `.nimi/spec/avatar/kernel/tables/window-bounds-policy.yaml`
 // `backends.vrm` — 360 × 720 with `bottom-companion` framing intent
 // (waist-up, narrow tall window).
 //

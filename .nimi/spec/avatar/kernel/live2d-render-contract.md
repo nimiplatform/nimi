@@ -1,7 +1,7 @@
 # Live2D Render Contract
 
 > **App**: `@nimiplatform/avatar`
-> **Authority**: App-local kernel contract
+> **Authority**: Avatar kernel contract
 > **Status**: Phase 1 baseline; Wave 0 of topic
 >   `2026-04-30-avatar-vrm-backend-branch` re-scopes this contract to
 >   **`kind: 'live2d'` BackendBranch implementation detail**.
@@ -63,7 +63,8 @@ Wave 4 hard cut: current Avatar app evidence proves Live2D model/resource loadin
 
 - **不 fork** Cubism SDK
 - 通过官方 `@live2d/cubism-framework` + native `Live2DCubismCore.js` 依赖接入
-- App-local 代码只在 SDK 外层做 wrap（model 管理、参数派发、NAS API 绑定）
+- Avatar-local code only wraps the SDK boundary for model management,
+  parameter dispatch, and NAS API binding.
 
 ### 1.2 License & Distribution
 

@@ -7,10 +7,10 @@
 // `Live2DBackendSession.applyCommand` already consumes.
 //
 // Spec authorities:
-//   - apps/avatar/spec/kernel/backend-branch-contract.md
+//   - .nimi/spec/avatar/kernel/backend-branch-contract.md
 //     §"BackendProjection ontology surface"
-//   - apps/avatar/spec/kernel/embodiment-projection-contract.md (re-anchor)
-//   - apps/avatar/spec/kernel/tables/activity-mapping.yaml v2
+//   - .nimi/spec/avatar/kernel/embodiment-projection-contract.md (re-anchor)
+//   - .nimi/spec/avatar/kernel/tables/activity-mapping.yaml v2
 //     (`live2d.motion_group` / `fallback_motion_group`)
 //
 // Implementation notes:

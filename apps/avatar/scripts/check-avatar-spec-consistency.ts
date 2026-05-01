@@ -2,7 +2,7 @@
 // Validates that:
 //  1. Required spec authority files exist on disk (kernel + tables + guide).
 //  2. Wave 2 implementation surfaces (i18n locales + tokens.css) exist.
-//  3. Every i18n key listed in `spec/kernel/tables/i18n-keys.yaml` is
+//  3. Every i18n key listed in `.nimi/spec/avatar/kernel/tables/i18n-keys.yaml` is
 //     present in BOTH `locales/en/avatar.json` and `locales/zh/avatar.json`,
 //     and no orphan keys exist in either locale file (1:1 alignment).
 
@@ -12,33 +12,45 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
+const REPO_ROOT = resolve(ROOT, '../..');
+const AVATAR_SPEC_ROOT = resolve(REPO_ROOT, '.nimi/spec/avatar');
 
-const requiredPaths = [
-  'spec/kernel/index.md',
-  'spec/kernel/embodiment-projection-contract.md',
-  'spec/kernel/agent-script-contract.md',
-  'spec/kernel/avatar-event-contract.md',
-  'spec/kernel/app-shell-contract.md',
-  'spec/kernel/live2d-render-contract.md',
-  'spec/kernel/live2d-asset-compatibility-contract.md',
-  'spec/kernel/carrier-visual-acceptance-contract.md',
-  'spec/kernel/mock-fixture-contract.md',
-  'spec/kernel/tables/feature-matrix.yaml',
-  'spec/kernel/tables/activity-mapping.yaml',
-  'spec/kernel/tables/live2d-compatibility-tiers.yaml',
-  'spec/kernel/tables/scenario-catalog.yaml',
-  'spec/kernel/tables/i18n-keys.yaml',
-  'spec/kernel/tables/window-bounds-policy.yaml',
-  'spec/nimi-avatar.md',
+const requiredAuthorityPaths = [
+  'index.md',
+  'nimi-avatar.md',
+  'kernel/index.md',
+  'kernel/embodiment-projection-contract.md',
+  'kernel/agent-script-contract.md',
+  'kernel/avatar-event-contract.md',
+  'kernel/app-shell-contract.md',
+  'kernel/backend-branch-contract.md',
+  'kernel/live2d-render-contract.md',
+  'kernel/live2d-asset-compatibility-contract.md',
+  'kernel/carrier-visual-acceptance-contract.md',
+  'kernel/mock-fixture-contract.md',
+  'kernel/vrm-backend-contract.md',
+  'kernel/tables/feature-matrix.yaml',
+  'kernel/tables/activity-mapping.yaml',
+  'kernel/tables/live2d-compatibility-tiers.yaml',
+  'kernel/tables/scenario-catalog.yaml',
+  'kernel/tables/i18n-keys.yaml',
+  'kernel/tables/window-bounds-policy.yaml',
+  'kernel/tables/vrm-emote-states.yaml',
+  'kernel/tables/vrm-motion-presets.yaml',
+];
+
+const requiredAppPaths = [
   'src/shell/renderer/locales/en/avatar.json',
   'src/shell/renderer/locales/zh/avatar.json',
   'src/shell/renderer/app-shell/tokens.css',
 ];
 
+const requiredPaths = [...requiredAuthorityPaths, ...requiredAppPaths];
+
 const missing = requiredPaths
   .map((relativePath) => ({
     relativePath,
-    absolutePath: resolve(ROOT, relativePath),
+    absolutePath: resolvePath(relativePath),
   }))
   .filter(({ absolutePath }) => !existsSync(absolutePath));
 
@@ -53,7 +65,7 @@ if (missing.length > 0) {
 // Extract i18n key declarations from the YAML table without pulling in a
 // full YAML parser — keys are emitted as `      - key: <value>` lines.
 function readSpecKeys(): string[] {
-  const yamlPath = resolve(ROOT, 'spec/kernel/tables/i18n-keys.yaml');
+  const yamlPath = resolve(AVATAR_SPEC_ROOT, 'kernel/tables/i18n-keys.yaml');
   const yaml = readFileSync(yamlPath, 'utf8');
   const keys: string[] = [];
   for (const rawLine of yaml.split('\n')) {
@@ -61,7 +73,7 @@ function readSpecKeys(): string[] {
     if (match) keys.push(match[1]);
   }
   if (keys.length === 0) {
-    throw new Error('spec/kernel/tables/i18n-keys.yaml declares zero keys');
+    throw new Error('.nimi/spec/avatar/kernel/tables/i18n-keys.yaml declares zero keys');
   }
   return keys;
 }
@@ -146,3 +158,10 @@ if (errors.length > 0) {
 console.log('Avatar spec consistency check passed.');
 console.log(`- ${requiredPaths.length} required authority files present`);
 console.log(`- ${specKeys.length} i18n keys aligned across spec / en / zh`);
+
+function resolvePath(relativePath: string): string {
+  if (requiredAuthorityPaths.includes(relativePath)) {
+    return resolve(AVATAR_SPEC_ROOT, relativePath);
+  }
+  return resolve(ROOT, relativePath);
+}

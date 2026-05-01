@@ -4,7 +4,7 @@
 // surface; full BackendBranch factory + per-backend implementations land in
 // topic-internal wave_1 (= feature-matrix v3 wave_6).
 //
-// Spec authority: apps/avatar/spec/kernel/backend-branch-contract.md
+// Spec authority: .nimi/spec/avatar/kernel/backend-branch-contract.md
 // Drift rule: type definitions here MUST stay in sync with that contract.
 
 import type { ComponentType } from 'react';

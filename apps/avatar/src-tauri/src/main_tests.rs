@@ -132,7 +132,7 @@ fn cursor_client_position_falls_back_to_unit_scale_for_invalid_scale() {
 }
 
 // Wave 4 chunk 4-D — explicit VRM nominal-bounds coverage.
-// Per `apps/avatar/spec/kernel/tables/window-bounds-policy.yaml`
+// Per `.nimi/spec/avatar/kernel/tables/window-bounds-policy.yaml`
 // `backends.vrm.nominal_bounds_default`, the VRM baseline window is
 // 360 × 720 (taller, narrower than Live2D's 400 × 600). The constraint
 // math is generic over (width, height); these tests document that the

@@ -1,7 +1,7 @@
 // Wave 1 (step 3) of topic 2026-04-30-avatar-vrm-backend-branch.
 //
 // Activity-mapping resolver — exposes per-backend activity routing
-// derived from `apps/avatar/spec/kernel/tables/activity-mapping.yaml`
+// derived from `.nimi/spec/avatar/kernel/tables/activity-mapping.yaml`
 // v2 (multi-backend dual route).
 //
 // Wave_1 ships the resolver with the v2 table inlined as a TS const

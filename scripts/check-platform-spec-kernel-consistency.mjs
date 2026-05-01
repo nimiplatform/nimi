@@ -797,6 +797,10 @@ function checkAppSliceAdmissions(definedRuleIds) {
       continue;
     }
     seen.add(appId);
+    if (appId === 'avatar') {
+      fail(`${rel}: avatar is promoted to .nimi/spec/avatar and must not be admitted as an app-local spec slice`);
+      continue;
+    }
     if (!ownerDomain) fail(`${rel}: ${appId} missing owner_domain`);
     if (!allowedStatus.has(status)) fail(`${rel}: ${appId} has invalid status ${status || '<empty>'}`);
     if (authorityRoot !== `apps/${appId}/spec`) {

@@ -13,13 +13,6 @@ admissions:
       - .nimi/spec/desktop/**
       - .nimi/spec/cognition/**
     source_rule: P-APP-001
-  - app_id: avatar
-    status: active
-    owner_domain: app-avatar
-    authority_root: apps/avatar/spec
-    evidence_roots: [apps/avatar]
-    may_not_override: *kernel_authority
-    source_rule: P-APP-001
   - app_id: forge
     status: active
     owner_domain: app-forge

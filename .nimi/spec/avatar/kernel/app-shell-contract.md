@@ -1,7 +1,7 @@
 # App Shell Contract
 
 > **App**: `@nimiplatform/avatar`
-> **Authority**: App-local kernel contract
+> **Authority**: Avatar kernel contract
 > **Status**: Wave 0 industrial baseline (supersedes earlier "Phase 1 / Phase 2 deferred" framing)
 > **Sibling contracts**:
 > - [Embodiment projection contract](embodiment-projection-contract.md)
@@ -10,7 +10,7 @@
 > - [Avatar event contract](avatar-event-contract.md)
 >
 > **Hard Cut Status (topic `2026-04-29-avatar-first-party-app-launch-hardcut` wave-1)**：
-> 本 contract 约束默认 Nimi Avatar app。Avatar 是 Runtime-admitted local first-party Nimi app（default app id `nimi.avatar`），Desktop 启动时只传递 `agent_id`、optional `avatar_instance_id`、optional non-authoritative `launch_source`。Avatar 可以像其他 local first-party app 一样使用 Runtime account projection 与 Runtime-issued short-lived access token 访问授权数据；它不得持有 refresh token、durable auth session、shared auth truth、independent Realm auth truth、或 app-local JWT subject truth。Desktop 不得把 scoped binding、visual package truth、conversation anchor truth、account/user truth、Realm/auth material 透传给默认 Avatar 启动路径。
+> 本 contract 约束默认 Nimi Avatar app。Avatar 是 Runtime-admitted local first-party Nimi app（default app id `nimi.avatar`），Desktop 启动时只传递 `agent_id`、optional `avatar_instance_id`、optional non-authoritative `launch_source`。Avatar 可以像其他 local first-party app 一样使用 Runtime account projection 与 Runtime-issued short-lived access token 访问授权数据；它不得持有 refresh token、durable auth session、shared auth truth、independent Realm auth truth、或 Avatar-local JWT subject truth。Desktop 不得把 scoped binding、visual package truth、conversation anchor truth、account/user truth、Realm/auth material 透传给默认 Avatar 启动路径。
 >
 > Explicit binding-only / embedded / delegated Avatar mode 仍可由 `K-BIND-*` admit，但它不是 Desktop-launched Avatar 的默认路径。
 >
@@ -464,7 +464,7 @@ Login / account handling:
   account state requires user action.
 - Avatar must not run independent Realm login or own browser callback custody.
 - Avatar must not receive refresh tokens, durable session material, raw JWT, or
-  app-local subject truth.
+  Avatar-local subject truth.
 - Avatar may receive short-lived access tokens only through Runtime-backed SDK
   providers and only for request-time Realm data access.
 

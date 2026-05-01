@@ -16,12 +16,12 @@
 // and fires `onDegraded({ reason_code: 'device_tier_c' })` once.
 //
 // Spec authorities:
-//   - apps/avatar/spec/kernel/app-shell-contract.md §2.3.1
+//   - .nimi/spec/avatar/kernel/app-shell-contract.md §2.3.1
 //     (alpha-mask threshold = 10/255; alpha-mask precedes bbox; null
 //      `isOpaqueAtClientPoint` indicates device tier C / not-supported)
-//   - apps/avatar/spec/kernel/backend-branch-contract.md §BackendHitRegion
-//   - apps/avatar/spec/kernel/live2d-render-contract.md §"Hit Testing"
-//   - apps/avatar/spec/kernel/live2d-asset-compatibility-contract.md §6
+//   - .nimi/spec/avatar/kernel/backend-branch-contract.md §BackendHitRegion
+//   - .nimi/spec/avatar/kernel/live2d-render-contract.md §"Hit Testing"
+//   - .nimi/spec/avatar/kernel/live2d-asset-compatibility-contract.md §6
 //
 // Alpha-mask threshold is centralized as a NAMED constant per packet
 // acceptance_invariant 13: drift audits forbid scattered float / byte

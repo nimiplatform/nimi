@@ -3,7 +3,7 @@
 // Tauri `nimi_avatar_set_window_size` IPC.
 //
 // Source-of-truth defaults (per
-// apps/avatar/spec/kernel/tables/window-bounds-policy.yaml backends.*):
+// .nimi/spec/avatar/kernel/tables/window-bounds-policy.yaml backends.*):
 //   - VRM:    nominal_bounds_default = 360 × 720
 //   - Live2D: nominal_bounds_default = 400 × 600
 //

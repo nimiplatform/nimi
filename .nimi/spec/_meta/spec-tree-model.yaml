@@ -4,6 +4,12 @@ spec_tree_model:
   canonical_root: .nimi/spec
   authority_mode: canonical_active
   domains:
+    - id: avatar
+      root: .nimi/spec/avatar
+      normative_root: .nimi/spec/avatar/kernel
+      tables_root: .nimi/spec/avatar/kernel/tables
+      generated_root: .nimi/spec/avatar/kernel/generated
+      guide_paths: []
     - id: desktop
       root: .nimi/spec/desktop
       normative_root: .nimi/spec/desktop/kernel
@@ -80,6 +86,7 @@ spec_tree_model:
     minimal:
       - .nimi/spec/INDEX.md
       - .nimi/spec/_meta/spec-tree-model.yaml
+      - .nimi/spec/avatar/kernel/index.md
       - .nimi/spec/desktop/kernel/index.md
       - .nimi/spec/future/kernel/index.md
       - .nimi/spec/platform/kernel/index.md

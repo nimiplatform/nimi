@@ -168,8 +168,8 @@ Active owner map:
   as durable app-facing `apml.*` product events
 - Desktop owns only chat shell bridge / handoff semantics under
   `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
-- Avatar owns app-local `avatar.*` event naming and consume semantics under
-  `apps/avatar/spec/kernel/avatar-event-contract.md`
+- Avatar owns Avatar-local `avatar.*` event naming and consume semantics under
+  `.nimi/spec/avatar/kernel/avatar-event-contract.md`
 - SDK may consume admitted runtime agent projections but does not own platform
   event ontology
 
@@ -238,7 +238,7 @@ runtime, SDK/Desktop, Avatar, and cross-surface acceptance evidence all exist.
 - `.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml`
 - `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`
 - `.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md`
-- `apps/avatar/spec/kernel/avatar-event-contract.md`
-- `apps/avatar/spec/kernel/tables/activity-mapping.yaml`
+- `.nimi/spec/avatar/kernel/avatar-event-contract.md`
+- `.nimi/spec/avatar/kernel/tables/activity-mapping.yaml`
 - `docs/architecture/agent-companion-core-protocol.md` — reader guide and core projection correspondence
 - `docs/architecture/live2d-companion.md` — reader guide and runtime projection correspondence

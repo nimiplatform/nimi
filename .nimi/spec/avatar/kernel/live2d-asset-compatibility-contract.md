@@ -1,7 +1,7 @@
 # Live2D Asset Compatibility Contract
 
 > **App**: `@nimiplatform/avatar`
-> **Authority**: App-local kernel contract
+> **Authority**: Avatar kernel contract
 > **Status**: Active contract for existing Live2D asset adaptation
 > **Sibling contracts**:
 > - [Live2D render contract](live2d-render-contract.md)
@@ -20,7 +20,7 @@ fixtures, and Avatar carrier acceptance.
 
 This contract does not redefine Runtime/SDK agent semantics. Runtime and SDK
 continue to own activity, emotion, posture, turn, and timeline truth. Avatar
-owns only the app-local mapping from those semantics into a model-local Live2D
+owns only the Avatar-local mapping from those semantics into a model-local Live2D
 package.
 
 ## 1. Non-Negotiable Rules
@@ -66,7 +66,7 @@ The manifest kind is:
 }
 ```
 
-The manifest is Avatar app-local authority. It maps an existing Live2D package
+The manifest is Avatar Avatar authority. It maps an existing Live2D package
 to Avatar carrier expectations; it is not a Runtime, SDK, Desktop, NAS, or
 platform event contract.
 

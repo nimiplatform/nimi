@@ -97,7 +97,7 @@ Nimi Avatar 消费 Nimi runtime 的 agent data，通过 embodiment projection la
   recovery cache 只按 Runtime account projection + `agent_id` +
   `avatar_instance_id` 索引，并且必须经 Runtime snapshot 校验后才能复用
 - Avatar 不读取 shared auth、不创建 Realm HTTP client、不做 login bootstrap、
-  不拥有 refresh token、durable auth/session/user truth 或 app-local JWT subject
+  不拥有 refresh token、durable auth/session/user truth 或 Avatar-local JWT subject
   truth
 - bounded close handoff 只允许携带 `avatar_instance_id` 和 surface attribution；
   avatar app 负责按 live instance identity 执行 close，缺少 target 时 fail closed

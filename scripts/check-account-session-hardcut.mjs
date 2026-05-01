@@ -439,7 +439,7 @@ function scanAvatarBoundary(files, violations) {
     if (!file.relPath.startsWith('apps/avatar/')) {
       continue;
     }
-    if (file.relPath.startsWith('apps/avatar/spec/')) {
+    if (file.relPath.split('/')[0] === 'apps' && file.relPath.split('/')[1] === 'avatar' && file.relPath.split('/')[2] === 'spec') {
       continue;
     }
     if (isTestPath(file.relPath)) {

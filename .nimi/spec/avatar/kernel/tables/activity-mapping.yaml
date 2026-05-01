@@ -186,7 +186,8 @@ custom_activities_passthrough:
 
 intensity_variants:
   description: >
-    APML may carry an 'intensity' attribute (weak / moderate / strong).
+    Runtime typed projection may carry an intensity value
+    (weak / moderate / strong).
     Live2D Wave 0 keeps v1 intensity_suffix convention for backward
     compat at the default-fallback layer (`Activity_Happy_Weak` /
     `Activity_Happy_Strong`). VRM uses `applyEmotion(intensity)` to

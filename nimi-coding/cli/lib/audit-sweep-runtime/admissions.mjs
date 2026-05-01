@@ -149,6 +149,9 @@ export async function loadAppSliceAdmissions(projectRoot) {
       return { ok: false, error: `nimicoding audit-sweep refused: ${APP_SLICE_ADMISSION_REF} has missing or duplicate app_id.\n` };
     }
     seenAppIds.add(appId);
+    if (appId === "avatar") {
+      return { ok: false, error: `nimicoding audit-sweep refused: avatar is promoted to .nimi/spec/avatar and must not be admitted through ${APP_SLICE_ADMISSION_REF}.\n` };
+    }
     if (status !== "active") {
       continue;
     }

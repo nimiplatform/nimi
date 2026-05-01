@@ -445,8 +445,8 @@ Fixed rules:
 - `.nimi/spec/desktop/kernel/agent-chat-voice-session-contract.md` — broader voice session semantics
 - `.nimi/spec/desktop/kernel/agent-chat-voice-workflow-contract.md` — richer workflow / voice identity semantics
 - `.nimi/spec/platform/kernel/kit-contract.md` — reusable `kit/features/avatar` admission and ownership hardcut
-- `apps/avatar/spec/kernel/index.md` — Avatar app-local authority map
-- `apps/avatar/spec/kernel/app-shell-contract.md` — Avatar shell launch, fail-closed, and foreground companion UX boundary
-- `apps/avatar/spec/kernel/carrier-visual-acceptance-contract.md` — Avatar carrier visual proof requirements
+- `.nimi/spec/avatar/kernel/index.md` — Avatar first-party authority map
+- `.nimi/spec/avatar/kernel/app-shell-contract.md` — Avatar shell launch, fail-closed, and foreground companion UX boundary
+- `.nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md` — Avatar carrier visual proof requirements
 - `docs/architecture/agent-companion-core-protocol.md` — core substrate reader guide and correspondence matrix
 - `docs/architecture/live2d-companion.md` — reader guide and first-30-second demo correspondence

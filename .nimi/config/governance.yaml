@@ -13,6 +13,8 @@ spec_governance:
       - node scripts/check-desktop-spec-kernel-consistency.mjs
     platform-consistency:
       - node scripts/check-platform-spec-kernel-consistency.mjs
+    avatar-consistency:
+      - node scripts/check-avatar-spec-kernel-consistency.mjs
     realm-consistency:
       - node scripts/check-realm-spec-kernel-consistency.mjs
     future-consistency:
@@ -28,6 +30,8 @@ spec_governance:
       - node scripts/generate-desktop-spec-kernel-docs.mjs
     platform:
       - node scripts/generate-platform-spec-kernel-docs.mjs
+    avatar:
+      - node scripts/generate-avatar-spec-kernel-docs.mjs
     realm:
       - node scripts/generate-realm-spec-kernel-docs.mjs
     future:

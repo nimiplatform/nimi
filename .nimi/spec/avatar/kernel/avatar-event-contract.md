@@ -1,13 +1,13 @@
 # Avatar Event Contract
 
 > **App**: `@nimiplatform/avatar`
-> **Authority**: App-local kernel contract
+> **Authority**: Avatar kernel contract
 > **Status**: Baseline updated 2026-04-21 (consumer-aligned to mounted runtime substrate)
 > **Upstream platform refs**:
-> - [Runtime HookIntent contract](../../../../.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
-> - [Runtime presentation/activity projection seam](../../../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
-> - [Runtime transient presentation seam](../../../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
-> - [Conversation anchor contract](../../../../.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)
+> - [Runtime HookIntent contract](../../.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
+> - [Runtime presentation/activity projection seam](../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
+> - [Runtime transient presentation seam](../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
+> - [Conversation anchor contract](../../.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)
 > **Sibling kernel contracts**:
 > - [Agent script contract](agent-script-contract.md)
 > - [Embodiment projection contract](embodiment-projection-contract.md)
@@ -18,9 +18,9 @@
 
 ## 0. 阅读指南
 
-本 contract 定义 Nimi Avatar app 作为 first-party event producer / subscriber 的 event spec，遵守 runtime HookIntent / presentation projection authority 与 app-local event convention。Avatar 是独立 app，但 current canonical normal path 由 desktop bridge / handoff 启动；owner 为 `avatar.*`。
+本 contract 定义 Nimi Avatar app 作为 first-party event producer / subscriber 的 event spec，遵守 runtime HookIntent / presentation projection authority 与 Avatar-local event convention。Avatar 是独立 app，但 current canonical normal path 由 desktop bridge / handoff 启动；owner 为 `avatar.*`。
 
-Avatar app 的 rendering backend（Live2D / VRM / 3D / Lottie / 极简 blob）具体选型**不影响**本 spec 的 event 定义。Runtime presentation/activity projection 与 app-local `tables/activity-mapping.yaml` 把语义映射从 rendering 解耦；closed activity ontology 只保留为设计证据，不是本 app 的活动 authority。
+Avatar app 的 rendering backend（Live2D / VRM / 3D / Lottie / 极简 blob）具体选型**不影响**本 spec 的 event 定义。Runtime presentation/activity projection 与 Avatar-local `tables/activity-mapping.yaml` 把语义映射从 rendering 解耦；closed activity ontology 只保留为设计证据，不是本 app 的活动 authority。
 
 **Wave 0 of topic `2026-04-30-avatar-vrm-backend-branch` extends the event
 surface** to cover the multi-backend BackendBranch carrier abstraction:
@@ -80,15 +80,15 @@ projection 触发）：
 | `avatar.app.unmount` | Avatar 卸载 | Burst | — |
 | `avatar.model.load` | 模型加载完成 | Burst | — |
 | `avatar.model.switch` | 模型切换 | Burst | — |
-| `avatar.activity.start` | `<activity>` 触发执行 | Low | ✅ via `.before.activity.start` |
+| `avatar.activity.start` | Runtime typed activity cue 触发执行 | Low | ✅ via `.before.activity.start` |
 | `avatar.activity.end` | Activity 正常结束 | Low | — |
 | `avatar.activity.cancel` | Activity 被抢占取消 | Low | — |
 | `avatar.motion.play` | Motion group 播放 | Low | — |
 | `avatar.motion.complete` | Motion 完成 | Low | — |
 | `avatar.expression.change` | Expression 层变化 | Low | — |
-| `avatar.pose.set` | `<pose>` 设置 | Low | — |
-| `avatar.pose.clear` | `<clear-pose/>` | Low | — |
-| `avatar.lookat.set` | `<lookat>` 触发 | Low | — |
+| `avatar.pose.set` | Runtime typed pose cue 设置 | Low | — |
+| `avatar.pose.clear` | Runtime typed pose clear cue | Low | — |
+| `avatar.lookat.set` | Runtime typed lookat cue 触发 | Low | — |
 | `avatar.lipsync.frame` | **Deprecated** (Wave 0 of topic 2026-04-30-avatar-vrm-backend-branch). Per-frame lipsync no longer flows through the event bus; consumers read `BackendAudioConsumer.snapshot()` in surface useFrame. New subscribers MUST use `avatar.lipsync.active` / `avatar.lipsync.silent` instead. | n/a (deprecated) | — |
 | `avatar.speak.start` | Wave 3 admitted TTS playback start；与 runtime `runtime.agent.presentation.voice_playback_requested` 时间戳对齐 | Low | — |
 | `avatar.speak.chunk` | Wave 3 admitted TTS chunk；audio playback chunk 对齐 lipsync frame batch | Medium | — |
@@ -503,7 +503,8 @@ subscriptions:
   - "desktop.chat.message.send"              # 可选 first-party UI cue；不是 runtime chat ingress
   - "desktop.chat.message.receive"
   - "system.focus.*"                         # 系统焦点变化
-  # Layer B (apml.*) 订阅请求会被 runtime 拒绝 (internal-only)
+  # Layer B raw parser-event subscriptions are rejected by runtime
+  # (internal-only; Avatar consumes typed runtime.agent.* projection only)
 ```
 
 ---
@@ -545,5 +546,5 @@ Activity → motion/expression 的具体映射见 [activity mapping table](table
 
 **Baseline updated 2026-04-21**。Avatar app 具体 rendering 实现（Cubism SDK 接入 /
 lip-sync pipeline / TTS 绑定 / model 加载策略 / settings UI 等）不在本 spec 范围，仅定义
-app-local event contract。平台级 runtime projection 以 `.nimi/spec/runtime/kernel/**`
+Avatar-local event contract。平台级 runtime projection 以 `.nimi/spec/runtime/kernel/**`
 为准。

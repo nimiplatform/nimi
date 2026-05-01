@@ -1,7 +1,7 @@
 # VRM Backend Contract
 
 > **App**: `@nimiplatform/avatar`
-> **Authority**: App-local kernel contract
+> **Authority**: Avatar kernel contract
 > **Status**: Wave 0 admit (topic `2026-04-30-avatar-vrm-backend-branch`,
 >   design-01 / design-02 / design-04 / design-05 / design-06 / design-07 / design-08)
 > **Sibling contracts**:

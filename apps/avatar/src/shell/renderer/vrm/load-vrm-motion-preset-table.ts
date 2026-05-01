@@ -1,7 +1,7 @@
 // Wave 3 chunk 3-B of topic 2026-04-30-avatar-vrm-backend-branch.
 //
 // Synchronously loads the VRM motion preset registry table from
-// apps/avatar/spec/kernel/tables/vrm-motion-presets.yaml. Mirrors the
+// .nimi/spec/avatar/kernel/tables/vrm-motion-presets.yaml. Mirrors the
 // chunk 3-A `load-vrm-emote-table.ts` Vite `?raw` + `yaml` parse pattern
 // for cross-module consistency.
 //
@@ -17,7 +17,7 @@
 // header and packet negative_test #4.
 
 import { parse as parseYaml } from 'yaml';
-import motionPresetsYaml from '../../../../spec/kernel/tables/vrm-motion-presets.yaml?raw';
+import motionPresetsYaml from '../../../../../../.nimi/spec/avatar/kernel/tables/vrm-motion-presets.yaml?raw';
 
 export type VrmMotionPresetEntry = {
   /** Stable ontology-anchored id (e.g. 'idle_subtle'). */

@@ -1,12 +1,12 @@
 # Agent Script Contract — NimiAgentScript (NAS) 1.0
 > **App**: `@nimiplatform/avatar`
-> **Authority**: App-local kernel contract
+> **Authority**: Avatar kernel contract
 > **Status**: Baseline locked 2026-04-21 (migrated from topic proposal 议题 4b)
 > **Upstream platform refs**:
-> - [APML model-facing wire authority](../../../../.nimi/spec/runtime/kernel/agent-output-wire-contract.md)
-> - [Runtime presentation/activity projection seam](../../../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
-> - [Runtime HookIntent contract](../../../../.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
-> - [Runtime transient presentation seam](../../../../.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
+> - [APML model-facing wire authority](.nimi/spec/runtime/kernel/agent-output-wire-contract.md)
+> - [Runtime presentation/activity projection seam](.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
+> - [Runtime HookIntent contract](.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
+> - [Runtime transient presentation seam](.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
 > **Sibling kernel contracts**:
 > - [Avatar event contract](avatar-event-contract.md)
 > - [Embodiment projection contract](embodiment-projection-contract.md)
@@ -243,7 +243,7 @@ VRM 资产规则：
 - **必需**：恰好 1 个 `*.vrm` 文件（同时存在 `*.model3.json` + `*.vrm` →
   显式 `avatar-model.json` 才允许；否则 fail-close）
 - **可选 `motions/<preset_id>.vrma`**：覆盖 builtin preset；preset id 必须
-  在 `apps/avatar/spec/kernel/tables/vrm-motion-presets.yaml` registry 中
+  在 `.nimi/spec/avatar/kernel/tables/vrm-motion-presets.yaml` registry 中
   admit；引用未 admit preset 的 override → registry reject 并 fall back
   到 builtin
 - **可选 `poster.png`** / `poster.jpg`：degraded surface fallback；不影响

@@ -6,7 +6,7 @@
 //
 // Wave 2: every label / summary / recovery / diagnostics row is i18n-driven
 // via `Avatar.degraded.<state>.{badge,title,summary[,_with_reason],recovery}`
-// keys declared in spec/kernel/tables/i18n-keys.yaml. No hardcoded English.
+// keys declared in .nimi/spec/avatar/kernel/tables/i18n-keys.yaml.
 
 import { useTranslation } from '../i18n/index.js';
 import { reloadAvatarShell } from '../shell-reload.js';

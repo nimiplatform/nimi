@@ -1,11 +1,11 @@
 # Nimi Avatar Kernel Authority Map
 
-This document defines the contract surface that governs Nimi Avatar. It is admitted as app-local normative authority.
+This document defines the contract surface that governs Nimi Avatar. It is admitted as Avatar normative authority.
 
 ## Authority Scope
 
 Nimi Avatar is a **first-party app** consuming platform-level Nimi contracts.
-This kernel defines **app-local** normative content only; platform contracts
+This kernel defines **Avatar-local** normative content only; platform contracts
 (APML / activity ontology / runtime projection seam / event contract convention /
 SDK API / presentation timeline) are consumed as upstream references.
 
@@ -42,7 +42,7 @@ Backend-agnostic embodiment projection truth (re-anchored at Wave 0 of topic
 parameter-id path is now Live2D-only escape hatch via `Live2DBackendExtension`):
 
 - runtime / SDK semantic bundle enters avatar app here
-- app-local projection cues are named independently from any renderer backend
+- Avatar-local projection cues are named independently from any renderer backend
 - shell consumes projection-produced surface bounds / hit masks
 - backend-specific execution is delegated to renderer branches
 
@@ -164,10 +164,10 @@ These are **not** redefined here. App consumes them:
 |----------|----------|
 | APML wire format | `.nimi/spec/runtime/kernel/agent-output-wire-contract.md` |
 | APML LLM compliance | `.nimi/spec/runtime/kernel/agent-output-wire-contract.md` plus Desktop prompt contract |
-| Activity ontology | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`, `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`, and app-local `tables/activity-mapping.yaml` |
+| Activity ontology | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`, `.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml`, and Avatar-local `tables/activity-mapping.yaml` |
 | Runtime conversation anchor | `.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md` |
 | Runtime transient presentation seam | `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md` |
-| Event contract + app convention | `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`, `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`, and this app-local `avatar-event-contract.md` |
+| Event contract + app convention | `.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`, `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`, and this Avatar-local `avatar-event-contract.md` |
 | SDK Event API | `.nimi/spec/sdk/kernel/runtime-contract.md` |
 | Presentation Timeline | Deferred candidate only unless later admitted by `.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`; current active surface is runtime turn/presentation/state projection |
 
@@ -178,7 +178,7 @@ When upstream changes, impact on this kernel is reviewed and documented per-cont
 When conflicting:
 
 1. Platform contracts (upstream) take precedence for wire format / semantic meaning
-2. This kernel defines app-local implementation & product-form surface
+2. This kernel defines Avatar-local implementation & product-form surface
 3. Source code follows kernel; drift from kernel is a defect
 
 This kernel must not create a parallel substitute for runtime-owned projection,

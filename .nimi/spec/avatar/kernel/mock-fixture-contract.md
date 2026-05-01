@@ -1,7 +1,7 @@
 # Mock Fixture Contract
 
 > **App**: `@nimiplatform/avatar`
-> **Authority**: App-local kernel contract (dev/test fixture only)
+> **Authority**: Avatar kernel contract (dev/test fixture only)
 > **Status**: Active as fixture tooling; not the canonical carrier path
 > **Sibling contracts**:
 > - [App shell contract](app-shell-contract.md)
@@ -298,7 +298,7 @@ Load scenario 时 hard-validate（fail-close）：
 | All events have required fields per `kind` | Reject |
 | `at_ms >= 0` for TimeBasedEvent | Reject |
 | `after_event_id` refers to existing event_id | Reject |
-| Event `type` is known APML/app event name | Warn + accept（允许 custom events，但 log） |
+| Event `type` is known runtime projection or Avatar event name | Warn + accept（允许 custom events，但 log） |
 | `detail` schema matches known event (if registered) | Warn |
 | `triggers[].on` matches known subscribable event | Warn |
 | `agent_bootstrap.initial_posture.action_family` in enum | Reject |
@@ -362,7 +362,7 @@ Five seed scenarios 定义在 `tables/scenario-catalog.yaml`，驱动 Phase 1 �
 | Concern | This contract | Other |
 |---|---|---|
 | Mock scenario file schema / injection engine | ✅ | — |
-| Event format semantics (apml.* / avatar.*) | 消费 | Upstream event contract / avatar-event-contract |
+| Event format semantics (typed runtime projection / avatar.*) | 消费 | Runtime projection contracts / avatar-event-contract |
 | Ctx bundle shape | 消费 | `agent-script-contract.md` §5 |
 | Real SDK wiring | — | `@nimiplatform/sdk` current carrier path |
 | App lifecycle hooks for driver start/stop | 消费 | `app-shell-contract.md` §7 |

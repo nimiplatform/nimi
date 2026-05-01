@@ -1,6 +1,6 @@
 // Wave 4 — Window bounds computer + recompute orchestrator.
 //
-// Implements `spec/kernel/tables/window-bounds-policy.yaml`:
+// Implements `.nimi/spec/avatar/kernel/tables/window-bounds-policy.yaml`:
 //   - composition.formula     → computeWindowBounds()
 //   - recompute_triggers.{model_load,model_switch,companion_footprint_change}
 //                              → createWindowBoundsRecomputer()
