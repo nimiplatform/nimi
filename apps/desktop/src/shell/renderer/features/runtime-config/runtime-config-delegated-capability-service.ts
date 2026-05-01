@@ -4,6 +4,7 @@ import {
   DelegatedApprovalDecision,
   DelegatedProviderKind,
   DelegatedProviderState,
+  DelegatedProviderTrustTier,
   DelegatedTransportKind,
   type DelegatedControlSurfaceSnapshot,
   type DelegatedProviderProfile,
@@ -23,6 +24,8 @@ export type DelegatedProviderProfileDraft = {
   displayName: string;
   transportRef: string;
   credentialRef: string;
+  command: string;
+  args: string;
   toolName: string;
   inputSchemaDigest: string;
 };
@@ -94,6 +97,7 @@ export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilit
     const agentId = requireText(draft.agentId, 'agent_id');
     const providerProfileId = requireText(draft.providerProfileId, 'provider_profile_id');
     const transportRef = requireText(draft.transportRef, 'transport_ref');
+    const command = requireText(draft.command, 'command');
     const toolName = requireText(draft.toolName, 'tool_name');
     const { runtime, context } = await buildContext();
     const response = await getProtectedScopes().withScopes([WRITE_SCOPE], (options) => runtime.agent.upsertDelegatedProviderProfile({
@@ -104,13 +108,17 @@ export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilit
         displayName: normalizeText(draft.displayName) || providerProfileId,
         providerKind: DelegatedProviderKind.MCP_TOOL_PROVIDER,
         transportKind: DelegatedTransportKind.STDIO_COMMAND,
-        state: DelegatedProviderState.ACTIVE,
+        state: DelegatedProviderState.READY,
         allowedTools: [{
           toolName,
           inputSchemaDigest: normalizeText(draft.inputSchemaDigest),
         }],
         credentialRef: normalizeText(draft.credentialRef),
         transportRef,
+        trustTier: DelegatedProviderTrustTier.USER_ADDED_REVIEWED,
+        lifecycleReasonCode: '',
+        command,
+        args: normalizeText(draft.args).split(/\s+/).filter(Boolean),
       },
     }, options));
     return response.providerProfile;
@@ -125,7 +133,7 @@ export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilit
       agentId,
       providerProfileId,
       state: enabled
-        ? DelegatedProviderState.ACTIVE
+        ? DelegatedProviderState.READY
         : DelegatedProviderState.DISABLED,
     }, options));
     return response.providerProfile;

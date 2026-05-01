@@ -25,6 +25,8 @@ const DEFAULT_PROVIDER_DRAFT: DelegatedProviderProfileDraft = {
   displayName: 'Local MCP',
   transportRef: 'runtime-transport://local-mcp',
   credentialRef: '',
+  command: 'nimi-local-mcp',
+  args: '',
   toolName: 'tool_name',
   inputSchemaDigest: '',
 };
@@ -181,6 +183,8 @@ export function DelegatedCapabilityControlPanel() {
               <Input label={t('runtimeConfig.delegation.displayName', { defaultValue: 'Display Name' })} value={providerDraft.displayName} onChange={(value) => setProviderDraft((draft) => ({ ...draft, displayName: value }))} disabled={busy} />
               <Input label={t('runtimeConfig.delegation.transportRef', { defaultValue: 'Transport Ref' })} value={providerDraft.transportRef} onChange={(value) => setProviderDraft((draft) => ({ ...draft, transportRef: value }))} disabled={busy} />
               <Input label={t('runtimeConfig.delegation.credentialRef', { defaultValue: 'Credential Ref' })} value={providerDraft.credentialRef} onChange={(value) => setProviderDraft((draft) => ({ ...draft, credentialRef: value }))} placeholder="connector://..." disabled={busy} />
+              <Input label={t('runtimeConfig.delegation.command', { defaultValue: 'Command' })} value={providerDraft.command} onChange={(value) => setProviderDraft((draft) => ({ ...draft, command: value }))} disabled={busy} />
+              <Input label={t('runtimeConfig.delegation.args', { defaultValue: 'Args' })} value={providerDraft.args} onChange={(value) => setProviderDraft((draft) => ({ ...draft, args: value }))} disabled={busy} />
               <Input label={t('runtimeConfig.delegation.toolName', { defaultValue: 'Tool Name' })} value={providerDraft.toolName} onChange={(value) => setProviderDraft((draft) => ({ ...draft, toolName: value }))} disabled={busy} />
               <Input label={t('runtimeConfig.delegation.schemaDigest', { defaultValue: 'Input Schema Digest' })} value={providerDraft.inputSchemaDigest} onChange={(value) => setProviderDraft((draft) => ({ ...draft, inputSchemaDigest: value }))} placeholder="sha256:..." disabled={busy} />
               <Button variant="primary" size="sm" onClick={() => void saveProvider()} disabled={!profileAgentId.trim() || !subjectUserId.trim() || busy}>
@@ -207,11 +211,11 @@ export function DelegatedCapabilityControlPanel() {
                     size="sm"
                     onClick={() => void setProviderEnabled(
                       profile.providerProfileId,
-                      profile.state !== DelegatedProviderState.ACTIVE,
+                      profile.state !== DelegatedProviderState.READY,
                     )}
                     disabled={busy}
                   >
-                    {profile.state === DelegatedProviderState.ACTIVE
+                    {profile.state === DelegatedProviderState.READY
                       ? t('runtimeConfig.delegation.disable', { defaultValue: 'Disable' })
                       : t('runtimeConfig.delegation.enable', { defaultValue: 'Enable' })}
                   </Button>
