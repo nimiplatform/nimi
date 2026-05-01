@@ -29,6 +29,7 @@
 | `runtime-contract.md` | `S-RUNTIME-*` | runtime 子路径连接语义、事件与重试基线、agent presentation projection boundary、以及 World Evolution Engine app-facing logical facade boundary 与 selector-read publication profile |
 | `local-environment-projection-contract.md` | `S-RUNTIME-*` | SDK typed projection boundary for Runtime-owned local environment plans, dependency jobs, selected source records, and local compute activation gates |
 | `runtime-route-contract.md` | `S-RUNTIME-*` | app-facing `runtime.route.*` typed surface 与 route metadata projection |
+| `runtime-delegation-client-contract.md` | `S-RUNTIME-*` | SDK typed projection and command boundary for Runtime-owned delegated capability providers, requests, firewall verdicts, approvals, and replay |
 | `world-evolution-engine-projection-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 typed projection-only 边界 |
 | `world-evolution-engine-consumer-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 app/mod consumer-facing API landing、selector-read stable method matrix、shared typed building blocks 与 no-leak hardcut |
 | `world-contract.md` | `S-WORLD-*` | `sdk/world` 的 public facade boundary、five-family coarse landing、world-input projection boundary、fixture package boundary、renderer orchestration boundary、world-session composition boundary |

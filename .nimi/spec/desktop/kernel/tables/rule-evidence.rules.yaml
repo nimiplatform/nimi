@@ -1365,3 +1365,38 @@
   evidence_refs:
     - desktop_kernel_consistency
     - desktop_design_contract_gate
+- rule_id: D-LLM-073
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+  note: "Delegated capability control path uses Runtime SDK typed RuntimeAgentService methods."
+- rule_id: D-LLM-074
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+  note: "Runtime config access panel exposes the shared product control surface lanes."
+- rule_id: D-LLM-075
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+  note: "Approval UX submits decisions through Runtime-owned delegation approval RPC."
+- rule_id: D-LLM-076
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+  note: "Provider profile configuration writes typed Runtime profile and state only."
+- rule_id: D-LLM-077
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+  note: "Diagnostics consume Runtime delegated snapshot evidence without raw protocol output."

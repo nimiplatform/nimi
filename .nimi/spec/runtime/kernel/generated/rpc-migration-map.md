@@ -175,6 +175,14 @@
 | `RuntimeAgentService` | `OpenConversationAnchor` | `RuntimeAgentService` | `OpenConversationAnchor` | `aligned` |
 | `RuntimeAgentService` | `GetConversationAnchorSnapshot` | `RuntimeAgentService` | `GetConversationAnchorSnapshot` | `aligned` |
 | `RuntimeAgentService` | `GetPublicChatSessionSnapshot` | `RuntimeAgentService` | `GetPublicChatSessionSnapshot` | `aligned` |
+| `RuntimeAgentService` | `ListDelegatedProviderProfiles` | `RuntimeAgentService` | `ListDelegatedProviderProfiles` | `aligned` |
+| `RuntimeAgentService` | `UpsertDelegatedProviderProfile` | `RuntimeAgentService` | `UpsertDelegatedProviderProfile` | `aligned` |
+| `RuntimeAgentService` | `SetDelegatedProviderState` | `RuntimeAgentService` | `SetDelegatedProviderState` | `aligned` |
+| `RuntimeAgentService` | `ListDelegatedApprovalRequests` | `RuntimeAgentService` | `ListDelegatedApprovalRequests` | `aligned` |
+| `RuntimeAgentService` | `SubmitDelegatedApprovalDecision` | `RuntimeAgentService` | `SubmitDelegatedApprovalDecision` | `aligned` |
+| `RuntimeAgentService` | `ListDelegatedDiagnostics` | `RuntimeAgentService` | `ListDelegatedDiagnostics` | `aligned` |
+| `RuntimeAgentService` | `GetDelegatedReplayTrace` | `RuntimeAgentService` | `GetDelegatedReplayTrace` | `aligned` |
+| `RuntimeAgentService` | `GetDelegatedControlSurfaceSnapshot` | `RuntimeAgentService` | `GetDelegatedControlSurfaceSnapshot` | `aligned` |
 | `RuntimeAgentService` | `GetAgentState` | `RuntimeAgentService` | `GetAgentState` | `aligned` |
 | `RuntimeAgentService` | `UpdateAgentState` | `RuntimeAgentService` | `UpdateAgentState` | `aligned` |
 | `RuntimeAgentService` | `EnableAutonomy` | `RuntimeAgentService` | `EnableAutonomy` | `aligned` |

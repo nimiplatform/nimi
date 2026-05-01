@@ -9,6 +9,9 @@ spec_governance:
       - node scripts/check-runtime-spec-kernel-consistency.mjs
     sdk-consistency:
       - node scripts/check-sdk-spec-kernel-consistency.mjs
+    runtime-delegation-consistency:
+      - node scripts/check-runtime-spec-kernel-consistency.mjs
+      - node scripts/check-sdk-spec-kernel-consistency.mjs
     desktop-consistency:
       - node scripts/check-desktop-spec-kernel-consistency.mjs
     platform-consistency:

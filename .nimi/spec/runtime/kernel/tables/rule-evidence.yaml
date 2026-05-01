@@ -1,7 +1,7 @@
 version: 2
 rule_compliance:
-  total_k_rules: 504
-  audit_date: "2026-04-28"
+  total_k_rules: 593
+  audit_date: "2026-05-01"
 
 fragments:
   evidence_catalog: rule-evidence.catalog.yaml

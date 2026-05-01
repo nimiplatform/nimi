@@ -135,6 +135,16 @@
 | `S-RUNTIME-109` | `covered` | `sdk_kernel_consistency` |
 | `S-RUNTIME-110` | `covered` | `sdk_kernel_consistency` |
 | `S-RUNTIME-111` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-201` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-202` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-203` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-204` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-205` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-206` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-207` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-208` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-209` | `covered` | `sdk_kernel_consistency` |
+| `S-RUNTIME-210` | `covered` | `sdk_kernel_consistency` |
 | `S-WORLD-001` | `covered` | `sdk_kernel_consistency` |
 | `S-WORLD-002` | `covered` | `sdk_kernel_consistency` |
 | `S-WORLD-003` | `covered` | `sdk_kernel_consistency` |

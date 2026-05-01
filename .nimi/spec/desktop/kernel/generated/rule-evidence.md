@@ -282,3 +282,8 @@
 | `D-GATE-081` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate`, `desktop_spec_docs_drift_gate` |
 | `D-GATE-090` | `covered` | `desktop_kernel_consistency`, `desktop_design_contract_gate` |
 | `D-GATE-091` | `covered` | `desktop_kernel_consistency`, `desktop_design_contract_gate` |
+| `D-LLM-073` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-LLM-074` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-LLM-075` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-LLM-076` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-LLM-077` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |

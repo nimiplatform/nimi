@@ -1,0 +1,34 @@
+version: 1
+source_rule: K-DELEG-100
+adapters:
+  - adapter_id: mcp_stdio_command
+    protocol: MCP
+    protocol_role: tool_provider
+    transport_kind: stdio_command
+    production_status: admitted
+    source_rule: K-DELEG-103
+    dependency_rule: K-DELEG-101
+    output_posture: quarantined_gateway_evidence
+    output_rule: K-DELEG-109
+    pre_firewall_consumption: forbidden
+    consumption_rule: K-DELEG-110
+  - adapter_id: mcp_remote_http
+    protocol: MCP
+    protocol_role: tool_provider
+    transport_kind: remote_http
+    production_status: deferred
+    source_rule: K-DELEG-103
+    dependency_rule: K-DELEG-101
+    output_posture: quarantined_gateway_evidence
+    output_rule: K-DELEG-109
+    pre_firewall_consumption: forbidden
+    consumption_rule: K-DELEG-110
+  - adapter_id: a2a_future
+    protocol: A2A
+    protocol_role: remote_agent_seam
+    transport_kind: future
+    production_status: future_seam_only
+    source_rule: K-DELEG-120
+    output_posture: no_output
+    pre_firewall_consumption: forbidden
+    future_packet_rule: K-DELEG-129

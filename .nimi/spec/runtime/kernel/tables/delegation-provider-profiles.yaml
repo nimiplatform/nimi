@@ -1,0 +1,95 @@
+version: 1
+source_rule: K-DELEG-002
+provider_kinds:
+  - id: MCP_TOOL_PROVIDER
+    source_rule: K-DELEG-002
+    status: adapter_candidate
+  - id: REMOTE_AGENT_SEAM
+    source_rule: K-DELEG-002
+    status: future_only
+  - id: RUNTIME_NATIVE_PROVIDER
+    source_rule: K-DELEG-002
+    status: runtime_owned
+  - id: CONTROLLED_TEST_PROVIDER
+    source_rule: K-DELEG-002
+    status: test_evidence
+trust_tiers:
+  - id: CONTROLLED_LOCAL
+    source_rule: K-DELEG-004
+    invocation_posture: allow_with_policy
+  - id: USER_ADDED_REVIEWED
+    source_rule: K-DELEG-004
+    invocation_posture: require_reviewed_allowlist
+  - id: ORG_MANAGED
+    source_rule: K-DELEG-004
+    invocation_posture: require_admin_policy
+  - id: BLOCKED
+    source_rule: K-DELEG-004
+    invocation_posture: deny
+lifecycle_states:
+  - id: REGISTERED
+    terminal: false
+    source_rule: K-DELEG-005
+  - id: DISCOVERING
+    terminal: false
+    source_rule: K-DELEG-005
+  - id: READY
+    terminal: false
+    source_rule: K-DELEG-005
+  - id: DEGRADED
+    terminal: false
+    source_rule: K-DELEG-005
+  - id: DISABLED
+    terminal: false
+    source_rule: K-DELEG-005
+  - id: QUARANTINED
+    terminal: false
+    source_rule: K-DELEG-005
+  - id: REMOVED
+    terminal: true
+    source_rule: K-DELEG-005
+capability_kinds:
+  - id: READ_RESOURCE
+    source_rule: K-DELEG-006
+    allowed_effect_classes:
+      - READ_ONLY
+      - SENSITIVE_READ
+  - id: QUERY_DATA
+    source_rule: K-DELEG-006
+    allowed_effect_classes:
+      - READ_ONLY
+      - SENSITIVE_READ
+  - id: SUGGEST_ACTION
+    source_rule: K-DELEG-006
+    allowed_effect_classes:
+      - READ_ONLY
+      - EXTERNAL_SIDE_EFFECT
+  - id: PROPOSE_PRESENTATION
+    source_rule: K-DELEG-006
+    allowed_effect_classes:
+      - READ_ONLY
+  - id: CREATE_ARTIFACT
+    source_rule: K-DELEG-006
+    allowed_effect_classes:
+      - READ_ONLY
+      - LOCAL_SIDE_EFFECT
+  - id: CONTROLLED_TEST
+    source_rule: K-DELEG-006
+    allowed_effect_classes:
+      - CONTROLLED_TEST
+effect_classes:
+  - id: READ_ONLY
+    approval_default: not_required
+    source_rule: K-DELEG-007
+  - id: LOCAL_SIDE_EFFECT
+    approval_default: policy_dependent
+    source_rule: K-DELEG-007
+  - id: EXTERNAL_SIDE_EFFECT
+    approval_default: required
+    source_rule: K-DELEG-007
+  - id: SENSITIVE_READ
+    approval_default: required
+    source_rule: K-DELEG-007
+  - id: UNSUPPORTED_EFFECT
+    approval_default: blocked
+    source_rule: K-DELEG-007

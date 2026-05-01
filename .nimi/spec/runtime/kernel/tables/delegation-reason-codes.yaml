@@ -1,0 +1,54 @@
+version: 1
+source_rule: K-DELEG-064
+codes:
+  - name: DELEG_PROVIDER_NOT_FOUND
+    family: DELEGATION
+    source_rule: K-DELEG-080
+  - name: DELEG_PROVIDER_BLOCKED
+    family: DELEGATION
+    source_rule: K-DELEG-005
+  - name: DELEG_CAPABILITY_NOT_ALLOWED
+    family: DELEGATION
+    source_rule: K-DELEG-006
+  - name: DELEG_REQUEST_SCHEMA_INVALID
+    family: DELEGATION
+    source_rule: K-DELEG-030
+  - name: DELEG_APPROVAL_REQUIRED
+    family: DELEGATION
+    source_rule: K-DELEG-032
+  - name: DELEG_APPROVAL_REJECTED
+    family: DELEGATION
+    source_rule: K-DELEG-097
+  - name: DELEG_PROVIDER_TIMEOUT
+    family: DELEGATION
+    source_rule: K-DELEG-041
+  - name: DELEG_PROVIDER_DRIFTED
+    family: DELEGATION
+    source_rule: K-DELEG-045
+  - name: DELEG_FIREWALL_SCHEMA_INVALID
+    family: DELEGATION
+    source_rule: K-DELEG-052
+  - name: DELEG_FIREWALL_QUARANTINED
+    family: DELEGATION
+    source_rule: K-DELEG-062
+  - name: DELEG_STREAM_TERMINAL_ERROR
+    family: DELEGATION
+    source_rule: K-DELEG-066
+  - name: DELEG_ARTIFACT_HASH_MISSING
+    family: DELEGATION
+    source_rule: K-DELEG-076
+  - name: DELEG_AUDIT_LINEAGE_INVALID
+    family: DELEGATION
+    source_rule: K-DELEG-086
+  - name: DELEG_REPLAY_BLOCKED_BY_POLICY
+    family: DELEGATION
+    source_rule: K-DELEG-087
+retry_classes:
+  - id: NEVER_RETRY
+    source_rule: K-DELEG-081
+  - id: SAFE_RETRY
+    source_rule: K-DELEG-081
+  - id: RETRY_AFTER_REVIEW
+    source_rule: K-DELEG-081
+  - id: PROVIDER_REDISCOVERY_REQUIRED
+    source_rule: K-DELEG-081

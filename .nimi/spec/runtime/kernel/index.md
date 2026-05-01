@@ -22,6 +22,7 @@
   - `DAEMON` `PROV` `WF` `MODEL` `KNOW` `APP` `CLI`
   - `CFG` `CONN` `NIMI` `MCAT` `MMPROV` `VOICE` `GATE` `PROTO`
   - `AIEXEC` `SCHED` `WEV` `MEM` `MEMSUB` `AGCORE`
+  - `DELEG`
 - `NNN` 三位递增编号，不复用。
 - `NNNa`/`NNNb` 后缀允许用于后插入的细化规则（如 `K-KEYSRC-005a`），保留原有规则编号稳定性。
 
@@ -60,6 +61,12 @@
 | `agent-presentation-stream-contract.md` | `K-AGCORE-*` | Runtime-owned transient `turn` / `presentation` projection seam、current emotion projection、and stream commit semantics |
 | `agent-hook-intent-contract.md` | `K-AGCORE-*` | Runtime-owned narrow-admit `HookIntent` truth、admission states、and event seam |
 | `agent-output-wire-contract.md` | `K-AGCORE-*` | Agent chat model-facing APML output wire authority、APML-to-runtime projection boundary、and post-turn action / HookIntent split |
+| `delegated-capability-gateway-contract.md` | `K-DELEG-*` | Runtime-owned delegated provider/session/request/result authority、provider profile lifecycle、streaming result envelope、and no protocol ontology promotion |
+| `delegated-output-firewall-contract.md` | `K-DELEG-*` | Runtime-owned delegated output firewall、observation/suggestion/artifact/failure semantics、streaming chunk quarantine、and fail-closed admission |
+| `delegated-audit-replay-contract.md` | `K-DELEG-*` | Delegation audit/replay payload and lineage extension on top of `K-AUDIT-*` storage |
+| `delegated-approval-contract.md` | `K-DELEG-*` | Runtime-owned delegated approval request/decision/resume semantics and Desktop UX non-owner boundary |
+| `delegated-mcp-adapter-contract.md` | `K-DELEG-*` | Runtime-owned MCP adapter lifecycle、tool discovery/allowlist、token hygiene、quarantined gateway evidence、and no pre-firewall consumption |
+| `delegated-a2a-future-seam-contract.md` | `K-DELEG-*` | Future A2A adapter seam only、no production A2A support、no protocol authority promotion、and no app/Desktop/Avatar/mod bypass |
 | `app-messaging-contract.md` | `K-APP-*` | 应用间消息、事件流 |
 | `cli-onboarding-contract.md` | `K-CLI-*` | CLI 首次使用、provider-first cloud setup 与 author tooling 边界 |
 | `config-contract.md` | `K-CFG-*` | 配置路径、优先级、secret policy、写入语义 |
@@ -109,6 +116,11 @@
 - `tables/runtime-memory-replication-outcome.yaml`
 - `tables/runtime-agent-service-typed-family.yaml`
 - `tables/runtime-agent-event-projection.yaml`
+- `tables/delegation-provider-profiles.yaml`
+- `tables/delegation-request-fields.yaml`
+- `tables/delegation-result-fields.yaml`
+- `tables/delegation-reason-codes.yaml`
+- `tables/delegation-protocol-adapters.yaml`
 - `tables/runtime-delivery-gates.yaml`
 - `tables/runtime-proto-governance-gates.yaml`
 - `tables/capability-vocabulary-mapping.yaml`

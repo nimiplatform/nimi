@@ -1,7 +1,7 @@
 version: 2
 rule_compliance:
-  total_s_rules: 139
-  audit_date: "2026-03-23"
+  total_s_rules: 149
+  audit_date: "2026-05-01"
   sdk_version: "0.4.0"
 
 evidence_catalog:
@@ -540,6 +540,46 @@ rules:
     status: covered
     evidence_refs: [sdk_kernel_consistency]
     note: "Admitted authority for runtime.artifacts.readBytes generic by-id artifact bytes retrieval (avatar wave-0; admitted by 2026-04-30-avatar-vrm-backend-branch). SDK projection depends on Runtime class wire + RuntimeArtifactService proto."
+  - rule_id: S-RUNTIME-201
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime delegation provider projection is owned by Runtime; SDK only exposes typed projection fields."
+  - rule_id: S-RUNTIME-202
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime delegation request projection is owned by Runtime; SDK may not expose protocol-native MCP/A2A payloads."
+  - rule_id: S-RUNTIME-203
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime delegation result projection is owned by Runtime and must preserve firewall state."
+  - rule_id: S-RUNTIME-204
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime delegation firewall projection is typed and read-only for SDK consumers."
+  - rule_id: S-RUNTIME-205
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime delegation approval commands route to Runtime-owned approval semantics."
+  - rule_id: S-RUNTIME-206
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime delegation audit and replay projection is redacted and Runtime-owned."
+  - rule_id: S-RUNTIME-207
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "SDK must not expose protocol-native client escape hatches for delegated providers."
+  - rule_id: S-RUNTIME-208
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "SDK delegated protocol metadata is bounded by Runtime-admitted metadata fields."
+  - rule_id: S-RUNTIME-209
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "SDK delegated error projection is closed over Runtime delegation reason codes."
+  - rule_id: S-RUNTIME-210
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "SDK delegated streams may only expose firewall-accepted stream segments."
 
   # --- World Contract (S-WORLD) ---
   - rule_id: S-WORLD-001
