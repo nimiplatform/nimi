@@ -11,4 +11,5 @@
 | `sdk-runtime-behavioral-checks.md` | `tables/sdk-runtime-behavioral-checks.yaml` |
 | `sdk-realm-realtime-gates.md` | `tables/sdk-realm-realtime-gates.yaml` |
 | `sdk-testing-gates.md` | `tables/sdk-testing-gates.yaml` |
+| `runtime-agent-participation-methods.md` | `tables/runtime-agent-participation-methods.yaml` |
 | `rule-evidence.md` | `tables/rule-evidence.yaml` |

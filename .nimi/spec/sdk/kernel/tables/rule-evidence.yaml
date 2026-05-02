@@ -1,6 +1,6 @@
 version: 2
 rule_compliance:
-  total_s_rules: 149
+  total_s_rules: 159
   audit_date: "2026-05-01"
   sdk_version: "0.4.0"
 
@@ -580,6 +580,46 @@ rules:
     status: covered
     evidence_refs: [sdk_kernel_consistency]
     note: "SDK delegated streams may only expose firewall-accepted stream segments."
+  - rule_id: S-RUNTIME-211
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime Agent Participation SDK client boundary admitted as typed contract/table truth; implementation evidence is owned by downstream SDK waves."
+  - rule_id: S-RUNTIME-212
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime Agent Participation axis/profile projection admitted as typed contract/table truth."
+  - rule_id: S-RUNTIME-213
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime Agent Participation context block projection admitted as typed contract/table truth."
+  - rule_id: S-RUNTIME-214
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime Agent Participation output candidate projection admitted as typed contract/table truth."
+  - rule_id: S-RUNTIME-215
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime Agent Participation verdict projection admitted as typed contract/table truth."
+  - rule_id: S-RUNTIME-216
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime Agent Participation audit/replay projection admitted as typed contract/table truth."
+  - rule_id: S-RUNTIME-217
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime Agent Participation method registry admitted as typed contract/table truth."
+  - rule_id: S-RUNTIME-218
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime Agent Participation SDK type-escape prohibition admitted as typed contract/table truth."
+  - rule_id: S-RUNTIME-219
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime Agent Participation consumer no-bypass rule admitted as typed contract/table truth."
+  - rule_id: S-RUNTIME-220
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Runtime Agent Participation later-surface status admitted as typed contract/table truth."
 
   # --- World Contract (S-WORLD) ---
   - rule_id: S-WORLD-001

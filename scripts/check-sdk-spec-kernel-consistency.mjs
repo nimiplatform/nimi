@@ -15,6 +15,7 @@ const kernelFiles = [
   '.nimi/spec/sdk/kernel/boundary-contract.md',
   '.nimi/spec/sdk/kernel/runtime-contract.md',
   '.nimi/spec/sdk/kernel/runtime-delegation-client-contract.md',
+  '.nimi/spec/sdk/kernel/runtime-agent-participation-client-contract.md',
   '.nimi/spec/sdk/kernel/world-contract.md',
   '.nimi/spec/sdk/kernel/world-evolution-engine-projection-contract.md',
   '.nimi/spec/sdk/kernel/world-evolution-engine-consumer-contract.md',
@@ -31,6 +32,7 @@ const kernelFiles = [
   '.nimi/spec/sdk/kernel/tables/sdk-runtime-behavioral-checks.yaml',
   '.nimi/spec/sdk/kernel/tables/sdk-realm-realtime-gates.yaml',
   '.nimi/spec/sdk/kernel/tables/sdk-testing-gates.yaml',
+  '.nimi/spec/sdk/kernel/tables/runtime-agent-participation-methods.yaml',
   '.nimi/spec/sdk/kernel/tables/rule-evidence.yaml',
 ];
 

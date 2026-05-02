@@ -19,6 +19,7 @@ const specs = [
   { input: 'sdk-runtime-behavioral-checks.yaml', output: 'sdk-runtime-behavioral-checks.md', render: renderSdkRuntimeProjection },
   { input: 'sdk-realm-realtime-gates.yaml', output: 'sdk-realm-realtime-gates.md', render: renderSdkRealmRealtimeGates },
   { input: 'sdk-testing-gates.yaml', output: 'sdk-testing-gates.md', render: renderSdkTestingGates },
+  { input: 'runtime-agent-participation-methods.yaml', output: 'runtime-agent-participation-methods.md', render: renderRuntimeAgentParticipationMethods },
   { input: 'rule-evidence.yaml', output: 'rule-evidence.md', render: renderRuleEvidence },
 ];
 
@@ -155,6 +156,25 @@ function renderSdkTestingGates(doc, sourceName) {
     out += `| \`${gate}\` | \`${command}\` | \`${sourceRule}\` |\n`;
   }
   out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderRuntimeAgentParticipationMethods(doc, sourceName) {
+  const methods = Array.isArray(doc?.methods) ? doc.methods : [];
+  let out = header('Generated Runtime Agent Participation Methods', sourceName);
+  out += '| Method | Category | Input Ref | Output Ref | Semantic Owner | Source Rule |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const method of methods) {
+    const name = String(method?.name || '').trim();
+    if (!name) continue;
+    out += `| \`${name}\` | \`${String(method?.category || '').trim() || '—'}\` | \`${String(method?.input_ref || '').trim() || '—'}\` | \`${String(method?.output_ref || '').trim() || '—'}\` | \`${String(method?.semantic_owner || '').trim() || '—'}\` | \`${String(method?.source_rule || '').trim() || '—'}\` |\n`;
+  }
+  const forbidden = Array.isArray(doc?.forbidden_type_shapes) ? doc.forbidden_type_shapes : [];
+  out += '\n## Forbidden Type Shapes\n\n';
+  out += forbidden.length > 0 ? forbidden.map((item) => `- \`${String(item)}\``).join('\n') : '—';
+  out += '\n\n';
+  out += `Implementation status: \`${String(doc?.implementation_status || '').trim() || '—'}\`\n\n`;
+  out += `Production claim allowed: \`${String(doc?.production_claim_allowed ?? '').trim() || '—'}\`\n\n`;
   return normalizeMarkdown(out);
 }
 

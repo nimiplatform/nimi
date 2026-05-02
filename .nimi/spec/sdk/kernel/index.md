@@ -30,6 +30,7 @@
 | `local-environment-projection-contract.md` | `S-RUNTIME-*` | SDK typed projection boundary for Runtime-owned local environment plans, dependency jobs, selected source records, and local compute activation gates |
 | `runtime-route-contract.md` | `S-RUNTIME-*` | app-facing `runtime.route.*` typed surface 与 route metadata projection |
 | `runtime-delegation-client-contract.md` | `S-RUNTIME-*` | SDK typed projection and command boundary for Runtime-owned delegated capability providers, requests, firewall verdicts, approvals, and replay |
+| `runtime-agent-participation-client-contract.md` | `S-RUNTIME-*` | SDK typed client and method registry boundary for Runtime-owned agent participation profiles, candidates, verdicts, audit, and replay |
 | `runtime-avatar-control-client-contract.md` | `S-RUNTIME-*` | SDK typed client boundary for Desktop Avatar configuration and Runtime-owned Avatar debug probe/replay methods |
 | `world-evolution-engine-projection-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 typed projection-only 边界 |
 | `world-evolution-engine-consumer-contract.md` | `S-RUNTIME-*` | World Evolution Engine 的 app/mod consumer-facing API landing、selector-read stable method matrix、shared typed building blocks 与 no-leak hardcut |
@@ -51,6 +52,7 @@
 - `tables/sdk-realm-realtime-gates.yaml`
 - `tables/sdk-testing-gates.yaml`
 - `tables/runtime-avatar-control-methods.yaml`
+- `tables/runtime-agent-participation-methods.yaml`
 - `tables/rule-evidence.yaml`
 
 ## 6. Kernel Companion 约束
