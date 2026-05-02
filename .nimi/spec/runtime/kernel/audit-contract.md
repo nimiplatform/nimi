@@ -269,3 +269,18 @@ AI 执行路径（ExecuteScenario/StreamScenario/ScenarioJob 等）的审计事�
 - 跨层查询默认返回结构化字段，不以原始日志全文检索作为唯一入口。
 - `trace_id`、`request_id`、`app_id`、`domain`、`reason_code`、`timestamp` 属于可查询字段；凭据、proof、token 明文仍受 `K-AUDIT-005` / `K-AUDIT-017` 脱敏约束。
 - Desktop/运维侧展示查询结果时，必须优先显示可复制的 `trace_id`，用于对接 Runtime 审计、Provider 健康事件和前端 renderer 日志。
+
+## K-AUDIT-022 Runtime Agent Participation Audit Projection
+
+Runtime Agent Participation audit/replay must layer on the existing Runtime
+audit store and must not create a participation-specific side audit store.
+
+Participation audit events use `K-AUDIT-001` as the required floor and preserve
+`K-AUDIT-006` storage semantics. Participation execution metadata may appear as
+typed payload extension fields, but the stable query and redaction rules remain
+owned by `K-AUDIT-019` through `K-AUDIT-021`.
+
+Participation replay views must be reconstructable from Runtime audit lineage
+and the `K-AGCORE-087` participation audit boundary. When delegated gateway
+evidence participates, replay may reference `K-DELEG-085` and `K-DELEG-086`;
+that reference does not create a second replay store.

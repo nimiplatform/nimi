@@ -1,0 +1,38 @@
+version: 1
+source_rule: K-AGCORE-084
+memory_write_defaults:
+  - profile: canonical_agent_chat
+    source_rule: K-AGCORE-075
+    memory_write_default: CANONICAL_WRITE_ALLOWED
+    cognition_commit_default: existing_canonical_policy
+    canonical_chat_commit_default: existing_canonical_policy
+  - profile: realm_group_agent
+    source_rule: K-AGCORE-076
+    memory_write_default: WRITE_NONE
+    cognition_commit_default: forbid
+    canonical_chat_commit_default: forbid
+  - profile: scenario_sandbox
+    source_rule: K-AGCORE-077
+    memory_write_default: WRITE_NONE
+    cognition_commit_default: forbid
+    canonical_chat_commit_default: forbid
+  - profile: oasis_world_participation
+    source_rule: K-AGCORE-078
+    memory_write_default: WRITE_NONE
+    cognition_commit_default: forbid
+    canonical_chat_commit_default: forbid
+  - profile: external_agent_entry
+    source_rule: K-AGCORE-079
+    memory_write_default: WRITE_NONE
+    cognition_commit_default: forbid
+    canonical_chat_commit_default: forbid
+  - profile: debug_or_probe
+    source_rule: K-AGCORE-080
+    memory_write_default: WRITE_NONE
+    cognition_commit_default: forbid
+    canonical_chat_commit_default: forbid
+promotion_posture:
+  source_rule: K-AGCORE-072
+  non_canonical_default: explicit_candidate
+  default_write_without_promotion: forbidden
+  implementation_wave: wave-7-promotion-boundary

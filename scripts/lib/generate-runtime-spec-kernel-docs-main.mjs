@@ -28,7 +28,7 @@ import {
   renderWorkflowNodeTypes,
   renderWorkflowStates,
 } from './runtime-spec-kernel-doc-renderers-basic.mjs';
-import { renderGeneratedIndex } from './runtime-spec-kernel-doc-renderer-utils.mjs';
+import { renderGeneratedIndex, renderJsonSnapshot } from './runtime-spec-kernel-doc-renderer-utils.mjs';
 import {
   renderMultimodalArtifactFields,
   renderMultimodalCanonicalFields,
@@ -210,6 +210,46 @@ const specs = [
     input: 'runtime-agent-service-typed-family.yaml',
     output: 'runtime-agent-typed-family.md',
     render: renderRuntimeAgentTypedFamily,
+  },
+  {
+    input: 'agent-participation-axis-model.yaml',
+    output: 'agent-participation-axis-model.md',
+    render: renderJsonSnapshot('Generated Agent Participation Axis Model'),
+  },
+  {
+    input: 'agent-participation-profiles.yaml',
+    output: 'agent-participation-profiles.md',
+    render: renderJsonSnapshot('Generated Agent Participation Profiles'),
+  },
+  {
+    input: 'agent-participation-context-blocks.yaml',
+    output: 'agent-participation-context-blocks.md',
+    render: renderJsonSnapshot('Generated Agent Participation Context Blocks'),
+  },
+  {
+    input: 'agent-participation-output-destinations.yaml',
+    output: 'agent-participation-output-destinations.md',
+    render: renderJsonSnapshot('Generated Agent Participation Output Destinations'),
+  },
+  {
+    input: 'agent-participation-memory-policy.yaml',
+    output: 'agent-participation-memory-policy.md',
+    render: renderJsonSnapshot('Generated Agent Participation Memory Policy'),
+  },
+  {
+    input: 'agent-participation-memory-read-scopes.yaml',
+    output: 'agent-participation-memory-read-scopes.md',
+    render: renderJsonSnapshot('Generated Agent Participation Memory Read Scopes'),
+  },
+  {
+    input: 'agent-participation-capability-scopes.yaml',
+    output: 'agent-participation-capability-scopes.md',
+    render: renderJsonSnapshot('Generated Agent Participation Capability Scopes'),
+  },
+  {
+    input: 'agent-participation-concurrency-policy.yaml',
+    output: 'agent-participation-concurrency-policy.md',
+    render: renderJsonSnapshot('Generated Agent Participation Concurrency Policy'),
   },
   {
     input: 'scenario-profile-fields.yaml',

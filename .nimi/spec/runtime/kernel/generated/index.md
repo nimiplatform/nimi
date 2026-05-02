@@ -35,6 +35,14 @@
 | `runtime-memory-hook-trigger.md` | `tables/runtime-memory-hook-trigger.yaml` |
 | `runtime-memory-replication-outcome.md` | `tables/runtime-memory-replication-outcome.yaml` |
 | `runtime-agent-typed-family.md` | `tables/runtime-agent-service-typed-family.yaml` |
+| `agent-participation-axis-model.md` | `tables/agent-participation-axis-model.yaml` |
+| `agent-participation-profiles.md` | `tables/agent-participation-profiles.yaml` |
+| `agent-participation-context-blocks.md` | `tables/agent-participation-context-blocks.yaml` |
+| `agent-participation-output-destinations.md` | `tables/agent-participation-output-destinations.yaml` |
+| `agent-participation-memory-policy.md` | `tables/agent-participation-memory-policy.yaml` |
+| `agent-participation-memory-read-scopes.md` | `tables/agent-participation-memory-read-scopes.yaml` |
+| `agent-participation-capability-scopes.md` | `tables/agent-participation-capability-scopes.yaml` |
+| `agent-participation-concurrency-policy.md` | `tables/agent-participation-concurrency-policy.yaml` |
 | `scenario-profile-fields.md` | `tables/scenario-profile-fields.yaml` |
 | `runtime-delivery-gates.md` | `tables/runtime-delivery-gates.yaml` |
 | `runtime-proto-governance-gates.md` | `tables/runtime-proto-governance-gates.yaml` |

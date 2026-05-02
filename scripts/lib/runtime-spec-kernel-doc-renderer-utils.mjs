@@ -34,3 +34,14 @@ export function renderGeneratedIndex(entries) {
   return normalizeMarkdown(out);
 }
 
+export function renderJsonSnapshot(title) {
+  return function renderSnapshot(doc, sourceName) {
+    return normalizeMarkdown([
+      header(title, sourceName),
+      '```json',
+      JSON.stringify(doc, null, 2),
+      '```',
+      '',
+    ].join('\n'));
+  };
+}

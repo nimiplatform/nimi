@@ -1,4 +1,23 @@
 admissions:
+  - topic_id: 2026-05-02-runtime-agent-participation-authority
+    packet_id: wave-0-authority-admission-and-inventory-authority-admit
+    disposition: complete
+    admitted_at: "2026-05-02T04:56:01Z"
+    manager_review_owner: nimicoding-manager
+    summary: >-
+      Runtime Agent Participation Authority admitted as Runtime-owned agent
+      execution semantics across canonical chat, Realm group, OASIS/world,
+      A2A/MCP external entry, future Scenario Sandbox, Avatar/debug, and other
+      non-canonical contexts. Runtime owns prompt assembly policy, AI
+      consume/provider routing, output candidates, audit/replay, and promotion
+      gate posture; domains retain transcript/product truth. Realm GROUP
+      remains substrate and Realm-authenticated commit authority, with Runtime
+      returning non-committal group reply candidates. Pending Group Chat
+      app-local execution semantics are superseded as steady-state authority,
+      Scenario Sandbox remains future consumer only, A2A/MCP protocol payloads
+      remain non-semantic gateway input, and non-canonical memory/cognition or
+      canonical-chat writes remain fail-closed without explicit promotion.
+    source_decision_contract: .nimi/topics/ongoing/2026-05-02-runtime-agent-participation-authority/packet-wave-0-authority-admission-and-inventory-authority-admit.md
   - topic_id: 2026-05-01-desktop-avatar-configuration-debug-workbench
     packet_id: wave-0-authority-admit
     disposition: complete
