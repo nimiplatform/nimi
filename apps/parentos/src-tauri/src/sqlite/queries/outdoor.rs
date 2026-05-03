@@ -1,3 +1,4 @@
+use chrono::{Datelike, NaiveDate};
 use rusqlite::params;
 use serde::Serialize;
 
@@ -17,6 +18,27 @@ pub struct OutdoorRecord {
     pub updated_at: String,
 }
 
+fn detail_outdoor_event_id(record_id: &str) -> String {
+    format!("detail-outdoor:{record_id}")
+}
+
+fn strip_outdoor_detail_prefix<'a>(value: &'a str, prefix: &str) -> &'a str {
+    value.strip_prefix(prefix).unwrap_or(value)
+}
+
+fn age_months_at_birth_date(birth_date: &str, activity_date: &str) -> Result<i32, String> {
+    let birth = NaiveDate::parse_from_str(birth_date, "%Y-%m-%d")
+        .map_err(|e| format!("parse child birthDate for outdoor record: {e}"))?;
+    let date = NaiveDate::parse_from_str(activity_date, "%Y-%m-%d")
+        .map_err(|e| format!("parse outdoor activityDate: {e}"))?;
+    let mut months =
+        (date.year() - birth.year()) * 12 + (date.month() as i32 - birth.month() as i32);
+    if date.day() < birth.day() {
+        months -= 1;
+    }
+    Ok(months.max(0))
+}
+
 #[tauri::command]
 pub fn insert_outdoor_record(
     record_id: String,
@@ -29,12 +51,48 @@ pub fn insert_outdoor_record(
     if duration_minutes <= 0 {
         return Err("insert_outdoor_record: durationMinutes must be > 0".to_string());
     }
-    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-    conn.execute(
-        "INSERT INTO outdoor_records (recordId, childId, activityDate, durationMinutes, note, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,?6)",
-        params![record_id, child_id, activity_date, duration_minutes, note, now],
+    let mut conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    let birth_date: String = conn
+        .query_row(
+            "SELECT birthDate FROM children WHERE childId = ?1",
+            params![&child_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("insert_outdoor_record query child birthDate: {e}"))?;
+    let age_months = age_months_at_birth_date(&birth_date, &activity_date)?;
+    let tx = conn
+        .transaction()
+        .map_err(|e| format!("insert_outdoor_record begin transaction: {e}"))?;
+    let event_id = detail_outdoor_event_id(&record_id);
+    tx.execute(
+        "INSERT INTO health_record_events (
+            eventId, childId, protocolId, groupId, recordKind, sourceSurface,
+            recordedAt, effectiveDate, ageMonths, notes, metadataJson, createdAt, updatedAt
+        ) VALUES (?1, ?2, 'outdoor-activity', 'outdoor', 'manual', 'profile_detail', ?3, ?3, ?4, ?5, ?6, ?7, ?7)",
+        params![
+            &event_id,
+            &child_id,
+            &activity_date,
+            age_months,
+            &note,
+            serde_json::json!({
+                "legacyOutdoorRecordApi": true,
+                "recordId": record_id,
+            })
+            .to_string(),
+            &now,
+        ],
     )
-    .map_err(|e| format!("insert_outdoor_record: {e}"))?;
+    .map_err(|e| format!("insert_outdoor_record insert health event: {e}"))?;
+    tx.execute(
+        "INSERT INTO health_record_values (
+            valueId, eventId, childId, metricId, valueNumber, unit, recordKind, createdAt
+        ) VALUES (?1, ?2, ?3, 'outdoor.activity_minutes', ?4, 'min', 'measured', ?5)",
+        params![&record_id, &event_id, &child_id, duration_minutes, &now],
+    )
+    .map_err(|e| format!("insert_outdoor_record insert health value: {e}"))?;
+    tx.commit()
+        .map_err(|e| format!("insert_outdoor_record commit: {e}"))?;
     Ok(())
 }
 
@@ -52,49 +110,53 @@ pub fn update_outdoor_record(
         }
     }
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-
-    // Build SET clauses dynamically for partial update
-    let mut sets = vec!["updatedAt = ?2"];
-    let mut param_idx: usize = 3;
-    if activity_date.is_some() {
-        sets.push("activityDate = ?3");
-        param_idx = 4;
-    }
-    if duration_minutes.is_some() {
-        let clause = if param_idx == 3 { "durationMinutes = ?3" } else { "durationMinutes = ?4" };
-        sets.push(clause);
-        param_idx += 1;
-    }
-    // note is always settable (can be set to NULL)
-    let note_clause = match param_idx {
-        3 => "note = ?3",
-        4 => "note = ?4",
-        _ => "note = ?5",
+    let event_id = detail_outdoor_event_id(&record_id);
+    let replacement_age_months: Option<i32> = if let Some(date) = activity_date.as_deref() {
+        let birth_date: String = conn
+            .query_row(
+                "SELECT c.birthDate
+                 FROM children c
+                 JOIN health_record_events e ON e.childId = c.childId
+                 WHERE e.eventId = ?1",
+                params![&event_id],
+                |row| row.get(0),
+            )
+            .map_err(|e| format!("update_outdoor_record query child birthDate: {e}"))?;
+        Some(age_months_at_birth_date(&birth_date, date)?)
+    } else {
+        None
     };
-    sets.push(note_clause);
-
-    let sql = format!("UPDATE outdoor_records SET {} WHERE recordId = ?1", sets.join(", "));
-
-    // Build params in order: recordId, now, then optional fields
-    let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-    param_values.push(Box::new(record_id.clone()));
-    param_values.push(Box::new(now));
-    if let Some(date) = activity_date {
-        param_values.push(Box::new(date));
+    let updated_event = conn
+        .execute(
+            "UPDATE health_record_events
+             SET recordedAt = COALESCE(?2, recordedAt),
+                 effectiveDate = COALESCE(?2, effectiveDate),
+                 ageMonths = COALESCE(?3, ageMonths),
+                 notes = ?4,
+                 updatedAt = ?5
+             WHERE eventId = ?1 AND protocolId = 'outdoor-activity'",
+            params![
+                &event_id,
+                &activity_date,
+                replacement_age_months,
+                &note,
+                &now
+            ],
+        )
+        .map_err(|e| format!("update_outdoor_record update health event: {e}"))?;
+    if updated_event == 0 {
+        return Err(format!(
+            "update_outdoor_record: no record found with id {record_id}"
+        ));
     }
     if let Some(minutes) = duration_minutes {
-        param_values.push(Box::new(minutes));
-    }
-    param_values.push(Box::new(note));
-
-    let params_ref: Vec<&dyn rusqlite::types::ToSql> = param_values.iter().map(|p| p.as_ref()).collect();
-
-    let updated = conn
-        .execute(&sql, params_ref.as_slice())
-        .map_err(|e| format!("update_outdoor_record: {e}"))?;
-
-    if updated == 0 {
-        return Err(format!("update_outdoor_record: no record found with id {record_id}"));
+        conn.execute(
+            "UPDATE health_record_values
+             SET valueNumber = ?2, createdAt = ?3
+             WHERE eventId = ?1 AND metricId = 'outdoor.activity_minutes'",
+            params![&event_id, minutes, &now],
+        )
+        .map_err(|e| format!("update_outdoor_record update health value: {e}"))?;
     }
     Ok(())
 }
@@ -103,10 +165,15 @@ pub fn update_outdoor_record(
 pub fn delete_outdoor_record(record_id: String) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let deleted = conn
-        .execute("DELETE FROM outdoor_records WHERE recordId = ?1", params![record_id])
+        .execute(
+            "DELETE FROM health_record_events WHERE eventId = ?1 AND protocolId = 'outdoor-activity'",
+            params![detail_outdoor_event_id(&record_id)],
+        )
         .map_err(|e| format!("delete_outdoor_record: {e}"))?;
     if deleted == 0 {
-        return Err(format!("delete_outdoor_record: no record found with id {record_id}"));
+        return Err(format!(
+            "delete_outdoor_record: no record found with id {record_id}"
+        ));
     }
     Ok(())
 }
@@ -121,32 +188,37 @@ pub fn get_outdoor_records(
 
     let (sql, params_vec): (String, Vec<Box<dyn rusqlite::types::ToSql>>) = match (&start_date, &end_date) {
         (Some(start), Some(end)) => (
-            "SELECT recordId, childId, activityDate, durationMinutes, note, createdAt, updatedAt FROM outdoor_records WHERE childId = ?1 AND activityDate >= ?2 AND activityDate <= ?3 ORDER BY activityDate DESC, createdAt DESC".to_string(),
+            "SELECT e.eventId, e.childId, e.effectiveDate, v.valueNumber, e.notes, e.createdAt, e.updatedAt FROM health_record_events e JOIN health_record_values v ON v.eventId = e.eventId WHERE e.childId = ?1 AND e.protocolId = 'outdoor-activity' AND v.metricId = 'outdoor.activity_minutes' AND e.effectiveDate >= ?2 AND e.effectiveDate <= ?3 ORDER BY e.effectiveDate DESC, e.createdAt DESC".to_string(),
             vec![Box::new(child_id), Box::new(start.clone()), Box::new(end.clone())],
         ),
         (Some(start), None) => (
-            "SELECT recordId, childId, activityDate, durationMinutes, note, createdAt, updatedAt FROM outdoor_records WHERE childId = ?1 AND activityDate >= ?2 ORDER BY activityDate DESC, createdAt DESC".to_string(),
+            "SELECT e.eventId, e.childId, e.effectiveDate, v.valueNumber, e.notes, e.createdAt, e.updatedAt FROM health_record_events e JOIN health_record_values v ON v.eventId = e.eventId WHERE e.childId = ?1 AND e.protocolId = 'outdoor-activity' AND v.metricId = 'outdoor.activity_minutes' AND e.effectiveDate >= ?2 ORDER BY e.effectiveDate DESC, e.createdAt DESC".to_string(),
             vec![Box::new(child_id), Box::new(start.clone())],
         ),
         (None, Some(end)) => (
-            "SELECT recordId, childId, activityDate, durationMinutes, note, createdAt, updatedAt FROM outdoor_records WHERE childId = ?1 AND activityDate <= ?2 ORDER BY activityDate DESC, createdAt DESC".to_string(),
+            "SELECT e.eventId, e.childId, e.effectiveDate, v.valueNumber, e.notes, e.createdAt, e.updatedAt FROM health_record_events e JOIN health_record_values v ON v.eventId = e.eventId WHERE e.childId = ?1 AND e.protocolId = 'outdoor-activity' AND v.metricId = 'outdoor.activity_minutes' AND e.effectiveDate <= ?2 ORDER BY e.effectiveDate DESC, e.createdAt DESC".to_string(),
             vec![Box::new(child_id), Box::new(end.clone())],
         ),
         (None, None) => (
-            "SELECT recordId, childId, activityDate, durationMinutes, note, createdAt, updatedAt FROM outdoor_records WHERE childId = ?1 ORDER BY activityDate DESC, createdAt DESC".to_string(),
+            "SELECT e.eventId, e.childId, e.effectiveDate, v.valueNumber, e.notes, e.createdAt, e.updatedAt FROM health_record_events e JOIN health_record_values v ON v.eventId = e.eventId WHERE e.childId = ?1 AND e.protocolId = 'outdoor-activity' AND v.metricId = 'outdoor.activity_minutes' ORDER BY e.effectiveDate DESC, e.createdAt DESC".to_string(),
             vec![Box::new(child_id)],
         ),
     };
 
-    let params_ref: Vec<&dyn rusqlite::types::ToSql> = params_vec.iter().map(|p| p.as_ref()).collect();
-    let mut stmt = conn.prepare(&sql).map_err(|e| format!("get_outdoor_records: {e}"))?;
+    let params_ref: Vec<&dyn rusqlite::types::ToSql> =
+        params_vec.iter().map(|p| p.as_ref()).collect();
+    let mut stmt = conn
+        .prepare(&sql)
+        .map_err(|e| format!("get_outdoor_records: {e}"))?;
     let rows = stmt
         .query_map(params_ref.as_slice(), |row| {
+            let event_id: String = row.get(0)?;
+            let duration: f64 = row.get(3)?;
             Ok(OutdoorRecord {
-                record_id: row.get(0)?,
+                record_id: strip_outdoor_detail_prefix(&event_id, "detail-outdoor:").to_string(),
                 child_id: row.get(1)?,
                 activity_date: row.get(2)?,
-                duration_minutes: row.get(3)?,
+                duration_minutes: duration.round() as i32,
                 note: row.get(4)?,
                 created_at: row.get(5)?,
                 updated_at: row.get(6)?,
@@ -184,7 +256,9 @@ pub fn set_outdoor_goal(child_id: String, goal_minutes: i32, now: String) -> Res
         )
         .map_err(|e| format!("set_outdoor_goal: {e}"))?;
     if updated == 0 {
-        return Err(format!("set_outdoor_goal: no child found with id {child_id}"));
+        return Err(format!(
+            "set_outdoor_goal: no child found with id {child_id}"
+        ));
     }
     Ok(())
 }

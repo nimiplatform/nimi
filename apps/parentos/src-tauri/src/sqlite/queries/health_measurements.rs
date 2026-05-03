@@ -20,53 +20,273 @@ pub struct Measurement {
     pub created_at: String,
 }
 
-fn measurement_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Measurement> {
+fn legacy_measurement_type_to_metric_id(type_id: &str) -> Option<&'static str> {
+    match type_id {
+        "height" => Some("growth.height"),
+        "weight" => Some("growth.weight"),
+        "head-circumference" => Some("growth.head_circumference"),
+        "vision-left" => Some("vision.left_visual_acuity"),
+        "vision-right" => Some("vision.right_visual_acuity"),
+        "axial-length-left" => Some("vision.left_axial_length"),
+        "axial-length-right" => Some("vision.right_axial_length"),
+        "iop-left" => Some("vision.left_iop"),
+        "iop-right" => Some("vision.right_iop"),
+        "bone-age" => Some("development.bone_age_years"),
+        "body-fat-percentage" => Some("development.body_fat_percentage"),
+        _ => None,
+    }
+}
+
+fn metric_id_to_legacy_measurement_type(metric_id: &str) -> Option<&'static str> {
+    match metric_id {
+        "growth.height" => Some("height"),
+        "growth.weight" => Some("weight"),
+        "growth.head_circumference" => Some("head-circumference"),
+        "vision.left_visual_acuity" => Some("vision-left"),
+        "vision.right_visual_acuity" => Some("vision-right"),
+        "vision.left_axial_length" => Some("axial-length-left"),
+        "vision.right_axial_length" => Some("axial-length-right"),
+        "vision.left_iop" => Some("iop-left"),
+        "vision.right_iop" => Some("iop-right"),
+        "development.bone_age_years" => Some("bone-age"),
+        "development.body_fat_percentage" => Some("body-fat-percentage"),
+        _ => None,
+    }
+}
+
+fn legacy_measurement_type_unit(type_id: &str) -> Option<&'static str> {
+    match type_id {
+        "height" | "head-circumference" => Some("cm"),
+        "weight" => Some("kg"),
+        "vision-left" | "vision-right" => Some("decimal"),
+        "axial-length-left" | "axial-length-right" => Some("mm"),
+        "iop-left" | "iop-right" => Some("mmHg"),
+        "bone-age" => Some("years"),
+        "body-fat-percentage" => Some("percent"),
+        _ => None,
+    }
+}
+
+fn legacy_measurement_type_qualifier(type_id: &str) -> Option<&'static str> {
+    match type_id {
+        "vision-left" | "axial-length-left" | "iop-left" => Some("left"),
+        "vision-right" | "axial-length-right" | "iop-right" => Some("right"),
+        _ => None,
+    }
+}
+
+fn legacy_measurement_protocol_and_group(type_id: &str) -> Option<(&'static str, &'static str)> {
+    match type_id {
+        "height" | "weight" => Some(("growth-child-quarterly", "growth")),
+        "head-circumference" => Some(("growth-infant-monthly", "growth")),
+        "vision-left" | "vision-right" => Some(("vision-basic", "vision")),
+        "axial-length-left" | "axial-length-right" | "iop-left" | "iop-right" => {
+            Some(("vision-full-exam", "vision"))
+        }
+        "bone-age" | "body-fat-percentage" => {
+            Some(("development-auxiliary-measurement", "development"))
+        }
+        _ => None,
+    }
+}
+
+fn legacy_measurement_source_to_event_kind(source: Option<&str>) -> &'static str {
+    match source.map(str::trim) {
+        Some("ocr") => "ocr_confirmed",
+        Some("imported") => "imported",
+        _ => "manual",
+    }
+}
+
+fn legacy_measurement_source_to_surface(source: Option<&str>) -> &'static str {
+    match source.map(str::trim) {
+        Some("ocr") => "ocr_tool",
+        Some("imported") => "import",
+        _ => "profile_detail",
+    }
+}
+
+fn event_kind_to_legacy_measurement_source(
+    record_kind: &str,
+    source_surface: &str,
+) -> Option<String> {
+    match (record_kind, source_surface) {
+        ("ocr_confirmed", _) | (_, "ocr_tool") => Some("ocr".to_string()),
+        ("imported", _) | (_, "import") => Some("imported".to_string()),
+        ("reminder_linked", _) => Some("reminder".to_string()),
+        ("manual", _) | (_, "profile_detail") | (_, "profile_console") => {
+            Some("manual".to_string())
+        }
+        _ => None,
+    }
+}
+
+fn generated_detail_event_id(measurement_id: &str) -> String {
+    format!("detail-measurement:{measurement_id}")
+}
+
+fn measurement_from_health_record_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Measurement> {
+    let metric_id: String = row.get(2)?;
+    let type_id = metric_id_to_legacy_measurement_type(&metric_id)
+        .unwrap_or(metric_id.as_str())
+        .to_string();
+    let record_kind: String = row.get(7)?;
+    let source_surface: String = row.get(8)?;
     Ok(Measurement {
         measurement_id: row.get(0)?,
         child_id: row.get(1)?,
-        type_id: row.get(2)?,
+        type_id,
         value: row.get(3)?,
         measured_at: row.get(4)?,
         age_months: row.get(5)?,
-        percentile: row.get(6)?,
-        source: row.get(7)?,
-        notes: row.get(8)?,
+        percentile: None,
+        source: event_kind_to_legacy_measurement_source(&record_kind, &source_surface),
+        notes: row.get(6)?,
         created_at: row.get(9)?,
     })
 }
 
 #[tauri::command]
 pub fn insert_measurement(
-    measurement_id: String, child_id: String, type_id: String, value: f64,
-    measured_at: String, age_months: i32, percentile: Option<f64>, source: Option<String>,
-    notes: Option<String>, now: String,
+    measurement_id: String,
+    child_id: String,
+    type_id: String,
+    value: f64,
+    measured_at: String,
+    age_months: i32,
+    percentile: Option<f64>,
+    source: Option<String>,
+    notes: Option<String>,
+    now: String,
 ) -> Result<(), String> {
-    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-    conn.execute(
-        "INSERT INTO growth_measurements (measurementId, childId, typeId, value, measuredAt, ageMonths, percentile, source, notes, createdAt) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
-        params![measurement_id, child_id, type_id, value, measured_at, age_months, percentile, source, notes, now],
+    let Some(metric_id) = legacy_measurement_type_to_metric_id(type_id.trim()) else {
+        return Err(format!(
+            "insert_measurement rejects unsupported folded measurement type \"{type_id}\"; use PO-CAPT or an admitted retained-domain writer"
+        ));
+    };
+    let Some((protocol_id, group_id)) = legacy_measurement_protocol_and_group(type_id.trim())
+    else {
+        return Err(format!(
+            "insert_measurement cannot resolve protocol for type \"{type_id}\""
+        ));
+    };
+    if !value.is_finite() {
+        return Err("insert_measurement requires a finite value".to_string());
+    }
+    let mut conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    let tx = conn
+        .transaction()
+        .map_err(|e| format!("insert_measurement begin transaction: {e}"))?;
+    tx.execute(
+        "INSERT INTO health_record_events (
+            eventId, childId, protocolId, groupId, recordKind, sourceSurface,
+            recordedAt, effectiveDate, ageMonths, notes, metadataJson, createdAt, updatedAt
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7, ?8, ?9, ?10, ?11, ?11)",
+        params![
+            generated_detail_event_id(&measurement_id),
+            child_id,
+            protocol_id,
+            group_id,
+            legacy_measurement_source_to_event_kind(source.as_deref()),
+            legacy_measurement_source_to_surface(source.as_deref()),
+            measured_at,
+            age_months,
+            notes,
+            serde_json::json!({
+                "legacyMeasurementApi": true,
+                "legacyTypeId": type_id,
+                "percentile": percentile,
+            })
+            .to_string(),
+            now,
+        ],
     )
-    .map_err(|e| format!("insert_measurement: {e}"))?;
+    .map_err(|e| format!("insert_measurement insert health event: {e}"))?;
+    tx.execute(
+        "INSERT INTO health_record_values (
+            valueId, eventId, childId, metricId, valueNumber, unit, qualifier, recordKind, createdAt
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'measured', ?8)",
+        params![
+            measurement_id,
+            generated_detail_event_id(&measurement_id),
+            child_id,
+            metric_id,
+            value,
+            legacy_measurement_type_unit(type_id.trim()),
+            legacy_measurement_type_qualifier(type_id.trim()),
+            now,
+        ],
+    )
+    .map_err(|e| format!("insert_measurement insert health value: {e}"))?;
+    tx.commit()
+        .map_err(|e| format!("insert_measurement commit: {e}"))?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn get_measurements(child_id: String, type_id: Option<String>) -> Result<Vec<Measurement>, String> {
+pub fn get_measurements(
+    child_id: String,
+    type_id: Option<String>,
+) -> Result<Vec<Measurement>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-    let sql = match &type_id {
-        Some(_) => "SELECT measurementId, childId, typeId, value, measuredAt, ageMonths, percentile, source, notes, createdAt FROM growth_measurements WHERE childId = ?1 AND typeId = ?2 ORDER BY measuredAt",
-        None => "SELECT measurementId, childId, typeId, value, measuredAt, ageMonths, percentile, source, notes, createdAt FROM growth_measurements WHERE childId = ?1 ORDER BY measuredAt",
+    let sql = match type_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        Some(_) => {
+            "SELECT v.valueId, v.childId, v.metricId, v.valueNumber, e.effectiveDate,
+                    e.ageMonths, e.notes, e.recordKind, e.sourceSurface, v.createdAt
+             FROM health_record_values v
+             JOIN health_record_events e ON e.eventId = v.eventId
+             WHERE v.childId = ?1 AND v.metricId = ?2 AND v.valueNumber IS NOT NULL
+             ORDER BY e.effectiveDate, v.createdAt"
+        }
+        None => {
+            "SELECT v.valueId, v.childId, v.metricId, v.valueNumber, e.effectiveDate,
+                    e.ageMonths, e.notes, e.recordKind, e.sourceSurface, v.createdAt
+             FROM health_record_values v
+             JOIN health_record_events e ON e.eventId = v.eventId
+             WHERE v.childId = ?1
+               AND v.metricId IN (
+                 'growth.height',
+                 'growth.weight',
+                 'growth.head_circumference',
+                 'vision.left_visual_acuity',
+                 'vision.right_visual_acuity',
+                 'vision.left_axial_length',
+                 'vision.right_axial_length',
+                 'vision.left_iop',
+                 'vision.right_iop',
+                 'development.bone_age_years',
+                 'development.body_fat_percentage'
+               )
+               AND v.valueNumber IS NOT NULL
+             ORDER BY e.effectiveDate, v.createdAt"
+        }
     };
-    let mut stmt = conn.prepare(sql).map_err(|e| format!("get_measurements: {e}"))?;
-    if let Some(tid) = &type_id {
+    let mut stmt = conn
+        .prepare(sql)
+        .map_err(|e| format!("get_measurements: {e}"))?;
+    if let Some(tid) = type_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        let Some(metric_id) = legacy_measurement_type_to_metric_id(tid) else {
+            return Ok(Vec::new());
+        };
         let rows = stmt
-            .query_map(params![child_id, tid], measurement_from_row)
+            .query_map(
+                params![child_id, metric_id],
+                measurement_from_health_record_row,
+            )
             .map_err(|e| format!("get_measurements: {e}"))?;
         rows.collect::<Result<Vec<_>, _>>()
             .map_err(|e| format!("get_measurements collect: {e}"))
     } else {
         let rows = stmt
-            .query_map(params![child_id], measurement_from_row)
+            .query_map(params![child_id], measurement_from_health_record_row)
             .map_err(|e| format!("get_measurements: {e}"))?;
         rows.collect::<Result<Vec<_>, _>>()
             .map_err(|e| format!("get_measurements collect: {e}"))
@@ -75,22 +295,132 @@ pub fn get_measurements(child_id: String, type_id: Option<String>) -> Result<Vec
 
 #[tauri::command]
 pub fn update_measurement(
-    measurement_id: String, value: f64, measured_at: String, age_months: i32,
-    percentile: Option<f64>, source: Option<String>, notes: Option<String>, now: String,
+    measurement_id: String,
+    value: f64,
+    measured_at: String,
+    age_months: i32,
+    percentile: Option<f64>,
+    source: Option<String>,
+    notes: Option<String>,
+    now: String,
 ) -> Result<(), String> {
+    if !value.is_finite() {
+        return Err("update_measurement requires a finite value".to_string());
+    }
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    let changed = conn
+        .execute(
+            "UPDATE health_record_values
+             SET valueNumber = ?2, createdAt = ?8
+             WHERE valueId = ?1
+               AND metricId IN (
+                 'growth.height',
+                 'growth.weight',
+                 'growth.head_circumference',
+                 'vision.left_visual_acuity',
+                 'vision.right_visual_acuity',
+                 'vision.left_axial_length',
+                 'vision.right_axial_length',
+                 'vision.left_iop',
+                 'vision.right_iop',
+                 'development.bone_age_years',
+                 'development.body_fat_percentage'
+               )",
+            params![
+                measurement_id,
+                value,
+                measured_at,
+                age_months,
+                percentile,
+                source,
+                notes,
+                now
+            ],
+        )
+        .map_err(|e| format!("update_measurement update health value: {e}"))?;
+    if changed == 0 {
+        return Err(format!(
+            "update_measurement: no supported canonical health value found with id {measurement_id}"
+        ));
+    }
     conn.execute(
-        "UPDATE growth_measurements SET value = ?2, measuredAt = ?3, ageMonths = ?4, percentile = ?5, source = ?6, notes = ?7, createdAt = ?8 WHERE measurementId = ?1",
-        params![measurement_id, value, measured_at, age_months, percentile, source, notes, now],
-    ).map_err(|e| format!("update_measurement: {e}"))?;
+        "UPDATE health_record_events
+         SET recordedAt = ?2,
+             effectiveDate = ?2,
+             ageMonths = ?3,
+             notes = ?4,
+             metadataJson = ?5,
+             updatedAt = ?6
+         WHERE eventId = (SELECT eventId FROM health_record_values WHERE valueId = ?1)",
+        params![
+            measurement_id,
+            measured_at,
+            age_months,
+            notes,
+            serde_json::json!({
+                "legacyMeasurementApi": true,
+                "percentile": percentile,
+                "source": source,
+            })
+            .to_string(),
+            now,
+        ],
+    )
+    .map_err(|e| format!("update_measurement update health event: {e}"))?;
     Ok(())
 }
 
 #[tauri::command]
 pub fn delete_measurement(measurement_id: String) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM growth_measurements WHERE measurementId = ?1", params![measurement_id])
-        .map_err(|e| format!("delete_measurement: {e}"))?;
+    let event_id: Option<String> = conn
+        .query_row(
+            "SELECT eventId FROM health_record_values WHERE valueId = ?1",
+            params![measurement_id],
+            |row| row.get(0),
+        )
+        .ok();
+    let changed = conn
+        .execute(
+            "DELETE FROM health_record_values
+             WHERE valueId = ?1
+               AND metricId IN (
+                 'growth.height',
+                 'growth.weight',
+                 'growth.head_circumference',
+                 'vision.left_visual_acuity',
+                 'vision.right_visual_acuity',
+                 'vision.left_axial_length',
+                 'vision.right_axial_length',
+                 'vision.left_iop',
+                 'vision.right_iop',
+                 'development.bone_age_years',
+                 'development.body_fat_percentage'
+               )",
+            params![measurement_id],
+        )
+        .map_err(|e| format!("delete_measurement delete health value: {e}"))?;
+    if changed == 0 {
+        return Err(format!(
+            "delete_measurement: no supported canonical health value found with id {measurement_id}"
+        ));
+    }
+    if let Some(event_id) = event_id {
+        let remaining: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM health_record_values WHERE eventId = ?1",
+                params![event_id],
+                |row| row.get(0),
+            )
+            .map_err(|e| format!("delete_measurement count remaining health values: {e}"))?;
+        if remaining == 0 {
+            conn.execute(
+                "DELETE FROM health_record_events WHERE eventId = ?1",
+                params![event_id],
+            )
+            .map_err(|e| format!("delete_measurement delete empty health event: {e}"))?;
+        }
+    }
     Ok(())
 }
 
@@ -98,9 +428,14 @@ pub fn delete_measurement(measurement_id: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn upsert_milestone_record(
-    record_id: String, child_id: String, milestone_id: String,
-    achieved_at: Option<String>, age_months_when_achieved: Option<i32>,
-    notes: Option<String>, photo_path: Option<String>, now: String,
+    record_id: String,
+    child_id: String,
+    milestone_id: String,
+    achieved_at: Option<String>,
+    age_months_when_achieved: Option<i32>,
+    notes: Option<String>,
+    photo_path: Option<String>,
+    now: String,
 ) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     conn.execute(
@@ -129,27 +464,33 @@ pub struct MilestoneRecord {
 pub fn get_milestone_records(child_id: String) -> Result<Vec<MilestoneRecord>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare("SELECT recordId, childId, milestoneId, achievedAt, ageMonthsWhenAchieved, notes, photoPath, createdAt, updatedAt FROM milestone_records WHERE childId = ?1 ORDER BY achievedAt").map_err(|e| format!("get_milestone_records: {e}"))?;
-    let rows = stmt.query_map(params![child_id], |row| {
-        Ok(MilestoneRecord {
-            record_id: row.get(0)?,
-            child_id: row.get(1)?,
-            milestone_id: row.get(2)?,
-            achieved_at: row.get(3)?,
-            age_months_when_achieved: row.get(4)?,
-            notes: row.get(5)?,
-            photo_path: row.get(6)?,
-            created_at: row.get(7)?,
-            updated_at: row.get(8)?,
+    let rows = stmt
+        .query_map(params![child_id], |row| {
+            Ok(MilestoneRecord {
+                record_id: row.get(0)?,
+                child_id: row.get(1)?,
+                milestone_id: row.get(2)?,
+                achieved_at: row.get(3)?,
+                age_months_when_achieved: row.get(4)?,
+                notes: row.get(5)?,
+                photo_path: row.get(6)?,
+                created_at: row.get(7)?,
+                updated_at: row.get(8)?,
+            })
         })
-    }).map_err(|e| format!("get_milestone_records: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("get_milestone_records collect: {e}"))
+        .map_err(|e| format!("get_milestone_records: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("get_milestone_records collect: {e}"))
 }
 
 #[tauri::command]
 pub fn delete_milestone_record(record_id: String) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM milestone_records WHERE recordId = ?1", params![record_id])
-        .map_err(|e| format!("delete_milestone_record: {e}"))?;
+    conn.execute(
+        "DELETE FROM milestone_records WHERE recordId = ?1",
+        params![record_id],
+    )
+    .map_err(|e| format!("delete_milestone_record: {e}"))?;
     Ok(())
 }
 
@@ -161,9 +502,16 @@ fn is_supported_growth_report_type(report_type: &str) -> bool {
 
 #[tauri::command]
 pub fn insert_growth_report(
-    report_id: String, child_id: String, report_type: String,
-    period_start: String, period_end: String, age_months_start: i32, age_months_end: i32,
-    content: String, generated_at: String, now: String,
+    report_id: String,
+    child_id: String,
+    report_type: String,
+    period_start: String,
+    period_end: String,
+    age_months_start: i32,
+    age_months_end: i32,
+    content: String,
+    generated_at: String,
+    now: String,
 ) -> Result<(), String> {
     if !is_supported_growth_report_type(report_type.trim()) {
         return Err(format!(
@@ -211,13 +559,18 @@ fn growth_report_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<GrowthRep
 }
 
 #[tauri::command]
-pub fn get_growth_reports(child_id: String, report_type: Option<String>) -> Result<Vec<GrowthReport>, String> {
+pub fn get_growth_reports(
+    child_id: String,
+    report_type: Option<String>,
+) -> Result<Vec<GrowthReport>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let sql = match &report_type {
         Some(_) => "SELECT reportId, childId, reportType, periodStart, periodEnd, ageMonthsStart, ageMonthsEnd, content, generatedAt, createdAt FROM growth_reports WHERE childId = ?1 AND reportType = ?2 ORDER BY periodStart DESC",
         None => "SELECT reportId, childId, reportType, periodStart, periodEnd, ageMonthsStart, ageMonthsEnd, content, generatedAt, createdAt FROM growth_reports WHERE childId = ?1 ORDER BY periodStart DESC",
     };
-    let mut stmt = conn.prepare(sql).map_err(|e| format!("get_growth_reports: {e}"))?;
+    let mut stmt = conn
+        .prepare(sql)
+        .map_err(|e| format!("get_growth_reports: {e}"))?;
     if let Some(rt) = &report_type {
         let rows = stmt
             .query_map(params![child_id, rt], growth_report_from_row)
@@ -234,7 +587,11 @@ pub fn get_growth_reports(child_id: String, report_type: Option<String>) -> Resu
 }
 
 #[tauri::command]
-pub fn update_growth_report_content(report_id: String, content: String, _now: String) -> Result<(), String> {
+pub fn update_growth_report_content(
+    report_id: String,
+    content: String,
+    _now: String,
+) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let changed = conn
         .execute(
@@ -243,7 +600,9 @@ pub fn update_growth_report_content(report_id: String, content: String, _now: St
         )
         .map_err(|e| format!("update_growth_report_content: {e}"))?;
     if changed == 0 {
-        return Err(format!("update_growth_report_content: no report found with id {report_id}"));
+        return Err(format!(
+            "update_growth_report_content: no report found with id {report_id}"
+        ));
     }
     Ok(())
 }

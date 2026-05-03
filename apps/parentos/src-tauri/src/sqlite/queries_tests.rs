@@ -26,11 +26,8 @@ fn rejects_ai_tags_outside_the_dimension_quick_tag_set() {
         confidence: Some(0.6),
     }];
 
-    let result = validate_observation_selection(
-        Some("PO-OBS-CONC-001"),
-        Some("[\"深度专注\"]"),
-        &ai_tags,
-    );
+    let result =
+        validate_observation_selection(Some("PO-OBS-CONC-001"), Some("[\"深度专注\"]"), &ai_tags);
 
     assert!(result
         .expect_err("expected unsupported AI tag to fail")

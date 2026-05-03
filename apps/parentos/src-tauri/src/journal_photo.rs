@@ -16,8 +16,12 @@ pub struct SavedJournalPhoto {
 
 fn resolve_photo_root() -> Result<PathBuf, String> {
     let root = desktop_paths::resolve_nimi_data_dir()?.join(JOURNAL_PHOTO_DIR);
-    fs::create_dir_all(&root)
-        .map_err(|error| format!("failed to create journal photo dir ({}): {error}", root.display()))?;
+    fs::create_dir_all(&root).map_err(|error| {
+        format!(
+            "failed to create journal photo dir ({}): {error}",
+            root.display()
+        )
+    })?;
     Ok(root)
 }
 
@@ -39,7 +43,9 @@ fn extension_for_mime_type(mime_type: &str) -> Result<&'static str, String> {
         "image/webp" => Ok("webp"),
         "image/gif" => Ok("gif"),
         "image/heic" | "image/heif" => Ok("heic"),
-        unsupported => Err(format!("unsupported journal photo mime type: {unsupported}")),
+        unsupported => Err(format!(
+            "unsupported journal photo mime type: {unsupported}"
+        )),
     }
 }
 
@@ -73,12 +79,20 @@ pub fn save_journal_photo(
     }
 
     let child_dir = resolve_photo_root()?.join(&child_id);
-    fs::create_dir_all(&child_dir)
-        .map_err(|error| format!("failed to create child journal photo dir ({}): {error}", child_dir.display()))?;
+    fs::create_dir_all(&child_dir).map_err(|error| {
+        format!(
+            "failed to create child journal photo dir ({}): {error}",
+            child_dir.display()
+        )
+    })?;
 
     let file_path = child_dir.join(format!("{entry_id}_{index}.{extension}"));
-    fs::write(&file_path, &image_bytes)
-        .map_err(|error| format!("failed to write journal photo ({}): {error}", file_path.display()))?;
+    fs::write(&file_path, &image_bytes).map_err(|error| {
+        format!(
+            "failed to write journal photo ({}): {error}",
+            file_path.display()
+        )
+    })?;
 
     Ok(SavedJournalPhoto {
         path: file_path.display().to_string(),
@@ -95,8 +109,12 @@ pub fn delete_journal_photo(path: String) -> Result<(), String> {
     if !candidate.exists() {
         return Ok(());
     }
-    fs::remove_file(&candidate)
-        .map_err(|error| format!("failed to delete journal photo ({}): {error}", candidate.display()))
+    fs::remove_file(&candidate).map_err(|error| {
+        format!(
+            "failed to delete journal photo ({}): {error}",
+            candidate.display()
+        )
+    })
 }
 
 #[cfg(test)]

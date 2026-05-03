@@ -73,9 +73,8 @@ fn add_progression_columns(conn: &Connection) -> Result<(), String> {
         if existing.contains(*column) {
             continue;
         }
-        conn.execute(sql, []).map_err(|e| {
-            format!("migration v10 add reminder_states.{column} failed: {e}")
-        })?;
+        conn.execute(sql, [])
+            .map_err(|e| format!("migration v10 add reminder_states.{column} failed: {e}"))?;
     }
     Ok(())
 }

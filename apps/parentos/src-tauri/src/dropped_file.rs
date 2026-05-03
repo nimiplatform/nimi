@@ -34,7 +34,10 @@ pub fn pick_image_files(title: Option<String>) -> Result<Vec<String>, String> {
     let dialog = rfd::FileDialog::new()
         .set_directory(&start_dir)
         .set_title(title.as_deref().unwrap_or("Select photos"))
-        .add_filter("Images", &["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "bmp"])
+        .add_filter(
+            "Images",
+            &["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "bmp"],
+        )
         .add_filter("All Files", &["*"]);
     let selected = dialog.pick_files().unwrap_or_default();
     Ok(selected
@@ -61,10 +64,17 @@ pub fn read_dropped_image_as_base64(path: String) -> Result<DroppedImagePayload,
     let mime_type = extension_to_mime(extension)
         .ok_or_else(|| format!("dropped file is not a supported image type: {extension}"))?;
 
-    let metadata = std::fs::metadata(&candidate)
-        .map_err(|error| format!("failed to stat dropped image ({}): {error}", candidate.display()))?;
+    let metadata = std::fs::metadata(&candidate).map_err(|error| {
+        format!(
+            "failed to stat dropped image ({}): {error}",
+            candidate.display()
+        )
+    })?;
     if !metadata.is_file() {
-        return Err(format!("dropped image path is not a file: {}", candidate.display()));
+        return Err(format!(
+            "dropped image path is not a file: {}",
+            candidate.display()
+        ));
     }
     if metadata.len() > MAX_DROPPED_IMAGE_BYTES {
         return Err(format!(
@@ -73,8 +83,12 @@ pub fn read_dropped_image_as_base64(path: String) -> Result<DroppedImagePayload,
         ));
     }
 
-    let bytes = std::fs::read(&candidate)
-        .map_err(|error| format!("failed to read dropped image ({}): {error}", candidate.display()))?;
+    let bytes = std::fs::read(&candidate).map_err(|error| {
+        format!(
+            "failed to read dropped image ({}): {error}",
+            candidate.display()
+        )
+    })?;
     let base64 = BASE64_STANDARD.encode(&bytes);
 
     Ok(DroppedImagePayload {

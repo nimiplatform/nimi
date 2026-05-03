@@ -44,7 +44,9 @@ fn custom_todos_table_exists(conn: &Connection) -> Result<bool, String> {
     )
     .or_else(|err| match err {
         rusqlite::Error::QueryReturnedNoRows => Ok(false),
-        _ => Err(format!("migration v11 check custom_todos exists failed: {err}")),
+        _ => Err(format!(
+            "migration v11 check custom_todos exists failed: {err}"
+        )),
     })
 }
 

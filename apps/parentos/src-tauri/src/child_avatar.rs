@@ -16,8 +16,12 @@ pub struct SavedChildAvatar {
 
 fn resolve_avatar_root() -> Result<PathBuf, String> {
     let root = desktop_paths::resolve_nimi_data_dir()?.join(CHILD_AVATAR_DIR);
-    fs::create_dir_all(&root)
-        .map_err(|error| format!("failed to create child avatar dir ({}): {error}", root.display()))?;
+    fs::create_dir_all(&root).map_err(|error| {
+        format!(
+            "failed to create child avatar dir ({}): {error}",
+            root.display()
+        )
+    })?;
     Ok(root)
 }
 
@@ -50,8 +54,12 @@ pub fn save_child_avatar(
     }
 
     let file_path = resolve_avatar_root()?.join(format!("{child_id}.{ext}"));
-    fs::write(&file_path, &image_bytes)
-        .map_err(|error| format!("failed to write child avatar ({}): {error}", file_path.display()))?;
+    fs::write(&file_path, &image_bytes).map_err(|error| {
+        format!(
+            "failed to write child avatar ({}): {error}",
+            file_path.display()
+        )
+    })?;
 
     Ok(SavedChildAvatar {
         path: file_path.display().to_string(),

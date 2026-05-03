@@ -22,13 +22,16 @@ practiceHabituatedAt, consultedAt, consultationConversationId, createdAt, update
 VALUES (?1,?2,?3,?4,NULL,NULL,NULL,NULL,?5,NULL,NULL,NULL,0,NULL,NULL,NULL,0,NULL,\
 ?6,?7,?8,?9,?10,?11,?12,?13,?14,?14)",
         params![
-            "state-1", "child-1", "PO-REM-REL-010", "completed",
+            "state-1",
+            "child-1",
+            "PO-REM-REL-010",
+            "completed",
             0i64,
             "2026-04-20T10:00:00.000Z", // acknowledgedAt
             "2026-04-22T10:00:00.000Z", // reflectedAt
             "2026-04-15T09:00:00.000Z", // practiceStartedAt
             "2026-04-23T09:30:00.000Z", // practiceLastAt
-            3i64,                        // practiceCount
+            3i64,                       // practiceCount
             Option::<String>::None,     // practiceHabituatedAt
             "2026-04-23T09:45:00.000Z", // consultedAt
             "conv-ulid-001",            // consultationConversationId
@@ -82,12 +85,21 @@ VALUES (?1,?2,?3,?4,NULL,NULL,NULL,NULL,?5,NULL,NULL,NULL,0,NULL,NULL,NULL,0,NUL
     assert_eq!(status, "completed");
     assert_eq!(acknowledged_at.as_deref(), Some("2026-04-20T10:00:00.000Z"));
     assert_eq!(reflected_at.as_deref(), Some("2026-04-22T10:00:00.000Z"));
-    assert_eq!(practice_started_at.as_deref(), Some("2026-04-15T09:00:00.000Z"));
-    assert_eq!(practice_last_at.as_deref(), Some("2026-04-23T09:30:00.000Z"));
+    assert_eq!(
+        practice_started_at.as_deref(),
+        Some("2026-04-15T09:00:00.000Z")
+    );
+    assert_eq!(
+        practice_last_at.as_deref(),
+        Some("2026-04-23T09:30:00.000Z")
+    );
     assert_eq!(practice_count, 3);
     assert_eq!(practice_habituated_at, None);
     assert_eq!(consulted_at.as_deref(), Some("2026-04-23T09:45:00.000Z"));
-    assert_eq!(consultation_conversation_id.as_deref(), Some("conv-ulid-001"));
+    assert_eq!(
+        consultation_conversation_id.as_deref(),
+        Some("conv-ulid-001")
+    );
 }
 
 /// NULL tolerance: a reminder_states row persisted before v10 migration landed
@@ -201,7 +213,10 @@ fn reminder_state_v10_is_idempotent() {
             |row| row.get(0),
         )
         .expect("count consultation index");
-    assert_eq!(idx_count, 1, "consultation conversation index must be present");
+    assert_eq!(
+        idx_count, 1,
+        "consultation conversation index must be present"
+    );
 }
 
 /// Full INSERT via the same SQL used by upsert_reminder_state covering every
@@ -241,14 +256,32 @@ updatedAt=?27";
     conn.execute(
         UPSERT_SQL,
         params![
-            "state-u1", "child-1", "PO-REM-REL-010", "active",
-            Option::<String>::None, Option::<String>::None, Option::<String>::None,
-            Option::<String>::None, 0i64, Option::<String>::None, Option::<String>::None,
-            Option::<String>::None, 0i64, Option::<String>::None, Option::<String>::None,
-            Option::<String>::None, 0i64, Option::<String>::None,
-            Option::<String>::None, Option::<String>::None,
-            Option::<String>::None, Option::<String>::None, 0i64,
-            Option::<String>::None, Option::<String>::None, Option::<String>::None,
+            "state-u1",
+            "child-1",
+            "PO-REM-REL-010",
+            "active",
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
+            0i64,
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
+            0i64,
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
+            0i64,
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
+            0i64,
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
             now_initial,
         ],
     )
@@ -258,15 +291,32 @@ updatedAt=?27";
     conn.execute(
         UPSERT_SQL,
         params![
-            "state-u1", "child-1", "PO-REM-REL-010", "completed",
-            Option::<String>::None, Option::<String>::None, Option::<String>::None,
-            Option::<String>::None, 0i64, Option::<String>::None, Option::<String>::None,
-            Option::<String>::None, 0i64, Option::<String>::None, Option::<String>::None,
-            Option::<String>::None, 0i64, Option::<String>::None,
-            now_update,                 // acknowledgedAt
-            Option::<String>::None,     // reflectedAt
-            Option::<String>::None, Option::<String>::None, 0i64,
-            Option::<String>::None, Option::<String>::None, Option::<String>::None,
+            "state-u1",
+            "child-1",
+            "PO-REM-REL-010",
+            "completed",
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
+            0i64,
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
+            0i64,
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
+            0i64,
+            Option::<String>::None,
+            now_update,             // acknowledgedAt
+            Option::<String>::None, // reflectedAt
+            Option::<String>::None,
+            Option::<String>::None,
+            0i64,
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
             now_update,
         ],
     )

@@ -5,6 +5,14 @@ mod migrations_schema;
 #[cfg(test)]
 #[path = "migrations_tests.rs"]
 mod migrations_tests;
+#[path = "migrations_v10.rs"]
+mod migrations_v10;
+#[path = "migrations_v11.rs"]
+mod migrations_v11;
+#[path = "migrations_v12.rs"]
+mod migrations_v12;
+#[path = "migrations_v13.rs"]
+mod migrations_v13;
 #[path = "migrations_v2.rs"]
 mod migrations_v2;
 #[path = "migrations_v3.rs"]
@@ -21,14 +29,12 @@ mod migrations_v7;
 mod migrations_v8;
 #[path = "migrations_v9.rs"]
 mod migrations_v9;
-#[path = "migrations_v10.rs"]
-mod migrations_v10;
-#[path = "migrations_v11.rs"]
-mod migrations_v11;
-#[path = "migrations_v12.rs"]
-mod migrations_v12;
 
 use migrations_schema::V1_SCHEMA_SQL;
+use migrations_v10::apply_v10;
+use migrations_v11::apply_v11;
+use migrations_v12::apply_v12;
+use migrations_v13::apply_v13;
 use migrations_v2::apply_v2;
 use migrations_v3::apply_v3;
 use migrations_v4::apply_v4;
@@ -37,11 +43,8 @@ use migrations_v6::apply_v6;
 use migrations_v7::apply_v7;
 use migrations_v8::apply_v8;
 use migrations_v9::apply_v9;
-use migrations_v10::apply_v10;
-use migrations_v11::apply_v11;
-use migrations_v12::apply_v12;
 
-const SCHEMA_VERSION: u32 = 12;
+const SCHEMA_VERSION: u32 = 13;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), String> {
     ensure_schema_version_table(conn)?;
@@ -112,6 +115,11 @@ pub fn run_migrations(conn: &Connection) -> Result<(), String> {
         record_schema_version(conn, 12)?;
     }
 
+    if current_version < 13 {
+        apply_v13(conn)?;
+        record_schema_version(conn, 13)?;
+    }
+
     repair_missing_tables(conn)?;
 
     Ok(())
@@ -137,6 +145,7 @@ fn repair_missing_tables(conn: &Connection) -> Result<(), String> {
     apply_v10(conn)?;
     apply_v11(conn)?;
     apply_v12(conn)?;
+    apply_v13(conn)?;
     Ok(())
 }
 

@@ -48,10 +48,10 @@ static OBSERVATION_VOCABULARY: OnceLock<Result<ObservationVocabulary, String>> =
 
 fn get_observation_vocabulary() -> Result<&'static ObservationVocabulary, String> {
     let loaded = OBSERVATION_VOCABULARY.get_or_init(|| {
-        let spec: ObservationFrameworkSpec = serde_yaml::from_str(include_str!(
-            "../../../../spec/kernel/tables/observation-framework.yaml",
+        let spec: ObservationFrameworkSpec = serde_json::from_str(include_str!(
+            "../../../../data/knowledge/observation-framework.json",
         ))
-        .map_err(|e| format!("parse observation-framework.yaml: {e}"))?;
+        .map_err(|e| format!("parse observation-framework.json: {e}"))?;
 
         let quick_tags_by_dimension = spec
             .dimensions

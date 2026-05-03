@@ -102,7 +102,8 @@ fn validate_iso_date(date: &str) -> Result<(), String> {
         return Err(invalid_date_error(date));
     }
     let bytes = date.as_bytes();
-    let digit_at = |idx: usize| -> bool { bytes.get(idx).map(|b| b.is_ascii_digit()).unwrap_or(false) };
+    let digit_at =
+        |idx: usize| -> bool { bytes.get(idx).map(|b| b.is_ascii_digit()).unwrap_or(false) };
     let dash_at = |idx: usize| -> bool { bytes.get(idx).copied() == Some(b'-') };
     let shape_ok = digit_at(0)
         && digit_at(1)

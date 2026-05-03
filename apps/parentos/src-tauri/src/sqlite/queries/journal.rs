@@ -43,9 +43,7 @@ fn normalize_keepsake_metadata(
                 | "other"
         );
         if !is_supported {
-            return Err(format!(
-                "unsupported keepsakeReason \"{reason_value}\""
-            ));
+            return Err(format!("unsupported keepsakeReason \"{reason_value}\""));
         }
     }
 
@@ -56,18 +54,27 @@ fn normalize_keepsake_metadata(
 
 #[tauri::command]
 pub fn insert_journal_entry(
-    entry_id: String, child_id: String, content_type: String, text_content: Option<String>,
-    voice_path: Option<String>, photo_paths: Option<String>, recorded_at: String, age_months: i32,
-    observation_mode: Option<String>, dimension_id: Option<String>, selected_tags: Option<String>,
-    guided_answers: Option<String>, observation_duration: Option<i32>,
-    keepsake: i32, keepsake_title: Option<String>, keepsake_reason: Option<String>,
-    _mood_tag: Option<String>, recorder_id: Option<String>, now: String,
+    entry_id: String,
+    child_id: String,
+    content_type: String,
+    text_content: Option<String>,
+    voice_path: Option<String>,
+    photo_paths: Option<String>,
+    recorded_at: String,
+    age_months: i32,
+    observation_mode: Option<String>,
+    dimension_id: Option<String>,
+    selected_tags: Option<String>,
+    guided_answers: Option<String>,
+    observation_duration: Option<i32>,
+    keepsake: i32,
+    keepsake_title: Option<String>,
+    keepsake_reason: Option<String>,
+    _mood_tag: Option<String>,
+    recorder_id: Option<String>,
+    now: String,
 ) -> Result<(), String> {
-    validate_observation_selection(
-        dimension_id.as_deref(),
-        selected_tags.as_deref(),
-        &[],
-    )?;
+    validate_observation_selection(dimension_id.as_deref(), selected_tags.as_deref(), &[])?;
     let (keepsake_title, keepsake_reason) =
         normalize_keepsake_metadata(keepsake, keepsake_title, keepsake_reason)?;
 
@@ -92,23 +99,35 @@ pub struct JournalTagInput {
 
 #[tauri::command]
 pub fn insert_journal_entry_with_tags(
-    entry_id: String, child_id: String, content_type: String, text_content: Option<String>,
-    voice_path: Option<String>, photo_paths: Option<String>, recorded_at: String, age_months: i32,
-    observation_mode: Option<String>, dimension_id: Option<String>, selected_tags: Option<String>,
-    guided_answers: Option<String>, observation_duration: Option<i32>,
-    keepsake: i32, keepsake_title: Option<String>, keepsake_reason: Option<String>,
-    _mood_tag: Option<String>, recorder_id: Option<String>, ai_tags: Vec<JournalTagInput>, now: String,
+    entry_id: String,
+    child_id: String,
+    content_type: String,
+    text_content: Option<String>,
+    voice_path: Option<String>,
+    photo_paths: Option<String>,
+    recorded_at: String,
+    age_months: i32,
+    observation_mode: Option<String>,
+    dimension_id: Option<String>,
+    selected_tags: Option<String>,
+    guided_answers: Option<String>,
+    observation_duration: Option<i32>,
+    keepsake: i32,
+    keepsake_title: Option<String>,
+    keepsake_reason: Option<String>,
+    _mood_tag: Option<String>,
+    recorder_id: Option<String>,
+    ai_tags: Vec<JournalTagInput>,
+    now: String,
 ) -> Result<(), String> {
-    validate_observation_selection(
-        dimension_id.as_deref(),
-        selected_tags.as_deref(),
-        &ai_tags,
-    )?;
+    validate_observation_selection(dimension_id.as_deref(), selected_tags.as_deref(), &ai_tags)?;
     let (keepsake_title, keepsake_reason) =
         normalize_keepsake_metadata(keepsake, keepsake_title, keepsake_reason)?;
 
     let mut conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-    let tx = conn.transaction().map_err(|e| format!("insert_journal_entry_with_tags tx: {e}"))?;
+    let tx = conn
+        .transaction()
+        .map_err(|e| format!("insert_journal_entry_with_tags tx: {e}"))?;
 
     tx.execute(
         "INSERT INTO journal_entries (entryId, childId, contentType, textContent, voicePath, photoPaths, recordedAt, ageMonths, observationMode, dimensionId, selectedTags, guidedAnswers, observationDuration, keepsake, keepsakeTitle, keepsakeReason, recorderId, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?18)",
@@ -122,42 +141,58 @@ pub fn insert_journal_entry_with_tags(
         ).map_err(|e| format!("insert_journal_entry_with_tags tag: {e}"))?;
     }
 
-    tx.commit().map_err(|e| format!("insert_journal_entry_with_tags commit: {e}"))?;
+    tx.commit()
+        .map_err(|e| format!("insert_journal_entry_with_tags commit: {e}"))?;
     Ok(())
 }
 
 #[tauri::command]
 pub fn update_journal_entry_with_tags(
-    entry_id: String, child_id: String, content_type: String, text_content: Option<String>,
-    voice_path: Option<String>, photo_paths: Option<String>, recorded_at: String, age_months: i32,
-    observation_mode: Option<String>, dimension_id: Option<String>, selected_tags: Option<String>,
-    guided_answers: Option<String>, observation_duration: Option<i32>,
-    keepsake: i32, keepsake_title: Option<String>, keepsake_reason: Option<String>,
-    _mood_tag: Option<String>, recorder_id: Option<String>, ai_tags: Vec<JournalTagInput>, now: String,
+    entry_id: String,
+    child_id: String,
+    content_type: String,
+    text_content: Option<String>,
+    voice_path: Option<String>,
+    photo_paths: Option<String>,
+    recorded_at: String,
+    age_months: i32,
+    observation_mode: Option<String>,
+    dimension_id: Option<String>,
+    selected_tags: Option<String>,
+    guided_answers: Option<String>,
+    observation_duration: Option<i32>,
+    keepsake: i32,
+    keepsake_title: Option<String>,
+    keepsake_reason: Option<String>,
+    _mood_tag: Option<String>,
+    recorder_id: Option<String>,
+    ai_tags: Vec<JournalTagInput>,
+    now: String,
 ) -> Result<(), String> {
-    validate_observation_selection(
-        dimension_id.as_deref(),
-        selected_tags.as_deref(),
-        &ai_tags,
-    )?;
+    validate_observation_selection(dimension_id.as_deref(), selected_tags.as_deref(), &ai_tags)?;
     let (keepsake_title, keepsake_reason) =
         normalize_keepsake_metadata(keepsake, keepsake_title, keepsake_reason)?;
 
     let mut conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-    let tx = conn.transaction().map_err(|e| format!("update_journal_entry_with_tags tx: {e}"))?;
+    let tx = conn
+        .transaction()
+        .map_err(|e| format!("update_journal_entry_with_tags tx: {e}"))?;
 
     let updated = tx.execute(
         "UPDATE journal_entries SET childId = ?2, contentType = ?3, textContent = ?4, voicePath = ?5, photoPaths = ?6, recordedAt = ?7, ageMonths = ?8, observationMode = ?9, dimensionId = ?10, selectedTags = ?11, guidedAnswers = ?12, observationDuration = ?13, keepsake = ?14, keepsakeTitle = ?15, keepsakeReason = ?16, recorderId = ?17, updatedAt = ?18 WHERE entryId = ?1",
         params![entry_id, child_id, content_type, text_content, voice_path, photo_paths, recorded_at, age_months, observation_mode, dimension_id, selected_tags, guided_answers, observation_duration, keepsake, keepsake_title, keepsake_reason, recorder_id, now],
     ).map_err(|e| format!("update_journal_entry_with_tags entry: {e}"))?;
     if updated == 0 {
-        return Err(format!("update_journal_entry_with_tags: no entry found with id {entry_id}"));
+        return Err(format!(
+            "update_journal_entry_with_tags: no entry found with id {entry_id}"
+        ));
     }
 
     tx.execute(
         "DELETE FROM journal_tags WHERE entryId = ?1",
         params![entry_id],
-    ).map_err(|e| format!("update_journal_entry_with_tags delete tags: {e}"))?;
+    )
+    .map_err(|e| format!("update_journal_entry_with_tags delete tags: {e}"))?;
 
     for tag in ai_tags {
         tx.execute(
@@ -166,7 +201,8 @@ pub fn update_journal_entry_with_tags(
         ).map_err(|e| format!("update_journal_entry_with_tags tag: {e}"))?;
     }
 
-    tx.commit().map_err(|e| format!("update_journal_entry_with_tags commit: {e}"))?;
+    tx.commit()
+        .map_err(|e| format!("update_journal_entry_with_tags commit: {e}"))?;
     Ok(())
 }
 
@@ -196,35 +232,41 @@ pub struct JournalEntry {
 }
 
 #[tauri::command]
-pub fn get_journal_entries(child_id: String, limit: Option<i32>) -> Result<Vec<JournalEntry>, String> {
+pub fn get_journal_entries(
+    child_id: String,
+    limit: Option<i32>,
+) -> Result<Vec<JournalEntry>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let lim = limit.unwrap_or(50);
     let mut stmt = conn.prepare("SELECT entryId, childId, contentType, textContent, voicePath, photoPaths, recordedAt, ageMonths, observationMode, dimensionId, selectedTags, guidedAnswers, observationDuration, keepsake, keepsakeTitle, keepsakeReason, recorderId, createdAt, updatedAt FROM journal_entries WHERE childId = ?1 ORDER BY recordedAt DESC LIMIT ?2").map_err(|e| format!("get_journal_entries: {e}"))?;
-    let rows = stmt.query_map(params![child_id, lim], |row| {
-        Ok(JournalEntry {
-            entry_id: row.get(0)?,
-            child_id: row.get(1)?,
-            content_type: row.get(2)?,
-            text_content: row.get(3)?,
-            voice_path: row.get(4)?,
-            photo_paths: row.get(5)?,
-            recorded_at: row.get(6)?,
-            age_months: row.get(7)?,
-            observation_mode: row.get(8)?,
-            dimension_id: row.get(9)?,
-            selected_tags: row.get(10)?,
-            guided_answers: row.get(11)?,
-            observation_duration: row.get(12)?,
-            keepsake: row.get(13)?,
-            keepsake_title: row.get(14)?,
-            keepsake_reason: row.get(15)?,
-            mood_tag: None,
-            recorder_id: row.get(16)?,
-            created_at: row.get(17)?,
-            updated_at: row.get(18)?,
+    let rows = stmt
+        .query_map(params![child_id, lim], |row| {
+            Ok(JournalEntry {
+                entry_id: row.get(0)?,
+                child_id: row.get(1)?,
+                content_type: row.get(2)?,
+                text_content: row.get(3)?,
+                voice_path: row.get(4)?,
+                photo_paths: row.get(5)?,
+                recorded_at: row.get(6)?,
+                age_months: row.get(7)?,
+                observation_mode: row.get(8)?,
+                dimension_id: row.get(9)?,
+                selected_tags: row.get(10)?,
+                guided_answers: row.get(11)?,
+                observation_duration: row.get(12)?,
+                keepsake: row.get(13)?,
+                keepsake_title: row.get(14)?,
+                keepsake_reason: row.get(15)?,
+                mood_tag: None,
+                recorder_id: row.get(16)?,
+                created_at: row.get(17)?,
+                updated_at: row.get(18)?,
+            })
         })
-    }).map_err(|e| format!("get_journal_entries: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("get_journal_entries collect: {e}"))
+        .map_err(|e| format!("get_journal_entries: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("get_journal_entries collect: {e}"))
 }
 
 #[tauri::command]
@@ -243,7 +285,9 @@ pub fn update_journal_keepsake(
         params![entry_id, keepsake, keepsake_title, keepsake_reason, now],
     ).map_err(|e| format!("update_journal_keepsake: {e}"))?;
     if updated == 0 {
-        return Err(format!("update_journal_keepsake: no entry found with id {entry_id}"));
+        return Err(format!(
+            "update_journal_keepsake: no entry found with id {entry_id}"
+        ));
     }
     Ok(())
 }
@@ -251,18 +295,30 @@ pub fn update_journal_keepsake(
 #[tauri::command]
 pub fn delete_journal_entry(entry_id: String) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-    let deleted = conn.execute(
-        "DELETE FROM journal_entries WHERE entryId = ?1",
-        params![entry_id],
-    ).map_err(|e| format!("delete_journal_entry: {e}"))?;
+    let deleted = conn
+        .execute(
+            "DELETE FROM journal_entries WHERE entryId = ?1",
+            params![entry_id],
+        )
+        .map_err(|e| format!("delete_journal_entry: {e}"))?;
     if deleted == 0 {
-        return Err(format!("delete_journal_entry: no entry found with id {entry_id}"));
+        return Err(format!(
+            "delete_journal_entry: no entry found with id {entry_id}"
+        ));
     }
     Ok(())
 }
 
 #[tauri::command]
-pub fn insert_journal_tag(tag_id: String, entry_id: String, domain: String, tag: String, source: String, confidence: Option<f64>, now: String) -> Result<(), String> {
+pub fn insert_journal_tag(
+    tag_id: String,
+    entry_id: String,
+    domain: String,
+    tag: String,
+    source: String,
+    confidence: Option<f64>,
+    now: String,
+) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     conn.execute(
         "INSERT INTO journal_tags (tagId, entryId, domain, tag, source, confidence, createdAt) VALUES (?1,?2,?3,?4,?5,?6,?7)",
@@ -287,24 +343,32 @@ pub struct JournalTag {
 pub fn get_journal_tags(entry_id: String) -> Result<Vec<JournalTag>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare("SELECT tagId, entryId, domain, tag, source, confidence, createdAt FROM journal_tags WHERE entryId = ?1").map_err(|e| format!("get_journal_tags: {e}"))?;
-    let rows = stmt.query_map(params![entry_id], |row| {
-        Ok(JournalTag {
-            tag_id: row.get(0)?,
-            entry_id: row.get(1)?,
-            domain: row.get(2)?,
-            tag: row.get(3)?,
-            source: row.get(4)?,
-            confidence: row.get(5)?,
-            created_at: row.get(6)?,
+    let rows = stmt
+        .query_map(params![entry_id], |row| {
+            Ok(JournalTag {
+                tag_id: row.get(0)?,
+                entry_id: row.get(1)?,
+                domain: row.get(2)?,
+                tag: row.get(3)?,
+                source: row.get(4)?,
+                confidence: row.get(5)?,
+                created_at: row.get(6)?,
+            })
         })
-    }).map_err(|e| format!("get_journal_tags: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("get_journal_tags collect: {e}"))
+        .map_err(|e| format!("get_journal_tags: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("get_journal_tags collect: {e}"))
 }
 
 // ── AI Conversations ───────────────────────────────────────
 
 #[tauri::command]
-pub fn create_conversation(conversation_id: String, child_id: String, title: Option<String>, now: String) -> Result<(), String> {
+pub fn create_conversation(
+    conversation_id: String,
+    child_id: String,
+    title: Option<String>,
+    now: String,
+) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     conn.execute(
         "INSERT INTO ai_conversations (conversationId, childId, title, startedAt, lastMessageAt, messageCount, createdAt) VALUES (?1,?2,?3,?4,?4,0,?4)",
@@ -329,22 +393,32 @@ pub struct Conversation {
 pub fn get_conversations(child_id: String) -> Result<Vec<Conversation>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare("SELECT conversationId, childId, title, startedAt, lastMessageAt, messageCount, createdAt FROM ai_conversations WHERE childId = ?1 ORDER BY lastMessageAt DESC").map_err(|e| format!("get_conversations: {e}"))?;
-    let rows = stmt.query_map(params![child_id], |row| {
-        Ok(Conversation {
-            conversation_id: row.get(0)?,
-            child_id: row.get(1)?,
-            title: row.get(2)?,
-            started_at: row.get(3)?,
-            last_message_at: row.get(4)?,
-            message_count: row.get(5)?,
-            created_at: row.get(6)?,
+    let rows = stmt
+        .query_map(params![child_id], |row| {
+            Ok(Conversation {
+                conversation_id: row.get(0)?,
+                child_id: row.get(1)?,
+                title: row.get(2)?,
+                started_at: row.get(3)?,
+                last_message_at: row.get(4)?,
+                message_count: row.get(5)?,
+                created_at: row.get(6)?,
+            })
         })
-    }).map_err(|e| format!("get_conversations: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("get_conversations collect: {e}"))
+        .map_err(|e| format!("get_conversations: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("get_conversations collect: {e}"))
 }
 
 #[tauri::command]
-pub fn insert_ai_message(message_id: String, conversation_id: String, role: String, content: String, context_snapshot: Option<String>, now: String) -> Result<(), String> {
+pub fn insert_ai_message(
+    message_id: String,
+    conversation_id: String,
+    role: String,
+    content: String,
+    context_snapshot: Option<String>,
+    now: String,
+) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     conn.execute(
         "INSERT INTO ai_messages (messageId, conversationId, role, content, contextSnapshot, createdAt) VALUES (?1,?2,?3,?4,?5,?6)",
@@ -372,15 +446,18 @@ pub struct AiMessage {
 pub fn get_ai_messages(conversation_id: String) -> Result<Vec<AiMessage>, String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare("SELECT messageId, conversationId, role, content, contextSnapshot, createdAt FROM ai_messages WHERE conversationId = ?1 ORDER BY createdAt").map_err(|e| format!("get_ai_messages: {e}"))?;
-    let rows = stmt.query_map(params![conversation_id], |row| {
-        Ok(AiMessage {
-            message_id: row.get(0)?,
-            conversation_id: row.get(1)?,
-            role: row.get(2)?,
-            content: row.get(3)?,
-            context_snapshot: row.get(4)?,
-            created_at: row.get(5)?,
+    let rows = stmt
+        .query_map(params![conversation_id], |row| {
+            Ok(AiMessage {
+                message_id: row.get(0)?,
+                conversation_id: row.get(1)?,
+                role: row.get(2)?,
+                content: row.get(3)?,
+                context_snapshot: row.get(4)?,
+                created_at: row.get(5)?,
+            })
         })
-    }).map_err(|e| format!("get_ai_messages: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>().map_err(|e| format!("get_ai_messages collect: {e}"))
+        .map_err(|e| format!("get_ai_messages: {e}"))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("get_ai_messages collect: {e}"))
 }

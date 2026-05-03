@@ -281,6 +281,10 @@ fn main() {
             sqlite::queries::get_outdoor_records,
             sqlite::queries::get_outdoor_goal,
             sqlite::queries::set_outdoor_goal,
+            // Health Record Capture
+            sqlite::queries::save_health_record_capture,
+            sqlite::queries::get_health_record_events,
+            sqlite::queries::get_health_record_values,
             // Profile Section Summaries
             sqlite::queries::get_profile_section_summaries,
             // Orthodontic (PO-ORTHO-*)

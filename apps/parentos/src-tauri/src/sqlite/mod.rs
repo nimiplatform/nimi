@@ -86,9 +86,7 @@ pub fn get_conn() -> Result<&'static Mutex<Connection>, String> {
 #[tauri::command]
 pub fn db_init(subject_user_id: Option<String>) -> Result<String, String> {
     let requested_scope = normalize_db_scope(subject_user_id.as_deref());
-    let mut current_scope = db_scope_lock()
-        .lock()
-        .map_err(|error| error.to_string())?;
+    let mut current_scope = db_scope_lock().lock().map_err(|error| error.to_string())?;
 
     if let Some(conn_mutex) = DB_CONN.get() {
         if *current_scope != requested_scope {
@@ -117,7 +115,10 @@ mod tests {
 
     fn test_home_dir(label: &str) -> PathBuf {
         let mut path = std::env::temp_dir();
-        path.push(format!("parentos-sqlite-scope-tests-{label}-{}", std::process::id()));
+        path.push(format!(
+            "parentos-sqlite-scope-tests-{label}-{}",
+            std::process::id()
+        ));
         path
     }
 
@@ -132,12 +133,13 @@ mod tests {
         std::env::set_var("HOME", &home_dir);
 
         let db_path = db_init(None).expect("init anonymous db");
-        assert!(db_path.ends_with("parentos.db"), "unexpected path: {db_path}");
         assert!(
-            resolve_db_path()
-                .expect("resolve current db path")
-                .ends_with("parentos.db")
+            db_path.ends_with("parentos.db"),
+            "unexpected path: {db_path}"
         );
+        assert!(resolve_db_path()
+            .expect("resolve current db path")
+            .ends_with("parentos.db"));
     }
 
     #[test]

@@ -67,11 +67,10 @@ fn ensure_path_is_owned(path: &Path) -> Result<(), String> {
 fn is_supported_owner_table(t: &str) -> bool {
     matches!(
         t,
-        "dental_records"
-            | "growth_measurements"
-            | "medical_events"
+        "health_record_events"
             | "vaccine_records"
             | "milestone_records"
+            | "allergy_records"
             | "orthodontic_cases"
             | "orthodontic_appliances"
             | "orthodontic_checkins"
@@ -256,8 +255,12 @@ mod tests {
 
     #[test]
     fn validates_owner_tables() {
-        assert!(is_supported_owner_table("dental_records"));
-        assert!(is_supported_owner_table("growth_measurements"));
+        assert!(is_supported_owner_table("health_record_events"));
+        assert!(is_supported_owner_table("allergy_records"));
+        assert!(is_supported_owner_table("orthodontic_checkins"));
+        assert!(!is_supported_owner_table("dental_records"));
+        assert!(!is_supported_owner_table("growth_measurements"));
+        assert!(!is_supported_owner_table("medical_events"));
         assert!(!is_supported_owner_table("unknown_table"));
     }
 }
