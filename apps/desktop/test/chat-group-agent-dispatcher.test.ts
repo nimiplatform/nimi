@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
@@ -412,26 +412,12 @@ describe('detectGroupAgentTriggers recency gate', () => {
 });
 
 describe('D-LLM-026b isolation', () => {
-  it('chat-group-agent-execution does not import continuity, memory, sidecar, or follow-up modules', () => {
+  it('chat-group-agent-execution is removed by Runtime participation hard-cut', () => {
     const executionPath = resolve(
       __dirname,
       '../src/shell/renderer/features/chat/chat-group-agent-execution.ts',
     );
-    const source = readFileSync(executionPath, 'utf-8');
-
-    const forbiddenImports = [
-      'chat-agent-continuity',
-      'chat-agent-runtime-memory',
-      'chat-agent-orchestration-follow-up',
-      'chat-agent-orchestration-actions',
-      'sidecar',
-    ];
-    for (const forbidden of forbiddenImports) {
-      assert.ok(
-        !source.includes(forbidden),
-        `chat-group-agent-execution.ts must NOT import '${forbidden}' (D-LLM-026b)`,
-      );
-    }
+    assert.equal(existsSync(executionPath), false);
   });
 
   it('chat-group-agent-dispatcher does not import any execution or memory module', () => {
@@ -469,29 +455,6 @@ describe('D-LLM-026b isolation', () => {
     assert.match(source, /message replyTo payload targets a message authored by an agent owned by currentUserId/);
   });
 
-  it('chat-group-agent-execution does not import scope creation or memory modules', () => {
-    const executionPath = resolve(
-      __dirname,
-      '../src/shell/renderer/features/chat/chat-group-agent-execution.ts',
-    );
-    const source = readFileSync(executionPath, 'utf-8');
-
-    // Must not contain AIScopeRef creation (import or call — comments are OK)
-    assert.ok(
-      !source.includes('createAIScopeRef'),
-      'chat-group-agent-execution.ts must NOT call createAIScopeRef (D-LLM-026b)',
-    );
-    assert.ok(
-      !source.includes("import type { AIScopeRef") && !source.includes("import { AIScopeRef"),
-      'chat-group-agent-execution.ts must NOT import AIScopeRef (D-LLM-026b)',
-    );
-    // Must not contain memory write
-    assert.ok(
-      !source.includes('commitProviderOutcome') && !source.includes('writeMemory'),
-      'chat-group-agent-execution.ts must NOT write memory (D-LLM-026b)',
-    );
-  });
-
   it('chat-group-adapter does not import continuity or memory modules', () => {
     const adapterPath = resolve(
       __dirname,
@@ -525,28 +488,31 @@ describe('D-LLM-026b isolation', () => {
     assert.doesNotMatch(source, /setSelectedGroupId/);
   });
 
-  it('chat-group-adapter includes the newly sent trigger message in the execution transcript', () => {
+  it('chat-group-adapter does not import or invoke app-local group agent execution', () => {
     const adapterPath = resolve(
       __dirname,
       '../src/shell/renderer/features/chat/chat-group-adapter.tsx',
     );
     const source = readFileSync(adapterPath, 'utf-8');
 
-    assert.match(source, /const nextTranscript = \[\.\.\.messagesRef\.current, msg\];/);
-    assert.match(source, /dispatchGroupAgentTriggersForMessage\(\s*msg, msgId, participantsRef\.current, nextTranscript,/);
+    assert.doesNotMatch(source, /chat-group-agent-execution/);
+    assert.doesNotMatch(source, /executeGroupAgentTurn/);
+    assert.doesNotMatch(source, /dispatchGroupAgentTriggersForMessage/);
+    assert.doesNotMatch(source, /maybeDispatchGroupAgentTriggersForChat/);
+    assert.doesNotMatch(source, /createAISnapshot/);
+    assert.doesNotMatch(source, /createAgentLocalChatConversationRuntimeAdapter/);
   });
 
-  it('chat-group-adapter scans background groups by lastMessage and loads transcript before dispatch', () => {
+  it('chat-group-adapter does not scan background groups for Desktop-owned agent execution', () => {
     const adapterPath = resolve(
       __dirname,
       '../src/shell/renderer/features/chat/chat-group-adapter.tsx',
     );
     const source = readFileSync(adapterPath, 'utf-8');
 
-    assert.match(source, /const backgroundGroups = allGroups\.filter\(\(group\) => String\(group\.id \|\| ''\) !== selectedGroupId\);/);
-    assert.match(source, /try \{\s*await maybeDispatchGroupAgentTriggersForChat\(\{\s*message: lastMessage,[\s\S]*?participants: group\.participants \|\| \[\],[\s\S]*?groupChatId,[\s\S]*?qc: queryClient,[\s\S]*?\}\);\s*\} catch \(error\) \{/s);
-    assert.match(source, /message: 'background_group_scan_failed'/);
-    assert.match(source, /\(\(await dataSync\.loadGroupMessages\(groupChatId\)\) as \{ items\?: GroupMessageViewDto\[] \} \| undefined\)\?\.items \|\| \[\]/);
+    assert.doesNotMatch(source, /backgroundGroups/);
+    assert.doesNotMatch(source, /background_group_scan_failed/);
+    assert.doesNotMatch(source, /loadGroupMessages\(groupChatId\)/);
   });
 
   it('chat-group-adapter binds post-send invalidation to the mutation chatId instead of current selection', () => {
@@ -556,14 +522,14 @@ describe('D-LLM-026b isolation', () => {
     );
     const source = readFileSync(adapterPath, 'utf-8');
 
-    assert.match(source, /onSuccess:\s*\(sentMessage,\s*variables\)\s*=>\s*\{/);
+    assert.match(source, /onSuccess:\s*\(_sentMessage,\s*variables\)\s*=>\s*\{/);
     assert.match(source, /const sentChatId = String\(variables\.chatId \|\| ''\);/);
     assert.match(source, /void queryClient\.invalidateQueries\(\{ queryKey: \['group-messages', sentChatId\] \}\);/);
-    assert.match(source, /if \(selectedGroupId === sentChatId\)/);
-    assert.match(source, /void maybeDispatchGroupAgentTriggersForChat\(\{\s*message: msg,[\s\S]*?groupChatId: sentChatId,[\s\S]*?transcriptOverride: \[msg\],[\s\S]*?allowCurrentUserMessage: true,/s);
+    assert.doesNotMatch(source, /selectedGroupId === sentChatId/);
+    assert.doesNotMatch(source, /maybeDispatchGroupAgentTriggersForChat/);
   });
 
-  it('chat-group-adapter routes createGroup initialMessage through the same trigger path', () => {
+  it('chat-group-adapter does not dispatch createGroup initialMessage to Desktop-owned execution', () => {
     const adapterPath = resolve(
       __dirname,
       '../src/shell/renderer/features/chat/chat-group-adapter.tsx',
@@ -571,7 +537,7 @@ describe('D-LLM-026b isolation', () => {
     const source = readFileSync(adapterPath, 'utf-8');
 
     assert.match(source, /const handleCreateGroup = useCallback\(async \(title: string, participantIds: string\[]\) => \{/);
-    assert.match(source, /'lastMessage' in result/);
-    assert.match(source, /void maybeDispatchGroupAgentTriggersForChat\(\{\s*message: result\.lastMessage as GroupMessageViewDto,[\s\S]*?groupChatId: String\(\(result as \{ id: string \}\)\.id\),[\s\S]*?allowCurrentUserMessage: true,/s);
+    assert.doesNotMatch(source, /'lastMessage' in result/);
+    assert.doesNotMatch(source, /maybeDispatchGroupAgentTriggersForChat/);
   });
 });
