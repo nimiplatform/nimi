@@ -38,7 +38,7 @@ export function OutdoorSummaryCard({ childId }: { childId: string }) {
 
   return (
     <Link
-      to="/profile/outdoor"
+      to="/profile"
       data-testid="vision-outdoor-summary"
       className="block mb-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] rounded-[var(--nimi-radius-xl)] transition-colors hover:bg-white/70"
       style={{ padding: 16 }}

@@ -33,6 +33,9 @@ import { OBSERVATION_DIMENSIONS } from '../../knowledge-base/index.js';
 import { getActiveDimensions } from '../../engine/observation-matcher.js';
 import { computeObservationNudges } from './timeline-observation-nudges.js';
 import { ReminderPanel } from './timeline-page-panels.js';
+import { HealthCaptureModal } from '../profile/health-capture-modal.js';
+import type { HealthCaptureIntent } from '../profile/health-capture-orchestrator.js';
+import { buildRecordDataCaptureIntent } from '../reminders/record-data-capture.js';
 
 export default function TimelinePage() {
   const { activeChildId, children: childList } = useAppStore();
@@ -42,6 +45,9 @@ export default function TimelinePage() {
   const localToday = getLocalToday();
   const [freqOverrides, setFreqOverrides] = useState<FreqOverrideMap>(new Map());
   const [freqModalReminder, setFreqModalReminder] = useState<ActiveReminder | null>(null);
+  const [captureIntent, setCaptureIntent] = useState<HealthCaptureIntent | null>(null);
+  const [captureReminder, setCaptureReminder] = useState<ActiveReminder | null>(null);
+  const [captureError, setCaptureError] = useState<string | null>(null);
   const autoGenTriggered = useRef(false);
 
   const repeatableRuleIds = useMemo(
@@ -141,7 +147,7 @@ export default function TimelinePage() {
   }, [child, loading, d.latestMonthlyReport, reload]);
 
   const handleAction = useCallback(async (
-    reminder: EnhancedReminder,
+    reminder: ActiveReminder,
     action: ReminderActionType,
     extra?: string | null,
   ) => {
@@ -156,6 +162,18 @@ export default function TimelinePage() {
     }).catch(catchLog('timeline', 'action:apply-reminder-action-failed'));
     await reload();
   }, [child, reload]);
+
+  const openRecordDataCapture = useCallback((reminder: ActiveReminder) => {
+    try {
+      setCaptureError(null);
+      setCaptureReminder(reminder);
+      setCaptureIntent(buildRecordDataCaptureIntent(reminder, localToday));
+    } catch (nextError) {
+      setCaptureReminder(null);
+      setCaptureIntent(null);
+      setCaptureError(nextError instanceof Error ? nextError.message : String(nextError));
+    }
+  }, [localToday]);
 
   if (!child) {
     return <WelcomePage />;
@@ -201,7 +219,7 @@ export default function TimelinePage() {
       />
       <div className="hide-scrollbar relative z-[1] min-w-0 flex-1 overflow-y-auto px-6 pb-8" style={{ paddingTop: 28 }}>
         <div className="mb-6 flex gap-6">
-          <ChildContextCard child={child} childList={childList} ageMonths={ageMonths} />
+          <ChildContextCard child={child} ageMonths={ageMonths} />
           <RecentChangesHeroCard items={homeVm.recentChanges} />
         </div>
         <div className="grid auto-rows-min grid-cols-8 gap-6">
@@ -243,10 +261,38 @@ export default function TimelinePage() {
           customTodos={d.customTodos}
           childId={child.childId}
           onAction={handleAction}
+          onOpenCapture={openRecordDataCapture}
           onCustomTodoChanged={reload}
           observationNudges={observationNudges}
         />
       </div>
+
+      {captureError ? (
+        <div className="absolute bottom-5 right-5 z-[2] rounded-[16px] px-4 py-3 text-[13px]" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+          {captureError}
+        </div>
+      ) : null}
+
+      {captureIntent ? (
+        <HealthCaptureModal
+          open
+          childId={child.childId}
+          childBirthDate={child.birthDate}
+          initialIntent={captureIntent}
+          onClose={() => {
+            setCaptureIntent(null);
+            setCaptureReminder(null);
+          }}
+          onSaved={() => {
+            const reminder = captureReminder;
+            setCaptureIntent(null);
+            setCaptureReminder(null);
+            if (reminder) {
+              void handleAction(reminder, 'complete');
+            }
+          }}
+        />
+      ) : null}
 
       {freqModalReminder && child && freqModalReminder.rule.repeatRule && (
         <FrequencyModal

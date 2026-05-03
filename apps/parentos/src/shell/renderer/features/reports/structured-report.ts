@@ -431,10 +431,10 @@ export function buildStructuredGrowthReport(snapshot: StructuredGrowthReportSnap
 /* ── Action items builder (used by narrative-prompt.ts) ── */
 
 const DOMAIN_ROUTES: Record<string, string> = {
-  vaccine: '/profile/vaccines', checkup: '/profile/medical-events', growth: '/profile/growth',
-  vision: '/profile/vision', dental: '/profile/dental', sleep: '/profile/sleep',
-  'bone-age': '/profile/tanner', sensitivity: '/journal', milestone: '/profile/milestones',
-  posture: '/profile/posture', fitness: '/profile/fitness', tanner: '/profile/tanner',
+  vaccine: '/profile', checkup: '/profile', growth: '/profile',
+  vision: '/profile', dental: '/profile', sleep: '/profile',
+  'bone-age': '/profile', sensitivity: '/journal', milestone: '/profile',
+  posture: '/profile', fitness: '/profile', tanner: '/profile',
 };
 
 export function buildNarrativeActionItems(reminderStates: ReminderStateRow[]): ActionItem[] {

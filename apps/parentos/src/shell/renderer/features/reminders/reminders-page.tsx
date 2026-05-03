@@ -31,6 +31,9 @@ import {
 import type { ReminderActionType } from '../../engine/reminder-actions.js';
 import { loadAllFreqOverrides, type FreqOverrideMap } from '../../engine/reminder-freq-overrides.js';
 import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
+import { HealthCaptureModal } from '../profile/health-capture-modal.js';
+import type { HealthCaptureIntent } from '../profile/health-capture-orchestrator.js';
+import { buildRecordDataCaptureIntent, isRecordDataReminder } from './record-data-capture.js';
 
 const textMain = '#1e293b';
 const textMuted = '#475569';
@@ -67,7 +70,11 @@ function useCustomTodos(childId: string | null) {
   return { todos, loading, reload: load };
 }
 
-function primaryAction(reminder: ActiveReminder) {
+type ReminderPrimaryAction =
+  | { label: string; to: string; kind?: 'link' }
+  | { label: string; kind: 'capture' };
+
+function primaryAction(reminder: ActiveReminder): ReminderPrimaryAction {
   // W5 will replace these Link primaries with drawer-driven actions per PO-REMI-011.
   // For W4a we only normalize the kind dispatch to the new 4-kind taxonomy.
   if (reminder.kind === 'guide' || reminder.kind === 'practice') {
@@ -76,8 +83,9 @@ function primaryAction(reminder: ActiveReminder) {
   if (reminder.kind === 'consult') {
     return { label: '问问 AI 顾问', to: `/advisor?reminderRuleId=${encodeURIComponent(reminder.rule.ruleId)}&repeatIndex=${reminder.repeatIndex}` };
   }
-  if (reminder.rule.domain === 'vaccine') return { label: '记录疫苗', to: `/profile/vaccines?ruleId=${encodeURIComponent(reminder.rule.ruleId)}` };
-  if (reminder.rule.domain === 'growth' || reminder.rule.actionType === 'record_data') return { label: '记录数据', to: '/profile/growth' };
+  if (reminder.rule.domain === 'vaccine') return { label: '记录疫苗', to: '/profile' };
+  if (isRecordDataReminder(reminder)) return { label: '记录数据', kind: 'capture' };
+  if (reminder.rule.domain === 'growth') return { label: '记录数据', to: '/profile' };
   return { label: reminder.rule.actionType === 'go_hospital' ? '查看详情' : '查看档案', to: '/profile' };
 }
 
@@ -155,7 +163,15 @@ function SectionCard({ title, hint, count, children, collapsible = false, defaul
 
 /* ── Today hero ── */
 
-function TodayHero({ reminder, onComplete }: { reminder: ActiveReminder | null; onComplete: (r: ActiveReminder) => void }) {
+function TodayHero({
+  reminder,
+  onComplete,
+  onOpenCapture,
+}: {
+  reminder: ActiveReminder | null;
+  onComplete: (r: ActiveReminder) => void;
+  onOpenCapture: (r: ActiveReminder) => void;
+}) {
   if (!reminder) {
     return (
       <div className="rounded-[20px] p-6" style={glassInner}>
@@ -172,8 +188,19 @@ function TodayHero({ reminder, onComplete }: { reminder: ActiveReminder | null; 
       <h2 className="text-[24px] font-semibold mt-2 tracking-tight" style={{ color: textMain, letterSpacing: '-0.5px' }}>{reminder.rule.title}</h2>
       <p className="text-[14px] mt-2 leading-relaxed" style={{ color: textMuted }}>{statusLabel(reminder)}</p>
       <div className="flex flex-wrap items-center gap-2 mt-5">
-        <Link to={primary.to} className="px-4 py-2 rounded-full text-[13px] font-medium text-white transition-all hover:-translate-y-0.5"
-          style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}>{primary.label}</Link>
+        {primary.kind === 'capture' ? (
+          <button
+            type="button"
+            onClick={() => onOpenCapture(reminder)}
+            className="px-4 py-2 rounded-full text-[13px] font-medium text-white transition-all hover:-translate-y-0.5"
+            style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
+          >
+            {primary.label}
+          </button>
+        ) : (
+          <Link to={primary.to} className="px-4 py-2 rounded-full text-[13px] font-medium text-white transition-all hover:-translate-y-0.5"
+            style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}>{primary.label}</Link>
+        )}
         <button type="button" onClick={() => onComplete(reminder)}
           className="px-4 py-2 rounded-full text-[13px] font-medium transition-colors hover:bg-white/60"
           style={{ background: 'rgba(78,204,163,0.06)', color: textMain }}>标记完成</button>
@@ -184,7 +211,7 @@ function TodayHero({ reminder, onComplete }: { reminder: ActiveReminder | null; 
 
 /* ── Reminder row ── */
 
-function ReminderRow({ reminder, onOpenDetail, onComplete, onSnooze, onSchedule, onNotApplicable, onAdjustFrequency }: {
+function ReminderRow({ reminder, onOpenDetail, onComplete, onSnooze, onSchedule, onNotApplicable, onAdjustFrequency, onOpenCapture }: {
   reminder: ActiveReminder;
   onOpenDetail: (r: ActiveReminder) => void;
   onComplete: (r: ActiveReminder) => void;
@@ -192,6 +219,7 @@ function ReminderRow({ reminder, onOpenDetail, onComplete, onSnooze, onSchedule,
   onSchedule: (r: ActiveReminder) => void;
   onNotApplicable: (r: ActiveReminder) => void;
   onAdjustFrequency: (r: ActiveReminder) => void;
+  onOpenCapture: (r: ActiveReminder) => void;
 }) {
   const primary = primaryAction(reminder);
   const domain = DOMAIN_LABELS[reminder.rule.domain] ?? reminder.rule.domain;
@@ -225,8 +253,19 @@ function ReminderRow({ reminder, onOpenDetail, onComplete, onSnooze, onSchedule,
         >
           查看详情
         </button>
-        <Link to={primary.to} className="px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors"
-          style={{ background: '#fff', color: textMain, border: '1px solid #e2e8f0' }}>{primary.label}</Link>
+        {primary.kind === 'capture' ? (
+          <button
+            type="button"
+            onClick={() => onOpenCapture(reminder)}
+            className="px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors"
+            style={{ background: '#fff', color: textMain, border: '1px solid #e2e8f0' }}
+          >
+            {primary.label}
+          </button>
+        ) : (
+          <Link to={primary.to} className="px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors"
+            style={{ background: '#fff', color: textMain, border: '1px solid #e2e8f0' }}>{primary.label}</Link>
+        )}
         <button type="button" onClick={() => onComplete(reminder)} className="px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors hover:bg-white/60"
           style={{ background: 'rgba(78,204,163,0.06)', color: textMain }}>{completeLabel}</button>
         <button type="button" onClick={() => onSnooze(reminder)} className="px-3 py-1.5 rounded-full text-[13px] transition-colors hover:bg-white/60"
@@ -258,6 +297,9 @@ export default function RemindersPage() {
   const [freqOverrides, setFreqOverrides] = useState<FreqOverrideMap>(new Map());
   const [freqModalReminder, setFreqModalReminder] = useState<ActiveReminder | null>(null);
   const [activeReminder, setActiveReminder] = useState<ActiveReminder | null>(null);
+  const [captureIntent, setCaptureIntent] = useState<HealthCaptureIntent | null>(null);
+  const [captureReminder, setCaptureReminder] = useState<ActiveReminder | null>(null);
+  const [captureError, setCaptureError] = useState<string | null>(null);
   const ageMonths = child ? computeAgeMonths(child.birthDate) : 0;
   const localToday = getLocalToday();
   const repeatableRuleIds = useMemo(() => REMINDER_RULES.filter((r) => r.repeatRule).map((r) => r.ruleId), []);
@@ -295,6 +337,18 @@ export default function RemindersPage() {
     await applyReminderAction({ childId: child.childId, reminder, state: reminder.state, action, scheduledDate: action === 'schedule' ? extra ?? null : undefined, snoozedUntil: action === 'snooze' ? extra ?? null : undefined }).catch(catchLog('reminders', 'action:apply-reminder-action-failed'));
     await reload();
   }, [child, reload]);
+
+  const openRecordDataCapture = useCallback((reminder: ActiveReminder) => {
+    try {
+      setCaptureError(null);
+      setCaptureReminder(reminder);
+      setCaptureIntent(buildRecordDataCaptureIntent(reminder, localToday));
+    } catch (nextError) {
+      setCaptureReminder(null);
+      setCaptureIntent(null);
+      setCaptureError(nextError instanceof Error ? nextError.message : String(nextError));
+    }
+  }, [localToday]);
 
   const handleSchedule = useCallback((reminder: ActiveReminder) => {
     const suggestion = reminder.state?.scheduledDate ?? localToday;
@@ -371,6 +425,7 @@ export default function RemindersPage() {
             <TodayHero
               reminder={agenda.todayFocus[0] ?? null}
               onComplete={(item) => void handleAction(item, item.kind === 'task' ? 'complete' : 'acknowledge')}
+              onOpenCapture={openRecordDataCapture}
             />
             <div className="grid grid-cols-1 gap-4">
               {agenda.p0Overflow.count > 0 && <SummaryTile label="更多重要" value={String(agenda.p0Overflow.count)} hint="超出首屏的高优先级提醒。" tone={{ bg: 'rgba(251,191,36,0.08)', fg: '#b7791f' }} />}
@@ -391,7 +446,7 @@ export default function RemindersPage() {
                 onOpenDetail={setActiveReminder}
                 onComplete={(i) => void handleAction(i, i.kind === 'task' ? 'complete' : 'acknowledge')}
                 onSnooze={(i) => void handleAction(i, 'snooze', defaultSnoozeUntil(i.kind, localToday))}
-                onSchedule={handleSchedule} onNotApplicable={(i) => void handleAction(i, 'mark_not_applicable')} onAdjustFrequency={(i) => setFreqModalReminder(i)} />
+                onSchedule={handleSchedule} onNotApplicable={(i) => void handleAction(i, 'mark_not_applicable')} onAdjustFrequency={(i) => setFreqModalReminder(i)} onOpenCapture={openRecordDataCapture} />
             ))}
           </div>
         </SectionCard>
@@ -404,7 +459,7 @@ export default function RemindersPage() {
                   onOpenDetail={setActiveReminder}
                   onComplete={(i) => void handleAction(i, i.kind === 'task' ? 'complete' : 'acknowledge')}
                   onSnooze={(i) => void handleAction(i, 'snooze', defaultSnoozeUntil(i.kind, localToday))}
-                  onSchedule={handleSchedule} onNotApplicable={(i) => void handleAction(i, 'mark_not_applicable')} onAdjustFrequency={(i) => setFreqModalReminder(i)} />
+                  onSchedule={handleSchedule} onNotApplicable={(i) => void handleAction(i, 'mark_not_applicable')} onAdjustFrequency={(i) => setFreqModalReminder(i)} onOpenCapture={openRecordDataCapture} />
               ))}
             </div>
           </SectionCard>
@@ -418,7 +473,7 @@ export default function RemindersPage() {
                   onOpenDetail={setActiveReminder}
                   onComplete={(i) => void handleAction(i, i.kind === 'task' ? 'complete' : 'acknowledge')}
                   onSnooze={(i) => void handleAction(i, 'snooze', defaultSnoozeUntil(i.kind, localToday))}
-                  onSchedule={handleSchedule} onNotApplicable={(i) => void handleAction(i, 'mark_not_applicable')} onAdjustFrequency={(i) => setFreqModalReminder(i)} />
+                  onSchedule={handleSchedule} onNotApplicable={(i) => void handleAction(i, 'mark_not_applicable')} onAdjustFrequency={(i) => setFreqModalReminder(i)} onOpenCapture={openRecordDataCapture} />
               ))}
             </div>
           </SectionCard>
@@ -433,7 +488,7 @@ export default function RemindersPage() {
                 onOpenDetail={setActiveReminder}
                 onComplete={(i) => void handleAction(i, i.kind === 'task' ? 'complete' : 'acknowledge')}
                 onSnooze={(i) => void handleAction(i, 'snooze', defaultSnoozeUntil(i.kind, localToday))}
-                onSchedule={handleSchedule} onNotApplicable={(i) => void handleAction(i, 'mark_not_applicable')} onAdjustFrequency={(i) => setFreqModalReminder(i)} />
+                onSchedule={handleSchedule} onNotApplicable={(i) => void handleAction(i, 'mark_not_applicable')} onAdjustFrequency={(i) => setFreqModalReminder(i)} onOpenCapture={openRecordDataCapture} />
             ))}
           </div>
         </SectionCard>
@@ -489,7 +544,34 @@ export default function RemindersPage() {
             </div>
           </SectionCard>
         )}
+
+        {captureError ? (
+          <div className="rounded-[16px] px-4 py-3 text-[13px]" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+            {captureError}
+          </div>
+        ) : null}
       </div>
+
+      {child && captureIntent ? (
+        <HealthCaptureModal
+          open
+          childId={child.childId}
+          childBirthDate={child.birthDate}
+          initialIntent={captureIntent}
+          onClose={() => {
+            setCaptureIntent(null);
+            setCaptureReminder(null);
+          }}
+          onSaved={() => {
+            const reminder = captureReminder;
+            setCaptureIntent(null);
+            setCaptureReminder(null);
+            if (reminder) {
+              void handleAction(reminder, 'complete');
+            }
+          }}
+        />
+      ) : null}
 
       {freqModalReminder && child && freqModalReminder.rule.repeatRule && (
         <FrequencyModal
@@ -501,6 +583,7 @@ export default function RemindersPage() {
       <ReminderExplainDrawer
         reminder={activeReminder}
         onClose={() => setActiveReminder(null)}
+        onOpenCapture={openRecordDataCapture}
         onAction={(reminder, action, extra) => {
           void handleAction(reminder, action, extra);
         }}

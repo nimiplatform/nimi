@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { deleteMeasurement, insertMeasurement, updateMeasurement } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
@@ -272,6 +273,7 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
   initialRecord?: VisionRecord;
   ocrDraft?: OCRMeasurementCandidate[] | null;
 }) {
+  const { t } = useTranslation();
   const initVals: Record<string, string> = {};
   if (initialRecord) { for (const [k, v] of initialRecord.data) initVals[k] = String(v); }
   const initialNoteDraft = parseVisionRecordNoteDraft(initialRecord);
@@ -296,7 +298,7 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
   const applyOCRMeasurements = useCallback((measurements: OCRMeasurementCandidate[]) => {
     const eyeMeasurements = measurements.filter((measurement) => EYE_SET.has(measurement.typeId));
     if (eyeMeasurements.length === 0) {
-      setOCRError('未识别到可导入的视力/眼轴数据，请确认图片清晰且包含验光单或眼轴单信息。');
+      setOCRError(t('Profile.rich.vision.ocrNoData'));
       return;
     }
 
@@ -325,7 +327,7 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
       }
       return next;
     });
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!ocrDraft || ocrDraft.length === 0) return;
@@ -358,7 +360,7 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
         const result = await analyzeCheckupSheetOCR({ imageUrl: dataUrl });
         applyOCRMeasurements(result.measurements);
       } catch (error) {
-        setOCRError(error instanceof Error ? error.message : '智能识别失败，请重试。');
+        setOCRError(error instanceof Error ? error.message : t('Profile.rich.vision.ocrFailed'));
       }
       setOcrBusy(false);
     };
@@ -450,7 +452,7 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
     <div className={`w-[680px] max-h-[85vh] overflow-y-auto ${S.radius} p-5 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>{initialRecord ? `编辑检查记录 · ${initialRecord.date}` : '录入检查数据'}</h3>
+        <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>{initialRecord ? t('Profile.rich.visionBatch.editTitle', { date: initialRecord.date }) : t('Profile.rich.visionBatch.createTitle')}</h3>
         <div className="flex items-center gap-2">
           {/* OCR button */}
           <button onClick={() => void handleOCR()} disabled={ocrBusy}
@@ -459,11 +461,11 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h4M7 12h10M7 16h6" />
             </svg>
-            {ocrBusy ? '识别中...' : '智能识别'}
+            {ocrBusy ? t('Profile.rich.vision.recognizing') : t('Profile.rich.vision.smartRecognize')}
             <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-0.5 text-[12px] font-normal text-white opacity-0 group-hover:opacity-100 z-50"
-              style={{ background: '#1e293b' }}>拍照或上传验光单自动填入</span>
+              style={{ background: '#1e293b' }}>{t('Profile.rich.visionBatch.ocrHint')}</span>
           </button>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
+          <button onClick={onClose} aria-label={t('Profile.rich.common.close')} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
         </div>
       </div>
 
@@ -477,11 +479,11 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
       {/* Basic info */}
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div>
-          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>检查日期 *</label>
+          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.examDate')} *</label>
           <ProfileDatePicker value={date} onChange={setDate} className={inp} style={{ background: '#f5f3ef', color: S.text }} />
         </div>
         <div>
-          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>瞳孔状态</label>
+          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.pupilStatus')}</label>
           <div className="flex gap-1.5">
             {PUPIL_OPTIONS.map((p) => (
               <button key={p} onClick={() => setPupil(pupil === p ? '' : p)}
@@ -495,13 +497,13 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
       </div>
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div>
-          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>医院/机构</label>
-          <input value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder="选填"
+          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.hospital')}</label>
+          <input value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder={t('Profile.rich.common.optional')}
             className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
         </div>
         <div>
-          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>就诊医生</label>
-          <input value={doctor} onChange={(e) => setDoctor(e.target.value)} placeholder="选填"
+          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.doctor')}</label>
+          <input value={doctor} onChange={(e) => setDoctor(e.target.value)} placeholder={t('Profile.rich.common.optional')}
             className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
         </div>
       </div>
@@ -513,9 +515,9 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
           <div className={`${S.radiusSm} overflow-hidden border`} style={{ borderColor: '#f1f5f9' }}>
             <div className="grid grid-cols-[1.5fr_1fr_1fr] text-center text-[12px] font-medium py-2 px-3"
               style={{ background: '#f8faf9', color: S.sub }}>
-              <span className="text-left">项目</span>
-              <span>OD 右眼</span>
-              <span>OS 左眼</span>
+              <span className="text-left">{t('Profile.rich.visionBatch.item')}</span>
+              <span>{t('Profile.rich.visionBatch.od')}</span>
+              <span>{t('Profile.rich.visionBatch.os')}</span>
             </div>
             {section.fields.map((f, i) => (
               <div key={f.label} className="grid grid-cols-[1.5fr_1fr_1fr] items-center gap-2 py-2 px-3 border-t"
@@ -534,19 +536,19 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
 
       {/* Hyperopia reserve */}
       <div className="mb-4">
-        <p className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>远视储备</p>
+        <p className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>{t('Profile.rich.visionBatch.hyperopiaReserve')}</p>
         <div className="flex items-center gap-3">
-          <ValueCell typeId="hyperopia-reserve" label="远视储备" unit="D" value={hrValue} onChange={setHrValue} />
+          <ValueCell typeId="hyperopia-reserve" label={t('Profile.rich.visionBatch.hyperopiaReserve')} unit="D" value={hrValue} onChange={setHrValue} />
           <span className="text-[13px]" style={{ color: S.sub }}>D</span>
         </div>
       </div>
 
       {/* Behavioral factors */}
       <div className={`${S.radiusSm} p-4 mb-4`} style={{ background: '#f9faf7', border: `1px solid ${S.border}` }}>
-        <p className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>用眼行为因素</p>
+        <p className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>{t('Profile.rich.visionBatch.behaviorFactors')}</p>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[12px] block mb-1" style={{ color: S.sub }}>日近距用眼时长（课外）</label>
+            <label className="text-[12px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.nearWorkDaily')}</label>
             <div className="flex gap-1.5">
               {['0-1小时', '2-3小时', '4-5小时', '6小时以上'].map((opt) => (
                 <button key={opt} onClick={() => setScreenTime(screenTime === opt ? '' : opt)}
@@ -558,7 +560,7 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
             </div>
           </div>
           <div>
-            <label className="text-[12px] block mb-1" style={{ color: S.sub }}>日户外活动时长</label>
+            <label className="text-[12px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.outdoorDaily')}</label>
             <div className="flex gap-1.5">
               {['0-1小时', '2-3小时', '4-5小时', '5小时以上'].map((opt) => (
                 <button key={opt} onClick={() => setOutdoorTime(outdoorTime === opt ? '' : opt)}
@@ -575,29 +577,29 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
       {/* Control measures & notes */}
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div>
-          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>防控措施</label>
+          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.controlMeasures')}</label>
           <input value={controls} onChange={(e) => setControls(e.target.value)}
-            placeholder="如：OK镜、低浓度阿托品、户外运动..."
+            placeholder={t('Profile.rich.visionBatch.controlMeasuresPlaceholder')}
             className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
         </div>
         <div>
-          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>防控笔记</label>
+          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.controlNotes')}</label>
           <input value={notes} onChange={(e) => setNotes(e.target.value)}
-            placeholder="补充说明..."
+            placeholder={t('Profile.rich.visionBatch.controlNotesPlaceholder')}
             className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
         </div>
       </div>
 
       {/* Submit */}
       <div className="flex items-center justify-between">
-        <span className="text-[13px]" style={{ color: S.sub }}>已填写 {filledCount} 项数据</span>
+        <span className="text-[13px]" style={{ color: S.sub }}>{t('Profile.rich.common.itemsFilled', { count: filledCount })}</span>
         <div className="flex gap-2">
           <button onClick={onClose} className={`px-4 py-2 text-[14px] ${S.radiusSm}`}
-            style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+            style={{ background: '#f0f0ec', color: S.sub }}>{t('Profile.rich.common.cancel')}</button>
           <button onClick={() => void handleSubmit()} disabled={saving || filledCount === 0} aria-label="vision-record-save"
             className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} disabled:opacity-40 transition-all hover:opacity-90`}
             style={{ background: S.accent }}>
-            {saving ? '保存中...' : '保存记录'}
+            {saving ? t('Profile.rich.common.saving') : t('Profile.rich.visionBatch.saveRecord')}
           </button>
         </div>
       </div>

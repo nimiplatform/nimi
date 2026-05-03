@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import GrowthCurvePage from './growth-curve-page.js';
 import { useAppStore } from '../../app-shell/app-store.js';
+import { i18n } from '../../i18n/index.js';
 
 const {
   getMeasurementsMock,
@@ -84,6 +85,7 @@ vi.mock('./checkup-ocr.js', () => ({
 
 describe('GrowthCurvePage', () => {
   beforeEach(() => {
+    i18n.changeLanguage('zh');
     getMeasurementsMock.mockClear();
     insertMeasurementMock.mockClear();
     hasCheckupOCRRuntimeMock.mockResolvedValue(true);

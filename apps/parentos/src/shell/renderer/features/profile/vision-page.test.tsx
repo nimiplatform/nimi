@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import VisionPage from './vision-page.js';
 import { useAppStore } from '../../app-shell/app-store.js';
+import { i18n } from '../../i18n/index.js';
 
 const {
   getMeasurementsMock,
@@ -89,6 +90,7 @@ vi.mock('./outdoor-summary-card.js', () => ({
 
 describe('VisionPage OCR intake', () => {
   beforeEach(() => {
+    i18n.changeLanguage('zh');
     getMeasurementsMock.mockClear();
     getMedicalEventsMock.mockClear();
     deleteMeasurementMock.mockClear();

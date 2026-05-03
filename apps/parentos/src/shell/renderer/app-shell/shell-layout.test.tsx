@@ -100,8 +100,8 @@ describe('ShellLayout', () => {
     expect(container.querySelector('a[href="/reports"]')).toBeTruthy();
     expect(screen.getByTestId('shell-main-drag-region')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: '打开账号菜单' }));
-    fireEvent.click(await screen.findByRole('button', { name: /Niko/i }));
+    fireEvent.click(screen.getByRole('button', { name: '切换孩子' }));
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: /Niko/i }));
 
     await waitFor(() => {
       expect(useAppStore.getState().activeChildId).toBe('child-2');

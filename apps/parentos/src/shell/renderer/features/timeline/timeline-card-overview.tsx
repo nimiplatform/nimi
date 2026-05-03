@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ComponentType } from 'react';
 import { Link } from 'react-router-dom';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { Bone, BookOpen, Eye, Mic, Moon, Ruler, Sparkles, Syringe, Trophy } from 'lucide-react';
-import { useAppStore, computeAgeMonths, type ChildProfile } from '../../app-shell/app-store.js';
+import { type ChildProfile } from '../../app-shell/app-store.js';
 import { ChildAvatar } from '../../shared/child-avatar.js';
 import {
   buildQuickLinks,
@@ -119,61 +117,6 @@ function RecentChangeIcon({ item, size = 18 }: { item: RecentChangeItem; size?: 
   );
 }
 
-function ChildSwitchPopover({ child, childList }: { child: ChildProfile; childList: ChildProfile[] }) {
-  const { setActiveChildId } = useAppStore();
-  const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const openPicker = useCallback(() => { setMounted(true); requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true))); }, []);
-  const closePicker = useCallback(() => { setOpen(false); }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    const onMouseDown = (event: MouseEvent) => { if (ref.current && !ref.current.contains(event.target as Node)) closePicker(); };
-    document.addEventListener('mousedown', onMouseDown);
-    return () => document.removeEventListener('mousedown', onMouseDown);
-  }, [mounted, closePicker]);
-
-  if (childList.length <= 1) return null;
-
-  return (
-    <div ref={ref} className="absolute right-5 top-5 z-20">
-      <button type="button" onClick={() => (open ? closePicker() : openPicker())}
-        className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-black/5" title="切换孩子" style={{ color: textMuted }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
-          <polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
-        </svg>
-      </button>
-      {mounted ? (
-        <Surface as="div" material="glass-thick" padding="none" tone="card" className="absolute right-0 top-9 min-w-[200px] p-1.5"
-          onTransitionEnd={() => { if (!open) setMounted(false); }}
-          style={{ opacity: open ? 1 : 0, transform: open ? 'translateY(0)' : 'translateY(4px) scale(0.98)', transformOrigin: 'top right', transition: 'opacity 0.15s ease, transform 0.15s ease', pointerEvents: open ? 'auto' : 'none' }}>
-          {childList.map((item, index) => {
-            const isActive = item.childId === child.childId;
-            return (
-              <button key={item.childId} type="button" onClick={() => { setActiveChildId(item.childId); closePicker(); }}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors hover:bg-white/60"
-                style={{ ...(isActive ? { background: 'rgba(78,204,163,0.1)' } : undefined), opacity: open ? 1 : 0, transform: open ? 'translateY(0)' : 'translateY(3px)', transition: `opacity 0.15s ease ${index * 0.03}s, transform 0.15s ease ${index * 0.03}s` }}>
-                <div
-                  className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full"
-                  style={{ outline: isActive ? '2px solid #4ECCA3' : '1px solid rgba(226, 232, 240, 0.95)' }}
-                >
-                  <ChildAvatar child={item} className="h-full w-full object-cover" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-[14px] font-semibold" style={{ color: isActive ? '#2F7D6B' : textMain }}>{item.displayName}</p>
-                  <p className="text-[12px]" style={{ color: textMuted }}>{formatAgeLabel(computeAgeMonths(item.birthDate))} · {item.gender === 'female' ? '女孩' : '男孩'}</p>
-                </div>
-              </button>
-            );
-          })}
-        </Surface>
-      ) : null}
-    </div>
-  );
-}
-
 function getProfileMeshBackground(gender: ChildProfile['gender']): string {
   if (gender === 'female') {
     return [
@@ -191,7 +134,7 @@ function getProfileMeshBackground(gender: ChildProfile['gender']): string {
   ].join(', ');
 }
 
-export function ChildContextCard({ child, childList, ageMonths }: { child: ChildProfile; childList: ChildProfile[]; ageMonths: number }) {
+export function ChildContextCard({ child, ageMonths }: { child: ChildProfile; ageMonths: number }) {
   const meshBackground = getProfileMeshBackground(child.gender);
   return (
     <div
@@ -234,7 +177,6 @@ export function ChildContextCard({ child, childList, ageMonths }: { child: Child
           </Link>
         </div>
       </div>
-      <ChildSwitchPopover child={child} childList={childList} />
     </div>
   );
 }

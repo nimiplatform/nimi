@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { S } from '../../app-shell/page-style.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
@@ -34,6 +35,7 @@ export function GrowthCurveControls({
   onSelectType,
   onSelectGrowthStandard,
 }: GrowthCurveControlsProps) {
+  const { t } = useTranslation();
   const latestHeight = getLatestMeasurement(measurements, 'height');
   const latestWeight = getLatestMeasurement(measurements, 'weight');
   const computedBmi = latestHeight && latestWeight ? computeBMI(latestHeight.value, latestWeight.value) : null;
@@ -60,10 +62,10 @@ export function GrowthCurveControls({
             const bmiDate = latestHeight && latestWeight
               ? (latestHeight.measuredAt > latestWeight.measuredAt ? latestHeight.measuredAt : latestWeight.measuredAt)
               : null;
-            dateLabel = bmiDate ? fmtMeasDate(bmiDate) : '暂无数据';
+            dateLabel = bmiDate ? fmtMeasDate(bmiDate) : t('Profile.rich.growth.noData');
           } else {
             displayValue = measurement ? `${measurement.value}` : '--';
-            dateLabel = measurement ? fmtMeasDate(measurement.measuredAt) : '暂无数据';
+            dateLabel = measurement ? fmtMeasDate(measurement.measuredAt) : t('Profile.rich.growth.noData');
             if (measurement && previous) delta = Math.round((measurement.value - previous.value) * 10) / 10;
           }
 
@@ -91,7 +93,7 @@ export function GrowthCurveControls({
                 ) : null}
               </div>
               <p className="text-[12px] mt-0.5" style={{ color: S.sub }}>{card.unit}</p>
-              <p className="text-[12px] mt-1" style={{ color: dateLabel === '暂无数据' ? '#d4d1cc' : S.sub }}>{dateLabel}</p>
+              <p className="text-[12px] mt-1" style={{ color: dateLabel === t('Profile.rich.growth.noData') ? '#d4d1cc' : S.sub }}>{dateLabel}</p>
             </button>
           );
         })}
@@ -101,7 +103,7 @@ export function GrowthCurveControls({
         <div className={`${S.radiusSm} px-3 py-2 mb-4 flex items-center gap-2`} style={{ background: '#faf8f0', border: '1px solid #e8e2d0' }}>
           <span className="text-[14px]">📅</span>
           <span className="text-[13px]" style={{ color: '#8a7a5a' }}>
-            距离上次测量已过去 {staleDays} 天，建议更新数据
+            {t('Profile.rich.growth.staleHint', { days: staleDays })}
           </span>
         </div>
       ) : null}
@@ -117,7 +119,7 @@ export function GrowthCurveControls({
             <AppSelect
               value={isOtherActive ? selectedType : ''}
               onChange={(value) => { if (value) onSelectType(value); }}
-              placeholder="其他指标..."
+              placeholder={t('Profile.rich.growth.otherMetrics')}
               options={others.map((standard) => ({
                 value: standard!.typeId,
                 label: `${standard!.displayName} (${standard!.unit})`,

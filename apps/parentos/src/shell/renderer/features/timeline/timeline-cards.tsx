@@ -22,7 +22,7 @@ export function SleepTrendCard({ summary }: { summary: SleepTrendSummary }) {
   const hasData = summary.points.length > 0;
   return (
     <Cd cls="col-span-4">
-      <Hdr title="睡眠趋势" to="/profile/sleep" link="查看详情" />
+      <Hdr title="睡眠趋势" to="/profile" link="查看详情" />
       {hasData ? (
         <>
           <div className="flex items-end justify-between gap-3">
@@ -68,7 +68,7 @@ export function VisionCard({ snapshot }: { snapshot: VisionSnapshotSummary }) {
   const hasData = snapshot.leftEye != null || snapshot.rightEye != null;
   return (
     <Cd cls="col-span-4">
-      <Hdr title="视力" to="/profile/vision" link="查看详情" />
+      <Hdr title="视力" to="/profile" link="查看详情" />
       {hasData ? (
         <>
           <div className="flex items-center justify-between gap-4">
@@ -124,7 +124,7 @@ export function MilestoneTimelineCard({ summary }: { summary: MilestoneTimelineS
   const hasUpcoming = summary.upcoming.length > 0;
   return (
     <Cd cls="col-span-4">
-      <Hdr title="里程碑" to="/profile/milestones" link="查看全部" />
+      <Hdr title="里程碑" to="/profile" link="查看全部" />
       {hasAchieved ? (
         <div className="mb-4">
           <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide" style={{ color: '#4ECCA3' }}>最近达成</p>

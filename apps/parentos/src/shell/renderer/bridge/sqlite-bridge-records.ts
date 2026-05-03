@@ -1,5 +1,88 @@
 import { invoke } from '@tauri-apps/api/core';
 
+export interface HealthRecordCaptureValueInput {
+  valueId: string;
+  metricId: string;
+  valueNumber: number | null;
+  valueText: string | null;
+  valueJson: string | null;
+  unit: string | null;
+  qualifier: string | null;
+  recordKind: 'measured' | 'derived' | 'parent_confirmed_import';
+  sourceValueIds: string | null;
+}
+
+export interface SaveHealthRecordCaptureInput {
+  eventId: string;
+  childId: string;
+  protocolId: string;
+  groupId: string;
+  recordKind: 'manual' | 'imported' | 'ocr_confirmed' | 'reminder_linked' | 'derived';
+  sourceSurface: 'profile_console' | 'profile_detail' | 'reminder' | 'ocr_tool' | 'import';
+  recordedAt: string;
+  effectiveDate: string;
+  ageMonths: number;
+  recorderId: string | null;
+  linkedReminderStateId: string | null;
+  linkedReminderRuleId: string | null;
+  notes: string | null;
+  metadataJson: string | null;
+  now: string;
+  values: HealthRecordCaptureValueInput[];
+}
+
+export interface SaveHealthRecordCaptureResult {
+  eventId: string;
+  valueIds: string[];
+  persistedValueCount: number;
+}
+
+export function saveHealthRecordCapture(input: SaveHealthRecordCaptureInput) {
+  return invoke<SaveHealthRecordCaptureResult>('save_health_record_capture', { input });
+}
+
+export interface HealthRecordEventRow {
+  eventId: string;
+  childId: string;
+  protocolId: string;
+  groupId: string;
+  recordKind: string;
+  sourceSurface: string;
+  recordedAt: string;
+  effectiveDate: string;
+  ageMonths: number;
+  recorderId: string | null;
+  linkedReminderStateId: string | null;
+  linkedReminderRuleId: string | null;
+  notes: string | null;
+  metadataJson: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HealthRecordValueRow {
+  valueId: string;
+  eventId: string;
+  childId: string;
+  metricId: string;
+  valueNumber: number | null;
+  valueText: string | null;
+  valueJson: string | null;
+  unit: string | null;
+  qualifier: string | null;
+  recordKind: string;
+  sourceValueIds: string | null;
+  createdAt: string;
+}
+
+export function getHealthRecordEvents(childId: string) {
+  return invoke<HealthRecordEventRow[]>('get_health_record_events', { childId });
+}
+
+export function getHealthRecordValues(childId: string) {
+  return invoke<HealthRecordValueRow[]>('get_health_record_values', { childId });
+}
+
 export interface DentalRecordRow {
   recordId: string;
   childId: string;
@@ -43,6 +126,7 @@ export function updateDentalRecord(params: {
   hospital: string | null;
   notes: string | null;
   photoPath: string | null;
+  now: string;
 }) {
   return invoke<void>('update_dental_record', params);
 }

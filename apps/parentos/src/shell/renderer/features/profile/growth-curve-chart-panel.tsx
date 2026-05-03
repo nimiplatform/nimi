@@ -296,7 +296,7 @@ export function GrowthCurveChartPanel({
                 </div>
                 <div className="flex items-center gap-3 mt-1.5">
                   <span className="text-[12px]" style={{ color: S.sub }}>评估日期：{latest.measuredAt.split('T')[0]}</span>
-                  <Link to="/profile/tanner" className="text-[12px] hover:underline" style={{ color: S.accent }}>
+            <Link to="/profile" className="text-[12px] hover:underline" style={{ color: S.accent }}>
                     详细记录 → 青春期发育
                   </Link>
                 </div>

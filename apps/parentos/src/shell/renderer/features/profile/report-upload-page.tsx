@@ -77,7 +77,9 @@ export default function ReportUploadPage() {
       setAllAttachments(all);
       const m = new Map<string, AttachmentRow>();
       for (const a of all) {
-        if (a.ownerTable === 'growth_measurements') m.set(a.ownerId, a);
+        if (a.ownerTable === 'health_record_events' && a.ownerId.startsWith('detail-measurement:')) {
+          m.set(a.ownerId.slice('detail-measurement:'.length), a);
+        }
       }
       setReportAttachments(m);
     }).catch(catchLog('report-upload', 'action:load-attachments-failed'));
@@ -215,7 +217,7 @@ export default function ReportUploadPage() {
           const mimeType = mimeMatch?.[1] ?? 'image/jpeg';
           await saveAttachment({
             attachmentId: ulid(), childId: child.childId,
-            ownerTable: 'growth_measurements', ownerId: firstMeasurementId,
+            ownerTable: 'health_record_events', ownerId: `detail-measurement:${firstMeasurementId}`,
             fileName: imageName ?? 'report.jpg', mimeType,
             imageBase64: base64 ?? '', caption: null, now: isoNow(),
           });

@@ -1,328 +1,282 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Activity, CalendarClock, Pencil, Plus, RefreshCw } from 'lucide-react';
 import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { computeAgeMonths, useAppStore } from '../../app-shell/app-store.js';
-import { getProfileSectionSummaries } from '../../bridge/sqlite-bridge.js';
-import type { SectionSummary } from '../../bridge/sqlite-bridge.js';
+import { S } from '../../app-shell/page-style.js';
+import {
+  getHealthRecordEvents,
+  getHealthRecordValues,
+  type SaveHealthRecordCaptureResult,
+} from '../../bridge/sqlite-bridge.js';
+import {
+  buildHealthRecordSnapshot,
+  type HealthGroupSnapshot,
+  type HealthMetricSnapshot,
+  type HealthRecordEvent,
+  type HealthRecordValue,
+} from '../../engine/health-record-domain.js';
+import type { HealthStatusColorAlias } from '../../knowledge-base/index.js';
 import { ChildAvatar } from '../../shared/child-avatar.js';
-import growthIcon from './assets/archive-icons/growth.png';
-import visionIcon from './assets/archive-icons/vision.png';
-import fitnessIcon from './assets/archive-icons/fitness.png';
-import dentalIcon from './assets/archive-icons/dental.png';
-import heightIcon from './assets/archive-icons/height.png';
-import milestonesIcon from './assets/archive-icons/milestones.png';
-import vaccinesIcon from './assets/archive-icons/vaccines.png';
-import allergiesIcon from './assets/archive-icons/allergies.png';
-import sleepIcon from './assets/archive-icons/sleep.png';
-import medicalIcon from './assets/archive-icons/medical.png';
-import postureIcon from './assets/archive-icons/posture.png';
-import outdoorIcon from './assets/archive-icons/outdoor.png';
-import keepsakeIcon from './assets/archive-icons/keepsake.png';
-import smartScanIcon from './assets/archive-icons/smart-scan.png';
+import { HealthCaptureModal } from './health-capture-modal.js';
+import {
+  FRESHNESS_LABEL_KEYS,
+  STATUS_LABEL_KEYS,
+  formatAgeText,
+  formatDate,
+  formatMetricSnapshotValue,
+  groupLabel,
+  metricLabel,
+} from './health-record-display.js';
+import { eventRowToDomain, valueRowToDomain } from './health-record-row-mappers.js';
 
-/* ── design tokens ──────────────────────────────────────── */
+const COLOR_ALIAS_STYLE: Record<HealthStatusColorAlias, { bg: string; fg: string; dot: string }> = {
+  green: { bg: 'rgba(34,197,94,0.10)', fg: '#15803d', dot: '#22c55e' },
+  yellow: { bg: 'rgba(234,179,8,0.12)', fg: '#a16207', dot: '#eab308' },
+  red: { bg: 'rgba(239,68,68,0.10)', fg: '#b91c1c', dot: '#ef4444' },
+  neutral: { bg: 'rgba(100,116,139,0.10)', fg: '#475569', dot: '#94a3b8' },
+  error: { bg: 'rgba(127,29,29,0.10)', fg: '#7f1d1d', dot: '#991b1b' },
+};
 
-const C = {
-  bg: '#f1f5f9', text: '#1e293b', sub: '#475569',
-  card: '#ffffff', accent: '#1e293b',
-  shadow: '0 8px 32px rgba(31,38,135,0.04)',
-} as const;
-
-/* ── section registry (archive routes only) ─────────────── */
-
-interface ArchiveSection {
-  sectionId: string;
-  to: string;
-  iconSrc: string;
-  iconOffsetX?: number;
-  iconScale?: number;
-  label: string;
-  desc: string;
-  color: string;
-  /** If set, only show when ageMonths meets condition */
-  ageGate?: (ageMonths: number) => boolean;
-  /** Alt label/desc for different age ranges */
-  altLabel?: (ageMonths: number) => { label: string; desc: string } | null;
+function profileCompleteness(child: {
+  birthWeightKg: number | null;
+  birthHeightCm: number | null;
+  birthHeadCircCm: number | null;
+  avatarPath: string | null;
+  allergies: string[] | null;
+  medicalNotes: string[] | null;
+  recorderProfiles: Array<{ id: string; name: string }> | null;
+}) {
+  const fields = [
+    child.birthWeightKg,
+    child.birthHeightCm,
+    child.birthHeadCircCm,
+    child.avatarPath,
+    child.allergies,
+    child.medicalNotes,
+    child.recorderProfiles,
+  ];
+  return Math.round((fields.filter((value) => value != null).length / fields.length) * 100);
 }
-
-const ARCHIVE_SECTIONS: ArchiveSection[] = [
-  { sectionId: 'growth', to: '/profile/growth', iconSrc: growthIcon, label: '生长曲线', desc: '身高、体重、头围的 WHO 百分位曲线', color: '#ede7fb' },
-  {
-    sectionId: 'milestones', to: '/profile/milestones', iconSrc: milestonesIcon, label: '发育里程碑', desc: '追踪大运动、精细动作、语言等里程碑', color: '#fbe8d4',
-    altLabel: (age) => age > 72 ? { label: '早期发育记录', desc: '查看 0-6 岁发育里程碑的历史记录' } : null,
-  },
-  { sectionId: 'vaccines', to: '/profile/vaccines', iconSrc: vaccinesIcon, label: '疫苗记录', desc: '疫苗接种记录和接种计划', color: '#ddedfb' },
-  { sectionId: 'vision', to: '/profile/vision', iconSrc: visionIcon, label: '视力档案', desc: '验光单、眼轴单和视力变化趋势追踪', color: '#dde4f5' },
-  { sectionId: 'dental', to: '/profile/dental', iconSrc: dentalIcon, iconOffsetX: -2.5, iconScale: 1.2, label: '口腔发育', desc: '乳牙萌出、换牙和口腔检查记录', color: '#e2f0dc' },
-  { sectionId: 'allergies', to: '/profile/allergies', iconSrc: allergiesIcon, iconOffsetX: -2, iconScale: 1.16, label: '过敏记录', desc: '食物、药物和环境过敏原记录', color: '#f5dce8' },
-  { sectionId: 'sleep', to: '/profile/sleep', iconSrc: sleepIcon, label: '睡眠记录', desc: '睡眠时长、作息规律和睡眠质量追踪', color: '#dde4f5' },
-  { sectionId: 'medical-events', to: '/profile/medical-events', iconSrc: medicalIcon, iconOffsetX: -2, iconScale: 1.16, label: '就医记录', desc: '门诊、住院、用药和检验报告', color: '#e5dcf5' },
-  { sectionId: 'posture', to: '/profile/posture', iconSrc: postureIcon, iconScale: 1.14, label: '体态档案', desc: '脊柱侧弯、足弓和身体姿态评估', color: '#e5f0dc' },
-  { sectionId: 'tanner', to: '/profile/tanner', iconSrc: heightIcon, iconOffsetX: -2.5, label: '青春期发育', desc: 'Tanner 分期、骨龄和青春期发育追踪', color: '#e2f0dc', ageGate: (age) => age >= 84 },
-  { sectionId: 'fitness', to: '/profile/fitness', iconSrc: fitnessIcon, label: '体能测评', desc: '体能测试成绩和运动能力评估', color: '#fbe8d4' },
-  { sectionId: 'outdoor', to: '/profile/outdoor', iconSrc: outdoorIcon, label: '每周户外目标', desc: '户外活动记录、每周进度和趋势追踪', color: '#dcf0e5' },
-];
-
-/* ── tool routes (non-archive) ──────────────────────────── */
-
-interface ToolEntry { to: string; iconSrc: string; iconOffsetX?: number; iconScale?: number; label: string; desc: string }
-
-const TOOL_ENTRIES: ToolEntry[] = [
-  { to: '/profile/report-upload', iconSrc: smartScanIcon, label: '智能识别', desc: '上传体检单，自动识别数据' },
-];
-
-/* ── cross-link routes (non-archive, non-tool) ──────────── */
-
-const CROSS_LINKS: ToolEntry[] = [
-  { to: '/journal?filter=keepsake', iconSrc: keepsakeIcon, label: '高光时刻', desc: '珍藏的成长瞬间和重要里程碑' },
-];
-
-/* ── age-adaptive ordering (PO-PROF-024) ────────────────── */
-
-const AGE_TIERS: Array<{ maxAge: number; topIds: string[] }> = [
-  { maxAge: 12, topIds: ['growth', 'milestones', 'vaccines', 'sleep', 'medical-events'] },
-  { maxAge: 36, topIds: ['growth', 'milestones', 'vaccines', 'dental', 'sleep'] },
-  { maxAge: 72, topIds: ['growth', 'dental', 'vision', 'vaccines', 'fitness'] },
-  { maxAge: 120, topIds: ['vision', 'growth', 'fitness', 'dental', 'tanner'] },
-  { maxAge: Infinity, topIds: ['vision', 'fitness', 'growth', 'tanner', 'dental'] },
-];
-
-function orderSections(sections: ArchiveSection[], ageMonths: number): ArchiveSection[] {
-  const tier = AGE_TIERS.find((t) => ageMonths <= t.maxAge)!;
-  const topSet = new Set(tier.topIds);
-  const top: ArchiveSection[] = [];
-  const rest: ArchiveSection[] = [];
-  // First pass: collect top-tier in tier order
-  for (const id of tier.topIds) {
-    const s = sections.find((sec) => sec.sectionId === id);
-    if (s) top.push(s);
-  }
-  // Second pass: remaining in registration order
-  for (const s of sections) {
-    if (!topSet.has(s.sectionId)) rest.push(s);
-  }
-  return [...top, ...rest];
-}
-
-/* ── helpers ─────────────────────────────────────────────── */
-
-function pctComplete(child: { birthWeightKg: number | null; birthHeightCm: number | null; birthHeadCircCm: number | null; avatarPath: string | null; allergies: string[] | null; medicalNotes: string[] | null; recorderProfiles: Array<{ id: string; name: string }> | null }) {
-  const f = [child.birthWeightKg, child.birthHeightCm, child.birthHeadCircCm, child.avatarPath, child.allergies, child.medicalNotes, child.recorderProfiles];
-  return Math.round((f.filter((v) => v != null).length / f.length) * 100);
-}
-
-function formatRelativeDate(iso: string): string {
-  const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / 86_400_000);
-  if (diffDays === 0) return '今天';
-  if (diffDays === 1) return '昨天';
-  if (diffDays < 7) return `${diffDays}天前`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}周前`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)}个月前`;
-  return `${Math.floor(diffDays / 365)}年前`;
-}
-
-/* ================================================================
-   MAIN PAGE
-   ================================================================ */
 
 export default function ProfilePage() {
-  const activeChildId = useAppStore((s) => s.activeChildId);
-  const children = useAppStore((s) => s.children);
-  const activeChild = children.find((c) => c.childId === activeChildId);
-
-  const [summaries, setSummaries] = useState<SectionSummary[]>([]);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const activeChildId = useAppStore((state) => state.activeChildId);
+  const children = useAppStore((state) => state.children);
+  const activeChild = children.find((child) => child.childId === activeChildId);
+  const [events, setEvents] = useState<HealthRecordEvent[]>([]);
+  const [values, setValues] = useState<HealthRecordValue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [captureOpen, setCaptureOpen] = useState(false);
 
-  const loadData = useCallback((childId: string) => {
+  const loadRecords = useCallback(async (childId: string) => {
     setLoading(true);
-    setSummaryError(null);
-    getProfileSectionSummaries(childId)
-      .then((sumData) => { setSummaries(sumData); setLoading(false); })
-      .catch((e) => { setSummaryError(String(e)); setLoading(false); });
+    setError(null);
+    try {
+      const [eventRows, valueRows] = await Promise.all([
+        getHealthRecordEvents(childId),
+        getHealthRecordValues(childId),
+      ]);
+      setEvents(eventRows.map(eventRowToDomain));
+      setValues(valueRows.map(valueRowToDomain));
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : String(nextError));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (!activeChildId) return;
-    loadData(activeChildId);
-  }, [activeChildId, loadData]);
+    if (!activeChildId) {
+      setEvents([]);
+      setValues([]);
+      setLoading(false);
+      return;
+    }
+    void loadRecords(activeChildId);
+  }, [activeChildId, loadRecords]);
+
+  const ageMonths = activeChild ? computeAgeMonths(activeChild.birthDate) : 0;
+  const snapshot = useMemo(() => {
+    if (!activeChild) return null;
+    return buildHealthRecordSnapshot({
+      childId: activeChild.childId,
+      ageMonths,
+      events,
+      values,
+      nowIso: new Date().toISOString(),
+      sex: activeChild.gender,
+    });
+  }, [activeChild, ageMonths, events, values]);
 
   if (!activeChild) {
     return (
-      <div className="flex items-center justify-center h-full" style={{ color: C.sub }}>
-        请先添加孩子档案
+      <div className="flex h-full items-center justify-center" style={{ color: S.sub }}>
+        {t('Profile.empty.noActiveChild', { defaultValue: 'Add a child profile first' })}
       </div>
     );
   }
 
-  const ageMonths = computeAgeMonths(activeChild.birthDate);
-  const ageY = Math.floor(ageMonths / 12);
-  const ageR = ageMonths % 12;
-  const pct = pctComplete(activeChild);
-
-  // Build summary lookup
-  const summaryMap = useMemo(() => {
-    const m = new Map<string, SectionSummary>();
-    for (const s of summaries) m.set(s.sectionId, s);
-    return m;
-  }, [summaries]);
-
-  // Filter visible archive sections and apply age-adaptive ordering
-  const orderedSections = useMemo(() => {
-    const visible = ARCHIVE_SECTIONS.filter((s) => !s.ageGate || s.ageGate(ageMonths));
-    return orderSections(visible, ageMonths);
-  }, [ageMonths]);
+  const completeness = profileCompleteness(activeChild);
 
   return (
     <div className="h-full overflow-y-auto hide-scrollbar" style={{ background: 'transparent' }}>
-      <div className="max-w-3xl mx-auto px-6 pb-6" style={{ paddingTop: 16 }}>
-
-        {/* ── Profile header card ────────────────────────────── */}
-        <Surface as="div" material="glass-thick" padding="none" tone="card" className="relative overflow-hidden p-6 mb-6 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
-          <div className="flex items-center gap-5">
-            {/* Avatar */}
+      <div className="mx-auto max-w-5xl px-6 pb-8 pt-5">
+        <Surface as="section" material="glass-thick" padding="none" tone="card" className="mb-5 overflow-hidden rounded-[var(--nimi-radius-xl)] p-6 shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
+          <div className="flex flex-wrap items-center gap-5">
             <ChildAvatar
               child={activeChild}
               ageMonths={ageMonths}
-              className="w-[72px] h-[72px] rounded-full object-cover border-2"
-              style={{ borderColor: 'rgba(226,232,240,0.3)', boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }}
+              className="h-[72px] w-[72px] rounded-full border-2 object-cover"
+              style={{ borderColor: 'rgba(226,232,240,0.35)', boxShadow: '0 4px 14px rgba(0,0,0,0.06)' }}
             />
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-semibold tracking-tight" style={{ color: '#1e293b', letterSpacing: '-0.3px' }}>{activeChild.displayName}</h1>
-              <p className="text-[14px] mt-0.5" style={{ color: '#475569' }}>
-                {ageY > 0 ? `${ageY}岁` : ''}{ageR > 0 ? `${ageR}个月` : ''} · {activeChild.gender === 'male' ? '男孩' : '女孩'} · 出生 {activeChild.birthDate}
+            <div className="min-w-[220px] flex-1">
+              <h1 className="text-xl font-semibold tracking-normal" style={{ color: S.text, letterSpacing: 0 }}>
+                {activeChild.displayName}
+              </h1>
+              <p className="mt-1 text-[14px]" style={{ color: S.sub }}>
+                {formatAgeText(ageMonths, t)} / {t(activeChild.gender === 'male' ? 'Profile.gender.male' : 'Profile.gender.female', { defaultValue: activeChild.gender })} / {t('Profile.birthPrefix', { defaultValue: 'Born' })} {activeChild.birthDate}
               </p>
-              {/* Profile completeness */}
-              <div className="flex items-center gap-2 mt-2">
-                <div className="flex-1 h-[5px] rounded-full overflow-hidden" style={{ background: '#F0F4F8' }}>
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: '#4ECCA3' }} />
+              <div className="mt-3 flex items-center gap-2">
+                <div className="h-[5px] flex-1 overflow-hidden rounded-full" style={{ background: '#eef2f7' }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${completeness}%`, background: S.accent }} />
                 </div>
-                <span className="text-[12px]" style={{ color: '#475569' }}>{pct}%</span>
+                <span className="text-[12px]" style={{ color: S.sub }}>{completeness}%</span>
               </div>
             </div>
-            {/* Edit button */}
-            <Link to="/settings/children" className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[13px] font-medium text-white transition-all hover:-translate-y-0.5" style={{ background: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>
-              编辑
-            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCaptureOpen(true)}
+                aria-label={t('Profile.actions.addHealthData', { defaultValue: 'Add health data' })}
+                title={t('Profile.actions.addHealthData', { defaultValue: 'Add health data' })}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition-transform hover:-translate-y-0.5"
+                style={{ background: S.accent, boxShadow: '0 4px 14px rgba(78,204,163,0.22)' }}
+              >
+                <Plus size={18} />
+              </button>
+              <Link
+                to="/settings/children"
+                state={{ from: 'profile' }}
+                aria-label={t('Profile.actions.editChild', { defaultValue: 'Edit child profile' })}
+                title={t('Profile.actions.editChild', { defaultValue: 'Edit child profile' })}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition-transform hover:-translate-y-0.5"
+                style={{ background: S.text, boxShadow: '0 4px 14px rgba(15,23,42,0.14)' }}
+              >
+                <Pencil size={16} />
+              </Link>
+            </div>
           </div>
         </Surface>
 
-        {/* ── Summary load error ─────────────────────────────── */}
-        {summaryError && (
-          <div className="rounded-[14px] p-4 mb-4 flex items-center justify-between" style={{ background: '#f5f5f4', border: '1px solid #e7e5e4' }}>
-            <p className="text-[14px]" style={{ color: '#78716c' }}>档案摘要暂时无法加载</p>
-            <button onClick={() => activeChildId && loadData(activeChildId)} className="text-[13px] px-3 py-1 rounded-full" style={{ background: '#e7e5e4', color: '#57534e' }}>
-              重试
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-[17px] font-semibold tracking-normal" style={{ color: S.text, letterSpacing: 0 }}>
+              {t('Profile.title', { defaultValue: 'Health record' })}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadRecords(activeChild.childId)}
+            className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors hover:bg-white/60"
+            style={{ color: S.sub, background: 'rgba(255,255,255,0.35)' }}
+          >
+            <RefreshCw size={14} />
+            {t('Profile.actions.refresh', { defaultValue: 'Refresh' })}
+          </button>
+        </div>
+
+        {error ? (
+          <div className="mb-4 flex items-center justify-between rounded-[16px] px-4 py-3" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+            <span className="text-[14px]">{t('Profile.errors.loadFailed', { defaultValue: 'Health record could not load' })}</span>
+            <button type="button" onClick={() => void loadRecords(activeChild.childId)} className="rounded-full px-3 py-1 text-[13px]" style={{ background: '#fee2e2' }}>
+              {t('Profile.actions.retry', { defaultValue: 'Retry' })}
             </button>
           </div>
-        )}
+        ) : null}
 
-        {/* ── Section grid (archive only) ───────────────────── */}
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[16px] font-bold" style={{ color: C.text }}>健康档案</h2>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          {orderedSections.map((s) => {
-            const summary = summaryMap.get(s.sectionId);
-            const alt = s.altLabel?.(ageMonths);
-            const label = alt?.label ?? s.label;
-            const desc = alt?.desc ?? s.desc;
-
-            return (
-              <Surface key={s.to} as={Link} to={s.to} material="glass-regular" padding="none" tone="card"
-                className="flex items-start gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
-                <ArchiveCardIcon src={s.iconSrc} offsetX={s.iconOffsetX} scale={s.iconScale} />
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-[14px] font-semibold" style={{ color: C.text }}>{label}</h3>
-                  {/* Section summary line */}
-                  {!loading && summary && (
-                    <SectionStatusLine summary={summary} />
-                  )}
-                  <p className="text-[13px] mt-0.5 leading-snug" style={{ color: C.sub }}>{desc}</p>
-                </div>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2" strokeLinecap="round" className="shrink-0 mt-1"><path d="M9 18l6-6-6-6" /></svg>
-              </Surface>
-            );
-          })}
-        </div>
-
-        {/* ── Cross links ───────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-3 mt-3">
-          {CROSS_LINKS.map((t) => (
-            <Surface key={t.to} as={Link} to={t.to} material="glass-regular" padding="none" tone="card"
-              className="flex items-center gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
-              <ArchiveCardIcon src={t.iconSrc} offsetX={t.iconOffsetX} scale={t.iconScale} />
-              <div className="min-w-0 flex-1">
-                <h3 className="text-[14px] font-semibold" style={{ color: C.text }}>{t.label}</h3>
-                <p className="text-[13px] mt-0.5" style={{ color: C.sub }}>{t.desc}</p>
-              </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2" strokeLinecap="round" className="shrink-0"><path d="M9 18l6-6-6-6" /></svg>
-            </Surface>
-          ))}
-        </div>
-
-        {/* ── Tool area (separated per PO-PROF-023) ─────────── */}
-        {TOOL_ENTRIES.length > 0 && (
-          <>
-            <div className="flex items-center mb-3 mt-6">
-              <h2 className="text-[16px] font-bold" style={{ color: C.text }}>工具</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {TOOL_ENTRIES.map((t) => (
-                <Surface key={t.to} as={Link} to={t.to} material="glass-regular" padding="none" tone="card"
-                  className="flex items-center gap-3 p-5 transition-all duration-200 hover:-translate-y-0.5 rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]"
-                  style={{ borderLeft: `3px solid ${C.accent}` }}>
-                  <ArchiveCardIcon src={t.iconSrc} offsetX={t.iconOffsetX} scale={t.iconScale} />
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-[14px] font-semibold" style={{ color: C.text }}>{t.label}</h3>
-                    <p className="text-[13px] mt-0.5" style={{ color: C.sub }}>{t.desc}</p>
-                  </div>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2" strokeLinecap="round" className="shrink-0"><path d="M9 18l6-6-6-6" /></svg>
-                </Surface>
-              ))}
-            </div>
-          </>
+        {loading || !snapshot ? (
+          <div className="flex h-40 items-center justify-center text-[14px]" style={{ color: S.sub }}>{t('Profile.loading', { defaultValue: 'Loading...' })}</div>
+        ) : (
+          <div className="space-y-4">
+            {snapshot.groups.map((group) => (
+              <HealthGroupTable key={group.group.groupId} group={group} />
+            ))}
+          </div>
         )}
       </div>
-    </div>
-  );
-}
 
-/* ── Section status line component ──────────────────────── */
-
-function ArchiveCardIcon({ src, offsetX = 0, scale = 1 }: { src: string; offsetX?: number; scale?: number }) {
-  return (
-    <div className="w-[42px] h-[42px] rounded-[12px] overflow-hidden shrink-0 shadow-[0_4px_12px_rgba(148,163,184,0.12)]">
-      <img
-        src={src}
-        alt=""
-        aria-hidden="true"
-        className="block w-full h-full object-cover"
-        style={{ transform: `translateX(${offsetX}px) scale(${scale})` }}
+        <HealthCaptureModal
+        open={captureOpen}
+        childId={activeChild.childId}
+        childBirthDate={activeChild.birthDate}
+        onClose={() => setCaptureOpen(false)}
+        onSaved={(_: SaveHealthRecordCaptureResult) => {
+          void loadRecords(activeChild.childId);
+        }}
       />
     </div>
   );
 }
 
-function SectionStatusLine({ summary }: { summary: SectionSummary }) {
-  if (summary.state === 'error') {
-    return (
-      <p className="text-[12px] mt-0.5" style={{ color: C.sub }}>
-        点击重试
-      </p>
-    );
-  }
-  if (summary.state === 'empty') {
-    return null;
-  }
+function HealthGroupTable({ group }: { group: HealthGroupSnapshot }) {
+  const { t } = useTranslation();
+  const visibleMetrics = group.metrics.filter((snapshot) => snapshot.metric.sourceSupport.includes('manual') || snapshot.latestValue);
+  if (visibleMetrics.length === 0) return null;
+
+  const recordedCount = visibleMetrics.filter((snapshot) => snapshot.latestValue).length;
   return (
-    <p className="text-[12px] mt-0.5" style={{ color: '#16a34a' }}>
-      {summary.recordCount} 条{summary.lastUpdatedAt ? ` · ${formatRelativeDate(summary.lastUpdatedAt)}` : ''}
-    </p>
+    <Surface as="section" material="glass-regular" padding="none" tone="card" className="overflow-hidden rounded-[var(--nimi-radius-xl)] shadow-[0_8px_32px_rgba(31,38,135,0.04)]">
+      <div className="flex items-center justify-between gap-3 border-b px-5 py-4" style={{ borderColor: 'rgba(226,232,240,0.55)' }}>
+        <div className="flex items-center gap-3">
+          <div className="grid h-9 w-9 place-items-center rounded-full" style={{ background: 'rgba(78,204,163,0.10)', color: S.accent }}>
+            <Activity size={17} />
+          </div>
+          <div>
+            <h3 className="text-[15px] font-semibold tracking-normal" style={{ color: S.text, letterSpacing: 0 }}>
+              {groupLabel(group.group.groupId, group.group.displayName, t)}
+            </h3>
+            <p className="text-[12px]" style={{ color: S.sub }}>{recordedCount}/{visibleMetrics.length}</p>
+          </div>
+        </div>
+      </div>
+      <div className="divide-y" style={{ borderColor: 'rgba(226,232,240,0.45)' }}>
+        {visibleMetrics.map((snapshot) => (
+          <HealthMetricRow key={snapshot.metric.metricId} snapshot={snapshot} />
+        ))}
+      </div>
+    </Surface>
+  );
+}
+
+function HealthMetricRow({ snapshot }: { snapshot: HealthMetricSnapshot }) {
+  const { t } = useTranslation();
+  const tone = COLOR_ALIAS_STYLE[snapshot.evaluation.colorAlias];
+  const metricDetailRoute = snapshot.metric.detailRoute ?? '/profile';
+  const groupText = groupLabel(snapshot.metric.groupId, snapshot.metric.groupId, t);
+  return (
+    <Link to={metricDetailRoute} className="grid grid-cols-1 gap-2 px-5 py-3.5 transition-colors hover:bg-white/45 md:grid-cols-[minmax(130px,1fr)_minmax(110px,0.85fr)_110px_110px_120px] md:items-center md:gap-3">
+      <div className="min-w-0">
+        <p className="truncate text-[14px] font-semibold" style={{ color: S.text }}>
+          {metricLabel(snapshot.metric, t)}
+        </p>
+        <p className="mt-0.5 truncate text-[12px]" style={{ color: S.sub }}>{groupText}</p>
+      </div>
+      <div className="text-[14px] font-medium" style={{ color: S.text }}>{formatMetricSnapshotValue(snapshot, t)}</div>
+      <div className="text-[13px]" style={{ color: S.sub }}>{formatDate(snapshot.latestEvent?.effectiveDate, t)}</div>
+      <div className="inline-flex items-center gap-1.5 text-[13px]" style={{ color: S.sub }}>
+        <CalendarClock size={13} />
+        {formatDate(snapshot.nextRecordAt, t)}
+      </div>
+      <div className="flex justify-end">
+        <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold" style={{ background: tone.bg, color: tone.fg }}>
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: tone.dot }} />
+          {t(STATUS_LABEL_KEYS[snapshot.evaluation.status] ?? snapshot.evaluation.status, { defaultValue: snapshot.evaluation.status })}
+          <span style={{ color: tone.fg, opacity: 0.72 }}>· {t(FRESHNESS_LABEL_KEYS[snapshot.freshness], { defaultValue: snapshot.freshness })}</span>
+        </span>
+      </div>
+    </Link>
   );
 }

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 
 const TimelinePage = lazy(() => import('../features/timeline/timeline-page.js'));
 const ProfilePage = lazy(() => import('../features/profile/profile-page.js'));
+const HealthMetricDetailPage = lazy(() => import('../features/profile/health-metric-detail-page.js'));
 const GrowthCurvePage = lazy(() => import('../features/profile/growth-curve-page.js'));
 const MilestonePage = lazy(() => import('../features/profile/milestone-page.js'));
 const VaccinePage = lazy(() => import('../features/profile/vaccine-page.js'));
@@ -14,7 +15,6 @@ const MedicalEventsPage = lazy(() => import('../features/profile/medical-events-
 const PosturePage = lazy(() => import('../features/profile/posture-page.js'));
 const TannerPage = lazy(() => import('../features/profile/tanner-page.js'));
 const FitnessPage = lazy(() => import('../features/profile/fitness-page.js'));
-const ReportUploadPage = lazy(() => import('../features/profile/report-upload-page.js'));
 const OutdoorPage = lazy(() => import('../features/outdoor/outdoor-page.js').then((m) => ({ default: m.OutdoorPage })));
 const JournalPage = lazy(() => import('../features/journal/journal-page.js'));
 const ObservePage = lazy(() => import('../features/observe/observe-page.js'));
@@ -36,11 +36,14 @@ function PageFallback() {
 }
 
 export function AppRoutes() {
+  const profileRedirect = <Navigate to="/profile" replace />;
+
   return (
     <Suspense fallback={<PageFallback />}>
       <Routes>
         <Route path="/timeline" element={<TimelinePage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/health/:metricId" element={<HealthMetricDetailPage />} />
         <Route path="/profile/growth" element={<GrowthCurvePage />} />
         <Route path="/profile/milestones" element={<MilestonePage />} />
         <Route path="/profile/vaccines" element={<VaccinePage />} />
@@ -52,8 +55,8 @@ export function AppRoutes() {
         <Route path="/profile/posture" element={<PosturePage />} />
         <Route path="/profile/tanner" element={<TannerPage />} />
         <Route path="/profile/fitness" element={<FitnessPage />} />
-        <Route path="/profile/report-upload" element={<ReportUploadPage />} />
         <Route path="/profile/outdoor" element={<OutdoorPage />} />
+        <Route path="/profile/report-upload" element={profileRedirect} />
         <Route path="/journal" element={<JournalPage />} />
         <Route path="/observe" element={<ObservePage />} />
         <Route path="/advisor" element={<AdvisorPage />} />

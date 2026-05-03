@@ -32,10 +32,11 @@ export interface ReminderExplainDrawerProps {
   reminder: ActiveReminder | null;
   onClose: () => void;
   onAction: (reminder: ActiveReminder, action: ReminderActionType, extra?: string | null) => void;
+  onOpenCapture: (reminder: ActiveReminder) => void;
 }
 
 interface FooterPrimary {
-  variant: 'action' | 'link';
+  variant: 'action' | 'link' | 'capture';
   label: string;
   action?: ReminderActionType;
   to?: string;
@@ -70,7 +71,7 @@ function resolveFooterPrimary(reminder: ActiveReminder): FooterPrimary[] {
       case 'go_hospital':
         if (reminder.rule.domain === 'vaccine') {
           return [
-            { variant: 'link', label: '记录疫苗', to: `/profile/vaccines?ruleId=${encodeURIComponent(reminder.rule.ruleId)}` },
+            { variant: 'link', label: '记录疫苗', to: '/profile' },
             { variant: 'action', label: '标记完成', action: 'complete' },
           ];
         }
@@ -80,8 +81,7 @@ function resolveFooterPrimary(reminder: ActiveReminder): FooterPrimary[] {
         ];
       case 'record_data':
         return [
-          { variant: 'link', label: '去记录', to: '/profile/growth' },
-          { variant: 'action', label: '标记完成', action: 'complete' },
+          { variant: 'capture', label: '去记录' },
         ];
       default:
         return [{ variant: 'action', label: '标记完成', action: 'complete' }];
@@ -157,7 +157,7 @@ function isExplainComplete(reminder: ActiveReminder): boolean {
   );
 }
 
-export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderExplainDrawerProps) {
+export function ReminderExplainDrawer({ reminder, onClose, onAction, onOpenCapture }: ReminderExplainDrawerProps) {
   if (!reminder) return null;
 
   const explain = reminder.rule.explain;
@@ -335,6 +335,22 @@ export function ReminderExplainDrawer({ reminder, onClose, onAction }: ReminderE
                     type="button"
                     onClick={() => {
                       onAction(reminder, action);
+                      onClose();
+                    }}
+                    className={className}
+                    style={style}
+                  >
+                    {primary.label}
+                  </button>
+                );
+              }
+              if (primary.variant === 'capture') {
+                return (
+                  <button
+                    key={`${primary.label}-${index}`}
+                    type="button"
+                    onClick={() => {
+                      onOpenCapture(reminder);
                       onClose();
                     }}
                     className={className}

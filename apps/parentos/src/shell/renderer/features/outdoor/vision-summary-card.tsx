@@ -42,7 +42,7 @@ export function VisionSummaryCard({ childId }: { childId: string }) {
   if (!latestRecord) {
     return (
       <Link
-        to="/profile/vision"
+        to="/profile"
         data-testid="outdoor-vision-summary"
         className="block mb-6 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] rounded-[var(--nimi-radius-xl)] transition-colors hover:bg-white/70"
         style={{ padding: 16 }}
@@ -69,7 +69,7 @@ export function VisionSummaryCard({ childId }: { childId: string }) {
 
   return (
     <Link
-      to="/profile/vision"
+      to="/profile"
       data-testid="outdoor-vision-summary"
       className="block mb-6 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] rounded-[var(--nimi-radius-xl)] transition-colors hover:bg-white/70"
       style={{ padding: 16 }}

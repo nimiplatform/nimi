@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { S } from '../../app-shell/page-style.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import type { WHOLMSDataset } from './who-lms-loader.js';
@@ -44,6 +45,7 @@ export function GrowthCurveHistoryTable({
   onCancelDelete,
   onConfirmDelete,
 }: GrowthCurveHistoryTableProps) {
+  const { t } = useTranslation();
   if (typeMeasurements.length === 0) {
     return null;
   }
@@ -51,16 +53,16 @@ export function GrowthCurveHistoryTable({
   return (
     <>
       <div className={`mt-6 ${S.radius} p-4`} style={{ background: S.card, boxShadow: S.shadow }}>
-        <h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>历史记录</h3>
+        <h3 className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>{t('Profile.rich.common.history')}</h3>
         <table className="w-full text-[14px]" style={{ color: S.text }}>
           <thead>
             <tr className="text-left" style={{ color: S.sub, borderBottom: `1px solid ${S.border}` }}>
-              <th className="pb-2">日期</th>
-              <th className="pb-2">年龄</th>
-              <th className="pb-2">数值</th>
-              <th className="pb-2">来源</th>
-              <th className="pb-2">百分位</th>
-              <th className="pb-2 w-24 text-right">操作</th>
+              <th className="pb-2">{t('Profile.rich.common.date')}</th>
+              <th className="pb-2">{t('Profile.rich.common.age')}</th>
+              <th className="pb-2">{t('Profile.rich.common.value')}</th>
+              <th className="pb-2">{t('Profile.rich.common.source')}</th>
+              <th className="pb-2">{t('Profile.rich.growth.percentile')}</th>
+              <th className="pb-2 w-24 text-right">{t('Profile.rich.common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -115,7 +117,7 @@ export function GrowthCurveHistoryTable({
                             <button
                               onClick={() => onSaveEdit(measurement)}
                               className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-green-50"
-                              title="保存"
+                              title={t('Profile.rich.common.save')}
                               style={{ color: '#16a34a' }}
                             >
                               ✓
@@ -123,7 +125,7 @@ export function GrowthCurveHistoryTable({
                             <button
                               onClick={onCancelEdit}
                               className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-gray-100"
-                              title="取消"
+                              title={t('Profile.rich.common.cancel')}
                               style={{ color: S.sub }}
                             >
                               ✕
@@ -134,14 +136,14 @@ export function GrowthCurveHistoryTable({
                             <button
                               onClick={() => onAnalyze(measurement)}
                               className="w-6 h-6 rounded-full flex items-center justify-center text-[16px] transition-colors hover:bg-[#f0f0ec]"
-                              title="AI 分析此数据"
+                              title={t('Profile.rich.common.aiAnalyze')}
                             >
                               💬
                             </button>
                             <button
                               onClick={() => onStartEdit(measurement)}
                               className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-blue-50"
-                              title="编辑"
+                              title={t('Profile.rich.common.edit')}
                               style={{ color: '#2563eb' }}
                             >
                               ✎
@@ -149,7 +151,7 @@ export function GrowthCurveHistoryTable({
                             <button
                               onClick={() => onRequestDelete(measurement.measurementId)}
                               className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] transition-colors hover:bg-red-50"
-                              title="删除"
+                              title={t('Profile.rich.common.delete')}
                               style={{ color: '#dc2626' }}
                             >
                               ✕
@@ -176,9 +178,9 @@ export function GrowthCurveHistoryTable({
             style={{ background: S.card, boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}
             onClick={(event) => event.stopPropagation()}
           >
-            <h3 className="text-[16px] font-semibold mb-2" style={{ color: S.text }}>确认删除</h3>
+            <h3 className="text-[16px] font-semibold mb-2" style={{ color: S.text }}>{t('Profile.rich.common.confirmDelete')}</h3>
             <p className="text-[14px] leading-[1.6] mb-5" style={{ color: S.sub }}>
-              删除后数据无法恢复，确定要删除这条记录吗？
+              {t('Profile.rich.common.deleteCannotUndo')}
             </p>
             <div className="flex justify-end gap-2">
               <button
@@ -186,14 +188,14 @@ export function GrowthCurveHistoryTable({
                 className="text-[14px] px-4 py-1.5 rounded-full font-medium transition-colors hover:opacity-80"
                 style={{ background: '#f5f3ef', color: S.text }}
               >
-                取消
+                {t('Profile.rich.common.cancel')}
               </button>
               <button
                 onClick={() => onConfirmDelete(deletingId)}
                 className="text-[14px] px-4 py-1.5 rounded-full text-white font-medium transition-colors hover:opacity-90"
                 style={{ background: '#dc2626' }}
               >
-                确认删除
+                {t('Profile.rich.common.confirmDeleteAction')}
               </button>
             </div>
           </div>

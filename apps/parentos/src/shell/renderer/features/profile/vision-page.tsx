@@ -12,6 +12,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { computeAgeMonths, computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
 import {
@@ -43,7 +44,7 @@ import {
   EYE_SET, CHART_OPTIONS,
   buildExamViews, computeGlanceMetrics, deriveMeasurementExamKind, findLatestFullRecord,
   fmtAge, groupByDate,
-  type ExamView, type VisionRecord,
+  type VisionRecord,
 } from './vision-data.js';
 import { BatchForm } from './vision-batch-form.js';
 import { VisionGuide } from './vision-guide.js';
@@ -66,18 +67,18 @@ const VISION_SCREENING_PREFIX = 'vision:';
 const RECENT_EXAM_COUNT = 3;
 
 const SCREENING_TYPES = [
-  { key: 'red-reflex', label: '红光反射', emoji: '🔴', desc: '筛查先天性白内障', minAge: 0, maxAge: 12 },
-  { key: 'fixation-tracking', label: '注视追视', emoji: '👁️', desc: '追踪物体能力', minAge: 2, maxAge: 12 },
-  { key: 'cover-test', label: '遮盖试验', emoji: '🫣', desc: '筛查斜视', minAge: 4, maxAge: EARLY_SCREENING_MAX_AGE_MONTHS },
-  { key: 'photoscreener', label: '光筛查仪', emoji: '📷', desc: '屈光异常筛查', minAge: 6, maxAge: 48 },
-  { key: 'tear-duct', label: '泪道检查', emoji: '💧', desc: '泪道阻塞筛查', minAge: 0, maxAge: 24 },
-  { key: 'eye-checkup', label: '眼科检查', emoji: '🩺', desc: '通用眼科就诊', minAge: 0, maxAge: EARLY_SCREENING_MAX_AGE_MONTHS },
+  { key: 'red-reflex', labelKey: 'redReflex', emoji: '🔴', desc: '筛查先天性白内障', minAge: 0, maxAge: 12 },
+  { key: 'fixation-tracking', labelKey: 'fixationTracking', emoji: '👁️', desc: '追踪物体能力', minAge: 2, maxAge: 12 },
+  { key: 'cover-test', labelKey: 'coverTest', emoji: '🫣', desc: '筛查斜视', minAge: 4, maxAge: EARLY_SCREENING_MAX_AGE_MONTHS },
+  { key: 'photoscreener', labelKey: 'photoscreener', emoji: '📷', desc: '屈光异常筛查', minAge: 6, maxAge: 48 },
+  { key: 'tear-duct', labelKey: 'tearDuct', emoji: '💧', desc: '泪道阻塞筛查', minAge: 0, maxAge: 24 },
+  { key: 'eye-checkup', labelKey: 'eyeCheckup', emoji: '🩺', desc: '通用眼科就诊', minAge: 0, maxAge: EARLY_SCREENING_MAX_AGE_MONTHS },
 ] as const;
 
 const SCREENING_RESULT_OPTIONS = [
-  { key: 'pass', label: '通过', color: '#10b981' },
-  { key: 'refer', label: '转诊', color: '#ef4444' },
-  { key: 'inconclusive', label: '待定', color: '#f59e0b' },
+  { key: 'pass', labelKey: 'resultPass', color: '#10b981' },
+  { key: 'refer', labelKey: 'resultRefer', color: '#ef4444' },
+  { key: 'inconclusive', labelKey: 'resultInconclusive', color: '#f59e0b' },
 ] as const;
 
 /* ── ScreeningModal — admit a new early screening to medical_events ─ */
@@ -95,6 +96,7 @@ function ScreeningModal({
   onClose: () => void;
   onSave: () => void;
 }) {
+  const { t } = useTranslation();
   const availableTypes = SCREENING_TYPES.filter((t) => ageMonths >= t.minAge && ageMonths <= t.maxAge);
   const [formType, setFormType] = useState<string>(availableTypes[0]?.key ?? 'eye-checkup');
   const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 10));
@@ -105,12 +107,13 @@ function ScreeningModal({
   const handleSubmit = async () => {
     if (!formDate) return;
     const screeningMeta = SCREENING_TYPES.find((t) => t.key === formType);
+    const screeningLabel = screeningMeta ? t(`Profile.rich.vision.screeningTypes.${screeningMeta.labelKey}`) : formType;
     const now = isoNow();
     await insertMedicalEvent({
       eventId: ulid(),
       childId,
       eventType: 'checkup',
-      title: `${screeningMeta?.label ?? formType}检查`,
+      title: t('Profile.rich.vision.screeningTitle', { label: screeningLabel }),
       eventDate: formDate,
       endDate: null,
       ageMonths: computeAgeMonthsAt(birthDate, formDate),
@@ -131,27 +134,27 @@ function ScreeningModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
       <div className={`w-[560px] max-h-[85vh] overflow-y-auto ${S.radius} p-5 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>添加筛查记录</h3>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
+          <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>{t('Profile.rich.vision.screeningModalTitle')}</h3>
+          <button onClick={onClose} aria-label={t('Profile.rich.common.close')} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
         </div>
 
-        <p className="text-[13px] mb-2" style={{ color: S.sub }}>筛查项目</p>
+        <p className="text-[13px] mb-2" style={{ color: S.sub }}>{t('Profile.rich.vision.screeningItem')}</p>
         <div className="flex flex-wrap gap-1.5 mb-4">
-          {availableTypes.map((t) => (
+          {availableTypes.map((screeningType) => (
             <button
-              key={t.key}
-              onClick={() => setFormType(t.key)}
+              key={screeningType.key}
+              onClick={() => setFormType(screeningType.key)}
               className={`flex items-center gap-1 px-3 py-1.5 text-[13px] ${S.radiusSm} transition-all`}
-              style={formType === t.key
+              style={formType === screeningType.key
                 ? { background: S.accent, color: '#fff' }
                 : { background: '#f5f3ef', color: S.sub }}
             >
-              <span>{t.emoji}</span> {t.label}
+              <span>{screeningType.emoji}</span> {t(`Profile.rich.vision.screeningTypes.${screeningType.labelKey}`)}
             </button>
           ))}
         </div>
 
-        <p className="text-[13px] mb-2" style={{ color: S.sub }}>检查结果</p>
+        <p className="text-[13px] mb-2" style={{ color: S.sub }}>{t('Profile.rich.vision.screeningResult')}</p>
         <div className="flex gap-1.5 mb-4">
           {SCREENING_RESULT_OPTIONS.map((r) => (
             <button
@@ -162,21 +165,21 @@ function ScreeningModal({
                 ? { background: r.color, color: '#fff' }
                 : { background: '#f5f3ef', color: S.sub }}
             >
-              {r.label}
+              {t(`Profile.rich.vision.${r.labelKey}`)}
             </button>
           ))}
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div>
-            <p className="text-[13px] mb-1" style={{ color: S.sub }}>日期</p>
+            <p className="text-[13px] mb-1" style={{ color: S.sub }}>{t('Profile.rich.common.date')}</p>
             <ProfileDatePicker value={formDate} onChange={setFormDate} style={{ background: '#f5f3ef', color: S.text }} />
           </div>
           <div>
-            <p className="text-[13px] mb-1" style={{ color: S.sub }}>医院/诊所</p>
+            <p className="text-[13px] mb-1" style={{ color: S.sub }}>{t('Profile.rich.vision.hospitalOrClinic')}</p>
             <input
               type="text" value={formHospital} onChange={(e) => setFormHospital(e.target.value)}
-              placeholder="选填"
+              placeholder={t('Profile.rich.common.optional')}
               className={`w-full px-3 py-2 text-[14px] ${S.radiusSm} border-0 outline-none`}
               style={{ background: '#f5f3ef', color: S.text }}
             />
@@ -184,10 +187,10 @@ function ScreeningModal({
         </div>
 
         <div className="mb-4">
-          <p className="text-[13px] mb-1" style={{ color: S.sub }}>备注</p>
+          <p className="text-[13px] mb-1" style={{ color: S.sub }}>{t('Profile.rich.vision.notes')}</p>
           <input
             type="text" value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
-            placeholder="选填"
+            placeholder={t('Profile.rich.common.optional')}
             className={`w-full px-3 py-2 text-[14px] ${S.radiusSm} border-0 outline-none`}
             style={{ background: '#f5f3ef', color: S.text }}
           />
@@ -199,14 +202,14 @@ function ScreeningModal({
             className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} hover:opacity-90 transition-all`}
             style={{ background: S.accent }}
           >
-            保存
+            {t('Profile.rich.common.save')}
           </button>
           <button
             onClick={onClose}
             className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-all`}
             style={{ background: '#f5f3ef', color: S.sub }}
           >
-            取消
+            {t('Profile.rich.common.cancel')}
           </button>
         </div>
       </div>
@@ -326,6 +329,7 @@ function NextStepsCard({
   /** Latest exam date of any type — anchors the next-visit cadence. */
   latestBiometricDate: string | null;
 }) {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<VisionFollowupSettings | null>(null);
   const [editing, setEditing] = useState(false);
   const today = useMemo(() => new Date(), []);
@@ -361,11 +365,11 @@ function NextStepsCard({
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6 1.65 1.65 0 0010 3.09V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.13.31.2.65.2 1v.09a2 2 0 010 4H20" />
             </svg>
-            提醒设置
+            {t('Profile.rich.vision.reminderSettings')}
           </button>
         }
       >
-        下一步
+        {t('Profile.detail.nextRecordDate')}
       </SectionLabel>
       <div
         className="rounded-[22px] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)]"
@@ -388,14 +392,14 @@ function NextStepsCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[14px] font-medium" style={{ color: 'var(--nimi-fg-1)' }}>
-                下次眼科复查（眼轴 + 验光）
+                {t('Profile.rich.vision.nextReview')}
               </span>
               {resolved.isCustomDate && (
                 <span
                   className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
                   style={{ background: 'rgba(14,165,233,0.10)', color: '#0369a1' }}
                 >
-                  自定义
+                  {t('Profile.rich.vision.custom')}
                 </span>
               )}
               {!resolved.isCustomDate && resolved.isUserOverride && (
@@ -403,7 +407,7 @@ function NextStepsCard({
                   className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
                   style={{ background: 'rgba(15,23,42,0.05)', color: 'var(--nimi-fg-3)' }}
                 >
-                  每 {resolved.cadenceMonths} 个月
+                  {t('Profile.rich.vision.everyMonths', { months: resolved.cadenceMonths })}
                 </span>
               )}
             </div>
@@ -443,6 +447,7 @@ function NextStepsEditor({
   onClose: () => void;
   onSaved: (next: VisionFollowupSettings | null) => void;
 }) {
+  const { t } = useTranslation();
   const [cadence, setCadence] = useState<number>(settings?.cadenceMonths ?? VISION_FOLLOWUP_CADENCE_DEFAULT);
   const [customDate, setCustomDate] = useState<string>(settings?.customNextDate ?? '');
   const [saving, setSaving] = useState(false);
@@ -455,13 +460,13 @@ function NextStepsEditor({
     setError(null);
     try {
       if (cadence < VISION_FOLLOWUP_CADENCE_MIN || cadence > VISION_FOLLOWUP_CADENCE_MAX) {
-        setError(`提醒频率需在 ${VISION_FOLLOWUP_CADENCE_MIN}–${VISION_FOLLOWUP_CADENCE_MAX} 个月之间`);
+        setError(t('Profile.rich.vision.cadenceRangeError', { min: VISION_FOLLOWUP_CADENCE_MIN, max: VISION_FOLLOWUP_CADENCE_MAX }));
         return;
       }
       const trimmedDate = customDate.trim();
       const customNextDate = trimmedDate ? trimmedDate : null;
       if (customNextDate && !/^\d{4}-\d{2}-\d{2}$/.test(customNextDate)) {
-        setError('自定义日期格式需为 YYYY-MM-DD');
+        setError(t('Profile.rich.vision.customDateFormatError'));
         return;
       }
       await setVisionFollowupSettings({
@@ -478,7 +483,7 @@ function NextStepsEditor({
         updatedAt: isoNow(),
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : '保存失败，请重试');
+      setError(e instanceof Error ? e.message : t('Profile.rich.vision.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -491,7 +496,7 @@ function NextStepsEditor({
       await clearVisionFollowupSettings(childId);
       onSaved(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : '保存失败，请重试');
+      setError(e instanceof Error ? e.message : t('Profile.rich.vision.saveFailed'));
       setSaving(false);
     }
   };
@@ -506,7 +511,7 @@ function NextStepsEditor({
       }}
     >
       <div className="text-[11px] font-semibold uppercase tracking-[0.06em] mb-2" style={{ color: 'var(--nimi-fg-3)' }}>
-        提醒频率
+        {t('Profile.rich.vision.followupFrequency')}
       </div>
       <div className="flex flex-wrap gap-1.5 mb-3">
         {CADENCE_PRESETS.map((p) => (
@@ -518,7 +523,7 @@ function NextStepsEditor({
               ? { background: 'var(--nimi-accent)', color: 'white' }
               : { background: 'rgba(15,23,42,0.04)', color: 'var(--nimi-fg-2)' }}
           >
-            {p.label}
+            {p.months} {t('Profile.rich.vision.monthsShort')}
           </button>
         ))}
         <div
@@ -527,7 +532,7 @@ function NextStepsEditor({
             ? { background: 'var(--nimi-accent-soft)', color: 'var(--nimi-accent)' }
             : { background: 'rgba(15,23,42,0.04)', color: 'var(--nimi-fg-3)' }}
         >
-          <span className="text-[12px]">自定义</span>
+          <span className="text-[12px]">{t('Profile.rich.vision.custom')}</span>
           <input
             type="number"
             min={VISION_FOLLOWUP_CADENCE_MIN}
@@ -541,12 +546,12 @@ function NextStepsEditor({
             style={{ color: 'inherit', fontFamily: MONO }}
             aria-label="vision-followup-cadence-custom"
           />
-          <span className="text-[12px]">个月</span>
+          <span className="text-[12px]">{t('Profile.rich.vision.monthsShort')}</span>
         </div>
       </div>
 
       <div className="text-[11px] font-semibold uppercase tracking-[0.06em] mb-2" style={{ color: 'var(--nimi-fg-3)' }}>
-        指定下次复查日期 <span className="font-normal normal-case lowercase" style={{ color: 'var(--nimi-fg-4)' }}>· 仅覆盖下一次</span>
+        {t('Profile.rich.vision.customNextDate')} <span className="font-normal normal-case lowercase" style={{ color: 'var(--nimi-fg-4)' }}>· {t('Profile.rich.vision.customNextDateHint')}</span>
       </div>
       <div className="flex items-center gap-2 mb-1">
         <ProfileDatePicker
@@ -562,14 +567,14 @@ function NextStepsEditor({
             style={{ background: 'rgba(15,23,42,0.05)', color: 'var(--nimi-fg-3)' }}
             aria-label="vision-followup-clear-custom-date"
           >
-            清除
+            {t('Profile.rich.vision.clear')}
           </button>
         )}
       </div>
       <div className="text-[11px] mb-3" style={{ color: 'var(--nimi-fg-4)' }}>
         {latestExamDate
-          ? `按 ${cadence} 个月节奏，建议 ${addMonths(latestExamDate, cadence)}`
-          : '暂无检查记录可用作锚点，请直接指定日期'}
+          ? t('Profile.rich.vision.cadenceSuggestion', { months: cadence, date: addMonths(latestExamDate, cadence) })
+          : t('Profile.rich.vision.noAnchor')}
       </div>
 
       {error && (
@@ -589,7 +594,7 @@ function NextStepsEditor({
             className="text-[11px] cursor-pointer border-0 bg-transparent disabled:opacity-50"
             style={{ color: 'var(--nimi-fg-3)' }}
           >
-            恢复系统推荐
+            {t('Profile.rich.vision.resetToSystem')}
           </button>
         ) : <span />}
         <div className="flex items-center gap-2">
@@ -599,7 +604,7 @@ function NextStepsEditor({
             className="text-[12px] px-3 py-1.5 rounded-full border-0 cursor-pointer disabled:opacity-50"
             style={{ background: 'rgba(15,23,42,0.05)', color: 'var(--nimi-fg-2)' }}
           >
-            取消
+            {t('Profile.rich.common.cancel')}
           </button>
           <button
             onClick={() => void handleSave()}
@@ -608,7 +613,7 @@ function NextStepsEditor({
             className="text-[12px] px-4 py-1.5 rounded-full border-0 cursor-pointer text-white disabled:opacity-50"
             style={{ background: 'var(--nimi-accent)' }}
           >
-            {saving ? '保存中…' : '保存'}
+            {saving ? t('Profile.rich.common.saving') : t('Profile.rich.common.save')}
           </button>
         </div>
       </div>
@@ -627,6 +632,7 @@ function TrendChartCard({
   chartType: GrowthTypeId;
   onChartTypeChange: (v: GrowthTypeId) => void;
 }) {
+  const { t } = useTranslation();
   const typeInfo = GROWTH_STANDARDS.find((s) => s.typeId === chartType);
   const chartData = measurements
     .filter((m) => m.typeId === chartType)
@@ -641,10 +647,10 @@ function TrendChartCard({
       <div className="flex items-baseline justify-between mb-3.5">
         <div>
           <div className="text-[14px] font-semibold" style={{ color: 'var(--nimi-fg-1)' }}>
-            {typeInfo?.displayName ?? '趋势'}曲线
+            {t('Profile.rich.vision.curveTitle', { metric: typeInfo?.displayName ?? t('Profile.rich.vision.curveFallback') })}
           </div>
           <div className="text-[11px] mt-0.5" style={{ color: 'var(--nimi-fg-3)' }}>
-            共 {chartData.length} 次测量
+            {t('Profile.rich.vision.measurementCount', { count: chartData.length })}
           </div>
         </div>
         <AppSelect
@@ -655,7 +661,7 @@ function TrendChartCard({
       </div>
       {chartData.length === 0 ? (
         <div className="p-8 text-center" style={{ color: 'var(--nimi-fg-3)' }}>
-          <span className="text-[13px]">暂无{typeInfo?.displayName ?? ''}记录</span>
+          <span className="text-[13px]">{t('Profile.rich.vision.emptyMetric', { metric: typeInfo?.displayName ?? '' })}</span>
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
@@ -685,6 +691,7 @@ function TrendChartCard({
 /* ── Page ────────────────────────────────────────────────────────── */
 
 export default function VisionPage() {
+  const { t } = useTranslation();
   const { activeChildId, setActiveChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
 
@@ -714,7 +721,6 @@ export default function VisionPage() {
 
   useEffect(() => {
     reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChildId]);
 
   const records = useMemo(() => groupByDate(measurements), [measurements]);
@@ -723,7 +729,6 @@ export default function VisionPage() {
   // Auto-open the latest exam on first load.
   useEffect(() => {
     if (openExamId == null && exams.length > 0) setOpenExamId(exams[0]!.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exams.length === 0 ? null : exams[0]?.id]);
 
   const filteredExams = useMemo(() => {
@@ -763,7 +768,7 @@ export default function VisionPage() {
   }, [measurements]);
 
   const handleDeleteRecord = async (record: VisionRecord) => {
-    const confirmed = window.confirm(`确认删除 ${record.date} 的检查记录吗？`);
+    const confirmed = window.confirm(t('Profile.rich.vision.deleteConfirm', { date: record.date }));
     if (!confirmed) return;
     await Promise.all(
       [...record.measurementsByType.values()].map((measurement) => deleteMeasurement(measurement.measurementId)),
@@ -774,7 +779,7 @@ export default function VisionPage() {
   if (!child) {
     return (
       <div className="flex items-center justify-center h-full" style={{ color: 'var(--nimi-fg-3)' }}>
-        请先添加孩子档案
+        {t('Profile.empty.noActiveChild')}
       </div>
     );
   }
@@ -799,14 +804,14 @@ export default function VisionPage() {
       const result = await analyzeCheckupSheetOCR({ imageUrl: dataUrl });
       const eyeMeasurements = result.measurements.filter((measurement) => EYE_SET.has(measurement.typeId));
       if (eyeMeasurements.length === 0) {
-        setOCRError('未识别到可导入的视力/眼轴数据，请确认图片清晰且为验光单或眼轴单。');
+        setOCRError(t('Profile.rich.vision.ocrNoData'));
         return;
       }
       setEditingRecord(null);
       setOCRDraft(eyeMeasurements);
       setShowForm(true);
     } catch (error) {
-      setOCRError(error instanceof Error ? error.message : '智能识别失败，请重试。');
+      setOCRError(error instanceof Error ? error.message : t('Profile.rich.vision.ocrFailed'));
     } finally {
       setOcrScanning(false);
       if (ocrInputRef.current) ocrInputRef.current.value = '';
@@ -816,7 +821,7 @@ export default function VisionPage() {
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-4">
-        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: 'var(--nimi-fg-3)' }}>← 返回档案</Link>
+        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: 'var(--nimi-fg-3)' }}>← {t('Profile.rich.common.backToProfile')}</Link>
       </div>
 
       {/* Child switcher */}
@@ -833,7 +838,7 @@ export default function VisionPage() {
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold" style={{ color: 'var(--nimi-fg-1)' }}>
-              {child.displayName} 的视力档案
+              {t('Profile.rich.vision.title', { name: child.displayName })}
             </h1>
             <SourcesTooltip />
           </div>
@@ -848,7 +853,7 @@ export default function VisionPage() {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" /><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01" />
               </svg>
-              录入指引
+              {t('Profile.rich.vision.recordGuide')}
             </button>
           )}
           {supportsQuantitative && (
@@ -861,7 +866,7 @@ export default function VisionPage() {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
               </svg>
-              {ocrScanning ? '识别中...' : '智能识别'}
+              {ocrScanning ? t('Profile.rich.vision.recognizing') : t('Profile.rich.vision.smartRecognize')}
             </button>
           )}
           {supportsScreening && (
@@ -873,7 +878,7 @@ export default function VisionPage() {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" />
               </svg>
-              添加筛查
+              {t('Profile.rich.vision.addScreening')}
             </button>
           )}
           {supportsQuantitative && (
@@ -885,7 +890,7 @@ export default function VisionPage() {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 5v14M5 12h14" />
               </svg>
-              录入数据
+              {t('Profile.rich.vision.recordData')}
             </button>
           )}
         </div>
@@ -926,11 +931,11 @@ export default function VisionPage() {
           dataContext={(() => {
             const lines: string[] = [];
             const vl = latest.get('vision-left'), vr = latest.get('vision-right');
-            if (vl) lines.push(`左眼视力: ${vl.value}`);
-            if (vr) lines.push(`右眼视力: ${vr.value}`);
+            if (vl) lines.push(`${t('Profile.metrics.vision.leftVisualAcuity')}: ${vl.value}`);
+            if (vr) lines.push(`${t('Profile.metrics.vision.rightVisualAcuity')}: ${vr.value}`);
             const al = latest.get('axial-length-left'), ar = latest.get('axial-length-right');
-            if (al) lines.push(`左眼眼轴: ${al.value}mm`);
-            if (ar) lines.push(`右眼眼轴: ${ar.value}mm`);
+            if (al) lines.push(`${t('Profile.metrics.vision.leftAxialLength')}: ${al.value}mm`);
+            if (ar) lines.push(`${t('Profile.metrics.vision.rightAxialLength')}: ${ar.value}mm`);
             return lines.join('\n');
           })()}
         />
@@ -997,7 +1002,7 @@ export default function VisionPage() {
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 6h18M7 12h10M11 18h2" />
                   </svg>
-                  {selectedAge != null ? `${selectedAge}岁` : '按年龄'}
+                  {selectedAge != null ? t('Profile.rich.vision.ageFilter', { age: selectedAge }) : t('Profile.rich.vision.ageFilterDefault')}
                   {selectedAge != null && (
                     <span
                       onClick={(e) => { e.stopPropagation(); setSelectedAge(null); }}
@@ -1010,9 +1015,9 @@ export default function VisionPage() {
               ) : undefined
             }
           >
-            检查记录 · 时间线
+            {t('Profile.rich.vision.timelineTitle')}
             <span className="ml-2 text-[10px]" style={{ color: 'var(--nimi-fg-4)', textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>
-              共 {exams.length} 次
+              {t('Profile.rich.vision.examCount', { count: exams.length })}
             </span>
           </SectionLabel>
 
@@ -1039,7 +1044,7 @@ export default function VisionPage() {
           )}
 
           {exams.length === 0 ? (
-            <EmptyTimelineCard message={supportsQuantitative ? '还没有视力检查记录，点击右上方按钮录入第一次检查' : '还没有视力检查记录'} />
+            <EmptyTimelineCard message={supportsQuantitative ? t('Profile.rich.vision.emptyTimelineFull') : t('Profile.rich.vision.emptyTimeline')} />
           ) : (
             <div className="relative" style={{ paddingLeft: 24 }}>
               <div

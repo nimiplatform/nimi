@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { S } from '../../app-shell/page-style.js';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { computeAgeMonths, computeAgeMonthsAt, formatAge, useAppStore } from '../../app-shell/app-store.js';
@@ -29,6 +30,7 @@ import {
 } from './growth-curve-page-shared.js';
 
 export default function GrowthCurvePage() {
+  const { t } = useTranslation();
   const { activeChildId, setActiveChildId, children } = useAppStore();
   const child = children.find((item) => item.childId === activeChildId);
   const [measurements, setMeasurements] = useState<MeasurementRow[]>([]);
@@ -155,11 +157,11 @@ export default function GrowthCurvePage() {
 
   const navigateToAI = (m: MeasurementRow) => {
     const ti = GROWTH_STANDARDS.find((s) => s.typeId === m.typeId);
-    const topic = `${ti?.displayName ?? m.typeId}数据分析`;
+    const topic = t('Profile.rich.growth.dataAnalysisTopic', { metric: ti?.displayName ?? m.typeId });
     const lines = [`${child.displayName}，${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`,
       `${ti?.displayName ?? m.typeId}: ${m.value} ${ti?.unit ?? ''}（${m.measuredAt.split('T')[0]}）`];
-    if (latestH) lines.push(`最新身高: ${latestH.value} cm`);
-    if (latestW) lines.push(`最新体重: ${latestW.value} kg`);
+    if (latestH) lines.push(t('Profile.rich.growth.latestHeight', { value: latestH.value }));
+    if (latestW) lines.push(t('Profile.rich.growth.latestWeight', { value: latestW.value }));
     const desc = lines.join('\\n');
     navigate(`/advisor?topic=${encodeURIComponent(topic)}&desc=${encodeURIComponent(desc)}`);
   };
@@ -221,7 +223,7 @@ export default function GrowthCurvePage() {
       setOCRCandidates([]);
     } catch {
       resetOCRDraft();
-      setOCRError('无法读取体检单图片，请重新选择。');
+      setOCRError(t('Profile.rich.growth.importReadFailed'));
     }
   };
 
@@ -248,7 +250,7 @@ export default function GrowthCurvePage() {
   const handleImportOCR = async () => {
     const selectedCandidates = ocrCandidates.filter((candidate) => candidate.selected);
     if (selectedCandidates.length === 0) {
-      setOCRError('请至少选择一条要导入的测量记录。');
+      setOCRError(t('Profile.rich.growth.importSelectAtLeastOne'));
       return;
     }
 
@@ -256,7 +258,7 @@ export default function GrowthCurvePage() {
       return !candidate.measuredAt.trim() || !Number.isFinite(candidate.value);
     });
     if (invalidCandidate) {
-      setOCRError('所选 OCR 候选必须包含有效的日期和值。');
+      setOCRError(t('Profile.rich.growth.importInvalidCandidate'));
       return;
     }
 
@@ -282,18 +284,18 @@ export default function GrowthCurvePage() {
       resetOCRDraft();
       setShowOCR(false);
     } catch {
-      setOCRError('导入失败，请确认 OCR 候选并重试。');
+      setOCRError(t('Profile.rich.growth.importFailed'));
     }
   };
 
   return (
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-6">
-        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>← 返回档案</Link>
+        <Link to="/profile" className="text-[14px] hover:underline" style={{ color: S.sub }}>← {t('Profile.rich.common.backToProfile')}</Link>
       </div>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold" style={{ color: S.text }}>生长曲线</h1>
+          <h1 className="text-2xl font-bold" style={{ color: S.text }}>{t('Profile.rich.growth.title')}</h1>
           {/* Info icon with sources tooltip */}
           <div className="group relative">
             <div className="w-[18px] h-[18px] rounded-full flex items-center justify-center cursor-help transition-colors hover:bg-[#f0f0ec]" style={{ color: S.sub }}>
@@ -337,16 +339,16 @@ export default function GrowthCurvePage() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h4M7 12h10M7 16h6" />
             </svg>
-            {showOCR ? '关闭识别' : '智能识别'}
+            {showOCR ? t('Profile.rich.growth.closeRecognize') : t('Profile.rich.growth.smartRecognize')}
             <span className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg px-3 py-1.5 text-[13px] font-normal text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 z-50"
               style={{ background: '#1e293b' }}>
-              拍照/上传体检单，自动识别数据
+              {t('Profile.rich.growth.ocrHint')}
             </span>
           </button>
           <button onClick={() => setShowForm(true)}
             className={`flex items-center gap-1 px-3 py-1.5 text-[14px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90`}
             style={{ background: S.accent }}>
-            + 添加记录
+            + {t('Profile.rich.common.addRecord')}
           </button>
         </div>
       </div>

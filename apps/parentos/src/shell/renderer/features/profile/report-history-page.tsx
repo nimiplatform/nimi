@@ -113,7 +113,7 @@ export default function ReportHistoryPage() {
             共 {reports.length} 份已识别的医疗报告
           </p>
         </div>
-        <Link to="/profile/report-upload"
+        <Link to="/profile"
           className={`px-4 py-2 text-[14px] font-medium text-white ${S.radiusSm} transition-colors hover:opacity-90`}
           style={{ background: S.accent }}>
           + 上传新报告
@@ -126,7 +126,7 @@ export default function ReportHistoryPage() {
           <span className="text-[48px] mb-3">📄</span>
           <p className="text-[16px] font-medium" style={{ color: S.text }}>还没有上传过报告</p>
           <p className="text-[14px] mt-1 mb-4" style={{ color: S.sub }}>上传体检单、验血单等，AI 自动提取数据</p>
-          <Link to="/profile/report-upload"
+        <Link to="/profile"
             className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm}`}
             style={{ background: S.accent }}>
             上传第一份报告

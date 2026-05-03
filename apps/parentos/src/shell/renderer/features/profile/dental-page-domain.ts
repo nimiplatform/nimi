@@ -116,7 +116,7 @@ export function formatDentalToothLabel(toothId: string | null): string | null {
 export function buildDentalAttachmentMap(attachments: AttachmentRow[]) {
   const next = new Map<string, AttachmentRow[]>();
   for (const attachment of attachments) {
-    if (attachment.ownerTable !== 'dental_records') continue;
+    if (attachment.ownerTable !== 'health_record_events') continue;
     const existing = next.get(attachment.ownerId);
     if (existing) existing.push(attachment);
     else next.set(attachment.ownerId, [attachment]);

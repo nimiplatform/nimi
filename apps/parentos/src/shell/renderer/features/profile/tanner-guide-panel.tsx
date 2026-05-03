@@ -32,7 +32,7 @@ function GuidanceItem({
 }) {
   const [showDetail, setShowDetail] = useState(false);
   const detail = DETAIL_MAP[text];
-  const aiUrl = `/advisor?topic=${encodeURIComponent(text.replace(/\s*\[.*?\]\s*/g, ''))}&desc=${encodeURIComponent(`${childName}（${ageLabel}，${gender === 'female' ? '女孩' : '男孩'}）的发育指导`)}&domain=tanner&record=/profile/tanner`;
+  const aiUrl = `/advisor?topic=${encodeURIComponent(text.replace(/\s*\[.*?\]\s*/g, ''))}&desc=${encodeURIComponent(`${childName}（${ageLabel}，${gender === 'female' ? '女孩' : '男孩'}）的发育指导`)}&domain=tanner&record=/profile`;
 
   return (
     <div className={`${S.radiusSm} overflow-hidden`} style={{ background: color }}>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent, type ReactNode, type ComponentType } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, BookText, MessageCircle, TrendingUp, Settings, Bell, LogOut, type LucideProps } from 'lucide-react';
+import { Home, User, BookText, MessageCircle, TrendingUp, Settings, Bell, LogOut, ChevronDown, Check, UserPlus, type LucideProps } from 'lucide-react';
 import { AmbientBackground, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths, type ChildProfile } from './app-store.js';
 import { startParentosWindowDrag } from '../bridge/window-drag.js';
@@ -23,6 +23,144 @@ const navItems: Array<{ to: string; label: string; Icon: ComponentType<LucidePro
   { to: '/settings', label: '设置', Icon: Settings },
 ];
 
+/* ── Child Switcher Breadcrumb ─────────────────────────────── */
+
+function formatChildAge(ageMonths: number): string {
+  const y = Math.floor(ageMonths / 12);
+  const m = ageMonths % 12;
+  if (y > 0 && m > 0) return `${y}岁${m}个月`;
+  if (y > 0) return `${y}岁`;
+  return `${m}个月`;
+}
+
+function ChildSwitcherBreadcrumb({ childList, activeChildId, onSwitchChild }: {
+  childList: ChildProfile[];
+  activeChildId: string | null;
+  onSwitchChild: (id: string) => void;
+}) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const openMenu = () => { setMounted(true); requestAnimationFrame(() => setOpen(true)); };
+  const closeMenu = () => setOpen(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: globalThis.MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) closeMenu();
+    };
+    const escHandler = (e: KeyboardEvent) => { if (e.key === 'Escape') closeMenu(); };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('keydown', escHandler);
+    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('keydown', escHandler); };
+  }, [open]);
+
+  const activeChild = childList.find((c) => c.childId === activeChildId) ?? null;
+  if (!activeChild) return null;
+
+  return (
+    <div ref={ref} className="relative z-40">
+      <button
+        type="button"
+        onClick={() => open ? closeMenu() : openMenu()}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label="切换孩子"
+        className="flex items-center gap-2 rounded-[10px] px-2 py-1.5 transition-colors hover:bg-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4ECCA3]/30"
+      >
+        <span
+          className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full"
+          style={{ outline: '1px solid rgba(226, 232, 240, 0.95)' }}
+        >
+          <ChildAvatar child={activeChild} className="h-full w-full object-cover" />
+        </span>
+        <span className="text-[14px] font-medium" style={{ color: textMain }}>{activeChild.displayName}</span>
+        <ChevronDown size={13} strokeWidth={2} className="text-slate-400" />
+      </button>
+
+      {mounted && (
+        <Surface
+          as="div"
+          material="glass-thick"
+          padding="none"
+          tone="card"
+          role="menu"
+          className="absolute left-0 top-12 z-50 w-60 overflow-hidden py-1.5 border-[var(--nimi-material-glass-thick-border)] rounded-[16px] shadow-[0_8px_32px_rgba(78,204,163,0.1)]"
+          onTransitionEnd={() => { if (!open) setMounted(false); }}
+          style={{
+            opacity: open ? 1 : 0,
+            transform: open ? 'translateY(0) scale(1)' : 'translateY(6px) scale(0.97)',
+            transformOrigin: 'top left',
+            transition: 'opacity 0.18s ease, transform 0.18s ease',
+            pointerEvents: open ? 'auto' : 'none',
+          }}
+        >
+          <div className="px-1.5">
+            {childList.map((c, idx) => {
+              const isActive = c.childId === activeChildId;
+              const ageLabel = formatChildAge(computeAgeMonths(c.birthDate));
+              return (
+                <button
+                  key={c.childId}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={isActive}
+                  onClick={() => { onSwitchChild(c.childId); closeMenu(); }}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-[#4ECCA3]/5"
+                  style={{
+                    background: isActive ? 'rgba(78,204,163,0.1)' : undefined,
+                    opacity: open ? 1 : 0,
+                    transform: open ? 'translateY(0)' : 'translateY(3px)',
+                    transition: `opacity 0.18s ease ${idx * 0.03}s, transform 0.18s ease ${idx * 0.03}s`,
+                  }}
+                >
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full"
+                      style={{ outline: isActive ? '2px solid #4ECCA3' : '1px solid rgba(226, 232, 240, 0.95)' }}
+                    >
+                      <ChildAvatar child={c} className="h-full w-full object-cover" />
+                    </span>
+                    <div className="min-w-0">
+                      <span className="block truncate text-[14px] font-semibold" style={{ color: isActive ? '#2F7D6B' : textMain }}>
+                        {c.displayName}
+                      </span>
+                      <span className="block text-[12px]" style={{ color: textMuted }}>{ageLabel}</span>
+                    </div>
+                  </div>
+                  {isActive ? <Check size={16} strokeWidth={2.2} style={{ color: '#4ECCA3' }} /> : null}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mx-3 my-1 border-t" style={{ borderColor: 'rgba(78,204,163,0.2)' }} />
+
+          <div className="px-1.5 pb-0.5">
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => { closeMenu(); navigate('/settings/children'); }}
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[14px] transition-colors hover:bg-[#4ECCA3]/5"
+              style={{
+                color: textMuted,
+                opacity: open ? 1 : 0,
+                transform: open ? 'translateY(0)' : 'translateY(3px)',
+                transition: `opacity 0.18s ease ${childList.length * 0.03}s, transform 0.18s ease ${childList.length * 0.03}s`,
+              }}
+            >
+              <UserPlus size={16} strokeWidth={1.8} style={{ color: '#9ca3af' }} />
+              添加家庭成员
+            </button>
+          </div>
+        </Surface>
+      )}
+    </div>
+  );
+}
+
 /* ── Account Avatar Menu ───────────────────────────────────── */
 
 const accountMenuItems = [
@@ -30,11 +168,7 @@ const accountMenuItems = [
   { id: 'settings', label: '设置', icon: Settings, route: '/settings' },
 ] as const;
 
-function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
-  childList: ChildProfile[];
-  activeChildId: string | null;
-  onSwitchChild: (id: string) => void;
-}) {
+function AccountAvatarMenu() {
   const authUser = useAppStore((s) => s.auth.user);
   const clearAuth = useAppStore((s) => s.clearAuthSession);
   const navigate = useNavigate();
@@ -111,47 +245,6 @@ function AccountAvatarMenu({ childList, activeChildId, onSwitchChild }: {
               ) : null}
             </div>
           </div>
-
-          {/* ── Child switcher (only when multiple children) ── */}
-          {childList.length > 1 && (
-            <>
-              <div className="mx-3 border-t" style={{ borderColor: 'rgba(78,204,163,0.2)' }} />
-              <div className="px-1.5 py-1.5">
-                <p className="px-3 py-1 text-[13px] font-medium" style={{ color: textMuted }}>切换孩子</p>
-                {childList.map((c, idx) => {
-                  const am = computeAgeMonths(c.birthDate);
-                  const y = Math.floor(am / 12);
-                  const m = am % 12;
-                  const isActive = c.childId === activeChildId;
-                  return (
-                    <button key={c.childId}
-                      onClick={() => { onSwitchChild(c.childId); closeMenu(); }}
-                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition-colors"
-                      style={{
-                        background: isActive ? 'rgba(78,204,163,0.1)' : undefined,
-                        opacity: open ? 1 : 0,
-                        transform: open ? 'translateY(0)' : 'translateY(3px)',
-                        transition: `opacity 0.18s ease ${idx * 0.03}s, transform 0.18s ease ${idx * 0.03}s`,
-                      }}
-                    >
-                      <div
-                        className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full"
-                        style={{ outline: isActive ? '2px solid #4ECCA3' : '1px solid rgba(226, 232, 240, 0.95)' }}
-                      >
-                        <ChildAvatar child={c} className="h-full w-full object-cover" />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="block truncate text-[14px] font-semibold" style={{ color: isActive ? '#2F7D6B' : textMain }}>{c.displayName}</span>
-                        <span className="block text-[12px]" style={{ color: textMuted }}>
-                          {y > 0 ? `${y}岁` : ''}{m > 0 ? `${m}个月` : ''} · {c.gender === 'female' ? '女孩' : '男孩'}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
 
           {/* ── Divider ── */}
           <div className="mx-3 border-t" style={{ borderColor: 'rgba(78,204,163,0.2)' }} />
@@ -267,7 +360,19 @@ export function ShellLayout({ children }: { children: ReactNode }) {
           style={{ background: 'transparent' }}
           onMouseDown={handleWindowDragMouseDown}
         >
-          <h1 className="text-[18px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.3px' }}>ParentOS</h1>
+          <div className="flex min-w-0 items-center gap-2">
+            <h1 className="text-[18px] font-semibold tracking-tight" style={{ color: textMain, letterSpacing: '-0.3px' }}>ParentOS</h1>
+            {childList.length > 0 && activeChildId ? (
+              <>
+                <span className="select-none text-slate-300" aria-hidden="true">/</span>
+                <ChildSwitcherBreadcrumb
+                  childList={childList}
+                  activeChildId={activeChildId}
+                  onSwitchChild={setActiveChildId}
+                />
+              </>
+            ) : null}
+          </div>
 
           <div className="ml-auto flex items-center gap-3">
             <button className="flex h-9 w-9 items-center justify-center rounded-xl transition-colors hover:bg-white/40"
@@ -275,7 +380,7 @@ export function ShellLayout({ children }: { children: ReactNode }) {
               <Bell size={17} strokeWidth={1.8} />
             </button>
 
-            <AccountAvatarMenu childList={childList} activeChildId={activeChildId} onSwitchChild={setActiveChildId} />
+            <AccountAvatarMenu />
           </div>
         </header>
 

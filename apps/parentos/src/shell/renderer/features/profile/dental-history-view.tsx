@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAppStore, computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
@@ -45,6 +46,7 @@ import {
 /* ── Main view ───────────────────────────────────────────── */
 
 export function DentalHistoryView() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { activeChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
@@ -290,7 +292,7 @@ export function DentalHistoryView() {
           await saveAttachment({
             attachmentId: ulid(),
             childId: child.childId,
-            ownerTable: 'dental_records',
+            ownerTable: 'health_record_events',
             ownerId: writtenRecordIds[0],
             fileName: scanPhoto.fileName,
             mimeType: scanPhoto.mimeType,
@@ -304,13 +306,13 @@ export function DentalHistoryView() {
       }
 
       await refreshDentalData(child.childId);
-      setReminderMsg(`已通过 AI 识别写入 ${writtenRecordIds.length > 0 ? toWrite.length : 0} 颗牙齿萌出记录`);
+      setReminderMsg(t('Profile.rich.dental.scanSaved', { count: writtenRecordIds.length > 0 ? toWrite.length : 0 }));
       setTimeout(() => setReminderMsg(null), 5000);
       setShowScanModal(false);
       resetScanState();
     } catch (error) {
       catchLog('dental', 'action:dental-scan-save-failed')(error);
-      setScanError('保存失败，请重试。');
+      setScanError(t('Profile.rich.vision.saveFailed'));
       setScanStage('review');
     }
   };
@@ -476,10 +478,13 @@ export function DentalHistoryView() {
     const evtInfo = EVENT_TYPES.find((e) => e.key === record.eventType);
     const toothLabel = formatDentalToothLabel(record.toothId);
     const eventDate = record.eventDate.split('T')[0] ?? record.eventDate;
-    const topic = `口腔记录 · ${evtInfo?.label ?? record.eventType}${toothLabel ? ` · ${toothLabel}` : ''}`;
+    const topic = t('Profile.rich.dental.recordTopic', {
+      event: evtInfo?.label ?? record.eventType,
+      tooth: toothLabel ? ` · ${toothLabel}` : '',
+    });
     const descParts: string[] = [`日期：${eventDate}`];
     if (toothLabel) descParts.push(`牙位：${toothLabel}`);
-    if (record.severity) descParts.push(`程度：${SEVERITY_LABELS[record.severity] ?? record.severity}`);
+    if (record.severity) descParts.push(t('Profile.rich.dental.severity', { severity: SEVERITY_LABELS[record.severity] ?? record.severity }));
     if (record.hospital) descParts.push(`机构：${record.hospital}`);
     if (record.notes) descParts.push(`备注：${record.notes}`);
     const params = new URLSearchParams({ topic, desc: descParts.join('；'), record: 'dental' });
@@ -487,7 +492,7 @@ export function DentalHistoryView() {
   };
 
   const handleDeleteRecord = async (record: DentalRecordRow) => {
-    if (!window.confirm('删除这条口腔记录后，相关照片也会一起删除，确定继续吗？')) return;
+    if (!window.confirm(t('Profile.rich.dental.deleteConfirm'))) return;
     try {
       for (const attachment of attachmentMap.get(record.recordId) ?? []) {
         await deleteAttachment(attachment.attachmentId);
@@ -499,7 +504,7 @@ export function DentalHistoryView() {
       await refreshDentalData(child.childId);
     } catch (error) {
       catchLog('dental', 'action:delete-record-failed')(error);
-      setErrorMsg(`删除失败：${error instanceof Error ? error.message : String(error)}`);
+      setErrorMsg(t('Profile.rich.dental.deleteFailed', { message: error instanceof Error ? error.message : String(error) }));
     }
   };
 
@@ -523,6 +528,7 @@ export function DentalHistoryView() {
           hospital: formHospital || null,
           notes: formNotes || null,
           photoPath: null,
+          now,
         });
 
         for (const attachmentId of removedAttachmentIds) {
@@ -532,7 +538,7 @@ export function DentalHistoryView() {
           await saveAttachment({
             attachmentId: ulid(),
             childId: child.childId,
-            ownerTable: 'dental_records',
+            ownerTable: 'health_record_events',
             ownerId: editingRecordId,
             fileName: photo.fileName,
             mimeType: photo.mimeType,
@@ -564,7 +570,7 @@ export function DentalHistoryView() {
         for (const photo of formPhotoFiles) {
           await saveAttachment({
             attachmentId: ulid(), childId: child.childId,
-            ownerTable: 'dental_records', ownerId: recordIds[0],
+            ownerTable: 'health_record_events', ownerId: recordIds[0],
             fileName: photo.fileName, mimeType: photo.mimeType,
             imageBase64: photo.base64, caption: null, now,
           });
@@ -575,7 +581,7 @@ export function DentalHistoryView() {
       resetForm();
     } catch (error) {
       catchLog('dental', 'action:submit-dental-record-failed')(error);
-      setErrorMsg(`保存失败：${error instanceof Error ? error.message : String(error)}`);
+      setErrorMsg(t('Profile.rich.dental.saveFailed', { message: error instanceof Error ? error.message : String(error) }));
     }
   };
 
@@ -587,7 +593,7 @@ export function DentalHistoryView() {
         <div className="flex items-center justify-end gap-2 mb-3">
           <button
             onClick={openScanModal}
-            title="上传口腔照片或全景片，由 AI 识别萌出情况"
+            title={t('Profile.rich.dental.aiRecognizeHint')}
             className="flex items-center gap-1.5 text-[14px] font-medium hover:opacity-90 transition-opacity"
             style={{
               background: '#ffffff',
@@ -603,7 +609,7 @@ export function DentalHistoryView() {
                 <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10" />
               </svg>
             </span>
-            AI 识别牙齿
+            {t('Profile.rich.dental.aiRecognizeTeeth')}
           </button>
           <button
             onClick={() => setShowForm(true)}
@@ -616,7 +622,7 @@ export function DentalHistoryView() {
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-            添加记录
+            {t('Profile.rich.common.addRecord')}
           </button>
         </div>
       )}
@@ -642,7 +648,7 @@ export function DentalHistoryView() {
             type="button"
             onClick={() => setErrorMsg(null)}
             style={{ border: 0, background: 'transparent', color: '#b91c1c', cursor: 'pointer', fontSize: 12 }}
-            aria-label="关闭"
+             aria-label={t('Profile.rich.common.close')}
           >
             ×
           </button>
@@ -661,7 +667,7 @@ export function DentalHistoryView() {
           padding: '0 4px',
         }}
       >
-        状态总览
+        {t('Profile.rich.dental.statusOverview')}
       </div>
 
       {/* Tooth status overview — top of dental record */}
@@ -741,9 +747,9 @@ export function DentalHistoryView() {
       {/* ── Records timeline ─────────────────────────────── */}
       <div className="mt-2 mb-4 flex items-center justify-between gap-3 flex-wrap" style={{ padding: '0 4px' }}>
         <div className="flex items-baseline gap-2">
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: S.text }}>历史记录</h3>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: S.text }}>{t('Profile.rich.dental.history')}</h3>
           <span style={{ fontSize: 12, color: '#64748b', fontFamily: '"JetBrains Mono", "SF Mono", ui-monospace, monospace' }}>
-            {sortedRecords.length} 条
+            {t('Profile.rich.common.recordsCount', { count: sortedRecords.length })}
           </span>
         </div>
         {filterTabs.length > 1 && (
@@ -764,14 +770,14 @@ export function DentalHistoryView() {
       {sortedRecords.length === 0 && !showForm && (
         <div className={`${S.radius} p-8 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
           <span className="text-[24px]">🦷</span>
-          <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>还没有口腔记录</p>
-          <p className="text-[13px] mt-1" style={{ color: S.sub }}>建议每半年进行一次口腔检查</p>
+          <p className="text-[14px] mt-2 font-medium" style={{ color: S.text }}>{t('Profile.rich.dental.empty')}</p>
+          <p className="text-[13px] mt-1" style={{ color: S.sub }}>{t('Profile.rich.dental.emptyHint')}</p>
         </div>
       )}
 
       {sortedRecords.length > 0 && filteredSortedRecords.length === 0 && (
         <div className={`${S.radius} p-6 text-center`} style={{ background: S.card, boxShadow: S.shadow }}>
-          <p className="text-[14px]" style={{ color: S.sub }}>该筛选下暂无记录</p>
+          <p className="text-[14px]" style={{ color: S.sub }}>{t('Profile.rich.dental.emptyFiltered')}</p>
         </div>
       )}
 

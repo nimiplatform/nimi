@@ -27,13 +27,13 @@ const MEASUREMENT_META: Record<
   string,
   { label: string; unit: string; domain: RecentChangeItem['domain']; to: string; icon: string }
 > = {
-  height: { label: '身高', unit: 'cm', domain: 'growth', to: '/profile/growth', icon: '📏' },
-  weight: { label: '体重', unit: 'kg', domain: 'growth', to: '/profile/growth', icon: '⚖️' },
-  'head-circumference': { label: '头围', unit: 'cm', domain: 'growth', to: '/profile/growth', icon: '🍼' },
-  bmi: { label: 'BMI', unit: '', domain: 'growth', to: '/profile/growth', icon: '📈' },
-  'vision-left': { label: '左眼视力', unit: '', domain: 'vision', to: '/profile/vision', icon: '👀' },
-  'vision-right': { label: '右眼视力', unit: '', domain: 'vision', to: '/profile/vision', icon: '👀' },
-  'bone-age': { label: '骨龄', unit: '岁', domain: 'bone-age', to: '/profile/tanner', icon: '🦴' },
+  height: { label: '身高', unit: 'cm', domain: 'growth', to: '/profile', icon: '📏' },
+  weight: { label: '体重', unit: 'kg', domain: 'growth', to: '/profile', icon: '⚖️' },
+  'head-circumference': { label: '头围', unit: 'cm', domain: 'growth', to: '/profile', icon: '🍼' },
+  bmi: { label: 'BMI', unit: '', domain: 'growth', to: '/profile', icon: '📈' },
+  'vision-left': { label: '左眼视力', unit: '', domain: 'vision', to: '/profile', icon: '👀' },
+  'vision-right': { label: '右眼视力', unit: '', domain: 'vision', to: '/profile', icon: '👀' },
+  'bone-age': { label: '骨龄', unit: '岁', domain: 'bone-age', to: '/profile', icon: '🦴' },
 };
 
 interface QuickLink {
@@ -45,19 +45,19 @@ interface QuickLink {
 }
 
 const QLINKS_REGISTRY: QuickLink[] = [
-  { id: 'growth', to: '/profile/growth', label: '生长曲线', emoji: '📏' },
-  { id: 'vaccines', to: '/profile/vaccines', label: '疫苗', emoji: '💉', ageGate: (age) => age <= 84 },
-  { id: 'sleep', to: '/profile/sleep', label: '睡眠', emoji: '😴' },
+  { id: 'growth', to: '/profile', label: '生长曲线', emoji: '📏' },
+  { id: 'vaccines', to: '/profile', label: '疫苗', emoji: '💉', ageGate: (age) => age <= 84 },
+  { id: 'sleep', to: '/profile', label: '睡眠', emoji: '😴' },
   { id: 'journal', to: '/journal', label: '成长随记', emoji: '📝' },
   { id: 'reports', to: '/reports', label: '报告', emoji: '📄' },
-  { id: 'medical', to: '/profile/medical-events', label: '就医记录', emoji: '🏥' },
-  { id: 'milestones', to: '/profile/milestones', label: '里程碑', emoji: '🎯', ageGate: (age) => age <= 72 },
-  { id: 'outdoor', to: '/profile/outdoor', label: '户外目标', emoji: '🌳', ageGate: (age) => age >= 6 },
-  { id: 'vision', to: '/profile/vision', label: '视力', emoji: '👁️', ageGate: (age) => age >= 36 },
-  { id: 'dental', to: '/profile/dental', label: '口腔', emoji: '🦷', ageGate: (age) => age >= 6 },
-  { id: 'fitness', to: '/profile/fitness', label: '体能', emoji: '🏃', ageGate: (age) => age >= 36 },
-  { id: 'tanner', to: '/profile/tanner', label: '青春期', emoji: '🌱', ageGate: (age) => age >= 84 },
-  { id: 'posture', to: '/profile/posture', label: '体态', emoji: '🧍', ageGate: (age) => age >= 60 },
+  { id: 'medical', to: '/profile', label: '就医记录', emoji: '🏥' },
+  { id: 'milestones', to: '/profile', label: '里程碑', emoji: '🎯', ageGate: (age) => age <= 72 },
+  { id: 'outdoor', to: '/profile', label: '户外目标', emoji: '🌳', ageGate: (age) => age >= 6 },
+  { id: 'vision', to: '/profile', label: '视力', emoji: '👁️', ageGate: (age) => age >= 36 },
+  { id: 'dental', to: '/profile', label: '口腔', emoji: '🦷', ageGate: (age) => age >= 6 },
+  { id: 'fitness', to: '/profile', label: '体能', emoji: '🏃', ageGate: (age) => age >= 36 },
+  { id: 'tanner', to: '/profile', label: '青春期', emoji: '🌱', ageGate: (age) => age >= 84 },
+  { id: 'posture', to: '/profile', label: '体态', emoji: '🧍', ageGate: (age) => age >= 60 },
 ];
 
 const QLINKS_TIERS: Array<{ maxAge: number; topIds: string[] }> = [
@@ -329,7 +329,7 @@ function buildSleepRecordChanges(sleepRecords: DashData['sleepRecords']): Recent
           subtitle: timeLabel,
           summary: null,
           timestamp: `${record.sleepDate}T00:00:00.000Z`,
-          to: '/profile/sleep',
+          to: '/profile',
           icon: '😴',
           iconName: 'moon' as const,
         };
@@ -399,7 +399,7 @@ export function buildRecentChanges(dash: DashData): RecentChangeItem[] {
         subtitle: fmtRel(record.achievedAt!),
         summary: null,
         timestamp: record.achievedAt!,
-        to: '/profile/milestones',
+        to: '/profile',
         icon: '🏆',
         iconName: 'trophy' as const,
       })),
@@ -417,7 +417,7 @@ export function buildRecentChanges(dash: DashData): RecentChangeItem[] {
         subtitle: fmtRel(record.vaccinatedAt),
         summary: null,
         timestamp: record.vaccinatedAt,
-        to: '/profile/vaccines',
+        to: '/profile',
         icon: '💉',
         iconName: 'syringe' as const,
       })),
@@ -462,7 +462,7 @@ export function buildDataGapAlert(
       id: 'growth_missing_baseline',
       title: '尚未建立生长基线',
       detail: '首页还没有本地身高或体重记录。补充一次测量数据即可解锁更实用的趋势分析。',
-      to: '/profile/growth',
+      to: '/profile',
     };
   }
   const staleParts = [height, weight]
@@ -480,7 +480,7 @@ export function buildDataGapAlert(
     id: 'growth_freshness_gap',
     title: '生长数据需要更新',
     detail: `${staleParts.join('，')}。及时更新可以让首页摘要更准确。`,
-    to: '/profile/growth',
+    to: '/profile',
   };
 }
 
@@ -616,18 +616,18 @@ export function buildQuickLinks(ageMonths: number): QuickLink[] {
 }
 
 export const DOMAIN_ROUTES: Record<string, string> = {
-  milestone: '/profile/milestones',
-  vaccine: '/profile/vaccines',
-  growth: '/profile/growth',
-  vision: '/profile/vision',
-  dental: '/profile/dental',
-  sleep: '/profile/sleep',
-  'bone-age': '/profile/tanner',
-  checkup: '/profile/medical-events',
-  nutrition: '/profile/growth',
-  posture: '/profile/posture',
-  fitness: '/profile/fitness',
-  tanner: '/profile/tanner',
+  milestone: '/profile',
+  vaccine: '/profile',
+  growth: '/profile',
+  vision: '/profile',
+  dental: '/profile',
+  sleep: '/profile',
+  'bone-age': '/profile',
+  checkup: '/profile',
+  nutrition: '/profile',
+  posture: '/profile',
+  fitness: '/profile',
+  tanner: '/profile',
 };
 
 export function fmtDate() {

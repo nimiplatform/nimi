@@ -33,5 +33,304 @@
     "twoFaHint": "Enter your two-factor authentication code",
     "verifyAndLogin": "Verify and login",
     "selectWalletHint": "Select a wallet to connect"
+  },
+  "Profile": {
+    "title": "Health record",
+    "actions": {
+      "addHealthData": "Add health data",
+      "editChild": "Edit child profile",
+      "refresh": "Refresh",
+      "retry": "Retry"
+    },
+    "age": {
+      "months_one": "{{count}} month",
+      "months_other": "{{count}} months",
+      "years_one": "{{count}} year",
+      "years_other": "{{count}} years",
+      "yearsMonths": "{{years}} years {{months}} months"
+    },
+    "gender": {
+      "male": "Boy",
+      "female": "Girl"
+    },
+    "birthPrefix": "Born",
+    "loading": "Loading...",
+    "errors": {
+      "loadFailed": "Health record could not load"
+    },
+    "empty": {
+      "noActiveChild": "Add a child profile first",
+      "noDate": "None",
+      "noData": "No data",
+      "recorded": "Recorded"
+    },
+    "status": {
+      "onTrack": "On track",
+      "watch": "Watch",
+      "professionalReviewPrompt": "Review",
+      "unrated": "Recorded",
+      "missing": "Missing",
+      "error": "Error"
+    },
+    "freshness": {
+      "missing": "Not recorded",
+      "fresh": "Fresh",
+      "stale": "Update due",
+      "unscheduled": "As needed"
+    },
+    "detail": {
+      "back": "Back",
+      "addRecord": "Add record",
+      "latestValue": "Latest value",
+      "recordDate": "Record date",
+      "nextRecordDate": "Next record",
+      "status": "Status",
+      "history": "History",
+      "noHistory": "No history yet",
+      "sources": {
+        "profileConsole": "Profile console",
+        "profileDetail": "Detail page",
+        "reminder": "Reminder",
+        "ocrTool": "OCR",
+        "import": "Import"
+      }
+    },
+    "groups": {
+      "growth": "Growth",
+      "vision": "Vision health",
+      "fitness": "Fitness",
+      "sleep": "Sleep",
+      "outdoor": "Outdoor activity",
+      "vaccine": "Vaccines",
+      "dental": "Dental health",
+      "medical": "Medical events",
+      "development": "Development"
+    },
+    "metrics": {
+      "growth": {
+        "height": "Height",
+        "weight": "Weight",
+        "headCircumference": "Head circumference",
+        "bmi": "BMI"
+      },
+      "vision": {
+        "leftVisualAcuity": "Left visual acuity",
+        "rightVisualAcuity": "Right visual acuity",
+        "leftAxialLength": "Left axial length",
+        "rightAxialLength": "Right axial length",
+        "leftIop": "Left IOP",
+        "rightIop": "Right IOP"
+      },
+      "fitness": {
+        "run50m": "50m run",
+        "vitalCapacity": "Vital capacity",
+        "run800m": "800m run",
+        "run1000m": "1000m run",
+        "run50x8": "50m x 8 shuttle run",
+        "sitAndReach": "Sit and reach",
+        "standingLongJump": "Standing long jump",
+        "sitUps": "Sit-ups",
+        "pullUps": "Pull-ups",
+        "ropeSkipping": "Rope skipping",
+        "run10mShuttle": "10m shuttle run",
+        "tennisBallThrow": "Tennis ball throw",
+        "doubleFootJump": "Double-foot jumps",
+        "balanceBeam": "Balance beam",
+        "footArchStatus": "Foot arch status",
+        "overallGrade": "Overall grade"
+      },
+      "development": {
+        "tannerBreastStage": "Tanner breast stage",
+        "tannerGenitalStage": "Tanner genital stage",
+        "tannerPubicHairStage": "Tanner pubic hair stage",
+        "boneAgeYears": "Bone age",
+        "bodyFatPercentage": "Body fat percentage",
+        "milestone": "Development milestone"
+      },
+      "sleep": {
+        "durationMinutes": "Sleep duration"
+      },
+      "outdoor": {
+        "weeklyGoalMinutes": "Weekly outdoor goal",
+        "activityMinutes": "Outdoor activity duration"
+      },
+      "vaccine": {
+        "administration": "Vaccine administration"
+      },
+      "dental": {
+        "event": "Dental event"
+      },
+      "medical": {
+        "event": "Medical event"
+      }
+    },
+    "protocols": {
+      "growthInfantMonthly": "Infant growth check",
+      "growthChildQuarterly": "Child growth check",
+      "growthSchoolBiannual": "School-age growth check",
+      "visionBasic": "Basic vision check",
+      "visionFullExam": "Full vision exam",
+      "fitnessSchoolAssessment": "School fitness assessment",
+      "tannerFemaleSelfAssessment": "Tanner female self-assessment",
+      "tannerMaleSelfAssessment": "Tanner male self-assessment",
+      "developmentAuxiliaryMeasurement": "Development auxiliary measurement",
+      "outdoorGoal": "Outdoor goal",
+      "outdoorActivity": "Outdoor activity",
+      "sleepNight": "Night sleep",
+      "vaccineAdministration": "Vaccine administration",
+      "dentalEvent": "Dental event",
+      "medicalEvent": "Medical event",
+      "milestoneAchievement": "Milestone achievement"
+    },
+    "capture": {
+      "title": "Add health data",
+      "group": "Group",
+      "selectProtocol": "Select a protocol",
+      "recordDate": "Record date",
+      "notes": "Notes",
+      "required": "Required",
+      "optional": "Optional",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving",
+      "close": "Close",
+      "saveFailed": "Capture save failed.",
+      "fieldRequired": "Please enter {{field}}",
+      "fixRequiredFields": "Some required fields are missing — please complete them before saving."
+    },
+    "rich": {
+      "common": {
+        "backToProfile": "Back to profile",
+        "addRecord": "Add record",
+        "save": "Save",
+        "saving": "Saving...",
+        "cancel": "Cancel",
+        "close": "Close",
+        "edit": "Edit",
+        "delete": "Delete",
+        "date": "Date",
+        "age": "Age",
+        "value": "Value",
+        "source": "Source",
+        "actions": "Actions",
+        "optional": "Optional",
+        "history": "History",
+        "confirmDelete": "Confirm deletion",
+        "deleteCannotUndo": "This data cannot be restored after deletion. Delete this record?",
+        "confirmDeleteAction": "Delete",
+        "aiAnalyze": "Analyze with AI",
+        "recordsCount": "{{count}} records",
+        "recordsCount_one": "{{count}} record",
+        "itemsFilled": "{{count}} fields filled"
+      },
+      "growth": {
+        "title": "Growth curve",
+        "smartRecognize": "Smart recognition",
+        "closeRecognize": "Close recognition",
+        "ocrHint": "Upload or photograph a checkup sheet to recognize data automatically",
+        "otherMetrics": "Other metrics...",
+        "noData": "No data yet",
+        "staleHint": "{{days}} days since the last measurement. Consider updating growth data.",
+        "dataAnalysisTopic": "{{metric}} data analysis",
+        "latestHeight": "Latest height: {{value}} cm",
+        "latestWeight": "Latest weight: {{value}} kg",
+        "importReadFailed": "Could not read the checkup image. Choose another image.",
+        "importSelectAtLeastOne": "Select at least one measurement to import.",
+        "importInvalidCandidate": "Selected OCR candidates must include a valid date and value.",
+        "importFailed": "Import failed. Review the OCR candidates and try again.",
+        "percentile": "Percentile"
+      },
+      "vision": {
+        "title": "{{name}}'s vision record",
+        "recordGuide": "Entry guide",
+        "reminderSettings": "Reminder settings",
+        "smartRecognize": "Smart recognition",
+        "recognizing": "Recognizing...",
+        "addScreening": "Add screening",
+        "recordData": "Record data",
+        "screeningModalTitle": "Add screening record",
+        "screeningItem": "Screening item",
+        "screeningResult": "Result",
+        "hospitalOrClinic": "Hospital / clinic",
+        "notes": "Notes",
+        "screeningTitle": "{{label}} exam",
+        "resultPass": "Pass",
+        "resultRefer": "Refer",
+        "resultInconclusive": "Inconclusive",
+        "nextReview": "Next eye review (axial length + refraction)",
+        "custom": "Custom",
+        "everyMonths": "Every {{months}} months",
+        "followupFrequency": "Reminder frequency",
+        "monthsShort": "months",
+        "customNextDate": "Set next review date",
+        "customNextDateHint": "only overrides the next visit",
+        "clear": "Clear",
+        "resetToSystem": "Restore system recommendation",
+        "cadenceSuggestion": "At a {{months}}-month cadence, suggested date is {{date}}",
+        "cadenceRangeError": "Reminder frequency must be between {{min}} and {{max}} months.",
+        "customDateFormatError": "Custom date must be in YYYY-MM-DD format.",
+        "deleteConfirm": "Delete the exam record from {{date}}?",
+        "ocrNoData": "No importable vision or axial-length data was recognized. Check that the image is clear and is a refraction or axial-length report.",
+        "ocrFailed": "Smart recognition failed. Try again.",
+        "ageFilter": "{{age}} years",
+        "ageFilterDefault": "By age",
+        "timelineTitle": "Exam records · Timeline",
+        "examCount": "{{count}} exams",
+        "examCount_one": "{{count}} exam",
+        "measurementCount": "{{count}} measurements",
+        "measurementCount_one": "{{count}} measurement",
+        "emptyTimelineFull": "No vision exam records yet. Use the top-right button to record the first exam.",
+        "emptyTimeline": "No vision exam records yet.",
+        "curveTitle": "{{metric}} curve",
+        "curveFallback": "Trend",
+        "emptyMetric": "No {{metric}} records yet",
+        "noAnchor": "No exam record is available as an anchor. Choose a date directly.",
+        "saveFailed": "Save failed. Try again.",
+        "screeningTypes": {
+          "redReflex": "Red reflex",
+          "fixationTracking": "Fixation tracking",
+          "coverTest": "Cover test",
+          "photoscreener": "Photoscreener",
+          "tearDuct": "Tear duct exam",
+          "eyeCheckup": "Eye checkup"
+        }
+      },
+      "visionBatch": {
+        "editTitle": "Edit exam record · {{date}}",
+        "createTitle": "Record exam data",
+        "ocrHint": "Upload or photograph a refraction report to fill automatically",
+        "examDate": "Exam date",
+        "pupilStatus": "Pupil status",
+        "hospital": "Hospital / institution",
+        "doctor": "Doctor",
+        "item": "Item",
+        "od": "OD right eye",
+        "os": "OS left eye",
+        "hyperopiaReserve": "Hyperopia reserve",
+        "behaviorFactors": "Eye-use behavior factors",
+        "nearWorkDaily": "Daily near-work time (outside class)",
+        "outdoorDaily": "Daily outdoor time",
+        "controlMeasures": "Control measures",
+        "controlMeasuresPlaceholder": "e.g. ortho-k, low-dose atropine, outdoor activity...",
+        "controlNotes": "Control notes",
+        "controlNotesPlaceholder": "Additional notes...",
+        "saveRecord": "Save record"
+      },
+      "dental": {
+        "aiRecognizeTeeth": "AI tooth recognition",
+        "aiRecognizeHint": "Upload an oral photo or panoramic image to recognize eruption status",
+        "statusOverview": "Status overview",
+        "history": "History",
+        "empty": "No dental records yet",
+        "emptyHint": "A dental checkup every six months is recommended.",
+        "emptyFiltered": "No records match this filter",
+        "deleteConfirm": "Deleting this dental record also deletes its photos. Continue?",
+        "deleteFailed": "Delete failed: {{message}}",
+        "saveFailed": "Save failed: {{message}}",
+        "scanSaved": "AI recognition wrote {{count}} eruption records. You can review them in history.",
+        "recordTopic": "Dental record · {{event}}{{tooth}}",
+        "severity": "Severity: {{severity}}"
+      }
+    }
   }
 }

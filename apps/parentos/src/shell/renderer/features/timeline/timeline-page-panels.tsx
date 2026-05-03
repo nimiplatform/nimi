@@ -9,13 +9,18 @@ import { C, DOMAIN_ROUTES } from './timeline-data.js';
 import { CustomTodoComposer, CustomTodoInlineList } from './timeline-custom-todos.js';
 import { TimelineReminderRow } from './timeline-reminder-row.js';
 import type { ObservationNudge } from './timeline-observation-nudges.js';
+import { isRecordDataReminder } from '../reminders/record-data-capture.js';
 
 export { CustomTodoComposer, CustomTodoInlineList } from './timeline-custom-todos.js';
 
 const ACTION_PILL_CLASS = 'inline-flex h-7 min-h-7 shrink-0 items-center justify-center whitespace-nowrap rounded-full border-0 px-3 no-underline [appearance:none] transition-colors';
 const ACTION_LABEL_CLASS = 'block text-[13px] leading-none font-medium tracking-[0.01em]';
 
-function reminderPrimaryLink(reminder: ActiveReminder) {
+type ReminderPrimaryLink =
+  | { label: string; to: string; kind?: 'link' }
+  | { label: string; kind: 'capture' };
+
+function reminderPrimaryLink(reminder: ActiveReminder): ReminderPrimaryLink {
   // W5b will replace this Link-based primary with the ReminderExplainDrawer trigger.
   // For W4a we only normalize the kind dispatch to the 4-kind taxonomy.
   if (reminder.kind === 'consult') {
@@ -42,12 +47,16 @@ function reminderPrimaryLink(reminder: ActiveReminder) {
   if (reminder.rule.domain === 'vaccine') {
     return {
       label: '记录疫苗',
-      to: `/profile/vaccines?ruleId=${encodeURIComponent(reminder.rule.ruleId)}`,
+      to: '/profile',
     };
   }
 
-  if (reminder.rule.actionType === 'record_data' || reminder.rule.domain === 'growth') {
-    return { label: '记录数据', to: '/profile/growth' };
+  if (isRecordDataReminder(reminder)) {
+    return { label: '记录数据', kind: 'capture' };
+  }
+
+  if (reminder.rule.domain === 'growth') {
+    return { label: '记录数据', to: '/profile' };
   }
 
   return {
@@ -73,10 +82,40 @@ function reminderStatus(reminder: ActiveReminder) {
   }
 }
 
+function PrimaryActionPill({
+  primary,
+  reminder,
+  onOpenCapture,
+}: {
+  primary: ReminderPrimaryLink;
+  reminder: ActiveReminder;
+  onOpenCapture: (reminder: ActiveReminder) => void;
+}) {
+  if (primary.kind === 'capture') {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpenCapture(reminder)}
+        className={ACTION_PILL_CLASS}
+        style={{ background: '#1e293b', color: '#fff' }}
+      >
+        <span className={ACTION_LABEL_CLASS}>{primary.label}</span>
+      </button>
+    );
+  }
+
+  return (
+    <Link to={primary.to} className={ACTION_PILL_CLASS} style={{ background: '#1e293b', color: '#fff' }}>
+      <span className={ACTION_LABEL_CLASS}>{primary.label}</span>
+    </Link>
+  );
+}
+
 function OverdueGroup({
   items,
   totalCount,
   onAction,
+  onOpenCapture,
 }: {
   items: ActiveReminder[];
   totalCount: number;
@@ -85,6 +124,7 @@ function OverdueGroup({
     action: ReminderActionType,
     extra?: string | null,
   ) => void;
+  onOpenCapture: (reminder: ActiveReminder) => void;
 }) {
   const [open, setOpen] = useState(true);
 
@@ -117,8 +157,14 @@ function OverdueGroup({
           >
             <button
               type="button"
-              title="标记完成"
-              onClick={() => onAction(reminder, reminder.kind === 'task' ? 'complete' : 'acknowledge')}
+              title={isRecordDataReminder(reminder) ? '记录数据' : '标记完成'}
+              onClick={() => {
+                if (isRecordDataReminder(reminder)) {
+                  onOpenCapture(reminder);
+                  return;
+                }
+                onAction(reminder, reminder.kind === 'task' ? 'complete' : 'acknowledge');
+              }}
               className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all hover:bg-[#f59e0b]/15"
               style={{ borderColor: '#f59e0b' }}
             >
@@ -130,9 +176,7 @@ function OverdueGroup({
               <p className="text-[14px] font-medium leading-snug" style={{ color: C.text }}>{reminder.rule.title}</p>
               <p className="mt-0.5 text-[12px]" style={{ color: '#f59e0b' }}>{reminderStatus(reminder)}</p>
               <div className="mt-1.5 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                <Link to={primary.to} className={ACTION_PILL_CLASS} style={{ background: '#1e293b', color: '#fff' }}>
-                  <span className={ACTION_LABEL_CLASS}>{primary.label}</span>
-                </Link>
+                <PrimaryActionPill primary={primary} reminder={reminder} onOpenCapture={onOpenCapture} />
                 <button
                   type="button"
                   onClick={() => onAction(reminder, 'snooze', defaultSnoozeUntil(reminder.kind, getLocalToday()))}
@@ -161,6 +205,7 @@ function AgendaOverflowGroup({
   items,
   tone,
   onAction,
+  onOpenCapture,
 }: {
   label: string;
   totalCount: number;
@@ -171,6 +216,7 @@ function AgendaOverflowGroup({
     action: ReminderActionType,
     extra?: string | null,
   ) => void;
+  onOpenCapture: (reminder: ActiveReminder) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -203,8 +249,14 @@ function AgendaOverflowGroup({
           >
             <button
               type="button"
-              title="标记完成"
-              onClick={() => onAction(reminder, reminder.kind === 'task' ? 'complete' : 'acknowledge')}
+              title={isRecordDataReminder(reminder) ? '记录数据' : '标记完成'}
+              onClick={() => {
+                if (isRecordDataReminder(reminder)) {
+                  onOpenCapture(reminder);
+                  return;
+                }
+                onAction(reminder, reminder.kind === 'task' ? 'complete' : 'acknowledge');
+              }}
               className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all hover:bg-white"
               style={{ borderColor: tone.text }}
             >
@@ -216,9 +268,7 @@ function AgendaOverflowGroup({
               <p className="text-[14px] font-medium leading-snug" style={{ color: C.text }}>{reminder.rule.title}</p>
               <p className="mt-0.5 text-[12px]" style={{ color: tone.text }}>{reminderStatus(reminder)}</p>
               <div className="mt-1.5 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                <Link to={primary.to} className={ACTION_PILL_CLASS} style={{ background: '#1e293b', color: '#fff' }}>
-                  <span className={ACTION_LABEL_CLASS}>{primary.label}</span>
-                </Link>
+                <PrimaryActionPill primary={primary} reminder={reminder} onOpenCapture={onOpenCapture} />
                 <button
                   type="button"
                   onClick={() => onAction(reminder, 'snooze', defaultSnoozeUntil(reminder.kind, getLocalToday()))}
@@ -292,6 +342,7 @@ export function ReminderPanel({
   customTodos,
   childId,
   onAction,
+  onOpenCapture,
   onCustomTodoChanged,
   observationNudges,
 }: {
@@ -307,10 +358,11 @@ export function ReminderPanel({
   customTodos: CustomTodoRow[];
   childId: string;
   onAction: (
-    reminder: EnhancedReminder,
+    reminder: ActiveReminder,
     action: ReminderActionType,
     extra?: string | null,
   ) => void;
+  onOpenCapture: (reminder: ActiveReminder) => void;
   onCustomTodoChanged: () => void;
   observationNudges: ObservationNudge[];
 }) {
@@ -403,6 +455,7 @@ export function ReminderPanel({
                 reminder={reminder}
                 onOpen={() => setActiveReminder(reminder)}
                 onAction={onAction}
+                onOpenCapture={onOpenCapture}
                 statusLabel={reminderStatus(reminder)}
               />
             ))}
@@ -416,6 +469,7 @@ export function ReminderPanel({
             items={p0OverflowItems}
             tone={{ bg: '#fff6df', fg: '#c9891a', text: '#b7791f' }}
             onAction={onAction}
+            onOpenCapture={onOpenCapture}
           />
         )}
 
@@ -426,11 +480,12 @@ export function ReminderPanel({
             items={onboardingCatchupItems}
             tone={{ bg: '#f3eefc', fg: '#8a63b8', text: '#7b61a8' }}
             onAction={onAction}
+            onOpenCapture={onOpenCapture}
           />
         )}
 
         {overdueCount > 0 && (
-          <OverdueGroup items={overdueItems} totalCount={overdueCount} onAction={onAction} />
+          <OverdueGroup items={overdueItems} totalCount={overdueCount} onAction={onAction} onOpenCapture={onOpenCapture} />
         )}
 
         {seasonalTasks.length > 0 && (
@@ -453,6 +508,7 @@ export function ReminderPanel({
       <ReminderExplainDrawer
         reminder={activeReminder}
         onClose={() => setActiveReminder(null)}
+        onOpenCapture={onOpenCapture}
         onAction={(reminder, action, extra) => {
           onAction(reminder, action, extra);
         }}

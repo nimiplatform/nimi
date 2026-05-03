@@ -13,6 +13,7 @@
 import type { ActiveReminder } from '../../engine/reminder-engine.js';
 import type { ReminderActionType } from '../../engine/reminder-actions.js';
 import { currentProgressionState } from '../../engine/reminder-progression.js';
+import { isRecordDataReminder } from '../reminders/record-data-capture.js';
 
 interface ReminderRowProps {
   reminder: ActiveReminder;
@@ -22,10 +23,11 @@ interface ReminderRowProps {
     action: ReminderActionType,
     extra?: string | null,
   ) => void;
+  onOpenCapture: (reminder: ActiveReminder) => void;
   statusLabel: string;
 }
 
-export function TimelineReminderRow({ reminder, onOpen, onAction, statusLabel }: ReminderRowProps) {
+export function TimelineReminderRow({ reminder, onOpen, onAction, onOpenCapture, statusLabel }: ReminderRowProps) {
   const progression = currentProgressionState({
     kind: reminder.kind,
     acknowledgedAt: reminder.state?.acknowledgedAt ?? null,
@@ -48,6 +50,7 @@ export function TimelineReminderRow({ reminder, onOpen, onAction, statusLabel }:
       default:          return null;
     }
   })();
+  const recordData = isRecordDataReminder(reminder);
 
   const progressionNote = (() => {
     if (reminder.kind === 'guide' && progression === 'acknowledged') return '已了解';
@@ -77,9 +80,13 @@ export function TimelineReminderRow({ reminder, onOpen, onAction, statusLabel }:
       {reminder.kind === 'task' ? (
         <button
           type="button"
-          title="标记完成"
+          title={recordData ? '记录数据' : '标记完成'}
           onClick={(event) => {
             event.stopPropagation();
+            if (recordData) {
+              onOpenCapture(reminder);
+              return;
+            }
             onAction(reminder, 'complete');
           }}
           className="mt-[2px] flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full border transition-all hover:border-[#4ECCA3]"

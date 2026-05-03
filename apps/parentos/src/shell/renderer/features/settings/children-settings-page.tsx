@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { useAppStore, type NurtureMode } from '../../app-shell/app-store.js';
 import { createChild, createFamily, deleteChild, getChildren, updateChild } from '../../bridge/sqlite-bridge.js';
@@ -87,14 +87,23 @@ const MODE_LABELS: Record<string, string> = { relaxed: '轻松养', balanced: '�
 
 export default function ChildrenSettingsPage() {
   const { activeChildId, children, familyId, setActiveChildId, setChildren, setFamilyId } = useAppStore();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const fromProfile = (location.state as { from?: string } | null)?.from === 'profile';
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingChildId, setDeletingChildId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [cropImageUrl, setCropImageUrl] = useState<string | null>(null);
+  const initialOpenHandledRef = useRef(false);
 
-  const resetForm = () => { setForm(EMPTY_FORM); setShowForm(false); setEditingId(null); };
+  const resetForm = () => {
+    setForm(EMPTY_FORM);
+    setShowForm(false);
+    setEditingId(null);
+    if (fromProfile) navigate('/profile');
+  };
 
   const refreshChildren = async (fid: string | null) => {
     if (!fid) return;
@@ -180,6 +189,15 @@ export default function ChildrenSettingsPage() {
     setEditingId(childId); setShowForm(true);
   };
 
+  useEffect(() => {
+    if (initialOpenHandledRef.current) return;
+    if (!fromProfile) return;
+    if (!activeChildId) return;
+    if (!children.find((c) => c.childId === activeChildId)) return;
+    startEdit(activeChildId);
+    initialOpenHandledRef.current = true;
+  }, [fromProfile, activeChildId, children]);
+
   const handleAvatarSelect = (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
@@ -229,9 +247,9 @@ export default function ChildrenSettingsPage() {
     <div className="min-h-full p-6" style={{ background: 'transparent' }}>
       <div className="max-w-3xl mx-auto">
         {/* Back link */}
-        <Link to="/settings" className="inline-flex items-center gap-1 text-[14px] mb-5 hover:underline" style={{ color: S.sub }}>
+        <Link to={fromProfile ? '/profile' : '/settings'} className="inline-flex items-center gap-1 text-[14px] mb-5 hover:underline" style={{ color: S.sub }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
-          返回设置
+          {fromProfile ? '返回档案' : '返回设置'}
         </Link>
 
         {/* Header */}

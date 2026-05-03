@@ -59,7 +59,7 @@ function MiniTrendRow({ trend }: { trend: GrowthTrendItem }) {
 export function GrowthSnapshotCard({ snapshot }: { snapshot: { updatedAt: string | null; updatedLabel: string; metrics: GrowthSnapshotMetric[]; trends: GrowthTrendItem[] } }) {
   return (
     <Cd cls="col-span-4">
-      <Hdr title="成长快照" to="/profile/growth" link="查看曲线" />
+      <Hdr title="成长快照" to="/profile" link="查看曲线" />
       <div className="mb-4 flex items-center justify-between">
         <p className="text-[14px] font-semibold" style={{ color: textMain }}>最近一次成长测量</p>
         <span className="text-[12px]" style={{ color: '#64748b' }}>{snapshot.updatedLabel}</span>
@@ -130,7 +130,7 @@ export function OutdoorGoalCard({
   if (goalMinutes === null) {
     return (
       <Cd cls="col-span-4">
-        <Hdr title="每周户外目标" to="/profile/outdoor" link="设定目标" />
+        <Hdr title="每周户外目标" to="/profile" link="设定目标" />
         <div className="rounded-[16px] p-5 nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border border-[var(--nimi-material-glass-regular-border)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{ boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)' }} data-nimi-material="glass-regular" data-nimi-tone="card">
           <p className="text-[14px] font-semibold" style={{ color: textMain }}>还没有设定户外目标</p>
           <p className="mt-1 text-[13px] leading-relaxed" style={{ color: textMuted }}>
@@ -143,7 +143,7 @@ export function OutdoorGoalCard({
 
   return (
     <Cd cls="col-span-4">
-      <Hdr title="每周户外目标" to="/profile/outdoor" />
+      <Hdr title="每周户外目标" to="/profile" />
       <div className="space-y-3">
         <div className="flex items-end justify-between">
           <p className="text-[18px] font-bold tabular-nums" style={{ color: textMain }}>
