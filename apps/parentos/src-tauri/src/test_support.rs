@@ -1,3 +1,5 @@
+#![cfg_attr(test, allow(dead_code))]
+
 #[cfg(test)]
 use std::cell::RefCell;
 #[cfg(test)]

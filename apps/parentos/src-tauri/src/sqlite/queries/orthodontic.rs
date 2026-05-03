@@ -306,9 +306,9 @@ pub struct OrthodonticAppliance {
     pub created_at: String,
     pub updated_at: String,
 }
-/// Reject `started_at` that would place the child below the applianceType's
-/// min-age gate (PO-ORTHO-009). `child_birth_date` comes from the caller to
-/// avoid a second query; Rust validates numerically.
+// Reject `started_at` that would place the child below the applianceType's
+// min-age gate (PO-ORTHO-009). `child_birth_date` comes from the caller to
+// avoid a second query; Rust validates numerically.
 include!("orthodontic_appliances.inc.rs");
 
 include!("orthodontic_checkins.inc.rs");
