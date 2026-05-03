@@ -21,7 +21,8 @@ Governing fact sources:
 - `tables/local-storage.yaml#ai_conversations`
 - `tables/local-storage.yaml#ai_messages`
 - `tables/local-storage.yaml#children`
-- `tables/local-storage.yaml#growth_measurements`
+- `tables/local-storage.yaml#health_record_events`
+- `tables/local-storage.yaml#health_record_values`
 - `tables/local-storage.yaml#vaccine_records`
 - `tables/local-storage.yaml#milestone_records`
 - `tables/local-storage.yaml#journal_entries`
@@ -42,7 +43,7 @@ Required advisor-chat snapshot sections:
 
 - child profile summary
 - age in months
-- growth measurements
+- health record console snapshot and underlying structured health record values
 - vaccine records
 - milestone records
 - journal entries

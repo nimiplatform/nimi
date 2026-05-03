@@ -21,9 +21,9 @@ Governing fact sources:
 - `tables/local-storage.yaml#orthodontic_cases`
 - `tables/local-storage.yaml#orthodontic_appliances`
 - `tables/local-storage.yaml#orthodontic_checkins`
-- `tables/local-storage.yaml#dental_records`
+- `tables/local-storage.yaml#health_record_events`
 - `tables/local-storage.yaml#reminder_states`
-- `tables/routes.yaml#/profile/dental`
+- `tables/routes.yaml#/profile` and `/profile/dental` redirect shell
 
 ## PO-ORTHO-001 Three-Layer Data Model
 
@@ -32,13 +32,13 @@ semantic purpose. Implementation must never collapse them or cross-write.
 
 | Table | Mandate |
 |---|---|
-| `dental_records` | Low-frequency, clinical, whole-mouth-timeline events. Orthodontic lifecycle clinical events (`ortho-assessment`, `ortho-review`, `ortho-adjustment`, `ortho-issue`, `ortho-end`) live here and remain visible in the unified dental timeline. |
+| `health_record_events` | Low-frequency, clinical, whole-mouth-timeline events with dental/orthodontic metric ids. Orthodontic lifecycle clinical events (`ortho-assessment`, `ortho-review`, `ortho-adjustment`, `ortho-issue`, `ortho-end`) live here and remain visible in the unified dental timeline. |
 | `orthodontic_cases` | One row per treatment course. Source of truth for `caseType`, `stage`, and review-date projection. |
 | `orthodontic_appliances` | One row per appliance instance attached to a case. Source of truth for `applianceType`, active/paused/completed status, prescribed wear, review cadence, and expander activation counters. |
 | `orthodontic_checkins` | High-frequency, structured parent-facing compliance rows. Only `wear-daily`, `aligner-change`, `expander-activation`, `retention-wear` are admitted. Checkins do NOT appear in the dental clinical timeline. |
 
 Invariant: review, adjustment, issue, and end events must write to
-`dental_records` only. A `checkinType` value outside the admitted four is a
+`health_record_events` only. A `checkinType` value outside the admitted four is a
 fail-close violation.
 
 ## PO-ORTHO-002 Case Shape
@@ -113,7 +113,7 @@ Pause is modeled at the appliance level only.
 - When an appliance flips back to `active`, fresh reminder_states are written
   with admitted `PO-ORTHO-*` ruleIds only; no synthetic ruleId is allowed.
 - A case with no active appliances produces no active protocol reminders but
-  its clinical timeline (`dental_records` rows) remains visible.
+  its clinical timeline (`health_record_events` rows) remains visible.
 
 ## PO-ORTHO-005 Checkin Shape
 
@@ -142,10 +142,10 @@ Invariants:
 
 ## PO-ORTHO-006 Dental-Record Cross-Write Rules
 
-Orthodontic clinical events write to `dental_records` using these
+Orthodontic clinical events write to `health_record_events` using these
 eventType values (see `profile-contract.md#PO-PROF-008` for the full dental enum):
 
-| Orthodontic lifecycle moment | `dental_records.eventType` |
+| Orthodontic lifecycle moment | `health_record_events.metadataJson.eventType` |
 |---|---|
 | Clinical review visit | `ortho-review` |
 | Fixed-appliance adjustment | `ortho-adjustment` |

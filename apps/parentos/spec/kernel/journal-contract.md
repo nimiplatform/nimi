@@ -17,7 +17,7 @@ Governing fact sources:
 
 - `tables/local-storage.yaml#journal_entries`
 - `tables/local-storage.yaml#journal_tags`
-- `tables/observation-framework.yaml`
+- `tables/reference-data-assets.yaml#observation-framework`
 - `tables/routes.yaml#/journal`
 
 ## PO-JOUR-001 Journal Entry Shape
@@ -48,7 +48,8 @@ JSON-backed arrays and objects must be serialized as TEXT and decoded through ty
 
 ## PO-JOUR-002 Observation Framework Binding
 
-When `dimensionId` is present, it must exist in `observation-framework.yaml`.
+When `dimensionId` is present, it must exist in the admitted `observation-framework`
+data asset.
 
 - `selectedTags` must come from the dimension's quick-tag catalog
 - `guidedAnswers` keys must correspond to the selected observation prompts
@@ -145,7 +146,8 @@ The journal layer must fail closed when:
 Inputs are:
 
 - the current unsaved text draft or a parent-confirmed voice transcript
-- one or more candidate observation dimensions from `observation-framework.yaml`
+- one or more candidate observation dimensions from the admitted
+  `observation-framework` data asset
 - the current child context already available inside the journal surface
 
 Outputs are limited to typed structured data:

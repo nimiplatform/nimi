@@ -1,0 +1,182 @@
+schema_version: 1
+
+field_contract:
+  protocol:
+    protocolId: { type: string, required: true }
+    groupId: { type: string, required: true }
+    modeSupport:
+      type: array
+      required: true
+      values: [manual, prefilled, guided, reminder, ocr_confirm]
+    metricIds: { type: array, required: true }
+    requiredMetricIds: { type: array, required: true }
+    optionalMetricIds: { type: array, required: false }
+    derivedMetricIds: { type: array, required: false }
+    sourceSupport: { type: array, required: true }
+    storageTarget:
+      type: enum
+      required: true
+      values: [health_record_event, retained_table]
+    completionPolicy: { type: string, required: true }
+
+protocols:
+  - protocolId: growth-infant-monthly
+    groupId: growth
+    displayName: Infant growth record
+    modeSupport: [manual, prefilled, guided, reminder, ocr_confirm]
+    metricIds: [growth.height, growth.weight, growth.head_circumference, growth.bmi]
+    requiredMetricIds: [growth.height, growth.weight, growth.head_circumference]
+    derivedMetricIds: [growth.bmi]
+    sourceSupport: [manual, ocr, imported, reminder]
+    storageTarget: health_record_event
+    completionPolicy: "One event must contain height, weight, and head circumference; BMI is computed when height and weight are valid."
+  - protocolId: growth-child-quarterly
+    groupId: growth
+    displayName: Child growth record
+    modeSupport: [manual, prefilled, guided, reminder, ocr_confirm]
+    metricIds: [growth.height, growth.weight, growth.bmi]
+    requiredMetricIds: [growth.height, growth.weight]
+    derivedMetricIds: [growth.bmi]
+    sourceSupport: [manual, ocr, imported, reminder]
+    storageTarget: health_record_event
+    completionPolicy: "One event must contain height and weight; BMI is computed from both values."
+  - protocolId: growth-school-biannual
+    groupId: growth
+    displayName: School-age growth record
+    modeSupport: [manual, prefilled, guided, reminder, ocr_confirm]
+    metricIds: [growth.height, growth.weight, growth.bmi]
+    requiredMetricIds: [growth.height, growth.weight]
+    derivedMetricIds: [growth.bmi]
+    sourceSupport: [manual, ocr, imported, reminder]
+    storageTarget: health_record_event
+    completionPolicy: "One event must contain height and weight; BMI is computed from both values."
+  - protocolId: vision-basic
+    groupId: vision
+    displayName: Basic vision record
+    modeSupport: [manual, prefilled, guided, reminder, ocr_confirm]
+    metricIds: [vision.left_visual_acuity, vision.right_visual_acuity]
+    requiredMetricIds: [vision.left_visual_acuity, vision.right_visual_acuity]
+    sourceSupport: [manual, ocr, imported, reminder]
+    storageTarget: health_record_event
+    completionPolicy: "One event must contain both left and right visual acuity."
+  - protocolId: vision-full-exam
+    groupId: vision
+    displayName: Full eye exam record
+    modeSupport: [manual, prefilled, guided, reminder, ocr_confirm]
+    metricIds: [vision.left_visual_acuity, vision.right_visual_acuity, vision.left_axial_length, vision.right_axial_length, vision.left_iop, vision.right_iop]
+    requiredMetricIds: [vision.left_visual_acuity, vision.right_visual_acuity]
+    optionalMetricIds: [vision.left_axial_length, vision.right_axial_length, vision.left_iop, vision.right_iop]
+    sourceSupport: [manual, ocr, imported, reminder]
+    storageTarget: health_record_event
+    completionPolicy: "Basic completion requires both visual acuity values; full exam completion requires every metric requested by the originating reminder target."
+  - protocolId: fitness-school-assessment
+    groupId: fitness
+    displayName: School fitness assessment
+    modeSupport: [manual, prefilled, guided]
+    metricIds: [fitness.run_50m, fitness.vital_capacity, fitness.run_800m, fitness.run_1000m, fitness.run_50x8, fitness.sit_and_reach, fitness.standing_long_jump, fitness.sit_ups, fitness.pull_ups, fitness.rope_skipping, fitness.run_10m_shuttle, fitness.tennis_ball_throw, fitness.double_foot_jump, fitness.balance_beam, fitness.foot_arch_status, fitness.overall_grade]
+    requiredMetricIds: []
+    optionalMetricIds: [fitness.run_50m, fitness.vital_capacity, fitness.run_800m, fitness.run_1000m, fitness.run_50x8, fitness.sit_and_reach, fitness.standing_long_jump, fitness.sit_ups, fitness.pull_ups, fitness.rope_skipping, fitness.run_10m_shuttle, fitness.tennis_ball_throw, fitness.double_foot_jump, fitness.balance_beam, fitness.foot_arch_status, fitness.overall_grade]
+    sourceSupport: [manual, imported]
+    storageTarget: health_record_event
+    completionPolicy: "At least one admitted fitness metric must be recorded in the event."
+  - protocolId: tanner-female-self-assessment
+    groupId: development
+    displayName: Female Tanner self-assessment
+    modeSupport: [manual, prefilled, guided, reminder]
+    metricIds: [development.tanner_breast_stage, development.tanner_pubic_hair_stage, development.bone_age_years, development.body_fat_percentage]
+    requiredMetricIds: [development.tanner_breast_stage, development.tanner_pubic_hair_stage]
+    optionalMetricIds: [development.bone_age_years, development.body_fat_percentage]
+    sourceSupport: [manual, reminder]
+    storageTarget: health_record_event
+    completionPolicy: "One self-assessment event must contain breast stage and pubic hair stage, each constrained to Tanner stage 1..5."
+  - protocolId: tanner-male-self-assessment
+    groupId: development
+    displayName: Male Tanner self-assessment
+    modeSupport: [manual, prefilled, guided, reminder]
+    metricIds: [development.tanner_genital_stage, development.tanner_pubic_hair_stage, development.bone_age_years, development.body_fat_percentage]
+    requiredMetricIds: [development.tanner_genital_stage, development.tanner_pubic_hair_stage]
+    optionalMetricIds: [development.bone_age_years, development.body_fat_percentage]
+    sourceSupport: [manual, reminder]
+    storageTarget: health_record_event
+    completionPolicy: "One self-assessment event must contain genital stage and pubic hair stage, each constrained to Tanner stage 1..5."
+  - protocolId: development-auxiliary-measurement
+    groupId: development
+    displayName: Development auxiliary measurement
+    modeSupport: [manual, prefilled, guided, ocr_confirm]
+    metricIds: [development.bone_age_years, development.body_fat_percentage]
+    requiredMetricIds: []
+    optionalMetricIds: [development.bone_age_years, development.body_fat_percentage]
+    sourceSupport: [manual, ocr, imported]
+    storageTarget: health_record_event
+    completionPolicy: "At least one admitted development auxiliary metric must be recorded in the event."
+  - protocolId: outdoor-goal
+    groupId: outdoor
+    displayName: Weekly outdoor goal
+    modeSupport: [manual, prefilled, reminder]
+    metricIds: [outdoor.weekly_goal_minutes]
+    requiredMetricIds: [outdoor.weekly_goal_minutes]
+    sourceSupport: [manual, reminder]
+    storageTarget: health_record_event
+    completionPolicy: "The child must have one current weekly goal value."
+  - protocolId: outdoor-activity
+    groupId: outdoor
+    displayName: Outdoor activity record
+    modeSupport: [manual, prefilled, reminder]
+    metricIds: [outdoor.activity_minutes]
+    requiredMetricIds: [outdoor.activity_minutes]
+    sourceSupport: [manual, reminder]
+    storageTarget: health_record_event
+    completionPolicy: "One dated outdoor activity duration must be persisted."
+  - protocolId: sleep-night
+    groupId: sleep
+    displayName: Night sleep record
+    modeSupport: [manual, prefilled]
+    metricIds: [sleep.duration_minutes]
+    requiredMetricIds: [sleep.duration_minutes]
+    sourceSupport: [manual]
+    storageTarget: health_record_event
+    completionPolicy: "One sleep duration value must be recorded for the sleep date."
+  - protocolId: vaccine-administration
+    groupId: vaccine
+    displayName: Vaccine administration
+    modeSupport: [manual, prefilled, guided, reminder]
+    metricIds: [vaccine.administration]
+    requiredMetricIds: [vaccine.administration]
+    sourceSupport: [manual, imported, reminder]
+    storageTarget: retained_table
+    completionPolicy: "One vaccine administration event must include rule id, vaccine name, administered date, and child id."
+  - protocolId: dental-event
+    groupId: dental
+    displayName: Dental event
+    modeSupport: [manual, prefilled, guided]
+    metricIds: [dental.event]
+    requiredMetricIds: [dental.event]
+    sourceSupport: [manual, imported]
+    storageTarget: health_record_event
+    completionPolicy: "One dental event payload must include event type and event date."
+  - protocolId: medical-event
+    groupId: medical
+    displayName: Medical event
+    modeSupport: [manual, prefilled, guided, ocr_confirm]
+    metricIds: [medical.event]
+    requiredMetricIds: [medical.event]
+    sourceSupport: [manual, ocr, imported]
+    storageTarget: health_record_event
+    completionPolicy: "One medical event payload must include event type, title, and event date."
+  - protocolId: milestone-achievement
+    groupId: development
+    displayName: Milestone achievement
+    modeSupport: [manual, prefilled, guided]
+    metricIds: [development.milestone]
+    requiredMetricIds: [development.milestone]
+    sourceSupport: [manual]
+    storageTarget: retained_table
+    completionPolicy: "One milestone event payload must include milestone id and achievement state."
+
+constraints:
+  - "Every metric id in protocols must resolve in health-metric-registry.yaml."
+  - "storageTarget=health_record_event persists through health_record_events + health_record_values."
+  - "storageTarget=retained_table persists through exactly one retained owner table named by local-storage.yaml#health_record_unification and may project into PO-HREC without dual-write."
+  - "A protocol with derivedMetricIds must name the source metrics required for derivation through requiredMetricIds or explicit protocol rules."
+  - "Reminder mode may be used only when reminder-capture-targets.yaml maps the rule to the protocol."
+  - "Protocol completion is required before a linked record_data reminder may write completedAt."

@@ -4,7 +4,16 @@
 
 ## Scope
 
-This contract governs child profile CRUD, growth records, growth charts, vaccine tracking, milestone tracking, extended health-record surfaces, profile-local AI summaries, medical-event AI adjuncts, posture assessment projection, and OCR-assisted measurement import.
+This contract governs child profile CRUD, retained profile detail surfaces,
+growth charts, vaccine tracking, milestone tracking, extended health-record
+history surfaces, profile-local AI summaries, medical-event AI adjuncts,
+posture assessment projection, and OCR-assisted measurement import.
+
+The `/profile` first screen is now governed by
+`health-record-console-contract.md` (`PO-HREC-*`). Structured add-data entry is
+governed by `capture-orchestrator-contract.md` (`PO-CAPT-*`). This contract
+retains child identity, detail/history surfaces, and domain-specific record
+semantics that feed those contracts.
 
 Covered features from `feature-matrix.yaml`:
 
@@ -27,21 +36,20 @@ Covered features from `feature-matrix.yaml`:
 Governing fact sources:
 
 - `tables/local-storage.yaml#children`
-- `tables/local-storage.yaml#growth_measurements`
+- `tables/local-storage.yaml#health_record_events`
+- `tables/local-storage.yaml#health_record_values`
 - `tables/local-storage.yaml#vaccine_records`
 - `tables/local-storage.yaml#milestone_records`
-- `tables/local-storage.yaml#dental_records`
 - `tables/local-storage.yaml#allergy_records`
-- `tables/local-storage.yaml#sleep_records`
-- `tables/local-storage.yaml#medical_events`
-- `tables/local-storage.yaml#tanner_assessments`
-- `tables/local-storage.yaml#fitness_assessments`
-- `tables/growth-standards.yaml`
-- `tables/milestone-catalog.yaml`
+- `tables/reference-data-assets.yaml#growth-standards`
+- `tables/health-metric-registry.yaml`
+- `tables/health-capture-protocols.yaml`
+- `tables/health-evaluation-rules.yaml`
+- `tables/reference-data-assets.yaml#milestone-catalog`
 - `tables/reminder-rules.yaml`
 - `tables/routes.yaml#/profile`
 - `tables/routes.yaml#/profile/*` (routeKind and summarySource metadata)
-- `tables/routes.yaml#/profile/posture`
+- `tables/routes.yaml#/profile/*` redirect shells
 
 ## PO-PROF-001 Child Record Shape
 
@@ -66,11 +74,18 @@ Phase 1 child records must round-trip these typed fields:
 | `createdAt` | `ISO 8601 datetime string` |
 | `updatedAt` | `ISO 8601 datetime string` |
 
-Delete must cascade through all dependent child-scoped tables: growth, vaccine, milestone, journal, AI, dental, allergy, sleep, medical events, tanner, and fitness records.
+Delete must cascade through all dependent child-scoped tables named in
+`local-storage.yaml` child deletion cascade constraints, including
+`health_record_events`, `health_record_values`, retained stateful health tables,
+attachments, reminder states, journal entries, AI conversations, growth
+reports, settings-adjacent child records, and orthodontic records.
 
 ## PO-PROF-002 Growth Measurement Inputs
 
-Growth measurement writes must use the SQLite shape defined in `local-storage.yaml#growth_measurements`.
+This write contract is superseded by `capture-orchestrator-contract.md` and
+`local-storage.yaml#health_record_events` / `#health_record_values`.
+Profile detail surfaces may display growth history, but they must not own an
+independent growth write path.
 
 Required fields:
 
@@ -88,13 +103,15 @@ Optional fields:
 - `source`
 - `notes`
 
-`typeId` must exist in `growth-standards.yaml`.
+Historical `typeId` semantics migrate to `health-metric-registry.yaml`
+`metricId` values. The admitted `growth-standards` data asset remains a reference asset for
+evaluation and percentile/chart rendering only.
 
 ## PO-PROF-003 Growth Chart Data Sources
 
 Growth charts may consume only two data sources:
 
-1. local `growth_measurements`
+1. local `health_record_values` whose metric ids map to growth chart series
 2. committed WHO-backed percentile assets for types whose `curveType` is `lms-percentile`
 
 Supported LMS-backed types in Phase 1:
@@ -153,11 +170,16 @@ Milestone tracking must store and read:
 - `createdAt`
 - `updatedAt`
 
-`milestoneId` must exist in `milestone-catalog.yaml`. Phase 1 rendering must use catalog facts and stored attainment data only.
+`milestoneId` must exist in the admitted `milestone-catalog` data asset. Phase 1 rendering must use catalog facts and stored attainment data only.
 
 ## PO-PROF-008 Dental Record Shape
 
-Dental tracking must store and read:
+Dental tracking is now projected through `health_record_events` /
+`health_record_values` for low-frequency clinical dental facts. `dental_records`
+is not an independent write authority after the PO-HREC hard cut.
+
+Dental tracking must still preserve these semantic fields through registered
+capture protocols and metric ids:
 
 - `recordId`
 - `childId`
@@ -168,7 +190,7 @@ Dental tracking must store and read:
 
 `toothId` uses FDI two-digit notation (e.g. `51` = upper-right primary central incisor). Whole-mouth events (`cleaning`, `checkup`, `ortho-assessment`, `ortho-review`, `ortho-adjustment`, `ortho-issue`, `ortho-end`, `ortho-start`) may omit `toothId`.
 
-Orthodontic-lifecycle clinical events (`ortho-review`, `ortho-adjustment`, `ortho-issue`, `ortho-end`) are the admitted cross-writes from the orthodontic surface into the dental timeline; daily compliance checkins do NOT write here and live in `orthodontic_checkins` instead. See `orthodontic-contract.md#PO-ORTHO-001`.
+Orthodontic-lifecycle clinical events (`ortho-review`, `ortho-adjustment`, `ortho-issue`, `ortho-end`) are admitted cross-writes from the orthodontic surface into `health_record_events`; daily compliance checkins do NOT write dental timeline events and live in `orthodontic_checkins` instead. See `orthodontic-contract.md#PO-ORTHO-001`.
 
 `ortho-start` is READ-ONLY historical. The dental command layer rejects new `ortho-start` writes; existing rows remain readable and render in the dental timeline. New orthodontic treatments must be modeled through `orthodontic_cases` and `orthodontic_appliances`. Migration v9 may stitch pre-contract `ortho-start` rows to an `unknown-legacy` case only when such rows exist (`orthodontic-contract.md#PO-ORTHO-006`).
 
@@ -190,7 +212,8 @@ The `children.allergies` JSON array remains as a quick-access denormalized summa
 
 ## PO-PROF-010 Sleep Record Shape
 
-Sleep tracking must store and read:
+Sleep tracking is now captured through `health_record_events` /
+`health_record_values`. It must preserve:
 
 - `recordId`
 - `childId`
@@ -210,7 +233,7 @@ Age-appropriate sleep duration reference (descriptive only, not diagnostic):
 
 ## PO-PROF-011 Medical Event Shape
 
-Medical events capture outpatient visits, emergency visits, hospitalizations, checkups/screenings, medication courses, and other notable health events. Must store and read:
+Medical events capture outpatient visits, emergency visits, hospitalizations, checkups/screenings, medication courses, and other notable health events through `health_record_events` / `health_record_values`. They must preserve:
 
 - `eventId`
 - `childId`
@@ -224,7 +247,8 @@ For screenings/checkups, `result` uses `pass | refer | fail` when applicable. Ne
 
 ## PO-PROF-012 Tanner Assessment Shape
 
-Puberty staging must store and read:
+Puberty staging is now captured through `health_record_events` /
+`health_record_values`. It must preserve:
 
 - `assessmentId`
 - `childId`
@@ -236,7 +260,8 @@ Stage values must be integers 1-5 following the Tanner scale. `breastOrGenitalSt
 
 ## PO-PROF-013 Fitness Assessment Shape
 
-Physical fitness assessments must store and read:
+Physical fitness assessments are now captured through `health_record_events` /
+`health_record_values`. They must preserve:
 
 - `assessmentId`
 - `childId`
@@ -248,7 +273,8 @@ Fitness metric fields follow China National Student Physical Fitness Standards (
 
 ## PO-PROF-014 Extended Eye Health Measurements
 
-Beyond the base vision types (`vision-left`, `vision-right`, `hyperopia-reserve`), the following `growth-standards.yaml` typeIds record structured eye exam data via `growth_measurements`:
+Beyond the base vision metrics, structured eye exam data is captured through
+`health_record_values` metric ids in `health-metric-registry.yaml`:
 
 - `corrected-vision-left`, `corrected-vision-right` — corrected (矫正) visual acuity
 - `refraction-sph-left`, `refraction-sph-right` — spherical power (球镜 SPH)
@@ -257,17 +283,18 @@ Beyond the base vision types (`vision-left`, `vision-right`, `hyperopia-reserve`
 - `axial-length-left`, `axial-length-right` — axial length (眼轴长度, mm)
 - `corneal-curvature-left`, `corneal-curvature-right` — average corneal curvature (角膜曲率, diopters)
 
-- `iop-left`, `iop-right` 鈥?intraocular pressure (IOP, mmHg)
-- `corneal-k1-left`, `corneal-k1-right` 鈥?flat corneal curvature (K1)
-- `corneal-k2-left`, `corneal-k2-right` 鈥?steep corneal curvature (K2)
-- `acd-left`, `acd-right` 鈥?anterior chamber depth (ACD, mm)
-- `lt-left`, `lt-right` 鈥?lens thickness (LT, mm)
+- `iop-left`, `iop-right` — intraocular pressure (IOP, mmHg)
+- `corneal-k1-left`, `corneal-k1-right` — flat corneal curvature (K1)
+- `corneal-k2-left`, `corneal-k2-right` — steep corneal curvature (K2)
+- `acd-left`, `acd-right` — anterior chamber depth (ACD, mm)
+- `lt-left`, `lt-right` — lens thickness (LT, mm)
 
 Axial length is the most predictive indicator for myopia progression. For school-age children, monitoring axial length every 6 months is more informative than visual acuity testing alone.
 
 ## PO-PROF-015 Lab Result Measurements
 
-Blood test results are recorded via `growth_measurements` using reference-range typeIds:
+Blood test results are recorded through `health_record_values` using
+reference-range metric ids:
 
 - `lab-vitamin-d` — 25-OH Vitamin D (ng/mL)
 - `lab-ferritin` — serum ferritin (ng/mL)
@@ -275,7 +302,7 @@ Blood test results are recorded via `growth_measurements` using reference-range 
 - `lab-calcium` — serum calcium (mmol/L)
 - `lab-zinc` — serum zinc (μmol/L)
 
-Reference ranges are defined in `growth-standards.yaml#referenceRanges`. Values outside reference ranges may trigger descriptive-only wording and the standard "建议咨询专业人士" prompt. The profile surface must not render diagnostic or treatment language for lab results.
+Reference ranges are defined in the admitted `growth-standards` data asset. Values outside reference ranges may trigger descriptive-only wording and the standard "建议咨询专业人士" prompt. The profile surface must not render diagnostic or treatment language for lab results.
 
 ## PO-PROF-016 Profile-Local AI Summaries
 
@@ -314,46 +341,56 @@ The import flow is:
 2. app requests local runtime image-aware text extraction
 3. runtime returns structured measurement candidates only
 4. parent confirms or edits candidate values and dates
-5. confirmed rows are written into `growth_measurements` with `source = ocr`
+5. confirmed rows are written through `capture-orchestrator-contract.md` into `health_record_events` and `health_record_values` with `recordKind = parent_confirmed_import`
 
 OCR import must obey these invariants:
 
 - the app must not upload the health-sheet image to arbitrary third-party endpoints
 - OCR output is extraction-only and must not include diagnosis, treatment language, ranking, or developmental interpretation
-- OCR candidates may target only spec-backed `growth-standards.yaml` `typeId` values supported by the current import surface
+- OCR candidates may target only spec-backed `health-metric-registry.yaml` metric ids supported by the current import surface; growth standards may be consulted only as reference assets
 - no measurement row may be written before parent confirmation
 - import failures must not silently create placeholder measurements
 
-## PO-PROF-019 Posture Surface
+## PO-PROF-019 Posture Projection
 
-`/profile/posture` is an admitted profile surface for local posture and body-alignment review.
+Posture and body-alignment review is a profile projection, not an independent
+`/profile/posture` page after the PO-HREC hard cut. The route shell may remain
+registered only to redirect to `/profile`.
 
-- the surface may project posture-related local records, linked medical context, and related profile summaries already available to the app
-- until a dedicated posture persistence contract is introduced, this surface is authority only at the UI/projection level
-- the posture surface must not invent an undocumented hidden storage schema
-- the posture surface must not render diagnosis, treatment plans, or comparative ranking
+- `/profile` may project posture-related local records, linked medical context, and related profile summaries already available to the app
+- until a dedicated posture persistence contract is introduced, posture is authority only at the UI/projection level
+- posture projection must not invent an undocumented hidden storage schema
+- posture projection must not render diagnosis, treatment plans, or comparative ranking
 
 ## PO-PROF-021 Timeline vs Profile Responsibility Boundary
 
-`/timeline` and `/profile` serve complementary but non-overlapping display mandates.
+`/timeline` and `/profile` serve complementary but non-overlapping mandates.
+This section is hard-cut by `health-record-console-contract.md`: `/profile` is
+the current health record console, not the old archive directory.
 
-| Concern | `/timeline` (Timeline) | `/profile` (Profile) |
+| Concern | `/timeline` (Timeline) | `/profile` (Health Record Console) |
 |---|---|---|
-| **Core mandate** | Current action surface — what to do now and next | Complete archive — full history and structured records |
-| **Time orientation** | Present and near-future (today, this week, current stage) | All-time and cumulative |
-| **Data display** | Agenda-driven projection (reminders, recent changes, freshness alerts) | Record-oriented projection (counts, last-updated, completeness) |
+| **Core mandate** | Current action agenda: reminders, today focus, this week, stage focus, report triggers | Current child health state: latest values, record dates, freshness, next-record display, evaluation semantics |
+| **Time orientation** | Present and near-future agenda | Current-state snapshot backed by full local records |
+| **Data display** | Agenda-driven projection (reminders, recent changes, freshness alerts) | Health-record-console projection from `getHealthRecordConsole(childId, evaluationDate)` |
 | **Owned features** | `PO-FEAT-002` reminder engine, `PO-FEAT-003` growth timeline, `PO-FEAT-011` sensitive period guide, `PO-FEAT-046` monthly report trigger | `PO-FEAT-001` child profile CRUD, `PO-FEAT-004`–`PO-FEAT-007` record surfaces, `PO-FEAT-022`/`PO-FEAT-025`/`PO-FEAT-034`–`PO-FEAT-041` extended profile surfaces |
-| **Quick stats** | May show agenda-derived counts (overdue, due-today, upcoming) | Must NOT duplicate timeline agenda counts; shows archive metadata (record counts, last-updated, completeness percentage) |
+| **Quick stats** | May show agenda-derived counts (overdue, due-today, upcoming) | Must not duplicate timeline agenda counts; shows PO-HREC freshness, next-record dates, and evaluation states |
 
 Invariants:
 
-- Profile must not recompute or display reminder-agenda buckets (`todayFocus`, `thisWeek`, `overdueSummary`, etc.). Reminder state is owned by `timeline-contract`.
-- Timeline must not serve as a record browsing or history exploration surface. Deep record access is owned by `profile-contract`.
-- Both surfaces may link to each other for cross-navigation (e.g., a timeline reminder card may link to the relevant profile sub-page).
+- Profile must not recompute or display reminder-agenda buckets (`todayFocus`, `thisWeek`, `stageFocus`, `history`, `overdueSummary`, etc.). Reminder state is owned by `timeline-contract`.
+- Timeline must not serve as a health record console, record browsing, or history exploration surface. Deep record access is owned by profile detail surfaces and PO-HREC.
+- Profile may display next expected record dates and freshness through PO-HREC; those are not timeline agenda buckets.
+- Both surfaces may link to each other through typed routes and capture intents.
 
 ## PO-PROF-022 Profile Section Summary Projection
 
-The profile index page must project a uniform summary for each archive section. Each section summary contains:
+The old profile section-summary card grid is retired as the `/profile` primary
+projection. `/profile` consumes PO-HREC console snapshots instead.
+
+If archive/detail pages still need section summaries, they must be secondary
+detail helpers and must not be used to rebuild the first-screen profile
+console. Any retained section summary contains:
 
 | Field | Type | Semantics |
 |---|---|---|
@@ -363,42 +400,47 @@ The profile index page must project a uniform summary for each archive section. 
 | `state` | `'ok' \| 'empty' \| 'error'` | Load result discriminator |
 | `errorMessage` | `string \| null` | Human-readable error description when `state` is `error` |
 
-The summary projection must be retrieved via a single batch call `getProfileSectionSummaries(childId)` that returns all section summaries in one response. This avoids per-section waterfall queries and provides consistent snapshot semantics.
+A retained secondary summary projection must be retrieved via a single batch
+call `getProfileSectionSummaries(childId)` that returns all section summaries
+in one response. This avoids per-section waterfall queries and provides
+consistent snapshot semantics.
 
 Invariants:
 
 - The projection must distinguish `empty` (zero records, successfully loaded) from `error` (load failed). A failed query must not produce `recordCount: 0`.
 - `lastUpdatedAt` must reflect the actual most-recent record timestamp, not the query timestamp.
 - The batch call must not silently drop failed sections. Every registered archive section must appear in the response with an explicit `state`.
-- The UI must render section cards using the `state` discriminator: `ok` shows count and recency, `empty` shows a contextual empty-state prompt, `error` shows the error with a retry affordance.
+- Any retained secondary UI must render section summaries using the `state` discriminator: `ok` shows count and recency, `empty` shows a contextual empty-state prompt, `error` shows the error with a retry affordance.
 
 ## PO-PROF-023 Route Classification and Tool Separation
 
-Profile child routes fall into two kinds:
+Profile child route shells fall into two legacy classification kinds:
 
 | `routeKind` | Meaning | Examples |
 |---|---|---|
-| `archive` | A structured record domain with browsable history | `/profile/growth`, `/profile/vaccines`, `/profile/sleep`, etc. |
-| `tool` | An intake/utility surface that writes into archive domains but is not itself a browsable archive | `/profile/report-upload` |
+| `archive` | A retained route shell for a structured record domain whose primary UI now lives in `/profile` | `/profile/growth`, `/profile/vaccines`, `/profile/sleep`, etc. |
+| `tool` | A retained route shell for an intake utility whose primary UI now lives in PO-CAPT through `/profile` | `/profile/report-upload` |
 
 Invariants:
 
-- The profile index page must visually separate `archive` routes from `tool` routes. Archive sections form the main directory grid; tool entries are placed in a distinct utility area.
-- `tool` routes must not appear in the archive grid with record counts and last-updated metadata, because they do not own records.
-- `archive` routes must each have a section summary (PO-PROF-022). `tool` routes are exempt from summary projection.
+- The `/profile` root is no longer an archive grid; it is governed by PO-HREC.
+- Detail/archive/tool child routes with `redirectTarget: /profile` must redirect to `/profile` and must not mount independent read/write pages.
+- PO-CAPT opens from `/profile` or typed reminder capture intent; child routes must not own independent add-data save paths after PO-CAPT admission.
+- `tool` routes must not appear as health metric rows unless represented by an admitted `health-metric-registry.yaml` metric or domain projection.
 - The `routeKind` value is declared in `routes.yaml` for each `/profile/*` child route.
 
 ## PO-PROF-024 Age-Adaptive Section Ordering
 
-The profile section grid must order archive sections by current-age relevance. The ordering is a display-time sort, not a visibility filter — all admitted archive sections remain visible regardless of age.
+Age-adaptive first-screen ordering migrates to PO-HREC. The profile contract no
+longer owns section-card ordering for `/profile`.
 
 Ordering principles:
 
-- Sections with higher expected activity at the child's current age rank higher.
-- The section set does not change by age (no hiding), but conditional sections (e.g., Tanner at ≥84 months) may be added per existing route constraints.
-- The ordering must be deterministic for a given `ageMonths` value.
+- Health record console groups and rows with higher expected activity at the child's current age rank higher.
+- The admitted group set does not change by age; age changes ordering and due/freshness state, not authority.
+- Ordering must be deterministic for a given `ageMonths` value.
 
-Phase 1 ordering tiers (descending priority):
+Health record console ordering tiers (descending priority):
 
 | Age range (months) | Top-tier sections |
 |---|---|
@@ -408,7 +450,8 @@ Phase 1 ordering tiers (descending priority):
 | 73–120 | vision, growth, fitness, dental, tanner (if admitted) |
 | 121–216 | vision, fitness, growth, tanner, dental |
 
-Sections not listed in a tier's top group appear after the top group in their default registration order from `routes.yaml`.
+Rows not listed in a tier's top group appear after the top group in
+`health-metric-registry.yaml` rank order, not route registration order.
 
 ## PO-PROF-020 Fail-Close Behavior
 
@@ -432,7 +475,9 @@ The profile layer must fail closed when:
 
 ### Card-Level Error Isolation (PO-PROF-020a)
 
-Profile index page section cards must isolate errors at the card level, not the page level.
+Retained secondary archive-summary cards must isolate errors at the card level,
+not the page level. The `/profile` first-screen console uses PO-HREC snapshot
+error semantics instead.
 
 - A failed section summary query must render an error state on that specific card only. Other cards with successful loads must remain fully functional.
 - `.catch(catchLog(...))` or equivalent silent error swallowing that produces `0` / `--` / empty state indistinguishable from "no records" is a fail-close violation.

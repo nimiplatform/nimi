@@ -11,6 +11,7 @@ This contract governs the parent-facing interaction model for reminders delivere
 - The structured `explain` content contract that must accompany every non-task rule.
 - The action enumeration the UI and engine are permitted to emit, including the advisor writeback path that resolves `consult` completion.
 - The progression-evidence projection that downstream report and journal surfaces may cite.
+- The `record_data` capture-target binding and persistence-gated completion path for task reminders.
 
 The timeline engine's eligibility, scheduling, visibility, and agenda-bucket behavior remain governed by `timeline-contract.md`. This contract specifies what happens **after** a reminder has surfaced — how the parent engages with it and how that engagement is recorded.
 
@@ -23,6 +24,9 @@ Covered features from `feature-matrix.yaml`:
 - `PO-FEAT-053` reminder progression surface (new; see `feature-matrix.yaml`)
 
 Governing fact sources:
+
+- `tables/reminder-capture-targets.yaml` - canonical `record_data` rule to capture protocol binding
+- `tables/health-capture-protocols.yaml` - capture protocols consumed by `record_data` reminders
 
 - `tables/reminder-rules.yaml` — rule `kind`, `actionType`, `explain`
 - `tables/orthodontic-protocols.yaml` — admitted `PO-ORTHO-*` and `PO-DEN-FOLLOWUP-*` rules participate in this contract as `task` kind only
@@ -168,6 +172,8 @@ A `consult`-kind `open_advisor` action must not write any timestamp to `reminder
 
 A `consult`-kind rule has no client-driven terminal action. This is intentional: opening the advisor is navigation, not completion.
 
+A task reminder whose `actionType` is `record_data` also has no direct click-to-complete action. Its primary action opens the `PO-CAPT-*` capture orchestrator using the canonical target in `tables/reminder-capture-targets.yaml`. The reminder reaches `task.completed` only after the orchestrator validates and persists a record event that satisfies the target's completion policy.
+
 Default snooze duration per kind:
 
 | Kind | Default snooze |
@@ -299,6 +305,38 @@ The reminder interaction layer must fail closed when:
 - The advisor writeback receives a `(childId, ruleId, repeatIndex)` triple that does not resolve to an existing `reminder_states` row.
 - A progression evidence extractor is asked to cite a reminder whose backing row is missing or carries no terminal timestamp for its kind.
 - The drawer is opened for a rule whose `explain` fails PO-REMI-011 shape requirements while the rule is admitted under W2 content migration.
+- An age-based ParentOS `record_data` reminder rule lacks exactly one row in `tables/reminder-capture-targets.yaml`.
+- A `record_data` capture target references a missing capture protocol, metric id, or required-field id.
+- A `record_data` path attempts to write `completedAt` from navigation, drawer open, modal open, or capture intent creation before a satisfying persisted record exists.
+
+## PO-REMI-013 Data-Record Capture Target
+
+Every age-based ParentOS reminder rule in `reminder-rules.yaml` or
+`reminder-rules-extended.yaml` with `actionType: record_data` must bind to
+exactly one row in `tables/reminder-capture-targets.yaml`.
+
+Orthodontic protocol rules with `actionType: record_data` are governed by
+`orthodontic-protocols.yaml#rules` and their `checkinType` bindings. They do
+not enter PO-CAPT and must not be duplicated in `reminder-capture-targets.yaml`.
+
+The binding row owns:
+
+- `ruleId` and optional `repeatIndexPolicy`
+- `captureProtocolId`
+- default `recordedAt` and `effectiveDate` behavior
+- required metric ids and required field ids
+- completion policy evaluated after persistence
+
+The UI must open the `PO-CAPT-*` modal with `linkedReminder = { ruleId, repeatIndex, sourceSurface }` and the bound protocol preselected. Opening that modal is navigation only. It must not mutate `reminder_states.completedAt`, `status`, or any progression timestamp.
+
+Completion is permitted only when the capture orchestrator has:
+
+1. validated the selected protocol and all required fields,
+2. persisted the event/value records in one transaction,
+3. recomputed admitted derived values and the `PO-HREC-*` snapshot affected by the write,
+4. proved that the saved event satisfies the binding row's completion policy.
+
+If any step fails, the reminder remains due or snoozed according to existing `PO-TIME-*` agenda rules. The interaction layer must surface the save failure and must not synthesize completion.
 
 ## Exclusions
 
@@ -307,5 +345,5 @@ The following remain outside this contract:
 - Eligibility, scheduling, age-gating, agenda bucketing, cold-start catch-up — see `timeline-contract.md`.
 - Advisor prompt strategy selection and snapshot assembly — see `advisor-contract.md`.
 - Custom user-authored todos (`custom_todos` table) — they remain a separate surface and do not participate in the `kind` taxonomy.
-- Observation nudges sourced from `observation-framework.yaml` — they are diagnostic (watching the child), not prescriptive (changing parent behavior), and remain a separate surface even though they visually sit near `practice`-kind reminders.
+- Observation nudges sourced from the admitted `observation-framework` data asset — they are diagnostic (watching the child), not prescriptive (changing parent behavior), and remain a separate surface even though they visually sit near `practice`-kind reminders.
 - Orthodontic protocol reminders (`PO-ORTHO-*`) and dental follow-up reminders (`PO-DEN-FOLLOWUP-*`) — they participate as `task` kind only. Their authority home remains `orthodontic-protocols.yaml` and `orthodontic-contract.md`.

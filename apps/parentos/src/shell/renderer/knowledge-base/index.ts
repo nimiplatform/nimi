@@ -31,3 +31,40 @@ export type { NurtureModeConfig, NurtureModeId } from './gen/nurture-modes.gen.j
 
 export { KNOWLEDGE_SOURCES, REVIEWED_DOMAINS, NEEDS_REVIEW_DOMAINS } from './gen/knowledge-source-readiness.gen.js';
 export type { KnowledgeSource, KnowledgeSourceStatus } from './gen/knowledge-source-readiness.gen.js';
+
+export {
+  HEALTH_METRIC_GROUPS,
+  HEALTH_METRICS,
+  HEALTH_STATUS_TAXONOMY,
+  HEALTH_EVALUATION_POLICIES,
+  HEALTH_CAPTURE_PROTOCOLS,
+  HEALTH_REMINDER_CAPTURE_TARGETS,
+  HEALTH_METRIC_IDS,
+  HEALTH_CAPTURE_PROTOCOL_IDS,
+  HEALTH_EVALUATION_POLICY_IDS,
+  HEALTH_RECORD_DATA_RULE_IDS,
+} from './gen/health-record.gen.js';
+export type {
+  HealthMetricGroup,
+  HealthMetricGroupId,
+  HealthMetricDefinition,
+  HealthMetricId,
+  HealthValueShape,
+  HealthValueCardinality,
+  HealthRecordKind,
+  HealthSourceSupport,
+  HealthSafetyClass,
+  HealthStatusTaxonomyEntry,
+  HealthEvaluationStatus,
+  HealthStatusColorAlias,
+  HealthEvaluationOutputRule,
+  HealthEvaluationPolicy,
+  HealthEvaluationPolicyId,
+  HealthCaptureProtocol,
+  HealthCaptureProtocolId,
+  HealthCaptureMode,
+  HealthStorageTarget,
+  HealthReminderCaptureTarget,
+  HealthRecordDataRuleId,
+  HealthDateDefaultPolicy,
+} from './gen/health-record.gen.js';

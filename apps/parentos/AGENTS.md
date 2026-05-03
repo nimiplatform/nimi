@@ -25,7 +25,7 @@
 
 ## Spec Authority & Sync
 
-`apps/parentos/spec/**` is ParentOS's admitted app-local authority landing. Normative content belongs only in `spec/kernel/*.md` and `spec/kernel/tables/**`; `spec/INDEX.md` and `spec/parentos.md` are guides.
+`apps/parentos/spec/**` is ParentOS's admitted app-local authority landing. Normative product authority belongs only in `spec/kernel/*.md` and `spec/kernel/tables/**`; `spec/INDEX.md` and `spec/parentos.md` are guides. Concrete reference/content data belongs under `data/**` only when admitted by `spec/kernel/tables/reference-data-assets.yaml`.
 
 During the current authority realignment, implementation is the fact source for spec catch-up. **When spec and code conflict on a retained product behavior, update the app-local spec to match reality.** Do not promote obvious bugs, fail-open behavior, placeholder data writes, or orphan surfaces into authority; track those as defects instead.
 
@@ -41,11 +41,12 @@ Before making any change:
 |-------|---------|
 | `reminder-rules.yaml` | All age-based reminder rules (vaccines, checkups, vision, dental, bone age, growth, sensitivity, interests, etc.) |
 | `orthodontic-protocols.yaml` | Dynamic orthodontic protocol rules + dental follow-up rules; the only authority home for `PO-ORTHO-*` and `PO-DEN-FOLLOWUP-*` ruleIds |
-| `milestone-catalog.yaml` | Developmental milestones by domain and age |
-| `sensitive-periods.yaml` | Montessori sensitive period definitions |
-| `observation-framework.yaml` | 21 observation dimensions from 8 theories + relationship quality |
-| `ability-model.yaml` | Ability-interpretation design asset; current layer count/enums are not yet frozen and must not be treated as a stable public contract |
-| `growth-standards.yaml` | WHO growth curve reference data |
+| `reference-data-assets.yaml` | Manifest for admitted JSON data assets under `data/knowledge/**` |
+| `data/knowledge/milestone-catalog.json` | Developmental milestones by domain and age |
+| `data/knowledge/sensitive-periods.json` | Montessori sensitive period definitions |
+| `data/knowledge/observation-framework.json` | 21 observation dimensions from 8 theories + relationship quality |
+| `data/knowledge/ability-model.json` | Ability-interpretation design asset; current layer count/enums are not yet frozen and must not be treated as a stable public contract |
+| `data/knowledge/growth-standards.json` | WHO/reference growth and health reference data |
 | `knowledge-source-readiness.yaml` | Authoritative reviewed / needs-review gate for what may enter Phase 1 AI free-form prompt |
 | `nurture-modes.yaml` | Three nurture mode parameters |
 | `local-storage.yaml` | SQLite schema (19 tables) |
@@ -71,7 +72,7 @@ Rule → Table → Generate → Check → Evidence
 - `routes.yaml` paths ≠ `routes.tsx` route definitions
 - `reminder-rules.yaml` ruleIds ≠ compiled TS constants
 - `nurture-modes.yaml` parameters ≠ `app-store.ts` types
-- `observation-framework.yaml` dimensionIds ≠ compiled TS constants
+- `data/knowledge/observation-framework.json` dimensionIds ≠ compiled TS constants
 
 ## Development Principles
 
@@ -152,7 +153,7 @@ cd apps/parentos/src-tauri && cargo check
 
 ## Retrieval Defaults
 
-Start with: `spec/kernel/tables/`, `src/shell/renderer/engine/`, `src/shell/renderer/app-shell/`, `src-tauri/src/sqlite/`.
+Start with: `spec/kernel/tables/`, `data/knowledge/`, `src/shell/renderer/engine/`, `src/shell/renderer/app-shell/`, `src-tauri/src/sqlite/`.
 
 Skip: `node_modules/`, `dist/`, `target/`, lockfiles.
 

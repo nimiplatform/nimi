@@ -1220,7 +1220,7 @@ rules:
         - { citation: "AAP-safety-2023" }
     tags: [home-safety, walking]
   # ── Sensitivity (敏感期) ─────────────────────────────────
-  # 完整定义见 sensitive-periods.yaml，这里只放提醒规则
+  # 完整定义见 sensitive-periods data asset，这里只放提醒规则
   - ruleId: PO-REM-SEN-001
     domain: sensitivity
     category: stage

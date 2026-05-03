@@ -1,5 +1,46 @@
 schema_version: 1
 
+health_record_unification:
+  canonical_tables:
+    - health_record_events
+    - health_record_values
+  folded_measurement_domains:
+    - growth_measurements
+    - sleep_records
+    - tanner_assessments
+    - fitness_assessments
+    - outdoor_records
+  folded_assessment_domains:
+    - dental_records
+    - medical_events
+  retained_stateful_tables:
+    - orthodontic_cases
+    - orthodontic_appliances
+    - orthodontic_checkins
+    - allergy_records
+    - vaccine_records
+    - milestone_records
+  projection_only_tables:
+    - vision_followup_settings
+  outside_scope_tables:
+    - families
+    - children
+    - reminder_states
+    - journal_entries
+    - journal_tags
+    - ai_conversations
+    - ai_messages
+    - growth_reports
+    - attachments
+    - custom_todos
+    - app_settings
+  rules:
+    - "Measurement-shaped facts and assessment-shaped health facts are written to health_record_events + health_record_values after PO-HREC hard cut."
+    - "Precutover rows in folded measurement tables are migration inputs only; supported facts must be backfilled into health_record_events + health_record_values by an idempotent migration/repair replay before the PO-HREC console projects current state."
+    - "Retained stateful tables keep their own canonical lifecycle when their domain semantics are not value-at-time records."
+    - "Retained stateful rows may project current health metrics into PO-HREC only through registered metric ids and must not create parallel metric truth."
+    - "vision_followup_settings is cadence configuration only; it is not a health record event."
+
 tables:
   - name: families
     description: "Single local family profile per account-scoped ParentOS database."
@@ -37,10 +78,12 @@ tables:
 
   - name: growth_measurements
     description: "Structured child growth measurements."
+    authorityStatus: folded_after_pohrec_hard_cut
+    replacementTables: [health_record_events, health_record_values]
     columns:
       - { name: measurementId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
-      - { name: typeId, type: TEXT, nullable: false, description: "References growth-standards.yaml typeId" }
+      - { name: typeId, type: TEXT, nullable: false, description: "References growth-standards data asset typeId" }
       - { name: value, type: REAL, nullable: false }
       - { name: measuredAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
       - { name: ageMonths, type: INTEGER, nullable: false }
@@ -57,7 +100,7 @@ tables:
     columns:
       - { name: recordId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
-      - { name: milestoneId, type: TEXT, nullable: false, description: "References milestone-catalog.yaml" }
+      - { name: milestoneId, type: TEXT, nullable: false, description: "References milestone-catalog data asset" }
       - { name: achievedAt, type: TEXT, nullable: true, description: "ISO 8601 datetime" }
       - { name: ageMonthsWhenAchieved, type: INTEGER, nullable: true }
       - { name: notes, type: TEXT, nullable: true }
@@ -138,7 +181,7 @@ tables:
       - { name: recordedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
       - { name: ageMonths, type: INTEGER, nullable: false }
       - { name: observationMode, type: TEXT, nullable: true, description: "quick-capture | focused-observation | daily-reflection | five-minute" }
-      - { name: dimensionId, type: TEXT, nullable: true, description: "References observation-framework.yaml dimensionId" }
+      - { name: dimensionId, type: TEXT, nullable: true, description: "References observation-framework data asset dimensionId" }
       - { name: selectedTags, type: TEXT, nullable: true, description: "JSON array of quickTags from the selected dimension" }
       - { name: guidedAnswers, type: TEXT, nullable: true, description: "JSON object keyed by guided question" }
       - { name: observationDuration, type: INTEGER, nullable: true }
@@ -212,10 +255,12 @@ tables:
 
   - name: dental_records
     description: "Dental events: tooth eruption, loss, caries, fillings, cleanings, fluoride, sealants, checkups, orthodontic assessments, and historical ortho-start markers."
+    authorityStatus: folded_after_pohrec_hard_cut
+    replacementTables: [health_record_events, health_record_values]
     columns:
       - { name: recordId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
-      - { name: eventType, type: TEXT, nullable: false, description: "eruption | loss | caries | filling | cleaning | fluoride | sealant | checkup | ortho-assessment | ortho-start" }
+      - { name: eventType, type: TEXT, nullable: false, description: "eruption | loss | caries | filling | cleaning | fluoride | sealant | checkup | ortho-assessment | ortho-review | ortho-adjustment | ortho-issue | ortho-end | ortho-start" }
       - { name: toothId, type: TEXT, nullable: true, description: "FDI tooth number (e.g. '51' for upper-right primary central incisor), null for whole-mouth events" }
       - { name: toothSet, type: TEXT, nullable: true, description: "primary | permanent" }
       - { name: eventDate, type: TEXT, nullable: false, description: "ISO 8601 date" }
@@ -238,7 +283,7 @@ tables:
     columns:
       - { name: caseId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
-      - { name: caseType, type: TEXT, nullable: false, description: "early-intervention | fixed-braces | clear-aligners" }
+      - { name: caseType, type: TEXT, nullable: false, description: "early-intervention | fixed-braces | clear-aligners | unknown-legacy (migration-authored only)" }
       - { name: stage, type: TEXT, nullable: false, description: "assessment | planning | active | retention | completed" }
       - { name: startedAt, type: TEXT, nullable: false, description: "ISO 8601 date" }
       - { name: plannedEndAt, type: TEXT, nullable: true, description: "ISO 8601 date" }
@@ -334,6 +379,8 @@ tables:
 
   - name: sleep_records
     description: "Daily sleep records: bedtime, wake time, duration, and quality."
+    authorityStatus: folded_after_pohrec_hard_cut
+    replacementTables: [health_record_events, health_record_values]
     columns:
       - { name: recordId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
@@ -355,6 +402,8 @@ tables:
 
   - name: medical_events
     description: "General medical events: outpatient visits, emergency visits, hospitalizations, checkups/screenings, medication courses, and other notable health events."
+    authorityStatus: folded_after_pohrec_hard_cut
+    replacementTables: [health_record_events, health_record_values]
     columns:
       - { name: eventId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
@@ -380,6 +429,8 @@ tables:
 
   - name: tanner_assessments
     description: "Puberty Tanner staging assessments. Separate staging for breast/genital and pubic hair."
+    authorityStatus: folded_after_pohrec_hard_cut
+    replacementTables: [health_record_events, health_record_values]
     columns:
       - { name: assessmentId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
@@ -397,6 +448,8 @@ tables:
 
   - name: fitness_assessments
     description: "Physical fitness assessments: school PE tests, sports evaluations, screening results."
+    authorityStatus: folded_after_pohrec_hard_cut
+    replacementTables: [health_record_events, health_record_values]
     columns:
       - { name: assessmentId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
@@ -424,6 +477,8 @@ tables:
 
   - name: outdoor_records
     description: "Per-child daily outdoor activity duration records for weekly goal tracking."
+    authorityStatus: folded_after_pohrec_hard_cut
+    replacementTables: [health_record_events, health_record_values]
     columns:
       - { name: recordId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
@@ -449,12 +504,57 @@ tables:
 
   # ── 附件归档 ─────────────────────────────────────────────
 
+  - name: health_record_events
+    description: "Canonical event envelope for measurement-shaped and assessment-shaped child health records after PO-HREC hard cut."
+    columns:
+      - { name: eventId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: protocolId, type: TEXT, nullable: false, description: "References health-capture-protocols.yaml when captured through PO-CAPT." }
+      - { name: groupId, type: TEXT, nullable: false, description: "Metric group from health-metric-registry.yaml." }
+      - { name: recordKind, type: TEXT, nullable: false, description: "manual | imported | ocr_confirmed | reminder_linked | derived" }
+      - { name: sourceSurface, type: TEXT, nullable: false, description: "profile_console | profile_detail | reminder | ocr_tool | import" }
+      - { name: recordedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime when the measurement or assessment happened." }
+      - { name: effectiveDate, type: TEXT, nullable: false, description: "ISO 8601 date used for freshness and section ordering." }
+      - { name: ageMonths, type: INTEGER, nullable: false }
+      - { name: recorderId, type: TEXT, nullable: true, description: "Optional recorder profile id from children.recorderProfiles." }
+      - { name: linkedReminderStateId, type: TEXT, nullable: true, fk: "reminder_states.stateId", description: "Set only when a PO-CAPT save attempts to satisfy a record_data reminder." }
+      - { name: linkedReminderRuleId, type: TEXT, nullable: true, description: "Rule id snapshot for reminder-linked capture." }
+      - { name: notes, type: TEXT, nullable: true }
+      - { name: metadataJson, type: TEXT, nullable: true, description: "JSON object for protocol-specific non-metric metadata." }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, effectiveDate] }
+      - { columns: [childId, groupId, effectiveDate] }
+      - { columns: [childId, linkedReminderStateId] }
+      - { columns: [protocolId] }
+
+  - name: health_record_values
+    description: "Canonical metric values attached to health_record_events. Metric ids must resolve to health-metric-registry.yaml."
+    columns:
+      - { name: valueId, type: TEXT, pk: true, description: "ULID" }
+      - { name: eventId, type: TEXT, nullable: false, fk: "health_record_events.eventId" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: metricId, type: TEXT, nullable: false, description: "References health-metric-registry.yaml metricId." }
+      - { name: valueNumber, type: REAL, nullable: true }
+      - { name: valueText, type: TEXT, nullable: true }
+      - { name: valueJson, type: TEXT, nullable: true, description: "JSON object or array for composite metric payloads." }
+      - { name: unit, type: TEXT, nullable: true, description: "Must match the metric registry unit when present." }
+      - { name: qualifier, type: TEXT, nullable: true, description: "Optional side/protocol qualifier such as left | right | resting | post_exercise." }
+      - { name: recordKind, type: TEXT, nullable: false, description: "measured | derived | parent_confirmed_import" }
+      - { name: sourceValueIds, type: TEXT, nullable: true, description: "JSON array of valueIds used by derived metrics." }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [eventId] }
+      - { columns: [childId, metricId] }
+      - { columns: [childId, metricId, createdAt] }
+
   - name: attachments
     description: "Unified image attachments linked to admitted child-scoped records."
     columns:
       - { name: attachmentId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
-      - { name: ownerTable, type: TEXT, nullable: false, description: "dental_records | growth_measurements | medical_events | vaccine_records | milestone_records | orthodontic_cases | orthodontic_appliances | orthodontic_checkins" }
+      - { name: ownerTable, type: TEXT, nullable: false, description: "health_record_events | vaccine_records | milestone_records | allergy_records | orthodontic_cases | orthodontic_appliances | orthodontic_checkins" }
       - { name: ownerId, type: TEXT, nullable: false, description: "PK of the owning record" }
       - { name: filePath, type: TEXT, nullable: false, description: "Absolute local file path" }
       - { name: fileName, type: TEXT, nullable: false, description: "Original file name" }
@@ -499,7 +599,12 @@ constraints:
   - "JSON payloads are stored as TEXT and must remain valid JSON on read/write."
   - "childId is the primary filter field for child-scoped tables."
   - "growth_reports.reportType is limited to monthly | quarterly | quarterly-letter | custom."
-  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, outdoor_records, vision_followup_settings, attachments, custom_todos, orthodontic_cases, orthodontic_appliances, orthodontic_checkins."
+  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, outdoor_records, vision_followup_settings, health_record_events, health_record_values, attachments, custom_todos, orthodontic_cases, orthodontic_appliances, orthodontic_checkins."
   - "vision_followup_settings.cadenceMonths is constrained to the integer range 1..36 at the bridge boundary; values outside this range must fail-close. customNextDate must be ISO 8601 YYYY-MM-DD when present."
   - "orthodontic_cases deletion cascades to orthodontic_appliances and orthodontic_checkins. orthodontic_appliances deletion cascades to orthodontic_checkins."
   - "children.allergies JSON array remains as a quick-access summary; allergy_records is the structured source of truth."
+  - "health_record_events + health_record_values are the canonical storage for measurement-shaped and assessment-shaped health facts after the PO-HREC hard cut."
+  - "Existing growth_measurements rows with supported typeId values are backfilled exactly once into health_record_events + health_record_values using deterministic precutover ids; after backfill the console reads only the canonical tables and must not dual-read growth_measurements."
+  - "health_record_values.metricId must resolve to tables/health-metric-registry.yaml; values whose metric id cannot be resolved must fail closed before save."
+  - "Derived health_record_values are engine-owned recomputations performed inside the PO-CAPT save transaction or a full snapshot rebuild; UI forms must not write derived metrics directly."
+  - "attachments.ownerTable=health_record_events is used for unified health record attachments; retained stateful tables may remain attachment owners only when listed in health_record_unification.retained_stateful_tables."

@@ -27,9 +27,9 @@ features:
     name: "Growth measurement entry"
     phase: 1
     priority: P0
-    contract: profile-contract
-    description: "Record local height, weight, head circumference, lab, vision, and other structured measurements."
-    tables: [local-storage.yaml#growth_measurements, growth-standards.yaml]
+    contract: capture-orchestrator-contract
+    description: "Record local height, weight, head circumference, lab, vision, and other structured measurements through the unified capture orchestrator."
+    tables: [local-storage.yaml#health_record_events, local-storage.yaml#health_record_values, health-capture-protocols.yaml, health-metric-registry.yaml, reference-data-assets.yaml#growth-standards]
 
   - featureId: PO-FEAT-005
     name: "Growth curve charts"
@@ -37,7 +37,7 @@ features:
     priority: P0
     contract: profile-contract
     description: "Render local growth measurements with WHO-backed reference curves only where official data exists."
-    tables: [growth-standards.yaml]
+    tables: [reference-data-assets.yaml#growth-standards]
 
   - featureId: PO-FEAT-006
     name: "Vaccine tracking"
@@ -53,7 +53,7 @@ features:
     priority: P1
     contract: profile-contract
     description: "Record structured milestone achievements."
-    tables: [milestone-catalog.yaml, local-storage.yaml#milestone_records]
+    tables: [reference-data-assets.yaml#milestone-catalog, local-storage.yaml#milestone_records]
 
   - featureId: PO-FEAT-008
     name: "Parent journal"
@@ -86,7 +86,7 @@ features:
     priority: P1
     contract: timeline-contract
     description: "Project sensitive-period guidance by child age."
-    tables: [sensitive-periods.yaml]
+    tables: [reference-data-assets.yaml#sensitive-periods]
 
   - featureId: PO-FEAT-012
     name: "Observation framework guidance"
@@ -94,7 +94,7 @@ features:
     priority: P1
     contract: journal-contract
     description: "Guide journal capture with spec-backed observation dimensions, questions, and quick tags."
-    tables: [observation-framework.yaml, local-storage.yaml#journal_entries]
+    tables: [reference-data-assets.yaml#observation-framework, local-storage.yaml#journal_entries]
 
   - featureId: PO-FEAT-013
     name: "Observation pattern identification"
@@ -102,7 +102,7 @@ features:
     priority: P2
     contract: advisor-contract
     description: "Reserved future scope; not admitted while observation remains needs-review."
-    tables: [observation-framework.yaml, sensitive-periods.yaml]
+    tables: [reference-data-assets.yaml#observation-framework, reference-data-assets.yaml#sensitive-periods]
     runtimeDependency: "runtime.ai.text.generate"
 
   - featureId: PO-FEAT-020
@@ -120,16 +120,16 @@ features:
     priority: P1
     contract: journal-contract
     description: "Local-first closed-set AI tag suggestion for unsaved journal drafts."
-    tables: [local-storage.yaml#journal_tags, observation-framework.yaml]
+    tables: [local-storage.yaml#journal_tags, reference-data-assets.yaml#observation-framework]
     runtimeDependency: "runtime.ai.text.generate"
 
   - featureId: PO-FEAT-022
     name: "Checkup OCR"
     phase: 1
     priority: P2
-    contract: profile-contract
+    contract: capture-orchestrator-contract
     description: "Extract structured health measurements from a local checkup image and require parent confirmation before import."
-    tables: [local-storage.yaml#growth_measurements, growth-standards.yaml]
+    tables: [local-storage.yaml#health_record_events, local-storage.yaml#health_record_values, health-capture-protocols.yaml, health-metric-registry.yaml, reference-data-assets.yaml#growth-standards]
     runtimeDependency: "runtime.ai.text.generate"
 
   - featureId: PO-FEAT-025
@@ -138,7 +138,7 @@ features:
     priority: P2
     contract: profile-contract
     description: "Generate safety-filtered summaries from the current profile page's local structured records only."
-    tables: [local-storage.yaml#app_settings, local-storage.yaml#growth_measurements, local-storage.yaml#vaccine_records, local-storage.yaml#milestone_records, local-storage.yaml#dental_records, local-storage.yaml#allergy_records, local-storage.yaml#sleep_records, local-storage.yaml#medical_events, local-storage.yaml#tanner_assessments, local-storage.yaml#fitness_assessments]
+    tables: [local-storage.yaml#app_settings, local-storage.yaml#health_record_events, local-storage.yaml#health_record_values, local-storage.yaml#vaccine_records, local-storage.yaml#milestone_records, local-storage.yaml#allergy_records]
     runtimeDependency: "runtime.ai.text.generate"
 
   - featureId: PO-FEAT-023
@@ -155,7 +155,7 @@ features:
     priority: P1
     contract: advisor-contract
     description: "Build evidence-backed trend signals from local growth, reminder, and journal records."
-    tables: [local-storage.yaml#growth_reports, local-storage.yaml#journal_entries, local-storage.yaml#growth_measurements]
+    tables: [local-storage.yaml#growth_reports, local-storage.yaml#journal_entries, local-storage.yaml#health_record_events, local-storage.yaml#health_record_values]
 
   - featureId: PO-FEAT-030
     name: "Family collaboration"
@@ -191,17 +191,17 @@ features:
     name: "Vision and eye-health records"
     phase: 1
     priority: P1
-    contract: profile-contract
+    contract: health-record-console-contract
     description: "Track vision, refraction, axial length, and related eye-health measurements."
-    tables: [local-storage.yaml#growth_measurements, growth-standards.yaml]
+    tables: [local-storage.yaml#health_record_events, local-storage.yaml#health_record_values, health-metric-registry.yaml, health-evaluation-rules.yaml]
 
   - featureId: PO-FEAT-035
     name: "Dental records"
     phase: 1
     priority: P1
-    contract: profile-contract
+    contract: health-record-console-contract
     description: "Track eruption, caries, cleaning, and orthodontic assessment events."
-    tables: [local-storage.yaml#dental_records]
+    tables: [local-storage.yaml#health_record_events, local-storage.yaml#health_record_values, health-metric-registry.yaml]
 
   - featureId: PO-FEAT-036
     name: "Allergy tracking"
@@ -215,17 +215,17 @@ features:
     name: "Sleep tracking"
     phase: 1
     priority: P1
-    contract: profile-contract
+    contract: health-record-console-contract
     description: "Track daily sleep duration, naps, and sleep quality."
-    tables: [local-storage.yaml#sleep_records]
+    tables: [local-storage.yaml#health_record_events, local-storage.yaml#health_record_values, health-metric-registry.yaml]
 
   - featureId: PO-FEAT-038
     name: "Medical event timeline"
     phase: 1
     priority: P1
-    contract: profile-contract
+    contract: health-record-console-contract
     description: "Track visits, screenings, hospitalizations, medications, and other medical events, including bounded local OCR intake and safety-filtered summaries."
-    tables: [local-storage.yaml#medical_events]
+    tables: [local-storage.yaml#health_record_events, local-storage.yaml#health_record_values, health-metric-registry.yaml]
     runtimeDependency: "runtime.ai.text.generate"
 
   - featureId: PO-FEAT-039
@@ -234,23 +234,23 @@ features:
     priority: P2
     contract: profile-contract
     description: "Project posture and alignment review in the profile surface without inventing a shadow storage model."
-    tables: [local-storage.yaml#medical_events, local-storage.yaml#fitness_assessments]
+    tables: [local-storage.yaml#health_record_events, local-storage.yaml#health_record_values]
 
   - featureId: PO-FEAT-040
     name: "Tanner puberty tracking"
     phase: 1
     priority: P2
-    contract: profile-contract
+    contract: health-record-console-contract
     description: "Track Tanner staging and puberty development notes."
-    tables: [local-storage.yaml#tanner_assessments]
+    tables: [local-storage.yaml#health_record_events, local-storage.yaml#health_record_values, health-metric-registry.yaml]
 
   - featureId: PO-FEAT-041
     name: "Fitness assessments"
     phase: 1
     priority: P2
-    contract: profile-contract
+    contract: health-record-console-contract
     description: "Track physical fitness test results and movement assessments."
-    tables: [local-storage.yaml#fitness_assessments]
+    tables: [local-storage.yaml#health_record_events, local-storage.yaml#health_record_values, health-metric-registry.yaml, health-evaluation-rules.yaml]
 
   - featureId: PO-FEAT-042
     name: "Reminder frequency settings"
@@ -298,9 +298,9 @@ features:
     name: "Weekly outdoor goal"
     phase: 1
     priority: P1
-    contract: profile-contract
+    contract: health-record-console-contract
     description: "Track weekly outdoor activity duration per child for myopia prevention habit management."
-    tables: [local-storage.yaml#outdoor_records, local-storage.yaml#children]
+    tables: [local-storage.yaml#health_record_events, local-storage.yaml#health_record_values, local-storage.yaml#children, health-metric-registry.yaml]
 
   - featureId: PO-FEAT-048
     name: "Orthodontic case management"
@@ -308,7 +308,7 @@ features:
     priority: P1
     contract: orthodontic-contract
     description: "Create, stage, pause-via-appliances, and complete orthodontic treatment courses."
-    tables: [local-storage.yaml#orthodontic_cases, local-storage.yaml#dental_records]
+    tables: [local-storage.yaml#orthodontic_cases, local-storage.yaml#health_record_events]
 
   - featureId: PO-FEAT-049
     name: "Orthodontic appliance management"
@@ -350,8 +350,26 @@ features:
     description: "Kind-aware reminder interaction: task | guide | practice | consult taxonomy, per-kind progression state machines persisted in reminder_states, structured explain content rendered in ReminderExplainDrawer, and advisor-written consultedAt/consultationConversationId on AI first reply for consult-kind reminders. Eligibility and bucketing remain in timeline-contract (PO-TIME-*); interaction semantics live in reminder-interaction-contract (PO-REMI-*)."
     tables: [reminder-rules.yaml, local-storage.yaml#reminder_states, local-storage.yaml#ai_conversations]
 
+  - featureId: PO-FEAT-054
+    name: "Health record console"
+    phase: 1
+    priority: P0
+    contract: health-record-console-contract
+    description: "Profile first screen hard-cut to a current health data console with grouped latest metrics, record dates, next-record dates, semantic evaluation state, and detail-surface routing."
+    tables: [health-metric-registry.yaml, health-evaluation-rules.yaml, local-storage.yaml#health_record_events, local-storage.yaml#health_record_values, local-storage.yaml#reminder_states]
+
+  - featureId: PO-FEAT-055
+    name: "Unified health capture orchestrator"
+    phase: 1
+    priority: P0
+    contract: capture-orchestrator-contract
+    description: "Single structured add-data modal for profile, detail-page, OCR-confirmed, and record_data reminder capture intents, with persistence-gated reminder completion."
+    tables: [health-capture-protocols.yaml, reminder-capture-targets.yaml, health-metric-registry.yaml, local-storage.yaml#health_record_events, local-storage.yaml#health_record_values, local-storage.yaml#reminder_states]
+
 constraints:
   - "The current baseline preserves the reminder -> record -> review core loop."
   - "Implemented AI features must stay within typed runtime contracts and the current knowledge-source-readiness gates."
   - "Reports may generate narrative content from local facts, but they must preserve safety filtering and evidence-backed wording."
-  - "ability-model.yaml is not a runtime source in the current baseline."
+  - "data/knowledge/ability-model.json is not a runtime source in the current baseline."
+  - "The /profile first screen is the PO-HREC health record console, not the retired archive-section grid."
+  - "record_data reminders must open PO-CAPT capture intents and complete only after a satisfying persisted record exists."

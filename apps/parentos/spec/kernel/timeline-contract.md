@@ -6,6 +6,8 @@
 
 This contract governs the reminder agenda engine, timeline home projection, sensitive-period guidance, and timeline-driven monthly report trigger.
 
+The `/profile` first screen is no longer a timeline-like archive index. Current health metrics, evaluation status, latest record date, and next-record date are governed by `health-record-console-contract.md` (`PO-HREC-*`). Timeline may consume those projections as display hints only.
+
 Reminder **interaction semantics** — the per-kind progression state machine, action enumeration, explain authoring contract, and advisor consultation writeback path — are delegated to `reminder-interaction-contract.md` (`PO-REMI-*`). This contract (`PO-TIME-*`) owns eligibility, scheduling, visibility, and agenda bucketing; `PO-REMI-*` owns what happens after a reminder has surfaced.
 
 Covered features from `feature-matrix.yaml`:
@@ -20,15 +22,16 @@ Governing fact sources:
 
 - `tables/reminder-rules.yaml`
 - `tables/nurture-modes.yaml`
-- `tables/sensitive-periods.yaml`
-- `tables/local-storage.yaml#measurements`
+- `tables/reference-data-assets.yaml#sensitive-periods`
+- `tables/local-storage.yaml#health_record_events`
+- `tables/local-storage.yaml#health_record_values`
 - `tables/local-storage.yaml#vaccine_records`
 - `tables/local-storage.yaml#milestone_records`
 - `tables/local-storage.yaml#journal_entries`
-- `tables/local-storage.yaml#sleep_records`
 - `tables/local-storage.yaml#reminder_states`
 - `tables/local-storage.yaml#growth_reports`
 - `tables/routes.yaml#/timeline`
+- `health-record-console-contract.md` - current health freshness projection consumed by timeline display hints only
 
 ## PO-TIME-001 Reminder Inputs
 
@@ -117,7 +120,7 @@ Timeline-home display buckets are display-only projections and must not persist 
 | Bucket | Meaning |
 |---|---|
 | `recentChanges` | top recent structured changes from local records, limited to the last 7 days and capped for first-screen display |
-| `dataGapAlert` | a constrained freshness hint for key growth measurements when no visible reminder already covers the same need |
+| `dataGapAlert` | a constrained display hint derived from `PO-HREC-*` freshness when no visible reminder already covers the same need |
 
 Timeline-home display bucket constraints:
 
@@ -125,6 +128,7 @@ Timeline-home display bucket constraints:
 - `recentChanges` must not invent diagnosis, treatment, or causal interpretation
 - `recentChanges` must dedupe by domain for first-screen display and cap the total count
 - `dataGapAlert` is display-only and must not mutate `reminder_states`
+- `dataGapAlert` must consume `PO-HREC-*` freshness and must not compute its own metric freshness rules
 - `dataGapAlert` must respect nurture mode visibility and suppress itself when a visible growth/checkup reminder already covers the same need
 
 Cold-start suppression must obey these invariants:
@@ -135,7 +139,8 @@ Cold-start suppression must obey these invariants:
 
 ## PO-TIME-005 Sensitive Period Projection
 
-Sensitive-period guidance must be a direct lookup against `sensitive-periods.yaml`.
+Sensitive-period guidance must be a direct lookup against the admitted
+`sensitive-periods` data asset.
 
 - active periods are determined by current age in months
 - rendered copy must be table-backed and static
@@ -175,14 +180,14 @@ have stronger delivery guarantees than generic dental reminders:
 dental reminders. Follow-up reminders previously produced by the dental form
 at runtime (`dental-auto-*`) now live in `orthodontic-protocols.yaml#dentalFollowUpRules` under admitted static ruleIds (`PO-DEN-FOLLOWUP-*`).
 
-## PO-TIME-008 Timeline vs Profile Boundary
+## PO-TIME-008 Timeline vs Health Record Console Boundary
 
-The timeline and profile surfaces serve complementary mandates. The authoritative boundary definition lives in `profile-contract.md#PO-PROF-021`. Timeline-side invariants:
+The timeline and health record console surfaces serve complementary mandates. The authoritative profile-side boundary definition lives in `profile-contract.md#PO-PROF-021`; current health projection semantics live in `health-record-console-contract.md`. Timeline-side invariants:
 
 - Timeline owns the action/agenda surface: reminders, recent changes, data freshness alerts, and sensitive-period guidance.
-- Timeline must not serve as a record browsing, history exploration, or archive completeness surface. Those are profile concerns.
-- Timeline may link to profile sub-pages for deep record access.
-- Timeline may display recent-change snippets (PO-TIME-004 `recentChanges` bucket) but must not duplicate the profile's record-count or last-updated summary projection.
+- Timeline must not serve as the current health metric console, record browsing, history exploration, or archive completeness surface. Those are `PO-HREC-*` / `PO-PROF-*` concerns.
+- Timeline may link to profile sub-pages for deep record access or open `PO-CAPT-*` capture intents for `record_data` reminders.
+- Timeline may display recent-change snippets (PO-TIME-004 `recentChanges` bucket) but must not duplicate the health console's metric status, next-record date, freshness status, or last-record summary projection.
 
 ## Exclusions
 

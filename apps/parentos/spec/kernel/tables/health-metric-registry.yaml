@@ -1,0 +1,588 @@
+schema_version: 1
+
+field_contract:
+  metric:
+    metricId: { type: string, required: true }
+    groupId: { type: string, required: true }
+    displayName: { type: string, required: true }
+    unit: { type: string, required: false }
+    precision: { type: integer, required: false }
+    valueShape:
+      type: enum
+      required: true
+      values: [number, enum, boolean, text, date, duration, composite, event]
+    valueCardinality:
+      type: enum
+      required: true
+      values: [single, left_right_pair, multi_metric_set, event_payload]
+    recordKind:
+      type: enum
+      required: true
+      values: [measurement, assessment, event, status_timeline, config, derived]
+    captureProtocolIds: { type: array, required: true }
+    evaluationPolicyRef: { type: string, required: false }
+    freshnessPolicyRef: { type: string, required: false }
+    detailRoute: { type: string, required: false }
+    sourceSupport:
+      type: array
+      required: true
+      values: [manual, ocr, imported, reminder, derived]
+    safetyClass:
+      type: enum
+      required: true
+      values: [descriptive, professional_review_prompt, no_evaluation]
+
+groups:
+  - groupId: growth
+    displayName: Growth
+    rank: 10
+  - groupId: vision
+    displayName: Vision Health
+    rank: 20
+  - groupId: fitness
+    displayName: Fitness
+    rank: 30
+  - groupId: sleep
+    displayName: Sleep
+    rank: 40
+  - groupId: outdoor
+    displayName: Outdoor
+    rank: 50
+  - groupId: vaccine
+    displayName: Vaccines
+    rank: 60
+  - groupId: dental
+    displayName: Dental
+    rank: 70
+  - groupId: medical
+    displayName: Medical Events
+    rank: 80
+  - groupId: development
+    displayName: Development
+    rank: 90
+
+metrics:
+  - metricId: growth.height
+    groupId: growth
+    displayName: Height
+    unit: cm
+    precision: 1
+    valueShape: number
+    valueCardinality: single
+    recordKind: measurement
+    captureProtocolIds: [growth-infant-monthly, growth-child-quarterly, growth-school-biannual]
+    evaluationPolicyRef: growth.percentile-band
+    freshnessPolicyRef: growth.age-cadence
+    detailRoute: /profile/growth
+    sourceSupport: [manual, ocr, imported, reminder]
+    safetyClass: descriptive
+  - metricId: growth.weight
+    groupId: growth
+    displayName: Weight
+    unit: kg
+    precision: 2
+    valueShape: number
+    valueCardinality: single
+    recordKind: measurement
+    captureProtocolIds: [growth-infant-monthly, growth-child-quarterly, growth-school-biannual]
+    evaluationPolicyRef: growth.percentile-band
+    freshnessPolicyRef: growth.age-cadence
+    detailRoute: /profile/growth
+    sourceSupport: [manual, ocr, imported, reminder]
+    safetyClass: descriptive
+  - metricId: growth.head_circumference
+    groupId: growth
+    displayName: Head circumference
+    unit: cm
+    precision: 1
+    valueShape: number
+    valueCardinality: single
+    recordKind: measurement
+    captureProtocolIds: [growth-infant-monthly]
+    evaluationPolicyRef: growth.percentile-band
+    freshnessPolicyRef: growth.infant-cadence
+    detailRoute: /profile/growth
+    sourceSupport: [manual, ocr, imported, reminder]
+    safetyClass: descriptive
+  - metricId: growth.bmi
+    groupId: growth
+    displayName: BMI
+    unit: kg/m2
+    precision: 1
+    valueShape: number
+    valueCardinality: single
+    recordKind: derived
+    captureProtocolIds: []
+    evaluationPolicyRef: growth.bmi-percentile-band
+    freshnessPolicyRef: growth.derived-from-height-weight
+    detailRoute: /profile/growth
+    sourceSupport: [derived]
+    safetyClass: descriptive
+  - metricId: vision.left_visual_acuity
+    groupId: vision
+    displayName: Left visual acuity
+    unit: decimal
+    precision: 1
+    valueShape: number
+    valueCardinality: left_right_pair
+    recordKind: measurement
+    captureProtocolIds: [vision-basic, vision-full-exam]
+    evaluationPolicyRef: vision.age-reference-band
+    freshnessPolicyRef: vision.six-month-cadence
+    detailRoute: /profile/vision
+    sourceSupport: [manual, ocr, imported, reminder]
+    safetyClass: descriptive
+  - metricId: vision.right_visual_acuity
+    groupId: vision
+    displayName: Right visual acuity
+    unit: decimal
+    precision: 1
+    valueShape: number
+    valueCardinality: left_right_pair
+    recordKind: measurement
+    captureProtocolIds: [vision-basic, vision-full-exam]
+    evaluationPolicyRef: vision.age-reference-band
+    freshnessPolicyRef: vision.six-month-cadence
+    detailRoute: /profile/vision
+    sourceSupport: [manual, ocr, imported, reminder]
+    safetyClass: descriptive
+  - metricId: vision.left_axial_length
+    groupId: vision
+    displayName: Left axial length
+    unit: mm
+    precision: 2
+    valueShape: number
+    valueCardinality: left_right_pair
+    recordKind: measurement
+    captureProtocolIds: [vision-full-exam]
+    evaluationPolicyRef: vision.axial-reference-band
+    freshnessPolicyRef: vision.six-month-cadence
+    detailRoute: /profile/vision
+    sourceSupport: [manual, ocr, imported, reminder]
+    safetyClass: professional_review_prompt
+  - metricId: vision.right_axial_length
+    groupId: vision
+    displayName: Right axial length
+    unit: mm
+    precision: 2
+    valueShape: number
+    valueCardinality: left_right_pair
+    recordKind: measurement
+    captureProtocolIds: [vision-full-exam]
+    evaluationPolicyRef: vision.axial-reference-band
+    freshnessPolicyRef: vision.six-month-cadence
+    detailRoute: /profile/vision
+    sourceSupport: [manual, ocr, imported, reminder]
+    safetyClass: professional_review_prompt
+  - metricId: vision.left_iop
+    groupId: vision
+    displayName: Left IOP
+    unit: mmHg
+    precision: 0
+    valueShape: number
+    valueCardinality: left_right_pair
+    recordKind: measurement
+    captureProtocolIds: [vision-full-exam]
+    evaluationPolicyRef: vision.iop-reference-band
+    freshnessPolicyRef: vision.exam-cadence
+    detailRoute: /profile/vision
+    sourceSupport: [manual, ocr, imported]
+    safetyClass: professional_review_prompt
+  - metricId: vision.right_iop
+    groupId: vision
+    displayName: Right IOP
+    unit: mmHg
+    precision: 0
+    valueShape: number
+    valueCardinality: left_right_pair
+    recordKind: measurement
+    captureProtocolIds: [vision-full-exam]
+    evaluationPolicyRef: vision.iop-reference-band
+    freshnessPolicyRef: vision.exam-cadence
+    detailRoute: /profile/vision
+    sourceSupport: [manual, ocr, imported]
+    safetyClass: professional_review_prompt
+  - metricId: fitness.run_50m
+    groupId: fitness
+    displayName: 50m run
+    unit: s
+    precision: 2
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.vital_capacity
+    groupId: fitness
+    displayName: Vital capacity
+    unit: ml
+    precision: 0
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.run_800m
+    groupId: fitness
+    displayName: 800m run
+    unit: s
+    precision: 1
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.run_1000m
+    groupId: fitness
+    displayName: 1000m run
+    unit: s
+    precision: 1
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.run_50x8
+    groupId: fitness
+    displayName: 50m x 8 shuttle run
+    unit: s
+    precision: 1
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.sit_and_reach
+    groupId: fitness
+    displayName: Sit and reach
+    unit: cm
+    precision: 1
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.standing_long_jump
+    groupId: fitness
+    displayName: Standing long jump
+    unit: cm
+    precision: 0
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.sit_ups
+    groupId: fitness
+    displayName: Sit-ups
+    unit: count
+    precision: 0
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.pull_ups
+    groupId: fitness
+    displayName: Pull-ups
+    unit: count
+    precision: 0
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.rope_skipping
+    groupId: fitness
+    displayName: Rope skipping
+    unit: count_per_min
+    precision: 0
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.run_10m_shuttle
+    groupId: fitness
+    displayName: 10m shuttle run
+    unit: s
+    precision: 1
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.tennis_ball_throw
+    groupId: fitness
+    displayName: Tennis ball throw
+    unit: m
+    precision: 1
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.double_foot_jump
+    groupId: fitness
+    displayName: Double-foot continuous jump
+    unit: s
+    precision: 1
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.balance_beam
+    groupId: fitness
+    displayName: Balance beam walk
+    unit: s
+    precision: 1
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.foot_arch_status
+    groupId: fitness
+    displayName: Foot arch status
+    valueShape: enum
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: fitness.overall_grade
+    groupId: fitness
+    displayName: Overall fitness grade
+    valueShape: enum
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [fitness-school-assessment]
+    evaluationPolicyRef: fitness.standard-grade
+    freshnessPolicyRef: fitness.school-year-cadence
+    detailRoute: /profile/fitness
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: development.tanner_breast_stage
+    groupId: development
+    displayName: Tanner breast stage
+    unit: stage
+    precision: 0
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [tanner-female-self-assessment]
+    evaluationPolicyRef: development.tanner-stage-reference
+    freshnessPolicyRef: development.puberty-six-month-cadence
+    detailRoute: /profile/tanner
+    sourceSupport: [manual, reminder]
+    safetyClass: professional_review_prompt
+  - metricId: development.tanner_genital_stage
+    groupId: development
+    displayName: Tanner genital stage
+    unit: stage
+    precision: 0
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [tanner-male-self-assessment]
+    evaluationPolicyRef: development.tanner-stage-reference
+    freshnessPolicyRef: development.puberty-six-month-cadence
+    detailRoute: /profile/tanner
+    sourceSupport: [manual, reminder]
+    safetyClass: professional_review_prompt
+  - metricId: development.tanner_pubic_hair_stage
+    groupId: development
+    displayName: Tanner pubic hair stage
+    unit: stage
+    precision: 0
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [tanner-female-self-assessment, tanner-male-self-assessment, development-auxiliary-measurement]
+    evaluationPolicyRef: development.tanner-stage-reference
+    freshnessPolicyRef: development.puberty-six-month-cadence
+    detailRoute: /profile/tanner
+    sourceSupport: [manual, reminder]
+    safetyClass: professional_review_prompt
+  - metricId: development.bone_age_years
+    groupId: development
+    displayName: Bone age
+    unit: years
+    precision: 1
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [tanner-female-self-assessment, tanner-male-self-assessment, development-auxiliary-measurement]
+    freshnessPolicyRef: development.puberty-six-month-cadence
+    detailRoute: /profile/tanner
+    sourceSupport: [manual, imported]
+    safetyClass: professional_review_prompt
+  - metricId: development.body_fat_percentage
+    groupId: development
+    displayName: Body fat percentage
+    unit: percent
+    precision: 1
+    valueShape: number
+    valueCardinality: single
+    recordKind: assessment
+    captureProtocolIds: [tanner-female-self-assessment, tanner-male-self-assessment]
+    freshnessPolicyRef: development.puberty-six-month-cadence
+    detailRoute: /profile/tanner
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: sleep.duration_minutes
+    groupId: sleep
+    displayName: Sleep duration
+    unit: min
+    precision: 0
+    valueShape: duration
+    valueCardinality: single
+    recordKind: measurement
+    captureProtocolIds: [sleep-night]
+    evaluationPolicyRef: sleep.age-reference-band
+    freshnessPolicyRef: sleep.daily-optional
+    detailRoute: /profile/sleep
+    sourceSupport: [manual]
+    safetyClass: descriptive
+  - metricId: outdoor.weekly_goal_minutes
+    groupId: outdoor
+    displayName: Weekly outdoor goal
+    unit: min
+    precision: 0
+    valueShape: number
+    valueCardinality: single
+    recordKind: config
+    captureProtocolIds: [outdoor-goal]
+    evaluationPolicyRef: outdoor.goal-presence
+    freshnessPolicyRef: outdoor.goal-configured
+    detailRoute: /profile/outdoor
+    sourceSupport: [manual, reminder]
+    safetyClass: descriptive
+  - metricId: outdoor.activity_minutes
+    groupId: outdoor
+    displayName: Outdoor activity duration
+    unit: min
+    precision: 0
+    valueShape: duration
+    valueCardinality: single
+    recordKind: measurement
+    captureProtocolIds: [outdoor-activity]
+    evaluationPolicyRef: outdoor.goal-progress
+    freshnessPolicyRef: outdoor.weekly-cadence
+    detailRoute: /profile/outdoor
+    sourceSupport: [manual, reminder]
+    safetyClass: descriptive
+  - metricId: vaccine.administration
+    groupId: vaccine
+    displayName: Vaccine administration
+    valueShape: event
+    valueCardinality: event_payload
+    recordKind: event
+    captureProtocolIds: [vaccine-administration]
+    evaluationPolicyRef: vaccine.rule-completion
+    freshnessPolicyRef: vaccine.rule-schedule
+    detailRoute: /profile/vaccines
+    sourceSupport: [manual, imported, reminder]
+    safetyClass: descriptive
+  - metricId: dental.event
+    groupId: dental
+    displayName: Dental event
+    valueShape: event
+    valueCardinality: event_payload
+    recordKind: event
+    captureProtocolIds: [dental-event]
+    evaluationPolicyRef: dental.event-severity
+    freshnessPolicyRef: dental.age-cadence
+    detailRoute: /profile/dental
+    sourceSupport: [manual, imported]
+    safetyClass: descriptive
+  - metricId: medical.event
+    groupId: medical
+    displayName: Medical event
+    valueShape: event
+    valueCardinality: event_payload
+    recordKind: event
+    captureProtocolIds: [medical-event]
+    evaluationPolicyRef: medical.result-projection
+    freshnessPolicyRef: medical.event-only
+    detailRoute: /profile/medical-events
+    sourceSupport: [manual, ocr, imported]
+    safetyClass: professional_review_prompt
+  - metricId: development.milestone
+    groupId: development
+    displayName: Development milestone
+    valueShape: event
+    valueCardinality: event_payload
+    recordKind: event
+    captureProtocolIds: [milestone-achievement]
+    evaluationPolicyRef: development.catalog-window
+    freshnessPolicyRef: development.stage-window
+    detailRoute: /profile/milestones
+    sourceSupport: [manual]
+    safetyClass: descriptive
+
+constraints:
+  - "metricId values are stable and may not be renamed without a hard-cut authority decision."
+  - "Every metric referenced by a capture protocol, reminder capture target, or console row must appear in this file."
+  - "Derived metrics must list no manual capture protocol unless a future authority explicitly admits parent-entered derived values."
+  - "A UI component must not define metric metadata locally."

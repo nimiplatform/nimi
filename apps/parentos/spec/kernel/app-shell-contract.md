@@ -43,7 +43,7 @@ Route registration must be a strict projection of `tables/routes.yaml`.
 
 - every route listed in `routes.yaml` must be registered in `routes.tsx`
 - every route registered in `routes.tsx` must exist in `routes.yaml`
-- current registered surfaces include `/reports`, `/profile/posture`, `/settings/reminders`, and `/settings/ai`
+- current registered surfaces include `/reports`, `/profile`, `/settings/reminders`, and `/settings/ai`; retired `/profile/*` child shells may remain registered only as redirects to `/profile`
 - only routes marked `nav: true` in `routes.yaml` may appear in shell navigation
 - hidden, orphan, or experimental pages are not admitted shell surfaces until they are added to `routes.yaml`
 
@@ -106,4 +106,4 @@ The following remain outside this contract:
 
 - family collaboration and multi-account sharing (`PO-FEAT-030`)
 - cloud sync or remote backup
-- any use of `ability-model.yaml` as a frozen runtime contract
+- any use of `data/knowledge/ability-model.json` as a frozen runtime contract
