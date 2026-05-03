@@ -43,6 +43,9 @@
 | `agent-participation-memory-read-scopes.md` | `tables/agent-participation-memory-read-scopes.yaml` |
 | `agent-participation-capability-scopes.md` | `tables/agent-participation-capability-scopes.yaml` |
 | `agent-participation-concurrency-policy.md` | `tables/agent-participation-concurrency-policy.yaml` |
+| `agent-participation-external-entry-boundaries.md` | `tables/agent-participation-external-entry-boundaries.yaml` |
+| `agent-participation-domain-future-seams.md` | `tables/agent-participation-domain-future-seams.yaml` |
+| `agent-participation-promotion-boundaries.md` | `tables/agent-participation-promotion-boundaries.yaml` |
 | `scenario-profile-fields.md` | `tables/scenario-profile-fields.yaml` |
 | `runtime-delivery-gates.md` | `tables/runtime-delivery-gates.yaml` |
 | `runtime-proto-governance-gates.md` | `tables/runtime-proto-governance-gates.yaml` |

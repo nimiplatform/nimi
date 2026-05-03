@@ -1,0 +1,108 @@
+version: 1
+source_rule: K-AGCORE-089
+boundary_entries:
+  - id: MCP_BACKED_AI_CAPABILITY
+    source_rule: K-AGCORE-090
+    participation_profile: external_agent_entry
+    identity_source: MCP_BACKED_AI_CAPABILITY
+    input_trust: TOOL_PROVIDER_PAYLOAD
+    execution_owner: EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY
+    protocol_authority:
+      contract: .nimi/spec/runtime/kernel/delegated-mcp-adapter-contract.md
+      owner_rule_range: K-DELEG-100..119
+      posture: delegated_gateway_evidence_only
+      semantic_promotion: forbidden
+      wire_object_public_ontology: forbidden
+    required_context_blocks:
+      - external_participant_identity_ref
+      - external_payload_ref
+      - gateway_verdict_ref
+      - domain_context_ref
+      - tool_or_capability_projection
+    required_verdict_refs:
+      - gateway_verdict_ref
+      - delegated_firewall_verdict_ref
+      - audit_lineage_ref
+      - credential_custody_ref
+    firewall_posture: required_before_projection_or_action
+    credential_custody: runtime_delegated_boundary
+    public_payload_policy:
+      raw_mcp_tool_schema: forbidden
+      raw_mcp_tool_output: forbidden
+      raw_provider_payload: forbidden
+      provider_metadata_as_semantic_authority: forbidden
+    memory_read_scope: NO_MEMORY_READ
+    memory_write_default: WRITE_NONE
+    capability_scope: EXTERNAL_GATEWAY_LIMITED
+    output_destination: EXTERNAL_REPLY_CANDIDATE
+    promotion_posture: NOT_ALLOWED
+    production_claim_allowed: true
+    production_claim_scope: mcp_delegated_adapter_only
+  - id: EXTERNAL_A2A_AGENT
+    source_rule: K-AGCORE-091
+    participation_profile: external_agent_entry
+    identity_source: EXTERNAL_A2A_AGENT
+    input_trust: EXTERNAL_A2A_PAYLOAD
+    execution_owner: EXTERNAL_RUNTIME_VIA_ADMITTED_GATEWAY
+    protocol_authority:
+      contract: .nimi/spec/runtime/kernel/delegated-a2a-future-seam-contract.md
+      owner_rule_range: K-DELEG-120..129
+      posture: future_seam_only
+      semantic_promotion: forbidden
+      wire_object_public_ontology: forbidden
+    required_context_blocks:
+      - external_participant_identity_ref
+      - external_payload_ref
+      - gateway_verdict_ref
+      - domain_context_ref
+    required_verdict_refs:
+      - gateway_verdict_ref
+      - future_a2a_admission_ref
+      - audit_lineage_ref
+      - credential_custody_ref
+    firewall_posture: required_before_any_future_projection_or_action
+    credential_custody: runtime_delegated_boundary
+    public_payload_policy:
+      raw_a2a_task_payload: forbidden
+      raw_a2a_agent_card: forbidden
+      remote_agent_state: forbidden
+      external_protocol_metadata_as_semantic_authority: forbidden
+    memory_read_scope: NO_MEMORY_READ
+    memory_write_default: WRITE_NONE
+    capability_scope: EXTERNAL_GATEWAY_LIMITED
+    output_destination: EXTERNAL_REPLY_CANDIDATE
+    promotion_posture: NOT_ALLOWED
+    production_claim_allowed: false
+    production_claim_scope: none_until_separate_high_risk_admission
+boundary_invariants:
+  source_rule: K-AGCORE-092
+  external_principal_memory_writeback: forbidden
+  external_principal_cognition_writeback: forbidden
+  external_principal_canonical_chat_writeback: forbidden
+  external_principal_realm_group_commit: forbidden
+  external_principal_product_domain_commit: forbidden
+  app_desktop_avatar_mod_direct_protocol_client: forbidden
+  side_audit_store: forbidden
+  protocol_rule_rewrite_in_participation_wave: forbidden
+gateway_chain:
+  source_rule: K-AGCORE-093
+  required_order:
+    - external_identity_evidence
+    - protocol_adapter_or_future_admission_check
+    - gateway_verdict
+    - delegated_firewall_verdict_when_protocol_execution_occurs
+    - capability_scope_verdict
+    - memory_read_verdict
+    - memory_write_verdict
+    - audit_lineage_record
+    - output_candidate_projection
+  pre_verdict_consumption: forbidden
+  missing_verdict_policy: fail_closed
+negative_gates:
+  source_rule: K-AGCORE-094
+  production_a2a_claim: forbidden
+  direct_mcp_client_outside_runtime_delegated_adapter: forbidden
+  direct_a2a_client_outside_future_admitted_runtime_adapter: forbidden
+  raw_protocol_payload_public_field: forbidden
+  k_deleg_redefinition: forbidden
+  fake_external_server_success: forbidden

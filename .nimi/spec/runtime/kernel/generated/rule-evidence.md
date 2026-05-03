@@ -585,6 +585,24 @@
 | `K-AGCORE-086` | `deferred` | `runtime_kernel_consistency` |
 | `K-AGCORE-087` | `deferred` | `runtime_kernel_consistency` |
 | `K-AGCORE-088` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-089` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-090` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-091` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-092` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-093` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-094` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-095` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-096` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-097` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-098` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-099` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-100` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-101` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-102` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-103` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-104` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-105` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-106` | `deferred` | `runtime_kernel_consistency` |
 | `K-RPC-004a` | `deferred` | — |
 | `K-RPC-004b` | `deferred` | — |
 | `K-RPC-004c` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |

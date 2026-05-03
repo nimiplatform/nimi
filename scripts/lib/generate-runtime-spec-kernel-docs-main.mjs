@@ -252,6 +252,21 @@ const specs = [
     render: renderJsonSnapshot('Generated Agent Participation Concurrency Policy'),
   },
   {
+    input: 'agent-participation-external-entry-boundaries.yaml',
+    output: 'agent-participation-external-entry-boundaries.md',
+    render: renderJsonSnapshot('Generated Agent Participation External Entry Boundaries'),
+  },
+  {
+    input: 'agent-participation-domain-future-seams.yaml',
+    output: 'agent-participation-domain-future-seams.md',
+    render: renderJsonSnapshot('Generated Agent Participation Domain Future Seams'),
+  },
+  {
+    input: 'agent-participation-promotion-boundaries.yaml',
+    output: 'agent-participation-promotion-boundaries.md',
+    render: renderJsonSnapshot('Generated Agent Participation Promotion Boundaries'),
+  },
+  {
     input: 'scenario-profile-fields.yaml',
     output: 'scenario-profile-fields.md',
     render: renderScenarioProfileFields,

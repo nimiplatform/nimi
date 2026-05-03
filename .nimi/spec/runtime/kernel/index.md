@@ -126,6 +126,9 @@
 - `tables/agent-participation-memory-read-scopes.yaml`
 - `tables/agent-participation-capability-scopes.yaml`
 - `tables/agent-participation-concurrency-policy.yaml`
+- `tables/agent-participation-external-entry-boundaries.yaml`
+- `tables/agent-participation-domain-future-seams.yaml`
+- `tables/agent-participation-promotion-boundaries.yaml`
 - `tables/avatar-debug-probe-events.yaml`
 - `tables/avatar-debug-replay-keys.yaml`
 - `tables/delegation-provider-profiles.yaml`

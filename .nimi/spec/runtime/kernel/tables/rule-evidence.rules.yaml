@@ -1754,6 +1754,78 @@
   status: deferred
   evidence_refs: [runtime_kernel_consistency]
   note: "Runtime agent participation public raw prompt boundary admitted as contract/table truth."
+- rule_id: K-AGCORE-089
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation external entry boundary matrix admitted as contract/table truth."
+- rule_id: K-AGCORE-090
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation MCP-backed AI capability entry boundary admitted as contract/table truth."
+- rule_id: K-AGCORE-091
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation future A2A external agent entry boundary admitted as contract/table truth."
+- rule_id: K-AGCORE-092
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation external principal writeback boundary admitted as contract/table truth."
+- rule_id: K-AGCORE-093
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation external entry gateway chain admitted as contract/table truth."
+- rule_id: K-AGCORE-094
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation external entry negative gates admitted as contract/table truth."
+- rule_id: K-AGCORE-095
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation domain future seam matrix admitted as contract/table truth."
+- rule_id: K-AGCORE-096
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation OASIS/world future seam boundary admitted as contract/table truth."
+- rule_id: K-AGCORE-097
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation Scenario Sandbox future seam boundary admitted as contract/table truth."
+- rule_id: K-AGCORE-098
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation domain truth separation boundary admitted as contract/table truth."
+- rule_id: K-AGCORE-099
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation future product implementation gates admitted as contract/table truth."
+- rule_id: K-AGCORE-100
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation domain future seam negative gates admitted as contract/table truth."
+- rule_id: K-AGCORE-101
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation promotion boundary registry admitted as contract/table truth."
+- rule_id: K-AGCORE-102
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation Runtime memory/cognition promotion target admitted as contract/table truth."
+- rule_id: K-AGCORE-103
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation canonical chat promotion target admitted as contract/table truth."
+- rule_id: K-AGCORE-104
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation Realm GROUP transcript promotion target admitted as contract/table truth."
+- rule_id: K-AGCORE-105
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation domain truth promotion target admitted as contract/table truth."
+- rule_id: K-AGCORE-106
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime agent participation promotion fail-closed invariants admitted as contract/table truth."
 - rule_id: K-RPC-004a
   status: deferred
   evidence_refs: []

@@ -1,0 +1,125 @@
+version: 1
+source_rule: K-AGCORE-101
+promotion_targets:
+  - id: RUNTIME_MEMORY_OR_COGNITION
+    source_rule: K-AGCORE-102
+    owner_authority:
+      - .nimi/spec/runtime/kernel/runtime-memory-service-contract.md
+      - .nimi/spec/cognition/kernel/runtime-bridge-contract.md
+      - .nimi/spec/cognition/kernel/memory-service-contract.md
+    owner_rule_families:
+      - K-MEM-*
+      - C-COG-*
+    admitted_source_profiles:
+      - realm_group_agent
+      - scenario_sandbox
+      - oasis_world_participation
+    forbidden_source_profiles:
+      - external_agent_entry
+      - debug_or_probe
+    required_evidence:
+      - participation_id
+      - source_profile
+      - output_candidate_ref
+      - audit_id
+      - provenance_ref
+      - policy_verdict_ref
+      - memory_read_verdict
+      - memory_write_verdict
+      - capability_scope_verdict
+      - target_owner_authorization_ref
+      - explicit_user_or_manager_intent_ref
+    default_write_without_promotion: forbidden
+    direct_write_by_participation: forbidden
+    missing_evidence_policy: fail_closed
+  - id: CANONICAL_CHAT
+    source_rule: K-AGCORE-103
+    owner_authority:
+      - .nimi/spec/runtime/kernel/runtime-agent-service-contract.md
+    owner_rule_families:
+      - K-AGCORE-*
+    admitted_source_profiles:
+      - realm_group_agent
+      - scenario_sandbox
+      - oasis_world_participation
+    forbidden_source_profiles:
+      - external_agent_entry
+      - debug_or_probe
+    required_evidence:
+      - participation_id
+      - source_profile
+      - output_candidate_ref
+      - audit_id
+      - provenance_ref
+      - policy_verdict_ref
+      - canonical_chat_owner_authorization_ref
+      - explicit_user_or_manager_intent_ref
+    default_write_without_promotion: forbidden
+    direct_write_by_participation: forbidden
+    missing_evidence_policy: fail_closed
+  - id: REALM_GROUP_TRANSCRIPT
+    source_rule: K-AGCORE-104
+    owner_authority:
+      - .nimi/spec/realm/kernel/chat-contract.md
+    owner_rule_families:
+      - R-CHAT-*
+    admitted_source_profiles:
+      - realm_group_agent
+    forbidden_source_profiles:
+      - scenario_sandbox
+      - oasis_world_participation
+      - external_agent_entry
+      - debug_or_probe
+    required_evidence:
+      - participation_id
+      - source_profile
+      - output_candidate_ref
+      - audit_id
+      - realm_thread_ref
+      - realm_agent_slot_ref
+      - realm_authenticated_commit_ref
+    default_write_without_promotion: forbidden
+    direct_write_by_participation: forbidden
+    missing_evidence_policy: fail_closed
+  - id: DOMAIN_TRUTH
+    source_rule: K-AGCORE-105
+    owner_authority:
+      - .nimi/spec/runtime/kernel/world-evolution-engine-contract.md
+      - future_scenario_authority
+      - external_domain_authority
+    owner_rule_families:
+      - K-WEV-*
+      - future_scenario_authority
+      - external_domain_authority
+    admitted_source_profiles:
+      - scenario_sandbox
+      - oasis_world_participation
+    forbidden_source_profiles:
+      - realm_group_agent
+      - external_agent_entry
+      - debug_or_probe
+    required_evidence:
+      - participation_id
+      - source_profile
+      - output_candidate_ref
+      - audit_id
+      - domain_context_ref
+      - domain_owner_authorization_ref
+      - target_commit_candidate_ref
+    default_write_without_promotion: forbidden
+    direct_write_by_participation: forbidden
+    missing_evidence_policy: fail_closed
+promotion_invariants:
+  source_rule: K-AGCORE-106
+  non_canonical_default_write: forbidden
+  app_local_promotion_decision: forbidden
+  external_principal_self_promotion: forbidden
+  debug_probe_promotion: forbidden
+  side_audit_store: forbidden
+  promotion_transport_implementation_in_wave_7: forbidden
+  open_promotion_target_allowed: false
+  target_owner_required: true
+  audit_lineage_required: true
+  provenance_required: true
+  policy_verdict_required: true
+  missing_required_input_policy: fail_closed
