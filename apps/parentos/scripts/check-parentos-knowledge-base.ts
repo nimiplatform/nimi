@@ -17,6 +17,17 @@ import {
   validateReminderSourceRetired,
   validateSensitivePeriod,
 } from './parentos-knowledge-base-validation.js';
+import {
+  knowledgeAssetSourcePaths,
+  readKnowledgeAssetData,
+} from './knowledge-json-asset.js';
+import {
+  assertCrossReferenceIntegrity,
+  assertNoOrphanShards,
+  assertValidKnowledgeAsset,
+  loadKnowledgeAsset,
+} from './knowledge-asset-kernel.js';
+import { collectKnowledgeAssetGovernanceErrors } from './check-knowledge-asset-governance.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -24,6 +35,7 @@ const REPO_ROOT = resolve(ROOT, '../..');
 const TABLES = resolve(ROOT, 'spec/kernel/tables');
 const DATA_KNOWLEDGE = resolve(ROOT, 'data/knowledge');
 const GEN = resolve(ROOT, 'src/shell/renderer/knowledge-base/gen');
+const RUST_GEN = resolve(ROOT, 'src-tauri/src/sqlite/queries');
 
 let errors = 0;
 
@@ -40,8 +52,8 @@ function readTableYaml(filename: string): unknown {
   return parseYaml(readFileSync(resolve(TABLES, filename), 'utf-8'));
 }
 
-function readKnowledgeJson(filename: string): unknown {
-  return JSON.parse(readFileSync(resolve(DATA_KNOWLEDGE, filename), 'utf-8'));
+function readKnowledgeAsset(assetId: string): unknown {
+  return readKnowledgeAssetData(DATA_KNOWLEDGE, assetId);
 }
 
 function sourcePath(source: KnowledgeSourceRef) {
@@ -52,12 +64,19 @@ function sourcePath(source: KnowledgeSourceRef) {
 
 type KnowledgeSourceRef = { kind: 'table' | 'data'; file: string };
 
+function sourcePaths(source: KnowledgeSourceRef) {
+  if (source.kind === 'data') {
+    return knowledgeAssetSourcePaths(DATA_KNOWLEDGE, source.file);
+  }
+  return [sourcePath(source)];
+}
+
 function checkUniqueIds(source: KnowledgeSourceRef, key: string, idField: string, pattern: RegExp) {
   const file = source.file;
   console.log(`\n--- ${file} ---`);
   const data = source.kind === 'table'
     ? (readTableYaml(file) as Record<string, unknown>)
-    : (readKnowledgeJson(file) as Record<string, unknown>);
+    : (readKnowledgeAsset(file) as Record<string, unknown>);
   const items = data[key] as Array<Record<string, string>>;
   if (!items) {
     fail(`Key '${key}' not found in ${file}`);
@@ -103,12 +122,12 @@ for (const shard of reminderRuleShards) {
   }
 }
 pass(`${reminderRuleIds.size} unique reminder ruleIds across reminder-rules shards`);
-checkUniqueIds({ kind: 'data', file: 'milestone-catalog.json' }, 'milestones', 'milestoneId', /^PO-MS-[A-Z]{3,5}-[0-9]{3}$/);
-checkUniqueIds({ kind: 'data', file: 'sensitive-periods.json' }, 'periods', 'periodId', /^PO-SP-[A-Z]{3,6}-[0-9]{3}$/);
+checkUniqueIds({ kind: 'data', file: 'milestone-catalog' }, 'milestones', 'milestoneId', /^PO-MS-[A-Z]{3,5}-[0-9]{3}$/);
+checkUniqueIds({ kind: 'data', file: 'sensitive-periods' }, 'periods', 'periodId', /^PO-SP-[A-Z]{3,6}-[0-9]{3}$/);
 
 // Observation dimensions
-console.log('\n--- observation-framework.json ---');
-const obsData = readKnowledgeJson('observation-framework.json') as { dimensions?: Array<{ dimensionId: string }> };
+console.log('\n--- observation-framework ---');
+const obsData = readKnowledgeAsset('observation-framework') as { dimensions?: Array<{ dimensionId: string }> };
 
 if (obsData.dimensions) {
   const dimIds = new Set<string>();
@@ -317,9 +336,11 @@ const referenceAssetData = readTableYaml('reference-data-assets.yaml') as {
   assets?: Array<{
     assetId: string;
     path: string;
+    storageModel: string;
     format: string;
     authorityClass: string;
     generatedModule?: string;
+    runtimeProjectionAdmission?: string;
   }>;
 };
 const referenceAssetIds = new Set<string>();
@@ -335,14 +356,32 @@ for (const asset of referenceAssetData.assets ?? []) {
   if (asset.format !== 'json') {
     fail(`reference-data-assets.yaml asset ${asset.assetId} must use format=json`);
   }
-  if (!asset.path.startsWith('apps/parentos/data/knowledge/')) {
-    fail(`reference-data-assets.yaml asset ${asset.assetId} path must stay under apps/parentos/data/knowledge`);
+  if (asset.storageModel !== 'directory_backed_asset') {
+    fail(`reference-data-assets.yaml asset ${asset.assetId} must use storageModel=directory_backed_asset`);
   }
-  if (!asset.path.endsWith('.json')) {
-    fail(`reference-data-assets.yaml asset ${asset.assetId} path must end in .json`);
+  if (asset.authorityClass === 'design_asset' && asset.generatedModule && !asset.runtimeProjectionAdmission) {
+    fail(`reference-data-assets.yaml design_asset ${asset.assetId} must not declare generatedModule without runtimeProjectionAdmission`);
   }
-  if (!existsSync(resolve(REPO_ROOT, asset.path))) {
+  if (asset.path !== `apps/parentos/data/knowledge/assets/${asset.assetId}/asset.json`) {
+    fail(`reference-data-assets.yaml asset ${asset.assetId} path must be directory-backed asset.json`);
+  }
+  const manifestPath = resolve(REPO_ROOT, asset.path);
+  if (!existsSync(manifestPath)) {
     fail(`reference-data-assets.yaml asset ${asset.assetId} path does not exist: ${asset.path}`);
+    continue;
+  }
+  try {
+    const knowledgeAsset = loadKnowledgeAsset({
+      dataKnowledgeRoot: DATA_KNOWLEDGE,
+      assetId: asset.assetId,
+      manifestPath,
+      registryEntry: asset,
+    });
+    assertValidKnowledgeAsset(knowledgeAsset, { requireContractManifest: true });
+    assertNoOrphanShards(knowledgeAsset);
+    assertCrossReferenceIntegrity(knowledgeAsset);
+  } catch (error) {
+    fail(`reference-data-assets.yaml asset ${asset.assetId} failed asset-kernel validation: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 for (const expected of ['growth-standards', 'milestone-catalog', 'sensitive-periods', 'observation-framework', 'ability-model']) {
@@ -352,8 +391,16 @@ for (const expected of ['growth-standards', 'milestone-catalog', 'sensitive-peri
 }
 pass(`Validated ${referenceAssetIds.size} reference data assets`);
 
-console.log('\n--- milestone-catalog.json constraints ---');
-const milestoneData = readKnowledgeJson('milestone-catalog.json') as {
+console.log('\n--- knowledge asset governance ---');
+for (const issue of collectKnowledgeAssetGovernanceErrors()) {
+  fail(issue);
+}
+if (errors === 0) {
+  pass('Knowledge asset governance gate passed');
+}
+
+console.log('\n--- milestone-catalog constraints ---');
+const milestoneData = readKnowledgeAsset('milestone-catalog') as {
   milestones?: Array<{
     milestoneId: string;
     typicalAge: { rangeEnd: number };
@@ -368,8 +415,8 @@ for (const milestone of milestoneData.milestones ?? []) {
 }
 pass(`Validated milestone alert thresholds for ${milestoneData.milestones?.length ?? 0} milestones`);
 
-console.log('\n--- sensitive-periods.json constraints ---');
-const periodData = readKnowledgeJson('sensitive-periods.json') as {
+console.log('\n--- sensitive-periods constraints ---');
+const periodData = readKnowledgeAsset('sensitive-periods') as {
   periods?: Array<{
     periodId: string;
     ageRange: { startMonths: number; peakMonths: number; endMonths: number };
@@ -402,8 +449,8 @@ for (const source of readinessData.sources ?? []) {
 }
 pass(`Validated knowledge-source readiness constraints for ${readinessData.sources?.length ?? 0} entries`);
 
-console.log('\n--- growth-standards.json constraints ---');
-const growthData = readKnowledgeJson('growth-standards.json') as {
+console.log('\n--- growth-standards constraints ---');
+const growthData = readKnowledgeAsset('growth-standards') as {
   measurementTypes?: Array<{
     typeId: string;
     ageRange: { startMonths: number; endMonths: number };
@@ -433,25 +480,31 @@ pass(`Validated growth reference coverage for ${growthData.measurementTypes?.len
 
 console.log('\n--- Generation Freshness ---');
 
-const genFiles: Array<{ source: KnowledgeSourceRef; gen: string }> = [
+const genFiles: Array<{ source: KnowledgeSourceRef; gen: string; root?: string }> = [
   { source: { kind: 'table', file: 'reminder-rules.yaml' }, gen: 'reminder-rules.gen.ts' },
   { source: { kind: 'table', file: 'reminder-rules-extended.yaml' }, gen: 'reminder-rules.gen.ts' },
-  { source: { kind: 'data', file: 'milestone-catalog.json' }, gen: 'milestone-catalog.gen.ts' },
-  { source: { kind: 'data', file: 'sensitive-periods.json' }, gen: 'sensitive-periods.gen.ts' },
-  { source: { kind: 'data', file: 'observation-framework.json' }, gen: 'observation-framework.gen.ts' },
-  { source: { kind: 'data', file: 'growth-standards.json' }, gen: 'growth-standards.gen.ts' },
+  { source: { kind: 'data', file: 'milestone-catalog' }, gen: 'milestone-catalog.gen.ts' },
+  { source: { kind: 'data', file: 'sensitive-periods' }, gen: 'sensitive-periods.gen.ts' },
+  { source: { kind: 'data', file: 'observation-framework' }, gen: 'observation-framework.gen.ts' },
+  { source: { kind: 'data', file: 'observation-framework' }, gen: 'observation-vocabulary.gen.rs', root: RUST_GEN },
+  { source: { kind: 'data', file: 'growth-standards' }, gen: 'growth-standards.gen.ts' },
   { source: { kind: 'table', file: 'nurture-modes.yaml' }, gen: 'nurture-modes.gen.ts' },
   { source: { kind: 'table', file: 'knowledge-source-readiness.yaml' }, gen: 'knowledge-source-readiness.gen.ts' },
+  { source: { kind: 'data', file: 'growth-standards' }, gen: 'knowledge-asset-fingerprints.gen.ts' },
+  { source: { kind: 'data', file: 'milestone-catalog' }, gen: 'knowledge-asset-fingerprints.gen.ts' },
+  { source: { kind: 'data', file: 'sensitive-periods' }, gen: 'knowledge-asset-fingerprints.gen.ts' },
+  { source: { kind: 'data', file: 'observation-framework' }, gen: 'knowledge-asset-fingerprints.gen.ts' },
+  { source: { kind: 'data', file: 'ability-model' }, gen: 'knowledge-asset-fingerprints.gen.ts' },
   { source: { kind: 'table', file: 'health-metric-registry.yaml' }, gen: 'health-record.gen.ts' },
   { source: { kind: 'table', file: 'health-evaluation-rules.yaml' }, gen: 'health-record.gen.ts' },
   { source: { kind: 'table', file: 'health-capture-protocols.yaml' }, gen: 'health-record.gen.ts' },
   { source: { kind: 'table', file: 'reminder-capture-targets.yaml' }, gen: 'health-record.gen.ts' },
 ];
 
-for (const { source, gen } of genFiles) {
+for (const { source, gen, root } of genFiles) {
   try {
-    const sourceMtime = statSync(sourcePath(source)).mtimeMs;
-    const genMtime = statSync(resolve(GEN, gen)).mtimeMs;
+    const sourceMtime = Math.max(...sourcePaths(source).map((path) => statSync(path).mtimeMs));
+    const genMtime = statSync(resolve(root ?? GEN, gen)).mtimeMs;
     if (sourceMtime > genMtime) {
       fail(`${gen} is stale (${source.file} modified after generation). Run pnpm generate:knowledge-base`);
     } else {

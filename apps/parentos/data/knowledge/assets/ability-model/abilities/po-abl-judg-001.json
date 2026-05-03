@@ -1,0 +1,33 @@
+{
+  "abilityId": "PO-ABL-JUDG-001",
+  "layer": "quality-control",
+  "displayName": "判断力",
+  "parentQuestion": "孩子能不能分辨什么是好的、什么是平庸的？",
+  "description": "判断力是\"知道 AI 输出的东西对不对好不好\"的能力。\nAI 时代最大的风险不是 AI 错得离谱，而是错得很像对的。\n逻辑能帮你验证推理链，但很多领域的判断靠的是审美、直觉和经验积累。\n一个孩子读过大量好文章，才能判断 AI 写的东西是平庸的；\n做过大量真实实验，才能感觉到 AI 给的方案哪里不对劲。\n这种判断力的底层是大量的一手经验，没有捷径。\n",
+  "ageRelevance": {
+    "startMonths": 36,
+    "endMonths": -1
+  },
+  "sourceObservations": [
+    "PO-OBS-GROW-001",
+    "PO-OBS-INDU-001",
+    "PO-OBS-EXPL-001",
+    "PO-OBS-MORL-001",
+    "PO-OBS-MINT-001"
+  ],
+  "developmentalAnchors": [
+    {
+      "ageRange": "3-6 岁",
+      "whatToLookFor": "能区分'好看/不好看''好听/不好听'——审美判断的萌芽；对自己的作品有满意/不满意的自我评价"
+    },
+    {
+      "ageRange": "6-12 岁",
+      "whatToLookFor": "在擅长领域能说出'这个好在哪里'；读完一本书能有自己的评价而非复述大意；做完项目能识别哪些部分可以更好"
+    },
+    {
+      "ageRange": "12-18 岁",
+      "whatToLookFor": "能评价信息源的可信度；对'看起来正确'的内容保持警惕；在深耕领域有独立的品质标准"
+    }
+  ],
+  "aiAnalysisPrompt": "判断力的底层是一手经验的积累。从记录中寻找孩子在哪些领域有深度投入和实践，以及是否开始发展出自己的品质标准和鉴别力。"
+}

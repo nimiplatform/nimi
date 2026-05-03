@@ -1,0 +1,12 @@
+{
+  "milestoneId": "PO-MS-LANG-006",
+  "domain": "language",
+  "title": "简单对话",
+  "description": "能用简单句子进行来回对话",
+  "typicalAge": {
+    "medianMonths": 36,
+    "rangeStart": 30,
+    "rangeEnd": 42
+  },
+  "source": "CDC-milestones-2022"
+}

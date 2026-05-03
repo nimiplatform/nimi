@@ -1,0 +1,126 @@
+{
+  "assetId": "growth-standards",
+  "description": "Composable growth-standards reference data asset. Scripts assemble these shards into the same logical data shape consumed by generated runtime constants.",
+  "schemaVersion": 1,
+  "contentVersion": "2026-05-03.1",
+  "schema": "schema.json",
+  "authorityClass": "reference_dataset",
+  "ownerContract": "profile-contract.md#PO-PROF-004",
+  "generatedModule": "growth-standards.gen.ts",
+  "review": {
+    "status": "reviewed",
+    "owner": "parentos",
+    "reviewer": "parentos-spec",
+    "lastReviewedAt": "2026-05-03"
+  },
+  "sources": [
+    {
+      "sourceId": "WHO-growth-standards-2006",
+      "citation": "WHO Child Growth Standards 2006",
+      "url": "https://www.who.int/tools/child-growth-standards",
+      "retrievedAt": "2026-05-03",
+      "licenseClass": "public_standard",
+      "sourceClass": "clinical_reference",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "sourceId": "WHO-growth-references-2007",
+      "citation": "WHO Growth reference data for 5-19 years 2007",
+      "url": "https://www.who.int/tools/growth-reference-data-for-5to19-years",
+      "retrievedAt": "2026-05-03",
+      "licenseClass": "public_standard",
+      "sourceClass": "clinical_reference",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "sourceId": "ParentOS-health-reference-ranges",
+      "citation": "ParentOS curated non-diagnostic health reference ranges",
+      "url": null,
+      "retrievedAt": "2026-05-03",
+      "licenseClass": "internal_curated",
+      "sourceClass": "curated_parentos",
+      "reviewStatus": "reviewed"
+    }
+  ],
+  "primarySection": "measurementTypes",
+  "sections": [
+    {
+      "sectionId": "field_contract",
+      "kind": "singleton",
+      "files": "field-contract.json",
+      "ordering": "manifest",
+      "orphanPolicy": "fail_close"
+    },
+    {
+      "sectionId": "constraints",
+      "kind": "singleton",
+      "files": "constraints.json",
+      "ordering": "manifest",
+      "orphanPolicy": "fail_close"
+    },
+    {
+      "sectionId": "measurementTypes",
+      "kind": "collection",
+      "files": [
+        "measurement-types/height.json",
+        "measurement-types/weight.json",
+        "measurement-types/head-circumference.json",
+        "measurement-types/bmi.json",
+        "measurement-types/vision-left.json",
+        "measurement-types/vision-right.json",
+        "measurement-types/hyperopia-reserve.json",
+        "measurement-types/bone-age.json",
+        "measurement-types/corrected-vision-left.json",
+        "measurement-types/corrected-vision-right.json",
+        "measurement-types/refraction-sph-left.json",
+        "measurement-types/refraction-sph-right.json",
+        "measurement-types/refraction-cyl-left.json",
+        "measurement-types/refraction-cyl-right.json",
+        "measurement-types/refraction-axis-left.json",
+        "measurement-types/refraction-axis-right.json",
+        "measurement-types/axial-length-left.json",
+        "measurement-types/axial-length-right.json",
+        "measurement-types/corneal-curvature-left.json",
+        "measurement-types/corneal-curvature-right.json",
+        "measurement-types/iop-left.json",
+        "measurement-types/iop-right.json",
+        "measurement-types/corneal-k1-left.json",
+        "measurement-types/corneal-k1-right.json",
+        "measurement-types/corneal-k2-left.json",
+        "measurement-types/corneal-k2-right.json",
+        "measurement-types/acd-left.json",
+        "measurement-types/acd-right.json",
+        "measurement-types/lt-left.json",
+        "measurement-types/lt-right.json",
+        "measurement-types/body-fat-percentage.json",
+        "measurement-types/scoliosis-cobb-angle.json",
+        "measurement-types/lab-vitamin-d.json",
+        "measurement-types/lab-ferritin.json",
+        "measurement-types/lab-hemoglobin.json",
+        "measurement-types/lab-calcium.json",
+        "measurement-types/lab-zinc.json"
+      ],
+      "ordering": "manifest",
+      "orphanPolicy": "fail_close",
+      "idField": "typeId"
+    },
+    {
+      "sectionId": "referenceRanges",
+      "kind": "map",
+      "files": {
+        "vision": "reference-ranges/vision.json",
+        "hyperopiaReserve": "reference-ranges/hyperopiareserve.json",
+        "boneAge": "reference-ranges/boneage.json",
+        "axialLength": "reference-ranges/axiallength.json",
+        "scoliosisCobb": "reference-ranges/scoliosiscobb.json",
+        "labVitaminD": "reference-ranges/labvitamind.json",
+        "labFerritin": "reference-ranges/labferritin.json",
+        "labHemoglobin": "reference-ranges/labhemoglobin.json",
+        "labCalcium": "reference-ranges/labcalcium.json",
+        "labZinc": "reference-ranges/labzinc.json"
+      },
+      "ordering": "manifest",
+      "orphanPolicy": "fail_close"
+    }
+  ]
+}

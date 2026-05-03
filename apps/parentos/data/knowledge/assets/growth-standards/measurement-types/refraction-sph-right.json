@@ -1,0 +1,13 @@
+{
+  "typeId": "refraction-sph-right",
+  "displayName": "右眼球镜 (SPH)",
+  "unit": "D",
+  "precision": 2,
+  "ageRange": {
+    "startMonths": 36,
+    "endMonths": 216
+  },
+  "frequency": "每半年",
+  "standardSource": "NHC-vision-2023",
+  "curveType": "reference-range"
+}

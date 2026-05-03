@@ -1,0 +1,13 @@
+{
+  "typeId": "vision-right",
+  "displayName": "右眼视力",
+  "unit": "decimal",
+  "precision": 1,
+  "ageRange": {
+    "startMonths": 36,
+    "endMonths": 216
+  },
+  "frequency": "每半年",
+  "standardSource": "NHC-vision-2023",
+  "curveType": "reference-range"
+}

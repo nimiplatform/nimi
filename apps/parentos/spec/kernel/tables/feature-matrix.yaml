@@ -370,6 +370,6 @@ constraints:
   - "The current baseline preserves the reminder -> record -> review core loop."
   - "Implemented AI features must stay within typed runtime contracts and the current knowledge-source-readiness gates."
   - "Reports may generate narrative content from local facts, but they must preserve safety filtering and evidence-backed wording."
-  - "data/knowledge/ability-model.json is not a runtime source in the current baseline."
+  - "The ability-model design asset is not a runtime source in the current baseline."
   - "The /profile first screen is the PO-HREC health record console, not the retired archive-section grid."
   - "record_data reminders must open PO-CAPT capture intents and complete only after a satisfying persisted record exists."

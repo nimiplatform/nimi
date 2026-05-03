@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "assetId",
+    "schemaVersion",
+    "contentVersion",
+    "schema",
+    "authorityClass",
+    "ownerContract",
+    "review",
+    "primarySection",
+    "sections"
+  ],
+  "properties": {
+    "assetId": {
+      "const": "observation-framework"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "contentVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema": {
+      "const": "schema.json"
+    },
+    "authorityClass": {
+      "enum": [
+        "reference_dataset",
+        "curated_knowledge_asset",
+        "design_asset"
+      ]
+    },
+    "ownerContract": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generatedModule": {
+      "type": "string",
+      "minLength": 1
+    },
+    "runtimeProjectionAdmission": {
+      "type": "string",
+      "minLength": 1
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "status",
+        "owner",
+        "reviewer",
+        "lastReviewedAt"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "reviewed",
+            "needs_review",
+            "rejected"
+          ]
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastReviewedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "sourceId",
+          "citation",
+          "url",
+          "retrievedAt",
+          "licenseClass",
+          "sourceClass",
+          "reviewStatus"
+        ],
+        "properties": {
+          "sourceId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "citation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retrievedAt": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "licenseClass": {
+            "enum": [
+              "public_standard",
+              "open_reference",
+              "internal_curated",
+              "unknown_review_required"
+            ]
+          },
+          "sourceClass": {
+            "enum": [
+              "clinical_reference",
+              "educational_reference",
+              "curated_parentos",
+              "design_reference"
+            ]
+          },
+          "reviewStatus": {
+            "enum": [
+              "reviewed",
+              "needs_review",
+              "rejected"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "primarySection": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false,
+  "x-parentos-sectionSchemas": {
+    "designPhilosophy": {
+      "type": [
+        "object",
+        "array"
+      ]
+    },
+    "frameworkMapping": {
+      "type": [
+        "object",
+        "array"
+      ]
+    },
+    "observationModes": {
+      "type": [
+        "object",
+        "array"
+      ]
+    },
+    "field_contract": {
+      "type": [
+        "object",
+        "array"
+      ]
+    },
+    "constraints": {
+      "type": [
+        "object",
+        "array"
+      ]
+    },
+    "aiAnalysisRules": {
+      "type": [
+        "object",
+        "array"
+      ]
+    },
+    "journalExtension": {
+      "type": [
+        "object",
+        "array"
+      ]
+    },
+    "dimensions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "dimensionId"
+        ],
+        "properties": {
+          "dimensionId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "authorityClass": {
+            "const": "reference_dataset"
+          }
+        },
+        "required": [
+          "authorityClass"
+        ]
+      },
+      "then": {
+        "required": [
+          "sources"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "authorityClass": {
+            "const": "design_asset"
+          }
+        },
+        "required": [
+          "authorityClass",
+          "generatedModule"
+        ]
+      },
+      "then": {
+        "required": [
+          "runtimeProjectionAdmission"
+        ]
+      }
+    }
+  ]
+}

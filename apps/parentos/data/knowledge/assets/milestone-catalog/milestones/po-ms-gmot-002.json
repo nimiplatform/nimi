@@ -1,0 +1,13 @@
+{
+  "milestoneId": "PO-MS-GMOT-002",
+  "domain": "gross-motor",
+  "title": "翻身",
+  "description": "能从仰卧翻到俯卧或从俯卧翻到仰卧",
+  "typicalAge": {
+    "medianMonths": 4,
+    "rangeStart": 3,
+    "rangeEnd": 6
+  },
+  "alertIfNotBy": 7,
+  "source": "CDC-milestones-2022"
+}

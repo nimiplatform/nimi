@@ -1,0 +1,13 @@
+{
+  "typeId": "refraction-axis-right",
+  "displayName": "右眼轴位 (AXIS)",
+  "unit": "°",
+  "precision": 0,
+  "ageRange": {
+    "startMonths": 36,
+    "endMonths": 216
+  },
+  "frequency": "每半年",
+  "standardSource": "NHC-vision-2023",
+  "curveType": "reference-range"
+}

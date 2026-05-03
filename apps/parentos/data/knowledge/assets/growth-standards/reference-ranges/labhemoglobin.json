@@ -1,0 +1,26 @@
+{
+  "description": "血红蛋白参考范围（按年龄）",
+  "ranges": [
+    {
+      "ageMonths": 6,
+      "normalMin": 105,
+      "normalMax": 140
+    },
+    {
+      "ageMonths": 24,
+      "normalMin": 110,
+      "normalMax": 140
+    },
+    {
+      "ageMonths": 60,
+      "normalMin": 115,
+      "normalMax": 145
+    },
+    {
+      "ageMonths": 144,
+      "normalMin": 120,
+      "normalMax": 160,
+      "note": "青春期后男女有差异"
+    }
+  ]
+}

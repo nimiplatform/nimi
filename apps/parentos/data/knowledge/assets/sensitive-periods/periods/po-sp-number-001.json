@@ -1,0 +1,27 @@
+{
+  "periodId": "PO-SP-NUMBER-001",
+  "title": "数学敏感期",
+  "description": "对数量、排序、分类产生浓厚兴趣。",
+  "ageRange": {
+    "startMonths": 36,
+    "peakMonths": 54,
+    "endMonths": 72
+  },
+  "observableSigns": [
+    "开始对数数感兴趣",
+    "喜欢排列和分类物品",
+    "注意到'多''少''一样多'",
+    "对形状和图案有兴趣"
+  ],
+  "supportStrategies": [
+    "在日常生活中融入数学（数台阶、分水果）",
+    "提供分类、排序的材料",
+    "不急于教抽象的算术",
+    "让孩子操作实物来理解数量"
+  ],
+  "commonMistakes": [
+    "过早进行纸面算术训练",
+    "跳过具象直接教抽象概念"
+  ],
+  "source": "Montessori-sensitive-periods"
+}

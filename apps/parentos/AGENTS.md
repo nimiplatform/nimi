@@ -41,12 +41,13 @@ Before making any change:
 |-------|---------|
 | `reminder-rules.yaml` | All age-based reminder rules (vaccines, checkups, vision, dental, bone age, growth, sensitivity, interests, etc.) |
 | `orthodontic-protocols.yaml` | Dynamic orthodontic protocol rules + dental follow-up rules; the only authority home for `PO-ORTHO-*` and `PO-DEN-FOLLOWUP-*` ruleIds |
-| `reference-data-assets.yaml` | Manifest for admitted JSON data assets under `data/knowledge/**` |
-| `data/knowledge/milestone-catalog.json` | Developmental milestones by domain and age |
-| `data/knowledge/sensitive-periods.json` | Montessori sensitive period definitions |
-| `data/knowledge/observation-framework.json` | 21 observation dimensions from 8 theories + relationship quality |
-| `data/knowledge/ability-model.json` | Ability-interpretation design asset; current layer count/enums are not yet frozen and must not be treated as a stable public contract |
-| `data/knowledge/growth-standards.json` | WHO/reference growth and health reference data |
+| `reference-data-assets.yaml` | Registry for admitted knowledge assets and their current/target storage model |
+| `knowledge-asset-contract.md` | Manifest, provenance, schema, section, projection, and runtime consumption contract for knowledge assets |
+| `milestone-catalog` | Developmental milestones by domain and age |
+| `sensitive-periods` | Montessori sensitive period definitions |
+| `observation-framework` | 21 observation dimensions from 8 theories + relationship quality |
+| `ability-model` | Ability-interpretation design asset; current layer count/enums are not yet frozen and must not be treated as a stable public contract |
+| `growth-standards` | WHO/reference growth and health reference data |
 | `knowledge-source-readiness.yaml` | Authoritative reviewed / needs-review gate for what may enter Phase 1 AI free-form prompt |
 | `nurture-modes.yaml` | Three nurture mode parameters |
 | `local-storage.yaml` | SQLite schema (19 tables) |
@@ -72,7 +73,7 @@ Rule → Table → Generate → Check → Evidence
 - `routes.yaml` paths ≠ `routes.tsx` route definitions
 - `reminder-rules.yaml` ruleIds ≠ compiled TS constants
 - `nurture-modes.yaml` parameters ≠ `app-store.ts` types
-- `data/knowledge/observation-framework.json` dimensionIds ≠ compiled TS constants
+- admitted `observation-framework` dimensionIds ≠ compiled TS constants
 
 ## Development Principles
 

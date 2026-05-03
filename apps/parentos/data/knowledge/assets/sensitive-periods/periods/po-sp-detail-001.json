@@ -1,0 +1,26 @@
+{
+  "periodId": "PO-SP-DETAIL-001",
+  "title": "细节敏感期",
+  "description": "对微小的细节特别关注，能注意到成人忽略的小事物。",
+  "ageRange": {
+    "startMonths": 12,
+    "peakMonths": 24,
+    "endMonths": 48
+  },
+  "observableSigns": [
+    "捡起地上极小的东西（线头、碎屑）",
+    "长时间观察蚂蚁、小虫",
+    "指出画面中微小的不同",
+    "对物品的细微差异很敏感"
+  ],
+  "supportStrategies": [
+    "不催促，给孩子观察细节的时间",
+    "和孩子一起观察并描述所见",
+    "提供放大镜等观察工具"
+  ],
+  "commonMistakes": [
+    "催促孩子'快走，别看了'",
+    "认为孩子'磨蹭'或'不专心'"
+  ],
+  "source": "Montessori-sensitive-periods"
+}

@@ -1,0 +1,28 @@
+{
+  "periodId": "PO-SP-WRITE-001",
+  "title": "书写敏感期",
+  "description": "对书写符号和文字产生兴趣，出现自发书写行为。",
+  "ageRange": {
+    "startMonths": 42,
+    "peakMonths": 54,
+    "endMonths": 72
+  },
+  "observableSigns": [
+    "到处'写字'（涂鸦中出现类字符号）",
+    "模仿成人写字的动作",
+    "问'这个字怎么写'",
+    "在沙子、水雾中画字"
+  ],
+  "supportStrategies": [
+    "提供书写材料和空间",
+    "不纠正'写得不好'",
+    "可以示范但不强制临摹",
+    "先从描画简单线条开始"
+  ],
+  "commonMistakes": [
+    "过早要求工整书写",
+    "规定必须写多少遍",
+    "在敏感期之前就强制练字"
+  ],
+  "source": "Montessori-sensitive-periods"
+}

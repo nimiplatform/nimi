@@ -106,4 +106,4 @@ The following remain outside this contract:
 
 - family collaboration and multi-account sharing (`PO-FEAT-030`)
 - cloud sync or remote backup
-- any use of `data/knowledge/ability-model.json` as a frozen runtime contract
+- any use of the `ability-model` design asset as a frozen runtime contract

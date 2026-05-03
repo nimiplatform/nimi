@@ -1,0 +1,12 @@
+{
+  "milestoneId": "PO-MS-GMOT-004",
+  "domain": "gross-motor",
+  "title": "爬行",
+  "description": "双手双膝交替爬行（部分孩子用其他方式移动也正常）",
+  "typicalAge": {
+    "medianMonths": 8,
+    "rangeStart": 6,
+    "rangeEnd": 11
+  },
+  "source": "CDC-milestones-2022"
+}

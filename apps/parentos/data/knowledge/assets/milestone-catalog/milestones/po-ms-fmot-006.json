@@ -1,0 +1,12 @@
+{
+  "milestoneId": "PO-MS-FMOT-006",
+  "domain": "fine-motor",
+  "title": "用剪刀剪纸",
+  "description": "能沿直线用安全剪刀剪纸",
+  "typicalAge": {
+    "medianMonths": 36,
+    "rangeStart": 30,
+    "rangeEnd": 42
+  },
+  "source": "CDC-milestones-2022"
+}

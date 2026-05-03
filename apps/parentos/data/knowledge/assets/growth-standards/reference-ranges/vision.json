@@ -1,0 +1,27 @@
+{
+  "description": "各年龄段正常视力参考范围",
+  "ranges": [
+    {
+      "ageMonths": 36,
+      "normalMin": 0.5,
+      "normalMax": 1,
+      "note": "3 岁视力尚在发育中"
+    },
+    {
+      "ageMonths": 48,
+      "normalMin": 0.6,
+      "normalMax": 1.2
+    },
+    {
+      "ageMonths": 60,
+      "normalMin": 0.8,
+      "normalMax": 1.5
+    },
+    {
+      "ageMonths": 72,
+      "normalMin": 1,
+      "normalMax": 1.5,
+      "note": "6 岁视力应基本成熟"
+    }
+  ]
+}

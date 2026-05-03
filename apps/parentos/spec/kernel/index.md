@@ -15,13 +15,14 @@ Normative surfaces:
 - `profile-contract.md` for child profile and health-record surfaces
 - `journal-contract.md` for journaling, voice capture, and closed-set tag suggestion
 - `advisor-contract.md` for advisor chat, report generation, and AI boundary rules
+- `knowledge-asset-contract.md` for knowledge asset manifests, section semantics, provenance, schema validation, generated projections, and runtime consumption boundaries
 - `orthodontic-contract.md` for orthodontic cases, appliances, compliance checkins, and the orthodontic AI summary surface
 - `tables/orthodontic-protocols.yaml` for admitted orthodontic dynamic reminder rules and dental follow-up protocols
 - `tables/health-metric-registry.yaml` for canonical health metric ids, groups, units, value shapes, capture protocol references, evaluation policy references, freshness policy references, and detail routes
 - `tables/health-evaluation-rules.yaml` for non-diagnostic health evaluation status semantics and rule references
 - `tables/health-capture-protocols.yaml` for unified capture protocols and required metric sets
 - `tables/reminder-capture-targets.yaml` for canonical `record_data` reminder to capture-protocol bindings
-- `tables/reference-data-assets.yaml` for the admitted JSON data asset manifest
+- `tables/reference-data-assets.yaml` for the admitted knowledge asset registry
 
 Guide-only documents:
 
@@ -33,4 +34,4 @@ Authority rules:
 - Normative ParentOS product content belongs only in `kernel/*.md` and `kernel/tables/**`.
 - App-local guide documents must point back to this map instead of duplicating kernel rules.
 - Orphan pages, placeholder flows, and fail-open behavior are not authority unless they are explicitly listed in this kernel map and its tables/contracts.
-- Concrete external/reference values and curated content datasets belong in admitted data assets under `apps/parentos/data/**`; kernel spec owns their schema, source admission, evaluator binding, and fail-close behavior.
+- Concrete external/reference values and curated content datasets belong in admitted data assets under `apps/parentos/data/**`; `knowledge-asset-contract.md` owns manifest shape, provenance, schema validation, generated projection, and direct-read boundaries.

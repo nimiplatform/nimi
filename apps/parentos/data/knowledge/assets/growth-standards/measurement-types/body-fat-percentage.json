@@ -1,0 +1,13 @@
+{
+  "typeId": "body-fat-percentage",
+  "displayName": "体脂率",
+  "unit": "%",
+  "precision": 1,
+  "ageRange": {
+    "startMonths": 60,
+    "endMonths": 216
+  },
+  "frequency": "每半年",
+  "standardSource": "McCarthy-2006 pediatric body-fat references",
+  "curveType": "reference-range"
+}

@@ -1,0 +1,41 @@
+{
+  "dimensionId": "PO-OBS-ORDR-001",
+  "displayName": "秩序感",
+  "parentQuestion": "孩子对事物的位置和顺序在意吗？",
+  "ageRelevance": {
+    "startMonths": 10,
+    "endMonths": 48
+  },
+  "indicators": [
+    {
+      "signal": "坚持物品放回原位",
+      "meaning": "秩序敏感期的典型表现"
+    },
+    {
+      "signal": "日常流程被改变时强烈抗议",
+      "meaning": "对可预测环境的内在需求，不是'任性'"
+    },
+    {
+      "signal": "自发地整理、排列物品",
+      "meaning": "内在秩序感在外化为行为"
+    },
+    {
+      "signal": "注意到环境中的微小变化",
+      "meaning": "细节敏感期和秩序感的交叉表现"
+    }
+  ],
+  "guidedQuestions": [
+    "孩子有没有对什么东西的位置/顺序特别在意？",
+    "日常流程改变时孩子的反应是什么？",
+    "有没有自发整理或排列东西的行为？",
+    "有没有因为'不对'而情绪激动的情况？"
+  ],
+  "quickTags": [
+    "物归原位",
+    "坚持顺序",
+    "自发整理",
+    "注意变化",
+    "因变化不安"
+  ],
+  "source": "Montessori-order-sensitive-period"
+}

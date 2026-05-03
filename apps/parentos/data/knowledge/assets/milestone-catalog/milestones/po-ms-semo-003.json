@@ -1,0 +1,12 @@
+{
+  "milestoneId": "PO-MS-SEMO-003",
+  "domain": "social-emotional",
+  "title": "平行游戏",
+  "description": "在其他孩子旁边玩但不一起玩",
+  "typicalAge": {
+    "medianMonths": 24,
+    "rangeStart": 18,
+    "rangeEnd": 30
+  },
+  "source": "Parten-play-stages"
+}

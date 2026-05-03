@@ -1,0 +1,13 @@
+{
+  "typeId": "lab-ferritin",
+  "displayName": "血清铁蛋白",
+  "unit": "ng/mL",
+  "precision": 1,
+  "ageRange": {
+    "startMonths": 6,
+    "endMonths": 216
+  },
+  "frequency": "每年",
+  "standardSource": "WHO iron-deficiency guidelines 2020",
+  "curveType": "reference-range"
+}

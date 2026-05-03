@@ -1,0 +1,13 @@
+{
+  "milestoneId": "PO-MS-GMOT-001",
+  "domain": "gross-motor",
+  "title": "抬头",
+  "description": "俯卧时能抬起头部 45° 以上",
+  "typicalAge": {
+    "medianMonths": 2,
+    "rangeStart": 1,
+    "rangeEnd": 4
+  },
+  "alertIfNotBy": 5,
+  "source": "CDC-milestones-2022"
+}

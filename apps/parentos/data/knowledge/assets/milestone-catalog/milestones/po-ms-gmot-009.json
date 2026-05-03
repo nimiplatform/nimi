@@ -1,0 +1,12 @@
+{
+  "milestoneId": "PO-MS-GMOT-009",
+  "domain": "gross-motor",
+  "title": "骑三轮车",
+  "description": "能踩踏板骑三轮车",
+  "typicalAge": {
+    "medianMonths": 36,
+    "rangeStart": 30,
+    "rangeEnd": 42
+  },
+  "source": "CDC-milestones-2022"
+}

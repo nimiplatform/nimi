@@ -1,0 +1,62 @@
+{
+  "assetId": "sensitive-periods",
+  "description": "Composable sensitive-periods knowledge asset. Scripts assemble these shards into the same logical data shape consumed by generated runtime constants.",
+  "schemaVersion": 1,
+  "contentVersion": "2026-05-03.1",
+  "schema": "schema.json",
+  "authorityClass": "curated_knowledge_asset",
+  "ownerContract": "timeline-contract.md#PO-TIME-006",
+  "generatedModule": "sensitive-periods.gen.ts",
+  "review": {
+    "status": "reviewed",
+    "owner": "parentos",
+    "reviewer": "parentos-spec",
+    "lastReviewedAt": "2026-05-03"
+  },
+  "sources": [
+    {
+      "sourceId": "Montessori-sensitive-periods",
+      "citation": "Montessori sensitive period educational references",
+      "url": null,
+      "retrievedAt": "2026-05-03",
+      "licenseClass": "internal_curated",
+      "sourceClass": "educational_reference",
+      "reviewStatus": "reviewed"
+    }
+  ],
+  "primarySection": "periods",
+  "sections": [
+    {
+      "sectionId": "field_contract",
+      "kind": "singleton",
+      "files": "field-contract.json",
+      "ordering": "manifest",
+      "orphanPolicy": "fail_close"
+    },
+    {
+      "sectionId": "constraints",
+      "kind": "singleton",
+      "files": "constraints.json",
+      "ordering": "manifest",
+      "orphanPolicy": "fail_close"
+    },
+    {
+      "sectionId": "periods",
+      "kind": "collection",
+      "files": [
+        "periods/po-sp-oral-001.json",
+        "periods/po-sp-order-001.json",
+        "periods/po-sp-lang-001.json",
+        "periods/po-sp-move-001.json",
+        "periods/po-sp-detail-001.json",
+        "periods/po-sp-social-001.json",
+        "periods/po-sp-number-001.json",
+        "periods/po-sp-write-001.json",
+        "periods/po-sp-read-001.json"
+      ],
+      "ordering": "manifest",
+      "orphanPolicy": "fail_close",
+      "idField": "periodId"
+    }
+  ]
+}

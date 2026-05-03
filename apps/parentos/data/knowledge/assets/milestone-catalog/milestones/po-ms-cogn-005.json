@@ -1,0 +1,12 @@
+{
+  "milestoneId": "PO-MS-COGN-005",
+  "domain": "cognitive",
+  "title": "数数（1-10）",
+  "description": "能有意义地数数到 10",
+  "typicalAge": {
+    "medianMonths": 48,
+    "rangeStart": 36,
+    "rangeEnd": 54
+  },
+  "source": "CDC-milestones-2022"
+}

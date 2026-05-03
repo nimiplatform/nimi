@@ -4,7 +4,7 @@ import path from 'node:path';
 export default defineConfig({
   test: {
     globals: true,
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
   },
   resolve: {
     dedupe: ['react', 'react-dom', 'scheduler'],

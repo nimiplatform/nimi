@@ -1,0 +1,12 @@
+{
+  "milestoneId": "PO-MS-GMOT-010",
+  "domain": "gross-motor",
+  "title": "单脚站立",
+  "description": "能单脚站立 5 秒以上",
+  "typicalAge": {
+    "medianMonths": 48,
+    "rangeStart": 42,
+    "rangeEnd": 54
+  },
+  "source": "CDC-milestones-2022"
+}

@@ -1,0 +1,13 @@
+{
+  "typeId": "corneal-k1-left",
+  "displayName": "左眼角膜曲率 K1",
+  "unit": "D",
+  "precision": 2,
+  "ageRange": {
+    "startMonths": 36,
+    "endMonths": 216
+  },
+  "frequency": "每半年",
+  "standardSource": "IOL-master normative",
+  "curveType": "reference-range"
+}

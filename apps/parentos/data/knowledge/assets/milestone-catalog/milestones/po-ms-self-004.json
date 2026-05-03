@@ -1,0 +1,12 @@
+{
+  "milestoneId": "PO-MS-SELF-004",
+  "domain": "self-care",
+  "title": "独立穿衣",
+  "description": "能独立穿简单的衣服（T恤、裤子）",
+  "typicalAge": {
+    "medianMonths": 42,
+    "rangeStart": 36,
+    "rangeEnd": 48
+  },
+  "source": "CDC-milestones-2022"
+}

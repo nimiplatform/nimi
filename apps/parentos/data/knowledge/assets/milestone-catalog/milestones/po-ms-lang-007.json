@@ -1,0 +1,12 @@
+{
+  "milestoneId": "PO-MS-LANG-007",
+  "domain": "language",
+  "title": "讲述故事",
+  "description": "能有逻辑地讲述简单故事",
+  "typicalAge": {
+    "medianMonths": 48,
+    "rangeStart": 42,
+    "rangeEnd": 60
+  },
+  "source": "CDC-milestones-2022"
+}

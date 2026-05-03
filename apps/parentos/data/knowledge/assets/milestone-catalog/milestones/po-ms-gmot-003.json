@@ -1,0 +1,13 @@
+{
+  "milestoneId": "PO-MS-GMOT-003",
+  "domain": "gross-motor",
+  "title": "独坐",
+  "description": "不需要支撑能独立坐稳",
+  "typicalAge": {
+    "medianMonths": 6,
+    "rangeStart": 5,
+    "rangeEnd": 8
+  },
+  "alertIfNotBy": 9,
+  "source": "CDC-milestones-2022"
+}

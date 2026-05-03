@@ -1,0 +1,13 @@
+{
+  "milestoneId": "PO-MS-LANG-004",
+  "domain": "language",
+  "title": "50 个词汇量",
+  "description": "能说出约 50 个词汇",
+  "typicalAge": {
+    "medianMonths": 18,
+    "rangeStart": 15,
+    "rangeEnd": 24
+  },
+  "alertIfNotBy": 25,
+  "source": "CDC-milestones-2022"
+}

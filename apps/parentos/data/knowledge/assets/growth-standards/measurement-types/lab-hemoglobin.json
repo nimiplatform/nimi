@@ -1,0 +1,13 @@
+{
+  "typeId": "lab-hemoglobin",
+  "displayName": "血红蛋白",
+  "unit": "g/L",
+  "precision": 0,
+  "ageRange": {
+    "startMonths": 6,
+    "endMonths": 216
+  },
+  "frequency": "每年",
+  "standardSource": "WHO hemoglobin cutoffs 2011",
+  "curveType": "reference-range"
+}

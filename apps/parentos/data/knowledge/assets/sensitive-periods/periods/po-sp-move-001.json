@@ -1,0 +1,27 @@
+{
+  "periodId": "PO-SP-MOVE-001",
+  "title": "运动敏感期",
+  "description": "对身体运动有强烈内驱力，是大运动和精细动作发展的关键期。",
+  "ageRange": {
+    "startMonths": 6,
+    "peakMonths": 18,
+    "endMonths": 48
+  },
+  "observableSigns": [
+    "不停地要爬、走、跑、攀",
+    "反复练习新学会的动作",
+    "对高处和平衡挑战有兴趣",
+    "喜欢搬运、倒水、开合"
+  ],
+  "supportStrategies": [
+    "提供安全的自由活动空间",
+    "不过度限制运动探索",
+    "提供攀爬、平衡类器材",
+    "允许孩子反复练习"
+  ],
+  "commonMistakes": [
+    "因怕磕碰过度限制活动",
+    "长时间让孩子坐在推车/安全座椅中"
+  ],
+  "source": "Montessori-sensitive-periods"
+}

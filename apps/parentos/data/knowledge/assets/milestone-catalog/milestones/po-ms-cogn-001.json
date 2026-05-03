@@ -1,0 +1,13 @@
+{
+  "milestoneId": "PO-MS-COGN-001",
+  "domain": "cognitive",
+  "title": "追视",
+  "description": "眼睛能追踪移动的物体",
+  "typicalAge": {
+    "medianMonths": 2,
+    "rangeStart": 1,
+    "rangeEnd": 3
+  },
+  "alertIfNotBy": 4,
+  "source": "CDC-milestones-2022"
+}

@@ -1,0 +1,13 @@
+{
+  "milestoneId": "PO-MS-FMOT-003",
+  "domain": "fine-motor",
+  "title": "捏取小物品（钳形抓握）",
+  "description": "用拇指和食指捏取小物品",
+  "typicalAge": {
+    "medianMonths": 9,
+    "rangeStart": 8,
+    "rangeEnd": 12
+  },
+  "alertIfNotBy": 15,
+  "source": "CDC-milestones-2022"
+}

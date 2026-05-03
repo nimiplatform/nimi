@@ -1,0 +1,13 @@
+{
+  "typeId": "scoliosis-cobb-angle",
+  "displayName": "脊柱侧弯 Cobb 角",
+  "unit": "°",
+  "precision": 0,
+  "ageRange": {
+    "startMonths": 96,
+    "endMonths": 216
+  },
+  "frequency": "青春期每年",
+  "standardSource": "SRS scoliosis screening guidelines",
+  "curveType": "reference-range"
+}

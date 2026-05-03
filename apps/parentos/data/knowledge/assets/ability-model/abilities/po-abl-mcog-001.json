@@ -1,0 +1,31 @@
+{
+  "abilityId": "PO-ABL-MCOG-001",
+  "layer": "quality-control",
+  "displayName": "元认知",
+  "parentQuestion": "孩子知道自己知道什么、不知道什么吗？",
+  "description": "元认知是\"知道自己知道什么、不知道什么\"的能力。\n跟 AI 协作时，如果你不清楚自己的知识边界，\n你就无法判断什么时候该信 AI、什么时候该质疑、什么时候该去找人类专家。\n元认知弱的人会出现两个极端：要么完全依赖 AI，要么完全不信 AI。\n这个能力从很小的时候就可以培养——\n让孩子习惯说\"这个我不确定\"比\"这个我知道\"更有价值。\n",
+  "ageRelevance": {
+    "startMonths": 48,
+    "endMonths": -1
+  },
+  "sourceObservations": [
+    "PO-OBS-META-001",
+    "PO-OBS-GROW-001",
+    "PO-OBS-EXEC-001"
+  ],
+  "developmentalAnchors": [
+    {
+      "ageRange": "4-6 岁",
+      "whatToLookFor": "能说'我不知道'而非瞎猜；对'你确定吗'的追问能修正自己的回答"
+    },
+    {
+      "ageRange": "6-12 岁",
+      "whatToLookFor": "知道自己擅长/不擅长什么；做完任务能准确判断自己做得好不好；遇到不会的能定位到'我哪里不懂'"
+    },
+    {
+      "ageRange": "12-18 岁",
+      "whatToLookFor": "清晰的知识边界感——能区分'我知道''我大概知道''我不知道'；面对信息能判断该信还是该质疑"
+    }
+  ],
+  "aiAnalysisPrompt": "从元认知相关记录中寻找：孩子是否在发展'知道自己不知道什么'的能力。关键信号包括主动说'我不确定'、准确的自我评估、以及面对信息时的辨别姿态。"
+}

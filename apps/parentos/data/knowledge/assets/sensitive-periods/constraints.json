@@ -1,0 +1,5 @@
+[
+  "periodId must be unique",
+  "ageRange.startMonths < ageRange.peakMonths < ageRange.endMonths",
+  "supportStrategies 描述家长行为，不做发育评估"
+]

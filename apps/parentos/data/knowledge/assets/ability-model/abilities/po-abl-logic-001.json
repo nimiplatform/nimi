@@ -1,0 +1,32 @@
+{
+  "abilityId": "PO-ABL-LOGIC-001",
+  "layer": "foundation",
+  "displayName": "逻辑思维",
+  "parentQuestion": "孩子能不能把一件事拆清楚、讲明白？",
+  "description": "逻辑思维解决的是\"能不能把问题拆清楚\"。\n它不只是数学能力，更是把复杂事物分解为可处理步骤的思维习惯。\n在 AI 时代，这决定了一个人能否精确地向 AI 定义问题边界。\n",
+  "ageRelevance": {
+    "startMonths": 24,
+    "endMonths": -1
+  },
+  "sourceObservations": [
+    "PO-OBS-EXEC-001",
+    "PO-OBS-EXPL-001",
+    "PO-OBS-META-001",
+    "PO-OBS-ORDR-001"
+  ],
+  "developmentalAnchors": [
+    {
+      "ageRange": "2-6 岁",
+      "whatToLookFor": "分类、排序、因果探索（'为什么'连问）、简单的如果-那么推理"
+    },
+    {
+      "ageRange": "6-12 岁",
+      "whatToLookFor": "多步骤任务的自主拆解、策略选择、计划调整、错误后的归因分析"
+    },
+    {
+      "ageRange": "12-18 岁",
+      "whatToLookFor": "抽象推理、假设验证、论证和反驳、系统性思考"
+    }
+  ],
+  "aiAnalysisPrompt": "从观察记录中寻找孩子在问题分解、因果推理、策略规划方面的行为证据。关注的是思维过程，不是答案对错。"
+}

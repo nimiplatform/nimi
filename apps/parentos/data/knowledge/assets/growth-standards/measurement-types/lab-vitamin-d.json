@@ -1,0 +1,13 @@
+{
+  "typeId": "lab-vitamin-d",
+  "displayName": "维生素D (25-OH)",
+  "unit": "ng/mL",
+  "precision": 1,
+  "ageRange": {
+    "startMonths": 0,
+    "endMonths": 216
+  },
+  "frequency": "每年（婴幼儿期可更频繁）",
+  "standardSource": "AAP / Endocrine Society 2011",
+  "curveType": "reference-range"
+}

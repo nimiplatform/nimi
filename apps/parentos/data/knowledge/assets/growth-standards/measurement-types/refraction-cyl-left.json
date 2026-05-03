@@ -1,0 +1,13 @@
+{
+  "typeId": "refraction-cyl-left",
+  "displayName": "左眼柱镜 (CYL)",
+  "unit": "D",
+  "precision": 2,
+  "ageRange": {
+    "startMonths": 36,
+    "endMonths": 216
+  },
+  "frequency": "每半年",
+  "standardSource": "NHC-vision-2023",
+  "curveType": "reference-range"
+}

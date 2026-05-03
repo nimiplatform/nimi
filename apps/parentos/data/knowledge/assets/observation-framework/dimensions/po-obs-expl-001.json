@@ -1,0 +1,42 @@
+{
+  "dimensionId": "PO-OBS-EXPL-001",
+  "displayName": "探索与好奇",
+  "parentQuestion": "孩子今天对什么东西特别感兴趣？",
+  "ageRelevance": {
+    "startMonths": 0,
+    "endMonths": -1
+  },
+  "indicators": [
+    {
+      "signal": "长时间研究某个物品/现象",
+      "meaning": "深度好奇心，是科学思维的萌芽"
+    },
+    {
+      "signal": "用多种感官探索（看、摸、闻、听、尝）",
+      "meaning": "感觉统合发展的自然过程"
+    },
+    {
+      "signal": "尝试不同的操作方式（翻转、拆解、组合）",
+      "meaning": "实验精神和因果推理能力的发展"
+    },
+    {
+      "signal": "对自然世界表现出兴趣（动物、植物、天气）",
+      "meaning": "宇宙教育的起点（蒙氏称之为'Cosmic Education'）"
+    }
+  ],
+  "guidedQuestions": [
+    "今天孩子对什么东西表现出特别的兴趣？",
+    "他/她是怎么探索的（看/摸/拆/问）？",
+    "探索了多长时间？",
+    "你有没有回应他/她的好奇心？用什么方式？"
+  ],
+  "quickTags": [
+    "深度好奇",
+    "多感官探索",
+    "反复实验",
+    "提问不止",
+    "自然观察",
+    "拆解研究"
+  ],
+  "source": "Montessori-absorbent-mind"
+}

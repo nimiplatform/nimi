@@ -1,0 +1,12 @@
+{
+  "milestoneId": "PO-MS-COGN-003",
+  "domain": "cognitive",
+  "title": "假装游戏",
+  "description": "用物品进行象征性游戏（如用积木当电话）",
+  "typicalAge": {
+    "medianMonths": 18,
+    "rangeStart": 14,
+    "rangeEnd": 24
+  },
+  "source": "CDC-milestones-2022"
+}

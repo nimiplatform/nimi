@@ -1,0 +1,56 @@
+{
+  "milestone": {
+    "milestoneId": {
+      "type": "string",
+      "required": true,
+      "pattern": "^PO-MS-[A-Z]{3,5}-[0-9]{3}$"
+    },
+    "domain": {
+      "type": "enum",
+      "required": true,
+      "values": [
+        "gross-motor",
+        "fine-motor",
+        "language",
+        "cognitive",
+        "social-emotional",
+        "self-care"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "string",
+      "required": true
+    },
+    "typicalAge": {
+      "type": "object",
+      "required": true,
+      "fields": {
+        "medianMonths": {
+          "type": "integer",
+          "description": "50th percentile 月龄"
+        },
+        "rangeStart": {
+          "type": "integer",
+          "description": "正常范围起始月龄"
+        },
+        "rangeEnd": {
+          "type": "integer",
+          "description": "正常范围截止月龄"
+        }
+      }
+    },
+    "alertIfNotBy": {
+      "type": "integer",
+      "required": false,
+      "description": "超过此月龄未达成需关注（仅供 AI 分析参考，非诊断）"
+    },
+    "source": {
+      "type": "string",
+      "required": true
+    }
+  }
+}

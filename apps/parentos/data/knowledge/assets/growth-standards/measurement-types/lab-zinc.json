@@ -1,0 +1,13 @@
+{
+  "typeId": "lab-zinc",
+  "displayName": "血锌",
+  "unit": "μmol/L",
+  "precision": 1,
+  "ageRange": {
+    "startMonths": 6,
+    "endMonths": 216
+  },
+  "frequency": "按需",
+  "standardSource": "IZiNCG 2004",
+  "curveType": "reference-range"
+}

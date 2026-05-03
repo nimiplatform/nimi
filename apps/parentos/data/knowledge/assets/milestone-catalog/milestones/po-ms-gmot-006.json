@@ -1,0 +1,13 @@
+{
+  "milestoneId": "PO-MS-GMOT-006",
+  "domain": "gross-motor",
+  "title": "独走",
+  "description": "不需要扶持能独立行走数步",
+  "typicalAge": {
+    "medianMonths": 12,
+    "rangeStart": 9,
+    "rangeEnd": 16
+  },
+  "alertIfNotBy": 18,
+  "source": "CDC-milestones-2022"
+}

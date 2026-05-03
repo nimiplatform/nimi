@@ -1,0 +1,31 @@
+{
+  "description": "journal_entries 表中 observation-framework 相关字段",
+  "fields": {
+    "observationMode": {
+      "type": "TEXT",
+      "nullable": true,
+      "description": "quick-capture | focused-observation | daily-reflection | five-minute"
+    },
+    "dimensionId": {
+      "type": "TEXT",
+      "nullable": true,
+      "description": "对应本表的 dimensionId"
+    },
+    "selectedTags": {
+      "type": "TEXT",
+      "nullable": true,
+      "description": "JSON array: 从 quickTags 中选择的标签"
+    },
+    "guidedAnswers": {
+      "type": "TEXT",
+      "nullable": true,
+      "description": "JSON object: 引导问题的回答 { questionIndex: answer }"
+    },
+    "observationDuration": {
+      "type": "INTEGER",
+      "nullable": true,
+      "description": "观察时长（分钟）"
+    }
+  },
+  "note": "这些字段扩展 journal_entries，不创建新表"
+}

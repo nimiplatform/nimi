@@ -1,0 +1,33 @@
+{
+  "abilityId": "PO-ABL-COLB-001",
+  "layer": "network",
+  "displayName": "协作与影响力",
+  "parentQuestion": "孩子能不能和别人一起把事情做成？",
+  "description": "AI 时代不是人和 AI 单独配对的时代，更可能是\"人 + AI + 人\"的协作网络。\n说服、共情、谈判、领导力——这些不会因为 AI 存在而贬值，\n反而会因为技术执行力被拉平而更加重要。\n",
+  "ageRelevance": {
+    "startMonths": 30,
+    "endMonths": -1
+  },
+  "sourceObservations": [
+    "PO-OBS-SOCL-001",
+    "PO-OBS-CASL-001",
+    "PO-OBS-EMOT-001",
+    "PO-OBS-PYDC-001",
+    "PO-OBS-ATTC-001"
+  ],
+  "developmentalAnchors": [
+    {
+      "ageRange": "2.5-6 岁",
+      "whatToLookFor": "从平行游戏到合作游戏的过渡；能用语言协商'我们一起……'；在冲突中开始尝试沟通而非肢体"
+    },
+    {
+      "ageRange": "6-12 岁",
+      "whatToLookFor": "在团队中能承担角色；能调整自己的想法以达成共识；主动帮助他人、分享知识"
+    },
+    {
+      "ageRange": "12-18 岁",
+      "whatToLookFor": "能说服他人接受自己的方案（不是强迫）；在团队中能协调不同意见；展示出领导力或有效的跟随力"
+    }
+  ],
+  "aiAnalysisPrompt": "从社交和情感相关记录中，关注孩子是否在从'能和别人相处'发展为'能和别人一起创造价值'——协商能力、影响力、团队中的建设性角色。"
+}

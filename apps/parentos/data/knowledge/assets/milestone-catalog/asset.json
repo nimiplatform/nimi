@@ -1,0 +1,81 @@
+{
+  "assetId": "milestone-catalog",
+  "description": "Composable milestone-catalog knowledge asset. Scripts assemble these shards into the same logical data shape consumed by generated runtime constants.",
+  "schemaVersion": 1,
+  "contentVersion": "2026-05-03.1",
+  "schema": "schema.json",
+  "authorityClass": "curated_knowledge_asset",
+  "ownerContract": "profile-contract.md#PO-PROF-007",
+  "generatedModule": "milestone-catalog.gen.ts",
+  "review": {
+    "status": "reviewed",
+    "owner": "parentos",
+    "reviewer": "parentos-spec",
+    "lastReviewedAt": "2026-05-03"
+  },
+  "primarySection": "milestones",
+  "sections": [
+    {
+      "sectionId": "field_contract",
+      "kind": "singleton",
+      "files": "field-contract.json",
+      "ordering": "manifest",
+      "orphanPolicy": "fail_close"
+    },
+    {
+      "sectionId": "constraints",
+      "kind": "singleton",
+      "files": "constraints.json",
+      "ordering": "manifest",
+      "orphanPolicy": "fail_close"
+    },
+    {
+      "sectionId": "milestones",
+      "kind": "collection",
+      "files": [
+        "milestones/po-ms-gmot-001.json",
+        "milestones/po-ms-gmot-002.json",
+        "milestones/po-ms-gmot-003.json",
+        "milestones/po-ms-gmot-004.json",
+        "milestones/po-ms-gmot-005.json",
+        "milestones/po-ms-gmot-006.json",
+        "milestones/po-ms-gmot-007.json",
+        "milestones/po-ms-gmot-008.json",
+        "milestones/po-ms-gmot-009.json",
+        "milestones/po-ms-gmot-010.json",
+        "milestones/po-ms-fmot-001.json",
+        "milestones/po-ms-fmot-002.json",
+        "milestones/po-ms-fmot-003.json",
+        "milestones/po-ms-fmot-004.json",
+        "milestones/po-ms-fmot-005.json",
+        "milestones/po-ms-fmot-006.json",
+        "milestones/po-ms-fmot-007.json",
+        "milestones/po-ms-lang-001.json",
+        "milestones/po-ms-lang-002.json",
+        "milestones/po-ms-lang-003.json",
+        "milestones/po-ms-lang-004.json",
+        "milestones/po-ms-lang-005.json",
+        "milestones/po-ms-lang-006.json",
+        "milestones/po-ms-lang-007.json",
+        "milestones/po-ms-cogn-001.json",
+        "milestones/po-ms-cogn-002.json",
+        "milestones/po-ms-cogn-003.json",
+        "milestones/po-ms-cogn-004.json",
+        "milestones/po-ms-cogn-005.json",
+        "milestones/po-ms-semo-001.json",
+        "milestones/po-ms-semo-002.json",
+        "milestones/po-ms-semo-003.json",
+        "milestones/po-ms-semo-004.json",
+        "milestones/po-ms-semo-005.json",
+        "milestones/po-ms-self-001.json",
+        "milestones/po-ms-self-002.json",
+        "milestones/po-ms-self-003.json",
+        "milestones/po-ms-self-004.json",
+        "milestones/po-ms-self-005.json"
+      ],
+      "ordering": "manifest",
+      "orphanPolicy": "fail_close",
+      "idField": "milestoneId"
+    }
+  ]
+}

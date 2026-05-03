@@ -1,0 +1,12 @@
+{
+  "milestoneId": "PO-MS-SEMO-004",
+  "domain": "social-emotional",
+  "title": "合作游戏",
+  "description": "能与其他孩子一起玩，有共同目标",
+  "typicalAge": {
+    "medianMonths": 48,
+    "rangeStart": 36,
+    "rangeEnd": 54
+  },
+  "source": "Parten-play-stages"
+}

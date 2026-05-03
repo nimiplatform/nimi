@@ -1,0 +1,13 @@
+{
+  "typeId": "bone-age",
+  "displayName": "骨龄",
+  "unit": "years",
+  "precision": 1,
+  "ageRange": {
+    "startMonths": 36,
+    "endMonths": 192
+  },
+  "frequency": "按需（建议青春期前后每年）",
+  "standardSource": "GP-atlas / TW3",
+  "curveType": "reference-range"
+}

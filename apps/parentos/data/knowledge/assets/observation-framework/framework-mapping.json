@@ -1,0 +1,74 @@
+{
+  "description": "不同年龄段激活的理论框架。UI 不展示理论名称，只展示观察维度。",
+  "layers": [
+    {
+      "ageRange": {
+        "startMonths": 0,
+        "endMonths": 72
+      },
+      "primaryFramework": "Montessori",
+      "dimensions": [
+        "CONC",
+        "REPT",
+        "CHOI",
+        "INDP",
+        "SOCL",
+        "EMOT",
+        "MOVE",
+        "LANG",
+        "ORDR",
+        "EXPL"
+      ]
+    },
+    {
+      "ageRange": {
+        "startMonths": 72,
+        "endMonths": 144
+      },
+      "primaryFramework": "Executive Function + CASEL + Growth Mindset + Multiple Intelligences + Erikson-Industry",
+      "dimensions": [
+        "EXEC",
+        "CASL",
+        "GROW",
+        "MINT",
+        "INDU",
+        "SOCL",
+        "EMOT",
+        "LANG",
+        "EXPL"
+      ]
+    },
+    {
+      "ageRange": {
+        "startMonths": 144,
+        "endMonths": 216
+      },
+      "primaryFramework": "Erikson-Identity + PYD 5C + Metacognition + Moral Development",
+      "dimensions": [
+        "IDEN",
+        "PYDC",
+        "META",
+        "MORL",
+        "SOCL",
+        "EMOT",
+        "LANG"
+      ]
+    },
+    {
+      "ageRange": {
+        "startMonths": 0,
+        "endMonths": -1
+      },
+      "primaryFramework": "Attachment + Relationship Quality (cross-age)",
+      "dimensions": [
+        "ATTC",
+        "RELQ"
+      ]
+    }
+  ],
+  "transitionRules": [
+    "维度切换不是突然的，在过渡期(±12个月)两套维度并存",
+    "通用维度(SOCL, EMOT, LANG, EXPL)在所有年龄段保持，但引导问题和信号随年龄进化",
+    "家长看到的是连续的观察体验，不会意识到底层理论框架的切换"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "milestoneId": "PO-MS-SEMO-002",
+  "domain": "social-emotional",
+  "title": "分离焦虑高峰",
+  "description": "与主要照护者分离时表现出明显不安（10-18 个月为高峰期）",
+  "typicalAge": {
+    "medianMonths": 12,
+    "rangeStart": 10,
+    "rangeEnd": 18
+  },
+  "source": "Bowlby-attachment"
+}

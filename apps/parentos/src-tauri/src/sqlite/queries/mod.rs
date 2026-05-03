@@ -25,19 +25,7 @@ use std::sync::OnceLock;
 
 use super::get_conn;
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ObservationFrameworkSpec {
-    dimensions: Vec<ObservationDimensionSpec>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ObservationDimensionSpec {
-    dimension_id: String,
-    #[serde(default)]
-    quick_tags: Vec<String>,
-}
+include!("observation-vocabulary.gen.rs");
 
 #[derive(Debug)]
 struct ObservationVocabulary {
@@ -48,17 +36,14 @@ static OBSERVATION_VOCABULARY: OnceLock<Result<ObservationVocabulary, String>> =
 
 fn get_observation_vocabulary() -> Result<&'static ObservationVocabulary, String> {
     let loaded = OBSERVATION_VOCABULARY.get_or_init(|| {
-        let spec: ObservationFrameworkSpec = serde_json::from_str(include_str!(
-            "../../../../data/knowledge/observation-framework.json",
-        ))
-        .map_err(|e| format!("parse observation-framework.json: {e}"))?;
-
-        let quick_tags_by_dimension = spec
-            .dimensions
-            .into_iter()
-            .map(|dimension| {
-                let tags = dimension.quick_tags.into_iter().collect::<HashSet<_>>();
-                (dimension.dimension_id, tags)
+        let quick_tags_by_dimension = OBSERVATION_VOCABULARY_ENTRIES
+            .iter()
+            .map(|(dimension_id, quick_tags)| {
+                let tags = quick_tags
+                    .iter()
+                    .map(|tag| (*tag).to_string())
+                    .collect::<HashSet<_>>();
+                ((*dimension_id).to_string(), tags)
             })
             .collect::<HashMap<_, _>>();
 

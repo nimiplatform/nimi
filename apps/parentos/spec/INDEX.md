@@ -20,6 +20,7 @@ Kernel contracts:
 | [kernel/capture-orchestrator-contract.md](kernel/capture-orchestrator-contract.md) | Unified health data capture intent, modal protocol, save transaction, reminder-linked completion |
 | [kernel/journal-contract.md](kernel/journal-contract.md) | Journal entry flow, voice capture, AI tag suggestion |
 | [kernel/advisor-contract.md](kernel/advisor-contract.md) | Advisor chat, reports, AI safety boundaries |
+| [kernel/knowledge-asset-contract.md](kernel/knowledge-asset-contract.md) | Knowledge asset manifest, provenance, schema, section, projection, and runtime consumption contract |
 
 Kernel tables:
 
@@ -35,16 +36,24 @@ Kernel tables:
 | [kernel/tables/nurture-modes.yaml](kernel/tables/nurture-modes.yaml) | Nurture-mode parameters |
 | [kernel/tables/reminder-rules.yaml](kernel/tables/reminder-rules.yaml) | Reminder rule catalog |
 | [kernel/tables/knowledge-source-readiness.yaml](kernel/tables/knowledge-source-readiness.yaml) | Reviewed versus needs-review AI gate |
-| [kernel/tables/reference-data-assets.yaml](kernel/tables/reference-data-assets.yaml) | Versioned JSON data asset manifest |
+| [kernel/tables/reference-data-assets.yaml](kernel/tables/reference-data-assets.yaml) | Versioned knowledge asset registry |
 
 Reference/data assets:
 
 | Asset | Scope |
 |-------|-------|
-| [data/knowledge/growth-standards.json](../data/knowledge/growth-standards.json) | Growth, vision, lab, and other reference datasets consumed through spec-admitted evaluators |
-| [data/knowledge/milestone-catalog.json](../data/knowledge/milestone-catalog.json) | Developmental milestone catalog content |
-| [data/knowledge/sensitive-periods.json](../data/knowledge/sensitive-periods.json) | Sensitive-period content |
-| [data/knowledge/observation-framework.json](../data/knowledge/observation-framework.json) | Observation dimensions and quick-tag content |
-| [data/knowledge/ability-model.json](../data/knowledge/ability-model.json) | Non-frozen ability model design asset |
+| `growth-standards` | Growth, vision, lab, and other reference datasets consumed through spec-admitted evaluators |
+| `milestone-catalog` | Developmental milestone catalog content |
+| `sensitive-periods` | Sensitive-period content |
+| `observation-framework` | Observation dimensions and quick-tag content |
+| `ability-model` | Non-frozen ability model design asset |
+
+Asset ids above are admitted by
+[kernel/tables/reference-data-assets.yaml](kernel/tables/reference-data-assets.yaml).
+Their directory-backed manifest contract is
+[kernel/knowledge-asset-contract.md](kernel/knowledge-asset-contract.md). Active
+asset bodies live at
+`apps/parentos/data/knowledge/assets/<assetId>/asset.json`; old top-level flat
+JSON files are not admitted authority.
 
 Shared imports still come from root `spec/**` where applicable.

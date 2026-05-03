@@ -1,0 +1,74 @@
+{
+  "measurementType": {
+    "typeId": {
+      "type": "string",
+      "required": true
+    },
+    "displayName": {
+      "type": "string",
+      "required": true
+    },
+    "unit": {
+      "type": "string",
+      "required": true
+    },
+    "precision": {
+      "type": "integer",
+      "required": true,
+      "description": "小数位数"
+    },
+    "ageRange": {
+      "type": "object",
+      "required": true,
+      "fields": {
+        "startMonths": {
+          "type": "integer"
+        },
+        "endMonths": {
+          "type": "integer"
+        }
+      }
+    },
+    "frequency": {
+      "type": "string",
+      "required": true,
+      "description": "建议测量频率"
+    },
+    "standardSource": {
+      "type": "string",
+      "required": true
+    },
+    "curveType": {
+      "type": "enum",
+      "values": [
+        "lms-percentile",
+        "reference-range"
+      ]
+    },
+    "referenceCoverage": {
+      "type": "object",
+      "required": false,
+      "description": "官方参考线覆盖范围；超出后仍可记录，但不得继续渲染伪造参考线",
+      "fields": {
+        "startMonths": {
+          "type": "integer"
+        },
+        "endMonths": {
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "percentileLine": {
+    "values": [
+      "P3",
+      "P10",
+      "P25",
+      "P50",
+      "P75",
+      "P90",
+      "P97"
+    ],
+    "description": "WHO 生长标准百分位线"
+  }
+}
