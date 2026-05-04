@@ -66,6 +66,7 @@ apps/avatar/reports/
 .nimi/local/
 .nimi/cache/
 .nimi/topics/
+config/audit-calibration-fixtures/
 
 # python
 __pycache__/
