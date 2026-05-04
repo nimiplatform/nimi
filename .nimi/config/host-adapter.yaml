@@ -9,6 +9,8 @@ host_adapter:
   handoff_mode: prompt_output_evidence_handoff
   evidence_mode: candidate_only
   semantic_review_owner: nimicoding_manager
+  admitted_execution_surfaces:
+    - authority_convergence_audit
   host_profile_ref: .nimi/config/host-profile.yaml
   manifest_ref: .nimi/config/skill-manifest.yaml
   artifact_contract_ref: .nimi/config/external-execution-artifacts.yaml
@@ -25,3 +27,4 @@ host_adapter:
     - adapter_must_not_override_semantic_truth
     - adapter_must_not_define_acceptance_or_disposition
     - adapter_runtime_state_must_remain_operational_only
+    - authority_convergence_subagent_execution_is_adapter_projection_only

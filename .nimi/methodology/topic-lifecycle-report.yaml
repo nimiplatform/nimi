@@ -69,6 +69,17 @@ topic_lifecycle_report:
         - implementation_packet
         - bounded_reaudit
         - explicit_pause_or_defer_note
+      pre_implementation_authority_convergence:
+        policy_ref: .nimi/methodology/authority-convergence-policy.yaml
+        audit_contract_ref: .nimi/contracts/authority-convergence-audit.schema.yaml
+        applies_before: implementation_dispatch
+        required_when:
+          - authority_or_spec_packet_is_selected
+          - selected_packet_refs_.nimi/spec_authority
+          - topic_declares_redesign_work_type
+        pass_condition: recorded_audit_result_PASS
+        fail_condition: NEEDS_REVISION_or_FAIL_returns_wave_to_revision
+        execution_projection_owner: host_adapter_profile
     admission_rules:
       proposal_stage:
         allowed:

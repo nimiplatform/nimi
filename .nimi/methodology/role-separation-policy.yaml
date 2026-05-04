@@ -21,5 +21,8 @@ role_separation_policy:
         - structural_review
         - drift_detection
         - closure_verification
+        - pre_implementation_authority_convergence_evidence
       must_not:
         - silently_turn_missing_scope_into_future_follow_up
+        - mutate_authority_or_implementation_while_auditing
+        - decide_semantic_acceptance_or_packet_admission

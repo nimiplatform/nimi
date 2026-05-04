@@ -23,6 +23,7 @@ adapter_profile:
     - audit_sweep
     - high_risk_execution
     - inline_review
+    - authority_convergence_audit
   context_integration:
     native_entrypoint: CLAUDE.md
     module_context_channel: PreToolUse_hook_agents_md_injection
@@ -48,6 +49,15 @@ adapter_profile:
     worker_output_target: .nimi/local/outputs/** candidate artifact
     evidence_target: .nimi/local/evidence/** candidate artifact
     closeout_target: local-only closeout payload unless later admitted
+  authority_convergence_audit:
+    execution_projection: claude_task_subagent_auditor
+    dispatch_source: nimicoding topic audit dispatch
+    output_target: .nimi/local/outputs/** candidate audit evidence
+    semantic_effect: none_until_manager_records_topic_audit_result
+    required_prompt_posture:
+      - audit_only_no_code_or_spec_edits
+      - report_PASS_NEEDS_REVISION_or_FAIL
+      - list_blocking_findings_concerns_deferred_non_blockers_and_authority_refs
   hard_constraints:
     - claude_must_not_become_semantic_owner
     - claude_must_not_write_canonical_.nimi/spec_truth_directly_without_validator_admission
@@ -55,5 +65,6 @@ adapter_profile:
     - claude_operational_state_must_remain_operational_only
     - claude_hooks_must_not_replace_agents_md_authority
     - unresolved_authority_or_missing_context_must_fail_closed
+    - claude_subagent_authority_convergence_output_must_remain_candidate_evidence
   current_gaps:
     - automatic_semantic_admission_automation_not_packaged_in_standalone

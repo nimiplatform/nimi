@@ -29,6 +29,7 @@ const ADAPTER_PROFILE_EXPECTATIONS = {
       "audit_sweep",
       "high_risk_execution",
       "topic_loop_execution",
+      "authority_convergence_audit",
     ],
     promptBootstrapSurface: [
       "nimicoding handoff --skill spec_reconstruction --prompt",
@@ -76,6 +77,7 @@ const ADAPTER_PROFILE_EXPECTATIONS = {
       "codex_github_auto_review_must_remain_evidence_only",
       "codex_review_must_not_substitute_nimicoding_semantic_commands",
       "unresolved_authority_or_missing_context_must_fail_closed",
+      "codex_subagent_authority_convergence_output_must_remain_candidate_evidence",
     ],
   },
   claude: {
@@ -98,6 +100,7 @@ const ADAPTER_PROFILE_EXPECTATIONS = {
       "audit_sweep",
       "high_risk_execution",
       "inline_review",
+      "authority_convergence_audit",
     ],
     promptBootstrapSurface: [
       "nimicoding handoff --skill spec_reconstruction --prompt",
@@ -119,6 +122,7 @@ const ADAPTER_PROFILE_EXPECTATIONS = {
       "claude_operational_state_must_remain_operational_only",
       "claude_hooks_must_not_replace_agents_md_authority",
       "unresolved_authority_or_missing_context_must_fail_closed",
+      "claude_subagent_authority_convergence_output_must_remain_candidate_evidence",
     ],
   },
   oh_my_codex: {

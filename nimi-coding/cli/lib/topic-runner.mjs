@@ -5,6 +5,7 @@ import { runNativeCodexSdkPrompt } from "./codex-sdk-runner.mjs";
 import {
   admitWaveInTopic,
   buildTopicRunLedger,
+  closeoutWaveInTopic,
   decideTopicNextStep,
   dispatchTopicPacket,
   freezePacketForTopic,
@@ -58,6 +59,71 @@ function buildGate(decision) {
     nextCommandRef: decision.next_command_ref,
     blockingChecks: decision.blocking_checks ?? [],
   };
+}
+
+function isTerminalWave(wave) {
+  return ["closed", "retired", "superseded"].includes(wave?.state);
+}
+
+function findDeterministicNextWave(topic) {
+  const waves = Array.isArray(topic?.waves) ? topic.waves : [];
+  const terminalIds = new Set(waves.filter(isTerminalWave).map((wave) => wave.wave_id));
+  const ready = waves.filter((wave) => {
+    if (isTerminalWave(wave)) return false;
+    if (!["candidate", "preflight_draft", "needs_revision"].includes(wave.state)) return false;
+    const deps = Array.isArray(wave.deps) ? wave.deps : [];
+    return deps.every((dep) => terminalIds.has(dep));
+  });
+  return ready.length === 1 ? ready[0] : null;
+}
+
+function normalizePhaseTransitionDecision(decisionReport, topic) {
+  const decision = decisionReport?.decision;
+  if (!decision || decision.stop_class !== "require_human_confirmation") {
+    return decisionReport;
+  }
+
+  if (
+    decision.recommended_action === "closeout_wave" &&
+    typeof decision.next_command_ref === "string" &&
+    !hasPlaceholder(decision.next_command_ref)
+  ) {
+    return {
+      ...decisionReport,
+      decision: {
+        ...decision,
+        stop_class: "continue",
+        requires_human_confirmation: false,
+        recommended_decision: "closeout_wave",
+        recommendation_rationale: "Wave closeout is a deterministic phase transition once lineage-backed result evidence exists.",
+      },
+    };
+  }
+
+  if (decision.reason_code === "no_selected_next_target") {
+    const nextWave = findDeterministicNextWave(topic);
+    if (!nextWave) {
+      return decisionReport;
+    }
+    return {
+      ...decisionReport,
+      decision: {
+        ...decision,
+        wave_id: nextWave.wave_id,
+        stop_class: "continue",
+        recommended_action: "admit_wave",
+        reason_code: "deterministic_next_wave_ready",
+        requires_human_confirmation: false,
+        recommended_decision: "admit_wave",
+        recommendation_rationale: "Exactly one dependency-ready non-terminal wave exists, so selecting the next phase is mechanical.",
+        expected_artifacts: [],
+        next_command_ref: `nimicoding topic wave admit ${topic.topic_id} ${nextWave.wave_id}`,
+        blocking_checks: [],
+      },
+    };
+  }
+
+  return decisionReport;
 }
 
 function blockedResult(base, error, extra = {}) {
@@ -212,6 +278,55 @@ function parseMechanicalCommandRef(commandRef, topicId) {
     };
   }
 
+  if (domain === "closeout" && action === "wave") {
+    if (commandTopicId !== topicId) {
+      return {
+        ok: false,
+        error: `topic-runner refused: next command topic ${commandTopicId} does not match ${topicId}`,
+      };
+    }
+    const waveId = parts[5] ?? null;
+    if (!waveId || waveId.startsWith("--")) {
+      return {
+        ok: false,
+        error: `topic-runner refused: closeout wave command is missing wave id: ${commandRef}`,
+      };
+    }
+
+    const optionValue = (flag) => {
+      const index = parts.indexOf(flag);
+      return index >= 0 ? parts[index + 1] : null;
+    };
+    const authorityClosure = optionValue("--authority");
+    const semanticClosure = optionValue("--semantic");
+    const consumerClosure = optionValue("--consumer");
+    const driftResistanceClosure = optionValue("--drift-resistance");
+    const disposition = optionValue("--disposition");
+    if (
+      !authorityClosure || authorityClosure.startsWith("--") ||
+      !semanticClosure || semanticClosure.startsWith("--") ||
+      !consumerClosure || consumerClosure.startsWith("--") ||
+      !driftResistanceClosure || driftResistanceClosure.startsWith("--") ||
+      !disposition || disposition.startsWith("--")
+    ) {
+      return {
+        ok: false,
+        error: `topic-runner refused: closeout wave command is missing required closure flags: ${commandRef}`,
+      };
+    }
+
+    return {
+      ok: true,
+      action: "closeout_wave",
+      waveId,
+      authorityClosure,
+      semanticClosure,
+      consumerClosure,
+      driftResistanceClosure,
+      disposition,
+    };
+  }
+
   return {
     ok: false,
     error: `topic-runner refused: unsupported mechanical next command: ${commandRef}`,
@@ -245,6 +360,27 @@ async function executeMechanicalCommand(projectRoot, options, parsedCommand) {
       summary: report.ok ? "packet_freeze_completed" : "runner_packet_freeze_failed",
       artifactRefs: report.ok ? { packet_ref: report.packetRef } : {},
       waveId: report.ok ? report.waveId : null,
+      error: report.ok ? null : report.error,
+    };
+  }
+
+  if (parsedCommand.action === "closeout_wave") {
+    const report = await closeoutWaveInTopic(projectRoot, options.topicInput, parsedCommand.waveId, {
+      authorityClosure: parsedCommand.authorityClosure,
+      semanticClosure: parsedCommand.semanticClosure,
+      consumerClosure: parsedCommand.consumerClosure,
+      driftResistanceClosure: parsedCommand.driftResistanceClosure,
+      disposition: parsedCommand.disposition,
+    });
+    return {
+      ok: report.ok,
+      action: parsedCommand.action,
+      report,
+      eventKind: "wave_closed",
+      eventSourceRef: report.ok ? report.closeoutRef : null,
+      summary: report.ok ? "wave_closeout_completed" : "runner_wave_closeout_failed",
+      artifactRefs: report.ok ? { closeout_ref: report.closeoutRef } : {},
+      waveId: report.ok ? report.waveId : parsedCommand.waveId,
       error: report.ok ? null : report.error,
     };
   }
@@ -340,10 +476,11 @@ export async function runTopicRunnerStep(projectRoot, options, deps = {}) {
     return loaded;
   }
 
-  const decisionReport = await decideTopicNextStep(projectRoot, options.topicInput);
-  if (!decisionReport.ok) {
-    return decisionReport;
+  const rawDecisionReport = await decideTopicNextStep(projectRoot, options.topicInput);
+  if (!rawDecisionReport.ok) {
+    return rawDecisionReport;
   }
+  const decisionReport = normalizePhaseTransitionDecision(rawDecisionReport, loaded.topic);
 
   const decisionRef = await writeDecisionArtifact(
     projectRoot,
@@ -412,7 +549,7 @@ export async function runTopicRunnerStep(projectRoot, options, deps = {}) {
     }, parsedCommand.error);
   }
 
-  if (["admit_wave", "freeze_packet"].includes(parsedCommand.action)) {
+  if (["admit_wave", "freeze_packet", "closeout_wave"].includes(parsedCommand.action)) {
     const commandExecution = await executeMechanicalCommand(projectRoot, { ...options, recordedAt }, parsedCommand);
     if (!commandExecution.ok) {
       const blockedEvent = await recordRunnerBlocked(projectRoot, { ...options, verifiedAt: recordedAt }, {

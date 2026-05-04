@@ -141,6 +141,7 @@ export async function loadTopicRuntimeContracts(projectRoot) {
     lifecycleReport,
     fourClosurePolicy,
     validationPolicy,
+    authorityConvergencePolicy,
   ] = await Promise.all([
     loadYamlWithFallback(projectRoot, ".nimi/contracts/topic.schema.yaml", "nimi-coding/contracts/topic.schema.yaml"),
     loadYamlWithFallback(projectRoot, ".nimi/contracts/wave.schema.yaml", "nimi-coding/contracts/wave.schema.yaml"),
@@ -156,6 +157,7 @@ export async function loadTopicRuntimeContracts(projectRoot) {
     loadYamlWithFallback(projectRoot, ".nimi/methodology/topic-lifecycle-report.yaml", "nimi-coding/methodology/topic-lifecycle-report.yaml"),
     loadYamlWithFallback(projectRoot, ".nimi/methodology/four-closure-policy.yaml", "nimi-coding/methodology/four-closure-policy.yaml"),
     loadYamlWithFallback(projectRoot, ".nimi/methodology/topic-validation-policy.yaml", "nimi-coding/methodology/topic-validation-policy.yaml"),
+    loadYamlWithFallback(projectRoot, ".nimi/methodology/authority-convergence-policy.yaml", "nimi-coding/methodology/authority-convergence-policy.yaml"),
   ]);
 
   return {
@@ -173,5 +175,6 @@ export async function loadTopicRuntimeContracts(projectRoot) {
     lifecycleReport,
     fourClosurePolicy,
     validationPolicy,
+    authorityConvergencePolicy,
   };
 }

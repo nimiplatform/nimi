@@ -22,6 +22,7 @@ adapter_profile:
     - audit_sweep
     - high_risk_execution
     - topic_loop_execution
+    - authority_convergence_audit
   prompt_handoff:
     bootstrap_surface:
       - nimicoding handoff --skill spec_reconstruction --prompt
@@ -37,6 +38,15 @@ adapter_profile:
     worker_output_target: .nimi/local/outputs/** candidate artifact
     evidence_target: .nimi/local/evidence/** candidate artifact
     closeout_target: local-only closeout payload unless later admitted
+  authority_convergence_audit:
+    execution_projection: codex_subagent_auditor
+    dispatch_source: nimicoding topic audit dispatch
+    output_target: .nimi/local/outputs/** candidate audit evidence
+    semantic_effect: none_until_manager_records_topic_audit_result
+    required_prompt_posture:
+      - audit_only_no_code_or_spec_edits
+      - report_PASS_NEEDS_REVISION_or_FAIL
+      - list_blocking_findings_concerns_deferred_non_blockers_and_authority_refs
   native_review_boundary:
     approval_review:
       scope: lower_layer_permission_review
@@ -63,5 +73,6 @@ adapter_profile:
     - codex_github_auto_review_must_remain_evidence_only
     - codex_review_must_not_substitute_nimicoding_semantic_commands
     - unresolved_authority_or_missing_context_must_fail_closed
+    - codex_subagent_authority_convergence_output_must_remain_candidate_evidence
   current_gaps:
     - topic_semantic_orchestrator_command_surface_not_yet_packaged

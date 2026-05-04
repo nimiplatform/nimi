@@ -423,6 +423,9 @@ test("handoff exports spec reconstruction payload during bootstrap-only mode", a
     const codexProfile = payload.adapter.admittedProfiles.find((profile) => profile.id === "codex");
     assert.equal(codexProfile.nativeReviewBoundary.approvalReview.scope, "lower_layer_permission_review");
     assert.equal(codexProfile.nativeReviewBoundary.githubAutoReview.semanticEffect, "evidence_only");
+    assert.ok(codexProfile.admittedSkillSurfaces.includes("authority_convergence_audit"));
+    const claudeProfile = payload.adapter.admittedProfiles.find((profile) => profile.id === "claude");
+    assert.ok(claudeProfile.admittedSkillSurfaces.includes("authority_convergence_audit"));
     assert.equal(payload.adapter.selectedId, "none");
     assert.deepEqual(payload.adapter.admittedIds, ["codex", "oh_my_codex", "claude"]);
     assert.equal(payload.adapter.semanticReviewOwner, "nimicoding_manager");

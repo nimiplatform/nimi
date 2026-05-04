@@ -1,0 +1,19 @@
+id: nimicoding.authority-convergence-audit.v1
+kind: authority-convergence-audit
+required:
+  - verdict
+  - blocking_findings
+  - concerns
+  - deferred_non_blockers
+  - authority_refs
+  - ready_for_implementation
+verdict_enum:
+  - PASS
+  - NEEDS_REVISION
+  - FAIL
+rules:
+  - PASS requires blocking_findings to be empty and ready_for_implementation=true
+  - NEEDS_REVISION or FAIL requires ready_for_implementation=false
+  - deferred_non_blockers must not hide unresolved authority owner, parallel truth, or downstream vocabulary blockers
+  - auditor output is candidate evidence until recorded by the nimicoding manager as a topic audit result
+  - auditor must not edit implementation code, mutate spec truth, or decide semantic acceptance
