@@ -62,6 +62,7 @@ chunk_optional_fields:
   - coverage_contract
   - evidence_inventory_status
   - evidence_inventory_empty_reason
+  - calibration_expected_defects
 state_enum:
   - planned
   - dispatched
@@ -95,6 +96,10 @@ audit_validity_summary_fields:
   - warnings
   - blockers
   - no_finding_posture
+  - p0p1_recall_required_count
+  - p0p1_recall_invalid_count
+  - calibration_expected_defect_count
+  - calibration_missed_defect_count
 hard_constraints:
   - inventory_hash_must_cover_all_inventory_entries
   - every_included_file_must_belong_to_exactly_one_chunk

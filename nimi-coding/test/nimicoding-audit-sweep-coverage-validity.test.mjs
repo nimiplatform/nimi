@@ -122,6 +122,193 @@ test("empty-inventory no-finding evidence remains weak rather than invalid by de
   assert.ok(validity.warnings.some((warning) => warning.id === "empty_inventory_no_finding_weak"));
 });
 
+test("calibration expected defects fail closed when known defects are missed", () => {
+  const chunk = {
+    chunk_id: "chunk-calibration-known-defect",
+    authority_refs: ["config/audit-calibration-fixtures/service-contract.md"],
+    evidence_inventory: ["config/audit-calibration-fixtures/src/service.ts"],
+    calibration_expected_defects: [{
+      id: "fixture-missing-boundary-check",
+      root_cause_key: "missing-boundary-check",
+      location_file: "config/audit-calibration-fixtures/src/service.ts",
+      severity: "high",
+      category: "boundary",
+    }],
+  };
+  const evidence = {
+    chunk_id: chunk.chunk_id,
+    coverage: {
+      authority_refs: chunk.authority_refs,
+      files: chunk.authority_refs,
+      evidence_files: chunk.evidence_inventory,
+      authority_outcomes: [],
+    },
+    findings: [],
+  };
+
+  const validity = buildAuditValidityForEvidence(chunk, evidence);
+
+  assert.equal(validity.posture, "invalid");
+  assert.equal(validity.calibration_expected_defect_count, 1);
+  assert.equal(validity.calibration_missed_defect_count, 1);
+  assert.ok(validity.blockers.some((blocker) => (
+    blocker.id === "calibration_known_defect_missed"
+    && blocker.missed_defect_ids.includes("fixture-missing-boundary-check")
+  )));
+});
+
+test("calibration expected defects require matching root cause and location evidence", () => {
+  const chunk = {
+    chunk_id: "chunk-calibration-match",
+    authority_refs: ["config/audit-calibration-fixtures/service-contract.md"],
+    evidence_inventory: ["config/audit-calibration-fixtures/src/service.ts"],
+    calibration_expected_defects: [{
+      id: "fixture-missing-boundary-check",
+      root_cause_key: "missing-boundary-check",
+      location_file: "config/audit-calibration-fixtures/src/service.ts",
+      severity: "high",
+      category: "boundary",
+    }],
+  };
+  const wrongFindingEvidence = {
+    chunk_id: chunk.chunk_id,
+    coverage: {
+      authority_refs: chunk.authority_refs,
+      files: chunk.authority_refs,
+      evidence_files: chunk.evidence_inventory,
+      authority_outcomes: [],
+    },
+    findings: [{
+      severity: "high",
+      category: "boundary",
+      location: { file: "config/audit-calibration-fixtures/src/service.ts" },
+      root_cause: { key: "wrong-root-cause" },
+    }],
+  };
+  const matchingFindingEvidence = {
+    ...wrongFindingEvidence,
+    findings: [{
+      severity: "high",
+      category: "boundary",
+      location: { file: "config/audit-calibration-fixtures/src/service.ts" },
+      root_cause: { key: "missing-boundary-check" },
+    }],
+  };
+
+  const wrongValidity = buildAuditValidityForEvidence(chunk, wrongFindingEvidence);
+  const matchingValidity = buildAuditValidityForEvidence(chunk, matchingFindingEvidence);
+
+  assert.equal(wrongValidity.posture, "invalid");
+  assert.ok(wrongValidity.blockers.some((blocker) => blocker.id === "calibration_known_defect_missed"));
+  assert.equal(matchingValidity.posture, "trusted");
+  assert.equal(matchingValidity.calibration_missed_defect_count, 0);
+});
+
+test("P0/P1 recall chunks require negative reasoning when no critical or high finding exists", () => {
+  const chunk = {
+    chunk_id: "chunk-p0p1-recall",
+    criteria: ["quality", "p0p1"],
+    files: ["src/security.ts"],
+    evidence_inventory: [],
+  };
+  const mediumOnlyEvidence = {
+    chunk_id: chunk.chunk_id,
+    coverage: {
+      files: chunk.files,
+    },
+    findings: [{
+      severity: "medium",
+      category: "code-quality",
+      location: { file: "src/security.ts" },
+    }],
+  };
+  const explainedEvidence = {
+    ...mediumOnlyEvidence,
+    coverage: {
+      files: chunk.files,
+      p0p1_negative_reasoning: "Reviewed fail-open, permission bypass, destructive action, and boundary paths; only a medium cleanup issue remains.",
+      p0p1_evidence_refs: ["src/security.ts"],
+    },
+  };
+  const highFindingEvidence = {
+    ...mediumOnlyEvidence,
+    findings: [{
+      severity: "high",
+      category: "security",
+      location: { file: "src/security.ts" },
+    }],
+  };
+
+  const missingReasoning = buildAuditValidityForEvidence(chunk, mediumOnlyEvidence);
+  const explained = buildAuditValidityForEvidence(chunk, explainedEvidence);
+  const highFinding = buildAuditValidityForEvidence(chunk, highFindingEvidence);
+
+  assert.equal(missingReasoning.posture, "invalid");
+  assert.equal(missingReasoning.p0p1_recall_posture, "invalid");
+  assert.ok(missingReasoning.blockers.some((blocker) => blocker.id === "p0p1_negative_reasoning_missing"));
+  assert.equal(explained.posture, "trusted");
+  assert.equal(explained.p0p1_recall_posture, "explained");
+  assert.equal(highFinding.posture, "trusted");
+  assert.equal(highFinding.p0p1_recall_posture, "p0p1_finding_present");
+});
+
+test("P0/P1 recall refs must all belong to the implementation surface", () => {
+  const fileChunk = {
+    chunk_id: "chunk-p0p1-file-inventory",
+    criteria: ["p0p1"],
+    files: ["src/security.ts"],
+    evidence_inventory: [],
+  };
+  const specOnlyChunk = {
+    chunk_id: "chunk-p0p1-spec-only",
+    planning_basis: "spec_authority",
+    criteria: ["p0p1"],
+    files: [".nimi/spec/runtime/kernel/security.md"],
+    authority_refs: [".nimi/spec/runtime/kernel/security.md"],
+    evidence_inventory: [],
+  };
+  const validFileEvidence = {
+    chunk_id: fileChunk.chunk_id,
+    coverage: {
+      files: fileChunk.files,
+      p0p1_negative_reasoning: "Reviewed P0/P1 defect classes against the implementation file.",
+      p0p1_evidence_refs: ["src/security.ts"],
+    },
+    findings: [],
+  };
+  const mixedOutOfScopeEvidence = {
+    ...validFileEvidence,
+    coverage: {
+      ...validFileEvidence.coverage,
+      p0p1_evidence_refs: ["src/security.ts", "src/outside.ts"],
+    },
+  };
+  const specAuthorityOnlyEvidence = {
+    chunk_id: specOnlyChunk.chunk_id,
+    coverage: {
+      files: specOnlyChunk.files,
+      p0p1_negative_reasoning: "Reviewed the authority text, but no implementation evidence exists.",
+      p0p1_evidence_refs: [".nimi/spec/runtime/kernel/security.md"],
+    },
+    findings: [],
+  };
+
+  const validFile = buildAuditValidityForEvidence(fileChunk, validFileEvidence);
+  const mixedOutOfScope = buildAuditValidityForEvidence(fileChunk, mixedOutOfScopeEvidence);
+  const specAuthorityOnly = buildAuditValidityForEvidence(specOnlyChunk, specAuthorityOnlyEvidence);
+
+  assert.equal(validFile.posture, "warning");
+  assert.equal(validFile.p0p1_recall_posture, "explained");
+  assert.equal(mixedOutOfScope.posture, "invalid");
+  assert.ok(mixedOutOfScope.blockers.some((blocker) => (
+    blocker.id === "p0p1_evidence_refs_out_of_scope"
+    && blocker.invalid_refs.includes("src/outside.ts")
+  )));
+  assert.equal(specAuthorityOnly.posture, "invalid");
+  assert.ok(specAuthorityOnly.blockers.some((blocker) => blocker.id === "p0p1_evidence_refs_out_of_scope"));
+  assert.ok(specAuthorityOnly.blockers.some((blocker) => blocker.id === "p0p1_negative_reasoning_missing"));
+});
+
 test("coverage quality warns on sparse evidence and fan-in and blocks unresolved or unmapped evidence", () => {
   const chunks = [
     {

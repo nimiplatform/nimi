@@ -32,7 +32,7 @@ import {
   findingRequiresCanonicalInCluster,
   updateClusterWithCanonical,
 } from "./risk-budget.mjs";
-import { buildAuditValidityForEvidence } from "./audit-validity.mjs";
+import { buildAuditValidityForEvidence, p0p1ImplementationRefsForChunk } from "./audit-validity.mjs";
 import { isPlainObject } from "../value-helpers.mjs";
 import { pathExists } from "../fs-helpers.mjs";
 
@@ -126,6 +126,10 @@ function validateEvidenceEnvelope(evidence, chunk) {
   if (!Array.isArray(evidence.findings)) {
     return { ok: false, error: "audit evidence findings must be an array" };
   }
+  const p0p1EvidenceRefsValidation = validateP0P1EvidenceRefs(evidence, chunk);
+  if (!p0p1EvidenceRefsValidation.ok) {
+    return p0p1EvidenceRefsValidation;
+  }
   return { ok: true };
 }
 
@@ -142,6 +146,26 @@ function chunkAllowsFindingFile(chunk, fileRef) {
     return false;
   }
   return Array.isArray(chunk.evidence_inventory) && chunk.evidence_inventory.includes(fileRef);
+}
+
+function chunkAllowsP0P1EvidenceRef(chunk, fileRef) {
+  return p0p1ImplementationRefsForChunk(chunk).includes(fileRef);
+}
+
+function validateP0P1EvidenceRefs(evidence, chunk) {
+  if (evidence.coverage.p0p1_evidence_refs === undefined) {
+    return { ok: true };
+  }
+  if (!Array.isArray(evidence.coverage.p0p1_evidence_refs)) {
+    return { ok: false, error: "coverage.p0p1_evidence_refs must be an array when present" };
+  }
+  for (const [index, evidenceRef] of evidence.coverage.p0p1_evidence_refs.entries()) {
+    const normalizedRef = typeof evidenceRef === "string" ? evidenceRef.replace(/\\/g, "/") : null;
+    if (!normalizedRef || !chunkAllowsP0P1EvidenceRef(chunk, normalizedRef)) {
+      return { ok: false, error: `coverage.p0p1_evidence_refs[${index}] must belong to the chunk implementation surface` };
+    }
+  }
+  return { ok: true };
 }
 
 function normalizeFinding(rawFinding, index, chunk, sweepId, evidenceRef, verifiedAt) {

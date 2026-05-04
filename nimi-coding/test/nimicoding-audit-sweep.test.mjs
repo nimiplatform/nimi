@@ -184,6 +184,124 @@ test("audit-sweep plan supports explicit per-run ignore policy without claiming 
   });
 });
 
+test("audit-sweep dispatch adds opt-in P0/P1 recall strategy without changing ordinary packets", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+    await mkdir(path.join(projectRoot, "src", "p0p1"), { recursive: true });
+    await mkdir(path.join(projectRoot, "src", "ordinary"), { recursive: true });
+    await writeFile(path.join(projectRoot, "src", "p0p1", "security.ts"), "export const allow = true;\n", "utf8");
+    await writeFile(path.join(projectRoot, "src", "ordinary", "ordinary.ts"), "export const value = 1;\n", "utf8");
+
+    const p0p1PlanResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      "src/p0p1",
+      "--criteria",
+      "quality,p0p1",
+      "--max-files",
+      "1",
+      "--sweep-id",
+      "audit-sweep-test-p0p1-profile",
+      "--json",
+    ]);
+    assert.equal(p0p1PlanResult.exitCode, 0, p0p1PlanResult.stderr);
+    const p0p1Plan = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "plans", "audit-sweep-test-p0p1-profile.yaml"), "utf8"));
+    const p0p1Chunk = p0p1Plan.chunks[0];
+
+    const p0p1DispatchResult = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      "audit-sweep-test-p0p1-profile",
+      "--chunk-id",
+      p0p1Chunk.chunk_id,
+      "--dispatched-at",
+      "2026-05-04T00:00:00.000Z",
+      "--json",
+    ]);
+    assert.equal(p0p1DispatchResult.exitCode, 0, p0p1DispatchResult.stderr);
+    const p0p1Packet = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "packets", "audit-sweep-test-p0p1-profile", `${p0p1Chunk.chunk_id}.auditor-packet.yaml`), "utf8"));
+    assert.equal(p0p1Packet.audit_strategy.mode, "p0_p1_triage_then_deep");
+    assert.equal(p0p1Packet.audit_strategy.profile.profile_id, "p0_p1_recall");
+    assert.equal(p0p1Packet.audit_strategy.profile.severity_mapping.p0, "critical");
+    assert.equal(p0p1Packet.audit_strategy.profile.severity_mapping.p1, "high");
+    assert.ok(p0p1Packet.audit_strategy.profile.priority_defect_classes.some((defectClass) => defectClass.id === "fail_open_or_pseudo_success"));
+    assert.ok(p0p1Packet.audit_strategy.profile.priority_defect_classes.some((defectClass) => defectClass.id === "partial_coverage_misrepresented_as_complete"));
+    assert.equal(p0p1Packet.audit_strategy.profile.token_budget_policy.triage_first, true);
+    assert.equal(p0p1Packet.audit_strategy.profile.token_budget_policy.deep_audit_only_on_trigger, true);
+    assert.equal(p0p1Packet.audit_strategy.profile.token_budget_policy.cluster_duplicate_symptoms, true);
+    assert.equal(p0p1Packet.audit_strategy.profile.no_p0p1_finding_requirement.required, true);
+    assert.equal(p0p1Packet.audit_strategy.profile.no_p0p1_finding_requirement.evidence_refs_must_include_implementation, true);
+
+    await writeFile(
+      path.join(projectRoot, "p0p1-out-of-scope-evidence.json"),
+      `${JSON.stringify({
+        chunk_id: p0p1Chunk.chunk_id,
+        auditor: { id: "p0p1-regression-auditor" },
+        coverage: {
+          files: p0p1Chunk.files,
+          p0p1_negative_reasoning: "Reviewed P0/P1 defect classes against the implementation file.",
+          p0p1_evidence_refs: [p0p1Chunk.files[0], "src/outside.ts"],
+        },
+        findings: [],
+      }, null, 2)}\n`,
+      "utf8",
+    );
+    const outOfScopeIngestResult = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      "audit-sweep-test-p0p1-profile",
+      "--chunk-id",
+      p0p1Chunk.chunk_id,
+      "--from",
+      "p0p1-out-of-scope-evidence.json",
+      "--verified-at",
+      "2026-05-04T00:00:30.000Z",
+      "--json",
+    ]);
+    assert.equal(outOfScopeIngestResult.exitCode, 2);
+    assert.match(outOfScopeIngestResult.stderr, /coverage\.p0p1_evidence_refs\[1\] must belong to the chunk implementation surface/);
+
+    const ordinaryPlanResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      "src/ordinary",
+      "--criteria",
+      "quality",
+      "--max-files",
+      "1",
+      "--sweep-id",
+      "audit-sweep-test-ordinary-profile",
+      "--json",
+    ]);
+    assert.equal(ordinaryPlanResult.exitCode, 0, ordinaryPlanResult.stderr);
+    const ordinaryPlan = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "plans", "audit-sweep-test-ordinary-profile.yaml"), "utf8"));
+    const ordinaryChunk = ordinaryPlan.chunks[0];
+
+    const ordinaryDispatchResult = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      "audit-sweep-test-ordinary-profile",
+      "--chunk-id",
+      ordinaryChunk.chunk_id,
+      "--dispatched-at",
+      "2026-05-04T00:01:00.000Z",
+      "--json",
+    ]);
+    assert.equal(ordinaryDispatchResult.exitCode, 0, ordinaryDispatchResult.stderr);
+    const ordinaryPacket = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "packets", "audit-sweep-test-ordinary-profile", `${ordinaryChunk.chunk_id}.auditor-packet.yaml`), "utf8"));
+    assert.equal(ordinaryPacket.audit_strategy.mode, "file_inventory_audit");
+    assert.equal(ordinaryPacket.audit_strategy.profile, undefined);
+  });
+});
+
 test("audit-sweep plan uses spec authority chunks for whole-project sweeps", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);

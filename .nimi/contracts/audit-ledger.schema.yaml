@@ -69,6 +69,10 @@ audit_validity_required_fields:
   - zero_finding_chunk_count
   - large_zero_finding_chunk_count
   - negative_reasoning_present
+  - p0p1_recall_required_count
+  - p0p1_recall_invalid_count
+  - calibration_expected_defect_count
+  - calibration_missed_defect_count
   - warnings
   - blockers
 audit_validity_posture_enum:
@@ -98,6 +102,8 @@ audit_validity_blocker_ids:
   - no_finding_negative_reasoning_missing
   - manager_freeze_invalid_no_finding
   - calibration_known_defect_missed
+  - p0p1_negative_reasoning_missing
+  - p0p1_evidence_refs_out_of_scope
 hard_constraints:
   - ledger_snapshots_are_immutable
   - candidate_ready_requires_all_included_files_audited

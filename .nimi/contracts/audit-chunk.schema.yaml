@@ -33,6 +33,7 @@ optional_top_level_fields:
   - evidence_inventory_empty_reason
   - coverage_contract
   - evidence_file_hashes
+  - calibration_expected_defects
   - coverage_quality
   - audit_validity
 state_enum:
@@ -64,6 +65,8 @@ hard_constraints:
   - spec_authority_authority_outcome_evidence_refs_must_belong_to_authority_refs_or_evidence_inventory
   - no_finding_audited_outcomes_must_declare_negative_reasoning
   - no_finding_audited_outcomes_with_non_empty_evidence_inventory_must_declare_implementation_evidence_refs_or_not_applicable_reason
+  - p0p1_recall_chunks_without_critical_or_high_findings_must_declare_negative_reasoning_and_implementation_refs
+  - calibration_expected_defects_must_be_satisfied_by_finding_evidence_when_present
   - ingest_requires_dispatch
   - frozen_requires_manager_review
   - failed_or_skipped_requires_explicit_reason
@@ -71,6 +74,8 @@ audit_evidence_coverage_fields:
   - evidence_files
   - authority_outcomes
   - no_finding_summary
+  - p0p1_negative_reasoning
+  - p0p1_evidence_refs
 authority_outcome_fields:
   required:
     - authority_ref
@@ -85,3 +90,11 @@ authority_outcome_status_enum:
   - audited
   - blocked
   - not_applicable
+calibration_expected_defect_fields:
+  required:
+    - id
+  optional:
+    - root_cause_key
+    - location_file
+    - severity
+    - category

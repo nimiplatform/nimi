@@ -10,6 +10,7 @@ import {
   withAuditSweepMutationLock,
   writeYamlRef,
 } from "./common.mjs";
+import { buildP0P1RecallProfile, criteriaEnableP0P1Recall } from "./p0p1-profile.mjs";
 import { budgetBlockForChunk } from "./risk-budget.mjs";
 
 function updatePlanChunk(plan, chunkId, patch) {
@@ -21,6 +22,9 @@ function updatePlanChunk(plan, chunkId, patch) {
 
 function buildAuditorPacket(sweepId, chunk, auditor, dispatchedAt, plan) {
   const specAuthority = chunk.planning_basis === "spec_authority";
+  const p0p1RecallProfile = criteriaEnableP0P1Recall(chunk.criteria)
+    ? buildP0P1RecallProfile({ chunk, plan })
+    : null;
   return {
     version: 1,
     kind: "audit-auditor-packet",
@@ -42,6 +46,12 @@ function buildAuditorPacket(sweepId, chunk, auditor, dispatchedAt, plan) {
     coverage_contract: chunk.coverage_contract ?? null,
     risk_budget_policy: plan.risk_budget_policy ?? null,
     risk_budget_status: plan.risk_budget_status ?? null,
+    audit_strategy: p0p1RecallProfile ? {
+      mode: "p0_p1_triage_then_deep",
+      profile: p0p1RecallProfile,
+    } : {
+      mode: specAuthority ? "spec_first_full_audit" : "file_inventory_audit",
+    },
     audit_instructions: specAuthority ? {
       posture: "spec_first_full_audit",
       authority_source: ".nimi/spec/**",
@@ -70,6 +80,7 @@ function buildAuditorPacket(sweepId, chunk, auditor, dispatchedAt, plan) {
         "emit one authority_outcome per authority_ref",
         "emit every finding that satisfies the audit-finding contract",
       ],
+      p0p1_recall: p0p1RecallProfile,
     } : null,
     output_contract: {
       format: "json",
@@ -79,6 +90,9 @@ function buildAuditorPacket(sweepId, chunk, auditor, dispatchedAt, plan) {
       evidence_files_must_exactly_match: specAuthority ? (chunk.evidence_inventory ?? []) : null,
       spec_authority_coverage_requires_authority_outcomes: specAuthority,
       spec_authority_coverage_requires_evidence_files: specAuthority,
+      p0p1_negative_reasoning_required_when_no_critical_or_high_findings: Boolean(p0p1RecallProfile),
+      p0p1_negative_reasoning_field: p0p1RecallProfile ? "coverage.p0p1_negative_reasoning" : null,
+      p0p1_evidence_refs_field: p0p1RecallProfile ? "coverage.p0p1_evidence_refs" : null,
       finding_locations_must_belong_to_chunk_files_or_evidence_inventory: true,
       finding_contract_ref: ".nimi/contracts/audit-finding.schema.yaml",
       ingest_command: `nimicoding audit-sweep chunk ingest --sweep-id ${sweepId} --chunk-id ${chunk.chunk_id} --from <audit-output.json> --verified-at <ISO-8601-UTC>`,
