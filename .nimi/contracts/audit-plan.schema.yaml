@@ -27,6 +27,8 @@ optional_top_level_fields:
   - evidence_inventory_hash
   - evidence_inventory
   - unmapped_evidence_files
+  - coverage_quality
+  - audit_validity
 inventory_entry_required_fields:
   - file_ref
   - sha256
@@ -77,6 +79,22 @@ spec_authority_coverage_fields:
   - authority_files
   - evidence_files
   - unmapped_evidence_files
+audit_sweep_config_fields:
+  quality_mode_enum:
+    - default
+    - strict
+  coverage_quality_namespace: audit_sweep.coverage_quality
+  audit_validity_namespace: audit_sweep.audit_validity
+coverage_quality_summary_fields:
+  - scope_label
+  - posture
+  - warnings
+  - blockers
+audit_validity_summary_fields:
+  - posture
+  - warnings
+  - blockers
+  - no_finding_posture
 hard_constraints:
   - inventory_hash_must_cover_all_inventory_entries
   - every_included_file_must_belong_to_exactly_one_chunk
@@ -97,3 +115,4 @@ hard_constraints:
   - spec_authority_coverage_must_split_authority_files_from_evidence_files
   - spec_authority_audit_evidence_must_report_one_authority_outcome_per_authority_ref
   - spec_authority_audit_evidence_must_report_evidence_files_exactly_matching_chunk_inventory
+  - audit_sweep_quality_mode_must_be_default_unless_strict_is_explicit

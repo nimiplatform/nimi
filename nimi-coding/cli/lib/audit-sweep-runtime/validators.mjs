@@ -21,6 +21,7 @@ import {
   sha256Object,
 } from "./common.mjs";
 import { ensureClusterStore } from "./risk-budget.mjs";
+import { buildAuditValidityForEvidence } from "./audit-validity.mjs";
 import {
   validateClusterShape,
   deriveLedgerSnapshotId,
@@ -262,12 +263,16 @@ function validatePlanShape(plan, sweepId, checks) {
     const evidenceInventoryFiles = Array.isArray(plan.evidence_inventory) ? plan.evidence_inventory.map((entry) => entry.file_ref) : [];
     const unmappedEvidenceFiles = Array.isArray(plan.unmapped_evidence_files) ? plan.unmapped_evidence_files : [];
     const mappedEvidenceFiles = plan.chunks.flatMap((chunk) => Array.isArray(chunk.evidence_inventory) ? chunk.evidence_inventory : []);
+    const unresolvedDeclaredEvidenceChunks = plan.chunks
+      .filter((chunk) => Array.isArray(chunk.declared_evidence_unresolved) && chunk.declared_evidence_unresolved.length > 0)
+      .map((chunk) => chunk.chunk_id);
     const mappedEvidenceSet = new Set(mappedEvidenceFiles);
     const expectedMappedFiles = evidenceInventoryFiles.filter((fileRef) => !unmappedEvidenceFiles.includes(fileRef));
     check(checks, "plan_spec_evidence_inventory_mapped", expectedMappedFiles.every((fileRef) => mappedEvidenceSet.has(fileRef))
       && mappedEvidenceFiles.every((fileRef) => evidenceInventoryFiles.includes(fileRef)), "every mapped evidence inventory file belongs to at least one chunk");
     check(checks, "plan_spec_unmapped_evidence_declared", unmappedEvidenceFiles.every((fileRef) => evidenceInventoryFiles.includes(fileRef)), "unmapped evidence files belong to the evidence inventory");
     check(checks, "plan_spec_unmapped_evidence_fail_closed", unmappedEvidenceFiles.length === 0, "spec-authority plans have no unmapped evidence files");
+    check(checks, "plan_spec_declared_evidence_resolved", unresolvedDeclaredEvidenceChunks.length === 0, "spec-authority declared evidence targets resolve before validation can pass");
     check(checks, "plan_spec_coverage_counts_match", plan.coverage?.authority_files === includedFiles.length
       && plan.coverage?.evidence_files === evidenceInventoryFiles.length
       && plan.coverage?.unmapped_evidence_files === unmappedEvidenceFiles.length
@@ -402,6 +407,13 @@ function validateSpecAuthorityCoverageEnvelope(evidence, chunk) {
     if (outcome.status !== "audited" && !nonEmptyString(outcome.reason)) {
       return { ok: false, reason: "non-audited authority_outcomes declare reason" };
     }
+  }
+  const auditValidity = buildAuditValidityForEvidence(chunk, evidence);
+  if (auditValidity.posture === "invalid") {
+    return {
+      ok: false,
+      reason: `spec-authority evidence audit_validity is invalid: ${auditValidity.blockers.map((blocker) => blocker.id).join(", ")}`,
+    };
   }
   return {
     ok: seenAuthorityRefs.size === expectedAuthority.length,
@@ -562,6 +574,19 @@ function planRefFromPlan(plan) {
   return `.nimi/local/audit/plans/${plan.sweep_id}.yaml`;
 }
 
+function deriveExpectedCloseoutPosture(closeout, openCount) {
+  if (closeout.audit_validity?.posture === "invalid") {
+    return "audit_invalid_no_finding_evidence";
+  }
+  if (closeout.coverage_status === "blocked") {
+    return "blocked";
+  }
+  if (closeout.coverage_status === "partial") {
+    return openCount > 0 ? "partial_coverage_findings_open" : "partial_coverage_all_findings_postured";
+  }
+  return openCount > 0 ? "audit_complete_findings_open" : "audit_complete_all_findings_postured";
+}
+
 async function validateEvidenceRefs(projectRoot, refs, checks, prefix) {
   for (const ref of refs.filter((entry) => typeof entry === "string" && entry.trim())) {
     check(checks, `${prefix}_${ref.replace(/[^a-zA-Z0-9]+/g, "_")}_exists`, await refExists(projectRoot, ref), `referenced artifact exists: ${ref}`);
@@ -585,9 +610,17 @@ async function validateCloseoutArtifact(projectRoot, sweepId, ledgerInfo, remedi
     && closeout.ledger_ref === ledgerInfo.ledger_ref
     && closeout.remediation_map_ref === remediationInfo?.remediation_map_ref
     && closeout.audit_closeout_ref === closeoutRef, "audit closeout references latest ledger and remediation map");
-  check(checks, "audit_closeout_posture", closeout.closeout_posture === (openCount > 0 ? "audit_complete_findings_open" : "audit_complete_all_findings_postured"), "audit closeout posture matches finding state");
+  check(checks, "audit_closeout_posture", closeout.closeout_posture === deriveExpectedCloseoutPosture(closeout, openCount), "audit closeout posture matches coverage and finding state");
   check(checks, "audit_closeout_coverage_status", closeout.coverage_status !== "full"
     || ledgerInfo.ledger?.status === "candidate_ready", "audit closeout full coverage requires candidate_ready ledger");
+  check(checks, "audit_closeout_partial_not_complete", closeout.coverage_status !== "partial"
+    || !String(closeout.closeout_posture).startsWith("audit_complete_"), "partial coverage closeout cannot use audit_complete posture");
+  check(checks, "audit_closeout_invalid_no_finding_posture", closeout.audit_validity?.posture !== "invalid"
+    || closeout.closeout_posture === "audit_invalid_no_finding_evidence", "invalid audit validity requires audit_invalid_no_finding_evidence closeout posture");
+  check(checks, "audit_closeout_coverage_quality_present", !ledgerInfo.ledger?.coverage?.authority_coverage
+    || isPlainObject(closeout.coverage_quality), "spec-authority closeout exposes coverage_quality");
+  check(checks, "audit_closeout_audit_validity_present", !ledgerInfo.ledger?.coverage?.authority_coverage
+    || isPlainObject(closeout.audit_validity), "spec-authority closeout exposes audit_validity");
   check(checks, "audit_closeout_verified_at", isIsoUtcTimestamp(closeout.verified_at), "audit closeout verified_at is ISO UTC");
   return { closeout, audit_closeout_ref: closeoutRef };
 }

@@ -33,6 +33,7 @@ import {
   loadAuditSweepProjectConfig,
   loadPackageAuthorityAdmissions,
 } from "./admissions.mjs";
+import { buildCoverageQuality } from "./coverage-quality.mjs";
 import { assignEvidenceInventory } from "./evidence-assignment.mjs";
 import { buildSpecChunks } from "./inventory-spec-chunks.mjs";
 import { buildRiskBudgetPolicy } from "./risk-budget.mjs";
@@ -608,6 +609,10 @@ export async function createAuditSweepPlan(projectRoot, options) {
     created_at: createdAt,
     updated_at: createdAt,
   };
+  const coverageQuality = buildCoverageQuality(plan, chunks, plan.coverage);
+  if (coverageQuality) {
+    plan.coverage_quality = coverageQuality;
+  }
 
   await writeYamlRef(projectRoot, planRef(sweepId), plan);
   for (const chunk of chunks) {

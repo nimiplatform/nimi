@@ -6,6 +6,7 @@ import {
   loadPlan,
   safeSweepId,
 } from "./common.mjs";
+import { buildCoverageQuality } from "./coverage-quality.mjs";
 import { ensureClusterStore } from "./risk-budget.mjs";
 
 export async function getAuditSweepStatus(projectRoot, options) {
@@ -22,6 +23,10 @@ export async function getAuditSweepStatus(projectRoot, options) {
   ensureClusterStore(store);
   const latestLedger = await loadLatestLedger(projectRoot, sweepId);
   const chunks = Array.isArray(planResult.plan.chunks) ? planResult.plan.chunks : [];
+  const coverageQuality = latestLedger.ok
+    ? latestLedger.ledger.coverage_quality ?? buildCoverageQuality(planResult.plan, chunks, planResult.plan.coverage)
+    : buildCoverageQuality(planResult.plan, chunks, planResult.plan.coverage);
+  const auditValidity = latestLedger.ok ? latestLedger.ledger.audit_validity ?? null : null;
 
   return {
     ok: true,
@@ -51,5 +56,7 @@ export async function getAuditSweepStatus(projectRoot, options) {
     remediationObligationCount: store.remediation_obligation_count ?? store.findings.length,
     unresolvedFindingCount: store.findings.filter((finding) => finding.disposition === "open").length,
     riskBudgetStatus: planResult.plan.risk_budget_status ?? null,
+    coverageQuality,
+    auditValidity,
   };
 }

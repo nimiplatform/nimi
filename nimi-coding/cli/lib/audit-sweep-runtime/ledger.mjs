@@ -12,6 +12,7 @@ import {
   ensureIsoTimestamp,
   findingsRef,
   inputError,
+  loadJsonFile,
   ledgerRef,
   loadChunk,
   loadFindings,
@@ -22,6 +23,8 @@ import {
   safeSweepId,
   writeYamlRef,
 } from "./common.mjs";
+import { buildAuditValidityForEvidence, combineAuditValidity } from "./audit-validity.mjs";
+import { buildCoverageQuality } from "./coverage-quality.mjs";
 import { deriveLedgerSnapshotId } from "./validators.mjs";
 import { ensureClusterStore } from "./risk-budget.mjs";
 
@@ -99,6 +102,20 @@ function buildLedgerCoverage(plan, chunks) {
   };
 }
 
+async function buildLedgerAuditValidity(projectRoot, chunks) {
+  const entries = [];
+  for (const chunk of chunks) {
+    if (!chunk.evidence_ref) {
+      continue;
+    }
+    const evidence = await loadJsonFile(artifactPath(projectRoot, chunk.evidence_ref));
+    if (evidence.ok) {
+      entries.push(buildAuditValidityForEvidence(chunk, evidence.value));
+    }
+  }
+  return combineAuditValidity(entries);
+}
+
 function deriveLedgerStatus(plan, coverage, chunks) {
   const includedFiles = coverage.included_files ?? 0;
   const frozenChunks = chunks.filter((chunk) => chunk.state === "frozen").length;
@@ -136,6 +153,17 @@ function formatReport({ sweepId, ledger, findings }) {
     `- Status: ${ledger.status}`,
     `- Included files: ${ledger.coverage.included_files}`,
     `- Audited files: ${ledger.coverage.audited_files}`,
+    ...(ledger.coverage_quality ? [
+      `- Coverage quality: ${ledger.coverage_quality.posture}`,
+      `- Coverage quality warnings: ${ledger.coverage_quality.warnings.length}`,
+      `- Coverage quality blockers: ${ledger.coverage_quality.blockers.length}`,
+    ] : []),
+    ...(ledger.audit_validity ? [
+      `- Audit validity: ${ledger.audit_validity.posture}`,
+      `- Audit validity warnings: ${ledger.audit_validity.warnings.length}`,
+      `- Audit validity blockers: ${ledger.audit_validity.blockers.length}`,
+      `- No-finding posture: ${ledger.audit_validity.no_finding_posture}`,
+    ] : []),
     ...(ledger.coverage.authority_coverage ? [
       `- Authority coverage: ${ledger.coverage.authority_coverage.audited_files}/${ledger.coverage.authority_coverage.total_files}`,
       `- Evidence coverage: ${ledger.coverage.evidence_coverage.audited_files}/${ledger.coverage.evidence_coverage.total_files}`,
@@ -201,6 +229,8 @@ export async function buildAuditSweepLedger(projectRoot, options) {
   const chunks = chunksResult.chunks;
   const coverage = buildLedgerCoverage(planResult.plan, chunks);
   const status = deriveLedgerStatus(planResult.plan, coverage, chunks);
+  const coverageQuality = buildCoverageQuality(planResult.plan, chunks, coverage);
+  const auditValidity = await buildLedgerAuditValidity(projectRoot, chunks);
   const evidenceRefs = [
     aggregateFindingsRef,
     ...chunks.map((chunk) => chunk.evidence_ref).filter(Boolean),
@@ -226,6 +256,8 @@ export async function buildAuditSweepLedger(projectRoot, options) {
     remediation_map_ref: remediationMapRef(sweepId, snapshotId),
     status,
     coverage,
+    ...(coverageQuality ? { coverage_quality: coverageQuality } : {}),
+    audit_validity: auditValidity,
     finding_count: store.findings.length,
     finding_cluster_count: store.clusters.length,
     clustered_symptom_count: store.clustered_symptom_count ?? 0,
@@ -275,6 +307,8 @@ export async function buildAuditSweepLedger(projectRoot, options) {
     remediationObligationCount: store.remediation_obligation_count ?? store.findings.length,
     unresolvedFindingCount: findingPosture.open,
     coverage: ledger.coverage,
+    coverageQuality: ledger.coverage_quality ?? null,
+    auditValidity: ledger.audit_validity,
   };
 }
 

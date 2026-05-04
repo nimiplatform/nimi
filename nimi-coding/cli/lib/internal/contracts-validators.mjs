@@ -220,6 +220,22 @@ export function validateAuditSweepSummary(summary, contract, verifiedAt) {
     }
   }
 
+  if (typeof summary.coverage_scope !== "string" || summary.coverage_scope.trim().length === 0) {
+    return {
+      ok: false,
+      reason: "audit_sweep summary.coverage_scope must be a non-empty string",
+    };
+  }
+
+  for (const field of ["coverage_quality", "audit_validity"]) {
+    if (!isPlainObject(summary[field])) {
+      return {
+        ok: false,
+        reason: `audit_sweep summary.${field} must be an object`,
+      };
+    }
+  }
+
   return { ok: true };
 }
 

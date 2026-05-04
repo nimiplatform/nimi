@@ -190,6 +190,9 @@ export const AUDIT_SWEEP_SUMMARY_REQUIRED_FIELDS = [
   "finding_count",
   "unresolved_finding_count",
   "status",
+  "coverage_scope",
+  "coverage_quality",
+  "audit_validity",
   "summary",
   "verified_at",
 ];
@@ -197,6 +200,8 @@ export const AUDIT_SWEEP_SUMMARY_REQUIRED_FIELDS = [
 export const AUDIT_SWEEP_SUMMARY_STATUS = [
   "candidate_ready",
   "partial",
+  "partial_authority_only",
+  "blocked_evidence_incomplete",
   "blocked",
 ];
 

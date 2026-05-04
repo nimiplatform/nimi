@@ -206,6 +206,9 @@ export async function reviewAuditSweepChunk(projectRoot, options) {
   if (chunkResult.chunk.state !== "ingested") {
     return inputError("nimicoding audit-sweep refused: chunk review requires ingested state.\n");
   }
+  if (options.verdict === "pass" && chunkResult.chunk.audit_validity?.posture === "invalid") {
+    return inputError("nimicoding audit-sweep refused: manager review cannot freeze invalid no-finding evidence as pass.\n");
+  }
 
   const nextState = options.verdict === "pass" ? "frozen" : "failed";
   const updatedChunk = {

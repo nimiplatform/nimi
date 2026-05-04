@@ -8,6 +8,9 @@ required_top_level_fields:
   - remediation_map_ref
   - audit_closeout_ref
   - coverage_status
+  - coverage_scope
+  - coverage_quality
+  - audit_validity
   - finding_posture
   - closeout_posture
   - verified_at
@@ -18,9 +21,25 @@ coverage_status_enum:
 closeout_posture_enum:
   - audit_complete_findings_open
   - audit_complete_all_findings_postured
+  - partial_coverage_all_findings_postured
+  - partial_coverage_findings_open
+  - audit_invalid_no_finding_evidence
   - blocked
+coverage_quality_required_fields:
+  - scope_label
+  - posture
+  - warnings
+  - blockers
+audit_validity_required_fields:
+  - posture
+  - warnings
+  - blockers
+  - no_finding_posture
 hard_constraints:
   - closeout_requires_latest_ledger_snapshot
   - audit_complete_requires_no_active_chunks
   - all_open_findings_require_remediation_map_coverage
   - all_closed_findings_require_resolution_evidence
+  - coverage_status_partial_requires_partial_coverage_closeout_posture
+  - audit_validity_invalid_requires_audit_invalid_no_finding_evidence_posture
+  - coverage_quality_and_audit_validity_must_be_nested_objects_not_flattened_root_fields

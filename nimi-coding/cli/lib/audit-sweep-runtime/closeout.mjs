@@ -10,6 +10,13 @@ import {
   safeSweepId,
   writeYamlRef,
 } from "./common.mjs";
+import {
+  COVERAGE_SCOPE_LABEL,
+  FILE_INVENTORY_SCOPE_LABEL,
+  deriveCoverageCloseoutPosture,
+  deriveCoverageStatus,
+  withFullScopeWarning,
+} from "./coverage-quality.mjs";
 import { validateAuditSweepArtifacts } from "./validators.mjs";
 
 export async function buildAuditSweepCloseoutImport(projectRoot, options) {
@@ -60,9 +67,18 @@ export async function buildAuditSweepCloseoutImport(projectRoot, options) {
     return inputError("nimicoding audit-sweep refused: closed findings require resolution and rerun evidence before closeout summary.\n");
   }
 
-  const closeoutPosture = openFindingIds.length > 0
-    ? "audit_complete_findings_open"
-    : "audit_complete_all_findings_postured";
+  const coverageStatus = deriveCoverageStatus(ledger.status);
+  const coverageQuality = coverageStatus === "full"
+    ? withFullScopeWarning(ledger.coverage_quality)
+    : ledger.coverage_quality ?? null;
+  const closeoutPosture = deriveCoverageCloseoutPosture({
+    coverageStatus,
+    openFindingCount: openFindingIds.length,
+  });
+  const auditValidity = ledger.audit_validity ?? null;
+  const finalCloseoutPosture = auditValidity?.posture === "invalid"
+    ? "audit_invalid_no_finding_evidence"
+    : closeoutPosture;
   const auditCloseoutRefValue = auditCloseoutRef(sweepId, ledger.snapshot_id);
   const auditCloseout = {
     version: 1,
@@ -71,9 +87,12 @@ export async function buildAuditSweepCloseoutImport(projectRoot, options) {
     ledger_ref: ledgerResult.ledgerRef,
     remediation_map_ref: mapRef,
     audit_closeout_ref: auditCloseoutRefValue,
-    coverage_status: ledger.status === "candidate_ready" ? "full" : "partial",
+    coverage_status: coverageStatus,
+    coverage_scope: ledger.coverage.authority_coverage ? COVERAGE_SCOPE_LABEL : FILE_INVENTORY_SCOPE_LABEL,
+    ...(coverageQuality ? { coverage_quality: coverageQuality } : {}),
+    ...(auditValidity ? { audit_validity: auditValidity } : {}),
     finding_posture: ledger.finding_posture,
-    closeout_posture: closeoutPosture,
+    closeout_posture: finalCloseoutPosture,
     verified_at: options.verifiedAt,
   };
   await writeYamlRef(projectRoot, auditCloseoutRefValue, auditCloseout);
@@ -88,6 +107,9 @@ export async function buildAuditSweepCloseoutImport(projectRoot, options) {
     finding_count: ledger.finding_count,
     unresolved_finding_count: ledger.unresolved_finding_count,
     status: ledger.status,
+    coverage_scope: ledger.coverage.authority_coverage ? COVERAGE_SCOPE_LABEL : FILE_INVENTORY_SCOPE_LABEL,
+    ...(coverageQuality ? { coverage_quality: coverageQuality } : {}),
+    ...(auditValidity ? { audit_validity: auditValidity } : {}),
     summary: ledger.coverage.authority_coverage
       ? `Audit sweep ${sweepId} has authority coverage ${ledger.coverage.authority_coverage.audited_files}/${ledger.coverage.authority_coverage.total_files}, evidence coverage ${ledger.coverage.evidence_coverage.audited_files}/${ledger.coverage.evidence_coverage.total_files}, ${ledger.finding_count} findings, and ${ledger.unresolved_finding_count} open findings.`
       : `Audit sweep ${sweepId} has ${ledger.coverage.audited_files}/${ledger.coverage.included_files} included files audited, ${ledger.finding_count} findings, and ${ledger.unresolved_finding_count} open findings.`,
@@ -98,7 +120,7 @@ export async function buildAuditSweepCloseoutImport(projectRoot, options) {
     ledger_ref: ledgerResult.ledgerRef,
     remediation_map_ref: mapRef,
     audit_closeout_ref: auditCloseoutRefValue,
-    closeout_posture: closeoutPosture,
+    closeout_posture: finalCloseoutPosture,
   });
   const closeoutValidation = await validateAuditSweepArtifacts(projectRoot, { sweepId, scope: "closeout" });
   if (!closeoutValidation.ok) {

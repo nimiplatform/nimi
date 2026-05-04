@@ -12,13 +12,32 @@ summary_required_fields:
   - finding_count
   - unresolved_finding_count
   - status
+  - coverage_scope
+  - coverage_quality
+  - audit_validity
   - summary
   - verified_at
 summary_status_enum:
   - candidate_ready
   - partial
+  - partial_authority_only
+  - blocked_evidence_incomplete
   - blocked
+coverage_quality_required_fields:
+  - scope_label
+  - posture
+  - warnings
+  - blockers
+audit_validity_required_fields:
+  - posture
+  - warnings
+  - blockers
+  - no_finding_posture
 locality: local_only
 semantic_constraints:
   - do_not_promote_audit_sweep_summary_to_project_truth
   - do_not_treat_external_audit_sweep_summary_as_remediation_or_closure_judgement
+  - candidate_ready_requires_full_authority_and_evidence_coverage
+  - full_coverage_status_requires_candidate_ready_ledger
+  - spec_authority_sweeps_must_report_authority_coverage_and_evidence_coverage_separately
+  - audit_validity_invalid_must_not_be_summarized_as_successful_no_finding_audit

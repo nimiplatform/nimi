@@ -32,6 +32,7 @@ import {
   findingRequiresCanonicalInCluster,
   updateClusterWithCanonical,
 } from "./risk-budget.mjs";
+import { buildAuditValidityForEvidence } from "./audit-validity.mjs";
 import { isPlainObject } from "../value-helpers.mjs";
 import { pathExists } from "../fs-helpers.mjs";
 
@@ -298,6 +299,10 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
   if (!envelope.ok) {
     return inputError(`nimicoding audit-sweep refused: ${envelope.error}.\n`);
   }
+  const auditValidity = buildAuditValidityForEvidence(chunkResult.chunk, evidenceJson.value);
+  if (auditValidity.posture === "invalid") {
+    return inputError(`nimicoding audit-sweep refused: audit evidence is invalid no-finding evidence (${auditValidity.blockers.map((blocker) => blocker.id).join(", ")}).\n`);
+  }
 
   const evidenceRef = artifactRef("evidence_refs", sweepId, `${options.chunkId}.audit-evidence.json`);
   await mkdir(path.dirname(artifactPath(projectRoot, evidenceRef)), { recursive: true });
@@ -383,6 +388,7 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
     state: "ingested",
     evidence_ref: evidenceRef,
     finding_count: evidenceJson.value.findings.length,
+    audit_validity: auditValidity,
     lifecycle: {
       ...chunkResult.chunk.lifecycle,
       ingested_at: options.verifiedAt,
@@ -394,7 +400,7 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
     ...planResult.plan,
     risk_budget_status: riskBudgetStatus,
     chunks: planResult.plan.chunks.map((chunk) => chunk.chunk_id === options.chunkId
-      ? { ...chunk, state: "ingested", finding_count: evidenceJson.value.findings.length, evidence_ref: evidenceRef }
+      ? { ...chunk, state: "ingested", finding_count: evidenceJson.value.findings.length, evidence_ref: evidenceRef, audit_validity: auditValidity }
       : chunk),
     updated_at: options.verifiedAt,
   });
@@ -406,6 +412,7 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
     evidence_ref: evidenceRef,
     findings_ref: aggregateFindingsRef,
     finding_count: evidenceJson.value.findings.length,
+    audit_validity: auditValidity,
     added_count: addedCount,
     duplicate_count: duplicateCount,
     clustered_count: clusteredCount,

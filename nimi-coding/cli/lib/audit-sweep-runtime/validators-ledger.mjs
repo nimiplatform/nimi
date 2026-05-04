@@ -175,6 +175,8 @@ function checkLedgerSpecCoverage(plan, ledger, checks) {
     && ledger.coverage.evidence_coverage?.unmapped_files === 0;
   check(checks, "ledger_spec_coverage_split_present", isPlainObject(ledger.coverage.authority_coverage)
     && isPlainObject(ledger.coverage.evidence_coverage), "spec-authority ledger splits authority and evidence coverage");
+  check(checks, "ledger_spec_coverage_quality_present", isPlainObject(ledger.coverage_quality), "spec-authority ledger exposes coverage_quality");
+  check(checks, "ledger_spec_audit_validity_present", isPlainObject(ledger.audit_validity), "spec-authority ledger exposes audit_validity");
   check(checks, "ledger_spec_candidate_ready_requires_evidence", ledger.status !== "candidate_ready"
     || (authorityFull && evidenceFull), "candidate_ready requires full authority and evidence coverage");
   check(checks, "ledger_spec_no_full_with_unmapped_evidence", ledger.status !== "candidate_ready"

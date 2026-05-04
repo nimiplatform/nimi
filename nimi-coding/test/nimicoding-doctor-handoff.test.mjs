@@ -610,12 +610,17 @@ test("handoff allows audit sweep after the canonical tree is ready and includes 
       "finding_count",
       "unresolved_finding_count",
       "status",
+      "coverage_scope",
+      "coverage_quality",
+      "audit_validity",
       "summary",
       "verified_at",
     ]);
     assert.deepEqual(payload.skill.expectedCloseoutSummaryStatus, [
       "candidate_ready",
       "partial",
+      "partial_authority_only",
+      "blocked_evidence_incomplete",
       "blocked",
     ]);
     assert.deepEqual(payload.skill.expectedArtifactKinds, [
