@@ -483,7 +483,7 @@ describe('D-LLM-026b isolation', () => {
     const source = readFileSync(adapterPath, 'utf-8');
 
     assert.match(source, /const storeSelectedTargetId = useAppStore\(\(state\) => state\.selectedTargetBySource\.group \?\? null\);/);
-    assert.match(source, /const selectedGroupId = storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID[\s\S]*?storeSelectedTargetId;/);
+    assert.match(source, /const selectedGroupId = storeSelectedTargetId;/);
     assert.doesNotMatch(source, /useState<string \| null>\(null\).*selectedGroupId/s);
     assert.doesNotMatch(source, /setSelectedGroupId/);
   });
@@ -529,15 +529,24 @@ describe('D-LLM-026b isolation', () => {
     assert.doesNotMatch(source, /maybeDispatchGroupAgentTriggersForChat/);
   });
 
-  it('chat-group-adapter does not dispatch createGroup initialMessage to Desktop-owned execution', () => {
+  it('chat-group-create-controller does not dispatch createGroup initialMessage to Desktop-owned execution', () => {
+    const controllerPath = resolve(
+      __dirname,
+      '../src/shell/renderer/features/chat/chat-group-create-controller.tsx',
+    );
+    const controllerSource = readFileSync(controllerPath, 'utf-8');
+
+    assert.match(controllerSource, /const handleCreateGroup = useCallback\(async \(title: string, participantIds: string\[]\) => \{/);
+    assert.match(controllerSource, /const result = await dataSync\.createGroup\(title, participantIds\);/);
+    assert.doesNotMatch(controllerSource, /'lastMessage' in result/);
+    assert.doesNotMatch(controllerSource, /maybeDispatchGroupAgentTriggersForChat/);
+
     const adapterPath = resolve(
       __dirname,
       '../src/shell/renderer/features/chat/chat-group-adapter.tsx',
     );
-    const source = readFileSync(adapterPath, 'utf-8');
-
-    assert.match(source, /const handleCreateGroup = useCallback\(async \(title: string, participantIds: string\[]\) => \{/);
-    assert.doesNotMatch(source, /'lastMessage' in result/);
-    assert.doesNotMatch(source, /maybeDispatchGroupAgentTriggersForChat/);
+    const adapterSource = readFileSync(adapterPath, 'utf-8');
+    assert.doesNotMatch(adapterSource, /dataSync\.createGroup/);
+    assert.doesNotMatch(adapterSource, /handleCreateGroup/);
   });
 });

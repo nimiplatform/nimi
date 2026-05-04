@@ -10,7 +10,7 @@ import { useChatTargetsForSidebar } from './chat-sidebar-targets';
 import { ChatHumanModeContent } from './chat-human-mode-content';
 import { ChatNimiModeContent } from './chat-nimi-mode-content';
 import { ChatGroupModeContent } from './chat-group-mode-content';
-import { GROUP_CREATE_INTENT_TARGET_ID } from './chat-group-flow-constants';
+import { useChatGroupCreateController } from './chat-group-create-controller';
 
 const ChatAgentModeContent = lazy(async () => {
   const mod = await import('./chat-agent-mode-content');
@@ -71,12 +71,12 @@ export function ChatPage() {
   const authStatus = useAppStore((state) => state.auth.status);
   const chatMode = useAppStore((state) => state.chatMode);
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource[state.chatMode] ?? null);
-  const groupSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.group ?? null);
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
   const [nimiThreadListOpen, setNimiThreadListOpen] = useState(false);
+  const groupCreateController = useChatGroupCreateController();
 
   const allTargets = useChatTargetsForSidebar(authStatus);
 
@@ -109,9 +109,6 @@ export function ChatPage() {
     if (!storeSelectedTargetId) {
       return;
     }
-    if (chatMode === 'group' && storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID) {
-      return;
-    }
     const targetExists = allTargets.some((target) => target.id === storeSelectedTargetId);
     if (targetExists) {
       return;
@@ -123,13 +120,6 @@ export function ChatPage() {
       setSelectedTargetForSource(chatMode, null);
     }
   }, [allTargets, authStatus, chatMode, setChatMode, setSelectedTargetForSource, storeSelectedTargetId]);
-
-  useEffect(() => {
-    if (chatMode === 'group' || groupSelectedTargetId !== GROUP_CREATE_INTENT_TARGET_ID) {
-      return;
-    }
-    setSelectedTargetForSource('group', null);
-  }, [chatMode, groupSelectedTargetId, setSelectedTargetForSource]);
 
   useEffect(() => {
     setChatSettingsOpen(false);
@@ -182,9 +172,8 @@ export function ChatPage() {
   }, [handleSelectTarget]);
 
   const handleCreateGroup = useCallback(() => {
-    setChatMode('group');
-    setSelectedTargetForSource('group', GROUP_CREATE_INTENT_TARGET_ID);
-  }, [setChatMode, setSelectedTargetForSource]);
+    groupCreateController.open();
+  }, [groupCreateController]);
 
   const sharedProps = {
     allTargets,
@@ -238,6 +227,7 @@ export function ChatPage() {
           onToggleNimiThreadList={toggleNimiThreadList}
         />
       ) : null}
+      {groupCreateController.modal}
     </div>
   );
 }

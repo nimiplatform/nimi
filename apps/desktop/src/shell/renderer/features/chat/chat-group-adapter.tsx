@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { createReadyConversationSetupState } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type { ConversationCanonicalMessage } from '@nimiplatform/nimi-kit/features/chat/headless';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
@@ -6,10 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
-import { GROUP_CREATE_INTENT_TARGET_ID } from './chat-group-flow-constants';
 import { ChatGroupParticipantPanel } from './chat-group-participant-panel';
 import { ChatGroupComposer } from './chat-group-composer';
-import { ChatGroupCreateModal } from './chat-group-create-modal';
 import {
   compareGroupChatsByRecency,
   getGroupChatTitle,
@@ -35,13 +33,10 @@ export function useGroupConversationModeHost(
   const { authStatus, currentUserId } = input;
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [createModalOpen, setCreateModalOpen] = useState(false);
   const setLastSelectedThreadForMode = useAppStore((state) => state.setLastSelectedThreadForMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.group ?? null);
-  const selectedGroupId = storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID
-    ? null
-    : storeSelectedTargetId;
+  const selectedGroupId = storeSelectedTargetId;
 
   const groupChatsQuery = useQuery({
     queryKey: [...GROUP_CHATS_QUERY_KEY, authStatus],
@@ -158,15 +153,6 @@ export function useGroupConversationModeHost(
     await sendMutation.mutateAsync({ chatId: selectedGroupId, content: content.trim() });
   }, [selectedGroupId, sendMutation]);
 
-  const handleCreateGroup = useCallback(async (title: string, participantIds: string[]) => {
-    const result = await dataSync.createGroup(title, participantIds);
-    void queryClient.invalidateQueries({ queryKey: GROUP_CHATS_QUERY_KEY });
-    setCreateModalOpen(false);
-    if (result && typeof result === 'object' && 'id' in result) {
-      setSelectedTargetForSource('group', String((result as { id: string }).id));
-    }
-  }, [queryClient, setSelectedTargetForSource]);
-
   const selectedGroupTitle = selectedGroup
     ? getGroupChatTitle(selectedGroup)
     : t('Chat.group', { defaultValue: 'Group' });
@@ -228,16 +214,6 @@ export function useGroupConversationModeHost(
         isSending={sendMutation.isPending}
       />
     ) : null,
-    auxiliaryOverlayContent: (
-      <ChatGroupCreateModal
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        onCreateGroup={handleCreateGroup}
-      />
-    ),
-    onCreateThread: async () => {
-      setCreateModalOpen(true);
-    },
     setupDescription: t('Chat.groupSetupRequired', {
       defaultValue: 'Sign in to participate in group conversations.',
     }),
@@ -245,16 +221,16 @@ export function useGroupConversationModeHost(
     adapter,
     allGroups,
     canonicalMessages,
-    createModalOpen,
     currentUserId,
-    handleCreateGroup,
     handleSelectTarget,
     handleSendMessage,
     participants,
+    queryClient,
     selectedGroup,
     selectedGroupId,
     selectedGroupTitle,
     sendMutation.isPending,
+    setSelectedTargetForSource,
     t,
     targets,
   ]);

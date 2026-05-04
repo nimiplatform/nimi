@@ -9,10 +9,10 @@ function readWorkspaceFile(relativePath: string): string {
 
 const chatPageSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-page.tsx');
 const chatContactsSidebarSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-contacts-sidebar.tsx');
-const chatGroupFlowConstantsSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-flow-constants.ts');
 const chatGroupAdapterSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-adapter.tsx');
 const chatGroupModeContentSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-mode-content.tsx');
 const chatGroupCreateModalSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-create-modal.tsx');
+const chatGroupCreateControllerSource = readWorkspaceFile('src/shell/renderer/features/chat/chat-group-create-controller.tsx');
 const e2eIdsSource = readWorkspaceFile('src/shell/renderer/testability/e2e-ids.ts');
 
 test('group first-run flow: contact rail exposes a persistent create-group action', () => {
@@ -22,24 +22,36 @@ test('group first-run flow: contact rail exposes a persistent create-group actio
   assert.match(chatContactsSidebarSource, /onClick=\{onCreateGroup\}/);
 });
 
-test('group first-run flow: chat page routes create-group into group mode intent', () => {
-  assert.match(chatGroupFlowConstantsSource, /GROUP_CREATE_INTENT_TARGET_ID = 'group:create'/);
-  assert.match(chatPageSource, /if \(chatMode === 'group' && storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID\)/);
-  assert.match(chatPageSource, /if \(chatMode === 'group' \|\| groupSelectedTargetId !== GROUP_CREATE_INTENT_TARGET_ID\)/);
-  assert.match(chatPageSource, /setSelectedTargetForSource\('group', null\)/);
-  assert.match(chatPageSource, /setChatMode\('group'\)/);
-  assert.match(chatPageSource, /setSelectedTargetForSource\('group', GROUP_CREATE_INTENT_TARGET_ID\)/);
+test('group first-run flow: chat page opens the create-group modal without mutating chat mode or selection', () => {
+  assert.match(chatPageSource, /import \{ useChatGroupCreateController \} from '\.\/chat-group-create-controller';/);
+  assert.match(chatPageSource, /const groupCreateController = useChatGroupCreateController\(\);/);
+  assert.match(chatPageSource, /const handleCreateGroup = useCallback\(\(\) => \{\s*groupCreateController\.open\(\);\s*\}, \[groupCreateController\]\);/);
+  assert.match(chatPageSource, /\{groupCreateController\.modal\}/);
   assert.match(chatPageSource, /onCreateGroup=\{handleCreateGroup\}/);
+  assert.doesNotMatch(chatPageSource, /GROUP_CREATE_INTENT_TARGET_ID/);
+  assert.doesNotMatch(chatPageSource, /chat-group-flow-constants/);
+  assert.doesNotMatch(chatPageSource, /handleCreateGroup[\s\S]{0,200}setChatMode\('group'\)/);
+  assert.doesNotMatch(chatPageSource, /handleCreateGroup[\s\S]{0,200}setSelectedTargetForSource\('group'/);
 });
 
-test('group first-run flow: group mode consumes create intent and opens create modal', () => {
-  assert.match(chatGroupModeContentSource, /GROUP_CREATE_INTENT_TARGET_ID/);
-  assert.match(chatGroupModeContentSource, /storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID/);
-  assert.match(chatGroupModeContentSource, /setSelectedTargetForSource\('group', null\)/);
-  assert.match(chatGroupModeContentSource, /void host\.onCreateThread\?\.\(\)/);
-  assert.match(chatGroupModeContentSource, /const selectedTargetId = normalizedStoreSelectedTargetId;/);
-  assert.doesNotMatch(chatGroupModeContentSource, /hostSelectedTargetExists/);
-  assert.doesNotMatch(chatGroupModeContentSource, /setSelectedTargetForSource\('group', host\.selectedTargetId\)/);
+test('group create controller fails closed on contract violation and routes to new group on success', () => {
+  assert.match(chatGroupCreateControllerSource, /import \{ ChatGroupCreateModal \} from '\.\/chat-group-create-modal';/);
+  assert.match(chatGroupCreateControllerSource, /const setChatMode = useAppStore\(\(state\) => state\.setChatMode\);/);
+  assert.match(chatGroupCreateControllerSource, /const setSelectedTargetForSource = useAppStore\(\(state\) => state\.setSelectedTargetForSource\);/);
+  assert.match(chatGroupCreateControllerSource, /const result = await dataSync\.createGroup\(title, participantIds\);/);
+  assert.match(chatGroupCreateControllerSource, /throw new Error\('chat-group-create:contract-violation:missing-id'\);/);
+  assert.match(chatGroupCreateControllerSource, /throw new Error\('chat-group-create:contract-violation:empty-id'\);/);
+  assert.match(chatGroupCreateControllerSource, /setChatMode\('group'\);\s*setSelectedTargetForSource\('group', newId\);/);
+  assert.match(chatGroupCreateControllerSource, /<ChatGroupCreateModal\s+open=\{isOpen\}\s+onClose=\{close\}\s+onCreateGroup=\{handleCreateGroup\}\s*\/>/);
+});
+
+test('group first-run flow: group mode content no longer carries sentinel intent routing', () => {
+  assert.doesNotMatch(chatGroupModeContentSource, /GROUP_CREATE_INTENT_TARGET_ID/);
+  assert.doesNotMatch(chatGroupModeContentSource, /chat-group-flow-constants/);
+  assert.doesNotMatch(chatGroupModeContentSource, /onCreateThread/);
+  assert.doesNotMatch(chatGroupModeContentSource, /normalizedStoreSelectedTargetId/);
+  assert.doesNotMatch(chatGroupModeContentSource, /prevTargetIdRef/);
+  assert.match(chatGroupModeContentSource, /const selectedTargetId = storeSelectedTargetId;/);
 });
 
 test('group first-run flow: create modal fails closed on empty title before POST', () => {
@@ -50,19 +62,24 @@ test('group first-run flow: create modal fails closed on empty title before POST
   assert.match(chatGroupCreateModalSource, /disabled=\{createDisabled\}/);
 });
 
-test('group first-run flow: group selection restores from last real thread only outside create intent', () => {
-  assert.match(chatGroupModeContentSource, /const normalizedStoreSelectedTargetId = storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID/);
-  assert.match(chatGroupModeContentSource, /const selectedTargetId = normalizedStoreSelectedTargetId;/);
+test('group first-run flow: group selection restores from last real thread when the store has no current selection', () => {
   assert.match(chatGroupModeContentSource, /const lastSelectedGroupThread = useAppStore\(\(state\) => state\.lastSelectedThreadByMode\.group \?\? null\)/);
   assert.match(chatGroupModeContentSource, /const restoreAttemptedRef = useRef\(false\);/);
   assert.match(chatGroupModeContentSource, /if \(restoreAttemptedRef\.current \|\| allTargets\.length === 0\)/);
-  assert.match(chatGroupModeContentSource, /storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID/);
+  assert.match(chatGroupModeContentSource, /if \(storeSelectedTargetId \|\| !lastSelectedGroupThread\)/);
   assert.match(chatGroupModeContentSource, /setSelectedTargetForSource\('group', lastSelectedGroupThread\)/);
   assert.match(chatGroupModeContentSource, /target\.id === lastSelectedGroupThread && target\.source === 'group'/);
 });
 
-test('group first-run flow: adapter persists last selected real group as the restore source of truth', () => {
+test('group first-run flow: adapter derives selection straight from the store and persists last selected as the restore source of truth', () => {
   assert.match(chatGroupAdapterSource, /const setLastSelectedThreadForMode = useAppStore\(\(state\) => state\.setLastSelectedThreadForMode\)/);
-  assert.match(chatGroupAdapterSource, /const selectedGroupId = storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID/);
+  assert.match(chatGroupAdapterSource, /const storeSelectedTargetId = useAppStore\(\(state\) => state\.selectedTargetBySource\.group \?\? null\);/);
+  assert.match(chatGroupAdapterSource, /const selectedGroupId = storeSelectedTargetId;/);
   assert.match(chatGroupAdapterSource, /if \(!selectedGroupId\) \{\s*return;\s*\}\s*setLastSelectedThreadForMode\('group', selectedGroupId\);/s);
+  assert.doesNotMatch(chatGroupAdapterSource, /GROUP_CREATE_INTENT_TARGET_ID/);
+  assert.doesNotMatch(chatGroupAdapterSource, /chat-group-flow-constants/);
+  assert.doesNotMatch(chatGroupAdapterSource, /ChatGroupCreateModal/);
+  assert.doesNotMatch(chatGroupAdapterSource, /createModalOpen/);
+  assert.doesNotMatch(chatGroupAdapterSource, /onCreateThread/);
+  assert.doesNotMatch(chatGroupAdapterSource, /auxiliaryOverlayContent/);
 });

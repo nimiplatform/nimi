@@ -6,7 +6,6 @@ import {
 } from '@nimiplatform/nimi-kit/features/chat';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { useGroupConversationModeHost } from './chat-group-adapter';
-import { GROUP_CREATE_INTENT_TARGET_ID } from './chat-group-flow-constants';
 import {
   useGroupCanonicalStagePanelProps,
   useGroupCanonicalTranscriptProps,
@@ -38,40 +37,18 @@ export function ChatGroupModeContent({
   const lastSelectedGroupThread = useAppStore((state) => state.lastSelectedThreadByMode.group ?? null);
   const storeSelectedTargetId = useAppStore((state) => state.selectedTargetBySource.group ?? null);
   const setChatViewMode = useAppStore((state) => state.setChatViewMode);
-  const normalizedStoreSelectedTargetId = storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID
-    ? null
-    : storeSelectedTargetId;
 
   const host = useGroupConversationModeHost({
     authStatus,
     currentUserId,
   });
 
-  const prevTargetIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    const previousTargetId = prevTargetIdRef.current;
-
-    if (
-      storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID
-      && previousTargetId !== GROUP_CREATE_INTENT_TARGET_ID
-    ) {
-      setSelectedTargetForSource('group', null);
-      void host.onCreateThread?.();
-    }
-
-    prevTargetIdRef.current = storeSelectedTargetId;
-  }, [host.onCreateThread, setSelectedTargetForSource, storeSelectedTargetId]);
-
   const restoreAttemptedRef = useRef(false);
   useEffect(() => {
     if (restoreAttemptedRef.current || allTargets.length === 0) {
       return;
     }
-    if (
-      storeSelectedTargetId === GROUP_CREATE_INTENT_TARGET_ID
-      || normalizedStoreSelectedTargetId
-      || !lastSelectedGroupThread
-    ) {
+    if (storeSelectedTargetId || !lastSelectedGroupThread) {
       restoreAttemptedRef.current = true;
       return;
     }
@@ -84,7 +61,6 @@ export function ChatGroupModeContent({
   }, [
     allTargets,
     lastSelectedGroupThread,
-    normalizedStoreSelectedTargetId,
     setSelectedTargetForSource,
     storeSelectedTargetId,
   ]);
@@ -94,7 +70,7 @@ export function ChatGroupModeContent({
     setChatSetupState('group', host.adapter.setupState);
   }, [host.adapter.setupState, setChatSetupState]);
 
-  const selectedTargetId = normalizedStoreSelectedTargetId;
+  const selectedTargetId = storeSelectedTargetId;
   const selectedTarget = useMemo(
     () => selectedTargetId
       ? allTargets.find((target) => target.id === selectedTargetId) || null
