@@ -7,6 +7,7 @@ import {
   loadPlan,
   packetRef,
   safeSweepId,
+  withAuditSweepMutationLock,
   writeYamlRef,
 } from "./common.mjs";
 import { budgetBlockForChunk } from "./risk-budget.mjs";
@@ -107,6 +108,7 @@ export async function dispatchAuditSweepChunk(projectRoot, options) {
     return timestampError;
   }
 
+  return withAuditSweepMutationLock(projectRoot, sweepId, "chunk dispatch", async () => {
   const planResult = await loadPlan(projectRoot, sweepId);
   if (!planResult.ok) {
     return inputError(planResult.error);
@@ -172,6 +174,7 @@ export async function dispatchAuditSweepChunk(projectRoot, options) {
     packetRef: auditorPacketRef,
     runLedgerRef: runRef,
   };
+  });
 }
 
 export async function reviewAuditSweepChunk(projectRoot, options) {
@@ -189,6 +192,7 @@ export async function reviewAuditSweepChunk(projectRoot, options) {
     return inputError("nimicoding audit-sweep refused: --verdict must be pass or fail.\n");
   }
 
+  return withAuditSweepMutationLock(projectRoot, sweepId, "chunk review", async () => {
   const planResult = await loadPlan(projectRoot, sweepId);
   if (!planResult.ok) {
     return inputError(planResult.error);
@@ -246,6 +250,7 @@ export async function reviewAuditSweepChunk(projectRoot, options) {
     chunkRef: chunkResult.chunkRef,
     runLedgerRef: runRef,
   };
+  });
 }
 
 export async function skipAuditSweepChunk(projectRoot, options) {
@@ -261,6 +266,7 @@ export async function skipAuditSweepChunk(projectRoot, options) {
     return inputError("nimicoding audit-sweep refused: --reason is required when skipping a chunk.\n");
   }
 
+  return withAuditSweepMutationLock(projectRoot, sweepId, "chunk skip", async () => {
   const planResult = await loadPlan(projectRoot, sweepId);
   if (!planResult.ok) {
     return inputError(planResult.error);
@@ -307,4 +313,5 @@ export async function skipAuditSweepChunk(projectRoot, options) {
     chunkRef: chunkResult.chunkRef,
     runLedgerRef: runRef,
   };
+  });
 }

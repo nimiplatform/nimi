@@ -569,3 +569,117 @@ test("audit-sweep clusters duplicate symptoms, preserves unique high severity fi
     assert.equal(remediationMapPayload.waves[0].remediation_bundle.duplicate_symptom_count, 1);
   });
 });
+
+test("audit-sweep chunk mutations fail closed under lock contention and preserve plan consistency", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+    await mkdir(path.join(projectRoot, "src"), { recursive: true });
+    await writeFile(path.join(projectRoot, "src", "a.ts"), "export const a = 1;\n", "utf8");
+    await writeFile(path.join(projectRoot, "src", "b.ts"), "export const b = 2;\n", "utf8");
+
+    const sweepId = "audit-sweep-test-concurrent-review";
+    const planResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      "src",
+      "--max-files",
+      "1",
+      "--sweep-id",
+      sweepId,
+      "--json",
+    ]);
+    assert.equal(planResult.exitCode, 0, planResult.stderr);
+
+    for (const [index, file] of ["a.ts", "b.ts"].entries()) {
+      const chunkId = `chunk-${String(index + 1).padStart(3, "0")}`;
+      assert.equal((await captureRunCli([
+        "audit-sweep",
+        "chunk",
+        "dispatch",
+        "--sweep-id",
+        sweepId,
+        "--chunk-id",
+        chunkId,
+        "--dispatched-at",
+        `2026-04-10T00:${String(index * 10).padStart(2, "0")}:00.000Z`,
+        "--json",
+      ])).exitCode, 0);
+      await writeAuditEvidence(projectRoot, `${chunkId}.json`, chunkId, [`src/${file}`], []);
+      assert.equal((await captureRunCli([
+        "audit-sweep",
+        "chunk",
+        "ingest",
+        "--sweep-id",
+        sweepId,
+        "--chunk-id",
+        chunkId,
+        "--from",
+        `${chunkId}.json`,
+        "--verified-at",
+        `2026-04-10T00:${String(index * 10 + 5).padStart(2, "0")}:00.000Z`,
+        "--json",
+      ])).exitCode, 0);
+    }
+
+    const lockDir = path.join(projectRoot, ".nimi", "local", "audit", "locks");
+    await mkdir(lockDir, { recursive: true });
+    const lockPath = path.join(lockDir, `${sweepId}.lock`);
+    await writeFile(lockPath, "{\"test\":\"held\"}\n", "utf8");
+    const blockedReview = await runCliSubprocess([
+      "audit-sweep",
+      "chunk",
+      "review",
+      "--sweep-id",
+      sweepId,
+      "--chunk-id",
+      "chunk-001",
+      "--verdict",
+      "pass",
+      "--reviewed-at",
+      "2026-04-10T00:30:00.000Z",
+      "--json",
+    ], { cwd: projectRoot });
+    assert.equal(blockedReview.exitCode, 2);
+    assert.match(blockedReview.stderr, /chunk review mutation already in progress/);
+    await rm(lockPath, { force: true });
+
+    const reviewArgs = (chunkId, reviewedAt) => [
+      "audit-sweep",
+      "chunk",
+      "review",
+      "--sweep-id",
+      sweepId,
+      "--chunk-id",
+      chunkId,
+      "--verdict",
+      "pass",
+      "--reviewed-at",
+      reviewedAt,
+      "--json",
+    ];
+    const reviews = await Promise.all([
+      runCliSubprocess(reviewArgs("chunk-001", "2026-04-10T00:40:00.000Z"), { cwd: projectRoot }),
+      runCliSubprocess(reviewArgs("chunk-002", "2026-04-10T00:41:00.000Z"), { cwd: projectRoot }),
+    ]);
+    const successCount = reviews.filter((result) => result.exitCode === 0).length;
+    assert.ok(successCount === 1 || successCount === 2, reviews.map((result) => result.stderr).join("\n"));
+    for (const result of reviews.filter((entry) => entry.exitCode !== 0)) {
+      assert.equal(result.exitCode, 2);
+      assert.match(result.stderr, /chunk review mutation already in progress/);
+    }
+
+    const validateResult = await runCliSubprocess([
+      "audit-sweep",
+      "validate",
+      "--sweep-id",
+      sweepId,
+      "--scope",
+      "chunks",
+      "--json",
+    ], { cwd: projectRoot });
+    assert.equal(validateResult.exitCode, 0, validateResult.stderr);
+    const validatePayload = JSON.parse(validateResult.stdout);
+    assert.equal(validatePayload.ok, true);
+  });
+});

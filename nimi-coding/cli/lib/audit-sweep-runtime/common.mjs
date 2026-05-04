@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import YAML from "yaml";
@@ -154,6 +154,41 @@ export async function writeJsonRef(projectRoot, ref, value) {
   const destination = artifactPath(projectRoot, ref);
   await mkdir(path.dirname(destination), { recursive: true });
   await writeFile(destination, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
+function auditSweepLockPath(projectRoot, sweepId) {
+  return path.join(projectRoot, ".nimi", "local", "audit", "locks", `${sweepId}.lock`);
+}
+
+export async function withAuditSweepMutationLock(projectRoot, sweepId, label, fn) {
+  const lockPath = auditSweepLockPath(projectRoot, sweepId);
+  await mkdir(path.dirname(lockPath), { recursive: true });
+  let handle = null;
+  try {
+    handle = await open(lockPath, "wx");
+  } catch (error) {
+    if (error?.code === "EEXIST") {
+      return inputError(`nimicoding audit-sweep refused: ${label} mutation already in progress for ${sweepId}; retry after the current command finishes.\n`);
+    }
+    throw error;
+  }
+
+  try {
+    await handle.writeFile(`${JSON.stringify({
+      sweep_id: sweepId,
+      label,
+      pid: process.pid,
+      locked_at: nowIso(),
+    })}\n`, "utf8");
+    await handle.close();
+    handle = null;
+    return await fn();
+  } finally {
+    if (handle) {
+      await handle.close();
+    }
+    await rm(lockPath, { force: true });
+  }
 }
 
 export async function loadYamlRef(projectRoot, ref) {

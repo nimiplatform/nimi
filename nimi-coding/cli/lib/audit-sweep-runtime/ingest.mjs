@@ -19,6 +19,7 @@ import {
   resolveInsideProject,
   safeSweepId,
   sha256Object,
+  withAuditSweepMutationLock,
   writeYamlRef,
 } from "./common.mjs";
 import {
@@ -276,6 +277,7 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
     return inputError("nimicoding audit-sweep refused: --from must point to an existing JSON file.\n");
   }
 
+  return withAuditSweepMutationLock(projectRoot, sweepId, "chunk ingest", async () => {
   const planResult = await loadPlan(projectRoot, sweepId);
   if (!planResult.ok) {
     return inputError(planResult.error);
@@ -427,4 +429,5 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
     riskBudgetStatus,
     runLedgerRef: runRef,
   };
+  });
 }
