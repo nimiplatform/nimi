@@ -80,6 +80,16 @@ function parseCodexRawJson(rawText) {
         // Fall through to the contract error below.
       }
     }
+    if (prefix && /^,\s*"findings_count"\s*:\s*\d+\s*[}]\s*$/u.test(trailing)) {
+      try {
+        const value = JSON.parse(prefix.jsonText);
+        if (isPlainObject(value) && hasUnexpectedTopLevelFields(value).length === 0) {
+          return { ok: true, value, repaired: "ignored_trailing_findings_count_metadata" };
+        }
+      } catch {
+        // Fall through to the contract error below.
+      }
+    }
     return { ok: false, error: "Codex auditor raw output must be exact JSON, without markdown or transcript prose" };
   }
 }
@@ -125,6 +135,24 @@ function uniqueRefs(refs) {
 
 function refsOutsideSet(refs, allowedSet) {
   return refs.filter((ref) => typeof ref !== "string" || !allowedSet.has(ref));
+}
+
+function isNonImplementationContextRef(ref) {
+  if (typeof ref !== "string") {
+    return false;
+  }
+  const normalized = ref.replace(/\\/g, "/");
+  return /(^|\/)AGENTS\.md$/u.test(normalized)
+    || /(^|\/)README\.md$/u.test(normalized)
+    || normalized.startsWith(".nimi/spec/")
+    || normalized.startsWith(".nimi/contracts/")
+    || normalized.startsWith(".nimi/methodology/")
+    || normalized.startsWith("nimi-coding/methodology/")
+    || normalized.startsWith("nimi-coding/spec/");
+}
+
+function stripNonImplementationContextRefs(refs, evidenceInventorySet) {
+  return refs.filter((ref) => evidenceInventorySet.has(ref) || !isNonImplementationContextRef(ref));
 }
 
 function normalizeFindingEnvelope(finding, evidenceInventorySet) {
@@ -346,7 +374,8 @@ function normalizeOutcome(rawOutcome, index, authorityRef, evidenceInventorySet)
     ...normalizeRefs(rawOutcome.inspected_implementation_refs),
     ...normalizeRefs(rawOutcome.implementation_evidence_refs),
   ]);
-  const invalidImplementationRefs = refsOutsideSet(inspectedImplementationRefs, evidenceInventorySet);
+  const implementationRefs = stripNonImplementationContextRefs(inspectedImplementationRefs, evidenceInventorySet);
+  const invalidImplementationRefs = refsOutsideSet(implementationRefs, evidenceInventorySet);
   if (invalidImplementationRefs.length > 0) {
     return {
       ok: false,
@@ -356,8 +385,8 @@ function normalizeOutcome(rawOutcome, index, authorityRef, evidenceInventorySet)
   const normalized = {
     authority_ref: authorityRef,
     status,
-    evidence_refs: uniqueRefs([authorityRef, ...inspectedImplementationRefs]),
-    implementation_evidence_refs: inspectedImplementationRefs,
+    evidence_refs: uniqueRefs([authorityRef, ...implementationRefs]),
+    implementation_evidence_refs: implementationRefs,
   };
   if (typeof rawOutcome.negative_reasoning === "string" && rawOutcome.negative_reasoning.trim()) {
     normalized.negative_reasoning = rawOutcome.negative_reasoning.trim();
@@ -380,7 +409,7 @@ function normalizeOutcome(rawOutcome, index, authorityRef, evidenceInventorySet)
   return {
     ok: true,
     outcome: normalized,
-    inspectedImplementationRefs,
+    inspectedImplementationRefs: implementationRefs,
   };
 }
 
@@ -409,7 +438,7 @@ function normalizeRuleChecks(rawRuleChecks, evidenceInventorySet, authorityRefSe
     if (typeof rawCheck.negative_reasoning !== "string" || !rawCheck.negative_reasoning.trim()) {
       return { ok: false, error: `coverage.p0p1_rule_checks[${index}].negative_reasoning is required` };
     }
-    const rawRefs = uniqueRefs(normalizeRefs(rawCheck.implementation_refs));
+    const rawRefs = stripNonImplementationContextRefs(uniqueRefs(normalizeRefs(rawCheck.implementation_refs)), evidenceInventorySet);
     const refs = rawRefs.filter((ref) => evidenceInventorySet.has(ref));
     const invalidRawRefs = rawRefs.filter((ref) => !evidenceInventorySet.has(ref) && !authorityRefSet.has(ref));
     if (rawCheck.status === "checked" && refs.length === 0) {
@@ -434,6 +463,16 @@ function normalizeRuleChecks(rawRuleChecks, evidenceInventorySet, authorityRefSe
     return { ok: false, error: `coverage.p0p1_rule_checks must include every required P0/P1 rule id: missing ${missingRuleCheckIds.join(", ")}` };
   }
   return { ok: true, ruleChecks, implementationRefs: uniqueRefs(implementationRefs) };
+}
+
+function deriveP0P1NegativeReasoningFromRuleChecks(ruleChecks) {
+  const reasons = uniqueRefs(ruleChecks
+    .map((check) => typeof check.negative_reasoning === "string" ? check.negative_reasoning.trim() : "")
+    .filter(Boolean));
+  if (reasons.length === 0) {
+    return null;
+  }
+  return reasons.join(" ");
 }
 
 function normalizeCodexSemanticOutput(rawOutput, chunk, options) {
@@ -471,7 +510,8 @@ function normalizeCodexSemanticOutput(rawOutput, chunk, options) {
     ...normalizeRefs(rawOutput.coverage.p0p1_evidence_refs),
     ...normalizeRefs(rawOutput.coverage.inspected_implementation_refs),
   ]);
-  const invalidP0P1EvidenceRefs = refsOutsideSet(p0p1EvidenceRefs, evidenceInventorySet);
+  const normalizedP0P1EvidenceRefs = stripNonImplementationContextRefs(p0p1EvidenceRefs, evidenceInventorySet);
+  const invalidP0P1EvidenceRefs = refsOutsideSet(normalizedP0P1EvidenceRefs, evidenceInventorySet);
   if (invalidP0P1EvidenceRefs.length > 0) {
     return {
       ok: false,
@@ -497,13 +537,18 @@ function normalizeCodexSemanticOutput(rawOutput, chunk, options) {
       authority_refs: authorityRefs,
       evidence_files: evidenceInventory,
       authority_outcomes: outcomes,
-      p0p1_evidence_refs: p0p1EvidenceRefs,
+      p0p1_evidence_refs: normalizedP0P1EvidenceRefs,
       p0p1_rule_checks: ruleChecks.ruleChecks,
     },
     findings: rawOutput.findings.map((finding) => normalizeFindingEnvelope(finding, evidenceInventorySet)),
   };
   if (typeof rawOutput.coverage.p0p1_negative_reasoning === "string" && rawOutput.coverage.p0p1_negative_reasoning.trim()) {
     evidence.coverage.p0p1_negative_reasoning = rawOutput.coverage.p0p1_negative_reasoning.trim();
+  } else if (evidence.findings.length === 0) {
+    const derivedReasoning = deriveP0P1NegativeReasoningFromRuleChecks(ruleChecks.ruleChecks);
+    if (derivedReasoning) {
+      evidence.coverage.p0p1_negative_reasoning = derivedReasoning;
+    }
   }
   if (typeof rawOutput.coverage.p0p1_implementation_not_applicable_reason === "string" && rawOutput.coverage.p0p1_implementation_not_applicable_reason.trim()) {
     evidence.coverage.p0p1_implementation_not_applicable_reason = rawOutput.coverage.p0p1_implementation_not_applicable_reason.trim();

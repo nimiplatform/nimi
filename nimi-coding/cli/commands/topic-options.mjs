@@ -189,6 +189,76 @@ export function parseTopicReadOptions(args, command) {
     options,
   };
 }
+export function parseTopicGoalOptions(args) {
+  const [topicInput, ...rest] = args;
+  if (!topicInput) {
+    return {
+      ok: false,
+      error: `${localize(
+        "nimicoding topic goal refused: expected <topic-id>.",
+        "nimicoding topic goal 已拒绝：需要 <topic-id>。",
+      )}\n`,
+    };
+  }
+  const options = {
+    topicInput,
+    format: "slash",
+    wave: null,
+    profile: null,
+  };
+  for (let index = 0; index < rest.length; index += 1) {
+    const arg = rest[index];
+    const next = rest[index + 1];
+    if (arg === "--json") {
+      options.format = "json";
+      continue;
+    }
+    if (arg === "--format") {
+      const valueCheck = requireOptionValue("--format", next, "nimicoding topic goal refused");
+      if (!valueCheck.ok) {
+        return valueCheck;
+      }
+      if (!["slash", "json"].includes(next)) {
+        return {
+          ok: false,
+          error: `${localize(
+            `nimicoding topic goal refused: unsupported --format value ${next}.`,
+            `nimicoding topic goal 已拒绝：不支持的 --format 值 ${next}。`,
+          )}\n`,
+        };
+      }
+      options.format = next;
+      index += 1;
+      continue;
+    }
+    if (arg === "--wave") {
+      const valueCheck = requireOptionValue("--wave", next, "nimicoding topic goal refused");
+      if (!valueCheck.ok) {
+        return valueCheck;
+      }
+      options.wave = next;
+      index += 1;
+      continue;
+    }
+    if (arg === "--profile") {
+      const valueCheck = requireOptionValue("--profile", next, "nimicoding topic goal refused");
+      if (!valueCheck.ok) {
+        return valueCheck;
+      }
+      options.profile = next;
+      index += 1;
+      continue;
+    }
+    return {
+      ok: false,
+      error: `${localize(
+        `nimicoding topic goal refused: unknown option ${arg}.`,
+        `nimicoding topic goal 已拒绝：未知选项 ${arg}。`,
+      )}\n`,
+    };
+  }
+  return { ok: true, options };
+}
 export function parseRunNextStepOptions(args) {
   const [topicInput, ...rest] = args;
   if (!topicInput) {

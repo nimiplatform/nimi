@@ -10,6 +10,23 @@ export function buildJsonReport(command, report) {
 export function writeJson(report) {
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 }
+export function formatTopicGoalRefusal(report) {
+  const blockingChecks = report.readiness?.checks?.filter((entry) => entry.status === "fail") ?? [];
+  const lines = [
+    "nimicoding topic goal refused: topic is not goal-ready.",
+    "",
+    `Topic: ${report.topic_id ?? "unknown"}`,
+    `State: ${report.topic_state ?? "unknown"}`,
+    `Selected Next Target: ${report.selected_next_target ?? "none"}`,
+    "",
+    "Blocking checks:",
+    ...blockingChecks.map((entry) => `- ${entry.id}: ${entry.message}`),
+    "",
+    "Fix the topic admission artifacts first, then rerun:",
+    `pnpm exec nimicoding topic goal ${report.topic_id ?? "<topic-id>"}`,
+  ];
+  return `${lines.join("\n")}\n`;
+}
 export function formatTopicStatus(report) {
   const lines = [
     styleHeading(`nimicoding topic status: ${report.topicId}`),

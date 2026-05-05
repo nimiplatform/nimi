@@ -52,6 +52,8 @@ function codexPrompt({ packet, auditorPacketRef, rawRef, sessionRef }) {
     "You only author semantic audit content: authority_outcomes reasoning/status, inspected_implementation_refs, P0/P1 rule checks, p0p1_negative_reasoning when applicable, and findings.",
     "For each authority outcome, set authority_ref to the packet authority_ref and put inspected implementation refs in inspected_implementation_refs or implementation_evidence_refs.",
     "Every implementation ref you cite must be an exact file ref from packet.selected_implementation_refs / packet.evidence_inventory.",
+    "Never put AGENTS.md, README.md, spec files, authority refs, methodology docs, or governance docs in inspected_implementation_refs, implementation_evidence_refs, coverage.p0p1_evidence_refs, findings[].implementation_refs, or coverage.p0p1_rule_checks[].implementation_refs unless that exact file appears in packet.selected_implementation_refs.",
+    "If a governance or authority document influenced reasoning but is not in packet.selected_implementation_refs, mention it only in negative_reasoning/description text, not in any implementation_refs array.",
     "Use packet.audit_depth to size your inspection: deep means inspect the selected slice thoroughly, normal means focused semantic inspection, shallow means audit generated/table/index invariants from the selected slice without expanding the omitted inventory.",
     "Return exactly one JSON object and nothing else. Do not wrap it in markdown.",
     "The JSON object must have exactly these top-level fields: chunk_id, auditor, coverage, findings.",

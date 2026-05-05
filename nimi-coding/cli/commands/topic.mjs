@@ -29,6 +29,7 @@ import {
   validateWaveAdmission,
 } from "../lib/topic.mjs";
 import { localize } from "../lib/ui.mjs";
+import { runTopicGoal } from "./topic-goal.mjs";
 import {
   buildJsonReport,
   formatAdmissionValidate,
@@ -733,8 +734,8 @@ export async function runTopic(args) {
   const [subcommand, ...rest] = args;
   if (!subcommand) {
     process.stderr.write(`${localize(
-      "nimicoding topic refused: expected a subcommand (`create`, `status`, `run-next-step`, `run-ledger`, `validate`, `wave`, `packet`, `worker`, `audit`, `result`, `remediation`, `overflow`, `hold`, `resume`, `closeout`, `true-close-audit`, or `decision-review`).",
-      "nimicoding topic 已拒绝：需要子命令（`create`、`status`、`run-next-step`、`run-ledger`、`validate`、`wave`、`packet`、`worker`、`audit`、`result`、`remediation`、`overflow`、`hold`、`resume`、`closeout`、`true-close-audit` 或 `decision-review`）。",
+      "nimicoding topic refused: expected a subcommand (`create`, `status`, `goal`, `run-next-step`, `run-ledger`, `validate`, `wave`, `packet`, `worker`, `audit`, `result`, `remediation`, `overflow`, `hold`, `resume`, `closeout`, `true-close-audit`, or `decision-review`).",
+      "nimicoding topic 已拒绝：需要子命令（`create`、`status`、`goal`、`run-next-step`、`run-ledger`、`validate`、`wave`、`packet`、`worker`、`audit`、`result`、`remediation`、`overflow`、`hold`、`resume`、`closeout`、`true-close-audit` 或 `decision-review`）。",
     )}\n`);
     return 2;
   }
@@ -744,6 +745,7 @@ export async function runTopic(args) {
   if (subcommand === "status") {
     return runTopicStatus(rest);
   }
+  if (subcommand === "goal") return runTopicGoal(rest);
   if (subcommand === "run-next-step") {
     return runTopicNextStep(rest);
   }
@@ -777,22 +779,17 @@ export async function runTopic(args) {
   if (subcommand === "hold") {
     return runTopicHold(rest);
   }
-  if (subcommand === "resume") {
-    return runTopicResume(rest);
-  }
+  if (subcommand === "resume") return runTopicResume(rest);
   if (subcommand === "closeout") {
     return runTopicCloseout(rest);
   }
   if (subcommand === "true-close-audit") {
     return runTopicTrueCloseAuditCommand(rest);
   }
-  if (subcommand === "decision-review") {
-    return runTopicDecisionReview(rest);
-  }
+  if (subcommand === "decision-review") return runTopicDecisionReview(rest);
   process.stderr.write(`${localize(
     `nimicoding topic refused: unknown subcommand ${subcommand}.`,
     `nimicoding topic 已拒绝：未知子命令 ${subcommand}。`,
   )}\n`);
   return 2;
 }
-export { parseTopicCreateOptions, parseTopicReadOptions };

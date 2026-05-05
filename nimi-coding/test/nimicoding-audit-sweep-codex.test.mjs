@@ -390,6 +390,63 @@ test("Codex auditor extractor tolerates a unique extra closing brace inside the 
   });
 });
 
+test("Codex auditor extractor tolerates trailing findings_count metadata after a valid envelope", async () => {
+  await withTempProject(async (projectRoot) => {
+    const packetRef = ".nimi/local/audit/packets/test/chunk-trailing-count.auditor-packet.yaml";
+    const chunk = {
+      chunk_id: "chunk-trailing-count",
+      planning_basis: "spec_authority",
+      criteria: ["p0p1"],
+      files: [".nimi/spec/desktop/kernel/tables/avatar-probes.yaml"],
+      authority_refs: [".nimi/spec/desktop/kernel/tables/avatar-probes.yaml"],
+      evidence_inventory: ["apps/desktop/src/shell/renderer/features/chat/chat-agent-center-avatar-debug-workbench.tsx"],
+    };
+    const rawEvidence = {
+      chunk_id: chunk.chunk_id,
+      auditor: { id: "codex-trailing-count-fixture" },
+      coverage: {
+        authority_outcomes: [{
+          authority_ref: chunk.authority_refs[0],
+          status: "audited",
+          inspected_implementation_refs: chunk.evidence_inventory,
+          negative_reasoning: "The avatar workbench implementation was inspected.",
+        }],
+        p0p1_evidence_refs: chunk.evidence_inventory,
+        p0p1_rule_checks: p0p1RuleChecks(chunk.evidence_inventory[0]),
+      },
+      findings: [{
+        severity: "high",
+        category: "fail_open_or_pseudo_success",
+        actionability: "needs-decision",
+        confidence: "high",
+        impact: "A probe passed state can omit linked evidence.",
+        location: { file: chunk.evidence_inventory[0], line: 1 },
+        title: "Avatar probe fixture finding",
+        description: "The semantic finding remains inside the valid envelope.",
+        evidence: {
+          summary: "The finding is inside the envelope; findings_count is trailing metadata.",
+          auditor_reasoning: "The parser may ignore the trailing count without changing semantic conclusions.",
+        },
+      }],
+    };
+    const rawOutputPath = path.join(projectRoot, "codex-trailing-count-raw.json");
+    await writeFile(rawOutputPath, `${JSON.stringify(rawEvidence)},\"findings_count\":1}\n`, "utf8");
+
+    const extracted = await extractCodexAuditorEvidenceFile(projectRoot, {
+      rawOutputPath,
+      evidenceRef: ".nimi/local/audit/evidence/test/chunk-trailing-count.codex-evidence.json",
+      chunk,
+      packetRef,
+      sessionRef: "codex-exec:test-trailing-count",
+      transcriptRef: ".nimi/local/audit/evidence/test/codex-trailing-count-raw.json",
+      auditorId: "codex-trailing-count-fixture",
+    });
+
+    assert.equal(extracted.ok, true, extracted.error);
+    assert.equal(extracted.evidence.findings[0].title, "Avatar probe fixture finding");
+  });
+});
+
 test("Codex auditor extractor rejects incomplete P0/P1 rule check objects before ingest", async () => {
   await withTempProject(async (projectRoot) => {
     const packetRef = ".nimi/local/audit/packets/test/chunk-incomplete-rules.auditor-packet.yaml";
@@ -439,6 +496,57 @@ test("Codex auditor extractor rejects incomplete P0/P1 rule check objects before
 
     assert.equal(extracted.ok, false);
     assert.match(extracted.error, /coverage\.p0p1_rule_checks\[0\]\.status must be checked or not_applicable/);
+  });
+});
+
+test("Codex auditor extractor derives aggregate P0/P1 negative reasoning from rule-level reasoning", async () => {
+  await withTempProject(async (projectRoot) => {
+    const packetRef = ".nimi/local/audit/packets/test/chunk-rule-derived-reasoning.auditor-packet.yaml";
+    const chunk = {
+      chunk_id: "chunk-rule-derived-reasoning",
+      planning_basis: "spec_authority",
+      criteria: ["p0p1"],
+      files: [".nimi/spec/platform/kernel/app-slice-admission-contract.md"],
+      authority_refs: [".nimi/spec/platform/kernel/app-slice-admission-contract.md"],
+      evidence_inventory: ["kit/features/chat/src/realm/service.ts"],
+    };
+    const rawEvidence = {
+      chunk_id: chunk.chunk_id,
+      auditor: { id: "codex-rule-derived-reasoning-fixture" },
+      coverage: {
+        authority_outcomes: [{
+          authority_ref: chunk.authority_refs[0],
+          status: "audited",
+          inspected_implementation_refs: chunk.evidence_inventory,
+          negative_reasoning: "The app-slice admission implementation surface was inspected.",
+        }],
+        p0p1_evidence_refs: chunk.evidence_inventory,
+        p0p1_rule_checks: p0p1RuleChecks(chunk.evidence_inventory[0]),
+      },
+      findings: [],
+    };
+    const rawOutputPath = path.join(projectRoot, "codex-rule-derived-reasoning-raw.json");
+    await writeFile(rawOutputPath, `${JSON.stringify(rawEvidence, null, 2)}\n`, "utf8");
+
+    const extracted = await extractCodexAuditorEvidenceFile(projectRoot, {
+      rawOutputPath,
+      evidenceRef: ".nimi/local/audit/evidence/test/chunk-rule-derived-reasoning.codex-evidence.json",
+      chunk,
+      packetRef,
+      sessionRef: "codex-exec:test-rule-derived-reasoning",
+      transcriptRef: ".nimi/local/audit/evidence/test/codex-rule-derived-reasoning-raw.json",
+      auditorId: "codex-rule-derived-reasoning-fixture",
+    });
+
+    assert.equal(extracted.ok, true, extracted.error);
+    assert.match(
+      extracted.evidence.coverage.p0p1_negative_reasoning,
+      /Rule fail_open_or_pseudo_success was checked against the implementation surface without a P0\/P1 trigger/,
+    );
+    assert.match(
+      extracted.evidence.coverage.p0p1_negative_reasoning,
+      /Rule app_local_shadow_truth was checked against the implementation surface without a P0\/P1 trigger/,
+    );
   });
 });
 
@@ -615,6 +723,74 @@ test("Codex auditor extractor drops authority refs from rule-check implementatio
       extracted.evidence.coverage.p0p1_rule_checks[6].implementation_refs,
       [chunk.evidence_inventory[0]],
     );
+  });
+});
+
+test("Codex auditor extractor drops non-implementation governance refs from rule-check implementation refs", async () => {
+  await withTempProject(async (projectRoot) => {
+    const packetRef = ".nimi/local/audit/packets/test/chunk-rule-governance-ref.auditor-packet.yaml";
+    const chunk = {
+      chunk_id: "chunk-rule-governance-ref",
+      planning_basis: "spec_authority",
+      criteria: ["p0p1"],
+      files: [".nimi/spec/desktop/kernel/knowledge-ui-contract.md"],
+      authority_refs: [".nimi/spec/desktop/kernel/knowledge-ui-contract.md"],
+      evidence_inventory: ["apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-knowledge-sdk-service.ts"],
+    };
+    const checks = p0p1RuleChecks(chunk.evidence_inventory[0]);
+    checks[2] = {
+      ...checks[2],
+      implementation_refs: ["apps/desktop/AGENTS.md", chunk.evidence_inventory[0]],
+    };
+    const rawEvidence = {
+      chunk_id: chunk.chunk_id,
+      auditor: { id: "codex-rule-governance-ref-fixture" },
+      coverage: {
+        authority_outcomes: [{
+          authority_ref: chunk.authority_refs[0],
+          status: "audited",
+          inspected_implementation_refs: chunk.evidence_inventory,
+          negative_reasoning: "The knowledge UI service was inspected for boundary violations; AGENTS.md was governance context only.",
+        }],
+        p0p1_negative_reasoning: "The rule-check fixture found no high-impact defect after inspecting the selected implementation.",
+        p0p1_evidence_refs: ["apps/desktop/AGENTS.md", chunk.evidence_inventory[0]],
+        p0p1_rule_checks: checks,
+      },
+      findings: [{
+        severity: "high",
+        category: "partial_coverage_misrepresented_as_complete",
+        actionability: "needs-decision",
+        confidence: "high",
+        impact: "The knowledge UI omits a required runtime detail method.",
+        location: { file: chunk.evidence_inventory[0], line: 1 },
+        title: "Knowledge UI fixture finding",
+        description: "The semantic finding is preserved while governance context refs are stripped from implementation refs.",
+        evidence: {
+          summary: "A real semantic finding remains present.",
+          auditor_reasoning: "The governance ref is context, not implementation evidence.",
+        },
+      }],
+    };
+    const rawOutputPath = path.join(projectRoot, "codex-rule-governance-ref-raw.json");
+    await writeFile(rawOutputPath, `${JSON.stringify(rawEvidence, null, 2)}\n`, "utf8");
+
+    const extracted = await extractCodexAuditorEvidenceFile(projectRoot, {
+      rawOutputPath,
+      evidenceRef: ".nimi/local/audit/evidence/test/chunk-rule-governance-ref.codex-evidence.json",
+      chunk,
+      packetRef,
+      sessionRef: "codex-exec:test-rule-governance-ref",
+      transcriptRef: ".nimi/local/audit/evidence/test/codex-rule-governance-ref-raw.json",
+      auditorId: "codex-rule-governance-ref-fixture",
+    });
+
+    assert.equal(extracted.ok, true, extracted.error);
+    assert.deepEqual(
+      extracted.evidence.coverage.p0p1_rule_checks[2].implementation_refs,
+      [chunk.evidence_inventory[0]],
+    );
+    assert.deepEqual(extracted.evidence.coverage.p0p1_evidence_refs, [chunk.evidence_inventory[0]]);
+    assert.equal(extracted.evidence.findings[0].title, "Knowledge UI fixture finding");
   });
 });
 
