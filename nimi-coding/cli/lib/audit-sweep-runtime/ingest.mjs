@@ -36,7 +36,7 @@ import { buildAuditValidityForEvidence, p0p1ImplementationRefsForChunk } from ".
 import { isPlainObject } from "../value-helpers.mjs";
 import { pathExists } from "../fs-helpers.mjs";
 
-function validateEvidenceEnvelope(evidence, chunk) {
+export function validateEvidenceEnvelope(evidence, chunk) {
   if (!isPlainObject(evidence)) {
     return { ok: false, error: "audit evidence must be a JSON object" };
   }
@@ -266,6 +266,18 @@ function existingFindingForFingerprint(store, fingerprint) {
   return store.findings.find((finding) => finding.fingerprint === fingerprint) ?? null;
 }
 
+function sameLocation(left, right) {
+  return left?.location?.file === right?.location?.file
+    && (left?.location?.line ?? null) === (right?.location?.line ?? null)
+    && (left?.location?.symbol ?? null) === (right?.location?.symbol ?? null);
+}
+
+function existingFindingForRetryLocation(store, finding) {
+  return store.findings.find((existing) => existing.chunk_id === finding.chunk_id
+    && existing.severity === finding.severity
+    && sameLocation(existing, finding)) ?? null;
+}
+
 function clusterForFinding(store, finding) {
   if (!finding?.cluster_id) {
     return null;
@@ -355,6 +367,16 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
       const sourceCluster = clusterForFinding(store, sourceFinding);
       if (sourceCluster) {
         recordClusteredSymptom(store, sourceCluster, normalized.finding, normalized.fingerprint, "exact_duplicate");
+        clusteredCount += 1;
+      }
+      continue;
+    }
+    const sameLocationRetry = existingFindingForRetryLocation(store, normalized.finding);
+    if (sameLocationRetry) {
+      duplicateCount += 1;
+      const sourceCluster = clusterForFinding(store, sameLocationRetry);
+      if (sourceCluster) {
+        recordClusteredSymptom(store, sourceCluster, normalized.finding, normalized.fingerprint, "same_chunk_location_retry");
         clusteredCount += 1;
       }
       continue;

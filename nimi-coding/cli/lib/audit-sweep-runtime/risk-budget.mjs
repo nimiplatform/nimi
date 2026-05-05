@@ -56,6 +56,22 @@ function normalizeRootCauseField(rawFinding, name) {
   return nonEmptyString(value) ? String(value).trim().replace(/\\/g, "/") : null;
 }
 
+function normalizeEvidenceRootForChunk(chunk, evidenceRoot) {
+  if (!evidenceRoot) {
+    return null;
+  }
+  if (evidenceRoot === "packet:evidence_inventory") {
+    return null;
+  }
+  for (const rootRef of chunk.evidence_roots ?? []) {
+    const normalized = String(rootRef).replace(/\\/g, "/").replace(/\/$/, "");
+    if (evidenceRoot === normalized || evidenceRoot.startsWith(`${normalized}/`)) {
+      return normalized;
+    }
+  }
+  return null;
+}
+
 export function deriveFindingCluster(rawFinding, finding, chunk, plan) {
   const authorityRef = normalizeRootCauseField(rawFinding, "authority_ref")
     ?? chunk.authority_refs?.[0]
@@ -67,12 +83,14 @@ export function deriveFindingCluster(rawFinding, finding, chunk, plan) {
   }
 
   const explicitEvidenceRoot = normalizeRootCauseField(rawFinding, "evidence_root");
-  if (explicitEvidenceRoot && chunk.planning_basis === "spec_authority" && !(chunk.evidence_roots ?? []).includes(explicitEvidenceRoot)) {
-    return { ok: false, error: "root_cause.evidence_root must belong to chunk evidence roots" };
+  const normalizedExplicitEvidenceRoot = normalizeEvidenceRootForChunk(chunk, explicitEvidenceRoot);
+  const packetInventoryRootSentinel = explicitEvidenceRoot === "packet:evidence_inventory";
+  if (explicitEvidenceRoot && !packetInventoryRootSentinel && chunk.planning_basis === "spec_authority" && !normalizedExplicitEvidenceRoot) {
+    return { ok: false, error: "root_cause.evidence_root must belong to chunk evidence roots or a descendant of one" };
   }
 
   const rootCauseKey = normalizeRootCauseField(rawFinding, "key") ?? normalizeRootCauseField(rawFinding, "id");
-  const evidenceRoot = explicitEvidenceRoot ?? evidenceRootForFile(chunk, finding.location.file);
+  const evidenceRoot = normalizedExplicitEvidenceRoot ?? evidenceRootForFile(chunk, finding.location.file);
   const contractSeam = normalizeRootCauseField(rawFinding, "contract_seam") ?? finding.category;
   const repairTarget = normalizeRootCauseField(rawFinding, "repair_target") ?? finding.location.file;
   const fallbackUniqueKey = `${finding.title}:${finding.description}:${finding.location.file}`;

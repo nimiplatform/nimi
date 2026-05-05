@@ -229,6 +229,11 @@ test("audit-sweep dispatch adds opt-in P0/P1 recall strategy without changing or
     assert.equal(p0p1Packet.audit_strategy.profile.severity_mapping.p1, "high");
     assert.ok(p0p1Packet.audit_strategy.profile.priority_defect_classes.some((defectClass) => defectClass.id === "fail_open_or_pseudo_success"));
     assert.ok(p0p1Packet.audit_strategy.profile.priority_defect_classes.some((defectClass) => defectClass.id === "partial_coverage_misrepresented_as_complete"));
+    assert.deepEqual(
+      p0p1Packet.audit_strategy.profile.priority_defect_classes.map((defectClass) => defectClass.id).sort(),
+      [...p0p1Packet.output_contract.p0p1_rule_check_required_ids].sort(),
+    );
+    assert.equal(p0p1Packet.output_contract.p0p1_rule_check_id_policy.aliases_rejected_fail_closed, true);
     assert.equal(p0p1Packet.audit_strategy.profile.token_budget_policy.triage_first, true);
     assert.equal(p0p1Packet.audit_strategy.profile.token_budget_policy.deep_audit_only_on_trigger, true);
     assert.equal(p0p1Packet.audit_strategy.profile.token_budget_policy.cluster_duplicate_symptoms, true);

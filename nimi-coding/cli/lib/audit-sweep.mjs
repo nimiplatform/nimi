@@ -5,6 +5,7 @@ export {
   skipAuditSweepChunk,
 } from "./audit-sweep-runtime/chunks.mjs";
 export { ingestAuditSweepChunk } from "./audit-sweep-runtime/ingest.mjs";
+export { runCodexAuditSweepChunk } from "./audit-sweep-runtime/codex-auditor.mjs";
 export { buildAuditSweepLedger } from "./audit-sweep-runtime/ledger.mjs";
 export {
   admitAuditSweepRemediationMap,

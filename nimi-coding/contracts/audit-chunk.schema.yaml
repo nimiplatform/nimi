@@ -66,6 +66,9 @@ hard_constraints:
   - no_finding_audited_outcomes_must_declare_negative_reasoning
   - no_finding_audited_outcomes_with_non_empty_evidence_inventory_must_declare_implementation_evidence_refs_or_not_applicable_reason
   - p0p1_recall_chunks_without_critical_or_high_findings_must_declare_negative_reasoning_and_implementation_refs
+  - p0p1_recall_chunks_with_implementation_inventory_must_record_rule_specific_checks
+  - p0p1_no_finding_evidence_with_implementation_inventory_must_cite_semantic_auditor_provenance
+  - synthetic_no_finding_generators_must_not_emit_semantic_audit_evidence
   - calibration_expected_defects_must_be_satisfied_by_finding_evidence_when_present
   - ingest_requires_dispatch
   - frozen_requires_manager_review
@@ -76,6 +79,13 @@ audit_evidence_coverage_fields:
   - no_finding_summary
   - p0p1_negative_reasoning
   - p0p1_evidence_refs
+  - p0p1_rule_checks
+  - p0p1_implementation_not_applicable_reason
+auditor_provenance_fields:
+  required_when_p0p1_no_finding_with_implementation_inventory:
+    - kind
+    - packet_ref
+    - session_ref_or_transcript_ref_or_review_ref
 authority_outcome_fields:
   required:
     - authority_ref

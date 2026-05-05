@@ -39,6 +39,10 @@ const RUN_EVENT_TYPES = new Set([
   "chunk_frozen",
   "chunk_failed",
   "chunk_skipped",
+  "chunk_codex_audit_prepared",
+  "chunk_codex_audit_failed",
+  "chunk_codex_auditor_output_rejected",
+  "chunk_codex_auditor_output_accepted",
   "ledger_snapshot_created",
   "remediation_map_created",
   "remediation_map_admitted",
@@ -272,7 +276,12 @@ function validatePlanShape(plan, sweepId, checks) {
       && mappedEvidenceFiles.every((fileRef) => evidenceInventoryFiles.includes(fileRef)), "every mapped evidence inventory file belongs to at least one chunk");
     check(checks, "plan_spec_unmapped_evidence_declared", unmappedEvidenceFiles.every((fileRef) => evidenceInventoryFiles.includes(fileRef)), "unmapped evidence files belong to the evidence inventory");
     check(checks, "plan_spec_unmapped_evidence_fail_closed", unmappedEvidenceFiles.length === 0, "spec-authority plans have no unmapped evidence files");
-    check(checks, "plan_spec_declared_evidence_resolved", unresolvedDeclaredEvidenceChunks.length === 0, "spec-authority declared evidence targets resolve before validation can pass");
+    const declaredEvidenceBlockerPresent = plan.coverage_quality?.blockers?.some((blocker) => (
+      blocker?.id === "declared_evidence_target_unresolved"
+      && Array.isArray(blocker.chunk_ids)
+      && unresolvedDeclaredEvidenceChunks.every((chunkId) => blocker.chunk_ids.includes(chunkId))
+    )) === true;
+    check(checks, "plan_spec_declared_evidence_resolved", unresolvedDeclaredEvidenceChunks.length === 0 || declaredEvidenceBlockerPresent, "spec-authority unresolved declared evidence targets are either resolved or represented as coverage-quality blockers");
     check(checks, "plan_spec_coverage_counts_match", plan.coverage?.authority_files === includedFiles.length
       && plan.coverage?.evidence_files === evidenceInventoryFiles.length
       && plan.coverage?.unmapped_evidence_files === unmappedEvidenceFiles.length
@@ -339,13 +348,63 @@ function validateChunkShape(chunk, plan, checks) {
     && ["planned_at", "dispatched_at", "ingested_at", "reviewed_at", "frozen_at", "failed_at", "skipped_at"].every((field) => field in lifecycle)
     && isIsoUtcTimestamp(lifecycle.planned_at);
   check(checks, `chunk_${chunk.chunk_id}_lifecycle_valid`, lifecycleOk, "audit chunk lifecycle is explicit");
+  const lifecycleMatchesState = lifecycleOk && chunkLifecycleMatchesState(chunk);
+  check(checks, `chunk_${chunk.chunk_id}_lifecycle_matches_state`, lifecycleMatchesState, "audit chunk lifecycle timestamps match current state");
   check(checks, `chunk_${chunk.chunk_id}_dispatch_posture`, chunk.state === "planned" || chunk.state === "skipped" || isPlainObject(chunk.dispatch), "non-planned, non-skipped chunks have dispatch packet posture");
-  check(checks, `chunk_${chunk.chunk_id}_ingest_posture`, !["ingested", "reviewed", "frozen", "failed"].includes(chunk.state) || nonEmptyString(chunk.evidence_ref), "ingested or later chunks reference audit evidence");
+  check(checks, `chunk_${chunk.chunk_id}_ingest_posture`, !["ingested", "reviewed", "frozen"].includes(chunk.state) || nonEmptyString(chunk.evidence_ref), "ingested or frozen chunks reference audit evidence");
   check(checks, `chunk_${chunk.chunk_id}_frozen_review`, chunk.state !== "frozen" || chunk.review?.verdict === "pass", "frozen chunks have passing manager review");
   check(checks, `chunk_${chunk.chunk_id}_failure_or_skip_reason`, !["failed", "skipped"].includes(chunk.state)
     || nonEmptyString(chunk.failure?.reason)
     || nonEmptyString(chunk.skip?.reason)
     || nonEmptyString(chunk.review?.summary), "failed or skipped chunks have an explicit reason");
+}
+
+function timestampPresent(value) {
+  return isIsoUtcTimestamp(value);
+}
+
+function timestampAbsent(value) {
+  return value === null || value === undefined;
+}
+
+function chunkLifecycleMatchesState(chunk) {
+  const lifecycle = chunk.lifecycle;
+  const afterPlanned = ["dispatched_at", "ingested_at", "reviewed_at", "frozen_at", "failed_at", "skipped_at"];
+  if (chunk.state === "planned") {
+    return afterPlanned.every((field) => timestampAbsent(lifecycle[field]));
+  }
+  if (chunk.state === "dispatched") {
+    return timestampPresent(lifecycle.dispatched_at)
+      && ["ingested_at", "reviewed_at", "frozen_at", "failed_at", "skipped_at"].every((field) => timestampAbsent(lifecycle[field]));
+  }
+  if (chunk.state === "ingested") {
+    return timestampPresent(lifecycle.dispatched_at)
+      && timestampPresent(lifecycle.ingested_at)
+      && ["reviewed_at", "frozen_at", "failed_at", "skipped_at"].every((field) => timestampAbsent(lifecycle[field]));
+  }
+  if (chunk.state === "reviewed") {
+    return timestampPresent(lifecycle.dispatched_at)
+      && timestampPresent(lifecycle.ingested_at)
+      && timestampPresent(lifecycle.reviewed_at)
+      && ["frozen_at", "failed_at", "skipped_at"].every((field) => timestampAbsent(lifecycle[field]));
+  }
+  if (chunk.state === "frozen") {
+    return timestampPresent(lifecycle.dispatched_at)
+      && timestampPresent(lifecycle.ingested_at)
+      && timestampPresent(lifecycle.reviewed_at)
+      && timestampPresent(lifecycle.frozen_at)
+      && ["failed_at", "skipped_at"].every((field) => timestampAbsent(lifecycle[field]));
+  }
+  if (chunk.state === "failed") {
+    return timestampPresent(lifecycle.dispatched_at)
+      && timestampPresent(lifecycle.failed_at)
+      && timestampAbsent(lifecycle.skipped_at);
+  }
+  if (chunk.state === "skipped") {
+    return timestampPresent(lifecycle.skipped_at)
+      && ["dispatched_at", "ingested_at", "reviewed_at", "frozen_at", "failed_at"].every((field) => timestampAbsent(lifecycle[field]));
+  }
+  return false;
 }
 
 function validateSpecAuthorityCoverageEnvelope(evidence, chunk) {
@@ -550,13 +609,14 @@ function validateRunLedgerReplay(events, plan, chunks, findings, latestLedger, c
   }
   check(checks, "run_replay_plan_created", eventsByType.get("plan_created")?.some((event) => event.plan_ref === planRefFromPlan(plan)) === true, "run ledger records plan_created for this plan");
   for (const chunk of chunks) {
-    const dispatched = eventsByType.get("chunk_dispatched")?.some((event) => event.chunk_id === chunk.chunk_id) === true;
+    const dispatched = eventsByType.get("chunk_dispatched")?.some((event) => event.chunk_id === chunk.chunk_id) === true
+      || eventsByType.get("chunk_codex_audit_prepared")?.some((event) => event.chunk_id === chunk.chunk_id) === true;
     const ingested = eventsByType.get("chunk_ingested")?.some((event) => event.chunk_id === chunk.chunk_id && event.evidence_ref === chunk.evidence_ref) === true;
     const frozen = eventsByType.get("chunk_frozen")?.some((event) => event.chunk_id === chunk.chunk_id) === true;
     const failed = eventsByType.get("chunk_failed")?.some((event) => event.chunk_id === chunk.chunk_id) === true;
     const skipped = eventsByType.get("chunk_skipped")?.some((event) => event.chunk_id === chunk.chunk_id) === true;
     const dispatchRequired = chunk.state !== "planned" && chunk.state !== "skipped";
-    const ingestRequired = ["ingested", "reviewed", "frozen", "failed"].includes(chunk.state);
+    const ingestRequired = ["ingested", "reviewed", "frozen"].includes(chunk.state);
     const terminalRequired = ["frozen", "failed", "skipped"].includes(chunk.state);
     check(checks, `run_replay_${chunk.chunk_id}_dispatch`, !dispatchRequired || dispatched, dispatchRequired ? `run ledger records dispatch for ${chunk.chunk_id}` : `run ledger dispatch not required for planned chunk ${chunk.chunk_id}`);
     check(checks, `run_replay_${chunk.chunk_id}_ingest`, !ingestRequired || ingested, ingestRequired ? `run ledger records ingest for ${chunk.chunk_id}` : `run ledger ingest not required for ${chunk.state} chunk ${chunk.chunk_id}`);

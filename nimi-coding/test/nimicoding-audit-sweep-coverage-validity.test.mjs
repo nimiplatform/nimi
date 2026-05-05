@@ -19,6 +19,9 @@ import {
   deriveCoverageCloseoutPosture,
   deriveCoverageStatus,
 } from "../cli/lib/audit-sweep-runtime/coverage-quality.mjs";
+import {
+  deriveFindingCluster,
+} from "../cli/lib/audit-sweep-runtime/risk-budget.mjs";
 
 function specPlan(chunks, coverage = {}) {
   const evidenceInventory = chunks.flatMap((chunk) => chunk.evidence_inventory ?? []);
@@ -50,6 +53,36 @@ function authorityOnlyNoFindingEvidence(chunk) {
       })),
     },
     findings: [],
+  };
+}
+
+function p0p1RuleChecks(ref = "src/security.ts") {
+  return [
+    "fail_open_or_pseudo_success",
+    "partial_coverage_misrepresented_as_complete",
+    "authority_boundary_or_private_import_bypass",
+    "permission_or_capability_bypass",
+    "ungated_destructive_action",
+    "provider_or_model_hardcoding",
+    "app_local_shadow_truth",
+  ].map((id) => ({
+    id,
+    status: "checked",
+    implementation_refs: [ref],
+    negative_reasoning: `Rule ${id} was checked against the implementation surface without a P0/P1 trigger.`,
+  }));
+}
+
+function semanticAuditor(packetRef = ".nimi/local/audit/packets/test/chunk.audit-packet.yaml") {
+  return {
+    id: "regression-fixture",
+    mode: "codex_semantic_audit",
+    methodology_ref: ".nimi/topics/ongoing/test/manager-prompts.md",
+    provenance: {
+      kind: "semantic_audit",
+      packet_ref: packetRef,
+      transcript_ref: ".nimi/topics/ongoing/test/auditor-transcript.md",
+    },
   };
 }
 
@@ -288,7 +321,8 @@ test("P0/P1 recall refs must all belong to the implementation surface", () => {
     coverage: {
       files: specOnlyChunk.files,
       p0p1_negative_reasoning: "Reviewed the authority text, but no implementation evidence exists.",
-      p0p1_evidence_refs: [".nimi/spec/runtime/kernel/security.md"],
+      p0p1_evidence_refs: [],
+      p0p1_implementation_not_applicable_reason: "The spec-authority chunk has an empty admitted evidence inventory, so there is no implementation ref to cite.",
     },
     findings: [],
   };
@@ -304,9 +338,138 @@ test("P0/P1 recall refs must all belong to the implementation surface", () => {
     blocker.id === "p0p1_evidence_refs_out_of_scope"
     && blocker.invalid_refs.includes("src/outside.ts")
   )));
-  assert.equal(specAuthorityOnly.posture, "invalid");
-  assert.ok(specAuthorityOnly.blockers.some((blocker) => blocker.id === "p0p1_evidence_refs_out_of_scope"));
-  assert.ok(specAuthorityOnly.blockers.some((blocker) => blocker.id === "p0p1_negative_reasoning_missing"));
+  assert.equal(specAuthorityOnly.posture, "warning");
+  assert.equal(specAuthorityOnly.p0p1_recall_posture, "explained");
+  assert.ok(specAuthorityOnly.warnings.some((warning) => warning.id === "empty_inventory_no_finding_weak"));
+});
+
+test("P0/P1 no-finding evidence with spec implementation inventory requires rule checks", () => {
+  const chunk = {
+    chunk_id: "chunk-p0p1-spec-implementation",
+    planning_basis: "spec_authority",
+    criteria: ["p0p1"],
+    files: [".nimi/spec/runtime/kernel/security.md"],
+    authority_refs: [".nimi/spec/runtime/kernel/security.md"],
+    evidence_inventory: ["runtime/internal/security.go"],
+  };
+  const baseEvidence = {
+    chunk_id: chunk.chunk_id,
+    coverage: {
+      files: chunk.files,
+      authority_refs: chunk.authority_refs,
+      evidence_files: chunk.evidence_inventory,
+      authority_outcomes: [{
+        authority_ref: chunk.authority_refs[0],
+        status: "audited",
+        evidence_refs: [chunk.authority_refs[0], chunk.evidence_inventory[0]],
+        implementation_evidence_refs: [chunk.evidence_inventory[0]],
+        negative_reasoning: "Reviewed the implementation evidence for P0/P1 classes.",
+      }],
+      p0p1_negative_reasoning: "Reviewed P0/P1 defect classes against the implementation file.",
+      p0p1_evidence_refs: [chunk.evidence_inventory[0]],
+    },
+    findings: [],
+  };
+  const explainedEvidence = {
+    ...baseEvidence,
+    auditor: semanticAuditor(),
+    coverage: {
+      ...baseEvidence.coverage,
+      p0p1_rule_checks: p0p1RuleChecks(chunk.evidence_inventory[0]),
+    },
+  };
+
+  const missingRuleChecks = buildAuditValidityForEvidence(chunk, baseEvidence);
+  const explained = buildAuditValidityForEvidence(chunk, explainedEvidence);
+
+  assert.equal(missingRuleChecks.posture, "invalid");
+  assert.equal(missingRuleChecks.p0p1_recall_posture, "invalid");
+  assert.ok(missingRuleChecks.blockers.some((blocker) => blocker.id === "p0p1_rule_checks_missing_or_invalid"));
+  assert.equal(explained.posture, "trusted");
+  assert.equal(explained.p0p1_recall_posture, "explained");
+});
+
+test("P0/P1 no-finding evidence with implementation inventory requires semantic auditor provenance", () => {
+  const chunk = {
+    chunk_id: "chunk-p0p1-provenance",
+    planning_basis: "spec_authority",
+    criteria: ["p0p1"],
+    files: [".nimi/spec/runtime/kernel/security.md"],
+    authority_refs: [".nimi/spec/runtime/kernel/security.md"],
+    evidence_inventory: ["runtime/internal/security.go"],
+  };
+  const evidence = {
+    chunk_id: chunk.chunk_id,
+    auditor: { id: "regression-fixture" },
+    coverage: {
+      files: chunk.files,
+      authority_refs: chunk.authority_refs,
+      evidence_files: chunk.evidence_inventory,
+      authority_outcomes: [{
+        authority_ref: chunk.authority_refs[0],
+        status: "audited",
+        evidence_refs: [chunk.authority_refs[0], chunk.evidence_inventory[0]],
+        implementation_evidence_refs: [chunk.evidence_inventory[0]],
+        negative_reasoning: "Reviewed the implementation evidence for P0/P1 classes.",
+      }],
+      p0p1_negative_reasoning: "Reviewed P0/P1 defect classes against the implementation file.",
+      p0p1_evidence_refs: [chunk.evidence_inventory[0]],
+      p0p1_rule_checks: p0p1RuleChecks(chunk.evidence_inventory[0]),
+    },
+    findings: [],
+  };
+
+  const validity = buildAuditValidityForEvidence(chunk, evidence);
+  const explained = buildAuditValidityForEvidence(chunk, {
+    ...evidence,
+    auditor: semanticAuditor(),
+  });
+
+  assert.equal(validity.posture, "invalid");
+  assert.equal(validity.p0p1_recall_posture, "invalid");
+  assert.ok(validity.blockers.some((blocker) => blocker.id === "auditor_provenance_missing"));
+  assert.equal(explained.posture, "trusted");
+  assert.equal(explained.auditor_provenance_present, true);
+});
+
+test("templated script-generated P0/P1 no-finding evidence is invalid", () => {
+  const chunk = {
+    chunk_id: "chunk-p0p1-synthetic",
+    planning_basis: "spec_authority",
+    criteria: ["p0p1"],
+    files: [".nimi/spec/runtime/kernel/security.md"],
+    authority_refs: [".nimi/spec/runtime/kernel/security.md"],
+    evidence_inventory: ["runtime/internal/security.go"],
+  };
+  const evidence = {
+    chunk_id: chunk.chunk_id,
+    auditor: {
+      ...semanticAuditor(),
+      mode: "codex_local_full_sweep",
+    },
+    coverage: {
+      files: chunk.files,
+      authority_refs: chunk.authority_refs,
+      evidence_files: chunk.evidence_inventory,
+      authority_outcomes: [{
+        authority_ref: chunk.authority_refs[0],
+        status: "audited",
+        evidence_refs: [chunk.authority_refs[0], chunk.evidence_inventory[0]],
+        implementation_evidence_refs: [chunk.evidence_inventory[0]],
+        negative_reasoning: "Reviewed the implementation evidence for P0/P1 classes.",
+      }],
+      p0p1_negative_reasoning: "Codex audited this chunk against admitted implementation evidence, reading the complete chunk corpus through the local audit cache. Lower-severity cleanup was intentionally summarized so the sweep preserved P0/P1 recall focus.",
+      p0p1_evidence_refs: [chunk.evidence_inventory[0]],
+      p0p1_rule_checks: p0p1RuleChecks(chunk.evidence_inventory[0]),
+    },
+    findings: [],
+  };
+
+  const validity = buildAuditValidityForEvidence(chunk, evidence);
+
+  assert.equal(validity.posture, "invalid");
+  assert.equal(validity.p0p1_recall_posture, "invalid");
+  assert.ok(validity.blockers.some((blocker) => blocker.id === "synthetic_no_finding_evidence"));
 });
 
 test("coverage quality warns on sparse evidence and fan-in and blocks unresolved or unmapped evidence", () => {
@@ -351,6 +514,47 @@ test("partial coverage closeout posture never reports audit_complete", () => {
   assert.equal(partialStatus, "partial");
   assert.equal(partialPosture, "partial_coverage_all_findings_postured");
   assert.ok(!partialPosture.startsWith("audit_complete_"));
+});
+
+test("finding cluster derives chunk root for packet evidence inventory sentinel", () => {
+  const chunk = {
+    chunk_id: "chunk-packet-inventory-sentinel",
+    planning_basis: "spec_authority",
+    owner_domain: "avatar",
+    files: [".nimi/spec/avatar/kernel/live2d-render-contract.md"],
+    authority_refs: [".nimi/spec/avatar/kernel/live2d-render-contract.md"],
+    evidence_roots: [".nimi/spec/avatar", "avatar"],
+    evidence_inventory: [],
+  };
+  const finding = {
+    sweep_id: "audit-sweep-test",
+    owner_domain: "avatar",
+    severity: "high",
+    category: "contract",
+    actionability: "needs-decision",
+    location: { file: ".nimi/spec/avatar/kernel/live2d-render-contract.md", line: 76 },
+    title: "Concrete Live2D implementation authority has no admitted implementation evidence",
+    description: "The packet evidence_inventory is empty for implementation-bearing authority.",
+  };
+  const rawFinding = {
+    ...finding,
+    root_cause: {
+      key: "empty_evidence_inventory_for_implementation_bearing_authority",
+      authority_ref: chunk.authority_refs[0],
+      evidence_root: "packet:evidence_inventory",
+      contract_seam: "avatar Live2D render authority to implementation evidence admission",
+      repair_target: "Regenerate or amend the chunk packet so implementation evidence is admitted.",
+    },
+  };
+
+  const cluster = deriveFindingCluster(rawFinding, finding, chunk, {
+    inventory_hash: "inventory",
+    evidence_inventory_hash: "evidence",
+  });
+
+  assert.equal(cluster.ok, true, cluster.error);
+  assert.equal(cluster.cluster.evidence_root, ".nimi/spec/avatar");
+  assert.equal(cluster.cluster.root_cause_key, "empty_evidence_inventory_for_implementation_bearing_authority");
 });
 
 test("synthetic Nimi incident replay validates as partial coverage plus invalid audit validity", async () => {

@@ -150,7 +150,10 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     assert.equal(dispatchPayload.packetRef, ".nimi/local/audit/packets/audit-sweep-test-ledger/chunk-001.auditor-packet.yaml");
     const auditorPacket = YAML.parse(await readFile(path.join(projectRoot, ...dispatchPayload.packetRef.split("/")), "utf8"));
     assert.equal(auditorPacket.kind, "audit-auditor-packet");
-    assert.deepEqual(auditorPacket.output_contract.coverage_files_must_exactly_match, ["src/service.ts"]);
+    assert.deepEqual(
+      auditorPacket.output_contract.manager_owned_coverage_population.coverage_files_from_chunk_files,
+      ["src/service.ts"],
+    );
 
     const evidencePath = path.join(projectRoot, "audit-output.json");
     await writeFile(
@@ -567,6 +570,106 @@ test("audit-sweep clusters duplicate symptoms, preserves unique high severity fi
     assert.equal(remediationMapPayload.clusteredSymptomCount, 1);
     assert.equal(remediationMapPayload.waves[0].cluster_ids.length, 2);
     assert.equal(remediationMapPayload.waves[0].remediation_bundle.duplicate_symptom_count, 1);
+  });
+});
+
+test("audit-sweep clusters same-chunk same-location retry findings as duplicates", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+    await mkdir(path.join(projectRoot, "src"), { recursive: true });
+    await writeFile(path.join(projectRoot, "src", "a.ts"), "export function service() { return 1; }\n", "utf8");
+
+    const sweepId = "audit-sweep-test-same-location-retry-dedupe";
+    const planResult = await captureRunCli([
+      "audit-sweep",
+      "plan",
+      "--root",
+      "src",
+      "--max-files",
+      "1",
+      "--sweep-id",
+      sweepId,
+      "--json",
+    ]);
+    assert.equal(planResult.exitCode, 0, planResult.stderr);
+
+    assert.equal((await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "dispatch",
+      "--sweep-id",
+      sweepId,
+      "--chunk-id",
+      "chunk-001",
+      "--dispatched-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ])).exitCode, 0);
+    await writeAuditEvidence(projectRoot, "same-location-retry-1.json", "chunk-001", ["src/a.ts"], [
+      clusteredAuditFinding({
+        file: "src/a.ts",
+        title: "Service skips required authorization",
+        rootCauseKey: "service-authz-missing",
+      }),
+    ]);
+    const firstIngest = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      sweepId,
+      "--chunk-id",
+      "chunk-001",
+      "--from",
+      "same-location-retry-1.json",
+      "--verified-at",
+      "2026-04-10T00:10:00.000Z",
+      "--json",
+    ]);
+    assert.equal(firstIngest.exitCode, 0, firstIngest.stderr);
+
+    const planPath = path.join(projectRoot, ".nimi", "local", "audit", "plans", `${sweepId}.yaml`);
+    const chunkPath = path.join(projectRoot, ".nimi", "local", "audit", "chunks", sweepId, "chunk-001.yaml");
+    const plan = YAML.parse(await readFile(planPath, "utf8"));
+    const chunk = YAML.parse(await readFile(chunkPath, "utf8"));
+    chunk.state = "dispatched";
+    chunk.lifecycle.dispatched_at = "2026-04-10T00:20:00.000Z";
+    chunk.lifecycle.ingested_at = null;
+    await writeFile(chunkPath, YAML.stringify(chunk), "utf8");
+    plan.chunks = plan.chunks.map((entry) => entry.chunk_id === "chunk-001" ? { ...entry, state: "dispatched" } : entry);
+    await writeFile(planPath, YAML.stringify(plan), "utf8");
+
+    await writeAuditEvidence(projectRoot, "same-location-retry-2.json", "chunk-001", ["src/a.ts"], [
+      clusteredAuditFinding({
+        file: "src/a.ts",
+        title: "Service authorization can be bypassed",
+        rootCauseKey: "service-authz-missing-reworded",
+      }),
+    ]);
+    const retryIngest = await captureRunCli([
+      "audit-sweep",
+      "chunk",
+      "ingest",
+      "--sweep-id",
+      sweepId,
+      "--chunk-id",
+      "chunk-001",
+      "--from",
+      "same-location-retry-2.json",
+      "--verified-at",
+      "2026-04-10T00:30:00.000Z",
+      "--json",
+    ]);
+    assert.equal(retryIngest.exitCode, 0, retryIngest.stderr);
+    const retryPayload = JSON.parse(retryIngest.stdout);
+    assert.equal(retryPayload.addedCount, 0);
+    assert.equal(retryPayload.duplicateCount, 1);
+    assert.equal(retryPayload.clusteredCount, 1);
+
+    const findingsStore = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "audit", "evidence", sweepId, "findings.yaml"), "utf8"));
+    assert.equal(findingsStore.findings.length, 1);
+    assert.equal(findingsStore.clustered_symptom_count, 1);
+    assert.equal(findingsStore.clusters[0].duplicate_symptoms[0].classification, "same_chunk_location_retry");
   });
 });
 

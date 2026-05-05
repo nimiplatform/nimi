@@ -35,6 +35,8 @@ audit_validity_required_fields:
   - no_finding_posture
   - p0p1_recall_required_count
   - p0p1_recall_invalid_count
+  - p0p1_rule_check_count
+  - auditor_provenance_present
   - calibration_expected_defect_count
   - calibration_missed_defect_count
 locality: local_only

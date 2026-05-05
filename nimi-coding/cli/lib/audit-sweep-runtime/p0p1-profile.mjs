@@ -44,11 +44,11 @@ export function buildP0P1RecallProfile({ chunk, plan }) {
         question: "Can an error, missing dependency, skipped work, or invalid evidence still produce a success posture?",
       },
       {
-        id: "authority_boundary_bypass",
+        id: "authority_boundary_or_private_import_bypass",
         question: "Can runtime/sdk/app/spec boundaries be bypassed or treated as advisory?",
       },
       {
-        id: "unadmitted_truth_or_evidence_source",
+        id: "app_local_shadow_truth",
         question: "Can an unadmitted file, host-local artifact, or generated projection become semantic truth?",
       },
       {
@@ -56,20 +56,16 @@ export function buildP0P1RecallProfile({ chunk, plan }) {
         question: "Can partial, skipped, sampled, or authority-only coverage be reported as complete?",
       },
       {
-        id: "state_divergence_or_lost_update",
-        question: "Can concurrent or repeated execution lose state, diverge ledgers, or overwrite reviewed evidence?",
-      },
-      {
-        id: "security_or_permission_bypass",
+        id: "permission_or_capability_bypass",
         question: "Can user, provider, filesystem, network, or app permissions be bypassed?",
       },
       {
-        id: "destructive_action_without_gate",
+        id: "ungated_destructive_action",
         question: "Can destructive mutation, deletion, overwrite, or publication happen without the required gate?",
       },
       {
-        id: "package_boundary_violation",
-        question: "Can a package import or call across a forbidden private/runtime boundary?",
+        id: "provider_or_model_hardcoding",
+        question: "Can provider or model selection be hardcoded instead of flowing through admitted authority and configuration?",
       },
     ],
     triage_flow: [
@@ -97,7 +93,8 @@ export function buildP0P1RecallProfile({ chunk, plan }) {
       required: true,
       reasoning_field: "coverage.p0p1_negative_reasoning",
       evidence_refs_field: "coverage.p0p1_evidence_refs",
-      summary: "If no critical/high finding is emitted, explain why each applicable priority defect class did not produce a P0/P1 issue and cite implementation evidence.",
+      implementation_not_applicable_reason_field: "coverage.p0p1_implementation_not_applicable_reason",
+      summary: "If no critical/high finding is emitted, explain why each applicable priority defect class did not produce a P0/P1 issue and cite implementation evidence; for empty implementation inventory, explicitly justify why implementation evidence is not applicable.",
       evidence_refs_must_include_implementation: true,
     },
   };
