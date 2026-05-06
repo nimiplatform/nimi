@@ -1238,6 +1238,7 @@ test("audit-codex timeout fails closed with replayable failed chunk state", asyn
       fakeCodexPath,
       [
         "#!/usr/bin/env node",
+        "setInterval(() => {}, 1000);",
         "await new Promise(() => {});",
       ].join("\n"),
       "utf8",
