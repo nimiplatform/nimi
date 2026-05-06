@@ -47,7 +47,8 @@ const RETIRED_METHOD_SEGMENTS = ['nimi', 'coding'];
 const RETIRED_METHOD_NAME = RETIRED_METHOD_SEGMENTS.join('-');
 const RETIRED_CHECK_NAME = `check:${RETIRED_METHOD_NAME}-module`;
 const RETIRED_LOCAL_ROOT = `${RETIRED_METHOD_NAME}/.local`;
-const RETIRED_CONFIG_ROOT = `${RETIRED_METHOD_NAME}/config`;
+// Do not ban nimi-coding/config/**: it is current package-owned bootstrap
+// source, not retired host-local methodology truth.
 
 const FORBIDDEN_TEXT_PATTERNS = [
   {
@@ -61,10 +62,6 @@ const FORBIDDEN_TEXT_PATTERNS = [
   {
     label: 'retired methodology local workspace path',
     regex: new RegExp(`(^|[^/\\\\w-])${RETIRED_LOCAL_ROOT}(?:/|(?=[\\\`"' \\t)\\]},.:;]))`, 'gm'),
-  },
-  {
-    label: 'retired methodology config path',
-    regex: new RegExp(`(^|[^/\\\\w-])${RETIRED_CONFIG_ROOT}(?:/|(?=[\\\`"' \\t)\\]},.:;]))`, 'gm'),
   },
   {
     label: 'retired methodology module check',
