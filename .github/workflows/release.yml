@@ -275,7 +275,10 @@ jobs:
               echo "NPM_TOKEN is required for SDK publish" >&2
               exit 1
             fi
-            printf '//registry.npmjs.org/:_authToken=%s\n' "${NPM_TOKEN}" > "${HOME}/.npmrc"
+            npm_config="${NPM_CONFIG_USERCONFIG:-${HOME}/.npmrc}"
+            mkdir -p "$(dirname "${npm_config}")"
+            printf '//registry.npmjs.org/:_authToken=%s\n' "${NPM_TOKEN}" > "${npm_config}"
+            export NODE_AUTH_TOKEN="${NPM_TOKEN}"
           fi
 
           for pkg in "${packages[@]}"; do
@@ -385,7 +388,10 @@ jobs:
               echo "NPM_TOKEN is required for Nimi Coding publish" >&2
               exit 1
             fi
-            printf '//registry.npmjs.org/:_authToken=%s\n' "${NPM_TOKEN}" > "${HOME}/.npmrc"
+            npm_config="${NPM_CONFIG_USERCONFIG:-${HOME}/.npmrc}"
+            mkdir -p "$(dirname "${npm_config}")"
+            printf '//registry.npmjs.org/:_authToken=%s\n' "${NPM_TOKEN}" > "${npm_config}"
+            export NODE_AUTH_TOKEN="${NPM_TOKEN}"
             pnpm --filter @nimiplatform/nimi-coding publish --access public --no-git-checks --provenance
           else
             pnpm --filter @nimiplatform/nimi-coding publish --access public --no-git-checks --dry-run
