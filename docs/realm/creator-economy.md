@@ -1,0 +1,137 @@
+# Creator Economy
+
+The creator economy is the slice of Realm economy specifically
+about world-creator monetization: revenue events from gifts and
+purchases, share plans, settlement, withdrawal. World Creator
+Economy and Creator Revenue Policy bridge external open-spec
+anchors to local economy contracts.
+
+## Where Creator Economy Lives
+
+| Surface | Authority |
+| --- | --- |
+| Realm Economy | `R-ECON-*` — append-only economy event stream |
+| World Creator Economy | Bridge between platform economy and creator-side concepts |
+| Creator Revenue Policy | Maps share plans, settlement rules |
+| Desktop Wallet | Projects this into the creator's UI |
+
+The creator economy is canonical at the Realm layer; the creator-
+side conceptual surface is where share plans and revenue policies
+attach.
+
+## Append-Only Revenue Events
+
+Every revenue event is typed and appended.
+
+| Event kind | Purpose |
+| --- | --- |
+| Gift | Sender gifts content / participation |
+| Purchase | Buyer purchases admitted ownable assets |
+| Settlement | Periodic settlement per share plan |
+| Withdrawal | Creator withdraws settled funds |
+| Correction | Supersedes a prior event under admitted correction flow |
+
+Append-only is the audit foundation. Every revenue event has
+provenance, timestamp, and typed shape. Settlement events
+reference the gift / purchase events they settle.
+
+## Share Plans
+
+A share plan declares how revenue is split among creators and
+contributors.
+
+| Property | Value |
+| --- | --- |
+| Plan id | Stable identity |
+| Owner | The creator who authored the plan |
+| Splits | Typed share allocations |
+| Effective dates | When this plan applies |
+| Versioning | New share plans supersede older ones (no silent overwrite) |
+
+A creator who wants to change their share plan publishes a new
+plan; the old one is superseded but not deleted.
+
+## Bridge Mappings
+
+`world-creator-economy.md` and `creator-revenue-policy.md` are
+**bridge** files. They map external open-spec anchors (the
+broader concepts of "creator economy" or "revenue policy") onto
+local Realm economy contracts.
+
+| Bridge | Purpose |
+| --- | --- |
+| World Creator Economy | Domain bridge for creator-economy concepts |
+| Creator Revenue Policy | Domain bridge for revenue policies |
+
+The bridge files make external mental models reachable; the
+canonical authority remains in the kernel `R-ECON-*` rules.
+
+## Reader Scenario: A Creator Receives Gift Revenue
+
+A user gifts content in a creator's world; revenue settles to the
+creator.
+
+1. **Gift event.** Sender's gift commits to the economy event
+   stream. Sender's wallet decreases.
+2. **Settlement event triggered.** Per the active share plan,
+   settlement is scheduled or computed.
+3. **Settlement event commits.** Splits are recorded; each
+   creator's wallet projection updates.
+4. **Audit lineage.** Sender → gift event → settlement event →
+   each creator's settlement record.
+5. **Creator views.** Through Desktop Wallet, the creator sees
+   "received settlement of X from gift event Y under share plan Z."
+
+The full chain is reconstructible. A creator who wants to know
+"why did I receive this much" can walk back through the events.
+
+## Reader Scenario: A Withdrawal
+
+A creator wants to withdraw settled funds.
+
+1. **Withdrawal request.** Creator submits withdrawal under
+   admitted withdrawal flow.
+2. **Realm validates.** Sufficient balance, admitted withdrawal
+   destination, etc.
+3. **Withdrawal event.** Typed event committed; balance
+   decreases by withdrawn amount.
+4. **External settlement.** Outside Realm, the funds move to the
+   creator's external account under admitted withdrawal mechanism.
+
+The withdrawal event is canonical Realm truth. The mechanism that
+moves funds externally is admitted but separate from Realm core
+truth.
+
+## Reader Scenario: A Share Plan Update
+
+A creator updates their share plan to add a new contributor.
+
+1. **Compose new plan.** Creator composes a new share plan with
+   the additional contributor.
+2. **Publish.** Realm admits the new plan; old plan is
+   superseded with effective-date semantics.
+3. **Future settlements use new plan.** From the new plan's
+   effective date onward, settlements split per the new plan.
+4. **Past settlements unchanged.** Already-settled events use
+   their original share plan; they are not retroactively
+   rewritten.
+5. **Audit lineage.** Old plan + new plan + supersession event
+   all in the canonical record.
+
+A share plan is canonical; updating it preserves history.
+
+## What Creator Economy Does Not Do
+
+| Concern | Why not |
+| --- | --- |
+| AI compute cost accounting | Separate runtime concern, not Realm core truth |
+| World-internal currencies | World creators may run their own internal currencies; those are not platform canonical |
+| Subscription processor internals | Lives in admitted subscription surface, not creator economy directly |
+
+## Source Basis
+
+- [`.nimi/spec/realm/world-creator-economy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/world-creator-economy.md)
+- [`.nimi/spec/realm/creator-revenue-policy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/creator-revenue-policy.md)
+- [`.nimi/spec/realm/economy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/economy.md)
+- [`.nimi/spec/realm/kernel/economy-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/economy-contract.md)
+- [`.nimi/spec/realm/kernel/tables/economy-contract.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/tables/economy-contract.yaml)

@@ -1,0 +1,170 @@
+# Agent Execution
+
+`RuntimeAgentService` is the runtime-owned authority for agent
+execution. It owns multi-agent lifecycle, conversation continuity,
+the Chat / Life two-track model, hook scheduling, memory write
+admission, and presentation projection.
+
+This page is the runtime-side complement to the product narrative
+in [Platform → Agents](/platform/agents/). Agent product framing
+lives there; this page covers the runtime ownership.
+
+## What RuntimeAgentService Owns
+
+| Responsibility | Surface |
+| --- | --- |
+| Multi-agent lifecycle | Concurrent `agent_id` lifecycles |
+| Conversation continuity | `ConversationAnchor` per agent + per conversation |
+| Chat / Life track execution | Reactive + proactive scheduling |
+| Hook scheduling | Typed `HookIntent` admission and dispatch |
+| Memory write admission | Bounded by admitted memory contracts |
+| Presentation projection | Persistent profile + transient stream |
+| APML output parsing | Typed event projection from APML wire format |
+
+There is **no platform default current agent**. The runtime hosts
+multiple `agent_id` lifecycles concurrently; an app or surface
+selects which agent it is interacting with.
+
+## ConversationAnchor
+
+The conversation anchor is the runtime-owned continuity identity
+that lets multiple surfaces share **one** conversation without
+collapsing into a global session.
+
+| Property | Value |
+| --- | --- |
+| Scope | Per-agent + per-conversation |
+| Owner | Runtime |
+| Persistence | Survives surface switch (Desktop chat → Avatar → Web) |
+| Multiplicity | One agent can have multiple anchors (multiple parallel conversations) |
+
+For the product framing, see
+[Platform → Agents → Conversation Anchor](/platform/agents/conversation-anchor).
+
+## AgentPresentationProfile
+
+The persistent presentation profile is runtime-owned, slow-changing
+truth about how an agent is presented:
+
+| Field | Purpose |
+| --- | --- |
+| Avatar backend | Live2D / VRM / generated-motion |
+| Asset reference | Carrier-specific asset binding |
+| Expression preset | Default expression behavior |
+| Voice binding | Voice profile reference |
+
+The profile survives runtime restart and cross-surface reuse.
+Avatar consumes it; Avatar doesn't redefine it.
+
+## Agent Presentation Stream
+
+Distinct from the persistent profile, the **presentation stream**
+is the transient projection seam: turn projection, current emotion
+projection, stream commit semantics. This is what Avatar
+consumes turn-by-turn for embodied surfaces.
+
+| Owner | Runtime |
+| --- | --- |
+| Turn projection | `runtime.agent.turn.*` |
+| Activity events | `runtime.agent.activity.*` |
+| Posture events | `runtime.agent.pose.*` |
+| Lipsync frames | `runtime.agent.lipsync.*` |
+
+## APML Output Wire Format
+
+The model-facing contract for agent output is **APML** (Agent
+Personality Markup Language).
+
+| Root tag | Purpose |
+| --- | --- |
+| `<life-turn>` | Proactive life-track output |
+| `<chat-track-sidecar>` | Reactive chat-track sidecar |
+| `<canonical-review>` | Canonical review output for memory admission |
+
+JSON executor compatibility is **not admitted**. APML is parsed
+and projected into typed runtime events before any product code
+sees it. Apps consume the typed events, not raw APML.
+
+This is a deliberate design: the model emits structured agent
+output; runtime validates the structure; product code receives
+typed events that cannot encode shapes the runtime did not admit.
+
+## Hook Intent Admission
+
+Agents request future scheduled action through typed `HookIntent`
+records, not free-form scheduling strings. Runtime validates and
+admits.
+
+| Lifecycle state | Meaning |
+| --- | --- |
+| `pending` | Admitted; awaiting fire time |
+| `running` | Currently executing |
+| `completed` | Successful terminal |
+| `failed` | Failed terminal |
+| `canceled` | Canceled before completion |
+| `rescheduled` | Moved to new schedule; transitions back to `pending` |
+| `rejected` | Refused at admission |
+
+For the product framing, see
+[Platform → Agents → Hook Intent](/platform/agents/hook-intent).
+
+## Multi-Agent By Default
+
+Runtime hosts multiple `agent_id` lifecycles concurrently. An app
+that wants to interact with a specific agent provides the
+`agent_id`; runtime does not assume which agent.
+
+| Concurrency | Detail |
+| --- | --- |
+| Per-agent state | Each agent has its own anchor set, hook scheduler, presentation profile |
+| Per-conversation state | Each conversation has its own anchor |
+| Cross-agent isolation | Memory bank scopes (`AGENT_CORE` / `AGENT_DYADIC`) keep agents from reading each other's private state |
+| Concurrent execution | Multiple agents can run Chat or Life in parallel under runtime budget |
+
+## Reader Scenario: Two Agents In One Surface
+
+A user has two agents on a single Desktop window — perhaps a
+project assistant and a personal assistant. Both can act
+concurrently.
+
+1. **Each has its own lifecycle.** Runtime tracks both
+   `agent_id`s independently.
+2. **Each has its own anchors.** The user has separate
+   conversations with each.
+3. **Each has its own life track.** Both can have life enabled
+   independently; their token budgets do not pool.
+4. **Their memory is scoped.** `AGENT_CORE` for each is private;
+   they do not see each other's private memory.
+5. **Audit lineage** preserves which agent took which action.
+
+Two agents under one user; no shared state by default.
+
+## Reader Scenario: A Conversation Anchor Survives Crash
+
+User is in a conversation in Avatar. Avatar crashes.
+
+1. **The anchor lives in Runtime.** Not in Avatar; not in Desktop.
+2. **User reopens Avatar.** Avatar reconnects to runtime.
+3. **Anchor resolution.** Avatar resolves the same
+   `(agent_id, conversation_id)`; the anchor is still there.
+4. **Conversation resumes.** Realm chat thread retains messages;
+   memory writes that were in flight follow
+   replication state.
+
+The anchor's runtime ownership is what makes surface failure
+survivable.
+
+## Source Basis
+
+- [`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-service-contract.md)
+- [`.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md)
+- [`.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)
+- [`.nimi/spec/runtime/kernel/agent-presentation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-presentation-contract.md)
+- [`.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md)
+- [`.nimi/spec/runtime/kernel/agent-output-wire-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-output-wire-contract.md)
+- [`.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
+- [`.nimi/spec/runtime/kernel/avatar-debug-projection-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/avatar-debug-projection-contract.md)
+- [`.nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml)
+- [`.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml)
+- [`.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml)
+- [`.nimi/spec/runtime/kernel/tables/agent-participation-profiles.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/agent-participation-profiles.yaml)

@@ -1,0 +1,127 @@
+# Nimi Coding Schema
+
+核心 Nimi Coding 工件 schema 的字段级参考。
+
+## Topic Schema
+
+`.nimi/contracts/topic.schema.yaml`
+
+| 字段 | Required | 类型 / 值 |
+| --- | --- | --- |
+| `topic_id` | 是 | `YYYY-MM-DD-topic-slug` 模式 |
+| `state` | 是 | `proposal` / `ongoing` / `pending` / `closed` |
+| `created_at` | 是 | ISO 日期 |
+| `last_transition_at` | 是 | ISO 日期 |
+| `last_transition_reason` | 是 | Snake-case 原因 |
+| `title` | 是 | 人可读 |
+| `mode` | 是 | `greenfield` / `landed` / `superseding` |
+| `posture` | 是 | `no_legacy_hard_cut` / `backward_compat` |
+| `design_policy` | 是 | `complete_contract_first` / `mvp_incremental` |
+| `parallel_truth` | 是 | `forbidden` / `admitted` |
+| `layering` | 是 | `ontology` / `time_phased` |
+| `risk` | 是 | `high` / `low` |
+| `applicability` | 是 | `authority_bearing` / `high_risk_refactor` / `multi_wave_iteration` / `complex_remediation` |
+| `entry_justification` | 是 | 一段原因 |
+| `execution_mode` | 是 | `inline_manager_worker` / `manager_worker_auditor` |
+| `selected_next_target` | 是 | wave_id 或 `null` |
+| `current_true_close_status` | 是 | `not_started` / `pending` / `true_closed` / `revoked` / `superseded` |
+| `forbidden_shortcuts` | 是 | 包目录 + 声明的 topic 局部扩展 |
+| `waves` | 可选 | Wave 条目列表 |
+
+## Wave Schema
+
+`.nimi/contracts/wave.schema.yaml`
+
+| 字段 | Required | 类型 / 值 |
+| --- | --- | --- |
+| `wave_id` | 是 | 稳定 wave 标识 |
+| `slug` | 是 | URL-safe slug |
+| `state` | 是 | `candidate` / `preflight_draft` / `preflight_admitted` / `implementation_admitted` / `implementation_active` / `needs_revision` / `overflowed` / `continuation_packet_open` / `closed` / `retired` / `superseded` |
+| `primary_closure_goal` | 是 | 一段目标 |
+| `deps` | 是 | wave_id 列表；可空 |
+| `owner_domain` | 是 | 单一主 owner 域 |
+| `parallelizable_after` | 是 | Admitted 并行 marker |
+| `selected` | 是 | 每个 topic 至多一个 true |
+
+## Packet Schema
+
+`.nimi/contracts/packet.schema.yaml`
+
+| 字段 | Required | 类型 / 值 |
+| --- | --- | --- |
+| `packet_id` | 是 | 稳定 packet 标识 |
+| `topic_id` | 是 | 父 topic |
+| `wave_id` | 是 | 父 wave |
+| `packet_kind` | 是 | `implementation` / `authority` / `spec` / `redesign` / `preflight` |
+| `status` | 是 | `draft` / `preflight` / `candidate` / `admitted` / `dispatched` / `closed` / `superseded` |
+| `authority_owner` | 是 | Owner 域散文 |
+| `canonical_seams` | 是 | 不变量列表 |
+| `forbidden_shortcuts` | 是 | 目录 key + topic 扩展 |
+| `acceptance_invariants` | 是 | 可验证 predicate |
+| `negative_tests` | 是 | 具体检查 |
+| `reopen_conditions` | 是 | 什么会重开 |
+| `allowed_reads` | 是 | 路径 glob |
+| `allowed_writes` | 是 | 路径 glob |
+
+## Result Schema
+
+`.nimi/contracts/result.schema.yaml`
+
+| 字段 | Required | 类型 / 值 |
+| --- | --- | --- |
+| `result_id` | 是 | 稳定标识 |
+| `topic_id` | 是 | 父 topic |
+| `wave_id` | 是 | 父 wave |
+| `result_kind` | 是 | `preflight` / `implementation` / `audit` / `judgement` |
+| `verdict` | 是 | `PASS` / `NEEDS_REVISION` / `FAIL` / `OVERFLOW` |
+| `verified_at` | 是 | ISO8601 UTC 时间戳 |
+
+## Closeout Schema
+
+`.nimi/contracts/closeout.schema.yaml`
+
+| 字段 | Required | 类型 / 值 |
+| --- | --- | --- |
+| `closeout_id` | 是 | 稳定标识 |
+| `topic_id` | 是 | 父 topic |
+| `scope` | 是 | `wave` / `topic` |
+| `authority_closure` | 是 | `open` / `closed` / `blocked` |
+| `semantic_closure` | 是 | 同 |
+| `consumer_closure` | 是 | 同（或 `closed_pending_user_acceptance` 作子状态） |
+| `drift_resistance_closure` | 是 | 同 |
+| `disposition` | 是 | `complete` / `partial` / `deferred`（或 `complete_pending_user_acceptance`） |
+
+## Topic Step Decision
+
+`.nimi/contracts/topic-step-decision.schema.yaml`
+
+| 字段 | Required | 用途 |
+| --- | --- | --- |
+| `decision_id` | 是 | 稳定 id |
+| `topic_id` | 是 | — |
+| `wave_id` | 是 | — |
+| `decision_kind` | 是 | — |
+| `stop_class` | 是 | `continue` / `require_human_confirmation` / `await_external_evidence` / `blocked` / `completed` |
+| `recommended_action` | 是 | `admit_wave` / `freeze_packet` / `dispatch_worker` / `dispatch_audit` / `record_result` / `open_remediation` / `continue_overflow` / `hold_topic` / `resume_topic` / `closeout_wave` / `closeout_topic` / `no_action` |
+| `reason_code` | 是 | 类型化原因 |
+| `requires_human_confirmation` | 是 | Bool |
+| `recommended_decision` | 是 | 建议下一步 |
+| `recommendation_rationale` | 是 | 短散文 |
+| `expected_artifacts` | 是 | 列表 |
+| `next_command_ref` | 是 | 具体下个命令（`continue` 决定无占位） |
+
+## 禁用捷径目录
+
+10 个 admitted 目录 key（完整细节见 [禁用捷径目录](/zh/nimicoding/reference/forbidden-shortcuts-catalog)）：
+
+`mvp_subset_contract`、`legacy_alias`、`compat_shim`、`dual_read`、`dual_write`、`placeholder_success`、`happy_path_only_closure`、`time_phased_layering`、`app_local_shadow_truth`、`silent_owner_cut_reopen`。
+
+## 来源
+
+- [`.nimi/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic.schema.yaml)
+- [`.nimi/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/wave.schema.yaml)
+- [`.nimi/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/packet.schema.yaml)
+- [`.nimi/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/result.schema.yaml)
+- [`.nimi/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/closeout.schema.yaml)
+- [`.nimi/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic-step-decision.schema.yaml)
+- [`.nimi/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/forbidden-shortcuts.catalog.yaml)

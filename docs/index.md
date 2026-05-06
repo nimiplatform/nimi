@@ -1,45 +1,87 @@
----
-layout: home
+# Nimi Documentation
 
-hero:
-  name: Nimi
-  text: Open-Source AI Runtime
-  tagline: "Rapid Development Phase — One runtime for local and cloud AI. Use it, build with it, or extend it."
-  actions:
-    - theme: brand
-      text: Start Using Nimi
-      link: /user/
-    - theme: alt
-      text: Build An App
-      link: /app-dev/
-    - theme: alt
-      text: Build A Mod
-      link: /mod-dev/
-    - theme: alt
-      text: GitHub
-      link: https://github.com/nimiplatform/nimi
+Nimi is an AI open world platform. The product idea is simple: AI agents
+shouldn't have to be stateless tools stuck inside one request. They can
+live inside long-lived worlds, with identity, memory, relationships,
+capabilities, and rules that stay with them across sessions and surfaces.
 
-features:
-  - title: Install And Run
-    details: Install Nimi, start the runtime, generate with local or cloud models from the CLI. No code needed.
-    link: /user/install
-    linkText: Get started
-  - title: Local And Cloud, Same Surface
-    details: Local defaults to bundled models. Cloud uses --provider or --cloud. Same commands, same runtime.
-    link: /user/providers
-    linkText: Set up providers
-  - title: SDK For Apps
-    details: "Recommended app entry: createPlatformClient() from '@nimiplatform/sdk', with typed runtime and realm access from one root package."
-    link: /app-dev/
-    linkText: Start building
-  - title: Governance And Spec
-    details: Read the current spec map, kernel contracts, and governance docs that define the active repository rules and delivery gates.
-    link: /architecture/spec-map
-    linkText: Read the spec map
----
+These docs explain the product model, the ownership boundaries, and the
+contracts that hold across domains.
 
-::: warning Rapid Development Phase
-Nimi is still in an extremely fast-moving stage. Contracts, CLI flows, and desktop surfaces can change quickly between releases.
+## How The Docs Are Organized
 
-Treat the [Spec Map](/architecture/spec-map) and [`spec/` on GitHub](https://github.com/nimiplatform/nimi/tree/main/spec) as the normative source of truth. Items under `spec/future/` are backlog, not release promises.
-:::
+Nimi is one open world platform. The platform contains several products
+that together make AI agents able to live in long-lived worlds: Platform
+(the world model itself), Runtime (AI execution), SDK (app access),
+Desktop and Web (user surfaces), Realm (world truth), Avatar (embodied
+presentation), Cognition (memory and knowledge), and Nimi Coding (the AI
+development methodology that ships with everything else).
+
+Each product has its own section in these docs.
+
+The `apps/` directory in the repository contains extension apps
+(parentOS, Forge, shiji, overtone, and others) that showcase what the
+platform can do but are not part of the platform itself. Those apps are
+not documented here — these docs describe the platform.
+
+## What You Will Find Here
+
+- A product model that explains why Nimi is built around worlds, not chats.
+- Authority domains that name who owns which kind of truth.
+- Reading paths that move from the platform model into Runtime, SDK,
+  Desktop, Realm, Avatar, Cognition, and Nimi Coding.
+- A glossary of cross-domain vocabulary used across all pages.
+
+## The Three Layers Readers Should Keep Separate
+
+The platform splits into three layers that are easier to keep distinct in
+your head than to mix together.
+
+```
++----------------------------------------------------------+
+|  Platform Model                                          |
+|    World, Agent, and the six protocol primitives         |
++----------------------------------------------------------+
+                          |
+                          v
++----------------------------------------------------------+
+|  Execution Substrate                                     |
+|    Runtime    : providers, workflows, streaming,         |
+|                 multimodal, delegation                   |
+|    Cognition  : memory, knowledge, prompt serving,       |
+|                 completion                               |
++----------------------------------------------------------+
+                          |
+                          v
++----------------------------------------------------------+
+|  Public Surfaces                                         |
+|    SDK app boundary           Desktop native shell       |
+|    Web constrained projection Realm public read path     |
+|    Avatar embodiment authority                           |
++----------------------------------------------------------+
+```
+
+1. **Platform model** defines worlds, agents, the six fixed protocol
+   primitives, and the rules that say who is allowed to redefine what.
+2. **Execution substrate** is how AI work actually happens: Runtime owns
+   providers, workflows, streaming, multimodal output, and local routing;
+   Cognition owns memory, knowledge, prompt serving, references, and
+   completion.
+3. **Public surfaces** turn the platform into Desktop, Web, SDK, Realm,
+   and Avatar experiences. Each public surface has its own authority
+   boundary and its own page in these docs.
+
+## Recommended Reading Paths
+
+| If you want to understand... | Start here |
+| --- | --- |
+| The product, the world model, and why it exists | [Platform](/platform/) |
+| The current setup and availability posture | [Start](/start/) |
+| How AI execution is governed | [Runtime](/runtime/) |
+| How apps integrate without crossing private boundaries | [SDK](/sdk/) |
+| Why Desktop and Web are not equivalent | [Desktop](/desktop/) |
+| Where world truth and history live | [Realm](/realm/) |
+| How embodied AI presentation is scoped | [Avatar](/avatar/) |
+| Where memory and knowledge authority live | [Cognition](/cognition/) |
+| The AI development paradigm and its host-agnostic package | [Nimi Coding](/nimicoding/) |
+| The cross-domain vocabulary used in these pages | [Glossary](/glossary) |

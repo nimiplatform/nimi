@@ -6,10 +6,15 @@ import { sidebarZh } from './sidebar-zh'
 
 export default defineConfig({
   title: 'Nimi',
-  description: 'Documentation for using, building with, and extending Nimi — the open-source AI runtime.',
+  description: 'Public docs for the Nimi AI open world platform.',
 
   cleanUrls: true,
   lastUpdated: true,
+
+  // Exclude contributor-facing files from the published site.
+  // These files document authoring rules for contributors and are not
+  // part of the reader-facing docs.
+  srcExclude: ['**/AGENTS.md'],
 
   locales: {
     root: {
@@ -24,7 +29,7 @@ export default defineConfig({
       label: '中文',
       lang: 'zh-CN',
       title: 'Nimi',
-      description: 'Nimi 开源 AI Runtime 的使用、开发与扩展文档。',
+      description: 'Nimi AI 开放世界平台公共文档。',
       themeConfig: {
         nav: navZh,
         sidebar: sidebarZh,
@@ -87,8 +92,8 @@ export default defineConfig({
     },
 
     footer: {
-      message: 'Released under Apache-2.0 (runtime, sdk, proto) / MIT (apps, kit, nimi-mods) / CC-BY-4.0 (docs)',
-      copyright: 'Copyright © 2026-present Nimi Platform',
+      message: 'Nimi AI open world platform documentation.',
+      copyright: 'Copyright 2026-present Nimi Platform',
     },
   },
 })

@@ -1,0 +1,155 @@
+# Social And Economy
+
+Social and Economy are the two canonical Realm surfaces for who
+relates to whom and how value moves. Both are append-only at
+their authoritative layer; both are platform truth.
+
+## Social
+
+Friendship is the canonical admission graph. Ordered-pair
+uniqueness — one friendship between Alice and Bob, recorded
+canonically.
+
+| Property | Value |
+| --- | --- |
+| Storage | Realm `R-SOC-*` |
+| Shape | Ordered-pair uniqueness graph |
+| Cross-world visibility | yes — same friendship in every world |
+| Cross-app visibility | yes — same friendship in every Nimi app |
+| Mutation | Through admitted Realm contracts |
+
+### What Social Does
+
+- Tracks friendship and admission graph.
+- Gates human-chat preconditions — chat between two users may
+  require an admitted social state.
+- Does **not** own the chat thread itself; chat is owned by Realm
+  Chat.
+
+### Why Friendship Is Canonical
+
+If friendship were per-app or per-world, two apps could disagree
+about whether two users are friends. Apps would need to sync;
+syncs would conflict; user experience would fragment.
+
+Canonical friendship is one truth across the platform. Apps read;
+Realm is authoritative.
+
+## Economy
+
+The canonical platform economy is **append-only**: every gift,
+every revenue split, every settlement event is a typed event with
+explicit type.
+
+| Property | Value |
+| --- | --- |
+| Storage | Realm `R-ECON-*` |
+| Shape | Append-only event stream |
+| Event types | Explicit; admitted at kernel level |
+| Settlement | Typed events |
+| AI compute cost | Not modeled as Realm core truth (separate concern) |
+
+### What Economy Owns
+
+- Gifts between participants.
+- Revenue splits for creator content.
+- Settlement events.
+- Wallet balance projections.
+
+### What Economy Does Not Own
+
+- AI compute cost (separate runtime concern).
+- World-internal currencies (a world may have its own ticket
+  stubs; those are not platform canonical economy).
+- Subscription / payment processor internals (those live in their
+  own admitted surfaces).
+
+### Append-Only Posture
+
+The economy stream is append-only at the canonical layer. A
+mistaken settlement event does not get deleted; it gets superseded
+by a correction event. The full chain is reconstructible.
+
+This matters because economic correctness is auditable. A creator
+who wants to know exactly how their revenue settled can read the
+event stream end-to-end without ambiguity.
+
+## Reader Scenario: A Friendship That Crosses Worlds
+
+Alice and Bob become friends in World A, where they were both
+visiting.
+
+1. **Friend request.** Alice sends; Realm admits the request.
+2. **Bob accepts.** Realm admits; ordered-pair record created
+   in `R-SOC-*`.
+3. **Visible everywhere.** When Alice visits World B, the
+   friendship with Bob is visible. World B's local social rules
+   may apply (perhaps "friend" grants different privileges in
+   World B), but the canonical friendship is the same one
+   record.
+4. **Cross-app.** Any Nimi app reading social state sees the
+   same friendship.
+
+A new app launching does not need to re-admit the friendship.
+
+## Reader Scenario: A Gift Settlement
+
+A user sends a gift to a creator's content; revenue settles to
+the creator.
+
+1. **Gift event.** Sender sends a gift; typed event committed
+   to economy stream.
+2. **Settlement event.** Per `R-ECON-*` share plan, settlement
+   event is committed.
+3. **Wallet balances update.** Sender's balance decreases;
+   creator's balance increases. Both projections come from the
+   canonical event stream.
+4. **Audit lineage.** Sender, recipient, gift event id,
+   settlement event id, share plan id — all linked.
+5. **Withdrawal.** Creator can withdraw under the admitted
+   withdrawal flow.
+
+The gift is reconstructible end-to-end. Nothing is silent.
+
+## Reader Scenario: A World With Internal Currency
+
+A creator's world uses ticket stubs for in-world transactions.
+
+1. **In-world tickets.** The creator's world rules describe
+   ticket stub semantics — local economy, local rules.
+2. **Not Realm canonical.** Ticket stubs are world-local; they
+   do not appear in `R-ECON-*` event stream.
+3. **Conversion if admitted.** If the world admits a conversion
+   event between ticket stubs and platform currency, that
+   conversion appears as a typed canonical economy event.
+4. **Cross-world standing unchanged.** Tickets in World A do
+   not affect Bob's canonical wallet balance unless an admitted
+   conversion event records it.
+
+The split is intentional. Worlds get internal economic creativity;
+the platform-canonical economy stays one auditable truth.
+
+## How Social And Economy Connect
+
+Some events involve both:
+
+| Event | Touches |
+| --- | --- |
+| Sending a gift | Economy event + may strengthen social relation |
+| Becoming friends | Social event; may unlock social-gated economic features |
+| Group activity | May involve both social state shifts and economic events |
+
+When an event touches both, the platform does not collapse them
+into one record. Each surface gets its typed event; the full
+chain links them through audit lineage.
+
+## Source Basis
+
+- [`.nimi/spec/realm/social.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/social.md)
+- [`.nimi/spec/realm/economy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/economy.md)
+- [`.nimi/spec/realm/kernel/social-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/social-contract.md)
+- [`.nimi/spec/realm/kernel/economy-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/economy-contract.md)
+- [`.nimi/spec/realm/kernel/tables/social-contract.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/tables/social-contract.yaml)
+- [`.nimi/spec/realm/kernel/tables/economy-contract.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/tables/economy-contract.yaml)
+- [`.nimi/spec/realm/world-creator-economy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/world-creator-economy.md)
+- [`.nimi/spec/realm/creator-revenue-policy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/creator-revenue-policy.md)
