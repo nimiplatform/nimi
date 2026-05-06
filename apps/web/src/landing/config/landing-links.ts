@@ -10,32 +10,23 @@ export type LandingLinks = {
 };
 
 const DEFAULT_LINKS: LandingLinks = {
-  appUrl: '/#/login',
-  webAppUrl: '/#/login',
+  appUrl: '/docs/start/',
+  webAppUrl: '/docs/platform/',
   discordUrl: 'https://discord.gg/BQwHJvPn',
-  docsUrl: 'https://nimi.xyz/docs',
+  docsUrl: '/docs/',
   githubUrl: 'https://github.com/nimiplatform/nimi',
-  protocolUrl: 'https://github.com/nimiplatform/nimi/blob/main/spec/platform/protocol.md',
-  desktopDownloadUrl: 'https://github.com/nimiplatform/nimi/releases',
-  modDocsUrl: 'https://nimi.xyz/docs/mods',
+  protocolUrl: '/docs/platform/protocol',
+  desktopDownloadUrl: '/docs/desktop/',
+  modDocsUrl: '/docs/desktop/mods',
 };
 
 function normalizeUrl(raw: unknown, fallback: string): string {
   const value = typeof raw === 'string' ? raw.trim() : '';
-  if (!value) {
-    return fallback;
-  }
-
-  if (value.startsWith('/')) {
-    return value;
-  }
-
+  if (!value) return fallback;
+  if (value.startsWith('/')) return value;
   try {
     const parsed = new URL(value);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-      return parsed.toString();
-    }
-    return fallback;
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : fallback;
   } catch {
     return fallback;
   }

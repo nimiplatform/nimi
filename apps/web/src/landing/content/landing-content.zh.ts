@@ -1,288 +1,185 @@
 import type { LandingContent } from './landing-content.js';
 
-const ZH_TAB_MODS = `import { createPlatformClient } from '@nimiplatform/sdk';
-
-const { runtime } = await createPlatformClient({
-  appId: 'landing.mods',
-  authMode: 'web-cloud',
-});
-
-await runtime.registerMod({
-  name: 'story-lab',
-  capabilities: ['text.generate'],
-});
-
-const result = await runtime.generate({
-  prompt: '为新的 Mod 首页写一句介绍语。',
-});
-
-console.log(result.text);`;
-
-const ZH_TAB_LOCAL = `import { createLocalFirstPartyRuntimePlatformClient } from '@nimiplatform/sdk';
-
-const { runtime } = await createLocalFirstPartyRuntimePlatformClient({
-  appId: 'landing.local',
-});
-
-const result = await runtime.generate({
-  prompt: '用简单的话解释量子计算。',
-});
-
-console.log(result.text);`;
-
-const ZH_TAB_CLOUD = `import { createPlatformClient } from '@nimiplatform/sdk';
-
-const { runtime } = await createPlatformClient({
-  appId: 'landing.cloud',
-  authMode: 'web-cloud',
-});
-
-const result = await runtime.generate({
-  provider: 'gemini',
-  prompt: '写一首关于开源的俳句。',
-});
-
-console.log(result.text);`;
-
-const ZH_TAB_STREAMING = `import { createPlatformClient } from '@nimiplatform/sdk';
-
-const { runtime } = await createPlatformClient({
-  appId: 'landing.streaming',
-  authMode: 'web-cloud',
-});
-
-const stream = await runtime.stream({
-  prompt: '给我讲一个关于机器人的故事。',
-});
-
-for await (const chunk of stream) {
-  process.stdout.write(chunk.text);
-}`;
+const ZH_SPEC_NOTE = `权威路径：.nimi/spec/**
+文档入口：/docs/reference/spec-map
+边界：公开展示面，不是独立真相`;
 
 export const landingContentZh: LandingContent = {
   localeName: '简体中文',
   skipToContent: '跳转到主要内容',
   nav: {
-    install: '安装',
+    install: '开始',
     sdk: 'SDK',
-    catalog: '模型目录',
-    architecture: '架构',
-    desktop: '桌面端',
-    security: '安全',
+    catalog: 'Runtime',
+    architecture: '平台',
+    desktop: 'Desktop',
+    security: 'Governance',
     mods: 'Mods',
-    openSource: '开源',
+    openSource: 'Source',
     discord: 'Discord',
   },
   hero: {
-    eyebrow: 'Early Access — 几秒完成安装',
-    title: '本地与云端 AI',
+    eyebrow: '由规范治理的 AI 开放世界平台',
+    title: 'Nimi 是 AI 开放世界平台',
     titleAccent: '',
-    title2: ' 的',
-    titleAccent2: '统一 Runtime',
-    subtitle: '一个 CLI，一套 SDK，随处运行任何模型。',
-    description: 'Nimi 目前处于 Early Access 阶段。核心 runtime、SDK 和桌面应用已可使用，API 在版本迭代中可能调整。',
-    primaryCta: '下载 Desktop',
-    docsCta: '阅读文档',
+    title2: '，由 ',
+    titleAccent2: '.nimi/spec',
+    subtitle: 'Runtime 是进入路径；Platform、Realm、SDK、Desktop、Avatar、Cognition 与 Nimi Coding 共同组成完整产品模型。',
+    description: '公开首页只陈述已准入的产品边界。Provider / Model 目录、安装路径、发布渠道和分发说法，在归属证据准入前不作为公开承诺。',
+    primaryCta: '阅读平台文档',
+    docsCta: '阅读 Spec Map',
     helperPrefix: '或',
-    helperDocsCta: '阅读文档',
-    helperGithubCta: '查看 GitHub',
-    copyTooltipLabel: '复制命令',
-    copiedCommandLabel: '已复制',
-    githubCta: '查看 GitHub',
-    previewLabel: '快速上手演示',
-    previewAlt: 'Nimi 快速上手演示',
-    previewCaption: '从安装、启动 runtime 到在 CLI 中跑通第一条回答，一次看完。',
-    getStartedTitle: '快速开始',
-    getStartedSubtitle: '选择你的安装方式',
+    helperDocsCta: '打开文档',
+    helperGithubCta: '查看源码',
+    copyTooltipLabel: '复制引用',
+    copiedCommandLabel: 'Copied',
+    githubCta: '查看源码',
+    previewLabel: '权威路径',
+    previewAlt: 'Nimi 权威路径',
+    previewCaption: '先读公开文档，再追到归属明确的规范和产品面。',
+    getStartedTitle: '从权威路径开始',
+    getStartedSubtitle: '当前公开入口',
     tabs: [
-      { id: 'desktop', label: '桌面客户端', command: '', ctaText: '下载 Desktop App' },
-      { id: 'curl', label: '终端 (curl)', command: 'curl -fsSL https://install.nimi.xyz | sh', ctaText: '复制命令' },
-      { id: 'npm', label: 'npm', command: 'npm install -g @nimiplatform/nimi', ctaText: '复制命令' },
+      { id: 'platform', label: 'Platform', command: 'docs/platform/index.md -> .nimi/spec/platform/vision.md', ctaText: '打开平台文档' },
+      { id: 'runtime', label: 'Runtime', command: 'docs/runtime/index.md -> .nimi/spec/runtime/kernel/index.md', ctaText: '打开 Runtime 文档' },
+      { id: 'sdk', label: 'SDK', command: 'docs/sdk/index.md -> .nimi/spec/sdk/index.md', ctaText: '打开 SDK 文档' },
     ],
-    terminalMockupTitle: '演示',
+    terminalMockupTitle: '来源路径',
   },
   architecture: {
-    title: '统一架构',
-    subtitle: '项目概览',
-    description: 'Nimi 在做的是下一代 AI 应用的基础设施，让开发者和用户都能工作在同一套边界清晰的系统上。',
-    devTitle: '面向开发者',
-    devText: '通过 SDK 和 runtime，把模型接入、调用路径和应用集成统一起来，减少重复适配和供应商耦合。',
-    userTitle: '面向用户',
-    userText: '在不同 AI 应用之间获得更一致的体验、身份和执行路径，而不是每个产品都重新配置一遍。',
-    conclusion: '一个平台，连接 app、runtime 和 realm。',
-    slogan: '为下一代 AI 应用构建基础设施。',
+    title: '平台优先，Runtime 是进入路径。',
+    subtitle: '架构',
+    description: 'Nimi 按平台来组织：世界、自主 AI Agent、身份、社交、经济、Runtime、SDK、Desktop/Web、Realm、Avatar、Cognition 与 Nimi Coding 都有明确归属边界。',
+    devTitle: '给构建者',
+    devText: '通过已准入的 SDK 和 Runtime 公共边界接入，不绕过 runtime internals，也不读取私有 Realm owner surfaces。',
+    userTitle: '给产品读者',
+    userText: '把 Nimi 理解为 AI 开放世界平台，而不是一层薄模型封装或普通 Web App。',
+    conclusion: '一个平台模型，多个归属面，一条公开规范路径。',
+    slogan: '先有权威，再有展示。',
   },
   modelCatalog: {
-    kicker: '模型覆盖',
-    title: '实时模型目录',
-    subtitle: '在一个 runtime 视图里搜索本地与云端模型能力覆盖。',
+    kicker: 'Runtime 治理',
+    title: 'Provider 和 Model 说法需要证据门控',
+    subtitle: '首页只描述合同边界，不发布尚未准入的 Model 目录。',
     overview: {
-      searchPlaceholder: 'search 38 cloud providers and infinite models…',
-      cloudProvidersLabel: '云端 Providers',
-      localModelsLabel: '本地 Models',
-      modalitiesLabel: '能力类型',
-      modalitiesValue: 'OMNI',
-      modalitiesDescription: '文本 / TTS / STT / 视频 / 图像 / Embeddings',
-      industryLeadersLabel: '已接入的主流厂商',
-      shortcutLabel: 'Ctrl K',
-      clearSearchLabel: '清空',
-      matchingProvidersLabel: '个匹配的 providers',
-      liveCatalogLabel: '实时目录',
+      searchPlaceholder: '目录细节需要 Runtime 证据准入',
+      cloudProvidersLabel: '云端面',
+      localModelsLabel: '本地面',
+      modalitiesLabel: '能力',
+      modalitiesValue: 'GATED',
+      modalitiesDescription: '目录证据准入前只保留合同级陈述',
+      industryLeadersLabel: '证据门控',
+      shortcutLabel: '规范',
+      clearSearchLabel: '清除',
+      matchingProvidersLabel: '条匹配记录',
+      liveCatalogLabel: '证据门控',
     },
-    liveBadge: '来自 runtime catalog',
-    featuredProvidersLabel: '重点 provider',
-    featuredProviders: ['OpenAI', 'Anthropic', 'Gemini', 'xAI', 'DashScope', 'Volcengine', 'Mistral', 'DeepSeek'],
-    stats: {
-      providers: '个 provider',
-      models: '个 model',
-      cloudProviders: '个云 provider',
-      localModels: '个本地 model',
-    },
-    localTitle: '离线 / 本地',
-    localHeadline: '本地语音与合成模型已经在栈内。',
-    localDescription: '当前本地 catalog 覆盖语音、图像和视频：语音方面有 Qwen3-TTS、CosyVoice2、GPT-SoVITS、F5-TTS、Piper、Kokoro；图像和视频方面有 Nimi Media 引擎，支持本地 FLUX 图像生成和 Wan2.1 视频生成，均通过同一 runtime 接口接入。',
-    capabilitiesTitle: 'Capability 分布',
-    capabilitiesHeadline: '文本、Embedding、图像、视频、TTS、STT，同属一个 runtime。',
-    capabilitiesDescription: '这一块能直接把 landing page 的气场拉起来：前沿文本模型、图像生成、视频系统、语音模型，全部在同一份 catalog 里。',
+    liveBadge: '合同级',
+    featuredProvidersLabel: 'Provider 细节',
+    featuredProviders: ['需要已准入的目录证据'],
+    stats: { providers: 'provider 面', models: 'model 条目', cloudProviders: '云端路由', localModels: '本地路由' },
+    localTitle: '本地执行',
+    localHeadline: '本地能力说法需要归属证据。',
+    localDescription: 'Runtime 拥有本地执行合同、设备 profile、调度和能力路由。首页文案不会把这些合同转成可用性承诺。',
+    capabilitiesTitle: '能力治理',
+    capabilitiesHeadline: '证据准入前，能力只按合同路由来陈述。',
+    capabilitiesDescription: '文本、embedding、图像、视频、TTS 与 STT 是 Runtime 能力类别。详细公开可用性属于已准入的 Runtime 目录证据。',
     capabilityLabels: {
-      'text.generate': '文本 / 推理',
+      'text.generate': '文本生成',
       'text.embed': 'Embedding',
-      'image.generate': '图像',
-      'video.generate': '视频',
-      'audio.synthesize': '语音 / TTS',
-      'audio.transcribe': '转写 / STT',
+      'image.generate': '图像生成',
+      'video.generate': '视频生成',
+      'audio.synthesize': '语音合成',
+      'audio.transcribe': '语音转写',
     },
-    capabilityCountLabel: '个 catalog 条目',
-    cloudBadge: '云端',
-    matrixTitle: '云端矩阵',
-    matrixHeadline: '所有 provider，直接列出真实 model id。',
-    matrixDescription: '不用笼统地写“supports OpenAI-compatible models”。这里展示的都是 runtime catalog 里已经存在的具体 model id。',
-    providerDetailSuffix: '个 model 已在这个 provider 分组中接入',
-    searchResultsTitle: '来自 live catalog 的搜索结果',
-    searchResultsDescription: '直接展示命中 provider 的 capability 和 model id，不再保留整个 matrix 视图。',
-    noResultsTitle: '没有匹配到 provider。',
-    noResultsDescription: '可以试试 OpenAI、Gemini、DashScope 这类 provider 名，或直接搜索 model id。',
-    sourceNote: '事实源：仓库中的 runtime/catalog/providers/*.yaml。当前 landing 反映的是 2026 年 3 月 10 日推导出来的 snapshot。',
+    capabilityCountLabel: '合同类别',
+    cloudBadge: '合同',
+    matrixTitle: '目录门控',
+    matrixHeadline: '没有准入证据，就不列详细 provider。',
+    matrixDescription: 'Runtime 目录证据准入发布前，首页移除 Provider / Model 细节。',
+    providerDetailSuffix: '条目需要目录证据',
+    searchResultsTitle: '证据门控',
+    searchResultsDescription: 'Provider / Model 目录证据准入前，搜索结果关闭。',
+    noResultsTitle: 'Provider / Model 细节已门控。',
+    noResultsDescription: '请阅读 Runtime 合同和 Spec Map。',
+    sourceNote: '来源锚点：docs/runtime/index.md、docs/runtime/providers-and-models.md、.nimi/spec/runtime/kernel/model-catalog-contract.md、.nimi/spec/runtime/kernel/provider-health-contract.md。',
   },
   sdk: {
-    title: '一套 SDK，以多种运行方式运行 AI',
-    subtitle: '先跑本地，需要时再接入云端，集成方式保持不变。',
+    title: 'SDK 是面向应用的正式边界',
+    subtitle: '应用通过已准入的 SDK 表面接入，而不是绕过 Runtime 或 Realm 的归属边界。',
     tabs: [
-      { label: '流程全览', snippet: ZH_TAB_LOCAL, caption: '安装 SDK，启动 runtime，然后在同一个 app 流程里发起本地和云端请求。' },
-      { label: '多模型支持', snippet: ZH_TAB_CLOUD, caption: '只需一行配置，即可在开源模型和商业 API 之间无缝切换。' },
-      { label: '多调用方式', snippet: ZH_TAB_STREAMING, caption: '在流式响应、批量处理和异步执行之间自由切换。' },
-      { label: 'Mod 开发', snippet: ZH_TAB_MODS, caption: '通过构建和注入自定义 runtime mods 来扩展 Nimi 的核心能力。' },
+      { label: '权威', snippet: ZH_SPEC_NOTE, caption: '公开说法回到文档与 .nimi/spec/**。' },
+      { label: 'Runtime', snippet: 'docs/runtime/index.md -> .nimi/spec/runtime/kernel/index.md', caption: 'Runtime 拥有执行底座合同。' },
+      { label: 'SDK', snippet: 'docs/sdk/index.md -> .nimi/spec/sdk/kernel/boundary-contract.md', caption: 'SDK 拥有面向应用的接入边界。' },
+      { label: 'Realm', snippet: 'docs/realm/index.md -> .nimi/spec/realm/README.md', caption: 'Realm 拥有语义真相与世界状态。' },
     ],
-    previewLabel: 'SDK 流程全览',
-    previewAlt: 'Nimi SDK 流程全览',
-    previewCaption: '安装 SDK，启动 runtime，然后在同一个 app 流程里发起本地和云端请求。',
-    multimodalLabel: '超越纯文本',
-    multimodalAlt: 'Nimi 多模态流程演示',
-    multimodalCaption: '当你需要处理纯文本以外的场景时，同一个 runtime 也完美支持图像和语音流程。',
-    callout: '先完成一次集成，之后按需扩展。',
+    previewLabel: 'SDK 边界',
+    previewAlt: 'Nimi SDK 边界',
+    previewCaption: 'SDK 是公开集成路径；私有 Runtime 与 Realm 归属面保持受保护。',
+    multimodalLabel: 'Runtime 能力路由',
+    multimodalAlt: 'Runtime 能力路由',
+    multimodalCaption: '发布证据准入前，能力类别只按合同级陈述。',
+    callout: '按权威接入，不走捷径。',
   },
   desktop: {
-    title: 'Desktop Workspace for AI',
-    subtitle: '在一个桌面工作区里运行模型、聊天并管理 mods。',
-    screenshotAlt: 'Nimi 桌面应用预览',
+    title: 'Desktop 与 Web 权威不同',
+    subtitle: 'Desktop 是原生外壳。Web 是受限展示面，明确禁用原生 / 本地能力。',
+    screenshotAlt: 'Nimi desktop 与 web 边界',
     features: [
-      { icon: 'dashboard', title: '运行时仪表盘', description: '一眼看到健康状态、模型状态和资源使用。' },
-      { icon: 'chat', title: '内置对话', description: '在同一个工作区内和本地及云端模型对话。' },
-      { icon: 'mods', title: '模块宿主', description: '不离开桌面端，直接启动已安装的 mods。' },
-      { icon: 'models', title: '模型管理', description: '在一处完成安装、更新和切换模型。' },
+      { icon: 'dashboard', title: '原生外壳', description: 'Desktop 通过 desktop kernel 合同拥有原生外壳表面。' },
+      { icon: 'chat', title: 'Runtime 路由', description: 'AI 执行仍然经 Runtime 合同路由。' },
+      { icon: 'mods', title: '受治理的 Mods', description: 'Mods 是受治理的扩展面，不是无限制插件承诺。' },
+      { icon: 'models', title: 'Web 边界', description: 'Web mode 不意味着支持 Desktop 原生能力。' },
     ],
-    downloadCta: '下载桌面应用',
-    availability: {
-      eyebrow: 'Compatibility / Availability',
-      items: [
-        'Desktop 发布会在 GitHub 上提供 macOS、Windows 和 Linux 资产',
-        'CLI 与 SDK 可独立于桌面应用使用',
-        '默认本地优先',
-        'Realm 为可选能力',
-        'Early Access：API 在版本迭代中可能调整',
-      ],
-    },
+    downloadCta: '阅读 Desktop 边界',
+    availability: { eyebrow: '边界', items: ['Desktop 来源：.nimi/spec/desktop/kernel/index.md', 'Web 来源：.nimi/spec/desktop/web-adapter.md', 'Release / distribution 说法需要已准入证据'] },
   },
   faq: {
     eyebrow: 'FAQ',
-    title: '开始之前你最可能会问的几个问题',
-    description: '如果这里还没有回答你的问题，也可以直接进入社区，向核心团队继续提问。',
-    communityCta: '加入 Nimi Discord',
+    title: '首页现在能说什么',
+    description: '这个展示面只陈述已准入的公开产品边界。',
+    communityCta: '加入 Discord',
     items: [
-      {
-        question: '必须安装 Desktop 才能使用 Nimi 吗？',
-        answer: '不是。你也可以直接使用 runtime 和 SDK。Desktop 更像是在其之上提供聊天、模型管理和 mods 工作区。',
-      },
-      {
-        question: '我能通过同一个 runtime 同时跑本地和云端模型吗？',
-        answer: '可以。这正是 Nimi 的核心思路之一：在同一套 runtime 表层下切换本地执行和云端 provider，而不是维护两套接入方式。',
-      },
-      {
-        question: '哪些部分是开源的，哪些是托管的？',
-        answer: 'runtime、SDK 和桌面应用是开源的。Realm 是可选的托管云层，它的接口契约会通过 SDK 对外公开。',
-      },
-      {
-        question: 'mods 在 Nimi 里是什么角色？',
-        answer: 'mods 是建立在同一套 Nimi runtime 执行表层上的原生扩展与体验，而不是绕过 runtime 的外挂能力。',
-      },
+      { question: 'Nimi 只是 Runtime 吗？', answer: '不是。Runtime 是进入路径；Nimi 是包含 Realm、SDK、Desktop/Web、Avatar、Cognition 与 Nimi Coding 的平台模型。' },
+      { question: '公开说法从哪里来？', answer: '公开说法来自可追溯到 .nimi/spec/** 锚点的文档页面。' },
+      { question: '为什么 Provider / Model 细节被门控？', answer: '详细目录说法需要 Runtime 目录证据准入后才能发布。' },
+      { question: 'Web 等同于 Desktop 吗？', answer: '不等同。Web 是受限展示面，不能暗示 Desktop 原生能力。' },
     ],
   },
   security: {
-    title: '以安全设计为出发点',
-    subtitle: '以本地优先的执行路径、明确边界和可控云接入为基础。',
-    intro: 'Nimi 希望让执行路径、凭据管理和 extension 访问都更可控。',
+    title: '先治理，再公开陈述',
+    subtitle: '权威边界是产品表面的一部分。',
+    intro: 'Nimi 的公开表面受来源归属、准入门和显式 closeout 证据约束。',
     pillars: [
-      {
-        label: '设计先行',
-        title: '先定好系统边界',
-        points: ['本地与云端的执行路径是分开设计的。', '云接入统一通过 runtime 边界路由。'],
-      },
-      {
-        label: '已有基础',
-        title: '已经具备的控制',
-        points: ['提供者凭据留在 runtime connector 路径，而不在 desktop renderer 里流转。', 'Desktop 和 mod 调用面受 runtime-only 路由和 capability 检查限制。'],
-      },
-      {
-        label: '持续加固',
-        title: '还在继续加强',
-        points: ['Runtime 侧的执行层约束还在持续收紧。', 'Mod policy、sandbox 覆盖和 audit 可见性也在继续完善。'],
-      },
+      { label: '权威', title: '规范优先的真相', points: ['.nimi/spec/** 拥有公开产品与行为权威。', 'Docs 与首页跟随这个来源。'] },
+      { label: '边界', title: '归属切分保持可见', points: ['Runtime、SDK、Desktop、Realm、Avatar、Cognition 与 Nimi Coding 保持各自归属。', '私有 Realm 与 Mods 真相留在其归属面内。'] },
+      { label: '证据', title: '公开说法受门控', points: ['Provider / Model 与 release 说法需要已准入证据。', 'Future backlog 不是当前产品真相。'] },
     ],
   },
   mods: {
-    title: '用模块扩展',
-    subtitle: '基于 Nimi runtime 的预制应用，或者自己构建。',
+    title: 'Mods 是受治理的扩展面',
+    subtitle: '首页描述治理边界，不描述尚未准入的 marketplace。',
     items: [
-      { icon: 'sim', name: 'kismet', description: '实时图表经济模拟引擎。' },
-      { icon: 'audio', name: 'audio-book', description: 'AI 多角色有声书。' },
-      { icon: 'video', name: 'videoplay', description: '从叙事脚本生成剧集级视频。' },
-      { icon: 'story', name: 'textplay', description: '分支叙事互动式小说。' },
-      { icon: 'docs', name: 'knowledge-base', description: '文档索引与 AI 搜索。' },
+      { icon: 'docs', name: '能力合同', description: 'Mods 通过已准入的 hook 和 capability 合同路由。' },
+      { icon: 'sim', name: '归属边界', description: 'Mods 不能绕过 Runtime、SDK 或 Desktop owner cut。' },
+      { icon: 'story', name: '未来目录', description: '公开 Mod 目录说法需要单独证据准入。' },
     ],
-    buildModCta: '构建你的模块',
+    buildModCta: '阅读 Desktop Mods 边界',
   },
   openSource: {
-    title: '开源为核',
-    subtitle: '在开放中构建，放心交付。',
-    description: 'Nimi 的 runtime、SDK 和桌面应用均以 Apache-2.0 和 MIT 开源。Realm 是可选的托管云层，其契约通过 SDK 对外公开。',
+    title: '开源，但权威显式',
+    subtitle: '仓库可读，但不是每个文件都是来源真相。',
+    description: '用 Spec Map 区分公开权威、实现证据、生成视图、私有归属面和 topic-local 生命周期记录。',
     githubCta: '查看 GitHub',
-    docsCta: '阅读文档',
+    docsCta: '阅读 Spec Map',
   },
   finalCta: {
-    title: '开始使用 Nimi 构建',
-    description: '安装 Nimi，接入 SDK，把本地与云端执行统一在同一个表面之下。',
+    title: '从来源地图阅读 Nimi',
+    description: '先读平台文档，再把公开说法追到 .nimi/spec/**，之后再当作产品真相。',
     primaryCta: '阅读文档',
-    githubCta: '查看 GitHub',
+    githubCta: '查看源码',
   },
-  footer: {
-    line1: 'Nimi：开源 AI 运行时（Early Access）',
-    line2: '许可证：Apache-2.0（runtime/sdk）、MIT（apps）、CC-BY-4.0（docs）',
-    termsLabel: '服务条款',
-    privacyLabel: '隐私政策',
-  },
+  footer: { line1: '公开首页内容跟随文档与规范权威。', line2: '这里不独立发布 Provider / Model、安装或 release 说法。', termsLabel: '服务条款', privacyLabel: '隐私政策' },
   localeToggleLabel: '语言',
-  localeOptions: {
-    en: 'EN',
-    zh: '中文',
-  },
+  localeOptions: { en: 'English', zh: '中文' },
 };

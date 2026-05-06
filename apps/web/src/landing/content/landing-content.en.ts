@@ -1,299 +1,185 @@
 import type { LandingContent } from './landing-content.js';
 
-const EN_TAB_LOCAL = `import { createLocalFirstPartyRuntimePlatformClient } from '@nimiplatform/sdk';
-
-const { runtime } = await createLocalFirstPartyRuntimePlatformClient({
-  appId: 'landing.local',
-});
-
-const result = await runtime.generate({
-  prompt: 'Explain quantum computing simply.',
-});
-
-console.log(result.text);`;
-
-const EN_TAB_CLOUD = `import { createPlatformClient } from '@nimiplatform/sdk';
-
-const { runtime } = await createPlatformClient({
-  appId: 'landing.cloud',
-  authMode: 'web-cloud',
-});
-
-const result = await runtime.generate({
-  provider: 'gemini',
-  prompt: 'Write a haiku about open source.',
-});
-
-console.log(result.text);`;
-
-const EN_TAB_STREAMING = `import { createPlatformClient } from '@nimiplatform/sdk';
-
-const { runtime } = await createPlatformClient({
-  appId: 'landing.streaming',
-  authMode: 'web-cloud',
-});
-
-const stream = await runtime.stream({
-  prompt: 'Tell me a story about a robot.',
-});
-
-for await (const chunk of stream) {
-  process.stdout.write(chunk.text);
-}`;
-
-const EN_TAB_WORKFLOW = `import { createPlatformClient } from '@nimiplatform/sdk';
-
-const { runtime } = await createPlatformClient({
-  appId: 'landing.workflow',
-  authMode: 'web-cloud',
-});
-
-const draft = await runtime.generate({
-  prompt: 'Draft a product launch summary.',
-});
-
-const polish = await runtime.generate({
-  provider: 'gemini',
-  prompt: \`Polish this summary for a blog post:\n\n\${draft.text}\`,
-});
-
-console.log(polish.text);`;
+const EN_SPEC_NOTE = `Authority: .nimi/spec/**
+Docs: /docs/reference/spec-map
+Boundary: public projection, not independent truth`;
 
 export const landingContentEn: LandingContent = {
   localeName: 'English',
   skipToContent: 'Skip to main content',
   nav: {
-    install: 'Install',
+    install: 'Start',
     sdk: 'SDK',
-    catalog: 'Catalog',
-    architecture: 'Architecture',
+    catalog: 'Runtime',
+    architecture: 'Platform',
     desktop: 'Desktop',
-    security: 'Security',
+    security: 'Governance',
     mods: 'Mods',
-    openSource: 'Open Source',
+    openSource: 'Source',
     discord: 'Discord',
   },
   hero: {
-    eyebrow: 'Early Access — Install in seconds',
-    title: 'Local + cloud AI',
+    eyebrow: 'Spec-governed AI open world platform',
+    title: 'Nimi is an AI open world platform',
     titleAccent: '',
-    title2: ' in ',
-    titleAccent2: 'one runtime',
-    subtitle: 'One CLI and one SDK to run any model, anywhere.',
-    description: 'Nimi is in early access. Core runtime, SDK, and desktop app are functional and open for use. APIs may change between releases.',
-    primaryCta: 'Download Desktop',
-    docsCta: 'Read the docs',
+    title2: ' governed by ',
+    titleAccent2: '.nimi/spec',
+    subtitle: 'Runtime is the adoption path. Platform, Realm, SDK, Desktop, Avatar, Cognition, and Nimi Coding keep the product model complete.',
+    description: 'Public landing copy derives from the docs and spec map. Provider/model catalogs, setup paths, release channels, and distribution claims stay evidence-gated until their owner sources are admitted.',
+    primaryCta: 'Read Platform Docs',
+    docsCta: 'Read Spec Map',
     helperPrefix: 'Or',
-    helperDocsCta: 'Read Docs',
-    helperGithubCta: 'View on GitHub',
-    copyTooltipLabel: 'Copy command',
+    helperDocsCta: 'Open Docs',
+    helperGithubCta: 'View Source',
+    copyTooltipLabel: 'Copy reference',
     copiedCommandLabel: 'Copied',
-    githubCta: 'View on GitHub',
-    previewLabel: 'Quickstart walkthrough',
-    previewAlt: 'Nimi quickstart walkthrough',
-    previewCaption: 'Install, start the runtime, and get a first answer from the CLI in one flow.',
-    getStartedTitle: 'Get Started',
-    getStartedSubtitle: 'Choose your install path',
+    githubCta: 'View Source',
+    previewLabel: 'Authority path',
+    previewAlt: 'Nimi authority path',
+    previewCaption: 'Start with docs, resolve claims to .nimi/spec/**, then follow admitted owner surfaces.',
+    getStartedTitle: 'Start With Authority',
+    getStartedSubtitle: 'Current public entry points',
     tabs: [
-      { id: 'desktop', label: 'Desktop App', command: '', ctaText: 'Download Desktop App' },
-      { id: 'curl', label: 'Terminal (curl)', command: 'curl -fsSL https://install.nimi.xyz | sh', ctaText: 'Copy Command' },
-      { id: 'npm', label: 'npm', command: 'npm install -g @nimiplatform/nimi', ctaText: 'Copy Command' },
+      { id: 'platform', label: 'Platform', command: 'docs/platform/index.md -> .nimi/spec/platform/vision.md', ctaText: 'Open Platform Docs' },
+      { id: 'runtime', label: 'Runtime', command: 'docs/runtime/index.md -> .nimi/spec/runtime/kernel/index.md', ctaText: 'Open Runtime Docs' },
+      { id: 'sdk', label: 'SDK', command: 'docs/sdk/index.md -> .nimi/spec/sdk/index.md', ctaText: 'Open SDK Docs' },
     ],
-    terminalMockupTitle: 'Walkthrough',
+    terminalMockupTitle: 'Source route',
   },
   architecture: {
-    title: 'The Unified Architecture.',
-    subtitle: 'Project Overview',
-    description:
-      'Nimi is building shared infrastructure for the next generation of AI apps, with one runtime surface for developers and one coherent experience for users.',
-    devTitle: 'For developers',
-    devText:
-      'Use the SDK and runtime to unify model access, orchestration, and app integration without stitching together incompatible vendor surfaces.',
-    userTitle: 'For users',
-    userText:
-      'Move between AI apps with a more consistent runtime, shared identity, and less repeated setup across products built on Nimi.',
-    conclusion: 'One platform, with clear boundaries between app, runtime, and realm.',
-    slogan: 'Infrastructure for next-generation AI apps.',
+    title: 'Platform first, runtime as adoption path.',
+    subtitle: 'Architecture',
+    description: 'Nimi is organized as a governed platform: Worlds, autonomous AI agents, identity, social, economy, Runtime, SDK, Desktop/Web, Realm, Avatar, Cognition, and Nimi Coding each keep explicit source boundaries.',
+    devTitle: 'For builders',
+    devText: 'Use the SDK and Runtime through admitted public boundaries. Do not bypass runtime internals or private realm owner surfaces.',
+    userTitle: 'For product readers',
+    userText: 'Read Nimi as an AI open world platform, not as a thin model wrapper or ordinary web app.',
+    conclusion: 'One platform model, many owner surfaces, one public spec authority path.',
+    slogan: 'Authority before projection.',
   },
   modelCatalog: {
-    kicker: 'Model coverage',
-    title: 'The live model catalog',
-    subtitle: 'Search one runtime surface across local and cloud model coverage.',
+    kicker: 'Runtime governance',
+    title: 'Provider and model claims are evidence-gated',
+    subtitle: 'The landing page now describes the contract boundary instead of publishing an unadmitted model catalog.',
     overview: {
-      searchPlaceholder: 'search 38 cloud providers and infinite models…',
-      cloudProvidersLabel: 'Cloud Providers',
-      localModelsLabel: 'Local Models',
-      modalitiesLabel: 'Modalities',
-      modalitiesValue: 'OMNI',
-      modalitiesDescription: 'Text / TTS / STT / Video / Image / Embeddings',
-      industryLeadersLabel: 'Supported by industry leaders',
-      shortcutLabel: 'Ctrl K',
+      searchPlaceholder: 'catalog details require admitted runtime evidence',
+      cloudProvidersLabel: 'Cloud surfaces',
+      localModelsLabel: 'Local surfaces',
+      modalitiesLabel: 'Capabilities',
+      modalitiesValue: 'GATED',
+      modalitiesDescription: 'Contract-level only until catalog evidence is admitted',
+      industryLeadersLabel: 'Evidence gate',
+      shortcutLabel: 'Spec',
       clearSearchLabel: 'Clear',
-      matchingProvidersLabel: 'matching providers',
-      liveCatalogLabel: 'Live catalog',
+      matchingProvidersLabel: 'matching entries',
+      liveCatalogLabel: 'Evidence-gated',
     },
-    liveBadge: 'From runtime catalog',
-    featuredProvidersLabel: 'Featured providers',
-    featuredProviders: ['OpenAI', 'Anthropic', 'Gemini', 'xAI', 'DashScope', 'Volcengine', 'Mistral', 'DeepSeek'],
-    stats: {
-      providers: 'providers',
-      models: 'models',
-      cloudProviders: 'cloud providers',
-      localModels: 'local models',
-    },
-    localTitle: 'Offline / local',
-    localHeadline: 'On-device voice and speech models are already in the stack.',
-    localDescription:
-      'Current local catalog coverage spans voice, image, and video: Qwen3-TTS, CosyVoice2, GPT-SoVITS, F5-TTS, Piper, Kokoro for speech — plus Nimi Media for local image generation (FLUX) and video generation (Wan2.1) through the same runtime surface.',
-    capabilitiesTitle: 'Capability spread',
-    capabilitiesHeadline: 'Text, embeddings, image, video, TTS, and STT in one runtime.',
-    capabilitiesDescription:
-      'This is where the landing page starts to look credible: frontier text models, image generators, video systems, and speech models all show up in the same catalog.',
+    liveBadge: 'Contract-level',
+    featuredProvidersLabel: 'Provider details',
+    featuredProviders: ['Admitted catalog evidence required'],
+    stats: { providers: 'provider surfaces', models: 'model entries', cloudProviders: 'cloud routes', localModels: 'local routes' },
+    localTitle: 'Local execution',
+    localHeadline: 'Local capability claims require owner evidence.',
+    localDescription: 'Runtime owns local execution contracts, device profiles, scheduling, and capability routing. Landing copy does not turn those contracts into availability promises.',
+    capabilitiesTitle: 'Capability governance',
+    capabilitiesHeadline: 'Capabilities stay contract-routed until evidence is admitted.',
+    capabilitiesDescription: 'Text, embeddings, image, video, TTS, and STT are runtime capability categories. Detailed public availability belongs to admitted runtime catalog evidence.',
     capabilityLabels: {
-      'text.generate': 'Text / reasoning',
+      'text.generate': 'Text generation',
       'text.embed': 'Embeddings',
-      'image.generate': 'Image',
-      'video.generate': 'Video',
-      'audio.synthesize': 'Speech / TTS',
-      'audio.transcribe': 'Transcription / STT',
+      'image.generate': 'Image generation',
+      'video.generate': 'Video generation',
+      'audio.synthesize': 'Speech synthesis',
+      'audio.transcribe': 'Speech transcription',
     },
-    capabilityCountLabel: 'catalog entries',
-    cloudBadge: 'cloud',
-    matrixTitle: 'Cloud matrix',
-    matrixHeadline: 'Every provider, with actual model ids.',
-    matrixDescription:
-      'No hand-wavy “supports OpenAI-compatible models” claim here. These are the concrete model ids currently represented in the runtime catalog.',
-    providerDetailSuffix: 'models live in this provider bucket',
-    searchResultsTitle: 'Search results from the live catalog',
-    searchResultsDescription: 'Show matching providers with capability and model ids directly instead of keeping the full matrix visible.',
-    noResultsTitle: 'No providers match this search.',
-    noResultsDescription: 'Try a provider name like OpenAI, Gemini, or DashScope, or search for a model id.',
-    sourceNote:
-      'Source of truth: runtime/catalog/providers/*.yaml in this repository. Snapshot reflected here was derived on March 10, 2026.',
+    capabilityCountLabel: 'contract categories',
+    cloudBadge: 'contract',
+    matrixTitle: 'Catalog gate',
+    matrixHeadline: 'No detailed provider listing without admitted evidence.',
+    matrixDescription: 'Provider/model details are removed from landing until the runtime catalog evidence is admitted for publication.',
+    providerDetailSuffix: 'entries require catalog evidence',
+    searchResultsTitle: 'Evidence gate',
+    searchResultsDescription: 'Search results are disabled until provider/model catalog evidence is admitted.',
+    noResultsTitle: 'Provider/model details are gated.',
+    noResultsDescription: 'Read runtime contracts and the spec map for current authority.',
+    sourceNote: 'Source anchors: docs/runtime/index.md, docs/runtime/providers-and-models.md, .nimi/spec/runtime/kernel/model-catalog-contract.md, .nimi/spec/runtime/kernel/provider-health-contract.md.',
   },
   sdk: {
-    title: 'One SDK. Multiple ways to run AI.',
-    subtitle: 'Start local, add cloud when you need it, and keep the integration surface stable.',
+    title: 'SDK is the official app-facing boundary',
+    subtitle: 'Apps integrate through admitted SDK surfaces instead of bypassing runtime or realm owner boundaries.',
     tabs: [
-      { label: 'Walkthrough', snippet: EN_TAB_LOCAL, caption: 'Go from install to first answer fast.' },
-      { label: 'Multimodal', snippet: EN_TAB_CLOUD, caption: 'Handle text, image, and speech in one flow.' },
-      { label: 'Stream Job', snippet: EN_TAB_STREAMING, caption: 'Run streaming jobs through the same runtime.' },
-      { label: 'Workflow', snippet: EN_TAB_WORKFLOW, caption: 'Chain steps into one repeatable AI workflow.' },
+      { label: 'Authority', snippet: EN_SPEC_NOTE, caption: 'Public claims resolve to docs and .nimi/spec/**.' },
+      { label: 'Runtime', snippet: 'docs/runtime/index.md -> .nimi/spec/runtime/kernel/index.md', caption: 'Runtime owns execution substrate contracts.' },
+      { label: 'SDK', snippet: 'docs/sdk/index.md -> .nimi/spec/sdk/kernel/boundary-contract.md', caption: 'SDK owns the app-facing access boundary.' },
+      { label: 'Realm', snippet: 'docs/realm/index.md -> .nimi/spec/realm/README.md', caption: 'Realm owns semantic truth and world state.' },
     ],
-    previewLabel: 'SDK walkthrough',
-    previewAlt: 'Nimi SDK walkthrough',
-    previewCaption: 'Install the SDK, start the runtime, and send local and cloud requests from the same app flow.',
-    multimodalLabel: 'Beyond text',
-    multimodalAlt: 'Nimi multimodal walkthrough',
-    multimodalCaption: 'The same runtime also handles image and speech flows when you move beyond text-only examples.',
-    callout: 'Start with one setup. Expand without rewriting.',
+    previewLabel: 'SDK boundary',
+    previewAlt: 'Nimi SDK boundary',
+    previewCaption: 'SDK is the public integration route; private runtime and realm owner surfaces remain protected.',
+    multimodalLabel: 'Runtime capability routing',
+    multimodalAlt: 'Runtime capability routing',
+    multimodalCaption: 'Capability categories are described at contract level until publication evidence is admitted.',
+    callout: 'Integrate through authority, not shortcuts.',
   },
   desktop: {
-    title: 'Desktop Workspace for AI',
-    subtitle: 'Run models, chat, and manage mods from one desktop workspace.',
-    screenshotAlt: 'Nimi desktop app preview',
+    title: 'Desktop and Web have different authority',
+    subtitle: 'Desktop is the native shell. Web is a constrained projection with explicit disabled native/local capabilities.',
+    screenshotAlt: 'Nimi desktop and web boundary',
     features: [
-      { icon: 'dashboard', title: 'Runtime Dashboard', description: 'See health, model status, and resource usage at a glance.' },
-      { icon: 'chat', title: 'Built-in Chat', description: 'Talk to local and cloud models from the same workspace.' },
-      { icon: 'mods', title: 'Mod Host', description: 'Launch installed mods without leaving the desktop app.' },
-      { icon: 'models', title: 'Model Management', description: 'Install, update, and switch models from one place.' },
+      { icon: 'dashboard', title: 'Native shell', description: 'Desktop owns native shell surfaces through desktop kernel contracts.' },
+      { icon: 'chat', title: 'Runtime route', description: 'AI execution remains routed through runtime contracts.' },
+      { icon: 'mods', title: 'Governed mods', description: 'Mods are governed extension surfaces, not unrestricted plugin claims.' },
+      { icon: 'models', title: 'Web boundary', description: 'Web mode does not imply desktop-native capability support.' },
     ],
-    downloadCta: 'Download Desktop App',
-    availability: {
-      eyebrow: 'Compatibility / Availability',
-      items: [
-        'Desktop releases publish macOS, Windows, and Linux assets on GitHub',
-        'CLI + SDK work independently of the desktop app',
-        'Local-first by default',
-        'Realm remains optional',
-        'Early access: APIs and interfaces may change between releases',
-      ],
-    },
+    downloadCta: 'Read Desktop Boundary',
+    availability: { eyebrow: 'Boundary', items: ['Desktop source: .nimi/spec/desktop/kernel/index.md', 'Web source: .nimi/spec/desktop/web-adapter.md', 'Release/distribution claims require admitted evidence'] },
   },
   faq: {
     eyebrow: 'FAQ',
-    title: 'Common questions before you start',
-    description: "Have a question that isn't answered here? Jump into the community and ask the core team directly.",
-    communityCta: 'Join Nimi Discord',
+    title: 'What the landing page can claim now',
+    description: 'This surface is intentionally bounded to approved docs/spec truth.',
+    communityCta: 'Join Discord',
     items: [
-      {
-        question: 'Do I need the desktop app to use Nimi?',
-        answer: 'No. You can work directly with the runtime and SDK. Desktop is an additional workspace for chat, model management, and mods.',
-      },
-      {
-        question: 'Can I run both local and cloud models through the same runtime?',
-        answer: 'Yes. That is one of the core ideas behind Nimi: keep one runtime surface while switching between local execution and connected cloud providers.',
-      },
-      {
-        question: 'What is open source and what is managed?',
-        answer: 'The runtime, SDK, and desktop app are open source. Realm is an optional managed cloud layer, and its contracts are exposed publicly through the SDK.',
-      },
-      {
-        question: 'How do mods fit into Nimi?',
-        answer: 'Mods are runtime-native extensions and experiences that build on the same Nimi execution surface instead of bypassing it.',
-      },
+      { question: 'Is Nimi just a runtime?', answer: 'No. Runtime is the adoption path. Nimi is a platform model with Realm, SDK, Desktop/Web, Avatar, Cognition, and Nimi Coding surfaces.' },
+      { question: 'Where do claims come from?', answer: 'Public claims come from docs pages that map back to .nimi/spec/** anchors.' },
+      { question: 'Why are provider/model details gated?', answer: 'Detailed catalog claims require admitted runtime catalog evidence before publication.' },
+      { question: 'Is Web the same as Desktop?', answer: 'No. Web is a constrained projection and must not imply desktop-native capabilities.' },
     ],
   },
   security: {
-    title: 'Security by design',
-    subtitle: 'Local-first execution, explicit boundaries, and controlled cloud access.',
-    intro: 'Nimi is designed to keep execution paths, credentials, and extension access under clearer control.',
+    title: 'Governance before claims',
+    subtitle: 'Authority boundaries are part of the product surface.',
+    intro: 'Nimi public surfaces are constrained by source ownership, admission gates, and explicit closeout evidence.',
     pillars: [
-      {
-        label: 'Designed in',
-        title: 'Clear system boundaries',
-        points: ['Local and cloud paths are separated by design.', 'Cloud access routes through the runtime boundary.'],
-      },
-      {
-        label: 'Built today',
-        title: 'Controls already in place',
-        points: [
-          'Provider credentials stay on the runtime connector path, not in the desktop renderer.',
-          'Mods and desktop surfaces are constrained by runtime-only routing and capability checks.',
-        ],
-      },
-      {
-        label: 'Hardening next',
-        title: 'Still getting stronger',
-        points: ['Runtime-side enforcement is still being tightened.', 'Mod policy, sandbox coverage, and audit visibility continue to improve.'],
-      },
+      { label: 'Authority', title: 'Spec-first truth', points: ['.nimi/spec/** owns public product and behavior authority.', 'Docs and landing are projections of that source.'] },
+      { label: 'Boundary', title: 'Owner cuts stay visible', points: ['Runtime, SDK, Desktop, Realm, Avatar, Cognition, and Nimi Coding keep distinct ownership.', 'Private realm and mods truth stay in their owner surfaces.'] },
+      { label: 'Evidence', title: 'Claims are gated', points: ['Provider/model and release claims require admitted evidence.', 'Future backlog is not current product truth.'] },
     ],
   },
   mods: {
-    title: 'Extend with mods',
-    subtitle: 'Pre-built apps powered by the Nimi runtime. Or build your own.',
+    title: 'Mods are governed extension surfaces',
+    subtitle: 'Landing copy describes the governance boundary, not an unadmitted marketplace.',
     items: [
-      { icon: 'sim', name: 'kismet', description: 'Economic simulation engine with real-time charts.' },
-      { icon: 'audio', name: 'audio-book', description: 'Multi-voice audiobooks with AI narration.' },
-      { icon: 'video', name: 'videoplay', description: 'Episode-scale video from narrative scripts.' },
-      { icon: 'story', name: 'textplay', description: 'Interactive fiction with branching narratives.' },
-      { icon: 'docs', name: 'knowledge-base', description: 'Document indexing and AI-powered search.' },
+      { icon: 'docs', name: 'Capability contracts', description: 'Mods route through admitted hook and capability contracts.' },
+      { icon: 'sim', name: 'Owner boundaries', description: 'Mods must not bypass runtime, SDK, or desktop owner cuts.' },
+      { icon: 'story', name: 'Future catalog', description: 'Public mod catalog claims require separate evidence admission.' },
     ],
-    buildModCta: 'Build your own mod',
+    buildModCta: 'Read Desktop Mods Boundary',
   },
   openSource: {
-    title: 'Open source at the core',
-    subtitle: 'Built in the open. Ship with confidence.',
-    description:
-      'Nimi runtime, SDK, and desktop app are open source under Apache-2.0 and MIT. Realm is an optional managed cloud layer, and its contracts are public through the SDK.',
-    githubCta: 'View on GitHub',
-    docsCta: 'Read the docs',
+    title: 'Open source with explicit authority',
+    subtitle: 'The repository is readable, but not every file is source truth.',
+    description: 'Use the spec map to distinguish public authority, implementation evidence, generated projections, private owner surfaces, and topic-local lifecycle records.',
+    githubCta: 'View GitHub',
+    docsCta: 'Read Spec Map',
   },
   finalCta: {
-    title: 'Build on one AI runtime',
-    description: 'Install Nimi, wire up the SDK, and keep local and cloud execution under one surface.',
-    primaryCta: 'Read the docs',
-    githubCta: 'View on GitHub',
+    title: 'Read Nimi from the source map',
+    description: 'Start with platform docs, then resolve claims to .nimi/spec/** before treating them as product truth.',
+    primaryCta: 'Read Docs',
+    githubCta: 'View Source',
   },
-  footer: {
-    line1: 'Nimi: Open-source AI runtime (Early Access)',
-    line2: 'Licenses: Apache-2.0 (runtime/sdk), MIT (apps), CC-BY-4.0 (docs)',
-    termsLabel: 'Terms of Service',
-    privacyLabel: 'Privacy Policy',
-  },
+  footer: { line1: 'Public landing content is a projection of docs/spec authority.', line2: 'No independent provider/model, setup, or release claims are published here.', termsLabel: 'Terms', privacyLabel: 'Privacy' },
   localeToggleLabel: 'Language',
-  localeOptions: {
-    en: 'EN',
-    zh: '中文',
-  },
+  localeOptions: { en: 'English', zh: '中文' },
 };
