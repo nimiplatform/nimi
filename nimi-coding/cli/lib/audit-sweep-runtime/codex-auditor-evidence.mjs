@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { isDeepStrictEqual } from "node:util";
 
 import { writeJsonRef } from "./common.mjs";
 import { validateEvidenceEnvelope } from "./ingest.mjs";
@@ -90,7 +91,37 @@ function parseCodexRawJson(rawText) {
         // Fall through to the contract error below.
       }
     }
+    const duplicateTrailingFieldRepair = parseWithDuplicateTrailingTopLevelFields(prefix, trailing);
+    if (duplicateTrailingFieldRepair.ok) {
+      return duplicateTrailingFieldRepair;
+    }
     return { ok: false, error: "Codex auditor raw output must be exact JSON, without markdown or transcript prose" };
+  }
+}
+
+function parseWithDuplicateTrailingTopLevelFields(prefix, trailing) {
+  if (!prefix || !trailing.startsWith(",") || !trailing.endsWith("}")) {
+    return { ok: false };
+  }
+  try {
+    const value = JSON.parse(prefix.jsonText);
+    if (!isPlainObject(value) || hasUnexpectedTopLevelFields(value).length > 0) {
+      return { ok: false };
+    }
+    const trailingFields = JSON.parse(`{${trailing.slice(1)}`);
+    if (!isPlainObject(trailingFields)) {
+      return { ok: false };
+    }
+    const keys = Object.keys(trailingFields);
+    if (keys.length === 0 || keys.some((key) => !ALLOWED_TOP_LEVEL_FIELDS.has(key))) {
+      return { ok: false };
+    }
+    if (!keys.every((key) => isDeepStrictEqual(trailingFields[key], value[key]))) {
+      return { ok: false };
+    }
+    return { ok: true, value, repaired: "ignored_duplicate_trailing_top_level_fields" };
+  } catch {
+    return { ok: false };
   }
 }
 
@@ -155,7 +186,7 @@ function stripNonImplementationContextRefs(refs, evidenceInventorySet) {
   return refs.filter((ref) => evidenceInventorySet.has(ref) || !isNonImplementationContextRef(ref));
 }
 
-function normalizeFindingEnvelope(finding, evidenceInventorySet) {
+function normalizeFindingEnvelope(finding, evidenceInventorySet, authorityRefSet = new Set()) {
   if (!isPlainObject(finding)) {
     return finding;
   }
@@ -251,6 +282,13 @@ function normalizeFindingEnvelope(finding, evidenceInventorySet) {
     if (!patch.location && locationFile) {
       patch.location = {
         file: locationFile,
+      };
+    }
+    const authorityRefs = normalizeRefs(finding.authority_refs);
+    const authorityLocationFile = authorityRefs.find((ref) => authorityRefSet.has(ref));
+    if (!patch.location && authorityLocationFile) {
+      patch.location = {
+        file: authorityLocationFile,
       };
     }
   }
@@ -540,7 +578,7 @@ function normalizeCodexSemanticOutput(rawOutput, chunk, options) {
       p0p1_evidence_refs: normalizedP0P1EvidenceRefs,
       p0p1_rule_checks: ruleChecks.ruleChecks,
     },
-    findings: rawOutput.findings.map((finding) => normalizeFindingEnvelope(finding, evidenceInventorySet)),
+    findings: rawOutput.findings.map((finding) => normalizeFindingEnvelope(finding, evidenceInventorySet, authorityRefSet)),
   };
   if (typeof rawOutput.coverage.p0p1_negative_reasoning === "string" && rawOutput.coverage.p0p1_negative_reasoning.trim()) {
     evidence.coverage.p0p1_negative_reasoning = rawOutput.coverage.p0p1_negative_reasoning.trim();
