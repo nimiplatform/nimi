@@ -4,6 +4,10 @@
   "private": false,
   "description": "AI-native coding governance toolkit for bootstrapping .nimi/** into arbitrary projects.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nimiplatform/nimi"
+  },
   "type": "module",
   "publishConfig": {
     "access": "public",

@@ -342,6 +342,9 @@ jobs:
           if (payload.private !== false) {
             violations.push('private must be false for npm release');
           }
+          if (payload.repository?.url !== 'https://github.com/nimiplatform/nimi') {
+            violations.push('repository.url must match https://github.com/nimiplatform/nimi for npm provenance');
+          }
           if (!payload.bin || payload.bin.nimicoding !== './bin/nimicoding.mjs') {
             violations.push('bin.nimicoding must point at ./bin/nimicoding.mjs');
           }
