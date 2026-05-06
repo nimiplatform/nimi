@@ -1,9 +1,14 @@
 {
   "name": "@nimiplatform/nimi-coding",
   "version": "0.1.0",
+  "private": false,
   "description": "AI-native coding governance toolkit for bootstrapping .nimi/** into arbitrary projects.",
   "license": "MIT",
   "type": "module",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "bin": {
     "nimicoding": "./bin/nimicoding.mjs"
   },
