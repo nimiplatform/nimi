@@ -6,6 +6,7 @@ function stringList(value) {
 
 function normalizeAuthorityConvergencePolicy(parsed) {
   const policy = parsed?.authority_convergence_policy ?? {};
+  const postUpdateReview = policy.post_update_review ?? {};
   return {
     triggerPacketKinds: stringList(policy.trigger_packet_kinds),
     triggerRefPrefixes: stringList(policy.trigger_ref_prefixes),
@@ -17,6 +18,16 @@ function normalizeAuthorityConvergencePolicy(parsed) {
       ? policy.required_result.pass_verdict
       : "PASS",
     blockedVerdicts: stringList(policy.blocked_verdicts),
+    postUpdateReview: {
+      triggerPacketKinds: stringList(postUpdateReview.trigger_packet_kinds),
+      triggerRefPrefixes: stringList(postUpdateReview.trigger_ref_prefixes),
+      requiredResultKind: typeof postUpdateReview.required_result?.result_kind === "string"
+        ? postUpdateReview.required_result.result_kind
+        : "judgement",
+      passVerdict: typeof postUpdateReview.required_result?.pass_verdict === "string"
+        ? postUpdateReview.required_result.pass_verdict
+        : "PASS",
+    },
   };
 }
 
@@ -37,8 +48,71 @@ export function needsAuthorityConvergenceAudit(topic, packet, policy) {
   )));
 }
 
+export function needsPostUpdateReview(packet, policy) {
+  const reviewPolicy = policy.postUpdateReview ?? {};
+  if (reviewPolicy.triggerPacketKinds?.includes(String(packet.packet_kind ?? ""))) return true;
+  const refs = [
+    ...stringList(packet.authority_owner),
+    ...stringList(packet.canonical_seams),
+  ];
+  return refs.some((ref) => reviewPolicy.triggerRefPrefixes?.some((prefix) => (
+    ref === prefix.slice(0, -1) || ref.startsWith(prefix) || ref.includes(prefix)
+  )));
+}
+
 export function latestResultOfKind(results, kind) {
   return [...results].reverse().find((entry) => entry.result?.result_kind === kind) ?? null;
+}
+
+function verifiedAtMs(resultEntry) {
+  const value = resultEntry?.result?.verified_at;
+  if (typeof value !== "string" || value.length === 0) return Number.NaN;
+  return Date.parse(value);
+}
+
+export function hasFreshPassingPostUpdateReview(results, implementationResult, policy) {
+  const reviewPolicy = policy.postUpdateReview ?? {};
+  const implementationVerifiedAt = verifiedAtMs(implementationResult);
+  if (!Number.isFinite(implementationVerifiedAt)) return false;
+  return [...results].reverse().some((entry) => (
+    entry.result?.result_kind === reviewPolicy.requiredResultKind
+    && entry.result?.verdict === reviewPolicy.passVerdict
+    && verifiedAtMs(entry) >= implementationVerifiedAt
+  ));
+}
+
+export function buildPostUpdateReviewDecision({ topicId, wave, packets, results, policy, commandRef }) {
+  const specUpdatingPacket = packets.find((entry) => needsPostUpdateReview(entry.packet, policy));
+  const implementationResult = latestResultOfKind(results, "implementation");
+  if (
+    !specUpdatingPacket
+    || implementationResult?.result?.verdict !== "PASS"
+    || hasFreshPassingPostUpdateReview(results, implementationResult, policy)
+  ) {
+    return null;
+  }
+  const reviewPolicy = policy.postUpdateReview ?? {};
+  return {
+    stopClass: "require_human_confirmation",
+    recommendedAction: "record_result",
+    reasonCode: "spec_update_review_required",
+    recommendedDecision: "record_post_spec_update_judgement_before_wave_closeout",
+    recommendationRationale: "This wave updated spec/authority truth; manager judgement is required before automatic wave closeout.",
+    expectedArtifacts: [`result-${wave.wave_id}-${reviewPolicy.requiredResultKind}.md`],
+    nextCommandRef: commandRef([
+      "result",
+      "record",
+      topicId,
+      "--kind",
+      reviewPolicy.requiredResultKind,
+      "--verdict",
+      "<verdict>",
+      "--from",
+      "<path>",
+      "--verified-at",
+      "<utc>",
+    ]),
+  };
 }
 
 export function authorityConvergenceAuditInstructions(role) {

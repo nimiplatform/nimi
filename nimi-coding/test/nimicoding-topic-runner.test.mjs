@@ -426,6 +426,199 @@ test("authority convergence audit does not reuse stale pass result for a fresh p
   });
 });
 
+test("spec implementation pass requires fresh judgement before wave closeout", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "spec-update-review-demo",
+      "--justification",
+      "spec update review gate demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-spec", "spec",
+      "--goal", "update spec before implementation closeout", "--owner-domain", "nimi-coding/spec", "--json",
+    ]);
+    await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-1-spec", "--json"]);
+    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-1-spec", "--json"]);
+
+    const packetPath = path.join(projectRoot, "spec-update-review-packet.yaml");
+    await writeFile(
+      packetPath,
+      YAML.stringify({
+        packet_id: "wave-1-spec-authority",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-spec",
+        packet_kind: "spec",
+        status: "draft",
+        authority_owner: [".nimi/spec/runtime/kernel/example-contract.md"],
+        canonical_seams: [".nimi/spec/runtime/kernel/example-contract.md"],
+        forbidden_shortcuts: ["parallel_truth"],
+        acceptance_invariants: ["spec review happens after implementation PASS"],
+        negative_tests: ["wave closeout before judgement PASS is refused"],
+        reopen_conditions: ["spec authority drift"],
+      }),
+      "utf8",
+    );
+    await captureRunCli(["topic", "packet", "freeze", createPayload.topicId, "--from", packetPath, "--json"]);
+    await captureRunCli([
+      "topic", "audit", "dispatch", createPayload.topicId,
+      "--packet", "wave-1-spec-authority", "--json",
+    ]);
+
+    const auditSource = path.join(projectRoot, "spec-update-review-audit.md");
+    await writeFile(auditSource, "# Authority Convergence Audit\n\nverdict: PASS\n", "utf8");
+    const auditResult = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "audit",
+      "--verdict",
+      "PASS",
+      "--from",
+      auditSource,
+      "--verified-at",
+      "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(auditResult.exitCode, 0);
+
+    await captureRunCli([
+      "topic", "worker", "dispatch", createPayload.topicId,
+      "--packet", "wave-1-spec-authority", "--json",
+    ]);
+
+    const staleJudgementSource = path.join(projectRoot, "spec-update-review-stale-judgement.md");
+    await writeFile(staleJudgementSource, "# Judgement\n\nPASS before implementation result.\n", "utf8");
+    const staleJudgement = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "judgement",
+      "--verdict",
+      "PASS",
+      "--from",
+      staleJudgementSource,
+      "--verified-at",
+      "2026-05-04T00:01:00Z",
+      "--json",
+    ]);
+    assert.equal(staleJudgement.exitCode, 0);
+
+    const implementationSource = path.join(projectRoot, "spec-update-review-implementation.md");
+    await writeFile(implementationSource, "# Implementation Result\n\nSpec update landed.\n", "utf8");
+    const implementationResult = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "implementation",
+      "--verdict",
+      "PASS",
+      "--from",
+      implementationSource,
+      "--verified-at",
+      "2026-05-04T00:02:00Z",
+      "--json",
+    ]);
+    assert.equal(implementationResult.exitCode, 0);
+
+    const gatedDecisionResult = await captureRunCli([
+      "topic",
+      "run-next-step",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(gatedDecisionResult.exitCode, 0);
+    const gatedDecision = JSON.parse(gatedDecisionResult.stdout).decision;
+    assert.equal(gatedDecision.stop_class, "require_human_confirmation");
+    assert.equal(gatedDecision.recommended_action, "record_result");
+    assert.equal(gatedDecision.reason_code, "spec_update_review_required");
+    assert.match(gatedDecision.next_command_ref, /--kind judgement/);
+
+    const gatedStep = await captureRunCli([
+      "topic-runner",
+      "step",
+      createPayload.topicId,
+      "--run-id",
+      "spec-update-review-demo",
+      "--adapter",
+      "codex",
+      "--verified-at",
+      "2026-05-04T00:03:00Z",
+      "--json",
+    ]);
+    assert.equal(gatedStep.exitCode, 0);
+    const gatedPayload = JSON.parse(gatedStep.stdout);
+    assert.equal(gatedPayload.runnerStatus, "stopped");
+    assert.equal(gatedPayload.stopClass, "require_human_confirmation");
+    const gatedLedger = YAML.parse(await readFile(path.join(projectRoot, gatedPayload.ledgerRef), "utf8"));
+    assert.equal(gatedLedger.run_status, "awaiting_human_confirmation");
+    assert.equal(gatedLedger.current_human_gate.recommended_action, "record_result");
+
+    const freshJudgementSource = path.join(projectRoot, "spec-update-review-fresh-judgement.md");
+    await writeFile(freshJudgementSource, "# Judgement\n\nPASS after implementation result.\n", "utf8");
+    const freshJudgement = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "judgement",
+      "--verdict",
+      "PASS",
+      "--from",
+      freshJudgementSource,
+      "--verified-at",
+      "2026-05-04T00:04:00Z",
+      "--json",
+    ]);
+    assert.equal(freshJudgement.exitCode, 0);
+
+    const closeoutDecisionResult = await captureRunCli([
+      "topic",
+      "run-next-step",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(closeoutDecisionResult.exitCode, 0);
+    const closeoutDecision = JSON.parse(closeoutDecisionResult.stdout).decision;
+    assert.equal(closeoutDecision.stop_class, "continue");
+    assert.equal(closeoutDecision.recommended_action, "closeout_wave");
+
+    const closeoutStep = await captureRunCli([
+      "topic-runner",
+      "step",
+      createPayload.topicId,
+      "--run-id",
+      "spec-update-review-demo",
+      "--adapter",
+      "codex",
+      "--verified-at",
+      "2026-05-04T00:05:00Z",
+      "--json",
+    ]);
+    assert.equal(closeoutStep.exitCode, 0);
+    const closeoutPayload = JSON.parse(closeoutStep.stdout);
+    assert.equal(closeoutPayload.runnerStatus, "continued");
+    assert.equal(closeoutPayload.recommendedAction, "closeout_wave");
+    assert.equal(closeoutPayload.command.waveState, "closed");
+    const closedLedger = YAML.parse(await readFile(path.join(projectRoot, closeoutPayload.ledgerRef), "utf8"));
+    assert.equal(closedLedger.current_human_gate, null);
+  });
+});
+
 test("topic runner continues deterministic wave closeout and next-wave transition", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);

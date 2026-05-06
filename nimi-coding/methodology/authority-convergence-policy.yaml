@@ -18,6 +18,16 @@ authority_convergence_policy:
   required_result:
     result_kind: audit
     pass_verdict: PASS
+  post_update_review:
+    trigger_packet_kinds:
+      - authority
+      - spec
+      - redesign
+    trigger_ref_prefixes:
+      - .nimi/spec/
+    required_result:
+      result_kind: judgement
+      pass_verdict: PASS
   blocked_verdicts:
     - NEEDS_REVISION
     - FAIL
