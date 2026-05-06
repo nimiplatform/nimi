@@ -301,7 +301,6 @@ jobs:
     env:
       RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
       PUBLISH: ${{ needs.resolve.outputs.publish }}
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -362,9 +361,13 @@ jobs:
         run: |
           set -euo pipefail
           if npm view "@nimiplatform/nimi-coding@${RELEASE_VERSION}" version >/tmp/nimicoding-version.txt 2>/tmp/nimicoding-npm-view.err; then
-            echo "@nimiplatform/nimi-coding@${RELEASE_VERSION} is already published" >&2
-            cat /tmp/nimicoding-version.txt >&2
-            exit 1
+            if [[ "${PUBLISH}" == "true" ]]; then
+              echo "@nimiplatform/nimi-coding@${RELEASE_VERSION} is already published" >&2
+              cat /tmp/nimicoding-version.txt >&2
+              exit 1
+            fi
+            echo "@nimiplatform/nimi-coding@${RELEASE_VERSION} is already published; dry-run may continue"
+            exit 0
           fi
           if grep -q 'E404' /tmp/nimicoding-npm-view.err; then
             echo "@nimiplatform/nimi-coding@${RELEASE_VERSION} is not published yet; continuing"
@@ -387,14 +390,6 @@ jobs:
           set -euo pipefail
 
           if [[ "${PUBLISH}" == "true" ]]; then
-            if [[ -z "${NPM_TOKEN:-}" ]]; then
-              echo "NPM_TOKEN is required for Nimi Coding publish" >&2
-              exit 1
-            fi
-            npm_config="${NPM_CONFIG_USERCONFIG:-${HOME}/.npmrc}"
-            mkdir -p "$(dirname "${npm_config}")"
-            printf '//registry.npmjs.org/:_authToken=%s\n' "${NPM_TOKEN}" > "${npm_config}"
-            export NODE_AUTH_TOKEN="${NPM_TOKEN}"
             pnpm --filter @nimiplatform/nimi-coding publish --access public --no-git-checks --provenance
           else
             pnpm --filter @nimiplatform/nimi-coding publish --access public --no-git-checks --dry-run
