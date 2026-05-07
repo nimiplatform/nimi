@@ -21,6 +21,7 @@ test('tester page mounts the world tour panel', () => {
 
 test('world tour panel keeps world.generate submit flow and launch-only desktop viewer entry', () => {
   const source = readRendererFile('features/tester/panels/panel-world-tour.tsx');
+  const summarySource = readRendererFile('features/tester/panels/panel-world-tour-result-summary.tsx');
   assert.match(source, /@nimiplatform\/sdk\/world/);
   assert.match(source, /worldGenerate\.project/);
   assert.match(source, /createInspectWorldRenderPlan/);
@@ -28,10 +29,15 @@ test('world tour panel keeps world.generate submit flow and launch-only desktop 
   assert.match(source, /media\.world\.generate/);
   assert.match(source, /Run World Tour/);
   assert.match(source, /Load Cached Fixture/);
-  assert.match(source, /Launch World Tour/);
+  assert.match(summarySource, /Launch World Tour/);
   assert.match(source, /WORLD_TOUR_CACHE_MANIFEST_PATH/);
   assert.match(source, /resolve_world_tour_fixture/);
   assert.match(source, /open_world_tour_window/);
+  assert.match(source, /WORLD_TOUR_RENDER_ACCEPTANCE_STORAGE_KEY/);
+  assert.match(source, /spark-render-acceptance-pending/);
+  assert.match(source, /spark-render-accepted/);
+  assert.doesNotMatch(source, /finishReason:\s*'cached-fixture'/);
+  assert.doesNotMatch(source, /result:\s*'passed',\s*error:\s*'',\s*output:\s*world/);
 });
 
 test('dedicated world tour viewer route owns Spark renderer lifecycle', () => {
@@ -47,6 +53,9 @@ test('dedicated world tour viewer route owns Spark renderer lifecycle', () => {
   assert.match(source, /save_world_tour_viewer_preset/);
   assert.match(source, /resolve_world_tour_fixture/);
   assert.match(source, /Booting world tour viewer/);
+  assert.match(source, /writeWorldTourRenderAcceptance/);
+  assert.match(source, /status:\s*'passed'/);
+  assert.match(source, /status:\s*'failed'/);
   assert.match(source, /const WORLD_TOUR_UPRIGHT_QUATERNION = new THREE\.Quaternion\(1,\s*0,\s*0,\s*0\)/);
   assert.doesNotMatch(source, /splat\.quaternion\.copy\(WORLD_TOUR_UPRIGHT_QUATERNION\)/);
   assert.doesNotMatch(source, /Ground Lock/);

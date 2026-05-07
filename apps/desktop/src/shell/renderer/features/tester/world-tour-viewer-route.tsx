@@ -14,6 +14,7 @@ import {
   resolveWorldTourAssetUrl,
   type WorldTourViewerPreset,
   type WorldTourViewerPresetVector,
+  writeWorldTourRenderAcceptance,
   worldTourFixtureToWorldResult,
   worldTourTitle,
 } from './world-tour-shared';
@@ -675,6 +676,14 @@ function WorldTourViewerCanvas(props: { fixture: ResolvedWorldTourFixture; onClo
         applyComputedView(initialView);
       }
       setBooting(false);
+      writeWorldTourRenderAcceptance({
+        manifestPath: props.fixture.manifestPath,
+        status: 'passed',
+        acceptedAt: new Date().toISOString(),
+        renderer: 'spark-2.0',
+        worldId: props.fixture.worldId,
+        spzAssetRef: props.fixture.spzLocalPath || props.fixture.spzRemoteUrl,
+      });
       void loadColliderInBackground().catch((loadError) => {
         if (disposed) return;
         setColliderStatus(`Collider: skipped (${loadError instanceof Error ? loadError.message : String(loadError)})`);
@@ -683,7 +692,17 @@ function WorldTourViewerCanvas(props: { fixture: ResolvedWorldTourFixture; onClo
 
     void boot().catch((loadError) => {
       if (disposed) return;
-      setError(loadError instanceof Error ? loadError.message : String(loadError || 'Failed to boot world-tour viewer.'));
+      const message = loadError instanceof Error ? loadError.message : String(loadError || 'Failed to boot world-tour viewer.');
+      writeWorldTourRenderAcceptance({
+        manifestPath: props.fixture.manifestPath,
+        status: 'failed',
+        acceptedAt: new Date().toISOString(),
+        renderer: 'spark-2.0',
+        worldId: props.fixture.worldId,
+        spzAssetRef: props.fixture.spzLocalPath || props.fixture.spzRemoteUrl,
+        reason: message,
+      });
+      setError(message);
       setBooting(false);
     });
 
