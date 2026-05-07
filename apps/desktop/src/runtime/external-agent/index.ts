@@ -1,7 +1,4 @@
 import { tauriInvoke, hasTauriInvoke } from '@runtime/llm-adapter/tauri-bridge';
-import { listenTauri } from '@runtime/tauri-api';
-import { getRuntimeHookRuntime } from '@runtime/mod';
-import { ReasonCode } from '@nimiplatform/sdk/types';
 
 export type ExternalAgentActionDescriptor = {
   actionId: string;
@@ -58,6 +55,8 @@ export type ExternalAgentGatewayStatus = {
   bindAddress: string;
   issuer: string;
   actionCount: number;
+  status?: string;
+  reasonCode?: string;
 };
 
 export type ExternalAgentActionExecutionRequest = {
@@ -82,19 +81,7 @@ export type ExternalAgentActionExecutionRequest = {
   verifyTicket?: string;
 };
 
-type TauriEventUnsubscribe = () => void;
-type TauriEventListen = (
-  eventName: string,
-  handler: (event: { payload: unknown }) => void,
-) => Promise<TauriEventUnsubscribe | undefined> | TauriEventUnsubscribe | undefined;
-
-let syncedActionHash = '';
-let actionBridgeStarted = false;
 let actionBridgeStop: (() => void) | null = null;
-let actionRegistrySubscriptionStop: (() => void) | null = null;
-let actionRegistryResyncQueued = false;
-
-const EXTERNAL_AGENT_ACTION_REQUEST_EVENT = 'external-agent://action-request';
 
 function asString(value: unknown): string {
   return String(value || '').trim();
@@ -106,201 +93,13 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function parseActionPhase(value: unknown): ExternalAgentActionExecutionRequest['phase'] {
-  const phase = asString(value);
-  if (phase === 'dry-run' || phase === 'verify' || phase === 'commit') {
-    return phase;
-  }
-  throw new Error('ACTION_INPUT_INVALID: external agent action phase must be explicit');
-}
-
-function stableActionHash(actions: ExternalAgentActionDescriptor[]): string {
-  return JSON.stringify(actions
-    .map((item) => ({
-      actionId: item.actionId,
-      modId: item.modId,
-      operation: item.operation,
-      socialPrecondition: item.socialPrecondition,
-      executionMode: item.executionMode,
-      riskLevel: item.riskLevel,
-      supportsDryRun: item.supportsDryRun,
-      idempotent: item.idempotent,
-      requiredCapabilities: item.requiredCapabilities,
-    }))
-    .sort((left, right) => left.actionId.localeCompare(right.actionId)));
-}
-
-function queueActionDescriptorResync(): void {
-  if (actionRegistryResyncQueued) return;
-  actionRegistryResyncQueued = true;
-  queueMicrotask(() => {
-    actionRegistryResyncQueued = false;
-    void syncActionDescriptors().catch(() => undefined);
-  });
-}
-
-function readGlobalTauriEventListen(): TauriEventListen | null {
-  if (!hasTauriInvoke()) {
-    return null;
-  }
-  return listenTauri;
-}
-
-function parseExecutionRequest(value: unknown): ExternalAgentActionExecutionRequest {
-  const root = asRecord(value);
-  const context = asRecord(root.context);
-  const mode = asString(context.mode) === 'autonomous' ? 'autonomous' : 'delegated';
-  return {
-    executionId: asString(root.executionId),
-    actionId: asString(root.actionId),
-    phase: parseActionPhase(root.phase),
-    input: asRecord(root.input),
-    context: {
-      principalId: asString(context.principalId),
-      principalType: 'external-agent',
-      mode,
-      subjectAccountId: asString(context.subjectAccountId),
-      issuer: asString(context.issuer) || undefined,
-      authTokenId: asString(context.authTokenId) || undefined,
-      bridgeExecutionId: asString(root.executionId) || undefined,
-      traceId: asString(context.traceId),
-      userAccountId: asString(context.userAccountId) || undefined,
-      externalAccountId: asString(context.externalAccountId) || undefined,
-      delegationChain: Array.isArray(context.delegationChain)
-        ? context.delegationChain.map((item) => asString(item)).filter(Boolean)
-        : undefined,
-    },
-    idempotencyKey: asString(root.idempotencyKey) || undefined,
-    verifyTicket: asString(root.verifyTicket) || undefined,
-  };
-}
-
-function invalidExecutionRequestCompletion(value: unknown, error: unknown) {
-  const root = asRecord(value);
-  const context = asRecord(root.context);
-  const executionId = asString(root.executionId);
-  const traceId = asString(context.traceId) || executionId;
-  return {
-    executionId,
-    ok: false,
-    reasonCode: ReasonCode.ACTION_INPUT_INVALID,
-    actionHint: 'fix_input',
-    traceId,
-    executionMode: 'guarded' as const,
-    output: {
-      error: error instanceof Error ? error.message : String(error || 'Invalid external agent action request'),
-    },
-  };
-}
-
 async function syncActionDescriptors(): Promise<void> {
-  if (!hasTauriInvoke()) return;
-  const hookRuntime = getRuntimeHookRuntime();
-  const descriptors = hookRuntime.discoverActions({ includeOpaque: true });
-  const normalized: ExternalAgentActionDescriptor[] = descriptors.map((descriptor) => ({
-    actionId: descriptor.actionId,
-    modId: descriptor.modId,
-    sourceType: descriptor.sourceType,
-    description: descriptor.description,
-    operation: descriptor.operation,
-    socialPrecondition: descriptor.socialPrecondition || 'none',
-    executionMode: descriptor.executionMode,
-    riskLevel: descriptor.riskLevel,
-    supportsDryRun: descriptor.supportsDryRun,
-    idempotent: descriptor.idempotent,
-    requiredCapabilities: descriptor.requiredCapabilities,
-  }));
-  const hash = stableActionHash(normalized);
-  if (hash === syncedActionHash) return;
-  await tauriInvoke('external_agent_sync_action_descriptors', {
-    payload: {
-      descriptors: normalized,
-    },
-  });
-  syncedActionHash = hash;
-}
-
-async function completeExecution(payload: {
-  executionId: string;
-  ok: boolean;
-  reasonCode: string;
-  actionHint: string;
-  traceId: string;
-  auditId?: string;
-  output?: Record<string, unknown>;
-  executionMode: 'full' | 'guarded' | 'opaque';
-  warnings?: string[];
-}): Promise<void> {
-  if (!hasTauriInvoke()) return;
-  await tauriInvoke('external_agent_complete_execution', { payload });
-}
-
-async function executeActionRequest(request: ExternalAgentActionExecutionRequest): Promise<void> {
-  const hookRuntime = getRuntimeHookRuntime();
-  const payload = {
-    actionId: request.actionId,
-    input: request.input,
-    context: request.context,
-    idempotencyKey: request.idempotencyKey,
-    verifyTicket: request.verifyTicket,
-  };
-  const result = request.phase === 'dry-run'
-    ? await hookRuntime.dryRunAction(payload)
-    : request.phase === 'verify'
-      ? await hookRuntime.verifyAction(payload)
-      : await hookRuntime.commitAction(payload);
-  await completeExecution({
-    executionId: request.executionId,
-    ok: result.ok,
-    reasonCode: result.reasonCode,
-    actionHint: result.actionHint,
-    traceId: result.traceId,
-    auditId: result.auditId,
-    output: result.output,
-    executionMode: result.executionMode,
-    warnings: result.warnings,
-  });
+  await Promise.resolve();
 }
 
 export async function startExternalAgentActionBridge(): Promise<void> {
-  const hookRuntime = getRuntimeHookRuntime();
-  if (!actionRegistrySubscriptionStop) {
-    actionRegistrySubscriptionStop = hookRuntime.subscribeActionRegistryChanges(() => {
-      queueActionDescriptorResync();
-    });
-  }
-  await syncActionDescriptors();
-  if (actionBridgeStarted) return;
-  const listen = readGlobalTauriEventListen();
-  if (!listen) return;
-
-  const unsubscribeResult = await Promise.resolve(
-    listen(EXTERNAL_AGENT_ACTION_REQUEST_EVENT, (event) => {
-      let request: ExternalAgentActionExecutionRequest;
-      try {
-        request = parseExecutionRequest(event.payload);
-      } catch (error) {
-        void completeExecution(invalidExecutionRequestCompletion(event.payload, error));
-        return;
-      }
-      void executeActionRequest(request).catch(async (error) => {
-        await completeExecution({
-          executionId: request.executionId,
-          ok: false,
-          reasonCode: ReasonCode.ACTION_EXECUTION_BRIDGE_FAILED,
-          actionHint: 'retry',
-          traceId: request.context.traceId || request.executionId,
-          executionMode: 'guarded',
-          output: {
-            error: error instanceof Error ? error.message : String(error || ''),
-          },
-        });
-      });
-    }),
-  );
-
-  actionBridgeStop = typeof unsubscribeResult === 'function' ? unsubscribeResult : null;
-  actionBridgeStarted = true;
+  stopExternalAgentActionBridge();
+  await Promise.resolve();
 }
 
 export function stopExternalAgentActionBridge(): void {
@@ -308,13 +107,6 @@ export function stopExternalAgentActionBridge(): void {
     actionBridgeStop();
     actionBridgeStop = null;
   }
-  if (actionRegistrySubscriptionStop) {
-    actionRegistrySubscriptionStop();
-    actionRegistrySubscriptionStop = null;
-  }
-  syncedActionHash = '';
-  actionRegistryResyncQueued = false;
-  actionBridgeStarted = false;
 }
 
 export async function resyncExternalAgentActionDescriptors(): Promise<void> {
@@ -416,5 +208,7 @@ export async function getExternalAgentGatewayStatus(): Promise<ExternalAgentGate
     bindAddress: asString(result.bindAddress),
     issuer: asString(result.issuer),
     actionCount: Number.isFinite(Number(result.actionCount)) ? Number(result.actionCount) : 0,
+    status: asString(result.status) || undefined,
+    reasonCode: asString(result.reasonCode) || undefined,
   };
 }

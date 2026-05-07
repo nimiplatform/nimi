@@ -205,5 +205,7 @@ export type GatewayStatusParsed = {
   bindAddress: string;
   issuer: string;
   actionCount: number | null;
+  status?: string;
+  reasonCode?: string;
   errored: boolean;
 };

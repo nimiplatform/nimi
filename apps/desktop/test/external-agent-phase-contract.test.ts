@@ -9,20 +9,19 @@ function readDesktopFile(relativePath: string): string {
   return readFileSync(path.join(desktopDir, relativePath), 'utf8');
 }
 
-test('external agent runtime parser requires an explicit lifecycle phase', () => {
+test('external agent runtime bridge no longer parses app-local lifecycle execution requests', () => {
   const source = readDesktopFile('src/runtime/external-agent/index.ts');
-  assert.match(source, /function parseActionPhase/);
-  assert.match(source, /phase === 'dry-run' \|\| phase === 'verify' \|\| phase === 'commit'/);
-  assert.match(source, /ReasonCode\.ACTION_INPUT_INVALID/);
+  assert.doesNotMatch(source, /function parseActionPhase/);
+  assert.doesNotMatch(source, /parseExecutionRequest/);
   assert.doesNotMatch(source, /root\.dryRun\s*\?\s*'dry-run'\s*:\s*'commit'/);
   assert.doesNotMatch(source, /phaseRaw === 'commit'[\s\S]*:\s*'commit'/);
 });
 
-test('external agent renderer bridge parser does not default invalid phase to commit', () => {
+test('external agent renderer bridge no longer subscribes to app-local execution requests', () => {
   const source = readDesktopFile('src/shell/renderer/bridge/runtime-bridge/external-agent.ts');
-  assert.match(source, /function parseActionPhase/);
-  assert.match(source, /phase === 'dry-run' \|\| phase === 'verify' \|\| phase === 'commit'/);
-  assert.match(source, /Invalid external action requests fail closed/);
+  assert.doesNotMatch(source, /function parseActionPhase/);
+  assert.doesNotMatch(source, /parseExecutionRequest/);
+  assert.match(source, /return \(\) => \{\};/);
   assert.doesNotMatch(source, /record\.dryRun\s*\?\s*'dry-run'\s*:\s*'commit'/);
   assert.doesNotMatch(source, /phaseRaw === 'commit'[\s\S]*:\s*'commit'/);
 });

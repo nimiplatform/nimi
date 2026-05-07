@@ -40,6 +40,8 @@ export function ExternalAgentAccessPanel() {
     bindAddress: '',
     issuer: '',
     actionCount: null,
+    status: undefined,
+    reasonCode: undefined,
     errored: false,
   });
   const [principalId, setPrincipalId] = useState('openclaw.local');
@@ -76,6 +78,8 @@ export function ExternalAgentAccessPanel() {
         bindAddress: status.bindAddress || '',
         issuer: status.issuer || '',
         actionCount: typeof status.actionCount === 'number' ? status.actionCount : null,
+        status: status.status,
+        reasonCode: status.reasonCode,
         errored: false,
       });
       setTokens(rows);
@@ -86,6 +90,8 @@ export function ExternalAgentAccessPanel() {
         bindAddress: '',
         issuer: '',
         actionCount: null,
+        status: 'failed',
+        reasonCode: 'EXTERNAL_AGENT_GATEWAY_STATUS_FAILED',
         errored: true,
       });
       setTokens([]);

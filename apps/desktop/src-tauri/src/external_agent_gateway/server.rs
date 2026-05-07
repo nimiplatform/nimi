@@ -9,25 +9,13 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use futures_util::stream;
 use serde::Deserialize;
-use tauri::Emitter;
-use tokio::sync::oneshot;
 
 use crate::runtime_mod::store::{open_db, query_runtime_audit, RuntimeAuditFilter};
 
 use super::auth::{bearer_token, verify_external_agent_token};
 use super::{
-    secure_random_hex, ExternalAgentExecutionCompletionPayload, ExternalAgentExecutionOwner,
-    ExternalAgentExecutionPayload, ExternalAgentGatewayState, EXTERNAL_AGENT_ACTION_REQUEST_EVENT,
+    ExternalAgentExecutionCompletionPayload, ExternalAgentGatewayState, ExternalAgentServerStatus,
 };
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ExecuteRequestBody {
-    input: Option<serde_json::Value>,
-    idempotency_key: Option<String>,
-    verify_ticket: Option<String>,
-    trace_id: Option<String>,
-}
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -78,24 +66,6 @@ fn claims_allows_action_for_phase(
     })
 }
 
-fn normalize_trace_id(input: Option<String>, fallback: &str) -> String {
-    let normalized = input.unwrap_or_default().trim().to_string();
-    if normalized.is_empty() {
-        fallback.to_string()
-    } else {
-        normalized
-    }
-}
-
-async fn append_execution_event(
-    state: &ExternalAgentGatewayState,
-    execution_id: &str,
-    event: serde_json::Value,
-) {
-    let mut guard = state.inner.lock().await;
-    guard.push_execution_event(execution_id, event);
-}
-
 async fn list_actions(
     State(state): State<ExternalAgentGatewayState>,
     headers: HeaderMap,
@@ -125,195 +95,24 @@ async fn list_actions(
 }
 
 async fn dispatch_action(
-    state: &ExternalAgentGatewayState,
-    headers: &HeaderMap,
-    action_id: &str,
-    body: ExecuteRequestBody,
+    _state: &ExternalAgentGatewayState,
+    _headers: &HeaderMap,
+    _action_id: &str,
+    _body: serde_json::Value,
     phase: &'static str,
 ) -> Result<ExternalAgentExecutionCompletionPayload, (StatusCode, Json<serde_json::Value>)> {
-    let token = bearer_token(headers)
-        .map_err(|reason| error_response(StatusCode::UNAUTHORIZED, reason.as_str()))?;
-    let claims = verify_external_agent_token(state, token.as_str())
-        .await
-        .map_err(|reason| error_response(StatusCode::UNAUTHORIZED, reason.as_str()))?;
-
-    if !claims_allows_action_for_phase(&claims, action_id, phase) {
-        return Err(error_response(
-            StatusCode::FORBIDDEN,
-            "EXTERNAL_AGENT_ACTION_SCOPE_DENIED",
-        ));
-    }
-
-    let action = {
-        let guard = state.inner.lock().await;
-        guard.actions.get(action_id).cloned()
-    }
-    .ok_or_else(|| error_response(StatusCode::NOT_FOUND, "EXTERNAL_AGENT_ACTION_NOT_FOUND"))?;
-
-    let execution_id = format!(
-        "extexec:{}:{}:{}",
-        action_id,
-        chrono::Utc::now().timestamp_millis(),
-        rand_suffix()
-            .map_err(|reason| error_response(StatusCode::INTERNAL_SERVER_ERROR, reason.as_str()))?
-    );
-    let trace_id = normalize_trace_id(body.trace_id, execution_id.as_str());
-    let principal_id = claims.principal_id.clone();
-    let subject_account_id = claims.subject_account_id.clone();
-    let auth_token_id = claims.jti.clone();
-    let mode = claims.mode.clone();
-    let user_account_id = if mode == "delegated" {
-        Some(subject_account_id.clone())
-    } else {
-        None
-    };
-    let external_account_id = if mode == "autonomous" {
-        Some(subject_account_id.clone())
-    } else {
-        None
-    };
-    let payload = ExternalAgentExecutionPayload {
-        execution_id: execution_id.clone(),
-        action_id: action.action_id.clone(),
-        phase: phase.to_string(),
-        input: body
-            .input
-            .unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new())),
-        context: serde_json::json!({
-            "principalId": principal_id,
-            "principalType": "external-agent",
-            "mode": mode,
-            "subjectAccountId": subject_account_id,
-            "issuer": claims.iss,
-            "authTokenId": auth_token_id,
-            "traceId": trace_id,
-            "userAccountId": user_account_id,
-            "externalAccountId": external_account_id,
-            "delegationChain": [],
-        }),
-        idempotency_key: body.idempotency_key,
-        verify_ticket: body.verify_ticket,
-    };
-
-    let (tx, rx) = oneshot::channel::<ExternalAgentExecutionCompletionPayload>();
-    {
-        let mut guard = state.inner.lock().await;
-        guard.completion_waiters.insert(execution_id.clone(), tx);
-        guard.execution_owners.insert(
-            execution_id.clone(),
-            ExternalAgentExecutionOwner {
-                execution_id: execution_id.clone(),
-                action_id: action.action_id.clone(),
-                principal_id: principal_id.clone(),
-                auth_token_id: auth_token_id.clone(),
-            },
-        );
-        guard.pending_executions.push(payload.clone());
-        guard.push_execution_event(
-            execution_id.as_str(),
-            serde_json::json!({
-                "type": "accepted",
-                "executionId": execution_id,
-                "actionId": action.action_id,
-                "phase": phase,
-                "principalId": principal_id,
-            }),
-        );
-        guard.push_execution_event(
-            execution_id.as_str(),
-            serde_json::json!({
-                "type": "preflight",
-                "executionId": execution_id,
-                "actionId": action.action_id,
-                "executionMode": action.execution_mode,
-                "riskLevel": action.risk_level,
-            }),
-        );
-    }
-
-    if state
-        .app
-        .emit(EXTERNAL_AGENT_ACTION_REQUEST_EVENT, payload)
-        .is_err()
-    {
-        {
-            let mut guard = state.inner.lock().await;
-            guard.completion_waiters.remove(execution_id.as_str());
-        }
-        append_execution_event(
-            state,
-            execution_id.as_str(),
-            serde_json::json!({
-                "type": "error",
-                "executionId": execution_id,
-                "reasonCode": "EXTERNAL_AGENT_DISPATCH_FAILED",
-            }),
-        )
-        .await;
-        return Err(error_response(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "EXTERNAL_AGENT_DISPATCH_FAILED",
-        ));
-    }
-
-    let completed = match tokio::time::timeout(Duration::from_secs(45), rx).await {
-        Ok(waited) => match waited {
-            Ok(value) => value,
-            Err(_) => {
-                {
-                    let mut guard = state.inner.lock().await;
-                    guard.completion_waiters.remove(execution_id.as_str());
-                }
-                append_execution_event(
-                    state,
-                    execution_id.as_str(),
-                    serde_json::json!({
-                        "type": "error",
-                        "executionId": execution_id,
-                        "reasonCode": "EXTERNAL_AGENT_EXECUTION_BRIDGE_BROKEN",
-                    }),
-                )
-                .await;
-                return Err(error_response(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "EXTERNAL_AGENT_EXECUTION_BRIDGE_BROKEN",
-                ));
-            }
-        },
-        Err(_) => {
-            {
-                let mut guard = state.inner.lock().await;
-                guard.completion_waiters.remove(execution_id.as_str());
-            }
-            append_execution_event(
-                state,
-                execution_id.as_str(),
-                serde_json::json!({
-                    "type": "error",
-                    "executionId": execution_id,
-                    "reasonCode": "EXTERNAL_AGENT_EXECUTION_TIMEOUT",
-                }),
-            )
-            .await;
-            return Err(error_response(
-                StatusCode::GATEWAY_TIMEOUT,
-                "EXTERNAL_AGENT_EXECUTION_TIMEOUT",
-            ));
-        }
-    };
-
-    Ok(completed)
-}
-
-fn rand_suffix() -> Result<String, String> {
-    secure_random_hex(8)
+    let _ = phase;
+    return Err(error_response(
+        StatusCode::GONE,
+        "EXTERNAL_AGENT_RUNTIME_DELEGATION_REQUIRED",
+    ));
 }
 
 async fn dry_run_action(
     State(state): State<ExternalAgentGatewayState>,
     Path(action_id): Path<String>,
     headers: HeaderMap,
-    Json(body): Json<ExecuteRequestBody>,
+    Json(body): Json<serde_json::Value>,
 ) -> impl IntoResponse {
     match dispatch_action(&state, &headers, action_id.as_str(), body, "dry-run").await {
         Ok(value) => Json(value).into_response(),
@@ -325,7 +124,7 @@ async fn verify_action(
     State(state): State<ExternalAgentGatewayState>,
     Path(action_id): Path<String>,
     headers: HeaderMap,
-    Json(body): Json<ExecuteRequestBody>,
+    Json(body): Json<serde_json::Value>,
 ) -> impl IntoResponse {
     match dispatch_action(&state, &headers, action_id.as_str(), body, "verify").await {
         Ok(value) => Json(value).into_response(),
@@ -337,7 +136,7 @@ async fn commit_action(
     State(state): State<ExternalAgentGatewayState>,
     Path(action_id): Path<String>,
     headers: HeaderMap,
-    Json(body): Json<ExecuteRequestBody>,
+    Json(body): Json<serde_json::Value>,
 ) -> impl IntoResponse {
     match dispatch_action(&state, &headers, action_id.as_str(), body, "commit").await {
         Ok(value) => Json(value).into_response(),
@@ -550,6 +349,10 @@ pub async fn run_loopback_server(state: ExternalAgentGatewayState) -> Result<(),
     let listener = tokio::net::TcpListener::bind(bind_address.as_str())
         .await
         .map_err(|error| format!("EXTERNAL_AGENT_BIND_FAILED: {error}"))?;
+    {
+        let mut guard = state.inner.lock().await;
+        guard.server_status = ExternalAgentServerStatus::Listening;
+    }
 
     let router = Router::new()
         .route("/v1/external-agent/actions", get(list_actions))
@@ -572,7 +375,12 @@ pub async fn run_loopback_server(state: ExternalAgentGatewayState) -> Result<(),
         .route("/v1/external-agent/audits", get(list_audits))
         .with_state(state.clone());
 
-    axum::serve(listener, router)
+    let result = axum::serve(listener, router)
         .await
-        .map_err(|error| format!("EXTERNAL_AGENT_SERVER_FAILED: {error}"))
+        .map_err(|error| format!("EXTERNAL_AGENT_SERVER_FAILED: {error}"));
+    if let Err(error) = &result {
+        let mut guard = state.inner.lock().await;
+        guard.server_status = ExternalAgentServerStatus::Failed(error.clone());
+    }
+    result
 }

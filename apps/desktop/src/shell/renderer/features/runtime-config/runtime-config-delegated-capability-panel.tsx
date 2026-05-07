@@ -47,6 +47,16 @@ function isPendingApproval(value: unknown): boolean {
   return value === DelegatedApprovalRequestState.PENDING;
 }
 
+function compactEvidence(values: Array<[string, unknown]>): string {
+  return values
+    .map(([label, value]) => {
+      const text = String(value || '').trim();
+      return text ? `${label}=${text}` : '';
+    })
+    .filter(Boolean)
+    .join(' | ');
+}
+
 export function DelegatedCapabilityControlPanel() {
   const { t } = useTranslation();
   const [agentId, setAgentId] = useState('');
@@ -228,7 +238,13 @@ export function DelegatedCapabilityControlPanel() {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div className={cn('truncate text-sm font-medium', TOKEN_TEXT_PRIMARY)}>{approval.toolName || approval.capabilityId}</div>
-                      <div className={cn('truncate text-xs', TOKEN_TEXT_MUTED)}>{approvalStateLabel(approval.state)} - {approval.reasonCode || approval.firewallVerdict}</div>
+                      <div className={cn('truncate text-xs', TOKEN_TEXT_MUTED)}>
+                        {compactEvidence([
+                          ['state', approvalStateLabel(approval.state)],
+                          ['firewallVerdict', approval.firewallVerdict],
+                          ['reasonCode', approval.reasonCode],
+                        ])}
+                      </div>
                     </div>
                     {isPendingApproval(approval.state) ? (
                       <div className="flex gap-2">
@@ -251,7 +267,15 @@ export function DelegatedCapabilityControlPanel() {
                     <div className="flex items-center justify-between gap-2">
                       <span className="min-w-0 truncate">
                         <span className={TOKEN_TEXT_PRIMARY}>{item.toolName || item.capabilityId}</span>{' '}
-                        <span className={TOKEN_TEXT_MUTED}>{item.runtimeDecision || item.firewallVerdict}</span>
+                        <span className={TOKEN_TEXT_MUTED}>
+                          {compactEvidence([
+                            ['gatewayEvidenceId', item.gatewayEvidenceId],
+                            ['firewallInputId', item.firewallInputId],
+                            ['firewallVerdict', item.firewallVerdict],
+                            ['runtimeDecision', item.runtimeDecision],
+                            ['reasonCode', item.reasonCode],
+                          ])}
+                        </span>
                       </span>
                       <Button variant="secondary" size="sm" onClick={() => void loadReplayTrace(item)} disabled={busy}>
                         {t('runtimeConfig.delegation.replay', { defaultValue: 'Replay' })}

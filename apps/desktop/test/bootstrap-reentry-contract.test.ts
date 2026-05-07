@@ -69,12 +69,9 @@ test('external agent bridge stop clears descriptor sync residue', () => {
   const stopIndex = externalAgentSource.indexOf('export function stopExternalAgentActionBridge(): void {');
   assert.notEqual(stopIndex, -1, 'stopExternalAgentActionBridge() must exist');
   const stopBlock = externalAgentSource.slice(stopIndex, externalAgentSource.indexOf('export async function resyncExternalAgentActionDescriptors', stopIndex));
-  assert.ok(
-    stopBlock.includes("syncedActionHash = '';"),
-    'stopping the external agent bridge must clear synced action hash so reconnect bootstrap resyncs descriptors',
-  );
-  assert.ok(
-    stopBlock.includes('actionRegistryResyncQueued = false;'),
-    'stopping the external agent bridge must clear queued descriptor resync state',
+  assert.doesNotMatch(
+    stopBlock,
+    /syncedActionHash|actionRegistryResyncQueued/,
+    'external agent bridge teardown must not retain app-local descriptor sync state',
   );
 });

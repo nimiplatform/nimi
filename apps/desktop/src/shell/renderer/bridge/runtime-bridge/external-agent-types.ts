@@ -66,6 +66,8 @@ export type ExternalAgentGatewayStatus = {
   bindAddress: string;
   issuer: string;
   actionCount: number;
+  status?: string;
+  reasonCode?: string;
 };
 
 export type ExternalAgentActionExecutionRequest = {
@@ -216,5 +218,7 @@ export function parseExternalAgentGatewayStatus(value: unknown): ExternalAgentGa
     bindAddress: parseRequiredString(record.bindAddress, 'bindAddress', 'external_agent_gateway_status'),
     issuer: parseRequiredString(record.issuer, 'issuer', 'external_agent_gateway_status'),
     actionCount: Number.isFinite(Number(record.actionCount)) ? Number(record.actionCount) : 0,
+    status: typeof record.status === 'string' ? record.status : undefined,
+    reasonCode: typeof record.reasonCode === 'string' ? record.reasonCode : undefined,
   };
 }

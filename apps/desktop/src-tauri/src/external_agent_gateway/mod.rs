@@ -16,7 +16,6 @@ pub mod auth;
 pub mod server;
 pub mod token_issuer;
 
-pub const EXTERNAL_AGENT_ACTION_REQUEST_EVENT: &str = "external-agent://action-request";
 pub const EXTERNAL_AGENT_EVENT_TTL_SECS: i64 = 15 * 60;
 pub const EXTERNAL_AGENT_MAX_EVENTS_PER_EXECUTION: usize = 64;
 pub const EXTERNAL_AGENT_MAX_EXECUTION_STREAMS: usize = 500;
@@ -112,18 +111,6 @@ pub struct ExternalAgentSyncActionPayload {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ExternalAgentExecutionPayload {
-    pub execution_id: String,
-    pub action_id: String,
-    pub phase: String,
-    pub input: serde_json::Value,
-    pub context: serde_json::Value,
-    pub idempotency_key: Option<String>,
-    pub verify_ticket: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ExternalAgentExecutionCompletionPayload {
     pub execution_id: String,
     pub ok: bool,
@@ -143,6 +130,8 @@ pub struct ExternalAgentGatewayStatus {
     pub bind_address: String,
     pub issuer: String,
     pub action_count: usize,
+    pub status: String,
+    pub reason_code: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -300,7 +289,7 @@ pub struct ExternalAgentGatewayInner {
         HashMap<String, oneshot::Sender<ExternalAgentExecutionCompletionPayload>>,
     pub execution_owners: HashMap<String, ExternalAgentExecutionOwner>,
     pub execution_events: HashMap<String, Vec<serde_json::Value>>,
-    pub pending_executions: Vec<ExternalAgentExecutionPayload>,
+    pub server_status: ExternalAgentServerStatus,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -310,6 +299,44 @@ pub struct ExternalAgentExecutionOwner {
     pub action_id: String,
     pub principal_id: String,
     pub auth_token_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ExternalAgentServerStatus {
+    Starting,
+    Listening,
+    Failed(String),
+    Stopped(String),
+}
+
+impl Default for ExternalAgentServerStatus {
+    fn default() -> Self {
+        Self::Starting
+    }
+}
+
+impl ExternalAgentServerStatus {
+    fn enabled(&self) -> bool {
+        matches!(self, Self::Listening)
+    }
+
+    fn status_label(&self) -> &'static str {
+        match self {
+            Self::Starting => "starting",
+            Self::Listening => "listening",
+            Self::Failed(_) => "failed",
+            Self::Stopped(_) => "stopped",
+        }
+    }
+
+    fn reason_code(&self) -> &'static str {
+        match self {
+            Self::Starting => "EXTERNAL_AGENT_GATEWAY_STARTING",
+            Self::Listening => "EXTERNAL_AGENT_GATEWAY_LISTENING",
+            Self::Failed(_) => "EXTERNAL_AGENT_GATEWAY_FAILED",
+            Self::Stopped(_) => "EXTERNAL_AGENT_GATEWAY_STOPPED",
+        }
+    }
 }
 
 fn now_unix_secs() -> i64 {
@@ -422,11 +449,21 @@ pub fn start_external_agent_gateway(state: ExternalAgentGatewayState) {
     let bind_address = state.config.bind_address.clone();
     tauri::async_runtime::spawn(async move {
         if let Err(error) = server::run_loopback_server(state.clone()).await {
+            {
+                let mut guard = state.inner.lock().await;
+                guard.server_status = ExternalAgentServerStatus::Failed(error.clone());
+            }
             eprintln!(
                 "EXTERNAL_AGENT_GATEWAY_START_FAILED: bind={}, error={}",
                 bind_address, error
             );
         } else {
+            {
+                let mut guard = state.inner.lock().await;
+                guard.server_status = ExternalAgentServerStatus::Stopped(
+                    "EXTERNAL_AGENT_GATEWAY_STOPPED".to_string(),
+                );
+            }
             eprintln!("EXTERNAL_AGENT_GATEWAY_STOPPED: bind={}", bind_address);
         }
     });
@@ -514,11 +551,14 @@ pub async fn external_agent_gateway_status(
     state: tauri::State<'_, ExternalAgentGatewayState>,
 ) -> Result<ExternalAgentGatewayStatus, String> {
     let guard = state.inner.lock().await;
+    let server_status = guard.server_status.clone();
     Ok(ExternalAgentGatewayStatus {
-        enabled: true,
+        enabled: server_status.enabled(),
         bind_address: state.config.bind_address.clone(),
         issuer: state.config.issuer.clone(),
         action_count: guard.actions.len(),
+        status: server_status.status_label().to_string(),
+        reason_code: server_status.reason_code().to_string(),
     })
 }
 
