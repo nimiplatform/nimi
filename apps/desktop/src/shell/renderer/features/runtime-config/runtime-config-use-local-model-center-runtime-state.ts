@@ -44,7 +44,6 @@ import {
   useLocalModelCenterImportFilePlan,
 } from './runtime-config-use-local-model-center-import-file-plan';
 import { toCanonicalLocalLookupKey } from '@runtime/local-runtime/local-id';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
 import {
   useLocalModelCenterRuntimeDependencies,
@@ -89,7 +88,6 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const [unregisteredEndpointHintByPath, setUnregisteredEndpointHintByPath] = useState<Record<string, string>>({});
   const [unregisteredCompatibilityHintByPath, setUnregisteredCompatibilityHintByPath] = useState<Record<string, string>>({});
   const [unregisteredImportAllowedByPath, setUnregisteredImportAllowedByPath] = useState<Record<string, boolean>>({});
-  const autoImportAttemptedPathsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!showImportMenu) {
@@ -628,43 +626,6 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       String(unregisteredEndpointByPath[assetPath] || '').trim() || undefined,
     );
   }, [importActions, resolveUnregisteredAssetDraft, unregisteredAssets, unregisteredEndpointByPath, unregisteredImportAllowedByPath]);
-
-  const scheduleAutoImportAttempt = useCallback((assetPath: string, declaration: LocalRuntimeAssetDeclaration) => {
-    void importActions.importAssetFromPath(assetPath, declaration).catch((error) => {
-      logRendererEvent({
-        level: 'error',
-        area: 'runtime-config-local-model-center',
-        message: 'phase:auto-import:failed',
-        details: {
-          assetPath,
-          error: error instanceof Error ? error.message : String(error || 'unknown error'),
-        },
-      });
-    });
-  }, [importActions]);
-
-  useEffect(() => {
-    const currentPaths = new Set(unregisteredAssets.map((asset) => asset.path));
-    for (const path of autoImportAttemptedPathsRef.current) {
-      if (!currentPaths.has(path)) {
-        autoImportAttemptedPathsRef.current.delete(path);
-      }
-    }
-  }, [unregisteredAssets]);
-
-  useEffect(() => {
-    for (const asset of unregisteredAssets) {
-      const draft = resolveUnregisteredAssetDraft(asset);
-      if (!asset.autoImportable || !canImportDeclaration(draft) || unregisteredImportAllowedByPath[asset.path] === false) {
-        continue;
-      }
-      if (autoImportAttemptedPathsRef.current.has(asset.path)) {
-        continue;
-      }
-      autoImportAttemptedPathsRef.current.add(asset.path);
-      scheduleAutoImportAttempt(asset.path, draft);
-    }
-  }, [resolveUnregisteredAssetDraft, scheduleAutoImportAttempt, unregisteredAssets, unregisteredImportAllowedByPath]);
 
   const installCatalogVariant = useCallback(async (
     item: LocalRuntimeCatalogItemDescriptor,

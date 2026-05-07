@@ -66,18 +66,18 @@ test('local runtime facade exports unified asset intake methods', () => {
 
 test('local model center renders a unified unregistered assets review lane', () => {
   assert.match(localModelCenterSectionsSource, /Unregistered Assets/);
-  assert.match(localModelCenterSectionsSource, /Typed folders import automatically/);
+  assert.match(localModelCenterSectionsSource, /Discovered assets stay pending until you choose Import/);
   assert.match(localModelCenterSectionsSource, /LocalModelCenterUnregisteredAssetsSection/);
   assert.match(localModelCenterSectionsSource, /Review needed/);
 });
 
-test('runtime state refreshes unified unregistered assets and auto-imports high-confidence items', () => {
+test('runtime state refreshes unified unregistered assets without passive auto-import mutation', () => {
   assert.match(localModelCenterSource, /scanUnregisteredAssets\(\)/);
   assert.match(localModelCenterSource, /refreshUnregisteredAssets/);
-  assert.match(localModelCenterSource, /asset\.autoImportable/);
-  assert.match(localModelCenterSource, /scheduleAutoImportAttempt\(asset\.path,\s*draft\)/);
+  assert.doesNotMatch(localModelCenterSource, /scheduleAutoImportAttempt/);
+  assert.doesNotMatch(localModelCenterSource, /asset\.autoImportable/);
+  assert.doesNotMatch(localModelCenterSource, /phase:auto-import:failed/);
   assert.match(localModelCenterImportActionsSource, /importActions\.importAssetFromPath|const importAssetFromPath = useCallback/);
-  assert.match(localModelCenterSource, /message: 'phase:auto-import:failed'/);
   assert.doesNotMatch(localModelCenterSource, /\.catch\(\(\) => undefined\)/);
 });
 

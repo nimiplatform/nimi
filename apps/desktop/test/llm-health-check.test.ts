@@ -86,6 +86,26 @@ test('local llama health returns unreachable when runtime authoritative model is
   assert.equal(mockFetch.mock.callCount(), 0);
 });
 
+test('local llama health fails closed when runtime authoritative status is missing', async () => {
+  const mockFetch = mock.fn(async () => new Response('{}', { status: 200 }));
+  const result = await checkLocalLlmHealth({
+    provider: 'llama',
+    localProviderEndpoint: 'http://127.0.0.1:8080/v1',
+    localProviderModel: 'llama3',
+    listRuntimeLocalModelsSnapshot: async () => ([{
+      localAssetId: 'local-1',
+      assetId: 'llama3',
+      engine: 'llama',
+      endpoint: 'http://127.0.0.1:8080/v1',
+    }]),
+    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  });
+
+  assert.equal(result.status, 'unreachable');
+  assert.equal(result.detail, 'runtime local model status missing');
+  assert.equal(mockFetch.mock.callCount(), 0);
+});
+
 test('localOpenAiEndpoint still populates endpoint for runtime authoritative llama health', async () => {
   const mockFetch = mock.fn(async () => new Response('{}', { status: 200 }));
   const result = await checkLocalLlmHealth({

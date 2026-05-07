@@ -5690,6 +5690,13 @@ Fixed rules:
 | LOCAL_AI_IMPORT_HASH_MISMATCH | local-ai | Resolved model manifest checksum verification failed |
 | LOCAL_AI_ENDPOINT_NOT_LOOPBACK | local-ai | Local runtime endpoint must be localhost/127.0.0.1/[::1] |
 | LOCAL_AI_ENDPOINT_INVALID | local-ai | Local runtime endpoint format invalid |
+| LOCAL_AI_SERVICE_UNREACHABLE | local-ai | Local runtime service endpoint is unreachable |
+| LOCAL_AI_AUTH_FAILED | local-ai | Local runtime service authentication failed |
+| LOCAL_AI_CAPABILITY_MISSING | local-ai | Local runtime service is missing a required capability |
+| LOCAL_AI_PROVIDER_INTERNAL_ERROR | local-ai | Local runtime provider returned an internal error |
+| LOCAL_AI_PROVIDER_TIMEOUT | local-ai | Local runtime provider request timed out |
+| LOCAL_AI_PREFLIGHT_UNSUPPORTED | local-ai | Local runtime preflight check is unknown or unsupported |
+| LOCAL_AI_ADAPTER_MISMATCH | local-ai | Local runtime adapter does not match the selected model or service |
 | LOCAL_AI_MODEL_NOT_FOUND | local-ai | No installed/active model found |
 | LOCAL_AI_MODEL_HASHES_EMPTY | local-ai | Model integrity check incomplete, cannot start |
 | LOCAL_AI_MODEL_CAPABILITY_INVALID | local-ai | Model capability configuration invalid |

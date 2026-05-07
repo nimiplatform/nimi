@@ -1,8 +1,15 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { toBridgeNimiError } from '../src/shell/renderer/bridge/runtime-bridge/invoke';
+
+const invokeSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge/invoke.ts'),
+  'utf8',
+);
 
 test('toBridgeNimiError maps LOCAL_LIFECYCLE_WRITE_DENIED reason code', () => {
   const error = toBridgeNimiError(new Error('LOCAL_LIFECYCLE_WRITE_DENIED: caller=sideload'));
@@ -168,4 +175,29 @@ test('toBridgeNimiError maps AI_LOCAL_SPEECH_ENV_INIT_FAILED reason code', () =>
     String(error.details?.userMessage || ''),
     'Local Speech environment initialization failed. Retry or repair the local speech setup.',
   );
+});
+
+test('toBridgeNimiError maps Local Speech diagnostic aliases without Qwen user copy', () => {
+  const pythonError = toBridgeNimiError(
+    new Error('LOCAL_AI_SPEECH_PYTHON_REQUIRED: Python 3.10+ is required for Local Speech'),
+  );
+  assert.equal(pythonError.reasonCode, 'LOCAL_AI_SPEECH_PYTHON_REQUIRED');
+  assert.equal(
+    String(pythonError.details?.userMessage || ''),
+    'Local Speech requires Python 3.10+.',
+  );
+
+  const bootstrapError = toBridgeNimiError(
+    new Error('LOCAL_AI_SPEECH_BOOTSTRAP_FAILED: dependency install failed'),
+  );
+  assert.equal(bootstrapError.reasonCode, 'LOCAL_AI_SPEECH_BOOTSTRAP_FAILED');
+  assert.equal(
+    String(bootstrapError.details?.userMessage || ''),
+    'Local Speech environment setup failed. Please check Python, dependencies, and network access.',
+  );
+});
+
+test('bridge local speech error projection does not retain provider-specific display truth', () => {
+  assert.doesNotMatch(invokeSource, new RegExp(['LOCAL_AI', 'QWEN'].join('_')));
+  assert.doesNotMatch(invokeSource, new RegExp(['Qwen', 'TTS'].join(' ')));
 });

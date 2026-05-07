@@ -20,6 +20,13 @@
 | `LOCAL_AI_IMPORT_HASH_MISMATCH` | `local-ai` | Resolved model manifest checksum verification failed | `D-ERR-001` |
 | `LOCAL_AI_ENDPOINT_NOT_LOOPBACK` | `local-ai` | Local runtime endpoint must be localhost/127.0.0.1/[::1] | `D-ERR-002` |
 | `LOCAL_AI_ENDPOINT_INVALID` | `local-ai` | Local runtime endpoint format invalid | `D-ERR-002` |
+| `LOCAL_AI_SERVICE_UNREACHABLE` | `local-ai` | Local runtime service endpoint is unreachable | `D-ERR-001` |
+| `LOCAL_AI_AUTH_FAILED` | `local-ai` | Local runtime service authentication failed | `D-ERR-001` |
+| `LOCAL_AI_CAPABILITY_MISSING` | `local-ai` | Local runtime service is missing a required capability | `D-ERR-001` |
+| `LOCAL_AI_PROVIDER_INTERNAL_ERROR` | `local-ai` | Local runtime provider returned an internal error | `D-ERR-001` |
+| `LOCAL_AI_PROVIDER_TIMEOUT` | `local-ai` | Local runtime provider request timed out | `D-ERR-001` |
+| `LOCAL_AI_PREFLIGHT_UNSUPPORTED` | `local-ai` | Local runtime preflight check is unknown or unsupported | `D-ERR-001` |
+| `LOCAL_AI_ADAPTER_MISMATCH` | `local-ai` | Local runtime adapter does not match the selected model or service | `D-ERR-001` |
 | `LOCAL_AI_MODEL_NOT_FOUND` | `local-ai` | No installed/active model found | `D-ERR-001` |
 | `LOCAL_AI_MODEL_HASHES_EMPTY` | `local-ai` | Model integrity check incomplete, cannot start | `D-ERR-001` |
 | `LOCAL_AI_MODEL_CAPABILITY_INVALID` | `local-ai` | Model capability configuration invalid | `D-ERR-001` |

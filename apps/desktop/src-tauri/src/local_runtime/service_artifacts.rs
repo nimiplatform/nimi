@@ -9,9 +9,11 @@ fn empty_env() -> HashMap<String, String> {
     HashMap::new()
 }
 
-fn qwen_tts_python_service_artifact() -> LocalAiServiceArtifact {
+pub const LOCAL_SPEECH_SERVICE_ID: &str = "local-speech-python";
+
+fn local_speech_python_service_artifact() -> LocalAiServiceArtifact {
     LocalAiServiceArtifact {
-        service_id: "qwen-tts-python".to_string(),
+        service_id: LOCAL_SPEECH_SERVICE_ID.to_string(),
         artifact_type: LocalAiServiceArtifactType::PythonEnv,
         engine: "speech".to_string(),
         install: LocalAiServiceInstallSpec {
@@ -27,12 +29,12 @@ fn qwen_tts_python_service_artifact() -> LocalAiServiceArtifact {
         preflight: vec![
             LocalAiPreflightRule {
                 check: "python-version".to_string(),
-                reason_code: "LOCAL_AI_QWEN_PYTHON_REQUIRED".to_string(),
+                reason_code: "LOCAL_AI_SPEECH_PYTHON_REQUIRED".to_string(),
                 params: Some(serde_json::json!({ "minVersion": "3.10" })),
             },
             LocalAiPreflightRule {
                 check: "endpoint-loopback".to_string(),
-                reason_code: "LOCAL_AI_QWEN_ENDPOINT_NOT_LOOPBACK".to_string(),
+                reason_code: "LOCAL_AI_ENDPOINT_NOT_LOOPBACK".to_string(),
                 params: None,
             },
         ],
@@ -61,8 +63,8 @@ fn qwen_tts_python_service_artifact() -> LocalAiServiceArtifact {
             timeout_ms: 4_000,
         },
         nodes: vec![LocalAiNodeContract {
-            node_id: "audio.synthesize.qwen3tts".to_string(),
-            title: "Qwen3 TTS Synthesize".to_string(),
+            node_id: "audio.synthesize.local-speech".to_string(),
+            title: "Local Speech Synthesize".to_string(),
             capability: "audio.synthesize".to_string(),
             api_path: "/v1/audio/speech".to_string(),
             input_schema: Some(serde_json::json!({
@@ -80,7 +82,7 @@ fn qwen_tts_python_service_artifact() -> LocalAiServiceArtifact {
 }
 
 pub fn service_artifact_registry() -> Vec<LocalAiServiceArtifact> {
-    vec![qwen_tts_python_service_artifact()]
+    vec![local_speech_python_service_artifact()]
 }
 
 pub fn find_service_artifact(service_id: &str) -> Option<LocalAiServiceArtifact> {
@@ -96,26 +98,35 @@ pub fn find_service_artifact(service_id: &str) -> Option<LocalAiServiceArtifact>
 
 #[cfg(test)]
 mod tests {
-    use super::{find_service_artifact, service_artifact_registry};
+    use super::{find_service_artifact, service_artifact_registry, LOCAL_SPEECH_SERVICE_ID};
 
     #[test]
     fn service_artifact_registry_contains_only_runtime_native_host_artifacts() {
         let artifacts = service_artifact_registry();
         assert_eq!(artifacts.len(), 1);
-        assert_eq!(artifacts[0].service_id, "qwen-tts-python");
+        assert_eq!(artifacts[0].service_id, LOCAL_SPEECH_SERVICE_ID);
         assert_eq!(artifacts[0].engine, "speech");
     }
 
     #[test]
-    fn qwen_service_artifact_uses_speech_native_contract() {
-        let artifact = find_service_artifact("qwen-tts-python").expect("qwen-tts-python artifact");
+    fn local_speech_service_artifact_uses_speech_native_contract() {
+        let artifact =
+            find_service_artifact(LOCAL_SPEECH_SERVICE_ID).expect("local speech artifact");
         assert_eq!(artifact.health.endpoint, "/healthz");
         assert_eq!(
             artifact.health.capability_probe_endpoint.as_deref(),
             Some("/v1/catalog")
         );
-        assert!(artifact.nodes.iter().any(
-            |node| node.capability == "audio.synthesize" && node.api_path == "/v1/audio/speech"
-        ));
+        assert!(artifact
+            .preflight
+            .iter()
+            .all(|rule| !rule.reason_code.contains("QWEN")));
+        assert!(artifact
+            .nodes
+            .iter()
+            .any(|node| node.node_id == "audio.synthesize.local-speech"
+                && node.title == "Local Speech Synthesize"
+                && node.capability == "audio.synthesize"
+                && node.api_path == "/v1/audio/speech"));
     }
 }

@@ -83,6 +83,41 @@ codes:
     description: Local runtime endpoint format invalid
     source_rule: D-ERR-002
 
+  - code: LOCAL_AI_SERVICE_UNREACHABLE
+    domain: local-ai
+    description: Local runtime service endpoint is unreachable
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_AUTH_FAILED
+    domain: local-ai
+    description: Local runtime service authentication failed
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_CAPABILITY_MISSING
+    domain: local-ai
+    description: Local runtime service is missing a required capability
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_PROVIDER_INTERNAL_ERROR
+    domain: local-ai
+    description: Local runtime provider returned an internal error
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_PROVIDER_TIMEOUT
+    domain: local-ai
+    description: Local runtime provider request timed out
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_PREFLIGHT_UNSUPPORTED
+    domain: local-ai
+    description: Local runtime preflight check is unknown or unsupported
+    source_rule: D-ERR-001
+
+  - code: LOCAL_AI_ADAPTER_MISMATCH
+    domain: local-ai
+    description: Local runtime adapter does not match the selected model or service
+    source_rule: D-ERR-001
+
   - code: LOCAL_AI_MODEL_NOT_FOUND
     domain: local-ai
     description: No installed/active model found

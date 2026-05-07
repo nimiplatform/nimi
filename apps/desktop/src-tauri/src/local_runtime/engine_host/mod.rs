@@ -8,6 +8,7 @@ mod llama_cpp_adapter;
 mod qwen;
 
 use self::llama_cpp_adapter::LlamaCppProcessAdapter;
+use super::service_artifacts::LOCAL_SPEECH_SERVICE_ID;
 
 #[cfg(test)]
 use self::qwen::preflight_engine_install_with;
@@ -28,7 +29,7 @@ const QWEN_TTS_STOP_GRACE_MS_DEFAULT: u64 = 8_000;
 const QWEN_TTS_HEALTH_POLL_INTERVAL_MS: u64 = 500;
 const QWEN_TTS_GATEWAY_SCRIPT_NAME: &str = "qwen_tts_server.py";
 const QWEN_TTS_GATEWAY_TEMPLATE: &str = include_str!("../qwen_tts_server_template.py");
-const QWEN_TTS_VENV_DIR_NAME: &str = "qwen-tts-python";
+const QWEN_TTS_VENV_DIR_NAME: &str = LOCAL_SPEECH_SERVICE_ID;
 
 trait EngineAdapter {
     fn start(&self, model: &LocalAiAssetRecord) -> EngineHealthResult;
@@ -193,7 +194,7 @@ fn adapter_for(model: &LocalAiAssetRecord) -> Box<dyn EngineAdapter + Send + Syn
     if is_supervised_llama_engine(engine.as_str()) {
         return Box::new(LlamaCppProcessAdapter);
     }
-    if engine == "qwen-tts-python" {
+    if engine == LOCAL_SPEECH_SERVICE_ID {
         return Box::new(QwenTtsPythonAdapter);
     }
     Box::new(OpenAiCompatibleAdapter)
@@ -232,6 +233,7 @@ mod tests {
         check_engine_health, is_supervised_llama_engine, preflight_engine_install_with,
         start_engine, LlamaCppProcessAdapter,
     };
+    use crate::local_runtime::service_artifacts::LOCAL_SPEECH_SERVICE_ID;
     use crate::local_runtime::types::{
         LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus, LocalAiIntegrityMode,
     };
@@ -469,6 +471,32 @@ mod tests {
     }
 
     #[test]
+    fn canonical_llama_start_args_reject_extra_bind_overrides() {
+        let _guard = test_guard();
+        std::env::set_var("NIMI_LLAMA_CPP_ARGS", "--host 0.0.0.0 --port 1234");
+        let model = model_fixture("llama", LocalAiAssetStatus::Installed);
+
+        let error = LlamaCppProcessAdapter::start_args(&model)
+            .expect_err("extra bind overrides must fail closed");
+        assert!(error.contains("LOCAL_AI_ENDPOINT_NOT_LOOPBACK"));
+
+        std::env::remove_var("NIMI_LLAMA_CPP_ARGS");
+    }
+
+    #[test]
+    fn canonical_llama_start_args_reject_extra_bind_equals_overrides() {
+        let _guard = test_guard();
+        std::env::set_var("NIMI_LLAMA_CPP_ARGS", "--host=0.0.0.0 --port=1234");
+        let model = model_fixture("llama", LocalAiAssetStatus::Installed);
+
+        let error = LlamaCppProcessAdapter::start_args(&model)
+            .expect_err("extra bind overrides must fail closed");
+        assert!(error.contains("LOCAL_AI_ENDPOINT_NOT_LOOPBACK"));
+
+        std::env::remove_var("NIMI_LLAMA_CPP_ARGS");
+    }
+
+    #[test]
     fn canonical_llama_start_args_include_mmproj_when_configured() {
         let _guard = test_guard();
         let models_root = temp_dir("llama-mmproj-root");
@@ -549,25 +577,25 @@ mod tests {
     }
 
     #[test]
-    fn preflight_engine_install_non_qwen_bypasses_gate() {
+    fn preflight_engine_install_non_local_speech_bypasses_gate() {
         let result = preflight_engine_install_with("openai-compatible", || {
-            Err("LOCAL_AI_QWEN_GPU_REQUIRED: should not run".to_string())
+            Err("LOCAL_AI_SPEECH_GPU_REQUIRED: should not run".to_string())
         });
         assert!(result.is_ok());
     }
 
     #[test]
-    fn preflight_engine_install_qwen_propagates_failure() {
-        let result = preflight_engine_install_with("qwen-tts-python", || {
-            Err("LOCAL_AI_QWEN_GPU_REQUIRED: gpu unavailable".to_string())
+    fn preflight_engine_install_local_speech_propagates_failure() {
+        let result = preflight_engine_install_with(LOCAL_SPEECH_SERVICE_ID, || {
+            Err("LOCAL_AI_SPEECH_GPU_REQUIRED: gpu unavailable".to_string())
         });
-        let error = result.expect_err("qwen preflight should fail");
-        assert!(error.contains("LOCAL_AI_QWEN_GPU_REQUIRED"));
+        let error = result.expect_err("local speech preflight should fail");
+        assert!(error.contains("LOCAL_AI_SPEECH_GPU_REQUIRED"));
     }
 
     #[test]
-    fn preflight_engine_install_qwen_accepts_success() {
-        let result = preflight_engine_install_with("qwen-tts-python", || Ok(()));
+    fn preflight_engine_install_local_speech_accepts_success() {
+        let result = preflight_engine_install_with(LOCAL_SPEECH_SERVICE_ID, || Ok(()));
         assert!(result.is_ok());
     }
 }

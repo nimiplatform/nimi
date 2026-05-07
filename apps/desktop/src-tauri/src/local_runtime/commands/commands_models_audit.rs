@@ -5,6 +5,9 @@ pub fn runtime_local_append_inference_audit(
 ) -> Result<(), String> {
     let event_type = validate_inference_event_type(payload.event_type.as_str())?;
     let source = validate_inference_source(payload.source.as_str())?;
+    let route_source = normalize_optional(payload.route_source)
+        .map(|value| validate_inference_source(value.as_str()).map(str::to_string))
+        .transpose()?;
     let modality = validate_inference_modality(payload.modality.as_str())?;
     let mod_id = payload.mod_id.trim();
     if mod_id.is_empty() {
@@ -18,6 +21,7 @@ pub fn runtime_local_append_inference_audit(
     let model = normalize_optional(payload.model);
     let local_model_id = normalize_optional(payload.local_model_id);
     let endpoint = normalize_optional(payload.endpoint);
+    let trace_id = normalize_optional(payload.trace_id);
     let reason_code = normalize_optional(payload.reason_code).map(|value| {
         normalize_local_ai_reason_code(value.as_str(), LOCAL_AI_PROVIDER_INTERNAL_ERROR)
     });
@@ -34,6 +38,12 @@ pub fn runtime_local_append_inference_audit(
         "source".to_string(),
         serde_json::Value::String(source.to_string()),
     );
+    if let Some(value) = route_source {
+        payload_object.insert(
+            "routeSource".to_string(),
+            serde_json::Value::String(value),
+        );
+    }
     payload_object.insert(
         "provider".to_string(),
         serde_json::Value::String(provider.to_string()),
@@ -43,6 +53,9 @@ pub fn runtime_local_append_inference_audit(
         serde_json::Value::String(modality.to_string()),
     );
     payload_object.insert("adapter".to_string(), serde_json::Value::String(adapter));
+    if let Some(value) = trace_id {
+        payload_object.insert("traceId".to_string(), serde_json::Value::String(value));
+    }
     if let Some(value) = endpoint {
         payload_object.insert("endpoint".to_string(), serde_json::Value::String(value));
     }

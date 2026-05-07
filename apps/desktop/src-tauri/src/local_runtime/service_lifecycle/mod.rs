@@ -1,3 +1,4 @@
+use super::reason_codes::LOCAL_AI_PREFLIGHT_UNSUPPORTED;
 use super::service_artifacts::{find_service_artifact, service_artifact_registry};
 use super::types::{
     now_iso_timestamp, LocalAiDependencyKind, LocalAiDeviceProfile, LocalAiPreflightDecision,
@@ -174,9 +175,9 @@ fn evaluate_preflight_check(
         dependency_id: None,
         target: "service".to_string(),
         check: check.to_string(),
-        ok: true,
-        reason_code: "LOCAL_AI_PREFLIGHT_OK".to_string(),
-        detail: "unknown preflight check skipped".to_string(),
+        ok: false,
+        reason_code: LOCAL_AI_PREFLIGHT_UNSUPPORTED.to_string(),
+        detail: format!("unknown preflight check rejected: check={check}"),
     }
 }
 
@@ -462,4 +463,61 @@ pub async fn probe_service_capability_models_async(
             artifact.service_id, probe_url
         )
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::evaluate_preflight_check;
+    use crate::local_runtime::reason_codes::LOCAL_AI_PREFLIGHT_UNSUPPORTED;
+    use crate::local_runtime::types::{
+        LocalAiDeviceProfile, LocalAiGpuProfile, LocalAiMemoryModel, LocalAiNpuProfile,
+        LocalAiPythonProfile,
+    };
+
+    fn device_profile_fixture() -> LocalAiDeviceProfile {
+        LocalAiDeviceProfile {
+            os: "macos".to_string(),
+            arch: "aarch64".to_string(),
+            total_ram_bytes: 16 * 1024 * 1024 * 1024,
+            available_ram_bytes: 8 * 1024 * 1024 * 1024,
+            gpu: LocalAiGpuProfile {
+                available: false,
+                vendor: None,
+                model: None,
+                total_vram_bytes: None,
+                available_vram_bytes: None,
+                memory_model: LocalAiMemoryModel::Unknown,
+            },
+            python: LocalAiPythonProfile {
+                available: false,
+                version: None,
+            },
+            npu: LocalAiNpuProfile {
+                available: false,
+                ready: false,
+                vendor: None,
+                runtime: None,
+                detail: None,
+            },
+            disk_free_bytes: 1024 * 1024 * 1024,
+            ports: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn unknown_preflight_checks_fail_closed() {
+        let profile = device_profile_fixture();
+        let decision = evaluate_preflight_check(
+            "unknown-new-rule",
+            "LOCAL_AI_PREFLIGHT_OK",
+            None,
+            None,
+            &profile,
+        );
+
+        assert!(!decision.ok);
+        assert_eq!(decision.reason_code, LOCAL_AI_PREFLIGHT_UNSUPPORTED);
+        assert_eq!(decision.check, "unknown-new-rule");
+        assert!(decision.detail.contains("unknown preflight check rejected"));
+    }
 }

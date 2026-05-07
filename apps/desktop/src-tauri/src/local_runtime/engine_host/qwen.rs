@@ -1,5 +1,5 @@
 use crate::local_runtime::device_profile::collect_device_profile_from_env;
-use crate::local_runtime::service_artifacts::find_service_artifact;
+use crate::local_runtime::service_artifacts::{find_service_artifact, LOCAL_SPEECH_SERVICE_ID};
 use crate::local_runtime::service_lifecycle::preflight_service_artifact;
 use crate::local_runtime::types::LocalAiServiceArtifact;
 use std::fs;
@@ -76,17 +76,20 @@ impl QwenTtsPythonAdapter {
                 return Ok(candidate);
             }
             return Err(format!(
-                "LOCAL_AI_QWEN_PYTHON_VERSION_UNSUPPORTED: Python >= 3.10 required, detected {}.{}",
+                "LOCAL_AI_SPEECH_PYTHON_VERSION_UNSUPPORTED: Python >= 3.10 required for Local Speech, detected {}.{}",
                 major, minor
             ));
         }
-        Err("LOCAL_AI_QWEN_PYTHON_REQUIRED: Python 3.10+ is required".to_string())
+        Err(
+            "LOCAL_AI_SPEECH_PYTHON_REQUIRED: Python 3.10+ is required for Local Speech"
+                .to_string(),
+        )
     }
 
     pub(super) fn preflight(endpoint: &str) -> Result<String, String> {
         let profile = collect_device_profile_from_env();
         let decisions =
-            preflight_service_artifact(None, "qwen-tts-python", Some(endpoint), &profile)?;
+            preflight_service_artifact(None, LOCAL_SPEECH_SERVICE_ID, Some(endpoint), &profile)?;
         if let Some(failed) = decisions.iter().find(|item| !item.ok) {
             return Err(format!("{}: {}", failed.reason_code, failed.detail));
         }
@@ -137,8 +140,9 @@ impl QwenTtsPythonAdapter {
     }
 
     fn wait_for_endpoint_ready(endpoint: &str, timeout: Duration) -> Result<(), String> {
-        let health_url = Self::health_probe_endpoint(endpoint)
-            .ok_or_else(|| "LOCAL_AI_QWEN_ENDPOINT_INVALID: qwen endpoint is empty".to_string())?;
+        let health_url = Self::health_probe_endpoint(endpoint).ok_or_else(|| {
+            "LOCAL_AI_ENDPOINT_INVALID: Local Speech endpoint is empty".to_string()
+        })?;
         let client = shared_engine_health_http_client()?;
         let deadline = Instant::now() + timeout;
         loop {
@@ -151,7 +155,7 @@ impl QwenTtsPythonAdapter {
             };
             if Instant::now() >= deadline {
                 return Err(format!(
-                    "LOCAL_AI_ENGINE_START_TIMEOUT: qwen-tts-python health check timed out after {} ms ({health_url}): {}",
+                    "LOCAL_AI_SPEECH_BOOTSTRAP_FAILED: Local Speech host health check timed out after {} ms ({health_url}): {}",
                     timeout.as_millis(),
                     last_error
                 ));
@@ -162,19 +166,21 @@ impl QwenTtsPythonAdapter {
 
     fn parse_endpoint_host_port(endpoint: &str) -> Result<(String, u16), String> {
         let parsed = reqwest::Url::parse(endpoint).map_err(|error| {
-            format!("LOCAL_AI_QWEN_ENDPOINT_INVALID: invalid endpoint URL: {error}")
+            format!("LOCAL_AI_ENDPOINT_INVALID: invalid Local Speech endpoint URL: {error}")
         })?;
         let host = parsed
             .host_str()
-            .ok_or_else(|| "LOCAL_AI_QWEN_ENDPOINT_INVALID: endpoint host missing".to_string())?
+            .ok_or_else(|| {
+                "LOCAL_AI_ENDPOINT_INVALID: Local Speech endpoint host missing".to_string()
+            })?
             .to_string();
         if host != "127.0.0.1" && host != "localhost" && host != "::1" {
             return Err(format!(
-                "LOCAL_AI_QWEN_ENDPOINT_NOT_LOOPBACK: endpoint host must be loopback: {host}"
+                "LOCAL_AI_ENDPOINT_NOT_LOOPBACK: Local Speech endpoint host must be loopback: {host}"
             ));
         }
         let port = parsed.port_or_known_default().ok_or_else(|| {
-            "LOCAL_AI_QWEN_ENDPOINT_INVALID: endpoint port is missing".to_string()
+            "LOCAL_AI_ENDPOINT_INVALID: Local Speech endpoint port is missing".to_string()
         })?;
         Ok((host, port))
     }
@@ -186,7 +192,7 @@ impl QwenTtsPythonAdapter {
             .unwrap_or_default();
         if value.is_empty() {
             return Err(
-                "LOCAL_AI_QWEN_RUNTIME_ROOT_MISSING: NIMI_LOCAL_AI_RUNTIME_ROOT is not configured"
+                "LOCAL_AI_SPEECH_BOOTSTRAP_FAILED: NIMI_LOCAL_AI_RUNTIME_ROOT is not configured"
                     .to_string(),
             );
         }
@@ -200,7 +206,7 @@ impl QwenTtsPythonAdapter {
             .unwrap_or_default();
         if value.is_empty() {
             return Err(
-                "LOCAL_AI_QWEN_MODELS_ROOT_MISSING: NIMI_LOCAL_AI_MODELS_DIR is not configured"
+                "LOCAL_AI_SPEECH_BOOTSTRAP_FAILED: NIMI_LOCAL_AI_MODELS_DIR is not configured"
                     .to_string(),
             );
         }
@@ -222,7 +228,7 @@ impl QwenTtsPythonAdapter {
         if write_required {
             fs::write(&script_path, QWEN_TTS_GATEWAY_TEMPLATE).map_err(|error| {
                 format!(
-                    "LOCAL_AI_QWEN_BOOTSTRAP_FAILED: failed to write qwen gateway script ({}): {error}",
+                    "LOCAL_AI_SPEECH_BOOTSTRAP_FAILED: failed to write Local Speech gateway script ({}): {error}",
                     script_path.display()
                 )
             })?;
@@ -260,8 +266,8 @@ impl QwenTtsPythonAdapter {
     }
 
     fn qwen_process_artifact() -> Result<LocalAiServiceArtifact, String> {
-        find_service_artifact("qwen-tts-python").ok_or_else(|| {
-            "LOCAL_AI_SERVICE_ARTIFACT_NOT_FOUND: serviceId=qwen-tts-python".to_string()
+        find_service_artifact(LOCAL_SPEECH_SERVICE_ID).ok_or_else(|| {
+            format!("LOCAL_AI_SERVICE_ARTIFACT_NOT_FOUND: serviceId={LOCAL_SPEECH_SERVICE_ID}")
         })
     }
 
@@ -275,10 +281,10 @@ impl QwenTtsPythonAdapter {
             .filter(|item| !item.is_empty())
             .collect::<Vec<_>>();
         if requirements.is_empty() {
-            return Err(
-                "LOCAL_AI_SERVICE_ARTIFACT_REQUIREMENTS_EMPTY: serviceId=qwen-tts-python"
-                    .to_string(),
-            );
+            return Err(format!(
+                "LOCAL_AI_SERVICE_ARTIFACT_REQUIREMENTS_EMPTY: serviceId={LOCAL_SPEECH_SERVICE_ID}"
+            )
+            .to_string());
         }
         Ok(requirements)
     }
@@ -292,9 +298,9 @@ impl QwenTtsPythonAdapter {
         asset_id: &str,
     ) -> Result<Vec<String>, String> {
         if artifact.process.args.is_empty() {
-            return Err(
-                "LOCAL_AI_SERVICE_PROCESS_ARGS_EMPTY: serviceId=qwen-tts-python".to_string(),
-            );
+            return Err(format!(
+                "LOCAL_AI_SERVICE_PROCESS_ARGS_EMPTY: serviceId={LOCAL_SPEECH_SERVICE_ID}"
+            ));
         }
         let port_value = port.to_string();
         let script_value = script_path.to_string_lossy().to_string();
@@ -320,7 +326,7 @@ impl QwenTtsPythonAdapter {
         if !venv_root.exists() {
             fs::create_dir_all(&venv_root).map_err(|error| {
                 format!(
-                    "LOCAL_AI_QWEN_BOOTSTRAP_FAILED: failed to create venv root ({}): {error}",
+                    "LOCAL_AI_SPEECH_BOOTSTRAP_FAILED: failed to create Local Speech env root ({}): {error}",
                     venv_root.display()
                 )
             })?;
@@ -335,7 +341,7 @@ impl QwenTtsPythonAdapter {
                 Path::new(python_binary),
                 &["-m", "venv", ".venv"],
                 Some(venv_root.as_path()),
-                "LOCAL_AI_QWEN_BOOTSTRAP_FAILED",
+                "LOCAL_AI_SPEECH_BOOTSTRAP_FAILED",
             )?;
         }
 
@@ -349,7 +355,7 @@ impl QwenTtsPythonAdapter {
                 venv_python.as_path(),
                 &["-m", "pip", "install", "--upgrade", "pip"],
                 Some(venv_root.as_path()),
-                "LOCAL_AI_QWEN_BOOTSTRAP_FAILED",
+                "LOCAL_AI_SPEECH_BOOTSTRAP_FAILED",
             )?;
             let mut install_requirements_args =
                 vec!["-m".to_string(), "pip".to_string(), "install".to_string()];
@@ -362,7 +368,7 @@ impl QwenTtsPythonAdapter {
                 venv_python.as_path(),
                 install_requirements_refs.as_slice(),
                 Some(venv_root.as_path()),
-                "LOCAL_AI_QWEN_BOOTSTRAP_FAILED",
+                "LOCAL_AI_SPEECH_BOOTSTRAP_FAILED",
             )?;
         }
 
@@ -373,7 +379,7 @@ impl QwenTtsPythonAdapter {
         with_asset_operation_lock(model.local_asset_id.as_str(), || {
             let mut registry = qwen_process_registry()
                 .lock()
-                .map_err(|_| "qwen process registry lock poisoned".to_string())?;
+                .map_err(|_| "Local Speech process registry lock poisoned".to_string())?;
             if let Some(child) = registry.get_mut(&model.local_asset_id) {
                 match child.try_wait() {
                     Ok(None) => return Ok(true),
@@ -383,7 +389,7 @@ impl QwenTtsPythonAdapter {
                     }
                     Err(error) => {
                         registry.remove(&model.local_asset_id);
-                        return Err(format!("qwen process check failed: {error}"));
+                        return Err(format!("Local Speech process check failed: {error}"));
                     }
                 }
             }
@@ -395,7 +401,7 @@ impl QwenTtsPythonAdapter {
         with_asset_operation_lock(model.local_asset_id.as_str(), || {
             let mut registry = qwen_process_registry()
                 .lock()
-                .map_err(|_| "qwen process registry lock poisoned".to_string())?;
+                .map_err(|_| "Local Speech process registry lock poisoned".to_string())?;
             let mut child = match registry.remove(&model.local_asset_id) {
                 Some(value) => value,
                 None => return Ok(false),
@@ -411,7 +417,7 @@ impl QwenTtsPythonAdapter {
             let model_dir = Self::asset_install_dir(model)?;
             if !model_dir.exists() {
                 return Err(format!(
-                    "LOCAL_AI_QWEN_MODEL_DIR_MISSING: model directory is missing: {}",
+                    "LOCAL_AI_SPEECH_BOOTSTRAP_FAILED: Local Speech model directory is missing: {}",
                     model_dir.display()
                 ));
             }
@@ -419,7 +425,7 @@ impl QwenTtsPythonAdapter {
                 let entry_path = model_dir.join(model.entry.trim());
                 if !entry_path.exists() {
                     return Err(format!(
-                        "LOCAL_AI_QWEN_MODEL_ENTRY_MISSING: model entry is missing: {}",
+                        "LOCAL_AI_SPEECH_BOOTSTRAP_FAILED: Local Speech model entry is missing: {}",
                         entry_path.display()
                     ));
                 }
@@ -449,12 +455,12 @@ impl QwenTtsPythonAdapter {
                 .stderr(Stdio::null())
                 .spawn()
                 .map_err(|error| {
-                    format!("LOCAL_AI_QWEN_BOOTSTRAP_FAILED: failed to spawn qwen gateway: {error}")
+                    format!("LOCAL_AI_SPEECH_BOOTSTRAP_FAILED: failed to spawn Local Speech gateway: {error}")
                 })?;
 
             let mut registry = qwen_process_registry()
                 .lock()
-                .map_err(|_| "qwen process registry lock poisoned".to_string())?;
+                .map_err(|_| "Local Speech process registry lock poisoned".to_string())?;
             registry.insert(model.local_asset_id.clone(), child);
             drop(registry);
 
@@ -463,7 +469,7 @@ impl QwenTtsPythonAdapter {
             {
                 let mut registry = qwen_process_registry()
                     .lock()
-                    .map_err(|_| "qwen process registry lock poisoned".to_string())?;
+                    .map_err(|_| "Local Speech process registry lock poisoned".to_string())?;
                 if let Some(mut child) = registry.remove(&model.local_asset_id) {
                     LlamaCppProcessAdapter::shutdown_child_process(
                         &mut child,
@@ -486,7 +492,7 @@ pub(super) fn preflight_engine_install_with<F>(
 where
     F: FnOnce() -> Result<(), String>,
 {
-    if normalize_engine(engine) != "qwen-tts-python" {
+    if normalize_engine(engine) != LOCAL_SPEECH_SERVICE_ID {
         return Ok(());
     }
     qwen_preflight()
@@ -497,13 +503,13 @@ impl EngineAdapter for QwenTtsPythonAdapter {
         match Self::process_running(model) {
             Ok(true) => EngineHealthResult {
                 healthy: true,
-                detail: "qwen-tts-python already running".to_string(),
+                detail: "Local Speech host already running".to_string(),
                 status: LocalAiAssetStatus::Active,
             },
             Ok(false) => match Self::start_process(model) {
                 Ok(()) => EngineHealthResult {
                     healthy: true,
-                    detail: "qwen-tts-python started".to_string(),
+                    detail: "Local Speech host started".to_string(),
                     status: LocalAiAssetStatus::Active,
                 },
                 Err(error) => EngineHealthResult {
@@ -524,12 +530,12 @@ impl EngineAdapter for QwenTtsPythonAdapter {
         match Self::stop_process(model) {
             Ok(true) => EngineHealthResult {
                 healthy: true,
-                detail: "qwen-tts-python stop requested".to_string(),
+                detail: "Local Speech host stop requested".to_string(),
                 status: LocalAiAssetStatus::Installed,
             },
             Ok(false) => EngineHealthResult {
                 healthy: true,
-                detail: "qwen-tts-python process not running".to_string(),
+                detail: "Local Speech host process not running".to_string(),
                 status: LocalAiAssetStatus::Installed,
             },
             Err(error) => EngineHealthResult {
@@ -544,20 +550,20 @@ impl EngineAdapter for QwenTtsPythonAdapter {
         match Self::process_running(model) {
             Ok(true) => EngineHealthResult {
                 healthy: true,
-                detail: "qwen-tts-python running".to_string(),
+                detail: "Local Speech host running".to_string(),
                 status: LocalAiAssetStatus::Active,
             },
             Ok(false) => {
                 if model.status == LocalAiAssetStatus::Active {
                     EngineHealthResult {
                         healthy: false,
-                        detail: "qwen-tts-python process exited unexpectedly".to_string(),
+                        detail: "Local Speech host process exited unexpectedly".to_string(),
                         status: LocalAiAssetStatus::Unhealthy,
                     }
                 } else {
                     EngineHealthResult {
                         healthy: true,
-                        detail: "qwen-tts-python ready (not started)".to_string(),
+                        detail: "Local Speech host ready (not started)".to_string(),
                         status: LocalAiAssetStatus::Installed,
                     }
                 }

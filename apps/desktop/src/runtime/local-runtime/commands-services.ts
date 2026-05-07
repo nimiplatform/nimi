@@ -17,6 +17,39 @@ import {
 } from './parsers';
 import { asRecord, requireSdkLocal } from './commands-shared';
 
+type ProtoStruct = {
+  fields: Record<string, ProtoValue>;
+};
+
+type ProtoValue = {
+  kind:
+    | { oneofKind: 'nullValue'; nullValue: 0 }
+    | { oneofKind: 'numberValue'; numberValue: number }
+    | { oneofKind: 'stringValue'; stringValue: string }
+    | { oneofKind: 'boolValue'; boolValue: boolean }
+    | { oneofKind: 'structValue'; structValue: ProtoStruct }
+    | { oneofKind: 'listValue'; listValue: { values: ProtoValue[] } };
+};
+
+function jsonToProtoStruct(value: Record<string, unknown>): ProtoStruct {
+  return {
+    fields: Object.fromEntries(
+      Object.entries(value || {}).map(([key, item]) => [key, jsonToProtoValue(item)]),
+    ),
+  };
+}
+
+function jsonToProtoValue(value: unknown): ProtoValue {
+  if (value === null || value === undefined) return { kind: { oneofKind: 'nullValue', nullValue: 0 } };
+  if (Array.isArray(value)) {
+    return { kind: { oneofKind: 'listValue', listValue: { values: value.map(jsonToProtoValue) } } };
+  }
+  if (typeof value === 'number') return { kind: { oneofKind: 'numberValue', numberValue: value } };
+  if (typeof value === 'boolean') return { kind: { oneofKind: 'boolValue', boolValue: value } };
+  if (typeof value === 'string') return { kind: { oneofKind: 'stringValue', stringValue: value } };
+  return { kind: { oneofKind: 'structValue', structValue: jsonToProtoStruct(value as Record<string, unknown>) } };
+}
+
 export async function listLocalRuntimeServices(): Promise<LocalRuntimeServiceDescriptor[]> {
   const runtime = requireSdkLocal();
   const response = await runtime.listLocalServices({ statusFilter: 0, pageSize: 0, pageToken: '' });
@@ -124,6 +157,11 @@ export async function appendLocalRuntimeInferenceAudit(
   payload: LocalRuntimeInferenceAuditPayload,
 ): Promise<void> {
   const runtime = requireSdkLocal();
+  const extra = {
+    ...(payload.extra || {}),
+    routeSource: payload.routeSource || payload.source,
+    traceId: String(payload.traceId || ''),
+  };
   await runtime.appendInferenceAudit({
     eventType: payload.eventType,
     modId: payload.modId,
@@ -137,7 +175,7 @@ export async function appendLocalRuntimeInferenceAudit(
     reasonCode: String(payload.reasonCode || ''),
     detail: String(payload.detail || ''),
     policyGate: undefined,
-    extra: undefined,
+    extra: jsonToProtoStruct(extra),
   });
 }
 

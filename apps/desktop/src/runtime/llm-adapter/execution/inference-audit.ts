@@ -24,11 +24,11 @@ export type InferenceAuditInput = {
   provider: string;
   modality: InferenceAuditModality;
   adapter: 'openai_compat_adapter' | 'llama_native_adapter' | 'media_native_adapter' | 'speech_native_adapter' | 'sidecar_music_adapter' | string;
-  traceId?: string;
+  traceId: string;
   model?: string;
   localModelId?: string;
   endpoint?: string | null;
-  reasonCode?: string;
+  reasonCode: string;
   detail?: string;
   policyGate?: string | Record<string, unknown>;
   persistMode?: InferencePersistMode;
@@ -123,6 +123,13 @@ export function emitInferenceAudit(input: InferenceAuditInput): void {
   const policyGate = input.policyGate ?? null;
   const extra = input.extra || {};
   const persistMode = input.persistMode || 'persist';
+
+  if (!traceId) {
+    throw new Error('LOCAL_AI_AUDIT_TRACE_ID_MISSING: traceId is required');
+  }
+  if (!reasonCode) {
+    throw new Error('LOCAL_AI_AUDIT_REASON_CODE_MISSING: reasonCode is required');
+  }
 
   emitRuntimeLog({
     level,

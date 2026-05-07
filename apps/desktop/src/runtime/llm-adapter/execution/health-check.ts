@@ -205,7 +205,18 @@ async function checkRuntimeAuthoritativeLocalModelHealth(
     };
   }
 
-  if (candidate.status !== 'active' && candidate.status !== 'installed' && candidate.status !== '') {
+  if (!candidate.status) {
+    return {
+      provider,
+      endpoint,
+      model,
+      status: 'unreachable',
+      detail: 'runtime local model status missing',
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
+  if (candidate.status !== 'active' && candidate.status !== 'installed') {
     return {
       provider,
       endpoint,

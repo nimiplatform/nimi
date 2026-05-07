@@ -1,8 +1,5 @@
 #![cfg_attr(not(target_os = "macos"), allow(dead_code))]
 
-use std::thread;
-use std::time::Duration;
-
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -137,16 +134,6 @@ pub fn request_quit(app: &AppHandle) -> Result<(), String> {
     menu::apply_state(app);
     app.emit(MENU_BAR_QUIT_REQUESTED_EVENT, ())
         .map_err(|error| error.to_string())?;
-
-    let app_handle = app.clone();
-    thread::spawn(move || {
-        thread::sleep(Duration::from_millis(2500));
-        let store = app_handle.state::<MenuBarShellStore>();
-        if store.quit_pending() {
-            let _ = force_complete_quit(&app_handle);
-        }
-    });
-
     Ok(())
 }
 
@@ -206,5 +193,13 @@ mod tests {
     fn unavailable_runtime_cannot_start() {
         let unavailable = daemon_status(false, true, "INVALID");
         assert!(!runtime_action_enabled(&unavailable, RuntimeAction::Start));
+    }
+
+    #[test]
+    fn quit_request_has_no_timeout_completion_fallback() {
+        let source = include_str!("actions.rs");
+        assert!(!source.contains(&["thread", "::spawn(move ||"].concat()));
+        assert!(!source.contains(&["Duration", "::from_millis(2500)"].concat()));
+        assert!(!source.contains(&["force_complete_quit", "(&app_handle)"].concat()));
     }
 }

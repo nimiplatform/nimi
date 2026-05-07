@@ -126,6 +126,7 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       model: resolved.modelId,
       endpoint: resolved.endpoint,
       traceId: runtimeTraceId,
+      reasonCode: 'LOCAL_AI_PROVIDER_INTERNAL_ERROR',
     });
     const response = await runtime.ai.executeScenario({
       head: {
@@ -240,7 +241,7 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       adapter: resolved.adapter,
       model: resolved.modelId,
       endpoint: resolved.endpoint,
-      traceId: normalizedError.traceId || runtimeTraceId || undefined,
+      traceId: normalizedError.traceId || runtimeTraceId || createRuntimeTraceId('mod-text-error'),
       reasonCode: runtimeReasonCode,
       detail: normalizedError.message,
       extra: localReasonCode ? { localReasonCode } : undefined,

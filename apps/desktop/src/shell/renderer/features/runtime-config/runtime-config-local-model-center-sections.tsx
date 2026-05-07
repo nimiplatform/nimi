@@ -424,7 +424,7 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
             </h3>
             <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
               {i18n.t('runtimeConfig.localModelCenter.unregisteredAssetsAutoImportHint', {
-                defaultValue: 'Typed folders import automatically when confidence is high; others stay in Review needed.',
+                defaultValue: 'Discovered assets stay pending until you choose Import.',
               })}
             </p>
           </div>

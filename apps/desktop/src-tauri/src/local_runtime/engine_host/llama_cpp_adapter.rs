@@ -11,6 +11,7 @@ use super::{
 use crate::local_runtime::engine_pack::{
     ensure_llama_cpp_binary, resolve_existing_llama_cpp_binary,
 };
+use crate::local_runtime::import_validator::validate_loopback_endpoint;
 use crate::local_runtime::types::{resolved_model_dir, LocalAiAssetRecord, LocalAiAssetStatus};
 
 pub(super) struct LlamaCppProcessAdapter;
@@ -97,7 +98,8 @@ impl LlamaCppProcessAdapter {
     }
 
     fn parse_endpoint_bind(endpoint: &str) -> Result<(String, u16), String> {
-        let parsed = reqwest::Url::parse(endpoint.trim()).map_err(|error| {
+        let normalized = validate_loopback_endpoint(endpoint)?;
+        let parsed = reqwest::Url::parse(normalized.as_str()).map_err(|error| {
             format!("LOCAL_AI_ENGINE_ENDPOINT_INVALID: invalid llama.cpp endpoint: {error}")
         })?;
         let host = parsed.host_str().ok_or_else(|| {
@@ -111,6 +113,7 @@ impl LlamaCppProcessAdapter {
 
     pub(super) fn start_args(model: &LocalAiAssetRecord) -> Result<Vec<String>, String> {
         let mut args = Self::parse_extra_args();
+        Self::reject_extra_bind_overrides(&args)?;
         if !args.iter().any(|item| item == "--model") {
             args.push("--model".to_string());
             args.push(
@@ -119,17 +122,11 @@ impl LlamaCppProcessAdapter {
                     .to_string(),
             );
         }
-        if !args.iter().any(|item| item == "--host") || !args.iter().any(|item| item == "--port") {
-            let (host, port) = Self::parse_endpoint_bind(model.endpoint.as_str())?;
-            if !args.iter().any(|item| item == "--host") {
-                args.push("--host".to_string());
-                args.push(host);
-            }
-            if !args.iter().any(|item| item == "--port") {
-                args.push("--port".to_string());
-                args.push(port.to_string());
-            }
-        }
+        let (host, port) = Self::parse_endpoint_bind(model.endpoint.as_str())?;
+        args.push("--host".to_string());
+        args.push(host);
+        args.push("--port".to_string());
+        args.push(port.to_string());
         if !args.iter().any(|item| item == "--mmproj") {
             if let Some(mmproj_path) = Self::configured_mmproj_path(model)? {
                 args.push("--mmproj".to_string());
@@ -173,6 +170,21 @@ impl LlamaCppProcessAdapter {
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default()
+    }
+
+    fn reject_extra_bind_overrides(args: &[String]) -> Result<(), String> {
+        if args.iter().any(|item| {
+            item == "--host"
+                || item == "--port"
+                || item.starts_with("--host=")
+                || item.starts_with("--port=")
+        }) {
+            return Err(
+                "LOCAL_AI_ENDPOINT_NOT_LOOPBACK: NIMI_LLAMA_CPP_ARGS must not override --host or --port; supervised llama.cpp bind is derived from the validated runtime endpoint"
+                    .to_string(),
+            );
+        }
+        Ok(())
     }
 
     fn start_timeout() -> Duration {
