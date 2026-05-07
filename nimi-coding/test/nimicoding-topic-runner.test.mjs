@@ -1053,6 +1053,59 @@ test("topic runner continues deterministic wave closeout and next-wave transitio
   });
 });
 
+test("topic runner selects first dependency-ready wave in topic order when multiple waves are ready", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "runner-ordered-next-wave-demo",
+      "--justification",
+      "runner ordered next wave demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-b-second", "second",
+      "--goal", "close wave b first because topic order is canonical", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-a-first", "first",
+      "--goal", "close wave a second despite lexical order", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+
+    const nextWaveStep = await captureRunCli([
+      "topic-runner",
+      "step",
+      createPayload.topicId,
+      "--run-id",
+      "ordered-next-wave-demo",
+      "--adapter",
+      "codex",
+      "--verified-at",
+      "2026-05-04T00:03:00Z",
+      "--json",
+    ]);
+    assert.equal(nextWaveStep.exitCode, 0, nextWaveStep.stderr);
+    const payload = JSON.parse(nextWaveStep.stdout);
+    assert.equal(payload.runnerStatus, "continued");
+    assert.equal(payload.recommendedAction, "admit_wave");
+    assert.equal(payload.decision.reason_code, "deterministic_next_wave_ready");
+    assert.equal(payload.decision.wave_id, "wave-b-second");
+
+    const topicYaml = YAML.parse(await readFile(
+      path.join(projectRoot, ".nimi", "topics", "ongoing", createPayload.topicId, "topic.yaml"),
+      "utf8",
+    ));
+    assert.equal(topicYaml.selected_next_target, "wave-b-second");
+    assert.equal(topicYaml.waves.find((entry) => entry.wave_id === "wave-b-second").state, "preflight_admitted");
+    assert.equal(topicYaml.waves.find((entry) => entry.wave_id === "wave-a-first").state, "candidate");
+  });
+});
+
 test("topic run-next-step gates packet freeze when matching drafts are ambiguous", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);

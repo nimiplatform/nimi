@@ -146,7 +146,7 @@ test("topic status accepts a legacy minimal topic root and reports schema mode e
   });
 });
 
-test("topic validate audits the real golden fixture and reports representability without auto-migrating it", async () => {
+test("topic validate fails closed on legacy numeric artifact lineage without declared waves", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
     assert.equal(startResult.exitCode, 0);
@@ -191,9 +191,9 @@ test("topic validate audits the real golden fixture and reports representability
       "--json",
     ]);
 
-    assert.equal(result.exitCode, 0);
+    assert.equal(result.exitCode, 1);
     const payload = JSON.parse(result.stdout);
-    assert.equal(payload.ok, true);
+    assert.equal(payload.ok, false);
     assert.equal(payload.schemaMode, "legacy_minimal");
     assert.equal(payload.migrationPosture, "explicit_legacy_reconstruction_required");
     assert.equal(payload.validationDisposition, "report_only");
@@ -208,17 +208,16 @@ test("topic validate audits the real golden fixture and reports representability
     assert.equal(payload.featureFlags.overflow_lineage, true);
     assert.equal(payload.featureFlags.true_close_lineage, true);
     assert.equal(payload.featureFlags.exec_pack_lineage, true);
-    assert.ok(payload.legacyWaveIds.includes("wave-1"));
-    assert.ok(payload.legacyWaveIds.includes("wave-6a"));
-    assert.ok(Array.isArray(payload.legacyObservedWaves));
-    const wave1 = payload.legacyObservedWaves.find((entry) => entry.wave_id === "wave-1");
-    assert.ok(wave1);
-    assert.equal(wave1.observed_lineage, "closed_lineage");
-    assert.ok(wave1.packets > 0);
-    assert.ok(wave1.closeouts > 0);
-    const wave6a = payload.legacyObservedWaves.find((entry) => entry.wave_id === "wave-6a");
-    assert.ok(wave6a);
-    assert.ok(wave6a.results > 0);
+    assert.ok(payload.checks.some((entry) => entry.id === "packet_wave_lineage_resolves" && entry.ok === false));
+    assert.ok(payload.checks.some((entry) => entry.id === "result_wave_lineage_resolves" && entry.ok === false));
+    assert.ok(payload.checks.some((entry) => entry.id === "closeout_wave_lineage_resolves" && entry.ok === false));
+    assert.ok(payload.unresolvedPacketWaveRefs.some((entry) => entry.includes("packet-wave-1-legacy.md:unresolved")));
+    assert.ok(payload.unresolvedResultWaveIds.some((entry) => entry.includes("result-wave-1-legacy.md:unresolved")));
+    assert.ok(payload.unresolvedCloseoutWaveRefs.some((entry) => entry.includes("closeout-wave-1-legacy.md:unresolved")));
+    assert.equal(payload.waveIds.includes("wave-1"), false);
+    assert.equal(payload.waveIds.includes("wave-6a"), false);
+    assert.ok(Array.isArray(payload.observedWaves));
+    assert.equal(payload.observedWaves.length, 0);
   });
 });
 
@@ -619,5 +618,96 @@ test("topic packet freeze validates required fields and writes a frozen packet a
     ]);
     assert.equal(brokenFreeze.exitCode, 1);
     assert.match(brokenFreeze.stderr, /missing required fields/);
+  });
+});
+
+test("topic lifecycle artifacts accept slug-shaped wave ids in sweep-fix execution topics", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "slug-wave-lifecycle",
+      "--justification",
+      "slug wave lifecycle regression",
+      "--json",
+    ]);
+    assert.equal(createResult.exitCode, 0);
+    const createPayload = JSON.parse(createResult.stdout);
+    const waveId = "wave-avatar-authority-consistency";
+    const packetId = `${waveId}-implementation`;
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, waveId, "avatar-authority-consistency",
+      "--goal", "close slug-shaped sweep-fix wave", "--owner-domain", "avatar/spec", "--json",
+    ]);
+    await captureRunCli(["topic", "wave", "select", createPayload.topicId, waveId, "--json"]);
+    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, waveId, "--json"]);
+
+    const topicDir = path.join(projectRoot, ".nimi", "topics", "ongoing", createPayload.topicId);
+    const draftPath = path.join(topicDir, "draft-slug-wave.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: packetId,
+        topic_id: createPayload.topicId,
+        wave_id: waveId,
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: [".nimi/spec/avatar/kernel/agent-script-contract.md"],
+        canonical_seams: [".nimi/spec/avatar/kernel/agent-script-contract.md"],
+        forbidden_shortcuts: ["legacy_alias"],
+        acceptance_invariants: ["slug-shaped wave lifecycle artifacts remain canonical"],
+        negative_tests: ["validator rejects fake numeric aliases"],
+        reopen_conditions: ["wave id ownership changes"],
+      }),
+      "utf8",
+    );
+
+    const freezeResult = await captureRunCli([
+      "topic", "packet", "freeze", createPayload.topicId, "--from", draftPath, "--json",
+    ]);
+    assert.equal(freezeResult.exitCode, 0);
+    const freezePayload = JSON.parse(freezeResult.stdout);
+    assert.equal(freezePayload.packetRef, `.nimi/topics/ongoing/${createPayload.topicId}/packet-${packetId}.md`);
+
+    const sourcePath = path.join(topicDir, "source-slug-wave-audit.md");
+    await writeFile(sourcePath, "# Slug Wave Audit\n\nverdict: PASS\n", "utf8");
+    const resultRecord = await captureRunCli([
+      "topic", "result", "record", createPayload.topicId,
+      "--kind", "audit",
+      "--verdict", "PASS",
+      "--from", sourcePath,
+      "--verified-at", "2026-05-07T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(resultRecord.exitCode, 0);
+    const resultPayload = JSON.parse(resultRecord.stdout);
+    assert.equal(resultPayload.resultRef, `.nimi/topics/ongoing/${createPayload.topicId}/result-${waveId}-audit.md`);
+
+    const closeoutResult = await captureRunCli([
+      "topic", "closeout", "wave", createPayload.topicId, waveId,
+      "--authority", "closed",
+      "--semantic", "closed",
+      "--consumer", "closed",
+      "--drift-resistance", "closed",
+      "--disposition", "complete",
+      "--json",
+    ]);
+    assert.equal(closeoutResult.exitCode, 0);
+    const closeoutPayload = JSON.parse(closeoutResult.stdout);
+    assert.equal(closeoutPayload.closeoutRef, `.nimi/topics/ongoing/${createPayload.topicId}/closeout-${waveId}.md`);
+
+    const validateResult = await captureRunCli(["topic", "validate", createPayload.topicId, "--json"]);
+    assert.equal(validateResult.exitCode, 0);
+    const validatePayload = JSON.parse(validateResult.stdout);
+    assert.equal(validatePayload.ok, true);
+    assert.ok(validatePayload.checks.some((entry) => entry.id === "artifact_naming_unambiguous" && entry.ok === true));
+
+    const graphResult = await captureRunCli(["topic", "validate", "graph", createPayload.topicId, "--json"]);
+    assert.equal(graphResult.exitCode, 0);
+    assert.equal(JSON.parse(graphResult.stdout).ok, true);
   });
 });

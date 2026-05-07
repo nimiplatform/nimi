@@ -13,6 +13,7 @@ output_contract:
     - profile
     - selected_next_target
     - selected_wave_id
+    - execution_start_wave_id
     - topic_state_hash
     - readiness
     - goal_command
@@ -22,6 +23,7 @@ output_contract:
     - refusal_reasons
   nullable:
     - selected_wave_id
+    - execution_start_wave_id
     - goal_command
 readiness_check_shape:
   required:
@@ -77,5 +79,9 @@ rules:
   - topic-goal output is a projection and must not mutate topic state
   - host projection drift is a readiness refusal when the host projection exists
   - topic goal is the bridge from accepted topic design into Codex /goal execution ownership
+  - topic goal targets topic completion, not selected-wave completion
+  - selected_wave_id and execution_start_wave_id are execution cursors only
+  - ordinary wave admission, preflight, implementation, validation, result recording, and closeout transitions are non-final
+  - /goal may complete only after all waves are terminal and topic true-close/closeout evidence is recorded
   - preflight_admitted is an execution-stage wave state for topic goal because wave preflight is part of execution, not a separate human design phase
-  - candidate and preflight_draft wave states are not execution-stage states for topic goal
+  - candidate and preflight_draft wave states may be deterministic topic-runner cursors when selected_next_target is empty and dependencies are terminal

@@ -62,16 +62,16 @@ export function formatTopicStatus(report) {
       ...Object.entries(report.featureFlags).map(([key, value]) => `- ${key}: ${value ? "true" : "false"}`),
     );
   }
-  if (Array.isArray(report.legacyObservedWaves) && report.legacyObservedWaves.length > 0) {
+  if (Array.isArray(report.observedWaves) && report.observedWaves.length > 0) {
     lines.push(
       "",
       styleLabel(localize("Observed Waves", "Observed Waves")),
-      ...report.legacyObservedWaves.slice(0, 8).map((entry) => (
+      ...report.observedWaves.slice(0, 8).map((entry) => (
         `- ${entry.wave_id}: ${entry.observed_lineage} packets=${entry.packets} results=${entry.results} closeouts=${entry.closeouts} exec_packs=${entry.exec_packs}`
       )),
     );
-    if (report.legacyObservedWaves.length > 8) {
-      lines.push(styleMuted(`- ... ${report.legacyObservedWaves.length - 8} more wave observations`));
+    if (report.observedWaves.length > 8) {
+      lines.push(styleMuted(`- ... ${report.observedWaves.length - 8} more wave observations`));
     }
   }
   if (report.warnings.length > 0) {
@@ -119,16 +119,16 @@ export function formatTopicValidate(report) {
       ...Object.entries(report.featureFlags).map(([key, value]) => `- ${key}: ${value ? "true" : "false"}`),
     );
   }
-  if (Array.isArray(report.legacyObservedWaves) && report.legacyObservedWaves.length > 0) {
+  if (Array.isArray(report.observedWaves) && report.observedWaves.length > 0) {
     lines.push(
       "",
       styleLabel(localize("Observed Waves", "Observed Waves")),
-      ...report.legacyObservedWaves.slice(0, 8).map((entry) => (
+      ...report.observedWaves.slice(0, 8).map((entry) => (
         `- ${entry.wave_id}: ${entry.observed_lineage} packets=${entry.packets} results=${entry.results} closeouts=${entry.closeouts} exec_packs=${entry.exec_packs}`
       )),
     );
-    if (report.legacyObservedWaves.length > 8) {
-      lines.push(styleMuted(`- ... ${report.legacyObservedWaves.length - 8} more wave observations`));
+    if (report.observedWaves.length > 8) {
+      lines.push(styleMuted(`- ... ${report.observedWaves.length - 8} more wave observations`));
     }
   }
   if (report.warnings.length > 0) {

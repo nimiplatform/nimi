@@ -31,6 +31,9 @@ async function seedGoalReadyTopic(projectRoot, overrides = {}) {
   const topicId = overrides.topicId ?? TOPIC_ID;
   const topicDir = path.join(projectRoot, ".nimi", "topics", state, topicId);
   await mkdir(topicDir, { recursive: true });
+  const selectedWaveId = Object.hasOwn(overrides, "selectedWaveId")
+    ? overrides.selectedWaveId
+    : "wave-1-contract-and-cli";
 
   const waveOne = {
     wave_id: "wave-0-design-audit",
@@ -50,17 +53,20 @@ async function seedGoalReadyTopic(projectRoot, overrides = {}) {
     deps: ["wave-0-design-audit"],
     owner_domain: "nimi-coding/cli/contracts",
     parallelizable_after: "wave-0-design-audit",
-    selected: overrides.selectedWaveId === "wave-2-regression" ? false : true,
+    selected: selectedWaveId === "wave-1-contract-and-cli",
+    ...(overrides.selectedWaveSourceSweepDesign
+      ? { source_sweep_design: overrides.selectedWaveSourceSweepDesign }
+      : {}),
   };
   const waveThree = {
     wave_id: "wave-2-regression",
     slug: "regression",
     state: "candidate",
     primary_closure_goal: "Regression coverage.",
-    deps: ["wave-1-contract-and-cli"],
+    deps: overrides.regressionDeps ?? ["wave-1-contract-and-cli"],
     owner_domain: "nimi-coding/test",
     parallelizable_after: "wave-1-contract-and-cli",
-    selected: overrides.selectedWaveId === "wave-2-regression",
+    selected: selectedWaveId === "wave-2-regression",
   };
 
   await writeFile(
@@ -81,7 +87,7 @@ async function seedGoalReadyTopic(projectRoot, overrides = {}) {
       applicability: "authority_bearing",
       entry_justification: "fixture for topic goal readiness",
       execution_mode: "manager_worker_auditor",
-      selected_next_target: overrides.selectedNextTarget ?? "wave-1-contract-and-cli",
+      selected_next_target: Object.hasOwn(overrides, "selectedNextTarget") ? overrides.selectedNextTarget : "wave-1-contract-and-cli",
       current_true_close_status: overrides.trueCloseStatus ?? "not_started",
       forbidden_shortcuts: overrides.forbiddenShortcuts ?? REQUIRED_SHORTCUTS,
       waves: [waveOne, waveTwo, waveThree],
@@ -167,7 +173,9 @@ test("topic goal emits deterministic slash and JSON for a goal-ready admitted wa
     const slash = await captureRunCli(["topic", "goal", TOPIC_ID]);
     assert.equal(slash.exitCode, 0);
     assert.equal(slash.stderr, "");
-    assert.match(slash.stdout, /^\/goal Execute topic 2026-05-05-topic-goal-fixture from selected execution-stage wave wave-1-contract-and-cli\./);
+    assert.match(slash.stdout, /^\/goal Execute topic 2026-05-05-topic-goal-fixture to completion, starting at execution cursor wave-1-contract-and-cli\./);
+    assert.match(slash.stdout, /topic-level goal: do not mark complete after a single wave closeout/);
+    assert.match(slash.stdout, /nimicoding topic-runner run 2026-05-05-topic-goal-fixture/);
     assert.match(slash.stdout, /topic\.yaml, design\.md/);
     assert.ok(slash.stdout.length <= 1501);
 
@@ -180,6 +188,7 @@ test("topic goal emits deterministic slash and JSON for a goal-ready admitted wa
     assert.equal(payload.ok, true);
     assert.equal(payload.profile, "fixture-profile");
     assert.equal(payload.selected_wave_id, "wave-1-contract-and-cli");
+    assert.equal(payload.execution_start_wave_id, "wave-1-contract-and-cli");
     assert.equal(payload.goal_command, slash.stdout.trimEnd());
     assert.equal(payload.refusal_reasons.length, 0);
     assert.ok(payload.validation_commands.some((entry) => entry.command.includes("topic validate graph")));
@@ -202,8 +211,55 @@ test("topic goal treats preflight admission as execution-stage goal ownership", 
     const payload = JSON.parse(result.stdout);
     assert.equal(payload.ok, true);
     assert.equal(payload.selected_wave_id, "wave-1-contract-and-cli");
-    assert.match(payload.goal_command, /Continue through wave preflight, implementation, validation, result recording, and closeout/);
+    assert.match(payload.goal_command, /advance deterministic wave admission, preflight, implementation, validation, result recording, wave closeout, and next-wave selection/);
     assert.equal(payload.refusal_reasons.length, 0);
+  });
+});
+
+test("topic goal remains topic-scoped when selected target is clear but ordered next wave exists", async () => {
+  await withGoalProject(async (projectRoot) => {
+    await seedGoalReadyTopic(projectRoot, {
+      topicId: "2026-05-05-topic-goal-ordered-next-wave",
+      selectedNextTarget: null,
+      selectedWaveId: null,
+      selectedWaveState: "candidate",
+      regressionDeps: ["wave-0-design-audit"],
+    });
+
+    const result = await captureRunCli(["topic", "goal", "2026-05-05-topic-goal-ordered-next-wave", "--json"]);
+    assert.equal(result.exitCode, 0, result.stderr);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.selected_next_target, null);
+    assert.equal(payload.selected_wave_id, "wave-1-contract-and-cli");
+    assert.equal(payload.execution_start_wave_id, "wave-1-contract-and-cli");
+    assert.equal(payload.refusal_reasons.length, 0);
+    assert.match(payload.goal_command, /Execute topic 2026-05-05-topic-goal-ordered-next-wave to completion/);
+    assert.match(payload.goal_command, /do not mark complete after a single wave closeout/);
+    assert.match(payload.goal_command, /topic-runner run 2026-05-05-topic-goal-ordered-next-wave/);
+  });
+});
+
+test("topic goal preserves selected wave YAML-wrapped validation command arguments", async () => {
+  await withGoalProject(async (projectRoot) => {
+    await seedGoalReadyTopic(projectRoot, {
+      topicId: "2026-05-05-topic-goal-wrapped-validation",
+      selectedWaveState: "preflight_admitted",
+      selectedWaveSourceSweepDesign: {
+        validation_commands: [
+          "pnpm exec nimicoding validate-spec-governance --profile nimi --scope avatar",
+          "pnpm exec nimicoding validate-spec-governance --profile nimi --scope apps/avatar",
+        ],
+      },
+    });
+
+    const result = await captureRunCli(["topic", "goal", "2026-05-05-topic-goal-wrapped-validation", "--json"]);
+    assert.equal(result.exitCode, 0, result.stderr);
+    const payload = JSON.parse(result.stdout);
+    assert.ok(payload.ok);
+    assert.ok(payload.validation_commands.some((entry) => entry.command === "pnpm exec nimicoding validate-spec-governance --profile nimi --scope avatar" && entry.scope === "avatar"));
+    assert.ok(payload.validation_commands.some((entry) => entry.command === "pnpm exec nimicoding validate-spec-governance --profile nimi --scope apps/avatar" && entry.scope === "apps/avatar"));
+    assert.ok(!payload.validation_commands.some((entry) => /--scope$/u.test(entry.command)));
   });
 });
 
@@ -215,7 +271,7 @@ test("topic goal refuses lifecycle, selected-wave, profile, placeholder, validat
       ["closed", { topicId: "2026-05-05-topic-goal-closed", rootState: "closed" }, "topic_not_ongoing"],
       ["true-close-pending", { topicId: "2026-05-05-topic-goal-true-close-pending", trueCloseStatus: "pending" }, "true_close_not_started_required"],
       ["true-close-inactive", { topicId: "2026-05-05-topic-goal-true-close-inactive", trueCloseStatus: "true_closed" }, "true_close_not_started_required"],
-      ["candidate-only", { topicId: "2026-05-05-topic-goal-candidate-only", selectedWaveState: "candidate" }, "selected_wave_not_executable"],
+      ["overflowed-selected", { topicId: "2026-05-05-topic-goal-overflowed-selected", selectedWaveState: "overflowed" }, "selected_wave_not_executable"],
       ["selected-mismatch", { topicId: "2026-05-05-topic-goal-selected-mismatch", selectedWaveId: "wave-2-regression" }, "selected_wave_mismatch"],
       ["placeholder", { topicId: "2026-05-05-topic-goal-placeholder", artifacts: { "design.md": "# Design\nTODO\n" } }, "unresolved_placeholder"],
       ["missing-validation", { topicId: "2026-05-05-topic-goal-missing-validation", artifacts: { "admission-checklists.md": "# Admission Checklists\nNo machine commands.\n" } }, "validation_commands_missing"],

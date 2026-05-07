@@ -16,8 +16,11 @@ spec_governance:
       - node scripts/check-desktop-spec-kernel-consistency.mjs
     platform-consistency:
       - node scripts/check-platform-spec-kernel-consistency.mjs
-    avatar-consistency:
+    avatar:
       - node scripts/check-avatar-spec-kernel-consistency.mjs
+    apps/avatar:
+      - pnpm --filter @nimiplatform/avatar check:spec-consistency
+      - pnpm check:apps-avatar-isolation
     realm-consistency:
       - node scripts/check-realm-spec-kernel-consistency.mjs
     future-consistency:

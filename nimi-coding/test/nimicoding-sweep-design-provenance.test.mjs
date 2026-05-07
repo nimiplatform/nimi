@@ -415,7 +415,10 @@ test("sweep design fix-topic materializes finalized wave plan into topic waves",
 
     const goal = await captureRunCli(["topic", "goal", payload.topicId, "--json"]);
     assert.equal(goal.exitCode, 0, goal.stderr);
-    assert.match(JSON.parse(goal.stdout).goal_command, /selected execution-stage wave wave-runtime-contract-hardcut/);
+    const goalPayload = JSON.parse(goal.stdout);
+    assert.equal(goalPayload.execution_start_wave_id, "wave-runtime-contract-hardcut");
+    assert.match(goalPayload.goal_command, /Execute topic 2026-05-07-sweep-fix-topic-test to completion/);
+    assert.match(goalPayload.goal_command, /do not mark complete after a single wave closeout/);
   });
 });
 

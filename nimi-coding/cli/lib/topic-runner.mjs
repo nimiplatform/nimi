@@ -74,7 +74,7 @@ function findDeterministicNextWave(topic) {
     const deps = Array.isArray(wave.deps) ? wave.deps : [];
     return deps.every((dep) => terminalIds.has(dep));
   });
-  return ready.length === 1 ? ready[0] : null;
+  return ready.length > 0 ? ready[0] : null;
 }
 
 function normalizePhaseTransitionDecision(decisionReport, topic) {
@@ -115,7 +115,7 @@ function normalizePhaseTransitionDecision(decisionReport, topic) {
         reason_code: "deterministic_next_wave_ready",
         requires_human_confirmation: false,
         recommended_decision: "admit_wave",
-        recommendation_rationale: "Exactly one dependency-ready non-terminal wave exists, so selecting the next phase is mechanical.",
+        recommendation_rationale: "The first dependency-ready non-terminal wave in topic.yaml waves[] order is selected mechanically.",
         expected_artifacts: [],
         next_command_ref: `nimicoding topic wave admit ${topic.topic_id} ${nextWave.wave_id}`,
         blocking_checks: [],

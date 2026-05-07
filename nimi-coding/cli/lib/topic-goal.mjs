@@ -42,6 +42,7 @@ const REQUIRED_STOP_KEYS = [
 ];
 
 const EXECUTION_STAGE_WAVE_STATES = new Set(["preflight_admitted", "implementation_admitted", "implementation_active"]);
+const ADMISSION_READY_WAVE_STATES = new Set(["candidate", "preflight_draft", "needs_revision"]);
 const TERMINAL_WAVE_STATES = new Set(["closed", "retired", "superseded"]);
 const WAVE_ID_PATTERN = /^wave-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -112,12 +113,58 @@ function hasUnresolvedPlaceholder(text) {
     || /\?\?\?/.test(text);
 }
 
+function normalizeCommandText(command) {
+  return String(command ?? "").replace(/\s+/g, " ").trim();
+}
+
+function validationCommandScope(command) {
+  const scopeMatch = command.match(/(?:^|\s)--scope\s+([^\s]+)/u);
+  if (scopeMatch) {
+    return scopeMatch[1];
+  }
+  if (command.includes("topic validate graph")) {
+    return "graph";
+  }
+  if (command.includes("topic validate")) {
+    return "topic";
+  }
+  if (command.includes("test")) {
+    return "test";
+  }
+  return "selected wave";
+}
+
+function validationCommandEntry(command) {
+  const normalized = normalizeCommandText(command);
+  return {
+    command: normalized,
+    cwd: ".",
+    profile: null,
+    scope: validationCommandScope(normalized),
+    required: true,
+    expected_exit_code: 0,
+  };
+}
+
+function mergeValidationCommandEntries(entries) {
+  const seen = new Set();
+  const output = [];
+  for (const entry of entries) {
+    if (!entry.command || seen.has(entry.command)) {
+      continue;
+    }
+    seen.add(entry.command);
+    output.push(entry);
+  }
+  return output;
+}
+
 function parseValidationCommands(artifactTexts) {
   const commands = [];
   const commandPattern = /\b(?:pnpm|npm|npx|node|go|cargo)\s+[^\n`]+/g;
   for (const { text } of artifactTexts) {
     for (const match of text.matchAll(commandPattern)) {
-      const command = match[0].replace(/[.)\]]+$/u, "").trim();
+      const command = normalizeCommandText(match[0].replace(/[.)\]]+$/u, ""));
       if (command.includes("<") || command.includes("topic goal")) {
         continue;
       }
@@ -126,20 +173,18 @@ function parseValidationCommands(artifactTexts) {
       }
     }
   }
-  return commands.map((command) => ({
-    command,
-    cwd: ".",
-    profile: null,
-    scope: command.includes("topic validate graph")
-      ? "graph"
-      : command.includes("topic validate")
-        ? "topic"
-        : command.includes("test")
-          ? "test"
-          : "selected wave",
-    required: true,
-    expected_exit_code: 0,
-  }));
+  return commands.map(validationCommandEntry);
+}
+
+function selectedWaveValidationCommands(selectedWave) {
+  const commands = [
+    ...(Array.isArray(selectedWave?.validation_commands) ? selectedWave.validation_commands : []),
+    ...(Array.isArray(selectedWave?.source_sweep_design?.validation_commands) ? selectedWave.source_sweep_design.validation_commands : []),
+  ];
+  return commands
+    .map(normalizeCommandText)
+    .filter((command) => command.length > 0)
+    .map(validationCommandEntry);
 }
 
 function parseHumanGates(preflightText) {
@@ -212,10 +257,23 @@ function selectedWaveResolution(topic) {
   const selectedTarget = typeof topic.selected_next_target === "string" ? topic.selected_next_target : null;
   const matchingWaves = selectedTarget === null ? [] : waves.filter((wave) => wave.wave_id === selectedTarget);
   const selectedWaves = waves.filter((wave) => wave.selected === true);
+  const terminalIds = new Set(waves.filter((wave) => TERMINAL_WAVE_STATES.has(wave.state)).map((wave) => wave.wave_id));
+  const allWavesTerminal = waves.length > 0 && waves.every((wave) => TERMINAL_WAVE_STATES.has(wave.state));
+  const deterministicNextWave = allWavesTerminal ? null : waves.find((wave) => {
+    if (TERMINAL_WAVE_STATES.has(wave.state)) return false;
+    if (!ADMISSION_READY_WAVE_STATES.has(wave.state)) return false;
+    const deps = Array.isArray(wave.deps) ? wave.deps : [];
+    return deps.every((dep) => terminalIds.has(dep));
+  }) ?? null;
+  const selectedWave = matchingWaves.length === 1 ? matchingWaves[0] : null;
+  const executionStartWave = selectedWave ?? deterministicNextWave;
   return {
     waves,
     selectedTarget,
-    selectedWave: matchingWaves.length === 1 ? matchingWaves[0] : null,
+    selectedWave,
+    executionStartWave,
+    deterministicNextWave,
+    allWavesTerminal,
     matchingWaveCount: matchingWaves.length,
     selectedWaves,
   };
@@ -225,9 +283,12 @@ function dependencyEvidence(lineageRefs, depId) {
   return lineageRefs.some((ref) => fileReferencesWave(ref, depId) && /^(result|closeout)-/.test(ref));
 }
 
-function buildGoalCommand(topicId, waveId, sourceArtifacts) {
+function buildGoalCommand(topicId, executionStartWave, sourceArtifacts) {
   const artifactList = sourceArtifacts.map((ref) => path.basename(ref)).join(", ");
-  return `/goal Execute topic ${topicId} from selected execution-stage wave ${waveId}. Treat ${artifactList} as the execution contract. Continue through wave preflight, implementation, validation, result recording, and closeout without returning for ordinary phase transitions. Implement only the admitted scope. Do not reinterpret scope, change authority ownership, lower gates, delete evidence, skip admitted coverage, or emit fallback goals. Run topic validate, topic validate graph, and focused tests as evidence. Stop only for declared human gates, authority/scope changes, lowered gates, destructive evidence deletion, or blockers requiring contract changes. Complete by writing required result/closeout artifacts and reporting validation evidence, blockers, and residual risk.`;
+  const cursorClause = executionStartWave
+    ? `, starting at execution cursor ${executionStartWave.wave_id}`
+    : "";
+  return `/goal Execute topic ${topicId} to completion${cursorClause}. This is a topic-level goal: do not mark complete after a single wave closeout. Use nimicoding topic-runner run ${topicId} --run-id <run-id> --adapter codex to advance deterministic wave admission, preflight, implementation, validation, result recording, wave closeout, and next-wave selection. Treat ${artifactList} as the execution contract. Wave closeout is a validation boundary only. Complete only after all waves are terminal and topic true-close/closeout evidence is recorded. Stop only for declared human gates, authority/scope changes, lowered gates, destructive evidence deletion, unresolved blockers, or required contract changes.`;
 }
 
 async function checkHostProjection(projectRoot) {
@@ -276,6 +337,7 @@ export async function buildTopicGoal(projectRoot, options) {
   const lineageWaveIds = [
     ...new Set([
       resolution.selectedTarget,
+      resolution.executionStartWave?.wave_id,
       ...resolution.waves.flatMap((wave) => Array.isArray(wave.deps) ? wave.deps : []),
     ].filter(Boolean)),
   ];
@@ -287,16 +349,31 @@ export async function buildTopicGoal(projectRoot, options) {
   }
   const sourceArtifacts = [...REQUIRED_ARTIFACTS, ...lineageRefs];
   const sourceArtifactTexts = [...artifactTexts, ...lineageTexts];
-  const validationCommands = parseValidationCommands(sourceArtifactTexts);
+  const validationCommands = mergeValidationCommandEntries([
+    ...selectedWaveValidationCommands(resolution.executionStartWave),
+    ...parseValidationCommands(sourceArtifactTexts.filter((artifact) => artifact.ref !== "topic.yaml")),
+  ]);
   const humanGates = parseHumanGates(textByRef.get("preflight.md") ?? "");
   const forbiddenCatalog = await loadForbiddenShortcutsCatalog(projectRoot);
   const hostProjection = await checkHostProjection(projectRoot);
-  const selectedWave = resolution.selectedWave;
-  const deps = Array.isArray(selectedWave?.deps) ? selectedWave.deps : [];
+  const executionStartWave = resolution.executionStartWave;
+  const deps = Array.isArray(executionStartWave?.deps) ? executionStartWave.deps : [];
   const depFailures = deps.filter((depId) => {
     const depWave = resolution.waves.find((wave) => wave.wave_id === depId);
     return !depWave || !TERMINAL_WAVE_STATES.has(depWave.state) || !dependencyEvidence(lineageRefs, depId);
   });
+  const selectedTargetReady = resolution.selectedTarget === null || resolution.selectedTarget === "topic_design_baseline"
+    ? resolution.deterministicNextWave !== null || resolution.allWavesTerminal
+    : resolution.matchingWaveCount === 1 && WAVE_ID_PATTERN.test(resolution.selectedTarget);
+  const selectedWaveSourceReady = resolution.selectedTarget === null || resolution.selectedTarget === "topic_design_baseline"
+    ? resolution.selectedWaves.length === 0
+    : resolution.selectedWaves.length === 1 && resolution.selectedWaves[0]?.wave_id === resolution.selectedTarget;
+  const executionStartWaveReady = executionStartWave
+    ? EXECUTION_STAGE_WAVE_STATES.has(executionStartWave.state) || ADMISSION_READY_WAVE_STATES.has(executionStartWave.state)
+    : resolution.allWavesTerminal;
+  const executionStartGoalPresent = executionStartWave
+    ? typeof executionStartWave.primary_closure_goal === "string" && executionStartWave.primary_closure_goal.trim().length > 0
+    : resolution.allWavesTerminal;
   const commands = validationCommands.map((entry) => entry.command);
 
   const checks = [
@@ -307,12 +384,12 @@ export async function buildTopicGoal(projectRoot, options) {
     check("strict_policy_active", topicReport.ignoredByPolicy !== true, topicReport.ignoredByPolicy ? "topic root is ignored by strict validation policy" : "topic root is under strict validation policy"),
     check("parallel_truth_forbidden", loaded.topic.parallel_truth === "forbidden", `parallel_truth is ${loaded.topic.parallel_truth ?? "missing"}`),
     check("profile_resolves", profile.ok, profile.ok ? `profile resolves as ${profile.profile}` : `unknown or mismatched profile ${profile.profile ?? "missing"}`),
-    check("selected_target_wave_resolves", resolution.matchingWaveCount === 1 && WAVE_ID_PATTERN.test(resolution.selectedTarget ?? ""), `selected_next_target is ${resolution.selectedTarget ?? "missing"}`),
-    check("selected_wave_single_source", resolution.selectedWaves.length === 1 && resolution.selectedWaves[0]?.wave_id === resolution.selectedTarget, `selected waves: ${resolution.selectedWaves.map((wave) => wave.wave_id).join(", ") || "none"}`),
-    check("wave_option_matches_selected", options.wave === null || options.wave === resolution.selectedTarget, options.wave === null ? "no wave assertion provided" : `--wave is ${options.wave}`),
-    check("selected_wave_executable", selectedWave ? EXECUTION_STAGE_WAVE_STATES.has(selectedWave.state) : false, selectedWave ? `selected wave state is ${selectedWave.state}` : "selected wave does not resolve"),
+    check("selected_target_wave_resolves", selectedTargetReady, resolution.selectedTarget ? `selected_next_target is ${resolution.selectedTarget}` : `execution cursor is ${executionStartWave?.wave_id ?? (resolution.allWavesTerminal ? "topic closeout" : "missing")}`),
+    check("selected_wave_single_source", selectedWaveSourceReady, `selected waves: ${resolution.selectedWaves.map((wave) => wave.wave_id).join(", ") || "none"}`),
+    check("wave_option_matches_selected", options.wave === null || options.wave === executionStartWave?.wave_id, options.wave === null ? "no wave assertion provided" : `--wave is ${options.wave}`),
+    check("selected_wave_executable", executionStartWaveReady, executionStartWave ? `execution cursor wave state is ${executionStartWave.state}` : resolution.allWavesTerminal ? "topic is ready for topic closeout" : "execution cursor does not resolve"),
     check("selected_wave_dependencies_terminal", depFailures.length === 0, depFailures.length === 0 ? "selected wave dependencies are terminal by lifecycle evidence" : `dependencies are not terminal by evidence: ${depFailures.join(", ")}`),
-    check("selected_wave_goal_present", typeof selectedWave?.primary_closure_goal === "string" && selectedWave.primary_closure_goal.trim().length > 0, selectedWave?.primary_closure_goal ? "selected wave declares primary_closure_goal" : "selected wave is missing primary_closure_goal"),
+    check("selected_wave_goal_present", executionStartGoalPresent, executionStartWave?.primary_closure_goal ? "execution cursor declares primary_closure_goal" : resolution.allWavesTerminal ? "all waves terminal; topic closeout is the next goal" : "execution cursor is missing primary_closure_goal"),
     check("forbidden_shortcuts_present", REQUIRED_STOP_KEYS.every((key) => (loaded.topic.forbidden_shortcuts ?? []).includes(key)) && REQUIRED_STOP_KEYS.every((key) => forbiddenCatalog.keys.includes(key)), "topic forbidden_shortcuts include required package catalog keys"),
     check("forbidden_shortcuts_catalog_aligned", forbiddenCatalog.aligned, forbiddenCatalog.aligned ? "host forbidden-shortcuts projection is aligned or absent" : "host forbidden-shortcuts projection differs from package catalog"),
     check("required_artifacts_present", missing.length === 0, missing.length === 0 ? "all required artifacts are present" : `missing artifacts: ${missing.join(", ")}`),
@@ -328,11 +405,11 @@ export async function buildTopicGoal(projectRoot, options) {
   ];
 
   const preliminaryOk = checks.every((entry) => entry.status === "pass");
-  const preliminaryGoal = preliminaryOk && selectedWave ? buildGoalCommand(loaded.topicId, selectedWave.wave_id, sourceArtifacts) : null;
+  const preliminaryGoal = preliminaryOk ? buildGoalCommand(loaded.topicId, executionStartWave, sourceArtifacts) : null;
   checks.push(check("goal_size_within_limit", preliminaryGoal === null || preliminaryGoal.length <= GOAL_COMMAND_MAX_CHARS, preliminaryGoal === null ? "goal size check skipped until readiness passes" : `goal command length is ${preliminaryGoal.length}`));
 
   const readinessOk = checks.every((entry) => entry.status === "pass");
-  const goalCommand = readinessOk && selectedWave ? preliminaryGoal : null;
+  const goalCommand = readinessOk ? preliminaryGoal : null;
   return {
     ok: readinessOk,
     topic_id: loaded.topicId,
@@ -341,7 +418,8 @@ export async function buildTopicGoal(projectRoot, options) {
     true_close_status: loaded.topic.current_true_close_status ?? null,
     profile: profile.profile ?? null,
     selected_next_target: loaded.topic.selected_next_target ?? null,
-    selected_wave_id: selectedWave?.wave_id ?? null,
+    selected_wave_id: executionStartWave?.wave_id ?? null,
+    execution_start_wave_id: executionStartWave?.wave_id ?? null,
     topic_state_hash: buildStateHash(sourceArtifactTexts, [
       { ref: TOPIC_GOAL_CONTRACT_REF, text: await readTextIfFile(packagePath(TOPIC_GOAL_CONTRACT_REF)) ?? "" },
     ]),
