@@ -176,6 +176,23 @@ export class HookRuntimeActionService {
     return true;
   }
 
+  unregisterByMod(modId: string): number {
+    const normalizedModId = String(modId || '').trim();
+    if (!normalizedModId) return 0;
+    const actionIds = Array.from(this.ctx.entries.entries())
+      .filter(([, entry]) => entry.modId === normalizedModId)
+      .map(([actionId]) => actionId);
+    for (const actionId of actionIds) {
+      this.ctx.entries.delete(actionId);
+      this.emitRegistryChange({
+        type: 'unregistered',
+        actionId,
+        modId: normalizedModId,
+      });
+    }
+    return actionIds.length;
+  }
+
   discoverActions(filter?: HookActionDiscoverFilter): HookActionDescriptorView[] {
     const result = Array.from(this.ctx.entries.values()).map((item) => item.descriptor);
     return result.filter((item) => {

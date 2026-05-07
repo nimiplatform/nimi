@@ -316,6 +316,28 @@ fn evaluate_catalog_consent(
     }
 }
 
+fn require_catalog_consent_clear_before_mutation(
+    operation: &str,
+    package_id: &str,
+    release: &CatalogReleaseRecordPayload,
+    consent: &CatalogConsentDecision,
+) -> Result<(), String> {
+    if !consent.requires_user_consent {
+        return Ok(());
+    }
+    let reasons = if consent.consent_reasons.is_empty() {
+        "unspecified".to_string()
+    } else {
+        consent.consent_reasons.join(",")
+    };
+    Err(format!(
+        "catalog mod {operation} requires user consent before mutation: packageId={} version={} reasons={}",
+        package_id,
+        release.version,
+        reasons
+    ))
+}
+
 fn verify_release_signature(
     package: &CatalogPackageRecordPayload,
     release: &CatalogReleaseRecordPayload,
@@ -602,6 +624,8 @@ pub fn install_catalog_mod(
     let release = select_channel_release(&package, channel)?.clone();
     let (revocations, advisories) = load_catalog_supplements(&base_url)?;
     let advisory_ids = validate_catalog_release(&package, &release, &revocations, &advisories)?;
+    let consent = evaluate_catalog_consent(&package, &release, &advisory_ids, None);
+    require_catalog_consent_clear_before_mutation("install", normalized_package_id, &release, &consent)?;
     let (_temp, archive_path) = download_release_archive(&release)?;
     let install = install_runtime_mod_common(
         app,
@@ -611,7 +635,6 @@ pub fn install_catalog_mod(
         "install",
         None,
     )?;
-    let consent = evaluate_catalog_consent(&package, &release, &advisory_ids, None);
     Ok(CatalogInstallResultPayload {
         install,
         package: package.clone(),
@@ -647,6 +670,8 @@ pub fn update_installed_catalog_mod(
     let release = select_channel_release(&package, channel.or(Some(&policy.channel)))?.clone();
     let (revocations, advisories) = load_catalog_supplements(&base_url)?;
     let advisory_ids = validate_catalog_release(&package, &release, &revocations, &advisories)?;
+    let consent = evaluate_catalog_consent(&package, &release, &advisory_ids, Some(&installed_summary));
+    require_catalog_consent_clear_before_mutation("update", normalized_package_id, &release, &consent)?;
     let (_temp, archive_path) = download_release_archive(&release)?;
     let install = install_runtime_mod_common(
         app,
@@ -656,7 +681,6 @@ pub fn update_installed_catalog_mod(
         "update",
         Some(normalized_package_id),
     )?;
-    let consent = evaluate_catalog_consent(&package, &release, &advisory_ids, Some(&installed_summary));
     Ok(CatalogInstallResultPayload {
         install,
         package: package.clone(),

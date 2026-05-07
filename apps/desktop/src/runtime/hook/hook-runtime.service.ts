@@ -185,7 +185,20 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
     }): Promise<HookModLocalProfileSnapshot> {
         return this.modLocalProfileSnapshotService.getSnapshot(input);
     }
-    suspendMod(modId: string): void { this.lifecycleService.suspendMod(modId); }
+    suspendMod(modId: string): void {
+        const targetModId = String(modId || '').trim();
+        if (!targetModId) return;
+        const registrations = this.lifecycleService.listRegistrations(targetModId);
+        for (const registration of registrations) {
+            if (registration.status !== 'ACTIVE') continue;
+            if (registration.hookType === 'data-api') {
+                this.dataApi.unregister(registration.target);
+            }
+        }
+        this.actionService.unregisterByMod(targetModId);
+        this.agentProfileReadFilters.delete(targetModId);
+        this.lifecycleService.suspendMod(targetModId);
+    }
     subscribeEvent(input: {
         modId: string;
         sourceType?: HookSourceType;

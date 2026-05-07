@@ -3,7 +3,10 @@ import type {
   RuntimeModRegistration,
 } from '../../types';
 import { createRuntimeModFlowId, emitRuntimeModRuntimeLog } from '../../logging';
-import { buildSideloadRuntimeModRegistration } from './build-registration';
+import {
+  buildSideloadRuntimeModRegistration,
+  createSideloadPreloadAdmission,
+} from './build-registration';
 import { loadSideloadRuntimeModFactory } from './load-factory';
 import { reportSideloadDiscoveryError } from './report-error';
 import { ReasonCode } from '@nimiplatform/sdk/types';
@@ -43,6 +46,22 @@ export async function discoverSideloadRuntimeMods(input: {
     }
 
     try {
+      const preloadAdmissionResult = createSideloadPreloadAdmission({ manifest });
+      if (!preloadAdmissionResult.admission) {
+        emitRuntimeModRuntimeLog({
+          level: 'warn',
+          message: 'action:discover-sideload-runtime-mods:skip-manifest',
+          flowId,
+          source: 'discoverSideloadRuntimeMods',
+          details: {
+            manifestId: manifest.id,
+            entryPath,
+            reason: preloadAdmissionResult.reason,
+          },
+        });
+        continue;
+      }
+
       const loadResult = await (async () => {
         try {
           return await loadSideloadRuntimeModFactory({
@@ -81,6 +100,7 @@ export async function discoverSideloadRuntimeMods(input: {
           return buildSideloadRuntimeModRegistration({
             factory: loadResult.factory,
             manifest,
+            admission: preloadAdmissionResult.admission,
           });
         } catch (error) {
           reportSideloadDiscoveryError({

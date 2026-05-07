@@ -51,24 +51,30 @@ export async function registerRuntimeModState(input: {
             throw new Error(`CODEGEN_CAPABILITY_DENIED: caller-supplied codegen grants are not host-owned: ${declaredGrants.join(',')}`);
         }
     }
-    input.hookRuntime.setModSourceType(input.mod.modId, input.sourceType);
-    input.hookRuntime.setCapabilityBaseline(input.mod.modId, input.capabilityResolution.baselineCapabilities);
-    input.hookRuntime.setGrantCapabilities(
-        input.mod.modId,
-        input.sourceType === 'codegen' ? [] : input.mod.grantCapabilities || [],
-    );
-    input.hookRuntime.setDenialCapabilities(input.mod.modId, input.mod.denialCapabilities || []);
-    for (const capability of resolveDeclaredDataCapabilities([
-        ...mergedCapabilities,
-    ])) {
-        input.hookRuntime.registerDataCapability(capability);
+    try {
+        input.hookRuntime.setModSourceType(input.mod.modId, input.sourceType);
+        input.hookRuntime.setCapabilityBaseline(input.mod.modId, input.capabilityResolution.baselineCapabilities);
+        input.hookRuntime.setGrantCapabilities(
+            input.mod.modId,
+            input.sourceType === 'codegen' ? [] : input.mod.grantCapabilities || [],
+        );
+        input.hookRuntime.setDenialCapabilities(input.mod.modId, input.mod.denialCapabilities || []);
+        for (const capability of resolveDeclaredDataCapabilities([
+            ...mergedCapabilities,
+        ])) {
+            input.hookRuntime.registerDataCapability(capability);
+        }
+        await input.mod.setup({
+            kernel: input.kernel,
+            hookRuntime: input.hookRuntime,
+            getHttpContext: input.getHttpContext,
+            sdkRuntimeContext: input.sdkRuntimeContext,
+        });
     }
-    await input.mod.setup({
-        kernel: input.kernel,
-        hookRuntime: input.hookRuntime,
-        getHttpContext: input.getHttpContext,
-        sdkRuntimeContext: input.sdkRuntimeContext,
-    });
+    catch (error) {
+        input.hookRuntime.suspendMod(input.mod.modId);
+        throw error;
+    }
     input.registeredMods.set(input.mod.modId, input.mod);
     const nextDefaultPrivateExecutionModId = input.mod.isDefaultPrivateExecution || input.defaultPrivateExecutionModId === input.mod.modId
         ? input.mod.modId

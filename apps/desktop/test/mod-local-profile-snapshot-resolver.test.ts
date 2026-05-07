@@ -32,7 +32,7 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
               kind: 'service',
               capability: 'tts',
               required: true,
-              serviceId: 'qwen-tts-python',
+              serviceId: 'local-speech-python',
             }],
           }],
         },
@@ -77,7 +77,7 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
           required: true,
           selected: true,
           preferred: true,
-          serviceId: 'qwen-tts-python',
+          serviceId: 'local-speech-python',
           warnings: [],
         }],
       },
@@ -85,7 +85,7 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
   }) as unknown as typeof localRuntime.resolveProfile;
   localRuntime.listAssets = (async () => []) as unknown as typeof localRuntime.listAssets;
   localRuntime.listServices = (async () => [{
-    serviceId: 'qwen-tts-python',
+    serviceId: 'local-speech-python',
     status: 'active',
   }]) as unknown as typeof localRuntime.listServices;
   localRuntime.listNodesCatalog = (async (input?: Record<string, unknown>) => {

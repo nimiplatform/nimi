@@ -150,6 +150,39 @@ mod runtime_mod_catalog_tests {
     }
 
     #[test]
+    fn catalog_consent_gate_rejects_required_consent_before_mutation() {
+        let package = base_package("community");
+        let release = base_release("community");
+        let consent = evaluate_catalog_consent(&package, &release, &[], None);
+
+        let error = require_catalog_consent_clear_before_mutation(
+            "install",
+            &package.package_id,
+            &release,
+            &consent,
+        )
+        .expect_err("community package should require explicit consent before mutation");
+
+        assert!(error.contains("requires user consent before mutation"));
+        assert!(error.contains("community-package"));
+    }
+
+    #[test]
+    fn catalog_consent_gate_allows_clean_release_before_mutation() {
+        let package = base_package("official");
+        let release = base_release("official");
+        let consent = evaluate_catalog_consent(&package, &release, &[], None);
+
+        require_catalog_consent_clear_before_mutation(
+            "install",
+            &package.package_id,
+            &release,
+            &consent,
+        )
+        .expect("official release with no advisory should not require consent");
+    }
+
+    #[test]
     fn validate_catalog_release_rejects_revoked_package() {
         let package = base_package("official");
         let release = base_release("official");
