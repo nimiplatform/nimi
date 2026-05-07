@@ -24,6 +24,7 @@ import {
   invalidateNotificationQueries,
   notificationQueryKeys,
   patchNotificationUnreadCaches,
+  resolveNotificationIdentityRef,
 } from './notification-query.js';
 import { formatNotificationTime, parseUnreadCount, toErrorMessage } from './notification-panel-helpers.js';
 import { RejectGiftDialog } from './notification-reject-gift-dialog.js';
@@ -49,6 +50,7 @@ type PendingItemAction = {
 
 export function NotificationPanel() {
   const authStatus = useAppStore((state) => state.auth.status);
+  const authUser = useAppStore((state) => state.auth.user);
   const navigateToGiftInbox = useAppStore((state) => state.navigateToGiftInbox);
   const { t } = useTranslation();
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
@@ -64,16 +66,21 @@ export function NotificationPanel() {
     () => getNotificationServerFilter(activeFilter),
     [activeFilter],
   );
+  const notificationIdentityRef = useMemo(
+    () => resolveNotificationIdentityRef(authStatus, authUser),
+    [authStatus, authUser],
+  );
+  const notificationQueryIdentityRef = notificationIdentityRef ?? 'missing-auth-identity';
 
   const notificationsQuery = useInfiniteQuery({
-    queryKey: notificationQueryKeys.page(authStatus, serverFilter),
+    queryKey: notificationQueryKeys.page(notificationQueryIdentityRef, serverFilter),
     initialPageParam: '',
     queryFn: async ({ pageParam }) => dataSync.loadNotifications({
       limit: PAGE_SIZE,
       ...(pageParam ? { cursor: String(pageParam) } : {}),
       ...(serverFilter ? { type: serverFilter } : {}),
     }),
-    enabled: authStatus === 'authenticated',
+    enabled: authStatus === 'authenticated' && Boolean(notificationIdentityRef),
     getNextPageParam: (lastPage) => {
       const parsed = toNotificationListView(
         lastPage,
@@ -84,9 +91,9 @@ export function NotificationPanel() {
     },
   });
   const unreadCountQuery = useQuery({
-    queryKey: notificationQueryKeys.topbarUnreadCount,
+    queryKey: notificationQueryKeys.topbarUnreadCount(notificationQueryIdentityRef),
     queryFn: async () => dataSync.loadNotificationUnreadCount(),
-    enabled: authStatus === 'authenticated',
+    enabled: authStatus === 'authenticated' && Boolean(notificationIdentityRef),
     staleTime: 15_000,
     refetchInterval: 30_000,
   });
@@ -99,7 +106,7 @@ export function NotificationPanel() {
 
   useEffect(() => {
     setReadOverrides({});
-  }, [authStatus, serverFilter]);
+  }, [authStatus, notificationIdentityRef, serverFilter]);
 
   const unreadCount = optimisticUnreadCount ?? parseUnreadCount(unreadCountQuery.data);
 
@@ -133,8 +140,11 @@ export function NotificationPanel() {
   }, [activeFilter, items]);
 
   const updateUnreadCount = (nextUnreadCount: number) => {
+    if (!notificationIdentityRef) {
+      return;
+    }
     setOptimisticUnreadCount(nextUnreadCount);
-    patchNotificationUnreadCaches(nextUnreadCount);
+    patchNotificationUnreadCaches(nextUnreadCount, notificationIdentityRef);
   };
 
   const resetRejectDialog = () => {

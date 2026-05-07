@@ -6,7 +6,7 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/ru
 import { DEFAULT_OPENAI_ENDPOINT_V11, VENDOR_ORDER_V11, getVendorLabelV11, randomIdV11, type ApiVendor } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { defaultConnectorAuthOptionForProvider, listConnectorAuthOptionsForProvider, providerToVendor, resolveProviderEndpoint, sdkCreateConnector, sdkDeleteConnector, sdkListConnectors, sdkListProviderCatalog, sdkUpdateConnector, vendorToProvider } from './runtime-config-connector-sdk-service';
-import { addConnectorToState, inferVendorFromEndpoint, removeSelectedConnector, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
+import { addConnectorToState, removeSelectedConnector, replaceConnectorsInState, updateConnectorField } from './runtime-config-connector-actions';
 import { formatRuntimeConfigErrorBanner } from './runtime-config-connector-error';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { Card as PrimitiveCard, RuntimeSelect, StatusBadge, renderModelChips } from './runtime-config-primitives';
@@ -215,23 +215,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const onChangeConnectorEndpoint = useCallback((endpoint: string) => {
     if (!selectedConnector || isRuntimeSystem) return;
     const previousConnector = selectedConnector;
-    updateState((prev) => {
-      const currentVendor = prev.connectors.find((c) => c.id === selectedConnectorId)?.vendor;
-      const inferredVendor = inferVendorFromEndpoint(endpoint);
-      if (inferredVendor && inferredVendor !== currentVendor) {
-        const inferredProvider = vendorToProvider(inferredVendor);
-        const defaultAuthOption = defaultConnectorAuthOptionForProvider(inferredProvider);
-        return updateConnectorField(prev, selectedConnectorId, {
-          vendor: inferredVendor,
-          endpoint,
-          models: [],
-          provider: inferredProvider,
-          authMode: defaultAuthOption.authMode,
-          providerAuthProfile: defaultAuthOption.providerAuthProfile,
-        });
-      }
-      return updateConnectorField(prev, selectedConnectorId, { endpoint });
-    });
+    updateState((prev) => updateConnectorField(prev, selectedConnectorId, { endpoint }));
     if (selectedConnectorId && !selectedConnector?.isDraft) {
       void (async () => {
         try { await sdkUpdateConnector({ connectorId: selectedConnectorId, endpoint }); }

@@ -7,6 +7,8 @@ import {
   createRuntimeKnowledgeBank,
   deleteRuntimeKnowledgeBank,
   deleteRuntimeKnowledgePage,
+  getRuntimeKnowledgeBank,
+  getRuntimeKnowledgePage,
   getRuntimeKnowledgeIngestTask,
   ingestRuntimeKnowledgeDocument,
   listRuntimeKnowledgeBanks,
@@ -129,6 +131,22 @@ export function KnowledgePage({ model }: KnowledgePageProps) {
     setLinkTargetPageId('');
   };
 
+  const refreshPageDetail = async (bankId: string, pageId: string) => {
+    const detail = await getRuntimeKnowledgePage({
+      ...contextInput,
+      bankId,
+      pageId,
+    });
+    startTransition(() => {
+      setPages((current) => {
+        const withoutDetail = current.filter((page) => page.pageId !== detail.pageId);
+        return [detail, ...withoutDetail];
+      });
+      setPageDraft(pageDraftFromItem(detail));
+    });
+    return detail;
+  };
+
   const refreshPagesForBank = async (bankId: string, preferredPageId?: string) => {
     const response = await listRuntimeKnowledgePages({
       ...contextInput,
@@ -149,6 +167,10 @@ export function KnowledgePage({ model }: KnowledgePageProps) {
         return response.pages[0] ? pageDraftFromItem(response.pages[0]) : DEFAULT_PAGE_DRAFT;
       });
     });
+    const targetPageId = normalizeText(preferredPageId ?? '') || response.pages[0]?.pageId || '';
+    if (targetPageId) {
+      await refreshPageDetail(bankId, targetPageId);
+    }
   };
 
   const refreshIngestTask = async (taskId: string) => {
@@ -233,6 +255,10 @@ export function KnowledgePage({ model }: KnowledgePageProps) {
       setPagesLoading(true);
       setErrorMessage('');
       try {
+        const bankDetail = await getRuntimeKnowledgeBank({
+          ...contextInput,
+          bankId: selectedBankId,
+        });
         const response = await listRuntimeKnowledgePages({
           ...contextInput,
           bankId: selectedBankId,
@@ -242,6 +268,7 @@ export function KnowledgePage({ model }: KnowledgePageProps) {
           return;
         }
         startTransition(() => {
+          setBanks((current) => [bankDetail, ...current.filter((bank) => bank.bankId !== bankDetail.bankId)]);
           setPages(response.pages);
           setPagesNextPageToken(response.nextPageToken);
           setPageDraft((current) => {
@@ -254,6 +281,12 @@ export function KnowledgePage({ model }: KnowledgePageProps) {
             return response.pages[0] ? pageDraftFromItem(response.pages[0]) : DEFAULT_PAGE_DRAFT;
           });
         });
+        const targetPageId = pageDraft.pageId && response.pages.some((page) => page.pageId === pageDraft.pageId)
+          ? pageDraft.pageId
+          : response.pages[0]?.pageId || '';
+        if (!cancelled && targetPageId) {
+          await refreshPageDetail(selectedBankId, targetPageId);
+        }
       } catch (error) {
         if (!cancelled) {
           setErrorMessage(error instanceof Error ? error.message : 'Failed to load knowledge pages.');
@@ -635,7 +668,18 @@ export function KnowledgePage({ model }: KnowledgePageProps) {
         pagesLoading={pagesLoading}
         onResetPageDraft={() => setPageDraft(DEFAULT_PAGE_DRAFT)}
         pageDraft={pageDraft}
-        onPageDraftChange={setPageDraft}
+        onPageDraftChange={(value) => {
+          if (typeof value === 'function') {
+            setPageDraft(value);
+            return;
+          }
+          setPageDraft(value);
+          if (selectedBankId && value.pageId) {
+            void refreshPageDetail(selectedBankId, value.pageId).catch((error) => {
+              setErrorMessage(error instanceof Error ? error.message : 'Failed to load knowledge page detail.');
+            });
+          }
+        }}
         pagesNextPageToken={pagesNextPageToken}
         onLoadMorePages={loadMorePages}
         savingPage={savingPage}
@@ -652,7 +696,18 @@ export function KnowledgePage({ model }: KnowledgePageProps) {
         selectedBankId={selectedBankId}
         pages={pages}
         pageDraft={pageDraft}
-        onPageDraftChange={setPageDraft}
+        onPageDraftChange={(value) => {
+          if (typeof value === 'function') {
+            setPageDraft(value);
+            return;
+          }
+          setPageDraft(value);
+          if (selectedBankId && value.pageId) {
+            void refreshPageDetail(selectedBankId, value.pageId).catch((error) => {
+              setErrorMessage(error instanceof Error ? error.message : 'Failed to load knowledge page detail.');
+            });
+          }
+        }}
         selectedPage={selectedPage}
         writesDisabled={writesDisabled}
         searchMode={searchMode}

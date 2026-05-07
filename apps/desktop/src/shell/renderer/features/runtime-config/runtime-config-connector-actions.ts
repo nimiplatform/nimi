@@ -1,27 +1,7 @@
 import {
-  type ApiVendor,
   type ApiConnector,
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
-
-export function inferVendorFromEndpoint(endpoint: string): ApiVendor | null {
-  const normalized = String(endpoint || '').trim().toLowerCase().replace(/\/+$/, '');
-  if (!normalized) return null;
-  const hostPatterns: Array<[string, ApiVendor]> = [
-    ['api.deepseek.com', 'deepseek'],
-    ['api.openai.com', 'gpt'],
-    ['chatgpt.com/backend-api/codex', 'openai_codex'],
-    ['api.anthropic.com', 'claude'],
-    ['generativelanguage.googleapis.com', 'gemini'],
-    ['api.moonshot.cn', 'kimi'],
-    ['volces.com', 'volcengine'],
-    ['openrouter.ai', 'openrouter'],
-  ];
-  for (const [host, vendor] of hostPatterns) {
-    if (normalized.includes(host)) return vendor;
-  }
-  return null;
-}
 
 export function addConnectorToState(
   prev: RuntimeConfigStateV11,

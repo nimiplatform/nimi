@@ -8,7 +8,10 @@ import { AmbientBackground, ScrollArea, Surface } from '@nimiplatform/nimi-kit/u
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { resolveRouteTabExtension } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
-import { notificationQueryKeys } from '@renderer/features/notification/notification-query.js';
+import {
+  notificationQueryKeys,
+  resolveNotificationIdentityRef,
+} from '@renderer/features/notification/notification-query.js';
 import {
   loadStoredSettingsSelected,
   persistStoredSettingsSelected,
@@ -201,7 +204,13 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
   const runtimeModFailures = useAppStore((state) => state.runtimeModFailures);
   const fusedRuntimeMods = useAppStore((state) => state.fusedRuntimeMods);
+  const authUser = useAppStore((state) => state.auth.user);
   const isAnonymousShell = props.authStatus !== 'authenticated';
+  const notificationIdentityRef = useMemo(
+    () => resolveNotificationIdentityRef(props.authStatus, authUser),
+    [props.authStatus, authUser],
+  );
+  const notificationQueryIdentityRef = notificationIdentityRef ?? 'missing-auth-identity';
   const coreNavItems = getCoreNavItems();
   const quickNavItems = getQuickNavItems();
   const primaryCoreNavItems = coreNavItems.filter((item) => item.id !== 'settings' && item.id !== 'home');
@@ -249,12 +258,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     refetchInterval: windowFocused ? 60_000 : false,
   });
   const unreadCountQuery = useQuery({
-    queryKey: notificationQueryKeys.topbarUnreadCount,
+    queryKey: notificationQueryKeys.topbarUnreadCount(notificationQueryIdentityRef),
     queryFn: async () => {
       const { dataSync } = await import('@runtime/data-sync');
       return dataSync.loadNotificationUnreadCount();
     },
-    enabled: props.authStatus === 'authenticated',
+    enabled: props.authStatus === 'authenticated' && Boolean(notificationIdentityRef),
     staleTime: 15_000,
     refetchInterval: windowFocused ? 30_000 : false,
   });

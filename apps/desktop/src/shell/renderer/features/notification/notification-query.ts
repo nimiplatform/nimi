@@ -6,12 +6,25 @@ type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
 
 export const notificationQueryKeys = {
   pageRoot: ['notification-page'] as const,
-  page: (authStatus: string, serverFilter: string | null) =>
-    ['notification-page', authStatus, serverFilter || 'all'] as const,
+  page: (identityRef: string, serverFilter: string | null) =>
+    ['notification-page', identityRef, serverFilter || 'all'] as const,
   unreadCountRoot: ['notification-unread-count'] as const,
-  unreadCount: (authStatus: string) => ['notification-unread-count', authStatus] as const,
-  topbarUnreadCount: ['topbar-notification-unread-count'] as const,
+  unreadCount: (identityRef: string) => ['notification-unread-count', identityRef] as const,
+  topbarUnreadCountRoot: ['topbar-notification-unread-count'] as const,
+  topbarUnreadCount: (identityRef: string) => ['topbar-notification-unread-count', identityRef] as const,
 };
+
+export function resolveNotificationIdentityRef(
+  authStatus: string,
+  user: Record<string, unknown> | null | undefined,
+): string | null {
+  if (authStatus !== 'authenticated') {
+    return null;
+  }
+  const rawIdentity = user?.id ?? user?.accountId ?? user?.subjectId ?? user?.sub;
+  const identity = String(rawIdentity || '').trim();
+  return identity ? `user:${identity}` : null;
+}
 
 function normalizeUnreadCount(value: number): number {
   if (!Number.isFinite(value) || value < 0) {
@@ -22,12 +35,13 @@ function normalizeUnreadCount(value: number): number {
 
 export function patchNotificationUnreadCaches(
   unreadCount: number,
+  identityRef: string,
   client: QueryClient = queryClient,
 ): void {
   const nextUnreadCount = normalizeUnreadCount(unreadCount);
 
-  client.setQueriesData(
-    { queryKey: notificationQueryKeys.unreadCountRoot },
+  client.setQueryData(
+    notificationQueryKeys.unreadCount(identityRef),
     (current: unknown): UnreadNotificationCountDto => {
       if (current && typeof current === 'object' && !Array.isArray(current)) {
         return {
@@ -42,21 +56,24 @@ export function patchNotificationUnreadCaches(
     },
   );
 
-  client.setQueryData(notificationQueryKeys.topbarUnreadCount, (current: unknown) => {
-    if (current && typeof current === 'object' && !Array.isArray(current)) {
+  client.setQueryData(
+    notificationQueryKeys.topbarUnreadCount(identityRef),
+    (current: unknown) => {
+      if (current && typeof current === 'object' && !Array.isArray(current)) {
+        return {
+          ...current,
+          total: nextUnreadCount,
+          unreadCount: nextUnreadCount,
+          count: nextUnreadCount,
+        };
+      }
       return {
-        ...current,
         total: nextUnreadCount,
         unreadCount: nextUnreadCount,
         count: nextUnreadCount,
       };
-    }
-    return {
-      total: nextUnreadCount,
-      unreadCount: nextUnreadCount,
-      count: nextUnreadCount,
-    };
-  });
+    },
+  );
 }
 
 export async function invalidateNotificationQueries(
@@ -65,6 +82,6 @@ export async function invalidateNotificationQueries(
   await Promise.all([
     client.invalidateQueries({ queryKey: notificationQueryKeys.pageRoot }),
     client.invalidateQueries({ queryKey: notificationQueryKeys.unreadCountRoot }),
-    client.invalidateQueries({ queryKey: notificationQueryKeys.topbarUnreadCount }),
+    client.invalidateQueries({ queryKey: notificationQueryKeys.topbarUnreadCountRoot }),
   ]);
 }

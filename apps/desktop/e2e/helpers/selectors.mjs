@@ -1,3 +1,23 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const helperDir = path.dirname(fileURLToPath(import.meta.url));
+const desktopRoot = path.resolve(helperDir, '../..');
+const rendererE2eIdsPath = path.join(desktopRoot, 'src/shell/renderer/testability/e2e-ids.ts');
+
+function readRendererRuntimeSidebarSelectorFactory() {
+  const source = fs.readFileSync(rendererE2eIdsPath, 'utf8');
+  const match = source.match(/runtimeSidebarPage:\s*\(pageId:\s*string\)\s*=>\s*`([^`$]+)\$\{pageId\}`/);
+  if (!match?.[1]) {
+    throw new Error(`runtimeSidebarPage selector truth missing from ${rendererE2eIdsPath}`);
+  }
+  const prefix = match[1];
+  return (pageId) => `${prefix}${pageId}`;
+}
+
+const runtimeSidebarPageTestId = readRendererRuntimeSidebarSelectorFactory();
+
 export const E2E_IDS = {
   appLoadingScreen: 'app-loading-screen',
   appBootstrapErrorScreen: 'app-bootstrap-error-screen',
@@ -33,7 +53,7 @@ export const E2E_IDS = {
   chatMemoryModeStatus: 'chat-memory-mode-status',
   chatMemoryModeUpgradeButton: 'chat-memory-mode-upgrade-button',
   messageTimeline: 'message-timeline',
-  runtimeSidebarPage: (pageId) => `runtime-sidebar-page:${pageId}`,
+  runtimeSidebarPage: runtimeSidebarPageTestId,
   runtimePageRoot: (pageId) => `runtime-page:${pageId}`,
   feedPostAuthor: (postId) => `feed-post-author:${postId}`,
   contactDetailProfileModal: 'contact-detail-profile-modal',

@@ -418,6 +418,19 @@ export async function createRuntimeKnowledgeBank(input: RuntimeKnowledgeContextI
   return normalizeKnowledgeBank(response.bank);
 }
 
+export async function getRuntimeKnowledgeBank(input: RuntimeKnowledgeContextInput & {
+  bankId: string;
+}): Promise<RuntimeKnowledgeBankItem> {
+  const response = await withKnowledgeError(
+    runtimeKnowledge().getKnowledgeBank({
+      context: normalizeContext(input),
+      bankId: normalizeText(input.bankId),
+    }, KNOWLEDGE_CALL_OPTIONS),
+    'get_runtime_knowledge_bank',
+  );
+  return normalizeKnowledgeBank(response.bank);
+}
+
 export async function deleteRuntimeKnowledgeBank(input: RuntimeKnowledgeContextInput & {
   bankId: string;
 }): Promise<RuntimeReasonCode> {
@@ -453,6 +466,24 @@ export async function listRuntimeKnowledgePages(input: RuntimeKnowledgeContextIn
     pages: response.pages.map((item) => normalizeKnowledgePage(item)),
     nextPageToken: normalizeText(response.nextPageToken),
   };
+}
+
+export async function getRuntimeKnowledgePage(input: RuntimeKnowledgeContextInput & {
+  bankId: string;
+  pageId: string;
+}): Promise<RuntimeKnowledgePageItem> {
+  const response = await withKnowledgeError(
+    runtimeKnowledge().getPage({
+      context: normalizeContext(input),
+      bankId: normalizeText(input.bankId),
+      lookup: {
+        oneofKind: 'pageId',
+        pageId: normalizeText(input.pageId),
+      },
+    }, KNOWLEDGE_CALL_OPTIONS),
+    'get_runtime_knowledge_page',
+  );
+  return normalizeKnowledgePage(response.page);
 }
 
 export async function putRuntimeKnowledgePage(input: RuntimeKnowledgeContextInput & {

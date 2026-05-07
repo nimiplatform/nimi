@@ -74,6 +74,8 @@ test('knowledge page composes bank list, page editor, ingest, search, and graph 
 test('knowledge sdk service stays on admitted runtime knowledge methods', () => {
   assert.match(knowledgeServiceSource, /runtimeKnowledge\(\)\.listKnowledgeBanks/);
   assert.match(knowledgeServiceSource, /runtimeKnowledge\(\)\.createKnowledgeBank/);
+  assert.match(knowledgeServiceSource, /runtimeKnowledge\(\)\.getKnowledgeBank/);
+  assert.match(knowledgeServiceSource, /runtimeKnowledge\(\)\.getPage/);
   assert.match(knowledgeServiceSource, /runtimeKnowledge\(\)\.putPage/);
   assert.match(knowledgeServiceSource, /runtimeKnowledge\(\)\.ingestDocument/);
   assert.match(knowledgeServiceSource, /runtimeKnowledge\(\)\.getIngestTask/);
