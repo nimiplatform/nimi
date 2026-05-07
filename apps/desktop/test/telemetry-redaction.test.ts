@@ -11,6 +11,7 @@ import {
   logRendererEvent,
   resetRendererTelemetryStateForTest,
 } from '../src/shell/renderer/bridge/runtime-bridge/logging';
+import { logRendererEvent as logInfraRendererEvent } from '../src/shell/renderer/infra/telemetry/renderer-log';
 
 type StorageLike = {
   getItem: (key: string) => string | null;
@@ -117,6 +118,37 @@ test('desktop renderer debug logs redact sensitive payload details', () => {
   } finally {
     resetRendererTelemetryStateForTest();
     resetRendererDebugBufferForTest();
+    restoreGlobals();
+  }
+});
+
+test('renderer telemetry wrapper forwards upstream traceId as top-level payload field', () => {
+  const restoreGlobals = installRendererGlobals();
+  resetRendererTelemetryStateForTest();
+  try {
+    logInfraRendererEvent({
+      area: 'runtime',
+      message: 'action:trace-preserve',
+      traceId: 'trace-upstream-001',
+      flowId: 'flow-local-001',
+      details: {
+        operation: 'upstream-error-log',
+      },
+    });
+
+    const logs = getRendererDebugLogsForTest();
+    assert.equal(logs.length, 1);
+    const record = logs[0] as {
+      traceId?: string;
+      flowId?: string;
+      details?: { traceId?: string; operation?: string };
+    };
+    assert.equal(record.traceId, 'trace-upstream-001');
+    assert.equal(record.flowId, 'flow-local-001');
+    assert.equal(record.details?.traceId, undefined);
+    assert.equal(record.details?.operation, 'upstream-error-log');
+  } finally {
+    resetRendererTelemetryStateForTest();
     restoreGlobals();
   }
 });

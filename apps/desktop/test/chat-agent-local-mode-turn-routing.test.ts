@@ -312,7 +312,7 @@ test('agent runtime turn request uses resolved cloud route/model binding', async
   }
 });
 
-test('agent runtime turn falls back when legacy runtime rejects request_id in turn payload', async () => {
+test('agent runtime turn fails closed when runtime rejects request_id in turn payload', async () => {
   resetRuntimeLocalModelWarmCacheForTests();
   clearPlatformClient();
   const client = await createPlatformClient({
@@ -348,7 +348,7 @@ test('agent runtime turn falls back when legacy runtime rejects request_id in tu
       turns: {
         subscribe: async () => ({
           async *[Symbol.asyncIterator]() {
-            while (requestCalls.length < 2) {
+            while (requestCalls.length < 1) {
               await Promise.resolve();
             }
             yield {
@@ -397,18 +397,12 @@ test('agent runtime turn falls back when legacy runtime rejects request_id in tu
           threadId: string;
         }) => {
           requestCalls.push(request);
-          if (request.requestId) {
-            throw createNimiError({
-              message: 'legacy runtime rejects request_id',
-              reasonCode: ReasonCode.PROTOCOL_ENVELOPE_INVALID,
-              actionHint: 'retry_without_request_id',
-              source: 'runtime',
-            });
-          }
-          return {
-            accepted: true,
-            messageId: 'legacy-message-id',
-          };
+          throw createNimiError({
+            message: 'runtime rejects request_id',
+            reasonCode: ReasonCode.PROTOCOL_ENVELOPE_INVALID,
+            actionHint: 'fix_runtime_protocol_envelope',
+            source: 'runtime',
+          });
         },
         interrupt: async () => undefined,
       },
@@ -427,7 +421,7 @@ test('agent runtime turn falls back when legacy runtime rejects request_id in tu
       agentResolution,
     });
 
-    const result = await streamChatAgentRuntimeAgentTurn({
+    await assert.rejects(() => streamChatAgentRuntimeAgentTurn({
       agentId: 'agent-1',
       conversationAnchorId: 'anchor-legacy',
       threadId: 'thread-legacy',
@@ -453,36 +447,12 @@ test('agent runtime turn falls back when legacy runtime rejects request_id in tu
         userConfirmedUpload: false,
       },
       signal: new AbortController().signal,
+    }), {
+      reasonCode: ReasonCode.PROTOCOL_ENVELOPE_INVALID,
     });
-    const parts: Array<{
-      type: string;
-      textDelta?: string;
-      outputText?: string;
-      error?: {
-        code?: string;
-        message?: string;
-      };
-    }> = [];
-    for await (const part of result.stream) {
-      parts.push(part as {
-        type: string;
-        textDelta?: string;
-        outputText?: string;
-        error?: {
-          code?: string;
-          message?: string;
-        };
-      });
-    }
 
-    assert.equal(requestCalls.length, 2);
+    assert.equal(requestCalls.length, 1);
     assert.ok(requestCalls[0]?.requestId);
-    assert.equal(requestCalls[1]?.requestId, undefined);
-    assert.deepEqual(
-      parts.map((part) => part.type),
-      ['message-sealed', 'turn-completed'],
-    );
-    assert.equal(parts[1]?.outputText, 'legacy ready');
   } finally {
     resetRuntimeLocalModelWarmCacheForTests();
     clearPlatformClient();

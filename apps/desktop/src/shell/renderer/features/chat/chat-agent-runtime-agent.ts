@@ -1,6 +1,5 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { asNimiError } from '@nimiplatform/sdk/runtime';
-import { ReasonCode } from '@nimiplatform/sdk/types';
 import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   resolveSourceAndModel,
@@ -207,17 +206,8 @@ export async function streamChatAgentRuntimeAgentTurn(
       requestId,
     });
   } catch (error) {
-    const normalized = asNimiError(error, { source: 'runtime' });
-    if (normalized.reasonCode !== ReasonCode.PROTOCOL_ENVELOPE_INVALID) {
-      cleanupSubscription();
-      throw error;
-    }
-    try {
-      requestResponse = await runtime.agent.turns.request(requestPayloadBase);
-    } catch (fallbackError) {
-      cleanupSubscription();
-      throw fallbackError;
-    }
+    cleanupSubscription();
+    throw asNimiError(error, { source: 'runtime' });
   }
   const requestMessageId = normalizeText(requestResponse && typeof requestResponse === 'object' ? requestResponse.messageId : '');
   if (requestMessageId) {

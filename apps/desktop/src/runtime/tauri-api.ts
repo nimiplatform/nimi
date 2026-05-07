@@ -49,7 +49,10 @@ function createSdkTauriRuntimeHook(): TauriRuntimeHook {
       const hook = tauriTestHook()?.listen;
       if (hook) {
         const unsubscribe = await Promise.resolve(hook(eventName, handler));
-        return typeof unsubscribe === 'function' ? unsubscribe : () => {};
+        if (typeof unsubscribe !== 'function') {
+          throw new Error(`Tauri event listener for ${eventName} did not return unsubscribe`);
+        }
+        return unsubscribe;
       }
       return await tauriEventListen(eventName, handler);
     },
@@ -98,7 +101,10 @@ export async function listenTauri(
   const hook = tauriTestHook()?.listen;
   if (hook) {
     const unsubscribe = await Promise.resolve(hook(eventName, handler));
-    return typeof unsubscribe === 'function' ? unsubscribe : () => {};
+    if (typeof unsubscribe !== 'function') {
+      throw new Error(`Tauri event listener for ${eventName} did not return unsubscribe`);
+    }
+    return unsubscribe;
   }
   return await tauriEventListen(eventName, handler);
 }

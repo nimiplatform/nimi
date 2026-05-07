@@ -11,6 +11,7 @@ export function logRendererEvent(payload: {
   level?: RendererLogLevel;
   area: string;
   message: RendererLogMessage | string;
+  traceId?: string;
   flowId?: string;
   source?: string;
   costMs?: number;
@@ -20,6 +21,7 @@ export function logRendererEvent(payload: {
     level: payload.level || 'info',
     area: payload.area,
     message: toRendererLogMessage(payload.message),
+    traceId: payload.traceId,
     flowId: payload.flowId,
     source: payload.source,
     costMs: payload.costMs,

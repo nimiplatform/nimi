@@ -290,7 +290,7 @@ test('runtime agent memory adapter writes assistant turns with agent author id a
   });
 });
 
-test('runtime agent memory adapter soft-disables on memory substrate unavailable', async () => {
+test('runtime agent memory adapter fails closed on memory substrate unavailable', async () => {
   const { runtime } = createRuntimeMock();
   runtime.agent.initializeAgent = async () => {
     throw createNimiError({
@@ -319,8 +319,8 @@ test('runtime agent memory adapter soft-disables on memory substrate unavailable
     now: () => new Date('2026-04-12T00:00:00.000Z'),
   });
 
-  await assert.doesNotReject(async () => {
-    const accepted = await adapter.writeDyadicObservation({
+  await assert.rejects(
+    () => adapter.writeDyadicObservation({
       agentId: 'agent-1',
       displayName: 'Agent One',
       worldId: null,
@@ -331,9 +331,9 @@ test('runtime agent memory adapter soft-disables on memory substrate unavailable
       createIfMissing: true,
       syncDyadicContext: true,
       syncWorldContext: true,
-    });
-    assert.deepEqual(accepted, []);
-  });
+    }),
+    /local memory substrate is not configured/,
+  );
 
   runtime.agent.getAgent = async () => ({});
   runtime.agent.queryMemory = async () => {
@@ -347,8 +347,8 @@ test('runtime agent memory adapter soft-disables on memory substrate unavailable
     });
   };
 
-  await assert.doesNotReject(async () => {
-    const records = await adapter.queryCompatibilityRecords({
+  await assert.rejects(
+    () => adapter.queryCompatibilityRecords({
       agentId: 'agent-1',
       displayName: 'Agent One',
       createIfMissing: false,
@@ -356,9 +356,9 @@ test('runtime agent memory adapter soft-disables on memory substrate unavailable
       syncWorldContext: false,
       canonicalClasses: [MemoryCanonicalClass.PUBLIC_SHARED],
       limit: 5,
-    });
-    assert.deepEqual(records, []);
-  });
+    }),
+    /local memory substrate is not configured/,
+  );
 });
 
 test('runtime agent memory adapter ignores additive narratives in compatibility queries', async () => {

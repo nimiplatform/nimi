@@ -31,12 +31,7 @@ export async function getDesktopReleaseInfo(): Promise<DesktopReleaseInfo> {
 
 export async function getDesktopUpdateState(): Promise<DesktopUpdateState> {
   if (!hasTauriInvoke()) {
-    return {
-      status: 'idle',
-      currentVersion: '',
-      downloadedBytes: 0,
-      readyToRestart: false,
-    };
+    throw new Error('desktop_update_state_get requires Tauri runtime');
   }
   return invokeChecked('desktop_update_state_get', {}, parseDesktopUpdateState);
 }
@@ -74,10 +69,13 @@ export async function subscribeDesktopUpdateState(
 ): Promise<() => void> {
   const listen = resolveTauriEventListen();
   if (!listen) {
-    return () => {};
+    throw new Error('desktop_update_state_subscribe requires Tauri runtime');
   }
   const unsubscribe = await Promise.resolve(listen(DESKTOP_UPDATE_STATE_EVENT, (event) => {
     onEvent(parseDesktopUpdateState(event.payload));
   }));
-  return typeof unsubscribe === 'function' ? unsubscribe : () => {};
+  if (typeof unsubscribe !== 'function') {
+    throw new Error('desktop_update_state_subscribe did not return unsubscribe');
+  }
+  return unsubscribe;
 }

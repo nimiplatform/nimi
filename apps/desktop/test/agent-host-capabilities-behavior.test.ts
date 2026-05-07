@@ -181,7 +181,7 @@ test('agent memory recall for entity fans out to public_shared and dyadic runtim
   ]);
 });
 
-test('agent memory profiles fail closed while stats soft-disable to zero counts', async () => {
+test('agent memory profiles and stats fail closed without runtime evidence', async () => {
   resetRuntimeAgentDataStateForTesting();
 
   const handlers = createRuntimeAgentDataCapabilityHandlers();
@@ -189,11 +189,30 @@ test('agent memory profiles fail closed while stats soft-disable to zero counts'
     () => handlers.agentMemoryProfilesList({ agentId: 'agent-profiles' }),
     /AGENT_MEMORY_PROFILES_UNSUPPORTED_BY_RUNTIME_AUTHORITY/,
   );
-  await assert.doesNotReject(async () => {
-    const stats = await handlers.agentMemoryStatsGet({ agentId: 'agent-profiles' });
-    assert.deepEqual(stats, {
-      coreCount: 0,
-      dyadicCount: 0,
-    });
+  await assert.rejects(
+    () => handlers.agentMemoryStatsGet({ agentId: 'agent-profiles' }),
+    /realm endpoint \(baseUrl\) is required|desktop runtime agent memory requires authenticated subject user id/,
+  );
+});
+
+test('agent memory stats count runtime-backed core and dyadic records', async () => {
+  resetRuntimeAgentDataStateForTesting();
+
+  const handlers = createRuntimeAgentDataCapabilityHandlers({
+    runtimeMemory: {
+      queryCompatibilityRecords: async (input) => {
+        if (input.canonicalClasses.includes(MemoryCanonicalClass.PUBLIC_SHARED)) {
+          return [makeMemoryRecord('core-1'), makeMemoryRecord('core-2')];
+        }
+        return [makeMemoryRecord('dyadic-1', { type: 'DYADIC', userId: 'user-9' })];
+      },
+    },
+    resolveCurrentUserId: async () => 'user-9',
+  });
+
+  const stats = await handlers.agentMemoryStatsGet({ agentId: 'agent-stats' });
+  assert.deepEqual(stats, {
+    coreCount: 2,
+    dyadicCount: 1,
   });
 });

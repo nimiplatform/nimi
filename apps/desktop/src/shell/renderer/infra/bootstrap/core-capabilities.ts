@@ -288,10 +288,36 @@ export function createRuntimeAgentDataCapabilityHandlers(
       };
     },
 
-    agentMemoryStatsGet: async (_query) => {
+    agentMemoryStatsGet: async (query) => {
+      const queryRecord = toRecord(query);
+      const agentId = requireAgentId(queryRecord);
+      const userId = await requireUserId(queryRecord, resolveCurrentUserIdFn);
+      const [core, dyadic] = await Promise.all([
+        resolveRuntimeMemory().queryCompatibilityRecords({
+          agentId,
+          displayName: agentId,
+          createIfMissing: false,
+          syncDyadicContext: false,
+          syncWorldContext: false,
+          limit: 100,
+          canonicalClasses: [MemoryCanonicalClass.PUBLIC_SHARED],
+          includeInvalidated: false,
+        }),
+        resolveRuntimeMemory().queryCompatibilityRecords({
+          agentId,
+          displayName: agentId,
+          dyadicUserId: userId,
+          createIfMissing: false,
+          syncDyadicContext: true,
+          syncWorldContext: false,
+          limit: 100,
+          canonicalClasses: [MemoryCanonicalClass.DYADIC],
+          includeInvalidated: false,
+        }),
+      ]);
       return {
-        coreCount: 0,
-        dyadicCount: 0,
+        coreCount: core.length,
+        dyadicCount: dyadic.length,
       };
     },
   };

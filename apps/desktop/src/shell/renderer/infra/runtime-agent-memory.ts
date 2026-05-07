@@ -389,24 +389,17 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
   };
 
   const queryCanonicalViews = async (input: RuntimeMemoryQueryInput): Promise<CanonicalMemoryView[]> => {
-    try {
-      const session = await ensureSession(input);
-      const response = await session.protectedAccess.withScopes(['runtime.agent.read'], (options) => session.runtime.agent.queryMemory({
-        context: session.context,
-        agentId: normalizeText(input.agentId),
-        query: normalizeText(input.query),
-        limit: typeof input.limit === 'number' ? input.limit : 0,
-        canonicalClasses: [...input.canonicalClasses],
-        kinds: [...(input.kinds || [])],
-        includeInvalidated: input.includeInvalidated === true,
-      }, options));
-      return response.memories;
-    } catch (error) {
-      if (isRuntimeMemoryUnavailable(error)) {
-        return [];
-      }
-      throw error;
-    }
+    const session = await ensureSession(input);
+    const response = await session.protectedAccess.withScopes(['runtime.agent.read'], (options) => session.runtime.agent.queryMemory({
+      context: session.context,
+      agentId: normalizeText(input.agentId),
+      query: normalizeText(input.query),
+      limit: typeof input.limit === 'number' ? input.limit : 0,
+      canonicalClasses: [...input.canonicalClasses],
+      kinds: [...(input.kinds || [])],
+      includeInvalidated: input.includeInvalidated === true,
+    }, options));
+    return response.memories;
   };
 
   const hasActiveEmbeddingAsset = async (): Promise<boolean> => {
@@ -628,70 +621,63 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
         return [];
       }
 
-      try {
-        const session = await ensureSession({
-          ...input,
-          createIfMissing: input.createIfMissing !== false,
-          syncDyadicContext: input.syncDyadicContext ?? true,
-          syncWorldContext: input.syncWorldContext ?? true,
-        });
-        const dyadicUserId = normalizeText(input.dyadicUserId) || session.subjectUserId;
-        const authoredBy = normalizeText(input.authorId) || session.subjectUserId;
-        const timestamp = toTimestamp(now());
-        const response = await session.protectedAccess.withScopes(['runtime.agent.write'], (options) => session.runtime.agent.writeMemory({
-          context: session.context,
-          agentId: normalizeText(input.agentId),
-          candidates: [
-            {
-              canonicalClass: MemoryCanonicalClass.DYADIC,
-              targetBank: {
-                scope: MemoryBankScope.AGENT_DYADIC,
-                owner: {
-                  oneofKind: 'agentDyadic' as const,
-                  agentDyadic: {
-                    agentId: normalizeText(input.agentId),
-                    userId: dyadicUserId,
-                  },
+      const session = await ensureSession({
+        ...input,
+        createIfMissing: input.createIfMissing !== false,
+        syncDyadicContext: input.syncDyadicContext ?? true,
+        syncWorldContext: input.syncWorldContext ?? true,
+      });
+      const dyadicUserId = normalizeText(input.dyadicUserId) || session.subjectUserId;
+      const authoredBy = normalizeText(input.authorId) || session.subjectUserId;
+      const timestamp = toTimestamp(now());
+      const response = await session.protectedAccess.withScopes(['runtime.agent.write'], (options) => session.runtime.agent.writeMemory({
+        context: session.context,
+        agentId: normalizeText(input.agentId),
+        candidates: [
+          {
+            canonicalClass: MemoryCanonicalClass.DYADIC,
+            targetBank: {
+              scope: MemoryBankScope.AGENT_DYADIC,
+              owner: {
+                oneofKind: 'agentDyadic' as const,
+                agentDyadic: {
+                  agentId: normalizeText(input.agentId),
+                  userId: dyadicUserId,
                 },
               },
-              sourceEventId: normalizeText(input.sourceEventId),
-              policyReason: normalizeText(input.policyReason),
-              record: {
-                kind: MemoryRecordKind.OBSERVATIONAL,
-                canonicalClass: MemoryCanonicalClass.DYADIC,
-                provenance: {
-                  sourceSystem: 'desktop.agent-chat',
-                  sourceEventId: normalizeText(input.sourceEventId),
-                  authorId: authoredBy,
-                  traceId: normalizeText(input.traceId),
-                  committedAt: timestamp,
-                },
-                metadata: undefined,
-                extensions: undefined,
-                payload: {
-                  oneofKind: 'observational',
-                  observational: {
-                    observation,
-                    observedAt: timestamp,
-                    sourceRef: normalizeText(input.traceId),
-                  },
-                },
-              },
-              extensions: undefined,
             },
-          ],
-        }, options));
+            sourceEventId: normalizeText(input.sourceEventId),
+            policyReason: normalizeText(input.policyReason),
+            record: {
+              kind: MemoryRecordKind.OBSERVATIONAL,
+              canonicalClass: MemoryCanonicalClass.DYADIC,
+              provenance: {
+                sourceSystem: 'desktop.agent-chat',
+                sourceEventId: normalizeText(input.sourceEventId),
+                authorId: authoredBy,
+                traceId: normalizeText(input.traceId),
+                committedAt: timestamp,
+              },
+              metadata: undefined,
+              extensions: undefined,
+              payload: {
+                oneofKind: 'observational',
+                observational: {
+                  observation,
+                  observedAt: timestamp,
+                  sourceRef: normalizeText(input.traceId),
+                },
+              },
+            },
+            extensions: undefined,
+          },
+        ],
+      }, options));
 
-        if (response.rejected.length > 0 || response.accepted.length === 0) {
-          throw new Error('runtime.agent.writeMemory did not admit desktop dyadic memory');
-        }
-        return response.accepted;
-      } catch (error) {
-        if (isRuntimeMemoryUnavailable(error)) {
-          return [];
-        }
-        throw error;
+      if (response.rejected.length > 0 || response.accepted.length === 0) {
+        throw new Error('runtime.agent.writeMemory did not admit desktop dyadic memory');
       }
+      return response.accepted;
     },
 
     async sendChatTrackSidecarInput(input: RuntimeChatTrackSidecarInput): Promise<void> {
