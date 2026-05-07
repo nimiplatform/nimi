@@ -123,7 +123,7 @@ export function normalizeAvatarMappingSidecar(raw: unknown): AvatarMappingSideca
     backendKind,
     profileId: readRequiredString(raw, 'profile_id'),
     confidence: readProbability(raw, 'confidence'),
-    threshold: readOptionalProbability(raw, 'threshold', DEFAULT_MAPPING_CONFIDENCE_THRESHOLD),
+    threshold: readMappingThreshold(raw),
     manualConfirmation: readEnum(
       raw,
       'manual_confirmation',
@@ -319,6 +319,16 @@ function readOptionalProbability(
   fallback: number,
 ): number {
   return raw[key] === undefined ? fallback : readProbability(raw, key);
+}
+
+function readMappingThreshold(raw: Record<string, unknown>): number {
+  const threshold = readOptionalProbability(raw, 'threshold', DEFAULT_MAPPING_CONFIDENCE_THRESHOLD);
+  if (threshold < DEFAULT_MAPPING_CONFIDENCE_THRESHOLD) {
+    throw new Error(
+      `vrm-mapping-sidecar: threshold must be >= default threshold ${DEFAULT_MAPPING_CONFIDENCE_THRESHOLD}`,
+    );
+  }
+  return threshold;
 }
 
 function readEnum<T extends string>(

@@ -91,6 +91,12 @@ evidence:
       normalizeAvatarMappingSidecar(validSidecar({ route_id: 'invented_route' })),
     ).toThrow(/unknown route_id/);
   });
+
+  it('rejects sidecar thresholds below the default confidence floor', () => {
+    expect(() =>
+      normalizeAvatarMappingSidecar(validSidecar({ threshold: 0.5 })),
+    ).toThrow(/threshold must be >= default threshold 0\.82/);
+  });
 });
 
 describe('evaluateAvatarMappingSidecarSupport', () => {

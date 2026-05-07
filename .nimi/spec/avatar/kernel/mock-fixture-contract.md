@@ -316,7 +316,11 @@ Load scenario 时 hard-validate（fail-close）：
 
 - 所有 scenarios registered 在 `spec/kernel/tables/scenario-catalog.yaml`
 - Catalog 提供 id / file path / description / tags / duration
-- App 启动时默认 load `mock.json`（repo 根的 default scenario）
+- Fixture mode (`VITE_AVATAR_DRIVER=mock`) loads the selected `.mock.json`
+  scenario, defaulting only to the catalog's explicit fixture default when no
+  `VITE_AVATAR_MOCK_SCENARIO` is set.
+- Normal app startup uses `SdkDriver` and MUST NOT auto-load `mock.json`,
+  `default.mock.json`, or any other mock scenario.
 - Dev UI（未来）可切换 scenario
 
 ---
