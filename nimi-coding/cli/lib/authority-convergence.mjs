@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { loadTopicRuntimeContracts } from "./contracts.mjs";
@@ -118,16 +118,145 @@ function extractTopicValidationEvidenceRefs(sourceText, waveId) {
   return [...refs];
 }
 
+function extractPacketIdsFromSource(sourceText) {
+  const ids = new Set();
+  const patterns = [
+    /^\s*packet_id:\s*`?([a-z0-9]+(?:-[a-z0-9]+)*)`?\s*$/gimu,
+    /\bpacket_id\s*[:=]\s*`?([a-z0-9]+(?:-[a-z0-9]+)*)`?/gimu,
+    /\bpacket\s+id\s*[:=]\s*`?([a-z0-9]+(?:-[a-z0-9]+)*)`?/gimu,
+  ];
+  for (const pattern of patterns) {
+    for (const match of sourceText.matchAll(pattern)) {
+      ids.add(match[1]);
+    }
+  }
+  return [...ids];
+}
+
+function declaresPostUpdateAmbiguity(sourceText) {
+  const ambiguityPattern = /\b(authority|scope|gate|product|semantic)\s+(ambiguity|ambiguous|fork|blocked|blocker|change required)\b/iu;
+  const normalized = sourceText.replace(/\s+/gu, " ");
+  for (const match of normalized.matchAll(new RegExp(ambiguityPattern.source, "giu"))) {
+    const preceding = normalized.slice(0, match.index).toLowerCase();
+    if (/\b(no|none|without)\b[^.!?\n]{0,120}$/u.test(preceding)) {
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
+
+function sourceContainsNegatedTerms(sourceText, terms) {
+  const normalized = sourceText.replace(/\s+/gu, " ").toLowerCase();
+  return terms.every((term) => {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&").replace(/\\ /gu, "\\s+");
+    return new RegExp(`\\b(no|not|without)\\b[^.!?]{0,160}\\b${escaped}\\b`, "iu").test(normalized)
+      || new RegExp(`\\b${escaped}\\b[^.!?]{0,80}\\b(not\\s+mutated|not\\s+introduced)\\b`, "iu").test(normalized);
+  });
+}
+
+function hasRequiredPostUpdateNegativeDeclarations(sourceText) {
+  return sourceContainsNegatedTerms(sourceText, [
+    "source audit findings",
+    "source sweep-design artifacts",
+    "pseudo-success",
+    "fallback success",
+    "compatibility shim",
+    "dual-read",
+    "dual-write",
+  ]);
+}
+
+async function latestWorkerPromptPacketId(topicDir, packetEntries) {
+  const packetIds = new Set(packetEntries.map((entry) => entry.packet?.packet_id).filter(Boolean));
+  if (!topicDir || packetIds.size === 0) return null;
+  let entries = [];
+  try {
+    entries = await readdir(topicDir, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+  const prompts = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.startsWith("prompt-") || !entry.name.endsWith("-worker.md")) continue;
+    const packetId = entry.name.slice("prompt-".length, -"-worker.md".length);
+    if (!packetIds.has(packetId)) continue;
+    const promptPath = path.join(topicDir, entry.name);
+    try {
+      const promptStat = await stat(promptPath);
+      prompts.push({ packetId, mtimeMs: promptStat.mtimeMs, promptRefName: entry.name });
+    } catch {
+      return null;
+    }
+  }
+  if (prompts.length === 0) return null;
+  prompts.sort((left, right) => right.mtimeMs - left.mtimeMs || left.promptRefName.localeCompare(right.promptRefName));
+  if (prompts.length > 1 && prompts[0].mtimeMs === prompts[1].mtimeMs) return { ambiguous: true };
+  return prompts[0];
+}
+
+async function workerPromptExists(topicDir, packetId) {
+  if (!topicDir || !packetId) return false;
+  try {
+    const promptStat = await stat(path.join(topicDir, `prompt-${packetId}-worker.md`));
+    return promptStat.isFile();
+  } catch {
+    return false;
+  }
+}
+
+async function hasWaveRemediationArtifact(topicDir, waveId) {
+  try {
+    const entries = await readdir(topicDir, { withFileTypes: true });
+    return entries.some((entry) => (
+      entry.isFile()
+      && entry.name.startsWith(`packet-${waveId}-remediation-`)
+      && entry.name.endsWith(".md")
+    ));
+  } catch {
+    return false;
+  }
+}
+
+async function selectPostUpdateProofPacket({ topicDir, wave, specUpdatingPackets, sourceText }) {
+  if (specUpdatingPackets.length === 0) {
+    return { ok: false, reason: "post-update proof requires a spec-updating packet" };
+  }
+
+  const packetIds = extractPacketIdsFromSource(sourceText);
+  const matchingSourcePackets = packetIds
+    .map((packetId) => specUpdatingPackets.find((entry) => entry.packet?.packet_id === packetId) ?? null)
+    .filter(Boolean);
+  const uniqueMatchingSourcePackets = [...new Map(matchingSourcePackets.map((entry) => [entry.packet.packet_id, entry])).values()];
+  if (uniqueMatchingSourcePackets.length > 1) {
+    return { ok: false, reason: "implementation source names multiple post-update packets" };
+  }
+  if (packetIds.length > 0 && uniqueMatchingSourcePackets.length === 0) {
+    return { ok: false, reason: "implementation source packet_id does not match a current post-update packet" };
+  }
+  if (uniqueMatchingSourcePackets.length === 1) {
+    return { ok: true, entry: uniqueMatchingSourcePackets[0], selectionSource: "implementation_source" };
+  }
+
+  const promptLineage = await latestWorkerPromptPacketId(topicDir, specUpdatingPackets);
+  if (promptLineage?.ambiguous) {
+    return { ok: false, reason: "latest worker prompt lineage is ambiguous" };
+  }
+  if (promptLineage?.packetId) {
+    const promptPacket = specUpdatingPackets.find((entry) => entry.packet?.packet_id === promptLineage.packetId);
+    if (promptPacket) return { ok: true, entry: promptPacket, selectionSource: "worker_prompt" };
+  }
+
+  if (specUpdatingPackets.length === 1) {
+    return { ok: true, entry: specUpdatingPackets[0], selectionSource: "single_packet" };
+  }
+
+  return { ok: false, reason: "post-update packet lineage is ambiguous" };
+}
+
 async function mechanicalPostUpdateJudgementProof({ projectRoot, topicDir, wave, specUpdatingPackets, results, implementationResult }) {
   if (!projectRoot || !topicDir) {
     return { ok: false, reason: "mechanical proof requires project and topic roots" };
-  }
-  if (specUpdatingPackets.length !== 1) {
-    return { ok: false, reason: "mechanical proof requires exactly one post-update packet authority" };
-  }
-  const packet = specUpdatingPackets[0].packet;
-  if (!refsAreConcrete(packet.authority_owner) || !refsAreConcrete(packet.canonical_seams)) {
-    return { ok: false, reason: "packet authority refs are missing or non-concrete" };
   }
   const implementationVerifiedAt = verifiedAtMs(implementationResult);
   if (!Number.isFinite(implementationVerifiedAt)) {
@@ -163,6 +292,47 @@ async function mechanicalPostUpdateJudgementProof({ projectRoot, topicDir, wave,
   } catch {
     return { ok: false, reason: "implementation source ref is not readable" };
   }
+  const selectedPacket = await selectPostUpdateProofPacket({
+    topicDir,
+    wave,
+    specUpdatingPackets,
+    sourceText,
+  });
+  if (!selectedPacket.ok) {
+    return { ok: false, reason: selectedPacket.reason };
+  }
+  const packet = selectedPacket.entry.packet;
+  if (packet.status !== "dispatched") {
+    return { ok: false, reason: "post-update proof packet is not the current dispatched packet" };
+  }
+  if (!refsAreConcrete(packet.authority_owner) || !refsAreConcrete(packet.canonical_seams)) {
+    return { ok: false, reason: "packet authority refs are missing or non-concrete" };
+  }
+  const promptLineage = await latestWorkerPromptPacketId(topicDir, specUpdatingPackets);
+  if (selectedPacket.selectionSource === "implementation_source") {
+    if (!await workerPromptExists(topicDir, packet.packet_id)) {
+      return { ok: false, reason: "implementation result packet_id does not have worker prompt lineage" };
+    }
+  } else if (promptLineage?.ambiguous) {
+    return { ok: false, reason: "latest worker prompt lineage is ambiguous" };
+  }
+  if (promptLineage?.ambiguous) {
+    return { ok: false, reason: "latest worker prompt lineage is ambiguous" };
+  }
+  if (promptLineage?.packetId && promptLineage.packetId !== packet.packet_id) {
+    return { ok: false, reason: "implementation result packet_id is not the latest worker prompt lineage" };
+  }
+  const isMultiAuthority = stringList(packet.authority_owner).length > 1;
+  if (isMultiAuthority) {
+    const hasExplicitPacketLineage = selectedPacket.selectionSource === "implementation_source"
+      && extractPacketIdsFromSource(sourceText).includes(packet.packet_id);
+    if (!hasExplicitPacketLineage) {
+      return { ok: false, reason: "multi-authority post-update proof requires implementation-source packet lineage" };
+    }
+    if (!await hasWaveRemediationArtifact(topicDir, wave.wave_id) || !/\bremediat(?:e|ed|ion)\b/iu.test(sourceText)) {
+      return { ok: false, reason: "multi-authority post-update proof requires explicit remediation lineage" };
+    }
+  }
   const evidenceRefs = extractTopicValidationEvidenceRefs(sourceText, wave.wave_id);
   if (evidenceRefs.length === 0) {
     return { ok: false, reason: "implementation source does not cite topic-local validation evidence" };
@@ -176,15 +346,18 @@ async function mechanicalPostUpdateJudgementProof({ projectRoot, topicDir, wave,
       return { ok: false, reason: `validation evidence is not a clean pass: ${ref}` };
     }
   }
-  const ambiguityPattern = /\b(authority|scope|gate|product|semantic)\s+(ambiguity|ambiguous|fork|blocked|blocker|change required)\b/iu;
-  if (ambiguityPattern.test(sourceText)) {
+  if (declaresPostUpdateAmbiguity(sourceText)) {
     return { ok: false, reason: "implementation source declares authority/scope/gate/product/semantic ambiguity" };
   }
-  return { ok: true, evidenceRefs, sourceRef };
+  if (!hasRequiredPostUpdateNegativeDeclarations(sourceText)) {
+    return { ok: false, reason: "implementation source does not declare required mutation and shortcut negative checks" };
+  }
+  return { ok: true, evidenceRefs, sourceRef, packetId: packet.packet_id };
 }
 
 export async function buildPostUpdateReviewDecision({ projectRoot, topicDir, topicId, wave, packets, results, policy, commandRef }) {
-  const specUpdatingPackets = packets.filter((entry) => needsPostUpdateReview(entry.packet, policy));
+  const wavePackets = packets.filter((entry) => entry.packet?.wave_id === wave.wave_id);
+  const specUpdatingPackets = wavePackets.filter((entry) => needsPostUpdateReview(entry.packet, policy));
   const specUpdatingPacket = specUpdatingPackets[0] ?? null;
   const implementationResult = latestResultOfKind(results, "implementation");
   if (
@@ -246,6 +419,11 @@ export async function buildPostUpdateReviewDecision({ projectRoot, topicDir, top
       "--verified-at",
       "<utc>",
     ]),
+    blockingChecks: [{
+      ok: false,
+      code: "mechanical_post_update_judgement_not_proven",
+      message: mechanicalProof.reason,
+    }],
   };
 }
 
