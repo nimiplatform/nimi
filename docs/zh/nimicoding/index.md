@@ -1,32 +1,33 @@
 # Nimi Coding
 
-Nimi Coding 是一款**面向高风险 AI 辅助软件开发的、宿主无关、AI 原生的方法论产品**。它以独立 npm 包（`@nimiplatform/nimi-coding`）的形态对外，可以装进任意仓库，初始化出项目本地的 `.nimi/**` 治理层，把「AI 看起来已经做完」变成「四个闭合维度都有证据」。
+Nimi Coding 是一套**在高复杂度场景下，保持 AI 开发一致性与准确性的辅助开发产品，具有支持任意更换模型、AI 原生等特点**。通过独立 npm 包（@nimiplatform/nimi-coding），可植入任意代码仓库，快速帮助建立项目 .nimi/** “唯一真相面”。它让“AI 看起来已经把活干完了”这种模糊的感受，转变为“四个可闭合维度上的事实基础”，最终实现”做完了，也做对了“。
 
-Nimi Coding 是 Nimi 平台内部的产品之一，也是平台跟其他产品一起对外的那套 AI 开发方法论。它同样可以独立采用：包本身是宿主无关的，跟你用不用 Nimi 平台的其他部分没关系。
+Nimi Coding 是 Nimi 平台的核心产品之一，也是我们对外输出的一套标准 AI 开发方法论。但它的使用完全是解耦的：由于 npm 包本身不绑定任何特定宿主，你可以独立采纳它，而无需依赖 Nimi 平台的其他组件。
 
-Nimi Coding 跟平台其他部分互相做压力测试。Nimi Coding 让一个像 Nimi 这么大的系统可以被一个小团队配合 AI 真正做完；反过来，平台真实的工程规模又给 Nimi Coding 的主张提供了可证伪的样本。
+在内部，Nimi Coding 与 Nimi 平台互为试金石。一方面，Nimi Coding 让 Nimi 这样庞大且复杂的系统得以被一个小团队借助 AI 成功构建；另一方面，Nimi 真实的工程规模与复杂度，又为 Nimi Coding 的方法论主张提供了绝佳的、可证伪的压力测试样例。
 
-## 这一节为什么存在
+## 为什么需要这套方法论？
 
-多数 AI 产品在解决「编辑器里的 AI」。Nimi Coding 想解决的是另外一个问题：**怎么让一个团队真正相信 AI 把这件事做完了**。答案不在更好的 prompt，也不在更多的测试，而在方法论本身：工作开始前先声明闭合条件，工作结束后再形成可核验的证据。
+当前大多数 AI 产品都在“让编辑器里的AI变得更强”，而 Nimi Coding 解决的是另一个问题”如何让整个工程团队相信ai交付的结果“？
 
-如果你曾经看过这样一种 AI 辅助的改动 —— 类型检查通过、测试通过、code review 通过，可在权威、范围或产品含义上还是错的 —— 这一节就是写给你的。
+这个答案不在于写出更好的 Prompt，也不在于堆砌更多的测试用例，而在于重塑开发方法论本身：在正式开发前，显式定义好验收的“闭环（Closure）”条件；在开发后，严格将这些条件作为核验的客观证据。
 
-## 第一次使用应该怎么走
+如果你曾经历过这样的 AI 辅助开发困境——代码过了类型检查、过了单元测试、甚至过了 Code Review，但在架构权威、影响范围或业务逻辑上依然存在致命偏差——那么，这一章就是专门为你写的。
 
-一条最小但完整的路径是：
+## 新手入门指引
 
-1. **安装包。** 在已有仓库里安装 `@nimiplatform/nimi-coding`，见 [安装](/zh/nimicoding/installation)。
-2. **初始化 `.nimi/`。** 运行 `nimicoding start`，再用 `nimicoding doctor --json` 检查健康状态。
-3. **重建项目规范。** 把项目现状整理进 `.nimi/spec/**`；有证据的写进规范，没证据的记录为 gap，不要编出一条漂亮规则。
-4. **为第一件高风险工作创建 topic。** 只有会影响权威、跨多个 owner 表面、或需要审计闭合的工作才需要 topic。
-5. **把 topic 拆成 wave。** 每个 wave 只闭合一个 owner 域和一个主要目标。
-6. **先冻结 packet，再开始做。** Packet 先写清楚允许读什么、允许写什么、接受标准、反向测试、停止线和重开条件。
-7. **让已准入的 AI 宿主执行或接力执行。** 执行结果必须写成类型化证据，而不是只留在聊天里。
+快速上手，只需以下几步：
+
+1. **安装:** 在已有仓库里安装 `@nimiplatform/nimi-coding`，详见 [安装指南](/zh/nimicoding/installation)。
+2. **初始化环境:** 运行 `nimicoding start`建立 `.nimi/`目录。，再用 `nimicoding doctor --json` 检查健康状态。
+3. **重建项目规范:** 将项目现有的事实依据提取至 `.nimi/spec/**`；这一步的关键是：如实记录当前的来源依据以及尚未解决的历史遗留问题（unresolved gaps），而不是凭空捏造一套看似完美的规则。
+4. **发起 Topic:** 为你的首个“高风险”或“涉及架构权威变更”的任务，创建一个 Topic。
+5. **把 topic 拆成 wave。** 将该 Topic 拆解成更细粒度的 Wave，确保每个 Wave 都只对应单一的归属领域（owner domain）和一个明确的闭环目标。
+6. **先冻结 packet，再开始做。** 在实际动工前，提前冻结工作包（Packet）的上下文：显式声明允许读取的范围、允许修改的边界、验收通过的恒定条件（invariants）、反向测试用例（negative tests）、止损红线（stop lines）以及允许重新开启任务（reopen）的触发条件。
+7. **让AI大模型 接力执行。** 执行结果必须写成类型化证据，而不是只留在聊天里。
 8. **按四个维度闭合 wave。** 权威、语义、消费方、抗漂移四项都成立，才算真的闭合。
 
-这就是 Nimi Coding 的最小模型：AI 仍然可以高速工作，但工作状态留在仓库里，有边界、有证据、能被另一个 session 或人类重新审计。
-
+以上是 Nimi Coding 核心产品理念的缩影：让 AI 的工作成果转化为持久的、边界清晰且可审计的工程状态，而不是一堆“当时像模像样”的聊天记录。
 ## 本章节包含
 
 ### 范式
@@ -38,38 +39,38 @@ Nimi Coding 跟平台其他部分互相做压力测试。Nimi Coding 让一个�
 
 ### 角色与权威收敛
 
-- [角色分离](/zh/nimicoding/role-separation) —— manager、worker、auditor。
-- [权威收敛](/zh/nimicoding/authority-convergence) —— 当 spec 要变，为什么独立审计必须走在实现前面。
+- [角色分离](/zh/nimicoding/role-separation) —— 明确 Manager（管理者）、Worker（执行者）与 Auditor（审计者）的职责边界
+- [权威收敛](/zh/nimicoding/authority-convergence) —— 当需求（Spec）发生变更时，为什么独立审计必须走在代码实现之前。
 
 ### 生命周期
 
-- [Topic 生命周期](/zh/nimicoding/topic-lifecycle) —— proposal、ongoing、pending、closed 的状态机；wave 细粒度状态；true close。
-- [白皮书](/zh/nimicoding/whitepaper) —— 为什么 AI 辅助实现是一种承担权威的工作。
-- [Topic 工作流](/zh/nimicoding/topic-workflow) —— topic / wave / packet / preflight / audit / closeout 的运作流程。
-- [走查](/zh/nimicoding/walkthrough) —— 一个合成 topic 从开始到结束的端到端示例。
+- [Topic 生命周期](/zh/nimicoding/topic-lifecycle) —— 深入解析从 proposal（提案）、ongoing（进行中）、pending（挂起）到 closed（已关闭）的状态机流转，以及 wave 状态和真正意义上的收尾（true close）。
+- [白皮书](/zh/nimicoding/whitepaper) —— 为什么说“引入 AI 辅助实现”本质上是一项移交技术决策权威的工作。
+- [Topic 工作流](/zh/nimicoding/topic-workflow) —— 涵盖 topic / wave / packet / preflight / audit / closeout 的完整运转机制。
+- [End-to-end样例](/zh/nimicoding/walkthrough) —— 从一个 topic 从开始到结束的示例。
 
 ### 包
 
 - [包](/zh/nimicoding/the-package) —— `@nimiplatform/nimi-coding` 提供什么、不提供什么。
 - [宿主无关边界](/zh/nimicoding/host-agnostic) —— 换 AI 宿主为什么不改方法论。
-- [技能](/zh/nimicoding/skills) —— 四个声明技能（`spec_reconstruction`、`doc_spec_audit`、`audit_sweep`、`high_risk_execution`）。
-- [CLI 表面](/zh/nimicoding/cli) —— 命令面的概念级总览。
-- [安装](/zh/nimicoding/installation) —— 当前安装姿态。
+- [技能](/zh/nimicoding/skills) —— 四个声明技能（`spec_reconstruction`需求重构、`doc_spec_audit`文档规范审计、`audit_sweep`审计扫描、`high_risk_execution`高风险执行）。
+- [CLI 交互](/zh/nimicoding/cli) —— 命令行工具的概念级全局视角。。
+- [安装指南](/zh/nimicoding/installation) —— 目前推荐的安装与初始化方式
 
-### 比较与采纳
+### 对比与采纳
 
-- [比较](/zh/nimicoding/comparison) —— 跟普通 AI 编程、code review、DevOps 治理、DDD、敏捷的对比。
-- [采纳路径](/zh/nimicoding/adoption-path) —— 谁会采纳、为什么。
+- [横向对比](/zh/nimicoding/comparison) —— Nimi Coding 与常规 AI 编程助手、传统 Code Review、DevOps 治理、领域驱动设计（DDD）及敏捷开发的差异。
+- [采纳路径](/zh/nimicoding/adoption-path) —— 哪些团队适合引入这套方法论？核心驱动力是什么？
 
-### 实操子树
+### 实操指南
 
-- [Tutorials](/zh/nimicoding/tutorials/) —— 学习导向的逐步课程，包括从安装到 `.nimi/spec/**`、topic 执行、sweep audit、sweep design、长期宿主执行的完整路径。
-- [How-to](/zh/nimicoding/how-to/) —— 问题导向的菜谱。
+- [Tutorials](/zh/nimicoding/tutorials/) —— 循序渐进的系统性学习路径，带你走完从安装配置 `.nimi/spec/`、创建执行 Topic、扫描审计、架构设计到长期平稳运行的完整流程。
+- [How-to](/zh/nimicoding/how-to/) —— 面向具体问题的实战 Cookbook。
 - [Reference](/zh/nimicoding/reference/) —— schema 级别的字典。
 
 ### 附录
 
-- [oh-my-codex Adapter](/zh/nimicoding/appendix/oh-my-codex) —— 准入的外部宿主适配 overlay。
+- [oh-my-codex Adapter](/zh/nimicoding/appendix/oh-my-codex) —— 接入外部 AI模型的适配扩展层（Overlay）。
 
 ## 来源
 
