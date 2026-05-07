@@ -1,6 +1,7 @@
 import {
   runAuditorPrompt,
   runFinalize,
+  runFixTopic,
   runIntake,
   runLedgerValidate,
   runPacketBuild,
@@ -191,11 +192,26 @@ function parseSweepDesignOptions(args) {
       }),
     };
   }
+  if (phase === "fix-topic") {
+    return {
+      ok: true,
+      action: "fix-topic",
+      parsed: parseOptions(args.slice(1), "fix-topic", {
+        runId: { flag: "--run-id", required: true },
+        slug: { flag: "--slug" },
+        title: { flag: "--title" },
+        admitFirstWave: { flag: "--admit-first-wave", type: "boolean", default: false },
+        admitWaveId: { flag: "--admit-wave-id" },
+        verifiedAt: { flag: "--verified-at" },
+        json: { default: false },
+      }),
+    };
+  }
   return {
     ok: false,
     error: `${localize(
-      "nimicoding sweep design refused: expected intake, packet-build, packet-build-batch, auditor-prompt, result-ingest, ledger-validate, finalize, or wave-plan.",
-      "nimicoding sweep design 已拒绝：需要 intake、packet-build、packet-build-batch、auditor-prompt、result-ingest、ledger-validate、finalize 或 wave-plan。",
+      "nimicoding sweep design refused: expected intake, packet-build, packet-build-batch, auditor-prompt, result-ingest, ledger-validate, finalize, wave-plan, or fix-topic.",
+      "nimicoding sweep design 已拒绝：需要 intake、packet-build、packet-build-batch、auditor-prompt、result-ingest、ledger-validate、finalize、wave-plan 或 fix-topic。",
     )}\n`,
   };
 }
@@ -223,6 +239,9 @@ function emitResult(result, json) {
       ["decision queue", result.decisionQueueRef],
       ["final state report", result.finalStateReportRef],
       ["wave plan", result.wavePlanRef],
+      ["topic", result.topicRef],
+      ["sweep fix source", result.sourceRef],
+      ["wave catalog", result.waveCatalogRef],
     ]) {
       if (value !== undefined && value !== null) {
         lines.push(`${label}: ${value}`);
@@ -236,6 +255,7 @@ function emitResult(result, json) {
       ["final findings", result.finalFindingCount],
       ["transient findings", result.transientFindingCount],
       ["waves", result.waveCount],
+      ["admitted wave", result.admittedWaveId],
       ["stop class", result.stopClass],
       ["stop reason", result.stopReason],
     ]) {
@@ -269,6 +289,7 @@ export async function runSweepDesign(args) {
     "ledger-validate": runLedgerValidate,
     finalize: runFinalize,
     "wave-plan": runWavePlan,
+    "fix-topic": runFixTopic,
   };
   return emitResult(await actions[parsedAction.action](projectRoot, options), options.json);
 }

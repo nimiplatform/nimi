@@ -276,6 +276,149 @@ test("sweep design refuses unstable artifact ids before writing local design ref
   });
 });
 
+test("sweep design fix-topic materializes finalized wave plan into topic waves", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+
+    const runId = "design-fix-topic-test";
+    const runRoot = path.join(projectRoot, ".nimi", "local", "sweep-design", runId);
+    await mkdir(runRoot, { recursive: true });
+    await writeFile(
+      path.join(runRoot, "inventory.yaml"),
+      YAML.stringify({
+        version: 2,
+        kind: "sweep-design-inventory",
+        run_id: runId,
+        source_findings_ref: ".nimi/local/audit/evidence/audit-sweep-design-fix-topic/findings.yaml",
+        findings: [
+          { finding_id: "finding-0001", source_finding_ref: ".nimi/local/audit/evidence/audit-sweep-design-fix-topic/findings.yaml#finding-0001" },
+          { finding_id: "finding-0002", source_finding_ref: ".nimi/local/audit/evidence/audit-sweep-design-fix-topic/findings.yaml#finding-0002" },
+        ],
+      }),
+      "utf8",
+    );
+    await writeFile(
+      path.join(runRoot, "final-state-report.yaml"),
+      YAML.stringify({
+        version: 2,
+        kind: "sweep-design-final-state-report",
+        run_id: runId,
+        source_inventory_ref: `.nimi/local/sweep-design/${runId}/inventory.yaml`,
+        source_revision_ledger_ref: `.nimi/local/sweep-design/${runId}/revision-ledger.yaml`,
+        complete: true,
+        final_outcome_complete: true,
+        llm_closeout_eligible: true,
+        total_finding_count: 2,
+        final_finding_count: 2,
+        transient_finding_count: 0,
+        findings: [],
+      }),
+      "utf8",
+    );
+    await writeFile(
+      path.join(runRoot, "wave-plan.yaml"),
+      YAML.stringify({
+        version: 2,
+        kind: "sweep-design-wave-plan",
+        run_id: runId,
+        topic_id: "future-topic",
+        source_revision_ledger_ref: `.nimi/local/sweep-design/${runId}/revision-ledger.yaml`,
+        mutates_topic_state: false,
+        worker_dispatch_allowed: false,
+        wave_count: 2,
+        waves: [
+          {
+            wave_id: "wave-runtime-contract-hardcut",
+            scope: "Runtime contract hard cut",
+            owner_domain: "runtime",
+            authority_owner: ".nimi/spec/runtime/kernel",
+            dependencies: [],
+            finding_ids: ["finding-0001"],
+            preflight_ref: `.nimi/local/sweep-design/${runId}/preflight/wave-runtime-contract-hardcut.yaml`,
+            non_goals: ["desktop compatibility shim"],
+            validation_commands: ["go test ./runtime/..."],
+            negative_checks: ["no app-level runtime bypass"],
+            drift_resistance_checks: ["no legacy alias"],
+            closeout_criteria: ["runtime contract tests pass"],
+            source_design_packet_refs: [`.nimi/local/sweep-design/${runId}/design-auditor-packets/packet-0001.yaml`],
+            design_auditor_result_refs: [`.nimi/local/sweep-design/${runId}/design-auditor-results/result-0001.yaml`],
+            revision_ledger_entry_refs: [`.nimi/local/sweep-design/${runId}/revision-ledger.yaml#entry-0001`],
+            blocked_gate_refs: [],
+            merged_cluster_ids: ["cluster-runtime-contract"],
+            merged_root_cause_keys: ["runtime-contract"],
+            isolation_justification: "single root cause wave",
+          },
+          {
+            wave_id: "wave-desktop-runtime-adapter",
+            scope: "Desktop runtime adapter alignment",
+            owner_domain: "apps/desktop",
+            authority_owner: ".nimi/spec/apps/desktop",
+            dependencies: ["wave-runtime-contract-hardcut"],
+            finding_ids: ["finding-0002"],
+            preflight_ref: `.nimi/local/sweep-design/${runId}/preflight/wave-desktop-runtime-adapter.yaml`,
+            non_goals: ["runtime downgrade"],
+            validation_commands: ["pnpm --filter @nimiplatform/desktop test"],
+            negative_checks: ["desktop does not bypass runtime auth"],
+            drift_resistance_checks: ["desktop imports no runtime/internal private modules"],
+            closeout_criteria: ["desktop tests pass"],
+            source_design_packet_refs: [`.nimi/local/sweep-design/${runId}/design-auditor-packets/packet-0002.yaml`],
+            design_auditor_result_refs: [`.nimi/local/sweep-design/${runId}/design-auditor-results/result-0002.yaml`],
+            revision_ledger_entry_refs: [`.nimi/local/sweep-design/${runId}/revision-ledger.yaml#entry-0002`],
+            blocked_gate_refs: [],
+            merged_cluster_ids: ["cluster-desktop-runtime"],
+            merged_root_cause_keys: ["desktop-runtime-adapter"],
+            isolation_justification: "single root cause wave",
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    const result = await captureRunCli([
+      "sweep",
+      "design",
+      "fix-topic",
+      "--run-id",
+      runId,
+      "--slug",
+      "sweep-fix-topic-test",
+      "--title",
+      "Sweep Fix Topic Test",
+      "--admit-first-wave",
+      "--verified-at",
+      "2026-05-07T03:00:00.000Z",
+      "--json",
+    ]);
+    assert.equal(result.exitCode, 0, result.stderr);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.waveCount, 2);
+    assert.equal(payload.admittedWaveId, "wave-runtime-contract-hardcut");
+    assert.match(payload.topicRef, /^\.nimi\/topics\/ongoing\//);
+    assert.deepEqual(payload.materializedWaveIds, ["wave-runtime-contract-hardcut", "wave-desktop-runtime-adapter"]);
+
+    const topicYaml = YAML.parse(await readFile(path.join(projectRoot, payload.topicRef, "topic.yaml"), "utf8"));
+    assert.equal(topicYaml.waves.length, 2);
+    assert.equal(topicYaml.waves[0].state, "preflight_admitted");
+    assert.equal(topicYaml.waves[0].source_sweep_design.run_id, runId);
+    assert.deepEqual(topicYaml.waves[1].deps, ["wave-runtime-contract-hardcut"]);
+
+    const catalog = YAML.parse(await readFile(path.join(projectRoot, payload.topicRef, "sweep-fix", "wave-catalog.yaml"), "utf8"));
+    assert.equal(catalog.kind, "sweep-fix-wave-catalog");
+    assert.equal(catalog.wave_count, 2);
+    assert.equal(catalog.source_findings_mutation_policy, "read_only_never_update_from_sweep_fix_topic");
+
+    const preflight = await readFile(path.join(projectRoot, payload.topicRef, "preflight.md"), "utf8");
+    assert.match(preflight, /topic goal .*preflight_admitted or a later execution-stage state/);
+
+    const graph = await captureRunCli(["topic", "validate", "graph", payload.topicId, "--json"]);
+    assert.equal(graph.exitCode, 0, graph.stderr);
+
+    const goal = await captureRunCli(["topic", "goal", payload.topicId, "--json"]);
+    assert.equal(goal.exitCode, 0, goal.stderr);
+    assert.match(JSON.parse(goal.stdout).goal_command, /selected execution-stage wave wave-runtime-contract-hardcut/);
+  });
+});
+
 test("sweep design synthetic trial results cannot masquerade as true LLM closeout", async () => {
   await withTempProject(async (projectRoot) => {
     assert.equal((await captureRunCli(["start"])).exitCode, 0);

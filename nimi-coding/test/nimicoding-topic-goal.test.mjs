@@ -167,7 +167,7 @@ test("topic goal emits deterministic slash and JSON for a goal-ready admitted wa
     const slash = await captureRunCli(["topic", "goal", TOPIC_ID]);
     assert.equal(slash.exitCode, 0);
     assert.equal(slash.stderr, "");
-    assert.match(slash.stdout, /^\/goal Execute topic 2026-05-05-topic-goal-fixture from selected admitted wave wave-1-contract-and-cli\./);
+    assert.match(slash.stdout, /^\/goal Execute topic 2026-05-05-topic-goal-fixture from selected execution-stage wave wave-1-contract-and-cli\./);
     assert.match(slash.stdout, /topic\.yaml, design\.md/);
     assert.ok(slash.stdout.length <= 1501);
 
@@ -190,6 +190,23 @@ test("topic goal emits deterministic slash and JSON for a goal-ready admitted wa
   });
 });
 
+test("topic goal treats preflight admission as execution-stage goal ownership", async () => {
+  await withGoalProject(async (projectRoot) => {
+    await seedGoalReadyTopic(projectRoot, {
+      topicId: "2026-05-05-topic-goal-preflight-execution",
+      selectedWaveState: "preflight_admitted",
+    });
+
+    const result = await captureRunCli(["topic", "goal", "2026-05-05-topic-goal-preflight-execution", "--json"]);
+    assert.equal(result.exitCode, 0, result.stderr);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.selected_wave_id, "wave-1-contract-and-cli");
+    assert.match(payload.goal_command, /Continue through wave preflight, implementation, validation, result recording, and closeout/);
+    assert.equal(payload.refusal_reasons.length, 0);
+  });
+});
+
 test("topic goal refuses lifecycle, selected-wave, profile, placeholder, validation, and projection blockers without fallback goals", async () => {
   await withGoalProject(async (projectRoot) => {
     const cases = [
@@ -198,7 +215,7 @@ test("topic goal refuses lifecycle, selected-wave, profile, placeholder, validat
       ["closed", { topicId: "2026-05-05-topic-goal-closed", rootState: "closed" }, "topic_not_ongoing"],
       ["true-close-pending", { topicId: "2026-05-05-topic-goal-true-close-pending", trueCloseStatus: "pending" }, "true_close_not_started_required"],
       ["true-close-inactive", { topicId: "2026-05-05-topic-goal-true-close-inactive", trueCloseStatus: "true_closed" }, "true_close_not_started_required"],
-      ["preflight-only", { topicId: "2026-05-05-topic-goal-preflight-only", selectedWaveState: "preflight_admitted" }, "selected_wave_not_executable"],
+      ["candidate-only", { topicId: "2026-05-05-topic-goal-candidate-only", selectedWaveState: "candidate" }, "selected_wave_not_executable"],
       ["selected-mismatch", { topicId: "2026-05-05-topic-goal-selected-mismatch", selectedWaveId: "wave-2-regression" }, "selected_wave_mismatch"],
       ["placeholder", { topicId: "2026-05-05-topic-goal-placeholder", artifacts: { "design.md": "# Design\nTODO\n" } }, "unresolved_placeholder"],
       ["missing-validation", { topicId: "2026-05-05-topic-goal-missing-validation", artifacts: { "admission-checklists.md": "# Admission Checklists\nNo machine commands.\n" } }, "validation_commands_missing"],

@@ -76,3 +76,6 @@ rules:
   - goal_command must be null whenever ok=false
   - topic-goal output is a projection and must not mutate topic state
   - host projection drift is a readiness refusal when the host projection exists
+  - topic goal is the bridge from accepted topic design into Codex /goal execution ownership
+  - preflight_admitted is an execution-stage wave state for topic goal because wave preflight is part of execution, not a separate human design phase
+  - candidate and preflight_draft wave states are not execution-stage states for topic goal

@@ -41,7 +41,7 @@ const REQUIRED_STOP_KEYS = [
   "silent_owner_cut_reopen",
 ];
 
-const EXECUTABLE_WAVE_STATES = new Set(["implementation_admitted", "implementation_active"]);
+const EXECUTION_STAGE_WAVE_STATES = new Set(["preflight_admitted", "implementation_admitted", "implementation_active"]);
 const TERMINAL_WAVE_STATES = new Set(["closed", "retired", "superseded"]);
 const WAVE_ID_PATTERN = /^wave-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -227,7 +227,7 @@ function dependencyEvidence(lineageRefs, depId) {
 
 function buildGoalCommand(topicId, waveId, sourceArtifacts) {
   const artifactList = sourceArtifacts.map((ref) => path.basename(ref)).join(", ");
-  return `/goal Execute topic ${topicId} from selected admitted wave ${waveId}. Treat ${artifactList} as the execution contract. Implement only the admitted scope. Do not reinterpret scope, change authority ownership, lower readiness gates, mutate topic state during goal generation, invoke Codex automatically, delete evidence, skip admitted coverage, or emit fallback goals. After meaningful implementation steps, run topic validate, topic validate graph, and focused tests. Stop only for declared human gates, authority/scope changes, lowered gates, destructive evidence deletion, or blockers requiring contract changes. Complete by writing required result/closeout artifacts and reporting validation evidence, blockers, and residual risk.`;
+  return `/goal Execute topic ${topicId} from selected execution-stage wave ${waveId}. Treat ${artifactList} as the execution contract. Continue through wave preflight, implementation, validation, result recording, and closeout without returning for ordinary phase transitions. Implement only the admitted scope. Do not reinterpret scope, change authority ownership, lower gates, delete evidence, skip admitted coverage, or emit fallback goals. Run topic validate, topic validate graph, and focused tests as evidence. Stop only for declared human gates, authority/scope changes, lowered gates, destructive evidence deletion, or blockers requiring contract changes. Complete by writing required result/closeout artifacts and reporting validation evidence, blockers, and residual risk.`;
 }
 
 async function checkHostProjection(projectRoot) {
@@ -310,7 +310,7 @@ export async function buildTopicGoal(projectRoot, options) {
     check("selected_target_wave_resolves", resolution.matchingWaveCount === 1 && WAVE_ID_PATTERN.test(resolution.selectedTarget ?? ""), `selected_next_target is ${resolution.selectedTarget ?? "missing"}`),
     check("selected_wave_single_source", resolution.selectedWaves.length === 1 && resolution.selectedWaves[0]?.wave_id === resolution.selectedTarget, `selected waves: ${resolution.selectedWaves.map((wave) => wave.wave_id).join(", ") || "none"}`),
     check("wave_option_matches_selected", options.wave === null || options.wave === resolution.selectedTarget, options.wave === null ? "no wave assertion provided" : `--wave is ${options.wave}`),
-    check("selected_wave_executable", selectedWave ? EXECUTABLE_WAVE_STATES.has(selectedWave.state) : false, selectedWave ? `selected wave state is ${selectedWave.state}` : "selected wave does not resolve"),
+    check("selected_wave_executable", selectedWave ? EXECUTION_STAGE_WAVE_STATES.has(selectedWave.state) : false, selectedWave ? `selected wave state is ${selectedWave.state}` : "selected wave does not resolve"),
     check("selected_wave_dependencies_terminal", depFailures.length === 0, depFailures.length === 0 ? "selected wave dependencies are terminal by lifecycle evidence" : `dependencies are not terminal by evidence: ${depFailures.join(", ")}`),
     check("selected_wave_goal_present", typeof selectedWave?.primary_closure_goal === "string" && selectedWave.primary_closure_goal.trim().length > 0, selectedWave?.primary_closure_goal ? "selected wave declares primary_closure_goal" : "selected wave is missing primary_closure_goal"),
     check("forbidden_shortcuts_present", REQUIRED_STOP_KEYS.every((key) => (loaded.topic.forbidden_shortcuts ?? []).includes(key)) && REQUIRED_STOP_KEYS.every((key) => forbiddenCatalog.keys.includes(key)), "topic forbidden_shortcuts include required package catalog keys"),
