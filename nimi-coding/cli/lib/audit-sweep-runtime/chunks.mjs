@@ -456,7 +456,7 @@ export function buildAuditorPacket(sweepId, chunk, auditor, dispatchedAt, plan, 
       finding_locations_must_belong_to_chunk_files_or_evidence_inventory: true,
       authority_only_finding_location_policy: "when no implementation surface exists, findings[].location.file must be the in-scope authority_ref that contains the defect",
       finding_contract_ref: ".nimi/contracts/audit-finding.schema.yaml",
-      ingest_command: `nimicoding audit-sweep chunk ingest --sweep-id ${sweepId} --chunk-id ${chunk.chunk_id} --from <audit-output.json> --verified-at <ISO-8601-UTC>`,
+      ingest_command: `nimicoding sweep audit chunk ingest --sweep-id ${sweepId} --chunk-id ${chunk.chunk_id} --from <audit-output.json> --verified-at <ISO-8601-UTC>`,
     },
     hard_constraints: [
       "do_not_sample_out_files_from_this_chunk",
@@ -477,7 +477,7 @@ export function buildAuditorPacket(sweepId, chunk, auditor, dispatchedAt, plan, 
 export async function dispatchAuditSweepChunk(projectRoot, options) {
   const sweepId = safeSweepId(options.sweepId);
   if (!sweepId || typeof options.chunkId !== "string") {
-    return inputError("nimicoding audit-sweep refused: --sweep-id and --chunk-id are required.\n");
+    return inputError("nimicoding sweep audit refused: --sweep-id and --chunk-id are required.\n");
   }
 
   const timestampError = ensureIsoTimestamp(options.dispatchedAt, "--dispatched-at");
@@ -497,11 +497,11 @@ export async function dispatchAuditSweepChunk(projectRoot, options) {
   }
 
   if (chunkResult.chunk.state !== "planned") {
-    return inputError("nimicoding audit-sweep refused: chunk dispatch requires planned state.\n");
+    return inputError("nimicoding sweep audit refused: chunk dispatch requires planned state.\n");
   }
   const budgetBlock = budgetBlockForChunk(planResult.plan, chunkResult.chunk);
   if (budgetBlock) {
-    return inputError(`nimicoding audit-sweep refused: ${budgetBlock}; build or admit remediation bundles before continuing discovery.\n`);
+    return inputError(`nimicoding sweep audit refused: ${budgetBlock}; build or admit remediation bundles before continuing discovery.\n`);
   }
 
   const updatedChunk = {
@@ -557,7 +557,7 @@ export async function dispatchAuditSweepChunk(projectRoot, options) {
 export async function reviewAuditSweepChunk(projectRoot, options) {
   const sweepId = safeSweepId(options.sweepId);
   if (!sweepId || typeof options.chunkId !== "string") {
-    return inputError("nimicoding audit-sweep refused: --sweep-id and --chunk-id are required.\n");
+    return inputError("nimicoding sweep audit refused: --sweep-id and --chunk-id are required.\n");
   }
 
   const timestampError = ensureIsoTimestamp(options.reviewedAt, "--reviewed-at");
@@ -566,7 +566,7 @@ export async function reviewAuditSweepChunk(projectRoot, options) {
   }
 
   if (!["pass", "fail"].includes(options.verdict)) {
-    return inputError("nimicoding audit-sweep refused: --verdict must be pass or fail.\n");
+    return inputError("nimicoding sweep audit refused: --verdict must be pass or fail.\n");
   }
 
   return withAuditSweepMutationLock(projectRoot, sweepId, "chunk review", async () => {
@@ -581,10 +581,10 @@ export async function reviewAuditSweepChunk(projectRoot, options) {
   }
 
   if (chunkResult.chunk.state !== "ingested") {
-    return inputError("nimicoding audit-sweep refused: chunk review requires ingested state.\n");
+    return inputError("nimicoding sweep audit refused: chunk review requires ingested state.\n");
   }
   if (options.verdict === "pass" && chunkResult.chunk.audit_validity?.posture === "invalid") {
-    return inputError("nimicoding audit-sweep refused: manager review cannot freeze invalid no-finding evidence as pass.\n");
+    return inputError("nimicoding sweep audit refused: manager review cannot freeze invalid no-finding evidence as pass.\n");
   }
 
   const nextState = options.verdict === "pass" ? "frozen" : "failed";
@@ -636,14 +636,14 @@ export async function reviewAuditSweepChunk(projectRoot, options) {
 export async function skipAuditSweepChunk(projectRoot, options) {
   const sweepId = safeSweepId(options.sweepId);
   if (!sweepId || typeof options.chunkId !== "string") {
-    return inputError("nimicoding audit-sweep refused: --sweep-id and --chunk-id are required.\n");
+    return inputError("nimicoding sweep audit refused: --sweep-id and --chunk-id are required.\n");
   }
   const timestampError = ensureIsoTimestamp(options.skippedAt, "--skipped-at");
   if (timestampError) {
     return timestampError;
   }
   if (typeof options.reason !== "string" || !options.reason.trim()) {
-    return inputError("nimicoding audit-sweep refused: --reason is required when skipping a chunk.\n");
+    return inputError("nimicoding sweep audit refused: --reason is required when skipping a chunk.\n");
   }
 
   return withAuditSweepMutationLock(projectRoot, sweepId, "chunk skip", async () => {
@@ -656,7 +656,7 @@ export async function skipAuditSweepChunk(projectRoot, options) {
     return inputError(chunkResult.error);
   }
   if (chunkResult.chunk.state === "frozen") {
-    return inputError("nimicoding audit-sweep refused: frozen chunks cannot be skipped.\n");
+    return inputError("nimicoding sweep audit refused: frozen chunks cannot be skipped.\n");
   }
 
   const updatedChunk = {

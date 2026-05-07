@@ -5,12 +5,12 @@ export function formatAuditSweepPayload(payload) {
     }
     if (payload.checks) {
       const failed = payload.checks.filter((entry) => !entry.ok);
-      return `audit-sweep ${payload.sweepId ?? "result"} validation failed\nchecks: ${payload.checks.length - failed.length}/${payload.checks.length}\nfailed: ${failed.map((entry) => entry.reason).join("; ")}\n`;
+      return `sweep audit ${payload.sweepId ?? "result"} validation failed\nchecks: ${payload.checks.length - failed.length}/${payload.checks.length}\nfailed: ${failed.map((entry) => entry.reason).join("; ")}\n`;
     }
-    return "audit-sweep failed\n";
+    return "sweep audit failed\n";
   }
 
-  const lines = [`audit-sweep ${payload.sweepId ?? payload.auditCloseout?.sweep_id ?? "result"}`];
+  const lines = [`sweep audit ${payload.sweepId ?? payload.auditCloseout?.sweep_id ?? "result"}`];
   for (const [label, value] of [
     ["plan", payload.planRef],
     ["chunk", payload.chunkRef],

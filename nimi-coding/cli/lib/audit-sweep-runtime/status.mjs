@@ -12,7 +12,7 @@ import { ensureClusterStore } from "./risk-budget.mjs";
 export async function getAuditSweepStatus(projectRoot, options) {
   const sweepId = safeSweepId(options.sweepId);
   if (!sweepId) {
-    return inputError("nimicoding audit-sweep refused: --sweep-id is required.\n");
+    return inputError("nimicoding sweep audit refused: --sweep-id is required.\n");
   }
 
   const planResult = await loadPlan(projectRoot, sweepId);

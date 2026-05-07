@@ -18,6 +18,8 @@ export const STANDALONE_COMPLETED_SURFACES = [
   "bootstrap",
   "doctor",
   "handoff",
+  "sweep_audit",
+  "sweep_design",
   "validators",
   "topic_lifecycle_report_methodology",
   "closeout",
@@ -51,6 +53,7 @@ export const CLAUDE_END = "<!-- nimicoding:managed:claude:end -->";
 export const SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF = ".nimi/contracts/spec-reconstruction-result.yaml";
 export const DOC_SPEC_AUDIT_RESULT_CONTRACT_REF = ".nimi/contracts/doc-spec-audit-result.yaml";
 export const AUDIT_SWEEP_RESULT_CONTRACT_REF = ".nimi/contracts/audit-sweep-result.yaml";
+export const SWEEP_DESIGN_RESULT_CONTRACT_REF = ".nimi/contracts/sweep-design-result.yaml";
 export const AUDIT_PLAN_SCHEMA_REF = ".nimi/contracts/audit-plan.schema.yaml";
 export const AUDIT_CHUNK_SCHEMA_REF = ".nimi/contracts/audit-chunk.schema.yaml";
 export const AUDIT_FINDING_SCHEMA_REF = ".nimi/contracts/audit-finding.schema.yaml";
@@ -305,6 +308,7 @@ export const REQUIRED_BOOTSTRAP_FILES = [
   SPEC_RECONSTRUCTION_RESULT_CONTRACT_REF,
   DOC_SPEC_AUDIT_RESULT_CONTRACT_REF,
   AUDIT_SWEEP_RESULT_CONTRACT_REF,
+  SWEEP_DESIGN_RESULT_CONTRACT_REF,
   AUDIT_PLAN_SCHEMA_REF,
   AUDIT_CHUNK_SCHEMA_REF,
   AUDIT_FINDING_SCHEMA_REF,

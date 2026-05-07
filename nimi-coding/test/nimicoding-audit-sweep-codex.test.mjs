@@ -906,7 +906,8 @@ test("audit-codex command freezes valid evidence and validates chunk replay", as
     await writeFile(path.join(projectRoot, "src", "security.ts"), "export const allow = true;\n", "utf8");
     const sweepId = "audit-sweep-test-codex-state-machine";
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -965,7 +966,8 @@ test("audit-codex command freezes valid evidence and validates chunk replay", as
     });
     try {
       const auditResult = await captureRunCli([
-        "audit-sweep",
+      "sweep",
+      "audit",
         "chunk",
         "audit-codex",
         "--sweep-id",
@@ -992,7 +994,8 @@ test("audit-codex command freezes valid evidence and validates chunk replay", as
     }
 
     const validated = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "validate",
       "--sweep-id",
       sweepId,
@@ -1017,7 +1020,8 @@ test("audit-codex command can replay an existing raw Codex transcript through th
     await writeFile(path.join(projectRoot, "src", "security.ts"), "export const allow = true;\n", "utf8");
     const sweepId = "audit-sweep-test-codex-raw-replay";
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -1063,7 +1067,8 @@ test("audit-codex command can replay an existing raw Codex transcript through th
     }, null, 2)}\n`, "utf8");
 
     const auditResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "audit-codex",
       "--sweep-id",
@@ -1085,7 +1090,8 @@ test("audit-codex command can replay an existing raw Codex transcript through th
     assert.equal(payload.transcriptRef, rawRef);
 
     const validated = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "validate",
       "--sweep-id",
       sweepId,
@@ -1107,7 +1113,8 @@ test("audit-codex ingest rejection fails closed with replayable failed chunk sta
     await writeFile(path.join(projectRoot, "src", "security.ts"), "export const allow = true;\n", "utf8");
     const sweepId = "audit-sweep-test-codex-ingest-failure";
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -1166,7 +1173,8 @@ test("audit-codex ingest rejection fails closed with replayable failed chunk sta
     });
     try {
       const auditResult = await captureRunCli([
-        "audit-sweep",
+      "sweep",
+      "audit",
         "chunk",
         "audit-codex",
         "--sweep-id",
@@ -1194,7 +1202,8 @@ test("audit-codex ingest rejection fails closed with replayable failed chunk sta
     }
 
     const validateResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "validate",
       "--sweep-id",
       sweepId,
@@ -1218,7 +1227,8 @@ test("audit-codex timeout fails closed with replayable failed chunk state", asyn
     await writeFile(path.join(projectRoot, "src", "security.ts"), "export const allow = true;\n", "utf8");
     const sweepId = "audit-sweep-test-codex-timeout";
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -1246,7 +1256,8 @@ test("audit-codex timeout fails closed with replayable failed chunk state", asyn
     await chmod(fakeCodexPath, 0o755);
 
     const auditResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "audit-codex",
       "--sweep-id",
@@ -1269,7 +1280,8 @@ test("audit-codex timeout fails closed with replayable failed chunk state", asyn
     assert.match(auditResult.stderr, /timed out/);
 
     const validateResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "validate",
       "--sweep-id",
       sweepId,
@@ -1296,7 +1308,8 @@ test("audit-codex missing raw output fails closed with valid chunk replay", asyn
     await writeFile(path.join(projectRoot, "src", "security.ts"), "export const allow = true;\n", "utf8");
     const sweepId = "audit-sweep-test-codex-missing-raw";
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -1323,7 +1336,8 @@ test("audit-codex missing raw output fails closed with valid chunk replay", asyn
     await chmod(fakeCodexPath, 0o755);
 
     const auditResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "audit-codex",
       "--sweep-id",
@@ -1346,7 +1360,8 @@ test("audit-codex missing raw output fails closed with valid chunk replay", asyn
     assert.match(auditResult.stderr, /raw output file is missing/);
 
     const validateResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "validate",
       "--sweep-id",
       sweepId,

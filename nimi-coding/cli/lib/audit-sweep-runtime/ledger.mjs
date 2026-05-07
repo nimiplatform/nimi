@@ -206,7 +206,7 @@ function formatReport({ sweepId, ledger, findings }) {
 export async function buildAuditSweepLedger(projectRoot, options) {
   const sweepId = safeSweepId(options.sweepId);
   if (!sweepId) {
-    return inputError("nimicoding audit-sweep refused: --sweep-id is required.\n");
+    return inputError("nimicoding sweep audit refused: --sweep-id is required.\n");
   }
 
   const timestampError = options.verifiedAt ? ensureIsoTimestamp(options.verifiedAt) : null;

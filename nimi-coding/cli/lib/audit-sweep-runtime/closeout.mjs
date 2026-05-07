@@ -22,7 +22,7 @@ import { validateAuditSweepArtifacts } from "./validators.mjs";
 export async function buildAuditSweepCloseoutImport(projectRoot, options) {
   const sweepId = safeSweepId(options.sweepId);
   if (!sweepId) {
-    return inputError("nimicoding audit-sweep refused: --sweep-id is required.\n");
+    return inputError("nimicoding sweep audit refused: --sweep-id is required.\n");
   }
   const timestampError = ensureIsoTimestamp(options.verifiedAt);
   if (timestampError) {
@@ -37,16 +37,16 @@ export async function buildAuditSweepCloseoutImport(projectRoot, options) {
   const preflightValidation = await validateAuditSweepArtifacts(projectRoot, { sweepId, scope: "remediation" });
   if (!preflightValidation.ok) {
     const failed = preflightValidation.checks.find((entry) => !entry.ok);
-    return inputError(`nimicoding audit-sweep refused: audit-sweep closeout preflight failed: ${failed?.reason ?? "artifact validation failed"}.\n`);
+    return inputError(`nimicoding sweep audit refused: sweep audit closeout preflight failed: ${failed?.reason ?? "artifact validation failed"}.\n`);
   }
   if (ledger.status === "blocked") {
-    return inputError("nimicoding audit-sweep refused: blocked ledger cannot produce completed closeout summary.\n");
+    return inputError("nimicoding sweep audit refused: blocked ledger cannot produce completed closeout summary.\n");
   }
   if (ledger.status === "blocked_evidence_incomplete" || ledger.status === "partial_authority_only") {
-    return inputError("nimicoding audit-sweep refused: incomplete spec authority/evidence coverage cannot produce completed closeout summary.\n");
+    return inputError("nimicoding sweep audit refused: incomplete spec authority/evidence coverage cannot produce completed closeout summary.\n");
   }
   if (ledger.coverage.active_chunks > 0) {
-    return inputError("nimicoding audit-sweep refused: closeout summary requires no active chunks.\n");
+    return inputError("nimicoding sweep audit refused: closeout summary requires no active chunks.\n");
   }
 
   const mapRef = remediationMapRef(sweepId, ledger.snapshot_id);
@@ -58,13 +58,13 @@ export async function buildAuditSweepCloseoutImport(projectRoot, options) {
     : []);
   const unmappedOpenFindings = openFindingIds.filter((findingId) => !mappedFindingIds.has(findingId));
   if (openFindingIds.length > 0 && (!remediationMap || unmappedOpenFindings.length > 0)) {
-    return inputError("nimicoding audit-sweep refused: open findings require remediation map coverage before closeout summary.\n");
+    return inputError("nimicoding sweep audit refused: open findings require remediation map coverage before closeout summary.\n");
   }
   const closedWithoutResolutionEvidence = store.findings
     .filter((finding) => finding.disposition !== "open")
     .filter((finding) => !finding.resolution?.evidence_ref || !finding.resolution?.rerun);
   if (closedWithoutResolutionEvidence.length > 0) {
-    return inputError("nimicoding audit-sweep refused: closed findings require resolution and rerun evidence before closeout summary.\n");
+    return inputError("nimicoding sweep audit refused: closed findings require resolution and rerun evidence before closeout summary.\n");
   }
 
   const coverageStatus = deriveCoverageStatus(ledger.status);
@@ -125,7 +125,7 @@ export async function buildAuditSweepCloseoutImport(projectRoot, options) {
   const closeoutValidation = await validateAuditSweepArtifacts(projectRoot, { sweepId, scope: "closeout" });
   if (!closeoutValidation.ok) {
     const failed = closeoutValidation.checks.find((entry) => !entry.ok);
-    return inputError(`nimicoding audit-sweep refused: audit-sweep closeout validation failed: ${failed?.reason ?? "artifact validation failed"}.\n`);
+    return inputError(`nimicoding sweep audit refused: sweep audit closeout validation failed: ${failed?.reason ?? "artifact validation failed"}.\n`);
   }
 
   return {

@@ -297,7 +297,7 @@ function recordClusteredSymptom(store, cluster, finding, fingerprint, classifica
 export async function ingestAuditSweepChunk(projectRoot, options) {
   const sweepId = safeSweepId(options.sweepId);
   if (!sweepId || typeof options.chunkId !== "string") {
-    return inputError("nimicoding audit-sweep refused: --sweep-id and --chunk-id are required.\n");
+    return inputError("nimicoding sweep audit refused: --sweep-id and --chunk-id are required.\n");
   }
 
   const timestampError = ensureIsoTimestamp(options.verifiedAt);
@@ -311,7 +311,7 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
   }
   const sourceInfo = await pathExists(source.absolutePath);
   if (!sourceInfo || !sourceInfo.isFile()) {
-    return inputError("nimicoding audit-sweep refused: --from must point to an existing JSON file.\n");
+    return inputError("nimicoding sweep audit refused: --from must point to an existing JSON file.\n");
   }
 
   return withAuditSweepMutationLock(projectRoot, sweepId, "chunk ingest", async () => {
@@ -324,20 +324,20 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
     return inputError(chunkResult.error);
   }
   if (chunkResult.chunk.state !== "dispatched") {
-    return inputError("nimicoding audit-sweep refused: chunk ingest requires dispatched state.\n");
+    return inputError("nimicoding sweep audit refused: chunk ingest requires dispatched state.\n");
   }
 
   const evidenceJson = await loadJsonFile(source.absolutePath);
   if (!evidenceJson.ok) {
-    return inputError("nimicoding audit-sweep refused: --from must contain valid JSON.\n");
+    return inputError("nimicoding sweep audit refused: --from must contain valid JSON.\n");
   }
   const envelope = validateEvidenceEnvelope(evidenceJson.value, chunkResult.chunk);
   if (!envelope.ok) {
-    return inputError(`nimicoding audit-sweep refused: ${envelope.error}.\n`);
+    return inputError(`nimicoding sweep audit refused: ${envelope.error}.\n`);
   }
   const auditValidity = buildAuditValidityForEvidence(chunkResult.chunk, evidenceJson.value);
   if (auditValidity.posture === "invalid") {
-    return inputError(`nimicoding audit-sweep refused: audit evidence is invalid no-finding evidence (${auditValidity.blockers.map((blocker) => blocker.id).join(", ")}).\n`);
+    return inputError(`nimicoding sweep audit refused: audit evidence is invalid no-finding evidence (${auditValidity.blockers.map((blocker) => blocker.id).join(", ")}).\n`);
   }
 
   const evidenceRef = artifactRef("evidence_refs", sweepId, `${options.chunkId}.audit-evidence.json`);
@@ -355,11 +355,11 @@ export async function ingestAuditSweepChunk(projectRoot, options) {
   for (const [index, rawFinding] of evidenceJson.value.findings.entries()) {
     const normalized = normalizeFinding(rawFinding, index, chunkResult.chunk, sweepId, evidenceRef, options.verifiedAt);
     if (!normalized.ok) {
-      return inputError(`nimicoding audit-sweep refused: ${normalized.error}.\n`);
+      return inputError(`nimicoding sweep audit refused: ${normalized.error}.\n`);
     }
     const clusterResult = deriveFindingCluster(rawFinding, normalized.finding, chunkResult.chunk, planResult.plan);
     if (!clusterResult.ok) {
-      return inputError(`nimicoding audit-sweep refused: finding ${index + 1} ${clusterResult.error}.\n`);
+      return inputError(`nimicoding sweep audit refused: finding ${index + 1} ${clusterResult.error}.\n`);
     }
     if (seen.has(normalized.fingerprint)) {
       duplicateCount += 1;

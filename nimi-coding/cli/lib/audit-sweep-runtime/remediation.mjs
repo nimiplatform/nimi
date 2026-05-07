@@ -135,7 +135,7 @@ function groupOpenFindings(findings, clusters, maxFindingsPerWave) {
 export async function buildAuditSweepRemediationMap(projectRoot, options) {
   const sweepId = safeSweepId(options.sweepId);
   if (!sweepId) {
-    return inputError("nimicoding audit-sweep refused: --sweep-id is required.\n");
+    return inputError("nimicoding sweep audit refused: --sweep-id is required.\n");
   }
   const timestampError = options.verifiedAt ? ensureIsoTimestamp(options.verifiedAt) : null;
   if (timestampError) {
@@ -243,7 +243,7 @@ function topicWaveFromRemediationWave(wave, ledgerRef, remediationMapRefValue) {
 export async function admitAuditSweepRemediationMap(projectRoot, options) {
   const sweepId = safeSweepId(options.sweepId);
   if (!sweepId || typeof options.topicId !== "string" || !options.topicId.trim()) {
-    return inputError("nimicoding audit-sweep refused: --sweep-id and --topic-id are required.\n");
+    return inputError("nimicoding sweep audit refused: --sweep-id and --topic-id are required.\n");
   }
 
   const ledgerResult = await loadLatestLedger(projectRoot, sweepId);
@@ -253,7 +253,7 @@ export async function admitAuditSweepRemediationMap(projectRoot, options) {
   const mapRef = remediationMapRef(sweepId, ledgerResult.ledger.snapshot_id);
   const remediationMap = await loadYamlRef(projectRoot, mapRef);
   if (!remediationMap || remediationMap.kind !== "audit-remediation-map" || remediationMap.source_ledger_ref !== ledgerResult.ledgerRef || !Array.isArray(remediationMap.waves)) {
-    return inputError("nimicoding audit-sweep refused: latest remediation map is missing or malformed.\n");
+    return inputError("nimicoding sweep audit refused: latest remediation map is missing or malformed.\n");
   }
   const planResult = await loadPlan(projectRoot, sweepId);
   if (!planResult.ok) {
@@ -273,7 +273,7 @@ export async function admitAuditSweepRemediationMap(projectRoot, options) {
         ok: false,
         inputError: true,
         exitCode: 1,
-        error: `nimicoding audit-sweep refused: remediation wave admission failed: ${addResult.error}\n`,
+        error: `nimicoding sweep audit refused: remediation wave admission failed: ${addResult.error}\n`,
       };
     }
     materialized.push(topicWave.wave_id);
@@ -289,7 +289,7 @@ export async function admitAuditSweepRemediationMap(projectRoot, options) {
         ok: false,
         inputError: true,
         exitCode: 1,
-        error: `nimicoding audit-sweep refused: remediation wave selection failed: ${selectResult.error}\n`,
+        error: `nimicoding sweep audit refused: remediation wave selection failed: ${selectResult.error}\n`,
       };
     }
     const admitResult = await admitWaveInTopic(projectRoot, options.topicId, topicWave.wave_id);
@@ -298,7 +298,7 @@ export async function admitAuditSweepRemediationMap(projectRoot, options) {
         ok: false,
         inputError: true,
         exitCode: 1,
-        error: `nimicoding audit-sweep refused: remediation wave admission failed: ${admitResult.error}\n`,
+        error: `nimicoding sweep audit refused: remediation wave admission failed: ${admitResult.error}\n`,
       };
     }
     admitted.push(topicWave.wave_id);

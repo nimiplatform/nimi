@@ -587,7 +587,8 @@ test("synthetic Nimi incident replay validates as partial coverage plus invalid 
 
     const sweepId = "audit-sweep-test-nimi-incident-replay";
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "apps/demo",
@@ -644,7 +645,8 @@ test("synthetic Nimi incident replay validates as partial coverage plus invalid 
     await writeFile(planPath, YAML.stringify(plan), "utf8");
 
     const ledgerResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "ledger",
       "build",
       "--sweep-id",
@@ -662,7 +664,8 @@ test("synthetic Nimi incident replay validates as partial coverage plus invalid 
     assert.equal(ledgerPayload.auditValidity.no_finding_posture, "invalid");
 
     const validateResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "validate",
       "--sweep-id",
       sweepId,

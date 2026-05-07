@@ -1,4 +1,6 @@
-﻿import {
+﻿import { createHash } from "node:crypto";
+
+import {
   mkdir,
   readFile,
   rm,
@@ -31,6 +33,447 @@
   writeAuditEvidence,
 } from "./nimicoding-test-utils.mjs";
 
+function sha256Text(text) {
+  return createHash("sha256").update(text).digest("hex");
+}
+
+test("sweep audit and sweep design are canonical CLI entries and top-level audit-sweep is removed", async () => {
+  await withTempProject(async () => {
+    const oldCommand = await captureRunCli(["audit-sweep", "status", "--sweep-id", "missing", "--json"]);
+    assert.equal(oldCommand.exitCode, 2);
+    assert.match(oldCommand.stderr, /Unknown command: audit-sweep/);
+    assert.doesNotMatch(oldCommand.stderr, /nimicoding audit-sweep refused/);
+
+    const helpResult = await captureRunCli(["--help"]);
+    assert.equal(helpResult.exitCode, 0);
+    assert.match(helpResult.stdout, /nimicoding sweep audit plan/);
+    assert.doesNotMatch(helpResult.stdout, /nimicoding audit-sweep/);
+
+    const designCommand = await captureRunCli(["sweep", "design"]);
+    assert.equal(designCommand.exitCode, 2);
+    assert.match(designCommand.stderr, /nimicoding sweep design refused: expected intake, packet-build/);
+  });
+});
+
+test("sweep design ingests LLM auditor results into append-only design artifacts", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+    await seedReconstructedTargetTruth(projectRoot);
+    await seedFrozenAuditSweep(projectRoot, {
+      sweepId: "audit-sweep-design-test",
+      actionability: "auto-fix",
+      severity: "high",
+      findingTitle: "Design fixture finding",
+    });
+    const sourceFindingsPath = path.join(projectRoot, ".nimi", "local", "audit", "evidence", "audit-sweep-design-test", "findings.yaml");
+    const originalFindingsSha = sha256Text(await readFile(sourceFindingsPath, "utf8"));
+
+    const intake = await captureRunCli([
+      "sweep",
+      "design",
+      "intake",
+      "--sweep-id",
+      "audit-sweep-design-test",
+      "--run-id",
+      "design-test",
+      "--json",
+    ]);
+    assert.equal(intake.exitCode, 0, intake.stderr);
+    assert.equal(JSON.parse(intake.stdout).findingCount, 1);
+    const inventory = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "sweep-design", "design-test", "inventory.yaml"), "utf8"));
+    assert.equal(inventory.artifact_role, "forked_design_workset");
+    assert.equal(inventory.source_findings_mutation_policy, "read_only_never_update_from_sweep_design");
+    assert.equal(inventory.design_judgement_policy, "llm_auditor_result_required_for_final_outcomes");
+    assert.equal(inventory.source_findings_sha256, originalFindingsSha);
+
+    const retiredPhase = await captureRunCli([
+      "sweep",
+      "design",
+      "confirm",
+      "--run-id",
+      "design-test",
+      "--json",
+    ]);
+    assert.equal(retiredPhase.exitCode, 2);
+    assert.match(retiredPhase.stderr, /expected intake, packet-build/);
+
+    const markerWithoutRefs = await captureRunCli([
+      "sweep",
+      "design",
+      "packet-build",
+      "--run-id",
+      "design-test",
+      "--packet-id",
+      "packet-missing-prior",
+      "--finding-id",
+      "finding-0001",
+      "--prior-design-state-marker",
+      "present",
+      "--json",
+    ]);
+    assert.equal(markerWithoutRefs.exitCode, 2);
+    assert.match(markerWithoutRefs.stderr, /non-empty prior_design_state_marker requires prior_design_state_refs/);
+
+    const packetBuild = await captureRunCli([
+      "sweep",
+      "design",
+      "packet-build",
+      "--run-id",
+      "design-test",
+      "--packet-id",
+      "packet-finding-0001",
+      "--finding-id",
+      "finding-0001",
+      "--explicit-question",
+      "Decide final implementation wave for fixture finding",
+      "--prior-design-state-refs",
+      ".nimi/local/sweep-design/previous-run/decision-packets/prior.yaml",
+      "--current-cluster-refs",
+      ".nimi/local/sweep-design/previous-run/clusters.yaml#cluster-fixture",
+      "--current-wave-refs",
+      ".nimi/local/sweep-design/previous-run/wave-plan.yaml#wave-fixture",
+      "--json",
+    ]);
+    assert.equal(packetBuild.exitCode, 0, packetBuild.stderr);
+    const packet = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "sweep-design", "design-test", "design-auditor-packets", "packet-finding-0001.yaml"), "utf8"));
+    assert.equal(packet.kind, "sweep-design-design-auditor-packet");
+    assert.deepEqual(packet.included_finding_ids, ["finding-0001"]);
+    assert.equal(packet.prior_design_state_marker, "present");
+    assert.deepEqual(packet.prior_design_state_refs, [".nimi/local/sweep-design/previous-run/decision-packets/prior.yaml"]);
+    assert.deepEqual(packet.current_cluster_refs, [".nimi/local/sweep-design/previous-run/clusters.yaml#cluster-fixture"]);
+    assert.deepEqual(packet.current_wave_refs, [".nimi/local/sweep-design/previous-run/wave-plan.yaml#wave-fixture"]);
+
+    const auditorPrompt = await captureRunCli([
+      "sweep",
+      "design",
+      "auditor-prompt",
+      "--run-id",
+      "design-test",
+      "--packet-id",
+      "packet-finding-0001",
+      "--json",
+    ]);
+    assert.equal(auditorPrompt.exitCode, 0, auditorPrompt.stderr);
+    const promptPayload = JSON.parse(auditorPrompt.stdout);
+    assert.equal(promptPayload.promptRef, ".nimi/local/sweep-design/design-test/auditor-prompts/packet-finding-0001.yaml");
+    const prompt = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "sweep-design", "design-test", "auditor-prompts", "packet-finding-0001.yaml"), "utf8"));
+    assert.equal(prompt.required_result_origin, "external_llm_session");
+    assert.equal(prompt.synthetic_result_policy, "synthetic_trial_results_are_load_tests_only_and_do_not_satisfy_true_llm_closeout");
+
+    const resultInputRef = ".nimi/local/sweep-design/design-test/design-auditor-results/result-ready-input.yaml";
+    await mkdir(path.join(projectRoot, ".nimi", "local", "sweep-design", "design-test", "design-auditor-results"), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, ...resultInputRef.split("/")),
+      YAML.stringify({
+        version: 2,
+        kind: "sweep-design-design-auditor-result",
+        run_id: "design-test",
+        packet_id: "packet-finding-0001",
+        result_id: "result-ready",
+        auditor: "fixture-auditor",
+        auditor_family: "openai_codex",
+        auditor_mode: "all",
+        auditor_result_origin: "external_llm_session",
+        methodology_ref: ".nimi/contracts/sweep-design-result.yaml",
+        packet_ref: ".nimi/local/sweep-design/design-test/design-auditor-packets/packet-finding-0001.yaml",
+        session_ref: "codex-session-design-test",
+        transcript_ref: "codex-transcript-design-test",
+        llm_session_ref: "codex-session-design-test",
+        llm_transcript_ref: "codex-transcript-design-test",
+        llm_prompt_ref: ".nimi/local/sweep-design/design-test/auditor-prompts/packet-finding-0001.yaml",
+        result_schema_version: 2,
+        provenance: { fixture: true },
+        evidence_read: packet.source_finding_refs,
+        finding_outcomes: [
+          {
+            finding_id: "finding-0001",
+            final_outcome: "ready_for_implementation_wave",
+            design_auditor_packet_ref: ".nimi/local/sweep-design/design-test/design-auditor-packets/packet-finding-0001.yaml",
+            design_auditor_result_ref: ".nimi/local/sweep-design/design-test/design-auditor-results/result-ready.yaml",
+            revision_ledger_entry_refs: [".nimi/local/sweep-design/design-test/revision-ledger.yaml#result-ready-revision"],
+            related_finding_ids_considered: [],
+            code_refs_considered: ["src/fixture.ts"],
+            authority_refs_considered: [],
+            wave_id_ref: "wave-fixture-ready",
+            preflight_ref: ".nimi/local/sweep-design/design-test/preflight/wave-fixture-ready.yaml",
+            validation_command_refs: ["node --test nimi-coding/test/nimicoding-audit-sweep.test.mjs"],
+            closeout_criteria_ref: ".nimi/local/sweep-design/design-test/closeout/wave-fixture-ready.yaml",
+          },
+        ],
+        cluster_changes: [],
+        wave_changes: [
+          {
+            wave_id: "wave-fixture-ready",
+            state: "ready_for_implementation",
+            scope: "fixture finding implementation",
+            owner_domain: "runtime",
+            authority_owner: "runtime",
+            dependencies: [],
+            preflight_ref: ".nimi/local/sweep-design/design-test/preflight/wave-fixture-ready.yaml",
+            non_goals: ["source findings mutation"],
+            validation_commands: ["node --test nimi-coding/test/nimicoding-audit-sweep.test.mjs"],
+            negative_checks: ["source findings sha unchanged"],
+            drift_resistance_checks: ["contract refs remain active"],
+            closeout_criteria: ["tests pass"],
+            source_design_packet_refs: [".nimi/local/sweep-design/design-test/design-auditor-packets/packet-finding-0001.yaml"],
+            design_auditor_result_refs: [".nimi/local/sweep-design/design-test/design-auditor-results/result-ready.yaml"],
+            revision_ledger_entry_refs: [".nimi/local/sweep-design/design-test/revision-ledger.yaml#result-ready-revision"],
+            blocked_gate_refs: [],
+            merged_cluster_ids: ["cluster-fixture"],
+            merged_root_cause_keys: ["fixture-root-cause"],
+            finding_ids: ["finding-0001"],
+            isolation_justification: "single fixture finding is isolated for test coverage",
+          },
+        ],
+        revision_entries: [
+          {
+            revision_entry_id: "result-ready-revision",
+            revision_type: "final_state_projection_update",
+            previous_artifact_refs: [],
+            replacement_artifact_refs: [],
+            affected_finding_ids: ["finding-0001"],
+            affected_cluster_ids: ["cluster-fixture"],
+            affected_wave_ids: ["wave-fixture-ready"],
+            reason_code: "fixture_ready_for_implementation_wave",
+            evidence_refs: packet.source_finding_refs,
+            human_gate_status: "not_required",
+            projection_refs_changed: [".nimi/local/sweep-design/design-test/final-state-report.yaml"],
+          },
+        ],
+        human_decision_requests: [],
+        extra_audit_requests: [],
+        validation_recommendations: ["node --test nimi-coding/test/nimicoding-audit-sweep.test.mjs"],
+        closeout_recommendations: ["close after tests pass"],
+        rejection_status: "accepted",
+      }),
+      "utf8",
+    );
+    const ingest = await captureRunCli([
+      "sweep",
+      "design",
+      "result-ingest",
+      "--run-id",
+      "design-test",
+      "--from",
+      resultInputRef,
+      "--mode",
+      "all",
+      "--json",
+    ]);
+    assert.equal(ingest.exitCode, 0, ingest.stderr);
+    const ledger = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "sweep-design", "design-test", "revision-ledger.yaml"), "utf8"));
+    assert.equal(ledger.kind, "sweep-design-revision-ledger");
+    assert.equal(ledger.entries.length, 1);
+    assert.equal(ledger.entries[0].entry_index, 1);
+    assert.match(ledger.entries[0].entry_hash, /^[a-f0-9]{64}$/);
+
+    assert.equal((await captureRunCli(["sweep", "design", "ledger-validate", "--run-id", "design-test", "--json"])).exitCode, 0);
+    const finalize = await captureRunCli(["sweep", "design", "finalize", "--run-id", "design-test", "--json"]);
+    assert.equal(finalize.exitCode, 0, finalize.stderr);
+    assert.equal(JSON.parse(finalize.stdout).finalComplete, true);
+    assert.equal((await captureRunCli([
+      "sweep",
+      "design",
+      "wave-plan",
+      "--run-id",
+      "design-test",
+      "--topic-id",
+      "2026-05-06-design-test",
+      "--json",
+    ])).exitCode, 0);
+
+    const wavePlan = YAML.parse(await readFile(path.join(projectRoot, ".nimi", "local", "sweep-design", "design-test", "wave-plan.yaml"), "utf8"));
+    assert.equal(wavePlan.kind, "sweep-design-wave-plan");
+    assert.equal(wavePlan.mutates_topic_state, false);
+    assert.equal(wavePlan.worker_dispatch_allowed, false);
+    assert.equal(wavePlan.waves[0].wave_id, "wave-fixture-ready");
+    assert.deepEqual(wavePlan.waves[0].validation_commands, ["node --test nimi-coding/test/nimicoding-audit-sweep.test.mjs"]);
+    assert.equal(sha256Text(await readFile(sourceFindingsPath, "utf8")), originalFindingsSha);
+  });
+});
+
+test("sweep design focused mode stops on user decision auditor results while all mode queues them", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+    await seedReconstructedTargetTruth(projectRoot);
+    await seedFrozenAuditSweep(projectRoot, {
+      sweepId: "audit-sweep-design-decision-test",
+      actionability: "needs-decision",
+      severity: "critical",
+      findingTitle: "Decision fixture finding",
+    });
+
+    assert.equal((await captureRunCli([
+      "sweep",
+      "design",
+      "intake",
+      "--sweep-id",
+      "audit-sweep-design-decision-test",
+      "--run-id",
+      "design-decision-test",
+      "--json",
+    ])).exitCode, 0);
+    assert.equal((await captureRunCli([
+      "sweep",
+      "design",
+      "packet-build",
+      "--run-id",
+      "design-decision-test",
+      "--packet-id",
+      "decision-packet",
+      "--finding-id",
+      "finding-0001",
+      "--json",
+    ])).exitCode, 0);
+
+    const resultInputRef = ".nimi/local/sweep-design/design-decision-test/design-auditor-results/decision-result-input.yaml";
+    await mkdir(path.join(projectRoot, ".nimi", "local", "sweep-design", "design-decision-test", "design-auditor-results"), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, ...resultInputRef.split("/")),
+      YAML.stringify({
+        version: 2,
+        kind: "sweep-design-design-auditor-result",
+        run_id: "design-decision-test",
+        packet_id: "decision-packet",
+        result_id: "decision-result",
+        auditor: "fixture-auditor",
+        auditor_family: "openai_codex",
+        auditor_mode: "focused",
+        auditor_result_origin: "external_llm_session",
+        methodology_ref: ".nimi/contracts/sweep-design-result.yaml",
+        packet_ref: ".nimi/local/sweep-design/design-decision-test/design-auditor-packets/decision-packet.yaml",
+        session_ref: "codex-session-design-decision-test",
+        transcript_ref: "codex-transcript-design-decision-test",
+        llm_session_ref: "codex-session-design-decision-test",
+        llm_transcript_ref: "codex-transcript-design-decision-test",
+        llm_prompt_ref: ".nimi/local/sweep-design/design-decision-test/auditor-prompts/decision-packet.yaml",
+        result_schema_version: 2,
+        provenance: { fixture: true },
+        evidence_read: [".nimi/local/audit/evidence/audit-sweep-design-decision-test/findings.yaml#finding-0001"],
+        finding_outcomes: [
+          {
+            finding_id: "finding-0001",
+            final_outcome: "needs_user_decision",
+            design_auditor_packet_ref: ".nimi/local/sweep-design/design-decision-test/design-auditor-packets/decision-packet.yaml",
+            design_auditor_result_ref: ".nimi/local/sweep-design/design-decision-test/design-auditor-results/decision-result.yaml",
+            revision_ledger_entry_refs: [".nimi/local/sweep-design/design-decision-test/revision-ledger.yaml#decision-result-revision"],
+            related_finding_ids_considered: [],
+            code_refs_considered: ["src/fixture.ts"],
+            authority_refs_considered: [],
+            decision_queue_item_ref: ".nimi/local/sweep-design/design-decision-test/decision-queue.yaml#decision-finding-0001",
+            decision_packet_ref: ".nimi/local/sweep-design/design-decision-test/decision-packets/decision-finding-0001.yaml",
+            recommended_decision: "confirm product behavior before implementation",
+            queue_status: "pending_user_confirmation",
+            blocked_downstream_wave_refs: ["wave-decision-blocked"],
+          },
+        ],
+        cluster_changes: [],
+        wave_changes: [],
+        revision_entries: [
+          {
+            revision_entry_id: "decision-result-revision",
+            revision_type: "user_decision_queue_rewrite",
+            previous_artifact_refs: [],
+            replacement_artifact_refs: [],
+            affected_finding_ids: ["finding-0001"],
+            affected_cluster_ids: [],
+            affected_wave_ids: ["wave-decision-blocked"],
+            reason_code: "fixture_requires_user_decision",
+            evidence_refs: [".nimi/local/audit/evidence/audit-sweep-design-decision-test/findings.yaml#finding-0001"],
+            human_gate_status: "pending",
+            projection_refs_changed: [".nimi/local/sweep-design/design-decision-test/decision-queue.yaml"],
+          },
+        ],
+        human_decision_requests: [{ decision_id: "decision-finding-0001", question: "Confirm fixture product behavior" }],
+        extra_audit_requests: [],
+        validation_recommendations: [],
+        closeout_recommendations: [],
+        rejection_status: "accepted",
+      }),
+      "utf8",
+    );
+    const focusedPlan = await captureRunCli([
+      "sweep",
+      "design",
+      "result-ingest",
+      "--run-id",
+      "design-decision-test",
+      "--from",
+      resultInputRef,
+      "--mode",
+      "focused",
+      "--json",
+    ]);
+    assert.equal(focusedPlan.exitCode, 2, focusedPlan.stderr);
+    const focusedPayload = JSON.parse(focusedPlan.stdout);
+    assert.equal(focusedPayload.stopClass, "require_human_confirmation");
+    assert.equal(focusedPayload.stopReason, "focused_mode_requires_manager_or_human_resolution");
+
+    const queuePath = path.join(projectRoot, ".nimi", "local", "sweep-design", "design-decision-test", "decision-queue.yaml");
+    const queue = YAML.parse(await readFile(queuePath, "utf8"));
+    assert.equal(queue.kind, "sweep-design-decision-queue");
+    assert.equal(queue.queue_policy, "focused_mode_stops_immediately_all_mode_batches_until_audit_complete");
+    assert.equal(queue.pending_decision_count, 2);
+
+    const allPlan = await captureRunCli([
+      "sweep",
+      "design",
+      "result-ingest",
+      "--run-id",
+      "design-decision-test",
+      "--from",
+      resultInputRef,
+      "--mode",
+      "all",
+      "--json",
+    ]);
+    assert.equal(allPlan.exitCode, 0, allPlan.stderr);
+    assert.equal(JSON.parse(allPlan.stdout).findingOutcomeCount, 1);
+  });
+});
+
+test("sweep design finalize refuses missing LLM final outcomes", async () => {
+  await withTempProject(async (projectRoot) => {
+    assert.equal((await captureRunCli(["start"])).exitCode, 0);
+    await seedReconstructedTargetTruth(projectRoot);
+    await seedFrozenAuditSweep(projectRoot, {
+      sweepId: "audit-sweep-design-synthesis-test",
+      actionability: "needs-decision",
+      severity: "high",
+      findingTitle: "Synthesis fixture finding",
+    });
+
+    assert.equal((await captureRunCli([
+      "sweep",
+      "design",
+      "intake",
+      "--sweep-id",
+      "audit-sweep-design-synthesis-test",
+      "--run-id",
+      "design-synthesis-test",
+      "--json",
+    ])).exitCode, 0);
+    assert.equal((await captureRunCli([
+      "sweep",
+      "design",
+      "packet-build",
+      "--run-id",
+      "design-synthesis-test",
+      "--finding-id",
+      "finding-0001",
+      "--packet-id",
+      "missing-outcome-packet",
+      "--json",
+    ])).exitCode, 0);
+    const finalize = await captureRunCli(["sweep", "design", "finalize", "--run-id", "design-synthesis-test", "--json"]);
+    assert.equal(finalize.exitCode, 2, finalize.stderr);
+    const finalReport = JSON.parse(finalize.stdout);
+    assert.equal(finalReport.finalComplete, false);
+    assert.equal(finalReport.finalFindingCount, 0);
+    assert.equal(finalReport.transientFindingCount, 1);
+  });
+});
+
 test("audit-sweep plan creates deterministic local chunk artifacts", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
@@ -59,7 +502,8 @@ test("audit-sweep plan creates deterministic local chunk artifacts", async () =>
     await writeFile(path.join(projectRoot, "src", "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n", "utf8");
 
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -80,6 +524,7 @@ test("audit-sweep plan creates deterministic local chunk artifacts", async () =>
     assert.equal(payload.includedFiles, 2);
     assert.equal(payload.chunkCount, 2);
     assert.equal(payload.planRef, ".nimi/local/audit/plans/audit-sweep-test-plan.yaml");
+    assert.deepEqual(payload.chunkIds, ["chunk-001", "chunk-002"]);
     assert.deepEqual(payload.criteria, ["quality", "security"]);
     assert.match(payload.inventoryHash, /^[a-f0-9]{64}$/);
 
@@ -111,7 +556,8 @@ test("audit-sweep plan supports explicit per-run ignore policy without claiming 
     await writeFile(path.join(projectRoot, "src", "ignored.ts"), "export const ignored = 1;\n", "utf8");
 
     const missingReason = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -127,7 +573,8 @@ test("audit-sweep plan supports explicit per-run ignore policy without claiming 
     assert.match(missingReason.stderr, /requires --ignore-reason/);
 
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -157,7 +604,8 @@ test("audit-sweep plan supports explicit per-run ignore policy without claiming 
     assert.equal(ignoredChunk.skip.ignored_by_policy, true);
 
     const dispatchIgnored = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -165,14 +613,15 @@ test("audit-sweep plan supports explicit per-run ignore policy without claiming 
       "--chunk-id",
       ignoredChunkSummary.chunk_id,
       "--dispatched-at",
-      "2026-04-10T00:00:00.000Z",
+      "2026-04-10T00:00:00Z",
       "--json",
     ]);
     assert.equal(dispatchIgnored.exitCode, 2);
     assert.match(dispatchIgnored.stderr, /requires planned state/);
 
     const validateChunks = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "validate",
       "--sweep-id",
       "audit-sweep-test-ignore-policy",
@@ -193,7 +642,8 @@ test("audit-sweep dispatch adds opt-in P0/P1 recall strategy without changing or
     await writeFile(path.join(projectRoot, "src", "ordinary", "ordinary.ts"), "export const value = 1;\n", "utf8");
 
     const p0p1PlanResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src/p0p1",
@@ -210,7 +660,8 @@ test("audit-sweep dispatch adds opt-in P0/P1 recall strategy without changing or
     const p0p1Chunk = p0p1Plan.chunks[0];
 
     const p0p1DispatchResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -255,7 +706,8 @@ test("audit-sweep dispatch adds opt-in P0/P1 recall strategy without changing or
       "utf8",
     );
     const outOfScopeIngestResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -272,7 +724,8 @@ test("audit-sweep dispatch adds opt-in P0/P1 recall strategy without changing or
     assert.match(outOfScopeIngestResult.stderr, /coverage\.p0p1_evidence_refs\[1\] must belong to the chunk implementation surface/);
 
     const ordinaryPlanResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src/ordinary",
@@ -289,7 +742,8 @@ test("audit-sweep dispatch adds opt-in P0/P1 recall strategy without changing or
     const ordinaryChunk = ordinaryPlan.chunks[0];
 
     const ordinaryDispatchResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -346,7 +800,8 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     await writeFile(path.join(projectRoot, "runtime", "internal", "service_test.go"), "package internal\n", "utf8");
 
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       ".",
@@ -408,7 +863,8 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     assert.ok(specRootChunk.evidence_roots.includes("config"));
 
     const dispatchResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -436,7 +892,8 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
       "utf8",
     );
     const incompleteIngestResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -473,7 +930,8 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
       "utf8",
     );
     const missingAuthorityRefsIngestResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -511,7 +969,8 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
       "utf8",
     );
     const partialIngestResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -564,7 +1023,8 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     );
 
     const ingestResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -586,7 +1046,8 @@ test("audit-sweep plan uses spec authority chunks for whole-project sweeps", asy
     delete tamperedEvidence.coverage.authority_refs;
     await writeFile(tamperedEvidencePath, `${JSON.stringify(tamperedEvidence, null, 2)}\n`, "utf8");
     const tamperedValidateResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "validate",
       "--sweep-id",
       "audit-sweep-test-spec-basis",
@@ -636,7 +1097,8 @@ test("audit-sweep plan expands app-local specs only through app-slice admissions
     await writeFile(path.join(projectRoot, "apps", "demo", "package.json"), "{\"name\":\"demo\"}\n", "utf8");
 
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "apps/demo",
@@ -661,7 +1123,8 @@ test("audit-sweep plan expands app-local specs only through app-slice admissions
     assert.equal(plan.unmapped_evidence_files.length, 0);
 
     const validateResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "validate",
       "--sweep-id",
       "audit-sweep-test-app-slice-admission",
@@ -700,7 +1163,8 @@ test("audit-sweep plan maps authority-specific evidence roots from spec tables",
     await writeFile(path.join(projectRoot, "apps", "web", "src", "app.ts"), "export const web = true;\n", "utf8");
 
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       ".",
@@ -797,7 +1261,8 @@ test("audit-sweep plan expands admitted package authority and host-local project
     await writeFile(path.join(projectRoot, ".nimi", "methodology", "host-local-tool.yaml"), "version: 1\n", "utf8");
 
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       ".",

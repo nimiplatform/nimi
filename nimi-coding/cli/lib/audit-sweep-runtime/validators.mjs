@@ -688,11 +688,11 @@ async function validateCloseoutArtifact(projectRoot, sweepId, ledgerInfo, remedi
 export async function validateAuditSweepArtifacts(projectRoot, options) {
   const sweepId = safeSweepId(options.sweepId);
   if (!sweepId) {
-    return inputError("nimicoding audit-sweep refused: --sweep-id is required.\n");
+    return inputError("nimicoding sweep audit refused: --sweep-id is required.\n");
   }
   const scope = options.scope ?? "all";
   if (!VALIDATION_SCOPES.has(scope)) {
-    return inputError("nimicoding audit-sweep refused: --scope must be one of all, plan, chunks, findings, ledger, remediation, rerun, closeout.\n");
+    return inputError("nimicoding sweep audit refused: --scope must be one of all, plan, chunks, findings, ledger, remediation, rerun, closeout.\n");
   }
 
   const checks = [];

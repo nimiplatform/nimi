@@ -40,7 +40,8 @@ test("audit-sweep accepted clusters resume-skip unchanged roots and reopen when 
     await writeFile(path.join(projectRoot, "src", "c.ts"), "export function service() { return 3; }\n", "utf8");
 
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -51,7 +52,8 @@ test("audit-sweep accepted clusters resume-skip unchanged roots and reopen when 
       "--json",
     ])).exitCode, 0);
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -70,7 +72,8 @@ test("audit-sweep accepted clusters resume-skip unchanged roots and reopen when 
       }),
     ]);
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -84,7 +87,8 @@ test("audit-sweep accepted clusters resume-skip unchanged roots and reopen when 
       "--json",
     ])).exitCode, 0);
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "ledger",
       "build",
       "--sweep-id",
@@ -94,7 +98,8 @@ test("audit-sweep accepted clusters resume-skip unchanged roots and reopen when 
       "--json",
     ])).exitCode, 0);
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "remediation-map",
       "build",
       "--sweep-id",
@@ -119,7 +124,8 @@ test("audit-sweep accepted clusters resume-skip unchanged roots and reopen when 
     assert.equal(createTopic.exitCode, 0, createTopic.stderr);
     const topic = JSON.parse(createTopic.stdout);
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "remediation-map",
       "admit",
       "--sweep-id",
@@ -130,7 +136,8 @@ test("audit-sweep accepted clusters resume-skip unchanged roots and reopen when 
     ])).exitCode, 0);
 
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -149,7 +156,8 @@ test("audit-sweep accepted clusters resume-skip unchanged roots and reopen when 
       }),
     ]);
     const unchangedResume = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -173,7 +181,8 @@ test("audit-sweep accepted clusters resume-skip unchanged roots and reopen when 
     await writeFile(findingsPath, YAML.stringify(findingsStore), "utf8");
 
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -192,7 +201,8 @@ test("audit-sweep accepted clusters resume-skip unchanged roots and reopen when 
       }),
     ]);
     const changedRoot = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -219,7 +229,8 @@ test("audit-sweep chunk ingest fails closed on malformed findings", async () => 
     await writeFile(path.join(projectRoot, "src", "service.ts"), "export const service = 1;\n", "utf8");
 
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -230,7 +241,8 @@ test("audit-sweep chunk ingest fails closed on malformed findings", async () => 
     assert.equal(planResult.exitCode, 0);
 
     const dispatchResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -269,7 +281,8 @@ test("audit-sweep chunk ingest fails closed on malformed findings", async () => 
     );
 
     const ingestResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -298,7 +311,8 @@ test("audit-sweep closeout and validators fail closed on missing remediation map
     });
 
     const closeoutWithoutMap = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "closeout",
       "summary",
       "--sweep-id",
@@ -316,7 +330,8 @@ test("audit-sweep closeout and validators fail closed on missing remediation map
     await writeFile(ledgerPath, YAML.stringify(ledger), "utf8");
 
     const validateLedger = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "validate",
       "--sweep-id",
       "audit-sweep-test-gates",
@@ -337,9 +352,10 @@ test("audit-sweep rejects coverage mismatch, invalid rerun, and unexpected close
     await seedReconstructedTargetTruth(projectRoot);
     await mkdir(path.join(projectRoot, "src"), { recursive: true });
     await writeFile(path.join(projectRoot, "src", "service.ts"), "export const service = 1;\n", "utf8");
-    assert.equal((await captureRunCli(["audit-sweep", "plan", "--root", "src", "--sweep-id", "audit-sweep-test-negative", "--json"])).exitCode, 0);
+    assert.equal((await captureRunCli(["sweep", "audit", "plan", "--root", "src", "--sweep-id", "audit-sweep-test-negative", "--json"])).exitCode, 0);
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -362,7 +378,8 @@ test("audit-sweep rejects coverage mismatch, invalid rerun, and unexpected close
       "utf8",
     );
     const mismatch = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -400,7 +417,8 @@ test("audit-sweep rejects coverage mismatch, invalid rerun, and unexpected close
       "utf8",
     );
     const badRerun = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "finding",
       "resolve",
       "--sweep-id",
@@ -419,7 +437,8 @@ test("audit-sweep rejects coverage mismatch, invalid rerun, and unexpected close
     assert.match(badRerun.stderr, /requires not_reproduced/);
 
     await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "remediation-map",
       "build",
       "--sweep-id",
@@ -429,7 +448,8 @@ test("audit-sweep rejects coverage mismatch, invalid rerun, and unexpected close
       "--json",
     ]);
     const closeout = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "closeout",
       "summary",
       "--sweep-id",
@@ -458,7 +478,8 @@ test("audit-sweep remediation-map admit materializes topic waves and preserves m
       actionability: "auto-fix",
     });
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "remediation-map",
       "build",
       "--sweep-id",
@@ -484,7 +505,8 @@ test("audit-sweep remediation-map admit materializes topic waves and preserves m
     const topic = JSON.parse(createTopicResult.stdout);
 
     const admitResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "remediation-map",
       "admit",
       "--sweep-id",

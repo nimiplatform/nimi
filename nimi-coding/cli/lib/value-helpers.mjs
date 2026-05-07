@@ -11,8 +11,13 @@ export function isIsoUtcTimestamp(value) {
     return false;
   }
 
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) {
+    return false;
+  }
+
   const parsed = new Date(value);
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString() === value;
+  const canonicalValue = value.includes(".") ? value : value.replace("Z", ".000Z");
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString() === canonicalValue;
 }
 
 export function toStringArray(value) {

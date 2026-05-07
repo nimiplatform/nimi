@@ -43,7 +43,8 @@ test("audit-sweep validate emits complete JSON for large spec sweeps", async () 
     }
 
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       ".",
@@ -56,7 +57,8 @@ test("audit-sweep validate emits complete JSON for large spec sweeps", async () 
     assert.equal(planResult.exitCode, 0);
 
     const validateResult = await runCliSubprocess([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "validate",
       "--sweep-id",
       "audit-sweep-test-large-json",
@@ -93,7 +95,8 @@ test("audit-sweep validate emits complete JSON for large spec sweeps", async () 
     )));
 
     const ledgerResult = await runCliSubprocess([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "ledger",
       "build",
       "--sweep-id",
@@ -120,7 +123,8 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     await writeFile(path.join(projectRoot, "src", "service.ts"), "export function service() { return 1; }\n", "utf8");
 
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -131,7 +135,8 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     assert.equal(planResult.exitCode, 0);
 
     const dispatchResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -187,7 +192,8 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     );
 
     const ingestResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -208,7 +214,8 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     assert.equal(ingestPayload.evidenceRef, ".nimi/local/audit/evidence/audit-sweep-test-ledger/chunk-001.audit-evidence.json");
 
     const reviewResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "review",
       "--sweep-id",
@@ -227,7 +234,8 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     assert.equal(JSON.parse(reviewResult.stdout).state, "frozen");
 
     const ledgerResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "ledger",
       "build",
       "--sweep-id",
@@ -260,7 +268,8 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     assert.equal(latestPointer.ledger_ref, ledgerPayload.ledgerRef);
 
     const remediationMapResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "remediation-map",
       "build",
       "--sweep-id",
@@ -307,7 +316,8 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     );
 
     const resolveResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "finding",
       "resolve",
       "--sweep-id",
@@ -329,7 +339,8 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     assert.equal(resolvePayload.evidenceRef, ".nimi/local/audit/evidence/audit-sweep-test-ledger/resolution-finding-0001.json");
 
     const rebuiltLedgerResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "ledger",
       "build",
       "--sweep-id",
@@ -345,7 +356,8 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     assert.notEqual(rebuiltLedgerPayload.ledgerRef, ledgerPayload.ledgerRef);
 
     const emptyRemediationMapResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "remediation-map",
       "build",
       "--sweep-id",
@@ -358,7 +370,8 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     assert.equal(JSON.parse(emptyRemediationMapResult.stdout).waveCount, 0);
 
     const closeoutSummaryResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "closeout",
       "summary",
       "--sweep-id",
@@ -392,7 +405,8 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     assert.equal(closeoutPayload.skill.id, "audit_sweep");
 
     const statusResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "status",
       "--sweep-id",
       "audit-sweep-test-ledger",
@@ -404,7 +418,8 @@ test("audit-sweep state machine builds immutable ledger, remediation map, rerun 
     assert.equal(statusPayload.findingCount, 1);
 
     const validateResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "validate",
       "--sweep-id",
       "audit-sweep-test-ledger",
@@ -428,7 +443,8 @@ test("audit-sweep clusters duplicate symptoms, preserves unique high severity fi
     await writeFile(path.join(projectRoot, "src", "c.ts"), "export function service() { return 3; }\n", "utf8");
 
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -443,7 +459,8 @@ test("audit-sweep clusters duplicate symptoms, preserves unique high severity fi
     assert.equal(planResult.exitCode, 0, planResult.stderr);
 
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -462,7 +479,8 @@ test("audit-sweep clusters duplicate symptoms, preserves unique high severity fi
       }),
     ]);
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -477,7 +495,8 @@ test("audit-sweep clusters duplicate symptoms, preserves unique high severity fi
     ])).exitCode, 0);
 
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -502,7 +521,8 @@ test("audit-sweep clusters duplicate symptoms, preserves unique high severity fi
       }),
     ]);
     const secondIngest = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -522,7 +542,8 @@ test("audit-sweep clusters duplicate symptoms, preserves unique high severity fi
     assert.equal(secondPayload.riskBudgetStatus.state, "paused");
 
     const blockedDispatch = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -544,7 +565,8 @@ test("audit-sweep clusters duplicate symptoms, preserves unique high severity fi
     assert.ok(findingsStore.clusters.some((cluster) => cluster.duplicate_symptom_count === 1));
 
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "ledger",
       "build",
       "--sweep-id",
@@ -554,7 +576,8 @@ test("audit-sweep clusters duplicate symptoms, preserves unique high severity fi
       "--json",
     ])).exitCode, 0);
     const remediationMapResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "remediation-map",
       "build",
       "--sweep-id",
@@ -581,7 +604,8 @@ test("audit-sweep clusters same-chunk same-location retry findings as duplicates
 
     const sweepId = "audit-sweep-test-same-location-retry-dedupe";
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -594,7 +618,8 @@ test("audit-sweep clusters same-chunk same-location retry findings as duplicates
     assert.equal(planResult.exitCode, 0, planResult.stderr);
 
     assert.equal((await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "dispatch",
       "--sweep-id",
@@ -613,7 +638,8 @@ test("audit-sweep clusters same-chunk same-location retry findings as duplicates
       }),
     ]);
     const firstIngest = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -647,7 +673,8 @@ test("audit-sweep clusters same-chunk same-location retry findings as duplicates
       }),
     ]);
     const retryIngest = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "ingest",
       "--sweep-id",
@@ -682,7 +709,8 @@ test("audit-sweep chunk mutations fail closed under lock contention and preserve
 
     const sweepId = "audit-sweep-test-concurrent-review";
     const planResult = await captureRunCli([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "plan",
       "--root",
       "src",
@@ -697,7 +725,8 @@ test("audit-sweep chunk mutations fail closed under lock contention and preserve
     for (const [index, file] of ["a.ts", "b.ts"].entries()) {
       const chunkId = `chunk-${String(index + 1).padStart(3, "0")}`;
       assert.equal((await captureRunCli([
-        "audit-sweep",
+      "sweep",
+      "audit",
         "chunk",
         "dispatch",
         "--sweep-id",
@@ -710,7 +739,8 @@ test("audit-sweep chunk mutations fail closed under lock contention and preserve
       ])).exitCode, 0);
       await writeAuditEvidence(projectRoot, `${chunkId}.json`, chunkId, [`src/${file}`], []);
       assert.equal((await captureRunCli([
-        "audit-sweep",
+      "sweep",
+      "audit",
         "chunk",
         "ingest",
         "--sweep-id",
@@ -730,7 +760,8 @@ test("audit-sweep chunk mutations fail closed under lock contention and preserve
     const lockPath = path.join(lockDir, `${sweepId}.lock`);
     await writeFile(lockPath, "{\"test\":\"held\"}\n", "utf8");
     const blockedReview = await runCliSubprocess([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "review",
       "--sweep-id",
@@ -748,7 +779,8 @@ test("audit-sweep chunk mutations fail closed under lock contention and preserve
     await rm(lockPath, { force: true });
 
     const reviewArgs = (chunkId, reviewedAt) => [
-      "audit-sweep",
+      "sweep",
+      "audit",
       "chunk",
       "review",
       "--sweep-id",
@@ -773,7 +805,8 @@ test("audit-sweep chunk mutations fail closed under lock contention and preserve
     }
 
     const validateResult = await runCliSubprocess([
-      "audit-sweep",
+      "sweep",
+      "audit",
       "validate",
       "--sweep-id",
       sweepId,

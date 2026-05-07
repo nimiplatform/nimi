@@ -22,8 +22,8 @@ function readRequiredValue(args, index, optionName, commandName) {
     return {
       ok: false,
       error: `${localize(
-        `nimicoding audit-sweep ${commandName} refused: ${optionName} requires a value.`,
-        `nimicoding audit-sweep ${commandName} 已拒绝：${optionName} 需要一个值。`,
+        `nimicoding sweep audit ${commandName} refused: ${optionName} requires a value.`,
+        `nimicoding sweep audit ${commandName} 已拒绝：${optionName} 需要一个值。`,
       )}\n`,
     };
   }
@@ -34,8 +34,8 @@ function unknownOption(commandName, arg) {
   return {
     ok: false,
     error: `${localize(
-      `nimicoding audit-sweep ${commandName} refused: unknown option ${arg}.`,
-      `nimicoding audit-sweep ${commandName} 已拒绝：未知选项 ${arg}。`,
+      `nimicoding sweep audit ${commandName} refused: unknown option ${arg}.`,
+      `nimicoding sweep audit ${commandName} 已拒绝：未知选项 ${arg}。`,
     )}\n`,
   };
 }
@@ -65,8 +65,8 @@ function parseOptions(args, commandName, spec) {
         return {
           ok: false,
           error: `${localize(
-            `nimicoding audit-sweep ${commandName} refused: ${arg} must be a positive integer.`,
-            `nimicoding audit-sweep ${commandName} 已拒绝：${arg} 必须是正整数。`,
+            `nimicoding sweep audit ${commandName} refused: ${arg} must be a positive integer.`,
+            `nimicoding sweep audit ${commandName} 已拒绝：${arg} 必须是正整数。`,
           )}\n`,
         };
       }
@@ -85,8 +85,8 @@ function parseOptions(args, commandName, spec) {
     return {
       ok: false,
       error: `${localize(
-        `nimicoding audit-sweep ${commandName} refused: missing required options: ${missing.join(", ")}.`,
-        `nimicoding audit-sweep ${commandName} 已拒绝：缺少必填选项：${missing.join(", ")}。`,
+        `nimicoding sweep audit ${commandName} refused: missing required options: ${missing.join(", ")}.`,
+        `nimicoding sweep audit ${commandName} 已拒绝：缺少必填选项：${missing.join(", ")}。`,
       )}\n`,
     };
   }
@@ -269,8 +269,8 @@ function parseAuditSweepOptions(args) {
   return {
     ok: false,
     error: `${localize(
-      "nimicoding audit-sweep refused: expected one of `plan`, `chunk dispatch`, `chunk audit-codex`, `chunk ingest`, `chunk review`, `chunk skip`, `ledger build`, `remediation-map build`, `remediation-map admit`, `finding resolve`, `closeout summary`, `status`, or `validate`.",
-      "nimicoding audit-sweep 已拒绝：需要使用 `plan`、`chunk dispatch`、`chunk ingest`、`chunk review`、`chunk skip`、`ledger build`、`remediation-map build`、`remediation-map admit`、`finding resolve`、`closeout summary`、`status` 或 `validate`。",
+      "nimicoding sweep audit refused: expected one of `plan`, `chunk dispatch`, `chunk audit-codex`, `chunk ingest`, `chunk review`, `chunk skip`, `ledger build`, `remediation-map build`, `remediation-map admit`, `finding resolve`, `closeout summary`, `status`, or `validate`.",
+      "nimicoding sweep audit 已拒绝：需要使用 `plan`、`chunk dispatch`、`chunk ingest`、`chunk review`、`chunk skip`、`ledger build`、`remediation-map build`、`remediation-map admit`、`finding resolve`、`closeout summary`、`status` 或 `validate`。",
     )}\n`,
   };
 }

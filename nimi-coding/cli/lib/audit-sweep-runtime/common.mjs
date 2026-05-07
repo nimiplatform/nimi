@@ -97,7 +97,7 @@ export function resolveInsideProject(projectRoot, inputPath, label) {
   if (!isPathInside(projectRoot, absolutePath)) {
     return {
       ok: false,
-      error: `nimicoding audit-sweep refused: ${label} must stay inside the project root.\n`,
+      error: `nimicoding sweep audit refused: ${label} must stay inside the project root.\n`,
     };
   }
 
@@ -168,7 +168,7 @@ export async function withAuditSweepMutationLock(projectRoot, sweepId, label, fn
     handle = await open(lockPath, "wx");
   } catch (error) {
     if (error?.code === "EEXIST") {
-      return inputError(`nimicoding audit-sweep refused: ${label} mutation already in progress for ${sweepId}; retry after the current command finishes.\n`);
+      return inputError(`nimicoding sweep audit refused: ${label} mutation already in progress for ${sweepId}; retry after the current command finishes.\n`);
     }
     throw error;
   }
@@ -264,7 +264,7 @@ export async function loadPlan(projectRoot, sweepId) {
   const ref = planRef(sweepId);
   const plan = await loadYamlRef(projectRoot, ref);
   if (!isPlainObject(plan) || plan.kind !== "audit-plan" || plan.sweep_id !== sweepId) {
-    return { ok: false, error: `nimicoding audit-sweep refused: plan not found for ${sweepId}.\n` };
+    return { ok: false, error: `nimicoding sweep audit refused: plan not found for ${sweepId}.\n` };
   }
   return { ok: true, plan, planRef: ref };
 }
@@ -273,7 +273,7 @@ export async function loadChunk(projectRoot, sweepId, chunkId) {
   const ref = chunkRef(sweepId, chunkId);
   const chunk = await loadYamlRef(projectRoot, ref);
   if (!isPlainObject(chunk) || chunk.kind !== "audit-chunk" || chunk.sweep_id !== sweepId || chunk.chunk_id !== chunkId) {
-    return { ok: false, error: `nimicoding audit-sweep refused: chunk not found for ${sweepId}/${chunkId}.\n` };
+    return { ok: false, error: `nimicoding sweep audit refused: chunk not found for ${sweepId}/${chunkId}.\n` };
   }
   return { ok: true, chunk, chunkRef: ref };
 }
@@ -306,12 +306,12 @@ export async function loadLatestLedger(projectRoot, sweepId) {
   const latestRef = artifactRef("ledger_ref", sweepId, "latest.yaml");
   const pointer = await loadYamlRef(projectRoot, latestRef);
   if (!isPlainObject(pointer) || typeof pointer.ledger_ref !== "string") {
-    return { ok: false, error: `nimicoding audit-sweep refused: latest ledger not found for ${sweepId}.\n` };
+    return { ok: false, error: `nimicoding sweep audit refused: latest ledger not found for ${sweepId}.\n` };
   }
 
   const ledger = await loadYamlRef(projectRoot, pointer.ledger_ref);
   if (!isPlainObject(ledger) || ledger.kind !== "audit-ledger" || ledger.sweep_id !== sweepId) {
-    return { ok: false, error: `nimicoding audit-sweep refused: latest ledger is malformed for ${sweepId}.\n` };
+    return { ok: false, error: `nimicoding sweep audit refused: latest ledger is malformed for ${sweepId}.\n` };
   }
 
   return { ok: true, ledger, ledgerRef: pointer.ledger_ref, pointerRef: latestRef };
@@ -323,7 +323,7 @@ export function inputError(error) {
 
 export function ensureIsoTimestamp(value, label = "--verified-at") {
   if (!isIsoUtcTimestamp(value)) {
-    return inputError(`nimicoding audit-sweep refused: ${label} must be an ISO-8601 UTC timestamp.\n`);
+    return inputError(`nimicoding sweep audit refused: ${label} must be an ISO-8601 UTC timestamp.\n`);
   }
   return null;
 }

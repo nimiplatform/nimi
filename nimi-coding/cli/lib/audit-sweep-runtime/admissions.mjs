@@ -36,7 +36,7 @@ export async function loadAuditSweepProjectConfig(projectRoot) {
   } catch (error) {
     return {
       ok: false,
-      error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} must contain valid YAML (${error.message}).\n`,
+      error: `nimicoding sweep audit refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} must contain valid YAML (${error.message}).\n`,
     };
   }
 
@@ -47,25 +47,25 @@ export async function loadAuditSweepProjectConfig(projectRoot) {
   if (!Array.isArray(rawExcludePatterns)) {
     return {
       ok: false,
-      error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} exclude_patterns must be an array.\n`,
+      error: `nimicoding sweep audit refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} exclude_patterns must be an array.\n`,
     };
   }
   if (!Array.isArray(rawIgnorePatterns)) {
     return {
       ok: false,
-      error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_patterns must be an array.\n`,
+      error: `nimicoding sweep audit refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_patterns must be an array.\n`,
     };
   }
   if (!Array.isArray(rawIgnoreOwnerDomains)) {
     return {
       ok: false,
-      error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_owner_domains must be an array.\n`,
+      error: `nimicoding sweep audit refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_owner_domains must be an array.\n`,
     };
   }
   if (rawIgnoreReason !== null && (typeof rawIgnoreReason !== "string" || rawIgnoreReason.trim().length === 0)) {
     return {
       ok: false,
-      error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_reason must be a non-empty string when present.\n`,
+      error: `nimicoding sweep audit refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_reason must be a non-empty string when present.\n`,
     };
   }
 
@@ -74,7 +74,7 @@ export async function loadAuditSweepProjectConfig(projectRoot) {
     if (typeof pattern !== "string" || pattern.trim().length === 0) {
       return {
         ok: false,
-        error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} exclude_patterns entries must be non-empty strings.\n`,
+        error: `nimicoding sweep audit refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} exclude_patterns entries must be non-empty strings.\n`,
       };
     }
     excludePatterns.push(pattern.trim());
@@ -84,7 +84,7 @@ export async function loadAuditSweepProjectConfig(projectRoot) {
     if (typeof pattern !== "string" || pattern.trim().length === 0) {
       return {
         ok: false,
-        error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_patterns entries must be non-empty strings.\n`,
+        error: `nimicoding sweep audit refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_patterns entries must be non-empty strings.\n`,
       };
     }
     ignorePatterns.push(pattern.trim());
@@ -94,7 +94,7 @@ export async function loadAuditSweepProjectConfig(projectRoot) {
     if (typeof ownerDomain !== "string" || ownerDomain.trim().length === 0) {
       return {
         ok: false,
-        error: `nimicoding audit-sweep refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_owner_domains entries must be non-empty strings.\n`,
+        error: `nimicoding sweep audit refused: ${AUDIT_SWEEP_PROJECT_CONFIG_REF} ignore_owner_domains entries must be non-empty strings.\n`,
       };
     }
     ignoreOwnerDomains.push(ownerDomain.trim());
@@ -123,7 +123,7 @@ export async function loadAppSliceAdmissions(projectRoot) {
   } catch (error) {
     return {
       ok: false,
-      error: `nimicoding audit-sweep refused: ${APP_SLICE_ADMISSION_REF} must contain valid YAML (${error.message}).\n`,
+      error: `nimicoding sweep audit refused: ${APP_SLICE_ADMISSION_REF} must contain valid YAML (${error.message}).\n`,
     };
   }
 
@@ -131,7 +131,7 @@ export async function loadAppSliceAdmissions(projectRoot) {
   if (!rows) {
     return {
       ok: false,
-      error: `nimicoding audit-sweep refused: ${APP_SLICE_ADMISSION_REF} must declare admissions as an array.\n`,
+      error: `nimicoding sweep audit refused: ${APP_SLICE_ADMISSION_REF} must declare admissions as an array.\n`,
     };
   }
 
@@ -146,20 +146,20 @@ export async function loadAppSliceAdmissions(projectRoot) {
       ? row.evidence_roots.map((entry) => String(entry ?? "").trim().replace(/\\/g, "/").replace(/\/$/, "")).filter(Boolean)
       : null;
     if (!appId || seenAppIds.has(appId)) {
-      return { ok: false, error: `nimicoding audit-sweep refused: ${APP_SLICE_ADMISSION_REF} has missing or duplicate app_id.\n` };
+      return { ok: false, error: `nimicoding sweep audit refused: ${APP_SLICE_ADMISSION_REF} has missing or duplicate app_id.\n` };
     }
     seenAppIds.add(appId);
     if (appId === "avatar") {
-      return { ok: false, error: `nimicoding audit-sweep refused: avatar is promoted to .nimi/spec/avatar and must not be admitted through ${APP_SLICE_ADMISSION_REF}.\n` };
+      return { ok: false, error: `nimicoding sweep audit refused: avatar is promoted to .nimi/spec/avatar and must not be admitted through ${APP_SLICE_ADMISSION_REF}.\n` };
     }
     if (status !== "active") {
       continue;
     }
     if (!ownerDomain || !safeProjectRef(authorityRoot) || !authorityRoot.startsWith(`apps/${appId}/spec`)) {
-      return { ok: false, error: `nimicoding audit-sweep refused: ${APP_SLICE_ADMISSION_REF} ${appId} has invalid owner_domain or authority_root.\n` };
+      return { ok: false, error: `nimicoding sweep audit refused: ${APP_SLICE_ADMISSION_REF} ${appId} has invalid owner_domain or authority_root.\n` };
     }
     if (!evidenceRoots || evidenceRoots.length === 0 || !evidenceRoots.every((rootRef) => safeProjectRef(rootRef) && refInsideRoot(rootRef, `apps/${appId}`))) {
-      return { ok: false, error: `nimicoding audit-sweep refused: ${APP_SLICE_ADMISSION_REF} ${appId} has invalid evidence_roots.\n` };
+      return { ok: false, error: `nimicoding sweep audit refused: ${APP_SLICE_ADMISSION_REF} ${appId} has invalid evidence_roots.\n` };
     }
     admissions.push({
       app_id: appId,
@@ -203,12 +203,12 @@ export async function loadAuditEvidenceRootAdmissions(projectRoot, listGitFiles,
     } catch (error) {
       return {
         ok: false,
-        error: `nimicoding audit-sweep refused: ${tableRef} must contain valid YAML (${error.message}).\n`,
+        error: `nimicoding sweep audit refused: ${tableRef} must contain valid YAML (${error.message}).\n`,
       };
     }
     const rows = Array.isArray(parsed?.roots) ? parsed.roots : null;
     if (!rows) {
-      return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} must declare roots as an array.\n` };
+      return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} must declare roots as an array.\n` };
     }
     for (const row of rows) {
       const id = String(row?.id ?? "").trim();
@@ -220,13 +220,13 @@ export async function loadAuditEvidenceRootAdmissions(projectRoot, listGitFiles,
         ? row.evidence_roots.map((entry) => String(entry ?? "").trim().replace(/\\/g, "/").replace(/\/$/, "")).filter(Boolean)
         : null;
       if (!id || !ownerDomain || !authorityRefs?.length || !evidenceRoots?.length) {
-        return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} root rows require id, owner_domain, authority_refs, and evidence_roots.\n` };
+        return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} root rows require id, owner_domain, authority_refs, and evidence_roots.\n` };
       }
       if (!authorityRefs.every((ref) => safeProjectRef(ref) && ref.startsWith(".nimi/spec/"))) {
-        return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} ${id} authority_refs must stay under .nimi/spec.\n` };
+        return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} ${id} authority_refs must stay under .nimi/spec.\n` };
       }
       if (!evidenceRoots.every((ref) => safeProjectRef(ref) && !ref.startsWith(".nimi/spec/"))) {
-        return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} ${id} evidence_roots must be project evidence roots outside .nimi/spec.\n` };
+        return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} ${id} evidence_roots must be project evidence roots outside .nimi/spec.\n` };
       }
       admissions.push({
         id,
@@ -256,12 +256,12 @@ export async function loadPackageAuthorityAdmissions(projectRoot, listGitFiles, 
     } catch (error) {
       return {
         ok: false,
-        error: `nimicoding audit-sweep refused: ${tableRef} must contain valid YAML (${error.message}).\n`,
+        error: `nimicoding sweep audit refused: ${tableRef} must contain valid YAML (${error.message}).\n`,
       };
     }
     const rows = Array.isArray(parsed?.admissions) ? parsed.admissions : null;
     if (!rows) {
-      return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} must declare admissions as an array.\n` };
+      return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} must declare admissions as an array.\n` };
     }
     for (const row of rows) {
       const id = String(row?.id ?? "").trim();
@@ -279,28 +279,28 @@ export async function loadPackageAuthorityAdmissions(projectRoot, listGitFiles, 
         : [];
       const admissionKey = `${tableRef}#${id}`;
       if (!id || seenIds.has(admissionKey)) {
-        return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} has missing or duplicate package authority id.\n` };
+        return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} has missing or duplicate package authority id.\n` };
       }
       seenIds.add(admissionKey);
       if (status !== "active") {
         continue;
       }
       if (!ownerDomain || !safeProjectRef(authorityRoot) || authorityRoot.startsWith(".nimi/spec/") || !authorityRoot.endsWith("/spec")) {
-        return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} ${id} has invalid owner_domain or authority_root.\n` };
+        return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} ${id} has invalid owner_domain or authority_root.\n` };
       }
       if (!evidenceRoots || evidenceRoots.length === 0 || !evidenceRoots.every((rootRef) => safeProjectRef(rootRef) && !rootRef.startsWith(".nimi/spec/") && refInsideRoot(authorityRoot, rootRef))) {
-        return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} ${id} has invalid evidence_roots.\n` };
+        return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} ${id} has invalid evidence_roots.\n` };
       }
       const seenProjectionHostRefs = new Set();
       for (const projection of hostAuthorityProjectionRefs) {
         if (!safeProjectRef(projection.host_ref) || !projection.host_ref.startsWith(".nimi/spec/")) {
-          return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} ${id} host_authority_projection_refs host_ref must stay under .nimi/spec.\n` };
+          return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} ${id} host_authority_projection_refs host_ref must stay under .nimi/spec.\n` };
         }
         if (!safeProjectRef(projection.package_ref) || !refInsideRoot(projection.package_ref, authorityRoot)) {
-          return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} ${id} host_authority_projection_refs package_ref must stay under authority_root.\n` };
+          return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} ${id} host_authority_projection_refs package_ref must stay under authority_root.\n` };
         }
         if (seenProjectionHostRefs.has(projection.host_ref)) {
-          return { ok: false, error: `nimicoding audit-sweep refused: ${tableRef} ${id} host_authority_projection_refs contains duplicate host_ref.\n` };
+          return { ok: false, error: `nimicoding sweep audit refused: ${tableRef} ${id} host_authority_projection_refs contains duplicate host_ref.\n` };
         }
         seenProjectionHostRefs.add(projection.host_ref);
       }

@@ -158,6 +158,8 @@ test("doctor emits machine-readable JSON", async () => {
       "bootstrap",
       "doctor",
       "handoff",
+      "sweep_audit",
+      "sweep_design",
       "validators",
       "topic_lifecycle_report_methodology",
       "closeout",

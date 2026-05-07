@@ -140,7 +140,7 @@ async function hasSpecAuthorityRoot(projectRoot) {
 function resolveChunkBasis(targetRootRef, requested, specRootPresent) {
   const normalized = requested ? String(requested).trim() : "auto";
   if (!["auto", "files", "spec"].includes(normalized)) {
-    return { ok: false, error: "nimicoding audit-sweep refused: --chunk-basis must be auto, files, or spec.\n" };
+    return { ok: false, error: "nimicoding sweep audit refused: --chunk-basis must be auto, files, or spec.\n" };
   }
   if (normalized === "files") {
     return { ok: true, basis: "files" };
@@ -148,7 +148,7 @@ function resolveChunkBasis(targetRootRef, requested, specRootPresent) {
   if (normalized === "spec") {
     return specRootPresent
       ? { ok: true, basis: "spec" }
-      : { ok: false, error: "nimicoding audit-sweep refused: --chunk-basis spec requires .nimi/spec.\n" };
+      : { ok: false, error: "nimicoding sweep audit refused: --chunk-basis spec requires .nimi/spec.\n" };
   }
   return { ok: true, basis: (targetRootRef === "." || isSpecAuthorityRoot(targetRootRef)) && specRootPresent ? "spec" : "files" };
 }
@@ -222,7 +222,7 @@ function buildAuditIgnorePolicy(projectConfig, options) {
   if (!reason) {
     return {
       ok: false,
-      error: "nimicoding audit-sweep refused: --ignore or --ignore-owner requires --ignore-reason, or .nimi/config/audit-sweep.yaml audit_sweep.ignore_reason.\n",
+      error: "nimicoding sweep audit refused: --ignore or --ignore-owner requires --ignore-reason, or .nimi/config/audit-sweep.yaml audit_sweep.ignore_reason.\n",
     };
   }
   return {
@@ -297,7 +297,7 @@ async function listAdmittedPackageAuthorityEntries(projectRoot, packageAuthority
     if (!rootInfo?.isDirectory()) {
       return {
         ok: false,
-        error: `nimicoding audit-sweep refused: package authority admission ${admission.id} authority_root is missing: ${admission.authority_root}.\n`,
+        error: `nimicoding sweep audit refused: package authority admission ${admission.id} authority_root is missing: ${admission.authority_root}.\n`,
       };
     }
     const gitFiles = await listGitFiles(projectRoot, admission.authority_root);
@@ -326,7 +326,7 @@ async function listAdmittedAppAuthorityEntries(projectRoot, appSliceAdmissions, 
     if (!rootInfo?.isDirectory()) {
       return {
         ok: false,
-        error: `nimicoding audit-sweep refused: app-slice admission ${admission.app_id} authority_root is missing: ${admission.authority_root}.\n`,
+        error: `nimicoding sweep audit refused: app-slice admission ${admission.app_id} authority_root is missing: ${admission.authority_root}.\n`,
       };
     }
     const gitFiles = await listGitFiles(projectRoot, admission.authority_root);
@@ -381,12 +381,12 @@ export async function createAuditSweepPlan(projectRoot, options) {
 
   const targetInfo = await pathExists(targetRoot.absolutePath);
   if (!targetInfo || !targetInfo.isDirectory()) {
-    return inputError("nimicoding audit-sweep refused: --root must point to an existing directory.\n");
+    return inputError("nimicoding sweep audit refused: --root must point to an existing directory.\n");
   }
 
   const sweepId = options.sweepId ? safeSweepId(options.sweepId) : deriveSweepId(targetRootRef);
   if (!sweepId) {
-    return inputError("nimicoding audit-sweep refused: --sweep-id must be a safe id.\n");
+    return inputError("nimicoding sweep audit refused: --sweep-id must be a safe id.\n");
   }
 
   const specRootPresent = await hasSpecAuthorityRoot(projectRoot);
@@ -694,6 +694,7 @@ export async function createAuditSweepPlan(projectRoot, options) {
     sweepId,
     planRef: planRef(sweepId),
     chunkRefs: chunks.map((chunk) => chunkRef(sweepId, chunk.chunk_id)),
+    chunkIds: chunks.map((chunk) => chunk.chunk_id),
     runLedgerRef: runRef,
     chunkCount: chunks.length,
     totalFiles: inventory.length,
@@ -724,5 +725,6 @@ export async function getPlannedChunkRefs(projectRoot, sweepId) {
   return {
     ok: true,
     chunkRefs: loaded.plan.chunks.map((chunk) => chunkRef(sweepId, chunk.chunk_id)),
+    chunkIds: loaded.plan.chunks.map((chunk) => chunk.chunk_id),
   };
 }

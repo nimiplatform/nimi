@@ -59,10 +59,10 @@ function validateRerunEvidence(evidence, finding, disposition) {
 export async function resolveAuditSweepFinding(projectRoot, options) {
   const sweepId = safeSweepId(options.sweepId);
   if (!sweepId || typeof options.findingId !== "string") {
-    return inputError("nimicoding audit-sweep refused: --sweep-id and --finding-id are required.\n");
+    return inputError("nimicoding sweep audit refused: --sweep-id and --finding-id are required.\n");
   }
   if (!FINDING_DISPOSITION.has(options.disposition) || options.disposition === "open") {
-    return inputError("nimicoding audit-sweep refused: --disposition must be one of remediated, accepted-risk, false-positive, deferred-backlog.\n");
+    return inputError("nimicoding sweep audit refused: --disposition must be one of remediated, accepted-risk, false-positive, deferred-backlog.\n");
   }
   const timestampError = ensureIsoTimestamp(options.verifiedAt);
   if (timestampError) {
@@ -74,22 +74,22 @@ export async function resolveAuditSweepFinding(projectRoot, options) {
   }
   const sourceInfo = await pathExists(source.absolutePath);
   if (!sourceInfo || !sourceInfo.isFile()) {
-    return inputError("nimicoding audit-sweep refused: --from must point to an existing JSON evidence file.\n");
+    return inputError("nimicoding sweep audit refused: --from must point to an existing JSON evidence file.\n");
   }
 
   const { findingsRef: aggregateFindingsRef, store } = await loadFindings(projectRoot, sweepId);
   const findingIndex = store.findings.findIndex((finding) => finding.id === options.findingId);
   if (findingIndex === -1) {
-    return inputError(`nimicoding audit-sweep refused: finding not found for ${options.findingId}.\n`);
+    return inputError(`nimicoding sweep audit refused: finding not found for ${options.findingId}.\n`);
   }
   const finding = store.findings[findingIndex];
   const evidenceJson = await loadJsonFile(source.absolutePath);
   if (!evidenceJson.ok) {
-    return inputError("nimicoding audit-sweep refused: --from must contain valid JSON.\n");
+    return inputError("nimicoding sweep audit refused: --from must contain valid JSON.\n");
   }
   const validation = validateRerunEvidence(evidenceJson.value, finding, options.disposition);
   if (!validation.ok) {
-    return inputError(`nimicoding audit-sweep refused: ${validation.error}.\n`);
+    return inputError(`nimicoding sweep audit refused: ${validation.error}.\n`);
   }
 
   const evidenceRef = artifactRef("evidence_refs", sweepId, `resolution-${options.findingId}.json`);

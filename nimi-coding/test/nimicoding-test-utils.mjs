@@ -460,7 +460,8 @@ async function seedFrozenAuditSweep(projectRoot, {
   await writeFile(path.join(projectRoot, "src", "service.ts"), "export function service() { return 1; }\n", "utf8");
 
   assert.equal((await captureRunCli([
-    "audit-sweep",
+    "sweep",
+    "audit",
     "plan",
     "--root",
     "src",
@@ -469,7 +470,8 @@ async function seedFrozenAuditSweep(projectRoot, {
     "--json",
   ])).exitCode, 0);
   assert.equal((await captureRunCli([
-    "audit-sweep",
+    "sweep",
+    "audit",
     "chunk",
     "dispatch",
     "--sweep-id",
@@ -506,7 +508,8 @@ async function seedFrozenAuditSweep(projectRoot, {
     "utf8",
   );
   assert.equal((await captureRunCli([
-    "audit-sweep",
+    "sweep",
+    "audit",
     "chunk",
     "ingest",
     "--sweep-id",
@@ -520,7 +523,8 @@ async function seedFrozenAuditSweep(projectRoot, {
     "--json",
   ])).exitCode, 0);
   assert.equal((await captureRunCli([
-    "audit-sweep",
+    "sweep",
+    "audit",
     "chunk",
     "review",
     "--sweep-id",
@@ -536,7 +540,8 @@ async function seedFrozenAuditSweep(projectRoot, {
     "--json",
   ])).exitCode, 0);
   const ledgerResult = await captureRunCli([
-    "audit-sweep",
+    "sweep",
+    "audit",
     "ledger",
     "build",
     "--sweep-id",

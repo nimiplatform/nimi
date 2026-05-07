@@ -42,7 +42,7 @@ function projectRefForPath(projectRoot, absolutePath) {
 }
 function codexPrompt({ packet, auditorPacketRef, rawRef, sessionRef }) {
   return [
-    "You are the Codex semantic auditor for a nimicoding audit-sweep chunk.",
+    "You are the Codex semantic auditor for a nimicoding sweep audit chunk.",
     "Run in read-only, audit-only mode. Do not edit files. Do not implement product fixes.",
     `Read the auditor packet from ${auditorPacketRef} and inspect the chunk authority refs and implementation evidence semantically.`,
     "Do not rely on this prompt as the chunk inventory; the packet file is the source for files, authority_refs, selected_implementation_refs, audit_depth, retrieval_prepass, and the raw semantic output contract.",
@@ -173,11 +173,11 @@ async function prepareCodexAuditPacket(projectRoot, options) {
       return inputError(chunkResult.error);
     }
     if (chunkResult.chunk.state === "skipped") {
-      return inputError("nimicoding audit-sweep refused: skipped chunks cannot be audited through Codex.\n");
+      return inputError("nimicoding sweep audit refused: skipped chunks cannot be audited through Codex.\n");
     }
     const budgetBlock = budgetBlockForChunk(planResult.plan, chunkResult.chunk);
     if (budgetBlock && chunkResult.chunk.state !== "frozen") {
-      return inputError(`nimicoding audit-sweep refused: ${budgetBlock}; build or admit remediation bundles before continuing discovery.\n`);
+      return inputError(`nimicoding sweep audit refused: ${budgetBlock}; build or admit remediation bundles before continuing discovery.\n`);
     }
 
     const dispatch = {
@@ -311,7 +311,7 @@ async function markCodexAuditFailed(projectRoot, options) {
 export async function runCodexAuditSweepChunk(projectRoot, options) {
   const sweepId = safeSweepId(options.sweepId);
   if (!sweepId || typeof options.chunkId !== "string") {
-    return inputError("nimicoding audit-sweep refused: --sweep-id and --chunk-id are required.\n");
+    return inputError("nimicoding sweep audit refused: --sweep-id and --chunk-id are required.\n");
   }
   const dispatchedAtError = ensureIsoTimestamp(options.dispatchedAt, "--dispatched-at");
   if (dispatchedAtError) {
@@ -394,7 +394,7 @@ export async function runCodexAuditSweepChunk(projectRoot, options) {
         timeout_ms: runResult.timeoutMs,
         stderr_tail: runResult.stderr.slice(-2000),
       });
-      return inputError(`nimicoding audit-sweep refused: ${failureReason}\n`);
+      return inputError(`nimicoding sweep audit refused: ${failureReason}\n`);
     }
   }
 
@@ -425,7 +425,7 @@ export async function runCodexAuditSweepChunk(projectRoot, options) {
       transcript_ref: rawRef,
       reason: extracted.error,
     });
-    return inputError(`nimicoding audit-sweep refused: Codex auditor output rejected for ${options.chunkId}: ${extracted.error}.\n`);
+    return inputError(`nimicoding sweep audit refused: Codex auditor output rejected for ${options.chunkId}: ${extracted.error}.\n`);
   }
 
   await appendRunEvent(projectRoot, sweepId, {
@@ -454,7 +454,7 @@ export async function runCodexAuditSweepChunk(projectRoot, options) {
       phase: "chunk_ingest",
       reason: `Codex auditor evidence ingest rejected: ${ingest.error ?? "unknown ingest failure"}.`,
     });
-    return inputError(`nimicoding audit-sweep refused: Codex auditor evidence ingest rejected for ${options.chunkId}: ${ingest.error ?? "unknown ingest failure"}.\n`);
+    return inputError(`nimicoding sweep audit refused: Codex auditor evidence ingest rejected for ${options.chunkId}: ${ingest.error ?? "unknown ingest failure"}.\n`);
   }
 
   const review = await reviewAuditSweepChunk(projectRoot, {
@@ -475,7 +475,7 @@ export async function runCodexAuditSweepChunk(projectRoot, options) {
       phase: "chunk_review",
       reason: `Codex auditor evidence review rejected: ${review.error ?? "unknown review failure"}.`,
     });
-    return inputError(`nimicoding audit-sweep refused: Codex auditor evidence review rejected for ${options.chunkId}: ${review.error ?? "unknown review failure"}.\n`);
+    return inputError(`nimicoding sweep audit refused: Codex auditor evidence review rejected for ${options.chunkId}: ${review.error ?? "unknown review failure"}.\n`);
   }
 
   const validation = await validateAuditSweepArtifacts(projectRoot, {
@@ -492,7 +492,7 @@ export async function runCodexAuditSweepChunk(projectRoot, options) {
       phase: "post_chunk_validation",
       reason: "Post-Codex chunk validation failed.",
     });
-    return inputError(`nimicoding audit-sweep refused: post-Codex chunk validation failed for ${options.chunkId}.\n`);
+    return inputError(`nimicoding sweep audit refused: post-Codex chunk validation failed for ${options.chunkId}.\n`);
   }
 
   return {
