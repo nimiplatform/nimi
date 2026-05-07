@@ -283,6 +283,98 @@ test("validate-spec-audit accepts an auditable canonical benchmark tree after di
   });
 });
 
+test("validate-spec-audit accepts file entries from canonical audit shards", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
+
+    const auditPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml");
+    const auditPayload = YAML.parse(await readFile(auditPath, "utf8"));
+    const files = auditPayload.spec_generation_audit.files;
+    auditPayload.spec_generation_audit.files = [];
+    auditPayload.spec_generation_audit.file_entry_refs = [
+      ".nimi/spec/_meta/spec-generation-audit/files-0001.yaml",
+    ];
+
+    const shardPath = path.join(
+      projectRoot,
+      ".nimi",
+      "spec",
+      "_meta",
+      "spec-generation-audit",
+      "files-0001.yaml",
+    );
+    await mkdir(path.dirname(shardPath), { recursive: true });
+    await writeFile(
+      shardPath,
+      YAML.stringify({
+        version: 1,
+        contract_ref: ".nimi/contracts/spec-generation-audit.schema.yaml",
+        spec_generation_audit_file_entries: {
+          parent_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+          files,
+        },
+      }),
+      "utf8",
+    );
+    await writeFile(auditPath, YAML.stringify(auditPayload), "utf8");
+
+    const result = await runCliSubprocess(["validate-spec-audit"], { cwd: projectRoot });
+    assert.equal(result.exitCode, 0);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.validator, "validate-spec-audit");
+    assert.equal(payload.ok, true);
+    assert.equal(payload.summary.auditedFiles, files.length);
+    assert.deepEqual(payload.summary.missingAuditEntries, []);
+  });
+});
+
+test("validate-spec-audit rejects invalid file entry shards", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
+
+    const auditPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml");
+    const auditPayload = YAML.parse(await readFile(auditPath, "utf8"));
+    const files = auditPayload.spec_generation_audit.files;
+    auditPayload.spec_generation_audit.files = [];
+    auditPayload.spec_generation_audit.file_entry_refs = [
+      ".nimi/spec/_meta/spec-generation-audit/files-0001.yaml",
+    ];
+
+    const shardPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit", "files-0001.yaml");
+    await mkdir(path.dirname(shardPath), { recursive: true });
+    await writeFile(
+      shardPath,
+      YAML.stringify({
+        version: 1,
+        contract_ref: ".nimi/contracts/spec-generation-audit.schema.yaml",
+        spec_generation_audit_file_entries: {
+          parent_ref: ".nimi/spec/_meta/other-audit.yaml",
+          files,
+        },
+      }),
+      "utf8",
+    );
+    await writeFile(auditPath, YAML.stringify(auditPayload), "utf8");
+
+    const parentResult = await runCliSubprocess(["validate-spec-audit"], { cwd: projectRoot });
+    assert.equal(parentResult.exitCode, 1);
+    assert.match(JSON.stringify(JSON.parse(parentResult.stdout).errors), /parent_ref must point to \.nimi\/spec\/_meta\/spec-generation-audit\.yaml/);
+
+    auditPayload.spec_generation_audit.file_entry_refs = [".nimi/local/spec-generation-audit/files-0001.yaml"];
+    await writeFile(auditPath, YAML.stringify(auditPayload), "utf8");
+
+    const pathResult = await runCliSubprocess(["validate-spec-audit"], { cwd: projectRoot });
+    assert.equal(pathResult.exitCode, 1);
+    assert.match(JSON.stringify(JSON.parse(pathResult.stdout).errors), /file_entry_ref must stay under \.nimi\/spec\/_meta\/spec-generation-audit\//);
+  });
+});
+
 test("validate-spec-audit fails when a required canonical file is missing from the audit contract", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);

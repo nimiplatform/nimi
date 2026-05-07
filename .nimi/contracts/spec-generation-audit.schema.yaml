@@ -8,6 +8,14 @@ required_top_level_fields:
   - declared_profile
   - input_roots
   - files
+optional_top_level_fields:
+  - file_entry_refs
+file_entry_ref_contract:
+  shard_root: .nimi/spec/_meta/spec-generation-audit
+  shard_payload_field: spec_generation_audit_file_entries
+  required_shard_fields:
+    - parent_ref
+    - files
 required_file_entry_fields:
   - canonical_path
   - file_class
@@ -25,6 +33,8 @@ coverage_status_enum:
   - placeholder_not_allowed
 hard_constraints:
   - every_generated_canonical_file_requires_a_matching_audit_entry
+  - file_entry_refs_must_stay_under_canonical_meta_audit_shard_root
+  - file_entry_ref_shards_must_point_back_to_parent_audit
   - required_canonical_files_must_not_be_placeholder_not_allowed
   - unresolved_or_inferred_content_must_be_explicit
   - source_refs_must_stay_within_declared_inputs_or_optional_benchmark_root

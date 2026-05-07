@@ -27,6 +27,10 @@ import {
   isSourceRefWithinDeclaredRoots,
 } from "./validators-spec-helpers.mjs";
 
+function toPortableProjectPath(projectRoot, absolutePath) {
+  return path.relative(projectRoot, absolutePath).split(path.sep).join(path.posix.sep);
+}
+
 export async function validateSpecTree(rootPath, options = {}) {
   const projectRoot = options.projectRoot ?? process.cwd();
   const specTreeModel = await loadSpecTreeModelContract(projectRoot);
@@ -263,9 +267,58 @@ export async function validateSpecAudit(auditPath, options = {}) {
   if (!Array.isArray(audit.files)) {
     errors.push("spec generation audit files must be an array");
   }
+  const fileEntryRefs = audit.file_entry_refs === undefined
+    ? []
+    : Array.isArray(audit.file_entry_refs)
+      ? audit.file_entry_refs.map(String)
+      : null;
+  if (fileEntryRefs === null) {
+    errors.push("spec generation audit file_entry_refs must be an array when present");
+  }
+
+  const referencedFileEntries = [];
+  for (const entryRef of fileEntryRefs ?? []) {
+    if (entryRef.length === 0 || path.isAbsolute(entryRef)) {
+      errors.push(`spec generation audit file_entry_refs must be non-empty repository-relative paths: ${entryRef}`);
+      continue;
+    }
+    const absoluteEntryRef = path.resolve(projectRoot, entryRef);
+    const relativeEntryRef = path.relative(projectRoot, absoluteEntryRef).split(path.sep).join(path.posix.sep);
+    const expectedPrefix = `${specTreeModel.canonicalRoot}/_meta/spec-generation-audit/`;
+    if (relativeEntryRef !== entryRef || !relativeEntryRef.startsWith(expectedPrefix)) {
+      errors.push(`spec generation audit file_entry_ref must stay under ${expectedPrefix}: ${entryRef}`);
+      continue;
+    }
+    const entryText = await readTextIfFile(absoluteEntryRef);
+    if (entryText === null) {
+      errors.push(`spec generation audit file_entry_ref is missing: ${entryRef}`);
+      continue;
+    }
+    const entryParsed = parseYamlText(entryText);
+    const entryPayload = entryParsed?.spec_generation_audit_file_entries;
+    if (!isPlainObject(entryParsed) || !isPlainObject(entryPayload)) {
+      errors.push(`spec generation audit file_entry_ref is not a valid entry shard: ${entryRef}`);
+      continue;
+    }
+    if (entryParsed.version !== 1) {
+      errors.push(`spec generation audit file_entry_ref version must be 1: ${entryRef}`);
+    }
+    if (String(entryParsed.contract_ref ?? "") !== SPEC_GENERATION_AUDIT_CONTRACT_REF) {
+      errors.push(`spec generation audit file_entry_ref contract_ref must be ${SPEC_GENERATION_AUDIT_CONTRACT_REF}: ${entryRef}`);
+    }
+    if (String(entryPayload.parent_ref ?? "") !== toPortableProjectPath(projectRoot, absoluteAuditPath)) {
+      errors.push(`spec generation audit file_entry_ref parent_ref must point to ${toPortableProjectPath(projectRoot, absoluteAuditPath)}: ${entryRef}`);
+    }
+    if (!Array.isArray(entryPayload.files)) {
+      errors.push(`spec generation audit file_entry_ref files must be an array: ${entryRef}`);
+      continue;
+    }
+    referencedFileEntries.push(...entryPayload.files);
+  }
+  const allFileEntries = [...fileEntries, ...referencedFileEntries];
 
   const auditEntryByRelativePath = new Map();
-  for (const entry of fileEntries) {
+  for (const entry of allFileEntries) {
     if (!isPlainObject(entry)) {
       errors.push("spec generation audit file entries must be mappings");
       continue;
