@@ -50,8 +50,7 @@ test('failed codegen reload restores previous registration and grants', async ()
   await registerRuntimeMod({
     modId,
     sourceType: 'codegen',
-    capabilities: ['runtime.ai.text.generate', 'runtime.media.image.generate'],
-    grantCapabilities: ['runtime.media.image.generate'],
+    capabilities: ['runtime.ai.text.generate', 'runtime.ai.text.stream'],
     setup: () => {
       setupCount += 1;
     },
@@ -64,8 +63,7 @@ test('failed codegen reload restores previous registration and grants', async ()
     () => registerRuntimeMod({
       modId,
       sourceType: 'codegen',
-      capabilities: ['runtime.ai.text.generate', 'runtime.media.image.generate'],
-      grantCapabilities: ['runtime.media.image.generate'],
+      capabilities: ['runtime.ai.text.generate', 'runtime.ai.text.stream'],
       setup: () => {
         throw new Error('replacement setup failed');
       },
@@ -81,7 +79,7 @@ test('failed codegen reload restores previous registration and grants', async ()
   assert.equal(
     getRuntimeHookRuntime().authorizeRuntimeCapability({
       modId,
-      capabilityKey: 'runtime.media.image.generate',
+      capabilityKey: 'runtime.ai.text.stream',
     }).allowed,
     true,
   );

@@ -33,6 +33,7 @@ type DenyPattern = {
   reasonCode: string;
   pattern: RegExp;
   detail: string;
+  scan?: 'code' | 'raw';
 };
 
 const CODEGEN_DEFAULT_MAX_BUNDLE_BYTES = 512 * 1024;
@@ -41,28 +42,63 @@ export const CODEGEN_MANIFEST_ID_PREFIX = 'world.nimi.user.';
 const CODEGEN_DENY_PATTERNS: DenyPattern[] = [
   {
     reasonCode: ReasonCode.CODEGEN_PATTERN_EVAL_FORBIDDEN,
-    pattern: /\beval\s*\(/,
-    detail: 'eval() is forbidden in codegen mods',
+    pattern: /\beval\b/,
+    detail: 'eval global access is forbidden in codegen mods',
+    scan: 'code',
   },
   {
     reasonCode: ReasonCode.CODEGEN_PATTERN_NEW_FUNCTION_FORBIDDEN,
-    pattern: /\bnew\s+Function\s*\(/,
-    detail: 'new Function() is forbidden in codegen mods',
+    pattern: /\bFunction\b/,
+    detail: 'Function constructor access is forbidden in codegen mods',
+    scan: 'code',
   },
   {
     reasonCode: ReasonCode.CODEGEN_PATTERN_FETCH_FORBIDDEN,
-    pattern: /\bfetch\s*\(/,
-    detail: 'direct fetch() is forbidden in codegen mods',
+    pattern: /\bfetch\b/,
+    detail: 'fetch global access is forbidden in codegen mods',
+    scan: 'code',
   },
   {
     reasonCode: ReasonCode.CODEGEN_PATTERN_XMLHTTPREQUEST_FORBIDDEN,
     pattern: /\bXMLHttpRequest\b/,
-    detail: 'XMLHttpRequest is forbidden in codegen mods',
+    detail: 'XMLHttpRequest global access is forbidden in codegen mods',
+    scan: 'code',
   },
   {
     reasonCode: ReasonCode.CODEGEN_PATTERN_WEBSOCKET_FORBIDDEN,
-    pattern: /\bWebSocket\s*\(/,
-    detail: 'WebSocket is forbidden in codegen mods',
+    pattern: /\bWebSocket\b/,
+    detail: 'WebSocket global access is forbidden in codegen mods',
+    scan: 'code',
+  },
+  {
+    reasonCode: ReasonCode.CODEGEN_PATTERN_EVAL_FORBIDDEN,
+    pattern: /\b(?:globalThis|window|self)\s*\[\s*['"`]eval['"`]\s*\]/,
+    detail: 'computed eval access is forbidden in codegen mods',
+    scan: 'raw',
+  },
+  {
+    reasonCode: ReasonCode.CODEGEN_PATTERN_NEW_FUNCTION_FORBIDDEN,
+    pattern: /\b(?:globalThis|window|self)\s*\[\s*['"`]Function['"`]\s*\]/,
+    detail: 'computed Function constructor access is forbidden in codegen mods',
+    scan: 'raw',
+  },
+  {
+    reasonCode: ReasonCode.CODEGEN_PATTERN_FETCH_FORBIDDEN,
+    pattern: /\b(?:globalThis|window|self)\s*\[\s*['"`]fetch['"`]\s*\]/,
+    detail: 'computed fetch access is forbidden in codegen mods',
+    scan: 'raw',
+  },
+  {
+    reasonCode: ReasonCode.CODEGEN_PATTERN_XMLHTTPREQUEST_FORBIDDEN,
+    pattern: /\b(?:globalThis|window|self)\s*\[\s*['"`]XMLHttpRequest['"`]\s*\]/,
+    detail: 'computed XMLHttpRequest access is forbidden in codegen mods',
+    scan: 'raw',
+  },
+  {
+    reasonCode: ReasonCode.CODEGEN_PATTERN_WEBSOCKET_FORBIDDEN,
+    pattern: /\b(?:globalThis|window|self)\s*\[\s*['"`]WebSocket['"`]\s*\]/,
+    detail: 'computed WebSocket access is forbidden in codegen mods',
+    scan: 'raw',
   },
   {
     reasonCode: ReasonCode.CODEGEN_PATTERN_IMPORTSCRIPTS_FORBIDDEN,
@@ -105,10 +141,19 @@ function estimateBundleBytes(sourceCode: string): number {
   return new TextEncoder().encode(sourceCode).length;
 }
 
+function maskStringAndCommentLiterals(sourceCode: string): string {
+  return String(sourceCode || '').replace(
+    /\/\*[\s\S]*?\*\/|\/\/[^\n\r]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`/g,
+    (match) => ' '.repeat(match.length),
+  );
+}
+
 function collectPatternViolations(sourceCode: string): CodegenPreflightViolation[] {
   const violations: CodegenPreflightViolation[] = [];
+  const codeOnly = maskStringAndCommentLiterals(sourceCode);
   for (const rule of CODEGEN_DENY_PATTERNS) {
-    if (!rule.pattern.test(sourceCode)) {
+    const haystack = rule.scan === 'code' ? codeOnly : sourceCode;
+    if (!rule.pattern.test(haystack)) {
       continue;
     }
     violations.push({
@@ -161,7 +206,7 @@ export function preflightCodegenBundle(input: CodegenPreflightInput): CodegenPre
   if (capabilityDecision.denied.length > 0) {
     violations.push({
       reasonCode: ReasonCode.CODEGEN_CAPABILITY_DENIED,
-      detail: `T2 capabilities are forbidden: ${capabilityDecision.denied.join(', ')}`,
+      detail: `hard-denied codegen capabilities are forbidden: ${capabilityDecision.denied.join(', ')}`,
       severity: 'error',
     });
   }

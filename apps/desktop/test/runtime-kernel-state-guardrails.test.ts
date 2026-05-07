@@ -123,6 +123,23 @@ test('policy engine fails closed on unknown access modes', async () => {
   assert.deepEqual(result.reasonCodes, ['DISCOVERY_MODE_UNKNOWN']);
 });
 
+test('policy engine rejects wildcard capability requests including dotted wildcards', async () => {
+  const engine = new PolicyEngine({
+    validateGrant: async () => ({ valid: true, reasonCodes: [] }),
+  } as never);
+
+  const result = await engine.evaluate({
+    modId: 'world.nimi.user.codegen.policy-wildcard',
+    mode: 'local-dev',
+    sourceType: 'codegen',
+    requestedCapabilities: ['ui.register.ui-extension.app.*'],
+  });
+
+  assert.equal(result.ok, false);
+  assert.deepEqual(result.reasonCodes, ['WILDCARD_CAPABILITY_NOT_ALLOWED']);
+  assert.deepEqual(result.grantedCapabilities, []);
+});
+
 test('crash isolator cooldown check is read-only and report resets expired entries', () => {
   const isolator = new CrashIsolator({ threshold: 2, cooldownMs: 10 });
   const originalNow = Date.now;

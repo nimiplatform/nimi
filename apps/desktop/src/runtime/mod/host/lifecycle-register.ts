@@ -1,7 +1,6 @@
 import type { DesktopExecutionKernelService } from '@runtime/execution-kernel';
 import type { DesktopHookRuntimeService } from '@runtime/hook';
 import type { HookSourceType } from '@runtime/hook/contracts/types';
-import { anyCapabilityMatches } from '@runtime/hook/contracts/capabilities';
 import type { RuntimeModRegistration } from '../types';
 import { resolveDeclaredDataCapabilities } from './capability-bindings';
 import { resolveCodegenCapabilityDecision } from '../codegen/capability-catalog';
@@ -44,15 +43,20 @@ export async function registerRuntimeModState(input: {
         if (hardDenied.length > 0) {
             throw new Error(`CODEGEN_CAPABILITY_DENIED: ${hardDenied.join(',')}`);
         }
-        const grants = input.mod.grantCapabilities || [];
-        const missingConsent = decision.requiresConsent.filter((capability) => !anyCapabilityMatches(grants, capability));
-        if (missingConsent.length > 0) {
-            throw new Error(`CODEGEN_T1_CONSENT_REQUIRED: ${missingConsent.join(',')}`);
+        if (decision.requiresConsent.length > 0) {
+            throw new Error(`CODEGEN_T1_CONSENT_REQUIRED: ${decision.requiresConsent.join(',')}`);
+        }
+        const declaredGrants = input.mod.grantCapabilities || [];
+        if (declaredGrants.length > 0) {
+            throw new Error(`CODEGEN_CAPABILITY_DENIED: caller-supplied codegen grants are not host-owned: ${declaredGrants.join(',')}`);
         }
     }
     input.hookRuntime.setModSourceType(input.mod.modId, input.sourceType);
     input.hookRuntime.setCapabilityBaseline(input.mod.modId, input.capabilityResolution.baselineCapabilities);
-    input.hookRuntime.setGrantCapabilities(input.mod.modId, input.mod.grantCapabilities || []);
+    input.hookRuntime.setGrantCapabilities(
+        input.mod.modId,
+        input.sourceType === 'codegen' ? [] : input.mod.grantCapabilities || [],
+    );
     input.hookRuntime.setDenialCapabilities(input.mod.modId, input.mod.denialCapabilities || []);
     for (const capability of resolveDeclaredDataCapabilities([
         ...mergedCapabilities,

@@ -21,14 +21,6 @@ pub fn append_runtime_audit(
           id, mod_id, stage, event_type, decision, reason_codes, payload, occurred_at
         )
         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
-        ON CONFLICT(id) DO UPDATE SET
-          mod_id = excluded.mod_id,
-          stage = excluded.stage,
-          event_type = excluded.event_type,
-          decision = excluded.decision,
-          reason_codes = excluded.reason_codes,
-          payload = excluded.payload,
-          occurred_at = excluded.occurred_at
         "#,
         params![
             record.id,
@@ -109,6 +101,38 @@ pub fn query_runtime_audit(
 
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("收集 runtime audit 失败: {error}"))
+}
+
+#[cfg(test)]
+mod runtime_audit_ledger_tests {
+    use super::*;
+
+    fn test_record(id: &str, decision: &str) -> RuntimeAuditRecordPayload {
+        RuntimeAuditRecordPayload {
+            id: id.to_string(),
+            mod_id: Some("mod.codegen".to_string()),
+            stage: Some("preflight".to_string()),
+            event_type: "runtime_mod_preflight".to_string(),
+            decision: Some(decision.to_string()),
+            reason_codes: Some(vec!["TEST".to_string()]),
+            payload: None,
+            occurred_at: "2026-05-07T00:00:00Z".to_string(),
+        }
+    }
+
+    #[test]
+    fn append_runtime_audit_is_append_only_for_existing_ids() {
+        let conn = Connection::open_in_memory().expect("open in-memory db");
+        init_schema(&conn).expect("init schema");
+
+        append_runtime_audit(&conn, &test_record("audit-1", "ALLOW")).expect("append audit");
+        let duplicate = append_runtime_audit(&conn, &test_record("audit-1", "DENY"));
+
+        assert!(duplicate.is_err());
+        let records = query_runtime_audit(&conn, None).expect("query audit");
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].decision.as_deref(), Some("ALLOW"));
+    }
 }
 
 pub fn put_action_execution_ledger_record(
@@ -221,4 +245,3 @@ pub fn query_action_execution_ledger(
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("收集 action execution ledger 失败: {error}"))
 }
-

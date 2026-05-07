@@ -1,4 +1,6 @@
 import {
+  DEFAULT_SOURCE_ALLOWLIST,
+  anyCapabilityMatches,
   capabilityMatches,
   normalizeCapabilityKey,
 } from './capabilities.js';
@@ -18,7 +20,6 @@ export const CODEGEN_T0_CAPABILITY_PATTERNS = [
 export const CODEGEN_T1_CAPABILITY_PATTERNS = [
   'runtime.media.image.*',
   'runtime.media.video.*',
-  'runtime.media.jobs.*',
   'runtime.ai.embedding.generate',
   'runtime.media.tts.*',
   'runtime.media.stt.*',
@@ -53,6 +54,15 @@ function dedupe(values: string[]): string[] {
   return Array.from(new Set(values));
 }
 
+function isAllowedForCodegenSource(capability: string): boolean {
+  return anyCapabilityMatches(DEFAULT_SOURCE_ALLOWLIST.codegen, capability);
+}
+
+export function isCodegenManifestWildcardCapability(value: string): boolean {
+  const normalized = normalizeCodegenCapabilityWildcard(value);
+  return normalized.includes('*');
+}
+
 export function normalizeCodegenCapabilityWildcard(value: string): string {
   const normalized = normalizeCapabilityKey(value);
   if (!normalized) return '';
@@ -85,12 +95,20 @@ export function resolveCodegenCapabilityDecision(capabilities: string[]): Codege
   for (const capability of capabilities || []) {
     const normalized = normalizeCodegenCapabilityWildcard(capability);
     if (!normalized) continue;
+    if (isCodegenManifestWildcardCapability(normalized)) {
+      denied.push(normalized);
+      continue;
+    }
     const tier = classifyCodegenCapability(normalized);
     if (tier === 'T0') {
       autoGranted.push(normalized);
       continue;
     }
     if (tier === 'T1') {
+      if (!isAllowedForCodegenSource(normalized)) {
+        denied.push(normalized);
+        continue;
+      }
       requiresConsent.push(normalized);
       continue;
     }

@@ -8,7 +8,7 @@ import {
   unregisterRuntimeMod,
 } from '../src/runtime/mod/host';
 
-test('codegen registration denies T2 and enforces T1 consent', async () => {
+test('codegen registration denies T2 and source-ceiling capability requests', async () => {
   resetRuntimeHostForTesting();
 
   await assert.rejects(
@@ -33,24 +33,55 @@ test('codegen registration denies T2 and enforces T1 consent', async () => {
 
   await assert.rejects(
     () => registerRuntimeMod({
-      modId: 'world.nimi.user.codegen.t1-missing-consent',
+      modId: 'world.nimi.user.codegen.media-without-consent',
       sourceType: 'codegen',
       capabilities: ['runtime.media.image.generate'],
       setup: () => {},
     }),
-    /CODEGEN_T1_CONSENT_REQUIRED/,
+    /CODEGEN_CAPABILITY_DENIED/,
+  );
+
+  await assert.rejects(
+    () => registerRuntimeMod({
+      modId: 'world.nimi.user.codegen.media-with-consent',
+      sourceType: 'codegen',
+      capabilities: ['runtime.media.image.generate'],
+      grantCapabilities: ['runtime.media.image.generate'],
+      setup: () => {},
+    }),
+    /CODEGEN_CAPABILITY_DENIED/,
+  );
+
+  await assert.rejects(
+    () => registerRuntimeMod({
+      modId: 'world.nimi.user.codegen.wildcard',
+      sourceType: 'codegen',
+      capabilities: ['ui.register.ui-extension.app.*'],
+      setup: () => {},
+    }),
+    /CODEGEN_CAPABILITY_DENIED/,
+  );
+
+  await assert.rejects(
+    () => registerRuntimeMod({
+      modId: 'world.nimi.user.codegen.caller-grant',
+      sourceType: 'codegen',
+      capabilities: ['runtime.ai.text.generate'],
+      grantCapabilities: ['runtime.ai.text.stream'],
+      setup: () => {},
+    }),
+    /caller-supplied codegen grants are not host-owned/,
   );
 
   await registerRuntimeMod({
-    modId: 'world.nimi.user.codegen.t1-with-consent',
+    modId: 'world.nimi.user.codegen.t0',
     sourceType: 'codegen',
-    capabilities: ['runtime.media.image.generate'],
-    grantCapabilities: ['runtime.media.image.generate'],
+    capabilities: ['runtime.ai.text.generate'],
     setup: () => {},
   });
 
-  assert.ok(listRegisteredRuntimeModIds().includes('world.nimi.user.codegen.t1-with-consent'));
+  assert.ok(listRegisteredRuntimeModIds().includes('world.nimi.user.codegen.t0'));
 
-  unregisterRuntimeMod('world.nimi.user.codegen.t1-with-consent');
+  unregisterRuntimeMod('world.nimi.user.codegen.t0');
   resetRuntimeHostForTesting();
 });

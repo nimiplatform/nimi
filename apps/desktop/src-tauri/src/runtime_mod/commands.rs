@@ -1,7 +1,6 @@
 use crate::desktop_paths::{
     describe_desktop_storage_dirs, set_nimi_data_dir, DesktopStorageDirsPayload,
 };
-use rusqlite::params;
 use serde::Deserialize;
 use tauri::AppHandle;
 
@@ -50,6 +49,7 @@ pub struct RuntimeAuditQueryPayload {
     pub filter: Option<RuntimeAuditFilter>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeAuditDeletePayload {
@@ -279,69 +279,10 @@ pub fn runtime_mod_query_audit(
 
 #[tauri::command]
 pub fn runtime_mod_delete_audit(
-    app: AppHandle,
-    payload: Option<RuntimeAuditDeletePayload>,
+    _app: AppHandle,
+    _payload: Option<RuntimeAuditDeletePayload>,
 ) -> Result<usize, String> {
-    let conn = open_db(&app)?;
-    let filter = payload
-        .and_then(|item| item.filter)
-        .unwrap_or(RuntimeAuditFilter {
-            mod_id: None,
-            stage: None,
-            event_type: None,
-            from: None,
-            to: None,
-            limit: None,
-        });
-
-    if let Some(limit) = filter.limit {
-        let normalized_limit = limit.clamp(1, 1000) as i64;
-        return conn
-            .execute(
-                r#"
-                DELETE FROM runtime_audit_records
-                WHERE id IN (
-                  SELECT id
-                  FROM runtime_audit_records
-                  WHERE (?1 IS NULL OR mod_id = ?1)
-                    AND (?2 IS NULL OR stage = ?2)
-                    AND (?3 IS NULL OR event_type = ?3)
-                    AND (?4 IS NULL OR occurred_at >= ?4)
-                    AND (?5 IS NULL OR occurred_at <= ?5)
-                  ORDER BY occurred_at DESC
-                  LIMIT ?6
-                )
-                "#,
-                params![
-                    filter.mod_id,
-                    filter.stage,
-                    filter.event_type,
-                    filter.from,
-                    filter.to,
-                    normalized_limit
-                ],
-            )
-            .map_err(|error| format!("删除 runtime audit 失败: {error}"));
-    }
-
-    conn.execute(
-        r#"
-        DELETE FROM runtime_audit_records
-        WHERE (?1 IS NULL OR mod_id = ?1)
-          AND (?2 IS NULL OR stage = ?2)
-          AND (?3 IS NULL OR event_type = ?3)
-          AND (?4 IS NULL OR occurred_at >= ?4)
-          AND (?5 IS NULL OR occurred_at <= ?5)
-        "#,
-        params![
-            filter.mod_id,
-            filter.stage,
-            filter.event_type,
-            filter.from,
-            filter.to
-        ],
-    )
-    .map_err(|error| format!("删除 runtime audit 失败: {error}"))
+    Err("RUNTIME_AUDIT_DELETE_FORBIDDEN: runtime mod audit records are append-only".to_string())
 }
 
 #[tauri::command]

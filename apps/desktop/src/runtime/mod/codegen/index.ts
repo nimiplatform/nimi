@@ -214,7 +214,7 @@ export function buildCodegenRuntimeModRegistration(input: {
     sourceType: 'codegen',
     capabilities: [...input.artifacts.preflight.autoGrantedCapabilities, ...input.artifacts.preflight.consentRequiredCapabilities],
     manifestCapabilities: normalizeCapabilities(input.artifacts.manifest.capabilities as string[]),
-    grantCapabilities: input.consent.grantedCapabilities,
+    grantCapabilities: [],
     denialCapabilities: input.consent.deniedCapabilities,
     setup: input.setup,
     teardown: input.teardown,

@@ -38,7 +38,7 @@ export class PolicyEngine {
 
     const requested = Array.from(new Set(input.requestedCapabilities || []));
     const sourceType = String(input.sourceType || '').trim().toLowerCase();
-    const hasWildcard = requested.some((item) => item === '*' || item.endsWith(':*'));
+    const hasWildcard = requested.some((item) => item.includes('*'));
     if (hasWildcard) {
       return {
         ok: false,
