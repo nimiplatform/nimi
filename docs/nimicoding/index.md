@@ -31,6 +31,32 @@ every available signal — type checker green, tests green, code
 review approved — and turn out to be wrong about authority,
 scope, or product meaning, this section is for you.
 
+## Start Here If You Are New
+
+The first successful Nimi Coding path is intentionally small:
+
+1. **Install the package** in an existing repository. See
+   [Installation](/nimicoding/installation).
+2. **Bootstrap `.nimi/`.** Use `nimicoding start`, then check the
+   result with `nimicoding doctor --json`.
+3. **Reconstruct project authority** into `.nimi/spec/**`, recording
+   source basis and unresolved gaps instead of inventing clean rules.
+4. **Create a topic** for the first high-risk or authority-bearing
+   change.
+5. **Split the topic into waves** so each wave has one owner domain
+   and one closure goal.
+6. **Freeze a packet** before work starts: allowed reads, allowed
+   writes, acceptance invariants, negative tests, stop lines, and
+   reopen conditions.
+7. **Run or hand off the work through an admitted AI host**, then
+   record typed evidence.
+8. **Close the wave only across all four dimensions**: authority,
+   semantic, consumer, and drift resistance.
+
+That path is the product in miniature: AI work becomes durable,
+bounded, auditable project state instead of a chat transcript that
+looked convincing at the time.
+
 ## What's In This Section
 
 ### The Paradigm

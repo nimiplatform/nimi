@@ -35,10 +35,21 @@ The failure shapes the methodology was designed to catch:
 | Build-pass closure | Work declared done because tests run, even though consumer-facing behavior is wrong |
 | False reopen safety | A closed surface is touched again "just to fix this small thing"; closed authority silently mutated |
 | Pseudo-success | A typed contract failure is hidden behind a fallback that returns "something" instead of failing closed |
+| Context-budget gate drift | A gate meant to protect AI context is satisfied by compression, superficial summaries, or thin artifacts that pass the letter of the gate while losing the evidence needed for audit |
 
 These are not bugs in the conventional sense. They are **closure
 failures** — the work was claimed done in a state where the
 closure conditions had not actually held.
+
+Context-budget gate drift is especially important in AI-native
+workflows. A file can be "made smaller" by collapsing unrelated
+logic into dense prose, or a large evidence set can be summarized
+until the next auditor can no longer reconstruct the claim. The
+gate's purpose was correct — keep AI context usable — but the
+execution layer satisfied the gate in a way that weakened audit.
+Nimi Coding treats that as drift, not success: the right response
+is to preserve bounded, cohesive source files and typed evidence,
+not to hide complexity behind compressed artifacts.
 
 ## Why "Paradigm" And Not "Checklist"
 

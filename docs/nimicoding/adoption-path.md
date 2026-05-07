@@ -13,6 +13,29 @@ target personas and explains the value proposition for each.
 | Engineering org with AI-coding compliance pressure | Audit trail and structured acceptance |
 | Researcher studying AI engineering practice | Observable methodology corpus |
 
+## Field Evidence From Nimi
+
+Nimi Coding's strongest evidence is not a benchmark claim. It is that
+Nimi uses the methodology on itself.
+
+In the Nimi repository, Nimi Coding is used to:
+
+- reconstruct and validate the canonical `.nimi/spec/**` authority
+  tree;
+- run topic-driven design and remediation instead of unbounded
+  free-form AI sessions;
+- split long audits into sweep audit chunks with recorded evidence;
+- turn audit findings into sweep design worksets and candidate topic
+  waves;
+- keep large cross-domain repairs inspectable across runtime, SDK,
+  desktop, docs, and Nimi Coding itself.
+
+That does not prove the methodology is universally right. It makes
+the claim falsifiable: if the artifacts drift, if topics close
+without evidence, if spec audit breaks, or if consumer acceptance is
+missing, the failure is visible in the same machinery the methodology
+asks other projects to adopt.
+
 ## Solo Founder Using AI Heavily
 
 The hardest case. A solo founder building an ambitious system
@@ -35,9 +58,9 @@ What Nimi Coding provides:
 - The forbidden-shortcuts catalog protects against patterns the
   founder may not have caught yet.
 
-This is the project's own use case. Nimi (the product) is being
-built by a solo founder using AI heavily, and Nimi Coding is
-what makes it possible.
+This is the project's own use case. Nimi is being built by a
+solo founder using AI heavily, and Nimi Coding is the mechanism
+that keeps that work reviewable after the chat context is gone.
 
 ## Small Team (2-5 Engineers) Adopting AI
 
