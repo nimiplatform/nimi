@@ -2,12 +2,13 @@ package cognition
 
 import (
 	"database/sql"
+	"encoding/json"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
-	"github.com/nimiplatform/nimi/nimi-cognition/internal/storage"
 	"github.com/nimiplatform/nimi/nimi-cognition/knowledge"
 	"github.com/nimiplatform/nimi/nimi-cognition/memory"
 	"github.com/nimiplatform/nimi/nimi-cognition/routine/digest"
@@ -48,6 +49,53 @@ func TestSkillServiceLifecycleAndHistory(t *testing.T) {
 	}
 	if _, err := c.SkillService().Load("a1", "s1"); err == nil || !strings.Contains(err.Error(), "does not exist") {
 		t.Fatalf("expected deleted skill load failure, got %v", err)
+	}
+}
+
+func TestSkillServiceRejectsStoredPayloadScopeMismatch(t *testing.T) {
+	root := t.TempDir()
+	c := newTestCognitionAt(t, root)
+	if err := c.SkillService().Save(skill.Bundle{
+		BundleID:  "s1",
+		ScopeID:   "a1",
+		Version:   1,
+		Status:    skill.BundleStatusActive,
+		Name:      "Scoped Skill",
+		Steps:     []skill.Step{{StepID: "st1", Instruction: "Read", Order: 1}},
+		CreatedAt: ts,
+		UpdatedAt: ts,
+	}); err != nil {
+		t.Fatalf("save skill: %v", err)
+	}
+	raw, err := json.Marshal(skill.Bundle{
+		BundleID:  "s1",
+		ScopeID:   "a2",
+		Version:   1,
+		Status:    skill.BundleStatusActive,
+		Name:      "Scoped Skill",
+		Steps:     []skill.Step{{StepID: "st1", Instruction: "Read", Order: 1}},
+		CreatedAt: ts,
+		UpdatedAt: ts,
+	})
+	if err != nil {
+		t.Fatalf("marshal corrupt skill: %v", err)
+	}
+	db, err := sql.Open("sqlite", filepath.Join(root, "cognition.sqlite"))
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	defer db.Close()
+	if _, err := db.Exec(`UPDATE skill_bundle SET bundle_json = ? WHERE scope_id = ? AND bundle_id = ?`, raw, "a1", "s1"); err != nil {
+		t.Fatalf("corrupt skill payload scope: %v", err)
+	}
+	if _, err := c.SkillService().Load("a1", "s1"); err == nil || !strings.Contains(err.Error(), "payload scope a2 does not match requested scope a1") {
+		t.Fatalf("expected load scope mismatch, got %v", err)
+	}
+	if _, err := c.SkillService().List("a1"); err == nil || !strings.Contains(err.Error(), "payload scope a2 does not match requested scope a1") {
+		t.Fatalf("expected list scope mismatch, got %v", err)
+	}
+	if _, err := c.SkillService().Search("a1", "Scoped", 10); err == nil || !strings.Contains(err.Error(), "payload scope a2 does not match requested scope a1") {
+		t.Fatalf("expected search scope mismatch, got %v", err)
 	}
 }
 
@@ -183,23 +231,10 @@ func TestSkillSaveRejectsArchivedAndRemovedLifecycleMutation(t *testing.T) {
 	}
 }
 
-func TestSkillDigestWorkerRemove_IgnoresRemovedSource(t *testing.T) {
+func TestSkillDigestWorkerRemove_RemovedSourceAloneDoesNotCreateLowValueEvidence(t *testing.T) {
 	c := newTestCognition(t)
 	if err := c.InitScope("a1"); err != nil {
 		t.Fatalf("init scope: %v", err)
-	}
-	if err := c.KnowledgeService().Save(knowledge.Page{
-		PageID:    "ghost",
-		ScopeID:   "a1",
-		Kind:      knowledge.ProjectionKindExplainer,
-		Version:   1,
-		Title:     "Ghost",
-		Body:      []byte(`"ghost"`),
-		Lifecycle: knowledge.ProjectionLifecycleActive,
-		CreatedAt: ts,
-		UpdatedAt: ts,
-	}); err != nil {
-		t.Fatalf("save ghost page: %v", err)
 	}
 	if err := c.SkillService().Save(skill.Bundle{
 		BundleID:  "s1",
@@ -210,16 +245,6 @@ func TestSkillDigestWorkerRemove_IgnoresRemovedSource(t *testing.T) {
 		Steps:     []skill.Step{{StepID: "st1", Instruction: "Read", Order: 1}},
 		CreatedAt: ts,
 		UpdatedAt: ts,
-		ArtifactRefs: []artifactref.Ref{{
-			FromKind:  artifactref.KindSkillBundle,
-			FromID:    "s1",
-			ToKind:    artifactref.KindKnowledgePage,
-			ToID:      "ghost",
-			Strength:  artifactref.StrengthStrong,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts,
-		}},
 	}); err != nil {
 		t.Fatalf("save target skill: %v", err)
 	}
@@ -255,9 +280,6 @@ func TestSkillDigestWorkerRemove_IgnoresRemovedSource(t *testing.T) {
 	if err := ctx.Storage.ArchiveMemory("a1", "m1", ts.Add(time.Minute)); err != nil {
 		t.Fatalf("archive source memory: %v", err)
 	}
-	if err := c.store.Delete("a1", storage.KindKnowledge, "ghost"); err != nil {
-		t.Fatalf("delete ghost page fixture: %v", err)
-	}
 	if err := ctx.Storage.RemoveMemory("a1", "m1", ts.Add(time.Minute)); err != nil {
 		t.Fatalf("remove source memory: %v", err)
 	}
@@ -271,8 +293,8 @@ func TestSkillDigestWorkerRemove_IgnoresRemovedSource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load skill after worker runs: %v", err)
 	}
-	if loaded.Status != skill.BundleStatusRemoved {
-		t.Fatalf("expected removed source to stop blocking worker remove, got %+v", loaded)
+	if loaded.Status != skill.BundleStatusArchived {
+		t.Fatalf("expected archived skill to remain without valid low-value evidence, got %+v", loaded)
 	}
 }
 

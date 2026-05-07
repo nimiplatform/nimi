@@ -152,9 +152,15 @@ type Result struct {
 
 // FamilyResult reports results for a single artifact family.
 type FamilyResult struct {
-	Family    string `json:"family"` // "memory", "knowledge", "skill"
+	Family    string `json:"family"`
 	Processed int    `json:"processed"`
 	Archived  int    `json:"archived"`
 	Removed   int    `json:"removed"`
 	Unchanged int    `json:"unchanged"`
 }
+
+const (
+	FamilyMemorySubstrate     = "memory_substrate"
+	FamilyKnowledgeProjection = "knowledge_projections"
+	FamilySkillArtifacts      = "skill_artifacts"
+)

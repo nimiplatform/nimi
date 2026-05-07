@@ -45,7 +45,7 @@ func (d *Digest) analyzeAccess(scopeID string, now time.Time, access routine.Art
 			}
 			if len(broken) > 0 {
 				report.Findings = append(report.Findings, Finding{
-					Family:       "memory",
+					Family:       routine.FamilyMemorySubstrate,
 					ArtifactKind: string(artifactref.KindMemoryRecord),
 					ArtifactID:   string(record.RecordID),
 					Kind:         "invalidated_dependency",
@@ -54,7 +54,7 @@ func (d *Digest) analyzeAccess(scopeID string, now time.Time, access routine.Art
 			}
 			if summary.Score == 0 {
 				report.Findings = append(report.Findings, Finding{
-					Family:       "memory",
+					Family:       routine.FamilyMemorySubstrate,
 					ArtifactKind: string(artifactref.KindMemoryRecord),
 					ArtifactID:   string(record.RecordID),
 					Kind:         "zero_support",
@@ -68,7 +68,7 @@ func (d *Digest) analyzeAccess(scopeID string, now time.Time, access routine.Art
 			}
 			if basis, ok := memoryLowValueBasis(summary, outgoing); shouldArchiveMemory(record, summary, outgoing) && ok {
 				report.Candidates = append(report.Candidates, buildCandidate(
-					"memory",
+					routine.FamilyMemorySubstrate,
 					artifactref.KindMemoryRecord,
 					string(record.RecordID),
 					string(record.Lifecycle),
@@ -119,7 +119,7 @@ func (d *Digest) analyzeAccess(scopeID string, now time.Time, access routine.Art
 			}
 			if len(broken) > 0 {
 				report.Findings = append(report.Findings, Finding{
-					Family:       "knowledge",
+					Family:       routine.FamilyKnowledgeProjection,
 					ArtifactKind: string(artifactref.KindKnowledgePage),
 					ArtifactID:   string(page.PageID),
 					Kind:         "broken_dependencies",
@@ -128,7 +128,7 @@ func (d *Digest) analyzeAccess(scopeID string, now time.Time, access routine.Art
 			}
 			if summary.Score == 0 {
 				report.Findings = append(report.Findings, Finding{
-					Family:       "knowledge",
+					Family:       routine.FamilyKnowledgeProjection,
 					ArtifactKind: string(artifactref.KindKnowledgePage),
 					ArtifactID:   string(page.PageID),
 					Kind:         "zero_support",
@@ -142,7 +142,7 @@ func (d *Digest) analyzeAccess(scopeID string, now time.Time, access routine.Art
 			}
 			if basis, ok := knowledgeLowValueBasis(summary, broken); shouldArchiveKnowledge(page, summary, broken) && ok {
 				report.Candidates = append(report.Candidates, buildCandidate(
-					"knowledge",
+					routine.FamilyKnowledgeProjection,
 					artifactref.KindKnowledgePage,
 					string(page.PageID),
 					string(page.Lifecycle),
@@ -188,7 +188,7 @@ func (d *Digest) analyzeAccess(scopeID string, now time.Time, access routine.Art
 			}
 			if len(broken) > 0 {
 				report.Findings = append(report.Findings, Finding{
-					Family:       "skill",
+					Family:       routine.FamilySkillArtifacts,
 					ArtifactKind: string(artifactref.KindSkillBundle),
 					ArtifactID:   string(bundle.BundleID),
 					Kind:         "broken_dependencies",
@@ -197,7 +197,7 @@ func (d *Digest) analyzeAccess(scopeID string, now time.Time, access routine.Art
 			}
 			if skillLowValue(summary, outgoing, bundle) {
 				report.Findings = append(report.Findings, Finding{
-					Family:       "skill",
+					Family:       routine.FamilySkillArtifacts,
 					ArtifactKind: string(artifactref.KindSkillBundle),
 					ArtifactID:   string(bundle.BundleID),
 					Kind:         "low_support",
@@ -211,7 +211,7 @@ func (d *Digest) analyzeAccess(scopeID string, now time.Time, access routine.Art
 			}
 			if basis, ok := skillLowValueBasis(summary, outgoing, bundle); shouldArchiveSkill(bundle, summary, broken, outgoing) && ok {
 				report.Candidates = append(report.Candidates, buildCandidate(
-					"skill",
+					routine.FamilySkillArtifacts,
 					artifactref.KindSkillBundle,
 					string(bundle.BundleID),
 					string(bundle.Status),

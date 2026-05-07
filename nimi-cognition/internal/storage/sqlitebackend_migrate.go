@@ -148,7 +148,7 @@ func (b *SQLiteBackend) migrateKnowledgeAuxState() error {
 			if ref.ToKind == artifactref.KindKnowledgePage {
 				relType := relationTypeFromRole(ref.Role)
 				if relType != "" {
-					if err := b.upsertKnowledgeRelationTx(tx, knowledge.Relation{
+					if err := b.insertKnowledgeRelationTx(tx, knowledge.Relation{
 						ScopeID:      row.scopeID,
 						FromPageID:   knowledge.PageID(ref.FromID),
 						ToPageID:     knowledge.PageID(ref.ToID),

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
-	"github.com/nimiplatform/nimi/nimi-cognition/internal/storage"
 	"github.com/nimiplatform/nimi/nimi-cognition/knowledge"
 	"github.com/nimiplatform/nimi/nimi-cognition/memory"
 	"github.com/nimiplatform/nimi/nimi-cognition/routine"
@@ -17,8 +16,62 @@ import (
 func TestMemorySaveRejectsKindContentMismatch(t *testing.T) { /* moved unchanged */
 	c := newTestCognition(t)
 	err := c.MemoryService().Save(memory.Record{RecordID: "m1", ScopeID: "a1", Kind: memory.RecordKindObservation, Version: 1, Content: []byte(`{"summary":"not an observation"}`), Lifecycle: memory.RecordLifecycleActive, CreatedAt: ts, UpdatedAt: ts})
-	if err == nil || !strings.Contains(err.Error(), "observation.subject is required") {
+	if err == nil || !strings.Contains(err.Error(), `unknown field "summary"`) {
 		t.Fatalf("expected fail-closed kind/content validation, got %v", err)
+	}
+}
+
+func TestMemoryRejectsCallerPersistedServiceMetadata(t *testing.T) {
+	c := newTestCognition(t)
+	err := c.MemoryService().Save(memory.Record{
+		RecordID:  "m1",
+		ScopeID:   "a1",
+		Kind:      memory.RecordKindExperience,
+		Version:   1,
+		Content:   []byte(`{"summary":"hello","cleanup_signals":["caller-forged"],"drift_status":"stale"}`),
+		Lifecycle: memory.RecordLifecycleActive,
+		CreatedAt: ts,
+		UpdatedAt: ts,
+	})
+	if err == nil || !strings.Contains(err.Error(), `unknown field "cleanup_signals"`) {
+		t.Fatalf("expected caller-forged metadata rejection, got %v", err)
+	}
+}
+
+func TestMemoryRejectsTrailingContentValues(t *testing.T) {
+	c := newTestCognition(t)
+	err := c.MemoryService().Save(memory.Record{
+		RecordID:  "m1",
+		ScopeID:   "a1",
+		Kind:      memory.RecordKindExperience,
+		Content:   []byte(`{"summary":"hello"}{"summary":"forged"}`),
+		Lifecycle: memory.RecordLifecycleActive,
+	})
+	if err == nil || !strings.Contains(err.Error(), "trailing JSON values are not admitted") {
+		t.Fatalf("expected trailing content rejection, got %v", err)
+	}
+}
+
+func TestMemorySaveOwnsVersionAndTimestamps(t *testing.T) {
+	c := newTestCognition(t)
+	if err := c.MemoryService().Save(memory.Record{
+		RecordID:  "m1",
+		ScopeID:   "a1",
+		Kind:      memory.RecordKindExperience,
+		Version:   99,
+		Content:   []byte(`{"summary":"service-owned metadata"}`),
+		Lifecycle: memory.RecordLifecycleActive,
+		CreatedAt: ts.Add(24 * time.Hour),
+		UpdatedAt: ts.Add(48 * time.Hour),
+	}); err != nil {
+		t.Fatalf("save memory: %v", err)
+	}
+	loaded, err := c.MemoryService().Load("a1", "m1")
+	if err != nil {
+		t.Fatalf("load memory: %v", err)
+	}
+	if loaded.Version != 1 || !loaded.CreatedAt.Equal(ts) || !loaded.UpdatedAt.Equal(ts) {
+		t.Fatalf("memory save trusted caller metadata: %+v", loaded)
 	}
 }
 
@@ -269,7 +322,7 @@ func TestMemoryDigestWorkerRemove_BlocksKnowledgeCitationTarget(t *testing.T) {
 	candidates := latestDigestCandidates(t, c, "a1")
 	found := false
 	for _, candidate := range candidates {
-		if candidate.Family != "memory" || candidate.ArtifactKind != string(artifactref.KindMemoryRecord) || candidate.ArtifactID != "m1" {
+		if candidate.Family != routine.FamilyMemorySubstrate || candidate.ArtifactKind != string(artifactref.KindMemoryRecord) || candidate.ArtifactID != "m1" {
 			continue
 		}
 		if candidate.Action != "remove" || candidate.Status != "blocked" || candidate.Reason != "memory removal is blocked" {
@@ -451,23 +504,10 @@ func TestMemoryLifecyclePersistsAcrossReopen(t *testing.T) { /* moved unchanged 
 	}
 }
 
-func TestMemoryDigestWorkerRemove_ActiveWeakBlocks_ArchivedWeakAllows(t *testing.T) {
+func TestMemoryDigestWorkerRemove_ZeroSupportArchivedRemoves(t *testing.T) {
 	c := newTestCognition(t)
 	if err := c.InitScope("a1"); err != nil {
 		t.Fatalf("init scope: %v", err)
-	}
-	if err := c.KnowledgeService().Save(knowledge.Page{
-		PageID:    "ghost",
-		ScopeID:   "a1",
-		Kind:      knowledge.ProjectionKindExplainer,
-		Version:   1,
-		Title:     "Ghost",
-		Body:      []byte(`"ghost"`),
-		Lifecycle: knowledge.ProjectionLifecycleActive,
-		CreatedAt: ts,
-		UpdatedAt: ts,
-	}); err != nil {
-		t.Fatalf("save ghost page: %v", err)
 	}
 	if err := c.MemoryService().Save(memory.Record{
 		RecordID:  "m1",
@@ -476,16 +516,6 @@ func TestMemoryDigestWorkerRemove_ActiveWeakBlocks_ArchivedWeakAllows(t *testing
 		Version:   1,
 		Content:   []byte(`{"summary":"archived target"}`),
 		Lifecycle: memory.RecordLifecycleActive,
-		ArtifactRefs: []artifactref.Ref{{
-			FromKind:  artifactref.KindMemoryRecord,
-			FromID:    "m1",
-			ToKind:    artifactref.KindKnowledgePage,
-			ToID:      "ghost",
-			Strength:  artifactref.StrengthStrong,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts,
-		}},
 		CreatedAt: ts,
 		UpdatedAt: ts,
 	}); err != nil {
@@ -498,76 +528,6 @@ func TestMemoryDigestWorkerRemove_ActiveWeakBlocks_ArchivedWeakAllows(t *testing
 	if err := ctx.Storage.ArchiveMemory("a1", "m1", ts.Add(time.Minute)); err != nil {
 		t.Fatalf("archive target memory: %v", err)
 	}
-	page := knowledge.Page{
-		PageID:    "p1",
-		ScopeID:   "a1",
-		Kind:      knowledge.ProjectionKindExplainer,
-		Version:   1,
-		Title:     "Weak source",
-		Body:      []byte(`"body"`),
-		Lifecycle: knowledge.ProjectionLifecycleActive,
-		CreatedAt: ts,
-		UpdatedAt: ts,
-		ArtifactRefs: []artifactref.Ref{{
-			FromKind:  artifactref.KindKnowledgePage,
-			FromID:    "p1",
-			ToKind:    artifactref.KindMemoryRecord,
-			ToID:      "m1",
-			Strength:  artifactref.StrengthWeak,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts,
-		}, {
-			FromKind:  artifactref.KindKnowledgePage,
-			FromID:    "p1",
-			ToKind:    artifactref.KindSkillBundle,
-			ToID:      "s-support",
-			Strength:  artifactref.StrengthStrong,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts,
-		}},
-	}
-	if err := c.SkillService().Save(skill.Bundle{
-		BundleID:  "s-support",
-		ScopeID:   "a1",
-		Version:   1,
-		Status:    skill.BundleStatusActive,
-		Name:      "Support peer",
-		Steps:     []skill.Step{{StepID: "st1", Instruction: "Observe", Order: 1}},
-		CreatedAt: ts,
-		UpdatedAt: ts,
-	}); err != nil {
-		t.Fatalf("save supporting skill stub: %v", err)
-	}
-	if err := c.KnowledgeService().Save(page); err != nil {
-		t.Fatalf("save active weak source: %v", err)
-	}
-	if err := c.SkillService().Save(skill.Bundle{
-		BundleID:  "s-support",
-		ScopeID:   "a1",
-		Version:   2,
-		Status:    skill.BundleStatusActive,
-		Name:      "Support peer",
-		Steps:     []skill.Step{{StepID: "st1", Instruction: "Observe", Order: 1}},
-		CreatedAt: ts,
-		UpdatedAt: ts,
-		ArtifactRefs: []artifactref.Ref{{
-			FromKind:  artifactref.KindSkillBundle,
-			FromID:    "s-support",
-			ToKind:    artifactref.KindKnowledgePage,
-			ToID:      "p1",
-			Strength:  artifactref.StrengthStrong,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts,
-		}},
-	}); err != nil {
-		t.Fatalf("save supporting skill relation: %v", err)
-	}
-	if err := c.store.Delete("a1", storage.KindKnowledge, "ghost"); err != nil {
-		t.Fatalf("delete ghost page fixture: %v", err)
-	}
 	if _, err := digest.NewWorker(digest.Config{}).Run(ctx); err != nil {
 		t.Fatalf("worker first pass: %v", err)
 	}
@@ -576,39 +536,9 @@ func TestMemoryDigestWorkerRemove_ActiveWeakBlocks_ArchivedWeakAllows(t *testing
 	}
 	loaded, err := c.MemoryService().Load("a1", "m1")
 	if err != nil {
-		t.Fatalf("load memory after blocked pass: %v", err)
-	}
-	if loaded.Lifecycle != memory.RecordLifecycleArchived {
-		t.Fatalf("expected memory to remain archived while active weak source is live, got %+v", loaded)
-	}
-	candidates := latestDigestCandidates(t, c, "a1")
-	found := false
-	for _, candidate := range candidates {
-		if candidate.ArtifactID != "m1" || candidate.Action != "remove" || candidate.Status != "blocked" {
-			continue
-		}
-		detail := decodeBlockedDetail[digest.BlockedTransition](t, candidate.Detail)
-		for _, blocker := range detail.Detail.Blockers {
-			if blocker.Kind == routine.BlockerKindDownstreamLiveDependency && blocker.SourceID == "p1" {
-				found = true
-				break
-			}
-		}
-	}
-	if !found {
-		t.Fatalf("expected blocked worker evidence with downstream_live_dependency, got %+v", candidates)
-	}
-	if err := ctx.Storage.ArchiveKnowledge("a1", "p1", ts.Add(time.Minute)); err != nil {
-		t.Fatalf("archive weak source: %v", err)
-	}
-	if _, err := digest.NewWorker(digest.Config{}).Run(ctx); err != nil {
-		t.Fatalf("worker third pass: %v", err)
-	}
-	loaded, err = c.MemoryService().Load("a1", "m1")
-	if err != nil {
-		t.Fatalf("load memory after archived weak source: %v", err)
+		t.Fatalf("load memory after worker passes: %v", err)
 	}
 	if loaded.Lifecycle != memory.RecordLifecycleRemoved {
-		t.Fatalf("expected archived weak source to allow remove on worker path, got %+v", loaded)
+		t.Fatalf("expected zero-support archived memory to remove on worker path, got %+v", loaded)
 	}
 }

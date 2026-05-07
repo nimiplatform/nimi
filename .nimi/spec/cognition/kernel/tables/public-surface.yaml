@@ -5,7 +5,7 @@ surfaces:
     entrypoint: New
     owner_surface: cognition
     family_scope: root
-    return_contract: "*Cognition"
+    return_contract: "(*Cognition, error)"
     capability_concerns: []
     notes: Constructs the standalone cognition root.
     source_rule: C-COG-026
@@ -86,7 +86,7 @@ surfaces:
     entrypoint: NewRoutineContext
     owner_surface: Cognition
     family_scope: routine
-    return_contract: "routine.Context"
+    return_contract: "(routine.Context, error)"
     capability_concerns: []
     notes: Authoritative external routine entry.
     source_rule: C-COG-027
@@ -113,7 +113,7 @@ surfaces:
     entrypoint: ListScopes
     owner_surface: Cognition
     family_scope: root
-    return_contract: "[]string"
+    return_contract: "([]string, error)"
     capability_concerns: []
     notes: Lists known cognition scopes.
     source_rule: C-COG-027

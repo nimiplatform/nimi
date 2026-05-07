@@ -88,6 +88,15 @@ func validateVisibleSkillBundles(bundles []skill.Bundle) ([]skill.Bundle, error)
 	return visibleSkillBundles(bundles), nil
 }
 
+func validateSkillBundleScope(scopeID string, bundles []skill.Bundle) error {
+	for _, bundle := range bundles {
+		if bundle.ScopeID != scopeID {
+			return fmt.Errorf("skill load: payload scope %s does not match requested scope %s", bundle.ScopeID, scopeID)
+		}
+	}
+	return nil
+}
+
 func visibleMemoryRecords(records []memory.Record) []memory.Record {
 	filtered := make([]memory.Record, 0, len(records))
 	for _, rec := range records {
@@ -306,6 +315,9 @@ func loadOptionalSkillBundle(store *storage.SQLiteBackend, scopeID string, bundl
 	}
 	if err := skill.ValidateBundle(bundle); err != nil {
 		return nil, fmt.Errorf("skill load: %w", err)
+	}
+	if bundle.ScopeID != scopeID {
+		return nil, fmt.Errorf("skill load: payload scope %s does not match requested scope %s", bundle.ScopeID, scopeID)
 	}
 	return &bundle, nil
 }

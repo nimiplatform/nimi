@@ -414,7 +414,7 @@ func (b *SQLiteBackend) SaveKnowledgeRelation(rel knowledge.Relation) error {
 		return fmt.Errorf("storage save knowledge relation: begin tx: %w", err)
 	}
 	defer rollback(tx)
-	if err := b.upsertKnowledgeRelationTx(tx, rel); err != nil {
+	if err := b.insertKnowledgeRelationTx(tx, rel); err != nil {
 		return err
 	}
 	return tx.Commit()

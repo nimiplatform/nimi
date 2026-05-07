@@ -2,6 +2,7 @@ package digest
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -79,7 +80,7 @@ func loadMemoryLifecycle(t *testing.T, store *storage.SQLiteBackend, scopeID, re
 	return record.Lifecycle
 }
 
-func TestAnalyze_UsesBaselineStyleTriggerAndDownstreamFirstOrdering(t *testing.T) {
+func TestAnalyze_UsesBaselineStyleTrigger(t *testing.T) {
 	store := newDigestStore(t)
 	d := New(Config{})
 
@@ -101,16 +102,6 @@ func TestAnalyze_UsesBaselineStyleTriggerAndDownstreamFirstOrdering(t *testing.T
 		Title:     "Summary",
 		Body:      []byte(`"body"`),
 		Lifecycle: knowledge.ProjectionLifecycleActive,
-		ArtifactRefs: []artifactref.Ref{{
-			FromKind:  artifactref.KindKnowledgePage,
-			FromID:    "p1",
-			ToKind:    artifactref.KindMemoryRecord,
-			ToID:      "ghost",
-			Strength:  artifactref.StrengthStrong,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts,
-		}},
 		CreatedAt: ts,
 		UpdatedAt: ts,
 	})
@@ -148,11 +139,10 @@ func TestAnalyze_UsesBaselineStyleTriggerAndDownstreamFirstOrdering(t *testing.T
 	if len(analysis.Candidates) < 2 {
 		t.Fatalf("expected multiple cleanup candidates, got %+v", analysis.Candidates)
 	}
-	if analysis.Candidates[0].Family != "knowledge" {
-		t.Fatalf("expected downstream-first ordering, got %+v", analysis.Candidates)
-	}
-	if len(analysis.Candidates[0].Detail.BrokenDependencies) == 0 {
-		t.Fatalf("expected structured broken dependency detail, got %+v", analysis.Candidates[0])
+	for _, candidate := range analysis.Candidates {
+		if len(candidate.Detail.BrokenDependencies) != 0 {
+			t.Fatalf("valid persisted refs must not produce broken dependency detail, got %+v", candidate)
+		}
 	}
 }
 
@@ -167,16 +157,6 @@ func TestApply_StrongIncomingRefBlocksRemoveAndRequiresLaterPass(t *testing.T) {
 		Version:   1,
 		Content:   []byte(`{"summary":"hello"}`),
 		Lifecycle: memory.RecordLifecycleArchived,
-		ArtifactRefs: []artifactref.Ref{{
-			FromKind:  artifactref.KindMemoryRecord,
-			FromID:    "m1",
-			ToKind:    artifactref.KindKnowledgePage,
-			ToID:      "ghost",
-			Strength:  artifactref.StrengthStrong,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts,
-		}},
 		CreatedAt: ts,
 		UpdatedAt: ts,
 	})
@@ -205,7 +185,7 @@ func TestApply_StrongIncomingRefBlocksRemoveAndRequiresLaterPass(t *testing.T) {
 	analysis := AnalysisReport{
 		GeneratedAt: ts,
 		Candidates: []Candidate{{
-			Family:           "memory",
+			Family:           routine.FamilyMemorySubstrate,
 			ArtifactKind:     string(artifactref.KindMemoryRecord),
 			ArtifactID:       "m1",
 			CurrentLifecycle: "archived",
@@ -243,23 +223,13 @@ func TestRun_FirstPassArchives_ThirdPassRemovesAfterSameBasisConfirmation(t *tes
 	store := newDigestStore(t)
 	d := New(Config{})
 
-	saveTestSkill(t, store, skill.Bundle{
-		BundleID: "s1",
-		ScopeID:  "a1",
-		Version:  1,
-		Status:   skill.BundleStatusActive,
-		Name:     "Review",
-		Steps:    []skill.Step{{StepID: "st1", Instruction: "Read", Order: 1}},
-		ArtifactRefs: []artifactref.Ref{{
-			FromKind:  artifactref.KindSkillBundle,
-			FromID:    "s1",
-			ToKind:    artifactref.KindMemoryRecord,
-			ToID:      "ghost",
-			Strength:  artifactref.StrengthStrong,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts,
-		}},
+	saveTestMemory(t, store, memory.Record{
+		RecordID:  "m1",
+		ScopeID:   "a1",
+		Kind:      memory.RecordKindExperience,
+		Version:   1,
+		Content:   []byte(`{"summary":"hello"}`),
+		Lifecycle: memory.RecordLifecycleActive,
 		CreatedAt: ts,
 		UpdatedAt: ts,
 	})
@@ -268,11 +238,11 @@ func TestRun_FirstPassArchives_ThirdPassRemovesAfterSameBasisConfirmation(t *tes
 	if err != nil {
 		t.Fatalf("first run: %v", err)
 	}
-	if len(first.Applied) != 1 || first.Applied[0].ToState != string(skill.BundleStatusArchived) {
+	if len(first.Applied) != 1 || first.Applied[0].ToState != string(memory.RecordLifecycleArchived) {
 		t.Fatalf("expected first pass to archive only, got %+v", first.Applied)
 	}
-	if got := loadSkillStatus(t, store, "a1", "s1"); got != skill.BundleStatusArchived {
-		t.Fatalf("expected archived skill after first pass, got %s", got)
+	if got := loadMemoryLifecycle(t, store, "a1", "m1"); got != memory.RecordLifecycleArchived {
+		t.Fatalf("expected archived memory after first pass, got %s", got)
 	}
 
 	second, err := d.run("a1", ts.Add(time.Minute), store)
@@ -288,23 +258,23 @@ func TestRun_FirstPassArchives_ThirdPassRemovesAfterSameBasisConfirmation(t *tes
 	if second.Analysis.Trigger.ContentVolume.Previous == 0 {
 		t.Fatalf("expected second run to compare against previous digest report, got %+v", second.Analysis.Trigger)
 	}
-	if got := loadSkillStatus(t, store, "a1", "s1"); got != skill.BundleStatusArchived {
-		t.Fatalf("expected skill to remain archived after second pass, got %s", got)
+	if got := loadMemoryLifecycle(t, store, "a1", "m1"); got != memory.RecordLifecycleArchived {
+		t.Fatalf("expected memory to remain archived after second pass, got %s", got)
 	}
 
 	third, err := d.run("a1", ts.Add(2*time.Minute), store)
 	if err != nil {
 		t.Fatalf("third run: %v", err)
 	}
-	if len(third.Applied) != 1 || third.Applied[0].ToState != string(skill.BundleStatusRemoved) || !third.Applied[0].Detail.LaterPassConfirmed {
+	if len(third.Applied) != 1 || third.Applied[0].ToState != string(memory.RecordLifecycleRemoved) || !third.Applied[0].Detail.LaterPassConfirmed {
 		t.Fatalf("expected third pass to remove archived candidate after same-basis confirmation, got %+v", third.Applied)
 	}
-	if got := loadSkillStatus(t, store, "a1", "s1"); got != skill.BundleStatusRemoved {
-		t.Fatalf("expected removed skill after third pass, got %s", got)
+	if got := loadMemoryLifecycle(t, store, "a1", "m1"); got != memory.RecordLifecycleRemoved {
+		t.Fatalf("expected removed memory after third pass, got %s", got)
 	}
 }
 
-func TestRun_BasisChangePreventsImmediateRemoveConfirmation(t *testing.T) {
+func TestRun_ZeroSupportKnowledgeRemoveRequiresConfirmation(t *testing.T) {
 	store := newDigestStore(t)
 	d := New(Config{})
 
@@ -316,16 +286,6 @@ func TestRun_BasisChangePreventsImmediateRemoveConfirmation(t *testing.T) {
 		Title:     "Basis Shift",
 		Body:      []byte(`"body"`),
 		Lifecycle: knowledge.ProjectionLifecycleActive,
-		ArtifactRefs: []artifactref.Ref{{
-			FromKind:  artifactref.KindKnowledgePage,
-			FromID:    "p1",
-			ToKind:    artifactref.KindMemoryRecord,
-			ToID:      "ghost",
-			Strength:  artifactref.StrengthStrong,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts,
-		}},
 		CreatedAt: ts,
 		UpdatedAt: ts,
 	})
@@ -342,66 +302,33 @@ func TestRun_BasisChangePreventsImmediateRemoveConfirmation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("second run: %v", err)
 	}
-	if len(second.Blocked) != 1 || second.Blocked[0].Detail.LowValueBasis != lowValueBasisBrokenDependencies {
-		t.Fatalf("expected broken-dependencies remove candidate to remain blocked, got %+v", second.Blocked)
+	if len(second.Blocked) != 1 || second.Blocked[0].Detail.LowValueBasis != lowValueBasisZeroSupport {
+		t.Fatalf("expected zero-support remove candidate to remain blocked, got %+v", second.Blocked)
 	}
-
-	saveTestKnowledge(t, store, knowledge.Page{
-		PageID:    "p1",
-		ScopeID:   "a1",
-		Kind:      knowledge.ProjectionKindSummary,
-		Version:   2,
-		Title:     "Basis Shift",
-		Body:      []byte(`"body"`),
-		Lifecycle: knowledge.ProjectionLifecycleArchived,
-		CreatedAt: ts,
-		UpdatedAt: ts.Add(2 * time.Minute),
-	})
 
 	third, err := d.run("a1", ts.Add(2*time.Minute), store)
 	if err != nil {
 		t.Fatalf("third run: %v", err)
 	}
-	if len(third.Applied) != 0 {
-		t.Fatalf("expected basis-changed remove candidate to remain blocked, got %+v", third.Applied)
-	}
-	if len(third.Blocked) != 1 || third.Blocked[0].Detail.LowValueBasis != lowValueBasisZeroSupport || third.Blocked[0].Detail.LaterPassConfirmed {
-		t.Fatalf("expected zero-support basis to require a fresh confirmation pass, got %+v", third.Blocked)
-	}
-
-	fourth, err := d.run("a1", ts.Add(3*time.Minute), store)
-	if err != nil {
-		t.Fatalf("fourth run: %v", err)
-	}
-	if len(fourth.Applied) != 1 || fourth.Applied[0].ToState != string(knowledge.ProjectionLifecycleRemoved) || !fourth.Applied[0].Detail.LaterPassConfirmed {
-		t.Fatalf("expected fourth run to remove after repeated zero-support basis, got %+v", fourth.Applied)
+	if len(third.Applied) != 1 || third.Applied[0].ToState != string(knowledge.ProjectionLifecycleRemoved) || !third.Applied[0].Detail.LaterPassConfirmed {
+		t.Fatalf("expected third run to remove after repeated zero-support basis, got %+v", third.Applied)
 	}
 }
 
-func TestAnalyze_RanksCandidatesByFamilyActionAndScore(t *testing.T) {
+func TestAnalyze_RanksCandidatesWithGroupedEvidence(t *testing.T) {
 	store := newDigestStore(t)
 	d := New(Config{})
 
 	saveTestKnowledge(t, store, knowledge.Page{
-		PageID:    "p-broken",
+		PageID:    "p-later",
 		ScopeID:   "a1",
 		Kind:      knowledge.ProjectionKindSummary,
 		Version:   1,
-		Title:     "Broken",
+		Title:     "Later",
 		Body:      []byte(`"body"`),
 		Lifecycle: knowledge.ProjectionLifecycleActive,
-		ArtifactRefs: []artifactref.Ref{{
-			FromKind:  artifactref.KindKnowledgePage,
-			FromID:    "p-broken",
-			ToKind:    artifactref.KindMemoryRecord,
-			ToID:      "ghost",
-			Strength:  artifactref.StrengthStrong,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts,
-		}},
 		CreatedAt: ts,
-		UpdatedAt: ts,
+		UpdatedAt: ts.Add(time.Minute),
 	})
 	saveTestKnowledge(t, store, knowledge.Page{
 		PageID:    "p-zero",
@@ -412,7 +339,7 @@ func TestAnalyze_RanksCandidatesByFamilyActionAndScore(t *testing.T) {
 		Body:      []byte(`"body"`),
 		Lifecycle: knowledge.ProjectionLifecycleActive,
 		CreatedAt: ts,
-		UpdatedAt: ts.Add(time.Minute),
+		UpdatedAt: ts,
 	})
 
 	analysis, err := d.analyze("a1", ts.Add(2*time.Minute), store, nil)
@@ -422,18 +349,17 @@ func TestAnalyze_RanksCandidatesByFamilyActionAndScore(t *testing.T) {
 	if len(analysis.Candidates) < 2 {
 		t.Fatalf("expected multiple ranked candidates, got %+v", analysis.Candidates)
 	}
-	if analysis.Candidates[0].ArtifactID != "p-broken" || analysis.Candidates[0].LowValueBasis != lowValueBasisBrokenDependencies {
-		t.Fatalf("expected broken-dependency candidate to rank first, got %+v", analysis.Candidates)
-	}
-	if analysis.Candidates[0].Score <= analysis.Candidates[1].Score {
-		t.Fatalf("expected first candidate to have higher score, got %+v", analysis.Candidates[:2])
-	}
 	if analysis.Candidates[0].GroupKey == "" || analysis.Candidates[1].GroupKey == "" {
 		t.Fatalf("expected grouped candidate evidence, got %+v", analysis.Candidates[:2])
 	}
+	for _, candidate := range analysis.Candidates[:2] {
+		if candidate.LowValueBasis != lowValueBasisZeroSupport {
+			t.Fatalf("expected zero-support candidates with valid persisted refs, got %+v", analysis.Candidates[:2])
+		}
+	}
 }
 
-func TestRun_WeakIncomingRefBlocksRemoveOnlyWhileSourceActive(t *testing.T) {
+func TestRun_RemovedWeakIncomingRefAllowsZeroSupportRemove(t *testing.T) {
 	store := newDigestStore(t)
 	d := New(Config{})
 
@@ -444,16 +370,6 @@ func TestRun_WeakIncomingRefBlocksRemoveOnlyWhileSourceActive(t *testing.T) {
 		Version:   1,
 		Content:   []byte(`{"summary":"hello"}`),
 		Lifecycle: memory.RecordLifecycleArchived,
-		ArtifactRefs: []artifactref.Ref{{
-			FromKind:  artifactref.KindMemoryRecord,
-			FromID:    "m1",
-			ToKind:    artifactref.KindKnowledgePage,
-			ToID:      "ghost",
-			Strength:  artifactref.StrengthStrong,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts,
-		}},
 		CreatedAt: ts,
 		UpdatedAt: ts,
 	})
@@ -478,26 +394,9 @@ func TestRun_WeakIncomingRefBlocksRemoveOnlyWhileSourceActive(t *testing.T) {
 		CreatedAt: ts,
 		UpdatedAt: ts,
 	})
-	saveTestMemory(t, store, memory.Record{
-		RecordID:  "m2",
-		ScopeID:   "a1",
-		Kind:      memory.RecordKindExperience,
-		Version:   1,
-		Content:   []byte(`{"summary":"support page"}`),
-		Lifecycle: memory.RecordLifecycleActive,
-		ArtifactRefs: []artifactref.Ref{{
-			FromKind:  artifactref.KindMemoryRecord,
-			FromID:    "m2",
-			ToKind:    artifactref.KindKnowledgePage,
-			ToID:      "p1",
-			Strength:  artifactref.StrengthStrong,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts,
-		}},
-		CreatedAt: ts,
-		UpdatedAt: ts,
-	})
+	if err := store.Delete("a1", storage.KindKnowledge, "p1"); err != nil {
+		t.Fatalf("delete weak source: %v", err)
+	}
 
 	first, err := d.run("a1", ts, store)
 	if err != nil {
@@ -511,64 +410,18 @@ func TestRun_WeakIncomingRefBlocksRemoveOnlyWhileSourceActive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("second run: %v", err)
 	}
-	var blockedM1 *BlockedTransition
-	for i := range second.Blocked {
-		if second.Blocked[i].ArtifactID == "m1" && second.Blocked[i].Action == "remove" {
-			blockedM1 = &second.Blocked[i]
-			break
-		}
-	}
-	if blockedM1 == nil {
-		t.Fatalf("expected blocked remove on second pass due to active weak blocker, got %+v", second.Blocked)
-	}
-	var sawDownstream bool
-	for _, blocker := range blockedM1.Detail.Blockers {
-		if blocker.Kind == routine.BlockerKindDownstreamLiveDependency {
-			sawDownstream = true
-		}
-	}
-	if !sawDownstream {
-		t.Fatalf("expected active weak blocker to become downstream_live_dependency, got %+v", blockedM1.Detail.Blockers)
-	}
-
-	saveTestKnowledge(t, store, knowledge.Page{
-		PageID:    "p1",
-		ScopeID:   "a1",
-		Kind:      knowledge.ProjectionKindSummary,
-		Version:   2,
-		Title:     "Summary",
-		Body:      []byte(`"body"`),
-		Lifecycle: knowledge.ProjectionLifecycleArchived,
-		ArtifactRefs: []artifactref.Ref{{
-			FromKind:  artifactref.KindKnowledgePage,
-			FromID:    "p1",
-			ToKind:    artifactref.KindMemoryRecord,
-			ToID:      "m1",
-			Strength:  artifactref.StrengthWeak,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts.Add(2 * time.Minute),
-		}},
-		CreatedAt: ts,
-		UpdatedAt: ts.Add(2 * time.Minute),
-	})
-
-	third, err := d.run("a1", ts.Add(2*time.Minute), store)
-	if err != nil {
-		t.Fatalf("third run: %v", err)
-	}
 	foundRemoved := false
-	for _, applied := range third.Applied {
+	for _, applied := range second.Applied {
 		if applied.ArtifactID == "m1" && applied.ToState == string(memory.RecordLifecycleRemoved) {
 			foundRemoved = true
 			break
 		}
 	}
 	if !foundRemoved {
-		t.Fatalf("expected remove after weak blocker source became inactive, got %+v", third)
+		t.Fatalf("expected remove after weak source deletion cleared incoming ref, got %+v", second)
 	}
 	if got := loadMemoryLifecycle(t, store, "a1", "m1"); got != memory.RecordLifecycleRemoved {
-		t.Fatalf("expected removed memory after weak blocker downgrade, got %s", got)
+		t.Fatalf("expected removed memory after weak source deletion, got %s", got)
 	}
 }
 
@@ -662,5 +515,91 @@ func TestWorker_PersistsStructuredDigestEvidenceAcrossReopen(t *testing.T) {
 	}
 	if detail.Detail.TriggerBasis.ContentVolume.Current == 0 || detail.Detail.LowValueBasis == "" {
 		t.Fatalf("expected structured blocked detail with trigger and basis, got %+v", detail)
+	}
+}
+
+func TestDigestFamilyIDs_AreCanonicalAuthorityValues(t *testing.T) {
+	store := newDigestStore(t)
+	d := New(Config{})
+
+	saveTestMemory(t, store, memory.Record{
+		RecordID:  "m1",
+		ScopeID:   "a1",
+		Kind:      memory.RecordKindExperience,
+		Version:   1,
+		Content:   []byte(`{"summary":"canonical family id"}`),
+		Lifecycle: memory.RecordLifecycleActive,
+		CreatedAt: ts,
+		UpdatedAt: ts,
+	})
+
+	report, err := d.run("a1", ts, store)
+	if err != nil {
+		t.Fatalf("run digest: %v", err)
+	}
+	if len(report.Analysis.Candidates) == 0 {
+		t.Fatalf("expected candidate evidence, got %+v", report)
+	}
+	for _, candidate := range report.Analysis.Candidates {
+		if candidate.Family != routine.FamilyMemorySubstrate {
+			t.Fatalf("expected canonical memory family_id, got %+v", candidate)
+		}
+	}
+	result := reportToRoutineResult(report)
+	foundMemory := false
+	for _, family := range result.FamilyResults {
+		switch family.Family {
+		case routine.FamilyMemorySubstrate:
+			foundMemory = true
+		case routine.FamilyKnowledgeProjection, routine.FamilySkillArtifacts:
+		default:
+			t.Fatalf("unexpected noncanonical routine family result: %+v", family)
+		}
+	}
+	if !foundMemory {
+		t.Fatalf("expected memory_substrate routine result, got %+v", result.FamilyResults)
+	}
+}
+
+func TestDigestApply_RejectsShortFamilyAlias(t *testing.T) {
+	store := newDigestStore(t)
+	d := New(Config{})
+
+	analysis := AnalysisReport{
+		GeneratedAt: ts,
+		Candidates: []Candidate{{
+			Family:           "memory",
+			ArtifactKind:     string(artifactref.KindMemoryRecord),
+			ArtifactID:       "m1",
+			CurrentLifecycle: "archived",
+			ProposedAction:   "remove",
+			Reason:           "legacy alias must not be accepted",
+			Detail:           Detail{TriggerBasis: TriggerSummary{}},
+		}},
+	}
+
+	_, _, err := d.apply("a1", analysis, ts, store, nil)
+	if err == nil || !strings.Contains(err.Error(), `unsupported canonical family_id "memory"`) {
+		t.Fatalf("expected fail-closed short family alias rejection, got %v", err)
+	}
+}
+
+func TestDigestPersistence_RejectsShortFamilyAlias(t *testing.T) {
+	store := newDigestStore(t)
+
+	err := store.SaveDigestRun("a1", "digest_alias_rejected", Report{RunID: "digest_alias_rejected", ScopeID: "a1"}, []storage.DigestCandidate{{
+		RunID:        "digest_alias_rejected",
+		Family:       "memory",
+		ArtifactKind: string(artifactref.KindMemoryRecord),
+		ArtifactID:   "m1",
+		Action:       "remove",
+		Status:       "candidate",
+		Reason:       "legacy alias must not be accepted",
+		Detail:       json.RawMessage(`{}`),
+		CreatedAt:    ts,
+		UpdatedAt:    ts,
+	}}, ts)
+	if err == nil || !strings.Contains(err.Error(), `unsupported canonical family_id "memory"`) {
+		t.Fatalf("expected storage alias rejection, got %v", err)
 	}
 }

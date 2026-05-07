@@ -4,7 +4,7 @@
 > Source: `.nimi/spec/cognition/kernel/tables/public-surface.yaml`
 | Surface ID | Kind | Entrypoint | Owner | Family Scope | Return Contract | Capability Concerns | Source |
 |---|---|---|---|---|---|---|---|
-| `cognition.new` | `constructor` | `New` | `cognition` | `root` | `*Cognition` | — | `C-COG-026` |
+| `cognition.new` | `constructor` | `New` | `cognition` | `root` | `(*Cognition, error)` | — | `C-COG-026` |
 | `cognition.with_clock` | `option` | `WithClock` | `cognition` | `root` | `Option` | — | `C-COG-026` |
 | `cognition.kernel_service` | `facade_accessor` | `KernelService` | `Cognition` | `kernel` | `*KernelService` | — | `C-COG-027` |
 | `cognition.memory_service` | `facade_accessor` | `MemoryService` | `Cognition` | `memory_substrate` | `*MemoryService` | — | `C-COG-027` |
@@ -13,10 +13,10 @@
 | `cognition.working_service` | `facade_accessor` | `WorkingService` | `Cognition` | `working_state` | `*WorkingService` | — | `C-COG-027` |
 | `cognition.prompt_service` | `facade_accessor` | `PromptService` | `Cognition` | `prompt` | `*PromptService` | — | `C-COG-027` |
 | `cognition.kernel_engine` | `facade_accessor` | `KernelEngine` | `Cognition` | `kernel` | `*kernelops.Engine` | — | `C-COG-027` |
-| `cognition.new_routine_context` | `facade_method` | `NewRoutineContext` | `Cognition` | `routine` | `routine.Context` | — | `C-COG-027` |
+| `cognition.new_routine_context` | `facade_method` | `NewRoutineContext` | `Cognition` | `routine` | `(routine.Context, error)` | — | `C-COG-027` |
 | `cognition.init_scope` | `facade_method` | `InitScope` | `Cognition` | `root` | `error` | — | `C-COG-027` |
 | `cognition.delete_scope` | `facade_method` | `DeleteScope` | `Cognition` | `root` | `error` | — | `C-COG-027` |
-| `cognition.list_scopes` | `facade_method` | `ListScopes` | `Cognition` | `root` | `[]string` | — | `C-COG-027` |
+| `cognition.list_scopes` | `facade_method` | `ListScopes` | `Cognition` | `root` | `([]string, error)` | — | `C-COG-027` |
 | `cognition.close` | `facade_method` | `Close` | `Cognition` | `root` | `error` | — | `C-COG-027` |
 | `kernel.init` | `service_method` | `KernelService.Init` | `KernelService` | `kernel` | `error` | — | `C-COG-028` |
 | `kernel.load` | `service_method` | `KernelService.Load` | `KernelService` | `kernel` | `(*kernel.Kernel, []kernel.Rule, error)` | — | `C-COG-028` |

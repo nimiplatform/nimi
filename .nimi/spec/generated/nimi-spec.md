@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `/.nimi/spec/` 规范树的人类可读投影。
-> 生成时间: 2026-05-01
+> 生成时间: 2026-05-07
 >
 > 权威规则定义位于 `/.nimi/spec/` 原始文件中。如需修改，请编辑当前 canonical spec 后重新生成。
 
@@ -4777,7 +4777,7 @@ Fixed rules:
 
 | Surface ID | Kind | Entrypoint | Owner | Family Scope | Return Contract | Capability Concerns |
 |---|---|---|---|---|---|---|
-| cognition.new | constructor | New | cognition | root | *Cognition | — |
+| cognition.new | constructor | New | cognition | root | (*Cognition, error) | — |
 | cognition.with_clock | option | WithClock | cognition | root | Option | — |
 | cognition.kernel_service | facade_accessor | KernelService | Cognition | kernel | *KernelService | — |
 | cognition.memory_service | facade_accessor | MemoryService | Cognition | memory_substrate | *MemoryService | — |
@@ -4786,10 +4786,10 @@ Fixed rules:
 | cognition.working_service | facade_accessor | WorkingService | Cognition | working_state | *WorkingService | — |
 | cognition.prompt_service | facade_accessor | PromptService | Cognition | prompt | *PromptService | — |
 | cognition.kernel_engine | facade_accessor | KernelEngine | Cognition | kernel | *kernelops.Engine | — |
-| cognition.new_routine_context | facade_method | NewRoutineContext | Cognition | routine | routine.Context | — |
+| cognition.new_routine_context | facade_method | NewRoutineContext | Cognition | routine | (routine.Context, error) | — |
 | cognition.init_scope | facade_method | InitScope | Cognition | root | error | — |
 | cognition.delete_scope | facade_method | DeleteScope | Cognition | root | error | — |
-| cognition.list_scopes | facade_method | ListScopes | Cognition | root | []string | — |
+| cognition.list_scopes | facade_method | ListScopes | Cognition | root | ([]string, error) | — |
 | cognition.close | facade_method | Close | Cognition | root | error | — |
 | kernel.init | service_method | KernelService.Init | KernelService | kernel | error | — |
 | kernel.load | service_method | KernelService.Load | KernelService | kernel | (*kernel.Kernel, []kernel.Rule, error) | — |

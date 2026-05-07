@@ -70,6 +70,34 @@ func (b *SQLiteBackend) Save(scopeID string, kind ArtifactKind, itemID string, d
 	return tx.Commit()
 }
 
+func (b *SQLiteBackend) SaveKernelAndCommit(scopeID string, kernelType string, kernelData []byte, commitID string, commitData []byte) error {
+	if err := validateScopeID(scopeID); err != nil {
+		return err
+	}
+	if err := validateItemID(kernelType); err != nil {
+		return err
+	}
+	if err := validateItemID(commitID); err != nil {
+		return err
+	}
+	tx, err := b.db.Begin()
+	if err != nil {
+		return fmt.Errorf("storage save kernel and commit: begin tx: %w", err)
+	}
+	defer rollback(tx)
+	now := time.Now().UTC()
+	if err := b.ensureScopeTx(tx, scopeID, now); err != nil {
+		return err
+	}
+	if err := b.saveKernelTx(tx, scopeID, kernelType, kernelData); err != nil {
+		return err
+	}
+	if err := b.saveCommitTx(tx, scopeID, commitID, commitData); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 func (b *SQLiteBackend) Load(scopeID string, kind ArtifactKind, itemID string) ([]byte, error) {
 	if err := validateScopeID(scopeID); err != nil {
 		return nil, err
@@ -153,6 +181,9 @@ func (b *SQLiteBackend) Delete(scopeID string, kind ArtifactKind, itemID string)
 			return err
 		}
 		if existing != nil {
+			if err := b.ensureNoIncomingRefsTx(tx, scopeID, string(artifactref.KindMemoryRecord), itemID); err != nil {
+				return err
+			}
 			at := time.Now().UTC()
 			if !at.After(existing.UpdatedAt) {
 				at = existing.UpdatedAt.Add(time.Nanosecond)
@@ -179,6 +210,9 @@ func (b *SQLiteBackend) Delete(scopeID string, kind ArtifactKind, itemID string)
 			return err
 		}
 		if existing != nil {
+			if err := b.ensureNoIncomingRefsTx(tx, scopeID, string(artifactref.KindKnowledgePage), itemID); err != nil {
+				return err
+			}
 			at := time.Now().UTC()
 			if !at.After(existing.UpdatedAt) {
 				at = existing.UpdatedAt.Add(time.Nanosecond)
@@ -211,6 +245,9 @@ func (b *SQLiteBackend) Delete(scopeID string, kind ArtifactKind, itemID string)
 			return err
 		}
 		if existing != nil {
+			if err := b.ensureNoIncomingRefsTx(tx, scopeID, string(artifactref.KindSkillBundle), itemID); err != nil {
+				return err
+			}
 			at := time.Now().UTC()
 			if !at.After(existing.UpdatedAt) {
 				at = existing.UpdatedAt.Add(time.Nanosecond)

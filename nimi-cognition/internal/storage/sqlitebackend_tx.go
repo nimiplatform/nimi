@@ -37,6 +37,9 @@ func (b *SQLiteBackend) saveKernelTx(tx *sql.Tx, scopeID string, itemID string, 
 	if string(payload.Kernel.KernelType) != itemID {
 		return fmt.Errorf("storage save kernel: item id %s does not match kernel type %s", itemID, payload.Kernel.KernelType)
 	}
+	if payload.Kernel.ScopeID != scopeID {
+		return fmt.Errorf("storage save kernel: payload scope %s does not match save scope %s", payload.Kernel.ScopeID, scopeID)
+	}
 
 	if _, err := tx.Exec(`INSERT INTO kernel
 		(scope_id, kernel_type, kernel_id, version, status, kernel_json, created_at, updated_at)
@@ -105,6 +108,14 @@ func (b *SQLiteBackend) saveMemoryTx(tx *sql.Tx, scopeID string, itemID string, 
 	if string(rec.RecordID) != itemID {
 		return fmt.Errorf("storage save memory: item id %s does not match record id %s", itemID, rec.RecordID)
 	}
+	if rec.ScopeID != scopeID {
+		return fmt.Errorf("storage save memory: payload scope %s does not match save scope %s", rec.ScopeID, scopeID)
+	}
+	if rec.Lifecycle == memory.RecordLifecycleRemoved {
+		if err := b.ensureNoIncomingRefsTx(tx, scopeID, string(artifactref.KindMemoryRecord), itemID); err != nil {
+			return err
+		}
+	}
 	action := memory.HistoryActionCreated
 	if existing, err := b.loadMemoryRecordTx(tx, scopeID, itemID); err != nil {
 		return err
@@ -158,6 +169,14 @@ func (b *SQLiteBackend) saveKnowledgeTx(tx *sql.Tx, scopeID string, itemID strin
 	if string(page.PageID) != itemID {
 		return fmt.Errorf("storage save knowledge: item id %s does not match page id %s", itemID, page.PageID)
 	}
+	if page.ScopeID != scopeID {
+		return fmt.Errorf("storage save knowledge: payload scope %s does not match save scope %s", page.ScopeID, scopeID)
+	}
+	if page.Lifecycle == knowledge.ProjectionLifecycleRemoved {
+		if err := b.ensureNoIncomingRefsTx(tx, scopeID, string(artifactref.KindKnowledgePage), itemID); err != nil {
+			return err
+		}
+	}
 	action := knowledge.HistoryActionCreated
 	if existing, err := b.loadKnowledgePageTx(tx, scopeID, itemID); err != nil {
 		return err
@@ -210,6 +229,14 @@ func (b *SQLiteBackend) saveSkillTx(tx *sql.Tx, scopeID string, itemID string, d
 	}
 	if string(bundle.BundleID) != itemID {
 		return fmt.Errorf("storage save skill: item id %s does not match bundle id %s", itemID, bundle.BundleID)
+	}
+	if bundle.ScopeID != scopeID {
+		return fmt.Errorf("storage save skill: payload scope %s does not match save scope %s", bundle.ScopeID, scopeID)
+	}
+	if bundle.Status == skill.BundleStatusRemoved {
+		if err := b.ensureNoIncomingRefsTx(tx, scopeID, string(artifactref.KindSkillBundle), itemID); err != nil {
+			return err
+		}
 	}
 	action := skill.HistoryActionCreated
 	if existing, err := b.loadSkillBundleTx(tx, scopeID, itemID); err != nil {
@@ -298,6 +325,9 @@ func (b *SQLiteBackend) replaceRefsForArtifactTx(tx *sql.Tx, scopeID string, fro
 		if ref.FromKind != artifactref.Kind(fromKind) || ref.FromID != fromID {
 			return fmt.Errorf("storage save refs for %s/%s: ref ownership mismatch", fromKind, fromID)
 		}
+		if err := b.validateArtifactRefTargetTx(tx, scopeID, fromKind, fromID, ref); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(`INSERT INTO artifact_ref
 			(scope_id, from_kind, from_id, to_kind, to_id, strength, role, created_at, updated_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -307,6 +337,71 @@ func (b *SQLiteBackend) replaceRefsForArtifactTx(tx *sql.Tx, scopeID string, fro
 		}
 	}
 	return nil
+}
+
+func (b *SQLiteBackend) validateArtifactRefTargetTx(tx *sql.Tx, scopeID string, fromKind string, fromID string, ref artifactref.Ref) error {
+	if !isAdmittedArtifactRefTarget(ref.FromKind, ref.ToKind) {
+		return fmt.Errorf("storage save refs for %s/%s: target family %s is not admitted", fromKind, fromID, ref.ToKind)
+	}
+	live, err := b.isArtifactRefTargetLiveTx(tx, scopeID, ref.ToKind, ref.ToID)
+	if err != nil {
+		return fmt.Errorf("storage save refs for %s/%s: %w", fromKind, fromID, err)
+	}
+	if !live {
+		return fmt.Errorf("storage save refs for %s/%s: target %s/%s does not exist or is removed", fromKind, fromID, ref.ToKind, ref.ToID)
+	}
+	return nil
+}
+
+func isAdmittedArtifactRefTarget(fromKind artifactref.Kind, toKind artifactref.Kind) bool {
+	switch fromKind {
+	case artifactref.KindKernelRule, artifactref.KindMemoryRecord, artifactref.KindKnowledgePage, artifactref.KindSkillBundle:
+	default:
+		return false
+	}
+	switch toKind {
+	case artifactref.KindMemoryRecord, artifactref.KindKnowledgePage, artifactref.KindSkillBundle:
+		return true
+	default:
+		return false
+	}
+}
+
+func (b *SQLiteBackend) isArtifactRefTargetLiveTx(tx *sql.Tx, scopeID string, kind artifactref.Kind, itemID string) (bool, error) {
+	switch kind {
+	case artifactref.KindMemoryRecord:
+		var lifecycle string
+		err := tx.QueryRow(`SELECT lifecycle FROM memory_record WHERE scope_id = ? AND record_id = ?`, scopeID, itemID).Scan(&lifecycle)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		if err != nil {
+			return false, fmt.Errorf("load referenced memory %s: %w", itemID, err)
+		}
+		return lifecycle != string(memory.RecordLifecycleRemoved), nil
+	case artifactref.KindKnowledgePage:
+		var lifecycle string
+		err := tx.QueryRow(`SELECT lifecycle FROM knowledge_page WHERE scope_id = ? AND page_id = ?`, scopeID, itemID).Scan(&lifecycle)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		if err != nil {
+			return false, fmt.Errorf("load referenced knowledge %s: %w", itemID, err)
+		}
+		return lifecycle != string(knowledge.ProjectionLifecycleRemoved), nil
+	case artifactref.KindSkillBundle:
+		var status string
+		err := tx.QueryRow(`SELECT status FROM skill_bundle WHERE scope_id = ? AND bundle_id = ?`, scopeID, itemID).Scan(&status)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		if err != nil {
+			return false, fmt.Errorf("load referenced skill %s: %w", itemID, err)
+		}
+		return status != string(skill.BundleStatusRemoved), nil
+	default:
+		return false, fmt.Errorf("referenced artifact kind %s is not admitted", kind)
+	}
 }
 
 func (b *SQLiteBackend) deleteRefsForArtifactTx(tx *sql.Tx, scopeID string, fromKind string, fromID string) error {
@@ -321,6 +416,91 @@ func (b *SQLiteBackend) deleteRefsTargetingTx(tx *sql.Tx, scopeID string, toKind
 		return fmt.Errorf("storage delete refs targeting %s/%s: %w", toKind, toID, err)
 	}
 	return nil
+}
+
+func (b *SQLiteBackend) ensureNoIncomingRefsTx(tx *sql.Tx, scopeID string, toKind string, toID string) error {
+	rows, err := tx.Query(`SELECT from_kind, from_id, strength FROM artifact_ref WHERE scope_id = ? AND to_kind = ? AND to_id = ?`, scopeID, toKind, toID)
+	if err != nil {
+		return fmt.Errorf("storage incoming refs for %s/%s: %w", toKind, toID, err)
+	}
+	defer rows.Close()
+	blocking := 0
+	for rows.Next() {
+		var fromKind artifactref.Kind
+		var fromID string
+		var strength artifactref.Strength
+		if err := rows.Scan(&fromKind, &fromID, &strength); err != nil {
+			return fmt.Errorf("storage incoming refs for %s/%s: %w", toKind, toID, err)
+		}
+		live, active, err := b.artifactRefSourceStateTx(tx, scopeID, fromKind, fromID)
+		if err != nil {
+			return err
+		}
+		if strength == artifactref.StrengthStrong && live {
+			blocking++
+			continue
+		}
+		if strength == artifactref.StrengthWeak && active {
+			blocking++
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("storage incoming refs for %s/%s: %w", toKind, toID, err)
+	}
+	if blocking > 0 {
+		return fmt.Errorf("storage remove %s/%s: blocked by %d incoming refs", toKind, toID, blocking)
+	}
+	return nil
+}
+
+func (b *SQLiteBackend) artifactRefSourceStateTx(tx *sql.Tx, scopeID string, kind artifactref.Kind, itemID string) (bool, bool, error) {
+	switch kind {
+	case artifactref.KindKernelRule:
+		var lifecycle string
+		err := tx.QueryRow(`SELECT lifecycle FROM kernel_rule WHERE scope_id = ? AND rule_id = ? ORDER BY updated_at DESC LIMIT 1`, scopeID, itemID).Scan(&lifecycle)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, false, nil
+		}
+		if err != nil {
+			return false, false, fmt.Errorf("storage incoming ref source kernel_rule/%s: %w", itemID, err)
+		}
+		active := lifecycle == string(kernel.RuleLifecycleActive)
+		return active, active, nil
+	case artifactref.KindMemoryRecord:
+		var lifecycle string
+		err := tx.QueryRow(`SELECT lifecycle FROM memory_record WHERE scope_id = ? AND record_id = ?`, scopeID, itemID).Scan(&lifecycle)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, false, nil
+		}
+		if err != nil {
+			return false, false, fmt.Errorf("storage incoming ref source memory_record/%s: %w", itemID, err)
+		}
+		return lifecycle != string(memory.RecordLifecycleRemoved), lifecycle == string(memory.RecordLifecycleActive), nil
+	case artifactref.KindKnowledgePage:
+		var lifecycle string
+		err := tx.QueryRow(`SELECT lifecycle FROM knowledge_page WHERE scope_id = ? AND page_id = ?`, scopeID, itemID).Scan(&lifecycle)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, false, nil
+		}
+		if err != nil {
+			return false, false, fmt.Errorf("storage incoming ref source knowledge_page/%s: %w", itemID, err)
+		}
+		active := lifecycle == string(knowledge.ProjectionLifecycleActive) || lifecycle == string(knowledge.ProjectionLifecycleStale)
+		return lifecycle != string(knowledge.ProjectionLifecycleRemoved), active, nil
+	case artifactref.KindSkillBundle:
+		var status string
+		err := tx.QueryRow(`SELECT status FROM skill_bundle WHERE scope_id = ? AND bundle_id = ?`, scopeID, itemID).Scan(&status)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, false, nil
+		}
+		if err != nil {
+			return false, false, fmt.Errorf("storage incoming ref source skill_bundle/%s: %w", itemID, err)
+		}
+		active := status == string(skill.BundleStatusActive) || status == string(skill.BundleStatusDraft)
+		return status != string(skill.BundleStatusRemoved), active, nil
+	default:
+		return false, false, fmt.Errorf("storage incoming ref source kind %s is not admitted", kind)
+	}
 }
 
 func (b *SQLiteBackend) loadRefs(query string, args ...any) ([]artifactref.Ref, error) {
@@ -415,19 +595,28 @@ func (b *SQLiteBackend) saveKnowledgeEmbeddingTx(tx *sql.Tx, scopeID string, pag
 	return nil
 }
 
-func (b *SQLiteBackend) upsertKnowledgeRelationTx(tx *sql.Tx, rel knowledge.Relation) error {
+func (b *SQLiteBackend) insertKnowledgeRelationTx(tx *sql.Tx, rel knowledge.Relation) error {
+	fromLive, err := b.isArtifactRefTargetLiveTx(tx, rel.ScopeID, artifactref.KindKnowledgePage, string(rel.FromPageID))
+	if err != nil {
+		return err
+	}
+	if !fromLive {
+		return fmt.Errorf("storage save knowledge relation: source page %s does not exist or is removed", rel.FromPageID)
+	}
+	toLive, err := b.isArtifactRefTargetLiveTx(tx, rel.ScopeID, artifactref.KindKnowledgePage, string(rel.ToPageID))
+	if err != nil {
+		return err
+	}
+	if !toLive {
+		return fmt.Errorf("storage save knowledge relation: target page %s does not exist or is removed", rel.ToPageID)
+	}
 	raw, err := json.Marshal(rel)
 	if err != nil {
 		return fmt.Errorf("storage save knowledge relation: marshal: %w", err)
 	}
 	if _, err := tx.Exec(`INSERT INTO knowledge_relation
 		(scope_id, from_page_id, to_page_id, relation_type, strength, relation_json, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(scope_id, from_page_id, to_page_id, relation_type) DO UPDATE SET
-			strength = excluded.strength,
-			relation_json = excluded.relation_json,
-			created_at = excluded.created_at,
-			updated_at = excluded.updated_at`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		rel.ScopeID, string(rel.FromPageID), string(rel.ToPageID), rel.RelationType, string(rel.Strength), raw, encodeTime(rel.CreatedAt), encodeTime(rel.UpdatedAt)); err != nil {
 		return fmt.Errorf("storage save knowledge relation: %w", err)
 	}

@@ -3,9 +3,13 @@ package storage
 import (
 	"database/sql"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
+	"github.com/nimiplatform/nimi/nimi-cognition/knowledge"
+	"github.com/nimiplatform/nimi/nimi-cognition/memory"
 	"github.com/nimiplatform/nimi/nimi-cognition/skill"
 )
 
@@ -82,5 +86,201 @@ func TestSQLiteBackend_SkillSearchDoesNotIndexUnadmittedMetadata(t *testing.T) {
 		t.Fatalf("search skill admitted text: %v", err)
 	} else if len(got) != 1 {
 		t.Fatalf("expected admitted skill text to remain searchable, got %+v", got)
+	}
+}
+
+func TestSQLiteBackend_SaveRejectsPayloadScopeMismatch(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatalf("new sqlite backend: %v", err)
+	}
+	defer b.Close()
+
+	raw, err := json.Marshal(testMemoryRecord("m1", "agent_payload", nil))
+	if err != nil {
+		t.Fatalf("marshal memory: %v", err)
+	}
+	err = b.Save("agent_save", KindMemory, "m1", raw)
+	if err == nil || !strings.Contains(err.Error(), "payload scope agent_payload does not match save scope agent_save") {
+		t.Fatalf("expected scope mismatch error, got: %v", err)
+	}
+	if got, err := b.Load("agent_save", KindMemory, "m1"); err != nil {
+		t.Fatalf("load memory after rejected save: %v", err)
+	} else if got != nil {
+		t.Fatalf("rejected mismatched-scope save must not commit durable row")
+	}
+}
+
+func TestSQLiteBackend_SaveRejectsUnresolvedRefsBeforeCommit(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatalf("new sqlite backend: %v", err)
+	}
+	defer b.Close()
+
+	ref := testArtifactRef(artifactref.KindMemoryRecord, "m1", artifactref.KindKnowledgePage, "missing_page")
+	raw, err := json.Marshal(testMemoryRecord("m1", "agent_001", []artifactref.Ref{ref}))
+	if err != nil {
+		t.Fatalf("marshal memory: %v", err)
+	}
+	err = b.Save("agent_001", KindMemory, "m1", raw)
+	if err == nil || !strings.Contains(err.Error(), "target knowledge_page/missing_page does not exist or is removed") {
+		t.Fatalf("expected unresolved ref rejection, got: %v", err)
+	}
+	if got, err := b.Load("agent_001", KindMemory, "m1"); err != nil {
+		t.Fatalf("load memory after rejected save: %v", err)
+	} else if got != nil {
+		t.Fatalf("rejected unresolved-ref save must not commit durable row")
+	}
+}
+
+func TestSQLiteBackend_SaveRejectsForbiddenTargetFamily(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatalf("new sqlite backend: %v", err)
+	}
+	defer b.Close()
+
+	ref := testArtifactRef(artifactref.KindMemoryRecord, "m1", artifactref.KindKernelRule, "rule_001")
+	raw, err := json.Marshal(testMemoryRecord("m1", "agent_001", []artifactref.Ref{ref}))
+	if err != nil {
+		t.Fatalf("marshal memory: %v", err)
+	}
+	err = b.Save("agent_001", KindMemory, "m1", raw)
+	if err == nil || !strings.Contains(err.Error(), "target family kernel_rule is not admitted") {
+		t.Fatalf("expected forbidden target family rejection, got: %v", err)
+	}
+}
+
+func TestSQLiteBackend_SaveAcceptsLiveAdmittedRefs(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatalf("new sqlite backend: %v", err)
+	}
+	defer b.Close()
+
+	pageRaw, err := json.Marshal(testKnowledgePage("page_001", "agent_001", nil))
+	if err != nil {
+		t.Fatalf("marshal knowledge: %v", err)
+	}
+	if err := b.Save("agent_001", KindKnowledge, "page_001", pageRaw); err != nil {
+		t.Fatalf("save target knowledge page: %v", err)
+	}
+
+	ref := testArtifactRef(artifactref.KindMemoryRecord, "m1", artifactref.KindKnowledgePage, "page_001")
+	raw, err := json.Marshal(testMemoryRecord("m1", "agent_001", []artifactref.Ref{ref}))
+	if err != nil {
+		t.Fatalf("marshal memory: %v", err)
+	}
+	if err := b.Save("agent_001", KindMemory, "m1", raw); err != nil {
+		t.Fatalf("save memory with live admitted ref: %v", err)
+	}
+}
+
+func TestSQLiteBackend_DeleteRejectsIncomingRefs(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatalf("new sqlite backend: %v", err)
+	}
+	defer b.Close()
+
+	memRaw, err := json.Marshal(testMemoryRecord("m1", "agent_001", nil))
+	if err != nil {
+		t.Fatalf("marshal memory: %v", err)
+	}
+	if err := b.Save("agent_001", KindMemory, "m1", memRaw); err != nil {
+		t.Fatalf("save target memory: %v", err)
+	}
+	ref := testArtifactRef(artifactref.KindKnowledgePage, "page_001", artifactref.KindMemoryRecord, "m1")
+	pageRaw, err := json.Marshal(testKnowledgePage("page_001", "agent_001", []artifactref.Ref{ref}))
+	if err != nil {
+		t.Fatalf("marshal knowledge: %v", err)
+	}
+	if err := b.Save("agent_001", KindKnowledge, "page_001", pageRaw); err != nil {
+		t.Fatalf("save referring knowledge page: %v", err)
+	}
+	err = b.Delete("agent_001", KindMemory, "m1")
+	if err == nil || !strings.Contains(err.Error(), "blocked by 1 incoming refs") {
+		t.Fatalf("expected incoming-ref delete blocker, got: %v", err)
+	}
+}
+
+func TestSQLiteBackend_SaveRemovedRejectsIncomingRefs(t *testing.T) {
+	b, err := NewSQLiteBackend(t.TempDir())
+	if err != nil {
+		t.Fatalf("new sqlite backend: %v", err)
+	}
+	defer b.Close()
+
+	mem := testMemoryRecord("m1", "agent_001", nil)
+	memRaw, err := json.Marshal(mem)
+	if err != nil {
+		t.Fatalf("marshal memory: %v", err)
+	}
+	if err := b.Save("agent_001", KindMemory, "m1", memRaw); err != nil {
+		t.Fatalf("save target memory: %v", err)
+	}
+	ref := testArtifactRef(artifactref.KindKnowledgePage, "page_001", artifactref.KindMemoryRecord, "m1")
+	pageRaw, err := json.Marshal(testKnowledgePage("page_001", "agent_001", []artifactref.Ref{ref}))
+	if err != nil {
+		t.Fatalf("marshal knowledge: %v", err)
+	}
+	if err := b.Save("agent_001", KindKnowledge, "page_001", pageRaw); err != nil {
+		t.Fatalf("save referring knowledge page: %v", err)
+	}
+	mem.Lifecycle = memory.RecordLifecycleRemoved
+	mem.UpdatedAt = mem.UpdatedAt.Add(time.Minute)
+	removedRaw, err := json.Marshal(mem)
+	if err != nil {
+		t.Fatalf("marshal removed memory: %v", err)
+	}
+	err = b.Save("agent_001", KindMemory, "m1", removedRaw)
+	if err == nil || !strings.Contains(err.Error(), "blocked by 1 incoming refs") {
+		t.Fatalf("expected incoming-ref removed-save blocker, got: %v", err)
+	}
+}
+
+func testMemoryRecord(recordID string, scopeID string, refs []artifactref.Ref) memory.Record {
+	ts := time.Date(2026, 5, 7, 9, 0, 0, 0, time.UTC)
+	return memory.Record{
+		RecordID:     memory.RecordID(recordID),
+		ScopeID:      scopeID,
+		Kind:         memory.RecordKindExperience,
+		Version:      1,
+		Content:      []byte(`{"summary":"storage reference test"}`),
+		ArtifactRefs: refs,
+		Lifecycle:    memory.RecordLifecycleActive,
+		CreatedAt:    ts,
+		UpdatedAt:    ts,
+	}
+}
+
+func testKnowledgePage(pageID string, scopeID string, refs []artifactref.Ref) knowledge.Page {
+	ts := time.Date(2026, 5, 7, 9, 0, 0, 0, time.UTC)
+	return knowledge.Page{
+		PageID:       knowledge.PageID(pageID),
+		ScopeID:      scopeID,
+		Kind:         knowledge.ProjectionKindExplainer,
+		Version:      1,
+		Title:        "Storage Reference Test",
+		Body:         []byte(`"storage reference test"`),
+		ArtifactRefs: refs,
+		Lifecycle:    knowledge.ProjectionLifecycleActive,
+		CreatedAt:    ts,
+		UpdatedAt:    ts,
+	}
+}
+
+func testArtifactRef(fromKind artifactref.Kind, fromID string, toKind artifactref.Kind, toID string) artifactref.Ref {
+	ts := time.Date(2026, 5, 7, 9, 0, 0, 0, time.UTC)
+	return artifactref.Ref{
+		FromKind:  fromKind,
+		FromID:    fromID,
+		ToKind:    toKind,
+		ToID:      toID,
+		Strength:  artifactref.StrengthStrong,
+		Role:      "support",
+		CreatedAt: ts,
+		UpdatedAt: ts,
 	}
 }

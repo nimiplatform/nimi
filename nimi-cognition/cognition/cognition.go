@@ -48,6 +48,7 @@ type KernelService struct {
 type MemoryService struct {
 	store    *storage.SQLiteBackend
 	refgraph *refgraph.Service
+	clock    clock.Clock
 }
 
 // KnowledgeService owns knowledge projections.
@@ -117,7 +118,7 @@ func New(rootDir string, opts ...Option) (*Cognition, error) {
 		working:  workingStore,
 	}
 	c.kernelSvc = &KernelService{store: store, engine: engine}
-	c.memorySvc = &MemoryService{store: store, refgraph: graph}
+	c.memorySvc = &MemoryService{store: store, refgraph: graph, clock: clk}
 	c.knowledgeSvc = &KnowledgeService{store: store, refgraph: graph, clock: clk}
 	c.skillSvc = &SkillService{store: store, refgraph: graph}
 	c.workingSvc = &WorkingService{store: workingStore}

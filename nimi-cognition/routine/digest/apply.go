@@ -1,6 +1,7 @@
 package digest
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
@@ -20,7 +21,7 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 
 	for _, candidate := range analysis.Candidates {
 		switch candidate.Family {
-		case "knowledge":
+		case routine.FamilyKnowledgeProjection:
 			page, err := access.LoadKnowledge(scopeID, knowledge.PageID(candidate.ArtifactID))
 			if err != nil {
 				return nil, nil, err
@@ -48,7 +49,7 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 					return nil, nil, err
 				}
 				applied = append(applied, AppliedTransition{
-					Family:       "knowledge",
+					Family:       routine.FamilyKnowledgeProjection,
 					ArtifactKind: string(artifactref.KindKnowledgePage),
 					ArtifactID:   candidate.ArtifactID,
 					FromState:    from,
@@ -67,7 +68,7 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 					detail.PriorArchiveRequired = hasArchiveFirst(blockers)
 					detail.LaterPassConfirmed = gating.laterPassConfirmed
 					blocked = append(blocked, BlockedTransition{
-						Family:       "knowledge",
+						Family:       routine.FamilyKnowledgeProjection,
 						ArtifactKind: string(artifactref.KindKnowledgePage),
 						ArtifactID:   candidate.ArtifactID,
 						Action:       "remove",
@@ -83,7 +84,7 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 				detail := candidate.Detail
 				detail.LaterPassConfirmed = gating.laterPassConfirmed
 				applied = append(applied, AppliedTransition{
-					Family:       "knowledge",
+					Family:       routine.FamilyKnowledgeProjection,
 					ArtifactKind: string(artifactref.KindKnowledgePage),
 					ArtifactID:   candidate.ArtifactID,
 					FromState:    string(page.Lifecycle),
@@ -92,7 +93,7 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 					Detail:       detail,
 				})
 			}
-		case "skill":
+		case routine.FamilySkillArtifacts:
 			bundle, err := access.LoadSkill(scopeID, skill.BundleID(candidate.ArtifactID))
 			if err != nil {
 				return nil, nil, err
@@ -120,7 +121,7 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 					return nil, nil, err
 				}
 				applied = append(applied, AppliedTransition{
-					Family:       "skill",
+					Family:       routine.FamilySkillArtifacts,
 					ArtifactKind: string(artifactref.KindSkillBundle),
 					ArtifactID:   candidate.ArtifactID,
 					FromState:    from,
@@ -139,7 +140,7 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 					detail.PriorArchiveRequired = hasArchiveFirst(blockers)
 					detail.LaterPassConfirmed = gating.laterPassConfirmed
 					blocked = append(blocked, BlockedTransition{
-						Family:       "skill",
+						Family:       routine.FamilySkillArtifacts,
 						ArtifactKind: string(artifactref.KindSkillBundle),
 						ArtifactID:   candidate.ArtifactID,
 						Action:       "remove",
@@ -155,7 +156,7 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 				detail := candidate.Detail
 				detail.LaterPassConfirmed = gating.laterPassConfirmed
 				applied = append(applied, AppliedTransition{
-					Family:       "skill",
+					Family:       routine.FamilySkillArtifacts,
 					ArtifactKind: string(artifactref.KindSkillBundle),
 					ArtifactID:   candidate.ArtifactID,
 					FromState:    string(bundle.Status),
@@ -164,7 +165,7 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 					Detail:       detail,
 				})
 			}
-		case "memory":
+		case routine.FamilyMemorySubstrate:
 			record, err := access.LoadMemory(scopeID, memory.RecordID(candidate.ArtifactID))
 			if err != nil {
 				return nil, nil, err
@@ -191,7 +192,7 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 					return nil, nil, err
 				}
 				applied = append(applied, AppliedTransition{
-					Family:       "memory",
+					Family:       routine.FamilyMemorySubstrate,
 					ArtifactKind: string(artifactref.KindMemoryRecord),
 					ArtifactID:   candidate.ArtifactID,
 					FromState:    from,
@@ -215,7 +216,7 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 					detail.LaterPassConfirmed = gating.laterPassConfirmed
 					blockedBy = append(blockedBy, citationBlockedBy...)
 					blocked = append(blocked, BlockedTransition{
-						Family:       "memory",
+						Family:       routine.FamilyMemorySubstrate,
 						ArtifactKind: string(artifactref.KindMemoryRecord),
 						ArtifactID:   candidate.ArtifactID,
 						Action:       "remove",
@@ -231,7 +232,7 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 				detail := candidate.Detail
 				detail.LaterPassConfirmed = gating.laterPassConfirmed
 				applied = append(applied, AppliedTransition{
-					Family:       "memory",
+					Family:       routine.FamilyMemorySubstrate,
 					ArtifactKind: string(artifactref.KindMemoryRecord),
 					ArtifactID:   candidate.ArtifactID,
 					FromState:    string(record.Lifecycle),
@@ -240,6 +241,8 @@ func (d *Digest) applyAccess(scopeID string, analysis AnalysisReport, now time.T
 					Detail:       detail,
 				})
 			}
+		default:
+			return nil, nil, fmt.Errorf("digest apply: unsupported canonical family_id %q", candidate.Family)
 		}
 	}
 	return applied, blocked, nil

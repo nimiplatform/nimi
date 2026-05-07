@@ -10,7 +10,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -231,7 +230,7 @@ func runtimeRecordToCognition(bank *runtimev1.MemoryBank, input *runtimev1.Memor
 }
 
 func buildStoredMemoryContent(record *runtimev1.MemoryRecord) (json.RawMessage, cognitionmemory.RecordKind, error) {
-	stored := storedMemoryContent{Runtime: mustProtoJSON(record)}
+	stored := storedMemoryContent{}
 	kind := cognitionmemory.RecordKindEvent
 	switch payload := record.GetPayload().(type) {
 	case *runtimev1.MemoryRecord_Episodic:
@@ -265,14 +264,6 @@ func cognitionRecordToRuntime(locator *runtimev1.MemoryBankLocator, record cogni
 	var stored storedMemoryContent
 	if err := json.Unmarshal(record.Content, &stored); err != nil {
 		return nil, err
-	}
-	if len(stored.Runtime) > 0 {
-		var out runtimev1.MemoryRecord
-		if err := protojson.Unmarshal(stored.Runtime, &out); err == nil {
-			out.Bank = cloneMemoryLocator(locator)
-			out.UpdatedAt = timestamppb.New(record.UpdatedAt)
-			return &out, nil
-		}
 	}
 	out := &runtimev1.MemoryRecord{
 		MemoryId:  string(record.RecordID),

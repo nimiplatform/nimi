@@ -1,9 +1,11 @@
 package memory
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/nimiplatform/nimi/nimi-cognition/artifactref"
 	"github.com/nimiplatform/nimi/nimi-cognition/kernel"
@@ -59,7 +61,7 @@ func validateRecordContent(kind RecordKind, raw json.RawMessage) error {
 	switch kind {
 	case RecordKindExperience:
 		var value Experience
-		if err := json.Unmarshal(raw, &value); err != nil {
+		if err := decodeStrict(raw, &value); err != nil {
 			return fmt.Errorf("content: decode experience: %w", err)
 		}
 		if value.Summary == "" {
@@ -67,7 +69,7 @@ func validateRecordContent(kind RecordKind, raw json.RawMessage) error {
 		}
 	case RecordKindObservation:
 		var value Observation
-		if err := json.Unmarshal(raw, &value); err != nil {
+		if err := decodeStrict(raw, &value); err != nil {
 			return fmt.Errorf("content: decode observation: %w", err)
 		}
 		if value.Subject == "" {
@@ -81,7 +83,7 @@ func validateRecordContent(kind RecordKind, raw json.RawMessage) error {
 		}
 	case RecordKindEvent:
 		var value Event
-		if err := json.Unmarshal(raw, &value); err != nil {
+		if err := decodeStrict(raw, &value); err != nil {
 			return fmt.Errorf("content: decode event: %w", err)
 		}
 		if value.EventType == "" {
@@ -92,7 +94,7 @@ func validateRecordContent(kind RecordKind, raw json.RawMessage) error {
 		}
 	case RecordKindEvidence:
 		var value EvidenceRow
-		if err := json.Unmarshal(raw, &value); err != nil {
+		if err := decodeStrict(raw, &value); err != nil {
 			return fmt.Errorf("content: decode evidence: %w", err)
 		}
 		if value.Claim == "" {
@@ -103,7 +105,7 @@ func validateRecordContent(kind RecordKind, raw json.RawMessage) error {
 		}
 	case RecordKindNarrative:
 		var value NarrativeProjection
-		if err := json.Unmarshal(raw, &value); err != nil {
+		if err := decodeStrict(raw, &value); err != nil {
 			return fmt.Errorf("content: decode narrative: %w", err)
 		}
 		if value.Title == "" {
@@ -114,6 +116,22 @@ func validateRecordContent(kind RecordKind, raw json.RawMessage) error {
 		}
 	default:
 		return fmt.Errorf("content: unsupported kind %q", kind)
+	}
+	return nil
+}
+
+func decodeStrict(raw json.RawMessage, value any) error {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(value); err != nil {
+		return err
+	}
+	var trailing json.RawMessage
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		if err != nil {
+			return err
+		}
+		return errors.New("content: trailing JSON values are not admitted")
 	}
 	return nil
 }

@@ -149,12 +149,14 @@ function renderServiceOperations(doc, sourceName) {
 function renderAdmittedReferenceMatrix(doc, sourceName) {
   const families = Array.isArray(doc?.families) ? doc.families : [];
   let out = header('Generated Cognition Admitted Reference Matrix', sourceName);
-  out += '| Family | Allowed Outgoing | Allowed Incoming | Missing Target On Save | Missing Target On Archive | Missing Target On Remove | Source |\n';
-  out += '|---|---|---|---|---|---|---|\n';
+  out += '| Family | Allowed Outgoing | Allowed Incoming | Forbidden Cross-Family | Forbidden Cross-Scope | Missing Target On Save | Missing Target On Archive | Missing Target On Remove | Source |\n';
+  out += '|---|---|---|---|---|---|---|---|---|\n';
   for (const family of families) {
     const outgoing = Array.isArray(family?.allowed_outgoing_refs) ? family.allowed_outgoing_refs.map((value) => `\`${String(value)}\``).join(', ') : '—';
     const incoming = Array.isArray(family?.allowed_incoming_refs) ? family.allowed_incoming_refs.map((value) => `\`${String(value)}\``).join(', ') : '—';
-    out += `| \`${String(family?.family_id || '').trim() || '—'}\` | ${outgoing || '—'} | ${incoming || '—'} | \`${String(family?.missing_target_on_save || '').trim() || '—'}\` | \`${String(family?.missing_target_on_archive || '').trim() || '—'}\` | \`${String(family?.missing_target_on_remove || '').trim() || '—'}\` | \`${String(family?.source_rule || '').trim() || '—'}\` |\n`;
+    const forbidden = Array.isArray(family?.forbidden_cross_family_refs) ? family.forbidden_cross_family_refs.map((value) => `\`${String(value)}\``).join(', ') : '—';
+    const crossScope = typeof family?.forbidden_cross_scope_refs === 'boolean' ? String(family.forbidden_cross_scope_refs) : String(family?.forbidden_cross_scope_refs || '').trim() || '—';
+    out += `| \`${String(family?.family_id || '').trim() || '—'}\` | ${outgoing || '—'} | ${incoming || '—'} | ${forbidden || '—'} | \`${crossScope}\` | \`${String(family?.missing_target_on_save || '').trim() || '—'}\` | \`${String(family?.missing_target_on_archive || '').trim() || '—'}\` | \`${String(family?.missing_target_on_remove || '').trim() || '—'}\` | \`${String(family?.source_rule || '').trim() || '—'}\` |\n`;
   }
   out += '\n';
   return normalizeMarkdown(out);

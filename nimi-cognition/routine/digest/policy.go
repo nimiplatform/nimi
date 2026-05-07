@@ -60,21 +60,21 @@ func shouldArchiveMemory(record memory.Record, summary memory.SupportSummary, ou
 	if record.Lifecycle != memory.RecordLifecycleActive {
 		return false
 	}
-	return summary.Score == 0 || outgoing.Broken > 0
+	return summary.Score == 0 && outgoing.Broken == 0
 }
 
 func shouldArchiveKnowledge(page knowledge.Page, summary memory.SupportSummary, broken []routine.DependencyEdge) bool {
 	if page.Lifecycle != knowledge.ProjectionLifecycleActive && page.Lifecycle != knowledge.ProjectionLifecycleStale {
 		return false
 	}
-	return len(broken) > 0 || summary.Score == 0
+	return len(broken) == 0 && summary.Score == 0
 }
 
 func shouldArchiveSkill(bundle skill.Bundle, summary memory.SupportSummary, broken []routine.DependencyEdge, outgoing routine.DependencyHealth) bool {
 	if bundle.Status != skill.BundleStatusActive && bundle.Status != skill.BundleStatusDraft {
 		return false
 	}
-	return len(broken) > 0 || skillLowValue(summary, outgoing, bundle)
+	return len(broken) == 0 && skillLowValue(summary, outgoing, bundle)
 }
 
 func skillLowValue(summary memory.SupportSummary, outgoing routine.DependencyHealth, bundle skill.Bundle) bool {
@@ -209,9 +209,9 @@ func candidateScore(family string, basis string, summary memory.SupportSummary, 
 		score += 2
 	}
 	switch family {
-	case "knowledge":
+	case routine.FamilyKnowledgeProjection:
 		score += 1.5
-	case "skill":
+	case routine.FamilySkillArtifacts:
 		score += 0.5
 	}
 	return score
@@ -266,8 +266,8 @@ func (d *Digest) memoryRemoveCandidate(scopeID string, record memory.Record, sum
 		return Candidate{}, false
 	}
 	blockers, _ := graph.RemoveBlockers(scopeID, artifactref.KindMemoryRecord, string(record.RecordID))
-	laterPassConfirmed := hasPriorDigestConfirmation(previous, "memory", string(artifactref.KindMemoryRecord), string(record.RecordID), "remove", basis)
-	return buildCandidate("memory", artifactref.KindMemoryRecord, string(record.RecordID), string(record.Lifecycle), "remove", "record remains archived and low-value on a later digest pass", summary, outgoing, blockers, trigger, basis, laterPassConfirmed, record.UpdatedAt), true
+	laterPassConfirmed := hasPriorDigestConfirmation(previous, routine.FamilyMemorySubstrate, string(artifactref.KindMemoryRecord), string(record.RecordID), "remove", basis)
+	return buildCandidate(routine.FamilyMemorySubstrate, artifactref.KindMemoryRecord, string(record.RecordID), string(record.Lifecycle), "remove", "record remains archived and low-value on a later digest pass", summary, outgoing, blockers, trigger, basis, laterPassConfirmed, record.UpdatedAt), true
 }
 
 func (d *Digest) knowledgeRemoveCandidate(scopeID string, page knowledge.Page, summary memory.SupportSummary, outgoing routine.DependencyHealth, previous []storage.DigestCandidate, graph routine.GraphAccess, trigger TriggerSummary) (Candidate, bool) {
@@ -279,8 +279,8 @@ func (d *Digest) knowledgeRemoveCandidate(scopeID string, page knowledge.Page, s
 		return Candidate{}, false
 	}
 	blockers, _ := graph.RemoveBlockers(scopeID, artifactref.KindKnowledgePage, string(page.PageID))
-	laterPassConfirmed := hasPriorDigestConfirmation(previous, "knowledge", string(artifactref.KindKnowledgePage), string(page.PageID), "remove", basis)
-	return buildCandidate("knowledge", artifactref.KindKnowledgePage, string(page.PageID), string(page.Lifecycle), "remove", "projection remains archived and low-value on a later digest pass", summary, outgoing, blockers, trigger, basis, laterPassConfirmed, page.UpdatedAt), true
+	laterPassConfirmed := hasPriorDigestConfirmation(previous, routine.FamilyKnowledgeProjection, string(artifactref.KindKnowledgePage), string(page.PageID), "remove", basis)
+	return buildCandidate(routine.FamilyKnowledgeProjection, artifactref.KindKnowledgePage, string(page.PageID), string(page.Lifecycle), "remove", "projection remains archived and low-value on a later digest pass", summary, outgoing, blockers, trigger, basis, laterPassConfirmed, page.UpdatedAt), true
 }
 
 func (d *Digest) skillRemoveCandidate(scopeID string, bundle skill.Bundle, summary memory.SupportSummary, outgoing routine.DependencyHealth, previous []storage.DigestCandidate, graph routine.GraphAccess, trigger TriggerSummary) (Candidate, bool) {
@@ -292,8 +292,8 @@ func (d *Digest) skillRemoveCandidate(scopeID string, bundle skill.Bundle, summa
 		return Candidate{}, false
 	}
 	blockers, _ := graph.RemoveBlockers(scopeID, artifactref.KindSkillBundle, string(bundle.BundleID))
-	laterPassConfirmed := hasPriorDigestConfirmation(previous, "skill", string(artifactref.KindSkillBundle), string(bundle.BundleID), "remove", basis)
-	return buildCandidate("skill", artifactref.KindSkillBundle, string(bundle.BundleID), string(bundle.Status), "remove", "bundle remains archived and low-value on a later digest pass", summary, outgoing, blockers, trigger, basis, laterPassConfirmed, bundle.UpdatedAt), true
+	laterPassConfirmed := hasPriorDigestConfirmation(previous, routine.FamilySkillArtifacts, string(artifactref.KindSkillBundle), string(bundle.BundleID), "remove", basis)
+	return buildCandidate(routine.FamilySkillArtifacts, artifactref.KindSkillBundle, string(bundle.BundleID), string(bundle.Status), "remove", "bundle remains archived and low-value on a later digest pass", summary, outgoing, blockers, trigger, basis, laterPassConfirmed, bundle.UpdatedAt), true
 }
 
 type removeGating struct {
@@ -426,11 +426,11 @@ func countSkillRefs(bundles []skill.Bundle) int {
 
 func cleanupOrder(family string) int {
 	switch family {
-	case "knowledge":
+	case routine.FamilyKnowledgeProjection:
 		return 0
-	case "skill":
+	case routine.FamilySkillArtifacts:
 		return 1
-	case "memory":
+	case routine.FamilyMemorySubstrate:
 		return 2
 	default:
 		return 99

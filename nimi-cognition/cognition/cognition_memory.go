@@ -15,6 +15,10 @@ import (
 
 // Save persists a memory record.
 func (s *MemoryService) Save(rec memory.Record) error {
+	rec, err := s.normalizeMemoryRecordForSave(rec)
+	if err != nil {
+		return fmt.Errorf("memory save: %w", err)
+	}
 	if err := memory.ValidateRecord(rec); err != nil {
 		return fmt.Errorf("memory save: %w", err)
 	}
@@ -29,6 +33,26 @@ func (s *MemoryService) Save(rec memory.Record) error {
 		return fmt.Errorf("memory save: marshal: %w", err)
 	}
 	return s.store.Save(rec.ScopeID, storage.KindMemory, string(rec.RecordID), raw)
+}
+
+func (s *MemoryService) normalizeMemoryRecordForSave(rec memory.Record) (memory.Record, error) {
+	if err := validateMemorySaveLifecycle(s.store, rec); err != nil {
+		return memory.Record{}, err
+	}
+	existing, err := loadOptionalMemoryRecord(s.store, rec.ScopeID, rec.RecordID)
+	if err != nil {
+		return memory.Record{}, err
+	}
+	now := s.clock.Now()
+	if existing == nil {
+		rec.Version = 1
+		rec.CreatedAt = now
+	} else {
+		rec.Version = existing.Version + 1
+		rec.CreatedAt = existing.CreatedAt
+	}
+	rec.UpdatedAt = now
+	return rec, nil
 }
 
 // Load loads a memory record.

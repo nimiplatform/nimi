@@ -187,6 +187,43 @@ func TestCommit_PersistsSnapshotsAndLog(t *testing.T) {
 	}
 }
 
+func TestSQLiteSaveKernelAndCommitRollsBackKernelWhenCommitEvidenceFails(t *testing.T) {
+	_, store := newTestEngine(t)
+	base := localRule("r1", "concise")
+	seedKernel(t, store, "a1", kernel.KernelTypeAgentModel, []kernel.Rule{base})
+
+	updated := base
+	updated.Statement = "verbose"
+	updated.Version = 2
+	raw, err := json.Marshal(kernelData{
+		Kernel: kernel.Kernel{
+			KernelID:   "a1_" + string(kernel.KernelTypeAgentModel),
+			ScopeID:    "a1",
+			KernelType: kernel.KernelTypeAgentModel,
+			Version:    2,
+			Status:     kernel.KernelStatusActive,
+			RuleRefs:   []kernel.RuleID{"r1"},
+			CreatedAt:  ts,
+			UpdatedAt:  ts,
+		},
+		Rules: []kernel.Rule{updated},
+	})
+	if err != nil {
+		t.Fatalf("marshal kernel: %v", err)
+	}
+	err = store.SaveKernelAndCommit("a1", string(kernel.KernelTypeAgentModel), raw, "commit_bad", []byte(`{`))
+	if err == nil || !strings.Contains(err.Error(), "storage save commit") {
+		t.Fatalf("expected commit evidence failure, got %v", err)
+	}
+	loaded, rules, err := store.LoadKernelState("a1", kernel.KernelTypeAgentModel)
+	if err != nil {
+		t.Fatalf("load kernel: %v", err)
+	}
+	if loaded.Version != 1 || len(rules) != 1 || rules[0].Statement != "concise" {
+		t.Fatalf("kernel state was not rolled back with failed evidence: %+v %+v", loaded, rules)
+	}
+}
+
 func TestCommit_RejectsRemovedArtifactRefTarget(t *testing.T) {
 	engine, store := newTestEngine(t)
 	base := localRule("r1", "concise")

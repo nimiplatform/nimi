@@ -221,6 +221,15 @@ func (s *KnowledgeService) PutRelation(rel knowledge.Relation) error {
 	if !knowledgePageIsLiveForRelation(toPage) {
 		return fmt.Errorf("knowledge relation save: target page %s is not live", rel.ToPageID)
 	}
+	existing, err := s.store.ListKnowledgeRelations(rel.ScopeID, string(rel.FromPageID))
+	if err != nil {
+		return err
+	}
+	for _, current := range existing {
+		if current.ToPageID == rel.ToPageID && current.RelationType == rel.RelationType {
+			return fmt.Errorf("knowledge relation save: duplicate relation %s -> %s (%s)", rel.FromPageID, rel.ToPageID, rel.RelationType)
+		}
+	}
 	return s.store.SaveKnowledgeRelation(rel)
 }
 

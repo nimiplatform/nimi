@@ -44,7 +44,7 @@ func reportToRoutineResult(report *Report) *routine.Result {
 		return nil
 	}
 	families := map[string]*routine.FamilyResult{}
-	for _, family := range []string{"knowledge", "skill", "memory"} {
+	for _, family := range []string{routine.FamilyKnowledgeProjection, routine.FamilySkillArtifacts, routine.FamilyMemorySubstrate} {
 		families[family] = &routine.FamilyResult{Family: family}
 	}
 	for _, candidate := range report.Analysis.Candidates {
@@ -67,7 +67,7 @@ func reportToRoutineResult(report *Report) *routine.Result {
 	familyResults := make([]routine.FamilyResult, 0, len(families))
 	totalProcessed := 0
 	totalChanged := 0
-	for _, family := range []string{"knowledge", "skill", "memory"} {
+	for _, family := range []string{routine.FamilyKnowledgeProjection, routine.FamilySkillArtifacts, routine.FamilyMemorySubstrate} {
 		result := families[family]
 		result.Unchanged = result.Processed - result.Archived - result.Removed
 		if result.Unchanged < 0 {

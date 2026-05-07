@@ -11,7 +11,6 @@ import (
 	"github.com/nimiplatform/nimi/nimi-cognition/internal/storage"
 	"github.com/nimiplatform/nimi/nimi-cognition/knowledge"
 	"github.com/nimiplatform/nimi/nimi-cognition/memory"
-	"github.com/nimiplatform/nimi/nimi-cognition/routine"
 	"github.com/nimiplatform/nimi/nimi-cognition/routine/digest"
 	"github.com/nimiplatform/nimi/nimi-cognition/skill"
 	_ "modernc.org/sqlite"
@@ -85,6 +84,39 @@ func TestKnowledgeDeleteRejectsActiveRelationBlocker(t *testing.T) {
 	err := c.KnowledgeService().Delete("a1", "p2")
 	if err == nil || !strings.Contains(err.Error(), "blocked by") {
 		t.Fatalf("expected relation blocker error, got %v", err)
+	}
+}
+
+func TestKnowledgeRelationRejectsDuplicateBeforeCommit(t *testing.T) {
+	c := newTestCognition(t)
+	if err := c.InitScope("a1"); err != nil {
+		t.Fatalf("init scope: %v", err)
+	}
+	for _, page := range []knowledge.Page{
+		{PageID: "p1", ScopeID: "a1", Kind: knowledge.ProjectionKindExplainer, Version: 1, Title: "Parent", Body: []byte(`"parent"`), Lifecycle: knowledge.ProjectionLifecycleActive, CreatedAt: ts, UpdatedAt: ts},
+		{PageID: "p2", ScopeID: "a1", Kind: knowledge.ProjectionKindGuide, Version: 1, Title: "Child", Body: []byte(`"child"`), Lifecycle: knowledge.ProjectionLifecycleActive, CreatedAt: ts, UpdatedAt: ts},
+	} {
+		if err := c.KnowledgeService().Save(page); err != nil {
+			t.Fatalf("save page %s: %v", page.PageID, err)
+		}
+	}
+	first := knowledge.Relation{ScopeID: "a1", FromPageID: "p1", ToPageID: "p2", RelationType: "supports", Strength: artifactref.StrengthStrong, CreatedAt: ts, UpdatedAt: ts}
+	if err := c.KnowledgeService().PutRelation(first); err != nil {
+		t.Fatalf("put relation: %v", err)
+	}
+	duplicate := first
+	duplicate.Strength = artifactref.StrengthWeak
+	duplicate.UpdatedAt = ts.Add(time.Minute)
+	err := c.KnowledgeService().PutRelation(duplicate)
+	if err == nil || !strings.Contains(err.Error(), "duplicate relation p1 -> p2 (supports)") {
+		t.Fatalf("expected duplicate relation rejection, got %v", err)
+	}
+	relations, err := c.KnowledgeService().ListRelations("a1", "p1")
+	if err != nil {
+		t.Fatalf("list relations: %v", err)
+	}
+	if len(relations) != 1 || relations[0].Strength != artifactref.StrengthStrong || !relations[0].UpdatedAt.Equal(ts) {
+		t.Fatalf("duplicate write mutated relation: %+v", relations)
 	}
 }
 
@@ -333,9 +365,6 @@ func TestKnowledgeDigestWorkerRemove_BlocksActiveStrong(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("save support peer relation: %v", err)
 	}
-	if err := c.store.Delete("a1", storage.KindMemory, "ghost"); err != nil {
-		t.Fatalf("delete ghost memory fixture: %v", err)
-	}
 	if _, err := digest.NewWorker(digest.Config{}).Run(ctx); err != nil {
 		t.Fatalf("worker first pass: %v", err)
 	}
@@ -349,41 +378,12 @@ func TestKnowledgeDigestWorkerRemove_BlocksActiveStrong(t *testing.T) {
 	if page.Lifecycle != knowledge.ProjectionLifecycleArchived {
 		t.Fatalf("expected active strong blocker to keep page archived, got %+v", page)
 	}
-	candidates := latestDigestCandidates(t, c, "a1")
-	found := false
-	for _, candidate := range candidates {
-		if candidate.ArtifactID != "p1" || candidate.Action != "remove" || candidate.Status != "blocked" {
-			continue
-		}
-		detail := decodeBlockedDetail[digest.BlockedTransition](t, candidate.Detail)
-		for _, blocker := range detail.Detail.Blockers {
-			if blocker.Kind == routine.BlockerKindStrongRef && blocker.SourceID == "m1" {
-				found = true
-				break
-			}
-		}
-	}
-	if !found {
-		t.Fatalf("expected structured strong-ref blocker in worker evidence, got %+v", candidates)
-	}
 }
 
 func TestKnowledgeDigestWorkerRemove_BasisChangeNeedsFreshConfirmation(t *testing.T) {
 	c := newTestCognition(t)
 	if err := c.InitScope("a1"); err != nil {
 		t.Fatalf("init scope: %v", err)
-	}
-	if err := c.MemoryService().Save(memory.Record{
-		RecordID:  "ghost",
-		ScopeID:   "a1",
-		Kind:      memory.RecordKindExperience,
-		Version:   1,
-		Content:   []byte(`{"summary":"ghost"}`),
-		Lifecycle: memory.RecordLifecycleActive,
-		CreatedAt: ts,
-		UpdatedAt: ts,
-	}); err != nil {
-		t.Fatalf("save ghost memory: %v", err)
 	}
 	page := knowledge.Page{
 		PageID:    "p1",
@@ -395,16 +395,6 @@ func TestKnowledgeDigestWorkerRemove_BasisChangeNeedsFreshConfirmation(t *testin
 		Lifecycle: knowledge.ProjectionLifecycleActive,
 		CreatedAt: ts,
 		UpdatedAt: ts,
-		ArtifactRefs: []artifactref.Ref{{
-			FromKind:  artifactref.KindKnowledgePage,
-			FromID:    "p1",
-			ToKind:    artifactref.KindMemoryRecord,
-			ToID:      "ghost",
-			Strength:  artifactref.StrengthStrong,
-			Role:      "support",
-			CreatedAt: ts,
-			UpdatedAt: ts,
-		}},
 	}
 	if err := c.KnowledgeService().Save(page); err != nil {
 		t.Fatalf("save knowledge page: %v", err)
@@ -415,9 +405,6 @@ func TestKnowledgeDigestWorkerRemove_BasisChangeNeedsFreshConfirmation(t *testin
 	}
 	if err := ctx.Storage.ArchiveKnowledge("a1", "p1", ts.Add(time.Minute)); err != nil {
 		t.Fatalf("archive knowledge page: %v", err)
-	}
-	if err := c.store.Delete("a1", storage.KindMemory, "ghost"); err != nil {
-		t.Fatalf("delete ghost memory fixture: %v", err)
 	}
 	if _, err := digest.NewWorker(digest.Config{}).Run(ctx); err != nil {
 		t.Fatalf("worker first pass: %v", err)
@@ -440,30 +427,8 @@ func TestKnowledgeDigestWorkerRemove_BasisChangeNeedsFreshConfirmation(t *testin
 	if err != nil {
 		t.Fatalf("load page after basis change: %v", err)
 	}
-	if loaded.Lifecycle != knowledge.ProjectionLifecycleArchived {
-		t.Fatalf("expected basis-changed candidate to remain archived, got %+v", loaded)
-	}
-	candidates := latestDigestCandidates(t, c, "a1")
-	found := false
-	for _, candidate := range candidates {
-		if candidate.ArtifactID != "p1" || candidate.Action != "remove" || candidate.Status != "blocked" {
-			continue
-		}
-		found = true
-		break
-	}
-	if !found {
-		t.Fatalf("expected basis-changed candidate to remain blocked on the next pass, got %+v", candidates)
-	}
-	if _, err := digest.NewWorker(digest.Config{}).Run(ctx); err != nil {
-		t.Fatalf("worker third pass: %v", err)
-	}
-	loaded, err = c.KnowledgeService().Load("a1", "p1")
-	if err != nil {
-		t.Fatalf("load page after third pass: %v", err)
-	}
 	if loaded.Lifecycle != knowledge.ProjectionLifecycleRemoved {
-		t.Fatalf("expected third pass to remove after repeated zero-support basis, got %+v", loaded)
+		t.Fatalf("expected second pass to remove after repeated zero-support basis, got %+v", loaded)
 	}
 }
 

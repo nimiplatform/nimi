@@ -54,6 +54,9 @@ func (s *SkillService) List(scopeID string) ([]skill.Bundle, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := validateSkillBundleScope(scopeID, bundles); err != nil {
+		return nil, err
+	}
 	return validateVisibleSkillBundles(bundles)
 }
 
@@ -66,6 +69,9 @@ func (s *SkillService) Search(scopeID string, query string, limit int) ([]skill.
 	}
 	bundles, err := s.store.SearchSkill(scopeID, query, limit)
 	if err != nil {
+		return nil, err
+	}
+	if err := validateSkillBundleScope(scopeID, bundles); err != nil {
 		return nil, err
 	}
 	return validateVisibleSkillBundles(bundles)

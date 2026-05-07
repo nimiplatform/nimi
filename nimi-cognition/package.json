@@ -1,0 +1,7 @@
+{
+  "name": "@nimiplatform/cognition",
+  "private": true,
+  "scripts": {
+    "test": "go test ./..."
+  }
+}

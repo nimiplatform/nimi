@@ -70,17 +70,16 @@ type ingestTaskProjection struct {
 }
 
 type storedMemoryContent struct {
-	Summary      string          `json:"summary,omitempty"`
-	Context      string          `json:"context,omitempty"`
-	Participants []string        `json:"participants,omitempty"`
-	Subject      string          `json:"subject,omitempty"`
-	Predicate    string          `json:"predicate,omitempty"`
-	Object       string          `json:"object,omitempty"`
-	Confidence   float64         `json:"confidence,omitempty"`
-	EventType    string          `json:"event_type,omitempty"`
-	Source       string          `json:"source,omitempty"`
-	ObservedAt   string          `json:"observed_at,omitempty"`
-	Runtime      json.RawMessage `json:"_runtime_record,omitempty"`
+	Summary      string   `json:"summary,omitempty"`
+	Context      string   `json:"context,omitempty"`
+	Participants []string `json:"participants,omitempty"`
+	Subject      string   `json:"subject,omitempty"`
+	Predicate    string   `json:"predicate,omitempty"`
+	Object       string   `json:"object,omitempty"`
+	Confidence   float64  `json:"confidence,omitempty"`
+	EventType    string   `json:"event_type,omitempty"`
+	Source       string   `json:"source,omitempty"`
+	ObservedAt   string   `json:"observed_at,omitempty"`
 }
 
 type storedKnowledgeBody struct {

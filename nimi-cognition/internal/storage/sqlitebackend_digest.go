@@ -38,6 +38,9 @@ func (b *SQLiteBackend) SaveDigestRun(scopeID string, runID string, report any, 
 		return fmt.Errorf("storage save digest candidates: %w", err)
 	}
 	for _, candidate := range candidates {
+		if err := validateDigestCandidateFamily(candidate.Family); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(`INSERT INTO digest_candidate
 			(scope_id, run_id, family, artifact_kind, artifact_id, action, status, reason, detail_json, created_at, updated_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -47,6 +50,15 @@ func (b *SQLiteBackend) SaveDigestRun(scopeID string, runID string, report any, 
 		}
 	}
 	return tx.Commit()
+}
+
+func validateDigestCandidateFamily(family string) error {
+	switch family {
+	case "memory_substrate", "knowledge_projections", "skill_artifacts":
+		return nil
+	default:
+		return fmt.Errorf("storage save digest candidates: unsupported canonical family_id %q", family)
+	}
 }
 
 // LoadDigestRun returns one persisted digest report payload by run id.

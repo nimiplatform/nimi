@@ -33,6 +33,10 @@ type kernelStateLoader interface {
 	LoadKernelState(scopeID string, kt kernel.KernelType) (*kernel.Kernel, []kernel.Rule, error)
 }
 
+type atomicKernelCommitRepository interface {
+	SaveKernelAndCommit(scopeID string, kernelType string, kernelData []byte, commitID string, commitData []byte) error
+}
+
 // NewEngine creates an Engine backed by the given storage.
 func NewEngine(backend kernelRepository, clk clock.Clock) *Engine {
 	if clk == nil {
@@ -284,10 +288,6 @@ func (e *Engine) Commit(rp ResolvedPatch) (*CommitRecord, error) {
 		return nil, fmt.Errorf("commit: %w", err)
 	}
 
-	if err := e.saveKernel(rp.ScopeID, rp.TargetKernel, k, newRules); err != nil {
-		return nil, fmt.Errorf("commit: save kernel: %w", err)
-	}
-
 	commitID, err := identity.NewPrefixed("commit")
 	if err != nil {
 		return nil, fmt.Errorf("commit: %w", err)
@@ -311,8 +311,21 @@ func (e *Engine) Commit(rp ResolvedPatch) (*CommitRecord, error) {
 	if err != nil {
 		return nil, fmt.Errorf("commit: marshal commit: %w", err)
 	}
-	if err := e.backend.Save(rp.ScopeID, storage.KindCommit, string(record.CommitID), raw); err != nil {
-		return nil, fmt.Errorf("commit: save commit: %w", err)
+	kernelRaw, err := marshalKernelData(k, newRules)
+	if err != nil {
+		return nil, fmt.Errorf("commit: save kernel: %w", err)
+	}
+	if atomic, ok := e.backend.(atomicKernelCommitRepository); ok {
+		if err := atomic.SaveKernelAndCommit(rp.ScopeID, string(rp.TargetKernel), kernelRaw, string(record.CommitID), raw); err != nil {
+			return nil, fmt.Errorf("commit: save kernel and commit: %w", err)
+		}
+	} else {
+		if err := e.backend.Save(rp.ScopeID, storage.KindKernel, string(rp.TargetKernel), kernelRaw); err != nil {
+			return nil, fmt.Errorf("commit: save kernel: %w", err)
+		}
+		if err := e.backend.Save(rp.ScopeID, storage.KindCommit, string(record.CommitID), raw); err != nil {
+			return nil, fmt.Errorf("commit: save commit: %w", err)
+		}
 	}
 	return record, nil
 }
@@ -367,11 +380,15 @@ func (e *Engine) loadKernel(scopeID string, kt kernel.KernelType) (*kernel.Kerne
 }
 
 func (e *Engine) saveKernel(scopeID string, kt kernel.KernelType, k *kernel.Kernel, rules []kernel.Rule) error {
-	raw, err := json.Marshal(kernelData{Kernel: *k, Rules: rules})
+	raw, err := marshalKernelData(k, rules)
 	if err != nil {
 		return fmt.Errorf("marshal kernel: %w", err)
 	}
 	return e.backend.Save(scopeID, storage.KindKernel, string(kt), raw)
+}
+
+func marshalKernelData(k *kernel.Kernel, rules []kernel.Rule) ([]byte, error) {
+	return json.Marshal(kernelData{Kernel: *k, Rules: rules})
 }
 
 func validateResolvedChanges(current map[kernel.RuleID]kernel.Rule, changes []ResolvedChange) error {
