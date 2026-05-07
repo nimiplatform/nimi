@@ -56,6 +56,144 @@ async function addSweepSourceDesign(projectRoot, topicRef, waveId, overrides = {
   return sourcePath;
 }
 
+async function loadTopicYamlPath(projectRoot, topicId) {
+  for (const state of ["ongoing", "proposal", "pending", "closed"]) {
+    const candidate = path.join(projectRoot, ".nimi", "topics", state, topicId, "topic.yaml");
+    try {
+      await readFile(candidate, "utf8");
+      return candidate;
+    } catch {
+      // keep searching lifecycle roots
+    }
+  }
+  throw new Error(`topic.yaml not found for ${topicId}`);
+}
+
+async function mutateTopicYaml(projectRoot, topicId, mutator) {
+  const topicYamlPath = await loadTopicYamlPath(projectRoot, topicId);
+  const topic = YAML.parse(await readFile(topicYamlPath, "utf8"));
+  await mutator(topic);
+  await writeFile(topicYamlPath, YAML.stringify(topic), "utf8");
+  return { topicYamlPath, topic };
+}
+
+async function createDeferralDemoTopic(
+  projectRoot,
+  slug,
+  { nextDep = null, globalBlocker = false, missingEvidenceFlags = false } = {},
+) {
+  const startResult = await captureRunCli(["start"]);
+  assert.equal(startResult.exitCode, 0);
+
+  const createResult = await captureRunCli([
+    "topic",
+    "create",
+    slug,
+    "--justification",
+    `${slug} deferral demo`,
+    "--json",
+  ]);
+  assert.equal(createResult.exitCode, 0, createResult.stderr);
+  const createPayload = JSON.parse(createResult.stdout);
+
+  await captureRunCli([
+    "topic", "wave", "add", createPayload.topicId, "wave-1-blocked", "blocked",
+    "--goal", "local packet authority remediation", "--owner-domain", "apps/desktop", "--json",
+  ]);
+  const nextArgs = [
+    "topic", "wave", "add", createPayload.topicId, "wave-2-next", "next",
+    "--goal", "independent ready wave", "--owner-domain", "apps/desktop",
+  ];
+  if (nextDep) {
+    nextArgs.push("--dep", nextDep);
+  }
+  nextArgs.push("--json");
+  await captureRunCli(nextArgs);
+  await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-1-blocked", "--json"]);
+  await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-1-blocked", "--json"]);
+
+  const packetPath = path.join(projectRoot, `${slug}-packet.yaml`);
+  await writeFile(
+    packetPath,
+    YAML.stringify({
+      packet_id: "wave-1-blocked-audit",
+      topic_id: createPayload.topicId,
+      wave_id: "wave-1-blocked",
+      packet_kind: "audit",
+      status: "draft",
+      authority_owner: ["nimi-coding/topic-runner"],
+      canonical_seams: ["topic.yaml waves[]", "topic runner deferred blocker evidence"],
+      forbidden_shortcuts: ["placeholder_success", "record_result_without_packet_lineage"],
+      acceptance_invariants: ["local blocker evidence must keep packet lineage"],
+      negative_tests: ["result recording without packet lineage fails closed"],
+      reopen_conditions: ["authority or scope changes require a new packet"],
+    }),
+    "utf8",
+  );
+  const freezeResult = await captureRunCli([
+    "topic", "packet", "freeze", createPayload.topicId, "--from", packetPath, "--json",
+  ]);
+  assert.equal(freezeResult.exitCode, 0, freezeResult.stderr);
+
+  const auditSource = path.join(projectRoot, `${slug}-audit.md`);
+  await writeFile(
+    auditSource,
+    [
+      "# Local Blocker Audit",
+      "",
+      "verdict: NEEDS_REVISION",
+      "ready_for_implementation: false",
+      "required_remediation: local wave packet authority/scope remediation only",
+      "blocking_findings:",
+      "- selected wave packet authority requires remediation before implementation",
+      ...(missingEvidenceFlags
+        ? []
+        : [
+          "source_audit_findings_mutated: false",
+          "source_sweep_design_artifacts_mutated: false",
+        ]),
+      ...(globalBlocker
+        ? [
+          "topic_contract_change_required: true",
+          "required_manager_decision: global topic contract change",
+        ]
+        : []),
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+  const recordResult = await captureRunCli([
+    "topic", "result", "record", createPayload.topicId,
+    "--kind", "audit",
+    "--verdict", "NEEDS_REVISION",
+    "--from", auditSource,
+    "--verified-at", "2026-05-04T00:00:00Z",
+    "--json",
+  ]);
+  assert.equal(recordResult.exitCode, 0, recordResult.stderr);
+
+  await mutateTopicYaml(projectRoot, createPayload.topicId, (topic) => {
+    topic.selected_next_target = "wave-1-blocked";
+    topic.waves = topic.waves.map((wave) => {
+      if (wave.wave_id === "wave-1-blocked") {
+        return {
+          ...wave,
+          goal: globalBlocker ? "global topic contract blocker" : wave.goal,
+          state: "needs_revision",
+          selected: true,
+          ...(globalBlocker ? { blocker_scope: "global_topic_contract" } : {}),
+        };
+      }
+      if (wave.wave_id === "wave-2-next") {
+        return { ...wave, state: "candidate", selected: false };
+      }
+      return wave;
+    });
+  });
+
+  return createPayload;
+}
+
 test("topic runner mechanically records concrete result commands exactly once", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
@@ -422,4 +560,194 @@ test("topic runner validation classifier refuses no-op filtered package passes",
   );
   assert.equal(nonzero.status, "fail");
   assert.equal(nonzero.passed, false);
+});
+
+test("topic runner run defers a local needs_revision blocker and advances to next ready wave", async () => {
+  await withTempProject(async (projectRoot) => {
+    const createPayload = await createDeferralDemoTopic(projectRoot, "runner-defers-local-blocker-demo");
+
+    const runResult = await captureRunCli([
+      "topic-runner", "run", createPayload.topicId,
+      "--run-id", "defer-local-demo",
+      "--adapter", "codex",
+      "--max-steps", "3",
+      "--verified-at", "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(runResult.exitCode, 0, runResult.stderr);
+    const payload = JSON.parse(runResult.stdout);
+    assert.equal(payload.steps[0].runnerStatus, "continued");
+    assert.equal(payload.steps[0].recommendedAction, "defer_local_wave_blocker");
+    assert.equal(payload.steps[0].deferredBlocker.waveId, "wave-1-blocked");
+    assert.equal(payload.steps[0].deferredBlocker.nextWaveId, "wave-2-next");
+
+    const blockerRef = payload.steps[0].deferredBlocker.blockerRef;
+    const blockerText = await readFile(path.join(projectRoot, blockerRef), "utf8");
+    assert.match(blockerText, /deferrable_scope: local_wave/);
+    assert.match(blockerText, /status: active/);
+
+    const topicYaml = YAML.parse(await readFile(await loadTopicYamlPath(projectRoot, createPayload.topicId), "utf8"));
+    const blockedWave = topicYaml.waves.find((wave) => wave.wave_id === "wave-1-blocked");
+    assert.equal(blockedWave.state, "needs_revision");
+    assert.equal(topicYaml.selected_next_target, "wave-2-next");
+  });
+});
+
+test("topic runner step remains focused and stops on local needs_revision blockers", async () => {
+  await withTempProject(async (projectRoot) => {
+    const createPayload = await createDeferralDemoTopic(projectRoot, "runner-focused-blocker-demo");
+
+    const stepResult = await captureRunCli([
+      "topic-runner", "step", createPayload.topicId,
+      "--run-id", "focused-blocker-demo",
+      "--adapter", "codex",
+      "--verified-at", "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(stepResult.exitCode, 0, stepResult.stderr);
+    const payload = JSON.parse(stepResult.stdout);
+    assert.equal(payload.runnerStatus, "stopped");
+    assert.equal(payload.stopClass, "blocked");
+    assert.equal(payload.recommendedAction, "open_remediation");
+    assert.equal(payload.deferredBlocker, undefined);
+  });
+});
+
+test("topic runner run does not defer when no independent ready wave exists", async () => {
+  await withTempProject(async (projectRoot) => {
+    const createPayload = await createDeferralDemoTopic(projectRoot, "runner-no-independent-wave-demo", {
+      nextDep: "wave-1-blocked",
+    });
+
+    const runResult = await captureRunCli([
+      "topic-runner", "run", createPayload.topicId,
+      "--run-id", "no-independent-wave-demo",
+      "--adapter", "codex",
+      "--max-steps", "3",
+      "--verified-at", "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(runResult.exitCode, 0, runResult.stderr);
+    const payload = JSON.parse(runResult.stdout);
+    assert.equal(payload.runnerStatus, "stopped");
+    assert.equal(payload.stopClass, "blocked");
+    assert.equal(payload.recommendedAction, "open_remediation");
+    assert.equal(payload.deferredBlocker, undefined);
+  });
+});
+
+test("topic runner run does not defer global authority or contract blockers", async () => {
+  await withTempProject(async (projectRoot) => {
+    const createPayload = await createDeferralDemoTopic(projectRoot, "runner-global-blocker-demo", {
+      globalBlocker: true,
+    });
+
+    const runResult = await captureRunCli([
+      "topic-runner", "run", createPayload.topicId,
+      "--run-id", "global-blocker-demo",
+      "--adapter", "codex",
+      "--max-steps", "3",
+      "--verified-at", "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(runResult.exitCode, 0, runResult.stderr);
+    const payload = JSON.parse(runResult.stdout);
+    assert.equal(payload.runnerStatus, "stopped");
+    assert.equal(payload.stopClass, "blocked");
+    assert.equal(payload.recommendedAction, "open_remediation");
+    assert.equal(payload.deferredBlocker, undefined);
+  });
+});
+
+test("true-close refuses while deferred local blockers remain unresolved", async () => {
+  await withTempProject(async (projectRoot) => {
+    const createPayload = await createDeferralDemoTopic(projectRoot, "runner-deferral-true-close-demo");
+
+    const runResult = await captureRunCli([
+      "topic-runner", "run", createPayload.topicId,
+      "--run-id", "deferred-true-close-demo",
+      "--adapter", "codex",
+      "--max-steps", "3",
+      "--verified-at", "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(runResult.exitCode, 0, runResult.stderr);
+
+    const trueCloseResult = await captureRunCli([
+      "topic",
+      "true-close-audit",
+      createPayload.topicId,
+      "--judgement",
+      "deferred blocker remains active",
+      "--json",
+    ]);
+    assert.equal(trueCloseResult.exitCode, 1);
+    const payload = JSON.parse(trueCloseResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.ok(payload.checks.some((entry) => entry.id === "all_waves_terminal" && entry.ok === false));
+  });
+});
+
+test("true-close refuses active deferred blocker artifacts even after waves are terminal", async () => {
+  await withTempProject(async (projectRoot) => {
+    const createPayload = await createDeferralDemoTopic(projectRoot, "runner-deferral-active-artifact-demo");
+
+    const runResult = await captureRunCli([
+      "topic-runner", "run", createPayload.topicId,
+      "--run-id", "deferred-active-artifact-demo",
+      "--adapter", "codex",
+      "--max-steps", "3",
+      "--verified-at", "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(runResult.exitCode, 0, runResult.stderr);
+
+    const topicYamlPath = await loadTopicYamlPath(projectRoot, createPayload.topicId);
+    const topicDir = path.dirname(topicYamlPath);
+    await mutateTopicYaml(projectRoot, createPayload.topicId, (topic) => {
+      topic.selected_next_target = null;
+      topic.waves = topic.waves.map((wave) => {
+        if (wave.wave_id === "wave-1-blocked") {
+          return { ...wave, state: "closed", selected: false };
+        }
+        if (wave.wave_id === "wave-2-next") {
+          return { ...wave, state: "retired", selected: false };
+        }
+        return wave;
+      });
+    });
+    await writeFile(
+      path.join(topicDir, "closeout-wave-1-blocked.md"),
+      `---
+${YAML.stringify({
+  closeout_id: "wave-1-blocked",
+  topic_id: createPayload.topicId,
+  scope: "wave",
+  authority_closure: "closed",
+  semantic_closure: "closed",
+  consumer_closure: "closed",
+  drift_resistance_closure: "closed",
+  disposition: "complete",
+}).trimEnd()}
+---
+
+# Wave Closeout
+`,
+      "utf8",
+    );
+
+    const trueCloseResult = await captureRunCli([
+      "topic",
+      "true-close-audit",
+      createPayload.topicId,
+      "--judgement",
+      "active deferred blocker artifact remains",
+      "--json",
+    ]);
+    assert.equal(trueCloseResult.exitCode, 1);
+    const payload = JSON.parse(trueCloseResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.ok(payload.checks.some((entry) => entry.id === "all_waves_terminal" && entry.ok === true));
+    assert.ok(payload.checks.some((entry) => entry.id === "no_active_deferred_blockers" && entry.ok === false));
+  });
 });

@@ -4,6 +4,7 @@ import path from "node:path";
 import { runNativeCodexSdkPrompt } from "./codex-sdk-runner.mjs";
 import { parseMechanicalCommandRef } from "./topic-runner-commands.mjs";
 export { parseMechanicalCommandRef } from "./topic-runner-commands.mjs";
+import { deferLocalWaveBlocker } from "./topic-runner-deferral.mjs";
 import { maybeResolveStaleHumanGate } from "./topic-runner-stale-gates.mjs";
 export {
   classifyValidationCommandResult,
@@ -73,8 +74,12 @@ function isTerminalWave(wave) {
   return ["closed", "retired", "superseded"].includes(wave?.state);
 }
 
+function getTopicWaves(topic) {
+  return Array.isArray(topic?.waves) ? topic.waves : [];
+}
+
 function findDeterministicNextWave(topic) {
-  const waves = Array.isArray(topic?.waves) ? topic.waves : [];
+  const waves = getTopicWaves(topic);
   const terminalIds = new Set(waves.filter(isTerminalWave).map((wave) => wave.wave_id));
   const ready = waves.filter((wave) => {
     if (isTerminalWave(wave)) return false;
@@ -404,6 +409,56 @@ export async function runTopicRunnerStep(projectRoot, options, deps = {}) {
   }
 
   if (decisionReport.decision.stop_class !== "continue") {
+    if (options.allowDeferredLocalBlockers === true) {
+      const deferred = await deferLocalWaveBlocker(
+        projectRoot,
+        loaded,
+        decisionReport.decision,
+        decisionRef,
+        recordedAt,
+      );
+      if (deferred.ok) {
+        const deferredEvent = await recordTopicRunEvent(projectRoot, options.topicInput, {
+          runId: options.runId,
+          eventKind: "runner_blocked",
+          stopClass: "continue",
+          recommendedAction: "admit_wave",
+          sourceRef: deferred.blockerRef,
+          summary: "deferred_local_wave_blocker",
+          recordedAt,
+          waveId: deferred.wave.wave_id,
+          artifactRefs: {
+            decision_ref: decisionRef,
+            evidence_ref: deferred.blockerRef,
+          },
+        });
+        if (!deferredEvent.ok) {
+          return deferredEvent;
+        }
+        return {
+          ok: true,
+          topicId: decisionReport.topicId,
+          topicRef: decisionReport.topicRef,
+          runId: options.runId,
+          adapter: options.adapter,
+          runnerStatus: "continued",
+          executed: true,
+          stopClass: "continue",
+          recommendedAction: "defer_local_wave_blocker",
+          decision: decisionReport.decision,
+          gate: buildGate(decisionReport.decision),
+          decisionRef,
+          deferredBlocker: {
+            waveId: deferred.wave.wave_id,
+            reasonCode: decisionReport.decision.reason_code,
+            blockerRef: deferred.blockerRef,
+            nextWaveId: deferred.nextWave.wave_id,
+          },
+          ledgerRef: deferredEvent.ledgerRef,
+          eventCount: deferredEvent.eventCount,
+        };
+      }
+    }
     return {
       ok: true,
       topicId: decisionReport.topicId,
@@ -625,7 +680,10 @@ export async function runTopicRunner(projectRoot, options, deps = {}) {
     : 20;
   const steps = [];
   for (let index = 0; index < maxSteps; index += 1) {
-    const step = await runTopicRunnerStep(projectRoot, options, deps);
+    const step = await runTopicRunnerStep(projectRoot, {
+      ...options,
+      allowDeferredLocalBlockers: true,
+    }, deps);
     steps.push(step);
     if (!step.ok || step.runnerStatus !== "continued") {
       return {
