@@ -59,6 +59,7 @@ type StartAgentVoiceCaptureSessionDeps = {
   ) => MediaRecorderLike;
   isTypeSupportedImpl?: (mimeType: string) => boolean;
   autoStopMode?: 'manual' | 'silence';
+  onAutoStop?: (recording: Promise<AgentVoiceCaptureResult>) => void;
   onLevelChange?: (amplitude: number) => void;
   silenceWindowMs?: number;
   silenceThreshold?: number;
@@ -415,10 +416,14 @@ export async function startAgentVoiceCaptureSession(
     const silenceWindowMs = deps.silenceWindowMs || DEFAULT_SILENCE_WINDOW_MS;
     const silenceThreshold = deps.silenceThreshold || DEFAULT_SILENCE_THRESHOLD;
     const buildAutoStopHandle = deps.createSilenceAutoStopHandleImpl || createSilenceAutoStopHandle;
+    const requestSilenceAutoStop = () => {
+      const recording = requestStop() || ensureStopPromise();
+      deps.onAutoStop?.(recording);
+    };
     try {
       autoStopHandle = buildAutoStopHandle({
         stream,
-        requestStop,
+        requestStop: requestSilenceAutoStop,
         onLevelChange: deps.onLevelChange,
         silenceWindowMs,
         silenceThreshold,

@@ -6,9 +6,8 @@ import type { JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import {
   AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
   type AgentResolvedMessageActionEnvelope,
-  type AgentResolvedModalityAction,
-  type AgentResolvedStatusCue,
 } from './chat-agent-behavior';
+import { parseAgentResolvedMessageActionEnvelopeFromPayload } from './chat-agent-behavior-resolver-envelope';
 import { normalizeText } from './chat-agent-orchestration-shared';
 import type {
   RuntimeAgentTimelineSummary,
@@ -55,81 +54,85 @@ export function safeLogRuntimeAgentTiming(input: {
   });
 }
 
-function toResolvedStatusCue(value: unknown): AgentResolvedStatusCue | null {
+function requireRecord(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
+    throw new Error(`${label} must be an object`);
   }
-  const record = value as Record<string, unknown>;
-  const sourceMessageId = normalizeText(record.source_message_id);
-  if (!sourceMessageId) {
-    return null;
+  return value as Record<string, unknown>;
+}
+
+function requireTextField(record: Record<string, unknown>, field: string, label: string): string {
+  const value = normalizeText(record[field]);
+  if (!value) {
+    throw new Error(`${label}.${field} is required`);
   }
-  const mood = normalizeText(record.mood) as AgentResolvedStatusCue['mood'] | '';
-  const label = normalizeText(record.label);
-  const actionCue = normalizeText(record.action_cue);
-  const intensity = Number(record.intensity);
+  return value;
+}
+
+function canonicalizeStatusCue(value: unknown): Record<string, unknown> | null {
+  if (value == null) return null;
+  const record = requireRecord(value, 'runtime.agent structured status_cue');
+  const statusCue: Record<string, unknown> = {
+    sourceMessageId: requireTextField(record, 'source_message_id', 'runtime.agent structured status_cue'),
+  };
+  if (Object.prototype.hasOwnProperty.call(record, 'mood')) {
+    statusCue.mood = record.mood;
+  }
+  if (Object.prototype.hasOwnProperty.call(record, 'label')) {
+    statusCue.label = record.label;
+  }
+  if (Object.prototype.hasOwnProperty.call(record, 'intensity')) {
+    statusCue.intensity = record.intensity;
+  }
+  if (Object.prototype.hasOwnProperty.call(record, 'action_cue')) {
+    statusCue.actionCue = record.action_cue;
+  }
+  return statusCue;
+}
+
+function canonicalizeAction(value: unknown, index: number): Record<string, unknown> {
+  const record = requireRecord(value, `runtime.agent structured actions[${index}]`);
+  const modality = requireTextField(record, 'modality', `runtime.agent structured actions[${index}]`);
+  const promptPayload = requireRecord(record.prompt_payload, `runtime.agent structured actions[${index}].prompt_payload`);
   return {
-    sourceMessageId,
-    ...(mood ? { mood } : {}),
-    ...(label ? { label } : {}),
-    ...(Number.isFinite(intensity) ? { intensity } : {}),
-    ...(actionCue ? { actionCue } : {}),
+    actionId: requireTextField(record, 'action_id', `runtime.agent structured actions[${index}]`),
+    actionIndex: record.action_index,
+    actionCount: record.action_count,
+    modality,
+    operation: requireTextField(record, 'operation', `runtime.agent structured actions[${index}]`),
+    promptPayload: {
+      kind: modality === 'image' ? 'image-prompt' : modality === 'voice' ? 'voice-prompt' : '',
+      promptText: requireTextField(promptPayload, 'prompt_text', `runtime.agent structured actions[${index}].prompt_payload`),
+    },
+    sourceMessageId: requireTextField(record, 'source_message_id', `runtime.agent structured actions[${index}]`),
+    deliveryCoupling: requireTextField(record, 'delivery_coupling', `runtime.agent structured actions[${index}]`),
   };
 }
 
-function toResolvedAction(value: unknown, index: number, actionCount: number): AgentResolvedModalityAction {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`runtime.agent structured action[${index}] is invalid`);
+function toCanonicalResolvedPayload(value: unknown): Record<string, unknown> {
+  const record = requireRecord(value, 'runtime.agent structured payload');
+  const message = requireRecord(record.message, 'runtime.agent structured message');
+  const actions = Array.isArray(record.actions) ? record.actions : null;
+  if (!actions) {
+    throw new Error('runtime.agent structured actions must be an array');
   }
-  const record = value as Record<string, unknown>;
-  const promptPayloadRecord = value && typeof record.prompt_payload === 'object' && !Array.isArray(record.prompt_payload)
-    ? record.prompt_payload as Record<string, unknown>
-    : {};
-  const modality = normalizeText(record.modality);
-  if (modality !== 'image' && modality !== 'voice') {
-    throw new Error(`runtime.agent structured action[${index}].modality is invalid`);
+  const schemaId = normalizeText(record.schemaId) || normalizeText(record.schema_id) || AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID;
+  if (schemaId !== AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID) {
+    throw new Error(`runtime.agent structured schemaId must equal ${AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID}`);
   }
-  const promptText = normalizeText(promptPayloadRecord.prompt_text);
   return {
-    actionId: normalizeText(record.action_id) || `runtime-agent-action-${index}`,
-    actionIndex: Number.isFinite(Number(record.action_index)) ? Number(record.action_index) : index,
-    actionCount: Number.isFinite(Number(record.action_count)) ? Number(record.action_count) : actionCount,
-    modality,
-    operation: normalizeText(record.operation),
-    promptPayload: modality === 'image'
-        ? {
-          kind: 'image-prompt',
-          promptText,
-        }
-        : {
-          kind: 'voice-prompt',
-          promptText,
-        },
-    sourceMessageId: normalizeText(record.source_message_id),
-    deliveryCoupling: normalizeText(record.delivery_coupling) === 'with-message'
-      ? 'with-message'
-      : 'after-message',
+    schemaId,
+    message: {
+      messageId: requireTextField(message, 'message_id', 'runtime.agent structured message'),
+      text: requireTextField(message, 'text', 'runtime.agent structured message'),
+    },
+    ...(record.status_cue == null ? {} : { statusCue: canonicalizeStatusCue(record.status_cue) }),
+    actions: actions.map((action, index) => canonicalizeAction(action, index)),
   };
 }
 
 export function toResolvedEnvelope(value: unknown): AgentResolvedMessageActionEnvelope {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('runtime.agent structured payload is invalid');
-  }
-  const record = value as Record<string, unknown>;
-  const message = value && typeof record.message === 'object' && !Array.isArray(record.message)
-    ? record.message as Record<string, unknown>
-    : {};
-  const actions = Array.isArray(record.actions) ? record.actions : [];
-  return {
-    schemaId: AGENT_RESOLVED_MESSAGE_ACTION_SCHEMA_ID,
-    message: {
-      messageId: normalizeText(message.message_id),
-      text: normalizeText(message.text),
-    },
-    statusCue: toResolvedStatusCue(record.status_cue),
-    actions: actions.map((action, index) => toResolvedAction(action, index, actions.length)),
-  };
+  return parseAgentResolvedMessageActionEnvelopeFromPayload(toCanonicalResolvedPayload(value));
 }
 
 export function cloneEnvelopeWithCommittedMessage(input: {
@@ -137,13 +140,21 @@ export function cloneEnvelopeWithCommittedMessage(input: {
   messageId: string;
   text: string;
 }): AgentResolvedMessageActionEnvelope {
-  return {
+  const next = {
     ...input.envelope,
     message: {
       messageId: input.messageId,
       text: input.text,
     },
+    ...(input.envelope.statusCue
+      ? { statusCue: { ...input.envelope.statusCue, sourceMessageId: input.messageId } }
+      : {}),
+    actions: input.envelope.actions.map((action) => ({
+      ...action,
+      sourceMessageId: input.messageId,
+    })),
   };
+  return parseAgentResolvedMessageActionEnvelopeFromPayload(next);
 }
 
 export function toDebugMetadata(input: {

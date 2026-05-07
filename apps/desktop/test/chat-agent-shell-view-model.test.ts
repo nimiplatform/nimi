@@ -381,6 +381,10 @@ test('agent behavior resolver produces a canonical resolved behavior object from
   assert.equal(resolved.resolvedTurnMode, 'intimate');
   assert.equal(resolved.resolvedExperiencePolicy.autonomyPolicy, 'guarded');
   assert.equal(resolved.resolvedExperiencePolicy.contentBoundary, 'default');
+  assert.deepEqual(resolved.resolvedExperiencePolicy.inspectOnly, {
+    enabled: false,
+    boundary: 'product-turn',
+  });
 });
 
 test('agent behavior resolver keeps explicit-media turns single-message without user toggles', () => {
@@ -395,6 +399,10 @@ test('agent behavior resolver keeps explicit-media turns single-message without 
   assert.equal(resolved.resolvedTurnMode, 'explicit-media');
   assert.equal(resolved.resolvedExperiencePolicy.contentBoundary, 'explicit-media-request');
   assert.equal(resolved.resolvedExperiencePolicy.autonomyPolicy, 'guarded');
+  assert.deepEqual(resolved.resolvedExperiencePolicy.inspectOnly, {
+    enabled: false,
+    boundary: 'product-turn',
+  });
 });
 
 test('agent behavior resolver fails closed for empty submitted turns', () => {

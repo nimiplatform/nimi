@@ -291,17 +291,11 @@ function buildActionPlanningSection(input: {
     'Never put a media generation prompt only in visible message text when an immediate media action is intended.',
   ];
   if (resolvedBehavior.resolvedExperiencePolicy.contentBoundary === 'explicit-media-request') {
-    if (input.agentResolution?.imageReady === false) {
-      lines.push(
-        'The current image.generate capability is unavailable for this turn; do not emit an image action.',
-        'For an affirmative latest user request to create, send, show, or generate an image, the visible message must say image generation is unavailable right now.',
-      );
-    } else {
-      lines.push(
-        'For an affirmative latest user request to create, send, show, or generate an image, emit exactly one <action id="image-0" kind="image"> with a complete <prompt-text>.',
-        'If the latest user message negates or cancels image generation, do not emit an image action.',
-      );
-    }
+    lines.push(
+      'For an affirmative latest user request to create, send, show, or generate an image, emit exactly one <action id="image-0" kind="image"> with a complete <prompt-text>.',
+      'Image capability readiness affects execution only; it must not decide whether a model-planned image action exists.',
+      'If the latest user message negates or cancels image generation, do not emit an image action.',
+    );
   }
   if (resolvedBehavior.resolvedTurnMode === 'explicit-voice') {
     lines.push(

@@ -251,7 +251,6 @@ export function useChatRealtimeSync(): void {
   useRealmChatRealtimeController({
     authStatus,
     authToken,
-    fallbackToken: runtimeDefaults?.realm.accessToken,
     realtimeBaseUrl,
     selectedChatId,
     currentUserId,

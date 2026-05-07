@@ -307,23 +307,14 @@ export function ProfileCatalogPage() {
       if (result.success) {
         setFeedback({ type: 'success', message: t('runtimeConfig.profiles.applySuccess', { defaultValue: 'Profile applied successfully.' }) });
       } else {
-        const userProfile = userProfiles.find((p) => p.profileId === profileId);
-        if (userProfile) {
-          const { applyAIProfileToConfig } = await import('@nimiplatform/sdk/mod');
-          const currentConfig = surface.aiConfig.get(scopeRef);
-          const newConfig = applyAIProfileToConfig(currentConfig, userProfile);
-          surface.aiConfig.update(scopeRef, newConfig);
-          setFeedback({ type: 'success', message: t('runtimeConfig.profiles.applySuccess', { defaultValue: 'Profile applied successfully.' }) });
-        } else {
-          setFeedback({ type: 'error', message: result.failureReason || 'Failed to apply profile.' });
-        }
+        setFeedback({ type: 'error', message: result.failureReason || 'Failed to apply profile.' });
       }
     } catch (error: unknown) {
       setFeedback({ type: 'error', message: error instanceof Error ? error.message : 'Failed to apply profile.' });
     } finally {
       setApplying(false);
     }
-  }, [surface, scopeRef, userProfiles, t]);
+  }, [surface, scopeRef, t]);
 
   const handleSaveProfile = useCallback((profile: AIProfile) => {
     saveUserProfile(profile);

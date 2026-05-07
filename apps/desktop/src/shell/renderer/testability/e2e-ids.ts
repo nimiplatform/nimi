@@ -47,6 +47,7 @@ export const E2E_IDS = {
   profileDetailSurface: 'profile-detail-surface',
   exploreQuickAddFriendDialog: 'explore-quick-add-friend-dialog',
   contactsBlockConfirmDialog: 'contacts-block-confirm-dialog',
+  contactsRemoveFriendConfirmDialog: 'contacts-remove-friend-confirm-dialog',
   contactsUnblockConfirmDialog: 'contacts-unblock-confirm-dialog',
   notificationRejectGiftDialog: 'notification-reject-gift-dialog',
   sendGiftDialog: 'send-gift-dialog',

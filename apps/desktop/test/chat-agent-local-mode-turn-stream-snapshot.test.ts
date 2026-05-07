@@ -87,7 +87,7 @@ test('agent runtime turn recovers terminal projection from authoritative runtime
               text: 'snapshot recovered response',
               finishReason: 'stop',
               structured: {
-                schema_id: 'agent_resolved_message_action_envelope',
+                schema_id: 'nimi.agent.chat.message-action.v1',
                 message: {
                   message_id: 'assistant-snapshot',
                   text: 'snapshot recovered response',
@@ -235,7 +235,7 @@ test('agent runtime turn binds current active turn from snapshot when accepted e
                 text: 'previous response',
                 finishReason: 'stop',
                 structured: {
-                  schema_id: 'agent_resolved_message_action_envelope',
+                  schema_id: 'nimi.agent.chat.message-action.v1',
                   message: {
                     message_id: 'assistant-previous',
                     text: 'previous response',
@@ -255,7 +255,7 @@ test('agent runtime turn binds current active turn from snapshot when accepted e
               text: 'active bind recovered response',
               finishReason: 'stop',
               structured: {
-                schema_id: 'agent_resolved_message_action_envelope',
+                schema_id: 'nimi.agent.chat.message-action.v1',
                 message: {
                   message_id: 'assistant-active-bind',
                   text: 'active bind recovered response',

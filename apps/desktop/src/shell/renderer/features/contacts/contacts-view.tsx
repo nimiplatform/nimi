@@ -25,7 +25,7 @@ import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import nimiLogo from '@renderer/assets/logo-gray.png';
 import type { ContactsViewProps, BlockedUserInfo } from './contacts-view-types.js';
 import { FriendRequestDetail, FriendRequestsList } from './contacts-friend-requests.js';
-import { BlockConfirmDialog, UnblockConfirmDialog } from './contacts-blocked-users.js';
+import { BlockConfirmDialog, RemoveFriendConfirmDialog, UnblockConfirmDialog } from './contacts-blocked-users.js';
 import { ContactsSearchResults, ContactsCategoryAccordion } from './contacts-category-list.js';
 import { ContactDetailView } from './contact-detail-view.js';
 import {
@@ -130,8 +130,10 @@ export function ContactsView(props: ContactsViewProps) {
   const [sidebarWidth, setSidebarWidth] = useState(280);
   const [blockingContact, setBlockingContact] = useState<ContactRecord | null>(null);
   const [unblockingContact, setUnblockingContact] = useState<ContactRecord | null>(null);
+  const [removingContact, setRemovingContact] = useState<ContactRecord | null>(null);
   const [blockMutationPending, setBlockMutationPending] = useState(false);
   const [unblockMutationPending, setUnblockMutationPending] = useState(false);
+  const [removeMutationPending, setRemoveMutationPending] = useState(false);
   const [selectedContact, setSelectedContact] = useState<ContactRecord | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<ContactRequestRecord | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<TabFilter | null>(null);
@@ -299,6 +301,25 @@ export function ContactsView(props: ContactsViewProps) {
       // Parent mutation owns user feedback; keep the dialog open for retry.
     } finally {
       setUnblockMutationPending(false);
+    }
+  };
+
+  const handleRemoveUser = async (contact: ContactRecord) => {
+    if (removeMutationPending) return;
+
+    try {
+      setRemoveMutationPending(true);
+      await props.onRemoveFriend(contact);
+      if (selectedContact?.id === contact.id) {
+        setSelectedContact(null);
+        setSelectedProfileId(null);
+        setSelectedProfileIsAgent(null);
+      }
+      setRemovingContact(null);
+    } catch {
+      // Parent mutation owns user feedback; keep the dialog open for retry.
+    } finally {
+      setRemoveMutationPending(false);
     }
   };
 
@@ -562,13 +583,7 @@ export function ContactsView(props: ContactsViewProps) {
               }
             }}
             onBlock={selectedContact ? () => setBlockingContact(selectedContact) : undefined}
-            onRemove={selectedContact ? () => {
-              const removedContact = selectedContact;
-              props.onRemoveFriend(removedContact);
-              setSelectedContact(null);
-              setSelectedProfileId(null);
-              setSelectedProfileIsAgent(null);
-            } : undefined}
+            onRemove={selectedContact ? () => setRemovingContact(selectedContact) : undefined}
             showMessageButton={!selectedProfile?.isAgent}
           />
         ) : selectedContact && profileError ? (
@@ -611,6 +626,22 @@ export function ContactsView(props: ContactsViewProps) {
             void handleUnblockUser(unblockingContact);
           }}
           onCancel={() => setUnblockingContact(null)}
+        />
+      )}
+
+      {/* Remove friend confirmation dialog */}
+      {removingContact && (
+        <RemoveFriendConfirmDialog
+          contact={removingContact}
+          pending={removeMutationPending}
+          onConfirm={() => {
+            void handleRemoveUser(removingContact);
+          }}
+          onCancel={() => {
+            if (!removeMutationPending) {
+              setRemovingContact(null);
+            }
+          }}
         />
       )}
 

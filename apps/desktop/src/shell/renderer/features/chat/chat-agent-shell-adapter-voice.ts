@@ -247,6 +247,96 @@ export function useAgentConversationVoiceSession(
     setVoiceSessionState(createInitialAgentVoiceSessionShellState());
   }, []);
 
+  const handleHandsFreeAutoStopRecording = useCallback((
+    recordingPromise: ReturnType<AgentVoiceCaptureSession['stop']>,
+    sessionAnchorId: string,
+  ) => {
+    const activeConversationAnchorId = normalizeAgentVoiceSessionConversationAnchorId(input.activeConversationAnchorId);
+    if (!sessionAnchorId || sessionAnchorId !== activeConversationAnchorId) {
+      void recordingPromise.catch((error) => {
+        input.reportHostError(new Error(toErrorMessage(error, 'Voice input stop failed.'), { cause: error }));
+      });
+      setVoiceCaptureState(null);
+      setVoiceSessionState({
+        status: 'failed',
+        mode: 'hands-free',
+        conversationAnchorId: activeConversationAnchorId,
+        message: input.t('Chat.voiceSessionAnchorChanged', {
+          defaultValue: 'Voice input stopped because the conversation anchor changed.',
+        }),
+      });
+      return;
+    }
+    const abortController = new AbortController();
+    voiceTranscribeAbortRef.current?.abort();
+    voiceTranscribeAbortRef.current = abortController;
+    setVoiceCaptureState(null);
+    setVoiceSessionState({
+      status: 'transcribing',
+      mode: 'hands-free',
+      conversationAnchorId: sessionAnchorId,
+      message: null,
+    });
+    void (async () => {
+      try {
+        const recording = await recordingPromise;
+        const transcribeExecutionSnapshot = input.transcribeCapabilityProjection
+          ? createAISnapshot({
+            config: input.aiConfig,
+            capability: 'audio.transcribe',
+            projection: input.transcribeCapabilityProjection,
+            agentResolution: input.agentResolution,
+          })
+          : null;
+        const result = await transcribeChatAgentVoiceRuntime({
+          audioBytes: recording.bytes,
+          mimeType: recording.mimeType,
+          transcribeExecutionSnapshot,
+          signal: abortController.signal,
+        });
+        if (input.activeThreadId) {
+          latestVoiceCaptureByThreadRef.current[input.activeThreadId] = {
+            conversationAnchorId: sessionAnchorId,
+            bytes: recording.bytes,
+            mimeType: recording.mimeType,
+            transcriptText: result.text,
+          };
+        }
+        await input.persistVoiceTranscriptDraft({
+          text: result.text,
+          conversationAnchorId: sessionAnchorId,
+        });
+        setVoiceSessionState(resolveIdleAgentVoiceSessionShellState('hands-free'));
+      } catch (error) {
+        if ((error as Error | null)?.name === 'AbortError') {
+          setVoiceSessionState(resolveIdleAgentVoiceSessionShellState('hands-free'));
+          return;
+        }
+        const runtimeError = toChatAgentRuntimeError(error);
+        input.reportHostError(new Error(runtimeError.message, { cause: error }));
+        setVoiceSessionState({
+          status: 'failed',
+          mode: 'hands-free',
+          conversationAnchorId: sessionAnchorId,
+          message: runtimeError.message,
+        });
+      } finally {
+        if (voiceTranscribeAbortRef.current === abortController) {
+          voiceTranscribeAbortRef.current = null;
+        }
+      }
+    })();
+  }, [
+    input.activeConversationAnchorId,
+    input.activeThreadId,
+    input.agentResolution,
+    input.aiConfig,
+    input.persistVoiceTranscriptDraft,
+    input.reportHostError,
+    input.t,
+    input.transcribeCapabilityProjection,
+  ]);
+
   const beginVoiceCapture = useCallback(async (params: {
     mode: AgentVoiceSessionMode;
     interruptActiveStream?: boolean;
@@ -275,6 +365,11 @@ export function useAgentConversationVoiceSession(
         params.mode === 'hands-free'
           ? {
             autoStopMode: 'silence',
+            onAutoStop: (recording) => {
+              voiceCaptureSessionRef.current = null;
+              setVoiceCaptureState(null);
+              handleHandsFreeAutoStopRecording(recording, conversationAnchorId);
+            },
             onLevelChange: (amplitude) => {
               setVoiceCaptureState({
                 active: true,
@@ -319,7 +414,13 @@ export function useAgentConversationVoiceSession(
       );
       return false;
     }
-  }, [input.activeConversationAnchorId, input.activeThreadId, input.reportHostError, input.t]);
+  }, [
+    handleHandsFreeAutoStopRecording,
+    input.activeConversationAnchorId,
+    input.activeThreadId,
+    input.reportHostError,
+    input.t,
+  ]);
 
   useEffect(() => {
     if (voiceSessionState.mode !== 'hands-free' || isVoiceSessionForeground) {

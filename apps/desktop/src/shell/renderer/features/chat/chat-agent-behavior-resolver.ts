@@ -58,10 +58,15 @@ export function resolveAgentTurnMode(input: {
 
 export function resolveAgentExperiencePolicy(input: {
   turnMode: AgentResolvedTurnMode;
+  inspectOnly: boolean;
 }): AgentResolvedExperiencePolicy {
   return {
     contentBoundary: input.turnMode === 'explicit-media' ? 'explicit-media-request' : 'default',
     autonomyPolicy: 'guarded',
+    inspectOnly: {
+      enabled: input.inspectOnly,
+      boundary: input.inspectOnly ? 'diagnostics-only' : 'product-turn',
+    },
   };
 }
 
@@ -85,6 +90,7 @@ export function resolveAgentChatBehavior(input: {
   });
   const resolvedExperiencePolicy = resolveAgentExperiencePolicy({
     turnMode: resolvedTurnMode,
+    inspectOnly: false,
   });
   return {
     settings: input.settings,

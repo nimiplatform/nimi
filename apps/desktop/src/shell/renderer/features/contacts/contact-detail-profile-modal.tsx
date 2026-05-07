@@ -13,6 +13,7 @@ import {
   ContactDetailLoadingState,
 } from './contact-detail-view-content-shell.js';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
+import { RemoveFriendConfirmDialog } from './contacts-blocked-users.js';
 
 export type ContactDetailProfileSeed = {
   id: string;
@@ -61,6 +62,8 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
   const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
+  const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
+  const [removeMutationPending, setRemoveMutationPending] = useState(false);
 
   useEffect(() => {
     if (!props.open) {
@@ -174,7 +177,11 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
     if (!profile) {
       return;
     }
+    if (removeMutationPending) {
+      return;
+    }
     try {
+      setRemoveMutationPending(true);
       await dataSync.removeFriend(profile.id);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
@@ -182,6 +189,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
         queryClient.invalidateQueries({ queryKey: ['contact-detail-modal-profile'], exact: false }),
       ]);
       setFeedback(null);
+      setRemoveConfirmOpen(false);
       props.onClose();
     } catch (error) {
       setFeedback({
@@ -190,8 +198,10 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
           ? error.message
           : t('Contacts.removeFriendFailed', { defaultValue: 'Failed to remove friend' }),
       });
+    } finally {
+      setRemoveMutationPending(false);
     }
-  }, [profile, props, queryClient, t]);
+  }, [profile, props, queryClient, removeMutationPending, t]);
 
   if (!props.open) {
     return null;
@@ -228,9 +238,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
               onBlock={!isBlockedProfile ? () => {
                 void handleBlock();
               } : undefined}
-              onRemove={!isBlockedProfile && profile.isFriend ? () => {
-                void handleRemove();
-              } : undefined}
+              onRemove={!isBlockedProfile && profile.isFriend ? () => setRemoveConfirmOpen(true) : undefined}
               showMessageButton={!profile.isAgent && !isBlockedProfile}
             />
           ) : profileQuery.isError ? (
@@ -261,6 +269,21 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
           onSent={() => {
             setFeedback(null);
             setGiftModalOpen(false);
+          }}
+        />
+      ) : null}
+
+      {profile && removeConfirmOpen ? (
+        <RemoveFriendConfirmDialog
+          contact={profile}
+          pending={removeMutationPending}
+          onConfirm={() => {
+            void handleRemove();
+          }}
+          onCancel={() => {
+            if (!removeMutationPending) {
+              setRemoveConfirmOpen(false);
+            }
           }}
         />
       ) : null}

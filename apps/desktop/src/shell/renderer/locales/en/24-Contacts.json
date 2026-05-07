@@ -60,6 +60,8 @@
   "blockContact": "Block Contact",
   "block": "Block",
   "restoreContact": "Restore Contact",
+  "removeFriendConfirmMessagePrefix": "Remove",
+  "removeFriendConfirmMessageSuffix": "This will remove them from your friends list.",
   "chat": "Chat",
   "gift": "Gift",
   "changePhoto": "Change Photo",

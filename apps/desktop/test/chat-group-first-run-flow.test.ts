@@ -45,6 +45,20 @@ test('group create controller fails closed on contract violation and routes to n
   assert.match(chatGroupCreateControllerSource, /<ChatGroupCreateModal\s+open=\{isOpen\}\s+onClose=\{close\}\s+onCreateGroup=\{handleCreateGroup\}\s*\/>/);
 });
 
+test('group create controller validates created group id before success projection', () => {
+  const createCall = chatGroupCreateControllerSource.indexOf('const result = await dataSync.createGroup(title, participantIds);');
+  const idValidation = chatGroupCreateControllerSource.indexOf('const newId = resolveCreatedGroupId(result);');
+  const modeSelection = chatGroupCreateControllerSource.indexOf("setSelectedTargetForSource('group', newId);");
+  const invalidation = chatGroupCreateControllerSource.indexOf('void queryClient.invalidateQueries({ queryKey: GROUP_CHATS_QUERY_KEY });');
+  const modalClose = chatGroupCreateControllerSource.indexOf('setIsOpen(false);', idValidation);
+
+  assert.ok(createCall >= 0);
+  assert.ok(idValidation > createCall);
+  assert.ok(modeSelection > idValidation);
+  assert.ok(invalidation > idValidation);
+  assert.ok(modalClose > idValidation);
+});
+
 test('group first-run flow: group mode content no longer carries sentinel intent routing', () => {
   assert.doesNotMatch(chatGroupModeContentSource, /GROUP_CREATE_INTENT_TARGET_ID/);
   assert.doesNotMatch(chatGroupModeContentSource, /chat-group-flow-constants/);

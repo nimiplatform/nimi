@@ -60,6 +60,8 @@
   "blockContact": "屏蔽联系人",
   "block": "屏蔽",
   "restoreContact": "恢复联系人",
+  "removeFriendConfirmMessagePrefix": "移除",
+  "removeFriendConfirmMessageSuffix": "这会将对方从你的好友列表中移除。",
   "chat": "聊天",
   "gift": "礼物",
   "changePhoto": "更换头像",

@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { startAgentVoiceCaptureSession } from '../src/shell/renderer/features/chat/chat-agent-voice-capture.js';
+import {
+  type AgentVoiceCaptureResult,
+  startAgentVoiceCaptureSession,
+} from '../src/shell/renderer/features/chat/chat-agent-voice-capture.js';
 
 class FakeMediaRecorder {
   state: 'inactive' | 'recording' | 'paused' = 'inactive';
@@ -66,6 +69,7 @@ test('agent voice capture session fail-closes when browser capture is unavailabl
 test('hands-free voice capture can auto-stop through the silence consumer seam', async () => {
   let stoppedTracks = 0;
   let requestStop!: () => void;
+  const autoStoppedRecordings: Promise<AgentVoiceCaptureResult>[] = [];
   const stream = {
     getTracks: () => [{
       stop: () => {
@@ -81,6 +85,9 @@ test('hands-free voice capture can auto-stop through the silence consumer seam',
       options?.mimeType,
     ),
     isTypeSupportedImpl: (mimeType) => mimeType === 'audio/webm',
+    onAutoStop: (recording) => {
+      autoStoppedRecordings.push(recording);
+    },
     createSilenceAutoStopHandleImpl: (input) => {
       requestStop = input.requestStop;
       return {
@@ -90,11 +97,16 @@ test('hands-free voice capture can auto-stop through the silence consumer seam',
   });
 
   requestStop();
-  const result = await session.stop();
+  const autoStoppedRecording = autoStoppedRecordings.at(0);
+  if (!autoStoppedRecording) {
+    assert.fail('expected silence auto-stop to expose the stopped recording');
+  }
+  const result = await autoStoppedRecording;
 
   assert.equal(result.mimeType, 'audio/webm');
   assert.deepEqual([...result.bytes], [7, 8, 9]);
   assert.equal(stoppedTracks, 1);
+  await assert.doesNotReject(() => session.stop());
 });
 
 test('hands-free voice capture fails close when silence detection support is missing', async () => {

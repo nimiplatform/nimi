@@ -5,7 +5,7 @@ import { randomIdV11 } from '@renderer/features/runtime-config/runtime-config-st
 import { createEmptyAgentThreadBundle } from './chat-agent-shell-bundle.js';
 import { bundleQueryKey, THREADS_QUERY_KEY, upsertThreadSummary } from './chat-agent-shell-core.js';
 import { findAgentConversationThreadByAgentId } from './chat-agent-thread-model.js';
-import type { AppStoreState, RuntimeFieldMap } from '@renderer/app-shell/providers/store-types';
+import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
 import type { ConversationMode } from '@nimiplatform/nimi-kit/features/chat/headless';
 import type { AgentConversationSelection } from './chat-shell-types.js';
 
@@ -15,7 +15,6 @@ type AgentConversationLauncherInput = {
   setChatMode: AppStoreState['setChatMode'];
   setSelectedTargetForSource: (source: ConversationMode, targetId: string | null) => void;
   setAgentConversationSelection: (selection: AgentConversationSelection) => void;
-  setRuntimeFields: (updates: Partial<RuntimeFieldMap>) => void;
 };
 
 export type AgentInteractionLaunchKind = 'chat' | 'voice';
@@ -100,13 +99,6 @@ async function launchAgentInteractionFromDisplay(
     threadId: thread.id,
     agentId,
     targetId: agentId,
-  });
-  input.setRuntimeFields({
-    targetType: '',
-    targetAccountId: agentId,
-    agentId,
-    targetId: agentId,
-    worldId: input.target.worldId || '',
   });
   input.setChatMode('agent');
   input.setActiveTab('chat');

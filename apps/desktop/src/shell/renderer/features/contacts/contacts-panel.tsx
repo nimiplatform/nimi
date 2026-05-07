@@ -229,6 +229,7 @@ export function ContactsPanel() {
         kind: 'error',
         message: toErrorMessage(error, t('Contacts.removeFriendFailed', { defaultValue: 'Failed to remove friend' })),
       });
+      throw error;
     }
   }, [refetchContacts, agentLimitQuery.refetch, t]);
 

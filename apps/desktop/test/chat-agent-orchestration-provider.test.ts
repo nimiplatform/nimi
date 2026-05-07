@@ -157,9 +157,9 @@ test('agent local chat execution seam tells explicit media turns when image gene
   assert.match(request.systemPrompt || '', /CapabilityContext:/);
   assert.match(request.systemPrompt || '', /"ready": false/);
   assert.match(request.systemPrompt || '', /"reasonCode": "route_unhealthy"/);
-  assert.match(request.systemPrompt || '', /image\.generate capability is unavailable/);
-  assert.match(request.systemPrompt || '', /do not emit an image action/);
-  assert.doesNotMatch(request.systemPrompt || '', /emit exactly one <action id="image-0" kind="image">/);
+  assert.doesNotMatch(request.systemPrompt || '', /image\.generate capability is unavailable/);
+  assert.match(request.systemPrompt || '', /Image capability readiness affects execution only/);
+  assert.match(request.systemPrompt || '', /emit exactly one <action id="image-0" kind="image">/);
 });
 
 test('agent local chat execution seam drops a duplicated current user turn from history and supports follow-up continuation inputs', () => {

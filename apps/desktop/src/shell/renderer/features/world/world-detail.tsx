@@ -36,7 +36,6 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const setChatMode = useAppStore((state) => state.setChatMode);
   const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
   const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
-  const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
   const isReady = authStatus === 'authenticated' && !!world.id;
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const flowIdRef = useRef('');
@@ -191,7 +190,6 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         setChatMode,
         setSelectedTargetForSource,
         setAgentConversationSelection,
-        setRuntimeFields,
       });
       setFeedback({
         kind: 'info',
@@ -248,7 +246,6 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         setChatMode,
         setSelectedTargetForSource,
         setAgentConversationSelection,
-        setRuntimeFields,
       });
       setFeedback({
         kind: 'info',

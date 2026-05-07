@@ -14,6 +14,10 @@ export type AgentResolvedTurnMode =
 export type AgentResolvedExperiencePolicy = {
   contentBoundary: 'default' | 'explicit-media-request';
   autonomyPolicy: 'guarded';
+  inspectOnly: {
+    enabled: boolean;
+    boundary: 'product-turn' | 'diagnostics-only';
+  };
 };
 
 export type AgentResolvedMessage = {

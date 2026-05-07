@@ -172,18 +172,14 @@ function resolveVoiceActionWorkflowIntent(
     return null;
   }
   if (operation === 'voice_workflow.voice_clone') {
-    return {
-      capability: 'voice_workflow.voice_clone',
-      workflowType: 'voice_clone',
-      operation,
-    };
+    throw new Error(
+      `voice action ${action.actionId} declares voice_workflow.voice_clone, but first-packet voice executor only admits audio.synthesize`,
+    );
   }
   if (operation === 'voice_workflow.voice_design') {
-    return {
-      capability: 'voice_workflow.voice_design',
-      workflowType: 'voice_design',
-      operation,
-    };
+    throw new Error(
+      `voice action ${action.actionId} declares voice_workflow.voice_design, but first-packet voice executor only admits audio.synthesize`,
+    );
   }
   throw new Error(`voice action ${action.actionId} declares unsupported operation ${action.operation}`);
 }

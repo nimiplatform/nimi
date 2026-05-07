@@ -13,6 +13,17 @@ export type ChatGroupCreateController = {
   modal: ReactNode;
 };
 
+export function resolveCreatedGroupId(result: unknown): string {
+  if (!result || typeof result !== 'object' || !('id' in result)) {
+    throw new Error('chat-group-create:contract-violation:missing-id');
+  }
+  const newId = String((result as { id: string }).id);
+  if (!newId) {
+    throw new Error('chat-group-create:contract-violation:empty-id');
+  }
+  return newId;
+}
+
 export function useChatGroupCreateController(): ChatGroupCreateController {
   const queryClient = useQueryClient();
   const setChatMode = useAppStore((state) => state.setChatMode);
@@ -29,17 +40,11 @@ export function useChatGroupCreateController(): ChatGroupCreateController {
 
   const handleCreateGroup = useCallback(async (title: string, participantIds: string[]) => {
     const result = await dataSync.createGroup(title, participantIds);
-    void queryClient.invalidateQueries({ queryKey: GROUP_CHATS_QUERY_KEY });
-    setIsOpen(false);
-    if (!result || typeof result !== 'object' || !('id' in result)) {
-      throw new Error('chat-group-create:contract-violation:missing-id');
-    }
-    const newId = String((result as { id: string }).id);
-    if (!newId) {
-      throw new Error('chat-group-create:contract-violation:empty-id');
-    }
+    const newId = resolveCreatedGroupId(result);
     setChatMode('group');
     setSelectedTargetForSource('group', newId);
+    void queryClient.invalidateQueries({ queryKey: GROUP_CHATS_QUERY_KEY });
+    setIsOpen(false);
   }, [queryClient, setChatMode, setSelectedTargetForSource]);
 
   const modal = useMemo(

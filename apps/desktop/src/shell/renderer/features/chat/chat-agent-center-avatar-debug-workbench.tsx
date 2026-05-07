@@ -78,6 +78,11 @@ const PROBES: readonly AvatarDebugWorkbenchProbe[] = [
     summary: 'Check generated motion support.',
   },
   {
+    kind: AvatarDebugProbeKind.EMOTION_EXPRESSION,
+    label: 'Emotion',
+    summary: 'Check emotion and expression support.',
+  },
+  {
     kind: AvatarDebugProbeKind.SPEECH_LIPSYNC,
     label: 'Speech',
     summary: 'Check speech and lipsync support.',
@@ -88,6 +93,20 @@ const PROBES: readonly AvatarDebugWorkbenchProbe[] = [
     summary: 'Check carrier window diagnostics.',
   },
 ];
+
+export const AVATAR_DEBUG_WORKBENCH_PROBES = PROBES;
+
+const REQUIRED_EVIDENCE_REF_COUNTS_BY_PROBE_KIND: Partial<Record<AvatarDebugProbeKind, number>> = {
+  [AvatarDebugProbeKind.PACKAGE_VALIDATION]: 2,
+  [AvatarDebugProbeKind.LAUNCH_READINESS]: 2,
+  [AvatarDebugProbeKind.BACKEND_LOAD]: 2,
+  [AvatarDebugProbeKind.CAPABILITY_PROFILE]: 2,
+  [AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX]: 2,
+  [AvatarDebugProbeKind.GENERATED_MOTION]: 2,
+  [AvatarDebugProbeKind.EMOTION_EXPRESSION]: 2,
+  [AvatarDebugProbeKind.SPEECH_LIPSYNC]: 2,
+  [AvatarDebugProbeKind.WINDOW_HIT_REGION]: 1,
+};
 
 export function buildAvatarDebugWorkbenchLaunchHealth(input: {
   avatarPackageValid: boolean;
@@ -162,7 +181,56 @@ export function avatarDebugProbeStatusLabel(status: AvatarDebugProbeStatus | und
   }
 }
 
-export function avatarDebugProbeRemediation(result: AvatarDebugProbeResultEnvelope | null | undefined): string {
+function normalizedEvidenceRefs(result: AvatarDebugProbeResultEnvelope | null | undefined): string[] {
+  return Array.isArray(result?.evidenceRefs)
+    ? result.evidenceRefs.filter((ref) => ref.trim().length > 0)
+    : [];
+}
+
+export function avatarDebugProbeFailClosedReason(
+  result: AvatarDebugProbeResultEnvelope | null | undefined,
+  replayRef?: AvatarDebugReplayRef | null,
+): string | null {
+  if (result?.status !== AvatarDebugProbeStatus.PASSED) {
+    return null;
+  }
+  const requiredEvidenceCount = REQUIRED_EVIDENCE_REF_COUNTS_BY_PROBE_KIND[result.probeKind] ?? 1;
+  if (normalizedEvidenceRefs(result).length < requiredEvidenceCount) {
+    return 'required_probe_evidence_missing';
+  }
+  if (!replayRef?.replayRef?.trim()) {
+    return 'runtime_replay_missing';
+  }
+  return null;
+}
+
+export function avatarDebugProbePresentationStatus(
+  result: AvatarDebugProbeResultEnvelope | null | undefined,
+  replayRef?: AvatarDebugReplayRef | null,
+): AvatarDebugProbeStatus | undefined {
+  return avatarDebugProbeFailClosedReason(result, replayRef)
+    ? AvatarDebugProbeStatus.FAILED
+    : result?.status;
+}
+
+export function avatarDebugProbePresentationStatusLabel(
+  result: AvatarDebugProbeResultEnvelope | null | undefined,
+  replayRef?: AvatarDebugReplayRef | null,
+): string {
+  return avatarDebugProbeStatusLabel(avatarDebugProbePresentationStatus(result, replayRef));
+}
+
+export function avatarDebugProbeRemediation(
+  result: AvatarDebugProbeResultEnvelope | null | undefined,
+  replayRef?: AvatarDebugReplayRef | null,
+): string {
+  const failClosedReason = avatarDebugProbeFailClosedReason(result, replayRef);
+  if (failClosedReason === 'required_probe_evidence_missing') {
+    return 'Required probe evidence is missing. Treat this probe as failed until Runtime returns every required evidence ref.';
+  }
+  if (failClosedReason === 'runtime_replay_missing') {
+    return 'runtime_replay_missing: Runtime replay evidence is missing. Treat this probe as failed until Runtime returns a replay ref.';
+  }
   switch (result?.status) {
     case AvatarDebugProbeStatus.PASSED:
       return 'Evidence is linked and this probe is ready.';
@@ -293,7 +361,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     }
   }, [agentId, conversationAnchorId, input, latestReplay, latestResult]);
 
-  const latestStatus = avatarDebugProbeStatusLabel(latestResult?.status);
+  const latestStatus = avatarDebugProbePresentationStatusLabel(latestResult, latestReplay);
   const latestEvidence = latestResult?.evidenceRefs.length ? latestResult.evidenceRefs.join(', ') : input.t('Chat.agentCenterAvatarDebugNoEvidence', { defaultValue: 'No evidence linked yet' });
   const snapshotCount = snapshot?.probeResults.length || 0;
 
@@ -362,7 +430,7 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
             {latestStatus}
           </span>
         </div>
-        <div className="mt-1">{avatarDebugProbeRemediation(latestResult)}</div>
+        <div className="mt-1">{avatarDebugProbeRemediation(latestResult, latestReplay)}</div>
         <div className="mt-2 text-slate-500">
           {input.t('Chat.agentCenterAvatarDebugEvidence', { defaultValue: 'Evidence' })}: {latestEvidence}
         </div>
