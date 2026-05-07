@@ -4,6 +4,9 @@ import path from 'node:path';
 import { execSync } from 'node:child_process';
 import YAML from 'yaml';
 
+const GOVERNANCE_CONFIG_RELATIVE_PATH = '.nimi/config/governance.yaml';
+const GOVERNANCE_CONTEXT_BUDGET_SECTION = 'ai_governance.context_budget';
+
 function escapeRegex(input) {
   return input.replace(/[|\\{}()[\]^$+?.]/g, '\\$&');
 }
@@ -89,21 +92,50 @@ function parseDateMaybe(input) {
   return parsed;
 }
 
-function countLines(buffer) {
+function measureLineShape(buffer) {
   if (!buffer || buffer.length === 0) {
-    return 0;
+    return {
+      lines: 0,
+      maxLineBytes: 0,
+      averageLineBytes: 0,
+    };
   }
+
   let lines = 1;
+  let currentLineBytes = 0;
+  let maxLineBytes = 0;
+
   for (const byte of buffer) {
     if (byte === 10) {
+      maxLineBytes = Math.max(maxLineBytes, currentLineBytes);
+      currentLineBytes = 0;
       lines += 1;
+      continue;
     }
+    currentLineBytes += 1;
   }
-  return lines;
+  maxLineBytes = Math.max(maxLineBytes, currentLineBytes);
+
+  return {
+    lines,
+    maxLineBytes,
+    averageLineBytes: buffer.byteLength / lines,
+  };
 }
 
-function loadBudgetConfig(cwd, relativePath, inlineConfig, configPathLabel) {
-  const parsed = inlineConfig ?? (() => {
+function getPathSection(source, sectionPath) {
+  let current = source;
+  for (const segment of sectionPath.split('.')) {
+    if (!current || typeof current !== 'object') {
+      return null;
+    }
+    current = current[segment];
+  }
+  return current && typeof current === 'object' ? current : null;
+}
+
+function loadBudgetConfig(cwd, relativePath, inlineConfig, configPathLabel, configSection) {
+  const rawParsed = inlineConfig ?? (() => {
     const configPath = path.join(cwd, relativePath);
     if (!fs.existsSync(configPath)) {
       throw new Error(`budget config not found: ${relativePath}`);
@@ -111,18 +143,19 @@ function loadBudgetConfig(cwd, relativePath, inlineConfig, configPathLabel) {
     const raw = fs.readFileSync(configPath, 'utf8');
     return YAML.parse(raw);
   })();
+  const parsed = configSection ? getPathSection(rawParsed, configSection) : rawParsed;
   if (!parsed || typeof parsed !== 'object') {
-    throw new Error(`invalid budget config format: ${relativePath}`);
+    throw new Error(`invalid budget config format: ${relativePath}${configSection ? `#${configSection}` : ''}`);
   }
   if (!parsed.profiles || typeof parsed.profiles !== 'object') {
-    throw new Error(`budget config missing profiles: ${relativePath}`);
+    throw new Error(`budget config missing profiles: ${relativePath}${configSection ? `#${configSection}` : ''}`);
   }
   const defaultProfile = String(parsed.default_profile || 'production');
   if (!parsed.profiles[defaultProfile]) {
     throw new Error(`default profile not found in profiles: ${defaultProfile}`);
   }
   return {
-    configPath: configPathLabel || relativePath,
+    configPath: configPathLabel || (configSection ? `${relativePath}#${configSection}` : relativePath),
     parsed,
     defaultProfile,
   };
@@ -174,12 +207,15 @@ function waiverAllowedForProfile(profileId) {
 
 export function evaluateAiContextBudget(options = {}) {
   const cwd = options.cwd || process.cwd();
-  const configRelativePath = options.configRelativePath || 'config/ai/ai-context-budget.yaml';
+  const configRelativePath = options.configRelativePath || GOVERNANCE_CONFIG_RELATIVE_PATH;
+  const configSection = options.configSection
+    ?? (options.config || options.configRelativePath ? null : GOVERNANCE_CONTEXT_BUDGET_SECTION);
   const { parsed, defaultProfile, configPath } = loadBudgetConfig(
     cwd,
     configRelativePath,
     options.config || null,
     options.configPathLabel || null,
+    configSection,
   );
 
   const excludeMatchers = compileMatchers(parsed.exclude || []);
@@ -247,12 +283,27 @@ export function evaluateAiContextBudget(options = {}) {
     }
 
     const buffer = fs.readFileSync(absolutePath);
-    const lines = countLines(buffer);
+    const { lines, maxLineBytes, averageLineBytes } = measureLineShape(buffer);
     const bytes = buffer.byteLength;
 
     const linesSeverity = toSeverity(lines, profile.warning_lines, profile.error_lines);
     const bytesSeverity = toSeverity(bytes, profile.warning_bytes, profile.error_bytes);
-    const severity = maxSeverity(linesSeverity, bytesSeverity);
+    const maxLineBytesSeverity = toSeverity(
+      maxLineBytes,
+      profile.warning_max_line_bytes,
+      profile.error_max_line_bytes,
+    );
+    const averageLineBytesSeverity = toSeverity(
+      averageLineBytes,
+      profile.warning_average_line_bytes,
+      profile.error_average_line_bytes,
+    );
+    const severity = [
+      linesSeverity,
+      bytesSeverity,
+      maxLineBytesSeverity,
+      averageLineBytesSeverity,
+    ].reduce((current, next) => maxSeverity(current, next), "none");
 
     const waiver = waiverMap.get(relativePath) || null;
     const waiverExpired = waiver?.until ? waiver.until.getTime() < Date.now() : false;
@@ -263,13 +314,21 @@ export function evaluateAiContextBudget(options = {}) {
       profile: profileId,
       lines,
       bytes,
+      maxLineBytes,
+      averageLineBytes,
       severity,
       linesSeverity,
       bytesSeverity,
+      maxLineBytesSeverity,
+      averageLineBytesSeverity,
       warningLines: profile.warning_lines,
       errorLines: profile.error_lines,
       warningBytes: profile.warning_bytes,
       errorBytes: profile.error_bytes,
+      warningMaxLineBytes: profile.warning_max_line_bytes,
+      errorMaxLineBytes: profile.error_max_line_bytes,
+      warningAverageLineBytes: profile.warning_average_line_bytes,
+      errorAverageLineBytes: profile.error_average_line_bytes,
       waiver,
       waiverExpired,
       waived,
@@ -285,7 +344,10 @@ export function evaluateAiContextBudget(options = {}) {
     if (right.lines !== left.lines) {
       return right.lines - left.lines;
     }
-    return right.bytes - left.bytes;
+    if (right.bytes !== left.bytes) {
+      return right.bytes - left.bytes;
+    }
+    return right.maxLineBytes - left.maxLineBytes;
   });
 
   return {

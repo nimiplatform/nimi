@@ -34,7 +34,10 @@ waivers: []
   execFileSync('git', ['init', '-q'], { cwd: tempDir });
   execFileSync('git', ['add', '.'], { cwd: tempDir });
 
-  const report = evaluateAiStructureBudget({ cwd: tempDir });
+  const report = evaluateAiStructureBudget({
+    cwd: tempDir,
+    configRelativePath: 'config/ai/ai-structure-budget.yaml',
+  });
   const shallowRow = report.rows.find((row) => row.file.endsWith('home-panel.tsx'));
   const nestedRow = report.rows.find((row) => row.file.endsWith('post-card.tsx'));
 
@@ -71,7 +74,10 @@ waivers: []
   execFileSync('git', ['init', '-q'], { cwd: tempDir });
   execFileSync('git', ['add', '.'], { cwd: tempDir });
 
-  const report = evaluateAiStructureBudget({ cwd: tempDir });
+  const report = evaluateAiStructureBudget({
+    cwd: tempDir,
+    configRelativePath: 'config/ai/ai-structure-budget.yaml',
+  });
   const row = report.rows.find((entry) => entry.file === 'scripts/lib/core.mjs');
 
   assert.ok(row);
@@ -103,7 +109,10 @@ waivers: []
   execFileSync('git', ['init', '-q'], { cwd: tempDir });
   execFileSync('git', ['add', '.'], { cwd: tempDir });
 
-  const report = evaluateAiStructureBudget({ cwd: tempDir });
+  const report = evaluateAiStructureBudget({
+    cwd: tempDir,
+    configRelativePath: 'config/ai/ai-structure-budget.yaml',
+  });
   assert.equal(report.rows.length, 0);
   assert.equal(report.analyzedFiles, 1);
 });

@@ -21,7 +21,14 @@ const providerCatalogPath = path.join(repoRoot, '.nimi/spec/runtime/kernel/table
 const sourceProviderDir = path.join(repoRoot, 'runtime/catalog/source/providers');
 const providerRegistryPath = path.join(repoRoot, 'runtime/internal/providerregistry/generated.go');
 const runtimeLiveSmokePath = path.join(repoRoot, 'runtime/internal/services/ai/live_provider_smoke_matrix_test.go');
-const sdkLiveSmokePath = path.join(repoRoot, 'sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts');
+const sdkLiveSmokePaths = [
+  path.join(repoRoot, 'sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke.test.ts'),
+  path.join(repoRoot, 'sdk/test/runtime/contract/providers/nimi-sdk-ai-provider-live-smoke-matrix.test.ts'),
+];
+const workflowLiveConfigPaths = [
+  '.github/workflows/live-smoke-matrix.yml',
+  '.github/workflows/desktop-release-dry-run.yml',
+].map((workflowPath) => path.join(repoRoot, workflowPath));
 const liveEnvTemplatePath = path.join(repoRoot, 'config/live/live-test.env.example');
 const defaultBaselinePath = path.join(repoRoot, 'config/live/live-gate-baseline.yaml');
 
@@ -79,6 +86,28 @@ function collectProviderCapabilityPairs(definitions) {
   return pairs;
 }
 
+function mergeProviderCapabilityDefinitions(definitionSets) {
+  const merged = new Map();
+  for (const definitions of definitionSets) {
+    for (const [provider, ifaceMap] of definitions.entries()) {
+      if (!merged.has(provider)) {
+        merged.set(provider, new Map());
+      }
+      const targetMap = merged.get(provider);
+      for (const [iface, sources] of ifaceMap.entries()) {
+        if (!targetMap.has(iface)) {
+          targetMap.set(iface, new Set());
+        }
+        const targetSources = targetMap.get(iface);
+        for (const source of sources) {
+          targetSources.add(source);
+        }
+      }
+    }
+  }
+  return merged;
+}
+
 function toPairSet(input) {
   if (!Array.isArray(input)) {
     return new Set();
@@ -108,6 +137,25 @@ function pushMissing(failures, label, missingProviders) {
   failures.push(`${label}: ${missingProviders.join(', ')}`);
 }
 
+function collectWorkflowLocalLiveFallbacks(workflowPaths) {
+  const fallbackRefs = [];
+  const liveEnvFallbackPattern = /^\s*(NIMI_LIVE_[A-Z0-9_]*(?:MODEL_ID|BASE_URL|PROVIDER|SUBJECT_USER_ID)):\s*\$\{\{[^}\n]*\|\|\s*['"][^'"]+['"][^}\n]*\}\}/;
+  for (const workflowPath of workflowPaths) {
+    if (!fs.existsSync(workflowPath)) {
+      continue;
+    }
+    const relPath = path.relative(repoRoot, workflowPath);
+    const lines = fs.readFileSync(workflowPath, 'utf8').split(/\r?\n/);
+    for (const [index, line] of lines.entries()) {
+      const match = line.match(liveEnvFallbackPattern);
+      if (match) {
+        fallbackRefs.push(`${relPath}:${index + 1}:${match[1]}`);
+      }
+    }
+  }
+  return fallbackRefs;
+}
+
 function main() {
   const options = parseArgs();
   const baseline = readYamlFile(options.baselinePath);
@@ -127,7 +175,9 @@ function main() {
   const sourceProviders = new Set(sourceProviderCapabilityMatrix.keys());
   const cloudProviderBindings = parseProviderRegistryProviders(providerRegistryPath, 'RemoteProviders');
   const runtimeLiveDefinitions = parseRuntimeLiveTestDefinitions(runtimeLiveSmokePath);
-  const sdkLiveDefinitions = parseSdkLiveTestDefinitions(sdkLiveSmokePath);
+  const sdkLiveDefinitions = mergeProviderCapabilityDefinitions(
+    sdkLiveSmokePaths.map((sdkLiveSmokePath) => parseSdkLiveTestDefinitions(sdkLiveSmokePath)),
+  );
   const liveEnvProviders = parseLiveEnvTemplateProviders(liveEnvTemplatePath);
 
   const bindingProviders = new Set(cloudProviderBindings);
@@ -246,6 +296,11 @@ function main() {
     'config/live/live-test.env.example missing provider env blocks for cloudProviderEnvBindings providers',
     missingLiveEnvTemplate,
   );
+
+  const workflowLocalLiveFallbacks = collectWorkflowLocalLiveFallbacks(workflowLiveConfigPaths);
+  if (workflowLocalLiveFallbacks.length > 0) {
+    failures.push(`workflow-local live provider defaults are forbidden: ${workflowLocalLiveFallbacks.join(', ')}`);
+  }
 
   const capabilityEnvSuffixes = {
     generate: ['MODEL_ID'],

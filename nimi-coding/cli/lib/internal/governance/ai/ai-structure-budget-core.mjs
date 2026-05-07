@@ -4,6 +4,9 @@ import path from 'node:path';
 import { execSync } from 'node:child_process';
 import YAML from 'yaml';
 
+const GOVERNANCE_CONFIG_RELATIVE_PATH = '.nimi/config/governance.yaml';
+const GOVERNANCE_STRUCTURE_BUDGET_SECTION = 'ai_governance.structure_budget';
+
 function escapeRegex(input) {
   return input.replace(/[|\\{}()[\]^$+?.]/g, '\\$&');
 }
@@ -77,8 +80,19 @@ function parseDateMaybe(input) {
   return parsed;
 }
 
-function loadBudgetConfig(cwd, relativePath, inlineConfig, configPathLabel) {
-  const parsed = inlineConfig ?? (() => {
+function getPathSection(source, sectionPath) {
+  let current = source;
+  for (const segment of sectionPath.split('.')) {
+    if (!current || typeof current !== 'object') {
+      return null;
+    }
+    current = current[segment];
+  }
+  return current && typeof current === 'object' ? current : null;
+}
+
+function loadBudgetConfig(cwd, relativePath, inlineConfig, configPathLabel, configSection) {
+  const rawParsed = inlineConfig ?? (() => {
     const configPath = path.join(cwd, relativePath);
     if (!fs.existsSync(configPath)) {
       throw new Error(`budget config not found: ${relativePath}`);
@@ -86,14 +100,15 @@ function loadBudgetConfig(cwd, relativePath, inlineConfig, configPathLabel) {
     const raw = fs.readFileSync(configPath, 'utf8');
     return YAML.parse(raw);
   })();
+  const parsed = configSection ? getPathSection(rawParsed, configSection) : rawParsed;
   if (!parsed || typeof parsed !== 'object') {
-    throw new Error(`invalid budget config format: ${relativePath}`);
+    throw new Error(`invalid budget config format: ${relativePath}${configSection ? `#${configSection}` : ''}`);
   }
   if (!Array.isArray(parsed.rules) || parsed.rules.length === 0) {
-    throw new Error(`budget config missing rules: ${relativePath}`);
+    throw new Error(`budget config missing rules: ${relativePath}${configSection ? `#${configSection}` : ''}`);
   }
   return {
-    configPath: configPathLabel || relativePath,
+    configPath: configPathLabel || (configSection ? `${relativePath}#${configSection}` : relativePath),
     parsed,
   };
 }
@@ -244,12 +259,15 @@ function compareRows(left, right) {
 
 export function evaluateAiStructureBudget(options = {}) {
   const cwd = options.cwd || process.cwd();
-  const configRelativePath = options.configRelativePath || 'config/ai/ai-structure-budget.yaml';
+  const configRelativePath = options.configRelativePath || GOVERNANCE_CONFIG_RELATIVE_PATH;
+  const configSection = options.configSection
+    ?? (options.config || options.configRelativePath ? null : GOVERNANCE_STRUCTURE_BUDGET_SECTION);
   const { parsed, configPath } = loadBudgetConfig(
     cwd,
     configRelativePath,
     options.config || null,
     options.configPathLabel || null,
+    configSection,
   );
   const excludeMatchers = compileMatchers(parsed.exclude || []);
   const compiledRules = (parsed.rules || []).map((rule) => ({

@@ -30,6 +30,10 @@ import {
   clusteredAuditFinding,
   writeAuditEvidence,
 } from "./nimicoding-test-utils.mjs";
+import { execFile as execFileCallback } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFile = promisify(execFileCallback);
 
 test("native Codex adapter dispatches through the Codex SDK boundary", async () => {
   const calls = [];
@@ -348,5 +352,184 @@ test("validate-ai-governance uses host-configured agents freshness targets", asy
 
     assert.equal(result.exitCode, 0);
     assert.match(result.stdout, /agents freshness check passed/);
+  });
+});
+
+test("validate-ai-governance context budget fails closed on dense source shape", async () => {
+  await withTempProject(async (projectRoot) => {
+    await execFile("git", ["init"], { cwd: projectRoot });
+    await mkdir(path.join(projectRoot, "src"), { recursive: true });
+    await writeFile(
+      path.join(projectRoot, "src", "dense-source.mjs"),
+      `export const dense = "${"x".repeat(4096)}";\n`,
+      "utf8",
+    );
+    await execFile("git", ["add", "src/dense-source.mjs"], { cwd: projectRoot });
+    await writeGovernanceConfig(projectRoot, {
+      profile_id: "nimi",
+      spec_governance: {
+        canonical_root: ".nimi/spec",
+        validate_commands: {},
+        generate_commands: {},
+      },
+      ai_governance: {
+        agents_freshness: {
+          targets: [],
+          required_sections: [],
+          stale_tokens: [],
+        },
+        context_budget: {
+          version: 1,
+          default_profile: "production",
+          profiles: {
+            production: {
+              error_max_line_bytes: 1024,
+              error_average_line_bytes: 1024,
+            },
+          },
+          classifiers: {},
+          exclude: [],
+          waivers: [],
+        },
+        structure_budget: {
+          version: 1,
+          allowed_forwarding_shells: ["index.ts"],
+          rules: [{ id: "noop", include: ["missing/**"], depth_base: "missing", warning_depth: 5, error_depth: 7 }],
+          exclude: ["**"],
+          waivers: [],
+        },
+        high_risk_doc_metadata: {
+          doc_roots: [".local"],
+          exempt_paths: [],
+          name_patterns: ["design"],
+          required_metadata_keys: ["Spec Status"],
+        },
+      },
+    });
+
+    const result = await captureRunCli([
+      "validate-ai-governance",
+      "--profile",
+      "nimi",
+      "--scope",
+      "context-budget",
+    ]);
+
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stderr, /ERROR: src\/dense-source\.mjs/);
+    assert.match(result.stderr, /max-line=/);
+    assert.match(result.stderr, /avg-line=/);
+
+    const jsonResult = await captureRunCli([
+      "validate-ai-governance",
+      "--profile",
+      "nimi",
+      "--scope",
+      "context-budget",
+      "--json",
+    ]);
+    assert.equal(jsonResult.exitCode, 1);
+    assert.equal(jsonResult.stderr, "");
+    const payload = JSON.parse(jsonResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.command, "validate-ai-governance");
+    assert.equal(payload.scope, "context-budget");
+    assert.equal(payload.scopes.length, 1);
+    assert.equal(payload.scopes[0].scope, "context-budget");
+    assert.equal(payload.scopes[0].ok, false);
+    assert.equal(payload.scopes[0].report.errors[0].file, "src/dense-source.mjs");
+    assert.equal(payload.scopes[0].report.errors[0].maxLineBytes > 1024, true);
+  });
+});
+
+test("validate-ai-governance emits machine-readable JSON for all scopes", async () => {
+  await withTempProject(async (projectRoot) => {
+    await execFile("git", ["init"], { cwd: projectRoot });
+    await writeFile(
+      path.join(projectRoot, "package.json"),
+      JSON.stringify({ name: "temp-ai-governance-json", private: true, scripts: {} }, null, 2),
+      "utf8",
+    );
+    await writeFile(
+      path.join(projectRoot, "AGENTS.md"),
+      [
+        "# AGENTS.md",
+        "## Scope",
+        "Temp fixture.",
+        "## Hard Boundaries",
+        "None.",
+        "## Retrieval Defaults",
+        "None.",
+        "## Verification Commands",
+        "None.",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    await execFile("git", ["add", "package.json", "AGENTS.md"], { cwd: projectRoot });
+    await writeGovernanceConfig(projectRoot, {
+      profile_id: "nimi",
+      spec_governance: {
+        canonical_root: ".nimi/spec",
+        validate_commands: {},
+        generate_commands: {},
+      },
+      ai_governance: {
+        agents_freshness: {
+          targets: [{ rel: "AGENTS.md", max_lines: 20 }],
+          required_sections: [
+            "## Scope",
+            "## Hard Boundaries",
+            "## Retrieval Defaults",
+            "## Verification Commands",
+          ],
+          stale_tokens: [],
+        },
+        context_budget: {
+          version: 1,
+          default_profile: "production",
+          profiles: { production: { error_lines: 1000 } },
+          classifiers: {},
+          exclude: [],
+          waivers: [],
+        },
+        structure_budget: {
+          version: 1,
+          allowed_forwarding_shells: ["index.ts"],
+          rules: [{ id: "noop", include: ["missing/**"], depth_base: "missing", warning_depth: 5, error_depth: 7 }],
+          exclude: ["**"],
+          waivers: [],
+        },
+        high_risk_doc_metadata: {
+          doc_roots: [".local"],
+          exempt_paths: [],
+          name_patterns: ["design"],
+          required_metadata_keys: ["Spec Status"],
+        },
+      },
+    });
+
+    const result = await captureRunCli([
+      "validate-ai-governance",
+      "--profile",
+      "nimi",
+      "--scope",
+      "all",
+      "--json",
+    ]);
+
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.stderr, "");
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.profile, "nimi");
+    assert.deepEqual(payload.scopes.map((entry) => entry.scope), [
+      "agents-freshness",
+      "context-budget",
+      "structure-budget",
+      "high-risk-doc-metadata",
+    ]);
+    assert.equal(payload.scopes.every((entry) => entry.ok), true);
+    assert.equal(payload.scopes.find((entry) => entry.scope === "agents-freshness").report.failures.length, 0);
   });
 });

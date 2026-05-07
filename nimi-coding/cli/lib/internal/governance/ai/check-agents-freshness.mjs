@@ -93,7 +93,7 @@ function validatePathToken(token, failures, relPath, agentsDir, projectRoot) {
   }
 }
 
-export function runAgentsFreshnessCheck(options = {}) {
+export function evaluateAgentsFreshnessCheck(options = {}) {
   const projectRoot = options.projectRoot || process.cwd();
   const config = options.config || {};
   const targets = Array.isArray(config.targets) && config.targets.length > 0
@@ -143,13 +143,24 @@ export function runAgentsFreshnessCheck(options = {}) {
     }
   }
 
-  if (failures.length > 0) {
+  return {
+    targets,
+    requiredSections,
+    staleTokens,
+    failures,
+  };
+}
+
+export function runAgentsFreshnessCheck(options = {}) {
+  const report = evaluateAgentsFreshnessCheck(options);
+
+  if (report.failures.length > 0) {
     process.stderr.write(
-      `agents freshness check failed:\n${failures.map((entry) => `- ${entry}`).join("\n")}\n`,
+      `agents freshness check failed:\n${report.failures.map((entry) => `- ${entry}`).join("\n")}\n`,
     );
     return 1;
   }
 
-  process.stdout.write(`agents freshness check passed (${targets.length} files)\n`);
+  process.stdout.write(`agents freshness check passed (${report.targets.length} files)\n`);
   return 0;
 }

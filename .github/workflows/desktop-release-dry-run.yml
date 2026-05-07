@@ -444,6 +444,8 @@ jobs:
           path: ${{ steps.upload_paths.outputs.paths }}
           if-no-files-found: error
 
-      - name: Report skipped dry-run prerequisites
-        if: steps.nimi_mods_access.outputs.available != 'true'
-        run: echo "Skipping desktop dry-run because the workflow token cannot read nimiplatform/nimi-mods. Configure NIMI_MODS_REPO_TOKEN to enable the full preflight."
+      - name: Fail missing dry-run prerequisites
+        if: always() && steps.nimi_mods_access.outputs.available != 'true'
+        run: |
+          echo "Desktop release dry-run requires access to nimiplatform/nimi-mods at ${NIMI_MODS_REF}. Configure NIMI_MODS_REPO_TOKEN or repository access before rerunning." >&2
+          exit 1
