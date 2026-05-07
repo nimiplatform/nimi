@@ -15,7 +15,6 @@
  * The projection builder and snapshot factory are consumed by the surface
  * and by bootstrap/effects code, not by product-facing UI components.
  */
-import { ulid } from 'ulid';
 import type {
   ModRuntimeResolvedBinding,
   RuntimeCanonicalCapability,
@@ -30,7 +29,11 @@ import type {
   AIScopeRef,
   AISnapshot,
 } from '@nimiplatform/sdk/mod';
-import { createAIConfigEvidence, createDefaultAIScopeRef } from '@nimiplatform/sdk/mod';
+import {
+  createAISnapshotExecutionId,
+  createAISnapshotRecord,
+  createDefaultAIScopeRef,
+} from '@nimiplatform/sdk/mod';
 
 export const CONVERSATION_CAPABILITIES = [
   'text.generate',
@@ -462,7 +465,7 @@ export function createConversationExecutionSnapshot(input: {
   agentResolution?: AgentEffectiveCapabilityResolution | null;
 }): ConversationExecutionSnapshot {
   return {
-    executionId: ulid(),
+    executionId: createAISnapshotExecutionId(),
     createdAt: new Date().toISOString(),
     capability: input.capability,
     selectedBinding: input.projection.selectedBinding,
@@ -561,24 +564,19 @@ export function createAISnapshot(input: {
     projection: input.projection,
     agentResolution: input.agentResolution,
   });
-  const slice: AIConversationExecutionSlice = {
-    executionId: capabilitySlice.executionId,
-    createdAt: capabilitySlice.createdAt,
+  return createAISnapshotRecord({
+    scopeRef: input.scopeRef || input.config.scopeRef,
+    config: input.config,
     capability: capabilitySlice.capability,
     selectedBinding: capabilitySlice.selectedBinding,
     resolvedBinding: capabilitySlice.resolvedBinding,
     health: capabilitySlice.health,
     metadata: capabilitySlice.metadata,
     agentResolution: capabilitySlice.agentResolution,
-  };
-  return {
-    executionId: capabilitySlice.executionId,
-    scopeRef: input.scopeRef || input.config.scopeRef,
-    configEvidence: createAIConfigEvidence(input.config),
-    conversationCapabilitySlice: slice,
     runtimeEvidence: input.runtimeEvidence || null,
+    executionId: capabilitySlice.executionId,
     createdAt: capabilitySlice.createdAt,
-  };
+  });
 }
 
 // Re-export SDK AI config types for desktop consumers

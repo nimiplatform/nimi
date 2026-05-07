@@ -9,6 +9,7 @@
  */
 
 import { createNimiError } from '../../runtime/errors.js';
+import { createNimiUlid } from '../../runtime/ids.js';
 import { ReasonCode } from '../../types/index.js';
 import type { RuntimeRouteBinding } from '../runtime-route.js';
 
@@ -313,7 +314,6 @@ export type AISchedulingJudgement = {
 
 const DEFAULT_SCOPE: AIScopeRef = { kind: 'app', ownerId: 'desktop', surfaceId: 'chat' };
 const CANONICAL_MOD_SCOPE_SURFACE_ID = 'workspace';
-const ULID_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
 function normalizeRequiredId(value: string, label: string): string {
   const normalized = String(value || '').trim();
@@ -537,38 +537,9 @@ export function validateAIProfile(profile: unknown): AIProfileValidationResult {
   return { valid: errors.length === 0, errors };
 }
 
-function getRandomBytes(length: number): Uint8Array {
-  const bytes = new Uint8Array(length);
-  if (globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
-    globalThis.crypto.getRandomValues(bytes);
-    return bytes;
-  }
-  for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = Math.floor(Math.random() * 256);
-  }
-  return bytes;
-}
-
 /** Create a canonical execution ID for AISnapshot records. */
 export function createAISnapshotExecutionId(nowMs: number = Date.now()): string {
-  let timeValue = BigInt(Math.max(0, Math.trunc(nowMs)));
-  let timePart = '';
-  for (let index = 0; index < 10; index += 1) {
-    timePart = ULID_ALPHABET[Number(timeValue & 31n)] + timePart;
-    timeValue >>= 5n;
-  }
-
-  let randomValue = 0n;
-  for (const byte of getRandomBytes(10)) {
-    randomValue = (randomValue << 8n) | BigInt(byte);
-  }
-  let randomPart = '';
-  for (let index = 0; index < 16; index += 1) {
-    randomPart = ULID_ALPHABET[Number(randomValue & 31n)] + randomPart;
-    randomValue >>= 5n;
-  }
-
-  return `${timePart}${randomPart}`;
+  return createNimiUlid(nowMs);
 }
 
 /** Create a canonical AISnapshot record using the published SDK schema. */

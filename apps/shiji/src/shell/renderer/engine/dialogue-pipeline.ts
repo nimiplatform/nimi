@@ -1,4 +1,4 @@
-import { ulid } from 'ulid';
+import { createNimiUlid } from '@nimiplatform/sdk';
 import { assembleContext } from './context-assembler.js';
 import { buildPrompt } from './prompt-builder.js';
 import { enforcePacing } from './pacing-enforcer.js';
@@ -62,7 +62,7 @@ export async function runDialoguePipelineStreaming(
   const userTurnSeq = dialogueHistory.length + 1;
   if (userInput) {
     await sqliteInsertDialogueTurn({
-      id: ulid(),
+      id: createNimiUlid(),
       sessionId,
       seq: userTurnSeq,
       role: 'user',
@@ -134,7 +134,7 @@ export async function runDialoguePipelineStreaming(
     }
 
     await sqliteUpsertKnowledgeEntry({
-      id: ulid(),
+      id: createNimiUlid(),
       learnerId: activeProfile.id,
       worldId: sessionSnapshot.worldId,
       conceptKey: explanation.conceptKey,
@@ -147,7 +147,7 @@ export async function runDialoguePipelineStreaming(
     });
   }
 
-  const assistantTurnId = ulid();
+  const assistantTurnId = createNimiUlid();
   const assistantTurnSeq = userInput ? userTurnSeq + 1 : userTurnSeq;
 
   await sqliteInsertDialogueTurn({
@@ -162,7 +162,7 @@ export async function runDialoguePipelineStreaming(
 
   for (const choice of parsed.choices) {
     await sqliteInsertChoice({
-      id: ulid(),
+      id: createNimiUlid(),
       sessionId,
       turnId: assistantTurnId,
       choiceKey: choice.key,

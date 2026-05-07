@@ -5,7 +5,7 @@
  * Profile version auto-increments on update per SJ-SHELL-007.
  */
 import { useEffect, useCallback } from 'react';
-import { ulid } from 'ulid';
+import { createNimiUlid } from '@nimiplatform/sdk';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 import type { LearnerProfile as StoreLearnerProfile } from '@renderer/app-shell/app-store.js';
 import {
@@ -79,7 +79,7 @@ export function useProfiles() {
     const user = useAppStore.getState().auth.user;
     if (!user) throw new Error('No authenticated user');
     const now = new Date().toISOString();
-    const id = ulid();
+    const id = createNimiUlid();
     await sqliteCreateLearnerProfile({
       id,
       authUserId: user.id,

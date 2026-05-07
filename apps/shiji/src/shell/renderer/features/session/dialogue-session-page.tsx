@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ulid } from 'ulid';
+import { createNimiUlid } from '@nimiplatform/sdk';
 import {
   sqliteGetSession,
   sqliteGetDialogueTurns,
@@ -142,7 +142,7 @@ export default function DialogueSessionPage() {
 
       // Add user turn to display immediately (if non-empty)
       if (userInput.trim()) {
-        const userTurnId = ulid();
+        const userTurnId = createNimiUlid();
         setTurns((prev) => [
           ...prev,
           {
@@ -158,7 +158,7 @@ export default function DialogueSessionPage() {
       }
 
       // Add streaming assistant turn placeholder
-      const assistantTurnId = ulid();
+      const assistantTurnId = createNimiUlid();
       streamingTurnIdRef.current = assistantTurnId;
       setTurns((prev) => [
         ...prev,

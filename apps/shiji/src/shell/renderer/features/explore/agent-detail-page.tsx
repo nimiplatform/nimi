@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { ulid } from 'ulid';
+import { createNimiUlid } from '@nimiplatform/sdk';
 import { getAgent } from '@renderer/data/agent-client.js';
 import { getCatalogEntry } from '@renderer/data/world-catalog.js';
 import { ClassificationBadge } from './components/classification-badge.js';
@@ -71,7 +71,7 @@ export default function AgentDetailPage() {
     setStarting(true);
     setStartError(null);
     try {
-      const sessionId = ulid();
+      const sessionId = createNimiUlid();
       const now = new Date().toISOString();
       await sqliteCreateSession({
         id: sessionId,
@@ -108,7 +108,7 @@ export default function AgentDetailPage() {
         completedAt: null,
       });
       // Create fresh session — SJ-DIAL-008:7d
-      const sessionId = ulid();
+      const sessionId = createNimiUlid();
       const now = new Date().toISOString();
       await sqliteCreateSession({
         id: sessionId,
