@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 import { loadTopicRuntimeContracts } from "./contracts.mjs";
 
 function stringList(value) {
@@ -81,8 +84,108 @@ export function hasFreshPassingPostUpdateReview(results, implementationResult, p
   ));
 }
 
-export function buildPostUpdateReviewDecision({ topicId, wave, packets, results, policy, commandRef }) {
-  const specUpdatingPacket = packets.find((entry) => needsPostUpdateReview(entry.packet, policy));
+function hasPlaceholder(value) {
+  return /<[^>]+>/u.test(String(value ?? ""));
+}
+
+function concreteRef(value) {
+  return typeof value === "string"
+    && value.length > 0
+    && !hasPlaceholder(value)
+    && !path.isAbsolute(value)
+    && !value.includes("..");
+}
+
+function refsAreConcrete(values) {
+  return stringList(values).length > 0 && stringList(values).every(concreteRef);
+}
+
+async function readJsonRef(projectRoot, ref) {
+  if (!concreteRef(ref)) return null;
+  try {
+    return JSON.parse(await readFile(path.join(projectRoot, ref), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function extractTopicValidationEvidenceRefs(sourceText, waveId) {
+  const refs = new Set();
+  const pattern = new RegExp(`\\.nimi/topics/[^\\s)\\]'"<>]+/evidence-validation-${waveId.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}[^\\s)\\]'"<>]+\\.json`, "gu");
+  for (const match of sourceText.matchAll(pattern)) {
+    refs.add(match[0]);
+  }
+  return [...refs];
+}
+
+async function mechanicalPostUpdateJudgementProof({ projectRoot, topicDir, wave, specUpdatingPackets, results, implementationResult }) {
+  if (!projectRoot || !topicDir) {
+    return { ok: false, reason: "mechanical proof requires project and topic roots" };
+  }
+  if (specUpdatingPackets.length !== 1) {
+    return { ok: false, reason: "mechanical proof requires exactly one post-update packet authority" };
+  }
+  const packet = specUpdatingPackets[0].packet;
+  if (!refsAreConcrete(packet.authority_owner) || !refsAreConcrete(packet.canonical_seams)) {
+    return { ok: false, reason: "packet authority refs are missing or non-concrete" };
+  }
+  const implementationVerifiedAt = verifiedAtMs(implementationResult);
+  if (!Number.isFinite(implementationVerifiedAt)) {
+    return { ok: false, reason: "implementation result verified_at is not concrete" };
+  }
+  const requiredKinds = new Map([
+    ["audit", "audit result must pass"],
+    ["preflight", "preflight result must pass"],
+    ["implementation", "implementation result must pass"],
+  ]);
+  for (const [kind, reason] of requiredKinds) {
+    const result = latestResultOfKind(results, kind);
+    if (result?.result?.verdict !== "PASS") {
+      return { ok: false, reason };
+    }
+  }
+  const laterBlockingResult = results.find((entry) => {
+    const verifiedAt = verifiedAtMs(entry);
+    return Number.isFinite(verifiedAt)
+      && verifiedAt >= implementationVerifiedAt
+      && entry.result?.verdict !== "PASS";
+  });
+  if (laterBlockingResult) {
+    return { ok: false, reason: "a later non-PASS result exists" };
+  }
+  const sourceRef = implementationResult?.result?.source_ref;
+  if (!concreteRef(sourceRef)) {
+    return { ok: false, reason: "implementation source ref is missing or non-concrete" };
+  }
+  let sourceText = "";
+  try {
+    sourceText = await readFile(path.join(projectRoot, sourceRef), "utf8");
+  } catch {
+    return { ok: false, reason: "implementation source ref is not readable" };
+  }
+  const evidenceRefs = extractTopicValidationEvidenceRefs(sourceText, wave.wave_id);
+  if (evidenceRefs.length === 0) {
+    return { ok: false, reason: "implementation source does not cite topic-local validation evidence" };
+  }
+  for (const ref of evidenceRefs) {
+    if (!ref.startsWith(`${path.relative(projectRoot, topicDir).split(path.sep).join("/")}/`)) {
+      return { ok: false, reason: `validation evidence is outside the topic root: ${ref}` };
+    }
+    const evidence = await readJsonRef(projectRoot, ref);
+    if (!evidence || evidence.status !== "pass" || evidence.exit_code !== 0) {
+      return { ok: false, reason: `validation evidence is not a clean pass: ${ref}` };
+    }
+  }
+  const ambiguityPattern = /\b(authority|scope|gate|product|semantic)\s+(ambiguity|ambiguous|fork|blocked|blocker|change required)\b/iu;
+  if (ambiguityPattern.test(sourceText)) {
+    return { ok: false, reason: "implementation source declares authority/scope/gate/product/semantic ambiguity" };
+  }
+  return { ok: true, evidenceRefs, sourceRef };
+}
+
+export async function buildPostUpdateReviewDecision({ projectRoot, topicDir, topicId, wave, packets, results, policy, commandRef }) {
+  const specUpdatingPackets = packets.filter((entry) => needsPostUpdateReview(entry.packet, policy));
+  const specUpdatingPacket = specUpdatingPackets[0] ?? null;
   const implementationResult = latestResultOfKind(results, "implementation");
   if (
     !specUpdatingPacket
@@ -92,6 +195,37 @@ export function buildPostUpdateReviewDecision({ topicId, wave, packets, results,
     return null;
   }
   const reviewPolicy = policy.postUpdateReview ?? {};
+  const mechanicalProof = await mechanicalPostUpdateJudgementProof({
+    projectRoot,
+    topicDir,
+    wave,
+    specUpdatingPackets,
+    results,
+    implementationResult,
+  });
+  if (mechanicalProof.ok) {
+    return {
+      stopClass: "continue",
+      recommendedAction: "record_result",
+      reasonCode: "mechanical_post_update_judgement_pass",
+      recommendedDecision: "record_mechanical_post_update_judgement_pass",
+      recommendationRationale: "Post-update evidence proves the implementation stayed inside packet authority and all cited validation checks passed.",
+      expectedArtifacts: [`result-${wave.wave_id}-${reviewPolicy.requiredResultKind}.md`],
+      nextCommandRef: commandRef([
+        "result",
+        "record",
+        topicId,
+        "--kind",
+        reviewPolicy.requiredResultKind,
+        "--verdict",
+        reviewPolicy.passVerdict,
+        "--from",
+        mechanicalProof.sourceRef,
+        "--verified-at",
+        implementationResult.result.verified_at,
+      ]),
+    };
+  }
   return {
     stopClass: "require_human_confirmation",
     recommendedAction: "record_result",

@@ -30,6 +30,7 @@ import {
   clusteredAuditFinding,
   writeAuditEvidence,
 } from "./nimicoding-test-utils.mjs";
+import "./nimicoding-topic-runner-efficiency.test.mjs";
 
 test("topic run-next-step emits mechanical decisions without mutating topic state", async () => {
   await withTempProject(async (projectRoot) => {
@@ -914,6 +915,134 @@ test("spec implementation pass requires fresh judgement before wave closeout", a
     assert.equal(closeoutPayload.command.waveState, "closed");
     const closedLedger = YAML.parse(await readFile(path.join(projectRoot, closeoutPayload.ledgerRef), "utf8"));
     assert.equal(closedLedger.current_human_gate, null);
+    assert.ok(closedLedger.event_refs.some((ref) => ref.includes("human_gate_resolved")));
+    assert.ok(closedLedger.event_refs.some((ref) => ref.includes("wave_closed")));
+  });
+});
+
+test("spec implementation pass records mechanical post-update judgement when evidence is complete", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "spec-update-mechanical-review-demo",
+      "--justification",
+      "spec update mechanical review gate demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-spec", "spec",
+      "--goal", "mechanically prove post update review", "--owner-domain", "nimi-coding/spec", "--json",
+    ]);
+    await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-1-spec", "--json"]);
+    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-1-spec", "--json"]);
+
+    const packetPath = path.join(projectRoot, "spec-update-mechanical-review-packet.yaml");
+    await writeFile(
+      packetPath,
+      YAML.stringify({
+        packet_id: "wave-1-spec-authority",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-spec",
+        packet_kind: "spec",
+        status: "draft",
+        authority_owner: [".nimi/spec/runtime/kernel/example-contract.md"],
+        canonical_seams: [".nimi/spec/runtime/kernel/example-contract.md"],
+        forbidden_shortcuts: ["parallel_truth"],
+        acceptance_invariants: ["validation evidence proves post update review"],
+        negative_tests: ["human judgement is required when evidence is missing"],
+        reopen_conditions: ["spec authority drift"],
+      }),
+      "utf8",
+    );
+    await captureRunCli(["topic", "packet", "freeze", createPayload.topicId, "--from", packetPath, "--json"]);
+    await captureRunCli([
+      "topic", "audit", "dispatch", createPayload.topicId,
+      "--packet", "wave-1-spec-authority", "--json",
+    ]);
+
+    const auditSource = path.join(projectRoot, "spec-update-mechanical-review-audit.md");
+    await writeFile(auditSource, "# Authority Convergence Audit\n\nverdict: PASS\n", "utf8");
+    await captureRunCli([
+      "topic", "result", "record", createPayload.topicId,
+      "--kind", "audit",
+      "--verdict", "PASS",
+      "--from", auditSource,
+      "--verified-at", "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+
+    await captureRunCli([
+      "topic-runner", "step", createPayload.topicId,
+      "--run-id", "spec-update-mechanical-review-demo",
+      "--adapter", "codex",
+      "--verified-at", "2026-05-04T00:01:00Z",
+      "--json",
+    ]);
+    await captureRunCli([
+      "topic", "worker", "dispatch", createPayload.topicId,
+      "--packet", "wave-1-spec-authority", "--json",
+    ]);
+
+    const topicRef = `.nimi/topics/ongoing/${createPayload.topicId}`;
+    const evidenceRef = `${topicRef}/evidence-validation-wave-1-spec-unit.json`;
+    await writeFile(
+      path.join(projectRoot, evidenceRef),
+      `${JSON.stringify({
+        contract: "nimicoding.topic-runner.validation-evidence.v1",
+        topic_id: createPayload.topicId,
+        command: "node --test post-update-proof.test.mjs",
+        exit_code: 0,
+        status: "pass",
+        stdout: "ok\n",
+        stderr: "",
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const implementationSourceRef = "spec-update-mechanical-review-implementation.md";
+    const implementationSource = path.join(projectRoot, implementationSourceRef);
+    await writeFile(
+      implementationSource,
+      `# Implementation Result\n\nThe update stayed inside packet authority.\n\nEvidence: \`${evidenceRef}\`\n`,
+      "utf8",
+    );
+    await captureRunCli([
+      "topic", "result", "record", createPayload.topicId,
+      "--kind", "implementation",
+      "--verdict", "PASS",
+      "--from", implementationSourceRef,
+      "--verified-at", "2026-05-04T00:02:00Z",
+      "--json",
+    ]);
+
+    const decisionResult = await captureRunCli([
+      "topic", "run-next-step", createPayload.topicId, "--json",
+    ]);
+    assert.equal(decisionResult.exitCode, 0, decisionResult.stderr);
+    const decision = JSON.parse(decisionResult.stdout).decision;
+    assert.equal(decision.stop_class, "continue");
+    assert.equal(decision.recommended_action, "record_result");
+    assert.equal(decision.reason_code, "mechanical_post_update_judgement_pass");
+    assert.match(decision.next_command_ref, /--kind judgement --verdict PASS/);
+
+    const stepResult = await captureRunCli([
+      "topic-runner", "step", createPayload.topicId,
+      "--run-id", "spec-update-mechanical-review-demo",
+      "--adapter", "codex",
+      "--verified-at", "2026-05-04T00:03:00Z",
+      "--json",
+    ]);
+    assert.equal(stepResult.exitCode, 0, stepResult.stderr);
+    const payload = JSON.parse(stepResult.stdout);
+    assert.equal(payload.runnerStatus, "continued");
+    assert.equal(payload.command.resultKind, "judgement");
+    assert.equal(payload.command.verdict, "PASS");
   });
 });
 

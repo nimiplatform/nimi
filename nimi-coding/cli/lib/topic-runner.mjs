@@ -2,6 +2,13 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { runNativeCodexSdkPrompt } from "./codex-sdk-runner.mjs";
+import { parseMechanicalCommandRef } from "./topic-runner-commands.mjs";
+export { parseMechanicalCommandRef } from "./topic-runner-commands.mjs";
+import { maybeResolveStaleHumanGate } from "./topic-runner-stale-gates.mjs";
+export {
+  classifyValidationCommandResult,
+  runValidationCommandEvidence,
+} from "./topic-runner-validation.mjs";
 import {
   admitWaveInTopic,
   buildTopicRunLedger,
@@ -12,6 +19,7 @@ import {
   initTopicRunLedger,
   loadTopicReport,
   readTopicRunLedger,
+  recordTopicResult,
   recordTopicRunEvent,
 } from "./topic.mjs";
 
@@ -186,153 +194,6 @@ async function rewriteMovedRunEventRef(projectRoot, eventRef, fromTopicRef, toTo
   await writeFile(eventPath, eventText.split(fromRef).join(toRef), "utf8");
 }
 
-function parseMechanicalCommandRef(commandRef, topicId) {
-  if (typeof commandRef !== "string" || commandRef.trim().length === 0) {
-    return {
-      ok: false,
-      error: "topic-runner refused: decision.next_command_ref is empty",
-    };
-  }
-  if (hasPlaceholder(commandRef)) {
-    return {
-      ok: false,
-      error: `topic-runner refused: decision.next_command_ref contains a placeholder: ${commandRef}`,
-    };
-  }
-
-  const parts = commandRef.trim().split(/\s+/);
-  const expectedPrefix = ["nimicoding", "topic"];
-  if (parts[0] !== expectedPrefix[0] || parts[1] !== expectedPrefix[1]) {
-    return {
-      ok: false,
-      error: `topic-runner refused: next command is not a package-owned topic command: ${commandRef}`,
-    };
-  }
-
-  const [domain, action, commandTopicId] = parts.slice(2, 5);
-  if (domain === "wave" && action === "admit") {
-    const waveId = parts[5] ?? null;
-    if (commandTopicId !== topicId) {
-      return {
-        ok: false,
-        error: `topic-runner refused: next command topic ${commandTopicId} does not match ${topicId}`,
-      };
-    }
-    if (!waveId || waveId.startsWith("--")) {
-      return {
-        ok: false,
-        error: `topic-runner refused: wave admit command is missing wave id: ${commandRef}`,
-      };
-    }
-    return {
-      ok: true,
-      action: "admit_wave",
-      waveId,
-    };
-  }
-
-  if (domain === "packet" && action === "freeze") {
-    if (commandTopicId !== topicId) {
-      return {
-        ok: false,
-        error: `topic-runner refused: next command topic ${commandTopicId} does not match ${topicId}`,
-      };
-    }
-    const fromFlagIndex = parts.indexOf("--from");
-    const draftPath = fromFlagIndex >= 0 ? parts[fromFlagIndex + 1] : null;
-    if (!draftPath || draftPath.startsWith("--")) {
-      return {
-        ok: false,
-        error: `topic-runner refused: packet freeze command is missing --from: ${commandRef}`,
-      };
-    }
-    return {
-      ok: true,
-      action: "freeze_packet",
-      draftPath,
-    };
-  }
-
-  if (["worker", "audit"].includes(domain) && action === "dispatch") {
-    if (commandTopicId !== topicId) {
-      return {
-        ok: false,
-        error: `topic-runner refused: next command topic ${commandTopicId} does not match ${topicId}`,
-      };
-    }
-
-    const packetFlagIndex = parts.indexOf("--packet");
-    const packetId = packetFlagIndex >= 0 ? parts[packetFlagIndex + 1] : null;
-    if (!packetId || packetId.startsWith("--")) {
-      return {
-        ok: false,
-        error: `topic-runner refused: dispatch command is missing --packet: ${commandRef}`,
-      };
-    }
-
-    return {
-      ok: true,
-      action: domain === "audit" ? "dispatch_audit" : "dispatch_worker",
-      role: domain,
-      packetId,
-    };
-  }
-
-  if (domain === "closeout" && action === "wave") {
-    if (commandTopicId !== topicId) {
-      return {
-        ok: false,
-        error: `topic-runner refused: next command topic ${commandTopicId} does not match ${topicId}`,
-      };
-    }
-    const waveId = parts[5] ?? null;
-    if (!waveId || waveId.startsWith("--")) {
-      return {
-        ok: false,
-        error: `topic-runner refused: closeout wave command is missing wave id: ${commandRef}`,
-      };
-    }
-
-    const optionValue = (flag) => {
-      const index = parts.indexOf(flag);
-      return index >= 0 ? parts[index + 1] : null;
-    };
-    const authorityClosure = optionValue("--authority");
-    const semanticClosure = optionValue("--semantic");
-    const consumerClosure = optionValue("--consumer");
-    const driftResistanceClosure = optionValue("--drift-resistance");
-    const disposition = optionValue("--disposition");
-    if (
-      !authorityClosure || authorityClosure.startsWith("--") ||
-      !semanticClosure || semanticClosure.startsWith("--") ||
-      !consumerClosure || consumerClosure.startsWith("--") ||
-      !driftResistanceClosure || driftResistanceClosure.startsWith("--") ||
-      !disposition || disposition.startsWith("--")
-    ) {
-      return {
-        ok: false,
-        error: `topic-runner refused: closeout wave command is missing required closure flags: ${commandRef}`,
-      };
-    }
-
-    return {
-      ok: true,
-      action: "closeout_wave",
-      waveId,
-      authorityClosure,
-      semanticClosure,
-      consumerClosure,
-      driftResistanceClosure,
-      disposition,
-    };
-  }
-
-  return {
-    ok: false,
-    error: `topic-runner refused: unsupported mechanical next command: ${commandRef}`,
-  };
-}
-
 async function executeMechanicalCommand(projectRoot, options, parsedCommand) {
   if (parsedCommand.action === "admit_wave") {
     const report = await admitWaveInTopic(projectRoot, options.topicInput, parsedCommand.waveId);
@@ -381,6 +242,29 @@ async function executeMechanicalCommand(projectRoot, options, parsedCommand) {
       summary: report.ok ? "wave_closeout_completed" : "runner_wave_closeout_failed",
       artifactRefs: report.ok ? { closeout_ref: report.closeoutRef } : {},
       waveId: report.ok ? report.waveId : parsedCommand.waveId,
+      error: report.ok ? null : report.error,
+    };
+  }
+
+  if (parsedCommand.action === "record_result") {
+    const report = await recordTopicResult(
+      projectRoot,
+      options.topicInput,
+      parsedCommand.resultKind,
+      parsedCommand.verdict,
+      parsedCommand.fromPath,
+      parsedCommand.verifiedAt,
+    );
+    return {
+      ok: report.ok,
+      action: parsedCommand.action,
+      report,
+      eventKind: "result_recorded",
+      eventSourceRef: report.ok ? report.resultRef : null,
+      summary: report.ok ? `${parsedCommand.resultKind}_result_recorded` : "runner_result_record_failed",
+      artifactRefs: report.ok ? { result_ref: report.resultRef } : {},
+      waveId: report.ok ? report.waveId : null,
+      recordedAt: parsedCommand.verifiedAt,
       error: report.ok ? null : report.error,
     };
   }
@@ -466,7 +350,7 @@ export async function runTopicRunnerStep(projectRoot, options, deps = {}) {
   }
 
   const recordedAt = options.verifiedAt ?? utcNowNoMillis();
-  const ledger = await ensureLedger(projectRoot, options.topicInput, options.runId, recordedAt);
+  let ledger = await ensureLedger(projectRoot, options.topicInput, options.runId, recordedAt);
   if (!ledger.ok) {
     return ledger;
   }
@@ -481,6 +365,19 @@ export async function runTopicRunnerStep(projectRoot, options, deps = {}) {
     return rawDecisionReport;
   }
   const decisionReport = normalizePhaseTransitionDecision(rawDecisionReport, loaded.topic);
+
+  const staleGateSync = await maybeResolveStaleHumanGate(
+    projectRoot,
+    options,
+    loaded,
+    ledger,
+    decisionReport.decision,
+    recordedAt,
+  );
+  if (!staleGateSync.ok) {
+    return staleGateSync;
+  }
+  ledger = staleGateSync.ledger;
 
   const decisionRef = await writeDecisionArtifact(
     projectRoot,
@@ -549,7 +446,7 @@ export async function runTopicRunnerStep(projectRoot, options, deps = {}) {
     }, parsedCommand.error);
   }
 
-  if (["admit_wave", "freeze_packet", "closeout_wave"].includes(parsedCommand.action)) {
+  if (["admit_wave", "freeze_packet", "closeout_wave", "record_result"].includes(parsedCommand.action)) {
     const commandExecution = await executeMechanicalCommand(projectRoot, { ...options, recordedAt }, parsedCommand);
     if (!commandExecution.ok) {
       const blockedEvent = await recordRunnerBlocked(projectRoot, { ...options, verifiedAt: recordedAt }, {
@@ -595,7 +492,7 @@ export async function runTopicRunnerStep(projectRoot, options, deps = {}) {
       recommendedAction: parsedCommand.action,
       sourceRef: commandExecution.eventSourceRef,
       summary: commandExecution.summary,
-      recordedAt,
+      recordedAt: commandExecution.recordedAt ?? recordedAt,
       waveId: commandExecution.waveId,
       artifactRefs,
     });
