@@ -45,7 +45,7 @@ export function AuthViewMain(props: {
   } = props;
 
   return (
-    <form onSubmit={onContinue} className="relative w-full">
+    <form onSubmit={onContinue} noValidate className="relative w-full">
       {/* Capsule input bar */}
       <div className="flex items-center h-[52px] rounded-full border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] shadow-[var(--nimi-elevation-base)]">
         {/* Left: alternatives dropdown trigger */}

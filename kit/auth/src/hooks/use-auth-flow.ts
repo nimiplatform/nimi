@@ -19,6 +19,7 @@ import {
   handleWalletLogin as doWalletLogin,
 } from '../logic/auth-menu-handlers-ext.js';
 import { resolveEmailEntryRoute } from '../logic/auth-email-flow.js';
+import { AUTH_COPY } from '../logic/auth-copy.js';
 import {
   loadPersistedAuthSession,
   WEB_AUTH_SESSION_KEY,
@@ -28,6 +29,11 @@ import {
 } from '../logic/desktop-callback-helpers.js';
 
 type AuthTokensDto = RealmModel<'AuthTokensDto'>;
+
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function isLikelyEmailAddress(value: string): boolean {
+  return EMAIL_SHAPE.test(value);
+}
 
 export type UseAuthFlowConfig = {
   adapter: AuthPlatformAdapter;
@@ -311,7 +317,11 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     event.preventDefault();
     const normalizedEmail = email.trim();
     if (!normalizedEmail) {
-      setLoginError('请输入邮箱');
+      setLoginError(AUTH_COPY.emailRequired);
+      return;
+    }
+    if (!isLikelyEmailAddress(normalizedEmail)) {
+      setLoginError(AUTH_COPY.emailInvalid);
       return;
     }
     setShowAlternatives(false);

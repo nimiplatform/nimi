@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Eye, EyeOff } from 'lucide-react';
 import { buttonBase, buttonDefault, inputBase } from '../types/auth-types.js';
 
 export type AuthViewEmailTestIds = {
@@ -8,19 +9,8 @@ export type AuthViewEmailTestIds = {
 };
 
 function PasswordToggleIcon({ visible }: { visible: boolean }) {
-  return visible ? (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  ) : (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-      <line x1="2" x2="22" y1="2" y2="22" />
-    </svg>
-  );
+  const Icon = visible ? Eye : EyeOff;
+  return <Icon size={18} strokeWidth={1.75} aria-hidden="true" />;
 }
 
 export function AuthViewEmailLogin(props: {
@@ -44,6 +34,7 @@ export function AuthViewEmailLogin(props: {
   } = props;
 
   const [showOtpConfirm, setShowOtpConfirm] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="relative w-full">
@@ -66,7 +57,7 @@ export function AuthViewEmailLogin(props: {
           </button>
 
           <input
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             value={password}
             data-testid={testIds?.passwordInput}
             onChange={(event) => onPasswordChange(event.target.value)}
@@ -76,6 +67,19 @@ export function AuthViewEmailLogin(props: {
             autoFocus
             autoComplete="current-password"
           />
+
+          <div className={`mr-1 flex h-9 w-9 shrink-0 transition-all duration-200 ease-out ${password ? 'scale-100 opacity-100' : 'scale-75 opacity-0 pointer-events-none'}`}>
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              tabIndex={password ? 0 : -1}
+              aria-label={t(showPassword ? 'Auth.hidePassword' : 'Auth.showPassword')}
+              aria-pressed={showPassword}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--nimi-text-muted)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]"
+            >
+              <PasswordToggleIcon visible={showPassword} />
+            </button>
+          </div>
 
           <div className={`mr-2 flex h-9 w-9 shrink-0 transition-all duration-200 ease-out ${password ? 'scale-100 opacity-100' : 'scale-75 opacity-0 pointer-events-none'}`}>
             <button

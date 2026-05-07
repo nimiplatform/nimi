@@ -16,6 +16,7 @@ export const AUTH_COPY = {
   desktopBrowserRefreshTokenMissing: '网页登录回调缺少 refresh token，Runtime 无法接管登录态',
   desktopBrowserLaunchProtocolInvalid: '桌面网页登录地址仅支持 http/https 协议',
   emailRequired: '请输入邮箱',
+  emailInvalid: '请输入有效的邮箱地址',
   emailAndPasswordRequired: '请输入邮箱和密码',
   passwordLoginUnsupported: '当前环境不支持密码登录，请使用邮箱验证码登录',
   emailLoginSuccess: '登录成功。',
