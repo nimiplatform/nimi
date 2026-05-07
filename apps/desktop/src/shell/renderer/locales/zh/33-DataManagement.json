@@ -39,6 +39,10 @@
   "deleteAccountTitle": "删除账户",
   "deleteAccountBody": "永久删除你的账户及所有相关数据，此操作无法撤销。",
   "deleteAccountButton": "删除我的账户",
+  "deleteAccountConfirmationLabel": "输入 {{confirmation}} 以确认发送删除账户请求。",
+  "deleteAccountConfirmationRequired": "请先确认删除账户，再发送请求。",
+  "deleteAccountCancelButton": "取消",
+  "deleteAccountConfirmButton": "发送删除请求",
   "sessionTitle": "会话",
   "sessionBody": "在当前设备退出你的账户。",
   "logOut": "退出登录"

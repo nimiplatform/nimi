@@ -22,6 +22,8 @@ type StorageSnapshot = {
   estimatedQuotaBytes: number;
 };
 
+const DELETE_ACCOUNT_CONFIRMATION_TEXT = 'DELETE';
+
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return '0 B';
@@ -63,6 +65,8 @@ export function DataManagementPage() {
   const { t } = useTranslation();
   const clearAuthSession = useAppStore((s) => s.clearAuthSession);
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
   const [savingDataDir, setSavingDataDir] = useState(false);
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const [nimiDataDirInput, setNimiDataDirInput] = useState('');
@@ -137,6 +141,7 @@ export function DataManagementPage() {
   const usagePercent = storage.estimatedQuotaBytes > 0
     ? Math.min(100, Math.round((storage.estimatedUsageBytes / storage.estimatedQuotaBytes) * 100))
     : 0;
+  const deleteConfirmationMatches = deleteConfirmationText.trim() === DELETE_ACCOUNT_CONFIRMATION_TEXT;
 
   const handleClearCache = () => {
     queryClient.clear();
@@ -203,6 +208,10 @@ export function DataManagementPage() {
     if (deleting) {
       return;
     }
+    if (!deleteConfirmationMatches) {
+      setFeedback({ kind: 'warning', message: t('DataManagement.deleteAccountConfirmationRequired') });
+      return;
+    }
     setDeleting(true);
     try {
       const result = await dataSync.requestAccountDeletion({
@@ -221,6 +230,8 @@ export function DataManagementPage() {
           ? `Account deletion requested (task ${result.taskId}).`
           : t('DataManagement.deleteAccountWarning'),
       });
+      setDeleteConfirmationOpen(false);
+      setDeleteConfirmationText('');
     } catch (error) {
       setFeedback({
         kind: 'error',
@@ -346,13 +357,50 @@ export function DataManagementPage() {
               </p>
               <button
                 type="button"
-                onClick={() => { void handleDeleteAccount(); }}
+                onClick={() => setDeleteConfirmationOpen(true)}
                 disabled={deleting}
                 className="mt-4 inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 shadow-sm transition-all hover:bg-red-50"
               >
                 <TrashIcon className="h-4 w-4" />
                 {deleting ? t('DataManagement.requesting') : t('DataManagement.deleteAccountButton')}
               </button>
+              {deleteConfirmationOpen ? (
+                <div
+                  className="mt-4 rounded-xl border border-red-200 bg-white p-4"
+                  data-testid="settings-delete-account-confirmation"
+                >
+                  <label className="block text-xs font-medium text-red-700" htmlFor="settings-delete-account-confirmation-input">
+                    {t('DataManagement.deleteAccountConfirmationLabel', { confirmation: DELETE_ACCOUNT_CONFIRMATION_TEXT })}
+                  </label>
+                  <input
+                    id="settings-delete-account-confirmation-input"
+                    value={deleteConfirmationText}
+                    onChange={(event) => setDeleteConfirmationText(event.target.value)}
+                    className="mt-2 w-full rounded-[10px] border border-red-200 bg-white px-3 py-2 text-sm text-gray-900"
+                    autoComplete="off"
+                    data-testid="settings-delete-account-confirmation-input"
+                  />
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setDeleteConfirmationOpen(false);
+                        setDeleteConfirmationText('');
+                      }}
+                      disabled={deleting}
+                    >
+                      {t('DataManagement.deleteAccountCancelButton')}
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => { void handleDeleteAccount(); }}
+                      disabled={deleting || !deleteConfirmationMatches}
+                    >
+                      {deleting ? t('DataManagement.requesting') : t('DataManagement.deleteAccountConfirmButton')}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { LanguageRegionPage } from './settings-language-region-panel.js';
 import { WalletPage } from './settings-advanced-panel.js';
 import { ModSettingsPage } from './settings-mod-panel.js';
 import { NotificationsPage } from './settings-preferences-panel.js';
+import { PerformancePage } from './settings-performance-page.js';
 import { PrivacyPage } from './settings-privacy-page.js';
 import { SecurityPage } from './settings-security-page.js';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
@@ -13,6 +14,7 @@ export {
   PrivacyPage,
   SecurityPage,
   NotificationsPage,
+  PerformancePage,
   WalletPage,
   ModSettingsPage,
 };
@@ -26,6 +28,7 @@ export function renderSettingsPage(selectedId: string) {
     case 'privacy': return <PrivacyPage />;
     case 'security': return <SecurityPage />;
     case 'notifications': return <NotificationsPage />;
+    case 'performance': return <PerformancePage />;
     case 'wallet': return <WalletPage />;
     case 'extensions': return flags.enableSettingsExtensions ? <ModSettingsPage /> : <ProfilePage />;
     default: return <ProfilePage />;

@@ -32,6 +32,7 @@ const SETTINGS_ITEM_KEY_BY_ID: Record<string, string> = {
   privacy: 'Settings.menuPrivacy',
   security: 'Settings.menuSecurity',
   notifications: 'Settings.menuNotifications',
+  performance: 'Settings.menuPerformance',
   extensions: 'Settings.menuModSettings',
   wallet: 'Settings.menuWallet',
 };

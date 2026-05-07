@@ -39,6 +39,10 @@
   "deleteAccountTitle": "Delete Account",
   "deleteAccountBody": "Permanently delete your account and all associated data. This action cannot be undone.",
   "deleteAccountButton": "Delete My Account",
+  "deleteAccountConfirmationLabel": "Type {{confirmation}} to confirm this account deletion request.",
+  "deleteAccountConfirmationRequired": "Confirm account deletion before sending the request.",
+  "deleteAccountCancelButton": "Cancel",
+  "deleteAccountConfirmButton": "Send Delete Request",
   "sessionTitle": "Session",
   "sessionBody": "Sign out of your account on this device.",
   "logOut": "Log Out"
