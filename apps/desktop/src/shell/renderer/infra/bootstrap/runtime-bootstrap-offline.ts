@@ -18,6 +18,7 @@ export function attachOfflineCoordinatorBindings(input: OfflineCoordinatorBindin
   input.coordinator.configureReconnectHandlers({
     probeRealmReachability: input.probeRealmReachability,
     probeRuntimeReachability: input.probeRuntimeReachability,
+    recoverRuntimeReachability: input.rebootstrapRuntime,
     hasPendingRealmRecoveryWork: input.hasPendingRealmRecoveryWork,
   });
   const unsubscribeTier = input.coordinator.subscribeTier((change) => {
@@ -33,13 +34,9 @@ export function attachOfflineCoordinatorBindings(input: OfflineCoordinatorBindin
     ]);
     await input.invalidateRealmQueries();
   });
-  const unsubscribeRuntimeReconnect = input.coordinator.subscribeRuntimeReconnect(async () => {
-    await input.rebootstrapRuntime();
-  });
 
   return () => {
     unsubscribeTier();
     unsubscribeRealmReconnect();
-    unsubscribeRuntimeReconnect();
   };
 }

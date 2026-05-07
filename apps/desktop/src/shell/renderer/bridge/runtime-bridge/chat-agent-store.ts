@@ -39,10 +39,19 @@ import {
   type AgentLocalUpdateThreadMetadataInput,
 } from './types';
 
+type OfflineTier = 'L0' | 'L1' | 'L2';
+
 function requireTauri(commandName: string) {
   if (!hasTauriInvoke()) {
     throw new Error(`${commandName} requires Tauri runtime`);
   }
+}
+
+export async function setOfflineTier(tier: OfflineTier): Promise<void> {
+  requireTauri('chat_agent_set_offline_tier');
+  await invokeChecked('chat_agent_set_offline_tier', {
+    payload: { tier },
+  }, () => undefined);
 }
 
 export async function listThreads(): Promise<AgentLocalThreadSummary[]> {
@@ -162,6 +171,7 @@ export async function rebuildProjection(threadId: string): Promise<AgentLocalPro
 }
 
 export const chatAgentStoreClient = {
+  setOfflineTier,
   listThreads,
   getThreadBundle,
   createThread,

@@ -8,9 +8,7 @@ import {
 import {
   enrichProfileWithWorldBanner,
   fetchPendingFriendRequests,
-  getCachedContacts,
   loadMergedSocialSnapshot,
-  updateCachedContacts,
   type DataSyncApiCaller,
   type DataSyncErrorEmitter,
   type SocialContactSnapshot,
@@ -223,24 +221,10 @@ export async function blockUser(
     throw new Error('用户ID不能为空');
   }
 
-  if (contactId.startsWith('test-')) {
-    const cached = getCachedContacts();
-    updateCachedContacts({
-      ...cached,
-      friends: cached.friends.filter((friend) => String(friend.id) !== contactId),
-      blocked: [...cached.blocked, contact],
-    });
-  } else {
-    await callApi(
-      (realm) => realm.services.MeService.blockUser(contactId),
-      '拉黑用户失败',
-    );
-    const cached = getCachedContacts();
-    updateCachedContacts({
-      ...cached,
-      blocked: [...cached.blocked, contact],
-    });
-  }
+  await callApi(
+    (realm) => realm.services.MeService.blockUser(contactId),
+    '拉黑用户失败',
+  );
 
   await reloadContacts();
   dispatchBlockedUsersUpdated();
@@ -257,45 +241,10 @@ export async function unblockUser(
     throw new Error('用户ID不能为空');
   }
 
-  if (contactId.startsWith('test-')) {
-    const cached = getCachedContacts();
-    updateCachedContacts({
-      ...cached,
-      friends: [...cached.friends, contact],
-      blocked: cached.blocked.filter((item) => String(item.id) !== contactId),
-    });
-  } else {
-    await callApi(
-      (realm) => realm.services.MeService.unblockUser(contactId),
-      '取消拉黑失败',
-    );
-    const cached = getCachedContacts();
-    const updatedBlocked = cached.blocked.filter((item) => String(item.id) !== contactId);
-    const hasFriend = cached.friends.some((friend) => String(friend.id || '') === contactId);
-
-    if (!hasFriend) {
-      const fallbackContact = {
-        ...contact,
-        __localFallbackUntil: Date.now() + 2 * 60 * 1000,
-      };
-      updateCachedContacts({
-        ...cached,
-        friends: [...cached.friends, fallbackContact],
-        blocked: updatedBlocked,
-      });
-
-      try {
-        await addFriendById(callApi, contactId);
-      } catch {
-        // May be restricted by privacy policy; keep short-term fallback.
-      }
-    } else {
-      updateCachedContacts({
-        ...cached,
-        blocked: updatedBlocked,
-      });
-    }
-  }
+  await callApi(
+    (realm) => realm.services.MeService.unblockUser(contactId),
+    '取消拉黑失败',
+  );
 
   await reloadContacts();
   dispatchBlockedUsersUpdated();

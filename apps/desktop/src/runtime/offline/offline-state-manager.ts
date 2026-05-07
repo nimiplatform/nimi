@@ -6,7 +6,7 @@ type TierChangeListener = (change: OfflineTierChange) => void;
 /**
  * D-OFFLINE-001: Manages L0/L1/L2 degradation tier.
  * L0: realm + runtime reachable
- * L1: runtime reachable, realm unreachable
+ * L1: runtime reachable, realm REST or socket unreachable
  * L2: runtime unreachable (realm state irrelevant)
  */
 export class OfflineStateManager {
@@ -43,7 +43,7 @@ export class OfflineStateManager {
 
     if (!runtime.reachable) {
       nextTier = 'L2';
-    } else if (!realm.restReachable) {
+    } else if (!realm.restReachable || !realm.socketReachable) {
       nextTier = 'L1';
     } else {
       nextTier = 'L0';

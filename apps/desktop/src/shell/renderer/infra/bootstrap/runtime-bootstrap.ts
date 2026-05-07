@@ -26,6 +26,7 @@ import { setRuntimeLogger } from '@runtime/telemetry/logger';
 import { createDesktopWorldEvolutionSelectorReadAdapter } from '@runtime/world-evolution/selector-read-adapter';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
+import { chatAgentStoreClient } from '@renderer/bridge/runtime-bridge/chat-agent-store';
 import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
@@ -82,9 +83,23 @@ function bindOfflineCoordinator(): void {
   }
   offlineCoordinatorBindingsReady = true;
   const coordinator = getOfflineCoordinator();
+  const setOfflineTier = (tier: ReturnType<typeof coordinator.getTier>) => {
+    useAppStore.getState().setOfflineTier(tier);
+    void chatAgentStoreClient.setOfflineTier(tier).catch((error) => {
+      logRendererEvent({
+        level: 'error',
+        area: 'offline',
+        message: 'action:chat-agent-store-offline-tier-sync:failed',
+        details: {
+          tier,
+          error: toRendererLogMessage(error),
+        },
+      });
+    });
+  };
   attachOfflineCoordinatorBindings({
     coordinator,
-    setOfflineTier: (tier) => useAppStore.getState().setOfflineTier(tier),
+    setOfflineTier,
     suspendRuntimeCallbacksForL2,
     probeRealmReachability: async () => {
       const authStatus = useAppStore.getState().auth.status;

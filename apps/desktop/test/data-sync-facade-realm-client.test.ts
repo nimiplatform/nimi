@@ -7,7 +7,7 @@ function clearHotState(): void {
   delete (globalThis as Record<string, unknown>).__NIMI_DATA_SYNC_API_CONFIG__;
 }
 
-test('DataSync callApi reuses one Realm client and does not serialize concurrent tasks', async () => {
+test('DataSync callApi serializes Realm tasks through the context lock', async () => {
   clearHotState();
   const dataSync = new DataSync();
   dataSync.initApi({
@@ -42,7 +42,7 @@ test('DataSync callApi reuses one Realm client and does not serialize concurrent
   await Promise.resolve();
 
   assert.equal(firstTaskStarted, true);
-  assert.equal(secondTaskStarted, true);
+  assert.equal(secondTaskStarted, false);
   assert.equal(seenRealmInstances.size, 1);
 
   assert.ok(releaseFirstTask);
@@ -51,4 +51,5 @@ test('DataSync callApi reuses one Realm client and does not serialize concurrent
   const [firstResult, secondResult] = await Promise.all([firstCall, secondCall]);
   assert.equal(firstResult, 'first');
   assert.equal(secondResult, 'second');
+  assert.equal(seenRealmInstances.size, 2);
 });

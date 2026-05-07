@@ -36,10 +36,10 @@ const authStateWatcherSource = fs.readFileSync(
   'utf8',
 );
 
-test('desktop DataSync reuses a Realm client instead of routing calls through withRealmContextLock', () => {
-  assert.match(dataSyncFacadeSource, /private realmClient: Realm \| null = null;/);
-  assert.match(dataSyncFacadeSource, /const realm = this\.getRealmClient\(\);/);
-  assert.doesNotMatch(dataSyncFacadeSource, /withRealmContextLock/);
+test('desktop DataSync routes Realm calls through withRealmContextLock', () => {
+  assert.match(dataSyncFacadeSource, /withRealmContextLock/);
+  assert.match(dataSyncFacadeSource, /realmBaseUrl: this\.realmBaseUrl/);
+  assert.doesNotMatch(dataSyncFacadeSource, /private realmClient: Realm \| null = null;/);
 });
 
 test('world semantic bundle no longer fetches world detail before worldview', () => {
@@ -48,6 +48,7 @@ test('world semantic bundle no longer fetches world detail before worldview', ()
   );
   assert.match(semanticBundleSection, /worldControllerGetWorldview/);
   assert.doesNotMatch(semanticBundleSection, /loadWorldDetailById\(callApi, emitDataSyncError, normalizedWorldId\)/);
+  assert.doesNotMatch(semanticBundleSection, /catch\s*\{\s*return null;\s*\}/);
   assert.match(semanticBundleSection, /world: null/);
 });
 

@@ -283,7 +283,7 @@ async function fetchBlockedUsers(
       .filter((item): item is SocialContactRecord => Boolean(item));
   } catch (error) {
     emitDataSyncError('load-blocked-users', error);
-    return [];
+    throw error;
   }
 }
 
@@ -322,52 +322,7 @@ async function loadSocialSnapshotInternal(
 }
 
 function mergeWithLocalContacts(snapshot: SocialContactSnapshot): SocialContactSnapshot {
-  const currentFriends = cachedContacts.friends;
-  const testUsers = currentFriends.filter((friend) => String(friend.id).startsWith('test-'));
-  const fallbackUsers = currentFriends.filter((friend) => {
-    const fallbackUntil = Number(friend.__localFallbackUntil || 0);
-    return Number.isFinite(fallbackUntil) && fallbackUntil > Date.now();
-  });
-
-  const currentBlocked = cachedContacts.blocked;
-  const mergedBlocked = [...snapshot.blocked];
-  const mergedBlockedIds = new Set(mergedBlocked.map((item) => String(item.id || '')));
-
-  for (const localBlocked of currentBlocked) {
-    const localId = toNonEmptyString(localBlocked.id);
-    const blockedAt = toNonEmptyString(localBlocked.blockedAt);
-    const shouldKeepLocalBlocked = localId.startsWith('test-') || !blockedAt;
-    if (!localId || !shouldKeepLocalBlocked || mergedBlockedIds.has(localId)) {
-      continue;
-    }
-    mergedBlocked.push(localBlocked);
-    mergedBlockedIds.add(localId);
-  }
-
-  const existingIds = new Set(snapshot.friends.map((friend) => String(friend.id)));
-  const mergedFriends = [...snapshot.friends];
-
-  for (const testUser of testUsers) {
-    const testId = String(testUser.id);
-    if (!existingIds.has(testId) && !mergedBlockedIds.has(testId)) {
-      mergedFriends.push(testUser);
-    }
-  }
-
-  for (const fallbackUser of fallbackUsers) {
-    const fallbackId = String(fallbackUser.id || '');
-    if (!fallbackId || existingIds.has(fallbackId) || mergedBlockedIds.has(fallbackId)) {
-      continue;
-    }
-    mergedFriends.push(fallbackUser);
-    existingIds.add(fallbackId);
-  }
-
-  return {
-    ...snapshot,
-    friends: mergedFriends,
-    blocked: mergedBlocked,
-  };
+  return snapshot;
 }
 
 const inflightSnapshots = new Map<string, Promise<SocialContactSnapshot>>();

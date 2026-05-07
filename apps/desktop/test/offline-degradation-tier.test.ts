@@ -24,9 +24,12 @@ describe('D-OFFLINE-001: offline degradation tier system', () => {
     assert.equal(manager.getCurrentTier(), 'L1');
   });
 
-  test('D-OFFLINE-001: socket disconnect alone does not degrade to L1', () => {
+  test('D-OFFLINE-001: socket disconnect degrades to L1 until socket reconnects', () => {
     manager.start();
     monitor.setRealmSocketConnected(false);
+    assert.equal(manager.getCurrentTier(), 'L1');
+
+    monitor.setRealmSocketConnected(true);
     assert.equal(manager.getCurrentTier(), 'L0');
   });
 

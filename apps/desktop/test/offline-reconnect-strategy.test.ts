@@ -3,6 +3,21 @@ import assert from 'node:assert/strict';
 
 import { OfflineCoordinator, type OfflineCoordinatorTimer } from '../src/runtime/offline/coordinator.js';
 import { attachOfflineCoordinatorBindings } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-offline.js';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const RUNTIME_BOOTSTRAP_SOURCE = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap.ts'),
+  'utf8',
+);
+const CHAT_AGENT_STORE_COMMANDS_SOURCE = readFileSync(
+  resolve(import.meta.dirname, '../src-tauri/src/chat_agent_store/commands.rs'),
+  'utf8',
+);
+const APP_BOOTSTRAP_SOURCE = readFileSync(
+  resolve(import.meta.dirname, '../src-tauri/src/main_parts/app_bootstrap.rs'),
+  'utf8',
+);
 
 type ScheduledTask = {
   callback: () => void;
@@ -97,14 +112,30 @@ describe('D-OFFLINE-004: reconnect backoff behavior', () => {
     assert.equal(timer.nextDelay(), 1000);
   });
 
-  test('socket disconnect alone does not schedule realm reconnect backoff', async () => {
+  test('socket disconnect schedules reconnect but does not project realm success from REST alone', async () => {
+    const reconnects: string[] = [];
     coordinator.configureReconnectHandlers({
       hasPendingRealmRecoveryWork: async () => true,
       probeRealmReachability: async () => true,
     });
+    coordinator.subscribeRealmReconnect(() => {
+      reconnects.push('realm');
+    });
 
     coordinator.markRealmSocketReachable(false);
     await flushAsyncWork();
+    assert.equal(coordinator.getTier(), 'L1');
+    assert.equal(timer.nextDelay(), 1000);
+
+    assert.equal(await timer.runNext(), 1000);
+    assert.equal(reconnects.length, 0);
+    assert.equal(coordinator.getTier(), 'L1');
+    assert.equal(timer.nextDelay(), 2000);
+
+    coordinator.markRealmSocketReachable(true);
+    await flushAsyncWork();
+    assert.equal(reconnects.length, 1);
+    assert.equal(coordinator.getTier(), 'L0');
     assert.equal(timer.pendingCount(), 0);
   });
 
@@ -236,5 +267,60 @@ describe('D-OFFLINE-004: bootstrap reconnect bindings', () => {
     await timer.runNext();
     assert.ok(!effects.includes('rebootstrapRuntime'));
     assert.equal(timer.nextDelay(), 2000);
+  });
+
+  test('runtime probe success waits for rebootstrap before projecting reconnect success', async () => {
+    const timer = new FakeTimer();
+    const coordinator = new OfflineCoordinator({ timer });
+    const effects: string[] = [];
+    let rebootstrapAttempts = 0;
+
+    coordinator.subscribeRuntimeReconnect(() => {
+      effects.push('runtimeReconnectEvent');
+    });
+
+    attachOfflineCoordinatorBindings({
+      coordinator,
+      setOfflineTier: (tier) => effects.push(`tier:${tier}`),
+      suspendRuntimeCallbacksForL2: () => effects.push('suspendRuntimeCallbacksForL2'),
+      probeRealmReachability: async () => true,
+      probeRuntimeReachability: async () => true,
+      hasPendingRealmRecoveryWork: async () => true,
+      flushChatOutbox: async () => { effects.push('flushChatOutbox'); },
+      flushSocialOutbox: async () => { effects.push('flushSocialOutbox'); },
+      invalidateRealmQueries: async () => { effects.push('invalidateQueries'); },
+      rebootstrapRuntime: async () => {
+        rebootstrapAttempts += 1;
+        effects.push(`rebootstrapRuntime:${rebootstrapAttempts}`);
+        if (rebootstrapAttempts === 1) {
+          throw new Error('bootstrap not ready');
+        }
+      },
+    });
+
+    coordinator.markRuntimeReachable(false);
+    await flushAsyncWork();
+    assert.equal(timer.nextDelay(), 1000);
+
+    assert.equal(await timer.runNext(), 1000);
+    assert.equal(coordinator.getTier(), 'L2');
+    assert.ok(effects.includes('rebootstrapRuntime:1'));
+    assert.ok(!effects.includes('runtimeReconnectEvent'));
+    assert.equal(timer.nextDelay(), 2000);
+
+    assert.equal(await timer.runNext(), 2000);
+    assert.equal(coordinator.getTier(), 'L0');
+    assert.ok(effects.includes('rebootstrapRuntime:2'));
+    assert.ok(effects.includes('runtimeReconnectEvent'));
+  });
+
+  test('D-OFFLINE-003: L2 projects into native chat-agent store write guard', () => {
+    assert.match(RUNTIME_BOOTSTRAP_SOURCE, /chatAgentStoreClient\.setOfflineTier\(tier\)/);
+    assert.match(APP_BOOTSTRAP_SOURCE, /chat_agent_store::chat_agent_set_offline_tier/);
+    assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /CHAT_AGENT_OFFLINE_L2_WRITE_DENIED/);
+    assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /fn ensure_chat_agent_writes_allowed\(\) -> Result<\(\), String>/);
+    assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /chat_agent_create_thread[\s\S]*ensure_chat_agent_writes_allowed\(\)\?/);
+    assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /chat_agent_commit_turn_result[\s\S]*ensure_chat_agent_writes_allowed\(\)\?/);
+    assert.match(CHAT_AGENT_STORE_COMMANDS_SOURCE, /chat_agent_rebuild_projection[\s\S]*ensure_chat_agent_writes_allowed\(\)\?/);
   });
 });

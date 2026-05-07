@@ -1,6 +1,7 @@
+import { withRealmContextLock } from '@nimiplatform/sdk';
 import type { RealmTokenRefreshResult, RequestAccountDeletionInput, RequestAccountDeletionOutput, RequestDataExportInput, RequestDataExportOutput } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { Realm, createRealmClient } from '@nimiplatform/sdk/realm';
+import { Realm } from '@nimiplatform/sdk/realm';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { extractRuntimeErrorFields } from '@runtime/telemetry/error-fields';
 import {
@@ -73,8 +74,6 @@ export class DataSync {
   private accessTokenProvider: (() => string | Promise<string>) | null = null;
   private refreshToken = '';
   private fetchImpl: FetchImpl | null = null;
-  private realmClient: Realm | null = null;
-  private realmClientOwned = false;
   private proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private authCallbacks: DataSyncAuthCallbacks | null = null;
   private readonly polling = new DataSyncPollingManager();
@@ -123,16 +122,11 @@ export class DataSync {
     const nextRealmBaseUrl = normalizeRealmBaseUrl(config?.realmBaseUrl);
     const nextFetchImpl = typeof config?.fetchImpl === 'function' ? config.fetchImpl : null;
     const nextAccessTokenProvider = typeof config?.accessTokenProvider === 'function' ? config.accessTokenProvider : null;
-    const shouldResetRealmClient = this.realmBaseUrl !== nextRealmBaseUrl || this.fetchImpl !== nextFetchImpl || this.accessTokenProvider !== nextAccessTokenProvider;
-
     this.realmBaseUrl = nextRealmBaseUrl;
     this.accessTokenProvider = nextAccessTokenProvider;
     this.accessToken = this.accessTokenProvider ? '' : String(config?.accessToken || '');
     this.refreshToken = this.accessTokenProvider ? '' : String(config?.refreshToken || '');
     this.fetchImpl = nextFetchImpl;
-    if (shouldResetRealmClient) {
-      this.resetRealmClient();
-    }
     this.persistApiToHotState();
     return this;
   }
@@ -171,8 +165,17 @@ export class DataSync {
   async callApi<T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string): Promise<T> {
     this.assertApiConfigured();
     try {
-      const realm = this.getRealmClient();
-      const result = await task(realm);
+      const accessToken = this.accessTokenProvider
+        ? String(await this.accessTokenProvider())
+        : this.accessToken;
+      const result = await withRealmContextLock({
+        realmBaseUrl: this.realmBaseUrl,
+        accessToken,
+        refreshToken: this.accessTokenProvider ? undefined : this.refreshToken,
+        fetchImpl: this.fetchImpl,
+        onTokenRefreshed: (refreshResult) => this.handleTokenRefreshed(refreshResult),
+        onRefreshFailed: (refreshError) => this.handleRefreshFailed(refreshError),
+      }, task);
       const normalized = tryParseJsonLike(result);
       getOfflineCoordinator().markRealmRestReachable(true);
       return normalized;
@@ -186,74 +189,46 @@ export class DataSync {
     }
   }
 
-  private getRealmClient(): Realm {
-    if (this.realmClient) {
-      return this.realmClient;
+  private handleTokenRefreshed(refreshResult: RealmTokenRefreshResult): void {
+    this.accessToken = refreshResult.accessToken;
+    if (refreshResult.refreshToken) {
+      this.refreshToken = refreshResult.refreshToken;
     }
-
-    const realm = createRealmClient({
-      baseUrl: this.realmBaseUrl,
-      auth: this.accessTokenProvider ? {
-        accessToken: this.accessTokenProvider,
-      } : {
-        accessToken: () => this.accessToken,
-        refreshToken: () => this.refreshToken,
-        onTokenRefreshed: (refreshResult: RealmTokenRefreshResult) => {
-          this.accessToken = refreshResult.accessToken;
-          if (refreshResult.refreshToken) {
-            this.refreshToken = refreshResult.refreshToken;
-          }
-          this.persistApiToHotState();
-          this.authCallbacks?.setAuth(
-            this.authCallbacks?.getCurrentUser() ?? null,
-            refreshResult.accessToken,
-            refreshResult.refreshToken,
-          );
-          this.scheduleProactiveRefresh(refreshResult.accessToken);
-          emitRuntimeLog({
-            level: 'info',
-            area: 'datasync',
-            message: 'action:token-refresh:success',
-          });
-        },
-        onRefreshFailed: (error: unknown) => {
-          const errorFields = extractRuntimeErrorFields(error);
-          emitRuntimeLog({
-            level: 'warn',
-            area: 'datasync',
-            message: 'action:token-refresh:failed',
-            traceId: errorFields.traceId,
-            details: {
-              reasonCode: errorFields.reasonCode,
-              actionHint: errorFields.actionHint,
-              retryable: errorFields.retryable,
-              traceId: errorFields.traceId,
-              error: errorFields.message || (error instanceof Error ? error.message : String(error || '')),
-            },
-          });
-          this.accessToken = '';
-          this.refreshToken = '';
-          this.persistApiToHotState();
-          this.authCallbacks?.clearAuth();
-          this.stopAllPolling();
-          this.clearProactiveRefreshTimer();
-        },
-      },
-      fetchImpl: this.fetchImpl || undefined,
+    this.persistApiToHotState();
+    this.authCallbacks?.setAuth(
+      this.authCallbacks?.getCurrentUser() ?? null,
+      refreshResult.accessToken,
+      refreshResult.refreshToken,
+    );
+    this.scheduleProactiveRefresh(refreshResult.accessToken);
+    emitRuntimeLog({
+      level: 'info',
+      area: 'datasync',
+      message: 'action:token-refresh:success',
     });
-    this.realmClient = realm;
-    this.realmClientOwned = true;
-    return realm;
   }
 
-  private resetRealmClient() {
-    const currentRealmClient = this.realmClient;
-    const ownedRealmClient = this.realmClientOwned;
-    this.realmClient = null;
-    this.realmClientOwned = false;
-    if (currentRealmClient && ownedRealmClient) {
-      void currentRealmClient.close().catch(() => undefined);
-    }
+  private handleRefreshFailed(error: unknown): void {
+    const errorFields = extractRuntimeErrorFields(error);
+    emitRuntimeLog({
+      level: 'warn',
+      area: 'datasync',
+      message: 'action:token-refresh:failed',
+      traceId: errorFields.traceId,
+      details: {
+        reasonCode: errorFields.reasonCode,
+        actionHint: errorFields.actionHint,
+        retryable: errorFields.retryable,
+        traceId: errorFields.traceId,
+        error: errorFields.message || (error instanceof Error ? error.message : String(error || '')),
+      },
+    });
+    this.accessToken = '';
+    this.refreshToken = '';
+    this.persistApiToHotState();
+    this.authCallbacks?.clearAuth();
+    this.stopAllPolling();
+    this.clearProactiveRefreshTimer();
   }
 
   private isReauthenticationRequired(error: unknown): boolean {
@@ -296,7 +271,6 @@ export class DataSync {
     this.authCallbacks?.clearAuth();
     this.stopAllPolling();
     this.clearProactiveRefreshTimer();
-    this.resetRealmClient();
   }
 
   private emitDataSyncError(action: string, error: unknown, details: Record<string, unknown> = {}) {
@@ -590,7 +564,6 @@ export class DataSync {
   destroy() {
     this.stopAllPolling();
     this.clearProactiveRefreshTimer();
-    this.resetRealmClient();
     this.realmBaseUrl = '';
     this.accessToken = '';
     this.refreshToken = '';

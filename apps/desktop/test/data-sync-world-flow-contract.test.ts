@@ -196,3 +196,22 @@ test('loadWorldSemanticBundle only requests worldview and skips redundant world 
   assert.equal(result.worldview?.id, 'view-1');
   assert.equal(errors.length, 0);
 });
+
+test('loadWorldSemanticBundle fails close when worldview loading fails', async () => {
+  const errors: DataSyncError[] = [];
+
+  await assert.rejects(
+    () => loadWorldSemanticBundle(
+      async () => {
+        throw new Error('realm worldview unavailable');
+      },
+      createEmitter(errors),
+      'world-1',
+    ),
+    /realm worldview unavailable/,
+  );
+
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0]!.action, 'load-world-semantic-bundle');
+  assert.deepEqual(errors[0]!.details, { worldId: 'world-1' });
+});

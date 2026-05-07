@@ -15,7 +15,9 @@ type OfflineTimerHandle = unknown;
 
 type OfflineReconnectHandlers = {
   probeRealmReachability?: () => Promise<boolean>;
+  probeRealmSocketReachability?: () => Promise<boolean>;
   probeRuntimeReachability?: () => Promise<boolean>;
+  recoverRuntimeReachability?: () => Promise<void>;
   hasPendingRealmRecoveryWork?: () => Promise<boolean>;
 };
 
@@ -112,7 +114,11 @@ export class OfflineCoordinator {
 
   markRealmSocketReachable(reachable: boolean): void {
     this.start();
+    const wasReachable = this.monitor.getStatus().realm.socketReachable;
     this.monitor.setRealmSocketConnected(reachable);
+    if (!reachable && !wasReachable) {
+      void this.scheduleRealmReconnect();
+    }
   }
 
   markRealmRestReachable(reachable: boolean): void {
@@ -165,6 +171,9 @@ export class OfflineCoordinator {
     if (this.cacheFallbackActive) {
       return true;
     }
+    if (!this.getStatus().realm.socketReachable) {
+      return true;
+    }
     const probe = this.reconnectHandlers.hasPendingRealmRecoveryWork;
     if (!probe) {
       return true;
@@ -190,15 +199,26 @@ export class OfflineCoordinator {
   }
 
   private async tryRealmReconnect(): Promise<void> {
-    const probe = this.reconnectHandlers.probeRealmReachability;
-    if (!probe) {
+    const status = this.getStatus();
+    const restProbe = this.reconnectHandlers.probeRealmReachability;
+    const socketProbe = this.reconnectHandlers.probeRealmSocketReachability;
+    if (!restProbe && !socketProbe) {
       return;
     }
     try {
-      const reachable = await probe();
-      if (reachable) {
+      const restReachable = status.realm.restReachable || (restProbe ? await restProbe() : false);
+      if (restReachable && !status.realm.restReachable) {
         this.markRealmRestReachable(true);
+      }
+
+      const nextStatus = this.getStatus();
+      const socketReachable = nextStatus.realm.socketReachable || (socketProbe ? await socketProbe() : false);
+      if (socketReachable && !nextStatus.realm.socketReachable) {
         this.markRealmSocketReachable(true);
+      }
+
+      const finalStatus = this.getStatus();
+      if (finalStatus.realm.restReachable && finalStatus.realm.socketReachable) {
         return;
       }
     } catch {
@@ -229,6 +249,10 @@ export class OfflineCoordinator {
     try {
       const reachable = await probe();
       if (reachable) {
+        const recover = this.reconnectHandlers.recoverRuntimeReachability;
+        if (recover) {
+          await recover();
+        }
         this.markRuntimeReachable(true);
         return;
       }

@@ -390,20 +390,14 @@ export async function loadWorldSemanticBundle(
   }
 
   try {
-    const worldview: WorldviewDetailDto | null = await (async () => {
-      try {
-        return await callApi(
-          (realm) => realm.services.WorldsService.worldControllerGetWorldview(normalizedWorldId),
-          'Failed to load worldview',
-        );
-      } catch {
-        return null;
-      }
-    })();
+    const worldview = await callApi(
+      (realm) => realm.services.WorldsService.worldControllerGetWorldview(normalizedWorldId),
+      'Failed to load worldview',
+    );
 
     return {
       world: null,
-      worldview,
+      worldview: worldview as WorldviewDetailDto,
       worldviewEvents: [],
       worldviewSnapshots: [],
     };
