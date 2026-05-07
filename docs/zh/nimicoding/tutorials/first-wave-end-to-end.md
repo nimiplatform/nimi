@@ -51,7 +51,9 @@ waves:
 
 ## 步骤 3：冻结 packet
 
-写 `packet-wave-1-add-reference-field.md` 带所有必填字段：
+写 `packet-wave-1-add-reference-field.md`。Packet id 也带上 wave 身份，例如 `packet_id: wave-1-add-reference-field`，这样后续生命周期命令不会生成含混的 `packet-*.md` 工件。
+
+Packet 必填：
 
 - `packet_id`、`topic_id`、`wave_id`、`packet_kind`
 - `authority_owner`
@@ -60,10 +62,9 @@ waves:
 - `acceptance_invariants`
 - `negative_tests`
 - `reopen_conditions`
-- `allowed_reads`
-- `allowed_writes`
+- 交给 worker 执行时写 `allowed_reads` 和 `allowed_writes`
 
-Packet 在 `status: dispatched` 时被冻结。现在 worker 被它约束。
+`topic packet freeze` 校验草稿并写出冻结后的 packet 工件。冻结之后再 dispatch；`topic worker dispatch` 把它推到 `status: dispatched` 后，worker 才正式被这个 packet 约束。
 
 ## 步骤 4：跑 preflight
 

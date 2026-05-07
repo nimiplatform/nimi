@@ -11,7 +11,7 @@
 
 | 要求 | 为什么 |
 | --- | --- |
-| 装了 Node.js | 包跑在 Node 上 |
+| Node.js 24 或更新版本 | 包跑在 Node 上 |
 | 项目根带版本控制 | Bootstrap 会建新文件；你会想 review |
 | 一个 admitted 外部 AI host | 下一步（`spec_reconstruction`）需要 |
 
@@ -19,9 +19,21 @@
 
 ## 步骤 1：装包
 
-把 `@nimiplatform/nimi-coding` 装为 dev 依赖。具体包管理器命令看你的 stack；姿态一样：装它，让 `nimicoding` 在项目里作为 CLI 可用。
+把 `@nimiplatform/nimi-coding` 装为 dev 依赖：
 
-装完后，`nimicoding --help` 应打印帮助文本。
+```bash
+npm install --save-dev @nimiplatform/nimi-coding
+```
+
+或：
+
+```bash
+pnpm add -D @nimiplatform/nimi-coding
+```
+
+不同项目可以用不同包管理器；目标一样：让 `nimicoding` 在项目里作为 CLI 可用。
+
+装完后，`npx nimicoding --help` 应打印帮助文本。
 
 ## 步骤 2：跑 `nimicoding start`
 

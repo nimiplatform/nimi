@@ -56,6 +56,39 @@ command_gating_matrix:
       - external_authority_active
       - canonical_cutover_ready
       - canonical_active
+  - command: sweep audit
+    replaces:
+      - audit-sweep
+    allowed_tree_states:
+      - canonical_tree_ready
+    allowed_authority_modes:
+      - external_authority_active
+      - canonical_cutover_ready
+      - canonical_active
+    writes:
+      - .nimi/local/audit/**
+    rules:
+      - top_level_audit_sweep_is_not_a_canonical_entrypoint
+      - audit_findings_remain_local_operational_evidence_until_admitted_through_topic_or_closeout
+      - remediation_map_output_is_candidate_planning_input_not_worker_dispatch_authority
+  - command: sweep design
+    allowed_tree_states:
+      - canonical_tree_ready
+    allowed_authority_modes:
+      - external_authority_active
+      - canonical_cutover_ready
+      - canonical_active
+    reads:
+      - .nimi/local/audit/evidence/<sweep-id>/findings.yaml
+    writes:
+      - .nimi/local/sweep-design/<run-id>/**
+    rules:
+      - source_audit_findings_are_read_only
+      - intake_forks_findings_into_a_design_workset
+      - cluster_groups_findings_by_owner_authority_root_cause_contract_and_repair_target
+      - fork_review_must_resolve_to_authority_ref_or_mark_authority_alignment_required
+      - focused_plan_stops_on_user_decision
+      - wave_plan_is_non_mutating_and_worker_dispatch_remains_disallowed_until_topic_admission
   - command: handoff
     skill: high_risk_execution
     allowed_tree_states:

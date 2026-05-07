@@ -11,6 +11,7 @@ For problem-shaped recipes (you know what you want, you need a
 
 | Tutorial | Outcome |
 | --- | --- |
+| [From Project To Governed Execution](/nimicoding/tutorials/project-to-governed-execution) | You go from install to `.nimi/spec/**`, topic admission, sweep audit, sweep design, and long-running Codex execution |
 | [First Topic Bootstrap](/nimicoding/tutorials/first-topic) | You bootstrap Nimi Coding into a project and adopt `.nimi/**` |
 | [First Wave End-To-End](/nimicoding/tutorials/first-wave-end-to-end) | You run a full topic / wave / packet / preflight / audit / closeout cycle on a small sample task |
 

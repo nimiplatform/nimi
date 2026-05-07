@@ -1,71 +1,84 @@
 # Nimi Coding Installation
 
-This page explains how to think about Nimi Coding availability in this
-repository. It doesn't present a public package distribution promise.
+Nimi Coding is distributed as the public npm package
+`@nimiplatform/nimi-coding`. Install it in the project where you want
+the `.nimi/**` governance layer and the `nimicoding` CLI.
 
-## Current Usage Model
+## Requirements
 
-Inside this repository, Nimi Coding commands are available through the
-local workspace tooling. Topic workflows, validation, packet handling,
-runner steps, and closeout operations are executed as repository-local
-governance commands.
+| Requirement | Notes |
+| --- | --- |
+| Node.js | 24 or newer |
+| Package manager | npm, pnpm, yarn, or another tool that can install npm packages |
+| Project root | A version-controlled project is recommended because `start` creates files |
 
-For public users, installation instructions need admitted distribution
-evidence. Until that evidence is published, this page describes the
-local-workspace posture rather than a general release channel.
+## Install
 
-## Reader Scenario: Why The Public Install Page Is Not Yet Here
+Use your project's package manager:
 
-Suppose a reader expects a one-line install command that gets them
-Nimi Coding tooling outside this repository. The same logic that
-applies to platform installation applies here:
+```bash
+npm install --save-dev @nimiplatform/nimi-coding
+```
 
-- A public install command implies a packaged distribution.
-- A public install command implies an authentication or configuration
-  story.
-- A public install command implies a verification path.
-- A public install command implies a recovery path when something
-  breaks.
+or:
 
-Until each of those is admitted, a public install page would be an
-optimistic onboarding promise the project cannot keep.
+```bash
+pnpm add -D @nimiplatform/nimi-coding
+```
 
-## What A Complete Public Installation Page Needs
+After installation, the project should have a `nimicoding` binary
+available through the package manager:
 
-A complete public page should include:
+```bash
+npx nimicoding --version
+npx nimicoding --help
+```
 
-- supported package or binary source;
-- supported host environments;
-- authentication or configuration requirements;
-- first command and expected output;
-- validation command;
-- failure recovery path.
+## Bootstrap
 
-Those details should be published only when the project can verify
-them.
+Run `start` from the project root:
 
-## Reader Scenario: Using Nimi Coding Inside This Repository
+```bash
+npx nimicoding start
+```
 
-Suppose a contributor is working inside this repository and wants to
-use Nimi Coding for a high-risk change. The local-workspace posture
-is enough for that use case:
+For a non-interactive smoke test, use:
 
-- The local tooling is invoked through the in-repo command surface.
-- Topic artifacts land under `.nimi/topics/<state>/<topic-id>/`.
-- Validation, audit, and closeout operations rely on the repo-local
-  contract files under `.nimi/contracts/` and methodology files under
-  `.nimi/methodology/`.
-- The CLI is described conceptually in the
-  [CLI Reference](/nimicoding/cli-reference); concrete commands come
-  from the local tooling rather than from these docs.
+```bash
+npx nimicoding start --yes
+npx nimicoding doctor --json
+```
 
-That posture is intentionally narrower than a public release. It is
-what allows the methodology to be exercised in the repository without
-making promises it cannot honor outside the repository.
+`start` creates or updates the package-owned bootstrap layer under
+`.nimi/**`, adds managed AI entrypoint blocks when you accept them, and
+prepares the next handoff payload. It preserves project-owned truth:
+`.nimi/spec/**`, `.nimi/local/**`, `.nimi/cache/**`, and locally
+modified bootstrap files are not silently deleted or overwritten.
+
+## First Checks
+
+| Check | Expected result |
+| --- | --- |
+| `nimicoding --version` | Prints the installed package version |
+| `nimicoding --help` | Lists bootstrap, topic, sweep audit, sweep design, handoff, closeout, and validator commands |
+| `nimicoding doctor --json` | Reports the bootstrap health state in machine-readable form |
+
+## Remove Package-Managed Bootstrap
+
+If you need to remove the package-managed bootstrap files from a test
+project, run:
+
+```bash
+npx nimicoding clear --yes
+```
+
+`clear` removes managed AI blocks and package-owned bootstrap files
+only when they still match the packaged seed. It preserves
+project-owned truth and local operational evidence.
 
 ## Source Basis
 
-- [`.nimi/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/product-scope.yaml)
-- [`.nimi/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/bootstrap-state.yaml)
-- [`.nimi/spec/runtime/kernel/cli-onboarding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/cli-onboarding-contract.md)
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
+- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/package.json)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
+- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic.schema.yaml)

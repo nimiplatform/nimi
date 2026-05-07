@@ -20,12 +20,20 @@
 - Runtime/SDK/Desktop/Web/Live: `go build ./...`, `go vet ./...`, `go test ./...`, `go run ./cmd/runtime-compliance --gate`, `pnpm --filter @nimiplatform/sdk test`, `pnpm check:sdk-coverage`, `pnpm check:sdk-consumer-smoke`, `pnpm --filter @nimiplatform/desktop test`, `pnpm --filter @nimiplatform/web build`, `pnpm check:live-provider-invariants`, `pnpm check:runtime-mod-hook-hardcut`, `pnpm check:mods-no-runtime-sdk`.
 <!-- nimicoding:managed:agents:start -->
 # Nimi Coding Managed Block
-- Read `.nimi/methodology`, `.nimi/spec`, and `.nimi/contracts` before high-risk changes. Treat `.nimi` as the primary AI truth surface.
-- Treat `/.nimi/spec/**` as the current repo-wide authority. For retired pre-cutover authority history, use Git history only.
-- If `.nimi/spec` is bootstrap-only, use `.nimi/methodology/spec-reconstruction.yaml` and `.nimi/config/skills.yaml` to drive reconstruction. Treat `.nimi/methodology/spec-target-truth-profile.yaml` as repo-local support only.
-- Treat `.nimi/contracts/spec-reconstruction-result.yaml`, `.nimi/contracts/doc-spec-audit-result.yaml`, `.nimi/contracts/high-risk-execution-result.yaml`, and `.nimi/contracts/high-risk-admission.schema.yaml` as machine contracts for reconstruction, audit, local-only closeout, and canonical high-risk admission truth.
-- Treat `.nimi/config/{skill-manifest,host-profile,host-adapter,external-execution-artifacts,skill-installer}.yaml`, `.nimi/methodology/{skill-runtime,skill-installer-result,skill-handoff}.yaml`, and admitted adapter profiles under `adapters/**/profile.yaml` as the bridge to external AI/skill execution.
-- Standalone nimicoding is boundary-complete for bootstrap, handoff, validation, projection, and explicit admission only; do not assume packaged run-kernel, provider, scheduler, notification, or automation ownership.
-- Treat `.nimi/config/installer-evidence.yaml`, `.nimi/methodology/skill-installer-summary-projection.yaml`, and `.nimi/local/**` high-risk artifacts as operational/local-only projections, not semantic truth promotion.
-- Default posture: use packetized execution only when risk justifies it, keep inline manager-worker by default, keep continuity-agnostic semantics, keep code changes AI-context-efficient by splitting responsibilities before concentrating unrelated logic into one file, and do not treat this block as a replacement for project-specific rules.
+- Read .nimi/methodology, .nimi/spec, and .nimi/contracts before high-risk changes.
+- Treat .nimi as the primary AI truth surface for this project.
+- Treat `/.nimi/spec/**` as the current repo-wide product authority for this project, and use Git history for retired pre-cutover authority evidence.
+- If .nimi/spec remains bootstrap-only, use .nimi/methodology/spec-reconstruction.yaml and .nimi/config/skills.yaml to drive AI-side truth reconstruction.
+- Treat .nimi/methodology/spec-target-truth-profile.yaml as repo-local support guidance for future governance slices, not as the canonical reconstruction completion target or a guaranteed fresh-bootstrap seed.
+- Treat .nimi/contracts/spec-reconstruction-result.yaml, .nimi/contracts/doc-spec-audit-result.yaml, .nimi/contracts/high-risk-execution-result.yaml, and .nimi/contracts/high-risk-admission.schema.yaml as machine contracts for reconstruction, audit, local-only high-risk closeout summaries, and canonical high-risk admission truth.
+- Treat .nimi/config/skill-manifest.yaml, .nimi/config/host-profile.yaml, .nimi/config/host-adapter.yaml, .nimi/config/external-execution-artifacts.yaml, .nimi/config/skill-installer.yaml, .nimi/methodology/skill-runtime.yaml, .nimi/methodology/skill-installer-result.yaml, .nimi/methodology/skill-handoff.yaml, and admitted package-owned adapter profiles under adapters/**/profile.yaml as the canonical bridge to any external AI/skill execution.
+- Treat standalone nimicoding as boundary-complete for bootstrap, handoff, validation, projection, and explicit admission only; do not assume packaged run-kernel, provider, scheduler, notification, or automation ownership.
+- Treat .nimi/config/installer-evidence.yaml and .nimi/methodology/skill-installer-summary-projection.yaml as the operational-to-semantic installer projection boundary; do not promote concrete evidence artifacts into semantic truth.
+- Treat high-risk external execution closeout, decision, ingest, and review payloads under .nimi/local/** as local-only operational projections; they do not promote semantic truth automatically, even when manager-owned.
+- Use high-risk packetized execution only when authority, ownership, or cross-layer risk justifies it.
+- Keep inline manager-worker as the default methodology posture; do not assume a separate worker runtime is mandatory.
+- Keep code changes AI-context-efficient: favor bounded, cohesive files and split by responsibility during implementation instead of first concentrating unrelated logic into one file.
+- Keep the methodology continuity-agnostic; do not assume daemon, heartbeat, or persistent manager ownership.
+- Treat cutover readiness as preflight evidence only; the authority flip must come from an admitted cutover batch, not from readiness green by itself.
+- Do not treat this managed block as a replacement for project-specific rules outside .nimi.
 <!-- nimicoding:managed:agents:end -->

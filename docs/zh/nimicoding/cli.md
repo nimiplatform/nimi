@@ -11,6 +11,10 @@ CLI 的动词分成几类：
 | 类别 | 命令 |
 | --- | --- |
 | Bootstrap | `start`、`clear`、`doctor` |
+| Topic 生命周期 | `topic create`、`topic wave ...`、`topic packet freeze`、`topic worker dispatch`、`topic result record`、`topic closeout ...`、`topic true-close-audit` |
+| Topic runner | `topic run-next-step`、`topic-runner step`、`topic-runner run` |
+| Sweep audit | `sweep audit plan`、`sweep audit chunk ...`、`sweep audit ledger build`、`sweep audit remediation-map build`、`sweep audit closeout summary`、`sweep audit status` |
+| Sweep design | `sweep design intake`、`sweep design packet-build`、`sweep design packet-build-batch`、`sweep design auditor-prompt`、`sweep design result-ingest`、`sweep design ledger-validate`、`sweep design finalize`、`sweep design wave-plan` |
 | 技能 handoff | `handoff`、`closeout` |
 | 高风险执行 | `admit-high-risk-decision`、`ingest-high-risk-execution`、`review-high-risk-execution`、`decide-high-risk-execution` |
 | 机器校验器 | 针对单个工件的校验器：`execution-packet`、`orchestration-state`、`prompt`、`worker-output`、`acceptance` |
@@ -47,6 +51,41 @@ CLI 的动词分成几类：
 
 | 输出 | 人类可读 或 `--json` |
 | 失败 | 生命周期、规范化树、可审计性出现漂移时 fail closed |
+
+## Topic 生命周期
+
+`topic` 命令族管理 `.nimi/topics/{proposal,ongoing,pending,closed}/` 下的 topic 文件夹。它能创建 topic、添加和选择 wave、准入 wave、冻结 packet、dispatch worker 或 audit packet、记录类型化结果、处理 remediation / overflow，并最终闭 wave 或闭 topic。
+
+机械推进入口是：
+
+```bash
+nimicoding topic run-next-step <topic-id> --json
+```
+
+如果要连续推进，用带明确 run id 和 adapter 的 `topic-runner step` 或 `topic-runner run`。Packet id 建议带上 wave 身份，例如 `wave-1-add-reference-field`；这样生成出来的 `packet-*.md` 在 topic 文件夹里不会跟别的 lifecycle 工件混淆。
+
+## Sweep audit
+
+`sweep audit` 命令族把一个目标根拆成可审计 chunk，负责 dispatch chunk、ingest auditor 证据、记录 manager review、生成不可变 ledger，并映出 remediation map 或 closeout summary。
+
+`plan` 的 JSON 输出给的是 chunk artifact ref。具体 `chunk_id` 在 chunk 文件里，planner 生成的默认形状是 `chunk-001`。
+
+## Sweep design
+
+`sweep design` 在审计已经产出 findings 之后使用。它读取 `.nimi/local/audit/evidence/<sweep-id>/findings.yaml`，把 findings 复制到 `.nimi/local/sweep-design/<run-id>/` 下作为设计工作集，再把原始审计结果整理成可以准入 topic wave 的候选计划。
+
+它不会改原始 findings。Codex 或其他宿主会用它构建设计审计 packet、生成审计 prompt、ingest 类型化设计审计结果、追加 revision ledger、校验 provenance、生成本地 final state report，再生成不直接改 topic 的 wave plan。`result-ingest` 可以接 focused 或 all 模式的审计结果，但 topic wave 单独准入之前，仍然不会允许 worker dispatch。
+
+| 阶段 | 作用 |
+| --- | --- |
+| `intake` | 把审计 findings 复制成设计工作集 |
+| `packet-build` | 为一个或多个 finding 构建设计审计 packet |
+| `packet-build-batch` | 生成一组设计审计 packet 的 manifest |
+| `auditor-prompt` | 输出 packet 对应的 prompt 和结果形状 |
+| `result-ingest` | ingest 类型化设计审计结果并追加 revision |
+| `ledger-validate` | 校验 revision ledger 和 final outcome provenance |
+| `finalize` | 生成本地专用 final state report |
+| `wave-plan` | 输出候选 topic 命令，但不改 topic 状态 |
 
 ## 技能 Handoff
 
@@ -172,6 +211,9 @@ CLI 一步一步带你：
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)（CLI 段）
 - [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)（CLI 实现）
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic.schema.yaml)
+- [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/audit-plan.schema.yaml)
+- [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/sweep-design-result.yaml)
 - [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-handoff.yaml)
 - [`nimi-coding/methodology/skill-installer-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-installer-result.yaml)
 - [`nimi-coding/contracts/execution-packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/execution-packet.schema.yaml)

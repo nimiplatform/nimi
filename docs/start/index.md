@@ -1,14 +1,13 @@
 # Start
 
 This page helps you choose the right reading path. Nimi is pre-launch, so
-the public docs are deliberately not a quick install guide. They are a
-product and architecture guide that explains what the platform is, what is
-already specified, and which operational claims are still evidence-gated.
+the public docs are primarily a product and architecture guide. Nimi
+Coding has its own npm package; the rest of the platform docs explain
+the product surface before they become a runnable onboarding flow.
 
-If you arrived here looking for a copy-paste install command, jump to
-[Installation And Availability](/start/install). That page describes the
-current posture and what must become true before public setup material can
-be published.
+If you arrived here looking for setup information, jump to
+[Installation And Availability](/start/install). That page separates the
+published Nimi Coding package from the broader platform surfaces.
 
 ## If You Are New To Nimi
 
@@ -86,12 +85,11 @@ enough.
 
 Public setup material must be backed by admitted evidence: the command
 must exist, the route must be supported, and the release or distribution
-channel must be real. Until that evidence is admitted, the docs use these
-contract pages to describe the product surface rather than treating the
-docs as a runnable onboarding flow.
+channel must be real. Today that is true for Nimi Coding's npm package;
+other surfaces still use contract pages to describe the product model.
 
 See [Installation And Availability](/start/install) for the current
-posture and the standard a public install page must meet.
+split between installable package and product documentation.
 
 ## Source Basis
 

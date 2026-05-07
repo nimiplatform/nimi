@@ -163,10 +163,9 @@ adding closure value. The default posture for small changes is
 A solo founder is building an ambitious system with heavy AI
 assistance.
 
-1. **Acquire the package.** See
-   [Installation](/nimicoding/installation) for the current
-   pre-launch posture; a public install command is gated on
-   admitted distribution evidence.
+1. **Acquire the package.** Install
+   `@nimiplatform/nimi-coding` from npm; see
+   [Installation](/nimicoding/installation).
 2. **Run `nimicoding start`.** Bootstrap admits.
 3. **Reconstruct spec.** `nimicoding handoff --skill spec_reconstruction --json` to admitted host.
 4. **Adopt the methodology for the next high-risk change.** Author

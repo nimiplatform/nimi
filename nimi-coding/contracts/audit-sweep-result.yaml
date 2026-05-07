@@ -1,6 +1,9 @@
 version: 1
 result_contract:
   id: delegated_audit_sweep_result
+command_family:
+  canonical_entrypoint: "nimicoding sweep audit"
+  removed_entrypoint: "nimicoding audit-sweep"
 summary_required_fields:
   - plan_ref
   - chunk_refs
@@ -43,6 +46,7 @@ locality: local_only
 semantic_constraints:
   - do_not_promote_audit_sweep_summary_to_project_truth
   - do_not_treat_external_audit_sweep_summary_as_remediation_or_closure_judgement
+  - use_sweep_design_for_finding_confirmation_clustering_fork_review_user_decision_and_wave_planning
   - candidate_ready_requires_full_authority_and_evidence_coverage
   - full_coverage_status_requires_candidate_ready_ledger
   - spec_authority_sweeps_must_report_authority_coverage_and_evidence_coverage_separately

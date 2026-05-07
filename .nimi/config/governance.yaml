@@ -158,6 +158,7 @@ ai_governance:
       - archive/**
       - docs/**
       - .local/**
+      - .github/workflows/release.yml
       - .nimi/spec/desktop/kernel/tables/rule-evidence.rules.yaml
       - .nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml
       - .nimi/spec/runtime/kernel/tables/rule-evidence.rules.yaml

@@ -90,7 +90,9 @@ scope, or product meaning, this section is for you.
 ### Practical Sub-Trees
 
 - [Tutorials](/nimicoding/tutorials/) — learning-oriented
-  step-by-step lessons.
+  step-by-step lessons, including the full path from install to
+  `.nimi/spec/**`, topic execution, sweep audit, sweep design, and
+  long-running host work.
 - [How-to](/nimicoding/how-to/) — problem-shaped recipes.
 - [Reference](/nimicoding/reference/) — schema-level dictionary.
 

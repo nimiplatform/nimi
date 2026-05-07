@@ -49,3 +49,4 @@ hard_constraints:
   - duplicate_symptoms_do_not_count_as_independent_remediation_obligations_by_default
   - write_set_conflicts_must_be_visible
   - needs_decision_findings_require_manager_decision_admission
+  - remediation_map_is_not_a_substitute_for_sweep_design_when_fork_review_or_user_decision_is_required

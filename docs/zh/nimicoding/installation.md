@@ -1,51 +1,78 @@
 # Nimi Coding 安装
 
-这一页讲怎么看 Nimi Coding 在本仓库里的可用性。它不给一份对外的包分发承诺。
+Nimi Coding 已经以 npm 包形式公开分发，包名是
+`@nimiplatform/nimi-coding`。在你想采纳这套治理方法的项目根目录里安装它，然后用
+`nimicoding` CLI 初始化 `.nimi/**`。
 
-## 当前用法
+## 前置条件
 
-在本仓库内部，Nimi Coding 命令通过本地 workspace 工具就能用。Topic 工作流、校验、packet 处理、runner 步骤、closeout 操作，都作为仓库内部的治理命令在跑。
+| 条件 | 说明 |
+| --- | --- |
+| Node.js | 24 或更新版本 |
+| 包管理器 | npm、pnpm、yarn，或其他能安装 npm 包的工具 |
+| 项目根 | 建议先有版本控制；`start` 会创建文件，方便你 review |
 
-对公开用户而言，安装说明需要准入过的分发证据。在那份证据公开之前，这一页讲的是仓库内部的用法，而不是一条通用的 release 渠道。
+## 安装
 
-## 阅读场景：为什么这里还没有公开安装页
+按你的项目习惯选择命令：
 
-读者来这里如果是想要一行能在仓库之外装上 Nimi Coding 工具的命令，跟平台安装那边相同的逻辑也适用：
+```bash
+npm install --save-dev @nimiplatform/nimi-coding
+```
 
-- 一行公开安装命令意味着背后有一条已打好包的分发。
-- 一行公开安装命令意味着背后有一份认证或配置故事。
-- 一行公开安装命令意味着背后有一条校验路径。
-- 一行公开安装命令意味着背后有一条出问题之后的恢复路径。
+或：
 
-只要以上任一项还没准入，公开安装文档就会变成一份项目兑现不了的乐观 onboarding 承诺。
+```bash
+pnpm add -D @nimiplatform/nimi-coding
+```
 
-## 一份完整的公开安装页要写什么
+装完后，在项目里确认 CLI 可用：
 
-一份完整的公开页要包含：
+```bash
+npx nimicoding --version
+npx nimicoding --help
+```
 
-- 支持的包或 binary 来源；
-- 支持的宿主环境；
-- 认证或配置要求；
-- 第一条命令与预期输出；
-- 校验命令；
-- 失败恢复路径。
+## 初始化项目
 
-这些细节只有项目能核实它们的时候，才能写出来公开。
+在项目根目录运行：
 
-## 阅读场景：在本仓库里使用 Nimi Coding
+```bash
+npx nimicoding start
+```
 
-某 contributor 在本仓库里要做一次高风险改动，想用 Nimi Coding。本地 workspace 用法在这种场景下够用：
+如果只是想在干净环境里快速验一遍，可以跑非交互命令：
 
-- 本地工具通过 in-repo 命令面调用。
-- Topic 工件写在 `.nimi/topics/<state>/<topic-id>/` 下。
-- 校验、审计、closeout 操作走 repo 本地的合同文件（`.nimi/contracts/`）与方法论文件（`.nimi/methodology/`）。
-- CLI 的概念性介绍见 [CLI Reference](/zh/nimicoding/cli-reference)；具体命令来自本地工具，不来自这套文档。
+```bash
+npx nimicoding start --yes
+npx nimicoding doctor --json
+```
 
-这种用法有意比公开 release 窄。它让方法论可以在仓库里被真正用起来，而不至于做出仓库外兑现不了的承诺。
+`start` 会写入包拥有的 bootstrap 层，准备 `.nimi/**`、托管 AI 入口块与下一步 handoff
+payload。它不会静默覆盖项目自己的真相：`.nimi/spec/**`、`.nimi/local/**`、
+`.nimi/cache/**`，以及被你本地改过的 bootstrap 文件都会被保留。
+
+## 第一轮检查
+
+| 检查 | 预期 |
+| --- | --- |
+| `nimicoding --version` | 打印已安装版本 |
+| `nimicoding --help` | 能看到 bootstrap、topic、sweep audit、sweep design、handoff、closeout、validator 等命令族 |
+| `nimicoding doctor --json` | 以机器可读 JSON 报告 bootstrap 健康状态 |
+
+## 清理测试项目
+
+如果你只是在临时目录里试用，测试完可以运行：
+
+```bash
+npx nimicoding clear --yes
+```
+
+`clear` 只移除托管 AI 块与仍然等同于包种子的 bootstrap 文件。项目自己的规范、运行证据和本地缓存不会被它顺手删掉。
 
 ## 来源
 
-- [`.nimi/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/product-scope.yaml)
-- [`.nimi/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/bootstrap-state.yaml)
-- [`.nimi/spec/runtime/kernel/cli-onboarding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/cli-onboarding-contract.md)
-- [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
+- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/package.json)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
+- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic.schema.yaml)

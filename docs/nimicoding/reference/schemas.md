@@ -49,7 +49,7 @@ Field-level reference for the core Nimi Coding artifact schemas.
 
 | Field | Required | Type / values |
 | --- | --- | --- |
-| `packet_id` | yes | Stable packet identifier |
+| `packet_id` | yes | Stable packet identifier; use a wave-qualified id such as `wave-1-add-reference-field` for lifecycle artifacts |
 | `topic_id` | yes | Parent topic |
 | `wave_id` | yes | Parent wave |
 | `packet_kind` | yes | `implementation` / `authority` / `spec` / `redesign` / `preflight` |
@@ -60,8 +60,8 @@ Field-level reference for the core Nimi Coding artifact schemas.
 | `acceptance_invariants` | yes | Verifiable predicates |
 | `negative_tests` | yes | Concrete checks |
 | `reopen_conditions` | yes | What would reopen |
-| `allowed_reads` | yes | Path globs |
-| `allowed_writes` | yes | Path globs |
+| `allowed_reads` | no | Path globs; expected for worker-bound packets |
+| `allowed_writes` | no | Path globs; expected for worker-bound packets |
 
 ## Result Schema
 
@@ -74,7 +74,45 @@ Field-level reference for the core Nimi Coding artifact schemas.
 | `wave_id` | yes | Parent wave |
 | `result_kind` | yes | `preflight` / `implementation` / `audit` / `judgement` |
 | `verdict` | yes | `PASS` / `NEEDS_REVISION` / `FAIL` / `OVERFLOW` |
-| `verified_at` | yes | ISO8601 UTC timestamp |
+| `verified_at` | yes | ISO8601 UTC timestamp; topic result records use UTC seconds precision such as `2026-05-06T16:47:20Z` |
+
+Sweep-audit artifacts use their own contracts. Their CLI timestamps
+use full JavaScript ISO UTC shape with milliseconds, such as
+`2026-05-06T16:47:20.705Z`.
+
+## Sweep Design Result
+
+`.nimi/contracts/sweep-design-result.yaml`
+
+Sweep design starts from audit findings and writes local-only design
+artifacts under `.nimi/local/sweep-design/<run-id>/`. It records the
+source findings hash at intake and keeps original audit findings
+read-only.
+
+| Artifact | Role |
+| --- | --- |
+| `sweep-design-inventory` | Forked finding workset |
+| `sweep-design-design-auditor-packet` | Bounded packet for a design-auditor pass |
+| `sweep-design-design-auditor-result` | Typed result from a design-auditor session |
+| `sweep-design-revision-ledger` | Append-only design revision history |
+| `sweep-design-revision-entry` | One hashed change to findings, clusters, waves, or decisions |
+| `sweep-design-decision-queue` | User decisions that block worker dispatch |
+| `sweep-design-auditor-prompt` | Prompt and expected result shape for a packet |
+| `sweep-design-batch-manifest` | Batch of design-auditor packets |
+| `sweep-design-final-state-report` | Local-only final state report |
+| `sweep-design-wave-plan` | Candidate topic wave commands; non-mutating |
+
+| State | Meaning |
+| --- | --- |
+| `raw` | Not resolved by design review yet |
+| `confirmed` | Valid finding under active design review |
+| `needs_more_audit` | Evidence is insufficient |
+| `needs_user_decision` | Human judgement is required |
+| `needs_authority_alignment` | Canonical authority is unresolved |
+| `needs_design` | Needs a design artifact before implementation |
+| `ready_for_implementation_wave` | Can become a topic wave candidate |
+| `blocked` | Cannot progress |
+| `duplicate` / `superseded` / `false_positive` | Terminal no-implementation states |
 
 ## Closeout Schema
 
@@ -123,10 +161,12 @@ for full detail):
 
 ## Source Basis
 
-- [`.nimi/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic.schema.yaml)
-- [`.nimi/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/wave.schema.yaml)
-- [`.nimi/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/packet.schema.yaml)
-- [`.nimi/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/result.schema.yaml)
-- [`.nimi/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/closeout.schema.yaml)
-- [`.nimi/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic-step-decision.schema.yaml)
-- [`.nimi/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/forbidden-shortcuts.catalog.yaml)
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic.schema.yaml)
+- [`nimi-coding/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/wave.schema.yaml)
+- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/packet.schema.yaml)
+- [`nimi-coding/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/result.schema.yaml)
+- [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/audit-plan.schema.yaml)
+- [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/sweep-design-result.yaml)
+- [`nimi-coding/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/closeout.schema.yaml)
+- [`nimi-coding/contracts/topic-step-decision.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic-step-decision.schema.yaml)
+- [`nimi-coding/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/forbidden-shortcuts.catalog.yaml)

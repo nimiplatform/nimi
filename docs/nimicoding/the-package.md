@@ -165,10 +165,9 @@ Hard host constraints:
 
 A project wants to adopt Nimi Coding methodology.
 
-1. **Acquire the package.** Adoption posture is described in
-   [Installation](/nimicoding/installation); a public install
-   command is gated on admitted distribution evidence. Inside the
-   Nimi repository the local-workspace tooling is sufficient.
+1. **Acquire the package.** Install
+   `@nimiplatform/nimi-coding` from npm as described in
+   [Installation](/nimicoding/installation).
 2. **Run bootstrap.** `nimicoding start` initializes
    `.nimi/**` in the project root.
 3. **Project source projected.** Package's methodology /

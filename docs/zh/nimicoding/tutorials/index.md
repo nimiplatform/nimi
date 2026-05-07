@@ -8,6 +8,7 @@
 
 | 教程 | 结果 |
 | --- | --- |
+| [从项目到受治理执行](/zh/nimicoding/tutorials/project-to-governed-execution) | 从安装走到 `.nimi/spec/**`、topic 准入、sweep audit、sweep design，再到 Codex 长跑执行 |
 | [第一个 Topic Bootstrap](/zh/nimicoding/tutorials/first-topic) | 你把 Nimi Coding bootstrap 进项目、采纳 `.nimi/**` |
 | [第一个 Wave 端到端](/zh/nimicoding/tutorials/first-wave-end-to-end) | 你跑一个完整 topic / wave / packet / preflight / 审计 / closeout 周期，对一个小样本任务 |
 

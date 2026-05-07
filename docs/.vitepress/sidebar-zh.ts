@@ -361,6 +361,7 @@ export const sidebarZh: DefaultTheme.Sidebar = {
       text: '教程',
       items: [
         { text: '教程总览', link: '/zh/nimicoding/tutorials/' },
+        { text: '从项目到受治理执行', link: '/zh/nimicoding/tutorials/project-to-governed-execution' },
         { text: '第一个 Topic Bootstrap', link: '/zh/nimicoding/tutorials/first-topic' },
         { text: '第一个 Wave 端到端', link: '/zh/nimicoding/tutorials/first-wave-end-to-end' },
       ],

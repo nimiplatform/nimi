@@ -18,6 +18,8 @@ standalone_completion:
     - bootstrap
     - doctor
     - handoff
+    - sweep_audit
+    - sweep_design
     - validators
     - topic_lifecycle_report_methodology
     - closeout
@@ -49,6 +51,7 @@ canonical_spec_model:
     - .nimi/spec/_meta/phase2-impacted-surface-matrix.yaml
     - .nimi/spec/bootstrap-state.yaml
     - .nimi/spec/product-scope.yaml
+    - .nimi/contracts/sweep-design-result.yaml
   blocked_until_phase_two:
     - command_behavior_rewrites_not_admitted
     - authority_cutover_not_admitted

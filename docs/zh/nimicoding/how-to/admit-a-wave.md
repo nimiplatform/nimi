@@ -14,7 +14,7 @@
    - `parallelizable_after`（准入值之一）
    - `selected: true`（如这是当前活跃 wave）
 4. **至多一个 selected wave。** 把之前 selected wave 的 `selected: false`。
-5. **写 packet 工件。** `packet-<wave_id>.md` 带所有必填字段（authority_owner、canonical_seams、forbidden_shortcuts、acceptance_invariants、negative_tests、reopen_conditions、allowed_reads、allowed_writes）。
+5. **写 packet 工件。** Packet id 和文件名都带上 wave 身份，例如 `packet-wave-2-content-rewrite.md`。必填字段是 `packet_id`、`topic_id`、`wave_id`、`packet_kind`、`status`、`authority_owner`、`canonical_seams`、`forbidden_shortcuts`、`acceptance_invariants`、`negative_tests`、`reopen_conditions`。如果这个 packet 会交给 worker 执行，还要写 `allowed_reads` 和 `allowed_writes`，让执行边界明确。
 6. **跑 preflight。** `preflight-result-<wave_id>.md` 带裁定。
 7. **如权威收敛闸门触发**（packet 类是 `authority`/`spec`/`redesign`/`preflight` 或引 `.nimi/spec/`）：跑实现前审计；记 `result_kind: audit, verdict: PASS`。
 8. **更新 wave 状态。** Preflight（与审计如需要）PASS 后，`topic.yaml` 里 `state: candidate → admitted`。
@@ -29,6 +29,7 @@
 | Wave 触 `.nimi/spec/` 没 pre-audit | 拒；权威收敛闸门必须触发 |
 | `deps` 引一个不存在的 wave id | 拒；deps 必须真 |
 | `owner_domain` 说多个域 | 拒；每个 packet 一个主 owner |
+| Packet id 没带 wave 身份 | 拒；生成出来的 `packet-*.md` 名字后续可能含混 |
 
 ## 阅读场景
 

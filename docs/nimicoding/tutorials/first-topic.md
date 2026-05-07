@@ -14,7 +14,7 @@ have:
 
 | Requirement | Why |
 | --- | --- |
-| Node.js installed | Package runs on Node |
+| Node.js 24 or newer | Package runs on Node |
 | Project root with version control | Bootstrap will create new files; you'll want to review them |
 | An admitted external AI host | Required for the next step (`spec_reconstruction`) |
 
@@ -23,12 +23,22 @@ that's the next step after bootstrap.
 
 ## Step 1: Install The Package
 
-Install `@nimiplatform/nimi-coding` as a dev dependency. The
-specific package-manager command depends on your stack; the
-posture is the same: install it, make `nimicoding` available as
-a CLI in the project.
+Install `@nimiplatform/nimi-coding` as a dev dependency:
 
-After installation, `nimicoding --help` should print help text.
+```bash
+npm install --save-dev @nimiplatform/nimi-coding
+```
+
+or:
+
+```bash
+pnpm add -D @nimiplatform/nimi-coding
+```
+
+The command can vary by package manager, but the result should be the
+same: `nimicoding` is available as a project CLI.
+
+After installation, `npx nimicoding --help` should print help text.
 
 ## Step 2: Run `nimicoding start`
 

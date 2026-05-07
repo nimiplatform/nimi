@@ -361,6 +361,7 @@ export const sidebarEn: DefaultTheme.Sidebar = {
       text: 'Tutorials',
       items: [
         { text: 'Tutorials Overview', link: '/nimicoding/tutorials/' },
+        { text: 'Project To Governed Execution', link: '/nimicoding/tutorials/project-to-governed-execution' },
         { text: 'First Topic Bootstrap', link: '/nimicoding/tutorials/first-topic' },
         { text: 'First Wave End-To-End', link: '/nimicoding/tutorials/first-wave-end-to-end' },
       ],

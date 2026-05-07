@@ -10,7 +10,7 @@ overview see [CLI Surface](/nimicoding/cli).
 | Property | Value |
 | --- | --- |
 | Purpose | Bootstrap or resume project state |
-| Mode | Interactive |
+| Mode | Interactive; `--yes` runs the non-interactive path |
 | Failure | Fail closed on unknown CLI options |
 | Preserves | Existing truth files |
 | Side effects | Creates `.nimi/**`, updates managed `AGENTS.md` / `CLAUDE.md` blocks, updates `.gitignore` |
@@ -45,6 +45,150 @@ overview see [CLI Surface](/nimicoding/cli).
 | 0 | Healthy |
 | Non-zero | One or more named drift |
 
+## Topic Lifecycle
+
+### `nimicoding topic create <slug> --justification <text> [--title <text>] [--json]`
+
+Creates a proposal topic with an explicit entry justification.
+
+### `nimicoding topic wave add <topic-id> <wave-id> <slug> --goal <text> --owner-domain <text> [--dep <wave-id>] [--json]`
+
+Adds a wave entry. Use a `wave-N-<slug>` id that is unique inside the
+topic.
+
+### `nimicoding topic packet freeze <topic-id> --from <draft-path> [--json]`
+
+Validates and freezes a packet artifact. Packet ids should include the
+wave identity, for example `wave-1-add-reference-field`; short ids such
+as `smoke-1` can produce ambiguous `packet-*.md` lifecycle names later
+in the same topic.
+
+### `nimicoding topic worker dispatch <topic-id> --packet <packet-id> [--json]`
+
+Dispatches a frozen packet to the worker path and moves the packet into
+the dispatched lifecycle state.
+
+### `nimicoding topic result record <topic-id> --kind <worker|implementation|audit|preflight|judgement> --verdict <PASS|NEEDS_REVISION|FAIL|OVERFLOW> --from <path> --verified-at <iso8601> [--json]`
+
+Records a typed result. The topic result timestamp uses UTC seconds
+precision, for example `2026-05-06T16:47:20Z`.
+
+### `nimicoding topic run-next-step <topic-id> [--json]`
+
+Computes the next lifecycle decision. For repeated mechanical stepping,
+use `nimicoding topic-runner step` or `nimicoding topic-runner run` with
+an explicit `--run-id` and adapter.
+
+### `nimicoding topic closeout wave <topic-id> <wave-id> ... [--json]`
+
+Records wave closure across authority, semantic, consumer, and
+drift-resistance dimensions.
+
+### `nimicoding topic true-close-audit <topic-id> --judgement <text> [--json]`
+
+Runs the topic-level true-close gate before final topic closeout.
+
+## Sweep Audit
+
+### `nimicoding sweep audit plan --root <dir> [--criteria <csv>] [--exclude <csv>] [--max-files <n>] [--sweep-id <id>] [--json]`
+
+Builds an audit plan and materializes chunk files under
+`.nimi/local/audit/chunks/<sweep-id>/`. JSON output reports chunk refs;
+read the chunk files for `chunk_id` values such as `chunk-001`.
+
+### `nimicoding sweep audit chunk dispatch --sweep-id <id> --chunk-id <chunk-id> --dispatched-at <iso8601> [--auditor <id>] [--json]`
+
+Dispatches one chunk. Sweep-audit timestamps use full JavaScript ISO
+UTC shape with milliseconds, for example
+`2026-05-06T16:47:20.705Z`.
+
+### `nimicoding sweep audit chunk audit-codex --sweep-id <id> --chunk-id <chunk-id> --dispatched-at <iso8601> --verified-at <iso8601> --reviewed-at <iso8601> [--from-raw-output <ref>] [--timeout-ms <ms>] [--json]`
+
+Runs a Codex-backed chunk audit path when the active host supports it.
+
+### `nimicoding sweep audit chunk ingest --sweep-id <id> --chunk-id <chunk-id> --from <json> --verified-at <iso8601> [--json]`
+
+Ingests auditor evidence for the chunk.
+
+### `nimicoding sweep audit chunk review --sweep-id <id> --chunk-id <chunk-id> --verdict <pass|fail> --reviewed-at <iso8601> [--summary <text>] [--json]`
+
+Records manager review for ingested evidence.
+
+### `nimicoding sweep audit chunk skip --sweep-id <id> --chunk-id <chunk-id> --reason <text> --skipped-at <iso8601> [--json]`
+
+Skips a chunk with an explicit reason.
+
+### `nimicoding sweep audit ledger build --sweep-id <id> [--verified-at <iso8601>] [--json]`
+
+Builds an immutable audit ledger snapshot.
+
+### `nimicoding sweep audit remediation-map build --sweep-id <id> [--max-findings <n>] [--verified-at <iso8601>] [--json]`
+
+Builds a candidate remediation map from the ledger. Findings that need
+authority alignment or user judgement should go through `sweep design`
+before implementation.
+
+### `nimicoding sweep audit finding resolve --sweep-id <id> --finding-id <id> --disposition <remediated|accepted-risk|false-positive|deferred-backlog> --from <json> --verified-at <iso8601> [--json]`
+
+Records resolution evidence for one audit finding.
+
+### `nimicoding sweep audit closeout summary --sweep-id <id> --verified-at <iso8601> [--json]`
+
+Builds the local-only sweep closeout summary.
+
+### `nimicoding sweep audit status --sweep-id <id> [--json]`
+
+Reports the current sweep state.
+
+The removed top-level `nimicoding audit-sweep ...` entrypoint is not a
+canonical CLI command.
+
+## Sweep Design
+
+### `nimicoding sweep design intake --sweep-id <id> [--run-id <id>] [--json]`
+
+Reads `.nimi/local/audit/evidence/<sweep-id>/findings.yaml`, records
+the source hash, and writes an inventory under
+`.nimi/local/sweep-design/<run-id>/`.
+
+### `nimicoding sweep design packet-build --run-id <id> --packet-id <id> (--finding-id <id>|--finding-ids <csv>) [--explicit-question <text>] [--prior-design-state-refs <csv>] [--prior-design-state-marker <state>] [--current-cluster-refs <csv>] [--current-wave-refs <csv>] [--authority-only] [--json]`
+
+Builds a bounded design-auditor packet for one or more findings.
+Packets cite source findings, related evidence, authority refs, prior
+design state, explicit questions, expected result shape, evidence-gap
+policy, and stop conditions.
+
+### `nimicoding sweep design packet-build-batch --run-id <id> --batch-size <n> [--finding-ids <csv>] [--packet-prefix <id>] [--manifest-id <id>] [--explicit-question <text>] [--json]`
+
+Builds a manifest of design-auditor packets from the inventory.
+
+### `nimicoding sweep design auditor-prompt --run-id <id> --packet-id <id> [--json]`
+
+Emits the host prompt for a design-auditor packet, including the
+required result origin and provenance fields.
+
+### `nimicoding sweep design result-ingest --run-id <id> --from <yaml> [--mode <focused|all>] [--json]`
+
+Ingests a typed design-auditor result, updates finding outcomes,
+cluster and wave changes, decision requests, extra-audit requests, and
+revision entries. Synthetic-trial results are allowed only with the
+explicit load-test flag and do not satisfy true LLM closeout.
+
+### `nimicoding sweep design ledger-validate --run-id <id> [--json]`
+
+Validates revision-ledger integrity and final-outcome provenance before
+planning.
+
+### `nimicoding sweep design finalize --run-id <id> [--json]`
+
+Emits the local-only final state report from the validated design
+ledger.
+
+### `nimicoding sweep design wave-plan --run-id <id> --topic-id <id> [--json]`
+
+Emits candidate `topic wave add` / `topic wave admit` command refs for
+implementation-ready clusters. It does not mutate topic state.
+
 ## Skill Handoff
 
 ### `nimicoding handoff --skill <skill-id> [--json] [--prompt]`
@@ -66,7 +210,7 @@ overview see [CLI Surface](/nimicoding/cli).
 | --- | --- | --- |
 | `--skill` | yes | Which skill |
 | `--outcome` | yes | `completed`, `failed`, etc. |
-| `--verified-at` | yes | ISO8601 UTC timestamp |
+| `--verified-at` | yes | ISO8601 UTC timestamp accepted by the closeout command |
 | `--from <json>` | no | Import skill result from JSON |
 | `--write-local` | no | Write payload under `.nimi/local/handoff-results/` |
 
@@ -139,6 +283,11 @@ routing changes.
 
 - [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md) (CLI section)
+- [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic.schema.yaml)
+- [`nimi-coding/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/packet.schema.yaml)
+- [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/audit-plan.schema.yaml)
+- [`nimi-coding/contracts/audit-chunk.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/audit-chunk.schema.yaml)
+- [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/sweep-design-result.yaml)
 - [`nimi-coding/contracts/execution-packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/execution-packet.schema.yaml)
 - [`nimi-coding/contracts/orchestration-state.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/orchestration-state.schema.yaml)
 - [`nimi-coding/contracts/prompt.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/prompt.schema.yaml)

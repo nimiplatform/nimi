@@ -21,10 +21,14 @@ wave under it.
    - `selected: true` (if this is now the active wave)
 4. **At most one selected wave.** Set previously-selected wave's
    `selected: false`.
-5. **Author packet artifact.** `packet-<wave_id>.md` with all
-   required fields (authority_owner, canonical_seams,
-   forbidden_shortcuts, acceptance_invariants, negative_tests,
-   reopen_conditions, allowed_reads, allowed_writes).
+5. **Author packet artifact.** Use a wave-qualified packet id and
+   filename, for example `packet-wave-2-content-rewrite.md`. Required
+   fields are `packet_id`, `topic_id`, `wave_id`, `packet_kind`,
+   `status`, `authority_owner`, `canonical_seams`,
+   `forbidden_shortcuts`, `acceptance_invariants`, `negative_tests`,
+   and `reopen_conditions`. For worker-bound packets, also include
+   `allowed_reads` and `allowed_writes` so the execution boundary is
+   explicit.
 6. **Run preflight.** `preflight-result-<wave_id>.md` with
    verdict.
 7. **If authority convergence gate fires** (packet kind is
@@ -45,6 +49,7 @@ wave under it.
 | Wave touches `.nimi/spec/` without pre-audit | Reject; authority convergence gate must fire |
 | `deps` references a wave id that does not exist | Reject; deps must be real |
 | `owner_domain` says multiple domains | Reject; one primary owner per packet |
+| Packet id omits the wave identity | Reject; generated `packet-*.md` names can become ambiguous |
 
 ## Reader Scenario
 

@@ -48,7 +48,7 @@ Nimi Coding 跟平台其他部分互相做压力测试。Nimi Coding 让一个�
 
 ### 实操子树
 
-- [Tutorials](/zh/nimicoding/tutorials/) —— 学习导向的逐步课程。
+- [Tutorials](/zh/nimicoding/tutorials/) —— 学习导向的逐步课程，包括从安装到 `.nimi/spec/**`、topic 执行、sweep audit、sweep design、长期宿主执行的完整路径。
 - [How-to](/zh/nimicoding/how-to/) —— 问题导向的菜谱。
 - [Reference](/zh/nimicoding/reference/) —— schema 级别的字典。
 

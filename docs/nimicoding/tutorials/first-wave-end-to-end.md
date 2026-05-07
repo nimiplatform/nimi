@@ -63,8 +63,12 @@ Move topic to `.nimi/topics/ongoing/...` and update
 
 ## Step 3: Freeze The Packet
 
-Author `packet-wave-1-add-reference-field.md` with all required
-fields:
+Author `packet-wave-1-add-reference-field.md`. Keep the packet id
+wave-qualified, for example `packet_id: wave-1-add-reference-field`,
+so later lifecycle commands do not create ambiguous `packet-*.md`
+artifacts.
+
+The packet requires:
 
 - `packet_id`, `topic_id`, `wave_id`, `packet_kind`
 - `authority_owner`
@@ -73,11 +77,12 @@ fields:
 - `acceptance_invariants`
 - `negative_tests`
 - `reopen_conditions`
-- `allowed_reads`
-- `allowed_writes`
+- `allowed_reads` and `allowed_writes` when the packet will bind a worker
 
-The packet is frozen when `status: dispatched`. Now the worker
-is bound by it.
+`topic packet freeze` validates the draft and writes the frozen packet
+artifact. Dispatch happens after freeze; once
+`topic worker dispatch` moves it to `status: dispatched`, the worker is
+bound by it.
 
 ## Step 4: Run Preflight
 

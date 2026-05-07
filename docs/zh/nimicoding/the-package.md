@@ -135,7 +135,7 @@ Bootstrap state 里写明 `runtime_installed: false`、`installation_mode: defer
 
 某项目要采纳 Nimi Coding 方法论。
 
-1. **拿到包。** 采纳姿态见 [安装](/zh/nimicoding/installation)；公开安装命令依赖准入的分发证据。在 Nimi 仓库内部，本地 workspace 工具就够用。
+1. **拿到包。** 按 [安装](/zh/nimicoding/installation) 把 npm 包 `@nimiplatform/nimi-coding` 装进项目。
 2. **跑 bootstrap。** `nimicoding start` 在项目根初始化 `.nimi/**`。
 3. **包源映射就位。** 方法论 / 合同 / 配置 / spec 源都被映到项目路径下。
 4. **`spec_reconstruction` skill 可用。** 项目可以 hand off 给已准入的外部 AI 宿主做规范化 spec 重建。
