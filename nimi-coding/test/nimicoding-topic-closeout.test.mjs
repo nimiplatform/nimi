@@ -190,6 +190,91 @@ test("topic closeout wave, validate closure, true-close-audit, and closeout topi
   });
 });
 
+test("topic closeout wave allows preflight design closure with packet and result lineage", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "preflight-closeout-demo",
+      "--justification",
+      "preflight design closeout demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-design", "design",
+      "--goal", "close design preflight", "--owner-domain", "nimicoding/topic", "--json",
+    ]);
+    await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-1-design", "--json"]);
+    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-1-design", "--json"]);
+
+    const draftPath = path.join(projectRoot, "preflight-closeout-packet.yaml");
+    await writeFile(
+      draftPath,
+      YAML.stringify({
+        packet_id: "wave-1-design-preflight",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-design",
+        packet_kind: "preflight",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic.yaml waves[]"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["preflight closure has explicit evidence"],
+        negative_tests: ["preflight closeout without result fails"],
+        reopen_conditions: ["design admission boundary changes"],
+      }),
+      "utf8",
+    );
+    await captureRunCli(["topic", "packet", "freeze", createPayload.topicId, "--from", draftPath, "--json"]);
+
+    const resultSource = path.join(projectRoot, "preflight-result.md");
+    await writeFile(resultSource, "# Preflight Result\n\nDesign packet passed.\n", "utf8");
+    const resultRecord = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "audit",
+      "--verdict",
+      "PASS",
+      "--from",
+      resultSource,
+      "--verified-at",
+      "2026-04-23T13:00:00Z",
+      "--json",
+    ]);
+    assert.equal(resultRecord.exitCode, 0);
+    assert.equal(JSON.parse(resultRecord.stdout).waveState, "preflight_admitted");
+
+    const closeoutWave = await captureRunCli([
+      "topic",
+      "closeout",
+      "wave",
+      createPayload.topicId,
+      "wave-1-design",
+      "--authority",
+      "closed",
+      "--semantic",
+      "closed",
+      "--consumer",
+      "closed",
+      "--drift-resistance",
+      "closed",
+      "--disposition",
+      "complete",
+      "--json",
+    ]);
+    assert.equal(closeoutWave.exitCode, 0);
+    assert.equal(JSON.parse(closeoutWave.stdout).waveState, "closed");
+  });
+});
+
 test("topic hold and resume create pending-note lineage and move the topic between pending and ongoing", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);

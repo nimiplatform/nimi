@@ -139,6 +139,40 @@ export function buildAuthorityConvergenceDecision({ topicId, wave, packet, audit
     };
   }
   if (auditResult?.result?.verdict === policy.passVerdict) {
+    if (packet.packet_kind === "preflight") {
+      return {
+        stopClass: "require_human_confirmation",
+        recommendedAction: "freeze_packet",
+        reasonCode: "preflight_authority_audit_passed_requires_implementation_packet",
+        recommendedDecision: "create_or_select_an_implementation_ready_packet_before_worker_dispatch",
+        recommendationRationale: "The authority convergence audit passed for a preflight packet, but preflight evidence is not implementation admission.",
+        expectedArtifacts: ["packet-<implementation-ready-packet-id>.md"],
+        nextCommandRef: commandRef(["packet", "freeze", topicId, "--from", "<implementation-ready-draft-packet>"]),
+      };
+    }
+    if (wave.state === "preflight_admitted") {
+      return {
+        stopClass: "continue",
+        recommendedAction: "record_result",
+        reasonCode: "implementation_admission_result_required",
+        recommendedDecision: "record_preflight_pass_before_worker_dispatch",
+        recommendationRationale: "The authority convergence audit passed, but the selected wave must explicitly enter implementation admission before worker dispatch.",
+        expectedArtifacts: [`result-${wave.wave_id}-preflight.md`],
+        nextCommandRef: commandRef([
+          "result",
+          "record",
+          topicId,
+          "--kind",
+          "preflight",
+          "--verdict",
+          policy.passVerdict,
+          "--from",
+          auditResult.result.source_ref ?? "<authority-convergence-audit-source>",
+          "--verified-at",
+          auditResult.result.verified_at ?? "<utc>",
+        ]),
+      };
+    }
     return {
       stopClass: "continue",
       recommendedAction: "dispatch_worker",
@@ -246,6 +280,29 @@ export async function buildPreImplementationDecision({
         policy,
         commandRef,
       });
+    }
+    if (wave.state === "preflight_admitted") {
+      return {
+        stopClass: "require_human_confirmation",
+        recommendedAction: "record_result",
+        reasonCode: "implementation_admission_result_required",
+        recommendedDecision: "record_preflight_pass_before_worker_dispatch",
+        recommendationRationale: "A dispatchable implementation packet exists, but worker dispatch requires explicit implementation admission evidence.",
+        expectedArtifacts: [`result-${wave.wave_id}-preflight.md`],
+        nextCommandRef: commandRef([
+          "result",
+          "record",
+          loaded.topicId,
+          "--kind",
+          "preflight",
+          "--verdict",
+          "PASS",
+          "--from",
+          "<implementation-readiness-evidence>",
+          "--verified-at",
+          "<utc>",
+        ]),
+      };
     }
     const decision = dispatchWorkerDecision(loaded.topicId, dispatchable.packet);
     decision.nextCommandRef = commandRef(["worker", "dispatch", loaded.topicId, "--packet", dispatchable.packet.packet_id]);

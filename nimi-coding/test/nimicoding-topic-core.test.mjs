@@ -574,6 +574,35 @@ test("topic packet freeze validates required fields and writes a frozen packet a
     await writeFile(
       draftPath,
       YAML.stringify({
+        packet_id: "smoke-1",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-foundation",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic.yaml waves[]"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["all required fields stay explicit"],
+        negative_tests: ["ambiguous packet id fails closed"],
+        reopen_conditions: ["owner-cut changes require new packet"],
+      }),
+      "utf8",
+    );
+    const ambiguousFreeze = await captureRunCli([
+      "topic",
+      "packet",
+      "freeze",
+      createPayload.topicId,
+      "--from",
+      draftPath,
+      "--json",
+    ]);
+    assert.equal(ambiguousFreeze.exitCode, 1);
+    assert.match(ambiguousFreeze.stderr, /ambiguous lifecycle artifact name/);
+
+    await writeFile(
+      draftPath,
+      YAML.stringify({
         packet_id: "broken-packet",
         topic_id: createPayload.topicId,
       }),

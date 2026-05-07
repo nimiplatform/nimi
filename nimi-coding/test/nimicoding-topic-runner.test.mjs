@@ -130,9 +130,10 @@ test("topic run-next-step emits mechanical decisions without mutating topic stat
     ]);
     assert.equal(dispatchDecisionResult.exitCode, 0);
     const dispatchDecision = JSON.parse(dispatchDecisionResult.stdout).decision;
-    assert.equal(dispatchDecision.stop_class, "continue");
-    assert.equal(dispatchDecision.recommended_action, "dispatch_worker");
-    assert.equal(dispatchDecision.requires_human_confirmation, false);
+    assert.equal(dispatchDecision.stop_class, "require_human_confirmation");
+    assert.equal(dispatchDecision.recommended_action, "record_result");
+    assert.equal(dispatchDecision.reason_code, "implementation_admission_result_required");
+    assert.equal(dispatchDecision.requires_human_confirmation, true);
 
     const movedTopicYamlPath = path.join(projectRoot, ".nimi", "topics", "ongoing", createPayload.topicId, "topic.yaml");
     const topicYaml = YAML.parse(await readFile(movedTopicYamlPath, "utf8"));
@@ -241,11 +242,42 @@ test("authority/spec packet requires audit convergence before worker dispatch", 
       "--from",
       auditSource,
       "--verified-at",
-      "2026-05-04T00:00:00Z",
+      "2026-05-04T00:00:00.000Z",
       "--json",
     ]);
     assert.equal(recordAudit.exitCode, 0);
-    assert.equal(JSON.parse(recordAudit.stdout).waveState, "implementation_admitted");
+    assert.equal(JSON.parse(recordAudit.stdout).waveState, "preflight_admitted");
+
+    const admissionDecisionResult = await captureRunCli([
+      "topic",
+      "run-next-step",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(admissionDecisionResult.exitCode, 0);
+    const admissionDecision = JSON.parse(admissionDecisionResult.stdout).decision;
+    assert.equal(admissionDecision.stop_class, "continue");
+    assert.equal(admissionDecision.recommended_action, "record_result");
+    assert.equal(admissionDecision.reason_code, "implementation_admission_result_required");
+    assert.doesNotMatch(admissionDecision.next_command_ref, /</);
+
+    const recordPreflight = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "preflight",
+      "--verdict",
+      "PASS",
+      "--from",
+      auditSource,
+      "--verified-at",
+      "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(recordPreflight.exitCode, 0);
+    assert.equal(JSON.parse(recordPreflight.stdout).waveState, "implementation_admitted");
 
     const workerDecisionResult = await captureRunCli([
       "topic",
@@ -257,6 +289,186 @@ test("authority/spec packet requires audit convergence before worker dispatch", 
     const workerDecision = JSON.parse(workerDecisionResult.stdout).decision;
     assert.equal(workerDecision.stop_class, "continue");
     assert.equal(workerDecision.recommended_action, "dispatch_worker");
+  });
+});
+
+test("implementation-active wave requires implementation result before closeout", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "implementation-result-required-demo",
+      "--justification",
+      "implementation result lineage gate demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-impl", "impl",
+      "--goal", "implementation result required", "--owner-domain", "nimi-coding/topic", "--json",
+    ]);
+    await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-1-impl", "--json"]);
+    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-1-impl", "--json"]);
+
+    const packetPath = path.join(projectRoot, "implementation-result-packet.yaml");
+    await writeFile(
+      packetPath,
+      YAML.stringify({
+        packet_id: "wave-1-impl-packet",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-impl",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/topic"],
+        canonical_seams: ["topic implementation result lineage"],
+        forbidden_shortcuts: ["placeholder_success"],
+        acceptance_invariants: ["closeout waits for implementation result"],
+        negative_tests: ["preflight result alone cannot close implementation"],
+        reopen_conditions: ["implementation result missing"],
+      }),
+      "utf8",
+    );
+    await captureRunCli(["topic", "packet", "freeze", createPayload.topicId, "--from", packetPath, "--json"]);
+    const recordPreflight = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "preflight",
+      "--verdict",
+      "PASS",
+      "--from",
+      packetPath,
+      "--verified-at",
+      "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(recordPreflight.exitCode, 0);
+    assert.equal(JSON.parse(recordPreflight.stdout).waveState, "implementation_admitted");
+
+    const dispatchWorker = await captureRunCli([
+      "topic", "worker", "dispatch", createPayload.topicId,
+      "--packet", "wave-1-impl-packet", "--json",
+    ]);
+    assert.equal(dispatchWorker.exitCode, 0);
+    assert.equal(JSON.parse(dispatchWorker.stdout).waveState, "implementation_active");
+
+    const awaitingResult = await captureRunCli([
+      "topic",
+      "run-next-step",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(awaitingResult.exitCode, 0);
+    const awaitingDecision = JSON.parse(awaitingResult.stdout).decision;
+    assert.equal(awaitingDecision.stop_class, "await_external_evidence");
+    assert.equal(awaitingDecision.recommended_action, "record_result");
+    assert.equal(awaitingDecision.reason_code, "awaiting_implementation_result");
+  });
+});
+
+test("redesign topic implementation packet requires authority convergence before worker dispatch", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "redesign-implementation-gate-demo",
+      "--justification",
+      "redesign implementation gate demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+    const topicYamlPath = path.join(projectRoot, ".nimi", "topics", "proposal", createPayload.topicId, "topic.yaml");
+    const topicYaml = YAML.parse(await readFile(topicYamlPath, "utf8"));
+    topicYaml.work_type = "redesign";
+    await writeFile(topicYamlPath, YAML.stringify(topicYaml), "utf8");
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-redesign-impl", "redesign-impl",
+      "--goal", "implement redesign authority seam", "--owner-domain", "nimi-coding/sweep", "--json",
+    ]);
+    await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-1-redesign-impl", "--json"]);
+    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-1-redesign-impl", "--json"]);
+
+    const packetPath = path.join(projectRoot, "redesign-implementation-packet.yaml");
+    await writeFile(
+      packetPath,
+      YAML.stringify({
+        packet_id: "wave-1-redesign-implementation",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-redesign-impl",
+        packet_kind: "implementation",
+        status: "draft",
+        authority_owner: ["nimi-coding/sweep"],
+        canonical_seams: ["sweep command authority"],
+        forbidden_shortcuts: ["legacy_alias"],
+        acceptance_invariants: ["implementation waits for authority convergence"],
+        negative_tests: ["worker dispatch before audit convergence is refused"],
+        reopen_conditions: ["authority owner changes"],
+      }),
+      "utf8",
+    );
+    await captureRunCli(["topic", "packet", "freeze", createPayload.topicId, "--from", packetPath, "--json"]);
+
+    const auditDecisionResult = await captureRunCli([
+      "topic",
+      "run-next-step",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(auditDecisionResult.exitCode, 0);
+    const auditDecision = JSON.parse(auditDecisionResult.stdout).decision;
+    assert.equal(auditDecision.stop_class, "continue");
+    assert.equal(auditDecision.recommended_action, "dispatch_audit");
+    assert.equal(auditDecision.reason_code, "authority_convergence_audit_required");
+    assert.match(auditDecision.next_command_ref, /audit dispatch/);
+
+    await captureRunCli([
+      "topic", "audit", "dispatch", createPayload.topicId,
+      "--packet", "wave-1-redesign-implementation", "--json",
+    ]);
+    const auditSource = path.join(projectRoot, "redesign-authority-pass.md");
+    await writeFile(
+      auditSource,
+      "# Authority Convergence Audit\n\nverdict: PASS\nblocking_findings: []\nready_for_implementation: true\n",
+      "utf8",
+    );
+    const recordAudit = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "audit",
+      "--verdict",
+      "PASS",
+      "--from",
+      auditSource,
+      "--verified-at",
+      "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(recordAudit.exitCode, 0);
+
+    const admissionDecisionResult = await captureRunCli([
+      "topic",
+      "run-next-step",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(admissionDecisionResult.exitCode, 0);
+    const admissionDecision = JSON.parse(admissionDecisionResult.stdout).decision;
+    assert.equal(admissionDecision.stop_class, "continue");
+    assert.equal(admissionDecision.recommended_action, "record_result");
+    assert.equal(admissionDecision.reason_code, "implementation_admission_result_required");
   });
 });
 
@@ -338,7 +550,93 @@ test("authority convergence audit revision blocks worker dispatch", async () => 
     ]);
     assert.equal(nextStep.exitCode, 0);
     const decision = JSON.parse(nextStep.stdout).decision;
-    assert.notEqual(decision.recommended_action, "dispatch_worker");
+    assert.equal(decision.stop_class, "blocked");
+    assert.equal(decision.recommended_action, "open_remediation");
+    assert.equal(decision.reason_code, "revise");
+  });
+});
+
+test("preflight authority audit pass requires implementation packet before worker dispatch", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "preflight-authority-audit-demo",
+      "--justification",
+      "preflight authority audit demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-1-preflight", "preflight",
+      "--goal", "freeze preflight before implementation", "--owner-domain", "nimi-coding/topic", "--json",
+    ]);
+    await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-1-preflight", "--json"]);
+    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-1-preflight", "--json"]);
+
+    const packetPath = path.join(projectRoot, "preflight-authority-packet.yaml");
+    await writeFile(
+      packetPath,
+      YAML.stringify({
+        packet_id: "wave-1-preflight-authority",
+        topic_id: createPayload.topicId,
+        wave_id: "wave-1-preflight",
+        packet_kind: "preflight",
+        status: "draft",
+        authority_owner: [".nimi/spec/runtime/kernel/example-contract.md"],
+        canonical_seams: [".nimi/spec/runtime/kernel/example-contract.md"],
+        forbidden_shortcuts: ["parallel_truth"],
+        acceptance_invariants: ["preflight evidence does not dispatch worker"],
+        negative_tests: ["preflight audit pass does not equal implementation admission"],
+        reopen_conditions: ["implementation packet missing"],
+      }),
+      "utf8",
+    );
+    await captureRunCli(["topic", "packet", "freeze", createPayload.topicId, "--from", packetPath, "--json"]);
+    await captureRunCli([
+      "topic", "audit", "dispatch", createPayload.topicId,
+      "--packet", "wave-1-preflight-authority", "--json",
+    ]);
+
+    const auditSource = path.join(projectRoot, "preflight-authority-pass.md");
+    await writeFile(
+      auditSource,
+      "# Authority Convergence Audit\n\nverdict: PASS\nblocking_findings: []\nready_for_implementation: false\n",
+      "utf8",
+    );
+    const recordAudit = await captureRunCli([
+      "topic",
+      "result",
+      "record",
+      createPayload.topicId,
+      "--kind",
+      "audit",
+      "--verdict",
+      "PASS",
+      "--from",
+      auditSource,
+      "--verified-at",
+      "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(recordAudit.exitCode, 0);
+    assert.equal(JSON.parse(recordAudit.stdout).waveState, "preflight_admitted");
+
+    const nextStep = await captureRunCli([
+      "topic",
+      "run-next-step",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(nextStep.exitCode, 0);
+    const decision = JSON.parse(nextStep.stdout).decision;
+    assert.equal(decision.stop_class, "require_human_confirmation");
+    assert.equal(decision.recommended_action, "freeze_packet");
+    assert.equal(decision.reason_code, "preflight_authority_audit_passed_requires_implementation_packet");
   });
 });
 
