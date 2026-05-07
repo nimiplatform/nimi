@@ -80,7 +80,13 @@ async function mutateTopicYaml(projectRoot, topicId, mutator) {
 async function createDeferralDemoTopic(
   projectRoot,
   slug,
-  { nextDep = null, globalBlocker = false, missingEvidenceFlags = false } = {},
+  {
+    nextDep = null,
+    globalBlocker = false,
+    missingEvidenceFlags = false,
+    broadAuthorityScopeAmbiguity = false,
+    productSemanticDecision = false,
+  } = {},
 ) {
   const startResult = await captureRunCli(["start"]);
   assert.equal(startResult.exitCode, 0);
@@ -151,11 +157,25 @@ async function createDeferralDemoTopic(
         : [
           "source_audit_findings_mutated: false",
           "source_sweep_design_artifacts_mutated: false",
+          "local_packet_authority_scope_remediation_only: true",
+          "product_semantic_ambiguity: false",
         ]),
       ...(globalBlocker
         ? [
           "topic_contract_change_required: true",
           "required_manager_decision: global topic contract change",
+        ]
+        : []),
+      ...(broadAuthorityScopeAmbiguity
+        ? [
+          "unresolved_authority_scope_gate_product_semantic_ambiguity: true",
+          "authority/scope mismatch in the packet metadata, not a product fork",
+        ]
+        : []),
+      ...(productSemanticDecision
+        ? [
+          "product_semantic_decision_required: true",
+          "required_manager_decision: product semantics fork",
         ]
         : []),
       "",
@@ -593,6 +613,55 @@ test("topic runner run defers a local needs_revision blocker and advances to nex
   });
 });
 
+test("topic runner run defers local packet authority remediation with structured non-ambiguity evidence", async () => {
+  await withTempProject(async (projectRoot) => {
+    const createPayload = await createDeferralDemoTopic(
+      projectRoot,
+      "runner-defers-local-structured-evidence-demo",
+    );
+
+    const runResult = await captureRunCli([
+      "topic-runner", "run", createPayload.topicId,
+      "--run-id", "defer-local-structured-evidence-demo",
+      "--adapter", "codex",
+      "--max-steps", "3",
+      "--verified-at", "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(runResult.exitCode, 0, runResult.stderr);
+    const payload = JSON.parse(runResult.stdout);
+    assert.equal(payload.steps[0].runnerStatus, "continued");
+    assert.equal(payload.steps[0].recommendedAction, "defer_local_wave_blocker");
+    assert.equal(payload.steps[0].deferredBlocker.waveId, "wave-1-blocked");
+    assert.equal(payload.steps[0].deferredBlocker.nextWaveId, "wave-2-next");
+  });
+});
+
+test("topic runner run does not defer local packet remediation with broad unresolved ambiguity", async () => {
+  await withTempProject(async (projectRoot) => {
+    const createPayload = await createDeferralDemoTopic(
+      projectRoot,
+      "runner-blocks-local-authority-scope-flag-demo",
+      { broadAuthorityScopeAmbiguity: true },
+    );
+
+    const runResult = await captureRunCli([
+      "topic-runner", "run", createPayload.topicId,
+      "--run-id", "block-local-authority-scope-flag-demo",
+      "--adapter", "codex",
+      "--max-steps", "3",
+      "--verified-at", "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(runResult.exitCode, 0, runResult.stderr);
+    const payload = JSON.parse(runResult.stdout);
+    assert.equal(payload.runnerStatus, "stopped");
+    assert.equal(payload.stopClass, "blocked");
+    assert.equal(payload.recommendedAction, "open_remediation");
+    assert.equal(payload.deferredBlocker, undefined);
+  });
+});
+
 test("topic runner step remains focused and stops on local needs_revision blockers", async () => {
   await withTempProject(async (projectRoot) => {
     const createPayload = await createDeferralDemoTopic(projectRoot, "runner-focused-blocker-demo");
@@ -606,6 +675,29 @@ test("topic runner step remains focused and stops on local needs_revision blocke
     ]);
     assert.equal(stepResult.exitCode, 0, stepResult.stderr);
     const payload = JSON.parse(stepResult.stdout);
+    assert.equal(payload.runnerStatus, "stopped");
+    assert.equal(payload.stopClass, "blocked");
+    assert.equal(payload.recommendedAction, "open_remediation");
+    assert.equal(payload.deferredBlocker, undefined);
+  });
+});
+
+test("topic runner run does not defer product semantic decision blockers", async () => {
+  await withTempProject(async (projectRoot) => {
+    const createPayload = await createDeferralDemoTopic(projectRoot, "runner-product-semantic-blocker-demo", {
+      productSemanticDecision: true,
+    });
+
+    const runResult = await captureRunCli([
+      "topic-runner", "run", createPayload.topicId,
+      "--run-id", "product-semantic-blocker-demo",
+      "--adapter", "codex",
+      "--max-steps", "3",
+      "--verified-at", "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(runResult.exitCode, 0, runResult.stderr);
+    const payload = JSON.parse(runResult.stdout);
     assert.equal(payload.runnerStatus, "stopped");
     assert.equal(payload.stopClass, "blocked");
     assert.equal(payload.recommendedAction, "open_remediation");
@@ -645,6 +737,29 @@ test("topic runner run does not defer global authority or contract blockers", as
     const runResult = await captureRunCli([
       "topic-runner", "run", createPayload.topicId,
       "--run-id", "global-blocker-demo",
+      "--adapter", "codex",
+      "--max-steps", "3",
+      "--verified-at", "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(runResult.exitCode, 0, runResult.stderr);
+    const payload = JSON.parse(runResult.stdout);
+    assert.equal(payload.runnerStatus, "stopped");
+    assert.equal(payload.stopClass, "blocked");
+    assert.equal(payload.recommendedAction, "open_remediation");
+    assert.equal(payload.deferredBlocker, undefined);
+  });
+});
+
+test("topic runner run does not defer needs_revision blockers without positive non-mutation evidence", async () => {
+  await withTempProject(async (projectRoot) => {
+    const createPayload = await createDeferralDemoTopic(projectRoot, "runner-missing-evidence-flags-demo", {
+      missingEvidenceFlags: true,
+    });
+
+    const runResult = await captureRunCli([
+      "topic-runner", "run", createPayload.topicId,
+      "--run-id", "missing-evidence-flags-demo",
       "--adapter", "codex",
       "--max-steps", "3",
       "--verified-at", "2026-05-04T00:00:00Z",

@@ -65,7 +65,7 @@ async function collectActiveDeferredBlockers(topicDir) {
     const blockerPath = path.join(topicDir, entry.name),
       blockerText = await readTextIfFile(blockerPath),
       blocker = readFrontmatterObject(blockerText ?? "");
-    if (!blocker || blocker.status === "active") {
+    if (!blocker || !["resolved", "closed"].includes(blocker.status)) {
       blockers.push(entry.name);
     }
   }

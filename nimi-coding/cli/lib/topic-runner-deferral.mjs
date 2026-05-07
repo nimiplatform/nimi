@@ -146,17 +146,25 @@ function evidenceDeclaresDisallowedBlocker(text) {
       "source_sweep_design_artifacts_mutated",
       "lowered_gate",
       "lowered_gates",
+      "requires_lowered_gate",
       "topic_contract_change_required",
       "global_contract_change_required",
+      "requires_global_contract_change",
       "source_evidence_change_required",
+      "requires_source_evidence_change",
+      "product_semantic_ambiguity",
+      "unresolved_authority_scope_gate_product_semantic_ambiguity",
       "destructive_evidence_deletion_required",
+      "requires_destructive_evidence_deletion",
       "product_semantic_decision_required",
+      "requires_product_semantic_decision",
       "explicit_human_decision_required",
+      "requires_explicit_human_decision",
     ])
   ) {
     return true;
   }
-  return [
+  const disallowedPatterns = [
     "lowered gate required",
     "lowered validation gate",
     "global topic contract change",
@@ -168,6 +176,45 @@ function evidenceDeclaresDisallowedBlocker(text) {
     "product semantics fork",
     "semantic fork",
     "explicit human decision",
+  ];
+  return normalized.split(/\r?\n\s*\r?\n/u).some((block) => {
+    if (!disallowedPatterns.some((pattern) => block.includes(pattern))) {
+      return false;
+    }
+    return !/\b(no|not|false|without)\b|does not|do not|isn't|is not|aren't|are not/u.test(block);
+  });
+}
+
+function evidenceDeclaresBroadAmbiguity(text) {
+  return hasTrueEvidenceFlag(text.toLowerCase(), [
+    "unresolved_authority_scope_gate_product_semantic_ambiguity",
+  ]);
+}
+
+function evidenceHasPositiveLocalOnlyProof(text) {
+  return hasTrueEvidenceFlag(text.toLowerCase(), [
+    "local_packet_authority_scope_remediation_only",
+  ]);
+}
+
+function evidenceHasNoProductSemanticAmbiguityProof(text) {
+  return hasFalseEvidenceFlag(text.toLowerCase(), [
+    "product_semantic_ambiguity",
+  ]);
+}
+
+function evidenceDeclaresLocalPacketAuthorityScopeRemediation(text) {
+  const normalized = text.toLowerCase();
+  return [
+    "required_remediation: local wave packet authority/scope remediation only",
+    "local wave packet authority/scope remediation only",
+    "local packet authority/scope remediation",
+    "authority/scope mismatch in the packet metadata",
+    "authority/scope mismatch in packet metadata",
+    "packet authority omission",
+    "packet metadata omission",
+    "regenerate or remediate the topic-local implementation packet",
+    "regenerate or remediate the topic-local",
   ].some((pattern) => normalized.includes(pattern));
 }
 
@@ -192,7 +239,16 @@ async function evaluateDeferrableLocalWaveEvidence(projectRoot, resultRefs) {
   if (evidenceDeclaresDisallowedBlocker(combined)) {
     return { ok: false, reason: "blocking_result_declares_non_deferrable_gate" };
   }
-  if (!/(local|selected|this)\s+wave|wave[-_ ]local|authority\/scope|authority|scope|packet/i.test(combined)) {
+  if (evidenceDeclaresBroadAmbiguity(combined)) {
+    return { ok: false, reason: "unresolved_ambiguity_not_local_deferrable" };
+  }
+  if (!evidenceHasPositiveLocalOnlyProof(combined)) {
+    return { ok: false, reason: "missing_structured_local_only_evidence" };
+  }
+  if (!evidenceHasNoProductSemanticAmbiguityProof(combined)) {
+    return { ok: false, reason: "missing_product_semantic_non_ambiguity_evidence" };
+  }
+  if (!evidenceDeclaresLocalPacketAuthorityScopeRemediation(combined)) {
     return { ok: false, reason: "missing_local_wave_remediation_evidence" };
   }
   return { ok: true };
