@@ -56,7 +56,6 @@ pub(super) fn apply_v2(conn: &Connection) -> Result<(), String> {
             ropeSkipping     INTEGER,
             vitalCapacity    INTEGER,
             footArchStatus   TEXT,
-            overallGrade     TEXT,
             notes            TEXT,
             createdAt        TEXT NOT NULL
         );

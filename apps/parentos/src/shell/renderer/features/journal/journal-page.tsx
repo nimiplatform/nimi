@@ -30,7 +30,8 @@ import {
 import { SaveConfirmationModal } from './journal-sub-components.js';
 import { JournalEntryTimeline } from './journal-entry-timeline.js';
 import { getGuidedPrompts, type GuidedPromptContext } from './journal-guided-prompts.js';
-import { type ExperimentTemplate } from './journal-experiment-templates.js';
+import { type ExperimentTemplate, getExperimentSuggestion } from './journal-experiment-templates.js';
+import type { ObservationFocusData, ObservationFocusOption } from './journal-observation-focus.js';
 import { REMINDER_RULES } from '../../knowledge-base/index.js';
 import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 import { JournalPageCapture } from './journal-page-capture.js';
@@ -74,6 +75,7 @@ export default function JournalPage() {
   const [postSaveExperiment, setPostSaveExperiment] = useState<ExperimentTemplate | null>(null);
   const [addingTodo, setAddingTodo] = useState(false);
   const [photoDrafts, setPhotoDrafts] = useState<PhotoDraft[]>([]);
+  const [recordedAt, setRecordedAt] = useState<string | null>(null);
   const [entryFilter, setEntryFilter] = useState<'all' | 'keepsake'>('all');
   const [showEmoji, setShowEmoji] = useState(false);
   const [emojiCat, setEmojiCat] = useState<EmojiCategory>('frequent');
@@ -109,6 +111,29 @@ export default function JournalPage() {
   const activeDimensions = useMemo(
     () => getActiveDimensions(OBSERVATION_DIMENSIONS, ageMonths),
     [ageMonths],
+  );
+
+  const observationFocus: ObservationFocusData | null = useMemo(() => {
+    if (!selectedDimension) return null;
+    const dim = activeDimensions.find((item) => item.dimensionId === selectedDimension);
+    if (!dim) return null;
+    return {
+      dimensionId: dim.dimensionId,
+      displayName: dim.displayName,
+      parentQuestion: dim.parentQuestion,
+      observableSignals: [...dim.observableSignals],
+      guidedQuestions: [...dim.guidedQuestions],
+      experiment: getExperimentSuggestion(dim.dimensionId)?.title ?? null,
+    };
+  }, [selectedDimension, activeDimensions]);
+
+  const observationFocusOptions: ObservationFocusOption[] = useMemo(
+    () => activeDimensions.map((dim) => ({
+      dimensionId: dim.dimensionId,
+      displayName: dim.displayName,
+      parentQuestion: dim.parentQuestion,
+    })),
+    [activeDimensions],
   );
 
   // Pre-select dimension from URL param (e.g., from observe page)
@@ -149,6 +174,7 @@ export default function JournalPage() {
     keepsakeReason,
     moodTag,
     subjectiveNotes,
+    recordedAt,
   });
   const currentLocalDraftPayload = editingEntryId || !child ? null : buildLocalDraftPayload(child.childId);
   const currentLocalDraftSignature = currentLocalDraftPayload ? serializeJournalLocalDraft(currentLocalDraftPayload) : null;
@@ -221,6 +247,7 @@ export default function JournalPage() {
         setKeepsakeReason(null);
         setMoodTag(null);
         setSubjectiveNotes('');
+        setRecordedAt(null);
         setSubmitError(null);
         recorderSessionRef.current?.cancel();
         recorderSessionRef.current = null;
@@ -421,6 +448,7 @@ export default function JournalPage() {
       keepsakeReason: draft.keepsakeReason,
       moodTag: draft.moodTag,
       subjectiveNotes: draft.subjectiveNotes,
+      recordedAt: draft.recordedAt,
     };
 
     setEditingEntryId(null);
@@ -434,6 +462,7 @@ export default function JournalPage() {
     setKeepsakeReason(nextPayload.keepsakeReason);
     setMoodTag(nextPayload.moodTag);
     setSubjectiveNotes(nextPayload.subjectiveNotes);
+    setRecordedAt(nextPayload.recordedAt);
     setSubmitError(null);
     clearVoiceDraft();
     clearPhotoDrafts();
@@ -455,7 +484,7 @@ export default function JournalPage() {
     setCaptureMode('text'); setTextContent(''); setSelectedDimension(null); setSelectedTags([]);
     setSelectedRecorderId(child?.recorderProfiles?.[0]?.id ?? null);
     setEditingEntryId(null);
-    setKeepsake(false); setKeepsakeTitle(''); setKeepsakeReason(null); setMoodTag(null); setSubjectiveNotes(''); setSubmitError(null); clearVoiceDraft(); clearPhotoDrafts();
+    setKeepsake(false); setKeepsakeTitle(''); setKeepsakeReason(null); setMoodTag(null); setSubjectiveNotes(''); setRecordedAt(null); setSubmitError(null); clearVoiceDraft(); clearPhotoDrafts();
     closeKeepsakePrompt();
   };
 
@@ -506,6 +535,7 @@ export default function JournalPage() {
     textContent,
     voiceDraft,
     photoDrafts,
+    recordedAt,
     searchParams,
     recorderSessionRef,
     skipLocalDraftPersistRef,
@@ -561,6 +591,16 @@ export default function JournalPage() {
         childOptions={children.map((item) => ({ value: item.childId, label: item.displayName }))}
         onChildChange={setActiveChildId}
         guidedContext={guidedContext}
+        observationFocus={observationFocus}
+        observationFocusOptions={observationFocusOptions}
+        onSwitchObservationFocus={(dimensionId) => {
+          setSelectedDimension(dimensionId);
+          setSelectedTags([]);
+        }}
+        onClearObservationFocus={() => {
+          setSelectedDimension(null);
+          setSelectedTags([]);
+        }}
         restorableDraft={restorableDraft}
         editingEntry={editingEntry}
         editingEntryLabel={editingEntryLabel}
@@ -602,6 +642,7 @@ export default function JournalPage() {
         voiceDraft={voiceDraft}
         recordingSupported={recordingSupported}
         voiceRuntimeAvailable={voiceRuntimeAvailable}
+        recorderSessionRef={recorderSessionRef}
         onStartRecording={() => void handleStartRecording()}
         onStopRecording={() => void handleStopRecording()}
         onTranscribe={() => void handleTranscribe()}
@@ -618,6 +659,8 @@ export default function JournalPage() {
         addingTodo={addingTodo}
         onAddExperimentTodo={() => void handleAddExperimentTodo()}
         onDismissExperiment={handleDismissExperiment}
+        recordedAt={recordedAt}
+        onRecordedAtChange={setRecordedAt}
       />
 
       {/* ── Timeline entries ── */}
@@ -654,6 +697,7 @@ export default function JournalPage() {
           setKeepsakeTitle(entry.keepsakeTitle ?? '');
           setKeepsakeReason(entry.keepsakeReason ?? null);
           setMoodTag(entry.moodTag);
+          setRecordedAt(entry.recordedAt);
           clearReminderSearchParams();
                    try {
             const ga = entry.guidedAnswers ? JSON.parse(entry.guidedAnswers) as Record<string, string> : null;

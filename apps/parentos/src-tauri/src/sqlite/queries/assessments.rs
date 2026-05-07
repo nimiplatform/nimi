@@ -223,7 +223,6 @@ pub struct FitnessAssessment {
     pub double_foot_jump: Option<f64>,
     pub balance_beam: Option<f64>,
     pub foot_arch_status: Option<String>,
-    pub overall_grade: Option<String>,
     pub notes: Option<String>,
     pub created_at: String,
 }
@@ -250,7 +249,6 @@ pub fn insert_fitness_assessment(
     double_foot_jump: Option<f64>,
     balance_beam: Option<f64>,
     foot_arch_status: Option<String>,
-    overall_grade: Option<String>,
     notes: Option<String>,
     now: String,
 ) -> Result<(), String> {
@@ -346,10 +344,7 @@ pub fn insert_fitness_assessment(
     let foot_arch_status = foot_arch_status
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty());
-    let overall_grade = overall_grade
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty());
-    if !has_numeric && foot_arch_status.is_none() && overall_grade.is_none() {
+    if !has_numeric && foot_arch_status.is_none() {
         return Err(
             "insert_fitness_assessment requires at least one admitted fitness metric".to_string(),
         );
@@ -414,21 +409,6 @@ pub fn insert_fitness_assessment(
         )
         .map_err(|e| format!("insert_fitness_assessment insert foot arch status: {e}"))?;
     }
-    if let Some(value) = overall_grade {
-        tx.execute(
-            "INSERT INTO health_record_values (
-                valueId, eventId, childId, metricId, valueText, recordKind, createdAt
-            ) VALUES (?1, ?2, ?3, 'fitness.overall_grade', ?4, 'measured', ?5)",
-            params![
-                format!("detail-fitness-value:{assessment_id}:overall-grade"),
-                &event_id,
-                &child_id,
-                value,
-                &now,
-            ],
-        )
-        .map_err(|e| format!("insert_fitness_assessment insert overall grade: {e}"))?;
-    }
     tx.commit()
         .map_err(|e| format!("insert_fitness_assessment commit: {e}"))?;
     Ok(())
@@ -460,7 +440,6 @@ pub fn get_fitness_assessments(child_id: String) -> Result<Vec<FitnessAssessment
             MAX(CASE WHEN v.metricId = 'fitness.double_foot_jump' THEN v.valueNumber END),
             MAX(CASE WHEN v.metricId = 'fitness.balance_beam' THEN v.valueNumber END),
             MAX(CASE WHEN v.metricId = 'fitness.foot_arch_status' THEN v.valueText END),
-            MAX(CASE WHEN v.metricId = 'fitness.overall_grade' THEN v.valueText END),
             e.notes,
             e.createdAt
          FROM health_record_events e
@@ -494,9 +473,8 @@ pub fn get_fitness_assessments(child_id: String) -> Result<Vec<FitnessAssessment
                 double_foot_jump: row.get(17)?,
                 balance_beam: row.get(18)?,
                 foot_arch_status: row.get(19)?,
-                overall_grade: row.get(20)?,
-                notes: row.get(21)?,
-                created_at: row.get(22)?,
+                notes: row.get(20)?,
+                created_at: row.get(21)?,
             })
         })
         .map_err(|e| format!("get_fitness_assessments: {e}"))?;

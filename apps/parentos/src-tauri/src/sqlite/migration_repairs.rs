@@ -209,6 +209,78 @@ fn migration_repairs_version_5_db_with_legacy_reminder_state_columns() {
 }
 
 #[test]
+fn migration_v17_purges_orphan_reminder_states_but_keeps_admitted_ortho_rules() {
+    let conn = Connection::open_in_memory().expect("open in-memory db");
+    conn.execute_batch("PRAGMA foreign_keys=ON;")
+        .expect("enable foreign keys");
+    conn.execute_batch(V1_SCHEMA_SQL)
+        .expect("create baseline schema");
+    conn.execute_batch(
+        "CREATE TABLE _schema_version (
+            version INTEGER NOT NULL,
+            applied_at TEXT NOT NULL
+        );",
+    )
+    .expect("create schema version table");
+    conn.execute(
+        "INSERT INTO _schema_version (version, applied_at) VALUES (?1, ?2)",
+        params![16i64, "2026-04-01T00:00:00.000Z"],
+    )
+    .expect("seed schema version at v16");
+
+    // Run migrations once to bring this v16-stamped DB up to v17 schema
+    // (this lays down the columns and orthodontic tables we need below).
+    run_migrations(&conn).expect("bring db forward to v17");
+    seed_family_and_child(&conn);
+
+    // Insert two reminder_states rows: one with an admitted PO-ORTHO ruleId,
+    // one with a clearly orphan id that no YAML admits.
+    conn.execute(
+        "INSERT INTO reminder_states (stateId, childId, ruleId, status, activatedAt, completedAt, dismissedAt, dismissReason, repeatIndex, nextTriggerAt, snoozedUntil, scheduledDate, notApplicable, plannedForDate, surfaceRank, lastSurfacedAt, surfaceCount, notes, createdAt, updatedAt) VALUES (?1, ?2, ?3, 'active', ?4, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0, NULL, ?4, ?4)",
+        params![
+            "state-admitted",
+            "child-1",
+            "PO-ORTHO-ALIGNER-CHANGE",
+            "2026-04-01T00:00:00.000Z"
+        ],
+    )
+    .expect("insert admitted ortho state");
+
+    conn.execute(
+        "INSERT INTO reminder_states (stateId, childId, ruleId, status, activatedAt, completedAt, dismissedAt, dismissReason, repeatIndex, nextTriggerAt, snoozedUntil, scheduledDate, notApplicable, plannedForDate, surfaceRank, lastSurfacedAt, surfaceCount, notes, createdAt, updatedAt) VALUES (?1, ?2, ?3, 'active', ?4, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, 0, NULL, ?4, ?4)",
+        params![
+            "state-orphan",
+            "child-1",
+            "PO-ORTHO-MADE-UP-RULE",
+            "2026-04-01T00:00:00.000Z"
+        ],
+    )
+    .expect("insert orphan state");
+
+    // Re-run migrations: idempotent repair should purge the orphan and keep
+    // the admitted row.
+    run_migrations(&conn).expect("re-run migrations");
+
+    let admitted_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM reminder_states WHERE ruleId = 'PO-ORTHO-ALIGNER-CHANGE'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("count admitted rows");
+    assert_eq!(admitted_count, 1, "admitted PO-ORTHO ruleId must survive v17 purge");
+
+    let orphan_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM reminder_states WHERE ruleId = 'PO-ORTHO-MADE-UP-RULE'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("count orphan rows");
+    assert_eq!(orphan_count, 0, "orphan ruleId must be purged by v17");
+}
+
+#[test]
 fn migration_v7_adds_keepsake_metadata_columns_to_existing_journal_entries() {
     let conn = Connection::open_in_memory().expect("open in-memory db");
     conn.execute_batch("PRAGMA foreign_keys=ON;")

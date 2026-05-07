@@ -14,12 +14,12 @@ const ITEM_H = 28;
 const VISIBLE_ROWS = 3;
 const WHEEL_STEP_THRESHOLD_PX = 72;
 
-function parseDateValue(value: string): Date {
+export function parseDateValue(value: string): Date {
   const [year, month, day] = value.split('-').map(Number);
   return new Date(year ?? 2000, (month ?? 1) - 1, day ?? 1, 12, 0, 0, 0);
 }
 
-function formatDateValue(date: Date): string {
+export function formatDateValue(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
@@ -45,7 +45,7 @@ function isAfterDay(a: Date, b: Date): boolean {
   return a.getDate() > b.getDate();
 }
 
-function clampToMax(date: Date, maxDate: Date | null): Date {
+export function clampToMax(date: Date, maxDate: Date | null): Date {
   if (!maxDate) return date;
   return isAfterDay(date, maxDate) ? maxDate : date;
 }
@@ -162,7 +162,7 @@ function DrumColumn({ items, selected, onSelect, label, itemHeight = ITEM_H, vis
 
 /* ── DatePickerPanel ── */
 
-const DatePickerPanel = forwardRef<HTMLDivElement, {
+export const DatePickerPanel = forwardRef<HTMLDivElement, {
   anchorRef: React.RefObject<HTMLDivElement | null>;
   open: boolean;
   value: string;

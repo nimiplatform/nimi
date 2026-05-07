@@ -382,7 +382,6 @@ export interface FitnessAssessmentRow {
   doubleFootJump: number | null;
   balanceBeam: number | null;
   footArchStatus: string | null;
-  overallGrade: string | null;
   notes: string | null;
   createdAt: string;
 }
@@ -408,7 +407,6 @@ export function insertFitnessAssessment(params: {
   doubleFootJump: number | null;
   balanceBeam: number | null;
   footArchStatus: string | null;
-  overallGrade: string | null;
   notes: string | null;
   now: string;
 }) {

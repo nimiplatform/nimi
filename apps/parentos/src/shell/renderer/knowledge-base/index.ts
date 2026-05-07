@@ -51,6 +51,8 @@ export type {
   HealthMetricGroupId,
   HealthMetricDefinition,
   HealthMetricId,
+  HealthApplicableAgeRange,
+  HealthApplicableSex,
   HealthValueShape,
   HealthValueCardinality,
   HealthRecordKind,

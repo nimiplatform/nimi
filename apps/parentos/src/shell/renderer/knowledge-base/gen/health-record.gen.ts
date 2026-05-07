@@ -3,7 +3,7 @@
 
 
 export type HealthMetricGroupId = 'growth' | 'vision' | 'fitness' | 'sleep' | 'outdoor' | 'vaccine' | 'dental' | 'medical' | 'development';
-export type HealthMetricId = 'growth.height' | 'growth.weight' | 'growth.head_circumference' | 'growth.bmi' | 'vision.left_visual_acuity' | 'vision.right_visual_acuity' | 'vision.left_axial_length' | 'vision.right_axial_length' | 'vision.left_iop' | 'vision.right_iop' | 'fitness.run_50m' | 'fitness.vital_capacity' | 'fitness.run_800m' | 'fitness.run_1000m' | 'fitness.run_50x8' | 'fitness.sit_and_reach' | 'fitness.standing_long_jump' | 'fitness.sit_ups' | 'fitness.pull_ups' | 'fitness.rope_skipping' | 'fitness.run_10m_shuttle' | 'fitness.tennis_ball_throw' | 'fitness.double_foot_jump' | 'fitness.balance_beam' | 'fitness.foot_arch_status' | 'fitness.overall_grade' | 'development.tanner_breast_stage' | 'development.tanner_genital_stage' | 'development.tanner_pubic_hair_stage' | 'development.bone_age_years' | 'development.body_fat_percentage' | 'sleep.duration_minutes' | 'outdoor.weekly_goal_minutes' | 'outdoor.activity_minutes' | 'vaccine.administration' | 'dental.event' | 'medical.event' | 'development.milestone';
+export type HealthMetricId = 'growth.height' | 'growth.weight' | 'growth.head_circumference' | 'growth.bmi' | 'vision.left_visual_acuity' | 'vision.right_visual_acuity' | 'vision.left_axial_length' | 'vision.right_axial_length' | 'vision.left_iop' | 'vision.right_iop' | 'fitness.run_50m' | 'fitness.vital_capacity' | 'fitness.run_800m' | 'fitness.run_1000m' | 'fitness.run_50x8' | 'fitness.sit_and_reach' | 'fitness.standing_long_jump' | 'fitness.sit_ups' | 'fitness.pull_ups' | 'fitness.rope_skipping' | 'fitness.run_10m_shuttle' | 'fitness.tennis_ball_throw' | 'fitness.double_foot_jump' | 'fitness.balance_beam' | 'fitness.foot_arch_status' | 'development.tanner_breast_stage' | 'development.tanner_genital_stage' | 'development.tanner_pubic_hair_stage' | 'development.bone_age_years' | 'development.body_fat_percentage' | 'sleep.duration_minutes' | 'outdoor.weekly_goal_minutes' | 'outdoor.activity_minutes' | 'vaccine.administration' | 'dental.event' | 'medical.event' | 'development.milestone';
 export type HealthEvaluationPolicyId = 'growth.percentile-band' | 'growth.bmi-percentile-band' | 'vision.age-reference-band' | 'vision.axial-reference-band' | 'vision.iop-reference-band' | 'fitness.standard-grade' | 'development.tanner-stage-reference' | 'sleep.age-reference-band' | 'outdoor.goal-presence' | 'outdoor.goal-progress' | 'vaccine.rule-completion' | 'dental.event-severity' | 'medical.result-projection' | 'development.catalog-window';
 export type HealthCaptureProtocolId = 'growth-infant-monthly' | 'growth-child-quarterly' | 'growth-school-biannual' | 'vision-basic' | 'vision-full-exam' | 'fitness-school-assessment' | 'tanner-female-self-assessment' | 'tanner-male-self-assessment' | 'development-auxiliary-measurement' | 'outdoor-goal' | 'outdoor-activity' | 'sleep-night' | 'vaccine-administration' | 'dental-event' | 'medical-event' | 'milestone-achievement';
 export type HealthRecordDataRuleId = 'PO-REM-OUTD-001' | 'PO-REM-OUTD-002' | 'PO-REM-GRO-001' | 'PO-REM-GRO-002' | 'PO-REM-GRO-003' | 'PO-REM-FIT-001' | 'PO-REM-TAN-001' | 'PO-REM-TAN-002';
@@ -25,6 +25,13 @@ export interface HealthMetricGroup {
   rank: number;
 }
 
+export interface HealthApplicableAgeRange {
+  startMonths: number;
+  endMonths: number;
+}
+
+export type HealthApplicableSex = 'male' | 'female' | 'both';
+
 export interface HealthMetricDefinition {
   metricId: HealthMetricId;
   groupId: HealthMetricGroupId;
@@ -40,6 +47,8 @@ export interface HealthMetricDefinition {
   detailRoute?: string;
   sourceSupport: readonly HealthSourceSupport[];
   safetyClass: HealthSafetyClass;
+  applicableAgeRange?: HealthApplicableAgeRange;
+  applicableSex?: HealthApplicableSex;
 }
 
 export interface HealthStatusTaxonomyEntry {
@@ -208,7 +217,7 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
     "metricId": "growth.bmi",
     "groupId": "growth",
     "displayName": "BMI",
-    "unit": "kg/m2",
+    "unit": "kg/m²",
     "precision": 1,
     "valueShape": "number",
     "valueCardinality": "single",
@@ -226,7 +235,6 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
     "metricId": "vision.left_visual_acuity",
     "groupId": "vision",
     "displayName": "Left visual acuity",
-    "unit": "decimal",
     "precision": 1,
     "valueShape": "number",
     "valueCardinality": "left_right_pair",
@@ -250,7 +258,6 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
     "metricId": "vision.right_visual_acuity",
     "groupId": "vision",
     "displayName": "Right visual acuity",
-    "unit": "decimal",
     "precision": 1,
     "valueShape": "number",
     "valueCardinality": "left_right_pair",
@@ -379,7 +386,12 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 72,
+      "endMonths": 216
+    },
+    "applicableSex": "both"
   },
   {
     "metricId": "fitness.vital_capacity",
@@ -400,7 +412,12 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 72,
+      "endMonths": 216
+    },
+    "applicableSex": "both"
   },
   {
     "metricId": "fitness.run_800m",
@@ -421,7 +438,12 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 144,
+      "endMonths": 216
+    },
+    "applicableSex": "female"
   },
   {
     "metricId": "fitness.run_1000m",
@@ -442,7 +464,12 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 144,
+      "endMonths": 216
+    },
+    "applicableSex": "male"
   },
   {
     "metricId": "fitness.run_50x8",
@@ -463,7 +490,12 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 120,
+      "endMonths": 144
+    },
+    "applicableSex": "both"
   },
   {
     "metricId": "fitness.sit_and_reach",
@@ -484,7 +516,12 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 36,
+      "endMonths": 216
+    },
+    "applicableSex": "both"
   },
   {
     "metricId": "fitness.standing_long_jump",
@@ -505,13 +542,18 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 36,
+      "endMonths": 216
+    },
+    "applicableSex": "both"
   },
   {
     "metricId": "fitness.sit_ups",
     "groupId": "fitness",
     "displayName": "Sit-ups",
-    "unit": "count",
+    "unit": "次",
     "precision": 0,
     "valueShape": "number",
     "valueCardinality": "single",
@@ -526,13 +568,18 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 96,
+      "endMonths": 216
+    },
+    "applicableSex": "both"
   },
   {
     "metricId": "fitness.pull_ups",
     "groupId": "fitness",
     "displayName": "Pull-ups",
-    "unit": "count",
+    "unit": "次",
     "precision": 0,
     "valueShape": "number",
     "valueCardinality": "single",
@@ -547,13 +594,18 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 144,
+      "endMonths": 216
+    },
+    "applicableSex": "male"
   },
   {
     "metricId": "fitness.rope_skipping",
     "groupId": "fitness",
     "displayName": "Rope skipping",
-    "unit": "count_per_min",
+    "unit": "次/分",
     "precision": 0,
     "valueShape": "number",
     "valueCardinality": "single",
@@ -568,7 +620,12 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 72,
+      "endMonths": 120
+    },
+    "applicableSex": "both"
   },
   {
     "metricId": "fitness.run_10m_shuttle",
@@ -589,7 +646,12 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 36,
+      "endMonths": 72
+    },
+    "applicableSex": "both"
   },
   {
     "metricId": "fitness.tennis_ball_throw",
@@ -610,7 +672,12 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 36,
+      "endMonths": 72
+    },
+    "applicableSex": "both"
   },
   {
     "metricId": "fitness.double_foot_jump",
@@ -631,7 +698,12 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 36,
+      "endMonths": 72
+    },
+    "applicableSex": "both"
   },
   {
     "metricId": "fitness.balance_beam",
@@ -652,7 +724,12 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 36,
+      "endMonths": 72
+    },
+    "applicableSex": "both"
   },
   {
     "metricId": "fitness.foot_arch_status",
@@ -671,26 +748,12 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "imported"
     ],
-    "safetyClass": "descriptive"
-  },
-  {
-    "metricId": "fitness.overall_grade",
-    "groupId": "fitness",
-    "displayName": "Overall fitness grade",
-    "valueShape": "enum",
-    "valueCardinality": "single",
-    "recordKind": "assessment",
-    "captureProtocolIds": [
-      "fitness-school-assessment"
-    ],
-    "evaluationPolicyRef": "fitness.standard-grade",
-    "freshnessPolicyRef": "fitness.school-year-cadence",
-    "detailRoute": "/profile/fitness",
-    "sourceSupport": [
-      "manual",
-      "imported"
-    ],
-    "safetyClass": "descriptive"
+    "safetyClass": "descriptive",
+    "applicableAgeRange": {
+      "startMonths": 36,
+      "endMonths": 216
+    },
+    "applicableSex": "both"
   },
   {
     "metricId": "development.tanner_breast_stage",
@@ -711,7 +774,8 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "reminder"
     ],
-    "safetyClass": "professional_review_prompt"
+    "safetyClass": "professional_review_prompt",
+    "applicableSex": "female"
   },
   {
     "metricId": "development.tanner_genital_stage",
@@ -732,7 +796,8 @@ export const HEALTH_METRICS: readonly HealthMetricDefinition[] = [
       "manual",
       "reminder"
     ],
-    "safetyClass": "professional_review_prompt"
+    "safetyClass": "professional_review_prompt",
+    "applicableSex": "male"
   },
   {
     "metricId": "development.tanner_pubic_hair_stage",
@@ -1525,8 +1590,7 @@ export const HEALTH_CAPTURE_PROTOCOLS: readonly HealthCaptureProtocol[] = [
       "fitness.tennis_ball_throw",
       "fitness.double_foot_jump",
       "fitness.balance_beam",
-      "fitness.foot_arch_status",
-      "fitness.overall_grade"
+      "fitness.foot_arch_status"
     ],
     "requiredMetricIds": [],
     "optionalMetricIds": [
@@ -1544,8 +1608,7 @@ export const HEALTH_CAPTURE_PROTOCOLS: readonly HealthCaptureProtocol[] = [
       "fitness.tennis_ball_throw",
       "fitness.double_foot_jump",
       "fitness.balance_beam",
-      "fitness.foot_arch_status",
-      "fitness.overall_grade"
+      "fitness.foot_arch_status"
     ],
     "sourceSupport": [
       "manual",
@@ -1888,7 +1951,7 @@ export const HEALTH_REMINDER_CAPTURE_TARGETS: readonly HealthReminderCaptureTarg
     "completionPolicy": "Complete only after one male Tanner self-assessment event persists genital stage and pubic hair stage for the target child."
   }
 ] ;
-export const HEALTH_METRIC_IDS = ["growth.height","growth.weight","growth.head_circumference","growth.bmi","vision.left_visual_acuity","vision.right_visual_acuity","vision.left_axial_length","vision.right_axial_length","vision.left_iop","vision.right_iop","fitness.run_50m","fitness.vital_capacity","fitness.run_800m","fitness.run_1000m","fitness.run_50x8","fitness.sit_and_reach","fitness.standing_long_jump","fitness.sit_ups","fitness.pull_ups","fitness.rope_skipping","fitness.run_10m_shuttle","fitness.tennis_ball_throw","fitness.double_foot_jump","fitness.balance_beam","fitness.foot_arch_status","fitness.overall_grade","development.tanner_breast_stage","development.tanner_genital_stage","development.tanner_pubic_hair_stage","development.bone_age_years","development.body_fat_percentage","sleep.duration_minutes","outdoor.weekly_goal_minutes","outdoor.activity_minutes","vaccine.administration","dental.event","medical.event","development.milestone"] as const;
+export const HEALTH_METRIC_IDS = ["growth.height","growth.weight","growth.head_circumference","growth.bmi","vision.left_visual_acuity","vision.right_visual_acuity","vision.left_axial_length","vision.right_axial_length","vision.left_iop","vision.right_iop","fitness.run_50m","fitness.vital_capacity","fitness.run_800m","fitness.run_1000m","fitness.run_50x8","fitness.sit_and_reach","fitness.standing_long_jump","fitness.sit_ups","fitness.pull_ups","fitness.rope_skipping","fitness.run_10m_shuttle","fitness.tennis_ball_throw","fitness.double_foot_jump","fitness.balance_beam","fitness.foot_arch_status","development.tanner_breast_stage","development.tanner_genital_stage","development.tanner_pubic_hair_stage","development.bone_age_years","development.body_fat_percentage","sleep.duration_minutes","outdoor.weekly_goal_minutes","outdoor.activity_minutes","vaccine.administration","dental.event","medical.event","development.milestone"] as const;
 export const HEALTH_CAPTURE_PROTOCOL_IDS = ["growth-infant-monthly","growth-child-quarterly","growth-school-biannual","vision-basic","vision-full-exam","fitness-school-assessment","tanner-female-self-assessment","tanner-male-self-assessment","development-auxiliary-measurement","outdoor-goal","outdoor-activity","sleep-night","vaccine-administration","dental-event","medical-event","milestone-achievement"] as const;
 export const HEALTH_EVALUATION_POLICY_IDS = ["growth.percentile-band","growth.bmi-percentile-band","vision.age-reference-band","vision.axial-reference-band","vision.iop-reference-band","fitness.standard-grade","development.tanner-stage-reference","sleep.age-reference-band","outdoor.goal-presence","outdoor.goal-progress","vaccine.rule-completion","dental.event-severity","medical.result-projection","development.catalog-window"] as const;
 export const HEALTH_RECORD_DATA_RULE_IDS = ["PO-REM-OUTD-001","PO-REM-OUTD-002","PO-REM-GRO-001","PO-REM-GRO-002","PO-REM-GRO-003","PO-REM-FIT-001","PO-REM-TAN-001","PO-REM-TAN-002"] as const;

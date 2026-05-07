@@ -211,7 +211,10 @@ export function buildHealthRecordSnapshot(input: {
     .sort((left, right) => left.rank - right.rank)
     .map((group) => ({
       group,
-      metrics: HEALTH_METRICS.filter((metric) => metric.groupId === group.groupId).map((metric) => {
+      metrics: HEALTH_METRICS
+        .filter((metric) => metric.groupId === group.groupId)
+        .filter((metric) => metricAppliesToChild(metric, input.ageMonths, input.sex))
+        .map((metric) => {
         const latestValue = latestByMetric.get(metric.metricId) ?? null;
         const latestEvent = latestValue ? eventById.get(latestValue.eventId) ?? null : null;
         const nextRecordAt = latestEvent
@@ -247,6 +250,22 @@ export function calculateBmi(heightCm: number, weightKg: number): number {
   }
   const meters = heightCm / 100;
   return roundTo(weightKg / (meters * meters), 1);
+}
+
+function metricAppliesToChild(
+  metric: HealthMetricDefinition,
+  ageMonths: number,
+  sex: GrowthPercentileSex | undefined,
+): boolean {
+  const range = metric.applicableAgeRange;
+  if (range && (ageMonths < range.startMonths || ageMonths > range.endMonths)) {
+    return false;
+  }
+  const applicableSex = metric.applicableSex;
+  if (applicableSex && applicableSex !== 'both' && sex && applicableSex !== sex) {
+    return false;
+  }
+  return true;
 }
 
 function groupValuesByEvent(values: readonly HealthRecordValue[]) {

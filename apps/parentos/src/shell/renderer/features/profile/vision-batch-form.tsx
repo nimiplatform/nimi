@@ -268,11 +268,26 @@ export function ValueCell({ typeId, label, unit, value, onChange }: {
    BATCH INPUT FORM
    ================================================================ */
 
-export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, ocrDraft }: {
-  childId: string; birthDate: string; onSave: () => void; onClose: () => void;
+type VisionBatchFormProps = {
+  childId: string;
+  birthDate: string;
+  onSave: () => void;
+  onClose: () => void;
   initialRecord?: VisionRecord;
   ocrDraft?: OCRMeasurementCandidate[] | null;
-}) {
+};
+
+export function BatchForm(props: VisionBatchFormProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={props.onClose}>
+      <div className={`w-[680px] max-h-[85vh] overflow-y-auto ${S.radius} p-5 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+        <VisionBatchFormContent {...props} />
+      </div>
+    </div>
+  );
+}
+
+export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, initialRecord, ocrDraft }: VisionBatchFormProps) {
   const { t } = useTranslation();
   const initVals: Record<string, string> = {};
   if (initialRecord) { for (const [k, v] of initialRecord.data) initVals[k] = String(v); }
@@ -449,8 +464,7 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
   const inp = `${S.radiusSm} px-3 py-2 text-[14px] border-0 outline-none focus:ring-2 focus:ring-[#BDE0F5]/30`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
-    <div className={`w-[680px] max-h-[85vh] overflow-y-auto ${S.radius} p-5 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
+    <>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>{initialRecord ? t('Profile.rich.visionBatch.editTitle', { date: initialRecord.date }) : t('Profile.rich.visionBatch.createTitle')}</h3>
         <div className="flex items-center gap-2">
@@ -603,7 +617,6 @@ export function BatchForm({ childId, birthDate, onSave, onClose, initialRecord, 
           </button>
         </div>
       </div>
-    </div>
-    </div>
+    </>
   );
 }

@@ -1,7 +1,10 @@
-import type { RefObject } from 'react';
+import { useEffect, useState, type RefObject } from 'react';
 import { S } from '../../app-shell/page-style.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 import { DrugComboBox, type DrugSelection } from './drug-combobox.js';
+import { getMedicalEvents } from '../../bridge/sqlite-bridge.js';
+import type { MedicalEventRow } from '../../bridge/sqlite-bridge.js';
+import { catchLog } from '../../infra/telemetry/catch-log.js';
 import {
   COMMON_SYMPTOMS,
   EVENT_TYPE_COLORS,
@@ -15,45 +18,89 @@ import {
   SEVERITY_OPTIONS,
   VISIT_TYPES,
 } from './medical-events-page-shared.js';
-import type { MedicalEventsFormMedication } from './medical-events-page-types.js';
+import type {
+  MedicalEventsChildContext,
+  MedicalEventsFormMedication,
+} from './medical-events-page-types.js';
+import { useMedicalEventsFormState } from './medical-events-page-form-state.js';
 
-export function MedicalEventsForm({
-  editingEventId,
-  formEventType,
-  setFormEventType,
-  formTitle,
-  setFormTitle,
-  formEventDate,
-  setFormEventDate,
-  formEndDate,
-  setFormEndDate,
-  formShowEndDate,
-  setFormShowEndDate,
-  formSeverity,
-  setFormSeverity,
-  formResult,
-  setFormResult,
-  formHospital,
-  setFormHospital,
-  formNotes,
-  setFormNotes,
-  formLabValues,
-  setFormLabValues,
-  formSymptomTags,
-  setFormSymptomTags,
-  formMeds,
-  setFormMeds,
-  historyDrugs,
-  ocrLoading,
-  ocrError,
-  ocrImageName,
-  ocrInputRef,
-  submitError,
-  saving,
+export function MedicalEventsForm(props: MedicalEventsFormProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={props.onClose}>
+      <div className="w-[520px] max-h-[85vh] flex flex-col rounded-2xl shadow-xl" style={{ background: '#f4f5f0' }} onClick={(event) => event.stopPropagation()}>
+        <MedicalEventsFormBody {...props} />
+      </div>
+    </div>
+  );
+}
+
+export function MedicalEventFormContent({
+  child,
+  onSaved,
   onClose,
-  onSubmit,
-  onOCRUpload,
 }: {
+  child: MedicalEventsChildContext;
+  onSaved?: () => void;
+  onClose: () => void;
+}) {
+  const [events, setEvents] = useState<MedicalEventRow[]>([]);
+
+  useEffect(() => {
+    getMedicalEvents(child.childId)
+      .then(setEvents)
+      .catch(catchLog('medical-events', 'action:load-medical-events-failed'));
+  }, [child.childId]);
+
+  const formState = useMedicalEventsFormState(child, events, (next) => {
+    setEvents(next);
+    onSaved?.();
+    onClose();
+  });
+
+  return (
+    <div className="w-[520px] flex flex-col max-h-[85vh] rounded-2xl" style={{ background: '#f4f5f0' }}>
+      <MedicalEventsFormBody
+        editingEventId={formState.editingEventId}
+        formEventType={formState.formEventType}
+        setFormEventType={formState.setFormEventType}
+        formTitle={formState.formTitle}
+        setFormTitle={formState.setFormTitle}
+        formEventDate={formState.formEventDate}
+        setFormEventDate={formState.setFormEventDate}
+        formEndDate={formState.formEndDate}
+        setFormEndDate={formState.setFormEndDate}
+        formShowEndDate={formState.formShowEndDate}
+        setFormShowEndDate={formState.setFormShowEndDate}
+        formSeverity={formState.formSeverity}
+        setFormSeverity={formState.setFormSeverity}
+        formResult={formState.formResult}
+        setFormResult={formState.setFormResult}
+        formHospital={formState.formHospital}
+        setFormHospital={formState.setFormHospital}
+        formNotes={formState.formNotes}
+        setFormNotes={formState.setFormNotes}
+        formLabValues={formState.formLabValues}
+        setFormLabValues={formState.setFormLabValues}
+        formSymptomTags={formState.formSymptomTags}
+        setFormSymptomTags={formState.setFormSymptomTags}
+        formMeds={formState.formMeds}
+        setFormMeds={formState.setFormMeds}
+        historyDrugs={formState.historyDrugs}
+        ocrLoading={formState.ocrLoading}
+        ocrError={formState.ocrError}
+        ocrImageName={formState.ocrImageName}
+        ocrInputRef={formState.ocrInputRef}
+        submitError={formState.submitError}
+        saving={formState.saving}
+        onClose={onClose}
+        onSubmit={() => { void formState.submitForm(); }}
+        onOCRUpload={(file) => { void formState.handleOCRUpload(file); }}
+      />
+    </div>
+  );
+}
+
+type MedicalEventsFormProps = {
   editingEventId: string | null;
   formEventType: string;
   setFormEventType: (value: string) => void;
@@ -89,13 +136,50 @@ export function MedicalEventsForm({
   onClose: () => void;
   onSubmit: () => void;
   onOCRUpload: (file: File) => void;
-}) {
+};
+
+function MedicalEventsFormBody({
+  editingEventId,
+  formEventType,
+  setFormEventType,
+  formTitle,
+  setFormTitle,
+  formEventDate,
+  setFormEventDate,
+  formEndDate,
+  setFormEndDate,
+  formShowEndDate,
+  setFormShowEndDate,
+  formSeverity,
+  setFormSeverity,
+  formResult,
+  setFormResult,
+  formHospital,
+  setFormHospital,
+  formNotes,
+  setFormNotes,
+  formLabValues,
+  setFormLabValues,
+  formSymptomTags,
+  setFormSymptomTags,
+  formMeds,
+  setFormMeds,
+  historyDrugs,
+  ocrLoading,
+  ocrError,
+  ocrImageName,
+  ocrInputRef,
+  submitError,
+  saving,
+  onClose,
+  onSubmit,
+  onOCRUpload,
+}: MedicalEventsFormProps) {
   const showResultField = formEventType === 'checkup';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
-      <div className="w-[520px] max-h-[85vh] flex flex-col rounded-2xl shadow-xl" style={{ background: '#f4f5f0' }} onClick={(event) => event.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
+    <>
+      <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
           <div className="flex items-center gap-2.5">
             <span className="w-9 h-9 rounded-xl flex items-center justify-center text-[18px]" style={{ background: '#f1f5f9' }}>
               {EVENT_TYPE_ICONS[formEventType] ?? '🏥'}
@@ -369,15 +453,14 @@ export function MedicalEventsForm({
           ) : null}
         </div>
 
-        <div className="shrink-0 px-6 py-4" style={{ borderTop: `1px solid ${S.border}`, background: '#f4f5f0' }}>
-          <div className="flex items-center justify-end gap-2.5">
-            <button onClick={onClose} className="px-5 py-2.5 text-[14px] rounded-xl transition-colors hover:bg-[#e8e8e4]" style={{ background: '#e8e8e4', color: S.sub }}>取消</button>
-            <button onClick={onSubmit} disabled={saving} className="px-6 py-2.5 text-[14px] font-medium text-white rounded-xl transition-colors hover:brightness-110 disabled:opacity-50" style={{ background: S.accent }}>
-              {saving ? '保存中...' : editingEventId ? '更新记录' : '保存记录'}
-            </button>
-          </div>
+      <div className="shrink-0 px-6 py-4" style={{ borderTop: `1px solid ${S.border}`, background: '#f4f5f0' }}>
+        <div className="flex items-center justify-end gap-2.5">
+          <button onClick={onClose} className="px-5 py-2.5 text-[14px] rounded-xl transition-colors hover:bg-[#e8e8e4]" style={{ background: '#e8e8e4', color: S.sub }}>取消</button>
+          <button onClick={onSubmit} disabled={saving} className="px-6 py-2.5 text-[14px] font-medium text-white rounded-xl transition-colors hover:brightness-110 disabled:opacity-50" style={{ background: S.accent }}>
+            {saving ? '保存中...' : editingEventId ? '更新记录' : '保存记录'}
+          </button>
         </div>
       </div>
-    </div>
+    </>
   );
 }

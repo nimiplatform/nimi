@@ -136,8 +136,7 @@
         "tennisBallThrow": "\u7f51\u7403\u63b7\u8fdc",
         "doubleFootJump": "\u53cc\u811a\u8fde\u7eed\u8df3",
         "balanceBeam": "\u5e73\u8861\u6728",
-        "footArchStatus": "\u8db3\u5f13\u72b6\u6001",
-        "overallGrade": "\u7efc\u5408\u8bc4\u7ea7"
+        "footArchStatus": "\u8db3\u5f13\u72b6\u6001"
       },
       "development": {
         "tannerBreastStage": "Tanner \u4e73\u623f\u5206\u671f",

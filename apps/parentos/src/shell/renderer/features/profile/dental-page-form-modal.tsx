@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { AttachmentRow } from '../../bridge/sqlite-bridge.js';
 import { S } from '../../app-shell/page-style.js';
@@ -48,15 +49,9 @@ type DentalRecordFormModalProps = {
 };
 
 export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
-  const visibleExistingPhotoAttachments = props.existingPhotoAttachments.filter(
-    (attachment) => !props.removedAttachmentIds.includes(attachment.attachmentId),
-  );
-  const totalPhotoCount = visibleExistingPhotoAttachments.length + props.formPhotoFiles.length;
-
   if (!props.show) {
     return null;
   }
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
@@ -68,7 +63,22 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
         style={{ background: S.card }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 pb-3 pt-6">
+        <DentalRecordFormBody {...props} />
+      </div>
+    </div>
+  );
+}
+
+export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
+  const visibleExistingPhotoAttachments = props.existingPhotoAttachments.filter(
+    (attachment) => !props.removedAttachmentIds.includes(attachment.attachmentId),
+  );
+  const totalPhotoCount = visibleExistingPhotoAttachments.length + props.formPhotoFiles.length;
+  const [entryAddHover, setEntryAddHover] = useState(false);
+
+  return (
+    <>
+      <div className="flex items-center justify-between px-6 pb-3 pt-6">
           <div className="flex items-center gap-2">
             <span className="text-[20px]">{props.isEditing ? '✏️' : '🦷'}</span>
             <h2 className="text-[16px] font-bold" style={{ color: S.text }}>
@@ -229,13 +239,13 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
             type="button"
             onClick={props.addEntry}
             hidden={props.isEditing}
-            onMouseEnter={() => props.setPhotoDropHover(true)}
-            onMouseLeave={() => props.setPhotoDropHover(false)}
+            onMouseEnter={() => setEntryAddHover(true)}
+            onMouseLeave={() => setEntryAddHover(false)}
             className={`flex w-full items-center justify-center gap-2 py-3 text-[13px] font-medium ${S.radiusSm}`}
             style={{
-              border: `2px dashed ${props.photoDropHover ? '#4ECCA3' : '#d0d0cc'}`,
-              background: props.photoDropHover ? '#f9fbf4' : '#fafaf8',
-              color: props.photoDropHover ? S.accent : S.sub,
+              border: `2px dashed ${entryAddHover ? '#4ECCA3' : '#d0d0cc'}`,
+              background: entryAddHover ? '#f9fbf4' : '#fafaf8',
+              color: entryAddHover ? S.accent : S.sub,
               transition: 'border-color 0.25s ease, background 0.25s ease, color 0.25s ease',
             }}
           >
@@ -247,8 +257,8 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
               strokeWidth="1.5"
               strokeLinecap="round"
               style={{
-                stroke: props.photoDropHover ? '#1e293b' : '#b0b0aa',
-                transform: props.photoDropHover ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
+                stroke: entryAddHover ? S.accent : '#b0b0aa',
+                transform: entryAddHover ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
                 transition: 'stroke 0.25s ease, transform 0.3s ease',
               }}
             >
@@ -327,57 +337,62 @@ export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
                 </div>
               ))}
               {totalPhotoCount < PHOTO_MAX ? (
-                <button
-                  type="button"
-                  onClick={() => void props.pickPhotoFiles()}
-                  onMouseEnter={() => props.setPhotoDropHover(true)}
-                  onMouseLeave={() => props.setPhotoDropHover(false)}
-                  className={`flex h-24 w-full flex-col items-center justify-center gap-1.5 ${S.radiusSm}`}
-                  style={{
-                    border: `2px dashed ${props.photoDragOver || props.photoDropHover ? '#4ECCA3' : '#d0d0cc'}`,
-                    background: '#fafaf8',
-                    transition: 'border-color 0.25s ease',
-                  }}
-                >
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    style={{
-                      stroke: props.photoDragOver || props.photoDropHover ? '#1e293b' : '#b0b0aa',
-                      transform: props.photoDragOver || props.photoDropHover ? 'scale(1.15)' : 'scale(1)',
-                      transition: 'stroke 0.25s ease, transform 0.25s ease',
-                    }}
-                  >
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                  <span
-                    className="px-1 text-center text-[12px]"
-                    style={{
-                      color: props.photoDragOver || props.photoDropHover ? '#1e293b' : '#a0a0a0',
-                      transition: 'color 0.25s ease',
-                    }}
-                  >
-                    {props.formPhotoFiles.length === 0 ? `点击或拖拽上传口腔照片（最多 ${PHOTO_MAX} 张）` : '添加更多'}
-                  </span>
-                </button>
+                (() => {
+                  const photoActive = props.photoDragOver || props.photoDropHover;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => void props.pickPhotoFiles()}
+                      onMouseEnter={() => props.setPhotoDropHover(true)}
+                      onMouseLeave={() => props.setPhotoDropHover(false)}
+                      className={`flex h-24 ${totalPhotoCount === 0 ? 'col-span-3' : ''} w-full flex-col items-center justify-center gap-1.5 ${S.radiusSm}`}
+                      style={{
+                        border: `2px dashed ${photoActive ? '#4ECCA3' : '#d0d0cc'}`,
+                        background: photoActive ? '#f9fbf4' : '#fafaf8',
+                        color: photoActive ? S.accent : S.sub,
+                        transition: 'border-color 0.25s ease, background 0.25s ease, color 0.25s ease',
+                      }}
+                    >
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        style={{
+                          stroke: photoActive ? S.accent : '#b0b0aa',
+                          transform: photoActive ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
+                          transition: 'stroke 0.25s ease, transform 0.3s ease',
+                        }}
+                      >
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                      <span
+                        className="px-1 text-center text-[12px]"
+                        style={{
+                          color: 'inherit',
+                          transition: 'color 0.25s ease',
+                        }}
+                      >
+                        {props.formPhotoFiles.length === 0 ? `点击或拖拽上传口腔照片（最多 ${PHOTO_MAX} 张）` : '添加更多'}
+                      </span>
+                    </button>
+                  );
+                })()
               ) : null}
             </div>
           </div>
         </div>
 
-        <div className="mt-1 px-6 pb-5 pt-3">
-          <div className="flex items-center justify-end gap-2">
-            <button type="button" onClick={props.resetForm} className={`px-4 py-2 text-[14px] transition-colors hover:bg-[#e8e8e4] ${S.radiusSm}`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
-            <button type="button" onClick={() => void props.handleSubmit()} className={`px-5 py-2 text-[14px] font-medium text-white transition-colors hover:brightness-110 ${S.radiusSm}`} style={{ background: S.accent }}>
-              {props.isEditing ? '保存修改' : '保存'}
-            </button>
-          </div>
+      <div className="mt-1 px-6 pb-5 pt-3">
+        <div className="flex items-center justify-end gap-2">
+          <button type="button" onClick={props.resetForm} className={`px-4 py-2 text-[14px] transition-colors hover:bg-[#e8e8e4] ${S.radiusSm}`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
+          <button type="button" onClick={() => void props.handleSubmit()} className={`px-5 py-2 text-[14px] font-medium text-white transition-colors hover:brightness-110 ${S.radiusSm}`} style={{ background: S.accent }}>
+            {props.isEditing ? '保存修改' : '保存'}
+          </button>
         </div>
       </div>
-    </div>
+    </>
   );
 }

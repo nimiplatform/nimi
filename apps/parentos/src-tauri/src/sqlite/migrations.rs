@@ -13,6 +13,14 @@ mod migrations_v11;
 mod migrations_v12;
 #[path = "migrations_v13.rs"]
 mod migrations_v13;
+#[path = "migrations_v14.rs"]
+mod migrations_v14;
+#[path = "migrations_v15.rs"]
+mod migrations_v15;
+#[path = "migrations_v16.rs"]
+mod migrations_v16;
+#[path = "migrations_v17.rs"]
+mod migrations_v17;
 #[path = "migrations_v2.rs"]
 mod migrations_v2;
 #[path = "migrations_v3.rs"]
@@ -35,7 +43,16 @@ use migrations_v10::apply_v10;
 use migrations_v11::apply_v11;
 use migrations_v12::apply_v12;
 use migrations_v13::apply_v13;
+use migrations_v14::apply_v14;
+use migrations_v15::apply_v15;
+use migrations_v16::apply_v16;
+use migrations_v17::apply_v17;
 use migrations_v2::apply_v2;
+
+#[cfg(test)]
+pub(super) fn __test_only_apply_v16(conn: &Connection) -> Result<(), String> {
+    apply_v16(conn)
+}
 use migrations_v3::apply_v3;
 use migrations_v4::apply_v4;
 use migrations_v5::apply_v5;
@@ -44,7 +61,7 @@ use migrations_v7::apply_v7;
 use migrations_v8::apply_v8;
 use migrations_v9::apply_v9;
 
-const SCHEMA_VERSION: u32 = 13;
+const SCHEMA_VERSION: u32 = 17;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), String> {
     ensure_schema_version_table(conn)?;
@@ -120,6 +137,26 @@ pub fn run_migrations(conn: &Connection) -> Result<(), String> {
         record_schema_version(conn, 13)?;
     }
 
+    if current_version < 14 {
+        apply_v14(conn)?;
+        record_schema_version(conn, 14)?;
+    }
+
+    if current_version < 15 {
+        apply_v15(conn)?;
+        record_schema_version(conn, 15)?;
+    }
+
+    if current_version < 16 {
+        apply_v16(conn)?;
+        record_schema_version(conn, 16)?;
+    }
+
+    if current_version < 17 {
+        apply_v17(conn)?;
+        record_schema_version(conn, 17)?;
+    }
+
     repair_missing_tables(conn)?;
 
     Ok(())
@@ -146,6 +183,10 @@ fn repair_missing_tables(conn: &Connection) -> Result<(), String> {
     apply_v11(conn)?;
     apply_v12(conn)?;
     apply_v13(conn)?;
+    apply_v14(conn)?;
+    apply_v15(conn)?;
+    apply_v16(conn)?;
+    apply_v17(conn)?;
     Ok(())
 }
 

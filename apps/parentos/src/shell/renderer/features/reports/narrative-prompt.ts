@@ -118,7 +118,7 @@ export function buildReportDataSnapshot(child: ChildProfile, period: ReportPerio
 
   const fitnessInPeriod = data.fitnessAssessments
     .filter((a) => inPeriod(a.assessedAt, period.start, period.end))
-    .map((a) => ({ assessedAt: a.assessedAt, overallGrade: a.overallGrade, run50m: a.run50m, standingLongJump: a.standingLongJump, sitUps: a.sitUps, ropeSkipping: a.ropeSkipping }));
+    .map((a) => ({ assessedAt: a.assessedAt, run50m: a.run50m, standingLongJump: a.standingLongJump, sitUps: a.sitUps, ropeSkipping: a.ropeSkipping }));
 
   const tannerInPeriod = data.tannerAssessments
     .filter((t) => inPeriod(t.assessedAt, period.start, period.end))
@@ -441,7 +441,6 @@ function buildFallbackProfessionalBody(id: string, snap: Snapshot): string {
       if (snap.fitnessInPeriod.length === 0) return '本期未记录体能评估。';
       return snap.fitnessInPeriod.map((f) => {
         const bits: string[] = [];
-        if (f.overallGrade) bits.push(`综合评级 ${f.overallGrade}`);
         if (f.run50m != null) bits.push(`50米 ${f.run50m}s`);
         if (f.standingLongJump != null) bits.push(`立定跳远 ${f.standingLongJump}cm`);
         if (f.sitUps != null) bits.push(`仰卧起坐 ${f.sitUps}`);

@@ -34,16 +34,19 @@ schema:
       - retainer-removable
   applianceStatus: { type: enum, required: true, values: [active, paused, completed] }
 
-  # v1 compliance is a TASK-COMPLETION approximation. It is NOT a clinical
-  # wear-hours reconstruction. Dashboards MUST label it as such.
-  complianceThresholds:
-    done:    { predicate: "actualWearHours >= prescribedHours * 0.80" }
-    partial: { predicate: "actualWearHours >= prescribedHours * 0.50 AND actualWearHours < prescribedHours * 0.80" }
-    missed:  { predicate: "actualWearHours <  prescribedHours * 0.50" }
+  # v1 compliance is a per-CYCLE continuous projection derived from wear-gap
+  # intervals (see PO-ORTHO-008). There is no daily bucket. The legacy
+  # `complianceThresholds` table is retired in v15 along with `wear-daily`.
+  cycleProjection:
+    formula: >
+      cycleNetWearHours = max(0, (now − cycleAnchor) − Σ closed_gap_hours_in_cycle
+                          − open_gap_hours_in_cycle_so_far)
+      cycleTargetHours  = daysPerAligner × prescribedHoursPerDay (default 22)
+      predictedSwitchDate = cycleAnchor + (cycleTargetHours / netWearRate) days
     note: >
-      These thresholds are a task-compliance approximation and must not be
-      presented as clinically precise wear-time reconstruction. The profile
-      surface wording must say "任务达成率近似" or equivalent, not "实际佩戴".
+      Cycle math runs in the Rust command layer and the renderer derive module.
+      UI wording must be cycle-relative ("本副已净戴 X / Y 小时", "下次换套预计
+      M/D（推后 N 天）"), never daily-bucket ("达成 / 部分 / 缺席"). PO-ORTHO-008.
 
   pauseSemantics:
     level: appliance            # pause is an appliance-level status, never a case-level status
@@ -77,24 +80,24 @@ applianceMinAge:
 rules:
   # ── Active protocol rules (case.stage=active) ──────────────────────────
 
-  - ruleId: PO-ORTHO-WEAR-DAILY
-    applianceTypes: [clear-aligner, twin-block, activator]
+  - ruleId: PO-ORTHO-UNWEAR-OPEN
+    applianceTypes: [clear-aligner, twin-block, activator, retainer-removable]
     domain: dental
-    title: "每日佩戴打卡"
-    description: "记录今天的实际佩戴时长。用于任务达成率近似统计。"
+    title: "未戴时间过长"
+    description: "您可能忘记戴回牙套。已未戴超过 4 小时——长时间不戴会影响治疗节奏，建议尽快戴回。"
     priority: P1
     actionType: record_data
-    cadence: daily
-    checkinType: wear-daily
-    prescribedHoursPerDay:
-      clear-aligner: 22
-      twin-block:    14
-      activator:     14
+    cadence: event_driven
+    triggerWhen: "open_unwear_interval_age >= 4h"
+    completeWhen: "unwear_interval.endAt is set OR interval is deleted"
     nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    source: "AAO-2023 clear-aligner compliance"
-    # Note: retainer-removable uses PO-ORTHO-RETENTION-WEAR (retention-phase
-    # daily rule), not this active-treatment rule. Keeping them split prevents
-    # ambiguity between active and retention compliance semantics.
+    source: "AAO-2023 removable-appliance wear protocol; reframed for desktop client"
+    # Event-driven, not cadence-driven. NOT seeded at appliance creation;
+    # written by `insert_unwear_interval` when a new open interval is created
+    # (stateId = "ortho-unwear-{intervalId}", nextTriggerAt = startAt + 4h).
+    # Closed by `close_unwear_interval` / `delete_unwear_interval`.
+    # Replaces the retired PO-ORTHO-WEAR-DAILY and PO-ORTHO-RETENTION-WEAR
+    # daily-push rules (see PO-ORTHO-005b).
 
   - ruleId: PO-ORTHO-ALIGNER-CHANGE
     applianceTypes: [clear-aligner]
@@ -163,20 +166,8 @@ rules:
     source: "AAO-2023 interceptive-orthodontics cadence"
 
   # ── Retention protocol rules (case.stage=retention) ────────────────────
-
-  - ruleId: PO-ORTHO-RETENTION-WEAR
-    applianceTypes: [retainer-removable]
-    domain: dental
-    title: "保持器佩戴打卡"
-    description: "记录保持器今日实际佩戴时长。"
-    priority: P1
-    actionType: record_data
-    cadence: daily
-    checkinType: retention-wear
-    prescribedHoursPerDay:
-      retainer-removable: 16
-    nurtureMode: { relaxed: push, balanced: push, advanced: push }
-    source: "AAO-2023 retention protocol"
+  # Daily wear is now event-driven via PO-ORTHO-UNWEAR-OPEN above; retention
+  # appliances share the same wear-gap stream as active-phase appliances.
 
   - ruleId: PO-ORTHO-RETENTION-REVIEW
     applianceTypes: [retainer-fixed, retainer-removable]

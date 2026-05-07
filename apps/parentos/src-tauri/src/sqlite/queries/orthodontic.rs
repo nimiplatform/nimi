@@ -15,12 +15,12 @@ pub(crate) struct AppliedProtocol {
     pub(crate) first_trigger_days: i64,
 }
 pub(crate) fn protocols_for_appliance(appliance_type: &str) -> &'static [AppliedProtocol] {
+    // PO-ORTHO-UNWEAR-OPEN is event-driven (seeded by `insert_unwear_interval`),
+    // not seeded at appliance creation, so it does NOT appear here despite
+    // being listed in `orthodontic-protocols.yaml#rules.applianceTypes`. The
+    // drift guard accounts for it explicitly.
     match appliance_type {
         "clear-aligner" => &[
-            AppliedProtocol {
-                rule_id: "PO-ORTHO-WEAR-DAILY",
-                first_trigger_days: 0,
-            },
             AppliedProtocol {
                 rule_id: "PO-ORTHO-ALIGNER-CHANGE",
                 first_trigger_days: 14,
@@ -44,32 +44,25 @@ pub(crate) fn protocols_for_appliance(appliance_type: &str) -> &'static [Applied
                 first_trigger_days: 42,
             },
         ],
-        "twin-block" | "activator" => &[
-            AppliedProtocol {
-                rule_id: "PO-ORTHO-WEAR-DAILY",
-                first_trigger_days: 0,
-            },
-            AppliedProtocol {
-                rule_id: "PO-ORTHO-REVIEW-INTERCEPTIVE",
-                first_trigger_days: 42,
-            },
-        ],
-        "retainer-removable" => &[
-            AppliedProtocol {
-                rule_id: "PO-ORTHO-RETENTION-WEAR",
-                first_trigger_days: 0,
-            },
-            AppliedProtocol {
-                rule_id: "PO-ORTHO-RETENTION-REVIEW",
-                first_trigger_days: 180,
-            },
-        ],
-        "retainer-fixed" => &[AppliedProtocol {
+        "twin-block" | "activator" => &[AppliedProtocol {
+            rule_id: "PO-ORTHO-REVIEW-INTERCEPTIVE",
+            first_trigger_days: 42,
+        }],
+        "retainer-removable" | "retainer-fixed" => &[AppliedProtocol {
             rule_id: "PO-ORTHO-RETENTION-REVIEW",
             first_trigger_days: 180,
         }],
         _ => &[],
     }
+}
+
+/// True when the appliance type uses the wear-gap interval stream
+/// (PO-ORTHO-005a). Fixed appliances and expanders do not.
+pub(crate) fn appliance_supports_wear_gap(appliance_type: &str) -> bool {
+    matches!(
+        appliance_type,
+        "clear-aligner" | "twin-block" | "activator" | "retainer-removable"
+    )
 }
 /// Maps applianceType → the admitted review-cycle protocol ruleId.
 /// Mirrors `orthodontic-protocols.yaml#rules` where `applianceTypes` crosses
@@ -130,10 +123,9 @@ fn appliance_requires_prescribed_hours(appliance_type: &str) -> bool {
     )
 }
 fn is_admitted_checkin_type(t: &str) -> bool {
-    matches!(
-        t,
-        "wear-daily" | "aligner-change" | "expander-activation" | "retention-wear"
-    )
+    // wear-daily and retention-wear were retired by migration v15 (PO-ORTHO-005b);
+    // daily wear is now modeled as wear-gap intervals.
+    matches!(t, "aligner-change" | "expander-activation")
 }
 /// Minimum child age (months) for each applianceType.
 /// Mirrors orthodontic-protocols.yaml#applianceMinAge — kept in sync by
@@ -196,12 +188,43 @@ pub fn insert_orthodontic_case(
         );
     }
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    assert_no_other_non_completed_case(&conn, child_id.as_str(), None)?;
     conn.execute(
         "INSERT INTO orthodontic_cases (caseId, childId, caseType, stage, startedAt, plannedEndAt, actualEndAt, primaryIssues, providerName, providerInstitution, nextReviewDate, notes, createdAt, updatedAt)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7, ?8, ?9, NULL, ?10, ?11, ?11)",
         params![case_id, child_id, case_type, stage, started_at, planned_end_at, primary_issues, provider_name, provider_institution, notes, now],
     )
     .map_err(|e| format!("insert_orthodontic_case: {e}"))?;
+    Ok(())
+}
+
+/// Fail-close on PO-ORTHO-002b: at most one non-completed case per childId.
+/// `excluding_case_id` is `Some` when called from `update_orthodontic_case`
+/// (the case being edited is itself excluded from the duplicate check).
+fn assert_no_other_non_completed_case(
+    conn: &Connection,
+    child_id: &str,
+    excluding_case_id: Option<&str>,
+) -> Result<(), String> {
+    let exists: i64 = match excluding_case_id {
+        Some(excl) => conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM orthodontic_cases WHERE childId = ?1 AND stage <> 'completed' AND caseId <> ?2)",
+            params![child_id, excl],
+            |row| row.get(0),
+        ),
+        None => conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM orthodontic_cases WHERE childId = ?1 AND stage <> 'completed')",
+            params![child_id],
+            |row| row.get(0),
+        ),
+    }
+    .map_err(|e| format!("assert_no_other_non_completed_case query: {e}"))?;
+    if exists == 1 {
+        return Err(
+            "this child already has an ongoing orthodontic case; complete or delete it before starting a new one (PO-ORTHO-002b)"
+                .to_string(),
+        );
+    }
     Ok(())
 }
 #[tauri::command]
@@ -234,6 +257,25 @@ pub fn update_orthodontic_case(
         );
     }
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    // PO-ORTHO-002b: if the new stage is non-completed, no other non-completed
+    // case may exist for the same child. (Edits that keep the case completed
+    // or that move the case toward completed are always allowed.)
+    if stage.trim() != "completed" {
+        let owner_child: Option<String> = conn
+            .query_row(
+                "SELECT childId FROM orthodontic_cases WHERE caseId = ?1",
+                params![case_id],
+                |row| row.get::<_, String>(0),
+            )
+            .ok();
+        if let Some(child) = owner_child {
+            assert_no_other_non_completed_case(&conn, child.as_str(), Some(case_id.as_str()))?;
+        } else {
+            return Err(format!(
+                "update_orthodontic_case: case \"{case_id}\" does not exist"
+            ));
+        }
+    }
     conn.execute(
         "UPDATE orthodontic_cases SET caseType=?2, stage=?3, startedAt=?4, plannedEndAt=?5, actualEndAt=?6, primaryIssues=?7, providerName=?8, providerInstitution=?9, notes=?10, updatedAt=?11 WHERE caseId=?1",
         params![case_id, case_type, stage, started_at, planned_end_at, actual_end_at, primary_issues, provider_name, provider_institution, notes, now],
@@ -298,6 +340,8 @@ pub struct OrthodonticAppliance {
     pub prescribed_hours_per_day: Option<i32>,
     pub prescribed_activations: Option<i32>,
     pub completed_activations: i32,
+    pub total_aligners: Option<i32>,
+    pub days_per_aligner: Option<i32>,
     pub review_interval_days: Option<i32>,
     pub last_review_at: Option<String>,
     pub next_review_date: Option<String>,
@@ -312,6 +356,10 @@ pub struct OrthodonticAppliance {
 include!("orthodontic_appliances.inc.rs");
 
 include!("orthodontic_checkins.inc.rs");
+
+include!("orthodontic_unwear_intervals.inc.rs");
+
+include!("orthodontic_journey.inc.rs");
 
 #[tauri::command]
 pub fn get_orthodontic_dashboard(child_id: String) -> Result<OrthodonticDashboard, String> {
@@ -338,49 +386,10 @@ pub fn get_orthodontic_dashboard(child_id: String) -> Result<OrthodonticDashboar
     let next_review_date = active_case_cloned
         .as_ref()
         .and_then(|c| c.next_review_date.clone());
-    let compliance = {
-        let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-        // Only wear-daily / retention-wear contribute to the compliance approximation.
-        let mut stmt = conn
-            .prepare(
-                "SELECT complianceBucket, COUNT(*) FROM orthodontic_checkins
-                 WHERE childId = ?1
-                   AND checkinType IN ('wear-daily', 'retention-wear')
-                   AND checkinDate >= date('now', '-30 day')
-                   AND complianceBucket IS NOT NULL
-                 GROUP BY complianceBucket",
-            )
-            .map_err(|e| format!("compliance30d prepare: {e}"))?;
-        let mut done = 0i64;
-        let mut partial = 0i64;
-        let mut missed = 0i64;
-        let rows = stmt
-            .query_map(params![child_id], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
-            })
-            .map_err(|e| format!("compliance30d query: {e}"))?;
-        for row in rows {
-            let (bucket, count) = row.map_err(|e| format!("compliance30d read row: {e}"))?;
-            match bucket.as_str() {
-                "done" => done = count,
-                "partial" => partial = count,
-                "missed" => missed = count,
-                _ => {}
-            }
-        }
-        Compliance30d {
-            done,
-            partial,
-            missed,
-            total: done + partial + missed,
-            note: "任务达成率近似 (PO-ORTHO-008)；非实际佩戴小时临床还原".to_string(),
-        }
-    };
     Ok(OrthodonticDashboard {
         active_case,
         active_appliances,
         next_review_date,
-        compliance30d: compliance,
     })
 }
 // Cloneable newtype helpers so dashboard can share OrthodonticCase/Appliance.

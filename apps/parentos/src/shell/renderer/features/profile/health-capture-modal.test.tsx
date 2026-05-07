@@ -34,7 +34,7 @@ describe('HealthCaptureModal', () => {
     expect(screen.queryByText('BMI')).toBeNull();
   });
 
-  it('marks each required field label with ※ and not optional ones', () => {
+  it('marks each required field label with * and not optional ones', () => {
     render(
       <HealthCaptureModal
         open
@@ -49,10 +49,10 @@ describe('HealthCaptureModal', () => {
       />,
     );
 
-    const requiredLabel = screen.getByText('Left visual acuity (decimal)');
-    expect(requiredLabel.parentElement?.textContent).toContain('※');
+    const requiredLabel = screen.getByText('Left visual acuity');
+    expect(requiredLabel.parentElement?.textContent).toContain('*');
     const optionalLabel = screen.getByText('Left axial length (mm)');
-    expect(optionalLabel.parentElement?.textContent ?? '').not.toContain('※');
+    expect(optionalLabel.parentElement?.textContent ?? '').not.toContain('*');
   });
 
   it('highlights empty required fields and shows a Chinese hint when saving with missing data', () => {
@@ -73,7 +73,7 @@ describe('HealthCaptureModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
 
-    const rightAcuityLabel = screen.getByText('Right visual acuity (decimal)');
+    const rightAcuityLabel = screen.getByText('Right visual acuity');
     const rightAcuityField = rightAcuityLabel.closest('label');
     expect(rightAcuityField).not.toBeNull();
     const invalidInput = within(rightAcuityField as HTMLElement).getByRole('spinbutton');
@@ -81,7 +81,7 @@ describe('HealthCaptureModal', () => {
     expect(within(rightAcuityField as HTMLElement).getByText('Please enter Right visual acuity')).toBeTruthy();
     expect(dialog.getByText('Some required fields are missing — please complete them before saving.')).toBeTruthy();
 
-    const leftAcuityLabel = screen.getByText('Left visual acuity (decimal)');
+    const leftAcuityLabel = screen.getByText('Left visual acuity');
     const leftAcuityField = leftAcuityLabel.closest('label');
     expect(leftAcuityField).not.toBeNull();
     const validInput = within(leftAcuityField as HTMLElement).getByRole('spinbutton');

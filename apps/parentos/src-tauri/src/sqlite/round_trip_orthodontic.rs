@@ -2,6 +2,10 @@ use super::*;
 
 #[test]
 fn orthodontic_case_appliance_checkin_round_trip_and_cascade() {
+    // Round-trip exercises: case + appliance + aligner-change checkin +
+    // wear-gap interval, then deletes appliance and verifies BOTH child rows
+    // (checkins and unwear intervals) cascade. This is the post-PO-ORTHO-005a
+    // shape; legacy `wear-daily` writes were retired by migration v15.
     let conn = Connection::open_in_memory().expect("open in-memory db");
     conn.execute_batch("PRAGMA foreign_keys=ON;")
         .expect("enable foreign keys");
@@ -13,13 +17,17 @@ fn orthodontic_case_appliance_checkin_round_trip_and_cascade() {
         params!["case-1", "child-1", "clear-aligners", "active", "2026-04-01", "2027-04-01", "[\"crowding\"]", "Dr. X", "Hospital Y", "note", "2026-04-01T00:00:00.000Z"],
     ).expect("insert case");
     conn.execute(
-        "INSERT INTO orthodontic_appliances (applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, reviewIntervalDays, lastReviewAt, nextReviewDate, pauseReason, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,NULL,?7,NULL,0,?8,NULL,?9,NULL,NULL,?10,?10)",
-        params!["appl-1", "case-1", "child-1", "clear-aligner", "active", "2026-04-01", 22i64, 56i64, "2026-06-01", "2026-04-01T00:00:00.000Z"],
+        "INSERT INTO orthodontic_appliances (applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, totalAligners, daysPerAligner, reviewIntervalDays, lastReviewAt, nextReviewDate, pauseReason, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,NULL,?7,NULL,0,?8,?9,?10,NULL,?11,NULL,NULL,?12,?12)",
+        params!["appl-1", "case-1", "child-1", "clear-aligner", "active", "2026-04-01", 22i64, 30i64, 14i64, 56i64, "2026-06-01", "2026-04-01T00:00:00.000Z"],
     ).expect("insert appliance");
     conn.execute(
-        "INSERT INTO orthodontic_checkins (checkinId, childId, caseId, applianceId, checkinType, checkinDate, actualWearHours, prescribedHours, complianceBucket, activationIndex, alignerIndex, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,NULL,NULL,NULL,?10,?10)",
-        params!["chk-1", "child-1", "case-1", "appl-1", "wear-daily", "2026-04-10", 20.0f64, 22.0f64, "done", "2026-04-10T20:00:00.000Z"],
-    ).expect("insert checkin");
+        "INSERT INTO orthodontic_checkins (checkinId, childId, caseId, applianceId, checkinType, checkinDate, activationIndex, alignerIndex, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,NULL,?7,NULL,?8,?8)",
+        params!["chk-1", "child-1", "case-1", "appl-1", "aligner-change", "2026-04-10", 1i64, "2026-04-10T20:00:00.000Z"],
+    ).expect("insert aligner-change checkin");
+    conn.execute(
+        "INSERT INTO orthodontic_unwear_intervals (intervalId, childId, caseId, applianceId, startAt, endAt, reason, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,?7,NULL,?8,?8)",
+        params!["int-1", "child-1", "case-1", "appl-1", "2026-04-12T12:00:00.000Z", "2026-04-12T13:30:00.000Z", "meal", "2026-04-12T13:30:00.000Z"],
+    ).expect("insert closed wear-gap interval");
 
     conn.execute(
         "DELETE FROM orthodontic_appliances WHERE applianceId = ?1",
@@ -34,6 +42,17 @@ fn orthodontic_case_appliance_checkin_round_trip_and_cascade() {
         )
         .expect("count checkins");
     assert_eq!(chk_count, 0, "checkins should cascade on appliance delete");
+    let interval_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM orthodontic_unwear_intervals WHERE applianceId = ?1",
+            params!["appl-1"],
+            |r| r.get(0),
+        )
+        .expect("count intervals");
+    assert_eq!(
+        interval_count, 0,
+        "wear-gap intervals should cascade on appliance delete (PO-ORTHO-005a)"
+    );
 
     conn.execute(
         "DELETE FROM children WHERE childId = ?1",
@@ -51,7 +70,125 @@ fn orthodontic_case_appliance_checkin_round_trip_and_cascade() {
 }
 
 #[test]
-fn orthodontic_checkin_daily_uniqueness_partial_index() {
+fn migration_v16_deletes_empty_loser_and_archives_loser_with_data() {
+    let conn = Connection::open_in_memory().expect("open in-memory db");
+    conn.execute_batch("PRAGMA foreign_keys=ON;")
+        .expect("enable foreign keys");
+    run_migrations(&conn).expect("run migrations");
+    seed_family_and_child(&conn);
+
+    // Two non-completed cases for child-1: one with appliance, one empty.
+    conn.execute(
+        "INSERT INTO orthodontic_cases (caseId, childId, caseType, stage, startedAt, plannedEndAt, actualEndAt, primaryIssues, providerName, providerInstitution, nextReviewDate, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?6,?6)",
+        params!["case-active", "child-1", "clear-aligners", "active", "2026-04-01", "2026-04-01T00:00:00.000Z"],
+    )
+    .expect("seed active case");
+    conn.execute(
+        "INSERT INTO orthodontic_appliances (applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, totalAligners, daysPerAligner, reviewIntervalDays, lastReviewAt, nextReviewDate, pauseReason, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,NULL,?7,NULL,0,?8,?9,NULL,NULL,NULL,NULL,NULL,?10,?10)",
+        params!["appl-active", "case-active", "child-1", "clear-aligner", "active", "2026-04-01", 22i64, 30i64, 14i64, "2026-04-01T00:00:00.000Z"],
+    )
+    .expect("attach appliance");
+    conn.execute(
+        "INSERT INTO orthodontic_cases (caseId, childId, caseType, stage, startedAt, plannedEndAt, actualEndAt, primaryIssues, providerName, providerInstitution, nextReviewDate, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?6,?6)",
+        params!["case-empty", "child-1", "clear-aligners", "assessment", "2026-04-20", "2026-04-20T00:00:00.000Z"],
+    )
+    .expect("seed empty case");
+
+    crate::sqlite::migrations::__test_only_apply_v16(&conn).expect("re-run v16");
+
+    let empty_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM orthodontic_cases WHERE caseId = 'case-empty'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("count empty");
+    assert_eq!(
+        empty_count, 0,
+        "v16 must DELETE the empty losing case (no attached appliances)"
+    );
+
+    let active_stage: String = conn
+        .query_row(
+            "SELECT stage FROM orthodontic_cases WHERE caseId = 'case-active'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("read active stage");
+    assert_eq!(
+        active_stage, "active",
+        "winner case must remain non-completed and unchanged"
+    );
+
+    // Now seed a second case WITH attached data → must be archived, not deleted.
+    conn.execute(
+        "INSERT INTO orthodontic_cases (caseId, childId, caseType, stage, startedAt, plannedEndAt, actualEndAt, primaryIssues, providerName, providerInstitution, nextReviewDate, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?6,?6)",
+        params!["case-with-data", "child-1", "clear-aligners", "planning", "2026-05-01", "2026-05-01T00:00:00.000Z"],
+    )
+    .expect("seed second non-completed case");
+    conn.execute(
+        "INSERT INTO orthodontic_appliances (applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, totalAligners, daysPerAligner, reviewIntervalDays, lastReviewAt, nextReviewDate, pauseReason, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,NULL,?7,NULL,0,?8,?9,NULL,NULL,NULL,NULL,NULL,?10,?10)",
+        params!["appl-2", "case-with-data", "child-1", "clear-aligner", "active", "2026-05-01", 22i64, 30i64, 14i64, "2026-05-01T00:00:00.000Z"],
+    )
+    .expect("attach appliance to losing planning case");
+
+    crate::sqlite::migrations::__test_only_apply_v16(&conn).expect("re-run v16 once more");
+
+    let archived: (String, Option<String>) = conn
+        .query_row(
+            "SELECT stage, actualEndAt FROM orthodontic_cases WHERE caseId = 'case-with-data'",
+            [],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
+        )
+        .expect("read losing-with-data");
+    assert_eq!(archived.0, "completed", "loser with data must be archived to completed");
+    assert!(archived.1.is_some(), "v16 must set actualEndAt when archiving");
+
+    // Winner is still untouched.
+    let winner_stage: String = conn
+        .query_row(
+            "SELECT stage FROM orthodontic_cases WHERE caseId = 'case-active'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("read winner stage");
+    assert_eq!(winner_stage, "active");
+}
+
+#[test]
+fn migration_v16_is_noop_on_already_compliant_data() {
+    let conn = Connection::open_in_memory().expect("open in-memory db");
+    conn.execute_batch("PRAGMA foreign_keys=ON;")
+        .expect("enable foreign keys");
+    run_migrations(&conn).expect("run migrations");
+    seed_family_and_child(&conn);
+
+    // Single non-completed case + a completed case for the same child are
+    // both fine and v16 must leave them untouched.
+    conn.execute(
+        "INSERT INTO orthodontic_cases (caseId, childId, caseType, stage, startedAt, plannedEndAt, actualEndAt, primaryIssues, providerName, providerInstitution, nextReviewDate, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,NULL,NULL,NULL,NULL,NULL,NULL,NULL,?6,?6)",
+        params!["case-active", "child-1", "clear-aligners", "active", "2026-04-01", "2026-04-01T00:00:00.000Z"],
+    )
+    .expect("seed active");
+    conn.execute(
+        "INSERT INTO orthodontic_cases (caseId, childId, caseType, stage, startedAt, plannedEndAt, actualEndAt, primaryIssues, providerName, providerInstitution, nextReviewDate, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,NULL,?6,NULL,NULL,NULL,NULL,NULL,?7,?7)",
+        params!["case-completed", "child-1", "clear-aligners", "completed", "2025-01-01", "2025-12-01", "2025-12-01T00:00:00.000Z"],
+    )
+    .expect("seed completed");
+
+    crate::sqlite::migrations::__test_only_apply_v16(&conn).expect("apply v16");
+
+    let total: i64 = conn
+        .query_row("SELECT COUNT(*) FROM orthodontic_cases WHERE childId = 'child-1'", [], |row| row.get(0))
+        .expect("count");
+    assert_eq!(total, 2, "v16 must not touch already-compliant data");
+}
+
+#[test]
+fn orthodontic_checkin_aligner_change_repeats_and_cascade_on_case_delete() {
+    // PO-ORTHO-005 invariant: aligner-change may repeat within a day;
+    // uniqueness is by checkinId only. Also asserts case-level cascade of
+    // checkins.
     let conn = Connection::open_in_memory().expect("open in-memory db");
     conn.execute_batch("PRAGMA foreign_keys=ON;")
         .expect("enable foreign keys");
@@ -63,31 +200,32 @@ fn orthodontic_checkin_daily_uniqueness_partial_index() {
         params!["case-2", "child-1", "clear-aligners", "active", "2026-04-01", "2026-04-01T00:00:00.000Z"],
     ).expect("insert case");
     conn.execute(
-        "INSERT INTO orthodontic_appliances (applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, reviewIntervalDays, lastReviewAt, nextReviewDate, pauseReason, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,NULL,?7,NULL,0,NULL,NULL,NULL,NULL,NULL,?8,?8)",
-        params!["appl-2", "case-2", "child-1", "clear-aligner", "active", "2026-04-01", 22i64, "2026-04-01T00:00:00.000Z"],
+        "INSERT INTO orthodontic_appliances (applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, totalAligners, daysPerAligner, reviewIntervalDays, lastReviewAt, nextReviewDate, pauseReason, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,NULL,?7,NULL,0,?8,?9,NULL,NULL,NULL,NULL,NULL,?10,?10)",
+        params!["appl-2", "case-2", "child-1", "clear-aligner", "active", "2026-04-01", 22i64, 30i64, 14i64, "2026-04-01T00:00:00.000Z"],
     ).expect("insert appliance");
 
     conn.execute(
-        "INSERT INTO orthodontic_checkins (checkinId, childId, caseId, applianceId, checkinType, checkinDate, actualWearHours, prescribedHours, complianceBucket, activationIndex, alignerIndex, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,NULL,NULL,NULL,NULL,?9,?9)",
-        params!["d1", "child-1", "case-2", "appl-2", "wear-daily", "2026-04-10", 20.0f64, 22.0f64, "2026-04-10T20:00:00.000Z"],
-    ).expect("insert first wear-daily");
-    let dup = conn.execute(
-        "INSERT INTO orthodontic_checkins (checkinId, childId, caseId, applianceId, checkinType, checkinDate, actualWearHours, prescribedHours, complianceBucket, activationIndex, alignerIndex, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,NULL,NULL,NULL,NULL,?9,?9)",
-        params!["d2", "child-1", "case-2", "appl-2", "wear-daily", "2026-04-10", 15.0f64, 22.0f64, "2026-04-10T21:00:00.000Z"],
-    );
-    assert!(
-        dup.is_err(),
-        "duplicate wear-daily on same appliance+date must be rejected"
-    );
-
-    conn.execute(
-        "INSERT INTO orthodontic_checkins (checkinId, childId, caseId, applianceId, checkinType, checkinDate, actualWearHours, prescribedHours, complianceBucket, activationIndex, alignerIndex, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,NULL,NULL,NULL,NULL,?7,NULL,?8,?8)",
+        "INSERT INTO orthodontic_checkins (checkinId, childId, caseId, applianceId, checkinType, checkinDate, activationIndex, alignerIndex, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,NULL,?7,NULL,?8,?8)",
         params!["a1", "child-1", "case-2", "appl-2", "aligner-change", "2026-04-10", 5i64, "2026-04-10T09:00:00.000Z"],
     ).expect("insert first aligner-change");
     conn.execute(
-        "INSERT INTO orthodontic_checkins (checkinId, childId, caseId, applianceId, checkinType, checkinDate, actualWearHours, prescribedHours, complianceBucket, activationIndex, alignerIndex, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,NULL,NULL,NULL,NULL,?7,NULL,?8,?8)",
+        "INSERT INTO orthodontic_checkins (checkinId, childId, caseId, applianceId, checkinType, checkinDate, activationIndex, alignerIndex, notes, createdAt, updatedAt) VALUES (?1,?2,?3,?4,?5,?6,NULL,?7,NULL,?8,?8)",
         params!["a2", "child-1", "case-2", "appl-2", "aligner-change", "2026-04-10", 6i64, "2026-04-10T21:00:00.000Z"],
-    ).expect("insert second aligner-change on same day should succeed");
+    ).expect("two aligner-change rows on the same day must be allowed (PO-ORTHO-005)");
+
+    conn.execute(
+        "DELETE FROM orthodontic_cases WHERE caseId = ?1",
+        params!["case-2"],
+    )
+    .expect("delete case");
+    let chk_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM orthodontic_checkins WHERE caseId = ?1",
+            params!["case-2"],
+            |r| r.get(0),
+        )
+        .expect("count checkins");
+    assert_eq!(chk_count, 0, "checkins should cascade on case delete");
 }
 
 #[test]

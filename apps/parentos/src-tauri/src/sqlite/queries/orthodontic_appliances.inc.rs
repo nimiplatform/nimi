@@ -32,11 +32,14 @@ pub fn insert_orthodontic_appliance(
     started_at: String,
     prescribed_hours_per_day: Option<i32>,
     prescribed_activations: Option<i32>,
+    total_aligners: Option<i32>,
+    days_per_aligner: Option<i32>,
     review_interval_days: Option<i32>,
     notes: Option<String>,
     now: String,
 ) -> Result<(), String> {
-    if !is_admitted_appliance_type(appliance_type.trim()) {
+    let appliance_type_trimmed = appliance_type.trim();
+    if !is_admitted_appliance_type(appliance_type_trimmed) {
         return Err(format!(
             "unsupported applianceType \"{appliance_type}\"; expected {ADMITTED_APPLIANCE_TYPES}"
         ));
@@ -46,29 +49,43 @@ pub fn insert_orthodontic_appliance(
             "unsupported appliance status \"{status}\"; expected {ADMITTED_APPLIANCE_STATUSES}"
         ));
     }
-    if appliance_requires_prescribed_hours(appliance_type.trim())
+    if appliance_requires_prescribed_hours(appliance_type_trimmed)
         && prescribed_hours_per_day.is_none()
     {
         return Err(format!(
             "applianceType \"{appliance_type}\" requires prescribedHoursPerDay for daily compliance checkins (PO-ORTHO-003)"
         ));
     }
+    if appliance_type_trimmed == "clear-aligner" {
+        match (total_aligners, days_per_aligner) {
+            (Some(t), Some(d)) if t > 0 && d > 0 => {}
+            _ => {
+                return Err(format!(
+                    "applianceType \"clear-aligner\" requires positive totalAligners and daysPerAligner (PO-ORTHO-003)"
+                ));
+            }
+        }
+    } else if total_aligners.is_some() || days_per_aligner.is_some() {
+        return Err(format!(
+            "totalAligners / daysPerAligner are clear-aligner-only and must be NULL for applianceType \"{appliance_type}\" (PO-ORTHO-003)"
+        ));
+    }
     assert_age_gate(
-        appliance_type.trim(),
+        appliance_type_trimmed,
         started_at.trim(),
         child_birth_date.trim(),
     )?;
     let (effective_review_interval_days, initial_next_review_date) =
         derive_initial_review_schedule(
-            appliance_type.trim(),
+            appliance_type_trimmed,
             started_at.trim(),
             review_interval_days,
         )?;
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     assert_parent_case_accepts_appliance(&conn, case_id.as_str(), child_id.as_str())?;
     conn.execute(
-        "INSERT INTO orthodontic_appliances (applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, reviewIntervalDays, lastReviewAt, nextReviewDate, pauseReason, notes, createdAt, updatedAt)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7, ?8, 0, ?9, NULL, ?10, NULL, ?11, ?12, ?12)",
+        "INSERT INTO orthodontic_appliances (applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, totalAligners, daysPerAligner, reviewIntervalDays, lastReviewAt, nextReviewDate, pauseReason, notes, createdAt, updatedAt)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7, ?8, 0, ?9, ?10, ?11, NULL, ?12, NULL, ?13, ?14, ?14)",
         params![
             appliance_id,
             case_id,
@@ -78,6 +95,8 @@ pub fn insert_orthodontic_appliance(
             started_at,
             prescribed_hours_per_day,
             prescribed_activations,
+            total_aligners,
+            days_per_aligner,
             effective_review_interval_days,
             initial_next_review_date,
             notes,
@@ -240,6 +259,84 @@ pub fn update_orthodontic_appliance_review(
     recompute_case_next_review(case_id.as_str())?;
     Ok(())
 }
+
+/// Edits the in-flight wear plan of an existing appliance:
+/// `prescribedHoursPerDay`, `totalAligners`, `daysPerAligner`. Same fail-close
+/// rules as `insert_orthodontic_appliance` (PO-ORTHO-003) — `clear-aligner`
+/// requires positive `totalAligners` AND `daysPerAligner`; non-clear-aligner
+/// rows must keep both NULL; `prescribed_hours_per_day` must be present for
+/// any wear-gap-supporting type.
+///
+/// Does NOT mutate `reviewIntervalDays`, `nextReviewDate`, `status`, or any
+/// reminder_state — those are owned by the review/status update paths so a
+/// plan edit never silently advances the review cycle.
+#[tauri::command]
+pub fn update_orthodontic_appliance_plan(
+    appliance_id: String,
+    prescribed_hours_per_day: Option<i32>,
+    total_aligners: Option<i32>,
+    days_per_aligner: Option<i32>,
+    now: String,
+) -> Result<(), String> {
+    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    let appliance_type: String = conn
+        .query_row(
+            "SELECT applianceType FROM orthodontic_appliances WHERE applianceId = ?1",
+            params![appliance_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("update_orthodontic_appliance_plan: appliance \"{appliance_id}\" not found: {e}"))?;
+    let appliance_type_trimmed = appliance_type.trim();
+
+    if appliance_requires_prescribed_hours(appliance_type_trimmed)
+        && prescribed_hours_per_day.is_none()
+    {
+        return Err(format!(
+            "applianceType \"{appliance_type}\" requires prescribedHoursPerDay (PO-ORTHO-003)"
+        ));
+    }
+    if let Some(h) = prescribed_hours_per_day {
+        if h <= 0 || h > 24 {
+            return Err(format!(
+                "prescribedHoursPerDay must be in 1..24 hours; got {h}"
+            ));
+        }
+    }
+    if appliance_type_trimmed == "clear-aligner" {
+        match (total_aligners, days_per_aligner) {
+            (Some(t), Some(d)) if t > 0 && d > 0 => {}
+            _ => {
+                return Err(
+                    "applianceType \"clear-aligner\" requires positive totalAligners and daysPerAligner (PO-ORTHO-003)"
+                        .to_string(),
+                );
+            }
+        }
+    } else if total_aligners.is_some() || days_per_aligner.is_some() {
+        return Err(format!(
+            "totalAligners / daysPerAligner are clear-aligner-only and must be NULL for applianceType \"{appliance_type}\" (PO-ORTHO-003)"
+        ));
+    }
+
+    conn.execute(
+        "UPDATE orthodontic_appliances
+         SET prescribedHoursPerDay = ?2,
+             totalAligners = ?3,
+             daysPerAligner = ?4,
+             updatedAt = ?5
+         WHERE applianceId = ?1",
+        params![
+            appliance_id,
+            prescribed_hours_per_day,
+            total_aligners,
+            days_per_aligner,
+            now,
+        ],
+    )
+    .map_err(|e| format!("update_orthodontic_appliance_plan: {e}"))?;
+    Ok(())
+}
+
 #[tauri::command]
 pub fn delete_orthodontic_appliance(appliance_id: String) -> Result<(), String> {
     let case_id: String;
@@ -269,7 +366,7 @@ pub fn get_orthodontic_appliances(case_id: String) -> Result<Vec<OrthodonticAppl
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn
         .prepare(
-            "SELECT applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, reviewIntervalDays, lastReviewAt, nextReviewDate, pauseReason, notes, createdAt, updatedAt
+            "SELECT applianceId, caseId, childId, applianceType, status, startedAt, endedAt, prescribedHoursPerDay, prescribedActivations, completedActivations, totalAligners, daysPerAligner, reviewIntervalDays, lastReviewAt, nextReviewDate, pauseReason, notes, createdAt, updatedAt
              FROM orthodontic_appliances WHERE caseId = ?1 ORDER BY startedAt DESC, createdAt DESC",
         )
         .map_err(|e| format!("get_orthodontic_appliances: {e}"))?;
@@ -286,13 +383,15 @@ pub fn get_orthodontic_appliances(case_id: String) -> Result<Vec<OrthodonticAppl
                 prescribed_hours_per_day: row.get(7)?,
                 prescribed_activations: row.get(8)?,
                 completed_activations: row.get(9)?,
-                review_interval_days: row.get(10)?,
-                last_review_at: row.get(11)?,
-                next_review_date: row.get(12)?,
-                pause_reason: row.get(13)?,
-                notes: row.get(14)?,
-                created_at: row.get(15)?,
-                updated_at: row.get(16)?,
+                total_aligners: row.get(10)?,
+                days_per_aligner: row.get(11)?,
+                review_interval_days: row.get(12)?,
+                last_review_at: row.get(13)?,
+                next_review_date: row.get(14)?,
+                pause_reason: row.get(15)?,
+                notes: row.get(16)?,
+                created_at: row.get(17)?,
+                updated_at: row.get(18)?,
             })
         })
         .map_err(|e| format!("get_orthodontic_appliances: {e}"))?;
@@ -317,6 +416,11 @@ fn recompute_case_next_review(case_id: &str) -> Result<(), String> {
     Ok(())
 }
 // ── Checkin queries ───────────────────────────────────────
+//
+// Daily wear is NOT a checkin (PO-ORTHO-005a). Admitted checkin types are
+// `aligner-change` and `expander-activation`. Legacy `actualWearHours`,
+// `prescribedHours`, and `complianceBucket` columns were dropped by migration
+// v15 (PO-ORTHO-005b).
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrthodonticCheckin {
@@ -326,9 +430,6 @@ pub struct OrthodonticCheckin {
     pub appliance_id: String,
     pub checkin_type: String,
     pub checkin_date: String,
-    pub actual_wear_hours: Option<f64>,
-    pub prescribed_hours: Option<f64>,
-    pub compliance_bucket: Option<String>,
     pub activation_index: Option<i32>,
     pub aligner_index: Option<i32>,
     pub notes: Option<String>,

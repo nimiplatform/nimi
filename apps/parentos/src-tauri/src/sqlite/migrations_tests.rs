@@ -5,6 +5,7 @@ mod migration_repairs;
 mod round_trip;
 mod round_trip_health_records;
 mod round_trip_orthodontic;
+mod round_trip_orthodontic_unwear;
 mod round_trip_reminder_state;
 
 fn seed_family_and_child(conn: &Connection) {

@@ -5,7 +5,6 @@ import { insertTannerAssessment, getTannerAssessments, getMeasurements, insertMe
 import type { TannerAssessmentRow, MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
-import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { TannerAssessmentForm } from './tanner-assessment-form.js';
@@ -15,12 +14,11 @@ import { TannerTimeline } from './tanner-timeline.js';
 import {
   BREAST_STAGES,
   GENITAL_STAGES,
-  fmtAge,
   sortAssessmentsDesc,
 } from './tanner-page-shared.js';
 
 export default function TannerPage() {
-  const { activeChildId, setActiveChildId, children } = useAppStore();
+  const { activeChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
   const [assessments, setAssessments] = useState<TannerAssessmentRow[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -149,9 +147,7 @@ export default function TannerPage() {
         </div>
       </div>
       <div className="mb-4">
-        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
-          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${fmtAge(computeAgeMonths(c.birthDate))}` }))} />
-        <p className="text-[13px] mt-1" style={{ color: S.sub }}>{isFemale ? '女孩' : '男孩'} · 共 {assessments.length} 次评估</p>
+        <p className="text-[13px]" style={{ color: S.sub }}>{isFemale ? '女孩' : '男孩'} · 共 {assessments.length} 次评估</p>
       </div>
 
       <TannerOverviewCards

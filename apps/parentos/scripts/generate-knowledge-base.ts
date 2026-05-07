@@ -665,6 +665,13 @@ export interface HealthMetricGroup {
   rank: number;
 }
 
+export interface HealthApplicableAgeRange {
+  startMonths: number;
+  endMonths: number;
+}
+
+export type HealthApplicableSex = 'male' | 'female' | 'both';
+
 export interface HealthMetricDefinition {
   metricId: HealthMetricId;
   groupId: HealthMetricGroupId;
@@ -680,6 +687,8 @@ export interface HealthMetricDefinition {
   detailRoute?: string;
   sourceSupport: readonly HealthSourceSupport[];
   safetyClass: HealthSafetyClass;
+  applicableAgeRange?: HealthApplicableAgeRange;
+  applicableSex?: HealthApplicableSex;
 }
 
 export interface HealthStatusTaxonomyEntry {

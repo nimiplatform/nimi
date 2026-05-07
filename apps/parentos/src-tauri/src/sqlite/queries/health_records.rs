@@ -411,8 +411,8 @@ const SECTION_QUERIES: &[(&str, &str, &str)] = &[
     ),
     (
         "fitness",
-        "SELECT COUNT(*) FROM health_record_values WHERE childId = ?1 AND metricId IN ('fitness.run_50m','fitness.vital_capacity','fitness.run_800m','fitness.run_1000m','fitness.run_50x8','fitness.sit_and_reach','fitness.standing_long_jump','fitness.sit_ups','fitness.pull_ups','fitness.rope_skipping','fitness.run_10m_shuttle','fitness.tennis_ball_throw','fitness.double_foot_jump','fitness.balance_beam','fitness.foot_arch_status','fitness.overall_grade')",
-        "SELECT MAX(createdAt) FROM health_record_values WHERE childId = ?1 AND metricId IN ('fitness.run_50m','fitness.vital_capacity','fitness.run_800m','fitness.run_1000m','fitness.run_50x8','fitness.sit_and_reach','fitness.standing_long_jump','fitness.sit_ups','fitness.pull_ups','fitness.rope_skipping','fitness.run_10m_shuttle','fitness.tennis_ball_throw','fitness.double_foot_jump','fitness.balance_beam','fitness.foot_arch_status','fitness.overall_grade')",
+        "SELECT COUNT(*) FROM health_record_values WHERE childId = ?1 AND metricId IN ('fitness.run_50m','fitness.vital_capacity','fitness.run_800m','fitness.run_1000m','fitness.run_50x8','fitness.sit_and_reach','fitness.standing_long_jump','fitness.sit_ups','fitness.pull_ups','fitness.rope_skipping','fitness.run_10m_shuttle','fitness.tennis_ball_throw','fitness.double_foot_jump','fitness.balance_beam','fitness.foot_arch_status')",
+        "SELECT MAX(createdAt) FROM health_record_values WHERE childId = ?1 AND metricId IN ('fitness.run_50m','fitness.vital_capacity','fitness.run_800m','fitness.run_1000m','fitness.run_50x8','fitness.sit_and_reach','fitness.standing_long_jump','fitness.sit_ups','fitness.pull_ups','fitness.rope_skipping','fitness.run_10m_shuttle','fitness.tennis_ball_throw','fitness.double_foot_jump','fitness.balance_beam','fitness.foot_arch_status')",
     ),
     (
         "outdoor",

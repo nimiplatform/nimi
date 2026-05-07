@@ -187,7 +187,7 @@ export default function TimelinePage() {
           发现未登记的 ruleId：{agendaResult.ruleIds.join('、')}
         </p>
         <p className="text-[14px]" style={{ color: C.sub }}>
-          提醒流按 PO-TIME-007 fail-close。请修复 reminder-rules.yaml 或清理脏数据后重试。
+          提醒流按 PO-TIME-007 fail-close。重启 ParentOS 即可触发 schema v17 自动清理这些游离记录；如果重启后仍有未登记的 ruleId，请修复 reminder-rules.yaml 或 orthodontic-protocols.yaml。
         </p>
       </div>
     );

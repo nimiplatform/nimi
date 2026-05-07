@@ -91,6 +91,12 @@ fn assert_parent_case_accepts_appliance(
 /// matching `appliance_type`. Idempotent: replays upsert the same rows so
 /// appliance restart scenarios stay consistent. Called on
 /// insert_orthodontic_appliance (status=active) and on resume-from-paused.
+///
+/// `reminder_states` has a `UNIQUE (childId, ruleId, repeatIndex)` constraint.
+/// Multiple concurrent appliances of the same type (e.g. two clear-aligner
+/// appliances on the same child) need disjoint `repeatIndex` values per rule.
+/// We reuse the existing `repeatIndex` on stateId replay, otherwise allocate
+/// the next free integer for `(childId, ruleId)`.
 fn seed_protocol_reminders_for_appliance(
     appliance_id: &str,
     child_id: &str,
@@ -110,16 +116,48 @@ fn seed_protocol_reminders_for_appliance(
         let next_trigger_iso = format!("{next_trigger}T00:00:00.000Z");
         let state_id = format!("ortho-{}-{}", appliance_id, protocol.rule_id);
         let notes = format!("[ortho-protocol] applianceId={appliance_id}");
+        let repeat_index = next_repeat_index_for_seed(&conn, &state_id, child_id, protocol.rule_id)?;
         // Upsert by stateId so replay stays idempotent.
         conn.execute(
             "INSERT INTO reminder_states (stateId, childId, ruleId, status, activatedAt, completedAt, dismissedAt, dismissReason, repeatIndex, nextTriggerAt, snoozedUntil, scheduledDate, notApplicable, plannedForDate, surfaceRank, lastSurfacedAt, surfaceCount, notes, createdAt, updatedAt)
-             VALUES (?1, ?2, ?3, 'active', ?4, NULL, NULL, NULL, 0, ?5, NULL, NULL, 0, NULL, NULL, NULL, 0, ?6, ?4, ?4)
+             VALUES (?1, ?2, ?3, 'active', ?4, NULL, NULL, NULL, ?7, ?5, NULL, NULL, 0, NULL, NULL, NULL, 0, ?6, ?4, ?4)
              ON CONFLICT(stateId) DO UPDATE SET status='active', activatedAt=?4, completedAt=NULL, dismissedAt=NULL, dismissReason=NULL, nextTriggerAt=COALESCE(reminder_states.nextTriggerAt, excluded.nextTriggerAt), notes=?6, updatedAt=?4",
-            params![state_id, child_id, protocol.rule_id, now, next_trigger_iso, notes],
+            params![state_id, child_id, protocol.rule_id, now, next_trigger_iso, notes, repeat_index],
         )
         .map_err(|e| format!("seed_protocol_reminders_for_appliance({}, {}): {e}", appliance_id, protocol.rule_id))?;
     }
     Ok(())
+}
+
+/// Returns the `repeatIndex` to use when seeding `(childId, ruleId)` for a
+/// reminder_state row identified by `stateId`. Reuses the existing index when
+/// the row already exists (replay path), otherwise picks `MAX(repeatIndex) + 1`
+/// across all current rows for that `(childId, ruleId)`. Returns 0 when no row
+/// exists yet.
+fn next_repeat_index_for_seed(
+    conn: &Connection,
+    state_id: &str,
+    child_id: &str,
+    rule_id: &str,
+) -> Result<i32, String> {
+    if let Some(existing) = conn
+        .query_row(
+            "SELECT repeatIndex FROM reminder_states WHERE stateId = ?1",
+            params![state_id],
+            |row| row.get::<_, i32>(0),
+        )
+        .ok()
+    {
+        return Ok(existing);
+    }
+    let max_index: Option<i32> = conn
+        .query_row(
+            "SELECT MAX(repeatIndex) FROM reminder_states WHERE childId = ?1 AND ruleId = ?2",
+            params![child_id, rule_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("next_repeat_index_for_seed({state_id}): {e}"))?;
+    Ok(max_index.map(|v| v + 1).unwrap_or(0))
 }
 /// Updates states for one appliance to `status` and timestamps.
 fn transition_protocol_reminders(
@@ -166,9 +204,8 @@ fn delete_protocol_reminders_for_appliance(
     Ok(())
 }
 fn protocol_binding_for_checkin_type(checkin_type: &str) -> Option<(&'static str, i64)> {
+    // wear-daily / retention-wear retired by migration v15 (PO-ORTHO-005b).
     match checkin_type {
-        "wear-daily" => Some(("PO-ORTHO-WEAR-DAILY", 1)),
-        "retention-wear" => Some(("PO-ORTHO-RETENTION-WEAR", 1)),
         "aligner-change" => Some(("PO-ORTHO-ALIGNER-CHANGE", 14)),
         "expander-activation" => Some(("PO-ORTHO-EXPANDER-ACTIVATION", 1)),
         _ => None,

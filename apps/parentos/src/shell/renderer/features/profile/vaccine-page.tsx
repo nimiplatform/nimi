@@ -7,7 +7,6 @@ import { getVaccineRecords, insertVaccineRecord } from '../../bridge/sqlite-brid
 import type { VaccineRecordRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
-import { AppSelect } from '../../app-shell/app-select.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { completeReminderByRule } from '../../engine/reminder-actions.js';
@@ -365,7 +364,7 @@ function HistoricalSection({ rules, onRecord, onMarkAll, onQuickMark }: {
 
 export default function VaccinePage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { activeChildId, setActiveChildId, children } = useAppStore();
+  const { activeChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
   const [records, setRecords] = useState<VaccineRecordRow[]>([]);
   const [recordingRuleId, setRecordingRuleId] = useState<string | null>(() => searchParams.get('ruleId'));
@@ -481,10 +480,6 @@ export default function VaccinePage() {
             {completedCount}/{vaccineRules.length} · {pct}%
           </span>
         </div>
-      </div>
-      <div className="mb-5">
-        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
-          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${formatAge(computeAgeMonths(c.birthDate))}` }))} />
       </div>
 
       {/* Progress bar */}

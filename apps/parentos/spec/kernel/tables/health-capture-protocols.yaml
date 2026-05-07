@@ -73,9 +73,9 @@ protocols:
     groupId: fitness
     displayName: School fitness assessment
     modeSupport: [manual, prefilled, guided]
-    metricIds: [fitness.run_50m, fitness.vital_capacity, fitness.run_800m, fitness.run_1000m, fitness.run_50x8, fitness.sit_and_reach, fitness.standing_long_jump, fitness.sit_ups, fitness.pull_ups, fitness.rope_skipping, fitness.run_10m_shuttle, fitness.tennis_ball_throw, fitness.double_foot_jump, fitness.balance_beam, fitness.foot_arch_status, fitness.overall_grade]
+    metricIds: [fitness.run_50m, fitness.vital_capacity, fitness.run_800m, fitness.run_1000m, fitness.run_50x8, fitness.sit_and_reach, fitness.standing_long_jump, fitness.sit_ups, fitness.pull_ups, fitness.rope_skipping, fitness.run_10m_shuttle, fitness.tennis_ball_throw, fitness.double_foot_jump, fitness.balance_beam, fitness.foot_arch_status]
     requiredMetricIds: []
-    optionalMetricIds: [fitness.run_50m, fitness.vital_capacity, fitness.run_800m, fitness.run_1000m, fitness.run_50x8, fitness.sit_and_reach, fitness.standing_long_jump, fitness.sit_ups, fitness.pull_ups, fitness.rope_skipping, fitness.run_10m_shuttle, fitness.tennis_ball_throw, fitness.double_foot_jump, fitness.balance_beam, fitness.foot_arch_status, fitness.overall_grade]
+    optionalMetricIds: [fitness.run_50m, fitness.vital_capacity, fitness.run_800m, fitness.run_1000m, fitness.run_50x8, fitness.sit_and_reach, fitness.standing_long_jump, fitness.sit_ups, fitness.pull_ups, fitness.rope_skipping, fitness.run_10m_shuttle, fitness.tennis_ball_throw, fitness.double_foot_jump, fitness.balance_beam, fitness.foot_arch_status]
     sourceSupport: [manual, imported]
     storageTarget: health_record_event
     completionPolicy: "At least one admitted fitness metric must be recorded in the event."

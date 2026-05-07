@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppStore, computeAgeMonths, formatAge } from '../../app-shell/app-store.js';
+import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { getMedicalEvents } from '../../bridge/sqlite-bridge.js';
 import type { MedicalEventRow } from '../../bridge/sqlite-bridge.js';
 import { S } from '../../app-shell/page-style.js';
@@ -17,7 +17,7 @@ import { useMedicalEventsFormState } from './medical-events-page-form-state.js';
 import { useMedicalEventsInsights } from './medical-events-page-insights.js';
 
 export default function MedicalEventsPage() {
-  const { activeChildId, setActiveChildId, children } = useAppStore();
+  const { activeChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
   const [events, setEvents] = useState<MedicalEventRow[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -90,10 +90,6 @@ export default function MedicalEventsPage() {
             </button>
           ) : null}
         </div>
-      </div>
-      <div className="mb-5">
-        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
-          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${formatAge(computeAgeMonths(c.birthDate))}` }))} />
       </div>
 
       {/* AI Summary */}

@@ -2,7 +2,9 @@ import { createPortal } from 'react-dom';
 import type { RefObject } from 'react';
 import { AppSelect } from '../../app-shell/app-select.js';
 import { S } from '../../app-shell/page-style.js';
-import { PhotoBar, VoiceCapture } from './journal-sub-components.js';
+import { PhotoBar } from './journal-sub-components.js';
+import { VoiceIdleEntry, VoiceRecordingPanel, VoicePreviewPanel } from './journal-voice-card.js';
+import type { VoiceRecordingSession } from './voice-observation-recorder.js';
 import {
   type EmojiCategory,
   type PhotoDraft,
@@ -14,12 +16,18 @@ import type { JournalEntryRow } from '../../bridge/sqlite-bridge.js';
 import type { JournalLocalDraftRecord } from './journal-page-local-draft.js';
 import { formatJournalDraftTime } from './journal-page-local-draft.js';
 import { EmojiPickerPortal } from './journal-page-overlays.js';
+import { ObservationFocusPanel, type ObservationFocusData, type ObservationFocusOption } from './journal-observation-focus.js';
+import { RecordedAtPicker } from './journal-recorded-at-picker.js';
 
 export function JournalPageCapture(props: {
   activeChildId: string | null;
   childOptions: Array<{ value: string; label: string }>;
   onChildChange: (value: string | null) => void;
   guidedContext: GuidedPromptContext | null;
+  observationFocus: ObservationFocusData | null;
+  observationFocusOptions: ObservationFocusOption[];
+  onSwitchObservationFocus: (dimensionId: string) => void;
+  onClearObservationFocus: () => void;
   restorableDraft: JournalLocalDraftRecord | null;
   editingEntry: JournalEntryRow | null;
   editingEntryLabel: string | null;
@@ -52,6 +60,7 @@ export function JournalPageCapture(props: {
   voiceDraft: VoiceDraft;
   recordingSupported: boolean;
   voiceRuntimeAvailable: boolean | null;
+  recorderSessionRef: RefObject<VoiceRecordingSession | null>;
   onStartRecording: () => void;
   onStopRecording: () => void;
   onTranscribe: () => void;
@@ -62,6 +71,8 @@ export function JournalPageCapture(props: {
   addingTodo: boolean;
   onAddExperimentTodo: () => void;
   onDismissExperiment: () => void;
+  recordedAt: string | null;
+  onRecordedAtChange: (value: string | null) => void;
 }) {
   return (
     <>
@@ -176,6 +187,13 @@ export function JournalPageCapture(props: {
                     ))}
                   </div>
                 </div>
+              ) : props.observationFocus ? (
+                <ObservationFocusPanel
+                  focus={props.observationFocus}
+                  options={props.observationFocusOptions}
+                  onSwitchDimension={props.onSwitchObservationFocus}
+                  onClose={props.onClearObservationFocus}
+                />
               ) : (
                 <div className="px-5 pt-5 pb-2">
                   <div className="flex items-start gap-2.5 rounded-[12px] px-3.5 py-2.5" style={{ background: '#f8f9fa' }}>
@@ -194,7 +212,7 @@ export function JournalPageCapture(props: {
                 ref={props.textareaRef}
                 value={props.textContent}
                 onChange={(event) => props.onTextContentChange(event.target.value)}
-                placeholder={props.guidedContext ? '参考上面的引导问题，记录你观察到的情况...' : '他刚刚做了什么？说了什么？如果遇到了困难，他是如何解决的...'}
+                placeholder={props.guidedContext || props.observationFocus ? '参考上面的引导问题，记录你观察到的情况...' : '他刚刚做了什么？说了什么？如果遇到了困难，他是如何解决的...'}
                 className="w-full resize-none px-5 py-3 text-[14px] leading-relaxed outline-none"
                 style={{ background: 'transparent', minHeight: 120, border: 'none' }}
                 rows={5}
@@ -290,6 +308,7 @@ export function JournalPageCapture(props: {
                   </span>
                 ) : null}
                 <div className="flex-1" />
+                <RecordedAtPicker value={props.recordedAt} onChange={props.onRecordedAtChange} />
                 <button
                   type="button"
                   onClick={props.onRequestSave}
@@ -306,37 +325,27 @@ export function JournalPageCapture(props: {
           ) : (
             <div className="p-5">
               {props.voiceDraft.status === 'idle' ? (
-                <div className="flex flex-col items-center gap-3 py-6">
-                  <button
-                    type="button"
-                    onClick={props.onStartRecording}
-                    disabled={!props.recordingSupported}
-                    className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
-                    style={{ background: S.accent, color: '#fff' }}
-                  >
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="22" />
-                    </svg>
-                  </button>
-                  <p className="text-[14px]" style={{ color: S.sub }}>点击开始语音记录</p>
-                  <button type="button" onClick={() => { props.onCaptureModeChange('text'); props.onClearVoiceDraft(); }} className="text-[13px] underline" style={{ color: S.sub }}>
-                    切换文字输入
-                  </button>
-                  {!props.recordingSupported ? <p className="text-[12px] text-red-500">当前环境不支持录音</p> : null}
-                </div>
-              ) : (
-                <VoiceCapture
-                  voiceDraft={props.voiceDraft}
+                <VoiceIdleEntry
                   recordingSupported={props.recordingSupported}
-                  voiceRuntimeAvailable={props.voiceRuntimeAvailable}
                   onStart={props.onStartRecording}
+                  onSwitchToText={() => { props.onCaptureModeChange('text'); props.onClearVoiceDraft(); }}
+                />
+              ) : props.voiceDraft.status === 'recording' ? (
+                <VoiceRecordingPanel
+                  sessionRef={props.recorderSessionRef}
                   onStop={props.onStopRecording}
+                  onCancel={() => { props.onClearVoiceDraft(); props.onCaptureModeChange('text'); }}
+                />
+              ) : (
+                <VoicePreviewPanel
+                  voiceDraft={props.voiceDraft}
+                  voiceRuntimeAvailable={props.voiceRuntimeAvailable}
                   onTranscribe={props.onTranscribe}
                   onClear={() => { props.onClearVoiceDraft(); props.onCaptureModeChange('text'); }}
                   onTranscriptChange={props.onVoiceTranscriptChange}
                 />
               )}
+              {props.voiceDraft.status === 'recording' || props.voiceDraft.status === 'idle' ? null : (
               <div className="flex items-center justify-between mt-4">
                 <button
                   type="button"
@@ -368,6 +377,7 @@ export function JournalPageCapture(props: {
                     {props.draftStatusLabel}
                   </span>
                 ) : null}
+                <RecordedAtPicker value={props.recordedAt} onChange={props.onRecordedAtChange} />
                 <button
                   type="button"
                   onClick={props.onRequestSave}
@@ -378,6 +388,7 @@ export function JournalPageCapture(props: {
                   {props.saving ? '保存中...' : props.editingEntryId ? '保存修改' : '保存'}
                 </button>
               </div>
+              )}
             </div>
           )}
 

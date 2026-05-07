@@ -40,7 +40,6 @@ export const METRIC_LABEL_KEYS: Record<string, string> = {
   'fitness.double_foot_jump': 'Profile.metrics.fitness.doubleFootJump',
   'fitness.balance_beam': 'Profile.metrics.fitness.balanceBeam',
   'fitness.foot_arch_status': 'Profile.metrics.fitness.footArchStatus',
-  'fitness.overall_grade': 'Profile.metrics.fitness.overallGrade',
   'development.tanner_breast_stage': 'Profile.metrics.development.tannerBreastStage',
   'development.tanner_genital_stage': 'Profile.metrics.development.tannerGenitalStage',
   'development.tanner_pubic_hair_stage': 'Profile.metrics.development.tannerPubicHairStage',
@@ -136,4 +135,26 @@ export function formatHealthValue(
 
 export function formatMetricSnapshotValue(snapshot: HealthMetricSnapshot, t: TFunction) {
   return formatHealthValue(snapshot.latestValue, snapshot.metric, t);
+}
+
+export function formatHealthValueParts(
+  value: HealthRecordValue | null | undefined,
+  metric: HealthMetricDefinition,
+  t: TFunction,
+): { valueText: string; unitText: string } {
+  if (!value) return { valueText: t('Profile.empty.noData', { defaultValue: 'No data' }), unitText: '' };
+  if (typeof value.valueNumber === 'number') {
+    const precision = metric.precision ?? 0;
+    const numberText = Number.isInteger(value.valueNumber)
+      ? String(value.valueNumber)
+      : value.valueNumber.toFixed(precision);
+    return { valueText: numberText, unitText: metric.unit ?? '' };
+  }
+  if (value.valueText) return { valueText: value.valueText, unitText: '' };
+  if (value.valueJson) return { valueText: t('Profile.empty.recorded', { defaultValue: 'Recorded' }), unitText: '' };
+  return { valueText: t('Profile.empty.recorded', { defaultValue: 'Recorded' }), unitText: '' };
+}
+
+export function formatMetricSnapshotValueParts(snapshot: HealthMetricSnapshot, t: TFunction) {
+  return formatHealthValueParts(snapshot.latestValue, snapshot.metric, t);
 }

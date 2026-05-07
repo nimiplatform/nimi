@@ -575,8 +575,8 @@ fn fitness_assessment_sparse_metrics_round_trip() {
     seed_family_and_child(&conn);
 
     conn.execute(
-        "INSERT INTO fitness_assessments (assessmentId, childId, assessedAt, ageMonths, assessmentSource, run50m, sitAndReach, sitUps, vitalCapacity, overallGrade, createdAt) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
-        params!["fitness-1", "child-1", "2031-09-15", 91, "school-pe", 9.5, 12.3, 35, 1800, "good", "2031-09-15T10:00:00.000Z"],
+        "INSERT INTO fitness_assessments (assessmentId, childId, assessedAt, ageMonths, assessmentSource, run50m, sitAndReach, sitUps, vitalCapacity, createdAt) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        params!["fitness-1", "child-1", "2031-09-15", 91, "school-pe", 9.5, 12.3, 35, 1800, "2031-09-15T10:00:00.000Z"],
     ).expect("insert fitness");
 
     let row = conn.query_row(

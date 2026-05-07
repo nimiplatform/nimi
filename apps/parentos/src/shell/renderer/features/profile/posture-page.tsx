@@ -5,7 +5,6 @@ import { getMeasurements, insertMeasurement, getFitnessAssessments } from '../..
 import type { MeasurementRow, FitnessAssessmentRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
-import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { ProfileDatePicker } from './profile-date-picker.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
@@ -108,7 +107,7 @@ function fmtAge(months: number) {
 }
 
 export default function PosturePage() {
-  const { activeChildId, setActiveChildId, children } = useAppStore();
+  const { activeChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
 
   const [measurements, setMeasurements] = useState<MeasurementRow[]>([]);
@@ -243,10 +242,6 @@ export default function PosturePage() {
             </button>
           )}
         </div>
-      </div>
-      <div className="mb-5">
-        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
-          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${fmtAge(computeAgeMonths(c.birthDate))}` }))} />
       </div>
 
       <AISummaryCard domain="posture" childName={child.displayName} childId={child.childId}

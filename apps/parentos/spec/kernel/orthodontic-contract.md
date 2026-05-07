@@ -21,25 +21,27 @@ Governing fact sources:
 - `tables/local-storage.yaml#orthodontic_cases`
 - `tables/local-storage.yaml#orthodontic_appliances`
 - `tables/local-storage.yaml#orthodontic_checkins`
+- `tables/local-storage.yaml#orthodontic_unwear_intervals`
 - `tables/local-storage.yaml#health_record_events`
 - `tables/local-storage.yaml#reminder_states`
 - `tables/routes.yaml#/profile` and `/profile/dental` redirect shell
 
-## PO-ORTHO-001 Three-Layer Data Model
+## PO-ORTHO-001 Four-Layer Data Model
 
-Orthodontic state is modeled in exactly three tables, each with a distinct
+Orthodontic state is modeled in exactly four tables, each with a distinct
 semantic purpose. Implementation must never collapse them or cross-write.
 
 | Table | Mandate |
 |---|---|
 | `health_record_events` | Low-frequency, clinical, whole-mouth-timeline events with dental/orthodontic metric ids. Orthodontic lifecycle clinical events (`ortho-assessment`, `ortho-review`, `ortho-adjustment`, `ortho-issue`, `ortho-end`) live here and remain visible in the unified dental timeline. |
 | `orthodontic_cases` | One row per treatment course. Source of truth for `caseType`, `stage`, and review-date projection. |
-| `orthodontic_appliances` | One row per appliance instance attached to a case. Source of truth for `applianceType`, active/paused/completed status, prescribed wear, review cadence, and expander activation counters. |
-| `orthodontic_checkins` | High-frequency, structured parent-facing compliance rows. Only `wear-daily`, `aligner-change`, `expander-activation`, `retention-wear` are admitted. Checkins do NOT appear in the dental clinical timeline. |
+| `orthodontic_appliances` | One row per appliance instance attached to a case. Source of truth for `applianceType`, active/paused/completed status, prescribed wear, review cadence, expander activation counters, and clear-aligner per-tray schedule (`totalAligners`, `daysPerAligner`). |
+| `orthodontic_checkins` | Discrete clinical events parent-records. Admitted `checkinType` values are `aligner-change` and `expander-activation`. Daily wear is NOT a checkin (see `orthodontic_unwear_intervals`). Checkins do NOT appear in the dental clinical timeline. |
+| `orthodontic_unwear_intervals` | Event stream of un-wear periods (when a removable appliance was taken out). Source of truth for compliance projection (PO-ORTHO-008). Applies only to `clear-aligner | twin-block | activator | retainer-removable`. |
 
 Invariant: review, adjustment, issue, and end events must write to
-`health_record_events` only. A `checkinType` value outside the admitted four is a
-fail-close violation.
+`health_record_events` only. A `checkinType` outside the admitted set, or a
+wear-gap interval on a non-removable appliance type, is a fail-close violation.
 
 ## PO-ORTHO-002 Case Shape
 
@@ -64,6 +66,40 @@ case between stages. `actualEndAt` is required when `stage = completed`.
 
 `nextReviewDate` is a cache. A case deletion or appliance status change must
 recompute it. It must never be edited directly by the UI.
+
+### PO-ORTHO-002b Single Active Case Invariant
+
+A child MAY hold **at most one** orthodontic case whose `stage` is not
+`completed` at any point in time. This invariant is admitted because:
+
+- The parent's mental model is "where am I now" — one ongoing journey, not a
+  catalogue of parallel ones.
+- Concurrent `clear-aligners` cases share the same `PO-ORTHO-UNWEAR-OPEN` /
+  `PO-ORTHO-WEAR-DAILY` family of physical events; a per-case cycle projection
+  cannot tell which case "owns" a given un-wear interval without an explicit
+  case linkage on the interval (which we deliberately do not require).
+- A new course of treatment naturally implies the prior course closed; the
+  parent must transition the previous case to `completed` before starting the
+  next one.
+
+Enforcement (fail-close on each):
+
+- `insert_orthodontic_case` MUST reject a write when a non-completed case
+  already exists for the same `childId`. The error message MUST direct the
+  parent to either complete the existing case or delete it.
+- `update_orthodontic_case` MUST reject a stage transition that would result
+  in two non-completed cases for the same `childId` (e.g. setting a completed
+  case back to `active`).
+- The renderer surface MUST render only the (single) non-completed case in
+  the orthodontic page; completed cases live in the journey timeline and any
+  future "history" surface, never in the active treatment view.
+- Migration v16 enforces the invariant on existing data by selecting one
+  winning case per child (most-advanced stage, ties broken by `startedAt`
+  then `createdAt`) and either deleting empty losers or archiving losers that
+  carry attached `orthodontic_appliances` rows by transitioning them to
+  `completed` with `actualEndAt` set to the migration day. This is
+  pre-launch admissible (no production users) and is the only path that may
+  set a case to `completed` without a parent action.
 
 ### PO-ORTHO-002a `unknown-legacy` Transitional caseType
 
@@ -92,6 +128,8 @@ Orthodontic appliances must store and read:
 - `prescribedHoursPerDay` — integer, nullable (populated for wear-daily / retention-wear protocols)
 - `prescribedActivations` — integer, nullable (expander only)
 - `completedActivations` — integer, default 0 (expander only)
+- `totalAligners` — integer, nullable (clear-aligner only; total tray count in the prescribed series)
+- `daysPerAligner` — integer, nullable (clear-aligner only; prescribed wear days per tray before switching)
 - `reviewIntervalDays` — integer, nullable (default comes from protocol rule)
 - `lastReviewAt` — ISO 8601 date, nullable
 - `nextReviewDate` — ISO 8601 date, nullable
@@ -100,6 +138,8 @@ Orthodontic appliances must store and read:
 - `createdAt`, `updatedAt`
 
 Admitted `applianceType` values MUST match `orthodontic-protocols.yaml#schema.applianceType`. The spec-to-runtime binding is validated by the knowledge-base check.
+
+`totalAligners` and `daysPerAligner` are clear-aligner-only fields. The Rust command layer MUST reject `insert_orthodontic_appliance` for `applianceType = 'clear-aligner'` when either is missing or non-positive (fail-close, mirroring the existing `prescribedHoursPerDay` rule). Both fields MUST be NULL for non-clear-aligner appliance types. These fields are independent of `reviewIntervalDays`: the latter is the clinical review cadence; these two govern the per-tray wear schedule and are not used to seed reminder_states.
 
 ## PO-ORTHO-004 Pause Semantics
 
@@ -117,17 +157,21 @@ Pause is modeled at the appliance level only.
 
 ## PO-ORTHO-005 Checkin Shape
 
+Orthodontic checkins record discrete clinical events. Daily wear is NOT a
+checkin — it is modelled as a wear-gap event stream (PO-ORTHO-005a). Admitted
+`checkinType` values:
+
+- `aligner-change` — clear-aligner switch to the next tray
+- `expander-activation` — expander activation turn
+
 Orthodontic checkins must store and read:
 
 - `checkinId` (ULID)
 - `childId` (FK)
 - `caseId` (FK)
 - `applianceId` (FK)
-- `checkinType` — one of `wear-daily | aligner-change | expander-activation | retention-wear`
+- `checkinType` — one of `aligner-change | expander-activation`
 - `checkinDate` — ISO 8601 date
-- `actualWearHours` — decimal, nullable (wear-daily / retention-wear only)
-- `prescribedHours` — decimal, nullable (wear-daily / retention-wear only; snapshot of appliance.prescribedHoursPerDay at checkin time)
-- `complianceBucket` — one of `done | partial | missed`, nullable (computed at write time using `orthodontic-protocols.yaml#schema.complianceThresholds`)
 - `activationIndex` — integer, nullable (expander-activation only)
 - `alignerIndex` — integer, nullable (aligner-change only)
 - `notes` — nullable
@@ -135,10 +179,59 @@ Orthodontic checkins must store and read:
 
 Invariants:
 
-- `(childId, applianceId, checkinDate, checkinType)` is unique for `wear-daily` and `retention-wear` (one per day per appliance per type).
-- `expander-activation` and `aligner-change` may repeat within a day if medically indicated; uniqueness is enforced by `checkinId` only.
-- `complianceBucket` must never be stored for `aligner-change` or `expander-activation`; those checkins are boolean-completion only.
+- `aligner-change` and `expander-activation` may repeat within a day if medically indicated; uniqueness is enforced by `checkinId` only.
 - A checkin with `applianceId` that does not resolve back to the declared `caseId` is a fail-close violation.
+- The command layer MUST reject any `checkinType` outside the admitted two; legacy `wear-daily` and `retention-wear` are permanently retired (PO-ORTHO-005b).
+
+## PO-ORTHO-005a Wear-Gap Interval Shape
+
+Daily wear compliance is recorded as a stream of "未戴时段" (un-wear) intervals
+in `orthodontic_unwear_intervals`. The default assumption is that a removable
+appliance is being worn 22h/day; only **exceptions** (when the child takes the
+appliance out) are stored. This inverts the previous wear-daily checkin model
+and aligns with desktop-client usage frequency, parent recall patterns, and
+clinical decision-making (cumulative un-wear time per cycle drives the
+predicted aligner-switch date).
+
+Applies to removable, daily-wear appliance types only:
+`clear-aligner | twin-block | activator | retainer-removable`. Fixed appliances
+(`metal-braces | ceramic-braces | retainer-fixed | expander`) do not have
+wear-gap semantics.
+
+Wear-gap intervals must store and read:
+
+- `intervalId` (ULID)
+- `childId` (FK)
+- `caseId` (FK)
+- `applianceId` (FK)
+- `startAt` — ISO 8601 datetime (when the appliance was taken out)
+- `endAt` — ISO 8601 datetime, nullable (when the appliance was put back; NULL means "still un-worn")
+- `reason` — one of `meal | sport | school | sleep | other`, nullable
+- `notes` — nullable
+- `createdAt`, `updatedAt`
+
+Invariants (fail-close on each):
+
+- `endAt` MUST be strictly greater than `startAt` when both are present.
+- At most ONE row per `applianceId` may have `endAt IS NULL` (the open interval). The schema enforces this with a partial unique index; the command layer enforces it on write.
+- `applianceId` MUST resolve back to the declared `caseId`.
+- The command layer MUST reject `insert_unwear_interval` for appliance types outside the four removable types listed above.
+- An open-interval insert MUST seed an admitted `PO-ORTHO-UNWEAR-OPEN` reminder_state (stateId `ortho-unwear-{intervalId}`, `nextTriggerAt = startAt + 4h`); closing the interval MUST mark that reminder_state as `completed`; deleting the interval MUST cascade-delete the reminder_state.
+
+## PO-ORTHO-005b Retired Checkin Types
+
+`wear-daily` and `retention-wear` are permanently retired from the admitted
+`checkinType` set. This is a hard cutover authored by migration v15:
+
+- v15 DROPs all rows where `checkinType IN ('wear-daily', 'retention-wear')`.
+- v15 DROPs the now-unused `orthodontic_checkins.actualWearHours`, `prescribedHours`, and `complianceBucket` columns.
+- The Rust command layer MUST fail-close on any insert attempt with these types.
+- TS bridge types MUST NOT export `wear-daily` / `retention-wear` / `OrthodonticComplianceBucket`.
+- Reminder rule `PO-ORTHO-WEAR-DAILY` and `PO-ORTHO-RETENTION-WEAR` are retired from the protocol catalog (replaced by event-driven `PO-ORTHO-UNWEAR-OPEN`).
+
+This is admissible only because the project is pre-launch with no production
+data to migrate. Any future re-introduction of daily-wear semantics MUST go
+through a new ruleId; reusing `wear-daily` / `retention-wear` is forbidden.
 
 ## PO-ORTHO-006 Dental-Record Cross-Write Rules
 
@@ -182,11 +275,32 @@ Active orthodontic protocol reminders default to `push` in all nurture modes
 
 ## PO-ORTHO-008 Compliance Approximation
 
-The compliance projection consumed by the orthodontic dashboard is a
-task-completion approximation, not a clinical wear-hours reconstruction.
+Compliance is a **per-cycle continuous projection** derived from wear-gap
+intervals (PO-ORTHO-005a). It is a task-completion approximation, not a
+clinical wear-hours reconstruction.
 
-- Thresholds are defined verbatim in `orthodontic-protocols.yaml#schema.complianceThresholds`.
-- Dashboard wording MUST label the metric as "任务达成率近似" / "compliance approximation" and MUST NOT present raw `actualWearHours` numbers as clinical evidence.
+The unit of measurement is the *aligner cycle* (clear-aligner) or the
+*review cycle* (other removable appliances). Within one cycle:
+
+```
+cycleAnchor          = max(latest aligner-change checkinDate, appliance.startedAt)  -- ISO datetime treated as 00:00 UTC for cycle math
+cycleElapsedHours    = (now − cycleAnchor) in hours, clamped to >= 0
+sumGapHoursInCycle   = Σ (closed_gap.endAt − closed_gap.startAt) for closed gaps overlapping [cycleAnchor, now]
+                       + (now − open_gap.startAt) if an open gap overlaps the cycle (open gap is treated as still accumulating)
+cycleNetWearHours    = max(0, cycleElapsedHours − sumGapHoursInCycle)
+cycleTargetHours     = daysPerAligner × prescribedHoursPerDay      -- daysPerAligner from the appliance row; prescribedHoursPerDay defaults to 22 when null
+cycleProgressRatio   = cycleNetWearHours / cycleTargetHours        -- 0..1+; 1 = on schedule, <1 = behind
+predictedSwitchDate  = cycleAnchor + (cycleTargetHours / netWearRate) days
+                       where netWearRate = cycleNetWearHours / cycleElapsedHours, fallback to 22/24 when no data yet
+daysShifted          = predictedSwitchDate − (cycleAnchor + daysPerAligner)  -- 0 = on schedule, +N = pushed back N days
+```
+
+Constraints:
+
+- There is no `daily compliance bucket`. UI wording MUST be cycle-relative ("本副已净戴 X / Y 小时", "下次换套预计 5/15（推后 1 天）"), not "今日达成 / 部分 / 缺席".
+- UI MUST label the metric as "任务达成率近似" / "净戴时长近似" and MUST NOT present `cycleNetWearHours` as a clinically precise wear-time reconstruction.
+- The projection MUST reflect open intervals (still accumulating un-wear), so the displayed `cycleNetWearHours` updates monotonically while the appliance is out.
+- For non-clear-aligner removable appliances (twin-block / activator / retainer-removable) the same projection applies, with `cycleTargetHours` = (review interval days × prescribedHoursPerDay) since they have no aligner index.
 - A future `compliance-v2` may extend this (e.g., smart-device ingest). It is intentionally out of scope for v1.
 
 ## PO-ORTHO-009 Early-Intervention Age Gate
@@ -225,7 +339,7 @@ is empty, the surface must display no summary rather than placeholder text.
 
 The orthodontic layer must fail closed when:
 
-- a persisted `orthodontic_checkins.checkinType` is outside the admitted four
+- a persisted `orthodontic_checkins.checkinType` is outside the admitted set (`aligner-change | expander-activation`); legacy `wear-daily` / `retention-wear` are permanently retired (PO-ORTHO-005b)
 - a persisted `orthodontic_appliances.applianceType` is outside the protocol enum
 - a persisted `orthodontic_cases.caseType` or `stage` is outside its enum
 - a protocol reminder writes a synthetic ruleId (anything not in the unioned catalog)
@@ -233,6 +347,12 @@ The orthodontic layer must fail closed when:
 - `orthodontic_cases.nextReviewDate` is written directly without being recomputed from active appliances
 - an AI summary emits forbidden wording from PO-ORTHO-010 and the surface still tries to display it
 - a checkin references a `caseId`/`applianceId` pair that does not round-trip
+- a second non-completed case is inserted (or updated into) for the same `childId` (PO-ORTHO-002b)
+- an `orthodontic_unwear_intervals` row is inserted with `endAt <= startAt`
+- a second open interval (`endAt IS NULL`) is inserted for the same `applianceId` while another open interval already exists
+- a wear-gap interval is inserted for an appliance type outside `clear-aligner | twin-block | activator | retainer-removable`
+- a wear-gap interval references a `caseId` / `applianceId` pair that does not round-trip
+- closing or deleting an interval fails to update the matching `PO-ORTHO-UNWEAR-OPEN` reminder_state
 
 ## Phase Exclusions
 

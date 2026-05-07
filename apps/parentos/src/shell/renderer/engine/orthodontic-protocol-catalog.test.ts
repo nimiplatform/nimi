@@ -12,9 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parse as parseYaml } from 'yaml';
 import { REMINDER_RULES } from '../knowledge-base/index.js';
-import {
-  defaultReviewIntervalDays,
-} from '../features/profile/orthodontic-tab-forms.js';
+import { defaultReviewIntervalDays } from '../features/profile/orthodontic-derive.js';
 import type { OrthodonticApplianceType } from '../bridge/sqlite-bridge.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -44,20 +42,25 @@ function rulesTargetingAppliance(applianceType: string) {
 describe('orthodontic protocol catalog coverage', () => {
   it('fixed metal-braces only produces the review/adjustment protocol rule', () => {
     const applicable = rulesTargetingAppliance('metal-braces').map((r) => r.ruleId);
-    // Metal braces should match PO-ORTHO-REVIEW-FIXED (adjustments) and nothing daily.
+    // Metal braces are non-removable, so neither the legacy daily wear rules
+    // (retired by PO-ORTHO-005b) nor the new wear-gap rule applies.
     expect(applicable).toContain('PO-ORTHO-REVIEW-FIXED');
     expect(applicable).not.toContain('PO-ORTHO-WEAR-DAILY');
+    expect(applicable).not.toContain('PO-ORTHO-RETENTION-WEAR');
+    expect(applicable).not.toContain('PO-ORTHO-UNWEAR-OPEN');
     expect(applicable).not.toContain('PO-ORTHO-ALIGNER-CHANGE');
     expect(applicable).not.toContain('PO-ORTHO-EXPANDER-ACTIVATION');
   });
 
-  it('clear-aligner emits daily wear, aligner-change, and review rules', () => {
+  it('clear-aligner emits the wear-gap nudge, aligner-change, and review rules', () => {
     const applicable = rulesTargetingAppliance('clear-aligner').map((r) => r.ruleId);
     expect(applicable).toEqual(expect.arrayContaining([
-      'PO-ORTHO-WEAR-DAILY',
+      'PO-ORTHO-UNWEAR-OPEN',
       'PO-ORTHO-ALIGNER-CHANGE',
       'PO-ORTHO-REVIEW-ALIGNER',
     ]));
+    // The legacy daily-wear rule was retired in v15 (PO-ORTHO-005b).
+    expect(applicable).not.toContain('PO-ORTHO-WEAR-DAILY');
     expect(applicable).not.toContain('PO-ORTHO-EXPANDER-ACTIVATION');
   });
 
@@ -66,15 +69,21 @@ describe('orthodontic protocol catalog coverage', () => {
     expect(applicable).toContain('PO-ORTHO-EXPANDER-ACTIVATION');
     expect(applicable).toContain('PO-ORTHO-REVIEW-INTERCEPTIVE');
     expect(applicable).not.toContain('PO-ORTHO-ALIGNER-CHANGE');
+    // Expander is fixed in mouth — never a wear-gap candidate.
+    expect(applicable).not.toContain('PO-ORTHO-UNWEAR-OPEN');
   });
 
-  it('retention rules target removable and fixed retainers', () => {
+  it('retention rules target removable and fixed retainers via wear-gap + review', () => {
     const removable = rulesTargetingAppliance('retainer-removable').map((r) => r.ruleId);
-    expect(removable).toContain('PO-ORTHO-RETENTION-WEAR');
+    // Removable retainers participate in the wear-gap stream, not the legacy
+    // PO-ORTHO-RETENTION-WEAR daily rule (retired in v15).
+    expect(removable).toContain('PO-ORTHO-UNWEAR-OPEN');
     expect(removable).toContain('PO-ORTHO-RETENTION-REVIEW');
+    expect(removable).not.toContain('PO-ORTHO-RETENTION-WEAR');
     const fixed = rulesTargetingAppliance('retainer-fixed').map((r) => r.ruleId);
     expect(fixed).toContain('PO-ORTHO-RETENTION-REVIEW');
-    expect(fixed).not.toContain('PO-ORTHO-RETENTION-WEAR'); // nothing daily to wear
+    expect(fixed).not.toContain('PO-ORTHO-UNWEAR-OPEN'); // not removable
+    expect(fixed).not.toContain('PO-ORTHO-RETENTION-WEAR');
   });
 
   it('dental follow-up rules exist for each admitted dental eventType', () => {

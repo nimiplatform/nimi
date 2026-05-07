@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Save, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
+import { computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { S } from '../../app-shell/page-style.js';
 import { saveHealthRecordCapture, type SaveHealthRecordCaptureResult } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
@@ -16,18 +16,228 @@ import {
   type HealthCaptureIntent,
 } from './health-capture-orchestrator.js';
 import { groupLabel, metricLabel, protocolLabel } from './health-record-display.js';
+import { GrowthAddRecordContent } from './growth-curve-add-record-modal.js';
+import { VisionBatchFormContent } from './vision-batch-form.js';
+import { SleepFormContent } from './sleep-record-form.js';
+import { FitnessAssessmentFormContent } from './fitness-assessment-form.js';
+import { MedicalEventFormContent } from './medical-events-form.js';
+import { MilestoneCaptureContent } from './milestone-capture-form.js';
+import { OutdoorCaptureContent } from './outdoor-capture-form.js';
+import { DentalCaptureContent } from './dental-capture-form.js';
+import { hasMilestoneCandidatesForAge } from './milestone-capture-form.js';
+import { useAppStore } from '../../app-shell/app-store.js';
 
 interface HealthCaptureModalProps {
   open: boolean;
   childId: string;
   childBirthDate: string;
   initialIntent?: HealthCaptureIntent | null;
+  initialGroupId?: string | null;
   onClose: () => void;
   onSaved?: (result: SaveHealthRecordCaptureResult) => void;
 }
 
-export function HealthCaptureModal({
-  open,
+const PROTOTYPE_GROUPS = new Set(['growth', 'vision', 'sleep', 'fitness', 'medical', 'development', 'outdoor', 'dental']);
+
+export function HealthCaptureModal(props: HealthCaptureModalProps) {
+  if (!props.open) return null;
+  if (props.initialIntent) {
+    return <LegacyHealthCaptureModal {...props} />;
+  }
+  return <SidebarHealthCaptureModal {...props} />;
+}
+
+function SidebarHealthCaptureModal({
+  childId,
+  childBirthDate,
+  initialGroupId,
+  onClose,
+  onSaved,
+}: HealthCaptureModalProps) {
+  const { t } = useTranslation();
+  const ageMonths = computeAgeMonths(childBirthDate);
+  const isUnder6 = ageMonths <= 72;
+  const allOptions = useMemo(() => getHealthCaptureProtocolOptions(), []);
+  const options = useMemo(() => {
+    return allOptions.filter((option) => {
+      if (option.group.groupId === 'development') {
+        return hasMilestoneCandidatesForAge(ageMonths);
+      }
+      return true;
+    });
+  }, [allOptions, ageMonths]);
+  const [selectedGroupId, setSelectedGroupId] = useState(() => {
+    if (initialGroupId && options.some((option) => option.group.groupId === initialGroupId)) {
+      return initialGroupId;
+    }
+    return options[0]?.group.groupId ?? 'growth';
+  });
+  const { children } = useAppStore();
+  const child = children.find((item) => item.childId === childId);
+
+  const handleSavedFromGroup = () => {
+    onSaved?.({ eventId: '' } as SaveHealthRecordCaptureResult);
+  };
+
+  const renderContent = () => {
+    if (selectedGroupId === 'growth') {
+      return (
+        <GrowthAddRecordContent
+          childId={childId}
+          birthDate={childBirthDate}
+          isUnder6={isUnder6}
+          onSaved={handleSavedFromGroup}
+          onClose={onClose}
+        />
+      );
+    }
+    if (selectedGroupId === 'vision') {
+      return (
+        <div className="px-5 py-5 max-h-[85vh] overflow-y-auto w-full">
+          <VisionBatchFormContent
+            childId={childId}
+            birthDate={childBirthDate}
+            onSave={handleSavedFromGroup}
+            onClose={onClose}
+          />
+        </div>
+      );
+    }
+    if (selectedGroupId === 'sleep') {
+      return (
+        <SleepFormContent
+          child={{ childId, birthDate: childBirthDate }}
+          onSaved={handleSavedFromGroup}
+          onClose={onClose}
+        />
+      );
+    }
+    if (selectedGroupId === 'fitness') {
+      return (
+        <FitnessAssessmentFormContent
+          child={{ childId, birthDate: childBirthDate, gender: child?.gender ?? 'male' }}
+          ageMonths={ageMonths}
+          onSaved={handleSavedFromGroup}
+          onClose={onClose}
+        />
+      );
+    }
+    if (selectedGroupId === 'medical') {
+      return (
+        <MedicalEventFormContent
+          child={{
+            childId,
+            birthDate: childBirthDate,
+            gender: child?.gender ?? 'male',
+            displayName: child?.displayName ?? '',
+          }}
+          onSaved={handleSavedFromGroup}
+          onClose={onClose}
+        />
+      );
+    }
+    if (selectedGroupId === 'development') {
+      return (
+        <MilestoneCaptureContent
+          child={{ childId }}
+          ageMonths={ageMonths}
+          onSaved={handleSavedFromGroup}
+          onClose={onClose}
+        />
+      );
+    }
+    if (selectedGroupId === 'outdoor') {
+      return (
+        <OutdoorCaptureContent
+          child={{ childId }}
+          onSaved={handleSavedFromGroup}
+          onClose={onClose}
+        />
+      );
+    }
+    if (selectedGroupId === 'dental') {
+      return (
+        <DentalCaptureContent
+          child={{ childId, birthDate: childBirthDate }}
+          ageMonths={ageMonths}
+          onSaved={handleSavedFromGroup}
+          onClose={onClose}
+        />
+      );
+    }
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center px-8 py-16 text-center">
+        <div className="text-[40px] mb-4">🚧</div>
+        <p className="text-[15px] font-semibold mb-2" style={{ color: S.text }}>
+          {t('Profile.capture.comingSoonTitle', { defaultValue: '该分组录入即将上线' })}
+        </p>
+        <p className="text-[13px]" style={{ color: S.sub }}>
+          {t('Profile.capture.comingSoonDesc', { defaultValue: '该分类正在迁移到统一录入界面。' })}
+        </p>
+      </div>
+    );
+  };
+
+  const groupContentWidth = (() => {
+    switch (selectedGroupId) {
+      case 'vision':
+      case 'dental':
+        return 'w-[680px]';
+      case 'medical':
+        return 'w-[520px]';
+      case 'sleep':
+        return 'w-[480px]';
+      case 'development':
+        return 'w-[460px]';
+      default:
+        return 'w-[440px]';
+    }
+  })();
+
+  return (
+    <div
+      role="dialog"
+      aria-label="health-capture-modal"
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'var(--nimi-scrim-modal)' }}
+      onClick={onClose}
+    >
+      <section
+        className={`max-h-[88vh] ${S.radius} shadow-xl flex overflow-hidden`}
+        style={{ background: S.card }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <aside className="w-[180px] shrink-0 border-r py-4 px-3" style={{ borderColor: S.border, background: '#fafaf8' }}>
+          <div className="flex flex-col gap-1">
+            {options.map((option) => {
+              const isSelected = selectedGroupId === option.group.groupId;
+              const isPrototype = PROTOTYPE_GROUPS.has(option.group.groupId);
+              return (
+                <button
+                  key={option.group.groupId}
+                  type="button"
+                  className={`${S.radiusSm} px-3 py-2 text-left text-[13px] font-medium transition-colors`}
+                  style={
+                    isSelected
+                      ? { background: S.accent, color: '#fff' }
+                      : { background: 'transparent', color: isPrototype ? S.text : S.sub }
+                  }
+                  onClick={() => setSelectedGroupId(option.group.groupId)}
+                >
+                  {groupLabel(option.group.groupId, option.group.displayName, t)}
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <div className={`${groupContentWidth} flex flex-col min-w-0`}>{renderContent()}</div>
+      </section>
+    </div>
+  );
+}
+
+function LegacyHealthCaptureModal({
   childId,
   childBirthDate,
   initialIntent,
@@ -51,7 +261,6 @@ export function HealthCaptureModal({
   const protocolLocked = initialIntent?.mode === 'reminder';
 
   useEffect(() => {
-    if (!open) return;
     const nextProtocolId = initialIntent?.protocolId ?? firstProtocol?.protocolId ?? null;
     setProtocolId(nextProtocolId);
     setSelectedGroupId(
@@ -64,7 +273,7 @@ export function HealthCaptureModal({
     setDraftValues(initialIntent?.prefillValues ?? {});
     setError(null);
     setMissingMetricIds(new Set());
-  }, [firstProtocol?.protocolId, initialIntent, open, options]);
+  }, [firstProtocol?.protocolId, initialIntent, options]);
 
   const selectedOption = options.find((option) => option.group.groupId === selectedGroupId) ?? options[0] ?? null;
   const selectedProtocol =
@@ -73,8 +282,6 @@ export function HealthCaptureModal({
     selectedOption?.protocols[0] ??
     null;
   const metricSections = selectedProtocol ? getCaptureMetrics(selectedProtocol) : { required: [], optional: [] };
-
-  if (!open) return null;
 
   const setMetricValue = (metricId: HealthMetricId, value: string) => {
     setDraftValues((previous) => ({ ...previous, [metricId]: { ...(previous[metricId] ?? {}), value } }));
@@ -320,10 +527,16 @@ function MetricFieldSet({
           const labelText = `${label}${metric.unit ? ` (${metric.unit})` : ''}`;
           return (
             <label key={metric.metricId} className="flex flex-col gap-1">
-              <span className="text-[13px] font-medium inline-flex items-start gap-0.5" style={{ color: S.sub }}>
+              <span className="text-[13px] font-medium inline-flex items-baseline gap-0.5" style={{ color: S.sub }}>
                 <span>{labelText}</span>
                 {isRequired ? (
-                  <span aria-hidden="true" style={{ color: ERROR_TEXT, lineHeight: 1 }}>※</span>
+                  <span
+                    aria-hidden="true"
+                    className="text-[9px] leading-none relative -top-[1px]"
+                    style={{ color: ERROR_TEXT }}
+                  >
+                    *
+                  </span>
                 ) : null}
               </span>
               {metric.valueShape === 'event' || metric.valueShape === 'composite' ? (

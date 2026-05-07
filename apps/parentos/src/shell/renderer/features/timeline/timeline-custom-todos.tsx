@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { S } from '../../app-shell/page-style.js';
 import { getLocalToday } from '../../engine/reminder-engine.js';
 import {
   advanceCustomTodoDueDate,
@@ -11,7 +10,7 @@ import {
 import type { CustomTodoRow, TodoRecurrenceRule } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
-import { ProfileDatePicker } from '../profile/profile-date-picker.js';
+import { TodoDueDatePicker } from './todo-due-date-picker.js';
 import { TodoRecurrencePicker } from './todo-recurrence-picker.js';
 import {
   computeNextDueDate,
@@ -54,8 +53,6 @@ export function CustomTodoComposer({
 }) {
   const [newTitle, setNewTitle] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [datePickerOpenNonce, setDatePickerOpenNonce] = useState(0);
   const [adding, setAdding] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [recurrenceRule, setRecurrenceRule] = useState<TodoRecurrenceRule | null>(null);
@@ -77,7 +74,6 @@ export function CustomTodoComposer({
   const reset = useCallback(() => {
     setNewTitle('');
     setNewDueDate('');
-    setShowDatePicker(false);
     setExpanded(false);
     setRecurrenceRule(null);
     setReminderOffsetMinutes(null);
@@ -121,16 +117,7 @@ export function CustomTodoComposer({
     }
   }, [childId, newDueDate, newTitle, onAdded, onChanged, recurrenceRule, reminderOffsetMinutes, reset]);
 
-  const dateFieldClassName = `w-full ${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#C2E8F7]/50`;
-  const dateFieldStyle = {
-    borderColor: S.border,
-    borderWidth: 1,
-    borderStyle: 'solid' as const,
-    background: '#fafaf8',
-  };
-
   const canSubmit = newTitle.trim().length > 0 && !adding;
-  const dateActive = showDatePicker || Boolean(newDueDate);
 
   if (!expanded) {
     return (
@@ -187,72 +174,36 @@ export function CustomTodoComposer({
           style={{ color: '#1e293b' }}
         />
 
-        <div className="my-2.5 h-px" style={{ background: '#eef0ee' }} />
-
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            title={showDatePicker ? '收起日期' : newDueDate ? '修改日期' : '设置日期'}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              if (showDatePicker) {
-                setShowDatePicker(false);
-                return;
-              }
-              setShowDatePicker(true);
-              setDatePickerOpenNonce((value) => value + 1);
-            }}
-            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3.5 text-[14px] font-medium transition-colors"
-            style={{
-              color: dateActive ? '#ffffff' : '#64748b',
-              background: dateActive ? '#3BB88A' : 'transparent',
-              border: 'none',
-              boxShadow: dateActive ? '0 2px 8px rgba(59, 184, 138, 0.28)' : 'none',
-            }}
-          >
-            <span>{newDueDate ? formatDueDate(newDueDate) : '今天'}</span>
-          </button>
-          <TodoReminderPicker value={reminderOffsetMinutes} onChange={setReminderOffsetMinutes} />
-          <TodoRecurrencePicker value={recurrenceRule} onChange={setRecurrenceRule} />
-        </div>
-
-        {showDatePicker && (
-          <div className="mt-2">
-            <ProfileDatePicker
-              value={newDueDate}
-              onChange={setNewDueDate}
-              allowClear
-              maxDate="2100-12-31"
-              autoOpenNonce={datePickerOpenNonce}
-              className={dateFieldClassName}
-              style={dateFieldStyle}
-            />
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="flex flex-wrap items-center gap-x-1 gap-y-2">
+            <TodoDueDatePicker value={newDueDate} onChange={setNewDueDate} />
+            <TodoReminderPicker value={reminderOffsetMinutes} onChange={setReminderOffsetMinutes} />
+            <TodoRecurrencePicker value={recurrenceRule} onChange={setRecurrenceRule} />
           </div>
-        )}
-
-        <div className="mt-3 flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={reset}
-            className="h-8 rounded-full px-4 text-[14px] font-medium transition-colors hover:bg-[#f3f4f6]"
-            style={{ color: '#64748b', background: 'transparent' }}
-          >
-            取消
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleAdd()}
-            disabled={!canSubmit}
-            className="h-8 rounded-full px-5 text-[14px] font-medium transition-all"
-            style={{
-              background: canSubmit ? '#3BB88A' : '#e5e7eb',
-              color: canSubmit ? '#fff' : '#9ca3af',
-              cursor: canSubmit ? 'pointer' : 'not-allowed',
-              boxShadow: canSubmit ? '0 2px 8px rgba(59, 184, 138, 0.28)' : 'none',
-            }}
-          >
-            添加
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={reset}
+              className="h-8 rounded-full px-4 text-[14px] font-medium transition-colors hover:bg-[#f3f4f6]"
+              style={{ color: '#64748b', background: 'transparent' }}
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleAdd()}
+              disabled={!canSubmit}
+              className="h-8 rounded-full px-5 text-[14px] font-medium transition-all"
+              style={{
+                background: canSubmit ? '#3BB88A' : '#e5e7eb',
+                color: canSubmit ? '#fff' : '#9ca3af',
+                cursor: canSubmit ? 'pointer' : 'not-allowed',
+                boxShadow: canSubmit ? '0 2px 8px rgba(59, 184, 138, 0.28)' : 'none',
+              }}
+            >
+              添加
+            </button>
+          </div>
         </div>
       </div>
     </div>

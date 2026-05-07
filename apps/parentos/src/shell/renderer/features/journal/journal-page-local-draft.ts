@@ -12,6 +12,7 @@ export type JournalLocalDraftPayload = {
   keepsakeReason: KeepsakeReason | null;
   moodTag: string | null;
   subjectiveNotes: string;
+  recordedAt: string | null;
 };
 
 export type JournalLocalDraftRecord = JournalLocalDraftPayload & {
@@ -44,6 +45,7 @@ export function toJournalLocalDraftPayload(record: JournalLocalDraftRecord): Jou
     keepsakeReason: record.keepsakeReason,
     moodTag: record.moodTag,
     subjectiveNotes: record.subjectiveNotes,
+    recordedAt: record.recordedAt,
   };
 }
 
@@ -77,6 +79,7 @@ export function readJournalLocalDraft(childId: string): JournalLocalDraftRecord 
       keepsakeReason: typeof parsed.keepsakeReason === 'string' ? parsed.keepsakeReason as KeepsakeReason : null,
       moodTag: typeof parsed.moodTag === 'string' ? parsed.moodTag : null,
       subjectiveNotes: typeof parsed.subjectiveNotes === 'string' ? parsed.subjectiveNotes : '',
+      recordedAt: typeof parsed.recordedAt === 'string' ? parsed.recordedAt : null,
       updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : '',
     };
   } catch {

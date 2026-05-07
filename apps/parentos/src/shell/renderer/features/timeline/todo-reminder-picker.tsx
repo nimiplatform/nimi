@@ -41,12 +41,11 @@ export function TodoReminderPicker({ value, onChange }: TodoReminderPickerProps)
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[14px] font-medium transition-colors"
+        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[14px] font-medium transition-colors hover:bg-[#f3f4f6]"
         style={{
-          color: active ? '#ffffff' : '#64748b',
-          background: active ? '#3BB88A' : 'transparent',
+          color: active ? '#3BB88A' : '#64748b',
+          background: active ? 'rgba(59, 184, 138, 0.10)' : 'transparent',
           border: 'none',
-          boxShadow: active ? '0 2px 8px rgba(59, 184, 138, 0.28)' : 'none',
         }}
       >
         {CLOCK_ICON}

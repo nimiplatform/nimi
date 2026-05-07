@@ -312,7 +312,7 @@ function ObservationNudgeSection({ nudges }: { nudges: ObservationNudge[] }) {
             <p className="mt-0.5 text-[12px]" style={{ color: '#475569' }}>{nudge.parentQuestion}</p>
           </div>
           <Link
-            to={`/observe?dimensionId=${encodeURIComponent(nudge.dimensionId)}`}
+            to={`/journal?dimensionId=${encodeURIComponent(nudge.dimensionId)}`}
             className="shrink-0 rounded-full px-3 py-1.5 text-[12px] font-medium text-white opacity-0 transition-all group-hover:opacity-100 hover:-translate-y-0.5"
             style={{ background: '#1e293b', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
           >

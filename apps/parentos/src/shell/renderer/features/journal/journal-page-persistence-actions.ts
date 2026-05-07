@@ -55,6 +55,7 @@ export function createJournalPersistenceActions(input: {
   textContent: string;
   voiceDraft: VoiceDraft;
   photoDrafts: PhotoDraft[];
+  recordedAt: string | null;
   searchParams: URLSearchParams;
   recorderSessionRef: MutableRefObject<VoiceRecordingSession | null>;
   skipLocalDraftPersistRef: MutableRefObject<boolean>;
@@ -283,7 +284,7 @@ export function createJournalPersistenceActions(input: {
         savedPhotoPaths = await persistPhotos(entryId);
         const mergedPhotoPaths = mergePhotoPathJson(input.editingEntry?.photoPaths ?? null, savedPhotoPaths);
         const preservedVoicePath = input.editingEntry?.voicePath ?? null;
-        const recordedAt = input.editingEntry?.recordedAt ?? now;
+        const recordedAt = input.recordedAt ?? input.editingEntry?.recordedAt ?? now;
 
         if (input.captureMode === 'text') {
           if (!input.textContent.trim() && !mergedPhotoPaths && !preservedVoicePath) {
@@ -428,6 +429,8 @@ export function createJournalPersistenceActions(input: {
         previewUrl: null,
         transcript: '',
         error: null,
+        levelSamples: [],
+        durationMs: 0,
       });
     } catch {
       input.setVoiceDraft({
@@ -454,6 +457,8 @@ export function createJournalPersistenceActions(input: {
         previewUrl: result.previewUrl,
         transcript: '',
         error: null,
+        levelSamples: result.levelSamples,
+        durationMs: result.durationMs,
       });
     } catch {
       input.recorderSessionRef.current = null;

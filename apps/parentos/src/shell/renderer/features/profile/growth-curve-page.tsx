@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { S } from '../../app-shell/page-style.js';
-import { AppSelect } from '../../app-shell/app-select.js';
-import { computeAgeMonths, computeAgeMonthsAt, formatAge, useAppStore } from '../../app-shell/app-store.js';
+import { computeAgeMonths, computeAgeMonthsAt, useAppStore } from '../../app-shell/app-store.js';
 import { getMeasurements, insertMeasurement, updateMeasurement, deleteMeasurement } from '../../bridge/sqlite-bridge.js';
 import type { MeasurementRow } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
@@ -31,18 +30,12 @@ import {
 
 export default function GrowthCurvePage() {
   const { t } = useTranslation();
-  const { activeChildId, setActiveChildId, children } = useAppStore();
+  const { activeChildId, children } = useAppStore();
   const child = children.find((item) => item.childId === activeChildId);
   const [measurements, setMeasurements] = useState<MeasurementRow[]>([]);
   const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState<string>('height');
   const [showForm, setShowForm] = useState(false);
-  const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 10));
-  const [formHeight, setFormHeight] = useState('');
-  const [formWeight, setFormWeight] = useState('');
-  const [formHeadCirc, setFormHeadCirc] = useState('');
-  const [formNotes, setFormNotes] = useState('');
-  const [formPhotoPreview, setFormPhotoPreview] = useState<string | null>(null);
   const [growthStandard, setGrowthStandard] = useState<GrowthStandard>('china');
   const [whoDataset, setWhoDataset] = useState<WHOLMSDataset | null>(null);
   const [showOCR, setShowOCR] = useState(false);
@@ -112,47 +105,8 @@ export default function GrowthCurvePage() {
   );
   const canShowWhoLines = canRenderWHOLMS(whoDataset, ageMonths);
 
-  const resetAddRecordDraft = () => {
-    setShowForm(false);
-    setFormHeight('');
-    setFormWeight('');
-    setFormHeadCirc('');
-    setFormNotes('');
-    setFormPhotoPreview(null);
-  };
-
   const refreshMeasurements = async () => {
     setMeasurements(await getMeasurements(child.childId));
-  };
-
-  const handleAddRecord = async () => {
-    if (!formDate) return;
-    const h = formHeight ? parseFloat(formHeight) : null;
-    const w = formWeight ? parseFloat(formWeight) : null;
-    const hc = formHeadCirc ? parseFloat(formHeadCirc) : null;
-    if (h === null && w === null && hc === null) return;
-
-    const age = computeAgeMonthsAt(child.birthDate, formDate);
-    const now = isoNow();
-    const photoNote = formPhotoPreview ? `photo:${formPhotoPreview}` : null;
-    const notes = [formNotes.trim() || null, photoNote].filter(Boolean).join('\n') || null;
-
-    try {
-      if (h != null) await insertMeasurement({ measurementId: ulid(), childId: child.childId, typeId: 'height', value: h, measuredAt: formDate, ageMonths: age, percentile: null, source: 'manual', notes, now });
-      if (w != null) await insertMeasurement({ measurementId: ulid(), childId: child.childId, typeId: 'weight', value: w, measuredAt: formDate, ageMonths: age, percentile: null, source: 'manual', notes, now });
-      if (hc != null) await insertMeasurement({ measurementId: ulid(), childId: child.childId, typeId: 'head-circumference', value: hc, measuredAt: formDate, ageMonths: age, percentile: null, source: 'manual', notes, now });
-      if (h != null && w != null) {
-        const bmi = computeBMI(h, w);
-        await insertMeasurement({ measurementId: ulid(), childId: child.childId, typeId: 'bmi', value: bmi, measuredAt: formDate, ageMonths: age, percentile: null, source: 'computed', notes: null, now });
-      }
-      await refreshMeasurements();
-      resetAddRecordDraft();
-    } catch { /* bridge unavailable */ }
-  };
-
-  const handlePhotoChange = async (file: File | null) => {
-    if (!file) { setFormPhotoPreview(null); return; }
-    try { setFormPhotoPreview(await readImageFileAsDataUrl(file)); } catch { setFormPhotoPreview(null); }
   };
 
   const navigateToAI = (m: MeasurementRow) => {
@@ -352,10 +306,6 @@ export default function GrowthCurvePage() {
           </button>
         </div>
       </div>
-      <div className="mb-5">
-        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
-          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${formatAge(computeAgeMonths(c.birthDate))}` }))} />
-      </div>
       <AISummaryCard domain="growth" childName={child.displayName} childId={child.childId}
         ageLabel={`${Math.floor(ageMonths/12)}岁${ageMonths%12}个月`} gender={child.gender}
         dataContext={buildGrowthSummaryContext(measurements, computedBmi)}
@@ -383,23 +333,13 @@ export default function GrowthCurvePage() {
 
       <div className="flex flex-wrap gap-3">
         {showForm ? (
-        <GrowthCurveAddRecordModal
-          formDate={formDate}
-          setFormDate={setFormDate}
-          formHeight={formHeight}
-          setFormHeight={setFormHeight}
-          formWeight={formWeight}
-          setFormWeight={setFormWeight}
-          formHeadCirc={formHeadCirc}
-          setFormHeadCirc={setFormHeadCirc}
-          formNotes={formNotes}
-          setFormNotes={setFormNotes}
-          formPhotoPreview={formPhotoPreview}
-          isUnder6={isUnder6}
-          onPhotoChange={handlePhotoChange}
-          onSave={() => void handleAddRecord()}
-          onClose={resetAddRecordDraft}
-        />
+          <GrowthCurveAddRecordModal
+            childId={child.childId}
+            birthDate={child.birthDate}
+            isUnder6={isUnder6}
+            onSaved={refreshMeasurements}
+            onClose={() => setShowForm(false)}
+          />
         ) : null}
 
         {showOCR ? (

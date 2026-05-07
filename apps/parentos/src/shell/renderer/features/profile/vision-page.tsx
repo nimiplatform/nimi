@@ -18,7 +18,6 @@ import { deleteMeasurement, getMeasurements, getMedicalEvents } from '../../brid
 import type { MeasurementRow, MedicalEventRow } from '../../bridge/sqlite-bridge.js';
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
 import { S } from '../../app-shell/page-style.js';
-import { AppSelect } from '../../app-shell/app-select.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { readImageFileAsDataUrl, analyzeCheckupSheetOCR } from './checkup-ocr.js';
@@ -53,7 +52,7 @@ import {
 
 export default function VisionPage() {
   const { t } = useTranslation();
-  const { activeChildId, setActiveChildId, children } = useAppStore();
+  const { activeChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
 
   const [measurements, setMeasurements] = useState<MeasurementRow[]>([]);
@@ -183,15 +182,6 @@ export default function VisionPage() {
     <div className={S.container} style={{ paddingTop: S.topPad, minHeight: '100%' }}>
       <div className="flex items-center gap-2 mb-4">
         <Link to="/profile" className="text-[14px] hover:underline" style={{ color: 'var(--nimi-fg-3)' }}>← {t('Profile.rich.common.backToProfile')}</Link>
-      </div>
-
-      {/* Child switcher */}
-      <div className="mb-3">
-        <AppSelect
-          value={activeChildId ?? ''}
-          onChange={(v) => setActiveChildId(v || null)}
-          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${fmtAge(computeAgeMonths(c.birthDate))}` }))}
-        />
       </div>
 
       {/* Page header */}

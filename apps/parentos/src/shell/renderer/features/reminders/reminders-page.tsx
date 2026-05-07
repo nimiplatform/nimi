@@ -389,7 +389,7 @@ export default function RemindersPage() {
           发现数据库中存在未登记的 ruleId：{agendaResult.ruleIds.join('、')}
         </p>
         <p className="text-[14px]" style={{ color: textMuted }}>
-          为保护数据不被误读，提醒页面已按 PO-TIME-007 fail-close。请联系开发修复规则目录或清理脏数据。
+          为保护数据不被误读，提醒页面已按 PO-TIME-007 fail-close。重启 ParentOS 即可触发 schema v17 自动清理这些游离记录；如果重启后仍有未登记的 ruleId，请联系开发修复规则目录。
         </p>
       </div>
     );

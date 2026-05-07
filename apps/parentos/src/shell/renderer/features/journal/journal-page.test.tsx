@@ -627,6 +627,50 @@ describe('JournalPage', () => {
     });
   });
 
+  it('saves a backdated entry when the recordedAt picker chooses a preset', async () => {
+    renderPage();
+
+    fireEvent.change(getComposerTextarea(), {
+      target: { value: '昨天她第一次自己穿好鞋子。' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /调整记录时间/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /选择记录时间/i })).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^昨天 19:00$/ }));
+    });
+
+    expect(screen.getByRole('button', { name: /调整记录时间/i }).textContent).toMatch(/昨天/);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^保存$/i }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /保存随手记/i })).toBeTruthy();
+    });
+    await act(async () => {
+      const modalSaveButtons = screen.getAllByRole('button', { name: /^保存/ });
+      const confirmBtn = modalSaveButtons.find((btn) => btn.closest('[role="dialog"]'));
+      fireEvent.click(confirmBtn!);
+    });
+
+    await waitFor(() => {
+      expect(insertJournalEntryWithTagsMock).toHaveBeenCalledTimes(1);
+    });
+
+    const passedRecordedAt = insertJournalEntryWithTagsMock.mock.calls[0]?.[0]?.recordedAt as string;
+    expect(typeof passedRecordedAt).toBe('string');
+    const yesterdayLocal = new Date();
+    yesterdayLocal.setDate(yesterdayLocal.getDate() - 1);
+    yesterdayLocal.setHours(19, 0, 0, 0);
+    expect(new Date(passedRecordedAt).getTime()).toBe(yesterdayLocal.getTime());
+  });
+
   it('confirms before deleting an entry and removes it from the timeline', async () => {
     getJournalEntriesMock
       .mockResolvedValueOnce([createJournalEntry()])

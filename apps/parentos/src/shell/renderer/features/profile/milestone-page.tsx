@@ -7,7 +7,6 @@ import { getMilestoneRecords, upsertMilestoneRecord } from '../../bridge/sqlite-
 import type { MilestoneRecordRow } from '../../bridge/sqlite-bridge.js';
 import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
-import { AppSelect } from '../../app-shell/app-select.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
@@ -180,7 +179,7 @@ function RecordModal({ milestone, record, childId, ageMonths, onSave, onClose }:
    ================================================================ */
 
 export default function MilestonePage() {
-  const { activeChildId, setActiveChildId, children } = useAppStore();
+  const { activeChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
   const [records, setRecords] = useState<MilestoneRecordRow[]>([]);
   const [editingMilestone, setEditingMilestone] = useState<string | null>(null);
@@ -321,10 +320,6 @@ export default function MilestonePage() {
         <span className="text-[14px] px-3 py-1 rounded-full" style={{ background: '#f4f7ea', color: S.accent }}>
           已达成 {achievedCount}/{MILESTONE_CATALOG.length}
         </span>
-      </div>
-      <div className="mb-5">
-        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
-          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${formatAge(computeAgeMonths(c.birthDate))}` }))} />
       </div>
 
       {/* AI Summary */}

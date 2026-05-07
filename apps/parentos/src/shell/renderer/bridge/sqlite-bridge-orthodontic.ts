@@ -43,13 +43,12 @@ export type OrthodonticApplianceType =
 
 export type OrthodonticApplianceStatus = 'active' | 'paused' | 'completed';
 
-export type OrthodonticCheckinType =
-  | 'wear-daily'
-  | 'aligner-change'
-  | 'expander-activation'
-  | 'retention-wear';
+export type OrthodonticCheckinType = 'aligner-change' | 'expander-activation';
 
-export type OrthodonticComplianceBucket = 'done' | 'partial' | 'missed';
+/**
+ * Wear-gap interval reason taxonomy (PO-ORTHO-005a).
+ */
+export type OrthodonticUnwearReason = 'meal' | 'sport' | 'school' | 'sleep' | 'other';
 
 export interface OrthodonticCaseRow {
   caseId: string;
@@ -79,6 +78,10 @@ export interface OrthodonticApplianceRow {
   prescribedHoursPerDay: number | null;
   prescribedActivations: number | null;
   completedActivations: number;
+  /** Clear-aligner only. Total tray count in the prescribed series (PO-ORTHO-003). */
+  totalAligners: number | null;
+  /** Clear-aligner only. Prescribed wear days per tray before switching (PO-ORTHO-003). */
+  daysPerAligner: number | null;
   reviewIntervalDays: number | null;
   lastReviewAt: string | null;
   nextReviewDate: string | null;
@@ -95,11 +98,22 @@ export interface OrthodonticCheckinRow {
   applianceId: string;
   checkinType: OrthodonticCheckinType;
   checkinDate: string;
-  actualWearHours: number | null;
-  prescribedHours: number | null;
-  complianceBucket: OrthodonticComplianceBucket | null;
   activationIndex: number | null;
   alignerIndex: number | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrthodonticUnwearIntervalRow {
+  intervalId: string;
+  childId: string;
+  caseId: string;
+  applianceId: string;
+  startAt: string;
+  /** Null = "still un-worn" (open interval). At most one open per applianceId. */
+  endAt: string | null;
+  reason: OrthodonticUnwearReason | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -109,14 +123,30 @@ export interface OrthodonticDashboardProjection {
   activeCase: OrthodonticCaseRow | null;
   activeAppliances: OrthodonticApplianceRow[];
   nextReviewDate: string | null;
-  compliance30d: {
-    done: number;
-    partial: number;
-    missed: number;
-    total: number;
-    /** Must be displayed verbatim or paraphrased as 任务达成率近似 per PO-ORTHO-008. */
-    note: string;
-  };
+}
+
+/**
+ * Discriminated journey entry returned by `getOrthodonticJourney`. The Rust
+ * tag is `kind` (kebab-case). Past entries use `occurredAt` (or `startAt` for
+ * unwear-interval); future entries use `predictedAt`.
+ */
+export type OrthodonticJourneyEntry =
+  | { kind: 'case-started'; occurredAt: string; caseType: OrthodonticCaseType; stage: OrthodonticStage }
+  | { kind: 'appliance-started'; occurredAt: string; applianceId: string; applianceType: OrthodonticApplianceType }
+  | { kind: 'appliance-paused'; occurredAt: string; applianceId: string; reason: string | null }
+  | { kind: 'appliance-completed'; occurredAt: string; applianceId: string }
+  | { kind: 'aligner-change'; occurredAt: string; applianceId: string; alignerIndex: number }
+  | { kind: 'expander-activation'; occurredAt: string; applianceId: string; activationIndex: number }
+  | { kind: 'clinical-event'; occurredAt: string; eventType: string; hospital: string | null; notes: string | null }
+  | { kind: 'unwear-interval'; startAt: string; endAt: string | null; durationHours: number | null; reason: OrthodonticUnwearReason | null }
+  | { kind: 'next-clinical-review'; predictedAt: string; applianceId: string; ruleId: string }
+  | { kind: 'next-aligner-change'; predictedAt: string; applianceId: string; alignerIndex: number }
+  | { kind: 'cycle-planned-switch'; predictedAt: string; applianceId: string }
+  | { kind: 'case-planned-end'; predictedAt: string };
+
+export interface OrthodonticJourney {
+  past: OrthodonticJourneyEntry[];
+  future: OrthodonticJourneyEntry[];
 }
 
 // ── Cases ─────────────────────────────────────────────────
@@ -176,6 +206,10 @@ export function insertOrthodonticAppliance(params: {
   startedAt: string;
   prescribedHoursPerDay: number | null;
   prescribedActivations: number | null;
+  /** Clear-aligner only; required (positive integer) when applianceType='clear-aligner', NULL otherwise. */
+  totalAligners: number | null;
+  /** Clear-aligner only; required (positive integer) when applianceType='clear-aligner', NULL otherwise. */
+  daysPerAligner: number | null;
   reviewIntervalDays: number | null;
   notes: string | null;
   now: string;
@@ -204,6 +238,22 @@ export function updateOrthodonticApplianceReview(params: {
   return invoke<void>('update_orthodontic_appliance_review', params);
 }
 
+/**
+ * Edits the in-flight wear plan of an existing appliance. Same fail-close
+ * rules as `insertOrthodonticAppliance` (PO-ORTHO-003): clear-aligner requires
+ * positive `totalAligners` and `daysPerAligner`; non-clear-aligner must keep
+ * both NULL.
+ */
+export function updateOrthodonticAppliancePlan(params: {
+  applianceId: string;
+  prescribedHoursPerDay: number | null;
+  totalAligners: number | null;
+  daysPerAligner: number | null;
+  now: string;
+}) {
+  return invoke<void>('update_orthodontic_appliance_plan', params);
+}
+
 export function deleteOrthodonticAppliance(applianceId: string) {
   return invoke<void>('delete_orthodontic_appliance', { applianceId });
 }
@@ -221,8 +271,6 @@ export function insertOrthodonticCheckin(params: {
   applianceId: string;
   checkinType: OrthodonticCheckinType;
   checkinDate: string;
-  actualWearHours: number | null;
-  prescribedHours: number | null;
   activationIndex: number | null;
   alignerIndex: number | null;
   notes: string | null;
@@ -273,4 +321,60 @@ export function insertOrthoClinicalDentalRecord(params: {
 
 export function getOrthodonticDashboard(childId: string) {
   return invoke<OrthodonticDashboardProjection>('get_orthodontic_dashboard', { childId });
+}
+
+// ── Wear-gap intervals (PO-ORTHO-005a) ────────────────────
+
+export function insertUnwearInterval(params: {
+  intervalId: string;
+  childId: string;
+  caseId: string;
+  applianceId: string;
+  /** ISO 8601 datetime when the appliance was taken out. */
+  startAt: string;
+  /** ISO 8601 datetime when the appliance was put back. Null = open ("still un-worn"). */
+  endAt: string | null;
+  reason: OrthodonticUnwearReason | null;
+  notes: string | null;
+  now: string;
+}) {
+  return invoke<void>('insert_unwear_interval', params);
+}
+
+/** Closes an open interval. Rust verifies the interval is currently open. */
+export function closeUnwearInterval(params: {
+  intervalId: string;
+  endAt: string;
+  now: string;
+}) {
+  return invoke<void>('close_unwear_interval', params);
+}
+
+/** Edits an existing interval. May reopen a closed one (subject to open-uniqueness). */
+export function updateUnwearInterval(params: {
+  intervalId: string;
+  startAt: string;
+  endAt: string | null;
+  reason: OrthodonticUnwearReason | null;
+  notes: string | null;
+  now: string;
+}) {
+  return invoke<void>('update_unwear_interval', params);
+}
+
+export function deleteUnwearInterval(intervalId: string) {
+  return invoke<void>('delete_unwear_interval', { intervalId });
+}
+
+export function getUnwearIntervals(params: {
+  applianceId: string;
+  limit: number | null;
+}) {
+  return invoke<OrthodonticUnwearIntervalRow[]>('get_unwear_intervals', params);
+}
+
+// ── Journey projection ────────────────────────────────────
+
+export function getOrthodonticJourney(params: { childId: string; caseId: string }) {
+  return invoke<OrthodonticJourney>('get_orthodontic_journey', params);
 }

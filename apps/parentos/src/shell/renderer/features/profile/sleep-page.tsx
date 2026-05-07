@@ -1,27 +1,17 @@
 ﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAppStore, computeAgeMonths, computeAgeMonthsAt, formatAge } from '../../app-shell/app-store.js';
-import { upsertSleepRecord, deleteSleepRecord, getSleepRecords } from '../../bridge/sqlite-bridge.js';
+import { useAppStore, computeAgeMonths, formatAge } from '../../app-shell/app-store.js';
+import { deleteSleepRecord, getSleepRecords } from '../../bridge/sqlite-bridge.js';
 import type { SleepRecordRow } from '../../bridge/sqlite-bridge.js';
-import { ulid, isoNow } from '../../bridge/ulid.js';
 import { S } from '../../app-shell/page-style.js';
-import { AppSelect } from '../../app-shell/app-select.js';
 import { AISummaryCard } from './ai-summary-card.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { SleepRecordForm } from './sleep-record-form.js';
 import { SleepRecordCard } from './sleep-record-card.js';
 import {
-  calcDuration,
-  clampDateToToday,
-  fmtDuration,
-  formatDateValue,
-  packNotes,
-  parseDateValue,
   referenceSleepRange,
   sleepAgeTier,
   sortSleepRecordsDesc,
-  unpackNotes,
-  TIER_DEFAULTS,
   TIER_LABELS,
 } from './sleep-page-shared.js';
 import { SleepTrendChart } from './sleep-trend-chart.js';
@@ -31,28 +21,15 @@ import { SleepTrendChart } from './sleep-trend-chart.js';
    鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲 */
 
 export default function SleepPage() {
-  const { activeChildId, setActiveChildId, children } = useAppStore();
+  const { activeChildId, children } = useAppStore();
   const child = children.find((c) => c.childId === activeChildId);
   const [records, setRecords] = useState<SleepRecordRow[]>([]);
   const [showForm, setShowForm] = useState(false);
 
   const ageMonths = child ? computeAgeMonths(child.birthDate) : 0;
   const tier = sleepAgeTier(ageMonths);
-  const showNightWakings = tier === 'infant' || tier === 'toddler';
-  const defaults = TIER_DEFAULTS[tier];
 
-  // Form state
-  const [formSleepDate, setFormSleepDate] = useState(new Date().toISOString().slice(0, 10));
-  const [formBedtime, setFormBedtime] = useState(defaults.bed);
-  const [formWakeTime, setFormWakeTime] = useState(defaults.wake);
-  const [formQuality, setFormQuality] = useState('good');
-  const [formNotes, setFormNotes] = useState('');
-  const [formNightWakings, setFormNightWakings] = useState('');
-  // Dynamic nap rows: each has start/end time
-  const [napRows, setNapRows] = useState<Array<{ start: string; end: string }>>([]);
-  const [napAddHover, setNapAddHover] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [editingRecord, setEditingRecord] = useState<SleepRecordRow | null>(null);
   const [deletingRecordId, setDeletingRecordId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -64,78 +41,17 @@ export default function SleepPage() {
   const sortedRecords = sortSleepRecordsDesc(records);
   const [refLo, refHi] = referenceSleepRange(ageMonths);
 
-  // Nap helpers
-  const addNapRow = () => setNapRows((prev) => [...prev, { start: '13:00', end: '14:30' }]);
-  const removeNapRow = (i: number) => setNapRows((prev) => prev.filter((_, idx) => idx !== i));
-  const updateNapRow = (i: number, field: 'start' | 'end', val: string) =>
-    setNapRows((prev) => prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r));
-
-  const napDurations = napRows.map((r) => calcDuration(r.start, r.end) ?? 0);
-  const totalNapMinutes = napDurations.reduce((s, d) => s + d, 0);
-  const napCount = napRows.length;
-
-  const resetForm = () => {
-    setFormSleepDate(new Date().toISOString().slice(0, 10));
-    setFormBedtime(defaults.bed);
-    setFormWakeTime(defaults.wake);
-    setFormQuality('good');
-    setFormNotes('');
-    setFormNightWakings('');
-    setNapRows([]);
-    setShowForm(false);
-    setEditingRecordId(null);
-    setSaveError(null);
+  const refreshRecords = async () => {
+    setRecords(await getSleepRecords(child.childId));
   };
 
-  const autoDuration = calcDuration(formBedtime, formWakeTime);
-
-  const handleSubmit = async () => {
-    if (!formSleepDate) return;
-    setSaveError(null);
-    const safeSleepDate = formatDateValue(clampDateToToday(parseDateValue(formSleepDate)));
-    const now = isoNow();
-    // Pack nap details into notes
-    const napNotes = napRows.length > 0
-      ? napRows.map((r, i) => `${r.start}-${r.end}(${fmtDuration(napDurations[i]!)})`).join(', ')
-      : '';
-    const notes = packNotes(formNightWakings, napNotes, formNotes);
-    try {
-      await upsertSleepRecord({
-        recordId: ulid(),
-        childId: child.childId,
-        sleepDate: safeSleepDate,
-        bedtime: formBedtime || null,
-        wakeTime: formWakeTime || null,
-        durationMinutes: autoDuration,
-        napCount: napCount > 0 ? napCount : null,
-        napMinutes: totalNapMinutes > 0 ? totalNapMinutes : null,
-        quality: formQuality || null,
-        ageMonths: computeAgeMonthsAt(child.birthDate, formSleepDate),
-        notes,
-        now,
-      });
-      const updated = await getSleepRecords(child.childId);
-      setRecords(updated);
-      resetForm();
-    } catch (err) {
-      catchLog('sleep', 'action:upsert-sleep-record-failed')(err);
-      const msg = typeof err === 'string' ? err : err instanceof Error ? err.message : '未知错误';
-      setSaveError(`保存失败: ${msg}`);
-    }
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingRecord(null);
   };
 
   const startEdit = (record: SleepRecordRow) => {
-    const { nightWakings, freeNotes } = unpackNotes(record.notes);
-    setEditingRecordId(record.recordId);
-    setFormSleepDate(record.sleepDate.split('T')[0]!);
-    setFormBedtime(record.bedtime ?? defaults.bed);
-    setFormWakeTime(record.wakeTime ?? defaults.wake);
-    setFormQuality(record.quality ?? 'good');
-    setFormNightWakings(nightWakings != null && nightWakings > 0 ? String(nightWakings) : '');
-    setFormNotes(freeNotes);
-    // Nap rows can't be fully reconstructed from packed notes, reset them
-    setNapRows([]);
-    setSaveError(null);
+    setEditingRecord(record);
     setShowForm(true);
   };
 
@@ -163,10 +79,6 @@ export default function SleepPage() {
           </button>
         )}
       </div>
-      <div className="mb-5">
-        <AppSelect value={activeChildId ?? ''} onChange={(v) => setActiveChildId(v || null)}
-          options={children.map((c) => ({ value: c.childId, label: `${c.displayName}，${formatAge(computeAgeMonths(c.birthDate))}` }))} />
-      </div>
       <AISummaryCard domain="sleep" childName={child.displayName} childId={child.childId}
         ageLabel={`${Math.floor(ageMonths / 12)}岁${ageMonths % 12}个月`} gender={child.gender}
         dataContext={records.length > 0 ? `近期 ${records.length} 条睡眠记录，最近一次: ${records[0]?.sleepDate ?? ''}` : ''}
@@ -176,33 +88,10 @@ export default function SleepPage() {
 
       {showForm ? (
         <SleepRecordForm
-          tier={tier}
-          isEditing={editingRecordId !== null}
-          showNightWakings={showNightWakings}
-          formSleepDate={formSleepDate}
-          setFormSleepDate={setFormSleepDate}
-          formBedtime={formBedtime}
-          setFormBedtime={setFormBedtime}
-          formWakeTime={formWakeTime}
-          setFormWakeTime={setFormWakeTime}
-          autoDuration={autoDuration}
-          formNightWakings={formNightWakings}
-          setFormNightWakings={setFormNightWakings}
-          napRows={napRows}
-          napDurations={napDurations}
-          totalNapMinutes={totalNapMinutes}
-          formQuality={formQuality}
-          setFormQuality={setFormQuality}
-          formNotes={formNotes}
-          setFormNotes={setFormNotes}
-          napAddHover={napAddHover}
-          setNapAddHover={setNapAddHover}
-          addNapRow={addNapRow}
-          removeNapRow={removeNapRow}
-          updateNapRow={updateNapRow}
-          saveError={saveError}
-          onClose={resetForm}
-          onSave={() => void handleSubmit()}
+          child={{ childId: child.childId, birthDate: child.birthDate }}
+          initialRecord={editingRecord}
+          onSaved={refreshRecords}
+          onClose={closeForm}
         />
       ) : null}
 

@@ -453,6 +453,33 @@ Health record console ordering tiers (descending priority):
 Rows not listed in a tier's top group appear after the top group in
 `health-metric-registry.yaml` rank order, not route registration order.
 
+## PO-PROF-025 Key Metrics Summary Presentation
+
+The `/profile` health record console may render a "key metrics summary" row
+above the full group list. The summary row is a presentation layer over the
+existing `HealthRecordSnapshot` projection and must not introduce new data
+sources, new bridge calls, or independent storage.
+
+Invariants:
+
+- The summary row consumes the same `HealthMetricSnapshot` entries that the
+  group list renders. It must not query different tables or recompute values
+  through an alternate path.
+- Each summary card is rendered only when its bound metric snapshot has a
+  `latestValue` with a real recorded number, text, or JSON payload. Metrics
+  with no recorded value must not render a placeholder card.
+- When zero highlighted metric snapshots have a `latestValue`, the entire
+  summary row must be omitted; the page must not render an empty container,
+  skeletons, or "no data" copy in place of the row.
+- A summary card must link to the same `metric.detailRoute` (or `/profile`
+  fallback) used by the group-list row for that metric. The card must not own
+  an independent capture or write path.
+- The summary row may not duplicate timeline agenda counts, reminder buckets,
+  or aggregations that the snapshot projection itself does not expose.
+- The set of highlighted metric ids is a deterministic, ordered allowlist
+  declared in the renderer; it must reference only metric ids present in
+  `health-metric-registry.yaml`.
+
 ## PO-PROF-020 Fail-Close Behavior
 
 The profile layer must fail closed when:

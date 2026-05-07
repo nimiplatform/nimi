@@ -581,24 +581,24 @@ describe('reminder engine unknown-rule fail-close (PO-TIME-007)', () => {
     expect(() => buildReminderAgenda(REMINDER_RULES, makeContext(), states)).not.toThrow();
   });
 
-  it('surfaces PO-ORTHO-* states with active status in todayFocus via the state-driven pathway', () => {
-    // End-to-end delivery scenario: an appliance lifecycle writer has seeded a
-    // state; the engine must now surface it in the agenda even though the rule
-    // has category=personalized.
-    const wearRule = REMINDER_RULES.find((r) => r.ruleId === 'PO-ORTHO-WEAR-DAILY');
-    expect(wearRule).toBeDefined();
+  it('surfaces PO-ORTHO-UNWEAR-OPEN states in todayFocus via the state-driven pathway', () => {
+    // Event-driven scenario: a wear-gap interval was opened, seeding a
+    // PO-ORTHO-UNWEAR-OPEN reminder_state; the engine must surface it in the
+    // agenda even though the rule has category=personalized.
+    const unwearRule = REMINDER_RULES.find((r) => r.ruleId === 'PO-ORTHO-UNWEAR-OPEN');
+    expect(unwearRule).toBeDefined();
     const states = [makeState({
-      ruleId: 'PO-ORTHO-WEAR-DAILY',
+      ruleId: 'PO-ORTHO-UNWEAR-OPEN',
       status: 'active',
       nextTriggerAt: '2026-04-08T00:00:00.000Z', // matches makeContext.localToday
-      notes: '[ortho-protocol] applianceId=appl-1',
+      notes: '[ortho-protocol] applianceId=appl-1; intervalId=int-1',
     })];
     const agenda = buildReminderAgenda(REMINDER_RULES, makeContext(), states);
     const surfaced = [
       ...agenda.todayFocus,
       ...agenda.upcoming,
       ...agenda.p0Overflow.items,
-    ].find((r) => r.rule.ruleId === 'PO-ORTHO-WEAR-DAILY');
+    ].find((r) => r.rule.ruleId === 'PO-ORTHO-UNWEAR-OPEN');
     expect(surfaced).toBeDefined();
   });
 

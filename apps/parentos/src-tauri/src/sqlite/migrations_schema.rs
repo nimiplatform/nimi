@@ -302,7 +302,6 @@ pub(super) const V1_SCHEMA_SQL: &str = r#"
             ropeSkipping     INTEGER,
             vitalCapacity    INTEGER,
             footArchStatus   TEXT,
-            overallGrade     TEXT,
             notes            TEXT,
             createdAt        TEXT NOT NULL
         );

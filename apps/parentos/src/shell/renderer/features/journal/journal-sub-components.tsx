@@ -7,7 +7,7 @@ import { catchLog } from '../../infra/telemetry/catch-log.js';
 import type { ObservationDimension } from '../../knowledge-base/index.js';
 import { suggestJournalTags } from './ai-journal-tagging.js';
 import type { JournalTagSuggestion } from './ai-journal-tagging.js';
-import type { PhotoDraft, TagSuggestionStatus, VoiceDraft } from './journal-page-helpers.js';
+import type { PhotoDraft, TagSuggestionStatus } from './journal-page-helpers.js';
 
 /* ── AutoTagBar ── */
 
@@ -108,68 +108,6 @@ export function PhotoBar({ drafts, onRemove, inputRef }: PhotoBarProps) {
           </svg>
           <span className="text-[12px]">添加</span>
         </button>
-      )}
-    </div>
-  );
-}
-
-/* ── VoiceCapture ── */
-
-export interface VoiceCaptureProps {
-  voiceDraft: VoiceDraft;
-  recordingSupported: boolean;
-  voiceRuntimeAvailable: boolean | null;
-  onStart: () => void;
-  onStop: () => void;
-  onTranscribe: () => void;
-  onClear: () => void;
-  onTranscriptChange: (t: string) => void;
-}
-
-export function VoiceCapture({ voiceDraft, recordingSupported, voiceRuntimeAvailable, onStart, onStop, onTranscribe, onClear, onTranscriptChange }: VoiceCaptureProps) {
-  return (
-    <div className={`space-y-3 ${S.radiusSm} p-4`} style={{ border: `1px dashed ${S.border}` }}>
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[14px] font-medium" style={{ color: S.text }}>
-            {voiceDraft.status === 'recording' ? '🔴 录音中...' : voiceDraft.status === 'transcribing' ? '转写中...' : '语音记录'}
-          </p>
-          {voiceDraft.status === 'ready' && <p className="text-[12px]" style={{ color: S.sub }}>可转写为文字或直接保存</p>}
-        </div>
-        <div className="flex gap-1.5">
-          {voiceDraft.status === 'recording' ? (
-            <button onClick={onStop} className={`${S.radiusSm} px-3 py-1.5 text-[14px] text-white`} style={{ background: '#ef4444' }}>
-              停止
-            </button>
-          ) : (
-            <button onClick={onStart} disabled={!recordingSupported}
-              className={`${S.radiusSm} px-3 py-1.5 text-[14px] text-white disabled:opacity-50`} style={{ background: S.accent }}>
-              开始录音
-            </button>
-          )}
-          {voiceDraft.blob && voiceDraft.status !== 'recording' && (
-            <>
-              <button onClick={onTranscribe}
-                disabled={voiceDraft.status === 'transcribing' || voiceRuntimeAvailable === false}
-                className={`${S.radiusSm} px-3 py-1.5 text-[14px] text-white disabled:opacity-50`} style={{ background: S.accent }}>
-                {voiceDraft.status === 'transcribing' ? '转写中...' : '转文字'}
-              </button>
-              <button onClick={onClear} className={`${S.radiusSm} px-3 py-1.5 text-[14px]`}
-                style={{ background: '#f0f0ec', color: S.sub }}>删除</button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {!recordingSupported && <p className="text-[12px] text-red-500">当前环境不支持录音，请在桌面端使用并授权麦克风。</p>}
-      {voiceRuntimeAvailable === false && <p className="text-[12px] text-amber-600">语音转写暂不可用，仍可保存语音记录。</p>}
-      {voiceDraft.error && <p className="text-[12px] text-red-500">{voiceDraft.error}</p>}
-      {voiceDraft.previewUrl && <audio controls src={voiceDraft.previewUrl} className="w-full" />}
-      {voiceDraft.previewUrl && (
-        <textarea value={voiceDraft.transcript} onChange={(e) => onTranscriptChange(e.target.value)}
-          placeholder="转写结果可编辑..."
-          className={`w-full resize-none ${S.radiusSm} p-3 text-[14px]`}
-          style={{ border: `1px solid ${S.border}` }} rows={3} />
       )}
     </div>
   );

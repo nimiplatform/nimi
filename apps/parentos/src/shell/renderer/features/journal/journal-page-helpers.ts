@@ -28,6 +28,10 @@ export interface VoiceDraft {
   previewUrl: string | null;
   transcript: string;
   error: string | null;
+  /** Captured amplitude samples (0-1) for the static preview waveform. */
+  levelSamples: number[];
+  /** Recording duration in milliseconds, captured at stop time. */
+  durationMs: number;
 }
 
 export const EMPTY_VOICE_DRAFT: VoiceDraft = {
@@ -37,6 +41,8 @@ export const EMPTY_VOICE_DRAFT: VoiceDraft = {
   previewUrl: null,
   transcript: '',
   error: null,
+  levelSamples: [],
+  durationMs: 0,
 };
 
 export interface PhotoDraft {

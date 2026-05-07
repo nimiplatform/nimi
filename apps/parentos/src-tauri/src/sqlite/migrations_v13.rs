@@ -326,7 +326,7 @@ const PRECUTOVER_FOLDED_DETAIL_BACKFILL_SQL: &str = "
     FROM fitness_assessments
     WHERE run50m IS NOT NULL OR run800m IS NOT NULL OR run1000m IS NOT NULL OR run50x8 IS NOT NULL
        OR sitAndReach IS NOT NULL OR standingLongJump IS NOT NULL OR sitUps IS NOT NULL OR pullUps IS NOT NULL
-       OR ropeSkipping IS NOT NULL OR vitalCapacity IS NOT NULL OR footArchStatus IS NOT NULL OR overallGrade IS NOT NULL;
+       OR ropeSkipping IS NOT NULL OR vitalCapacity IS NOT NULL OR footArchStatus IS NOT NULL;
 
     INSERT OR IGNORE INTO health_record_values (valueId, eventId, childId, metricId, valueNumber, unit, recordKind, createdAt)
     SELECT 'precutover-fitness-value:' || assessmentId || ':run-50m', 'precutover-fitness:' || assessmentId, childId, 'fitness.run_50m', run50m, 's', 'measured', createdAt FROM fitness_assessments WHERE run50m IS NOT NULL;
@@ -350,8 +350,6 @@ const PRECUTOVER_FOLDED_DETAIL_BACKFILL_SQL: &str = "
     SELECT 'precutover-fitness-value:' || assessmentId || ':vital-capacity', 'precutover-fitness:' || assessmentId, childId, 'fitness.vital_capacity', vitalCapacity, 'ml', 'measured', createdAt FROM fitness_assessments WHERE vitalCapacity IS NOT NULL;
     INSERT OR IGNORE INTO health_record_values (valueId, eventId, childId, metricId, valueText, recordKind, createdAt)
     SELECT 'precutover-fitness-value:' || assessmentId || ':foot-arch-status', 'precutover-fitness:' || assessmentId, childId, 'fitness.foot_arch_status', footArchStatus, 'measured', createdAt FROM fitness_assessments WHERE footArchStatus IS NOT NULL;
-    INSERT OR IGNORE INTO health_record_values (valueId, eventId, childId, metricId, valueText, recordKind, createdAt)
-    SELECT 'precutover-fitness-value:' || assessmentId || ':overall-grade', 'precutover-fitness:' || assessmentId, childId, 'fitness.overall_grade', overallGrade, 'measured', createdAt FROM fitness_assessments WHERE overallGrade IS NOT NULL;
 
     INSERT OR IGNORE INTO health_record_events (
         eventId, childId, protocolId, groupId, recordKind, sourceSurface,

@@ -4087,12 +4087,12 @@ export const REMINDER_RULES: readonly ReminderRule[] = [
     ]
   },
   {
-    "ruleId": "PO-ORTHO-WEAR-DAILY",
+    "ruleId": "PO-ORTHO-UNWEAR-OPEN",
     "domain": "dental",
     "category": "personalized",
     "kind": "task",
-    "title": "每日佩戴打卡",
-    "description": "记录今天的实际佩戴时长。用于任务达成率近似统计。",
+    "title": "未戴时间过长",
+    "description": "您可能忘记戴回牙套。已未戴超过 4 小时——长时间不戴会影响治疗节奏，建议尽快戴回。",
     "triggerAge": {
       "startMonths": 0,
       "endMonths": 216
@@ -4113,7 +4113,8 @@ export const REMINDER_RULES: readonly ReminderRule[] = [
       "orthodontic-protocol",
       "appliance:clear-aligner",
       "appliance:twin-block",
-      "appliance:activator"
+      "appliance:activator",
+      "appliance:retainer-removable"
     ]
   },
   {
@@ -4257,34 +4258,6 @@ export const REMINDER_RULES: readonly ReminderRule[] = [
       "appliance:twin-block",
       "appliance:expander",
       "appliance:activator"
-    ]
-  },
-  {
-    "ruleId": "PO-ORTHO-RETENTION-WEAR",
-    "domain": "dental",
-    "category": "personalized",
-    "kind": "task",
-    "title": "保持器佩戴打卡",
-    "description": "记录保持器今日实际佩戴时长。",
-    "triggerAge": {
-      "startMonths": 0,
-      "endMonths": 216
-    },
-    "triggerCondition": {
-      "dataField": "orthodontic_appliance.status",
-      "operator": "=",
-      "value": "active"
-    },
-    "priority": "P1",
-    "nurtureMode": {
-      "relaxed": "push",
-      "balanced": "push",
-      "advanced": "push"
-    },
-    "actionType": "record_data",
-    "tags": [
-      "orthodontic-protocol",
-      "appliance:retainer-removable"
     ]
   },
   {
