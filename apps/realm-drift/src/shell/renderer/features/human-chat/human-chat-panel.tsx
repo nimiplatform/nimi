@@ -31,6 +31,7 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
   const setHumanChat = useAppStore((s) => s.setHumanChat);
   const setActiveHumanChat = useAppStore((s) => s.setActiveHumanChat);
   const appendHumanChatMessage = useAppStore((s) => s.appendHumanChatMessage);
+  const removeHumanMessage = useAppStore((s) => s.removeHumanMessage);
   const currentUserId = String(useAppStore((s) => s.auth.user?.id || '')).trim();
   const [panelError, setPanelError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -85,12 +86,17 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
         };
         appendHumanChatMessage(chatId, tempMsg);
 
-        await sendRealmChatMessage(chatId, {
-          type: 'TEXT',
-          text: trimmedText,
-          clientMessageId,
-          payload: { content: trimmedText },
-        });
+        try {
+          await sendRealmChatMessage(chatId, {
+            type: 'TEXT',
+            text: trimmedText,
+            clientMessageId,
+            payload: { content: trimmedText },
+          });
+        } catch (error) {
+          removeHumanMessage(chatId, clientMessageId);
+          throw error;
+        }
       },
     },
   });

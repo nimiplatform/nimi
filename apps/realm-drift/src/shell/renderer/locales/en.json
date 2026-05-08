@@ -60,7 +60,9 @@
     "send": "Send",
     "emptyState": "Select an agent to start chatting",
     "agentEmpty": "No agents in this world",
-    "streaming": "Thinking..."
+    "streaming": "Thinking...",
+    "errorTitle": "Message failed",
+    "retry": "Retry"
   },
   "humanChat": {
     "placeholder": "Type a message...",

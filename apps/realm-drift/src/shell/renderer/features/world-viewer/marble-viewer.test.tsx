@@ -68,13 +68,6 @@ vi.mock('./marble-world-generator.js', () => ({
   },
 }));
 
-vi.mock('./marble-api.js', () => ({
-  marbleConfig: {
-    getApiKey: () => 'test-api-key',
-    getApiUrl: () => 'https://api.worldlabs.ai/marble/v1',
-  },
-}));
-
 import { MarbleViewer } from './marble-viewer.js';
 import type { WorldReferenceBundle } from './marble-prompt.js';
 
@@ -416,12 +409,11 @@ describe('MarbleViewer', () => {
     expect(mockComposeMarblePrompt).toHaveBeenCalledWith(ctx, expect.any(AbortSignal));
   });
 
-  // --- API key missing ---
-  it('shows missing API key error', async () => {
-    // Override marbleConfig for this test
-    const marbleApiMod = await import('./marble-api.js');
-    const origGetApiKey = marbleApiMod.marbleConfig.getApiKey;
-    marbleApiMod.marbleConfig.getApiKey = () => '';
+  // --- Server-side API key missing ---
+  it('shows missing API key error from the Tauri capability boundary', async () => {
+    mockComposeMarblePrompt.mockResolvedValue('A castle on a cliff');
+    mockFindWorldImageUrl.mockReturnValue(undefined);
+    mockGenerate.mockRejectedValue(new Error('MARBLE_API_KEY_MISSING'));
 
     render(
       <MarbleViewer
@@ -440,8 +432,5 @@ describe('MarbleViewer', () => {
         error: 'Marble API key is not configured.',
       }));
     });
-
-    // Restore
-    marbleApiMod.marbleConfig.getApiKey = origGetApiKey;
   });
 });

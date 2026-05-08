@@ -60,7 +60,9 @@
     "send": "发送",
     "emptyState": "选择一个 Agent 开始聊天",
     "agentEmpty": "此世界暂无 Agent",
-    "streaming": "思考中..."
+    "streaming": "思考中...",
+    "errorTitle": "消息发送失败",
+    "retry": "重试"
   },
   "humanChat": {
     "placeholder": "输入消息...",

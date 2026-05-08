@@ -49,6 +49,7 @@ const MOCK_DEFAULTS = {
 
 describe('runDriftBootstrap', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     useAppStore.setState({
       auth: { status: 'bootstrapping', user: null, token: '', refreshToken: '' },
       bootstrapReady: false,
@@ -74,7 +75,11 @@ describe('runDriftBootstrap', () => {
     });
   });
 
-  it('runs 5-step bootstrap successfully', async () => {
+  it('runs 5-step bootstrap successfully with an already-held in-memory token', async () => {
+    useAppStore.setState({
+      auth: { status: 'bootstrapping', user: null, token: 'memory-token', refreshToken: 'memory-refresh' },
+    });
+
     await runDriftBootstrap();
 
     const state = useAppStore.getState();
@@ -82,7 +87,11 @@ describe('runDriftBootstrap', () => {
     expect(state.bootstrapError).toBeNull();
     expect(state.runtimeDefaults).toBeTruthy();
     expect(state.auth.status).toBe('authenticated');
+    expect(state.auth.token).toBe('memory-token');
     expect(state.auth.user?.id).toBe('u1');
+    expect(mockInitializePlatformClient.mock.calls[0]![0]).toEqual(expect.objectContaining({
+      accessToken: 'memory-token',
+    }));
   });
 
   it('sets error on bootstrap failure', async () => {
@@ -95,16 +104,14 @@ describe('runDriftBootstrap', () => {
     expect(state.bootstrapReady).toBe(false);
   });
 
-  it('sets unauthenticated when no access token', async () => {
-    mockGetRuntimeDefaults.mockResolvedValue({
-      ...MOCK_DEFAULTS,
-      realm: { ...MOCK_DEFAULTS.realm, accessToken: '' },
-    });
-
+  it('ignores runtime-default raw access token when no in-memory token exists', async () => {
     await runDriftBootstrap();
 
     const state = useAppStore.getState();
     expect(state.bootstrapReady).toBe(true);
     expect(state.auth.status).toBe('unauthenticated');
+    expect(mockInitializePlatformClient.mock.calls[0]![0]).toEqual(expect.objectContaining({
+      accessToken: '',
+    }));
   });
 });

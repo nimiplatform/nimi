@@ -143,6 +143,6 @@ Key characteristic: **no new backend work** — Realm Drift consumes existing ni
 |----------|----------|---------|---------|
 | `NIMI_REALM_URL` | Yes | Realm API base URL | `https://api.nimi.app` |
 | `NIMI_ACCESS_TOKEN` | Yes | JWT for Realm/Runtime auth | `eyJ...` |
-| `VITE_MARBLE_API_KEY` | Yes | World Labs Marble API key | `wlt_...` |
-| `VITE_MARBLE_API_URL` | No | Marble API base URL override | `https://api.worldlabs.ai/marble/v1` |
+| `MARBLE_API_KEY` | Yes | World Labs Marble API key, read by Tauri/server capability only | `wlt_...` |
+| `MARBLE_API_URL` | No | Marble API base URL override, read by Tauri/server capability only | `https://api.worldlabs.ai/marble/v1` |
 | `VITE_MARBLE_QUALITY` | No | Default generation quality | `mini` or `standard` (default: `mini`) |

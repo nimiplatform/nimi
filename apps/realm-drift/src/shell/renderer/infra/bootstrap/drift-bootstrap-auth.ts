@@ -9,7 +9,7 @@ export type BootstrapAuthInput = {
   realm: Realm;
   accessToken: string;
   refreshToken?: string;
-  source: 'anonymous' | 'env' | 'persisted';
+  source: 'anonymous' | 'memory' | 'persisted';
   realmBaseUrl: string;
   clearPersistedSession: () => Promise<void>;
 };

@@ -1,19 +1,8 @@
-const DEFAULT_MARBLE_API_URL = 'https://api.worldlabs.ai/marble/v1';
+import { invoke } from '@renderer/bridge';
+
 const POLL_INTERVAL_MS = 5_000;
 const POLL_TIMEOUT_MS = 10 * 60 * 1_000; // 10 minutes
 const MAX_NETWORK_RETRIES = 3;
-
-/** Mutable config for testability. In production, reads from import.meta.env. */
-export const marbleConfig = {
-  getApiUrl(): string {
-    const env = (import.meta as { env?: Record<string, string> }).env;
-    return String(env?.VITE_MARBLE_API_URL || '').trim() || DEFAULT_MARBLE_API_URL;
-  },
-  getApiKey(): string {
-    const env = (import.meta as { env?: Record<string, string> }).env;
-    return String(env?.VITE_MARBLE_API_KEY || '').trim();
-  },
-};
 
 export type MarbleGenerateInput = {
   displayName: string;
@@ -29,64 +18,32 @@ export type MarbleOperationResult = {
   error?: string;
 };
 
-async function marbleFetch(
-  path: string,
-  options: {
-    method?: string;
-    body?: unknown;
-    signal?: AbortSignal;
-  } = {},
-): Promise<unknown> {
-  const apiKey = marbleConfig.getApiKey();
-  if (!apiKey) {
-    throw new Error('MARBLE_API_KEY_MISSING');
+function assertNotAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw new Error('MARBLE_POLL_ABORTED');
   }
+}
 
-  const baseUrl = marbleConfig.getApiUrl();
-  const url = `${baseUrl}${path}`;
-
-  const headers: Record<string, string> = {
-    'WLT-Api-Key': apiKey,
-    'Content-Type': 'application/json',
-  };
-
-  const response = await fetch(url, {
-    method: options.method || 'GET',
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-    signal: options.signal,
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => '');
-    if (response.status === 429) throw new Error('MARBLE_RATE_LIMITED');
-    if (response.status === 401) throw new Error('MARBLE_UNAUTHORIZED');
-    if (response.status === 403) throw new Error('MARBLE_FORBIDDEN');
-    throw new Error(`MARBLE_HTTP_${response.status}: ${errorBody || response.statusText}`);
-  }
-
-  return response.json();
+async function invokeMarble(command: string, payload: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
+  assertNotAborted(signal);
+  const result = await invoke(command, payload as never);
+  assertNotAborted(signal);
+  return result;
 }
 
 export async function generateMarbleWorld(
   input: MarbleGenerateInput,
   signal?: AbortSignal,
 ): Promise<string> {
-  const worldPrompt: Record<string, unknown> = input.imageUrl
-    ? { type: 'image', image_url: input.imageUrl }
-    : { type: 'text', text_prompt: input.prompt };
-
-  const body: Record<string, unknown> = {
-    display_name: input.displayName,
-    model: input.quality === 'standard' ? 'standard' : 'mini',
-    world_prompt: worldPrompt,
+  const commandInput: Record<string, unknown> = {
+    displayName: input.displayName,
+    prompt: input.prompt,
+    quality: input.quality,
   };
-
-  const data = await marbleFetch('/worlds:generate', {
-    method: 'POST',
-    body,
-    signal,
-  }) as Record<string, unknown>;
+  if (input.imageUrl) {
+    commandInput.imageUrl = input.imageUrl;
+  }
+  const data = await invokeMarble('realm_drift_marble_generate', { input: commandInput }, signal) as Record<string, unknown>;
 
   const operationId = String(data.operationId || data.operation_id || data.name || '');
   if (!operationId) {
@@ -109,7 +66,7 @@ export async function pollMarbleOperation(
     }
 
     try {
-      const data = await marbleFetch(`/operations/${operationId}`, { signal }) as Record<string, unknown>;
+      const data = await invokeMarble('realm_drift_marble_poll', { operationId }, signal) as Record<string, unknown>;
       networkRetries = 0; // Reset on success
 
       const done = Boolean(data.done);

@@ -9,10 +9,10 @@ All Marble API requests MUST include the `WLT-Api-Key` header.
 | Setting | Value |
 |---------|-------|
 | Header name | `WLT-Api-Key` |
-| Environment variable | `VITE_MARBLE_API_KEY` |
-| Base URL env | `VITE_MARBLE_API_URL` (default: `https://api.worldlabs.ai/marble/v1`) |
+| Server environment variable | `MARBLE_API_KEY` |
+| Server base URL env | `MARBLE_API_URL` (default: `https://api.worldlabs.ai/marble/v1`) |
 
-The API key is read from `import.meta.env.VITE_MARBLE_API_KEY` in the renderer process. See RD-MARBLE-009 for security considerations.
+The Marble API key is owned by the Realm Drift Tauri/server capability boundary. Renderer code MUST NOT read, store, log, or pass Marble provider keys, including `VITE_MARBLE_API_KEY`. The renderer may request generation and polling only through admitted Tauri commands that inject `WLT-Api-Key` server-side.
 
 ## RD-MARBLE-002: Prompt Composition
 
@@ -110,7 +110,7 @@ Request to `POST /worlds:generate` — endpoint shape, input types, and output f
 
 - The `operation_id` from the response MUST be persisted in the `marbleJobs` store (per RD-SHELL-008) for polling.
 - If the request fails with HTTP 429 (rate limit), the UI MUST display the retry-after duration.
-- If the request fails with HTTP 401/403, the UI MUST prompt for API key configuration.
+- If the request fails with HTTP 401/403, the UI MUST report the server-owned Marble capability as unauthorized/forbidden without exposing key material.
 
 ## RD-MARBLE-005: Operation Polling
 
@@ -150,7 +150,7 @@ Available models, their quality tiers, latency, and costs are enumerated in `ext
 ### Behavioral Rules
 
 - The default for demo purposes MUST be the model marked `realm-drift-default: true` in `external-api-surface.yaml`.
-- Model selection MAY be overridden via `VITE_MARBLE_QUALITY` environment variable (`mini` or `standard`).
+- Model selection MAY be overridden via non-secret renderer quality configuration (`VITE_MARBLE_QUALITY`, `mini` or `standard`). This setting is not provider-key custody.
 - The world viewer header SHOULD display a quality toggle allowing users to regenerate with the alternate model.
 
 ## RD-MARBLE-007: Generated Assets
@@ -171,26 +171,27 @@ Per-model generation costs are defined in `external-api-surface.yaml` (see `cost
 - Credits are per-API-key, not per-user. A single API key is shared across all Realm Drift users in the demo.
 - No cost throttling is implemented for the demo (per user requirement: "不考虑成本控制").
 
-## RD-MARBLE-009: API Key Security
+## RD-MARBLE-009: API Key Custody
 
-### Demo Phase
+Renderer-owned provider-key custody is not admitted. Realm Drift MUST NOT use `VITE_MARBLE_API_KEY`, `import.meta.env`, local storage, app store state, or renderer props as a Marble provider-key source.
 
-API key is read from `VITE_MARBLE_API_KEY` environment variable and accessible in the renderer process via `import.meta.env.VITE_MARBLE_API_KEY`. This is acceptable for:
+The Tauri/server capability boundary owns:
 
-- Internal demos with controlled audience
-- Development and testing
-- Hackathon presentations
+1. Reading `MARBLE_API_KEY` from server-side process environment or equivalent server-owned secure config
+2. Reading optional `MARBLE_API_URL` server-side
+3. Injecting `WLT-Api-Key` into Marble HTTP requests
+4. Mapping upstream 401/403/429/5xx failures to non-secret renderer error codes
 
-### Production Upgrade Path
+Missing key material is fail-closed as `MARBLE_API_KEY_MISSING`. The renderer may display a configuration error but MUST NOT attempt a fallback provider key path.
 
-For production deployment, the API key MUST be moved to the Tauri Rust backend:
+### Tauri Capability Commands
 
-1. Add Tauri command: `marble_generate(prompt, model) → operation_id`
-2. Add Tauri command: `marble_poll(operation_id) → MarbleWorldResult`
-3. Store API key in Rust-side environment or secure config
-4. Renderer calls Tauri commands instead of Marble API directly
+Realm Drift admits two Marble server capability commands:
 
-This prevents API key exposure in the renderer's JavaScript context.
+1. `realm_drift_marble_generate(input) → upstream operation envelope`
+2. `realm_drift_marble_poll(operationId) → upstream operation envelope`
+
+The renderer may pass non-secret generation inputs (`displayName`, `prompt`, `imageUrl`, `quality`) and operation ids. It MUST NOT pass a provider key, key header, authorization header, or server base URL.
 
 ## RD-MARBLE-010: Provider Abstraction
 
@@ -232,7 +233,7 @@ interface WorldGenerator {
 
 ### Marble Implementation
 
-`MarbleWorldGenerator implements WorldGenerator` — the sole implementation for the demo phase. Maps directly to RD-MARBLE-004 and RD-MARBLE-005.
+`MarbleWorldGenerator implements WorldGenerator` — the sole implementation for the demo phase. It maps to RD-MARBLE-004 and RD-MARBLE-005 by calling the admitted Tauri capability commands, not by issuing renderer-owned Marble HTTP requests.
 
 ### Usage Rule
 

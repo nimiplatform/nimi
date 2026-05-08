@@ -33,6 +33,7 @@ export type AgentChatState = {
   messages: ChatMessage[];
   streaming: boolean;
   partialText: string;
+  error: string | null;
 };
 
 export type HumanChatState = {
@@ -101,6 +102,7 @@ export interface DriftAppStore {
   setActiveChat(chat: AgentChatState | null): void;
   appendChatMessage(message: ChatMessage): void;
   setStreamingState(streaming: boolean, partialText?: string): void;
+  setChatError(error: string | null): void;
 
   // Panel tab actions
   setActiveRightPanelTab(tab: RightPanelTab): void;
@@ -198,6 +200,17 @@ export const useAppStore = create<DriftAppStore>((set, get) => ({
         ...current,
         streaming,
         partialText: partialText ?? (streaming ? current.partialText : ''),
+      },
+    });
+  },
+
+  setChatError(error) {
+    const current = get().activeChat;
+    if (!current) return;
+    set({
+      activeChat: {
+        ...current,
+        error,
       },
     });
   },

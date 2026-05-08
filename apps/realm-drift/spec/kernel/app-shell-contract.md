@@ -39,6 +39,7 @@ Realm Drift Rust shell is a **copy of the forge Rust shell**. The following subs
 |----------|---------|
 | Tauri window management | Single main window |
 | IPC bridge for runtime defaults | `getRuntimeDefaults` command |
+| Marble server capability bridge | `realm_drift_marble_generate` / `realm_drift_marble_poll` commands own Marble key custody and upstream HTTP execution |
 | Runtime bridge (`runtime_bridge/`) | gRPC transport for Runtime SDK `tauri-ipc` transport |
 | Exit handler | Process cleanup |
 
@@ -60,7 +61,7 @@ Step 1: i18n
 
 Step 2: Runtime Defaults
   → getRuntimeDefaults()
-  → Store realm base URL + JWT validation defaults
+  → Store realm base URL, JWT validation defaults, and runtime execution defaults
 
 Step 3: Platform Client
   → createPlatformClient({ realmBaseUrl, accessToken: '', accessTokenProvider, subjectUserIdProvider })
@@ -81,6 +82,12 @@ Differences from forge (FG-SHELL-003):
 - **Removed Step 6 (Exit Handler)**: Simplified — no daemon management for demo
 
 Errors at any step → `setBootstrapError(message)` + show error state.
+
+Runtime execution defaults are the only admitted Realm Drift renderer source for agent-chat model selection. Agent chat may pass a concrete model projected by `runtimeDefaults.runtime.localProviderModel`; it must fail closed when the runtime defaults do not provide one, and it must not install renderer-owned `model: "auto"` or `route: "cloud"` demo literals.
+
+Marble provider-key custody is server-side only. The renderer must not read `VITE_MARBLE_API_KEY` or inject `WLT-Api-Key`; Marble generation and polling must cross the Tauri command boundary admitted by RD-MARBLE-009.
+
+Daemon lifecycle and raw runtime config mutation commands are not admitted for the trimmed Realm Drift demo shell. The Tauri invoke handler MUST NOT register `runtime_bridge_start`, `runtime_bridge_stop`, `runtime_bridge_restart`, `runtime_bridge_config_get`, or `runtime_bridge_config_set`.
 
 ## RD-SHELL-004: Auth Flow
 

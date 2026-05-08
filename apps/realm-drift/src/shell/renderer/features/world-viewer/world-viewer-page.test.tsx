@@ -60,8 +60,16 @@ vi.mock('../world-browser/world-browser-queries.js', () => ({
 }));
 
 vi.mock('./marble-viewer.js', () => ({
-  MarbleViewer: ({ worldId, worldName }: { worldId: string; worldName: string }) => (
-    <div data-testid="marble-viewer">Marble: {worldName} ({worldId})</div>
+  MarbleViewer: ({
+    worldId,
+    worldName,
+    quality,
+  }: {
+    worldId: string;
+    worldName: string;
+    quality: 'mini' | 'standard';
+  }) => (
+    <div data-testid="marble-viewer">Marble: {worldName} ({worldId}) [{quality}]</div>
   ),
 }));
 
@@ -97,6 +105,7 @@ import { WorldViewerPage } from './world-viewer-page.js';
 describe('WorldViewerPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
     mockStore.activeRightPanelTab = 'agents';
     mockStore.runtimeDefaults = null;
     mockStore.auth = { token: '', user: null };
@@ -146,6 +155,15 @@ describe('WorldViewerPage', () => {
 
     expect(screen.getByText('Mini (~30s)')).toBeDefined();
     expect(screen.getByText('Standard (~5min)')).toBeDefined();
+    expect(screen.getByTestId('marble-viewer').textContent).toContain('[mini]');
+  });
+
+  it('honors explicit standard quality override', () => {
+    vi.stubEnv('VITE_MARBLE_QUALITY', 'standard');
+
+    render(<WorldViewerPage />);
+
+    expect(screen.getByTestId('marble-viewer').textContent).toContain('[standard]');
   });
 
   it('shows loading spinner when data is fetching', () => {

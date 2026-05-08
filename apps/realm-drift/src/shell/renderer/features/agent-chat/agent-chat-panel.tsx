@@ -17,6 +17,8 @@ export function AgentChatPanel({ agents, world }: AgentChatPanelProps) {
   const setActiveChat = useAppStore((s) => s.setActiveChat);
   const appendChatMessage = useAppStore((s) => s.appendChatMessage);
   const setStreamingState = useAppStore((s) => s.setStreamingState);
+  const setChatError = useAppStore((s) => s.setChatError);
+  const runtimeDefaults = useAppStore((s) => s.runtimeDefaults);
   const [inputText, setInputText] = useState('');
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -48,6 +50,7 @@ export function AgentChatPanel({ agents, world }: AgentChatPanelProps) {
         messages: [],
         streaming: false,
         partialText: '',
+        error: null,
       });
     },
     [setActiveChat],
@@ -72,12 +75,14 @@ export function AgentChatPanel({ agents, world }: AgentChatPanelProps) {
     const ac = new AbortController();
     abortRef.current = ac;
     setStreamingState(true, '');
+    setChatError(null);
 
     void streamAgentChat({
       agent: selectedAgent,
       world,
       messages: activeChat?.messages ?? [],
       userMessage: text,
+      runtimeDefaults,
       signal: ac.signal,
       onDelta: (fullText) => {
         setStreamingState(true, fullText);
@@ -91,11 +96,13 @@ export function AgentChatPanel({ agents, world }: AgentChatPanelProps) {
           timestamp: Date.now(),
         });
       },
-      onError: () => {
+      onError: (error) => {
         setStreamingState(false, '');
+        setChatError(error.message);
+        setInputText(text);
       },
     });
-  }, [inputText, selectedAgent, activeChat?.streaming, world, appendChatMessage, setStreamingState]);
+  }, [inputText, selectedAgent, activeChat?.streaming, runtimeDefaults, world, appendChatMessage, setChatError, setStreamingState]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -181,6 +188,21 @@ export function AgentChatPanel({ agents, world }: AgentChatPanelProps) {
             </div>
           </div>
         )}
+
+        {activeChat?.error ? (
+          <div className="rounded-lg border border-red-500/30 bg-red-950/30 px-3 py-2 text-sm text-red-100">
+            <p className="font-medium">{t('chat.errorTitle')}</p>
+            <p className="mt-1 text-red-100/80">{activeChat.error}</p>
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!inputText.trim() || activeChat.streaming}
+              className="mt-2 rounded-md bg-red-100 px-2.5 py-1 text-xs font-medium text-red-950 hover:bg-white disabled:opacity-50"
+            >
+              {t('chat.retry')}
+            </button>
+          </div>
+        ) : null}
 
         <div ref={messagesEndRef} />
       </div>

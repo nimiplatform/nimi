@@ -97,10 +97,9 @@ Chat uses `runtime.ai.text.stream()` from `@nimiplatform/sdk/runtime` for stream
 
 ```typescript
 const { stream } = await runtime.ai.text.stream({
-  model: 'auto',
+  model: runtimeDefaults.runtime.localProviderModel,
   input: conversationHistory,
   system: systemPrompt,
-  route: 'cloud',
   signal: abortController.signal,
   metadata: {
     surfaceId: 'realm-drift',
@@ -111,8 +110,8 @@ const { stream } = await runtime.ai.text.stream({
 
 | Parameter | Value | Rationale |
 |-----------|-------|-----------|
-| `model` | `'auto'` | Let runtime route to available provider |
-| `route` | `'cloud'` | Demo uses cloud inference, not local |
+| `model` | Runtime defaults/config value | Runtime configuration owns chat model selection. The renderer MUST NOT hardcode `auto`, cloud model ids, or local model ids. If runtime defaults do not provide a concrete model, chat fails closed. |
+| `route` | Omitted unless projected by runtime/config authority | Runtime configuration owns route selection. The renderer MUST NOT hardcode `cloud` or `local` demo route literals. |
 | `signal` | `AbortController.signal` | Enables cancellation on agent switch or navigation |
 | `surfaceId` | `'realm-drift'` | Identifies traffic source |
 

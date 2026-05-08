@@ -2,6 +2,8 @@
 
 use serde::Serialize;
 
+mod marble_commands;
+
 // Shared modules from kit/shell/tauri crate
 use nimi_kit_shell_tauri::auth_session_commands;
 use nimi_kit_shell_tauri::desktop_paths;
@@ -35,6 +37,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_storage_dirs,
             defaults::runtime_defaults,
+            marble_commands::realm_drift_marble_generate,
+            marble_commands::realm_drift_marble_poll,
             auth_session_commands::auth_session_load,
             auth_session_commands::auth_session_save,
             auth_session_commands::auth_session_clear,
@@ -42,11 +46,6 @@ fn main() {
             runtime_bridge::runtime_bridge_stream_open,
             runtime_bridge::runtime_bridge_stream_close,
             runtime_bridge::runtime_bridge_status,
-            runtime_bridge::runtime_bridge_start,
-            runtime_bridge::runtime_bridge_stop,
-            runtime_bridge::runtime_bridge_restart,
-            runtime_bridge::runtime_bridge_config_get,
-            runtime_bridge::runtime_bridge_config_set,
             session_logging::log_renderer_event,
         ])
         .run(tauri::generate_context!())

@@ -1,5 +1,6 @@
 import type { WorldAgent, WorldDetailWithAgents } from '../world-browser/world-browser-data.js';
 import type { ChatMessage } from '@renderer/app-shell/app-store.js';
+import type { RuntimeDefaults } from '@renderer/bridge';
 import { streamPlatformChatResponse } from '@nimiplatform/nimi-kit/features/chat/runtime';
 
 export function buildSystemPrompt(agent: WorldAgent, world: WorldDetailWithAgents): string {
@@ -34,17 +35,35 @@ export type StreamChatInput = {
   world: WorldDetailWithAgents;
   messages: ChatMessage[];
   userMessage: string;
+  runtimeDefaults: RuntimeDefaults | null;
   signal: AbortSignal;
   onDelta: (text: string) => void;
   onFinish: (fullText: string) => void;
   onError: (error: Error) => void;
 };
 
+export function resolveAgentChatRuntimeSelection(runtimeDefaults: RuntimeDefaults | null): {
+  model: string;
+  connectorId?: string;
+} {
+  const runtime = runtimeDefaults?.runtime;
+  const model = String(runtime?.localProviderModel || '').trim();
+  if (!model) {
+    throw new Error('Realm Drift agent chat requires runtime defaults to provide runtime.localProviderModel');
+  }
+  const connectorId = String(runtime?.connectorId || '').trim();
+  return {
+    model,
+    ...(connectorId ? { connectorId } : {}),
+  };
+}
+
 export async function streamAgentChat(input: StreamChatInput): Promise<void> {
-  const { agent, world, messages, userMessage, signal, onDelta, onFinish, onError } = input;
+  const { agent, world, messages, userMessage, runtimeDefaults, signal, onDelta, onFinish, onError } = input;
 
   try {
     const systemPrompt = buildSystemPrompt(agent, world);
+    const runtimeSelection = resolveAgentChatRuntimeSelection(runtimeDefaults);
 
     // Build conversation history per RD-CHAT-004
     const conversationInput = messages.map((m) => ({
@@ -54,10 +73,9 @@ export async function streamAgentChat(input: StreamChatInput): Promise<void> {
     conversationInput.push({ role: 'user', content: userMessage });
 
     const result = await streamPlatformChatResponse({
-      model: 'auto',
+      ...runtimeSelection,
       input: conversationInput,
       system: systemPrompt,
-      route: 'cloud',
       metadata: { surfaceId: 'realm-drift', extra: JSON.stringify({ worldId: world.id, agentId: agent.id }) },
       signal,
     }, {

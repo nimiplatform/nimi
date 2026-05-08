@@ -17,7 +17,7 @@ function makeBootstrapInput(
   overrides: Partial<Omit<Parameters<typeof bootstrapAuthSession>[0], 'realm' | 'accessToken'>> = {},
 ) {
   return {
-    source: 'env' as const,
+    source: 'memory' as const,
     realmBaseUrl: 'https://realm.example.test',
     clearPersistedSession: vi.fn(async () => {}),
     ...overrides,

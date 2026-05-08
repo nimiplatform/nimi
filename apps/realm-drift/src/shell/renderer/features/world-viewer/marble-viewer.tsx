@@ -4,7 +4,6 @@ import { useAppStore } from '@renderer/app-shell/app-store.js';
 import type { WorldReferenceBundle } from './marble-prompt.js';
 import { composeMarblePrompt, findWorldImageUrl, assembleRawContext } from './marble-prompt.js';
 import { MarbleWorldGenerator } from './marble-world-generator.js';
-import { marbleConfig } from './marble-api.js';
 
 type MarbleViewerProps = {
   worldId: string;
@@ -64,25 +63,28 @@ export function MarbleViewer({ worldId, worldName, worldReference, quality }: Ma
               startedAt: marbleJob.startedAt,
             });
           } else if ('error' in update && update.status === 'failed') {
+            const msg = update.error ?? t('viewer.generationFailed');
+            const mapped = mapErrorMessage(msg, t);
             setMarbleJob(worldId, {
               operationId: opId,
               status: 'failed',
-              error: update.error ?? t('viewer.generationFailed'),
+              error: mapped,
               startedAt: marbleJob.startedAt,
             });
-            setErrorMessage(update.error ?? t('viewer.generationFailed'));
+            setErrorMessage(mapped);
           }
         }
       } catch (err) {
         if (ac.signal.aborted) return;
         const msg = err instanceof Error ? err.message : t('viewer.generationFailed');
+        const mapped = mapErrorMessage(msg, t);
         setMarbleJob(worldId, {
           operationId: opId,
           status: 'failed',
-          error: msg,
+          error: mapped,
           startedAt: marbleJob.startedAt,
         });
-        setErrorMessage(mapErrorMessage(msg, t));
+        setErrorMessage(mapped);
       }
     })();
 
@@ -91,18 +93,6 @@ export function MarbleViewer({ worldId, worldName, worldReference, quality }: Ma
 
   const handleGenerate = useCallback(async () => {
     if (!worldReference) return;
-
-    const apiKey = marbleConfig.getApiKey();
-    if (!apiKey) {
-      setErrorMessage(t('viewer.missingApiKey'));
-      setMarbleJob(worldId, {
-        operationId: '',
-        status: 'failed',
-        error: t('viewer.missingApiKey'),
-        startedAt: Date.now(),
-      });
-      return;
-    }
 
     // Abort any previous
     abortRef.current?.abort();
@@ -152,11 +142,12 @@ export function MarbleViewer({ worldId, worldName, worldReference, quality }: Ma
           });
         } else if ('error' in update && update.status === 'failed') {
           const msg = update.error ?? t('viewer.generationFailed');
-          setErrorMessage(mapErrorMessage(msg, t));
+          const mapped = mapErrorMessage(msg, t);
+          setErrorMessage(mapped);
           setMarbleJob(worldId, {
             operationId,
             status: 'failed',
-            error: msg,
+            error: mapped,
             startedAt,
           });
         }
@@ -164,11 +155,12 @@ export function MarbleViewer({ worldId, worldName, worldReference, quality }: Ma
     } catch (err) {
       if (ac.signal.aborted) return;
       const msg = err instanceof Error ? err.message : t('viewer.generationFailed');
-      setErrorMessage(mapErrorMessage(msg, t));
+      const mapped = mapErrorMessage(msg, t);
+      setErrorMessage(mapped);
       setMarbleJob(worldId, {
         operationId: marbleJob?.operationId ?? '',
         status: 'failed',
-        error: msg,
+        error: mapped,
         startedAt,
       });
     }

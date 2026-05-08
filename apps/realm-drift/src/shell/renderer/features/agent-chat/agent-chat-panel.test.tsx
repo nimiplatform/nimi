@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -11,6 +11,8 @@ vi.mock('react-i18next', () => ({
         'chat.streaming': 'Thinking...',
         'chat.agentEmpty': 'No agents available',
         'viewer.tabAgents': 'Agents',
+        'chat.errorTitle': 'Message failed',
+        'chat.retry': 'Retry',
       };
       return map[key] ?? key;
     },
@@ -25,6 +27,30 @@ const mockStore = {
   setActiveChat: vi.fn(),
   appendChatMessage: vi.fn(),
   setStreamingState: vi.fn(),
+  setChatError: vi.fn(),
+  runtimeDefaults: {
+    realm: {
+      realmBaseUrl: 'http://localhost:3002',
+      realtimeUrl: 'ws://localhost:3002',
+      accessToken: '',
+      jwksUrl: 'http://localhost:3002/api/auth/jwks',
+      revocationUrl: 'http://localhost:3002/api/auth/revocation',
+      jwtIssuer: 'http://localhost:3002',
+      jwtAudience: 'nimi-runtime',
+    },
+    runtime: {
+      localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+      localProviderModel: 'runtime-default-chat-model',
+      localOpenAiEndpoint: '',
+      connectorId: '',
+      targetType: '',
+      targetAccountId: '',
+      agentId: '',
+      worldId: '',
+      provider: 'llama',
+      userConfirmedUpload: false,
+    },
+  },
 };
 
 vi.mock('@renderer/app-shell/app-store.js', () => ({
@@ -86,6 +112,7 @@ describe('AgentChatPanel', () => {
       messages: [],
       streaming: false,
       partialText: '',
+      error: null,
     };
 
     render(<AgentChatPanel agents={agents} world={world} />);
@@ -113,6 +140,7 @@ describe('AgentChatPanel', () => {
       messages: [],
       streaming: false,
       partialText: '',
+      error: null,
     });
   });
 
@@ -127,6 +155,7 @@ describe('AgentChatPanel', () => {
       ],
       streaming: false,
       partialText: '',
+      error: null,
     };
 
     render(<AgentChatPanel agents={agents} world={world} />);
@@ -143,6 +172,7 @@ describe('AgentChatPanel', () => {
       messages: [],
       streaming: false,
       partialText: '',
+      error: null,
     };
 
     render(<AgentChatPanel agents={agents} world={world} />);
@@ -160,6 +190,7 @@ describe('AgentChatPanel', () => {
       messages: [],
       streaming: false,
       partialText: '',
+      error: null,
     };
 
     render(<AgentChatPanel agents={agents} world={world} />);
@@ -177,14 +208,65 @@ describe('AgentChatPanel', () => {
     });
 
     expect(mockStore.setStreamingState).toHaveBeenCalledWith(true, '');
+    expect(mockStore.setChatError).toHaveBeenCalledWith(null);
     expect(mockStreamAgentChat).toHaveBeenCalledOnce();
     expect(mockStreamAgentChat).toHaveBeenCalledWith(
       expect.objectContaining({
         agent: agents[0],
         world,
         userMessage: 'Hello Sage',
+        runtimeDefaults: mockStore.runtimeDefaults,
       }),
     );
+  });
+
+  it('persists and renders runtime stream errors with retry posture', async () => {
+    mockStore.activeChat = {
+      worldId: 'world-1',
+      agentId: 'a1',
+      agentName: 'Sage',
+      messages: [],
+      streaming: false,
+      partialText: '',
+      error: null,
+    };
+
+    render(<AgentChatPanel agents={agents} world={world} />);
+
+    const textarea = screen.getByPlaceholderText('Type a message...');
+    fireEvent.change(textarea, { target: { value: 'Hello Sage' } });
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
+
+    const request = mockStreamAgentChat.mock.calls[0]![0] as {
+      onError: (error: Error) => void;
+    };
+    await act(async () => {
+      request.onError(new Error('network failure'));
+    });
+
+    expect(mockStore.setStreamingState).toHaveBeenCalledWith(false, '');
+    expect(mockStore.setChatError).toHaveBeenCalledWith('network failure');
+    expect((textarea as HTMLTextAreaElement).value).toBe('Hello Sage');
+  });
+
+  it('renders an active chat error and retry action', () => {
+    mockStore.activeChat = {
+      worldId: 'world-1',
+      agentId: 'a1',
+      agentName: 'Sage',
+      messages: [
+        { id: 'msg-1', role: 'user', content: 'Hello', timestamp: 1000 },
+      ],
+      streaming: false,
+      partialText: '',
+      error: 'provider overloaded',
+    };
+
+    render(<AgentChatPanel agents={agents} world={world} />);
+
+    expect(screen.getByText('Message failed')).toBeDefined();
+    expect(screen.getByText('provider overloaded')).toBeDefined();
+    expect(screen.getByText('Retry')).toBeDefined();
   });
 
   it('disables send during streaming', () => {
@@ -197,6 +279,7 @@ describe('AgentChatPanel', () => {
       ],
       streaming: true,
       partialText: '',
+      error: null,
     };
 
     render(<AgentChatPanel agents={agents} world={world} />);
@@ -215,6 +298,7 @@ describe('AgentChatPanel', () => {
       ],
       streaming: true,
       partialText: 'The world is vast and',
+      error: null,
     };
 
     render(<AgentChatPanel agents={agents} world={world} />);
@@ -233,6 +317,7 @@ describe('AgentChatPanel', () => {
       ],
       streaming: false,
       partialText: '',
+      error: null,
     };
 
     render(<AgentChatPanel agents={agents} world={world} />);

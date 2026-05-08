@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { WorldAgent, WorldDetailWithAgents } from '../world-browser/world-browser-data.js';
 import type { ChatMessage } from '@renderer/app-shell/app-store.js';
+import type { RuntimeDefaults } from '@renderer/bridge';
 
 const mockStreamPlatformChatResponse = vi.fn();
 
@@ -9,6 +10,30 @@ vi.mock('@nimiplatform/nimi-kit/features/chat/runtime', () => ({
 }));
 
 import { buildSystemPrompt, streamAgentChat } from './chat-stream.js';
+
+const MOCK_RUNTIME_DEFAULTS: RuntimeDefaults = {
+  realm: {
+    realmBaseUrl: 'http://localhost:3002',
+    realtimeUrl: 'ws://localhost:3002',
+    accessToken: '',
+    jwksUrl: 'http://localhost:3002/api/auth/jwks',
+    revocationUrl: 'http://localhost:3002/api/auth/revocation',
+    jwtIssuer: 'http://localhost:3002',
+    jwtAudience: 'nimi-runtime',
+  },
+  runtime: {
+    localProviderEndpoint: 'http://127.0.0.1:11434/v1',
+    localProviderModel: 'runtime-default-chat-model',
+    localOpenAiEndpoint: '',
+    connectorId: '',
+    targetType: '',
+    targetAccountId: '',
+    agentId: '',
+    worldId: '',
+    provider: 'llama',
+    userConfirmedUpload: false,
+  },
+};
 
 describe('buildSystemPrompt', () => {
   const agent: WorldAgent = {
@@ -105,6 +130,7 @@ describe('streamAgentChat', () => {
       world,
       messages: existingMessages,
       userMessage: 'Tell me about the tower',
+      runtimeDefaults: MOCK_RUNTIME_DEFAULTS,
       signal: ac.signal,
       onDelta: vi.fn(),
       onFinish: vi.fn(),
@@ -120,7 +146,7 @@ describe('streamAgentChat', () => {
     ]);
   });
 
-  it('calls runtime.ai.text.stream with correct params', async () => {
+  it('calls runtime.ai.text.stream with runtime default model and no renderer-owned route literal', async () => {
     mockStreamPlatformChatResponse.mockResolvedValue({
       text: '',
       finish: { type: 'finish', finishReason: 'stop', usage: {}, trace: {} },
@@ -132,6 +158,7 @@ describe('streamAgentChat', () => {
       world,
       messages: [],
       userMessage: 'Hi',
+      runtimeDefaults: MOCK_RUNTIME_DEFAULTS,
       signal: ac.signal,
       onDelta: vi.fn(),
       onFinish: vi.fn(),
@@ -139,14 +166,41 @@ describe('streamAgentChat', () => {
     });
 
     const callArgs = mockStreamPlatformChatResponse.mock.calls[0]![0];
-    expect(callArgs.model).toBe('auto');
-    expect(callArgs.route).toBe('cloud');
+    expect(callArgs.model).toBe('runtime-default-chat-model');
+    expect(callArgs.route).toBeUndefined();
     expect(callArgs.metadata).toEqual({
       surfaceId: 'realm-drift',
       extra: JSON.stringify({ worldId: 'w1', agentId: 'a1' }),
     });
     expect(callArgs.system).toBeTruthy();
     expect(callArgs.signal).toBe(ac.signal);
+  });
+
+  it('fails closed when runtime defaults do not provide a chat model', async () => {
+    const onError = vi.fn();
+    const ac = new AbortController();
+
+    await streamAgentChat({
+      agent,
+      world,
+      messages: [],
+      userMessage: 'Hi',
+      runtimeDefaults: {
+        ...MOCK_RUNTIME_DEFAULTS,
+        runtime: {
+          ...MOCK_RUNTIME_DEFAULTS.runtime,
+          localProviderModel: '',
+        },
+      },
+      signal: ac.signal,
+      onDelta: vi.fn(),
+      onFinish: vi.fn(),
+      onError,
+    });
+
+    expect(mockStreamPlatformChatResponse).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0]![0].message).toContain('runtime.localProviderModel');
   });
 
   it('calls onDelta with incremental delta text on delta parts', async () => {
@@ -164,6 +218,7 @@ describe('streamAgentChat', () => {
       world,
       messages: [],
       userMessage: 'Hi',
+      runtimeDefaults: MOCK_RUNTIME_DEFAULTS,
       signal: ac.signal,
       onDelta,
       onFinish: vi.fn(),
@@ -190,6 +245,7 @@ describe('streamAgentChat', () => {
       world,
       messages: [],
       userMessage: 'Tell me',
+      runtimeDefaults: MOCK_RUNTIME_DEFAULTS,
       signal: ac.signal,
       onDelta: vi.fn(),
       onFinish,
@@ -215,6 +271,7 @@ describe('streamAgentChat', () => {
       world,
       messages: [],
       userMessage: 'Hi',
+      runtimeDefaults: MOCK_RUNTIME_DEFAULTS,
       signal: ac.signal,
       onDelta: vi.fn(),
       onFinish: vi.fn(),
@@ -237,6 +294,7 @@ describe('streamAgentChat', () => {
       world,
       messages: [],
       userMessage: 'Hi',
+      runtimeDefaults: MOCK_RUNTIME_DEFAULTS,
       signal: ac.signal,
       onDelta: vi.fn(),
       onFinish: vi.fn(),
@@ -262,6 +320,7 @@ describe('streamAgentChat', () => {
       world,
       messages: [],
       userMessage: 'Hi',
+      runtimeDefaults: MOCK_RUNTIME_DEFAULTS,
       signal: ac.signal,
       onDelta,
       onFinish,
@@ -290,6 +349,7 @@ describe('streamAgentChat', () => {
       world,
       messages: [],
       userMessage: 'Hi',
+      runtimeDefaults: MOCK_RUNTIME_DEFAULTS,
       signal: ac.signal,
       onDelta,
       onFinish,

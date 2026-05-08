@@ -1,15 +1,11 @@
 import {
   getRuntimeDefaults,
   clearAuthSession as clearPersistedAuthSession,
-  loadAuthSession,
   saveAuthSession,
 } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 import { createPlatformClient } from '@nimiplatform/sdk';
-import {
-  persistSharedDesktopAuthSession,
-  resolveDesktopBootstrapAuthSession,
-} from '@nimiplatform/nimi-kit/auth';
+import { persistSharedDesktopAuthSession } from '@nimiplatform/nimi-kit/auth';
 import { initI18n } from '@renderer/i18n/index.js';
 import { bootstrapAuthSession } from './drift-bootstrap-auth.js';
 
@@ -39,16 +35,9 @@ export async function runDriftBootstrap(): Promise<void> {
     // Step 2: Runtime Defaults
     const runtimeDefaults = await getRuntimeDefaults();
     store.setRuntimeDefaults(runtimeDefaults);
-    const resolvedBootstrapAuthSession = await resolveDesktopBootstrapAuthSession({
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      envAccessToken: runtimeDefaults.realm.accessToken,
-      loadPersistedSession: () => loadAuthSession(),
-    });
-    if (resolvedBootstrapAuthSession.shouldClearPersistedSession) {
-      await clearPersistedAuthSession();
-    }
-    let bootstrapAccessToken = String(resolvedBootstrapAuthSession.session?.accessToken || '').trim();
-    let bootstrapRefreshToken = String(resolvedBootstrapAuthSession.session?.refreshToken || '').trim();
+    let bootstrapAccessToken = String(store.auth.token || '').trim();
+    let bootstrapRefreshToken = String(store.auth.refreshToken || '').trim();
+    const bootstrapAuthSource = bootstrapAccessToken ? 'memory' : 'anonymous';
     const resolveCurrentAccessToken = () => {
       const authToken = String(useAppStore.getState().auth.token || '').trim();
       if (authToken) {
@@ -125,7 +114,7 @@ export async function runDriftBootstrap(): Promise<void> {
       realm,
       accessToken: bootstrapAccessToken,
       refreshToken: bootstrapRefreshToken,
-      source: resolvedBootstrapAuthSession.source,
+      source: bootstrapAuthSource,
       realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
       clearPersistedSession: async () => {
         clearDesktopSession();

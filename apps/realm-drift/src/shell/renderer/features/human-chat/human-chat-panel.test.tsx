@@ -180,6 +180,28 @@ describe('HumanChatPanel', () => {
     });
   });
 
+  it('rolls back optimistic message when send fails', async () => {
+    mockStore.activeHumanChat = {
+      chatId: 'chat-1',
+      friendName: 'Alice',
+      messages: [],
+      loading: false,
+    };
+
+    mockSendMessage.mockRejectedValue(new Error('send failed'));
+
+    render(<HumanChatPanel />);
+
+    const textarea = screen.getByPlaceholderText('Type a message...');
+    fireEvent.change(textarea, { target: { value: 'Hello!' } });
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
+
+    await waitFor(() => {
+      expect(mockStore.removeHumanMessage).toHaveBeenCalledWith('chat-1', 'test-msg-id');
+      expect(screen.getByText('send failed')).toBeDefined();
+    });
+  });
+
   it('shows back button that clears active chat', () => {
     mockStore.activeHumanChat = {
       chatId: 'chat-1',

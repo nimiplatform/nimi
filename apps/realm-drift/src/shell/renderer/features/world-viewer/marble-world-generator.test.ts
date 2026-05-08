@@ -5,10 +5,6 @@ import * as marbleApiModule from './marble-api.js';
 vi.mock('./marble-api.js', () => ({
   generateMarbleWorld: vi.fn(),
   pollMarbleOperation: vi.fn(),
-  marbleConfig: {
-    getApiKey: () => 'test-key',
-    getApiUrl: () => 'https://api.worldlabs.ai/marble/v1',
-  },
 }));
 
 const { generateMarbleWorld, pollMarbleOperation } = marbleApiModule as unknown as {

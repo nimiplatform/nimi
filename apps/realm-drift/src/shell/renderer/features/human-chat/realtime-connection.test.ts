@@ -92,25 +92,72 @@ describe('RealtimeConnection', () => {
     expect(onSessionReady).toHaveBeenCalledWith('session-1');
   });
 
-  it('deduplicates chat events by eventId', () => {
+  it('deduplicates chat events by eventId after applying payloads', async () => {
     const onChatEvent = vi.fn();
     connection.connect('http://localhost:3002', 'jwt-token', { onChatEvent });
 
     const chatEventCall = mockSocket.on.mock.calls.find(
       (call: unknown[]) => call[0] === 'chat:event',
     );
-    const handler = chatEventCall![1] as (data: Record<string, unknown>) => void;
+    const handler = chatEventCall![1] as (data: Record<string, unknown>) => Promise<void>;
 
-    handler({ eventId: 'e1', chatId: 'c1', type: 'message', senderId: 'u1', content: 'hello' });
+    await handler({ eventId: 'e1', seq: 1, chatId: 'c1', kind: 'message.created', payload: { senderId: 'u1', content: 'hello' } });
     expect(onChatEvent).toHaveBeenCalledTimes(1);
+    expect(mockSocket.emit).toHaveBeenCalledWith('chat:event.ack', {
+      chatId: 'c1',
+      sessionId: '',
+      ackSeq: 1,
+    });
 
     // Duplicate should be dropped
-    handler({ eventId: 'e1', chatId: 'c1', type: 'message', senderId: 'u1', content: 'hello' });
+    await handler({ eventId: 'e1', seq: 1, chatId: 'c1', kind: 'message.created', payload: { senderId: 'u1', content: 'hello' } });
     expect(onChatEvent).toHaveBeenCalledTimes(1);
 
     // Different event passes through
-    handler({ eventId: 'e2', chatId: 'c1', type: 'message', senderId: 'u2', content: 'world' });
+    await handler({ eventId: 'e2', seq: 2, chatId: 'c1', kind: 'message.created', payload: { senderId: 'u2', content: 'world' } });
     expect(onChatEvent).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not ack until chat event application succeeds', async () => {
+    const onChatEvent = vi.fn().mockImplementationOnce(() => {
+      throw new Error('apply failed');
+    });
+    connection.connect('http://localhost:3002', 'jwt-token', { onChatEvent });
+
+    const chatEventCall = mockSocket.on.mock.calls.find(
+      (call: unknown[]) => call[0] === 'chat:event',
+    );
+    const handler = chatEventCall![1] as (data: Record<string, unknown>) => Promise<void>;
+
+    await handler({ eventId: 'e1', seq: 1, chatId: 'c1', kind: 'message.created', payload: { senderId: 'u1', content: 'hello' } });
+
+    expect(onChatEvent).toHaveBeenCalledTimes(1);
+    expect(mockSocket.emit).not.toHaveBeenCalledWith('chat:event.ack', expect.anything());
+
+    onChatEvent.mockImplementationOnce(() => undefined);
+    await handler({ eventId: 'e1', seq: 1, chatId: 'c1', kind: 'message.created', payload: { senderId: 'u1', content: 'hello' } });
+
+    expect(onChatEvent).toHaveBeenCalledTimes(2);
+    expect(mockSocket.emit).toHaveBeenCalledWith('chat:event.ack', {
+      chatId: 'c1',
+      sessionId: '',
+      ackSeq: 1,
+    });
+  });
+
+  it('refuses malformed chat events without acking', async () => {
+    const onChatEvent = vi.fn();
+    connection.connect('http://localhost:3002', 'jwt-token', { onChatEvent });
+
+    const chatEventCall = mockSocket.on.mock.calls.find(
+      (call: unknown[]) => call[0] === 'chat:event',
+    );
+    const handler = chatEventCall![1] as (data: Record<string, unknown>) => Promise<void>;
+
+    await handler({ eventId: 'e1', seq: 1, chatId: 'c1', kind: 'message.created', payload: { senderId: 'u1' } });
+
+    expect(onChatEvent).not.toHaveBeenCalled();
+    expect(mockSocket.emit).not.toHaveBeenCalledWith('chat:event.ack', expect.anything());
   });
 
   it('disconnects cleanly', () => {

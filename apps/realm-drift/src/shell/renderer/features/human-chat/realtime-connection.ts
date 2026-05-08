@@ -2,10 +2,10 @@ import { io, type Socket } from 'socket.io-client';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 
 type RealtimeEventHandler = {
-  onChatEvent?: (event: ChatEvent) => void;
-  onMessageEdited?: (event: ChatEvent) => void;
-  onMessageRecalled?: (event: ChatEvent) => void;
-  onChatRead?: (event: ChatEvent) => void;
+  onChatEvent?: (event: ChatEvent) => void | Promise<void>;
+  onMessageEdited?: (event: ChatEvent) => void | Promise<void>;
+  onMessageRecalled?: (event: ChatEvent) => void | Promise<void>;
+  onChatRead?: (event: ChatEvent) => void | Promise<void>;
   onPresence?: (userId: string, online: boolean) => void;
   onSessionReady?: (sessionId: string) => void;
   onSyncRequired?: (chatId: string) => void;
@@ -62,44 +62,29 @@ export class RealtimeConnection {
       handlers.onSessionReady?.(this.sessionId);
     });
 
-    this.socket.on('chat:event', (data: Record<string, unknown>) => {
-      const event = this.parseChatEvent(data);
-      if (!event) return;
+    this.socket.on('chat:event', async (data: Record<string, unknown>) => {
+      const parsed = this.parseChatEvent(data);
+      if (!parsed) return;
 
-      // Dedup by eventId
+      const { event, seq, kind } = parsed;
       if (this.seenEvents.has(event.eventId)) return;
-      this.addToSeenEvents(event.eventId);
 
-      // Update ack seq if present
-      const seq = Number(data.seq || 0);
+      try {
+        await this.applyChatEvent(kind, event, handlers);
+      } catch {
+        return;
+      }
+
+      this.addToSeenEvents(event.eventId);
       if (seq > this.lastAckSeq) {
         this.lastAckSeq = seq;
       }
 
-      // Send acknowledgment per RD-HCHAT-005
       this.socket?.emit('chat:event.ack', {
         chatId: event.chatId,
         sessionId: this.sessionId,
         ackSeq: seq,
       });
-
-      // Dispatch by event kind per RD-HCHAT-005
-      const kind = String(data.kind || event.type || '');
-      switch (kind) {
-        case 'message.edited':
-          handlers.onMessageEdited?.(event);
-          break;
-        case 'message.recalled':
-          handlers.onMessageRecalled?.(event);
-          break;
-        case 'chat.read':
-          handlers.onChatRead?.(event);
-          break;
-        default:
-          // message.created or unknown — treat as new message
-          handlers.onChatEvent?.(event);
-          break;
-      }
     });
 
     this.socket.on('presence', (data: Record<string, unknown>) => {
@@ -143,18 +128,68 @@ export class RealtimeConnection {
     return this.socket?.connected ?? false;
   }
 
-  private parseChatEvent(data: Record<string, unknown>): ChatEvent | null {
+  private parseChatEvent(data: Record<string, unknown>): { event: ChatEvent; seq: number; kind: string } | null {
     const eventId = String(data.eventId || data.id || '');
     if (!eventId) return null;
+    const chatId = String(data.chatId || '');
+    if (!chatId) return null;
+    const seq = Number(data.seq || 0);
+    if (!Number.isFinite(seq) || seq <= 0) return null;
+    const kind = String(data.kind || data.type || 'message.created');
+    if (!['message.created', 'message.edited', 'message.recalled', 'chat.read'].includes(kind)) return null;
+
+    const payload = this.objectPayload(data.payload);
+    const senderId = String(payload.senderId || payload.userId || data.senderId || data.userId || '');
+    const content = this.eventContent(payload, data);
+    if ((kind === 'message.created' || kind === 'message.edited') && (!senderId || !content)) {
+      return null;
+    }
 
     return {
+      seq,
+      kind,
+      event: {
       eventId,
-      chatId: String(data.chatId || ''),
-      type: String(data.type || 'message'),
-      senderId: String(data.senderId || data.userId || ''),
-      content: data.content ? String(data.content) : undefined,
-      createdAt: String(data.createdAt || new Date().toISOString()),
+      chatId,
+      type: kind,
+      senderId,
+      content,
+      createdAt: String(payload.createdAt || data.createdAt || new Date().toISOString()),
+      },
     };
+  }
+
+  private objectPayload(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  }
+
+  private eventContent(payload: Record<string, unknown>, data: Record<string, unknown>): string | undefined {
+    const message = this.objectPayload(payload.message);
+    const value = payload.content ?? payload.text ?? message.content ?? message.text ?? data.content;
+    return value === undefined || value === null ? undefined : String(value);
+  }
+
+  private async applyChatEvent(kind: string, event: ChatEvent, handlers: RealtimeEventHandler): Promise<void> {
+    switch (kind) {
+      case 'message.created':
+        if (!handlers.onChatEvent) throw new Error('REALTIME_CHAT_EVENT_HANDLER_MISSING');
+        await handlers.onChatEvent(event);
+        break;
+      case 'message.edited':
+        if (!handlers.onMessageEdited) throw new Error('REALTIME_CHAT_EDIT_HANDLER_MISSING');
+        await handlers.onMessageEdited(event);
+        break;
+      case 'message.recalled':
+        if (!handlers.onMessageRecalled) throw new Error('REALTIME_CHAT_RECALL_HANDLER_MISSING');
+        await handlers.onMessageRecalled(event);
+        break;
+      case 'chat.read':
+        if (!handlers.onChatRead) throw new Error('REALTIME_CHAT_READ_HANDLER_MISSING');
+        await handlers.onChatRead(event);
+        break;
+      default:
+        throw new Error('REALTIME_CHAT_EVENT_KIND_UNSUPPORTED');
+    }
   }
 
   private addToSeenEvents(eventId: string): void {

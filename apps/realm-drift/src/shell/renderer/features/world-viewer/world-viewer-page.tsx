@@ -12,6 +12,7 @@ import { MarbleViewer } from './marble-viewer.js';
 import { AgentChatPanel } from '../agent-chat/agent-chat-panel.js';
 import { HumanChatPanel } from '../human-chat/human-chat-panel.js';
 import { realtimeConnection } from '../human-chat/realtime-connection.js';
+import { resolveInitialMarbleQuality } from './marble-model-authority.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 
@@ -30,10 +31,7 @@ export function WorldViewerPage() {
   const updateHumanMessage = useAppStore((s) => s.updateHumanMessage);
   const removeHumanMessage = useAppStore((s) => s.removeHumanMessage);
   const clearMarbleJob = useAppStore((s) => s.clearMarbleJob);
-  const [quality, setQuality] = useState<'mini' | 'standard'>(() => {
-    const env = (import.meta as { env?: Record<string, string> }).env;
-    return (env?.VITE_MARBLE_QUALITY === 'standard' ? 'standard' : 'mini') as 'mini' | 'standard';
-  });
+  const [quality, setQuality] = useState<'mini' | 'standard'>(() => resolveInitialMarbleQuality());
   const [friendListError, setFriendListError] = useState<string | null>(null);
 
   // Parallel data fetches

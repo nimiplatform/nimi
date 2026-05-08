@@ -109,6 +109,7 @@ describe('DriftAppStore', () => {
         messages: [],
         streaming: false,
         partialText: '',
+        error: null,
       };
       useAppStore.getState().setActiveChat(chat);
       expect(useAppStore.getState().activeChat?.agentId).toBe('a1');
@@ -125,6 +126,7 @@ describe('DriftAppStore', () => {
         messages: [],
         streaming: false,
         partialText: '',
+        error: null,
       });
 
       useAppStore.getState().appendChatMessage({
@@ -146,11 +148,30 @@ describe('DriftAppStore', () => {
         messages: [],
         streaming: false,
         partialText: '',
+        error: null,
       });
 
       useAppStore.getState().setStreamingState(true, 'partial...');
       expect(useAppStore.getState().activeChat?.streaming).toBe(true);
       expect(useAppStore.getState().activeChat?.partialText).toBe('partial...');
+    });
+
+    it('persists agent chat errors until explicitly cleared', () => {
+      useAppStore.getState().setActiveChat({
+        worldId: 'w1',
+        agentId: 'a1',
+        agentName: 'Agent One',
+        messages: [],
+        streaming: false,
+        partialText: '',
+        error: null,
+      });
+
+      useAppStore.getState().setChatError('network failure');
+      expect(useAppStore.getState().activeChat?.error).toBe('network failure');
+
+      useAppStore.getState().setChatError(null);
+      expect(useAppStore.getState().activeChat?.error).toBeNull();
     });
   });
 
