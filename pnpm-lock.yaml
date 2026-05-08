@@ -128,6 +128,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0(@opentelemetry/api@1.9.0)(@types/node@25.5.0)(jsdom@28.1.0)(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.2))
 
+  apps/ci: {}
+
   apps/desktop:
     dependencies:
       '@ai-sdk/openai-compatible':
@@ -1291,6 +1293,8 @@ importers:
       yaml:
         specifier: ^2.8.1
         version: 2.8.2
+
+  nimi-cognition: {}
 
   sdk:
     dependencies:
