@@ -56,7 +56,7 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
       className={`absolute inset-x-0 top-0 z-[11000] flex h-14 items-center nimi-material-glass-regular bg-[color-mix(in_srgb,var(--nimi-surface-canvas)_12%,transparent)] px-3 backdrop-blur-[var(--nimi-backdrop-blur-regular)] ${props.titlebarLeftInsetClass}`}
       onMouseDown={props.onMouseDown}
     >
-      <div className="flex h-full w-full items-center border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_78%,white)] px-1">
+      <div className="flex h-full w-full items-center px-1">
         {props.enableModWorkspaceTabs ? (
           <div data-mod-tab-interactive="true" className="h-full w-fit max-w-[52vw]">
             <ModWorkspaceTabs placement="titlebar" />

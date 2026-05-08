@@ -39,13 +39,13 @@ function SkeletonBlock(props: { className: string }) {
 
 function ContactsLoadingSkeleton() {
   return (
-    <div data-testid={E2E_IDS.panel('contacts')} className="flex h-full gap-4 px-5 pb-5 pt-4">
+    <div data-testid={E2E_IDS.panel('contacts')} className="flex h-full">
       <Surface
         as="aside"
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="relative flex w-[320px] shrink-0 flex-col rounded-3xl border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        className="relative flex w-[320px] shrink-0 flex-col rounded-none border-0 border-r border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)]"
       >
         <div className="flex h-14 shrink-0 items-center gap-2 px-4">
           <SkeletonBlock className="h-7 w-28 rounded-lg" />
@@ -78,7 +78,7 @@ function ContactsLoadingSkeleton() {
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-w-0 flex-1 flex-col rounded-3xl border-white/60 p-8 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        className="flex min-w-0 flex-1 flex-col rounded-none border-0 p-8"
       >
         <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
           <div className="mb-8 flex items-center gap-4">
@@ -405,11 +405,11 @@ export function ContactsView(props: ContactsViewProps) {
 
   if (props.error) {
     return (
-      <div data-testid={E2E_IDS.panel('contacts')} className="flex h-full px-5 pb-5 pt-4">
+      <div data-testid={E2E_IDS.panel('contacts')} className="flex h-full">
         <Surface
           tone="panel"
           material="glass-regular"
-          className="flex flex-1 items-center justify-center rounded-3xl border-white/60 text-sm text-red-600 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+          className="flex flex-1 items-center justify-center rounded-none border-0 text-sm text-red-600"
         >
           {t('Contacts.loadError')}
         </Surface>
@@ -418,11 +418,11 @@ export function ContactsView(props: ContactsViewProps) {
   }
 
   return (
-    <div ref={containerRef} data-testid={E2E_IDS.panel('contacts')} className="flex h-full gap-4 px-5 pb-5 pt-4 text-[var(--nimi-text-primary)]">
+    <div ref={containerRef} data-testid={E2E_IDS.panel('contacts')} className="flex h-full text-[var(--nimi-text-primary)]">
       {/* 左侧联系人列表 */}
       <SidebarShell
         width={sidebarWidth}
-        className="rounded-3xl border border-white/60 border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)] bg-[var(--nimi-sidebar-canvas)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        className="border-r border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)] bg-[var(--nimi-sidebar-canvas)]"
         data-testid={E2E_IDS.panel('contacts')}
       >
         <SidebarHeader
@@ -509,7 +509,7 @@ export function ContactsView(props: ContactsViewProps) {
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0"
       >
         {props.feedback ? (
           <div className="px-6 pt-4">

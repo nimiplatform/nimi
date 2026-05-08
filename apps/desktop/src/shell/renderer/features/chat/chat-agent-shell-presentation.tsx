@@ -693,6 +693,11 @@ export function useAgentConversationPresentation(
                 name={resolvedAgentDisplayName}
                 imageUrl={characterData.avatarUrl || null}
                 fallbackLabel={characterData.avatarFallback || resolvedAgentDisplayName}
+                preview={input.activeTarget?.agentId ? {
+                  targetId: input.activeTarget.agentId,
+                  handle: characterData.handle || null,
+                  worldName: input.activeTarget.worldName || null,
+                } : null}
               />
             )}
             avatarAction={{

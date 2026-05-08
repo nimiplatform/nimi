@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { IconButton, ScrollArea, Tooltip } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -123,12 +123,12 @@ export function ContactDetailViewContent(input: {
         contentClassName={input.fullBleed ? 'flex min-h-full w-full flex-col' : 'flex min-h-full w-full flex-col pb-6'}
       >
           <section className="relative">
-            <div className="relative h-[220px] overflow-hidden rounded-t-[34px] px-8 py-7" style={headerStyle}>
+            <div className="relative h-[168px] overflow-hidden px-8 py-5 [mask-image:linear-gradient(180deg,#000_0%,#000_58%,rgba(0,0,0,0.45)_78%,transparent_96%)] [-webkit-mask-image:linear-gradient(180deg,#000_0%,#000_58%,rgba(0,0,0,0.45)_78%,transparent_96%)]" style={headerStyle}>
               {canVisitWorld ? (
                 <button
                   type="button"
                   onClick={() => input.onVisitWorld(worldNavigationId)}
-                  className="absolute inset-x-0 top-0 z-10 h-[140px] cursor-pointer"
+                  className="absolute inset-x-0 top-0 z-10 h-[110px] cursor-pointer"
                   aria-label={t('Profile.visitWorld', { worldName: worldLabel, defaultValue: 'Visit {{worldName}}' })}
                 />
               ) : null}
@@ -142,17 +142,7 @@ export function ContactDetailViewContent(input: {
                 </>
               ) : null}
 
-              <div className="relative z-10 flex items-start justify-between gap-4">
-                <IconButton
-                  icon={(
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 12H5" /><path d="m12 5-7 7 7 7" />
-                    </svg>
-                  )}
-                  onClick={input.onClose}
-                  aria-label={t('Common.back', { defaultValue: 'Back' })}
-                  className="h-10 w-10 border border-[#4ECCA3]/20 bg-black/45 text-[#4ECCA3] transition-all hover:bg-black/65 hover:border-[#4ECCA3]/40"
-                />
+              <div className="relative z-10 flex items-start justify-end gap-4">
                 {input.isOwnProfile ? (
                   <Tooltip
                     content={isEditing
@@ -178,20 +168,20 @@ export function ContactDetailViewContent(input: {
               </div>
             </div>
 
-            <div className="relative px-8 pb-8">
-              <div className="-mt-20 grid gap-6 xl:grid-cols-[minmax(0,1fr),320px]">
+            <div className="relative px-8 pb-6">
+              <div className="-mt-14 grid gap-6 xl:grid-cols-[minmax(0,1fr),320px]">
                 <div className="min-w-0">
-                  <div className="rounded-[30px] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] xl:px-7">
-                    <div className="grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)] lg:gap-8">
-                      <div className="flex shrink-0 flex-col items-center gap-3 lg:pt-[6px]">
+                  <div className="relative isolate rounded-[24px] nimi-material-glass-thick bg-[var(--nimi-material-glass-thick-bg)] border-[var(--nimi-material-glass-thick-border)] px-6 py-5 [box-shadow:0_24px_60px_rgba(15,23,42,0.10),inset_0_1px_0_0_rgba(255,255,255,0.6)] backdrop-blur-[var(--nimi-backdrop-blur-strong)] before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-[inherit] before:bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0)_30%,rgba(255,255,255,0.55)_62%,rgba(255,255,255,0.92)_85%,rgba(255,255,255,1)_100%)] xl:px-7">
+                    <div className="grid gap-5 lg:grid-cols-[140px_minmax(0,1fr)] lg:gap-6">
+                      <div className="flex shrink-0 flex-col items-center gap-3 lg:pt-[2px]">
                           <div className="group relative cursor-pointer">
                             <div className="relative">
                               <EntityAvatar
                                 imageUrl={isEditing ? draft.avatarUrl || null : profile.avatarUrl}
                                 name={isEditing ? draft.displayName || profile.displayName : profile.displayName}
                                 kind={profile.isAgent ? 'agent' : 'human'}
-                                sizeClassName="h-32 w-32"
-                                textClassName="text-4xl font-bold"
+                                sizeClassName="h-24 w-24"
+                                textClassName="text-3xl font-bold"
                                 fallbackClassName={profile.isAgent ? undefined : 'bg-gradient-to-br from-[#4ECCA3]/20 to-[#4ECCA3]/5 text-[#1f8f69]'}
                                 className={profile.isAgent ? '' : 'rounded-full border border-white/85 shadow-[0_14px_34px_rgba(15,23,42,0.12)]'}
                               />
@@ -291,19 +281,19 @@ export function ContactDetailViewContent(input: {
                                 </label>
                               </div>
                             ) : (
-                              <div className={isWideLayout ? 'flex items-start justify-between gap-8' : 'block'}>
+                              <div className={isWideLayout ? 'flex items-start justify-between gap-6' : 'block'}>
                                 <div className="min-w-0 flex-1">
-                                  <h1 className="mt-1 text-[30px] font-semibold leading-[1.05] tracking-[0.05em] text-[#1A1A1B] lg:text-[32px]">
+                                  <h1 className="text-[24px] font-semibold leading-[1.1] tracking-[0.02em] text-[#1A1A1B] lg:text-[26px]">
                                     {profile.displayName}
                                   </h1>
-                                  <p className="mt-2 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]">
+                                  <p className="mt-1 text-[13px] font-medium tracking-[0.02em] text-[#6E6E73]">
                                     {profile.handle}
                                   </p>
-                                  <p className="mt-5 max-w-[420px] text-[14px] leading-[1.7] text-[#424245]">
+                                  <p className="mt-3 max-w-[420px] text-[14px] leading-[1.6] text-[#424245]">
                                     {headline}
                                   </p>
-                                  <div className="mt-7">
-                                    <div className="grid max-w-[460px] grid-cols-2 gap-x-12 gap-y-3.5 text-sm text-slate-600">
+                                  <div className="mt-4">
+                                    <div className="grid max-w-[460px] grid-cols-2 gap-x-10 gap-y-2 text-sm text-slate-600">
                                       <InlineMeta value={joinedLabel} icon={<CalendarIcon className="h-3.5 w-3.5" />} />
                                       <InlineMeta value={locationLabel} icon={<LocationIcon className="h-3.5 w-3.5" />} />
                                       <WorldMetaLink
@@ -314,7 +304,7 @@ export function ContactDetailViewContent(input: {
                                       <InlineMeta value={originLabel} icon={<OriginIcon className="h-3.5 w-3.5" />} />
                                     </div>
                                     {profile.tags.length > 0 ? (
-                                      <div className="mt-7 flex flex-wrap gap-2.5">
+                                      <div className="mt-4 flex flex-wrap gap-2">
                                         {profile.tags.map((tag) => (
                                           <span
                                             key={tag}
@@ -426,11 +416,11 @@ export function ContactDetailViewContent(input: {
                     </div>
                   </div>
 
-                  <div className="mt-6">
-                    <section className="min-w-0 space-y-6">
+                  <div className="mt-4">
+                    <section className="min-w-0 space-y-4">
                       <div className="bg-transparent">
                         {!isWideLayout ? (
-                          <div className="px-5">
+                          <div className="px-1">
                             <ContactDetailStatsActionsBlock
                               friendCount={friendCount}
                               postCount={postCount}
@@ -478,7 +468,7 @@ export function ContactDetailViewContent(input: {
                 <aside className="hidden xl:block" />
               </div>
 
-              <div className="mt-6 rounded-[30px] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] px-6 py-7 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] xl:px-7">
+              <div className="mt-4 rounded-[24px] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] px-5 py-4 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] xl:px-6">
                 <ContactDetailTabs
                   activeTab={activeTab}
                   isBlockedProfile={input.isBlockedProfile}

@@ -90,9 +90,9 @@ export function WorldChronoPanel({ world, compact = false }: { world: WorldListI
     <div
       className={`${compact ? 'min-w-[150px] max-w-[180px] px-3 py-2.5' : 'min-w-[300px] max-w-[340px] px-6 py-5'} rounded-[16px] text-white nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]`}
       style={{
-        background: 'rgba(255, 255, 255, 0.03)',
-        border: '1px solid rgba(255, 255, 255, 0.14)',
-        boxShadow: 'none',
+        background: 'rgba(15, 23, 42, 0.62)',
+        border: '1px solid rgba(255, 255, 255, 0.18)',
+        boxShadow: '0 8px 24px -12px rgba(15, 23, 42, 0.45)',
       }}
     >
       <div className="mb-2 flex items-center justify-between gap-4">

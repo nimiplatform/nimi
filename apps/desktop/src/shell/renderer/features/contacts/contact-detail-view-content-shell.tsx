@@ -350,14 +350,14 @@ export function ContactDetailDesktopStatsActions(input: {
   onRemove?: () => void;
 }) {
   return (
-    <div className="flex w-[240px] shrink-0 flex-col items-end">
+    <div className="flex w-[220px] shrink-0 flex-col items-end">
       <div className="flex items-center justify-end gap-3">
         <ContactDetailActionButtons {...input} />
       </div>
       {input.showAddFriendButton && input.canAddFriend === false && input.addFriendHint ? (
         <p className="mt-2 text-right text-xs text-amber-600">{input.addFriendHint}</p>
       ) : null}
-      <div className="mt-[40px] grid w-full grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
+      <div className="mt-5 grid w-full grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
         <StatTile label={i18n.t('Profile.friends', { defaultValue: 'Friends' })} value={input.friendCount} />
         <StatDivider />
         <StatTile label={i18n.t('Profile.posts', { defaultValue: 'Posts' })} value={input.postCount} />

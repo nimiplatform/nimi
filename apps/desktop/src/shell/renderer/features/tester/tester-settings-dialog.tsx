@@ -247,25 +247,6 @@ function SectionDetail({ section, surface, config, imageContext, videoContext }:
   );
 }
 
-function clearSectionParams(
-  surface: AppModelConfigSurface,
-  capabilityIds: ReadonlyArray<string>,
-): void {
-  const service = surface.aiConfigService;
-  const current = service.aiConfig.get(surface.scopeRef);
-  const nextParams = { ...current.capabilities.selectedParams };
-  for (const id of capabilityIds) {
-    delete nextParams[id];
-  }
-  service.aiConfig.update(surface.scopeRef, {
-    ...current,
-    capabilities: {
-      ...current.capabilities,
-      selectedParams: nextParams,
-    },
-  });
-}
-
 export function TesterSettingsPanel(props: TesterSettingsPanelProps) {
   const { open, onClose, config, initialSection, voiceAssetRefreshRevision = 0, imageContext, videoContext } = props;
   const { t } = useTranslation();
@@ -360,53 +341,6 @@ export function TesterSettingsPanel(props: TesterSettingsPanelProps) {
           />
         )}
       </ScrollArea>
-
-      {inDetail ? (
-        <DetailFooter
-          onReset={() => {
-            const ids = selectEnabledDescriptors(surface.enabledCapabilities, CANONICAL_CAPABILITY_CATALOG_BY_ID)
-              .filter((d) => d.section === activeSection)
-              .map((d) => d.capabilityId);
-            clearSectionParams(surface, ids);
-          }}
-          onDone={onClose}
-          resetLabel={t('Tester.settings.reset', { defaultValue: 'Reset' })}
-          doneLabel={t('Tester.settings.save', { defaultValue: 'Save Changes' })}
-        />
-      ) : null}
     </Surface>
-  );
-}
-
-function DetailFooter(props: {
-  onReset: () => void;
-  onDone: () => void;
-  resetLabel: string;
-  doneLabel: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 border-t border-white/60 bg-white/40 px-5 py-3">
-      <button
-        type="button"
-        onClick={props.onReset}
-        className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--nimi-border-subtle,#e2e8f0)] bg-white text-[13px] font-medium text-[var(--nimi-text-secondary,#475569)] transition-colors hover:border-[var(--nimi-border-strong,#cbd5e1)] hover:text-[var(--nimi-text-primary,#0f172a)]"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 12a9 9 0 1 0 3-6.7" />
-          <polyline points="3 4 3 10 9 10" />
-        </svg>
-        {props.resetLabel}
-      </button>
-      <button
-        type="button"
-        onClick={props.onDone}
-        className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-emerald-600"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 6L9 17l-5-5" />
-        </svg>
-        {props.doneLabel}
-      </button>
-    </div>
   );
 }

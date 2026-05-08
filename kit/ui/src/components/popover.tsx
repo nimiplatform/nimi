@@ -1,4 +1,4 @@
-import React, { type ReactNode } from 'react';
+import React, { type MouseEventHandler, type ReactNode } from 'react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { cn } from '../design-tokens.js';
 
@@ -12,6 +12,10 @@ type PopoverContentProps = {
   side?: 'top' | 'right' | 'bottom' | 'left';
   sideOffset?: number;
   children?: ReactNode;
+  onMouseEnter?: MouseEventHandler<HTMLDivElement>;
+  onMouseLeave?: MouseEventHandler<HTMLDivElement>;
+  onOpenAutoFocus?: (event: Event) => void;
+  onCloseAutoFocus?: (event: Event) => void;
 };
 
 export function PopoverContent({

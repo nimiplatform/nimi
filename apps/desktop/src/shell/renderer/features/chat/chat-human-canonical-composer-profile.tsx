@@ -75,6 +75,9 @@ export function HumanCanonicalComposer(props: {
     name: string;
     imageUrl?: string | null;
     fallbackLabel?: string | null;
+    targetId?: string | null;
+    handle?: string | null;
+    worldName?: string | null;
   } | null;
 }) {
   const { t } = useTranslation();
@@ -312,6 +315,11 @@ export function HumanCanonicalComposer(props: {
             name={props.leadingAvatar.name}
             imageUrl={props.leadingAvatar.imageUrl || null}
             fallbackLabel={props.leadingAvatar.fallbackLabel || props.leadingAvatar.name}
+            preview={props.leadingAvatar.targetId ? {
+              targetId: props.leadingAvatar.targetId,
+              handle: props.leadingAvatar.handle || null,
+              worldName: props.leadingAvatar.worldName || null,
+            } : null}
           />
         ) : null}
       />

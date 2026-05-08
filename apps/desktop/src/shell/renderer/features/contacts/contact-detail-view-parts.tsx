@@ -90,7 +90,7 @@ export function StatTile({ label, value }: { label: string; value: number }) {
   return (
     <div className="text-center">
       <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">{label}</div>
-      <div className="mt-2 text-[36px] font-semibold leading-none tracking-[-0.05em] text-[#1A1A1B]">{value}</div>
+      <div className="mt-1.5 text-[28px] font-semibold leading-none tracking-[-0.04em] text-[#1A1A1B]">{value}</div>
     </div>
   );
 }
@@ -144,7 +144,7 @@ export function SpinnerIcon({ className = '' }: { className?: string }) {
 }
 
 export function StatDivider() {
-  return <span className="mt-7 h-10 w-px justify-self-center bg-[linear-gradient(180deg,rgba(148,163,184,0)_0%,rgba(148,163,184,0.35)_50%,rgba(148,163,184,0)_100%)]" />;
+  return <span className="mt-4 h-9 w-px justify-self-center bg-[linear-gradient(180deg,rgba(148,163,184,0)_0%,rgba(148,163,184,0.35)_50%,rgba(148,163,184,0)_100%)]" />;
 }
 
 export function ActionPill({

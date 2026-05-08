@@ -26,11 +26,9 @@ function worldTags(world: WorldListItem): string[] {
 function CoverBand({
   world,
   height,
-  fadeStop,
 }: {
   world: WorldListItem;
   height: number;
-  fadeStop: number;
 }) {
   if (!world.bannerUrl) return null;
   const backgroundStyle: CSSProperties = {
@@ -39,18 +37,7 @@ function CoverBand({
     overflow: 'hidden',
     background: `linear-gradient(135deg, rgba(15,23,42,0.25), rgba(15,23,42,0.15)), url(${world.bannerUrl}) center/cover no-repeat`,
   };
-  return (
-    <div style={backgroundStyle}>
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: `linear-gradient(180deg, transparent 0%, transparent ${fadeStop}%, rgba(255,255,255,0.88) 100%)`,
-          pointerEvents: 'none',
-        }}
-      />
-    </div>
-  );
+  return <div style={backgroundStyle} />;
 }
 export function FeaturedWorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () => void }) {
   const { t } = useTranslation();
@@ -64,24 +51,44 @@ export function FeaturedWorldCard({ world, onOpen }: { world: WorldListItem; onO
         overflow: 'hidden',
         borderRadius: 'var(--nimi-radius-xl)',
         border: '1px solid var(--nimi-material-glass-thick-border)',
-        background: 'var(--nimi-material-glass-thick-bg)',
-        backdropFilter: 'blur(var(--nimi-backdrop-blur-strong))',
-        WebkitBackdropFilter: 'blur(var(--nimi-backdrop-blur-strong))',
         boxShadow: 'var(--nimi-elevation-raised)',
       }}
       data-nimi-material="glass-thick"
       data-nimi-tone="card"
     >
-      <CoverBand world={world} height={180} fadeStop={40} />
-      <div style={{ padding: 24, position: 'relative' }}>
+      <CoverBand world={world} height={180} />
+      <div
+        style={{
+          position: 'relative',
+          marginTop: world.bannerUrl ? -36 : 0,
+        }}
+      >
         <div
+          aria-hidden
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr auto',
-            gap: 28,
-            alignItems: 'start',
+            position: 'absolute',
+            inset: 0,
+            background: 'var(--nimi-material-glass-thick-bg)',
+            backdropFilter: 'blur(var(--nimi-backdrop-blur-strong))',
+            WebkitBackdropFilter: 'blur(var(--nimi-backdrop-blur-strong))',
+            maskImage: world.bannerUrl
+              ? 'linear-gradient(to bottom, transparent 0, black 36px)'
+              : undefined,
+            WebkitMaskImage: world.bannerUrl
+              ? 'linear-gradient(to bottom, transparent 0, black 36px)'
+              : undefined,
+            pointerEvents: 'none',
           }}
-        >
+        />
+        <div style={{ position: 'relative', padding: 24, paddingTop: 56 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr auto',
+              gap: 28,
+              alignItems: 'start',
+            }}
+          >
           <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', minWidth: 0 }}>
             <Seal
               letter={initialLetter(world.name)}
@@ -184,6 +191,7 @@ export function FeaturedWorldCard({ world, onOpen }: { world: WorldListItem; onO
             <WorldChronoPanel world={world} />
           </div>
         </div>
+        </div>
       </div>
     </section>
   );
@@ -217,36 +225,58 @@ export function WorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () 
         flexDirection: 'column',
         overflow: 'hidden',
         minHeight: 244,
-        background: 'var(--nimi-material-glass-regular-bg)',
         border: '1px solid var(--nimi-material-glass-regular-border)',
-        backdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
-        WebkitBackdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
         borderRadius: 'var(--nimi-radius-lg)',
         boxShadow: 'var(--nimi-elevation-base)',
       }}
       data-nimi-material="glass-regular"
       data-nimi-tone="card"
     >
-      <CoverBand world={world} height={72} fadeStop={40} />
+      <CoverBand world={world} height={72} />
       <div
         style={{
-          padding: 16,
-          paddingTop: hasCover ? 0 : 16,
+          position: 'relative',
+          marginTop: hasCover ? -20 : 0,
+          flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          gap: 12,
-          flex: 1,
-          position: 'relative',
         }}
       >
         <div
+          aria-hidden
           style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'var(--nimi-material-glass-regular-bg)',
+            backdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
+            WebkitBackdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
+            maskImage: hasCover
+              ? 'linear-gradient(to bottom, transparent 0, black 20px)'
+              : undefined,
+            WebkitMaskImage: hasCover
+              ? 'linear-gradient(to bottom, transparent 0, black 20px)'
+              : undefined,
+            pointerEvents: 'none',
+          }}
+        />
+        <div
+          style={{
+            position: 'relative',
+            padding: 16,
+            paddingTop: 32,
             display: 'flex',
-            alignItems: 'flex-start',
+            flexDirection: 'column',
             gap: 12,
-            marginTop: hasCover ? -22 : 0,
+            flex: 1,
           }}
         >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 12,
+            }}
+          >
           <Seal
             letter={initialLetter(world.name)}
             gradient={sealGradientFor(world.id)}
@@ -254,7 +284,7 @@ export function WorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () 
             size={44}
             radius={12}
           />
-          <div style={{ flex: 1, minWidth: 0, paddingTop: hasCover ? 22 : 0 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <h3
               style={{
                 margin: 0,
@@ -345,6 +375,7 @@ export function WorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () 
             />
           </div>
           <Pulse data={pulse} width={84} height={24} gradientId={`pulse-${world.id}`} />
+        </div>
         </div>
       </div>
     </article>

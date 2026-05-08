@@ -91,10 +91,10 @@ export function ContactDetailTabs(props: ContactDetailTabsProps) {
 
   return (
     <>
-      <div className="px-4">
+      <div className="px-1">
         <div
           ref={props.tabListRef}
-          className="relative flex flex-wrap gap-6 border-b border-slate-200/70 pb-3"
+          className="relative flex flex-wrap gap-6 border-b border-slate-200/70 pb-2"
         >
           {CONTACT_DETAIL_TABS.map((tab) => (
             <button
@@ -127,7 +127,7 @@ export function ContactDetailTabs(props: ContactDetailTabsProps) {
           />
         </div>
       </div>
-      <div className="px-5 py-5">
+      <div className="px-1 pt-4">
         {CONTACT_DETAIL_TABS.map((tab) => (
           renderTabPanel(props.activeTab, Boolean(props.isBlockedProfile), props.profileId, tab, props.visitedTabs)
         ))}

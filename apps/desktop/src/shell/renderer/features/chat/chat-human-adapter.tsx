@@ -312,6 +312,9 @@ export function useHumanConversationModeHost(
           name: getHumanChatTitle(selectedChat),
           imageUrl: String(selectedChat.otherUser?.avatarUrl || '').trim() || null,
           fallbackLabel: getHumanChatTitle(selectedChat).charAt(0).toUpperCase() || 'H',
+          targetId: String(selectedChat.otherUser?.id || '').trim() || null,
+          handle: String(selectedChat.otherUser?.handle || '').trim() || null,
+          worldName: null,
         } : null}
       />
     ) : null,

@@ -113,7 +113,6 @@ export function ChatGroupCreateModal(props: {
             <input
               type="text"
               className="w-full rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel,#f9fafb)] px-4 py-3 text-sm text-[var(--nimi-text-primary)] outline-none transition placeholder:text-[var(--nimi-text-muted)] focus:border-[var(--nimi-action-primary-bg)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)]"
-              placeholder={t('Chat.groupTitlePlaceholder', { defaultValue: 'Name your group' })}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
