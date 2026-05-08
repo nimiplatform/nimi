@@ -24,6 +24,18 @@ spec_governance:
       - node scripts/check-platform-spec-kernel-consistency.mjs
     apps/ci:
       - node scripts/check-platform-spec-kernel-consistency.mjs
+    apps/forge:
+      - node scripts/check-forge-spec-kernel-consistency.mjs
+    apps/lookdev:
+      - node scripts/check-lookdev-spec-kernel-consistency.mjs
+    apps/moment:
+      - node scripts/check-moment-spec-kernel-consistency.mjs
+    apps/parentos:
+      - pnpm --filter @nimiplatform/parentos check:spec-consistency
+    apps/polyinfo:
+      - node scripts/check-polyinfo-spec-kernel-consistency.mjs
+    apps/realm-drift:
+      - node scripts/check-realm-drift-spec-kernel-consistency.mjs
     avatar:
       - node scripts/check-avatar-spec-kernel-consistency.mjs
     apps/avatar:
