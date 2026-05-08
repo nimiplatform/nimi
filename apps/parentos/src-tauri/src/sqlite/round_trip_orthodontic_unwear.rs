@@ -102,7 +102,16 @@ fn schema_v15_drops_legacy_wear_daily_columns() {
         .expect("query")
         .collect::<Result<_, _>>()
         .expect("collect");
-    for required in ["intervalId", "childId", "caseId", "applianceId", "startAt", "endAt", "reason", "notes"] {
+    for required in [
+        "intervalId",
+        "childId",
+        "caseId",
+        "applianceId",
+        "startAt",
+        "endAt",
+        "reason",
+        "notes",
+    ] {
         assert!(
             unwear_cols.contains(&required.to_string()),
             "orthodontic_unwear_intervals missing column \"{required}\" after v15; got {unwear_cols:?}",
@@ -151,7 +160,11 @@ fn update_orthodontic_appliance_plan_round_trip_and_fail_close() {
             |r| Ok((r.get::<_, i32>(0)?, r.get::<_, i32>(1)?, r.get::<_, i32>(2)?)),
         )
         .expect("read updated plan");
-    assert_eq!(row, (21, 35, 7), "plan update must round-trip the new values");
+    assert_eq!(
+        row,
+        (21, 35, 7),
+        "plan update must round-trip the new values"
+    );
 
     // Storage must accept arbitrary positive integers without ringing the
     // CHECK constraints (none exist on these columns by design — fail-close is

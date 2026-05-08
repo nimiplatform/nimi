@@ -39,16 +39,13 @@ pub fn insert_orthodontic_appliance(
     now: String,
 ) -> Result<(), String> {
     let appliance_type_trimmed = appliance_type.trim();
+    let status_trimmed = status.trim();
     if !is_admitted_appliance_type(appliance_type_trimmed) {
         return Err(format!(
             "unsupported applianceType \"{appliance_type}\"; expected {ADMITTED_APPLIANCE_TYPES}"
         ));
     }
-    if !is_admitted_appliance_status(status.trim()) {
-        return Err(format!(
-            "unsupported appliance status \"{status}\"; expected {ADMITTED_APPLIANCE_STATUSES}"
-        ));
-    }
+    validate_insert_orthodontic_appliance_status(status_trimmed, status.as_str())?;
     if appliance_requires_prescribed_hours(appliance_type_trimmed)
         && prescribed_hours_per_day.is_none()
     {
@@ -106,7 +103,7 @@ pub fn insert_orthodontic_appliance(
     .map_err(|e| format!("insert_orthodontic_appliance: {e}"))?;
     drop(conn);
     // Seed admitted protocol reminder_states for this appliance (PO-ORTHO-007 delivery).
-    if status.trim() == "active" {
+    if status_trimmed == "active" {
         seed_protocol_reminders_for_appliance(
             appliance_id.as_str(),
             child_id.as_str(),
@@ -118,6 +115,21 @@ pub fn insert_orthodontic_appliance(
         )?;
     }
     recompute_case_next_review(case_id.as_str())?;
+    Ok(())
+}
+
+pub(super) fn validate_insert_orthodontic_appliance_status(
+    status_trimmed: &str,
+    original_status: &str,
+) -> Result<(), String> {
+    if !is_admitted_appliance_status(status_trimmed) {
+        return Err(format!(
+            "unsupported appliance status \"{original_status}\"; expected {ADMITTED_APPLIANCE_STATUSES}"
+        ));
+    }
+    if status_trimmed == "paused" {
+        return Err("insert_orthodontic_appliance status=paused requires pauseReason; use the appliance status transition path so PO-ORTHO-004 pause lifecycle semantics are enforced".to_string());
+    }
     Ok(())
 }
 #[tauri::command]

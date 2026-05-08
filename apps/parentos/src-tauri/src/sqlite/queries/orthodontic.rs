@@ -368,12 +368,7 @@ pub fn get_orthodontic_dashboard(child_id: String) -> Result<OrthodonticDashboar
     // PO-ORTHO-002a: unknown-legacy cases are excluded from the active dashboard
     // until the parent re-classifies. Their clinical timeline rows in
     // dental_records remain visible via the dental history tab.
-    let active_case = cases
-        .iter()
-        .find(|c| {
-            matches!(c.stage.as_str(), "active" | "retention") && c.case_type != "unknown-legacy"
-        })
-        .cloned();
+    let active_case = cases.iter().find(|c| is_dashboard_active_case(c)).cloned();
     let active_case_cloned = active_case.clone();
     let mut active_appliances: Vec<OrthodonticAppliance> = Vec::new();
     if let Some(case) = active_case_cloned.as_ref() {
@@ -391,6 +386,10 @@ pub fn get_orthodontic_dashboard(child_id: String) -> Result<OrthodonticDashboar
         active_appliances,
         next_review_date,
     })
+}
+
+pub(super) fn is_dashboard_active_case(case: &OrthodonticCase) -> bool {
+    matches!(case.stage.as_str(), "active" | "retention") && case.case_type != "unknown-legacy"
 }
 // Cloneable newtype helpers so dashboard can share OrthodonticCase/Appliance.
 impl Clone for OrthodonticCase {

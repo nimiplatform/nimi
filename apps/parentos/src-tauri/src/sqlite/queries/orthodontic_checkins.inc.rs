@@ -701,8 +701,22 @@ pub fn get_orthodontic_checkins(
             })
         })
         .map_err(|e| format!("get_orthodontic_checkins: {e}"))?;
-    rows.collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("get_orthodontic_checkins collect: {e}"))
+    let checkins = rows
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("get_orthodontic_checkins collect: {e}"))?;
+    for checkin in &checkins {
+        validate_orthodontic_checkin_read_type(checkin.checkin_type.as_str())?;
+    }
+    Ok(checkins)
+}
+
+pub(super) fn validate_orthodontic_checkin_read_type(checkin_type: &str) -> Result<(), String> {
+    if !is_admitted_checkin_type(checkin_type.trim()) {
+        return Err(format!(
+            "persisted unsupported orthodontic checkinType \"{checkin_type}\"; expected {ADMITTED_CHECKIN_TYPES} (PO-ORTHO-005b)"
+        ));
+    }
+    Ok(())
 }
 // ── Dashboard projection ──────────────────────────────────
 //

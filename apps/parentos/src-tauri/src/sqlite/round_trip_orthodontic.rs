@@ -141,8 +141,14 @@ fn migration_v16_deletes_empty_loser_and_archives_loser_with_data() {
             |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
         )
         .expect("read losing-with-data");
-    assert_eq!(archived.0, "completed", "loser with data must be archived to completed");
-    assert!(archived.1.is_some(), "v16 must set actualEndAt when archiving");
+    assert_eq!(
+        archived.0, "completed",
+        "loser with data must be archived to completed"
+    );
+    assert!(
+        archived.1.is_some(),
+        "v16 must set actualEndAt when archiving"
+    );
 
     // Winner is still untouched.
     let winner_stage: String = conn
@@ -179,7 +185,11 @@ fn migration_v16_is_noop_on_already_compliant_data() {
     crate::sqlite::migrations::__test_only_apply_v16(&conn).expect("apply v16");
 
     let total: i64 = conn
-        .query_row("SELECT COUNT(*) FROM orthodontic_cases WHERE childId = 'child-1'", [], |row| row.get(0))
+        .query_row(
+            "SELECT COUNT(*) FROM orthodontic_cases WHERE childId = 'child-1'",
+            [],
+            |row| row.get(0),
+        )
         .expect("count");
     assert_eq!(total, 2, "v16 must not touch already-compliant data");
 }

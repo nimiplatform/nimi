@@ -25,7 +25,6 @@ import {
   createFamily,
   createChild,
   getChildren,
-  insertMeasurement,
   upsertMilestoneRecord,
   upsertReminderState,
   insertVaccineRecord,
@@ -35,15 +34,12 @@ import {
   insertAiMessage,
   insertGrowthReport,
   setAppSetting,
-  insertDentalRecord,
   insertAllergyRecord,
-  upsertSleepRecord,
-  insertMedicalEvent,
-  insertTannerAssessment,
-  insertFitnessAssessment,
+  saveHealthRecordCapture,
 } from '../bridge/sqlite-bridge.js';
 import { mapChildRow } from '../bridge/mappers.js';
 import { useAppStore } from '../app-shell/app-store.js';
+import type { SaveHealthRecordCaptureInput } from '../bridge/sqlite-bridge.js';
 
 const mockData = {
   ...mockCore,
@@ -53,22 +49,520 @@ const mockData = {
     appSettings,
     children,
     conversations,
-    dentalRecords,
-    fitnessAssessments,
     growthReports,
     journalEntries,
     journalTags,
-    measurements,
-    medicalEvents,
     milestoneRecords,
     reminderStates,
-    sleepRecords,
-    tannerAssessments,
     vaccineRecords,
   },
 };
 
 type MockTables = typeof mockData.tables;
+type MockAiMessage = {
+  messageId: string;
+  conversationId: string;
+  role: string;
+  content: string;
+  contextSnapshot: string | null;
+  createdAt: string;
+};
+type MockHealthFixtures = {
+  children: typeof children;
+  dentalRecords: typeof dentalRecords;
+  fitnessAssessments: typeof fitnessAssessments;
+  measurements: typeof measurements;
+  medicalEvents: typeof medicalEvents;
+  sleepRecords: typeof sleepRecords;
+  tannerAssessments: typeof tannerAssessments;
+};
+
+type HealthRecordCaptureValue = SaveHealthRecordCaptureInput['values'][number];
+
+const measurementMap: Record<
+  string,
+  {
+    metricId: string;
+    protocolId: string;
+    groupId: string;
+    unit: string | null;
+    qualifier: string | null;
+  }
+> = {
+  height: {
+    metricId: 'growth.height',
+    protocolId: 'growth-child-quarterly',
+    groupId: 'growth',
+    unit: 'cm',
+    qualifier: null,
+  },
+  weight: {
+    metricId: 'growth.weight',
+    protocolId: 'growth-child-quarterly',
+    groupId: 'growth',
+    unit: 'kg',
+    qualifier: null,
+  },
+  'head-circumference': {
+    metricId: 'growth.head_circumference',
+    protocolId: 'growth-infant-monthly',
+    groupId: 'growth',
+    unit: 'cm',
+    qualifier: null,
+  },
+  'vision-left': {
+    metricId: 'vision.left_visual_acuity',
+    protocolId: 'vision-basic',
+    groupId: 'vision',
+    unit: 'decimal',
+    qualifier: 'left',
+  },
+  'vision-right': {
+    metricId: 'vision.right_visual_acuity',
+    protocolId: 'vision-basic',
+    groupId: 'vision',
+    unit: 'decimal',
+    qualifier: 'right',
+  },
+  'axial-length-left': {
+    metricId: 'vision.left_axial_length',
+    protocolId: 'vision-full-exam',
+    groupId: 'vision',
+    unit: 'mm',
+    qualifier: 'left',
+  },
+  'axial-length-right': {
+    metricId: 'vision.right_axial_length',
+    protocolId: 'vision-full-exam',
+    groupId: 'vision',
+    unit: 'mm',
+    qualifier: 'right',
+  },
+  'iop-left': {
+    metricId: 'vision.left_iop',
+    protocolId: 'vision-full-exam',
+    groupId: 'vision',
+    unit: 'mmHg',
+    qualifier: 'left',
+  },
+  'iop-right': {
+    metricId: 'vision.right_iop',
+    protocolId: 'vision-full-exam',
+    groupId: 'vision',
+    unit: 'mmHg',
+    qualifier: 'right',
+  },
+  'bone-age': {
+    metricId: 'development.bone_age_years',
+    protocolId: 'development-auxiliary-measurement',
+    groupId: 'development',
+    unit: 'years',
+    qualifier: null,
+  },
+  'body-fat-percentage': {
+    metricId: 'development.body_fat_percentage',
+    protocolId: 'development-auxiliary-measurement',
+    groupId: 'development',
+    unit: 'percent',
+    qualifier: null,
+  },
+};
+
+const fitnessValueMap: Record<
+  string,
+  {
+    metricId: string;
+    unit: string | null;
+    valueField: keyof (typeof fitnessAssessments)[number];
+    valueKind: 'number' | 'text';
+  }
+> = {
+  run50m: { metricId: 'fitness.run_50m', unit: 's', valueField: 'run50m', valueKind: 'number' },
+  run800m: { metricId: 'fitness.run_800m', unit: 's', valueField: 'run800m', valueKind: 'number' },
+  run1000m: { metricId: 'fitness.run_1000m', unit: 's', valueField: 'run1000m', valueKind: 'number' },
+  run50x8: { metricId: 'fitness.run_50x8', unit: 's', valueField: 'run50x8', valueKind: 'number' },
+  sitAndReach: { metricId: 'fitness.sit_and_reach', unit: 'cm', valueField: 'sitAndReach', valueKind: 'number' },
+  standingLongJump: {
+    metricId: 'fitness.standing_long_jump',
+    unit: 'cm',
+    valueField: 'standingLongJump',
+    valueKind: 'number',
+  },
+  sitUps: { metricId: 'fitness.sit_ups', unit: 'count', valueField: 'sitUps', valueKind: 'number' },
+  pullUps: { metricId: 'fitness.pull_ups', unit: 'count', valueField: 'pullUps', valueKind: 'number' },
+  ropeSkipping: {
+    metricId: 'fitness.rope_skipping',
+    unit: 'count_per_min',
+    valueField: 'ropeSkipping',
+    valueKind: 'number',
+  },
+  vitalCapacity: {
+    metricId: 'fitness.vital_capacity',
+    unit: 'ml',
+    valueField: 'vitalCapacity',
+    valueKind: 'number',
+  },
+  run10mShuttle: {
+    metricId: 'fitness.run_10m_shuttle',
+    unit: 's',
+    valueField: 'run10mShuttle',
+    valueKind: 'number',
+  },
+  tennisBallThrow: {
+    metricId: 'fitness.tennis_ball_throw',
+    unit: 'm',
+    valueField: 'tennisBallThrow',
+    valueKind: 'number',
+  },
+  doubleFootJump: {
+    metricId: 'fitness.double_foot_jump',
+    unit: 's',
+    valueField: 'doubleFootJump',
+    valueKind: 'number',
+  },
+  balanceBeam: {
+    metricId: 'fitness.balance_beam',
+    unit: 's',
+    valueField: 'balanceBeam',
+    valueKind: 'number',
+  },
+  footArchStatus: {
+    metricId: 'fitness.foot_arch_status',
+    unit: null,
+    valueField: 'footArchStatus',
+    valueKind: 'text',
+  },
+};
+
+function eventKindForFixtureSource(source: string | null | undefined): SaveHealthRecordCaptureInput['recordKind'] {
+  if (source === 'ocr') return 'ocr_confirmed';
+  if (source === 'imported') return 'imported';
+  return 'manual';
+}
+
+function sourceSurfaceForFixtureSource(source: string | null | undefined): SaveHealthRecordCaptureInput['sourceSurface'] {
+  if (source === 'ocr') return 'ocr_tool';
+  if (source === 'imported') return 'import';
+  return 'profile_detail';
+}
+
+function numberValue(input: {
+  valueId: string;
+  metricId: string;
+  value: number;
+  unit: string | null;
+  qualifier?: string | null;
+}): HealthRecordCaptureValue {
+  return {
+    valueId: input.valueId,
+    metricId: input.metricId,
+    valueNumber: input.value,
+    valueText: null,
+    valueJson: null,
+    unit: input.unit,
+    qualifier: input.qualifier ?? null,
+    recordKind: 'measured',
+    sourceValueIds: null,
+  };
+}
+
+function textValue(input: {
+  valueId: string;
+  metricId: string;
+  value: string;
+  unit?: string | null;
+}): HealthRecordCaptureValue {
+  return {
+    valueId: input.valueId,
+    metricId: input.metricId,
+    valueNumber: null,
+    valueText: input.value,
+    valueJson: null,
+    unit: input.unit ?? null,
+    qualifier: null,
+    recordKind: 'measured',
+    sourceValueIds: null,
+  };
+}
+
+function jsonValue(input: {
+  valueId: string;
+  metricId: string;
+  value: unknown;
+}): HealthRecordCaptureValue {
+  return {
+    valueId: input.valueId,
+    metricId: input.metricId,
+    valueNumber: null,
+    valueText: null,
+    valueJson: JSON.stringify(input.value),
+    unit: null,
+    qualifier: null,
+    recordKind: 'measured',
+    sourceValueIds: null,
+  };
+}
+
+export function buildCanonicalHealthFixtureCaptures(fixtures: MockHealthFixtures): SaveHealthRecordCaptureInput[] {
+  const childGender = new Map(fixtures.children.map((child) => [child.childId, child.gender]));
+  const captures: SaveHealthRecordCaptureInput[] = [];
+
+  for (const row of fixtures.measurements) {
+    const mapping = measurementMap[row.typeId];
+    if (!mapping || !Number.isFinite(row.value)) continue;
+    const eventId = `fixture-measurement:${row.measurementId}`;
+    captures.push({
+      eventId,
+      childId: row.childId,
+      protocolId: mapping.protocolId,
+      groupId: mapping.groupId,
+      recordKind: eventKindForFixtureSource(row.source),
+      sourceSurface: sourceSurfaceForFixtureSource(row.source),
+      recordedAt: row.measuredAt,
+      effectiveDate: row.measuredAt.slice(0, 10),
+      ageMonths: row.ageMonths,
+      recorderId: null,
+      linkedReminderStateId: null,
+      linkedReminderRuleId: null,
+      notes: row.notes,
+      metadataJson: JSON.stringify({
+        fixtureSourceTable: 'measurements',
+        fixtureSourceId: row.measurementId,
+        legacyTypeId: row.typeId,
+        percentile: row.percentile,
+      }),
+      now: row.createdAt,
+      values: [
+        numberValue({
+          valueId: `fixture-measurement-value:${row.measurementId}`,
+          metricId: mapping.metricId,
+          value: row.value,
+          unit: mapping.unit,
+          qualifier: mapping.qualifier,
+        }),
+      ],
+    });
+  }
+
+  for (const row of fixtures.sleepRecords) {
+    if (!Number.isFinite(row.durationMinutes) || row.durationMinutes <= 0) continue;
+    captures.push({
+      eventId: `fixture-sleep:${row.recordId}`,
+      childId: row.childId,
+      protocolId: 'sleep-night',
+      groupId: 'sleep',
+      recordKind: 'manual',
+      sourceSurface: 'profile_detail',
+      recordedAt: row.sleepDate,
+      effectiveDate: row.sleepDate,
+      ageMonths: row.ageMonths,
+      recorderId: null,
+      linkedReminderStateId: null,
+      linkedReminderRuleId: null,
+      notes: row.notes,
+      metadataJson: JSON.stringify({
+        fixtureSourceTable: 'sleepRecords',
+        fixtureSourceId: row.recordId,
+        bedtime: row.bedtime,
+        wakeTime: row.wakeTime,
+        napCount: row.napCount,
+        napMinutes: row.napMinutes,
+        quality: row.quality,
+      }),
+      now: row.createdAt,
+      values: [
+        numberValue({
+          valueId: `fixture-sleep-value:${row.recordId}`,
+          metricId: 'sleep.duration_minutes',
+          value: row.durationMinutes,
+          unit: 'min',
+        }),
+      ],
+    });
+  }
+
+  for (const row of fixtures.dentalRecords) {
+    captures.push({
+      eventId: `fixture-dental:${row.recordId}`,
+      childId: row.childId,
+      protocolId: 'dental-event',
+      groupId: 'dental',
+      recordKind: 'manual',
+      sourceSurface: 'profile_detail',
+      recordedAt: row.eventDate,
+      effectiveDate: row.eventDate,
+      ageMonths: row.ageMonths,
+      recorderId: null,
+      linkedReminderStateId: null,
+      linkedReminderRuleId: null,
+      notes: row.notes,
+      metadataJson: JSON.stringify({
+        fixtureSourceTable: 'dentalRecords',
+        fixtureSourceId: row.recordId,
+        eventType: row.eventType,
+      }),
+      now: row.createdAt,
+      values: [
+        jsonValue({
+          valueId: `fixture-dental-value:${row.recordId}`,
+          metricId: 'dental.event',
+          value: {
+            eventType: row.eventType,
+            toothId: row.toothId,
+            toothSet: row.toothSet,
+            severity: row.severity,
+            hospital: row.hospital,
+            photoPath: row.photoPath,
+          },
+        }),
+      ],
+    });
+  }
+
+  for (const row of fixtures.medicalEvents) {
+    captures.push({
+      eventId: `fixture-medical:${row.eventId}`,
+      childId: row.childId,
+      protocolId: 'medical-event',
+      groupId: 'medical',
+      recordKind: 'manual',
+      sourceSurface: 'profile_detail',
+      recordedAt: row.eventDate,
+      effectiveDate: row.eventDate,
+      ageMonths: row.ageMonths,
+      recorderId: null,
+      linkedReminderStateId: null,
+      linkedReminderRuleId: null,
+      notes: row.notes,
+      metadataJson: JSON.stringify({
+        fixtureSourceTable: 'medicalEvents',
+        fixtureSourceId: row.eventId,
+        eventType: row.eventType,
+      }),
+      now: row.updatedAt,
+      values: [
+        jsonValue({
+          valueId: `fixture-medical-value:${row.eventId}`,
+          metricId: 'medical.event',
+          value: {
+            eventType: row.eventType,
+            title: row.title,
+            endDate: row.endDate,
+            severity: row.severity,
+            result: row.result,
+            hospital: row.hospital,
+            medication: row.medication,
+            dosage: row.dosage,
+            photoPath: row.photoPath,
+          },
+        }),
+      ],
+    });
+  }
+
+  for (const row of fixtures.tannerAssessments) {
+    const gender = childGender.get(row.childId);
+    const values: HealthRecordCaptureValue[] = [];
+    if (row.breastOrGenitalStage != null) {
+      values.push(
+        numberValue({
+          valueId: `fixture-tanner-value:${row.assessmentId}:primary`,
+          metricId: gender === 'male'
+            ? 'development.tanner_genital_stage'
+            : 'development.tanner_breast_stage',
+          value: row.breastOrGenitalStage,
+          unit: 'stage',
+        }),
+      );
+    }
+    if (row.pubicHairStage != null) {
+      values.push(
+        numberValue({
+          valueId: `fixture-tanner-value:${row.assessmentId}:pubic-hair`,
+          metricId: 'development.tanner_pubic_hair_stage',
+          value: row.pubicHairStage,
+          unit: 'stage',
+        }),
+      );
+    }
+    if (values.length === 0) continue;
+    captures.push({
+      eventId: `fixture-tanner:${row.assessmentId}`,
+      childId: row.childId,
+      protocolId: gender === 'male' ? 'tanner-male-self-assessment' : 'tanner-female-self-assessment',
+      groupId: 'development',
+      recordKind: 'manual',
+      sourceSurface: 'profile_detail',
+      recordedAt: row.assessedAt,
+      effectiveDate: row.assessedAt.slice(0, 10),
+      ageMonths: row.ageMonths,
+      recorderId: null,
+      linkedReminderStateId: null,
+      linkedReminderRuleId: null,
+      notes: row.notes,
+      metadataJson: JSON.stringify({
+        fixtureSourceTable: 'tannerAssessments',
+        fixtureSourceId: row.assessmentId,
+        assessedBy: row.assessedBy,
+      }),
+      now: row.createdAt,
+      values,
+    });
+  }
+
+  for (const row of fixtures.fitnessAssessments) {
+    const values: HealthRecordCaptureValue[] = [];
+    for (const [sourceField, mapping] of Object.entries(fitnessValueMap)) {
+      const sourceValue = row[mapping.valueField];
+      if (sourceValue == null) continue;
+      if (mapping.valueKind === 'number') {
+        if (typeof sourceValue !== 'number' || !Number.isFinite(sourceValue)) continue;
+        values.push(
+          numberValue({
+            valueId: `fixture-fitness-value:${row.assessmentId}:${sourceField}`,
+            metricId: mapping.metricId,
+            value: sourceValue,
+            unit: mapping.unit,
+          }),
+        );
+      } else if (typeof sourceValue === 'string' && sourceValue.trim() !== '') {
+        values.push(
+          textValue({
+            valueId: `fixture-fitness-value:${row.assessmentId}:${sourceField}`,
+            metricId: mapping.metricId,
+            value: sourceValue,
+            unit: mapping.unit,
+          }),
+        );
+      }
+    }
+    if (values.length === 0) continue;
+    captures.push({
+      eventId: `fixture-fitness:${row.assessmentId}`,
+      childId: row.childId,
+      protocolId: 'fitness-school-assessment',
+      groupId: 'fitness',
+      recordKind: 'manual',
+      sourceSurface: 'profile_detail',
+      recordedAt: row.assessedAt,
+      effectiveDate: row.assessedAt.slice(0, 10),
+      ageMonths: row.ageMonths,
+      recorderId: null,
+      linkedReminderStateId: null,
+      linkedReminderRuleId: null,
+      notes: row.notes,
+      metadataJson: JSON.stringify({
+        fixtureSourceTable: 'fitnessAssessments',
+        fixtureSourceId: row.assessmentId,
+        assessmentSource: row.assessmentSource,
+      }),
+      now: row.createdAt,
+      values,
+    });
+  }
+
+  return captures;
+}
 
 async function insertAll<T>(
   label: string,
@@ -116,10 +610,19 @@ export async function seedMockData(
       createChild({ ...r, now: r.createdAt }), report);
     results.push(`children: ${n1}/${tables.children.length}`);
 
-    // Measurements
-    const n2 = await insertAll('measurements', tables.measurements, (r) =>
-      insertMeasurement({ ...r, now: r.createdAt }), report);
-    results.push(`measurements: ${n2}/${tables.measurements.length}`);
+    // Canonical health records
+    const healthFixtures = buildCanonicalHealthFixtureCaptures({
+      children: tables.children,
+      dentalRecords,
+      fitnessAssessments,
+      measurements,
+      medicalEvents,
+      sleepRecords,
+      tannerAssessments,
+    });
+    const n2 = await insertAll('healthRecords', healthFixtures, (r) =>
+      saveHealthRecordCapture(r).then(() => undefined), report);
+    results.push(`healthRecords: ${n2}/${healthFixtures.length}`);
 
     // Milestones
     const n3 = await insertAll('milestones', tables.milestoneRecords, (r) =>
@@ -152,9 +655,10 @@ export async function seedMockData(
     results.push(`conversations: ${n8}/${tables.conversations.length}`);
 
     // AI messages
-    const n9 = await insertAll('aiMessages', tables.aiMessages, (r) =>
+    const aiMessageFixtures = tables.aiMessages as MockAiMessage[];
+    const n9 = await insertAll('aiMessages', aiMessageFixtures, (r) =>
       insertAiMessage({ ...r, now: r.createdAt }), report);
-    results.push(`aiMessages: ${n9}/${tables.aiMessages.length}`);
+    results.push(`aiMessages: ${n9}/${aiMessageFixtures.length}`);
 
     // Growth reports
     const n10 = await insertAll('reports', tables.growthReports, (r) =>
@@ -166,35 +670,10 @@ export async function seedMockData(
       setAppSetting(r.key, r.value, r.updatedAt), report);
     results.push(`settings: ${n11}/${tables.appSettings.length}`);
 
-    // Dental records
-    const n12 = await insertAll('dental', tables.dentalRecords, (r) =>
-      insertDentalRecord({ ...r, now: r.createdAt }), report);
-    results.push(`dental: ${n12}/${tables.dentalRecords.length}`);
-
     // Allergy records
-    const n13 = await insertAll('allergies', tables.allergyRecords, (r) =>
+    const n12 = await insertAll('allergies', tables.allergyRecords, (r) =>
       insertAllergyRecord({ ...r, now: r.createdAt }), report);
-    results.push(`allergies: ${n13}/${tables.allergyRecords.length}`);
-
-    // Sleep records
-    const n14 = await insertAll('sleep', tables.sleepRecords, (r) =>
-      upsertSleepRecord({ ...r, now: r.createdAt }), report);
-    results.push(`sleep: ${n14}/${tables.sleepRecords.length}`);
-
-    // Medical events
-    const n15 = await insertAll('medical', tables.medicalEvents, (r) =>
-      insertMedicalEvent({ ...r, now: r.createdAt }), report);
-    results.push(`medical: ${n15}/${tables.medicalEvents.length}`);
-
-    // Tanner assessments
-    const n16 = await insertAll('tanner', tables.tannerAssessments, (r) =>
-      insertTannerAssessment({ ...r, now: r.createdAt }), report);
-    results.push(`tanner: ${n16}/${tables.tannerAssessments.length}`);
-
-    // Fitness assessments
-    const n17 = await insertAll('fitness', tables.fitnessAssessments, (r) =>
-      insertFitnessAssessment({ ...r, now: r.createdAt }), report);
-    results.push(`fitness: ${n17}/${tables.fitnessAssessments.length}`);
+    results.push(`allergies: ${n12}/${tables.allergyRecords.length}`);
 
     // Refresh Zustand store
     const store = useAppStore.getState();

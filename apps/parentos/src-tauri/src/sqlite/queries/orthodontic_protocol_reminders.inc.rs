@@ -19,11 +19,10 @@ pub(crate) fn dental_followup_rule_for(event_type: &str) -> Option<(&'static str
         _ => None,
     }
 }
-fn add_months_iso(iso_date: &str, months: i64) -> String {
+fn add_months_iso_strict(iso_date: &str, months: i64) -> Result<String, String> {
     use chrono::{Months, NaiveDate};
-    let Ok(date) = NaiveDate::parse_from_str(iso_date, "%Y-%m-%d") else {
-        return iso_date.to_string();
-    };
+    let date = NaiveDate::parse_from_str(iso_date, "%Y-%m-%d")
+        .map_err(|e| format!("invalid ISO date \"{iso_date}\": {e}"))?;
     let shifted = if months >= 0 {
         date.checked_add_months(Months::new(months as u32))
     } else {
@@ -31,7 +30,7 @@ fn add_months_iso(iso_date: &str, months: i64) -> String {
     };
     shifted
         .map(|d| d.format("%Y-%m-%d").to_string())
-        .unwrap_or_else(|| iso_date.to_string())
+        .ok_or_else(|| format!("date overflow when adding {months} month(s) to {iso_date}"))
 }
 fn add_days_iso(iso_date: &str, days: i64) -> String {
     use chrono::{Duration, NaiveDate};
@@ -330,7 +329,7 @@ fn upsert_dental_followup_reminder(
     let Some((rule_id, interval_months)) = dental_followup_rule_for(event_type) else {
         return Ok(());
     };
-    let next_trigger = add_months_iso(event_date, interval_months);
+    let next_trigger = add_months_iso_strict(event_date, interval_months)?;
     let next_trigger_iso = format!("{next_trigger}T00:00:00.000Z");
     let state_id = format!("dental-fu-{child_id}-{rule_id}");
     let notes = format!("[dental-followup] triggeredBy={event_type} at={event_date}");
@@ -353,6 +352,32 @@ pub fn ensure_dental_followup_reminder(
     now: &str,
 ) -> Result<(), String> {
     upsert_dental_followup_reminder(child_id, event_type, event_date, now)
+}
+
+#[cfg(test)]
+mod dental_followup_date_tests {
+    use super::add_months_iso_strict;
+
+    #[test]
+    fn dental_followup_month_shift_rejects_invalid_dates() {
+        let result = add_months_iso_strict("not-a-date", 6);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn dental_followup_month_shift_rejects_overflow() {
+        let result = add_months_iso_strict("262142-12-01", 1);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn dental_followup_month_shift_returns_iso_date_on_success() {
+        let result = add_months_iso_strict("2026-04-10", 6).expect("valid date");
+
+        assert_eq!(result, "2026-10-10");
+    }
 }
 // ── Shared validators ──────────────────────────────────────
 /// caseType values writable from the command layer.
