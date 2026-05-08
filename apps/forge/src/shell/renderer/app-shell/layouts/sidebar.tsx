@@ -196,19 +196,19 @@ export function Sidebar() {
     <SidebarShell
       width={collapsed ? 92 : 288}
       data-testid="forge:sidebar"
-      className="m-3 mr-0 rounded-[24px] border-white/40 bg-[color-mix(in_srgb,var(--nimi-sidebar-canvas)_86%,white)] shadow-[0_18px_50px_rgba(15,23,42,0.08)]"
+      className="m-3 mr-0 rounded-3xl border-white/40 bg-[color-mix(in_srgb,var(--nimi-sidebar-canvas)_86%,white)] shadow-[0_18px_50px_rgba(15,23,42,0.08)]"
     >
       <SidebarHeader
         title={
           collapsed ? (
             <div className="flex w-full justify-center">
-              <div className="flex h-11 w-11 items-center justify-center rounded-[16px] bg-[color-mix(in_srgb,var(--nimi-accent-text)_12%,white)] text-sm font-semibold text-[var(--nimi-accent-text)]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--nimi-accent-text)_12%,white)] text-sm font-semibold text-[var(--nimi-accent-text)]">
                 NF
               </div>
             </div>
           ) : (
             <div className="flex w-full items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-[16px] bg-[color-mix(in_srgb,var(--nimi-accent-text)_12%,white)] text-sm font-semibold text-[var(--nimi-accent-text)]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--nimi-accent-text)_12%,white)] text-sm font-semibold text-[var(--nimi-accent-text)]">
                 NF
               </div>
             <div className="min-w-0">
@@ -283,7 +283,7 @@ export function Sidebar() {
           tone="ghost"
           fullWidth
           onClick={toggleSidebar}
-          className="justify-center rounded-[14px]"
+          className="justify-center rounded-xl"
         >
           {collapsed ? 'Expand' : 'Collapse'}
         </Button>

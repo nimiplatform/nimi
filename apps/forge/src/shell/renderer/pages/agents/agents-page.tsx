@@ -10,6 +10,7 @@ import { Button, SearchField, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAgentListQuery, type AgentSummary } from '@renderer/hooks/use-agent-queries.js';
 import { useAgentMutations } from '@renderer/hooks/use-agent-mutations.js';
 import type { JsonObject } from '@renderer/bridge';
+import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
 import {
   ForgePage,
   ForgePageHeader,
@@ -33,6 +34,8 @@ export default function AgentsPage() {
 
   const agentsQuery = useAgentListQuery();
   const mutations = useAgentMutations();
+  const ensureWorkspaceForWorld = useForgeWorkspaceStore((state) => state.ensureWorkspaceForWorld);
+  const ensureWorldAgentDraft = useForgeWorkspaceStore((state) => state.ensureWorldAgentDraft);
 
   const [search, setSearch] = useState('');
   const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>('MASTER_OWNED');
@@ -117,7 +120,30 @@ export default function AgentsPage() {
             <AgentCard
               key={agent.id}
               agent={agent}
-              onEdit={() => navigate(`/agents/${agent.id}`)}
+              editDisabled={agent.ownershipType === 'WORLD_OWNED' && !agent.worldId}
+              onEdit={() => {
+                if (agent.ownershipType === 'WORLD_OWNED') {
+                  if (!agent.worldId) {
+                    return;
+                  }
+                  const workspaceId = ensureWorkspaceForWorld({
+                    worldId: agent.worldId,
+                    title: agent.worldId,
+                    description: null,
+                  });
+                  const draftAgentId = ensureWorldAgentDraft(workspaceId, {
+                    sourceAgentId: agent.id,
+                    displayName: agent.displayName || agent.handle,
+                    handle: agent.handle,
+                    concept: agent.concept,
+                    worldId: agent.worldId,
+                    avatarUrl: agent.avatarUrl,
+                  });
+                  navigate(`/workbench/${workspaceId}/agents/${draftAgentId}`);
+                  return;
+                }
+                navigate(`/agents/${agent.id}`);
+              }}
               onDelete={async () => {
                 await mutations.deleteAgentMutation.mutateAsync(agent.id);
                 await queryClient.invalidateQueries({ queryKey: ['forge', 'agents', 'list'] });
@@ -132,10 +158,12 @@ export default function AgentsPage() {
 
 function AgentCard({
   agent,
+  editDisabled = false,
   onEdit,
   onDelete,
 }: {
   agent: AgentSummary;
+  editDisabled?: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -160,7 +188,7 @@ function AgentCard({
         }
         actions={
           <>
-            <Button tone="ghost" size="sm" onClick={onEdit}>
+            <Button tone="ghost" size="sm" onClick={onEdit} disabled={editDisabled}>
               {t('agents.edit', 'Edit')}
             </Button>
             <Button

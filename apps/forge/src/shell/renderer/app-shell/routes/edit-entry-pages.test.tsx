@@ -84,8 +84,11 @@ describe('AgentEditEntryPage', () => {
     locationSearch = '';
   });
 
-  it('keeps world-owned agents on the standalone detail surface', async () => {
+  it('redirects world-owned agents into workspace draft editing', async () => {
     paramsValue = { agentId: 'agent-1' };
+    locationSearch = '?source=library';
+    ensureWorkspaceForWorldMock.mockReturnValue('ws-1');
+    ensureWorldAgentDraftMock.mockReturnValue('draft-agent-1');
     useAgentDetailQueryMock.mockReturnValue({
       data: {
         id: 'agent-1',
@@ -122,11 +125,28 @@ describe('AgentEditEntryPage', () => {
     render(<AgentEditEntryPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('master-agent-detail')).toBeTruthy();
+      expect(ensureWorkspaceForWorldMock).toHaveBeenCalledWith({
+        worldId: 'world-1',
+        title: 'Realm',
+        description: 'World description',
+      });
     });
-    expect(ensureWorkspaceForWorldMock).not.toHaveBeenCalled();
-    expect(ensureWorldAgentDraftMock).not.toHaveBeenCalled();
-    expect(navigateMock).not.toHaveBeenCalled();
+    expect(ensureWorldAgentDraftMock).toHaveBeenCalledWith('ws-1', {
+      sourceAgentId: 'agent-1',
+      displayName: 'Ari',
+      handle: 'ari',
+      concept: 'Brave scout',
+      worldId: 'world-1',
+      description: 'Ari description',
+      scenario: 'Ari scenario',
+      greeting: 'Ari greeting',
+      avatarUrl: 'https://cdn.example.com/ari.png',
+    });
+    expect(navigateMock).toHaveBeenCalledWith(
+      '/workbench/ws-1/agents/draft-agent-1?source=library',
+      { replace: true },
+    );
+    expect(screen.queryByText('master-agent-detail')).toBeNull();
   });
 
   it('keeps master-owned agents on the standalone master detail page', () => {
@@ -163,6 +183,45 @@ describe('AgentEditEntryPage', () => {
     render(<AgentEditEntryPage />);
 
     expect(screen.getByText('master-agent-detail')).toBeTruthy();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when a world-owned agent has no world context', () => {
+    paramsValue = { agentId: 'agent-missing-world' };
+    useAgentDetailQueryMock.mockReturnValue({
+      data: {
+        id: 'agent-missing-world',
+        handle: 'orphan',
+        displayName: 'Orphan',
+        concept: 'Missing world',
+        description: null,
+        scenario: null,
+        greeting: null,
+        ownershipType: 'WORLD_OWNED',
+        worldId: null,
+        status: 'ACTIVE',
+        state: 'READY',
+        avatarUrl: null,
+        dna: null,
+        rules: null,
+        wakeStrategy: 'PASSIVE',
+        createdAt: '2026-04-10T00:00:00.000Z',
+        updatedAt: '2026-04-10T00:00:00.000Z',
+      },
+      isLoading: false,
+      isFetching: false,
+    });
+    useWorldDetailQueryMock.mockReturnValue({
+      data: null,
+      isLoading: false,
+      isFetching: false,
+    });
+
+    render(<AgentEditEntryPage />);
+
+    expect(screen.getByText('World-owned agent is missing world context.')).toBeTruthy();
+    expect(ensureWorkspaceForWorldMock).not.toHaveBeenCalled();
+    expect(ensureWorldAgentDraftMock).not.toHaveBeenCalled();
     expect(navigateMock).not.toHaveBeenCalled();
   });
 });

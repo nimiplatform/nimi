@@ -6,6 +6,21 @@ import type { DesignedVoiceAsset } from '@renderer/data/enrichment-client.js';
 import type { ResourceSummary } from '@renderer/hooks/use-content-queries.js';
 import type { AgentAssetOpsCandidateView, AgentAssetOpsFamily } from '@renderer/hooks/use-agent-asset-ops.js';
 
+const LIFECYCLE_TONE = {
+  generated: 'info',
+  candidate: 'warning',
+  approved: 'success',
+  rejected: 'danger',
+  confirmed: 'warning',
+  bound: 'success',
+  superseded: 'neutral',
+} as const;
+
+function formatDesignedVoiceLabel(asset: DesignedVoiceAsset): string {
+  return asset.providerVoiceRef
+    ? `${asset.providerVoiceRef} · ${asset.voiceAssetId.slice(0, 8)}`
+    : `Voice Asset ${asset.voiceAssetId.slice(0, 8)}`;
+}
 
 export function CandidateCard({
   candidate,

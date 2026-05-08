@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { CandidateCard, DesignedVoiceAssetCard, LibraryCard, LifecycleCounter } from './agent-asset-family-cards';
 import { ForgeEntityAvatar } from '@renderer/components/card-list.js';
-import { formatDate } from '@renderer/components/format-utils.js';
 import {
   ForgeEmptyState,
   ForgeErrorBanner,
@@ -19,7 +18,6 @@ import type { DesignedVoiceAsset } from '@renderer/data/enrichment-client.js';
 import { useResourcesQuery, type ResourceSummary } from '@renderer/hooks/use-content-queries.js';
 import {
   useAgentAssetOps,
-  type AgentAssetOpsCandidateView,
   type AgentAssetOpsFamily,
 } from '@renderer/hooks/use-agent-asset-ops.js';
 import { useWorldDetailQuery } from '@renderer/hooks/use-world-queries.js';
@@ -50,66 +48,6 @@ const FAMILY_COPY: Record<AgentAssetOpsFamily, {
     studioTarget: null,
   },
 };
-port { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import { ForgeEntityAvatar } from '@renderer/components/card-list.js';
-import { formatDate } from '@renderer/components/format-utils.js';
-import {
-  ForgeEmptyState,
-  ForgeErrorBanner,
-  ForgeLoadingSpinner,
-  ForgePage,
-  ForgePageHeader,
-  ForgeSection,
-  ForgeSectionHeading,
-  ForgeStatCard,
-} from '@renderer/components/page-layout.js';
-import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
-import { LabeledSelectField, LabeledTextField, LabeledTextareaField } from '@renderer/components/form-fields.js';
-import type { DesignedVoiceAsset } from '@renderer/data/enrichment-client.js';
-import { useResourcesQuery, type ResourceSummary } from '@renderer/hooks/use-content-queries.js';
-import {
-  useAgentAssetOps,
-  type AgentAssetOpsCandidateView,
-  type AgentAssetOpsFamily,
-} from '@renderer/hooks/use-agent-asset-ops.js';
-import { useWorldDetailQuery } from '@renderer/hooks/use-world-queries.js';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-const FAMILY_COPY: Record<AgentAssetOpsFamily, {
-  title: string;
-  description: string;
-  studioTarget: 'agent-avatar' | 'agent-portrait' | null;
-}> = {
-  'agent-avatar': {
-    title: 'Agent Avatar Review',
-    description: 'Review square avatar candidates, confirm a winner, and write it into the active agent avatar seam.',
-    studioTarget: 'agent-avatar',
-  },
-  'agent-cover': {
-    title: 'Agent Cover Review',
-    description: 'Review portrait cover candidates, confirm a winner, and bind it through the agent cover seam.',
-    studioTarget: 'agent-portrait',
-  },
-  'agent-greeting-primary': {
-    title: 'Primary Greeting Review',
-    description: 'Review greeting text candidates, confirm the selected opening line, and bind it as the active greeting.',
-    studioTarget: null,
-  },
-  'agent-voice-demo': {
-    title: 'Voice Demo Review',
-    description: 'Review playable voice-demo candidates, confirm the selected sample, and bind it when the seam is available.',
-    studioTarget: null,
-  },
-};
-const LIFECYCLE_TONE = {
-  generated: 'info',
-  candidate: 'warning',
-  approved: 'success',
-  rejected: 'danger',
-  confirmed: 'warning',
-  bound: 'success',
-  superseded: 'neutral',
-} as const;
 export default function AgentAssetFamilyPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
