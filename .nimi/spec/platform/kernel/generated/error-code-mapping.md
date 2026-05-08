@@ -4,13 +4,13 @@
 > Source: `.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`
 | Platform Error | Platform Source | Category | Runtime Reason Code | Runtime Source | Note |
 |---|---|---|---|---|---|
-| `APP_MODE_DOMAIN_FORBIDDEN` | `P-PROTO-060` | `mapped` | `APP_MODE_DOMAIN_FORBIDDEN` | `K-ERR-004` | Identical token; both layers enforce independently |
-| `APP_MODE_SCOPE_FORBIDDEN` | `P-PROTO-060` | `mapped` | `APP_MODE_SCOPE_FORBIDDEN` | `K-ERR-004` | — |
-| `APP_MODE_MANIFEST_INVALID` | `P-PROTO-060` | `mapped` | `APP_MODE_MANIFEST_INVALID` | `K-ERR-004` | — |
-| `APP_SCOPE_FORBIDDEN` | `P-PROTO-030` | `mapped` | `APP_SCOPE_FORBIDDEN` | `K-ERR-004` | — |
-| `APP_SCOPE_REVOKED` | `P-PROTO-040` | `mapped` | `APP_SCOPE_REVOKED` | `K-ERR-004` | — |
-| `PRINCIPAL_UNAUTHORIZED` | `P-PROTO-020` | `mapped` | `AUTH_TOKEN_INVALID` | `K-ERR-004` | Platform uses generic principal error; runtime specifies token-level reason |
-| `EXTERNAL_PRINCIPAL_PROOF_INVALID` | `P-PROTO-020` | `mapped` | `AUTH_UNSUPPORTED_PROOF_TYPE` | `K-ERR-004` | — |
+| `APP_MODE_DOMAIN_FORBIDDEN` | `P-PROTO-060` | `mapped` | `APP_MODE_DOMAIN_FORBIDDEN` | `K-AUTHSVC-009` | Identical token; both layers enforce independently |
+| `APP_MODE_SCOPE_FORBIDDEN` | `P-PROTO-060` | `mapped` | `APP_MODE_SCOPE_FORBIDDEN` | `K-AUTHSVC-009` | — |
+| `APP_MODE_MANIFEST_INVALID` | `P-PROTO-060` | `mapped` | `APP_MODE_MANIFEST_INVALID` | `K-AUTHSVC-010` | — |
+| `APP_SCOPE_FORBIDDEN` | `P-PROTO-030` | `mapped` | `APP_SCOPE_FORBIDDEN` | `K-GRANT-009` | — |
+| `APP_SCOPE_REVOKED` | `P-PROTO-040` | `mapped` | `APP_SCOPE_REVOKED` | `K-GRANT-010` | — |
+| `PRINCIPAL_UNAUTHORIZED` | `P-PROTO-020` | `mapped` | `AUTH_TOKEN_INVALID` | `K-AUTHN-007` | Platform uses generic principal error; runtime specifies token-level reason |
+| `EXTERNAL_PRINCIPAL_PROOF_INVALID` | `P-PROTO-020` | `mapped` | `AUTH_UNSUPPORTED_PROOF_TYPE` | `K-AUTHSVC-013` | — |
 | `APP_TOKEN_EXPIRED` | `P-PROTO-030` | `mapped` | `AUTH_TOKEN_EXPIRED` | `K-AUTHSVC-013` | Platform token expiry maps to runtime auth token expiry |
 | `PROTOCOL_MAJOR_MISMATCH` | `P-PROTO-001` | `realm_only` | `—` | `—` | Version negotiation is protocol-only; runtime does not participate |
 | `PROTOCOL_MINOR_UNSUPPORTED` | `P-PROTO-001` | `realm_only` | `—` | `—` | Version negotiation is protocol-only |

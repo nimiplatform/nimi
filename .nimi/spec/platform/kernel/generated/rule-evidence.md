@@ -100,6 +100,11 @@
 | `P-GOV-021` | `covered` | `platform_kernel_consistency`, `audit_evidence_root_gate` | — |
 | `P-GOV-022` | `covered` | `platform_kernel_consistency`, `audit_evidence_root_gate` | — |
 | `P-GOV-023` | `covered` | `platform_kernel_consistency`, `audit_evidence_root_gate` | — |
+| `P-AISC-001` | `covered` | `platform_kernel_consistency` | — |
+| `P-AISC-002` | `partial` | `platform_kernel_consistency` | structural only; lifecycle-driven AI config cleanup still requires consumer behavioral validation |
+| `P-AISC-003` | `partial` | `platform_kernel_consistency` | structural only; no-implicit-inheritance behavior still requires Desktop/SDK/Runtime consumer validation |
+| `P-AISC-004` | `covered` | `platform_kernel_consistency` | — |
+| `P-AISC-005` | `partial` | `platform_kernel_consistency` | structural only; allowed-consumer schema enforcement still requires downstream consumer boundary checks |
 | `P-APP-001` | `covered` | `platform_kernel_consistency`, `app_slice_admission_gate` | — |
 | `P-APP-002` | `covered` | `platform_kernel_consistency`, `app_slice_admission_gate` | — |
 | `P-APP-003` | `covered` | `platform_kernel_consistency`, `app_slice_admission_gate` | — |

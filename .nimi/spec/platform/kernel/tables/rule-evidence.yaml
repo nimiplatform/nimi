@@ -319,6 +319,24 @@ rules:
   - rule_id: P-GOV-023
     status: covered
     evidence_refs: [platform_kernel_consistency, audit_evidence_root_gate]
+  - rule_id: P-AISC-001
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-AISC-002
+    status: partial
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; lifecycle-driven AI config cleanup still requires consumer behavioral validation"
+  - rule_id: P-AISC-003
+    status: partial
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; no-implicit-inheritance behavior still requires Desktop/SDK/Runtime consumer validation"
+  - rule_id: P-AISC-004
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-AISC-005
+    status: partial
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; allowed-consumer schema enforcement still requires downstream consumer boundary checks"
   - rule_id: P-APP-001
     status: covered
     evidence_refs: [platform_kernel_consistency, app_slice_admission_gate]

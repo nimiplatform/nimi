@@ -6966,6 +6966,7 @@ export type components = {
                 [key: string]: unknown;
             };
             process?: string;
+            reason: string;
             relatedStateRefs: components["schemas"]["WorldHistoryRelatedStateRefDto"][];
             result?: string;
             summary?: string;

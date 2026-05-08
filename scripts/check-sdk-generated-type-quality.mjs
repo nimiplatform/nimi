@@ -145,6 +145,11 @@ expectRegex(
   /AgentProfileDto:\s*{[\s\S]*?activeWorldId\?: string;[\s\S]*?importance\?: components\["schemas"\]\["AgentImportance"\];[\s\S]*?ownerWorldId\?: string \| null;[\s\S]*?ownershipType\?: components\["schemas"\]\["AgentOwnershipType"\];[\s\S]*?state\?: components\["schemas"\]\["AgentState"\];[\s\S]*?stats\?: components\["schemas"\]\["AgentStatsDto"\];[\s\S]*?worldId\?: string;/,
   'AgentProfileDto must expose the current public agent profile shape',
 );
+expectRegex(
+  schema,
+  /AgentOwnershipType:\s*"MASTER_OWNED" \| "WORLD_OWNED";/,
+  'AgentOwnershipType must stay aligned to the realm domain enum authority',
+);
 expectSchemaExcludesField(
   schema,
   'AgentProfileDto',
@@ -282,6 +287,36 @@ expectRegex(
   schema,
   /CreatorModControlGrantIssueResponseDto:\s*{[\s\S]*?capabilities: string\[];[\s\S]*?expiresAt: string;[\s\S]*?grantId: string;[\s\S]*?token: string;/,
   'CreatorModControlGrantIssueResponseDto must be generated for creator grant issue',
+);
+
+expectRegex(
+  schema,
+  /AppendWorldHistoryDto:\s*{[\s\S]*?commit: components\["schemas"\]\["MutationCommitEnvelopeDto"\];[\s\S]*?historyAppends: components\["schemas"\]\["WorldHistoryAppendItemDto"\]\[];/,
+  'AppendWorldHistoryDto must use the explicit mutation commit envelope and typed history append items',
+);
+
+expectRegex(
+  schema,
+  /WorldHistoryAppendItemDto:\s*{[\s\S]*?eventType: string;[\s\S]*?evidenceRefs\?: components\["schemas"\]\["WorldEventEvidenceRefInputDto"\]\[];/,
+  'WorldHistoryAppendItemDto must expose typed event provenance and evidence refs',
+);
+
+expectRegex(
+  schema,
+  /WorldHistoryAppendItemDto:\s*{[\s\S]*?reason: string;[\s\S]*?relatedStateRefs: components\["schemas"\]\["WorldHistoryRelatedStateRefDto"\]\[];/,
+  'WorldHistoryAppendItemDto must expose typed provenance, evidence refs, related state refs, and required reason',
+);
+
+expectRegex(
+  schema,
+  /CommitWorldStateDto:\s*{[\s\S]*?commit: components\["schemas"\]\["MutationCommitEnvelopeDto"\];[\s\S]*?writes: components\["schemas"\]\["WorldStateWriteDto"\]\[];/,
+  'CommitWorldStateDto must use the explicit mutation commit envelope and typed world-state writes',
+);
+
+expectRegex(
+  schema,
+  /MutationCommitEnvelopeDto:\s*{[\s\S]*?actorRefs: components\["schemas"\]\["MutationActorRefDto"\]\[];[\s\S]*?appId: string;[\s\S]*?effectClass: "NONE" \| "STATE_ONLY" \| "STATE_AND_HISTORY";[\s\S]*?evidenceRefs\?: components\["schemas"\]\["MutationEvidenceRefDto"\]\[];[\s\S]*?reason: string;[\s\S]*?scope: string;/,
+  'MutationCommitEnvelopeDto must expose fixed effect class, reason, scope, actor refs, and evidence refs',
 );
 
 expectRegex(

@@ -26,6 +26,7 @@ const specs = [
   { input: 'nimi-ui-compositions.yaml', output: 'nimi-ui-compositions.md', render: renderDesignCompositions },
   { input: 'nimi-ui-allowlists.yaml', output: 'nimi-ui-allowlists.md', render: renderDesignAllowlists },
   { input: 'nimi-kit-registry.yaml', output: 'nimi-kit-registry.md', render: renderNimiKitRegistry },
+  { input: 'package-authority-admissions.yaml', output: 'package-authority-admissions.md', render: renderPackageAuthorityAdmissions },
   { input: 'rule-evidence.yaml', output: 'rule-evidence.md', render: renderRuleEvidence },
 ];
 
@@ -344,6 +345,39 @@ function renderNimiKitRegistry(doc, sourceName) {
     out += `| \`${String(module?.id || '')}\` | \`${String(module?.subpath || '')}\` | \`${String(module?.kind || '')}\` | \`${String(module?.surface_level || '')}\` | \`${String(module?.adapter_contract || '')}\` | ${dependencies.map((item) => `\`${String(item)}\``).join(', ') || '—'} | ${peerDependencies.map((item) => `\`${String(item)}\``).join(', ') || '—'} | ${headlessExports.map((item) => `\`${String(item)}\``).join(', ') || '—'} | ${uiExports.map((item) => `\`${String(item)}\``).join(', ') || '—'} | ${reuseEntrypoints.map((item) => `\`${String(item)}\``).join(', ') || '—'} | ${plannedConsumers.map((item) => `\`${String(item)}\``).join(', ') || '—'} | \`${String(module?.admission_status || '')}\` | \`${String(module?.owner || '')}\` | \`${String(module?.source_rule || '')}\` |\n`;
   }
   out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderPackageAuthorityAdmissions(doc, sourceName) {
+  const admissions = Array.isArray(doc?.admissions) ? doc.admissions : [];
+  let out = header('Generated Package Authority Admissions', sourceName);
+  out += '| ID | Status | Owner Domain | Authority Root | Evidence Roots | May Not Override | Source |\n';
+  out += '|---|---|---|---|---|---|---|\n';
+  for (const item of admissions) {
+    const evidenceRoots = Array.isArray(item?.evidence_roots) ? item.evidence_roots : [];
+    const mayNotOverride = Array.isArray(item?.may_not_override) ? item.may_not_override : [];
+    out += `| \`${String(item?.id || '')}\` | \`${String(item?.status || '')}\` | \`${String(item?.owner_domain || '')}\` | \`${String(item?.authority_root || '')}\` | ${evidenceRoots.map((ref) => `\`${String(ref)}\``).join(', ') || '—'} | ${mayNotOverride.map((ref) => `\`${String(ref)}\``).join(', ') || '—'} | \`${String(item?.source_rule || '')}\` |\n`;
+  }
+  out += '\n';
+  const projectionRows = admissions
+    .map((item) => ({
+      id: String(item?.id || '').trim(),
+      rows: Array.isArray(item?.projection_boundary?.host_authority_projection_refs)
+        ? item.projection_boundary.host_authority_projection_refs
+        : [],
+    }))
+    .filter((item) => item.rows.length > 0);
+  if (projectionRows.length > 0) {
+    out += '## Host Authority Projections\n\n';
+    out += '| Admission ID | Host Ref | Package Ref |\n';
+    out += '|---|---|---|\n';
+    for (const item of projectionRows) {
+      for (const row of item.rows) {
+        out += `| \`${item.id}\` | \`${String(row?.host_ref || '')}\` | \`${String(row?.package_ref || '')}\` |\n`;
+      }
+    }
+    out += '\n';
+  }
   return normalizeMarkdown(out);
 }
 

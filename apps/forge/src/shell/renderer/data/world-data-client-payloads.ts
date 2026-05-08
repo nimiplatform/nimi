@@ -269,6 +269,7 @@ export function buildHistoryAppend(value: unknown): AppendWorldHistoryItem {
       ['PUBLIC', 'WORLD', 'RESTRICTED'] as const,
       'FORGE_WORLD_HISTORY_VISIBILITY_INVALID',
     ),
+    reason: requireString(record.reason, 'FORGE_WORLD_HISTORY_REASON_REQUIRED'),
     summary: optionalString(record.summary),
     process: optionalString(record.process),
     result: optionalString(record.result),

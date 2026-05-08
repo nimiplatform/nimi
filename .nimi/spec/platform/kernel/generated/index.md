@@ -18,4 +18,5 @@
 | `nimi-ui-compositions.md` | `tables/nimi-ui-compositions.yaml` |
 | `nimi-ui-allowlists.md` | `tables/nimi-ui-allowlists.yaml` |
 | `nimi-kit-registry.md` | `tables/nimi-kit-registry.yaml` |
+| `package-authority-admissions.md` | `tables/package-authority-admissions.yaml` |
 | `rule-evidence.md` | `tables/rule-evidence.yaml` |

@@ -34,11 +34,27 @@ const sdkTestFile = path.join(
 );
 const providerCatalogFile = path.join(
   repoRoot,
-  'spec/runtime/kernel/tables/provider-catalog.yaml',
+  '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml',
 );
 const reportDir = path.join(repoRoot, '.local', 'report');
 const reportPath = path.join(reportDir, 'live-test-coverage.yaml');
 const goldReportPath = path.join(reportDir, 'ai-gold-path-report.yaml');
+const args = process.argv.slice(2);
+
+function printUsage() {
+  process.stdout.write(`Usage: node scripts/run-live-test-matrix.mjs [--help] [--skip-runtime] [--skip-sdk] [--skip-gold-path]
+
+Runs the required runtime, SDK, and gold-path live validation lanes and writes .local/report/live-test-coverage.yaml.
+
+Skip flags are diagnostic only. Any skipped required lane is recorded as blocked and exits nonzero.
+`);
+}
+
+if (args.includes('--help') || args.includes('-h')) {
+  printUsage();
+  process.exit(0);
+}
+
 const baseLiveEnv = buildMergedEnv({
   baseEnv: process.env,
   filePaths: [
@@ -336,9 +352,14 @@ function orderedInterfacesForProvider(definitions, order) {
 }
 
 function main() {
-  const skipRuntime = process.argv.includes('--skip-runtime');
-  const skipSdk = process.argv.includes('--skip-sdk');
-  const skipGoldPath = process.argv.includes('--skip-gold-path');
+  const skipRuntime = args.includes('--skip-runtime');
+  const skipSdk = args.includes('--skip-sdk');
+  const skipGoldPath = args.includes('--skip-gold-path');
+  const skippedRequiredLanes = [
+    skipRuntime ? 'runtime' : null,
+    skipSdk ? 'sdk' : null,
+    skipGoldPath ? 'gold_path' : null,
+  ].filter(Boolean);
 
   const catalogProviders = loadProviderCatalog(providerCatalogFile);
   const runtimeDefinitions = parseRuntimeLiveTestDefinitions(runtimeLiveSmokeFile);
@@ -438,6 +459,12 @@ function main() {
         sdk: skipSdk ? 'skipped' : sdkExitStatus === 0 ? 'ok' : 'failed',
         gold_path: skipGoldPath ? 'skipped' : goldExitStatus === 0 ? 'ok' : 'failed',
       },
+      required_lane_status: {
+        runtime: skipRuntime ? 'blocked_skipped_required_lane' : runtimeExitStatus === 0 ? 'ok' : 'failed',
+        sdk: skipSdk ? 'blocked_skipped_required_lane' : sdkExitStatus === 0 ? 'ok' : 'failed',
+        gold_path: skipGoldPath ? 'blocked_skipped_required_lane' : goldExitStatus === 0 ? 'ok' : 'failed',
+      },
+      skipped_required_lanes: skippedRequiredLanes,
     },
     runtime: runtimeMatrix,
     sdk: sdkMatrix,
@@ -464,15 +491,19 @@ function main() {
   if (goldReport?.summary) {
     process.stdout.write(`[live-test-matrix] gold-path summary: ${goldReport.summary.passed} passed, ${goldReport.summary.skipped} skipped, ${goldReport.summary.failed} failed, ${goldReport.summary.reserved} reserved (${goldReport.summary.total_fixtures} total fixtures)\n`);
   }
+  if (skippedRequiredLanes.length > 0) {
+    process.stdout.write(`[live-test-matrix] ERROR: required live matrix lanes skipped: ${skippedRequiredLanes.join(', ')}\n`);
+  }
 
   if (
-    summary.failed > 0
+    skippedRequiredLanes.length > 0
+    || summary.failed > 0
     || runtimeExitStatus !== 0
     || sdkExitStatus !== 0
     || goldExitStatus !== 0
     || Number(goldReport?.summary?.failed || 0) > 0
   ) {
-    process.stdout.write('[live-test-matrix] WARNING: runtime/sdk live smoke run contains failures\n');
+    process.stdout.write('[live-test-matrix] WARNING: live matrix run contains failures or blocked required lanes\n');
     process.exitCode = 1;
   }
 }

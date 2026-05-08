@@ -309,3 +309,48 @@ type _GuardRequestAccountDeletionResult = Assert<IsEqual<
   _RequestAccountDeletionResult,
   unknown
 >>;
+
+type _GuardAgentOwnershipTypeAuthority = Assert<IsEqual<
+  components['schemas']['AgentOwnershipType'],
+  'MASTER_OWNED' | 'WORLD_OWNED'
+>>;
+type _GuardAppendWorldHistoryDtoCommit = Assert<IsEqual<
+  components['schemas']['AppendWorldHistoryDto']['commit'],
+  components['schemas']['MutationCommitEnvelopeDto']
+>>;
+type _GuardAppendWorldHistoryDtoHistoryAppends = Assert<IsEqual<
+  components['schemas']['AppendWorldHistoryDto']['historyAppends'],
+  components['schemas']['WorldHistoryAppendItemDto'][]
+>>;
+type _GuardWorldHistoryAppendItemRelatedStateRefs = Assert<IsEqual<
+  components['schemas']['WorldHistoryAppendItemDto']['relatedStateRefs'],
+  components['schemas']['WorldHistoryRelatedStateRefDto'][]
+>>;
+type _GuardWorldHistoryAppendItemReason = Assert<IsEqual<
+  components['schemas']['WorldHistoryAppendItemDto']['reason'],
+  string
+>>;
+type _GuardWorldHistoryAppendItemEvidenceRefs = Assert<IsEqual<
+  components['schemas']['WorldHistoryAppendItemDto']['evidenceRefs'],
+  components['schemas']['WorldEventEvidenceRefInputDto'][] | undefined
+>>;
+type _GuardCommitWorldStateDtoCommit = Assert<IsEqual<
+  components['schemas']['CommitWorldStateDto']['commit'],
+  components['schemas']['MutationCommitEnvelopeDto']
+>>;
+type _GuardCommitWorldStateDtoWrites = Assert<IsEqual<
+  components['schemas']['CommitWorldStateDto']['writes'],
+  components['schemas']['WorldStateWriteDto'][]
+>>;
+type _GuardMutationCommitEnvelopeEffectClass = Assert<IsEqual<
+  components['schemas']['MutationCommitEnvelopeDto']['effectClass'],
+  'NONE' | 'STATE_ONLY' | 'STATE_AND_HISTORY'
+>>;
+type _GuardMutationCommitEnvelopeReason = Assert<IsEqual<
+  components['schemas']['MutationCommitEnvelopeDto']['reason'],
+  string
+>>;
+type _GuardMutationCommitEnvelopeEvidenceRefs = Assert<IsEqual<
+  components['schemas']['MutationCommitEnvelopeDto']['evidenceRefs'],
+  components['schemas']['MutationEvidenceRefDto'][] | undefined
+>>;

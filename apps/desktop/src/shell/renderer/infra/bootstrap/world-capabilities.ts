@@ -285,6 +285,7 @@ function requireAppendWorldHistoryItem(input: unknown, code: string): AppendWorl
       ? item.operation
       : (() => { throw new Error(code); })(),
     visibility: requireHistoryVisibility(item.visibility, code),
+    reason: requireStringValue(item.reason, code),
     summary: toOptionalString(item.summary),
     cause: toOptionalString(item.cause),
     process: toOptionalString(item.process),

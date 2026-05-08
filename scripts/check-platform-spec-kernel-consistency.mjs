@@ -35,6 +35,7 @@ const auditTable = readYaml('.nimi/spec/platform/kernel/tables/audit-events.yaml
 const presetsTable = readYaml('.nimi/spec/platform/kernel/tables/app-authorization-presets.yaml');
 const profilesTable = readYaml('.nimi/spec/platform/kernel/tables/participant-profiles.yaml');
 const errorCodeMappingTable = readYaml('.nimi/spec/platform/kernel/tables/error-code-mapping.yaml');
+const runtimeReasonCodesTable = readYaml('.nimi/spec/runtime/kernel/tables/reason-codes.yaml');
 const designTokensTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-tokens.yaml');
 const designPrimitivesTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-primitives.yaml');
 const designThemesTable = readYaml('.nimi/spec/platform/kernel/tables/nimi-ui-themes.yaml');
@@ -177,6 +178,7 @@ for (const event of events) {
     fail(`audit-events.yaml ${name}: invalid source_rule format: ${source}`);
   }
 }
+checkAuditEventFieldSemantics(eventNames);
 
 // ========================================================
 // Check 5: Authorization presets
@@ -185,6 +187,7 @@ for (const event of events) {
 const presets = Array.isArray(presetsTable?.presets) ? presetsTable.presets : [];
 const requiredPresets = new Set(['readOnly', 'full', 'delegate']);
 const foundPresets = new Set();
+const presetsByName = new Map();
 
 for (const preset of presets) {
   const name = String(preset?.name || '').trim();
@@ -193,6 +196,7 @@ for (const preset of presets) {
     continue;
   }
   foundPresets.add(name);
+  presetsByName.set(name, preset);
 
   const source = String(preset?.source_rule || '').trim();
   if (source && !/^P-[A-Z]{2,12}-\d{3}$/u.test(source)) {
@@ -203,6 +207,71 @@ for (const preset of presets) {
 for (const required of requiredPresets) {
   if (!foundPresets.has(required)) {
     fail(`app-authorization-presets.yaml: missing required preset: ${required}`);
+  }
+}
+checkAuthorizationPresetSemantics(presetsByName);
+
+function checkAuditEventFieldSemantics(eventNames) {
+  const rel = '.nimi/spec/platform/kernel/tables/audit-events.yaml';
+  const baseFields = stringList(auditTable?.base_required_fields);
+  if (baseFields.length === 0) {
+    fail(`${rel}: base_required_fields must not be empty`);
+  }
+  checkUniqueList(baseFields, `${rel}: base_required_fields`);
+
+  const groups = new Set(events.map((event) => String(event?.group || '').trim()).filter(Boolean));
+  const groupContextFields = auditTable?.group_context_fields && typeof auditTable.group_context_fields === 'object'
+    ? auditTable.group_context_fields
+    : null;
+  if (!groupContextFields) {
+    fail(`${rel}: group_context_fields must be defined`);
+  } else {
+    for (const group of groups) {
+      const fields = stringList(groupContextFields[group]);
+      if (fields.length === 0) {
+        fail(`${rel}: group_context_fields.${group} must list fields for declared event group`);
+      }
+      checkUniqueList(fields, `${rel}: group_context_fields.${group}`);
+    }
+    for (const group of Object.keys(groupContextFields)) {
+      if (!groups.has(group)) {
+        fail(`${rel}: group_context_fields.${group} has no declared event`);
+      }
+    }
+  }
+
+  const eventSpecificFields = auditTable?.event_specific_fields && typeof auditTable.event_specific_fields === 'object'
+    ? auditTable.event_specific_fields
+    : null;
+  if (!eventSpecificFields) {
+    fail(`${rel}: event_specific_fields must be defined`);
+  } else {
+    for (const [eventName, rawFields] of Object.entries(eventSpecificFields)) {
+      if (!eventNames.has(eventName)) {
+        fail(`${rel}: event_specific_fields.${eventName} is not a declared audit event`);
+        continue;
+      }
+      const fields = stringList(rawFields);
+      if (fields.length === 0) {
+        fail(`${rel}: event_specific_fields.${eventName} must list fields`);
+      }
+      checkUniqueList(fields, `${rel}: event_specific_fields.${eventName}`);
+    }
+  }
+}
+
+function stringList(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item || '').trim()).filter(Boolean);
+}
+
+function checkUniqueList(values, label) {
+  const seen = new Set();
+  for (const value of values) {
+    if (seen.has(value)) {
+      fail(`${label} contains duplicate item: ${value}`);
+    }
+    seen.add(value);
   }
 }
 
@@ -264,6 +333,7 @@ const requiredKernelFiles = [
   'protocol-contract.md',
   'architecture-contract.md',
   'ai-last-mile-contract.md',
+  'ai-scope-contract.md',
   'design-pattern-contract.md',
   'kit-contract.md',
   'capability-catalog-contract.md',
@@ -301,6 +371,7 @@ const kernelContracts = [
   'protocol-contract.md',
   'architecture-contract.md',
   'ai-last-mile-contract.md',
+  'ai-scope-contract.md',
   'design-pattern-contract.md',
   'kit-contract.md',
   'capability-catalog-contract.md',
@@ -476,6 +547,13 @@ console.log('platform-spec-kernel-consistency: OK');
 function checkErrorCodeMapping(definedRuleIds) {
   const rel = '.nimi/spec/platform/kernel/tables/error-code-mapping.yaml';
   const mappings = Array.isArray(errorCodeMappingTable?.mappings) ? errorCodeMappingTable.mappings : [];
+  const protocolErrors = new Set(codes.map((code) => String(code?.name || '').trim()).filter(Boolean));
+  const runtimeReasons = new Map(
+    (Array.isArray(runtimeReasonCodesTable?.codes) ? runtimeReasonCodesTable.codes : [])
+      .map((code) => [String(code?.name || '').trim(), code])
+      .filter(([name]) => Boolean(name)),
+  );
+  const allowedCategories = new Set(['mapped', 'realm_only', 'unmapped_v1']);
   if (mappings.length === 0) {
     fail(`${rel} mappings must not be empty`);
     return;
@@ -484,15 +562,112 @@ function checkErrorCodeMapping(definedRuleIds) {
   for (const entry of mappings) {
     const platformError = String(entry?.platform_error || '').trim();
     const platformSource = String(entry?.platform_source || '').trim();
+    const runtimeReasonCode = String(entry?.runtime_reason_code || '').trim();
+    const runtimeCodeNumber = entry?.runtime_code_number;
     const runtimeSource = String(entry?.runtime_source || '').trim();
+    const category = String(entry?.category || '').trim();
     if (!platformError) {
       fail(`${rel} mapping missing platform_error`);
+    } else if (!protocolErrors.has(platformError)) {
+      fail(`${rel} ${platformError}: platform_error not found in protocol-error-codes.yaml`);
     }
     if (!/^P-[A-Z]{2,12}-\d{3}$/u.test(platformSource) || !definedRuleIds.has(platformSource)) {
       fail(`${rel} ${platformError || '<empty>'} has invalid platform_source: ${platformSource || '<empty>'}`);
     }
+    if (!allowedCategories.has(category)) {
+      fail(`${rel} ${platformError || '<empty>'} has invalid category: ${category || '<empty>'}`);
+      continue;
+    }
     if (runtimeSource && !/^K-[A-Z]+-\d{3}[a-z]?$/u.test(runtimeSource)) {
       fail(`${rel} ${platformError || '<empty>'} has invalid runtime_source: ${runtimeSource}`);
+    }
+    if (category === 'mapped') {
+      if (!runtimeReasonCode) {
+        fail(`${rel} ${platformError || '<empty>'} category=mapped requires runtime_reason_code`);
+        continue;
+      }
+      if (!Number.isInteger(runtimeCodeNumber)) {
+        fail(`${rel} ${platformError || '<empty>'} category=mapped requires integer runtime_code_number`);
+      }
+      if (!runtimeSource) {
+        fail(`${rel} ${platformError || '<empty>'} category=mapped requires runtime_source`);
+      }
+      const runtimeReason = runtimeReasons.get(runtimeReasonCode);
+      if (!runtimeReason) {
+        fail(`${rel} ${platformError || '<empty>'} runtime_reason_code not found in runtime reason-codes.yaml: ${runtimeReasonCode}`);
+        continue;
+      }
+      if (Number.isInteger(runtimeCodeNumber) && Number(runtimeReason.value) !== runtimeCodeNumber) {
+        fail(`${rel} ${platformError || '<empty>'} runtime_code_number ${runtimeCodeNumber} does not match runtime reason ${runtimeReasonCode} value ${runtimeReason.value}`);
+      }
+      const actualRuntimeSource = String(runtimeReason.source_rule || '').trim();
+      if (runtimeSource && actualRuntimeSource !== runtimeSource) {
+        fail(`${rel} ${platformError || '<empty>'} runtime_source ${runtimeSource} does not match runtime reason ${runtimeReasonCode} source_rule ${actualRuntimeSource || '<empty>'}`);
+      }
+    } else {
+      if (runtimeReasonCode || runtimeCodeNumber != null || runtimeSource) {
+        fail(`${rel} ${platformError || '<empty>'} category=${category} must omit runtime_reason_code, runtime_code_number, and runtime_source`);
+      }
+    }
+  }
+}
+
+function checkAuthorizationPresetSemantics(presetsByName) {
+  const rel = '.nimi/spec/platform/kernel/tables/app-authorization-presets.yaml';
+  const expected = {
+    readOnly: {
+      default_scopes_pattern: 'app.<appId>.*.read',
+      can_delegate: false,
+      max_delegation_depth: 0,
+      source_rule: 'P-PROTO-030',
+    },
+    full: {
+      default_scopes_pattern: 'app.<appId>.*.read, app.<appId>.*.write',
+      can_delegate: false,
+      max_delegation_depth: 0,
+      source_rule: 'P-PROTO-030',
+    },
+    delegate: {
+      default_scopes_pattern: 'app.<appId>.*.read, app.<appId>.*.write',
+      can_delegate: true,
+      max_delegation_depth: 1,
+      source_rule: 'P-PROTO-035',
+    },
+  };
+
+  for (const [name, rules] of Object.entries(expected)) {
+    const preset = presetsByName.get(name);
+    if (!preset) continue;
+    for (const [field, expectedValue] of Object.entries(rules)) {
+      if (preset?.[field] !== expectedValue) {
+        fail(`${rel} ${name}: ${field} must be ${JSON.stringify(expectedValue)}`);
+      }
+    }
+  }
+
+  const delegationRules = Array.isArray(presetsTable?.delegation_rules) ? presetsTable.delegation_rules : [];
+  if (delegationRules.length === 0) {
+    fail(`${rel}: delegation_rules must not be empty`);
+    return;
+  }
+  const text = delegationRules.map((entry) => String(entry?.rule || '')).join('\n');
+  for (const entry of delegationRules) {
+    const source = String(entry?.source_rule || '').trim();
+    if (source !== 'P-PROTO-035') {
+      fail(`${rel}: delegation rule must use source_rule P-PROTO-035`);
+    }
+  }
+  const requiredDelegationSemantics = [
+    [/canDelegate=true/u, 'parent token must require canDelegate=true'],
+    [/scopes[\s\S]*子集/u, 'child token scopes must be parent subset'],
+    [/expiresAt[\s\S]*早/u, 'child token expiresAt must be earlier than parent'],
+    [/撤销[\s\S]*级联失效/u, 'parent revocation must cascade to child token'],
+    [/maxDelegationDepth=1/u, 'delegate preset must default maxDelegationDepth=1'],
+    [/resourceSelectors[\s\S]*子集/u, 'child token resourceSelectors must be parent subset'],
+  ];
+  for (const [pattern, description] of requiredDelegationSemantics) {
+    if (!pattern.test(text)) {
+      fail(`${rel}: delegation_rules missing semantic guardrail: ${description}`);
     }
   }
 }
@@ -605,6 +780,14 @@ function checkAppSliceAdmissions(definedRuleIds) {
   }
   const seen = new Set();
   const allowedStatus = new Set(['active', 'inactive']);
+  const requiredMayNotOverride = [
+    '.nimi/spec/runtime/**',
+    '.nimi/spec/sdk/**',
+    '.nimi/spec/realm/**',
+    '.nimi/spec/platform/**',
+    '.nimi/spec/desktop/**',
+    '.nimi/spec/cognition/**',
+  ];
   for (const row of admissions) {
     const appId = String(row?.app_id || '').trim();
     const ownerDomain = String(row?.owner_domain || '').trim();
@@ -639,11 +822,19 @@ function checkAppSliceAdmissions(definedRuleIds) {
     }
     if (mayNotOverride.length === 0) {
       fail(`${rel}: ${appId} must declare may_not_override`);
+    } else if (!sameStringSet(mayNotOverride, requiredMayNotOverride)) {
+      fail(`${rel}: ${appId} may_not_override must exactly match kernel authority fence set: ${requiredMayNotOverride.join(', ')}`);
     }
     if (!definedRuleIds.has(source)) {
       fail(`${rel}: ${appId} references unknown source_rule ${source || '<empty>'}`);
     }
   }
+}
+
+function sameStringSet(actual, expected) {
+  if (actual.length !== expected.length) return false;
+  const actualSet = new Set(actual);
+  return expected.every((entry) => actualSet.has(entry));
 }
 
 function checkAuditEvidenceRoots(definedRuleIds) {

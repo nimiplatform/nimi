@@ -194,7 +194,7 @@ async function writeSmokeEntry(appDir) {
     "  return new Response(JSON.stringify({ message: `unhandled group fetch: ${method} ${url.pathname}` }), { status: 500, headers: { 'content-type': 'application/json' } });",
     "};",
     "const findGroupCall = (method, path) => groupFetchCalls.find((entry) => entry.method === method && entry.path === path);",
-    "const realm = new Realm({ baseUrl: 'https://realm.nimi.xyz', auth: null, fetchImpl: groupFetchImpl });",
+    "const realm = new Realm({ baseUrl: 'https://realm.nimi.xyz', auth: { accessToken: 'consumer-smoke-token' }, fetchImpl: groupFetchImpl });",
     "if (typeof realm.unsafeRaw?.request !== 'function') throw new Error('realm unsafeRaw request export invalid');",
     "if (typeof realm.connect !== 'function') throw new Error('realm connect export invalid');",
     "if (typeof realm.services.GroupChatsService?.listGroups !== 'function') throw new Error('realm group chat listGroups export invalid');",

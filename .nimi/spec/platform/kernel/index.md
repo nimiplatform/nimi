@@ -15,6 +15,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `ARCH` | Architecture contract | `architecture-contract.md` |
 | `PROTO` | Protocol contract | `protocol-contract.md` |
 | `ALMI` | AI Last Mile contract | `ai-last-mile-contract.md` |
+| `AISC` | AI scope identity contract | `ai-scope-contract.md` |
 | `DESIGN` | Nimi design pattern contract | `design-pattern-contract.md` |
 | `KIT` | Kit shared platform infrastructure | `kit-contract.md` |
 | `CAPCAT` | Canonical capability catalog contract | `capability-catalog-contract.md` |
@@ -49,6 +50,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `protocol-contract.md` | `P-PROTO-*` | Version negotiation, envelope, app auth, primitives, error codes, compliance |
 | `architecture-contract.md` | `P-ARCH-*` | Six-layer architecture, communication rules, credential planes |
 | `ai-last-mile-contract.md` | `P-ALMI-*` | Hook Action Fabric, Principal model, execution protocol |
+| `ai-scope-contract.md` | `P-AISC-*` | Canonical AI scope identity, lifecycle, non-inheritance, and allowed consumer boundary |
 | `design-pattern-contract.md` | `P-DESIGN-*` | Cross-app Nimi UI Toolkit authority, generated primitive contract, scheme plus accent theme model, adoption registry, and hard gate |
 | `kit-contract.md` | `P-KIT-*` | Kit package authority, sub-module contracts (UI, Auth, Core, Telemetry), and hard gate |
 | `capability-catalog-contract.md` | `P-CAPCAT-*` | Canonical capability catalog cross-layer identity authority, runtime source resolver semantics, deferred entry admission |
@@ -79,7 +81,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `tables/app-slice-admissions.yaml` | `app-slice-admission-contract.md` | Active app-local spec slices admitted by `.nimi/spec` as subordinate audit authority |
 | `tables/package-authority-admissions.yaml` | `package-authority-admission-contract.md` | Active package-local spec roots admitted by `.nimi/spec` as package audit authority |
 | `tables/audit-evidence-roots.yaml` | `web-release-contract.md`, `kit-contract.md`, `package-authority-admission-contract.md` | Authority-specific implementation and host-local evidence roots admitted for spec-first audit planning |
-| `tables/rule-evidence.yaml` | `protocol-contract.md`, `architecture-contract.md`, `ai-last-mile-contract.md`, `design-pattern-contract.md`, `kit-contract.md`, `capability-catalog-contract.md`, `governance-contract.md` | Platform formal rule → executable evidence mapping |
+| `tables/rule-evidence.yaml` | `protocol-contract.md`, `architecture-contract.md`, `ai-last-mile-contract.md`, `ai-scope-contract.md`, `design-pattern-contract.md`, `kit-contract.md`, `capability-catalog-contract.md`, `governance-contract.md` | Platform formal rule → executable evidence mapping |
 
 ## Version Terminology
 

@@ -17,7 +17,7 @@ mappings:
     platform_source: P-PROTO-060
     runtime_reason_code: APP_MODE_DOMAIN_FORBIDDEN
     runtime_code_number: 500
-    runtime_source: K-ERR-004
+    runtime_source: K-AUTHSVC-009
     category: mapped
     note: Identical token; both layers enforce independently
 
@@ -25,28 +25,28 @@ mappings:
     platform_source: P-PROTO-060
     runtime_reason_code: APP_MODE_SCOPE_FORBIDDEN
     runtime_code_number: 501
-    runtime_source: K-ERR-004
+    runtime_source: K-AUTHSVC-009
     category: mapped
 
   - platform_error: APP_MODE_MANIFEST_INVALID
     platform_source: P-PROTO-060
     runtime_reason_code: APP_MODE_MANIFEST_INVALID
     runtime_code_number: 502
-    runtime_source: K-ERR-004
+    runtime_source: K-AUTHSVC-010
     category: mapped
 
   - platform_error: APP_SCOPE_FORBIDDEN
     platform_source: P-PROTO-030
     runtime_reason_code: APP_SCOPE_FORBIDDEN
     runtime_code_number: 503
-    runtime_source: K-ERR-004
+    runtime_source: K-GRANT-009
     category: mapped
 
   - platform_error: APP_SCOPE_REVOKED
     platform_source: P-PROTO-040
     runtime_reason_code: APP_SCOPE_REVOKED
     runtime_code_number: 504
-    runtime_source: K-ERR-004
+    runtime_source: K-GRANT-010
     category: mapped
 
   # ── mapped: Auth errors → runtime AUTH family ──
@@ -54,7 +54,7 @@ mappings:
     platform_source: P-PROTO-020
     runtime_reason_code: AUTH_TOKEN_INVALID
     runtime_code_number: 300
-    runtime_source: K-ERR-004
+    runtime_source: K-AUTHN-007
     category: mapped
     note: Platform uses generic principal error; runtime specifies token-level reason
 
@@ -62,7 +62,7 @@ mappings:
     platform_source: P-PROTO-020
     runtime_reason_code: AUTH_UNSUPPORTED_PROOF_TYPE
     runtime_code_number: 302
-    runtime_source: K-ERR-004
+    runtime_source: K-AUTHSVC-013
     category: mapped
 
   - platform_error: APP_TOKEN_EXPIRED
