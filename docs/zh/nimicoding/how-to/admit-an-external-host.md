@@ -1,56 +1,56 @@
-# 怎么准入外部 host
+# 准入一个外部宿主
 
-你想为 Nimi-Coding 采纳项目用一个新 AI host。包是宿主无关的，但每个 host 要满足必需能力。
+你想在已经接入 Nimi Coding 的项目里换一个新的 AI 宿主。包本身宿主无关，但每个宿主都需要满足一组必备能力。
 
-## 菜谱
+## 步骤
 
-1. **校验 host 能力 flag。**
+1. **核对宿主的能力标记。**
    - `read_project_local_nimi_truth`
    - `route_declared_external_skills`
    - `fail_closed_on_missing_authority`
-2. **校验硬约束。**
+2. **核对硬性约束。**
    - `vendor_neutral_profile_only`
    - `do_not_assume_local_runtime_install`
    - `do_not_claim_packet_orchestration_ownership`
-3. **用通用外部 host profile** 如这个 host 没 admitted adapter overlay。
-4. **或写一份 host adapter overlay** 在 `adapters/<host-name>/profile.yaml` 如要 host 特定路由且包准入。
-5. **跑 `nimicoding doctor`** 校验 host 姿态。如 doctor 报 host 兼容，你能用它。
-6. **经 `nimicoding handoff --skill <skill> --json` hand off** 在新 host 下。
-7. **Closeout** 照常。
+3. **如果该宿主没有已准入的 adapter overlay**，使用通用外部宿主 profile。
+4. **如果需要宿主特有的路由策略**，且包允许此种扩展，写一份 `adapters/<host-name>/profile.yaml` 的 adapter overlay。
+5. **跑 `nimicoding doctor`** 验证宿主姿态。doctor 报告兼容即可使用。
+6. **用 `nimicoding handoff --skill <skill> --json`** 在新宿主下完成交接。
+7. **照常 closeout。**
 
-## 必需能力 — 详细
+## 必备能力详解
 
 ### `read_project_local_nimi_truth`
 
-Host 必须能读 `.nimi/methodology/`、`.nimi/spec/`、`.nimi/contracts/` 等作为它上下文的一部分。无视项目本地真相、只靠自己训练数据的 host 这项检查不过。
+宿主必须能把 `.nimi/methodology/`、`.nimi/spec/`、`.nimi/contracts/` 等读入上下文。只依赖自身训练数据、忽略项目本地权威的宿主，不通过这一项检查。
 
 ### `route_declared_external_skills`
 
-Host 必须接受包的类型化 handoff payload 并路由到合适技能。重新解释 payload 或替换自己技能集的 host 这项检查不过。
+宿主必须接受包发出的强类型交接 payload，并路由到对应技能。重新解释 payload 或替换成自有技能集的宿主，不通过这一项检查。
 
 ### `fail_closed_on_missing_authority`
 
-Host **不**能在缺权威时合成输出。在缺 source basis 时幻觉貌似内容的 host 这项检查不过。
+当所需权威缺失时，宿主不得自行合成输出。Source basis 缺失却仍然产出貌似合理内容的宿主，不通过这一项检查。
 
-这是最独特的要求。多数 AI host 默认「总产出某种东西」。Nimi Coding 要求「权威缺时啥都不产出」。
+这是最有辨识度的一条要求。多数 AI 宿主默认行为是"总要给点输出"。Nimi Coding 要求"权威缺失就什么也别给"。
 
-## 硬约束 — 详细
+## 硬性约束详解
 
 ### `vendor_neutral_profile_only`
 
-Host adapter **不**能把厂商特定合同夹带回包。厂商特定行为住在 adapter overlay 里、**不**住在方法学核里。
+Adapter 不得把厂商特有契约偷渡回包里。厂商特有行为只能留在 adapter overlay，不能进入方法学核心。
 
 ### `do_not_assume_local_runtime_install`
 
-Host **不**能要求包装本地 runtime。包姿态是 `runtime_installed: false`、`installation_mode: deferred`。
+宿主不得要求包安装本地 runtime。包的姿态是 `runtime_installed: false`、`installation_mode: deferred`。
 
 ### `do_not_claim_packet_orchestration_ownership`
 
-Host **不**能装作拥有 packet 生命周期。Manager 准入 packet；host（worker / auditor）在它里头动作。
+宿主不得自称拥有 packet 生命周期的所有权。Packet 由管理者准入，宿主（worker 或 auditor）只在 packet 内部行动。
 
-## 用通用 profile
+## 使用通用 profile
 
-通用外部 host profile 住在 `config/host-profile.yaml`：
+通用外部宿主 profile 位于 `config/host-profile.yaml`：
 
 ```yaml
 host_profile:
@@ -62,61 +62,61 @@ host_profile:
   self_hosted: false
 ```
 
-满足必需能力的任何 host 能在通用 profile 下被准入。基础用**不**要 adapter overlay。
+任何满足必备能力的宿主，都可以在这一通用 profile 下完成准入。基本使用不需要 adapter overlay。
 
-## 写 adapter overlay
+## 写一个 adapter overlay
 
-如要 host 特定路由或命名 overlay 元数据：
+如果需要宿主特有的路由或命名 overlay 元数据：
 
-1. **建 `adapters/<host-name>/profile.yaml`。** 把 host 声明为受约束桥。
-2. **引必需能力 flag。** 陈述 host 满足必需集。
-3. **记录 host 特定路由细节。** 不让它们漏进方法学核。
-4. **用 `nimicoding doctor` 测。** Doctor 校验 admitted overlay 兼容。
+1. **新建 `adapters/<host-name>/profile.yaml`。** 把宿主声明为受约束的桥接器。
+2. **引用必备能力标记。** 声明该宿主满足必备能力集。
+3. **记录宿主特有的路由细节**，且不允许这些细节渗入方法学核心。
+4. **用 `nimicoding doctor` 检验。** doctor 会校验已准入 overlay 的兼容性。
 
-包附带一个示例 overlay 放在 `adapters/oh-my-codex/profile.yaml`。具体示例见 [附录 → oh-my-codex](/zh/nimicoding/appendix/oh-my-codex)。
+包内附带一份示例 overlay：`adapters/oh-my-codex/profile.yaml`。具体示例见 [Appendix → oh-my-codex](/zh/nimicoding/appendix/oh-my-codex)。
 
-## 阅读场景：准入新 host
+## 场景：准入一个新宿主
 
-你想用 Host X 做项目的 `high_risk_execution` 跑。
+你想用宿主 X 来跑项目的 `high_risk_execution`。
 
-| 步骤 | 动作 |
+| 步骤 | 操作 |
 | --- | --- |
-| 校验能力 | Host X 读项目本地真相、路由类型化技能、缺权威 fail-close |
-| 校验约束 | Host X 厂商中立兼容、不要本地 runtime、不要 packet 编排 |
-| 用通用 profile | 是 — 第一次用不要 adapter overlay |
-| `nimicoding doctor` | 报兼容 |
-| Hand off | `nimicoding handoff --skill high_risk_execution --json` |
-| 结果 | Host X 执行；包准入结果 |
+| 核对能力 | 宿主 X 能读项目本地权威，能路由强类型技能，权威缺失时 fail-closed |
+| 核对约束 | 宿主 X 厂商中立，不要求本地 runtime，不自称拥有 packet 编排权 |
+| 使用通用 profile | 是；首次使用无需 adapter overlay |
+| `nimicoding doctor` | 报告兼容 |
+| 交接 | `nimicoding handoff --skill high_risk_execution --json` |
+| 结果 | 宿主 X 执行；包准入结果 |
 
-如 host 没满足能力检查，**别**用它。包**不**静默降级。
+如果宿主未通过能力检查，不要使用。包不会以默契退化的方式硬上。
 
-## 阅读场景：移除 host
+## 场景：移除一个宿主
 
-你想停用一个 host。
+你不再使用某个宿主。
 
-| 步骤 | 动作 |
+| 步骤 | 操作 |
 | --- | --- |
-| 停 dispatch 新工作给它 | 自解释 |
-| 既有工件留 | 该 host 下过去工作是规范化的 |
-| 移 adapter overlay 如有 | 删 `adapters/<host-name>/profile.yaml` |
-| 既有 topic / wave 工件不变 | 它们是过去工作的记录、**不是**活跃配置 |
+| 不再向它派发新工作 | 直接停止派发 |
+| 既有工件保留 | 过往在该宿主下完成的工作仍是权威记录 |
+| 删除 adapter overlay（如有） | 删除 `adapters/<host-name>/profile.yaml` |
+| 既有 topic / wave 工件不变 | 这些是历史工作的记录，不是当前配置 |
 
-方法学的可移植性意味换 host 可逆、**不**要数据迁移。
+方法学的可移植性意味着切换宿主是可逆的，不需要数据迁移。
 
-## 要看什么
+## 注意事项
 
-| 症状 | 含义 |
+| 现象 | 含义 |
 | --- | --- |
-| Host 在缺权威时幻觉内容 | 能力 `fail_closed_on_missing_authority` 没满足；拒 |
-| Host 想自动跑 packet | 约束 `do_not_claim_packet_orchestration_ownership` 没满足；拒 |
-| Host 要本地 runtime 装 | 约束 `do_not_assume_local_runtime_install` 没满足；拒 |
-| Adapter overlay 把厂商特定合同夹带进方法学 | 约束 `vendor_neutral_profile_only` 没满足；拒 |
+| 权威缺失时宿主仍输出内容 | `fail_closed_on_missing_authority` 未满足；拒绝 |
+| 宿主想自主跑 packet | `do_not_claim_packet_orchestration_ownership` 未满足；拒绝 |
+| 宿主要求安装本地 runtime | `do_not_assume_local_runtime_install` 未满足；拒绝 |
+| Adapter overlay 把厂商契约偷渡进方法学 | `vendor_neutral_profile_only` 未满足；拒绝 |
 
-## 来源
+## Source Basis
 
 - [`nimi-coding/config/host-profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-profile.yaml)
 - [`nimi-coding/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-adapter.yaml)
 - [`nimi-coding/contracts/external-host-compatibility.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/external-host-compatibility.yaml)
 - [`nimi-coding/methodology/skill-runtime.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-runtime.yaml)
 - [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-handoff.yaml)
-- [`nimi-coding/adapters/oh-my-codex/profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/adapters/oh-my-codex/profile.yaml)（例子）
+- [`nimi-coding/adapters/oh-my-codex/profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/adapters/oh-my-codex/profile.yaml)（示例）

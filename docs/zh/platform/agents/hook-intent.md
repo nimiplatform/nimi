@@ -1,102 +1,104 @@
-# Hook Intent
+# Hook intent
 
-`HookIntent` 是 Agent 请求未来定时动作的类型化合同。Model 不能发出自由形式的调度逻辑；它发的是类型化的 hook intent，由 Runtime 校验和准入。
+`HookIntent` 是 Agent 请求未来定时动作的强类型契约。模型不能输出自由格式的调度逻辑，它输出的是强类型的 Hook intent，由 Runtime 校验和准入。
 
-这就是让"Agent 决定明天跟你跟进"成为真能力，而不是一句自由形式提示。
+这就是「一个 Agent 决定明天给你回访」之所以是真实能力，而不是一段自由提示词的根据。
 
-## Hook Intent 解决什么
+## Hook intent 解决的问题
 
-朴素的 Agent 设计让 Model 说一句"明天 9 点提醒用户面试"。这句话本身**不是**真的日程 — 它是 Model 输出，下游某段代码要去解释、变成真正的定时调用。
+朴素的 Agent 设计会让模型输出类似「明早 9 点提醒用户面试」这样的字符串。这串字符本身不是真正的调度，它只是模型的输出，需要某段下游代码去解释，再变成真正定时的调用。
 
-后果是两种失败模式：
+由此会有两种失败模式：
 
-- **自由形式解释**。不同代码路径解释这串字不同；Agent 的意图和真实发生的事漂移。
-- **能力扩散**。如果 Agent 能请求任何事，那它需要一个全能沙箱。
+- **自由格式解读**。不同代码路径对同一串字符的解读不同，Agent 的意图与真实发生的事会偏移。
+- **能力失控**。如果 Agent 想要什么就能要什么，那平台就要为所有事情准备一个沙箱。
 
-Nimi 的回应：Agent 发出**类型化的 `HookIntent` 记录**，不是自由形式的字串。intent 有类型化动词、类型化参数、合同。Model 提议；Runtime 准入或拒绝；被准入的 intent 进入类型化生命周期。
+Nimi 的回应：Agent 输出的是**强类型的 `HookIntent` 记录**，不是自由字符串。Intent 带强类型动词、强类型参数，并且有一份 Runtime 校验依据的契约。模型负责提议；Runtime 负责准入或拒绝；准入的 Intent 进入强类型的生命周期。
 
-## `HookIntent` 装什么
+## `HookIntent` 承载的内容
+
+一份强类型 Intent 记录描述：
 
 | 字段 | 含义 |
 | --- | --- |
-| Intent kind | 请求什么样的未来动作 |
-| Parameters | 该 kind 特有的类型化参数 |
-| Schedule | 何时触发（绝对、相对、条件） |
-| Scope | 在谁的上下文下跑 |
-| Approval requirement | 触发前是否要用户批准 |
+| Intent 类型 | 请求的是哪一种未来动作 |
+| 参数 | 该类型对应的强类型参数 |
+| 调度 | 什么时候触发（绝对、相对、条件） |
+| 作用域 | 在谁的上下文里执行 |
+| 审批要求 | 触发前是否需要用户同意 |
 
-Kind 和参数是在 Runtime kernel 里准入的；Agent 不能发明新 kind。未声明的 kind fail-closed。
+类型与参数都在 Runtime 内核里准入；Agent 不能临时发明新类型。未声明的类型 fail-closed。
 
 ## Hook 生命周期
 
-被准入后，intent 进入 hook 生命周期：
+Intent 准入之后，进入 Hook 生命周期：
 
 | 状态 | 含义 |
 | --- | --- |
-| `pending` | 已准入；等触发时间 |
+| `pending` | 已准入，等触发 |
 | `running` | 正在执行 |
-| `completed` | 终态成功 |
-| `failed` | 终态失败 |
-| `canceled` | 完成前被取消 |
-| `rescheduled` | 移到新日程；回到 `pending` |
-| `rejected` | 准入时被拒 |
+| `completed` | 成功的终态 |
+| `failed` | 失败的终态 |
+| `canceled` | 触发前取消 |
+| `rescheduled` | 改了时间，回到 `pending` |
+| `rejected` | 在准入阶段被拒 |
 
-任何 Agent 的 hook 状态机都一样。没到达 `pending` 的 intent 是 Runtime 拒绝准入的那种。
+任何 Agent 的 Hook 都共用这套状态机。一份没到 `pending` 的 Intent，就是 Runtime 拒绝准入的那一份。
 
-## 阅读场景：Agent 排一次跟进
+## 场景：Agent 给自己排一次跟进
 
-用户提到明天 9 点有面试。Agent 决定提醒用户。
+用户提到明早 9 点有面试。Agent 决定提醒用户。
 
-1. **Agent 发类型化 intent**。通过 APML 线格式，Model 产生一个类型化 `HookIntent` 记录：kind = `remind`，parameters = `{ subject: "面试", target: <user>, message: "祝好运" }`，schedule = `明天 8 点`，scope = `chat conversation X`。
-2. **Runtime 校验**。kind `remind` 已认可。参数符合合同。schedule 在 Agent 的 life-track 预算分配范围内。
-3. **准入**。Runtime 准入 intent。hook 在触发时间从 `pending → running`。
-4. **触发**。明天 8 点 hook 跑。Agent 的 life-track 在已认可的节奏和预算下产生提醒。
-5. **终态**。hook 完成。审计记录这次触发。
+1. **Agent 输出强类型 Intent**。模型经由 APML 线格式输出一份强类型 `HookIntent` 记录：类型 = `remind`，参数 = `{ subject: "interview", target: <user>, message: "good luck" }`，调度 = `tomorrow at 8am`，作用域 = `chat conversation X`。
+2. **Runtime 校验**。`remind` 类型已准入；参数符合契约；调度时间在 Agent 的生命轨迹预算内。
+3. **准入**。Runtime 准入 Intent。到点时 Hook 从 `pending → running`。
+4. **触发**。明早 8 点，Hook 跑起来。Agent 的生命轨迹按准入的节奏与预算给出提醒。
+5. **终态**。Hook 完成。审计记录这次触发。
 
-**没发生的事**：
+没有发生的事：
 
-- Model 没发自由形式调度字串。
-- 用户没必要授新权限给这个 hook。
-- hook 没绕过日 token 预算。
+- 模型没有输出自由格式的调度字符串。
+- 用户不需要为这一次 Hook 单独授一道新权限。
+- Hook 没有绕开当日的 token 预算。
 
-类型化合同就是让这件事**安全**且**可预测**的原因。
+强类型契约让这件事既安全又可预期。
 
-## 阅读场景：被拒的 intent
+## 场景：Intent 被拒
 
-Agent 试图发一个 `HookIntent`，但是这个 kind 的合同不准入这个动作 — 也许参数违反敏感规则，或者 Agent 没有目标的能力。
+某 Agent 试图输出一份在该类型契约下不被准入的 Intent —— 也许参数违反了敏感度规则，也许 Agent 对目标没有相应能力。
 
-1. **校验失败**。intent 不符合已认可合同。
-2. **状态**。intent 进入 `rejected`。它没进 `pending`。
-3. **审计**。拒绝带原因被记录。
-4. **Agent 学到**。拒绝对 Agent 是可观察的（类型化形式），所以 Agent 下一步可以选别的方法。
+1. **校验失败**。Intent 不符合准入契约。
+2. **状态**。Intent 进入 `rejected`，不进入 `pending`。
+3. **审计**。拒绝连同原因被记录。
+4. **Agent 可见**。拒绝以强类型形式回到 Agent 那一侧，Agent 下一回合可以换一种做法。
 
-拒绝不是无声的。Runtime 告诉 Agent 为什么；Agent 下一轮可以调整。
+拒绝不是静默的。Runtime 会告诉 Agent 为什么；Agent 的下一步可以据此调整。
 
-## 阅读场景：hook 改期
+## 场景：Hook 被改时间
 
-一个排好的 hook 需要换时间 — 也许 Agent 有了新信息，原时间不再合适。
+某条已排的 Hook 需要挪一下，可能是 Agent 拿到新的信息，原定时间不再合适。
 
-1. **改期请求**。Agent 发一个引用现有 intent 的类型化改期请求。
-2. **校验**。Runtime 检查这次改期对该 intent 是否准入。
-3. **状态**。hook 进 `rescheduled`，再回 `pending`，新时间。
-4. **审计**。改期 lineage 被记录。
+1. **改时间请求**。Agent 输出一份强类型的改期请求，引用既有 Intent。
+2. **校验**。Runtime 检查这次改期是否在该 Intent 的准入范围内。
+3. **状态**。Hook 走到 `rescheduled`，再以新时间回到 `pending`。
+4. **审计**。改期血缘被记录。
 
-`rescheduled` 是过渡态，不是终态。它捕获"日程变了"这件事；审计让以后读的人能看到为什么。
+`rescheduled` 是过渡态，不是终态。它捕获「调度被改过」这件事；审计让后来读这段历史的人能看见原因。
 
-## 为什么"类型化 intent，不是自由形式字串"
+## 为什么是「强类型 Intent」而不是「自由字符串」
 
-| 关注 | 类型化 intent 给你什么 |
+| 关注点 | 强类型 Intent 的回答 |
 | --- | --- |
-| 审计 | 每个 intent 是有结构 lineage 的类型化记录 |
-| 能力边界 | kind + 参数已认可；没有自由形式 |
-| Replay | 重放可以走 intent 记录，而不是重新推断 |
-| 批准 | 敏感性可从类型化 kind 推导 |
-| 预算 | Token 预算在准入时执行，不在触发时 |
-| 调度可靠性 | Runtime 拥有调度器；Model 不发明时序语义 |
+| 审计 | 每份 Intent 都是带结构化血缘的强类型记录 |
+| 能力边界 | 类型与参数是准入的，无自由格式可言 |
+| 重放 | 重放可以按 Intent 记录逐步还原，不必再次推断 |
+| 审批 | 敏感度由强类型类型推得 |
+| 预算 | token 预算在准入时强制，不是触发时 |
+| 调度可靠性 | Runtime 持有调度器；模型不发明时间语义 |
 
-让 Model 发自由形式调度字串的平台对上面任一项都没答案。要求类型化 intent 的平台对每一项都有答案，而且是结构性的。
+让模型输出自由格式调度字符串的平台，没有这些回答。强制强类型 Intent 的平台，按构造就拥有它们。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
 - [`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-service-contract.md)

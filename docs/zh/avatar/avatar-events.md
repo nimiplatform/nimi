@@ -1,102 +1,102 @@
 # Avatar 事件
 
-Avatar 发一份类型化事件面，NAS 处理器、mod、runtime 组件订阅。事件家族在 kernel 层准入；不是自由格式。
+Avatar 对外暴露一组强类型事件，供 NAS 处理器、Mod 与 Runtime 组件订阅。事件家族在内核层准入，不接受自由格式。
 
 ## 事件家族
 
-| 家族 | 覆盖什么 |
+| 家族 | 覆盖范围 |
 | --- | --- |
-| `avatar.user.*` | 用户输入 — 点击、拖拽、悬停 |
-| `avatar.activity.*` | Activity 事件 — 类型化动作请求 |
+| `avatar.user.*` | 用户输入：点击、拖拽、悬停 |
+| `avatar.activity.*` | 活动事件：强类型动作请求 |
 | `avatar.motion.*` | 动作生命周期 |
-| `avatar.expression.*` | 表情变化 |
-| `avatar.pose.*` | 姿势变化 |
-| `avatar.lookat.*` | 凝视方向 |
-| `avatar.speak.*` | 语音 / 声音输出生命周期 |
-| `avatar.lipsync.*` | 口型帧事件 |
+| `avatar.expression.*` | 表情变更 |
+| `avatar.pose.*` | 姿态变更 |
+| `avatar.lookat.*` | 视线方向 |
+| `avatar.speak.*` | 语音输出生命周期 |
+| `avatar.lipsync.*` | 唇形帧事件 |
 | `avatar.app.*` | App 生命周期（`start`、`ready` 等） |
-| `avatar.companion.*` | Companion 面事件 |
-| `avatar.composition.*` | 组合状态转换 |
+| `avatar.companion.*` | Companion 表面事件 |
+| `avatar.composition.*` | 合成态状态机迁移 |
 
-每个家族被准入；新家族要 kernel 准入。
+每个家族都需准入；新增家族走内核准入流程。
 
-## 准入家族示例
+## 已准入家族示例
 
 ### `avatar.user.*`
 
 | 事件 | 触发时机 |
 | --- | --- |
-| `avatar.user.click` | 用户点击（带命中区域信息） |
+| `avatar.user.click` | 用户点击，附带命中区域信息 |
 | `avatar.user.drag` | 用户拖拽 |
 | `avatar.user.hover` | 用户悬停 |
 
 ### `avatar.activity.*`
 
-Activity 是类型化动作请求。NAS activity 处理器在匹配事件上触发。
+活动是强类型动作请求。NAS 的 activity 处理器在对应事件上触发。
 
 ### `avatar.motion.*`、`avatar.expression.*`、`avatar.pose.*`、`avatar.lookat.*`
 
-生命周期事件：started、in-progress、completed。
+各自的生命周期事件：开始、进行中、完成。
 
 ### `avatar.speak.*`、`avatar.lipsync.*`
 
-语音输出生命周期：语音被请求、音频回放、口型帧同步。
+语音输出生命周期：语音被请求、音频被回放、唇形帧与音频对齐。
 
 ### `avatar.app.*`
 
 | 事件 | 触发时机 |
 | --- | --- |
 | `avatar.app.start` | Avatar app 启动 |
-| `avatar.app.ready` | 组合状态到 `ready` |
+| `avatar.app.ready` | 合成态进入 `ready` |
 
 ### `avatar.composition.*`
 
-组合状态机的状态转换（`loading → ready → degraded:* → relaunch-pending`）。
+合成态状态机的迁移事件（`loading → ready → degraded:* → relaunch-pending`）。
 
-## 阅读场景：Mod 订阅 Avatar 事件
+## 场景：Mod 订阅 Avatar 事件
 
-某 mod 想在 Agent 表达情绪时响应。
+某个 Mod 想在 Agent 表达情绪时做点反应。
 
-1. **Mod 注册。** 通过准入桌面端 hook 能力，mod 订阅 `avatar.expression.*`。
-2. **Avatar 发出。** Agent 的 runtime 驱动表情更新时，呈现层发出 `avatar.expression.changed`。
-3. **Mod 收到。** 类型化事件带旧 + 新表情。
-4. **Mod 动作。** 在它的准入能力白名单内。
+1. **Mod 注册**。通过准入的桌面端 hook 能力订阅 `avatar.expression.*`。
+2. **Avatar 发出事件**。Agent 的 Runtime 驱动一次表情更新时，Avatar 语义层发出 `avatar.expression.changed`。
+3. **Mod 收到事件**。事件强类型，包含旧表情与新表情。
+4. **Mod 在准入能力清单内行动**。
 
-Avatar 事件可观测；mod **不**必构造自己的状态推断循环。
+Mod 不需要自己推断 Avatar 状态——事件本身就是可观测面。
 
-## 阅读场景：跨 App 协同
+## 场景：跨 App 协同
 
-另一个 App（不是 Avatar）想跟 Avatar 协同 — 比如把视觉情绪跟聊天 UI 同步。
+另一个 App（不是 Avatar）希望与 Avatar 协同——例如把视觉情绪同步到聊天 UI。
 
-1. **Avatar 发出表情事件。** 跨 runtime 事件总线。
-2. **另一个 App 订阅。** 通过准入 runtime 事件订阅。
-3. **App 协同。** 两边大致同时反映同一情绪。
+1. **Avatar 发出表情事件**。事件经由 Runtime 事件总线广播。
+2. **另一个 App 订阅**。通过准入的 Runtime 事件订阅接口接收。
+3. **两个 App 同步呈现**。在大致同一时刻反映出相同的情绪。
 
-`avatar_instance_registry` 提供跨 App 协同接缝（在 avatar app-shell 合同下准入）。
+跨实例协同的接缝由 `avatar_instance_registry` 提供（在 Avatar app-shell 契约中准入）。
 
-## 阅读场景：口型桥
+## 场景：唇形同步桥
 
-Agent 说话；嘴型应跟音频同步。
+Agent 开口说话，唇形需要与音频对齐。
 
-1. **Runtime 发语音回放事件。** 通过准入 runtime 呈现时间线。
-2. **`lipsync_frame_batch`。** Runtime 发带类型化时序的帧批次。
-3. **Avatar 消费。** 通过 SDK 队列，帧到达 Avatar。
-4. **Avatar 桥到 Live2D。** 帧驱动 Live2D `ParamMouthOpenY` 参数。
-5. **可见结果。** 嘴型跟音频回放同步。
+1. **Runtime 发出语音回放事件**。通过准入的 Runtime 展示时间线。
+2. **`lipsync_frame_batch`**。Runtime 发出强类型时序的帧批次。
+3. **Avatar 消费帧**。帧通过 SDK 队列抵达 Avatar。
+4. **Avatar 桥接到 Live2D**。帧驱动 Live2D 的 `ParamMouthOpenY`。
+5. **可见结果**。唇形与音频对齐。
 
-口型是 wave-3 准入桥；它是平台里更精细的跨域编排路径之一。
+唇形同步是一条 wave-3 准入的桥接路径，是平台中跨域编排较深的一条。
 
-## 边界总结
+## 边界归属
 
-| 关注 | 拥有者 |
+| 关注点 | 归属 |
 | --- | --- |
-| 事件分类 | Avatar 事件合同 |
-| 事件发出 | Avatar 呈现层 |
-| 事件消费 | NAS 处理器、mod、其他 App |
+| 事件分类 | Avatar event 契约 |
+| 事件发出 | Avatar 语义层 |
+| 事件消费 | NAS 处理器、Mod、其它 App |
 | 跨实例协同 | `avatar_instance_registry` |
-| 口型桥 | Runtime 呈现层事件流 + SDK 队列 + Avatar `ParamMouthOpenY` |
+| 唇形同步桥 | Runtime 展示流 + SDK 队列 + Avatar `ParamMouthOpenY` |
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/avatar/kernel/avatar-event-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/avatar-event-contract.md)
 - [`.nimi/spec/avatar/kernel/embodiment-projection-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/embodiment-projection-contract.md)

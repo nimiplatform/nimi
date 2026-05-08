@@ -1,60 +1,60 @@
 # Runtime Client
 
-SDK runtime client 是 App 进入 Runtime 行为的公开路径。它**应该**被用，而不是直接 import runtime 私有代码或走 App 特定的旁路。
+SDK 的 Runtime client 是 App 通往 Runtime 行为的公开路径。应使用它，而不是从 runtime 私有代码直接导入或绕路。
 
-支撑这页的 kernel 规则在 `S-RUNTIME-*` 与 `S-TRANSPORT-*` 下。
+本页背后的内核规则在 `S-RUNTIME-*` 与 `S-TRANSPORT-*`。
 
 ## 它代表什么
 
-Runtime client 把 Runtime 能力暴成 TypeScript 表面：transport、元数据、流式行为、错误、按能力分组的 runtime 方法。它让 App 调 Runtime 时跟整个平台用同一条权威边界。
+Runtime client 把 Runtime 能力改写成一份 TypeScript surface：传输、元数据、流式行为、错误，以及按能力分组的 runtime 方法。它让 App 用与平台其余部分一致的权威边界去调用 Runtime。
 
-也就是说，写在 `sdk/runtime` 上的 App 不必知道某个 runtime 方法是哪个包实现的、transport 怎么处理重试、runtime 审计怎么记。这些事都被 SDK 边界处理。
+也就是说，针对 `sdk/runtime` 写出来的 App，不需要知道某个 runtime 方法由哪个包实现、传输如何重试、runtime 审计如何记录。这些事都由 SDK 改写承担。
 
-## 它藏什么、暴什么
+## 它隐藏什么、暴露什么
 
-Runtime client 故意藏：
+Runtime client 有意隐藏：
 
-- 私有 transport 实现；
-- 不该泄露的内部错误形状；
-- 私有 runtime 工具函数；
-- 原始 transport 重试与 auth 刷新（这是机制，不是合同救援）。
+- 私有传输实现；
+- 不应外泄的内部错误形状；
+- 私有 runtime helper；
+- 原始传输重试与鉴权刷新——这些是机制，不是契约救援。
 
-它故意暴：
+它有意暴露：
 
-- 按能力分组的类型化 runtime 方法（工作流、流式、多模态、委派表面、Agent 参与表面）；
-- App 用来理解行为的 transport 元数据；
-- App 可以以编程方式响应的 runtime 错误形状；
-- 跟 Runtime 流式合同对齐的流式基础协议。
+- 按能力域分组的强类型 runtime 方法（工作流、流式、多模态、受委派 surface、Agent 参与改写）；
+- App 理解行为所需的传输元数据；
+- App 可以编程响应的 runtime 错误改写；
+- 与 Runtime 流式契约对齐的流式基础协议。
 
-## 为什么"直接访问"不是方式
+## 为什么不走"直接访问"模式
 
-直接访问引出两个问题。第一，它把 App 耦合到 Runtime 私有内部。第二，它让 App 形成可能跟 Runtime 来源合同对不上的本地预期。SDK 边界两者都防。
+直接访问会带来两个问题。第一，App 与 Runtime 私有内部耦合。第二，App 形成了一种与 Runtime 源契约可能不一致的本地预期。SDK 边界把这两件事都挡掉。
 
-如果某个 runtime 能力看起来必须直接 import 才能用，那是**SDK 边界需要新增准入表面的信号**，不是边界该被绕开的信号。
+如果某个 runtime 能力让人觉得"必须直接导入才能用"，那是 SDK 改写需要新的准入 surface 的信号，而不是边界应被绕开的信号。
 
-## 阅读场景：通过 client 跑流式生成
+## 场景：通过 client 跑流式生成
 
-App 通过 `sdk/runtime` 发起一次流式生成：
+某个 App 通过 `sdk/runtime` 发起一次流式生成：
 
-1. App 调 runtime client 的生成方法，带类型化请求。
-2. Client 把请求传输出去，并暴露一个跟 Runtime 流式合同对齐的类型化流式基础协议。
-3. App 消费这个流式基础协议，不发明自己的 chunk 语义。阶段边界、终止帧、错误语义都来自合同。
-4. 如果工作流产出了多模态 artifact，artifact 通过类型化形状暴露，不是自由格式 URL。
-5. 错误以 SDK 错误合同定义的类型化形状到达。App 不必解析自由文本。
+1. App 用强类型请求调用 runtime client 的生成方法。
+2. Client 把请求传输出去，并暴露与 Runtime 流式契约一致的强类型流式基础协议。
+3. App 消费该流式基础协议，无须自创 chunk 语义。阶段边界、终止帧、错误语义都来自契约。
+4. 工作流如产出多模态产物，产物以强类型形状暴露，不会以自由 URL 形式出现。
+5. 错误以 SDK 错误改写定义的强类型形态返回。App 不必去解析自由格式消息。
 
-这个流是 App 跨 Runtime 内部变更仍然可移植的原因。
+这样的流程让 App 在 Runtime 内部演进时仍然可移植。
 
-## 阅读场景：某个方法还不在 client 上
+## 场景：方法尚未在 client 上
 
-Runtime kernel 准入了一个新能力，但 SDK 边界还没准入。App 不能从私有内部合成这个调用。正确动作是：
+假设 Runtime 在内核里准入了一个新能力，但 SDK 改写还未准入。App 不能从私有内部合成调用。正确做法是：
 
-- 把"缺席"当作合同。
-- 提交或跟进准入 SDK 表面的工作。
-- 等准入。
+- 把"缺席"当作契约。
+- 提交或跟进准入 SDK surface 的工作。
+- 等待改写。
 
-那种等待感觉慢。它正是让 SDK 不积累任何东西都担保不了的静默表面的原因。
+这种等待感觉慢。这正是 SDK 不会积累一堆"无人背书的静默 surface"的原因。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/sdk/runtime.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/runtime.md)
 - [`.nimi/spec/sdk/kernel/runtime-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/runtime-contract.md)

@@ -1,23 +1,23 @@
-# Workflows
+# 工作流
 
-工作流是 Runtime 用来跑「不止一轮请求-响应」的 AI 工作的类型化执行图。这页讲工作流模型、类型化节点、工作流状态机、合并策略。
+工作流是 Runtime 的强类型执行图，用来跑超过单次请求-响应的 AI 工作。本页讲清楚工作流模型、强类型节点、状态机，以及合并策略。
 
-流式细节见 [流式](/zh/runtime/streaming)。非文本 artifact 见 [多模态](/zh/runtime/multimodal)。
+流式细节见 [流式](/zh/runtime/streaming)；非文本产物见 [多模态](/zh/runtime/multimodal)。
 
 ## 工作流是什么
 
-工作流是类型化节点构成的 DAG。App 通过组合准入节点种类来构造工作流；Runtime 拥有执行、重试、分支、合并、审计。
+工作流是一张由强类型节点构成的 DAG。App 通过组合准入节点种类来构建工作流；执行、重试、分支、合并、审计都归 Runtime。
 
-| 性质 | 值 |
+| 属性 | 值 |
 | --- | --- |
-| 形状 | 有向无环图 |
-| 节点数 | 3 类共 15 种类型化种类 |
-| 重试 | 按节点，准入合同 |
-| 分支 | 通过 `CONTROL_BRANCH` 条件化 |
-| 合并 | 通过 `CONTROL_MERGE` 配准入策略汇合 |
-| 执行 | 内联或外部异步 |
+| 形态 | 有向无环图 |
+| 节点种类 | 三类共 15 种强类型 |
+| 重试 | 节点级，按准入契约 |
+| 分支 | 通过 `CONTROL_BRANCH` 条件分支 |
+| 合并 | 通过 `CONTROL_MERGE` 加准入策略汇合 |
+| 执行 | inline 或 external-async |
 
-App 不发明执行语义。工作流受准入合同约束；未定义的节点种类 fail-close。
+执行语义不归 App 自创。工作流由准入契约约束；未定义的节点种类 fail-closed。
 
 ## 15 种节点
 
@@ -27,11 +27,11 @@ App 不发明执行语义。工作流受准入合同约束；未定义的节点�
 | Transform | `TRANSFORM_EXTRACT`、`TRANSFORM_TEMPLATE`、`TRANSFORM_SCRIPT` |
 | Control | `CONTROL_BRANCH`、`CONTROL_MERGE`、`CONTROL_NOOP` |
 
-每种都有类型化输入、类型化输出、准入的重试 / 分支 / 合并语义。种类在 Runtime kernel 准入；新种类需要 kernel 扩展。
+每种节点都有强类型输入、强类型输出、准入的重试 / 分支 / 合并语义。节点种类在 Runtime 内核层级准入；新增节点需要内核扩展。
 
 ## 工作流状态机
 
-| 状态 | 终态？ |
+| 状态 | 是否终态 |
 | --- | --- |
 | `ACCEPTED` | 否 |
 | `QUEUED` | 否 |
@@ -41,51 +41,51 @@ App 不发明执行语义。工作流受准入合同约束；未定义的节点�
 | `CANCELED` | 是 |
 | `SKIPPED` | 是 |
 
-工作流以 `COMPLETED | FAILED | CANCELED | SKIPPED` 之一结束。状态对 App 通过工作流事件流可观测。
+工作流必然终止于 `COMPLETED | FAILED | CANCELED | SKIPPED` 之一。App 通过工作流事件流观察状态。
 
 ## 工作流事件流
 
-工作流跑的过程中，Runtime 发类型化事件：
+工作流运行期间，Runtime 发出强类型事件：
 
 | 事件 | 触发时机 |
 | --- | --- |
 | `STARTED` | 工作流进入 `RUNNING` |
 | `NODE_STARTED` | 节点开始执行 |
 | `NODE_PROGRESS` | 节点发出进度 |
-| `NODE_COMPLETED` | 节点完成 |
+| `NODE_COMPLETED` | 节点结束 |
 | `NODE_SKIPPED` | 节点被跳过 |
-| `COMPLETED` | 工作流到 `COMPLETED` |
-| `FAILED` | 工作流到 `FAILED` |
-| `CANCELED` | 工作流到 `CANCELED` |
+| `COMPLETED` | 工作流到达 `COMPLETED` |
+| `FAILED` | 工作流到达 `FAILED` |
+| `CANCELED` | 工作流到达 `CANCELED` |
 
-加上扇出到 Provider 异步任务的节点对应的外部异步变体（见 [多模态](/zh/runtime/multimodal)）。
+此外还有 external-async 变体，对应扇出到 provider 异步任务的节点（详见 [多模态](/zh/runtime/multimodal)）。
 
 ## 合并策略
 
-多条并行分支在 `CONTROL_MERGE` 节点汇合时，合并策略决定何时满足：
+多个并行分支汇聚到 `CONTROL_MERGE` 节点时，合并策略决定何时满足合并条件：
 
 | 策略 | 满足条件 |
 | --- | --- |
-| `ALL` | 所有上游分支完成 |
-| `ANY` | 任意一条上游分支完成 |
-| `N_OF_M` | N 条上游分支完成 |
+| `ALL` | 所有上游分支均完成 |
+| `ANY` | 任一上游分支完成 |
+| `N_OF_M` | N 个上游分支完成 |
 
 合并策略在工作流构造时声明；Runtime 强制执行。
 
-## 内联与外部异步执行
+## inline 与 external-async 执行
 
-| 模式 | 何时 |
+| 模式 | 适用场景 |
 | --- | --- |
-| 内联 | 节点在工作流运行内同步执行 |
-| 外部异步 | 节点扇出到 Provider 异步任务或别的长跑外部工作；工作流跟踪外部生命周期 |
+| inline | 节点在工作流执行内部同步执行 |
+| external-async | 节点扇出到 provider 异步任务或其他长任务外部工作；工作流跟踪外部生命周期 |
 
-外部异步让一个含（比如）长跑视频生成任务的工作流不至于把整个工作流挡住。Provider 异步生命周期（`queued → running → succeeded | failed | expired`）规范化映到工作流状态机。
+external-async 让一个包含长任务（比如视频生成）的工作流不必整体阻塞。Provider 异步生命周期（`queued → running → succeeded | failed | expired`）被归一化进工作流状态机。
 
-## ScenarioJob 链接
+## ScenarioJob 接桥
 
-工作流的 AI 节点路由经 `ScenarioJob` 走统一执行语义。`ScenarioJob` 是任何 AI 请求的共享生命周期：
+工作流的 AI 节点经 `ScenarioJob` 路由，以获得统一执行语义。`ScenarioJob` 是任意 AI 请求共享的生命周期：
 
-| 状态 | 终态？ |
+| 状态 | 是否终态 |
 | --- | --- |
 | `SUBMITTED` | 否 |
 | `RUNNING` | 否 |
@@ -94,46 +94,46 @@ App 不发明执行语义。工作流受准入合同约束；未定义的节点�
 | `TIMEOUT` | 是 |
 | `CANCELED` | 是 |
 
-想要任意 AI 工作的统一句柄的 App 用 `ScenarioJob` 作桥 — 每种模态、每个 Provider、每个工作流节点都扇出到 `ScenarioJob` 生命周期。
+如果 App 想要一个统一句柄观察任意 AI 工作，就把 `ScenarioJob` 当成桥：每种模态、每个 provider、每个工作流节点最终都扇出到 `ScenarioJob` 生命周期。
 
-## 阅读场景：多步工作流
+## 场景：多步工作流
 
-App 构造一条工作流：
+App 构造一个工作流，做这几件事：
 
 1. 从 PDF 抽文本（`TRANSFORM_EXTRACT`）。
-2. 把抽出的文本做 embedding（`AI_EMBED`）。
+2. 嵌入抽出的文本（`AI_EMBED`）。
 3. 生成结构化分析（`AI_GENERATE`）。
-4. 把分析合成 TTS（`AI_TTS`）。
+4. 把分析合成为 TTS（`AI_TTS`）。
 
-执行：
+执行过程：
 
-1. 工作流进入 `ACCEPTED`。DAG 被校验；节点种类被准入；重试 / 分支 / 合并合同被记下。
-2. 工作流搬到 `QUEUED`，再到 `RUNNING`。`STARTED` 事件触发。
-3. 节点 1 跑。`NODE_STARTED → NODE_PROGRESS → NODE_COMPLETED`。
-4. 节点 2 跑。Embedding 结果是类型化的。
-5. 节点 3 跑。结构化输出是类型化的；schema 不通过则节点失败（暂不影响整个工作流）。
-6. 节点 4 跑。TTS artifact 按多模态 artifact 合同投递。
-7. 工作流到 `COMPLETED`。审计被记下。
+1. 工作流进入 `ACCEPTED`。校验 DAG，准入节点种类，记录重试 / 分支 / 合并契约。
+2. 工作流切到 `QUEUED`，再到 `RUNNING`。`STARTED` 事件触发。
+3. 节点 1 运行：`NODE_STARTED → NODE_PROGRESS → NODE_COMPLETED`。
+4. 节点 2 运行。嵌入结果是强类型的。
+5. 节点 3 运行。结构化输出是强类型的；schema 校验不过则节点失败（此时工作流尚未失败）。
+6. 节点 4 运行。TTS 产物按多模态产物契约交付。
+7. 工作流到达 `COMPLETED`，写入审计。
 
-任一节点撞合同失败时，工作流终态取决于节点级重试策略。瞬时错误可重试；合同失败 fail-close。
+任何节点遇到契约失败时，工作流的终态依赖节点级重试策略。瞬时错误可能重试；契约失败按 fail-closed 处理。
 
-## 阅读场景：分支-合并工作流
+## 场景：分支与合并
 
-App 构造一条工作流：
+App 构造一个工作流，做这几件事：
 
-1. 并行生成三条候选标题（`AI_GENERATE`、`AI_GENERATE`、`AI_GENERATE`）。
-2. 用 `ANY` 策略合并（先到的赢）。
-3. 用赢的标题继续。
+1. 并行生成三个候选 caption（三个 `AI_GENERATE`）。
+2. 用 `ANY` 策略合并（最先完成胜出）。
+3. 沿用胜出 caption 继续。
 
-执行：
+执行过程：
 
-1. 三个 `AI_GENERATE` 节点并行跑。
-2. 第一个完成的满足 `CONTROL_MERGE` 的 `ANY`。其他两个通常被 `CANCELED` 释放资源（依准入取消策略）。
-3. 下游用赢的标题继续。
+1. 三个 `AI_GENERATE` 并行运行。
+2. 第一个完成的满足 `CONTROL_MERGE` 的 `ANY`。其余两个通常会被 `CANCELED` 释放资源（取决于准入的取消策略）。
+3. 下游沿用胜出 caption 继续。
 
-策略语义在这里很重要。`ALL` 等三个；`ANY` 取最早；`N_OF_M` 让工作流挑「3 选 N 的最佳」并带后备。策略是声明的，不是运行时即兴。
+策略语义在这里很要紧。`ALL` 会等齐三个；`ANY` 取最先完成的；`N_OF_M` 让工作流挑出"3 选 N"配合回退。策略由声明给出，运行时不能临时改。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/runtime/kernel/workflow-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/workflow-contract.md)
 - [`.nimi/spec/runtime/kernel/scenario-job-lifecycle.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/scenario-job-lifecycle.md)

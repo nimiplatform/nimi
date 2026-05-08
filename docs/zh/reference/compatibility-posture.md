@@ -1,74 +1,74 @@
-# 兼容性姿态
+# 兼容姿态
 
-Nimi 公开文档的兼容与迁移姿态参考。
+Nimi 公开文档对兼容性与迁移的姿态参考。
 
-## 姿态总结
+## 姿态摘要
 
-| 性质 | 值 |
+| 属性 | 值 |
 | --- | --- |
 | 姿态名 | `no_legacy_hard_cut` |
-| Pre-launch | 是 |
-| 软兼容 shim | 禁 |
-| 时间分层 | 禁（分层是本体性的：core / extended / custom） |
-| Strict-only 协议版本 | 是 |
-| 合同违反 fail-close | 是 |
-| 重试救援合同失败 | 否 |
+| 处于发布前 | 是 |
+| 软兼容 shim | 禁止 |
+| 时间维度分层 | 禁止（分层只按本体：core / extended / custom） |
+| 严格协议版本 | 是 |
+| 契约违例 fail-close | 是 |
+| retry 救契约失败 | 否 |
 
-## 给读者的实操含义
+## 实际含义
 
 | 情况 | 预期行为 |
 | --- | --- |
-| 某页被移除 | 优先于过时页 |
-| 类型化合同失败 | 露类型化错误、**不**静默回退 |
-| 重试发生 | 只为 transport / auth 刷新、**永不**救援合同 |
-| 旧路由存在 | 要么作为 admitted 公开真相保留、要么硬移除；**不**作为隐藏兼容保留 |
-| 新功能上线 | 带完整合同设计交付、**不**作为以后补全的 MVP 子集 |
+| 某页被删除 | 优先于一份过期页 |
+| 强类型契约失败 | 上抛强类型错误，不静默回退 |
+| 出现 retry | 仅用于传输 / auth refresh，不救契约 |
+| 旧路径存在 | 要么按已准入公开真相保留，要么硬移除；不留作隐式兼容 |
+| 新功能上线 | 一次性带完整契约设计，不走 MVP 子集再补 |
 
-## 禁用兼容形状
+## 禁止的兼容形态
 
-方法学的 `forbidden_shortcuts` 目录列公开文档与实现拒的模式：
+方法论 `forbidden_shortcuts` 目录列出公开文档与实现拒绝的模式：
 
-| Key | 拒绝模式 |
+| 键 | 拒绝的模式 |
 | --- | --- |
-| `legacy_alias` | 用软别名让旧语义存活 |
-| `compat_shim` | 把 owner-cut gap 藏在临时兼容代码后 |
-| `dual_read` | 没显式准入的两条并行真相读路径 |
-| `dual_write` | 没显式准入的两条并行真相写路径 |
-| `mvp_subset_contract` | 把规范化合同真相切成临时最小子集 |
+| `legacy_alias` | 用软别名延续过时语义 |
+| `compat_shim` | 用临时兼容代码遮盖归属切割 |
+| `dual_read` | 两条未显式准入的并行真相读路径 |
+| `dual_write` | 两条未显式准入的并行真相写路径 |
+| `mvp_subset_contract` | 把规范契约真相砍成临时最小子集 |
 | `time_phased_layering` | 用时间切片（v1/v2/v3）替代语义分层 |
-| `placeholder_success` | 缺必需真相时伪造成功或闭合 |
-| `happy_path_only_closure` | 只闭 happy path 就声称闭合 |
-| `app_local_shadow_truth` | App 局部便利状态变成隐藏规范化真相 |
-| `silent_owner_cut_reopen` | 在下游执行 wave 内重开 owner 域真相 |
+| `placeholder_success` | 在缺失真相时假装成功或闭合 |
+| `happy_path_only_closure` | 仅完成 happy path 就宣告闭合 |
+| `app_local_shadow_truth` | App 本地便利状态变成隐式规范真相 |
+| `silent_owner_cut_reopen` | 在下游执行 wave 中重开归属域真相 |
 
-## Pre-Launch 公开声明约束
+## 发布前公开声明的约束
 
-公开文档当前不发布以下类别：
+发布前，公开文档不发布以下内容：
 
-| 声明类 | 姿态 |
+| 声明类型 | 姿态 |
 | --- | --- |
-| 安装命令（curl / npm / pnpm / brew / apt / yarn） | 在 admitted 分发证据前扣下 |
-| 下载链 | 在 admitted 分发证据前扣下 |
-| 发布状态 / 发布承诺 | 在 admitted 发布证据前扣下 |
-| 具体 Provider 名 / Model 名 | 在 admitted 目录证据前扣下 |
-| Provider 可用性矩阵 | 在 admitted 目录证据前扣下 |
-| Defined-but-not-shipped 面的「现在可用」/「GA」/「稳定」声明 | 禁 |
+| 安装命令（curl / npm / pnpm / brew / apt / yarn） | 等分发证据准入后再开 |
+| 下载链接 | 等分发证据准入后再开 |
+| 发布状态 / 上线承诺 | 等发布证据准入后再开 |
+| 具体 provider 名 / 模型名 | 等目录证据准入后再开 |
+| Provider 可用性矩阵 | 等目录证据准入后再开 |
+| 对未上线面声明 "Available now" / "GA" / "Stable" | 禁止 |
 
-完整禁用公开文档声明列表带检测模式见 [禁用主张](/zh/reference/forbidden-claims)。
+完整禁止列表与检测模式见 [禁止声明](/zh/reference/forbidden-claims)。
 
-## 合同演化路径
+## 契约演进路径
 
-defined-but-not-shipped 面怎么毕业到公开面：
+一个已定义但未上线的面如何走到公开面：
 
-1. 在合适的权威域下准入 kernel 合同（`P-PROTO-*` / `K-*` / `S-*` / `D-*` / `R-*`）。
-2. 实现在 owner 域下落地。
-3. 准入目录证据（给 Provider / Model）。
-4. 准入分发 / 发布证据（给安装 / 下载）。
-5. 公开文档页更新反映可用性。
+1. 按对应权威域准入 kernel 契约（`P-PROTO-*` / `K-*` / `S-*` / `D-*` / `R-*`）。
+2. 在归属域内完成实现。
+3. provider / 模型的目录证据准入。
+4. 分发 / 发布证据准入（用于 install / download）。
+5. 公开文档页更新可用性。
 
-文档页**无法**预宣告合同演化没到的阶段。
+文档页不能预告契约还没走到的阶段。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/platform/protocol.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/protocol.md)
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)

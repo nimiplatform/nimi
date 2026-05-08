@@ -1,33 +1,33 @@
 # 权威模型
 
-Nimi 的权威模型让差异极大的参与者共享同一个平台：终端用户、世界创作者、Mod 开发者、应用开发者、AI Agent、外部 AI 宿主都在其中，但其中任何一个都不能悄悄盖过另一个。本页用产品语言解释这个模型。
+Nimi 的权威模型让差异巨大的参与者——终端用户、世界创作者、Mod 开发者、App 开发者、AI Agent、外部 AI 宿主——共享同一个平台，且互不悄悄覆盖。本页从产品角度解释这一模型。
 
-模式级定义见 [Reference → Authority Domains](/zh/reference/authority-domains)。
+如需 schema 级定义，参见 [Reference → Authority Domains](/reference/authority-domains)。
 
 ## 模型回答的三个问题
 
-任何跨参与者平台都要回答这三个问题：
+任何多方共存的平台都得回答这三件事，权威模型也是如此：
 
-1. **谁在动作？** 主体（principal）模型。
-2. **他们被允许做什么？** 授权预设和 scope。
-3. **是哪类应用在做这件事？** 应用模式 — 仅渲染 vs 完整扩展。
+1. **谁在动手**：principal 模型。
+2. **它能做什么**：授权预设与作用域。
+3. **是哪一类 App**：App 模式——只读渲染还是可写扩展。
 
-## Principal（主体）
+## Principal
 
-一个 principal 是任何动作背后的实体。Nimi 把它们显式命名出来，授权才不会有歧义。
+Principal 是动作背后的主体。Nimi 给它显式命名，让授权不再含糊。
 
 | Principal | 代表什么 |
 | --- | --- |
-| User | 一个真人，有账号、身份、社交图、钱包。 |
-| Agent | 一等的自主参与者；不是工具，不是会话。 |
-| App | 代表用户运行的代码（仅渲染或扩展）。 |
-| External Principal | 被授予 scoped 能力域的外部 AI 宿主（委派 AI）。 |
+| User | 真实的人，有账户、身份、社交图、钱包。 |
+| Agent | 一等的自主参与者，不是工具，也不是会话。 |
+| App | 代表用户运行的代码（只读渲染或扩展）。 |
+| External Principal | 外部 AI 宿主（受委派 AI），获得作用域内的能力域。 |
 
-每一次动作都把 principal 的身份带进审计 lineage。这就是"外部 AI 做了这件事" vs "用户做了这件事" vs "Agent 做了这件事"被区分开的关键。
+每次动作都在审计血缘里带着 principal 身份。"外部 AI 做了这件事"、"用户做了这件事"、"Agent 做了这件事"由此被区分。
 
 ## 授权预设
 
-App 和外部 principal 拿不到自由形式的能力清单。平台准入了一小组预设模板，它们共享同样的 token 形状和验证链。
+App 与外部 principal 不会拿到自由格式的能力清单。平台准入了一组小预设模板，共享同样的 token 形态与校验链。
 
 | 预设 | 读 | 写 | 委派 |
 | --- | --- | --- | --- |
@@ -35,20 +35,20 @@ App 和外部 principal 拿不到自由形式的能力清单。平台准入了�
 | `full` | 是 | 是 | 否 |
 | `delegate` | 是 | 是 | 默认一层 |
 
-`delegate` 预设默认允许最多再委派一层 — 这是有意的。多跳委派链会破坏审计可追溯性，平台默认拒绝它。
+`delegate` 预设默认只允许再向下一层委派——这是刻意的。多跳委派会破坏审计追溯，平台默认不接受。
 
 ## App 模式
 
-一个 App 声明自己是哪类公民。模式决定 App 能写什么、以及一个世界里能同时活几个这样的 App。
+App 在声明时就要表明自己是哪一类公民。模式决定 App 能写什么，以及一个世界里能同时活着多少个这样的 App。
 
-| 模式 | 读世界数据 | 写世界数据 | 一个世界里并存数 |
+| 模式 | 读世界数据 | 写世界数据 | 每个世界并发数 |
 | --- | --- | --- | --- |
-| `render-app` | 是 | 否 | 多个 |
-| `extension-app` | 是 | 是 | 同时最多一个 active |
+| `render-app` | 是 | 否 | 多 |
+| `extension-app` | 是 | 是 | 同时最多一个激活 |
 
-一个世界在任何时刻最多有一个 active 的 `extension-app` binding。重新绑定需要先显式吊销 — 平台**不会**悄悄转移写权威。
+每个世界在任意时刻最多只有一个激活的 `extension-app` 绑定。换绑必须先显式撤销，平台不会悄悄转移写权威。
 
-## App-世界绑定生命周期
+## App 与世界的绑定生命周期
 
 ```
 (new) → active → suspended → revoked
@@ -56,59 +56,59 @@ App 和外部 principal 拿不到自由形式的能力清单。平台准入了�
               └─────┘
 ```
 
-- 一个世界初始没有 active App binding。
-- 一个被准入的 extension-app 可以进入 `active`。
-- active binding 可以被 `suspended`（暂停，可恢复）或 `revoked`（移除；另一个 App 可以绑定了）。
-- 暂停可逆；吊销不可逆。
+- 世界初始没有任何 App 绑定。
+- 一个准入的 extension-app 可以进入 `active`。
+- 激活态的绑定可以 `suspended`（暂停，可恢复）或 `revoked`（撤销，移除后另一个 App 可绑定）。
+- 暂停可逆，撤销不可逆。
 
-## External Principal（外部主体）
+## 外部 Principal
 
-平台把外部 AI 宿主（独立的 AI Provider、有 MCP 工具的 Agent、未来的 A2A peer）作为 `ExternalPrincipal` 实体准入。它们在授权模型里是一等参与者 — 不是事后追加的集成。
+平台把外部 AI 宿主（另一家 AI 提供者、装了 MCP 工具的 Agent、未来的 A2A peer）准入为 `ExternalPrincipal` 实体。它们是授权模型里的一等参与者，不是事后补丁式的集成。
 
 | 属性 | 值 |
 | --- | --- |
-| Token 形状 | Scoped，单次明文显示 |
-| 签发后 token 可见性 | 只在 immutable 的 token ledger 里 |
+| Token 形态 | 带作用域，明文一次性展示 |
+| 颁发后可见性 | 只在不可变 token 账本中可见 |
 | 能力域 | `action.discover.*`、`action.dry-run.*`、`action.verify.*`、`action.commit.*` |
-| 签发 UI | 桌面端的 External Agent Access 面板 |
+| 颁发界面 | 桌面端的 External Agent Access 面板 |
 
-scoped token **不**授予任意动作。每个能力域都有自己已认可的操作。一个外部 AI 不能送礼物，除非 token 带 `action.commit.gift`（或同等已认可能力）。
+带作用域的 token 不是任意动作的通行证。每个能力域有自己准入的操作集合。如果 token 没有 `action.commit.gift`（或等价的准入能力），外部 AI 就送不出礼物。
 
-## 阅读场景：App 作者挑选合适的模式
+## 场景：App 作者选模式
 
-你在写一个新 App。它要读世界状态、把它显示得好看，让用户写聊天消息。
+你在写一个新 App。它需要读世界状态、把它呈现得好看、让用户编辑聊天消息。
 
-- 你不需要写世界真相。世界状态变更不是你 App 的事。
-- 你能跟其他 App 一起跑 — 你的 App 不应该挡住其他 extension-app 的绑定。
+- 你不需要写世界真相，世界状态变更不属于这个 App。
+- 你能与其它 App 并存，不应该挡住别的 extension-app 绑定。
 
-这正是 `render-app` 的画像。你通过 `sdk/world` 和 `sdk/realm` 读世界数据；聊天编写走聊天 API，你的 App 不需要在世界真相上拥有写权威。
+这正是 `render-app` 的画像。你通过 `sdk/world` 与 `sdk/realm` 读世界数据，聊天编写走聊天 API，App 不需要成为世界真相的写权威。
 
-如果以后你加了一个会改变世界规则的特性，就需要切到 `extension-app` 模式并绑定到世界。一个世界同时只能有一个 active 的 extension-app — 你要么需要专属性准入，要么这个特性应该放别的地方。
+如果以后你加了一个会改世界规则的功能，就要切到 `extension-app` 模式并绑定到世界。每个世界仅一个激活 extension-app，你要么走专属准入，要么把这个功能放到别处。
 
-## 阅读场景：用户给外部 AI 授有限访问权
+## 场景：用户给外部 AI 受限访问
 
-你想让一个外部 AI 宿主能读你的联系人、给出回复建议 — 但不能不经你同意发消息，也根本不能碰你的钱包。
+你希望外部 AI 宿主能读你的联系人、给你建议回复，但不希望它在你不同意时直接发消息，也不希望它接触你的钱包。
 
-1. 你打开桌面端的 External Agent Access 面板。
-2. 你勾选能力域：`action.discover.contacts`、`action.dry-run.message_compose`。你**排除** `action.commit.*` 这一类消息能力，并排除所有钱包相关域。
-3. 面板签发一个 scoped token，单次明文显示。
-4. 你把 token 给你的外部 AI。从此以后，token ledger 显示这次签发、active scope、以及你做过的撤销。平台**不会**再次显示 token 明文。
-5. 外部 AI 提出 scope 之外的操作，会在输出防火墙里 fail-closed — `POLICY_BLOCKED` 或 `REJECTED`。
-6. scope 之内但属于敏感类的操作仍然要你批准 — 批准本身被记进审计 ledger 作为证据。
+1. 你在桌面端打开 External Agent Access 面板。
+2. 选择能力域：`action.discover.contacts`、`action.dry-run.message_compose`。把消息的 `action.commit.*` 排除，把所有钱包域排除。
+3. 面板颁发一个带作用域的 token，明文一次性展示。
+4. 你把 token 给外部 AI。从这一刻起，token 账本会记录颁发、当前作用域、以及你做的任何撤销。平台不会再把 token 明文展示出来。
+5. 外部 AI 提议任何超出作用域的事，输出防火墙会 fail-closed——`POLICY_BLOCKED` 或 `REJECTED`。
+6. 它在作用域内但属于敏感类的提议仍要你审批，并以证据形式记入审计账本。
 
-权威模型让这件事是安全的。token 不是自由形式的钥匙；scope 是被准入的；防火墙在执行；审计在记录。
+权威模型让这件事变得安全。Token 不是自由格式钥匙；作用域是准入的；防火墙负责执行；审计账本负责记录。
 
-## 为什么是这个形状
+## 这套模型为什么这样设计
 
-| 关注 | 这个设计如何回应 |
+| 关注点 | 这套设计如何回应 |
 | --- | --- |
-| AI Agent 是一等的 | principal 模型把 agent 和 external-principal 当作真实参与者，不是用户的快捷方式。 |
-| App 必须可替换 | App 模式不是特权层级；桌面端是一个 extension-app 同侪。 |
-| 外部 AI 必须安全 | scoped token + ledger + 防火墙 + 批准是端到端的链，不是单一守门员。 |
-| 审计必须能重建 | 每个动作都带 principal lineage；token 不可重新显示来伪造来源。 |
-| 世界所有权必须明确 | 一个世界同时最多一个 active 的 extension-app；绑定是显式的。 |
+| AI Agent 是一等公民 | principal 模型把 Agent 与外部 principal 当作真实参与者，不是用户的快捷方式 |
+| App 必须可被替换 | App 模式不是特权层级，桌面端只是一个 extension-app 同侪 |
+| 外部 AI 必须安全 | 带作用域 token、账本、防火墙、审批是端到端的链路，不是单一闸口 |
+| 审计必须可还原 | 每次动作都带 principal 血缘；token 不会重复展示，伪造来源走不通 |
+| 世界归属必须无歧义 | 每个世界最多一个激活 extension-app，绑定显式 |
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/platform/architecture.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/architecture.md)
 - [`.nimi/spec/platform/kernel/architecture-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/architecture-contract.md)

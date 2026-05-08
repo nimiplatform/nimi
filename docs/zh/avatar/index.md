@@ -1,53 +1,51 @@
 # Avatar
 
-Avatar 负责 Agent 的**呈现方式** — 在某个窗口、某个虚拟形象或者某个动画里，Agent 长什么样、怎么动。这一层的规则很清楚：呈现方式可以多样，但 Agent 自己不会因为渲染换了样子就变成另一个 Agent。
+Avatar 关心的是 Agent 怎么被呈现——在某个窗口里、在虚拟形象里、在动画里。规则只有一句：呈现方式可以变，Agent 本身不会因为换了一种渲染方式就变成另一个 Agent。
 
-本页是产品域概览，不是已经做完的公开产品承诺。
+## Avatar 究竟是什么
 
-## Avatar 到底是什么
+Avatar 不只是一张图。它是 AI 参与者的呈现层，并且这一层是受治理的。它涵盖视觉外形、动作、事件、每个 Carrier 表面愿意展示哪些部分，以及不同后端的渲染分支。
 
-Avatar 不只是一张图片。它是 AI 参与者的呈现层 — 涵盖形象、动作、事件，以及不同承载面（窗口、应用、设备）能不能显示这套形象、能显示成什么样。
+Avatar 之所以独立成为一个权威域，是因为呈现必须忠于 Agent 的真相，不能自己另搞一套。如果 Avatar 不动了，那是渲染的问题，Agent 并没有掉线；如果某个 Carrier 显示出来的样子和 Agent 的画像不一致，那是渲染层的差异，Agent 没有改变。
 
-Avatar 单独存在的原因是：呈现要**跟随** Agent 的真相，不能反过来定义 Agent。如果 Avatar 因为渲染出错停止动作，那是渲染问题，不会让 Agent 变成不在线；如果某个承载面把 Agent 显示成了和资料不一样的样子，那是渲染端的不匹配，不是 Agent 真的换了。
-
-## Avatar 拥有 / 不拥有什么
+## Avatar 拥有什么、不拥有什么
 
 Avatar 拥有：
 
-- 具身呈现合同（Agent 如何在一个承载面上被呈现）；
-- 承载面视觉接受合同（承载面是否能在已认可形状下显示这套具身）；
-- 外壳特定的渲染分支（桌面端 Avatar 与其他外壳各自有已认可合同）。
+- 具身化语义层契约：Agent 如何被呈现到 Carrier 上；
+- Carrier 视觉接受契约：Carrier 在准入的形态下能否展示这套具身化；
+- 各 Shell 自身的渲染分支：桌面端 Avatar 与其它 Shell 各有准入契约。
 
-Avatar **不**拥有：
+Avatar 不拥有：
 
-- Agent 身份（Runtime 拥有 Runtime-owned Agent 参与真相和实时 Agent 生命周期）；
-- Agent 记忆（Cognition 拥有记忆权威）；
-- 世界社交关系（Realm 拥有）；
-- 生成与执行（Runtime 拥有）。
+- Agent 的身份：归 Runtime，由它持有 Agent 参与的真相和 Agent 的活体生命周期；
+- Agent 的记忆：归 Cognition；
+- 世界中的社交关系：归 Realm；
+- 生成与执行：归 Runtime。
 
-这一切分很重要。一个滑入了 Agent 身份或记忆权威的 Avatar 面板，就成了**并行权威**，不再是表现域。
+这条切分很重要。一个跑去管 Agent 身份或记忆的 Avatar 表面就成了平行权威，而不再是呈现域。
 
-## 阅读场景：承载面显示不出某种形象
+## 场景：某个 Carrier 没法显示一份具身化
 
-假设某个 Agent 的形象定义里有当前承载面渲染不了的动作。Avatar 合同会做这几件事：
+某个 Agent 的具身化定义包含了当前 Carrier 渲染不了的动作。按 Avatar 契约处理：
 
-1. 承载面视觉接受合同先判断这套形象在这个承载面上能不能用。
-2. 如果不能完整支持，承载面**不会**自己渲染一个半成品。合同决定下一步：回退到一种能用的呈现方式、直接拒绝，或者发出有类型的不兼容信号。
-3. Agent 在 Runtime 和 Cognition 里的真相**不会变**，不管承载面最后做了什么。
+1. Carrier 视觉接受契约决定这套具身化在该 Carrier 上能否准入。
+2. 不能完全准入时，Carrier 不会悄悄渲染半成品。契约决定后续走向：退到准入的备选呈现方案、拒绝、或抛出强类型不兼容。
+3. Runtime 与 Cognition 里的 Agent 真相不会因为 Carrier 这边发生了什么而改变。
 
-呈现问题留在 Avatar 域。Agent 还是那个 Agent。
+呈现的问题留在 Avatar，Agent 仍然是 Agent。
 
-## 阅读场景：Avatar 为什么不放进 Runtime
+## 场景：Avatar 为何独立于 Runtime
 
-有人会问：呈现既然要随 Agent 走，为什么不放在 Runtime 里？原因是呈现这件事：
+有人可能会问：呈现为什么不直接放在 Runtime 里？理由有三：
 
-- 在不同承载面上要做不同的呈现（桌面端 Avatar、其他可能的承载面）；
-- 有自己一套"哪些能显示"的判定逻辑；
-- 出问题时是渲染问题，能独立调试，不是执行问题。
+- 呈现要在不同 Carrier 上以不同方式渲染（桌面端 Avatar 以及未来其它 Carrier）；
+- 呈现自己有视觉接受姿态；
+- 呈现的问题可以作为渲染问题来调试和重放，而不是作为执行问题。
 
-要是塞进 Runtime，这些关注会跟执行语义挤在一起。分开之后，每个域的合同都更聚焦。
+如果把呈现塞进 Runtime，这些关注点会挤掉 Runtime 本身的执行语义。把它们分开，每个域的契约才能各自聚焦。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/avatar/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/index.md)
 - [`.nimi/spec/avatar/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/index.md)

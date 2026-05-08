@@ -1,143 +1,143 @@
-# 技能契约 (Skills)
+# 技能
 
-Nimi Coding 软件包对外暴露了四项**标准技能契约（Declared skills）**。每一个技能，都是一个具有严格类型约束的交互表面，专门用来给已准入的外部 AI 宿主（Host）去实现。这些技能，就是 AI 宿主在 Nimi Coding 纪律约束下干活儿的正式合同。
+Nimi Coding 包声明了四个**技能**。每个技能都是一个强类型表面，由已准入的外部 AI 宿主负责履行。技能就是宿主在 Nimi Coding 治理下做事的正式契约。
 
-## 四大核心技能
+## 四个技能
 
-| 技能 | 是否强制要求 | 目的 |
+| 技能 | 是否必需 | 用途 |
 | --- | --- | --- |
-| `spec_reconstruction` | 是 | 将项目当前杂乱无章的现状，重构提炼并收敛进 `.nimi/spec/**` 规范树中 |
-| `doc_spec_audit` | 是 | 拿着刚建好的 `.nimi/spec/**` 真相，去逐字对照审计人类手写的文档，寻找出入 |
-| `audit_sweep` | 否 | 发起一场对全项目的地毯式审计扫描，并吐出一份冻结的、不可篡改的发现项账本（Findings ledger） |
-| `high_risk_execution` | 否 | 在项目的规范真相源彻底成熟定型后，以 Packet（工作包）为边界执行高风险的开发任务 |
+| `spec_reconstruction` | 是 | 把项目现有内容重建为 `.nimi/spec/**` 下的规范权威树 |
+| `doc_spec_audit` | 是 | 对照 `.nimi/spec/**` 检查人写的文档 |
+| `audit_sweep` | 否 | 跑一次全覆盖审计 sweep，输出已冻结的 finding 账本 |
+| `high_risk_execution` | 否 | 项目真相成熟之后做 packet 化执行 |
 
-## `spec_reconstruction` (规范重建，必须)
+## `spec_reconstruction`（必需）
 
-这是任何一个刚接纳本方法论的新项目，必须运行的第一个技能。它的使命，是把项目里现有的那堆“大杂烩”——混杂的代码、东拼西凑的文档、过时的架构决定记录 (ADRs) 以及孤零零的 README——一股脑儿地提纯、重构成唯一权威的规范树，统一归置到 `.nimi/spec/**` 目录下。
+新项目最先要跑的技能。它把项目当前的混合内容（散落的代码、文档、ADR、README）转换为 `.nimi/spec/**` 下的规范权威树。
 
-| 喂给它的输入 | 吐出的输出 |
+| 输入 | 输出 |
 | --- | --- |
-| 各种大杂烩输入（代码、文档、目录结构、人类留下的便签） | 位于 `.nimi/spec/**` 下条理分明的权威规范树，附带一份 `.nimi/spec/_meta/spec-generation-audit.yaml` 审计报告 |
+| 混合输入（代码、文档、目录结构、人类笔记） | `.nimi/spec/**` 规范树以及 `.nimi/spec/_meta/spec-generation-audit.yaml` |
 
-| 技能属性 | 设定的值 |
+| 属性 | 取值 |
 | --- | --- |
-| 触发时机 | 仅在引导阶段（`bootstrap_only`） |
-| 铁血输出规则 | “新生成的每一条规范，要么有确凿无疑的证据来源，要么必须挂上醒目的未解决留白（Unresolved gap）标签” |
-| 绝对红线约束 | “严禁制造并行的、所谓对人类更友好的影子真相” |
+| 触发时机 | `bootstrap_only` |
+| 输出规则 | 每条生成的规范条目都必须有显式来源依据，或显式标注未解决缺口 |
+| 硬性约束 | 不允许"写给人看的并行真相" |
 
-规范重建不是让 AI 去“搞发明创造”。生成的每一条硬性规则，都必须有明确的来源依据；如果来源不足，就老老实实标记为未解决的空白记录在案。
+重建不可凭空生成。每一条生成规则要么有明确来源依据，要么有明确的缺口跟踪。
 
-## `doc_spec_audit` (文档规范审计，必须)
+## `doc_spec_audit`（必需）
 
-在重构出规范树之后，这个技能就轮到上场了。它像个死板的审计员，拿着那份唯一的权威 Spec，去一行行对比人类写的项目文档。它存在的目的就是为了揪出“设计漂移”。
+重建完成之后，这个技能拿人写的文档对照规范树做核查，识别漂移。
 
-| 喂给它的输入 | 吐出的输出 |
+| 输入 | 输出 |
 | --- | --- |
-| 人类写的文档散文 + 权威的规范树 | 一份详尽的漂移发现项账本 (Drift findings ledger) |
+| 人写文档 + 规范树 | 漂移 finding 账本 |
 
-如果文档里写了 Spec 里没有的东西，记上一笔（Finding）。如果文档只是换个说辞把 Spec 里的东西重述了一遍，没问题（OK）。如果文档里的主张跟 Spec **背道而驰**，立刻升级为极其严重的阻塞性报告。
+文档与规范不一致是一条 finding。文档复述规范没问题。文档与规范矛盾是严重 finding。
 
-## `audit_sweep` (全量审计扫描，可选)
+## `audit_sweep`（可选）
 
-让 AI 对项目进行一次覆盖全站的“扫地式”审计。它最终会吐出一份被彻底冻结的发现项账本。
+对项目做全覆盖的审计 sweep，输出冻结的 finding 账本。
 
-| 喂给它的输入 | 吐出的输出 |
+| 输入 | 输出 |
 | --- | --- |
-| 整个项目的全量语料库 | 一份被彻底冻结（Frozen）的发现项账本 |
+| 项目语料 | finding 账本（已冻结） |
 
-这里面的“冻结（Frozen）”属性是灵魂所在，它使得这份账本拥有了作为呈堂证供的资格。扫描结果一经录入，便成了铁案，任何人都不允许再回头去篡改它。
+"冻结"这个性质是账本可作为证据的关键。sweep 结果一经记录，之后不可再编辑。
 
-## `high_risk_execution` (高风险执行，可选)
+## `high_risk_execution`（可选）
 
-这是整套方法论真正的用武之地：在项目真相源成熟之后，以工作包（Packet）为单位去执行高风险的改动任务。这也是 Nimi Coding 煞费苦心设计出那套“四个闭合维度”框架所要保驾护航的核心业务。
+在项目真相成熟之后做 packet 化执行。这是方法论真正面向的技能：需要四闭合框架的高风险工作。
 
-| 喂给它的输入 | 吐出的输出 |
+| 输入 | 输出 |
 | --- | --- |
-| 被彻底冻结的执行工作包 (Frozen execution packet) | Worker 撸起袖子干完的产出 + 随单附上的执行证据 |
+| 已冻结的执行 packet | worker 输出 + 证据 |
 
-执行一次 `high_risk_execution`，就是吃进一个冻结的 Packet，并吐出一堆足以让收尾闭合环节（Closeout）拿着放大镜去核验的铁证。
+`high_risk_execution` 一次执行消费一份冻结 packet，产出 closeout 步骤可核验的输出。
 
-| 技能属性 | 设定的值 |
+| 属性 | 取值 |
 | --- | --- |
-| 触发时机 | 必须在 `.nimi/spec/**` 规范树已经羽翼丰满、成为权威定局之后 |
-| 谁是主考官 | 管理者 (Manager) —— 负责最终拍板准入这次执行 |
-| 谁来做审计 | 独立循环的第三方 (Independent) —— 严守角色分离铁律 |
+| 触发时机 | `.nimi/spec/**` 已具备规范树 |
+| 责任方 | manager（准入此次执行） |
+| 审计方 | 独立 auditor（按角色分离） |
 
-## 技能是如何被交接分派的？ (How Skills Are Dispatched)
+## 技能如何派发
 
-包内提供了一个命令：`nimicoding handoff`。它负责发射一份极具权威性、机器可读的任务交接载荷（Handoff payload）。
+包提供的 `nimicoding handoff` 命令输出一份机器可读的权威 handoff payload。
 
-| 字段 | 含义 |
+| 字段 | 取值 |
 | --- | --- |
-| `--skill <skill-id>` | 必须填。指定召唤哪个技能。 |
-| `--json` | 吐出最权威的机器可读数据。 |
-| `--prompt` | 可选。附带一份让人类也能看懂的给宿主的执行简报。 |
+| `--skill <skill-id>` | 必填 |
+| `--json` | 权威 payload |
+| `--prompt` | 可选的人类可读宿主简报 |
 
-宿主（Host）默默吞下这份 JSON 载荷，跑完相应的技能代码，然后丢回一份结果。Nimi Coding 里的 `nimicoding closeout` 命令在这个时候挺身而出，拿着冷冰冰的类型契约，像法官一样对返回的结果进行准入核验。
+宿主消费 JSON、跑这个技能、返回结果。包用 `nimicoding closeout` 在强类型契约校验下接收结果。
 
-## 技能的结果合同 (Skill Result Contracts)
+## 技能结果契约
 
-每个技能都不是白跑的，它们返回的结果必须一字不落地遵循对应的类型化合同。
+每个技能都按强类型契约接收结果。
 
-| 技能 | 对应要接受检验的结果合同 |
+| 技能 | 结果契约 |
 | --- | --- |
 | `spec_reconstruction` | `.nimi/contracts/spec-reconstruction-result.yaml` |
 | `doc_spec_audit` | `.nimi/contracts/doc-spec-audit-result.yaml` |
 | `audit_sweep` | `.nimi/contracts/audit-sweep-result.yaml` |
 | `high_risk_execution` | `.nimi/contracts/high-risk-execution-result.yaml` |
 
-只要返回的结果在哪怕一个微小的结构上违背了对应的合同，在准入阶段就会立刻触发熔断（Fails closed）。在这里，没有任何通融的余地，没有“软通过（Soft acceptance）”。
+不符合契约的结果在准入时 fail closed。没有"软通过"。
 
-## 场景案例：新项目运行 `spec_reconstruction`
+## 场景：新项目跑一次 `spec_reconstruction`
 
-一个团队刚刚把 Nimi Coding 引进门。项目里目前堆满了各种输入，但还没有一个称得上“权威规范”的东西。
+某团队采用 Nimi Coding，项目现有内容很混杂，还没有规范树。
 
-1. **敲下 `nimicoding start`**：引导程序就位。
-2. **项目挑选打工仔（AI 宿主）**：选定了对应的适配器覆盖层（比如指定 Codex、Claude，或者是 oh-my-codex）。
-3. **发射指令 `nimicoding handoff --skill spec_reconstruction --json`**：Nimi Coding 包把交接载荷发射了出去。
-4. **宿主吞下载荷**：在已准入的严苛契约下，开始重构规范树。
-5. **宿主吐出结果**：Nimi Coding 包通过 `nimicoding closeout` 命令进行接收入库。
-6. **校验时刻**：机器冷酷地扫过：每一条新生成的规则都必须有原始出处，如果找不到出处，必须被打上空白标签（gap-tracking）；少一个就直接打回拒收。
-7. **大功告成**：规范树拔地而起。现在，这个项目终于够格用这套纪律来接手高风险任务了。
+1. **执行 `nimicoding start`**，bootstrap 准入。
+2. **项目选定宿主**：选一个适配 overlay（Codex、Claude、oh-my-codex 等）。
+3. **执行 `nimicoding handoff --skill spec_reconstruction --json`**：包输出 handoff payload。
+4. **宿主消费 payload**：在已准入的契约下重建规范树。
+5. **宿主返回结果**：包通过 `nimicoding closeout` 接收。
+6. **强类型校验**：每条生成规则必须有来源依据或缺口跟踪，否则拒绝。
+7. **规范树就绪**：项目可以进入高风险工作的方法论流程。
 
-注意，这个规范重建过程是**极其厂商中立的** —— 只要是个通过了宿主能力大考的入库小弟（AI Host），谁上都能干。
+整个重建是**厂商中立**的——任何满足 host-class 能力要求的已准入宿主都能完成。
 
-## 场景案例：运行 `audit_sweep` 产出发现项账本
+## 场景：`audit_sweep` 输出 finding 账本
 
-团队想用这套显微镜级别的方法论，对自家的项目做一次彻头彻尾的体检。
+某团队希望对项目做一次方法论级别的全覆盖审计。
 
-1. **敲下指令 `nimicoding handoff --skill audit_sweep --json`**。
-2. **宿主领命狂扫**：在被准许查阅的权限范围内，宿主把项目底朝天地翻了一遍；吐出一堆类型化的“发现项”。
-3. **账本被死死冻结**：结果一经落库登记，就再也不允许被偷偷改写。
-4. **Manager 登场阅卷**：拿着这份沉甸甸的类型化账本，去定夺下一个 Wave 到底该准入谁。
+1. **执行 `nimicoding handoff --skill audit_sweep --json`**。
+2. **宿主跑 sweep**：在已准入的读范围内读项目，输出强类型 finding。
+3. **finding 账本冻结**：结果记录在册，之后不可编辑。
+4. **manager 复核**：把强类型 finding 用到下一波 wave 准入决策。
 
-这份账本从此成了铁证（Evidence）。日后要是再做审计，就可以拿着新结果直接和它进行对比。
+账本是证据。后续审计可以拿它作对照基线。
 
-## 场景案例：一趟完整的 `high_risk_execution` 之旅
+## 场景：一次 `high_risk_execution`
 
-团队终于要用这套高压纪律，派 AI 去做一项伤筋动骨的代码重构了。
+某团队希望在方法论下做一次实质 AI 编码工作。
 
-1. **Manager 放行工作包**：一份冻结了所有必填项约束的 Packet 正式出炉。
-2. **实现前审计（先过个安检）**：如果这活儿触发了 `authority_convergence`（权威收敛）的警报，那就得先跑一趟审计；必须把“PASS”牌子拿到手。
-3. **发号施令 `nimicoding handoff --skill high_risk_execution --json`**：把锁着手铐的 Packet 扔给宿主。
-4. **宿主带着镣铐起舞**：在 Packet 划定的死规矩里干活；吐出改好的代码。
-5. **交接班验收**：Nimi Coding 包拿着放大镜对宿主吐出的结果查验合同。
-6. **落地后判断**：独立循环的 Auditor 出面重新审视成果；登入 Judgment 判决结果。
-7. **收尾大考**：把那要命的“四个闭合维度”全部亮出来，逐个进行灵魂拷问。
-8. **终于闭合**：如果考过了，Wave 功德圆满；如果挂了，退回重做。
+1. **manager 准入 packet**：所有必填字段写齐并冻结。
+2. **实施前审计**：若 `authority_convergence` 闸门触发，跑审计并记录 PASS。
+3. **执行 `nimicoding handoff --skill high_risk_execution --json`**：把 packet 交给宿主。
+4. **宿主执行**：受 packet 约束，产出输出。
+5. **结果返回**：包做结果契约校验。
+6. **实施后判定**：独立回路复核并记录判定。
+7. **closeout**：核验四闭合维度。
+8. **wave 关闭**或退回修订。
 
-这就是整套执行流水线的原貌。每一步，都必须经过“准入许可（Admitted）”；系统里没有一步是靠心照不宣完成的。
+这是完整执行流程。每一步都经过准入，没有一步是隐式的。
 
-## 技能“绝对不会”做什么？
+## 技能不会做的事
 
-| 技能操作 | 是否被严词封杀？ |
+| 操作 | 是否禁止 |
 | --- | --- |
-| 越俎代庖，在 Nimi Coding 自己的包里跑 AI 推理引擎 | **是** —— 跑模型那是宿主该干的事，本包不抢戏 |
-| 不走准入流程，就偷偷去改项目的权威真相库 | **是** |
-| 生成一份根本找不到溯源依据的“野路子”输出 | **是** （`spec_reconstruction` 规定死了，没有依据就给我挂上留白标签） |
-| 宿主的能力安检都没过，还打算蒙混过关往下跑 | **是** （立刻切断电源，Fail closed） |
+| 在包内部跑 AI 推理 | 禁止——运行时归宿主 |
+| 未经准入改写项目规范真相 | 禁止 |
+| 输出无来源依据 | 禁止（`spec_reconstruction` 强制要求来源依据或缺口跟踪） |
+| 宿主能力检查失败仍继续 | 禁止（fail closed） |
 
-## 来源依据
+## Source Basis
 
 - [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/skills.yaml)
 - [`nimi-coding/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/skill-manifest.yaml)

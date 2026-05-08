@@ -1,100 +1,100 @@
-# Agent Script
+# Agent Script（NAS）
 
-NimiAgentScript（NAS）是基于约定的 JS 处理器系统，驱动形体化。形体化包创作者把 JS 文件写在约定路径；runtime 自动注册；通过 Tauri notify watcher 热重载。
+NimiAgentScript（NAS）是一套基于约定的 JS 处理器系统，由它驱动 Avatar 的具身化表现。Avatar 包作者把 JS 文件放到约定路径下，Runtime 自动注册；Tauri notify watcher 负责热加载。
 
-## 三种处理器
+## 三类处理器
 
-| 种类 | 路径 | 触发时机 |
+| 类别 | 路径 | 触发时机 |
 | --- | --- | --- |
-| Activity | `<model>/runtime/nimi/activity/<name>.js` | Activity 被请求 |
-| Event | `<model>/runtime/nimi/event/<name>.js` | 类型化事件发生（比如用户点身体区域） |
-| Continuous | `<model>/runtime/nimi/continuous/<name>.js` | 持续，准入条件成立时 |
+| Activity | `<model>/runtime/nimi/activity/<name>.js` | 某次活动被请求时 |
+| Event | `<model>/runtime/nimi/event/<name>.js` | 强类型事件发生时（例如点击身体某区域） |
+| Continuous | `<model>/runtime/nimi/continuous/<name>.js` | 准入条件成立期间，持续运行 |
 
-加 `lib/` 放共享代码。
+另有 `lib/` 目录用于共享代码。
 
-## 约定优于配置
+## 约定优先于配置
 
-| 性质 | 值 |
+| 属性 | 值 |
 | --- | --- |
-| 路径式注册 | 是 — 文件在约定路径 = 已注册处理器 |
-| 需要 manifest？ | 否 — 约定路径就够 |
-| 热重载 | 是 — Tauri notify watcher 检测变化 |
-| 范围 | 按 model |
+| 基于路径的注册 | 是。文件放在约定路径下就是一个已注册处理器 |
+| 是否需要 manifest | 否。约定路径已经足够 |
+| 热加载 | 是，由 Tauri notify watcher 监听 |
+| 作用域 | 按模型隔离 |
 
-作者**不**写「注册这个处理器」调用。路径**就是**注册。
+作者不需要写"注册这个处理器"的调用。**路径本身就是注册**。
 
-## 可用的处理器 API
+## 处理器可用的 API
 
 | API | 用途 |
 | --- | --- |
 | Motion | 触发动作序列 |
-| Expression | 设表情 |
-| Pose | 设姿势 |
-| Lookat | 设凝视方向 |
-| Params | 驱动准入 Live2D 参数（或后端无关等价物） |
-| Wait | 等准入计时基础协议 |
+| Expression | 设置表情 |
+| Pose | 设置姿态 |
+| Lookat | 设置视线方向 |
+| Params | 驱动准入的 Live2D 参数（或宿主无关的等价参数） |
+| Wait | 等待准入的时序原语 |
 
-NAS 处理器经形体化呈现 API 消费这些。它们**不**直接调 Live2D / VRM 内部；呈现层是类型化接缝。
+NAS 处理器通过具身化语义层访问这些 API。它不会直接调用 Live2D / VRM 内部接口；语义层就是那道强类型边界。
 
-## 类型窄化时的后端特定扩展
+## 类型收窄后才可用的后端扩展
 
-Live2D 特定处理器在类型窄化后能用 `live2dExtension`。VRM 特定处理器（VRM 上线时）将在自己类型窄化后用一个独立扩展。跨后端处理器留在后端无关 API。
+Live2D 专用处理器在类型收窄之后可以用 `live2dExtension`。VRM 上线后，VRM 专用处理器也会有自己的扩展，使用前同样要先做类型收窄。跨后端的处理器只用宿主无关 API。
 
-## 阅读场景：Activity 处理器播 wave 动画
+## 场景：Activity 处理器播放挥手动画
 
-某包作者想让 Agent 在 `wave` activity 触发时挥手。
+某个包作者希望 Agent 在 `wave` 活动触发时挥手。
 
-1. **写处理器。** 在 `<model>/runtime/nimi/activity/wave.js`。处理器签名暴露 runtime 上下文加准入 API。
-2. **自动注册。** Runtime 扫描，发现约定路径下的文件，注册它。
-3. **Activity 触发。** `runtime.agent.activity.wave` 发出时，处理器跑。
-4. **处理器跑。** 调 motion API 触发 wave；调 expression API 设笑脸；调 wait 保持姿势；调 expression 回到 neutral。
-5. **形体化渲染。** Live2D 后端渲染序列。
+1. **写处理器**：放在 `<model>/runtime/nimi/activity/wave.js`，处理器签名同时拿到 Runtime 上下文与准入的 API。
+2. **自动注册**。Runtime 扫描约定路径，发现该文件后自动注册。
+3. **活动触发**：当 `runtime.agent.activity.wave` 被发出时，处理器开始执行。
+4. **处理器执行**：调用 motion API 触发挥手；调用 expression API 切到微笑；调用 wait 让姿态保持一会；最后调用 expression 回到中性。
+5. **具身化渲染**：Live2D 后端把整段动画呈现出来。
 
-作者写了一个文件在某路径；其余自动。
+作者只是把一个 JS 文件放到约定路径下，剩下的交给系统。
 
-## 阅读场景：Event 处理器响应点击
+## 场景：Event 处理器响应点击
 
-某包作者想让 Agent 在头被点时反应。
+某个包作者希望 Agent 在头部被点击时有反应。
 
-1. **写处理器。** 在 `<model>/runtime/nimi/event/onClickHead.js`。
-2. **声明命中区域。** 形体化包里，「头」区域用 alpha-mask 边界声明。
-3. **用户点头。** 命中区域检测发出 `avatar.user.click` 事件带区域信息。
-4. **处理器跑。** 触发害羞表情和小音效。
+1. **写处理器**：放在 `<model>/runtime/nimi/event/onClickHead.js`。
+2. **声明命中区域**：Avatar 包内用 alpha 蒙版描述 "head" 的命中边界。
+3. **用户点击头部**：命中检测发出 `avatar.user.click` 事件，附带区域信息。
+4. **处理器执行**：触发一个害羞表情，加上一段轻量音效。
 
-处理器**不**必订阅；约定路径就够。
+整个过程作者没有显式订阅事件，约定路径已经够用。
 
-## 阅读场景：Continuous 处理器让 Agent 一直呼吸
+## 场景：Continuous 处理器维持呼吸
 
-某包作者想让 Agent 持续呼吸。
+某个包作者希望 Agent 持续呼吸。
 
-1. **写处理器。** 在 `<model>/runtime/nimi/continuous/breathe.js`。
-2. **自动注册为 continuous。** Runtime 在准入持续计时基础协议下调用处理器。
-3. **处理器持续跑。** 驱动呼吸参数（Live2D `ParamBreath`）。
-4. **其他处理器组合。** Activity 处理器能在不停呼吸的情况下叠加。
+1. **写处理器**：放在 `<model>/runtime/nimi/continuous/breathe.js`。
+2. **自动注册为持续型**：Runtime 在准入的持续时序原语下调用它。
+3. **持续运行**：驱动呼吸参数（Live2D 的 `ParamBreath`）。
+4. **可与其它处理器叠加**：Activity 处理器叠加上来时不会打断呼吸。
 
-Continuous 处理器是细微环境行为如何叠加而不互相打架的方式。
+环境氛围层的细微行为，正是通过 continuous 处理器一层层叠加而互不冲突。
 
-## 开发期间热重载
+## 开发期的热加载
 
 | 工具 | 行为 |
 | --- | --- |
-| Tauri notify watcher | 检测文件系统变化 |
-| 自动重新注册 | 新 / 更新处理器被拾起 |
-| 移除 | 删的文件取消注册处理器 |
-| 错误 | 类型化重载错误**不**让 session 崩 |
+| Tauri notify watcher | 监听文件系统变更 |
+| 自动重注册 | 新增或修改的处理器即时生效 |
+| 删除处理 | 删除文件即注销处理器 |
+| 错误处理 | 强类型重载错误不会影响当前会话 |
 
-包作者迭代处理器**不**必重启 Avatar。
+作者迭代处理器时不需要重启 Avatar。
 
-## 边界总结
+## 边界归属
 
-| 关注 | 拥有者 |
+| 关注点 | 归属 |
 | --- | --- |
-| 处理器发现 | `<model>/runtime/nimi/` 下约定路径 |
-| 处理器 API | 形体化呈现方法 |
-| 后端扩展 | 类型窄化后的后端特定扩展 |
-| 热重载 | Tauri notify watcher |
+| 处理器发现 | `<model>/runtime/nimi/` 下的约定路径 |
+| 处理器 API | 具身化语义层方法 |
+| 后端扩展 | 类型收窄后的后端专属扩展 |
+| 热加载 | Tauri notify watcher |
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/avatar/kernel/agent-script-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/agent-script-contract.md)
 - [`.nimi/spec/avatar/kernel/agent-script-reference.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/agent-script-reference.md)

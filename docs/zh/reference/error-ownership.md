@@ -1,58 +1,58 @@
-# 错误归属
+# 错误归属（Error Ownership）
 
-把 Nimi 栈每一层映到它的错误合同、规则前缀、权威来源的参考表。
+按 Nimi 各层把错误契约、规则前缀和权威源对应起来的参考表。
 
-## 按层归属
+## 各层归属
 
-| 层 | Owner 合同 | 规则前缀 | 拥有什么 |
+| 层 | 归属契约 | 规则前缀 | 它持有什么 |
 | --- | --- | --- | --- |
-| Platform 协议 | `.nimi/spec/platform/kernel/protocol-contract.md` | `P-PROTO-*` | 跨世界协议错误码、动作 hint、审计事件分类 |
-| Runtime | `.nimi/spec/runtime/kernel/error-model.md` | `K-ERR-*` | Reason code、错误分类、重试 vs 合同失败的区分 |
-| Runtime 流式 | `.nimi/spec/runtime/kernel/streaming-contract.md` | `K-STREAM-*` | 终止帧、流级失败语义 |
-| SDK | `.nimi/spec/sdk/kernel/error-projection.md` | `S-ERROR-*` | App 面错误形状、类型化错误形状 |
-| Desktop | `.nimi/spec/desktop/kernel/error-boundary-contract.md` | `D-*` | UI 错误边界、重试策略、用户面错误渲染 |
+| 平台协议 | `.nimi/spec/platform/kernel/protocol-contract.md` | `P-PROTO-*` | 跨世界协议错误码、动作提示、审计事件分类 |
+| Runtime | `.nimi/spec/runtime/kernel/error-model.md` | `K-ERR-*` | reason code、错误分类、retry 与契约失败的区分 |
+| Runtime 流式 | `.nimi/spec/runtime/kernel/streaming-contract.md` | `K-STREAM-*` | 终态帧、流级失败语义 |
+| SDK | `.nimi/spec/sdk/kernel/error-projection.md` | `S-ERROR-*` | 面向 App 的错误呈现、强类型错误形态 |
+| 桌面端 | `.nimi/spec/desktop/kernel/error-boundary-contract.md` | `D-*` | UI 错误边界、retry 策略、用户侧错误渲染 |
 
 ## 翻译表
 
-Platform-到-Runtime 映射是协议级错误与 runtime reason code 之间的规范化翻译点：`.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`。
+平台到 Runtime 的映射，是协议级错误与 Runtime reason code 之间的规范翻译点：`.nimi/spec/platform/kernel/tables/error-code-mapping.yaml`。
 
-按层枚举住在各自表里：
+各层各自的枚举表：
 
 | 表 | 层 |
 | --- | --- |
-| `platform/kernel/tables/protocol-error-codes.yaml` | Platform |
+| `platform/kernel/tables/protocol-error-codes.yaml` | 平台 |
 | `runtime/kernel/tables/reason-codes.yaml` | Runtime |
 | `runtime/kernel/tables/error-mapping-matrix.yaml` | Runtime 跨层 |
 | `sdk/kernel/tables/sdk-error-codes.yaml` | SDK |
-| `desktop/kernel/tables/retry-status-codes.yaml` | Desktop |
+| `desktop/kernel/tables/retry-status-codes.yaml` | 桌面端 |
 
-## 区分 transport 恢复与合同失败
+## 区分"传输恢复"和"契约失败"
 
-| 失败类 | 可恢复方式 | 权威 |
+| 失败类型 | 谁能恢复 | 权威来源 |
 | --- | --- | --- |
-| Transport 错误（网络、超时、瞬时 5xx） | 重试、auth 刷新 | Transport / SDK transport 合同 |
-| 需要 auth 刷新 | Auth 刷新、token 轮换 | Runtime auth + SDK transport |
-| 合同失败（类型化形状、MIME、schema、缺字段） | 重试**不**可恢复；fail-close | Owner 合同 |
-| 流式终止失败 | 流中**无法**救援；发终止失败帧 | Runtime 流式 |
+| 传输错误（网络、超时、瞬时 5xx） | retry、auth refresh | 传输 / SDK 传输契约 |
+| 需要刷新认证 | auth refresh、token 轮换 | Runtime auth + SDK 传输 |
+| 契约失败（强类型形态、MIME、schema、字段缺失） | retry 不能救；fail-closed | 归属契约 |
+| 流式终态失败 | 流中段救不回来；发出终态失败帧 | Runtime 流式 |
 
-重试与 auth 刷新只是 transport 机制。它们**永不**静默救援解码、content-type、schema、合同失败。
+retry 和 auth refresh 是传输机制，不能用来悄悄救场 decode、content-type、schema、契约这类失败。
 
-## 跨层错误走
+## 一次失败穿越多层
 
-单次失败通常跨多层。worked 例子：上游 Provider 在响应中途失败的流式生成请求，落为：
+一次失败通常会跨多层。举例：上游 provider 在流式生成中途失败，会按下表展开：
 
 | 层 | 动作 |
 | --- | --- |
-| Provider | 返瞬时错误帧 |
-| Runtime provider-health | 在 `K-ERR-*` 家族下分类 |
-| Runtime 流式 | 决定恢复 vs 终止；如终止，发类型化终止失败帧 |
-| Runtime 工作流 | 工作流状态搬到 `FAILED` |
-| Runtime 审计 | 带 trace lineage 记失败 |
-| SDK 错误合同 | 按 `S-ERROR-*` 暴类型化 App 面错误 |
-| 桌面端 UI | 在 `D-*` 错误边界下露出 |
-| 用户 | 看到被治理的失败、**永不**看到伪造成功 |
+| Provider | 返回瞬时错误帧 |
+| Runtime provider-health | 归到 `K-ERR-*` 族 |
+| Runtime 流式 | 决定恢复或终结；终结则发出强类型终态失败帧 |
+| Runtime 工作流 | 工作流状态切到 `FAILED` |
+| Runtime 审计 | 记录失败和 trace 血缘 |
+| SDK 错误呈现 | 按 `S-ERROR-*` 投出强类型 App 侧错误 |
+| 桌面端 UI | 在 `D-*` 错误边界下呈现 |
+| 用户 | 看到的是受治理的失败，而不是被伪造出来的成功 |
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/platform/kernel/protocol-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/protocol-contract.md)
 - [`.nimi/spec/platform/kernel/tables/protocol-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/protocol-error-codes.yaml)

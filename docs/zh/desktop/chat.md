@@ -1,85 +1,85 @@
 # 聊天
 
-桌面端的聊天是横跨三种 host 模式的统一面：**human**、**AI**、**agent**。这就是用户跟其他人说话、跟通用 AI 助手说话、跟某个 Nimi Agent 说话的地方。同一个 UI 外壳，三种不同的对话形状。
+桌面端的聊天是统一的对话面，覆盖三种宿主形态：**人**、**AI**、**Agent**。同一套 UI 外壳，三种对话形态：你与他人交谈、你与通用 AI 助手交谈、你与某个 Nimi Agent 交谈。
 
-## 三种 Host 模式
+## 三种宿主形态
 
-| 模式 | 跟谁说话 | 权威 |
+| 形态 | 对方 | 权威 |
 | --- | --- | --- |
-| Human | 另一个用户 | Realm chat thread |
-| AI | 通用 AI 助手 | 经 SDK 的 Runtime |
-| Agent | 某个具体 Nimi Agent | Runtime + ConversationAnchor |
+| Human | 另一位用户 | Realm 聊天线程 |
+| AI | 通用 AI 助手 | Runtime（经 SDK） |
+| Agent | 某个具体的 Nimi Agent | Runtime + ConversationAnchor |
 
-模式决定聊天外壳显示什么：目标轨（who）、规范化对话外壳、transcript、composer。
+形态决定聊天外壳显示什么：目标侧边栏（找谁）、规范化对话外壳、转录区、输入器。
 
 ## 实时投递
 
-实时聊天事件经 Socket.IO 同步。新消息、typing 指示、在线状态、已读状态 — 全部以实时事件投递，不靠 polling。实时路径是被准入的；聊天**不**自己发明协议。
+聊天事件通过 Socket.IO 实时同步：新消息、正在输入、在线状态、已读状态都以实时事件下发，不靠轮询。聊天用的是已准入的实时通道，不会自造协议。
 
 ## 流式聊天
 
-聊天目标是 AI 或 Agent 时，助手消息按流式合同从 Runtime 流过来。
+当对话目标是 AI 或 Agent 时，助手消息按流式契约从 Runtime 流出。
 
-| 性质 | 值 |
+| 维度 | 取值 |
 | --- | --- |
-| 模式 | Mode A（文本/语音，带显式 `done=true` 终止帧） |
-| 气泡渲染 | chunk 到达时增量 |
-| 流中停止 | 流式中可用 |
-| 部分内容 | 中断时被保留 |
-| Backpressure | 经 SDK 端到端 |
+| 模式 | Mode A（文本/语音，结尾帧带显式 `done=true`） |
+| 气泡渲染 | 边收到分片边渲染 |
+| 中途停止 | 流式期间可用 |
+| 部分内容 | 中断时保留 |
+| 反压 | SDK 端到端 |
 
-用户在流中点「停止」，部分回复被保留；下一次交互干净开始。
+用户在流式中点"停止"，已经收到的部分会保留下来，下一轮交互从干净状态开始。
 
-## 轮次生命周期 hook 点
+## 一轮对话的 hook 点
 
-桌面端聊天暴露准入的 hook 点，让 mod 在每个阶段响应：
+桌面端聊天暴露已准入的 hook 点，供 Mod 在每个阶段挂钩：
 
 | Hook 点 | 触发时机 |
 | --- | --- |
-| `pre-policy` | 策略决定应用之前 |
-| `pre-model` | Model 调用之前 |
-| `post-state` | 状态更新之后 |
-| `pre-commit` | Commit 落下之前 |
+| `pre-policy` | 策略判定生效前 |
+| `pre-model` | 模型调用前 |
+| `post-state` | 状态更新后 |
+| `pre-commit` | 提交前 |
 
-按白名单注册到这些 hook 上的 mod 拿到类型化事件。自由格式拦截**不被准入**；hook 点是 mod 面暴露的全部。
+注册到这些 hook 的 Mod（在白名单范围内）拿到强类型事件。自由形态的拦截不准入，能挂的就是这几个点。
 
-## 阅读场景：跟 Agent 说话
+## 场景：和 Agent 聊天
 
-打开聊天，把目标设为你的 Agent，开始打字。
+你打开聊天，把目标选为自己的 Agent，开始输入。
 
-1. **目标轨。** 选你的 Agent 作为聊天目标。对话外壳解析 `(your_agent_id, this_conversation_id)` 的 `ConversationAnchor`。
-2. **撰写。** 你打字。Composer 显示类型化输入形状。
-3. **发送。** 轮次提交。Runtime 的 `RuntimeAgentService` 在 Agent 的 Chat Track 下接受这次轮次。
-4. **流开始。** 助手气泡随 Mode A chunk 到达增量显示内容。
-5. **流中停止。** 你决定提早停。流式合同保留部分回复。
-6. **Realm chat thread。** 轮次记到规范化 chat thread — Realm `R-CHAT-*`。
+1. **选定目标**。把 Agent 选为聊天目标。对话外壳为 `(your_agent_id, this_conversation_id)` 解出对应的 `ConversationAnchor`。
+2. **输入**。输入器按强类型输入形态显示。
+3. **发送**。这一轮被提交。Runtime 的 `RuntimeAgentService` 在 Agent 的 Chat Track 下接受这一轮。
+4. **流式开始**。助手气泡按 Mode A 分片增量呈现。
+5. **中途停止**。你点了停止。流式契约保留了已收到的部分。
+6. **写入 Realm 聊天线程**。这一轮记入规范化的聊天线程：Realm `R-CHAT-*`。
 
-Agent 的身份是 Realm 规范化真相；对话连续性是 Runtime 拥有的 anchor；流式行为是准入合同；thread 是规范化聊天历史。
+Agent 身份是 Realm 的规范态；对话连续性归 Runtime 的 anchor；流式语义是已准入契约；线程是规范化聊天历史。
 
-## 阅读场景：带 Agent 槽的群聊
+## 场景：群聊里有 Agent 槽位
 
-你在 Realm 群聊里，里面有人也有一个 Agent 槽。
+你在一个 Realm 群聊里，里面有人也有 Agent 槽位。
 
-1. **群 thread。** Realm `R-CHAT-*` 准入 `GROUP` 基底。
-2. **Agent 作者校验。** Agent 发言时，Realm 校验 Agent 槽绑定。反伪冒检查在消息 commit 之前。
-3. **成员看到类型化 Agent 作者。** 人类无法假冒 Agent；Agent 也不能在它准入的槽之外发言。
-4. **Agent 消息流式。** Agent 的回复流入群 thread。
+1. **群组线程**。Realm `R-CHAT-*` 准入 `GROUP` 形态。
+2. **Agent 作者校验**。Agent 发言时，Realm 校验它的槽位绑定。反假冒检查在消息提交前发生。
+3. **看到强类型作者**。人无法假冒 Agent；Agent 也不能在它的槽位之外发言。
+4. **Agent 消息流式**。Agent 的回复以流式形态流入群组线程。
 
-反伪冒检查在协议层。一个恶意行为者要冒充 Agent 发消息但没有槽绑定，会 fail-close。
+反假冒检查在协议层。如果有人尝试以"Agent 名义"发言但没有槽位绑定，会被失败拒绝。
 
-## 桌面端聊天**不**做什么
+## 桌面端聊天不做的事
 
-| 关注 | 拥有者 |
+| 关注点 | 归属 |
 | --- | --- |
-| 形体化 / Avatar 视觉 | Avatar app — 桌面端聊天不再是 Live2D / VRM 载体 |
-| 记忆权威 | Cognition + Runtime 记忆 bank 范围 |
-| 规范化 thread 真相 | Realm 聊天 |
-| 轮次执行权威 | Runtime Agent 服务 |
-| 流式语义 | Runtime 流式合同 |
+| 具身化 / 形象呈现 | Avatar 应用——桌面端聊天不再做 Live2D / VRM 的承载面 |
+| 记忆权威 | Cognition + Runtime 记忆库作用域 |
+| 规范化线程 | Realm 聊天 |
+| 一轮执行权威 | Runtime Agent 服务 |
+| 流式语义 | Runtime 流式契约 |
 
-要形体化用户去 Avatar。桌面端聊天可能显示非载体的呈现层视图（比如表情指示器），但聊天面不再是 Live2D/VRM 载体。
+如果用户想要具身化，他们去 Avatar。桌面端聊天可以呈现非承载性的提示（例如表情指示），但不再是 Live2D / VRM 的承载面。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/desktop/chat.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/chat.md)
 - [`.nimi/spec/realm/chat.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/chat.md)

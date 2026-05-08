@@ -1,97 +1,97 @@
-# 聊天
+# Chat
 
-Realm 聊天拥有规范化的 thread / 消息 / 已读状态 / 成员关系 / 群生命周期 / Agent 槽面，覆盖参与世界含义的聊天。它**是规范化的** — 不是桌面端本地、不是 session 本地。聊天 thread 是平台真相。
+Realm Chat 持有规范的 thread / message / 已读状态 / 成员 / 群生命周期 / agent slot 这一整套面向"参与世界语义"的聊天表面。它是**规范层**的：不归桌面端，不归会话，thread 本身就是平台真相。
 
-## 基底
+## 两种载体
 
-Realm 聊天 v1 准入两个基底：
+Realm Chat v1 准入两种载体：
 
-| 基底 | 用途 |
+| 载体 | 用途 |
 | --- | --- |
-| `DIRECT` | 两方直接消息 |
-| `GROUP` | 多方 thread，含人 + Agent 槽 |
+| `DIRECT` | 两人直接私聊 |
+| `GROUP` | 多人群聊，可包含人类成员和 agent slot |
 
-`CHANNEL` 基底**fail-close** — v1 未准入。这是有意限制；channel 风格的流要自己的准入合同，不在 v1 聊天里。
+`CHANNEL` 这种载体在 v1 不准入，fail-closed。这是有意为之的限制：channel 风格的流式订阅需要它自己的准入契约，不属于 v1 chat 范围。
 
-## 群 Thread 与 Agent 槽
+## 群聊与 Agent Slot
 
-`GROUP` thread 可以有人 + Agent 槽 / 作者。Agent 槽是允许 Agent 作为作者参与群的类型化准入。
+`GROUP` thread 的成员可以混合人类和 agent slot / 作者。Agent slot 是一种强类型准入：声明某个 agent 以作者身份参与到这个 group 里。
 
-| 性质 | 值 |
+| 属性 | 值 |
 | --- | --- |
-| 成员 | 人 + Agent 槽 |
-| Agent 发言 | commit 前校验 thread / 槽绑定（反伪冒） |
-| 槽生命周期 | 准入；Agent 在类型化事件下进出槽 |
+| 成员 | 人类 + agent slot |
+| Agent 发言 | commit 之前先校验 thread / slot 绑定（防伪） |
+| Slot 生命周期 | 已准入；agent 进入 / 离开 slot 都走强类型事件 |
 
-反伪冒检查在协议层。一个恶意行为者要冒充 Agent 发言但没有槽绑定，会 fail-close。
+防伪发生在协议层。一个企图"以这个 agent 名义"发言但没有 slot 绑定的恶意发件方，会直接 fail-closed。
 
-## 反伪冒校验
+## 防伪校验
 
-Agent 发言到达时，Realm 校验：
+收到一条 agent 发言时，Realm 校验：
 
-| 检查 | 干什么 |
+| 检查 | 内容 |
 | --- | --- |
-| 槽绑定 | 这个 Agent 在这个 thread 的槽里被准入了吗 |
-| 作者身份 | 发言的作者跟槽绑定一致吗 |
-| Thread 成员 | 这个 thread 准入 Agent 发言吗 |
-| 时机 | 这条发言在准入的作者窗口里吗 |
+| Slot 绑定 | 这个 agent 是否在该 thread 的 slot 中已准入？ |
+| 作者身份 | 发言里声明的作者是否对得上 slot 绑定？ |
+| 成员资格 | 这个 thread 是否允许 agent 发言？ |
+| 时间窗 | 这条发言是否落在准入的 authorship 窗口内？ |
 
-任一失败 fail-close。Thread **不**静默接受没过任一项检查的发言。
+任意一项失败都 fail-closed。Thread 不会默默接受没过校验的发言。
 
-这就是让「Agent 在群聊里」成为真实产品功能的原因。没协议级反伪冒，「Agent 说 X」就是个可伪造的主张。
+正因为有协议层的防伪，"群聊里有一个 agent"才是真实产品特性。没有它，"agent 说了 X"就是一个可以伪造的声明。
 
-## 阅读场景：直接对话
+## 场景：一段直接对话
 
-你直接消息另一个用户。
+你私聊另一位用户。
 
-1. **Direct 基底。** Realm 在你和对方之间准入一个 `DIRECT` thread。
-2. **发送。** 你的消息 commit 到 thread。
-3. **实时投递。** 对方通过 Socket.IO 实时投递看到消息。
-4. **已读状态。** 已读状态是规范化的 — 你客户端的「已读」记到 thread。
+1. **DIRECT 载体**。Realm 准入一条 `DIRECT` thread，成员是你和对方。
+2. **发送**。你的消息 commit 到 thread。
+3. **实时投递**。对方通过 Socket.IO 实时收到。
+4. **已读状态**。已读是规范层数据，你这一端的"已读"被记进 thread。
 
-Thread 是规范化 Realm 真相。换设备不需要重新同步；规范化 thread 是来源。
+Thread 本身就是 Realm 的规范真相。换设备不需要重新同步，规范 thread 就是来源。
 
-## 阅读场景：带 Agent 槽的群聊
+## 场景：群聊中带一个 agent slot
 
-你在群聊里，有朋友也有一个 Agent 槽。
+你和朋友们在一个群里，群里还接入了一个 agent slot。
 
-1. **Group 基底。** `GROUP` thread 准入；成员含人和一个 Agent 槽。
-2. **Agent 发言。** 当 Agent 的 runtime 为这个 thread 发出一个轮次，发言带 Agent 身份到 Realm。
-3. **反伪冒检查。** Realm 校验槽绑定、作者身份、thread 成员、时机。
-4. **有效则 commit。** 发言被准入；群看到。
-5. **无效则拒。** Fail-close；群看不到。
+1. **GROUP 载体**。Realm 准入一条 `GROUP` thread，成员包含人类和一个 agent slot。
+2. **Agent 发言**。Agent 的 runtime 为这条 thread 产出一轮发言时，发言带着 agent 身份到达 Realm。
+3. **防伪校验**。Realm 校验 slot 绑定、作者身份、成员资格、时间窗。
+4. **校验通过则 commit**。发言准入；群成员看到。
+5. **校验未过则拒收**。fail-closed；群成员看不到。
 
-槽是 Agent 参与的类型化通道。没槽绑定的 Agent 进不了群作者。
+Slot 是 agent 参与群聊的强类型通道。没有 slot 绑定的 agent 没法在群里发言。
 
-## 阅读场景：跨设备已读状态
+## 场景：跨设备的已读状态
 
-你在桌面端读了一条消息。在 Avatar 打开同一段对话。
+你在桌面端读了一条消息，然后打开 Avatar 上的同一个对话。
 
-1. **桌面端读。** 已读状态 commit 到 Realm。
-2. **Avatar 打开。** Avatar 读规范化 thread，含已读状态。
-3. **Avatar 看到你已读。** **没**静默重显已读消息。
+1. **桌面端读取**。已读状态 commit 到 Realm。
+2. **Avatar 打开**。Avatar 读取规范 thread，包括已读状态。
+3. **Avatar 知道你已读过**。不会把读过的消息当成未读重新提示。
 
-已读状态是平台真相，不是按面各自一份状态。这就是让多面聊天连贯的原因。
+已读状态是平台真相，不是单个表面的本地状态。这是多表面聊天能保持一致的原因。
 
-## 聊天跟其他 Realm 面的关系
+## Chat 与其他 Realm 表面的关系
 
-| 面 | 关系 |
+| 表面 | 关系 |
 | --- | --- |
-| 社交（`R-SOC-*`） | 友情门控直接聊天前置条件；社交本身**不**拥有 thread |
-| 真相（`R-TRUTH-*`） | 影响世界含义的聊天可能参与真相 |
-| 世界历史（`R-WHIST-*`） | 贡献规范化历史的聊天事件追加到那里 |
-| Runtime ConversationAnchor | Runtime 拥有对话连续性；Realm 拥有规范化 thread |
+| Social（`R-SOC-*`） | 朋友关系是私聊的前置条件；社交不持有 thread 本身 |
+| Truth（`R-TRUTH-*`） | 影响世界语义的聊天可参与到真相 |
+| World History（`R-WHIST-*`） | 进入规范历史的聊天事件追加到这里 |
+| Runtime ConversationAnchor | 对话连续性归 Runtime；规范 thread 归 Realm |
 
-## 聊天**不**做什么
+## Chat 不做的事
 
-| 关注 | 为什么不 |
+| 关注点 | 不做的原因 |
 | --- | --- |
-| 拥有对话连续性 | Runtime ConversationAnchor 拥有 |
-| 拥有 Agent 执行 | RuntimeAgentService 拥有 |
-| 拥有 UI 渲染 | 桌面端聊天面拥有 |
-| 准入 `CHANNEL` 基底 | v1 没；fail-close |
+| 持有对话连续性 | 归 Runtime ConversationAnchor |
+| 持有 agent 执行 | 归 RuntimeAgentService |
+| 持有 UI 渲染 | 归桌面端聊天表面 |
+| 准入 `CHANNEL` 载体 | v1 不准入；fail-closed |
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/realm/chat.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/chat.md)
 - [`.nimi/spec/realm/kernel/chat-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/chat-contract.md)

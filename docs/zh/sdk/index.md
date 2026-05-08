@@ -1,69 +1,69 @@
 # SDK
 
-Nimi SDK 是面向应用的接入层。它给应用一个**受支持的方式**来使用 Runtime、Realm、世界语义、AI Provider 接入面、Scope、Mod 和共享类型，而不需要 import 任何私有内部模块。
+Nimi SDK 是 App 代码真正会去调用的那一层。它给出一条受支持的入口去用 Runtime、Realm、世界语义、AI provider、作用域、mod 与共享类型，同时不需要从这些底层导入私有内部。
 
-如果你在基于 Nimi 构建产品，SDK 是你应该首先关注的边界。遵守 SDK 边界的应用在 Runtime 或 Realm 内部演化时仍然能跑；绕过它的应用每一次内部演化都会变成 breaking change。
+如果你在 Nimi 上做开发，第一个要看的边界就是 SDK。守住这条边界的 App，能在 Runtime 与 Realm 内部演进时不受影响；越界的 App，则会把对方每一次内部变化都吃成一次破坏性升级。
 
-## 本章节包含
+## 本节内容
 
-- [边界](/zh/sdk/boundaries) — 应用在 import 与调用上必须遵守的规则。
-- [Runtime Client](/zh/sdk/runtime-client) — 应用进入 Runtime 行为的公开通道。
-- [Realm 与世界 Client](/zh/sdk/realm-world-client) — 把 Realm 真相和 Runtime 生成组合起来。
+- [边界](/zh/sdk/boundaries) — App 应当遵守的导入与调用规则。
+- [Runtime Client](/zh/sdk/runtime-client) — 通往 Runtime 行为的公开 App 路径。
+- [Realm 与 World Client](/zh/sdk/realm-world-client) — Realm 真值与 Runtime 生成能力的组合。
 
-跨域的 [术语表](/zh/glossary) 解释「面板」、「边界」等词的含义。
+跨域的[术语表](/zh/glossary)解释了 surface、boundary、projection 这些词。
 
-## 为什么需要 SDK
+## SDK 为什么存在
 
-Nimi 有多个权威域。Runtime 拥有执行；Realm 拥有语义真相；桌面端拥有原生外壳行为；Cognition 拥有独立的记忆与知识权威。应用代码需要一个**稳定的方式**使用这些域，而不与它们的私有实现耦合。
+Nimi 有多个权威域。Runtime 持有执行；Realm 持有语义真值；桌面端持有原生 shell 行为；Cognition 持有独立的记忆与知识权威。App 代码需要一种稳定的方式去使用这些域，又不被它们的私有实现绑死。
 
-SDK 就是这个边界。这个边界在 SDK kernel 中以 `S-BOUNDARY-*` 与 `S-SURFACE-*` 系列规则被认可。
+SDK 就是这条边界。该边界由 SDK 内核在 `S-BOUNDARY-*` 与 `S-SURFACE-*` 规则族下准入。
 
-## 主要面板
+## 主要 surface
 
-SDK 拆成命名子路径，每个子路径都有自己的面板合同：
+SDK 拆成多个命名子路径，每个子路径有自己的 surface 契约：
 
-| 子路径 | 它代表什么 |
+| 子路径 | 含义 |
 | --- | --- |
-| `runtime` | Runtime 支撑的调用与传输面 |
-| `realm` | 公开 Realm 门面与生成的客户端边界 |
-| `world` | 把世界真相与 Runtime 生成组合起来 |
-| `ai-provider` | 经 Runtime 的 AI Provider 接入面 |
-| `scope` | 授权与目录生命周期接入 |
-| `mod` | 宿主注入的 Mod 能力 |
-| `types` | 公开共享类型 |
+| `runtime` | Runtime 支撑的调用与传输面改写 |
+| `realm` | 公开的 Realm 门面与生成式 client 边界 |
+| `world` | 世界真值与 Runtime 生成能力的组合 |
+| `ai-provider` | 通过 Runtime 暴露的 AI provider 改写 |
+| `scope` | 授权与目录生命周期改写 |
+| `mod` | 宿主注入的 mod 能力 |
+| `types` | 共享公开类型 |
 
-应用通常会从多个子路径 import。这种切分的目的，是让每个子路径在自己的合同下独立演化，而不互相污染。
+App 通常会从多个子路径同时导入。拆分的意义在于：每个子路径都能在自己的契约下独立演进，不污染其他子路径。
 
-## 已认可面 vs 已定义面
+## 活动 surface 与已定义 surface
 
-规范区分**已认可**的核心面板和**已定义但实现尚未完成**的面板。公开文档不会把仅定义、尚未实现的面板说成完全可用的产品。
+规范区分活动核心 surface 与已定义但实现尚未完成的 surface。公开文档不应在实现证据出现之前，把"已定义的未来 surface"当作完整可用的产品来介绍。
 
-实用判断：当某页把一个面板称为「合同级」（contract-level），合同是已认可的；当称为「面板形状级」（projection-only，spec 中的术语），面板形状已定义但实现尚未当作完整公开产品。
+读者只需记住一条经验法则：当某页说一个 surface 是"契约级"的，对应契约已准入；说它是"projection 级"的，则 surface 形状已成型，但实现还未当作完整公开产品对待。
 
-## 阅读场景：第一次接入
+## 场景：第一次接入
 
-设想你在写一个应用，需要让 Runtime 做一次生成、读世界真相，以及对 Realm 更新做出反应：
+假设你写一个 App，需要调 Runtime 做一次生成、读世界真值、并对 Realm 更新作出反应：
 
-1. 从 `sdk/runtime` import。发起生成请求并按流式合同消费流式响应；详见 [Runtime 工作流与多模态](/zh/runtime/workflows-and-multimodal)。
-2. 从 `sdk/realm` import（或 `sdk/world`，如果你需要组合后的世界读）来读世界真相。**不要 import Realm 内部** — SDK 只把你的应用被允许看到的部分暴露给你。
-3. 如果应用需要授权和目录读写，从 `sdk/scope` import。
-4. 仅当你在做宿主注入的 Mod 面时，才从 `sdk/mod` import；否则这条子路径不属于你的代码。
-5. 共享类型从 `sdk/types`，是其他子路径间稳定的拼接积木。
+1. 从 `sdk/runtime` 导入。在流式契约下发出生成请求并消费流；详见 [工作流与多模态](/zh/runtime/workflows-and-multimodal)。
+2. 从 `sdk/realm` 导入（如需组合的世界读取，则用 `sdk/world`）来读世界真值。不要导入 Realm 内部；SDK 改写出 App 被允许看到的视图。
+3. 如果 App 需要授权与目录改写，从 `sdk/scope` 导入。
+4. 只在你构建宿主注入的 mod surface 时才从 `sdk/mod` 导入。否则这个子路径不属于你的代码。
+5. 共享类型来自 `sdk/types`。它们是稳定的构建块，跨子路径复用。
 
-最终结果是一个**没有 import 任何私有路径的应用**。当 Runtime 或 Realm 内部演化时，只要 SDK 合同保持稳定，你的应用就能继续工作。
+结果是一个不导入任何私有路径的 App。Runtime 或 Realm 内部演进时，只要 SDK 契约不变，你的 App 照常工作。
 
-## 阅读场景：边界违规被早期发现
+## 场景：边界违例被早期捕获
 
-设想重构期间一个开发者想：「我直接从 runtime 包 import 这个 helper 就行了；SDK 没问题，但又多了一层。」这个 import 正是 SDK 边界禁止的。
+假设重构期间，一个开发者觉得"我直接从 runtime 包里导入这个 helper 算了，SDK 没问题，但多走一层"。这个导入正是 SDK 边界禁止的。
 
-如果违规落地，会出两件错事：
+如果违例被合入，会出两件事：
 
-- 应用行为现在与可能改变的 runtime 内部耦合。
-- 应用开始形成对 runtime 行为的局部预期，而这个预期没有任何已认可合同。
+- App 行为开始与 runtime 内部耦合，而内部是会变的。
+- App 开始形成一种关于"runtime 应当如何"的本地预期，但这种预期没有任何准入契约支撑。
 
-把违规挡在代码评审是让应用接入保持诚实的方式。SDK kernel 的 import 边界表是「什么允许、什么不允许」的权威清单。
+在 code review 阶段抓住这次违例，App 的接入诚信就守住了。SDK 内核的导入边界表是哪些允许、哪些不允许的权威清单。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/sdk/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/index.md)
 - [`.nimi/spec/sdk/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/index.md)

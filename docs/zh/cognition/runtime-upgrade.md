@@ -1,89 +1,89 @@
-# Runtime 升级
+# Runtime 能力升级
 
-Runtime 升级合同描述能力升级怎么在 Runtime 与 Cognition 之间流动而不吸纳权威。能力升级是指 Cognition 的面提供比 Runtime 等价面更多或更强的语义；升级合同映射这层关系。
+Runtime 升级契约描述能力升级如何在 Runtime 与 Cognition 之间流转，且不发生权威吞并。当 Cognition 的接口面在某个关注点上提供了比 Runtime 等价接口更丰富、或更强的语义时，就构成一次能力升级；这套契约负责把这种关系映射清楚。
 
-## 为什么是「升级」而不是「吸纳」
+## 为什么是"升级"，不是"吞并"
 
-如果 Cognition 简单替代 Runtime 的记忆与知识面，两件事会断：
+如果 Cognition 直接替换 Runtime 的记忆与知识接口，会出两件事：
 
-- 已有消费 Runtime 的 App 得重绑到 Cognition。
-- Runtime 的 bank 范围模型（针对 runtime 执行上下文的）会被稀释。
+- 既有消费 Runtime 的 App 必须重新接到 Cognition；
+- Runtime 自己 bank 作用域模型（专为 Runtime 执行上下文设计）会被冲淡。
 
-有了升级合同：
+走升级契约：
 
-- Runtime 与 Cognition 都保留各自的面。
-- 升级矩阵把每个 runtime 关注映到带**等价或升级强度**的 cognition 面。
-- 想要更丰语义的 App 经桥 opt-in；不想的 App 继续直接用 Runtime。
+- Runtime 与 Cognition 各自保留接口面。
+- 升级矩阵把每个 Runtime 关注点映射到 Cognition 接口面，并标注**等价或更强**。
+- 想要更丰富语义的 App 通过桥接显式接入；不接入的 App 继续直接用 Runtime。
 
 ## 升级矩阵
 
-`runtime-capability-upgrade-matrix.yaml` 准入按关注的映射。
+`runtime-capability-upgrade-matrix.yaml` 准入了按关注点的映射。
 
-| Runtime 关注 | Cognition 面 | 强度 |
+| Runtime 关注点 | Cognition 接口面 | 强度 |
 | --- | --- | --- |
-| 记忆回忆 | Cognition 记忆服务 | 等价或更丰 |
-| 知识查询 | Cognition 知识服务 | 更丰（一等关系） |
-| Prompt 拼装 | Cognition Prompt 服务 | 更丰（道分开） |
-| 技能 bundle | Cognition 技能服务 | 增类型化建议 bundle |
+| 记忆召回 | Cognition 记忆服务 | 等价或更丰富 |
+| 知识查询 | Cognition 知识服务 | 更丰富（一等关系） |
+| 提示词组装 | Cognition 提示词服务 | 更丰富（通道隔离） |
+| 技能束 | Cognition 技能服务 | 新增强类型 advisory |
 
-矩阵被准入；强度声明按关注。
+矩阵已准入；强度声明按关注点逐项给出。
 
-## 升级**不**做什么
+## 升级不做的事
 
-| 关注 | 为什么不 |
+| 关注点 | 不做的原因 |
 | --- | --- |
-| 替代 Runtime 作权威 | Runtime 为 bank 范围保留规范化真相 |
-| 吸纳 Runtime 记忆 bank 范围 | Bank 范围是 runtime 关注 |
-| 强迫 App 迁移 | 桥是 opt-in |
-| 降权 Runtime 合同 | Runtime 合同保持准入 |
+| 替换 Runtime 的权威 | Runtime 自己 bank 作用域的标准真相仍由 Runtime 持有 |
+| 吞并 Runtime 的 bank 作用域 | bank 作用域是 Runtime 的关注点 |
+| 强制 App 迁移 | 桥接是可选项 |
+| 压制 Runtime 契约 | Runtime 契约仍准入有效 |
 
-升级是**累加**，不是替代。
+升级是**叠加**，不是替换。
 
-## 阅读场景：App opt-in Cognition
+## 场景：App 接入 Cognition
 
-某宿主产品决定 Agent 用 Cognition 做记忆与知识，而不是只用 runtime bank。
+某宿主项目决定让 Agent 用 Cognition 来做记忆与知识，而不仅仅依赖 Runtime bank。
 
-1. **接桥。** 通过准入设置，runtime 消费 cognition。
-2. **复制 / 桥接。** 记忆写经准入桥流到 cognition 记忆基底。
-3. **经桥读。** Runtime 查 cognition（更丰的面）。
-4. **既有 runtime 合同不变。** 不知道 cognition 的 App 看到的 runtime 跟以前一样。
+1. **接线桥接**：在准入的接线流程下，Runtime 消费 Cognition。
+2. **复制 / 投影**：记忆写入经准入投影通道流入 Cognition 记忆 substrate。
+3. **通过桥接读取**：Runtime 查询 Cognition（更丰富的接口）。
+4. **既有 Runtime 契约不变**：不知情的 App 看 Runtime 与之前一样。
 
-宿主产品升级了；平台没。
+升级的是宿主项目，不是平台。
 
-## 阅读场景：独立 Cognition 采纳
+## 场景：独立采用 Cognition
 
-某项目用 `nimi-cognition` 而不用 `nimi-runtime`。
+某项目仅用 `nimi-cognition`，不引入 `nimi-runtime`。
 
-1. **采纳 cognition。** 项目依赖 `nimi-cognition`。
-2. **不需要升级矩阵。** 项目直接用 cognition；没 runtime 关注要升级。
-3. **Cognition 独立。** 项目拿到 cognition 的完整面，不需要 runtime 桥。
+1. **采用 Cognition**：依赖 `nimi-cognition`。
+2. **不需要升级矩阵**：直接使用 Cognition，没有要被升级的 Runtime 关注点。
+3. **完整 Cognition 接口面**：项目拿到 Cognition 全部接口，不需要 Runtime 桥接。
 
-独立用绕过升级矩阵。矩阵的存在是给同时消费 runtime 与 cognition 的项目。
+独立使用绕开整个升级矩阵——矩阵存在是为了同时消费 Runtime 与 Cognition 的项目。
 
-## 阅读场景：能力漂移
+## 场景：能力漂移
 
-假设 Cognition 的知识服务演化（加新操作）。Runtime 看得见吗？
+假设 Cognition 知识服务演进，加入了一个新操作。Runtime 看得到吗？
 
-1. **Cognition kernel 准入新操作。** 按 cognition 自己的准入合同。
-2. **桥合同评估。** 如果 runtime 该暴露新操作，升级矩阵也在 runtime 侧准入它。
-3. **如准入到升级矩阵。** Runtime 的 `RuntimeCognitionService` 在准入面下暴露新操作。
-4. **如未准入到升级矩阵。** 新操作只在 cognition 侧。
+1. **Cognition 内核准入新操作**：按 Cognition 自己的准入契约。
+2. **桥接契约评估**：如果 Runtime 应当暴露这个新操作，则升级矩阵在 Runtime 侧也准入。
+3. **若准入升级矩阵**：Runtime 的 `RuntimeCognitionService` 在准入面下暴露这个新操作。
+4. **若不准入升级矩阵**：新操作只留在 Cognition 一侧。
 
-矩阵是门控层。Cognition 能演化而不强行扩展 runtime；runtime 只在被准入时扩展。
+矩阵就是那道闸门。Cognition 可以独立演进，不会强行扩展 Runtime；Runtime 仅在准入时扩展。
 
-## 阅读场景：审计员问「记忆权威在哪」
+## 场景：审计员问"记忆权威在哪"
 
-某审计员想知道一个同时用 runtime 与 cognition 的项目里，规范化记忆真相住在哪。
+审计员想知道在同时使用 Runtime 与 Cognition 的项目里，标准记忆真相位于何处。
 
-| Scope | 权威 |
+| 作用域 | 权威 |
 | --- | --- |
-| Runtime bank 范围（`AGENT_CORE`、`AGENT_DYADIC`、`WORLD_SHARED`） | Runtime |
-| Cognition 记忆基底 | Cognition |
-| 跨桥接 | 桥合同映射 |
+| Runtime bank 作用域（`AGENT_CORE`、`AGENT_DYADIC`、`WORLD_SHARED`） | Runtime |
+| Cognition 记忆 substrate | Cognition |
+| 跨投影 | 由桥接契约映射 |
 
-读 spec 的审计员拿到类型化答案。权威**不**模糊，因为桥是被准入的，不是即兴的。
+审计员读规范就能拿到强类型答案。权威不模糊，因为桥接是准入的，不是临时拼出来的。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/cognition/kernel/runtime-upgrade-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/runtime-upgrade-contract.md)
 - [`.nimi/spec/cognition/kernel/runtime-bridge-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/runtime-bridge-contract.md)

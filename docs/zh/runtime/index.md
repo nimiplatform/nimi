@@ -1,65 +1,65 @@
 # Runtime
 
-Runtime 是 Nimi 实际跑 AI 工作的那一层。它把平台层面的意图变成有规则的执行：Provider 接入、Model 管理、流式、工作流、本地能力路由、委派、审计、多模态投递，以及 Runtime 自己拥有的 Agent 参与流程。
+Runtime 是真正跑 AI 工作的那一层。它把平台意图变成受治理的执行：provider、模型目录、流式、工作流、本地路由、委派、审计、多模态产物，以及由 Runtime 持有的 Agent 参与。
 
-应用不应该把 Runtime 看成一袋私有函数。Runtime 有公开合同面和明确的所有权边界。SDK 是应用代码消费这个面板的优先方式；具体规则参见 [SDK 边界](/zh/sdk/boundaries)。
+应用不应把 Runtime 当成私有函数的合集来调。它有公开的契约面和清晰的归属边界。应用代码使用它的推荐方式是经由 SDK，详见 [SDK 边界](/zh/sdk/boundaries)。
 
-## 本章节包含
+## 本节包含什么
 
-- [工作流与多模态](/zh/runtime/workflows-and-multimodal) — 多步 AI 工作和非文本产物如何被治理。
-- [Provider 与 Model](/zh/runtime/providers-and-models) — 当前对 Provider 和 Model 可用性的公开说法。
+- [工作流与多模态](/zh/runtime/workflows-and-multimodal)：多步 AI 工作和非文本产物如何被治理。
+- [Provider 与模型](/zh/runtime/providers-and-models)：当前关于 provider 和模型可用性的公共说明。
 
-跨域的 [错误与兼容性](/zh/reference/errors-and-compatibility) 收集了 Runtime 错误如何呈现给应用。
+跨切面的 [错误与兼容性](/zh/reference/errors-and-compatibility) 一页汇总了 Runtime 错误如何呈现给应用。
 
-## Runtime 拥有什么
+## Runtime 持有什么
 
-Runtime 拥有所有需要在产品面板之间保持一致的执行行为：
+下面这些执行行为需要在所有产品表面保持一致，归 Runtime 所有：
 
-- 请求和流式语义；
+- 请求与流式语义；
 - 工作流生命周期与节点执行；
-- Provider 与 Model 目录治理；
-- 本地能力与设备特征路由；
+- provider 与模型目录治理；
+- 本地能力与设备画像路由；
 - 连接器与配置规则；
 - 审计、回放、失败语义；
-- 委派能力闸口（gateway）和委派输出防火墙；
-- Runtime 拥有的 Agent 参与、呈现、记忆基础边界。
+- 受委派的能力网关与受委派输出防火墙；
+- Runtime 持有的 Agent 参与、呈现与记忆基底边界。
 
-这些职责都以 `K-*` 系列规则在 kernel 合同中独立成文；Runtime kernel 索引会列出全套。
+每一项责任都对应一份独立的 kernel 契约，按 `K-*` 规则族分类。规范的 runtime kernel 索引列出了每份契约对应的页。
 
-## Runtime 不拥有什么
+## Runtime 不持有什么
 
-Runtime 不拥有 Realm 真相、桌面端 UI 决策、网页端的 release 姿态，也不拥有 Cognition 权威。当合同允许时它可以接桥或消费这些域，但不会重新定义它们。
+Runtime 不持有 Realm 真相、桌面端 UI 决策、网页端发布姿态，也不持有 Cognition 权威。当契约允许时，它可以衔接或消费这些域，但不能重新定义它们。
 
-这一区分在出问题时很关键。如果某个 Realm 读返回了不该返回的真相，修复点在 Realm，不在 Runtime 的 workaround；如果桌面端某个面板显示状态不对，修复点在桌面端，不在 Runtime 的 patch。
+这条分界在出问题的时候特别要紧。如果一次 Realm 读取返回了不该返回的真相，修复要做在 Realm，不能在 Runtime 里绕过去。如果一个桌面端表面把状态显示错了，修复在桌面端，不在 Runtime 打补丁。
 
-## 阅读场景：一次流式生成
+## 读者场景：一次流式生成
 
-设想一个应用调用 Runtime 在某个世界上下文里生成一段流式补全。按 Runtime 工作流合同，请求有清晰的生命周期：
+某个应用调用 Runtime，在某个世界的上下文里生成一段流式补全。按 runtime workflow 契约，这次请求有一条明确的生命周期：
 
-1. 请求作为 `ScenarioJob` 被准入并进入 `SUBMITTED` 状态。
-2. 对应的 `Workflow` 在 DAG 准备好后进入 `ACCEPTED`。
-3. 流式 chunk 在流式合同下到达应用。阶段边界、终止帧、错误语义都有定义。
-4. 如果生成出多模态产物（图像、音频、视频、音乐、声音），它走多模态产物合同，而不是临时的 URL。
-5. 工作流到达 `COMPLETED`，写出审计记录。
+1. 请求被准入为 `ScenarioJob`，进入 `SUBMITTED` 状态。
+2. 对应的 `Workflow` 在 DAG 准备好之后进入 `ACCEPTED`。
+3. 流式分片按 streaming 契约送达应用。stage 边界、终止帧、错误语义都有明确定义。
+4. 如果产生了多模态产物（图、音、视频、音乐、语音），它会按多模态产物契约传递，而不是临时拼一个 URL。
+5. 工作流到达 `COMPLETED`，审计记录写入。
 
-这条生命周期里出任何问题，所有权都在 Runtime。应用不会自己「影子修」它，例如不会自创流式语义；它会按 Runtime 错误模型上报失败。
+这条生命周期里任何一步出问题，归属都在 Runtime。应用不会自己造一套流式语义来打掩护，而是按 Runtime 错误模型上报失败。
 
-## 阅读场景：本地能力路由
+## 读者场景：一条本地能力路由
 
-设想桌面端用户安装了一个本地 Model，希望某种工作交给它做。Runtime 借助本地能力合同与设备特征合同决定路由到哪个引擎：
+桌面端用户装了某个本地模型，想让它来处理某一类工作。Runtime 按本地能力与设备画像契约决定路由到哪个引擎：
 
-1. 本地能力注册表知道用户在该设备上准入了哪些类别。
-2. 设备特征说明该设备能支持什么。
-3. 本地引擎目录告诉 Runtime 哪个引擎实现这条路由。
-4. 本地适配器路由确定最终适配器。
+1. 本地能力注册表知道这台设备上用户准入了哪些类别。
+2. 设备画像告诉 Runtime 设备能支撑什么。
+3. 本地引擎目录告诉 Runtime 哪个引擎实现了对应路由。
+4. 本地适配器路由决定最终的适配器。
 
-这套决策完全归 Runtime 拥有。桌面端不会绕过它，应用也不会绕过它。
+整条决定链归 Runtime 所有。桌面端不绕开它，应用也不绕开它。
 
-## Provider 与 Model
+## Provider 与模型姿态
 
-Provider 与 Model 由 Runtime 目录合同治理：路由、能力、健康状态和错误语义都归 Runtime 拥有。想看这一面的规则，读 [Provider 与 Model](/zh/runtime/providers-and-models)。
+文档在契约层描述 provider 与模型治理。在拿到准入的 runtime 目录证据之前，文档不会公开发布可用性目录。当前姿态以及未来公开目录需要回答的问题，详见 [Provider 与模型](/zh/runtime/providers-and-models)。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
 - [`.nimi/spec/runtime/kernel/rpc-surface.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/rpc-surface.md)

@@ -1,53 +1,53 @@
 # Cognition
 
-Cognition 是记忆、知识、Prompt 服务、引用、补全、技能服务、Runtime 桥接行为和能力升级的**独立权威域**。
+Cognition 拥有记忆、知识、提示词服务、引用、完成关卡、技能服务、Runtime 桥接行为以及能力升级，是一个独立的权威域。
 
-Runtime 可以接桥到 Cognition。它**不**吸收 Cognition 的权威。
+Runtime 通过明确定义的桥接面与 Cognition 通信。它能消费 Cognition，但不会吞掉 Cognition 的权威。
 
-## Cognition 为什么独立
+## 为什么 Cognition 单独成域
 
-长期 AI 系统需要的远不止短暂的 Model 调用。它需要跨会话的记忆、知识检索、Prompt 服务、引用、补全闸口和升级路径。这些关注涉及面足够广，需要自己独立的权威家。
+长生命周期的 AI 系统不止有零散的模型调用。它需要跨会话的记忆、知识检索、提示词服务、引用、完成关卡，以及能力升级路径。这些关注点足够大，需要自己的权威家。
 
-把 Cognition 切出来防止 Runtime 或 Realm 被记忆与知识语义压垮，也让桥接显式：Runtime 在已定义合同下消费 Cognition，而不是吸收它。
+把 Cognition 单独成域，避免 Runtime 或 Realm 被本不该归它们的记忆与知识语义压垮。同时也让桥接显式：Runtime 在确定的契约下消费 Cognition，而不是把 Cognition 吃下去。
 
 ## Cognition 拥有什么
 
 Cognition 拥有：
 
-- 记忆服务合同（参与者的长期记忆）；
-- 知识服务合同（可检索的结构化信息）；
-- Prompt 服务（权威 Prompt 模板与服务通道）；
-- 引用与补全闸口；
-- Runtime 桥接合同（Runtime 怎样消费 Cognition）；
-- Runtime 升级合同（能力升级如何流动而不重新定义权威）。
+- 记忆服务契约：长生命周期的参与者记忆；
+- 知识服务契约：可检索的结构化信息；
+- 提示词服务：权威的提示词模板与服务通道；
+- 引用与完成关卡；
+- Runtime 桥接契约：Runtime 消费 Cognition 的方式；
+- Runtime 升级契约：能力升级如何在不重定义权威的前提下推进。
 
 ## Cognition 不拥有什么
 
-Cognition 不拥有 Runtime 执行、Realm 世界真相、桌面端外壳或 Avatar 呈现。它暴露的是一个独立面，Runtime 可以接桥；这种**桥接是消费，不是吸收**。
+Cognition 不拥有 Runtime 执行、Realm 的世界真相、桌面端 Shell，也不拥有 Avatar 呈现。它只暴露一个独立面，Runtime 通过桥接消费——是消费，不是吞并。
 
-## 阅读场景：Agent 跨会话记得用户
+## 场景：Agent 跨会话认出用户
 
-设想一个 Agent 第一天遇见某用户，第二天用户回来。在 Cognition 合同下：
+某个 Agent 第一天接待了一位用户，第二天用户回来了。按 Cognition 契约：
 
-1. Cognition 的记忆服务在已认可的 bank scope 下持有相关记忆。
-2. 新会话开始时，Runtime 通过已认可桥调用 Cognition 解析相关记忆。
-3. Cognition 在桥合同下返回记忆；Runtime 消费它而不重新定义「记忆是什么」。
-4. Agent 在新会话里的行为受这些记忆塑造，走 Runtime-owned Agent 参与合同。
+1. Cognition 的记忆服务在准入的 bank 作用域下保存了相关记忆。
+2. 新会话启动时，Runtime 通过准入桥接调用 Cognition，检索相关记忆。
+3. Cognition 在桥接契约下返回记忆，Runtime 直接消费，不重定义"记忆是什么"。
+4. Agent 在新会话中的行为，由 Runtime 拥有的 Agent 参与契约结合这条记忆塑造。
 
-跨域协奏被有界。没有任何面板发明 Cognition 之外的记忆；也没有任何面板因为这次桥接就停止做自己。
+跨域编排是有边界的。没有任何表面会发明一份 Cognition 不知道的记忆，也没有表面会因为桥接而失去自己的身份。
 
-## 阅读场景：知识背书的补全
+## 场景：知识支撑下的一次完成
 
-设想一个 Agent 在完成一轮对话前，需要查阅可检索的知识。在 Cognition 知识服务下：
+某个 Agent 在完成一次回合之前需要查可检索知识。按 Cognition 的知识服务：
 
-1. 知识服务在已认可合同下被查询。
-2. 检索到的知识作为输入证据参与补全。
-3. 补全合同决定结果允许如何被使用。
-4. Runtime 桥让 Runtime 的执行角色与 Cognition 的知识权威角色保持干净分离。
+1. 在它的准入契约下查询知识服务。
+2. 检索到的知识作为输入证据参与本次完成。
+3. 完成契约决定结果可以以何种方式被使用。
+4. Runtime 桥接保持 Runtime 的执行角色与 Cognition 的知识权威清晰分开。
 
-如果结果错了是因为知识陈旧，修复点在 Cognition，不在 Runtime；如果结果错了是因为补全治理不严，修复点在补全合同，不在知识服务。
+如果结果错了是因为知识过期，修复在 Cognition；如果结果错了是因为完成关卡治理不够，修复在完成契约，而不是知识服务。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/cognition/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/index.md)
 - [`.nimi/spec/cognition/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/index.md)

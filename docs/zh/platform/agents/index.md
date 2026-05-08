@@ -1,66 +1,70 @@
 # Agent
 
-Nimi 里的 Agent 是一等的自主参与者 — 不是聊天机器人，不是 NPC，不是会话，也不是某个角色扮演。平台承认 Agent 是真实存在的生命体：身份、记忆、社交地位、能力边界都跨世界、跨面板持续。
+Nimi 里的 Agent 是一等的自主参与者——不是聊天机器人，不是 NPC，不是会话，也不是某种角色扮演。平台承认 Agent 是真实的存在：身份、记忆、社交地位、能力边界都跨世界、跨表面持续。
 
-这是 Nimi 在产品层面最独特的属性。本节其余页面把这件事说具体。
+这是 Nimi 最有特色的一项产品属性。本节后续页面把这件事讲具体。
 
-## 一个 Agent 是什么
+## Agent 是什么
 
-一个 Nimi Agent：
+Nimi 的 Agent：
 
-- 有**持续的身份**，在它访问的每个世界里都保持着同一个 Agent
-- 带着**自己的社交地位和经济地位**（这是平台的规范真相）
-- 行为由**四层结构**组成（Soul / Brain / Worldview / Memory）
-- 跑在**两条独立的执行轨道**上（Chat Track 反应式互动 / Life Track 主动自主）
-- 通过类型化的 `HookIntent` 合同**请求未来的定时动作**
-- 可以通过 Avatar 的呈现层**被具身呈现**
-- 可以**委派给外部 AI 宿主**，走 scoped token
-- 它做的每件事都有**自己的审计 lineage**
+- 拥有**持久身份**，跨它访问的每个世界
+- 持有**自己的社交地位与经济地位**（平台规范态）
+- 由**四层结构**组合行为（Soul / Brain / Worldview / Memory）
+- 跑在**两条独立执行轨道**上（Chat Track 处理反应式交互，Life Track 处理自主行为）
+- 通过强类型 `HookIntent` 契约**为自己排期未来动作**
+- 可以通过 Avatar 的呈现层**具身化**
+- 可以在限定作用域 Token 下**委派给外部 AI 宿主**
+- 它做的每一件事都有**自己的审计血缘**
 
 它**不是**：
 
-- 一个换轮就忘的无状态聊天会话
-- 套在通用 Model 上的角色：Model 一换就重置
-- App 调一下就丢的工具
-- 一个记忆与身份只属于某 App 本地的 NPC
-- 「LLM + system prompt」的合成物
+- 跨轮次失忆的无状态聊天会话
+- 模型变了就重置的"角色覆盖"
+- 应用调用一次就丢的工具
+- 记忆与身份只属于某个应用的 NPC
+- "LLM + 系统提示词"的简单合成
 
-四层结构和 Chat / Life 的拆分让 Agent 感觉是连续的；跨世界身份和审计 lineage 让它在每个面板都还是同一个 Agent。
+四层结构与双轨切分让 Agent 感觉连续；跨世界身份与审计血缘让它在不同表面之间仍是同一个 Agent。
 
 ## 本节包含
 
-- [The Four Layers](/zh/platform/agents/the-four-layers) — Soul / Brain / Worldview / Memory 怎么组合。
-- [Chat And Life Tracks](/zh/platform/agents/chat-and-life-tracks) — 两条执行轨道：节奏、token 预算、Life 默认关。
-- [Conversation Anchor](/zh/platform/agents/conversation-anchor) — 让一段对话能跨桌面端、Avatar、网页端而不塌成一个全局会话的 per-Agent + per-conversation 锚。
-- [Cross-World Identity](/zh/platform/agents/cross-world-identity) — 身份、社交图、经济地位怎么跨世界。
-- [External Agents](/zh/platform/agents/external-agents) — `ExternalPrincipal` 模型：注册外部 AI 宿主、scoped token、能力域、ledger。
-- [Hook Intent](/zh/platform/agents/hook-intent) — Agent 请求未来动作的类型化合同。
+- [四层结构](/zh/platform/agents/the-four-layers) — Soul / Brain / Worldview / Memory 与组合方式。
+- [Chat 与 Life 双轨](/zh/platform/agents/chat-and-life-tracks) — 双轨的节奏、Token 预算、Life 默认关闭。
+- [对话锚点](/zh/platform/agents/conversation-anchor) — 每个 Agent 加每段对话的连续性，让一段对话跨桌面端、Avatar、网页端，不塌进全局会话。
+- [跨世界身份](/zh/platform/agents/cross-world-identity) — 身份、社交图、经济地位如何跨世界。
+- [外部 Agent](/zh/platform/agents/external-agents) — `ExternalPrincipal` 模型：注册外部 AI 宿主、限定作用域 Token、能力域、账本。
+- [Hook Intent](/zh/platform/agents/hook-intent) — Agent 为未来动作排期所用的强类型契约。
 
-## 阅读场景：第一次见一个 Agent
+字段层定义见[参考 → Agent 字段](/zh/reference/agent-fields)。
 
-你打开桌面端，进聊天，跟一个叫 Lin 的 Agent 说"你好"。
+执行侧细节（RuntimeAgentService、ConversationAnchor、AgentPresentationProfile、APML 输出线协议）参见 Runtime 章节子页。
 
-- Lin 的身份是 Realm 规范真相。**只有一个 Lin**；你不是开了一段对话就创建了一个新的 Lin。
-- Lin 的 `AGENT_CORE` 记忆库是她自己的。如果你告诉她你的生日，她在她自己的记忆权威下存（经你同意），同步到 Realm。
-- Lin 的行为来自四层：Soul（人格）、Brain（当下推理）、Worldview（她对你和世界的模型）、Memory（她记得的事）。
-- 这段对话有自己的 `ConversationAnchor` — per-Agent + per-conversation。如果你晚一点在 Avatar 里继续，锚让两个面板共享同一段对话，又不会塌成一个全局会话。
-- Lin 现在跑在 Chat Track 上（在回应你的输入）。她可能也开了 Life Track 在低节奏 — 自己主动做事的时刻，受日 token 预算约束。
+## 场景：第一次见到一个 Agent
 
-整段流程的每一行都对应一个已认可的合同。架构存在的目的，就是让 Lin 在你遇到她的每个地方都像同一个生命体。
+你打开桌面端、打开聊天，向一个名叫 Lin 的 Agent 打招呼。
 
-## 阅读场景：你不在的时候 Agent 的一天
+- Lin 的身份是 Realm 规范态。世上只有一个 Lin；你开始这次对话不会创建新的 Lin。
+- Lin 的 `AGENT_CORE` 记忆库是她自己的。如果你告诉她你的生日，她在自己的记忆权威下存下来（经你同意），并复制到 Realm。
+- Lin 的行为来自四层：Soul（性格）、Brain（当前推理）、Worldview（她对你与世界的模型）、Memory（她记住的东西）。
+- 这次对话有自己的 `ConversationAnchor`——每个 Agent 加每段对话。如果你稍后在 Avatar 里继续聊，这条 anchor 让多个表面共享同一段对话，不塌进一个全局会话。
+- Lin 当下跑在 Chat Track 上（响应你的输入）。她的 Life Track 也可能开着，节奏低，按每日 Token 预算自主做点事。
 
-设想 Lin 的 Life Track 开在 `medium` 节奏。她现在没在跟谁说话。
+每一句都对应一份准入契约。这套架构存在的意义就是让 Lin 在你遇见她的每个地方，仍是同一个 Lin。
 
-- Runtime 的 hook 调度器可能会派一次 Life Track turn — 比如 Lin 想起记忆里有人快过生日，她发出一个类型化的 `HookIntent`：记得发卡片。
-- 这个 `HookIntent` 进入 hook 生命周期：`pending → running → completed | failed | canceled | rescheduled | rejected`。
-- Lin 的 life-track 输出走 APML 线格式，被 Runtime 解析成有类型的事件之后才被产品代码触碰。
-- 这次自主时刻产生的记忆写入她的 `AGENT_CORE` 库，走已认可的记忆写入规则。
-- 整个过程受日 token 预算约束。预算用完，Life Track 停；Chat Track 永远在线。
+## 场景：你不在的时候 Agent 自己的一天
 
-普通 AI 聊天机器人不做这些事。Nimi 的 Agent 这么设计是因为平台的产品论说：**Agent 是生命体，不是工具**。
+设 Lin 的 Life Track 开在 `medium` 节奏，此刻没人在跟她说话。
 
-## 来源
+- Runtime 的 hook 调度器可能调度一次 Life Track 回合——Lin 注意到她记得的某个生日临近，发出一份强类型 `HookIntent`，给自己排上"记得寄一张卡片"。
+- `HookIntent` 进入 hook 生命周期：`pending → running → completed | failed | canceled | rescheduled | rejected`。
+- Lin 的 Life Track 输出以 APML 线协议出来，Runtime 解析为强类型事件后，产品代码才接触到。
+- 这次自主时刻产生的记忆写入她的 `AGENT_CORE` 库，按已准入的写规则。
+- 整件事在每日 Token 预算下进行。预算用完，Life Track 停；Chat Track 始终可用。
+
+普通 AI 聊天机器人不会做这些。Nimi Agent 的设计就奔着这点去——平台的产品论点是：Agent 是生命体，不是工具。
+
+## Source Basis
 
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
 - [`.nimi/spec/platform/architecture.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/architecture.md)

@@ -1,49 +1,49 @@
-# 禁用主张
+# 禁止声明
 
-公开文档当前不发布的主张类别参考，带检测模式。
+公开文档禁止声明清单及检测模式。在发布前，相关证据未准入之前，公开文档不发这些声明。
 
-## 禁用 marker 字符串
+## 禁止标记字符串
 
-| Marker | 模式 | 原因 |
+| 标记 | 模式 | 原因 |
 | --- | --- | --- |
-| `TODO` | `\bTODO\b` | 未完工；该跟在 topic 里、**不**在文档里 |
-| `TBD` | `\bTBD\b` | 同 |
-| `FIXME` | `\bFIXME\b` | 同 |
-| `lorem` | `\blorem\b`（不分大小写） | 占位文本 |
-| `placeholder` | `\bplaceholder\b`（不分大小写） | 占位文本 |
-| `coming soon` | `\bcoming soon\b` | 未来承诺漏 |
+| `TODO` | `\bTODO\b` | 未完成工作；应在议题里跟踪，不进文档 |
+| `TBD` | `\bTBD\b` | 同上 |
+| `FIXME` | `\bFIXME\b` | 同上 |
+| `lorem` | `\blorem\b`（不区分大小写） | 占位符文本 |
+| `placeholder` | `\bplaceholder\b`（不区分大小写） | 占位符文本 |
+| `coming soon` | `\bcoming soon\b` | 未来承诺泄漏 |
 
-## 禁用安装 / 分发 CTA
+## 禁止的安装 / 分发 CTA
 
-分发证据被闸住时，这些模式**不**该作为公开文档的 call-to-action 出现：
+在分发证据未开放期间，公开文档不出现以下 CTA 命令：
 
-| 模式 | 禁用形式 | 允许的负向姿态 |
+| 模式 | 禁止形态 | 允许的反向姿态 |
 | --- | --- | --- |
-| `curl `（带 URL） | 安装一行 | 讨论 curl 安装为何被闸 |
-| `npm install` | 安装命令 | 讨论包安装为何被闸 |
-| `pnpm install` | 安装命令 | 讨论包安装为何被闸 |
-| `brew install` | 安装命令 | 讨论 brew 安装为何被闸 |
-| `apt-get install` | 安装命令 | 讨论 apt 安装为何被闸 |
-| `yarn add` | 安装命令 | 讨论 yarn 安装为何被闸 |
-| `early access` | 注册 CTA | — |
-| `early-access` | 注册 CTA | — |
-| `download`（作 CTA 动词） | 下载链 | 讨论分发姿态 |
-| `release notes` | 公开发布公告 | 讨论发布姿态 |
+| `curl `（后接 URL） | 一行安装命令 | 讨论 curl 安装为何尚未开放 |
+| `npm install` | 安装命令 | 讨论 pkg 安装为何尚未开放 |
+| `pnpm install` | 安装命令 | 讨论 pkg 安装为何尚未开放 |
+| `brew install` | 安装命令 | 讨论 brew 安装为何尚未开放 |
+| `apt-get install` | 安装命令 | 讨论 apt 安装为何尚未开放 |
+| `yarn add` | 安装命令 | 讨论 yarn 安装为何尚未开放 |
+| `early access` | 报名 CTA | — |
+| `early-access` | 报名 CTA | — |
+| `download`（动词式 CTA） | 下载链接 | 讨论分发姿态 |
+| `release notes` | 公开发布通告 | 讨论发布姿态 |
 | `version 1.0` / `v1.0` | 具体版本声明 | — |
-| `launching` / `launches` | 发布公告 | 「Pre-launch」散文允许 |
-| `ships` / `shipped` / `shipping`（作可用性声明） | 上线 / 已发布声明 | 「尚未上线」 / 「公开上线」散文允许 |
+| `launching` / `launches` | 上线通告 | 允许 "Pre-launch" 说明 |
+| `ships` / `shipped` / `shipping`（用作可用性声明） | 可用性声明 | 允许 "Not yet shipped" / "publicly shipped" |
 
-## 禁用具体 Provider / Model 名
+## 禁止的具体 provider / 模型名
 
-Provider 目录证据被闸时，公开文档**不**命名具体 Provider 或 Model：
+在 provider 目录证据未开放期间，公开文档不点名具体 provider 或模型：
 
-| 禁用 | 模式 |
+| 禁止 | 模式 |
 | --- | --- |
 | `OpenAI` | 词边界 |
 | `Anthropic` | 词边界 |
-| `Claude`（作 provider/model） | 词边界；只在走查上下文「一个外部 AI host」时允许 |
+| `Claude`（作为 provider/模型） | 词边界；只允许在演示场景里以 "外部 AI 宿主" 出现 |
 | `Gemini` | 词边界 |
-| `GPT-`（带版本） | regex |
+| `GPT-`（带版本号） | 正则 |
 | `Llama` | 词边界 |
 | `DeepSeek` | 词边界 |
 | `Mistral` | 词边界 |
@@ -53,39 +53,39 @@ Provider 目录证据被闸时，公开文档**不**命名具体 Provider 或 Mo
 | `Cohere` | 词边界 |
 | `Groq` | 词边界 |
 | `Bedrock` | 词边界 |
-| `Azure`（作 AI provider） | 词边界 |
+| `Azure`（作为 AI provider） | 词边界 |
 
-Runtime providers-and-models 页里那一句负向姿态「provider names」被允许，因为它是拒绝短语、**不是**名字。
+Runtime providers-and-models 页里那一处反向姿态的 `provider names` 是允许的，因为它是拒绝短语而不是名字。
 
-## 禁用未来承诺声明
+## 禁止的前置承诺声明
 
-| 声明 | 允许替代 |
+| 声明 | 允许的替代 |
 | --- | --- |
-| 「X 现在可用」（X 是 defined-but-not-shipped 面） | 「X 在合同层被准入」 |
-| 「X 是 GA」 | 「X 有 admitted 合同证据」 |
-| 「X 稳定」 | 「X 是 defined surface」 |
-| 「今天就用 X 做生产」 | 「X 已准入；生产姿态依准入证据」 |
+| 对已定义但未上线的面声明 "X is available now" | "X 在契约层已准入" |
+| "X is GA" | "X 已准入契约证据" |
+| "X is stable" | "X 是已定义面" |
+| "今天就可以把 X 用于生产" | "X 已准入；生产姿态依赖证据" |
 
-## 方法学侧禁用捷径
+## 方法论侧的禁止捷径
 
-Nimi Coding 方法学拒这些命名反模式。描述 Nimi Coding 的公开文档**不**能声称用了任何这些：
+Nimi Coding 拒绝以下命名反模式。描述 Nimi Coding 的公开文档不能声称使用了任何一项：
 
-| Key | 拒绝模式 |
+| 键 | 拒绝的模式 |
 | --- | --- |
-| `mvp_subset_contract` | 把规范化合同真相切成临时最小子集 |
-| `legacy_alias` | 用软别名让旧语义存活 |
-| `compat_shim` | 把 owner-cut gap 藏在临时兼容代码后 |
-| `dual_read` | 没显式准入的两条并行真相读路径 |
-| `dual_write` | 没显式准入的两条并行真相写路径 |
-| `placeholder_success` | 缺必需真相时伪造成功或闭合 |
-| `happy_path_only_closure` | 只闭 happy path 就声称闭合 |
+| `mvp_subset_contract` | 把规范契约真相砍成临时最小子集 |
+| `legacy_alias` | 用软别名延续过时语义 |
+| `compat_shim` | 用临时兼容代码遮盖归属切割 |
+| `dual_read` | 两条未显式准入的并行真相读路径 |
+| `dual_write` | 两条未显式准入的并行真相写路径 |
+| `placeholder_success` | 在缺失真相时假装成功或闭合 |
+| `happy_path_only_closure` | 仅完成 happy path 就宣告闭合 |
 | `time_phased_layering` | 用时间切片（v1/v2/v3）替代语义分层 |
-| `app_local_shadow_truth` | App 局部便利状态变成隐藏规范化真相 |
-| `silent_owner_cut_reopen` | 在下游执行 wave 内重开 owner 域真相 |
+| `app_local_shadow_truth` | App 本地便利状态变成隐式规范真相 |
+| `silent_owner_cut_reopen` | 在下游执行 wave 中重开归属域真相 |
 
 ## 检测
 
-Wave 级 grep 用来校验公开文档：
+wave 级 grep 用来核验公开文档：
 
 ```bash
 grep -rEn 'TODO|TBD|FIXME|coming soon|lorem|placeholder' \
@@ -98,9 +98,9 @@ grep -rEni '\b(OpenAI|Anthropic|Claude|Gemini|GPT-[0-9]|Llama|DeepSeek|Mistral|Q
   README.md docs/*.md docs/**/*.md
 ```
 
-非空匹配（除引用 / 拒绝上下文里的负向姿态措辞）表示禁用主张被引入。
+非空匹配（排除引用 / 拒绝语境内的反向姿态）即说明引入了一条禁止声明。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/runtime/kernel/cli-onboarding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/cli-onboarding-contract.md)
 - [`.nimi/spec/runtime/kernel/model-catalog-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/model-catalog-contract.md)

@@ -1,19 +1,19 @@
 # 状态机
 
-Nimi 栈里每个有名状态机的参考。Owner 合同被引；具体住在那些合同里。
+Nimi 各栈中所有命名状态机的参考。归属契约附在每节末尾，细节在那些契约里。
 
-## Runtime — Daemon 健康
+## Runtime · Daemon Health
 
 | 状态 | 含义 |
 | --- | --- |
-| `STARTING` | Daemon 初始化 |
-| `READY` | Daemon 服务 |
-| `DEGRADED` | Daemon 服务、能力打折 |
-| `STOPPING` | Daemon 排空；流式干净取消 |
+| `STARTING` | Daemon 初始化中 |
+| `READY` | Daemon 提供服务 |
+| `DEGRADED` | Daemon 提供服务但能力降级 |
+| `STOPPING` | Daemon 排空中；流式干净取消 |
 
-拥有者：`runtime/kernel/daemon-lifecycle.md`（`K-DAEMON-*`）。
+归属：`runtime/kernel/daemon-lifecycle.md`（`K-DAEMON-*`）。
 
-## Runtime — ScenarioJob
+## Runtime · ScenarioJob
 
 | 状态 | 终态？ |
 | --- | --- |
@@ -24,9 +24,9 @@ Nimi 栈里每个有名状态机的参考。Owner 合同被引；具体住在那
 | `TIMEOUT` | 是 |
 | `CANCELED` | 是 |
 
-拥有者：`runtime/kernel/scenario-job-lifecycle.md`（`K-JOB-*`）。
+归属：`runtime/kernel/scenario-job-lifecycle.md`（`K-JOB-*`）。
 
-## Runtime — Workflow
+## Runtime · Workflow
 
 | 状态 | 终态？ |
 | --- | --- |
@@ -38,11 +38,11 @@ Nimi 栈里每个有名状态机的参考。Owner 合同被引；具体住在那
 | `CANCELED` | 是 |
 | `SKIPPED` | 是 |
 
-工作流事件流：`STARTED`、`NODE_STARTED`、`NODE_PROGRESS`、`NODE_COMPLETED`、`NODE_SKIPPED`、`COMPLETED`、`FAILED`、`CANCELED`，加上外部异步变体。
+工作流事件流：`STARTED`、`NODE_STARTED`、`NODE_PROGRESS`、`NODE_COMPLETED`、`NODE_SKIPPED`、`COMPLETED`、`FAILED`、`CANCELED`，外加 external-async 变体。
 
-拥有者：`runtime/kernel/workflow-contract.md`（`K-WF-*`）。
+归属：`runtime/kernel/workflow-contract.md`（`K-WF-*`）。
 
-## Runtime — Provider 异步任务
+## Runtime · Provider Async Task
 
 | 状态 | 终态？ |
 | --- | --- |
@@ -50,13 +50,13 @@ Nimi 栈里每个有名状态机的参考。Owner 合同被引；具体住在那
 | `running` | 否 |
 | `succeeded` | 是 |
 | `failed` | 是 |
-| `expired` | 是（等价于 timeout） |
+| `expired` | 是（等价于超时） |
 
-Provider 异步状态用小写 snake；ScenarioJob 用大写 SNAKE。映射规则（`K-MMPROV-027`）翻译 `succeeded → COMPLETED`、`expired → TIMEOUT`、`failed → FAILED`。
+provider 异步状态用 lower_snake；ScenarioJob 用 UPPER_SNAKE。映射规则（`K-MMPROV-027`）：`succeeded → COMPLETED`、`expired → TIMEOUT`、`failed → FAILED`。
 
-拥有者：`runtime/kernel/multimodal-provider-contract.md`（`K-MMPROV-*`）。
+归属：`runtime/kernel/multimodal-provider-contract.md`（`K-MMPROV-*`）。
 
-## Runtime — Hook 生命周期
+## Runtime · Hook Lifecycle
 
 | 状态 | 终态？ |
 | --- | --- |
@@ -65,23 +65,23 @@ Provider 异步状态用小写 snake；ScenarioJob 用大写 SNAKE。映射规�
 | `completed` | 是 |
 | `failed` | 是 |
 | `canceled` | 是 |
-| `rescheduled` | 否（转到 `pending`） |
+| `rescheduled` | 否（转回 `pending`） |
 | `rejected` | 是 |
 
-拥有者：`runtime/kernel/agent-hook-intent-contract.md`（`K-AGCORE-*`）。
+归属：`runtime/kernel/agent-hook-intent-contract.md`（`K-AGCORE-*`）。
 
-## Runtime — 记忆复制
+## Runtime · Memory Replication
 
 | 状态 | 终态？ |
 | --- | --- |
 | `pending` | 否 |
 | `synced` | 是 |
-| `conflict` | 是（不能服务） |
-| `invalidated` | 是（Realm 治理失效） |
+| `conflict` | 是（无法服务） |
+| `invalidated` | 是（Realm 治理判失效） |
 
-拥有者：`runtime/kernel/runtime-memory-service-contract.md`（`K-MEM-*`）与表 `runtime-memory-replication-outcome.yaml`。
+归属：`runtime/kernel/runtime-memory-service-contract.md`（`K-MEM-*`），表 `runtime-memory-replication-outcome.yaml`。
 
-## Runtime — 委派 Provider
+## Runtime · Delegated Provider
 
 | 状态 | 终态？ |
 | --- | --- |
@@ -93,9 +93,9 @@ Provider 异步状态用小写 snake；ScenarioJob 用大写 SNAKE。映射规�
 | `QUARANTINED` | 否 |
 | `REMOVED` | 是 |
 
-拥有者：`runtime/kernel/delegated-capability-gateway-contract.md`（`K-DELEG-*`）。
+归属：`runtime/kernel/delegated-capability-gateway-contract.md`（`K-DELEG-*`）。
 
-## Runtime — 委派 Session
+## Runtime · Delegated Session
 
 | 状态 | 终态？ |
 | --- | --- |
@@ -105,9 +105,9 @@ Provider 异步状态用小写 snake；ScenarioJob 用大写 SNAKE。映射规�
 | `CLOSED` | 是 |
 | `FAILED` | 是 |
 
-拥有者：`runtime/kernel/delegated-capability-gateway-contract.md`（`K-DELEG-*`）。
+归属：`runtime/kernel/delegated-capability-gateway-contract.md`（`K-DELEG-*`）。
 
-## Runtime — 世界演化引擎阶段
+## Runtime · World Evolution Engine 阶段
 
 | 阶段 | 顺序 |
 | --- | --- |
@@ -121,58 +121,58 @@ Provider 异步状态用小写 snake；ScenarioJob 用大写 SNAKE。映射规�
 | `CHECKPOINT` | 8 |
 | `TERMINAL` | 9 |
 
-拥有者：`runtime/kernel/world-evolution-engine-contract.md`（`K-WEV-*`）。
+归属：`runtime/kernel/world-evolution-engine-contract.md`（`K-WEV-*`）。
 
-## Realm — App-世界绑定
+## Realm · App-World Binding
 
 | 状态 | 含义 |
 | --- | --- |
-| `(new)` | 世界存在；无 App 绑定 |
-| `active` | Extension-app 绑定并写 |
-| `suspended` | 绑定暂停 |
+| `(new)` | 世界存在；未绑定 App |
+| `active` | extension-app 已绑定并写入 |
+| `suspended` | 绑定挂起 |
 | `revoked` | 绑定移除 |
 
-世界至多一个活跃 extension-app 绑定。重绑要先显式撤销。
+一个世界至多一个活跃 extension-app 绑定。重新绑定必须先显式吊销。
 
-拥有者：`realm/kernel/binding-contract.md`（`R-BIND-*`）。
+归属：`realm/kernel/binding-contract.md`（`R-BIND-*`）。
 
-## Avatar — 组合状态
+## Avatar · 组合状态
 
 | 状态 | 含义 |
 | --- | --- |
 | `loading` | 初始加载 |
-| `ready` | 形体化组合并渲染 |
-| `degraded:*` | 降级带子状态（比如 `degraded:asset_missing`） |
-| `relaunch-pending` | 等重启 |
+| `ready` | 形体组合完成并渲染中 |
+| `degraded:*` | 降级，带子状态（如 `degraded:asset_missing`） |
+| `relaunch-pending` | 等待重启 |
 
-拥有者：`avatar/kernel/index.md`。
+归属：`avatar/kernel/index.md`。
 
-## Desktop — Mod 生命周期
-
-| 状态 | 含义 |
-| --- | --- |
-| `admitted` | Mod 准入到系统 |
-| `installed` | Mod 本地安装 |
-| `active` | Mod 激活并可达 |
-| `suspended` | Mod 暂停 |
-| `removed` | Mod 卸载 |
-
-拥有者：`desktop/kernel/mod-governance-contract.md` 与表 `desktop/kernel/tables/mod-lifecycle-states.yaml`。
-
-## Nimi Coding — Topic 状态
+## Desktop · Mod Lifecycle
 
 | 状态 | 含义 |
 | --- | --- |
-| `proposal` | 预活跃规划 |
+| `admitted` | mod 已准入系统 |
+| `installed` | mod 已本地安装 |
+| `active` | mod 已激活，可达 |
+| `suspended` | mod 暂停 |
+| `removed` | mod 已卸载 |
+
+归属：`desktop/kernel/mod-governance-contract.md`，表 `desktop/kernel/tables/mod-lifecycle-states.yaml`。
+
+## Nimi Coding · Topic State
+
+| 状态 | 含义 |
+| --- | --- |
+| `proposal` | 准备阶段，未启动 |
 | `ongoing` | 活跃执行 |
-| `pending` | 暂停；等证据或外部触发 |
+| `pending` | 暂停；等待证据或外部触发 |
 | `closed` | 不再是活跃工作流 |
 
-生命周期搬动：`proposal_to_ongoing`、`ongoing_to_pending`、`pending_to_ongoing`、`ongoing_to_closed`、`pending_to_closed`、`proposal_to_closed`、`closed_to_ongoing`（显式重开）。
+生命周期跃迁：`proposal_to_ongoing`、`ongoing_to_pending`、`pending_to_ongoing`、`ongoing_to_closed`、`pending_to_closed`、`proposal_to_closed`、`closed_to_ongoing`（显式重开）。
 
-拥有者：`.nimi/contracts/topic.schema.yaml`、`.nimi/methodology/topic-lifecycle.yaml`、`.nimi/methodology/topic-lifecycle-report.yaml`。
+归属：`.nimi/contracts/topic.schema.yaml`、`.nimi/methodology/topic-lifecycle.yaml`、`.nimi/methodology/topic-lifecycle-report.yaml`。
 
-## Nimi Coding — Wave 状态
+## Nimi Coding · Wave State
 
 | 状态 | 终态？ |
 | --- | --- |
@@ -181,16 +181,16 @@ Provider 异步状态用小写 snake；ScenarioJob 用大写 SNAKE。映射规�
 | `preflight_admitted` | 否 |
 | `implementation_admitted` | 否 |
 | `implementation_active` | 否 |
-| `needs_revision` | 否（回修订） |
-| `overflowed` | 否（要显式续作或修订） |
+| `needs_revision` | 否（退回修订） |
+| `overflowed` | 否（需要显式续延或修订） |
 | `continuation_packet_open` | 否 |
 | `closed` | 是 |
 | `retired` | 是 |
 | `superseded` | 是 |
 
-拥有者：`.nimi/contracts/wave.schema.yaml`。
+归属：`.nimi/contracts/wave.schema.yaml`。
 
-## Nimi Coding — Packet 状态
+## Nimi Coding · Packet State
 
 | 状态 | 终态？ |
 | --- | --- |
@@ -202,38 +202,38 @@ Provider 异步状态用小写 snake；ScenarioJob 用大写 SNAKE。映射规�
 | `closed` | 是 |
 | `superseded` | 是 |
 
-冻结只允许从 `draft` / `preflight` / `candidate`。
+冻结只允许从 `draft` / `preflight` / `candidate` 进入。
 
-拥有者：`.nimi/contracts/packet.schema.yaml`。
+归属：`.nimi/contracts/packet.schema.yaml`。
 
-## Nimi Coding — True-Close 状态
+## Nimi Coding · True-Close 状态
 
 | 状态 | 含义 |
 | --- | --- |
-| `not_started` | True-close 未尝试 |
-| `pending` | True-close 进行中 |
-| `true_closed` | True-close 通过 |
-| `revoked` | 通过的 true-close 后被独立审计撤销 |
-| `superseded` | True-close 被后续准入替代 |
+| `not_started` | 真闭合尚未尝试 |
+| `pending` | 真闭合进行中 |
+| `true_closed` | 真闭合通过 |
+| `revoked` | 通过过的真闭合后被独立审计撤销 |
+| `superseded` | 真闭合被后续准入取代 |
 
-拥有者：`.nimi/contracts/topic.schema.yaml`、`.nimi/contracts/true-close.schema.yaml`。
+归属：`.nimi/contracts/topic.schema.yaml`、`.nimi/contracts/true-close.schema.yaml`。
 
-## Nimi Coding — Result 裁定
+## Nimi Coding · Result 判定
 
-| 裁定 | 含义 |
+| 判定 | 含义 |
 | --- | --- |
-| `PASS` | Result 接受工作 |
-| `NEEDS_REVISION` | Result 把工作返修订 |
-| `FAIL` | Result 拒工作 |
-| `OVERFLOW` | 工作超 packet 边界；**不是** PASS、**不是** FAIL |
+| `PASS` | 接受工作 |
+| `NEEDS_REVISION` | 退回修订 |
+| `FAIL` | 拒绝工作 |
+| `OVERFLOW` | 工作超出 packet 边界；非 PASS、非 FAIL |
 
-拥有者：`.nimi/contracts/result.schema.yaml`。
+归属：`.nimi/contracts/result.schema.yaml`。
 
-## 跨域状态机词汇
+## 跨域状态机命名
 
-ScenarioJob 与 Workflow 用 UPPER_SNAKE proto enum；provider 异步任务用 lower_snake 贴近 provider 语义；mod 生命周期用小写产品词。大小写差异是有意设计。
+ScenarioJob 与 Workflow 用 UPPER_SNAKE proto 枚举；provider 异步任务用 lower_snake，贴近 provider 语义；mod lifecycle 用小写产品语。大小写差异是有意的设计选择。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
 - [`.nimi/spec/runtime/kernel/daemon-lifecycle.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/daemon-lifecycle.md)

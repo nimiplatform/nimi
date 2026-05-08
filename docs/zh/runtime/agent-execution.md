@@ -1,125 +1,125 @@
 # Agent 执行
 
-`RuntimeAgentService` 是 Runtime 一侧 Agent 执行的权威。它管多 Agent 生命周期、对话连续性、Chat / Life 双轨、Hook 调度、记忆写入准入、呈现层。
+`RuntimeAgentService` 是 Runtime 持有的 Agent 执行权威。它持有多 Agent 生命周期、对话连续性、Chat / Life 双轨模型、hook 调度、记忆写入准入和呈现改写。
 
-这页是 [Platform → Agents](/zh/platform/agents/) 产品叙事的 Runtime 侧补充。Agent 的产品框架在那边讲；这页讲 Runtime 拥有什么。
+本页是产品叙述 [平台 → Agents](/zh/platform/agents/) 的运行时一面。Agent 的产品定义在那边，本页讲 Runtime 这一侧的归属。
 
-## RuntimeAgentService 拥有什么
+## RuntimeAgentService 持有什么
 
-| 职责 | 表面 |
+| 责任 | 表面 |
 | --- | --- |
-| 多 Agent 生命周期 | 同一时刻并行的 `agent_id` 生命周期 |
-| 对话连续性 | 每个 Agent + 每段对话各有 `ConversationAnchor` |
+| 多 Agent 生命周期 | 并发的 `agent_id` 生命周期 |
+| 对话连续性 | 每个 Agent + 每场对话一份 `ConversationAnchor` |
 | Chat / Life 双轨执行 | 反应式 + 主动式调度 |
-| Hook 调度 | 准入并派发类型化 `HookIntent` |
-| 记忆写入准入 | 受准入的记忆合同约束 |
-| 呈现层 | 持久 profile + 瞬时事件流 |
-| APML 输出解析 | 把 APML 线协议解码为类型化事件 |
+| Hook 调度 | 强类型 `HookIntent` 的准入与派发 |
+| 记忆写入准入 | 受准入的记忆契约约束 |
+| 呈现改写 | 持久画像 + 临时流 |
+| APML 输出解析 | 从 APML 线上格式得到强类型事件 |
 
-**没有所谓的"平台默认当前 Agent"**。Runtime 同时承载多个 `agent_id` 生命周期；要跟哪个 Agent 说话，由 App 或表面自己指定。
+平台**不存在默认当前 Agent**。Runtime 同时托管多个 `agent_id` 生命周期，应用或表面自己挑要交互的 Agent。
 
 ## ConversationAnchor
 
-ConversationAnchor 是 Runtime 拥有的连续性身份，让多个表面共享**同一段对话**而不被合并成一个全局 session。
+对话锚点是 Runtime 持有的连续性身份。多个表面共用**同一场**对话时，靠它来让对话不退化成全局会话。
 
-| 性质 | 值 |
+| 属性 | 取值 |
 | --- | --- |
-| 范围 | 每个 Agent + 每段对话 |
-| 所有者 | Runtime |
-| 持久性 | 切换表面后仍然在（桌面端 chat → Avatar → 网页端） |
-| 多重性 | 一个 Agent 可以有多个 anchor（多段并行对话） |
+| 作用域 | 每个 Agent + 每场对话 |
+| 持有方 | Runtime |
+| 持久性 | 跨表面切换仍在（桌面端聊天 → Avatar → 网页端） |
+| 多重性 | 一个 Agent 可有多个锚点（多场并行对话） |
 
-产品侧叙事见 [Platform → Agents → Conversation Anchor](/zh/platform/agents/conversation-anchor)。
+产品角度的说明见 [平台 → Agents → Conversation Anchor](/zh/platform/agents/conversation-anchor)。
 
 ## AgentPresentationProfile
 
-持久呈现 profile 是 Runtime 拥有的、变化缓慢的「Agent 怎么呈现」真相：
+持久呈现画像是 Runtime 持有、变化缓慢的 Agent 呈现真相：
 
 | 字段 | 用途 |
 | --- | --- |
-| Avatar 后端 | Live2D / VRM / 生成式动作 |
-| Asset 引用 | 载体特定的资源绑定 |
+| Avatar 后端 | Live2D / VRM / generated-motion |
+| 资产引用 | 与具体载体绑定的资产 |
 | 表情预设 | 默认表情行为 |
-| 语音绑定 | 语音 profile 引用 |
+| 声音绑定 | 声音画像引用 |
 
-Profile 跨 Runtime 重启与表面复用。Avatar 消费它；Avatar 不重新定义它。
+画像跨 Runtime 重启仍在，跨表面也能复用。Avatar 消费它，但不能重新定义它。
 
 ## Agent Presentation Stream
 
-跟持久 profile 不一样，**呈现事件流**是瞬时接缝：turn 事件、当前情绪事件、流式 commit 语义。Avatar 一轮一轮消费的是这个流。
+呈现流和持久画像不同，是一条临时改写通道：回合改写、当前情绪改写、流提交语义。Avatar 在具身表面上一回合一回合消费的就是它。
 
-| 所有者 | Runtime |
+| 持有方 | Runtime |
 | --- | --- |
-| Turn 事件 | `runtime.agent.turn.*` |
-| 行动事件 | `runtime.agent.activity.*` |
+| 回合改写 | `runtime.agent.turn.*` |
+| 活动事件 | `runtime.agent.activity.*` |
 | 姿态事件 | `runtime.agent.pose.*` |
 | 口型帧 | `runtime.agent.lipsync.*` |
 
-## APML 输出线协议
+## APML 输出线上格式
 
-模型到 Runtime 的 Agent 输出合同叫 **APML**（Agent Personality Markup Language）。
+Agent 输出面向模型的契约是 **APML**（Agent Personality Markup Language）。
 
 | 根标签 | 用途 |
 | --- | --- |
-| `<life-turn>` | 主动 Life Track 输出 |
-| `<chat-track-sidecar>` | 反应式 Chat Track 边路 |
-| `<canonical-review>` | 记忆准入用的规范化 review |
+| `<life-turn>` | 主动式 life 轨道输出 |
+| `<chat-track-sidecar>` | 反应式 chat 轨道边带 |
+| `<canonical-review>` | 用于记忆准入的规范化复核输出 |
 
-JSON executor 兼容性**未准入**。APML 在被任何产品代码看到之前先被解析、再被投到类型化的 Runtime 事件上。App 消费的是类型化事件，不是原始 APML。
+JSON 执行器兼容**未被准入**。APML 必须先在 Runtime 解析、改写为强类型事件，产品代码才会看到。应用消费的是这些强类型事件，不是裸 APML。
 
-这是有意设计：模型负责发出结构化的 Agent 输出；Runtime 负责验证结构；产品代码拿到类型化事件，没法编码出 Runtime 没有准入的形状。
+这是有意为之：模型给出结构化的 Agent 输出，Runtime 校验结构，产品代码拿到的是强类型事件，从结构上无法编码出 Runtime 没准入的形态。
 
 ## Hook Intent 准入
 
-Agent 想安排未来动作时通过类型化的 `HookIntent` 记录，不是自由文本。Runtime 验证并准入。
+Agent 通过强类型 `HookIntent` 记录请求未来的定时动作，而不是写一段自由格式的调度字符串。Runtime 校验后准入。
 
-| 生命周期 | 含义 |
+| 生命周期状态 | 含义 |
 | --- | --- |
-| `pending` | 已准入；等触发时刻 |
+| `pending` | 已准入，等待触发 |
 | `running` | 正在执行 |
 | `completed` | 成功终态 |
 | `failed` | 失败终态 |
-| `canceled` | 终态前取消 |
-| `rescheduled` | 改期；回到 `pending` |
-| `rejected` | 准入时被拒 |
+| `canceled` | 完成前取消 |
+| `rescheduled` | 改到新时间，回到 `pending` |
+| `rejected` | 准入阶段被拒 |
 
-产品侧叙事见 [Platform → Agents → Hook Intent](/zh/platform/agents/hook-intent)。
+产品角度的说明见 [平台 → Agents → Hook Intent](/zh/platform/agents/hook-intent)。
 
-## 多 Agent 是默认
+## 默认多 Agent
 
-Runtime 同时承载多个 `agent_id`。想跟某个 Agent 交互的 App 自己提供 `agent_id`；Runtime 不替它假设。
+Runtime 同时托管多个 `agent_id` 生命周期。应用想和某个 Agent 交互，就要给出 `agent_id`，Runtime 不替它假设。
 
-| 并发性 | 细节 |
+| 并发 | 细节 |
 | --- | --- |
-| 每个 Agent 的状态 | 各自独立的 anchor 集合、Hook 调度器、呈现 profile |
-| 每段对话的状态 | 每段对话各自独立的 anchor |
-| Agent 间隔离 | `AGENT_CORE` / `AGENT_DYADIC` 记忆 bank 范围把 Agent 之间的私有状态隔开 |
-| 并发执行 | 多个 Agent 在 Runtime 预算下可以并行跑 Chat 或 Life |
+| 每 Agent 状态 | 各自有独立的锚点集合、hook 调度器、呈现画像 |
+| 每对话状态 | 每场对话各持一个锚点 |
+| 跨 Agent 隔离 | 记忆库作用域（`AGENT_CORE` / `AGENT_DYADIC`）让各自的私有状态彼此不可读 |
+| 并发执行 | 多个 Agent 可在 Runtime 预算内并行跑 Chat 或 Life |
 
-## 阅读场景：同一表面两个 Agent
+## 读者场景：一个表面里两个 Agent
 
-用户在同一个桌面端窗口里有两个 Agent — 比如一个项目助手 + 一个个人助手。两个都能并发。
+某用户在同一个桌面端窗口里挂了两个 Agent，比如一个项目助手加一个个人助手。两位都能并发动作。
 
-1. **各自有生命周期。** Runtime 独立追踪两个 `agent_id`。
-2. **各自有 anchor。** 用户跟每一个分别有独立对话。
-3. **各自有 Life Track。** 两个 Agent 可以独立开 Life；token 预算不混。
-4. **记忆是有范围的。** 各自的 `AGENT_CORE` 私有；互相看不到对方的私有记忆。
-5. **审计 lineage** 保留谁做了什么动作。
+1. **各自独立生命周期。** Runtime 分别跟踪两个 `agent_id`。
+2. **各自独立锚点。** 用户和这两位的对话是分开的。
+3. **各自独立 life 轨道。** 都能独立开启 life，token 预算不互相分摊。
+4. **记忆按作用域隔。** 每位的 `AGENT_CORE` 是私有的，互相看不见对方私有记忆。
+5. **审计链路** 保留每个动作出自哪位 Agent。
 
-一个用户、两个 Agent、默认无共享状态。
+同一用户下两个 Agent，默认不共享状态。
 
-## 阅读场景：表面崩了 Anchor 还在
+## 读者场景：对话锚点扛过了崩溃
 
-用户在 Avatar 里跟某个 Agent 聊。Avatar 崩了。
+用户正在 Avatar 里对话，Avatar 崩了。
 
-1. **Anchor 在 Runtime 里。** 不在 Avatar、也不在桌面端。
-2. **用户重开 Avatar。** Avatar 重新连接 Runtime。
-3. **Anchor 解析。** Avatar 解析同一个 `(agent_id, conversation_id)`；anchor 还在。
-4. **对话续上。** Realm 的 chat thread 保留消息；正在飞行中的记忆写入按 replication state 推进。
+1. **锚点活在 Runtime。** 不在 Avatar，也不在桌面端。
+2. **用户重启 Avatar。** Avatar 重连 Runtime。
+3. **锚点解析。** Avatar 解析同一组 `(agent_id, conversation_id)`，锚点还在。
+4. **对话恢复。** Realm 聊天线程保留消息，途中正在写的记忆按复制状态推进。
 
-Anchor 归 Runtime 拥有，是表面失败可恢复的关键。
+锚点归 Runtime 所有，这正是表面崩溃可以扛过去的根因。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-service-contract.md)
 - [`.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md)

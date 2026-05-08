@@ -1,143 +1,145 @@
-# Topic 生命周期 (Topic Lifecycle)
+# Topic 生命周期
 
-Topic 是承载高风险或涉及架构权威变更的主线迭代的容器。本页将详细解析 Topic 的状态机模型：包括宏观生命周期（`proposal → ongoing → pending → closed`）、更细粒度的 Wave 状态，以及独立于 Topic 状态之外的“真正闭合（True-close）”状态。
+一个 topic 是一条权威性或高风险工作主线的规范容器。本页说明 topic 的状态机：粗粒度生命周期（`proposal → ongoing → pending → closed`）、wave 的细粒度状态，以及独立的 true close 状态。
 
-关于工作如何在这些状态中流转的具体操作，请参阅 [Topic 工作流](/zh/nimicoding/topic-workflow)。
+工作如何在状态机里推进，详见 [Topic 工作流](/zh/nimicoding/topic-workflow)。
 
-## 宏观生命周期
+## 粗粒度生命周期
 
-| 状态 | 核心含义 |
+| 状态 | 含义 |
 | --- | --- |
-| `proposal` | 提案阶段：进入活跃执行前的规划过程。 |
-| `ongoing` | 执行阶段：任务正在活跃进行中。 |
-| `pending` | 挂起阶段：任务暂时停滞，等待关键证据或外部触发条件。 |
-| `closed` | 已关闭：不再是当前的活跃主线任务。 |
+| `proposal` | 尚未启动的规划阶段 |
+| `ongoing` | 实施进行中 |
+| `pending` | 暂停，等待证据或外部触发 |
+| `closed` | 不再是活跃工作主线 |
 
-Topic 的状态显式记录在 `topic.yaml` 中。文件夹的位置应该随着状态的变化而移动，但**仅仅移动文件夹并不能代表状态发生了变更**——一切必须以 `topic.yaml` 中的记录为准。
+状态记录在 `topic.yaml` 中。文件夹位置随状态变化，但单凭文件夹移动**不算**状态证据，`topic.yaml` 才是。
 
-## 微观状态
+## 细粒度状态
 
-在宏观状态之下，系统还追踪更细粒度的机器状态：
+在粗粒度状态之下还有更细的机器状态：
 
-| 微观状态 | 归属的宏观状态 |
+| 细粒度状态 | 对应粗粒度 |
 | --- | --- |
 | `design_only` | proposal / ongoing |
 | `implementation_ready` | ongoing |
 | `implementation_active` | ongoing |
 | `true_close_pending` | pending / closed |
 | `true_closed` | closed |
-| `revoked` | closed（已关闭，但闭合结论被撤销） |
-| `superseded` | closed（被后续工作替代） |
+| `revoked` | closed（可重开） |
+| `superseded` | closed |
 
-这些细粒度的状态可以通过 Topic 内部的工件（Artifacts）和审计记录（Audit Records）来进行观察。
+这些细粒度状态在 topic 工件和审计记录里都能观察到。
 
-## 状态流转规则
+## 转移规则
 
-允许的流转路径：
+允许的转移：
 
-| 起点 → 终点 | 核心要求 |
+| 源 → 目标 | 备注 |
 | --- | --- |
-| `proposal → ongoing` | 必须完成 Preflight（预检），选定唯一的下一个执行目标，划定止损线，消化所有输入，明确验收核验项，并显式列出禁止重新开启的条件。 |
-| `ongoing → pending` | 当前不能有活跃执行的 Wave；必须附带一份 `pending-note`（挂起说明），写明重开（Reopen）条件或闭合触发器（Close trigger）。 |
-| `pending → ongoing` | 恢复工作；需要完成新的 Wave 准入流程。 |
-| `ongoing → closed` | 确保所有已执行的 Wave 都具备 Wave 级别的闭合记录；并产出 Topic 级别的收尾记录，说明最终处置结果。 |
-| `pending → closed` | 与 `ongoing → closed` 相同。 |
-| `proposal → closed` | 在未进入实现阶段的情况下直接关闭。 |
-| `closed → ongoing` | 必须经过显式的重开（Reopen）决策，严禁以“顺手改一点”的名义进行非正式修改。 |
-| `ongoing → proposal` | 从活跃执行状态退回重新规划。 |
+| `proposal → ongoing` | 需要预检、唯一选定的 next target、有界的停止线、已消费输入、预期 closeout 检查、显式禁用反模式 |
+| `ongoing → pending` | 当前没有活跃实施 wave，附带 pending-note 写明重开条件或 close 触发条件 |
+| `pending → ongoing` | 重启工作；需要新 wave 准入 |
+| `ongoing → closed` | 所有已关闭 wave 都完成 wave 级 closeout；topic 级 closeout 记录最终处置 |
+| `pending → closed` | 同 ongoing → closed |
+| `proposal → closed` | 不实施直接关闭 |
+| `closed → ongoing` | 必须显式重开（不能随手编辑） |
+| `ongoing → proposal` | 从活跃状态退回重新规划 |
 
-**严禁行为**：系统中同一时刻只能存在一份唯一的 Topic 真相副本，严禁保留平行的副本。
+禁止：
+
+- 同时存在多份并行 topic 副本（同一时间只能有一份规范副本）。
 
 ## Wave 状态
 
-在 Topic 内部，Wave 拥有独立的状态机：
+topic 内部的 wave 有自己的状态机。
 
-| Wave 状态 | 是否为终态？ |
+| Wave 状态 | 是否终态 |
 | --- | --- |
 | `candidate` | 否 |
 | `preflight_draft` | 否 |
 | `preflight_admitted` | 否 |
 | `implementation_admitted` | 否 |
 | `implementation_active` | 否 |
-| `needs_revision` | 否（需要打回修改） |
-| `overflowed` | 否（需要显式准入延续包，或进行修正） |
+| `needs_revision` | 否 |
+| `overflowed` | 否（需要显式续作或修订） |
 | `continuation_packet_open` | 否 |
-| `closed` | **是** |
-| `retired` | **是** |
-| `superseded` | **是** |
+| `closed` | 是 |
+| `retired` | 是 |
+| `superseded` | 是 |
 
-被标记为 `retired`（已废弃）或 `superseded`（被替代）的 Wave 不能被分发执行。处于 `overflowed`（已溢出）状态的 Wave 不会被静默转为 `closed`——溢出后必须显式地准入延续包（continuation）。
+`retired` 或 `superseded` 状态的 wave 不可派发。`overflowed` 不会被静默归一为 `closed`，溢出后续作必须经显式准入。
 
-## 真正闭合 (True Close)
+## True Close
 
-**True Close 与 Topic 自身的 `closed` 状态是完全不同的概念。** 一个 Topic 的文件夹可以被移动到已关闭目录，但这并不意味着它已经通过了 True Close。True Close 需要一份单独的审计记录，以此证明该任务的闭合经过了外部循环的独立验证。
+true close **不等同于 topic 状态 `closed`**。一个 topic 可以在文件夹层面已关闭，但 true close 尚未通过；true close 需要单独的审计记录确认闭合经过独立核验。
 
 | `current_true_close_status` | 含义 |
 | --- | --- |
-| `not_started` | True close 尚未开始审计。 |
-| `pending` | True close 正在审计中。 |
-| `true_closed` | **True close 已通过独立审计。** |
-| `revoked` | 原本通过的 True close 被后续的独立审计撤销。 |
-| `superseded` | True close 被后来准入的工作所替代。 |
+| `not_started` | 尚未启动 true close |
+| `pending` | true close 进行中 |
+| `true_closed` | true close 已通过 |
+| `revoked` | 已通过的 true close 被后续独立审计撤销 |
+| `superseded` | true close 被更晚的准入取代 |
 
-已经通过的 True close 也有可能被后续的独立审计撤销；一旦被撤销，必须补齐后续的追溯链条（Lineage）。正是因为这项机制，我们在处理早期的文档 Topic 时，即使机器层面已经闭合，也能在人类接受度不达标时被重新“追责”和修复。
+通过的 true close 也可以被后续独立审计撤销；被撤销的 true close 需要后续血缘记录跟进。早期公共文档 topic 在机器侧 true-close 通过，后因人工验收不达标转入修复，正是利用了这个机制。
 
-## 五层闭合证据体系
+## 五层闭合证据
 
-完整的收尾（Closeout）纪律包含五个独立层面的证据：
+完整的 closeout 纪律对应五个独立证据面：
 
-| 证据层 | 覆盖范围 |
+| 层 | 覆盖什么 |
 | --- | --- |
-| 上下文闭合 (Context closure) | 某个上下文已收敛至稳定的规划止损线。 |
-| Wave 闭合 (Wave closeout) | 单个获准入的 Wave 在其止损线上，拿到了四个维度的闭合证据。 |
-| 挂起等待 (Pending hold) | Topic 在没有活跃开发的情况下挂起，但保留了明确的重开或闭合标准。 |
-| Topic 闭合 (Topic closeout) | 该 Topic 不再是当前的活跃主线任务。 |
-| 真正闭合 (True close) | Topic 经过独立审计核验，确认已彻底完成。 |
+| Context closure | 某个上下文已抵达稳定的规划停止线 |
+| Wave closeout | 某个已准入 wave 抵达停止线，并附带四闭合的有界证据 |
+| Pending hold | topic 暂停期间没有活跃开发，但保留显式重开或关闭条件 |
+| Topic closeout | topic 不再是活跃工作主线 |
+| True close | topic 经独立审计核验为已完成 |
 
-这五层证据必须**保持严格区分**。把 Wave 闭合混淆为 Topic 闭合，或者把 Topic 闭合直接当成 True Close，都会导致关键审计信息的丢失。
+这五层必须**保持独立**。把 wave closeout 折叠进 topic closeout，或把 topic closeout 当成 true close，都会丢失信息。
 
-## 场景案例：一个 Topic 的完整生命周期
+## 场景：一个 topic 的完整轨迹
 
-一个深度依赖 AI 辅助编码的 Topic，其典型运转轨迹如下：
+一个承载实质 AI 编码工作的 topic 大致如下：
 
-| 阶段 | 发生了什么 |
+| 阶段 | 发生什么 |
 | --- | --- |
-| `proposal` | 创建 Topic；进行初步架构设计。 |
-| `proposal → ongoing` | 完成 Preflight（预检）；首个 Wave 获准入。 |
-| `ongoing` | 依次执行多个 Wave；每个 Wave 执行完毕后独立闭合。 |
-| `ongoing → pending` | 等待外部依赖（如 API 就绪）或用户验收结果。 |
-| `pending → ongoing` | 外部依赖已满足；新的 Wave 获准入。 |
-| `ongoing → closed` | 所有 Wave 均已闭合；生成 Topic 级别的收尾记录。 |
-| `closed` (未开始 true close) | 文件夹已移入 closed，但尚未进行 True close 审计。 |
-| `true_close_pending → true_closed` | 独立审计介入，核验无误，记录 True close 已通过。 |
+| `proposal` | 创建 topic，初步设计 |
+| `proposal → ongoing` | 预检通过，wave 准入 |
+| `ongoing` | 多个 wave 顺序推进，每个完成 closeout |
+| `ongoing → pending` | 等待外部依赖 / 用户验收 |
+| `pending → ongoing` | 外部依赖满足，新 wave 准入 |
+| `ongoing → closed` | 所有 wave 关闭，完成 topic 级 closeout |
+| `closed (true_close_status: not_started)` | 文件夹已关闭，但 true close 尚未记录 |
+| `true_close_pending → true_closed` | 独立审计核验 true close 通过 |
 
-整个状态流转过程完全可以通过 `topic.yaml` 及各项审计记录被清晰观察到。
+整条轨迹可通过 `topic.yaml` 与审计记录观察。
 
-## 场景案例：已关闭的 Topic 被重新撤销
+## 场景：一个已关闭的 topic 被重开
 
-某个 Topic 在很久之后被发现存在严重问题：
+某个已关闭 topic 之后被发现存在严重问题。
 
-1. **存在已关闭的 Topic**：状态为 True closed。
-2. **独立审计发现问题**：确认当年的 True close 属于误判，本不该通过。
-3. **撤销 True close**：将其状态更新为 `current_true_close_status: revoked`。
-4. **追溯修复链条（Lineage）**：发起一个新的 Topic 来承接修复工作，并在追溯链条中链接回那个被撤销的 True close。
-5. **原始 Topic 维持在 closed 状态**，只补充撤销记录；修复工作全部在新的 Topic 中完成。
+1. **topic 已关闭**，true closed。
+2. **独立审计发现问题**：true close 不应该通过。
+3. **撤销 true close**：`current_true_close_status: revoked`。
+4. **要求后续血缘**：新建一个修复 topic，血缘指向被撤销的 true close。
+5. **原 topic 仍保持 closed 状态**，并附带撤销记录；修复由新 topic 承担。
 
-撤销并不会抹除历史，而是追加了一份类型化的证据记录。
+撤销不会抹除历史，而是新增一条强类型证据记录。
 
-## 场景案例：带有闭合触发条件的挂起状态
+## 场景：等待触发 close 的 pending 状态
 
-一个 Topic 已经完成了所有规划好的 Wave，但还不能直接 True close——因为它需要等待人类的最终验收。
+某个 topic 已完成所有计划 wave，但 true close 尚不能进行——还在等用户验收。
 
-1. **所有 Wave 已闭合**：每个 Wave 都有各自的闭合记录。
-2. **进入挂起状态**：更新为 `topic.yaml.state: pending`。
-3. **挂起说明记录触发器**：“当用户显式接受渲染后的文档时闭合。”
-4. **重开条件明确**：“如果用户反馈文档仍不合格，则在此 Topic 下准入新的修复 Wave。”
-5. **用户审阅**：用户如果接受（则走向 True close 路径）；如果提出阻碍问题（则准入新的 Wave）。
+1. **所有 wave 关闭**，每个都做了 wave 级 closeout。
+2. **进入 pending 状态**：`topic.yaml.state: pending`。
+3. **pending-note 写明 close_trigger**：例如"用户显式接受已渲染的文档"。
+4. **重开条件显式**：例如"用户反馈文档仍然不达标，本 topic 下准入修复 wave"。
+5. **用户复核**：要么接受（进入 true close 路径），要么暴露阻塞（准入新 wave）。
 
-挂起说明（Pending-note）是一种“结构化等待”。在 Nimi Coding 中，不存在“任务就这么静静地躺在那儿没人管”的模糊状态。
+pending-note 是结构化的等待。不存在"它就这么放着"这种隐式状态。
 
-## 来源依据
+## Source Basis
 
 - [`.nimi/methodology/topic-lifecycle.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle.yaml)
 - [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)

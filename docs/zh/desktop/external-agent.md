@@ -1,88 +1,88 @@
 # 外部 Agent 接入
 
-外部 Agent 接入面板是桌面端用来管理 `ExternalPrincipal` token 的独有 UI。它是「让外部 AI 宿主以受控、有范围、可撤销的方式访问我的 Nimi 账号」的人面。
+外部 Agent 接入面板是桌面端独有的 UI，用来管理 `ExternalPrincipal` Token。它是"以受控、限定作用域、可撤销的方式让外部 AI 宿主访问我的 Nimi 账户"这件事的人面。
 
-平台级模型见 [Platform → Agents → 外部 Agent](/zh/platform/agents/external-agents)。
+平台层模型见 [平台 → Agent → 外部 Agent](/zh/platform/agents/external-agents)。
 
-## 面板做什么
+## 这个面板做什么
 
 | 步骤 | 行为 |
 | --- | --- |
-| 读闸口状态 | 显示当前外部 Agent 闸口状态 |
-| 配置 | 选择 principal id / 账号 / 模式 / 动作 / TTL |
-| 颁发 token | 提交；runtime 颁发有范围的 token |
-| 明文显示 | 颁发出的 token 一次性明文显示 |
-| Token ledger | 之后只能通过不可变 ledger 看 |
-| 撤销 / 列表 | 在 ledger 上操作（撤销、看活跃 token） |
+| 读取网关状态 | 显示当前外部 Agent 网关状态 |
+| 配置 | 选 principal id / 账户 / 模式 / 动作 / TTL |
+| 颁发 Token | 提交后由 Runtime 签发限定作用域 Token |
+| 明文展示 | 仅一次明文展示已签发的 Token |
+| Token 账本 | 后续可见性只通过不可变账本 |
+| 撤销 / 列表 | 在账本上操作（撤销、查看在用 Token） |
 
-面板是**这些 token 唯一被颁发或显示明文的地方**。颁发后 token 不再可见 — 只有 ledger 在。这是有意的安全选择。
+这块面板是这类 Token **唯一**的签发与明文呈现入口。签发后 Token 不再可见，只能看到账本条目。这是有意为之的安全选择。
 
-## 为什么一次性明文显示
+## 为什么只展示一次明文
 
-如果平台每次访问都明文显示 token，临时拿到屏幕的恶意行为者就能外泄。颁发时显示恰好一次明文意味着 token 以明文存在的时刻被限定在用户显式创建它的那一瞬。
+如果每次进入都把 Token 明文显示出来，攻击者只要短暂看到屏幕就能带走。只在签发时展示一次明文，意味着 Token 的明文存在被严格限制在用户主动创建它的那一刻。
 
-之后用户操作的是 **ledger** — 一份记录：什么 token 存在、什么时候颁的、带什么范围、最后一次见是什么时候、撤销历史。
+之后用户操作的对象是**账本**——一份记录：哪些 Token 在用、何时签发、作用域是什么、最近活跃时间、撤销历史。
 
-## Token Ledger
+## Token 账本
 
-| 性质 | 值 |
+| 维度 | 取值 |
 | --- | --- |
-| 可见性 | 颁发的 token 列表带元数据 |
-| 可变性 | 仅追加；撤销作为事件被记下 |
-| Token 明文 | 不存；颁发后不可取回 |
-| 范围 | 每个 token 条目可见 |
-| TTL | 每个 token 条目可见 |
+| 可见内容 | 已签发 Token 的元数据列表 |
+| 可变性 | 仅追加；撤销以事件形式记录 |
+| Token 明文 | 不存储；签发后不可取回 |
+| 作用域 | 每条目可见 |
+| TTL | 每条目可见 |
 
-回看 ledger 的用户能看到哪些 token 活跃、每个能干什么，并撤销不再想要的。
+用户翻阅账本就能看到哪些 Token 在用、各能做什么，并撤销不再需要的。
 
-## 阅读场景：颁发有范围的 token
+## 场景：签发一个限定作用域的 Token
 
-你想给外部 AI 宿主有界访问。
+你想给某个外部 AI 宿主发一份受限访问。
 
-1. **打开外部 Agent 接入面板。** 通过桌面端 runtime 配置。
-2. **配置。**
+1. **打开外部 Agent 接入面板**，从桌面端 Runtime 配置进入。
+2. **配置**。
    - Principal id（外部 AI 的身份）
-   - 账号上下文（你账号的范围）
-   - 模式（通常 discovered + suggested only；很少 commit）
-   - 动作（准入能力域 — `action.discover.*`、`action.dry-run.*`、`action.verify.*`、`action.commit.*`）
-   - TTL（token 生命期）
-3. **颁发。** 面板提交给 runtime；runtime 颁发有范围的 token。
-4. **明文显示。** Token 显示一次。
-5. **你复制 token。** 粘到外部 AI 宿主的配置里。
-6. **Ledger 条目。** 面板现在显示带元数据的 ledger 条目；明文消失。
+   - 账户上下文（你的账户作用域）
+   - 模式（通常是 discovered + suggested 为主，commit 罕用）
+   - 动作（已准入的能力域：`action.discover.*`、`action.dry-run.*`、`action.verify.*`、`action.commit.*`）
+   - TTL（Token 寿命）
+3. **签发**。面板提交到 Runtime；Runtime 签发限定作用域 Token。
+4. **明文展示**。Token 显示一次。
+5. **复制**。粘贴到外部 AI 宿主的配置里。
+6. **账本条目**。面板显示这条 Token 的元数据，明文已经消失。
 
-你用面板颁发；从那一刻起用 ledger 管理。
+签发用面板，签发之后用账本管理。
 
-## 阅读场景：撤销 token
+## 场景：撤销一个 Token
 
-你不想再让某个外部 AI 宿主访问。
+你不再希望某个外部 AI 宿主继续访问。
 
-1. **Ledger。** 打开外部 Agent 接入面板。
-2. **找到 token。** Ledger 列出活跃 token。
-3. **撤销。** 提交撤销。
-4. **Runtime 准入。** Token 撤销事件追加到 ledger。
-5. **立即生效。** 该 token 的下一次请求在 runtime 准入授权下 fail-close。
+1. **打开账本**。进入外部 Agent 接入面板。
+2. **找到这条 Token**。账本列出在用 Token。
+3. **撤销**。提交撤销。
+4. **Runtime 准入**。撤销事件追加到账本。
+5. **立即生效**。下一次该 Token 的请求在 Runtime 授权层失败拒绝。
 
-撤销是真实的 — **不**是软性「请求被移除」。一旦撤销，token 不再授权任何东西。
+撤销是真实的，不是"软删"或"已请求"。撤销后这条 Token 不再授权任何东西。
 
-## 阅读场景：Token 范围配错了
+## 场景：作用域配错了
 
-你不小心颁了一个带 `action.commit.gift` 的 token；本意只想要 discover + dry-run。
+你不小心给一条 Token 配了 `action.commit.gift`，本意只想给 discover + dry-run。
 
-1. **Ledger。** 你在 ledger 里发现配错。
-2. **撤销。** 撤掉错配的 token。
-3. **重颁。** 用正确范围颁新 token。
-4. **审计。** 撤销 + 重颁两个事件都被记下。
+1. **账本**。在账本上发现配置不对。
+2. **撤销**。把这条 Token 撤销。
+3. **重新签发**。按正确作用域签发新 Token。
+4. **审计**。撤销与重新签发两个事件都被记录。
 
-错配可恢复，因为面板 + ledger 让用户看到并动作。
+错配是可挽回的，因为面板加账本让用户能看到、能动手。
 
-## 为什么这个 UI 独有
+## 这块 UI 为什么是独立的
 
-外部 Agent 接入面板**是**外部 principal token 颁发的 UI。它**不**泛化到「任意 token」；它专属于外部 principal，因为它们是授权模型里真实的、命名的参与者种类。
+外部 Agent 接入面板就是外部 principal Token 签发的那块 UI。它不是"任意 Token"的通用工具；而是专门为外部 principal 设计——因为后者在授权模型里是真实存在的具名参与者。
 
-通过这个面板创建别的 token 种类**未被准入**。其他 token 形状（用户 session token 等）住在别处。面板的窄是它安全姿态清晰的原因。
+通过这块面板创建其他类型的 Token 不准入。其他 Token 形态（用户会话 Token 等）归别处。窄，是这块面板安全姿态清晰的关键。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/desktop/external-agent.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/external-agent.md)
 - [`.nimi/spec/runtime/kernel/delegated-capability-gateway-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-capability-gateway-contract.md)

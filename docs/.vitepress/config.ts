@@ -7,6 +7,11 @@ import { sidebarZh } from './sidebar-zh'
 export default defineConfig({
   title: 'Nimi',
   description: 'Public docs for the Nimi AI open world platform.',
+  head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' }],
+    ['link', { rel: 'icon', href: '/favicon.ico', sizes: 'any' }],
+  ],
 
   cleanUrls: true,
   lastUpdated: true,
@@ -56,6 +61,8 @@ export default defineConfig({
   },
 
   themeConfig: {
+    logo: '/logo.svg',
+
     socialLinks: [
       { icon: 'github', link: 'https://github.com/nimiplatform/nimi' },
       { icon: 'discord', link: 'https://discord.gg/BQwHJvPn' },

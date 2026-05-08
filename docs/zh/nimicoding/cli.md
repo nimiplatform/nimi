@@ -1,210 +1,218 @@
-# 命令行界面 (CLI)
+# CLI Surface
 
-`nimicoding` CLI 是一组功能精简且职责明确的工具集。这个包在设计上刻意遵循了**“边界完整，但不包揽执行” (Boundary-complete, not run-complete)** 的原则：CLI 负责进行配置引导、校验契约规范、并投影记录工件，但它绝不会越俎代庖去全自动跑 Packet 里的代码。
+`nimicoding` CLI 是一组小而有界的命令。这个包刻意做成**边界完整、但不自主执行**：CLI 负责引导、校验和投射出工件，不替你跑 packet。
 
-若需查阅各个命令详细的字段级说明，请参考 [参考资料 → CLI 命令手册](/zh/nimicoding/reference/cli-commands)。
+每个命令的字段级参考见 [Reference → CLI Commands](/zh/nimicoding/reference/cli-commands)。
 
-## 命令概览
+## 命令分类
 
-CLI 的动作命令可以被归纳为以下几个极少数的类别：
+CLI 的命令分成几类：
 
-| 类别 | 核心命令 |
+| 分类 | 命令 |
 | --- | --- |
-| 引导与诊断 (Bootstrap) | `start`, `clear`, `doctor` |
-| Topic 生命周期管理 | `topic create`, `topic wave ...`, `topic packet freeze`, `topic worker dispatch`, `topic result record`, `topic closeout ...`, `topic true-close-audit` |
-| 自动化推进器 (Runner) | `topic run-next-step`, `topic-runner step`, `topic-runner run` |
-| 扫地式审计 (Sweep audit) | `sweep audit plan`, `sweep audit chunk ...`, `sweep audit ledger build`, `sweep audit remediation-map build`, `sweep audit closeout summary`, `sweep audit status` |
-| 扫地式设计 (Sweep design) | `sweep design intake`, `sweep design packet-build`, `sweep design packet-build-batch`, `sweep design auditor-prompt`, `sweep design result-ingest`, `sweep design ledger-validate`, `sweep design finalize`, `sweep design wave-plan` |
-| 技能交接分派 (Skill handoff) | `handoff`, `closeout` |
-| 高风险执行链路 (High-risk execution) | `admit-high-risk-decision`, `ingest-high-risk-execution`, `review-high-risk-execution`, `decide-high-risk-execution` |
-| 机械化校验器 (Validators) | 针对 `execution-packet`、`orchestration-state`、`prompt`、`worker-output`、`acceptance` 等各类工件的专项校验器 |
-| 规范树审计 (Spec audit) | `validate-spec-tree`, `validate-spec-audit`, `blueprint-audit` |
-| 仓库门禁 (Repo gates) | `pnpm check:spec-authority-cutover-readiness`（通过宿主仓库本身的工具链执行） |
+| Bootstrap | `start`、`clear`、`doctor` |
+| Topic 生命周期 | `topic create`、`topic wave ...`、`topic packet freeze`、`topic worker dispatch`、`topic result record`、`topic closeout ...`、`topic true-close-audit` |
+| Topic runner | `topic run-next-step`、`topic-runner step`、`topic-runner run` |
+| Sweep audit | `sweep audit plan`、`sweep audit chunk ...`、`sweep audit ledger build`、`sweep audit remediation-map build`、`sweep audit closeout summary`、`sweep audit status` |
+| Sweep design | `sweep design intake`、`sweep design packet-build`、`sweep design packet-build-batch`、`sweep design auditor-prompt`、`sweep design result-ingest`、`sweep design ledger-validate`、`sweep design finalize`、`sweep design wave-plan` |
+| Skill handoff | `handoff`、`closeout` |
+| 高风险执行 | `admit-high-risk-decision`、`ingest-high-risk-execution`、`review-high-risk-execution`、`decide-high-risk-execution` |
+| 机械校验器 | 针对 `execution-packet`、`orchestration-state`、`prompt`、`worker-output`、`acceptance` 的逐工件校验器 |
+| 规范审计 | `validate-spec-tree`、`validate-spec-audit`、`blueprint-audit` |
+| 仓库门禁 | `pnpm check:spec-authority-cutover-readiness`（通过宿主仓库的工具链） |
 
-每一个类别都有着极其严格的边界；如果想要新增动作，必须通过已准入的契约扩展来实现。
+每一个都有严格边界，新增命令需要先扩展已准入的契约。
 
-## 引导与诊断 (Bootstrap)
+## Bootstrap
 
 ### `nimicoding start`
 
-侦测项目当前状态，将包内的源码投影至项目路径，在 `.nimi/**` 下埋好种子文件，准备出一份极具权威性的 JSON 格式 AI 任务包，并打印出一段可直接粘贴使用的给 AI 的提示词 (Prompt)。
+侦测项目当前状态，把包内 source 投射到宿主路径，写入 `.nimi/**` seed，准备一份权威 JSON 任务包，并打印可粘贴的提示词。
 
-| 属性 | 表现 |
+| 属性 | 值 |
 | --- | --- |
-| 交互模式 | 会引导你进行：解释 → 确认 → 应用，一步一个脚印。 |
-| 失败熔断 | 一旦遇到不认识的 CLI 参数，立即安全报错 (Fail closed)。 |
-| 资产保全 | 绝对尊重已存在的真相文件（绝不会强行覆盖）。 |
-| 拒绝原则 | 遇到不兼容的引导契约版本，坚决罢工。 |
+| 模式 | 交互式：解释 → 确认 → 应用，一次一步 |
+| 失败行为 | 遇未知 CLI 选项 fail closed |
+| 保留 | 已有的真相文件，不会覆写 |
+| 拒绝 | 不支持的 bootstrap 契约版本 |
 
 ### `nimicoding clear`
 
-仅仅移除在 `AGENTS.md` 和 `CLAUDE.md` 中受包管控的 AI 块，并且只有在那些归包所有的引导文件与初始种子分毫不差时，才会去移除它们。
+只移除 `AGENTS.md` 与 `CLAUDE.md` 中的受管 AI 区块；只在文件仍与 seed 完全一致时移除包自有 bootstrap 文件。
 
-| 属性 | 表现 |
+| 属性 | 值 |
 | --- | --- |
-| 资产保全 | 绝对保留项目自己写的真相源、被你本地修改过的引导文件、`.nimi/spec/**`、`.nimi/local/**` 以及 `.nimi/cache/**`。 |
-| 拒绝原则 | 严禁因为暗箱操作导致任何项目拥有的真相或本地工件被删除。 |
+| 保留 | 项目自有真相、本地修改过的 bootstrap 文件、`.nimi/spec/**`、`.nimi/local/**`、`.nimi/cache/**` |
+| 拒绝 | 隐式删除项目自有真相或本地工件 |
 
 ### `nimicoding doctor`
 
-对项目的治理基建进行深度体检：核查 `.nimi/**` 引导种子是否存在、契约兼容性、生命周期标记、跨契约的引用对齐情况、宿主适配器的边界状态、已准入覆盖层的状态等等。
+校验 `.nimi/**` bootstrap seed 是否就位、契约兼容性、生命周期标记、跨契约引用一致性、host-adapter 边界真相、命名 overlay 状态、以及已准入的包自有 adapter profile overlay。
 
-| 属性 | 表现 |
+| 属性 | 值 |
 | --- | --- |
-| 输出格式 | 提供人类可读的终端输出，或通过 `--json` 提供机器可读的数据。 |
-| 失败熔断 | 一旦发现生命周期、规范化树与可审计性这三者之间发生了哪怕一丝一毫的漂移脱节，立即安全报错。 |
+| 输出 | 人类可读，或 `--json` |
+| 失败行为 | 当生命周期、规范树和审计性出现漂移时 fail closed |
 
-## Topic 生命周期管理
+## Topic 生命周期
 
-`topic` 命令族负责打理存放在 `.nimi/topics/{proposal,ongoing,pending,closed}/` 下的那些神圣的 Topic 文件夹。从创建 Topic、添加并选中 Wave、准入 Wave、冻结 Packet，到分派 Worker 或是审计任务，再到记录类型化结果、处理修补和溢出，直至最后闭合 Wave 或 Topic，全套流程都由它接管。
+`topic` 命令家族管理 `.nimi/topics/{proposal,ongoing,pending,closed}/` 下的 topic 文件夹。它创建 topic、添加和选中 wave、准入 wave、冻结 packet、派发 worker 或 audit packet、记录强类型结果、处理修复和溢出，最后关闭 wave 或 topic。
 
-最核心的机械化推进命令长这样：
+机械化推进的入口是：
 
 ```bash
 nimicoding topic run-next-step <topic-id> --json
 ```
 
-如果需要连续推进，请使用附带明确 run id 和适配器的 `topic-runner step` 或 `topic-runner run`。在给 Packet 命名时，极其建议带上该 Wave 的身份标识（比如 `wave-1-add-reference-field`）；只有这样，生成出来的 `packet-*.md` 工件才能在 Topic 文件夹里清清楚楚、明明白白。
+如果要重复执行，用 `topic-runner step` 或 `topic-runner run`，并显式带上 run-id 与 adapter。Packet id 应当带上 wave 标识，比如 `wave-1-add-reference-field`，这样生成的 `packet-*.md` 在 topic 文件夹里不会产生命名歧义。
 
-## 扫地式审计 (Sweep Audit)
+## Sweep Audit
 
-`sweep audit` 命令族负责把一个庞大的目标根目录，大刀阔斧地拆解成一个个可供审计的区块 (Chunks)；然后分派这些 Chunk、吞回 Auditor 吐出的证据、记录 Manager 的评审、构建出坚如磐石的不可篡改账本，最终投影出修补地图 (Remediation map) 或是收尾报告。
+`sweep audit` 命令家族把目标根目录拆成可审计的分块，派发分块、接收审计员证据、记录管理者复核、构建不可变账本，并输出修复地图或关闭摘要。
 
-在生成 Plan 输出时，会汇报所有的 Chunk 工件引用。Chunk 的 ID 就存在那些文件里，并遵循着 Planner 设定的类似 `chunk-001` 的风格。
+Plan 输出会报告分块工件引用。分块 id 存在分块文件里，按 planner 生成的 `chunk-001` 形态命名。
 
-## 扫地式设计 (Sweep Design)
+## Sweep Design
 
-`sweep design` 命令族在扫地审计实实在在地吐出发现项 (Findings) 后登场。它去读取 `.nimi/local/audit/evidence/<sweep-id>/findings.yaml`，把这些发现项 Fork（分叉）进 `.nimi/local/sweep-design/<run-id>/` 目录下，硬是把一堆粗糙的审计输出，揉捏成一个个可以变成 Topic Wave 的正规规划工件。
+`sweep design` 命令家族在 sweep 产生 finding 之后启动。它读取 `.nimi/local/audit/evidence/<sweep-id>/findings.yaml`，把这些 finding 复制一份到 `.nimi/local/sweep-design/<run-id>/`，再把原始审计输出转成可以变成 topic wave 的规划工件。
 
-它绝对不会去动原始的 Findings 账本。它的职责是去求助 Codex 或其他宿主来审查那些受限的发现项 Packet、要回类型化的设计审计结果、在修订账本里记上一笔、校验账本、敲定本地的设计最终状态，并最终吐出一个**不具有破坏性**的 Wave 推进计划。这套接收机制胃口很好，不论 Auditor 的输出是高度聚焦还是大杂烩，它都能吞下；但在 Topic Wave 被正式准入之前，它绝不会擅自放行 Worker 去执行。
+它不会改原始 finding。它会请求 Codex 或其他宿主对界限明确的 finding packet 做检查，返回强类型的设计审计员结果，追加修订账本条目，校验账本，定稿仅本地可见的设计状态，并构建一份不会改写状态的 wave 规划。结果摄入接受 focused 或 all 两种模式的审计员输出，但在 topic wave 单独准入之前，worker dispatch 仍然不被允许。
 
-| 阶段 | 扮演的角色 |
+| 阶段 | 角色 |
 | --- | --- |
-| `intake` (录入) | 把审计的发现项 Fork 进一个独立的设计工作集。 |
-| `packet-build` (封包) | 为一到多个发现项打包出一份专属的设计审计 Packet。 |
-| `packet-build-batch` (批量封包) | 打包出一份满是设计审计 Packet 的清单。 |
-| `auditor-prompt` (生成 Prompt) | 针对一个 Packet，吐出对应的提示词和它必须遵守的返回格式。 |
-| `result-ingest` (摄入结果) | 吞下类型化的设计审计结果，并追加修订记录。 |
-| `ledger-validate` (校验账本) | 严格校验修订账本以及最终结论的溯源出处。 |
-| `finalize` (敲定定局) | 吐出这份仅存于本地的最终状态报告。 |
-| `wave-plan` (规划 Wave) | 吐出供候选参考的 Topic 命令集（且绝不擅自改变当前 Topic 的状态）。 |
+| `intake` | 把审计 finding 复制到一份设计工作集 |
+| `packet-build` | 为一个或多个 finding 构建设计审计员 packet |
+| `packet-build-batch` | 构建一份设计审计员 packet 的清单 |
+| `auditor-prompt` | 输出某 packet 的提示词与必需的结果形态 |
+| `result-ingest` | 接收强类型的设计审计员结果并追加修订 |
+| `ledger-validate` | 校验修订账本和最终结论的血缘 |
+| `finalize` | 输出仅本地可见的最终状态报告 |
+| `wave-plan` | 输出候选的 topic 命令引用，不改写 topic 状态 |
 
-## 技能交接分派 (Skill Handoff)
+## Skill Handoff
 
 ### `nimicoding handoff --skill <skill-id> --json`
 
-向外发射一份极具权威性、机器可读的任务交接载荷（External-handoff payload）。如果附带 `--prompt` 参数，还会顺便打印出一段人类也能看懂的给宿主的执行简报。
+导出一份机器可读的外部交接 payload。带 `--prompt` 时还会打印一段给宿主看的人类可读简报。
 
-| 属性 | 表现 |
+| 属性 | 值 |
 | --- | --- |
-| 技能指定 | 必须填。(`spec_reconstruction` / `doc_spec_audit` / `audit_sweep` / `high_risk_execution`) |
-| 吐出物 | 权威的 JSON 载荷 |
-| 宿主姿态 | 绝对厂商中立；完美支持任何已准入的宿主（Claude, Codex, Gemini, OMX 等） |
-| 拒绝原则 | 在规范化树准备就绪之前，绝不放行 `doc_spec_audit` 和 `high_risk_execution`。 |
+| Skill | 必填（`spec_reconstruction` / `doc_spec_audit` / `audit_sweep` / `high_risk_execution`） |
+| 输出 | 权威 JSON payload |
+| 宿主姿态 | 厂商中立；支持任何已准入宿主（Claude、Codex、Gemini、OMX 等） |
+| 拒绝场景 | 规范树尚未就绪时拒绝 `doc_spec_audit` 和 `high_risk_execution` |
 
 ### `nimicoding closeout --skill --outcome --verified-at`
 
-将外部技能执行完毕的结果，强行投影成一份仅存在于本地的收尾闭合载荷。配合 `--write-local` 参数可直接将其写入 `.nimi/local/handoff-results/` 目录下。
+把外部技能结果投射成仅本地可见的 closeout payload。可选 `--write-local` 写入 `.nimi/local/handoff-results/`。
 
-| 属性 | 表现 |
+| 属性 | 值 |
 | --- | --- |
-| 验证关口 | 收尾结果必须通过苛刻的类型化契约的盘问。 |
-| 失败熔断 | 如果结果和规范化树唱反调，或者引用越界跑出了声明好的本地目录根，立刻安全报错打回。 |
-| 仅限本地 | 这份结果仅仅作为干活的证据，**永远不会**自封为项目的规范语义真相。 |
+| 校验 | closeout 结果必须通过强类型契约 |
+| 失败行为 | 结果与规范树状态相悖、引用越出声明的本地产物根等情况下 fail closed |
+| 仅本地 | 不会被提升为项目语义真相 |
 
-## 高风险执行链路 (High-Risk Execution)
+## 高风险执行
 
 ### `nimicoding admit-high-risk-decision --from <json> --admitted-at <iso8601>`
-只接纳拥有 `decisionStatus: manager_decision_recorded` 烙印的 `nimicoding.high-risk-decision.v1` 载荷。它会投影出一份规范准入的预览报告。只有在附带 `--write-spec` 参数时，才会真正动笔写入被追踪的语义真相。
+
+只接受 `nimicoding.high-risk-decision.v1` payload，且 `decisionStatus: manager_decision_recorded`。投射出权威准入预览。需要显式 `--write-spec` 才会写入受跟踪的语义真相。
 
 ### `nimicoding ingest-high-risk-execution --from <json>`
-只接纳被打上 `outcome: completed` 以及 `summary.status: candidate_ready` 标签的 `high_risk_execution` 收尾工件。它会极其死板地机械校验所有引用的工件，并投影出摄入载荷（也是仅限本地）。
+
+只接受 `high_risk_execution` 的 closeout 工件，且 `outcome: completed`、`summary.status: candidate_ready`。机械校验引用工件，输出仅本地可见的 ingest payload。
 
 ### `nimicoding review-high-risk-execution --from <json>`
-只接纳携有 `ok: true` 的摄入载荷。它负责投影出带有各种附件的 Review 报告，送去给 Manager 批阅。它会把附件的引用和摄入验证环节的证据一路带过去。
+
+接受 `ok: true` 的 ingest payload。投射出供管理者复核的附件，附件携带引用与摄入校验证据。
 
 ### `nimicoding decide-high-risk-execution --from <json> --acceptance <path> --verified-at <iso8601>`
-只接纳携有 `ok: true` 且状态为 `reviewStatus: ready_for_manager_review` 的评审载荷。它会去机械校验那个验收工件；如果你里面敢少写一行 `Disposition:`，它绝不放行。最终，它会投影出 Manager 拍板的本地决策报告。
 
-## 机械化校验器 (Mechanical Validators)
+接受 `ok: true` 且 `reviewStatus: ready_for_manager_review` 的 review payload。机械校验 acceptance 工件，必须含 `Disposition:` 行。投射出仅本地可见的管理者决策记录。
 
-针对每一类工件的专项校验器。它们在干完活后，都会吐出机器可读的 `validator-cli-result.v1` 格式的 JSON。
+## 机械校验器
 
-| 校验器负责抓谁？ | 它校验的是什么？ |
+逐工件校验器统一输出机器可读的 `validator-cli-result.v1` JSON。
+
+| 校验器 | 校验对象 |
 | --- | --- |
-| `execution-packet` | 冻结的工作包（Packet）的骨架形状 |
-| `orchestration-state` | 调度编排状态记录 |
-| `prompt` | 发射出去的提示词载荷 |
-| `worker-output` | Worker 干完活吐出来的输出格式 |
-| `acceptance` | 验收环节的证据罗列 |
+| `execution-packet` | 已冻结的 packet 形态 |
+| `orchestration-state` | 编排状态记录 |
+| `prompt` | prompt payload |
+| `worker-output` | worker 输出形态 |
+| `acceptance` | acceptance 证据 |
 
-| 属性 | 表现 |
+| 属性 | 值 |
 | --- | --- |
-| 是否需要指定路径 | 是 |
-| 吐出物 | 无论成败，统统吐出 JSON |
-| 失败熔断 | 胆敢漏掉必填小节、YAML 格式错乱，或者跟种子契约发生漂移，统统安全报错打回。 |
+| 路径必填 | 是 |
+| 输出 | 成功或拒绝时统一输出 JSON |
+| 失败行为 | 缺少必需段落、YAML 格式错误、seed 契约 drift 时 fail closed |
 
-## Spec 规范审计 (Spec Audit)
+## 规范审计
 
 ### `nimicoding validate-spec-tree`
-对 `.nimi/spec` 目录下的规范化真相树结构进行搜身检查。
+
+校验 `.nimi/spec` 下规范树的结构。
 
 ### `nimicoding validate-spec-audit`
-针对 `.nimi/spec/_meta/spec-generation-audit.yaml` 中的每一份文件，对它的立足依据、推断逻辑以及留白空白（Unresolved gap）的追踪记录，进行地毯式查验。
+
+校验 `.nimi/spec/_meta/spec-generation-audit.yaml` 中的逐文件 grounding、推断和未解决缺口跟踪。
 
 ### `nimicoding blueprint-audit`
-拿一个项目本地的蓝图根目录，去和 `.nimi/spec` 下的候选规范化树硬碰硬地进行对比。这是一场显式的等价性审计；它只找不同，绝不会自作主张去改动任何路由。
 
-## 场景案例：首次运行引导
+把仓库本地的 blueprint 根与 `.nimi/spec` 下的候选规范树做对比。这是一次显式的等价性审计，不会改路由。
 
-当你第一天带着 Nimi Coding 入驻一个项目时：
+## 场景：第一次 bootstrap
 
-```bash
+你第一次在某个项目里安装 Nimi Coding。
+
+```
 nimicoding start
 ```
 
-CLI 会像个向导一样牵着你走：
-1. 侦测当前项目里的底细。
-2. 请你确认是否接纳它植入的受管 AI 接入点（`AGENTS.md`、`CLAUDE.md` 块）。
-3. 往 `.nimi/**` 目录下播撒归包所有的种子文件。
-4. 熟练地为你备好一份最具权威的、专攻 `spec_reconstruction`（规范重建）的 JSON 格式任务包。
-5. 在屏幕上打出一段 Prompt。你可以无脑复制，扔给你最心仪的 AI 宿主。
+CLI 会带你走完：
 
-你把 Prompt 喂给 AI，它吭哧吭哧跑完规范重建，然后你拿着结果，用 `nimicoding closeout` 凯旋入库。
+1. 侦测项目状态。
+2. 确认或接受受管 AI 入口（`AGENTS.md`、`CLAUDE.md` 区块）。
+3. 用包自有的 source 写入 `.nimi/**` seed。
+4. 为 `spec_reconstruction` 准备一份权威 JSON 任务包。
+5. 打印可粘贴的提示词，给你选定的 AI 宿主用。
 
-## 场景案例：一次完整的高风险执行循环
+你把提示词交给 AI 宿主；宿主跑重建；你用 `nimicoding closeout` 回填结果。
 
-你的项目现在很成熟了，Spec 规范树也有了。你准备干一票惊天动地的大改动。
+## 场景：一次完整的高风险执行
 
-| 步骤 | 具体指令 / 动作 |
+项目已经有完整规范，你要跑一次实质的 AI 编码工作。
+
+| 步骤 | 命令 |
 | --- | --- |
-| 1. Manager 放行工作包 | (手搓；搞定 topic.yaml + packet 冰冻工件) |
-| 2. 实现前审计（如果触发了的话） | (交给宿主去跑审计；拿到结果并记下 PASS) |
-| 3. 把活儿甩给宿主 | `nimicoding handoff --skill high_risk_execution --json` |
-| 4. 宿主吭哧干活；吐出结果 | (在宿主那边发生) |
-| 5. 收缴结果入库 | `nimicoding ingest-high-risk-execution --from result.json` |
-| 6. Review 环节 | `nimicoding review-high-risk-execution --from ingest.json` |
-| 7. Manager 终审拍板 | `nimicoding decide-high-risk-execution --from review.json --acceptance accept.md --verified-at ...` |
-| 8. 闭合收尾 | (手搓；落定 closeout 收尾工件) |
+| 1. 管理者准入 packet | （手工；topic.yaml + packet 工件） |
+| 2. 实施前审计（如需） | （宿主跑审计，记录结果） |
+| 3. 交接给宿主 | `nimicoding handoff --skill high_risk_execution --json` |
+| 4. 宿主执行并返回 | （宿主侧） |
+| 5. 摄入结果 | `nimicoding ingest-high-risk-execution --from result.json` |
+| 6. 复核 | `nimicoding review-high-risk-execution --from ingest.json` |
+| 7. 管理者裁定 | `nimicoding decide-high-risk-execution --from review.json --acceptance accept.md --verified-at ...` |
+| 8. 关闭 | （手工；closeout 工件） |
 
-这里头的每一步，都被 CLI 类型化的校验器死死看守着。但凡你想跳过一步，或者在里头夹带私货偷渡字段，CLI 会当场掀桌子拒绝放行。
+每一步都受 CLI 的强类型校验约束。跳步或夹带字段，CLI 会直接拒绝。
 
-## CLI 绝对不会做什么
+## CLI 不做的事
 
-| 它不干什么 | 为什么它不干？ |
+| 关注点 | 不做的原因 |
 | --- | --- |
-| 自主运行并推演 Packet | 因为执行的主导权牢牢攥在宿主 AI 手里 |
-| 召唤供应商的 API 模型 | 因为这个包才不管你用哪家的 AI |
-| 自动化日程调度 | 怎么排期那也是宿主该操心的事 |
-| 发送通知消息 | 用户体验那层是宿主的自留地 |
-| 自我热更新 | 跑出了独立包的范畴，不碰 |
+| 自主执行 packet | 执行权归宿主 AI |
+| 调用 provider | 包不直接调用 AI provider |
+| 调度器 | 调度由宿主负责 |
+| 通知 | UX 由宿主负责 |
+| 自动更新 | 超出独立包的范围 |
 
-上面这些，全都是它**显式推迟（Explicitly deferred）**、划清界限的表面。
+这些都是显式被推迟的能力面。
 
-## 来源依据
+## Source Basis
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md) (CLI 章节)
-- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/) (CLI 的源码实现)
+- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)（CLI 章节）
+- [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)（CLI 实现）
 - [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic.schema.yaml)
 - [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/audit-plan.schema.yaml)
 - [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/sweep-design-result.yaml)

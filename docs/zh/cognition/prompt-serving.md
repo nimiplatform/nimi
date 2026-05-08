@@ -1,95 +1,95 @@
-# Prompt 服务
+# 提示词服务
 
-Cognition Prompt 服务是 prompt **怎么**为模型组合的权威。它从 kernel（核心真相）和建议工件（记忆、知识、技能）取材，产出类型化 prompt 上下文，道之间严格切分。
+Cognition 提示词服务是"提示词如何被组装"的权威。它从 kernel（核心真相）和 advisory 产物（记忆、知识、技能）取材，产出强类型的提示词上下文，并在不同通道之间严格隔离。
 
-## 三个 Format 方法
+## 三种格式方法
 
-| 方法 | 服务什么 |
+| 方法 | 提供什么 |
 | --- | --- |
-| `FormatCore` | 仅 kernel 真相 — Agent kernel + 世界 kernel |
-| `FormatAdvisory` | 已校验建议工件 — 记忆、知识、技能 |
-| `FormatAll` | 在准入排序下组合的 core + advisory |
+| `FormatCore` | 仅 kernel 真相：agent kernel 加 world kernel |
+| `FormatAdvisory` | 已校验的 advisory 产物：记忆、知识、技能 |
+| `FormatAll` | 在准入序列下组合 core 与 advisory |
 
-三道有意分开。`FormatCore` **不能**纳建议内容；`FormatAdvisory` **不能**纳 kernel 内容；`FormatAll` 是准入组合。
+三条通道刻意分开。`FormatCore` 不能塞 advisory 内容；`FormatAdvisory` 不能塞 kernel 内容；`FormatAll` 是唯一的准入组合。
 
-## 为什么道分开
+## 为什么要做通道隔离
 
-没道分开，prompt 拼装就会静默把身份上下文跟回忆上下文混在一起。模型分不出「我是谁」、「我记得什么」、「我现在在干什么」。
+不做隔离时，提示词组装会把"我是谁"的身份上下文与"我记得什么"的召回上下文悄悄混在一起，模型分辨不出来。
 
-道分开后：
+做了隔离后：
 
-- `FormatCore` 是**身份上下文** — 变化缓慢的 kernel 真相。
-- `FormatAdvisory` 是**回忆上下文** — Agent 跟本轮相关的记忆 / 知识 / 技能 bundle。
-- Working state 与例程证据按设计**从 prompt 服务排除**。
+- `FormatCore` 是**身份上下文**：变化缓慢的 kernel 真相。
+- `FormatAdvisory` 是**召回上下文**：本回合相关的记忆 / 知识 / 技能。
+- working state 与例程证据**按设计被排除**在提示词之外。
 
-模型拿到的 prompt 有显式类型化分段；没有东西偷溜进去。
+模型看到的提示词每个段落都有强类型，没有东西能偷溜进来。
 
-## Working state **不**到 prompt
+## working state 不会进提示词
 
-Working state 是**瞬时认知脚手架** — Agent 的中间笔记、例程簿记等。它**不是**持久真相，也**永不**作为 prompt 上下文服务。
+working state 是**暂态认知支架**：Agent 的中间笔记、例程的记账等。它不是持久真相，**永远不会**作为提示词上下文提供。
 
-如果 working state 能漏进 prompt，prompt 就会获取任意脚手架。硬边界让 prompt 保持干净。
+如果允许 working state 进提示词，提示词就会塞进任意脚手架。这道硬边界保证提示词干净。
 
-## Prompt 道
+## 提示词通道
 
-道在 `tables/prompt-serving-lanes.yaml` 准入。每道声明：
+通道在 `tables/prompt-serving-lanes.yaml` 里准入。每条通道声明：
 
 | 字段 | 用途 |
 | --- | --- |
-| 服务排序 | 道在 `FormatAll` 里出现的位置 |
-| 准入家族 | 这道读哪些工件家族 |
-| 准入输入 | 这道接受什么输入 |
-| 派生视图来源 | 哪份服务派生视图支撑这道 |
-| 禁止输入 | 显式排除什么 |
+| 服务序 | 通道在 `FormatAll` 中的位置 |
+| 准入产物族 | 通道可读取哪些产物族 |
+| 准入输入 | 通道接受什么输入 |
+| 派生视图来源 | 通道背后是哪个服务侧派生视图 |
+| 禁入输入 | 哪些输入被显式排除 |
 
-想知道「这道产出什么形状」的读者去查表，不看文档散文。
+想知道某条通道产出什么形态，去查表，不在文档散文里找。
 
-## 阅读场景：Agent 一轮 compose 完整 prompt
+## 场景：Agent 一次回合的完整提示词
 
-某 Agent 即将产出一轮。
+Agent 准备产出一次回合。
 
-1. **`FormatAll` 调用。** Cognition 的 prompt 服务 compose 完整 prompt。
-2. **Core 道。** Agent kernel + 世界 kernel — 缓变身份。
-3. **Advisory 道。** 记忆回忆、知识查询、技能 bundle — 全是已校验建议。
-4. **准入服务排序。** 道按准入排序出现。
-5. **Working state 排除。** 瞬时脚手架**不**漏。
-6. **结果交给 Brain。** 模型看到带类型化分段的类型化 prompt。
+1. **调用 `FormatAll`**：Cognition 提示词服务组装完整提示词。
+2. **core 通道**：agent kernel 加 world kernel——变化缓慢的身份。
+3. **advisory 通道**：记忆召回、知识查询、技能 advisory——都已校验。
+4. **按准入序排列**：通道按准入序出现。
+5. **排除 working state**：暂态支架不会泄漏。
+6. **结果交给 Brain**：模型看到的是带强类型分段的提示词。
 
-模型分不出「这是身份」「这是回忆」 — 除非 prompt 区分它们 — 而道分开正是这件事。
+提示词把"身份"与"召回"分开标注，模型才区分得出二者；通道隔离正是这件事的保证。
 
-## 阅读场景：Mod 试图通过 prompt 注入
+## 场景：Mod 想从提示词偷运内容
 
-某有 Agent 面访问的 mod 试图通过 prompt 拼装夹带额外上下文。
+某个能访问 Agent 表面的 Mod 想偷塞额外上下文进提示词。
 
-1. **Mod 构造意图内容。** 想让它进 prompt。
-2. **提交到准入道。** 道对照准入形状校验输入。
-3. **禁止输入被拒。** Working state、例程证据或别的禁止输入校验失败。
-4. **允许输入在道下准入。** 留在那道的类型化形状里。
+1. **Mod 准备内容**，希望进入提示词。
+2. **提交到准入通道**：通道按其准入形态校验输入。
+3. **禁入输入被拒**：working state、例程证据等禁入输入校验失败。
+4. **被允许的输入按通道形态准入**，停留在该通道的强类型形态内。
 
-Mod **无法**通过 prompt 拼装夹带 working state。道校验是闸门。
+Mod 没法借提示词组装夹带 working state——通道校验就是那道闸口。
 
-## 阅读场景：审计员问「模型当时看到了什么」
+## 场景：审计员还原"模型看到了什么"
 
-某审计员想精确重建某次轮次时 Agent 拿到的 prompt 上下文。
+审计员想精确还原某次回合时 Agent 的提示词上下文。
 
-1. **按 trace id 定位轮次。**
-2. **读 prompt 组合。** Cognition 记下这次轮次哪些道产出了什么内容。
-3. **重建。** 审计员看到 core 道内容、advisory 道内容、排序。
-4. **没隐藏内容。** 模型输入里的东西全在记下的组合里。
+1. **按 trace id 找到这一回合**。
+2. **读取提示词组合记录**：Cognition 记录了这次回合每条通道产出了什么。
+3. **还原**：审计员看到 core 通道内容、advisory 通道内容与排序。
+4. **没有暗藏内容**：模型输入里出现的东西必然在记录的组合里。
 
-道分开让这种重建在结构上可达成。
+通道隔离让这种还原是结构化的。
 
-## 边界总结
+## 边界归属
 
-| 关注 | 拥有者 |
+| 关注点 | 归属 |
 | --- | --- |
-| Prompt 组合 | Cognition Prompt 服务 |
-| 道语义 | `tables/prompt-serving-lanes.yaml` |
-| Kernel 真相来源 | Cognition kernel |
-| 建议输入 | 记忆 / 知识 / 技能服务（准入） |
-| Working state | 设计上排除 |
+| 提示词组合 | Cognition 提示词服务 |
+| 通道语义 | `tables/prompt-serving-lanes.yaml` |
+| Kernel 真相来源 | Cognition 的 kernel |
+| advisory 输入 | 准入的记忆 / 知识 / 技能服务 |
+| working state | 按设计被排除 |
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/cognition/kernel/prompt-serving-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/prompt-serving-contract.md)
 - [`.nimi/spec/cognition/kernel/cognition-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/cognition-contract.md)

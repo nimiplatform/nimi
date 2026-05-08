@@ -1,54 +1,54 @@
 # 世界生命周期
 
-Nimi 世界是长期存在的东西。本页跟踪生命周期，从「创作者有个想法」到「参与者可以访问的已发布世界」到「绑了 extension-app 的世界」到「可被暂停或吊销的世界」。每一步背后的状态机器都在 realm kernel 里被认可。
+Nimi 的世界是长时存活的对象。这一页走完它的生命周期：从「创作者有一个想法」到「参与者可以到访的已发布世界」，到「绑定了 extension-app 的世界」，再到「被暂停或撤销的世界」。每一步背后的状态机都在 Realm 内核里有准入。
 
-字段级状态定义见 [Reference → State Machines](/zh/reference/state-machines) 和 [Reference → World Fields](/zh/reference/world-fields)。
+字段层面的状态定义见 [Reference → State Machines](/zh/reference/state-machines) 与 [Reference → World Fields](/zh/reference/world-fields)。
 
-## 创作与发布
+## 撰写与发布
 
-世界由创作者创作。创作者的工具产生**真相** — `WorldRule` 项、绑到世界的 `AgentRule` 项、场景、Agent、projection — 然后打包发布。
+世界由创作者撰写。创作者工具产出**真相** —— `WorldRule`、绑到这个世界的 `AgentRule`、场景、Agent、呈现 —— 并打包待发布。
 
-发布的瞬间是 **`WorldRelease`**：一次原子事务，把真相、projection、包版本冻结进一个规范锚点。一次 release 携带：
+发布的那一刻是一次 **`WorldRelease`**：一次原子事务，把真相、呈现、包版本冻结成同一个规范化锚点。一次 release 携带：
 
 - 包版本
-- 来源（谁发布、用什么工具）
-- 校验和 / diff 元数据
-- 回滚 lineage
+- 出处（谁发布、用什么工具）
+- 校验和 / 差异元数据
+- 回滚血缘
 
-原子性很重要。真相、agent rule scope、projection 都在一次事务性提交里落地。半发布的世界不被准入。
+原子性是关键。真相、Agent rule 作用域、呈现，必须落在同一次事务提交里。半发布的世界不被准入。
 
-Release 通过 **`CanonicalTruthPackage`** 发布 — 官方上游真相 ingress 对象。它区分：
+发布走 **`CanonicalTruthPackage`** —— 官方上行真相入口对象。它区分：
 
-| 组件 | 用途 |
+| 组成 | 用途 |
 | --- | --- |
-| 规范真相单元 | 世界规则、Agent 规则、场景规则等 |
-| 推导 / 继承输入 | 世界真相如何约束 Agent 真相 |
-| Projection 输入 | 世界支持什么读视图 |
-| 治理 / release 元数据 | 版本、来源、审计 |
+| 规范化真相单元 | 世界规则、Agent 规则、场景规则等 |
+| 派生 / 继承输入 | 世界真相对 Agent 真相施加的约束 |
+| 呈现输入 | 世界支持哪些读视图 |
+| 治理 / 发布元数据 | 版本、出处、审计 |
 
-Lorebook 文本和 prompt 载荷**永远不**是包的规范中心。它们可以是 projection 的输入，但不是真相本身。
+Lorebook 文本与 prompt payload 永远不是这个包的规范化中心。它们可能是呈现的输入，但本身不是真相。
 
-## 回滚是 release 操作
+## 回滚也是发布操作
 
-如果一次 release 有问题，回滚本身就是一次 release — 不是临时改写现有 release。
+如果一次 release 出问题，回滚本身也是一次 release —— 不是临时改写已存在的 release。
 
-- 一次回滚 `WorldRelease` 引用之前的好 release。
-- 回滚 lineage 是 release 记录的一部分。
-- 世界历史把回滚记成一次 `CANON_MUTATION` run。
-- 坏的 release **不**从历史里删除；它被 supersede。
+- 回滚的 `WorldRelease` 引用上一个良性 release。
+- 回滚血缘进入 release 记录。
+- 世界历史把回滚记录为一次 `CANON_MUTATION` 运行。
+- 出问题的 release 不从历史中删除，它被取代。
 
-也就是说回滚保留审计可追溯性：将来读历史的人能看到什么被回滚、何时、为什么。
+这意味着回滚保留审计可追溯性：后来读历史的人，能看到回滚回的是什么、在何时、为什么。
 
-## App-世界绑定
+## App 与世界的绑定
 
-世界绑了 App 才最有用 — App 是参与者实际用来跟世界互动的东西。绑定是显式且有界的。
+世界在被某个 App 绑上之后才好用 —— App 是参与者真正用来与世界交互的入口。绑定是显式的，且有边界。
 
-| 模式 | 读世界数据 | 写世界数据 | 一个世界里并存数 |
+| 模式 | 读世界数据 | 写世界数据 | 单世界并发数 |
 | --- | --- | --- | --- |
-| `render-app` | 是 | 否 | 多个 |
-| `extension-app` | 是 | 是 | 同时最多一个 active |
+| `render-app` | 可以 | 不可以 | 多个 |
+| `extension-app` | 可以 | 可以 | 单世界至多一个活跃 |
 
-一个世界在任何时刻最多有一个 active 的 **extension-app** 绑定。多个 **render-app** 可以同时读同一个世界；它们不互相 gate。
+任意时刻，一个世界至多只有一个活跃的 **extension-app** 绑定。多个 **render-app** 可以同时读同一个世界，互不抢占。
 
 ### 绑定生命周期
 
@@ -60,43 +60,43 @@ Lorebook 文本和 prompt 载荷**永远不**是包的规范中心。它们可�
 
 | 状态 | 含义 |
 | --- | --- |
-| `(new)` | 世界存在；没有 App 绑 |
-| `active` | 一个被准入的 extension-app 绑了，正在写 |
-| `suspended` | 绑定被暂停；要重绑必须显式重新准入 |
-| `revoked` | 绑定被移除；世界可以被新准入接管 |
+| `(new)` | 世界存在，没有 App 绑定 |
+| `active` | 一个准入的 extension-app 正在写 |
+| `suspended` | 绑定暂停；恢复需要显式重新准入 |
+| `revoked` | 绑定已撤销；世界开放给新一次准入 |
 
-暂停可逆；吊销不可逆。重新绑定要先吊销 — 平台**不会**无声地把写权威从一个 extension-app 转到另一个。
+暂停可逆，撤销不可逆。要换一个 extension-app，必须先撤销 —— 平台不会把写权威从一个 extension-app 静默转给另一个。
 
-## Transit 与世界可用性
+## 转场与世界可达性
 
-发布的世界变成参与者可以跨越过去的目的地。跨越走 OASIS — 见 [OASIS](/zh/platform/worlds/oasis)。一个当前没有 extension-app 绑定的世界仍然能被 render-app 读；这是真相和状态的事，即使没有 App 在主动写。
+已发布的世界是参与者可以转场到的去处。转场走 OASIS，详见 [OASIS](/zh/platform/worlds/oasis)。一个当前没绑 extension-app 的世界，仍然可被 render-app 读取；这是「即使没有 App 在写，真相和状态也仍然存在」的体现。
 
-如果一个世界被创作者下线，里面的参与者默认回到 OASIS。他们的身份和地位不受影响。
+如果创作者把世界下线，原本在那个世界里的参与者默认回到 OASIS。他们的身份与标识不受影响。
 
-## 阅读场景：端到端发布一个世界
+## 场景：把一个世界从头发布出去
 
-一个创作者完成了一个世界的设计想发布。
+某创作者完成世界设计，准备发布。
 
-1. **写真相**。真相产物：世界规则、Agent 规则、场景、projection。
-2. **暂存草稿**。最小发布候选：`importSource`、`truthDraft`、`stateDraft`、`historyDraft`。这些是创作者本地工作集，**不**是 Realm 规范，直到发布。
-3. **打包成 CanonicalTruthPackage**。包区分真相单元、推导输入、projection 输入、治理元数据。
-4. **以 `WorldRelease` 原子发布**。Release 提交冻结真相、projection、包版本。它带着来源、校验和 / diff、回滚 lineage。
-5. **世界变成目的地**。参与者可以通过 OASIS 跨越到这个世界。Render-app 可以读；被准入的 extension-app 可以绑定拿写权威。
-6. **审计 lineage**。世界历史把这次 release 记成一次 `CANON_MUTATION` run。将来任何回滚都被记成另一次 `CANON_MUTATION` run，引用这次 release。
+1. **撰写真相**。真相产物：世界规则、Agent 规则、场景、呈现。
+2. **暂存草稿**。最小发布候选：`importSource`、`truthDraft`、`stateDraft`、`historyDraft`。这些是创作者本地的工作集，未发布前不属于 Realm 规范化。
+3. **打成 CanonicalTruthPackage**。包区分真相单元、派生输入、呈现输入、治理元数据。
+4. **以 `WorldRelease` 原子发布**。这一次 commit 冻结真相、呈现、包版本，并携带出处、校验和 / 差异、回滚血缘。
+5. **世界成为去处**。参与者可以经 OASIS 转场到此。render-app 可读；准入的 extension-app 可绑定写权威。
+6. **审计血缘**。世界历史把这次 release 记为一次 `CANON_MUTATION` 运行。后续任何回滚也会作为另一次 `CANON_MUTATION` 运行回引这一次 release。
 
-原子事务形状是关键属性。平台**不**接纳半发布的世界。
+原子事务的形态是关键性质。平台不准入半发布的世界。
 
-## 阅读场景：换 active extension-app
+## 场景：替换活跃的 extension-app
 
-创作者想从 extension-app A 切到 extension-app B。
+某创作者想把活跃绑定从 extension-app A 切到 extension-app B。
 
-1. 创作者吊销 A 的绑定。A 的绑定从 `active` 走到 `revoked`。A 不再有写权威。
-2. 创作者准入 B。B 的绑定从 `(new)` 走到 `active`。B 现在有写权威。
-3. **没有**重叠窗口让 A 和 B 都能写。重新绑定**不是**无声转移。
+1. 创作者撤销 A 的绑定。A 从 `active` 走到 `revoked`，不再持有写权威。
+2. 创作者准入 B。B 的绑定从 `(new)` 走到 `active`，B 开始持有写权威。
+3. 中间没有 A、B 都能写的重叠窗口。换绑不是静默转交。
 
-为什么这么严？因为一个世界只有一个规范的"现在是什么真相"。如果两个 extension-app 都能写，两个不同的真相会赛跑互相覆盖。平台让这个切换变成显式的。
+为什么这么严？因为一个世界对「此刻为真的」只允许一份规范化真相。如果两个 extension-app 同时写，两份不同真相会互相覆盖。平台让转交是显式的。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/realm/world.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/world.md)
 - [`.nimi/spec/realm/truth.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/truth.md)

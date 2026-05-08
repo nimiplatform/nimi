@@ -1,40 +1,40 @@
 # Chat 与 Life 双轨
 
-每个 Nimi Agent 跑在两条独立的执行轨道上。这不是 UX 特性，而是硬的架构切分。理解平台为什么把它们分开，就是"会回应你的 Agent"和"有自己生活的 Agent"之间的差别。
+每个 Nimi Agent 跑在两条独立的执行轨道上。这不是 UX 特性，是硬的架构切分。理解平台为什么把它们分开，就是"会回应你的 Agent"和"有自己生活的 Agent"之间的差别。
 
 ## 两条轨道
 
-| 轨道 | 由什么驱动 | 拥有者 |
+| 轨道 | 触发方 | 拥有者 |
 | --- | --- | --- |
-| Chat Track | 反应式 — 用户或 App 输入 | Runtime |
-| Life Track | 主动式 — Agent 自主 + Runtime hook 调度 | Runtime |
+| Chat Track | 反应式——用户或应用输入 | Runtime |
+| Life Track | 自主——Agent 主动 + Runtime hook 调度 | Runtime |
 
-两轨共享 Agent 的状态 — 同一个 Soul、同一个 Memory、同一个 Worldview — 但它们的调度面**永远不**塌成一个。
+两条轨道共享 Agent 的状态——同一个 Soul、同一份记忆、同一份 Worldview——但调度面绝不合二为一。
 
-| 属性 | Chat Track | Life Track |
+| 维度 | Chat Track | Life Track |
 | --- | --- | --- |
-| 触发 | 用户 / App 输入 | Runtime hook 调度 |
-| 默认 | 永远在线 | 默认关；opt-in |
+| 触发 | 用户 / 应用输入 | Runtime hook 调度 |
+| 默认 | 始终可用 | 默认关，需开通 |
 | 节奏 | 按输入 | `off` / `low` / `medium` / `high` |
-| Token 预算 | 按请求语义 | 默认按日 |
-| 输出 | 聊天回应，可流式 | life-turn 输出，可持久 |
-| 另一轨忙时 | 仍可用 | 如果 Chat 在传送，Life 暂停（Runtime 已认可） |
+| Token 预算 | 按请求 | 默认按天 |
+| 输出 | 聊天回复，可能流式 | Life 回合输出，可能持久化 |
+| 另一条繁忙时 | 可用 | 在 Chat 进行中时按 Runtime 准入挂起 |
 
-Life Track 默认 opt-in 是有原因的：主动式 Agent 不论有没有人在跟它说话都会消耗 token。默认关让 opt-in 是显式的。
+Life Track 默认关有原因：Agent 主动行动会消耗 Token，无论有没有人在和它说话。默认关让"开"这件事成为显式选择。
 
-## 为什么两轨是硬架构切分
+## 为什么是硬切分
 
-朴素设计会有一个统一的调度面，"用户说话了"和"Agent 决定自己做点什么"都走同一个面。Nimi 故意拆开：
+天真的设计会用同一个调度面处理"用户说了点什么"和"Agent 自己决定做点什么"。Nimi 故意拆开：
 
-| 关注 | 为什么两轨 |
+| 关注点 | 拆开的理由 |
 | --- | --- |
-| Token 预算 | 反应式成本是按请求；主动式成本是按日。混在一起两边都看不清。 |
-| 聊天可靠性 | 聊天必须永远在线。Life Track 满了不应该挡住 Agent 回应。 |
-| 审计 | 聊天输出和 Life 输出有不同的审计类别；混在一起会混淆"被问了"和"自己动了"。 |
-| 批准 | 一些 Life Track 动作可能要批准。聊天回应不需要。每轨不同 gate。 |
-| Replay | 重放一个自主时刻和重放一个聊天 turn 不一样。记录的流保持分开。 |
+| Token 预算 | 反应式按请求计费；自主式按天计费。混在一起两者都模糊 |
+| 聊天可用性 | 聊天必须始终可用。Life Track 占满不能让 Agent 不能回话 |
+| 审计 | 聊天输出与 Life 输出的审计类别不同；混在一起会分不清"被问"与"主动" |
+| 审批 | Life Track 的某些动作可能需要审批；聊天回复一般不需要。两条轨道走不同闸口 |
+| 重放 | 自主时刻的重放与聊天回合的重放不是一回事。两条流分开记录 |
 
-混在一起会让每一项分析 — 计费、审计、replay、debug — 都得先反推统一回路刚刚做了什么。拆开就把这种反推内嵌到平台里了。
+混在一起会逼着每一种分析（计费、审计、重放、调试）去拆开统一循环刚做了什么。拆开就是把这种区分写进平台。
 
 ## 节奏
 
@@ -42,57 +42,57 @@ Life Track 有四种节奏：
 
 | 节奏 | 含义 |
 | --- | --- |
-| `off` | Life Track 暂停；Agent 只反应 |
-| `low` | 偶尔的自主时刻，受日预算约束 |
+| `off` | Life 停；Agent 仅反应式 |
+| `low` | 偶发自主时刻，按每日预算 |
 | `medium` | 更频繁的自主时刻 |
-| `high` | 最积极的自主行为；日预算很可能被耗尽 |
+| `high` | 最积极的自主行为；每日预算大概率会被消耗 |
 
-默认是 `off`。用户（或宿主产品）选择是否打开 Life，以及在什么节奏。
+默认 `off`。用户（或宿主产品）选择是否打开 Life，以及节奏。
 
-Life 节奏不是"Agent 多聪明"。它是"Agent 多频繁自己动"。`high` 节奏的 Agent 消耗更多 token；它不会变成另一个 Agent。
+Life 节奏不是"Agent 多聪明"，是"Agent 多频繁主动行动"。`high` 节奏的 Agent 消耗更多 Token，但不会变成不同的 Agent。
 
 ## Token 预算
 
-Life Track 默认有日 token 预算。预算耗尽，Life Track 停发新 turn 直到下一日重置。
+Life Track 默认按每日 Token 预算。预算用完，Life 停止派发新回合，直到预算重置。
 
-Chat Track 不共享这个预算。聊天回应不论 Life 预算是什么状态都会发生。
+Chat Track 不共用这份预算。聊天回复在任何 Life 预算状态下都会发生。
 
-用户（或宿主产品）可以调预算；平台默认有意做得保守。
+用户（或宿主产品）可以调预算；平台默认值有意保守。
 
-## 阅读场景：Chat 和 Life 都开着
+## 场景：Chat 与 Life 都在运行
 
-用户有个 Agent 叫 Yuki。Yuki 的 Life Track 开在 `medium` 节奏。
+用户有个 Agent 叫 Yuki。Yuki 的 Life Track 开在 `medium`。
 
-整天：
+一天里：
 
-- 早上：用户问 Yuki 今天天气。Chat Track 启动，Yuki 回应。聊天回应的 token 预算是按请求。
-- 下午：用户不在。Yuki 的 Life Track 被 hook 调度器派出。Yuki 想起记忆里有事 — 用户提过明天有面试。Yuki 发出一个类型化的 `HookIntent`：明天 8 点提醒祝好运。这个 intent 进入 hook 生命周期。
-- 晚上：用户回来。Yuki 聊天可用 — 下午的 Life Track 活动没影响聊天可用性。
-- 第二天 8 点：hook 触发。Yuki 的 Life Track 生成一条简短的祝好运消息。用户看到的是聊天里的一条主动消息。
+- 上午：用户问 Yuki 天气。Chat Track 激活；Yuki 回复。回复的预算按请求计。
+- 下午：用户离开。Yuki 的 Life Track 被 hook 调度器派发。Yuki 注意到一份记忆——用户提过明天有面试。Yuki 发出强类型 `HookIntent`，"明天 8 点提醒祝好运"。这条 intent 进入 hook 生命周期。
+- 傍晚：用户回来。Yuki 的聊天响应正常——下午的 Life 活动没有妨碍聊天可用性。
+- 第二天 8 点：hook 触发。Yuki 的 Life Track 产出一条简短的祝福。用户在聊天里看到一条主动消息。
 
-两条轨道；一个 Agent。用户感觉 Agent 是连续的；平台分开追踪审计和预算。
+两条轨道；同一个 Agent。用户体验是连续的；平台审计与预算分开记。
 
-## 阅读场景：Life 满了，Chat 还能聊
+## 场景：Life 满了，聊天还能用
 
-设想 Yuki 的 Life Track 在傍晚就把日 token 预算用完了 — 也许节奏是 `high`，自主时刻派出了好几次。
+设 Yuki 的 Life Track 把当日 Token 预算消耗完了——可能节奏 `high`，已经派发过几次自主时刻。
 
-- Life Track 停发新 turn 直到预算重置。
-- Chat Track 不受影响。用户的输入照样得到聊天回应。
-- 用户感受不到任何可见的"满了" — 看到的是"可以正常跟 Yuki 说话"。**没**发生的是今天再有自主时刻。
+- Life Track 停派新回合，直到预算重置。
+- Chat Track 不受影响。用户的任何输入都得到聊天回复。
+- 用户感觉不到任何饱和；体验是"我跟 Yuki 正常说话"。当天没有更多自主时刻。
 
-这种切分就是架构上的回报。反应式可用性不会被主动式成本绑架。
+这种分离就是架构带来的回报：反应式可用性不被自主成本绑架。
 
-## 阅读场景：默认关是对的
+## 场景：默认关是合理的默认值
 
 新用户安装 Nimi，创建第一个 Agent。
 
-- Life Track 默认 `off`。Agent 只反应。
-- 用户还没决定要不要主动式 Agent。平台不会未经用户显式同意就开始自主消耗 token。
-- 用户可以之后开 `low` 观察行为，决定是否升到 `medium` 等等。
+- Life Track 默认 `off`。Agent 仅反应式。
+- 用户还没决定要不要主动型 Agent。平台不会在没有显式同意的前提下自主消耗 Token。
+- 用户可以稍后开 `low`，观察一段时间，再决定是否升到 `medium`。
 
-如果默认是 `on`，每个新 Agent 都会立刻开始消耗预算、产出自主时刻。Opt-in 默认尊重用户的同意和预算。
+如果默认是开的，每个新 Agent 一上来就开始消耗预算并产生自主时刻。默认关尊重用户的同意与预算。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-service-contract.md)
 - [`.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md)

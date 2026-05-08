@@ -1,87 +1,87 @@
-# App 互联
+# 应用互联
 
-`app-interconnect-model.md` 与 `realm-interop-mapping.md` 描述 App 怎么接进 Realm，以及 realm 基础协议互操作映射怎么工作。这页是「App 怎么跨进 Realm」的读者视角。
+`app-interconnect-model.md` 与 `realm-interop-mapping.md` 描述应用如何接入 Realm，以及 Realm 基础协议在跨协议互操作上的映射方式。这一页从读者视角讲清楚一个应用如何跨进 Realm。
 
-## App 怎么连到 Realm
+## 应用怎么连到 Realm
 
-| 路径 | 用途 |
+| 通道 | 用途 |
 | --- | --- |
-| REST | 准入合同下的类型化 Realm 读 / 改 |
-| WebSocket | 规范化事件的实时投递 |
+| REST | 在已准入契约下对 Realm 做强类型读取与变更 |
+| WebSocket | 实时分发规范事件 |
 
-App 通过准入 REST + WS 面连到 Realm；它们**不**自己发明协议。授权是在准入 token 颁发流下颁发的 bearer token。
+应用通过已准入的 REST + WS 接入面连到 Realm，不能自定义协议。授权用 bearer token，由已准入的 token 颁发流程发出。
 
-## App 模式与 Realm 权威
+## 应用模式与 Realm 权威
 
-Render-app 读 Realm；extension-app 在准入绑定范围内读写 Realm。
+render-app 只读 Realm；extension-app 在已准入的绑定作用域内既读也写。
 
-| 模式 | Realm 读 | Realm 写 | 每个世界并发数 |
+| 模式 | 读 Realm | 写 Realm | 同一世界并发数 |
 | --- | --- | --- | --- |
 | `render-app` | 是 | 否 | 多个 |
-| `extension-app` | 是 | 是 | 每个世界至多一个活跃 |
+| `extension-app` | 是 | 是 | 同一世界至多一个活跃 |
 
-世界的「至多一个活跃 extension-app」规则就来自这个：如果两个 extension-app 能同时为同一个世界写 Realm 规范化状态，规范化状态就 race。
+"同一世界至多一个活跃 extension-app"的限制原因很直接：如果同一世界有两个 extension-app 同时写规范状态，规范状态就会发生竞争。
 
 ## 互操作映射
 
-Realm 互操作映射在 Realm 概念与外部 open-spec 锚（跨协议映射）之间翻译。它桥接：
+Realm 互操作映射在 Realm 概念与外部开放规范锚点之间做翻译，桥接以下几对：
 
-| 桥 | 用途 |
+| 桥接 | 用途 |
 | --- | --- |
-| 世界状态合同 ↔ 外部状态表征 | Realm 世界状态需要对外可见时 |
-| 世界历史合同 ↔ 外部历史表征 | 跨平台历史兼容 |
+| 世界状态契约 ↔ 外部状态表示 | Realm 世界状态需要对外可见时 |
+| 世界历史契约 ↔ 外部历史表示 | 跨平台的历史兼容 |
 | Runtime 记忆 ↔ Realm 记忆 | 复制语义 |
 | Runtime Agent ↔ Realm Agent | 身份桥接 |
-| 通行合同 ↔ 外部通行形状 | 跨协议通行兼容 |
+| Transit 契约 ↔ 外部 transit 形态 | 跨协议的 transit 兼容 |
 
-互操作映射是形式翻译层。它**不**改 Realm；它把 Realm 投到别的系统能消费的形状上。
+互操作映射是一层正式翻译。它不修改 Realm，只把 Realm 渲染成其他系统能消费的形态。
 
-## 阅读场景：App 先读再动
+## 场景：一个应用先读后写
 
-某 render-app 想显示一个世界；后来用户升级到 extension-app 改状态。
+一个 render-app 想展示某个世界；之后用户把它升级成一个会修改状态的 extension-app。
 
-1. **render-app 启动。** App 在 render 模式下读 Realm。
-2. **用户想要更多。** 用户把关系升级到 extension-app 模式。
-3. **App-世界绑定。** Extension-app 绑定到世界（同一时刻一个活跃）。
-4. **修改。** Extension-app 提交类型化 commit 信封做状态修改。
-5. **Realm 准入。** 每次修改过准入授权矩阵。
-6. **审计 lineage。** 每次修改被记下。
+1. **render-app 启动**。应用以 render 模式读 Realm。
+2. **用户想做更多**。用户把这层关系升级成 extension-app 模式。
+3. **应用与世界绑定**。这个 extension-app 与世界建立绑定（同一时刻只有一个活跃）。
+4. **变更**。extension-app 提交强类型 commit envelope 来修改状态。
+5. **Realm 准入**。每次变更都过一遍已准入的授权矩阵。
+6. **审计血缘**。每次变更都登记入账。
 
-从只读到带写的扩展的转换需要显式绑定。**没**静默特权升级。
+从只读升级到可写，必须显式建立绑定。没有静默的权限提升。
 
-## 阅读场景：实时事件流
+## 场景：实时事件流
 
-某 App 想响应规范化事件发生时。
+一个应用想实时响应规范事件。
 
-1. **订阅。** App 在准入订阅面下打开到 Realm 的 WebSocket 订阅。
-2. **实时投递。** 事件 commit 时到达。
-3. **App 响应。** 准入形状下的类型化事件处理器。
-4. **连接生命周期。** 重连、backpressure 等在准入连接合同下。
+1. **订阅**。应用在已准入的订阅面打开 WebSocket。
+2. **实时分发**。事件提交后即送达。
+3. **应用响应**。事件处理器按已准入的形态处理强类型事件。
+4. **连接生命周期**。重连、背压等都按已准入的连接契约进行。
 
-实时是被准入的；实时可用时 App **不**自己发明 polling 协议。
+实时是已准入能力。实时可用时，应用不需要自己设计轮询协议。
 
-## 阅读场景：外部系统桥 Realm
+## 场景：外部系统桥接 Realm
 
-某外部系统想镜像 Realm 世界历史。
+一个外部系统想镜像 Realm 的世界历史。
 
-1. **经互操作映射读。** 外部系统在准入互操作映射下读 Realm 历史。
-2. **翻成外部形状。** 映射把 Realm 概念投到外部 open-spec 表征。
-3. **外部系统消费。** 默认无修改回流，除非准入。
+1. **通过互操作映射读取**。外部系统在已准入的互操作映射下读 Realm 历史。
+2. **翻译成外部形态**。映射把 Realm 概念渲染成外部开放规范的表示。
+3. **外部系统消费**。除非另有准入，不会有变更回流。
 
-桥默认是单向读。双向桥需要准入双向合同 — **不**隐式。
+桥接默认是单向读。要双向，必须有已准入的双向契约，不会隐式启用。
 
-## 边界总结
+## 边界归属
 
-| 关注 | 拥有者 |
+| 关注点 | 归属 |
 | --- | --- |
-| Realm 规范化真相 | Realm kernel |
-| App 访问 Realm | 准入 REST + WS 面 |
-| App-世界绑定 | App 授权预设 + 绑定合同 |
-| 实时投递 | 准入订阅面 |
-| 外部系统桥 | Realm 互操作映射 |
-| 跨协议形状 | 互操作映射桥 |
+| Realm 规范真相 | Realm 内核 |
+| 应用接入 Realm | 已准入的 REST + WS 面 |
+| 应用与世界绑定 | 应用授权预设 + 绑定契约 |
+| 实时分发 | 已准入的订阅面 |
+| 外部系统桥接 | Realm 互操作映射 |
+| 跨协议形态 | 互操作映射桥接 |
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/realm/app-interconnect-model.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/app-interconnect-model.md)
 - [`.nimi/spec/realm/realm-interop-mapping.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/realm-interop-mapping.md)

@@ -1,83 +1,83 @@
 # 世界演化引擎
 
-世界演化引擎（World Evolution Engine，WEE）是 Runtime 拥有的机器，让世界**感觉是活的** — 角色在动作、场景在推进、事件在累积 — 都在可审计、可重放、fail-closed 的合同下进行。
+世界演化引擎（World Evolution Engine，WEE）是 Runtime 持有的机制，让世界感觉是活的 —— 角色在动作、场景在推进、事件在累积 —— 全部在可审计、可重放、fail-closed 的契约下进行。
 
-## WEE 解决什么
+## WEE 解决的问题
 
-一个有规则但没推进的世界只是数据库。一个让任何代码都能在任何时候写规范真相的世界只是混乱。WEE 处于两者中间：一条把参与者输入和定时事件变成提议的修改、校验、暂存为提交请求，然后要么向 Realm 提交要么按显式原因 fail-closed 的类型化管线。
+只有规则、没有推进的世界，只是个数据库。任何代码都能在任何时刻写规范化真相的世界，是混乱。WEE 落在两者之间：一条强类型流水线，把参与者输入与排定事件转成提议变更，做校验，按 commit request 暂存，最后要么提交到 Realm，要么以显式原因 fail-closed。
 
-WEE 跑在 Runtime 里。Realm 仍然是真相权威；WEE 是产生格式良好的修改请求供 Realm 准入的引擎。WEE **不**绕过 Realm；它跟 Realm **组合**。
+WEE 跑在 Runtime 内。Realm 仍是真相权威；WEE 是给 Realm 准入的「合规变更请求」生产线。WEE 不绕开 Realm，它在 Realm 之上组合。
 
 ## 九个阶段
 
-WEE 有自己的执行阶段分类，跟 Workflow 不同：
+WEE 有自己的执行阶段分类，与工作流相互独立：
 
 | 阶段 | 顺序 | 用途 |
 | --- | --- | --- |
-| `INGRESS` | 1 | 接收事件提议 |
-| `NORMALIZE` | 2 | 规范化提议形状 |
-| `SCHEDULE` | 3 | 在引擎队列里排序 |
-| `DISPATCH` | 4 | 把工作交给对的 handler |
-| `TRANSITION` | 5 | 计算类型化的状态过渡 |
-| `EFFECT` | 6 | 计算下游效果（在场、社交、经济） |
-| `COMMIT_REQUEST` | 7 | 把提议的修改暂存为类型化提交请求 |
-| `CHECKPOINT` | 8 | 快照引擎中间状态用于 replay |
-| `TERMINAL` | 9 | 工作走到终态 |
+| `INGRESS` | 1 | 收下事件提议 |
+| `NORMALIZE` | 2 | 把提议形态规范化 |
+| `SCHEDULE` | 3 | 在引擎队列里定序 |
+| `DISPATCH` | 4 | 派发到对应 handler |
+| `TRANSITION` | 5 | 计算强类型状态转移 |
+| `EFFECT` | 6 | 算出下游影响（在场、社交、经济） |
+| `COMMIT_REQUEST` | 7 | 把提议变更暂存为强类型 commit request |
+| `CHECKPOINT` | 8 | 给中间状态做快照，供重放使用 |
+| `TERMINAL` | 9 | 工作走到终态结果 |
 
-每个阶段有类型化输入输出。产生不合规输出的阶段 fail-closed；引擎**不**无声回退到通用阶段 handler。
+每一阶段都有强类型输入输出。哪一阶段输出畸形，引擎就 fail-closed，不会偷偷退到一个通用兜底 handler。
 
-## 只做记录回放
+## 仅按记录重放
 
-WEE V1 只从**记录的事件、checkpoint、commit-request 结果**回放。它**不**重新推断；它**不**在 replay 中重新做路由选择；它**不**重新调 Model。
+WEE V1 的重放只走**已记录的事件、checkpoint、commit-request 结果**。它不再做推断；不再在重放时挑路径；不再调一次模型。
 
-这是有意的选择。Replay 是为了理解发生过什么，**不**是为了重新执行。Replay 时重新推断意味着引擎在 replay 里能给出和生产环境不同的答案；那会破坏审计重建。
+这是有意为之。重放是用来理解发生了什么，不是用来再执行一遍。重放时若再做推断，引擎在重放与生产里就会给出不同答案，审计重建会塌掉。
 
-如果以后某个系统需要确定性的重新执行，必须作为另一种执行模式在自己合同下被准入。
+如果以后某个系统需要确定性的再执行，那必须以独立执行模式、独立契约的形式准入，不与重放混淆。
 
-## WEE 跟 Workflow 怎么不一样
+## WEE 与工作流的差别
 
-WEE 和 Runtime 的 Workflow 面都执行多步工作。它们按设计**分开**。
+WEE 与 Runtime 的工作流面都执行多步工作。它们按设计相互独立。
 
-| 性质 | Workflow | WEE |
+| 属性 | 工作流 | WEE |
 | --- | --- | --- |
-| 拥有者 | Runtime | Runtime |
-| 用途 | 通用 AI 执行图（文本 / 图像 / 等） | 世界演化：把事件变成 Realm 提交 |
-| 阶段分类 | 15 个类型化节点（`AI_*`、`TRANSFORM_*`、`CONTROL_*`） | 9 阶段（`INGRESS → ... → TERMINAL`） |
-| 状态机 | `ACCEPTED → QUEUED → RUNNING → COMPLETED|FAILED|CANCELED|SKIPPED` | 阶段推进，带类型化终态 |
-| Replay | 记录回放，不重新推断 | 记录回放，不重新推断 |
-| 输出目标 | 流 / 产物 / 类型化结果 | Realm 提交请求 |
+| 归属 | Runtime | Runtime |
+| 用途 | 通用 AI 执行图（文/图等） | 世界演化：把事件转成 Realm commit |
+| 阶段分类 | 15 个强类型节点（`AI_*`、`TRANSFORM_*`、`CONTROL_*`） | 9 阶段（`INGRESS → ... → TERMINAL`） |
+| 状态机 | `ACCEPTED → QUEUED → RUNNING → COMPLETED|FAILED|CANCELED|SKIPPED` | 阶段推进 + 强类型终态结果 |
+| 重放 | 按记录重放，不再做推断 | 按记录重放，不再做推断 |
+| 输出目标 | 流 / 制品 / 强类型结果 | Realm commit request |
 
-工作流是「用这些参数生成这张图」的合适工具。WEE 是「在类型化合同下让世界推进一个事件」的合适工具。
+「按这些参数生成这张图」是工作流的事。「在强类型契约下让世界推进一个事件」是 WEE 的事。
 
-有一条显式硬切：**禁止**靠复用工作流的某些部分来当 WEE 工作的捷径。靠工作流节点的副作用拼凑世界演化是一种 shadow truth 模式；WEE 有自己的合同正是为了避免这种情况。
+存在一条显式硬切：禁止用工作流局部复用作为 WEE 的捷径。把世界演化用工作流节点的副作用拼出来，是一种影子真相模式；WEE 有自己的契约，正是为了不让这件事发生。
 
-## 阅读场景：一次世界事件变成 Realm 提交
+## 场景：一次世界事件变成 Realm commit
 
-参与者在跑在 WEE 里的世界中执行一个动作 — 比如一次脚本化的场景过渡。
+一段在 WEE 内运行的世界里，某参与者发起一次动作 —— 比如脚本化的场景切换。
 
-1. **`INGRESS`** 接收事件提议：「场景 S 推进到阶段 P」。
-2. **`NORMALIZE`** 规范化提议：场景 id 被解析，阶段被照场景规则校验。
-3. **`SCHEDULE`** 在引擎队列里给提议排序。如果同一场景有其他提议待处理，排序是类型化的。
-4. **`DISPATCH`** 把提议路由到场景推进 handler。
-5. **`TRANSITION`** 计算类型化状态过渡：场景从阶段 P-1 走到阶段 P。过渡受已认可的状态过渡规则约束；未定义的过渡 fail-closed。
-6. **`EFFECT`** 计算下游效果 — 在场更新、可能的社交状态变化、场景规则带来的经济事件。
-7. **`COMMIT_REQUEST`** 把提议的修改暂存为类型化提交请求。请求带 Realm 要求的提交信封：`worldId`、`appId`、`sessionId`、`effectClass`、`scope`、`schemaId`、`schemaVersion`、`actorRefs`、`reason`、`evidenceRefs`。
-8. **`CHECKPOINT`** 快照引擎中间状态。如果将来 replay 要重建到这一点的过程，这个 checkpoint 就是锚点。
-9. **`TERMINAL`** 记录结果。如果 Realm 准入提交，终态是 `committed`；如果 Realm 拒绝（校验失败、授权失败），终态是 `failed` 带类型化原因。
+1. **`INGRESS`** 收到事件提议：「场景 S 推进到 phase P」。
+2. **`NORMALIZE`** 把提议规范化：场景 id 解析，phase 按场景规则校验。
+3. **`SCHEDULE`** 在队列中给提议定序。同一场景有别的提议待处理时，定序也是强类型的。
+4. **`DISPATCH`** 把提议路由到「场景推进」handler。
+5. **`TRANSITION`** 计算强类型状态转移：场景从 phase P-1 走到 phase P。转移受准入的状态转移规则约束；未定义的转移 fail-closed。
+6. **`EFFECT`** 计算下游影响 —— 在场更新、可能的社交状态变化、场景规则蕴含的经济事件。
+7. **`COMMIT_REQUEST`** 把提议变更暂存为强类型 commit request，附带 Realm 要求的 commit envelope：`worldId`、`appId`、`sessionId`、`effectClass`、`scope`、`schemaId`、`schemaVersion`、`actorRefs`、`reason`、`evidenceRefs`。
+8. **`CHECKPOINT`** 给中间状态做快照。后续重放想还原到这一点，这个 checkpoint 就是锚。
+9. **`TERMINAL`** 记录结果。Realm 准入则终态为 `committed`；Realm 拒绝（校验失败、授权失败）则终态为带强类型原因的 `failed`。
 
-整个序列被记录。将来的 replay 可以一步步走过它，**不**做任何新的 Model 调用。
+整段过程都被记录。后续重放可以一步一步走，无需再调任何模型。
 
-## 阅读场景：Replay **不能**追加历史
+## 场景：重放不能追加历史
 
-设想审计想理解昨天某个世界事件出错时发生了什么。
+某审计员想搞清昨天某次世界事件出错时发生了什么。
 
-- **Replay 能读**。记录的事件、checkpoint、commit-request 结果足够重建引擎做了什么。
-- **Replay 不能追加**。一次 replay run **不是** `CANON_MUTATION` run；世界历史是仅追加，只有 canon-mutating run 才能追加。
-- **Replay 不能重新推断**。Replay **不**重调 Model 也**不**重做路由；它复用记录的结果。
+- **重放可读**。已记录的事件、checkpoint、commit-request 结果，足以还原引擎当时做了什么。
+- **重放不能追加**。重放运行不是 `CANON_MUTATION` 运行；世界历史只追加，仅 canon-mutating 运行可追加。
+- **重放不再推断**。重放不再调模型，不再做路由选择；它只复用已记录的结果。
 
-这就是 replay 成为真审计工具的原因。如果 replay 能追加或重新推断，它就不是在读过去 — 它在覆盖过去。
+这正是重放成为真审计工具的根据。如果重放能追加或再推断，它读的就不是过去，而是在改写过去。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/runtime/kernel/world-evolution-engine-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/world-evolution-engine-contract.md)
 - [`.nimi/spec/runtime/kernel/workflow-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/workflow-contract.md)

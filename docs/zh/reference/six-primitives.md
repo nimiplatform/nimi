@@ -1,77 +1,77 @@
-# 六个基础协议
+# 六大基础协议
 
-六个固定协议基础协议的参考表。权威合同：`.nimi/spec/platform/protocol.md` 与规则家族 `P-PROTO-*`。
+平台六大固定基础协议参考。权威契约：`.nimi/spec/platform/protocol.md`，规则族 `P-PROTO-*`。
 
-## 六个
+## 六项基础协议
 
-| 基础协议 | 规则 | 装载 |
+| 基础协议 | 规则 | 承载 |
 | --- | --- | --- |
-| Timeflow | `P-PROTO-100` | 进展、计时、时间含义 |
+| Timeflow | `P-PROTO-100` | 推进、时序、时间含义 |
 | Social | `P-PROTO-101` | 关系、社交图语义 |
 | Economy | `P-PROTO-102` | 价值、交换、经济状态 |
-| Transit | `P-PROTO-103` | 在世界或上下文之间移动 |
+| Transit | `P-PROTO-103` | 跨世界或跨语境的移动 |
 | Context | `P-PROTO-104` | 共享情境含义 |
-| Presence | `P-PROTO-105` | 谁或什么在场、在什么条件下 |
+| Presence | `P-PROTO-105` | 在场的是谁、以何种条件 |
 
-每个基础协议是一个合同面。世界可以定义自己内部规则；跨世界含义必须 fit 这六个合同之一。
+每一项都是一个契约面。世界可以定义自己的内部规则；跨世界的语义必须落进这六个契约之一。
 
 ## 权威
 
 | 层 | 角色 |
 | --- | --- |
-| 平台协议 | 定义基础协议形状与版本策略 |
-| Realm | 拥有六个基础协议的真相来源与语义执行 |
-| App | 消费与观察；**不**执行 |
+| 平台协议 | 定义基础协议形态与版本策略 |
+| Realm | 持有六大基础协议的真相源与语义执行 |
+| App | 消费与观察；不执行 |
 
-`P-PROTO-003` 规则把基础协议语义执行与真相来源钉到 Realm。
+`P-PROTO-003` 把基础协议的语义执行与真相源固定在 Realm。
 
-## 跨一致
+## 跨基础协议一致性
 
-涉及多基础协议的世界转换必须同时满足所有相关基础协议合同：
+涉及多项基础协议的世界状态变化必须同时满足所有相关契约：
 
-| 约束 | 为什么 |
+| 约束 | 原因 |
 | --- | --- |
-| 通行必须同时满足 Social + Economy + Context | 通行把参与者跨世界移动；社交身份、经济身份、情境含义都要对齐 |
-| 在场**不能**绕过社交准入 | 在世界里「在场」要先有社交准入 |
-| Timeflow **不能**破坏经济结算窗口 | 时间进展必须尊重经济结算边界 |
+| 一次 transit 必须同时满足 Social + Economy + Context | transit 让参与者跨世界移动；社交位次、经济位次、语境含义必须三者对齐 |
+| Presence 不能绕过社交准入 | 在一个世界 "在场" 必须先通过社交准入 |
+| Timeflow 不能打破经济结算窗口 | 时间推进必须尊重经济结算边界 |
 
-六基础协议**不**是独立 enum。它们互相约束。
+六项基础协议不是相互独立的枚举，而是相互约束。
 
-## 版本姿态
+## 版本策略
 
-| 性质 | 值 |
+| 属性 | 值 |
 | --- | --- |
 | 策略 | `strict-only` |
-| 跨 minor 握手 | 禁 |
-| 向后兼容 shim | 禁 |
-| 失败模式 | 合同违反 fail-close |
+| 跨小版本握手 | 禁止 |
+| 向后兼容 shim | 禁止 |
+| 失败模式 | 契约违例 fail-close |
 
-客户端必须匹配。**没有**装作兼容、同时违反合同的优雅降级。
+客户端必须严格匹配。不存在违反契约却假装兼容的优雅降级。
 
 ## 授权预设
 
-App 在 scoped 授权下跟基础协议交互。平台准入三个预设模板，全共享同一个 token 形状与校验链：
+App 在受限作用域下与基础协议交互。平台准入三套预设模板，token 形态与校验链一致：
 
-| Preset | 读 | 写 | 委派 |
+| 预设 | 读 | 写 | 委派 |
 | --- | --- | --- | --- |
 | `readOnly` | 是 | 否 | 否 |
 | `full` | 是 | 是 | 否 |
-| `delegate` | 是 | 是 | 一级 |
+| `delegate` | 是 | 是 | 一层 |
 
-`delegate` 默认允许至多一级进一步委派。
+`delegate` 默认允许向下再委派一层。
 
 ## App 模式
 
-| 模式 | 基础协议读 | 基础协议写 | 每个世界活跃数 |
+| 模式 | 基础协议读 | 基础协议写 | 单世界活跃数 |
 | --- | --- | --- | --- |
 | `render-app` | 是 | 否 | 多个 |
-| `extension-app` | 是 | 是 | 每个世界至多一个活跃 |
+| `extension-app` | 是 | 是 | 单世界至多一个活跃 |
 
 ## 审计事件
 
-跨基础协议动作发审计事件，记在平台审计字典（`.nimi/spec/platform/kernel/tables/audit-events.yaml`）下。
+跨基础协议的动作会产出审计事件，记录在平台审计字典：`.nimi/spec/platform/kernel/tables/audit-events.yaml`。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/platform/protocol.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/protocol.md)
 - [`.nimi/spec/platform/kernel/protocol-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/protocol-contract.md)

@@ -1,116 +1,116 @@
 # 记忆服务
 
-Cognition 记忆服务是独立 Agent 推理的类型化记忆权威。它跟 Runtime 记忆 bank 范围（服务 runtime 规范化记忆）不同；Cognition 记忆讲的是 Agent 怎么**用**自己的记忆**思考** — episodic、semantic、observational 记录，带显式生命周期。
+Cognition 记忆服务是独立 Agent 推理用的强类型记忆权威。它和 Runtime 的记忆 bank 作用域不同——后者承载 Runtime 标准化的记忆——这里关心的是 Agent 怎么**用记忆思考**：情节、语义、观察类记录，每条都有明确生命周期。
 
-## Cognition 的六个工件家族
+## Cognition 的六类产物族
 
-Cognition 有六个顶层工件家族。记忆是其中之一。
+Cognition 顶层有六类产物，记忆是其中一类。
 
-| 家族 | 用途 |
+| 族 | 用途 |
 | --- | --- |
-| `agent_model_kernel` | Agent 关于自己的本地模型 |
-| `world_model_kernel` | Agent 关于自己世界的本地模型 |
-| `memory_substrate` | 类型化记忆记录 |
-| `knowledge_projections` | 带一等关系的类型化知识页 |
-| `skill_artifacts` | 类型化建议 bundle（能力蓝图） |
-| `working_state` | 瞬时认知脚手架（不持久） |
+| `agent_model_kernel` | Agent 对自己的本地模型 |
+| `world_model_kernel` | Agent 对所处世界的本地模型 |
+| `memory_substrate` | 强类型记忆记录 |
+| `knowledge_projections` | 带一等关系的知识页 |
+| `skill_artifacts` | 强类型技能 advisory（能力蓝图） |
+| `working_state` | 暂态认知支架，不持久化 |
 
-记忆位于**建议**层 — kernel 是核心真相；记忆 / 知识 / 技能是建议；working state **永不**作为真相服务。
+记忆位于 **advisory** 层。kernel 是核心真相；记忆、知识、技能是 advisory；working state 永远不会被当作真相对外提供。
 
 ## 记忆操作
 
 | 操作 | 行为 |
 | --- | --- |
-| `Save` | 存一条类型化记忆记录 |
+| `Save` | 保存一条强类型记忆记录 |
 | `Load` | 按 id 加载 |
-| `List` | 在类型化过滤下列 |
-| `Search` | 在准入查询下搜 |
-| `Delete` | 显式删（非静默衰减） |
-| 历史 / lineage | 读记忆记录变更历史 |
-| 派生视图 | 读服务派生的元数据视图 |
+| `List` | 在强类型筛选下列出 |
+| `Search` | 在准入查询下搜索 |
+| `Delete` | 显式删除（不是悄无声息地衰减） |
+| 历史 / 血缘 | 读取记忆变更历史 |
+| 派生视图 | 读取服务侧元数据派生视图 |
 
-服务派生元数据（support、lineage、invalidation、cleanup）是**服务拥有**，不是调用方持久化的。App **不**自己构造元数据；它们读服务派生视图。
+服务侧元数据（支撑、血缘、失效、清理）由**服务持有**，而不是调用方持久化。App 不自己拼元数据，只读派生视图。
 
-## Cognition Scope
+## Cognition 作用域
 
-每个 cognition 工件**恰好属于一个 scope**。一个 scope 装恰好一个 `agent_model_kernel` + 一个 `world_model_kernel`。删 scope 移除 scope 拥有的工件。
+每件 Cognition 产物都恰好归属**一个作用域**。一个作用域内恰有一份 `agent_model_kernel` 加一份 `world_model_kernel`。删除作用域会移除作用域内的产物。
 
-| 性质 | 值 |
+| 属性 | 值 |
 | --- | --- |
-| Scope 基数 | 每个 scope 一个 Agent kernel + 一个世界 kernel |
-| 跨 scope 引用 | 禁止 |
-| Scope 删除 | 移除 scope 拥有的工件 |
+| 作用域基数 | 每个作用域一份 agent kernel + 一份 world kernel |
+| 跨作用域引用 | 禁止 |
+| 删除作用域 | 移除作用域拥有的产物 |
 
-记忆记录**不能**引用别的 scope 里的工件；那会造成跨 scope 泄漏。
+一条记忆不能引用另一作用域的产物，否则会造成跨作用域泄漏。
 
-## 记忆工件生命周期
+## 记忆产物生命周期
 
-| 状态 | 通过什么到达 |
+| 状态 | 触达方式 |
 | --- | --- |
-| Created | 显式 Save |
-| Listed / Recalled | List / Search / Load |
-| 派生视图读 | 服务派生视图方法 |
-| Archived | Digest 清理 pass（可逆） |
-| Removed | 归档后的后续 digest pass，或显式破坏性删 |
+| 已创建 | 显式 Save |
+| 列出 / 召回 | List / Search / Load |
+| 派生视图读出 | 服务侧派生视图方法 |
+| 已归档 | 摘要清理通过（可恢复） |
+| 已移除 | 归档之后的下一轮摘要，或显式硬删 |
 
-归档与移除是**独立 pass**。同 pass 归档加移除被禁 — 平台拒绝。这就是让归档可逆的原因。
+归档与移除是**两轮**，禁止一轮里同时归档加移除——平台拒绝这种组合。这是归档可恢复的根本原因。
 
-## 阅读场景：Agent 存并回忆记忆
+## 场景：Agent 保存并召回一条记忆
 
-某 Agent 学到用户的生日。
+Agent 知道了用户的生日。
 
-1. **Save。** Agent 调 `MemoryService.Save` 提交一条描述这次学习的类型化记忆记录。服务准入。
-2. **服务派生元数据。** 服务计算 support、lineage 等。调用方**不**需要构造这些。
-3. **后来回忆。** Agent 搜索；记录在类型化查询下被返回。
-4. **下一轮使用。** Brain 层消费回忆出的记忆；行为反映「我记得你的生日」。
+1. **保存**：Agent 调用 `MemoryService.Save`，附带一条强类型记忆记录描述这次学习；服务准入。
+2. **服务侧元数据**：服务计算支撑、血缘等，调用方不需要自己构造。
+3. **稍后召回**：Agent 搜索，记录在强类型查询下被返回。
+4. **下一回合使用**：思考层消费召回的记忆，行为体现"我记得你的生日"。
 
-记忆是持久的；回忆路径是类型化的。
+记忆可持久化，召回路径是强类型的。
 
-## 阅读场景：Digest pass 归档过时记忆
+## 场景：摘要轮次归档过期记忆
 
-Digest 例程定期建议哪些记忆该清理。
+摘要例程定期提议哪些记忆该被清理。
 
-1. **Digest 扫描。** 第一个准入例程；作用于记忆 / 知识 / 技能（**永不**作用于 kernel）。
-2. **Refgraph 推理。** 每个候选对照 refgraph 检查 — 入向 support、断引用、依赖健康。
-3. **归档建议。** 过时候选被建议归档。
-4. **归档（可逆）。** 通过的候选被归档。
-5. **后续 pass。** 后续 digest pass 可能移除已归档项。
-6. **审计 lineage。** 每步可追溯到具体 refgraph 推理。
+1. **摘要扫描**：第一轮准入例程，作用于记忆 / 知识 / 技能（永远不动 kernel）。
+2. **引用图推理**：每个候选都对照引用图核对——支撑入边、引用断裂、依赖健康度。
+3. **归档提案**：陈旧候选被提议归档。
+4. **归档（可恢复）**：通过的候选被归档。
+5. **后续轮次**：再下一轮摘要可能移除已归档的项。
+6. **审计血缘**：每一步可追溯到具体的引用图推理。
 
-清理是**可解释**的 — 不是启发式。问「这条为什么被归档」的用户（或审计员）拿到指向具体断引用的类型化答案。
+清理是**可解释的**，不是启发式。用户或审计者问"为什么归档这条"，可以拿到指向具体断裂引用的强类型解释。
 
-## 阅读场景：显式删除
+## 场景：显式删除
 
-某用户想让一条具体记忆被永久删掉。
+用户希望某条记忆被永久删除。
 
-1. **显式删请求。** 用户对记录 id 调 `MemoryService.Delete`。
-2. **级联检查。** 服务检查依赖；显式删是破坏性的。
-3. **移除。** 在准入合同下删记录。
-4. **审计。** 删除事件被记下。
+1. **显式删除请求**：用户对记录 id 调用 `MemoryService.Delete`。
+2. **级联检查**：服务核对依赖关系；显式删除是破坏性的。
+3. **移除**：在准入契约下删除记录。
+4. **审计**：删除事件入账。
 
-显式删**跟 digest 清理独立**。Digest 是主动清理；显式删是用户驱动的破坏性。
+显式删除与摘要清理**完全分开**。摘要是主动清理，显式删除是用户驱动的硬删。
 
 ## 清理资格
 
-| 家族 | 清理资格 |
+| 族 | 清理资格 |
 | --- | --- |
-| Kernel（Agent / 世界） | 永不 |
-| Working state | 只通过显式 clear |
-| 记忆 / 知识 / 技能 | 通过 digest |
+| Kernel（agent / world） | 永远不可清理 |
+| Working state | 仅可显式清空 |
+| 记忆 / 知识 / 技能 | 通过摘要清理 |
 
-Kernel 不可侵犯。它们是核心真相；建议清理**永不**碰它们。
+Kernel 不可侵犯——它是核心真相，advisory 清理永远不会触及。
 
-## 边界总结
+## 边界归属
 
-| 关注 | 拥有者 |
+| 关注点 | 归属 |
 | --- | --- |
 | 记忆记录 | Cognition 记忆服务 |
-| 服务派生元数据 | 服务（不是调用方） |
-| Refgraph 推理 | Cognition refgraph |
-| 清理决定 | Digest 例程 + 准入策略 |
-| 跨 scope 引用 | 禁止 |
+| 服务侧元数据 | 服务（不是调用方） |
+| 引用图推理 | Cognition 的引用图 |
+| 清理决策 | 摘要例程 + 准入策略 |
+| 跨作用域引用 | 禁止 |
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/cognition/kernel/memory-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/memory-service-contract.md)
 - [`.nimi/spec/cognition/kernel/cognition-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/cognition-contract.md)

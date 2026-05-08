@@ -1,98 +1,98 @@
-# Completion
+# Completion 完成关卡
 
-Cognition Completion 合同治理 cognition 输出怎么变成可用工件的闸口。它声明 completion gate — 输出在被准入为真实工件之前必须通过的类型化检查。
+Cognition Completion 契约规定了认知输出在变成有用产物之前要过哪几道关卡。每一道关卡都是强类型的检查：通过了，输出才会被准入为正式产物。
 
-## Completion gate 是什么
+## 完成关卡是什么
 
-Completion gate 在 `tables/completion-gates.yaml` 准入。每个 gate 声明：
+完成关卡的清单准入在 `tables/completion-gates.yaml`，每一道关卡声明这几件事：
 
 | 字段 | 用途 |
 | --- | --- |
-| Gate id | 稳定身份 |
-| 触发 | Gate 什么时候触发 |
-| 校验器 | 校验什么 |
+| Gate id | 稳定标识 |
+| Trigger | 关卡何时被触发 |
+| Validator | 关卡校验什么 |
 | Outcome | 通过 / 失败 / 隔离 |
-| Reason code | Outcome 的类型化原因 |
+| Reason codes | 强类型的结果原因 |
 
-未过 gate 的 completion **不**静默产出工件。要么输出在类型化 gate 下被准入，要么被隔离 / 拒。
+未通过关卡的输出不会悄无声息地变成产物。它要么按强类型关卡被准入，要么进隔离区，要么直接拒收。
 
-## 为什么在 completion 设 gate
+## 为什么要在完成阶段设关卡
 
-没 gate，模型输出直接流进类型化工件。有 gate，输出过准入校验：
+没有关卡时，模型输出会直接流入强类型产物。设了关卡，输出必须先经过准入的校验：
 
-- Schema 有效性
-- 出处检查
-- 敏感度分类
-- 交叉引用校验
-- 清理资格检查
+- schema 是否合法
+- 来源是否可信
+- 敏感度归在哪一档
+- 跨引用是否对得上
+- 是否符合清理资格
 
-Gate 就是阻止「模型说了什么」**不经显式准入**就变成「这是类型化规范化工件」的东西。
+关卡的作用就是阻止"模型说了一句话"自动变成"一份强类型规范产物"。准入必须显式发生。
 
-## 阅读场景：记忆 Save 通过 completion gate
+## 场景：一次记忆保存通过完成关卡
 
-某 Agent 存类型化记忆记录。
+某个 Agent 保存一条强类型记忆。
 
-1. **Save 提交。** 记忆服务收到。
-2. **Completion gate 评估。** Schema 校验；交叉引用检查（无跨 scope 泄漏）；准入。
-3. **所有 gate 过。** 记忆记录以类型化形状准入。
-4. **服务派生元数据计算。** Support、lineage。
-5. **审计 lineage。** Save 事件被记下。
+1. **保存提交**。Memory 服务接收。
+2. **关卡评估**。schema 通过；跨引用通过（没有跨作用域泄漏）；准入。
+3. **全部通过**。记忆以强类型形态被准入。
+4. **服务侧元数据生成**。支撑信息和血缘信息计算完成。
+5. **审计链路**。保存事件入账。
 
-Agent 的 save 在显式 gate 下被准入。**没**「静默准入」。
+这条保存是在显式关卡下被准入的，没有"默默接受"的环节。
 
-## 阅读场景：知识 Save 缺目标引用
+## 场景：知识页保存时引用目标缺失
 
-某 Agent 存一个知识页，引用一个不存在的别的页（交叉引用未命中）。
+某个 Agent 保存一份知识页，里面引用了一份不存在的另一份页。
 
-1. **Save 提交。** 知识服务收到。
-2. **Completion gate 触发。** 交叉引用校验。
-3. **缺目标。** 引用目标在 scope 里不存在。
-4. **拒。** Fail-close；返类型化错误。
-5. **Agent 看到原因。** 「缺引用目标 X」。
+1. **保存提交**。Knowledge 服务接收。
+2. **关卡触发**。跨引用校验启动。
+3. **目标缺失**。被引用的页在当前作用域内不存在。
+4. **拒收**。fail-closed，返回强类型错误。
+5. **Agent 看到原因**："引用目标 X 不存在。"
 
-引用**不**被静默丢。平台拒绝准入指向无的知识页。
+这里**没有**"默默丢弃引用"这种行为。平台拒绝准入一份指向虚空的知识页。
 
-## 阅读场景：技能 bundle 步骤校验
+## 场景：技能包步骤校验
 
-某技能 bundle 有有序步骤。一步内容为空。
+一个技能包有若干顺序步骤，其中一步内容为空。
 
-1. **技能 bundle save。** 技能服务收到。
-2. **Completion gate。** 校验步骤排序；按步检查非空校验。
-3. **找到空步。** 校验失败。
-4. **拒。** Bundle 不被准入；类型化错误说明哪一步无效。
+1. **技能包保存**。Skill 服务接收。
+2. **关卡校验**。检查步骤顺序，对每一步做非空校验。
+3. **发现空步骤**。校验失败。
+4. **拒收**。技能包不被准入；强类型错误指出哪一步无效。
 
-Bundle **不**在半成品状态下被准入。
+技能包不会以"半成品"的状态被准入。
 
-## 独立 Completion 标准
+## 独立的完成标准
 
-Cognition 持严格标准：cognition 只在**生产级**时被准入，**不是**作为 MVP / 骨架。
+Cognition 持有一条严格标准：认知必须按**生产级**而不是 MVP / 骨架来准入。
 
-| 禁止 | 原因 |
+| 禁止行为 | 原因 |
 | --- | --- |
-| 伪实现 | **不能**装作实现了 |
-| 假成功 | 没真做事时**不能**返成功 |
-| 占位清理 | **不能**没真清理就标记记录已清 |
+| 伪实现 | 不允许假装实现 |
+| 假成功 | 没干活就不能返回成功 |
+| 占位清理 | 没真清掉就不能标记为已清理 |
 
-这就是把 Cognition 跟「大致能跑的进行中服务」区分开的标准。要么 Cognition 为某工件家族被准入为生产级，要么那个家族保持 deferred。
+这是 Cognition 与"差不多能跑的服务"的分界线。要么某个产物族被以生产级准入，要么这一族就维持 deferred 状态。
 
-## Completion **不**做什么
+## Completion 不做的事
 
-| 关注 | 为什么不 |
+| 关注点 | 不做的原因 |
 | --- | --- |
-| 修改真相（kernel） | Kernel 是核心；建议**不能**降权 |
-| 旁路校验 | 设计上 fail-close |
-| 静默部分 save | **没**半准入工件 |
+| 改写真相（kernel） | kernel 是核心；advisory 不能压制核心 |
+| 绕过校验 | 设计上 fail-closed |
+| 默默部分保存 | 不存在"半准入"的产物 |
 
-## 边界总结
+## 边界归属
 
-| 关注 | 拥有者 |
+| 关注点 | 归属 |
 | --- | --- |
-| Gate 定义 | `tables/completion-gates.yaml` |
-| 校验 | 服务侧 |
-| Outcome | 准入 / 隔离 / 拒（类型化） |
-| 生产级标准 | Cognition 准入策略 |
+| 关卡定义 | `tables/completion-gates.yaml` |
+| 校验执行 | 服务侧 |
+| 结果 | 准入 / 隔离 / 拒收（强类型） |
+| 生产级标准 | Cognition 的准入策略 |
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/cognition/kernel/completion-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/completion-contract.md)
 - [`.nimi/spec/cognition/kernel/cognition-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/cognition-contract.md)

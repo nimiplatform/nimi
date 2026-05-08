@@ -1,21 +1,21 @@
-# 教程
+# Tutorials
 
-为 Nimi Coding 准备的、面向学习的逐步课程。每个教程假设前置条件、带读者走过特定结果、以已知状态收尾。
+Tutorials 是面向学习的分步教程。每篇都假设了前置条件，带着读者走完一个完整目标，最后落在一个明确的状态。
 
-需要问题导向的菜谱（你知道想要什么、要一份「怎么办」），见 [How-to](/zh/nimicoding/how-to/)。
+如果你已经知道自己要做什么，需要的是一份具体的处置流程，参考 [How-to](/zh/nimicoding/how-to/)。
 
-## 可用教程
+## 已有教程
 
-| 教程 | 结果 |
+| Tutorial | 完成后你会得到 |
 | --- | --- |
-| [从项目到受治理执行](/zh/nimicoding/tutorials/project-to-governed-execution) | 从安装走到 `.nimi/spec/**`、topic 准入、sweep audit、sweep design，再到 Codex 长跑执行 |
-| [第一个 Topic Bootstrap](/zh/nimicoding/tutorials/first-topic) | 你把 Nimi Coding bootstrap 进项目、采纳 `.nimi/**` |
-| [第一个 Wave 端到端](/zh/nimicoding/tutorials/first-wave-end-to-end) | 你跑一个完整 topic / wave / packet / preflight / 审计 / closeout 周期，对一个小样本任务 |
+| [从项目到受治理执行](/zh/nimicoding/tutorials/project-to-governed-execution) | 从安装到 `.nimi/spec/**`、topic 准入、sweep audit、sweep design、长时间 Codex 执行的全过程 |
+| [首个 Topic 引导](/zh/nimicoding/tutorials/first-topic) | 在项目里完成 Nimi Coding 引导，接入 `.nimi/**` |
+| [首个 Wave 端到端](/zh/nimicoding/tutorials/first-wave-end-to-end) | 在一个小样例任务上跑完一个完整的 topic / wave / packet / preflight / audit / closeout 周期 |
 
-## 教程 vs How-to
+## Tutorial 与 How-to 的区别
 
-教程回答「我想学」。How-to 回答「我想解决某个具体问题」。如果你已经知道要做什么，[how-to 菜谱](/zh/nimicoding/how-to/)更短、更直接。
+Tutorial 回答"我想学一遍"，How-to 回答"我要解决某个具体问题"。如果你目标已经很清楚，[How-to 条目](/zh/nimicoding/how-to/)更短也更直接。
 
-## 来源
+## Source Basis
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)

@@ -1,19 +1,20 @@
-# 教程：在 Codex 里跑受治理的项目工作
+# 教程：跑一个受治理的 Codex 项目
 
-你已经在 Codex 里打开了一个仓库。你想让 Codex 做的不是一两个小改动，而是更重的工作：整理项目知识、讨论需求、规划 wave、长时间审计、执行修复、最后给出可审的闭合证据。
+你在 Codex 里有一个现成的代码仓库，希望让 Codex 承担一些有分量的活：重建项目知识、讨论一项需求、规划 wave、跑长时间审计、按 finding 修复或实施，并在不丢失范围控制的前提下把工作收尾。
 
-使用 Nimi Coding 时，你仍然用自然语言跟 Codex 沟通。不同的是，Codex 会把工作状态写进仓库：`.nimi/spec/**` 记录权威，`.nimi/topics/**` 记录 topic 状态，`.nimi/local/audit/**` 记录审计证据。
+加上 Nimi Coding 之后，你和 Codex 的对话还是自然语言。差别在于：Codex 会把工作过程持续地落进仓库——`.nimi/spec/**` 是权威，`.nimi/topics/**` 是 topic 状态，`.nimi/local/audit/**` 是审计证据。
 
-## 开始项目
+## 启动项目
 
-对 Codex 说：
+告诉 Codex：
 
 ```text
-请在这个仓库里设置 Nimi Coding，以 Codex 作为宿主。需要安装包就安装，
-bootstrap `.nimi/**`，跑健康检查，只汇报有意义的改动。先不要开始 topic。
+Set up Nimi Coding in this repository for Codex. Install the package if
+needed, bootstrap the `.nimi/**` layer, run the health check, and report
+only the meaningful changes. Do not start a topic yet.
 ```
 
-Codex 会执行 setup：
+Codex 会跑安装命令，包括：
 
 ```bash
 npm install --save-dev @nimiplatform/nimi-coding
@@ -21,28 +22,29 @@ npx nimicoding start --host codex
 npx nimicoding doctor --json
 ```
 
-你应该看到一份状态报告：
+Codex 应当回一份简短的状态报告：
 
-| Codex 汇报 | 含义 |
+| Codex 报告内容 | 含义 |
 | --- | --- |
-| 包已安装 | 项目里能使用 `nimicoding` CLI |
-| `.nimi/**` 已初始化 | 项目有了合同、方法论、配置与本地状态根 |
-| AI 入口块已更新 | 后续 Codex session 能看到项目规则 |
-| `doctor` 通过或命名 drift | Bootstrap 健康，或带明确原因阻塞 |
+| 包已安装 | 项目里能用 `nimicoding` CLI |
+| `.nimi/**` 已写入 | 项目有了契约、方法学、配置与本地状态根 |
+| 受管 AI 入口已更新 | 后续 Codex 会话能看到项目规则 |
+| `doctor` 通过或指出漂移 | 引导要么健康，要么因明确原因被阻断 |
 
-这一步还不改产品代码。它只建立后续工作要遵守的治理面。
+到这一步，Codex 还没有动产品代码。它只创建了后续工作要用到的治理面。
 
-## 重建 Spec
+## 重建规范
 
-接着让 Codex 把项目现状整理成规范化 spec：
+接下来让 Codex 把现有项目重建为权威规范树：
 
 ```text
-请用 Nimi Coding 把这个仓库重建成 `.nimi/spec/**`。读取 handoff，
-检查代码和文档，写出带 source basis 和 unresolved-gap tracking 的规范化 spec，
-然后跑校验。合同满足不了就停。
+Use Nimi Coding to reconstruct this repository into `.nimi/spec/**`.
+Read the handoff payload, inspect the code and docs, write canonical
+spec files with source basis and unresolved-gap tracking, then validate
+the result. Stop if the contract cannot be satisfied.
 ```
 
-Codex 会走 reconstruction 和 validation：
+Codex 走 Nimi Coding 的重建交接与校验路径：
 
 ```bash
 npx nimicoding handoff --skill spec_reconstruction --json
@@ -53,43 +55,44 @@ npx nimicoding validate-spec-audit .nimi/spec/_meta/spec-generation-audit.yaml
 npx nimicoding doctor --json
 ```
 
-你要看的不是“生成完了”这句话，而是这些证据：
+有用的结果不只是"规范已生成"。Codex 应当报告：
 
-| 证据 | 检查什么 |
+| 证据 | 检查点 |
 | --- | --- |
-| `.nimi/spec/**` | 项目有了权威树 |
-| `.nimi/spec/_meta/spec-generation-audit.yaml` | 生成文件有 source basis 或记录 gap |
-| closeout result | 重建结果按类型化合同准入 |
-| validation output | 结构和可审计性通过 |
+| `.nimi/spec/**` | 项目现在有了权威树 |
+| `.nimi/spec/_meta/spec-generation-audit.yaml` | 生成的文件有 source basis 引用，或记录了缺口 |
+| closeout 结果 | 重建动作是在强类型契约下被准入的 |
+| 校验输出 | 结构性与可审计性检查通过 |
 
-Codex 如果找不到项目证据支撑某条规范，就应该记录 gap，而不是编出一条看似完整的规则。
+如果 Codex 无法用项目证据支撑某条规范主张，它应当记录一个未解决缺口。这比凭空写一条干净规则要好。
 
-## 讨论真实工作
+## 讨论工作
 
-现在可以用普通语言描述需求：
+用自然语言描述真实任务：
 
 ```text
-我想对整个仓库做一次 fresh full audit，对照当前 spec 找架构、文档、
-runtime、SDK、apps、Nimi Coding 治理里的 blocking 问题。这个审计要能长时间运行，
-能恢复，不能静默闭合。
+I want a fresh full audit of the repository against the current spec.
+It should cover architecture, docs, runtime, SDK, apps, and Nimi Coding
+governance. It needs to run for a long time if necessary, remain
+resumable, and avoid silent closure.
 ```
 
-Codex 不应该马上开始扫文件。它应该先提出 topic 计划：
+Codex 应当先把这个请求转化成一份 topic 提案，再去做审计。一个合格的回应像这样：
 
 ```text
-我会创建一个 fresh full audit topic。建议 waves：
+I will create a topic for a fresh full audit. Proposed waves:
 1. sweep audit
 2. sweep design
-3. 根据已确认 findings 拆出的实现 waves
+3. implementation waves from confirmed findings
 4. closeout
 
-建议 owner domains：
+Proposed owner domains:
 .nimi/spec/**, docs/**, runtime/**, sdk/**, apps/**, nimi-coding/**
 
-请确认 scope，然后我再准入第一个 wave。
+Please confirm the scope before I admit the first wave.
 ```
 
-背后 Codex 可能会运行：
+回应背后，Codex 可能跑：
 
 ```bash
 npx nimicoding topic create fresh-full-audit \
@@ -98,18 +101,19 @@ npx nimicoding topic create fresh-full-audit \
   --json
 ```
 
-这个确认点很重要。它让大任务先变成有边界的 topic，而不是一段“Codex 帮我审完”的长聊天。
+这步确认很关键。它把一个宽泛请求挡住，避免变成一场漫无边界的"Codex 给我审一遍"。
 
-## 准入审计 Wave
+## 准入审计 wave
 
-确认范围后，对 Codex 说：
+复核完范围，再告诉 Codex：
 
 ```text
-准入 audit wave。先不要开始完整审计。请先产出 packet、preflight evidence、
-owner domains、negative tests 和开始审计前的 stop conditions。
+Admit the audit wave. Do not start the full audit yet. First produce
+the packet, preflight evidence, owner domains, negative tests, and stop
+conditions for the audit plan.
 ```
 
-Codex 会创建并准入 wave、冻结 packet、询问 topic runner 下一步：
+Codex 创建并准入 wave，冻结 packet，然后问 topic runner 接下来能干什么：
 
 ```bash
 npx nimicoding topic wave add <topic-id> wave-1-sweep-audit sweep-audit ...
@@ -119,27 +123,28 @@ npx nimicoding topic packet freeze <topic-id> --from packet-wave-1-sweep-audit.m
 npx nimicoding topic run-next-step <topic-id> --json
 ```
 
-Codex 应该列出它写下的工件和当前 decision：
+Codex 应展示它创建的文件以及当下的判定：
 
-| 工件 | 你为什么要 review |
+| 工件 | 你为什么要复核 |
 | --- | --- |
-| `topic.yaml` | 当前 active wave 和 topic 状态 |
-| `packet-wave-1-sweep-audit.md` | Codex 能读什么、写什么、不能声称什么 |
-| preflight result | 设计是否可以进入执行 |
-| `run-next-step` output | 可以继续，还是必须等人或等证据 |
+| `topic.yaml` | 显示当前 wave 与 topic 状态 |
+| `packet-wave-1-sweep-audit.md` | 定义 Codex 可读、可写、可主张的边界 |
+| preflight 结果 | 记录设计是否可安全执行 |
+| `run-next-step` 输出 | 指出工作是否可继续，或必须停下 |
 
-用户不用手写 packet YAML。但用户应该 review packet，因为那就是 Codex 接下来几个小时要遵守的合同。
+你不需要手写 packet YAML。你需要的是在 Codex 花数小时按它执行之前，复核这份契约。
 
-## 运行审计
+## 跑审计
 
-设计 wave 接受后，对 Codex 说：
+设计 wave 通过后，告诉 Codex：
 
 ```text
-执行已经准入的 audit sweep。用 chunk 跑。每个 chunk 都记录证据，
-finding 进 ledger 前先 review；如果某个 chunk 不能在 packet 边界内审计，就停。
+Run the admitted audit sweep. Use chunks, record evidence per chunk,
+review findings before freezing the ledger, and stop if any chunk
+cannot be audited inside the packet boundary.
 ```
 
-Codex 背后会用 `sweep audit`：
+Codex 在内部用 `sweep audit`：
 
 ```bash
 npx nimicoding sweep audit plan --root . --sweep-id fresh-full-audit --max-files 40 --json
@@ -149,14 +154,15 @@ npx nimicoding sweep audit chunk review --sweep-id fresh-full-audit --chunk-id c
 npx nimicoding sweep audit ledger build --sweep-id fresh-full-audit --json
 ```
 
-长跑时，不要只问“进展如何”。问状态：
+长时间运行中，要状态而不是叙述：
 
 ```text
-汇报当前 sweep audit status：planned chunks、reviewed chunks、open findings、
-next chunk、current stop condition 和 evidence root。
+Give me the current sweep audit status: planned chunks, reviewed
+chunks, open findings, next chunk, current stop condition, and evidence
+root.
 ```
 
-Codex 应该用状态回答：
+Codex 应当用状态语言回答：
 
 ```text
 Audit sweep status:
@@ -168,20 +174,22 @@ Audit sweep status:
 - evidence root: .nimi/local/audit/
 ```
 
-这个状态能跨越长会话。Codex 暂停、恢复，甚至几个小时后继续，都可以从 topic 和 audit 工件里找回下一步。
+这种状态能跨长会话留存。Codex 中途暂停或几小时后继续，都能凭 topic 与审计工件接着往下，不靠记忆。
 
-## 把 Findings 变成 Waves
+## 把 finding 转成 wave
 
-Ledger 已经存在之后，下一句不应该是「把所有问题都修了」。让 Codex 先把 findings 设计成可准入的工作：
+账本生成之后，下一步不是"请把所有问题都修了"。让 Codex 从 finding 出发做设计：
 
 ```text
-请对 `fresh-full-audit` 跑 sweep design。从 findings 构建设计审计 packet，
-生成 auditor prompt，ingest 类型化 auditor result，校验 revision ledger，
-finalize 设计状态，并产出 wave plan。如果某个结果报告权威分叉、证据不足、
-或需要产品判断，先停下来问我，不要准入实现工作。
+Use sweep design on `fresh-full-audit`. Build design-auditor packets
+from the findings, produce auditor prompts, ingest typed auditor
+results, validate the revision ledger, finalize the design state, and
+produce a wave plan. If any result reports an authority fork,
+insufficient evidence, or a needed product decision, stop and ask me the
+question before admitting implementation work.
 ```
 
-Codex 背后会用 `sweep design`：
+Codex 内部走 `sweep design`：
 
 ```bash
 npx nimicoding sweep design intake --sweep-id fresh-full-audit --run-id fresh-full-audit-design --json
@@ -192,17 +200,18 @@ npx nimicoding sweep design ledger-validate --run-id fresh-full-audit-design --j
 npx nimicoding sweep design finalize --run-id fresh-full-audit-design --json
 ```
 
-批量生成 packet 只适合 Codex 已经看过 inventory，并能选出安全 batch 边界的情况。否则它应该用 `packet-build` 拆更小的 packet，并为需要更多证据、duplicate 判断或产品判断的 finding 写明确问题。
+批量生成 packet 只在 Codex 已经把清单看够、能选定一个安全批边界时才合适。否则它应当用 `packet-build` 生成更小的 packet，并就证据不足、判断重叠或需要产品决策的 finding 主动提问。
 
-如果 `result-ingest`、`ledger-validate` 或 `finalize` 返回 human-decision 或 evidence-gap 状态，Codex 应该汇报 decision queue，而不是继续。好的问题应该具体：
+如果 `result-ingest`、`ledger-validate` 或 `finalize` 返回需要人工决策或证据缺口，Codex 应展示决策队列而不是继续推进。一个合格的反问写得很具体：
 
 ```text
-这个 cluster 还不能进入实现。它同时碰到 docs 和 spec 权威。
-建议先对齐 spec，再准入一个 docs 实现 wave。请确认这个 owner 边界，
-或指定另一个边界。
+This cluster cannot become implementation yet. It touches docs and
+spec authority differently. Recommended decision: align the spec first,
+then admit one docs implementation wave. Confirm or choose another
+owner boundary.
 ```
 
-决策记录之后，或者所有 cluster 都已 ready，Codex 再继续：
+决策记录之后（或所有 cluster 都就绪后），Codex 继续：
 
 ```bash
 npx nimicoding sweep design ledger-validate --run-id fresh-full-audit-design --json
@@ -210,11 +219,11 @@ npx nimicoding sweep design finalize --run-id fresh-full-audit-design --json
 npx nimicoding sweep design wave-plan --run-id fresh-full-audit-design --topic-id <topic-id> --json
 ```
 
-Wave plan 只输出候选 `topic wave add` 和 `topic wave admit` 命令。它不改 topic 状态，也不允许 worker dispatch。Codex 应该把候选 waves 列出来，等你接受实现边界。
+Wave 规划只输出候选的 `topic wave add` 与 `topic wave admit` 命令。它不会改写 topic 状态，也不允许 worker 派发。Codex 应展示候选 wave，等你确认实施边界。
 
-## 用 `/goal` 托管长跑
+## 用 `/goal` 让 Codex 跑下去
 
-多小时任务可以交给 Codex 的 goal：
+对于多小时的工作，给 Codex 一个目标，把 topic 契约嵌进循环里：
 
 ```text
 /goal Continue topic <topic-id> until the current admitted wave reaches
@@ -225,29 +234,29 @@ write outside the active packet owner domain. Do not claim closure
 without recorded evidence.
 ```
 
-这会把 Codex 的长时间执行能力变成受治理的循环：
+这把 Codex 的长时间执行能力转成一个受治理的循环：
 
-| Goal 指令 | 效果 |
+| 目标指令 | 效果 |
 | --- | --- |
-| Continue 具名 topic | 工作状态存在仓库里，不只在聊天里 |
-| 跑 `topic run-next-step` | 转阶段要经过类型化 decision |
-| 不是 `continue` 就停 | 人工确认和缺证据不会被吞掉 |
-| 只在 owner domain 内写 | 范围不会悄悄扩大 |
-| 闭合前记录证据 | “看起来做完了”不算完成 |
+| 继续指定 topic | 工作状态在仓库里，不只在对话里 |
+| 跑 `topic run-next-step` | 阶段切换都经过强类型决策 |
+| 当结果不是 `continue` 就停 | 人工关卡与证据缺口始终可见 |
+| 留在 owner 域内 | 范围不会悄悄外扩 |
+| 关闭前要有证据 | "看起来完成了"不算 |
 
-40 小时审计能保持可审，是因为 Codex 一直回到 topic state、packet 边界、chunk evidence 和 closeout 标准。
+这就是一份 40 小时的审计仍可被审视的方式。Codex 反复回到 topic 状态、packet 边界、分块证据、closeout 标准上来。
 
-## 闭合工作
+## 收尾
 
-当 Codex 说 wave 完成时，不要只要总结。让它闭合：
+Codex 说 wave 完成时，要的是关闭，不是泛泛总结：
 
 ```text
-请 validate 当前 topic，记录最终 result，评估 authority、semantic、consumer、
-drift-resistance 四个闭合维度。如果 topic 已准备好，跑 true close。
-最后列出任何剩余 blocker。
+Validate the active topic, record the final result, evaluate authority,
+semantic, consumer, and drift-resistance closure, run true close if the
+topic is ready, and show any remaining blockers.
 ```
 
-Codex 会在背后记录 result 和 closeout：
+Codex 在内部记录结果与 closeout：
 
 ```bash
 npx nimicoding topic result record <topic-id> --kind audit --verdict PASS ...
@@ -256,31 +265,31 @@ npx nimicoding topic true-close-audit <topic-id> --judgement "..." --json
 npx nimicoding topic closeout topic <topic-id> ...
 ```
 
-最终回答应该按闭合维度组织：
+最终回答应围绕闭合维度来组织：
 
 | 闭合维度 | Codex 必须证明 |
 | --- | --- |
-| 权威闭合 | 没有未准入的权威漂移 |
-| 语义闭合 | Finding 和改动符合 spec 与 packet |
-| 消费方闭合 | 目标读者或工作流能使用结果 |
-| 抗漂移闭合 | 禁用捷径和 reopen condition 已检查 |
+| 权威 | 没有未准入的权威漂移残留 |
+| 语义 | finding 与改动符合规范与 packet |
+| 消费 | 目标读者或工作流确实可用结果 |
+| 漂移阻力 | 已检查禁止捷径与重开条件 |
 
-任何维度 blocked，Codex 都应该说缺什么证据，并保持 topic open。
+任何一个维度被阻塞，Codex 都应指出缺哪类证据，并保留 topic 不关。
 
-## 跟直接用 Codex 的差别
+## 与直接用 Codex 的差别
 
-| 直接请求 Codex | 用 Nimi Coding 托住 Codex |
+| 直接用 Codex | 配合 Nimi Coding |
 | --- | --- |
-| Codex 直接开始读和改 | Codex 先创建 topic scope 和 packet 边界 |
-| 进展存在聊天里 | 进展存在 `.nimi/topics/**` 与 `.nimi/local/audit/**` |
-| Done 由模型判断 | Done 由四个闭合维度判断 |
-| Finding 是散文 | Finding 进入类型化证据和 ledger |
-| 范围容易漂 | Owner domain 和 packet 限制范围 |
-| 用户只 review 最终答案 | 用户沿途 review topic、wave、packet、audit、closeout |
+| Codex 直接开始读和改 | Codex 先建立 topic 范围与 packet 边界 |
+| 进度只在对话里 | 进度在 `.nimi/topics/**` 与 `.nimi/local/audit/**` |
+| 完成与否由模型判断 | 完成与否由四闭环判断 |
+| Finding 是散文 | Finding 是强类型证据与账本 |
+| 范围会漂 | Owner 域与 packet 约束工作 |
+| 用户只复核最终回答 | 用户在过程中复核关卡与证据 |
 
-目标不是让用户多操作 CLI。目标是让 Codex 能做大工作，同时留下另一个 session、auditor 或人类 manager 都能检查的证据。
+目标不是给用户多加流程，而是让 Codex 能干大活，同时留下另一段会话、另一个审计员或人工管理者都能复检的轨迹。
 
-## 来源
+## Source Basis
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
 - [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)
@@ -291,3 +300,5 @@ npx nimicoding topic closeout topic <topic-id> ...
 - [`nimi-coding/contracts/audit-plan.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/audit-plan.schema.yaml)
 - [`nimi-coding/contracts/audit-ledger.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/audit-ledger.schema.yaml)
 - [`nimi-coding/contracts/sweep-design-result.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/sweep-design-result.yaml)
+- [`nimi-coding/methodology/spec-reconstruction.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/spec-reconstruction.yaml)
+- [`nimi-coding/methodology/skill-handoff.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/methodology/skill-handoff.yaml)

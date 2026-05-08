@@ -1,69 +1,70 @@
-# 怎么写 fail-close 接受性不变量
+# 写出 fail-closed 的验收不变式
 
-你想 packet 的 `acceptance_invariants` 真 fail-close、不要软的「应该」。方法学拒软不变量；这份菜谱展示怎么写硬的。
+你希望 packet 的 `acceptance_invariants` 真正能 fail-closed，而不是写成软性的"应该如何"。方法学拒绝软性不变式，本指南给出硬性写法。
 
-## 菜谱
+## 步骤
 
-1. **把不变量陈述为可验证 predicate。** 不是「这该可读」；是「每个保留的 docs/**/*.md 路径在至少一个 locale 里能从 sidebar（或 nav）到达」。
-2. **命名校验机制。** Grep、dev server 检查、build pass 等。
-3. **让失败模式显式。** 这条不变量失败长啥样？具体。
-4. **跟 `negative_tests` 条目配对。** 负向测试 grep 风格抓违规；不变量是正向 predicate。
-5. **跟 `forbidden_shortcuts` 交叉检查。** 如果不变量的反面是目录里某个模式，两个都声明。
+1. **把不变式写成可验证的断言。** 不是"应该可读"，而是"`docs/**/*.md` 下保留的每个路径都至少能在一种语言下从侧栏（或导航）到达"。
+2. **指明验证手段。** grep、dev server 检查、构建通过等。
+3. **写清失败形态。** 这个不变式失败时长什么样？写具体。
+4. **配一条 `negative_tests`。** 负面测试用 grep 风格抓违规；不变式是正面断言。
+5. **与 `forbidden_shortcuts` 互验。** 如果不变式的取反正好命中目录里的某条捷径，两边都声明。
 
 ## 软 vs 硬
 
-| 软（拒） | 硬（准入） |
+| 软（拒绝） | 硬（准入） |
 | --- | --- |
-| 「页该可读」 | 「每个保留子页含至少一个具体 reader 场景」 |
-| 「避免禁用主张」 | 「禁用 marker grep 在 `README.md` 与 `docs/**` 上零命中」 |
-| 「Build 该工作」 | 「`pnpm docs:build` PASS」 |
-| 「无 spec 漂移」 | 「`.nimi/spec/**` 保持不变（用 `git status -- .nimi/spec` 校验）」 |
+| "页面应当可读" | "保留的每个子页都包含至少一个具体读者场景" |
+| "避免出现禁止主张" | "禁止标记的 grep 在 `README.md` 与 `docs/**` 中返回零命中" |
+| "构建应当能跑" | "`pnpm docs:build` PASS" |
+| "不要规范漂移" | "`.nimi/spec/**` 保持不变（用 `git status -- .nimi/spec` 验证）" |
 
-软形式**无法**机器检查。硬形式可以。
+软的写法没法机器检查，硬的可以。
 
-## 阅读场景：软转硬
+## 场景：把软改成硬
 
-某 first-draft packet 有：
-
-```
-acceptance_invariants:
-  - 文档该可读
-  - Sidebar 该露出所有子页
-  - Build 该过
-  - 无 spec 漂移
-```
-
-这些都软。转：
+一份初稿 packet 写的是：
 
 ```
 acceptance_invariants:
-  - 每个保留 docs/**/*.md 路径在至少一个 locale 里能从
-    sidebar（或 nav）到达
-  - 每个保留子页带至少一个绑到 kernel 规则家族的具体场景
-    或 worked 例
-  - Sidebar /<section>/ 组露出所有子页加显式 Related 交叉链
+  - Documentation should be readable
+  - Sidebar should expose all sub-pages
+  - Build should pass
+  - No spec drift
+```
+
+全是软的。改写：
+
+```
+acceptance_invariants:
+  - Each retained docs/**/*.md path is reachable from sidebar
+    (or nav) in at least one locale
+  - Each retained sub-page carries at least one concrete
+    scenario or worked example tied to a kernel rule family
+  - Sidebar /<section>/ group exposes all sub-pages plus
+    explicit Related cross-links
   - pnpm docs:build PASS
-  - .nimi/spec/** 保持不变（git status 校验）
+  - .nimi/spec/** remains unchanged (verified by git status)
 ```
 
-每条现在是可验证 predicate。
+每一条都是可验证的断言。
 
-## 阅读场景：跟负向测试配对
+## 场景：与负面测试配对
 
-不变量「无具体 provider 名引入」配：
+不变式"未引入具体 provider 名"对应：
 
 ```
 negative_tests:
   - grep -rEni '\b(OpenAI|Anthropic|Claude|Gemini|GPT-[0-9]|...)\b'
-    在 README.md 与 docs/** 上零命中
-    （除元文档 forbidden-claims.md）
+    returns zero hits across README.md and docs/**
+    (excluding the meta-doc forbidden-claims.md)
 ```
 
-负向测试是具体 grep；不变量是正向形状。
+负面测试是一条具体 grep；不变式给出正面形态。
 
-## 阅读场景：跟禁用捷径交叉检查
+## 场景：与禁止捷径互验
 
-不变量「无并行真相引入」配声明：
+不变式"未引入并行真相"对应已声明的：
 
 ```
 forbidden_shortcuts:
@@ -73,18 +74,18 @@ forbidden_shortcuts:
   - silent_owner_cut_reopen
 ```
 
-目录 key 是审计对照检查的；不变量是工作正向达成的。
+目录键值是审计要查的对象；不变式描述工作正面达成的形态。
 
-## 要看什么
+## 注意事项
 
-| 症状 | 含义 |
+| 现象 | 含义 |
 | --- | --- |
-| 不变量措辞为「应该」 | 软；拒，重写为 predicate |
-| 没命名校验机制 | 无法 fail-close |
-| 失败模式不清楚 | Reviewer 无法校验 |
-| 缺负向测试配对 | 只抓正向、缺对称 |
+| 不变式写"应当" | 软；拒绝，重写为断言 |
+| 没指明验证手段 | 无法 fail-closed |
+| 失败形态不清 | 复核者无从验证 |
+| 缺对应负面测试 | 只覆盖正面情况，少了对称性 |
 
-## 来源
+## Source Basis
 
 - [`.nimi/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/packet.schema.yaml)
 - [`.nimi/contracts/acceptance.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/acceptance.schema.yaml)

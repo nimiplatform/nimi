@@ -1,115 +1,115 @@
 # 本地审计
 
-Runtime 写一份本地审计 ledger，覆盖每一次 AI 调用、Model 操作、App 间消息、授权决定。审计是**本地真相** — 它住在你这台机器上。Realm 的云端审计是另一个面，Runtime 可以选择把聚合上报上去。
+Runtime 写出一份本地审计账本，覆盖每一次 AI 调用、模型操作、应用消息、授权决策。审计是本地真相，活在你这台机器上。Realm 云端审计是另一面，Runtime 在配置允许时可以选择把聚合上送过去。
 
-## 本地审计记录什么
+## 本地审计记什么
 
-Runtime 记录：
+Runtime 写下：
 
-| 事件家族 | 例子 |
+| 事件族 | 例子 |
 | --- | --- |
-| AI 调用 | 工作流启动、节点执行、`ScenarioJob` 生命周期、终态 |
-| Model 操作 | Provider 路由、本地引擎路由、Model 解析 |
-| App 间消息 | 通过 Runtime 的 App-to-App 消息 |
-| 授权决定 | Token 校验、scope 校验、能力准入 |
-| 委派 lineage | 外部 AI session、firewall 裁定、审批决定、动作 lineage |
+| AI 调用 | 工作流启动、节点执行、scenario job 生命周期、终态 |
+| 模型操作 | provider 路由、本地引擎路由、模型解析 |
+| 应用消息 | 应用之间经 Runtime 中转的消息 |
+| 授权决策 | Token 校验、作用域核对、能力准入 |
+| 委派链路 | 外部 AI 会话、防火墙裁决、审批决定、动作链路 |
 | 记忆写入与复制 | 写入准入、复制状态迁移、冲突 / 失效 |
 | Hook 生命周期 | 准入、调度、触发、终态 |
 
-每条事件都有结构化字段、principal lineage、跨 Runtime 重启不丢的 trace id。
+每条事件都有结构化字段、principal 链路和 trace id，并且能跨 Runtime 重启保留。
 
 ## 本地优先
 
-审计本地优先是有意姿态。云不是必需品；审计 ledger 不依赖 Realm 在线。
+审计本地优先是有意为之。云端不是必需，账本不依赖 Realm 在线。
 
-| 关注点 | 为什么本地优先 |
+| 关注点 | 本地优先的理由 |
 | --- | --- |
-| 隐私 | 审计是你自己的；不必上传 |
-| 独立性 | 离线状态下 Runtime 审计照样工作 |
-| 权威 | 本地审计就是本地真相，不是云端审计的降级副本 |
-| 可选聚合 | 配置允许时 Runtime 才把聚合往上送 |
+| 隐私 | 审计是你的，不必上传 |
+| 独立性 | 离线时审计照常工作 |
+| 权威 | 本地审计是本地真相，不是云端的退化副本 |
+| 可选聚合 | 配置开启后，Runtime 可向上送聚合 |
 
-如果用户后来登入 Realm 并选择聚合，Runtime 把聚合往上送。本地审计真相不会被回头改写；聚合是单向向前。
+如果用户后来登录 Realm 并选择聚合上送，Runtime 把聚合送上去。本地审计真相不会被回溯改写，聚合只朝一个方向走。
 
-## 审计 Lineage
+## 审计链路
 
-审计记录带类型化 lineage，让未来读者能重建发生了什么。
+审计记录带强类型链路，便于事后还原现场。
 
-| Lineage 元素 | 用途 |
+| 链路元素 | 用途 |
 | --- | --- |
-| Trace id | 标识一次端到端运行 |
-| Principal id | 谁在动作（用户 / Agent / App / 外部 principal） |
-| Workflow id | 这条事件属于哪个工作流 |
-| Job id | `ScenarioJob` lineage |
-| Provider id | 涉及的是哪个 Provider |
-| Action lineage | 委派路径下，串起 suggestion → verdict → approval → action |
+| Trace id | 标识一次端到端的执行 |
+| Principal id | 谁在动作（用户 / Agent / 应用 / 外部 principal） |
+| Workflow id | 事件归属的工作流 |
+| Job id | `ScenarioJob` 链路 |
+| Provider id | 涉及的 provider |
+| 动作链路 | 委派路径上：建议 → 裁决 → 审批 → 动作 |
 
-读者读审计能回答"发生了什么"，不只是"记了什么"。
+事后查审计的人能回答"发生了什么"，而不仅是"日志写了什么"。
 
 ## 审计统计与健康快照
 
-审计合同准入结构化统计与健康快照。`nimi doctor` 暴露：
+审计契约准入了结构化统计与健康快照。`nimi doctor` 暴露：
 
 | 指标 | 含义 |
 | --- | --- |
-| 审计写入量 | 单位时间内的记录数 |
-| 复制 backlog | 等待云端聚合的待发记录（如启用） |
-| 失败率 | 近期失败事件相对总量 |
-| 工作流吞吐 | 近期工作流完成率 |
+| 审计量 | 单位时间记录数 |
+| 复制积压 | 等待向云端聚合的记录数（启用时） |
+| 失败率 | 近期失败事件占比 |
+| 工作流吞吐 | 近期工作流完成速率 |
 
-这些指标可观测；订阅审计健康的 App 拿到的是类型化事件流。
+这些指标可观察，订阅审计健康的应用拿到的是一条强类型事件流。
 
-## 阅读场景：重建一次失败的工作流
+## 读者场景：还原一次失败的工作流
 
-昨天出过事。用户想精确知道发生了什么。
+昨天出了点问题，用户想知道究竟发生了什么。
 
-1. **按 trace id 定位。** 用户拿到 trace id（来自聊天错误信息或 App 日志），按 trace id 查审计。
-2. **工作流 lineage。** 工作流生命周期被记下：`ACCEPTED → QUEUED → RUNNING → ... → FAILED`，沿途每个 `NODE_STARTED → NODE_PROGRESS → NODE_FAILED`。
-3. **Scenario job lineage。** 每个 AI 节点扇出到 `ScenarioJob`；审计写出 job 状态迁移。
-4. **Provider lineage。** 路由到的是哪个 Provider；Provider 当时是什么状态；返回的错误码是什么。
-5. **流式 lineage。** 让工作流走到 `FAILED` 的那个终止帧被记下。
-6. **重建。** 用户拿到一条结构化链：「这次请求 → 这个工作流 → 这个节点 → 这个 Provider → 这个错误 → 这个终态」，不靠猜。
+1. **用 trace id 定位。** 用户拿着 trace id（聊天里的错误信息或应用日志带来的）按 trace id 查审计。
+2. **工作流链路。** 工作流生命周期被记下：`ACCEPTED → QUEUED → RUNNING → ... → FAILED`，沿途每个 `NODE_STARTED → NODE_PROGRESS → NODE_FAILED` 也都在。
+3. **Scenario job 链路。** 每个 AI 节点对应一个 `ScenarioJob`，审计显示 job 的状态迁移。
+4. **Provider 链路。** 路由到了哪个 provider、provider 当时什么状态、回了哪个错误码。
+5. **流式链路。** 让工作流转入 `FAILED` 的那一帧终止帧也记下来。
+6. **现场重建。** 用户拿到的是一条结构化链：这次请求 → 这条工作流 → 这个节点 → 这个 provider → 这个错误 → 这个终态，不必猜。
 
-审计是平台对"发生了什么"的回答。自由格式日志给不了这个；类型化审计 lineage 给得了。
+审计就是平台对"发生了什么"的回答。自由格式日志做不到这件事，强类型审计链路才行。
 
-## 阅读场景：一条委派审计链
+## 读者场景：一条委派审计链
 
-某个外部 AI 做了一个动作。后来用户想看是怎么被授权的。
+某个外部 AI 做了一次动作，事后用户想看它是怎么被授权的。
 
-1. **Session 记录。** 外部 principal session 启动，带 trust tier 与策略快照。
-2. **Suggestion 记录。** 类型化的委派请求形状。
-3. **Firewall verdict。** Firewall 裁定。
-4. **Approval 记录。** 用户审批（如果是 `APPROVAL_REQUIRED`）。
-5. **Action 记录。** Runtime 拥有的动作及它自己的 lineage。
-6. **Outcome 记录。** 动作的终态。
+1. **会话记录。** 外部 principal 会话开始，带信任层级与策略快照。
+2. **建议记录。** 强类型委派请求形态。
+3. **防火墙裁决。** 防火墙的判定。
+4. **审批记录。** 用户审批（如果命中 `APPROVAL_REQUIRED`）。
+5. **动作记录。** Runtime 持有的动作及其自身链路。
+6. **结果记录。** 动作的终态。
 
-链是端到端的：审计员沿着这条链能回答"谁提议、谁授权、发生了什么"，没有歧义。
+整条链端到端：审阅人按链就能回答"谁提议、谁授权、最后做成了什么"，没有歧义。
 
-## 阅读场景：用户回看自己的记忆活动
+## 读者场景：用户翻看记忆活动
 
-用户想知道 Agent 都记了什么。
+用户想知道自家 Agent 都记了些什么。
 
-1. **记忆写入事件。** 审计写出每一次准入的写入，含 bank 范围与来源。
-2. **复制事件。** 每次写入的状态迁移（`pending → synced` 等）。
-3. **读取事件。** 后续轮次什么时候读到这条记忆。
-4. **冲突 / 失效事件。** 任何调和步骤。
+1. **写入事件。** 审计列出每次准入的写入，含库作用域和来源。
+2. **复制事件。** 每次写入的状态迁移（`pending → synced` 或别的）。
+3. **读取事件。** 后续回合里何时读到了这条记忆。
+4. **冲突 / 失效事件。** 任何对账步骤。
 
-用户能通过审计回答："我的 Agent 记没记 X，后来有没有失效？"
+用户能据此回答"我的 Agent 记没记 X、有没有被作废过"。
 
-## 可选地聚合到 Realm
+## 可选聚合到 Realm
 
-Runtime 可以选择把审计聚合往 Realm 送。
+Runtime 可选地把审计聚合送到 Realm。
 
-| 性质 | 值 |
+| 属性 | 取值 |
 | --- | --- |
-| 默认 | 聚合关闭 |
+| 默认 | 关 |
 | 启用方式 | 用户配置 / 宿主产品配置 |
-| 方向 | 本地 → Realm；从不 Realm → 本地改写 |
-| 粒度 | 聚合与摘要；不是原始记录流 |
+| 方向 | 本地 → Realm，永远不反向改写 |
+| 粒度 | 聚合与摘要，不是原始记录流 |
 
-本地审计是真相来源。Realm 聚合是它的一种呈现。
+本地审计是真相源，Realm 聚合是它的一份改写。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/runtime/kernel/audit-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/audit-contract.md)
 - [`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-service-contract.md)

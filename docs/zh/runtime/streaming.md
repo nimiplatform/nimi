@@ -1,95 +1,95 @@
 # 流式
 
-流式不只是文字渐渐到达。Runtime 流式合同定义了四种类型化模式、终止帧、backpressure、fail-close 语义。App 把流看作权威事件时间线，不是任意 chunk 汤。
+流式不是把文本"慢慢吐出来"这么简单。Runtime 的流式契约定义了四种强类型模式、终止帧、反压，以及 fail-closed 语义。App 把流当作权威事件时间线消费，不是任意 chunk 拼盘。
 
 ## 四种流式模式
 
-| 模式 | 载什么 | 关闭语义 |
+| 模式 | 承载内容 | 关闭语义 |
 | --- | --- | --- |
-| Mode A | 文本与语音生成；chunk 直到终止 | 显式 `done=true` 终止帧 |
+| Mode A | 文本与语音生成；连续 chunk 直到终止帧 | 显式 `done=true` 终止帧 |
 | Mode B | 状态事件流（工作流事件、状态更新） | 终态状态后关闭 |
 | Mode C | 审计导出 | `eof` 标记后关闭 |
-| Mode D | 长存订阅（健康、App 间消息、实时事件） | 长存；只在 session 拆除时关闭 |
+| Mode D | 长连接订阅（健康、App 消息、实时事件） | 长连接；只在会话拆除时关闭 |
 
-每种模式有显式关闭语义。消费 Mode A 流的 App 等 `done=true`；消费 Mode B 流的 App 等终态状态。流的模式是被声明的；App 不必猜。
+每种模式的关闭语义都是显式的。消费 Mode A 的 App 等 `done=true`；消费 Mode B 的 App 等终态状态。流的模式由声明给出，App 不需要猜。
 
 ## 终止帧
 
-没有准入的终止信号就结束的流是合同违规。Runtime 发类型化失败终止，不是静默截断。
+如果一个流没有按准入的终止信号结束，那就是契约违反。Runtime 会发出强类型的失败终止帧，而不是悄悄截断。
 
 | 模式 | 终止信号 |
 | --- | --- |
 | Mode A | `done=true` 帧 |
 | Mode B | 终态状态事件 |
 | Mode C | `eof` 标记 |
-| Mode D | session 拆除 |
+| Mode D | 会话拆除 |
 
-如果 Provider 中途让合同失败 — 形状错、缺必填字段、schema 违规 — 流式合同发类型化失败终止帧。工作流搬到 `FAILED`。**没有静默截断**。
+如果某个 provider 在流中违反契约（形状错误、缺必填字段、schema 违例），流式契约会发一个强类型失败终止帧。工作流切到 `FAILED`。不存在静默截断。
 
-## Backpressure
+## 反压
 
-流式有端到端 backpressure。预算从生产方共享到消费方；慢消费方对上游施压，而不是丢帧。
+流式具备端到端反压。预算从生产者贯通到消费者；消费者慢就向上施压，而不是丢帧。
 
-| 性质 | 值 |
+| 属性 | 值 |
 | --- | --- |
-| 预算 | 按流 |
-| 方向 | 生产方 → 消费方 |
-| 溢出 | App 通过 SDK 看到 backpressure；Runtime 不静默丢 |
+| 预算 | 每流独立 |
+| 方向 | 生产者 → 消费者 |
+| 溢出处理 | App 通过 SDK 看到反压；Runtime 不会静默丢帧 |
 
-长生成时这点重要。用户 30 秒不在 chat 窗口里打字；消费方施压；生产方暂停。消费方恢复后，流继续。**没有帧丢失**。
+这点在长生成里很要紧。用户在聊天窗口停手 30 秒，消费者向上施压，生产者暂停。消费者恢复后，流继续。一帧不丢。
 
-## Fail-close 语义
+## Fail-Closed 语义
 
-流式合同失败 fail-close：
+流式契约失败按 fail-closed 处理：
 
 | 失败类型 | 行为 |
 | --- | --- |
-| 帧形状错 | 类型化失败终止；工作流 `FAILED` |
-| 缺必填字段 | 类型化失败终止 |
-| Schema 违规 | 类型化失败终止 |
-| MIME 不匹配 | 类型化失败终止 |
-| 瞬时 transport 错误 | 按 transport 策略重试；可恢复则流继续 |
-| 需要 auth 刷新 | 按 auth 策略刷新；可恢复则流继续 |
+| 帧形状错误 | 强类型失败终止帧；工作流 `FAILED` |
+| 缺必填字段 | 强类型失败终止帧 |
+| Schema 违例 | 强类型失败终止帧 |
+| MIME 不匹配 | 强类型失败终止帧 |
+| 瞬时传输错误 | 按传输策略重试；可恢复则流继续 |
+| 需要刷新鉴权 | 按鉴权策略刷新；可恢复则流继续 |
 
-重试只救 transport 级失败。它**不救合同失败**。Schema 违规是合同失败、fail-close；它不会被重试救成成功。
+重试只救得回传输级失败，不救契约失败。schema 违例属于契约失败，按 fail-closed 处理，不会被重试救成"成功"。
 
-## 阅读场景：Mode A 文本流式
+## 场景：Mode A 文本流
 
-App 发起一个流式文本生成。
+App 发起一次会流式返回的文本生成。
 
-1. **流打开。** Mode A。Runtime 开始发文本 chunk。
-2. **Chunk 到达。** 每条 chunk 是类型化形状。App 增量渲染。
-3. **Provider 抖动。** 瞬时 transport 错。Runtime 按 transport 策略重试。流从合适边界恢复。
-4. **Provider 返回内容。** 流继续。
-5. **生成完成。** Runtime 发 `done=true` 终止帧。
+1. **流打开。** Mode A。Runtime 开始发送文本 chunk。
+2. **Chunk 到达。** 每个 chunk 都是强类型形状。App 增量渲染。
+3. **Provider 抖动。** 出现一次瞬时传输错误。Runtime 按传输策略重试。流从合适的边界恢复。
+4. **Provider 继续返回内容。** 流继续。
+5. **生成完成。** Runtime 发出 `done=true` 终止帧。
 6. **App 标记响应完成。** 用户可以进入下一轮。
 
-**没**发生：流从未静默截断。要么走到 `done=true`，要么发了类型化失败。
+没有发生过的事情：流从未静默截断。要么到达 `done=true`，要么发出了强类型失败。
 
-## 阅读场景：Mode B 工作流事件流
+## 场景：Mode B 工作流事件流
 
-App 订阅一个工作流的事件流。
+App 订阅某个工作流的事件流。
 
-1. **流打开。** Mode B。Runtime 开始发工作流事件。
+1. **流打开。** Mode B。Runtime 开始发送工作流事件。
 2. **事件到达。** `STARTED → NODE_STARTED → NODE_PROGRESS → NODE_COMPLETED → ...`
-3. **工作流到终态。** Runtime 发终态状态事件（`COMPLETED` / `FAILED` / `CANCELED` / `SKIPPED`）。
-4. **流关闭。** Mode B 关闭语义满足。
+3. **工作流到达终态。** Runtime 发出终态状态事件（`COMPLETED` / `FAILED` / `CANCELED` / `SKIPPED`）。
+4. **流关闭。** Mode B 关闭语义达成。
 
-App UI 随事件到达增量更新。无 polling；事件流就是「这个工作流现在怎么样」的真相来源。
+App 的 UI 随事件到达增量更新。无须轮询；事件流就是"这个工作流在干什么"的真值来源。
 
-## 阅读场景：慢消费方触发 backpressure
+## 场景：慢消费者引发反压
 
-App 在消费一段长 Mode A 流。用户打开了一个重 modal，渲染暂停。
+App 正在消费一段长 Mode A 流。用户打开了一个重型 modal，渲染暂停。
 
-1. **消费方变慢。** App chunk 处理速率下降。
-2. **backpressure 应用。** SDK 流消费方向上游发 backpressure 信号。
-3. **生产方暂停。** Runtime 按预算暂停 Provider 流消费。
-4. **用户关 modal。** 消费方恢复。
-5. **生产方恢复。** 流从合适边界继续。
+1. **消费者变慢。** App 的 chunk 处理速率下降。
+2. **反压上行。** SDK 流消费方向上游发出反压信号。
+3. **生产者暂停。** Runtime 按预算暂停 provider 流消费。
+4. **用户关闭 modal。** 消费者恢复。
+5. **生产者恢复。** 流从合适的边界继续。
 
-没帧丢。没有队列无限增长。Backpressure 端到端。
+无丢帧，无队列爆涨。反压是端到端的。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/runtime/kernel/streaming-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/streaming-contract.md)
 - [`.nimi/spec/runtime/kernel/error-model.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/error-model.md)

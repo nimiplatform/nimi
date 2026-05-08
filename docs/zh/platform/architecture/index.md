@@ -1,67 +1,67 @@
 # 平台架构
 
-Nimi 切分成若干权威面，让一层不会无声地重新定义另一层的真相。公开文档给你跨层地图；规范保留实际合同的精度。
+Nimi 切成多个权威面，让任何一层都不会悄悄重写另一层的真相。这一节给的是跨层地图；规范本身保留契约的精度。
 
-本页是架构的阅读辅助，不是架构本身。规则级权威住在 `.nimi/spec/platform/kernel/`。
+这一页是架构的导读，不是架构本身。规则级权威归在 `.nimi/spec/platform/kernel/` 下。
 
 ## 高层形状
 
-| 层 | 拥有什么 |
-| --- | --- |
-| Platform | 世界模型、六个基础协议、谁有资格重新定义什么的权威规则 |
-| Runtime | AI 执行、工作流、流式、Model 与 Provider 治理、本地能力路由、委派、审计、Runtime-owned Agent 参与 |
-| SDK | 应用的官方接入边界，让 App 不必 import 私有内部 |
-| Realm | 语义真相、世界状态、世界历史、聊天、相关域合同 |
-| Desktop | 第一方原生能力，包括 Mod 面和外壳级工作流 |
-| Web | 浏览器里选定面板的受限版 |
-| Avatar | 具身 Agent 呈现，独立成域 |
-| Cognition | 独立的记忆、知识、Prompt 服务、引用、补全、Runtime 桥语义 |
+在高层视角下，Nimi 把职责分给以下几方：
 
-这种结构让集成保持灵活，又不会让每个包都变成一个独立的真相来源。
+- **平台（Platform）** 定义世界模型、六个协议基础协议，以及谁有权重新定义什么的权威规则。
+- **Runtime** 持有 AI 执行、工作流、流式、模型与 provider 治理、本地能力路由、委派、审计，以及 Runtime 持有的 Agent 参与。
+- **SDK** 给 App 一个官方接入面，让 App 不必导入私有内部实现。
+- **Realm** 持有语义真相、世界状态、世界历史、聊天，以及相关的领域契约。
+- **桌面端（Desktop）** 承载原生第一方能力，包括 Mod 面与外壳级工作流。
+- **网页端（Web）** 在浏览器里呈现选定面的受限版本。
+- **Avatar** 把具身 Agent 的呈现作为独立领域来持有。
+- **Cognition** 独立持有 memory、知识、prompt 服务、引用、completion，以及 Runtime 桥语义。
+
+这种切分让集成方式保持灵活，又不会让每个包都变成自己的真相源。
 
 ## 跨层通信
 
-平台规范冻结了一组小的跨层关系。下面图里每根箭头都对应一条已认可的合同面：
+平台规范冻结了一组小而稳的跨层关系。下图每一道箭头都对应一份准入的契约面：
 
 ```
-mods         <-> desktop          : 进程内 hook runtime
-desktop      ->  nimi-sdk         : 统一开发者面
-desktop      ->  nimi-runtime     : gRPC runtime 接入
-nimi-apps    ->  nimi-realm       : REST + WS realm 接入
-nimi-runtime <-> nimi-cognition   : runtime 桥 / 消费重叠
-                                    （权威仍归 cognition）
+mods         <-> desktop          : 进程内 hook 运行环境
+desktop      ->  nimi-sdk         : 统一开发者接入面
+desktop      ->  nimi-runtime     : 走 gRPC 接入 Runtime
+nimi-apps    ->  nimi-realm       : REST + WS 接入 Realm
+nimi-runtime <-> nimi-cognition   : Runtime 桥 / 消费重叠
+                                    （权威源仍归 Cognition）
 ```
 
-两点直接的后果：
+由这张图能引出两件事：
 
-- Mod 不会绕过桌面端的 hook runtime。Mod 直接调 `nimi-runtime` 等于跳过了桌面端的能力边界。
-- Cognition 通过 Runtime 的桥可达，但 Runtime **不**吸收 Cognition 的权威。桥是消费，不是所有权。
+- Mod 不绕开桌面端的 Hook 运行环境。Mod 直接调 `nimi-runtime` 就跳过了桌面端的能力边界。
+- Cognition 经由 Runtime 桥可达，但 Runtime 不吞并 Cognition 的权威。桥是消费，不是归属。
 
-## 阅读场景：App 发起一次生成请求
+## 场景：App 发起一次生成请求
 
-设想一个 App 要让 Runtime 在某个世界上下文里生成一段流式多模态回应。架构说：
+某个 App 需要请 Runtime 在某个世界的上下文里生成一段流式多模态响应。架构告诉它：
 
-1. App 通过 `sdk/runtime` 发起请求。它**不** import 私有 runtime 模块；SDK 是边界。
-2. Runtime 拥有工作流和流式生命周期。它知道请求何时 `ACCEPTED`、何时开流、何时发终止帧、何时 `COMPLETED`。
-3. 如果 App 还需要读世界真相（比如知道哪些参与者在场），它用 `sdk/realm` 或 `sdk/world`，这两个 SDK 子路径暴露 Realm 合同。它**不** import Realm 内部。
-4. 如果工作流需要记忆，Runtime 在桥合同下接桥到 Cognition。App 不会看到 Cognition 内部。
-5. 如果回应里包含多模态产物，它走 Runtime 的产物合同，不走临时 URL。
+1. App 通过 `sdk/runtime` 发请求。它不导入 Runtime 私有模块；SDK 是边界。
+2. Runtime 持有工作流与流式生命周期。它知道请求何时 `ACCEPTED`、流何时开始、终态帧何时给出、工作流何时 `COMPLETED`。
+3. 如果 App 同时需要读世界真相（比如想知道有哪些参与者），它走 `sdk/realm` 或 `sdk/world`，那是 Realm 契约的呈现面。它不导入 Realm 内部。
+4. 如果工作流需要 memory，Runtime 在桥契约下接入 Cognition。App 看不到 Cognition 的内部。
+5. 如果响应里包含多模态制品，制品走 Runtime 的 artifact 契约，而不是临时拼出来的 URL。
 
-每一跳都受一条已认可合同约束。架构存在的目的，正是让这些跳跃**不能**被无声跳过。
+每一步都受准入契约约束。架构存在的意义，恰恰是不让这几步被悄悄地走捷径。
 
-## 公开 vs 私有权威
+## 公共与非公共权威
 
-公开仓库记录公开的 Platform / Runtime / SDK / Desktop / Web / Avatar / Cognition / Nimi Coding 面。私有 Realm 或后端权威、Dashboard 权威、创作者侧权威留在它们自己的所有者位置，不会被无声地吸收进公开文档。
+公共仓库公开的是平台、Runtime、SDK、桌面端、网页端、Avatar、Cognition、Nimi Coding 这些面。私有的 Realm 后端权威、Dashboard 权威、创作者侧权威，归在它们各自的归属位置，不会被默默吸入这一份公共文档。
 
-这一区分对读者有意义。如果一页讲 Realm 语义，它讲的是公开的读路径，不在暴露每个后端或创作者控制面合同。
+这一区分对读者重要。一页讲 Realm 语义，讲的是公共读取路径，不是后端或创作者控制面的全部契约。
 
 ## SDK 为什么重要
 
-App 不应该越过私有 Runtime 或 Realm 内部直接调用。SDK 是公开接入面。它让应用代码组合 Runtime 支撑的生成、Realm 真相读、Scope 流程、Mod 面，而不需要 import 私有实现边界。
+App 不能直接跨进 Runtime 或 Realm 的私有内部。SDK 是公开的集成面。它让 App 在不导入私有实现边界的前提下，组合 Runtime 支撑的生成、Realm 真相读取、scope 流程、Mod 面。
 
-App 一旦违反这条边界，会出两件事。第一，App 跟可能变化的内部耦合。第二，App 开始形成自己对 Runtime 或 Realm 行为的本地预期；这种预期可能漂移，变成无声的本地真相。
+App 越过这道边界会出两件事。第一，它绑死在会改变的内部上。第二，它会形成自己对 Runtime 或 Realm 行为的本地预期，这种预期会与契约偏移，悄悄地长成本地的真相。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/platform/architecture.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/architecture.md)
 - [`.nimi/spec/platform/kernel/architecture-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/architecture-contract.md)

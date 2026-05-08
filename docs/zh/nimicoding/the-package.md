@@ -1,169 +1,171 @@
-# Nimi Coding 包 (The Package)
+# 包
 
-`@nimiplatform/nimi-coding` 是一个**独立且宿主无关的边界包（Standalone host-agnostic boundary package）**，全权承载了 Nimi Coding 这套方法论。本页将详细拆解这个包里面究竟装了什么，有哪些功能是被刻意剔除在外的，以及为什么要采用这种极其克制的产品形态。
+`@nimiplatform/nimi-coding` 是 Nimi Coding 方法论的**独立、宿主无关的边界包**。本页说明这个包提供什么、刻意不提供什么，以及为什么这样划分。
 
-## 这个包到底是什么？
+## 包的基本信息
 
-| 属性 | 值 |
+| 属性 | 取值 |
 | --- | --- |
 | 包名 | `@nimiplatform/nimi-coding` |
-| 仓库阶段 | Bootstrap（引导阶段） |
-| 自托管 (Self-hosting) | 否（将运行时的执行权委派给外部的 AI 宿主） |
+| 仓库阶段 | bootstrap |
+| 是否自托管运行时 | 否（运行时由外部 AI 宿主负责） |
 | 厂商中立 | 是 |
-| 宿主类别 (Host class) | `ai_native_coding_host` |
+| 宿主类别 | `ai_native_coding_host` |
 | 许可协议 | MIT |
-| CLI 入口 | `nimicoding` |
+| 二进制入口 | `nimicoding` |
 
-这个包的产品愿景是：让随便哪个项目，都能通过 npm 安装这套可复用的 AI 编程治理工具箱，快速在项目本地引导出 `/.nimi/**` 治理层，从而用一套极其严苛、AI 原生的“权威 / 工作包 / 验收”纪律来降伏高风险的开发任务。
+产品目标是让任意项目装上一套可复用的 AI 编码治理工具，初始化项目本地的 `/.nimi/**` 真相层，并对高风险工作启用 AI 原生的权威 / packet / 验收纪律。
 
-## 包里面装了什么？
+## 包内容
 
 | 路径 | 用途 |
 | --- | --- |
-| `methodology/` | 方法论的源文件（各项治理策略 Policies） |
-| `contracts/` | 各种 Schema 的源文件（极其严格的类型化契约） |
-| `config/` | 引导阶段所需的配置（包含 Manifest、宿主属性配置文件等） |
-| `spec/` | 引导阶段所需的规范种子（例如 `bootstrap-state`、`product-scope`） |
-| `cli/` | 命令行工具的具体实现代码 |
-| `bin/nimicoding.mjs` | 二进制执行文件的入口 |
-| `adapters/` | 外部宿主的适配器覆盖层（比如 `oh-my-codex`） |
+| `methodology/` | 方法论源（policy） |
+| `contracts/` | Schema 源（强类型契约） |
+| `config/` | bootstrap 配置（manifest、host-profile 等） |
+| `spec/` | bootstrap 规范种子（`bootstrap-state`、`product-scope`） |
+| `cli/` | CLI 实现 |
+| `bin/nimicoding.mjs` | 入口二进制 |
+| `adapters/` | 宿主适配 overlay（如 `oh-my-codex`） |
 
-当你在一个项目里敲下 `nimicoding start` 时，这套包就会把它的源文件投影进你项目的 `.nimi/**` 目录里：
+`nimicoding start` 在宿主项目内执行时，会把包内的源写入项目本地的 `.nimi/**`：
 
-| 源头 | 投影至 |
+| 源 | 写入位置 |
 | --- | --- |
 | `methodology/` | `.nimi/methodology/` |
 | `contracts/` | `.nimi/contracts/` |
 | `config/` | `.nimi/config/` |
-| `spec/` (bootstrap) | `.nimi/spec/` (只投影 bootstrap 所需的文件) |
+| `spec/`（仅 bootstrap） | `.nimi/spec/`（仅 bootstrap 文件） |
 
-## 这个包“刻意不装”什么？
+## 包刻意不提供的能力
 
-| 功能面 | 状态 | 为什么推迟引入？ |
+| 能力面 | 状态 | 推迟原因 |
 | --- | --- | --- |
-| 工作包约定的运行内核 | 已推迟 | 方法论只管定规矩，不亲自下场跑代码 |
-| 供应商后端的实际执行 | 已推迟 | 这个包本身不调用任何大模型的 API |
-| 调度器 (Scheduler) | 已推迟 | 什么时候跑代码，那是宿主该操心的事 |
-| 消息通知 (Notification) | 已推迟 | 用户体验交互（UX）统统归宿主管 |
-| 自动化后端 | 已推迟 | 自动化这活儿也是宿主干的 |
-| 自托管的方法论运行时 | 已推迟 | 运行时的所有权坚定地留在外部不收回 |
+| packet 绑定的运行内核 | 推迟 | 方法论负责形态，不负责执行 |
+| 调用 provider 的执行 | 推迟 | 包本身不直接跑 AI |
+| 调度器 | 推迟 | 执行时机由宿主负责 |
+| 通知 | 推迟 | UX 由宿主负责 |
+| 自动化后端 | 推迟 | 自动化由宿主负责 |
+| 自托管的方法论运行时 | 推迟 | 运行时所有权留在外部 |
 
-以上这些，全部是**被显式推迟（Explicitly deferred）**的功能面。这个包的终极产品形态叫做“在其独立的适用范围内，保持边界绝对完整（Boundary-complete for its intended standalone scope）”——意思就是，它把方法论、硬核的类型契约、引导程序和死板的机械校验器全都打包交给了你，但它就是不亲自帮你跑代码。
+这些都是显式**推迟的能力面**。包以"在独立适用范围内边界完整"为准则：交付方法论、契约、bootstrap 和机械校验器，不替你跑任务。
 
-## 为什么追求“边界完整”而不是“执行完整”？
+## 为什么是"边界完整"，不是"运行完整"
 
-一个仅仅把“治理边界”打包完整的工具，可以被世界上任何一个项目毫不费力地采纳。但如果这个包夹带私货，连带着自己的运行时引擎一起发布，那它就会不可救药地和某一套具体的执行模型死死绑定（比如死绑在某一家 AI 宿主、某一个调度器或某个通知系统上）。
+只在边界上完整的包可以被任意项目采用。如果同时附带运行时，就会与某种特定的执行模型耦合（特定 AI 宿主、特定调度器、特定通知系统）。
 
-我们之所以如此克制地切分开，是因为：
+之所以做这种分割：
 
-- 方法论是**可自由移植的（Portable）**—— 不管用哪家 AI，这套规矩都通用。
-- 运行时则是**因宿主而异的（Host-specific）**—— 同一份代码执行，你可以今天丢给 Claude 跑，明天丢给 Codex，后天丢给 Gemini，或者任何愿意遵守这套契约的 AI 宿主。
-- 如果强行把这俩绑在一起，那些想用这套方法论的团队，就不得不连带着买下你强塞给他的底层执行引擎。
+- 方法论是**可移植的**——和宿主无关。
+- 运行时是**宿主特定的**——同一份执行可以经由 Claude、Codex、Gemini、OMX 或其他遵守契约的宿主。
+- 把两者绑在一起，等于强迫使用方同时采用方法论和执行层。
 
-这个包向你做出的是这样的承诺：“你大可以今天就引入这套开发纪律；哪怕明天你换了一家 AI 宿主，你也不用改这套规矩的任何一行字。”
+包给出的承诺是：今天就能用上方法论，明天换 AI 宿主也不会改动方法论契约。
 
-## 目前已经覆盖的功能表面
+## 当前包的边界完整范围
 
-在目前的独立发行版中，它已经在以下领域实现了坚固的边界闭合：
+独立形态当前的边界完整范围覆盖：
 
-- 极具辨识度的包身份（Package identity）。
-- 为代码仓库打下坚实的地基。
-- 植入一套原生的 AI 编程治理方法论种子。
-- 由包管控的引导阶段源码投影机制。
-- 提供机器可读的、包含“规范重建、文档规范审计、高风险执行产出”的严苛契约。
-- 提供由包管控的、唯一的、高风险准入 Schema 契约。
-- 提供各类高风险执行环节的 Schema 种子（包含了 Packet、调度编排状态、提示词 Prompt、工作者输出、验收标准）。
-- 提供厂商中立的、外部宿主属性配置的种子。
-- 提供由包管控的、用于评判外部宿主是否兼容的契约种子。
-- 为受限的外部执行宿主互操作，提供适配器种子。
-- 专门为 `oh_my_codex` 提供一份获准入的宿主配置覆盖层种子。
-- 附带一个克制且独立的 CLI 工具，囊括了分段启动 `start`、深度校验、任务交接分派、本地收尾工件投影、显式准入流程，以及对执行产物极其死板的机械化验证。
-- 为所有外部 AI 宿主划定了一道宿主无关的语义及交互互操作的铁壁。
+- 包身份
+- 仓库基础
+- 初版 AI 原生方法论种子
+- 包自有的 bootstrap 源写入
+- 重建、文档-规范审计、高风险执行结果的机器可读契约
+- 包自有的高风险准入 schema 契约
+- 仅种子的高风险执行 schema（packet、orchestration-state、prompt、worker-output、acceptance）
+- 厂商中立的外部 host-profile 种子
+- 包自有的外部宿主兼容契约种子
+- 用于受限外部执行宿主互通的 host-adapter 种子
+- 已准入的包自有 host-profile overlay 种子（`oh_my_codex`）
+- 一个边界明确的独立 CLI，覆盖分阶段的 `start`、校验、handoff、本地 closeout 写出、显式准入和机械化执行工件校验
+- 面向外部 AI 宿主的、宿主无关的语义 + 互通边界
 
-## 引导姿态 (Bootstrap Posture)
+## Bootstrap 形态
 
-包内的 `config/bootstrap.yaml` 清晰地声明了引导阶段的底牌：
+`config/bootstrap.yaml` 声明包的 bootstrap 状态：
 
-| 字段 | 值 |
+| 字段 | 取值 |
 | --- | --- |
 | `bootstrap_contract` | `nimicoding.bootstrap` |
 | `bootstrap_contract_version` | 1 |
 | `profile` | `default` |
 
-只要在一个项目里敲下 `nimicoding start`，宿主项目就会将这些引导配置收入囊中。一旦完成，这个项目就正式宣告成为“采用了 Nimi Coding 方法论的项目”。
+在宿主项目内执行 `nimicoding start` 即接管 bootstrap，该项目随后成为采用 Nimi Coding 的项目。
 
-## 技能清单 (Skill Manifest)
+## 技能清单
 
-在 `config/skills.yaml` 中，赫然列出了四大关键技能的接口定义（具体说明请见 [技能页](/zh/nimicoding/skills)）：
+`config/skills.yaml` 声明四个技能面（详见 [Skills](/zh/nimicoding/skills)）：
 
-| 技能名称 | 是否强制要求 |
+| 技能 | 是否必需 |
 | --- | --- |
-| `spec_reconstruction` (规范重建) | 是 |
-| `doc_spec_audit` (文档规范审计) | 是 |
-| `audit_sweep` (审计扫描) | 否 |
-| `high_risk_execution` (高风险执行) | 否 |
+| `spec_reconstruction` | 是 |
+| `doc_spec_audit` | 是 |
+| `audit_sweep` | 否 |
+| `high_risk_execution` | 否 |
 
-引导状态中明确标注了 `runtime_installed: false` 以及 `installation_mode: deferred`。这表明该包根本不奢望本地有什么运行时；这四大技能，注定要交给外部的宿主去实现。
+bootstrap 状态声明 `runtime_installed: false`、`installation_mode: deferred`。包不假设运行时存在；技能由外部宿主实现。
 
-## 宿主属性档案 (Host Profile)
+## 宿主画像
 
-`config/host-profile.yaml` 立下了对厂商中立宿主的所有硬性要求：
+`config/host-profile.yaml` 声明厂商中立的宿主预期：
 
-| 属性 | 值 |
+| 属性 | 取值 |
 | --- | --- |
 | `host_class` | `ai_native_coding_host` |
 | `runtime_contract_ref` | `.nimi/methodology/skill-runtime.yaml` |
 | `compatibility_contract_ref` | `.nimi/contracts/external-host-compatibility.yaml` |
-| `ownership_mode` | `external` (外部拥有) |
-| `execution_mode` | `delegated` (委派执行) |
-| `install_state` | `not_installed` (不负责安装) |
-| `self_hosted` | `false` (非自托管) |
+| `ownership_mode` | `external` |
+| `execution_mode` | `delegated` |
+| `install_state` | `not_installed` |
+| `self_hosted` | `false` |
 
-想要被准入，宿主必须具备这些极简的能力底线：
-- `read_project_local_nimi_truth` (必须能去项目本地的 .nimi 目录读取事实真相)
-- `route_declared_external_skills` (必须能正确路由那四个声明过的核心技能)
-- `fail_closed_on_missing_authority` (缺失关键权威源时，必须死脑筋地报错退出，严禁自行脑补)
+宿主必备能力是最小集合：
 
-以及不可跨越的刚性约束：
-- `vendor_neutral_profile_only` (必须保持厂商中立)
-- `do_not_assume_local_runtime_install` (禁止假设本地装了运行时)
-- `do_not_claim_packet_orchestration_ownership` (禁止越权宣称自己能管理 Packet 的调度编排)
+- `read_project_local_nimi_truth`
+- `route_declared_external_skills`
+- `fail_closed_on_missing_authority`
 
-## 场景案例：一个项目第一次采纳这个包
+宿主硬性约束：
 
-一个项目眼馋 Nimi Coding 的治理纪律，决定引入它。
+- `vendor_neutral_profile_only`
+- `do_not_assume_local_runtime_install`
+- `do_not_claim_packet_orchestration_ownership`
 
-1. **获取包**：参考 [安装指南](/zh/nimicoding/installation)，从 npm 把 `@nimiplatform/nimi-coding` 拉下来。
-2. **跑引导**：运行 `nimicoding start`，在项目根目录滋生出 `.nimi/**` 结构。
-3. **源码投影完毕**：包里的方法论、各种契约 Schema、配置和 Spec 种子，已经全须全尾地投影进了项目里。
-4. **激活规范重建**：该项目现在可以名正言顺地把活儿甩给它准入的外部 AI 宿主，让它帮忙重建出唯一的权威规范真相。
-5. **正式启用纪律**：自此，这个项目就可以走“准入 Topic、冻结 Packet、跑预检、通过宿主分派给 Worker、记录死板的审计、为 Wave 闭合收尾”这套正规军流程了。
+## 场景：项目首次采用这个包
 
-项目采纳这个包之后，就获得了一层可复用的方法论。
+某个项目希望采用 Nimi Coding 方法论。
 
-## 场景案例：果断更换 AI 宿主
+1. **获取包**。按 [Installation](/zh/nimicoding/installation) 从 npm 安装 `@nimiplatform/nimi-coding`。
+2. **运行 bootstrap**。`nimicoding start` 在项目根目录初始化 `.nimi/**`。
+3. **包内源被写入项目**。methodology / contracts / config / spec 写入对应路径。
+4. **`spec_reconstruction` 技能可用**。项目可把任务交给已准入的外部 AI 宿主完成规范重建。
+5. **方法论开始运转**。项目可以准入 topic、冻结 packet、做预检、派发 worker（经由宿主）、记录审计、关闭 wave。
 
-之前用着某家 AI 宿主跑这套纪律的项目，突然想换另外一家宿主试试。
+包接管的是项目的 bootstrap 层；项目得到的是方法论层。
 
-1. **规矩一个字都不用改**：`.nimi/methodology/` 和 `.nimi/contracts/` 稳如泰山。
-2. **拔插头，换个适配器**：唯一要动手的，就是换掉那个和宿主绑定的覆盖层（`adapters/<host-name>/profile.yaml`）。
-3. **之前的活儿照样认账**：以前存下来的 Topic、Wave 和 Packet 工件，依然是这项目最权威的真相记录，没人能赖账。
-4. **相同的验收标准**：那套折磨人的“四个闭合维度”的框架，将对新来的宿主一视同仁。
+## 场景：切换 AI 宿主
 
-方法论死死地扎根在项目里；宿主？想换随时换。
+某个项目当初采用 Nimi Coding 时绑定了某个 AI 宿主，现在希望换一个。
 
-## 这个包现在还没本事干什么事？
+1. **方法论保持不变**。`.nimi/methodology/` 和 `.nimi/contracts/` 不动。
+2. **替换宿主适配 overlay**。`adapters/<host-name>/profile.yaml` 是宿主特定那一层，需要替换的就是它。
+3. **packet 不变**。已有的 topic / wave / packet 工件继续是工作记录的权威源。
+4. **闭合条件不变**。四闭合框架继续生效。
 
-如果你指望 Nimi Coding 包办一切，以下是它被设计为“暂时不管”的盲区：
+方法论住在项目里，宿主可替换。
 
-- **它不会全自动帮你跑 Packet**：CLI 顶多帮你做做引导、验验合同，绝不会自作主张替你跑完整个流程。
-- **它不自带日程调度器**：排期的事儿，请找包外面的工具。
-- **它自己不调模型 API**：这个包才不干跑 AI 模型这种脏活累活，那是宿主的差事。
-- **它没有自托管的方法论运行时引擎**：运行时的所有权，被它坚决地拒之门外。
+## 当前不在范围内的能力
 
-这些不是被彻底抛弃了，只是被有意延后了。它们不属于这套“在其独立的适用范围内保持边界绝对完整”的系统。
+如果你希望用 Nimi Coding 做一些当前形态之外的事：
 
-## 来源依据
+- **不会自动执行 packet**。CLI 负责 bootstrap 与校验，不替你跑 packet。
+- **没有内建调度**。调度在包之外。
+- **不直接调用 provider**。包本身不调 AI provider，调用方是宿主 AI。
+- **没有自托管的方法论运行时**。运行时所有权留在外部。
+
+这些是被推迟，不是被放弃。它们位于"独立形态边界完整"范围之外。
+
+## Source Basis
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/package.json)

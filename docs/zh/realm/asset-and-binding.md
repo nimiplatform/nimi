@@ -1,130 +1,130 @@
 # 资产与绑定
 
-Realm 把 Resource、Asset、Bundle、Binding 切成不同的类型化概念。多数平台把它们塌缩为「文件」。Nimi 让它们分开，这样 Resource 能挂到很多面而不变成 Asset，Asset 能组合进 Bundle 而不丢自己独立的所有权身份。
+Realm 把 Resource、Asset、Bundle、Binding 拆成四个不同的强类型概念。多数平台把它们都揉成"文件"，Nimi 选择拆开：一个 Resource 可以挂到多个表面而不变成 Asset；一个 Asset 可以组合进 Bundle 而不丢失自己的所有权身份。
 
 ## Resource
 
-最低层的类型化内容载体。
+最底层的强类型内容载体。
 
-| 性质 | 值 |
+| 属性 | 值 |
 | --- | --- |
 | 类型 | `IMAGE`、`VIDEO`、`AUDIO`、`TEXT` |
-| 身份 | 稳定 |
+| 标识 | 稳定 |
 | 存储 | Realm 托管 |
-| 投递 | 类型化 |
-| 状态 | 类型化生命周期（上传准备 → finalize → 删除） |
-| 隐含所有权？ | 否 |
+| 分发 | 强类型 |
+| 状态 | 强类型生命周期（上传准备 → 终态化 → 删除） |
+| 是否带所有权 | 否 |
 
-Resource 就是带 id 和 type 的类型化字节。它**不**隐含谁拥有它；它本身**不是** asset。
+Resource 就是带 id 和类型的强类型字节流。它本身不带"谁拥有"的语义，也不是 Asset。
 
 ## OwnableAsset
 
-可独立拥有的形式对象。
+可独立拥有的正式对象。
 
-| 性质 | 值 |
+| 属性 | 值 |
 | --- | --- |
 | 类型 | `WORK` 或 `ITEM` |
-| 拥有者 | 跟踪 |
-| 作者 | 跟踪 |
-| Lineage | 跟踪 |
+| 所有者 | 记录在册 |
+| 作者 | 记录在册 |
+| 血缘 | 记录在册 |
 | 生命周期 | `DRAFT → READY → ARCHIVED → DELETED` |
-| 绑定策略 | 按 asset |
-| `previewResourceId` | 跟 `resourceRefs` 分开 |
+| 绑定策略 | 按 asset 决定 |
+| `previewResourceId` | 与 `resourceRefs` 分开 |
 
-OwnableAsset **跟 Resource 不同**。Asset 除了引用 resource 还有所有权、作者、lineage。`previewResourceId` 是预览图的独立字段，跟 asset 的内容 resource 分开。
+OwnableAsset **和 Resource 是两个东西**。除了引用一组 resource，asset 还带所有权、作者、血缘。`previewResourceId` 是预览图字段，独立于 asset 的内容 resource。
 
 ## Bundle
 
-形式组合单元 — OwnableAsset 引用的有序组。
+正式的组合单位——一组按顺序排列的 OwnableAsset 引用。
 
-| 性质 | 值 |
+| 属性 | 值 |
 | --- | --- |
-| 身份 | 稳定 |
-| 拥有者 | 跟踪 |
-| 成员排序 | 保留 |
-| 封面 asset | 跟成员列表分开 |
-| 生命周期 | 终于 `ARCHIVED`（无 `DELETED`） |
+| 标识 | 稳定 |
+| 所有者 | 记录在册 |
+| 成员顺序 | 保留 |
+| 封面资产 | 与成员列表分开 |
+| 生命周期 | 终态止于 `ARCHIVED`（无 `DELETED`） |
 
-Bundle 组合 asset 但**不**吸纳它们。每个成员 asset 保留自己的所有权与作者。
+Bundle 把 asset 组合在一起，但不吞并它们。每个成员 asset 保留自己的所有权和作者。
 
-注意：Bundle 生命周期终于 `ARCHIVED` — **没** `DELETED` 状态。不再要的 bundle 被归档；底层 asset 仍可拥有、可重用。
+注意：Bundle 生命周期止于 `ARCHIVED`，没有 `DELETED` 态。不再需要的 bundle 归档即可，底层 asset 仍然可拥有、可复用。
 
 ## Binding
 
-唯一的持久对象-到-宿主关系。这是说「这个对象以这种方式挂到这个宿主」的类型化边。
+唯一一种持久的对象-宿主关系。它是强类型的边："这个对象按这种方式挂在那个宿主上"。
 
-| 性质 | 值 |
+| 属性 | 值 |
 | --- | --- |
 | 对象类型 | `RESOURCE` / `ASSET` / `BUNDLE` |
 | 宿主类型 | `WORLD` / `AGENT` / `SCENE` / `WORLD_EVENT` / `WORLDVIEW` |
 | 绑定种类 | `PRESENTATION` / `USE` / `IMPORT` |
-| 合法性 | 矩阵治理；未声明组合被拒 |
+| 合法性 | 由矩阵裁定，未声明组合直接拒收 |
 
-绑定有三个自由轴（对象类型、宿主类型、种类），但**合法性矩阵只准入子集**。未声明组合 fail-close。
+Binding 有三个自由轴（对象类型、宿主类型、种类），但**合法性矩阵只准入其中一部分组合**。未声明的组合 fail-closed。
 
-这就是阻止「随便绑任何 asset 到任何宿主任何方式」蔓延的原因。想把 Resource 作为 `IMPORT` 挂到 Agent 的创作者会发现那是不是准入合法组合。
+这就是为什么不存在"任意 asset 任意挂法"的乱象。一个想把 Resource 以 `IMPORT` 挂到 Agent 的创作者，会立刻知道这个组合是不是合法。
 
 ## Attachment
 
-只是跨面显示信封。跟 Binding 不同。
+只是跨表面的展示包装，**与 Binding 不同**。
 
 | 概念 | 权威 |
 | --- | --- |
-| Binding | Realm 规范化真相 |
-| Attachment | 跨面显示信封，**不是**绑定真相 |
+| Binding | Realm 规范真相 |
+| Attachment | 跨表面展示包装，不是绑定真相 |
 
-Attachment 让面显示「看，这跟那个相关」而**不**隐含规范化绑定。Binding 是持久规范化真相；attachment 是呈现胶水。
+Attachment 让表面可以展示"这两个有关联"，但不暗示存在规范绑定。Binding 是持久的规范真相；Attachment 是展示侧的粘合剂。
 
-## 阅读场景：创作者发布一套服装
+## 场景：创作者发布一套服饰
 
-某创作者想发布服装 asset。
+一位创作者要发布一套服饰资产。
 
-1. **Resource。** 创作者上传贴图 / mesh / 元数据作为 Resource（`IMAGE` 等）。
-2. **OwnableAsset。** 创作者建一个 `WORK` 类型（或按用途用 `ITEM`）的 OwnableAsset。Asset 引用 resource；所有权是创作者。
-3. **生命周期。** 创作者 finalize 后 asset 走 `DRAFT → READY`。
-4. **可选：组成套。** 创作者把服装组成 `Bundle`，含若干相关 asset。Bundle 有自己的所有者和成员排序。
-5. **绑到世界或 Scene。** 创作者绑：
-   - Asset → Scene 作 `USE`（asset 在 Scene 里被用）。
-   - Asset → Bundle 作 `IMPORT`（asset 是 bundle 的一部分）。
-   - Bundle → World 作 `PRESENTATION`（bundle 出现在世界呈现面）。
-6. **合法性矩阵。** Realm 只在合法性矩阵准入时准入每个绑定。
+1. **Resource**。创作者把贴图、网格、元数据上传为 Resource（`IMAGE` 等）。
+2. **OwnableAsset**。创作者创建一个 `WORK` 类型（或按用途选 `ITEM`）的 OwnableAsset，引用上述 resource，所有者是创作者本人。
+3. **生命周期**。创作者定稿后，asset 从 `DRAFT` 走到 `READY`。
+4. **可选：组合成一套**。创作者把整套衣服组进一个 `Bundle`，包含若干相关 asset。Bundle 有自己的所有者和成员顺序。
+5. **绑定到世界或场景**：
+   - Asset → Scene 用 `USE`（asset 在某个场景里被使用）。
+   - Asset → Bundle 用 `IMPORT`（asset 是 bundle 的一部分）。
+   - Bundle → World 用 `PRESENTATION`（bundle 出现在世界的展示面）。
+6. **合法性矩阵**。Realm 只准入矩阵里允许的绑定。
 
-创作者通过类型化矩阵拿到明确合法使用权。
+创作者通过强类型矩阵拿到明确的合法使用权。
 
-## 阅读场景：非法绑定组合
+## 场景：一次非法绑定
 
-某 mod 试图把 Resource 作为 `IMPORT` 直接绑到 Agent。
+一个 mod 想把 Resource 直接以 `IMPORT` 绑到 Agent 上。
 
-1. **提交绑定。** Mod 发绑定请求。
-2. **Realm 校验。** 查合法性矩阵：`RESOURCE` × `AGENT` × `IMPORT`。
-3. **未准入。** 这个组合不在矩阵里。
-4. **拒。** Fail-close；返类型化错误。
-5. **Mod 看到原因。** 「这个绑定组合未准入；查合法性矩阵」。
+1. **提交绑定**。Mod 发出绑定请求。
+2. **Realm 校验**。检查合法性矩阵：`RESOURCE` × `AGENT` × `IMPORT`。
+3. **未准入**。这个组合不在矩阵里。
+4. **拒收**。fail-closed，返回强类型错误。
+5. **Mod 看到原因**："此绑定组合未准入，请查阅合法性矩阵。"
 
-Mod **无法**意外违反宿主类型。矩阵是声明式的、强制的。
+Mod 不会无意中违反宿主类型。矩阵是声明式的，并强制执行。
 
-## 阅读场景：Bundle 归档后 asset 还在
+## 场景：Bundle 归档但 asset 还活着
 
-某创作者归档了一个含 asset 的 bundle。
+一位创作者归档了一个 bundle，里面引用过一个 asset。
 
-1. **Bundle 归档。** Bundle 生命周期搬到 `ARCHIVED`。
-2. **成员 asset 不受影响。** Bundle 组合的 OwnableAsset 按各自生命周期保持 `READY` 或 `ARCHIVED`。
-3. **可重用。** 创作者可以把同一个 asset 组到别的 bundle。
+1. **Bundle 归档**。Bundle 生命周期进入 `ARCHIVED`。
+2. **成员 asset 不受影响**。bundle 引用过的 OwnableAsset 仍按自己的生命周期保持 `READY` 或 `ARCHIVED`。
+3. **可以复用**。创作者可以把同一个 asset 组进另一个 bundle。
 
-这就是为什么 Asset 和 Bundle 是不同概念。塌缩它们意味着归档 bundle 会让其内容成孤儿；分开保留可重用性。
+这就是 Asset 与 Bundle 必须是两个概念的原因。如果合并成一个，归档 bundle 就会让里面的内容变成孤儿；分开则保住了复用性。
 
-## 为什么是四个概念而不是一个
+## 为什么是四个概念，不是一个
 
-| 概念 | 回答什么 |
+| 概念 | 它回答的问题 |
 | --- | --- |
-| Resource | 这些类型化字节是什么 |
-| Asset | 谁作为可独立拥有对象拥有这个东西 |
-| Bundle | 这个组合的 asset 组是什么 |
-| Binding | 这个对象怎么挂到那个宿主 |
+| Resource | 这堆强类型字节是什么？ |
+| Asset | 谁拥有这个可独立拥有的对象？ |
+| Bundle | 这是一组怎样组合在一起的 asset？ |
+| Binding | 这个对象按什么方式挂在那个宿主上？ |
 
-塌缩它们就丢了答案。「文件」抽象**无法**回答「谁拥有这个组合」或「这是不是合法附着」。
+合并这些概念会丢掉这些回答。"文件"这一层抽象答不出"谁拥有这个组合体"或"这个挂法是否合法"。
 
-## 来源
+## Source Basis
 
 - [`.nimi/spec/realm/asset.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/asset.md)
 - [`.nimi/spec/realm/binding.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/binding.md)

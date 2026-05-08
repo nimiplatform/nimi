@@ -1,82 +1,82 @@
-# 怎么调和分歧审计
+# 对齐分歧的审计结论
 
-两个审计跑在同一个 wave（或同一个 packet 决定）上、返不同裁定。怎么调和？
+同一个 wave（或同一份 packet 决策）跑过两次审计，得到了不同结论。该如何对齐？
 
-## 菜谱
+## 步骤
 
-1. **校验两个审计都真。** 检查每个审计是不是被 admitted 独立循环产出、按类型化合同记。
-2. **读 finding，不只读裁定。** `PASS` 审计可能有 caveat；`NEEDS_REVISION` 审计可能命名具体阻塞。
-3. **更严裁定默认赢。** 如果一个审计说 `NEEDS_REVISION` 另一个说 `PASS`，`NEEDS_REVISION` 裁定的 finding 是当前活跃闸门。`PASS` 审计**不能**软化阻塞。
-4. **Finding 驱动解决。** 处理被命名的阻塞；**别**只是再审计指望 `PASS`。
-5. **记一份显式调和工件。** 写 `audit-reconciliation-<topic-or-wave-id>.md` 捕捉两个审计、finding 列表、选定解决。
-6. **如果调和不是代码 fix**（比如 `PASS` 审计是对的、`NEEDS_REVISION` 审计基于误读），记 rationale 与审计的修正路径。
-7. **如要再审计。** 解决后，重跑独立审计；记新裁定。
+1. **确认两次审计都是真的。** 每次审计都应来自一个已准入的独立审计回路，并按强类型契约记录。
+2. **看 finding，不只是看结论。** PASS 的审计也可能带告警；NEEDS_REVISION 的审计会指出具体阻塞项。
+3. **默认更严的结论胜出。** 一个说 NEEDS_REVISION、一个说 PASS，那么 NEEDS_REVISION 那一份的 finding 是当下生效的门。PASS 不能软化阻塞项。
+4. **由 finding 决定如何处置。** 处理具体阻塞项，不要为了拿 PASS 而反复重审。
+5. **写一份明确的对齐工件。** 命名 `audit-reconciliation-<topic-or-wave-id>.md`，记录两次审计、finding 列表与最终选择的处置方式。
+6. **如果对齐不是改代码而是修正审计**（比如 PASS 是对的，NEEDS_REVISION 来自误读），把推理过程与审计纠错路径记下来。
+7. **必要时再审一次。** 处置完成后，跑独立的复审，记录新结论。
 
-## 为什么更严默认赢
+## 为什么默认更严胜出
 
-四闭合框架要四个维度都显式。`NEEDS_REVISION` finding 标识具体 gap。**不**处理那个 gap 的 `PASS` 审计对它沉默、**不**矛盾。
+四闭环要求所有四个维度都明确。NEEDS_REVISION 的 finding 标识了一处具体缺口。一份 PASS 审计如果没回应这处缺口，那它对此是沉默的，不是反驳。
 
-方法学的结构规则：**未解决阻塞 finding fail-close**。`PASS` **不能**通过简单分歧覆盖阻塞 finding；finding 必须被处理（解决、声明非阻塞、或类型化证据展示无效）。
+方法学的结构性规则：**未解决的阻塞 finding 必须 fail-closed**。PASS 不能仅凭"我不同意"就推翻一处阻塞 finding。这处 finding 必须被处理（解决、声明非阻塞，或以强类型证据证伪）。
 
-## 阅读场景：真实调和
+## 场景：一次真实的对齐
 
-之前公开文档 remediation topic 的 wave-1 被两个独立 session 审计：
+上一个公开文档修复 topic 的 wave-1 由两个独立会话审计：
 
 - 审计 A：PASS
-- 审计 B：NEEDS_REVISION（带具体 design-only-language finding）
+- 审计 B：NEEDS_REVISION（指出了 design-only 措辞的问题）
 
-调和：
+对齐过程：
 
-| 步骤 | 动作 |
+| 步骤 | 操作 |
 | --- | --- |
-| 两审计都真 | 确认 |
-| Finding 检查 | 审计 B 的阻塞是关于 topic 级文件里的边界措辞 |
-| 更严赢 | 审计 B 的 NEEDS_REVISION 持 |
-| 解决 | 更新边界措辞；preflight rescope 准入后续 wave |
-| 调和工件 | `external-audit-round-N-reconciliation.md` |
-| 再审计 | 隐含在后续 wave 准入审计里 |
+| 两次审计为真 | 已确认 |
+| 看 finding | 审计 B 的阻塞项是 topic 级文件中的边界措辞 |
+| 更严胜出 | 审计 B 的 NEEDS_REVISION 生效 |
+| 处置 | 改边界措辞；preflight 重新划定范围以准入后续 wave |
+| 对齐工件 | `external-audit-round-N-reconciliation.md` |
+| 复审 | 由后续 wave 的准入审计承担 |
 
-审计 A 的 PASS 被认作设计包完整性的证据；它**没**覆盖审计 B 的边界措辞阻塞。解决处理了审计 B 的具体 finding。
+审计 A 的 PASS 在"设计包完整性"层面被接受，但它并不能压过审计 B 关于边界措辞的阻塞项。最终处置正面回应了审计 B 的具体 finding。
 
-## 阅读场景：两个 PASS 带不同 caveat
+## 场景：两个 PASS 但带不同告警
 
-审计 A：PASS，带非阻塞备注「考虑加例子」
-审计 B：PASS，带非阻塞备注「考虑收紧禁用捷径列表」
+审计 A：PASS，附非阻塞备注"建议补一个示例"
+审计 B：PASS，附非阻塞备注"建议收紧 forbidden-shortcuts 列表"
 
-这些**不**是裁定分歧；是带不重叠非阻塞备注的收敛。
+这不是结论分歧，而是结论一致下的两条非阻塞备注。
 
-菜谱：
+处置：
 
-1. 两个 PASS 裁定都被准入。
-2. 非阻塞备注作为未来改进候选记下来。
-3. **不**要调和工件（裁定收敛）。
-4. 未来 wave 可能拾起非阻塞备注作范围。
+1. 两个 PASS 结论都准入。
+2. 非阻塞备注作为后续可改进项记录在案。
+3. 不需要对齐工件（结论一致）。
+4. 后续 wave 可以把非阻塞备注纳入范围。
 
-## 阅读场景：争议裁定
+## 场景：争议结论
 
 审计 A：PASS
-审计 B：FAIL，带 finding「工作引入 `silent_owner_cut_reopen`」
+审计 B：FAIL，finding 是"该工作引入了 `silent_owner_cut_reopen`"
 
-调和：
+对齐过程：
 
-| 步骤 | 动作 |
+| 步骤 | 操作 |
 | --- | --- |
-| 校验审计 B 的 finding | 检查工作；看 owner cut 是否被重开 |
-| 如 finding 持 | 审计 B 的 FAIL 是活跃闸门；wave 的 owner-cut 重开必须被解决或显式准入 |
-| 如 finding 不持 | 审计 B 的证据被纠正；调和工件记原因；审计 A 的 PASS 持 |
+| 验证审计 B 的 finding | 检查实际工作；确认 owner cut 是否真被重新打开 |
+| 如果 finding 成立 | 审计 B 的 FAIL 生效；该 wave 的 owner-cut 重开必须解决，或显式准入 |
+| 如果 finding 不成立 | 审计 B 的证据被纠正；对齐工件解释原因；审计 A 的 PASS 维持 |
 
-不管哪种，解决都**类型化、被记下**，**不是**「我们挑了喜欢的裁定」。
+无论走哪条路，处置都要**强类型记录**，不能"看哪个结论顺眼选哪个"。
 
-## 要看什么
+## 注意事项
 
-| 症状 | 含义 |
+| 现象 | 含义 |
 | --- | --- |
-| 两审计同循环 | 两个都拒；auditor 必须独立 |
-| 因更快就挑松审计 | 软通过；拒 |
-| 跳过调和 | 方法学规则违反；要求调和工件 |
-| 再审计直到 PASS | 软通过；finding 仍要处理 |
+| 两次审计来自同一回路 | 两次都拒绝；审计员必须独立 |
+| 因为更快就选了更宽松的审计 | 软通过；拒绝 |
+| 跳过对齐 | 违规；要求补对齐工件 |
+| 反复重审直到 PASS | 软通过；finding 仍需处置 |
 
-## 来源
+## Source Basis
 
 - [`.nimi/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/result.schema.yaml)
 - [`.nimi/contracts/decision-review.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/decision-review.schema.yaml)

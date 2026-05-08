@@ -1,20 +1,20 @@
-# 怎么处理 pending acceptance
+# 处理 Pending Acceptance
 
-你的 wave 按机器标准闭了但人审接受度没记。你不确定该 true-close 还是等。
+Wave 已经按机器标准关闭，但用户尚未给出明确确认。你不确定该 true-close 还是继续等。
 
-## 菜谱
+## 步骤
 
-1. **不**把 topic 搬到 `closed`。 留在 `pending`。
-2. **记一份显式 pending-note** 带 `close_trigger` 与 `reopen_criteria`。
-3. **把 wave 的 `consumer_closure: closed_pending_user_acceptance`**（**不是** `closed`）。这是诚实的维度状态。
-4. **显式写 wave 审计残余风险。** 审计裁定对机器可观测标准能 PASS，但审计本身记「最终消费方接受度仍要人审」。
-5. **等。** Pending 是带显式重开标准的真状态；它**不是**「卡住」。
-6. **用户 review 时：**
-   - 接受 → 走 true-close 仪式。
-   - 带新 finding 拒 → 在同一 topic 下准入 remediation wave。
-   - 带结构 finding 拒 → 准入下个 wave 前重看 topic.yaml wave deps。
+1. **不要把 topic 转入 `closed`。** 留在 `pending`。
+2. **写一份明确的 pending-note**，包含 `close_trigger` 与 `reopen_criteria`。
+3. **把该 wave 的 `consumer_closure` 标记为 `closed_pending_user_acceptance`**（不是 `closed`）。这是诚实的状态。
+4. **把 wave 的审计残余风险写明白。** 机器可观测项的审计裁决可以是 PASS，但审计本身要注明"最终消费者确认仍需人工复核"。
+5. **等。** Pending 是有明确 reopen 条件的真实状态，不是"卡住了"。
+6. **当用户给出复核结论：**
+   - 接受 → 走 true-close 流程。
+   - 拒绝并附上新发现 → 在同一 topic 下准入修复 wave。
+   - 拒绝并指出结构性问题 → 在准入下一个 wave 前重审 topic.yaml 中的 wave 依赖关系。
 
-## 记 pending-note 的菜谱
+## Pending-note 的写法
 
 ```yaml
 ---
@@ -23,84 +23,85 @@ topic_id: <topic-id>
 entered_from_state: ongoing
 reason: awaiting-human-docs-acceptance
 summary: |
-  <一段事实摘要：完成了什么、为什么在等>
+  <用一段话客观说明已完成什么、为什么在等>
 status: active
 reopen_criteria: |
-  <什么用户反馈会触发重开 — 具体>
+  <什么样的用户反馈会触发 reopen——写具体>
 close_trigger: |
-  <什么用户动作会触发 true-close — 通常是「显式接受」>
+  <什么样的用户动作会触发 true-close——通常是
+  "明确接受">
 ---
 
 # Pending Note
 
-<上面的人可读扩展>
+<上述结构的人类可读展开>
 ```
 
-重开标准与 close trigger 必须显式。「最终用户会看一下这个」**不是**标准。
+reopen 条件与 close 触发条件必须写明确。"用户迟早会看的"不是合格条件。
 
-## 阅读场景：Wave 闭了、用户没 review
+## 场景：Wave 已关闭，用户未复核
 
-你跑了文档重写 wave。审计过了。用户还没 review 渲染输出。
+你跑了一个文档重写 wave，审计 PASS，用户尚未看渲染结果。
 
-| 步骤 | 动作 |
+| 步骤 | 操作 |
 | --- | --- |
 | Topic 状态 | `ongoing → pending` |
 | Wave 状态 | `closed` |
 | Wave consumer_closure | `closed_pending_user_acceptance` |
-| Pending-note close_trigger | 「用户显式接受渲染文档」 |
-| Pending-note reopen_criteria | 「用户报告渲染文档不达接受线」 |
+| Pending-note close_trigger | "用户明确接受渲染后的文档" |
+| Pending-note reopen_criteria | "用户反馈渲染后的文档不达标" |
 
-现在：等。**别** true-close。**别**没准入就继续做相邻项。
+接下来：等。不要 true-close。也不要在没有准入的情况下继续做相邻条目。
 
-## 阅读场景：用户 review 并接受
+## 场景：用户复核并接受
 
-用户确认文档可接受。
+用户确认文档可以接受。
 
-| 步骤 | 动作 |
+| 步骤 | 操作 |
 | --- | --- |
-| Topic 状态 | `pending → closed`（在 topic-true-close 仪式里） |
+| Topic 状态 | `pending → closed`（在 topic-true-close 流程中） |
 | current_true_close_status | `not_started → passed`（带审计） |
-| Topic-true-close-audit | 已记 |
-| 文件夹 | 把 topic 搬到 `.nimi/topics/closed/...` |
+| Topic-true-close-audit | 已记录 |
+| 文件夹 | 把 topic 移到 `.nimi/topics/closed/...` |
 
-接受度授权了搬动。
+是用户的接受授权了这次状态迁移。
 
-## 阅读场景：用户 review 并拒
+## 场景：用户复核并拒绝
 
-用户说文档在某具体区域还要工作。
+用户指出文档在某个具体方向还需要修。
 
-| 步骤 | 动作 |
+| 步骤 | 操作 |
 | --- | --- |
-| Topic 状态 | 留 `pending`（或作为准入下个 wave 的一部分搬回 `ongoing`） |
-| 准入 remediation wave | 新 wave 带反映用户具体反馈的 `acceptance_invariants` |
-| Wave deps | 引闭合的之前 wave |
-| Pending-note | 更新反映新等待条件 |
+| Topic 状态 | 留在 `pending`（或在准入下一个 wave 时回到 `ongoing`） |
+| 准入修复 wave | 新 wave 的 `acceptance_invariants` 反映用户给出的具体反馈 |
+| Wave deps | 引用上一个已关闭的 wave |
+| Pending-note | 更新到反映新的等待条件 |
 
-用户反馈驱动下个 wave 的不变量。方法学把「用户说不好」转成「下个 wave 接受度是 X」。
+用户反馈直接驱动下一 wave 的不变式。方法学把"用户说不行"翻译成"下一 wave 的验收标准是 X"。
 
-## 阅读场景：错误 — Topic 提早搬到 closed
+## 场景：误把 topic 提前关闭
 
-你因所有 wave 都闭了就把 topic 文件夹搬到 `.nimi/topics/closed/`，但用户还没接受。
+所有 wave 都关闭了，于是你顺手把 topic 文件夹挪到了 `.nimi/topics/closed/`，但用户其实没确认。
 
 | 步骤 | 恢复 |
 | --- | --- |
-| 检查 `current_true_close_status` | 如果 `not_started`，topic 没正确 true-closed |
-| Topic 搬回 `pending` | 文件夹 + topic.yaml |
-| 记显式 pending-note | 它该是的样子 |
-| 记 `last_transition_reason: rolled_back_premature_topic_close_to_pending_for_user_acceptance` | 审计记录 |
+| 检查 `current_true_close_status` | 如果是 `not_started`，说明 topic 没经过正确 true-close |
+| 把 topic 移回 `pending` | 文件夹与 topic.yaml 一起 |
+| 补写明确 pending-note | 还原它本应有的样子 |
+| 记录 `last_transition_reason: rolled_back_premature_topic_close_to_pending_for_user_acceptance` | 留下审计痕迹 |
 
-提早 true-close 本身是伪闭合模式。恢复是撤销搬动并记修正。
+提前 true-close 本身就是一种伪关闭模式。恢复办法是撤销移动并把更正记下来。
 
-## 要看什么
+## 注意事项
 
-| 症状 | 含义 |
+| 现象 | 含义 |
 | --- | --- |
-| Topic 搬到 closed 没 true-close 审计 | 提早；回滚 |
-| Wave consumer_closure 标 `closed` 没用户 review | 软通过；调和到 `closed_pending_user_acceptance` |
-| Pending 状态没 pending-note | 规则违反；建显式 pending-note |
-| Pending-note 没 close_trigger | 软；带显式 trigger 重写 |
+| 没有 true-close 审计就把 topic 转到 closed | 提前；回滚 |
+| 用户未复核却把 wave consumer_closure 标 `closed` | 软通过；改回 `closed_pending_user_acceptance` |
+| 处于 pending 但缺 pending-note | 违规；补一份明确的 pending-note |
+| Pending-note 缺 close_trigger | 软；重写并写明触发条件 |
 
-## 来源
+## Source Basis
 
 - [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
 - [`.nimi/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic.schema.yaml)

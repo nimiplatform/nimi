@@ -1,25 +1,25 @@
-# 教程：第一个 Topic Bootstrap
+# 教程：首个 Topic 引导
 
-这个教程带你把 Nimi Coding bootstrap 到一个新项目并把 `.nimi/**` 设好。结束时你会有：
+本教程带你在一个新项目里完成 Nimi Coding 引导，把 `.nimi/**` 接好。完成后你会拥有：
 
-- `@nimiplatform/nimi-coding` 已装
-- `.nimi/**` 装上包拥有的 bootstrap 源
-- 一个托管 `AGENTS.md` / `CLAUDE.md` 块确认 bootstrap
-- 一份给 `spec_reconstruction` 的权威 JSON handoff payload
+- 安装好的 `@nimiplatform/nimi-coding`
+- 写入了包自有 bootstrap source 的 `.nimi/**`
+- `AGENTS.md` / `CLAUDE.md` 中受管的 AI 区块，确认引导已就绪
+- 一份针对 `spec_reconstruction` 的权威 JSON 交接 payload
 
-## 前置条件
+## 前置要求
 
-| 要求 | 为什么 |
+| 要求 | 原因 |
 | --- | --- |
-| Node.js 24 或更新版本 | 包跑在 Node 上 |
-| 项目根带版本控制 | Bootstrap 会建新文件；你会想 review |
-| 一个 admitted 外部 AI host | 下一步（`spec_reconstruction`）需要 |
+| Node.js 24 或更新 | 包跑在 Node 上 |
+| 受版本管理的项目根 | 引导会创建文件，你需要复核 |
+| 一个已准入的外部 AI 宿主 | 下一步 `spec_reconstruction` 用 |
 
-教程**不**要求 spec 已经被重建 — 那是 bootstrap 之后的下一步。
+本教程不要求 spec 已重建——那是引导后的下一步。
 
-## 步骤 1：装包
+## Step 1：安装包
 
-把 `@nimiplatform/nimi-coding` 装为 dev 依赖：
+把 `@nimiplatform/nimi-coding` 装为 dev dependency：
 
 ```bash
 npm install --save-dev @nimiplatform/nimi-coding
@@ -31,103 +31,103 @@ npm install --save-dev @nimiplatform/nimi-coding
 pnpm add -D @nimiplatform/nimi-coding
 ```
 
-不同项目可以用不同包管理器；目标一样：让 `nimicoding` 在项目里作为 CLI 可用。
+不同包管理器命令略有不同，结果相同：项目里能用 `nimicoding` CLI。
 
-装完后，`npx nimicoding --help` 应打印帮助文本。
+安装完成后，`npx nimicoding --help` 能打印帮助文本。
 
-## 步骤 2：跑 `nimicoding start`
+## Step 2：跑 `nimicoding start`
 
-`nimicoding start` 是 bootstrap 入口。它**交互式**：解释每步、问确认、应用步骤。
+`nimicoding start` 是引导入口。它是**交互式**的：每一步都先解释、再确认、再应用。
 
-CLI 走过：
+CLI 会带你走完：
 
-1. 检测项目状态。
-2. 确认或接受托管 AI 入口（`AGENTS.md`、`CLAUDE.md` 块）。
-3. 把包源投到项目路径。
-4. 种 `.nimi/spec/_meta` 与 bootstrap 文件。
-5. 更新 `.gitignore` 给本地 runtime 状态。
-6. 准备给 `spec_reconstruction` 的 JSON handoff payload。
-7. 在终端直接打印 paste-ready prompt。
+1. 侦测项目状态。
+2. 确认或接受受管 AI 入口（`AGENTS.md`、`CLAUDE.md` 区块）。
+3. 把包内 source 投射到项目路径。
+4. 写入 `.nimi/spec/_meta` 和 bootstrap 文件 seed。
+5. 更新 `.gitignore`，覆盖本地 runtime 状态。
+6. 准备一份 `spec_reconstruction` 的 JSON 交接 payload。
+7. 在终端里直接打印可粘贴的提示词。
 
-这步后，项目根有：
+这一步完成后，项目根有：
 
 | 路径 | 内容 |
 | --- | --- |
-| `.nimi/methodology/` | 方法学源（policy） |
-| `.nimi/contracts/` | Schema 源 |
+| `.nimi/methodology/` | 方法学 source（policies） |
+| `.nimi/contracts/` | Schema source |
 | `.nimi/config/` | Bootstrap 配置 |
-| `.nimi/spec/_meta/` | Spec 生成元数据种子 |
-| `AGENTS.md`（或里面的块） | 托管 Nimi Coding 块 |
-| `CLAUDE.md`（或里面的块） | 托管 Nimi Coding 块 |
-| `.gitignore` | 加了本地状态 ignore 模式 |
+| `.nimi/spec/_meta/` | 规范生成元数据 seed |
+| `AGENTS.md`（或其中区块） | 受管 Nimi Coding 区块 |
+| `CLAUDE.md`（或其中区块） | 受管 Nimi Coding 区块 |
+| `.gitignore` | 已加上本地状态忽略规则 |
 
-## 步骤 3：用 `nimicoding doctor` 校验
+## Step 3：用 `nimicoding doctor` 校验
 
-`nimicoding doctor` 校验 bootstrap 是不是健康状态。
+`nimicoding doctor` 校验引导是否处于健康状态。
 
 它检查：
 
-- `.nimi/**` bootstrap 种子在
-- `.nimi/local/` 与 `.nimi/cache/` 在并仍被 ignore
-- Bootstrap 合同兼容元数据
-- 跨合同引用对齐
+- `.nimi/**` bootstrap seed 是否就位
+- `.nimi/local/`、`.nimi/cache/` 是否存在并保持忽略
+- Bootstrap 契约的兼容性元数据
+- 跨契约引用是否一致
 - Host-adapter 边界真相
-- 技能结果合同对齐
-- Handoff context 顺序就绪
+- 技能 result-contract 的对齐
+- 交接 context 顺序是否就绪
 
-健康 doctor 输出确认你能 hand off 技能给外部 AI host。
+doctor 输出健康，意味着你可以把技能交接给外部 AI 宿主了。
 
-如果是黄 / 红，报告命名区域；处理被命名的问题再跑一次。
+如果有黄/红警告，报告会指出问题位置；处理后再跑一次。
 
-## 步骤 4：检查生成的 handoff payload
+## Step 4：检查生成的交接 payload
 
-`nimicoding start` 产出了给 `spec_reconstruction` 的 JSON handoff payload。文件住在 `.nimi/local/handoff/`（或 CLI 放的位置；CLI 输出命名路径）。
+`nimicoding start` 已经为 `spec_reconstruction` 生成了 JSON 交接 payload。文件位于 `.nimi/local/handoff/`（或 CLI 输出里指明的路径）。
 
-打开 JSON。注意：
+打开这个 JSON，注意：
 
 - `skill: "spec_reconstruction"`
-- 一份带必需 context 顺序的类型化 payload
-- Host 该读的 source basis 路径
+- 一个有必备 context 顺序的强类型 payload
+- 宿主应当读取的 source basis 路径
 
-Payload 是包跟 host 之间的合同。
+这份 payload 就是包与宿主之间的契约。
 
-## 步骤 5：在这停
+## Step 5：到此为止
 
-你完成 bootstrap。项目现在是 Nimi Coding 采纳。下一步（在 [第一个 Wave 端到端](/zh/nimicoding/tutorials/first-wave-end-to-end)）是真的跑一个 wave。
+你已经完成了引导。项目现已接入 Nimi Coding。下一步（在 [首个 Wave 端到端](/zh/nimicoding/tutorials/first-wave-end-to-end) 中）才是真正跑一个 wave。
 
-这个教程里**就在这停**。**不**要把 payload 给 host；**不**要跑重建。Bootstrap 完成了；那就是你的结果。
+本教程**就停在这里**。先不要把 payload 交给宿主，也先不要跑重建。引导完成本身就是本教程的目标。
 
 ## 常见问题
 
-| 症状 | 解决 |
+| 现象 | 处理 |
 | --- | --- |
-| `nimicoding start` 抱怨既存文件 | Review 冲突；CLI 保留项目拥有真相、拒覆盖 |
-| `nimicoding doctor` 报生命周期漂移 | 再跑 `start`；CLI 在 bootstrap 上幂等 |
-| AGENTS.md 改动没应用 | CLI 显示确认；如果你拒了，再跑并确认 |
+| `nimicoding start` 报已有文件冲突 | 复核冲突；CLI 保留项目自有真相，拒绝覆写 |
+| `nimicoding doctor` 报告生命周期漂移 | 再跑一次 `start`；引导是幂等的 |
+| AGENTS.md 改动未应用 | CLI 弹了确认框；如果你拒绝过，重跑并确认 |
 
-## 你现在有什么
+## 现在你拥有什么
 
-教程后，项目有：
+教程结束后，你的项目有：
 
-- 完整的 `.nimi/**` bootstrap。
-- `AGENTS.md` 与 `CLAUDE.md` 里的托管 AI 入口。
-- 准备 hand off 的 `spec_reconstruction` handoff payload。
+- 完整的 `.nimi/**` 引导。
+- 受管的 AI 入口（在 `AGENTS.md` 与 `CLAUDE.md` 中）。
+- 一份准备好的 `spec_reconstruction` 交接 payload。
 
-你**还没**有：
+你**还没有**：
 
-- 重建出的规范化 spec 树（下一步）。
-- 任何 topic / wave / packet 工件（按需要后续创建）。
-- 治理中的 AI-coding 工作（你有可用的纪律但**没**进行中的工作）。
+- 已重建的权威规范树（下一步）。
+- 任何 topic / wave / packet 工件（按需在后续创建）。
+- 受治理的 AI 编码工作（你拥有了纪律框架，但还没有任务进行中）。
 
 ## 下一步
 
-如果你想真的在样本任务上用方法学，继续 [第一个 Wave 端到端](/zh/nimicoding/tutorials/first-wave-end-to-end)。
+如果想在样例任务上真正用一遍方法学，继续看 [首个 Wave 端到端](/zh/nimicoding/tutorials/first-wave-end-to-end)。
 
-## 这个教程**不**覆盖什么
+## 本教程不涉及
 
-这个教程**不**覆盖具体 AI host 的 host 特定配置。包是宿主无关的；你能挑任何 admitted host。
+本教程不覆盖具体宿主的特定配置。包是宿主无关的，你可以选任何已准入的宿主。
 
-## 来源
+## Source Basis
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
 - [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)（CLI 实现）
