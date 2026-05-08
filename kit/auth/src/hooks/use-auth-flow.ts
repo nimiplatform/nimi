@@ -177,13 +177,20 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     || Boolean(desktopCallbackToken)
     || Boolean(desktopCallbackUser);
 
+  const hasFreshAuthenticatedSession =
+    authStatus === 'authenticated' && Boolean(desktopCallbackToken);
+
   const initialView: AuthView =
     config.initialView
-    ?? (desktopCallbackRequest && hasDesktopCallbackSession
+    ?? (desktopCallbackRequest && hasFreshAuthenticatedSession
       ? 'desktop_authorize'
       : 'main');
 
   const [view, setView] = useState<AuthView>(initialView);
+  const [desktopProbeStatus, setDesktopProbeStatus] = useState<
+    'idle' | 'probing' | 'valid' | 'invalid'
+  >(() => (desktopCallbackRequest && hasFreshAuthenticatedSession ? 'valid' : 'idle'));
+  const desktopProbeStartedRef = useRef(false);
   const [embeddedStage, setEmbeddedStage] = useState<EmbeddedAuthStage>('logo');
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [showRegisterConfirm, setShowRegisterConfirm] = useState(false);
@@ -272,13 +279,84 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     return () => { window.removeEventListener('storage', handleStorage); };
   }, [desktopCallbackRequest]);
 
+  // Validate the persisted desktop-callback session before showing the Authorize view.
+  // Without this probe the UI optimistically shows "Authorize Desktop" based on a
+  // localStorage user record, only to fail at click time when the underlying token is gone.
+  // The ref-based one-shot guard ensures we never re-enter the async path when state
+  // changes flip dependency values (which would otherwise tear down the in-flight probe
+  // via cleanup before it can settle to 'valid' or 'invalid').
   useEffect(() => {
     if (!desktopCallbackRequest || !hasDesktopCallbackSession) {
       return;
     }
+    if (hasFreshAuthenticatedSession) {
+      setDesktopProbeStatus((current) => (current === 'valid' ? current : 'valid'));
+      return;
+    }
+    if (desktopProbeStatus !== 'idle') {
+      return;
+    }
+    if (desktopProbeStartedRef.current) {
+      return;
+    }
+    desktopProbeStartedRef.current = true;
+    setDesktopProbeStatus('probing');
+    void (async () => {
+      try {
+        const restored = await adapter.restoreSession?.();
+        const restoredAccessToken = String(restored?.accessToken || '').trim();
+        if (!restoredAccessToken) {
+          setDesktopProbeStatus('invalid');
+          return;
+        }
+        await adapter.applyToken(restoredAccessToken, restored?.refreshToken || undefined);
+        const probedUser = await adapter.loadCurrentUser();
+        if (!probedUser) {
+          await adapter.clearPersistedSession?.().catch(() => undefined);
+          setDesktopProbeStatus('invalid');
+          return;
+        }
+        setDesktopProbeStatus('valid');
+      } catch {
+        await adapter.clearPersistedSession?.().catch(() => undefined);
+        setDesktopProbeStatus('invalid');
+      }
+    })();
+  }, [
+    desktopCallbackRequest,
+    hasDesktopCallbackSession,
+    hasFreshAuthenticatedSession,
+    desktopProbeStatus,
+    adapter,
+  ]);
 
+  useEffect(() => {
+    if (!desktopCallbackRequest || !hasDesktopCallbackSession) {
+      return;
+    }
+    if (desktopProbeStatus !== 'valid') {
+      return;
+    }
     setView((current) => (current === 'main' ? 'desktop_authorize' : current));
-  }, [desktopCallbackRequest, hasDesktopCallbackSession]);
+  }, [desktopCallbackRequest, hasDesktopCallbackSession, desktopProbeStatus]);
+
+  // Probe failed — drop straight into the email-entry stage with the persisted email
+  // pre-filled and the expiry surfaced, so the user does not have to click the logo
+  // and re-type the address that was just shown to them.
+  useEffect(() => {
+    if (!desktopCallbackRequest) return;
+    if (desktopProbeStatus !== 'invalid') return;
+    setView((current) => (current === 'desktop_authorize' ? 'main' : current));
+    if (mode === 'embedded') {
+      setEmbeddedStage((current) => (current === 'logo' ? 'email' : current));
+    }
+    const persistedEmailRaw = desktopCallbackUser?.email;
+    const persistedEmail = typeof persistedEmailRaw === 'string' ? persistedEmailRaw.trim() : '';
+    if (persistedEmail) {
+      setEmail((current) => (current.trim() ? current : persistedEmail));
+    }
+    setLoginError((current) => current ?? AUTH_COPY.desktopSessionInvalid);
+  }, [desktopCallbackRequest, desktopProbeStatus, mode, desktopCallbackUser]);
 
   // Cleanup pending tokens on unmount
   useEffect(() => {

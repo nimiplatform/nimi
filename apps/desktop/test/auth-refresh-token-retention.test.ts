@@ -148,8 +148,30 @@ test('desktop callback auth flow upgrades main view after async session restore'
   );
   assert.match(
     authFlowSource,
-    /if \(!desktopCallbackRequest \|\| !hasDesktopCallbackSession\) \{\s*return;\s*\}\s*\n\s*setView\(\(current\) => \(current === 'main' \? 'desktop_authorize' : current\)\);\s*\n\s*\}, \[desktopCallbackRequest, hasDesktopCallbackSession\]\);/s,
+    /if \(!desktopCallbackRequest \|\| !hasDesktopCallbackSession\) \{\s*return;\s*\}\s*if \(desktopProbeStatus !== 'valid'\) \{\s*return;\s*\}\s*setView\(\(current\) => \(current === 'main' \? 'desktop_authorize' : current\)\);\s*\}, \[desktopCallbackRequest, hasDesktopCallbackSession, desktopProbeStatus\]\);/s,
   );
+});
+
+test('desktop callback auth flow probes the persisted session before showing the authorize view', () => {
+  assert.match(authFlowSource, /const \[desktopProbeStatus, setDesktopProbeStatus\] = useState</);
+  assert.match(authFlowSource, /const restored = await adapter\.restoreSession\?\.\(\);/);
+  assert.match(authFlowSource, /await adapter\.applyToken\(restoredAccessToken, restored\?\.refreshToken \|\| undefined\);/);
+  assert.match(authFlowSource, /const probedUser = await adapter\.loadCurrentUser\(\);/);
+  assert.match(authFlowSource, /setDesktopProbeStatus\('valid'\);/);
+  assert.match(authFlowSource, /setDesktopProbeStatus\('invalid'\);/);
+});
+
+test('desktop callback auth flow falls back to email entry with prefill when the session probe fails', () => {
+  assert.match(authFlowSource, /if \(desktopProbeStatus !== 'invalid'\) return;/);
+  assert.match(
+    authFlowSource,
+    /setView\(\(current\) => \(current === 'desktop_authorize' \? 'main' : current\)\);/,
+  );
+  assert.match(
+    authFlowSource,
+    /setEmbeddedStage\(\(current\) => \(current === 'logo' \? 'email' : current\)\);/,
+  );
+  assert.match(authFlowSource, /setLoginError\(\(current\) => current \?\? AUTH_COPY\.desktopSessionInvalid\);/);
 });
 
 test('login page detects desktop callback from shared hash-aware helper', () => {
