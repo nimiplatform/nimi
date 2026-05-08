@@ -171,8 +171,18 @@ function migrateSnapshot(snapshot) {
   };
 }
 
-export async function migrateRuntimeLocalState({ targetPath = defaultLocalStatePath(), write = true } = {}) {
+export async function migrateRuntimeLocalState({
+  targetPath = defaultLocalStatePath(),
+  write = false,
+  consentRef = '',
+} = {}) {
   const resolvedPath = path.resolve(targetPath);
+  const normalizedConsentRef = normalizeString(consentRef);
+
+  if (write && !normalizedConsentRef) {
+    throw new Error('runtime local-state migration writes require --consent-ref');
+  }
+
   const raw = await fs.readFile(resolvedPath, 'utf8');
   const snapshot = JSON.parse(raw);
   const schemaVersion = Number(snapshot?.schemaVersion || 0);
@@ -182,6 +192,8 @@ export async function migrateRuntimeLocalState({ targetPath = defaultLocalStateP
       migrated: false,
       path: resolvedPath,
       backupPath: null,
+      write,
+      consentRef: normalizedConsentRef,
       snapshot,
     };
   }
@@ -202,6 +214,8 @@ export async function migrateRuntimeLocalState({ targetPath = defaultLocalStateP
     migrated: true,
     path: resolvedPath,
     backupPath,
+    write,
+    consentRef: normalizedConsentRef,
     snapshot: migratedSnapshot,
   };
 }
