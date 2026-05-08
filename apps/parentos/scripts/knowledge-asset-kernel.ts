@@ -425,6 +425,16 @@ export function assertNoOrphanShards(asset: AssembledKnowledgeAsset) {
   }
 }
 
+function getSectionData(asset: AssembledKnowledgeAsset, sectionId: string) {
+  if (sectionId === 'sources') {
+    return asset.manifest.sources ?? [];
+  }
+  if (!(sectionId in asset.data)) {
+    throw new Error(`${asset.assetId}: reference declares unknown section ${sectionId}`);
+  }
+  return asset.data[sectionId];
+}
+
 function valuesFromField(value: unknown, field: string): string[] {
   if (Array.isArray(value)) {
     return value.flatMap((entry) => valuesFromField(entry, field));
@@ -439,15 +449,32 @@ function valuesFromField(value: unknown, field: string): string[] {
   return typeof direct === 'string' ? [direct] : [];
 }
 
-export function assertCrossReferenceIntegrity(asset: AssembledKnowledgeAsset) {
+function assertConcreteOwnerContract(asset: AssembledKnowledgeAsset, ref: KnowledgeAssetSectionReference) {
+  if (ref.toAsset && ref.toAsset !== asset.assetId && !ref.ownerContract) {
+    throw new Error(
+      `${asset.assetId}: cross-asset reference ${ref.fromSection}.${ref.fromField} -> ${ref.toAsset}.${ref.toSection}.${ref.toField} requires ownerContract`,
+    );
+  }
+}
+
+export function assertCrossReferenceIntegrity(
+  asset: AssembledKnowledgeAsset,
+  assetsById: Map<string, AssembledKnowledgeAsset> = new Map([[asset.assetId, asset]]),
+) {
   for (const section of asset.sections) {
     for (const ref of section.references ?? []) {
-      const sourceValues = valuesFromField(asset.data[ref.fromSection], ref.fromField);
-      const targetValues = new Set(valuesFromField(asset.data[ref.toSection], ref.toField));
+      assertConcreteOwnerContract(asset, ref);
+      const targetAssetId = ref.toAsset ?? asset.assetId;
+      const targetAsset = assetsById.get(targetAssetId);
+      if (!targetAsset) {
+        throw new Error(`${asset.assetId}: reference target asset ${targetAssetId} is not loaded`);
+      }
+      const sourceValues = valuesFromField(getSectionData(asset, ref.fromSection), ref.fromField);
+      const targetValues = new Set(valuesFromField(getSectionData(targetAsset, ref.toSection), ref.toField));
       for (const value of sourceValues) {
         if (!targetValues.has(value)) {
           throw new Error(
-            `${asset.assetId}: ${ref.fromSection}.${ref.fromField} references missing ${ref.toSection}.${ref.toField} value ${value}`,
+            `${asset.assetId}: ${ref.fromSection}.${ref.fromField} references missing ${targetAssetId}.${ref.toSection}.${ref.toField} value ${value}`,
           );
         }
       }

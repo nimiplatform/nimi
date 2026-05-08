@@ -343,6 +343,127 @@ describe('knowledge-asset-kernel', () => {
     expect(() => assertCrossReferenceIntegrity(asset)).toThrow(/references missing/);
   });
 
+  it('fails closed on broken cross-asset references without falling back to local sections', () => {
+    const fixture = createAssetFixture();
+    const targetRoot = resolve(fixture.dataRoot, 'assets/target-asset');
+    mkdirSync(resolve(targetRoot, 'items'), { recursive: true });
+    writeJson(resolve(targetRoot, 'items/t.json'), { id: 'target-a' });
+    writeJson(resolve(targetRoot, 'schema.json'), {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: { sections: { type: 'array' } },
+    });
+    writeJson(resolve(targetRoot, 'asset.json'), {
+      assetId: 'target-asset',
+      schemaVersion: 1,
+      contentVersion: '2026-05-03.1',
+      schema: 'schema.json',
+      authorityClass: 'curated_knowledge_asset',
+      ownerContract: 'target-contract.md#PO-TARGET-001',
+      review: { status: 'reviewed', owner: 'parentos', reviewer: 'test', lastReviewedAt: '2026-05-03' },
+      primarySection: 'items',
+      sections: [{
+        sectionId: 'items',
+        kind: 'collection',
+        files: ['items/t.json'],
+        idField: 'id',
+        ordering: 'manifest',
+        orphanPolicy: 'fail_close',
+      }],
+    });
+    writeJson(resolve(fixture.assetRoot, 'links/link.json'), { targetId: 'missing-target' });
+    writeJson(resolve(fixture.assetRoot, 'asset.json'), {
+      assetId: 'demo-asset',
+      schemaVersion: 1,
+      contentVersion: '2026-05-03.1',
+      schema: 'schema.json',
+      authorityClass: 'curated_knowledge_asset',
+      ownerContract: 'demo-contract.md#PO-DEMO-001',
+      review: { status: 'reviewed', owner: 'parentos', reviewer: 'test', lastReviewedAt: '2026-05-03' },
+      primarySection: 'items',
+      sections: [
+        {
+          sectionId: 'items',
+          kind: 'collection',
+          files: ['items/a.json'],
+          idField: 'id',
+          ordering: 'manifest',
+          orphanPolicy: 'fail_close',
+        },
+        {
+          sectionId: 'links',
+          kind: 'collection',
+          files: ['links/link.json'],
+          ordering: 'manifest',
+          orphanPolicy: 'fail_close',
+          references: [{
+            fromSection: 'links',
+            fromField: 'targetId',
+            toAsset: 'target-asset',
+            toSection: 'items',
+            toField: 'id',
+            ownerContract: 'target-contract.md#PO-TARGET-001',
+          }],
+        },
+      ],
+    });
+    const sourceAsset = loadKnowledgeAsset({
+      dataKnowledgeRoot: fixture.dataRoot,
+      assetId: 'demo-asset',
+      manifestPath: fixture.manifestPath,
+    });
+    const targetAsset = loadKnowledgeAsset({
+      dataKnowledgeRoot: fixture.dataRoot,
+      assetId: 'target-asset',
+      manifestPath: resolve(targetRoot, 'asset.json'),
+    });
+
+    expect(() =>
+      assertCrossReferenceIntegrity(sourceAsset, new Map([
+        ['demo-asset', sourceAsset],
+        ['target-asset', targetAsset],
+      ])),
+    ).toThrow(/references missing target-asset/);
+  });
+
+  it('requires owner contract anchors for cross-asset references', () => {
+    const fixture = createAssetFixture();
+    writeJson(resolve(fixture.assetRoot, 'asset.json'), {
+      assetId: 'demo-asset',
+      schemaVersion: 1,
+      contentVersion: '2026-05-03.1',
+      schema: 'schema.json',
+      authorityClass: 'curated_knowledge_asset',
+      ownerContract: 'demo-contract.md#PO-DEMO-001',
+      review: { status: 'reviewed', owner: 'parentos', reviewer: 'test', lastReviewedAt: '2026-05-03' },
+      primarySection: 'items',
+      sections: [
+        {
+          sectionId: 'items',
+          kind: 'collection',
+          files: ['items/a.json'],
+          idField: 'id',
+          ordering: 'manifest',
+          orphanPolicy: 'fail_close',
+          references: [{
+            fromSection: 'items',
+            fromField: 'id',
+            toAsset: 'target-asset',
+            toSection: 'items',
+            toField: 'id',
+          }],
+        },
+      ],
+    });
+    const asset = loadKnowledgeAsset({
+      dataKnowledgeRoot: fixture.dataRoot,
+      assetId: 'demo-asset',
+      manifestPath: fixture.manifestPath,
+    });
+
+    expect(() => assertCrossReferenceIntegrity(asset)).toThrow(/requires ownerContract/);
+  });
+
   it('rejects design_asset runtime exposure without admission', () => {
     const fixture = createAssetFixture();
     writeJson(resolve(fixture.assetRoot, 'asset.json'), {

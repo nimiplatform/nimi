@@ -9,5 +9,8 @@
   },
   "frequency": "青春期每年",
   "standardSource": "SRS scoliosis screening guidelines",
-  "curveType": "reference-range"
+  "curveType": "reference-range",
+  "standardSourceIds": [
+    "SRS-scoliosis-screening-guidelines"
+  ]
 }

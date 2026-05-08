@@ -9,5 +9,8 @@
   },
   "frequency": "按需",
   "standardSource": "IZiNCG 2004",
-  "curveType": "reference-range"
+  "curveType": "reference-range",
+  "standardSourceIds": [
+    "IZiNCG-2004"
+  ]
 }

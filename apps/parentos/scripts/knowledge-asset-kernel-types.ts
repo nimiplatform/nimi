@@ -21,8 +21,10 @@ export interface KnowledgeAssetRegistryEntry {
 export interface KnowledgeAssetSectionReference {
   fromSection: string;
   fromField: string;
+  toAsset?: string;
   toSection: string;
   toField: string;
+  ownerContract?: string;
 }
 
 export interface KnowledgeAssetSectionManifest {

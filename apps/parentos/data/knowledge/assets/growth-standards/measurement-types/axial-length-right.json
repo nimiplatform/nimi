@@ -9,5 +9,9 @@
   },
   "frequency": "每半年",
   "standardSource": "NHC-vision-2023 / IOL-master normative",
-  "curveType": "reference-range"
+  "curveType": "reference-range",
+  "standardSourceIds": [
+    "NHC-vision-2023",
+    "IOL-master-normative"
+  ]
 }

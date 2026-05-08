@@ -1,8 +1,8 @@
 {
   "assetId": "growth-standards",
   "description": "Composable growth-standards reference data asset. Scripts assemble these shards into the same logical data shape consumed by generated runtime constants.",
-  "schemaVersion": 1,
-  "contentVersion": "2026-05-03.1",
+  "schemaVersion": 2,
+  "contentVersion": "2026-05-07.2",
   "schema": "schema.json",
   "authorityClass": "reference_dataset",
   "ownerContract": "profile-contract.md#PO-PROF-004",
@@ -39,6 +39,96 @@
       "retrievedAt": "2026-05-03",
       "licenseClass": "internal_curated",
       "sourceClass": "curated_parentos",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "sourceId": "NHC-vision-2023",
+      "citation": "National child vision screening guidance 2023",
+      "url": null,
+      "retrievedAt": "2026-05-07",
+      "licenseClass": "public_standard",
+      "sourceClass": "clinical_reference",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "sourceId": "IOL-master-normative",
+      "citation": "IOL Master pediatric axial-length normative reference",
+      "url": null,
+      "retrievedAt": "2026-05-07",
+      "licenseClass": "public_standard",
+      "sourceClass": "clinical_reference",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "sourceId": "GP-atlas-TW3",
+      "citation": "Greulich-Pyle atlas / Tanner-Whitehouse 3 bone age references",
+      "url": null,
+      "retrievedAt": "2026-05-07",
+      "licenseClass": "public_standard",
+      "sourceClass": "clinical_reference",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "sourceId": "McCarthy-2006-pediatric-body-fat-references",
+      "citation": "McCarthy et al. pediatric body-fat reference curves 2006",
+      "url": null,
+      "retrievedAt": "2026-05-07",
+      "licenseClass": "public_standard",
+      "sourceClass": "clinical_reference",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "sourceId": "SRS-scoliosis-screening-guidelines",
+      "citation": "Scoliosis Research Society screening guidance",
+      "url": null,
+      "retrievedAt": "2026-05-07",
+      "licenseClass": "public_standard",
+      "sourceClass": "clinical_reference",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "sourceId": "AAP-Endocrine-Society-2011",
+      "citation": "AAP / Endocrine Society vitamin D guidance 2011",
+      "url": null,
+      "retrievedAt": "2026-05-07",
+      "licenseClass": "public_standard",
+      "sourceClass": "clinical_reference",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "sourceId": "Pediatric-reference-intervals",
+      "citation": "ParentOS curated pediatric laboratory reference intervals",
+      "url": null,
+      "retrievedAt": "2026-05-07",
+      "licenseClass": "internal_curated",
+      "sourceClass": "curated_parentos",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "sourceId": "WHO-iron-deficiency-guidelines-2020",
+      "citation": "WHO iron-deficiency guidelines 2020",
+      "url": null,
+      "retrievedAt": "2026-05-07",
+      "licenseClass": "public_standard",
+      "sourceClass": "clinical_reference",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "sourceId": "WHO-hemoglobin-cutoffs-2011",
+      "citation": "WHO hemoglobin concentration cutoffs 2011",
+      "url": null,
+      "retrievedAt": "2026-05-07",
+      "licenseClass": "public_standard",
+      "sourceClass": "clinical_reference",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "sourceId": "IZiNCG-2004",
+      "citation": "International Zinc Nutrition Consultative Group reference intervals 2004",
+      "url": null,
+      "retrievedAt": "2026-05-07",
+      "licenseClass": "public_standard",
+      "sourceClass": "clinical_reference",
       "reviewStatus": "reviewed"
     }
   ],
@@ -102,7 +192,15 @@
       ],
       "ordering": "manifest",
       "orphanPolicy": "fail_close",
-      "idField": "typeId"
+      "idField": "typeId",
+      "references": [
+        {
+          "fromSection": "measurementTypes",
+          "fromField": "standardSourceIds",
+          "toSection": "sources",
+          "toField": "sourceId"
+        }
+      ]
     },
     {
       "sectionId": "referenceRanges",

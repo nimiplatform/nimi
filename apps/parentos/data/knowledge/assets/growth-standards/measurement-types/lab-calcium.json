@@ -9,5 +9,8 @@
   },
   "frequency": "按需",
   "standardSource": "Pediatric reference intervals",
-  "curveType": "reference-range"
+  "curveType": "reference-range",
+  "standardSourceIds": [
+    "Pediatric-reference-intervals"
+  ]
 }

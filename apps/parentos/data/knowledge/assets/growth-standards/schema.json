@@ -152,7 +152,129 @@
     },
     "sections": {
       "type": "array",
-      "minItems": 1
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "sectionId",
+          "kind",
+          "files",
+          "ordering",
+          "orphanPolicy"
+        ],
+        "properties": {
+          "sectionId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "collection",
+              "map",
+              "singleton"
+            ]
+          },
+          "files": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            ]
+          },
+          "idField": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ordering": {
+            "enum": [
+              "manifest",
+              "idField-asc",
+              "idField-desc",
+              "key-asc"
+            ]
+          },
+          "orphanPolicy": {
+            "const": "fail_close"
+          },
+          "references": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "fromSection",
+                "fromField",
+                "toSection",
+                "toField"
+              ],
+              "properties": {
+                "fromSection": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "fromField": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "toAsset": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "toSection": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "toField": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ownerContract": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "collection"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "required": [
+                "idField"
+              ]
+            }
+          }
+        ]
+      }
     }
   },
   "additionalProperties": false,

@@ -9,5 +9,8 @@
   },
   "frequency": "0-12月每月；1-3岁每季度",
   "standardSource": "WHO-growth-standards-2006",
-  "curveType": "lms-percentile"
+  "curveType": "lms-percentile",
+  "standardSourceIds": [
+    "WHO-growth-standards-2006"
+  ]
 }

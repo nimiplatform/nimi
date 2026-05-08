@@ -9,5 +9,8 @@
   },
   "frequency": "每半年",
   "standardSource": "McCarthy-2006 pediatric body-fat references",
-  "curveType": "reference-range"
+  "curveType": "reference-range",
+  "standardSourceIds": [
+    "McCarthy-2006-pediatric-body-fat-references"
+  ]
 }

@@ -344,6 +344,7 @@ const referenceAssetData = readTableYaml('reference-data-assets.yaml') as {
   }>;
 };
 const referenceAssetIds = new Set<string>();
+const knowledgeAssetsById = new Map<string, ReturnType<typeof loadKnowledgeAsset>>();
 for (const asset of referenceAssetData.assets ?? []) {
   if (!asset.assetId) {
     fail('reference-data-assets.yaml asset is missing assetId');
@@ -377,11 +378,18 @@ for (const asset of referenceAssetData.assets ?? []) {
       manifestPath,
       registryEntry: asset,
     });
+    knowledgeAssetsById.set(asset.assetId, knowledgeAsset);
     assertValidKnowledgeAsset(knowledgeAsset, { requireContractManifest: true });
     assertNoOrphanShards(knowledgeAsset);
-    assertCrossReferenceIntegrity(knowledgeAsset);
   } catch (error) {
     fail(`reference-data-assets.yaml asset ${asset.assetId} failed asset-kernel validation: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+for (const [assetId, knowledgeAsset] of knowledgeAssetsById) {
+  try {
+    assertCrossReferenceIntegrity(knowledgeAsset, knowledgeAssetsById);
+  } catch (error) {
+    fail(`reference-data-assets.yaml asset ${assetId} failed asset cross-reference validation: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 for (const expected of ['growth-standards', 'milestone-catalog', 'sensitive-periods', 'observation-framework', 'ability-model']) {

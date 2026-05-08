@@ -9,5 +9,8 @@
   },
   "frequency": "每年（婴幼儿期可更频繁）",
   "standardSource": "AAP / Endocrine Society 2011",
-  "curveType": "reference-range"
+  "curveType": "reference-range",
+  "standardSourceIds": [
+    "AAP-Endocrine-Society-2011"
+  ]
 }

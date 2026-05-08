@@ -9,5 +9,8 @@
   },
   "frequency": "每年",
   "standardSource": "WHO iron-deficiency guidelines 2020",
-  "curveType": "reference-range"
+  "curveType": "reference-range",
+  "standardSourceIds": [
+    "WHO-iron-deficiency-guidelines-2020"
+  ]
 }

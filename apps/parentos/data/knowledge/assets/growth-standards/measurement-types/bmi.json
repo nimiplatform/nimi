@@ -9,5 +9,8 @@
   },
   "frequency": "和身高体重同步计算",
   "standardSource": "WHO-growth-references-2007",
-  "curveType": "lms-percentile"
+  "curveType": "lms-percentile",
+  "standardSourceIds": [
+    "WHO-growth-references-2007"
+  ]
 }

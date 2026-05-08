@@ -9,5 +9,8 @@
   },
   "frequency": "按需（建议青春期前后每年）",
   "standardSource": "GP-atlas / TW3",
-  "curveType": "reference-range"
+  "curveType": "reference-range",
+  "standardSourceIds": [
+    "GP-atlas-TW3"
+  ]
 }

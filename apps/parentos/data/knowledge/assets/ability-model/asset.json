@@ -1,8 +1,8 @@
 {
   "assetId": "ability-model",
   "description": "Composable ability-model knowledge asset. Scripts assemble these shards into the same logical data shape consumed by generated runtime constants.",
-  "schemaVersion": 1,
-  "contentVersion": "2026-05-03.1",
+  "schemaVersion": 2,
+  "contentVersion": "2026-05-07.2",
   "schema": "schema.json",
   "authorityClass": "design_asset",
   "ownerContract": "app-shell-contract.md#PO-SHELL-011",
@@ -58,7 +58,17 @@
       ],
       "ordering": "manifest",
       "orphanPolicy": "fail_close",
-      "idField": "abilityId"
+      "idField": "abilityId",
+      "references": [
+        {
+          "fromSection": "abilities",
+          "fromField": "sourceObservations",
+          "toAsset": "observation-framework",
+          "toSection": "dimensions",
+          "toField": "dimensionId",
+          "ownerContract": "apps/parentos/spec/kernel/journal-contract.md#PO-JOUR-002"
+        }
+      ]
     }
   ]
 }

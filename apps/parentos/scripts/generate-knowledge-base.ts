@@ -489,6 +489,7 @@ function generateGrowthStandards() {
       referenceCoverage?: { startMonths: number; endMonths: number };
       frequency: string;
       standardSource: string;
+      standardSourceIds?: string[];
       curveType: string;
     }>;
     referenceRanges?: Record<string, unknown>;
@@ -509,6 +510,7 @@ export interface GrowthStandard {
   referenceCoverage?: { startMonths: number; endMonths: number };
   frequency: string;
   standardSource: string;
+  standardSourceIds?: readonly string[];
   curveType: CurveType;
 }
 

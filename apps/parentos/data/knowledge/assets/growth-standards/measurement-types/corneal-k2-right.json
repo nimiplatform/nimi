@@ -9,5 +9,8 @@
   },
   "frequency": "每半年",
   "standardSource": "IOL-master normative",
-  "curveType": "reference-range"
+  "curveType": "reference-range",
+  "standardSourceIds": [
+    "IOL-master-normative"
+  ]
 }

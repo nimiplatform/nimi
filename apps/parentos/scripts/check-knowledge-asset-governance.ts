@@ -63,6 +63,7 @@ export function collectKnowledgeAssetGovernanceErrors(): string[] {
   const errors: string[] = [];
   const rows = readRegistry();
   const rowsById = new Map(rows.map((row) => [row.assetId, row]));
+  const assetsById = new Map<string, ReturnType<typeof loadKnowledgeAsset>>();
 
   for (const assetId of ASSET_IDS) {
     collectError(errors, `${assetId} old flat file`, () => {
@@ -99,9 +100,9 @@ export function collectKnowledgeAssetGovernanceErrors(): string[] {
         manifestPath,
         registryEntry: row,
       });
+      assetsById.set(assetId, asset);
       assertValidKnowledgeAsset(asset, { requireContractManifest: true });
       assertNoOrphanShards(asset);
-      assertCrossReferenceIntegrity(asset);
       const fingerprint = KNOWLEDGE_ASSET_PROJECTION_FINGERPRINTS[assetId];
       if (!fingerprint) {
         throw new Error('missing generated projection fingerprint');
@@ -113,6 +114,12 @@ export function collectKnowledgeAssetGovernanceErrors(): string[] {
         throw new Error(`contentVersion projection mismatch, expected ${asset.manifest.contentVersion}, got ${fingerprint.contentVersion}`);
       }
       assertProjectionFingerprint(asset, fingerprint.projectionFingerprint);
+    });
+  }
+
+  for (const [assetId, asset] of assetsById) {
+    collectError(errors, `${assetId} cross-reference integrity`, () => {
+      assertCrossReferenceIntegrity(asset, assetsById);
     });
   }
 

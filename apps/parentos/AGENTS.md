@@ -27,7 +27,7 @@
 
 `apps/parentos/spec/**` is ParentOS's admitted app-local authority landing. Normative product authority belongs only in `spec/kernel/*.md` and `spec/kernel/tables/**`; `spec/INDEX.md` and `spec/parentos.md` are guides. Concrete reference/content data belongs under `data/**` only when admitted by `spec/kernel/tables/reference-data-assets.yaml`.
 
-During the current authority realignment, implementation is the fact source for spec catch-up. **When spec and code conflict on a retained product behavior, update the app-local spec to match reality.** Do not promote obvious bugs, fail-open behavior, placeholder data writes, or orphan surfaces into authority; track those as defects instead.
+During authority realignment, `spec/kernel/*.md` and `spec/kernel/tables/**` remain the semantic authority. When spec and code conflict, first classify the implementation behavior against those authority surfaces. Retained behavior may update app-local spec only through an explicit redesign/admission decision that cites the affected kernel authority; otherwise align the implementation to the existing kernel authority or track the mismatch as a defect. Do not promote bugs, fail-open behavior, placeholder data writes, orphan surfaces, or implementation-only behavior into authority.
 
 Before making any change:
 1. Read `spec/INDEX.md` for the guide path.
@@ -108,7 +108,7 @@ Two-layer model (boundary: whether individual data inference is involved):
 - AI never uses: "落后", "异常", "危险", "警告", "发育迟缓", "障碍", "应该吃", "建议用药", "建议服用", "推荐治疗".
 - Data anomaly → describe objective data + "建议咨询专业人士", no causal interpretation.
 - Domains marked `needs-review` in `knowledge-source-readiness.yaml` must not enter Phase 1 free-form prompt.
-- Full AI boundary spec: `spec/parentos.md` Section 6.2.
+- AI boundary authority lives in `spec/kernel/advisor-contract.md` for advisor/reports, `spec/kernel/profile-contract.md` for profile-local AI summaries and OCR-assisted extraction, `spec/kernel/journal-contract.md` for journal AI tagging/STT, and `spec/kernel/tables/knowledge-source-readiness.yaml` for reviewed-domain gates. `spec/parentos.md` is a guide and must not be treated as the full AI boundary source.
 
 ### Nurture Mode Boundary
 - P0 reminders are ALWAYS `push` in ALL modes. No exceptions.
@@ -120,7 +120,7 @@ Two-layer model (boundary: whether individual data inference is involved):
 - AI conversation `contextSnapshot` freezes at send time — contains only current-session child profile summary.
 - No user data leaves the device. No device ID, location, contacts, or biometrics collected.
 - Child profile deletion cascades to all associated records (growth, vaccine, journal, AI conversations, reminder states).
-- Full privacy spec: `spec/parentos.md` Section 9.
+- Privacy/storage authority lives in `spec/kernel/tables/local-storage.yaml` for local SQLite storage, child-scoped cascade constraints, and AI conversation/message persistence shape, with surface-specific constraints in the relevant kernel contracts. `spec/parentos.md` is a guide and must not be treated as the full privacy source.
 
 ## Verification
 

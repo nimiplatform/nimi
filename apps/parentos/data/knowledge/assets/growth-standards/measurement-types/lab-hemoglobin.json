@@ -9,5 +9,8 @@
   },
   "frequency": "每年",
   "standardSource": "WHO hemoglobin cutoffs 2011",
-  "curveType": "reference-range"
+  "curveType": "reference-range",
+  "standardSourceIds": [
+    "WHO-hemoglobin-cutoffs-2011"
+  ]
 }

@@ -11,9 +11,9 @@ export interface KnowledgeAssetProjectionFingerprint {
 
 export const KNOWLEDGE_ASSET_PROJECTION_FINGERPRINTS: Record<string, KnowledgeAssetProjectionFingerprint> = {
   "growth-standards": {
-    "projectionFingerprint": "9d4918d75155ce9c5dc640614b355880507ef937164f0d1b76c951e6ebf5d40c",
-    "schemaVersion": 1,
-    "contentVersion": "2026-05-03.1",
+    "projectionFingerprint": "13092599eab94cd7982dbf0ce895152889c6b1dc86f41a146addf3ca6814cb2f",
+    "schemaVersion": 2,
+    "contentVersion": "2026-05-07.2",
     "authorityClass": "reference_dataset"
   },
   "milestone-catalog": {
@@ -35,9 +35,9 @@ export const KNOWLEDGE_ASSET_PROJECTION_FINGERPRINTS: Record<string, KnowledgeAs
     "authorityClass": "curated_knowledge_asset"
   },
   "ability-model": {
-    "projectionFingerprint": "1319fb7a66edd469fe086c7cd75b5128997c492d8054d9f63839a9c605bb321d",
-    "schemaVersion": 1,
-    "contentVersion": "2026-05-03.1",
+    "projectionFingerprint": "75a76c0622b94f20580145a9f86cdd2ba0fae9b90ad06515cf4252280be69a3f",
+    "schemaVersion": 2,
+    "contentVersion": "2026-05-07.2",
     "authorityClass": "design_asset"
   }
 };

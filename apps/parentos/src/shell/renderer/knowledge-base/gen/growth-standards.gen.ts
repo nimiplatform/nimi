@@ -14,6 +14,7 @@ export interface GrowthStandard {
   referenceCoverage?: { startMonths: number; endMonths: number };
   frequency: string;
   standardSource: string;
+  standardSourceIds?: readonly string[];
   curveType: CurveType;
 }
 
@@ -29,7 +30,11 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "0-12月每月；1-3岁每季度；3-18岁每半年",
     "standardSource": "WHO-growth-standards-2006 (0-5y) + WHO-growth-references-2007 (5-19y)",
-    "curveType": "lms-percentile"
+    "curveType": "lms-percentile",
+    "standardSourceIds": [
+      "WHO-growth-standards-2006",
+      "WHO-growth-references-2007"
+    ]
   },
   {
     "typeId": "weight",
@@ -46,7 +51,11 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "0-12月每月；1-3岁每季度；3-18岁每半年",
     "standardSource": "WHO-growth-standards-2006 (0-5y) + WHO-growth-references-2007 (5-19y)",
-    "curveType": "lms-percentile"
+    "curveType": "lms-percentile",
+    "standardSourceIds": [
+      "WHO-growth-standards-2006",
+      "WHO-growth-references-2007"
+    ]
   },
   {
     "typeId": "head-circumference",
@@ -59,7 +68,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "0-12月每月；1-3岁每季度",
     "standardSource": "WHO-growth-standards-2006",
-    "curveType": "lms-percentile"
+    "curveType": "lms-percentile",
+    "standardSourceIds": [
+      "WHO-growth-standards-2006"
+    ]
   },
   {
     "typeId": "bmi",
@@ -72,7 +84,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "和身高体重同步计算",
     "standardSource": "WHO-growth-references-2007",
-    "curveType": "lms-percentile"
+    "curveType": "lms-percentile",
+    "standardSourceIds": [
+      "WHO-growth-references-2007"
+    ]
   },
   {
     "typeId": "vision-left",
@@ -85,7 +100,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023"
+    ]
   },
   {
     "typeId": "vision-right",
@@ -98,7 +116,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023"
+    ]
   },
   {
     "typeId": "hyperopia-reserve",
@@ -111,7 +132,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023"
+    ]
   },
   {
     "typeId": "bone-age",
@@ -124,7 +148,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "按需（建议青春期前后每年）",
     "standardSource": "GP-atlas / TW3",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "GP-atlas-TW3"
+    ]
   },
   {
     "typeId": "corrected-vision-left",
@@ -137,7 +164,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023"
+    ]
   },
   {
     "typeId": "corrected-vision-right",
@@ -150,7 +180,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023"
+    ]
   },
   {
     "typeId": "refraction-sph-left",
@@ -163,7 +196,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023"
+    ]
   },
   {
     "typeId": "refraction-sph-right",
@@ -176,7 +212,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023"
+    ]
   },
   {
     "typeId": "refraction-cyl-left",
@@ -189,7 +228,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023"
+    ]
   },
   {
     "typeId": "refraction-cyl-right",
@@ -202,7 +244,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023"
+    ]
   },
   {
     "typeId": "refraction-axis-left",
@@ -215,7 +260,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023"
+    ]
   },
   {
     "typeId": "refraction-axis-right",
@@ -228,7 +276,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023"
+    ]
   },
   {
     "typeId": "axial-length-left",
@@ -241,7 +292,11 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023 / IOL-master normative",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023",
+      "IOL-master-normative"
+    ]
   },
   {
     "typeId": "axial-length-right",
@@ -254,7 +309,11 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023 / IOL-master normative",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023",
+      "IOL-master-normative"
+    ]
   },
   {
     "typeId": "corneal-curvature-left",
@@ -267,7 +326,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "IOL-master normative",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "IOL-master-normative"
+    ]
   },
   {
     "typeId": "corneal-curvature-right",
@@ -280,7 +342,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "IOL-master normative",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "IOL-master-normative"
+    ]
   },
   {
     "typeId": "iop-left",
@@ -293,7 +358,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023"
+    ]
   },
   {
     "typeId": "iop-right",
@@ -306,7 +374,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "NHC-vision-2023",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "NHC-vision-2023"
+    ]
   },
   {
     "typeId": "corneal-k1-left",
@@ -319,7 +390,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "IOL-master normative",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "IOL-master-normative"
+    ]
   },
   {
     "typeId": "corneal-k1-right",
@@ -332,7 +406,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "IOL-master normative",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "IOL-master-normative"
+    ]
   },
   {
     "typeId": "corneal-k2-left",
@@ -345,7 +422,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "IOL-master normative",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "IOL-master-normative"
+    ]
   },
   {
     "typeId": "corneal-k2-right",
@@ -358,7 +438,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "IOL-master normative",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "IOL-master-normative"
+    ]
   },
   {
     "typeId": "acd-left",
@@ -371,7 +454,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "IOL-master normative",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "IOL-master-normative"
+    ]
   },
   {
     "typeId": "acd-right",
@@ -384,7 +470,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "IOL-master normative",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "IOL-master-normative"
+    ]
   },
   {
     "typeId": "lt-left",
@@ -397,7 +486,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "IOL-master normative",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "IOL-master-normative"
+    ]
   },
   {
     "typeId": "lt-right",
@@ -410,7 +502,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "IOL-master normative",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "IOL-master-normative"
+    ]
   },
   {
     "typeId": "body-fat-percentage",
@@ -423,7 +518,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每半年",
     "standardSource": "McCarthy-2006 pediatric body-fat references",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "McCarthy-2006-pediatric-body-fat-references"
+    ]
   },
   {
     "typeId": "scoliosis-cobb-angle",
@@ -436,7 +534,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "青春期每年",
     "standardSource": "SRS scoliosis screening guidelines",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "SRS-scoliosis-screening-guidelines"
+    ]
   },
   {
     "typeId": "lab-vitamin-d",
@@ -449,7 +550,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每年（婴幼儿期可更频繁）",
     "standardSource": "AAP / Endocrine Society 2011",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "AAP-Endocrine-Society-2011"
+    ]
   },
   {
     "typeId": "lab-ferritin",
@@ -462,7 +566,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每年",
     "standardSource": "WHO iron-deficiency guidelines 2020",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "WHO-iron-deficiency-guidelines-2020"
+    ]
   },
   {
     "typeId": "lab-hemoglobin",
@@ -475,7 +582,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "每年",
     "standardSource": "WHO hemoglobin cutoffs 2011",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "WHO-hemoglobin-cutoffs-2011"
+    ]
   },
   {
     "typeId": "lab-calcium",
@@ -488,7 +598,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "按需",
     "standardSource": "Pediatric reference intervals",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "Pediatric-reference-intervals"
+    ]
   },
   {
     "typeId": "lab-zinc",
@@ -501,7 +614,10 @@ export const GROWTH_STANDARDS: readonly GrowthStandard[] = [
     },
     "frequency": "按需",
     "standardSource": "IZiNCG 2004",
-    "curveType": "reference-range"
+    "curveType": "reference-range",
+    "standardSourceIds": [
+      "IZiNCG-2004"
+    ]
   }
 ] ;
 
