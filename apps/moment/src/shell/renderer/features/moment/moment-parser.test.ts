@@ -1,4 +1,11 @@
+import { readFileSync } from 'node:fs';
+import { parse as parseYaml } from 'yaml';
 import { parseContinuationBeat, parseStoryOpening } from './moment-parser.js';
+import { MOMENT_RELATION_STATES } from './relation-states.js';
+
+type RelationStateMachineTable = {
+  relation_states?: Array<{ id?: string }>;
+};
 
 describe('moment-parser', () => {
   it('parses a strict story opening payload', () => {
@@ -7,19 +14,19 @@ describe('moment-parser', () => {
       opening: '路灯下的小桌子摆得像有人刚离开，又像还有一个人没来。桌边留下的空位和还亮着的灯，让你很难相信今晚的约定已经结束了。',
       sceneSummary: '小路边的路灯、贩卖机、两张板凳和一张小桌子。',
       actions: ['先看看桌上有没有留下什么', '站远一点等会不会有人来', '看看刚刚买走的是哪一瓶'],
-      relationState: 'distant',
+      relationState: 'distant_witness',
     }));
 
     expect(opening.title).toContain('灯还亮着');
     expect(opening.actions).toHaveLength(3);
-    expect(opening.relationState).toBe('distant');
+    expect(opening.relationState).toBe('distant_witness');
   });
 
   it('parses a continuation payload and carries user line', () => {
     const beat = parseContinuationBeat(JSON.stringify({
       storyBeat: '你刚退到路灯边缘，远处就传来了很轻的自行车刹车声。',
       actions: ['继续站远一点听', '靠近一点看是谁来了', '先看桌上的空瓶'],
-      relationState: 'approaching',
+      relationState: 'near_witness',
     }), {
       userLine: '我先在远处等一会儿。',
       traceId: 'trace-1',
@@ -27,7 +34,7 @@ describe('moment-parser', () => {
 
     expect(beat.userLine).toBe('我先在远处等一会儿。');
     expect(beat.traceId).toBe('trace-1');
-    expect(beat.relationState).toBe('approaching');
+    expect(beat.relationState).toBe('near_witness');
   });
 
   it('fails closed when required opening fields are missing', () => {
@@ -35,5 +42,24 @@ describe('moment-parser', () => {
       title: '只有标题',
       actions: ['一', '二', '三'],
     }))).toThrow('MOMENT_OPENING_FIELDS_REQUIRED');
+  });
+
+  it('fails closed when relation state is outside the authority table', () => {
+    expect(() => parseStoryOpening(JSON.stringify({
+      title: '灯还亮着',
+      opening: '桌边还有一个空位。',
+      sceneSummary: '路灯、小桌子、空位。',
+      actions: ['站远一点', '走近看看', '继续等'],
+      relationState: 'approaching',
+    }))).toThrow('MOMENT_RELATION_STATE_REQUIRED');
+  });
+
+  it('keeps relation states aligned to the spec authority table', () => {
+    const table = parseYaml(
+      readFileSync('spec/kernel/tables/relation-state-machine.yaml', 'utf8'),
+    ) as RelationStateMachineTable;
+    const tableIds = (table.relation_states ?? []).map((state) => state.id);
+
+    expect(MOMENT_RELATION_STATES).toEqual(tableIds);
   });
 });

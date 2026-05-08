@@ -32,7 +32,7 @@ describe('moment-prompts', () => {
         opening: '自动贩卖机在夏夜里低声震动。',
         sceneSummary: '路灯、贩卖机、两张板凳和一张小桌子。',
         actions: ['坐下等一会儿', '看桌上留下了什么', '先不靠近，只看着'],
-        relationState: 'distant',
+        relationState: 'distant_witness',
       },
       turns: [],
       userLine: '我先站在远处看着。',

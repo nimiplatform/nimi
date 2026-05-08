@@ -3,8 +3,8 @@ import type { MomentRuntimeTargetOption } from './runtime-targets.js';
 export type MomentSeedMode = 'image' | 'phrase';
 
 export type MomentRelationState =
-  | 'distant'
-  | 'approaching'
+  | 'distant_witness'
+  | 'near_witness'
   | 'noticed'
   | 'addressed'
   | 'involved';

@@ -76,8 +76,8 @@
     "sealedNote": "Let this moment stop here. You did not go farther, but you know it is no longer just an ordinary scene tonight.",
     "seedImageAlt": "Uploaded scene",
     "relationState": {
-      "distant": "still outside it",
-      "approaching": "moving closer",
+      "distant_witness": "still outside it",
+      "near_witness": "moving closer",
       "noticed": "it has noticed you",
       "addressed": "it is speaking to you",
       "involved": "you are already inside it"

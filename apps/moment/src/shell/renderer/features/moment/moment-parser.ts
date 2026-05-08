@@ -1,12 +1,5 @@
 import type { MomentContinuationBeat, MomentRelationState, MomentStoryOpening } from './types.js';
-
-const RELATION_STATES: MomentRelationState[] = [
-  'distant',
-  'approaching',
-  'noticed',
-  'addressed',
-  'involved',
-];
+import { assertMomentRelationState } from './relation-states.js';
 
 function normalizeText(value: unknown): string {
   return String(value || '').trim();
@@ -158,7 +151,7 @@ function balanceJsonContainers(text: string): string {
 
 function quoteBareJsonKeys(text: string): string {
   return text.replace(
-    /([{,]\s*)([^"{\[\]},:\s][^:{},\[\]]*?)(\s*:)/g,
+    /([{,]\s*)([^"{\x5B\x5D},:\s][^:{},\x5B\x5D]*?)(\s*:)/g,
     (_match, prefix: string, key: string, suffix: string) =>
       `${prefix}${JSON.stringify(String(key || '').trim())}${suffix}`,
   );
@@ -173,7 +166,7 @@ function insertMissingJsonKeySeparators(text: string): string {
 
 function quoteBareJsonValues(text: string): string {
   return text.replace(
-    /(:\s*)([^"{\[\]},\s][^,\]}]*)(?=\s*[,}\]])/g,
+    /(:\s*)([^"{\x5B\x5D},\s][^,}\x5D]*)(?=\s*[,}\x5D])/g,
     (_match, prefix: string, rawValue: string) => {
       const value = String(rawValue || '').trim();
       if (!value) {
@@ -246,10 +239,7 @@ function toActions(value: unknown): [string, string, string] {
 
 function toRelationState(value: unknown): MomentRelationState {
   const normalized = normalizeText(value).toLowerCase();
-  if (RELATION_STATES.includes(normalized as MomentRelationState)) {
-    return normalized as MomentRelationState;
-  }
-  return 'distant';
+  return assertMomentRelationState(normalized);
 }
 
 export function parseStoryOpening(raw: string, traceId?: string): MomentStoryOpening {

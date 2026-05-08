@@ -74,8 +74,8 @@
     "sealedNote": "这一刻先停在这里。你没有再往前走，但你知道，它已经不再只是一个普通场景了。",
     "seedImageAlt": "上传场景",
     "relationState": {
-      "distant": "还在远处看",
-      "approaching": "正在靠近",
+      "distant_witness": "还在远处看",
+      "near_witness": "正在靠近",
       "noticed": "它已经注意到你",
       "addressed": "它开始对你说话",
       "involved": "你已经被卷进去了"

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { assertMomentRelationState } from './relation-states.js';
 import type { MomentPlayState, MomentSeed, MomentSession } from './types.js';
 
 type MomentStore = {
@@ -36,12 +37,24 @@ function derivePlayState(beatIndex: number, sealed: boolean): MomentPlayState {
 
 function normalizeStoredSession(session: MomentSession): MomentSession {
   const beatIndex = typeof session.beatIndex === 'number' ? session.beatIndex : session.turns.length;
-  const relationState = session.relationState || session.turns.at(-1)?.relationState || session.opening.relationState;
+  const relationState = assertMomentRelationState(
+    session.relationState || session.turns.at(-1)?.relationState || session.opening.relationState,
+  );
+  const opening = {
+    ...session.opening,
+    relationState: assertMomentRelationState(session.opening.relationState),
+  };
+  const turns = session.turns.map((turn) => ({
+    ...turn,
+    relationState: assertMomentRelationState(turn.relationState),
+  }));
   const sealed = Boolean(session.sealed || beatIndex >= 4);
   const playState = session.playState || derivePlayState(beatIndex, sealed);
 
   return {
     ...session,
+    opening,
+    turns,
     beatIndex,
     relationState,
     playState,
