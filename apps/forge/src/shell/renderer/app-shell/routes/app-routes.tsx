@@ -8,7 +8,6 @@ const WorkbenchHomePage = lazy(() => import('@renderer/pages/workbench/workbench
 const WorkbenchNewPage = lazy(() => import('@renderer/pages/workbench/workbench-new-page.js'));
 const WorkbenchPage = lazy(() => import('@renderer/pages/workbench/workbench-page.js'));
 const WorkbenchAgentDetailPage = lazy(() => import('@renderer/pages/workbench/workbench-agent-detail-page.js'));
-const WorldEditEntryPage = lazy(() => import('@renderer/app-shell/routes/world-edit-entry-page.js'));
 const AgentEditEntryPage = lazy(() => import('@renderer/app-shell/routes/agent-edit-entry-page.js'));
 const WorldsPage = lazy(() => import('@renderer/pages/worlds/worlds-page.js'));
 const WorldDetailPage = lazy(() => import('@renderer/pages/worlds/world-detail-page.js'));
@@ -71,7 +70,6 @@ export function AppRoutes() {
           <Route path="worlds/:worldId/agents" element={<PageSuspense><WorldAgentsPage /></PageSuspense>} />
           <Route path="worlds/:worldId/assets" element={<PageSuspense><WorldAssetsPage /></PageSuspense>} />
           <Route path="worlds/:worldId/assets/:family" element={<PageSuspense><WorldAssetFamilyPage /></PageSuspense>} />
-          <Route path="worlds/:worldId/maintain" element={<PageSuspense><WorldEditEntryPage /></PageSuspense>} />
 
           {/* Agents */}
           <Route path="agents/library" element={<PageSuspense><AgentsPage /></PageSuspense>} />

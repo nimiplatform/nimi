@@ -22,6 +22,7 @@ import {
 import type { DeliverableCurrentState, WorldOwnedAgentRosterItem } from '@renderer/hooks/use-agent-queries.js';
 import { useWorldOwnedAgentRosterQuery } from '@renderer/hooks/use-agent-queries.js';
 import { useWorldDetailQuery } from '@renderer/hooks/use-world-queries.js';
+import { useWorldWorkbenchNavigation } from '@renderer/app-shell/routes/world-workbench-navigation.js';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const DELIVERABLE_STATE_LABEL: Record<DeliverableCurrentState, string> = {
@@ -38,6 +39,7 @@ const DELIVERABLE_STATE_TONE = {
 
 export default function WorldAgentsPage() {
   const navigate = useNavigate();
+  const navigateToWorldWorkbench = useWorldWorkbenchNavigation();
   const { worldId = '' } = useParams<{ worldId: string }>();
   const worldQuery = useWorldDetailQuery(worldId);
   const rosterQuery = useWorldOwnedAgentRosterQuery(worldId, Boolean(worldId));
@@ -68,7 +70,7 @@ export default function WorldAgentsPage() {
             <Button tone="ghost" size="sm" onClick={() => navigate(`/worlds/${worldId}`)}>
               Back to World
             </Button>
-            <Button tone="secondary" size="sm" onClick={() => navigate(`/worlds/${worldId}/maintain`)}>
+            <Button tone="secondary" size="sm" onClick={() => navigateToWorldWorkbench(worldQuery.data)}>
               Open Maintain
             </Button>
           </div>

@@ -57,4 +57,12 @@ describe('AppRoutes', () => {
       expect(await screen.findByText('workbench-home')).toBeTruthy();
     });
   });
+
+  it('does not admit the old world maintain handoff as an app route', async () => {
+    window.location.hash = '#/worlds/world-1/maintain';
+    render(<AppRoutes />);
+    await waitFor(async () => {
+      expect(await screen.findByText('workbench-home')).toBeTruthy();
+    });
+  });
 });

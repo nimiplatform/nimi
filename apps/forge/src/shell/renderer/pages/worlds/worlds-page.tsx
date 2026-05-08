@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@nimiplatform/nimi-kit/ui';
 import { useWorldResourceQueries, type WorldDraftSummary, type WorldSummary } from '@renderer/hooks/use-world-queries.js';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
+import { useWorldWorkbenchNavigation } from '@renderer/app-shell/routes/world-workbench-navigation.js';
 import {
   ForgePage,
   ForgePageHeader,
@@ -22,6 +23,7 @@ import { formatDate } from '@renderer/components/format-utils.js';
 export default function WorldsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const navigateToWorldWorkbench = useWorldWorkbenchNavigation();
   const ensureWorkspaceForDraft = useForgeWorkspaceStore((state) => state.ensureWorkspaceForDraft);
 
   const { draftsQuery, worldsQuery } = useWorldResourceQueries({
@@ -94,7 +96,7 @@ export default function WorldsPage() {
                   <WorldCard
                     key={world.id}
                     world={world}
-                    onMaintain={() => navigate(`/worlds/${world.id}/maintain`)}
+                    onMaintain={() => navigateToWorldWorkbench(world)}
                   />
                 ))}
               </div>

@@ -28,6 +28,10 @@ import type {
 import { ReasonCode } from './types/index.js';
 import { detectTauriTransport } from './platform-client-tauri.js';
 import { createRuntimeFullAppRegistration } from './platform-client-runtime-registration.js';
+import {
+  createPlatformWorldGovernanceDomain,
+  type PlatformWorldGovernanceDomain,
+} from './platform-client-world-governance.js';
 
 type PlatformSessionUser = JsonObject | null;
 type RealmServices = Realm['services'];
@@ -114,6 +118,7 @@ type PlatformDomains = {
     getWorldHistory: RealmServices['WorldsService']['worldControllerGetWorldHistory'];
     listWorldLevelAudits: RealmServices['WorldsService']['worldControllerGetWorldLevelAudits'];
   };
+  worldGovernance: PlatformWorldGovernanceDomain;
   creator: {
     listAgents: RealmServices['CreatorService']['creatorControllerListAgents'];
     getAgent: RealmServices['CreatorService']['creatorControllerGetAgent'];
@@ -432,6 +437,7 @@ function createDomains(runtime: Runtime, realm: Realm, authMode: PlatformClientI
       getWorldHistory: (worldId) => realm.services.WorldsService.worldControllerGetWorldHistory(worldId),
       listWorldLevelAudits: (worldId, take) => realm.services.WorldsService.worldControllerGetWorldLevelAudits(worldId, take),
     },
+    worldGovernance: createPlatformWorldGovernanceDomain(realm),
     creator: {
       listAgents: () => realm.services.CreatorService.creatorControllerListAgents(),
       getAgent: (agentId) => realm.services.CreatorService.creatorControllerGetAgent(agentId),

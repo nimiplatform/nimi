@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { buildWorldWorkbenchPath } from '@renderer/app-shell/routes/world-workbench-navigation.js';
 import {
   useAgentListQuery,
   useWorldOwnedAgentRosterQuery,
@@ -216,7 +217,7 @@ export default function WorkbenchPage() {
       markPublished(workspaceId, {
         worldId: result.worldId,
       });
-      navigate(`/worlds/${result.worldId}/maintain`);
+      navigate(buildWorldWorkbenchPath(workspaceId));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (batchRunId && batchItemId) {

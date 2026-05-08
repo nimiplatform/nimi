@@ -126,13 +126,13 @@ describe('WorldCreatePageView', () => {
     expect(screen.getByRole('button', { name: 'Open Release v3' })).toBeTruthy();
   });
 
-  it('opens maintain page with deep-link compare params from the published item', () => {
+  it('opens the canonical world detail route with deep-link compare params from the published item', () => {
     render(<WorldCreatePageView />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Release v3' }));
 
     expect(navigateMock).toHaveBeenCalledWith(
-      '/worlds/world-1/maintain?lineageKey=realm%3Arealm&releaseId=release-3&runId=run-1',
+      '/worlds/world-1?lineageKey=realm%3Arealm&releaseId=release-3&runId=run-1',
     );
   });
 

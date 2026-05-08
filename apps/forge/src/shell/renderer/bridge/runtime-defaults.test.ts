@@ -72,6 +72,14 @@ describe('getRuntimeDefaults', () => {
 
       expect(defaults.realm.jwksUrl).toBe('https://api.example.com/api/auth/jwks');
     });
+
+    it('does not project env access tokens into renderer defaults', async () => {
+      stubEnv({ NIMI_ACCESS_TOKEN: 'env-token' });
+
+      const defaults = await getRuntimeDefaults();
+
+      expect(defaults.realm.accessToken).toBe('');
+    });
   });
 
   describe('when Tauri is available (invoke path)', () => {
@@ -112,10 +120,10 @@ describe('getRuntimeDefaults', () => {
         'runtime_defaults',
         {},
       );
-      expect(defaults.realm.accessToken).toBe('tauri-token');
+      expect(defaults.realm.accessToken).toBe('');
     });
 
-    it('applies env overrides on top of tauri defaults', async () => {
+    it('applies non-token env overrides on top of tauri defaults', async () => {
       mockTauriInvoke.mockResolvedValue({
         realm: {
           realmBaseUrl: 'http://localhost:3002',
@@ -148,7 +156,7 @@ describe('getRuntimeDefaults', () => {
       const defaults = await getRuntimeDefaults();
 
       expect(defaults.realm.realmBaseUrl).toBe('https://prod.example.com');
-      expect(defaults.realm.accessToken).toBe('env-override-token');
+      expect(defaults.realm.accessToken).toBe('');
     });
   });
 });

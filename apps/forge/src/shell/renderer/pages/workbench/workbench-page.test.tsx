@@ -21,6 +21,10 @@ const publishForgeWorkspacePlanMock = vi.fn();
 const createBatchRunMutateAsync = vi.fn();
 const publishPackageMutateAsync = vi.fn();
 const reportBatchItemFailureMutateAsync = vi.fn();
+const createIdleMutation = () => ({
+  mutateAsync: vi.fn(),
+  isPending: false,
+});
 
 vi.mock('@renderer/hooks/use-agent-queries.js', () => ({
   useAgentListQuery: (...args: unknown[]) => mockUseAgentListQuery(...args),
@@ -49,6 +53,17 @@ vi.mock('@renderer/hooks/use-world-commit-actions.js', () => ({
       mutateAsync: reportBatchItemFailureMutateAsync,
       isPending: false,
     },
+    saveMaintenanceMutation: createIdleMutation(),
+    syncEventsMutation: createIdleMutation(),
+    syncResourceBindingsMutation: createIdleMutation(),
+    createWorldRuleMutation: createIdleMutation(),
+    updateWorldRuleMutation: createIdleMutation(),
+    deprecateWorldRuleMutation: createIdleMutation(),
+    archiveWorldRuleMutation: createIdleMutation(),
+    createAgentRuleMutation: createIdleMutation(),
+    updateAgentRuleMutation: createIdleMutation(),
+    deprecateAgentRuleMutation: createIdleMutation(),
+    archiveAgentRuleMutation: createIdleMutation(),
   }),
 }));
 
@@ -98,7 +113,6 @@ function renderWorkbench(workspaceId: string, panel: string) {
         <MemoryRouter initialEntries={[`/workbench/${workspaceId}?panel=${panel}`]}>
           <Routes>
             <Route path="/workbench/:workspaceId" element={<WorkbenchPage />} />
-            <Route path="/worlds/:worldId/maintain" element={<div>Maintain</div>} />
           </Routes>
         </MemoryRouter>
       </I18nextProvider>
@@ -284,6 +298,45 @@ function setCanonicalPublishMocks(input: {
       coverBound: input.coverBound,
       iconBound: input.iconBound,
     }),
+    stateQuery: {
+      data: null,
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+    },
+    historyQuery: {
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+    },
+    lorebooksQuery: {
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+    },
+    maintenanceTimeline: {
+      items: [],
+    },
+    releasesQuery: {
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+    },
+    titleLineageQuery: {
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+    },
+    batchRunsQuery: {
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+    },
     resourceBindingsQuery: {
       isPending: false,
       isError: false,

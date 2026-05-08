@@ -4,7 +4,7 @@ Creator studio for world, agent, and content management.
 
 ## Overview
 
-Forge is a Tauri desktop application for creating, publishing, and managing worlds and agents on the Nimi platform. It includes content editing, analytics, and publishing workflows.
+Forge is a Tauri desktop application for creating, publishing, and managing worlds and agents on the Nimi platform. It includes content editing and publishing workflows. Analytics remains a deferred placeholder module unless admitted by separate authority.
 
 ## Tech Stack
 
@@ -26,7 +26,7 @@ src/shell/renderer/
 └── state/        # State management
 ```
 
-All runtime access via `@nimiplatform/sdk/runtime`, realm via `@nimiplatform/sdk/realm`. Rust side owns only transport and daemon lifecycle. OAuth via kit and shared-tauri `oauth_commands`.
+All runtime access via `@nimiplatform/sdk/runtime`, realm via `@nimiplatform/sdk/realm`. Rust side owns only transport and daemon lifecycle. OAuth via kit shell Tauri `oauth_commands`.
 
 ## Development
 

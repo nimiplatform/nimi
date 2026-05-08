@@ -3,7 +3,6 @@ export {
   invoke,
   invokeChecked,
   BridgeError,
-  getRuntimeDefaults,
   loadAuthSession,
   saveAuthSession,
   clearAuthSession,
@@ -31,5 +30,20 @@ export type {
   JsonPrimitive,
 } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
 
-import { createTauriOAuthBridge } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+import {
+  createTauriOAuthBridge,
+  getRuntimeDefaults as getKitRuntimeDefaults,
+  type RuntimeDefaults,
+} from '@nimiplatform/nimi-kit/shell/renderer/bridge';
 export const forgeTauriOAuthBridge = createTauriOAuthBridge();
+
+export async function getRuntimeDefaults(): Promise<RuntimeDefaults> {
+  const defaults = await getKitRuntimeDefaults();
+  return {
+    ...defaults,
+    realm: {
+      ...defaults.realm,
+      accessToken: '',
+    },
+  };
+}

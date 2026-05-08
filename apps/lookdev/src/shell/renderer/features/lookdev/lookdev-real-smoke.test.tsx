@@ -319,40 +319,54 @@ function renderWithProviders(element: React.ReactNode, initialEntries: string[] 
   );
 }
 
-async function loginForRealSmoke(): Promise<string> {
+type RealSmokeRealmClient = {
+  services: {
+    AuthService?: never;
+    WorldControlService: {
+      worldControlControllerGetMyAccess: () => Promise<unknown>;
+      worldControlControllerListMyWorlds: () => Promise<unknown>;
+    };
+    WorldsService: {
+      worldControllerGetWorldAgents: (worldId: string) => Promise<unknown>;
+    };
+  };
+  close: () => Promise<void>;
+};
+
+async function createRealSmokeRealmClient(): Promise<{ token: string; realm: RealSmokeRealmClient }> {
+  const { Realm } = await import('@nimiplatform/sdk/realm');
+  const realmBaseUrl = process.env.LOOKDEV_REAL_SMOKE_REALM_BASE_URL ?? 'http://localhost:3002';
   if (process.env.LOOKDEV_REAL_SMOKE_ACCESS_TOKEN) {
-    return process.env.LOOKDEV_REAL_SMOKE_ACCESS_TOKEN;
+    return {
+      token: process.env.LOOKDEV_REAL_SMOKE_ACCESS_TOKEN,
+      realm: new Realm({
+        baseUrl: realmBaseUrl,
+        auth: { accessToken: process.env.LOOKDEV_REAL_SMOKE_ACCESS_TOKEN },
+      }) as RealSmokeRealmClient,
+    };
   }
   const identifier = process.env.LOOKDEV_REAL_SMOKE_EMAIL ?? 'test@nimi.xyz';
   const password = process.env.LOOKDEV_REAL_SMOKE_PASSWORD ?? 'test123';
-  const response = await fetch('http://localhost:3002/api/auth/password/login', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({ identifier, password }),
+  const authRealm = new Realm({
+    baseUrl: realmBaseUrl,
+    auth: undefined,
   });
-  if (!response.ok) {
-    throw new Error(`LOOKDEV_REAL_SMOKE_LOGIN_FAILED:${response.status}`);
-  }
-  const payload = await response.json() as { tokens?: { accessToken?: string } };
-  const token = String(payload.tokens?.accessToken || '').trim();
+  const payload = await authRealm.services.AuthService.passwordLogin({ identifier, password }) as {
+    tokens?: { accessToken?: string };
+    accessToken?: string;
+  };
+  await authRealm.close();
+  const token = String(payload.tokens?.accessToken || payload.accessToken || '').trim();
   if (!token) {
     throw new Error('LOOKDEV_REAL_SMOKE_TOKEN_MISSING');
   }
-  return token;
-}
-
-async function fetchJson<T>(path: string, token: string): Promise<T> {
-  const response = await fetch(`http://localhost:3002${path}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`LOOKDEV_REAL_SMOKE_FETCH_FAILED:${path}:${response.status}`);
-  }
-  return await response.json() as T;
+  return {
+    token,
+    realm: new Realm({
+      baseUrl: realmBaseUrl,
+      auth: { accessToken: token },
+    }) as RealSmokeRealmClient,
+  };
 }
 
 function normalizeRealAgent(worldId: string, value: Record<string, unknown>): RealAgent {
@@ -551,44 +565,57 @@ maybeDescribe('Lookdev real-data smoke', () => {
   beforeAll(async () => {
     await initI18n();
     await changeLocale('en');
-    const token = await loginForRealSmoke();
-    const access = await fetchJson<{
-      hasActiveAccess: boolean;
-      canMaintainWorld: boolean;
-      records: Array<{ scopeWorldId?: string | null }>;
-    }>('/api/world-control/access/me', token);
-    if (!access.hasActiveAccess || !access.canMaintainWorld) {
-      throw new Error('LOOKDEV_REAL_SMOKE_NO_MAINTAIN_ACCESS');
-    }
-    const myWorldsPayload = await fetchJson<{ items?: Array<Record<string, unknown>> }>('/api/worlds/mine', token);
-    const worlds = await Promise.all((myWorldsPayload.items || []).map(async (item) => {
-      const id = String(item.id || '').trim();
-      const name = String(item.name || id || 'Untitled World').trim();
-      const cast = await fetchJson<Array<Record<string, unknown>>>(`/api/world/by-id/${id}/agents`, token);
-      return {
-        id,
-        name,
-        status: String(item.status || '').trim() || 'ACTIVE',
-        agentCount: cast.length,
+    const { token, realm } = await createRealSmokeRealmClient();
+    try {
+      const access = await realm.services.WorldControlService.worldControlControllerGetMyAccess() as {
+        hasActiveAccess: boolean;
+        canMaintainWorld: boolean;
+        records: Array<{ scopeWorldId?: string | null }>;
       };
-    }));
-    const activeWorld = worlds.find((world) => world.agentCount > 0);
-    if (!activeWorld) {
-      throw new Error('LOOKDEV_REAL_SMOKE_NO_NONEMPTY_WORLD');
+      if (!access.hasActiveAccess || !access.canMaintainWorld) {
+        throw new Error('LOOKDEV_REAL_SMOKE_NO_MAINTAIN_ACCESS');
+      }
+      const myWorldsPayload = await realm.services.WorldControlService.worldControlControllerListMyWorlds() as
+        | { items?: Array<Record<string, unknown>> }
+        | Array<Record<string, unknown>>;
+      const worldItems = Array.isArray(myWorldsPayload) ? myWorldsPayload : myWorldsPayload.items || [];
+      const worlds = await Promise.all(worldItems.map(async (item) => {
+        const id = String(item.id || '').trim();
+        const name = String(item.name || id || 'Untitled World').trim();
+        const castPayload = await realm.services.WorldsService.worldControllerGetWorldAgents(id) as
+          | Array<Record<string, unknown>>
+          | { items?: Array<Record<string, unknown>> };
+        const cast = Array.isArray(castPayload) ? castPayload : castPayload.items || [];
+        return {
+          id,
+          name,
+          status: String(item.status || '').trim() || 'ACTIVE',
+          agentCount: cast.length,
+        };
+      }));
+      const activeWorld = worlds.find((world) => world.agentCount > 0);
+      if (!activeWorld) {
+        throw new Error('LOOKDEV_REAL_SMOKE_NO_NONEMPTY_WORLD');
+      }
+      const rawCastPayload = await realm.services.WorldsService.worldControllerGetWorldAgents(activeWorld.id) as
+        | Array<Record<string, unknown>>
+        | { items?: Array<Record<string, unknown>> };
+      const rawCast = Array.isArray(rawCastPayload) ? rawCastPayload : rawCastPayload.items || [];
+      const cast = rawCast.map((item) => normalizeRealAgent(activeWorld.id, item));
+      const primaryAgents = cast.filter((agent) => agent.importance === 'PRIMARY');
+      if (primaryAgents.length === 0) {
+        throw new Error('LOOKDEV_REAL_SMOKE_NO_PRIMARY_AGENTS');
+      }
+      realFixture = {
+        token,
+        worlds,
+        activeWorld,
+        cast,
+        primaryAgents,
+      };
+    } finally {
+      await realm.close();
     }
-    const rawCast = await fetchJson<Array<Record<string, unknown>>>(`/api/world/by-id/${activeWorld.id}/agents`, token);
-    const cast = rawCast.map((item) => normalizeRealAgent(activeWorld.id, item));
-    const primaryAgents = cast.filter((agent) => agent.importance === 'PRIMARY');
-    if (primaryAgents.length === 0) {
-      throw new Error('LOOKDEV_REAL_SMOKE_NO_PRIMARY_AGENTS');
-    }
-    realFixture = {
-      token,
-      worlds,
-      activeWorld,
-      cast,
-      primaryAgents,
-    };
   }, 30000);
 
   beforeEach(async () => {

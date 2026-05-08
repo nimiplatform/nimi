@@ -38,7 +38,7 @@ function makeRuntimeDefaults() {
     realm: {
       realmBaseUrl: 'http://localhost:3002',
       realtimeUrl: 'ws://localhost:3003',
-      accessToken: 'test-token-abc',
+      accessToken: '',
       jwksUrl: 'http://localhost:3002/api/auth/jwks',
       revocationUrl: 'http://localhost:3002/api/auth/revocation',
       jwtIssuer: 'http://localhost:3002',
@@ -93,7 +93,7 @@ describe('runForgeBootstrap', () => {
     expect(mockInitializePlatformClient).toHaveBeenCalledWith(
       expect.objectContaining({
         realmBaseUrl: defaults.realm.realmBaseUrl,
-        accessToken: defaults.realm.accessToken,
+        accessToken: '',
       }),
     );
 
@@ -101,9 +101,9 @@ describe('runForgeBootstrap', () => {
     expect(mockBootstrapAuthSession).toHaveBeenCalledWith(
       expect.objectContaining({
         realm: mockRealm,
-        accessToken: defaults.realm.accessToken,
+        accessToken: '',
         refreshToken: '',
-        source: 'env',
+        source: 'anonymous',
         realmBaseUrl: defaults.realm.realmBaseUrl,
       }),
     );
@@ -173,7 +173,7 @@ describe('runForgeBootstrap', () => {
     expect(useAppStore.getState().bootstrapError).toBe('bridge unavailable');
   });
 
-  it('accessTokenProvider reads latest token from store', async () => {
+  it('accessTokenProvider starts empty and then reads latest token from store', async () => {
     const defaults = makeRuntimeDefaults();
     const mockRuntime = { ready: vi.fn().mockResolvedValue(undefined) };
     const mockRealm = { raw: { request: vi.fn() } };
@@ -189,8 +189,8 @@ describe('runForgeBootstrap', () => {
 
     await runForgeBootstrap();
 
-    // During bootstrapping it exposes the resolved startup session token.
-    expect(capturedProvider?.()).toBe(defaults.realm.accessToken);
+    // Runtime defaults do not project raw startup tokens into Forge.
+    expect(capturedProvider?.()).toBe('');
 
     // After setting auth session, returns updated token
     useAppStore.getState().setAuthSession(

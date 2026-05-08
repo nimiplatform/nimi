@@ -42,40 +42,7 @@ vi.mock('@renderer/pages/agents/agent-detail-page.js', () => ({
   default: () => <div>master-agent-detail</div>,
 }));
 
-import WorldEditEntryPage from './world-edit-entry-page.js';
 import AgentEditEntryPage from './agent-edit-entry-page.js';
-
-describe('WorldEditEntryPage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    paramsValue = {};
-    locationSearch = '';
-  });
-
-  it('redirects canonical world editing into the workbench world panel', async () => {
-    paramsValue = { worldId: 'world-1' };
-    locationSearch = '?releaseId=release-3';
-    ensureWorkspaceForWorldMock.mockReturnValue('ws-1');
-    useWorldDetailQueryMock.mockReturnValue({
-      data: {
-        id: 'world-1',
-        name: 'Realm',
-        description: 'World description',
-      },
-      isLoading: false,
-      isFetching: false,
-    });
-
-    render(<WorldEditEntryPage />);
-
-    await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith(
-        '/workbench/ws-1?releaseId=release-3&panel=WORLD_TRUTH',
-        { replace: true },
-      );
-    });
-  });
-});
 
 describe('AgentEditEntryPage', () => {
   beforeEach(() => {

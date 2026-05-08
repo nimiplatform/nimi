@@ -206,8 +206,8 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
         publishedWorldId: published.worldId,
         publishedReleaseVersion: published.release.version,
       });
-      input.setNotice(`Official package published as release v${published.release.version}. Redirecting to world maintenance.`);
-      input.navigate(`/worlds/${published.worldId}/maintain`);
+      input.setNotice(`Official package published as release v${published.release.version}. Redirecting to world detail.`);
+      input.navigate(`/worlds/${published.worldId}`);
     } catch (error) {
       const failedBatchRun = await input.commitActions.reportBatchItemFailureMutation.mutateAsync({
         runId: batchRun.id,

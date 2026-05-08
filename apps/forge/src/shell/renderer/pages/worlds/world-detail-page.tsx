@@ -22,6 +22,7 @@ import {
 import type { DeliverableCurrentState, WorldOwnedAgentRosterItem } from '@renderer/hooks/use-agent-queries.js';
 import { useWorldOwnedAgentRosterQuery } from '@renderer/hooks/use-agent-queries.js';
 import { useWorldDetailQuery, useWorldResourceQueries } from '@renderer/hooks/use-world-queries.js';
+import { useWorldWorkbenchNavigation } from '@renderer/app-shell/routes/world-workbench-navigation.js';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const DELIVERABLE_STATE_TONE = {
@@ -44,6 +45,7 @@ const WORLD_VISUAL_TONE = {
 
 export default function WorldDetailPage() {
   const navigate = useNavigate();
+  const navigateToWorldWorkbench = useWorldWorkbenchNavigation();
   const { worldId = '' } = useParams<{ worldId: string }>();
   const worldQuery = useWorldDetailQuery(worldId);
   const rosterQuery = useWorldOwnedAgentRosterQuery(worldId, Boolean(worldId));
@@ -107,7 +109,7 @@ export default function WorldDetailPage() {
             <Button tone="secondary" size="sm" onClick={() => navigate(`/worlds/${worldId}/agents`)}>
               View Agents
             </Button>
-            <Button tone="primary" size="sm" onClick={() => navigate(`/worlds/${worldId}/maintain`)}>
+            <Button tone="primary" size="sm" onClick={() => navigateToWorldWorkbench(world)}>
               Open Maintain
             </Button>
           </div>
@@ -180,7 +182,7 @@ export default function WorldDetailPage() {
           <ForgeActionCard
             title="Open Maintain Workbench"
             description="Hand off into the world truth surface for events, lorebooks, rules, and deep maintenance."
-            onClick={() => navigate(`/worlds/${worldId}/maintain`)}
+            onClick={() => navigateToWorldWorkbench(world)}
           />
           <ForgeActionCard
             title="Open World Asset Ops"

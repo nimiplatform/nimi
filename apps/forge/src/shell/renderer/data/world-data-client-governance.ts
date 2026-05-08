@@ -1,5 +1,5 @@
 import type { CanonicalPublishableWorldPackage } from '../../../../../../../packages/nimi-forge/src/contracts/index.js';
-import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 
 export type ForgePublishWorldPackageInput = {
   mode?: 'upsert-sync' | 'reset-init';
@@ -313,18 +313,6 @@ function normalizeQualityGateSummary(value: unknown, codePrefix: string): ForgeO
   };
 }
 
-async function parseJsonResponse(response: Response): Promise<unknown> {
-  const text = await response.text();
-  if (!text) {
-    return null;
-  }
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error('FORGE_PACKAGE_PUBLISH_RESPONSE_INVALID');
-  }
-}
-
 function normalizeOfficialFactoryBatchItem(
   value: unknown,
   codePrefix: string,
@@ -433,59 +421,19 @@ function normalizeRollbackWorldReleaseResult(value: unknown): ForgeRollbackWorld
   };
 }
 
-function getAdminAuthContext() {
-  const realmBaseUrl = String(useAppStore.getState().runtimeDefaults?.realm?.realmBaseUrl || '').trim();
-  if (!realmBaseUrl) {
-    throw new Error('FORGE_REALM_BASE_URL_REQUIRED');
-  }
-  const token = String(useAppStore.getState().auth?.token || '').trim();
-  if (!token) {
-    throw new Error('FORGE_AUTH_TOKEN_REQUIRED');
-  }
-  return { realmBaseUrl, token };
-}
-
-async function requestAdminWorldGovernance(
-  path: string,
-  init?: RequestInit,
-): Promise<unknown> {
-  const { realmBaseUrl, token } = getAdminAuthContext();
-  const response = await fetch(`${realmBaseUrl}${path}`, {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(init?.headers ?? {}),
-    },
-  });
-  const parsed = await parseJsonResponse(response);
-
-  if (!response.ok) {
-    const record = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
-      : null;
-    const message = record && typeof record.message === 'string'
-      ? record.message
-      : `FORGE_WORLD_GOVERNANCE_REQUEST_FAILED:${response.status}`;
-    throw new Error(message);
-  }
-
-  return parsed;
+function worldGovernanceClient() {
+  return getPlatformClient().domains.worldGovernance;
 }
 
 export async function publishWorldPackage(
   payload: ForgePublishWorldPackageInput,
 ): Promise<ForgePublishWorldPackageResult> {
-  const parsed = await requestAdminWorldGovernance('/api/admin/worlds/packages/publish', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+  const parsed = await worldGovernanceClient().publishWorldPackage(payload);
   return normalizePublishWorldPackageResult(parsed);
 }
 
 export async function listWorldReleases(worldId: string): Promise<ForgeWorldRelease[]> {
-  const parsed = await requestAdminWorldGovernance(`/api/admin/worlds/${encodeURIComponent(worldId)}/releases`);
+  const parsed = await worldGovernanceClient().listWorldReleases(worldId);
   if (!Array.isArray(parsed)) {
     throw new Error('FORGE_WORLD_RELEASE_LIST_INVALID');
   }
@@ -493,9 +441,7 @@ export async function listWorldReleases(worldId: string): Promise<ForgeWorldRele
 }
 
 export async function getWorldRelease(worldId: string, releaseId: string): Promise<ForgeWorldRelease> {
-  const parsed = await requestAdminWorldGovernance(
-    `/api/admin/worlds/${encodeURIComponent(worldId)}/releases/${encodeURIComponent(releaseId)}`,
-  );
+  const parsed = await worldGovernanceClient().getWorldRelease(worldId, releaseId);
   return normalizeWorldRelease(parsed, 'FORGE_WORLD_RELEASE_DETAIL');
 }
 
@@ -504,18 +450,12 @@ export async function rollbackWorldRelease(
   releaseId: string,
   payload: ForgeRollbackWorldReleaseInput,
 ): Promise<ForgeRollbackWorldReleaseResult> {
-  const parsed = await requestAdminWorldGovernance(
-    `/api/admin/worlds/${encodeURIComponent(worldId)}/releases/${encodeURIComponent(releaseId)}/rollback`,
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    },
-  );
+  const parsed = await worldGovernanceClient().rollbackWorldRelease(worldId, releaseId, payload);
   return normalizeRollbackWorldReleaseResult(parsed);
 }
 
 export async function listOfficialFactoryBatchRuns(): Promise<ForgeOfficialFactoryBatchRun[]> {
-  const parsed = await requestAdminWorldGovernance('/api/admin/worlds/operations/batch-runs');
+  const parsed = await worldGovernanceClient().listOfficialFactoryBatchRuns();
   if (!Array.isArray(parsed)) {
     throw new Error('FORGE_WORLD_BATCH_RUN_LIST_INVALID');
   }
@@ -525,17 +465,12 @@ export async function listOfficialFactoryBatchRuns(): Promise<ForgeOfficialFacto
 export async function createOfficialFactoryBatchRun(
   payload: ForgeCreateOfficialFactoryBatchRunInput,
 ): Promise<ForgeOfficialFactoryBatchRun> {
-  const parsed = await requestAdminWorldGovernance('/api/admin/worlds/operations/batch-runs', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+  const parsed = await worldGovernanceClient().createOfficialFactoryBatchRun(payload);
   return normalizeOfficialFactoryBatchRun(parsed);
 }
 
 export async function getOfficialFactoryBatchRun(runId: string): Promise<ForgeOfficialFactoryBatchRun> {
-  const parsed = await requestAdminWorldGovernance(
-    `/api/admin/worlds/operations/batch-runs/${encodeURIComponent(runId)}`,
-  );
+  const parsed = await worldGovernanceClient().getOfficialFactoryBatchRun(runId);
   return normalizeOfficialFactoryBatchRun(parsed);
 }
 
@@ -543,13 +478,7 @@ export async function retryOfficialFactoryBatchRun(
   runId: string,
   payload: { reason?: string },
 ): Promise<ForgeOfficialFactoryBatchRun> {
-  const parsed = await requestAdminWorldGovernance(
-    `/api/admin/worlds/operations/batch-runs/${encodeURIComponent(runId)}/retry`,
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    },
-  );
+  const parsed = await worldGovernanceClient().retryOfficialFactoryBatchRun(runId, payload);
   return normalizeOfficialFactoryBatchRun(parsed);
 }
 
@@ -558,20 +487,12 @@ export async function reportOfficialFactoryBatchItemFailure(
   itemId: string,
   payload: ForgeReportOfficialFactoryBatchItemFailureInput,
 ): Promise<ForgeOfficialFactoryBatchRun> {
-  const parsed = await requestAdminWorldGovernance(
-    `/api/admin/worlds/operations/batch-runs/${encodeURIComponent(runId)}/items/${encodeURIComponent(itemId)}/fail`,
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    },
-  );
+  const parsed = await worldGovernanceClient().reportOfficialFactoryBatchItemFailure(runId, itemId, payload);
   return normalizeOfficialFactoryBatchRun(parsed);
 }
 
 export async function listWorldTitleLineage(worldId: string): Promise<ForgeOfficialWorldTitleLineage[]> {
-  const parsed = await requestAdminWorldGovernance(
-    `/api/admin/worlds/${encodeURIComponent(worldId)}/title-lineage`,
-  );
+  const parsed = await worldGovernanceClient().listWorldTitleLineage(worldId);
   if (!Array.isArray(parsed)) {
     throw new Error('FORGE_WORLD_TITLE_LINEAGE_LIST_INVALID');
   }

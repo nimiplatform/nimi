@@ -12,6 +12,7 @@ import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
 import { CreateWorkbench } from '@world-engine/ui/create/create-workbench.js';
 import { useWorldCommitActions } from '@renderer/hooks/use-world-commit-actions.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { buildWorldWorkbenchPath } from '@renderer/app-shell/routes/world-workbench-navigation.js';
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
 import { useWorldCreatePageModel } from './world-create-page-controller.js';
 import { WorldCreateRuleTruthPreview } from './world-create-rule-truth-preview.js';
@@ -36,15 +37,14 @@ export function WorldCreatePageView({
   const resumeDraftId = resumeDraftIdProp ?? (searchParams.get('draftId') || '');
   const userId = useAppStore((state) => state.auth?.user?.id || '');
   const commitActions = useWorldCommitActions();
-  const navigateWithinForge = (to: string) => {
-    if (embedded && workspaceId && to.startsWith('/worlds/')) {
-      const [, queryString = ''] = to.split('?');
-      const next = new URLSearchParams(queryString);
-      next.set('panel', 'WORLD_TRUTH');
-      navigate(`/workbench/${workspaceId}?${next.toString()}`);
+  const navigateWithinForge = (to: string) => navigate(to);
+  const navigateToPublishedWorld = (worldId: string, search: URLSearchParams) => {
+    if (embedded && workspaceId) {
+      navigate(buildWorldWorkbenchPath(workspaceId, { search }));
       return;
     }
-    navigate(to);
+    const query = search.toString();
+    navigate(`/worlds/${worldId}${query ? `?${query}` : ''}`);
   };
   const [operationsExpanded, setOperationsExpanded] = useState(false);
 
@@ -124,6 +124,10 @@ export function WorldCreatePageView({
                     tone="secondary"
                     size="sm"
                     onClick={() => {
+                      const publishedWorldId = publishOperation.publishedWorldId;
+                      if (!publishedWorldId) {
+                        return;
+                      }
                       const next = new URLSearchParams();
                       if (primaryPublishedItem?.titleLineageKey) {
                         next.set('lineageKey', primaryPublishedItem.titleLineageKey);
@@ -134,8 +138,7 @@ export function WorldCreatePageView({
                       if (publishOperation.batchRun?.id) {
                         next.set('runId', publishOperation.batchRun.id);
                       }
-                      const query = next.toString();
-                      navigateWithinForge(`/worlds/${publishOperation.publishedWorldId}/maintain${query ? `?${query}` : ''}`);
+                      navigateToPublishedWorld(publishedWorldId, next);
                     }}
                   >
                     Open Release v{publishOperation.publishedReleaseVersion ?? '?'}
