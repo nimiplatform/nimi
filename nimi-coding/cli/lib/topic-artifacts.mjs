@@ -3,6 +3,7 @@ import path from "node:path";
 import YAML from "yaml";
 
 import { readTextIfFile } from "./fs-helpers.mjs";
+import { packetAuthorityCoverage, packetAuthorityCoverageError } from "./topic-authority-coverage.mjs";
 import { isRecognizedLifecycleArtifactName } from "./topic-lifecycle-artifacts.mjs";
 import { parseYamlText } from "./yaml-helpers.mjs";
 import { loadTopicRuntimeAuthority, toPortableRelativePath } from "./topic-common.mjs";
@@ -113,6 +114,15 @@ export async function freezePacketForTopic(projectRoot, input, draftPath) {
     return {
       ok: false,
       error: `Draft packet wave_id does not resolve inside the topic: ${packet.wave_id}`,
+    };
+  const wave = getTopicWaves(loaded.topic).find((entry) => entry.wave_id === packet.wave_id);
+  const coverage = packetAuthorityCoverage(packet, wave);
+  if (!coverage.ok)
+    return {
+      ok: false,
+      error: packetAuthorityCoverageError(coverage),
+      missingAuthorityOwnerRefs: coverage.missingAuthorityOwnerRefs,
+      missingCanonicalSeamRefs: coverage.missingCanonicalSeamRefs,
     };
   if (!authority.packetFreezeAllowedStatuses.includes(packet.status))
     return { ok: false, error: `Draft packet status is not freezeable: ${packet.status}` };

@@ -319,6 +319,16 @@ conditional_wave_fields:
   consolidation_rationale_required_when: included_findings_or_clusters_count > 1
   isolation_justification_required_when: included_findings_or_clusters_count == 1
   not_applicable_value_allowed: "n/a"
+wave_authority_coverage:
+  authority_owner_must_cover_source_authority_refs: true
+  source_authority_ref_sources:
+    - authority_owner
+    - authority_refs
+    - authority_refs_considered
+    - path_like_merged_root_cause_keys
+  generated_fix_topic_packets_must_copy_union_to:
+    - authority_owner
+    - canonical_seams
 
 semantic_constraints:
   - llm_auditor_judgement_is_required_for_material_findings

@@ -331,7 +331,7 @@ test("sweep design fix-topic materializes finalized wave plan into topic waves",
             wave_id: "wave-runtime-contract-hardcut",
             scope: "Runtime contract hard cut",
             owner_domain: "runtime",
-            authority_owner: ".nimi/spec/runtime/kernel",
+            authority_owner: ".nimi/spec/runtime/kernel/runtime-contract.md",
             dependencies: [],
             finding_ids: ["finding-0001"],
             preflight_ref: `.nimi/local/sweep-design/${runId}/preflight/wave-runtime-contract-hardcut.yaml`,
@@ -345,7 +345,11 @@ test("sweep design fix-topic materializes finalized wave plan into topic waves",
             revision_ledger_entry_refs: [`.nimi/local/sweep-design/${runId}/revision-ledger.yaml#entry-0001`],
             blocked_gate_refs: [],
             merged_cluster_ids: ["cluster-runtime-contract"],
-            merged_root_cause_keys: ["runtime-contract"],
+            merged_root_cause_keys: [
+              ".nimi/spec/runtime/kernel/runtime-contract.md",
+              ".nimi/spec/runtime/kernel/auth-service.md",
+              "runtime-contract",
+            ],
             isolation_justification: "single root cause wave",
           },
           {
@@ -400,6 +404,14 @@ test("sweep design fix-topic materializes finalized wave plan into topic waves",
     assert.equal(topicYaml.waves.length, 2);
     assert.equal(topicYaml.waves[0].state, "preflight_admitted");
     assert.equal(topicYaml.waves[0].source_sweep_design.run_id, runId);
+    assert.deepEqual(topicYaml.waves[0].source_sweep_design.authority_owner, [
+      ".nimi/spec/runtime/kernel/runtime-contract.md",
+      ".nimi/spec/runtime/kernel/auth-service.md",
+    ]);
+    assert.deepEqual(topicYaml.waves[0].source_sweep_design.source_authority_refs, [
+      ".nimi/spec/runtime/kernel/runtime-contract.md",
+      ".nimi/spec/runtime/kernel/auth-service.md",
+    ]);
     assert.deepEqual(topicYaml.waves[1].deps, ["wave-runtime-contract-hardcut"]);
 
     const catalog = YAML.parse(await readFile(path.join(projectRoot, payload.topicRef, "sweep-fix", "wave-catalog.yaml"), "utf8"));

@@ -22,6 +22,7 @@ import {
   TRANSIENT_STATES,
   writeYamlRef,
 } from "./common.mjs";
+import { sweepDesignWaveAuthorityRefs } from "../topic-authority-coverage.mjs";
 
 const ZERO_HASH = "0".repeat(64);
 
@@ -557,6 +558,16 @@ export function validateWave(wave, errors) {
   const count = waveIncludedCount(wave);
   if (count > 1 && !wave.consolidation_rationale) errors.push("multi-finding or multi-cluster wave requires consolidation_rationale");
   if (count <= 1 && !wave.isolation_justification) errors.push("single-finding or single-cluster wave requires isolation_justification");
+  const requiredAuthorityRefs = sweepDesignWaveAuthorityRefs(wave);
+  const declaredAuthorityOwners = new Set(typeof wave.authority_owner === "string"
+    ? [wave.authority_owner]
+    : Array.isArray(wave.authority_owner)
+      ? wave.authority_owner
+      : []);
+  const missingAuthorityRefs = requiredAuthorityRefs.filter((ref) => !declaredAuthorityOwners.has(ref));
+  if (missingAuthorityRefs.length > 0) {
+    errors.push(`wave.authority_owner must cover source authority refs: ${missingAuthorityRefs.join(", ")}`);
+  }
 }
 
 export function stopClassForResult(result) {

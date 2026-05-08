@@ -4,6 +4,7 @@ import path from "node:path";
 import YAML from "yaml";
 
 import { addWaveToTopic, admitWaveInTopic, createTopic, selectWaveInTopic } from "../topic.mjs";
+import { sweepDesignWaveAuthorityRefs } from "../topic-authority-coverage.mjs";
 import { assertDesignArtifact, designRef, inputError, nowIso, requireRunId } from "./common.mjs";
 
 function inventoryRef(runId) {
@@ -43,6 +44,7 @@ function titleFromSlug(value) {
 }
 
 function topicWaveFromSweepDesignWave(wave, context) {
+  const authorityRefs = sweepDesignWaveAuthorityRefs(wave);
   return {
     wave_id: wave.wave_id,
     slug: stableSlug(wave.wave_id.replace(/^wave-/, ""), wave.wave_id),
@@ -64,7 +66,9 @@ function topicWaveFromSweepDesignWave(wave, context) {
       finding_ids: wave.finding_ids ?? [],
       merged_cluster_ids: wave.merged_cluster_ids ?? [],
       merged_root_cause_keys: wave.merged_root_cause_keys ?? [],
-      authority_owner: wave.authority_owner,
+      authority_owner: authorityRefs.length > 0 ? authorityRefs : wave.authority_owner,
+      source_authority_refs: authorityRefs,
+      source_authority_coverage_policy: "authority_owner_and_canonical_seams_must_cover_union_of_source_sweep_design_authority_refs",
       preflight_ref: wave.preflight_ref,
       validation_commands: wave.validation_commands ?? [],
       negative_checks: wave.negative_checks ?? [],

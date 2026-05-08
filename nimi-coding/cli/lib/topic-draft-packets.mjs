@@ -3,6 +3,11 @@ import path from "node:path";
 import YAML from "yaml";
 
 import { readTextIfFile } from "./fs-helpers.mjs";
+import {
+  packetAuthorityCoverage,
+  packetAuthorityCoverageError,
+  sourceSweepDesignAuthorityRefs,
+} from "./topic-authority-coverage.mjs";
 import { parseYamlText } from "./yaml-helpers.mjs";
 
 function toPortableRelativePath(filePath) {
@@ -70,15 +75,16 @@ async function maybeGenerateSweepFixDraft(projectRoot, loaded, wave) {
   }
 
   const source = wave.source_sweep_design;
+  const sourceAuthorityRefs = sourceSweepDesignAuthorityRefs(source);
   const packet = {
     packet_id: `${wave.wave_id}-implementation`,
     topic_id: loaded.topicId,
     wave_id: wave.wave_id,
     packet_kind: "implementation",
     status: "draft",
-    authority_owner: singleStringList(source.authority_owner),
+    authority_owner: sourceAuthorityRefs.length > 0 ? sourceAuthorityRefs : singleStringList(source.authority_owner),
     canonical_seams: [
-      ...singleStringList(source.authority_owner),
+      ...(sourceAuthorityRefs.length > 0 ? sourceAuthorityRefs : singleStringList(source.authority_owner)),
       ...nonEmptyStringArray(source.source_design_packet_refs),
       ...nonEmptyStringArray(source.design_auditor_result_refs),
       ...nonEmptyStringArray(source.revision_ledger_entry_refs),
@@ -94,6 +100,8 @@ async function maybeGenerateSweepFixDraft(projectRoot, loaded, wave) {
       "source_sweep_design provenance changes require packet regeneration",
     ],
     source_sweep_design_run_id: source.run_id ?? null,
+    source_authority_refs: sourceAuthorityRefs,
+    source_authority_coverage_policy: "authority_owner_and_canonical_seams_cover_union_of_source_sweep_design_authority_refs",
     source_design_packet_refs: nonEmptyStringArray(source.source_design_packet_refs),
     design_auditor_result_refs: nonEmptyStringArray(source.design_auditor_result_refs),
     revision_ledger_entry_refs: nonEmptyStringArray(source.revision_ledger_entry_refs),
@@ -129,6 +137,18 @@ export async function findUniqueFreezableDraftPacket(projectRoot, loaded, wave, 
       const value = packet[field];
       return value == null || value === "" || (Array.isArray(value) && value.length === 0);
     })) continue;
+    const coverage = packetAuthorityCoverage(packet, wave);
+    if (!coverage.ok) {
+      return {
+        ok: false,
+        reasonCode: "admitted_wave_packet_authority_coverage_incomplete",
+        missing: [
+          ...coverage.missingAuthorityOwnerRefs.map((ref) => `authority_owner:${ref}`),
+          ...coverage.missingCanonicalSeamRefs.map((ref) => `canonical_seams:${ref}`),
+        ],
+        error: packetAuthorityCoverageError(coverage),
+      };
+    }
     matches.push({
       packet,
       draftRef: toPortableRelativePath(path.relative(projectRoot, draftPath)),

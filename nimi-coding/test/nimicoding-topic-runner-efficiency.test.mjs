@@ -430,7 +430,14 @@ test("topic runner generates and freezes deterministic sweep-fix draft packets",
     ]);
     await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-sweep-draft", "--json"]);
     await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-sweep-draft", "--json"]);
-    const sourcePath = await addSweepSourceDesign(projectRoot, createPayload.topicRef, "wave-sweep-draft");
+    const sourcePath = await addSweepSourceDesign(projectRoot, createPayload.topicRef, "wave-sweep-draft", {
+      authority_owner: ".nimi/spec/platform/kernel/governance-contract.md",
+      merged_root_cause_keys: [
+        ".nimi/spec/platform/kernel/governance-contract.md",
+        ".nimi/spec/platform/kernel/package-authority-admission-contract.md",
+        "wave-sweep-draft",
+      ],
+    });
     const sourceBefore = await readFile(sourcePath, "utf8");
 
     const stepResult = await captureRunCli([
@@ -450,8 +457,74 @@ test("topic runner generates and freezes deterministic sweep-fix draft packets",
     const draftPath = path.join(topicDir, "draft-wave-sweep-draft-implementation.yaml");
     const packetPath = path.join(projectRoot, payload.command.packetRef);
     assert.match(await readFile(draftPath, "utf8"), /packet_id: wave-sweep-draft-implementation/);
+    const draftPacket = YAML.parse(await readFile(draftPath, "utf8"));
+    assert.deepEqual(draftPacket.authority_owner, [
+      ".nimi/spec/platform/kernel/governance-contract.md",
+      ".nimi/spec/platform/kernel/package-authority-admission-contract.md",
+    ]);
+    assert.ok(draftPacket.canonical_seams.includes(".nimi/spec/platform/kernel/package-authority-admission-contract.md"));
     assert.match(await readFile(packetPath, "utf8"), /source_design_packet_refs/);
     assert.equal(await readFile(sourcePath, "utf8"), sourceBefore);
+  });
+});
+
+test("topic runner refuses sweep-fix draft packets missing source authority coverage", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "runner-sweep-authority-coverage-demo",
+      "--justification",
+      "runner sweep authority coverage demo",
+      "--json",
+    ]);
+    const createPayload = JSON.parse(createResult.stdout);
+    await captureRunCli([
+      "topic", "wave", "add", createPayload.topicId, "wave-sweep-authority", "sweep-authority",
+      "--goal", "refuse incomplete authority coverage", "--owner-domain", "ci", "--json",
+    ]);
+    await captureRunCli(["topic", "wave", "select", createPayload.topicId, "wave-sweep-authority", "--json"]);
+    await captureRunCli(["topic", "wave", "admit", createPayload.topicId, "wave-sweep-authority", "--json"]);
+    await addSweepSourceDesign(projectRoot, createPayload.topicRef, "wave-sweep-authority", {
+      authority_owner: ".nimi/spec/platform/kernel/governance-contract.md",
+      merged_root_cause_keys: [
+        ".nimi/spec/platform/kernel/governance-contract.md",
+        ".nimi/spec/platform/kernel/package-authority-admission-contract.md",
+      ],
+    });
+
+    const topicYamlPath = await loadTopicYamlPath(projectRoot, createPayload.topicId);
+    const topicDir = path.dirname(topicYamlPath);
+    await writeFile(path.join(topicDir, "draft-wave-sweep-authority-implementation.yaml"), YAML.stringify({
+      packet_id: "wave-sweep-authority-implementation",
+      topic_id: createPayload.topicId,
+      wave_id: "wave-sweep-authority",
+      packet_kind: "implementation",
+      status: "draft",
+      authority_owner: [".nimi/spec/platform/kernel/governance-contract.md"],
+      canonical_seams: [".nimi/spec/platform/kernel/governance-contract.md"],
+      forbidden_shortcuts: ["mvp_subset_contract"],
+      acceptance_invariants: ["Validation evidence exists."],
+      negative_tests: ["No pseudo-success."],
+      reopen_conditions: ["Source sweep-design provenance remains read-only."],
+    }), "utf8");
+
+    const stepResult = await captureRunCli([
+      "topic-runner", "step", createPayload.topicId,
+      "--run-id", "sweep-authority-coverage-demo",
+      "--adapter", "codex",
+      "--verified-at", "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(stepResult.exitCode, 0, stepResult.stderr);
+    const payload = JSON.parse(stepResult.stdout);
+    assert.equal(payload.runnerStatus, "stopped");
+    assert.equal(payload.stopClass, "require_human_confirmation");
+    assert.equal(payload.decision.reason_code, "admitted_wave_packet_authority_coverage_incomplete");
+    assert.deepEqual(payload.decision.blocking_checks, []);
   });
 });
 
