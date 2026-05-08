@@ -57,18 +57,40 @@ export function CustomTodoComposer({
   const [expanded, setExpanded] = useState(false);
   const [recurrenceRule, setRecurrenceRule] = useState<TodoRecurrenceRule | null>(null);
   const [reminderOffsetMinutes, setReminderOffsetMinutes] = useState<number | null>(null);
+  const [showScrollbar, setShowScrollbar] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const isComposingRef = useRef(false);
 
   useEffect(() => {
     const textarea = inputRef.current;
     if (!textarea) return;
+    const MAX_ROWS_HEIGHT = 74;
     textarea.style.height = '0px';
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 112)}px`;
+    const natural = textarea.scrollHeight;
+    textarea.style.height = `${Math.min(natural, MAX_ROWS_HEIGHT)}px`;
+    setShowScrollbar(natural > MAX_ROWS_HEIGHT);
   }, [newTitle]);
 
   useEffect(() => {
     if (expanded) inputRef.current?.focus();
+  }, [expanded]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Element | null;
+      if (!target) return;
+      if (cardRef.current?.contains(target)) return;
+      if (target.closest?.('[data-todo-composer-popover]')) return;
+      setNewTitle('');
+      setNewDueDate('');
+      setRecurrenceRule(null);
+      setReminderOffsetMinutes(null);
+      setExpanded(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [expanded]);
 
   const reset = useCallback(() => {
@@ -121,34 +143,37 @@ export function CustomTodoComposer({
 
   if (!expanded) {
     return (
-      <div className="px-5 pb-3 pt-3">
-        <button
-          type="button"
-          onClick={() => setExpanded(true)}
-          className="group flex w-full items-center gap-3 rounded-2xl border-[1.5px] border-dashed border-[#d4d4d1] bg-[#fafaf8] px-3.5 py-3 transition-all hover:border-[#3BB88A] hover:bg-[rgba(59,184,138,0.04)] hover:shadow-[0_8px_22px_rgba(59,184,138,0.14)]"
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="group flex w-full items-center gap-3 rounded-[12px] border-[1.5px] border-dashed border-transparent px-3 py-3.5 transition-colors duration-300 ease-out hover:border-[#3BB88A] hover:bg-white"
+      >
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          className="shrink-0 text-[#9aa0a7] transition-all duration-500 ease-out group-hover:rotate-180 group-hover:scale-110 group-hover:text-[#3BB88A]"
         >
-          <span
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white transition-transform group-hover:scale-105"
-            style={{ background: '#3BB88A', boxShadow: '0 2px 6px rgba(59, 184, 138, 0.28)' }}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </span>
-          <span className="text-[14px] transition-colors group-hover:text-[#3BB88A]" style={{ color: '#9ca3af' }}>添加日常待办...</span>
-        </button>
-      </div>
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        <span className="text-[14px] transition-all duration-300 ease-out group-hover:translate-x-0.5 group-hover:tracking-wide group-hover:text-[#3BB88A]" style={{ color: '#9aa0a7' }}>添加日常待办...</span>
+      </button>
     );
   }
 
   return (
-    <div className="px-5 pb-3 pt-3">
+    <div className="pb-3 pt-3">
       <div
+        ref={cardRef}
         className="todo-input-card rounded-2xl px-4 pb-3 pt-3.5 transition-all"
         style={{
           background: '#ffffff',
           border: '1.5px solid #3BB88A',
-          boxShadow: '0 8px 22px rgba(59, 184, 138, 0.14)',
+          boxShadow: '0 2px 6px rgba(59, 184, 138, 0.08)',
         }}
       >
         <textarea
@@ -170,40 +195,31 @@ export function CustomTodoComposer({
           placeholder="比如：提醒我每晚读 10 分钟绘本"
           disabled={adding}
           rows={1}
-          className="todo-input-textarea block w-full resize-none overflow-y-auto border-0 bg-transparent py-1 text-[14px] leading-[1.55] outline-none placeholder:text-[#9ca3af]"
+          className={`todo-input-textarea block w-full resize-none border-0 bg-transparent py-1 text-[14px] leading-[1.55] outline-none placeholder:text-[#9ca3af] ${showScrollbar ? 'overflow-y-auto' : 'overflow-y-hidden'}`}
           style={{ color: '#1e293b' }}
         />
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          <div className="flex flex-wrap items-center gap-x-1 gap-y-2">
-            <TodoDueDatePicker value={newDueDate} onChange={setNewDueDate} />
-            <TodoReminderPicker value={reminderOffsetMinutes} onChange={setReminderOffsetMinutes} />
-            <TodoRecurrencePicker value={recurrenceRule} onChange={setRecurrenceRule} />
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={reset}
-              className="h-8 rounded-full px-4 text-[14px] font-medium transition-colors hover:bg-[#f3f4f6]"
-              style={{ color: '#64748b', background: 'transparent' }}
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleAdd()}
-              disabled={!canSubmit}
-              className="h-8 rounded-full px-5 text-[14px] font-medium transition-all"
-              style={{
-                background: canSubmit ? '#3BB88A' : '#e5e7eb',
-                color: canSubmit ? '#fff' : '#9ca3af',
-                cursor: canSubmit ? 'pointer' : 'not-allowed',
-                boxShadow: canSubmit ? '0 2px 8px rgba(59, 184, 138, 0.28)' : 'none',
-              }}
-            >
-              添加
-            </button>
-          </div>
+        <div className="mt-3 flex flex-wrap items-center gap-x-1 gap-y-2">
+          <TodoDueDatePicker value={newDueDate} onChange={setNewDueDate} />
+          <TodoReminderPicker value={reminderOffsetMinutes} onChange={setReminderOffsetMinutes} />
+          <TodoRecurrencePicker value={recurrenceRule} onChange={setRecurrenceRule} />
+          <button
+            type="button"
+            title="添加"
+            onClick={() => void handleAdd()}
+            disabled={!canSubmit}
+            className="ml-auto flex h-8 w-8 items-center justify-center rounded-full transition-all"
+            style={{
+              background: canSubmit ? '#3BB88A' : '#e5e7eb',
+              color: canSubmit ? '#fff' : '#9ca3af',
+              cursor: canSubmit ? 'pointer' : 'not-allowed',
+              boxShadow: canSubmit ? '0 2px 8px rgba(59, 184, 138, 0.28)' : 'none',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
+          </button>
         </div>
       </div>
     </div>
@@ -257,7 +273,7 @@ export function CustomTodoInlineList({
   if (pending.length === 0 && completed.length === 0) return null;
 
   return (
-    <div className="px-3 pb-1">
+    <div>
       {activeReminders.length > 0 && (
         <CustomTodoReminderBanner
           reminders={activeReminders}
@@ -265,38 +281,53 @@ export function CustomTodoInlineList({
           onDismissAll={dismissAllReminders}
         />
       )}
-      <div className="space-y-1.5">
+      <div>
         {pending.map((todo) => {
           const isAnimated = animatedTodoId === todo.todoId;
           const rule = parseRecurrenceRule(todo.recurrenceRule);
           const reminderLabel = describeReminderOffset(todo.reminderOffsetMinutes);
           const recurrenceLabel = rule ? describeRecurrenceRule(rule) : '';
+          const overdue = todo.dueDate && todo.dueDate < getLocalToday();
           return (
             <div
               key={todo.todoId}
-              className={`group flex items-start gap-2.5 rounded-lg px-2 py-2.5 transition-all hover:bg-[#edf4ff] ${isAnimated ? 'custom-todo-slide-down' : ''}`}
-              style={{ background: '#f6f9ff' }}
+              className={`group flex items-start gap-3 rounded-[12px] px-3 py-3.5 transition-colors hover:bg-white ${isAnimated ? 'custom-todo-slide-down' : ''}`}
             >
               <button
                 type="button"
                 title="标记完成"
                 onClick={() => void handleToggle(todo)}
-                className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all hover:bg-[#7ba7ff]/15"
-                style={{ borderColor: '#7ba7ff' }}
+                className="mt-[2px] flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full border transition-all hover:border-[#4ECCA3]"
+                style={{ borderColor: '#D0D3D8' }}
               >
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#7ba7ff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 transition-opacity group-hover:opacity-100">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 transition-opacity group-hover:opacity-100">
                   <path d="M20 6L9 17l-5-5" />
                 </svg>
               </button>
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-medium leading-snug [overflow-wrap:anywhere]" style={{ color: '#38506f' }}>{todo.title}</p>
-                {(todo.dueDate || reminderLabel || recurrenceLabel) && (
-                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px]">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-[14px] font-medium leading-snug [overflow-wrap:anywhere]" style={{ color: '#1e293b' }}>{todo.title}</p>
+                  <div className="flex shrink-0 items-center gap-1">
                     {todo.dueDate && (
-                      <span style={{ color: todo.dueDate < getLocalToday() ? '#ef4444' : '#8aa1bc' }}>
+                      <span className="text-[12px] group-hover:hidden" style={{ color: overdue ? '#ef4444' : '#64748b' }}>
                         {formatDueDate(todo.dueDate)}
                       </span>
                     )}
+                    <button
+                      type="button"
+                      title="删除"
+                      onClick={() => void handleDelete(todo.todoId)}
+                      className="hidden h-[15px] w-[15px] items-center justify-center rounded-full transition-colors group-hover:flex hover:bg-[#f3f4f6]"
+                      style={{ color: '#9aa0a7' }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                {(recurrenceLabel || reminderLabel) && (
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px]">
                     {recurrenceLabel && (
                       <span
                         className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[1px]"
@@ -326,17 +357,6 @@ export function CustomTodoInlineList({
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                title="删除"
-                onClick={() => void handleDelete(todo.todoId)}
-                className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full opacity-0 transition-opacity group-hover:opacity-100"
-                style={{ color: '#8aa1bc' }}
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
             </div>
           );
         })}
@@ -346,33 +366,35 @@ export function CustomTodoInlineList({
             {completed.slice(0, 5).map((todo) => (
               <div
                 key={todo.todoId}
-                className="group flex items-start gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-[#f2f6ff]"
+                className="group flex items-start gap-3 rounded-[12px] px-3 py-3 transition-colors hover:bg-white"
               >
                 <button
                   type="button"
                   title="取消完成"
                   onClick={() => void handleToggle(todo)}
-                  className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px]"
-                  style={{ borderColor: '#7ba7ff', background: '#7ba7ff' }}
+                  className="mt-[2px] flex h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full border"
+                  style={{ borderColor: '#9aa0a7', background: '#9aa0a7' }}
                 >
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
                 </button>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14px] leading-snug line-through [overflow-wrap:anywhere]" style={{ color: '#9fb0c8' }}>{todo.title}</p>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-[14px] leading-snug line-through [overflow-wrap:anywhere]" style={{ color: '#9aa0a7' }}>{todo.title}</p>
+                    <button
+                      type="button"
+                      title="删除"
+                      onClick={() => void handleDelete(todo.todoId)}
+                      className="hidden h-[15px] w-[15px] shrink-0 items-center justify-center rounded-full transition-colors group-hover:flex hover:bg-[#f3f4f6]"
+                      style={{ color: '#9aa0a7' }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  title="删除"
-                  onClick={() => void handleDelete(todo.todoId)}
-                  className="mt-[1px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full opacity-0 transition-opacity group-hover:opacity-100"
-                  style={{ color: '#9fb0c8' }}
-                >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                </button>
               </div>
             ))}
           </div>

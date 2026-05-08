@@ -89,7 +89,7 @@ export function TodoDueDatePicker({ value, onChange, maxDate = '2100-12-31' }: T
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={toggle}
-        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[14px] font-medium transition-colors hover:bg-[#f3f4f6]"
+        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[13px] font-medium transition-colors hover:bg-[#f3f4f6]"
         style={{
           color: active ? '#3BB88A' : '#64748b',
           background: active ? 'rgba(59, 184, 138, 0.10)' : 'transparent',
@@ -101,22 +101,24 @@ export function TodoDueDatePicker({ value, onChange, maxDate = '2100-12-31' }: T
       </button>
 
       {mounted && createPortal(
-        <DatePickerPanel
-          ref={panelRef}
-          anchorRef={wrapRef}
-          open={open}
-          value={value}
-          displayMonth={displayMonth}
-          maxDate={parsedMax}
-          onDisplayMonthChange={setDisplayMonth}
-          onChange={(next) => {
-            const clamped = clampToMax(parseDateValue(next), parsedMax);
-            onChange(formatDateValue(clamped));
-            setOpen(false);
-          }}
-          onClear={() => { onChange(''); setOpen(false); }}
-          onClose={() => setOpen(false)}
-        />,
+        <div data-todo-composer-popover>
+          <DatePickerPanel
+            ref={panelRef}
+            anchorRef={wrapRef}
+            open={open}
+            value={value}
+            displayMonth={displayMonth}
+            maxDate={parsedMax}
+            onDisplayMonthChange={setDisplayMonth}
+            onChange={(next) => {
+              const clamped = clampToMax(parseDateValue(next), parsedMax);
+              onChange(formatDateValue(clamped));
+              setOpen(false);
+            }}
+            onClear={() => { onChange(''); setOpen(false); }}
+            onClose={() => setOpen(false)}
+          />
+        </div>,
         document.body,
       )}
     </div>

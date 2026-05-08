@@ -432,7 +432,7 @@ export function ReminderPanel({
         </div>
       )}
 
-      <div className="mb-2 px-1">
+      <div className="px-1">
         <CustomTodoComposer
           childId={childId}
           onChanged={onCustomTodoChanged}

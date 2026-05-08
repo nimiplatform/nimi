@@ -39,9 +39,10 @@ export function TodoReminderPicker({ value, onChange }: TodoReminderPickerProps)
     <div ref={wrapperRef} className="relative inline-flex">
       <button
         type="button"
+        title={active ? `提醒：${describeReminderOffset(value)}` : '设置提醒'}
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[14px] font-medium transition-colors hover:bg-[#f3f4f6]"
+        className={`inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-full text-[14px] font-medium transition-colors hover:bg-[#f3f4f6] ${active ? 'px-3' : 'w-8 px-0'}`}
         style={{
           color: active ? '#3BB88A' : '#64748b',
           background: active ? 'rgba(59, 184, 138, 0.10)' : 'transparent',
@@ -49,12 +50,13 @@ export function TodoReminderPicker({ value, onChange }: TodoReminderPickerProps)
         }}
       >
         {CLOCK_ICON}
-        <span>{active ? describeReminderOffset(value) : '提醒'}</span>
+        {active && <span>{describeReminderOffset(value)}</span>}
       </button>
 
       {open && (
         <div
           role="dialog"
+          data-todo-composer-popover
           className="absolute left-0 top-[calc(100%+0.5rem)] z-40 w-[184px] rounded-2xl border p-1.5"
           style={{ background: '#ffffff', borderColor: '#eef0ee', boxShadow: '0 10px 28px rgba(17, 24, 39, 0.08)' }}
         >
