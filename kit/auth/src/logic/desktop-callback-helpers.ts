@@ -36,29 +36,29 @@ function showDesktopCallbackSuccessState(): void {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(248, 250, 252, 0.88);
-        backdrop-filter: blur(8px);
+        background: var(--nimi-material-glass-regular-bg);
+        color: var(--nimi-text-primary);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       #${DESKTOP_CALLBACK_SUCCESS_OVERLAY_ID} .nimi_desktop_callback_card {
         width: min(460px, calc(100vw - 48px));
         padding: 32px 28px;
-        border-radius: 24px;
-        background: rgba(255, 255, 255, 0.96);
-        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.16);
+        border: var(--nimi-border-width-default) solid var(--nimi-material-glass-thick-border);
+        border-radius: var(--nimi-radius-lg);
+        background: var(--nimi-material-glass-thick-bg);
+        box-shadow: var(--nimi-elevation-modal);
         text-align: center;
-        color: #0f172a;
       }
       #${DESKTOP_CALLBACK_SUCCESS_OVERLAY_ID} .nimi_desktop_callback_badge {
         width: 52px;
         height: 52px;
         margin: 0 auto 18px;
-        border-radius: 9999px;
+        border-radius: var(--nimi-radius-full);
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: #ffffff;
+        background: var(--nimi-status-success);
+        color: var(--nimi-action-primary-text);
         font-size: 28px;
         font-weight: 700;
       }
@@ -70,7 +70,7 @@ function showDesktopCallbackSuccessState(): void {
       }
       #${DESKTOP_CALLBACK_SUCCESS_OVERLAY_ID} .nimi_desktop_callback_message {
         margin: 12px 0 0;
-        color: #475569;
+        color: var(--nimi-text-secondary);
         font-size: 15px;
         line-height: 1.6;
       }
@@ -84,8 +84,11 @@ function showDesktopCallbackSuccessState(): void {
   overlay.id = DESKTOP_CALLBACK_SUCCESS_OVERLAY_ID;
   overlay.setAttribute('role', 'status');
   overlay.setAttribute('aria-live', 'polite');
+  overlay.setAttribute('data-nimi-material', 'glass-regular');
+  overlay.setAttribute('data-nimi-tone', 'overlay');
+  overlay.className = 'nimi-material-glass-regular';
   overlay.innerHTML = `
-    <div class="nimi_desktop_callback_card">
+    <div class="nimi_desktop_callback_card nimi-material-glass-thick" data-nimi-material="glass-thick" data-nimi-tone="card">
       <div class="nimi_desktop_callback_badge">✓</div>
       <h1 class="nimi_desktop_callback_title">Authentication Complete!</h1>
       <p class="nimi_desktop_callback_message">You have successfully signed in to Nimi. This window will close in a moment.</p>

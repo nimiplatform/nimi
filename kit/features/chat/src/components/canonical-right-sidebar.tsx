@@ -1,5 +1,5 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
-import { Button, SidebarShell } from '@nimiplatform/nimi-kit/ui';
+import { Button, SidebarShell, Surface } from '@nimiplatform/nimi-kit/ui';
 
 type SidebarBoundaryProps = {
   children: ReactNode;
@@ -38,19 +38,19 @@ class CanonicalRightSidebarBoundary extends React.Component<SidebarBoundaryProps
     }
 
     return (
-      <div className="flex h-full flex-col justify-between border-l border-white/70 bg-[#f7fafb] p-4">
-        <div className="rounded-[24px] border border-rose-200 bg-white px-4 py-4 shadow-[0_14px_28px_rgba(15,23,42,0.08)]">
-          <p className="text-base font-semibold text-rose-700">{this.props.title}</p>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{this.props.body}</p>
-          <p className="mt-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+      <div className="flex h-full flex-col justify-between border-l border-[var(--nimi-border-subtle)] bg-[var(--nimi-sidebar-canvas)] p-4">
+        <Surface tone="card" elevation="raised" padding="md">
+          <p className="text-base font-semibold text-[var(--nimi-status-danger)]">{this.props.title}</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--nimi-text-secondary)]">{this.props.body}</p>
+          <p className="mt-3 rounded-[var(--nimi-radius-md)] border border-dashed border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-xs text-[var(--nimi-text-muted)]">
             {String(this.state.error.message || this.state.error.name || 'right sidebar error')}
           </p>
-        </div>
+        </Surface>
         <Button
           onClick={this.props.onClose}
           tone="secondary"
           size="sm"
-          className="rounded-full bg-white text-slate-700 hover:bg-slate-50"
+          className="rounded-[var(--nimi-radius-full)]"
         >
           {this.props.closeLabel}
         </Button>
@@ -124,7 +124,7 @@ export function CanonicalRightSidebar({
       >
         <SidebarShell
           as="div"
-          className="h-full rounded-none border-y-0 border-r-0 bg-[#f8fbfb] shadow-[-8px_0_24px_rgba(15,23,42,0.08)]"
+          className="h-full rounded-none border-y-0 border-r-0 bg-[var(--nimi-sidebar-canvas)] shadow-[var(--nimi-elevation-floating)]"
           style={{ width: `${widthPx}px` }}
           data-canonical-right-sidebar-shell="true"
         >
@@ -142,10 +142,10 @@ export function CanonicalRightSidebar({
             </div>
           ) : (
             <div className="flex h-full flex-col p-4">
-              <div className="h-12 w-40 animate-pulse rounded-2xl bg-slate-200/80" />
-              <div className="mt-4 h-40 w-full animate-pulse rounded-[24px] bg-slate-200/75" />
-              <div className="mt-4 h-16 w-full animate-pulse rounded-[24px] bg-slate-200/75" />
-              <div className="mt-4 h-72 w-full animate-pulse rounded-[24px] bg-slate-200/75" />
+              <div className="h-12 w-40 animate-pulse rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)]" />
+              <div className="mt-4 h-40 w-full animate-pulse rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)]" />
+              <div className="mt-4 h-16 w-full animate-pulse rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)]" />
+              <div className="mt-4 h-72 w-full animate-pulse rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)]" />
             </div>
           )}
         </SidebarShell>

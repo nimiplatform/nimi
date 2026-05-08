@@ -1,19 +1,26 @@
 import { useState, type ReactNode } from 'react';
-import { Tooltip, SelectField } from '@nimiplatform/nimi-kit/ui';
+import {
+  Button,
+  SelectField,
+  StatusBadge,
+  TextareaField,
+  TextField,
+  Toggle,
+  Tooltip,
+  cn,
+} from '@nimiplatform/nimi-kit/ui';
 
-const FIELD_BASE = 'w-full rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_8%,var(--nimi-surface-card,#fff))] px-3 text-[13px] text-[var(--nimi-text-primary,#1e293b)] outline-none transition-all hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_32%,transparent)] focus:border-[var(--nimi-field-focus,#10b981)] focus:bg-white focus:ring-2 focus:ring-emerald-100';
-const FIELD_HEIGHT = 'h-10';
-const FIELD_PLACEHOLDER = 'text-[color-mix(in_srgb,var(--nimi-text-muted,#94a3b8)_80%,transparent)]';
+const FIELD_HEIGHT = 'min-h-[var(--nimi-sizing-field-md-height)]';
 
 export function FieldLabel(props: { label: string; tooltip?: string }) {
   if (props.tooltip) {
     return (
       <Tooltip content={props.tooltip} placement="top">
-        <span className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]">{props.label}</span>
+        <span className="text-xs font-semibold text-[var(--nimi-text-secondary)]">{props.label}</span>
       </Tooltip>
     );
   }
-  return <span className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]">{props.label}</span>;
+  return <span className="text-xs font-semibold text-[var(--nimi-text-secondary)]">{props.label}</span>;
 }
 
 export function FieldRow(props: { label: string; tooltip?: string; children: ReactNode }) {
@@ -31,12 +38,13 @@ export function FieldInput(props: {
   placeholder?: string;
 }) {
   return (
-    <input
+    <TextField
       type="text"
       value={props.value}
       onChange={(event) => props.onChange(event.target.value)}
       placeholder={props.placeholder}
-      className={`${FIELD_BASE} ${FIELD_HEIGHT} placeholder:${FIELD_PLACEHOLDER}`}
+      className={FIELD_HEIGHT}
+      inputClassName="text-[length:var(--nimi-type-body-sm-size)]"
     />
   );
 }
@@ -65,12 +73,12 @@ export function FieldTextarea(props: {
   rows?: number;
 }) {
   return (
-    <textarea
+    <TextareaField
       value={props.value}
       onChange={(event) => props.onChange(event.target.value)}
       placeholder={props.placeholder}
       rows={props.rows || 3}
-      className={`${FIELD_BASE} resize-y py-2.5 placeholder:${FIELD_PLACEHOLDER}`}
+      textareaClassName="text-[length:var(--nimi-type-body-sm-size)]"
     />
   );
 }
@@ -82,34 +90,14 @@ export function FieldToggle(props: {
 }) {
   return (
     <label className="flex items-center justify-between py-1">
-      <span className="text-xs font-semibold text-[var(--nimi-text-secondary,#475569)]">{props.label}</span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={props.checked}
-        onClick={() => props.onChange(!props.checked)}
-        className={[
-          'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200',
-          props.checked ? 'bg-emerald-500' : 'bg-slate-200',
-        ].join(' ')}
-      >
-        <span
-          className={[
-            'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200',
-            props.checked ? 'translate-x-4' : 'translate-x-0',
-          ].join(' ')}
-        />
-      </button>
+      <span className="text-xs font-semibold text-[var(--nimi-text-secondary)]">{props.label}</span>
+      <Toggle checked={props.checked} onChange={props.onChange} />
     </label>
   );
 }
 
 export function PreviewBadge(props: { label: string }) {
-  return (
-    <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-600">
-      {props.label}
-    </span>
-  );
+  return <StatusBadge tone="warning" className="px-1.5 py-0.5 text-[9px] uppercase">{props.label}</StatusBadge>;
 }
 
 export function FieldSlider(props: {
@@ -128,9 +116,9 @@ export function FieldSlider(props: {
         step={props.step ?? 1}
         value={props.value}
         onChange={(event) => props.onChange(Number(event.target.value))}
-        className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-emerald-500 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-500 [&::-webkit-slider-thumb]:shadow-sm"
+        className="h-1.5 flex-1 cursor-pointer appearance-none rounded-[var(--nimi-radius-full)] bg-[var(--nimi-toggle-off-bg)] accent-[var(--nimi-action-primary-bg)] [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-[var(--nimi-radius-full)] [&::-webkit-slider-thumb]:bg-[var(--nimi-action-primary-bg)] [&::-webkit-slider-thumb]:shadow-[var(--nimi-elevation-base)]"
       />
-      <span className="w-10 shrink-0 text-right text-[13px] font-medium tabular-nums text-[var(--nimi-text-primary,#1e293b)]">{props.value}</span>
+      <span className="w-10 shrink-0 text-right text-[length:var(--nimi-type-body-sm-size)] font-medium tabular-nums text-[var(--nimi-text-primary)]">{props.value}</span>
     </div>
   );
 }
@@ -141,10 +129,10 @@ export function SubSectionLabel(props: {
 }) {
   return (
     <div className="flex items-center gap-2 pt-1">
-      <div className="h-px flex-1 bg-[color-mix(in_srgb,var(--nimi-border-subtle,#e2e8f0)_70%,transparent)]" />
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--nimi-text-muted,#94a3b8)]">{props.label}</span>
+      <div className="h-px flex-1 bg-[var(--nimi-border-subtle)]" />
+      <span className="text-[10px] font-semibold uppercase tracking-[var(--nimi-type-label-letter-spacing)] text-[var(--nimi-text-muted)]">{props.label}</span>
       {props.previewLabel ? <PreviewBadge label={props.previewLabel} /> : null}
-      <div className="h-px flex-1 bg-[color-mix(in_srgb,var(--nimi-border-subtle,#e2e8f0)_70%,transparent)]" />
+      <div className="h-px flex-1 bg-[var(--nimi-border-subtle)]" />
     </div>
   );
 }
@@ -156,17 +144,17 @@ export function SectionGroupHeader(props: {
   return (
     <div className="flex items-center gap-2 pb-2 pt-1">
       <span className="relative inline-flex h-2 w-2 shrink-0">
-        <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400/40" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        <span className="absolute inline-flex h-full w-full rounded-[var(--nimi-radius-full)] bg-[color-mix(in_srgb,var(--nimi-status-success)_40%,transparent)]" />
+        <span className="relative inline-flex h-2 w-2 rounded-[var(--nimi-radius-full)] bg-[var(--nimi-status-success)]" />
       </span>
-      <span className="text-[13px] font-semibold text-[var(--nimi-text-primary,#0f172a)]">{props.label}</span>
+      <span className="text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">{props.label}</span>
       {props.trailing ? <span className="ml-auto">{props.trailing}</span> : null}
     </div>
   );
 }
 
 const STEPPER_BUTTON_BASE =
-  'inline-flex h-10 w-9 shrink-0 items-center justify-center text-[var(--nimi-text-secondary,#475569)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_10%,transparent)] hover:text-[var(--nimi-action-primary-bg,#10b981)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[var(--nimi-text-secondary,#475569)]';
+  'h-full w-9 rounded-none border-0 text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-action-primary-bg)]';
 
 function clampStepperValue(next: number, min?: number, max?: number): number {
   let value = next;
@@ -205,28 +193,30 @@ export function NumberStepperField(props: {
   };
 
   return (
-    <div className="flex h-10 w-full items-stretch overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_8%,var(--nimi-surface-card,#fff))] transition-all focus-within:border-[var(--nimi-field-focus,#10b981)] focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-100 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg,#10b981)_32%,transparent)]">
-      <button
-        type="button"
+    <div className="flex min-h-[var(--nimi-sizing-field-md-height)] w-full items-stretch overflow-hidden rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-field-text)] transition-colors duration-[var(--nimi-motion-fast)] focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)]">
+      <Button
         aria-label="Decrement"
+        tone="ghost"
+        size="sm"
         className={STEPPER_BUTTON_BASE}
         onClick={() => adjust(-1)}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
-      </button>
+      </Button>
       <input
         type="text"
         inputMode={props.inputMode ?? 'decimal'}
         value={props.value}
         onChange={(event) => props.onChange(event.target.value)}
         placeholder={props.placeholder}
-        className="min-w-0 flex-1 bg-transparent px-1 text-center text-[13px] tabular-nums text-[var(--nimi-text-primary,#1e293b)] outline-none placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted,#94a3b8)_80%,transparent)]"
+        className="min-w-0 flex-1 bg-transparent px-1 text-center text-[length:var(--nimi-type-body-sm-size)] tabular-nums text-[var(--nimi-text-primary)] outline-none placeholder:text-[var(--nimi-field-placeholder)]"
       />
-      <button
-        type="button"
+      <Button
         aria-label="Increment"
+        tone="ghost"
+        size="sm"
         className={STEPPER_BUTTON_BASE}
         onClick={() => adjust(1)}
       >
@@ -234,7 +224,7 @@ export function NumberStepperField(props: {
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
-      </button>
+      </Button>
     </div>
   );
 }
@@ -247,21 +237,21 @@ export function CollapsibleSection(props: {
 }) {
   const [open, setOpen] = useState(props.defaultOpen ?? false);
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--nimi-border-subtle,#e2e8f0)] bg-[var(--nimi-surface-card,#ffffff)]">
+    <div className="overflow-hidden rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-raised,#f8fafc)_70%,transparent)]"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--nimi-action-ghost-hover)]"
       >
         <span className="relative inline-flex h-2 w-2 shrink-0">
-          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400/40" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+          <span className="absolute inline-flex h-full w-full rounded-[var(--nimi-radius-full)] bg-[color-mix(in_srgb,var(--nimi-status-success)_40%,transparent)]" />
+          <span className="relative inline-flex h-2 w-2 rounded-[var(--nimi-radius-full)] bg-[var(--nimi-status-success)]" />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-semibold text-[var(--nimi-text-primary,#0f172a)]">{props.title}</div>
+          <div className="text-[length:var(--nimi-type-body-sm-size)] font-semibold text-[var(--nimi-text-primary)]">{props.title}</div>
           {props.description ? (
-            <div className="mt-0.5 truncate text-[11px] text-[var(--nimi-text-muted,#94a3b8)]">{props.description}</div>
+            <div className="mt-0.5 truncate text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{props.description}</div>
           ) : null}
         </div>
         <svg
@@ -273,13 +263,13 @@ export function CollapsibleSection(props: {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className={`shrink-0 text-[var(--nimi-text-muted,#94a3b8)] transition-transform ${open ? 'rotate-90' : ''}`}
+          className={`shrink-0 text-[var(--nimi-text-muted)] transition-transform ${open ? 'rotate-90' : ''}`}
         >
           <path d="M9 5l7 7-7 7" />
         </svg>
       </button>
       {open ? (
-        <div className="border-t border-[var(--nimi-border-subtle,#e2e8f0)] px-4 py-3.5">
+        <div className="border-t border-[var(--nimi-border-subtle)] px-4 py-3.5">
           {props.children}
         </div>
       ) : null}

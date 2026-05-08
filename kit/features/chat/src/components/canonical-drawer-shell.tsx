@@ -22,7 +22,7 @@ export function CanonicalDrawerShell({
     <SidebarShell
       as="div"
       className={cn(
-        'absolute inset-y-0 right-0 z-30 rounded-none border-y-0 border-r-0 bg-[#f8fbfb] shadow-[-8px_0_24px_rgba(15,23,42,0.08)] transition-transform duration-[280ms] ease-[cubic-bezier(0.2,0.7,0.2,1)]',
+        'absolute inset-y-0 right-0 z-30 rounded-none border-y-0 border-r-0 bg-[var(--nimi-sidebar-canvas)] shadow-[var(--nimi-elevation-floating)] transition-transform duration-[var(--nimi-motion-slow)] ease-[cubic-bezier(0.2,0.7,0.2,1)]',
         widthClassName,
         open ? 'translate-x-0' : 'pointer-events-none translate-x-full',
       )}
@@ -30,16 +30,16 @@ export function CanonicalDrawerShell({
       data-canonical-drawer-shell="true"
     >
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-4" data-canonical-drawer-header="true">
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--nimi-border-subtle)] px-4" data-canonical-drawer-header="true">
           <div>
-            <p className="text-sm font-semibold text-gray-900">{title}</p>
+            <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{title}</p>
             {subtitle ? (
-              <p className="text-[11px] text-gray-500">{subtitle}</p>
+              <p className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{subtitle}</p>
             ) : null}
           </div>
           <IconButton
             onClick={onClose}
-            className="h-8 w-8 rounded-full border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+            className="h-8 w-8 rounded-[var(--nimi-radius-full)]"
             aria-label={`Close ${title}`}
             icon={(
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
