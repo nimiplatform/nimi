@@ -331,13 +331,13 @@ features:
     description: App preferences and configuration
 
 # ── Summary ───────────────────────────────────────────────
-# Phase 1: 6 features (all P0, no backend)
-# Phase 2: 5 features (all P0, no backend)
-# Phase 3: 5 features (3 P0 + 2 P1, conditional backend for agent detail extension)
-# Phase 4: 6 features (3 P0 + 3 P1, only music needs backend)
+# Phase 1: 7 features (all P0, no backend)
+# Phase 2: 6 features (all P0, no backend)
+# Phase 3: 8 features (4 P0 + 4 P1, conditional backend for agent list/detail extensions)
+# Phase 4: 10 features (7 P0 + 3 P1, publish releases uses existing realm post capabilities)
 # Phase 5: 3 features (2 P0 + 1 P1, copyright deferred)
 # Phase 6: 6 features (3 P1 + 3 P2, templates + analytics deferred)
-# Total: 31 features
-#   No backend: 26
-#   Current-scope backend extensions: 2 feature areas (agent detail completion, music upload)
+# Total: 40 features
+#   No backend: 32
+#   Current-scope backend extensions: 3 feature areas (agent list owner/detail fields, agent detail completion, publish releases)
 #   Deferred extension: 5 (copyright, template-browse, template-mine, template-detail, analytics)
