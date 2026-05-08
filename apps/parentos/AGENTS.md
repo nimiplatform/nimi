@@ -165,4 +165,4 @@ Skip: `node_modules/`, `dist/`, `target/`, lockfiles.
 - JSON serialized as TEXT in SQLite.
 - `childId` is the primary filter for most queries.
 - ESM imports use `.js` extension even for `.ts` files.
-- Shared Tauri modules imported via `#[path = "..."]` from `shared-tauri/` and `forge/`.
+- Shared Tauri host glue is imported through the `nimi-kit-shell-tauri` crate from `kit/shell/tauri/`.

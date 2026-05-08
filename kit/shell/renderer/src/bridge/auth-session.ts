@@ -43,23 +43,14 @@ function normalizeWatchError(error: unknown): Error {
 }
 
 export async function loadAuthSession(): Promise<SharedDesktopAuthSession | null> {
-  if (!hasTauriInvoke()) {
-    return null;
-  }
   return invokeChecked('auth_session_load', {}, parseOptionalSharedDesktopAuthSession);
 }
 
 export async function saveAuthSession(session: SharedDesktopAuthSession): Promise<void> {
-  if (!hasTauriInvoke()) {
-    return;
-  }
   await invokeChecked('auth_session_save', { payload: session }, () => undefined);
 }
 
 export async function clearAuthSession(): Promise<void> {
-  if (!hasTauriInvoke()) {
-    return;
-  }
   await invokeChecked('auth_session_clear', {}, () => undefined);
 }
 

@@ -42,7 +42,7 @@
 | 组件 | 目录 | 说明 |
 |---|---|---|
 | nimi-mods | `nimi-mods/` | Mod 生态（独立工作区） |
-| shared-tauri | `apps/shared-tauri/` | 跨 Tauri app 共享 Rust 工具 |
+| kit shell tauri | `kit/shell/tauri/` | 跨 Tauri app 共享 Rust host glue |
 | examples | `examples/` | SDK/runtime 示例 + app/mod 脚手架模板 |
 
 `desktop` 现在是零内置 mod host。独立 mod 仓是可选的外部工作区，不再是主仓默认构建输入。

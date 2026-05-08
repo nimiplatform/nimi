@@ -107,6 +107,35 @@ fn runtime_defaults_normalizes_explicit_loopback_jwt_overrides() {
 }
 
 #[test]
+fn shared_bridge_ipc_handler_uses_kit_owned_shared_commands() {
+    let bootstrap_source = include_str!("app_bootstrap.rs");
+
+    for app_local_registration in [
+        "super::defaults_and_commands::open_external_url",
+        "super::defaults_and_commands::oauth_token_exchange",
+        "super::defaults_and_commands::oauth_listen_for_code",
+        "super::defaults_and_commands::window_and_logs::log_renderer_event",
+    ] {
+        assert!(
+            !bootstrap_source.contains(app_local_registration),
+            "shared bridge IPC command must not be registered from app-local handler: {app_local_registration}"
+        );
+    }
+
+    for kit_registration in [
+        "crate::oauth_commands::open_external_url",
+        "crate::oauth_commands::oauth_token_exchange",
+        "crate::oauth_commands::oauth_listen_for_code",
+        "crate::session_logging::log_renderer_event",
+    ] {
+        assert!(
+            bootstrap_source.contains(kit_registration),
+            "shared bridge IPC command must be registered from kit-owned handler: {kit_registration}"
+        );
+    }
+}
+
+#[test]
 fn private_lan_http_origin_allows_common_ipv4_ranges() {
     let a = Url::parse("http://192.168.31.175/api/human/me").expect("valid url");
     let b = Url::parse("http://10.0.0.22:8080/healthz").expect("valid url");
