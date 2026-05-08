@@ -46,6 +46,7 @@ function translateCloseoutReason(reason) {
     ["Completed doc_spec_audit closeout must compare against `.nimi/spec`", "完成 doc_spec_audit closeout 时必须对 `.nimi/spec` 进行比较"],
     ["Completed high_risk_execution closeout requires canonical admissions truth to remain `.nimi/spec/high-risk-admissions.yaml`", "完成 high_risk_execution closeout 需要 canonical admissions truth 继续落在 `.nimi/spec/high-risk-admissions.yaml`"],
     ["Completed closeout is consistent with the current canonical tree state", "completed closeout 与当前 canonical tree 状态一致"],
+    ["Imported spec_reconstruction summary must match active spec-generation audit coverage", "导入的 spec_reconstruction 摘要必须与当前 spec-generation audit 覆盖情况一致"],
   ]);
 
   if (translations.has(reason)) {
@@ -264,6 +265,44 @@ async function synthesizeSpecReconstructionSummary(projectRoot, doctorResult, ve
       : "Canonical spec generation is valid, but file-level audit still records inferred or unresolved coverage.",
     verified_at: verifiedAt,
   };
+}
+
+async function validateSpecReconstructionSummaryAgainstAudit(projectRoot, summary, doctorResult) {
+  if (!summary) {
+    return { ok: true };
+  }
+
+  const generatedPaths = await collectSpecPaths(path.join(projectRoot, ".nimi", "spec"), ".nimi/spec");
+  const auditSummary = doctorResult.specGenerationAudit?.summary ?? {};
+  const unresolvedFileCount = Number.isInteger(auditSummary.unresolvedFiles) ? auditSummary.unresolvedFiles : 0;
+  const inferredFileCount = Number.isInteger(auditSummary.inferredFiles) ? auditSummary.inferredFiles : 0;
+  const placeholderFiles = Number.isInteger(auditSummary.placeholderFiles) ? auditSummary.placeholderFiles : 0;
+  const partialFiles = Number.isInteger(auditSummary.partialFiles) ? auditSummary.partialFiles : unresolvedFileCount;
+  const shouldBePartial = partialFiles > 0 || unresolvedFileCount > 0 || inferredFileCount > 0;
+  const expectedStatus = doctorResult.specGenerationAudit?.ok && !shouldBePartial ? "reconstructed" : "partial";
+  const expectedCompleteUpperBound = Math.max(generatedPaths.length - partialFiles - placeholderFiles, 0);
+
+  const coverageSummary = isPlainObject(summary.coverage_summary) ? summary.coverage_summary : {};
+  const summaryPartialFiles = Number.isInteger(coverageSummary.partial_files) ? coverageSummary.partial_files : null;
+  const summaryPlaceholderFiles = Number.isInteger(coverageSummary.placeholder_files) ? coverageSummary.placeholder_files : null;
+  const summaryCompleteFiles = Number.isInteger(coverageSummary.complete_files) ? coverageSummary.complete_files : null;
+  const summaryUnresolvedCount = Number.isInteger(summary.unresolved_file_count) ? summary.unresolved_file_count : null;
+  const summaryInferredCount = Number.isInteger(summary.inferred_file_count) ? summary.inferred_file_count : null;
+
+  const matchesAudit =
+    summary.status === expectedStatus &&
+    summaryPartialFiles === partialFiles &&
+    summaryPlaceholderFiles === placeholderFiles &&
+    summaryUnresolvedCount === unresolvedFileCount &&
+    summaryInferredCount === inferredFileCount &&
+    (summaryCompleteFiles === null || summaryCompleteFiles <= expectedCompleteUpperBound);
+
+  return matchesAudit
+    ? { ok: true }
+    : {
+      ok: false,
+      reason: "Imported spec_reconstruction summary must match active spec-generation audit coverage",
+    };
 }
 
 function evaluateCloseoutReadiness(skillId, outcome, doctorResult, summary) {
@@ -542,6 +581,25 @@ export async function buildCloseoutPayload(projectRoot, options) {
         `nimicoding closeout 已拒绝：${translateCloseoutReason(statusConsistency.reason)}。`,
       )}\n`,
     };
+  }
+
+  if (options.skill === "spec_reconstruction" && options.outcome === "completed") {
+    const auditConsistency = await validateSpecReconstructionSummaryAgainstAudit(
+      projectRoot,
+      effectiveSummary,
+      doctorResult,
+    );
+    if (!auditConsistency.ok) {
+      return {
+        ok: false,
+        exitCode: 2,
+        inputError: true,
+        error: `${localize(
+          `nimicoding closeout refused: ${auditConsistency.reason}.`,
+          `nimicoding closeout 已拒绝：${translateCloseoutReason(auditConsistency.reason)}。`,
+        )}\n`,
+      };
+    }
   }
 
   const readiness = evaluateCloseoutReadiness(options.skill, options.outcome, doctorResult, effectiveSummary);

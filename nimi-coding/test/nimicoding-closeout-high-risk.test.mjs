@@ -446,6 +446,67 @@ test("closeout imports an external JSON summary before writing local artifact", 
   });
 });
 
+test("closeout rejects imported spec reconstruction summaries that overstate audit coverage", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const auditPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-generation-audit.yaml");
+    const auditDoc = YAML.parse(await readFile(auditPath, "utf8"));
+    auditDoc.spec_generation_audit.files[0].coverage_status = "partial";
+    auditDoc.spec_generation_audit.files[0].unresolved_items = ["fixture unresolved coverage"];
+    await writeFile(auditPath, YAML.stringify(auditDoc), "utf8");
+
+    const importPath = path.join(projectRoot, "overstated-closeout.json");
+    await writeFile(
+      importPath,
+      `${JSON.stringify({
+        projectRoot,
+        skill: { id: "spec_reconstruction" },
+        outcome: "completed",
+        verifiedAt: "2026-04-10T00:00:00.000Z",
+        localOnly: true,
+        summary: {
+          generated_paths: [
+            ".nimi/spec/INDEX.md",
+            ".nimi/spec/project/kernel/index.md",
+            ".nimi/spec/project/kernel/core-rules.md",
+            ".nimi/spec/project/kernel/tables/rule-catalog.yaml",
+            ".nimi/spec/_meta/spec-generation-audit.yaml",
+          ],
+          audit_ref: ".nimi/spec/_meta/spec-generation-audit.yaml",
+          coverage_summary: {
+            complete_files: 4,
+            partial_files: 0,
+            placeholder_files: 0,
+          },
+          unresolved_file_count: 0,
+          inferred_file_count: 0,
+          status: "reconstructed",
+          summary: "Canonical tree generation completed with file-level audit coverage.",
+          verified_at: "2026-04-10T00:00:00.000Z",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const closeoutResult = await captureRunCli([
+      "closeout",
+      "--from",
+      importPath,
+      "--json",
+    ]);
+
+    assert.equal(closeoutResult.exitCode, 2);
+    assert.match(
+      closeoutResult.stderr,
+      /must match active spec-generation audit coverage|必须与当前 spec-generation audit 覆盖情况一致/i,
+    );
+  });
+});
+
 test("closeout rejects invalid imported doc spec audit summaries", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
