@@ -150,8 +150,33 @@ function validateImportedReviewPayload(payload) {
   return { ok: true };
 }
 
+function extractMarkdownSectionBody(text, heading) {
+  const lines = text.split(/\r?\n/);
+  let sectionLevel = null;
+  const body = [];
+  for (const line of lines) {
+    const headingMatch = line.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      const title = headingMatch[2].trim();
+      if (sectionLevel !== null && level <= sectionLevel) {
+        break;
+      }
+      if (title === heading) {
+        sectionLevel = level;
+        continue;
+      }
+    }
+    if (sectionLevel !== null) {
+      body.push(line);
+    }
+  }
+  return sectionLevel === null ? "" : body.join("\n");
+}
+
 function extractAcceptanceDisposition(text) {
-  const match = text.match(/Disposition:\s*(\w+)/i);
+  const dispositionSection = extractMarkdownSectionBody(text, "Current Phase Disposition");
+  const match = dispositionSection.match(/Disposition:\s*(\w+)/i);
   return match ? match[1].toLowerCase() : null;
 }
 

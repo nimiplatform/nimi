@@ -26,6 +26,34 @@ import { parseYamlText } from "./yaml-helpers.mjs";
 
 const ADMISSIONS_SPEC_REF = ".nimi/spec/high-risk-admissions.yaml";
 
+async function resolveProjectContainedPath(projectRoot, inputPath, artifactLabel) {
+  const absolutePath = path.resolve(projectRoot, inputPath);
+  let resolvedProjectRoot;
+  let resolvedPath;
+  try {
+    resolvedProjectRoot = await realpath(projectRoot);
+    resolvedPath = await realpath(absolutePath);
+  } catch {
+    return {
+      ok: false,
+      path: absolutePath,
+      reason: `cannot read ${artifactLabel} at ${absolutePath}`,
+    };
+  }
+  const relative = path.relative(resolvedProjectRoot, resolvedPath);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    return {
+      ok: false,
+      path: absolutePath,
+      reason: `${artifactLabel} must resolve inside the current project root`,
+    };
+  }
+  return {
+    ok: true,
+    path: resolvedPath,
+  };
+}
+
 function translateAdmissionReason(reason) {
   const translations = new Map([
     ["imported decision payload must declare contractVersion nimicoding.high-risk-decision.v1", "导入的 decision payload 必须声明 contractVersion nimicoding.high-risk-decision.v1"],
@@ -45,15 +73,25 @@ function translateAdmissionReason(reason) {
 }
 
 async function loadImportedDecisionPayload(projectRoot, fromPath) {
-  const absolutePath = path.resolve(projectRoot, fromPath);
-  const rawText = await readTextIfFile(absolutePath);
+  const containedPath = await resolveProjectContainedPath(projectRoot, fromPath, "imported decision JSON");
+  if (!containedPath.ok) {
+    return {
+      ok: false,
+      error: `${localize(
+        `nimicoding admit-high-risk-decision refused: ${containedPath.reason}.`,
+        `nimicoding admit-high-risk-decision 已拒绝：${containedPath.reason}。`,
+      )}\n`,
+    };
+  }
+
+  const rawText = await readTextIfFile(containedPath.path);
 
   if (rawText === null) {
     return {
       ok: false,
       error: `${localize(
-        `nimicoding admit-high-risk-decision refused: cannot read imported decision JSON at ${absolutePath}.`,
-        `nimicoding admit-high-risk-decision 已拒绝：无法读取 ${absolutePath} 处的导入 decision JSON。`,
+        `nimicoding admit-high-risk-decision refused: cannot read imported decision JSON at ${containedPath.path}.`,
+        `nimicoding admit-high-risk-decision 已拒绝：无法读取 ${containedPath.path} 处的导入 decision JSON。`,
       )}\n`,
     };
   }
@@ -65,8 +103,8 @@ async function loadImportedDecisionPayload(projectRoot, fromPath) {
     return {
       ok: false,
       error: `${localize(
-        `nimicoding admit-high-risk-decision refused: imported decision JSON at ${absolutePath} is invalid JSON.`,
-        `nimicoding admit-high-risk-decision 已拒绝：${absolutePath} 处的导入 decision JSON 不是合法 JSON。`,
+        `nimicoding admit-high-risk-decision refused: imported decision JSON at ${containedPath.path} is invalid JSON.`,
+        `nimicoding admit-high-risk-decision 已拒绝：${containedPath.path} 处的导入 decision JSON 不是合法 JSON。`,
       )}\n`,
     };
   }
@@ -110,7 +148,7 @@ async function loadImportedDecisionPayload(projectRoot, fromPath) {
 
   return {
     ok: true,
-    path: absolutePath,
+    path: containedPath.path,
     payload: parsed,
   };
 }
@@ -192,8 +230,15 @@ async function loadAdmissionsSpec(projectRoot, contract) {
 }
 
 async function loadPacketIdentity(projectRoot, packetRef) {
-  const absolutePath = path.resolve(projectRoot, packetRef);
-  const packetValidation = await validateExecutionPacket(absolutePath);
+  const containedPath = await resolveProjectContainedPath(projectRoot, packetRef, "attached packet_ref");
+  if (!containedPath.ok) {
+    return {
+      ok: false,
+      reason: containedPath.reason,
+    };
+  }
+
+  const packetValidation = await validateExecutionPacket(containedPath.path);
   if (!packetValidation.ok) {
     return {
       ok: false,
@@ -202,7 +247,7 @@ async function loadPacketIdentity(projectRoot, packetRef) {
     };
   }
 
-  const text = await readTextIfFile(absolutePath);
+  const text = await readTextIfFile(containedPath.path);
   const parsed = parseYamlText(text);
   const packetId = String(parsed?.packet_id ?? "");
   const topicId = String(parsed?.topic_id ?? "");

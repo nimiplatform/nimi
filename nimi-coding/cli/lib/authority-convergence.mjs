@@ -205,14 +205,40 @@ async function workerPromptExists(topicDir, packetId) {
   }
 }
 
-async function hasWaveRemediationArtifact(topicDir, waveId) {
+function passResultSourceRefSet(projectRoot, results, waveId) {
+  const refs = new Set();
+  for (const entry of results) {
+    if (entry.result?.verdict !== "PASS") continue;
+    if (entry.result?.wave_id && entry.result.wave_id !== waveId) continue;
+    const sourceRef = entry.result?.source_ref;
+    if (!concreteRef(sourceRef)) continue;
+    refs.add(path.resolve(projectRoot, sourceRef));
+  }
+  return refs;
+}
+
+async function hasWaveRemediationArtifact(projectRoot, topicDir, waveId, results) {
   try {
+    const passSourceRefs = passResultSourceRefSet(projectRoot, results, waveId);
     const entries = await readdir(topicDir, { withFileTypes: true });
-    return entries.some((entry) => (
-      entry.isFile()
-      && entry.name.startsWith(`packet-${waveId}-remediation-`)
-      && entry.name.endsWith(".md")
-    ));
+    for (const entry of entries) {
+      if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
+      if (entry.name.startsWith(`packet-${waveId}-remediation-`)) return true;
+      if (!entry.name.startsWith(`source-${waveId}-`) || !/remediat/iu.test(entry.name)) continue;
+      const sourcePath = path.join(topicDir, entry.name);
+      if (!passSourceRefs.has(path.resolve(sourcePath))) continue;
+      const sourceText = await readFile(sourcePath, "utf8");
+      if (
+        /\bverdict:\s*PASS\b/iu.test(sourceText)
+        && /\blocal_packet_authority_scope_remediation_only:\s*true\b/iu.test(sourceText)
+        && /\bproduct_semantic_ambiguity:\s*false\b/iu.test(sourceText)
+        && /\bsource_audit_findings_mutated:\s*false\b/iu.test(sourceText)
+        && /\bsource_sweep_design_artifacts_mutated:\s*false\b/iu.test(sourceText)
+      ) {
+        return true;
+      }
+    }
+    return false;
   } catch {
     return false;
   }
@@ -329,7 +355,7 @@ async function mechanicalPostUpdateJudgementProof({ projectRoot, topicDir, wave,
     if (!hasExplicitPacketLineage) {
       return { ok: false, reason: "multi-authority post-update proof requires implementation-source packet lineage" };
     }
-    if (!await hasWaveRemediationArtifact(topicDir, wave.wave_id) || !/\bremediat(?:e|ed|ion)\b/iu.test(sourceText)) {
+    if (!await hasWaveRemediationArtifact(projectRoot, topicDir, wave.wave_id, results) || !/\bremediat(?:e|ed|ion)\b/iu.test(sourceText)) {
       return { ok: false, reason: "multi-authority post-update proof requires explicit remediation lineage" };
     }
   }

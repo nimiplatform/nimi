@@ -31,6 +31,29 @@ function toPortableProjectPath(projectRoot, absolutePath) {
   return path.relative(projectRoot, absolutePath).split(path.sep).join(path.posix.sep);
 }
 
+function pathStartsWithRoot(candidate, root) {
+  return candidate === root || candidate.startsWith(`${root}/`);
+}
+
+function generatedOutputNormativeRootOverlaps(specTreeModel) {
+  const normativeRoots = specTreeModel.domains.map((domain) => domain.normativeRoot).filter(Boolean);
+  const overlaps = [];
+  for (const pipeline of specTreeModel.generatedPipelines) {
+    for (const outputRoot of pipeline.outputRoots) {
+      for (const normativeRoot of normativeRoots) {
+        if (pathStartsWithRoot(outputRoot, normativeRoot) || pathStartsWithRoot(normativeRoot, outputRoot)) {
+          overlaps.push({
+            pipelineId: pipeline.id,
+            outputRoot,
+            normativeRoot,
+          });
+        }
+      }
+    }
+  }
+  return overlaps;
+}
+
 export async function validateSpecTree(rootPath, options = {}) {
   const projectRoot = options.projectRoot ?? process.cwd();
   const specTreeModel = await loadSpecTreeModelContract(projectRoot);
@@ -76,6 +99,13 @@ export async function validateSpecTree(rootPath, options = {}) {
 
   if (missingRequired.length > 0) {
     errors.push(`missing required canonical files: ${missingRequired.join(", ")}`);
+  }
+
+  const generatedOutputOverlaps = generatedOutputNormativeRootOverlaps(specTreeModel);
+  if (generatedOutputOverlaps.length > 0) {
+    errors.push(
+      `generated output roots overlap normative roots: ${generatedOutputOverlaps.map((entry) => `${entry.pipelineId}:${entry.outputRoot}->${entry.normativeRoot}`).join(", ")}`,
+    );
   }
 
   for (const domain of specTreeModel.domains) {

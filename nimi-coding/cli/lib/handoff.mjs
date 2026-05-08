@@ -79,14 +79,15 @@ function evaluateSkillReadiness(skillId, doctorResult) {
       reason: "Bootstrap or handoff validation is failing; repair doctor errors before exporting handoff payloads",
     };
   }
-  if (skillId === "spec_reconstruction") {
-    return {
-      ok: true,
-      reason: "Projects may delegate spec reconstruction to an external AI host when canonical tree work is needed",
-    };
-  }
   const rule = (doctorResult.commandGating?.entries ?? []).find((entry) => entry.command === "handoff" && entry.skill === skillId) ?? null;
-  return commandRuleAllowsCurrentState(rule, doctorResult);
+  const gatedReadiness = commandRuleAllowsCurrentState(rule, doctorResult);
+  if (!gatedReadiness.ok || skillId !== "spec_reconstruction") {
+    return gatedReadiness;
+  }
+  return {
+    ok: true,
+    reason: "Projects may delegate spec reconstruction to an external AI host when canonical tree work is needed",
+  };
 }
 function getSkillSpecificExpectations(
   skillId,

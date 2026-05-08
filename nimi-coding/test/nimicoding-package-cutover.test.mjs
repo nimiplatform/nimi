@@ -267,6 +267,28 @@ test("validate-spec-tree fails when a required canonical file is missing after d
   });
 });
 
+test("validate-spec-tree fails when generated output roots overlap normative roots", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await materializeFixtureScenario(projectRoot, "mini-benchmark", "benchmark_success");
+
+    const modelPath = path.join(projectRoot, ".nimi", "spec", "_meta", "spec-tree-model.yaml");
+    const model = await readYamlFile(modelPath);
+    model.spec_tree_model.generated_pipelines[0].output_roots = [".nimi/spec/runtime/kernel/generated"];
+    await writeFile(modelPath, YAML.stringify(model), "utf8");
+
+    const result = await runCliSubprocess(["validate-spec-tree"], { cwd: projectRoot });
+    assert.equal(result.exitCode, 1);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.validator, "validate-spec-tree");
+    assert.equal(payload.ok, false);
+    assert.equal(payload.refusal.code, "SPEC_TREE_INVALID");
+    assert.match(JSON.stringify(payload.errors), /generated output roots overlap normative roots/i);
+  });
+});
+
 test("validate-spec-audit accepts an auditable canonical benchmark tree after direct materialization", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);

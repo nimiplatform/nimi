@@ -389,6 +389,63 @@ test("P0/P1 no-finding evidence with spec implementation inventory requires rule
   assert.equal(explained.p0p1_recall_posture, "explained");
 });
 
+test("P0/P1 rule checks reject alias and duplicate ids", () => {
+  const chunk = {
+    chunk_id: "chunk-p0p1-exact-rule-ids",
+    planning_basis: "spec_authority",
+    criteria: ["p0p1"],
+    files: [".nimi/spec/runtime/kernel/security.md"],
+    authority_refs: [".nimi/spec/runtime/kernel/security.md"],
+    evidence_inventory: ["runtime/internal/security.go"],
+  };
+  const evidence = (p0p1_rule_checks) => ({
+    chunk_id: chunk.chunk_id,
+    auditor: semanticAuditor(),
+    coverage: {
+      files: chunk.files,
+      authority_refs: chunk.authority_refs,
+      evidence_files: chunk.evidence_inventory,
+      authority_outcomes: [{
+        authority_ref: chunk.authority_refs[0],
+        status: "audited",
+        evidence_refs: [chunk.authority_refs[0], chunk.evidence_inventory[0]],
+        implementation_evidence_refs: [chunk.evidence_inventory[0]],
+        negative_reasoning: "Reviewed the implementation evidence for P0/P1 classes.",
+      }],
+      p0p1_negative_reasoning: "Reviewed exact P0/P1 rule ids against the implementation file.",
+      p0p1_evidence_refs: [chunk.evidence_inventory[0]],
+      p0p1_rule_checks,
+    },
+    findings: [],
+  });
+  const checksWithAlias = [
+    ...p0p1RuleChecks(chunk.evidence_inventory[0]),
+    {
+      id: "legacy_fail_open_alias",
+      status: "checked",
+      implementation_refs: [chunk.evidence_inventory[0]],
+      negative_reasoning: "Alias ids are not accepted as P0/P1 rule checks.",
+    },
+  ];
+  const checksWithDuplicate = p0p1RuleChecks(chunk.evidence_inventory[0]).map((check, index) => (
+    index === 1 ? { ...check, id: "fail_open_or_pseudo_success" } : check
+  ));
+
+  const aliasValidity = buildAuditValidityForEvidence(chunk, evidence(checksWithAlias));
+  const duplicateValidity = buildAuditValidityForEvidence(chunk, evidence(checksWithDuplicate));
+
+  assert.equal(aliasValidity.posture, "invalid");
+  assert.ok(aliasValidity.blockers.some((blocker) => (
+    blocker.id === "p0p1_rule_checks_missing_or_invalid"
+    && blocker.invalid_rule_checks.some((entry) => entry.reason === "id must exactly match an admitted P0/P1 rule check id")
+  )));
+  assert.equal(duplicateValidity.posture, "invalid");
+  assert.ok(duplicateValidity.blockers.some((blocker) => (
+    blocker.id === "p0p1_rule_checks_missing_or_invalid"
+    && blocker.invalid_rule_checks.some((entry) => entry.reason === "duplicate P0/P1 rule check id")
+  )));
+});
+
 test("P0/P1 no-finding evidence with implementation inventory requires semantic auditor provenance", () => {
   const chunk = {
     chunk_id: "chunk-p0p1-provenance",

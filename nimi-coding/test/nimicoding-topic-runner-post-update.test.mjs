@@ -145,6 +145,17 @@ async function preparePostUpdateProofCase(projectRoot, options = {}) {
       `---\nremediation_id: ${waveId}-remediation-a-authority-convergence\ntopic_id: ${topicId}\nwave_id: ${waveId}\nkind: a\nreason: authority-convergence\n---\n\nApproved multi-authority remediation.\n`,
     );
   }
+  if (options.remediationAuditEvidence) {
+    const remediationAuditSourceRef = await writeTopicSource(
+      projectRoot,
+      topicRef,
+      `source-${waveId}-audit-remediated.md`,
+      `---\ntopic_id: ${topicId}\nwave_id: ${waveId}\nkind: audit\nverdict: PASS\nsource_audit_findings_mutated: false\nsource_sweep_design_artifacts_mutated: false\nproduct_semantic_ambiguity: false\nlocal_packet_authority_scope_remediation_only: true\n---\n\nAuthority convergence audit PASS after local packet authority/scope remediation.\n`,
+    );
+    if (!options.unrecordedRemediationAuditEvidence) {
+      await recordResult(topicId, "audit", "PASS", remediationAuditSourceRef, "2026-05-04T00:00:30Z");
+    }
+  }
 
   const workerDispatch = await captureRunCli(["topic", "worker", "dispatch", topicId, "--packet", packetId, "--json"]);
   assert.equal(workerDispatch.exitCode, 0, workerDispatch.stderr);
@@ -168,7 +179,7 @@ async function preparePostUpdateProofCase(projectRoot, options = {}) {
       waveId,
       packetId,
       evidenceRef,
-      remediation: options.remediationArtifact,
+      remediation: options.remediationArtifact || options.remediationAuditEvidence,
       ambiguity: options.ambiguity,
     }),
   );
@@ -345,6 +356,43 @@ test("multi-authority remediated packet records mechanical post-update judgement
     assert.equal(decision.stop_class, "continue");
     assert.equal(decision.recommended_action, "record_result");
     assert.equal(decision.reason_code, "mechanical_post_update_judgement_pass");
+  });
+});
+
+test("multi-authority remediated packet accepts structured remediated audit evidence as lineage", async () => {
+  await withTempProject(async (projectRoot) => {
+    const decision = await preparePostUpdateProofCase(projectRoot, {
+      topicSlug: "multi-authority-remediated-audit-review-demo",
+      packetId: "wave-1-spec-remediated-implementation",
+      authorityOwner: [
+        ".nimi/spec/runtime/kernel/example-contract.md",
+        ".nimi/spec/runtime/kernel/message-action-contract.md",
+      ],
+      remediationAuditEvidence: true,
+    });
+
+    assert.equal(decision.stop_class, "continue");
+    assert.equal(decision.recommended_action, "record_result");
+    assert.equal(decision.reason_code, "mechanical_post_update_judgement_pass");
+  });
+});
+
+test("multi-authority remediated packet rejects unrecorded remediation source evidence", async () => {
+  await withTempProject(async (projectRoot) => {
+    const decision = await preparePostUpdateProofCase(projectRoot, {
+      topicSlug: "multi-authority-unrecorded-remediated-audit-review-demo",
+      packetId: "wave-1-spec-remediated-implementation",
+      authorityOwner: [
+        ".nimi/spec/runtime/kernel/example-contract.md",
+        ".nimi/spec/runtime/kernel/message-action-contract.md",
+      ],
+      remediationAuditEvidence: true,
+      unrecordedRemediationAuditEvidence: true,
+    });
+
+    assert.equal(decision.stop_class, "require_human_confirmation");
+    assert.equal(decision.reason_code, "spec_update_review_required");
+    assert.match(decision.blocking_checks?.[0]?.message ?? "", /remediation lineage/);
   });
 });
 

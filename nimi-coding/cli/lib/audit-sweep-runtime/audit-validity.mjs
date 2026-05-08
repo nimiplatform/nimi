@@ -21,6 +21,7 @@ const REQUIRED_P0P1_RULE_CHECK_IDS = [
   "provider_or_model_hardcoding",
   "app_local_shadow_truth",
 ];
+const REQUIRED_P0P1_RULE_CHECK_ID_SET = new Set(REQUIRED_P0P1_RULE_CHECK_IDS);
 
 function validateP0P1RuleChecks(evidence, implementationRefSet) {
   const ruleChecks = evidence?.coverage?.p0p1_rule_checks;
@@ -35,10 +36,17 @@ function validateP0P1RuleChecks(evidence, implementationRefSet) {
 
   const checkedIds = [];
   const invalid = [];
+  const seenIds = new Set();
   for (const [index, check] of ruleChecks.entries()) {
     const id = typeof check?.id === "string" ? check.id : "";
     if (id) {
       checkedIds.push(id);
+      if (!REQUIRED_P0P1_RULE_CHECK_ID_SET.has(id)) {
+        invalid.push({ index, id, reason: "id must exactly match an admitted P0/P1 rule check id" });
+      } else if (seenIds.has(id)) {
+        invalid.push({ index, id, reason: "duplicate P0/P1 rule check id" });
+      }
+      seenIds.add(id);
     }
     const status = check?.status;
     if (!["checked", "not_applicable"].includes(status)) {

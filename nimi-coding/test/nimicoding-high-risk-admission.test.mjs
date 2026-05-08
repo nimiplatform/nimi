@@ -371,6 +371,71 @@ test("decide-high-risk-execution records a manager-owned local decision from rev
   });
 });
 
+test("decide-high-risk-execution ignores disposition outside validated acceptance block", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const reviewPath = path.join(projectRoot, "review.json");
+    await writeFile(
+      reviewPath,
+      `${JSON.stringify({
+        contractVersion: "nimicoding.high-risk-review.v1",
+        ok: true,
+        projectRoot,
+        localOnly: true,
+        skill: { id: "high_risk_execution" },
+        reviewStatus: "ready_for_manager_review",
+        managerReviewOwner: "nimicoding_manager",
+        attachmentRefs: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+          orchestration_state_ref: ".nimi/local/orchestration/topic-1.yaml",
+          prompt_ref: ".nimi/local/prompts/topic-1.md",
+          worker_output_ref: ".nimi/local/outputs/topic-1.worker-output.md",
+          evidence_refs: [".nimi/local/evidence/topic-1.patch"],
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const acceptancePath = path.join(projectRoot, ".nimi", "local", "reviews", "topic-1.acceptance.md");
+    await mkdir(path.dirname(acceptancePath), { recursive: true });
+    await writeFile(
+      acceptancePath,
+      [
+        "Disposition: complete",
+        "",
+        "## Findings",
+        "No unresolved findings.",
+        "",
+        "## Current Phase Disposition",
+        "Manager note: the validated disposition block intentionally has no disposition line.",
+        "",
+        "## Next Step or Reopen Condition",
+        "No reopen required.",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const decisionResult = await captureRunCli([
+      "decide-high-risk-execution",
+      "--from",
+      reviewPath,
+      "--acceptance",
+      acceptancePath,
+      "--verified-at",
+      "2026-04-10T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(decisionResult.exitCode, 2);
+    assert.match(decisionResult.stderr, /Disposition|acceptance 产物/);
+  });
+});
+
 test("decide-high-risk-execution rejects invalid manager acceptance artifacts", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
@@ -521,6 +586,91 @@ test("admit-high-risk-decision updates canonical high-risk admissions truth when
     assert.match(admissionsText, /topic_id: topic-1/);
     assert.match(admissionsText, /packet_id: pkt-1/);
     assert.match(admissionsText, /disposition: complete/);
+  });
+});
+
+test("admit-high-risk-decision rejects imported decision outside project root", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const outsideDecisionPath = path.join(path.dirname(projectRoot), `outside-decision-${process.pid}.json`);
+    await writeFile(
+      outsideDecisionPath,
+      `${JSON.stringify({
+        contractVersion: "nimicoding.high-risk-decision.v1",
+        ok: true,
+        projectRoot,
+        localOnly: true,
+        skill: { id: "high_risk_execution" },
+        decisionStatus: "manager_decision_recorded",
+        acceptanceValidation: { ok: true },
+        attachmentRefs: {
+          packet_ref: ".nimi/local/packets/topic-1.yaml",
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const admitResult = await captureRunCli([
+      "admit-high-risk-decision",
+      "--from",
+      outsideDecisionPath,
+      "--admitted-at",
+      "2026-04-11T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(admitResult.exitCode, 2);
+    assert.match(admitResult.stderr, /project root/);
+    await rm(outsideDecisionPath, { force: true });
+  });
+});
+
+test("admit-high-risk-decision rejects attached packet refs outside project root", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    await seedReconstructedTargetTruth(projectRoot);
+
+    const outsidePacketPath = path.join(path.dirname(projectRoot), `outside-packet-${process.pid}.yaml`);
+    await writeFile(outsidePacketPath, "packet_id: outside\ntopic_id: outside\n", "utf8");
+
+    const decisionPath = path.join(projectRoot, "decision-with-outside-packet.json");
+    await writeFile(
+      decisionPath,
+      `${JSON.stringify({
+        contractVersion: "nimicoding.high-risk-decision.v1",
+        ok: true,
+        projectRoot,
+        localOnly: true,
+        skill: { id: "high_risk_execution" },
+        decisionStatus: "manager_decision_recorded",
+        acceptanceValidation: { ok: true },
+        acceptanceDisposition: "complete",
+        managerReviewOwner: "nimicoding_manager",
+        attachmentRefs: {
+          packet_ref: outsidePacketPath,
+        },
+      }, null, 2)}\n`,
+      "utf8",
+    );
+
+    const admitResult = await captureRunCli([
+      "admit-high-risk-decision",
+      "--from",
+      decisionPath,
+      "--admitted-at",
+      "2026-04-11T00:00:00.000Z",
+      "--json",
+    ]);
+
+    assert.equal(admitResult.exitCode, 1);
+    const payload = JSON.parse(admitResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.match(payload.readiness.reason, /project root/);
+    await rm(outsidePacketPath, { force: true });
   });
 });
 

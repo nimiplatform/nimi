@@ -84,8 +84,17 @@ async function createDeferralDemoTopic(
     nextDep = null,
     globalBlocker = false,
     missingEvidenceFlags = false,
+    omitMissingAuthorityRefs = false,
+    vagueMissingAuthorityRefs = false,
     broadAuthorityScopeAmbiguity = false,
+    productSemanticAmbiguity = false,
     productSemanticDecision = false,
+    sourceAuditMutation = false,
+    sourceSweepDesignMutation = false,
+    loweredGate = false,
+    sourceEvidenceChange = false,
+    destructiveEvidenceDeletion = false,
+    explicitHumanDecision = false,
   } = {},
 ) {
   const startResult = await captureRunCli(["start"]);
@@ -152,13 +161,25 @@ async function createDeferralDemoTopic(
       "required_remediation: local wave packet authority/scope remediation only",
       "blocking_findings:",
       "- selected wave packet authority requires remediation before implementation",
+      ...(omitMissingAuthorityRefs
+        ? []
+        : [
+          "missing_authority_refs:",
+          `  - ${vagueMissingAuthorityRefs ? "TBD route authority" : "apps/demo/spec/kernel/route-authority-contract.md"}`,
+        ]),
       ...(missingEvidenceFlags
         ? []
         : [
-          "source_audit_findings_mutated: false",
-          "source_sweep_design_artifacts_mutated: false",
+          `source_audit_findings_mutated: ${sourceAuditMutation ? "true" : "false"}`,
+          `source_sweep_design_artifacts_mutated: ${sourceSweepDesignMutation ? "true" : "false"}`,
+          `lowered_gate: ${loweredGate ? "true" : "false"}`,
+          `topic_global_contract_change_required: ${globalBlocker ? "true" : "false"}`,
+          `source_evidence_change_required: ${sourceEvidenceChange ? "true" : "false"}`,
+          `destructive_evidence_deletion_required: ${destructiveEvidenceDeletion ? "true" : "false"}`,
+          `explicit_human_decision_packet: ${explicitHumanDecision ? "true" : "false"}`,
           "local_packet_authority_scope_remediation_only: true",
-          "product_semantic_ambiguity: false",
+          `product_semantic_ambiguity: ${productSemanticAmbiguity ? "true" : "false"}`,
+          `product_semantic_decision_required: ${productSemanticDecision ? "true" : "false"}`,
         ]),
       ...(globalBlocker
         ? [
@@ -174,7 +195,6 @@ async function createDeferralDemoTopic(
         : []),
       ...(productSemanticDecision
         ? [
-          "product_semantic_decision_required: true",
           "required_manager_decision: product semantics fork",
         ]
         : []),
@@ -605,6 +625,10 @@ test("topic runner run defers a local needs_revision blocker and advances to nex
     const blockerText = await readFile(path.join(projectRoot, blockerRef), "utf8");
     assert.match(blockerText, /deferrable_scope: local_wave/);
     assert.match(blockerText, /status: active/);
+    assert.match(blockerText, /missing_authority_refs:/);
+    assert.match(blockerText, /apps\/demo\/spec\/kernel\/route-authority-contract\.md/);
+    assert.match(blockerText, /product_semantic_ambiguity: false/);
+    assert.match(blockerText, /local_packet_authority_scope_remediation_only: true/);
 
     const topicYaml = YAML.parse(await readFile(await loadTopicYamlPath(projectRoot, createPayload.topicId), "utf8"));
     const blockedWave = topicYaml.waves.find((wave) => wave.wave_id === "wave-1-blocked");
@@ -660,6 +684,141 @@ test("topic runner run does not defer local packet remediation with broad unreso
     assert.equal(payload.recommendedAction, "open_remediation");
     assert.equal(payload.deferredBlocker, undefined);
   });
+});
+
+test("topic runner run does not defer local packet authority omissions without concrete missing authority refs", async () => {
+  for (const [slug, options] of [
+    ["runner-missing-authority-refs-demo", { omitMissingAuthorityRefs: true }],
+    ["runner-vague-authority-refs-demo", { vagueMissingAuthorityRefs: true }],
+  ]) {
+    await withTempProject(async (projectRoot) => {
+      const createPayload = await createDeferralDemoTopic(projectRoot, slug, options);
+
+      const runResult = await captureRunCli([
+        "topic-runner", "run", createPayload.topicId,
+        "--run-id", `${slug}-run`,
+        "--adapter", "codex",
+        "--max-steps", "3",
+        "--verified-at", "2026-05-04T00:00:00Z",
+        "--json",
+      ]);
+      assert.equal(runResult.exitCode, 0, runResult.stderr);
+      const payload = JSON.parse(runResult.stdout);
+      assert.equal(payload.runnerStatus, "stopped");
+      assert.equal(payload.stopClass, "blocked");
+      assert.equal(payload.recommendedAction, "open_remediation");
+      assert.equal(payload.deferredBlocker, undefined);
+    });
+  }
+});
+
+test("topic runner run does not defer when product semantic ambiguity is true", async () => {
+  await withTempProject(async (projectRoot) => {
+    const createPayload = await createDeferralDemoTopic(projectRoot, "runner-product-ambiguity-blocker-demo", {
+      productSemanticAmbiguity: true,
+    });
+
+    const runResult = await captureRunCli([
+      "topic-runner", "run", createPayload.topicId,
+      "--run-id", "product-ambiguity-blocker-demo",
+      "--adapter", "codex",
+      "--max-steps", "3",
+      "--verified-at", "2026-05-04T00:00:00Z",
+      "--json",
+    ]);
+    assert.equal(runResult.exitCode, 0, runResult.stderr);
+    const payload = JSON.parse(runResult.stdout);
+    assert.equal(payload.runnerStatus, "stopped");
+    assert.equal(payload.stopClass, "blocked");
+    assert.equal(payload.recommendedAction, "open_remediation");
+    assert.equal(payload.deferredBlocker, undefined);
+  });
+});
+
+test("topic runner run does not let older deferrable evidence mask newer non-deferrable blockers", async () => {
+  await withTempProject(async (projectRoot) => {
+    const createPayload = await createDeferralDemoTopic(
+      projectRoot,
+      "runner-latest-non-deferrable-blocker-demo",
+    );
+    const laterSource = path.join(projectRoot, "runner-latest-non-deferrable-blocker.md");
+    await writeFile(
+      laterSource,
+      [
+        "# Later Blocking Result",
+        "",
+        "verdict: NEEDS_REVISION",
+        "source_audit_findings_mutated: false",
+        "source_sweep_design_artifacts_mutated: false",
+        "lowered_gate: false",
+        "topic_global_contract_change_required: false",
+        "source_evidence_change_required: false",
+        "destructive_evidence_deletion_required: false",
+        "explicit_human_decision_packet: false",
+        "local_packet_authority_scope_remediation_only: true",
+        "product_semantic_ambiguity: true",
+        "missing_authority_refs:",
+        "  - apps/demo/spec/kernel/route-authority-contract.md",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    const laterResult = await captureRunCli([
+      "topic", "result", "record", createPayload.topicId,
+      "--kind", "preflight",
+      "--verdict", "NEEDS_REVISION",
+      "--from", laterSource,
+      "--verified-at", "2026-05-04T00:01:00Z",
+      "--json",
+    ]);
+    assert.equal(laterResult.exitCode, 0, laterResult.stderr);
+
+    const runResult = await captureRunCli([
+      "topic-runner", "run", createPayload.topicId,
+      "--run-id", "latest-non-deferrable-blocker-demo",
+      "--adapter", "codex",
+      "--max-steps", "3",
+      "--verified-at", "2026-05-04T00:02:00Z",
+      "--json",
+    ]);
+    assert.equal(runResult.exitCode, 0, runResult.stderr);
+    const payload = JSON.parse(runResult.stdout);
+    assert.equal(payload.runnerStatus, "stopped");
+    assert.equal(payload.stopClass, "blocked");
+    assert.equal(payload.recommendedAction, "open_remediation");
+    assert.equal(payload.deferredBlocker, undefined);
+  });
+});
+
+test("topic runner run does not defer global source mutation or lowered gate flags", async () => {
+  for (const [slug, options] of [
+    ["runner-source-audit-mutation-demo", { sourceAuditMutation: true }],
+    ["runner-source-sweep-mutation-demo", { sourceSweepDesignMutation: true }],
+    ["runner-source-evidence-change-demo", { sourceEvidenceChange: true }],
+    ["runner-lowered-gate-demo", { loweredGate: true }],
+    ["runner-destructive-evidence-deletion-demo", { destructiveEvidenceDeletion: true }],
+    ["runner-explicit-human-decision-demo", { explicitHumanDecision: true }],
+    ["runner-global-contract-evidence-demo", { globalBlocker: true }],
+  ]) {
+    await withTempProject(async (projectRoot) => {
+      const createPayload = await createDeferralDemoTopic(projectRoot, slug, options);
+
+      const runResult = await captureRunCli([
+        "topic-runner", "run", createPayload.topicId,
+        "--run-id", `${slug}-run`,
+        "--adapter", "codex",
+        "--max-steps", "3",
+        "--verified-at", "2026-05-04T00:00:00Z",
+        "--json",
+      ]);
+      assert.equal(runResult.exitCode, 0, runResult.stderr);
+      const payload = JSON.parse(runResult.stdout);
+      assert.equal(payload.runnerStatus, "stopped");
+      assert.equal(payload.stopClass, "blocked");
+      assert.equal(payload.recommendedAction, "open_remediation");
+      assert.equal(payload.deferredBlocker, undefined);
+    });
+  }
 });
 
 test("topic runner step remains focused and stops on local needs_revision blockers", async () => {

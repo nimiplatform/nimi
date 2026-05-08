@@ -438,6 +438,46 @@ test("handoff exports spec reconstruction payload during bootstrap-only mode", a
   });
 });
 
+test("spec reconstruction handoff obeys command gating matrix", async () => {
+  await withTempProject(async (projectRoot) => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const gatingPath = path.join(projectRoot, ".nimi", "spec", "_meta", "command-gating-matrix.yaml");
+    const gatingText = await readFile(gatingPath, "utf8");
+    await writeFile(
+      gatingPath,
+      gatingText.replace(
+        [
+          "  - command: handoff",
+          "    skill: spec_reconstruction",
+          "    allowed_tree_states:",
+          "      - bootstrap_only",
+          "      - spec_tree_seeded",
+          "      - canonical_tree_in_progress",
+        ].join("\n"),
+        [
+          "  - command: handoff",
+          "    skill: spec_reconstruction",
+          "    allowed_tree_states:",
+          "      - spec_tree_seeded",
+          "      - canonical_tree_in_progress",
+        ].join("\n"),
+      ),
+      "utf8",
+    );
+
+    const handoffResult = await captureRunCli(["handoff", "--skill", "spec_reconstruction", "--json"]);
+
+    assert.equal(handoffResult.exitCode, 1);
+    const payload = JSON.parse(handoffResult.stdout);
+    assert.equal(payload.ok, false);
+    assert.equal(payload.skill.id, "spec_reconstruction");
+    assert.equal(payload.skill.readiness.ok, false);
+    assert.match(payload.skill.readiness.reason, /current lifecycle state/i);
+  });
+});
+
 test("handoff projects an external host prompt for spec reconstruction", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
