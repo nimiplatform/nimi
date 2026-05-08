@@ -1,125 +1,125 @@
-# 宿主无关边界
+# 宿主无关边界 (Host-Agnostic Boundary)
 
-Nimi Coding 包最独特的一项性质，就是**厂商中立、宿主无关**。包提供方法论与合同；任何遵循合同的 AI 宿主都可以承担执行。换宿主不会改变方法论合同。
+Nimi Coding 软件包最核心、最具区分度的属性，就是它的**厂商中立与宿主无关性**。Nimi Coding 提供的是一套方法论与契约规范；任何遵循这套契约的 AI 宿主（Host）都可以被用来执行具体的开发任务。更换 AI 宿主，并不会触碰或改变方法论底层的契约。
 
-这一点在 AI 工程工具里相当少见。多数 AI 编程产品跟宿主深度绑：Cursor 的行为就是 Cursor 的行为，Copilot 的行为就是 Copilot 的行为。Nimi Coding 选择把方法论放在**项目**里，而不是放在**工具**里，工具本身可以替换。
+在当前的 AI 工程工具领域，这是独树一帜的。大多数 AI 编程产品都与特定的工具环境深度绑定——Cursor 的行为逻辑属于 Cursor，Copilot 的行为逻辑属于 Copilot。而 Nimi Coding 的定位是：方法论存在于**项目**本身之中，而不是存在于**工具**里；因此，工具是完全可随时替换的插件。
 
-## 这里说的「Host」是什么
+## 在此语境下，“宿主”意味着什么
 
-这里说的宿主，指真正承担工作的 AI 环境：它读合同、跑技能（比如 `spec_reconstruction`）、产出由包来准入的结果。
+在这里，“宿主”指的是真正执行工作的 AI 环境——它负责读取契约、运行技能（例如 `spec_reconstruction`），并产出可被 Nimi Coding 准入的输出。
 
-| 性质 | 值 |
+| 核心属性 | 值 |
 | --- | --- |
-| Host class | `ai_native_coding_host` |
-| 拥有模式 | `external` |
-| 执行模式 | `delegated` |
-| 安装状态 | `not_installed`（包不会装 runtime） |
-| 自托管 | false |
+| 宿主类型 (Host class) | `ai_native_coding_host` |
+| 所有权模式 (Ownership mode) | `external` (外部) |
+| 执行模式 (Execution mode) | `delegated` (委派) |
+| 安装状态 (Install state) | `not_installed` (包本身不负责安装执行环境) |
+| 自托管 (Self-hosted) | 否 |
 
-包不拥有宿主。包负责把上下文投到项目里、把技能请求 hand off 出去、按类型化合同准入回来的结果。
+Nimi Coding 并不拥有宿主。它只负责将上下文投影到项目中，交接技能请求，并根据类型化契约来验收返回的结果。
 
 ## 必备的宿主能力
 
-要求很少，也很显式：
+对于宿主的能力要求，极其精简且明确：
 
-| 能力 | 它要求什么 |
+| 能力 | 要求 |
 | --- | --- |
-| `read_project_local_nimi_truth` | 宿主能读 `.nimi/methodology`、`.nimi/spec`、`.nimi/contracts` |
-| `route_declared_external_skills` | 宿主能分发四个声明技能 |
-| `fail_closed_on_missing_authority` | 缺权威时宿主不能凭空合成输出 |
+| `read_project_local_nimi_truth` | 宿主必须能够读取项目本地的 `.nimi/methodology`、`.nimi/spec`、`.nimi/contracts` |
+| `route_declared_external_skills` | 宿主能够分发并执行声明的四项技能 |
+| `fail_closed_on_missing_authority` | 宿主在缺失必要权威真相源时必须立即报错（fail closed），**严禁自行推断合成输出** |
 
-满足这三条的宿主可以被准入。包对宿主的要求就到这里，不再额外索取。
+只要满足这三点，一个宿主就可以被顺利准入。Nimi Coding 并不依赖上述三点之外的任何特定宿主功能。
 
-## 宿主硬性约束
+## 刚性宿主约束
 
-| 约束 | 它禁止什么 |
+| 约束 | 所禁止的行为 |
 | --- | --- |
-| `vendor_neutral_profile_only` | 宿主 adapter 不能夹带厂商专属合同 |
-| `do_not_assume_local_runtime_install` | 宿主不能要求本地装 runtime |
-| `do_not_claim_packet_orchestration_ownership` | 宿主不能假装自己拥有 packet 生命周期 |
+| `vendor_neutral_profile_only` | 宿主适配器不得夹带或植入任何特定厂商的私有契约 |
+| `do_not_assume_local_runtime_install` | 宿主不得假设本地已安装特定的运行时环境 |
+| `do_not_claim_packet_orchestration_ownership` | 宿主不得越权，不可伪称拥有对 Packet 生命周期的管理权 |
 
-正是这几条约束让包保持可携。
+正是这些严格的约束条件，赋予了 Nimi Coding 极强的可移植性。
 
-## 同一个项目怎么换宿主
+## 同一个项目如何切换宿主
 
-| 关注 | 不变 | 变 |
+| 关注点 | 是否保持不变？ | 是否改变？ |
 | --- | --- | --- |
-| `.nimi/spec/**`（项目规范化真相） | 是 | — |
-| `.nimi/methodology/**`（policy） | 是 | — |
-| `.nimi/contracts/**`（schema） | 是 | — |
-| Topic 工件（已闭与待闭） | 是 | — |
-| Adapter overlay 路径 | — | 是（按宿主） |
+| `.nimi/spec/**` (项目的权威事实源) | 是 | — |
+| `.nimi/methodology/**` (治理策略) | 是 | — |
+| `.nimi/contracts/**` (类型约束) | 是 | — |
+| Topic 工件 (包含未完成及已关闭的记录) | 是 | — |
+| 适配器覆盖层路径 (Adapter overlay path) | — | 改变（依宿主而定） |
 
-变的是 adapter。方法论本身可携。
+更换宿主，改变的仅仅是适配器（Adapter）。方法论及其全部历史证据，完美具备可移植性。
 
-## 两条约束为什么要一起出现
+## 为什么这两条约束可以有效组合？
 
-`vendor_neutral_profile_only` 加上 `do_not_claim_packet_orchestration_ownership` 合起来意味着：
+`vendor_neutral_profile_only` 与 `do_not_claim_packet_orchestration_ownership` 这两项约束结合在一起，意味着：
 
-- 任何特定厂商（比如 `oh-my-codex`）都可以加一份宿主 adapter；
-- adapter 以**受约束桥**的身份进来，不是语义的所有者；
-- 宿主特定的行为住在 adapter 里，不会渗进方法论本身。
+- 我们可以为一个特定的厂商添加专属的适配器（比如 `oh-my-codex`）。
+- 该适配器被视为一个**受限的桥接器（Constrained bridge）**准入，而非获得了语义的所有权。
+- 宿主特有的行为会被牢牢隔离在适配器之中，绝不会污染通用的方法论系统。
 
-这就是为什么 `oh-my-codex`、Codex、Claude、Gemini 这些都可以以桥的身份进来，而不会让包变得跟某家厂商耦合。
+正因如此，`oh-my-codex`、Codex、Claude、Gemini 以及其他工具，都能作为桥接器顺利接入系统，而不会让整个项目被某个厂商所“绑架”。
 
-## Adapter Overlay 模式
+## 适配器覆盖层模式 (Adapter Overlay Pattern)
 
-包以 `adapters/<host-name>/profile.yaml` 的形式提供 adapter overlay。一份准入的 overlay 声明它对应宿主的特定属性，而不动包厂商中立的核心。
+Nimi Coding 通过在 `adapters/<host-name>/profile.yaml` 下提供适配器覆盖层来实现对接。一个获准入的覆盖层声明了它特有的宿主属性，但丝毫不会改变 Nimi Coding 厂商中立的核心机制。
 
-| Adapter overlay 路径 | 用途 |
+| 适配器覆盖层路径 | 目的 |
 | --- | --- |
-| `adapters/oh-my-codex/profile.yaml` | 把 `oh-my-codex` 准入为受约束外部执行宿主 |
+| `adapters/oh-my-codex/profile.yaml` | 将 `oh-my-codex` 准入为一个受限的外部执行宿主 |
 
-`oh-my-codex` 的细节见 [附录 → oh-my-codex](/zh/nimicoding/appendix/oh-my-codex)。
+有关 `oh-my-codex` 的具体细节，详见 [附录 → oh-my-codex](/zh/nimicoding/appendix/oh-my-codex)。
 
-别的宿主也可以按同样模式加 overlay。每份 overlay 声明该宿主满足哪些 host-class 能力，以及包能用、却又不会让包跟厂商耦合的特定路由信息。
+其它宿主的覆盖层也可以沿用同样的模式添加。每个覆盖层负责列明自身具备哪些被要求的宿主能力，并提供必要的路由细节，Nimi Coding 借此完成调度调用而不陷入厂商耦合。
 
-## 阅读场景：同一个项目用两个宿主
+## 场景案例：同一个项目使用两个不同的宿主
 
-某项目在宿主 A 上采用了 Nimi Coding。后来团队决定有些工作用宿主 B。
+一个项目一直在宿主 A 的环境下采用 Nimi Coding。后来，团队决定某些特定任务交由宿主 B 处理。
 
-1. **项目状态。** `.nimi/**` 工件就位。
-2. **采用宿主 B。** 添加或准入 B 的 adapter overlay（`adapters/B/profile.yaml`）。
-3. **切宿主做新工作。** 新的 topic / wave / packet 用 B；A 上的旧工件依然有效。
-4. **跨宿主审计。** 在 A 上做的 wave 可以在 B 上做审计（独立循环这一保证不变）。
-5. **方法论不变。** 同样的四闭合框架、同样的角色分离、同样的禁用捷径目录。
+1. **项目状态**：所有 `.nimi/**` 事实源及历史记录都完好存在。
+2. **引入宿主 B**：添加或准入宿主 B 的适配器覆盖层（`adapters/B/profile.yaml`）。
+3. **分配新任务**：新的 Topic / Wave / Packet 安排在宿主 B 上执行；过去在宿主 A 上建立的工件依旧完全有效。
+4. **跨宿主审计**：由宿主 A 执笔产出的 Wave，可以交由宿主 B 进行审计（天然提供了独立循环的审计保障）。
+5. **方法论不变**：相同的四个闭合维度、相同的角色分离机制、相同的禁用模式清单。
 
-可携性正是这款产品本身。
+这种真正的跨工具可移植性，正是该产品的核心价值。
 
-## 阅读场景：宿主达不到必备能力
+## 场景案例：能力不达标的宿主
 
-某新 AI 宿主想被一个采纳了 Nimi Coding 的项目用上。它能 `read_project_local_nimi_truth`，但 `fail_closed_on_missing_authority` 那条没满足（缺权威时它会合成输出）。
+出现了一款新的 AI 编程工具，团队想将其接入采用 Nimi Coding 的项目中。该宿主满足 `read_project_local_nimi_truth`，但达不到 `fail_closed_on_missing_authority` 的标准（它在缺失权威事实源时，总是喜欢擅自推断并合成输出）。
 
-1. **兼容性核验。** Adapter 兼容合同检查能力 flag。
-2. **必备能力缺失。** `fail_closed_on_missing_authority` 是硬要求。
-3. **拒绝准入。** 该宿主无法以桥的身份被准入。
-4. **后续路径。** 要么修宿主（缺权威时不再合成），要么不让它去做被 Nimi Coding 治理的工作。
+1. **兼容性核查**：宿主适配器兼容性契约对能力标识进行评估。
+2. **缺失核心能力**：发现不具备强制要求的 `fail_closed_on_missing_authority` 能力。
+3. **拒绝准入**：该宿主作为桥接器的准入请求被拒绝。
+4. **后续路径**：要么修正该宿主（保证缺失事实源时绝不捏造），要么不要在受 Nimi Coding 管控的项目中使用它。
 
-正是这套能力要求，在换宿主的情况下依然守住方法论的完整性。
+这些能力门槛，是我们在不同宿主间切换时依然能够保证方法论纯洁性的底线。
 
-## 阅读场景：solo 创业者用两个宿主
+## 场景案例：使用双宿主的独立创业者
 
-某 solo 创业者主线 AI 工作走宿主 A，审计走宿主 B（盲点不一样）。
+一位毫无团队支持的独立开发者，使用宿主 A 来处理主要的代码生成，而利用宿主 B 进行审计（因为它们拥有不同的盲点区）。
 
-1. **主线工作。** A 担当 manager + worker（低风险用 `inline_manager_worker` 模式；走 `manager_worker_auditor` 模式时 A 只做 worker）。
-2. **审计。** B 在 A 的输出之上跑 auditor 角色。
-3. **同一套方法论。** 两个宿主都在同一份 `.nimi/methodology/**` 合同下被准入。
-4. **盲点彼此独立。** A 的失败模式不会带到 B 的审计里。
+1. **主要开发**：宿主 A 充当 Manager 和 Worker（在风险较低的工作中可以采取 `inline_manager_worker` 模式，或在 `manager_worker_auditor` 模式中仅作为 Worker）。
+2. **独立审计**：宿主 B 根据宿主 A 产出的结果执行 Auditor 角色。
+3. **遵循同套方法论**：两个宿主均受控于同一套 `.nimi/methodology/**` 契约体系。
+4. **隔离盲点**：宿主 A 生成时产生的逻辑盲区，不会顺延带入宿主 B 的审计循环中。
 
-这就是这套方法论给 solo 创业者的卖点：用走另一个宿主的审计，去模拟出一支团队本会提供的 review 冗余。
+这正是这套方法论对独立开发者最强大的吸引力：**通过调度不同的 AI 宿主执行审计，你甚至能在单兵作战时模拟出一个团队才有的防错冗余度**。
 
-## 「宿主无关」不等于什么
+## “宿主无关”不代表什么
 
-| 说法 | 真相 |
+| 错误说法 | 真相 |
 | --- | --- |
-| 「这个包不要任何 AI 宿主就能跑」 | 错 —— 采纳时必须有一个准入的宿主 |
-| 「随便哪个 AI 工具都能当宿主」 | 错 —— 宿主必须满足必备能力 |
-| 「Adapter 没有边界」 | 错 —— Adapter 在兼容合同下被准入 |
-| 「方法论可以按宿主变」 | 错 —— 方法论由包拥有，宿主无法影响 |
+| “不需要任何 AI 宿主，系统就能跑起来” | 错误 —— 这套机制的运转必须依赖一个已准入的宿主。 |
+| “随便什么 AI 工具都能当宿主” | 错误 —— 宿主必须满足特定的能力红线要求。 |
+| “适配器没有任何边界限制” | 错误 —— 适配器的准入受到严格的兼容性契约束缚。 |
+| “方法论可以根据不同宿主的特点自行变化” | 错误 —— 方法论始终由 Nimi Coding 定义并全盘掌控，在所有宿主面前保持绝对一致。 |
 
-承诺的是**宿主可换**，不是**完全不要宿主**。
+Nimi Coding 的承诺是 **宿主可任意替换 (host-swappable)**，绝不是 **无需宿主 (host-free)**。
 
-## 来源
+## 来源依据
 
 - [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/AGENTS.md)
 - [`nimi-coding/config/host-profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-profile.yaml)

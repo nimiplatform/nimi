@@ -1,6 +1,6 @@
 # Nimi Coding
 
-Nimi Coding 是一套**在高复杂度场景下，保持 AI 开发一致性与准确性的辅助开发产品，具有支持任意更换模型、AI 原生等特点**。通过独立 npm 包（@nimiplatform/nimi-coding），可植入任意代码仓库，快速帮助建立项目 .nimi/** “唯一真相面”。它让“AI 看起来已经把活干完了”这种模糊的感受，转变为“四个可闭合维度上的事实基础”，最终实现”做完了，也做对了“。
+Nimi Coding 是一套**在高复杂度场景下，保持 AI 开发一致性与准确性的辅助开发产品，具有宿主无关、AI 原生等特点**。通过独立 npm 包 `@nimiplatform/nimi-coding`，它可以植入已有代码仓库，帮助建立项目本地的 `.nimi/**` “唯一真相面”。它让“AI 看起来已经把活干完了”这种模糊感受，转变为“四个可闭合维度上的事实基础”，最终回答“是否真的做完、也做对”。
 
 Nimi Coding 是 Nimi 平台的核心产品之一，也是我们对外输出的一套标准 AI 开发方法论。但它的使用完全是解耦的：由于 npm 包本身不绑定任何特定宿主，你可以独立采纳它，而无需依赖 Nimi 平台的其他组件。
 
@@ -19,33 +19,34 @@ Nimi Coding 是 Nimi 平台的核心产品之一，也是我们对外输出的�
 快速上手，只需以下几步：
 
 1. **安装:** 在已有仓库里安装 `@nimiplatform/nimi-coding`，详见 [安装指南](/zh/nimicoding/installation)。
-2. **初始化环境:** 运行 `nimicoding start`建立 `.nimi/`目录。，再用 `nimicoding doctor --json` 检查健康状态。
+2. **初始化环境:** 运行 `nimicoding start` 建立 `.nimi/` 目录，再用 `nimicoding doctor --json` 检查健康状态。
 3. **重建项目规范:** 将项目现有的事实依据提取至 `.nimi/spec/**`；这一步的关键是：如实记录当前的来源依据以及尚未解决的历史遗留问题（unresolved gaps），而不是凭空捏造一套看似完美的规则。
 4. **发起 Topic:** 为你的首个“高风险”或“涉及架构权威变更”的任务，创建一个 Topic。
 5. **把 topic 拆成 wave。** 将该 Topic 拆解成更细粒度的 Wave，确保每个 Wave 都只对应单一的归属领域（owner domain）和一个明确的闭环目标。
 6. **先冻结 packet，再开始做。** 在实际动工前，提前冻结工作包（Packet）的上下文：显式声明允许读取的范围、允许修改的边界、验收通过的恒定条件（invariants）、反向测试用例（negative tests）、止损红线（stop lines）以及允许重新开启任务（reopen）的触发条件。
-7. **让AI大模型 接力执行。** 执行结果必须写成类型化证据，而不是只留在聊天里。
+7. **让已准入的 AI 宿主执行或接力执行。** 执行结果必须写成类型化证据，而不是只留在聊天里。
 8. **按四个维度闭合 wave。** 权威、语义、消费方、抗漂移四项都成立，才算真的闭合。
 
 以上是 Nimi Coding 核心产品理念的缩影：让 AI 的工作成果转化为持久的、边界清晰且可审计的工程状态，而不是一堆“当时像模像样”的聊天记录。
+
 ## 本章节包含
 
-### 范式
+### 核心范式
 
 - [范式](/zh/nimicoding/the-paradigm) —— AI 编程治理「新」在哪里，以及为什么这是范式而不是 checklist。
 - [四个闭合](/zh/nimicoding/four-closures) —— 把权威闭合、语义闭合、消费方闭合、抗漂移闭合作为一个思维框架。
-- [伪闭合形态学](/zh/nimicoding/false-closure-typology) —— 方法论要抓的具名失败形态。
-- [禁用捷径](/zh/nimicoding/forbidden-shortcuts) —— 反模式目录。
+- [伪闭合示例](/zh/nimicoding/false-closure-typology) —— 方法论需要精准防范和捕捉的各类典型失败模式。
+- [行为红线](/zh/nimicoding/forbidden-shortcuts) —— 严禁使用的开发模式。
 
 ### 角色与权威收敛
 
-- [角色分离](/zh/nimicoding/role-separation) —— 明确 Manager（管理者）、Worker（执行者）与 Auditor（审计者）的职责边界
+- [角色分离](/zh/nimicoding/role-separation) —— 明确 Manager（管理者）、Worker（执行者）与 Auditor（审计者）的职责边界。
 - [权威收敛](/zh/nimicoding/authority-convergence) —— 当需求（Spec）发生变更时，为什么独立审计必须走在代码实现之前。
 
 ### 生命周期
 
 - [Topic 生命周期](/zh/nimicoding/topic-lifecycle) —— 深入解析从 proposal（提案）、ongoing（进行中）、pending（挂起）到 closed（已关闭）的状态机流转，以及 wave 状态和真正意义上的收尾（true close）。
-- [白皮书](/zh/nimicoding/whitepaper) —— 为什么说“引入 AI 辅助实现”本质上是一项移交技术决策权威的工作。
+- [白皮书](/zh/nimicoding/whitepaper) —— 为什么说“引入 AI 辅助实现”本质上是一项承载权威的工作。
 - [Topic 工作流](/zh/nimicoding/topic-workflow) —— 涵盖 topic / wave / packet / preflight / audit / closeout 的完整运转机制。
 - [End-to-end样例](/zh/nimicoding/walkthrough) —— 从一个 topic 从开始到结束的示例。
 
@@ -53,9 +54,9 @@ Nimi Coding 是 Nimi 平台的核心产品之一，也是我们对外输出的�
 
 - [包](/zh/nimicoding/the-package) —— `@nimiplatform/nimi-coding` 提供什么、不提供什么。
 - [宿主无关边界](/zh/nimicoding/host-agnostic) —— 换 AI 宿主为什么不改方法论。
-- [技能](/zh/nimicoding/skills) —— 四个声明技能（`spec_reconstruction`需求重构、`doc_spec_audit`文档规范审计、`audit_sweep`审计扫描、`high_risk_execution`高风险执行）。
-- [CLI 交互](/zh/nimicoding/cli) —— 命令行工具的概念级全局视角。。
-- [安装指南](/zh/nimicoding/installation) —— 目前推荐的安装与初始化方式
+- [技能](/zh/nimicoding/skills) —— 四个声明技能（`spec_reconstruction` 规范重建、`doc_spec_audit` 文档规范审计、`audit_sweep` 审计扫描、`high_risk_execution` 高风险执行）。
+- [CLI 交互](/zh/nimicoding/cli) —— 命令行工具的概念级全局视角。
+- [安装指南](/zh/nimicoding/installation) —— 目前推荐的安装与初始化方式。
 
 ### 对比与采纳
 

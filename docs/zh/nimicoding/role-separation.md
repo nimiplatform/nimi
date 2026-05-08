@@ -1,147 +1,144 @@
-# 角色分离
+# 角色分离 (Role Separation)
 
-三个角色，严格分离。**Auditor 不是换了顶帽子的 worker** —— 这是方法论里最具特色的一条运作规则。
+三个角色。严格分离。最重要的一条红线是：**审计者（Auditor）绝不能只是执行者（Worker）换了个马甲**——这是本方法论在实际运作中最核心、最独特的准则。
 
-## 三个角色
+## 三大角色定义
 
-| 角色 | 拥有 | 不能做 |
+| 角色 | 核心职责 | 严禁行为 |
 | --- | --- | --- |
-| Manager | Wave 图、packet 准入、manager 判断、closeout 同步 | 一边改语义一边把生产范围悄悄实现进去 |
-| Worker | 一份准入的 packet、有界的写集合执行 | 扩 owner 域、削弱 fail-close 规则 |
-| Auditor | 结构性 review、漂移检测、闭合核验、spec 类 packet 的 pre-implementation 权威收敛证据 | 把缺失范围悄悄变成「以后再说」、审计期间动权威或动实现、决定语义是否可接受或决定 packet 是否准入 |
+| **管理者 (Manager)** | 掌控 Wave 拓扑图、Packet 准入、管理者裁决以及收尾同步。 | 严禁在修改代码语义的同时，悄悄把生产代码也一并实现了。 |
+| **执行者 (Worker)** | 专注执行单一已准入的 Packet，严格在受限的范围内进行代码写入。 | 严禁擅自扩大归属域（Owner domain），严禁为了图方便而削弱安全报错（Fail-closed）规则。 |
+| **审计者 (Auditor)** | 结构性评审、设计漂移检测、闭合维度的核验，并在 Packet 触碰规范、权威或重新设计表面时提供“实现前”的权威收敛证据。 | 严禁把范围缺失的问题说成“以后再补”；严禁在审计过程中偷偷修改权威配置或实现代码；无权自作主张决定语义的接受度或 Packet 的准入。 |
 
-被禁的动作是有意写出来的：它们就是各角色最容易越权的地方。
+上面列出的严禁行为并不是随便写的。它们正是各个角色在实际操作中最容易越权犯错的“重灾区”。
 
-## Manager
+## 管理者 (Manager)
 
-Manager 这个角色：
+Manager 是掌控全局的角色，负责：
+- 决定当前准入哪一个 Wave。
+- 冻结该 Wave 对应的 Packet。
+- 将审计结果登记在案。
+- 裁定该 Wave 是进入闭合收尾、打回修订，还是准入一个延续包（Continuation）。
+- 记录 Topic 级别的最终决策。
 
-- 决定哪个 wave 被准入。
-- 把这个 wave 的 packet 冻结。
-- 记录审计结果。
-- 决定 wave 是进入 closeout、还是退回修改、还是准入 continuation。
-- 记录 topic 级别的 closeout 决策。
+在最严格的 `manager_worker_auditor` 执行模式下，Manager **绝不亲自编写生产代码**。只有在针对低风险任务的 `inline_manager_worker` 模式下，Manager 和 Worker 才允许由同一个控制循环（Loop）来扮演。
 
-Manager 在最严格的场景下（`manager_worker_auditor` 执行模式）**不写生产代码**。在 `inline_manager_worker` 模式下（仅限低风险工作）manager 与 worker 可以是同一个循环。
+Manager 最核心的底线约束是：绝不能在修改代码语义的同时，把生产层面的活儿也悄悄干了。如果语义发生了改变，那就必须走一遍独立的准入流程，而不能把这当成敲代码时顺手为之的“副产品”。
 
-Manager 最关键的约束：不要一边改语义一边把生产范围悄悄实现进去。语义要变，那就单独走一次准入步骤，不能作为执行的副作用。
+## 执行者 (Worker)
 
-## Worker
+Worker 是具体干活的角色，负责：
+- 严格执行单一已准入的 Packet。
+- 只读取 `allowed_reads` 中允许查阅的范围。
+- 只修改 `allowed_writes` 中允许改动的代码。
+- 一旦抵达 Packet 规定的止损线（Stop line），必须立即停手。
 
-Worker 这个角色：
+Worker 最核心的底线约束是：严禁擅自扩张归属域。如果发现在干活时必须触碰到 Packet 划定域之外的代码，Worker 必须立刻停下来，回头找 Manager 重新划定 Packet 的范围。
 
-- 执行一份准入的 packet。
-- 只读 `allowed_reads` 准许的范围。
-- 只写 `allowed_writes` 准许的范围。
-- 在 packet 的 stop line 处停下。
+此外，Worker 绝不能私自削弱安全报错（Fail-closed）机制。如果 Worker 为了显得“智能贴心”而私自加了一个 Fallback 来掩盖某项合同校验的失败，那它就犯了 `placeholder_success`（占位式成功）的禁忌。
 
-Worker 最关键的约束：不要扩 owner 域。一旦工作要碰到 packet 的 owner 域之外的表面，worker 应当停下来，回到 manager 那边重新框 packet。
+## 审计者 (Auditor)
 
-Worker 也不能削弱 fail-close 规则。一个「贴心」给合同失败加上一段 fallback 的 worker，引入的就是 `placeholder_success`。
+Auditor 是整套体系中最容易被轻视的角色。**在典型的 AI 工作流中，写出代码的那个循环，往往也就是审查那段代码的循环；这种做法的弊端早已臭名昭著：这套循环自带的认知盲点，会轻而易举地逃过它自己的审查。**
 
-## Auditor
+在 `manager_worker_auditor` 模式下，Auditor 在结构上是完全被隔离开的。在目前的宿主实现中，这意味着它必须由另一个独立的 AI 会话（Session），甚至另一家不同的大模型厂商来扮演。
 
-Auditor 是被低估得最厉害的一环。**典型的 AI 工作流里，produce 代码的循环跟 review 代码的循环是同一个循环。这种结构有一个众所周知的失败模式：循环自己的盲点会一起穿过 review。**
+Auditor 负责：
+- 执行结构性的审查。
+- 揪出设计漂移。
+- 对全部四个闭合维度进行严密核验。
+- 当 Packet 触及 Spec / Authority / Redesign 等敏感表面时，提供“实现前”的权威收敛证据。
 
-`manager_worker_auditor` 模式下的 auditor 在结构上是分离的。在当前的宿主实现里，这意味着另一段 AI session、或者另一家厂商。
+Auditor **绝不能**含糊其辞地把缺失的范围推脱给未来。如果审计查出了缺漏，那就必须毫不留情地点名；“以后会有人修的”绝不配作为一项审计裁定。
 
-Auditor 做的事：
+Auditor **绝不能**在审计过程中夹带私货去修改权威配置或实现代码。审计行为必须是纯只读的。
 
-- 结构性 review。
-- 漂移检测。
-- 跨四个维度核验闭合。
-- Packet 触到 spec / authority / redesign 表面时，提供 pre-implementation 权威收敛证据。
+Auditor 也**无权**决定语义是否通过，或是 Packet 能否准入。这些权力统统属于 Manager。Auditor 的输出仅仅是“候选证据（Candidate evidence）”；Manager 必须在将工作分派落地之前，先把这份审计证据登记在案。
 
-Auditor **不**把缺失范围悄悄变成「以后再说」。审计如果发现一个 gap，那就把 gap 显式点出来；「以后会有人修」不是一个审计结论。
+## 为什么要坚持这种分离？
 
-Auditor **不**在审计期间动权威或动实现。审计是只读的。
+如果 Manager、Worker、Auditor 坍缩融合进了同一个循环里：
 
-Auditor **不**决定语义是否可接受、也不决定 packet 是否准入。这些决定属于 manager。Auditor 的输出是「候选证据」；manager 在 dispatch 实现之前把审计结论登记在案。
-
-## 为什么要做这种分离
-
-如果 manager / worker / auditor 塌成一个循环：
-
-| 病 | 会发生什么 |
+| 病态现象 | 发生了什么 |
 | --- | --- |
-| 自审 | 循环自己的盲点穿过 review |
-| 范围蠕变 | Worker 悄悄扩范围，因为没有独立的关 |
-| 软通过 | Auditor 的标准向 worker 的现实收敛 |
-| 漂移正常化 | 反复出现的模式被当作「没事」 |
+| 既当裁判又当运动员 | 这个循环天生的认知盲点将被完美保留下来 |
+| 范围悄然膨胀 | 由于缺乏独立关口，Worker 会不知不觉地把手伸得越来越长 |
+| 标准变软 | 审计的标准会不自觉地向 Worker 实际产出的现实妥协 |
+| 漂移被常态化 | 反复出现的错误模式会被大家见怪不怪地认为是“挺好的” |
 
-如果它们是分离的：
+当它们被严格分离时：
 
-| 行为 | 它带来什么 |
+| 机制 | 带来了什么 |
 | --- | --- |
-| 独立审计 | 盲点不一样；一个循环抓住另一个循环漏掉的 |
-| 硬范围边界 | Worker 被冻结的 packet 框住；manager 只能用新的 packet 重新框范围 |
-| 标准保持 | Auditor 的标准不会向 worker 的现实漂 |
-| 漂移检测 | 反复的模式得到具名（目录在长大） |
+| 独立的审计 | 拥有了不同的盲点分布；一个循环没看出来的坑，另一个循环能敏锐地抓住 |
+| 极其刚性的范围边界 | Worker 被冻结的 Packet 死死锁住；Manager 想要调整范围，唯一的办法是发一个全新的 Packet |
+| 保全评审标准 | Auditor 的标准高高在上，绝不会向 Worker 粗糙的产出低头 |
+| 揪出漂移行为 | 那些屡教不改的反模式会被揪出来并打上标签（反模式目录随之扩充） |
 
-## 权威收敛门
+## 权威收敛关口 (Authority Convergence Gate)
 
-一个具体场景：当 packet 类别是 `authority` / `spec` / `redesign` / `preflight`，并且引用了 `.nimi/spec/`，manager 必须在 dispatch worker **之前**先把一个 auditor PASS 裁定记下来。
+一个非常具体的约束场景：当一个 Packet 的类型被标记为 `authority`、`spec`、`redesign` 或 `preflight`，并且引用了 `.nimi/spec/` 目录时，Manager 必须**在把任务分派给 Worker 之前**，先拿到并登记一份 Auditor 给出的 PASS 裁定。
 
 | 步骤 | 拥有者 |
 | --- | --- |
-| 实现前审计 | Auditor（独立） |
-| 裁定登记 | Manager（仅记录） |
-| Dispatch worker | Manager（审计 PASS 之后才准入 packet） |
+| 实现前审计 | Auditor (独立方) |
+| 登记裁定结果 | Manager (仅负责记录) |
+| 分派 Worker 执行 | Manager (只有在拿到审计 PASS 之后才允许分派 Packet) |
 
-实现落地后，机械相变之前，还需要一次 follow-up 判断 PASS。
+而在代码落地之后，推进到机械相变（Mechanical phase transition）阶段之前，还需要再过一道落地后的判断（Judgement），并且必须同样拿到 PASS。
 
-未解决的 blocking finding 走 fail-close。
+任何悬而未决的阻塞性发现，都会导致流程彻底中止（Fail closed）。
 
-## 阅读场景：同循环 review 为什么会失败
+## 场景案例：为什么用同一个循环来做审查注定会失败？
 
-你在用 AI 做一次较实质的改动。你让同一个 AI 来 review 它自己的产出。
+你正在用 AI 执行一项伤筋动骨的大改动。改完之后，你让这个相同的 AI 去审查它自己刚刚写出的代码。
 
-这个 AI review 完了说「都看着 OK」。你 ship 出去。一周后你发现这次改动引入了一个 `legacy_alias` 模式，撰写时没抓到，review 时也没抓到。
+AI 审查了一番，告诉你一切完美。你非常放心地发布了。一周后，你惊讶地发现这次改动悄悄引入了一个 `legacy_alias`（旧别名残留）反模式，而在当初撰写和审查的时候，这个 AI 压根就没看出来。
 
-这就是结构性的失败模式。同一个循环的盲点不会因为它换了角色就改变。AI 不是 review 时变得更不仔细，而是它对「什么算 OK」有同一套模型。
+这就是结构性坍塌带来的失败。同一个循环在生成代码和审查代码时，它的盲区是完全重合的。AI 在当审查员时并没有变得更粗心；只是它对“什么是正确的做法”有着同一套偏见。
 
-方法论的回应：让 auditor 是**另一个循环**。另一段 session、另一家厂商、另一台宿主。auditor 的盲点就是不一样的。
+方法论给出的解药是：Auditor 必须是**另一个完全不同的循环**。不同的会话，不同的厂商，不同的宿主。只有这样，Auditor 的盲点才会和 Worker 错开。
 
-## 阅读场景：solo 创业者用 auditor 模式
+## 场景案例：单枪匹马的创业者如何应用 Auditor 模式？
 
-你是 solo 创业者，重度用 AI。没有团队提供结构性 review。你只有自己加自己的 AI 宿主。
+你是一个高度依赖 AI 辅助的独立创业者。你没有一个团队来帮你做结构性的代码审查。你只有你自己，和你的 AI 宿主。
 
-方法论的回应：
+方法论给出了这样的解法：
 
-| 循环 | 角色 |
+| 循环 | 扮演的角色 |
 | --- | --- |
-| 你的主线 AI session | Manager + worker |
-| 一段单独的 AI session（另一家厂商或另一段 session） | Auditor |
-| 你 | 最终接受度的关 |
+| 你最主力使用的 AI 会话 | Manager + Worker |
+| 一个完全分隔开的 AI 会话（另一家厂商，或者至少另开一个会话） | Auditor |
+| 你自己 | 把守最后一道验收大门的关卡 |
 
-你用的还是团队会用的 `manager_worker_auditor` 模型，只不过 auditor 的角色被路由到另一个 AI session 上。结构性的分离保住了，不需要更多人来。
+你现在使用的，正是一个正规团队才会使用的 `manager_worker_auditor` 模型，只不过你是把 Auditor 的活儿路由给了另一个 AI 会话。无需招募更多的人手，你就完美保留了结构性分离的红利。
 
-这就是方法论给 solo 创业者的卖点：用走另一个 AI 循环的审计，去模拟团队本会提供的 review 冗余。
+这也是这套方法论对于单兵作战的开发者最大的吸引力所在：只需把审计工作路由给另一个 AI 循环，你就能模拟出一个专业团队才具备的评审防错冗余度。
 
-## 阅读场景：manager 拒绝一次准入
+## 场景案例：Manager 断然拒绝一次准入请求
 
-某 worker 提交一份 packet 求准入。Manager 来 review：
+Worker 提交了一个 Packet 申请准入。Manager 逐项进行审核：
 
-- 权威拥有者：清楚。
-- Allowed reads：有界。
-- Allowed writes：有界。
-- Acceptance invariant：显式。
-- Negative test：显式。
-- Stop line：显式。
-- Forbidden shortcut：声明完整。
+- 归属权所有者：清晰。
+- 允许读取的范围：已受限。
+- 允许修改的范围：已受限。
+- 验收恒定式：清晰显式。
+- 反向测试：清晰显式。
+- 止损线：清晰显式。
+- 禁用捷径声明：已完整罗列。
 
-但是：这个 packet 是 spec-touching 类别，没有 auditor PASS 记录。Manager 拒绝准入。
+但是：这个 Packet 属于触碰了 Spec 的高风险类型，却并没有附带一份来自 Auditor 的 PASS 记录。Manager 断然拒绝了准入请求。
 
-| 步骤 | 发生什么 |
+| 步骤 | 发生了什么 |
 | --- | --- |
-| Worker 请求准入 | 已提交 |
-| Manager 检查门 | 权威收敛门没满足 |
-| 拒绝 | 准入被驳回 |
-| 后续路径 | 跑实现前审计；记录 PASS；重新提交 |
+| Worker 申请准入 | 已提交 |
+| Manager 检查关口 | 权威收敛关口未通过 |
+| 遭到拒绝 | 准入请求被直接驳回 |
+| 后续路径 | 乖乖去跑一遍实现前审计；拿到 PASS 并登记；然后重新提交申请 |
 
-拒绝**不是可选项**。方法论的硬规则：未解决的 blocking finding 走 fail-close。
+在这里，拒绝是**刚性强制的，没有任何商量的余地**。方法论定死了这条铁律：带有阻塞性问题的记录，只有被毙掉这一种下场。
 
-## 来源
+## 来源依据
 
 - [`.nimi/methodology/role-separation-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/role-separation-policy.yaml)
 - [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)

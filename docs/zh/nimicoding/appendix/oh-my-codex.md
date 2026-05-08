@@ -1,73 +1,63 @@
-# 附录：oh-my-codex 适配器
+# 附录：oh-my-codex 适配器 (oh-my-codex Adapter)
 
-`oh-my-codex` 是包附带的一个 admitted 外部执行 host adapter overlay。它演示一个特定 host 怎么以受约束桥的身份被准入，而**不**变成语义拥有者。
+`oh-my-codex` 是 Nimi Coding 包内置的一个**已准入的外部执行宿主适配器层（Adapter Overlay）**。它展示了一个特定的 AI 宿主如何作为“受控桥接器（Constrained Bridge）”被准入治理体系，而不会反向夺取方法论的语义所有权。
 
-这页是**附录**，**不是**一等概念。方法学是宿主无关的；oh-my-codex 是 admitted overlay 的一个例子。其他 host overlay 能跟相同模式。
+**特别说明**：本页属于**附录**性质，并非方法论的一等公民。Nimi Coding 始终保持宿主无关性；`oh-my-codex` 仅作为适配器模式的一个参考实现。
 
-## Overlay 提供什么
+## 适配器提供了什么？
 
-| 文件 | 用途 |
-| --- | --- |
-| `adapters/oh-my-codex/profile.yaml` | `oh-my-codex` 作为 host 的 admitted overlay profile |
+该适配器通过 `adapters/oh-my-codex/profile.yaml` 文件定义了以下内容：
+- 确认 `oh-my-codex` 作为受控桥接器的准入身份。
+- 声明该宿主满足哪些核心能力等级（Host-class Capabilities）。
+- 定义了包所允许的特定宿主路由细节。
 
-Overlay 声明：
+**关键点**：该适配器**严禁**宣称拥有语义所有权；方法论的核心始终保持厂商中立。
 
-- `oh-my-codex` 以受约束桥的身份被准入。
-- 它满足哪些 host-class 能力。
-- 包准入的任何 host 特定路由细节。
+---
 
-关键是它**不**声明语义拥有；方法学核保持厂商中立。
+## 适用场景
 
-## 何时用
+在以下情况下，建议使用 `oh-my-codex` 适配器：
+- 你的项目选择 `oh-my-codex` 作为分派 AI 技能的具体执行环境。
+- 你希望在运行 `nimicoding doctor` 时，看到具名的适配器元数据，而非通用的外部宿主描述。
 
-用 `oh-my-codex` overlay 当：
+## 不适用场景
 
-- 你的项目用 `oh-my-codex` 作为技能 dispatch 的 AI host。
-- 你想 `nimicoding doctor` 输出里有命名 overlay 元数据（vs 通用外部 host profile）。
+在以下情况下，应使用通用的外部宿主配置：
+- 你的项目直接与已准入的模型（如 Claude, Gemini 等）对接，无需中间层。
+- 你不需要超出“厂商中立配置文件”之外的特定路由逻辑。
 
-## 何时不用
+Nimi Coding 的设计承诺是：任何遵循契约的宿主均可使用；具名适配器仅为提供便利，而非强制要求。
 
-用通用外部 host profile（无 overlay）当：
+---
 
-- 你的项目直接用 admitted host（Claude / Codex / Gemini 等）。
-- 你**不**需要超出厂商中立 profile 的 host 特定路由细节。
+## 场景模拟
 
-包的设计承诺：任何遵循合同的 host 能用；命名 overlay 是便利、**不是**要求。
+### 1. 从 oh-my-codex 切换到其他宿主
+假设你的项目之前一直使用 `oh-my-codex`，现在决定直接使用 Claude。
+- **方法论层面**：无需任何改动，`.nimi/` 下的核心规则保持不变。
+- **配置层面**：移除 `oh-my-codex` 的适配器引用，切换为通用外部宿主配置。
+- **历史证据**：此前在 `oh-my-codex` 下产出的所有 Topic、Wave 和审计记录**依然有效**。
 
-## 阅读场景：从 oh-my-codex 换到别的 host
+**结论**：方法论的可携带性确保了工具的更换不会导致过去的工作证据失效。
 
-你的项目一直用 `oh-my-codex`。你想换到不同 admitted host。
+### 2. 添加全新的宿主适配器
+如果你想为一个名为 `host-x` 的新工具编写适配器：
+1. 参考 `oh-my-codex` 的形状创建 `adapters/host-x/profile.yaml`。
+2. 声明该宿主所满足的必需能力。
+3. 声明其符合刚性约束（厂商中立、不强制本地 Runtime 等）。
+4. 通过 `nimicoding doctor` 进行兼容性校验。
+**准入后，新适配器将与内置适配器并列可用，供项目根据上下文自由选择。**
 
-| 步骤 | 动作 |
-| --- | --- |
-| 方法学改动 | 无 — 包源不变 |
-| Adapter 改动 | 可选移除 `oh-my-codex` overlay 如不再用；或留着作文档 |
-| 新 host | 用通用外部 host profile 或如需要写新 adapter overlay |
-| 既有工件 | `oh-my-codex` 跑下的 topic / wave / packet / closeout 记录留有效 |
+---
 
-方法学的可移植性正是价值。换 host **不**让过去工作失效。
+## 设计边界
 
-## 阅读场景：加新 host adapter
+本页仅讨论 Nimi Coding 的适配器模式，并不作为 `oh-my-codex` 工具本身的使用说明文档。关于该工具的具体功能，请参阅其官方上游文档。
 
-假设你想给一个叫「host-x」的 host 加 overlay。
+---
 
-| 步骤 | 动作 |
-| --- | --- |
-| 建 `adapters/host-x/profile.yaml` | 跟 `oh-my-codex` overlay 形状 |
-| 声明 host-class 能力 | Host 满足哪些必需的 |
-| 声明硬约束满足 | 厂商中立、无本地 runtime、无编排拥有 |
-| 记录 host 特定路由细节 | 只 admit 不漏进方法学核的 |
-| 用 `nimicoding doctor` 测 | 校验兼容 |
-
-被准入后，新 adapter 跟 `oh-my-codex` 一起可用。包支持多个 admitted overlay；你按项目上下文挑用哪个。
-
-## 适用边界
-
-`oh-my-codex` 不是唯一 admitted 外部执行 host、首选 host、或采纳必需项。它是 overlay 形状的一个例子；其他 admitted host 可以采用同一类桥接方式。
-
-这页只讲 Nimi Coding adapter overlay，不替 `oh-my-codex` 本身写工具文档。
-
-## 来源
+## 来源依据
 
 - [`nimi-coding/adapters/oh-my-codex/profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/adapters/oh-my-codex/profile.yaml)
 - [`nimi-coding/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-adapter.yaml)
