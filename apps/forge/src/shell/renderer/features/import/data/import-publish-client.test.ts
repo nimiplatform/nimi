@@ -19,6 +19,7 @@ vi.mock('@renderer/data/agent-data-client.js', () => mockAgentDataClient);
 const {
   publishCharacterCardImport,
   publishForgeWorkspacePlan,
+  publishNovelImport,
 } = await import('./import-publish-client.js');
 
 describe('publishCharacterCardImport', () => {
@@ -66,6 +67,40 @@ describe('publishCharacterCardImport', () => {
     expect(mockAgentDataClient.createCreatorAgent).toHaveBeenCalledTimes(2);
     expect(result.agentIds.Ari).toBe('agent_1');
     expect(result.errors).toEqual([]);
+  });
+
+  it('fails closed when canonical agent rule truth cannot be written', async () => {
+    const progress = vi.fn();
+    mockAgentDataClient.createCreatorAgent.mockResolvedValue({ id: 'agent_1' });
+    mockWorldDataClient.createAgentRule.mockRejectedValue(new Error('rule write failed'));
+
+    const result = await publishCharacterCardImport({
+      characterName: 'Ari',
+      agentRules: [{
+        ruleKey: 'identity:self:core',
+        title: 'Core Identity',
+        statement: 'Ari is a brave scout.',
+        layer: 'DNA',
+        category: 'DEFINITION',
+        hardness: 'FIRM',
+        importance: 90,
+        provenance: 'CREATOR',
+      }],
+      worldRules: [],
+      targetWorldId: 'world_1',
+      ownerType: 'WORLD_OWNED',
+      onProgress: progress,
+    });
+
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        phase: 'CREATING_AGENT_RULES',
+        item: 'identity:self:core',
+        message: 'rule write failed',
+      }),
+    ]);
+    expect(result.publishedAgentRuleIds).toEqual([]);
+    expect(progress).not.toHaveBeenCalledWith(expect.objectContaining({ phase: 'DONE' }));
   });
 });
 
@@ -159,5 +194,137 @@ describe('publishForgeWorkspacePlan', () => {
     }));
     expect(result.worldId).toBe('world_1');
     expect(result.draftAgentIds).toEqual({ draft_agent_1: 'agent_1' });
+  });
+
+  it('stops workspace publish before agent rules when world rule truth fails', async () => {
+    const progress = vi.fn();
+    mockWorldDataClient.createWorldDraft.mockResolvedValue({ id: 'draft_1' });
+    mockWorldDataClient.publishWorldDraft.mockResolvedValue({ worldId: 'world_1' });
+    mockAgentDataClient.batchCreateCreatorAgents.mockResolvedValue({
+      created: [{ id: 'agent_1', displayName: 'Ari' }],
+    });
+    mockWorldDataClient.createWorldRule.mockResolvedValue({});
+
+    const result = await publishForgeWorkspacePlan({
+      plan: {
+        workspaceId: 'ws_1',
+        worldAction: 'CREATE',
+        agents: [{
+          draftAgentId: 'draft_agent_1',
+          action: 'CREATE_WORLD_AGENT',
+          sourceAgentId: null,
+          displayName: 'Ari',
+          handle: 'ari',
+          concept: 'Brave scout',
+          description: 'Ari is a brave scout.',
+          avatarUrl: null,
+        }],
+        worldRules: [{
+          ruleKey: 'world:seed:scenario',
+          title: 'Scenario',
+          statement: 'A ruined world.',
+          domain: 'NARRATIVE',
+          category: 'DEFINITION',
+          hardness: 'SOFT',
+          scope: 'WORLD',
+          provenance: 'SEED',
+        }],
+        agentRules: [{
+          draftAgentId: 'draft_agent_1',
+          agentId: null,
+          characterName: 'Ari',
+          rules: [{
+            ruleKey: 'identity:self:core',
+            title: 'Core Identity',
+            statement: 'Ari is a brave scout.',
+            layer: 'DNA',
+            category: 'DEFINITION',
+            hardness: 'FIRM',
+            importance: 90,
+            provenance: 'CREATOR',
+          }],
+        }],
+        sourceManifestPolicy: 'LOCAL_ONLY',
+      },
+      worldName: 'My World',
+      worldDescription: 'desc',
+      targetWorldId: null,
+      agentBundles: [{
+        draftAgentId: 'draft_agent_1',
+        characterName: 'Ari',
+        rules: [{
+          ruleKey: 'identity:self:core',
+          title: 'Core Identity',
+          statement: 'Ari is a brave scout.',
+          layer: 'DNA',
+          category: 'DEFINITION',
+          hardness: 'FIRM',
+          importance: 90,
+          provenance: 'CREATOR',
+        }],
+      }],
+      onProgress: progress,
+    });
+
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        phase: 'CREATING_WORLD_RULES',
+        item: 'world:seed:scenario',
+        message: 'FORGE_IMPORT_WORLD_RULE_ID_REQUIRED',
+      }),
+    ]);
+    expect(mockWorldDataClient.createAgentRule).not.toHaveBeenCalled();
+    expect(progress).not.toHaveBeenCalledWith(expect.objectContaining({ phase: 'DONE' }));
+  });
+});
+
+describe('publishNovelImport', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('fails closed when batch agent creation omits a required agent id', async () => {
+    mockWorldDataClient.createWorldDraft.mockResolvedValue({ id: 'draft_1' });
+    mockWorldDataClient.publishWorldDraft.mockResolvedValue({ worldId: 'world_1' });
+    mockAgentDataClient.batchCreateCreatorAgents.mockResolvedValue({ created: [] });
+
+    const result = await publishNovelImport({
+      worldName: 'My World',
+      worldDescription: 'desc',
+      worldRules: [{
+        ruleKey: 'world:seed:scenario',
+        title: 'Scenario',
+        statement: 'A ruined world.',
+        domain: 'NARRATIVE',
+        category: 'DEFINITION',
+        hardness: 'SOFT',
+        scope: 'WORLD',
+        provenance: 'SEED',
+      }],
+      agentBundles: [{
+        characterName: 'Ari',
+        rules: [{
+          ruleKey: 'identity:self:core',
+          title: 'Core Identity',
+          statement: 'Ari is a brave scout.',
+          layer: 'DNA',
+          category: 'DEFINITION',
+          hardness: 'FIRM',
+          importance: 90,
+          provenance: 'CREATOR',
+        }],
+      }],
+      targetWorldId: null,
+    });
+
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        phase: 'CREATING_AGENTS',
+        item: 'Ari',
+        message: 'No resolved agent id found after agent publish.',
+      }),
+    ]);
+    expect(mockWorldDataClient.createWorldRule).not.toHaveBeenCalled();
+    expect(mockWorldDataClient.createAgentRule).not.toHaveBeenCalled();
   });
 });

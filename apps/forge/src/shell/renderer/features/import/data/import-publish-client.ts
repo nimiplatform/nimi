@@ -63,6 +63,14 @@ function readStringField(value: unknown, key: string): string {
   return typeof field === 'string' ? field : '';
 }
 
+function readRequiredStringField(value: unknown, key: string, errorCode: string): string {
+  const field = readStringField(value, key).trim();
+  if (!field) {
+    throw new Error(errorCode);
+  }
+  return field;
+}
+
 function readObjectArrayField(value: unknown, key: string): object[] {
   if (!isObjectLike(value)) {
     return [];
@@ -164,7 +172,7 @@ export async function publishCharacterCardImport(params: {
       worldId: targetWorldId,
     };
     const agentResponse = await retryOperation(() => createCreatorAgent(agentPayload));
-    const agentId = readStringField(agentResponse, 'id');
+    const agentId = readRequiredStringField(agentResponse, 'id', 'FORGE_IMPORT_AGENT_ID_REQUIRED');
     result.agentIds[characterName] = agentId;
   } catch (err) {
     errors.push({
@@ -192,7 +200,7 @@ export async function publishCharacterCardImport(params: {
       }
       try {
         const response = await retryOperation(() => createWorldRule(targetWorldId, worldRule));
-        result.publishedWorldRuleIds.push(readStringField(response, 'id'));
+        result.publishedWorldRuleIds.push(readRequiredStringField(response, 'id', 'FORGE_IMPORT_WORLD_RULE_ID_REQUIRED'));
       } catch (err) {
         errors.push({
           phase: 'CREATING_WORLD_RULES',
@@ -201,6 +209,10 @@ export async function publishCharacterCardImport(params: {
         });
       }
       onProgress?.({ phase: 'CREATING_WORLD_RULES', current: i + 1, total: worldRules.length, errors });
+    }
+    if (errors.length > 0) {
+      result.errors = errors;
+      return result;
     }
   }
 
@@ -219,8 +231,8 @@ export async function publishCharacterCardImport(params: {
       continue;
     }
     try {
-        const response = await retryOperation(() => createAgentRule(targetWorldId, agentId, agentRule));
-      result.publishedAgentRuleIds.push(readStringField(response, 'id'));
+      const response = await retryOperation(() => createAgentRule(targetWorldId, agentId, agentRule));
+      result.publishedAgentRuleIds.push(readRequiredStringField(response, 'id', 'FORGE_IMPORT_AGENT_RULE_ID_REQUIRED'));
     } catch (err) {
       errors.push({
         phase: 'CREATING_AGENT_RULES',
@@ -229,6 +241,10 @@ export async function publishCharacterCardImport(params: {
       });
     }
     onProgress?.({ phase: 'CREATING_AGENT_RULES', current: i + 1, total: sortedRules.length, errors });
+  }
+  if (errors.length > 0) {
+    result.errors = errors;
+    return result;
   }
 
   onProgress?.({ phase: 'DONE', current: 1, total: 1, errors });
@@ -277,9 +293,12 @@ export async function publishForgeWorkspacePlan(params: {
           worldRules: plan.worldRules,
         }),
       }));
-      const draftId = readStringField(draftResponse, 'id');
+      const draftId = readRequiredStringField(draftResponse, 'id', 'FORGE_IMPORT_WORLD_DRAFT_ID_REQUIRED');
       const publishResponse = await retryOperation(() => publishWorldDraft(draftId));
       targetWorldId = readStringField(publishResponse, 'worldId') || readStringField(publishResponse, 'id');
+      if (!targetWorldId) {
+        throw new Error('FORGE_IMPORT_WORLD_ID_REQUIRED');
+      }
       result.worldId = targetWorldId;
     } catch (err) {
       errors.push({
@@ -353,7 +372,7 @@ export async function publishForgeWorkspacePlan(params: {
               ownershipType: 'WORLD_OWNED' as const,
               worldId: targetWorldId,
             }));
-            const id = readStringField(createdAgent, 'id');
+            const id = readRequiredStringField(createdAgent, 'id', 'FORGE_IMPORT_AGENT_ID_REQUIRED');
             if (id) {
               result.draftAgentIds![draftAgentId] = id;
               result.agentIds[planItem.displayName] = id;
@@ -417,6 +436,10 @@ export async function publishForgeWorkspacePlan(params: {
       errors,
     });
   }
+  if (errors.length > 0) {
+    result.errors = errors;
+    return result;
+  }
 
   onProgress?.({
     phase: 'CREATING_WORLD_RULES',
@@ -431,7 +454,7 @@ export async function publishForgeWorkspacePlan(params: {
     }
     try {
       const response = await retryOperation(() => createWorldRule(targetWorldId, worldRule));
-      result.publishedWorldRuleIds.push(readStringField(response, 'id'));
+      result.publishedWorldRuleIds.push(readRequiredStringField(response, 'id', 'FORGE_IMPORT_WORLD_RULE_ID_REQUIRED'));
     } catch (err) {
       errors.push({
         phase: 'CREATING_WORLD_RULES',
@@ -445,6 +468,10 @@ export async function publishForgeWorkspacePlan(params: {
       total: plan.worldRules.length || 1,
       errors,
     });
+  }
+  if (errors.length > 0) {
+    result.errors = errors;
+    return result;
   }
 
   const totalAgentRules = agentBundles.reduce((sum, bundle) => sum + bundle.rules.length, 0);
@@ -471,7 +498,7 @@ export async function publishForgeWorkspacePlan(params: {
     for (const rule of bundle.rules) {
       try {
         const response = await retryOperation(() => createAgentRule(targetWorldId, targetAgentId, rule));
-        result.publishedAgentRuleIds.push(readStringField(response, 'id'));
+        result.publishedAgentRuleIds.push(readRequiredStringField(response, 'id', 'FORGE_IMPORT_AGENT_RULE_ID_REQUIRED'));
       } catch (err) {
         errors.push({
           phase: 'CREATING_AGENT_RULES',
@@ -487,6 +514,10 @@ export async function publishForgeWorkspacePlan(params: {
         errors,
       });
     }
+  }
+  if (errors.length > 0) {
+    result.errors = errors;
+    return result;
   }
 
   onProgress?.({ phase: 'DONE', current: 1, total: 1, errors });
@@ -530,10 +561,13 @@ export async function publishNovelImport(params: {
           worldRules,
         }),
       }));
-      const draftId = readStringField(draftResponse, 'id');
+      const draftId = readRequiredStringField(draftResponse, 'id', 'FORGE_IMPORT_WORLD_DRAFT_ID_REQUIRED');
 
       const publishResponse = await retryOperation(() => publishWorldDraft(draftId));
       targetWorldId = readStringField(publishResponse, 'worldId') || readStringField(publishResponse, 'id');
+      if (!targetWorldId) {
+        throw new Error('FORGE_IMPORT_WORLD_ID_REQUIRED');
+      }
       result.worldId = targetWorldId;
     } catch (err) {
       errors.push({
@@ -575,7 +609,7 @@ export async function publishNovelImport(params: {
         const id = readStringField(item, 'id');
         if (name && id) result.agentIds[name] = id;
       }
-    } catch (err) {
+    } catch {
       // Fallback: create agents one by one
       for (let i = 0; i < agentItems.length; i++) {
         const agentItem = agentItems[i];
@@ -585,7 +619,7 @@ export async function publishNovelImport(params: {
         }
         try {
           const response = await retryOperation(() => createCreatorAgent(agentItem));
-          result.agentIds[bundle.characterName] = readStringField(response, 'id');
+          result.agentIds[bundle.characterName] = readRequiredStringField(response, 'id', 'FORGE_IMPORT_AGENT_ID_REQUIRED');
         } catch (innerErr) {
           errors.push({
             phase: 'CREATING_AGENTS',
@@ -595,7 +629,20 @@ export async function publishNovelImport(params: {
         }
       }
     }
+    for (const bundle of agentBundles) {
+      if (!result.agentIds[bundle.characterName]) {
+        errors.push({
+          phase: 'CREATING_AGENTS',
+          item: bundle.characterName,
+          message: 'No resolved agent id found after agent publish.',
+        });
+      }
+    }
     onProgress?.({ phase: 'CREATING_AGENTS', current: agentBundles.length, total: agentBundles.length, errors });
+    if (errors.length > 0) {
+      result.errors = errors;
+      return result;
+    }
   }
 
   // Phase 3: Create world rules
@@ -608,7 +655,7 @@ export async function publishNovelImport(params: {
       }
       try {
         const response = await retryOperation(() => createWorldRule(targetWorldId, worldRule));
-        result.publishedWorldRuleIds.push(readStringField(response, 'id'));
+        result.publishedWorldRuleIds.push(readRequiredStringField(response, 'id', 'FORGE_IMPORT_WORLD_RULE_ID_REQUIRED'));
       } catch (err) {
         errors.push({
           phase: 'CREATING_WORLD_RULES',
@@ -617,6 +664,10 @@ export async function publishNovelImport(params: {
         });
       }
       onProgress?.({ phase: 'CREATING_WORLD_RULES', current: i + 1, total: worldRules.length, errors });
+    }
+    if (errors.length > 0) {
+      result.errors = errors;
+      return result;
     }
   }
 
@@ -627,12 +678,19 @@ export async function publishNovelImport(params: {
 
   for (const bundle of agentBundles) {
     const agentId = result.agentIds[bundle.characterName];
-    if (!agentId) continue;
+    if (!agentId) {
+      errors.push({
+        phase: 'CREATING_AGENT_RULES',
+        item: bundle.characterName,
+        message: 'No resolved agent id found for bundle publish.',
+      });
+      continue;
+    }
 
     for (const rule of bundle.rules) {
       try {
         const response = await retryOperation(() => createAgentRule(targetWorldId, agentId, rule));
-        result.publishedAgentRuleIds.push(readStringField(response, 'id'));
+        result.publishedAgentRuleIds.push(readRequiredStringField(response, 'id', 'FORGE_IMPORT_AGENT_RULE_ID_REQUIRED'));
       } catch (err) {
         errors.push({
           phase: 'CREATING_AGENT_RULES',
@@ -643,6 +701,10 @@ export async function publishNovelImport(params: {
       agentRuleProgress++;
       onProgress?.({ phase: 'CREATING_AGENT_RULES', current: agentRuleProgress, total: totalAgentRules, errors });
     }
+  }
+  if (errors.length > 0) {
+    result.errors = errors;
+    return result;
   }
 
   onProgress?.({ phase: 'DONE', current: 1, total: 1, errors });
