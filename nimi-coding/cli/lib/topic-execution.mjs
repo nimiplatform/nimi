@@ -380,12 +380,16 @@ ${YAML.stringify(review).trimEnd()}
     options.targetWaveId)
   ) {
     const waves = getTopicWaves(loaded.topic).map((entry) =>
-      entry.wave_id !== options.targetWaveId
-        ? entry
-        : options.disposition === "retired"
+      entry.wave_id === options.targetWaveId
+        ? options.disposition === "retired"
           ? { ...entry, state: "retired", selected: false }
           : options.disposition === "superseded"
             ? { ...entry, state: "superseded", selected: false }
+            : entry
+        : entry.wave_id === options.activeReplacementScope
+          ? { ...entry, selected: true }
+          : loaded.topic.selected_next_target === options.targetWaveId
+            ? { ...entry, selected: false }
             : entry,
     );
     ((loaded.topic.waves = waves),

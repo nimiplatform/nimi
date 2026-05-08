@@ -146,6 +146,95 @@ test("topic status accepts a legacy minimal topic root and reports schema mode e
   });
 });
 
+test("topic decision-review selects active replacement when retiring selected wave", async () => {
+  await withTempProject(async () => {
+    const startResult = await captureRunCli(["start"]);
+    assert.equal(startResult.exitCode, 0);
+
+    const createResult = await captureRunCli([
+      "topic",
+      "create",
+      "decision-replacement-demo",
+      "--justification",
+      "decision replacement demo",
+      "--json",
+    ]);
+    assert.equal(createResult.exitCode, 0);
+    const createPayload = JSON.parse(createResult.stdout);
+
+    for (const [waveId, slug] of [
+      ["wave-old-scope", "old-scope"],
+      ["wave-new-scope", "new-scope"],
+    ]) {
+      const addResult = await captureRunCli([
+        "topic",
+        "wave",
+        "add",
+        createPayload.topicId,
+        waveId,
+        slug,
+        "--goal",
+        `close ${slug}`,
+        "--owner-domain",
+        "nimicoding/topic",
+        "--json",
+      ]);
+      assert.equal(addResult.exitCode, 0);
+    }
+
+    const selectResult = await captureRunCli([
+      "topic",
+      "wave",
+      "select",
+      createPayload.topicId,
+      "wave-old-scope",
+      "--json",
+    ]);
+    assert.equal(selectResult.exitCode, 0);
+
+    const decisionResult = await captureRunCli([
+      "topic",
+      "decision-review",
+      createPayload.topicId,
+      "retire-old-scope",
+      "--decision",
+      "Retire old scope and continue from replacement.",
+      "--replaced-scope",
+      "wave-old-scope",
+      "--active-replacement-scope",
+      "wave-new-scope",
+      "--disposition",
+      "retired",
+      "--target-wave",
+      "wave-old-scope",
+      "--date",
+      "2026-05-08",
+      "--json",
+    ]);
+    assert.equal(decisionResult.exitCode, 0);
+
+    const statusResult = await captureRunCli([
+      "topic",
+      "status",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(statusResult.exitCode, 0);
+    const statusPayload = JSON.parse(statusResult.stdout);
+    assert.equal(statusPayload.selectedNextTarget, "wave-new-scope");
+
+    const validateResult = await captureRunCli([
+      "topic",
+      "validate",
+      createPayload.topicId,
+      "--json",
+    ]);
+    assert.equal(validateResult.exitCode, 0);
+    const validatePayload = JSON.parse(validateResult.stdout);
+    assert.equal(validatePayload.ok, true);
+  });
+});
+
 test("topic validate fails closed on legacy numeric artifact lineage without declared waves", async () => {
   await withTempProject(async (projectRoot) => {
     const startResult = await captureRunCli(["start"]);
