@@ -38,6 +38,12 @@ routes:
     lazy: true
     description: Configure analyst routing, local / cloud execution source, and runtime health controls
 
+  - path: /__smoke
+    feature: smoke-validation
+    component: PolyinfoSmokePage
+    lazy: true
+    description: Development and explicitly enabled desktop smoke validation route
+
   - path: /settings
     feature: settings
     component: SettingsPage

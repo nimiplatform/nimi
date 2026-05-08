@@ -144,6 +144,7 @@ export async function streamSectorAnalyst(
   let finishReason = 'unknown';
   let responseTraceId = traceId;
   let modelResolved = '';
+  let completed = false;
 
   for await (const event of stream) {
     switch (event.payload.oneofKind) {
@@ -170,6 +171,7 @@ export async function streamSectorAnalyst(
       break;
     }
     case 'completed':
+      completed = true;
       finishReason = normalizeFinishReason(event.payload.completed.finishReason);
       responseTraceId = normalizeText(event.traceId) || responseTraceId;
       break;
@@ -180,6 +182,10 @@ export async function streamSectorAnalyst(
     case undefined:
       break;
     }
+  }
+
+  if (!completed) {
+    throw new Error('分析请求未返回完成事件，请稍后重试。');
   }
 
   return {

@@ -20,7 +20,7 @@ describe('frontend taxonomy', () => {
     vi.resetModules();
   });
 
-  it('keeps usable sectors when one root subcategory request fails', async () => {
+  it('fails closed when one root subcategory request fails', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url === '/__polyinfo_upstream/polymarket/') {
@@ -47,9 +47,50 @@ describe('frontend taxonomy', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const { fetchFrontendSectorCatalog } = await import('./frontend-taxonomy.js');
-    const sectors = await fetchFrontendSectorCatalog();
+    await expect(fetchFrontendSectorCatalog()).rejects.toThrow('Upstream request failed: 502');
 
-    expect(sectors.map((sector) => sector.slug)).toEqual(['politics', 'culture', 'iran']);
     expect(fetchMock).toHaveBeenCalledWith('/__polyinfo_upstream/polymarket/', undefined);
+  });
+
+  it('fails closed when homepage parsing cannot prove root categories', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === '/__polyinfo_upstream/polymarket/') {
+        return textResponse('<nav aria-label="Main"><a href="/new">New</a></nav>');
+      }
+      throw new Error(`unexpected url: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { fetchFrontendRootCategories } = await import('./frontend-taxonomy.js');
+    await expect(fetchFrontendRootCategories()).rejects.toThrow('Polymarket frontend root taxonomy unavailable.');
+  });
+
+  it('fails closed when category event pagination is not exhausted within the bound', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('filteredBySlug')) {
+        return jsonResponse({
+          tags: [
+            { id: 'all', label: 'All', slug: 'politics', count: 5001 },
+          ],
+        });
+      }
+      if (url.includes('/events/keyset')) {
+        return jsonResponse({
+          events: [{ id: `event-${fetchMock.mock.calls.length}`, title: 'Event', slug: 'event' }],
+          next_cursor: `cursor-${fetchMock.mock.calls.length}`,
+        });
+      }
+      throw new Error(`unexpected url: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { fetchFrontendCategoryMapping } = await import('./frontend-taxonomy.js');
+    await expect(fetchFrontendCategoryMapping({
+      id: 'politics',
+      label: 'Politics',
+      slug: 'politics',
+    })).rejects.toThrow('Frontend taxonomy pagination exhausted before completion for politics');
   });
 });

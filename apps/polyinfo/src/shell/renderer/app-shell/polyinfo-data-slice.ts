@@ -236,7 +236,10 @@ export function createPolyinfoDataSlice(set: AppStoreSet, get: () => AppStoreSta
       });
       set({ taxonomyBySector: nextTaxonomy });
     },
-    removeNarrativeRecord: (sectorId, recordId) => {
+    removeNarrativeRecord: (sectorId, recordId, confirmation) => {
+      if (confirmation?.confirmed !== true || confirmation.confirmationSource !== 'user') {
+        return;
+      }
       const currentOverlay = get().taxonomyBySector[sectorId];
       if (!currentOverlay) {
         return;
@@ -269,7 +272,10 @@ export function createPolyinfoDataSlice(set: AppStoreSet, get: () => AppStoreSta
       });
       set({ taxonomyBySector: nextTaxonomy });
     },
-    removeCoreVariableRecord: (sectorId, recordId) => {
+    removeCoreVariableRecord: (sectorId, recordId, confirmation) => {
+      if (confirmation?.confirmed !== true || confirmation.confirmationSource !== 'user') {
+        return;
+      }
       const currentOverlay = get().taxonomyBySector[sectorId];
       if (!currentOverlay) {
         return;

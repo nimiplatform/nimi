@@ -161,6 +161,7 @@ export type AnalysisPackageMarket = {
   id: string;
   question: string;
   currentProbability: number;
+  currentPriceProvenance?: PriceProvenance;
   windowStartProbability: number;
   delta: number;
   volumeNum: number;
@@ -173,6 +174,13 @@ export type AnalysisPackageMarket = {
   narrativeTitle?: string;
   coreVariableIds: string[];
   coreVariableTitles: string[];
+};
+
+export type PriceProvenance = {
+  source: 'midpoint' | 'last_trade' | 'outcome_cache' | 'missing';
+  freshness: 'live' | 'snapshot' | 'cache' | 'missing';
+  degraded: boolean;
+  reason?: string;
 };
 
 export type AnalysisPackage = {

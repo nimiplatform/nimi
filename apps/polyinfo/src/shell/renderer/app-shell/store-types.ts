@@ -16,6 +16,11 @@ import type { AIConfig } from '@nimiplatform/sdk/mod';
 
 export type AuthStatus = 'bootstrapping' | 'authenticated' | 'anonymous';
 
+export type TaxonomyRetirementConfirmation = {
+  confirmed: true;
+  confirmationSource: 'user';
+};
+
 export type AppStoreState = {
   auth: {
     status: AuthStatus;
@@ -49,9 +54,17 @@ export type AppStoreState = {
   renameCustomSector: (sectorId: string, title: string) => void;
   deleteCustomSector: (sectorId: string) => void;
   addNarrativeRecord: (sectorId: string, input: Pick<NarrativeRecord, 'title' | 'definition'>) => void;
-  removeNarrativeRecord: (sectorId: string, recordId: string) => void;
+  removeNarrativeRecord: (
+    sectorId: string,
+    recordId: string,
+    confirmation: TaxonomyRetirementConfirmation,
+  ) => void;
   addCoreVariableRecord: (sectorId: string, input: Pick<CoreVariableRecord, 'title' | 'definition'>) => void;
-  removeCoreVariableRecord: (sectorId: string, recordId: string) => void;
+  removeCoreVariableRecord: (
+    sectorId: string,
+    recordId: string,
+    confirmation: TaxonomyRetirementConfirmation,
+  ) => void;
   upsertImportedEvent: (sectorId: string, eventRecord: ImportedEventRecord) => void;
   removeImportedEvent: (sectorId: string, eventId: string) => void;
   setSectorDraftText: (sectorSlug: string, value: string) => void;

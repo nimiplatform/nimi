@@ -5,6 +5,7 @@ import type {
   ImportedEventRecord,
   ImportedEventStaleState,
   PreparedMarket,
+  PriceProvenance,
   SectorMarketBatch,
   SectorTag,
   TaxonomyOverlay,
@@ -12,10 +13,6 @@ import type {
 } from './types.js';
 import { hasTauriInvoke, invokeChecked } from '@renderer/bridge';
 import { fetchFrontendSectorCatalog } from './frontend-taxonomy.js';
-import { resolvePolyinfoUpstreamUrl } from './upstream.js';
-
-const GAMMA_API_BASE = 'https://gamma-api.polymarket.com';
-const CLOB_API_BASE = 'https://clob.polymarket.com';
 
 type GammaTagResponse = {
   id: string;
@@ -62,32 +59,31 @@ type GammaMarketResponse = {
   tags?: GammaTagResponse[];
 };
 
-type PriceHistoryResponse = {
-  history?: Array<{ t?: number; p?: number }>;
-};
-
 type BatchPriceHistoryResponse = {
   history?: Record<string, Array<{ t?: number; p?: number }>>;
 };
 
-type MarketLiveState = {
+export type MarketLiveState = {
   bestBid?: number;
   bestAsk?: number;
   lastTradePrice?: number;
 };
 
-export type MarketConnectionState = 'connecting' | 'live' | 'reconnecting' | 'closed' | 'error';
+type DisplayPriceProjection = {
+  price: number;
+  provenance: PriceProvenance;
+};
 
-async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
-  if (!response.ok) {
-    throw new Error(`Upstream request failed: ${response.status}`);
-  }
-  return response.json() as Promise<T>;
-}
+export type MarketConnectionState = 'connecting' | 'live' | 'reconnecting' | 'closed' | 'error';
 
 function parseUnknown<T>(value: unknown): T {
   return value as T;
+}
+
+function assertMarketDataBridgeAvailable(): void {
+  if (!hasTauriInvoke()) {
+    throw new Error('Polyinfo market data requires the admitted Tauri bridge.');
+  }
 }
 
 function parseJsonStringArray(value: string | undefined): string[] {
@@ -244,15 +240,12 @@ export async function fetchEventBySlug(slug: string): Promise<ImportedEventCache
   if (!normalizedSlug) {
     throw new Error('缺少 event slug');
   }
-  const event = hasTauriInvoke()
-    ? await invokeChecked(
-      'polymarket_event_by_slug',
-      { slug: normalizedSlug },
-      parseUnknown<GammaEventResponse>,
-    )
-    : await fetchJson<GammaEventResponse>(
-      resolvePolyinfoUpstreamUrl(GAMMA_API_BASE, `/events/slug/${encodeURIComponent(normalizedSlug)}`),
-    );
+  assertMarketDataBridgeAvailable();
+  const event = await invokeChecked(
+    'polymarket_event_by_slug',
+    { slug: normalizedSlug },
+    parseUnknown<GammaEventResponse>,
+  );
   const payload = convertGammaEventToImportedPayload(event);
   if (payload.markets.length === 0) {
     throw new Error('这个 event 当前没有可用市场');
@@ -286,28 +279,74 @@ export async function validateImportedEventRecord(record: ImportedEventRecord): 
   }
 }
 
-export function computeDisplayPrice(market: PreparedMarket, live?: MarketLiveState): number {
+export function computeDisplayPriceProjection(market: PreparedMarket, live?: MarketLiveState): DisplayPriceProjection {
   const bestBid = live?.bestBid ?? market.bestBid;
   const bestAsk = live?.bestAsk ?? market.bestAsk;
   const lastTradePrice = live?.lastTradePrice ?? market.lastTradePrice;
+  const hasLivePrice = typeof live?.bestBid === 'number'
+    || typeof live?.bestAsk === 'number'
+    || typeof live?.lastTradePrice === 'number';
 
   if (typeof bestBid === 'number' && typeof bestAsk === 'number') {
     const spread = Math.abs(bestAsk - bestBid);
     if (spread > 0.1 && typeof lastTradePrice === 'number') {
-      return lastTradePrice;
+      return {
+        price: lastTradePrice,
+        provenance: {
+          source: 'last_trade',
+          freshness: hasLivePrice ? 'live' : 'snapshot',
+          degraded: true,
+          reason: 'wide_spread_midpoint_rejected',
+        },
+      };
     }
-    return Number(((bestBid + bestAsk) / 2).toFixed(4));
+    return {
+      price: Number(((bestBid + bestAsk) / 2).toFixed(4)),
+      provenance: {
+        source: 'midpoint',
+        freshness: hasLivePrice ? 'live' : 'snapshot',
+        degraded: false,
+      },
+    };
   }
 
   if (typeof lastTradePrice === 'number') {
-    return lastTradePrice;
+    return {
+      price: lastTradePrice,
+      provenance: {
+        source: 'last_trade',
+        freshness: hasLivePrice ? 'live' : 'snapshot',
+        degraded: true,
+        reason: 'bid_ask_unavailable',
+      },
+    };
   }
 
   if (typeof market.rawOutcomePrice === 'number') {
-    return market.rawOutcomePrice;
+    return {
+      price: market.rawOutcomePrice,
+      provenance: {
+        source: 'outcome_cache',
+        freshness: 'cache',
+        degraded: true,
+        reason: 'bid_ask_last_trade_unavailable',
+      },
+    };
   }
 
-  return 0;
+  return {
+    price: 0,
+    provenance: {
+      source: 'missing',
+      freshness: 'missing',
+      degraded: true,
+      reason: 'price_unavailable',
+    },
+  };
+}
+
+export function computeDisplayPrice(market: PreparedMarket, live?: MarketLiveState): number {
+  return computeDisplayPriceProjection(market, live).price;
 }
 
 function classifyWeightTier(market: PreparedMarket, ordered: PreparedMarket[]): 'lead' | 'support' | 'watch' {
@@ -346,19 +385,13 @@ export async function fetchSectorMarkets(
   let afterCursor = input?.afterCursor;
   let nextCursor: string | undefined;
   const pageCount = Math.max(1, input?.pageCount ?? 1);
+  assertMarketDataBridgeAvailable();
   for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
-    const page = hasTauriInvoke()
-      ? await invokeChecked(
-        'polymarket_events_by_tag_slug',
-        { tagSlug: tag.slug, limit: 100, afterCursor },
-        parseUnknown<GammaEventsKeysetResponse>,
-      )
-      : await fetchJson<GammaEventsKeysetResponse>(
-        resolvePolyinfoUpstreamUrl(
-          GAMMA_API_BASE,
-          `/events/keyset?limit=100&tag_slug=${encodeURIComponent(tag.slug)}&closed=false&order=volume_24hr&ascending=false${afterCursor ? `&after_cursor=${encodeURIComponent(afterCursor)}` : ''}`,
-        ),
-      );
+    const page = await invokeChecked(
+      'polymarket_events_by_tag_slug',
+      { tagSlug: tag.slug, limit: 100, afterCursor },
+      parseUnknown<GammaEventsKeysetResponse>,
+    );
     const pageEvents = page.events ?? [];
     events.push(...pageEvents);
     if (!page.next_cursor || pageEvents.length === 0) {
@@ -477,13 +510,6 @@ function normalizeHistoryPoints(points: Array<{ t?: number; p?: number }>): Hist
     .sort((left, right) => left.timestamp - right.timestamp);
 }
 
-export async function fetchPriceHistory(tokenId: string): Promise<HistoryPoint[]> {
-  const response = await fetchJson<PriceHistoryResponse>(
-    resolvePolyinfoUpstreamUrl(CLOB_API_BASE, `/prices-history?market=${encodeURIComponent(tokenId)}&interval=1w&fidelity=60`),
-  );
-  return normalizeHistoryPoints(response.history ?? []);
-}
-
 export async function fetchSectorHistory(
   markets: PreparedMarket[],
 ): Promise<Record<string, HistoryPoint[]>> {
@@ -493,31 +519,20 @@ export async function fetchSectorHistory(
 
   const { startTs, endTs, fidelity } = getHistoryRequestConfig();
   const byTokenId: Record<string, HistoryPoint[]> = {};
+  assertMarketDataBridgeAvailable();
   for (const chunk of chunkArray(markets, 20)) {
     const tokenIds = chunk.map((market) => market.yesTokenId);
-    const response = hasTauriInvoke()
-      ? await invokeChecked(
-        'polymarket_batch_prices_history',
-        {
-          markets: tokenIds,
-          interval: 'max',
-          fidelity,
-          startTs,
-          endTs,
-        },
-        parseUnknown<BatchPriceHistoryResponse>,
-      )
-      : await fetchJson<BatchPriceHistoryResponse>(resolvePolyinfoUpstreamUrl(CLOB_API_BASE, '/batch-prices-history'), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          markets: tokenIds,
-          interval: 'max',
-          fidelity,
-          start_ts: startTs,
-          end_ts: endTs,
-        }),
-      });
+    const response = await invokeChecked(
+      'polymarket_batch_prices_history',
+      {
+        markets: tokenIds,
+        interval: 'max',
+        fidelity,
+        startTs,
+        endTs,
+      },
+      parseUnknown<BatchPriceHistoryResponse>,
+    );
     for (const [tokenId, history] of Object.entries(response.history ?? {})) {
       byTokenId[tokenId] = normalizeHistoryPoints(history);
     }
@@ -584,15 +599,19 @@ export function buildAnalysisPackage(input: {
       const relatedCoreVariables = input.overlay.coreVariables.filter((item) =>
         coreVariableIds?.includes(item.id),
       );
-      const currentProbability = computeDisplayPrice(market, input.liveByTokenId[market.yesTokenId]);
+      const currentPrice = computeDisplayPriceProjection(market, input.liveByTokenId[market.yesTokenId]);
       const history = input.histories[market.id] ?? [];
+      if (history.length === 0) {
+        throw new Error(`Missing canonical history window for market ${market.id}`);
+      }
       const windowStartProbability = getWindowStartPrice(history, input.window);
       return {
         id: market.id,
         question: market.question,
-        currentProbability,
+        currentProbability: currentPrice.price,
+        currentPriceProvenance: currentPrice.provenance,
         windowStartProbability,
-        delta: currentProbability - windowStartProbability,
+        delta: currentPrice.price - windowStartProbability,
         volumeNum: market.volumeNum,
         volume24hr: market.volume24hr,
         liquidityNum: market.liquidityNum,
@@ -609,6 +628,14 @@ export function buildAnalysisPackage(input: {
 }
 
 export type MarketWebSocketHandler = (next: Record<string, MarketLiveState>) => void;
+
+export function selectRealtimeMarketAssetIds(markets: PreparedMarket[]): string[] {
+  return [...new Set(markets
+    .filter((market) => market.active !== false && market.closed !== true)
+    .map((market) => String(market.yesTokenId || '').trim())
+    .filter(Boolean))]
+    .sort();
+}
 
 function applyLivePriceUpdate(
   liveByTokenId: Record<string, MarketLiveState>,

@@ -1,18 +1,29 @@
-import { computeDisplayPrice } from '@renderer/data/polymarket.js';
-import type { AnalysisPackageMarket, PreparedMarket } from '@renderer/data/types.js';
+import { computeDisplayPriceProjection } from '@renderer/data/polymarket.js';
+import type { AnalysisPackageMarket, PreparedMarket, PriceProvenance } from '@renderer/data/types.js';
 
 export type EventOutcomeDisplayItem = {
   marketId: string;
   label: string;
   probability: number;
+  priceProvenance: PriceProvenance;
   delta?: number;
 };
 
-function getDisplayProbability(
+function getDisplayPrice(
   market: PreparedMarket,
   analyzedMarket: AnalysisPackageMarket | undefined,
-): number {
-  return analyzedMarket?.currentProbability ?? computeDisplayPrice(market);
+): { probability: number; priceProvenance: PriceProvenance } {
+  if (analyzedMarket?.currentPriceProvenance) {
+    return {
+      probability: analyzedMarket.currentProbability,
+      priceProvenance: analyzedMarket.currentPriceProvenance,
+    };
+  }
+  const projection = computeDisplayPriceProjection(market);
+  return {
+    probability: analyzedMarket?.currentProbability ?? projection.price,
+    priceProvenance: projection.provenance,
+  };
 }
 
 function getDisplayLabel(market: PreparedMarket): string {
@@ -36,10 +47,12 @@ export function buildEventOutcomeDisplay(
   if (visibleMarkets.length === 1) {
     const market = visibleMarkets[0]!;
     const analyzedMarket = analysisMarketsById.get(market.id);
+    const displayPrice = getDisplayPrice(market, analyzedMarket);
     return [{
       marketId: market.id,
       label: 'Yes',
-      probability: getDisplayProbability(market, analyzedMarket),
+      probability: displayPrice.probability,
+      priceProvenance: displayPrice.priceProvenance,
       delta: analyzedMarket?.delta,
     }];
   }
@@ -47,10 +60,12 @@ export function buildEventOutcomeDisplay(
   return [...visibleMarkets]
     .map((market) => {
       const analyzedMarket = analysisMarketsById.get(market.id);
+      const displayPrice = getDisplayPrice(market, analyzedMarket);
       return {
         marketId: market.id,
         label: getDisplayLabel(market),
-        probability: getDisplayProbability(market, analyzedMarket),
+        probability: displayPrice.probability,
+        priceProvenance: displayPrice.priceProvenance,
         delta: analyzedMarket?.delta,
         volumeNum: market.volumeNum,
       };
@@ -61,10 +76,11 @@ export function buildEventOutcomeDisplay(
       || left.label.localeCompare(right.label)
     ))
     .slice(0, 5)
-    .map(({ marketId, label, probability, delta }) => ({
+    .map(({ marketId, label, probability, priceProvenance, delta }) => ({
       marketId,
       label,
       probability,
+      priceProvenance,
       delta,
     }));
 }

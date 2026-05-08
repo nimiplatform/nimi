@@ -10,21 +10,6 @@ import { resolvePolyinfoUpstreamUrl } from './upstream.js';
 
 const POLYMARKET_WEB_BASE = 'https://polymarket.com';
 const GAMMA_API_BASE = 'https://gamma-api.polymarket.com';
-const FRONTEND_ROOT_CATEGORY_FALLBACK: FrontendCategoryGroup[] = [
-  { id: 'politics', label: 'Politics', slug: 'politics', description: 'Polymarket 前台根分类。' },
-  { id: 'sports', label: 'Sports', slug: 'sports', description: 'Polymarket 前台根分类。' },
-  { id: 'crypto', label: 'Crypto', slug: 'crypto', description: 'Polymarket 前台根分类。' },
-  { id: 'esports', label: 'Esports', slug: 'esports', description: 'Polymarket 前台根分类。' },
-  { id: 'iran', label: 'Iran', slug: 'iran', description: 'Polymarket 前台根分类。' },
-  { id: 'finance', label: 'Finance', slug: 'finance', description: 'Polymarket 前台根分类。' },
-  { id: 'geopolitics', label: 'Geopolitics', slug: 'geopolitics', description: 'Polymarket 前台根分类。' },
-  { id: 'tech', label: 'Tech', slug: 'tech', description: 'Polymarket 前台根分类。' },
-  { id: 'culture', label: 'Culture', slug: 'culture', description: 'Polymarket 前台根分类。' },
-  { id: 'economy', label: 'Economy', slug: 'economy', description: 'Polymarket 前台根分类。' },
-  { id: 'weather', label: 'Weather', slug: 'weather', description: 'Polymarket 前台根分类。' },
-  { id: 'mentions', label: 'Mentions', slug: 'mentions', description: 'Polymarket 前台根分类。' },
-  { id: 'elections', label: 'Elections', slug: 'elections', description: 'Polymarket 前台根分类。' },
-];
 
 const HOMEPAGE_CATEGORY_BLACKLIST = new Set([
   '',
@@ -164,7 +149,7 @@ function parseHomepageRootCategories(html: string): FrontendCategoryGroup[] {
 
   const parsed = [...candidates.values()];
   if (parsed.length === 0) {
-    return FRONTEND_ROOT_CATEGORY_FALLBACK;
+    throw new Error('Polymarket frontend root taxonomy unavailable.');
   }
   return parsed;
 }
@@ -246,6 +231,10 @@ async function fetchAllEventsBySlug(slug: string): Promise<FrontendEventRecord[]
     afterCursor = page.next_cursor;
   }
 
+  if (afterCursor) {
+    throw new Error(`Frontend taxonomy pagination exhausted before completion for ${slug}`);
+  }
+
   return events;
 }
 
@@ -284,13 +273,7 @@ export async function fetchFrontendSectorCatalog(): Promise<SectorTag[]> {
   if (!sectorCatalogCache) {
     sectorCatalogCache = (async () => {
       const roots = await fetchFrontendRootCategories();
-      const subcategoryGroups = await mapWithConcurrency(roots, 4, async (root) => {
-        try {
-          return await fetchFrontendSubcategories(root);
-        } catch {
-          return [];
-        }
-      });
+      const subcategoryGroups = await mapWithConcurrency(roots, 4, fetchFrontendSubcategories);
       const sectors = new Map<string, SectorTag>();
 
       for (const root of roots) {

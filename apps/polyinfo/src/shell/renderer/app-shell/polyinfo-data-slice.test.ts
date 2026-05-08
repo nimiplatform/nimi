@@ -82,13 +82,51 @@ describe('polyinfo data slice', () => {
     expect(overlay.narratives).toHaveLength(1);
     expect(overlay.coreVariables).toHaveLength(1);
 
-    harness.getState().removeNarrativeRecord('custom-1', overlay.narratives[0]!.id);
-    harness.getState().removeCoreVariableRecord('custom-1', overlay.coreVariables[0]!.id);
+    harness.getState().removeNarrativeRecord('custom-1', overlay.narratives[0]!.id, {
+      confirmed: true,
+      confirmationSource: 'user',
+    });
+    harness.getState().removeCoreVariableRecord('custom-1', overlay.coreVariables[0]!.id, {
+      confirmed: true,
+      confirmationSource: 'user',
+    });
 
     expect(harness.getState().taxonomyBySector['custom-1']).toEqual({
       narratives: [],
       coreVariables: [],
     });
+  });
+
+  it('refuses destructive taxonomy retirement without explicit user confirmation', () => {
+    const harness = createHarness();
+    harness.getState().ensureSectorTaxonomy('custom-1');
+    harness.getState().addNarrativeRecord('custom-1', {
+      title: 'Rate cut repricing',
+      definition: 'Track whether the market is repricing faster cuts.',
+    });
+    harness.getState().addCoreVariableRecord('custom-1', {
+      title: 'Is repricing accelerating?',
+      definition: 'Measure whether short-term expectations are moving faster.',
+    });
+
+    const overlay = harness.getState().taxonomyBySector['custom-1'];
+    if (!overlay) {
+      throw new Error('overlay should exist for custom-1');
+    }
+
+    const removeNarrativeWithoutConfirmation = harness.getState().removeNarrativeRecord as (
+      sectorId: string,
+      recordId: string,
+    ) => void;
+    const removeCoreVariableWithoutConfirmation = harness.getState().removeCoreVariableRecord as (
+      sectorId: string,
+      recordId: string,
+    ) => void;
+
+    removeNarrativeWithoutConfirmation('custom-1', overlay.narratives[0]!.id);
+    removeCoreVariableWithoutConfirmation('custom-1', overlay.coreVariables[0]!.id);
+
+    expect(harness.getState().taxonomyBySector['custom-1']).toEqual(overlay);
   });
 
   it('upserts imported events by upstream event identity without duplicating rows', () => {

@@ -13,11 +13,14 @@ import { buildSectorPath } from '@renderer/app-shell/workspace-routes.js';
 import {
   buildAnalysisPackage,
   buildImportedEventRecord,
+  createMarketWebSocket,
   fetchEventBySlug,
   fetchSectorHistory,
   fetchSectorMarkets,
   mergeSectorMarketBatches,
   parsePolymarketEventSlugFromUrl,
+  selectRealtimeMarketAssetIds,
+  type MarketLiveState,
 } from '@renderer/data/polymarket.js';
 import type {
   AnalysisPackage,
@@ -98,6 +101,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
   const [eventAddMessage, setEventAddMessage] = useState<string | null>(null);
   const [appendedOfficialBatches, setAppendedOfficialBatches] = useState<SectorMarketBatch[]>([]);
   const [isLoadingMoreEvents, setIsLoadingMoreEvents] = useState(false);
+  const [liveByTokenId, setLiveByTokenId] = useState<Record<string, MarketLiveState>>({});
   const lastAnalysisReadyRef = useRef(false);
   useEffect(() => {
     setVisibleEventCount(INITIAL_VISIBLE_EVENT_COUNT);
@@ -109,6 +113,7 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
     setEventAddMessage(null);
     setAppendedOfficialBatches([]);
     setIsLoadingMoreEvents(false);
+    setLiveByTokenId({});
   }, [sectorId]);
   const customSectorList = useMemo(
     () => Object.values(customSectors).sort((left, right) => left.title.localeCompare(right.title)),
@@ -130,6 +135,18 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
   );
   const marketInventory = activeOfficialSector ? officialMarketBatch.markets : activeImportedMarkets;
   const hasMoreOfficialEvents = Boolean(activeOfficialSector && officialMarketBatch.hasMore);
+  const realtimeAssetIds = useMemo(
+    () => selectRealtimeMarketAssetIds(marketInventory),
+    [marketInventory],
+  );
+  const realtimeAssetKey = useMemo(() => realtimeAssetIds.join(','), [realtimeAssetIds]);
+  useEffect(() => {
+    setLiveByTokenId({});
+    if (!marketDataRequested || realtimeAssetIds.length === 0) {
+      return undefined;
+    }
+    return createMarketWebSocket(realtimeAssetIds, setLiveByTokenId);
+  }, [marketDataRequested, realtimeAssetIds, realtimeAssetKey]);
   const marketInventoryKey = useMemo(
     () => marketInventory.map((market) => market.id).join(','),
     [marketInventory],
@@ -160,13 +177,14 @@ export const MarketBoardPanel = memo(function MarketBoardPanel({
       overlay,
       markets: marketInventory,
       histories: historiesQuery.data ?? {},
-      liveByTokenId: {},
+      liveByTokenId,
     });
   }, [
     activeSectorMeta,
     activeWindow,
     historyWindowReady,
     historiesQuery.data,
+    liveByTokenId,
     marketInventory,
     overlay,
     sectorId,

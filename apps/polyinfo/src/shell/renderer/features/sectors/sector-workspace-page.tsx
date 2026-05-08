@@ -17,24 +17,48 @@ function StructureCard({
   eyebrow,
   title,
   description,
-  onDelete,
+  onConfirmDelete,
 }: {
   eyebrow: string;
   title: string;
   description: string;
-  onDelete: () => void;
+  onConfirmDelete: () => void;
 }) {
+  const [pendingDelete, setPendingDelete] = useState(false);
+
   return (
     <div className="group relative border-l border-white/10 bg-white/[0.025] px-3 py-2.5 transition-colors hover:border-teal-300/35 hover:bg-white/[0.04]">
-      <button
-        type="button"
-        onClick={onDelete}
-        className="absolute right-2.5 top-2.5 rounded-md bg-white/[0.06] px-1.5 py-1 text-[10px] text-slate-300 opacity-0 transition-opacity hover:bg-rose-400/12 hover:text-rose-100 group-hover:opacity-100"
-      >
-        Delete
-      </button>
+      {pendingDelete ? (
+        <div className="absolute right-2.5 top-2.5 flex gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              onConfirmDelete();
+              setPendingDelete(false);
+            }}
+            className="rounded-md bg-rose-300 px-1.5 py-1 text-[10px] font-medium text-rose-950"
+          >
+            Confirm delete
+          </button>
+          <button
+            type="button"
+            onClick={() => setPendingDelete(false)}
+            className="rounded-md bg-white/[0.06] px-1.5 py-1 text-[10px] text-slate-300 hover:bg-white/[0.1]"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setPendingDelete(true)}
+          className="absolute right-2.5 top-2.5 rounded-md bg-white/[0.06] px-1.5 py-1 text-[10px] text-slate-300 opacity-0 transition-opacity hover:bg-rose-400/12 hover:text-rose-100 group-hover:opacity-100"
+        >
+          Delete
+        </button>
+      )}
       <p className="text-[9px] uppercase tracking-[0.14em] text-teal-200/50">{eyebrow}</p>
-      <p className="mt-2 pr-12 text-[13px] font-semibold leading-5 text-white">{title}</p>
+      <p className="mt-2 pr-36 text-[13px] font-semibold leading-5 text-white">{title}</p>
       <p className="mt-1.5 text-[12px] leading-5 text-slate-400">{description}</p>
     </div>
   );
@@ -262,7 +286,10 @@ export function SectorWorkspacePage() {
                     eyebrow="Active Node"
                     title={item.title}
                     description={item.definition}
-                    onDelete={() => removeCoreVariableRecord(decodedSectorId, item.id)}
+                    onConfirmDelete={() => removeCoreVariableRecord(decodedSectorId, item.id, {
+                      confirmed: true,
+                      confirmationSource: 'user',
+                    })}
                   />
                 ))}
                 {overlay.coreVariables.length === 0 ? (
@@ -338,7 +365,10 @@ export function SectorWorkspacePage() {
                     eyebrow="Narrative"
                     title={item.title}
                     description={item.definition}
-                    onDelete={() => removeNarrativeRecord(decodedSectorId, item.id)}
+                    onConfirmDelete={() => removeNarrativeRecord(decodedSectorId, item.id, {
+                      confirmed: true,
+                      confirmationSource: 'user',
+                    })}
                   />
                 ))}
                 {overlay.narratives.length === 0 ? (

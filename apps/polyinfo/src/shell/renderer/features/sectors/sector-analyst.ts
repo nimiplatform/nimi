@@ -43,6 +43,7 @@ export function buildAnalystSystemPrompt(input: {
     question: market.question,
     eventTitle: market.eventTitle,
     currentProbability: Number((market.currentProbability * 100).toFixed(2)),
+    currentPriceProvenance: market.currentPriceProvenance ?? null,
     windowStartProbability: Number((market.windowStartProbability * 100).toFixed(2)),
     deltaPct: Number((market.delta * 100).toFixed(2)),
     volumeNum: Math.round(market.volumeNum),

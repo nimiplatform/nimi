@@ -60,8 +60,41 @@ describe('buildEventOutcomeDisplay', () => {
       marketId: 'm1',
       label: 'Yes',
       probability: 0.77,
+      priceProvenance: {
+        source: 'midpoint',
+        freshness: 'snapshot',
+        degraded: false,
+      },
       delta: undefined,
     }]);
+  });
+
+  it('carries analyzed price provenance through board display items', () => {
+    const market = createMarket({
+      id: 'm1',
+      question: 'Will it happen?',
+      rawOutcomePrice: 0.55,
+    });
+    const analyzedMarket = createAnalysisMarket({
+      id: 'm1',
+      question: 'Will it happen?',
+      currentProbability: 0.52,
+      currentPriceProvenance: {
+        source: 'outcome_cache',
+        freshness: 'cache',
+        degraded: true,
+        reason: 'bid_ask_last_trade_unavailable',
+      },
+    });
+
+    expect(buildEventOutcomeDisplay([market], new Map([['m1', analyzedMarket]]))[0]).toMatchObject({
+      probability: 0.52,
+      priceProvenance: {
+        source: 'outcome_cache',
+        freshness: 'cache',
+        degraded: true,
+      },
+    });
   });
 
   it('keeps only the top five options for multi-outcome events', () => {

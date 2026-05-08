@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from './app-store.js';
 import { AppRoutes } from './app-routes.js';
 import type { FrontendCategoryGroup } from '@renderer/data/types.js';
+import routeTable from '../../../../spec/kernel/tables/routes.yaml?raw';
 
 const { fetchFrontendRootCategoriesMock } = vi.hoisted(() => ({
   fetchFrontendRootCategoriesMock: vi.fn<() => Promise<FrontendCategoryGroup[]>>(),
@@ -114,10 +115,12 @@ describe('app routes', () => {
     expect(await screen.findByText('sector-workspace-screen')).toBeTruthy();
   });
 
-  it('exposes the hidden smoke route for desktop app validation', async () => {
+  it('exposes the route-table-admitted smoke route for desktop app validation', async () => {
     fetchFrontendRootCategoriesMock.mockResolvedValue([
       { id: 'iran', label: 'Iran', slug: 'iran' },
     ]);
+
+    expect(routeTable).toContain('path: /__smoke');
 
     window.location.hash = '#/__smoke';
     renderRoutes();
