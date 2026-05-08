@@ -58,9 +58,9 @@
   admitted as active cross-layer `CanonicalCapabilityId` rows must be recorded under the
   top-level `deferred:` list in `canonical-capability-catalog.yaml`.
 - Every `deferred:` entry must carry non-empty `capability`, `reason`, and `source_rule`
-  fields, where `source_rule` references an existing kernel Rule ID (for example a
-  `K-*` runtime rule or a `P-*` platform rule that owns the deferral reason). The drift
-  checker must reject any `deferred:` entry that omits `reason` or `source_rule`.
+  fields, where `source_rule` references the platform `P-*` rule that owns the
+  deferral reason. The drift checker must reject any `deferred:` entry that omits
+  `reason` or `source_rule`.
 - A `deferred:` entry is not a `CanonicalCapabilityId` admission. Apps, kit modules, and
   runtime consumers must not emit or accept `deferred:` tokens as canonical catalog
   values; they exist only to acknowledge the runtime-admitted token and to record why it

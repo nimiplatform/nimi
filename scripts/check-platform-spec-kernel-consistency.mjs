@@ -545,7 +545,7 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
     if (!definedRuleIds.has(ruleId)) {
       fail(`${rel} references unknown platform kernel rule: ${ruleId}`);
     }
-    if (status !== 'covered' && status !== 'na') {
+    if (status !== 'covered' && status !== 'partial' && status !== 'na') {
       fail(`${rel} ${ruleId} has invalid status: ${status || '<empty>'}`);
       continue;
     }
@@ -554,7 +554,7 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
       continue;
     }
     if (refs.length === 0) {
-      fail(`${rel} ${ruleId} status=covered requires non-empty evidence_refs`);
+      fail(`${rel} ${ruleId} status=${status} requires non-empty evidence_refs`);
       continue;
     }
     for (const rawRef of refs) {
@@ -574,6 +574,9 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
       return String(record?.evidence_type || '').trim() === 'structural';
     });
     if (allStructural && structuralOnlyCoverageRuleIds.has(ruleId)) {
+      if (status !== 'partial') {
+        fail(`${rel} ${ruleId} uses structural-only evidence and must use status=partial`);
+      }
       if (!coverageNote) {
         fail(`${rel} ${ruleId} uses structural-only evidence and must declare coverage_note`);
         continue;
@@ -581,6 +584,9 @@ function checkRuleEvidenceTraceability(definedRuleIds) {
       if (!/structural\s*-?\s*only/i.test(coverageNote)) {
         fail(`${rel} ${ruleId} coverage_note must explicitly state structural only scope`);
       }
+    }
+    if (/structural\s*-?\s*only/i.test(coverageNote) && status !== 'partial') {
+      fail(`${rel} ${ruleId} declares structural-only coverage_note and must use status=partial`);
     }
   }
 

@@ -54,31 +54,31 @@ rules:
     status: covered
     evidence_refs: [platform_kernel_consistency]
   - rule_id: P-ALMI-002
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; principal and session binding behavior still requires runtime integration coverage"
   - rule_id: P-ALMI-003
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; invocation authorization paths still require cross-participant behavioral tests"
   - rule_id: P-ALMI-004
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; state-transition and failure-path guarantees still require behavioral validation"
   - rule_id: P-ALMI-010
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; Hook Action fabric dispatch behavior still requires runtime integration coverage"
   - rule_id: P-ALMI-011
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; behavioral state-machine validation requires runtime integration test"
   - rule_id: P-ALMI-020
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; end-to-end replay and auditability still require behavioral integration tests"
   - rule_id: P-ALMI-030
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; latency/throughput red-line validation requires load test"
   - rule_id: P-DESIGN-001
@@ -151,7 +151,7 @@ rules:
     status: covered
     evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]
   - rule_id: P-ARCH-001
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; multi-participant orchestration behavior still requires integration coverage"
   - rule_id: P-ARCH-002
@@ -170,54 +170,54 @@ rules:
     status: covered
     evidence_refs: [platform_kernel_consistency]
   - rule_id: P-ARCH-011
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; layered boundary enforcement still requires implementation-level integration tests"
   - rule_id: P-ARCH-020
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; authority handoff behavior still requires runtime and realm integration validation"
   - rule_id: P-ARCH-021
     status: covered
     evidence_refs: [platform_kernel_consistency]
   - rule_id: P-ARCH-022
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; semantic-owner execution behavior remains deferred to Runtime kernel contracting"
   - rule_id: P-ARCH-023
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; ownership boundaries against Realm, SDK, and narrative consumers still require downstream contract validation"
   - rule_id: P-ARCH-024
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; SDK-only access and private-bypass hardcut still require implementation-level boundary checks"
   - rule_id: P-ARCH-025
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; admissible helper-layer placement still depends on later Runtime and kit integration framing"
   - rule_id: P-ARCH-026
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; inadmissible placement rejection still requires future implementation and review enforcement"
   - rule_id: P-ARCH-027
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; consumer rewrite hardcut still requires downstream app/mod boundary validation"
   - rule_id: P-ARCH-028
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; workflow-surface non-promotion still requires later Runtime semantic contract review"
   - rule_id: P-ARCH-029
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; consumer API contract home is fixed to SDK kernel while Runtime semantic ownership and host implementation details remain downstream concerns"
   - rule_id: P-ARCH-030
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; cross-layer delivery behavior still requires end-to-end execution tests"
   - rule_id: P-ARCH-031
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; world-domain facade placement and non-equivalence to K-WEV still require downstream SDK and Realm contract alignment"
   - rule_id: P-KIT-001
@@ -413,7 +413,7 @@ rules:
     status: covered
     evidence_refs: [platform_kernel_consistency]
   - rule_id: P-PROTO-070
-    status: covered
+    status: partial
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; cross-primitive consistency validation requires behavioral integration test"
   - rule_id: P-PROTO-100

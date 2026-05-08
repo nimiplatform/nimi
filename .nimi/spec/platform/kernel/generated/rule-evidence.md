@@ -18,13 +18,13 @@
 | Rule ID | Status | Evidence Refs | Coverage Note |
 |---|---|---|---|
 | `P-ALMI-001` | `covered` | `platform_kernel_consistency` | — |
-| `P-ALMI-002` | `covered` | `platform_kernel_consistency` | structural only; principal and session binding behavior still requires runtime integration coverage |
-| `P-ALMI-003` | `covered` | `platform_kernel_consistency` | structural only; invocation authorization paths still require cross-participant behavioral tests |
-| `P-ALMI-004` | `covered` | `platform_kernel_consistency` | structural only; state-transition and failure-path guarantees still require behavioral validation |
-| `P-ALMI-010` | `covered` | `platform_kernel_consistency` | structural only; Hook Action fabric dispatch behavior still requires runtime integration coverage |
-| `P-ALMI-011` | `covered` | `platform_kernel_consistency` | structural only; behavioral state-machine validation requires runtime integration test |
-| `P-ALMI-020` | `covered` | `platform_kernel_consistency` | structural only; end-to-end replay and auditability still require behavioral integration tests |
-| `P-ALMI-030` | `covered` | `platform_kernel_consistency` | structural only; latency/throughput red-line validation requires load test |
+| `P-ALMI-002` | `partial` | `platform_kernel_consistency` | structural only; principal and session binding behavior still requires runtime integration coverage |
+| `P-ALMI-003` | `partial` | `platform_kernel_consistency` | structural only; invocation authorization paths still require cross-participant behavioral tests |
+| `P-ALMI-004` | `partial` | `platform_kernel_consistency` | structural only; state-transition and failure-path guarantees still require behavioral validation |
+| `P-ALMI-010` | `partial` | `platform_kernel_consistency` | structural only; Hook Action fabric dispatch behavior still requires runtime integration coverage |
+| `P-ALMI-011` | `partial` | `platform_kernel_consistency` | structural only; behavioral state-machine validation requires runtime integration test |
+| `P-ALMI-020` | `partial` | `platform_kernel_consistency` | structural only; end-to-end replay and auditability still require behavioral integration tests |
+| `P-ALMI-030` | `partial` | `platform_kernel_consistency` | structural only; latency/throughput red-line validation requires load test |
 | `P-DESIGN-001` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
 | `P-DESIGN-002` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
 | `P-DESIGN-003` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
@@ -48,25 +48,25 @@
 | `P-DESIGN-022` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift` | — |
 | `P-DESIGN-023` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift` | — |
 | `P-DESIGN-090` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
-| `P-ARCH-001` | `covered` | `platform_kernel_consistency` | structural only; multi-participant orchestration behavior still requires integration coverage |
+| `P-ARCH-001` | `partial` | `platform_kernel_consistency` | structural only; multi-participant orchestration behavior still requires integration coverage |
 | `P-ARCH-002` | `covered` | `platform_kernel_consistency` | — |
 | `P-ARCH-003` | `covered` | `platform_kernel_consistency` | — |
 | `P-ARCH-004` | `covered` | `platform_kernel_consistency` | — |
 | `P-ARCH-005` | `covered` | `platform_kernel_consistency` | — |
 | `P-ARCH-010` | `covered` | `platform_kernel_consistency` | — |
-| `P-ARCH-011` | `covered` | `platform_kernel_consistency` | structural only; layered boundary enforcement still requires implementation-level integration tests |
-| `P-ARCH-020` | `covered` | `platform_kernel_consistency` | structural only; authority handoff behavior still requires runtime and realm integration validation |
+| `P-ARCH-011` | `partial` | `platform_kernel_consistency` | structural only; layered boundary enforcement still requires implementation-level integration tests |
+| `P-ARCH-020` | `partial` | `platform_kernel_consistency` | structural only; authority handoff behavior still requires runtime and realm integration validation |
 | `P-ARCH-021` | `covered` | `platform_kernel_consistency` | — |
-| `P-ARCH-022` | `covered` | `platform_kernel_consistency` | structural only; semantic-owner execution behavior remains deferred to Runtime kernel contracting |
-| `P-ARCH-023` | `covered` | `platform_kernel_consistency` | structural only; ownership boundaries against Realm, SDK, and narrative consumers still require downstream contract validation |
-| `P-ARCH-024` | `covered` | `platform_kernel_consistency` | structural only; SDK-only access and private-bypass hardcut still require implementation-level boundary checks |
-| `P-ARCH-025` | `covered` | `platform_kernel_consistency` | structural only; admissible helper-layer placement still depends on later Runtime and kit integration framing |
-| `P-ARCH-026` | `covered` | `platform_kernel_consistency` | structural only; inadmissible placement rejection still requires future implementation and review enforcement |
-| `P-ARCH-027` | `covered` | `platform_kernel_consistency` | structural only; consumer rewrite hardcut still requires downstream app/mod boundary validation |
-| `P-ARCH-028` | `covered` | `platform_kernel_consistency` | structural only; workflow-surface non-promotion still requires later Runtime semantic contract review |
-| `P-ARCH-029` | `covered` | `platform_kernel_consistency` | structural only; consumer API contract home is fixed to SDK kernel while Runtime semantic ownership and host implementation details remain downstream concerns |
-| `P-ARCH-030` | `covered` | `platform_kernel_consistency` | structural only; cross-layer delivery behavior still requires end-to-end execution tests |
-| `P-ARCH-031` | `covered` | `platform_kernel_consistency` | structural only; world-domain facade placement and non-equivalence to K-WEV still require downstream SDK and Realm contract alignment |
+| `P-ARCH-022` | `partial` | `platform_kernel_consistency` | structural only; semantic-owner execution behavior remains deferred to Runtime kernel contracting |
+| `P-ARCH-023` | `partial` | `platform_kernel_consistency` | structural only; ownership boundaries against Realm, SDK, and narrative consumers still require downstream contract validation |
+| `P-ARCH-024` | `partial` | `platform_kernel_consistency` | structural only; SDK-only access and private-bypass hardcut still require implementation-level boundary checks |
+| `P-ARCH-025` | `partial` | `platform_kernel_consistency` | structural only; admissible helper-layer placement still depends on later Runtime and kit integration framing |
+| `P-ARCH-026` | `partial` | `platform_kernel_consistency` | structural only; inadmissible placement rejection still requires future implementation and review enforcement |
+| `P-ARCH-027` | `partial` | `platform_kernel_consistency` | structural only; consumer rewrite hardcut still requires downstream app/mod boundary validation |
+| `P-ARCH-028` | `partial` | `platform_kernel_consistency` | structural only; workflow-surface non-promotion still requires later Runtime semantic contract review |
+| `P-ARCH-029` | `partial` | `platform_kernel_consistency` | structural only; consumer API contract home is fixed to SDK kernel while Runtime semantic ownership and host implementation details remain downstream concerns |
+| `P-ARCH-030` | `partial` | `platform_kernel_consistency` | structural only; cross-layer delivery behavior still requires end-to-end execution tests |
+| `P-ARCH-031` | `partial` | `platform_kernel_consistency` | structural only; world-domain facade placement and non-equivalence to K-WEV still require downstream SDK and Realm contract alignment |
 | `P-KIT-001` | `covered` | `platform_kernel_consistency` | — |
 | `P-KIT-002` | `covered` | `platform_kernel_consistency` | — |
 | `P-KIT-003` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
@@ -131,7 +131,7 @@
 | `P-PROTO-040` | `covered` | `platform_kernel_consistency` | — |
 | `P-PROTO-050` | `covered` | `platform_kernel_consistency` | — |
 | `P-PROTO-060` | `covered` | `platform_kernel_consistency` | — |
-| `P-PROTO-070` | `covered` | `platform_kernel_consistency` | structural only; cross-primitive consistency validation requires behavioral integration test |
+| `P-PROTO-070` | `partial` | `platform_kernel_consistency` | structural only; cross-primitive consistency validation requires behavioral integration test |
 | `P-PROTO-100` | `covered` | `platform_kernel_consistency` | — |
 | `P-PROTO-101` | `covered` | `platform_kernel_consistency` | — |
 | `P-PROTO-102` | `covered` | `platform_kernel_consistency` | — |

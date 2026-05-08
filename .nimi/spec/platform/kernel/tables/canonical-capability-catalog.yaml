@@ -163,42 +163,42 @@ deferred:
       Legacy alias token emitted by llama_native_adapter route; the canonical
       identity for conversational text is text.generate (P-CAPCAT-001). The
       runtime route remains admitted while the adapter migrates off the alias.
-    source_rule: K-LOCAL-017
+    source_rule: P-CAPCAT-003
   - capability: embedding
     table: local-adapter-routing
     reason: >-
       Legacy alias token for llama_native_adapter embedding route; canonical
       identity is text.embed. Runtime route stays admitted until the adapter
       rename lands.
-    source_rule: K-LOCAL-017
+    source_rule: P-CAPCAT-003
   - capability: embed
     table: local-adapter-routing
     reason: >-
       Short-form alias emitted by llama_native_adapter embedding route;
       canonical identity is text.embed. Kept admitted only as a runtime route
       token.
-    source_rule: K-LOCAL-017
+    source_rule: P-CAPCAT-003
   - capability: image.understand
     table: local-adapter-routing
     reason: >-
       Image-understanding route admitted by llama_native_adapter but not yet
       admitted as a cross-layer CanonicalCapabilityId; consumers today obtain
       vision context through text.generate.vision instead.
-    source_rule: K-LOCAL-017
+    source_rule: P-CAPCAT-003
   - capability: audio.understand
     table: local-adapter-routing
     reason: >-
       Audio-understanding route admitted by llama_native_adapter but not yet
       admitted as a cross-layer CanonicalCapabilityId; consumers currently
       consume transcription via audio.transcribe.
-    source_rule: K-LOCAL-017
+    source_rule: P-CAPCAT-003
   - capability: i2v
     table: local-adapter-routing
     reason: >-
       Image-to-video route token emitted by media_native_adapter; canonical
       identity for cross-layer video generation is video.generate. Kept as a
       runtime-only token pending adapter rename.
-    source_rule: K-LOCAL-017
+    source_rule: P-CAPCAT-003
   - capability: music.generate
     table: provider-capabilities
     reason: >-
@@ -206,32 +206,32 @@ deferred:
       as a cross-layer CanonicalCapabilityId. No consumer AIConfig currently
       emits music.generate; deferred until a music section is admitted in the
       canonical catalog.
-    source_rule: K-MCAT-027
+    source_rule: P-CAPCAT-003
   - capability: music.generate.iteration
     table: provider-capabilities
     reason: >-
       Iterative-music-generation token admitted by a single provider; deferred
       for the same reason as music.generate. No cross-layer canonical identity
       yet.
-    source_rule: K-MCAT-027
+    source_rule: P-CAPCAT-003
   - capability: music.generate
     table: local-adapter-routing
     reason: >-
       Local sidecar music route token emitted by sidecar_music_adapter;
       canonical identity deferred alongside the provider-plane music.generate
       admission.
-    source_rule: K-LOCAL-017
+    source_rule: P-CAPCAT-003
   - capability: music
     table: local-adapter-routing
     reason: >-
       Coarse-grained music route token emitted by sidecar_music_adapter;
       retained as a runtime-only token pending admission of a canonical music
       section.
-    source_rule: K-LOCAL-017
+    source_rule: P-CAPCAT-003
   - capability: "*"
     table: local-adapter-routing
     reason: >-
       Wildcard fallback route used by openai_compat_adapter for unlisted
       capabilities. Not a canonical capability identity; it is the runtime
       local-adapter fallback marker.
-    source_rule: K-LOCAL-017
+    source_rule: P-CAPCAT-003

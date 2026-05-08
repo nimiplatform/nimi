@@ -138,6 +138,9 @@ export function validateCanonicalCapabilityCatalog(doc) {
     }
     if (!reason) errors.push(`${prefix} ${capability}: reason is required`);
     if (!sourceRule) errors.push(`${prefix} ${capability}: source_rule is required`);
+    if (sourceRule && !/^P-[A-Z]+-\d{3}$/u.test(sourceRule)) {
+      errors.push(`${prefix} ${capability}: source_rule must be a platform P-* Rule ID`);
+    }
   }
 
   return { capabilities, deferred, errors };
