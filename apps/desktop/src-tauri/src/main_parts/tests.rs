@@ -1,8 +1,10 @@
 use super::env_http::load_dotenv_file_preserve_env;
 use super::{
     allow_http_request_origin_with_history, allowed_http_origins, is_private_lan_http_origin,
-    normalize_http_method, normalize_origin, normalize_runtime_config_page_id, runtime_defaults,
-    validate_external_url, HTTP_REQUEST_RATE_LIMIT_BURST, HTTP_REQUEST_RATE_LIMIT_WINDOW,
+    normalize_http_method, normalize_origin, normalize_runtime_config_page_id,
+    oauth_token_exchange_url, parse_oauth_token_exchange_provider, runtime_defaults,
+    validate_external_url, OauthTokenExchangePayload, OauthTokenExchangeProvider,
+    HTTP_REQUEST_RATE_LIMIT_BURST, HTTP_REQUEST_RATE_LIMIT_WINDOW,
 };
 use crate::test_support::with_env;
 use reqwest::Url;
@@ -183,6 +185,33 @@ fn validate_external_url_returns_structured_error_code() {
         payload.get("reasonCode").and_then(Value::as_str),
         Some("DESKTOP_HTTP_URL_SCHEME_INVALID"),
     );
+}
+
+#[test]
+fn oauth_token_exchange_provider_uses_fixed_allowlist() {
+    assert_eq!(
+        parse_oauth_token_exchange_provider("CODEX").expect("codex provider"),
+        OauthTokenExchangeProvider::Codex
+    );
+    assert_eq!(
+        oauth_token_exchange_url(OauthTokenExchangeProvider::TikTok),
+        "https://open.tiktokapis.com/v2/oauth/token/"
+    );
+    assert!(parse_oauth_token_exchange_provider("https://example.test/token").is_err());
+}
+
+#[test]
+fn oauth_token_exchange_payload_rejects_caller_selected_endpoint_fields() {
+    let parsed = serde_json::from_value::<OauthTokenExchangePayload>(serde_json::json!({
+        "provider": "CODEX",
+        "tokenUrl": "https://example.test/token",
+        "clientId": "client",
+        "code": "code",
+        "codeVerifier": "verifier",
+        "redirectUri": "https://auth.openai.com/deviceauth/callback"
+    }));
+
+    assert!(parsed.is_err());
 }
 
 #[test]

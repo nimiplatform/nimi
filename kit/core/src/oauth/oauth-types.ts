@@ -2,14 +2,14 @@
 // OAuth types — extracted from Desktop runtime-bridge types
 // ---------------------------------------------------------------------------
 
+export type OauthTokenExchangeProvider = 'CODEX' | 'TWITTER' | 'TIKTOK';
+
 export type OauthTokenExchangePayload = {
-  tokenUrl: string;
+  provider: OauthTokenExchangeProvider;
   clientId: string;
   code: string;
   codeVerifier?: string;
   redirectUri?: string;
-  clientSecret?: string;
-  extra?: Record<string, string>;
 };
 
 export type OauthTokenExchangeResult = {

@@ -22,15 +22,14 @@ pub struct OpenExternalUrlResult {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub struct OauthTokenExchangePayload {
-    pub token_url: String,
+    pub provider: String,
     pub client_id: String,
     pub code: String,
     pub code_verifier: Option<String>,
     pub redirect_uri: Option<String>,
-    pub client_secret: Option<String>,
-    pub extra: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -77,6 +76,40 @@ fn validate_external_url(url: &Url) -> Result<(), String> {
         return Ok(());
     }
     Err("Only https or localhost/127.0.0.1 http URLs are allowed".to_string())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum OauthTokenExchangeProvider {
+    Codex,
+    Twitter,
+    TikTok,
+}
+
+fn parse_oauth_token_exchange_provider(
+    provider: &str,
+) -> Result<OauthTokenExchangeProvider, String> {
+    match provider.trim().to_ascii_uppercase().as_str() {
+        "CODEX" => Ok(OauthTokenExchangeProvider::Codex),
+        "TWITTER" => Ok(OauthTokenExchangeProvider::Twitter),
+        "TIKTOK" => Ok(OauthTokenExchangeProvider::TikTok),
+        _ => Err("OAuth token exchange provider is not admitted".to_string()),
+    }
+}
+
+fn oauth_token_exchange_url(provider: OauthTokenExchangeProvider) -> &'static str {
+    match provider {
+        OauthTokenExchangeProvider::Codex => "https://auth.openai.com/oauth/token",
+        OauthTokenExchangeProvider::Twitter => "https://api.twitter.com/2/oauth2/token",
+        OauthTokenExchangeProvider::TikTok => "https://open.tiktokapis.com/v2/oauth/token/",
+    }
+}
+
+fn required_trimmed(value: Option<&str>, field_name: &str) -> Result<String, String> {
+    let normalized = value.unwrap_or_default().trim().to_string();
+    if normalized.is_empty() {
+        return Err(format!("OAuth token exchange requires {field_name}"));
+    }
+    Ok(normalized)
 }
 
 fn parse_oauth_redirect_uri(redirect_uri: &str) -> Result<(String, u16, String), String> {
@@ -433,43 +466,23 @@ pub fn open_external_url(payload: OpenExternalUrlPayload) -> Result<OpenExternal
 pub async fn oauth_token_exchange(
     payload: OauthTokenExchangePayload,
 ) -> Result<OauthTokenExchangeResult, String> {
-    let token_url = Url::parse(payload.token_url.as_str()).map_err(|error| error.to_string())?;
-    validate_external_url(&token_url)?;
+    let provider = parse_oauth_token_exchange_provider(payload.provider.as_str())?;
+    let token_url =
+        Url::parse(oauth_token_exchange_url(provider)).map_err(|error| error.to_string())?;
+    let client_id = required_trimmed(Some(payload.client_id.as_str()), "clientId")?;
+    let code = required_trimmed(Some(payload.code.as_str()), "code")?;
+    let code_verifier = required_trimmed(payload.code_verifier.as_deref(), "codeVerifier")?;
+    let redirect_uri = required_trimmed(payload.redirect_uri.as_deref(), "redirectUri")?;
 
     let mut form = HashMap::<String, String>::new();
     form.insert("grant_type".to_string(), "authorization_code".to_string());
-    form.insert(
-        "client_id".to_string(),
-        payload.client_id.trim().to_string(),
-    );
-    form.insert("code".to_string(), payload.code.trim().to_string());
+    form.insert("client_id".to_string(), client_id.clone());
+    form.insert("code".to_string(), code);
+    form.insert("code_verifier".to_string(), code_verifier);
+    form.insert("redirect_uri".to_string(), redirect_uri);
 
-    if let Some(value) = payload.code_verifier.as_deref() {
-        let normalized = value.trim();
-        if !normalized.is_empty() {
-            form.insert("code_verifier".to_string(), normalized.to_string());
-        }
-    }
-    if let Some(value) = payload.redirect_uri.as_deref() {
-        let normalized = value.trim();
-        if !normalized.is_empty() {
-            form.insert("redirect_uri".to_string(), normalized.to_string());
-        }
-    }
-    if let Some(value) = payload.client_secret.as_deref() {
-        let normalized = value.trim();
-        if !normalized.is_empty() {
-            form.insert("client_secret".to_string(), normalized.to_string());
-        }
-    }
-    if let Some(extra) = payload.extra {
-        for (key, value) in extra {
-            let normalized_key = key.trim().to_string();
-            if normalized_key.is_empty() {
-                continue;
-            }
-            form.insert(normalized_key, value);
-        }
+    if provider == OauthTokenExchangeProvider::TikTok {
+        form.insert("client_key".to_string(), client_id);
     }
 
     let response = reqwest::Client::new()
@@ -536,8 +549,10 @@ pub async fn oauth_listen_for_code(
 #[cfg(test)]
 mod tests {
     use super::{
-        normalize_oauth_callback_target, parse_oauth_callback_http_request, redact_body_preview,
-        redact_json_value,
+        normalize_oauth_callback_target, oauth_token_exchange_url,
+        parse_oauth_callback_http_request, parse_oauth_token_exchange_provider,
+        redact_body_preview, redact_json_value, OauthTokenExchangePayload,
+        OauthTokenExchangeProvider,
     };
 
     #[test]
@@ -574,6 +589,33 @@ mod tests {
         assert!(rendered.contains("[REDACTED]"));
         assert!(!rendered.contains("top-secret"));
         assert!(!rendered.contains("cookie-value"));
+    }
+
+    #[test]
+    fn oauth_token_exchange_provider_is_fixed_allowlist() {
+        assert_eq!(
+            parse_oauth_token_exchange_provider("CODEX").unwrap(),
+            OauthTokenExchangeProvider::Codex
+        );
+        assert_eq!(
+            oauth_token_exchange_url(OauthTokenExchangeProvider::Twitter),
+            "https://api.twitter.com/2/oauth2/token"
+        );
+        assert!(parse_oauth_token_exchange_provider("https://example.test/token").is_err());
+    }
+
+    #[test]
+    fn oauth_token_exchange_payload_rejects_caller_selected_endpoint_fields() {
+        let parsed = serde_json::from_value::<OauthTokenExchangePayload>(serde_json::json!({
+            "provider": "CODEX",
+            "tokenUrl": "https://example.test/token",
+            "clientId": "client",
+            "code": "code",
+            "codeVerifier": "verifier",
+            "redirectUri": "https://auth.openai.com/deviceauth/callback"
+        }));
+
+        assert!(parsed.is_err());
     }
 
     #[test]

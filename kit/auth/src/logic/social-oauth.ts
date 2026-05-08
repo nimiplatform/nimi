@@ -16,11 +16,6 @@ const DEFAULT_AUTHORIZE_URL: Record<SocialOauthProvider, string> = {
   TIKTOK: 'https://www.tiktok.com/v2/auth/authorize/',
 };
 
-const DEFAULT_TOKEN_URL: Record<SocialOauthProvider, string> = {
-  TWITTER: 'https://api.twitter.com/2/oauth2/token',
-  TIKTOK: 'https://open.tiktokapis.com/v2/oauth/token/',
-};
-
 const DEFAULT_SCOPE: Record<SocialOauthProvider, string> = {
   TWITTER: 'tweet.read users.read offline.access',
   TIKTOK: 'user.info.basic',
@@ -35,11 +30,8 @@ export type SocialOauthConfig = {
   disabledReason: string;
   clientId: string;
   authorizeUrl: string;
-  tokenUrl: string;
   scope: string;
-  clientSecret: string;
   authorizeExtra: Record<string, string>;
-  tokenExtra: Record<string, string>;
 };
 
 type SocialOauthResult = {
@@ -105,18 +97,12 @@ export function resolveSocialOauthConfig(
 ): SocialOauthConfig {
   const label = resolveProviderLabel(provider);
   const clientId = readProviderEnv(provider, 'CLIENT_ID').trim();
-  const clientSecret = readProviderEnv(provider, 'CLIENT_SECRET').trim();
   const authorizeUrl = normalizeProviderUrl(
     readProviderEnv(provider, 'AUTHORIZE_URL'),
     DEFAULT_AUTHORIZE_URL[provider],
   );
-  const tokenUrl = normalizeProviderUrl(
-    readProviderEnv(provider, 'TOKEN_URL'),
-    DEFAULT_TOKEN_URL[provider],
-  );
   const scope = (readProviderEnv(provider, 'SCOPE').trim() || DEFAULT_SCOPE[provider]).trim();
   const authorizeExtra = parseExtra(readProviderEnv(provider, 'AUTHORIZE_EXTRA'));
-  const tokenExtra = parseExtra(readProviderEnv(provider, 'TOKEN_EXTRA'));
 
   let disabledReason = '';
   if (!bridge.hasTauriInvoke()) {
@@ -134,11 +120,8 @@ export function resolveSocialOauthConfig(
     disabledReason,
     clientId,
     authorizeUrl,
-    tokenUrl,
     scope,
-    clientSecret,
     authorizeExtra,
-    tokenExtra,
   };
 }
 
@@ -242,21 +225,12 @@ export async function startSocialOauth(
       throw new Error(`${config.label} OAuth callback missing code`);
     }
 
-    const tokenExtra = {
-      ...config.tokenExtra,
-    };
-    if (provider === 'TIKTOK' && !tokenExtra.client_key) {
-      tokenExtra.client_key = config.clientId;
-    }
-
     const exchange = await bridge.oauthTokenExchange({
-      tokenUrl: config.tokenUrl,
+      provider,
       clientId: config.clientId,
       code,
       codeVerifier,
       redirectUri: callbackUrl,
-      clientSecret: config.clientSecret || undefined,
-      extra: Object.keys(tokenExtra).length > 0 ? tokenExtra : undefined,
     });
 
     return {

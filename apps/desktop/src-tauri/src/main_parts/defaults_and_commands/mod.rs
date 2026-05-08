@@ -400,43 +400,23 @@ pub(crate) fn open_external_url(
 pub(crate) async fn oauth_token_exchange(
     payload: OauthTokenExchangePayload,
 ) -> Result<OauthTokenExchangeResult, String> {
-    let token_url = Url::parse(payload.token_url.as_str()).map_err(|error| error.to_string())?;
-    validate_external_url(&token_url)?;
+    let provider = parse_oauth_token_exchange_provider(payload.provider.as_str())?;
+    let token_url =
+        Url::parse(oauth_token_exchange_url(provider)).map_err(|error| error.to_string())?;
+    let client_id = required_trimmed(Some(payload.client_id.as_str()), "clientId")?;
+    let code = required_trimmed(Some(payload.code.as_str()), "code")?;
+    let code_verifier = required_trimmed(payload.code_verifier.as_deref(), "codeVerifier")?;
+    let redirect_uri = required_trimmed(payload.redirect_uri.as_deref(), "redirectUri")?;
 
     let mut form = HashMap::<String, String>::new();
     form.insert("grant_type".to_string(), "authorization_code".to_string());
-    form.insert(
-        "client_id".to_string(),
-        payload.client_id.trim().to_string(),
-    );
-    form.insert("code".to_string(), payload.code.trim().to_string());
+    form.insert("client_id".to_string(), client_id.clone());
+    form.insert("code".to_string(), code);
+    form.insert("code_verifier".to_string(), code_verifier);
+    form.insert("redirect_uri".to_string(), redirect_uri);
 
-    if let Some(value) = payload.code_verifier.as_deref() {
-        let normalized = value.trim();
-        if !normalized.is_empty() {
-            form.insert("code_verifier".to_string(), normalized.to_string());
-        }
-    }
-    if let Some(value) = payload.redirect_uri.as_deref() {
-        let normalized = value.trim();
-        if !normalized.is_empty() {
-            form.insert("redirect_uri".to_string(), normalized.to_string());
-        }
-    }
-    if let Some(value) = payload.client_secret.as_deref() {
-        let normalized = value.trim();
-        if !normalized.is_empty() {
-            form.insert("client_secret".to_string(), normalized.to_string());
-        }
-    }
-    if let Some(extra) = payload.extra {
-        for (key, value) in extra {
-            let normalized_key = key.trim().to_string();
-            if normalized_key.is_empty() {
-                continue;
-            }
-            form.insert(normalized_key, value);
-        }
+    if provider == OauthTokenExchangeProvider::TikTok {
+        form.insert("client_key".to_string(), client_id);
     }
 
     let response = shared_http_client()?

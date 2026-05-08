@@ -4,7 +4,6 @@ const CODEX_OAUTH_ISSUER = 'https://auth.openai.com';
 const CODEX_OAUTH_CLIENT_ID = 'app_EMoamEEZ73f0CkXaXp7hrann';
 const CODEX_DEVICE_AUTH_USERCODE_URL = `${CODEX_OAUTH_ISSUER}/api/accounts/deviceauth/usercode`;
 const CODEX_DEVICE_AUTH_TOKEN_URL = `${CODEX_OAUTH_ISSUER}/api/accounts/deviceauth/token`;
-const CODEX_OAUTH_TOKEN_URL = `${CODEX_OAUTH_ISSUER}/oauth/token`;
 const CODEX_DEVICE_AUTH_REDIRECT_URI = `${CODEX_OAUTH_ISSUER}/deviceauth/callback`;
 const DEFAULT_POLL_INTERVAL_SECONDS = 5;
 const MIN_POLL_INTERVAL_SECONDS = 3;
@@ -360,7 +359,7 @@ export async function acquireCodexManagedCredential(
   let exchange;
   try {
     exchange = await bridge.oauthTokenExchange({
-      tokenUrl: CODEX_OAUTH_TOKEN_URL,
+      provider: 'CODEX',
       clientId: CODEX_OAUTH_CLIENT_ID,
       code: authorizationCode,
       codeVerifier,

@@ -234,15 +234,48 @@ pub(crate) struct DesktopAvatarCloseHandoffResult {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 struct OauthTokenExchangePayload {
-    token_url: String,
+    provider: String,
     client_id: String,
     code: String,
     code_verifier: Option<String>,
     redirect_uri: Option<String>,
-    client_secret: Option<String>,
-    extra: Option<HashMap<String, String>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum OauthTokenExchangeProvider {
+    Codex,
+    Twitter,
+    TikTok,
+}
+
+fn parse_oauth_token_exchange_provider(
+    provider: &str,
+) -> Result<OauthTokenExchangeProvider, String> {
+    match provider.trim().to_ascii_uppercase().as_str() {
+        "CODEX" => Ok(OauthTokenExchangeProvider::Codex),
+        "TWITTER" => Ok(OauthTokenExchangeProvider::Twitter),
+        "TIKTOK" => Ok(OauthTokenExchangeProvider::TikTok),
+        _ => Err("OAuth token exchange provider is not admitted".to_string()),
+    }
+}
+
+fn oauth_token_exchange_url(provider: OauthTokenExchangeProvider) -> &'static str {
+    match provider {
+        OauthTokenExchangeProvider::Codex => "https://auth.openai.com/oauth/token",
+        OauthTokenExchangeProvider::Twitter => "https://api.twitter.com/2/oauth2/token",
+        OauthTokenExchangeProvider::TikTok => "https://open.tiktokapis.com/v2/oauth/token/",
+    }
+}
+
+fn required_trimmed(value: Option<&str>, field_name: &str) -> Result<String, String> {
+    let normalized = value.unwrap_or_default().trim().to_string();
+    if normalized.is_empty() {
+        return Err(format!("OAuth token exchange requires {field_name}"));
+    }
+    Ok(normalized)
 }
 
 #[derive(Debug, Serialize)]

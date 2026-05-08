@@ -559,4 +559,5 @@ pub fn auth_session_clear() -> Result<(), String> {
 }
 
 #[cfg(test)]
+#[path = "auth_session_commands_tests.rs"]
 mod auth_session_commands_tests;

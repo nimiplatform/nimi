@@ -103,6 +103,7 @@ test('acquireCodexManagedCredential completes device-code flow and returns manag
         return { opened: true };
       },
       oauthTokenExchange: async (payload) => {
+        assert.equal(payload.provider, 'CODEX');
         assert.equal(payload.clientId, 'app_EMoamEEZ73f0CkXaXp7hrann');
         assert.equal(payload.code, 'authorization-code');
         assert.equal(payload.codeVerifier, 'code-verifier');

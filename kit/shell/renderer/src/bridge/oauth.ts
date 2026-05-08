@@ -17,13 +17,11 @@ export async function oauthTokenExchange(
 ): Promise<OauthTokenExchangeResult> {
   return invokeChecked('oauth_token_exchange', {
     payload: {
-      tokenUrl: payload.tokenUrl,
+      provider: payload.provider,
       clientId: payload.clientId,
       code: payload.code,
       codeVerifier: payload.codeVerifier,
       redirectUri: payload.redirectUri,
-      clientSecret: payload.clientSecret,
-      extra: payload.extra,
     },
   }, parseOauthTokenExchangeResult);
 }
