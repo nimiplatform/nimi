@@ -24,12 +24,6 @@ import { useWorldOwnedAgentRosterQuery } from '@renderer/hooks/use-agent-queries
 import { useWorldDetailQuery, useWorldResourceQueries } from '@renderer/hooks/use-world-queries.js';
 import { useNavigate, useParams } from 'react-router-dom';
 
-const DELIVERABLE_STATE_LABEL: Record<DeliverableCurrentState, string> = {
-  MISSING: 'Missing',
-  PRESENT: 'Present',
-  BOUND: 'Bound',
-};
-
 const DELIVERABLE_STATE_TONE = {
   MISSING: 'danger',
   PRESENT: 'warning',

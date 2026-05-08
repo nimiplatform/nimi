@@ -12,7 +12,6 @@ import {
   ForgePage,
   ForgePageHeader,
   ForgeSection,
-  ForgeSectionHeading,
   ForgeEmptyState,
   ForgeStatCard,
 } from '@renderer/components/page-layout.js';

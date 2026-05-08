@@ -345,9 +345,6 @@ function toHistorySummaryList(payload: WorldHistoryListPayload): WorldHistorySum
 
   return items
     .map((item, index) => {
-      const metadata = item.payload && typeof item.payload === 'object' && !Array.isArray(item.payload)
-        ? item.payload as Record<string, unknown>
-        : {};
       const title = typeof item.title === 'string' ? item.title.trim() : '';
       const happenedAt =
         typeof item.happenedAt === 'string' && item.happenedAt.trim()

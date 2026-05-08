@@ -14,7 +14,6 @@ function realm() {
 }
 
 type CreateCreatorAgentInput = RealmServiceArgs<'CreatorService', 'creatorControllerCreateAgent'>[0];
-type BatchCreateCreatorAgentsInput = RealmServiceArgs<'CreatorService', 'creatorControllerBatchCreateAgents'>[0];
 type UpdateAgentInput = RealmServiceArgs<'CreatorService', 'creatorControllerUpdateAgent'>[1];
 type UpdateAgentDnaInput = RealmServiceArgs<'AgentsService', 'agentControllerUpdateDna'>[1];
 type CreateAgentRuleInput = RealmServiceArgs<'AgentRulesService', 'agentRulesControllerCreateRule'>[2];

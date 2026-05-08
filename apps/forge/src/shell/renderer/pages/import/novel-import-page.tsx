@@ -19,7 +19,6 @@ import {
   ForgeStatCard,
   ForgeErrorBanner,
   ForgeFullscreenState,
-  ForgeLoadingSpinner,
 } from '@renderer/components/page-layout.js';
 import { ForgeSegmentControl, type SegmentOption } from '@renderer/components/segment-control.js';
 import type { NovelImportMode } from '@renderer/features/import/types.js';

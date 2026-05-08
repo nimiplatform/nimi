@@ -21,7 +21,7 @@ import { ForgeSegmentControl, type SegmentOption } from '@renderer/components/se
 import { ForgeStatusBadge } from '@renderer/components/status-indicators.js';
 import { ForgeEntityAvatar } from '@renderer/components/card-list.js';
 import { ForgeListCard } from '@renderer/components/card-list.js';
-import { ForgeLoadingSpinner, ForgeEmptyState, ForgeErrorBanner } from '@renderer/components/page-layout.js';
+import { ForgeLoadingSpinner, ForgeEmptyState } from '@renderer/components/page-layout.js';
 import { ForgeConfirmDialog, useConfirmDialog } from '@renderer/components/confirm-modals.js';
 
 function toJsonObject(value: unknown): JsonObject {

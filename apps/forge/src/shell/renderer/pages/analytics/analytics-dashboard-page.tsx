@@ -14,7 +14,6 @@ import {
   ForgeSection,
   ForgeSectionHeading,
   ForgeStatCard,
-  ForgeEmptyState,
 } from '@renderer/components/page-layout.js';
 import { ForgeTabBar, type ForgeTab } from '@renderer/components/tab-bar.js';
 import { ForgeSegmentControl, type SegmentOption } from '@renderer/components/segment-control.js';

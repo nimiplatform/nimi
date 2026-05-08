@@ -11,7 +11,6 @@ import type {
   LocalWorldRuleDraft,
   LocalAgentRuleDraft,
   ConflictEntry,
-  DiscoveredCharacter,
   RuleLineageEntry,
 } from '../types.js';
 import {

@@ -24,7 +24,6 @@ import {
   type ForgeCreateWorldCreatorAgentInput,
   type ForgeCreateWorldDraftInput,
   type ForgeCreateWorldRuleInput,
-  type ForgeDraftHistoryEvent,
   type ForgePublishWorldDraftInput,
   type ForgeUpdateAgentRuleInput,
   type ForgeUpdateWorldDraftInput,
@@ -79,7 +78,6 @@ export type ForgeWorldLandingResult = {
   reason?: string;
 };
 
-type CommitWorldStateInput = RealmServiceArgs<'WorldControlService', 'worldControlControllerCommitState'>[1];
 type GetWorldTruthResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorld'>;
 type GetWorldviewTruthResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorldview'>;
 type ListWorldResourceBindingsQuery = {

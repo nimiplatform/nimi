@@ -4,7 +4,6 @@ import type {
   CreateWorkspaceInput,
   ForgeImportSessionType,
   ForgeSourceManifest,
-  ForgeWorkspace,
   ForgeWorkspaceSnapshot,
   ImportSessionSummary,
   WorkspaceAgentRuleBundle,

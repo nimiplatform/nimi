@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import type { AgentDeliverableStatus, WorldOwnedAgentRosterItem } from '@renderer/hooks/use-agent-queries.js';
 import type { WorldDeliverableFamily } from '@renderer/features/asset-ops/deliverable-registry.js';
 
 export type AssetOpsBatchRunKind =

@@ -41,7 +41,6 @@ export default function WorkbenchPage() {
   const patchWorldDraft = useForgeWorkspaceStore((state) => state.patchWorldDraft);
   const updateReviewWorldRule = useForgeWorkspaceStore((state) => state.updateReviewWorldRule);
   const updateReviewAgentRule = useForgeWorkspaceStore((state) => state.updateReviewAgentRule);
-  const updateAgentDraft = useForgeWorkspaceStore((state) => state.updateAgentDraft);
   const attachMasterAgentClone = useForgeWorkspaceStore((state) => state.attachMasterAgentClone);
   const buildPublishPlan = useForgeWorkspaceStore((state) => state.buildPublishPlan);
   const markPublished = useForgeWorkspaceStore((state) => state.markPublished);

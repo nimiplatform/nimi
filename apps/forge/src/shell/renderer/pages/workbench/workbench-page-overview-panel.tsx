@@ -1,5 +1,5 @@
 import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
-import { ForgeEmptyState, ForgeErrorBanner, ForgeStatCard } from '@renderer/components/page-layout.js';
+import { ForgeErrorBanner, ForgeStatCard } from '@renderer/components/page-layout.js';
 import { ForgeActionCard } from '@renderer/components/card-list.js';
 import { LabeledTextField, LabeledTextareaField } from '@renderer/components/form-fields.js';
 import { useImageGeneration } from '@renderer/hooks/use-image-generation.js';

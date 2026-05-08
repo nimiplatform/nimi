@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
-import {
-  WORLD_DELIVERABLE_REGISTRY,
-  type WorldDeliverableFamily,
-} from '@renderer/features/asset-ops/deliverable-registry.js';
+import { WORLD_DELIVERABLE_REGISTRY } from '@renderer/features/asset-ops/deliverable-registry.js';
 import type { WorldDeliverableStatus } from '@renderer/hooks/use-world-queries.js';
 import type { WorldOwnedAgentRoster, WorldOwnedAgentRosterItem } from '@renderer/hooks/use-agent-queries.js';
 import type { AgentDraftState, WorldDraftState } from '@renderer/features/workbench/types.js';
@@ -15,8 +12,6 @@ import {
   selectAssetOpsBatchRuns,
   useAssetOpsBatchStore,
   type AssetOpsBatchItemRecord,
-  type AssetOpsBatchRunRecord,
-  type AssetOpsBatchTask,
   type PlannedAssetOpsBatchItem,
 } from '@renderer/state/asset-ops-batch-store.js';
 

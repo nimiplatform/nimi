@@ -7,7 +7,6 @@ import type {
   ForgeWorkspace,
   ForgeWorkspacePanel,
   ImportSessionSummary,
-  WorkspaceAgentRuleBundle,
   WorldDraftState,
 } from '@renderer/features/workbench/types.js';
 import type {
@@ -131,13 +130,6 @@ type WorkbenchStoreActions = {
     },
   ) => void;
 };
-
-function findBundleIndex(
-  bundles: WorkspaceAgentRuleBundle[],
-  draftAgentId: string,
-): number {
-  return bundles.findIndex((bundle) => bundle.draftAgentId === draftAgentId);
-}
 
 export const useForgeWorkspaceStore = create<WorkbenchStoreState & WorkbenchStoreActions>((set, get) => ({
   ...restoreState(),

@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import type {
   EventNodeDraft,
   WorldStudioCreateStep,
-  WorldStudioWorkspaceSnapshot,
 } from '@world-engine/contracts.js';
 import type { JsonObject } from '@renderer/bridge';
 import { getWorldDraft } from '@renderer/data/world-data-client.js';

@@ -24,7 +24,6 @@ import { formatDate } from '@renderer/components/format-utils.js';
 import {
   useBalancesQuery,
   useSparkHistoryQuery,
-  useGemHistoryQuery,
   useRevenueShareConfigQuery,
   useConnectStatusQuery,
   useCanWithdrawQuery,
@@ -58,7 +57,6 @@ export default function RevenueDashboardPage() {
 
   const balancesQuery = useBalancesQuery();
   const sparkHistory = useSparkHistoryQuery();
-  const gemHistory = useGemHistoryQuery();
   const revenueConfig = useRevenueShareConfigQuery();
   const connectStatus = useConnectStatusQuery();
   const canWithdrawQuery = useCanWithdrawQuery();
