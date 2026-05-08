@@ -80,6 +80,8 @@ export default function KnowledgeGraphPage() {
   const activeProfile = useAppStore((s) => s.activeProfile);
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [readError, setReadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [expandedWorlds, setExpandedWorlds] = useState<Set<string>>(new Set());
 
   // ── Load all knowledge entries for learner ──────────────────────────────
@@ -92,16 +94,20 @@ export default function KnowledgeGraphPage() {
     let cancelled = false;
     void (async () => {
       try {
+        setReadError(null);
         const all = await sqliteGetKnowledgeEntries(activeProfile.id);
         if (!cancelled) setEntries(all);
-      } catch {
-        // Non-critical — show empty state
+      } catch (error) {
+        if (!cancelled) {
+          setEntries([]);
+          setReadError(error instanceof Error ? error.message : t('knowledge.loadError'));
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [activeProfile]);
+  }, [activeProfile, loadAttempt, t]);
 
   // ── Group entries by world → domain ─────────────────────────────────────
 
@@ -190,6 +196,24 @@ export default function KnowledgeGraphPage() {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-amber-200 border-t-amber-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (readError) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <p className="text-sm text-stone-400">{t('knowledge.loadError')}</p>
+        <p className="max-w-md text-xs text-stone-500">{readError}</p>
+        <button
+          onClick={() => {
+            setLoading(true);
+            setLoadAttempt((attempt) => attempt + 1);
+          }}
+          className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
+        >
+          {t('knowledge.retry')}
+        </button>
       </div>
     );
   }

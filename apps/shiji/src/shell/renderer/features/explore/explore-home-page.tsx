@@ -134,6 +134,17 @@ export default function ExploreHomePage() {
       });
       return false;
     }
+    if (!apiWorldMap.has(entry.worldId)) {
+      logRendererEvent({
+        level: 'error',
+        area: 'shiji-explore',
+        message: 'catalog:missing-public-world',
+        details: {
+          worldId: entry.worldId,
+        },
+      });
+      return false;
+    }
     return true;
   });
 

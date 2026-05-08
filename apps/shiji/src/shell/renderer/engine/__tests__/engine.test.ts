@@ -4,7 +4,8 @@ import { detectExplanations } from '../explanation-detector.js';
 import { buildKnowledgeBlock, formatKnowledgeBlockForPrompt } from '../knowledge-scaffolder.js';
 import { matchLorebook } from '../lorebook-matcher.js';
 import { enforcePacing } from '../pacing-enforcer.js';
-import type { DialogueTurn, KnowledgeFlag, LoreEntry, SessionSnapshot } from '../types.js';
+import { buildPrompt } from '../prompt-builder.js';
+import type { AssembledContext, DialogueTurn, KnowledgeFlag, LoreEntry, PacingDecision, SessionSnapshot } from '../types.js';
 
 function makeSnapshot(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {
   return {
@@ -32,6 +33,43 @@ function makeTurn(content: string, role: 'user' | 'assistant' = 'assistant'): Di
   };
 }
 
+function makeContext(snapshot: SessionSnapshot = makeSnapshot()): AssembledContext {
+  return {
+    worldRules: 'World rules',
+    agentRules: 'Agent rules',
+    lorebooks: [],
+    sessionSnapshot: snapshot,
+    trunkEvents: [],
+    learnerProfile: {
+      age: 10,
+      interestTags: [],
+      strengthTags: [],
+      communicationStyle: '',
+      guardianGuidance: '',
+      guardianGoals: '',
+    },
+    dialogueHistory: [],
+    knowledgeFlags: [],
+    agentMemory: '',
+    temporalContext: {
+      eraNotation: '建安十二年',
+      ceYear: 207,
+      displayLabel: '建安十二年（公元207年）',
+    },
+    sceneContext: null,
+    adaptationNotes: '',
+  };
+}
+
+function makePacing(): PacingDecision {
+  return {
+    nextSceneType: 'crisis',
+    rhythmCounter: 1,
+    shouldTriggerVerification: false,
+    shouldTriggerMetacognition: false,
+  };
+}
+
 describe('enforcePacing', () => {
   it('uses crisis pacing until the campfire threshold is reached', () => {
     const result = enforcePacing(makeSnapshot({ rhythmCounter: 2 }), 1, false);
@@ -55,6 +93,27 @@ describe('enforcePacing', () => {
     const result = enforcePacing(makeSnapshot(), 4, true);
     expect(result.nextSceneType).toBe('metacognition');
     expect(result.shouldTriggerMetacognition).toBe(true);
+  });
+});
+
+describe('buildPrompt classification boundary', () => {
+  it('injects the canonical non-history truth boundary for valid non-canonical pairs', () => {
+    const result = buildPrompt(
+      makeContext(makeSnapshot({ contentType: 'literature', truthMode: 'dramatized' })),
+      makePacing(),
+      'continue',
+    );
+
+    expect(result.systemPrompt).toContain('## CONTENT CLASSIFICATION: 名著 / 演义');
+    expect(result.systemPrompt).toContain('Do not claim events as canonical history.');
+  });
+
+  it('fails closed before prompt assembly for unsupported classification pairs', () => {
+    expect(() => buildPrompt(
+      makeContext(makeSnapshot({ contentType: 'history', truthMode: 'legendary' })),
+      makePacing(),
+      'continue',
+    )).toThrow('Invalid ShiJi dialogue classification: history/legendary');
   });
 });
 

@@ -11,6 +11,7 @@ use nimi_kit_shell_tauri::runtime_defaults as defaults;
 use nimi_kit_shell_tauri::session_logging;
 
 // App-local modules
+mod parent_pin;
 mod sqlite;
 
 #[derive(Debug, Serialize)]
@@ -48,6 +49,9 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_storage_dirs,
+            parent_pin::parent_pin_exists,
+            parent_pin::parent_pin_set,
+            parent_pin::parent_pin_verify,
             defaults::runtime_defaults,
             auth_session_commands::auth_session_load,
             auth_session_commands::auth_session_save,

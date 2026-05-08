@@ -35,6 +35,8 @@ export default function ProgressOverviewPage() {
   const [chapters, setChapters] = useState<ChapterProgress[]>([]);
   const [knowledge, setKnowledge] = useState<KnowledgeEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [readError, setReadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   // ── Load data ──────────────────────────────────────────────────────────
 
@@ -46,6 +48,7 @@ export default function ProgressOverviewPage() {
     let cancelled = false;
     void (async () => {
       try {
+        setReadError(null);
         const [s, c, k] = await Promise.all([
           sqliteGetSessionsForLearner(activeProfile.id),
           sqliteGetChapterProgress(activeProfile.id),
@@ -56,14 +59,19 @@ export default function ProgressOverviewPage() {
           setChapters(c);
           setKnowledge(k);
         }
-      } catch {
-        // Non-critical — show empty
+      } catch (error) {
+        if (!cancelled) {
+          setSessions([]);
+          setChapters([]);
+          setKnowledge([]);
+          setReadError(error instanceof Error ? error.message : t('progress.loadError'));
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [activeProfile]);
+  }, [activeProfile, loadAttempt, t]);
 
   // ── Computed stats ─────────────────────────────────────────────────────
 
@@ -173,6 +181,24 @@ export default function ProgressOverviewPage() {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-amber-200 border-t-amber-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (readError) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <p className="text-sm text-stone-400">{t('progress.loadError')}</p>
+        <p className="max-w-md text-xs text-stone-500">{readError}</p>
+        <button
+          onClick={() => {
+            setLoading(true);
+            setLoadAttempt((attempt) => attempt + 1);
+          }}
+          className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
+        >
+          {t('progress.retry')}
+        </button>
       </div>
     );
   }

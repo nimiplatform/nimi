@@ -25,9 +25,9 @@ field_contract:
     description: Stable map rendering is allowed only when true
 
 constraints:
-  - `enabled = true` requires the world to have `mapAvailability = true` in `world-catalog.yaml`
-  - Every `routeSegments.fromPinId` and `routeSegments.toPinId` must resolve to an existing `locationPins.id`
-  - Every `eventRefs.eventId` must resolve to a stable world event or story landmark id
+  - "`enabled = true` requires the world to have `mapAvailability = true` in `world-catalog.yaml`"
+  - "Every `routeSegments.fromPinId` and `routeSegments.toPinId` must resolve to an existing `locationPins.id`"
+  - "Every `eventRefs.eventId` must resolve to a stable world event or story landmark id"
   - Missing required fields invalidate the profile and block stable map rendering
 
 profiles: []

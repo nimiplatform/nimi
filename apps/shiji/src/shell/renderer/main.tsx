@@ -15,7 +15,7 @@ if (!rootElement) {
 createRoot(rootElement).render(
   <StrictMode>
     {/* ShiJi is light-only (SJ-SHELL-004) — no dark mode for K-12 students */}
-    <NimiThemeProvider accentPack="shiji-accent" defaultScheme="light">
+    <NimiThemeProvider accentPack="desktop-accent" defaultScheme="light">
       <App />
     </NimiThemeProvider>
   </StrictMode>,

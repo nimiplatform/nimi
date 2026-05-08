@@ -10,6 +10,8 @@ import {
   sqliteInsertChoice,
   sqliteUpdateSession,
   sqliteUpsertKnowledgeEntry,
+  sqliteUpsertChapterProgress,
+  sqliteUnlockAchievement,
 } from '@renderer/bridge/sqlite-bridge.js';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 import type { Choice, SceneType } from './types.js';
@@ -33,6 +35,45 @@ export type DialoguePipelineOutput = {
   interrupted: boolean;
   newKnowledgeKeys: string[];
 };
+
+function progressSummary(text: string): string {
+  return text.replace(/\s+/gu, ' ').trim().slice(0, 240);
+}
+
+async function persistDialogueProgress(params: {
+  learnerId: string;
+  sessionId: string;
+  worldId: string;
+  chapterIndex: number;
+  sceneType: SceneType;
+  assistantText: string;
+  completedAt: string;
+}): Promise<void> {
+  const metacognitionCompleted = params.sceneType === 'metacognition';
+  const chapterProgressId = `chapter-progress:${params.sessionId}:${params.chapterIndex}`;
+  const firstChapterAchievementId = `achievement:${params.learnerId}:dialogue.first_chapter`;
+
+  await sqliteUpsertChapterProgress({
+    id: chapterProgressId,
+    learnerId: params.learnerId,
+    sessionId: params.sessionId,
+    worldId: params.worldId,
+    chapterIndex: params.chapterIndex,
+    title: `Chapter ${params.chapterIndex}`,
+    summary: progressSummary(params.assistantText),
+    verificationScore: null,
+    metacognitionCompleted,
+    startedAt: params.completedAt,
+    completedAt: params.completedAt,
+  });
+
+  await sqliteUnlockAchievement({
+    id: firstChapterAchievementId,
+    learnerId: params.learnerId,
+    achievementKey: 'dialogue.first_chapter',
+    unlockedAt: params.completedAt,
+  });
+}
 
 export async function runDialoguePipelineStreaming(
   input: DialoguePipelineStreamInput,
@@ -173,6 +214,19 @@ export async function runDialoguePipelineStreaming(
     });
   }
 
+  const successCommittedAt = new Date().toISOString();
+  if (!generateResult.interrupted) {
+    await persistDialogueProgress({
+      learnerId: activeProfile.id,
+      sessionId,
+      worldId: sessionSnapshot.worldId,
+      chapterIndex: sessionSnapshot.chapterIndex,
+      sceneType: pacing.nextSceneType,
+      assistantText: generateResult.fullText,
+      completedAt: successCommittedAt,
+    });
+  }
+
   await sqliteUpdateSession({
     id: sessionId,
     sessionStatus: 'active',
@@ -180,7 +234,7 @@ export async function runDialoguePipelineStreaming(
     sceneType: pacing.nextSceneType,
     rhythmCounter: pacing.rhythmCounter,
     trunkEventIndex: sessionSnapshot.trunkEventIndex,
-    updatedAt: new Date().toISOString(),
+    updatedAt: successCommittedAt,
     completedAt: null,
   });
 

@@ -46,11 +46,11 @@ field_contract:
 constraints:
   - Eligibility for ShiJi display is determined by this catalog, not by world tags
   - Only rows with `status = ACTIVE` are eligible for stable UI display
-  - `sortOrder` must be unique
-  - `worldId` must be unique
-  - `contentType` / `truthMode` must match an allowed pair in `content-classification.yaml`
+  - "`sortOrder` must be unique"
+  - "`worldId` must be unique"
+  - "`contentType` / `truthMode` must match an allowed pair in `content-classification.yaml`"
   - Student-facing displays must use classification labels/badges from `content-classification.yaml`, not raw enum keys
-  - `mapAvailability = true` requires a matching enabled profile in `map-surface.yaml`
+  - "`mapAvailability = true` requires a matching enabled profile in `map-surface.yaml`"
   - Display metadata (name, tagline, description, bannerUrl) is sourced from Realm API responses; this catalog provides eligibility gating, sort order, and classification overlay only
 
 entries: []

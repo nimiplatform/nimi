@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const invokeCheckedMock = vi.fn();
@@ -11,6 +12,7 @@ vi.mock('./index.js', async (importOriginal) => {
 });
 
 import { parseRuntimeDefaults } from './index.js';
+import { hasParentPin, setParentPin, verifyParentPin } from './parent-pin.js';
 import { sqliteGetSession } from './sqlite-bridge.js';
 
 const VALID_RUNTIME_DEFAULTS = {
@@ -89,5 +91,41 @@ describe('sqlite bridge strict parsing', () => {
     );
 
     await expect(sqliteGetSession('session-1')).rejects.toThrow(/sceneType/);
+  });
+});
+
+describe('parent PIN bridge', () => {
+  beforeEach(() => {
+    invokeCheckedMock.mockReset();
+    localStorage.clear();
+  });
+
+  it('uses Tauri commands instead of renderer-readable localStorage', async () => {
+    invokeCheckedMock
+      .mockImplementationOnce(async (_command: string, _payload: unknown, parseResult: (value: unknown) => unknown) =>
+        parseResult(true),
+      )
+      .mockImplementationOnce(async () => undefined)
+      .mockImplementationOnce(async (_command: string, _payload: unknown, parseResult: (value: unknown) => unknown) =>
+        parseResult(false),
+      );
+
+    await expect(hasParentPin()).resolves.toBe(true);
+    await expect(setParentPin('1234')).resolves.toBeUndefined();
+    await expect(verifyParentPin('9999')).resolves.toBe(false);
+
+    expect(invokeCheckedMock).toHaveBeenNthCalledWith(1, 'parent_pin_exists', {}, expect.any(Function));
+    expect(invokeCheckedMock).toHaveBeenNthCalledWith(2, 'parent_pin_set', { pin: '1234' }, expect.any(Function));
+    expect(invokeCheckedMock).toHaveBeenNthCalledWith(3, 'parent_pin_verify', { pin: '9999' }, expect.any(Function));
+    expect(localStorage.length).toBe(0);
+  });
+
+  it('fails closed on malformed Tauri responses', async () => {
+    invokeCheckedMock.mockImplementationOnce(
+      async (_command: string, _payload: unknown, parseResult: (value: unknown) => unknown) =>
+        parseResult('yes'),
+    );
+
+    await expect(hasParentPin()).rejects.toThrow(/expected boolean/);
   });
 });

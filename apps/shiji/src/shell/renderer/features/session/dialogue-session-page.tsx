@@ -72,12 +72,28 @@ export default function DialogueSessionPage() {
       setStatus('not-found');
       return;
     }
+    const profile = activeProfile;
+    if (!profile) {
+      setSession(null);
+      setTurns([]);
+      setErrorMessage(t('session.activeLearnerRequired'));
+      setStatus('error');
+      return;
+    }
+    const profileId = profile.id;
 
     async function loadSession() {
       try {
         const loadedSession = await sqliteGetSession(sessionId!);
         if (!loadedSession) {
           setStatus('not-found');
+          return;
+        }
+        if (loadedSession.learnerId !== profileId) {
+          setSession(null);
+          setTurns([]);
+          setErrorMessage(t('session.learnerMismatch'));
+          setStatus('error');
           return;
         }
         setSession(loadedSession);
@@ -113,7 +129,7 @@ export default function DialogueSessionPage() {
 
     void loadSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
+  }, [sessionId, activeProfile?.id]);
 
   // ── Auto-scroll on new content ────────────────────────────────────────────
 
@@ -130,6 +146,11 @@ export default function DialogueSessionPage() {
     async (userInput: string, sessionOverride?: Session) => {
       const activeSession = sessionOverride ?? session;
       if (!activeSession || !sessionId) return;
+      if (!activeProfile || activeSession.learnerId !== activeProfile.id) {
+        setErrorMessage(t('session.learnerMismatch'));
+        setStatus('error');
+        return;
+      }
 
       // Cancel any in-flight generation
       abortRef.current?.abort();
@@ -235,7 +256,7 @@ export default function DialogueSessionPage() {
         if (abortRef.current === controller) abortRef.current = null;
       }
     },
-    [session, sessionId, t],
+    [activeProfile, session, sessionId, t],
   );
 
   // ── Handlers ──────────────────────────────────────────────────────────────

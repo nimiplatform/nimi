@@ -27,6 +27,7 @@ export default function AgentDetailPage() {
   const [startError, setStartError] = useState<string | null>(null);
 
   const catalogEntry = worldId ? getCatalogEntry(worldId) : undefined;
+  const catalogEligible = catalogEntry?.status === 'ACTIVE';
 
   // Fetch agent detail — SJ-EXPL-006:1
   const { data: agentData, isLoading, error } = useQuery({
@@ -35,14 +36,14 @@ export default function AgentDetailPage() {
       const result = await getAgent(agentId!);
       return result as AgentDetailResult;
     },
-    enabled: !!agentId,
+    enabled: !!agentId && catalogEligible,
   });
 
   // Check for existing active session — SJ-EXPL-006:6
   const { data: existingSession } = useQuery({
     queryKey: ['active-session', activeProfile?.id, worldId, agentId],
     queryFn: async () => {
-      if (!activeProfile || !worldId || !agentId) return null;
+      if (!activeProfile || !worldId || !agentId || !catalogEligible) return null;
       const sessions = await sqliteGetSessionsForLearner(activeProfile.id);
       // Find most recent non-abandoned, non-completed session for this world+agent
       const active = sessions.find(
@@ -50,7 +51,7 @@ export default function AgentDetailPage() {
       );
       return active ?? null;
     },
-    enabled: !!activeProfile && !!worldId && !!agentId,
+    enabled: !!activeProfile && !!worldId && !!agentId && catalogEligible,
   });
 
   async function handleStartOrResume() {
@@ -66,7 +67,7 @@ export default function AgentDetailPage() {
       return;
     }
 
-    if (!catalogEntry || !activeProfile) return;
+    if (!catalogEligible || !catalogEntry || !activeProfile) return;
 
     setStarting(true);
     setStartError(null);
@@ -92,7 +93,7 @@ export default function AgentDetailPage() {
   }
 
   async function handleRestart() {
-    if (!existingSession || !catalogEntry || !activeProfile) return;
+    if (!existingSession || !catalogEligible || !catalogEntry || !activeProfile) return;
     setStarting(true);
     setStartError(null);
     try {
@@ -138,19 +139,31 @@ export default function AgentDetailPage() {
         </Link>
       </div>
 
-      {isLoading && (
+      {/* Catalog gate — SJ-EXPL-006, SJ-EXPL-007 */}
+      {worldId && !catalogEligible && (
+        <div className="flex items-center justify-center h-48">
+          <div className="text-center space-y-2">
+            <p className="text-neutral-500 text-sm">此人物所属时期不在时迹目录中</p>
+            <Link to="/explore" className="text-amber-600 text-sm font-medium hover:text-amber-700">
+              返回时间长河
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {catalogEligible && isLoading && (
         <div className="flex items-center justify-center h-48">
           <div className="w-6 h-6 border-2 border-amber-200 border-t-amber-600 rounded-full animate-spin" />
         </div>
       )}
 
-      {error && !isLoading && (
+      {catalogEligible && error && !isLoading && (
         <div className="flex items-center justify-center h-48">
           <p className="text-neutral-500 text-sm">{t('error.generic')}</p>
         </div>
       )}
 
-      {!isLoading && !error && agentData && (
+      {catalogEligible && !isLoading && !error && agentData && (
         <div className="max-w-lg mx-auto px-6 pb-8">
           {/* Agent portrait — SJ-EXPL-006:2 */}
           <div className="flex gap-4 items-start mt-2 mb-6">

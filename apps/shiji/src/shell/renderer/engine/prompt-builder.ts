@@ -6,6 +6,7 @@ import type {
   ContentType,
   TruthMode,
 } from './types.js';
+import { getClassification } from '../data/classification.js';
 import {
   buildKnowledgeBlock,
   formatKnowledgeBlockForPrompt,
@@ -16,30 +17,36 @@ const SYSTEM_PROMPT_BUDGET_CHARS = 24_000;
 const MINIMUM_SET_LABEL = 'stable-dialogue minimum set (blocks 1-6)';
 
 function classificationText(contentType: ContentType, truthMode: TruthMode): string {
+  const classification = getClassification(contentType, truthMode);
+
+  if (!classification) {
+    throw new Error(`Invalid ShiJi dialogue classification: ${contentType}/${truthMode}`);
+  }
+
   switch (`${contentType}/${truthMode}`) {
     case 'history/factual':
       return [
-        '## CONTENT CLASSIFICATION: 历史 / 史实 (History / Factual)',
+        `## CONTENT CLASSIFICATION: ${classification.badge} (History / Factual)`,
         'This world is canonical history. Events, explanations, and character behavior must stay historically grounded.',
         'When uncertainty exists, distinguish established history from interpretation or scholarly debate.',
         'Verification questions must have objectively correct answers grounded in the historical record.',
       ].join('\n');
     case 'literature/dramatized':
       return [
-        '## CONTENT CLASSIFICATION: 名著 / 演义 (Literature / Dramatized)',
+        `## CONTENT CLASSIFICATION: ${classification.badge} (Literature / Dramatized)`,
         'This world is literary dramatization based on a classic Chinese literary work.',
         'Facts may be dramatized, embellished, or imagined by the original author.',
         'Teach this as literature and cultural heritage. Do not claim events as canonical history.',
       ].join('\n');
     case 'mythology/legendary':
       return [
-        '## CONTENT CLASSIFICATION: 神话 / 传说 (Mythology / Legendary)',
+        `## CONTENT CLASSIFICATION: ${classification.badge} (Mythology / Legendary)`,
         'This world is mythology and legend rather than verified historical fact.',
         'Present stories as cultural heritage, symbolism, and traditional belief.',
         'Make the truth boundary explicit whenever facts might otherwise be mistaken for history.',
       ].join('\n');
     default:
-      return `## CONTENT CLASSIFICATION: ${contentType} / ${truthMode}`;
+      throw new Error(`Invalid ShiJi dialogue classification: ${contentType}/${truthMode}`);
   }
 }
 

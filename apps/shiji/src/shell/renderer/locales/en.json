@@ -42,6 +42,8 @@
     "sessionEnded": "Dialogue complete",
     "noSession": "Session not found",
     "loadError": "Failed to load session",
+    "activeLearnerRequired": "Select a learner before opening a dialogue session",
+    "learnerMismatch": "This dialogue session belongs to another learner",
     "firstGreeting": "Begin conversation"
   },
   "onboarding": {
@@ -110,6 +112,8 @@
       "unlock": "Unlock",
       "resetPin": "Forgot PIN? Reset",
       "lock": "Lock parent mode",
+      "loadingPin": "Checking parent mode",
+      "pinStorageUnavailable": "Parent mode is unavailable because secure PIN storage is unavailable.",
       "wrongPin": "Incorrect PIN, please try again",
       "pinMismatch": "PINs do not match",
       "pinInvalidFormat": "PIN must be 4 digits",
@@ -154,6 +158,8 @@
     "domainDistribution": "Domain Distribution",
     "noConceptsInDomain": "No concepts in this domain yet",
     "noConcepts": "No concepts yet",
+    "loadError": "Could not load knowledge records",
+    "retry": "Retry",
     "allWorlds": "All periods"
   },
   "progress": {
@@ -170,6 +176,8 @@
     "chapterProgress": "{{completed}}/{{total}} chapters",
     "recentSessions": "Recent sessions",
     "noSessions": "No sessions yet",
+    "loadError": "Could not load progress records",
+    "retry": "Retry",
     "sessionWith": "Dialogue with {{agent}}",
     "timeline": "Learning timeline",
     "noChapters": "No chapters completed yet",

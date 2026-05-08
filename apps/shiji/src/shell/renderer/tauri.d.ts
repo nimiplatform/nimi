@@ -5,6 +5,11 @@ declare module '*.json' {
   export default value;
 }
 
+declare module '*.yaml?raw' {
+  const value: string;
+  export default value;
+}
+
 // Tauri v2 global — used by nimi-kit/telemetry for environment detection
 declare global {
   interface Window {

@@ -42,6 +42,8 @@
     "sessionEnded": "对话结束",
     "noSession": "找不到对话",
     "loadError": "加载对话失败",
+    "activeLearnerRequired": "请先选择学习者档案，再打开对话",
+    "learnerMismatch": "此对话属于其他学习者",
     "firstGreeting": "开始对话"
   },
   "onboarding": {
@@ -110,6 +112,8 @@
       "unlock": "解锁",
       "resetPin": "忘记 PIN？重新设置",
       "lock": "锁定家长模式",
+      "loadingPin": "正在检查家长模式",
+      "pinStorageUnavailable": "安全 PIN 存储不可用，家长模式暂不可用。",
       "wrongPin": "PIN 码不正确，请重试",
       "pinMismatch": "两次输入的 PIN 码不一致",
       "pinInvalidFormat": "PIN 码须为 4 位数字",
@@ -154,6 +158,8 @@
     "domainDistribution": "领域分布",
     "noConceptsInDomain": "该领域暂无知识点",
     "noConcepts": "暂无知识点",
+    "loadError": "无法加载知识记录",
+    "retry": "重试",
     "allWorlds": "全部时期"
   },
   "progress": {
@@ -170,6 +176,8 @@
     "chapterProgress": "{{completed}}/{{total}} 章",
     "recentSessions": "最近对话",
     "noSessions": "暂无对话记录",
+    "loadError": "无法加载学习进度记录",
+    "retry": "重试",
     "sessionWith": "与 {{agent}} 的对话",
     "timeline": "学习时间线",
     "noChapters": "暂无章节记录",

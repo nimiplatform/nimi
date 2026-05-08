@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 import ExploreHomePage from './explore-home-page.js';
+import { getActiveCatalogEntries } from '@renderer/data/world-catalog.js';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -48,6 +49,8 @@ function renderPage() {
 describe('ExploreHomePage', () => {
   beforeEach(() => {
     vi.mocked(useQuery).mockReset();
+    vi.mocked(getActiveCatalogEntries).mockReset();
+    vi.mocked(getActiveCatalogEntries).mockReturnValue([]);
     vi.mocked(useQuery).mockReturnValue({
       data: [],
       isLoading: false,
@@ -61,6 +64,37 @@ describe('ExploreHomePage', () => {
 
   it('shows a hard-cut empty state when the catalog has no active worlds', () => {
     renderPage();
+    expect(screen.getByText('当前无可用世界')).toBeTruthy();
+  });
+
+  it('does not render catalog-only worlds that are absent from the public Realm world list', () => {
+    vi.mocked(getActiveCatalogEntries).mockReturnValue([
+      {
+        worldId: 'catalog-only',
+        displayName: 'Catalog Only',
+        sortOrder: 1,
+        startYear: 1,
+        endYear: 2,
+        eraLabel: 'Catalog Era',
+        contentType: 'history',
+        truthMode: 'factual',
+        status: 'ACTIVE',
+        timelineMountMode: 'PRIMARY',
+        mapAvailability: false,
+        primaryAgentIds: [],
+        relatedWorldIds: [],
+      },
+    ]);
+    vi.mocked(useQuery).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+
+    renderPage();
+
+    expect(screen.queryByText('Catalog Only')).toBeNull();
     expect(screen.getByText('当前无可用世界')).toBeTruthy();
   });
 });

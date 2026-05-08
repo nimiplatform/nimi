@@ -1,12 +1,23 @@
 /**
- * parent-pin.ts — localStorage-backed PIN for parent mode gate (SJ-SHELL-005:5)
+ * parent-pin.ts — Tauri-owned parent PIN capability gate (SJ-SHELL-005:5)
  */
-const PIN_KEY = 'shiji:parentPin';
+import { invokeChecked } from './index.js';
 
-export function getParentPin(): string | null {
-  return localStorage.getItem(PIN_KEY);
+function expectBoolean(value: unknown, label: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw new Error(`${label}: expected boolean`);
+  }
+  return value;
 }
 
-export function setParentPin(pin: string): void {
-  localStorage.setItem(PIN_KEY, pin);
+export async function hasParentPin(): Promise<boolean> {
+  return invokeChecked('parent_pin_exists', {}, (value) => expectBoolean(value, 'parent_pin_exists'));
+}
+
+export async function setParentPin(pin: string): Promise<void> {
+  await invokeChecked('parent_pin_set', { pin }, () => undefined);
+}
+
+export async function verifyParentPin(pin: string): Promise<boolean> {
+  return invokeChecked('parent_pin_verify', { pin }, (value) => expectBoolean(value, 'parent_pin_verify'));
 }
