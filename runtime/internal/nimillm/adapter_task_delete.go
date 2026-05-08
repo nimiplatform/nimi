@@ -11,6 +11,7 @@ import (
 // A nil error means the provider task is either cleaned up or the provider does not
 // expose a stronger cancel semantic for the observed state.
 func DeleteProviderAsyncTask(ctx context.Context, adapter string, providerJobID string, cfg MediaAdapterConfig) error {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	switch strings.TrimSpace(adapter) {
 	case AdapterBytedanceARKTask:
 		return deleteBytedanceARKTask(ctx, providerJobID, cfg)
@@ -20,6 +21,7 @@ func DeleteProviderAsyncTask(ctx context.Context, adapter string, providerJobID 
 }
 
 func deleteBytedanceARKTask(ctx context.Context, providerJobID string, cfg MediaAdapterConfig) error {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	taskID := strings.TrimSpace(providerJobID)
 	if baseURL == "" || taskID == "" {

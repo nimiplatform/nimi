@@ -34,7 +34,7 @@ func TestVoiceWorkflowFailCloseOnInvalidProviderResponse(t *testing.T) {
 			WorkflowType:    "voice_clone",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
-		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
+		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
 	)
 	if err == nil {
 		t.Fatalf("expected fail-close error for invalid provider payload")
@@ -62,7 +62,7 @@ func TestVoiceWorkflowRejectsJobOnlyProviderResponse(t *testing.T) {
 			WorkflowType:    "voice_clone",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
-		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
+		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
 	)
 	if err == nil {
 		t.Fatalf("expected fail-close error for provider payload without provider_voice_ref")
@@ -90,7 +90,7 @@ func TestVoiceWorkflowDoesNotSynthesizeProviderJobID(t *testing.T) {
 			WorkflowType:    "voice_clone",
 			WorkflowModelID: "qwen-voice-enrollment",
 		},
-		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
+		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
 	)
 	if err != nil {
 		t.Fatalf("Execute clone workflow without provider job id: %v", err)
@@ -114,6 +114,7 @@ func TestExecuteVoiceWorkflowJobPersistsWorkflowFamilyAndHandlePolicyMetadata(t 
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"dashscope": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	req := voiceCloneRequest()
 	resolution, err := svc.resolveVoiceWorkflow(context.Background(), "dashscope", "dashscope/qwen3-tts-vc", "voice_clone")
@@ -285,7 +286,7 @@ func TestLocalVoiceWorkflowFailClose(t *testing.T) {
 }
 
 func TestSubmitScenarioJobLocalQwenWorkflowReturnsAssetWithHandlePolicyMetadata(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{AllowLoopbackEndpoint: true})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, `{"ok":true}`)
 	}))
@@ -405,7 +406,7 @@ func TestExecuteVoiceWorkflowJobLocalQwenFailCloseUsesFamilySpecificDetail(t *te
 }
 
 func TestExecuteVoiceWorkflowJobLocalQwenSucceedsViaSpeechHost(t *testing.T) {
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{AllowLoopbackEndpoint: true})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/voice/clone" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)

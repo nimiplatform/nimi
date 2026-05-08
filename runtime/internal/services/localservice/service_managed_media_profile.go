@@ -590,11 +590,7 @@ func validateManagedMediaProfileOverrides(overrides map[string]any) error {
 	if len(overrides) == 0 {
 		return nil
 	}
-	if _, exists := overrides["download_files"]; exists {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	parameters := valueAsObject(overrides["parameters"])
-	if _, exists := parameters["model"]; exists {
+	if managedMediaProfileOverrideContainsForbiddenKey(overrides) {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	for _, option := range valueAsStringSlice(overrides["options"]) {
@@ -604,6 +600,28 @@ func validateManagedMediaProfileOverrides(overrides map[string]any) error {
 		}
 	}
 	return nil
+}
+
+func managedMediaProfileOverrideContainsForbiddenKey(value any) bool {
+	switch typed := value.(type) {
+	case map[string]any:
+		for key, child := range typed {
+			normalizedKey := strings.ToLower(strings.TrimSpace(key))
+			if normalizedKey == "download_files" || normalizedKey == "model" || strings.HasSuffix(normalizedKey, "_path") {
+				return true
+			}
+			if managedMediaProfileOverrideContainsForbiddenKey(child) {
+				return true
+			}
+		}
+	case []any:
+		for _, child := range typed {
+			if managedMediaProfileOverrideContainsForbiddenKey(child) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func managedMediaForwardedExtensions(scenarioExtensions map[string]any) map[string]any {

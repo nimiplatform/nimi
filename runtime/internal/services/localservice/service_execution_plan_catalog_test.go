@@ -159,8 +159,7 @@ func TestLocalApplyProfileInstallsPassiveAssets(t *testing.T) {
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 	svc.SetEngineManager(&mockEngineManager{})
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 	required := true
 
 	payload := []byte("verified-vae")

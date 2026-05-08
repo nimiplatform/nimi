@@ -7,7 +7,9 @@ import (
 	"log/slog"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -98,10 +100,95 @@ func setLocalRuntimePlatformForTest(t *testing.T, goos string, goarch string) {
 	})
 }
 
+func setLocalRuntimeProbeHooksForTest(
+	t *testing.T,
+	lookPath func(string) (string, error),
+	command func(context.Context, string, ...string) *exec.Cmd,
+	stat func(string) (os.FileInfo, error),
+) {
+	t.Helper()
+	originalLookPath := localRuntimeLookPath
+	originalCommand := localRuntimeCommand
+	originalStat := localRuntimeStat
+	localRuntimeLookPath = lookPath
+	localRuntimeCommand = command
+	localRuntimeStat = stat
+	t.Cleanup(func() {
+		localRuntimeLookPath = originalLookPath
+		localRuntimeCommand = originalCommand
+		localRuntimeStat = originalStat
+	})
+}
+
+func shellCommandForTest(ctx context.Context, script string) *exec.Cmd {
+	if runtime.GOOS == "windows" {
+		return exec.CommandContext(ctx, "cmd", "/c", script)
+	}
+	return exec.CommandContext(ctx, "sh", "-c", script)
+}
+
+func setNvidiaGPUProbeForTest(t *testing.T, cudaReady bool) {
+	t.Helper()
+	setLocalRuntimeProbeHooksForTest(
+		t,
+		func(name string) (string, error) {
+			switch name {
+			case "nvidia-smi":
+				return "/usr/bin/nvidia-smi", nil
+			case "nvcc":
+				if cudaReady {
+					return "/usr/local/cuda/bin/nvcc", nil
+				}
+			}
+			return "", exec.ErrNotFound
+		},
+		func(ctx context.Context, name string, args ...string) *exec.Cmd {
+			if name == "nvidia-smi" {
+				return shellCommandForTest(ctx, "printf 'NVIDIA RTX 4090, 24576, 20000\\n'")
+			}
+			return exec.CommandContext(ctx, name, args...)
+		},
+		func(string) (os.FileInfo, error) {
+			return nil, os.ErrNotExist
+		},
+	)
+}
+
+func setUnsupportedGPUProbeForTest(t *testing.T) {
+	t.Helper()
+	setLocalRuntimeProbeHooksForTest(
+		t,
+		func(string) (string, error) {
+			return "", exec.ErrNotFound
+		},
+		exec.CommandContext,
+		func(string) (os.FileInfo, error) {
+			return nil, os.ErrNotExist
+		},
+	)
+}
+
 func setManagedImageHostForTest(t *testing.T, chip string) {
 	t.Helper()
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "apple")
-	t.Setenv("NIMI_RUNTIME_GPU_MODEL", chip)
+	setLocalRuntimeProbeHooksForTest(
+		t,
+		func(string) (string, error) {
+			return "", exec.ErrNotFound
+		},
+		func(ctx context.Context, name string, args ...string) *exec.Cmd {
+			if name == "sysctl" && len(args) == 2 && args[0] == "-n" && args[1] == "machdep.cpu.brand_string" {
+				return shellCommandForTest(ctx, "printf '%s\\n' "+shellQuoteForTest(chip))
+			}
+			return exec.CommandContext(ctx, name, args...)
+		},
+		func(string) (os.FileInfo, error) {
+			return nil, os.ErrNotExist
+		},
+	)
+}
+
+func shellQuoteForTest(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
 }
 
 func mustImportManagedImageAssetForTest(t *testing.T, svc *Service, logicalModelID string) *runtimev1.LocalAssetRecord {
@@ -537,8 +624,8 @@ func TestLocalCollectDeviceProfileIncludesExtraPorts(t *testing.T) {
 
 func TestResolveModelInstallPlanManualAddsDeviceWarnings(t *testing.T) {
 	svc := newTestService(t)
-	t.Setenv("NIMI_RUNTIME_NPU_AVAILABLE", "0")
-	t.Setenv("NIMI_RUNTIME_NPU_READY", "0")
+	t.Setenv("NIMI_NPU_AVAILABLE", "0")
+	t.Setenv("NIMI_NPU_READY", "0")
 
 	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
 		ModelId:  "local/npu-model",

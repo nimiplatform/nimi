@@ -10,6 +10,7 @@ import (
 )
 
 func executeDashScopeVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := resolveVoiceWorkflowBaseURL("dashscope", cfg, req.ExtPayload)
 	if baseURL == "" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)

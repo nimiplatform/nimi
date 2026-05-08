@@ -29,6 +29,7 @@ func SupportsProviderVoiceDelete(provider string) bool {
 // DeleteProviderVoice deletes a provider-persistent voice reference when the
 // provider offers a native delete API.
 func DeleteProviderVoice(ctx context.Context, provider string, providerVoiceRef string, cfg MediaAdapterConfig, extPayload map[string]any) error {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	normalizedProvider := strings.TrimSpace(strings.ToLower(provider))
 	normalizedVoiceRef := strings.TrimSpace(providerVoiceRef)
 	if normalizedProvider == "" || normalizedVoiceRef == "" {
@@ -46,6 +47,7 @@ func DeleteProviderVoice(ctx context.Context, provider string, providerVoiceRef 
 }
 
 func deleteElevenLabsVoice(ctx context.Context, providerVoiceRef string, cfg MediaAdapterConfig, extPayload map[string]any) error {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := resolveVoiceWorkflowBaseURL("elevenlabs", cfg, extPayload)
 	if baseURL == "" {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -60,6 +62,7 @@ func deleteElevenLabsVoice(ctx context.Context, providerVoiceRef string, cfg Med
 }
 
 func deleteFishAudioVoiceModel(ctx context.Context, providerVoiceRef string, cfg MediaAdapterConfig, extPayload map[string]any) error {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := resolveVoiceWorkflowBaseURL("fish_audio", cfg, extPayload)
 	if baseURL == "" {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)

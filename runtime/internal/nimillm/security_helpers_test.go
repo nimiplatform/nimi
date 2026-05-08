@@ -93,8 +93,9 @@ func TestExecuteElevenLabsTTSEscapesVoiceID(t *testing.T) {
 	defer server.Close()
 
 	_, _, _, err := ExecuteElevenLabsTTS(context.Background(), MediaAdapterConfig{
-		BaseURL: server.URL,
-		APIKey:  "test-key",
+		BaseURL:               server.URL,
+		AllowLoopbackEndpoint: true,
+		APIKey:                "test-key",
 	}, newTTSSecurityJob("hello", "voice/id with space"), "elevenlabs/native")
 	if err != nil {
 		t.Fatalf("ExecuteElevenLabsTTS: %v", err)
@@ -116,7 +117,7 @@ func TestIsContentFilterMessageRequiresSpecificPatterns(t *testing.T) {
 	}
 }
 
-func TestDoJSONOrBinaryRequestRejectsOversizedBody(t *testing.T) {
+func TestDoJSONOrBinaryRequestRejectsLoopbackWithoutExplicitOptIn(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		_, _ = w.Write(make([]byte, maxJSONOrBinaryResponseBytes+1))
@@ -125,9 +126,9 @@ func TestDoJSONOrBinaryRequestRejectsOversizedBody(t *testing.T) {
 
 	_, err := DoJSONOrBinaryRequest(context.Background(), http.MethodPost, server.URL, "", map[string]any{"ok": true}, nil)
 	if err == nil {
-		t.Fatal("expected oversized body to fail")
+		t.Fatal("expected loopback without explicit opt-in to fail")
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN {
 		t.Fatalf("unexpected reason: ok=%v reason=%v err=%v", ok, reason, err)
 	}
 }
@@ -170,7 +171,7 @@ func TestDecodeBase64ArtifactPayloadSupportsRawAndURLSafeVariants(t *testing.T) 
 
 func TestExtractBinaryArtifactBytesAndMIMEDecodesURLSafeBase64(t *testing.T) {
 	payload := []byte("artifact")
-	decoded, _, _ := ExtractBinaryArtifactBytesAndMIME(map[string]any{
+	decoded, _, _ := ExtractBinaryArtifactBytesAndMIME(context.Background(), map[string]any{
 		"audio_base64": base64.RawURLEncoding.EncodeToString(payload),
 	})
 	if string(decoded) != "artifact" {
@@ -178,7 +179,7 @@ func TestExtractBinaryArtifactBytesAndMIMEDecodesURLSafeBase64(t *testing.T) {
 	}
 }
 
-func TestFetchBinaryArtifactRejectsOversizedResponse(t *testing.T) {
+func TestFetchBinaryArtifactRejectsLoopbackWithoutExplicitOptIn(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/png")
 		_, _ = w.Write(make([]byte, maxDecodedMediaURLBytes+1))
@@ -187,11 +188,29 @@ func TestFetchBinaryArtifactRejectsOversizedResponse(t *testing.T) {
 
 	_, _, err := fetchBinaryArtifact(context.Background(), server.URL)
 	if err == nil {
-		t.Fatal("expected oversized artifact fetch to fail")
+		t.Fatal("expected loopback artifact fetch without explicit opt-in to fail")
 	}
 }
 
-func TestFetchAudioFromURIRejectsOversizedResponse(t *testing.T) {
+func TestExtractBinaryArtifactBytesAndMIMEHonorsCanceledContext(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/png")
+		_, _ = w.Write([]byte("detached fetch would succeed"))
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(loopbackProviderTestContext(context.Background()))
+	cancel()
+
+	artifactBytes, _, _ := ExtractBinaryArtifactBytesAndMIME(ctx, map[string]any{
+		"url": server.URL,
+	})
+	if len(artifactBytes) != 0 {
+		t.Fatalf("expected canceled context to prevent artifact fetch, got %q", string(artifactBytes))
+	}
+}
+
+func TestFetchAudioFromURIRejectsLoopbackWithoutExplicitOptIn(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "audio/wav")
 		_, _ = w.Write(make([]byte, maxDecodedMediaURLBytes+1))
@@ -200,9 +219,9 @@ func TestFetchAudioFromURIRejectsOversizedResponse(t *testing.T) {
 
 	_, _, err := FetchAudioFromURI(context.Background(), server.URL)
 	if err == nil {
-		t.Fatal("expected oversized audio fetch to fail")
+		t.Fatal("expected loopback audio fetch without explicit opt-in to fail")
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN {
 		t.Fatalf("unexpected reason: ok=%v reason=%v err=%v", ok, reason, err)
 	}
 }
@@ -332,7 +351,7 @@ func TestResolveBytedanceOpenSpeechWSReadTimeoutClampsToMaximum(t *testing.T) {
 }
 
 func TestExtractSpeechArtifactFromResponseBodyRejectsTextOnlyJSON(t *testing.T) {
-	artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(&JSONOrBinaryBody{
+	artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(context.Background(), &JSONOrBinaryBody{
 		Bytes: []byte(`{"text":"not-audio"}`),
 		Text:  "not-audio",
 		MIME:  "application/json",

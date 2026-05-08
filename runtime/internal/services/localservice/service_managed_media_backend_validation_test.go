@@ -39,16 +39,61 @@ func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 	svc.mu.Unlock()
 	writeManagedAssetEntryFixture(t, modelsRoot, modelResp, "main-model")
 
-	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
-		"profile_overrides": map[string]any{
-			"options": []any{"vae_path:/tmp/outside.safetensors"},
+	cases := []struct {
+		name      string
+		overrides map[string]any
+	}{
+		{
+			name: "option path",
+			overrides: map[string]any{
+				"options": []any{"vae_path:/tmp/outside.safetensors"},
+			},
 		},
-	})
-	if err == nil {
-		t.Fatalf("expected path override rejection")
+		{
+			name: "top-level path",
+			overrides: map[string]any{
+				"vae_path": "/tmp/outside.safetensors",
+			},
+		},
+		{
+			name: "nested path",
+			overrides: map[string]any{
+				"parameters": map[string]any{
+					"extras": map[string]any{
+						"controlnet_path": "/tmp/controlnet.safetensors",
+					},
+				},
+			},
+		},
+		{
+			name: "nested model",
+			overrides: map[string]any{
+				"parameters": map[string]any{
+					"model": "/tmp/model.safetensors",
+				},
+			},
+		},
+		{
+			name: "nested download files",
+			overrides: map[string]any{
+				"parameters": map[string]any{
+					"download_files": []any{"https://example.invalid/model.bin"},
+				},
+			},
+		},
 	}
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected invalid argument, got %v", status.Code(err))
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+				"profile_overrides": tc.overrides,
+			})
+			if err == nil {
+				t.Fatalf("expected path override rejection")
+			}
+			if status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("expected invalid argument, got %v", status.Code(err))
+			}
+		})
 	}
 }
 

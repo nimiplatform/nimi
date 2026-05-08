@@ -216,19 +216,17 @@ func (s *Service) CompleteLogin(ctx context.Context, req *runtimev1.CompleteLogi
 	s.loginAttempts[attemptID] = record
 	s.mu.Unlock()
 
-	var material AccountMaterial
-	var err error
-	refreshToken := strings.TrimSpace(req.GetRefreshToken())
-	if refreshToken != "" {
-		adopter, ok := s.exchanger.(BrowserCallbackTokenAdopter)
-		if !ok {
-			err = ErrLoginExchangeFailure
-		} else {
-			material, err = adopter.AdoptBrowserCallbackTokens(ctx, record.attempt, code, refreshToken)
-		}
-	} else {
-		material, err = s.exchanger.Exchange(ctx, record.attempt, code)
+	if strings.TrimSpace(req.GetRefreshToken()) != "" {
+		s.transitionToReauthRequired(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED)
+		return &runtimev1.CompleteLoginResponse{
+			Accepted:          false,
+			State:             s.currentState(),
+			ReasonCode:        runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE,
+			AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED,
+		}, nil
 	}
+
+	material, err := s.exchanger.Exchange(ctx, record.attempt, code)
 	if err != nil {
 		reason := runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE
 		if errors.Is(err, ErrInertNotActivated) {

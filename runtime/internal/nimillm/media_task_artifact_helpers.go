@@ -208,17 +208,17 @@ func IsAsyncTaskExpiredStatus(statusText string) bool {
 // ExtractTaskArtifactBytesAndMIME extracts artifact bytes, MIME type, and URI
 // from a provider async task response, searching nested result/data/output
 // objects.
-func ExtractTaskArtifactBytesAndMIME(payload map[string]any) ([]byte, string, string) {
-	if artifactBytes, mimeType, artifactURI := ExtractArtifactBytesAndMIME(payload); len(artifactBytes) > 0 {
+func ExtractTaskArtifactBytesAndMIME(ctx context.Context, payload map[string]any) ([]byte, string, string) {
+	if artifactBytes, mimeType, artifactURI := ExtractArtifactBytesAndMIME(ctx, payload); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
-	if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(payload["result"]); len(artifactBytes) > 0 {
+	if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(ctx, payload["result"]); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
-	if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(payload["data"]); len(artifactBytes) > 0 {
+	if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(ctx, payload["data"]); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
-	if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(payload["output"]); len(artifactBytes) > 0 {
+	if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(ctx, payload["output"]); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
 	return nil, "", ""
@@ -250,11 +250,11 @@ func ResolveTaskQueryPath(queryTemplate, providerJobID string) string {
 
 // ExtractArtifactBytesAndMIME extracts artifact bytes (binary or text) from a
 // provider response payload.
-func ExtractArtifactBytesAndMIME(payload map[string]any) ([]byte, string, string) {
+func ExtractArtifactBytesAndMIME(ctx context.Context, payload map[string]any) ([]byte, string, string) {
 	if payload == nil {
 		return nil, "", ""
 	}
-	if artifactBytes, mimeType, artifactURI := ExtractBinaryArtifactBytesAndMIME(payload); len(artifactBytes) > 0 {
+	if artifactBytes, mimeType, artifactURI := ExtractBinaryArtifactBytesAndMIME(ctx, payload); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
 	if text := strings.TrimSpace(FirstNonEmpty(
@@ -269,7 +269,7 @@ func ExtractArtifactBytesAndMIME(payload map[string]any) ([]byte, string, string
 
 // ExtractBinaryArtifactBytesAndMIME extracts binary artifact bytes from a
 // provider response payload by checking base64 fields then downloading URLs.
-func ExtractBinaryArtifactBytesAndMIME(payload map[string]any) ([]byte, string, string) {
+func ExtractBinaryArtifactBytesAndMIME(ctx context.Context, payload map[string]any) ([]byte, string, string) {
 	if payload == nil {
 		return nil, "", ""
 	}
@@ -324,7 +324,7 @@ func ExtractBinaryArtifactBytesAndMIME(payload map[string]any) ([]byte, string, 
 		ValueAsString(MapField(payload["content"], "video_url")),
 	))
 	if artifactURI != "" {
-		raw, resolvedMIME, err := fetchBinaryArtifact(context.Background(), artifactURI)
+		raw, resolvedMIME, err := fetchBinaryArtifact(ctx, artifactURI)
 		if err == nil && len(raw) > 0 {
 			return raw, FirstNonEmpty(
 				ValueAsString(payload["mime_type"]),
@@ -364,20 +364,20 @@ func fetchBinaryArtifact(ctx context.Context, artifactURI string) ([]byte, strin
 
 // ExtractImageArtifactFromAny recursively extracts image artifact bytes from
 // a generic value (map, slice, or URL string).
-func ExtractImageArtifactFromAny(value any) ([]byte, string, string) {
+func ExtractImageArtifactFromAny(ctx context.Context, value any) ([]byte, string, string) {
 	switch typed := value.(type) {
 	case map[string]any:
-		return ExtractImageArtifactFromMap(typed)
+		return ExtractImageArtifactFromMap(ctx, typed)
 	case []any:
 		for _, item := range typed {
-			if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(item); len(artifactBytes) > 0 {
+			if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(ctx, item); len(artifactBytes) > 0 {
 				return artifactBytes, mimeType, artifactURI
 			}
 		}
 	case string:
 		uri := strings.TrimSpace(typed)
 		if strings.HasPrefix(uri, "http://") || strings.HasPrefix(uri, "https://") {
-			return ExtractBinaryArtifactBytesAndMIME(map[string]any{
+			return ExtractBinaryArtifactBytesAndMIME(ctx, map[string]any{
 				"url": uri,
 			})
 		}
@@ -388,11 +388,11 @@ func ExtractImageArtifactFromAny(value any) ([]byte, string, string) {
 // ExtractImageArtifactFromMap extracts image artifact bytes from a map by
 // checking binary fields, base64 fields, image_url nesting, and content/message
 // recursion.
-func ExtractImageArtifactFromMap(payload map[string]any) ([]byte, string, string) {
+func ExtractImageArtifactFromMap(ctx context.Context, payload map[string]any) ([]byte, string, string) {
 	if payload == nil {
 		return nil, "", ""
 	}
-	if artifactBytes, mimeType, artifactURI := ExtractBinaryArtifactBytesAndMIME(payload); len(artifactBytes) > 0 {
+	if artifactBytes, mimeType, artifactURI := ExtractBinaryArtifactBytesAndMIME(ctx, payload); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
 
@@ -408,7 +408,7 @@ func ExtractImageArtifactFromMap(payload map[string]any) ([]byte, string, string
 	}
 	if imageURL := strings.TrimSpace(ValueAsString(payload["image"])); imageURL != "" {
 		if strings.HasPrefix(strings.ToLower(imageURL), "http://") || strings.HasPrefix(strings.ToLower(imageURL), "https://") {
-			return ExtractBinaryArtifactBytesAndMIME(map[string]any{
+			return ExtractBinaryArtifactBytesAndMIME(ctx, map[string]any{
 				"url":       imageURL,
 				"mime_type": mimeType,
 			})
@@ -417,40 +417,40 @@ func ExtractImageArtifactFromMap(payload map[string]any) ([]byte, string, string
 	if imageURL := payload["image_url"]; imageURL != nil {
 		switch typed := imageURL.(type) {
 		case string:
-			return ExtractBinaryArtifactBytesAndMIME(map[string]any{
+			return ExtractBinaryArtifactBytesAndMIME(ctx, map[string]any{
 				"url":       typed,
 				"mime_type": mimeType,
 			})
 		case map[string]any:
-			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(typed); len(artifactBytes) > 0 {
+			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(ctx, typed); len(artifactBytes) > 0 {
 				return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
 			}
 		}
 	}
 	if inlineData := payload["inlineData"]; inlineData != nil {
 		if typed, ok := inlineData.(map[string]any); ok {
-			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(typed); len(artifactBytes) > 0 {
+			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(ctx, typed); len(artifactBytes) > 0 {
 				return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
 			}
 		}
 	}
 	if inlineData := payload["inline_data"]; inlineData != nil {
 		if typed, ok := inlineData.(map[string]any); ok {
-			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(typed); len(artifactBytes) > 0 {
+			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(ctx, typed); len(artifactBytes) > 0 {
 				return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
 			}
 		}
 	}
 	if fileData := payload["fileData"]; fileData != nil {
 		if typed, ok := fileData.(map[string]any); ok {
-			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(typed); len(artifactBytes) > 0 {
+			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(ctx, typed); len(artifactBytes) > 0 {
 				return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
 			}
 		}
 	}
 	if fileData := payload["file_data"]; fileData != nil {
 		if typed, ok := fileData.(map[string]any); ok {
-			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(typed); len(artifactBytes) > 0 {
+			if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromMap(ctx, typed); len(artifactBytes) > 0 {
 				return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
 			}
 		}
@@ -460,20 +460,20 @@ func ExtractImageArtifactFromMap(payload map[string]any) ([]byte, string, string
 		ValueAsString(payload["file_uri"]),
 		ValueAsString(payload["uri"]),
 	)); artifactURI != "" {
-		if artifactBytes, nestedMIME, resolvedURI := ExtractImageArtifactFromAny(artifactURI); len(artifactBytes) > 0 {
+		if artifactBytes, nestedMIME, resolvedURI := ExtractImageArtifactFromAny(ctx, artifactURI); len(artifactBytes) > 0 {
 			return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), FirstNonEmpty(resolvedURI, artifactURI)
 		}
 	}
-	if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromAny(payload["content"]); len(artifactBytes) > 0 {
+	if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromAny(ctx, payload["content"]); len(artifactBytes) > 0 {
 		return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
 	}
-	if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromAny(payload["parts"]); len(artifactBytes) > 0 {
+	if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromAny(ctx, payload["parts"]); len(artifactBytes) > 0 {
 		return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
 	}
-	if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromAny(payload["choices"]); len(artifactBytes) > 0 {
+	if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromAny(ctx, payload["choices"]); len(artifactBytes) > 0 {
 		return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
 	}
-	if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromAny(payload["message"]); len(artifactBytes) > 0 {
+	if artifactBytes, nestedMIME, artifactURI := ExtractImageArtifactFromAny(ctx, payload["message"]); len(artifactBytes) > 0 {
 		return artifactBytes, FirstNonEmpty(mimeType, nestedMIME), artifactURI
 	}
 	return nil, "", ""
@@ -510,7 +510,7 @@ func DecodeBase64ArtifactPayload(raw string) ([]byte, bool) {
 // ExtractSpeechArtifactFromResponseBody extracts speech audio bytes and MIME
 // from a JSONOrBinaryBody response. If the body contains text (not audio), it
 // returns nil.
-func ExtractSpeechArtifactFromResponseBody(body *JSONOrBinaryBody) ([]byte, string) {
+func ExtractSpeechArtifactFromResponseBody(ctx context.Context, body *JSONOrBinaryBody) ([]byte, string) {
 	if body == nil {
 		return nil, ""
 	}
@@ -526,7 +526,7 @@ func ExtractSpeechArtifactFromResponseBody(body *JSONOrBinaryBody) ([]byte, stri
 	if strings.Contains(strings.ToLower(mimeType), "application/json") || looksLikeJSON {
 		parsed := map[string]any{}
 		if err := json.Unmarshal(payload, &parsed); err == nil {
-			if artifactBytes, parsedMIME, _ := ExtractArtifactBytesAndMIME(parsed); len(artifactBytes) > 0 {
+			if artifactBytes, parsedMIME, _ := ExtractArtifactBytesAndMIME(ctx, parsed); len(artifactBytes) > 0 {
 				if strings.TrimSpace(parsedMIME) != "" {
 					mimeType = strings.TrimSpace(parsedMIME)
 				}

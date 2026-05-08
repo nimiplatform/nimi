@@ -191,3 +191,26 @@ test('executionEvents.read rejects retired MEMORY_ONLY effectClass selectors', a
     },
   );
 });
+
+test('executionEvents.read rejects unsupported eventKind selectors', async () => {
+  clearPlatformClient();
+  const client = await createPlatformClient({
+    appId: 'nimi.sdk.wee.validation.event-kind',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+  });
+  setRuntimeWorldEvolutionSelectorReadProvider(client.runtime, createProvider());
+
+  await assert.rejects(
+    () => client.worldEvolution.executionEvents.read({
+      worldId: 'world-1',
+      eventKind: 'WORKFLOW_NODE_EVENT',
+    } as never),
+    (error: unknown) => {
+      assert.equal((error as { details?: { rejectionCategory?: string } }).details?.rejectionCategory, 'INVALID_SELECTOR');
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_INPUT_INVALID);
+      return true;
+    },
+  );
+});

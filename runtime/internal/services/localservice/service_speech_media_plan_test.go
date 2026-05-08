@@ -139,8 +139,7 @@ func TestResolveModelInstallPlanMediaVideoSupervisedUnsupportedHost(t *testing.T
 	svc := newTestService(t)
 	svc.SetEngineManager(&mockEngineManager{})
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "intel")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
+	setUnsupportedGPUProbeForTest(t)
 
 	svc.mu.Lock()
 	svc.catalog = append(svc.catalog, &runtimev1.LocalCatalogModelDescriptor{
@@ -203,8 +202,7 @@ func TestResolveModelInstallPlanImageSupervisedSupportedOnAppleSilicon(t *testin
 func TestResolveModelInstallPlanMediaAttachedEndpointAllowedOnUnsupportedHost(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "intel")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
+	setUnsupportedGPUProbeForTest(t)
 
 	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
 		ModelId:      "local/wan-video",
@@ -227,8 +225,7 @@ func TestResolveModelInstallPlanMediaAttachedEndpointAllowedOnUnsupportedHost(t 
 func TestInstallLocalModelMediaVideoRequiresExplicitEndpointOnUnsupportedHost(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "intel")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
+	setUnsupportedGPUProbeForTest(t)
 
 	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
 		assetID:      "local/flux-test",

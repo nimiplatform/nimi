@@ -719,17 +719,21 @@ func TestDeleteLocalConnectorForbidden(t *testing.T) {
 		t.Fatal("expected error deleting local connector")
 	}
 }
-func TestDeleteConnectorIdempotent(t *testing.T) {
+func TestDeleteConnectorMissingReturnsNotFound(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
-	resp, err := svc.DeleteConnector(ctx, &runtimev1.DeleteConnectorRequest{
+	_, err := svc.DeleteConnector(ctx, &runtimev1.DeleteConnectorRequest{
 		ConnectorId: "nonexistent",
 	})
-	if err != nil {
-		t.Fatalf("DeleteConnector nonexistent: %v", err)
+	if err == nil {
+		t.Fatal("expected NotFound for missing connector delete")
 	}
-	if !resp.Ack.Ok {
-		t.Error("expected ack.ok=true for idempotent delete")
+	st, _ := status.FromError(err)
+	if st.Code() != codes.NotFound {
+		t.Fatalf("expected NotFound, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND.String() {
+		t.Fatalf("expected AI_CONNECTOR_NOT_FOUND, got %s", st.Message())
 	}
 }
 func TestTestConnectorNotFound(t *testing.T) {

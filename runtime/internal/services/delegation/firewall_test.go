@@ -99,6 +99,82 @@ func TestFirewallFailsClosedOnProvenanceMismatch(t *testing.T) {
 	}
 }
 
+func TestFirewallFailsClosedOnMissingRequiredLineage(t *testing.T) {
+	cases := map[string]func(*FirewallInput){
+		"firewall input id": func(input *FirewallInput) {
+			input.FirewallInputID = ""
+		},
+		"delegation result id": func(input *FirewallInput) {
+			input.DelegationResultID = ""
+		},
+		"candidate output ref": func(input *FirewallInput) {
+			input.CandidateOutputRef = ""
+		},
+		"provider profile id": func(input *FirewallInput) {
+			input.ProviderProfileID = ""
+		},
+		"capability id": func(input *FirewallInput) {
+			input.CapabilityID = ""
+		},
+		"descriptor hash": func(input *FirewallInput) {
+			input.DescriptorHash = ""
+		},
+		"protocol name": func(input *FirewallInput) {
+			input.ProtocolName = ""
+		},
+		"protocol revision": func(input *FirewallInput) {
+			input.ProtocolRevision = ""
+		},
+		"received at": func(input *FirewallInput) {
+			input.ReceivedAt = time.Time{}
+		},
+		"provenance id": func(input *FirewallInput) {
+			input.Provenance.ProvenanceID = ""
+		},
+		"provenance provider profile id": func(input *FirewallInput) {
+			input.Provenance.ProviderProfileID = ""
+		},
+		"provenance capability id": func(input *FirewallInput) {
+			input.Provenance.CapabilityID = ""
+		},
+		"provenance delegation request id": func(input *FirewallInput) {
+			input.Provenance.DelegationRequestID = ""
+		},
+		"provenance delegation result id": func(input *FirewallInput) {
+			input.Provenance.DelegationResultID = ""
+		},
+		"provenance descriptor hash": func(input *FirewallInput) {
+			input.Provenance.DescriptorHash = ""
+		},
+		"provenance protocol name": func(input *FirewallInput) {
+			input.Provenance.ProtocolName = ""
+		},
+		"provenance protocol revision": func(input *FirewallInput) {
+			input.Provenance.ProtocolRevision = ""
+		},
+		"provenance received at": func(input *FirewallInput) {
+			input.Provenance.ReceivedAt = time.Time{}
+		},
+	}
+	for name, mutate := range cases {
+		t.Run(name, func(t *testing.T) {
+			firewall := newTestFirewall(t)
+			input := cleanFirewallInput(t, OutputKindObservation, rawMCPTextResult(t, "clean result"))
+			mutate(&input)
+			decision, err := firewall.Evaluate(context.Background(), input)
+			if err != nil {
+				t.Fatalf("Evaluate returned error: %v", err)
+			}
+			if decision.Verdict != FirewallVerdictSchemaInvalid || decision.ReasonCode != ReasonFirewallSchemaInvalid {
+				t.Fatalf("expected schema invalid for missing %s, got %+v", name, decision)
+			}
+			if len(decision.NormalizedOutput) != 0 {
+				t.Fatalf("missing %s must not produce accepted output: %+v", name, decision)
+			}
+		})
+	}
+}
+
 func TestFirewallFailsClosedOnMalformedEvidence(t *testing.T) {
 	firewall := newTestFirewall(t)
 	input := cleanFirewallInput(t, OutputKindObservation, json.RawMessage(`{"content":`))

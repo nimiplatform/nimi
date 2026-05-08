@@ -118,15 +118,16 @@ func sleepWithContext(ctx context.Context, delay time.Duration) error {
 	}
 }
 
-func bestEffortDeleteProviderAsyncTask(adapter string, baseURL string, apiKey string, providerJobID string) {
+func bestEffortDeleteProviderAsyncTask(ctx context.Context, adapter string, baseURL string, apiKey string, providerJobID string) {
 	if strings.TrimSpace(adapter) == "" || strings.TrimSpace(providerJobID) == "" {
 		return
 	}
 	cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_ = DeleteProviderAsyncTask(cleanupCtx, adapter, providerJobID, MediaAdapterConfig{
-		BaseURL: baseURL,
-		APIKey:  apiKey,
+		BaseURL:               baseURL,
+		APIKey:                apiKey,
+		AllowLoopbackEndpoint: allowLoopbackProviderEndpointFromContext(ctx),
 	})
 }
 
@@ -155,7 +156,7 @@ func PollProviderTaskForArtifact(
 	detached := isDetachedPollContext(ctx)
 	for {
 		if ctx.Err() != nil {
-			bestEffortDeleteProviderAsyncTask(adapter, baseURL, apiKey, providerJobID)
+			bestEffortDeleteProviderAsyncTask(ctx, adapter, baseURL, apiKey, providerJobID)
 			return nil, nil, providerJobID, providerPollContextError(ctx.Err())
 		}
 		retryCount++
@@ -175,7 +176,7 @@ func PollProviderTaskForArtifact(
 				delay := providerPollDelay(retryCount)
 				updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), err.Error())
 				if sleepErr := sleepWithContext(ctx, delay); sleepErr != nil {
-					bestEffortDeleteProviderAsyncTask(adapter, baseURL, apiKey, providerJobID)
+					bestEffortDeleteProviderAsyncTask(ctx, adapter, baseURL, apiKey, providerJobID)
 					return nil, nil, providerJobID, providerPollContextError(sleepErr)
 				}
 				continue
@@ -192,7 +193,7 @@ func PollProviderTaskForArtifact(
 			delay := providerPollDelay(retryCount)
 			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), "")
 			if err := sleepWithContext(ctx, delay); err != nil {
-				bestEffortDeleteProviderAsyncTask(adapter, baseURL, apiKey, providerJobID)
+				bestEffortDeleteProviderAsyncTask(ctx, adapter, baseURL, apiKey, providerJobID)
 				return nil, nil, providerJobID, providerPollContextError(err)
 			}
 			continue
@@ -209,7 +210,7 @@ func PollProviderTaskForArtifact(
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
 			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
-		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(pollResp)
+		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(ctx, pollResp)
 		if len(artifactBytes) == 0 {
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
 			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)

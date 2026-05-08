@@ -32,6 +32,7 @@ import {
   readErrorBody,
   resolveBaseUrl,
 } from './client-helpers.js';
+import { assertNoAuthRealmEndpointAllowed } from './no-auth-allowlist.js';
 
 type RealmEventPayloadMap = {
   error: { error: NimiError; at: string };
@@ -378,6 +379,9 @@ export class Realm {
           source: 'sdk',
         });
       }
+
+      let accessToken = await this.#resolveAccessToken();
+      assertNoAuthRealmEndpointAllowed({ accessToken, methodName, path });
       while (true) {
         const requestAbortController = new AbortController();
         const abortRequest = () => {
@@ -404,7 +408,7 @@ export class Realm {
             input.signal.addEventListener('abort', onExternalAbort, { once: true });
           }
         }
-        const headers = await this.#resolveHeaders(input.headers);
+        const headers = await this.#resolveHeaders(input.headers, accessToken);
         try {
           const responseTuple = await method(
             path,
@@ -435,6 +439,7 @@ export class Realm {
                       this.#options.auth.refreshToken = refreshResult.refreshToken;
                     }
                   }
+                  accessToken = refreshResult.accessToken;
                   try {
                     this.#options.auth?.onTokenRefreshed?.(refreshResult);
                   } catch { /* observer callback must not break retry */ }
@@ -751,7 +756,7 @@ export class Realm {
     return Realm.decodeTokenExpiry(jwt);
   }
 
-  async #resolveHeaders(overrides?: Record<string, string>): Promise<Record<string, string>> {
+  async #resolveHeaders(overrides?: Record<string, string>, resolvedAccessToken?: string): Promise<Record<string, string>> {
     const sourceHeaders = this.#options.headers;
     let baseHeaders: Record<string, string> = {};
 
@@ -769,7 +774,7 @@ export class Realm {
       ...(overrides || {}),
     };
 
-    const accessToken = await this.#resolveAccessToken();
+    const accessToken = resolvedAccessToken ?? await this.#resolveAccessToken();
     if (accessToken && !Object.keys(merged).some((name) => name.toLowerCase() === 'authorization')) {
       merged.Authorization = `Bearer ${accessToken}`;
     }

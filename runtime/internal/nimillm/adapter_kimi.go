@@ -22,6 +22,7 @@ func ExecuteKimiImageChatMultimodal(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -40,7 +41,7 @@ func ExecuteKimiImageChatMultimodal(
 		return nil, nil, "", err
 	}
 
-	artifactBytes, mimeType, artifactURI := extractKimiImageArtifact(responsePayload)
+	artifactBytes, mimeType, artifactURI := extractKimiImageArtifact(ctx, responsePayload)
 	if len(artifactBytes) == 0 {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
@@ -143,17 +144,17 @@ func buildKimiImageChatPayload(modelResolved string, spec *runtimev1.ImageGenera
 // extractKimiImageArtifact extracts image artifact bytes, MIME type, and URI
 // from a Kimi chat-completions response, searching choices, output, and data
 // fields.
-func extractKimiImageArtifact(payload map[string]any) ([]byte, string, string) {
-	if artifactBytes, mimeType, artifactURI := ExtractBinaryArtifactBytesAndMIME(payload); len(artifactBytes) > 0 {
+func extractKimiImageArtifact(ctx context.Context, payload map[string]any) ([]byte, string, string) {
+	if artifactBytes, mimeType, artifactURI := ExtractBinaryArtifactBytesAndMIME(ctx, payload); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
-	if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(payload["choices"]); len(artifactBytes) > 0 {
+	if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(ctx, payload["choices"]); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
-	if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(payload["output"]); len(artifactBytes) > 0 {
+	if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(ctx, payload["output"]); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
-	if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(payload["data"]); len(artifactBytes) > 0 {
+	if artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(ctx, payload["data"]); len(artifactBytes) > 0 {
 		return artifactBytes, mimeType, artifactURI
 	}
 	return nil, "", ""

@@ -86,6 +86,9 @@ func (f *Firewall) Evaluate(ctx context.Context, input FirewallInput) (*Firewall
 	if input.Evidence.ModelContextAdmitted || input.Evidence.ProjectionAdmitted || input.Evidence.ActionAdmitted {
 		return f.reject(base, FirewallVerdictPolicyBlocked, ReasonFirewallQuarantined, nil), nil
 	}
+	if !requiredLineagePresent(input) {
+		return f.reject(base, FirewallVerdictSchemaInvalid, ReasonFirewallSchemaInvalid, nil), nil
+	}
 	if !f.provenanceMatches(input) {
 		return f.reject(base, FirewallVerdictProviderDrifted, ReasonProviderDrifted, nil), nil
 	}
@@ -148,6 +151,29 @@ func (f *Firewall) reject(base *FirewallDecision, verdict string, reasonCode str
 	base.ProjectionAdmitted = false
 	base.ActionAdmitted = false
 	return base
+}
+
+func requiredLineagePresent(input FirewallInput) bool {
+	if strings.TrimSpace(input.FirewallInputID) == "" ||
+		strings.TrimSpace(input.DelegationResultID) == "" ||
+		strings.TrimSpace(input.CandidateOutputRef) == "" ||
+		strings.TrimSpace(input.ProviderProfileID) == "" ||
+		strings.TrimSpace(input.CapabilityID) == "" ||
+		strings.TrimSpace(input.DescriptorHash) == "" ||
+		strings.TrimSpace(input.ProtocolName) == "" ||
+		strings.TrimSpace(input.ProtocolRevision) == "" ||
+		input.ReceivedAt.IsZero() {
+		return false
+	}
+	return strings.TrimSpace(input.Provenance.ProvenanceID) != "" &&
+		strings.TrimSpace(input.Provenance.ProviderProfileID) != "" &&
+		strings.TrimSpace(input.Provenance.CapabilityID) != "" &&
+		strings.TrimSpace(input.Provenance.DelegationRequestID) != "" &&
+		strings.TrimSpace(input.Provenance.DelegationResultID) != "" &&
+		strings.TrimSpace(input.Provenance.DescriptorHash) != "" &&
+		strings.TrimSpace(input.Provenance.ProtocolName) != "" &&
+		strings.TrimSpace(input.Provenance.ProtocolRevision) != "" &&
+		!input.Provenance.ReceivedAt.IsZero()
 }
 
 func (f *Firewall) provenanceMatches(input FirewallInput) bool {

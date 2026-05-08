@@ -33,6 +33,7 @@ func ExecuteStabilityMusic(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	if scenarioModal(req) != runtimev1.Modal_MODAL_MUSIC {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -129,6 +130,7 @@ func ExecuteSoundverseMusic(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	if scenarioModal(req) != runtimev1.Modal_MODAL_MUSIC {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -186,6 +188,7 @@ func ExecuteMubertMusic(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	if scenarioModal(req) != runtimev1.Modal_MODAL_MUSIC {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -242,7 +245,7 @@ func ExecuteMubertMusic(
 	retryCount := int32(0)
 	for {
 		if ctx.Err() != nil {
-			bestEffortDeleteProviderAsyncTask(AdapterMubertMusic, baseURL, strings.TrimSpace(cfg.APIKey), trackID)
+			bestEffortDeleteProviderAsyncTask(ctx, AdapterMubertMusic, baseURL, strings.TrimSpace(cfg.APIKey), trackID)
 			return nil, nil, trackID, providerPollContextError(ctx.Err())
 		}
 		current := submitResp
@@ -276,13 +279,13 @@ func ExecuteMubertMusic(
 			delay := providerPollDelay(retryCount)
 			updater.UpdatePollState(jobID, trackID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), statusText)
 			if err := sleepWithContext(ctx, delay); err != nil {
-				bestEffortDeleteProviderAsyncTask(AdapterMubertMusic, baseURL, strings.TrimSpace(cfg.APIKey), trackID)
+				bestEffortDeleteProviderAsyncTask(ctx, AdapterMubertMusic, baseURL, strings.TrimSpace(cfg.APIKey), trackID)
 				return nil, nil, trackID, providerPollContextError(err)
 			}
 			continue
 		}
 		if err := sleepWithContext(ctx, providerPollDelay(retryCount)); err != nil {
-			bestEffortDeleteProviderAsyncTask(AdapterMubertMusic, baseURL, strings.TrimSpace(cfg.APIKey), trackID)
+			bestEffortDeleteProviderAsyncTask(ctx, AdapterMubertMusic, baseURL, strings.TrimSpace(cfg.APIKey), trackID)
 			return nil, nil, trackID, providerPollContextError(err)
 		}
 	}
@@ -294,6 +297,7 @@ func ExecuteLoudlyMusic(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	if scenarioModal(req) != runtimev1.Modal_MODAL_MUSIC {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -356,6 +360,7 @@ func ExecuteLlamaMusic(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	if scenarioModal(req) != runtimev1.Modal_MODAL_MUSIC {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
@@ -434,6 +439,7 @@ func ExecuteSidecarMusic(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	if scenarioModal(req) != runtimev1.Modal_MODAL_MUSIC {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}

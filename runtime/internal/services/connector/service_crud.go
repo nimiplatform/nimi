@@ -455,9 +455,7 @@ func (s *Service) DeleteConnector(ctx context.Context, req *runtimev1.DeleteConn
 		return nil, s.internalProviderError("delete_connector.load", err)
 	}
 	if !found {
-		return &runtimev1.DeleteConnectorResponse{
-			Ack: &runtimev1.Ack{Ok: true},
-		}, nil
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
 	if connectorViolatesOAuthManagedUserBoundary(rec) {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)

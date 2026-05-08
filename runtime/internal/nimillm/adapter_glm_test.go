@@ -38,7 +38,7 @@ func TestExecuteGLMTaskReturnsCanceledOnContextCancelWhilePolling(t *testing.T) 
 
 	_, _, providerJobID, err := ExecuteGLMTask(
 		ctx,
-		MediaAdapterConfig{BaseURL: server.URL, APIKey: "glm-key"},
+		MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "glm-key"},
 		noopJobStateUpdater{},
 		"job-glm-video-cancel",
 		newAsyncVideoJobRequest("A short GLM scene."),

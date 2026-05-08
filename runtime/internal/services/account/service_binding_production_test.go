@@ -351,7 +351,7 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 	}
 }
 
-func TestProductionCompleteLoginAdoptsNimiWebBrowserCallbackTokens(t *testing.T) {
+func TestProductionCompleteLoginRejectsBrowserCallbackTokens(t *testing.T) {
 	custody := &memoryCustody{}
 	exchanger := newRealmOAuthExchanger(resolveProductionConfig(ProductionConfig{
 		AuthorizationURL: "https://app.nimi.test#/login",
@@ -380,11 +380,13 @@ func TestProductionCompleteLoginAdoptsNimiWebBrowserCallbackTokens(t *testing.T)
 	if err != nil {
 		t.Fatalf("CompleteLogin: %v", err)
 	}
-	if !complete.GetAccepted() || complete.GetAccountProjection().GetAccountId() != "acct-web-callback" {
-		t.Fatalf("browser callback token adoption failed: %+v", complete)
+	if complete.GetAccepted() ||
+		complete.GetReasonCode() != runtimev1.ReasonCode_AUTH_UNSUPPORTED_PROOF_TYPE ||
+		complete.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED {
+		t.Fatalf("browser callback token material must fail closed: %+v", complete)
 	}
-	if !custody.has || custody.material.AccessToken != accessToken || custody.material.RefreshToken != "refresh-web-callback" {
-		t.Fatalf("browser callback material not stored in Runtime custody: %+v", custody.material)
+	if custody.has {
+		t.Fatalf("browser callback material must not be stored in Runtime custody: %+v", custody.material)
 	}
 }
 

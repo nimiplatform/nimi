@@ -67,7 +67,7 @@ test('Realm unsafeRaw.request replaces pathParams before dispatch', async () => 
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-path-params.nimi.xyz',
-      auth: null,
+      auth: { accessToken: 'path-token' },
     });
 
     await realm.unsafeRaw.request({
@@ -130,7 +130,7 @@ test('Realm unsafeRaw.request only returns typed data through explicit parsing',
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-parser.nimi.xyz',
-      auth: null,
+      auth: { accessToken: 'parser-token' },
     });
 
     const result = await realm.unsafeRaw.request({
@@ -200,7 +200,7 @@ test('Realm maps HTTP errors to NimiError with layered reasonCode/actionHint', a
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-error.nimi.xyz',
-      auth: null,
+      auth: { accessToken: 'error-token' },
     });
 
     let thrown: unknown = null;
@@ -241,7 +241,7 @@ test('Realm maps HTTP 422 to CONFIG_INVALID when reasonCode is absent', async ()
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-validation.nimi.xyz',
-      auth: null,
+      auth: { accessToken: 'validation-token' },
     });
 
     let thrown: unknown = null;
@@ -285,7 +285,7 @@ test('Realm maps default 404/409/429 status codes when reasonCode is absent', as
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-status-map.nimi.xyz',
-      auth: null,
+      auth: { accessToken: 'status-token' },
     });
 
     const expectations: Array<{
@@ -325,7 +325,7 @@ test('Realm maps network failures to REALM_UNAVAILABLE', async () => {
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-network.nimi.xyz',
-      auth: null,
+      auth: { accessToken: 'network-token' },
     });
 
     let thrown: unknown = null;
@@ -369,7 +369,7 @@ test('Realm maps timeout abort to REALM_UNAVAILABLE (not OPERATION_ABORTED)', as
     const realm = new Realm({
       baseUrl: 'https://realm-timeout.nimi.xyz',
       timeoutMs: 10,
-      auth: null,
+      auth: { accessToken: 'timeout-token' },
     });
 
     let thrown: unknown = null;
@@ -414,7 +414,7 @@ test('Realm maps external abort signal to OPERATION_ABORTED', async () => {
     const realm = new Realm({
       baseUrl: 'https://realm-abort.nimi.xyz',
       timeoutMs: 1000,
-      auth: null,
+      auth: { accessToken: 'abort-token' },
     });
     const controller = new AbortController();
     const requestPromise = realm.unsafeRaw.request({

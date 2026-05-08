@@ -162,7 +162,8 @@ func TestSubmitScenarioJobWorldGenerateCompletes(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
-		CloudProviders: map[string]nimillm.ProviderCredentials{"worldlabs": {BaseURL: server.URL, APIKey: "world-api-key"}},
+		CloudProviders:        map[string]nimillm.ProviderCredentials{"worldlabs": {BaseURL: server.URL, APIKey: "world-api-key"}},
+		AllowLoopbackEndpoint: true,
 	})
 	req := &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{

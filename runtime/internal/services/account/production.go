@@ -194,21 +194,6 @@ func (r realmOAuthExchanger) Exchange(ctx context.Context, attempt LoginAttempt,
 	return r.exchangeForm(ctx, form)
 }
 
-func (r realmOAuthExchanger) AdoptBrowserCallbackTokens(_ context.Context, _ LoginAttempt, accessToken string, refreshToken string) (AccountMaterial, error) {
-	accessToken = strings.TrimSpace(accessToken)
-	refreshToken = strings.TrimSpace(refreshToken)
-	if accessToken == "" || refreshToken == "" {
-		return AccountMaterial{}, ErrLoginExchangeFailure
-	}
-	return normalizeMaterial(AccountMaterial{
-		AccountID:          jwtSubject(accessToken),
-		AccessToken:        accessToken,
-		AccessTokenExpires: accessTokenExpiry(accessToken, time.Now().UTC().Add(5*time.Minute)),
-		RefreshToken:       refreshToken,
-		RefreshTokenHashes: map[string]bool{},
-	}), nil
-}
-
 func (r realmOAuthExchanger) exchangeForm(ctx context.Context, form url.Values) (AccountMaterial, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.tokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
@@ -314,26 +299,6 @@ func (r realmOAuthExchanger) AuthorizationURL(attempt LoginAttempt) string {
 	}
 	u.Fragment = "/login?desktop_callback=" + url.QueryEscape(callbackURL) + "&desktop_state=" + url.QueryEscape(attempt.State)
 	return u.String()
-}
-
-func accessTokenExpiry(token string, fallback time.Time) time.Time {
-	raw := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(token), "Bearer "))
-	parts := strings.Split(raw, ".")
-	if len(parts) < 2 {
-		return fallback
-	}
-	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return fallback
-	}
-	var parsed map[string]any
-	if err := json.Unmarshal(payload, &parsed); err != nil {
-		return fallback
-	}
-	if exp := readNumber(parsed, "exp"); exp > 0 {
-		return time.Unix(exp, 0).UTC()
-	}
-	return fallback
 }
 
 func accountCustodyServiceName(partition string) string {

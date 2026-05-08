@@ -28,6 +28,7 @@ func ExecuteWorldLabsWorld(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		baseURL = "https://api.worldlabs.ai"
@@ -285,18 +286,18 @@ func buildWorldLabsManifest(world map[string]any, operationID string) ([]byte, m
 	imagery := MapField(assets, "imagery")
 	mesh := MapField(assets, "mesh")
 	manifest := map[string]any{
-		"provider":            "worldlabs",
-		"provider_operation":  strings.TrimSpace(operationID),
-		"world_id":            strings.TrimSpace(FirstNonEmpty(ValueAsString(world["world_id"]), ValueAsString(world["id"]))),
-		"display_name":        strings.TrimSpace(ValueAsString(world["display_name"])),
-		"world_marble_url":    strings.TrimSpace(ValueAsString(world["world_marble_url"])),
-		"caption":             strings.TrimSpace(ValueAsString(MapField(assets, "caption"))),
-		"thumbnail_url":       strings.TrimSpace(ValueAsString(MapField(assets, "thumbnail_url"))),
-		"pano_url":            strings.TrimSpace(ValueAsString(MapField(imagery, "pano_url"))),
-		"collider_mesh_url":   strings.TrimSpace(ValueAsString(MapField(mesh, "collider_mesh_url"))),
-		"spz_urls":            normalizeStringMap(MapField(splats, "spz_urls")),
-		"model":               strings.TrimSpace(ValueAsString(world["model"])),
-		"semantics_metadata":  normalizeWorldSemanticsMetadata(MapField(splats, "semantics_metadata")),
+		"provider":           "worldlabs",
+		"provider_operation": strings.TrimSpace(operationID),
+		"world_id":           strings.TrimSpace(FirstNonEmpty(ValueAsString(world["world_id"]), ValueAsString(world["id"]))),
+		"display_name":       strings.TrimSpace(ValueAsString(world["display_name"])),
+		"world_marble_url":   strings.TrimSpace(ValueAsString(world["world_marble_url"])),
+		"caption":            strings.TrimSpace(ValueAsString(MapField(assets, "caption"))),
+		"thumbnail_url":      strings.TrimSpace(ValueAsString(MapField(assets, "thumbnail_url"))),
+		"pano_url":           strings.TrimSpace(ValueAsString(MapField(imagery, "pano_url"))),
+		"collider_mesh_url":  strings.TrimSpace(ValueAsString(MapField(mesh, "collider_mesh_url"))),
+		"spz_urls":           normalizeStringMap(MapField(splats, "spz_urls")),
+		"model":              strings.TrimSpace(ValueAsString(world["model"])),
+		"semantics_metadata": normalizeWorldSemanticsMetadata(MapField(splats, "semantics_metadata")),
 	}
 	raw, err := json.Marshal(manifest)
 	if err != nil {

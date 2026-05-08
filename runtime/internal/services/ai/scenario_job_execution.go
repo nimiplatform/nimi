@@ -168,7 +168,12 @@ func (s *Service) executeScenarioAsyncJob(
 			artifacts, usage, providerJobID, err = nimillm.ExecuteLoudlyMusic(ctx, cfg, req, apiModelID)
 		case adapterSidecarMusic:
 			creds := s.config.LocalProviders["sidecar"]
-			cfg := nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey, Headers: creds.Headers}
+			cfg := nimillm.MediaAdapterConfig{
+				BaseURL:               creds.BaseURL,
+				APIKey:                creds.APIKey,
+				Headers:               creds.Headers,
+				AllowLoopbackEndpoint: s.allowLoopback,
+			}
 			artifacts, usage, providerJobID, err = nimillm.ExecuteSidecarMusic(ctx, cfg, req, apiModelID)
 		case adapterWorldLabsNative:
 			cfg := s.resolveNativeAdapterConfig("worldlabs", remoteTarget)

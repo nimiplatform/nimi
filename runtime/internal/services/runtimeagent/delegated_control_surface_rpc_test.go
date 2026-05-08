@@ -23,6 +23,7 @@ func TestDelegatedProviderProfilesAreRuntimeOwned(t *testing.T) {
 			DisplayName:       "Calendar MCP",
 			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
 			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
+			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
 			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
 				ToolName:          "calendar_lookup",
 				InputSchemaDigest: "sha256:calendar",
@@ -51,16 +52,39 @@ func TestDelegatedProviderProfilesAreRuntimeOwned(t *testing.T) {
 	}
 
 	disabled, err := svc.SetDelegatedProviderState(context.Background(), &runtimev1.SetDelegatedProviderStateRequest{
-		Context:           ctx,
-		AgentId:           "agent-1",
-		ProviderProfileId: "calendar-mcp",
-		State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED,
+		Context:             ctx,
+		AgentId:             "agent-1",
+		ProviderProfileId:   "calendar-mcp",
+		State:               runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED,
+		LifecycleReasonCode: "provider_disabled_by_policy",
 	})
 	if err != nil {
 		t.Fatalf("disable delegated provider profile: %v", err)
 	}
 	if disabled.GetProviderProfile().GetState() != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED {
 		t.Fatalf("expected disabled provider profile, got %+v", disabled.GetProviderProfile())
+	}
+	if disabled.GetProviderProfile().GetLifecycleReasonCode() != "provider_disabled_by_policy" {
+		t.Fatalf("expected lifecycle reason custody, got %+v", disabled.GetProviderProfile())
+	}
+}
+
+func TestDelegatedProviderProfileRequiresTrustTier(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
+		Context: testDelegatedControlContext(),
+		AgentId: "agent-1",
+		ProviderProfile: &runtimev1.DelegatedProviderProfile{
+			ProviderProfileId: "calendar-mcp",
+			DisplayName:       "Calendar MCP",
+			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
+			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
+			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup"}},
+			TransportRef:      "runtime-transport://calendar-mcp",
+		},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected missing trust tier to fail closed, got %v", err)
 	}
 }
 
@@ -74,6 +98,7 @@ func TestDelegatedProviderProfileRejectsRawCredentialMaterial(t *testing.T) {
 			DisplayName:       "Calendar MCP",
 			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
 			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
+			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
 			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup"}},
 			CredentialRef:     "connector://calendar?token=secret",
 			TransportRef:      "runtime-transport://calendar-mcp",
@@ -95,6 +120,7 @@ func TestDelegatedProviderStateReadyRequiresRunnableProfile(t *testing.T) {
 			DisplayName:       "Calendar MCP",
 			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
 			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
+			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
 			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup"}},
 			TransportRef:      "runtime-transport://calendar-mcp",
 		},
@@ -153,6 +179,48 @@ func TestBlockedDelegatedProviderCannotBecomeReady(t *testing.T) {
 	})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected blocked READY transition to fail closed, got %v", err)
+	}
+}
+
+func TestDelegatedProviderStateRequiresLifecycleReason(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	ctx := testDelegatedControlContext()
+	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
+		Context: ctx,
+		AgentId: "agent-1",
+		ProviderProfile: &runtimev1.DelegatedProviderProfile{
+			ProviderProfileId: "calendar-mcp",
+			DisplayName:       "Calendar MCP",
+			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
+			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
+			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
+			AllowedTools:      []*runtimev1.DelegatedToolAllowlistEntry{{ToolName: "calendar_lookup"}},
+			TransportRef:      "runtime-transport://calendar-mcp",
+			Command:           "calendar-mcp",
+		},
+	})
+	if err != nil {
+		t.Fatalf("upsert delegated provider: %v", err)
+	}
+
+	_, err = svc.SetDelegatedProviderState(context.Background(), &runtimev1.SetDelegatedProviderStateRequest{
+		Context:           ctx,
+		AgentId:           "agent-1",
+		ProviderProfileId: "calendar-mcp",
+		State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_QUARANTINED,
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected missing lifecycle reason to fail closed, got %v", err)
+	}
+	listed, err := svc.ListDelegatedProviderProfiles(context.Background(), &runtimev1.ListDelegatedProviderProfilesRequest{
+		Context: ctx,
+		AgentId: "agent-1",
+	})
+	if err != nil {
+		t.Fatalf("list delegated provider profiles: %v", err)
+	}
+	if got := listed.GetProviderProfiles()[0].GetState(); got != runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_REGISTERED {
+		t.Fatalf("failed quarantined transition mutated provider state: %s", got)
 	}
 }
 

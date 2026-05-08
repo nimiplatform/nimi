@@ -81,35 +81,6 @@ type gpuProbeCapabilities struct {
 }
 
 func probeGPUCapabilities() gpuProbeCapabilities {
-	vendor := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_GPU_VENDOR"))
-	model := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_GPU_MODEL"))
-	if vendor != "" || model != "" {
-		return gpuProbeCapabilities{
-			profile: &runtimev1.LocalGpuProfile{
-				Available:   true,
-				Vendor:      vendor,
-				Model:       model,
-				MemoryModel: runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_UNSPECIFIED,
-			},
-			cudaReady: strings.EqualFold(strings.TrimSpace(vendor), "nvidia") && probeGPUCUDAReadyValue(),
-		}
-	}
-
-	if _, err := localRuntimeStat("/dev/nvidia0"); err == nil {
-		totalVRAM, freeVRAM := probeNvidiaVRAM()
-		return gpuProbeCapabilities{
-			profile: &runtimev1.LocalGpuProfile{
-				Available:          true,
-				Vendor:             "nvidia",
-				Model:              "nvidia-gpu",
-				TotalVramBytes:     totalVRAM,
-				AvailableVramBytes: freeVRAM,
-				MemoryModel:        runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_DISCRETE,
-			},
-			cudaReady: probeGPUCUDAReadyValue(),
-		}
-	}
-
 	if _, err := localRuntimeLookPath("nvidia-smi"); err == nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
@@ -130,15 +101,6 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 				},
 				cudaReady: probeGPUCUDAReadyValue(),
 			}
-		}
-		return gpuProbeCapabilities{
-			profile: &runtimev1.LocalGpuProfile{
-				Available:   true,
-				Vendor:      "nvidia",
-				Model:       "nvidia-gpu",
-				MemoryModel: runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_DISCRETE,
-			},
-			cudaReady: probeGPUCUDAReadyValue(),
 		}
 	}
 
@@ -173,30 +135,6 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 	}
 }
 
-// probeNvidiaVRAM runs nvidia-smi to get VRAM. Used when /dev/nvidia0 is
-// detected but nvidia-smi wasn't found via LookPath (unlikely but defensive).
-func probeNvidiaVRAM() (totalBytes int64, freeBytes int64) {
-	if _, err := localRuntimeLookPath("nvidia-smi"); err != nil {
-		return 0, 0
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	output, runErr := localRuntimeCommand(ctx, "nvidia-smi",
-		"--query-gpu=memory.total,memory.free",
-		"--format=csv,noheader,nounits").Output()
-	if runErr != nil {
-		return 0, 0
-	}
-	line := strings.TrimSpace(strings.SplitN(string(output), "\n", 2)[0])
-	parts := strings.SplitN(line, ",", 2)
-	if len(parts) < 2 {
-		return 0, 0
-	}
-	totalMiB, _ := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64)
-	freeMiB, _ := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 64)
-	return totalMiB * 1024 * 1024, freeMiB * 1024 * 1024
-}
-
 // parseNvidiaSmiOutput parses "name, total_mib, free_mib" CSV line from nvidia-smi.
 func parseNvidiaSmiOutput(output string) (name string, totalBytes int64, freeBytes int64) {
 	line := strings.TrimSpace(strings.SplitN(output, "\n", 2)[0])
@@ -212,9 +150,6 @@ func parseNvidiaSmiOutput(output string) (name string, totalBytes int64, freeByt
 }
 
 func probeGPUCUDAReady() (bool, string) {
-	if explicit, ok := explicitEnvBool("NIMI_RUNTIME_GPU_CUDA_READY"); ok {
-		return explicit, "env:NIMI_RUNTIME_GPU_CUDA_READY"
-	}
 	for _, key := range []string{"CUDA_PATH", "CUDA_HOME"} {
 		if value := strings.TrimSpace(os.Getenv(key)); value != "" {
 			return true, "env:" + key
@@ -236,21 +171,6 @@ func probeGPUCUDAReady() (bool, string) {
 func probeGPUCUDAReadyValue() bool {
 	ready, _ := probeGPUCUDAReady()
 	return ready
-}
-
-func explicitEnvBool(key string) (bool, bool) {
-	raw, ok := os.LookupEnv(key)
-	if !ok {
-		return false, false
-	}
-	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "1", "true", "yes", "on":
-		return true, true
-	case "0", "false", "no", "off":
-		return false, true
-	default:
-		return false, false
-	}
 }
 
 func probePythonProfile() *runtimev1.LocalPythonProfile {
@@ -310,18 +230,16 @@ func shouldSkipPythonExecutable(path string) bool {
 }
 
 func probeNPUProfile() *runtimev1.LocalNpuProfile {
-	available := envBool("NIMI_RUNTIME_NPU_AVAILABLE")
-	ready := envBool("NIMI_RUNTIME_NPU_READY")
-	vendor := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_NPU_VENDOR"))
-	runtimeName := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_NPU_RUNTIME"))
-	detail := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_NPU_DETAIL"))
-	if available || ready || vendor != "" || runtimeName != "" || detail != "" {
+	available := envBool("NIMI_NPU_AVAILABLE")
+	ready := available && envBool("NIMI_NPU_READY")
+	vendor := strings.TrimSpace(os.Getenv("NIMI_NPU_VENDOR"))
+	runtimeName := strings.TrimSpace(os.Getenv("NIMI_NPU_RUNTIME"))
+	if available || vendor != "" || runtimeName != "" {
 		return &runtimev1.LocalNpuProfile{
-			Available: available || ready,
+			Available: available,
 			Ready:     ready,
 			Vendor:    vendor,
 			Runtime:   runtimeName,
-			Detail:    detail,
 		}
 	}
 	return &runtimev1.LocalNpuProfile{

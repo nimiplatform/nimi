@@ -14,6 +14,8 @@ export type WorldEvolutionExecutionStage =
   | 'CHECKPOINT'
   | 'TERMINAL';
 
+export type WorldEvolutionExecutionEventKind = 'EXECUTION_EVENT';
+
 export type WorldEvolutionSupervisionOutcome =
   | 'CONTINUE'
   | 'DEFER'
@@ -55,7 +57,7 @@ export type WorldEvolutionExecutionEventSelector = {
   sessionId?: string;
   traceId?: string;
   tick?: number;
-  eventKind?: string;
+  eventKind?: WorldEvolutionExecutionEventKind;
   stage?: WorldEvolutionExecutionStage;
   actorRefs?: WorldEvolutionActorRef[];
   causation?: string;
@@ -123,7 +125,7 @@ export type WorldEvolutionExecutionEventView = {
   traceId: string;
   tick: number;
   timestamp: string;
-  eventKind: string;
+  eventKind: WorldEvolutionExecutionEventKind;
   stage: WorldEvolutionExecutionStage;
   actorRefs: WorldEvolutionActorRef[];
   causation: string | null;

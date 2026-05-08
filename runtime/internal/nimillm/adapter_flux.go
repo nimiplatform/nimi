@@ -23,6 +23,7 @@ func ExecuteFluxImage(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		baseURL = "https://api.bfl.ml"
@@ -80,7 +81,7 @@ func ExecuteFluxImage(
 	}
 	providerJobID := ExtractTaskIDFromAdapterPayload(AdapterFluxNative, submitResp)
 	if providerJobID == "" {
-		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(submitResp)
+		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(ctx, submitResp)
 		if len(artifactBytes) == 0 {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}

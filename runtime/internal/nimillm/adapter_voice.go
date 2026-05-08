@@ -43,6 +43,7 @@ func SupportsVoiceWorkflowProvider(provider string) bool {
 // provider adapter in nimillm. This is the single entry point called by the
 // AI layer orchestrator.
 func ExecuteVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	provider := strings.TrimSpace(strings.ToLower(req.Provider))
 	if provider == "" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
@@ -130,6 +131,7 @@ func voiceWorkflowTryEndpoints(
 // executeSimpleVoiceWorkflow handles providers whose voice workflow follows the
 // standard pattern: resolve base URL → resolve paths → build headers → try endpoints.
 func executeSimpleVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig, provider string, defaults []string) (VoiceWorkflowResult, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := resolveVoiceWorkflowBaseURL(provider, cfg, req.ExtPayload)
 	if baseURL == "" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)

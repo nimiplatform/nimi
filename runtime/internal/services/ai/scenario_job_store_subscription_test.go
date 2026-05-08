@@ -43,6 +43,7 @@ func TestScenarioJobStoreDetachedVideoJobRemainsQueryableDuringLongPoll(t *testi
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	ctx := scenarioJobContext("nimi.desktop")
 
@@ -197,6 +198,7 @@ func TestSubmitScenarioJobDashScopeVoiceDesignUsesAPIModelTarget(t *testing.T) {
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"dashscope": {BaseURL: server.URL + "/compatible-mode/v1", APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	ctx := scenarioJobContext("nimi.desktop")
 

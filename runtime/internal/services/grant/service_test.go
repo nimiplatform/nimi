@@ -475,6 +475,41 @@ func TestValidateProtectedCapabilityRequiresMatchingSecret(t *testing.T) {
 	}
 }
 
+func TestValidateProtectedCapabilityRejectsRevokedCatalogScope(t *testing.T) {
+	// K-GRANT-010: protected capability gates must use catalog-filtered active scopes.
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	authorizeResp, err := svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_CUSTOM,
+		Scopes:                []string{"read:chat", "write:chat"},
+		ResourceSelectors:     &runtimev1.ResourceSelectors{ConversationIds: []string{"conv-1"}},
+		TtlSeconds:            600,
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err != nil {
+		t.Fatalf("authorize: %v", err)
+	}
+
+	svc.catalog.RevokeScope("sdk-v1", "write:chat")
+
+	if reason, _, ok := svc.ValidateProtectedCapability("nimi.desktop", authorizeResp.GetTokenId(), authorizeResp.GetSecret(), "read:chat"); !ok || reason != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("expected active protected scope accepted, got reason=%v ok=%v", reason, ok)
+	}
+	if reason, hint, ok := svc.ValidateProtectedCapability("nimi.desktop", authorizeResp.GetTokenId(), authorizeResp.GetSecret(), "write:chat"); ok || reason != runtimev1.ReasonCode_APP_SCOPE_REVOKED || hint != "reauthorize_with_active_scopes" {
+		t.Fatalf("expected revoked protected scope rejected, got reason=%v hint=%q ok=%v", reason, hint, ok)
+	}
+}
+
 func TestValidateAppAccessTokenMissingTokenReturnsGrantInvalid(t *testing.T) {
 	svc := newGrantServiceForTest()
 	ctx := context.Background()

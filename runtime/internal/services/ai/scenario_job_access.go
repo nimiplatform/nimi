@@ -165,6 +165,9 @@ func (s *Service) GetScenarioArtifacts(ctx context.Context, req *runtimev1.GetSc
 		if err := authorizeScenarioJob(ctx, job); err != nil {
 			return nil, err
 		}
+		if err := scenarioArtifactsTerminalFailure(job); err != nil {
+			return nil, err
+		}
 		responseArtifacts := sanitizeScenarioArtifactsForResponse(job, artifacts)
 		output := buildScenarioOutputFromArtifacts(job, responseArtifacts)
 		return &runtimev1.GetScenarioArtifactsResponse{
@@ -178,6 +181,9 @@ func (s *Service) GetScenarioArtifacts(ctx context.Context, req *runtimev1.GetSc
 		if err := authorizeScenarioJob(ctx, job); err != nil {
 			return nil, err
 		}
+		if err := scenarioArtifactsTerminalFailure(job); err != nil {
+			return nil, err
+		}
 		return &runtimev1.GetScenarioArtifactsResponse{
 			JobId:     jobID,
 			Artifacts: []*runtimev1.ScenarioArtifact{},
@@ -185,6 +191,14 @@ func (s *Service) GetScenarioArtifacts(ctx context.Context, req *runtimev1.GetSc
 		}, nil
 	}
 	return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
+}
+
+func scenarioArtifactsTerminalFailure(job *runtimev1.ScenarioJob) error {
+	if job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED &&
+		job.GetReasonCode() == runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED)
+	}
+	return nil
 }
 
 func authorizeScenarioJob(ctx context.Context, job *runtimev1.ScenarioJob) error {

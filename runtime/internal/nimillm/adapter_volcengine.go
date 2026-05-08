@@ -23,6 +23,7 @@ func ExecuteBytedanceARKTask(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -68,7 +69,7 @@ func ExecuteBytedanceARKTask(
 		if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
 			return nil, nil, "", err
 		}
-		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(submitResp)
+		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(ctx, submitResp)
 		if len(artifactBytes) == 0 {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
@@ -144,7 +145,7 @@ func ExecuteBytedanceARKTask(
 		}
 		providerJobID := ExtractTaskIDFromAdapterPayload(AdapterBytedanceARKTask, submitResp)
 		if providerJobID == "" {
-			artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(submitResp)
+			artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(ctx, submitResp)
 			if len(artifactBytes) == 0 {
 				return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 			}

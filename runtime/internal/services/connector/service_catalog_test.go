@@ -381,15 +381,16 @@ func TestConnectorDeleteFlowTransitionsMatchSpec(t *testing.T) {
 		}
 	}
 
-	// --- Idempotent re-delete (spec: DELETE_PENDING -> DELETED is safe to retry)
-	// See also: TestDeleteConnectorIdempotent for the non-existent-ID case.
-	reDeleteResp, err := svc.DeleteConnector(ctx, &runtimev1.DeleteConnectorRequest{
+	// --- Missing management target: once deleted, the connector is no longer a
+	// management resource and must fail closed as NOT_FOUND.
+	_, err = svc.DeleteConnector(ctx, &runtimev1.DeleteConnectorRequest{
 		ConnectorId: connID,
 	})
-	if err != nil {
-		t.Fatalf("re-DeleteConnector should be idempotent: %v", err)
+	if err == nil {
+		t.Fatalf("expected re-DeleteConnector to return NotFound")
 	}
-	if !reDeleteResp.GetAck().GetOk() {
-		t.Fatal("expected ack.ok=true for idempotent re-delete")
+	st, _ = status.FromError(err)
+	if st.Code() != codes.NotFound {
+		t.Fatalf("expected NotFound for re-delete, got %v", st.Code())
 	}
 }

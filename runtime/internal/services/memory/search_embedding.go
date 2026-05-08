@@ -134,16 +134,15 @@ func embeddingVectorsWithExecutor(ctx context.Context, executor MemoryEmbeddingV
 	if len(raws) == 0 {
 		return nil, nil
 	}
-	if profile != nil && executor != nil {
+	if profile != nil {
+		if executor == nil {
+			return nil, memoryProviderUnavailableError()
+		}
 		return executor(ctx, cloneEmbeddingProfile(profile), append([]string(nil), raws...))
 	}
 	out := make([][]float64, 0, len(raws))
-	dimension := int32(0)
-	if profile != nil {
-		dimension = profile.GetDimension()
-	}
 	for _, raw := range raws {
-		out = append(out, computeEmbeddingVector(raw, dimension))
+		out = append(out, computeEmbeddingVector(raw, 0))
 	}
 	return out, nil
 }
@@ -209,12 +208,16 @@ func (s *Service) embeddingAvailableForProfile(profile *runtimev1.MemoryEmbeddin
 	s.mu.RLock()
 	managed := cloneEmbeddingProfile(s.managedEmbeddingProfile)
 	hasResolver := s.runtimeEmbeddingResolver != nil
+	hasExecutor := s.runtimeEmbeddingExecutor != nil
 	s.mu.RUnlock()
-	return embeddingAvailableForProfileWithState(profile, managed, hasResolver)
+	return embeddingAvailableForProfileWithState(profile, managed, hasResolver, hasExecutor)
 }
 
-func embeddingAvailableForProfileWithState(profile *runtimev1.MemoryEmbeddingProfile, managed *runtimev1.MemoryEmbeddingProfile, hasResolver bool) bool {
+func embeddingAvailableForProfileWithState(profile *runtimev1.MemoryEmbeddingProfile, managed *runtimev1.MemoryEmbeddingProfile, hasResolver bool, hasExecutor bool) bool {
 	if profile == nil {
+		return false
+	}
+	if !hasExecutor {
 		return false
 	}
 	if hasResolver {

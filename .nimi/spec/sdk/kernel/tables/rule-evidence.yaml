@@ -1,6 +1,6 @@
 version: 2
 rule_compliance:
-  total_s_rules: 159
+  total_s_rules: 178
   audit_date: "2026-05-01"
   sdk_version: "0.4.0"
 

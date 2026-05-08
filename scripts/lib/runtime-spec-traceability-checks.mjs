@@ -236,10 +236,15 @@ export function createRuntimeSpecTraceabilityChecks({
     const catalog = table.evidence_catalog || {};
     const catalogKeys = new Set(Object.keys(catalog));
     const rules = Array.isArray(table.rules) ? table.rules : [];
+    const declaredTotal = Number(table?.rule_compliance?.total_k_rules);
   
     if (rules.length === 0) {
       fail('rule-evidence.yaml: rules list is empty');
       return;
+    }
+
+    if (!Number.isInteger(declaredTotal) || declaredTotal <= 0) {
+      fail('rule-evidence.yaml: rule_compliance.total_k_rules must be a positive integer');
     }
   
     const evidenceRuleIds = new Set();
@@ -279,6 +284,10 @@ export function createRuntimeSpecTraceabilityChecks({
       if (!evidenceRuleIds.has(kid)) {
         fail(`rule-evidence.yaml: missing coverage for kernel rule: ${kid}`);
       }
+    }
+
+    if (declaredTotal !== evidenceRuleIds.size) {
+      fail(`rule-evidence.yaml: rule_compliance.total_k_rules (${declaredTotal}) must match resolved rule evidence rows (${evidenceRuleIds.size})`);
     }
   }
   

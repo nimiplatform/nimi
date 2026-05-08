@@ -728,6 +728,7 @@ message SetDelegatedProviderStateRequest {
   string agent_id = 2;
   string provider_profile_id = 3;
   DelegatedProviderState state = 4;
+  string lifecycle_reason_code = 5;
 }
 message SetDelegatedProviderStateResponse {
   DelegatedProviderProfile provider_profile = 1;

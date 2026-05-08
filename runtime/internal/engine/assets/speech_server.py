@@ -3,9 +3,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import mimetypes
 import pathlib
+import re
 import tempfile
 from typing import Any
+import uuid
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
@@ -70,6 +73,22 @@ class SpeechSynthesizeRequest:
             emotion=str(payload.get("emotion") or "").strip() or None,
             extensions=payload.get("extensions") if isinstance(payload.get("extensions"), dict) else {},
         )
+
+
+_SAFE_UPLOAD_SUFFIX = re.compile(r"^\.[A-Za-z0-9]{1,8}$")
+
+
+def safe_uploaded_audio_path(temp_dir: str | pathlib.Path, filename: str | None, mime_type: str | None) -> pathlib.Path:
+    suffix = ""
+    if filename:
+        normalized_name = str(filename).replace("\\", "/")
+        suffix = pathlib.PurePosixPath(normalized_name).name
+        suffix = pathlib.PurePosixPath(suffix).suffix.lower()
+    if not _SAFE_UPLOAD_SUFFIX.fullmatch(suffix or ""):
+        suffix = mimetypes.guess_extension(str(mime_type or "").strip()) or ".bin"
+    if not _SAFE_UPLOAD_SUFFIX.fullmatch(suffix):
+        suffix = ".bin"
+    return pathlib.Path(temp_dir) / f"upload-{uuid.uuid4().hex}{suffix}"
 
 
 def create_app() -> FastAPI:
@@ -184,7 +203,7 @@ def create_app() -> FastAPI:
                     "speech_request_invalid",
                 )
             with tempfile.TemporaryDirectory(prefix="nimi-speech-audio-") as temp_dir:
-                audio_path = pathlib.Path(temp_dir) / (file.filename or "audio.bin")
+                audio_path = safe_uploaded_audio_path(temp_dir, file.filename, mime_type)
                 audio_path.write_bytes(raw_audio)
                 text = transcribe_with_driver(
                     active_model,

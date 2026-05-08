@@ -47,8 +47,9 @@ func TestExecuteGeminiTranscribeUsesChatCompletions(t *testing.T) {
 	artifacts, _, _, err := ExecuteGeminiTranscribe(
 		context.Background(),
 		MediaAdapterConfig{
-			BaseURL: server.URL,
-			APIKey:  "gemini-key",
+			BaseURL:               server.URL,
+			AllowLoopbackEndpoint: true,
+			APIKey:                "gemini-key",
 		},
 		&runtimev1.SubmitScenarioJobRequest{
 			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
@@ -177,8 +178,9 @@ func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 	artifacts, usage, providerJobID, err := ExecuteGeminiOperation(
 		context.Background(),
 		MediaAdapterConfig{
-			BaseURL: server.URL + "/v1beta/openai",
-			APIKey:  "gemini-key",
+			BaseURL:               server.URL + "/v1beta/openai",
+			AllowLoopbackEndpoint: true,
+			APIKey:                "gemini-key",
 		},
 		noopGeminiJobUpdater{},
 		"job-gemini-image",
@@ -290,7 +292,7 @@ func TestExecuteGeminiOperationReturnsCanceledOnContextCancelWhilePolling(t *tes
 
 	_, _, providerJobID, err := ExecuteGeminiOperation(
 		ctx,
-		MediaAdapterConfig{BaseURL: server.URL, APIKey: "gemini-key"},
+		MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "gemini-key"},
 		noopGeminiJobUpdater{},
 		"job-gemini-video-cancel",
 		&runtimev1.SubmitScenarioJobRequest{

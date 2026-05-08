@@ -14,6 +14,7 @@ import {
   hasAnyKey,
   normalizeActorRefs,
   normalizeEffectClass,
+  normalizeEventKind,
   normalizeEvidenceRef,
   normalizeEvidenceRefs,
   normalizeReplayMode,
@@ -110,7 +111,7 @@ export function validateExecutionSelector(
   if (input.sessionId !== undefined) normalized.sessionId = normalizeRequiredText(input.sessionId, 'sessionId', 'INVALID_SELECTOR', methodId);
   if (input.traceId !== undefined) normalized.traceId = normalizeRequiredText(input.traceId, 'traceId', 'INVALID_SELECTOR', methodId);
   if (input.tick !== undefined) normalized.tick = normalizeTick(input.tick, 'tick', 'INVALID_SELECTOR', methodId);
-  if (input.eventKind !== undefined) normalized.eventKind = normalizeRequiredText(input.eventKind, 'eventKind', 'INVALID_SELECTOR', methodId);
+  if (input.eventKind !== undefined) normalized.eventKind = normalizeEventKind(input.eventKind, 'INVALID_SELECTOR', methodId);
   if (input.stage !== undefined) normalized.stage = normalizeStage(input.stage, 'INVALID_SELECTOR', methodId);
   if (input.actorRefs !== undefined) normalized.actorRefs = normalizeActorRefs(input.actorRefs, 'INVALID_SELECTOR', methodId);
   if (input.causation !== undefined) normalized.causation = normalizeRequiredText(input.causation, 'causation', 'INVALID_SELECTOR', methodId);

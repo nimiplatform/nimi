@@ -248,7 +248,10 @@ func (s *Service) resolveLocalVoiceWorkflowAdapterConfig(req *runtimev1.SubmitSc
 	if backend == nil || !strings.EqualFold(strings.TrimSpace(providerType), "speech") {
 		return nimillm.MediaAdapterConfig{}
 	}
-	return nimillm.MediaAdapterConfig{BaseURL: strings.TrimSpace(backend.Endpoint())}
+	return nimillm.MediaAdapterConfig{
+		BaseURL:               strings.TrimSpace(backend.Endpoint()),
+		AllowLoopbackEndpoint: s.allowLoopback,
+	}
 }
 
 func executeVoiceWorkflowViaLocalSpeechHost(
@@ -266,6 +269,7 @@ func executeVoiceWorkflowViaLocalSpeechHost(
 	if err := validateVoiceWorkflowRequestAgainstMetadata(req, resolution); err != nil {
 		return voiceWorkflowExecutionResult{}, err
 	}
+	ctx = nimillm.WithMediaAdapterEndpointPolicy(ctx, cfg)
 	baseURL := strings.TrimSpace(cfg.BaseURL)
 	if baseURL == "" {
 		return voiceWorkflowExecutionResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)

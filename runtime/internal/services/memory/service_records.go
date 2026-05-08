@@ -10,6 +10,7 @@ import (
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -216,16 +217,17 @@ func (s *Service) History(_ context.Context, req *runtimev1.HistoryRequest) (*ru
 }
 
 func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryRequest) (*runtimev1.DeleteMemoryResponse, error) {
-	if len(req.GetMemoryIds()) == 0 {
+	memoryIDs, err := normalizeDeleteMemoryIDs(req.GetMemoryIds())
+	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	bankState, err := s.bankForLocator(req.GetBank())
 	if err != nil {
 		return nil, err
 	}
-	remaining, deleted := partitionRecords(bankState, req.GetMemoryIds())
-	if len(deleted) == 0 {
-		return &runtimev1.DeleteMemoryResponse{Ack: okAck(), DeletedMemoryIds: []string{}}, nil
+	remaining, deleted := partitionRecords(bankState, memoryIDs)
+	if len(deleted) != len(memoryIDs) {
+		return nil, status.Error(codes.NotFound, "memory record not found")
 	}
 	deletedIDs := make([]string, 0, len(deleted))
 	for _, record := range deleted {
@@ -238,7 +240,7 @@ func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryR
 		Timestamp: timestamppb.New(now),
 		Detail: &runtimev1.MemoryEvent_RecordDeleted{
 			RecordDeleted: &runtimev1.MemoryDeletedDetail{
-				MemoryIds: append([]string(nil), req.GetMemoryIds()...),
+				MemoryIds: append([]string(nil), deletedIDs...),
 				Reason:    strings.TrimSpace(req.GetReason()),
 			},
 		},
@@ -248,8 +250,31 @@ func (s *Service) DeleteMemory(ctx context.Context, req *runtimev1.DeleteMemoryR
 	}
 	return &runtimev1.DeleteMemoryResponse{
 		Ack:              okAck(),
-		DeletedMemoryIds: append([]string(nil), req.GetMemoryIds()...),
+		DeletedMemoryIds: append([]string(nil), deletedIDs...),
 	}, nil
+}
+
+func normalizeDeleteMemoryIDs(input []string) ([]string, error) {
+	if len(input) == 0 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	seen := make(map[string]struct{}, len(input))
+	ids := make([]string, 0, len(input))
+	for _, raw := range input {
+		id := strings.TrimSpace(raw)
+		if id == "" {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		ids = append(ids, id)
+	}
+	if len(ids) == 0 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	return ids, nil
 }
 
 func memoryProviderUnavailableError() error {

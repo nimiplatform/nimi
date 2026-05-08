@@ -221,7 +221,7 @@ func FetchAudioFromURI(ctx context.Context, audioURI string) ([]byte, string, er
 	if err != nil {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	client, err := newSecuredHTTPClient(ctx, parsed.String(), allowLoopbackForTargetURL(parsed.String()))
+	client, err := newSecuredHTTPClient(ctx, parsed.String(), false)
 	if err != nil {
 		return nil, "", err
 	}

@@ -33,8 +33,9 @@ func TestExecuteStabilityMusicPromptOnly(t *testing.T) {
 	defer server.Close()
 
 	artifacts, _, _, err := ExecuteStabilityMusic(context.Background(), MediaAdapterConfig{
-		BaseURL: server.URL,
-		APIKey:  "token",
+		BaseURL:               server.URL,
+		AllowLoopbackEndpoint: true,
+		APIKey:                "token",
 	}, newMusicJobRequest("stable-audio-2", "steady pulse"), "stability/stable-audio-2")
 	if err != nil {
 		t.Fatalf("ExecuteStabilityMusic failed: %v", err)
@@ -92,8 +93,9 @@ func TestExecuteStabilityMusicIterationMultipart(t *testing.T) {
 		"source_mime_type":    "audio/wav",
 	})}
 	artifacts, _, _, err := ExecuteStabilityMusic(context.Background(), MediaAdapterConfig{
-		BaseURL: server.URL,
-		APIKey:  "token",
+		BaseURL:               server.URL,
+		AllowLoopbackEndpoint: true,
+		APIKey:                "token",
 	}, req, "stability/stable-audio-2")
 	if err != nil {
 		t.Fatalf("ExecuteStabilityMusic iteration failed: %v", err)
@@ -135,8 +137,9 @@ func TestExecuteSoundverseMusicPromptOnly(t *testing.T) {
 	defer server.Close()
 
 	artifacts, _, _, err := ExecuteSoundverseMusic(context.Background(), MediaAdapterConfig{
-		BaseURL: server.URL,
-		APIKey:  "token",
+		BaseURL:               server.URL,
+		AllowLoopbackEndpoint: true,
+		APIKey:                "token",
 	}, newMusicJobRequest("soundverse-song-v5", "anthemic cue"), "soundverse/soundverse-song-v5")
 	if err != nil {
 		t.Fatalf("ExecuteSoundverseMusic failed: %v", err)
@@ -185,7 +188,8 @@ func TestExecuteMubertMusicUsesHeadersAndPolling(t *testing.T) {
 	defer server.Close()
 
 	artifacts, _, providerJobID, err := ExecuteMubertMusic(context.Background(), MediaAdapterConfig{
-		BaseURL: server.URL,
+		BaseURL:               server.URL,
+		AllowLoopbackEndpoint: true,
 		Headers: map[string]string{
 			"customer-id":  "cust-1",
 			"access-token": "acc-1",
@@ -224,7 +228,8 @@ func TestExecuteMubertMusicReturnsCanceledWhileWaitingForPoll(t *testing.T) {
 	}()
 
 	_, _, providerJobID, err := ExecuteMubertMusic(ctx, MediaAdapterConfig{
-		BaseURL: server.URL,
+		BaseURL:               server.URL,
+		AllowLoopbackEndpoint: true,
 		Headers: map[string]string{
 			"customer-id":  "cust-1",
 			"access-token": "acc-1",
@@ -260,8 +265,9 @@ func TestExecuteLoudlyMusicUsesAPIKeyHeader(t *testing.T) {
 	defer server.Close()
 
 	artifacts, _, _, err := ExecuteLoudlyMusic(context.Background(), MediaAdapterConfig{
-		BaseURL: server.URL,
-		APIKey:  "loud-token",
+		BaseURL:               server.URL,
+		AllowLoopbackEndpoint: true,
+		APIKey:                "loud-token",
 	}, newMusicJobRequest("loudly-vega-2", "ad cue"), "loudly/loudly-vega-2")
 	if err != nil {
 		t.Fatalf("ExecuteLoudlyMusic failed: %v", err)
@@ -292,7 +298,8 @@ func TestExecuteLlamaMusicFallsBackAcrossEndpoints(t *testing.T) {
 	defer server.Close()
 
 	artifacts, _, _, err := ExecuteLlamaMusic(context.Background(), MediaAdapterConfig{
-		BaseURL: server.URL,
+		BaseURL:               server.URL,
+		AllowLoopbackEndpoint: true,
 	}, newMusicJobRequest("ace-step-local", "ambient loop"), "llama/ace-step-local")
 	if err != nil {
 		t.Fatalf("ExecuteLlamaMusic failed: %v", err)
@@ -319,7 +326,8 @@ func TestExecuteSidecarMusicUsesCanonicalPath(t *testing.T) {
 	defer server.Close()
 
 	artifacts, _, _, err := ExecuteSidecarMusic(context.Background(), MediaAdapterConfig{
-		BaseURL: server.URL,
+		BaseURL:               server.URL,
+		AllowLoopbackEndpoint: true,
 	}, newMusicJobRequest("stable-audio-open-sidecar", "textured pulse"), "sidecar/stable-audio-open-sidecar")
 	if err != nil {
 		t.Fatalf("ExecuteSidecarMusic failed: %v", err)

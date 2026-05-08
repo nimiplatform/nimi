@@ -110,8 +110,7 @@ func TestLocalImportManifestValidation(t *testing.T) {
 func TestLocalImportImageModelDefaultsToSupervisedOnLlamaSupportedHost(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 	tmpDir := t.TempDir()
 	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
 	svc.SetManagedLlamaEndpoint("http://127.0.0.1:57510/v1")
@@ -205,8 +204,7 @@ func TestLocalImportImageModelSupportsAppleSiliconManagedImageHost(t *testing.T)
 func TestLocalImportImageModelUnsupportedHostRegistersUnhealthyAsset(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 	tmpDir := t.TempDir()
 	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
 	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model-linux", "asset.manifest.json")
@@ -429,8 +427,7 @@ func TestListLocalAssetsDoesNotLoadManagedImageInBackground(t *testing.T) {
 func TestStartLocalAssetFailsClosedForUnsupportedSafetensorsNativeSelection(t *testing.T) {
 	svc := newTestServiceWithProbe(t, nil)
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
@@ -468,8 +465,7 @@ func TestStartLocalAssetFailsClosedForUnsupportedSafetensorsNativeSelection(t *t
 func TestStartLocalAssetFailsClosedForUnsupportedImportedGGUFImage(t *testing.T) {
 	svc := newTestServiceWithProbe(t, nil)
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 
 	tmpDir := t.TempDir()
 	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
@@ -526,8 +522,7 @@ func TestStartLocalAssetFailsClosedForUnsupportedImportedGGUFImage(t *testing.T)
 func TestStartLocalAssetFailsClosedWhenManagedImageBackendTargetUnavailable(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 
 	tmpDir := t.TempDir()
 	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
@@ -604,25 +599,21 @@ func TestStartLocalAssetFailsClosedWhenManagedImageBackendTargetUnavailable(t *t
 	if got := started.GetAsset().GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 		t.Fatalf("expected unhealthy asset state when managed image backend target is unavailable, got %s", got)
 	}
-	if !strings.Contains(started.GetAsset().GetHealthDetail(), "managed image backend target is unavailable") {
-		t.Fatalf("expected backend target unavailable detail, got %q", started.GetAsset().GetHealthDetail())
+	if !strings.Contains(started.GetAsset().GetHealthDetail(), "local environment activation blocked") || !strings.Contains(started.GetAsset().GetHealthDetail(), "model.asset") {
+		t.Fatalf("expected consumer dependency activation block detail, got %q", started.GetAsset().GetHealthDetail())
 	}
-	if mgr.startConfigCalls != 1 || mgr.startCalls != 0 {
-		t.Fatalf("expected selection-aware managed engine bootstrap attempt before fail-close, got config_calls=%d plain_calls=%d", mgr.startConfigCalls, mgr.startCalls)
+	if mgr.startConfigCalls != 0 || mgr.startCalls != 0 {
+		t.Fatalf("expected activation gate to block before managed engine bootstrap, got config_calls=%d plain_calls=%d", mgr.startConfigCalls, mgr.startCalls)
 	}
-	if mgr.lastStartConfig.ImageSupervisedSelection == nil {
-		t.Fatal("expected image selection to be forwarded into managed engine start config")
-	}
-	if got := mgr.lastStartConfig.ImageSupervisedSelection.EntryID; got != "windows-x64-nvidia-gguf" {
-		t.Fatalf("unexpected image selection entry: %q", got)
+	if mgr.lastStartConfig.ImageSupervisedSelection != nil {
+		t.Fatalf("expected no image selection forwarding after activation gate block, got %#v", mgr.lastStartConfig.ImageSupervisedSelection)
 	}
 }
 
 func TestCheckLocalAssetHealthFailsClosedForUnsupportedSafetensorsNativeSelection(t *testing.T) {
 	svc := newTestServiceWithProbe(t, nil)
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
@@ -660,8 +651,7 @@ func TestCheckLocalAssetHealthFailsClosedForUnsupportedSafetensorsNativeSelectio
 func TestCheckLocalAssetHealthFailsClosedForUnsupportedImportedGGUFImage(t *testing.T) {
 	svc := newTestServiceWithProbe(t, nil)
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 
 	tmpDir := t.TempDir()
 	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)

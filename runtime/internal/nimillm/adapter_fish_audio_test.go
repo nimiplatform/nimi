@@ -56,8 +56,9 @@ func TestExecuteFishAudioTTS_UsesModelHeaderAndReferenceID(t *testing.T) {
 	}
 
 	artifacts, usage, _, err := ExecuteFishAudioTTS(context.Background(), MediaAdapterConfig{
-		BaseURL: server.URL,
-		APIKey:  "fish-key",
+		BaseURL:               server.URL,
+		AllowLoopbackEndpoint: true,
+		APIKey:                "fish-key",
 	}, req, "fish_audio/s1")
 	if err != nil {
 		t.Fatalf("ExecuteFishAudioTTS: %v", err)
@@ -144,8 +145,9 @@ func TestExecuteFishAudioTTS_MapsProsodyAndProviderOptions(t *testing.T) {
 	}
 
 	if _, _, _, err := ExecuteFishAudioTTS(context.Background(), MediaAdapterConfig{
-		BaseURL: server.URL,
-		APIKey:  "fish-key",
+		BaseURL:               server.URL,
+		AllowLoopbackEndpoint: true,
+		APIKey:                "fish-key",
 	}, req, "fish_audio/s2-pro"); err != nil {
 		t.Fatalf("ExecuteFishAudioTTS: %v", err)
 	}

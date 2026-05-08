@@ -49,6 +49,21 @@ func testManagedEmbeddingProfile(modelID string) *runtimev1.MemoryEmbeddingProfi
 	}
 }
 
+func setManagedEmbeddingProfileForTest(svc *Service, profile *runtimev1.MemoryEmbeddingProfile) {
+	svc.SetManagedEmbeddingProfile(profile)
+	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, profile *runtimev1.MemoryEmbeddingProfile, raws []string) ([][]float64, error) {
+		out := make([][]float64, 0, len(raws))
+		dimension := int32(0)
+		if profile != nil {
+			dimension = profile.GetDimension()
+		}
+		for _, raw := range raws {
+			out = append(out, computeEmbeddingVector(raw, dimension))
+		}
+		return out, nil
+	})
+}
+
 func testLocalBindingSnapshot(modelID string) *MemoryEmbeddingBindingIntentSnapshot {
 	return &MemoryEmbeddingBindingIntentSnapshot{
 		SourceKind: MemoryEmbeddingBindingSourceKindLocal,
@@ -101,7 +116,7 @@ func TestInspectMemoryEmbeddingStateReportsEquivalentBoundProfile(t *testing.T) 
 	svc := newMemoryEmbeddingRuntimePrivateService(t)
 	locator := testMemoryEmbeddingLocator("agent-equivalent")
 	profile := testManagedEmbeddingProfile("local/embed-alpha")
-	svc.SetManagedEmbeddingProfile(profile)
+	setManagedEmbeddingProfileForTest(svc, profile)
 	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
 		t.Fatalf("EnsureCanonicalBank: %v", err)
 	}
@@ -133,7 +148,7 @@ func TestRequestCanonicalMemoryEmbeddingBindBindsUnboundCanonicalBank(t *testing
 	ctx := context.Background()
 	svc := newMemoryEmbeddingRuntimePrivateService(t)
 	locator := testMemoryEmbeddingLocator("agent-bind-runtime-private")
-	svc.SetManagedEmbeddingProfile(testManagedEmbeddingProfile("local/embed-bind"))
+	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-bind"))
 
 	result, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{
 		Locator:               locator,
@@ -166,14 +181,14 @@ func TestRequestCanonicalMemoryEmbeddingBindStagesProfileMismatch(t *testing.T) 
 	ctx := context.Background()
 	svc := newMemoryEmbeddingRuntimePrivateService(t)
 	locator := testMemoryEmbeddingLocator("agent-bind-mismatch")
-	svc.SetManagedEmbeddingProfile(testManagedEmbeddingProfile("local/embed-old"))
+	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-old"))
 	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
 		t.Fatalf("EnsureCanonicalBank: %v", err)
 	}
 	if _, err := svc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
 		t.Fatalf("BindCanonicalBankEmbeddingProfile(old): %v", err)
 	}
-	svc.SetManagedEmbeddingProfile(testManagedEmbeddingProfile("local/embed-new"))
+	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-new"))
 
 	result, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{
 		Locator:               locator,
@@ -258,14 +273,14 @@ func TestRequestCanonicalMemoryEmbeddingBindStagesRebuildOnProfileMismatch(t *te
 	ctx := context.Background()
 	svc := newMemoryEmbeddingRuntimePrivateService(t)
 	locator := testMemoryEmbeddingLocator("agent-stage-mismatch")
-	svc.SetManagedEmbeddingProfile(testManagedEmbeddingProfile("local/embed-old"))
+	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-old"))
 	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
 		t.Fatalf("EnsureCanonicalBank: %v", err)
 	}
 	if _, err := svc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
 		t.Fatalf("BindCanonicalBankEmbeddingProfile(old): %v", err)
 	}
-	svc.SetManagedEmbeddingProfile(testManagedEmbeddingProfile("local/embed-new"))
+	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-new"))
 
 	result, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{
 		Locator:               locator,
@@ -324,14 +339,14 @@ func TestRequestMemoryEmbeddingCutoverCommitsStagedProfile(t *testing.T) {
 	ctx := context.Background()
 	svc := newMemoryEmbeddingRuntimePrivateService(t)
 	locator := testMemoryEmbeddingLocator("agent-cutover")
-	svc.SetManagedEmbeddingProfile(testManagedEmbeddingProfile("local/embed-old"))
+	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-old"))
 	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
 		t.Fatalf("EnsureCanonicalBank: %v", err)
 	}
 	if _, err := svc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
 		t.Fatalf("BindCanonicalBankEmbeddingProfile(old): %v", err)
 	}
-	svc.SetManagedEmbeddingProfile(testManagedEmbeddingProfile("local/embed-new"))
+	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-new"))
 	if _, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{
 		Locator:               locator,
 		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-new"),
@@ -393,14 +408,14 @@ func TestPendingMemoryEmbeddingCutoverPersistsAcrossRestart(t *testing.T) {
 		t.Fatalf("New(initial): %v", err)
 	}
 	locator := testMemoryEmbeddingLocator("agent-persist-cutover")
-	svc.SetManagedEmbeddingProfile(testManagedEmbeddingProfile("local/embed-old"))
+	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-old"))
 	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
 		t.Fatalf("EnsureCanonicalBank: %v", err)
 	}
 	if _, err := svc.BindCanonicalBankEmbeddingProfile(ctx, locator); err != nil {
 		t.Fatalf("BindCanonicalBankEmbeddingProfile(old): %v", err)
 	}
-	svc.SetManagedEmbeddingProfile(testManagedEmbeddingProfile("local/embed-new"))
+	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-new"))
 	if _, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{
 		Locator:               locator,
 		BindingIntentSnapshot: testLocalBindingSnapshot("local/embed-new"),
@@ -416,7 +431,7 @@ func TestPendingMemoryEmbeddingCutoverPersistsAcrossRestart(t *testing.T) {
 		t.Fatalf("New(restarted): %v", err)
 	}
 	defer restarted.Close()
-	restarted.SetManagedEmbeddingProfile(testManagedEmbeddingProfile("local/embed-new"))
+	setManagedEmbeddingProfileForTest(restarted, testManagedEmbeddingProfile("local/embed-new"))
 
 	state, err := restarted.InspectMemoryEmbeddingState(ctx, InspectMemoryEmbeddingStateRequest{
 		Locator:               locator,
@@ -449,7 +464,7 @@ func TestRequestMemoryEmbeddingCutoverReportsNotReadyWhenRebuildReadinessFails(t
 	ctx := context.Background()
 	svc := newMemoryEmbeddingRuntimePrivateService(t)
 	locator := testMemoryEmbeddingLocator("agent-cutover-not-ready")
-	svc.SetManagedEmbeddingProfile(testManagedEmbeddingProfile("local/embed-old"))
+	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-old"))
 	if _, err := svc.EnsureCanonicalBank(ctx, locator, "Agent Memory", nil); err != nil {
 		t.Fatalf("EnsureCanonicalBank: %v", err)
 	}
@@ -478,12 +493,20 @@ func TestRequestMemoryEmbeddingCutoverReportsNotReadyWhenRebuildReadinessFails(t
 	}); err != nil {
 		t.Fatalf("Retain: %v", err)
 	}
-	svc.SetManagedEmbeddingProfile(testManagedEmbeddingProfile("local/embed-new"))
+	setManagedEmbeddingProfileForTest(svc, testManagedEmbeddingProfile("local/embed-new"))
 	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, profile *runtimev1.MemoryEmbeddingProfile, raws []string) ([][]float64, error) {
 		if profile != nil && profile.GetModelId() == "local/embed-new" && len(raws) > 0 {
 			return nil, errors.New("embedding executor unavailable")
 		}
-		return embeddingVectorsWithExecutor(context.Background(), nil, profile, raws)
+		out := make([][]float64, 0, len(raws))
+		dimension := int32(0)
+		if profile != nil {
+			dimension = profile.GetDimension()
+		}
+		for _, raw := range raws {
+			out = append(out, computeEmbeddingVector(raw, dimension))
+		}
+		return out, nil
 	})
 	if _, err := svc.RequestCanonicalMemoryEmbeddingBind(ctx, RequestCanonicalMemoryEmbeddingBindRequest{
 		Locator:               locator,

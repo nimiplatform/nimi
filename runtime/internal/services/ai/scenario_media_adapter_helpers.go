@@ -423,11 +423,21 @@ func stringSliceToAny(values []string) []any {
 // resolveNativeAdapterConfig returns adapter credentials from remoteTarget when
 // available (connector path), falling back to the config-based cloud provider entry.
 func (s *Service) resolveNativeAdapterConfig(configKey string, remoteTarget *nimillm.RemoteTarget) nimillm.MediaAdapterConfig {
+	allowLoopback := s != nil && s.allowLoopback
 	if remoteTarget != nil && remoteTarget.APIKey != "" {
-		return nimillm.MediaAdapterConfig{BaseURL: remoteTarget.Endpoint, APIKey: remoteTarget.APIKey}
+		return nimillm.MediaAdapterConfig{
+			BaseURL:               remoteTarget.Endpoint,
+			APIKey:                remoteTarget.APIKey,
+			AllowLoopbackEndpoint: allowLoopback || remoteTarget.AllowLoopback,
+		}
 	}
 	creds := s.config.CloudProviders[configKey]
-	return nimillm.MediaAdapterConfig{BaseURL: creds.BaseURL, APIKey: creds.APIKey, Headers: creds.Headers}
+	return nimillm.MediaAdapterConfig{
+		BaseURL:               creds.BaseURL,
+		APIKey:                creds.APIKey,
+		Headers:               creds.Headers,
+		AllowLoopbackEndpoint: allowLoopback,
+	}
 }
 
 func reasonCodeFromMediaError(err error) runtimev1.ReasonCode {

@@ -60,8 +60,7 @@ func TestDeriveCanonicalImageFactsWorkflowBundle(t *testing.T) {
 
 func TestCanonicalSupervisedImageSelectionMatchesWindowsNvidiaGGUFHostProfile(t *testing.T) {
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
+	setNvidiaGPUProbeForTest(t, false)
 
 	selection := canonicalSupervisedImageSelection(
 		collectDeviceProfile(),
@@ -218,8 +217,7 @@ func TestCanonicalImageCatalogComparableIdentityUsesLogicalModelIDAndAlias(t *te
 func TestManagedSupervisedImageBootstrapSelectionPrefersActiveSupportedSelection(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 
 	svc.mu.Lock()
 	svc.assets["asset_gguf"] = &runtimev1.LocalAssetRecord{
@@ -268,8 +266,7 @@ func TestManagedSupervisedImageBootstrapSelectionPrefersActiveSupportedSelection
 func TestManagedSupervisedImageBootstrapSelectionIgnoresSafetensorsNativeInstall(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 
 	svc.mu.Lock()
 	svc.assets["asset_gguf"] = &runtimev1.LocalAssetRecord{
@@ -316,8 +313,7 @@ func TestManagedSupervisedImageBootstrapSelectionIgnoresSafetensorsNativeInstall
 func TestManagedSupervisedImageBootstrapSelectionPrefersSupportedInstalledWindowsGGUFDuringAutoArbitration(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 
 	svc.mu.Lock()
 	svc.assets["asset_gguf"] = &runtimev1.LocalAssetRecord{
@@ -366,8 +362,7 @@ func TestManagedSupervisedImageBootstrapSelectionPrefersSupportedInstalledWindow
 func TestManagedSupervisedImageBootstrapSelectionDoesNotAutoSelectUnsupportedSafetensorsNative(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 
 	svc.mu.Lock()
 	svc.assets["asset_st_native"] = &runtimev1.LocalAssetRecord{

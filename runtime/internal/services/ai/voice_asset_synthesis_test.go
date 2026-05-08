@@ -38,7 +38,7 @@ func TestLocalQwenVoiceAssetCreateUseDeleteLifecycle(t *testing.T) {
 	}))
 	defer server.Close()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{AllowLoopbackEndpoint: true})
 	svc.SetLocalProviderEndpoint("speech", server.URL+"/v1", "")
 	svc.localModel = &fakeLocalModelLister{responses: repeatedLocalAssetResponses(&runtimev1.LocalAssetRecord{
 		LocalAssetId: "local-qwen3-tts-001",

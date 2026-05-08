@@ -37,7 +37,14 @@ func (s *Service) ValidateProtectedCapability(appID string, tokenID string, secr
 	if currentPolicyVersion != "" && token.PolicyVersion != currentPolicyVersion {
 		return runtimev1.ReasonCode_APP_GRANT_INVALID, "refresh_authorization_policy", false
 	}
-	if !scopesAllowed(token.Scopes, []string{capability}) {
+	if !s.catalog.IsPublished(token.IssuedScopeCatalog) {
+		return runtimev1.ReasonCode_APP_SCOPE_CATALOG_UNPUBLISHED, "use_published_scope_catalog_version", false
+	}
+	activeScopes := activeScopesForCatalog(token.IssuedScopeCatalog, token.Scopes, s.catalog.HasRevokedScope)
+	if !scopesAllowed(activeScopes, []string{capability}) {
+		if scopesAllowed(token.Scopes, []string{capability}) {
+			return runtimev1.ReasonCode_APP_SCOPE_REVOKED, "reauthorize_with_active_scopes", false
+		}
 		return runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN, "authorize_missing_protected_scope", false
 	}
 	return runtimev1.ReasonCode_ACTION_EXECUTED, "none", true

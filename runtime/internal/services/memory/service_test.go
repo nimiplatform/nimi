@@ -135,6 +135,102 @@ func TestMemoryServiceCreateRetainRecallDelete(t *testing.T) {
 
 }
 
+func TestMemoryServiceDeleteMemoryFailsClosedForMissingIDs(t *testing.T) {
+	t.Parallel()
+
+	svc, err := New(nil, config.Config{
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AIHTTPTimeoutSeconds: 2,
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	closeMemoryServiceForTest(t, svc)
+
+	ctx := context.Background()
+	createResp, err := svc.CreateBank(ctx, &runtimev1.CreateBankRequest{
+		Context: &runtimev1.MemoryRequestContext{AppId: "app.test"},
+		Locator: &runtimev1.PublicMemoryBankLocator{
+			Locator: &runtimev1.PublicMemoryBankLocator_AppPrivate{
+				AppPrivate: &runtimev1.AppPrivateBankOwner{
+					AccountId: "acct-1",
+					AppId:     "app.test",
+				},
+			},
+		},
+		DisplayName: "App Memory",
+	})
+	if err != nil {
+		t.Fatalf("CreateBank: %v", err)
+	}
+
+	retainResp, err := svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: createResp.GetBank().GetLocator(),
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind:           runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_NONE,
+				Provenance: &runtimev1.MemoryProvenance{
+					SourceSystem:  "test",
+					SourceEventId: "evt-1",
+				},
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "first"},
+				},
+			},
+			{
+				Kind:           runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
+				CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_NONE,
+				Provenance: &runtimev1.MemoryProvenance{
+					SourceSystem:  "test",
+					SourceEventId: "evt-2",
+				},
+				Payload: &runtimev1.MemoryRecordInput_Observational{
+					Observational: &runtimev1.ObservationalMemoryRecord{Observation: "second"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Retain: %v", err)
+	}
+	if len(retainResp.GetRecords()) != 2 {
+		t.Fatalf("expected 2 retained records, got %d", len(retainResp.GetRecords()))
+	}
+
+	_, err = svc.DeleteMemory(ctx, &runtimev1.DeleteMemoryRequest{
+		Bank:      createResp.GetBank().GetLocator(),
+		MemoryIds: []string{retainResp.GetRecords()[0].GetMemoryId(), "mem-missing"},
+		Reason:    "partial delete must fail closed",
+	})
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("expected NotFound for partial delete, got %v", err)
+	}
+
+	historyResp, err := svc.History(ctx, &runtimev1.HistoryRequest{
+		Bank:  createResp.GetBank().GetLocator(),
+		Query: &runtimev1.MemoryHistoryQuery{PageSize: 10},
+	})
+	if err != nil {
+		t.Fatalf("History(after failed delete): %v", err)
+	}
+	if len(historyResp.GetRecords()) != 2 {
+		t.Fatalf("expected failed partial delete to preserve both records, got %d", len(historyResp.GetRecords()))
+	}
+
+	deleteResp, err := svc.DeleteMemory(ctx, &runtimev1.DeleteMemoryRequest{
+		Bank:      createResp.GetBank().GetLocator(),
+		MemoryIds: []string{retainResp.GetRecords()[0].GetMemoryId()},
+		Reason:    "single delete",
+	})
+	if err != nil {
+		t.Fatalf("DeleteMemory(single): %v", err)
+	}
+	if got := deleteResp.GetDeletedMemoryIds(); len(got) != 1 || got[0] != retainResp.GetRecords()[0].GetMemoryId() {
+		t.Fatalf("expected only the actually deleted id, got %v", got)
+	}
+}
+
 func TestMemoryServiceRecallUsesInjectedEmbeddingExecutor(t *testing.T) {
 	t.Parallel()
 
@@ -236,6 +332,64 @@ func TestMemoryServiceRecallUsesInjectedEmbeddingExecutor(t *testing.T) {
 	top := recallResp.GetHits()[0].GetRecord()
 	if top == nil || !strings.Contains(strings.ToLower(top.String()), "beta") {
 		t.Fatalf("expected injected embedding executor to rank beta first, got %#v", top)
+	}
+}
+
+func TestMemoryServiceRetainFailsClosedWhenEmbeddingExecutorMissing(t *testing.T) {
+	t.Parallel()
+
+	svc, err := New(nil, config.Config{
+		LocalStatePath: filepath.Join(t.TempDir(), "local-state.json"),
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	closeMemoryServiceForTest(t, svc)
+	profile := &runtimev1.MemoryEmbeddingProfile{
+		Provider:        "local",
+		ModelId:         "local/embed-missing-executor",
+		Dimension:       2,
+		DistanceMetric:  runtimev1.MemoryDistanceMetric_MEMORY_DISTANCE_METRIC_COSINE,
+		Version:         "local/embed-missing-executor@v1",
+		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
+	}
+	svc.SetManagedEmbeddingProfile(profile)
+
+	ctx := context.Background()
+	createResp, err := svc.CreateBank(ctx, &runtimev1.CreateBankRequest{
+		Context: &runtimev1.MemoryRequestContext{AppId: "app.embed.test"},
+		Locator: &runtimev1.PublicMemoryBankLocator{
+			Locator: &runtimev1.PublicMemoryBankLocator_AppPrivate{
+				AppPrivate: &runtimev1.AppPrivateBankOwner{
+					AccountId: "acct-embed",
+					AppId:     "app.embed.test",
+				},
+			},
+		},
+		DisplayName:      "Embedding Test Bank",
+		EmbeddingProfile: cloneEmbeddingProfile(profile),
+	})
+	if err != nil {
+		t.Fatalf("CreateBank: %v", err)
+	}
+
+	_, err = svc.Retain(ctx, &runtimev1.RetainRequest{
+		Bank: createResp.GetBank().GetLocator(),
+		Records: []*runtimev1.MemoryRecordInput{
+			{
+				Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
+				Payload: &runtimev1.MemoryRecordInput_Semantic{
+					Semantic: &runtimev1.SemanticMemoryRecord{
+						Subject:   "Alpha",
+						Predicate: "stores",
+						Object:    "Document",
+					},
+				},
+			},
+		},
+	})
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("expected Unavailable without embedding executor, got %v", err)
 	}
 }
 

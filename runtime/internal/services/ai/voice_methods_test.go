@@ -183,6 +183,7 @@ func TestDeleteVoiceAssetDeletesProviderPersistentVoiceWhenSupported(t *testing.
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"elevenlabs": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 
 	const assetID = "asset-elevenlabs-1"
@@ -247,6 +248,7 @@ func TestDeleteVoiceAssetDeletesFishAudioProviderModelWhenSupported(t *testing.T
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"fish_audio": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 
 	const assetID = "asset-fish-1"
@@ -337,6 +339,7 @@ func TestDeleteVoiceAssetProviderFailureMarksPendingReconciliationAndRetryClears
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"elevenlabs": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	svc.audit = auditlog.New(128, 128)
 
@@ -449,6 +452,7 @@ func TestListVoiceAssetsRetriesPendingVoiceDeleteReconciliation(t *testing.T) {
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"elevenlabs": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	svc.audit = auditlog.New(128, 128)
 
@@ -533,6 +537,7 @@ func TestListVoiceAssetsSkipsVoiceDeleteReconciliationWithinCooldown(t *testing.
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"elevenlabs": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 
 	const assetID = "asset-elevenlabs-cooldown-1"
@@ -590,6 +595,7 @@ func TestListVoiceAssetsMarksVoiceDeleteReconciliationExhaustedAfterMaxAttempts(
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"elevenlabs": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	svc.audit = auditlog.New(128, 128)
 
@@ -690,6 +696,7 @@ func TestRunVoiceAssetDeleteReconciliationLoopRetriesPendingDelete(t *testing.T)
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"elevenlabs": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	svc.audit = auditlog.New(128, 128)
 	svc.voiceAssetDeleteReconciliationInterval = 10 * time.Millisecond

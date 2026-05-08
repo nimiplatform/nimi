@@ -34,6 +34,7 @@ func ExecuteBytedanceOpenSpeech(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -70,7 +71,7 @@ func ExecuteBytedanceOpenSpeech(
 		if err != nil {
 			return nil, nil, "", err
 		}
-		artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(body)
+		artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(ctx, body)
 		if len(artifactBytes) == 0 {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}

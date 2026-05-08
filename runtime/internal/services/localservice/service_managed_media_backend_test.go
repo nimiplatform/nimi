@@ -171,8 +171,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 func TestResolveManagedMediaImageProfileDoesNotRequireEngineConfigDefaults(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 

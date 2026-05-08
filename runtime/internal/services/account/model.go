@@ -49,10 +49,6 @@ type LoginExchanger interface {
 	Exchange(ctx context.Context, attempt LoginAttempt, code string) (AccountMaterial, error)
 }
 
-type BrowserCallbackTokenAdopter interface {
-	AdoptBrowserCallbackTokens(ctx context.Context, attempt LoginAttempt, accessToken string, refreshToken string) (AccountMaterial, error)
-}
-
 type Refresher interface {
 	Refresh(ctx context.Context, material AccountMaterial) (AccountMaterial, error)
 }

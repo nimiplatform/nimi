@@ -17,9 +17,21 @@ test('extractGenerateText reads typed scenario text output', () => {
   assert.equal(extractGenerateText(output), 'hello from runtime');
 });
 
-test('extractGenerateText returns empty string for missing or mismatched output kind', () => {
-  assert.equal(extractGenerateText(undefined), '');
-  assert.equal(extractGenerateText(textEmbedOutput([[1, 2]])), '');
+test('extractGenerateText fails closed for missing or mismatched output kind', () => {
+  assert.throws(
+    () => extractGenerateText(undefined),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      return true;
+    },
+  );
+  assert.throws(
+    () => extractGenerateText(textEmbedOutput([[1, 2]])),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      return true;
+    },
+  );
 });
 
 test('extractEmbeddingVectors reads typed scenario embedding output', () => {

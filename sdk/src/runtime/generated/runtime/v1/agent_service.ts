@@ -2041,6 +2041,10 @@ export interface SetDelegatedProviderStateRequest {
      * @generated from protobuf field: nimi.runtime.v1.DelegatedProviderState state = 4
      */
     state: DelegatedProviderState;
+    /**
+     * @generated from protobuf field: string lifecycle_reason_code = 5
+     */
+    lifecycleReasonCode: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SetDelegatedProviderStateResponse
@@ -9485,7 +9489,8 @@ class SetDelegatedProviderStateRequest$Type extends MessageType<SetDelegatedProv
             { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
             { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "provider_profile_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.DelegatedProviderState", DelegatedProviderState, "DELEGATED_PROVIDER_STATE_"] }
+            { no: 4, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.DelegatedProviderState", DelegatedProviderState, "DELEGATED_PROVIDER_STATE_"] },
+            { no: 5, name: "lifecycle_reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<SetDelegatedProviderStateRequest>): SetDelegatedProviderStateRequest {
@@ -9493,6 +9498,7 @@ class SetDelegatedProviderStateRequest$Type extends MessageType<SetDelegatedProv
         message.agentId = "";
         message.providerProfileId = "";
         message.state = 0;
+        message.lifecycleReasonCode = "";
         if (value !== undefined)
             reflectionMergePartial<SetDelegatedProviderStateRequest>(this, message, value);
         return message;
@@ -9513,6 +9519,9 @@ class SetDelegatedProviderStateRequest$Type extends MessageType<SetDelegatedProv
                     break;
                 case /* nimi.runtime.v1.DelegatedProviderState state */ 4:
                     message.state = reader.int32();
+                    break;
+                case /* string lifecycle_reason_code */ 5:
+                    message.lifecycleReasonCode = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -9538,6 +9547,9 @@ class SetDelegatedProviderStateRequest$Type extends MessageType<SetDelegatedProv
         /* nimi.runtime.v1.DelegatedProviderState state = 4; */
         if (message.state !== 0)
             writer.tag(4, WireType.Varint).int32(message.state);
+        /* string lifecycle_reason_code = 5; */
+        if (message.lifecycleReasonCode !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.lifecycleReasonCode);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

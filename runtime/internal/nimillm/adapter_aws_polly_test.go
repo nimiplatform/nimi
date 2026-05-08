@@ -59,8 +59,9 @@ func TestExecuteAWSPollyTTS_MapsCatalogModelToEngine(t *testing.T) {
 			}
 
 			artifacts, _, _, err := ExecuteAWSPollyTTS(context.Background(), MediaAdapterConfig{
-				BaseURL: server.URL,
-				APIKey:  "aws-token",
+				BaseURL:               server.URL,
+				AllowLoopbackEndpoint: true,
+				APIKey:                "aws-token",
 			}, req, tc.modelResolved)
 			if err != nil {
 				t.Fatalf("ExecuteAWSPollyTTS: %v", err)

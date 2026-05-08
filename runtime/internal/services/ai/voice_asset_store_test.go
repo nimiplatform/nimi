@@ -172,7 +172,7 @@ func TestVoiceAssetStoreSubmitPersistsWorkflowFamilyMetadata(t *testing.T) {
 		workflowModelID string
 		wantFamily      string
 	}{
-	{
+		{
 			name:            "qwen3tts",
 			modelID:         "speech/qwen3tts",
 			targetModelID:   "speech/qwen3tts",

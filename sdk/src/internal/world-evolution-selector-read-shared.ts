@@ -3,6 +3,7 @@ import type { JsonObject } from './utils.js';
 import type {
   WorldEvolutionActorRef,
   WorldEvolutionEffectClass,
+  WorldEvolutionExecutionEventKind,
   WorldEvolutionExecutionStage,
   WorldEvolutionSelectorReadMethodId,
   WorldEvolutionSelectorReadRejectionCategory,
@@ -21,6 +22,10 @@ const EXECUTION_STAGES = new Set<WorldEvolutionExecutionStage>([
   'COMMIT_REQUEST',
   'CHECKPOINT',
   'TERMINAL',
+]);
+
+const EXECUTION_EVENT_KINDS = new Set<WorldEvolutionExecutionEventKind>([
+  'EXECUTION_EVENT',
 ]);
 
 const EFFECT_CLASSES = new Set<WorldEvolutionEffectClass>([
@@ -183,6 +188,22 @@ export function normalizeEffectClass(
       category,
       methodId,
       message: `${methodId} received unsupported effectClass`,
+    });
+  }
+  return normalized;
+}
+
+export function normalizeEventKind(
+  value: unknown,
+  category: WorldEvolutionSelectorReadRejectionCategory,
+  methodId: WorldEvolutionSelectorReadMethodId,
+): WorldEvolutionExecutionEventKind {
+  const normalized = normalizeRequiredText(value, 'eventKind', category, methodId) as WorldEvolutionExecutionEventKind;
+  if (!EXECUTION_EVENT_KINDS.has(normalized)) {
+    throw createSelectorReadError({
+      category,
+      methodId,
+      message: `${methodId} received unsupported eventKind`,
     });
   }
   return normalized;

@@ -250,7 +250,7 @@ func newCanonicalTestMemoryRecord(t *testing.T) (*Service, *runtimev1.MemoryBank
 		t.Fatalf("New: %v", err)
 	}
 	closeMemoryServiceForTest(t, svc)
-	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+	setManagedEmbeddingProfileForTest(svc, &runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
 		Dimension:       4,
@@ -299,7 +299,7 @@ func newBoundSemanticDedupTestBank(t *testing.T) (*Service, *runtimev1.MemoryBan
 		t.Fatalf("New: %v", err)
 	}
 	closeMemoryServiceForTest(t, svc)
-	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+	setManagedEmbeddingProfileForTest(svc, &runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
 		Dimension:       4,

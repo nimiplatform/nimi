@@ -3,10 +3,7 @@ package nimillm
 import (
 	"context"
 	"io"
-	"net"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"google.golang.org/grpc/codes"
 
@@ -16,8 +13,7 @@ import (
 )
 
 func newSecuredHTTPRequest(ctx context.Context, method string, targetURL string, body io.Reader) (*http.Client, *http.Request, error) {
-	allowLoopback := allowLoopbackForTargetURL(targetURL)
-	client, err := newSecuredHTTPClient(ctx, targetURL, allowLoopback)
+	client, err := newSecuredHTTPClient(ctx, targetURL, allowLoopbackProviderEndpointFromContext(ctx))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -37,17 +33,4 @@ func newSecuredHTTPClient(ctx context.Context, targetURL string, allowLoopback b
 		Timeout:   defaultHTTPTimeout,
 		Transport: transport,
 	}, nil
-}
-
-func allowLoopbackForTargetURL(targetURL string) bool {
-	parsed, err := url.Parse(strings.TrimSpace(targetURL))
-	if err != nil {
-		return false
-	}
-	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
-	if host == "localhost" {
-		return true
-	}
-	ip := net.ParseIP(host)
-	return ip != nil && ip.IsLoopback()
 }

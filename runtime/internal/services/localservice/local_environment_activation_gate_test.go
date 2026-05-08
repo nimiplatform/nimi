@@ -62,6 +62,32 @@ func TestLocalEnvironmentActivationGateAdmitsReadyRecords(t *testing.T) {
 	}
 }
 
+func TestLocalEnvironmentActivationGateUsesConsumerPackOverCallerPackProjection(t *testing.T) {
+	svc := newTestService(t)
+	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "speech/gate-consumer-pack",
+		capabilities: []string{"audio.synthesize"},
+		engine:       "speech",
+		entry:        "model.onnx",
+	})
+
+	gate := svc.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
+		ConsumerID:   "speech.qwen3-tts.python",
+		PackID:       "local-gpu-support",
+		LocalAssetID: model.GetLocalAssetId(),
+	})
+
+	if gate.PackID != "local-speech" {
+		t.Fatalf("gate pack id = %q, want consumer-required local-speech", gate.PackID)
+	}
+	if len(gate.Dependencies) == 0 {
+		t.Fatal("expected consumer-required local-speech dependencies")
+	}
+	if len(gate.Dependencies) == 1 && gate.Dependencies[0].DependencyFamily == localEnvironmentFamilyCUDA {
+		t.Fatalf("caller pack projection weakened consumer dependencies: %#v", gate.Dependencies)
+	}
+}
+
 func TestLocalEnvironmentActivationGateBlocksRepairRequiredSourceRecord(t *testing.T) {
 	svc := newTestService(t)
 	model := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
@@ -156,8 +182,7 @@ func TestLocalEnvironmentActivationGatePreservesCancelledAndFailedJobs(t *testin
 func TestManagedImageCUDAHealthUsesLocalEnvironmentActivationGate(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
+	setNvidiaGPUProbeForTest(t, false)
 	svc.SetEngineManager(&mockEngineManager{})
 	svc.SetManagedLlamaRegistrationConfig(t.TempDir(), "", true)
 	svc.SetManagedMediaEndpoint("http://127.0.0.1:8321/v1")

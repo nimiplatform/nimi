@@ -33,7 +33,7 @@ func TestExecuteMiniMaxTaskPreservesNonNotFoundTTSFailureAcrossFallbacks(t *test
 
 	_, _, _, err := ExecuteMiniMaxTask(
 		context.Background(),
-		MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
+		MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
 		nil,
 		"job-1",
 		&runtimev1.SubmitScenarioJobRequest{
@@ -83,7 +83,7 @@ func TestExecuteMiniMaxTaskReturnsCanceledOnContextCancelWhilePolling(t *testing
 
 	_, _, providerJobID, err := ExecuteMiniMaxTask(
 		ctx,
-		MediaAdapterConfig{BaseURL: server.URL, APIKey: "minimax-key"},
+		MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "minimax-key"},
 		noopJobStateUpdater{},
 		"job-minimax-video-cancel",
 		newAsyncVideoJobRequest("A short MiniMax scene."),

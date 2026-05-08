@@ -37,6 +37,7 @@ func ExecuteGeminiOperation(
 	modelResolved string,
 	extractScenarioExtensions func(*runtimev1.SubmitScenarioJobRequest) *structpb.Struct,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -134,7 +135,7 @@ func ExecuteGeminiOperation(
 
 	for {
 		if ctx.Err() != nil {
-			bestEffortDeleteProviderAsyncTask(AdapterGeminiOperation, baseURL, apiKey, providerJobID)
+			bestEffortDeleteProviderAsyncTask(ctx, AdapterGeminiOperation, baseURL, apiKey, providerJobID)
 			return nil, nil, providerJobID, providerPollContextError(ctx.Err())
 		}
 		retryCount++
@@ -150,7 +151,7 @@ func ExecuteGeminiOperation(
 				delay := providerPollDelay(retryCount)
 				updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), err.Error())
 				if sleepErr := sleepWithContext(ctx, delay); sleepErr != nil {
-					bestEffortDeleteProviderAsyncTask(AdapterGeminiOperation, baseURL, apiKey, providerJobID)
+					bestEffortDeleteProviderAsyncTask(ctx, AdapterGeminiOperation, baseURL, apiKey, providerJobID)
 					return nil, nil, providerJobID, providerPollContextError(sleepErr)
 				}
 				continue
@@ -167,7 +168,7 @@ func ExecuteGeminiOperation(
 			delay := providerPollDelay(retryCount)
 			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), "")
 			if err := sleepWithContext(ctx, delay); err != nil {
-				bestEffortDeleteProviderAsyncTask(AdapterGeminiOperation, baseURL, apiKey, providerJobID)
+				bestEffortDeleteProviderAsyncTask(ctx, AdapterGeminiOperation, baseURL, apiKey, providerJobID)
 				return nil, nil, providerJobID, providerPollContextError(err)
 			}
 			continue
@@ -180,7 +181,7 @@ func ExecuteGeminiOperation(
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
 			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
-		artifactBytes, mimeType, artifactURI := ExtractArtifactBytesAndMIME(pollResp)
+		artifactBytes, mimeType, artifactURI := ExtractArtifactBytesAndMIME(ctx, pollResp)
 		if len(artifactBytes) == 0 {
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
 			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -230,6 +231,7 @@ func ExecuteGeminiImageGenerateContent(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := resolveGeminiNativeBaseURL(cfg.BaseURL)
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -290,7 +292,7 @@ func ExecuteGeminiImageGenerateContent(
 		return nil, nil, "", err
 	}
 
-	artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(responsePayload["candidates"])
+	artifactBytes, mimeType, artifactURI := ExtractImageArtifactFromAny(ctx, responsePayload["candidates"])
 	if len(artifactBytes) == 0 {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
@@ -479,6 +481,7 @@ func ExecuteGeminiTranscribe(
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)

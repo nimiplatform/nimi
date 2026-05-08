@@ -184,6 +184,7 @@ function renderRuleEvidence(doc, sourceName) {
     : {};
   const rules = Array.isArray(doc?.rules) ? doc.rules : [];
   let out = header('Generated Rule Evidence', sourceName);
+  out += `Resolved rule rows: \`${rules.length}\`\n\n`;
   out += '| Evidence Ref | Type | Command | Path | Description |\n';
   out += '|---|---|---|---|---|\n';
   for (const [ref, value] of Object.entries(catalog)) {

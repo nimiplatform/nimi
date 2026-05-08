@@ -376,7 +376,7 @@ func TestMemoryServiceStartupAcceleratorCleanupRemovesExpiredAliasRows(t *testin
 		t.Fatalf("New(first): %v", err)
 	}
 	closeMemoryServiceForTest(t, svc)
-	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+	setManagedEmbeddingProfileForTest(svc, &runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
 		Dimension:       4,

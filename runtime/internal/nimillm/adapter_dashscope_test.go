@@ -2,6 +2,7 @@ package nimillm
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -76,8 +77,9 @@ func TestExecuteAlibabaNativeTTSPreservesRequestedVoice(t *testing.T) {
 	artifacts, _, _, err := ExecuteAlibabaNative(
 		context.Background(),
 		MediaAdapterConfig{
-			BaseURL: server.URL,
-			APIKey:  "test-api-key",
+			BaseURL:               server.URL,
+			AllowLoopbackEndpoint: true,
+			APIKey:                "test-api-key",
 		},
 		nil,
 		"job-test",
@@ -177,8 +179,9 @@ func TestExecuteDashScopeTranscribeUsesCompatibleChatPath(t *testing.T) {
 	artifacts, _, _, err := ExecuteDashScopeTranscribe(
 		context.Background(),
 		MediaAdapterConfig{
-			BaseURL: server.URL + "/compatible-mode/v1",
-			APIKey:  "test-api-key",
+			BaseURL:               server.URL + "/compatible-mode/v1",
+			AllowLoopbackEndpoint: true,
+			APIKey:                "test-api-key",
 		},
 		&runtimev1.SubmitScenarioJobRequest{
 			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
@@ -403,7 +406,7 @@ func TestExecuteAlibabaNativeImageWan26UsesAsyncImageGenerationContract(t *testi
 						{
 							"message": map[string]any{
 								"content": []map[string]any{
-									{"type": "image", "image": server.URL + "/artifact.png"},
+									{"type": "image", "image": base64.StdEncoding.EncodeToString([]byte("wan-image-bytes"))},
 								},
 							},
 						},
@@ -422,8 +425,9 @@ func TestExecuteAlibabaNativeImageWan26UsesAsyncImageGenerationContract(t *testi
 	artifacts, _, providerJobID, err := ExecuteAlibabaNative(
 		context.Background(),
 		MediaAdapterConfig{
-			BaseURL: server.URL + "/compatible-mode/v1",
-			APIKey:  "test-api-key",
+			BaseURL:               server.URL + "/compatible-mode/v1",
+			AllowLoopbackEndpoint: true,
+			APIKey:                "test-api-key",
 		},
 		noopGeminiJobUpdater{},
 		"job-image-test",
@@ -520,8 +524,9 @@ func TestExecuteDashScopeVoiceWorkflowUsesCustomizationContractForClone(t *testi
 			},
 		},
 	}, MediaAdapterConfig{
-		BaseURL: server.URL + "/compatible-mode/v1",
-		APIKey:  "test-api-key",
+		BaseURL:               server.URL + "/compatible-mode/v1",
+		AllowLoopbackEndpoint: true,
+		APIKey:                "test-api-key",
 	})
 	if err != nil {
 		t.Fatalf("executeDashScopeVoiceWorkflow clone failed: %v", err)
@@ -589,8 +594,9 @@ func TestExecuteDashScopeVoiceWorkflowUsesCustomizationContractForDesign(t *test
 			},
 		},
 	}, MediaAdapterConfig{
-		BaseURL: server.URL + "/compatible-mode/v1",
-		APIKey:  "test-api-key",
+		BaseURL:               server.URL + "/compatible-mode/v1",
+		AllowLoopbackEndpoint: true,
+		APIKey:                "test-api-key",
 	})
 	if err != nil {
 		t.Fatalf("executeDashScopeVoiceWorkflow design failed: %v", err)

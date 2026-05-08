@@ -54,19 +54,16 @@ type localEnvironmentConsumerRequirement struct {
 
 func (s *Service) resolveLocalEnvironmentConsumerActivationGate(req localEnvironmentConsumerActivationGateRequest) localEnvironmentConsumerActivationGate {
 	consumerID := strings.TrimSpace(req.ConsumerID)
-	packID := strings.TrimSpace(req.PackID)
-	if packID == "" {
-		requirement, ok := localEnvironmentConsumerRequirementByID(consumerID)
-		if !ok {
-			return localEnvironmentConsumerActivationGate{
-				ConsumerID: consumerID,
-				State:      localEnvironmentActivationStateUnsupported,
-				ReasonCode: localEnvironmentActivationReasonConsumerUnsupported,
-				Detail:     "local environment consumer is unsupported: " + consumerID,
-			}
+	requirement, ok := localEnvironmentConsumerRequirementByID(consumerID)
+	if !ok {
+		return localEnvironmentConsumerActivationGate{
+			ConsumerID: consumerID,
+			State:      localEnvironmentActivationStateUnsupported,
+			ReasonCode: localEnvironmentActivationReasonConsumerUnsupported,
+			Detail:     "local environment consumer is unsupported: " + consumerID,
 		}
-		packID = requirement.PackID
 	}
+	packID := requirement.PackID
 
 	plan := s.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:           packID,

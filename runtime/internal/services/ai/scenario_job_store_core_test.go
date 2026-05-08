@@ -135,6 +135,7 @@ func TestScenarioJobStoreCancelPreservesCanceledStateForDetachedVideoJob(t *test
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	ctx := scenarioJobContext("nimi.desktop")
 
@@ -228,6 +229,7 @@ func TestScenarioJobStoreDetachedVideoJobPublishesPollingMetadataAndRemainsQuery
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	ctx := scenarioJobContext("nimi.desktop")
 
@@ -331,6 +333,7 @@ func TestScenarioJobStoreDetachedVideoJobIgnoresShortRequestTimeout(t *testing.T
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	ctx := scenarioJobContext("nimi.desktop")
 
@@ -424,6 +427,7 @@ func TestScenarioJobStoreDetachedVideoJobCompletesAfterLongPoll(t *testing.T) {
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	ctx := scenarioJobContext("nimi.desktop")
 
@@ -519,6 +523,7 @@ func TestScenarioJobStoreDetachedVideoJobFailsFromProviderFailure(t *testing.T) 
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	ctx := scenarioJobContext("nimi.desktop")
 
@@ -603,6 +608,7 @@ func TestScenarioJobStoreDetachedVideoJobExpiredFromProvider(t *testing.T) {
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	ctx := scenarioJobContext("nimi.desktop")
 
@@ -696,6 +702,7 @@ func TestScenarioJobStoreDetachedVideoJobSurvivesTransientPollFailure(t *testing
 		CloudProviders: map[string]nimillm.ProviderCredentials{
 			"volcengine": {BaseURL: server.URL, APIKey: "test-key"},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	ctx := scenarioJobContext("nimi.desktop")
 

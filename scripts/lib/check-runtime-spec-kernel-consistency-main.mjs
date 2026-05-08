@@ -242,6 +242,7 @@ checkMetadataKeyCrossReferences();
 checkKeySourceTruthTable();
 checkErrorMappingMatrix();
 checkRpcMigrationMapCoverageImpl({ fail, fs, protoRoot, readYaml, walk });
+checkA2AFutureSeamNegativeGates();
 checkDomainSection0ImportsCoveredInBody();
 checkDomainPrimaryRuleCoverage();
 checkConfigPathConsistency();
@@ -395,6 +396,160 @@ function checkRuntimeCatalogLoaderIsolation() {
   if (!/ReadDir\(runtimecatalog\.DefaultProvidersFS,\s*"providers"\)/u.test(content)) {
     fail(`${loaderFile} must load built-in active providers directory only`);
   }
+}
+
+function checkA2AFutureSeamNegativeGates() {
+  const sourceFiles = [
+    ...walkA2ANegativeGateTree(path.join(cwd, 'runtime')),
+    ...walkA2ANegativeGateTree(path.join(cwd, 'sdk/src')),
+    ...walkA2ANegativeGateTree(path.join(cwd, 'apps')),
+    ...walkA2ANegativeGateTree(path.join(cwd, 'nimi-mods')),
+  ]
+    .map((abs) => path.relative(cwd, abs))
+    .filter(isA2ANegativeGateSourceFile);
+
+  for (const rel of sourceFiles) {
+    const content = read(rel);
+    if (!containsA2AProductionToken(content)) continue;
+    fail(`K-DELEG-128 forbids production A2A/agent2agent code or claims in ${rel}`);
+  }
+
+  const runtimeAgentProjectionFiles = sourceFiles.filter((rel) => {
+    const normalized = rel.replaceAll('\\', '/');
+    return normalized.startsWith('runtime/') || normalized.startsWith('sdk/src/') || normalized.startsWith('apps/');
+  });
+  for (const rel of runtimeAgentProjectionFiles) {
+    const content = read(rel);
+    if (containsA2AProductionToken(content) && /runtime\.agent\./iu.test(content)) {
+      fail(`K-DELEG-128 forbids projecting A2A task payloads into runtime.agent.* in ${rel}`);
+    }
+  }
+
+  for (const rel of collectDependencyManifests()) {
+    if (!fs.existsSync(path.join(cwd, rel))) continue;
+    if (rel.endsWith('package.json')) {
+      checkPackageManifestForA2ADependencies(rel);
+      continue;
+    }
+    checkTextManifestForA2ADependencies(rel);
+  }
+}
+
+function isA2ANegativeGateSourceFile(rel) {
+  const normalized = rel.replaceAll('\\', '/');
+  if (normalized.includes('/node_modules/') ||
+    normalized.includes('/dist/') ||
+    normalized.includes('/build/') ||
+    normalized.includes('/generated/') ||
+    normalized.includes('/gen/') ||
+    normalized.endsWith('.md') ||
+    normalized.endsWith('.yaml') ||
+    normalized.endsWith('.yml') ||
+    normalized.endsWith('.lock')) {
+    return false;
+  }
+  if (normalized.startsWith('apps/')) {
+    if (!normalized.includes('/src/') && !normalized.includes('/src-tauri/')) return false;
+  }
+  return /\.(?:go|rs|ts|tsx|js|jsx|mjs|cjs|json)$/u.test(normalized);
+}
+
+function collectDependencyManifests() {
+  const roots = [
+    'package.json',
+    'runtime/go.mod',
+    'runtime/go.sum',
+    'sdk/package.json',
+    ...walkA2ANegativeGateTree(path.join(cwd, 'apps'))
+      .map((abs) => path.relative(cwd, abs))
+      .filter((rel) => rel.replaceAll('\\', '/').endsWith('/package.json')),
+    ...walkA2ANegativeGateTree(path.join(cwd, 'nimi-mods'))
+      .map((abs) => path.relative(cwd, abs))
+      .filter((rel) => rel.replaceAll('\\', '/').endsWith('/package.json')),
+  ];
+  return [...new Set(roots)];
+}
+
+function walkA2ANegativeGateTree(root) {
+  if (!fs.existsSync(root)) return [];
+  const out = [];
+  const stack = [root];
+  const seen = new Set();
+  const ignoredDirs = new Set([
+    '.git',
+    '.next',
+    '.turbo',
+    '.vite',
+    'build',
+    'coverage',
+    'dist',
+    'gen',
+    'generated',
+    'node_modules',
+    'target',
+  ]);
+  while (stack.length > 0) {
+    const dir = stack.pop();
+    const realDir = fs.realpathSync.native(dir);
+    if (seen.has(realDir)) continue;
+    seen.add(realDir);
+    for (const name of fs.readdirSync(dir)) {
+      if (ignoredDirs.has(name)) continue;
+      const full = path.join(dir, name);
+      const st = fs.lstatSync(full);
+      if (st.isSymbolicLink()) continue;
+      if (st.isDirectory()) {
+        stack.push(full);
+      } else {
+        out.push(full);
+      }
+    }
+  }
+  return out;
+}
+
+function checkPackageManifestForA2ADependencies(rel) {
+  let manifest;
+  try {
+    manifest = JSON.parse(read(rel));
+  } catch (err) {
+    fail(`${rel} must be valid JSON for K-DELEG-128 dependency scanning: ${err.message}`);
+    return;
+  }
+  const sections = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'];
+  for (const section of sections) {
+    const deps = manifest?.[section];
+    if (!deps || typeof deps !== 'object' || Array.isArray(deps)) continue;
+    for (const depName of Object.keys(deps)) {
+      if (isA2ADependencyName(depName)) {
+        fail(`K-DELEG-128 forbids production A2A dependency ${depName} in ${rel}#${section}`);
+      }
+    }
+  }
+}
+
+function checkTextManifestForA2ADependencies(rel) {
+  const lines = read(rel).split('\n');
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i].trim();
+    if (!line || line.startsWith('//') || line.startsWith('#')) continue;
+    if (containsA2AProductionToken(line)) {
+      fail(`K-DELEG-128 forbids A2A dependency token in ${rel}:${i + 1}`);
+    }
+  }
+}
+
+function containsA2AProductionToken(value) {
+  const normalized = stripA2ANegativeGateGuardTokens(String(value || ''));
+  return /(^|[^A-Za-z0-9])(?:a2a|agent2agent)([^A-Za-z0-9]|$)/iu.test(normalized);
+}
+
+function isA2ADependencyName(value) {
+  return /(^|[@/._-])(?:a2a|agent2agent)(?:$|[/._-])/iu.test(String(value || ''));
+}
+
+function stripA2ANegativeGateGuardTokens(value) {
+  return value.replace(/(['"`])raw_a2a\1/giu, '');
 }
 
 function checkConnectorRpcFieldRulesCoverage() {
@@ -964,13 +1119,17 @@ function listDomainMarkdownFiles(domainDirRel) {
     .sort((a, b) => a.localeCompare(b));
 }
 
-function walk(dir) {
+function walk(dir, seen = new Set()) {
   if (!fs.existsSync(dir)) return [];
+  const realDir = fs.realpathSync.native(dir);
+  if (seen.has(realDir)) return [];
+  seen.add(realDir);
   const out = [];
   for (const name of fs.readdirSync(dir)) {
     const full = path.join(dir, name);
-    const st = fs.statSync(full);
-    if (st.isDirectory()) out.push(...walk(full));
+    const st = fs.lstatSync(full);
+    if (st.isSymbolicLink()) continue;
+    if (st.isDirectory()) out.push(...walk(full, seen));
     else out.push(full);
   }
   return out;

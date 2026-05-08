@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestSanitizeScenarioArtifactsForResponseStripsVideoBytesWhenURIAvailable(t *testing.T) {
@@ -97,5 +100,39 @@ func TestGetScenarioJobAndArtifactsCompactVideoResponsePayloads(t *testing.T) {
 	}
 	if got := len(storedJob.GetArtifacts()[0].GetBytes()); got != len(originalBytes) {
 		t.Fatalf("expected stored artifact bytes to remain intact, got=%d want=%d", got, len(originalBytes))
+	}
+}
+
+func TestGetScenarioArtifactsFailsClosedForProviderAuthFailedJob(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := scenarioJobContext("nimi.desktop")
+
+	jobID := "scenario-provider-auth-failed-job"
+	snapshot := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+		JobId:        jobID,
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user", ModelId: "cloud/provider", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED,
+		ReasonCode:   runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED,
+		TraceId:      "trace-provider-auth-failed",
+		Artifacts: []*runtimev1.ScenarioArtifact{{
+			ArtifactId: "stale-auth-failed-artifact",
+			MimeType:   "image/png",
+			Bytes:      []byte("must-not-project"),
+		}},
+	}, func() {})
+	if snapshot == nil {
+		t.Fatalf("expected snapshot creation")
+	}
+
+	resp, err := svc.GetScenarioArtifacts(ctx, &runtimev1.GetScenarioArtifactsRequest{JobId: jobID})
+	if err == nil {
+		t.Fatalf("expected failed precondition, got response=%v", resp)
+	}
+	if got := status.Code(err); got != codes.FailedPrecondition {
+		t.Fatalf("expected FAILED_PRECONDITION, got %v", got)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED reason, got reason=%v ok=%v err=%v", reason, ok, err)
 	}
 }

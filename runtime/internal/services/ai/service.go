@@ -122,6 +122,7 @@ func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *provid
 
 // newFromProviderConfig is an internal constructor used by New and tests.
 func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, cfg Config, globalConc int, perAppConc int) (*Service, error) {
+	cfg = cfg.normalized()
 	if globalConc <= 0 {
 		globalConc = 8
 	}
@@ -151,6 +152,7 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		realtimeSessions:                       realtimeSessions,
 		voiceAssets:                            newVoiceAssetStore(),
 		connStore:                              connStore,
+		allowLoopback:                          cfg.AllowLoopbackEndpoint,
 		streamFirstPacketTimeout:               defaultStreamFirstTimeout,
 		streamIdleTimeout:                      defaultStreamIdleTimeout,
 		voiceAssetDeleteReconciliationInterval: defaultVoiceAssetDeleteReconciliationInterval,

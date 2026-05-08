@@ -26,7 +26,7 @@ func TestMemoryServiceClusterCanonicalReviewInputsUsesPersistedEmbeddingsAndDefe
 		t.Fatalf("New: %v", err)
 	}
 	closeMemoryServiceForTest(t, svc)
-	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+	setManagedEmbeddingProfileForTest(svc, &runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
 		Dimension:       32,
@@ -142,7 +142,7 @@ func TestMemoryServiceCanonicalBindRequiresManagedProfileAndIsIdempotent(t *test
 		Version:         "nimi-embed",
 		MigrationPolicy: runtimev1.MemoryMigrationPolicy_MEMORY_MIGRATION_POLICY_REINDEX,
 	}
-	svc.SetManagedEmbeddingProfile(profile)
+	setManagedEmbeddingProfileForTest(svc, profile)
 	bound, err := svc.BindCanonicalBankEmbeddingProfile(context.Background(), locator)
 	if err != nil {
 		t.Fatalf("BindCanonicalBankEmbeddingProfile: %v", err)
@@ -586,7 +586,7 @@ func TestMemoryServicePendingBacklogMetadataSurvivesRestart(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 	closeMemoryServiceForTest(t, svc)
-	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+	setManagedEmbeddingProfileForTest(svc, &runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
 		Dimension:       4,
@@ -680,7 +680,7 @@ func TestMemoryServiceTerminalBacklogDoesNotReviveAfterRestart(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 	closeMemoryServiceForTest(t, svc)
-	svc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+	setManagedEmbeddingProfileForTest(svc, &runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
 		Dimension:       4,

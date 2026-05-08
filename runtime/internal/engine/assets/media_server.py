@@ -237,19 +237,27 @@ def _content_images(spec):
 
 
 def _load_image_from_uri(uri):
+    uri_text = str(uri or "").strip()
+    if not uri_text:
+        raise ValueError("media input URL is required")
+    parsed = urllib.parse.urlparse(uri_text)
+    if parsed.scheme == "file":
+        raise ValueError("file URLs are not admitted media inputs")
+    if parsed.scheme and parsed.scheme not in ("http", "https", "data"):
+        raise ValueError("unsupported media input URL scheme: %s" % parsed.scheme)
+    if not parsed.scheme:
+        raise ValueError("bare local paths are not admitted media inputs")
+
     from PIL import Image
 
-    parsed = urllib.parse.urlparse(uri)
     if parsed.scheme in ("http", "https"):
         _validate_remote_image_url(parsed)
-        with urllib.request.urlopen(uri, timeout=REMOTE_FETCH_TIMEOUT_SEC) as response:
+        with urllib.request.urlopen(uri_text, timeout=REMOTE_FETCH_TIMEOUT_SEC) as response:
             return Image.open(io.BytesIO(_read_limited(response, MAX_REMOTE_IMAGE_BYTES))).convert("RGB")
     if parsed.scheme == "data":
-        _, encoded = uri.split(",", 1)
+        _, encoded = uri_text.split(",", 1)
         return Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGB")
-    if parsed.scheme == "file":
-        return Image.open(parsed.path).convert("RGB")
-    return Image.open(uri).convert("RGB")
+    raise ValueError("unsupported media input URL scheme: %s" % parsed.scheme)
 
 
 def _image_to_b64(image):

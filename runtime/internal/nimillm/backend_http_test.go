@@ -456,7 +456,7 @@ func TestBackendStreamGenerateTextUsesCodexResponsesSSEDespiteUnexpectedContentT
 func TestBuildCodexResponsesInputUsesOutputTextForAssistantParts(t *testing.T) {
 	items, err := buildCodexResponsesInput([]*runtimev1.ChatMessage{
 		{
-			Role: "assistant",
+			Role:  "assistant",
 			Parts: []*runtimev1.ChatContentPart{textPart("hello from assistant")},
 		},
 	})

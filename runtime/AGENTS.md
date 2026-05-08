@@ -8,7 +8,7 @@
 - Keep runtime self-contained: no imports from `sdk/**` or `apps/**`.
 - Preserve Go rules: constructor injection, no global mutable state, `fmt.Errorf("op: %w", err)`, no `log.Println`.
 - Treat `runtime/gen/**` and `runtime/internal/providerregistry/generated.go` as generated read-only outputs.
-- Runtime model/provider facts come from `runtime/catalog/source/providers/**` and generated snapshots, not from `spec/**` tables.
+- Runtime model/provider authority comes from `.nimi/spec/runtime/local-model.md` and its imported kernel tables; runtime catalog source files are support inputs and must not become parallel product truth outside generated/admitted projections.
 - Do not patch runtime gaps with desktop or SDK hardcodes.
 
 ## Retrieval Defaults
@@ -18,5 +18,5 @@
 ## Verification Commands
 - Core: `cd runtime && go build ./...`, `cd runtime && go vet ./...`, `cd runtime && go test ./...`.
 - Compliance: `cd runtime && go run ./cmd/runtime-compliance --gate`.
-- Proto chain: `pnpm proto:lint`, `pnpm proto:breaking`, `pnpm proto:drift-check`.
+- Proto chain: `pnpm proto:lint`, `pnpm proto:generate`, `pnpm proto:breaking`, `pnpm proto:drift-check`, `pnpm check:runtime-proto-spec-linkage`.
 - Runtime guardrails: `pnpm check:runtime-go-coverage`, `pnpm check:runtime-ai-scenario-coverage`, `pnpm check:runtime-catalog-drift`, `pnpm check:live-provider-invariants`.

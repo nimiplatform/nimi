@@ -403,7 +403,16 @@ export function renderRuleEvidence(doc, sourceName) {
     ? doc.evidence_catalog
     : {};
   const rules = Array.isArray(doc?.rules) ? doc.rules : [];
+  const declaredTotal = Number(doc?.rule_compliance?.total_k_rules);
+  const uniqueRuleCount = new Set(rules
+    .map((item) => String(item?.rule_id || '').trim())
+    .filter(Boolean)).size;
   let out = header('Generated Rule Evidence', sourceName);
+
+  out += '## Rule Compliance\n\n';
+  out += '| Declared K Rules | Resolved Rule Rows | Evidence Catalog Entries |\n';
+  out += '|---:|---:|---:|\n';
+  out += `| ${Number.isInteger(declaredTotal) ? declaredTotal : '—'} | ${uniqueRuleCount} | ${Object.keys(catalog).length} |\n\n`;
 
   out += '## Evidence Catalog\n\n';
   out += '| Evidence Ref | Type | Command | Path | Description |\n';
@@ -435,4 +444,3 @@ export function renderRuleEvidence(doc, sourceName) {
 
   return normalizeMarkdown(out);
 }
-

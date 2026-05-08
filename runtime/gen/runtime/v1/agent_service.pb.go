@@ -7856,13 +7856,14 @@ func (x *UpsertDelegatedProviderProfileResponse) GetProviderProfile() *Delegated
 }
 
 type SetDelegatedProviderStateRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Context           *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	AgentId           string                 `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	ProviderProfileId string                 `protobuf:"bytes,3,opt,name=provider_profile_id,json=providerProfileId,proto3" json:"provider_profile_id,omitempty"`
-	State             DelegatedProviderState `protobuf:"varint,4,opt,name=state,proto3,enum=nimi.runtime.v1.DelegatedProviderState" json:"state,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Context             *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	AgentId             string                 `protobuf:"bytes,2,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	ProviderProfileId   string                 `protobuf:"bytes,3,opt,name=provider_profile_id,json=providerProfileId,proto3" json:"provider_profile_id,omitempty"`
+	State               DelegatedProviderState `protobuf:"varint,4,opt,name=state,proto3,enum=nimi.runtime.v1.DelegatedProviderState" json:"state,omitempty"`
+	LifecycleReasonCode string                 `protobuf:"bytes,5,opt,name=lifecycle_reason_code,json=lifecycleReasonCode,proto3" json:"lifecycle_reason_code,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *SetDelegatedProviderStateRequest) Reset() {
@@ -7921,6 +7922,13 @@ func (x *SetDelegatedProviderStateRequest) GetState() DelegatedProviderState {
 		return x.State
 	}
 	return DelegatedProviderState_DELEGATED_PROVIDER_STATE_UNSPECIFIED
+}
+
+func (x *SetDelegatedProviderStateRequest) GetLifecycleReasonCode() string {
+	if x != nil {
+		return x.LifecycleReasonCode
+	}
+	return ""
 }
 
 type SetDelegatedProviderStateResponse struct {
@@ -9757,12 +9765,13 @@ const file_runtime_v1_agent_service_proto_rawDesc = "" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12T\n" +
 	"\x10provider_profile\x18\x03 \x01(\v2).nimi.runtime.v1.DelegatedProviderProfileR\x0fproviderProfile\"~\n" +
 	"&UpsertDelegatedProviderProfileResponse\x12T\n" +
-	"\x10provider_profile\x18\x01 \x01(\v2).nimi.runtime.v1.DelegatedProviderProfileR\x0fproviderProfile\"\xec\x01\n" +
+	"\x10provider_profile\x18\x01 \x01(\v2).nimi.runtime.v1.DelegatedProviderProfileR\x0fproviderProfile\"\xa0\x02\n" +
 	" SetDelegatedProviderStateRequest\x12>\n" +
 	"\acontext\x18\x01 \x01(\v2$.nimi.runtime.v1.AgentRequestContextR\acontext\x12\x19\n" +
 	"\bagent_id\x18\x02 \x01(\tR\aagentId\x12.\n" +
 	"\x13provider_profile_id\x18\x03 \x01(\tR\x11providerProfileId\x12=\n" +
-	"\x05state\x18\x04 \x01(\x0e2'.nimi.runtime.v1.DelegatedProviderStateR\x05state\"y\n" +
+	"\x05state\x18\x04 \x01(\x0e2'.nimi.runtime.v1.DelegatedProviderStateR\x05state\x122\n" +
+	"\x15lifecycle_reason_code\x18\x05 \x01(\tR\x13lifecycleReasonCode\"y\n" +
 	"!SetDelegatedProviderStateResponse\x12T\n" +
 	"\x10provider_profile\x18\x01 \x01(\v2).nimi.runtime.v1.DelegatedProviderProfileR\x0fproviderProfile\"\x9a\x05\n" +
 	"\x18DelegatedApprovalRequest\x12.\n" +

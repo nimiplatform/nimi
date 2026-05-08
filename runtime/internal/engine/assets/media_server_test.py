@@ -1,0 +1,46 @@
+from __future__ import annotations
+
+import importlib.util
+import os
+import pathlib
+import sys
+import unittest
+
+
+def load_media_server_module():
+    old_mode = os.environ.get("NIMI_MEDIA_MODE")
+    os.environ["NIMI_MEDIA_MODE"] = "pipeline_supervised"
+    module_path = pathlib.Path(__file__).with_name("media_server.py")
+    spec = importlib.util.spec_from_file_location("media_server_under_test", module_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        if old_mode is None:
+            os.environ.pop("NIMI_MEDIA_MODE", None)
+        else:
+            os.environ["NIMI_MEDIA_MODE"] = old_mode
+    return module
+
+
+MEDIA_SERVER = load_media_server_module()
+
+
+class MediaServerLocalFileBoundaryTests(unittest.TestCase):
+    def test_load_image_rejects_file_url(self) -> None:
+        with self.assertRaisesRegex(ValueError, "file URLs are not admitted media inputs"):
+            MEDIA_SERVER._load_image_from_uri("file:///tmp/secret.png")
+
+    def test_load_image_rejects_bare_local_path(self) -> None:
+        with self.assertRaisesRegex(ValueError, "bare local paths are not admitted media inputs"):
+            MEDIA_SERVER._load_image_from_uri("../../secret.png")
+
+    def test_load_image_rejects_unsupported_local_like_scheme(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unsupported media input URL scheme"):
+            MEDIA_SERVER._load_image_from_uri("c:/Users/example/secret.png")
+
+
+if __name__ == "__main__":
+    unittest.main()

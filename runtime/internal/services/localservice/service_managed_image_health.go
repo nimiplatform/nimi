@@ -46,8 +46,10 @@ func (s *Service) checkManagedSupervisedImageHealthWithReason(ctx context.Contex
 	}
 	if selectionRequiresCUDAUserSpaceRuntime(selection) {
 		gate := s.resolveLocalEnvironmentConsumerActivationGate(localEnvironmentConsumerActivationGateRequest{
-			ConsumerID: stableDiffusionCUDAConsumerID,
-			PackID:     "local-gpu-support",
+			ConsumerID:   stableDiffusionCUDAConsumerID,
+			PackID:       "local-gpu-support",
+			AssetID:      model.GetAssetId(),
+			LocalAssetID: localAssetID,
 		})
 		if gate.State != localEnvironmentActivationStateReady {
 			return s.setManagedSupervisedImageUnhealthy(model, gate.Detail)

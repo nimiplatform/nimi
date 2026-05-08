@@ -24,6 +24,10 @@ type noopJobStateUpdater struct{}
 func (noopJobStateUpdater) UpdatePollState(_ string, _ string, _ int32, _ *timestamppb.Timestamp, _ string) {
 }
 
+func loopbackProviderTestContext(ctx context.Context) context.Context {
+	return mediaAdapterEndpointPolicyContext(ctx, MediaAdapterConfig{AllowLoopbackEndpoint: true})
+}
+
 type recordingJobStateUpdater struct {
 	calls []recordedPollState
 }
@@ -104,7 +108,7 @@ func TestPollProviderTaskForArtifactCancelsVolcengineTaskOnContextCancel(t *test
 	}))
 	defer server.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(loopbackProviderTestContext(context.Background()))
 	go func() {
 		time.Sleep(50 * time.Millisecond)
 		cancel()
@@ -150,7 +154,7 @@ func TestDeleteBytedanceARKTaskTreatsConflictAsSuccess(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if err := DeleteProviderAsyncTask(context.Background(), AdapterBytedanceARKTask, "task-1", MediaAdapterConfig{BaseURL: server.URL}); err != nil {
+	if err := DeleteProviderAsyncTask(context.Background(), AdapterBytedanceARKTask, "task-1", MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true}); err != nil {
 		t.Fatalf("expected conflict to be treated as success, got %v", err)
 	}
 }
@@ -179,7 +183,7 @@ func TestPollProviderTaskForArtifactCompletesAfterQueuedStates(t *testing.T) {
 	defer server.Close()
 
 	artifacts, usage, providerJobID, err := PollProviderTaskForArtifact(
-		context.Background(),
+		loopbackProviderTestContext(context.Background()),
 		updater,
 		"job-1",
 		server.URL,
@@ -274,15 +278,15 @@ func TestPollProviderTaskForArtifactRetriesTransientErrorsWhenDetached(t *testin
 		// Fourth poll: succeeded with artifact.
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"id":     "task-retry-1",
-			"status": "succeeded",
+			"id":      "task-retry-1",
+			"status":  "succeeded",
 			"b64_mp4": base64.StdEncoding.EncodeToString([]byte("video-bytes-retry")),
 		})
 	}))
 	defer server.Close()
 
 	// Cancel-only context: no deadline → detached polling.
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(loopbackProviderTestContext(context.Background()))
 	defer cancel()
 
 	artifacts, _, providerJobID, err := PollProviderTaskForArtifact(
@@ -345,7 +349,7 @@ func TestPollProviderTaskForArtifactImmediateExitOnErrorWithDeadline(t *testing.
 	defer server.Close()
 
 	// Context with deadline: NOT detached → immediate exit on error.
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(loopbackProviderTestContext(context.Background()), 30*time.Second)
 	defer cancel()
 
 	_, _, _, err := PollProviderTaskForArtifact(
@@ -429,7 +433,7 @@ func TestPollProviderTaskForArtifactPermanentErrorFailsFastWhenDetached(t *testi
 	defer server.Close()
 
 	// Cancel-only context: detached mode.
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(loopbackProviderTestContext(context.Background()))
 	defer cancel()
 
 	_, _, _, err := PollProviderTaskForArtifact(

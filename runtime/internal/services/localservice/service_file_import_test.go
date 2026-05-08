@@ -146,8 +146,7 @@ func TestImportLocalPassiveAssetFileKeepsManifestKind(t *testing.T) {
 func TestImportLocalImageModelFileRegistersManagedSupervisedMediaWithoutEndpoint(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
+	setNvidiaGPUProbeForTest(t, false)
 	svc.SetEngineManager(&mockEngineManager{})
 
 	sourceDir := t.TempDir()
@@ -181,8 +180,7 @@ func TestImportLocalImageModelFileRegistersManagedSupervisedMediaWithoutEndpoint
 func TestCheckLocalImageModelHealthProjectsCUDADependencyConfirmation(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
+	setNvidiaGPUProbeForTest(t, false)
 	svc.SetEngineManager(&mockEngineManager{})
 
 	sourceDir := t.TempDir()
@@ -212,8 +210,8 @@ func TestCheckLocalImageModelHealthProjectsCUDADependencyConfirmation(t *testing
 	if got.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 		t.Fatalf("expected dependency setup to fail closed as unhealthy, got %s", got.GetStatus())
 	}
-	if detail := got.GetDetail(); !strings.Contains(detail, "materializable_requires_confirmation") || !strings.Contains(detail, "system_path_mutation=false") {
-		t.Fatalf("expected CUDA dependency confirmation detail, got %q", detail)
+	if detail := got.GetDetail(); !strings.Contains(detail, "local environment activation blocked") || !strings.Contains(detail, "model.asset") {
+		t.Fatalf("expected consumer dependency activation block detail, got %q", detail)
 	}
 }
 
@@ -266,8 +264,7 @@ func TestImportLocalImageModelFileRejectsMissingRuntimeSupportedDiffusionIdentit
 func TestImportLocalImageModelFileInfersCapabilitiesFromKindWithoutEndpoint(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")
@@ -315,8 +312,7 @@ func TestImportLocalImageModelFileSupportsAppleSiliconManagedImageHost(t *testin
 func TestImportLocalImageModelFileUnsupportedHostRegistersUnhealthyAsset(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")
@@ -346,8 +342,7 @@ func TestImportLocalImageModelFileUnsupportedHostRegistersUnhealthyAsset(t *test
 func TestScaffoldOrphanVideoModelRestoresSourceWhenRegistrationFails(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "intel")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
+	setUnsupportedGPUProbeForTest(t)
 	modelsRoot := t.TempDir()
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
@@ -391,8 +386,7 @@ func TestScaffoldOrphanVideoModelRestoresSourceWhenRegistrationFails(t *testing.
 func TestScaffoldOrphanImageModelInfersCapabilitiesFromKindWithoutEndpoint(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "windows", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")
@@ -423,8 +417,7 @@ func TestScaffoldOrphanImageModelInfersCapabilitiesFromKindWithoutEndpoint(t *te
 func TestScaffoldOrphanImageModelUnsupportedHostRegistersUnhealthyAsset(t *testing.T) {
 	svc := newTestService(t)
 	setLocalRuntimePlatformForTest(t, "linux", "amd64")
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setNvidiaGPUProbeForTest(t, true)
 
 	sourceDir := t.TempDir()
 	sourcePath := filepath.Join(sourceDir, "z_image_turbo-Q4_K.gguf")

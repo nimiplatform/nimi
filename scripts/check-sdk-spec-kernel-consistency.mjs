@@ -334,6 +334,12 @@ function checkRuleEvidenceTraceability(sdkKernelRules) {
     fail(`${evidencePath} rules must not be empty`);
     return;
   }
+  const declaredTotal = Number(doc.rule_compliance?.total_s_rules);
+  if (!Number.isInteger(declaredTotal) || declaredTotal <= 0) {
+    fail(`${evidencePath} rule_compliance.total_s_rules must be a positive integer`);
+  } else if (declaredTotal !== rules.length) {
+    fail(`${evidencePath} rule_compliance.total_s_rules (${declaredTotal}) must match resolved rule rows (${rules.length})`);
+  }
 
   const seen = new Set();
   for (const item of rules) {

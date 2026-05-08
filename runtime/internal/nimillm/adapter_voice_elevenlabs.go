@@ -17,6 +17,7 @@ import (
 )
 
 func executeElevenLabsVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	workflow := strings.ToLower(strings.TrimSpace(req.WorkflowType))
 	switch workflow {
 	case "voice_clone":
@@ -29,6 +30,7 @@ func executeElevenLabsVoiceWorkflow(ctx context.Context, req VoiceWorkflowReques
 }
 
 func executeElevenLabsTwoPhaseDesign(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := resolveVoiceWorkflowBaseURL("elevenlabs", cfg, req.ExtPayload)
 	if baseURL == "" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -161,6 +163,7 @@ func executeElevenLabsTwoPhaseDesign(ctx context.Context, req VoiceWorkflowReque
 }
 
 func executeElevenLabsInstantVoiceClone(ctx context.Context, req VoiceWorkflowRequest, cfg MediaAdapterConfig) (VoiceWorkflowResult, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := resolveVoiceWorkflowBaseURL("elevenlabs", cfg, req.ExtPayload)
 	if baseURL == "" {
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)

@@ -161,3 +161,36 @@ test('selector-read results reject retired MEMORY_ONLY effectClass projections',
     /unsupported effectClass/i,
   );
 });
+
+test('selector-read results reject unsupported eventKind projections', async () => {
+  const facade = createWorldEvolutionSelectorReadFacade(() => ({
+    executionEvents: {
+      read: async () => [{
+        eventId: 'evt-unsupported-kind-1',
+        worldId: 'world-unsupported-kind-1',
+        appId: 'app-unsupported-kind-1',
+        sessionId: 'session-unsupported-kind-1',
+        traceId: 'trace-unsupported-kind-1',
+        tick: 1,
+        timestamp: '2026-04-08T00:00:00.000Z',
+        eventKind: 'WORKFLOW_NODE_EVENT',
+        stage: 'EFFECT',
+        actorRefs: [{ actorId: 'actor-1', actorType: 'AGENT' }],
+        causation: null,
+        correlation: null,
+        effectClass: 'STATE_ONLY',
+        reason: 'unsupported-event-kind-projection',
+        evidenceRefs: [{ kind: 'event', refId: 'evt-unsupported-kind-1' }],
+      }],
+    },
+    replays: { read: async () => [] },
+    checkpoints: { read: async () => [] },
+    supervision: { read: async () => [] },
+    commitRequests: { read: async () => [] },
+  }));
+
+  await assert.rejects(
+    () => facade.executionEvents.read({ eventId: 'evt-unsupported-kind-1' }),
+    /unsupported eventKind/i,
+  );
+});

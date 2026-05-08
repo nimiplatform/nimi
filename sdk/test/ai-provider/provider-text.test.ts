@@ -123,16 +123,7 @@ test('createNimiAiProvider text model rejects video chat parts for text chat v1'
     generate: async (request) => {
       capturedRequest = request as Record<string, unknown>;
       return {
-        output: {
-          fields: {
-            text: {
-              kind: {
-                oneofKind: 'stringValue',
-                stringValue: 'multimodal ok',
-              },
-            },
-          },
-        },
+        output: textGenerateOutput('multimodal ok') as unknown as Record<string, unknown>,
         finishReason: 1,
         usage: {
           inputTokens: '5',

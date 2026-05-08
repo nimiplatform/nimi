@@ -81,6 +81,9 @@ def install_fastapi_stubs() -> None:
 def load_speech_server_module():
     install_fastapi_stubs()
     module_path = pathlib.Path(__file__).with_name("speech_server.py")
+    assets_dir = str(module_path.parent)
+    if assets_dir not in sys.path:
+        sys.path.insert(0, assets_dir)
     spec = importlib.util.spec_from_file_location("speech_server_under_test", module_path)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
@@ -130,6 +133,22 @@ def write_driver_script(path: pathlib.Path, body: str) -> str:
 
 
 class SpeechServerTests(unittest.TestCase):
+    def test_safe_uploaded_audio_path_uses_generated_basename_for_path_filename(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            audio_path = SPEECH_SERVER.safe_uploaded_audio_path(temp_dir, "../../secret/input.wav", "audio/wav")
+            self.assertEqual(audio_path.parent, pathlib.Path(temp_dir))
+            self.assertTrue(audio_path.name.startswith("upload-"))
+            self.assertEqual(audio_path.suffix, ".wav")
+            self.assertNotIn("secret", audio_path.name)
+            self.assertNotIn("..", audio_path.parts)
+
+    def test_safe_uploaded_audio_path_uses_mime_suffix_for_invalid_filename(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            audio_path = SPEECH_SERVER.safe_uploaded_audio_path(temp_dir, "/tmp/audio.bad-extension-name", "audio/mpeg")
+            self.assertEqual(audio_path.parent, pathlib.Path(temp_dir))
+            self.assertTrue(audio_path.name.startswith("upload-"))
+            self.assertEqual(audio_path.suffix, ".mp3")
+
     def test_driver_command_state_rejects_unresolvable_executable(self) -> None:
         old = os.environ.get(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV)
         try:

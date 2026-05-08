@@ -69,6 +69,10 @@ func (s *Service) SetDelegatedProviderState(_ context.Context, req *runtimev1.Se
 	if !isAdmittedDelegatedProviderState(req.GetState()) {
 		return nil, status.Error(codes.InvalidArgument, "delegated provider state is not admitted")
 	}
+	lifecycleReasonCode := strings.TrimSpace(req.GetLifecycleReasonCode())
+	if delegatedStateRequiresLifecycleReason(req.GetState()) && lifecycleReasonCode == "" {
+		return nil, status.Error(codes.InvalidArgument, "lifecycle_reason_code is required for delegated provider degraded, disabled, or quarantined states")
+	}
 	s.delegatedMu.Lock()
 	s.ensureDelegatedControlStoresLocked()
 	profile := s.delegatedProviderProfiles[delegatedProviderProfileKey(agentID, profileID)]
@@ -89,6 +93,11 @@ func (s *Service) SetDelegatedProviderState(_ context.Context, req *runtimev1.Se
 	previous := proto.Clone(profile).(*runtimev1.DelegatedProviderProfile)
 	profile = proto.Clone(profile).(*runtimev1.DelegatedProviderProfile)
 	profile.State = req.GetState()
+	if lifecycleReasonCode != "" {
+		profile.LifecycleReasonCode = lifecycleReasonCode
+	} else if !delegatedStateRequiresLifecycleReason(req.GetState()) {
+		profile.LifecycleReasonCode = ""
+	}
 	profile.UpdatedAt = timestamppb.New(time.Now().UTC())
 	s.delegatedProviderProfiles[delegatedProviderProfileKey(agentID, profileID)] = proto.Clone(profile).(*runtimev1.DelegatedProviderProfile)
 	if err := s.rebuildDelegatedGatewayLocked(); err != nil {
@@ -247,7 +256,7 @@ func normalizeDelegatedProviderProfile(input *runtimev1.DelegatedProviderProfile
 		return nil, status.Error(codes.InvalidArgument, "delegated transport kind must be STDIO_COMMAND")
 	}
 	if out.TrustTier == runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_UNSPECIFIED {
-		out.TrustTier = runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED
+		return nil, status.Error(codes.InvalidArgument, "delegated provider trust_tier is required")
 	}
 	if out.State == runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_UNSPECIFIED {
 		out.State = runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_REGISTERED
@@ -264,6 +273,9 @@ func normalizeDelegatedProviderProfile(input *runtimev1.DelegatedProviderProfile
 	}
 	if out.State == runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY && out.Command == "" {
 		return nil, status.Error(codes.InvalidArgument, "READY stdio delegated provider requires command")
+	}
+	if delegatedStateRequiresLifecycleReason(out.State) && out.LifecycleReasonCode == "" {
+		return nil, status.Error(codes.InvalidArgument, "lifecycle_reason_code is required for delegated provider degraded, disabled, or quarantined states")
 	}
 	if err := validateDelegatedCredentialRef(out.CredentialRef); err != nil {
 		return nil, err
@@ -298,6 +310,17 @@ func isAdmittedDelegatedProviderState(state runtimev1.DelegatedProviderState) bo
 		runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED,
 		runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_QUARANTINED,
 		runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_REMOVED:
+		return true
+	default:
+		return false
+	}
+}
+
+func delegatedStateRequiresLifecycleReason(state runtimev1.DelegatedProviderState) bool {
+	switch state {
+	case runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DEGRADED,
+		runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_DISABLED,
+		runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_QUARANTINED:
 		return true
 	default:
 		return false

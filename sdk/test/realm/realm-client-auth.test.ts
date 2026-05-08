@@ -451,7 +451,7 @@ test('Realm.decodeTokenExpiry parses valid and invalid JWTs', () => {
   assert.ok(Math.abs(unsafeResult.expiresInMs - result.expiresInMs) <= 1);
 });
 
-test('Realm explicit unauthenticated mode does not send Authorization header (SDKREALM-016)', async () => {
+test('Realm admitted unauthenticated AuthService endpoints do not send Authorization header', async () => {
   const originalFetch = globalThis.fetch;
   const capturedHeaders: Record<string, string>[] = [];
 
@@ -475,7 +475,10 @@ test('Realm explicit unauthenticated mode does not send Authorization header (SD
       auth: null,
     });
 
-    await realm.unsafeRaw.request({ method: 'GET', path: '/api/public' });
+    await realm.services.AuthService.passwordLogin({
+      email: 'test@nimi.xyz',
+      password: 'secret',
+    });
 
     assert.equal(capturedHeaders.length, 1);
     assert.equal(capturedHeaders[0]?.authorization, undefined, 'unauthenticated mode must not emit Authorization header');
@@ -502,7 +505,7 @@ test('Realm ready() fails closed on probe failure and still emits error event', 
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-ready-error.nimi.xyz',
-      auth: null,
+      auth: { accessToken: 'ready-token' },
     });
 
     realm.events.on('error', (event) => {
@@ -552,7 +555,7 @@ test('Realm services support path-first call pattern for mixed path/query method
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-params.nimi.xyz',
-      auth: null,
+      auth: { accessToken: 'params-token' },
     });
 
     await realm.services.HumanChatsService.listMessages('chat-123', 20);

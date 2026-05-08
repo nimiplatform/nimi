@@ -29,6 +29,7 @@ func ExecuteMiniMaxTask(
 	modelResolved string,
 	extractScenarioExtensions func(*runtimev1.SubmitScenarioJobRequest) *structpb.Struct,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -137,7 +138,7 @@ func ExecuteMiniMaxTask(
 				}
 				return nil, nil, "", err
 			}
-			artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(body)
+			artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(ctx, body)
 			if len(artifactBytes) == 0 {
 				if firstOtherErr == nil {
 					firstOtherErr = grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -283,7 +284,7 @@ func ExecuteMiniMaxTask(
 
 	for {
 		if ctx.Err() != nil {
-			bestEffortDeleteProviderAsyncTask(AdapterMiniMaxTask, baseURL, apiKey, providerJobID)
+			bestEffortDeleteProviderAsyncTask(ctx, AdapterMiniMaxTask, baseURL, apiKey, providerJobID)
 			return nil, nil, providerJobID, providerPollContextError(ctx.Err())
 		}
 		retryCount++
@@ -306,7 +307,7 @@ func ExecuteMiniMaxTask(
 				delay := providerPollDelay(retryCount)
 				updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), err.Error())
 				if sleepErr := sleepWithContext(ctx, delay); sleepErr != nil {
-					bestEffortDeleteProviderAsyncTask(AdapterMiniMaxTask, baseURL, apiKey, providerJobID)
+					bestEffortDeleteProviderAsyncTask(ctx, AdapterMiniMaxTask, baseURL, apiKey, providerJobID)
 					return nil, nil, providerJobID, providerPollContextError(sleepErr)
 				}
 				continue
@@ -327,7 +328,7 @@ func ExecuteMiniMaxTask(
 			delay := providerPollDelay(retryCount)
 			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(delay)), "")
 			if err := sleepWithContext(ctx, delay); err != nil {
-				bestEffortDeleteProviderAsyncTask(AdapterMiniMaxTask, baseURL, apiKey, providerJobID)
+				bestEffortDeleteProviderAsyncTask(ctx, AdapterMiniMaxTask, baseURL, apiKey, providerJobID)
 				return nil, nil, providerJobID, providerPollContextError(err)
 			}
 			continue
@@ -336,7 +337,7 @@ func ExecuteMiniMaxTask(
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, statusText)
 			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
-		artifactBytes, mimeType, artifactURI := ExtractArtifactBytesAndMIME(pollResp)
+		artifactBytes, mimeType, artifactURI := ExtractArtifactBytesAndMIME(ctx, pollResp)
 		if len(artifactBytes) == 0 {
 			updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_OUTPUT_INVALID.String())
 			return nil, nil, providerJobID, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)

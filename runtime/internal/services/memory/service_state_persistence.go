@@ -245,6 +245,7 @@ func (s *Service) persistSnapshotWithTxHook(snapshot persistedMemoryState, txHoo
 	}
 	managedProfile := cloneEmbeddingProfile(s.managedEmbeddingProfile)
 	hasResolver := s.runtimeEmbeddingResolver != nil
+	hasExecutor := s.runtimeEmbeddingExecutor != nil
 	executor := s.runtimeEmbeddingExecutor
 	return s.backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
 		if _, err := tx.Exec(`DELETE FROM memory_record_fts`); err != nil {
@@ -290,7 +291,7 @@ func (s *Service) persistSnapshotWithTxHook(snapshot persistedMemoryState, txHoo
 				`, record.GetMemoryId(), item.LocatorKey, searchText, searchTokens); err != nil {
 					return fmt.Errorf("insert memory_record_fts %s: %w", record.GetMemoryId(), err)
 				}
-				if bank.GetEmbeddingProfile() != nil && embeddingAvailableForProfileWithState(bank.GetEmbeddingProfile(), managedProfile, hasResolver) {
+				if bank.GetEmbeddingProfile() != nil && embeddingAvailableForProfileWithState(bank.GetEmbeddingProfile(), managedProfile, hasResolver, hasExecutor) {
 					vector, err := embeddingVectorWithExecutor(context.Background(), executor, bank.GetEmbeddingProfile(), strings.TrimSpace(strings.Join([]string{recordContent(&record), recordContext(&record)}, " ")))
 					if err != nil {
 						return fmt.Errorf("compute memory_record_embedding %s: %w", record.GetMemoryId(), err)

@@ -49,7 +49,7 @@ func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
 					WorkflowType:    "voice_clone",
 					WorkflowModelID: provider + "-wf-clone",
 				},
-				nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
+				nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
 			)
 			if err != nil {
 				t.Fatalf("Execute clone workflow: %v", err)
@@ -145,7 +145,7 @@ func TestStepFunVoiceCloneWorkflowSuccess(t *testing.T) {
 			WorkflowType:    "voice_clone",
 			WorkflowModelID: "stepfun-voice-clone",
 		},
-		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
+		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
 	)
 	if err != nil {
 		t.Fatalf("Execute StepFun clone workflow: %v", err)
@@ -334,7 +334,7 @@ func TestFishAudioVoiceCloneWorkflowSuccess(t *testing.T) {
 			WorkflowType:    "voice_clone",
 			WorkflowModelID: "fish-audio-create-model",
 		},
-		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
+		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
 	)
 	if err != nil {
 		t.Fatalf("Execute Fish Audio clone workflow: %v", err)
@@ -406,7 +406,7 @@ func TestElevenLabsVoiceCloneWorkflowSuccess(t *testing.T) {
 			WorkflowType:    "voice_clone",
 			WorkflowModelID: "elevenlabs-voice-clone",
 		},
-		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
+		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
 	)
 	if err != nil {
 		t.Fatalf("Execute ElevenLabs clone workflow: %v", err)
@@ -461,7 +461,7 @@ func TestElevenLabsVoiceDesignWorkflowSuccess(t *testing.T) {
 			WorkflowType:    "voice_design",
 			WorkflowModelID: "elevenlabs-voice-design",
 		},
-		nimillm.MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"},
+		nimillm.MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "test-key"},
 	)
 	if err != nil {
 		t.Fatalf("Execute design workflow: %v", err)
