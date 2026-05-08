@@ -1,7 +1,5 @@
-import type {
-  OfficialCubismRuntime,
-} from '../../../desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-cubism-runtime-types';
-
-export async function loadOfficialCubismRuntimeModules(): Promise<OfficialCubismRuntime> {
+// This web adapter never resolves successfully. Keep the return type opaque so
+// the web build does not import desktop-private renderer type authority.
+export async function loadOfficialCubismRuntimeModules(): Promise<any> {
   throw new Error('Live2D Cubism runtime is not available in the web shell.');
 }

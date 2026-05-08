@@ -1,5 +1,6 @@
 import { type MouseEvent, useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { NimiThemeProvider } from '@nimiplatform/nimi-kit/ui';
 import { ShellErrorBoundary } from '@nimiplatform/nimi-kit/telemetry/error-boundary';
 import {
   importCreator,
@@ -494,9 +495,11 @@ export function App() {
 
   return (
     <ShellErrorBoundary appName="Video Food Map">
-      <QueryClientProvider client={client}>
-        <AppBody />
-      </QueryClientProvider>
+      <NimiThemeProvider accentPack="video-food-map-accent" defaultScheme="light">
+        <QueryClientProvider client={client}>
+          <AppBody />
+        </QueryClientProvider>
+      </NimiThemeProvider>
     </ShellErrorBoundary>
   );
 }
