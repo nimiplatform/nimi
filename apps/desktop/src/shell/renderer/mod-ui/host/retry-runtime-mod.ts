@@ -65,8 +65,12 @@ export async function retryRuntimeMod(input: RetryRuntimeModInput): Promise<void
   try {
     const failures: RuntimeModRegisterFailure[] = [];
     const sideloadDiscoverFailures: RuntimeModRegisterFailure[] = [];
+    const registeredModIds = new Set<string>();
     const injectedResult = await registerInjectedRuntimeMods();
     failures.push(...injectedResult.failedMods);
+    for (const modId of injectedResult.registeredModIds) {
+      registeredModIds.add(modId);
+    }
 
     const eligibleManifests = input.localManifestSummaries.filter((manifest) => {
       const modId = String(manifest?.id || '').trim();
@@ -94,6 +98,9 @@ export async function retryRuntimeMod(input: RetryRuntimeModInput): Promise<void
           replaceExisting: true,
         });
         failures.push(...sideloadResult.failedMods);
+        for (const modId of sideloadResult.registeredModIds) {
+          registeredModIds.add(modId);
+        }
       }
     }
     failures.push(...sideloadDiscoverFailures);
@@ -119,6 +126,28 @@ export async function retryRuntimeMod(input: RetryRuntimeModInput): Promise<void
         details: {
           modId: normalizedModId,
           error: failed.error,
+        },
+      });
+      return;
+    }
+
+    if (!registeredModIds.has(normalizedModId)) {
+      const message = i18n.t('ModUI.retryNoRegistrationEvidence', {
+        modId: normalizedModId,
+        defaultValue: `Mod ${normalizedModId} retry failed: no registration evidence`,
+      });
+      input.context.markModFused(normalizedModId, message, 'retry-no-registration-evidence');
+      input.setStatusBanner({
+        kind: 'error',
+        message,
+      });
+      logRendererEvent({
+        level: 'warn',
+        area: 'mod-ui',
+        message: 'mod-ui:mod-retry:failed',
+        details: {
+          modId: normalizedModId,
+          error: 'retry-no-registration-evidence',
         },
       });
       return;

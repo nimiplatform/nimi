@@ -31,7 +31,7 @@ Mock fixture quick-start (after `pnpm reset`):
 export NIMI_REALM_URL=http://localhost:3002
 export NIMI_WORLD_ID=01JKFANREN00000000000001
 
-# LOCAL route (owned by test-primary)
+# LOCAL route (resolved by runtime-owned local model status)
 export NIMI_AGENT_ID=01JKDESKTOPAGENTPRIVATE000001
 
 # CLOUD route (public agent)
@@ -61,17 +61,13 @@ Environment variables:
 - `NIMI_SESSION_ID`
 - `NIMI_REQUEST_ID`
 - `NIMI_SESSION_ID`
-- `NIMI_PROVIDER` (for LOCAL route)
-- `NIMI_LOCAL_PROVIDER_ENDPOINT` (optional; leave empty when runtime has no local binding)
-- `NIMI_LOCAL_PROVIDER_MODEL` (optional explicit local model binding)
-- `NIMI_LOCAL_OPENAI_ENDPOINT` (optional OpenAI-compatible local binding)
 - `NIMI_CONNECTOR_ID` (optional connector ID for managed credential routing)
 
-Provider format examples:
+Provider and model selection:
 
-- `local:llama:openai_compat_adapter:qwen2.5-7b-instruct` -> Local text route with explicit adapter/model
-- `local:media:openai_compat_adapter:flux.1-schnell` -> Local media route
-- `openai-compatible:gpt-4o-mini` -> generic OpenAI-compatible endpoint
+- Local text readiness and sendability are resolved from the runtime authoritative local model list/status.
+- Host-side local snapshots are display-only; endpoint reachability alone is not route truth.
+- Managed cloud credentials and model selection use runtime connector routing via `NIMI_CONNECTOR_ID` or the Runtime Config connector UI.
 
 ## Scope
 
@@ -87,11 +83,10 @@ V1 runtime core keeps cloud chat on human DIRECT endpoints and desktop agent cha
 Tauri shell includes:
 
 - Route badge + route reason panel (CLOUD/LOCAL deterministic result)
-- Provider field hard-gated to LOCAL route only
 - Agent chat 会话列表、会话切换与会话删除
 - Agent chat 回合诊断（promptTrace / turnAudit）
-- LOCAL 路由默认使用本地 Provider（由用户自配）
-- Provider health check 按钮（LOCAL 路由）可验证本地 endpoint 可达性
+- LOCAL route readiness reflects runtime-owned local model records and status.
+- Local runtime health display consumes runtime local model status; it must not infer ready from endpoint reachability alone.
 - Renderer local state persistence (connection/session/turn/replay panel) with auto-restore on restart
 - API client retry/backoff for transient network failures and retryable HTTP statuses
 - Status rail feedback for retry lifecycle: `retrying` / `retry_exhausted` / `recovered`

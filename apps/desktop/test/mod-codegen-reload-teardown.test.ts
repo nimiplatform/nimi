@@ -17,6 +17,7 @@ test('reload triggers teardown without leaking previous registration', async () 
     modId: 'world.nimi.user.codegen.reload',
     sourceType: 'codegen',
     capabilities: ['runtime.ai.text.generate'],
+    manifestCapabilities: ['runtime.ai.text.generate'],
     setup: () => {},
     teardown: () => {
       teardownCount += 1;
@@ -27,6 +28,7 @@ test('reload triggers teardown without leaking previous registration', async () 
     modId: 'world.nimi.user.codegen.reload',
     sourceType: 'codegen',
     capabilities: ['runtime.ai.text.generate'],
+    manifestCapabilities: ['runtime.ai.text.generate'],
     setup: () => {},
     teardown: () => {
       teardownCount += 1;
@@ -51,6 +53,7 @@ test('failed codegen reload restores previous registration and grants', async ()
     modId,
     sourceType: 'codegen',
     capabilities: ['runtime.ai.text.generate', 'runtime.ai.text.stream'],
+    manifestCapabilities: ['runtime.ai.text.generate', 'runtime.ai.text.stream'],
     setup: () => {
       setupCount += 1;
     },
@@ -64,6 +67,7 @@ test('failed codegen reload restores previous registration and grants', async ()
       modId,
       sourceType: 'codegen',
       capabilities: ['runtime.ai.text.generate', 'runtime.ai.text.stream'],
+      manifestCapabilities: ['runtime.ai.text.generate', 'runtime.ai.text.stream'],
       setup: () => {
         throw new Error('replacement setup failed');
       },
@@ -96,6 +100,7 @@ test('failed codegen reload validation restores previous registration', async ()
     modId,
     sourceType: 'codegen',
     capabilities: ['runtime.ai.text.generate'],
+    manifestCapabilities: ['runtime.ai.text.generate'],
     setup: () => {},
   });
 
@@ -104,6 +109,7 @@ test('failed codegen reload validation restores previous registration', async ()
       modId,
       sourceType: 'codegen',
       capabilities: ['turn.register.pre-model'],
+      manifestCapabilities: ['turn.register.pre-model'],
       setup: () => {},
     }, {
       replaceExisting: true,

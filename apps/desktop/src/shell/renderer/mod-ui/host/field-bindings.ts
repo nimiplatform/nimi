@@ -1,20 +1,19 @@
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import type { ActionDefinition, QueryResultsMap, SelectedIndexMap } from './types';
 
-const ALLOWLIST_RUNTIME_FIELDS = new Set([
-  'targetType',
-  'targetAccountId',
-  'agentId',
-  'worldId',
-  'provider',
-  'localProviderEndpoint',
-  'localProviderModel',
-  'localOpenAiEndpoint',
-  'connectorId',
-  'mode',
-  'turnIndex',
-  'userConfirmedUpload',
+const UNSAFE_RUNTIME_FIELD_KEYS = new Set([
+  '__proto__',
+  'constructor',
+  'prototype',
 ]);
+
+function normalizeRuntimeFieldKey(key: string): string | null {
+  const normalizedKey = String(key || '').trim();
+  if (!normalizedKey || UNSAFE_RUNTIME_FIELD_KEYS.has(normalizedKey)) {
+    return null;
+  }
+  return normalizedKey;
+}
 
 export function readPathValue(source: unknown, path: string): unknown {
   const normalizedPath = String(path || '').trim();
@@ -53,19 +52,20 @@ export function applyRuntimeFields(
 ): void {
   const normalized: Record<string, string | number | boolean> = {};
   for (const [key, value] of Object.entries(fields)) {
-    if (!ALLOWLIST_RUNTIME_FIELDS.has(key)) {
+    const normalizedKey = normalizeRuntimeFieldKey(key);
+    if (!normalizedKey) {
       continue;
     }
-    if (key === 'turnIndex') {
+    if (normalizedKey === 'turnIndex') {
       const parsed = Number.parseInt(String(value || '1'), 10);
-      normalized[key] = Number.isFinite(parsed) ? parsed : 1;
+      normalized[normalizedKey] = Number.isFinite(parsed) ? parsed : 1;
       continue;
     }
-    if (key === 'userConfirmedUpload') {
-      normalized[key] = String(value).toLowerCase() === 'true';
+    if (normalizedKey === 'userConfirmedUpload') {
+      normalized[normalizedKey] = String(value).toLowerCase() === 'true';
       continue;
     }
-    normalized[key] = String(value ?? '');
+    normalized[normalizedKey] = String(value ?? '');
   }
   context.setRuntimeFields(normalized);
 }

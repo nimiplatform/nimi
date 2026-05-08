@@ -7,6 +7,7 @@ import type {
   LocalRuntimeDownloadSessionSummary,
   LocalRuntimeInferenceAuditPayload,
   LocalRuntimeImportAssetPayload,
+  LocalRuntimeImportFilePayload,
   LocalRuntimeInstallVerifiedAssetPayload,
   LocalRuntimeListAssetsPayload,
   LocalRuntimeListVerifiedAssetsPayload,
@@ -38,6 +39,10 @@ export async function listLocalRuntimeAudits(payload?: LocalRuntimeAuditListPayl
 
 export async function pickLocalRuntimeAssetManifestPath(): Promise<string | null> {
   return localRuntime.pickAssetManifestPath();
+}
+
+export async function pickLocalRuntimeAssetFile(): Promise<string | null> {
+  return localRuntime.pickAssetFile();
 }
 
 export async function installLocalRuntimeVerifiedAsset(
@@ -77,6 +82,13 @@ export async function importLocalRuntimeAsset(
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeAssetRecord> {
   return localRuntime.importAsset(payload, options) as Promise<LocalRuntimeAssetRecord>;
+}
+
+export async function importLocalRuntimeAssetFile(
+  payload: LocalRuntimeImportFilePayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeAssetRecord> {
+  return localRuntime.importFile(payload, options) as Promise<LocalRuntimeAssetRecord>;
 }
 
 export async function removeLocalRuntimeAsset(

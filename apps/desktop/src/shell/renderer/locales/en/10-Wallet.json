@@ -21,6 +21,7 @@
   "rechargeLaunchError": "Failed to open checkout.",
   "rechargeCheckoutSuccess": "Payment succeeded. Refreshing your balance.",
   "rechargeCheckoutCanceled": "Payment was canceled.",
+  "rechargeReturnRequiresRealmEvidence": "Checkout returned. Wallet balance will update after Realm confirms the transaction.",
   "rechargeComplianceHint": "Hong Kong checkout is available now. Mainland channel will open after filing is complete.",
   "sectionWithdrawal": "Withdrawal",
   "eligibilityLabel": "Eligibility",

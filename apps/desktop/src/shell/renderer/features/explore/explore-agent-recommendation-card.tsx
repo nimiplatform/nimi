@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type MouseEvent } from 'react';
+import { useMemo, type CSSProperties, type MouseEvent } from 'react';
 import { i18n } from '@renderer/i18n';
 import { DesktopCardSurface } from '@renderer/components/surface';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
@@ -80,10 +80,9 @@ export function AgentRecommendationCard({
   onOpen,
 }: {
   agent: ExploreAgentCardData;
-  onAddFriend?: () => void;
+  onAddFriend?: () => Promise<void> | void;
   onOpen?: () => void;
 }) {
-  const [friendship, setFriendship] = useState<'none' | 'pending' | 'friend'>('none');
   const palette = getSemanticAgentPalette({
     category: agent.category,
     origin: agent.origin,
@@ -101,22 +100,9 @@ export function AgentRecommendationCard({
   const glyph = agent.name ? agent.name.trim().charAt(0).toUpperCase() : '·';
   const handleFriendClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    if (friendship === 'none') {
-      setFriendship('pending');
-      onAddFriend?.();
-      return;
-    }
-    if (friendship === 'pending') {
-      setFriendship('friend');
-      return;
-    }
-    setFriendship('none');
+    void onAddFriend?.();
   };
-  const pillLabel = friendship === 'friend'
-    ? i18n.t('Explore.friendshipFriends', { defaultValue: 'Friends' })
-    : friendship === 'pending'
-      ? i18n.t('Explore.friendshipRequested', { defaultValue: 'Requested' })
-      : i18n.t('Explore.friendshipAdd', { defaultValue: 'Add friend' });
+  const pillLabel = i18n.t('Explore.friendshipAdd', { defaultValue: 'Add friend' });
   return (
     <DesktopCardSurface
       kind="promoted-glass"
@@ -285,21 +271,15 @@ export function AgentRecommendationCard({
             fontFamily: 'var(--nimi-font-sans)',
             fontSize: 11,
             fontWeight: 600,
-            ...friendPillStyle(friendship),
+            ...friendPillStyle('none'),
           }}
           title={pillLabel}
           aria-label={pillLabel}
         >
-          {friendship === 'friend' ? (
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          ) : friendship === 'pending' ? null : (
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-          )}
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
           {pillLabel}
         </button>
       </div>

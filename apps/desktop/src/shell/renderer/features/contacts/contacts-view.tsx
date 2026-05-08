@@ -323,6 +323,20 @@ export function ContactsView(props: ContactsViewProps) {
     }
   };
 
+  const acceptRequestWithEvidence = async (request: ContactRequestRecord) => {
+    await props.onAcceptRequest(request);
+    setAcceptedRequests(prev => new Set(prev).add(request.userId));
+  };
+
+  const rejectRequestWithEvidence = async (request: ContactRequestRecord) => {
+    await props.onRejectRequest(request);
+    setRejectedRequests(prev => new Set(prev).add(request.userId));
+  };
+
+  const cancelRequestWithEvidence = async (request: ContactRequestRecord) => {
+    await props.onCancelRequest(request);
+  };
+
   // 更新各分类的数量（包含本地拉黑状态）
   const getUpdatedCounts = () => {
     const blockedCount = blockedUsers.size;
@@ -422,7 +436,7 @@ export function ContactsView(props: ContactsViewProps) {
       {/* 左侧联系人列表 */}
       <SidebarShell
         width={sidebarWidth}
-        className="border-r border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)] bg-[var(--nimi-sidebar-canvas)]"
+        className="rounded-3xl border border-white/60 border-r-[color-mix(in_srgb,var(--nimi-border-subtle)_82%,white)] bg-[var(--nimi-sidebar-canvas)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         data-testid={E2E_IDS.panel('contacts')}
       >
         <SidebarHeader
@@ -480,12 +494,10 @@ export function ContactsView(props: ContactsViewProps) {
                 onToggleCategory={toggleCategory}
                 onSelectContact={handleSelectContact}
                 onAcceptRequest={(request) => {
-                  props.onAcceptRequest(request);
-                  setAcceptedRequests(prev => new Set(prev).add(request.userId));
+                  void acceptRequestWithEvidence(request);
                 }}
                 onRejectRequest={(request) => {
-                  props.onRejectRequest(request);
-                  setRejectedRequests(prev => new Set(prev).add(request.userId));
+                  void rejectRequestWithEvidence(request);
                 }}
                 onUnblock={(contact) => setUnblockingContact(contact)}
                 onSelectRequests={() => {
@@ -509,7 +521,7 @@ export function ContactsView(props: ContactsViewProps) {
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0"
+        className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
       >
         {props.feedback ? (
           <div className="px-6 pt-4">
@@ -539,11 +551,14 @@ export function ContactsView(props: ContactsViewProps) {
             request={selectedRequest}
             isAccepted={acceptedRequests.has(selectedRequest.userId)}
             onAccept={() => {
-              props.onAcceptRequest(selectedRequest);
-              setAcceptedRequests(prev => new Set(prev).add(selectedRequest.userId));
+              void acceptRequestWithEvidence(selectedRequest);
             }}
-            onReject={() => props.onRejectRequest(selectedRequest)}
-            onCancel={() => props.onCancelRequest(selectedRequest)}
+            onReject={() => {
+              void rejectRequestWithEvidence(selectedRequest);
+            }}
+            onCancel={() => {
+              void cancelRequestWithEvidence(selectedRequest);
+            }}
           />
         ) : selectedCategory === 'requests' ? (
           // New Friends 列表页 - 显示所有请求（按时间排序）
@@ -552,12 +567,10 @@ export function ContactsView(props: ContactsViewProps) {
             acceptedRequests={acceptedRequests}
             rejectedRequests={rejectedRequests}
             onAccept={(req) => {
-              props.onAcceptRequest(req);
-              setAcceptedRequests(prev => new Set(prev).add(req.userId));
+              void acceptRequestWithEvidence(req);
             }}
             onReject={(req) => {
-              props.onRejectRequest(req);
-              setRejectedRequests(prev => new Set(prev).add(req.userId));
+              void rejectRequestWithEvidence(req);
             }}
           />
         ) : selectedContact && selectedProfile ? (

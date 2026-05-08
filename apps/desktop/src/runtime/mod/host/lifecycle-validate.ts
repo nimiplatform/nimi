@@ -5,6 +5,9 @@ export function assertRuntimeModCapabilitiesDeclared(input: {
   manifestCapabilities: string[];
 }) {
   if (input.manifestCapabilities.length === 0) {
+    if (input.baselineCapabilities.length > 0) {
+      throw new Error(`RUNTIME_MOD_CAPABILITY_NOT_DECLARED: ${input.baselineCapabilities.join(',')}`);
+    }
     return;
   }
 

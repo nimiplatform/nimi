@@ -72,6 +72,18 @@ pub fn revoke_external_agent_token_record(
     Ok(changed > 0)
 }
 
+fn parse_external_agent_token_actions_json(text: &str) -> Result<Vec<String>, String> {
+    serde_json::from_str::<Vec<String>>(text)
+        .map_err(|error| format!("EXTERNAL_AGENT_TOKEN_ACTIONS_JSON_INVALID: {error}"))
+}
+
+fn parse_external_agent_token_scopes_json(
+    text: &str,
+) -> Result<Vec<RuntimeExternalAgentActionScope>, String> {
+    serde_json::from_str::<Vec<RuntimeExternalAgentActionScope>>(text)
+        .map_err(|error| format!("EXTERNAL_AGENT_TOKEN_SCOPES_JSON_INVALID: {error}"))
+}
+
 pub fn get_external_agent_token_record(
     conn: &Connection,
     token_id: &str,
@@ -97,12 +109,11 @@ pub fn get_external_agent_token_record(
         let actions_text: String = row
             .get(4)
             .map_err(|error| format!("读取 external agent token actions 失败: {error}"))?;
-        let actions = serde_json::from_str::<Vec<String>>(&actions_text).unwrap_or_default();
+        let actions = parse_external_agent_token_actions_json(&actions_text)?;
         let scopes_text: String = row
             .get(5)
             .map_err(|error| format!("读取 external agent token scopes 失败: {error}"))?;
-        let scopes = serde_json::from_str::<Vec<RuntimeExternalAgentActionScope>>(&scopes_text)
-            .unwrap_or_default();
+        let scopes = parse_external_agent_token_scopes_json(&scopes_text)?;
         return Ok(Some(ExternalAgentTokenRecordPayload {
             token_id: row
                 .get(0)
@@ -151,30 +162,52 @@ pub fn list_external_agent_token_records(
         )
         .map_err(|error| format!("查询 external agent token 列表失败: {error}"))?;
 
-    let rows = statement
-        .query_map(params![normalized_limit], |row| {
-            let actions_text: String = row.get(4)?;
-            let actions = serde_json::from_str::<Vec<String>>(&actions_text).unwrap_or_default();
-            let scopes_text: String = row.get(5)?;
-            let scopes = serde_json::from_str::<Vec<RuntimeExternalAgentActionScope>>(&scopes_text)
-                .unwrap_or_default();
-            Ok(ExternalAgentTokenRecordPayload {
-                token_id: row.get(0)?,
-                principal_id: row.get(1)?,
-                mode: row.get(2)?,
-                subject_account_id: row.get(3)?,
-                actions,
-                scopes,
-                issuer: row.get(6)?,
-                issued_at: row.get(7)?,
-                expires_at: row.get(8)?,
-                revoked_at: row.get(9)?,
-            })
-        })
-        .map_err(|error| format!("解析 external agent token 列表失败: {error}"))?;
-
-    rows.collect::<Result<Vec<_>, _>>()
-        .map_err(|error| format!("收集 external agent token 列表失败: {error}"))
+    let mut rows = statement
+        .query(params![normalized_limit])
+        .map_err(|error| format!("执行 external agent token 列表查询失败: {error}"))?;
+    let mut records = Vec::new();
+    while let Some(row) = rows
+        .next()
+        .map_err(|error| format!("读取 external agent token 列表失败: {error}"))?
+    {
+        let actions_text: String = row
+            .get(4)
+            .map_err(|error| format!("读取 external agent token actions 失败: {error}"))?;
+        let actions = parse_external_agent_token_actions_json(&actions_text)?;
+        let scopes_text: String = row
+            .get(5)
+            .map_err(|error| format!("读取 external agent token scopes 失败: {error}"))?;
+        let scopes = parse_external_agent_token_scopes_json(&scopes_text)?;
+        records.push(ExternalAgentTokenRecordPayload {
+            token_id: row
+                .get(0)
+                .map_err(|error| format!("读取 external agent token token_id 失败: {error}"))?,
+            principal_id: row
+                .get(1)
+                .map_err(|error| format!("读取 external agent token principal_id 失败: {error}"))?,
+            mode: row
+                .get(2)
+                .map_err(|error| format!("读取 external agent token mode 失败: {error}"))?,
+            subject_account_id: row.get(3).map_err(|error| {
+                format!("读取 external agent token subject_account_id 失败: {error}")
+            })?,
+            actions,
+            scopes,
+            issuer: row
+                .get(6)
+                .map_err(|error| format!("读取 external agent token issuer 失败: {error}"))?,
+            issued_at: row
+                .get(7)
+                .map_err(|error| format!("读取 external agent token issued_at 失败: {error}"))?,
+            expires_at: row
+                .get(8)
+                .map_err(|error| format!("读取 external agent token expires_at 失败: {error}"))?,
+            revoked_at: row
+                .get(9)
+                .map_err(|error| format!("读取 external agent token revoked_at 失败: {error}"))?,
+        });
+    }
+    Ok(records)
 }
 
 pub fn set_runtime_kv(
@@ -224,4 +257,83 @@ pub fn get_runtime_kv(conn: &Connection, key: &str) -> Result<Option<String>, St
         return Ok(Some(value));
     }
     Ok(None)
+}
+
+#[cfg(test)]
+mod external_agent_token_kv_tests {
+    use super::*;
+
+    fn test_conn() -> Connection {
+        let conn = Connection::open_in_memory().expect("open in-memory db");
+        init_schema(&conn).expect("init schema");
+        conn
+    }
+
+    fn sample_token() -> ExternalAgentTokenRecordPayload {
+        ExternalAgentTokenRecordPayload {
+            token_id: "token-1".to_string(),
+            principal_id: "principal-1".to_string(),
+            mode: "delegated".to_string(),
+            subject_account_id: "account-1".to_string(),
+            actions: vec!["action.message.send".to_string()],
+            scopes: vec![RuntimeExternalAgentActionScope {
+                action_id: "action.message.send".to_string(),
+                ops: vec!["verify".to_string()],
+            }],
+            issuer: "local".to_string(),
+            issued_at: "2026-05-08T00:00:00Z".to_string(),
+            expires_at: "2026-05-09T00:00:00Z".to_string(),
+            revoked_at: None,
+        }
+    }
+
+    #[test]
+    fn token_record_read_fails_closed_on_invalid_actions_json() {
+        let conn = test_conn();
+        upsert_external_agent_token_record(&conn, &sample_token()).expect("insert token");
+        conn.execute(
+            "UPDATE external_agent_tokens SET actions = ?1 WHERE token_id = ?2",
+            params!["not-json", "token-1"],
+        )
+        .expect("corrupt actions");
+
+        let err = get_external_agent_token_record(&conn, "token-1").expect_err("invalid actions");
+        assert!(err.contains("EXTERNAL_AGENT_TOKEN_ACTIONS_JSON_INVALID"));
+        let list_err = list_external_agent_token_records(&conn, 10).expect_err("invalid actions");
+        assert!(list_err.contains("EXTERNAL_AGENT_TOKEN_ACTIONS_JSON_INVALID"));
+    }
+
+    #[test]
+    fn token_record_read_fails_closed_on_invalid_scopes_json() {
+        let conn = test_conn();
+        upsert_external_agent_token_record(&conn, &sample_token()).expect("insert token");
+        conn.execute(
+            "UPDATE external_agent_tokens SET scopes = ?1 WHERE token_id = ?2",
+            params!["not-json", "token-1"],
+        )
+        .expect("corrupt scopes");
+
+        let err = get_external_agent_token_record(&conn, "token-1").expect_err("invalid scopes");
+        assert!(err.contains("EXTERNAL_AGENT_TOKEN_SCOPES_JSON_INVALID"));
+        let list_err = list_external_agent_token_records(&conn, 10).expect_err("invalid scopes");
+        assert!(list_err.contains("EXTERNAL_AGENT_TOKEN_SCOPES_JSON_INVALID"));
+    }
+
+    #[test]
+    fn token_record_read_preserves_valid_actions_and_scopes() {
+        let conn = test_conn();
+        upsert_external_agent_token_record(&conn, &sample_token()).expect("insert token");
+
+        let token = get_external_agent_token_record(&conn, "token-1")
+            .expect("read token")
+            .expect("token exists");
+        assert_eq!(token.actions, vec!["action.message.send"]);
+        assert_eq!(token.scopes.len(), 1);
+        assert_eq!(token.scopes[0].action_id, "action.message.send");
+        assert_eq!(token.scopes[0].ops, vec!["verify"]);
+
+        let tokens = list_external_agent_token_records(&conn, 10).expect("list tokens");
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0].token_id, "token-1");
+    }
 }

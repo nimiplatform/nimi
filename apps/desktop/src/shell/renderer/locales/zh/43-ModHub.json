@@ -45,6 +45,7 @@
   "noSearchResults": "没有匹配的 Mod",
   "runtimeActionFailed": "Mod {{modId}} 操作失败：{{message}}",
   "installRequiresConsent": "Mod {{modId}} 已安装，但启用前必须重新确认授权：{{consentSummary}}",
+  "enableReconsentConfirm": "确认使用这些新增权限启用 Mod {{modId}}：{{consentSummary}}",
   "installFromCatalogSuccess": "已从 catalog 安装 Mod {{modId}}",
   "updateSuccess": "Mod {{modId}} 已更新到 {{version}}",
   "enableSuccess": "Mod {{modId}} 已启用",

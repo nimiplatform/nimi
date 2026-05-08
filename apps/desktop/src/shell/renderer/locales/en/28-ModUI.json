@@ -12,6 +12,7 @@
   "retryBlockedDisabled": "Mod {{modId}} is disabled. Enable it in Mod Hub before retrying.",
   "retryBlockedUninstalled": "Mod {{modId}} is uninstalled. Install it in Mod Hub before retrying.",
   "retryFailed": "Mod {{modId}} retry failed: {{error}}",
+  "retryNoRegistrationEvidence": "Mod {{modId}} retry failed: no registration evidence",
   "retryRecovered": "Mod {{modId}} recovered",
   "retryException": "Mod {{modId}} retry exception: {{error}}",
   "bootstrapPartialFailure": "{{count}} mods failed to load. Error chain: {{chain}}",

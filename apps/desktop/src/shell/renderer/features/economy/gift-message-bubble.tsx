@@ -49,8 +49,9 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
   });
 
   const tx = txQuery.data;
-  const status: GiftStatus = (tx?.status as GiftStatus) ?? 'PENDING';
-  const isReceiver = tx ? tx.receiverId === currentUserId : !isMe;
+  const hasRealmTransactionEvidence = Boolean(tx?.id);
+  const status: GiftStatus | null = hasRealmTransactionEvidence ? (tx?.status as GiftStatus) : null;
+  const isReceiver = Boolean(tx && tx.receiverId === currentUserId);
   const isPending = status === 'PENDING';
 
   const handleAccept = async () => {
@@ -131,6 +132,14 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
       {/* Status / Actions */}
       {txQuery.isPending ? (
         <span className="h-4 w-16 animate-pulse rounded bg-gray-100" />
+      ) : txQuery.isError || !hasRealmTransactionEvidence ? (
+        <InlineFeedback
+          feedback={{
+            kind: 'error',
+            message: t('GiftBubble.realmEvidenceRequired', { defaultValue: 'Gift actions require Realm transaction evidence' }),
+          }}
+          onDismiss={() => undefined}
+        />
       ) : isPending && isReceiver ? (
         <div className="flex gap-2">
           <button

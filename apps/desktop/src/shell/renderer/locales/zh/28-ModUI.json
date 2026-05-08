@@ -12,6 +12,7 @@
   "retryBlockedDisabled": "Mod {{modId}} 已被禁用，请先在 Mod Hub 启用后重试。",
   "retryBlockedUninstalled": "Mod {{modId}} 已卸载，请先在 Mod Hub 安装后重试。",
   "retryFailed": "Mod {{modId}} 重试失败：{{error}}",
+  "retryNoRegistrationEvidence": "Mod {{modId}} 重试失败：缺少注册证据",
   "retryRecovered": "Mod {{modId}} 已恢复",
   "retryException": "Mod {{modId}} 重试异常：{{error}}",
   "bootstrapPartialFailure": "部分 Mod 加载失败（{{count}}）。错误链：{{chain}}",

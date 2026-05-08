@@ -5,6 +5,10 @@ import type { RuntimeConfigStateUpdater } from './runtime-config-types';
 import { discoverConnectorModelsAndHealth } from './runtime-config-connector-discovery';
 import { formatRuntimeConfigErrorBanner, formatRuntimeConfigErrorDetail } from './runtime-config-connector-error';
 
+function connectorTestFailureKind(status: string): StatusBanner['kind'] {
+  return status === 'degraded' ? 'warning' : 'error';
+}
+
 export async function runSelectedConnectorTestCommand(input: {
   state: RuntimeConfigStateV11;
   selectedConnector: RuntimeConfigStateV11['connectors'][number];
@@ -51,6 +55,14 @@ export async function runSelectedConnectorTestCommand(input: {
       discoveryOk: true,
     },
   });
+
+  if (health.status !== 'healthy') {
+    input.setControlFeedback({
+      kind: connectorTestFailureKind(health.status),
+      message: `${input.selectedConnector.label} test ${health.status}${health.detail ? `: ${health.detail}` : ''}`,
+    });
+    return;
+  }
 
   input.setControlFeedback({
     kind: 'success',

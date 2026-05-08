@@ -186,10 +186,12 @@ export function ContactsPanel() {
       await Promise.all([refetchContacts(), agentLimitQuery.refetch()]);
       setFeedback(null);
     } catch (error) {
+      const message = toErrorMessage(error, t('Contacts.acceptRequestFailed', { defaultValue: 'Failed to accept friend request' }));
       setFeedback({
         kind: 'error',
-        message: toErrorMessage(error, t('Contacts.acceptRequestFailed', { defaultValue: 'Failed to accept friend request' })),
+        message,
       });
+      throw error instanceof Error ? error : new Error(message);
     }
   }, [agentLimitQuery.data, agentLimitQuery.refetch, refetchContacts, t]);
 
@@ -199,10 +201,12 @@ export function ContactsPanel() {
       await refetchContacts();
       setFeedback(null);
     } catch (error) {
+      const message = toErrorMessage(error, t('Contacts.rejectRequestFailed', { defaultValue: 'Failed to reject friend request' }));
       setFeedback({
         kind: 'error',
-        message: toErrorMessage(error, t('Contacts.rejectRequestFailed', { defaultValue: 'Failed to reject friend request' })),
+        message,
       });
+      throw error instanceof Error ? error : new Error(message);
     }
   }, [refetchContacts, t]);
 
@@ -212,10 +216,12 @@ export function ContactsPanel() {
       await refetchContacts();
       setFeedback(null);
     } catch (error) {
+      const message = toErrorMessage(error, t('Contacts.cancelRequestFailed', { defaultValue: 'Failed to cancel friend request' }));
       setFeedback({
         kind: 'error',
-        message: toErrorMessage(error, t('Contacts.cancelRequestFailed', { defaultValue: 'Failed to cancel friend request' })),
+        message,
       });
+      throw error instanceof Error ? error : new Error(message);
     }
   }, [refetchContacts, t]);
 

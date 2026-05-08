@@ -6,5 +6,6 @@
   "openWallet": "Open Wallet",
   "reject": "Reject",
   "rejectFailed": "Failed to reject gift",
-  "rejected": "Rejected"
+  "rejected": "Rejected",
+  "realmEvidenceRequired": "Gift actions require Realm transaction evidence"
 }

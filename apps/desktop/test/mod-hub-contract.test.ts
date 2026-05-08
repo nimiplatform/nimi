@@ -402,6 +402,32 @@ test('mod hub controller no longer exposes path/url install state', () => {
   assert.match(source, /\bonRetryMod\b/);
 });
 
+test('mod hub keeps catalog re-consent as durable enable-blocking state', () => {
+  const controllerPath = resolve(
+    import.meta.dirname,
+    '../src/shell/renderer/features/mod-hub/mod-hub-controller.ts',
+  );
+  const reconsentPath = resolve(
+    import.meta.dirname,
+    '../src/shell/renderer/features/mod-hub/mod-hub-reconsent.ts',
+  );
+  const source = readFileSync(controllerPath, 'utf-8');
+  const reconsentSource = readFileSync(reconsentPath, 'utf-8');
+
+  assert.match(reconsentSource, /MOD_HUB_RECONSENT_STORAGE_KEY/);
+  assert.match(source, /writePendingReconsentRecord\(\{/);
+  assert.match(source, /pendingReconsentByModId/);
+  assert.match(source, /requireModHubEnableReconsent\(\{/);
+
+  const enableGateIndex = source.indexOf('requireModHubEnableReconsent({');
+  const enableRegisterIndex = source.indexOf('const result = await registerOneRuntimeMod({ manifest });', enableGateIndex);
+  const clearIndex = source.indexOf('clearPendingReconsentRecord(normalizedModId);', enableRegisterIndex);
+
+  assert.ok(enableGateIndex > 0, 'enable path must require re-consent before registration');
+  assert.ok(enableRegisterIndex > enableGateIndex, 'enable path must not register before re-consent is checked');
+  assert.ok(clearIndex > enableRegisterIndex, 're-consent record must clear only after registration succeeds');
+});
+
 test('mod hub view renders dock-first layout without local install forms', () => {
   const viewPath = resolve(
     import.meta.dirname,

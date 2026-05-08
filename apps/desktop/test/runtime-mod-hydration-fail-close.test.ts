@@ -24,6 +24,11 @@ test('runtime mod setup failure leaves no committed hook capability state', asyn
         `data.query.${dataCapability}`,
         'runtime.ai.text.generate',
       ],
+      manifestCapabilities: [
+        `data.register.${dataCapability}`,
+        `data.query.${dataCapability}`,
+        'runtime.ai.text.generate',
+      ],
       grantCapabilities: ['runtime.ai.text.stream'],
       denialCapabilities: ['runtime.media.image.generate'],
       setup: async ({ hookRuntime }) => {

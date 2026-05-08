@@ -113,6 +113,8 @@
   "agentAttachmentImageOnly": "Agent chat currently supports image attachments only.",
   "agentAttachmentUploadFailed": "Failed to upload image attachment.",
   "agentLabel": "this agent",
+  "composerAvatarOpenAgent": "Open agent profile",
+  "composerAvatarOpenContact": "Open profile",
   "avatarLive2dLabel": "Live2D",
   "avatarLive2dFallbackLabel": "Live2D Fallback",
   "avatarSectionLabel": "Avatar",

@@ -113,6 +113,8 @@
   "agentAttachmentImageOnly": "Agent 聊天当前仅支持图片附件。",
   "agentAttachmentUploadFailed": "图片附件上传失败。",
   "agentLabel": "这个 Agent",
+  "composerAvatarOpenAgent": "打开 Agent 资料",
+  "composerAvatarOpenContact": "打开资料",
   "avatarLive2dLabel": "Live2D",
   "avatarLive2dFallbackLabel": "Live2D 回退",
   "avatarSectionLabel": "头像",

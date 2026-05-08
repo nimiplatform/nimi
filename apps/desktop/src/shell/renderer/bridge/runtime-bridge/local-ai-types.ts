@@ -1,4 +1,5 @@
 import type { JsonObject } from './shared.js';
+import type { LocalRuntimeCatalogRecommendation } from '@runtime/local-runtime';
 
 export type LocalRuntimeAssetStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
 export type LocalRuntimeAssetKind = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | 'vae' | 'clip' | 'lora' | 'controlnet' | 'auxiliary';
@@ -32,6 +33,7 @@ export type LocalRuntimeAssetRecord = {
   preferredEngine?: string;
   fallbackEngines?: string[];
   engineConfig?: JsonObject;
+  recommendation?: LocalRuntimeCatalogRecommendation;
   metadata?: JsonObject;
 };
 
@@ -204,5 +206,13 @@ export type LocalRuntimeInstallVerifiedAssetPayload = {
 
 export type LocalRuntimeImportAssetPayload = {
   manifestPath: string;
+  endpoint?: string;
+};
+
+export type LocalRuntimeImportFilePayload = {
+  filePath: string;
+  assetName?: string;
+  kind: LocalRuntimeAssetKind;
+  engine?: string;
   endpoint?: string;
 };

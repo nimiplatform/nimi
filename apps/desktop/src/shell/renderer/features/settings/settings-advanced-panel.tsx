@@ -388,13 +388,12 @@ export function WalletPage() {
       return;
     }
     clearWalletCheckoutStatusFromLocation();
-    setRechargeMessage(
-      checkoutStatus === 'success'
-        ? t('Wallet.rechargeCheckoutSuccess')
-        : t('Wallet.rechargeCheckoutCanceled'),
-    );
+    setRechargeMessage(t('Wallet.rechargeReturnRequiresRealmEvidence'));
     void refreshSparkWalletSnapshot();
-  }, [refreshSparkWalletSnapshot, t]);
+    if (checkoutStatus === 'success') {
+      startRechargeRefreshLoop();
+    }
+  }, [refreshSparkWalletSnapshot, startRechargeRefreshLoop, t]);
 
   const handleStartRecharge = async () => {
     if (!defaultSparkPackage) {

@@ -21,6 +21,7 @@
   "rechargeLaunchError": "打开充值收银台失败。",
   "rechargeCheckoutSuccess": "支付成功，余额正在刷新。",
   "rechargeCheckoutCanceled": "你已取消支付。",
+  "rechargeReturnRequiresRealmEvidence": "收银台已返回。钱包余额将在 Realm 确认交易后更新。",
   "rechargeComplianceHint": "当前支持香港主体收银台；国内通道将在备案完成后开放。",
   "sectionWithdrawal": "提现",
   "eligibilityLabel": "资格",

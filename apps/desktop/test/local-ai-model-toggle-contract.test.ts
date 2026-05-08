@@ -79,6 +79,7 @@ const runtimeBootstrapHostCapabilitiesSource = readFileSync(runtimeBootstrapHost
 const tauriCommandsSource = readFileSync(tauriCommandsPath, 'utf-8');
 const tauriModelIndexSource = readFileSync(tauriModelIndexPath, 'utf-8');
 const tauriLocalRuntimeModSource = readFileSync(tauriLocalRuntimeModPath, 'utf-8');
+const desktopReadmeSource = readFileSync(path.resolve(process.cwd(), 'README.md'), 'utf-8');
 
 test('local model center installed list is status-only and no longer renders a lifecycle toggle', () => {
   assert.doesNotMatch(installedSectionSource, /<Toggle/);
@@ -242,6 +243,11 @@ test('installed unhealthy assets surface runtime health detail in the model list
 });
 
 test('runtime local lifecycle controller remains available only as non-product maintenance surface', () => {
+  assert.doesNotMatch(controllerSource, /from ['"]@runtime\/local-runtime['"]/);
+  assert.match(controllerSource, /from ['"]@renderer\/bridge\/runtime-bridge\/local-ai['"]/);
+  assert.match(controllerSource, /startLocalRuntimeAsset\(localModelId, \{ caller: 'core' \}\)/);
+  assert.match(controllerSource, /stopLocalRuntimeAsset\(localModelId, \{ caller: 'core' \}\)/);
+  assert.match(controllerSource, /removeLocalRuntimeAsset\(localModelId, \{ caller: 'core' \}\)/);
   assert.match(controllerSource, /localModelLifecycleById: Record<string, string>/);
   assert.match(controllerSource, /setLifecycleState\(localModelId, 'starting', '', epoch\)/);
   assert.match(controllerSource, /setLifecycleState\(localModelId, 'stopping', '', epoch\)/);
@@ -251,6 +257,17 @@ test('runtime local lifecycle controller remains available only as non-product m
   assert.match(controllerSource, /runtimeConfig\.local\.startModelPending/);
   assert.match(controllerSource, /runtimeConfig\.local\.stopModelPending/);
   assert.match(controllerSource, /runtimeConfig\.local\.restartModelPending/);
+});
+
+test('desktop README does not document renderer-owned local provider route truth', () => {
+  assert.doesNotMatch(desktopReadmeSource, /NIMI_PROVIDER/);
+  assert.doesNotMatch(desktopReadmeSource, /NIMI_LOCAL_PROVIDER_ENDPOINT/);
+  assert.doesNotMatch(desktopReadmeSource, /NIMI_LOCAL_PROVIDER_MODEL/);
+  assert.doesNotMatch(desktopReadmeSource, /NIMI_LOCAL_OPENAI_ENDPOINT/);
+  assert.doesNotMatch(desktopReadmeSource, /local:llama:openai_compat_adapter/);
+  assert.doesNotMatch(desktopReadmeSource, /endpoint reachability alone is route truth/i);
+  assert.match(desktopReadmeSource, /runtime authoritative local model list\/status/);
+  assert.match(desktopReadmeSource, /endpoint reachability alone is not route truth/);
 });
 
 test('local model tauri lifecycle commands run on a background blocking task', () => {

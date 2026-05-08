@@ -45,6 +45,7 @@
   "noSearchResults": "No mods match your search",
   "runtimeActionFailed": "Mod {{modId}} action failed: {{message}}",
   "installRequiresConsent": "Mod {{modId}} installed, but it must be re-confirmed before enabling: {{consentSummary}}",
+  "enableReconsentConfirm": "Enable mod {{modId}} with these new permissions: {{consentSummary}}",
   "installFromCatalogSuccess": "Mod {{modId}} installed from catalog",
   "updateSuccess": "Mod {{modId}} updated to {{version}}",
   "enableSuccess": "Mod {{modId}} enabled",

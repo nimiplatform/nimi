@@ -32,13 +32,20 @@ import {
 import {
   buildDockMods,
   buildManagementSections,
-  describeConsentReasons,
   toCatalogModRow,
   toRuntimeModRow,
   type ModHubMod,
   type ModHubPendingActionType,
   type ModHubSection,
 } from './mod-hub-model';
+import {
+  clearPendingReconsentRecord,
+  formatConsentSummary,
+  readPendingReconsentRecords,
+  requireModHubEnableReconsent,
+  writePendingReconsentRecord,
+  type ModHubReconsentRecord,
+} from './mod-hub-reconsent';
 import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 
 function normalizeModId(modId: string): string {
@@ -72,21 +79,6 @@ function safeErrorMessage(error: unknown): string {
 
 function tModHub(key: string, options: Record<string, unknown> & { defaultValue: string }): string {
   return i18n.t(key, options);
-}
-
-function formatConsentSummary(input: {
-  consentReasons?: readonly CatalogConsentReason[];
-  addedCapabilities?: readonly string[];
-}): string {
-  const reasonLabels = describeConsentReasons(input.consentReasons);
-  const details: string[] = [];
-  if (reasonLabels.length > 0) {
-    details.push(reasonLabels.join(', '));
-  }
-  if (Array.isArray(input.addedCapabilities) && input.addedCapabilities.length > 0) {
-    details.push(`New capabilities: ${input.addedCapabilities.join(', ')}`);
-  }
-  return details.join('. ');
 }
 
 function resolveOpenDirPath(input: {
@@ -191,6 +183,9 @@ export function useModHubPageModel(): ModHubPageModel {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
   const [catalogReady, setCatalogReady] = useState(false);
+  const [pendingReconsentByModId, setPendingReconsentByModId] = useState<Record<string, ModHubReconsentRecord>>(
+    () => readPendingReconsentRecords(),
+  );
   const [availableUpdates, setAvailableUpdates] = useState<Record<string, {
     version: string;
     advisoryCount: number;
@@ -211,6 +206,10 @@ export function useModHubPageModel(): ModHubPageModel {
   const runtimeModDiagnostics = useAppStore((state) => state.runtimeModDiagnostics);
   const modsFeedback = useAppStore((state) => state.modsFeedback);
   const setModsFeedback = useAppStore((state) => state.setModsFeedback);
+
+  const refreshPendingReconsentByModId = useCallback(() => {
+    setPendingReconsentByModId(readPendingReconsentRecords());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -317,6 +316,7 @@ export function useModHubPageModel(): ModHubPageModel {
       .map((item, index) => {
         const modId = normalizeModId(String(item.id || ''));
         const update = availableUpdates[modId];
+        const pendingReconsent = pendingReconsentByModId[modId];
         const isInstalled = !uninstalledSet.has(modId);
         const isEnabled = isInstalled && !disabledSet.has(modId) && registeredSet.has(modId);
         return toRuntimeModRow(item, index, {
@@ -325,9 +325,9 @@ export function useModHubPageModel(): ModHubPageModel {
           isEnabled,
           availableUpdateVersion: update?.version,
           advisoryCount: update?.advisoryCount || 0,
-          requiresUserConsent: update?.requiresUserConsent || false,
-          consentReasons: update?.consentReasons || [],
-          addedCapabilities: update?.addedCapabilities || [],
+          requiresUserConsent: Boolean(pendingReconsent || update?.requiresUserConsent),
+          consentReasons: pendingReconsent?.consentReasons || update?.consentReasons || [],
+          addedCapabilities: pendingReconsent?.addedCapabilities || update?.addedCapabilities || [],
           diagnostic: diagnosticsById.get(modId) || null,
           failure: failuresById.get(modId) || null,
           fused: fusedRuntimeMods[modId] || null,
@@ -338,6 +338,7 @@ export function useModHubPageModel(): ModHubPageModel {
     fusedRuntimeMods,
     localIconImageSrcs,
     localManifestSummaries,
+    pendingReconsentByModId,
     registeredRuntimeModIds,
     runtimeModDiagnostics,
     runtimeModDisabledIds,
@@ -350,6 +351,7 @@ export function useModHubPageModel(): ModHubPageModel {
     const rows: ModHubMod[] = catalogMods.map((catalogMod) => {
       const runtime = runtimeById.get(catalogMod.packageId);
       const update = availableUpdates[catalogMod.packageId];
+      const pendingReconsent = pendingReconsentByModId[catalogMod.packageId];
       return toCatalogModRow(catalogMod, {
         localIconImageSrc: runtime?.iconImageSrc,
         isInstalled: Boolean(runtime?.isInstalled),
@@ -357,9 +359,9 @@ export function useModHubPageModel(): ModHubPageModel {
         installedVersion: runtime ? stripVersionPrefix(runtime.version) : undefined,
         availableUpdateVersion: update?.version,
         advisoryCount: update?.advisoryCount || 0,
-        requiresUserConsent: update?.requiresUserConsent || false,
-        consentReasons: update?.consentReasons || [],
-        addedCapabilities: update?.addedCapabilities || [],
+        requiresUserConsent: Boolean(pendingReconsent || update?.requiresUserConsent),
+        consentReasons: pendingReconsent?.consentReasons || update?.consentReasons || [],
+        addedCapabilities: pendingReconsent?.addedCapabilities || update?.addedCapabilities || [],
         runtimeStatus: runtime?.runtimeStatus,
         runtimeSourceType: runtime?.runtimeSourceType,
         runtimeSourceDir: runtime?.runtimeSourceDir,
@@ -376,7 +378,7 @@ export function useModHubPageModel(): ModHubPageModel {
       }
     }
     return rows;
-  }, [availableUpdates, catalogMods, runtimeMods]);
+  }, [availableUpdates, catalogMods, pendingReconsentByModId, runtimeMods]);
 
   const managementSections = useMemo(() => buildManagementSections({
     mods: mergedMods,
@@ -514,6 +516,7 @@ export function useModHubPageModel(): ModHubPageModel {
     const refreshedManifests = await refreshRuntimeManifestSummaries();
     const manifest = refreshedManifests.find((item) => normalizeModId(item.id) === result.modId) || result.manifest;
     if (!input.result.requiresUserConsent) {
+      clearPendingReconsentRecord(result.modId);
       const registration = await registerOneRuntimeMod({ manifest });
       if (registration.failure) {
         if (input.rollbackOnFailure && result.rollbackPath) {
@@ -528,10 +531,18 @@ export function useModHubPageModel(): ModHubPageModel {
         throw new Error(registration.failure.error);
       }
     } else {
+      writePendingReconsentRecord({
+        modId: result.modId,
+        version: stripVersionPrefix(String(manifest.version || '')),
+        consentReasons: input.result.consentReasons,
+        addedCapabilities: input.result.addedCapabilities,
+        recordedAt: new Date().toISOString(),
+      });
       appStore.setRuntimeModDisabledIds(withAddedModId(appStore.runtimeModDisabledIds, result.modId));
       unregisterRuntimeMods([result.modId]);
       removeRuntimeModStyles(result.modId);
     }
+    refreshPendingReconsentByModId();
     await syncRuntimeModShellState(refreshedManifests);
     setSelectedModId(result.modId);
     const consentSummary = formatConsentSummary({
@@ -550,7 +561,7 @@ export function useModHubPageModel(): ModHubPageModel {
         })
         : input.successMessage,
     });
-  }, []);
+  }, [refreshPendingReconsentByModId]);
 
   const onInstallMod = useCallback((modId: string) => {
     void runRuntimeAction(modId, 'install', async () => {
@@ -599,6 +610,15 @@ export function useModHubPageModel(): ModHubPageModel {
       if (!manifest) {
         throw new Error('manifest not found');
       }
+      const reconsentRecord = pendingReconsentByModId[normalizedModId] || readPendingReconsentRecords()[normalizedModId] || null;
+      requireModHubEnableReconsent({
+        record: reconsentRecord,
+        confirmMessage: tModHub('ModHub.enableReconsentConfirm', {
+          modId: normalizedModId,
+          consentSummary: formatConsentSummary(reconsentRecord || {}),
+          defaultValue: 'Enable mod {{modId}} with these new permissions: {{consentSummary}}',
+        }),
+      });
       appStore.setRuntimeModUninstalledIds(withRemovedModId(appStore.runtimeModUninstalledIds, normalizedModId));
       appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalizedModId));
 
@@ -611,6 +631,8 @@ export function useModHubPageModel(): ModHubPageModel {
         throw new Error(result.failure.error);
       }
 
+      clearPendingReconsentRecord(normalizedModId);
+      refreshPendingReconsentByModId();
       appStore.setRuntimeModFailures(
         appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
       );
@@ -624,7 +646,7 @@ export function useModHubPageModel(): ModHubPageModel {
         }),
       });
     });
-  }, [runRuntimeAction]);
+  }, [pendingReconsentByModId, refreshPendingReconsentByModId, runRuntimeAction]);
 
   const onDisableMod = useCallback((modId: string) => {
     void runRuntimeAction(modId, 'disable', async () => {
@@ -655,6 +677,8 @@ export function useModHubPageModel(): ModHubPageModel {
       const modTabId = resolveModTabId(normalizedModId);
       const appStore = useAppStore.getState();
       appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, normalizedModId));
+      clearPendingReconsentRecord(normalizedModId);
+      refreshPendingReconsentByModId();
       unregisterRuntimeMods([normalizedModId]);
       removeRuntimeModStyles(normalizedModId);
       await desktopBridge.uninstallRuntimeMod(normalizedModId);
@@ -676,7 +700,7 @@ export function useModHubPageModel(): ModHubPageModel {
         }),
       });
     });
-  }, [closeModWorkspaceTab, runRuntimeAction]);
+  }, [closeModWorkspaceTab, refreshPendingReconsentByModId, runRuntimeAction]);
 
   const onRetryMod = useCallback((modId: string) => {
     void runRuntimeAction(modId, 'retry', async () => {

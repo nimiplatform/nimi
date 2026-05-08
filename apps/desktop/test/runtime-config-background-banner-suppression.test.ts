@@ -36,3 +36,14 @@ test('connector test success moved to control-inline feedback instead of global 
   assert.match(source, /setControlFeedback\(/);
   assert.doesNotMatch(source, /setStatusBanner\(/);
 });
+
+test('connector test reports non-healthy discovery as inline failure feedback', () => {
+  const source = readFileSync(
+    path.join(root, 'src/shell/renderer/features/runtime-config/runtime-config-connector-test-command.ts'),
+    'utf8',
+  );
+
+  assert.match(source, /if \(health\.status !== 'healthy'\)/);
+  assert.match(source, /kind:\s*connectorTestFailureKind\(health\.status\)/);
+  assert.match(source, /return;\s*\}\s*input\.setControlFeedback\(\{\s*kind:\s*'success'/s);
+});

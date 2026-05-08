@@ -93,6 +93,58 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
+function requiredString(value: unknown, field: string): string {
+  const text = asString(value);
+  if (!text) {
+    throw new Error(`EXTERNAL_AGENT_TOKEN_LEDGER_FIELD_INVALID:${field}`);
+  }
+  return text;
+}
+
+function requiredStringArray(value: unknown, field: string): string[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`EXTERNAL_AGENT_TOKEN_LEDGER_FIELD_INVALID:${field}`);
+  }
+  return value.map((entry, index) => requiredString(entry, `${field}[${index}]`));
+}
+
+function parseExternalAgentTokenScope(value: unknown, index: number): { actionId: string; ops: string[] } {
+  const scope = asRecord(value);
+  if (Object.keys(scope).length === 0) {
+    throw new Error(`EXTERNAL_AGENT_TOKEN_LEDGER_SCOPE_INVALID:${index}`);
+  }
+  return {
+    actionId: requiredString(scope.actionId, `scopes[${index}].actionId`),
+    ops: requiredStringArray(scope.ops, `scopes[${index}].ops`),
+  };
+}
+
+function parseExternalAgentTokenRecord(value: unknown, index: number): ExternalAgentTokenRecord {
+  const record = asRecord(value);
+  if (Object.keys(record).length === 0) {
+    throw new Error(`EXTERNAL_AGENT_TOKEN_LEDGER_RECORD_INVALID:${index}`);
+  }
+  const modeRaw = requiredString(record.mode, `tokens[${index}].mode`);
+  if (modeRaw !== 'delegated' && modeRaw !== 'autonomous') {
+    throw new Error(`EXTERNAL_AGENT_TOKEN_LEDGER_FIELD_INVALID:tokens[${index}].mode`);
+  }
+  if (!Array.isArray(record.scopes)) {
+    throw new Error(`EXTERNAL_AGENT_TOKEN_LEDGER_FIELD_INVALID:tokens[${index}].scopes`);
+  }
+  return {
+    tokenId: requiredString(record.tokenId, `tokens[${index}].tokenId`),
+    principalId: requiredString(record.principalId, `tokens[${index}].principalId`),
+    mode: modeRaw,
+    subjectAccountId: requiredString(record.subjectAccountId, `tokens[${index}].subjectAccountId`),
+    actions: requiredStringArray(record.actions, `tokens[${index}].actions`),
+    scopes: record.scopes.map((entry, scopeIndex) => parseExternalAgentTokenScope(entry, scopeIndex)),
+    issuedAt: requiredString(record.issuedAt, `tokens[${index}].issuedAt`),
+    expiresAt: requiredString(record.expiresAt, `tokens[${index}].expiresAt`),
+    revokedAt: asString(record.revokedAt) || undefined,
+    issuer: requiredString(record.issuer, `tokens[${index}].issuer`),
+  };
+}
+
 async function syncActionDescriptors(): Promise<void> {
   await Promise.resolve();
 }
@@ -162,35 +214,9 @@ export async function listExternalAgentTokens(): Promise<ExternalAgentTokenRecor
   }
   const result = await tauriInvoke<unknown>('external_agent_list_tokens', {});
   if (!Array.isArray(result)) {
-    return [];
+    throw new Error('EXTERNAL_AGENT_TOKEN_LEDGER_INVALID_RESPONSE');
   }
-  return result.map((item) => {
-    const record = asRecord(item);
-    const modeRaw = asString(record.mode);
-    const mode: 'delegated' | 'autonomous' = modeRaw === 'autonomous' ? 'autonomous' : 'delegated';
-    return {
-      tokenId: asString(record.tokenId),
-      principalId: asString(record.principalId),
-      mode,
-      subjectAccountId: asString(record.subjectAccountId),
-      actions: Array.isArray(record.actions)
-        ? record.actions.map((entry) => asString(entry)).filter(Boolean)
-        : [],
-      scopes: Array.isArray(record.scopes)
-        ? record.scopes.map((entry) => {
-          const scope = asRecord(entry);
-          return {
-            actionId: asString(scope.actionId),
-            ops: Array.isArray(scope.ops) ? scope.ops.map((op) => asString(op)).filter(Boolean) : [],
-          };
-        }).filter((scope) => scope.actionId)
-        : [],
-      issuedAt: asString(record.issuedAt),
-      expiresAt: asString(record.expiresAt),
-      revokedAt: asString(record.revokedAt) || undefined,
-      issuer: asString(record.issuer),
-    };
-  }).filter((item) => item.tokenId && item.principalId && item.subjectAccountId && item.issuedAt && item.expiresAt && item.issuer);
+  return result.map((item, index) => parseExternalAgentTokenRecord(item, index));
 }
 
 export async function getExternalAgentGatewayStatus(): Promise<ExternalAgentGatewayStatus> {

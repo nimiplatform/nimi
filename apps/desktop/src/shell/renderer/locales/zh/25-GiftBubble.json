@@ -6,5 +6,6 @@
   "openWallet": "前往钱包",
   "reject": "拒绝",
   "rejectFailed": "拒绝礼物失败",
-  "rejected": "已拒绝"
+  "rejected": "已拒绝",
+  "realmEvidenceRequired": "礼物操作需要 Realm 交易证据"
 }
