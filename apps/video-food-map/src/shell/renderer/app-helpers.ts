@@ -31,7 +31,9 @@ export function isImportActive(status: ImportRecord['status']) {
   return status === 'queued' || status === 'resolving' || status === 'geocoding' || status === 'running';
 }
 
-export function venueShowsOnMap(venue: VenueRecord) {
+export function venueShowsOnMap(
+  venue: VenueRecord,
+): venue is VenueRecord & { latitude: number; longitude: number } {
   return (venue.reviewState === 'map_ready' || venue.userConfirmed) && venue.latitude != null && venue.longitude != null;
 }
 
@@ -117,7 +119,7 @@ export function pickPreferredVenueId(record: ImportRecord | null): string | null
 }
 
 export function buildMapPointFromVenue(record: ImportRecord, venue: VenueRecord): MapPoint | null {
-  if (venue.latitude == null || venue.longitude == null) {
+  if (!venueShowsOnMap(venue)) {
     return null;
   }
   return {

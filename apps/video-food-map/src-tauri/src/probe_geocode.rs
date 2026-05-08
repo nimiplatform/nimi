@@ -2,8 +2,8 @@ use std::env;
 
 use serde::Deserialize;
 
-use super::GeocodeOutcome;
 use super::probe_client::build_http_client;
+use super::GeocodeOutcome;
 
 const GEOCODER_PROVIDER: &str = "amap";
 const AMAP_GEOCODE_ENDPOINT: &str = "https://restapi.amap.com/v3/geocode/geo";

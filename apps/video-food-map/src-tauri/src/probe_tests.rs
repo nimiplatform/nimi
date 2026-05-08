@@ -1,8 +1,7 @@
-use super::{canonicalize_bilibili_creator_url, extract_bilibili_creator_mid};
 use super::probe_bilibili::{
-    extract_creator_videos_from_dynamic_items, BilibiliApiEnvelope,
-    BilibiliCreatorDynamicFeedData,
+    extract_creator_videos_from_dynamic_items, BilibiliApiEnvelope, BilibiliCreatorDynamicFeedData,
 };
+use super::{canonicalize_bilibili_creator_url, extract_bilibili_creator_mid};
 
 #[test]
 fn extracts_creator_mid_from_standard_space_url() {
@@ -77,5 +76,8 @@ fn extracts_recent_videos_from_dynamic_feed_items() {
         videos[0].canonical_url,
         "https://www.bilibili.com/video/BV1en97B3E84/"
     );
-    assert_eq!(videos[0].title, "湖北襄阳，开在巷子里的人气牛杂，尝尝怎么样");
+    assert_eq!(
+        videos[0].title,
+        "湖北襄阳，开在巷子里的人气牛杂，尝尝怎么样"
+    );
 }

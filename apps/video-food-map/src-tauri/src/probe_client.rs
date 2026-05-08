@@ -1,6 +1,6 @@
 use reqwest::blocking::Client;
 use reqwest::header::{
-    ACCEPT, ACCEPT_LANGUAGE, HeaderMap, HeaderValue, ORIGIN, REFERER, USER_AGENT,
+    HeaderMap, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, ORIGIN, REFERER, USER_AGENT,
 };
 
 pub(super) const BILIBILI_ORIGIN: &str = "https://www.bilibili.com";

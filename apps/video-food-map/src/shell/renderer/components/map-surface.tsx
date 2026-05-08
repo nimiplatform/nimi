@@ -110,6 +110,29 @@ function buildCurrentLocationMarkerHtml(): string {
   ].join('');
 }
 
+export function escapeMarkerLabelHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      case "'":
+        return '&#39;';
+      default:
+        return char;
+    }
+  });
+}
+
+export function buildVenueMarkerLabelHtml(venueName: string): string {
+  return `<div style="padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.96);border:1px solid rgba(226,232,240,0.96);font-size:12px;color:#0f172a;box-shadow:0 10px 24px rgba(15,23,42,0.08);white-space:nowrap;">${escapeMarkerLabelHtml(venueName)}</div>`;
+}
+
 function clusterGridSizeForZoom(zoomLevel: number): number {
   if (zoomLevel <= 7) {
     return 0.32;
@@ -239,7 +262,7 @@ function buildVenueMarker(AMap: AMapInstance, point: MapPoint, active: boolean, 
     marker.setLabel({
       direction: 'top',
       offset: new AMap.Pixel(0, -6),
-      content: `<div style="padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.96);border:1px solid rgba(226,232,240,0.96);font-size:12px;color:#0f172a;box-shadow:0 10px 24px rgba(15,23,42,0.08);white-space:nowrap;">${point.venueName}</div>`,
+      content: buildVenueMarkerLabelHtml(point.venueName),
     });
   }
   return marker;

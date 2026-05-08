@@ -227,6 +227,20 @@ function asCoverage(value: unknown): ExtractionCoverage | null {
   };
 }
 
+function parseImportStatus(status: string): ImportRecord['status'] {
+  if (
+    status === 'queued'
+    || status === 'resolving'
+    || status === 'geocoding'
+    || status === 'succeeded'
+    || status === 'failed'
+    || status === 'running'
+  ) {
+    return status;
+  }
+  return 'failed';
+}
+
 function parseVenueRecord(value: unknown): VenueRecord {
   const record = asRecord(value, 'venue');
   const reviewState = asString(record.reviewState);
@@ -258,6 +272,8 @@ function parseVenueRecord(value: unknown): VenueRecord {
 function parseImportRecord(value: unknown): ImportRecord {
   const record = asRecord(value, 'import');
   const status = asString(record.status);
+  const parsedStatus = parseImportStatus(status);
+  const existingErrorMessage = asString(record.errorMessage);
   return {
     id: asString(record.id),
     sourceUrl: asString(record.sourceUrl),
@@ -269,13 +285,7 @@ function parseImportRecord(value: unknown): ImportRecord {
     description: asString(record.description),
     tags: asStringArray(record.tags),
     durationSec: asNumber(record.durationSec),
-    status: (
-      status === 'queued'
-      || status === 'resolving'
-      || status === 'geocoding'
-      || status === 'failed'
-      || status === 'running'
-    ) ? status : 'succeeded',
+    status: parsedStatus,
     transcript: String(record.transcript || ''),
     extractionRaw: String(record.extractionRaw || ''),
     videoSummary: asString(record.videoSummary),
@@ -287,7 +297,9 @@ function parseImportRecord(value: unknown): ImportRecord {
     outputDir: asString(record.outputDir),
     publicCommentCount: asNumber(record.publicCommentCount),
     commentClues: Array.isArray(record.commentClues) ? record.commentClues.map(parseCommentClue) : [],
-    errorMessage: asString(record.errorMessage),
+    errorMessage: parsedStatus === 'failed' && status && status !== 'failed' && !existingErrorMessage
+      ? `Unknown import status: ${status}`
+      : existingErrorMessage,
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
     venues: Array.isArray(record.venues) ? record.venues.map(parseVenueRecord) : [],

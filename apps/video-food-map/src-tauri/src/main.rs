@@ -76,7 +76,8 @@ fn explain_import_error(error: &str) -> String {
         return "Bilibili 这次把博主同步拦下来了。现在已经换成另一条更稳的同步路径；请重开 app 后再试一次。".to_string();
     }
     if normalized.contains("请求过于频繁") {
-        return "Bilibili 现在把这次博主同步当成请求过快了。等一会儿再试，通常就会恢复。".to_string();
+        return "Bilibili 现在把这次博主同步当成请求过快了。等一会儿再试，通常就会恢复。"
+            .to_string();
     }
     normalized.to_string()
 }

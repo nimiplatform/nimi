@@ -8,8 +8,8 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use url::Url;
 
-use super::{CreatorVideoCandidate, CreatorVideoFeed};
 use super::probe_client::{build_http_client, BILIBILI_ORIGIN};
+use super::{CreatorVideoCandidate, CreatorVideoFeed};
 
 const BILIBILI_CREATOR_PROFILE_ENDPOINT: &str = "https://api.bilibili.com/x/space/acc/info";
 const BILIBILI_CREATOR_DYNAMIC_VIDEO_LIST_ENDPOINT: &str =
@@ -305,7 +305,10 @@ fn load_creator_dynamic_feed_items(
     }
 
     if last_items.is_empty() {
-        return Err("拉取博主视频列表失败：暂时没有拿到公开视频，可能是平台临时限频，请稍后再试".to_string());
+        return Err(
+            "拉取博主视频列表失败：暂时没有拿到公开视频，可能是平台临时限频，请稍后再试"
+                .to_string(),
+        );
     }
 
     Ok(last_items)

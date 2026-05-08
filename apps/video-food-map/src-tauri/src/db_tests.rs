@@ -8,13 +8,15 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::json;
 
+use super::db_imports::update_import_status_by_id;
+use super::db_schema::open_db;
 use super::{
     complete_import_by_id, generate_id, load_snapshot, now_iso, queue_import, retry_import_by_id,
     save_creator_sync, VenueRecord,
 };
-use super::db_imports::update_import_status_by_id;
-use super::db_schema::open_db;
-use crate::db_queries::{address_is_specific, resolve_review_state, should_show_on_map, VenueInput};
+use crate::db_queries::{
+    address_is_specific, resolve_review_state, should_show_on_map, VenueInput,
+};
 use crate::probe::{
     GeocodeOutcome, ProbeCommentClue, ProbeExtractionCoverage, ProbeMetadata, ProbeResult,
     ProbeSavedFiles,
@@ -160,7 +162,7 @@ fn resolved_geocode_can_map_when_name_search_finds_a_place() {
 }
 
 #[test]
-fn resolved_precise_address_can_map_even_if_record_still_needs_review() {
+fn resolved_precise_address_stays_review_when_record_still_needs_review() {
     let mut input = sample_input("上海市静安区茂名北路68号");
     input.needs_review = true;
     let geocode = GeocodeOutcome {
@@ -170,7 +172,7 @@ fn resolved_precise_address_can_map_even_if_record_still_needs_review() {
         latitude: Some(31.227),
         longitude: Some(121.459),
     };
-    assert_eq!(resolve_review_state(&input, &geocode), "map_ready");
+    assert_eq!(resolve_review_state(&input, &geocode), "review");
 }
 
 #[test]
@@ -290,6 +292,103 @@ fn complete_import_writes_summary_and_venues() {
     assert_eq!(completed.video_summary, "视频讲了两家店");
     assert_eq!(completed.venues.len(), 1);
     assert_eq!(completed.venues[0].venue_name, "炭火小馆");
+}
+
+#[test]
+fn complete_import_refuses_missing_structured_extraction() {
+    let _lock = db_test_lock().lock().expect("failed to lock db test mutex");
+    let _home = TestHomeGuard::new("missing-extraction");
+
+    let queued = queue_import(
+        "https://www.bilibili.com/video/BV1xx411c7mD/",
+        "BV1xx411c7mD",
+    )
+    .expect("failed to queue import");
+    let mut probe = sample_probe_result();
+    probe.extraction_json = None;
+
+    let error = complete_import_by_id(
+        &queued.record.id,
+        "https://www.bilibili.com/video/BV1xx411c7mD/",
+        &probe,
+    )
+    .expect_err("missing structured extraction must fail closed");
+    assert!(error.contains("structured venue extraction is required"));
+
+    let snapshot = load_snapshot().expect("failed to load snapshot");
+    let record = snapshot
+        .imports
+        .into_iter()
+        .find(|record| record.id == queued.record.id)
+        .expect("queued import should remain present");
+    assert_ne!(record.status, "succeeded");
+}
+
+#[test]
+fn complete_import_refuses_empty_structured_venue_array() {
+    let _lock = db_test_lock().lock().expect("failed to lock db test mutex");
+    let _home = TestHomeGuard::new("empty-venues");
+
+    let queued = queue_import(
+        "https://www.bilibili.com/video/BV1xx411c7mD/",
+        "BV1xx411c7mD",
+    )
+    .expect("failed to queue import");
+    let mut probe = sample_probe_result();
+    probe.extraction_json = Some(json!({
+        "video_summary": "no venues",
+        "venues": []
+    }));
+
+    let error = complete_import_by_id(
+        &queued.record.id,
+        "https://www.bilibili.com/video/BV1xx411c7mD/",
+        &probe,
+    )
+    .expect_err("empty venue extraction must fail closed");
+    assert!(error.contains("at least one venue"));
+
+    let snapshot = load_snapshot().expect("failed to load snapshot");
+    let record = snapshot
+        .imports
+        .into_iter()
+        .find(|record| record.id == queued.record.id)
+        .expect("queued import should remain present");
+    assert_ne!(record.status, "succeeded");
+}
+
+#[test]
+fn complete_import_refuses_venue_without_required_evidence() {
+    let _lock = db_test_lock().lock().expect("failed to lock db test mutex");
+    let _home = TestHomeGuard::new("venue-no-evidence");
+
+    let queued = queue_import(
+        "https://www.bilibili.com/video/BV1xx411c7mD/",
+        "BV1xx411c7mD",
+    )
+    .expect("failed to queue import");
+    let mut probe = sample_probe_result();
+    probe.extraction_json = Some(json!({
+        "video_summary": "venue missing evidence",
+        "venues": [
+            {
+                "venue_name": "炭火小馆",
+                "address_text": "上海市静安区茂名北路68号",
+                "recommended_dishes": ["鸡翅"],
+                "confidence": "high",
+                "recommendation_polarity": "positive",
+                "needs_review": false
+            }
+        ]
+    }));
+
+    let error = complete_import_by_id(
+        &queued.record.id,
+        "https://www.bilibili.com/video/BV1xx411c7mD/",
+        &probe,
+    )
+    .expect_err("venue missing supporting evidence must fail closed");
+    assert!(error.contains("missing supporting evidence"));
 }
 
 #[test]

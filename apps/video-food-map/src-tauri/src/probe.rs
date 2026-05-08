@@ -13,9 +13,7 @@ mod probe_runner;
 #[path = "probe_tests.rs"]
 mod tests;
 
-pub use probe_bilibili::{
-    extract_bvid_hint, load_bilibili_creator_video_feed,
-};
+pub use probe_bilibili::{extract_bvid_hint, load_bilibili_creator_video_feed};
 pub use probe_geocode::{build_geocode_query, geocode_address};
 pub use probe_runner::{path_display, run_probe};
 

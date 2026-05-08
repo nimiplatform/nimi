@@ -2,11 +2,11 @@ use rusqlite::{params, Connection};
 
 use crate::db_queries::should_show_on_map;
 
+use super::db_schema::open_db;
 use super::{
     parse_comment_clues, parse_json_value, parse_string_array, CreatorSyncRecord, ImportRecord,
     ImportRow, MapPoint, Snapshot, SnapshotStats, VenueRecord,
 };
-use super::db_schema::open_db;
 
 fn row_to_import(row: &rusqlite::Row<'_>) -> Result<ImportRow, rusqlite::Error> {
     Ok(ImportRow {
@@ -243,7 +243,10 @@ pub fn load_snapshot() -> Result<Snapshot, String> {
             .iter()
             .filter(|record| record.status == "succeeded")
             .count(),
-        failed_count: imports.iter().filter(|record| record.status == "failed").count(),
+        failed_count: imports
+            .iter()
+            .filter(|record| record.status == "failed")
+            .count(),
         venue_count,
         mapped_venue_count,
         review_venue_count,

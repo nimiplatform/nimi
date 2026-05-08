@@ -137,6 +137,36 @@ pub(crate) fn read_video_summary(extraction_json: Option<&Value>) -> String {
         .unwrap_or_default()
 }
 
+fn validate_structured_extraction(
+    probe: &ProbeResult,
+    venues: &[VenueInput],
+) -> Result<(), String> {
+    if probe.extraction_json.is_none() {
+        return Err("structured venue extraction is required before import completion".to_string());
+    }
+    if venues.is_empty() {
+        return Err("structured venue extraction must contain at least one venue".to_string());
+    }
+    if probe.extraction_coverage.state.trim().is_empty() {
+        return Err("extraction coverage state is required before import completion".to_string());
+    }
+
+    for (index, venue) in venues.iter().enumerate() {
+        let ordinal = index + 1;
+        if venue.venue_name.trim().is_empty() {
+            return Err(format!("venue {ordinal} is missing a store candidate"));
+        }
+        if venue.evidence.is_empty() {
+            return Err(format!("venue {ordinal} is missing supporting evidence"));
+        }
+        if venue.confidence.trim().is_empty() {
+            return Err(format!("venue {ordinal} is missing confidence"));
+        }
+    }
+
+    Ok(())
+}
+
 pub(crate) fn to_comment_clue_records(items: &[ProbeCommentClue]) -> Vec<CommentClueRecord> {
     items
         .iter()
@@ -316,14 +346,14 @@ pub(crate) fn address_is_specific(address_text: &str) -> bool {
 }
 
 pub(crate) fn resolve_review_state(input: &VenueInput, geocode: &GeocodeOutcome) -> String {
+    if input.needs_review || input.venue_name.trim().is_empty() {
+        return "review".to_string();
+    }
     if geocode.status == "resolved"
         && input.confidence.trim() != "low"
         && !input.venue_name.trim().is_empty()
     {
         return "map_ready".to_string();
-    }
-    if input.needs_review || input.venue_name.trim().is_empty() {
-        return "review".to_string();
     }
     if input.address_text.trim().is_empty() {
         return "search_only".to_string();
@@ -482,6 +512,7 @@ pub(crate) fn complete_import_by_id(
     probe: &ProbeResult,
 ) -> Result<(), String> {
     let venue_inputs = parse_venue_inputs(probe.extraction_json.as_ref());
+    validate_structured_extraction(probe, &venue_inputs)?;
     let prepared_venues = prepare_venues(conn, import_id, probe, &venue_inputs)?;
     let updated_at = now_iso();
     let transaction = conn
