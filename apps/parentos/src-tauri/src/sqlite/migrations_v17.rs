@@ -85,19 +85,16 @@ fn purge_orphan_reminder_states(conn: &Connection) -> Result<(), String> {
 
     let mut orphan_rule_ids: Vec<String> = Vec::new();
     for row in rows {
-        let rule_id = row
-            .map_err(|e| format!("migration v17 read reminder_states ruleId failed: {e}"))?;
+        let rule_id =
+            row.map_err(|e| format!("migration v17 read reminder_states ruleId failed: {e}"))?;
         if !admitted.contains(&rule_id) {
             orphan_rule_ids.push(rule_id);
         }
     }
 
     for rule_id in orphan_rule_ids {
-        conn.execute(
-            "DELETE FROM reminder_states WHERE ruleId = ?1",
-            [&rule_id],
-        )
-        .map_err(|e| format!("migration v17 purge ruleId '{rule_id}' failed: {e}"))?;
+        conn.execute("DELETE FROM reminder_states WHERE ruleId = ?1", [&rule_id])
+            .map_err(|e| format!("migration v17 purge ruleId '{rule_id}' failed: {e}"))?;
     }
 
     Ok(())

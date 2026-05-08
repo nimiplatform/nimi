@@ -337,3 +337,108 @@ fn save_health_record_capture_rejects_invalid_payload_without_partial_event() {
         .expect("count invalid event");
     assert_eq!(event_count, 0);
 }
+
+#[test]
+fn save_health_record_capture_rejects_unadmitted_registry_bypass_without_partial_event() {
+    let mut conn = Connection::open_in_memory().expect("open in-memory db");
+    conn.execute_batch("PRAGMA foreign_keys=ON;")
+        .expect("enable fk");
+    run_migrations(&conn).expect("run migrations");
+    seed_family_and_child(&conn);
+
+    let cases = [
+        (
+            health_record_capture_input(
+                "hre-unknown-metric",
+                "growth-child-quarterly",
+                "growth",
+                "unknown.metric",
+                Some(1.0),
+                None,
+                None,
+            ),
+            "unknown health metric id",
+        ),
+        (
+            health_record_capture_input(
+                "hre-metric-protocol-mismatch",
+                "growth-child-quarterly",
+                "growth",
+                "vision.left_visual_acuity",
+                Some(1.0),
+                None,
+                None,
+            ),
+            "health metric",
+        ),
+        (
+            health_record_capture_input(
+                "hre-retained-protocol",
+                "vaccine-administration",
+                "vaccine",
+                "vaccine.administration",
+                None,
+                None,
+                Some("{\"ruleId\":\"PO-REM-VAX-001\"}".to_string()),
+            ),
+            "cannot be saved as health_record_event",
+        ),
+    ];
+
+    for (input, expected_error) in cases {
+        let event_id = input.event_id.clone();
+        let result = crate::sqlite::queries::save_health_record_capture_with_conn(&mut conn, input);
+        let error = result.expect_err("registry bypass must fail closed");
+        assert!(
+            error.contains(expected_error),
+            "expected {error:?} to contain {expected_error:?}",
+        );
+        let event_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM health_record_events WHERE eventId = ?1",
+                params![event_id],
+                |row| row.get(0),
+            )
+            .expect("count rejected event");
+        assert_eq!(event_count, 0);
+    }
+}
+
+fn health_record_capture_input(
+    event_id: &str,
+    protocol_id: &str,
+    group_id: &str,
+    metric_id: &str,
+    value_number: Option<f64>,
+    value_text: Option<String>,
+    value_json: Option<String>,
+) -> crate::sqlite::queries::SaveHealthRecordCaptureInput {
+    crate::sqlite::queries::SaveHealthRecordCaptureInput {
+        event_id: event_id.to_string(),
+        child_id: "child-1".to_string(),
+        protocol_id: protocol_id.to_string(),
+        group_id: group_id.to_string(),
+        record_kind: "manual".to_string(),
+        source_surface: "profile_detail".to_string(),
+        recorded_at: "2026-05-02T10:00:00.000Z".to_string(),
+        effective_date: "2026-05-02".to_string(),
+        age_months: 27,
+        recorder_id: None,
+        linked_reminder_state_id: None,
+        linked_reminder_rule_id: None,
+        notes: None,
+        metadata_json: None,
+        now: "2026-05-02T10:00:00.000Z".to_string(),
+        values: vec![crate::sqlite::queries::HealthRecordCaptureValueInput {
+            value_id: format!("{event_id}:value"),
+            metric_id: metric_id.to_string(),
+            value_number,
+            value_text,
+            value_json,
+            unit: None,
+            qualifier: None,
+            record_kind: "measured".to_string(),
+            source_value_ids: None,
+        }],
+    }
+}

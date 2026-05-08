@@ -14,6 +14,10 @@ export function isRecordDataReminder(reminder: Pick<ActiveReminder, 'rule'>) {
   return reminder.rule.actionType === 'record_data';
 }
 
+export function canDirectlyCompleteReminder(reminder: Pick<ActiveReminder, 'rule'>) {
+  return !isRecordDataReminder(reminder);
+}
+
 export function buildRecordDataCaptureIntent(
   reminder: ActiveReminder,
   localToday: string,

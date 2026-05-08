@@ -33,7 +33,11 @@ import { loadAllFreqOverrides, type FreqOverrideMap } from '../../engine/reminde
 import { catchLog, catchLogThen } from '../../infra/telemetry/catch-log.js';
 import { HealthCaptureModal } from '../profile/health-capture-modal.js';
 import type { HealthCaptureIntent } from '../profile/health-capture-orchestrator.js';
-import { buildRecordDataCaptureIntent, isRecordDataReminder } from './record-data-capture.js';
+import {
+  buildRecordDataCaptureIntent,
+  canDirectlyCompleteReminder,
+  isRecordDataReminder,
+} from './record-data-capture.js';
 
 const textMain = '#1e293b';
 const textMuted = '#475569';
@@ -182,6 +186,7 @@ function TodayHero({
     );
   }
   const primary = primaryAction(reminder);
+  const canComplete = canDirectlyCompleteReminder(reminder);
   return (
     <div className="rounded-[20px] p-6" style={glassInner}>
       <p className="text-[13px] font-semibold tracking-[0.08em]" style={{ color: '#22c55e' }}>今日</p>
@@ -201,9 +206,11 @@ function TodayHero({
           <Link to={primary.to} className="px-4 py-2 rounded-full text-[13px] font-medium text-white transition-all hover:-translate-y-0.5"
             style={{ background: textMain, boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}>{primary.label}</Link>
         )}
-        <button type="button" onClick={() => onComplete(reminder)}
-          className="px-4 py-2 rounded-full text-[13px] font-medium transition-colors hover:bg-white/60"
-          style={{ background: 'rgba(78,204,163,0.06)', color: textMain }}>标记完成</button>
+        {canComplete && (
+          <button type="button" onClick={() => onComplete(reminder)}
+            className="px-4 py-2 rounded-full text-[13px] font-medium transition-colors hover:bg-white/60"
+            style={{ background: 'rgba(78,204,163,0.06)', color: textMain }}>标记完成</button>
+        )}
       </div>
     </div>
   );
@@ -230,6 +237,7 @@ function ReminderRow({ reminder, onOpenDetail, onComplete, onSnooze, onSchedule,
     ? reminder.rule.description
     : reminder.rule.explain?.whyNow ?? reminder.rule.description;
   const completeLabel = reminder.kind === 'task' ? '完成' : '我已了解';
+  const canComplete = canDirectlyCompleteReminder(reminder);
 
   return (
     <div className="rounded-[16px] p-5 transition-colors hover:bg-white" style={glassInner}>
@@ -266,8 +274,10 @@ function ReminderRow({ reminder, onOpenDetail, onComplete, onSnooze, onSchedule,
           <Link to={primary.to} className="px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-colors"
             style={{ background: '#fff', color: textMain, border: '1px solid #e2e8f0' }}>{primary.label}</Link>
         )}
-        <button type="button" onClick={() => onComplete(reminder)} className="px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors hover:bg-white/60"
-          style={{ background: 'rgba(78,204,163,0.06)', color: textMain }}>{completeLabel}</button>
+        {canComplete && (
+          <button type="button" onClick={() => onComplete(reminder)} className="px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors hover:bg-white/60"
+            style={{ background: 'rgba(78,204,163,0.06)', color: textMain }}>{completeLabel}</button>
+        )}
         <button type="button" onClick={() => onSnooze(reminder)} className="px-3 py-1.5 rounded-full text-[13px] transition-colors hover:bg-white/60"
           style={{ color: textMuted }}>推迟</button>
         {reminder.kind === 'task' && (
@@ -298,7 +308,6 @@ export default function RemindersPage() {
   const [freqModalReminder, setFreqModalReminder] = useState<ActiveReminder | null>(null);
   const [activeReminder, setActiveReminder] = useState<ActiveReminder | null>(null);
   const [captureIntent, setCaptureIntent] = useState<HealthCaptureIntent | null>(null);
-  const [captureReminder, setCaptureReminder] = useState<ActiveReminder | null>(null);
   const [captureError, setCaptureError] = useState<string | null>(null);
   const ageMonths = child ? computeAgeMonths(child.birthDate) : 0;
   const localToday = getLocalToday();
@@ -341,10 +350,8 @@ export default function RemindersPage() {
   const openRecordDataCapture = useCallback((reminder: ActiveReminder) => {
     try {
       setCaptureError(null);
-      setCaptureReminder(reminder);
       setCaptureIntent(buildRecordDataCaptureIntent(reminder, localToday));
     } catch (nextError) {
-      setCaptureReminder(null);
       setCaptureIntent(null);
       setCaptureError(nextError instanceof Error ? nextError.message : String(nextError));
     }
@@ -560,15 +567,10 @@ export default function RemindersPage() {
           initialIntent={captureIntent}
           onClose={() => {
             setCaptureIntent(null);
-            setCaptureReminder(null);
           }}
           onSaved={() => {
-            const reminder = captureReminder;
             setCaptureIntent(null);
-            setCaptureReminder(null);
-            if (reminder) {
-              void handleAction(reminder, 'complete');
-            }
+            void reload();
           }}
         />
       ) : null}
@@ -577,6 +579,7 @@ export default function RemindersPage() {
         <FrequencyModal
           childId={child.childId} ruleId={freqModalReminder.rule.ruleId} ruleTitle={freqModalReminder.rule.title}
           currentIntervalMonths={freqModalReminder.rule.repeatRule.intervalMonths} existingOverride={null}
+          canDisable={freqModalReminder.rule.priority !== 'P0'}
           onSaved={() => { void reload(); void reloadFreqOverrides(); }} onClose={() => setFreqModalReminder(null)} />
       )}
 

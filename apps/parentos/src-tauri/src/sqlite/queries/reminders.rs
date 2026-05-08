@@ -1,4 +1,4 @@
-use rusqlite::params;
+use rusqlite::{params, Connection};
 use serde::Serialize;
 
 use super::super::get_conn;
@@ -207,7 +207,24 @@ pub fn upsert_reminder_consultation(
     now: String,
 ) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    apply_reminder_consultation_writeback(
+        &conn,
+        &child_id,
+        &rule_id,
+        repeat_index,
+        &conversation_id,
+        &now,
+    )
+}
 
+pub(crate) fn apply_reminder_consultation_writeback(
+    conn: &Connection,
+    child_id: &str,
+    rule_id: &str,
+    repeat_index: i32,
+    conversation_id: &str,
+    now: &str,
+) -> Result<(), String> {
     let existing: Option<(Option<String>, Option<String>)> = conn
         .query_row(
             "SELECT consultedAt, consultationConversationId FROM reminder_states \

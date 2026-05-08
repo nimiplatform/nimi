@@ -155,17 +155,6 @@ export interface VisionSnapshotSummary {
 export interface TimelineHomeViewModel {
   recentChanges: RecentChangeItem[];
   dataGapAlert: DataGapAlertItem | null;
-  growthSnapshot: {
-    updatedAt: string | null;
-    updatedLabel: string;
-    metrics: GrowthSnapshotMetric[];
-    trends: GrowthTrendItem[];
-  };
-  sleepTrend: SleepTrendSummary;
-  visionSnapshot: VisionSnapshotSummary;
-  milestoneTimeline: MilestoneTimelineSummary;
-  observationDistribution: ObservationDistributionSummary;
-  recentLines: RecentLineItem[];
 }
 
 export const C = {

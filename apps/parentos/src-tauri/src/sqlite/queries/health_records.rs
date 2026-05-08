@@ -1,6 +1,8 @@
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::collections::{HashMap, HashSet};
+use std::sync::OnceLock;
 
 use super::super::get_conn;
 
@@ -103,6 +105,107 @@ fn is_supported_health_value_kind(value: &str) -> bool {
     matches!(value, "measured" | "derived" | "parent_confirmed_import")
 }
 
+#[derive(Debug, Deserialize)]
+struct HealthMetricRegistryYaml {
+    metrics: Vec<HealthMetricAuthorityYaml>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct HealthMetricAuthorityYaml {
+    metric_id: String,
+    group_id: String,
+    #[serde(default)]
+    capture_protocol_ids: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct HealthCaptureProtocolsYaml {
+    protocols: Vec<HealthCaptureProtocolAuthorityYaml>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct HealthCaptureProtocolAuthorityYaml {
+    protocol_id: String,
+    group_id: String,
+    #[serde(default)]
+    metric_ids: Vec<String>,
+    storage_target: String,
+}
+
+#[derive(Debug)]
+struct HealthMetricAuthority {
+    group_id: String,
+    capture_protocol_ids: HashSet<String>,
+}
+
+#[derive(Debug)]
+struct HealthCaptureProtocolAuthority {
+    group_id: String,
+    metric_ids: HashSet<String>,
+    storage_target: String,
+}
+
+#[derive(Debug)]
+struct HealthRecordAuthority {
+    metrics_by_id: HashMap<String, HealthMetricAuthority>,
+    protocols_by_id: HashMap<String, HealthCaptureProtocolAuthority>,
+}
+
+static HEALTH_RECORD_AUTHORITY: OnceLock<Result<HealthRecordAuthority, String>> = OnceLock::new();
+
+fn health_record_authority() -> Result<&'static HealthRecordAuthority, String> {
+    match HEALTH_RECORD_AUTHORITY.get_or_init(load_health_record_authority) {
+        Ok(authority) => Ok(authority),
+        Err(error) => Err(error.clone()),
+    }
+}
+
+fn load_health_record_authority() -> Result<HealthRecordAuthority, String> {
+    let metrics_yaml: HealthMetricRegistryYaml = serde_yaml::from_str(include_str!(
+        "../../../../spec/kernel/tables/health-metric-registry.yaml"
+    ))
+    .map_err(|e| format!("parse health-metric-registry.yaml: {e}"))?;
+    let protocols_yaml: HealthCaptureProtocolsYaml = serde_yaml::from_str(include_str!(
+        "../../../../spec/kernel/tables/health-capture-protocols.yaml"
+    ))
+    .map_err(|e| format!("parse health-capture-protocols.yaml: {e}"))?;
+
+    let metrics_by_id = metrics_yaml
+        .metrics
+        .into_iter()
+        .map(|metric| {
+            (
+                metric.metric_id,
+                HealthMetricAuthority {
+                    group_id: metric.group_id,
+                    capture_protocol_ids: metric.capture_protocol_ids.into_iter().collect(),
+                },
+            )
+        })
+        .collect();
+    let protocols_by_id = protocols_yaml
+        .protocols
+        .into_iter()
+        .map(|protocol| {
+            (
+                protocol.protocol_id,
+                HealthCaptureProtocolAuthority {
+                    group_id: protocol.group_id,
+                    metric_ids: protocol.metric_ids.into_iter().collect(),
+                    storage_target: protocol.storage_target,
+                },
+            )
+        })
+        .collect();
+
+    Ok(HealthRecordAuthority {
+        metrics_by_id,
+        protocols_by_id,
+    })
+}
+
 fn non_empty(value: &str, field_name: &str) -> Result<(), String> {
     if value.trim().is_empty() {
         return Err(format!("{field_name} is required"));
@@ -134,10 +237,56 @@ fn validate_health_record_capture(input: &SaveHealthRecordCaptureInput) -> Resul
         return Err("health capture requires at least one value".to_string());
     }
 
+    let authority = health_record_authority()?;
+    let protocol_id = input.protocol_id.trim();
+    let group_id = input.group_id.trim();
+    let Some(protocol) = authority.protocols_by_id.get(protocol_id) else {
+        return Err(format!(
+            "unknown health capture protocol id \"{}\"",
+            input.protocol_id
+        ));
+    };
+    if protocol.storage_target != "health_record_event" {
+        return Err(format!(
+            "health capture protocol \"{}\" has storageTarget \"{}\" and cannot be saved as health_record_event",
+            input.protocol_id, protocol.storage_target
+        ));
+    }
+    if protocol.group_id != group_id {
+        return Err(format!(
+            "health capture protocol \"{}\" belongs to group \"{}\", not \"{}\"",
+            input.protocol_id, protocol.group_id, input.group_id
+        ));
+    }
+
     let mut value_ids = std::collections::HashSet::new();
     for value in &input.values {
         non_empty(&value.value_id, "valueId")?;
         non_empty(&value.metric_id, "metricId")?;
+        let metric_id = value.metric_id.trim();
+        let Some(metric) = authority.metrics_by_id.get(metric_id) else {
+            return Err(format!("unknown health metric id \"{}\"", value.metric_id));
+        };
+        if metric.group_id != group_id {
+            return Err(format!(
+                "health metric \"{}\" belongs to group \"{}\", not \"{}\"",
+                value.metric_id, metric.group_id, input.group_id
+            ));
+        }
+        if !protocol.metric_ids.contains(metric_id) {
+            return Err(format!(
+                "health metric \"{}\" is not admitted by protocol \"{}\"",
+                value.metric_id, input.protocol_id
+            ));
+        }
+        if value.record_kind.trim() != "derived"
+            && !metric.capture_protocol_ids.contains(protocol_id)
+        {
+            return Err(format!(
+                "health metric \"{}\" does not admit protocol \"{}\"",
+                value.metric_id, input.protocol_id
+            ));
+        }
         if !value_ids.insert(value.value_id.trim().to_string()) {
             return Err(format!("duplicate health valueId \"{}\"", value.value_id));
         }
@@ -532,7 +681,6 @@ pub fn get_vaccine_records(child_id: String) -> Result<Vec<VaccineRecord>, Strin
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|e| format!("get_vaccine_records collect: {e}"))
 }
-
 
 include!("health_records_dental.inc.rs");
 include!("health_records_tail.inc.rs");

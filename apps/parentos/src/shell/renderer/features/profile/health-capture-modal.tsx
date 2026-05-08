@@ -11,7 +11,7 @@ import {
   buildHealthCaptureEventInput,
   createDefaultHealthCaptureIntent,
   getCaptureMetrics,
-  getHealthCaptureProtocolOptions,
+  getHealthRecordEventCaptureProtocolOptions,
   type HealthCaptureDraftValue,
   type HealthCaptureIntent,
 } from './health-capture-orchestrator.js';
@@ -57,7 +57,7 @@ function SidebarHealthCaptureModal({
   const { t } = useTranslation();
   const ageMonths = computeAgeMonths(childBirthDate);
   const isUnder6 = ageMonths <= 72;
-  const allOptions = useMemo(() => getHealthCaptureProtocolOptions(), []);
+  const allOptions = useMemo(() => getHealthRecordEventCaptureProtocolOptions(), []);
   const options = useMemo(() => {
     return allOptions.filter((option) => {
       if (option.group.groupId === 'development') {
@@ -245,7 +245,7 @@ function LegacyHealthCaptureModal({
   onSaved,
 }: HealthCaptureModalProps) {
   const { t } = useTranslation();
-  const options = useMemo(() => getHealthCaptureProtocolOptions(), []);
+  const options = useMemo(() => getHealthRecordEventCaptureProtocolOptions(), []);
   const firstProtocol = options[0]?.protocols[0];
   const initialProtocolId = initialIntent?.protocolId ?? firstProtocol?.protocolId;
   const [selectedGroupId, setSelectedGroupId] = useState(initialIntent?.protocolId ? null : options[0]?.group.groupId ?? null);

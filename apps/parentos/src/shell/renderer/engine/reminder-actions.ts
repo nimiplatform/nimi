@@ -187,6 +187,14 @@ export async function applyReminderAction(input: ReminderActionInput) {
   const reminder = input.reminder;
   const previous = input.state;
 
+  if (input.action === 'complete' && reminder.rule.actionType === 'record_data') {
+    throw new ProgressionViolationError(
+      reminder.kind,
+      input.action,
+      'record_data completion requires capture policy proof after persistence',
+    );
+  }
+
   // Routing-only action: open_advisor writes no progression state. Persist nothing.
   // The advisor module invokes upsertReminderConsultation on AI first reply
   // (PO-REMI-007) which writes consultedAt / consultationConversationId atomically.

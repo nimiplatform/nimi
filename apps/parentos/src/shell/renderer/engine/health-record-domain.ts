@@ -9,9 +9,7 @@ import {
   type HealthEvaluationPolicy,
   type HealthEvaluationStatus,
   type HealthMetricDefinition,
-  type HealthMetricGroup,
   type HealthMetricId,
-  type HealthStatusColorAlias,
 } from '../knowledge-base/index.js';
 import {
   getGrowthPercentileBand,
@@ -19,81 +17,8 @@ import {
   type GrowthPercentileStandard,
   type GrowthPercentileTypeId,
 } from './growth-percentile-band.js';
-
-export type HealthRecordEventKind = 'manual' | 'imported' | 'ocr_confirmed' | 'reminder_linked' | 'derived';
-export type HealthRecordValueKind = 'measured' | 'derived' | 'parent_confirmed_import';
-
-export interface HealthRecordEvent {
-  eventId: string;
-  childId: string;
-  protocolId: string;
-  groupId: string;
-  recordKind: HealthRecordEventKind;
-  sourceSurface: 'profile_console' | 'profile_detail' | 'reminder' | 'ocr_tool' | 'import';
-  recordedAt: string;
-  effectiveDate: string;
-  ageMonths: number;
-  recorderId?: string | null;
-  linkedReminderStateId?: string | null;
-  linkedReminderRuleId?: string | null;
-  notes?: string | null;
-  metadataJson?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface HealthRecordValue {
-  valueId: string;
-  eventId: string;
-  childId: string;
-  metricId: HealthMetricId;
-  valueNumber?: number | null;
-  valueText?: string | null;
-  valueJson?: string | null;
-  unit?: string | null;
-  qualifier?: string | null;
-  recordKind: HealthRecordValueKind;
-  sourceValueIds?: string | null;
-  createdAt: string;
-}
-
-export interface HealthEvaluation {
-  status: HealthEvaluationStatus;
-  colorAlias: HealthStatusColorAlias;
-  statusReasonCode: string;
-  shortLabel: string;
-  explanation: string;
-  sourceRefs: readonly string[];
-  computedAt: string;
-  inputs: Record<string, unknown>;
-  safetyBoundary: 'descriptive_only' | 'professional_review_prompt' | 'not_evaluated';
-}
-
-export interface HealthMetricSnapshot {
-  metric: HealthMetricDefinition;
-  latestValue: HealthRecordValue | null;
-  latestEvent: HealthRecordEvent | null;
-  nextRecordAt: string | null;
-  freshness: 'missing' | 'fresh' | 'stale' | 'unscheduled';
-  evaluation: HealthEvaluation;
-}
-
-export interface HealthGroupSnapshot {
-  group: HealthMetricGroup;
-  metrics: readonly HealthMetricSnapshot[];
-}
-
-export interface HealthRecordSnapshot {
-  childId: string;
-  ageMonths: number;
-  computedAt: string;
-  groups: readonly HealthGroupSnapshot[];
-}
-
-export interface RecomputeDerivedValuesOptions {
-  nowIso: string;
-  makeValueId: (event: HealthRecordEvent, metricId: HealthMetricId, sourceValueIds: readonly string[]) => string;
-}
+import type { HealthEvaluation, HealthMetricSnapshot, HealthRecordEvent, HealthRecordSnapshot, HealthRecordValue, RecomputeDerivedValuesOptions } from './health-record-domain-types.js';
+export type { HealthEvaluation, HealthGroupSnapshot, HealthMetricSnapshot, HealthRecordEvent, HealthRecordEventKind, HealthRecordSnapshot, HealthRecordValue, HealthRecordValueKind, RecomputeDerivedValuesOptions } from './health-record-domain-types.js';
 
 const metricById = new Map(HEALTH_METRICS.map((metric) => [metric.metricId, metric]));
 const protocolById = new Map<string, HealthCaptureProtocol>(
@@ -217,10 +142,16 @@ export function buildHealthRecordSnapshot(input: {
         .map((metric) => {
         const latestValue = latestByMetric.get(metric.metricId) ?? null;
         const latestEvent = latestValue ? eventById.get(latestValue.eventId) ?? null : null;
-        const nextRecordAt = latestEvent
-          ? computeNextRecordAt(metric.freshnessPolicyRef, latestEvent.effectiveDate, input.ageMonths)
-          : null;
-        const freshness = computeFreshness(latestValue, nextRecordAt, metric.freshnessPolicyRef, input.nowIso);
+        const freshnessResolution = latestEvent
+          ? resolveNextRecordAt(metric.freshnessPolicyRef, latestEvent.effectiveDate, input.ageMonths)
+          : { nextRecordAt: null, unresolvedPolicyRef: null };
+        const freshness = computeFreshness(
+          latestValue,
+          freshnessResolution.nextRecordAt,
+          metric.freshnessPolicyRef,
+          freshnessResolution.unresolvedPolicyRef,
+          input.nowIso,
+        );
         const policy = metric.evaluationPolicyRef ? policyById.get(metric.evaluationPolicyRef) : undefined;
         const evaluation = evaluateMetric({
           metric,
@@ -228,11 +159,19 @@ export function buildHealthRecordSnapshot(input: {
           latestValue,
           latestEvent,
           freshness,
+          unresolvedFreshnessPolicyRef: freshnessResolution.unresolvedPolicyRef,
           nowIso: input.nowIso,
           sex: input.sex,
           growthStandard: input.growthStandard,
         });
-        return { metric, latestValue, latestEvent, nextRecordAt, freshness, evaluation };
+        return {
+          metric,
+          latestValue,
+          latestEvent,
+          nextRecordAt: freshnessResolution.nextRecordAt,
+          freshness,
+          evaluation,
+        };
       }),
     }));
 
@@ -309,6 +248,7 @@ function evaluateMetric(input: {
   latestValue: HealthRecordValue | null;
   latestEvent: HealthRecordEvent | null;
   freshness: HealthMetricSnapshot['freshness'];
+  unresolvedFreshnessPolicyRef?: string | null;
   nowIso: string;
   sex?: GrowthPercentileSex;
   growthStandard?: GrowthPercentileStandard;
@@ -328,6 +268,23 @@ function evaluateMetric(input: {
   const latestValue = input.latestValue;
   const latestEvent = input.latestEvent;
 
+  if (input.unresolvedFreshnessPolicyRef) {
+    return evaluation({
+      status: 'error',
+      reason: 'unresolved_freshness_policy',
+      label: 'Error',
+      explanation: 'The metric references a freshness policy that is not admitted by authority.',
+      policy: input.policy,
+      metric: input.metric,
+      nowIso: input.nowIso,
+      inputs: {
+        valueId: latestValue.valueId,
+        eventId: latestEvent.eventId,
+        freshnessPolicyRef: input.unresolvedFreshnessPolicyRef,
+      },
+    });
+  }
+
   if (input.freshness === 'stale') {
     return evaluation({
       status: 'watch',
@@ -338,6 +295,23 @@ function evaluateMetric(input: {
       metric: input.metric,
       nowIso: input.nowIso,
       inputs: { valueId: latestValue.valueId, eventId: latestEvent.eventId },
+    });
+  }
+
+  if (input.metric.evaluationPolicyRef && !input.policy) {
+    return evaluation({
+      status: 'error',
+      reason: 'unresolved_evaluation_policy',
+      label: 'Error',
+      explanation: 'The metric references an evaluation policy that is not admitted by authority.',
+      policy: input.policy,
+      metric: input.metric,
+      nowIso: input.nowIso,
+      inputs: {
+        valueId: latestValue.valueId,
+        eventId: latestEvent.eventId,
+        evaluationPolicyRef: input.metric.evaluationPolicyRef,
+      },
     });
   }
 
@@ -732,28 +706,36 @@ function computeFreshness(
   latestValue: HealthRecordValue | null,
   nextRecordAt: string | null,
   freshnessPolicyRef: string | undefined,
+  unresolvedFreshnessPolicyRef: string | null | undefined,
   nowIso: string,
 ): HealthMetricSnapshot['freshness'] {
   if (!latestValue) return 'missing';
+  if (unresolvedFreshnessPolicyRef) return 'error';
   if (!freshnessPolicyRef || !nextRecordAt) return 'unscheduled';
   return Date.parse(nextRecordAt) < Date.parse(nowIso) ? 'stale' : 'fresh';
 }
 
-function computeNextRecordAt(
+function resolveNextRecordAt(
   freshnessPolicyRef: string | undefined,
   effectiveDate: string,
   ageMonths: number,
-) {
-  if (!freshnessPolicyRef) return null;
-  if (freshnessPolicyRef === 'sleep.daily-optional') return addDays(effectiveDate, 1);
-  if (freshnessPolicyRef === 'outdoor.weekly-cadence') return addDays(effectiveDate, 7);
-  if (freshnessPolicyRef === 'medical.event-only') return null;
-  if (freshnessPolicyRef === 'vaccine.rule-schedule') return null;
-  if (freshnessPolicyRef === 'development.stage-window') return null;
-  if (freshnessPolicyRef === 'outdoor.goal-configured') return null;
+): { nextRecordAt: string | null; unresolvedPolicyRef: string | null } {
+  if (!freshnessPolicyRef) return { nextRecordAt: null, unresolvedPolicyRef: null };
+  if (freshnessPolicyRef === 'sleep.daily-optional') return { nextRecordAt: addDays(effectiveDate, 1), unresolvedPolicyRef: null };
+  if (freshnessPolicyRef === 'outdoor.weekly-cadence') return { nextRecordAt: addDays(effectiveDate, 7), unresolvedPolicyRef: null };
+  if (new Set([
+    'medical.event-only',
+    'vaccine.rule-schedule',
+    'development.stage-window',
+    'outdoor.goal-configured',
+  ]).has(freshnessPolicyRef)) {
+    return { nextRecordAt: null, unresolvedPolicyRef: null };
+  }
 
   const months = freshnessMonthsForPolicy(freshnessPolicyRef, ageMonths);
-  return months == null ? null : addMonths(effectiveDate, months);
+  return months == null
+    ? { nextRecordAt: null, unresolvedPolicyRef: freshnessPolicyRef }
+    : { nextRecordAt: addMonths(effectiveDate, months), unresolvedPolicyRef: null };
 }
 
 function freshnessMonthsForPolicy(freshnessPolicyRef: string, ageMonths: number) {
@@ -763,8 +745,6 @@ function freshnessMonthsForPolicy(freshnessPolicyRef: string, ageMonths: number)
       if (ageMonths < 12) return 1;
       if (ageMonths < 36) return 3;
       return 6;
-    case 'growth.infant-cadence':
-      return 1;
     case 'vision.six-month-cadence':
     case 'vision.exam-cadence':
     case 'development.puberty-six-month-cadence':
@@ -772,6 +752,8 @@ function freshnessMonthsForPolicy(freshnessPolicyRef: string, ageMonths: number)
       return 6;
     case 'fitness.school-year-cadence':
       return 12;
+    case 'growth.infant-cadence':
+      return 1;
     default:
       return null;
   }

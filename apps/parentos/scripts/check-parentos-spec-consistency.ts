@@ -189,7 +189,7 @@ export function findGrowthReportTypeConsistencyErrors(input: {
   }
   const tsAllowedSet = extractQuotedStringValues(tsMatch[1] ?? '');
 
-  const rustMatch = input.rustGrowthReportSource.match(/matches!\(report_type,\s*([^)]+)\)/s);
+  const rustMatch = input.rustGrowthReportSource.match(/matches!\(\s*report_type,\s*([^)]+)\)/s);
   if (!rustMatch) {
     errors.push('health_measurements.rs is missing is_supported_growth_report_type matches! helper');
     return errors;

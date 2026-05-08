@@ -351,9 +351,8 @@ export function computeEligibleReminders(
   for (const rule of rules) {
     if (rule.category === 'personalized') continue;
 
-    // Skip disabled rules
     const override = freqOverrides?.get(rule.ruleId);
-    if (override?.disabled) continue;
+    if (override?.disabled && rule.priority !== 'P0') continue;
 
     // Skip gender-specific rules that don't match the child's gender
     const tags = rule.tags ?? [];

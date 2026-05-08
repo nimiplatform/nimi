@@ -403,7 +403,7 @@ describe('timeline home view model helpers', () => {
     expect(dist.items[1]?.count).toBe(1);
   });
 
-  it('builds full view model with new card data', () => {
+  it('keeps timeline home view model limited to recent changes and data-gap alert', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-16T10:00:00.000Z'));
 
@@ -448,10 +448,14 @@ describe('timeline home view model helpers', () => {
       agenda: makeAgenda(),
     });
 
-    expect(homeVm.sleepTrend.totalRecords).toBe(1);
-    expect(homeVm.sleepTrend.avgDurationMinutes).toBe(600);
-    expect(homeVm.milestoneTimeline.recentlyAchieved).toHaveLength(1);
-    expect(homeVm.observationDistribution.totalEntries).toBe(1);
+    expect(homeVm.recentChanges).toEqual(expect.any(Array));
+    expect(homeVm.dataGapAlert?.id).toBe('growth_missing_baseline');
+    expect(homeVm).not.toHaveProperty('sleepTrend');
+    expect(homeVm).not.toHaveProperty('milestoneTimeline');
+    expect(homeVm).not.toHaveProperty('observationDistribution');
+    expect(homeVm).not.toHaveProperty('growthSnapshot');
+    expect(homeVm).not.toHaveProperty('visionSnapshot');
+    expect(homeVm).not.toHaveProperty('recentLines');
   });
 
   it('surfaces keepsake title and reason in recent journal summaries', () => {
@@ -484,9 +488,7 @@ describe('timeline home view model helpers', () => {
     expect(homeVm.recentChanges[0]?.title).toBe('读完第一本桥梁书');
     expect(homeVm.recentChanges[0]?.detail).toContain('取得成果');
     expect(homeVm.recentChanges[0]?.to).toBe('/journal?filter=keepsake');
-    expect(homeVm.recentLines[0]?.badge).toBe('珍藏');
-    expect(homeVm.recentLines[0]?.badgeTone).toBe('keepsake');
-    expect(homeVm.recentLines[0]?.tag).toBe('取得成果');
+    expect(homeVm).not.toHaveProperty('recentLines');
   });
 
 });

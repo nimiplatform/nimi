@@ -8,6 +8,7 @@ interface FrequencyModalProps {
   ruleId: string;
   ruleTitle: string;
   currentIntervalMonths: number;
+  canDisable?: boolean;
   existingOverride?: FreqOverride | null;
   onSaved: () => void;
   onClose: () => void;
@@ -21,7 +22,7 @@ const PRESET_OPTIONS = [
   { months: 24, label: '每 2 年' },
 ] as const;
 
-export function FrequencyModal({ childId, ruleId, ruleTitle, currentIntervalMonths, existingOverride: existingOverrideProp, onSaved, onClose }: FrequencyModalProps) {
+export function FrequencyModal({ childId, ruleId, ruleTitle, currentIntervalMonths, canDisable = true, existingOverride: existingOverrideProp, onSaved, onClose }: FrequencyModalProps) {
   const [loadedOverride, setLoadedOverride] = useState<FreqOverride | null>(existingOverrideProp ?? null);
   const [loaded, setLoaded] = useState(Boolean(existingOverrideProp));
 
@@ -35,7 +36,7 @@ export function FrequencyModal({ childId, ruleId, ruleTitle, currentIntervalMont
 
   const existingOverride = loadedOverride;
   const effectiveCurrent = existingOverride?.intervalMonths || currentIntervalMonths;
-  const isDisabled = existingOverride?.disabled ?? false;
+  const isDisabled = canDisable && (existingOverride?.disabled ?? false);
 
   const [selected, setSelected] = useState<number | 'custom' | 'disable' | null>(null);
   const [customMonths, setCustomMonths] = useState('');
@@ -45,12 +46,12 @@ export function FrequencyModal({ childId, ruleId, ruleTitle, currentIntervalMont
   useEffect(() => {
     if (!loaded) return;
     const eff = existingOverride?.intervalMonths || currentIntervalMonths;
-    const dis = existingOverride?.disabled ?? false;
+    const dis = canDisable && (existingOverride?.disabled ?? false);
     setSelected(dis ? 'disable' : (PRESET_OPTIONS.some((o) => o.months === eff) ? eff : 'custom'));
     if (!PRESET_OPTIONS.some((o) => o.months === eff) && !dis) {
       setCustomMonths(String(eff));
     }
-  }, [loaded, existingOverride, currentIntervalMonths]);
+  }, [loaded, existingOverride, currentIntervalMonths, canDisable]);
 
   if (!loaded || selected === null) {
     return (
@@ -65,10 +66,14 @@ export function FrequencyModal({ childId, ruleId, ruleTitle, currentIntervalMont
   const handleConfirm = async () => {
     setSaving(true);
     try {
-      if (selected === 'disable') {
+      if (canDisable && selected === 'disable') {
         await saveFreqOverride(childId, ruleId, { intervalMonths: currentIntervalMonths, disabled: true });
       } else {
-        const months = selected === 'custom' ? (parseInt(customMonths, 10) || currentIntervalMonths) : selected;
+        const months = selected === 'custom'
+          ? (parseInt(customMonths, 10) || currentIntervalMonths)
+          : typeof selected === 'number'
+            ? selected
+            : currentIntervalMonths;
         await saveFreqOverride(childId, ruleId, { intervalMonths: months, disabled: false });
       }
       onSaved();
@@ -126,13 +131,15 @@ export function FrequencyModal({ childId, ruleId, ruleTitle, currentIntervalMont
               : { background: '#f5f3ef', color: S.text, border: `1px solid ${S.border}` }}>
             自定义
           </button>
-          <button onClick={() => setSelected('disable')}
-            className="px-3 py-1.5 rounded-full text-[14px] transition-all"
-            style={selected === 'disable'
-              ? { background: '#dc2626', color: '#fff' }
-              : { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
-            关闭此提醒
-          </button>
+          {canDisable && (
+            <button onClick={() => setSelected('disable')}
+              className="px-3 py-1.5 rounded-full text-[14px] transition-all"
+              style={selected === 'disable'
+                ? { background: '#dc2626', color: '#fff' }
+                : { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
+              关闭此提醒
+            </button>
+          )}
         </div>
 
         {/* Custom input */}

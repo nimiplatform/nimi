@@ -32,6 +32,7 @@ describe('HealthCaptureModal', () => {
     expect(screen.getByText('Height (cm)')).toBeTruthy();
     expect(screen.getByText('Weight (kg)')).toBeTruthy();
     expect(screen.queryByText('BMI')).toBeNull();
+    expect(screen.queryByText('Vaccine administration')).toBeNull();
   });
 
   it('marks each required field label with * and not optional ones', () => {

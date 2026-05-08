@@ -13,17 +13,9 @@ import { buildReminderAgenda, getLocalToday, UnknownReminderRuleError, type Acti
 import { useDash, buildTimelineHomeViewModel, C } from './timeline-data.js';
 import {
   ChildContextCard,
-  GrowthSnapshotCard,
-  MilestoneTimelineCard,
-  MonthlyReportCard,
-  ObservationDistributionCard,
-  OutdoorGoalCard,
   QuickLinksStrip,
   RecentChangesHeroCard,
-  RecentLinesCard,
-  SleepTrendCard,
   StageFocusCard,
-  VisionCard,
 } from './timeline-cards.js';
 import { autoGenerateMonthlyReport } from '../reports/auto-report.js';
 import { FrequencyModal } from '../reminders/frequency-modal.js';
@@ -46,7 +38,6 @@ export default function TimelinePage() {
   const [freqOverrides, setFreqOverrides] = useState<FreqOverrideMap>(new Map());
   const [freqModalReminder, setFreqModalReminder] = useState<ActiveReminder | null>(null);
   const [captureIntent, setCaptureIntent] = useState<HealthCaptureIntent | null>(null);
-  const [captureReminder, setCaptureReminder] = useState<ActiveReminder | null>(null);
   const [captureError, setCaptureError] = useState<string | null>(null);
   const autoGenTriggered = useRef(false);
 
@@ -166,10 +157,8 @@ export default function TimelinePage() {
   const openRecordDataCapture = useCallback((reminder: ActiveReminder) => {
     try {
       setCaptureError(null);
-      setCaptureReminder(reminder);
       setCaptureIntent(buildRecordDataCaptureIntent(reminder, localToday));
     } catch (nextError) {
-      setCaptureReminder(null);
       setCaptureIntent(null);
       setCaptureError(nextError instanceof Error ? nextError.message : String(nextError));
     }
@@ -224,26 +213,7 @@ export default function TimelinePage() {
         </div>
         <div className="grid auto-rows-min grid-cols-8 gap-6">
           <QuickLinksStrip ageMonths={ageMonths} />
-          {/* Growth snapshot (left) + Sleep trend & Vision (right, stacked) */}
-          <div className="col-span-8 flex gap-6">
-            <div className="min-w-0 flex-1 [&>div]:h-full">
-              <GrowthSnapshotCard snapshot={homeVm.growthSnapshot} />
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-6">
-              <div className="flex-1 [&>div]:h-full">
-                <SleepTrendCard summary={homeVm.sleepTrend} />
-              </div>
-              <div className="flex-1 [&>div]:h-full">
-                <VisionCard snapshot={homeVm.visionSnapshot} />
-              </div>
-            </div>
-          </div>
-          <OutdoorGoalCard records={d.outdoorRecords} goalMinutes={d.outdoorGoalMinutes} />
           {periods.length > 0 ? <StageFocusCard periods={periods} /> : null}
-          <MilestoneTimelineCard summary={homeVm.milestoneTimeline} />
-          <RecentLinesCard lines={homeVm.recentLines} />
-          <ObservationDistributionCard summary={homeVm.observationDistribution} />
-          {d.latestMonthlyReport ? <MonthlyReportCard report={d.latestMonthlyReport} /> : null}
         </div>
       </div>
 
@@ -281,15 +251,10 @@ export default function TimelinePage() {
           initialIntent={captureIntent}
           onClose={() => {
             setCaptureIntent(null);
-            setCaptureReminder(null);
           }}
           onSaved={() => {
-            const reminder = captureReminder;
             setCaptureIntent(null);
-            setCaptureReminder(null);
-            if (reminder) {
-              void handleAction(reminder, 'complete');
-            }
+            void reload();
           }}
         />
       ) : null}
@@ -301,6 +266,7 @@ export default function TimelinePage() {
           ruleTitle={freqModalReminder.rule.title}
           currentIntervalMonths={freqModalReminder.rule.repeatRule.intervalMonths}
           existingOverride={null}
+          canDisable={freqModalReminder.rule.priority !== 'P0'}
           onSaved={() => {
             void reload();
             void reloadFreqOverrides();

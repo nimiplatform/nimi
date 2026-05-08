@@ -1,4 +1,10 @@
-use super::{validate_observation_selection, JournalTagInput};
+use super::{
+    orthodontic::{
+        is_dashboard_active_case, validate_insert_orthodontic_appliance_status,
+        validate_orthodontic_checkin_read_type,
+    },
+    validate_observation_selection, JournalTagInput, OrthodonticCase,
+};
 
 #[test]
 fn rejects_unknown_dimension_id() {
@@ -50,4 +56,76 @@ fn accepts_supported_dimension_and_tags() {
         &ai_tags,
     )
     .expect("expected supported tags to pass");
+}
+
+#[test]
+fn rejects_paused_orthodontic_appliance_insert_without_pause_reason() {
+    let result = validate_insert_orthodontic_appliance_status("paused", "paused");
+
+    assert!(result
+        .expect_err("expected paused appliance insert to fail closed")
+        .contains("status=paused requires pauseReason"));
+}
+
+#[test]
+fn accepts_active_or_completed_orthodontic_appliance_insert_status() {
+    validate_insert_orthodontic_appliance_status("active", "active")
+        .expect("expected active appliance insert to pass");
+    validate_insert_orthodontic_appliance_status("completed", "completed")
+        .expect("expected completed appliance insert to pass");
+}
+
+#[test]
+fn excludes_unknown_legacy_cases_from_orthodontic_dashboard_active_case() {
+    let legacy_case = OrthodonticCase {
+        case_id: "case-legacy".to_string(),
+        child_id: "child-1".to_string(),
+        case_type: "unknown-legacy".to_string(),
+        stage: "active".to_string(),
+        started_at: "2026-04-01".to_string(),
+        planned_end_at: None,
+        actual_end_at: None,
+        primary_issues: None,
+        provider_name: None,
+        provider_institution: None,
+        next_review_date: None,
+        notes: None,
+        created_at: "2026-04-01T00:00:00.000Z".to_string(),
+        updated_at: "2026-04-01T00:00:00.000Z".to_string(),
+    };
+    let active_case = OrthodonticCase {
+        case_id: "case-active".to_string(),
+        child_id: "child-1".to_string(),
+        case_type: "clear-aligners".to_string(),
+        stage: "active".to_string(),
+        started_at: "2026-04-01".to_string(),
+        planned_end_at: None,
+        actual_end_at: None,
+        primary_issues: None,
+        provider_name: None,
+        provider_institution: None,
+        next_review_date: None,
+        notes: None,
+        created_at: "2026-04-01T00:00:00.000Z".to_string(),
+        updated_at: "2026-04-01T00:00:00.000Z".to_string(),
+    };
+
+    assert!(
+        !is_dashboard_active_case(&legacy_case),
+        "unknown-legacy cases must stay out of active dashboard projection"
+    );
+    assert!(is_dashboard_active_case(&active_case));
+}
+
+#[test]
+fn rejects_persisted_unsupported_orthodontic_checkin_type_on_read() {
+    let result = validate_orthodontic_checkin_read_type("ortho-adjustment");
+
+    assert!(result
+        .expect_err("expected unsupported persisted checkinType to fail closed")
+        .contains("persisted unsupported orthodontic checkinType"));
+    validate_orthodontic_checkin_read_type("aligner-change")
+        .expect("expected aligner-change read to pass");
+    validate_orthodontic_checkin_read_type("expander-activation")
+        .expect("expected expander-activation read to pass");
 }

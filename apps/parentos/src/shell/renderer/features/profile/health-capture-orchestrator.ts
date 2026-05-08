@@ -89,13 +89,23 @@ export interface HealthCaptureProtocolOption {
 const metricById = new Map(HEALTH_METRICS.map((metric) => [metric.metricId, metric]));
 
 export function getHealthCaptureProtocolOptions(): HealthCaptureProtocolOption[] {
+  return getHealthCaptureProtocolOptionsFor(() => true);
+}
+
+export function getHealthRecordEventCaptureProtocolOptions(): HealthCaptureProtocolOption[] {
+  return getHealthCaptureProtocolOptionsFor((protocol) => protocol.storageTarget === 'health_record_event');
+}
+
+function getHealthCaptureProtocolOptionsFor(
+  includeProtocol: (protocol: HealthCaptureProtocol) => boolean,
+): HealthCaptureProtocolOption[] {
   return [...HEALTH_METRIC_GROUPS]
     .sort((left, right) => left.rank - right.rank)
     .map((group) => ({
       group,
-      protocols: HEALTH_CAPTURE_PROTOCOLS.filter(
-        (protocol) => protocol.groupId === group.groupId && protocol.storageTarget === 'health_record_event',
-      ),
+      protocols: HEALTH_CAPTURE_PROTOCOLS.filter((protocol) => (
+        protocol.groupId === group.groupId && includeProtocol(protocol)
+      )),
     }))
     .filter((option) => option.protocols.length > 0);
 }
@@ -131,28 +141,33 @@ export function createDefaultHealthCaptureIntent(
 export function buildHealthCaptureEventInput(input: HealthCaptureBuildInput): HealthCaptureEventInput {
   const protocol = getHealthCaptureProtocol(input.intent.protocolId);
   if (protocol.storageTarget !== 'health_record_event') {
-    throw new Error(`Capture protocol ${protocol.protocolId} requires retained_table storage`);
+    throw new Error(
+      `Capture protocol ${protocol.protocolId} requires retained_table storage and must not be saved as a health_record_event`,
+    );
   }
 
+  const childId = requireNonBlank(input.childId, 'Capture intent childId');
+  const effectiveDate = requireIsoDate(input.intent.effectiveDate, 'Capture intent effectiveDate');
+  const linkedReminder = validateLinkedReminder(input.intent.mode, input.intent.linkedReminder);
   const eventId = input.makeId();
   const event: HealthRecordEvent = {
     eventId,
-    childId: input.childId,
+    childId,
     protocolId: protocol.protocolId,
     groupId: protocol.groupId,
     recordKind: eventKindForMode(input.intent.mode),
     sourceSurface: sourceSurfaceForMode(input.intent.mode),
     recordedAt: input.nowIso,
-    effectiveDate: input.intent.effectiveDate,
+    effectiveDate,
     ageMonths: input.ageMonths,
     recorderId: input.intent.recorderId ?? null,
-    linkedReminderStateId: input.intent.linkedReminder?.stateId ?? null,
-    linkedReminderRuleId: input.intent.linkedReminder?.ruleId ?? null,
+    linkedReminderStateId: linkedReminder?.stateId ?? null,
+    linkedReminderRuleId: linkedReminder?.ruleId ?? null,
     notes: blankToNull(input.intent.notes),
     metadataJson: JSON.stringify({
       mode: input.intent.mode,
       protocolId: protocol.protocolId,
-      linkedReminderRuleId: input.intent.linkedReminder?.ruleId ?? null,
+      linkedReminderRuleId: linkedReminder?.ruleId ?? null,
     }),
     createdAt: input.nowIso,
     updatedAt: input.nowIso,
@@ -288,6 +303,52 @@ function sourceSurfaceForMode(mode: HealthCaptureLaunchMode): HealthRecordEvent[
   if (mode === 'reminder') return 'reminder';
   if (mode === 'ocr_confirm') return 'ocr_tool';
   return 'profile_console';
+}
+
+function validateLinkedReminder(
+  mode: HealthCaptureLaunchMode,
+  linkedReminder: LinkedHealthRecordReminder | null | undefined,
+): LinkedHealthRecordReminder | null {
+  if (mode !== 'reminder') {
+    return linkedReminder ?? null;
+  }
+  if (!linkedReminder) {
+    throw new Error('Reminder capture requires linkedReminder');
+  }
+  const ruleId = requireNonBlank(linkedReminder.ruleId, 'Reminder capture linkedReminder.ruleId');
+  return {
+    ...linkedReminder,
+    ruleId,
+    stateId: blankToNull(linkedReminder.stateId),
+  };
+}
+
+function requireNonBlank(value: string | null | undefined, label: string) {
+  const trimmed = blankToNull(value);
+  if (!trimmed) {
+    throw new Error(`${label} is required`);
+  }
+  return trimmed;
+}
+
+function requireIsoDate(value: string | null | undefined, label: string) {
+  const trimmed = requireNonBlank(value, label);
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/u);
+  if (!match) {
+    throw new Error(`${label} must be an ISO 8601 date`);
+  }
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    throw new Error(`${label} must be a valid ISO 8601 date`);
+  }
+  return trimmed;
 }
 
 function blankToNull(value: string | null | undefined) {

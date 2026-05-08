@@ -7,6 +7,7 @@ import {
   type HealthRecordEvent,
   type HealthRecordValue,
 } from './health-record-domain.js';
+import { HEALTH_METRICS } from '../knowledge-base/index.js';
 
 const event: HealthRecordEvent = {
   eventId: 'evt-1',
@@ -243,6 +244,76 @@ describe('health-record-domain', () => {
       ?.metrics.find((item) => item.metric.metricId === 'growth.height');
     expect(height?.evaluation.status).toBe('unrated');
     expect(height?.evaluation.statusReasonCode).toBe('reference_data_unavailable_for_age');
+  });
+
+  it('fails closed when a metric references an unresolved evaluation policy', () => {
+    const heightMetric = HEALTH_METRICS.find((metric) => metric.metricId === 'growth.height') as
+      | (typeof HEALTH_METRICS)[number]
+      | undefined;
+    expect(heightMetric).toBeTruthy();
+    const mutableMetric = heightMetric as { evaluationPolicyRef?: string };
+    const originalPolicyRef = mutableMetric.evaluationPolicyRef;
+    mutableMetric.evaluationPolicyRef = 'missing.policy';
+    try {
+      const snapshot = buildHealthRecordSnapshot({
+        childId: 'child-1',
+        ageMonths: 24,
+        events: [event],
+        values: [
+          value({
+            valueId: 'height-1',
+            metricId: 'growth.height',
+            valueNumber: 88,
+            unit: 'cm',
+          }),
+        ],
+        nowIso: '2026-02-15T00:00:00.000Z',
+        sex: 'male',
+      });
+      const height = snapshot.groups
+        .find((group) => group.group.groupId === 'growth')
+        ?.metrics.find((item) => item.metric.metricId === 'growth.height');
+      expect(height?.evaluation.status).toBe('error');
+      expect(height?.evaluation.statusReasonCode).toBe('unresolved_evaluation_policy');
+    } finally {
+      mutableMetric.evaluationPolicyRef = originalPolicyRef;
+    }
+  });
+
+  it('fails closed when a metric references an unresolved freshness policy', () => {
+    const heightMetric = HEALTH_METRICS.find((metric) => metric.metricId === 'growth.height') as
+      | (typeof HEALTH_METRICS)[number]
+      | undefined;
+    expect(heightMetric).toBeTruthy();
+    const mutableMetric = heightMetric as { freshnessPolicyRef?: string };
+    const originalFreshnessRef = mutableMetric.freshnessPolicyRef;
+    mutableMetric.freshnessPolicyRef = 'missing.freshness-policy';
+    try {
+      const snapshot = buildHealthRecordSnapshot({
+        childId: 'child-1',
+        ageMonths: 24,
+        events: [event],
+        values: [
+          value({
+            valueId: 'height-1',
+            metricId: 'growth.height',
+            valueNumber: 88,
+            unit: 'cm',
+          }),
+        ],
+        nowIso: '2026-02-15T00:00:00.000Z',
+        sex: 'male',
+      });
+      const height = snapshot.groups
+        .find((group) => group.group.groupId === 'growth')
+        ?.metrics.find((item) => item.metric.metricId === 'growth.height');
+      expect(height?.freshness).toBe('error');
+      expect(height?.nextRecordAt).toBeNull();
+      expect(height?.evaluation.status).toBe('error');
+      expect(height?.evaluation.statusReasonCode).toBe('unresolved_freshness_policy');
+    } finally {
+      mutableMetric.freshnessPolicyRef = originalFreshnessRef;
+    }
   });
 
   it('evaluates derived BMI against the bmi percentile band', () => {

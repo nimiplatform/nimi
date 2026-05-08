@@ -25,7 +25,7 @@ import type { OCRMeasurementCandidate } from './checkup-ocr.js';
 import {
   EYE_SET,
   buildExamViews, computeGlanceMetrics, deriveMeasurementExamKind, findLatestFullRecord,
-  fmtAge, groupByDate,
+  groupByDate,
   type VisionRecord,
 } from './vision-data.js';
 import { BatchForm } from './vision-batch-form.js';

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ActiveReminder } from '../../engine/reminder-engine.js';
-import { buildRecordDataCaptureIntent } from './record-data-capture.js';
+import { applyReminderAction } from '../../engine/reminder-actions.js';
+import { buildRecordDataCaptureIntent, canDirectlyCompleteReminder } from './record-data-capture.js';
 
 function reminder(overrides: Partial<ActiveReminder> = {}): ActiveReminder {
   return {
@@ -42,6 +43,7 @@ describe('record-data reminder capture intent', () => {
     expect(intent.mode).toBe('reminder');
     expect(intent.effectiveDate).toBe('2026-05-01');
     expect(intent.linkedReminder?.ruleId).toBe('PO-REM-GRO-002');
+    expect(canDirectlyCompleteReminder(reminder())).toBe(false);
   });
 
   it('fails closed when a record_data rule has no capture target', () => {
@@ -56,5 +58,17 @@ describe('record-data reminder capture intent', () => {
         '2026-05-02',
       ),
     ).toThrow(/Missing reminder capture target/);
+  });
+
+  it('rejects direct complete dispatch for record_data reminders before any state write', async () => {
+    await expect(
+      applyReminderAction({
+        childId: 'child-1',
+        reminder: reminder(),
+        state: null,
+        action: 'complete',
+        now: '2026-05-02T10:00:00.000Z',
+      }),
+    ).rejects.toThrow(/record_data completion requires capture policy proof/);
   });
 });

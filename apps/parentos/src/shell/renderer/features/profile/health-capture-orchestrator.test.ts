@@ -92,14 +92,86 @@ describe('health-capture-orchestrator', () => {
     expect(input.linkedReminderRuleId).toBe('PO-REM-OUTD-002');
   });
 
-  it('offers grouped health-record-event protocols instead of retained table writers', () => {
+  it('fails closed before building a saveable event for invalid child ids', () => {
+    const intent = createDefaultHealthCaptureIntent('outdoor-activity', 'manual', '2026-05-02');
+
+    expect(() =>
+      buildHealthCaptureEventInput({
+        childId: '  ',
+        ageMonths: 65,
+        intent,
+        draftValues: { 'outdoor.activity_minutes': { value: '45' } },
+        nowIso: '2026-05-02T10:00:00.000Z',
+        makeId: ids(),
+      }),
+    ).toThrow(/childId is required/);
+  });
+
+  it('fails closed when reminder mode has no concrete linked reminder rule', () => {
+    const missingReminder = createDefaultHealthCaptureIntent('outdoor-activity', 'reminder', '2026-05-02');
+    const blankRuleReminder = createDefaultHealthCaptureIntent('outdoor-activity', 'reminder', '2026-05-02', {
+      stateId: 'state-1',
+      ruleId: ' ',
+      scheduledFor: '2026-05-01',
+    });
+
+    for (const intent of [missingReminder, blankRuleReminder]) {
+      expect(() =>
+        buildHealthCaptureEventInput({
+          childId: 'child-1',
+          ageMonths: 65,
+          intent,
+          draftValues: { 'outdoor.activity_minutes': { value: '45' } },
+          nowIso: '2026-05-02T10:00:00.000Z',
+          makeId: ids(),
+        }),
+      ).toThrow(/linkedReminder|ruleId/);
+    }
+  });
+
+  it('fails closed when effective date is missing or invalid', () => {
+    const invalidDates = [' ', '2026-02-30', '2026/05/02'];
+
+    for (const effectiveDate of invalidDates) {
+      const intent = createDefaultHealthCaptureIntent('outdoor-activity', 'manual', '2026-05-02');
+      intent.effectiveDate = effectiveDate;
+
+      expect(() =>
+        buildHealthCaptureEventInput({
+          childId: 'child-1',
+          ageMonths: 65,
+          intent,
+          draftValues: { 'outdoor.activity_minutes': { value: '45' } },
+          nowIso: '2026-05-02T10:00:00.000Z',
+          makeId: ids(),
+        }),
+      ).toThrow(/effectiveDate/);
+    }
+  });
+
+  it('keeps retained-table protocols in the orchestrator protocol model', () => {
     const protocolIds = getHealthCaptureProtocolOptions()
       .flatMap((option) => option.protocols)
       .map((protocol) => protocol.protocolId);
     expect(protocolIds).toContain('growth-child-quarterly');
     expect(protocolIds).toContain('medical-event');
-    expect(protocolIds).not.toContain('vaccine-administration');
-    expect(protocolIds).not.toContain('milestone-achievement');
+    expect(protocolIds).toContain('vaccine-administration');
+    expect(protocolIds).toContain('milestone-achievement');
+  });
+
+  it('fails closed instead of misrouting retained-table protocols into health record events', () => {
+    const intent = createDefaultHealthCaptureIntent('vaccine-administration', 'manual', '2026-05-02');
+
+    expect(() =>
+      buildHealthCaptureEventInput({
+        childId: 'child-1',
+        ageMonths: 65,
+        intent,
+        draftValues: { 'vaccine.administration': { value: '{"ruleId":"PO-REM-VAC-001","vaccineName":"MMR"}' } },
+        nowIso: '2026-05-02T10:00:00.000Z',
+        makeId: ids(),
+      }),
+    ).toThrow(/retained_table storage/);
   });
 
   it('rejects metrics outside the selected protocol', () => {

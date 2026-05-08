@@ -87,6 +87,25 @@ describe('reminder engine eligibility', () => {
     }
   });
 
+  it('keeps disabled frequency overrides from shadowing P0 push reminders', () => {
+    const p0Rule: ReminderRule = {
+      ...baseRule,
+      ruleId: 'PO-REM-TEST-101',
+      priority: 'P0',
+      repeatRule: { intervalMonths: 1, maxRepeats: 3 },
+      triggerAge: { startMonths: 12, endMonths: 15 },
+      nurtureMode: { relaxed: 'push', balanced: 'push', advanced: 'push' },
+      actionType: 'go_hospital',
+    };
+
+    const reminders = computeEligibleReminders([p0Rule], makeContext(), [], new Map([
+      ['PO-REM-TEST-101', { intervalMonths: 1, disabled: true, modifiedAt: '2026-04-01T00:00:00.000Z' }],
+    ]));
+
+    expect(reminders.map((item) => item.rule.ruleId)).toContain('PO-REM-TEST-101');
+    expect(reminders[0]?.visibility).toBe('push');
+  });
+
   it('expands repeat rules and keeps only nearby instances', () => {
     const repeatRule: ReminderRule = {
       ...baseRule,

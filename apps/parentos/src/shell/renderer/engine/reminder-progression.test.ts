@@ -95,11 +95,11 @@ describe('applyTransition — guide (PO-REMI-003.guide)', () => {
 });
 
 describe('applyTransition — practice (PO-REMI-003.practice, PO-REMI-008)', () => {
-  it('start_practicing writes practiceStartedAt + practiceLastAt + increments count', () => {
+  it('start_practicing writes only practiceStartedAt', () => {
     const diff = applyTransition(makeContext({ kind: 'practice' }), { type: 'start_practicing' }, NOW);
     expect(diff.practiceStartedAt).toBe(NOW);
-    expect(diff.practiceLastAt).toBe(NOW);
-    expect(diff.practiceCount).toBe(1);
+    expect(diff.practiceLastAt).toBeNull();
+    expect(diff.practiceCount).toBe(0);
     expect(diff.status).toBe('active');
     expect(diff.completedAt).toBeNull();
   });
@@ -135,6 +135,16 @@ describe('applyTransition — practice (PO-REMI-003.practice, PO-REMI-008)', () 
   it('mark_habituated without practiceStartedAt is fail-close (PO-REMI-004)', () => {
     expect(() =>
       applyTransition(makeContext({ kind: 'practice' }), { type: 'mark_habituated' }, NOW),
+    ).toThrow(ProgressionViolationError);
+  });
+
+  it('start_practicing after an existing start is fail-close; use log_practice for re-entry', () => {
+    expect(() =>
+      applyTransition(
+        makeContext({ kind: 'practice', practiceStartedAt: NOW }),
+        { type: 'start_practicing' },
+        LATER,
+      ),
     ).toThrow(ProgressionViolationError);
   });
 

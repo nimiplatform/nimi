@@ -76,7 +76,8 @@
       "missing": "Not recorded",
       "fresh": "Fresh",
       "stale": "Update due",
-      "unscheduled": "As needed"
+      "unscheduled": "As needed",
+      "error": "Error"
     },
     "detail": {
       "back": "Back",

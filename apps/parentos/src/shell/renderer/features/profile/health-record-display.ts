@@ -87,6 +87,7 @@ export const FRESHNESS_LABEL_KEYS: Record<HealthMetricSnapshot['freshness'], str
   fresh: 'Profile.freshness.fresh',
   stale: 'Profile.freshness.stale',
   unscheduled: 'Profile.freshness.unscheduled',
+  error: 'Profile.freshness.error',
 };
 
 export function formatAgeText(ageMonths: number, t: TFunction) {

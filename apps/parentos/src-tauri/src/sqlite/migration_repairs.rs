@@ -268,7 +268,10 @@ fn migration_v17_purges_orphan_reminder_states_but_keeps_admitted_ortho_rules() 
             |row| row.get(0),
         )
         .expect("count admitted rows");
-    assert_eq!(admitted_count, 1, "admitted PO-ORTHO ruleId must survive v17 purge");
+    assert_eq!(
+        admitted_count, 1,
+        "admitted PO-ORTHO ruleId must survive v17 purge"
+    );
 
     let orphan_count: i64 = conn
         .query_row(

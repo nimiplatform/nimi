@@ -45,7 +45,6 @@ export function MilestoneCaptureContent({ child, ageMonths, onSaved, onClose }: 
       if (isAgeRelevant(milestone)) seen.add(milestone.domain);
     }
     return DOMAINS.filter((option) => seen.has(option.key));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ageMonths]);
 
   const [domain, setDomain] = useState<MilestoneDomain>(() => availableDomains[0]?.key ?? 'gross-motor');
@@ -57,7 +56,6 @@ export function MilestoneCaptureContent({ child, ageMonths, onSaved, onClose }: 
 
   const candidates = useMemo(() => {
     return MILESTONE_CATALOG.filter((milestone) => milestone.domain === domain && isAgeRelevant(milestone));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domain, ageMonths]);
 
   useEffect(() => {

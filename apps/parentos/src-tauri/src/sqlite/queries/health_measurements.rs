@@ -497,7 +497,10 @@ pub fn delete_milestone_record(record_id: String) -> Result<(), String> {
 // ── Growth Reports ─────────────────────────────────────────
 
 fn is_supported_growth_report_type(report_type: &str) -> bool {
-    matches!(report_type, "monthly" | "quarterly" | "quarterly-letter" | "custom")
+    matches!(
+        report_type,
+        "monthly" | "quarterly" | "quarterly-letter" | "custom"
+    )
 }
 
 #[tauri::command]

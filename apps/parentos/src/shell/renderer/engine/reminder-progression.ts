@@ -188,7 +188,6 @@ export function applyTransition(
       return diff;
 
     case 'start_practicing':
-      // First entry. If already practicing, act as a re-entry (log_practice).
       if (context.practiceHabituatedAt) {
         throw new ProgressionViolationError(
           context.kind,
@@ -196,11 +195,14 @@ export function applyTransition(
           'cannot start practicing a habituated rule; use restore first',
         );
       }
-      if (!context.practiceStartedAt) {
-        diff.practiceStartedAt = now;
+      if (context.practiceStartedAt) {
+        throw new ProgressionViolationError(
+          context.kind,
+          action.type,
+          'start_practicing requires no existing practiceStartedAt; use log_practice for re-entry',
+        );
       }
-      diff.practiceLastAt = now;
-      diff.practiceCount = context.practiceCount + 1;
+      diff.practiceStartedAt = now;
       diff.status = 'active';
       return diff;
 

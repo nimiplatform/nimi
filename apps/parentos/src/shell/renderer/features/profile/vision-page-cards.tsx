@@ -475,7 +475,6 @@ function CollapsedMetricStrip({
 
 export function ExamTimelineCard({
   exam,
-  prev,
   gender,
   isLatest,
   isOpen,
