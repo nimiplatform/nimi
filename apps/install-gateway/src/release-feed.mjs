@@ -117,6 +117,52 @@ function inferRuntimeArchivePlatform(assetName) {
   return normalizeRuntimeArchivePlatform(match[1], match[2]);
 }
 
+function parseRuntimeChecksumLine(line) {
+  const normalized = normalizeText(line);
+  if (!normalized || normalized.startsWith('#')) {
+    return null;
+  }
+  const plainMatch = /^([a-f0-9]{64})\s+\*?(.+)$/iu.exec(normalized);
+  if (plainMatch) {
+    return {
+      checksum: plainMatch[1].toLowerCase(),
+      fileName: normalizeText(plainMatch[2]),
+    };
+  }
+  const taggedMatch = /^SHA256\s+\(([^)]+)\)\s*=\s*([a-f0-9]{64})$/iu.exec(normalized);
+  if (taggedMatch) {
+    return {
+      checksum: taggedMatch[2].toLowerCase(),
+      fileName: normalizeText(taggedMatch[1]),
+    };
+  }
+  return null;
+}
+
+export function parseRuntimeChecksums(checksumsText) {
+  const checksums = new Map();
+  for (const line of String(checksumsText || '').split(/\r?\n/u)) {
+    const parsed = parseRuntimeChecksumLine(line);
+    if (!parsed) {
+      continue;
+    }
+    checksums.set(parsed.fileName, parsed.checksum);
+  }
+  return checksums;
+}
+
+async function fetchRuntimeChecksums(url, fetchImpl) {
+  const response = await fetchImpl(url);
+  if (!response.ok) {
+    throw new Error(`RUNTIME_CHECKSUM_FETCH_FAILED: status=${response.status}`);
+  }
+  const checksums = parseRuntimeChecksums(await response.text());
+  if (checksums.size === 0) {
+    throw new Error('RUNTIME_RELEASE_INVALID: checksum evidence is empty');
+  }
+  return checksums;
+}
+
 function versionFromTag(tagName, track) {
   const prefix = runtimeTrackPrefix(track);
   const raw = normalizeText(tagName);
@@ -164,12 +210,14 @@ function inferDesktopPlatform(assetName) {
   return '';
 }
 
-export function buildRuntimeManifest(release) {
+export async function buildRuntimeManifest(release, fetchImpl = fetch) {
   const assets = Array.isArray(release?.assets) ? release.assets : [];
   const checksumsAsset = assets.find((asset) => normalizeText(asset?.name) === 'checksums.txt');
   if (!checksumsAsset?.browser_download_url) {
     throw new Error('RUNTIME_RELEASE_INVALID: checksums.txt asset is missing');
   }
+  const checksumsUrl = normalizeText(checksumsAsset.browser_download_url);
+  const checksums = await fetchRuntimeChecksums(checksumsUrl, fetchImpl);
 
   const archives = {};
   for (const asset of assets) {
@@ -187,12 +235,17 @@ export function buildRuntimeManifest(release) {
     if (!archives[platform]?.name || !archives[platform]?.url) {
       throw new Error(`RUNTIME_RELEASE_INVALID: archive missing for ${platform}`);
     }
+    const checksum = checksums.get(archives[platform].name);
+    if (!checksum) {
+      throw new Error(`RUNTIME_RELEASE_INVALID: checksum missing for ${archives[platform].name}`);
+    }
+    archives[platform].sha256 = checksum;
   }
 
   return {
     tag: normalizeText(release?.tag_name),
     version: versionFromTag(release?.tag_name, 'runtime'),
-    checksumsUrl: normalizeText(checksumsAsset.browser_download_url),
+    checksumsUrl,
     archives,
   };
 }

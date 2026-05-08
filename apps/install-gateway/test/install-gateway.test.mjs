@@ -7,6 +7,7 @@ import {
   collectDesktopUpdaterArtifacts,
   githubReleaseApiUrl,
   matchesReleaseTrack,
+  parseRuntimeChecksums,
   selectLatestRelease,
 } from '../src/release-feed.mjs';
 
@@ -24,6 +25,20 @@ const runtimeRelease = {
     { name: 'nimi-runtime_1.2.3_windows_arm64.zip', browser_download_url: 'https://example.com/windows-arm64.zip' },
   ],
 };
+
+const runtimeChecksums = [
+  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  nimi-runtime_1.2.3_macos_amd64.tar.gz',
+  'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb  nimi-runtime_1.2.3_macos_arm64.tar.gz',
+  'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc  nimi-runtime_1.2.3_linux_amd64.tar.gz',
+  'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd  nimi-runtime_1.2.3_linux_arm64.tar.gz',
+  'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee  nimi-runtime_1.2.3_windows_amd64.zip',
+  'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff  nimi-runtime_1.2.3_windows_arm64.zip',
+].join('\n');
+
+async function fetchRuntimeChecksumsFixture(url) {
+  assert.equal(url, 'https://example.com/checksums.txt');
+  return new Response(runtimeChecksums);
+}
 
 const desktopRelease = {
   tag_name: 'desktop/v2.0.0',
@@ -91,47 +106,75 @@ test('githubReleaseApiUrl uses repo defaults and optional overrides', () => {
   );
 });
 
-test('buildRuntimeManifest returns manifest fields for all runtime archives', () => {
-  assert.deepEqual(buildRuntimeManifest(runtimeRelease), {
+test('parseRuntimeChecksums accepts sha256sum and tagged checksum formats', () => {
+  assert.deepEqual(
+    [...parseRuntimeChecksums([
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  nimi-runtime_1.2.3_macos_amd64.tar.gz',
+      'SHA256 (nimi-runtime_1.2.3_macos_arm64.tar.gz) = bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    ].join('\n')).entries()],
+    [
+      ['nimi-runtime_1.2.3_macos_amd64.tar.gz', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+      ['nimi-runtime_1.2.3_macos_arm64.tar.gz', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
+    ],
+  );
+});
+
+test('buildRuntimeManifest returns manifest fields for all runtime archives', async () => {
+  assert.deepEqual(await buildRuntimeManifest(runtimeRelease, fetchRuntimeChecksumsFixture), {
     tag: 'runtime/v1.2.3',
     version: '1.2.3',
     checksumsUrl: 'https://example.com/checksums.txt',
     archives: {
       'darwin-amd64': {
         name: 'nimi-runtime_1.2.3_macos_amd64.tar.gz',
+        sha256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         url: 'https://example.com/macos-amd64.tar.gz',
       },
       'darwin-arm64': {
         name: 'nimi-runtime_1.2.3_macos_arm64.tar.gz',
+        sha256: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
         url: 'https://example.com/macos-arm64.tar.gz',
       },
       'linux-amd64': {
         name: 'nimi-runtime_1.2.3_linux_amd64.tar.gz',
+        sha256: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
         url: 'https://example.com/linux-amd64.tar.gz',
       },
       'linux-arm64': {
         name: 'nimi-runtime_1.2.3_linux_arm64.tar.gz',
+        sha256: 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
         url: 'https://example.com/linux-arm64.tar.gz',
       },
       'windows-amd64': {
         name: 'nimi-runtime_1.2.3_windows_amd64.zip',
+        sha256: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
         url: 'https://example.com/windows-amd64.zip',
       },
       'windows-arm64': {
         name: 'nimi-runtime_1.2.3_windows_arm64.zip',
+        sha256: 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
         url: 'https://example.com/windows-arm64.zip',
       },
     },
   });
 });
 
-test('buildRuntimeManifest rejects incomplete runtime asset sets', () => {
-  assert.throws(
-    () => buildRuntimeManifest({
+test('buildRuntimeManifest rejects incomplete runtime asset sets', async () => {
+  await assert.rejects(
+    buildRuntimeManifest({
       ...runtimeRelease,
       assets: runtimeRelease.assets.filter((asset) => asset.name !== 'nimi-runtime_1.2.3_windows_arm64.zip'),
-    }),
+    }, fetchRuntimeChecksumsFixture),
     /archive missing for windows-arm64/u,
+  );
+});
+
+test('buildRuntimeManifest rejects runtime archives without checksum evidence', async () => {
+  await assert.rejects(
+    buildRuntimeManifest(runtimeRelease, async () => new Response(
+      runtimeChecksums.replace(/^f{64}  nimi-runtime_1\.2\.3_windows_arm64\.zip$/mu, ''),
+    )),
+    /checksum missing for nimi-runtime_1\.2\.3_windows_arm64\.zip/u,
   );
 });
 

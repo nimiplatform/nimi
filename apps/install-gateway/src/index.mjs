@@ -68,7 +68,7 @@ async function buildRouteResponse(request, env, fetchImpl) {
 
   if (url.pathname === '/runtime/latest.json') {
     const release = await resolveLatestRelease('runtime', env, fetchImpl);
-    return jsonResponse(buildRuntimeManifest(release), maxAgeSeconds);
+    return jsonResponse(await buildRuntimeManifest(release, fetchImpl), maxAgeSeconds);
   }
 
   if (url.pathname === '/desktop/latest.json') {
