@@ -2,6 +2,7 @@ use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
 use super::super::get_conn;
+use super::reminders::apply_reminder_consultation_writeback;
 use super::validate_observation_selection;
 
 fn normalize_keepsake_metadata(
@@ -50,6 +51,56 @@ fn normalize_keepsake_metadata(
     Ok((title, reason))
 }
 
+fn content_channel_present(value: Option<&str>) -> bool {
+    value
+        .map(str::trim)
+        .is_some_and(|trimmed| !trimmed.is_empty())
+}
+
+fn photo_channel_present(photo_paths: Option<&str>) -> Result<bool, String> {
+    let Some(raw) = photo_paths.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(false);
+    };
+
+    let paths = serde_json::from_str::<Vec<String>>(raw)
+        .map_err(|e| format!("invalid journal photoPaths JSON array: {e}"))?;
+    Ok(paths.iter().any(|path| !path.trim().is_empty()))
+}
+
+fn validate_journal_content_type(
+    content_type: String,
+    text_content: Option<&str>,
+    voice_path: Option<&str>,
+    photo_paths: Option<&str>,
+) -> Result<String, String> {
+    let content_type = content_type.trim().to_string();
+    let text_present = content_channel_present(text_content);
+    let voice_present = content_channel_present(voice_path);
+    let photo_present = photo_channel_present(photo_paths)?;
+    let channel_count = [text_present, voice_present, photo_present]
+        .into_iter()
+        .filter(|present| *present)
+        .count();
+
+    let expected = match (channel_count, text_present, voice_present, photo_present) {
+        (0, _, _, _) => {
+            return Err("journal entry requires text, voice, or photo content".to_string())
+        }
+        (1, true, false, false) => "text",
+        (1, false, true, false) => "voice",
+        (1, false, false, true) => "photo",
+        _ => "mixed",
+    };
+
+    if content_type != expected {
+        return Err(format!(
+            "journal contentType mismatch: expected \"{expected}\" for supplied payload, got \"{content_type}\""
+        ));
+    }
+
+    Ok(content_type)
+}
+
 // ── Journal Entries ────────────────────────────────────────
 
 #[tauri::command]
@@ -75,6 +126,12 @@ pub fn insert_journal_entry(
     now: String,
 ) -> Result<(), String> {
     validate_observation_selection(dimension_id.as_deref(), selected_tags.as_deref(), &[])?;
+    let content_type = validate_journal_content_type(
+        content_type,
+        text_content.as_deref(),
+        voice_path.as_deref(),
+        photo_paths.as_deref(),
+    )?;
     let (keepsake_title, keepsake_reason) =
         normalize_keepsake_metadata(keepsake, keepsake_title, keepsake_reason)?;
 
@@ -121,6 +178,12 @@ pub fn insert_journal_entry_with_tags(
     now: String,
 ) -> Result<(), String> {
     validate_observation_selection(dimension_id.as_deref(), selected_tags.as_deref(), &ai_tags)?;
+    let content_type = validate_journal_content_type(
+        content_type,
+        text_content.as_deref(),
+        voice_path.as_deref(),
+        photo_paths.as_deref(),
+    )?;
     let (keepsake_title, keepsake_reason) =
         normalize_keepsake_metadata(keepsake, keepsake_title, keepsake_reason)?;
 
@@ -170,6 +233,12 @@ pub fn update_journal_entry_with_tags(
     now: String,
 ) -> Result<(), String> {
     validate_observation_selection(dimension_id.as_deref(), selected_tags.as_deref(), &ai_tags)?;
+    let content_type = validate_journal_content_type(
+        content_type,
+        text_content.as_deref(),
+        voice_path.as_deref(),
+        photo_paths.as_deref(),
+    )?;
     let (keepsake_title, keepsake_reason) =
         normalize_keepsake_metadata(keepsake, keepsake_title, keepsake_reason)?;
 
@@ -360,6 +429,65 @@ pub fn get_journal_tags(entry_id: String) -> Result<Vec<JournalTag>, String> {
         .map_err(|e| format!("get_journal_tags collect: {e}"))
 }
 
+#[cfg(test)]
+mod tests {
+    use super::validate_journal_content_type;
+
+    #[test]
+    fn accepts_content_type_matching_the_supplied_payload_channels() {
+        assert_eq!(
+            validate_journal_content_type("text".to_string(), Some("note"), None, None)
+                .expect("text payload"),
+            "text"
+        );
+        assert_eq!(
+            validate_journal_content_type(
+                "mixed".to_string(),
+                None,
+                Some("C:/voice/entry-1.webm"),
+                Some("[\"C:/photos/entry-1.jpg\"]"),
+            )
+            .expect("voice plus photo payload"),
+            "mixed"
+        );
+    }
+
+    #[test]
+    fn rejects_text_content_type_when_photos_are_also_present() {
+        let error = validate_journal_content_type(
+            "text".to_string(),
+            Some("note"),
+            None,
+            Some("[\"C:/photos/entry-1.jpg\"]"),
+        )
+        .expect_err("expected text plus photo mismatch to fail");
+
+        assert!(error.contains("expected \"mixed\""));
+    }
+
+    #[test]
+    fn rejects_voice_content_type_when_photos_are_also_present() {
+        let error = validate_journal_content_type(
+            "voice".to_string(),
+            None,
+            Some("C:/voice/entry-1.webm"),
+            Some("[\"C:/photos/entry-1.jpg\"]"),
+        )
+        .expect_err("expected voice plus photo mismatch to fail");
+
+        assert!(error.contains("expected \"mixed\""));
+    }
+
+    #[test]
+    fn rejects_malformed_photo_paths_before_persistence() {
+        let error =
+            validate_journal_content_type("photo".to_string(), None, None, Some("not-json"))
+                .expect_err("expected malformed photoPaths to fail");
+
+        assert!(error.contains("invalid journal photoPaths"));
+    }
+}
+
 // ── AI Conversations ───────────────────────────────────────
 
 #[tauri::command]
@@ -428,6 +556,42 @@ pub fn insert_ai_message(
         "UPDATE ai_conversations SET lastMessageAt = ?2, messageCount = messageCount + 1 WHERE conversationId = ?1",
         params![conversation_id, now],
     ).map_err(|e| format!("update conversation: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn insert_consultation_ai_message(
+    message_id: String,
+    conversation_id: String,
+    child_id: String,
+    rule_id: String,
+    repeat_index: i32,
+    content: String,
+    context_snapshot: Option<String>,
+    now: String,
+) -> Result<(), String> {
+    let mut conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+    let tx = conn
+        .transaction()
+        .map_err(|e| format!("insert_consultation_ai_message tx: {e}"))?;
+    tx.execute(
+        "INSERT INTO ai_messages (messageId, conversationId, role, content, contextSnapshot, createdAt) VALUES (?1,?2,'assistant',?3,?4,?5)",
+        params![message_id, conversation_id, content, context_snapshot, now],
+    ).map_err(|e| format!("insert_consultation_ai_message insert: {e}"))?;
+    tx.execute(
+        "UPDATE ai_conversations SET lastMessageAt = ?2, messageCount = messageCount + 1 WHERE conversationId = ?1",
+        params![conversation_id, now],
+    ).map_err(|e| format!("insert_consultation_ai_message update conversation: {e}"))?;
+    apply_reminder_consultation_writeback(
+        &tx,
+        &child_id,
+        &rule_id,
+        repeat_index,
+        &conversation_id,
+        &now,
+    )?;
+    tx.commit()
+        .map_err(|e| format!("insert_consultation_ai_message commit: {e}"))?;
     Ok(())
 }
 

@@ -235,6 +235,7 @@ fn main() {
             sqlite::queries::create_conversation,
             sqlite::queries::get_conversations,
             sqlite::queries::insert_ai_message,
+            sqlite::queries::insert_consultation_ai_message,
             sqlite::queries::get_ai_messages,
             // Growth Reports
             sqlite::queries::insert_growth_report,

@@ -94,8 +94,7 @@ export function parseJournalTagSuggestion(
   let payload: { dimensionId?: unknown; tags?: unknown };
   try {
     payload = JSON.parse(extractJson(raw)) as typeof payload;
-  } catch (err) {
-    console.warn('[journal] AI tagging JSON parse failed. Raw output:', raw.slice(0, 300), err instanceof Error ? err.message : '');
+  } catch {
     return { dimensionId: null, tags: [] };
   }
 
@@ -160,10 +159,6 @@ export async function suggestJournalTags(input: {
     input: buildInput(draftText, candidateDimensions),
     metadata: buildParentosRuntimeMetadata('parentos.journal.ai-tagging'),
   });
-
-  if (typeof output.text === 'string' && output.text.trim()) {
-    console.debug('[journal] AI tagging raw response:', output.text.slice(0, 500));
-  }
 
   return parseJournalTagSuggestion(output.text, input.candidateDimensions);
 }

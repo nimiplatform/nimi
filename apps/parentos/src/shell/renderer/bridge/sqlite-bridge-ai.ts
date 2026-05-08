@@ -43,6 +43,19 @@ export function insertAiMessage(params: {
   return invoke<void>('insert_ai_message', params);
 }
 
+export function insertConsultationAiMessage(params: {
+  messageId: string;
+  conversationId: string;
+  childId: string;
+  ruleId: string;
+  repeatIndex: number;
+  content: string;
+  contextSnapshot: string | null;
+  now: string;
+}) {
+  return invoke<void>('insert_consultation_ai_message', params);
+}
+
 export function getAiMessages(conversationId: string) {
   return invoke<AiMessageRow[]>('get_ai_messages', { conversationId });
 }

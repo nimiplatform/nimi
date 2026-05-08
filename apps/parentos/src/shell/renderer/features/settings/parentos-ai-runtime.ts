@@ -365,20 +365,20 @@ export async function resolveParentosImageTextRuntimeConfig(
   const policy = getParentosAISurfacePolicy(surfaceId);
   const selectedBinding = snapshot.selected;
 
-  let binding: RuntimeRouteBinding | null = null;
-
-  if (selectedBinding?.source === 'local') {
-    binding = bindingSupportsImageInput(snapshot, selectedBinding)
-      ? selectedBinding
-      : findImageCapableLocalBinding(snapshot);
-  } else if (selectedBinding?.source === 'cloud' && !policy.localOnly) {
-    binding = bindingSupportsImageInput(snapshot, selectedBinding)
-      ? selectedBinding
-      : findImageCapableCloudBinding(snapshot);
-  } else {
-    binding = findImageCapableLocalBinding(snapshot)
+  const binding: RuntimeRouteBinding | null = (() => {
+    if (selectedBinding?.source === 'local') {
+      return bindingSupportsImageInput(snapshot, selectedBinding)
+        ? selectedBinding
+        : findImageCapableLocalBinding(snapshot);
+    }
+    if (selectedBinding?.source === 'cloud' && !policy.localOnly) {
+      return bindingSupportsImageInput(snapshot, selectedBinding)
+        ? selectedBinding
+        : findImageCapableCloudBinding(snapshot);
+    }
+    return findImageCapableLocalBinding(snapshot)
       || (!policy.localOnly ? findImageCapableCloudBinding(snapshot) : null);
-  }
+  })();
 
   if (!binding) {
     throw createParentosImageInputUnsupportedError();

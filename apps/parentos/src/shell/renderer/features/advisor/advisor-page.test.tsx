@@ -48,6 +48,7 @@ const {
   createConversationMock,
   getConversationsMock,
   insertAiMessageMock,
+  insertConsultationAiMessageMock,
   getAiMessagesMock,
   getMeasurementsMock,
   getVaccineRecordsMock,
@@ -92,6 +93,30 @@ const {
       messageId: params.messageId,
       conversationId: params.conversationId,
       role: params.role,
+      content: params.content,
+      contextSnapshot: params.contextSnapshot,
+      createdAt: params.now,
+    });
+    const conversation = conversationStore.find((item) => item.conversationId === params.conversationId);
+    if (conversation) {
+      conversation.lastMessageAt = params.now;
+      conversation.messageCount += 1;
+    }
+  }),
+  insertConsultationAiMessageMock: vi.fn(async (params: {
+    messageId: string;
+    conversationId: string;
+    childId: string;
+    ruleId: string;
+    repeatIndex: number;
+    content: string;
+    contextSnapshot: string | null;
+    now: string;
+  }) => {
+    messageStore.push({
+      messageId: params.messageId,
+      conversationId: params.conversationId,
+      role: 'assistant',
       content: params.content,
       contextSnapshot: params.contextSnapshot,
       createdAt: params.now,
@@ -254,6 +279,7 @@ vi.mock('../../bridge/sqlite-bridge.js', () => ({
   createConversation: createConversationMock,
   getConversations: getConversationsMock,
   insertAiMessage: insertAiMessageMock,
+  insertConsultationAiMessage: insertConsultationAiMessageMock,
   getAiMessages: getAiMessagesMock,
   getMeasurements: getMeasurementsMock,
   getVaccineRecords: getVaccineRecordsMock,
@@ -316,6 +342,7 @@ describe('AdvisorPage', () => {
     createConversationMock.mockClear();
     getConversationsMock.mockClear();
     insertAiMessageMock.mockClear();
+    insertConsultationAiMessageMock.mockClear();
     getAiMessagesMock.mockClear();
     getMeasurementsMock.mockClear();
     getVaccineRecordsMock.mockClear();
@@ -490,6 +517,89 @@ describe('AdvisorPage', () => {
     });
   });
 
+  it('persists reminder-launched advisor replies through the consultation transaction', async () => {
+    streamMock.mockResolvedValue(createStreamOutput('睡眠节律目前比较稳定。'));
+
+    renderAdvisorPage(['/advisor?reminderRuleId=PO-REM-CONSULT-001&repeatIndex=2']);
+
+    fireEvent.click(screen.getByRole('button', { name: /新对话/ }));
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('输入问题...')).toBeTruthy();
+    });
+    fireEvent.change(screen.getByPlaceholderText('输入问题...'), {
+      target: { value: '最近睡眠怎么样？' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '发送' }));
+
+    await waitFor(() => {
+      expect(streamMock).toHaveBeenCalledTimes(1);
+      expect(insertConsultationAiMessageMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createConversationMock.mock.calls[0]?.[0]).toMatchObject({
+      childId: 'child-1',
+      title: null,
+    });
+    expect(insertConsultationAiMessageMock.mock.calls[0]?.[0]).toMatchObject({
+      childId: 'child-1',
+      ruleId: 'PO-REM-CONSULT-001',
+      repeatIndex: 2,
+    });
+    expect(insertConsultationAiMessageMock.mock.calls[0]?.[0].content).toContain('睡眠节律目前比较稳定。');
+    expect(insertAiMessageMock.mock.calls.filter((call) => call[0].role === 'assistant')).toHaveLength(0);
+
+    await waitFor(() => {
+      expect(screen.getByText(/睡眠节律目前比较稳定/)).toBeTruthy();
+    });
+  });
+
+  it('does not suppress retry when reminder consultation writeback fails', async () => {
+    streamMock
+      .mockResolvedValueOnce(createStreamOutput('第一次回复不应显示。'))
+      .mockResolvedValueOnce(createStreamOutput('第二次回复已写回。'));
+    insertConsultationAiMessageMock.mockRejectedValueOnce(new Error('missing reminder state'));
+
+    renderAdvisorPage(['/advisor?reminderRuleId=PO-REM-CONSULT-001&repeatIndex=2']);
+
+    fireEvent.click(screen.getByRole('button', { name: /新对话/ }));
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('输入问题...')).toBeTruthy();
+    });
+    fireEvent.change(screen.getByPlaceholderText('输入问题...'), {
+      target: { value: '最近睡眠怎么样？' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '发送' }));
+
+    await waitFor(() => {
+      expect(streamMock).toHaveBeenCalledTimes(1);
+      expect(insertConsultationAiMessageMock).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByText(/第一次回复不应显示/)).toBeNull();
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('输入问题...')).toBeTruthy();
+    });
+    fireEvent.change(screen.getByPlaceholderText('输入问题...'), {
+      target: { value: '最近睡眠怎么样？' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '发送' }));
+
+    await waitFor(() => {
+      expect(streamMock).toHaveBeenCalledTimes(2);
+      expect(insertConsultationAiMessageMock).toHaveBeenCalledTimes(2);
+    });
+    expect(insertConsultationAiMessageMock.mock.calls[1]?.[0]).toMatchObject({
+      childId: 'child-1',
+      ruleId: 'PO-REM-CONSULT-001',
+      repeatIndex: 2,
+    });
+    expect(insertConsultationAiMessageMock.mock.calls[1]?.[0].content).toContain('第二次回复已写回。');
+
+    await waitFor(() => {
+      expect(screen.getByText(/第二次回复已写回/)).toBeTruthy();
+    });
+  });
+
   it('assembles reviewed-domain runtime prompts from the frozen snapshot', async () => {
     streamMock.mockResolvedValue(createStreamOutput('睡眠节律目前比较稳定。'));
 
@@ -528,15 +638,7 @@ describe('AdvisorPage', () => {
     });
   });
 
-  it('routes generic advisor chat to runtime without exposing the structured fallback', async () => {
-    streamMock.mockResolvedValue(createStreamOutput([
-      '我是 ParentOS 顾问助手，目前走的是本地受治理的模型调用路径。',
-      '',
-      '**当前可以深入讨论的方向包括：**',
-      '- 睡眠',
-      '- 敏感度',
-    ].join('\n')));
-
+  it('fails closed for generic advisor chat without reviewed-domain readiness', async () => {
     renderAdvisorPage();
 
     fireEvent.click(screen.getByRole('button', { name: /新对话/ }));
@@ -550,32 +652,18 @@ describe('AdvisorPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '发送' }));
 
     await waitFor(() => {
-      expect(streamMock).toHaveBeenCalledTimes(1);
+      expect(insertAiMessageMock.mock.calls.filter((call) => call[0].role === 'assistant')).toHaveLength(1);
     });
 
-    const streamInput = streamMock.mock.calls[0]?.[0] as {
-      input: Array<{ role: string; content: string }>;
-      route: string;
-      model: string;
-    };
-    expect(streamInput.route).toBe('local');
-    expect(streamInput.model).toBe('llama/qwen3');
-    expect(streamInput.input[0]?.content).toContain('泛闲聊或产品能力澄清');
-    expect(streamInput.input[0]?.content).toContain('用户消息：你好，测试，你的模型是？');
-    expect(streamInput.input[0]?.content).not.toContain('"childId":"child-1"');
+    expect(streamMock).not.toHaveBeenCalled();
 
     await waitFor(() => {
-      expect(screen.getByText(/本地受治理的模型调用路径/)).toBeTruthy();
+      expect(screen.getByText(/当前问题尚未明确到已审核领域/)).toBeTruthy();
     });
-    expect(screen.getByText('当前可以深入讨论的方向包括：', { selector: 'strong' })).toBeTruthy();
-    expect(screen.getByText('睡眠', { selector: 'li' })).toBeTruthy();
-    expect(screen.getByText('敏感度', { selector: 'li' })).toBeTruthy();
-    expect(screen.queryByText(/当前问题尚未明确到已审核领域/)).toBeNull();
+    expect(screen.queryByText(/本地受治理的模型调用路径/)).toBeNull();
   });
 
-  it('routes needs-review questions to descriptive runtime instead of skipping the model', async () => {
-    streamMock.mockResolvedValue(createStreamOutput('从当前本地记录看，最近一次疫苗记录是 MMR。若你想判断补种安排，建议结合专业接种门诊进一步确认。'));
-
+  it('fails closed for needs-review questions instead of entering runtime', async () => {
     renderAdvisorPage();
 
     fireEvent.click(screen.getByRole('button', { name: /新对话/ }));
@@ -589,23 +677,15 @@ describe('AdvisorPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '发送' }));
 
     await waitFor(() => {
-      expect(streamMock).toHaveBeenCalledTimes(1);
+      expect(insertAiMessageMock.mock.calls.filter((call) => call[0].role === 'assistant')).toHaveLength(1);
     });
 
-    const streamInput = streamMock.mock.calls[0]?.[0] as {
-      route: string;
-      model: string;
-      input: Array<{ role: string; content: string }>;
-    };
-    expect(streamInput.route).toBe('local');
-    expect(streamInput.model).toBe('llama/qwen3');
-    expect(streamInput.input[0]?.content).toContain('描述型回答策略');
-    expect(streamInput.input[0]?.content).toContain('涉及领域：vaccine');
-    expect(streamInput.input[0]?.content).toContain('"childId":"child-1"');
+    expect(streamMock).not.toHaveBeenCalled();
 
     await waitFor(() => {
-      expect(screen.getByText(/最近一次疫苗记录是 MMR/)).toBeTruthy();
+      expect(screen.getByText(/当前问题涉及 needs-review 领域/)).toBeTruthy();
     });
+    expect(screen.getByText(/建议咨询专业人士/)).toBeTruthy();
   });
 
   it('surfaces normalized runtime error details in the fallback note', async () => {
@@ -625,7 +705,7 @@ describe('AdvisorPage', () => {
     });
 
     fireEvent.change(screen.getByPlaceholderText('输入问题...'), {
-      target: { value: '你好，测试，你的模型是？' },
+      target: { value: '最近睡眠怎么样？' },
     });
     fireEvent.click(screen.getByRole('button', { name: '发送' }));
 
@@ -686,7 +766,7 @@ describe('AdvisorPage', () => {
     });
 
     fireEvent.change(screen.getByPlaceholderText('输入问题...'), {
-      target: { value: 'hello' },
+      target: { value: '最近睡眠怎么样？' },
     });
     fireEvent.click(screen.getByRole('button', { name: '发送' }));
 

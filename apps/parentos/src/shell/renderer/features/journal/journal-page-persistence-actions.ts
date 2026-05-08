@@ -17,6 +17,7 @@ import {
 } from './voice-observation-recorder.js';
 import { transcribeVoiceObservation } from './voice-observation-runtime.js';
 import { resolveVoiceObservationPayload } from './voice-observation.js';
+import { resolveJournalContentType } from './journal-content-type.js';
 import {
   EMPTY_VOICE_DRAFT,
   blobToBase64,
@@ -291,13 +292,16 @@ export function createJournalPersistenceActions(input: {
             input.setSaving(false);
             return;
           }
-          const contentType = preservedVoicePath
-            ? (input.textContent.trim() ? 'mixed' : 'voice')
-            : (mergedPhotoPaths && !input.textContent.trim() ? 'photo' : 'text');
+          const textContent = input.textContent.trim() || null;
+          const contentType = resolveJournalContentType({
+            textContent,
+            voicePath: preservedVoicePath,
+            photoPaths: mergedPhotoPaths,
+          });
           await saveJournalEntry({
             entryId,
             contentType,
-            textContent: input.textContent.trim() || null,
+            textContent,
             voicePath: preservedVoicePath,
             photoPaths: mergedPhotoPaths,
             recordedAt,
@@ -325,7 +329,11 @@ export function createJournalPersistenceActions(input: {
             });
             await saveJournalEntry({
               entryId,
-              contentType: payload.contentType,
+              contentType: resolveJournalContentType({
+                textContent: payload.textContent,
+                voicePath: payload.voicePath,
+                photoPaths: mergedPhotoPaths,
+              }),
               textContent: payload.textContent,
               voicePath: payload.voicePath,
               photoPaths: mergedPhotoPaths,

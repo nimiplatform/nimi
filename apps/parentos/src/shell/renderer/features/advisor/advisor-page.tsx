@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { asNimiError } from '@nimiplatform/sdk/runtime';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { S } from '../../app-shell/page-style.js';
 import { useAppStore, computeAgeMonths, formatAge } from '../../app-shell/app-store.js';
 import { NEEDS_REVIEW_DOMAINS, REVIEWED_DOMAINS } from '../../knowledge-base/index.js';
 import { filterAIResponse } from '../../engine/ai-safety-filter.js';
@@ -10,7 +9,7 @@ import {
   getAiMessages,
   getConversations,
   insertAiMessage,
-  upsertReminderConsultation,
+  insertConsultationAiMessage,
 } from '../../bridge/sqlite-bridge.js';
 import type { AiMessageRow, ConversationRow } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
@@ -49,6 +48,22 @@ type StreamingState = 'idle' | 'streaming';
 type AdvisorLocationState = {
   journalEntryContext?: JournalEntryAdvisorContext;
 } | null;
+
+type ReminderConsultationAnchor = {
+  childId: string;
+  ruleId: string;
+  repeatIndex: number;
+};
+
+class AdvisorAssistantPersistenceError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message);
+    this.name = 'AdvisorAssistantPersistenceError';
+    if (options && 'cause' in options) {
+      this.cause = options.cause;
+    }
+  }
+}
 
 /* ── contextual opening message for reminder topics ──────── */
 
@@ -273,39 +288,67 @@ export default function AdvisorPage() {
   const suggestionsAbortRef = useRef<AbortController | null>(null);
   const snapshotConvRef = useRef<string | null>(null);
   const suggestionConvRef = useRef<string | null>(null);
+  const pendingReminderConsultationAnchorRef = useRef<ReminderConsultationAnchor | null>(null);
 
   // PO-REMI-007 consultation writeback. Tracks which conversations have already
   // recorded a consulted reminder so subsequent assistant replies on the same
   // conversation remain no-ops (first write wins). The Rust layer also enforces
   // idempotency; this ref just avoids unnecessary bridge calls.
   const consultationWrittenRef = useRef<Set<string>>(new Set());
+  const consultationAnchorByConversationRef = useRef<Map<string, ReminderConsultationAnchor>>(new Map());
 
-  const saveAssistantMsg = async (convId: string, content: string, contextSnapshot: string | null) => {
-    await insertAiMessage({ messageId: ulid(), conversationId: convId, role: 'assistant', content, contextSnapshot, now: isoNow() });
-    setMessages(await getAiMessages(convId));
-
-    // Reminder-anchored consult: if the advisor was opened with reminderRuleId
-    // in the URL and this is the first assistant reply we persist for that
-    // conversation, call the bridge to flip the paired reminder_states row to
-    // consulted lifecycle. Per reminder-interaction-contract.md#PO-REMI-007.
-    if (consultationWrittenRef.current.has(convId) || !child) return;
-    const reminderRuleId = searchParams.get('reminderRuleId');
-    if (!reminderRuleId) return;
-    const repeatIndex = Number(searchParams.get('repeatIndex') ?? '0') || 0;
-    consultationWrittenRef.current.add(convId);
-    await upsertReminderConsultation({
+  const readReminderConsultationAnchorFromSearch = (): ReminderConsultationAnchor | null => {
+    if (!child) {
+      return null;
+    }
+    const reminderRuleId = searchParams.get('reminderRuleId')?.trim();
+    if (!reminderRuleId) {
+      return null;
+    }
+    return {
       childId: child.childId,
       ruleId: reminderRuleId,
-      repeatIndex,
-      conversationId: convId,
-      now: isoNow(),
-    }).catch(catchLog('advisor', 'action:upsert-reminder-consultation-failed', 'warn'));
+      repeatIndex: Number(searchParams.get('repeatIndex') ?? '0') || 0,
+    };
+  };
+
+  const saveAssistantMsg = async (
+    convId: string,
+    content: string,
+    contextSnapshot: string | null,
+    consultationAnchor?: ReminderConsultationAnchor,
+  ) => {
+    const now = isoNow();
+    const anchor = consultationAnchor ?? consultationAnchorByConversationRef.current.get(convId);
+    if (anchor && !consultationWrittenRef.current.has(convId)) {
+      try {
+        await insertConsultationAiMessage({
+          messageId: ulid(),
+          conversationId: convId,
+          childId: anchor.childId,
+          ruleId: anchor.ruleId,
+          repeatIndex: anchor.repeatIndex,
+          content,
+          contextSnapshot,
+          now,
+        });
+      } catch (err) {
+        throw new AdvisorAssistantPersistenceError('reminder consultation assistant persistence failed', { cause: err });
+      }
+      consultationWrittenRef.current.add(convId);
+      setMessages(await getAiMessages(convId));
+      return;
+    }
+
+    await insertAiMessage({ messageId: ulid(), conversationId: convId, role: 'assistant', content, contextSnapshot, now });
+    setMessages(await getAiMessages(convId));
   };
 
   const startConversationWithOpening = async (params: {
     title: string | null;
     question: string;
     ageMonthsAtRequest: number;
+    reminderConsultationAnchor?: ReminderConsultationAnchor;
   }) => {
     if (!child) {
       return;
@@ -313,6 +356,14 @@ export default function AdvisorPage() {
     const convId = ulid();
     const now = isoNow();
     await createConversation({ conversationId: convId, childId: child.childId, title: params.title, now });
+    const reminderConsultationAnchor = params.reminderConsultationAnchor
+      ?? pendingReminderConsultationAnchorRef.current
+      ?? readReminderConsultationAnchorFromSearch()
+      ?? undefined;
+    if (reminderConsultationAnchor) {
+      consultationAnchorByConversationRef.current.set(convId, reminderConsultationAnchor);
+      pendingReminderConsultationAnchorRef.current = null;
+    }
     setActiveConvId(convId);
     setConversations(await getConversations(child.childId));
 
@@ -320,6 +371,7 @@ export default function AdvisorPage() {
       conversationId: convId,
       question: params.question,
       ageMonthsAtRequest: params.ageMonthsAtRequest,
+      reminderConsultationAnchor,
     });
   };
 
@@ -327,6 +379,7 @@ export default function AdvisorPage() {
     conversationId: string;
     question: string;
     ageMonthsAtRequest: number;
+    reminderConsultationAnchor?: ReminderConsultationAnchor;
   }) => {
     if (!child) {
       return;
@@ -355,7 +408,12 @@ export default function AdvisorPage() {
     setMessages(await getAiMessages(params.conversationId));
 
     if (!runtimeAvailable) {
-      await saveAssistantMsg(params.conversationId, buildStructuredAdvisorFallback(params.question, domains, snapshot), snapshotJson);
+      await saveAssistantMsg(params.conversationId, buildStructuredAdvisorFallback(params.question, domains, snapshot), snapshotJson, params.reminderConsultationAnchor);
+      return;
+    }
+
+    if (strategy === 'generic-chat' || strategy === 'needs-review-descriptive') {
+      await saveAssistantMsg(params.conversationId, buildStructuredAdvisorFallback(params.question, domains, snapshot), snapshotJson, params.reminderConsultationAnchor);
       return;
     }
 
@@ -418,18 +476,19 @@ export default function AdvisorPage() {
       if (!filtered.safe) {
         await saveAssistantMsg(params.conversationId, buildStructuredAdvisorFallback(params.question, domains, snapshot, {
           note: '补充说明：运行时响应触发了安全过滤，已退回本地结构化事实。',
-        }), snapshotJson);
+        }), snapshotJson, params.reminderConsultationAnchor);
         return;
       }
       const finalContent = shouldAppendAdvisorSources(strategy, domains)
         ? appendAdvisorSources(filtered.filtered, domains)
         : filtered.filtered.trim();
-      await saveAssistantMsg(params.conversationId, finalContent, snapshotJson);
+      await saveAssistantMsg(params.conversationId, finalContent, snapshotJson, params.reminderConsultationAnchor);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (err instanceof AdvisorAssistantPersistenceError) return;
       await saveAssistantMsg(params.conversationId, buildStructuredAdvisorFallback(params.question, domains, snapshot, {
         note: buildAdvisorRuntimeFailureNote(err),
-      }), snapshotJson);
+      }), snapshotJson, params.reminderConsultationAnchor);
     } finally {
       setStreamingState('idle');
       setStreamingContent('');
@@ -464,6 +523,14 @@ export default function AdvisorPage() {
     const topic = searchParams.get('topic');
     const desc = searchParams.get('desc') ?? '';
     const record = searchParams.get('record');
+    const reminderRuleId = searchParams.get('reminderRuleId')?.trim() || null;
+    const repeatIndex = Number(searchParams.get('repeatIndex') ?? '0') || 0;
+    if (reminderRuleId && child) {
+      pendingReminderConsultationAnchorRef.current = { childId: child.childId, ruleId: reminderRuleId, repeatIndex };
+      if (!topic) {
+        setSearchParams({}, { replace: true });
+      }
+    }
     if (!topic || !child || topicHandledRef.current === topic) return;
 
     topicHandledRef.current = topic;
@@ -476,10 +543,13 @@ export default function AdvisorPage() {
     (async () => {
       try {
         await startConversationWithOpening({
-          title: topic,
-          question: opening,
-          ageMonthsAtRequest: am,
-        });
+        title: topic,
+        question: opening,
+        ageMonthsAtRequest: am,
+        reminderConsultationAnchor: reminderRuleId
+          ? { childId: child.childId, ruleId: reminderRuleId, repeatIndex }
+          : undefined,
+      });
       } catch { /* bridge */ }
     })();
   }, [searchParams, child, runtimeAvailable]);
@@ -569,6 +639,13 @@ export default function AdvisorPage() {
     const convId = ulid();
     try {
       await createConversation({ conversationId: convId, childId: child.childId, title: null, now: isoNow() });
+      const reminderConsultationAnchor = pendingReminderConsultationAnchorRef.current
+        ?? readReminderConsultationAnchorFromSearch();
+      if (reminderConsultationAnchor) {
+        consultationAnchorByConversationRef.current.set(convId, reminderConsultationAnchor);
+        pendingReminderConsultationAnchorRef.current = null;
+        setSearchParams({}, { replace: true });
+      }
       setActiveConvId(convId); setMessages([]); setRecordRoute(null);
       setConversations(await getConversations(child.childId));
     } catch { /* bridge */ }

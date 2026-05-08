@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeRecommendedPrompts, type RecommendedPrompt } from './journal-recommended-prompts.js';
+import { computeRecommendedPrompts } from './journal-recommended-prompts.js';
 import type { ObservationDimension } from '../../knowledge-base/gen/observation-framework.gen.js';
 import type { JournalEntryRow } from '../../bridge/sqlite-bridge.js';
 

@@ -93,7 +93,7 @@ function extractStringsFallback(text: string): string[] {
 }
 
 function normalizeQuestion(raw: string): string | null {
-  const cleaned = raw.trim().replace(/^[\-•\d.、\s]+/, '').trim();
+  const cleaned = raw.trim().replace(/^[-•\d.、\s]+/, '').trim();
   if (cleaned.length < MIN_LEN || cleaned.length > MAX_LEN) return null;
   const q = /[？?。.！!]$/.test(cleaned) ? cleaned.replace(/[。.！!]$/, '？') : `${cleaned}？`;
   if (HARD_BAN.test(q)) return null;
@@ -155,11 +155,6 @@ export async function generateAdvisorSuggestions(
 
   const deduped = Array.from(new Set(questions)).slice(0, MAX_COUNT);
   if (deduped.length < MIN_COUNT) {
-    console.warn('[advisor-suggestions] insufficient after filter', {
-      count: deduped.length,
-      rawItems,
-      rawText: rawText.slice(0, 500),
-    });
     throw new Error(`insufficient suggestions after filter: ${deduped.length}`);
   }
 
