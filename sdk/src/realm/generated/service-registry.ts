@@ -214,22 +214,33 @@ function bindOperationInput(definition: RealmOperationDefinition, args: unknown[
     }
 
     if (parameter.in === 'query') {
-      if (hasValue(value)) {
-        query[parameter.name] = value;
+      if (!hasValue(value)) {
+        if (parameter.required) {
+          throw new Error(`missing required query param: ${parameter.name}`);
+        }
+        continue;
       }
+      query[parameter.name] = value;
       continue;
     }
 
     if (parameter.in === 'header') {
-      if (hasValue(value)) {
-        headerParams[parameter.name] = String(value);
+      if (!hasValue(value)) {
+        if (parameter.required) {
+          throw new Error(`missing required header param: ${parameter.name}`);
+        }
+        continue;
       }
+      headerParams[parameter.name] = String(value);
       continue;
     }
   }
 
   const body = definition.hasBody ? values[index] : undefined;
   if (definition.hasBody) {
+    if (definition.bodyRequired && !hasValue(body)) {
+      throw new Error('missing required request body');
+    }
     index += 1;
   }
   const headers = {

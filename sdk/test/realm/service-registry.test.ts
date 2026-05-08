@@ -109,3 +109,21 @@ test('service registry throws when required path params are missing', async () =
     /missing required path param: chatId/,
   );
 });
+
+test('service registry throws when required query params are missing', async () => {
+  const registry = createRealmServiceRegistry(async () => ({ ok: true }));
+
+  await assert.rejects(
+    () => registry.AgentsService.agentControllerCheckHandle(undefined as unknown as string),
+    /missing required query param: handle/,
+  );
+});
+
+test('service registry throws when required request bodies are missing', async () => {
+  const registry = createRealmServiceRegistry(async () => ({ ok: true }));
+
+  await assert.rejects(
+    () => registry.AuthService.passwordLogin(undefined as unknown as Parameters<typeof registry.AuthService.passwordLogin>[0]),
+    /missing required request body/,
+  );
+});
