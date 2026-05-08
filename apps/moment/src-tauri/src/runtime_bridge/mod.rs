@@ -53,12 +53,6 @@ pub struct RuntimeBridgeStreamClosePayload {
     pub stream_id: String,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RuntimeBridgeConfigSetPayload {
-    pub config_json: String,
-}
-
 pub fn stream_event_name_with_namespace(namespace: &str, stream_id: &str) -> String {
     let normalized = namespace.trim();
     let resolved = if normalized.is_empty() {
@@ -120,11 +114,6 @@ pub fn runtime_bridge_restart(_app: AppHandle) -> Result<RuntimeBridgeDaemonStat
 #[tauri::command]
 pub fn runtime_bridge_config_get() -> Result<Value, String> {
     daemon_manager::config_get()
-}
-
-#[tauri::command]
-pub fn runtime_bridge_config_set(payload: RuntimeBridgeConfigSetPayload) -> Result<Value, String> {
-    daemon_manager::config_set(payload.config_json.as_str())
 }
 
 pub fn current_daemon_status() -> RuntimeBridgeDaemonStatus {

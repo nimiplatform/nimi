@@ -23,17 +23,13 @@ type RuntimeProbeResult = {
 
 async function ensureRuntimeReady(): Promise<RuntimeProbeResult> {
   const runtimeDefaults = useAppStore.getState().runtimeDefaults;
-  let realmConfigured = false;
+  const realmConfigured = Boolean(runtimeDefaults?.realm.realmBaseUrl);
   let realmAuthenticated = false;
 
   try {
     await getPlatformClient().realm.ready({ timeoutMs: 4_000 });
-    realmConfigured = true;
     realmAuthenticated = true;
-  } catch {
-    const baseUrl = useAppStore.getState().runtimeDefaults?.realm.realmBaseUrl || '';
-    realmConfigured = Boolean(baseUrl);
-  }
+  } catch { /* readiness result keeps the configured/authenticated split */ }
 
   let daemon = await getDaemonStatus();
   if (!daemon.running) {

@@ -4,8 +4,8 @@
 
 ## MM-SHELL-001: Standalone App Shape
 
-Authority fence: `ACCOUNT_HARDCUT_NON_ADMITTED_APP_SLICE_FENCE`.
-Moment is not currently admitted as an active local first-party Runtime account/session authority for the `2026-04-28-runtime-core-account-session-broker-hardcut` topic. Existing app-local token/session bootstrap seams are fenced legacy slice behavior and must not be treated as hardcut-compliant local account truth until migrated to Runtime-issued short-lived token projection and admitted caller registration.
+Authority fence: `ACCOUNT_HARDCUT_RUNTIME_ACCOUNT_PROJECTION`.
+Moment must use RuntimeAccountService as the only local first-party account/session truth. The app may project the current Runtime account into app-local UI state for shell rendering, but it must not own refresh tokens, durable auth sessions, JWT subject truth, Realm `MeService.getMe` account truth, app-local token bootstrap, or shared desktop auth-session IPC. Login and logout must flow through Runtime account lifecycle methods for the Moment caller, and any Realm data access must use Runtime-issued short-lived token projection rather than app-provided token providers.
 
 Moment is a standalone app with a single front-door home surface.
 
