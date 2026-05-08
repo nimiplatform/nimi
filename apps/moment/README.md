@@ -1,10 +1,16 @@
 # Nimi Moment
 
-Social moment capture and sharing app.
+Story-opening front door for Nimi.
 
 ## Overview
 
-Moment is a Tauri desktop application for capturing and sharing social moments within the Nimi platform.
+Moment is a Tauri desktop application for turning one image or one phrase into
+one story-opening threshold, a short continuation session, and an app-local
+saved shelf.
+
+Moment owns app-local threshold, session, and library behavior. It does not
+promote output into Realm canonical truth, world state, world history, or shared
+social data unless a later explicit downstream write contract is added.
 
 ## Tech Stack
 
@@ -22,7 +28,7 @@ src/shell/renderer/
 └── i18n/         # Internationalization
 ```
 
-Standard Tauri + React pattern with SDK runtime and realm integration.
+Standard Tauri + React pattern with SDK runtime and Realm boundary integration.
 
 ## Development
 
