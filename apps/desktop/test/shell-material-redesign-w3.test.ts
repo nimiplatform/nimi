@@ -24,8 +24,8 @@ test('W3 route redesign: home and explore adopt route-shell material hosts', () 
 });
 
 test('W3 route redesign: contacts, notification, and profile consume glass route shells', () => {
-  assert.match(contactsViewSource, /<SidebarShell[\s\S]*className="rounded-\[2rem\] border border-white\/60 border-r-\[color-mix\(in_srgb,var\(--nimi-border-subtle\)_82%,white\)\] bg-\[var\(--nimi-sidebar-canvas\)\] shadow-\[0_18px_44px_rgba\(15,23,42,0\.06\)\]"/);
-  assert.match(contactsViewSource, /<Surface[\s\S]*as="main"[\s\S]*tone="panel"[\s\S]*material="glass-regular"[\s\S]*className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-\[2rem\] border-white\/60 shadow-\[0_18px_44px_rgba\(15,23,42,0\.06\)\]"/);
+  assert.match(contactsViewSource, /<SidebarShell[\s\S]*className="rounded-3xl border border-white\/60 border-r-\[color-mix\(in_srgb,var\(--nimi-border-subtle\)_82%,white\)\] bg-\[var\(--nimi-sidebar-canvas\)\] shadow-\[0_18px_44px_rgba\(15,23,42,0\.06\)\]"/);
+  assert.match(contactsViewSource, /<Surface[\s\S]*as="main"[\s\S]*tone="panel"[\s\S]*material="glass-regular"[\s\S]*className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border-white\/60 shadow-\[0_18px_44px_rgba\(15,23,42,0\.06\)\]"/);
   assert.doesNotMatch(contactsViewSource, /data-testid=\{E2E_IDS\.panel\('contacts'\)\} className="flex h-full bg-white/u);
 
   assert.match(notificationPanelSource, /<Surface[\s\S]*tone="panel"[\s\S]*material="glass-regular"[\s\S]*NotificationPanel\.title/);

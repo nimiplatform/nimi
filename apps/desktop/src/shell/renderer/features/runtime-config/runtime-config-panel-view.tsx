@@ -119,7 +119,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           tone="panel"
           material="glass-regular"
           padding="none"
-          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
         >
           <div className="flex h-14 shrink-0 items-center justify-between px-6">
             <RuntimeSkeletonBlock className="h-8 w-40 rounded-xl" />
@@ -196,7 +196,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         tone="panel"
         material="glass-regular"
         padding="none"
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
       >
         <div className="flex h-14 shrink-0 items-center px-6">
           <div className="flex w-full items-center justify-between">

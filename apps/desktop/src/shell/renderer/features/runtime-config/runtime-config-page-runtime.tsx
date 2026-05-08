@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { CAPABILITIES_V11 } from '@renderer/features/runtime-config/runtime-config-state-types';
@@ -265,27 +265,16 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
     { key: 'access', label: t('runtimeConfig.runtime.tabAccess', { defaultValue: 'Access' }) },
   ];
 
-  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const [indicator, setIndicator] = useState({ left: 0, width: 0, ready: false });
-  const activeTabIndex = tabs.findIndex((tab) => tab.key === activeTab);
-
-  useLayoutEffect(() => {
-    const el = tabRefs.current[activeTabIndex];
-    if (!el) return;
-    setIndicator({ left: el.offsetLeft, width: el.offsetWidth, ready: true });
-  }, [activeTabIndex, unhealthyProviderCount]);
-
   return (
     <RuntimePageShell>
-      {/* Tab bar: underline-style with animated indicator (non-sticky, flows with page) */}
+      {/* Tab bar: underline-style, non-sticky, flows with page. */}
       <div className="relative flex items-center gap-7 border-b border-[var(--nimi-border-subtle)] overflow-x-auto">
-        {tabs.map((tab, index) => {
+        {tabs.map((tab) => {
           const isActive = tab.key === activeTab;
           return (
             <button
               key={`runtime-tab-${tab.key}`}
               type="button"
-              ref={(el) => { tabRefs.current[index] = el; }}
               onClick={() => setActiveTab(tab.key)}
               className={cn(
                 'group relative shrink-0 px-0.5 py-2.5 text-sm font-medium transition-all duration-200 ease-out',
@@ -309,19 +298,12 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
               </span>
               {!isActive ? (
                 <span className="pointer-events-none absolute inset-x-0 -bottom-px h-[2px] origin-center scale-x-0 rounded-full bg-[var(--nimi-text-muted)] opacity-0 transition-all duration-200 ease-out group-hover:scale-x-100 group-hover:opacity-40" />
-              ) : null}
+              ) : (
+                <span className="pointer-events-none absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-[var(--nimi-action-primary-bg)]" />
+              )}
             </button>
           );
         })}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -bottom-px h-[2px] rounded-full bg-[var(--nimi-action-primary-bg)] transition-[left,width,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-          style={{
-            left: indicator.left,
-            width: indicator.width,
-            opacity: indicator.ready ? 1 : 0,
-          }}
-        />
       </div>
 
       {activeTab === 'overview' ? (

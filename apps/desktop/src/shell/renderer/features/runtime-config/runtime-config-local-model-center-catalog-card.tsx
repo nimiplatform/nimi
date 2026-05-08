@@ -4,6 +4,7 @@ import type {
   LocalRuntimeCatalogItemDescriptor,
   LocalRuntimeVerifiedAssetDescriptor,
 } from '@runtime/local-runtime';
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { i18n } from '@renderer/i18n';
 import { RuntimeSelect } from './runtime-config-primitives';
 import {
@@ -59,7 +60,7 @@ type CatalogCardProps = {
 
 export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
   return (
-    <div className="overflow-visible rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
+    <Surface tone="card" material="solid" padding="none" className="overflow-visible rounded-2xl shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
       <div className="border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-5 py-4">
         <div className="mb-3 flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] text-[var(--nimi-action-primary-bg)]">
@@ -232,6 +233,6 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
           ) : null}
         </div>
       ) : null}
-    </div>
+    </Surface>
   );
 }
