@@ -1,4 +1,4 @@
-import { isWebShellHashRoute } from './site-entry-hash.js';
+import { isWebShellHashRoute, isWebShellPathRoute } from './site-entry-hash.js';
 
 function isPostPermalinkPath(pathname: string): boolean {
   return /^\/posts\/[^/]+$/.test(pathname);
@@ -10,7 +10,7 @@ async function bootstrapSiteEntry(): Promise<void> {
     return;
   }
 
-  if (isWebShellHashRoute(window.location.hash)) {
+  if (isWebShellPathRoute(window.location.pathname) || isWebShellHashRoute(window.location.hash)) {
     await import('./web-shell-main.js');
     return;
   }

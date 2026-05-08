@@ -11,7 +11,7 @@ export type LandingLinks = {
 
 const DEFAULT_LINKS: LandingLinks = {
   appUrl: '/docs/start/',
-  webAppUrl: '/docs/platform/',
+  webAppUrl: '/login',
   discordUrl: 'https://discord.gg/BQwHJvPn',
   docsUrl: '/docs/',
   githubUrl: 'https://github.com/nimiplatform/nimi',

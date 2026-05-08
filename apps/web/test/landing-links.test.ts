@@ -34,7 +34,7 @@ test('landing links accept same-origin app-relative paths', () => {
 test('landing links include desktopDownloadUrl and modDocsUrl defaults', () => {
   const links = resolveLandingLinks({});
   assert.equal(links.appUrl, '/docs/start/');
-  assert.equal(links.webAppUrl, '/docs/platform/');
+  assert.equal(links.webAppUrl, '/login');
   assert.equal(links.desktopDownloadUrl, '/docs/desktop/');
   assert.equal(links.modDocsUrl, '/docs/desktop/mods');
 });
