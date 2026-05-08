@@ -37,6 +37,7 @@ export type DelegatedControlSurfaceQuery = {
 
 const READ_SCOPE = 'runtime.agent.delegation.read';
 const WRITE_SCOPE = 'runtime.agent.delegation.write';
+const DESKTOP_USER_DISABLED_PROVIDER_REASON = 'provider_disabled_by_desktop_user';
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -135,6 +136,7 @@ export function createDesktopDelegatedCapabilityService(deps: DelegatedCapabilit
       state: enabled
         ? DelegatedProviderState.READY
         : DelegatedProviderState.DISABLED,
+      lifecycleReasonCode: enabled ? '' : DESKTOP_USER_DISABLED_PROVIDER_REASON,
     }, options));
     return response.providerProfile;
   };

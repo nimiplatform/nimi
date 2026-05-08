@@ -3,6 +3,7 @@ import type {
   WorldEvolutionEffectClass,
   WorldEvolutionEvidenceRef,
   WorldEvolutionExecutionEventSelector,
+  WorldEvolutionExecutionEventKind,
   WorldEvolutionExecutionEventView,
   WorldEvolutionExecutionStage,
 } from '@nimiplatform/sdk/runtime';
@@ -11,6 +12,7 @@ import { createSecureIdSuffix } from '../id.js';
 
 const DESKTOP_WEE_APP_ID = 'nimi.desktop';
 const MAX_EVENTS = 2000;
+const EXECUTION_EVENT_KIND: WorldEvolutionExecutionEventKind = 'EXECUTION_EVENT';
 
 const executionEvents: WorldEvolutionExecutionEventView[] = [];
 
@@ -130,7 +132,7 @@ function maybeBuildLocalTurnExecutionEvent(input: LocalTurnExecutionEventInput):
     traceId,
     tick: input.turnIndex,
     timestamp: normalizeTimestamp(input.timestamp),
-    eventKind,
+    eventKind: EXECUTION_EVENT_KIND,
     stage: input.stage,
     actorRefs: buildActorRefs(input.agentId),
     causation: null,

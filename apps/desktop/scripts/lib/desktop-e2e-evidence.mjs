@@ -86,7 +86,8 @@ export function buildDesktopE2EEvidence(input) {
 
   const smokeScenarios = scenarios.filter((item) => item.suite_bucket === 'smoke');
   const journeyScenarios = scenarios.filter((item) => item.suite_bucket === 'journeys');
-  const ok = smokeOutcome === 'success' && journeysOutcome === 'success';
+  const hasScenarioArtifacts = scenarios.length > 0;
+  const ok = smokeOutcome === 'success' && journeysOutcome === 'success' && hasScenarioArtifacts;
   const residualRisks = [];
   if (smokeOutcome !== 'success') {
     residualRisks.push(`desktop E2E smoke outcome is ${smokeOutcome}`);

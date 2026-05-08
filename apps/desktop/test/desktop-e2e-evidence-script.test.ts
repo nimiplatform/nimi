@@ -111,3 +111,28 @@ test('desktop E2E evidence records blocking residual risks when journeys fail', 
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('desktop E2E evidence fails closed when successful outcomes have no scenario artifacts', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nimi-desktop-e2e-evidence-empty-'));
+  const desktopRoot = path.join(root, 'apps', 'desktop');
+  const artifactRoot = path.join(desktopRoot, 'reports', 'e2e');
+  fs.mkdirSync(artifactRoot, { recursive: true });
+
+  try {
+    const evidence = buildDesktopE2EEvidence({
+      desktopRoot,
+      artifactRoot,
+      platform: 'ubuntu-22.04',
+      smokeOutcome: 'success',
+      journeysOutcome: 'success',
+      nativeDriver: '/usr/bin/WebKitWebDriver',
+    });
+
+    assert.equal(evidence.ok, false);
+    assert.equal(evidence.scenarioCounts.total, 0);
+    assert.ok(evidence.residualRisks.some((risk: string) => risk.includes('no desktop E2E scenario artifacts')));
+    assert.match(renderDesktopE2EEvidenceMarkdown(evidence), /Verdict: FAIL/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

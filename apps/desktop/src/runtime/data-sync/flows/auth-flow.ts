@@ -3,6 +3,19 @@ import { emitAuthLog, traceIdOf, type PasswordAuthDebug } from '../auth';
 
 type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 
+const PASSWORD_AUTH_ACCESS_TOKEN_REQUIRED = 'DATASYNC_AUTH_ACCESS_TOKEN_REQUIRED';
+
+function requirePasswordAuthAccessToken(
+  result: Awaited<ReturnType<Realm['services']['AuthService']['passwordLogin']>>,
+) {
+  const tokens = result?.tokens;
+  const accessToken = String(tokens?.accessToken || '').trim();
+  if (!accessToken) {
+    throw new Error(PASSWORD_AUTH_ACCESS_TOKEN_REQUIRED);
+  }
+  return { ...tokens, accessToken };
+}
+
 export async function loginWithPassword(
   callApi: DataSyncApiCaller,
   setToken: (token: string | null | undefined) => void,
@@ -32,6 +45,7 @@ export async function loginWithPassword(
       (realm) => realm.services.AuthService.passwordLogin({ identifier, password }),
       '登录失败',
     );
+    const tokens = requirePasswordAuthAccessToken(result);
     emitAuthLog({
       level: 'info',
       message: 'action:login:done',
@@ -43,12 +57,10 @@ export async function loginWithPassword(
       },
     });
 
-    if (result.tokens?.accessToken) {
-      setAuth?.(result.tokens.user, result.tokens.accessToken, result.tokens.refreshToken ?? undefined);
-      setToken(result.tokens.accessToken);
-      if (result.tokens.refreshToken) {
-        setRefreshToken?.(result.tokens.refreshToken);
-      }
+    setAuth?.(tokens.user, tokens.accessToken, tokens.refreshToken ?? undefined);
+    setToken(tokens.accessToken);
+    if (tokens.refreshToken) {
+      setRefreshToken?.(tokens.refreshToken);
     }
     return result;
   } catch (error) {
@@ -95,6 +107,7 @@ export async function registerWithPassword(
       (realm) => realm.services.AuthService.passwordRegister({ email, password }),
       '注册失败',
     );
+    const tokens = requirePasswordAuthAccessToken(result);
     emitAuthLog({
       level: 'info',
       message: 'action:register:done',
@@ -106,12 +119,10 @@ export async function registerWithPassword(
       },
     });
 
-    if (result.tokens?.accessToken) {
-      setAuth?.(result.tokens.user, result.tokens.accessToken, result.tokens.refreshToken ?? undefined);
-      setToken(result.tokens.accessToken);
-      if (result.tokens.refreshToken) {
-        setRefreshToken?.(result.tokens.refreshToken);
-      }
+    setAuth?.(tokens.user, tokens.accessToken, tokens.refreshToken ?? undefined);
+    setToken(tokens.accessToken);
+    if (tokens.refreshToken) {
+      setRefreshToken?.(tokens.refreshToken);
     }
     return result;
   } catch (error) {

@@ -100,7 +100,7 @@ test('runLocalTurnFlow records a desktop-private execution event only when froze
   });
 
   assert.equal(matches.length, 1);
-  assert.equal(matches[0]?.eventKind, 'LOCAL_TURN_EXECUTED');
+  assert.equal(matches[0]?.eventKind, 'EXECUTION_EVENT');
   assert.equal(matches[0]?.appId, 'nimi.desktop');
   assert.equal(matches[0]?.detail?.kind, 'desktop-local-turn');
 
