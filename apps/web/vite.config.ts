@@ -71,6 +71,22 @@ function matchesAny(value: string, patterns: readonly string[]): boolean {
   return patterns.some((pattern) => value.includes(pattern));
 }
 
+function isNodePackage(normalizedId: string, packageName: string): boolean {
+  return (
+    normalizedId.includes(`/node_modules/.pnpm/${packageName}@`)
+    || normalizedId.includes(`/node_modules/${packageName}/`)
+  );
+}
+
+function isReactCoreVendor(normalizedId: string): boolean {
+  return [
+    'react',
+    'react-dom',
+    'scheduler',
+    'use-sync-external-store',
+  ].some((packageName) => isNodePackage(normalizedId, packageName));
+}
+
 export default defineConfig(({ mode }) => {
   loadWebBuildEnvFiles();
   const env = loadEnv(mode, __dirname, '');
@@ -208,6 +224,7 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       emptyOutDir: true,
+      modulePreload: false,
       sourcemap: true,
       rollupOptions: {
         input: {
@@ -219,6 +236,9 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             const normalizedId = id.split(path.sep).join('/');
+            if (normalizedId.includes('vite/preload-helper')) {
+              return 'vite-preload';
+            }
             if (normalizedId.includes('/apps/desktop/src/shell/renderer/features/chat/')) {
               if (
                 normalizedId.includes('/chat-agent-runtime')
@@ -349,10 +369,10 @@ export default defineConfig(({ mode }) => {
               return 'vendor-shell-locale-zh';
             }
 
-            if (!id.includes('node_modules')) {
+            if (!normalizedId.includes('node_modules')) {
               return undefined;
             }
-            if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
+            if (isReactCoreVendor(normalizedId)) {
               return 'vendor-react';
             }
             if (id.includes('/react-router') || id.includes('/@remix-run/router/')) {

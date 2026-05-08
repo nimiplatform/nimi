@@ -1,78 +1,21 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import { initI18n } from '@desktop-public/i18n';
 import { isWebShellHashRoute } from './site-entry-hash.js';
-import { installBundledImportMetaEnv } from './import-meta-env.js';
-import './web-styles.css';
-import './landing/styles.css';
 
-installBundledImportMetaEnv(import.meta.env);
-
-let appI18nInitPromise: Promise<void> | null = null;
-
-const WebShellApp = lazy(async () => {
-  appI18nInitPromise ??= initI18n();
-  await appI18nInitPromise;
-  const mod = await import('@desktop-public/app');
-  return { default: mod.default };
-});
-
-const PostPermalinkPage = lazy(async () => {
-  const mod = await import('./post-permalink-page.js');
-  return { default: mod.PostPermalinkPage };
-});
-
-const LandingApp = lazy(async () => {
-  const mod = await import('./landing/App.js');
-  return { default: mod.App };
-});
-
-function SiteEntry() {
-  const pathname = window.location.pathname;
-  const postMatch = pathname.match(/^\/posts\/([^/]+)$/);
-  const [hash, setHash] = useState(() => window.location.hash);
-
-  useEffect(() => {
-    function handleHashChange() {
-      setHash(window.location.hash);
-    }
-
-    window.addEventListener('hashchange', handleHashChange);
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange);
-    };
-  }, []);
-
-  if (postMatch) {
-    return (
-      <Suspense fallback={null}>
-        <PostPermalinkPage postId={postMatch[1]!} />
-      </Suspense>
-    );
-  }
-
-  if (!isWebShellHashRoute(hash)) {
-    return (
-      <Suspense fallback={null}>
-        <LandingApp />
-      </Suspense>
-    );
-  }
-
-  return (
-    <Suspense fallback={null}>
-      <WebShellApp />
-    </Suspense>
-  );
+function isPostPermalinkPath(pathname: string): boolean {
+  return /^\/posts\/[^/]+$/.test(pathname);
 }
 
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error('Missing #root mount node');
+async function bootstrapSiteEntry(): Promise<void> {
+  if (isPostPermalinkPath(window.location.pathname)) {
+    await import('./post-permalink-main.js');
+    return;
+  }
+
+  if (isWebShellHashRoute(window.location.hash)) {
+    await import('./web-shell-main.js');
+    return;
+  }
+
+  await import('./landing-main.js');
 }
 
-createRoot(rootElement).render(
-  <React.StrictMode>
-    <SiteEntry />
-  </React.StrictMode>,
-);
+void bootstrapSiteEntry();
