@@ -70,12 +70,14 @@ function parseFutureHistoricalDraft(value: string): ForgeDraftHistoryEvent[] | u
   });
 }
 
-function toOfficialFactoryQualityGate(
-  phase1: Phase1Result | null,
-): {
+export type ForgeOfficialFactoryQualityGate = {
   status: 'PASS' | 'WARN' | 'FAIL' | 'BYPASSED';
   findingCount?: number | null;
-} {
+};
+
+function toOfficialFactoryQualityGate(
+  phase1: Phase1Result | null,
+): ForgeOfficialFactoryQualityGate {
   if (!phase1) {
     return { status: 'BYPASSED' };
   }
@@ -87,6 +89,13 @@ function toOfficialFactoryQualityGate(
         : 'FAIL',
     findingCount: Number(phase1.qualityGate.metrics.failedChunks || 0),
   };
+}
+
+export function assertOfficialFactoryQualityGateAdmitted(qualityGate: ForgeOfficialFactoryQualityGate): void {
+  if (qualityGate.status === 'PASS' || qualityGate.status === 'WARN') {
+    return;
+  }
+  throw new Error(`FORGE_OFFICIAL_PUBLISH_QUALITY_GATE_NOT_ADMITTED:${qualityGate.status}`);
 }
 
 function toDraftHistoryEvent(
@@ -708,6 +717,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
 
   const publishDraft = useCallback(async () => {
     const prepared = await preparePublishContext();
+    assertOfficialFactoryQualityGateAdmitted(prepared.qualityGate);
     const preparedWorld = prepared.pkg.truth.world.record;
     const batchRun = await input.commitActions.createBatchRunMutation.mutateAsync({
       name: `Forge official publish · ${preparedWorld.name}`,
@@ -743,6 +753,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
     }
 
     const prepared = await preparePublishContext();
+    assertOfficialFactoryQualityGateAdmitted(prepared.qualityGate);
     const retriedBatchRun = await input.commitActions.retryBatchRunMutation.mutateAsync({
       runId: currentBatchRun.id,
       reason: 'Retry requested from Forge create page',

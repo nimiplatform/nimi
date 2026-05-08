@@ -37,6 +37,20 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
+export async function finalizeUploadedVideoResource(input: {
+  resourceId: string;
+  mimeType: string;
+}): Promise<string | undefined> {
+  const finalized = await finalizeResource(input.resourceId, {
+    mimeType: input.mimeType,
+  });
+  const finalizedRecord: JsonObject =
+    finalized && typeof finalized === 'object' && !Array.isArray(finalized)
+      ? finalized as JsonObject
+      : {};
+  return finalizedRecord.url ? String(finalizedRecord.url) : undefined;
+}
+
 export default function VideoStudioPage() {
   const { t } = useTranslation();
   const mutations = useContentMutations();
@@ -74,8 +88,8 @@ export default function VideoStudioPage() {
       const resourceId = String(record.resourceId || '');
       const storageRef = String(record.storageRef || '');
 
-      if (!uploadUrl) {
-        throw new Error('No upload URL returned from server');
+      if (!uploadUrl || !resourceId) {
+        throw new Error('Video upload credentials are incomplete');
       }
 
       // Upload file via XHR for real progress events
@@ -123,29 +137,18 @@ export default function VideoStudioPage() {
         xhr.send(formData);
       });
 
-      let previewUrl: string | undefined;
-      if (resourceId) {
-        try {
-          const finalized = await finalizeResource(resourceId, {
-            mimeType: file.type,
-          });
-          const finalizedRecord: JsonObject =
-            finalized && typeof finalized === 'object' && !Array.isArray(finalized)
-              ? finalized as JsonObject
-              : {};
-          previewUrl = finalizedRecord.url ? String(finalizedRecord.url) : undefined;
-        } catch {
-          // Finalize fallback is non-critical for optimistic preview
-        }
-      }
+      const previewUrl = await finalizeUploadedVideoResource({
+        resourceId,
+        mimeType: file.type,
+      });
 
       setVideos((prev) => [
         {
-          id: resourceId || String(Date.now()),
+          id: resourceId,
           name: file.name,
           size: file.size,
           uploadedAt: new Date().toISOString(),
-          resourceId: resourceId || undefined,
+          resourceId,
           storageRef: storageRef || undefined,
           previewUrl,
         },
