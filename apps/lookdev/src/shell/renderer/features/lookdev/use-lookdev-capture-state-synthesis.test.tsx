@@ -6,16 +6,31 @@ import { expectedCaptureStateSignature } from './create-batch-page-helpers.js';
 import { useLookdevCaptureStateSynthesis } from './use-lookdev-capture-state-synthesis.js';
 import type { LookdevCaptureState, LookdevPortraitBrief, LookdevWorldStylePack } from './types.js';
 
+type MockAuthoringContext = {
+  detail: Pick<LookdevAgentRecord, 'description' | 'scenario' | 'greeting'> | null;
+  truthBundle: unknown;
+  fullTruthReadable: boolean;
+};
+
 const { getAgentPortraitBinding, getLookdevAgentAuthoringContext } = vi.hoisted(() => ({
   getAgentPortraitBinding: vi.fn(async () => null),
-  getLookdevAgentAuthoringContext: vi.fn(async () => ({
+  getLookdevAgentAuthoringContext: vi.fn<() => Promise<MockAuthoringContext>>(async () => ({
     detail: {
       description: 'Station receptionist with calm posture.',
       scenario: null,
       greeting: null,
     },
-    truthBundle: null,
-    fullTruthReadable: false,
+    truthBundle: {
+      description: 'Station receptionist with calm posture.',
+      scenario: null,
+      greeting: null,
+      wakeStrategy: 'PASSIVE',
+      dna: {},
+      behavioralRules: [],
+      soulPrime: null,
+      ruleTruth: {},
+    },
+    fullTruthReadable: true,
   })),
 }));
 
@@ -58,6 +73,8 @@ vi.mock('./capture-harness.js', async () => {
 
 type HarnessProps = {
   storedCaptureStates: Record<string, LookdevCaptureState>;
+  saveCaptureState?: (state: LookdevCaptureState) => void;
+  savePortraitBrief?: (brief: LookdevPortraitBrief) => void;
 };
 
 const runtime = {} as never;
@@ -163,8 +180,8 @@ function Harness(props: HarnessProps) {
     storedPortraitBriefs: {} as Record<string, LookdevPortraitBrief>,
     currentLanguage: 'zh',
     runtime,
-    saveCaptureState: () => {},
-    savePortraitBrief: () => {},
+    saveCaptureState: props.saveCaptureState ?? (() => {}),
+    savePortraitBrief: props.savePortraitBrief ?? (() => {}),
   });
 
   return (
@@ -172,13 +189,37 @@ function Harness(props: HarnessProps) {
       <div data-testid="busy">{String(result.captureSynthesisBusy)}</div>
       <div data-testid="ready">{String(result.captureStatesReady)}</div>
       <div data-testid="count">{String(result.captureStates.length)}</div>
+      <div data-testid="error">{result.captureSynthesisError ?? ''}</div>
     </div>
   );
 }
 
 describe('useLookdevCaptureStateSynthesis', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    getAgentPortraitBinding.mockReset();
+    getLookdevAgentAuthoringContext.mockReset();
+    materializePortraitBriefFromCaptureState.mockClear();
+    synthesizeSilentCaptureState.mockReset();
+    getAgentPortraitBinding.mockResolvedValue(null);
+    getLookdevAgentAuthoringContext.mockResolvedValue({
+      detail: {
+        description: 'Station receptionist with calm posture.',
+        scenario: null,
+        greeting: null,
+      },
+      truthBundle: {
+        description: 'Station receptionist with calm posture.',
+        scenario: null,
+        greeting: null,
+        wakeStrategy: 'PASSIVE',
+        dna: {},
+        behavioralRules: [],
+        soulPrime: null,
+        ruleTruth: {},
+      },
+      fullTruthReadable: true,
+    });
+    synthesizeSilentCaptureState.mockResolvedValue(makeCaptureState());
   });
 
   it('clears busy once matching capture states are already present after a rerender', async () => {
@@ -207,5 +248,37 @@ describe('useLookdevCaptureStateSynthesis', () => {
     if (pending.resolve) {
       pending.resolve(state);
     }
+  });
+
+  it('fails closed when required authoring truth is unreadable', async () => {
+    const saveCaptureState = vi.fn();
+    const savePortraitBrief = vi.fn();
+    getLookdevAgentAuthoringContext.mockResolvedValue({
+      detail: {
+        description: 'Station receptionist with calm posture.',
+        scenario: null,
+        greeting: null,
+      },
+      truthBundle: null,
+      fullTruthReadable: false,
+    });
+
+    render(
+      <Harness
+        storedCaptureStates={{}}
+        saveCaptureState={saveCaptureState}
+        savePortraitBrief={savePortraitBrief}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('busy').textContent).toBe('false');
+      expect(screen.getByTestId('ready').textContent).toBe('false');
+      expect(screen.getByTestId('count').textContent).toBe('0');
+      expect(screen.getByTestId('error').textContent).toBe('LOOKDEV_AGENT_TRUTH_REQUIRED');
+    });
+    expect(synthesizeSilentCaptureState).not.toHaveBeenCalled();
+    expect(saveCaptureState).not.toHaveBeenCalled();
+    expect(savePortraitBrief).not.toHaveBeenCalled();
   });
 });

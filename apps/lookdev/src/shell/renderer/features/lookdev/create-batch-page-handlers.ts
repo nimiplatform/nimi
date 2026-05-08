@@ -180,9 +180,12 @@ export async function handleInteractiveCaptureRefine(
       throw new Error('LOOKDEV_WORLD_ID_REQUIRED');
     }
     const [authoringContext, portraitBinding] = await Promise.all([
-      getLookdevAgentAuthoringContext(agent.worldId, agent.id).catch(() => null),
-      getAgentPortraitBinding(agent.worldId, agent.id).catch(() => null),
+      getLookdevAgentAuthoringContext(agent.worldId, agent.id),
+      getAgentPortraitBinding(agent.worldId, agent.id),
     ]);
+    if (!authoringContext.fullTruthReadable || !authoringContext.truthBundle) {
+      throw new Error('LOOKDEV_AGENT_TRUTH_REQUIRED');
+    }
     const nextState = await runInteractiveCaptureTurn({
       runtime: ctx.runtime,
       target: ctx.styleDialogueTarget,
@@ -241,9 +244,12 @@ export async function handleResetInteractiveCapture(
       throw new Error('LOOKDEV_WORLD_ID_REQUIRED');
     }
     const [authoringContext, portraitBinding] = await Promise.all([
-      getLookdevAgentAuthoringContext(agent.worldId, agent.id).catch(() => null),
-      getAgentPortraitBinding(agent.worldId, agent.id).catch(() => null),
+      getLookdevAgentAuthoringContext(agent.worldId, agent.id),
+      getAgentPortraitBinding(agent.worldId, agent.id),
     ]);
+    if (!authoringContext.fullTruthReadable || !authoringContext.truthBundle) {
+      throw new Error('LOOKDEV_AGENT_TRUTH_REQUIRED');
+    }
     const nextState = await synthesizeSilentCaptureState({
       runtime: ctx.runtime,
       target: ctx.styleDialogueTarget,

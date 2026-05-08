@@ -683,23 +683,14 @@ describe('CreateBatchPage', () => {
     await screen.findByLabelText('World');
     await selectFieldOption(user, 'World', /Aurora Harbor/i);
 
-    expect(await screen.findByText("1 agents in this world batch only have limited portrait truth available. Lookdev will still use each agent's available fields together with the current world style lane: Nora.")).toBeInTheDocument();
+    expect(await screen.findByText('1 agents in this world batch only have limited portrait truth available. Capture-state synthesis stays blocked until required creator detail and AgentRule truth are readable: Nora.')).toBeInTheDocument();
 
     await completeWorldStyleSession(user);
     await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeDisabled();
     });
-    await user.click(screen.getByRole('button', { name: 'Create and start processing' }));
-
-    await waitFor(() => {
-      expect(createBatch).toHaveBeenCalledTimes(1);
-    });
-
-    expect(createBatch).toHaveBeenCalledWith(expect.objectContaining({
-      agents: [expect.objectContaining({ id: 'a1' }), expect.objectContaining({ id: 'a2' })],
-      captureSelectionAgentIds: ['a1'],
-    }));
+    expect(createBatch).not.toHaveBeenCalled();
   }, 30000);
 
   it('keeps the world-style lane focused on authoring before a world is selected', async () => {

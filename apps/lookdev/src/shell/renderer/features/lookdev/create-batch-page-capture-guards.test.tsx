@@ -629,7 +629,7 @@ it('shows an error when creating a batch without any selected agents', async () 
     await screen.findByLabelText('World');
     await selectFieldOption(user, 'World', /Aurora Harbor/i);
 
-    expect(await screen.findByText("2 agents in this world batch only have limited portrait truth available. Lookdev will still use each agent's available fields together with the current world style lane: Iris, Nora.")).toBeInTheDocument();
+    expect(await screen.findByText('2 agents in this world batch only have limited portrait truth available. Capture-state synthesis stays blocked until required creator detail and AgentRule truth are readable: Iris, Nora.')).toBeInTheDocument();
     expect(screen.queryByText('Lookdev could not resolve a controllable cast for Aurora Harbor. Pick a world you can operate on or refresh runtime and try again.')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send reply' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Synthesize style pack draft' })).toBeInTheDocument();
@@ -688,24 +688,15 @@ it('shows an error when creating a batch without any selected agents', async () 
     await user.click(screen.getByRole('button', { name: /Iris.*Select/i }));
     await user.click(screen.getByRole('button', { name: /Nora.*Select/i }));
 
-    expect(await screen.findByText("1 selected agents only have limited portrait truth available. Lookdev will still use each agent's available fields together with the current world style lane: Nora.")).toBeInTheDocument();
+    expect(await screen.findByText('1 selected agents only have limited portrait truth available. Capture-state synthesis stays blocked until required creator detail and AgentRule truth are readable: Nora.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Nora.*Limited truth/i })).toBeInTheDocument();
 
     await completeWorldStyleSession(user);
     await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeDisabled();
     });
-    await user.click(screen.getByRole('button', { name: 'Create and start processing' }));
-
-    await waitFor(() => {
-      expect(createBatch).toHaveBeenCalledTimes(1);
-    });
-
-    expect(createBatch).toHaveBeenCalledWith(expect.objectContaining({
-      agents: [expect.objectContaining({ id: 'a1' }), expect.objectContaining({ id: 'a2' })],
-      captureSelectionAgentIds: ['a1'],
-    }));
+    expect(createBatch).not.toHaveBeenCalled();
   }, 30000);
 
   it('shows intake loading state and disables batch creation until intake resolves', () => {
