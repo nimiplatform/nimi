@@ -1,4 +1,5 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
+import { Button, SidebarShell } from '@nimiplatform/nimi-kit/ui';
 
 type SidebarBoundaryProps = {
   children: ReactNode;
@@ -45,13 +46,14 @@ class CanonicalRightSidebarBoundary extends React.Component<SidebarBoundaryProps
             {String(this.state.error.message || this.state.error.name || 'right sidebar error')}
           </p>
         </div>
-        <button
-          type="button"
+        <Button
           onClick={this.props.onClose}
-          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          tone="secondary"
+          size="sm"
+          className="rounded-full bg-white text-slate-700 hover:bg-slate-50"
         >
           {this.props.closeLabel}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -120,7 +122,12 @@ export function CanonicalRightSidebar({
         aria-hidden={!open}
         data-canonical-right-sidebar="true"
       >
-        <div className="h-full border-l border-white/70 bg-[#f8fbfb] shadow-[-8px_0_24px_rgba(15,23,42,0.08)]" style={{ width: `${widthPx}px` }} data-canonical-right-sidebar-shell="true">
+        <SidebarShell
+          as="div"
+          className="h-full rounded-none border-y-0 border-r-0 bg-[#f8fbfb] shadow-[-8px_0_24px_rgba(15,23,42,0.08)]"
+          style={{ width: `${widthPx}px` }}
+          data-canonical-right-sidebar-shell="true"
+        >
           {shouldRenderSidebar ? (
             <div className={`h-full transition-opacity duration-300 ${open ? 'opacity-100 delay-75' : 'opacity-0'}`}>
               <CanonicalRightSidebarBoundary
@@ -141,7 +148,7 @@ export function CanonicalRightSidebar({
               <div className="mt-4 h-72 w-full animate-pulse rounded-[24px] bg-slate-200/75" />
             </div>
           )}
-        </div>
+        </SidebarShell>
       </div>
 
       {overlayMenu}

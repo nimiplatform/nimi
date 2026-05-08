@@ -25,8 +25,8 @@ export function ConversationAnimationStyles() {
 }
 
 @keyframes conv-breathe {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(167, 243, 208, 0); }
-  50%      { box-shadow: 0 0 24px 4px rgba(167, 243, 208, 0.12); }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--nimi-status-success) 0%, transparent); }
+  50%      { box-shadow: 0 0 24px 4px color-mix(in srgb, var(--nimi-status-success) 12%, transparent); }
 }
 
 @keyframes conv-send-press {
@@ -126,9 +126,9 @@ export function ConversationAnimationStyles() {
   position: relative;
   overflow: hidden;
   background:
-    linear-gradient(135deg, rgba(255,255,255,0.95), rgba(236,253,245,0.82)),
-    linear-gradient(120deg, rgba(167,243,208,0.16), rgba(125,211,252,0.1));
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.66);
+    linear-gradient(135deg, var(--nimi-surface-card), color-mix(in srgb, var(--nimi-status-success) 10%, var(--nimi-surface-panel))),
+    linear-gradient(120deg, color-mix(in srgb, var(--nimi-status-success) 16%, transparent), color-mix(in srgb, var(--nimi-status-info) 10%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--nimi-border-subtle) 66%, transparent);
 }
 
 .conversation-root .lc-current-turn-shell {
@@ -139,19 +139,19 @@ export function ConversationAnimationStyles() {
   position: absolute;
   inset: -10px -8px;
   border-radius: 34px;
-  background: radial-gradient(circle at top, rgba(167,243,208,0.28), transparent 70%);
+  background: radial-gradient(circle at top, color-mix(in srgb, var(--nimi-status-success) 28%, transparent), transparent 70%);
   opacity: 0.8;
   animation: lc-current-turn-aura 6.4s ease-in-out infinite;
 }
 
 .conversation-root .lc-current-turn-halo-pending {
-  background: radial-gradient(circle at top, rgba(52,211,153,0.18), transparent 72%);
+  background: radial-gradient(circle at top, color-mix(in srgb, var(--nimi-status-success) 18%, transparent), transparent 72%);
 }
 
 .conversation-root .lc-current-turn-card {
   position: relative;
   overflow: hidden;
-  box-shadow: 0 24px 56px rgba(15,23,42,0.08);
+  box-shadow: 0 24px 56px color-mix(in srgb, var(--nimi-text-primary) 8%, transparent);
 }
 
 .conversation-root .lc-current-turn-card::before {
@@ -160,7 +160,7 @@ export function ConversationAnimationStyles() {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(135deg, rgba(255,255,255,0.18), transparent 60%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--nimi-surface-card) 18%, transparent), transparent 60%);
   animation: lc-current-turn-glow 6.4s ease-in-out infinite;
 }
 
@@ -170,7 +170,7 @@ export function ConversationAnimationStyles() {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  box-shadow: inset 0 0 0 1px rgba(16,185,129,0.18);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--nimi-status-success) 18%, transparent);
   animation: lc-current-turn-edge 6.4s ease-in-out infinite;
 }
 
@@ -185,16 +185,16 @@ export function ConversationAnimationStyles() {
   gap: 0.4rem;
   border-radius: 999px;
   padding: 0.35rem 0.7rem;
-  background: rgba(236,253,245,0.92);
-  border: 1px solid rgba(167,243,208,0.85);
+  background: color-mix(in srgb, var(--nimi-status-success) 10%, var(--nimi-surface-card));
+  border: 1px solid color-mix(in srgb, var(--nimi-status-success) 34%, var(--nimi-border-subtle));
 }
 
 .conversation-root .lc-typing-bubble {
   position: relative;
   border-radius: 22px;
-  border: 1px solid rgba(229,231,235,0.92);
-  background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(241,245,249,0.94));
-  box-shadow: 0 12px 32px rgba(15,23,42,0.08);
+  border: 1px solid color-mix(in srgb, var(--nimi-border-subtle) 92%, transparent);
+  background: linear-gradient(135deg, var(--nimi-surface-card), var(--nimi-surface-panel));
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--nimi-text-primary) 8%, transparent);
 }
 
 .conversation-root .lc-typing-bubble::after {
@@ -203,15 +203,15 @@ export function ConversationAnimationStyles() {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(135deg, rgba(167,243,208,0.1), transparent 65%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--nimi-status-success) 10%, transparent), transparent 65%);
 }
 
 .conversation-root .lc-typing-label {
-  color: #475569;
+  color: var(--nimi-text-secondary);
 }
 
 .conversation-root .lc-typing-dot {
-  background: linear-gradient(180deg, rgba(16,185,129,0.9), rgba(20,184,166,0.7));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--nimi-status-success) 90%, transparent), color-mix(in srgb, var(--nimi-action-primary-bg) 70%, transparent));
 }
 
 

@@ -104,6 +104,40 @@ for (const legacyTheme of ['relay-dark.css', 'overtone-studio.css']) {
     hardFailures.push(`kit/ui/src/generated/themes/${legacyTheme}: legacy generated theme output must not exist`);
   }
 }
+const accentCssVars = new Set(
+  tokenRows
+    .filter((row) => String(row?.theme_layer || 'foundation').trim() === 'accent')
+    .map((row) => String(row?.css_var || '').trim())
+    .filter(Boolean),
+);
+for (const row of themeRows) {
+  const themeId = String(row?.theme_id || '').trim();
+  if (String(row?.pack_kind || '').trim() !== 'accent' || !themeId) continue;
+  const rel = `kit/ui/src/generated/themes/${themeId}.css`;
+  const abs = path.join(repoRoot, rel);
+  if (!fs.existsSync(abs)) {
+    hardFailures.push(`${rel}: generated accent theme output is missing`);
+    continue;
+  }
+  const content = fs.readFileSync(abs, 'utf8');
+  if (/@theme\s*\{/u.test(content)) {
+    hardFailures.push(`${rel}: generated accent themes must not emit local @theme blocks`);
+  }
+  for (const match of content.matchAll(/^\s*(--[^:\s]+)\s*:/gmu)) {
+    const property = String(match[1] || '').trim();
+    if (!accentCssVars.has(property)) {
+      hardFailures.push(`${rel}: generated accent theme emits non-table token ${property}`);
+    }
+  }
+}
+
+const designTokenFacade = read('kit/ui/src/design-tokens.ts');
+if (/export\s+type\s+NimiAccentPack\s*=\s*['"]/u.test(designTokenFacade)) {
+  hardFailures.push('kit/ui/src/design-tokens.ts: NimiAccentPack must be derived from generated ACCENT_PACK_IDS');
+}
+if (/export\s+const\s+NIMI_ACCENT_PACKS\s*=\s*\[/u.test(designTokenFacade)) {
+  hardFailures.push('kit/ui/src/design-tokens.ts: NIMI_ACCENT_PACKS must be derived from generated ACCENT_PACK_IDS');
+}
 
 const adoptionRows = Array.isArray(adoptionTable?.modules) ? adoptionTable.modules : [];
 const accentPackByApp = new Map();

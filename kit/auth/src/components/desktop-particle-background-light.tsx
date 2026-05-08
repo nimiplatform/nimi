@@ -51,6 +51,14 @@ function resolveParticleConfig(profile: ParticleBackgroundProfile) {
   return { ...BASE_PARTICLE_CONFIG };
 }
 
+function readResolvedColorToken(element: HTMLElement, tokenName: string): string | null {
+  const value = window.getComputedStyle(element).getPropertyValue(tokenName).trim();
+  if (!value || value === 'initial') {
+    return null;
+  }
+  return value;
+}
+
 export function shouldEnableDesktopParticleBackground(env: ParticleBackgroundEnvironment): boolean {
   if (env.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
     return false;
@@ -104,6 +112,11 @@ export function DesktopParticleBackgroundLight(
     const container = containerRef.current;
     let width = container.clientWidth;
     let height = container.clientHeight;
+    const particleColor = readResolvedColorToken(container, '--nimi-status-info');
+    const lineColor = readResolvedColorToken(container, '--nimi-text-inverse');
+    if (!particleColor || !lineColor) {
+      return;
+    }
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, width / height, 1, 1000);
@@ -131,8 +144,8 @@ export function DesktopParticleBackgroundLight(
     const tuning = resolveParticleConfig(profile);
     const CONFIG = {
       ...tuning,
-      particleColor: new THREE.Color(0x3b82f6),
-      lineColor: new THREE.Color(0xffffff),
+      particleColor: new THREE.Color(particleColor),
+      lineColor: new THREE.Color(lineColor),
     };
 
     const noise3D = createNoise3D();

@@ -11,21 +11,6 @@ const tablesDir = path.join(repoRoot, '.nimi', 'spec', 'platform', 'kernel', 'ta
 const outDir = path.join(repoRoot, 'kit', 'ui', 'src', 'generated');
 const themesDir = path.join(outDir, 'themes');
 
-const DESKTOP_ACCENT_PALETTE = {
-  mint: {
-    50: '#e6f7f2',
-    100: '#ccefe5',
-    200: '#99dfc8',
-    300: '#66cfab',
-    400: '#33bf8e',
-    500: '#4ECCA3',
-    600: '#3DBB96',
-    700: '#2AA880',
-    800: '#1F8C6B',
-    900: '#166B52',
-  },
-};
-
 const LEGACY_GENERATED_FILES = [
   path.join(themesDir, 'relay-dark.css'),
   path.join(themesDir, 'overtone-studio.css'),
@@ -193,47 +178,6 @@ function renderAccentTheme(tokensDoc, themesDoc, themeId) {
   return renderPackSelector(tokensDoc, pack, selector, 'accent');
 }
 
-function renderDesktopAccent(themeId, tokensDoc, themesDoc) {
-  const selector = `:root[data-nimi-accent="${themeId}"]`;
-  const lines = [renderAccentTheme(tokensDoc, themesDoc, themeId).trimEnd(), `${selector} {`];
-  lines.push('  --font-ui: var(--nimi-font-sans);');
-  lines.push('  --font-display: "Noto Sans SC", "Source Han Sans SC", "Inter", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;');
-  lines.push('  --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", Georgia, serif;');
-  lines.push('}');
-  lines.push('');
-  lines.push('@theme {');
-  for (const [name, scale] of Object.entries(DESKTOP_ACCENT_PALETTE)) {
-    for (const [step, value] of Object.entries(scale)) {
-      lines.push(`  --color-${name}-${step}: ${value};`);
-    }
-  }
-  lines.push('}');
-  lines.push('');
-  return lines.join('\n');
-}
-
-function renderRelayAccent(tokensDoc, themesDoc) {
-  const selector = ':root[data-nimi-accent="relay-accent"]';
-  return [
-    renderAccentTheme(tokensDoc, themesDoc, 'relay-accent').trimEnd(),
-    `${selector} {`,
-    '  --nimi-accent-glow: 0 0 20px rgba(124, 111, 255, 0.15);',
-    '}',
-    '',
-  ].join('\n');
-}
-
-function renderOvertoneAccent(tokensDoc, themesDoc) {
-  const selector = ':root[data-nimi-accent="overtone-accent"]';
-  return [
-    renderAccentTheme(tokensDoc, themesDoc, 'overtone-accent').trimEnd(),
-    `${selector} {`,
-    '  --nimi-accent-glow: 0 0 20px rgba(139, 92, 246, 0.35), 0 0 60px rgba(139, 92, 246, 0.15);',
-    '}',
-    '',
-  ].join('\n');
-}
-
 // ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
@@ -248,10 +192,10 @@ async function main() {
     [path.join(outDir, 'theme-base.css'), renderThemeBase(tokensDoc)],
     [path.join(themesDir, 'light.css'), renderFoundationTheme(tokensDoc, themesDoc, 'nimi-light', ':root:not([data-nimi-scheme]), :root[data-nimi-scheme="light"]')],
     [path.join(themesDir, 'dark.css'), renderFoundationTheme(tokensDoc, themesDoc, 'nimi-dark', '.dark, :root[data-nimi-scheme="dark"]')],
-    [path.join(themesDir, 'desktop-accent.css'), renderDesktopAccent('desktop-accent', tokensDoc, themesDoc)],
-    [path.join(themesDir, 'forge-accent.css'), renderDesktopAccent('forge-accent', tokensDoc, themesDoc)],
-    [path.join(themesDir, 'relay-accent.css'), renderRelayAccent(tokensDoc, themesDoc)],
-    [path.join(themesDir, 'overtone-accent.css'), renderOvertoneAccent(tokensDoc, themesDoc)],
+    [path.join(themesDir, 'desktop-accent.css'), renderAccentTheme(tokensDoc, themesDoc, 'desktop-accent')],
+    [path.join(themesDir, 'forge-accent.css'), renderAccentTheme(tokensDoc, themesDoc, 'forge-accent')],
+    [path.join(themesDir, 'relay-accent.css'), renderAccentTheme(tokensDoc, themesDoc, 'relay-accent')],
+    [path.join(themesDir, 'overtone-accent.css'), renderAccentTheme(tokensDoc, themesDoc, 'overtone-accent')],
     [path.join(themesDir, 'video-food-map-accent.css'), renderAccentTheme(tokensDoc, themesDoc, 'video-food-map-accent')],
   ]);
 

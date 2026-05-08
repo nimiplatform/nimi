@@ -4,7 +4,7 @@
 - `@nimiplatform/nimi-kit` is the single cross-app toolkit package.
 - Modules: `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/shell/tauri` (Rust crate), `kit/shell/renderer`, `kit/features/chat`, `kit/features/model-picker`, `kit/features/model-config`, `kit/features/generation`, `kit/features/commerce`.
 ## Hard Boundaries
-- `ui` is the design authority; `auth` and `kit/features/*` must not bypass it.
+- `ui` is the reusable kit projection of platform design authority; canonical design semantics remain under `.nimi/spec/platform/kernel/**`. `auth` and `kit/features/*` must not bypass admitted kit primitives or create parallel app-local design truth.
 - Before building new app UI or interaction logic, inspect `kit/README.md`, the target module README, and `.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml` to confirm whether a reusable kit surface already exists.
 - `kit/core` must not import React, CSS, app code, or presentation modules.
 - `kit/telemetry` must remain renderer-safe and must not import Node.js, Electron, or Tauri bridges.

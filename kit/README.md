@@ -1,9 +1,9 @@
 # Nimi Kit
 
-`@nimiplatform/nimi-kit` is the product-grade cross-app toolkit for Nimi apps. It packages shared foundations, reusable feature modules, and first-party integration seams so Nimi-coding consumers do not need to rebuild baseline styling, interaction shells, or platform wiring.
+`@nimiplatform/nimi-kit` is the product-grade cross-app toolkit for Nimi apps. It packages shared foundations, reusable feature modules, and first-party integration seams so Nimi-coding consumers do not need to rebuild baseline styling, interaction shells, or platform wiring. It is a reusable projection of platform-governed design and integration contracts, not an independent semantic authority.
 
 ## What It Is
-- The single authoritative package for cross-app shared UI, auth, logic, telemetry, and feature modules.
+- The single reusable package for cross-app shared UI, auth, logic, telemetry, and feature modules.
 - A single package with subpath exports such as `@nimiplatform/nimi-kit/ui` and `@nimiplatform/nimi-kit/features/chat/runtime`.
 - The home for reusable Nimi-coding surfaces, not app-local implementations.
 
@@ -26,7 +26,7 @@
 ```
 
 - Foundation modules:
-  - `ui`: design authority, tokens, primitives, themes, generated contracts.
+  - `ui`: reusable design projection, tokens, primitives, themes, and generated contracts derived from platform authority.
   - `core`: pure logic, shell/runtime capability helpers, OAuth contracts. `core/runtime-capabilities` provides capability normalization/matching/catalog truth (runtime-safe + renderer-safe).
   - `telemetry`: renderer-safe telemetry and error boundary primitives.
 - Shell modules:
@@ -58,7 +58,7 @@ import { useRealmSendGiftDialog, useRealmGiftInbox } from '@nimiplatform/nimi-ki
 ```
 
 ## Reuse First
-- Start with `@nimiplatform/nimi-kit/ui` to confirm whether the shared design authority already covers the needed primitive or shell.
+- Start with `@nimiplatform/nimi-kit/ui` to confirm whether an admitted reusable kit primitive or shell already covers the needed surface.
 - Check `@nimiplatform/nimi-kit/auth` next for login, session, callback, or auth-window flows.
 - Check the relevant `kit/features/*` README and registry entry before building app-local interaction logic.
 - Only build app-local UI or interaction shells when kit has no matching surface, or when the remaining requirement is clearly app-specific.

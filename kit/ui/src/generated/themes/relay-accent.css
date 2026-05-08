@@ -12,6 +12,3 @@
   --nimi-field-focus: #7c6fff;
   --nimi-focus-ring-color: rgba(124,111,255,0.34);
 }
-:root[data-nimi-accent="relay-accent"] {
-  --nimi-accent-glow: 0 0 20px rgba(124, 111, 255, 0.15);
-}

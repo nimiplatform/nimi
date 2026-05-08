@@ -55,7 +55,7 @@ function SourceFilterPills(props: {
   const filters: ConversationSourceFilter[] = ['all', ...props.availableSources];
   return (
     <div
-      className="inline-flex flex-wrap gap-2 rounded-full border border-white/80 bg-white/80 p-1 shadow-[0_14px_32px_rgba(15,23,42,0.08)]"
+      className="inline-flex flex-wrap gap-2 rounded-full border border-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] p-1 shadow-[0_14px_32px_color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)]"
       data-canonical-source-pills="true"
     >
       {filters.map((filter) => (
@@ -66,8 +66,8 @@ function SourceFilterPills(props: {
           className={cn(
             'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
             props.activeFilter === filter
-              ? 'bg-emerald-500 text-white shadow-[0_10px_24px_rgba(16,185,129,0.22)]'
-              : 'bg-transparent text-slate-600 hover:bg-slate-100/90',
+              ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] shadow-[0_10px_24px_color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,transparent)]'
+              : 'bg-transparent text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_90%,transparent)]',
           )}
         >
           {CANONICAL_SOURCE_LABELS[filter]}
@@ -116,25 +116,25 @@ function getTargetInitial(target: ConversationTargetSummary): string {
 function resolveBubblePalette(target: ConversationTargetSummary) {
   if (target.source === 'human') {
     return {
-      accentSoft: 'rgba(251, 191, 36, 0.22)',
-      border: 'rgba(251, 191, 36, 0.38)',
-      bubbleSurface: 'linear-gradient(180deg, rgba(255,251,235,0.98), rgba(255,255,255,0.94))',
-      text: '#92400e',
+      accentSoft: 'color-mix(in srgb, var(--nimi-status-warning) 22%, transparent)',
+      border: 'color-mix(in srgb, var(--nimi-status-warning) 38%, transparent)',
+      bubbleSurface: 'linear-gradient(180deg, color-mix(in srgb, var(--nimi-status-warning) 10%, var(--nimi-surface-card)), var(--nimi-surface-card))',
+      text: 'var(--nimi-status-warning)',
     };
   }
   if (target.source === 'agent') {
     return {
-      accentSoft: 'rgba(16, 185, 129, 0.20)',
-      border: 'rgba(16, 185, 129, 0.34)',
-      bubbleSurface: 'linear-gradient(180deg, rgba(236,253,245,0.98), rgba(255,255,255,0.94))',
-      text: '#065f46',
+      accentSoft: 'color-mix(in srgb, var(--nimi-status-success) 20%, transparent)',
+      border: 'color-mix(in srgb, var(--nimi-status-success) 34%, transparent)',
+      bubbleSurface: 'linear-gradient(180deg, color-mix(in srgb, var(--nimi-status-success) 10%, var(--nimi-surface-card)), var(--nimi-surface-card))',
+      text: 'var(--nimi-status-success)',
     };
   }
   return {
-    accentSoft: 'rgba(125, 211, 252, 0.22)',
-    border: 'rgba(56, 189, 248, 0.34)',
-    bubbleSurface: 'linear-gradient(180deg, rgba(240,249,255,0.98), rgba(255,255,255,0.94))',
-    text: '#0c4a6e',
+    accentSoft: 'color-mix(in srgb, var(--nimi-status-info) 22%, transparent)',
+    border: 'color-mix(in srgb, var(--nimi-status-info) 34%, transparent)',
+    bubbleSurface: 'linear-gradient(180deg, color-mix(in srgb, var(--nimi-status-info) 10%, var(--nimi-surface-card)), var(--nimi-surface-card))',
+    text: 'var(--nimi-status-info)',
   };
 }
 
@@ -377,15 +377,15 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
 
   return (
     <section className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(94,234,212,0.18),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(125,211,252,0.12),_transparent_28%),linear-gradient(180deg,_rgba(248,250,252,0.96),_rgba(239,246,247,0.92))]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_color-mix(in_srgb,var(--nimi-ambient-mesh-color-1)_60%,transparent),_transparent_30%),radial-gradient(circle_at_bottom_right,_color-mix(in_srgb,var(--nimi-ambient-mesh-color-2)_50%,transparent),_transparent_28%),linear-gradient(180deg,_var(--nimi-ambient-mesh-base-start),_var(--nimi-ambient-mesh-base-end))]" />
 
       <div className={cn(
         'relative z-10 flex min-h-0 flex-1 flex-col px-6 pb-6 pt-6 transition-opacity duration-200',
         transitioningTargetId ? 'opacity-0' : 'opacity-100',
       )}>
-        <div className="relative min-h-0 flex-1 overflow-hidden rounded-[34px] border border-white/80 bg-white/44 shadow-[0_8px_28px_rgba(15,23,42,0.06)]">
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-24 bg-[linear-gradient(180deg,rgba(255,255,255,0.42),transparent)]" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-20 bg-[linear-gradient(0deg,rgba(255,255,255,0.42),transparent)]" />
+        <div className="relative min-h-0 flex-1 overflow-hidden rounded-[34px] border border-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_44%,transparent)] shadow-[0_8px_28px_color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-24 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--nimi-surface-card)_42%,transparent),transparent)]" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-20 bg-[linear-gradient(0deg,color-mix(in_srgb,var(--nimi-surface-card)_42%,transparent),transparent)]" />
 
           <div className="absolute inset-x-0 top-5 z-20 flex justify-center px-6">
             <SourceFilterPills
@@ -404,17 +404,17 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
           >
             {props.loadingTargets ? (
               <div className="flex h-full min-h-[360px] items-center justify-center">
-                <div className="max-w-md rounded-[28px] border border-white/85 bg-white/82 px-6 py-8 text-center shadow-[0_20px_52px_rgba(15,23,42,0.08)]">
-                  <p className="text-lg font-semibold text-slate-900">Loading targets...</p>
+                <div className="max-w-md rounded-[28px] border border-[color-mix(in_srgb,var(--nimi-border-subtle)_85%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] px-6 py-8 text-center shadow-[0_20px_52px_color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)]">
+                  <p className="text-lg font-semibold text-[var(--nimi-text-primary)]">Loading targets...</p>
                 </div>
               </div>
             ) : null}
 
             {!props.loadingTargets && props.targets.length === 0 ? (
               <div className="flex h-full min-h-[360px] items-center justify-center">
-                <div className="max-w-md rounded-[28px] border border-dashed border-white/85 bg-white/82 px-6 py-8 text-center shadow-[0_20px_52px_rgba(15,23,42,0.08)]">
-                  <p className="text-lg font-semibold text-slate-900">No targets available</p>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                <div className="max-w-md rounded-[28px] border border-dashed border-[color-mix(in_srgb,var(--nimi-border-subtle)_85%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_82%,transparent)] px-6 py-8 text-center shadow-[0_20px_52px_color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)]">
+                  <p className="text-lg font-semibold text-[var(--nimi-text-primary)]">No targets available</p>
+                  <p className="mt-3 text-sm leading-6 text-[var(--nimi-text-secondary)]">
                     Change the source filter or wait until a compatible conversation target appears.
                   </p>
                 </div>
@@ -460,7 +460,7 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
                         <button
                           type="button"
                           onClick={() => handleSelectTarget(target.id)}
-                          className="group relative flex items-center justify-center rounded-full outline-none focus-visible:ring-4 focus-visible:ring-emerald-200"
+                          className="group relative flex items-center justify-center rounded-full outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--nimi-focus-ring)_40%,transparent)]"
                           style={{
                             width: `${layout.size}px`,
                             height: `${layout.size}px`,
@@ -487,10 +487,10 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
                             }}
                           />
                           <span
-                            className="pointer-events-none absolute inset-0 rounded-full border border-white/80 shadow-[0_8px_16px_rgba(15,23,42,0.06)]"
+                            className="pointer-events-none absolute inset-0 rounded-full border border-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)] shadow-[0_8px_16px_color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]"
                             style={{ background: palette.bubbleSurface }}
                           />
-                          <span className="absolute inset-[8px] overflow-hidden rounded-full border border-white/80 bg-white/90">
+                          <span className="absolute inset-[8px] overflow-hidden rounded-full border border-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,transparent)]">
                             {target.avatarUrl ? (
                               <img src={target.avatarUrl} alt={target.title} className="h-full w-full object-cover" />
                             ) : (
@@ -501,20 +501,20 @@ export function CanonicalTargetPane(props: CanonicalTargetPaneProps) {
                           </span>
                           {onlineState ? (
                             <span className={cn(
-                              'absolute bottom-[16%] right-[15%] h-4 w-4 rounded-full border-2 border-white',
-                              onlineState === 'online' ? 'bg-emerald-500' : 'bg-slate-300',
+                              'absolute bottom-[16%] right-[15%] h-4 w-4 rounded-full border-2 border-[var(--nimi-surface-card)]',
+                              onlineState === 'online' ? 'bg-[var(--nimi-status-success)]' : 'bg-[var(--nimi-status-neutral)]',
                             )}
                             />
                           ) : null}
                           {unreadBadge ? (
-                            <span className="absolute -right-2 top-2 inline-flex h-7 min-w-[28px] items-center justify-center rounded-full bg-slate-900 px-2 text-[11px] font-bold text-white shadow-[0_10px_20px_rgba(15,23,42,0.2)]">
+                            <span className="absolute -right-2 top-2 inline-flex h-7 min-w-[28px] items-center justify-center rounded-full bg-[var(--nimi-text-primary)] px-2 text-[11px] font-bold text-[var(--nimi-text-inverse)] shadow-[0_10px_20px_color-mix(in_srgb,var(--nimi-text-primary)_20%,transparent)]">
                               {unreadBadge}
                             </span>
                           ) : null}
                         </button>
 
                         <p
-                          className="absolute left-1/2 -translate-x-1/2 truncate text-center text-xs font-semibold text-slate-700"
+                          className="absolute left-1/2 -translate-x-1/2 truncate text-center text-xs font-semibold text-[var(--nimi-text-secondary)]"
                           style={{
                             top: `${layout.labelTop - layout.top}px`,
                             maxWidth: `${layout.size + 22}px`,

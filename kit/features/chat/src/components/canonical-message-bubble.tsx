@@ -1,5 +1,5 @@
-import { memo, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { memo, useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { Dialog, DialogContent, DialogTitle, IconButton, cn } from '@nimiplatform/nimi-kit/ui';
 import type { ConversationCanonicalMessage } from '../types.js';
 import { ChatMarkdownRenderer } from './chat-markdown-renderer.js';
 import { RpContentRenderer } from './rp-content-renderer.js';
@@ -8,23 +8,6 @@ import { hasRpContent } from '../utils/rp-content-parser.js';
 export type CanonicalBubbleDisplayContext = 'transcript' | 'stage';
 
 type StageMediaPreviewKind = 'image' | 'video' | 'image-pending' | 'video-pending';
-
-const DIALOG_FOCUSABLE_SELECTOR = [
-  'button:not([disabled])',
-  '[href]',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
-  '[tabindex]:not([tabindex="-1"])',
-].join(',');
-
-function listDialogFocusableElements(root: HTMLElement | null): HTMLElement[] {
-  if (!root) {
-    return [];
-  }
-  return Array.from(root.querySelectorAll<HTMLElement>(DIALOG_FOCUSABLE_SELECTOR))
-    .filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true');
-}
 
 type BubbleShape = { className: string; style: CSSProperties };
 
@@ -238,9 +221,6 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
   const bubbleShape = bubbleShapeFor(message.role, position);
   const animationName = entryAnimationFor(message);
   const animationDelayMs = Math.min(Math.max(Number((message.metadata as Record<string, unknown> | undefined)?.beatIndex || 0), 0) * 90, 320);
-  const previewDialogRef = useRef<HTMLDivElement | null>(null);
-  const previewCloseButtonRef = useRef<HTMLButtonElement | null>(null);
-  const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
   const [videoLoadError, setVideoLoadError] = useState(false);
@@ -281,8 +261,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
     setImagePreviewOpen(false);
   }, []);
 
-  const handleOpenImagePreview = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    lastFocusedElementRef.current = event.currentTarget;
+  const handleOpenImagePreview = useCallback(() => {
     setImagePreviewOpen(true);
   }, []);
 
@@ -291,63 +270,6 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
     setVideoLoadError(false);
     setResolvedMediaSize(null);
   }, [message.id, mediaUri]);
-
-  useEffect(() => {
-    if (!imagePreviewOpen) {
-      return undefined;
-    }
-    const dialog = previewDialogRef.current;
-    const doc = dialog?.ownerDocument || document;
-    if (!lastFocusedElementRef.current && doc.activeElement instanceof HTMLElement) {
-      lastFocusedElementRef.current = doc.activeElement;
-    }
-    const focusInitialTarget = () => {
-      const initialTarget = previewCloseButtonRef.current || listDialogFocusableElements(dialog)[0] || dialog;
-      initialTarget?.focus();
-    };
-    const focusTimer = window.setTimeout(focusInitialTarget, 0);
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        closeImagePreview();
-        return;
-      }
-      if (event.key !== 'Tab') {
-        return;
-      }
-      const focusables = listDialogFocusableElements(dialog);
-      if (focusables.length === 0) {
-        event.preventDefault();
-        dialog?.focus();
-        return;
-      }
-      const activeElement = doc.activeElement instanceof HTMLElement ? doc.activeElement : null;
-      const first = focusables[0] || null;
-      const last = focusables[focusables.length - 1] || null;
-      const activeInside = Boolean(activeElement && dialog?.contains(activeElement));
-      if (event.shiftKey) {
-        if (!activeInside || activeElement === first) {
-          event.preventDefault();
-          last?.focus();
-        }
-        return;
-      }
-      if (!activeInside || activeElement === last) {
-        event.preventDefault();
-        first?.focus();
-      }
-    };
-    doc.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.clearTimeout(focusTimer);
-      doc.removeEventListener('keydown', onKeyDown);
-      const lastFocused = lastFocusedElementRef.current;
-      lastFocusedElementRef.current = null;
-      if (lastFocused && doc.contains(lastFocused)) {
-        lastFocused.focus();
-      }
-    };
-  }, [closeImagePreview, imagePreviewOpen]);
 
   const resolvedAvatar = avatar === undefined
     ? (showAvatar ? resolveMessageAvatar(message) : <span className="h-8 w-8 shrink-0" aria-hidden />)
@@ -478,30 +400,24 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
         </div>
       </div>
 
-      {imagePreviewOpen && mediaUri ? (
-        <div
-          ref={previewDialogRef}
-          className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-6"
-          onClick={closeImagePreview}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Image preview"
-          tabIndex={-1}
+      <Dialog open={imagePreviewOpen && Boolean(mediaUri)} onOpenChange={(open) => { if (!open) closeImagePreview(); }}>
+        <DialogContent
+          onClose={closeImagePreview}
+          overlayClassName="z-[1000] bg-black/70"
+          className="z-[1001] flex max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] items-start justify-center border-0 bg-transparent p-0 shadow-none"
         >
-          <div className="relative flex max-h-full max-w-full items-start justify-center" onClick={(event) => event.stopPropagation()}>
-            <button
-              ref={previewCloseButtonRef}
-              type="button"
-              onClick={closeImagePreview}
-              className="absolute right-3 top-3 z-[1] inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-2xl text-white shadow-lg transition hover:bg-black/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              aria-label="Close image preview"
-            >
-              <span aria-hidden>×</span>
-            </button>
-            <img src={mediaUri} alt={message.text || 'Image'} className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl" />
-          </div>
-        </div>
-      ) : null}
+          <DialogTitle className="sr-only">Image preview</DialogTitle>
+          <IconButton
+            onClick={closeImagePreview}
+            className="absolute right-3 top-3 z-[1] h-10 w-10 rounded-full bg-black/60 text-2xl text-white shadow-lg hover:bg-black/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            aria-label="Close image preview"
+            icon={<span aria-hidden>×</span>}
+          />
+          {mediaUri ? (
+            <img src={mediaUri} alt={message.text || 'Image'} className="max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] rounded-2xl object-contain shadow-2xl" />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </>
   );
 });

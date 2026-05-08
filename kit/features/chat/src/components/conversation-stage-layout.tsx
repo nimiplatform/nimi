@@ -1,5 +1,5 @@
 import { useState, useCallback, type ReactNode } from 'react';
-import { cn } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, SidebarShell, cn } from '@nimiplatform/nimi-kit/ui';
 import { ConversationAnimationStyles } from './conversation-animations.js';
 
 export type ConversationStageLayoutProps = {
@@ -69,10 +69,11 @@ export function ConversationStageLayout({
 
       {/* settings drawer */}
       {settingsDrawer ? (
-        <aside
+        <SidebarShell
+          as="aside"
           className={cn(
             'absolute inset-y-0 right-0 z-30 flex w-[360px] max-w-[92vw] flex-col',
-            'border-l border-white/70 bg-[#f8fbfb]',
+            'rounded-none border-y-0 border-r-0 bg-[#f8fbfb]',
             'shadow-[-8px_0_24px_rgba(15,23,42,0.08)]',
             'transition-transform duration-[280ms] ease-[cubic-bezier(0.2,0.7,0.2,1)]',
             isOpen ? 'translate-x-0' : 'pointer-events-none translate-x-full',
@@ -80,25 +81,24 @@ export function ConversationStageLayout({
         >
           {/* close button */}
           <div className="flex shrink-0 items-center justify-end px-4 pt-4">
-            <button
-              type="button"
+            <IconButton
               aria-label="Close settings"
               onClick={() => setOpen(false)}
               className={cn(
-                'inline-flex h-8 w-8 items-center justify-center rounded-full',
-                'border border-slate-200/80 bg-white/90 text-slate-500',
+                'h-8 w-8 rounded-full border-slate-200/80 bg-white/90 text-slate-500',
                 'transition-colors hover:border-emerald-300 hover:text-teal-700',
               )}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              icon={(
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path d="M11 3L3 11M3 3l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </button>
+                </svg>
+              )}
+            />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-2">
             {settingsDrawer}
           </div>
-        </aside>
+        </SidebarShell>
       ) : null}
     </div>
   );
