@@ -8,6 +8,7 @@ import {
   getSparkHistory,
   getGemHistory,
   getRevenueShareConfig,
+  getAgentOrigin,
   previewRevenueDistribution,
   getConnectStatus,
   getWithdrawalConfig,
@@ -20,6 +21,7 @@ type BalancesPayload = Awaited<ReturnType<typeof getBalances>>;
 type SparkHistoryPayload = Awaited<ReturnType<typeof getSparkHistory>>;
 type GemHistoryPayload = Awaited<ReturnType<typeof getGemHistory>>;
 type RevenueShareConfigPayload = Awaited<ReturnType<typeof getRevenueShareConfig>>;
+type AgentOriginPayload = Awaited<ReturnType<typeof getAgentOrigin>>;
 type RevenuePreviewPayload = Awaited<ReturnType<typeof previewRevenueDistribution>>;
 type ConnectStatusPayload = Awaited<ReturnType<typeof getConnectStatus>>;
 type WithdrawalConfigPayload = Awaited<ReturnType<typeof getWithdrawalConfig>>;
@@ -54,6 +56,7 @@ export type RevenueShareConfigData = {
 };
 
 export type RevenuePreviewData = RevenuePreviewPayload;
+export type AgentOriginData = AgentOriginPayload;
 
 export type WithdrawalConfigData = {
   minimumAmount: number;
@@ -206,6 +209,15 @@ export function useRevenueShareConfigQuery(enabled = true) {
     retry: false,
     queryFn: async (): Promise<RevenueShareConfigData> =>
       toRevenueShareConfigData(await getRevenueShareConfig()),
+  });
+}
+
+export function useAgentOriginQuery(agentId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['forge', 'revenue', 'agent-origin', agentId],
+    enabled: enabled && Boolean(agentId),
+    retry: false,
+    queryFn: async (): Promise<AgentOriginData> => await getAgentOrigin(agentId),
   });
 }
 
