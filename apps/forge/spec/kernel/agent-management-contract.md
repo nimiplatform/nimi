@@ -223,7 +223,7 @@ Forge distinguishes two speech lanes:
    - purpose: synthesize playable demo audio from a confirmed greeting or other
      admitted prompt text
 2. Optional custom voice design
-   - canonical capability: `voice_workflow.tts_t2v`
+   - canonical capability: `voice_workflow.voice_design`
    - purpose: derive or preview a custom voice identity before a later speech
      demo synthesis step
 
@@ -231,7 +231,7 @@ Posture rules:
 
 - `audio.synthesize` is the only admitted canonical plain-speech route token
   for Forge speech demo generation
-- `voice_workflow.tts_t2v` is optional and constrained; it may create
+- `voice_workflow.voice_design` is optional and constrained; it may create
   `workflow-output` candidates or reusable voice handles, but it does not
   replace plain speech demo synthesis
 - `tts.synthesize` must not be stored or reasoned over as a canonical Forge
@@ -261,7 +261,7 @@ Posture rules:
 12. Greeting completeness distinguishes `confirmed` from `bound` and does not
     require Forge to invent a new backend write domain.
 13. Voice demo generation uses `audio.synthesize` as the canonical plain speech
-    lane and treats `voice_workflow.tts_t2v` as a separate optional custom
+    lane and treats `voice_workflow.voice_design` as a separate optional custom
     voice-design lane.
 14. `MASTER_OWNED` and `WORLD_OWNED` agents share the same asset-ops grammar
     even when their truth-edit or bind seams differ.

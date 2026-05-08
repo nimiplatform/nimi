@@ -40,7 +40,7 @@ const CAPABILITIES: CapabilityEntry[] = [
   { key: 'image', labelKey: 'settings.aiImage', fallback: 'Image Model', runtimeCapability: 'image.generate' },
   { key: 'music', labelKey: 'settings.aiMusic', fallback: 'Music Model', runtimeCapability: 'music.generate' },
   { key: 'tts', labelKey: 'settings.aiTts', fallback: 'Speech Model', runtimeCapability: 'audio.synthesize' },
-  { key: 'voiceDesign', labelKey: 'settings.aiVoiceDesign', fallback: 'Voice Design Model', runtimeCapability: 'voice_workflow.tts_t2v' },
+  { key: 'voiceDesign', labelKey: 'settings.aiVoiceDesign', fallback: 'Voice Design Model', runtimeCapability: 'voice_workflow.voice_design' },
 ];
 
 // ---------------------------------------------------------------------------

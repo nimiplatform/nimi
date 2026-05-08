@@ -128,7 +128,7 @@ describe('runForgeBootstrap', () => {
     expect(useAppStore.getState().bootstrapError).toBe('bridge unavailable');
   });
 
-  it('continues if runtime.ready() fails (non-blocking)', async () => {
+  it('sets bootstrapError when runtime.ready() fails', async () => {
     const defaults = makeRuntimeDefaults();
     const mockRuntime = { ready: vi.fn().mockRejectedValue(new Error('no runtime')) };
     const mockRealm = { raw: { request: vi.fn() } };
@@ -140,11 +140,13 @@ describe('runForgeBootstrap', () => {
 
     await runForgeBootstrap();
 
-    expect(useAppStore.getState().bootstrapReady).toBe(true);
-    expect(useAppStore.getState().bootstrapError).toBeNull();
+    expect(mockRuntime.ready).toHaveBeenCalledOnce();
+    expect(mockGetDaemonStatus).not.toHaveBeenCalled();
+    expect(useAppStore.getState().bootstrapReady).toBe(false);
+    expect(useAppStore.getState().bootstrapError).toBe('no runtime');
   });
 
-  it('continues if getDaemonStatus fails (non-blocking)', async () => {
+  it('sets bootstrapError when getDaemonStatus fails', async () => {
     const defaults = makeRuntimeDefaults();
     const mockRuntime = { ready: vi.fn().mockResolvedValue(undefined) };
     const mockRealm = { raw: { request: vi.fn() } };
@@ -156,7 +158,10 @@ describe('runForgeBootstrap', () => {
 
     await runForgeBootstrap();
 
-    expect(useAppStore.getState().bootstrapReady).toBe(true);
+    expect(mockRuntime.ready).toHaveBeenCalledOnce();
+    expect(mockGetDaemonStatus).toHaveBeenCalledOnce();
+    expect(useAppStore.getState().bootstrapReady).toBe(false);
+    expect(useAppStore.getState().bootstrapError).toBe('daemon not available');
   });
 
   it('sets bootstrapError when getRuntimeDefaults fails', async () => {

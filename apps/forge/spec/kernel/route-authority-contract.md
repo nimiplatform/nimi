@@ -28,7 +28,7 @@ Forge exposes route selection for the following capabilities:
 | Image Model | `image.generate` | `runtime.route.listOptions({ capability: 'image.generate' })` | Stable |
 | Music Model | `music.generate` | `runtime.route.listOptions({ capability: 'music.generate' })` | Stable |
 | Speech Model | `audio.synthesize` | `runtime.route.listOptions({ capability: 'audio.synthesize' })` | Stable |
-| Voice Design Model | `voice_workflow.tts_t2v` | `runtime.route.listOptions({ capability: 'voice_workflow.tts_t2v' })` | Optional when admitted by Forge asset ops |
+| Voice Design Model | `voice_workflow.voice_design` | `runtime.route.listOptions({ capability: 'voice_workflow.voice_design' })` | Optional when admitted by Forge asset ops |
 
 All admitted capability tokens in this table use canonical runtime capability
 strings and pass through the full route authority chain:
@@ -77,7 +77,7 @@ Speech alignment boundary:
 
 - this contract does not create a separate Forge-owned route authority line for
   speech or voice workflows
-- `audio.synthesize` and `voice_workflow.tts_t2v` continue to resolve through
+- `audio.synthesize` and `voice_workflow.voice_design` continue to resolve through
   `runtime.route.listOptions(...)`
 - any later execution-layer use must consume the admitted runtime host surface
   for that capability rather than inventing app-local provider truth
@@ -112,7 +112,7 @@ Speech storage constraints:
 
 - `AIConfig.capabilities.selectedBindings['audio.synthesize']` is the only
   admitted plain-speech selection key
-- `AIConfig.capabilities.selectedBindings['voice_workflow.tts_t2v']` is the
+- `AIConfig.capabilities.selectedBindings['voice_workflow.voice_design']` is the
   optional custom-voice design selection key when that lane is admitted
 - `tts.synthesize` may be read only as a migration alias and must not be
   written back as canonical selection truth
@@ -160,16 +160,16 @@ custom voice design.
 | Product label | Canonical capability | Route-authority role |
 |---------------|----------------------|----------------------|
 | Speech Model | `audio.synthesize` | Required route selection lane for admitted speech-demo generation |
-| Voice Design Model | `voice_workflow.tts_t2v` | Optional route selection lane for admitted custom voice design |
+| Voice Design Model | `voice_workflow.voice_design` | Optional route selection lane for admitted custom voice design |
 
 Rules:
 
 - `audio.synthesize` is the canonical plain-speech capability for Forge
-- `voice_workflow.tts_t2v` is a sibling workflow capability, not an alias of
+- `voice_workflow.voice_design` is a sibling workflow capability, not an alias of
   plain speech synthesis
-- availability of `voice_workflow.tts_t2v` does not by itself unlock a product
+- availability of `voice_workflow.voice_design` does not by itself unlock a product
   surface; Forge must also admit that lane in the relevant asset-ops contract
-- if `voice_workflow.tts_t2v` is unavailable, Forge must fail closed on custom
+- if `voice_workflow.voice_design` is unavailable, Forge must fail closed on custom
   voice design while keeping plain speech demo generation available through
   `audio.synthesize`
 - `tts.synthesize` must not remain a stored, displayed, or route-authority

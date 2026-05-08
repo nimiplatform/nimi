@@ -92,12 +92,12 @@ describe('ai-config-store (AIConfig)', () => {
     expect(useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['tts.synthesize']).toBeUndefined();
   });
 
-  it('setSelection stores voice_workflow.tts_t2v in AIConfig', () => {
+  it('setSelection stores voice_workflow.voice_design in AIConfig', () => {
     useAiConfigStore.getState().setSelection('voiceDesign', {
       source: 'cloud', connectorId: 'c-voice', model: 'voice-designer-v1',
     });
 
-    const binding = useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['voice_workflow.tts_t2v'];
+    const binding = useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['voice_workflow.voice_design'];
     expect(binding).toEqual({ source: 'cloud', connectorId: 'c-voice', model: 'voice-designer-v1' });
   });
 

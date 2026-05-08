@@ -17,163 +17,31 @@ import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
 import type {
   RuntimeCanonicalCapability,
   RuntimeRouteOptionsSnapshot,
-  RuntimeRouteConnectorOption,
 } from '@nimiplatform/sdk/mod';
 
 // ---------------------------------------------------------------------------
-// Connector kind filter (same constant used by Desktop's sdkListConnectors)
+// Route options authority
 // ---------------------------------------------------------------------------
 
-const CONNECTOR_KIND_REMOTE_MANAGED = 2;
-
-// ---------------------------------------------------------------------------
-// Route options builder — Forge-specific, simpler than Desktop
-// ---------------------------------------------------------------------------
-
-function normalizeCapabilityToken(value: unknown): RuntimeCanonicalCapability | null {
-  const normalized = String(value || '').trim();
-  if (
-    normalized === 'text.generate'
-    || normalized === 'text.embed'
-    || normalized === 'image.generate'
-    || normalized === 'video.generate'
-    || normalized === 'audio.synthesize'
-    || normalized === 'audio.transcribe'
-    || normalized === 'music.generate'
-    || normalized === 'voice_workflow.tts_v2v'
-    || normalized === 'voice_workflow.tts_t2v'
-  ) {
-    return normalized;
-  }
-  // Aliases
-  if (normalized === 'chat') return 'text.generate';
-  if (normalized === 'image') return 'image.generate';
-  if (normalized === 'video') return 'video.generate';
-  if (normalized === 'tts') return 'audio.synthesize';
-  if (normalized === 'stt') return 'audio.transcribe';
-  if (normalized === 'music') return 'music.generate';
-  if (normalized === 'music.generate.iteration') return 'music.generate';
-  return null;
-}
-
-function modelSupportsCapability(
-  capabilities: string[] | undefined,
-  capability: RuntimeCanonicalCapability,
-): boolean {
-  return (capabilities || []).some(
-    (item) => normalizeCapabilityToken(item) === capability,
-  );
-}
+type RuntimeRouteAuthority = {
+  route?: {
+    listOptions?: (input: {
+      capability: RuntimeCanonicalCapability;
+    }) => Promise<RuntimeRouteOptionsSnapshot>;
+  };
+};
 
 async function loadForgeRouteOptions(input: {
   capability: RuntimeCanonicalCapability;
 }): Promise<RuntimeRouteOptionsSnapshot> {
-  const { runtime } = getPlatformClient();
-
-  // Cloud connectors — filtered to REMOTE_MANAGED
-  const connectorResponse = await runtime.connector.listConnectors({
-    pageSize: 0,
-    pageToken: '',
-    kindFilter: CONNECTOR_KIND_REMOTE_MANAGED,
-    statusFilter: 0,
-    providerFilter: '',
-  });
-
-  const rawConnectors = Array.isArray(connectorResponse.connectors)
-    ? (connectorResponse.connectors as Array<{
-        connectorId: string;
-        provider: string;
-        label: string;
-        kind: number;
-      }>)
-    : [];
-
-  const connectors: RuntimeRouteConnectorOption[] = [];
-  for (const connector of rawConnectors) {
-    if (connector.kind !== CONNECTOR_KIND_REMOTE_MANAGED) continue;
-
-    const modelResponse = await runtime.connector.listConnectorModels({
-      connectorId: connector.connectorId,
-      forceRefresh: false,
-      pageSize: 0,
-      pageToken: '',
-    });
-    const rawModels = Array.isArray(modelResponse.models)
-      ? (modelResponse.models as Array<{
-          modelId: string;
-          available: boolean;
-          capabilities: string[];
-        }>)
-      : [];
-    const models = rawModels
-      .filter((m) => m.available && modelSupportsCapability(m.capabilities, input.capability))
-      .map((m) => m.modelId);
-
-    if (models.length === 0) continue;
-
-    const modelCapabilities = rawModels
-      .filter((m) => m.available && modelSupportsCapability(m.capabilities, input.capability))
-      .reduce<Record<string, string[]>>((acc, m) => {
-        acc[m.modelId] = m.capabilities;
-        return acc;
-      }, {});
-
-    connectors.push({
-      id: connector.connectorId,
-      label: String(connector.label || ''),
-      provider: String(connector.provider || '').trim() || undefined,
-      models,
-      modelCapabilities,
-    });
+  const runtime = getPlatformClient().runtime as RuntimeRouteAuthority;
+  const listOptions = runtime.route?.listOptions;
+  if (!listOptions) {
+    throw new Error(
+      'FORGE_RUNTIME_ROUTE_AUTHORITY_UNAVAILABLE: runtime.route.listOptions is required for Forge route options',
+    );
   }
-
-  // Local assets
-  const localResponse = await runtime.local.listLocalAssets({ statusFilter: 0, kindFilter: 0, engineFilter: '', pageSize: 0, pageToken: '' }).catch(() => ({ assets: [] }));
-  const rawAssets = Array.isArray(localResponse.assets)
-    ? (localResponse.assets as Array<{
-        localAssetId?: string;
-        assetId?: string;
-        logicalModelId?: string;
-        modelId?: string;
-        engine?: string;
-        status?: number;
-        capabilities?: string[];
-      }>)
-    : [];
-
-  const STATUS_MAP: Record<number, string> = {
-    0: 'unspecified',
-    1: 'installed',
-    2: 'active',
-    3: 'unhealthy',
-    4: 'removed',
-  };
-
-  const localModels = rawAssets
-    .filter((a) => {
-      const status = STATUS_MAP[a.status as number] || 'unspecified';
-      return status !== 'removed' && modelSupportsCapability(a.capabilities, input.capability);
-    })
-    .map((a) => ({
-      localModelId: String(a.localAssetId || ''),
-      model: String(a.assetId || a.logicalModelId || a.modelId || ''),
-      modelId: String(a.assetId || a.logicalModelId || a.modelId || ''),
-      label: String(a.assetId || ''),
-      engine: String(a.engine || ''),
-      status: STATUS_MAP[a.status as number] || 'unspecified',
-      capabilities: (a.capabilities || [])
-        .map((c) => normalizeCapabilityToken(c))
-        .filter((c): c is RuntimeCanonicalCapability => Boolean(c)),
-    }));
-
-  return {
-    capability: input.capability,
-    selected: null,
-    local: {
-      models: localModels,
-    },
-    connectors,
-  };
+  return listOptions({ capability: input.capability });
 }
 
 // ---------------------------------------------------------------------------
@@ -219,7 +87,7 @@ export function buildForgeRuntimeHost() {
         peek: async () => ({ state: 'unknown', detail: 'forge does not support scheduling peek', occupancy: null, resourceWarnings: [] }),
       },
       local: {
-        listAssets: async (input: { modId: string }) => {
+        listAssets: async (_input: { modId: string }) => {
           const { runtime } = getPlatformClient();
           const response = await runtime.local.listLocalAssets({ statusFilter: 0, kindFilter: 0, engineFilter: '', pageSize: 0, pageToken: '' });
           return response.assets || [];

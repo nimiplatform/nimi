@@ -28,7 +28,7 @@ const CAPABILITY_MAP: Record<ForgeAiCapability, string> = {
   image: 'image.generate',
   music: 'music.generate',
   tts: 'audio.synthesize',
-  voiceDesign: 'voice_workflow.tts_t2v',
+  voiceDesign: 'voice_workflow.voice_design',
 };
 
 const CAPABILITY_ALIASES: Partial<Record<string, readonly string[]>> = {

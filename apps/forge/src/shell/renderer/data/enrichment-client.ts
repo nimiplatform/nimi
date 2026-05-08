@@ -45,7 +45,7 @@ export type DesignedVoiceAsset = {
   providerVoiceRef: string | null;
   modelId: string;
   targetModelId: string;
-  workflowType: 'tts_t2v' | 'tts_v2v' | 'unspecified';
+  workflowType: 'voice_design' | 'unspecified';
   status: 'ACTIVE' | 'EXPIRED' | 'DELETED' | 'FAILED' | 'UNSPECIFIED';
   createdAt: string | null;
   updatedAt: string | null;
@@ -67,7 +67,7 @@ function requireAiBinding(capability: 'text' | 'tts') {
 }
 
 function requireVoiceDesignBinding(): ResolvedRouteBinding {
-  const binding = useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['voice_workflow.tts_t2v'];
+  const binding = useAiConfigStore.getState().aiConfig.capabilities.selectedBindings['voice_workflow.voice_design'];
   if (!binding || typeof binding !== 'object') {
     throw new Error('FORGE_ENRICHMENT_VOICE_DESIGN_BINDING_REQUIRED');
   }
@@ -157,11 +157,9 @@ function toDesignedVoiceAsset(asset: VoiceAsset): DesignedVoiceAsset {
     providerVoiceRef: String(asset.providerVoiceRef || '').trim() || null,
     modelId: String(asset.modelId || '').trim(),
     targetModelId: String(asset.targetModelId || '').trim(),
-    workflowType: asset.workflowType === VoiceWorkflowType.TTS_T2V
-      ? 'tts_t2v'
-      : asset.workflowType === VoiceWorkflowType.TTS_V2V
-        ? 'tts_v2v'
-        : 'unspecified',
+    workflowType: asset.workflowType === VoiceWorkflowType.VOICE_DESIGN
+      ? 'voice_design'
+      : 'unspecified',
     status,
     createdAt: toTimestampIso(asset.createdAt),
     updatedAt: toTimestampIso(asset.updatedAt),
@@ -422,7 +420,7 @@ export async function designCustomVoiceAsset(input: {
     idempotencyKey: crypto.randomUUID(),
     labels: {
       surface: 'forge-agent-asset-ops',
-      capability: 'voice_workflow.tts_t2v',
+      capability: 'voice_workflow.voice_design',
     },
     extensions: [],
     spec: {
@@ -473,7 +471,7 @@ export async function listDesignedVoiceAssets(input?: {
     subjectUserId,
     modelId: binding.model,
     targetModelId: String(input?.targetModelId || currentTtsModelId() || binding.model).trim(),
-    workflowType: VoiceWorkflowType.TTS_T2V,
+    workflowType: VoiceWorkflowType.VOICE_DESIGN,
     status: VoiceAssetStatus.ACTIVE,
     pageSize: 50,
     pageToken: '',

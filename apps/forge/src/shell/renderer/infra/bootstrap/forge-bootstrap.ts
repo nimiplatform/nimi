@@ -177,22 +177,13 @@ async function doRunForgeBootstrap(): Promise<void> {
     });
 
     // Step 6: Runtime SDK Readiness
-    try {
-      await runtime.ready();
-    } catch {
-      // Runtime readiness is non-blocking for Forge — creator features
-      // may work without local AI runtime available
-    }
+    await runtime.ready();
 
     // Step 7: Exit Handler (daemon status check)
-    try {
-      const daemonStatus = await getDaemonStatus();
-      if (daemonStatus.managed) {
-        // Register exit handler if daemon is managed
-        // Forge uses a lighter touch — just log the status
-      }
-    } catch {
-      // Non-blocking — daemon may not be running
+    const daemonStatus = await getDaemonStatus();
+    if (daemonStatus.managed) {
+      // Register exit handler if daemon is managed
+      // Forge uses a lighter touch — just log the status
     }
 
     // Step 8: Ready

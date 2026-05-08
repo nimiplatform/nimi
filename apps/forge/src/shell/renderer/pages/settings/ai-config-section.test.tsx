@@ -100,12 +100,13 @@ describe('AiConfigSection', () => {
     });
   });
 
-  it('renders capability section titles for chat, image, music, and tts', () => {
+  it('renders capability section titles for chat, image, music, speech, and voice design', () => {
     renderSection();
     expect(screen.getByText('Chat Model')).toBeTruthy();
     expect(screen.getByText('Image Model')).toBeTruthy();
     expect(screen.getByText('Music Model')).toBeTruthy();
-    expect(screen.getByText('TTS Model')).toBeTruthy();
+    expect(screen.getByText('Speech Model')).toBeTruthy();
+    expect(screen.getByText('Voice Design Model')).toBeTruthy();
   });
 
   it('does not render Preview badge — all capabilities are stable', () => {

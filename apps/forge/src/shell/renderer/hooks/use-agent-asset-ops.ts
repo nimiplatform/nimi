@@ -394,7 +394,7 @@ export function useAgentAssetOps(agentId: string, options: UseAgentAssetOpsOptio
   const queryClient = useQueryClient();
   const userId = useAppStore((state) => state.auth?.user?.id ?? '');
   const customVoiceBinding = useAiConfigStore((state) =>
-    state.aiConfig.capabilities.selectedBindings['voice_workflow.tts_t2v'],
+    state.aiConfig.capabilities.selectedBindings['voice_workflow.voice_design'],
   );
   const ttsBinding = useAiConfigStore((state) =>
     state.aiConfig.capabilities.selectedBindings[CAPABILITY_MAP.tts],

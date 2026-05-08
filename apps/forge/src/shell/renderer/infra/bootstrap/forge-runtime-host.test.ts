@@ -3,10 +3,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockListConnectors = vi.fn();
 const mockListConnectorModels = vi.fn();
 const mockListLocalAssets = vi.fn();
+const mockRuntimeRouteListOptions = vi.fn();
+let mockRuntimeRouteListOptionsAvailable = true;
 
 vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     runtime: {
+      route: mockRuntimeRouteListOptionsAvailable
+        ? {
+            listOptions: mockRuntimeRouteListOptions,
+          }
+        : {},
       connector: {
         listConnectors: mockListConnectors,
         listConnectorModels: mockListConnectorModels,
@@ -23,86 +30,55 @@ const { buildForgeRuntimeHost } = await import('./forge-runtime-host.js');
 describe('buildForgeRuntimeHost', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRuntimeRouteListOptionsAvailable = true;
     mockListLocalAssets.mockResolvedValue({ assets: [] });
   });
 
-  it('preserves openai_codex and openai_compatible providers in cloud route options', async () => {
-    mockListConnectors.mockResolvedValue({
+  it('delegates route options to runtime route authority without inventory fallback', async () => {
+    const snapshot = {
+      capability: 'text.generate',
+      selected: null,
+      local: { models: [] },
       connectors: [
         {
-          connectorId: 'conn-codex',
-          provider: 'openai_codex',
+          id: 'conn-codex',
           label: 'Codex Subscription',
-          kind: 2,
-        },
-        {
-          connectorId: 'conn-qwen',
-          provider: 'openai_compatible',
-          label: 'Qwen OAuth',
-          kind: 2,
+          provider: 'openai_codex',
+          models: ['gpt-5.4'],
+          modelCapabilities: {
+            'gpt-5.4': ['text.generate'],
+          },
         },
       ],
-    });
-    mockListConnectorModels.mockImplementation(async ({ connectorId }: { connectorId: string }) => {
-      if (connectorId === 'conn-codex') {
-        return {
-          models: [
-            {
-              modelId: 'gpt-image-2',
-              available: true,
-              capabilities: ['image.generate'],
-            },
-            {
-              modelId: 'gpt-5.4',
-              available: true,
-              capabilities: ['text.generate'],
-            },
-          ],
-        };
-      }
-      if (connectorId === 'conn-qwen') {
-        return {
-          models: [
-            {
-              modelId: 'qwen-max',
-              available: true,
-              capabilities: ['text.generate'],
-            },
-          ],
-        };
-      }
-      return { models: [] };
-    });
+    };
+    mockRuntimeRouteListOptions.mockResolvedValue(snapshot);
+    mockListConnectors.mockRejectedValue(new Error('connector inventory must not be called'));
+    mockListConnectorModels.mockRejectedValue(new Error('connector model inventory must not be called'));
+    mockListLocalAssets.mockRejectedValue(new Error('local inventory must not be called'));
 
     const host = buildForgeRuntimeHost();
-    const imageOptions = await host.runtime.route.listOptions({
-      modId: 'forge',
-      capability: 'image.generate',
-    });
-    const textOptions = await host.runtime.route.listOptions({
+    const options = await host.runtime.route.listOptions({
       modId: 'forge',
       capability: 'text.generate',
     });
 
-    expect(imageOptions.connectors).toEqual([
-      expect.objectContaining({
-        id: 'conn-codex',
-        label: 'Codex Subscription',
-        provider: 'openai_codex',
-        models: ['gpt-image-2'],
-      }),
-    ]);
-    expect(textOptions.connectors).toEqual([
-      expect.objectContaining({
-        id: 'conn-codex',
-        provider: 'openai_codex',
-        models: ['gpt-5.4'],
-      }),
-      expect.objectContaining({
-        id: 'conn-qwen',
-        provider: 'openai_compatible',
-        models: ['qwen-max'],
-      }),
-    ]);
+    expect(options).toBe(snapshot);
+    expect(mockRuntimeRouteListOptions).toHaveBeenCalledWith({
+      capability: 'text.generate',
+    });
+    expect(mockListConnectors).not.toHaveBeenCalled();
+    expect(mockListConnectorModels).not.toHaveBeenCalled();
+    expect(mockListLocalAssets).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when runtime route authority is unavailable', async () => {
+    mockRuntimeRouteListOptionsAvailable = false;
+
+    const host = buildForgeRuntimeHost();
+
+    await expect(host.runtime.route.listOptions({
+      modId: 'forge',
+      capability: 'text.generate',
+    })).rejects.toThrow('FORGE_RUNTIME_ROUTE_AUTHORITY_UNAVAILABLE');
   });
 });
