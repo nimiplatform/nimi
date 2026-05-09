@@ -213,16 +213,6 @@ const RuntimeAllMethodIds: readonly string[] = Object.freeze(
 );
 
 export const RuntimeMethodGroupDeniedMethodIds: readonly string[] = Object.freeze([
-  RuntimeMethodIds.account.getAccountSessionStatus,
-  RuntimeMethodIds.account.subscribeAccountSessionEvents,
-  RuntimeMethodIds.account.beginLogin,
-  RuntimeMethodIds.account.completeLogin,
-  RuntimeMethodIds.account.getAccessToken,
-  RuntimeMethodIds.account.refreshAccountSession,
-  RuntimeMethodIds.account.logout,
-  RuntimeMethodIds.account.switchAccount,
-  RuntimeMethodIds.account.issueScopedAppBinding,
-  RuntimeMethodIds.account.revokeScopedAppBinding,
   RuntimeMethodIds.workflow.submit,
   RuntimeMethodIds.workflow.get,
   RuntimeMethodIds.workflow.cancel,
@@ -270,6 +260,7 @@ export const RuntimeAllowlistedMethodIds: readonly string[] = Object.freeze(
 const RuntimeAllowlistedMethodIdSet: ReadonlySet<string> = new Set(RuntimeAllowlistedMethodIds);
 
 export const RuntimeStreamMethodIds: readonly string[] = Object.freeze([
+  RuntimeMethodIds.account.subscribeAccountSessionEvents,
   RuntimeMethodIds.ai.streamScenario,
   RuntimeMethodIds.ai.subscribeScenarioJobEvents,
   RuntimeMethodIds.aiRealtime.readRealtimeEvents,
