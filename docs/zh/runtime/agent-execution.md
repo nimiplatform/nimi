@@ -112,7 +112,7 @@ Runtime 同时托管多个 `agent_id` 生命周期。应用想和某个 Agent �
 
 用户正在 Avatar 里对话，Avatar 崩了。
 
-1. **锚点活在 Runtime。** 不在 Avatar，也不在桌面端。
+1. **锚点存在于 Runtime。** 不在 Avatar，也不在桌面端。
 2. **用户重启 Avatar。** Avatar 重连 Runtime。
 3. **锚点解析。** Avatar 解析同一组 `(agent_id, conversation_id)`，锚点还在。
 4. **对话恢复。** Realm 聊天线程保留消息，途中正在写的记忆按复制状态推进。

@@ -1,6 +1,6 @@
 # 受委派能力
 
-外部 AI 宿主（另一家 AI provider、配 MCP 工具的 Agent、未来的 A2A 对端）想在平台上动作时，要走 Runtime 持有的网关与输出防火墙。本页讲委派的 Runtime 这一面。产品角度的说明见 [平台 → AI 最终执行环节](/zh/platform/ai-last-mile) 与 [平台 → Agents → 外部 Agent](/zh/platform/agents/external-agents)。
+外部 AI 宿主（另一家 AI provider、配 MCP 工具的 Agent、未来的 A2A 对端）想在平台上动作时，要通过 Runtime 持有的网关与输出防火墙。本页讲委派的 Runtime 这一面。产品角度的说明见 [平台 → AI 最终执行环节](/zh/platform/ai-last-mile) 与 [平台 → Agents → 外部 Agent](/zh/platform/agents/external-agents)。
 
 ## 受委派会话
 
@@ -66,12 +66,12 @@ provider 在会话中漂移（描述符哈希变了）会自动转入 `QUARANTIN
 
 ## 防火墙裁决
 
-防火墙吐出下面之一：
+防火墙输出下面之一：
 
 | 裁决 | 含义 |
 | --- | --- |
 | `ACCEPTED_OBSERVATION` | Runtime 可作为上下文使用 |
-| `ACCEPTED_SUGGESTION` | Runtime 自行决定动作、走审批或忽略 |
+| `ACCEPTED_SUGGESTION` | Runtime 自行决定动作、通过审批或忽略 |
 | `APPROVAL_REQUIRED` | 必须经用户审批才能继续 |
 | `QUARANTINED` | 留在隔离区不再使用 |
 | `REJECTED` | 直接拒收 |

@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | Truth | 在这个世界里规范上为真的事实，与写入时间无关 | `realm/kernel/truth-contract.md`（`R-TRUTH-*`） |
 | World State | 世界此刻的样子 | `realm/kernel/world-state-contract.md`（`R-WSTATE-*`） |
-| World History | 世界如何走到当前状态 | `realm/kernel/world-history-contract.md`（`R-WHIST-*`） |
+| World History | 世界如何到达当前状态 | `realm/kernel/world-history-contract.md`（`R-WHIST-*`） |
 
 三者不可互换。把它们混在一起的面会静默丢信息。
 
@@ -48,7 +48,7 @@
 
 ## App-世界绑定
 
-一个世界同一时刻至多绑定一个活跃 extension-app。其他 App 可以以纯渲染模式消费世界数据。
+一个世界同一时刻至多绑定一个活跃 extension-app。其他 App 可以以纯渲染模式使用世界数据。
 
 | 状态 | 含义 |
 | --- | --- |

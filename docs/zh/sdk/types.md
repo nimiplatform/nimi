@@ -1,10 +1,10 @@
 # 共享类型
 
-`@nimiplatform/sdk/types` 承载所有其他 SDK 子路径都用到的共享公开类型。它是小而稳的构建块层；SDK 中跨子路径的内容，凡是 `types` 已经导出的，就不再自己造一套。
+`@nimiplatform/sdk/types` 承载所有其他 SDK 子路径都用到的共享公开类型。它是小而稳的构建块层；SDK 中跨子路径的内容，凡是 `types` 已经导出的，就不再自己创建一套。
 
 ## 这里放什么
 
-types 子路径导出消费方在不导入私有内部的前提下谈论 Nimi 所需要的跨切面符号。
+types 子路径导出使用方在不导入私有内部的前提下谈论 Nimi 所需要的跨切面符号。
 
 | 符号 | 用途 |
 | --- | --- |
@@ -30,7 +30,7 @@ types 子路径导出消费方在不导入私有内部的前提下谈论 Nimi �
 | --- | --- |
 | 其他子路径不重声明 `types` 中的类型 | 防漂移 |
 | `types` 不从其他子路径导入 | 处在依赖图的最底层 |
-| `types` 不依赖传输（`sdk/runtime`）或改写（`sdk/realm`） | 保持类型可移植 |
+| `types` 不依赖传输（`sdk/runtime`）或适配（`sdk/realm`） | 保持类型可移植 |
 | 新增类型需要内核准入 | 与其他 surface 同样的准入纪律 |
 
 ## 场景：在子路径之间传递 ID
@@ -48,7 +48,7 @@ App 不必在两个近似类型之间手动转换。共享类型层就是这种�
 
 一次 runtime 调用以契约失败告终。
 
-1. **Runtime 发出强类型错误。** 通过 SDK 错误改写，错误成为带 reason code 的 `NimiError`。
+1. **Runtime 发出强类型错误。** 通过 SDK 错误转换，错误成为带 reason code 的 `NimiError`。
 2. **App 导入 `NimiError`。** 来自 `sdk/types`。
 3. **类型收窄。** App 在 reason code 上做模式匹配以决定 UX 行为。
 
@@ -74,9 +74,9 @@ try {
 
 1. **从 `sdk/types` 导入。** 依赖 `@nimiplatform/sdk/types`，不依赖 `@nimiplatform/sdk/runtime` 或 `@nimiplatform/sdk/realm`。
 2. **Helper 接受 `AgentId | WorldId | ConversationId`。** 这是来自 `sdk/types` 的强类型联合。
-3. **库可编译。** 没有传输依赖；不会拉入 runtime；可移植。
+3. **库可编译。** 没有传输依赖；不会引入 runtime；可移植。
 
-如果一个库为了类型信息去依赖 `sdk/runtime`，就会把整个传输层拖进它的消费者。从 `sdk/types` 拉，能让依赖图保持轻薄。
+如果一个库为了类型信息去依赖 `sdk/runtime`，就会把整个传输层拖进它的使用者。从 `sdk/types` 引入，能让依赖图保持轻薄。
 
 ## `types` 里没有的内容
 

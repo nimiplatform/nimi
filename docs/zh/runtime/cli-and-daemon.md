@@ -31,7 +31,7 @@ CLI 是面向用户的工具，用来驱动 daemon 并报告它的状态。
 | `nimi doctor` | 诊断 daemon、provider、模型、审计量、复制积压 |
 | `nimi version` | 查看 CLI 与 daemon 版本 |
 
-CLI 不是任意状态的远程控制台。它只覆盖一小组有边界的操作，对应 daemon 的生命周期和可观察性需要。要加新动词，得先有准入的契约扩展。
+CLI 不是通用的远程控制台。它只覆盖一小组有边界的操作，对应 daemon 的生命周期和可观察性需要。要加新动词，得先有准入的契约扩展。
 
 ## 首次运行
 
@@ -61,12 +61,12 @@ install → 首次运行选择
 
 你刚装好 Nimi，想确认一切正常。
 
-1. **安装。** `nimi install` 走安装路径，二进制就位，配置初始化好。
+1. **安装。** `nimi install` 通过安装路径，二进制就位，配置初始化好。
 2. **首次选择。** CLI 让你选 provider 优先或本地模型优先。你已经有 provider 账户，选 provider 优先。
 3. **配置连接器。** 你新增一个连接器，作为该 provider 的受管身份。凭据被校验，连接器报告它能路由到的模型集。
-4. **启动 daemon。** `nimi serve`（或后台 `nimi start`）。daemon 走 `STARTING → READY`。
+4. **启动 daemon。** `nimi serve`（或后台 `nimi start`）。daemon 通过 `STARTING → READY`。
 5. **核对。** `nimi doctor` 显示 daemon `READY`、provider 健康绿、模型就绪绿、审计量 0、复制积压 0。
-6. **第一次生成。** 应用经 gRPC 连进来发请求。请求转成 `ScenarioJob`，工作流走 `ACCEPTED → QUEUED → RUNNING → COMPLETED`。
+6. **第一次生成。** 应用经 gRPC 连进来发请求。请求转成 `ScenarioJob`，工作流通过 `ACCEPTED → QUEUED → RUNNING → COMPLETED`。
 
 CLI 暴露的信息够确认健康，但不暴露内部状态。`nimi doctor` 报黄或红时，会指出具体区域并指向相关 kernel 规则上下文。
 
@@ -79,7 +79,7 @@ daemon 进入 `DEGRADED`：可能某个 provider 中途变不健康，可能复�
 3. **行动。** 你处理底层问题（切到另一个准入的 provider、等积压排空、重启卡住的子组件）。
 4. **`nimi status` 回到 `READY`。** 退化期间在跑的流要么按契约完成，要么以强类型失败帧终止；新流恢复正常。
 
-状态机让恢复变得有路可走。如果只给"健康 / 不健康"两态，根本看不出问题在哪；强类型退化让 CLI 能直接指向区域。
+状态机让恢复变得有路可走。如果只给"健康 / 不健康"两态，难以看出问题在哪；强类型退化让 CLI 能直接指向区域。
 
 ## 凭据面切分
 
