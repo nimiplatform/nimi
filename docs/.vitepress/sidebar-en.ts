@@ -423,13 +423,4 @@ export const sidebarEn: DefaultTheme.Sidebar = {
     },
   ],
 
-  '/glossary': [
-    {
-      text: 'Reference',
-      items: [
-        { text: 'Overview', link: '/reference/' },
-        { text: 'Glossary', link: '/reference/glossary' },
-      ],
-    },
-  ],
 }

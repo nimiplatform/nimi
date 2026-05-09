@@ -423,13 +423,4 @@ export const sidebarZh: DefaultTheme.Sidebar = {
     },
   ],
 
-  '/zh/glossary': [
-    {
-      text: '参考',
-      items: [
-        { text: '总览', link: '/zh/reference/' },
-        { text: '术语表', link: '/zh/reference/glossary' },
-      ],
-    },
-  ],
 }
