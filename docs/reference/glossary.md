@@ -1,11 +1,8 @@
 # Glossary
 
 Cross-domain terms used across the public Nimi documentation. Each entry is
-a reader-facing summary; precise authority lives in `.nimi/spec/**`.
-
-When a term is owned by a specific authority domain, the glossary entry
-points at that domain rather than redefining the rule. If a glossary line
-disagrees with the spec, the spec wins and the glossary should be updated.
+a reader-facing summary; precise authority lives in `.nimi/spec/**` and is
+linked from the corresponding domain section.
 
 ## Platform And World Model
 

@@ -12,13 +12,44 @@ for app code to use it is through the SDK — see
 
 ## What This Section Contains
 
-- [Workflows And Multimodal](/runtime/workflows-and-multimodal) — how
-  multi-step AI work and non-text artifacts are governed.
-- [Providers And Models](/runtime/providers-and-models) — what the
-  current public posture says about provider and model availability.
+Execution surfaces:
 
-The cross-cutting [Errors And Compatibility](/reference/errors-and-compatibility)
-page collects how Runtime errors surface to apps.
+- [Workflows](/runtime/workflows) — the DAG model, the typed node
+  kinds, the workflow state machine.
+- [Streaming](/runtime/streaming) — the four streaming modes,
+  terminal frames, backpressure, fail-closed semantics.
+- [Multimodal](/runtime/multimodal) — image, video, audio, voice,
+  music capability contracts; provider async task lifecycle;
+  artifact normalization.
+- [Agent Execution](/runtime/agent-execution) — Chat Track / Life
+  Track scheduling, hook intent dispatch, APML output wire format.
+- [Memory And Knowledge](/runtime/memory-and-knowledge) —
+  Runtime-owned memory bank substrate and Cognition bridge.
+
+Provider routing:
+
+- [Connectors And Providers](/runtime/connectors-and-providers) —
+  managed cloud provider identities, connector lifecycle, normalized
+  remote execution path, the credential plane split.
+- [Local Models](/runtime/local-models) — local engines,
+  engine-first routing, local model catalog search, device profile
+  resolution.
+
+Operations and capability:
+
+- [CLI And Daemon](/runtime/cli-and-daemon) — daemon lifecycle,
+  RPC surface, onboarding flow.
+- [Delegated Capability](/runtime/delegated-capability) — the
+  external AI gateway, the delegated output firewall, approval and
+  audit lineage.
+- [Local Audit](/runtime/audit-local) — the runtime-local audit
+  ledger and replay model.
+
+The cross-cutting [Error Ownership](/reference/error-ownership) page
+collects how Runtime errors surface to apps. The
+[Compatibility Posture](/reference/compatibility-posture) page covers
+the platform-wide compatibility envelope that constrains Runtime
+contracts.
 
 ## What Runtime Owns
 
@@ -90,11 +121,12 @@ app does not bypass it either.
 
 ## Provider And Model Posture
 
-The docs describe provider and model governance at the contract level.
-They don't publish a public availability catalog until admitted runtime
-catalog evidence exists. See
-[Providers And Models](/runtime/providers-and-models) for the current
-posture and what a future public catalog must answer.
+Provider and model governance is documented at the contract level. A
+public availability catalog is not published until admitted runtime
+catalog evidence exists. The current contract surface is documented in
+[Connectors And Providers](/runtime/connectors-and-providers) for
+managed cloud providers and [Local Models](/runtime/local-models) for
+local engines.
 
 ## Source Basis
 

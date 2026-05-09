@@ -20,8 +20,8 @@ surfaces of a larger model. This page is where that larger model starts.
 - [Governance](/platform/governance) — how authority admission keeps
   platform surfaces from inventing local truth.
 
-If a term is unfamiliar, the [Glossary](/glossary) collects cross-domain
-vocabulary used across this section.
+If a term is unfamiliar, the [Glossary](/reference/glossary) collects
+cross-domain vocabulary used across this section.
 
 ## The Core Idea
 

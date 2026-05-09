@@ -24,17 +24,17 @@
 | `desktop → nimi-sdk` | 单向 | 统一开发者面 |
 | `desktop → nimi-runtime` | 单向 | gRPC runtime 接入 |
 | `nimi-apps → nimi-realm` | 单向 | REST + WS realm 接入 |
-| `nimi-runtime ↔ nimi-cognition` | 双向桥 | Runtime 消费 Cognition；Cognition 保留权威 |
+| `nimi-runtime ↔ nimi-cognition` | 双向桥 | Runtime 使用 Cognition；Cognition 保留权威 |
 | `nimi-runtime ↔ nimi-realm` | 同级 | 互不依赖；由 SDK 桥接 |
 
 ## 边界规则
 
 | 边界 | 规则 |
 | --- | --- |
-| App 必须走 SDK | App 不能 import Runtime / Realm 私有内部；SDK 是边界 |
+| App 必须通过 SDK | App 不能 import Runtime / Realm 私有内部；SDK 是边界 |
 | SDK 不重定义真相 | SDK 改写上游契约；不发明新的产品真相 |
-| Mod 必须走 hook 能力 | Mod 消费已准入的 hook 能力；不能绕开直连 raw runtime |
-| Runtime 不吸收 Cognition | 桥接契约只是消费；权威留在 Cognition |
+| Mod 必须通过 hook 能力 | Mod 使用已准入的 hook 能力；不能绕开直连 raw runtime |
+| Runtime 不吸收 Cognition | 桥接契约只是使用；权威留在 Cognition |
 | Cognition 不重定义 Realm | 记忆和知识不是世界真相 |
 | 网页端不能伪装原生 | 网页端适配器禁用浏览器无法兑现的能力 |
 | Avatar 不重定义 Agent | 呈现是身份的下游 |

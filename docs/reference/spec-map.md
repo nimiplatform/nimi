@@ -1,8 +1,7 @@
 # Spec Map
 
-The public docs are written for humans. The spec map is for readers
-who need to trace a public claim back to its source authority, or who
-want to navigate the spec directly.
+A spec-side map for tracing a public claim back to its source
+authority and for navigating the spec directly.
 
 ## Public Sections And Source Areas
 

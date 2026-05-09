@@ -27,22 +27,22 @@ Realm 持有语义真值、世界状态、世界历史、聊天，以及相关�
 
 某个 App 想展示世界视图，再让 Agent 在其中行动：
 
-1. App 用 `sdk/world` 读取强类型世界状态视图。Realm 契约（truth、world-state、world-history）改写为稳定形状。
+1. App 用 `sdk/world` 读取强类型世界状态视图。Realm 契约（truth、world-state、world-history）转换为稳定形状。
 2. App 用 `sdk/runtime` 在 Runtime 持有的 Agent 参与契约下发起 Agent 行动。执行由 Runtime 契约管控。
 3. 行动若影响世界真值，影响通过准入的 Realm 契约写回，而不是 App 自行重述世界真值。
 4. App 通过 `sdk/world` 重新读取世界状态以反映新的真值。它不维护一份与 Realm 偏离的私有镜像。
 
-拆分的意义在于：App 是两个权威的消费者，而不是第三个权威。
+拆分的意义在于：App 是两个权威的使用者，而不是第三个权威。
 
 ## 场景：读取世界历史
 
 某个 App 要显示一个世界的历史——过往关系、过往事件、过往迁移：
 
 1. 世界历史归 Realm 持有，由 world-history 契约管控。
-2. SDK 改写出已准入为公开的历史面。
+2. SDK 转换出已准入为公开的历史面。
 3. App 读取该面并渲染。App 不会自创规范历史列表。
 
-如果渲染出来的历史有错，修复点在 Realm 或公开的 surface 改写层，不在用 App 逻辑去糊上 Realm 输出。
+如果渲染出来的历史有错，修复点在 Realm 或公开的 surface 转换层，不在用 App 逻辑去覆盖 Realm 输出。
 
 ## 活动 surface 与已定义 surface
 

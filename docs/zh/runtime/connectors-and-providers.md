@@ -40,7 +40,7 @@ Runtime 把云端 AI provider 当成受治理的 runtime 数据，而不是宣�
 | 规整化 | 统一流式、错误、元数据形态 |
 | 审计 | 每次调用按强类型 reason code 记账 |
 
-适配器层正是"换 provider 不必改应用"这句话的真实依据。用 `sdk/runtime` 的应用不关心调用走的哪家 provider，看到的就是规整后的形态。
+适配器层正是"换 provider 不必改应用"这句话的真实依据。用 `sdk/runtime` 的应用不关心调用通过的哪家 provider，看到的就是规整后的形态。
 
 ## Provider 健康
 
@@ -56,7 +56,7 @@ Provider 状态机准入在 `runtime/kernel/provider-health-contract.md`。状�
 
 ## 凭据面切分
 
-连接器把凭据持在 **daemon-config** 面。每请求凭据（请求时由可信宿主注入）走 **request-credential** 面。两面严格隔离：
+连接器把凭据持在 **daemon-config** 面。每请求凭据（请求时由可信宿主注入）通过 **request-credential** 面。两面严格隔离：
 
 | 面 | 来源 | 生命期 |
 | --- | --- | --- |
@@ -67,7 +67,7 @@ Provider 状态机准入在 `runtime/kernel/provider-health-contract.md`。状�
 
 ## 读者场景：新增一条云端 provider 路由
 
-你想让一部分请求走某家你已经有账户的云端 provider。
+你想让一部分请求通过某家你已经有账户的云端 provider。
 
 1. **新增连接器。** 经 runtime CLI 或桌面端的 runtime 配置，给准入的 provider 创建一个连接器。
 2. **凭据。** 连接器把凭据持在 daemon-config 面。

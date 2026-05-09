@@ -1,19 +1,19 @@
 # 作用域与 Mod
 
-`@nimiplatform/sdk/scope` 把授权与目录生命周期改写给 App。`@nimiplatform/sdk/mod` 是宿主注入的 mod 门面，mod 通过它消费能力。两者拆为不同子路径，因为它们解决不同问题；都受 SDK 边界约束。
+`@nimiplatform/sdk/scope` 把授权与目录生命周期转换给 App。`@nimiplatform/sdk/mod` 是宿主注入的 mod 门面，mod 通过它使用能力。两者拆为不同子路径，因为它们解决不同问题；都受 SDK 边界约束。
 
-## `sdk/scope` — 授权改写
+## `sdk/scope` — 授权转换
 
-scope 子路径把授权状态改写为强类型 App surface。
+scope 子路径把授权状态转换为强类型 App surface。
 
 | 关注点 | scope 覆盖范围 |
 | --- | --- |
 | 目录 | 当前 App 可用的已授权作用域 |
 | 生命周期 | 作用域的获取、续期、撤销 |
 | Token 形状 | 强类型 bearer / 作用域 token surface |
-| 边界 | App 消费作用域；token 颁发归 Runtime |
+| 边界 | App 使用作用域；token 颁发由 Runtime 负责 |
 
-需要授权的 App 不会自创 token 形状。它们消费 scope 子路径；准入与否由 Runtime 决定。
+需要授权的 App 不会自创 token 形状。它们使用 scope 子路径；准入与否由 Runtime 决定。
 
 ## `sdk/mod` — 宿主注入的 mod 门面
 
@@ -28,7 +28,7 @@ mod 子路径是**宿主注入**的。mod 不会导入一个泛用 mod runtime�
 | Tab 身份 | `tabId` 是唯一稳定的 runtime 身份 |
 | UI 槽 | mod 渲染到准入的 UI 槽 |
 
-mod 如果尝试导入泛用浏览器 surface 或泛用 runtime 模块，就是绕过边界；mod 只通过宿主注入消费。
+mod 如果尝试导入泛用浏览器 surface 或泛用 runtime 模块，就是绕过边界；mod 只通过宿主注入使用。
 
 ## `sdk/mod` 暴露什么
 
@@ -76,7 +76,7 @@ mod 需要持久化用户专属设置。
 3. **Get / set。** 对 store 做强类型 get / set / list。
 4. **作用域。** store 是 mod 私有的；其他 mod 无法读。
 
-mod 没有自己造一层存储；没有写文件到磁盘；没有滥用浏览器 localStorage。宿主注入的 store 才是准入路径。
+mod 没有自己创建一层存储；没有写文件到磁盘；没有滥用浏览器 localStorage。宿主注入的 store 才是准入路径。
 
 ## 为什么是两个子路径
 

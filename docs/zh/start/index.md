@@ -1,61 +1,62 @@
 # 起步
 
-这一页帮你挑一条合适的阅读路径。Nimi 还没正式公开发布，所以现阶段的公开文档主要是产品与架构介绍。Nimi Coding 已有自己的 npm 包；平台其余部分先讲清楚产品形态，再谈可运行的接入路径。
+请选择适合您当前角色的阅读路径。每条路径均从平台模型出发，逐步深入至相应的技术实现。
 
-如果你是来找安装信息的，直接跳到[安装与可用性](/zh/start/install)。那一页把 Nimi Coding 的 npm 包与平台其它部分的文档分开列出。
+如需查看针对特定受众的详细路径，请参阅 [用户画像](/zh/start/personas)。了解已开放安装的组件及其获取方式，请参阅 [安装与可用性](/zh/start/install)。
 
-## 第一次接触 Nimi
+## 首次接触 Nimi
 
-按这个顺序读：
+建议按照以下顺序阅读：
 
-1. [平台](/zh/platform/)：产品模型、世界这个核心概念，以及六条基础协议。
-2. [Runtime](/zh/runtime/)：AI 工作如何被实际执行。
-3. [SDK](/zh/sdk/)：应用接入 Nimi 的边界面。
-4. [桌面端](/zh/desktop/)：第一方原生外壳，以及网页端与之有何不同。
-5. [Realm](/zh/realm/)：语义真相与世界历史。
+1. [平台](/zh/platform/)：了解产品模型、以“世界”为核心的基础概念，以及跨域的六项基础协议。
+2. [Runtime](/zh/runtime/)：了解 AI 任务的实际调度与执行机制。
+3. [SDK](/zh/sdk/)：掌握应用接入 Nimi 平台的标准化边界与集成规范。
+4. [桌面端](/zh/desktop/)：了解第一方原生外壳（Shell）；网页端的差异请参阅 [Web 模式](/zh/desktop/web-mode)。
+5. [Realm](/zh/realm/)：理解语义真相、世界状态以及不可篡改的世界历史。
 
-这条路径先建立心智模型，再进入实现细节。从"这是个什么样的系统"，到"AI 工作怎么做出来"，再到"应用怎么看见这一切"。
+该路径旨在帮助构建全局的心智模型，随后深入实现细节，厘清平台架构、AI 执行流程及应用交互方式。若遇生僻术语，可查阅跨章节通用的[术语表](/zh/reference/glossary)。
 
-如果想要一份术语对照，[术语表](/zh/glossary)收齐了各个章节里通用的词。
+## 评估项目架构
 
-## 你在评估这个项目
+如果您正在评估本项目架构与核心价值，建议按照以下顺序阅读：
 
-想快速过一遍，按这个顺序：
+1. [平台愿景](/zh/platform/vision)：项目核心目标与产品定位。
+2. [平台架构](/zh/platform/architecture/)：明确各组件权责边界的跨层架构图。
+3. [Runtime 概览](/zh/runtime/) 与 [Runtime 工作流](/zh/runtime/workflows)：底层 AI 执行引擎的核心职责。
+4. [SDK 概览](/zh/sdk/) 与 [SDK 边界](/zh/sdk/boundaries)：外部应用接入平台时需遵守的规范与边界。
+5. [Nimi Coding 白皮书](/zh/nimicoding/whitepaper)：本项目中 AI 辅助工程的治理范式。
 
-1. [平台愿景](/zh/platform/vision)：北极星定位。
-2. [平台架构](/zh/platform/architecture/)：跨层全景图。
-3. [Runtime 概览](/zh/runtime/) 与 [Runtime 工作流与多模态](/zh/runtime/workflows-and-multimodal)：AI 基础层负责什么。
-4. [SDK 概览](/zh/sdk/) 与 [SDK 边界](/zh/sdk/boundaries)：应用要遵守的接入规矩。
-5. [Nimi Coding 白皮书](/zh/nimicoding/whitepaper)：这个仓库里 AI 协助工程的治理方式。
+上述内容的阅读量大致相当于一篇技术文章，能清晰呈现 Nimi 当前架构的全貌。
 
-这个量大致等同读一篇长博客的时间，能给出当前公开面真实的样子。
+## 基于平台进行构建
 
-## 你在基于 Nimi 构建
+应用开发者请直接从 [SDK](/zh/sdk/) 与 [Runtime](/zh/runtime/) 章节起步。SDK 是应用与平台交互的官方途径。应用代码不应跨越 Runtime 与 Realm 的私有边界。
 
-从 [SDK](/zh/sdk/) 与 [Runtime](/zh/runtime/) 开始。SDK 是应用的公开接入面。Runtime 与 Realm 的私有边界不应被应用直接跨过；SDK 存在的意义就是让应用不需要这么做。
+了解原生外壳的具体行为，请查阅 [桌面端](/zh/desktop/)。关于网页端的受限呈现模式，请研读 [Web 模式](/zh/desktop/web-mode)。网页端不会自动继承桌面端的原生扩展能力。
 
-要看原生外壳行为，读[桌面端](/zh/desktop/)。要看网页端行为，读 [Web 模式](/zh/desktop/web-mode)。网页端是受限呈现，不会自动继承桌面原生能力。
+## 采用 Nimi Coding 方法论
 
-## 场景：一个应用作者读完这套文档
+Nimi Coding 作为独立于宿主环境的方法论，已作为标准 npm 软件包发布。建议按照以下顺序了解：
 
-你是一位刚听说 Nimi 的应用作者，比较合理的第一遍路径是：
+1. [Nimi Coding 概览](/zh/nimicoding/)：核心范式及软件包的整体构成。
+2. [议题工作流](/zh/nimicoding/topic-workflow)：涵盖 Topic、Wave、Packet、Preflight、Audit 至 Closeout 的生命周期。
+3. [安装指南](/zh/nimicoding/installation)：软件包的安装步骤与采纳路径。
 
-1. 读[平台](/zh/platform/)，了解世界（不是聊天会话）才是核心对象。
-2. 读 [Runtime](/zh/runtime/)，了解 Provider、工作流、流式、多模态产物归 Runtime 契约管，不归你的应用代码。
-3. 读 [SDK](/zh/sdk/)，了解你的应用通过 `sdk/runtime`、`sdk/world`、`sdk/realm`、`sdk/ai-provider`、`sdk/scope`、`sdk/mod` 来消费这些契约，不要去 import 私有内部。
-4. 读[桌面端](/zh/desktop/) 与 [Web 模式](/zh/desktop/web-mode)，了解为什么二者能力范围不同，以及这对你应用的分发计划意味着什么。
-5. 等你开始贡献，再读 [Nimi Coding](/zh/nimicoding/)。在高风险或跨表面修改上，其他贡献者会期待你顺着这套工作流。
+## 场景：应用开发者的阅读路径
 
-这一遍走完后，[规范地图](/zh/reference/spec-map)告诉你公开文字不够精确时应该到哪里读底层契约。
+假设您是一名新接触 Nimi 的应用开发者，推荐的首次阅读路径如下：
 
-## 你在找安装指引
+1. 阅读 [平台](/zh/platform/)，确立“世界”而非“会话”是平台核心运转对象的基础认知。
+2. 阅读 [Runtime](/zh/runtime/)，理解 Provider 调度、工作流、流式传输及多模态产物等逻辑均由 Runtime 契约统筹，而非应用代码。
+3. 阅读 [SDK](/zh/sdk/)，掌握如何通过 `sdk/runtime`、`sdk/world`、`sdk/realm`、`sdk/ai-provider`、`sdk/scope` 及 `sdk/mod` 合规消费底层能力，避免直接导入私有模块。
+4. 阅读 [桌面端](/zh/desktop/) 与 [Web 模式](/zh/desktop/web-mode)，明晰两种呈现形态的能力边界差异，以评估其对应用分发计划的影响。
+5. 准备进行代码贡献时，阅读 [Nimi Coding](/zh/nimicoding/)。处理高风险变更或跨模块重构时，需遵循此标准工作流。
 
-公开的安装信息必须有已准入的依据：命令真实存在、路径真实支持、发布或分发渠道真实。Nimi Coding 的 npm 包已具备这些条件；其它表面目前用契约页讲清产品模型。
-
-详见[安装与可用性](/zh/start/install)。
+全景阅读完成后，如需查阅具体的技术细节，可借助 [规范地图](/zh/reference/spec-map) 定位到底层技术契约。
 
 ## Source Basis
 
+- [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
 - [`.nimi/spec/platform/architecture.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/architecture.md)
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)

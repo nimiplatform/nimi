@@ -14,7 +14,7 @@
 
 **参与者（Participant）**。世界内的一等实体。人、AI Agent、App 都可以参与，但能力与权威画像不同。
 
-**六个协议基础协议**。平台协议定义的固定跨世界契约面：Timeflow、Social、Economy、Transit、Context、Presence。世界可以定义自己的内部规则；跨世界的意义则必须归在这六份契约里。
+**六项基础协议**。平台协议定义的固定跨世界契约面：Timeflow、Social、Economy、Transit、Context、Presence。世界可以定义自己的内部规则；跨世界的意义则必须归在这六份契约里。
 
 **与 OASIS 的对照**。Nimi 借的是 OASIS 这种世界引擎的形态，不是它的内容。OASIS 在原作里是物理世界引擎；Nimi 是社会与语义世界引擎。世界规则由创作者撰写，跨世界契约面是固定的。
 
@@ -26,7 +26,7 @@
 
 **Runtime**。持有 AI 执行：provider、工作流、流式、多模态投递、本地能力路由、委派、审计，以及 Runtime 持有的 Agent 参与。
 
-**SDK**。面向 App 的 TypeScript 接入边界。App 通过 SDK 消费 Runtime、Realm、世界组合、scope、Mod，不跨进私有内部。
+**SDK**。面向 App 的 TypeScript 接入边界。App 通过 SDK 使用 Runtime、Realm、世界组合、scope、Mod，不跨进私有内部。
 
 **桌面端（Desktop）**。第一方原生外壳。承载桌面端契约准入的原生、本地、Mod 能力。
 
@@ -98,7 +98,7 @@
 
 **Prompt 服务**。Cognition 持有的权威 prompt 模板与服务通道。
 
-**Runtime 桥**。Runtime 在不吞并 Cognition 权威的前提下消费 Cognition 的接缝。
+**Runtime 桥**。Runtime 在不吞并 Cognition 权威的前提下使用 Cognition 的接缝。
 
 ## Nimi Coding 词汇
 
@@ -110,11 +110,11 @@
 
 **Preflight**。Wave 实施前的停止线检查。
 
-**审计（Audit）**。证明工作匹配权威与消费者需求的证据。
+**审计（Audit）**。证明工作匹配权威与使用者需求的证据。
 
 **Closeout**。判断工作在所有闭合维度上确实做完的决定。
 
-**闭合维度**。权威闭合、语义闭合、消费者闭合、抗漂移闭合。Wave 只有四者全部满足才算闭合。
+**闭合维度**。权威闭合、语义闭合、使用者闭合、抗漂移闭合。Wave 只有四者全部满足才算闭合。
 
 **伪闭合**。一个维度看似完成、另一维度其实失败的产物。常见形态：构建过了但页面不可读；页面可读但缺权威源；路由存在但对读者无价值。
 

@@ -32,8 +32,8 @@ publish it.
    a world looks like at the field level.
 4. [Reference → Six Primitives](/reference/six-primitives) — the
    cross-world contracts your world participates in.
-5. [Realm → World Creator Economy](/realm/) — economic semantics for
-   creators (when admitted; some sub-pages land in later waves).
+5. [Realm → Creator Economy](/realm/creator-economy) — economic
+   semantics for creators across worlds.
 
 ## Mod Developer
 
@@ -66,9 +66,9 @@ You want to integrate an external AI host as a participant.
 1. [Platform → Vision](/platform/vision) — agents as first-class
    participants.
 2. [Platform → AI Agent Security Interface](/platform/) — the security
-   model for external agents (sub-page lands in later waves).
-3. [Runtime → Delegated Capability](/runtime/) — the gateway and
-   output firewall (sub-page lands in later waves).
+   model for external agents.
+3. [Runtime → Delegated Capability](/runtime/delegated-capability) —
+   the gateway and output firewall.
 4. [Reference → Agent Fields](/reference/agent-fields) — what an agent
    looks like, including external agent fields.
 5. [Reference → State Machines](/reference/state-machines) — delegated
@@ -89,9 +89,6 @@ project of your own.
    forbidden-shortcuts mindset applied to docs.
 5. [Reference → State Machines](/reference/state-machines) — topic and
    wave state machines.
-
-(The full Nimi Coding section expands in a later wave; current sub-pages
-remain reachable from the section overview.)
 
 ## Auditor / Reviewer
 

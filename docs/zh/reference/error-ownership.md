@@ -35,7 +35,7 @@
 | 契约失败（强类型形态、MIME、schema、字段缺失） | retry 不能救；fail-closed | 归属契约 |
 | 流式终态失败 | 流中段救不回来；发出终态失败帧 | Runtime 流式 |
 
-retry 和 auth refresh 是传输机制，不能用来悄悄救场 decode、content-type、schema、契约这类失败。
+retry 和 auth refresh 是传输机制，不能用来悄悄恢复 decode、content-type、schema、契约这类失败。
 
 ## 一次失败穿越多层
 

@@ -4,7 +4,7 @@
 
 - `.nimi/topics/ongoing/` 下一个小样例 topic
 - 一个准入、冻结、派发、审计、关闭都跑过的 wave
-- 一组体现四闭环框架的 closeout 工件
+- 一组体现四闭合框架的 closeout 工件
 
 ## 前置要求
 

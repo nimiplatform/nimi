@@ -44,7 +44,7 @@ Live2D 专用处理器在类型收窄之后可以用 `live2dExtension`。VRM 上
 
 某个包作者希望 Agent 在 `wave` 活动触发时挥手。
 
-1. **写处理器**：放在 `<model>/runtime/nimi/activity/wave.js`，处理器签名同时拿到 Runtime 上下文与准入的 API。
+1. **写处理器**：放在 `<model>/runtime/nimi/activity/wave.js`，处理器签名同时获取 Runtime 上下文与准入的 API。
 2. **自动注册**。Runtime 扫描约定路径，发现该文件后自动注册。
 3. **活动触发**：当 `runtime.agent.activity.wave` 被发出时，处理器开始执行。
 4. **处理器执行**：调用 motion API 触发挥手；调用 expression API 切到微笑；调用 wait 让姿态保持一会；最后调用 expression 回到中性。

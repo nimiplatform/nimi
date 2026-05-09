@@ -17,25 +17,24 @@ Nimi Coding).
 | [State Machines](/reference/state-machines) | Every named state machine and its canonical states |
 | [Authority Domains](/reference/authority-domains) | Which domain owns which kind of truth |
 | [Error Ownership](/reference/error-ownership) | Which layer owns which error contract |
-| [Compatibility Posture](/reference/compatibility-posture) | Pre-launch posture and forbidden compatibility shapes |
+| [Compatibility Posture](/reference/compatibility-posture) | The platform-wide compatibility envelope and forbidden compatibility shapes |
 | [Forbidden Claims](/reference/forbidden-claims) | Public docs forbidden claim list with detection patterns |
 | [Spec Map](/reference/spec-map) | How a public claim traces back to its `.nimi/spec/**` source |
 
-## How To Read
+## When To Use Each Page
 
-These pages are reference, not lessons or recipes. They assume you
-already understand the domain narrative and want to look up exact
-field names, states, owners, or contracts.
+If you need a single term defined, start at the
+[Glossary](/reference/glossary). If you need the canonical fields of a
+World or an Agent, the
+[World Fields](/reference/world-fields) and
+[Agent Fields](/reference/agent-fields) pages are the field-level
+sources. If you need to trace a public claim back to its kernel
+contract, [Spec Map](/reference/spec-map) is the navigation index.
 
-If a term is unfamiliar, start at the [Glossary](/reference/glossary).
-If you want a walkthrough, return to the relevant domain section.
-
-## Authority
-
-Every reference entry is sourced from `.nimi/spec/**`. When a reference
-page disagrees with the kernel rule, the kernel rule wins and the
-reference page is corrected. Reference pages do not invent fields or
-contracts; they project what the spec already records.
+For named state machines, [State Machines](/reference/state-machines)
+is the consolidated table. For ownership of any kind of truth or
+error, [Authority Domains](/reference/authority-domains) and
+[Error Ownership](/reference/error-ownership) say which domain answers.
 
 ## Source Basis
 
