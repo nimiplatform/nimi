@@ -1,8 +1,25 @@
 import { useState } from 'react';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { AttachmentRow } from '../../bridge/sqlite-bridge.js';
-import { S } from '../../app-shell/page-style.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
+import type { ReactNode } from 'react';
+import {
+  CancelButton,
+  ChipGroup,
+  type ChipOption,
+  DateField,
+  FormField,
+  FormGrid,
+  HEALTH_MODAL_TOKENS,
+  HealthRecordModalShell,
+  Input,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  PrimaryButton,
+  SectionCard,
+  TextArea,
+  UploadBox,
+} from './health-record-modal-shell.js';
 import {
   EVENT_TYPES,
   NEEDS_SEVERITY,
@@ -46,28 +63,25 @@ type DentalRecordFormModalProps = {
   removePhotoAt: (idx: number) => void;
   removeExistingPhoto: (attachmentId: string) => void;
   handleSubmit: () => Promise<void>;
+  /** Optional inline error rendered at the end of the scrollable content. */
+  inlineFooterContent?: ReactNode;
 };
 
 export function DentalRecordFormModal(props: DentalRecordFormModalProps) {
-  if (!props.show) {
-    return null;
-  }
+  if (!props.show) return null;
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.25)' }}
-      onClick={props.resetForm}
-    >
-      <div
-        className={`flex max-h-[85vh] w-[680px] flex-col overflow-y-auto ${S.radius} shadow-xl`}
-        style={{ background: S.card }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <DentalRecordFormBody {...props} />
-      </div>
-    </div>
+    <HealthRecordModalShell open size="XL" onClose={props.resetForm}>
+      <DentalRecordFormBody {...props} />
+    </HealthRecordModalShell>
   );
 }
+
+const SEVERITY_OPTIONS = ['mild', 'moderate', 'severe'] as const;
+const SEVERITY_ACTIVE_BG: Record<(typeof SEVERITY_OPTIONS)[number], string> = {
+  mild: HEALTH_MODAL_TOKENS.accent,
+  moderate: '#d97706',
+  severe: '#dc2626',
+};
 
 export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
   const visibleExistingPhotoAttachments = props.existingPhotoAttachments.filter(
@@ -76,55 +90,68 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
   const totalPhotoCount = visibleExistingPhotoAttachments.length + props.formPhotoFiles.length;
   const [entryAddHover, setEntryAddHover] = useState(false);
 
+  const eventTypeChips: ChipOption<string>[] = props.availableEventTypes.map((item) => ({
+    value: item.key,
+    label: item.label,
+    emoji: item.emoji,
+  }));
+
   return (
     <>
-      <div className="flex items-center justify-between px-6 pb-3 pt-6">
-          <div className="flex items-center gap-2">
-            <span className="text-[20px]">{props.isEditing ? '✏️' : '🦷'}</span>
-            <h2 className="text-[16px] font-bold" style={{ color: S.text }}>
-              {props.isEditing ? '编辑口腔记录' : '添加口腔记录'}
-            </h2>
-          </div>
-          <button type="button" onClick={props.resetForm} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
-        </div>
-
-        <div className="flex-1 space-y-4 px-6 pb-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="mb-1 text-[13px]" style={{ color: S.sub }}>就诊日期</p>
-              <ProfileDatePicker value={props.formEventDate} onChange={props.setFormEventDate} style={{ background: '#fafaf8', color: S.text }} />
-            </div>
-            <div>
-              <p className="mb-1 text-[13px]" style={{ color: S.sub }}>医院/诊所</p>
-              <input
+      <ModalHeader
+        title={props.isEditing ? '编辑口腔记录' : '添加口腔记录'}
+        icon={props.isEditing ? '✏️' : '🦷'}
+        onClose={props.resetForm}
+      />
+      <ModalContent>
+        <div className="space-y-5">
+          <FormGrid cols={2}>
+            <FormField label="就诊日期">
+              <DateField value={props.formEventDate} onChange={props.setFormEventDate} />
+            </FormField>
+            <FormField label="医院/诊所">
+              <Input
                 value={props.formHospital}
                 onChange={(event) => props.setFormHospital(event.target.value)}
                 placeholder="选填"
-                className={`w-full border-0 px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${S.radiusSm}`}
-                style={{ background: '#fafaf8', color: S.text }}
               />
-            </div>
-          </div>
+            </FormField>
+          </FormGrid>
 
           {props.eventEntries.map((entry, idx) => {
             const isActive = idx === props.activeEntryIdx;
             const eventMeta = EVENT_TYPES.find((item) => item.key === entry.eventType);
             const entryNeedsTooth = NEEDS_TOOTH.has(entry.eventType);
             const entryNeedsSeverity = NEEDS_SEVERITY.has(entry.eventType);
+            const toothSetOptions = (
+              ['primary', ...(props.ageMonths >= 60 ? (['permanent'] as const) : [])] as const
+            ).map((value) => ({
+              value: value as 'primary' | 'permanent',
+              label: value === 'primary' ? '乳牙' : '恒牙',
+            }));
             return (
               <div
                 key={idx}
-                className={`${S.radiusSm} cursor-pointer p-3 transition-all`}
+                className="cursor-pointer p-4 transition-all"
                 style={{
+                  borderRadius: 16,
                   background: isActive ? '#fafaf8' : '#f9faf7',
-                  border: `1.5px solid ${isActive ? `${S.accent}60` : S.border}`,
+                  border: `1.5px solid ${isActive ? `${HEALTH_MODAL_TOKENS.accent}60` : HEALTH_MODAL_TOKENS.fieldBorder}`,
                 }}
                 onClick={() => props.setActiveEntryIdx(idx)}
               >
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-[13px] font-semibold" style={{ color: isActive ? S.accent : S.text }}>
+                  <p
+                    className="text-[13px] font-semibold"
+                    style={{ color: isActive ? HEALTH_MODAL_TOKENS.accent : HEALTH_MODAL_TOKENS.text }}
+                  >
                     事件 {idx + 1} {eventMeta ? `· ${eventMeta.emoji} ${eventMeta.label}` : ''}
-                    {entry.toothIds.length > 0 ? <span className="font-normal" style={{ color: S.sub }}> · {entry.toothIds.length} 颗牙</span> : null}
+                    {entry.toothIds.length > 0 ? (
+                      <span className="font-normal" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                        {' '}
+                        · {entry.toothIds.length} 颗牙
+                      </span>
+                    ) : null}
                   </p>
                   {props.eventEntries.length > 1 ? (
                     <button
@@ -142,52 +169,35 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
                 </div>
 
                 {isActive ? (
-                  <div className="mt-2 space-y-3">
-                    <div>
-                      <p className="mb-1.5 text-[12px]" style={{ color: S.sub }}>类型</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {props.availableEventTypes.map((item) => (
-                          <button
-                            key={item.key}
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              props.updateEntry(idx, { eventType: item.key, toothIds: [], severity: '' });
-                            }}
-                            className={`flex items-center gap-1 px-2.5 py-1 text-[12px] transition-all ${S.radiusSm}`}
-                            style={entry.eventType === item.key
-                              ? { background: S.accent, color: '#fff' }
-                              : { background: '#f0f0ec', color: S.sub }}
-                          >
-                            <span>{item.emoji}</span>
-                            {item.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="mt-2 space-y-3" onClick={(event) => event.stopPropagation()}>
+                    <FormField label="类型">
+                      <ChipGroup
+                        size="sm"
+                        options={eventTypeChips}
+                        value={entry.eventType}
+                        onChange={(value) =>
+                          props.updateEntry(idx, { eventType: value, toothIds: [], severity: '' })
+                        }
+                      />
+                    </FormField>
 
                     {entryNeedsTooth ? (
                       <div>
                         <div className="mb-2 flex items-center gap-3">
-                          <p className="text-[12px]" style={{ color: S.sub }}>牙位</p>
-                          <div className="flex gap-1">
-                            {(['primary', ...(props.ageMonths >= 60 ? ['permanent'] : [])] as const).map((toothSet) => (
-                              <button
-                                key={toothSet}
-                                type="button"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  props.updateEntry(idx, { toothSet: toothSet as 'primary' | 'permanent', toothIds: [] });
-                                }}
-                                className="rounded-full px-2.5 py-0.5 text-[12px] font-medium transition-all"
-                                style={entry.toothSet === toothSet
-                                  ? { background: S.accent, color: '#fff' }
-                                  : { background: '#f0f0ec', color: S.sub }}
-                              >
-                                {toothSet === 'primary' ? '乳牙' : '恒牙'}
-                              </button>
-                            ))}
-                          </div>
+                          <p className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                            牙位
+                          </p>
+                          <ChipGroup
+                            size="sm"
+                            options={toothSetOptions.map((opt) => ({ value: opt.value as string, label: opt.label }))}
+                            value={entry.toothSet}
+                            onChange={(value) =>
+                              props.updateEntry(idx, {
+                                toothSet: value as 'primary' | 'permanent',
+                                toothIds: [],
+                              })
+                            }
+                          />
                         </div>
                         <ToothChart
                           selectedTeeth={entry.toothIds}
@@ -196,7 +206,8 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
                               toothIds: entry.toothIds.includes(id)
                                 ? entry.toothIds.filter((toothId) => toothId !== id)
                                 : [...entry.toothIds, id],
-                            })}
+                            })
+                          }
                           toothSet={entry.toothSet}
                           recordedTeeth={props.toothStatus}
                         />
@@ -204,30 +215,22 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
                     ) : null}
 
                     {entryNeedsSeverity ? (
-                      <div>
-                        <p className="mb-1.5 text-[12px]" style={{ color: S.sub }}>严重程度</p>
-                        <div className="flex gap-1.5">
-                          {(['mild', 'moderate', 'severe'] as const).map((severity) => (
-                            <button
-                              key={severity}
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                props.updateEntry(idx, { severity: entry.severity === severity ? '' : severity });
-                              }}
-                              className={`px-2.5 py-1 text-[12px] transition-all ${S.radiusSm}`}
-                              style={entry.severity === severity
-                                ? {
-                                    background: severity === 'severe' ? '#dc2626' : severity === 'moderate' ? '#d97706' : S.accent,
-                                    color: '#fff',
-                                  }
-                                : { background: '#f0f0ec', color: S.sub }}
-                            >
-                              {SEVERITY_LABELS[severity]}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                      <FormField label="严重程度">
+                        <ChipGroup
+                          size="sm"
+                          layout="fill"
+                          clearable
+                          options={SEVERITY_OPTIONS.map((severity) => ({
+                            value: severity,
+                            label: SEVERITY_LABELS[severity] ?? severity,
+                          }))}
+                          value={entry.severity}
+                          onChange={(value) =>
+                            props.updateEntry(idx, { severity: value as (typeof SEVERITY_OPTIONS)[number] })
+                          }
+                          activeColor={SEVERITY_ACTIVE_BG[entry.severity as (typeof SEVERITY_OPTIONS)[number]] ?? HEALTH_MODAL_TOKENS.accent}
+                        />
+                      </FormField>
                     ) : null}
                   </div>
                 ) : null}
@@ -235,164 +238,158 @@ export function DentalRecordFormBody(props: DentalRecordFormModalProps) {
             );
           })}
 
-          <button
-            type="button"
-            onClick={props.addEntry}
-            hidden={props.isEditing}
-            onMouseEnter={() => setEntryAddHover(true)}
-            onMouseLeave={() => setEntryAddHover(false)}
-            className={`flex w-full items-center justify-center gap-2 py-3 text-[13px] font-medium ${S.radiusSm}`}
-            style={{
-              border: `2px dashed ${entryAddHover ? '#4ECCA3' : '#d0d0cc'}`,
-              background: entryAddHover ? '#f9fbf4' : '#fafaf8',
-              color: entryAddHover ? S.accent : S.sub,
-              transition: 'border-color 0.25s ease, background 0.25s ease, color 0.25s ease',
-            }}
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              strokeWidth="1.5"
-              strokeLinecap="round"
+          {!props.isEditing ? (
+            <button
+              type="button"
+              onClick={props.addEntry}
+              onMouseEnter={() => setEntryAddHover(true)}
+              onMouseLeave={() => setEntryAddHover(false)}
+              className="flex w-full items-center justify-center gap-2 py-3 text-[13px] font-medium"
               style={{
-                stroke: entryAddHover ? S.accent : '#b0b0aa',
-                transform: entryAddHover ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
-                transition: 'stroke 0.25s ease, transform 0.3s ease',
+                borderRadius: 14,
+                border: `2px dashed ${entryAddHover ? HEALTH_MODAL_TOKENS.accent : '#d0d0cc'}`,
+                background: entryAddHover ? '#f9fbf4' : '#fafaf8',
+                color: entryAddHover ? HEALTH_MODAL_TOKENS.accent : HEALTH_MODAL_TOKENS.sub,
+                transition: 'border-color 0.25s ease, background 0.25s ease, color 0.25s ease',
               }}
             >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            添加另一个事件
-          </button>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                style={{
+                  stroke: entryAddHover ? HEALTH_MODAL_TOKENS.accent : '#b0b0aa',
+                  transform: entryAddHover ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
+                  transition: 'stroke 0.25s ease, transform 0.3s ease',
+                }}
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              添加另一个事件
+            </button>
+          ) : null}
 
-          <div>
-            <p className="mb-1 text-[13px]" style={{ color: S.sub }}>备注</p>
-            <textarea
+          <FormField label="备注">
+            <TextArea
               value={props.formNotes}
               onChange={(event) => props.setFormNotes(event.target.value)}
               placeholder="选填"
-              rows={1}
-              ref={(el) => {
-                if (!el) return;
-                el.style.height = 'auto';
-                el.style.height = `${el.scrollHeight}px`;
-              }}
-              onInput={(event) => {
-                const el = event.currentTarget;
-                el.style.height = 'auto';
-                el.style.height = `${el.scrollHeight}px`;
-              }}
-              className={`w-full resize-none border-0 px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${S.radiusSm}`}
-              style={{ background: '#fafaf8', color: S.text, overflow: 'hidden' }}
+              rows={2}
             />
-          </div>
+          </FormField>
 
-          <div>
-            <p className="mb-1 text-[13px]" style={{ color: S.sub }}>
-              照片 {props.formPhotoFiles.length > 0 ? `(${props.formPhotoFiles.length}/${PHOTO_MAX})` : ''}
-            </p>
-            <div
-              onDragOver={(event) => {
-                event.preventDefault();
-                props.setPhotoDragOver(true);
-              }}
-              onDragEnter={(event) => {
-                event.preventDefault();
-                props.setPhotoDragOver(true);
-              }}
-              onDragLeave={() => props.setPhotoDragOver(false)}
-              onDrop={async (event) => {
-                event.preventDefault();
-                props.setPhotoDragOver(false);
-                if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
-                  await props.appendPhotoFiles(event.dataTransfer.files);
-                }
-              }}
-              className="grid grid-cols-3 gap-2"
-            >
-              {visibleExistingPhotoAttachments.map((attachment) => (
-                <div key={attachment.attachmentId} className="group relative">
-                  <img src={convertFileSrc(attachment.filePath)} alt={attachment.fileName} className={`h-24 w-full object-cover ${S.radiusSm}`} />
-                  <button
-                    type="button"
-                    onClick={() => props.removeExistingPhoto(attachment.attachmentId)}
-                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[12px] text-white opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              {props.formPhotoPreviews.map((src, idx) => (
-                <div key={idx} className="group relative">
-                  <img src={src} alt={`preview-${idx}`} className={`h-24 w-full object-cover ${S.radiusSm}`} />
-                  <button
-                    type="button"
-                    onClick={() => props.removePhotoAt(idx)}
-                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[12px] text-white opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-              {totalPhotoCount < PHOTO_MAX ? (
-                (() => {
-                  const photoActive = props.photoDragOver || props.photoDropHover;
-                  return (
+          <SectionCard
+            title={`照片${props.formPhotoFiles.length > 0 ? ` (${props.formPhotoFiles.length}/${PHOTO_MAX})` : ''}`}
+            variant="plain"
+          >
+            <UploadBox>
+              <div
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  props.setPhotoDragOver(true);
+                }}
+                onDragEnter={(event) => {
+                  event.preventDefault();
+                  props.setPhotoDragOver(true);
+                }}
+                onDragLeave={() => props.setPhotoDragOver(false)}
+                onDrop={async (event) => {
+                  event.preventDefault();
+                  props.setPhotoDragOver(false);
+                  if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+                    await props.appendPhotoFiles(event.dataTransfer.files);
+                  }
+                }}
+                className="grid grid-cols-4 gap-2"
+              >
+                {visibleExistingPhotoAttachments.map((attachment) => (
+                  <div key={attachment.attachmentId} className="group relative">
+                    <img
+                      src={convertFileSrc(attachment.filePath)}
+                      alt={attachment.fileName}
+                      className="h-24 w-full rounded-[14px] object-cover"
+                    />
                     <button
                       type="button"
-                      onClick={() => void props.pickPhotoFiles()}
-                      onMouseEnter={() => props.setPhotoDropHover(true)}
-                      onMouseLeave={() => props.setPhotoDropHover(false)}
-                      className={`flex h-24 ${totalPhotoCount === 0 ? 'col-span-3' : ''} w-full flex-col items-center justify-center gap-1.5 ${S.radiusSm}`}
-                      style={{
-                        border: `2px dashed ${photoActive ? '#4ECCA3' : '#d0d0cc'}`,
-                        background: photoActive ? '#f9fbf4' : '#fafaf8',
-                        color: photoActive ? S.accent : S.sub,
-                        transition: 'border-color 0.25s ease, background 0.25s ease, color 0.25s ease',
-                      }}
+                      onClick={() => props.removeExistingPhoto(attachment.attachmentId)}
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[12px] text-white opacity-0 transition-opacity group-hover:opacity-100"
                     >
-                      <svg
-                        width="22"
-                        height="22"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        style={{
-                          stroke: photoActive ? S.accent : '#b0b0aa',
-                          transform: photoActive ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
-                          transition: 'stroke 0.25s ease, transform 0.3s ease',
-                        }}
-                      >
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                      <span
-                        className="px-1 text-center text-[12px]"
-                        style={{
-                          color: 'inherit',
-                          transition: 'color 0.25s ease',
-                        }}
-                      >
-                        {props.formPhotoFiles.length === 0 ? `点击或拖拽上传口腔照片（最多 ${PHOTO_MAX} 张）` : '添加更多'}
-                      </span>
+                      ×
                     </button>
-                  );
-                })()
-              ) : null}
-            </div>
-          </div>
-        </div>
+                  </div>
+                ))}
+                {props.formPhotoPreviews.map((src, idx) => (
+                  <div key={idx} className="group relative">
+                    <img src={src} alt={`preview-${idx}`} className="h-24 w-full rounded-[14px] object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => props.removePhotoAt(idx)}
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[12px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                {totalPhotoCount < PHOTO_MAX
+                  ? (() => {
+                      const photoActive = props.photoDragOver || props.photoDropHover;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => void props.pickPhotoFiles()}
+                          onMouseEnter={() => props.setPhotoDropHover(true)}
+                          onMouseLeave={() => props.setPhotoDropHover(false)}
+                          className={`flex h-24 ${totalPhotoCount === 0 ? 'col-span-4' : ''} w-full flex-col items-center justify-center gap-1.5 rounded-[14px]`}
+                          style={{
+                            border: `2px dashed ${photoActive ? HEALTH_MODAL_TOKENS.accent : '#d0d0cc'}`,
+                            background: photoActive ? '#f9fbf4' : HEALTH_MODAL_TOKENS.fieldBg,
+                            color: photoActive ? HEALTH_MODAL_TOKENS.accent : HEALTH_MODAL_TOKENS.sub,
+                            transition: 'border-color 0.25s ease, background 0.25s ease, color 0.25s ease',
+                          }}
+                        >
+                          <svg
+                            width="22"
+                            height="22"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            style={{
+                              stroke: photoActive ? HEALTH_MODAL_TOKENS.accent : '#b0b0aa',
+                              transform: photoActive ? 'scale(1.15) rotate(90deg)' : 'scale(1) rotate(0deg)',
+                              transition: 'stroke 0.25s ease, transform 0.3s ease',
+                            }}
+                          >
+                            <path d="M12 5v14M5 12h14" />
+                          </svg>
+                          <span
+                            className="px-1 text-center text-[12px]"
+                            style={{ color: 'inherit', transition: 'color 0.25s ease' }}
+                          >
+                            {props.formPhotoFiles.length === 0
+                              ? `点击或拖拽上传口腔照片（最多 ${PHOTO_MAX} 张）`
+                              : '添加更多'}
+                          </span>
+                        </button>
+                      );
+                    })()
+                  : null}
+              </div>
+            </UploadBox>
+          </SectionCard>
 
-      <div className="mt-1 px-6 pb-5 pt-3">
-        <div className="flex items-center justify-end gap-2">
-          <button type="button" onClick={props.resetForm} className={`px-4 py-2 text-[14px] transition-colors hover:bg-[#e8e8e4] ${S.radiusSm}`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
-          <button type="button" onClick={() => void props.handleSubmit()} className={`px-5 py-2 text-[14px] font-medium text-white transition-colors hover:brightness-110 ${S.radiusSm}`} style={{ background: S.accent }}>
-            {props.isEditing ? '保存修改' : '保存'}
-          </button>
+          {props.inlineFooterContent}
         </div>
-      </div>
+      </ModalContent>
+      <ModalFooter>
+        <CancelButton onClick={props.resetForm} />
+        <PrimaryButton onClick={() => void props.handleSubmit()}>
+          {props.isEditing ? '保存修改' : '保存'}
+        </PrimaryButton>
+      </ModalFooter>
     </>
   );
 }

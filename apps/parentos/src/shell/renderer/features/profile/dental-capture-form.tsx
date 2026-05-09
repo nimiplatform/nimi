@@ -14,6 +14,7 @@ import {
 } from './dental-page-domain.js';
 import { DentalRecordFormBody } from './dental-page-form-modal.js';
 import { EVENT_TYPES } from './dental-page-domain.js';
+import { InlineError } from './health-record-modal-shell.js';
 
 const AVAILABLE_EVENT_TYPES = EVENT_TYPES;
 
@@ -102,10 +103,6 @@ export function DentalCaptureContent({ child, ageMonths, onSaved, onClose }: Den
     setFormPhotoPreviews((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const closeAndReset = () => {
-    onClose();
-  };
-
   const handleSubmit = async () => {
     if (!formEventDate || eventEntries.length === 0) return;
     const now = isoNow();
@@ -156,7 +153,7 @@ export function DentalCaptureContent({ child, ageMonths, onSaved, onClose }: Den
     }
   };
 
-  // Compute toothStatus from entries (mirrors detail page logic for tooth chart preview).
+  // toothStatus mirrors detail-page logic for the live tooth-chart preview.
   const toothStatus = new Map<string, string>();
   for (const entry of eventEntries) {
     for (const toothId of entry.toothIds) {
@@ -165,45 +162,39 @@ export function DentalCaptureContent({ child, ageMonths, onSaved, onClose }: Den
   }
 
   return (
-    <div className="flex flex-col w-full max-h-[85vh] overflow-y-auto">
-      <DentalRecordFormBody
-        show={true}
-        isEditing={false}
-        ageMonths={ageMonths}
-        eventEntries={eventEntries}
-        activeEntryIdx={activeEntryIdx}
-        availableEventTypes={AVAILABLE_EVENT_TYPES}
-        toothStatus={toothStatus}
-        formEventDate={formEventDate}
-        formHospital={formHospital}
-        formNotes={formNotes}
-        photoDragOver={photoDragOver}
-        photoDropHover={photoDropHover}
-        existingPhotoAttachments={[]}
-        removedAttachmentIds={[]}
-        formPhotoPreviews={formPhotoPreviews}
-        formPhotoFiles={formPhotoFiles}
-        setFormEventDate={setFormEventDate}
-        setFormHospital={setFormHospital}
-        setFormNotes={setFormNotes}
-        setActiveEntryIdx={setActiveEntryIdx}
-        setPhotoDragOver={setPhotoDragOver}
-        setPhotoDropHover={setPhotoDropHover}
-        updateEntry={updateEntry}
-        removeEntry={removeEntry}
-        addEntry={addEntry}
-        resetForm={closeAndReset}
-        appendPhotoFiles={appendPhotoFiles}
-        pickPhotoFiles={pickPhotoFiles}
-        removePhotoAt={removePhotoAt}
-        removeExistingPhoto={() => undefined}
-        handleSubmit={handleSubmit}
-      />
-      {errorMsg ? (
-        <div className="px-6 pb-3">
-          <p className="text-[13px] text-red-600">{errorMsg}</p>
-        </div>
-      ) : null}
-    </div>
+    <DentalRecordFormBody
+      show={true}
+      isEditing={false}
+      ageMonths={ageMonths}
+      eventEntries={eventEntries}
+      activeEntryIdx={activeEntryIdx}
+      availableEventTypes={AVAILABLE_EVENT_TYPES}
+      toothStatus={toothStatus}
+      formEventDate={formEventDate}
+      formHospital={formHospital}
+      formNotes={formNotes}
+      photoDragOver={photoDragOver}
+      photoDropHover={photoDropHover}
+      existingPhotoAttachments={[]}
+      removedAttachmentIds={[]}
+      formPhotoPreviews={formPhotoPreviews}
+      formPhotoFiles={formPhotoFiles}
+      setFormEventDate={setFormEventDate}
+      setFormHospital={setFormHospital}
+      setFormNotes={setFormNotes}
+      setActiveEntryIdx={setActiveEntryIdx}
+      setPhotoDragOver={setPhotoDragOver}
+      setPhotoDropHover={setPhotoDropHover}
+      updateEntry={updateEntry}
+      removeEntry={removeEntry}
+      addEntry={addEntry}
+      resetForm={onClose}
+      appendPhotoFiles={appendPhotoFiles}
+      pickPhotoFiles={pickPhotoFiles}
+      removePhotoAt={removePhotoAt}
+      removeExistingPhoto={() => undefined}
+      handleSubmit={handleSubmit}
+      inlineFooterContent={errorMsg ? <InlineError>{errorMsg}</InlineError> : null}
+    />
   );
 }

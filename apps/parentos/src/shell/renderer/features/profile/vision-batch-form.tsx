@@ -3,17 +3,32 @@ import { useTranslation } from 'react-i18next';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { deleteMeasurement, insertMeasurement, updateMeasurement } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
-import { S } from '../../app-shell/page-style.js';
 import {
   analyzeCheckupSheetOCR,
   readImageFileAsDataUrl,
   type OCRMeasurementCandidate,
 } from './checkup-ocr.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   EYE_SET, FORM_SECTIONS, PUPIL_OPTIONS, getPickerConfig,
   type VisionRecord,
 } from './vision-data.js';
+import {
+  CancelButton,
+  ChipGroup,
+  type ChipOption,
+  DateField,
+  FormField,
+  FormGrid,
+  HEALTH_MODAL_TOKENS,
+  HealthRecordModalShell,
+  InlineError,
+  Input,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  PrimaryButton,
+  SectionCard,
+} from './health-record-modal-shell.js';
 
 const NOTE_PREFIXES = {
   hospital: '医院: ',
@@ -168,12 +183,11 @@ export function NumberPickerPopover({ typeId, label, unit, value, onSelect, onCl
   const eyeLabel = typeId.includes('right') ? 'OD R' : typeId.includes('left') ? 'OS L' : '';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
       <div className="w-full max-w-lg rounded-t-2xl shadow-2xl animate-slide-up" style={{ background: '#f0f0ec' }} onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
         <div className="flex items-center justify-between px-4 py-3" style={{ background: '#e0e4e0' }}>
           {step === 'dec' && (
-            <button onClick={() => setStep('int')} className="text-[14px] font-medium" style={{ color: S.accent }}>
+            <button onClick={() => setStep('int')} className="text-[14px] font-medium" style={{ color: HEALTH_MODAL_TOKENS.accent }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="inline -mt-0.5 mr-1"><path d="M15 18l-6-6 6-6" /></svg>
               返回
             </button>
@@ -181,29 +195,27 @@ export function NumberPickerPopover({ typeId, label, unit, value, onSelect, onCl
           {step === 'int' && <span />}
           <div className="text-center flex-1">
             {eyeLabel && <span className="text-[14px] font-bold mr-2" style={{ color: '#e67e22' }}>{eyeLabel}</span>}
-            <span className="text-[16px] font-bold" style={{ color: S.text }}>{label}</span>
-            {unit && <span className="text-[13px] ml-1.5" style={{ color: S.sub }}>{unit}</span>}
+            <span className="text-[16px] font-bold" style={{ color: HEALTH_MODAL_TOKENS.text }}>{label}</span>
+            {unit && <span className="text-[13px] ml-1.5" style={{ color: HEALTH_MODAL_TOKENS.sub }}>{unit}</span>}
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ color: S.sub }}>✕</button>
+          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ color: HEALTH_MODAL_TOKENS.sub }}>✕</button>
         </div>
 
-        {/* Current value display */}
         {(intPart != null || value) && (
           <div className="text-center py-2">
-            <span className="text-[20px] font-bold" style={{ color: S.text }}>
+            <span className="text-[20px] font-bold" style={{ color: HEALTH_MODAL_TOKENS.text }}>
               {intPart != null ? `${intPart}.` : value}
             </span>
           </div>
         )}
 
-        {/* Grid */}
         <div className="px-3 pb-4 max-h-[320px] overflow-y-auto">
           {step === 'int' ? (
             <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(ints.length, 6)}, 1fr)` }}>
               {ints.map((n) => (
                 <button key={n} onClick={() => handleIntSelect(n)}
                   className={`py-3 text-[16px] font-semibold rounded-xl transition-all ${intPart === n ? 'text-white' : 'hover:bg-white'}`}
-                  style={intPart === n ? { background: S.accent, color: '#fff' } : { background: '#fafafa', color: S.text }}>
+                  style={intPart === n ? { background: HEALTH_MODAL_TOKENS.accent, color: '#fff' } : { background: '#fafafa', color: HEALTH_MODAL_TOKENS.text }}>
                   {n}
                 </button>
               ))}
@@ -213,7 +225,7 @@ export function NumberPickerPopover({ typeId, label, unit, value, onSelect, onCl
               {decimals.map((d) => (
                 <button key={d} onClick={() => handleDecSelect(d)}
                   className="py-3 text-[16px] font-semibold rounded-xl transition-all hover:bg-white"
-                  style={{ background: '#fafafa', color: S.text }}>
+                  style={{ background: '#fafafa', color: HEALTH_MODAL_TOKENS.text }}>
                   {d < 10 && decimals.some((x) => x >= 10) ? `0${d}` : String(d)}
                 </button>
               ))}
@@ -221,21 +233,18 @@ export function NumberPickerPopover({ typeId, label, unit, value, onSelect, onCl
           )}
         </div>
 
-        {/* Manual input fallback */}
         <div className="flex items-center gap-2 px-4 pb-4">
           <input type="number" placeholder="或手动输入..." value={value}
             onChange={(e) => onSelect(e.target.value)}
             className="flex-1 rounded-xl px-3 py-2 text-[14px] border-0 outline-none"
-            style={{ background: '#fff', color: S.text }} />
+            style={{ background: '#fff', color: HEALTH_MODAL_TOKENS.text }} />
           <button onClick={onClose} className="px-4 py-2 rounded-xl text-[14px] font-medium text-white"
-            style={{ background: S.accent }}>确定</button>
+            style={{ background: HEALTH_MODAL_TOKENS.accent }}>确定</button>
         </div>
       </div>
     </div>
   );
 }
-
-/* ── Clickable value cell (shows picker on click) ──────── */
 
 export function ValueCell({ typeId, label, unit, value, onChange }: {
   typeId: string; label: string; unit: string; value: string; onChange: (v: string) => void;
@@ -248,13 +257,13 @@ export function ValueCell({ typeId, label, unit, value, onChange }: {
       {hasPicker ? (
         <button onClick={() => setShowPicker(true)}
           className="w-full text-center text-[14px] font-medium rounded-lg py-1.5 transition-all hover:ring-2 hover:ring-[#BDE0F5]/30"
-          style={{ background: value ? '#eef3ee' : '#f5f3ef', color: value ? S.text : '#c0bdb8' }}>
+          style={{ background: value ? '#eef3ee' : '#f5f3ef', color: value ? HEALTH_MODAL_TOKENS.text : '#c0bdb8' }}>
           {value || '—'}
         </button>
       ) : (
         <input type="number" placeholder="—" value={value} onChange={(e) => onChange(e.target.value)}
           className="w-full text-center text-[14px] font-medium rounded-lg py-1.5 border-0 outline-none focus:ring-2 focus:ring-[#BDE0F5]/30"
-          style={{ background: '#f5f3ef', color: S.text }} />
+          style={{ background: '#f5f3ef', color: HEALTH_MODAL_TOKENS.text }} />
       )}
       {showPicker && (
         <NumberPickerPopover typeId={typeId} label={label} unit={unit} value={value}
@@ -279,13 +288,14 @@ type VisionBatchFormProps = {
 
 export function BatchForm(props: VisionBatchFormProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={props.onClose}>
-      <div className={`w-[680px] max-h-[85vh] overflow-y-auto ${S.radius} p-5 shadow-xl`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
-        <VisionBatchFormContent {...props} />
-      </div>
-    </div>
+    <HealthRecordModalShell open size="XL" onClose={props.onClose}>
+      <VisionBatchFormContent {...props} />
+    </HealthRecordModalShell>
   );
 }
+
+const SCREEN_TIME_OPTIONS = ['0-1小时', '2-3小时', '4-5小时', '6小时以上'] as const;
+const OUTDOOR_TIME_OPTIONS = ['0-1小时', '2-3小时', '4-5小时', '5小时以上'] as const;
 
 export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, initialRecord, ocrDraft }: VisionBatchFormProps) {
   const { t } = useTranslation();
@@ -362,7 +372,6 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
     return deduped.length > 0 ? deduped.join(' | ') : null;
   };
 
-  // OCR: pick image -> analyze -> prefill form
   const handleOCR = async () => {
     const input = document.createElement('input');
     input.type = 'file'; input.accept = 'image/*';
@@ -461,162 +470,148 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
   };
 
   const filledCount = Object.values(values).filter((v) => v.trim()).length + (hrValue.trim() ? 1 : 0);
-  const inp = `${S.radiusSm} px-3 py-2 text-[14px] border-0 outline-none focus:ring-2 focus:ring-[#BDE0F5]/30`;
+
+  const pupilChips: ChipOption<string>[] = PUPIL_OPTIONS.map((p) => ({ value: p, label: p }));
+  const screenChips: ChipOption<string>[] = SCREEN_TIME_OPTIONS.map((opt) => ({ value: opt, label: opt }));
+  const outdoorChips: ChipOption<string>[] = OUTDOOR_TIME_OPTIONS.map((opt) => ({ value: opt, label: opt }));
+
+  const ocrButton = (
+    <button
+      onClick={() => void handleOCR()}
+      disabled={ocrBusy}
+      className="inline-flex h-9 items-center gap-1.5 rounded-[12px] px-3 text-[13px] font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
+      style={{ background: HEALTH_MODAL_TOKENS.accent }}
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <path d="M7 8h4M7 12h10M7 16h6" />
+      </svg>
+      {ocrBusy ? t('Profile.rich.vision.recognizing') : t('Profile.rich.vision.smartRecognize')}
+    </button>
+  );
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[16px] font-semibold" style={{ color: S.text }}>{initialRecord ? t('Profile.rich.visionBatch.editTitle', { date: initialRecord.date }) : t('Profile.rich.visionBatch.createTitle')}</h3>
-        <div className="flex items-center gap-2">
-          {/* OCR button */}
-          <button onClick={() => void handleOCR()} disabled={ocrBusy}
-            className={`group relative flex items-center gap-1 px-3 py-1.5 text-[13px] font-medium text-white ${S.radiusSm} transition-all hover:opacity-90 disabled:opacity-50`}
-            style={{ background: S.accent }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h4M7 12h10M7 16h6" />
-            </svg>
-            {ocrBusy ? t('Profile.rich.vision.recognizing') : t('Profile.rich.vision.smartRecognize')}
-            <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md px-2 py-0.5 text-[12px] font-normal text-white opacity-0 group-hover:opacity-100 z-50"
-              style={{ background: '#1e293b' }}>{t('Profile.rich.visionBatch.ocrHint')}</span>
-          </button>
-          <button onClick={onClose} aria-label={t('Profile.rich.common.close')} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
-        </div>
-      </div>
+      <ModalHeader
+        title={initialRecord ? t('Profile.rich.visionBatch.editTitle', { date: initialRecord.date }) : t('Profile.rich.visionBatch.createTitle')}
+        icon="👁️"
+        onClose={onClose}
+        trailing={ocrButton}
+      />
+      <ModalContent>
+        <div className="space-y-5">
+          {ocrError ? <InlineError>{ocrError}</InlineError> : null}
 
-      {ocrError && (
-        <div className={`${S.radiusSm} px-3 py-2 mb-4 text-[13px]`}
-          style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
-          {ocrError}
-        </div>
-      )}
+          <FormGrid cols={2}>
+            <FormField label={t('Profile.rich.visionBatch.examDate')} required>
+              <DateField value={date} onChange={setDate} />
+            </FormField>
+            <FormField label={t('Profile.rich.visionBatch.pupilStatus')}>
+              <ChipGroup options={pupilChips} value={pupil} onChange={setPupil} layout="fill" clearable />
+            </FormField>
+          </FormGrid>
 
-      {/* Basic info */}
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <div>
-          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.examDate')} *</label>
-          <ProfileDatePicker value={date} onChange={setDate} className={inp} style={{ background: '#f5f3ef', color: S.text }} />
-        </div>
-        <div>
-          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.pupilStatus')}</label>
-          <div className="flex gap-1.5">
-            {PUPIL_OPTIONS.map((p) => (
-              <button key={p} onClick={() => setPupil(pupil === p ? '' : p)}
-                className={`flex-1 py-2 text-[13px] font-medium ${S.radiusSm} transition-all`}
-                style={pupil === p ? { background: S.accent, color: '#fff' } : { background: '#f5f3ef', color: S.sub }}>
-                {p}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div>
-          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.hospital')}</label>
-          <input value={hospital} onChange={(e) => setHospital(e.target.value)} placeholder={t('Profile.rich.common.optional')}
-            className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
-        </div>
-        <div>
-          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.doctor')}</label>
-          <input value={doctor} onChange={(e) => setDoctor(e.target.value)} placeholder={t('Profile.rich.common.optional')}
-            className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
-        </div>
-      </div>
+          <FormGrid cols={2}>
+            <FormField label={t('Profile.rich.visionBatch.hospital')}>
+              <Input
+                value={hospital}
+                onChange={(event) => setHospital(event.target.value)}
+                placeholder={t('Profile.rich.common.optional')}
+              />
+            </FormField>
+            <FormField label={t('Profile.rich.visionBatch.doctor')}>
+              <Input
+                value={doctor}
+                onChange={(event) => setDoctor(event.target.value)}
+                placeholder={t('Profile.rich.common.optional')}
+              />
+            </FormField>
+          </FormGrid>
 
-      {/* Form sections with picker-enabled cells */}
-      {FORM_SECTIONS.map((section) => (
-        <div key={section.title} className="mb-4">
-          <p className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>{section.title}</p>
-          <div className={`${S.radiusSm} overflow-hidden border`} style={{ borderColor: '#f1f5f9' }}>
-            <div className="grid grid-cols-[1.5fr_1fr_1fr] text-center text-[12px] font-medium py-2 px-3"
-              style={{ background: '#f8faf9', color: S.sub }}>
-              <span className="text-left">{t('Profile.rich.visionBatch.item')}</span>
-              <span>{t('Profile.rich.visionBatch.od')}</span>
-              <span>{t('Profile.rich.visionBatch.os')}</span>
-            </div>
-            {section.fields.map((f, i) => (
-              <div key={f.label} className="grid grid-cols-[1.5fr_1fr_1fr] items-center gap-2 py-2 px-3 border-t"
-                style={{ borderColor: '#f0f0ec', background: i % 2 === 0 ? S.card : '#fafcfb' }}>
-                <div>
-                  <span className="text-[13px]" style={{ color: S.text }}>{f.label}</span>
-                  {f.unit && <span className="text-[12px] ml-1" style={{ color: S.sub }}>({f.unit})</span>}
+          {FORM_SECTIONS.map((section) => (
+            <SectionCard key={section.title} title={section.title}>
+              <div className="overflow-hidden rounded-[14px] border" style={{ borderColor: '#f1f5f9' }}>
+                <div
+                  className="grid grid-cols-[1.5fr_1fr_1fr] px-3 py-2 text-center text-[12px] font-medium"
+                  style={{ background: '#f8faf9', color: HEALTH_MODAL_TOKENS.sub }}
+                >
+                  <span className="text-left">{t('Profile.rich.visionBatch.item')}</span>
+                  <span>{t('Profile.rich.visionBatch.od')}</span>
+                  <span>{t('Profile.rich.visionBatch.os')}</span>
                 </div>
-                <ValueCell typeId={f.od} label={f.label} unit={f.unit} value={values[f.od] ?? ''} onChange={(v) => set(f.od, v)} />
-                <ValueCell typeId={f.os} label={f.label} unit={f.unit} value={values[f.os] ?? ''} onChange={(v) => set(f.os, v)} />
+                {section.fields.map((f, i) => (
+                  <div
+                    key={f.label}
+                    className="grid grid-cols-[1.5fr_1fr_1fr] items-center gap-2 border-t px-3 py-2"
+                    style={{ borderColor: '#f0f0ec', background: i % 2 === 0 ? '#ffffff' : '#fafcfb' }}
+                  >
+                    <div>
+                      <span className="text-[13px]" style={{ color: HEALTH_MODAL_TOKENS.text }}>{f.label}</span>
+                      {f.unit && <span className="ml-1 text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>({f.unit})</span>}
+                    </div>
+                    <ValueCell typeId={f.od} label={f.label} unit={f.unit} value={values[f.od] ?? ''} onChange={(v) => set(f.od, v)} />
+                    <ValueCell typeId={f.os} label={f.label} unit={f.unit} value={values[f.os] ?? ''} onChange={(v) => set(f.os, v)} />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      ))}
+            </SectionCard>
+          ))}
 
-      {/* Hyperopia reserve */}
-      <div className="mb-4">
-        <p className="text-[14px] font-semibold mb-2" style={{ color: S.text }}>{t('Profile.rich.visionBatch.hyperopiaReserve')}</p>
-        <div className="flex items-center gap-3">
-          <ValueCell typeId="hyperopia-reserve" label={t('Profile.rich.visionBatch.hyperopiaReserve')} unit="D" value={hrValue} onChange={setHrValue} />
-          <span className="text-[13px]" style={{ color: S.sub }}>D</span>
-        </div>
-      </div>
-
-      {/* Behavioral factors */}
-      <div className={`${S.radiusSm} p-4 mb-4`} style={{ background: '#f9faf7', border: `1px solid ${S.border}` }}>
-        <p className="text-[14px] font-semibold mb-3" style={{ color: S.text }}>{t('Profile.rich.visionBatch.behaviorFactors')}</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-[12px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.nearWorkDaily')}</label>
-            <div className="flex gap-1.5">
-              {['0-1小时', '2-3小时', '4-5小时', '6小时以上'].map((opt) => (
-                <button key={opt} onClick={() => setScreenTime(screenTime === opt ? '' : opt)}
-                  className={`flex-1 py-1.5 text-[12px] ${S.radiusSm} transition-all`}
-                  style={screenTime === opt ? { background: S.accent, color: '#fff' } : { background: '#fff', border: `1px solid ${S.border}`, color: S.sub }}>
-                  {opt}
-                </button>
-              ))}
+          <SectionCard title={t('Profile.rich.visionBatch.hyperopiaReserve')}>
+            <div className="flex items-center gap-3">
+              <div className="w-32">
+                <ValueCell typeId="hyperopia-reserve" label={t('Profile.rich.visionBatch.hyperopiaReserve')} unit="D" value={hrValue} onChange={setHrValue} />
+              </div>
+              <span className="text-[13px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>D</span>
             </div>
-          </div>
-          <div>
-            <label className="text-[12px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.outdoorDaily')}</label>
-            <div className="flex gap-1.5">
-              {['0-1小时', '2-3小时', '4-5小时', '5小时以上'].map((opt) => (
-                <button key={opt} onClick={() => setOutdoorTime(outdoorTime === opt ? '' : opt)}
-                  className={`flex-1 py-1.5 text-[12px] ${S.radiusSm} transition-all`}
-                  style={outdoorTime === opt ? { background: S.accent, color: '#fff' } : { background: '#fff', border: `1px solid ${S.border}`, color: S.sub }}>
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+          </SectionCard>
 
-      {/* Control measures & notes */}
-      <div className="grid grid-cols-2 gap-3 mb-5">
-        <div>
-          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.controlMeasures')}</label>
-          <input value={controls} onChange={(e) => setControls(e.target.value)}
-            placeholder={t('Profile.rich.visionBatch.controlMeasuresPlaceholder')}
-            className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
-        </div>
-        <div>
-          <label className="text-[13px] block mb-1" style={{ color: S.sub }}>{t('Profile.rich.visionBatch.controlNotes')}</label>
-          <input value={notes} onChange={(e) => setNotes(e.target.value)}
-            placeholder={t('Profile.rich.visionBatch.controlNotesPlaceholder')}
-            className={`w-full ${inp}`} style={{ background: '#f5f3ef', color: S.text }} />
-        </div>
-      </div>
+          <SectionCard title={t('Profile.rich.visionBatch.behaviorFactors')}>
+            <FormGrid cols={2}>
+              <FormField label={t('Profile.rich.visionBatch.nearWorkDaily')}>
+                <ChipGroup options={screenChips} value={screenTime} onChange={setScreenTime} layout="fill" clearable size="sm" />
+              </FormField>
+              <FormField label={t('Profile.rich.visionBatch.outdoorDaily')}>
+                <ChipGroup options={outdoorChips} value={outdoorTime} onChange={setOutdoorTime} layout="fill" clearable size="sm" />
+              </FormField>
+            </FormGrid>
+          </SectionCard>
 
-      {/* Submit */}
-      <div className="flex items-center justify-between">
-        <span className="text-[13px]" style={{ color: S.sub }}>{t('Profile.rich.common.itemsFilled', { count: filledCount })}</span>
-        <div className="flex gap-2">
-          <button onClick={onClose} className={`px-4 py-2 text-[14px] ${S.radiusSm}`}
-            style={{ background: '#f0f0ec', color: S.sub }}>{t('Profile.rich.common.cancel')}</button>
-          <button onClick={() => void handleSubmit()} disabled={saving || filledCount === 0} aria-label="vision-record-save"
-            className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} disabled:opacity-40 transition-all hover:opacity-90`}
-            style={{ background: S.accent }}>
-            {saving ? t('Profile.rich.common.saving') : t('Profile.rich.visionBatch.saveRecord')}
-          </button>
+          <FormGrid cols={2}>
+            <FormField label={t('Profile.rich.visionBatch.controlMeasures')}>
+              <Input
+                value={controls}
+                onChange={(event) => setControls(event.target.value)}
+                placeholder={t('Profile.rich.visionBatch.controlMeasuresPlaceholder')}
+              />
+            </FormField>
+            <FormField label={t('Profile.rich.visionBatch.controlNotes')}>
+              <Input
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder={t('Profile.rich.visionBatch.controlNotesPlaceholder')}
+              />
+            </FormField>
+          </FormGrid>
         </div>
-      </div>
+      </ModalContent>
+      <ModalFooter
+        leading={
+          <span className="text-[13px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+            {t('Profile.rich.common.itemsFilled', { count: filledCount })}
+          </span>
+        }
+      >
+        <CancelButton onClick={onClose}>{t('Profile.rich.common.cancel')}</CancelButton>
+        <PrimaryButton
+          onClick={() => void handleSubmit()}
+          disabled={saving || filledCount === 0}
+          ariaLabel="vision-record-save"
+        >
+          {saving ? t('Profile.rich.common.saving') : t('Profile.rich.visionBatch.saveRecord')}
+        </PrimaryButton>
+      </ModalFooter>
     </>
   );
 }
+

@@ -1,11 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
-import { S } from '../../app-shell/page-style.js';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { saveAttachment, upsertMilestoneRecord } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { MILESTONE_CATALOG } from '../../knowledge-base/index.js';
 import type { MilestoneDomain } from '../../knowledge-base/gen/milestone-catalog.gen.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import { PhotoGrid, type PendingPhoto } from './photo-grid.js';
+import {
+  CancelButton,
+  ChipGroup,
+  type ChipOption,
+  DateField,
+  FormField,
+  HEALTH_MODAL_TOKENS,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  PrimaryButton,
+  TextArea,
+  UploadBox,
+} from './health-record-modal-shell.js';
 
 const DOMAINS: Array<{ key: MilestoneDomain; label: string; emoji: string }> = [
   { key: 'gross-motor', label: '大运动', emoji: '🏃' },
@@ -30,9 +42,11 @@ type MilestoneCaptureProps = {
   ageMonths: number;
   onSaved: () => void | Promise<void>;
   onClose: () => void;
+  /** Optional trailing slot in the modal header (e.g., milestone/tanner tab switcher). */
+  headerTrailing?: ReactNode;
 };
 
-export function MilestoneCaptureContent({ child, ageMonths, onSaved, onClose }: MilestoneCaptureProps) {
+export function MilestoneCaptureContent({ child, ageMonths, onSaved, onClose, headerTrailing }: MilestoneCaptureProps) {
   const isAgeRelevant = (milestone: typeof MILESTONE_CATALOG[number]) => {
     const lowerBound = milestone.typicalAge.rangeStart - 12;
     const upperBound = milestone.typicalAge.rangeEnd + 6;
@@ -107,153 +121,135 @@ export function MilestoneCaptureContent({ child, ageMonths, onSaved, onClose }: 
 
   if (availableDomains.length === 0) {
     return (
-      <div className="flex flex-col w-full max-h-[85vh]">
-        <div className="flex items-center justify-between px-6 pt-6 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[20px]">🎯</span>
-            <h2 className="text-[16px] font-bold" style={{ color: S.text }}>记录里程碑</h2>
+      <>
+        <ModalHeader title="记录里程碑" icon="🎯" onClose={onClose} trailing={headerTrailing} />
+        <ModalContent>
+          <div className="flex h-full flex-col items-center justify-center px-8 py-12 text-center">
+            <div className="mb-3 text-[36px]">🎓</div>
+            <p className="mb-1 text-[14px] font-medium" style={{ color: HEALTH_MODAL_TOKENS.text }}>
+              已超出里程碑数据范围
+            </p>
+            <p className="text-[13px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+              里程碑库只覆盖 0–6 岁。该孩子的年龄段已无新可记录条目。
+            </p>
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
-        </div>
-        <div className="flex-1 flex flex-col items-center justify-center px-8 py-12 text-center">
-          <div className="text-[36px] mb-3">🎓</div>
-          <p className="text-[14px] font-medium mb-1" style={{ color: S.text }}>已超出里程碑数据范围</p>
-          <p className="text-[13px]" style={{ color: S.sub }}>里程碑库只覆盖 0–6 岁。该孩子的年龄段已无新可记录条目。</p>
-        </div>
-        <div className="px-6 pt-3 pb-5">
-          <div className="flex justify-end">
-            <button onClick={onClose} className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>
-              关闭
-            </button>
-          </div>
-        </div>
-      </div>
+        </ModalContent>
+        <ModalFooter>
+          <CancelButton onClick={onClose}>关闭</CancelButton>
+        </ModalFooter>
+      </>
     );
   }
 
+  const domainChips: ChipOption<MilestoneDomain>[] = availableDomains.map((option) => ({
+    value: option.key,
+    label: option.label,
+    emoji: option.emoji,
+  }));
+
   return (
-    <div className="flex flex-col w-full max-h-[85vh] overflow-y-auto">
-      <div className="flex items-center justify-between px-6 pt-6 pb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[20px]">🎯</span>
-          <h2 className="text-[16px] font-bold" style={{ color: S.text }}>记录里程碑</h2>
+    <>
+      <ModalHeader title="记录里程碑" icon="🎯" onClose={onClose} trailing={headerTrailing} />
+      <ModalContent>
+        <div className="space-y-5">
+          <FormField label="领域">
+            <ChipGroup
+              options={domainChips}
+              value={domain}
+              onChange={(next) => {
+                setDomain(next);
+                setSelectedId(null);
+              }}
+            />
+          </FormField>
+
+          {showMilestoneList ? (
+            <FormField label="选择里程碑（按当前月龄过滤）">
+              <div className="max-h-[260px] space-y-1.5 overflow-y-auto pr-1">
+                {candidates.map((item) => (
+                  <button
+                    key={item.milestoneId}
+                    type="button"
+                    onClick={() => setSelectedId(item.milestoneId)}
+                    className="w-full rounded-[14px] px-4 py-3 text-left transition-colors"
+                    style={
+                      selectedId === item.milestoneId
+                        ? {
+                            background: 'rgba(78,204,163,0.14)',
+                            border: `1px solid ${HEALTH_MODAL_TOKENS.accent}`,
+                          }
+                        : { background: HEALTH_MODAL_TOKENS.fieldBg, border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}` }
+                    }
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] font-medium" style={{ color: HEALTH_MODAL_TOKENS.text }}>
+                        {item.title}
+                      </span>
+                      <span className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                        {item.typicalAge.rangeStart}-{item.typicalAge.rangeEnd} 月
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                      {item.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </FormField>
+          ) : milestone ? (
+            <div
+              className="rounded-[14px] px-4 py-3"
+              style={{ background: 'rgba(78,204,163,0.14)', border: `1px solid ${HEALTH_MODAL_TOKENS.accent}` }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] font-medium" style={{ color: HEALTH_MODAL_TOKENS.text }}>
+                  {milestone.title}
+                </span>
+                <span className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                  {milestone.typicalAge.rangeStart}-{milestone.typicalAge.rangeEnd} 月
+                </span>
+              </div>
+              <p className="mt-0.5 text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                {milestone.description}
+              </p>
+            </div>
+          ) : null}
+
+          {milestone ? (
+            <>
+              <FormField label="达成日期">
+                <DateField value={date} onChange={setDate} />
+              </FormField>
+
+              <FormField label="记录小故事">
+                <TextArea
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="例如：第一次找到藏起来的球，开心地咯咯笑..."
+                  rows={3}
+                />
+              </FormField>
+
+              <FormField label={`照片${photos.length > 0 ? ` (${photos.length}/9)` : ''}`}>
+                <UploadBox>
+                  <PhotoGrid
+                    photos={photos}
+                    maxPhotos={9}
+                    hint="点击或拖拽上传里程碑照片（最多 9 张）"
+                    onChange={setPhotos}
+                  />
+                </UploadBox>
+              </FormField>
+            </>
+          ) : null}
         </div>
-        <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
-      </div>
-
-      <div className="px-6 pb-2 space-y-4 flex-1">
-        <div>
-          <label className="text-[13px] mb-1 block font-medium" style={{ color: S.sub }}>领域</label>
-          <div className="flex flex-wrap gap-1.5">
-            {availableDomains.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                onClick={() => {
-                  setDomain(option.key);
-                  setSelectedId(null);
-                }}
-                className={`px-3 py-1.5 text-[13px] font-medium ${S.radiusSm} transition-colors`}
-                style={
-                  domain === option.key
-                    ? { background: S.accent, color: '#fff' }
-                    : { background: '#f4f4f2', color: S.sub, border: `1px solid ${S.border}` }
-                }
-              >
-                {option.emoji} {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {showMilestoneList ? (
-          <div>
-            <label className="text-[13px] mb-1 block font-medium" style={{ color: S.sub }}>选择里程碑（按当前月龄过滤）</label>
-            <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
-              {candidates.map((item) => (
-                <button
-                  key={item.milestoneId}
-                  type="button"
-                  onClick={() => setSelectedId(item.milestoneId)}
-                  className={`w-full text-left ${S.radiusSm} px-3 py-2 transition-colors`}
-                  style={
-                    selectedId === item.milestoneId
-                      ? { background: 'rgba(78,204,163,0.14)', border: `1px solid ${S.accent}` }
-                      : { background: '#fafaf8', border: `1px solid ${S.border}` }
-                  }
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[13px] font-medium" style={{ color: S.text }}>{item.title}</span>
-                    <span className="text-[12px]" style={{ color: S.sub }}>
-                      {item.typicalAge.rangeStart}-{item.typicalAge.rangeEnd} 月
-                    </span>
-                  </div>
-                  <p className="text-[12px] mt-0.5" style={{ color: S.sub }}>{item.description}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : milestone ? (
-          <div className={`${S.radiusSm} px-3 py-2`} style={{ background: 'rgba(78,204,163,0.14)', border: `1px solid ${S.accent}` }}>
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] font-medium" style={{ color: S.text }}>{milestone.title}</span>
-              <span className="text-[12px]" style={{ color: S.sub }}>
-                {milestone.typicalAge.rangeStart}-{milestone.typicalAge.rangeEnd} 月
-              </span>
-            </div>
-            <p className="text-[12px] mt-0.5" style={{ color: S.sub }}>{milestone.description}</p>
-          </div>
-        ) : null}
-
-        {milestone ? (
-          <>
-            <div>
-              <label className="text-[13px] mb-1 block font-medium" style={{ color: S.sub }}>达成日期</label>
-              <ProfileDatePicker value={date} onChange={setDate} style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }} />
-            </div>
-
-            <div>
-              <label className="text-[13px] mb-1 block font-medium" style={{ color: S.sub }}>记录小故事</label>
-              <textarea
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="例如：第一次找到藏起来的球，开心地咯咯笑..."
-                rows={3}
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] resize-none outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
-                style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', background: '#fafaf8' }}
-              />
-            </div>
-
-            <div>
-              <label className="text-[13px] mb-1 block font-medium" style={{ color: S.sub }}>
-                照片 {photos.length > 0 ? `(${photos.length}/9)` : ''}
-              </label>
-              <PhotoGrid
-                photos={photos}
-                maxPhotos={9}
-                hint="点击或拖拽上传里程碑照片（最多 9 张）"
-                onChange={setPhotos}
-              />
-            </div>
-          </>
-        ) : null}
-      </div>
-
-      <div className="px-6 pt-3 pb-5 mt-1">
-        <div className="flex items-center justify-end gap-2">
-          <button onClick={onClose} className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>
-            取消
-          </button>
-          <button
-            onClick={() => void handleSave()}
-            disabled={saving || !milestone}
-            className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-50`}
-            style={{ background: S.accent }}
-          >
-            {saving ? '保存中...' : '✅ 记录达成'}
-          </button>
-        </div>
-      </div>
-    </div>
+      </ModalContent>
+      <ModalFooter>
+        <CancelButton onClick={onClose} />
+        <PrimaryButton onClick={() => void handleSave()} disabled={saving || !milestone}>
+          {saving ? '保存中...' : '记录达成'}
+        </PrimaryButton>
+      </ModalFooter>
+    </>
   );
 }

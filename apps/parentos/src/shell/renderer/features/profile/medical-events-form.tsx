@@ -1,6 +1,4 @@
 import { useEffect, useState, type RefObject } from 'react';
-import { S } from '../../app-shell/page-style.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import { DrugComboBox, type DrugSelection } from './drug-combobox.js';
 import { getMedicalEvents } from '../../bridge/sqlite-bridge.js';
 import type { MedicalEventRow } from '../../bridge/sqlite-bridge.js';
@@ -23,14 +21,30 @@ import type {
   MedicalEventsFormMedication,
 } from './medical-events-page-types.js';
 import { useMedicalEventsFormState } from './medical-events-page-form-state.js';
+import {
+  CancelButton,
+  ChipGroup,
+  type ChipOption,
+  DateField,
+  FormField,
+  FormGrid,
+  HEALTH_MODAL_TOKENS,
+  HealthRecordModalShell,
+  InlineError,
+  Input,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  PrimaryButton,
+  SectionCard,
+  TextArea,
+} from './health-record-modal-shell.js';
 
 export function MedicalEventsForm(props: MedicalEventsFormProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={props.onClose}>
-      <div className="w-[520px] max-h-[85vh] flex flex-col rounded-2xl shadow-xl" style={{ background: '#f4f5f0' }} onClick={(event) => event.stopPropagation()}>
-        <MedicalEventsFormBody {...props} />
-      </div>
-    </div>
+    <HealthRecordModalShell open size="XL" onClose={props.onClose}>
+      <MedicalEventsFormBody {...props} />
+    </HealthRecordModalShell>
   );
 }
 
@@ -58,45 +72,43 @@ export function MedicalEventFormContent({
   });
 
   return (
-    <div className="w-[520px] flex flex-col max-h-[85vh] rounded-2xl" style={{ background: '#f4f5f0' }}>
-      <MedicalEventsFormBody
-        editingEventId={formState.editingEventId}
-        formEventType={formState.formEventType}
-        setFormEventType={formState.setFormEventType}
-        formTitle={formState.formTitle}
-        setFormTitle={formState.setFormTitle}
-        formEventDate={formState.formEventDate}
-        setFormEventDate={formState.setFormEventDate}
-        formEndDate={formState.formEndDate}
-        setFormEndDate={formState.setFormEndDate}
-        formShowEndDate={formState.formShowEndDate}
-        setFormShowEndDate={formState.setFormShowEndDate}
-        formSeverity={formState.formSeverity}
-        setFormSeverity={formState.setFormSeverity}
-        formResult={formState.formResult}
-        setFormResult={formState.setFormResult}
-        formHospital={formState.formHospital}
-        setFormHospital={formState.setFormHospital}
-        formNotes={formState.formNotes}
-        setFormNotes={formState.setFormNotes}
-        formLabValues={formState.formLabValues}
-        setFormLabValues={formState.setFormLabValues}
-        formSymptomTags={formState.formSymptomTags}
-        setFormSymptomTags={formState.setFormSymptomTags}
-        formMeds={formState.formMeds}
-        setFormMeds={formState.setFormMeds}
-        historyDrugs={formState.historyDrugs}
-        ocrLoading={formState.ocrLoading}
-        ocrError={formState.ocrError}
-        ocrImageName={formState.ocrImageName}
-        ocrInputRef={formState.ocrInputRef}
-        submitError={formState.submitError}
-        saving={formState.saving}
-        onClose={onClose}
-        onSubmit={() => { void formState.submitForm(); }}
-        onOCRUpload={(file) => { void formState.handleOCRUpload(file); }}
-      />
-    </div>
+    <MedicalEventsFormBody
+      editingEventId={formState.editingEventId}
+      formEventType={formState.formEventType}
+      setFormEventType={formState.setFormEventType}
+      formTitle={formState.formTitle}
+      setFormTitle={formState.setFormTitle}
+      formEventDate={formState.formEventDate}
+      setFormEventDate={formState.setFormEventDate}
+      formEndDate={formState.formEndDate}
+      setFormEndDate={formState.setFormEndDate}
+      formShowEndDate={formState.formShowEndDate}
+      setFormShowEndDate={formState.setFormShowEndDate}
+      formSeverity={formState.formSeverity}
+      setFormSeverity={formState.setFormSeverity}
+      formResult={formState.formResult}
+      setFormResult={formState.setFormResult}
+      formHospital={formState.formHospital}
+      setFormHospital={formState.setFormHospital}
+      formNotes={formState.formNotes}
+      setFormNotes={formState.setFormNotes}
+      formLabValues={formState.formLabValues}
+      setFormLabValues={formState.setFormLabValues}
+      formSymptomTags={formState.formSymptomTags}
+      setFormSymptomTags={formState.setFormSymptomTags}
+      formMeds={formState.formMeds}
+      setFormMeds={formState.setFormMeds}
+      historyDrugs={formState.historyDrugs}
+      ocrLoading={formState.ocrLoading}
+      ocrError={formState.ocrError}
+      ocrImageName={formState.ocrImageName}
+      ocrInputRef={formState.ocrInputRef}
+      submitError={formState.submitError}
+      saving={formState.saving}
+      onClose={onClose}
+      onSubmit={() => { void formState.submitForm(); }}
+      onOCRUpload={(file) => { void formState.handleOCRUpload(file); }}
+    />
   );
 }
 
@@ -177,247 +189,339 @@ function MedicalEventsFormBody({
 }: MedicalEventsFormProps) {
   const showResultField = formEventType === 'checkup';
 
+  const visitChips: ChipOption<string>[] = VISIT_TYPES.map((type) => ({
+    value: type,
+    label: EVENT_TYPE_LABELS[type] ?? type,
+  }));
+
+  const symptomChips: ChipOption<string>[] = COMMON_SYMPTOMS.map((symptom) => ({
+    value: symptom,
+    label: symptom,
+  }));
+
+  const severityChips: ChipOption<string>[] = SEVERITY_OPTIONS.map((severity) => ({
+    value: severity,
+    label: SEVERITY_LABELS[severity] ?? severity,
+  }));
+
+  const resultChips: ChipOption<string>[] = RESULT_OPTIONS.map((result) => ({
+    value: result,
+    label: RESULT_LABELS[result] ?? result,
+  }));
+
   return (
     <>
-      <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <span className="w-9 h-9 rounded-xl flex items-center justify-center text-[18px]" style={{ background: '#f1f5f9' }}>
-              {EVENT_TYPE_ICONS[formEventType] ?? '🏥'}
-            </span>
-            <h2 className="text-[16px] font-bold" style={{ color: S.text }}>{editingEventId ? '编辑就医记录' : '新增就医记录'}</h2>
-          </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/5 transition-colors" style={{ color: S.sub }}>✕</button>
-        </div>
-
-        {!editingEventId ? (
-          <>
-            <input
-              ref={ocrInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) onOCRUpload(file);
-                event.target.value = '';
-              }}
-            />
-            <div className="mx-6 mb-4 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'linear-gradient(135deg, #f1f5f9, #e8f0e8)', border: `1px solid ${S.border}` }}>
-              <span className="text-[24px]">{ocrLoading ? '⏳' : '🤖'}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-semibold" style={{ color: S.text }}>智能录入</p>
-                {ocrLoading ? (
-                  <p className="text-[12px]" style={{ color: S.accent }}>正在识别 {ocrImageName}...</p>
-                ) : ocrError ? (
-                  <p className="text-[12px]" style={{ color: '#dc2626' }}>{ocrError}</p>
-                ) : ocrImageName ? (
-                  <p className="text-[12px]" style={{ color: S.accent }}>✓ 已从 {ocrImageName} 提取信息，请确认并补充</p>
-                ) : (
-                  <p className="text-[12px]" style={{ color: S.sub }}>上传病历/处方单图片，AI 自动提取关键信息填入表单</p>
-                )}
-              </div>
-              <button
-                onClick={() => ocrInputRef.current?.click()}
-                disabled={ocrLoading}
-                className="shrink-0 px-3 py-1.5 text-[13px] font-medium text-white rounded-lg transition-colors hover:brightness-110 disabled:opacity-50"
-                style={{ background: S.accent }}
+      <ModalHeader
+        title={editingEventId ? '编辑就医记录' : '新增就医记录'}
+        icon={EVENT_TYPE_ICONS[formEventType] ?? '🏥'}
+        onClose={onClose}
+      />
+      <ModalContent>
+        <div className="space-y-4">
+          {!editingEventId ? (
+            <>
+              <input
+                ref={ocrInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) onOCRUpload(file);
+                  event.target.value = '';
+                }}
+              />
+              <div
+                className="flex items-center gap-3 rounded-[16px] px-4 py-3"
+                style={{
+                  background: 'linear-gradient(135deg, #f1f5f9, #e8f0e8)',
+                  border: `1px solid ${HEALTH_MODAL_TOKENS.border}`,
+                }}
               >
-                {ocrLoading ? '识别中...' : '上传识别'}
-              </button>
-            </div>
-          </>
-        ) : null}
-
-        <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-4">
-          <div className="rounded-xl p-4 space-y-3" style={{ background: '#fff' }}>
-            <p className="text-[14px] font-semibold" style={{ color: S.text }}>就诊基础</p>
-
-            <div>
-              <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>就诊类型</p>
-              <div className="flex flex-wrap gap-1.5">
-                {VISIT_TYPES.map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setFormEventType(type)}
-                    className="px-3 py-2 text-[13px] font-medium rounded-xl transition-all"
-                    style={formEventType === type
-                      ? { background: EVENT_TYPE_COLORS[type] ?? S.accent, color: '#fff' }
-                      : { border: `1px solid ${S.border}`, color: S.sub, background: '#fafaf8' }}
-                  >
-                    {EVENT_TYPE_LABELS[type]}
-                  </button>
-                ))}
+                <span className="text-[24px]">{ocrLoading ? '⏳' : '🤖'}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-semibold" style={{ color: HEALTH_MODAL_TOKENS.text }}>
+                    智能录入
+                  </p>
+                  {ocrLoading ? (
+                    <p className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.accent }}>
+                      正在识别 {ocrImageName}...
+                    </p>
+                  ) : ocrError ? (
+                    <p className="text-[12px]" style={{ color: '#dc2626' }}>
+                      {ocrError}
+                    </p>
+                  ) : ocrImageName ? (
+                    <p className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.accent }}>
+                      ✓ 已从 {ocrImageName} 提取信息，请确认并补充
+                    </p>
+                  ) : (
+                    <p className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                      上传病历/处方单图片，AI 自动提取关键信息填入表单
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => ocrInputRef.current?.click()}
+                  disabled={ocrLoading}
+                  className="shrink-0 rounded-[12px] px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:brightness-110 disabled:opacity-50"
+                  style={{ background: HEALTH_MODAL_TOKENS.accent }}
+                >
+                  {ocrLoading ? '识别中...' : '上传识别'}
+                </button>
               </div>
-            </div>
+            </>
+          ) : null}
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>就诊日期</p>
-                <ProfileDatePicker value={formEventDate} onChange={setFormEventDate} style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text, borderRadius: 12 }} />
-              </div>
-              <div>
-                {formShowEndDate ? (
-                  <>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <p className="text-[13px] font-medium" style={{ color: S.sub }}>结束日期</p>
-                      <button onClick={() => { setFormShowEndDate(false); setFormEndDate(''); }} className="text-[12px]" style={{ color: S.sub }}>取消</button>
+          <SectionCard title="就诊基础">
+            <div className="space-y-4">
+              <FormField label="就诊类型">
+                <ChipGroup
+                  options={visitChips}
+                  value={formEventType}
+                  onChange={setFormEventType}
+                  activeColor={EVENT_TYPE_COLORS[formEventType] ?? HEALTH_MODAL_TOKENS.accent}
+                />
+              </FormField>
+
+              <FormGrid cols={2}>
+                <FormField label="就诊日期">
+                  <DateField value={formEventDate} onChange={setFormEventDate} />
+                </FormField>
+                <FormField label={formShowEndDate ? '结束日期' : '持续治疗/住院'}>
+                  {formShowEndDate ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <DateField value={formEndDate} onChange={setFormEndDate} allowClear />
+                      </div>
+                      <button
+                        onClick={() => {
+                          setFormShowEndDate(false);
+                          setFormEndDate('');
+                        }}
+                        className="text-[12px]"
+                        style={{ color: HEALTH_MODAL_TOKENS.sub }}
+                      >
+                        取消
+                      </button>
                     </div>
-                    <ProfileDatePicker value={formEndDate} onChange={setFormEndDate} allowClear style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text, borderRadius: 12 }} />
-                  </>
-                ) : (
-                  <div className="flex items-end h-full pb-0.5">
-                    <button onClick={() => setFormShowEndDate(true)} className="text-[13px] font-medium rounded-xl px-3 py-2 transition-colors hover:bg-[#f0f2ee]" style={{ border: `1px dashed ${S.border}`, color: S.sub }}>
+                  ) : (
+                    <button
+                      onClick={() => setFormShowEndDate(true)}
+                      className="inline-flex h-12 items-center justify-center rounded-[14px] px-4 text-[13px] font-medium transition-colors hover:bg-[#f0f2ee]"
+                      style={{ border: `1px dashed ${HEALTH_MODAL_TOKENS.fieldBorder}`, color: HEALTH_MODAL_TOKENS.sub }}
+                    >
                       + 持续治疗/住院
                     </button>
-                  </div>
-                )}
-              </div>
-            </div>
+                  )}
+                </FormField>
+              </FormGrid>
 
-            <div>
-              <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>就诊机构</p>
-              <input
-                value={formHospital}
-                onChange={(event) => setFormHospital(event.target.value)}
-                placeholder="医院/诊所名称"
-                className="w-full rounded-xl px-3 py-2.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50"
-                style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }}
-              />
+              <FormField label="就诊机构">
+                <Input
+                  value={formHospital}
+                  onChange={(event) => setFormHospital(event.target.value)}
+                  placeholder="医院/诊所名称"
+                />
+              </FormField>
             </div>
-          </div>
+          </SectionCard>
 
           {formEventType !== 'lab-report' ? (
-            <div className="rounded-xl p-4 space-y-3" style={{ background: '#fff' }}>
-              <p className="text-[14px] font-semibold" style={{ color: S.text }}>病情与诊断</p>
+            <SectionCard title="病情与诊断">
+              <div className="space-y-4">
+                <FormField label="确诊疾病/主要症状">
+                  <Input
+                    value={formTitle}
+                    onChange={(event) => setFormTitle(event.target.value)}
+                    placeholder="如：手足口病、急性上呼吸道感染"
+                  />
+                </FormField>
 
-              <div>
-                <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>确诊疾病/主要症状</p>
-                <input
-                  value={formTitle}
-                  onChange={(event) => setFormTitle(event.target.value)}
-                  placeholder="如：手足口病、急性上呼吸道感染"
-                  className="w-full rounded-xl px-3 py-2.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50"
-                  style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }}
-                />
-              </div>
-
-              <div>
-                <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>伴随症状（可多选）</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {COMMON_SYMPTOMS.map((symptom) => (
-                    <button
-                      key={symptom}
-                      onClick={() => {
-                        const next = new Set(formSymptomTags);
-                        if (next.has(symptom)) next.delete(symptom);
-                        else next.add(symptom);
-                        setFormSymptomTags(next);
-                      }}
-                      className="px-2.5 py-1.5 text-[13px] rounded-xl transition-all"
-                      style={formSymptomTags.has(symptom)
-                        ? { background: S.accent, color: '#fff' }
-                        : { border: `1px solid ${S.border}`, color: S.sub, background: '#fafaf8' }}
-                    >
-                      {symptom}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>严重程度</p>
-                <div className="flex gap-1.5">
-                  {SEVERITY_OPTIONS.map((severity) => (
-                    <button
-                      key={severity}
-                      onClick={() => setFormSeverity(formSeverity === severity ? '' : severity)}
-                      className="flex-1 py-2.5 text-[13px] font-medium rounded-xl transition-all"
-                      style={formSeverity === severity
-                        ? { background: SEVERITY_COLORS[severity], color: '#fff' }
-                        : { border: `1px solid ${S.border}`, color: S.sub, background: '#fafaf8' }}
-                    >
-                      {SEVERITY_LABELS[severity]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {showResultField ? (
-                <div>
-                  <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>筛查结果</p>
-                  <div className="flex gap-1.5">
-                    {RESULT_OPTIONS.map((result) => (
-                      <button
-                        key={result}
-                        onClick={() => setFormResult(formResult === result ? '' : result)}
-                        className="flex-1 py-2.5 text-[13px] font-medium rounded-xl transition-all"
-                        style={formResult === result
-                          ? { background: S.accent, color: '#fff' }
-                          : { border: `1px solid ${S.border}`, color: S.sub, background: '#fafaf8' }}
-                      >
-                        {RESULT_LABELS[result]}
-                      </button>
-                    ))}
+                <FormField label="伴随症状（可多选）">
+                  <div className="flex flex-wrap gap-1.5">
+                    {symptomChips.map((chip) => {
+                      const active = formSymptomTags.has(chip.value);
+                      return (
+                        <button
+                          key={chip.value}
+                          onClick={() => {
+                            const next = new Set(formSymptomTags);
+                            if (next.has(chip.value)) next.delete(chip.value);
+                            else next.add(chip.value);
+                            setFormSymptomTags(next);
+                          }}
+                          className="inline-flex h-9 items-center rounded-[12px] px-3 text-[13px] transition-all"
+                          style={
+                            active
+                              ? { background: HEALTH_MODAL_TOKENS.accent, color: '#fff' }
+                              : {
+                                  border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}`,
+                                  color: HEALTH_MODAL_TOKENS.sub,
+                                  background: HEALTH_MODAL_TOKENS.fieldBg,
+                                }
+                          }
+                        >
+                          {chip.label}
+                        </button>
+                      );
+                    })}
                   </div>
-                </div>
-              ) : null}
-            </div>
+                </FormField>
+
+                <FormField label="严重程度">
+                  <ChipGroup
+                    options={severityChips}
+                    value={formSeverity}
+                    onChange={setFormSeverity}
+                    layout="fill"
+                    clearable
+                    activeColor={SEVERITY_COLORS[formSeverity] ?? HEALTH_MODAL_TOKENS.accent}
+                  />
+                </FormField>
+
+                {showResultField ? (
+                  <FormField label="筛查结果">
+                    <ChipGroup options={resultChips} value={formResult} onChange={setFormResult} layout="fill" clearable />
+                  </FormField>
+                ) : null}
+              </div>
+            </SectionCard>
           ) : (
-            <div className="rounded-xl p-4 space-y-3" style={{ background: '#fff' }}>
-              <p className="text-[14px] font-semibold" style={{ color: S.text }}>化验项目</p>
-              <p className="text-[12px]" style={{ color: S.sub }}>填写有数值的项目即可</p>
-              <div className="grid grid-cols-2 gap-2">
+            <SectionCard title="化验项目" description="填写有数值的项目即可">
+              <FormGrid cols={2} gap={2}>
                 {LAB_ITEMS.map((item) => (
                   <div key={item.key} className="flex items-center gap-2">
-                    <label className="text-[13px] w-16 shrink-0 font-medium" style={{ color: S.text }}>{item.label}</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      placeholder={item.unit}
-                      value={formLabValues[item.key] ?? ''}
-                      onChange={(event) => setFormLabValues({ ...formLabValues, [item.key]: event.target.value })}
-                      className="flex-1 rounded-xl px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50"
-                      style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8' }}
-                    />
-                    <span className="text-[12px] w-14 shrink-0" style={{ color: S.sub }}>{item.unit}</span>
+                    <label
+                      className="w-16 shrink-0 text-[13px] font-medium"
+                      style={{ color: HEALTH_MODAL_TOKENS.text }}
+                    >
+                      {item.label}
+                    </label>
+                    <div className="flex-1">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        placeholder={item.unit}
+                        value={formLabValues[item.key] ?? ''}
+                        onChange={(event) =>
+                          setFormLabValues({ ...formLabValues, [item.key]: event.target.value })
+                        }
+                      />
+                    </div>
+                    <span
+                      className="w-14 shrink-0 text-[12px]"
+                      style={{ color: HEALTH_MODAL_TOKENS.sub }}
+                    >
+                      {item.unit}
+                    </span>
                   </div>
                 ))}
-              </div>
-            </div>
+              </FormGrid>
+            </SectionCard>
           )}
 
           {formEventType !== 'lab-report' ? (
-            <div className="rounded-xl p-4 space-y-3" style={{ background: '#fff' }}>
-              <div className="flex items-center justify-between">
-                <p className="text-[14px] font-semibold" style={{ color: S.text }}>用药与处置</p>
-                {formMeds.length > 0 ? <span className="text-[12px]" style={{ color: S.sub }}>{formMeds.length} 种药品</span> : null}
-              </div>
-
+            <SectionCard
+              title="用药与处置"
+              trailing={
+                formMeds.length > 0 ? (
+                  <span className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                    {formMeds.length} 种药品
+                  </span>
+                ) : null
+              }
+            >
               <div className="space-y-3">
                 {formMeds.map((med, index) => (
-                  <div key={index} className="rounded-xl px-3 py-3 space-y-2" style={{ background: '#fafaf8', border: `1px solid ${S.border}` }}>
+                  <div
+                    key={index}
+                    className="space-y-2 rounded-[14px] px-3 py-3"
+                    style={{ background: HEALTH_MODAL_TOKENS.fieldBg, border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}` }}
+                  >
                     <div className="flex items-center gap-2">
                       <DrugComboBox
                         value={med.name}
-                        onChange={(value) => setFormMeds((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, name: value } : item))}
-                        onSelect={(selection: DrugSelection) => setFormMeds((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, name: selection.name, unit: selection.unit, frequency: selection.frequency, tags: selection.tags } : item))}
+                        onChange={(value) =>
+                          setFormMeds((prev) => prev.map((item, i) => (i === index ? { ...item, name: value } : item)))
+                        }
+                        onSelect={(selection: DrugSelection) =>
+                          setFormMeds((prev) =>
+                            prev.map((item, i) =>
+                              i === index
+                                ? {
+                                    ...item,
+                                    name: selection.name,
+                                    unit: selection.unit,
+                                    frequency: selection.frequency,
+                                    tags: selection.tags,
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
                         historyDrugs={historyDrugs}
                         placeholder="搜索药品名称或拼音首字母"
                       />
-                      <button onClick={() => setFormMeds((prev) => prev.filter((_, itemIndex) => itemIndex !== index))} className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center hover:bg-red-50 transition-colors" style={{ color: S.sub }}>✕</button>
+                      <button
+                        onClick={() => setFormMeds((prev) => prev.filter((_, i) => i !== index))}
+                        className="grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors hover:bg-red-50"
+                        style={{ color: HEALTH_MODAL_TOKENS.sub }}
+                      >
+                        ✕
+                      </button>
                     </div>
                     <div className="flex items-center gap-2">
-                      <input value={med.dose} onChange={(event) => setFormMeds((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, dose: event.target.value } : item))} placeholder="剂量" className="w-16 rounded-lg px-2 py-1.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50" style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fff', color: S.text }} />
-                      <span className="text-[13px] px-2 py-1 rounded-lg" style={{ background: '#f1f5f9', color: S.accent }}>{med.unit || '次'}</span>
-                      <input value={med.frequency} onChange={(event) => setFormMeds((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, frequency: event.target.value } : item))} placeholder="频次（如每日3次）" className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50" style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fff', color: S.text }} />
-                      <input value={med.days} onChange={(event) => setFormMeds((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, days: event.target.value } : item))} placeholder="天" className="w-12 rounded-lg px-2 py-1.5 text-[14px] outline-none text-center transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50" style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fff', color: S.text }} />
-                      <span className="text-[13px] shrink-0" style={{ color: S.sub }}>天</span>
+                      <input
+                        value={med.dose}
+                        onChange={(event) =>
+                          setFormMeds((prev) => prev.map((item, i) => (i === index ? { ...item, dose: event.target.value } : item)))
+                        }
+                        placeholder="剂量"
+                        className="w-16 rounded-[10px] px-2 py-1.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/35"
+                        style={{ border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}`, background: '#fff', color: HEALTH_MODAL_TOKENS.text }}
+                      />
+                      <span
+                        className="rounded-[10px] px-2 py-1 text-[13px]"
+                        style={{ background: '#f1f5f9', color: HEALTH_MODAL_TOKENS.accent }}
+                      >
+                        {med.unit || '次'}
+                      </span>
+                      <input
+                        value={med.frequency}
+                        onChange={(event) =>
+                          setFormMeds((prev) =>
+                            prev.map((item, i) => (i === index ? { ...item, frequency: event.target.value } : item)),
+                          )
+                        }
+                        placeholder="频次（如每日3次）"
+                        className="min-w-0 flex-1 rounded-[10px] px-2 py-1.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/35"
+                        style={{ border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}`, background: '#fff', color: HEALTH_MODAL_TOKENS.text }}
+                      />
+                      <input
+                        value={med.days}
+                        onChange={(event) =>
+                          setFormMeds((prev) => prev.map((item, i) => (i === index ? { ...item, days: event.target.value } : item)))
+                        }
+                        placeholder="天"
+                        className="w-12 rounded-[10px] px-2 py-1.5 text-center text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/35"
+                        style={{ border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}`, background: '#fff', color: HEALTH_MODAL_TOKENS.text }}
+                      />
+                      <span className="shrink-0 text-[13px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                        天
+                      </span>
                     </div>
                     {med.tags.length > 0 ? (
                       <div className="flex flex-wrap gap-1 pt-0.5">
-                        <span className="text-[12px]" style={{ color: S.sub }}>常见用法参考：</span>
+                        <span className="text-[12px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+                          常见用法参考：
+                        </span>
                         {med.tags.map((tag) => (
-                          <span key={tag} className="text-[12px] px-1.5 py-0.5 rounded" style={{ background: '#f0f7e4', color: '#6b8a1a' }}>
+                          <span
+                            key={tag}
+                            className="rounded px-1.5 py-0.5 text-[12px]"
+                            style={{ background: '#f0f7e4', color: '#6b8a1a' }}
+                          >
                             {tag}
                           </span>
                         ))}
@@ -425,42 +529,40 @@ function MedicalEventsFormBody({
                     ) : null}
                   </div>
                 ))}
-              </div>
 
-              <button onClick={() => setFormMeds((prev) => [...prev, { name: '', dose: '', unit: '次', frequency: '', days: '', tags: [] }])} className="w-full py-2.5 text-[13px] font-medium rounded-xl transition-colors hover:bg-[#f0f2ee]" style={{ border: `1px dashed ${S.border}`, color: S.sub }}>
-                + 添加药品
-              </button>
-            </div>
+                <button
+                  onClick={() =>
+                    setFormMeds((prev) => [...prev, { name: '', dose: '', unit: '次', frequency: '', days: '', tags: [] }])
+                  }
+                  className="w-full rounded-[14px] py-2.5 text-[13px] font-medium transition-colors hover:bg-[#f0f2ee]"
+                  style={{ border: `1px dashed ${HEALTH_MODAL_TOKENS.fieldBorder}`, color: HEALTH_MODAL_TOKENS.sub }}
+                >
+                  + 添加药品
+                </button>
+              </div>
+            </SectionCard>
           ) : null}
 
-          <div className="rounded-xl p-4 space-y-3" style={{ background: '#fff' }}>
-            <p className="text-[14px] font-semibold" style={{ color: S.text }}>附件与备注</p>
-            <div>
-              <p className="text-[13px] mb-1.5 font-medium" style={{ color: S.sub }}>补充说明</p>
-              <textarea
+          <SectionCard title="附件与备注">
+            <FormField label="补充说明">
+              <TextArea
                 value={formNotes}
                 onChange={(event) => setFormNotes(event.target.value)}
                 placeholder="医嘱、复诊安排、其他需要记录的信息..."
                 rows={2}
-                className="w-full rounded-xl px-3 py-2.5 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 resize-none"
-                style={{ borderWidth: 1, borderStyle: 'solid', borderColor: S.border, background: '#fafaf8', color: S.text }}
               />
-            </div>
-          </div>
+            </FormField>
+          </SectionCard>
 
-          {submitError ? (
-            <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-xl">{submitError}</p>
-          ) : null}
+          {submitError ? <InlineError>{submitError}</InlineError> : null}
         </div>
-
-      <div className="shrink-0 px-6 py-4" style={{ borderTop: `1px solid ${S.border}`, background: '#f4f5f0' }}>
-        <div className="flex items-center justify-end gap-2.5">
-          <button onClick={onClose} className="px-5 py-2.5 text-[14px] rounded-xl transition-colors hover:bg-[#e8e8e4]" style={{ background: '#e8e8e4', color: S.sub }}>取消</button>
-          <button onClick={onSubmit} disabled={saving} className="px-6 py-2.5 text-[14px] font-medium text-white rounded-xl transition-colors hover:brightness-110 disabled:opacity-50" style={{ background: S.accent }}>
-            {saving ? '保存中...' : editingEventId ? '更新记录' : '保存记录'}
-          </button>
-        </div>
-      </div>
+      </ModalContent>
+      <ModalFooter>
+        <CancelButton onClick={onClose} />
+        <PrimaryButton onClick={onSubmit} disabled={saving}>
+          {saving ? '保存中...' : editingEventId ? '更新记录' : '保存记录'}
+        </PrimaryButton>
+      </ModalFooter>
     </>
   );
 }

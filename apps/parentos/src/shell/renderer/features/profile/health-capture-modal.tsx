@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Save, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { computeAgeMonths, computeAgeMonthsAt } from '../../app-shell/app-store.js';
-import { S } from '../../app-shell/page-style.js';
 import { saveHealthRecordCapture, type SaveHealthRecordCaptureResult } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import type { HealthCaptureProtocolId, HealthMetricDefinition, HealthMetricId } from '../../knowledge-base/index.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
 import {
   buildHealthCaptureEventInput,
   createDefaultHealthCaptureIntent,
@@ -25,7 +22,27 @@ import { MilestoneCaptureContent } from './milestone-capture-form.js';
 import { OutdoorCaptureContent } from './outdoor-capture-form.js';
 import { DentalCaptureContent } from './dental-capture-form.js';
 import { hasMilestoneCandidatesForAge } from './milestone-capture-form.js';
+import { TannerCaptureContent } from './tanner-assessment-form.js';
 import { useAppStore } from '../../app-shell/app-store.js';
+import {
+  CancelButton,
+  ChipGroup,
+  DateField,
+  FormField,
+  FormGrid,
+  HEALTH_MODAL_TOKENS,
+  HealthRecordModalShell,
+  HealthRecordSidebar,
+  type HealthRecordSidebarItem,
+  type HealthModalSize,
+  InlineError,
+  Input,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  PrimaryButton,
+  SectionCard,
+} from './health-record-modal-shell.js';
 
 interface HealthCaptureModalProps {
   open: boolean;
@@ -33,11 +50,40 @@ interface HealthCaptureModalProps {
   childBirthDate: string;
   initialIntent?: HealthCaptureIntent | null;
   initialGroupId?: string | null;
+  initialMetricId?: string | null;
   onClose: () => void;
   onSaved?: (result: SaveHealthRecordCaptureResult) => void;
 }
 
-const PROTOTYPE_GROUPS = new Set(['growth', 'vision', 'sleep', 'fitness', 'medical', 'development', 'outdoor', 'dental']);
+/**
+ * Map each capture group to its modal size per the unified spec.
+ *  M (720)  → growth, sleep, outdoor
+ *  L (920)  → fitness
+ *  XL (1040) → vision, dental, medical, development (Tanner / milestone)
+ */
+const GROUP_SIZE: Record<string, HealthModalSize> = {
+  growth: 'M',
+  sleep: 'M',
+  outdoor: 'M',
+  fitness: 'L',
+  vision: 'XL',
+  dental: 'XL',
+  medical: 'XL',
+  development: 'XL',
+};
+
+const PROTOTYPE_GROUPS = new Set(Object.keys(GROUP_SIZE));
+
+const GROUP_EMOJI: Record<string, string> = {
+  growth: '📏',
+  sleep: '🌙',
+  outdoor: '☀️',
+  fitness: '🏃',
+  vision: '👁️',
+  dental: '🦷',
+  medical: '🏥',
+  development: '🌱',
+};
 
 export function HealthCaptureModal(props: HealthCaptureModalProps) {
   if (!props.open) return null;
@@ -51,33 +97,41 @@ function SidebarHealthCaptureModal({
   childId,
   childBirthDate,
   initialGroupId,
+  initialMetricId,
   onClose,
   onSaved,
 }: HealthCaptureModalProps) {
   const { t } = useTranslation();
   const ageMonths = computeAgeMonths(childBirthDate);
   const isUnder6 = ageMonths <= 72;
-  const allOptions = useMemo(() => getHealthRecordEventCaptureProtocolOptions(), []);
-  const options = useMemo(() => {
-    return allOptions.filter((option) => {
-      if (option.group.groupId === 'development') {
-        return hasMilestoneCandidatesForAge(ageMonths);
-      }
-      return true;
-    });
-  }, [allOptions, ageMonths]);
+  const options = useMemo(() => getHealthRecordEventCaptureProtocolOptions(), []);
   const [selectedGroupId, setSelectedGroupId] = useState(() => {
     if (initialGroupId && options.some((option) => option.group.groupId === initialGroupId)) {
       return initialGroupId;
     }
     return options[0]?.group.groupId ?? 'growth';
   });
+  const milestoneAvailable = hasMilestoneCandidatesForAge(ageMonths);
+  const initialDevelopmentTab: 'milestone' | 'tanner' =
+    initialMetricId && initialMetricId !== 'development.milestone'
+      ? 'tanner'
+      : milestoneAvailable
+        ? 'milestone'
+        : 'tanner';
+  const [developmentTab, setDevelopmentTab] = useState<'milestone' | 'tanner'>(initialDevelopmentTab);
   const { children } = useAppStore();
   const child = children.find((item) => item.childId === childId);
 
   const handleSavedFromGroup = () => {
     onSaved?.({ eventId: '' } as SaveHealthRecordCaptureResult);
   };
+
+  const sidebarItems: HealthRecordSidebarItem[] = options.map((option) => ({
+    id: option.group.groupId,
+    emoji: GROUP_EMOJI[option.group.groupId],
+    label: groupLabel(option.group.groupId, option.group.displayName, t),
+    disabled: !PROTOTYPE_GROUPS.has(option.group.groupId),
+  }));
 
   const renderContent = () => {
     if (selectedGroupId === 'growth') {
@@ -93,14 +147,12 @@ function SidebarHealthCaptureModal({
     }
     if (selectedGroupId === 'vision') {
       return (
-        <div className="px-5 py-5 max-h-[85vh] overflow-y-auto w-full">
-          <VisionBatchFormContent
-            childId={childId}
-            birthDate={childBirthDate}
-            onSave={handleSavedFromGroup}
-            onClose={onClose}
-          />
-        </div>
+        <VisionBatchFormContent
+          childId={childId}
+          birthDate={childBirthDate}
+          onSave={handleSavedFromGroup}
+          onClose={onClose}
+        />
       );
     }
     if (selectedGroupId === 'sleep') {
@@ -137,22 +189,30 @@ function SidebarHealthCaptureModal({
       );
     }
     if (selectedGroupId === 'development') {
+      const tabs = milestoneAvailable
+        ? ([
+            { value: 'milestone' as const, label: '里程碑', emoji: '🎯' },
+            { value: 'tanner' as const, label: '青春期评估', emoji: '🌱' },
+          ] as const)
+        : ([{ value: 'tanner' as const, label: '青春期评估', emoji: '🌱' }] as const);
       return (
-        <MilestoneCaptureContent
-          child={{ childId }}
+        <DevelopmentTabContent
+          tabs={tabs}
+          activeTab={developmentTab}
+          onTabChange={setDevelopmentTab}
+          milestoneAvailable={milestoneAvailable}
+          childId={childId}
+          birthDate={childBirthDate}
+          gender={child?.gender ?? 'male'}
           ageMonths={ageMonths}
-          onSaved={handleSavedFromGroup}
           onClose={onClose}
+          onSaved={handleSavedFromGroup}
         />
       );
     }
     if (selectedGroupId === 'outdoor') {
       return (
-        <OutdoorCaptureContent
-          child={{ childId }}
-          onSaved={handleSavedFromGroup}
-          onClose={onClose}
-        />
+        <OutdoorCaptureContent child={{ childId }} onSaved={handleSavedFromGroup} onClose={onClose} />
       );
     }
     if (selectedGroupId === 'dental') {
@@ -165,77 +225,115 @@ function SidebarHealthCaptureModal({
         />
       );
     }
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center px-8 py-16 text-center">
-        <div className="text-[40px] mb-4">🚧</div>
-        <p className="text-[15px] font-semibold mb-2" style={{ color: S.text }}>
-          {t('Profile.capture.comingSoonTitle', { defaultValue: '该分组录入即将上线' })}
-        </p>
-        <p className="text-[13px]" style={{ color: S.sub }}>
-          {t('Profile.capture.comingSoonDesc', { defaultValue: '该分类正在迁移到统一录入界面。' })}
-        </p>
-      </div>
-    );
+    return <ComingSoonPanel onClose={onClose} />;
   };
 
-  const groupContentWidth = (() => {
-    switch (selectedGroupId) {
-      case 'vision':
-      case 'dental':
-        return 'w-[680px]';
-      case 'medical':
-        return 'w-[520px]';
-      case 'sleep':
-        return 'w-[480px]';
-      case 'development':
-        return 'w-[460px]';
-      default:
-        return 'w-[440px]';
-    }
-  })();
+  const size: HealthModalSize = GROUP_SIZE[selectedGroupId] ?? 'M';
 
   return (
-    <div
-      role="dialog"
-      aria-label="health-capture-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'var(--nimi-scrim-modal)' }}
-      onClick={onClose}
+    <HealthRecordModalShell
+      open
+      size={size}
+      onClose={onClose}
+      sidebar={
+        <HealthRecordSidebar
+          items={sidebarItems}
+          selected={selectedGroupId}
+          onSelect={setSelectedGroupId}
+        />
+      }
     >
-      <section
-        className={`max-h-[88vh] ${S.radius} shadow-xl flex overflow-hidden`}
-        style={{ background: S.card }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <aside className="w-[180px] shrink-0 border-r py-4 px-3" style={{ borderColor: S.border, background: '#fafaf8' }}>
-          <div className="flex flex-col gap-1">
-            {options.map((option) => {
-              const isSelected = selectedGroupId === option.group.groupId;
-              const isPrototype = PROTOTYPE_GROUPS.has(option.group.groupId);
-              return (
-                <button
-                  key={option.group.groupId}
-                  type="button"
-                  className={`${S.radiusSm} px-3 py-2 text-left text-[13px] font-medium transition-colors`}
-                  style={
-                    isSelected
-                      ? { background: S.accent, color: '#fff' }
-                      : { background: 'transparent', color: isPrototype ? S.text : S.sub }
-                  }
-                  onClick={() => setSelectedGroupId(option.group.groupId)}
-                >
-                  {groupLabel(option.group.groupId, option.group.displayName, t)}
-                </button>
-              );
-            })}
-          </div>
-        </aside>
-
-        <div className={`${groupContentWidth} flex flex-col min-w-0`}>{renderContent()}</div>
-      </section>
-    </div>
+      {renderContent()}
+    </HealthRecordModalShell>
   );
 }
+
+/* ── Development tab (milestone / tanner) ─────────────────────────────── */
+
+type DevelopmentTabValue = 'milestone' | 'tanner';
+
+type DevelopmentTabContentProps = {
+  tabs: ReadonlyArray<{ value: DevelopmentTabValue; label: string; emoji: string }>;
+  activeTab: DevelopmentTabValue;
+  onTabChange: (next: DevelopmentTabValue) => void;
+  milestoneAvailable: boolean;
+  childId: string;
+  birthDate: string;
+  gender: string;
+  ageMonths: number;
+  onClose: () => void;
+  onSaved: () => void;
+};
+
+function DevelopmentTabContent({
+  tabs,
+  activeTab,
+  onTabChange,
+  milestoneAvailable,
+  childId,
+  birthDate,
+  gender,
+  ageMonths,
+  onClose,
+  onSaved,
+}: DevelopmentTabContentProps) {
+  const trailing =
+    tabs.length > 1 ? (
+      <ChipGroup
+        size="sm"
+        options={tabs.map((tab) => ({ value: tab.value, label: tab.label, emoji: tab.emoji }))}
+        value={activeTab}
+        onChange={(next) => onTabChange(next as DevelopmentTabValue)}
+      />
+    ) : null;
+
+  if (activeTab === 'milestone' && milestoneAvailable) {
+    return (
+      <MilestoneCaptureContent
+        child={{ childId }}
+        ageMonths={ageMonths}
+        onSaved={onSaved}
+        onClose={onClose}
+        headerTrailing={trailing}
+      />
+    );
+  }
+  return (
+    <TannerCaptureContent
+      child={{ childId, birthDate, gender: gender === 'female' ? 'female' : 'male' }}
+      onSaved={onSaved}
+      onClose={onClose}
+      headerTrailing={trailing}
+    />
+  );
+}
+
+/* ── Coming-soon placeholder ──────────────────────────────────────────── */
+
+function ComingSoonPanel({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <ModalHeader title={t('Profile.capture.title', { defaultValue: '添加健康数据' })} onClose={onClose} />
+      <ModalContent>
+        <div className="flex h-full flex-col items-center justify-center py-16 text-center">
+          <div className="mb-4 text-[40px]">🚧</div>
+          <p className="mb-2 text-[15px] font-semibold" style={{ color: HEALTH_MODAL_TOKENS.text }}>
+            {t('Profile.capture.comingSoonTitle', { defaultValue: '该分组录入即将上线' })}
+          </p>
+          <p className="text-[13px]" style={{ color: HEALTH_MODAL_TOKENS.sub }}>
+            {t('Profile.capture.comingSoonDesc', { defaultValue: '该分类正在迁移到统一录入界面。' })}
+          </p>
+        </div>
+      </ModalContent>
+      <ModalFooter>
+        <CancelButton onClick={onClose}>关闭</CancelButton>
+      </ModalFooter>
+    </>
+  );
+}
+
+/* ── Legacy capture modal (intent-driven; kept for reminder/protocol flow) ─ */
 
 function LegacyHealthCaptureModal({
   childId,
@@ -343,160 +441,102 @@ function LegacyHealthCaptureModal({
     }
   };
 
+  const sidebarItems: HealthRecordSidebarItem[] = options.map((option) => ({
+    id: option.group.groupId,
+    emoji: GROUP_EMOJI[option.group.groupId],
+    label: groupLabel(option.group.groupId, option.group.displayName, t),
+    disabled: protocolLocked,
+  }));
+
+  const protocolChipOptions = selectedOption?.protocols.map((protocol) => ({
+    value: protocol.protocolId,
+    label: protocolLabel(protocol.protocolId, protocol.displayName, t),
+  })) ?? [];
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'var(--nimi-scrim-modal)' }}
-      onClick={onClose}
+    <HealthRecordModalShell
+      open
+      size="M"
+      onClose={onClose}
+      sidebar={
+        <HealthRecordSidebar
+          items={sidebarItems}
+          selected={selectedGroupId ?? ''}
+          onSelect={(id) => {
+            if (protocolLocked) return;
+            const option = options.find((item) => item.group.groupId === id);
+            if (!option) return;
+            setSelectedGroupId(option.group.groupId);
+            handleProtocolChange(option.protocols[0]!.protocolId);
+          }}
+        />
+      }
     >
-      <section
-        role="dialog"
-        aria-label="health-capture-modal"
-        className={`w-[760px] max-h-[88vh] overflow-hidden ${S.radius} shadow-xl flex`}
-        style={{ background: S.card }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <aside className="w-[210px] shrink-0 border-r p-4" style={{ borderColor: S.border, background: '#fafaf8' }}>
-          <div className="text-[12px] font-semibold uppercase mb-3" style={{ color: S.sub, letterSpacing: 0 }}>
-            {t('Profile.capture.group', { defaultValue: 'Group' })}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            {options.map((option) => (
-              <button
-                key={option.group.groupId}
-                type="button"
-                className={`${S.radiusSm} px-3 py-2 text-left text-[13px] font-medium transition-colors`}
-                style={
-                  selectedGroupId === option.group.groupId
-                    ? { background: S.accent, color: '#fff' }
-                    : { background: 'transparent', color: S.text }
-                }
-                disabled={protocolLocked}
-                onClick={() => {
-                  if (protocolLocked) return;
-                  setSelectedGroupId(option.group.groupId);
-                  handleProtocolChange(option.protocols[0]!.protocolId);
-                }}
-              >
-                {groupLabel(option.group.groupId, option.group.displayName, t)}
-              </button>
-            ))}
-          </div>
-        </aside>
+      <ModalHeader
+        title={t('Profile.capture.title', { defaultValue: 'Add health data' })}
+        subtitle={
+          selectedProtocol
+            ? protocolLabel(selectedProtocol.protocolId, selectedProtocol.displayName, t)
+            : t('Profile.capture.selectProtocol', { defaultValue: 'Select a protocol' })
+        }
+        onClose={onClose}
+      />
+      <ModalContent>
+        <div className="space-y-4">
+          {protocolChipOptions.length > 1 ? (
+            <ChipGroup
+              size="sm"
+              options={protocolChipOptions}
+              value={selectedProtocol?.protocolId ?? ''}
+              onChange={(value) => {
+                if (protocolLocked) return;
+                handleProtocolChange(value as HealthCaptureProtocolId);
+              }}
+            />
+          ) : null}
 
-        <div className="flex-1 min-w-0 flex flex-col">
-          <header className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: S.border }}>
-            <div>
-              <h2 className="text-[17px] font-bold" style={{ color: S.text }}>{t('Profile.capture.title', { defaultValue: 'Add health data' })}</h2>
-              <p className="text-[12px] mt-0.5" style={{ color: S.sub }}>
-                {selectedProtocol
-                  ? protocolLabel(selectedProtocol.protocolId, selectedProtocol.displayName, t)
-                  : t('Profile.capture.selectProtocol', { defaultValue: 'Select a protocol' })}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={t('Profile.capture.close', { defaultValue: 'Close' })}
-              className="h-8 w-8 rounded-full grid place-items-center hover:bg-[#f0f0ec]"
-              style={{ color: S.sub }}
-            >
-              <X size={16} />
-            </button>
-          </header>
+          <FormGrid cols={2}>
+            <FormField label={t('Profile.capture.recordDate', { defaultValue: 'Record date' })}>
+              <DateField value={effectiveDate} onChange={setEffectiveDate} />
+            </FormField>
+            <FormField label={t('Profile.capture.notes', { defaultValue: 'Notes' })}>
+              <Input value={notes} onChange={(event) => setNotes(event.target.value)} />
+            </FormField>
+          </FormGrid>
 
-          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-            {selectedOption ? (
-              <div className="flex flex-wrap gap-2">
-                {selectedOption.protocols.map((protocol) => (
-                  <button
-                    key={protocol.protocolId}
-                    type="button"
-                    className={`${S.radiusSm} px-3 py-1.5 text-[13px] font-medium transition-colors`}
-                    style={
-                      selectedProtocol?.protocolId === protocol.protocolId
-                        ? { background: 'rgba(78,204,163,0.14)', color: S.accent, border: `1px solid ${S.accent}` }
-                        : { background: '#f4f4f2', color: S.sub, border: `1px solid ${S.border}` }
-                    }
-                    disabled={protocolLocked}
-                    onClick={() => handleProtocolChange(protocol.protocolId)}
-                  >
-                    {protocolLabel(protocol.protocolId, protocol.displayName, t)}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col gap-1">
-                <span className="text-[13px] font-medium" style={{ color: S.sub }}>{t('Profile.capture.recordDate', { defaultValue: 'Record date' })}</span>
-                <ProfileDatePicker
-                  value={effectiveDate}
-                  onChange={setEffectiveDate}
-                  className={`${S.radiusSm} px-3 py-2 text-[14px] outline-none`}
-                  style={{ border: `1px solid ${S.border}`, color: S.text, background: '#fafaf8' }}
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[13px] font-medium" style={{ color: S.sub }}>{t('Profile.capture.notes', { defaultValue: 'Notes' })}</span>
-                <input
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  className={`${S.radiusSm} px-3 py-2 text-[14px] outline-none`}
-                  style={{ border: `1px solid ${S.border}`, color: S.text, background: '#fafaf8' }}
-                />
-              </label>
-            </div>
-
+          <MetricFieldSet
+            title={t('Profile.capture.required', { defaultValue: 'Required' })}
+            metrics={metricSections.required}
+            values={draftValues}
+            onChange={setMetricValue}
+            t={t}
+            isRequired
+            missingMetricIds={missingMetricIds}
+          />
+          {metricSections.optional.length > 0 ? (
             <MetricFieldSet
-              title={t('Profile.capture.required', { defaultValue: 'Required' })}
-              metrics={metricSections.required}
+              title={t('Profile.capture.optional', { defaultValue: 'Optional' })}
+              metrics={metricSections.optional}
               values={draftValues}
               onChange={setMetricValue}
               t={t}
-              isRequired
-              missingMetricIds={missingMetricIds}
             />
-            {metricSections.optional.length > 0 ? (
-              <MetricFieldSet
-                title={t('Profile.capture.optional', { defaultValue: 'Optional' })}
-                metrics={metricSections.optional}
-                values={draftValues}
-                onChange={setMetricValue}
-                t={t}
-              />
-            ) : null}
+          ) : null}
 
-            {error ? (
-              <div className={`${S.radiusSm} px-3 py-2 text-[13px]`} style={{ background: '#fef2f2', color: '#b91c1c' }}>
-                {error}
-              </div>
-            ) : null}
-          </div>
-
-          <footer className="flex items-center justify-end gap-2 px-5 py-4 border-t" style={{ borderColor: S.border }}>
-            <button type="button" onClick={onClose} className={`${S.radiusSm} px-4 py-2 text-[14px]`} style={{ background: '#f0f0ec', color: S.sub }}>
-              {t('Profile.capture.cancel', { defaultValue: 'Cancel' })}
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={saving || !selectedProtocol}
-              className={`${S.radiusSm} inline-flex items-center gap-2 px-4 py-2 text-[14px] font-medium text-white disabled:opacity-40`}
-              style={{ background: S.accent }}
-            >
-              <Save size={15} />
-              {saving ? t('Profile.capture.saving', { defaultValue: 'Saving' }) : t('Profile.capture.save', { defaultValue: 'Save' })}
-            </button>
-          </footer>
+          {error ? <InlineError>{error}</InlineError> : null}
         </div>
-      </section>
-    </div>
+      </ModalContent>
+      <ModalFooter>
+        <CancelButton onClick={onClose}>{t('Profile.capture.cancel', { defaultValue: 'Cancel' })}</CancelButton>
+        <PrimaryButton onClick={() => void handleSave()} disabled={saving || !selectedProtocol}>
+          {saving
+            ? t('Profile.capture.saving', { defaultValue: 'Saving' })
+            : t('Profile.capture.save', { defaultValue: 'Save' })}
+        </PrimaryButton>
+      </ModalFooter>
+    </HealthRecordModalShell>
   );
 }
-
-const ERROR_BORDER = '#dc2626';
-const ERROR_TEXT = '#b91c1c';
 
 function MetricFieldSet({
   title,
@@ -517,57 +557,34 @@ function MetricFieldSet({
 }) {
   if (metrics.length === 0) return null;
   return (
-    <section>
-      <h3 className="text-[13px] font-semibold mb-2" style={{ color: S.text }}>{title}</h3>
-      <div className="grid grid-cols-2 gap-3">
+    <SectionCard title={title}>
+      <FormGrid cols={2}>
         {metrics.map((metric) => {
           const label = metricLabel(metric, t);
           const isMissing = isRequired && (missingMetricIds?.has(metric.metricId) ?? false);
-          const borderColor = isMissing ? ERROR_BORDER : S.border;
           const labelText = `${label}${metric.unit ? ` (${metric.unit})` : ''}`;
           return (
-            <label key={metric.metricId} className="flex flex-col gap-1">
-              <span className="text-[13px] font-medium inline-flex items-baseline gap-0.5" style={{ color: S.sub }}>
-                <span>{labelText}</span>
-                {isRequired ? (
-                  <span
-                    aria-hidden="true"
-                    className="text-[9px] leading-none relative -top-[1px]"
-                    style={{ color: ERROR_TEXT }}
-                  >
-                    *
-                  </span>
-                ) : null}
-              </span>
-              {metric.valueShape === 'event' || metric.valueShape === 'composite' ? (
-                <textarea
-                  value={values[metric.metricId]?.value ?? ''}
-                  onChange={(event) => onChange(metric.metricId, event.target.value)}
-                  rows={3}
-                  aria-invalid={isMissing || undefined}
-                  className={`${S.radiusSm} px-3 py-2 text-[14px] outline-none resize-none`}
-                  style={{ border: `1px solid ${borderColor}`, color: S.text, background: '#fafaf8' }}
-                />
-              ) : (
-                <input
-                  type={metric.valueShape === 'number' || metric.valueShape === 'duration' ? 'number' : 'text'}
-                  step={metric.precision != null ? String(1 / 10 ** metric.precision) : undefined}
-                  value={values[metric.metricId]?.value ?? ''}
-                  onChange={(event) => onChange(metric.metricId, event.target.value)}
-                  aria-invalid={isMissing || undefined}
-                  className={`${S.radiusSm} px-3 py-2 text-[14px] outline-none`}
-                  style={{ border: `1px solid ${borderColor}`, color: S.text, background: '#fafaf8' }}
-                />
-              )}
-              {isMissing ? (
-                <span className="text-[12px]" style={{ color: ERROR_TEXT }}>
-                  {t('Profile.capture.fieldRequired', { field: label, defaultValue: `Please enter ${label}` })}
-                </span>
-              ) : null}
-            </label>
+            <FormField
+              key={metric.metricId}
+              label={labelText}
+              required={isRequired}
+              error={
+                isMissing
+                  ? t('Profile.capture.fieldRequired', { field: label, defaultValue: `Please enter ${label}` })
+                  : null
+              }
+            >
+              <Input
+                type={metric.valueShape === 'number' || metric.valueShape === 'duration' ? 'number' : 'text'}
+                step={metric.precision != null ? String(1 / 10 ** metric.precision) : undefined}
+                value={values[metric.metricId]?.value ?? ''}
+                onChange={(event) => onChange(metric.metricId, event.target.value)}
+                invalid={isMissing}
+              />
+            </FormField>
           );
         })}
-      </div>
-    </section>
+      </FormGrid>
+    </SectionCard>
   );
 }

@@ -63,6 +63,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureGroupId, setCaptureGroupId] = useState<string | null>(null);
+  const [captureMetricId, setCaptureMetricId] = useState<string | null>(null);
 
   const loadRecords = useCallback(async (childId: string) => {
     setLoading(true);
@@ -127,6 +128,7 @@ export default function ProfilePage() {
           lastRecordedDaysAgo={recencyDays}
           onAddRecord={() => {
             setCaptureGroupId(null);
+            setCaptureMetricId(null);
             setCaptureOpen(true);
           }}
         />
@@ -180,8 +182,9 @@ export default function ProfilePage() {
                   <ProfileGroupCard
                     key={group.group.groupId}
                     group={group}
-                    onCapture={(groupId) => {
+                    onCapture={(groupId, metricId) => {
                       setCaptureGroupId(groupId);
+                      setCaptureMetricId(metricId ?? null);
                       setCaptureOpen(true);
                     }}
                   />
@@ -197,9 +200,11 @@ export default function ProfilePage() {
         childId={activeChild.childId}
         childBirthDate={activeChild.birthDate}
         initialGroupId={captureGroupId}
+        initialMetricId={captureMetricId}
         onClose={() => {
           setCaptureOpen(false);
           setCaptureGroupId(null);
+          setCaptureMetricId(null);
         }}
         onSaved={(_: SaveHealthRecordCaptureResult) => {
           void loadRecords(activeChild.childId);

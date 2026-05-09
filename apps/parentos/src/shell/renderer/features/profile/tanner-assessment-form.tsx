@@ -1,12 +1,30 @@
-import { S } from '../../app-shell/page-style.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
+import { useState, type ReactNode } from 'react';
+import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
+import { insertMeasurement, insertTannerAssessment } from '../../bridge/sqlite-bridge.js';
+import { isoNow, ulid } from '../../bridge/ulid.js';
 import { TannerStageSelector } from './tanner-stage-selector.js';
 import {
   ASSESSED_BY_LABELS,
   ASSESSED_BY_OPTIONS,
+  BREAST_STAGES,
+  GENITAL_STAGES,
   PUBIC_HAIR_STAGES,
   type StageDesc,
 } from './tanner-page-shared.js';
+import {
+  CancelButton,
+  ChipGroup,
+  type ChipOption,
+  DateField,
+  FormField,
+  FormGrid,
+  HealthRecordModalShell,
+  Input,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  PrimaryButton,
+} from './health-record-modal-shell.js';
 
 type TannerAssessmentFormProps = {
   bgLabel: string;
@@ -29,6 +47,11 @@ type TannerAssessmentFormProps = {
   onSave: () => void;
 };
 
+const ASSESSED_BY_CHIPS: ChipOption<string>[] = ASSESSED_BY_OPTIONS.map((value) => ({
+  value,
+  label: ASSESSED_BY_LABELS[value] ?? value,
+}));
+
 export function TannerAssessmentForm({
   bgLabel,
   bgStages,
@@ -50,90 +73,215 @@ export function TannerAssessmentForm({
   onSave,
 }: TannerAssessmentFormProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={onClose}>
-      <div className={`w-[440px] max-h-[85vh] overflow-y-auto ${S.radius} flex flex-col shadow-xl`} style={{ background: S.card }} onClick={(event) => event.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 pt-6 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[20px]">🌱</span>
-            <h2 className="text-[16px] font-bold" style={{ color: S.text }}>新增评估</h2>
-          </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
-        </div>
+    <HealthRecordModalShell open size="XL" onClose={onClose}>
+      <ModalHeader title="新增评估" icon="🌱" onClose={onClose} />
+      <ModalContent>
+        <TannerFormFields
+          bgLabel={bgLabel}
+          bgStages={bgStages}
+          formAssessedAt={formAssessedAt}
+          setFormAssessedAt={setFormAssessedAt}
+          formBG={formBG}
+          setFormBG={setFormBG}
+          formPH={formPH}
+          setFormPH={setFormPH}
+          formAssessedBy={formAssessedBy}
+          setFormAssessedBy={setFormAssessedBy}
+          formNotes={formNotes}
+          setFormNotes={setFormNotes}
+          formBoneAge={formBoneAge}
+          setFormBoneAge={setFormBoneAge}
+          formBodyFat={formBodyFat}
+          setFormBodyFat={setFormBodyFat}
+        />
+      </ModalContent>
+      <ModalFooter>
+        <CancelButton onClick={onClose} />
+        <PrimaryButton onClick={onSave}>保存评估</PrimaryButton>
+      </ModalFooter>
+    </HealthRecordModalShell>
+  );
+}
 
-        <div className="px-6 pb-2 space-y-4 flex-1">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-[13px] mb-1" style={{ color: S.sub }}>评估日期</p>
-              <ProfileDatePicker value={formAssessedAt} onChange={setFormAssessedAt} style={{ background: '#fafaf8', color: S.text }} />
-            </div>
-            <div>
-              <p className="text-[13px] mb-1" style={{ color: S.sub }}>评估人</p>
-              <div className="flex gap-1.5">
-                {ASSESSED_BY_OPTIONS.map((value) => (
-                  <button
-                    key={value}
-                    onClick={() => setFormAssessedBy(value)}
-                    className={`flex-1 py-2 text-[13px] font-medium ${S.radiusSm} transition-all`}
-                    style={formAssessedBy === value ? { background: '#BDE0F5', color: '#fff' } : { background: '#f5f3ef', color: S.sub }}
-                  >
-                    {ASSESSED_BY_LABELS[value]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+type TannerFormFieldsProps = Omit<TannerAssessmentFormProps, 'onClose' | 'onSave'>;
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <TannerStageSelector stages={bgStages} value={formBG} onChange={setFormBG} label={bgLabel} />
-            <TannerStageSelector stages={PUBIC_HAIR_STAGES} value={formPH} onChange={setFormPH} label="阴毛发育 (PH期)" />
-          </div>
+function TannerFormFields({
+  bgLabel,
+  bgStages,
+  formAssessedAt,
+  setFormAssessedAt,
+  formBG,
+  setFormBG,
+  formPH,
+  setFormPH,
+  formAssessedBy,
+  setFormAssessedBy,
+  formNotes,
+  setFormNotes,
+  formBoneAge,
+  setFormBoneAge,
+  formBodyFat,
+  setFormBodyFat,
+}: TannerFormFieldsProps) {
+  return (
+    <div className="space-y-5">
+      <FormGrid cols={2}>
+        <FormField label="评估日期">
+          <DateField value={formAssessedAt} onChange={setFormAssessedAt} />
+        </FormField>
+        <FormField label="评估人">
+          <ChipGroup
+            options={ASSESSED_BY_CHIPS}
+            value={formAssessedBy}
+            onChange={setFormAssessedBy}
+            layout="fill"
+            activeColor="#BDE0F5"
+          />
+        </FormField>
+      </FormGrid>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-[13px] mb-1" style={{ color: S.sub }}>🦴 骨龄（岁，可选）</p>
-              <input
-                type="number"
-                step="0.1"
-                value={formBoneAge}
-                onChange={(event) => setFormBoneAge(event.target.value)}
-                placeholder="如 12.5"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
-                style={{ background: '#fafaf8', color: S.text }}
-              />
-            </div>
-            <div>
-              <p className="text-[13px] mb-1" style={{ color: S.sub }}>📊 体脂率（%，可选）</p>
-              <input
-                type="number"
-                step="0.1"
-                value={formBodyFat}
-                onChange={(event) => setFormBodyFat(event.target.value)}
-                placeholder="如 18.5"
-                className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
-                style={{ background: '#fafaf8', color: S.text }}
-              />
-            </div>
-          </div>
+      <FormGrid cols={2} gap={4}>
+        <TannerStageSelector stages={bgStages} value={formBG} onChange={setFormBG} label={bgLabel} />
+        <TannerStageSelector stages={PUBIC_HAIR_STAGES} value={formPH} onChange={setFormPH} label="阴毛发育 (PH期)" />
+      </FormGrid>
 
-          <div>
-            <p className="text-[13px] mb-1" style={{ color: S.sub }}>备注</p>
-            <input
-              value={formNotes}
-              onChange={(event) => setFormNotes(event.target.value)}
-              placeholder="如：与上次对比有进展..."
-              className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] border-0 outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
-              style={{ background: '#fafaf8', color: S.text }}
-            />
-          </div>
-        </div>
+      <FormGrid cols={2}>
+        <FormField label="🦴 骨龄（岁，可选）">
+          <Input
+            type="number"
+            step="0.1"
+            value={formBoneAge}
+            onChange={(event) => setFormBoneAge(event.target.value)}
+            placeholder="如 12.5"
+          />
+        </FormField>
+        <FormField label="📊 体脂率（%，可选）">
+          <Input
+            type="number"
+            step="0.1"
+            value={formBodyFat}
+            onChange={(event) => setFormBodyFat(event.target.value)}
+            placeholder="如 18.5"
+          />
+        </FormField>
+      </FormGrid>
 
-        <div className="px-6 pt-3 pb-5 mt-1">
-          <div className="flex items-center justify-end gap-2">
-            <button onClick={onClose} className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
-            <button onClick={onSave} className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110`} style={{ background: S.accent }}>保存评估</button>
-          </div>
-        </div>
-      </div>
+      <FormField label="备注">
+        <Input
+          value={formNotes}
+          onChange={(event) => setFormNotes(event.target.value)}
+          placeholder="如：与上次对比有进展..."
+        />
+      </FormField>
     </div>
+  );
+}
+
+type TannerCaptureContentProps = {
+  child: { childId: string; birthDate: string; gender: 'male' | 'female' };
+  onSaved: () => void | Promise<void>;
+  onClose: () => void;
+  /** Optional trailing slot in the header (e.g., milestone/tanner tab switcher). */
+  headerTrailing?: ReactNode;
+};
+
+export function TannerCaptureContent({ child, onSaved, onClose, headerTrailing }: TannerCaptureContentProps) {
+  const isFemale = child.gender === 'female';
+  const bgLabel = isFemale ? '乳房发育 (B期)' : '外生殖器发育 (G期)';
+  const bgStages: StageDesc[] = isFemale ? BREAST_STAGES : GENITAL_STAGES;
+
+  const [assessedAt, setAssessedAt] = useState(() => new Date().toISOString().slice(0, 10));
+  const [bg, setBg] = useState(1);
+  const [ph, setPh] = useState(1);
+  const [assessedBy, setAssessedBy] = useState<string>('parent');
+  const [notes, setNotes] = useState('');
+  const [boneAge, setBoneAge] = useState('');
+  const [bodyFat, setBodyFat] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!assessedAt || bg < 1 || bg > 5 || ph < 1 || ph > 5) return;
+    setSaving(true);
+    const now = isoNow();
+    const ageMonths = computeAgeMonthsAt(child.birthDate, assessedAt);
+    try {
+      await insertTannerAssessment({
+        assessmentId: ulid(),
+        childId: child.childId,
+        assessedAt,
+        ageMonths,
+        breastOrGenitalStage: bg,
+        pubicHairStage: ph,
+        assessedBy: assessedBy || null,
+        notes: notes.trim() || null,
+        now,
+      });
+      if (boneAge.trim()) {
+        await insertMeasurement({
+          measurementId: ulid(),
+          childId: child.childId,
+          typeId: 'bone-age',
+          value: parseFloat(boneAge),
+          measuredAt: assessedAt,
+          ageMonths,
+          percentile: null,
+          source: 'manual',
+          notes: null,
+          now,
+        });
+      }
+      if (bodyFat.trim()) {
+        await insertMeasurement({
+          measurementId: ulid(),
+          childId: child.childId,
+          typeId: 'body-fat-percentage',
+          value: parseFloat(bodyFat),
+          measuredAt: assessedAt,
+          ageMonths,
+          percentile: null,
+          source: 'manual',
+          notes: null,
+          now,
+        });
+      }
+      await onSaved();
+      onClose();
+    } catch {
+      /* bridge unavailable */
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <ModalHeader title="记录青春期评估" icon="🌱" onClose={onClose} trailing={headerTrailing} />
+      <ModalContent>
+        <TannerFormFields
+          bgLabel={bgLabel}
+          bgStages={bgStages}
+          formAssessedAt={assessedAt}
+          setFormAssessedAt={setAssessedAt}
+          formBG={bg}
+          setFormBG={setBg}
+          formPH={ph}
+          setFormPH={setPh}
+          formAssessedBy={assessedBy}
+          setFormAssessedBy={setAssessedBy}
+          formNotes={notes}
+          setFormNotes={setNotes}
+          formBoneAge={boneAge}
+          setFormBoneAge={setBoneAge}
+          formBodyFat={bodyFat}
+          setFormBodyFat={setBodyFat}
+        />
+      </ModalContent>
+      <ModalFooter>
+        <CancelButton onClick={onClose} />
+        <PrimaryButton onClick={() => void handleSubmit()} disabled={saving}>
+          {saving ? '保存中…' : '保存评估'}
+        </PrimaryButton>
+      </ModalFooter>
+    </>
   );
 }

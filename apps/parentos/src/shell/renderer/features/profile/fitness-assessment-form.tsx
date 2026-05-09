@@ -1,10 +1,22 @@
 import { useState } from 'react';
-import { S } from '../../app-shell/page-style.js';
-import { AppSelect } from '../../app-shell/app-select.js';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { insertFitnessAssessment } from '../../bridge/sqlite-bridge.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
-import { ProfileDatePicker } from './profile-date-picker.js';
+import {
+  CancelButton,
+  DateField,
+  FormField,
+  FormGrid,
+  HealthRecordModalShell,
+  InfoBanner,
+  Input,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  PrimaryButton,
+  SectionCard,
+  Select,
+} from './health-record-modal-shell.js';
 
 const SOURCE_OPTIONS = ['school-pe', 'sports-club', 'clinic', 'self'] as const;
 const SOURCE_LABELS: Record<string, string> = {
@@ -156,123 +168,127 @@ export function FitnessAssessmentFormContent({ child, ageMonths, onSaved, onClos
     }
   };
 
-  const formInput = (label: string, value: string, onChange: (v: string) => void, opts?: { type?: string; step?: string; min?: string; placeholder?: string; className?: string }) => (
-    <label className="flex flex-col gap-1">
-      <span className="text-[13px] font-medium" style={{ color: S.sub }}>{label}</span>
-      <input
-        type={opts?.type ?? 'number'} step={opts?.step} min={opts?.min} placeholder={opts?.placeholder ?? '--'}
-        value={value} onChange={(e) => onChange(e.target.value)}
-        className={`${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 ${opts?.className ?? ''}`}
-        style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text, background: '#fafaf8' }}
+  const numericInput = (
+    label: string,
+    value: string,
+    onChange: (v: string) => void,
+    opts?: { step?: string; min?: string; placeholder?: string },
+  ) => (
+    <FormField key={label} label={label}>
+      <Input
+        type="number"
+        step={opts?.step}
+        min={opts?.min}
+        placeholder={opts?.placeholder ?? '--'}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
       />
-    </label>
+    </FormField>
   );
 
-  const sectionHeader = (icon: string, title: string) => (
-    <div className="flex items-center gap-2 mb-2.5">
-      <span className="text-[16px]">{icon}</span>
-      <span className="text-[14px] font-semibold" style={{ color: S.text }}>{title}</span>
-    </div>
-  );
+  const speedFields = [
+    fields.run10mShuttle && numericInput('10米折返跑 (秒)', formRun10mShuttle, setFormRun10mShuttle, { step: '0.1', min: '0' }),
+    fields.run50m && numericInput('50米跑 (秒)', formRun50m, setFormRun50m, { step: '0.1', min: '0' }),
+    fields.run800m && numericInput('800米跑 (秒)', formRun800m, setFormRun800m, { step: '1', min: '0' }),
+    fields.run1000m && numericInput('1000米跑 (秒)', formRun1000m, setFormRun1000m, { step: '1', min: '0' }),
+    fields.run50x8 && numericInput('50m×8往返跑 (秒)', formRun50x8, setFormRun50x8, { step: '0.1', min: '0' }),
+  ].filter(Boolean);
+
+  const strengthFields = [
+    fields.standingLongJump && numericInput('立定跳远 (cm)', formStandingLongJump, setFormStandingLongJump, { step: '1', min: '0' }),
+    fields.tennisBallThrow && numericInput('网球掷远 (米)', formTennisBallThrow, setFormTennisBallThrow, { step: '0.1', min: '0' }),
+    fields.doubleFootJump && numericInput('双脚连续跳 (秒)', formDoubleFootJump, setFormDoubleFootJump, { step: '0.1', min: '0' }),
+    fields.sitUps && numericInput('仰卧起坐 (次/分)', formSitUps, setFormSitUps, { step: '1', min: '0' }),
+    fields.pullUps && numericInput('引体向上 (次)', formPullUps, setFormPullUps, { step: '1', min: '0' }),
+  ].filter(Boolean);
+
+  const flexFields = [
+    fields.sitAndReach && numericInput('坐位体前屈 (cm)', formSitAndReach, setFormSitAndReach, { step: '0.1' }),
+    fields.balanceBeam && numericInput('走平衡木 (秒)', formBalanceBeam, setFormBalanceBeam, { step: '0.1', min: '0' }),
+    fields.ropeSkipping && numericInput('跳绳 (次/分)', formRopeSkipping, setFormRopeSkipping, { step: '1', min: '0' }),
+    fields.vitalCapacity && numericInput('肺活量 (mL)', formVitalCapacity, setFormVitalCapacity, { step: '1', min: '0' }),
+  ].filter(Boolean);
 
   return (
-    <div className="flex flex-col w-full max-h-[85vh] overflow-y-auto">
-      <div className="flex items-center justify-between px-6 pt-6 pb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[20px]">🏃</span>
-          <h2 className="text-[16px] font-bold" style={{ color: S.text }}>添加体能评估</h2>
-          <span className="text-[13px] px-2 py-0.5 rounded-full" style={{ background: '#f4f4f2', color: S.sub }}>
-            {AGE_TIER_LABELS[tier]}
-          </span>
+    <>
+      <ModalHeader
+        title="添加体能评估"
+        icon="🏃"
+        subtitle={AGE_TIER_LABELS[tier]}
+        onClose={onClose}
+      />
+      <ModalContent>
+        <div className="space-y-5">
+          {tier === 'preschool' ? (
+            <InfoBanner tone="accent">
+              📋 依据《国民体质测定标准》幼儿部分（3-6岁），共 6 项测试
+            </InfoBanner>
+          ) : null}
+
+          <FormGrid cols={2}>
+            <FormField label="评估日期">
+              <DateField value={formAssessedAt} onChange={setFormAssessedAt} />
+            </FormField>
+            <FormField label="来源">
+              <Select
+                value={formSource}
+                onChange={setFormSource}
+                options={SOURCE_OPTIONS.map((v) => ({ value: v, label: SOURCE_LABELS[v] ?? v }))}
+              />
+            </FormField>
+          </FormGrid>
+
+          {speedFields.length > 0 ? (
+            <SectionCard
+              icon="⚡"
+              title={tier === 'preschool' ? '速度 & 灵敏' : '速度 & 耐力'}
+            >
+              <FormGrid cols={3}>{speedFields}</FormGrid>
+            </SectionCard>
+          ) : null}
+
+          {strengthFields.length > 0 ? (
+            <SectionCard
+              icon="💪"
+              title={tier === 'preschool' ? '力量 & 协调' : '力量'}
+            >
+              <FormGrid cols={3}>{strengthFields}</FormGrid>
+            </SectionCard>
+          ) : null}
+
+          {flexFields.length > 0 ? (
+            <SectionCard
+              icon="🤸"
+              title={tier === 'preschool' ? '柔韧 & 平衡' : '协调 & 心肺'}
+            >
+              <FormGrid cols={3}>{flexFields}</FormGrid>
+            </SectionCard>
+          ) : null}
+
+          <FormField label="备注">
+            <Input
+              placeholder="记录一些观察..."
+              value={formNotes}
+              onChange={(event) => setFormNotes(event.target.value)}
+            />
+          </FormField>
         </div>
-        <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-[#f0f0ec]" style={{ color: S.sub }}>✕</button>
-      </div>
-
-      <div className="px-6 pb-2 space-y-4 flex-1">
-        {tier === 'preschool' && (
-          <div className={`${S.radiusSm} px-4 py-3 text-[14px]`} style={{ background: '#EEF6EE', color: '#3a7a3a' }}>
-            📋 依据《国民体质测定标准》幼儿部分（3-6岁），共 6 项测试
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1">
-            <span className="text-[13px] font-medium" style={{ color: S.sub }}>评估日期</span>
-            <ProfileDatePicker value={formAssessedAt} onChange={setFormAssessedAt} style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text, background: '#fafaf8' }} />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[13px] font-medium" style={{ color: S.sub }}>来源</span>
-            <AppSelect value={formSource} onChange={setFormSource}
-              options={SOURCE_OPTIONS.map((v) => ({ value: v, label: SOURCE_LABELS[v] ?? v }))} />
-          </label>
-        </div>
-
-        <div className="space-y-4">
-          {(fields.run50m || fields.run800m || fields.run1000m || fields.run50x8 || fields.run10mShuttle) && (
-            <div className={`${S.radiusSm} p-4`} style={{ background: '#f8f8f6' }}>
-              {sectionHeader('⚡', tier === 'preschool' ? '速度 & 灵敏' : '速度 & 耐力')}
-              <div className="grid grid-cols-2 gap-3">
-                {fields.run10mShuttle && formInput('10米折返跑 (秒)', formRun10mShuttle, setFormRun10mShuttle, { step: '0.1', min: '0' })}
-                {fields.run50m && formInput('50米跑 (秒)', formRun50m, setFormRun50m, { step: '0.1', min: '0' })}
-                {fields.run800m && formInput('800米跑 (秒)', formRun800m, setFormRun800m, { step: '1', min: '0' })}
-                {fields.run1000m && formInput('1000米跑 (秒)', formRun1000m, setFormRun1000m, { step: '1', min: '0' })}
-                {fields.run50x8 && formInput('50m×8往返跑 (秒)', formRun50x8, setFormRun50x8, { step: '0.1', min: '0' })}
-              </div>
-            </div>
-          )}
-
-          {(fields.standingLongJump || fields.tennisBallThrow || fields.doubleFootJump || fields.sitUps || fields.pullUps) && (
-            <div className={`${S.radiusSm} p-4`} style={{ background: '#f8f8f6' }}>
-              {sectionHeader('💪', tier === 'preschool' ? '力量 & 协调' : '力量')}
-              <div className="grid grid-cols-2 gap-3">
-                {fields.standingLongJump && formInput('立定跳远 (cm)', formStandingLongJump, setFormStandingLongJump, { step: '1', min: '0' })}
-                {fields.tennisBallThrow && formInput('网球掷远 (米)', formTennisBallThrow, setFormTennisBallThrow, { step: '0.1', min: '0' })}
-                {fields.doubleFootJump && formInput('双脚连续跳 (秒)', formDoubleFootJump, setFormDoubleFootJump, { step: '0.1', min: '0' })}
-                {fields.sitUps && formInput('仰卧起坐 (次/分)', formSitUps, setFormSitUps, { step: '1', min: '0' })}
-                {fields.pullUps && formInput('引体向上 (次)', formPullUps, setFormPullUps, { step: '1', min: '0' })}
-              </div>
-            </div>
-          )}
-
-          {(fields.sitAndReach || fields.balanceBeam || fields.ropeSkipping || fields.vitalCapacity) && (
-            <div className={`${S.radiusSm} p-4`} style={{ background: '#f8f8f6' }}>
-              {sectionHeader('🤸', tier === 'preschool' ? '柔韧 & 平衡' : '协调 & 心肺')}
-              <div className="grid grid-cols-2 gap-3">
-                {fields.sitAndReach && formInput('坐位体前屈 (cm)', formSitAndReach, setFormSitAndReach, { step: '0.1' })}
-                {fields.balanceBeam && formInput('走平衡木 (秒)', formBalanceBeam, setFormBalanceBeam, { step: '0.1', min: '0' })}
-                {fields.ropeSkipping && formInput('跳绳 (次/分)', formRopeSkipping, setFormRopeSkipping, { step: '1', min: '0' })}
-                {fields.vitalCapacity && formInput('肺活量 (mL)', formVitalCapacity, setFormVitalCapacity, { step: '1', min: '0' })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <label className="text-[13px] mb-1 block font-medium" style={{ color: S.sub }}>备注</label>
-          <input placeholder="记录一些观察..." value={formNotes} onChange={(e) => setFormNotes(e.target.value)}
-            className={`w-full ${S.radiusSm} px-3 py-2 text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50`}
-            style={{ borderColor: S.border, borderWidth: 1, borderStyle: 'solid', color: S.text, background: '#fafaf8' }} />
-        </div>
-      </div>
-
-      <div className="px-6 pt-3 pb-5 mt-1">
-        <div className="flex items-center justify-end gap-2">
-          <button onClick={onClose} className={`px-4 py-2 text-[14px] ${S.radiusSm} transition-colors hover:bg-[#e8e8e4]`} style={{ background: '#f0f0ec', color: S.sub }}>取消</button>
-          <button onClick={() => void handleSubmit()} disabled={saving} className={`px-5 py-2 text-[14px] font-medium text-white ${S.radiusSm} transition-colors hover:brightness-110 disabled:opacity-50`} style={{ background: S.accent }}>
-            {saving ? '保存中...' : '保存'}
-          </button>
-        </div>
-      </div>
-    </div>
+      </ModalContent>
+      <ModalFooter>
+        <CancelButton onClick={onClose} />
+        <PrimaryButton onClick={() => void handleSubmit()} disabled={saving}>
+          {saving ? '保存中...' : '保存'}
+        </PrimaryButton>
+      </ModalFooter>
+    </>
   );
 }
 
 export function FitnessAssessmentModal(props: FitnessFormContentProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.25)' }} onClick={props.onClose}>
-      <section className={`w-[440px] ${S.radius} shadow-xl flex flex-col`} style={{ background: S.card }} onClick={(e) => e.stopPropagation()}>
-        <FitnessAssessmentFormContent {...props} />
-      </section>
-    </div>
+    <HealthRecordModalShell open size="L" onClose={props.onClose}>
+      <FitnessAssessmentFormContent {...props} />
+    </HealthRecordModalShell>
   );
 }
+

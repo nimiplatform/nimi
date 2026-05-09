@@ -5,7 +5,7 @@ import { Activity, Award, ChevronDown, ChevronRight, Eye, Footprints, Moon, Plus
 import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { S } from '../../app-shell/page-style.js';
 import type { HealthGroupSnapshot, HealthMetricSnapshot } from '../../engine/health-record-domain.js';
-import type { HealthMetricGroupId } from '../../knowledge-base/index.js';
+import type { HealthMetricGroupId, HealthMetricId } from '../../knowledge-base/index.js';
 import { formatDate, formatMetricSnapshotValue, formatMetricSnapshotValueParts, groupLabel, metricLabel } from './health-record-display.js';
 
 interface GroupVisual {
@@ -31,7 +31,7 @@ const PREVIEW_LIMIT = 3;
 
 export interface ProfileGroupCardProps {
   group: HealthGroupSnapshot;
-  onCapture?: (groupId: string) => void;
+  onCapture?: (groupId: string, metricId?: HealthMetricId) => void;
 }
 
 export function ProfileGroupCard({ group, onCapture }: ProfileGroupCardProps) {
@@ -138,7 +138,7 @@ function ExpandedRows({
   metrics: readonly HealthMetricSnapshot[];
   groupRoute: string;
   groupId: string;
-  onCapture?: (groupId: string) => void;
+  onCapture?: (groupId: string, metricId?: HealthMetricId) => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -148,7 +148,7 @@ function ExpandedRows({
           <ExpandedRow
             key={snapshot.metric.metricId}
             snapshot={snapshot}
-            onCapture={onCapture ? () => onCapture(groupId) : undefined}
+            onCapture={onCapture ? () => onCapture(groupId, snapshot.metric.metricId) : undefined}
           />
         ))}
       </ul>
