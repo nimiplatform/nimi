@@ -5,7 +5,6 @@ import {
   COMMAND_GATING_MATRIX_REF,
   LOCAL_GITIGNORE_ENTRIES,
   PACKAGE_NAME,
-  REQUIRED_BOOTSTRAP_FILES,
   REQUIRED_LOCAL_DIRS,
   SPEC_GENERATION_AUDIT_CONTRACT_REF,
   SPEC_GENERATION_AUDIT_REF,
@@ -13,6 +12,7 @@ import {
   SPEC_GENERATION_INPUTS_REF,
   SPEC_TREE_MODEL_REF,
 } from "../../constants.mjs";
+import { getBootstrapSeedEntries } from "../../seeds/bootstrap.mjs";
 import { inspectBootstrapCompatibility } from "../bootstrap.mjs";
 import {
   findCommandGatingRule,
@@ -68,11 +68,22 @@ export async function inspectDoctorBootstrapSurface(projectRoot) {
 
   checks.push(buildCheck("nimi_root", true, ".nimi directory exists"));
 
+  const seedEntries = await getBootstrapSeedEntries();
   const missingBootstrapFiles = [];
-  for (const relativePath of REQUIRED_BOOTSTRAP_FILES) {
-    const info = await pathExists(path.join(projectRoot, relativePath));
+  const driftedPackageCanonicalFiles = [];
+  for (const entry of seedEntries) {
+    const absolutePath = path.join(projectRoot, entry.outputRelativePath);
+    const info = await pathExists(absolutePath);
     if (!info || !info.isFile()) {
-      missingBootstrapFiles.push(relativePath);
+      missingBootstrapFiles.push(entry.outputRelativePath);
+      continue;
+    }
+    if (entry.ownership !== "package_canonical") {
+      continue;
+    }
+    const actual = await readTextIfFile(absolutePath);
+    if (actual !== entry.content) {
+      driftedPackageCanonicalFiles.push(entry.outputRelativePath);
     }
   }
   checks.push(
@@ -80,10 +91,18 @@ export async function inspectDoctorBootstrapSurface(projectRoot) {
       "bootstrap_seed_files",
       missingBootstrapFiles.length === 0,
       missingBootstrapFiles.length === 0
-        ? `All required bootstrap seed files are present (${REQUIRED_BOOTSTRAP_FILES.length}/${REQUIRED_BOOTSTRAP_FILES.length})`
-        : `Missing required bootstrap seed files: ${missingBootstrapFiles.join(", ")}`,
+        ? `All bootstrap seed files declared by the seed projection policy are present (${seedEntries.length}/${seedEntries.length})`
+        : `Missing bootstrap seed files declared by the seed projection policy: ${missingBootstrapFiles.join(", ")}`,
     ),
   );
+  checks.push({
+    id: "bootstrap_seed_package_canonical_in_sync",
+    ok: true,
+    severity: driftedPackageCanonicalFiles.length === 0 ? "ok" : "warn",
+    detail: driftedPackageCanonicalFiles.length === 0
+      ? "All package_canonical seed files match package source byte-for-byte"
+      : `package_canonical seed files diverge from package source; run \`nimicoding sync --apply\` to refresh, or \`nimicoding sync --check\` for the authoritative gate: ${driftedPackageCanonicalFiles.join(", ")}`,
+  });
 
   const missingLocalDirs = [];
   for (const relativePath of REQUIRED_LOCAL_DIRS) {

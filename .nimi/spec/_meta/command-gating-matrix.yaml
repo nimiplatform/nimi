@@ -85,10 +85,9 @@ command_gating_matrix:
     rules:
       - source_audit_findings_are_read_only
       - intake_forks_findings_into_a_design_workset
-      - packet_build_bounds_design_auditor_evidence_questions_and_stop_conditions
-      - result_ingest_records_typed_auditor_provenance_and_revision_entries
-      - ledger_validate_must_pass_before_finalize_or_wave_plan
-      - finalize_emits_local_only_design_state_report
+      - cluster_groups_findings_by_owner_authority_root_cause_contract_and_repair_target
+      - fork_review_must_resolve_to_authority_ref_or_mark_authority_alignment_required
+      - focused_plan_stops_on_user_decision
       - wave_plan_is_non_mutating_and_worker_dispatch_remains_disallowed_until_topic_admission
   - command: handoff
     skill: high_risk_execution

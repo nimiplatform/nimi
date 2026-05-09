@@ -9,6 +9,7 @@ import { runHandoff } from "./commands/handoff.mjs";
 import { runIngestHighRiskExecution } from "./commands/ingest-high-risk-execution.mjs";
 import { runReviewHighRiskExecution } from "./commands/review-high-risk-execution.mjs";
 import { runStart } from "./commands/start.mjs";
+import { runSync } from "./commands/sync.mjs";
 import { runTopic } from "./commands/topic.mjs";
 import { runTopicRunnerCommand } from "./commands/topic-runner.mjs";
 import { runValidateAcceptance } from "./commands/validate-acceptance.mjs";
@@ -27,6 +28,7 @@ import { VERSION } from "./constants.mjs";
 
 const COMMANDS = {
   start: runStart,
+  sync: runSync,
   topic: runTopic,
   "topic-runner": runTopicRunnerCommand,
   clear: runClear,

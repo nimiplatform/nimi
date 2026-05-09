@@ -1,0 +1,79 @@
+policy_id: nimicoding.seed-projection.v1
+description: |
+  Single source of truth for how nimi-coding package source is projected into
+  a host project's .nimi/** bootstrap surface. Every entry under the declared
+  source dirs is projected unless excluded; per-path ownership overrides
+  control whether the projected file stays package-canonical (refresh on sync,
+  drift is an error) or only carries the initial seed (host owns drift).
+
+projections:
+  - source_dir: config
+    output_dir: .nimi/config
+  - source_dir: contracts
+    output_dir: .nimi/contracts
+  - source_dir: methodology
+    output_dir: .nimi/methodology
+  - source_dir: spec
+    output_dir: .nimi/spec
+
+default_ownership: package_canonical
+
+ownership_semantics:
+  package_canonical:
+    initial_seed: true
+    refresh_on_sync: true
+    drift_is_error: true
+    description: |
+      Package source is canonical truth. nimicoding sync --apply rewrites
+      drifted host copies. nimicoding sync --check exits non-zero on any
+      drift or missing entry. doctor performs byte comparison.
+  host_state_seed:
+    initial_seed: true
+    refresh_on_sync: false
+    drift_is_error: false
+    description: |
+      Package ships an initial seed, but host owns the canonical content
+      after first install. nimicoding sync --apply only writes when the
+      host file is missing. Drift never fails sync or doctor.
+
+excluded_projection:
+  - methodology/spec-target-truth-profile.yaml
+
+ownership_overrides:
+  - path: .nimi/config/spec-generation-inputs.yaml
+    ownership: host_state_seed
+    reason: |
+      spec-generation-inputs carries host-specific reconstruction inputs
+      (code_roots, docs_roots, human_note_paths, blueprint refs). Package
+      only seeds the initial template; once the host populates real input
+      paths, sync --apply must not overwrite them.
+  - path: .nimi/spec/bootstrap-state.yaml
+    ownership: host_state_seed
+    reason: |
+      bootstrap-state lifecycle is host-owned canonical truth. Package only
+      seeds the initial bootstrap_only template.
+  - path: .nimi/spec/_meta/spec-tree-model.yaml
+    ownership: host_state_seed
+    reason: |
+      Canonical tree model is host-owned authority once the host declares
+      its own canonical_root. Package seeds the bootstrap template.
+  - path: .nimi/spec/_meta/spec-authority-cutover-readiness.yaml
+    ownership: host_state_seed
+    reason: |
+      Cutover readiness evidence is host-owned and accumulates over the
+      host project's authority cutover lifecycle.
+  - path: .nimi/spec/_meta/governance-routing-cutover-checklist.yaml
+    ownership: host_state_seed
+    reason: |
+      Governance routing checklist tracks host-side cutover progress.
+      Package only ships an initial template.
+  - path: .nimi/spec/_meta/generate-drift-migration-checklist.yaml
+    ownership: host_state_seed
+    reason: |
+      Drift migration checklist is host-owned operational state once
+      authored.
+  - path: .nimi/spec/_meta/phase2-impacted-surface-matrix.yaml
+    ownership: host_state_seed
+    reason: |
+      Impacted surface matrix is host-owned during the host's phase 2
+      cutover work.

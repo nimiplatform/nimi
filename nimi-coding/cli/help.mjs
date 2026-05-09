@@ -18,6 +18,7 @@ export function helpText() {
     `  ${styleCommand("nimicoding start --host <generic|codex|claude|oh-my-codex>")}`,
     `  ${styleCommand("nimicoding clear")}`,
     `  ${styleCommand("nimicoding clear --yes")}`,
+    `  ${styleCommand("nimicoding sync [--apply|--check|--dry-run] [--json]")}`,
     `  ${styleCommand("nimicoding topic create <slug> --justification <text> [--title <text>] [--json]")}`,
     `  ${styleCommand("nimicoding topic status [<topic-id>|<topic-path>] [--json]")}`,
     `  ${styleCommand("nimicoding topic run-next-step <topic-id> [--json]")}`,
@@ -116,6 +117,10 @@ export function helpText() {
     styleMuted(localize(
       "  - `nimicoding clear` does not remove .nimi/spec, .nimi/local, or .nimi/cache for you",
       "  - `nimicoding clear` 不会替你移除 .nimi/spec、.nimi/local 或 .nimi/cache",
+    )),
+    styleMuted(localize(
+      "  - `nimicoding sync` is the package-owned seed projection contract: --apply rewrites drifted package_canonical files and seeds missing entries; --check exits non-zero on package_canonical drift or any missing seed; host_state_seed entries are seeded once and never overwritten",
+      "  - `nimicoding sync` 是 package 拥有的 seed 投影契约：--apply 会刷新 drifted package_canonical 文件并补齐缺失 seed；--check 在 package_canonical drift 或 seed 缺失时退出非零；host_state_seed 条目仅初始化一次，之后永不覆盖",
     )),
     styleMuted(localize(
       "  - `nimicoding doctor` shows the user-facing summary; add `--verbose` for internal contract detail",
