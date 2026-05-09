@@ -132,10 +132,13 @@ groups:
     phase: 1
     status: active
     note: >
-      Runtime account authority is admitted by K-ACCSVC-002 as a frozen method
-      set. SDK projection is required by S-RUNTIME-109 / S-RUNTIME-110 for the
-      local first-party Runtime account projection, Runtime-backed short-lived
-      access-token provider, and login adapter surface.
+      Runtime account authority is admitted by K-ACCSVC-* as the local
+      first-party custody source, with K-ACCSVC-002 defining the frozen method
+      set. SDK projection is required by S-RUNTIME-109 / S-RUNTIME-110 for
+      account projection, login/logout, scoped binding, Runtime-issued
+      short-lived Realm access tokens, and the login adapter surface;
+      Desktop/app code must not own refresh tokens, session stores, shared auth
+      files, or direct token refresh seams.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - GetAccountSessionStatus

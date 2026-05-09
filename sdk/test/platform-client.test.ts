@@ -314,7 +314,7 @@ test('createPlatformClient prefers sessionStore token over provider and explicit
   assert.equal(authorizationHeader, 'Bearer store-token');
 });
 
-test('createPlatformClient allows anonymous realm access without authorization header', async () => {
+test('createPlatformClient fails closed for anonymous realm ready probe outside no-auth endpoints', async () => {
   clearPlatformClient();
   let authorizationHeader: string | null = 'uninitialized';
   const client = await createPlatformClient({
@@ -331,8 +331,14 @@ test('createPlatformClient allows anonymous realm access without authorization h
     },
   });
 
-  await client.realm.ready();
-  assert.equal(authorizationHeader, null);
+  await assert.rejects(
+    () => client.realm.ready(),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_REALM_TOKEN_REQUIRED);
+      return true;
+    },
+  );
+  assert.equal(authorizationHeader, 'uninitialized');
 });
 
 test('local first-party Runtime platform client rejects app-owned auth seams', async () => {

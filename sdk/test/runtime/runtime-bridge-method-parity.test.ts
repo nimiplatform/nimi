@@ -69,6 +69,29 @@ test('method-group denied method ids are not callable codec entries', () => {
   }
 });
 
+test('RuntimeAccountService projection is admitted for local first-party custody', () => {
+  const accountMethods = [
+    RuntimeMethodIds.account.getAccountSessionStatus,
+    RuntimeMethodIds.account.subscribeAccountSessionEvents,
+    RuntimeMethodIds.account.beginLogin,
+    RuntimeMethodIds.account.completeLogin,
+    RuntimeMethodIds.account.getAccessToken,
+    RuntimeMethodIds.account.refreshAccountSession,
+    RuntimeMethodIds.account.logout,
+    RuntimeMethodIds.account.switchAccount,
+    RuntimeMethodIds.account.issueScopedAppBinding,
+    RuntimeMethodIds.account.revokeScopedAppBinding,
+  ];
+  const codecMethodIds = new Set([
+    ...Object.keys(RuntimeUnaryMethodCodecs),
+    ...Object.keys(RuntimeStreamMethodCodecs),
+  ]);
+  for (const methodId of accountMethods) {
+    assert.equal(isRuntimeMethodAllowlisted(methodId), true, `${methodId} must be admitted`);
+    assert.equal(codecMethodIds.has(methodId), true, `${methodId} must have a codec`);
+  }
+});
+
 test('rust bridge stream method allowlist matches sdk stream ids', () => {
   const rustStreamMethods = extractMethodIdsFromRustConst(
     runtimeBridgeMethodSource,
