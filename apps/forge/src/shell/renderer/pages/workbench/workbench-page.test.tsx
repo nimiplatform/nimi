@@ -489,11 +489,9 @@ describe('WorkbenchPage', () => {
       worldId: 'world-1',
     });
     reportBatchItemFailureMutateAsync.mockResolvedValue(undefined);
-    useAppStore.getState().setAuthSession(
-      { id: 'user-1', displayName: 'Forge Operator' },
-      'token-1',
-      'refresh-1',
-    );
+    // FG-SHELL-009 / FG-SHELL-012: setAuthSession takes only the user;
+    // runtime owns access/refresh-token custody.
+    useAppStore.getState().setAuthSession({ id: 'user-1', displayName: 'Forge Operator' });
   });
 
   it('blocks publish-plan handoff while review conflicts remain unresolved', async () => {

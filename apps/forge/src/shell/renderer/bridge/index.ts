@@ -1,11 +1,12 @@
+// FG-SHELL-012 / spec K-ACCSVC-008: legacy shared desktop auth-session helpers
+// (`loadAuthSession`, `saveAuthSession`, `clearAuthSession`) are NOT
+// re-exported here. RuntimeAccountService owns token / refresh-token custody;
+// Forge does not own a persisted auth-session bridge.
 export {
   hasTauriInvoke,
   invoke,
   invokeChecked,
   BridgeError,
-  loadAuthSession,
-  saveAuthSession,
-  clearAuthSession,
   getDaemonStatus,
   startDaemon,
   stopDaemon,

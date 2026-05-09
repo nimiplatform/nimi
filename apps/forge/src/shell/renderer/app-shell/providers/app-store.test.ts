@@ -3,9 +3,10 @@ import { useAppStore } from './app-store.js';
 
 describe('ForgeAppStore', () => {
   beforeEach(() => {
-    // Reset store to initial state
+    // Reset store to initial state. FG-SHELL-009 / FG-SHELL-012: no
+    // app-owned token fields on the auth slice.
     useAppStore.setState({
-      auth: { status: 'bootstrapping', user: null, token: '', refreshToken: '' },
+      auth: { status: 'bootstrapping', user: null },
       bootstrapReady: false,
       bootstrapError: null,
       runtimeDefaults: null,
@@ -15,24 +16,25 @@ describe('ForgeAppStore', () => {
   });
 
   describe('auth', () => {
-    it('starts in bootstrapping state', () => {
+    it('starts in bootstrapping state with no token fields', () => {
       const state = useAppStore.getState();
       expect(state.auth.status).toBe('bootstrapping');
       expect(state.auth.user).toBeNull();
-      expect(state.auth.token).toBe('');
-      expect(state.auth.refreshToken).toBe('');
+      // FG-SHELL-009 / FG-SHELL-012: auth slice MUST NOT carry token state.
+      expect(state.auth).not.toHaveProperty('token');
+      expect(state.auth).not.toHaveProperty('refreshToken');
     });
 
-    it('setAuthSession transitions to authenticated', () => {
+    it('setAuthSession projects only the user (no token argument)', () => {
       const user = { id: 'u1', displayName: 'Test User', email: 'test@example.com' };
       useAppStore.setState({ creatorAccess: { checked: true, hasAccess: true, canCreateWorld: true, canMaintainWorld: true, records: [] } });
-      useAppStore.getState().setAuthSession(user, 'tok123', 'ref456');
+      useAppStore.getState().setAuthSession(user);
 
       const state = useAppStore.getState();
       expect(state.auth.status).toBe('authenticated');
       expect(state.auth.user).toEqual(user);
-      expect(state.auth.token).toBe('tok123');
-      expect(state.auth.refreshToken).toBe('ref456');
+      expect(state.auth).not.toHaveProperty('token');
+      expect(state.auth).not.toHaveProperty('refreshToken');
       expect(state.creatorAccess).toEqual({
         checked: false,
         hasAccess: false,
@@ -44,14 +46,14 @@ describe('ForgeAppStore', () => {
 
     it('clearAuthSession transitions to unauthenticated', () => {
       const user = { id: 'u1', displayName: 'Test' };
-      useAppStore.getState().setAuthSession(user, 'tok', 'ref');
+      useAppStore.getState().setAuthSession(user);
       useAppStore.setState({ creatorAccess: { checked: true, hasAccess: true, canCreateWorld: true, canMaintainWorld: true, records: [] } });
       useAppStore.getState().clearAuthSession();
 
       const state = useAppStore.getState();
       expect(state.auth.status).toBe('unauthenticated');
       expect(state.auth.user).toBeNull();
-      expect(state.auth.token).toBe('');
+      expect(state.auth).not.toHaveProperty('token');
       expect(state.creatorAccess).toEqual({
         checked: false,
         hasAccess: false,

@@ -23,10 +23,10 @@ features:
   - feature: auth
     phase: 1
     priority: P0
-    contract: FG-SHELL-004
-    backend-dependency: none (reuse auth API)
-    migration-source: desktop auth flow
-    description: JWT auth + creator access gate
+    contract: FG-SHELL-004, FG-SHELL-011, FG-SHELL-012
+    backend-dependency: realm OAuth authority (R-OAUTH-*) + runtime account service (K-ACCSVC-008)
+    migration-source: parentos local-first-party runtime account migration
+    description: RuntimeAccountService desktop-browser broker login + creator access gate. App-owned token custody forbidden.
 
   - feature: layout
     phase: 1
@@ -331,13 +331,13 @@ features:
     description: App preferences and configuration
 
 # ── Summary ───────────────────────────────────────────────
-# Phase 1: 7 features (all P0, no backend)
+# Phase 1: 7 features (all P0; auth backed by RuntimeAccountService + realm OAuth, others no backend)
 # Phase 2: 6 features (all P0, no backend)
 # Phase 3: 8 features (4 P0 + 4 P1, conditional backend for agent list/detail extensions)
 # Phase 4: 10 features (7 P0 + 3 P1, publish releases uses existing realm post capabilities)
 # Phase 5: 3 features (2 P0 + 1 P1, copyright deferred)
 # Phase 6: 6 features (3 P1 + 3 P2, templates + analytics deferred)
 # Total: 40 features
-#   No backend: 32
-#   Current-scope backend extensions: 3 feature areas (agent list owner/detail fields, agent detail completion, publish releases)
+#   No backend: 31
+#   Current-scope backend extensions: 4 feature areas (auth via RuntimeAccountService + realm OAuth, agent list owner/detail fields, agent detail completion, publish releases)
 #   Deferred extension: 5 (copyright, template-browse, template-mine, template-detail, analytics)

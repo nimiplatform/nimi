@@ -1,37 +1,66 @@
 import {
-  getRuntimeDefaults,
-  getDaemonStatus,
-  clearAuthSession as clearPersistedAuthSession,
-  loadAuthSession,
-  saveAuthSession,
-} from '@renderer/bridge';
-import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
-import { createPlatformClient } from '@nimiplatform/sdk';
+  clearPlatformClient,
+  createLocalFirstPartyRuntimePlatformClient,
+  type PlatformClient,
+} from '@nimiplatform/sdk';
 import {
-  persistSharedDesktopAuthSession,
-  resolveDesktopBootstrapAuthSession,
-} from '@nimiplatform/nimi-kit/auth';
+  AccountCallerMode,
+  AccountSessionState,
+  type AccountCaller,
+  type AccountProjection,
+} from '@nimiplatform/sdk/runtime/browser';
+import type { Runtime } from '@nimiplatform/sdk/runtime';
+import { getRuntimeDefaults, getDaemonStatus } from '@renderer/bridge';
+import { useAppStore, type AuthUser } from '@renderer/app-shell/providers/app-store.js';
 import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
 import { registerForgeModSdkHost } from './forge-runtime-host.js';
-import { bootstrapAuthSession } from './forge-bootstrap-auth.js';
+
+// FG-SHELL-011 / FG-SHELL-012: Forge admitted as local-first-party Runtime
+// account / session consumer. Caller fixed; runtime owns refresh-token
+// custody and short-lived access-token projection. No app-owned token surface.
+// Concrete identifiers are authoritative in tables/runtime-account-caller.yaml.
+export const FORGE_RUNTIME_APP_ID = 'app.nimi.forge';
+export const FORGE_RUNTIME_APP_INSTANCE_ID = `${FORGE_RUNTIME_APP_ID}.local-first-party`;
+export const FORGE_RUNTIME_DEVICE_ID = 'local-first-party-device';
+
+export const forgeRuntimeAccountCaller: AccountCaller = {
+  appId: FORGE_RUNTIME_APP_ID,
+  appInstanceId: FORGE_RUNTIME_APP_INSTANCE_ID,
+  deviceId: FORGE_RUNTIME_DEVICE_ID,
+  mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+  scopes: [],
+};
 
 let bootstrapPromise: Promise<void> | null = null;
 let bootstrapSettled = false;
 
-function toForgeAuthUser(user: Record<string, unknown> | null) {
-  if (!user) {
-    return null;
-  }
-  const id = String(user.id || '').trim();
-  if (!id) {
+function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+export function normalizeForgeAccountProjection(
+  projection: AccountProjection | null | undefined,
+): AuthUser | null {
+  const accountId = String(projection?.accountId || '').trim();
+  if (!accountId) {
     return null;
   }
   return {
-    id,
-    displayName: String(user.displayName || user.name || '').trim(),
-    email: user.email ? String(user.email) : undefined,
-    avatarUrl: user.avatarUrl ? String(user.avatarUrl) : undefined,
+    id: accountId,
+    displayName: String(projection?.displayName || '').trim(),
   };
+}
+
+export async function loadForgeRuntimeAccountUser(
+  runtime: Runtime,
+): Promise<AuthUser | null> {
+  const response = await runtime.account.getAccountSessionStatus({
+    caller: forgeRuntimeAccountCaller,
+  });
+  if (response.state !== AccountSessionState.AUTHENTICATED) {
+    return null;
+  }
+  return normalizeForgeAccountProjection(response.accountProjection);
 }
 
 export async function runForgeBootstrap(): Promise<void> {
@@ -67,6 +96,21 @@ export async function ensureForgeBootstrapReady(): Promise<void> {
   }
 }
 
+async function buildForgePlatformClient(realmBaseUrl: string): Promise<PlatformClient> {
+  // FG-SHELL-011 / FG-SHELL-012 / spec K-ACCSVC-008: type-level rejection of
+  // any app-owned token surface. Runtime is the sole owner of access /
+  // refresh-token custody.
+  return createLocalFirstPartyRuntimePlatformClient({
+    appId: FORGE_RUNTIME_APP_ID,
+    realmBaseUrl,
+    runtimeTransport: {
+      type: 'tauri-ipc',
+      commandNamespace: 'runtime_bridge',
+      eventNamespace: 'runtime_bridge',
+    },
+  });
+}
+
 async function doRunForgeBootstrap(): Promise<void> {
   const store = useAppStore.getState();
 
@@ -77,116 +121,57 @@ async function doRunForgeBootstrap(): Promise<void> {
   });
 
   try {
-    // Step 1: Runtime Defaults (i18n is eagerly initialized at module load)
+    // FG-SHELL-003 Step 1: Runtime defaults (i18n is eagerly initialized at module load).
     const runtimeDefaults = await getRuntimeDefaults();
     store.setRuntimeDefaults(runtimeDefaults);
-    const resolvedBootstrapAuthSession = await resolveDesktopBootstrapAuthSession({
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      envAccessToken: runtimeDefaults.realm.accessToken,
-      loadPersistedSession: () => loadAuthSession(),
-    });
-    if (resolvedBootstrapAuthSession.shouldClearPersistedSession) {
-      await clearPersistedAuthSession();
-    }
-    let bootstrapAccessToken = String(resolvedBootstrapAuthSession.session?.accessToken || '').trim();
-    let bootstrapRefreshToken = String(resolvedBootstrapAuthSession.session?.refreshToken || '').trim();
-    const resolveCurrentAccessToken = () => {
-      const authToken = String(useAppStore.getState().auth.token || '').trim();
-      if (authToken) {
-        return authToken;
-      }
-      return useAppStore.getState().auth.status === 'bootstrapping'
-        ? bootstrapAccessToken
-        : '';
-    };
-    const resolveCurrentRefreshToken = () => {
-      const refreshToken = String(useAppStore.getState().auth.refreshToken || '').trim();
-      if (refreshToken) {
-        return refreshToken;
-      }
-      return useAppStore.getState().auth.status === 'bootstrapping'
-        ? bootstrapRefreshToken
-        : '';
-    };
-    const persistDesktopSession = (user: Record<string, unknown> | null, accessToken: string, refreshToken?: string) => {
-      void persistSharedDesktopAuthSession({
-        realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-        accessToken,
-        refreshToken,
-        user,
-        saveSession: (session) => saveAuthSession(session),
-        clearSession: () => clearPersistedAuthSession(),
-      });
-    };
-    const clearDesktopSession = () => {
-      bootstrapAccessToken = '';
-      bootstrapRefreshToken = '';
-      void clearPersistedAuthSession();
-    };
 
-    // Step 2: Platform Client
-    const { runtime, realm } = await createPlatformClient({
-      appId: 'nimi.forge',
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      accessToken: bootstrapAccessToken,
-      accessTokenProvider: resolveCurrentAccessToken,
-      refreshTokenProvider: resolveCurrentRefreshToken,
-      runtimeTransport: {
-        type: 'tauri-ipc',
-        commandNamespace: 'runtime_bridge',
-        eventNamespace: 'runtime_bridge',
-      },
-      sessionStore: {
-        getAccessToken: resolveCurrentAccessToken,
-        getRefreshToken: resolveCurrentRefreshToken,
-        getSubjectUserId: () => useAppStore.getState().auth.user?.id ?? '',
-        getCurrentUser: () => useAppStore.getState().auth.user,
-        setAuthSession: (user, accessToken, refreshToken) => {
-          bootstrapAccessToken = String(accessToken || '').trim();
-          if (refreshToken !== undefined) {
-            bootstrapRefreshToken = String(refreshToken || '').trim();
-          }
-          const normalizedUser = toForgeAuthUser(user as Record<string, unknown> | null)
-            ?? useAppStore.getState().auth.user;
-          if (!normalizedUser) {
-            return;
-          }
-          useAppStore.getState().setAuthSession(normalizedUser, accessToken, refreshToken || '');
-          persistDesktopSession(normalizedUser, accessToken, refreshToken);
-        },
-        clearAuthSession: () => {
-          useAppStore.getState().clearAuthSession();
-          clearDesktopSession();
-        },
-      },
-    });
+    // FG-SHELL-003 Step 2: Platform client (FG-SHELL-011 / FG-SHELL-012).
+    clearPlatformClient();
+    const { runtime } = await buildForgePlatformClient(runtimeDefaults.realm.realmBaseUrl);
 
-    // Step 3: Runtime Host Capabilities (per FG-ROUTE-003)
+    // FG-SHELL-003 Step 3: Runtime mod SDK host capabilities (FG-ROUTE-003).
     registerForgeModSdkHost();
 
-    // Step 4: Auth Session
-    await bootstrapAuthSession({
-      realm,
-      accessToken: bootstrapAccessToken,
-      refreshToken: bootstrapRefreshToken,
-      source: resolvedBootstrapAuthSession.source,
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      clearPersistedSession: async () => {
-        clearDesktopSession();
-      },
+    // FG-SHELL-003 Step 4 / FG-SHELL-004: Account projection from runtime.
+    // ANONYMOUS / UNAVAILABLE / RPC error MUST NOT fail bootstrap; the shell
+    // opens unauthenticated and the user signs in via the broker.
+    const runtimeAccountUser = await loadForgeRuntimeAccountUser(runtime).catch((error) => {
+      logRendererEvent({
+        level: 'warn',
+        area: 'forge-bootstrap.account',
+        message: 'action:runtime-account-projection-unavailable',
+        details: { error: describeError(error) },
+      });
+      return null;
     });
-
-    // Step 6: Runtime SDK Readiness
-    await runtime.ready();
-
-    // Step 7: Exit Handler (daemon status check)
-    const daemonStatus = await getDaemonStatus();
-    if (daemonStatus.managed) {
-      // Register exit handler if daemon is managed
-      // Forge uses a lighter touch — just log the status
+    if (runtimeAccountUser) {
+      store.setAuthSession(runtimeAccountUser);
+    } else {
+      store.clearAuthSession();
     }
 
-    // Step 8: Ready
+    // FG-SHELL-003 Step 6: Runtime SDK readiness (non-blocking — creator
+    // surfaces work without runtime extras and the bootstrap should not
+    // block on local AI runtime availability).
+    try {
+      await runtime.ready();
+    } catch (error) {
+      logRendererEvent({
+        level: 'warn',
+        area: 'forge-bootstrap.runtime',
+        message: 'action:runtime-ready-nonblocking-failed',
+        details: { error: describeError(error) },
+      });
+    }
+
+    // FG-SHELL-003 Step 7: Daemon status check (informational).
+    try {
+      await getDaemonStatus();
+    } catch {
+      // Non-blocking — daemon may not be running.
+    }
+
+    // FG-SHELL-003 Step 8: Ready.
     store.setBootstrapReady(true);
     logRendererEvent({
       level: 'info',
@@ -194,7 +179,7 @@ async function doRunForgeBootstrap(): Promise<void> {
       message: 'phase:bootstrap:ready',
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = describeError(error);
     store.setBootstrapError(message);
     logRendererEvent({
       level: 'error',

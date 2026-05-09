@@ -37,8 +37,6 @@ describe('AuthProvider', () => {
       auth: {
         status: 'unauthenticated',
         user: null,
-        token: '',
-        refreshToken: '',
       },
       bootstrapReady: true,
       bootstrapError: null,

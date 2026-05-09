@@ -38,7 +38,7 @@ Revenue, advisors, copyright, templates, and analytics are non-core modules and 
 | Shell core | `@nimiplatform/nimi-kit/core` |
 
 Forge connects to both platform planes through the SDK root bootstrap:
-- **Platform client** — `createPlatformClient({ appId: 'nimi.forge', runtimeTransport: 'tauri-ipc', sessionStore })`
+- **Platform client** — `createLocalFirstPartyRuntimePlatformClient({ appId: 'app.nimi.forge', realmBaseUrl, runtimeTransport: 'tauri-ipc' })`. Token / session-store inputs are forbidden (FG-SHELL-011 / FG-SHELL-012).
 - **Runtime / Realm** — consumed from the returned SDK client instead of app-local constructors
 
 The Tauri shell only supplies runtime defaults and lifecycle affordances. Business requests do not call ad-hoc desktop bridge helpers directly.

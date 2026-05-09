@@ -28,11 +28,11 @@ const EMPTY_CREATOR_ACCESS: CreatorAccessState = {
 };
 
 export interface ForgeAppStore {
+  // FG-SHELL-009 / FG-SHELL-012: no app-owned token fields. Token / refresh-
+  // token / subject-id custody is owned exclusively by RuntimeAccountService.
   auth: {
     status: AuthStatus;
     user: AuthUser | null;
-    token: string;
-    refreshToken: string;
   };
   bootstrapReady: boolean;
   bootstrapError: string | null;
@@ -40,7 +40,7 @@ export interface ForgeAppStore {
   creatorAccess: CreatorAccessState;
   sidebarCollapsed: boolean;
 
-  setAuthSession(user: AuthUser, token: string, refreshToken: string): void;
+  setAuthSession(user: AuthUser): void;
   clearAuthSession(): void;
   setBootstrapReady(ready: boolean): void;
   setBootstrapError(error: string | null): void;
@@ -58,8 +58,6 @@ export const useAppStore = create<ForgeAppStore>((set) => ({
   auth: {
     status: 'bootstrapping',
     user: null,
-    token: '',
-    refreshToken: '',
   },
   bootstrapReady: false,
   bootstrapError: null,
@@ -67,16 +65,16 @@ export const useAppStore = create<ForgeAppStore>((set) => ({
   creatorAccess: { ...EMPTY_CREATOR_ACCESS },
   sidebarCollapsed: false,
 
-  setAuthSession(user, token, refreshToken) {
+  setAuthSession(user) {
     set({
-      auth: { status: 'authenticated', user, token, refreshToken },
+      auth: { status: 'authenticated', user },
       creatorAccess: { ...EMPTY_CREATOR_ACCESS },
     });
   },
 
   clearAuthSession() {
     set({
-      auth: { status: 'unauthenticated', user: null, token: '', refreshToken: '' },
+      auth: { status: 'unauthenticated', user: null },
       creatorAccess: { ...EMPTY_CREATOR_ACCESS },
     });
   },
