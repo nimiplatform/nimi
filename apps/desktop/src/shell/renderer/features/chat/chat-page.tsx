@@ -116,9 +116,15 @@ export function ChatPage() {
     if (authStatus !== 'authenticated') {
       setChatMode('ai');
       setSelectedTargetForSource('ai', 'ai:assistant');
-    } else {
-      setSelectedTargetForSource(chatMode, null);
+      return;
     }
+    // Agent mode owns its selection via `agentConversationSelection` and synthesizes
+    // a target when the agent isn't in the friends sidebar (e.g. world-launched agents).
+    // Clearing here would fight the agent shell's restore effect and loop.
+    if (chatMode === 'agent') {
+      return;
+    }
+    setSelectedTargetForSource(chatMode, null);
   }, [allTargets, authStatus, chatMode, setChatMode, setSelectedTargetForSource, storeSelectedTargetId]);
 
   useEffect(() => {
