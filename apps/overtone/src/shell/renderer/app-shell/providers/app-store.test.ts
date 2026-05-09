@@ -10,6 +10,39 @@ describe('app-store', () => {
     resetStore();
   });
 
+  // -------------------------------------------------------------------------
+  // RuntimeAccountService boundary: app-owned token custody is forbidden
+  // (spec K-ACCSVC-008 / architecture.md §"Auth & Runtime Account").
+  // -------------------------------------------------------------------------
+  describe('auth slice', () => {
+    it('starts in bootstrapping state with no token fields', () => {
+      const state = useAppStore.getState();
+      expect(state.authStatus).toBe('bootstrapping');
+      expect(state.authUser).toBeNull();
+      // Flat-store discipline: token / refresh-token MUST NOT exist on the
+      // store. Custody is owned by RuntimeAccountService.
+      expect(state).not.toHaveProperty('authToken');
+      expect(state).not.toHaveProperty('authRefreshToken');
+    });
+
+    it('setAuthSession projects only the user (single-arg)', () => {
+      useAppStore.getState().setAuthSession({ id: 'u1', displayName: 'Test User' });
+      const state = useAppStore.getState();
+      expect(state.authStatus).toBe('authenticated');
+      expect(state.authUser).toEqual({ id: 'u1', displayName: 'Test User' });
+      expect(state).not.toHaveProperty('authToken');
+      expect(state).not.toHaveProperty('authRefreshToken');
+    });
+
+    it('clearAuthSession resets to unauthenticated', () => {
+      useAppStore.getState().setAuthSession({ id: 'u1', displayName: 'Test' });
+      useAppStore.getState().clearAuthSession();
+      const state = useAppStore.getState();
+      expect(state.authStatus).toBe('unauthenticated');
+      expect(state.authUser).toBeNull();
+    });
+  });
+
   describe('setRuntimeStatus', () => {
     it('sets status and error', () => {
       useAppStore.getState().setRuntimeStatus('unavailable', 'daemon crashed');

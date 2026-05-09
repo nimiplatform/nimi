@@ -51,12 +51,15 @@
 - Expose async job status and artifacts.
 - Optionally generate cover art or guide vocals.
 - Enforce connector, capability, and reason-code behavior.
+- Own all access / refresh-token custody for Overtone's realm session.
 
 ### Realm responsibilities
 
 - Upload publishable media.
 - Persist post metadata and social publication state.
-- Reuse existing auth and SDK client isolation rules.
+- Issue OAuth authorization codes and exchange them for session tokens via
+  the realm OAuth authority endpoints (`/api/auth/oauth/authorize` and
+  `/api/auth/oauth/token`, see upstream realm spec R-OAUTH-*).
 
 ### Overtone responsibilities
 
@@ -65,6 +68,68 @@
 - Convert runtime artifacts into browser-playable audio.
 - Decide what gets published to realm and with what metadata.
 
+## Auth & Runtime Account
+
+Overtone is admitted as an active local-first-party Runtime account / session
+consumer. The caller is fixed and authoritative; concrete identifiers live in
+`tables/runtime-account-caller.yaml`:
+
+| Field | Value |
+|-------|-------|
+| `appId` | `app.nimi.overtone` |
+| `appInstanceId` | `app.nimi.overtone.local-first-party` |
+| `deviceId` | `local-first-party-device` |
+| `mode` | `ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP` |
+
+### Implementation rules
+
+- The renderer constructs the platform client via the SDK helper
+  `createLocalFirstPartyRuntimePlatformClient`. Calling `createPlatformClient`
+  directly from the Overtone bootstrap is forbidden.
+- Every `runtime.account.*` call from Overtone MUST pass the caller exactly
+  as declared in the table. Diverging fields (any other `mode`, missing
+  `appInstanceId`) MUST fail-close at the call site, not be coerced.
+- Mode `ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR` is not admitted for
+  Overtone; runtime rejects it as `AVATAR_BINDING_ONLY`.
+- Runtime admission gates on the (`appId`, `appInstanceId`) pair. Overtone
+  MUST NOT introduce a parallel `RegisterApp` flow; admission is reached by
+  letting the SDK helper register the FULL-mode manifest.
+
+### App-owned token custody forbidden
+
+App-owned access-token, refresh-token, subject-user-id, and session-store
+custody are forbidden in the Overtone renderer and bridge layers. Runtime
+(`runtime/internal/services/account`) is the sole owner of token material.
+This rule is enforced at four layers:
+
+1. **SDK type level.** `createLocalFirstPartyRuntimePlatformClient` rejects
+   `accessToken`, `accessTokenProvider`, `refreshTokenProvider`,
+   `subjectUserIdProvider`, and `sessionStore` inputs at compile time
+   (upstream spec K-ACCSVC-008). Overtone MUST consume that helper, not
+   bypass it.
+2. **Auth adapter.** The Overtone `AuthPlatformAdapter` exposed to the kit
+   `<DesktopShellAuthPage>` MUST fail-close on `applyToken`,
+   `persistSession`, and any oauth/password embedded login path.
+3. **Renderer state.** The Zustand store MUST NOT carry `authToken` or
+   `authRefreshToken` fields (they are removed from `AppState`).
+   `setAuthSession` MUST accept only the `AccountProjection`-derived user
+   and MUST NOT take a token argument.
+4. **Dev shortcut env.** Reading `VITE_NIMI_REALM_ACCESS_TOKEN` (or any
+   bearer-token env shortcut) from the renderer is forbidden. Static
+   source-text locks in the renderer test suite enforce this — no
+   "development-only" path may bypass the runtime broker login.
+
+Wire-level rule for `runtime.account.completeLogin`: the `refreshToken`
+field of the proof envelope MUST be the empty string. Runtime rejects any
+non-empty value with `PROOF_UNSUPPORTED` (R-OAUTH-008).
+
+Logout MUST go through `runtime.account.logout({ caller })`. Overtone MUST
+NOT call any kit shared desktop auth-session bridge
+(`auth_session_load/save/clear`, `persistSharedDesktopAuthSession`,
+`resolveDesktopBootstrapAuthSession`); none is admitted on the Overtone
+surface, and the Rust shell MUST NOT register the `auth_session_*` Tauri
+IPC handlers.
+
 ## Primary Data Flows
 
 ### Boot and readiness
@@ -72,15 +137,32 @@
 ```
 app start
   → initialize Tauri shell
-  → start/connect runtime daemon
-  → construct Runtime + Realm SDK clients
-  → detect auth + connector readiness
-  → enter project workspace
+  → runtimeDefaults from desktop bridge
+  → createLocalFirstPartyRuntimePlatformClient({ appId, realmBaseUrl, runtimeTransport })
+  → runtime.account.getAccountSessionStatus({ caller })
+      → AUTHENTICATED → setAuthSession(projection)
+      → ANONYMOUS / UNAVAILABLE / RPC error → clearAuthSession() (NOT a bootstrap failure)
+  → bootstrapReady = true → enter project workspace
 ```
+
+Login (when unauthenticated) drives the kit `<DesktopShellAuthPage>`
+desktop-browser flow wired to an Overtone `runtimeAccountBroker`:
+
+- `broker.begin` → `runtime.account.beginLogin`. The realm OAuth authorize
+  URL returned by runtime carries a PKCE S256 challenge bound to a
+  runtime-held verifier. Overtone never observes the verifier.
+- User authorizes in the system browser; the realm authorize endpoint
+  302-redirects to the Overtone desktop loopback `redirect_uri` with a raw
+  OAuth `code`.
+- `broker.complete` → `runtime.account.completeLogin` with the raw `code`,
+  `state`, `nonce`, and `redirectUri`. `refreshToken` MUST be the empty
+  string at the wire level (R-OAUTH-008); runtime fail-closes any non-empty
+  value with `PROOF_UNSUPPORTED`.
 
 Readiness should follow existing SDK semantics:
 
-- `runtime.ready()` is the primary runtime liveness gate.
+- `runtime.ready()` is the primary runtime liveness gate; non-blocking on
+  Overtone bootstrap.
 - realm availability should be validated through the first required business request, not by treating `realm.ready()` as a hard bootstrap gate.
 
 ### Brief and lyrics

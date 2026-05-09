@@ -1,0 +1,23 @@
+# Overtone — Runtime Account Caller
+# Authoritative identity used by Overtone when calling RuntimeAccountService
+# (BeginLogin, CompleteLogin, GetAccountSessionStatus, Logout). The caller
+# is fixed; runtime owns refresh-token custody and short-lived access-token
+# projection. Admission rule + token-custody boundary are documented in
+# architecture.md "Auth & Runtime Account" section. Spec K-ACCSVC-008 (in
+# the upstream realm/runtime spec tree) is the cross-app authority.
+
+caller:
+  app_id: app.nimi.overtone
+  app_instance_id: app.nimi.overtone.local-first-party
+  device_id: local-first-party-device
+  mode: ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP
+  scopes: []
+
+# Notes
+# - app_id MUST equal the Tauri identifier (`app.nimi.overtone`).
+# - app_instance_id MUST be a stable per-install constant; Overtone runs as
+#   a single primary creator-studio window.
+# - device_id is informational; runtime admission keys on (app_id, app_instance_id)
+#   per runtime/internal/appregistry/registry.go AdmitLocalFirstPartyInstance.
+# - mode is fixed to LOCAL_FIRST_PARTY_APP; DESKTOP_LAUNCHED_AVATAR is rejected
+#   by runtime helpers as AVATAR_BINDING_ONLY and is not admitted for Overtone.

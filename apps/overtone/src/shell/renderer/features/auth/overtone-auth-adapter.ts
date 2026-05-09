@@ -1,104 +1,44 @@
-import { clearPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
-import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 import type { AuthPlatformAdapter } from '@nimiplatform/nimi-kit/auth';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { overtoneTauriOAuthBridge } from '@renderer/bridge/oauth.js';
-import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import {
+  ensureOvertoneBootstrapReady,
+  loadOvertoneRuntimeAccountUser,
+  overtoneRuntimeAccountCaller,
+} from '@renderer/infra/bootstrap/overtone-bootstrap.js';
+import type { AuthUser } from '@renderer/app-shell/providers/app-store.js';
 
 const OVERTONE_EMBEDDED_AUTH_UNSUPPORTED =
   'Embedded auth flow is not supported in Overtone desktop-browser mode.';
 
-type OvertoneUser = Record<string, unknown> & {
-  id: string;
-  displayName: string;
-};
-
-let currentAccessToken = '';
-
-type CurrentUserDto = RealmServiceResult<'MeService', 'getMe'>;
+const OVERTONE_TOKEN_PROXY_FORBIDDEN =
+  'Overtone does not own access/refresh token custody (spec K-ACCSVC-008). '
+  + 'Runtime is the sole owner — login through the desktop browser broker.';
 
 function unsupported<T>(): Promise<T> {
   return Promise.reject(new Error(OVERTONE_EMBEDDED_AUTH_UNSUPPORTED));
 }
 
-function normalizeOvertoneUser(
-  user: Record<string, unknown> | null | undefined,
-): OvertoneUser | null {
-  if (!user || !user.id) {
-    return null;
-  }
-
-  return {
-    ...user,
-    id: String(user.id),
-    displayName: String(user.displayName || user.name || ''),
-  };
+export async function loadOvertoneCurrentUser(): Promise<AuthUser | null> {
+  await ensureOvertoneBootstrapReady();
+  return loadOvertoneRuntimeAccountUser(getPlatformClient().runtime);
 }
 
-export function getOvertoneRealmBaseUrl(): string {
-  const baseUrl = String(
-    import.meta.env.VITE_NIMI_REALM_BASE_URL
-    || import.meta.env.NIMI_REALM_URL
-    || '',
-  ).trim();
-  if (!baseUrl) {
-    throw new Error('Missing VITE_NIMI_REALM_BASE_URL (or NIMI_REALM_URL) configuration');
-  }
-  return baseUrl;
-}
-
-function normalizeOvertoneSessionUser(user: Record<string, unknown> | null): OvertoneUser | null {
-  return normalizeOvertoneUser(user);
-}
-
-export async function ensureOvertonePlatformClient(accessToken?: string) {
-  const normalizedAccessToken = String(accessToken || '').trim();
-  return createPlatformClient({
-    appId: 'nimi.overtone',
-    realmBaseUrl: getOvertoneRealmBaseUrl(),
-    accessToken: normalizedAccessToken,
-    allowAnonymousRealm: true,
-    runtimeTransport: {
-      type: 'tauri-ipc',
-      commandNamespace: 'runtime_bridge',
-      eventNamespace: 'runtime_bridge',
-    },
-    sessionStore: {
-      getAccessToken: () => useAppStore.getState().authToken,
-      getRefreshToken: () => useAppStore.getState().authRefreshToken,
-      getSubjectUserId: () => useAppStore.getState().authUser?.id ?? '',
-      getCurrentUser: () => useAppStore.getState().authUser,
-      setAuthSession: (user, nextAccessToken, refreshToken) => {
-        const normalizedUser = normalizeOvertoneSessionUser(
-          (user as Record<string, unknown> | null) ?? null,
-        );
-        if (!normalizedUser) {
-          return;
-        }
-        useAppStore.getState().setAuthSession(
-          normalizedUser,
-          nextAccessToken,
-          refreshToken || useAppStore.getState().authRefreshToken,
-        );
-      },
-      clearAuthSession: () => {
-        useAppStore.getState().clearAuthSession();
-      },
-    },
+export async function logoutOvertoneRuntimeAccount(): Promise<void> {
+  await ensureOvertoneBootstrapReady();
+  await getPlatformClient().runtime.account.logout({
+    caller: overtoneRuntimeAccountCaller,
+    reason: 'overtone_logout',
   });
 }
 
-export function clearOvertonePlatformClient(): void {
-  clearPlatformClient();
-}
-
-export async function resolveOvertoneCurrentUser(
-  accessToken: string,
-): Promise<OvertoneUser | null> {
-  const client = await ensureOvertonePlatformClient(accessToken);
-  const data: CurrentUserDto = await client.domains.auth.getCurrentUser() as CurrentUserDto;
-  return normalizeOvertoneUser((data as Record<string, unknown> | null | undefined) ?? null);
-}
-
+/**
+ * Adapter for the kit's `<DesktopShellAuthPage>` in Overtone desktop-browser
+ * mode. Account / session truth is owned by RuntimeAccountService; this
+ * adapter intentionally rejects every app-owned token surface so a
+ * regression that tries to flow a bearer or refresh token through the kit
+ * fails fast.
+ */
 export function createOvertoneDesktopBrowserAuthAdapter(): AuthPlatformAdapter {
   return {
     checkEmail: unsupported,
@@ -110,21 +50,104 @@ export function createOvertoneDesktopBrowserAuthAdapter(): AuthPlatformAdapter {
     walletLogin: unsupported,
     oauthLogin: unsupported,
     updatePassword: unsupported,
-    loadCurrentUser: async () => {
-      if (!currentAccessToken) {
-        return null;
-      }
-      return resolveOvertoneCurrentUser(currentAccessToken);
+    loadCurrentUser: loadOvertoneCurrentUser,
+    applyToken: async () => {
+      throw new Error(OVERTONE_TOKEN_PROXY_FORBIDDEN);
     },
-    applyToken: async (accessToken: string) => {
-      currentAccessToken = String(accessToken || '').trim();
-      if (!currentAccessToken) {
-        clearOvertonePlatformClient();
-        return;
-      }
-      await ensureOvertonePlatformClient(currentAccessToken);
+    persistSession: async () => {
+      throw new Error(OVERTONE_TOKEN_PROXY_FORBIDDEN);
+    },
+    clearPersistedSession: async () => {
+      await logoutOvertoneRuntimeAccount();
     },
     oauthBridge: overtoneTauriOAuthBridge,
     syncAfterLogin: async () => {},
+  };
+}
+
+/**
+ * RuntimeAccountService browser broker for Overtone desktop login. Pairs
+ * with the kit's `performDesktopWebAuth` direct-to-loopback flow:
+ *
+ * - Runtime BeginLogin returns a fully-formed realm OAuth authorize URL with
+ *   a PKCE S256 challenge bound to a runtime-held verifier.
+ * - On user consent, the realm authorize endpoint 302-redirects directly to
+ *   the Overtone desktop loopback redirect_uri with a raw OAuth `code`.
+ * - Runtime CompleteLogin exchanges the code with the realm token endpoint
+ *   and projects account material into runtime custody.
+ *
+ * The kit / Overtone renderer never observes access tokens or refresh
+ * tokens at any stage of this flow (R-OAUTH-008 / spec K-ACCSVC-008).
+ */
+export function createOvertoneRuntimeAccountBrowserBroker() {
+  return {
+    begin: async (input: { callbackUrl: string; baseUrl?: string; timeoutMs: number }) => {
+      await ensureOvertoneBootstrapReady();
+      const response = await getPlatformClient().runtime.account.beginLogin({
+        caller: overtoneRuntimeAccountCaller,
+        redirectUri: input.callbackUrl,
+        callbackOrigin: new URL(input.callbackUrl).origin,
+        requestedScopes: [],
+        ttlSeconds: Math.max(10, Math.ceil(input.timeoutMs / 1000)),
+      });
+      if (
+        !response.accepted
+        || !response.loginAttemptId
+        || !response.oauthAuthorizationUrl
+        || !response.state
+        || !response.nonce
+      ) {
+        throw new Error(
+          `Runtime account login could not start: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`,
+        );
+      }
+      return {
+        loginAttemptId: response.loginAttemptId,
+        // Realm OAuth authorize URL is constructed by runtime (PKCE S256
+        // challenge bound to runtime-held verifier).
+        authorizationUrl: response.oauthAuthorizationUrl,
+        state: response.state,
+        nonce: response.nonce,
+      };
+    },
+    complete: async (input: {
+      loginAttemptId: string;
+      code: string;
+      state: string;
+      nonce: string;
+      callbackUrl: string;
+    }) => {
+      await ensureOvertoneBootstrapReady();
+      // Code-only proof envelope; runtime owns the token exchange and
+      // refresh-token custody.
+      const response = await getPlatformClient().runtime.account.completeLogin({
+        caller: overtoneRuntimeAccountCaller,
+        loginAttemptId: input.loginAttemptId,
+        code: input.code,
+        // R-OAUTH-008 / spec K-ACCSVC-008: refreshToken MUST be empty here.
+        // Runtime fail-closes any non-empty value with PROOF_UNSUPPORTED.
+        refreshToken: '',
+        state: input.state,
+        nonce: input.nonce,
+        redirectUri: input.callbackUrl,
+        callbackOrigin: new URL(input.callbackUrl).origin,
+        uxTraceId: '',
+        sealedCompletionTicket: '',
+      });
+      if (!response.accepted) {
+        throw new Error(
+          `Runtime account login could not complete: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`,
+        );
+      }
+      const accountId = String(response.accountProjection?.accountId || '').trim();
+      return {
+        user: accountId
+          ? {
+              id: accountId,
+              displayName: String(response.accountProjection?.displayName || '').trim(),
+            }
+          : null,
+      };
+    },
   };
 }

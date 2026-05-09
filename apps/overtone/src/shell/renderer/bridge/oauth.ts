@@ -1,67 +1,16 @@
-import { hasTauriInvoke } from './runtime-bridge/env.js';
-import { invoke } from './runtime-bridge/invoke.js';
-import {
-  parseOauthTokenExchangeResult,
-  parseOauthListenForCodeResult,
-  parseOpenExternalUrlResult,
-  type TauriOAuthBridge,
-  type OauthTokenExchangePayload,
-  type OauthTokenExchangeResult,
-  type OauthListenForCodePayload,
-  type OauthListenForCodeResult,
-  type OpenExternalUrlResult,
-} from '@nimiplatform/nimi-kit/core/oauth';
+// Overtone Tauri OAuth bridge.
+//
+// Uses the kit's `createTauriOAuthBridge` factory verbatim so the kit's
+// `<DesktopShellAuthPage>` desktop-browser flow can drive the Overtone
+// login: runtime BeginLogin returns the realm OAuth authorize URL, the kit
+// opens the system browser, listens on the loopback redirect_uri for the
+// raw OAuth `code`, and the runtime broker exchanges it. Overtone never
+// observes any access or refresh token.
+//
+// The previous hand-rolled wrapper passed `tokenUrl`, `clientSecret`, and
+// `extra` fields that do not exist on the kit's `OauthTokenExchangePayload`
+// — this caused 3 TS errors and was a holdover from an older kit shape.
+// The factory below subsumes that surface with the current type.
+import { createTauriOAuthBridge } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
 
-export async function oauthTokenExchange(
-  payload: OauthTokenExchangePayload,
-): Promise<OauthTokenExchangeResult> {
-  const raw = await invoke('oauth_token_exchange', {
-    payload: {
-      tokenUrl: payload.tokenUrl,
-      clientId: payload.clientId,
-      code: payload.code,
-      codeVerifier: payload.codeVerifier,
-      redirectUri: payload.redirectUri,
-      clientSecret: payload.clientSecret,
-      extra: payload.extra,
-    },
-  });
-  return parseOauthTokenExchangeResult(raw);
-}
-
-export async function oauthListenForCode(
-  payload: OauthListenForCodePayload,
-): Promise<OauthListenForCodeResult> {
-  const raw = await invoke('oauth_listen_for_code', {
-    payload: {
-      redirectUri: payload.redirectUri,
-      timeoutMs: payload.timeoutMs,
-    },
-  });
-  return parseOauthListenForCodeResult(raw);
-}
-
-export async function openExternalUrl(
-  url: string,
-): Promise<OpenExternalUrlResult> {
-  const raw = await invoke('open_external_url', {
-    payload: { url },
-  });
-  return parseOpenExternalUrlResult(raw);
-}
-
-export async function focusMainWindow(): Promise<void> {
-  try {
-    await invoke('focus_main_window', {});
-  } catch {
-    // Focus is best-effort; Overtone may not have this command
-  }
-}
-
-export const overtoneTauriOAuthBridge: TauriOAuthBridge = {
-  hasTauriInvoke,
-  oauthListenForCode,
-  oauthTokenExchange,
-  openExternalUrl: async (url: string) => openExternalUrl(url),
-  focusMainWindow,
-};
+export const overtoneTauriOAuthBridge = createTauriOAuthBridge();

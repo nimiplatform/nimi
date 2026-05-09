@@ -45,10 +45,11 @@ export type AuthUser = {
 };
 
 export interface AppState {
+  // App-owned token / refresh-token / subject-id custody is forbidden in
+  // Overtone (spec K-ACCSVC-008, see architecture.md §"Auth & Runtime
+  // Account"). Only the projected user identity lives on the renderer.
   authStatus: AuthStatus;
   authUser: AuthUser | null;
-  authToken: string;
-  authRefreshToken: string;
 
   runtimeStatus: ReadinessStatus;
   runtimeError: string | null;
@@ -82,7 +83,7 @@ export interface AppState {
   publishError: string | null;
   publishedPostId: string | null;
 
-  setAuthSession: (user: AuthUser, token: string, refreshToken: string) => void;
+  setAuthSession: (user: AuthUser) => void;
   clearAuthSession: () => void;
 
   setRuntimeStatus: (status: ReadinessStatus, error?: string) => void;
@@ -121,8 +122,6 @@ export interface AppState {
 export const useAppStore = create<AppState>((set) => ({
   authStatus: 'bootstrapping',
   authUser: null,
-  authToken: '',
-  authRefreshToken: '',
 
   runtimeStatus: 'checking',
   runtimeError: null,
@@ -155,11 +154,11 @@ export const useAppStore = create<AppState>((set) => ({
   publishError: null,
   publishedPostId: null,
 
-  setAuthSession: (user, token, refreshToken) =>
-    set({ authStatus: 'authenticated', authUser: user, authToken: token, authRefreshToken: refreshToken }),
+  setAuthSession: (user) =>
+    set({ authStatus: 'authenticated', authUser: user }),
 
   clearAuthSession: () =>
-    set({ authStatus: 'unauthenticated', authUser: null, authToken: '', authRefreshToken: '' }),
+    set({ authStatus: 'unauthenticated', authUser: null }),
 
   setRuntimeStatus: (status, error) =>
     set({ runtimeStatus: status, runtimeError: error ?? null }),

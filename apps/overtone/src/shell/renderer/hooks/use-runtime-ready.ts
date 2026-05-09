@@ -4,10 +4,6 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { ExecutionMode, ScenarioType } from '@nimiplatform/sdk/runtime';
 import { getDaemonStatus, startDaemon } from '@renderer/bridge/runtime-bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
-import {
-  clearOvertonePlatformClient,
-  ensureOvertonePlatformClient,
-} from '@renderer/features/auth/overtone-auth-adapter.js';
 
 type RuntimeProbeResult = {
   running: boolean;
@@ -22,47 +18,25 @@ type RuntimeProbeResult = {
   error?: string;
 };
 
-async function syncRealmFromEnv(): Promise<{
+// Realm connection / authentication state is owned by the Overtone bootstrap
+// (see apps/overtone/src/shell/renderer/infra/bootstrap/overtone-bootstrap.ts).
+// The bootstrap calls setRealmConnection(...) and setAuthSession(...) based
+// on `runtime.account.getAccountSessionStatus`. This hook is read-only with
+// respect to realm auth state; it only contributes runtime daemon + AI
+// capability probe results.
+function snapshotRealmStateFromStore(): {
   realmConfigured: boolean;
   realmAuthenticated: boolean;
-  realmIssue?: string;
-}> {
-  const baseUrl = String(import.meta.env.VITE_NIMI_REALM_BASE_URL || import.meta.env.NIMI_REALM_URL || '').trim();
-
-  // Prefer token from auth store (OAuth login), fallback to env var
-  const storeToken = useAppStore.getState().authToken;
-  const accessToken = storeToken || String(import.meta.env.VITE_NIMI_REALM_ACCESS_TOKEN || '').trim();
-
-  if (!baseUrl || !accessToken) {
-    if (baseUrl) {
-      await ensureOvertonePlatformClient('');
-    } else {
-      clearOvertonePlatformClient();
-    }
-    return {
-      realmConfigured: Boolean(baseUrl),
-      realmAuthenticated: false,
-    };
-  }
-  const client = await ensureOvertonePlatformClient(accessToken);
-
-  try {
-    await client.realm.ready({ timeoutMs: 5_000 });
-    return {
-      realmConfigured: true,
-      realmAuthenticated: true,
-    };
-  } catch {
-    return {
-      realmConfigured: true,
-      realmAuthenticated: false,
-      realmIssue: 'Realm authentication probe failed. Check your access token.',
-    };
-  }
+} {
+  const state = useAppStore.getState();
+  return {
+    realmConfigured: state.realmConfigured,
+    realmAuthenticated: state.realmAuthenticated,
+  };
 }
 
 async function ensureRuntimeReady(): Promise<RuntimeProbeResult> {
-  const realm = await syncRealmFromEnv();
+  const realm = snapshotRealmStateFromStore();
   let status = await getDaemonStatus();
 
   if (!status.running) {
@@ -90,8 +64,11 @@ async function ensureRuntimeReady(): Promise<RuntimeProbeResult> {
   }
 
   const issues: string[] = [];
-  if (realm.realmIssue) {
-    issues.push(realm.realmIssue);
+  if (realm.realmConfigured && !realm.realmAuthenticated) {
+    issues.push('Realm session not yet established. Sign in to continue.');
+  }
+  if (!realm.realmConfigured) {
+    issues.push('Realm is not configured. Set VITE_NIMI_REALM_BASE_URL.');
   }
   let textConnectorId: string | undefined;
   let textModelId: string | undefined;
@@ -181,10 +158,13 @@ async function ensureRuntimeReady(): Promise<RuntimeProbeResult> {
 export function useRuntimeReady() {
   const setRuntimeStatus = useAppStore((state) => state.setRuntimeStatus);
   const setReadiness = useAppStore((state) => state.setReadiness);
-  const setRealmConnection = useAppStore((state) => state.setRealmConnection);
+  const realmConfigured = useAppStore((state) => state.realmConfigured);
+  const realmAuthenticated = useAppStore((state) => state.realmAuthenticated);
 
   const query = useQuery({
-    queryKey: ['runtime', 'ready'],
+    // Re-probe when realm auth state flips so the runtime probe reflects
+    // post-login readiness.
+    queryKey: ['runtime', 'ready', realmConfigured, realmAuthenticated],
     queryFn: ensureRuntimeReady,
     retry: 2,
     retryDelay: 1000,
@@ -197,7 +177,6 @@ export function useRuntimeReady() {
       return;
     }
     if (query.data) {
-      setRealmConnection(query.data.realmConfigured, query.data.realmAuthenticated);
       setReadiness({
         textConnectorId: query.data.textConnectorId,
         textModelId: query.data.textModelId,
@@ -219,7 +198,7 @@ export function useRuntimeReady() {
         query.error instanceof Error ? query.error.message : String(query.error),
       );
     }
-  }, [query.data, query.error, query.isLoading, setReadiness, setRealmConnection, setRuntimeStatus]);
+  }, [query.data, query.error, query.isLoading, setReadiness, setRuntimeStatus]);
 
   return query;
 }

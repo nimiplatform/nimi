@@ -212,8 +212,8 @@ export function PublishModal({ open, onClose }: { open: boolean; onClose: () => 
       {hasBlocker && (
         <div className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_20%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-warning)]">
           {!realmConfigured
-            ? 'Realm is not configured. Set VITE_NIMI_REALM_BASE_URL and VITE_NIMI_REALM_ACCESS_TOKEN.'
-            : 'Realm is configured but authentication is not available.'}
+            ? 'Realm is not configured. Set VITE_NIMI_REALM_BASE_URL.'
+            : 'Realm is configured but you are not signed in. Use the login flow to continue.'}
         </div>
       )}
 

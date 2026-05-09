@@ -64,7 +64,7 @@ function ReadinessIssuesBanner() {
 
   const issues = [...readinessIssues];
   if (!realmConfigured) {
-    issues.push('Realm is not configured. Set VITE_NIMI_REALM_BASE_URL and VITE_NIMI_REALM_ACCESS_TOKEN.');
+    issues.push('Realm is not configured. Set VITE_NIMI_REALM_BASE_URL.');
   }
 
   if (issues.length === 0) {

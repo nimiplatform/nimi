@@ -18,3 +18,11 @@
 - `features.md`: tiered feature set with MVP vs optional extensions.
 - `sdk-integration.md`: concrete SDK usage notes and risk boundaries.
 - `execution-plan.md`: phased delivery plan; no execution evidence.
+- `tables/`: machine-readable fact sources (YAML). Tables win over prose if
+  the two disagree.
+
+## Fact Sources
+
+| File | Content |
+|------|---------|
+| `tables/runtime-account-caller.yaml` | Overtone RuntimeAccountService caller identity (cited from `architecture.md` §"Auth & Runtime Account"). |
