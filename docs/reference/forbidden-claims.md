@@ -1,8 +1,9 @@
 # Forbidden Claims
 
 Reference for the public docs forbidden claim list, with detection
-patterns. While Nimi is pre-launch, public docs intentionally do not
-publish certain claims until the corresponding evidence is admitted.
+patterns. The list defines what cannot appear in reader-facing prose
+unless the matching evidence has been admitted under the appropriate
+authority contract.
 
 ## Forbidden Marker Strings
 
@@ -17,8 +18,9 @@ publish certain claims until the corresponding evidence is admitted.
 
 ## Forbidden Install / Distribution CTAs
 
-While distribution evidence is gated, these patterns must not appear
-as call-to-action commands in public docs:
+These patterns must not appear as call-to-action commands in public
+docs unless distribution evidence has been admitted under the relevant
+release contract:
 
 | Pattern | Forbidden form | Negative posture allowed |
 | --- | --- | --- |
@@ -38,8 +40,9 @@ as call-to-action commands in public docs:
 
 ## Forbidden Concrete Provider / Model Names
 
-While provider catalog evidence is gated, public docs do not name
-specific providers or models:
+Public docs do not name specific providers or models unless the
+provider catalog and the matching capability evidence have been
+admitted under the runtime model-catalog contract:
 
 | Forbidden | Pattern |
 | --- | --- |
@@ -58,10 +61,6 @@ specific providers or models:
 | `Groq` | word-bounded |
 | `Bedrock` | word-bounded |
 | `Azure` (as AI provider) | word-bounded |
-
-The single negative-posture mention `provider names` in the runtime
-providers-and-models page is permitted because it is a refusal phrase,
-not a name.
 
 ## Forbidden Forward-Promise Claims
 

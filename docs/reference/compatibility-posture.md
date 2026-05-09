@@ -42,17 +42,15 @@ public docs and implementation refuse:
 | `app_local_shadow_truth` | App-local convenience state becoming hidden canonical truth |
 | `silent_owner_cut_reopen` | Reopening owner-domain truth inside a downstream execution wave |
 
-## Pre-Launch Public Claim Constraints
-
-While Nimi is pre-launch, public docs do not publish:
+## Public Claim Constraints
 
 | Claim type | Posture |
 | --- | --- |
-| Install commands (curl / npm / pnpm / brew / apt / yarn) | Withheld until admitted distribution evidence |
-| Download links | Withheld until admitted distribution evidence |
+| Install commands (curl / npm / pnpm / brew / apt / yarn) | Withheld until admitted distribution evidence under the matching release contract |
+| Download links | Withheld until admitted distribution evidence under the matching release contract |
 | Release status / launch promises | Withheld until admitted release evidence |
-| Concrete provider name / model name | Withheld until admitted catalog evidence |
-| Provider availability matrix | Withheld until admitted catalog evidence |
+| Concrete provider name / model name | Withheld until admitted catalog evidence under the runtime model-catalog contract |
+| Provider availability matrix | Withheld until admitted catalog evidence under the runtime model-catalog contract |
 | "Available now" / "GA" / "Stable" claims for defined-but-not-shipped surfaces | Forbidden |
 
 The complete list of forbidden public docs claims with detection

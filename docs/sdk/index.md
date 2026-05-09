@@ -19,8 +19,8 @@ a breaking change.
 - [Realm And World Client](/sdk/realm-world-client) — composition of
   Realm truth and Runtime-backed generation.
 
-The cross-domain [Glossary](/glossary) explains "surface," "boundary,"
-and "projection" if those terms are unfamiliar.
+The cross-domain [Glossary](/reference/glossary) explains "surface,"
+"boundary," and "projection" if those terms are unfamiliar.
 
 ## Why The SDK Exists
 
@@ -71,7 +71,9 @@ generation, read world truth, and react to Realm updates:
 
 1. You import from `sdk/runtime`. You issue a generation request and
    consume the streamed response under the streaming contract; see
-   [Runtime Workflows And Multimodal](/runtime/workflows-and-multimodal).
+   [Runtime Streaming](/runtime/streaming) for the streaming
+   semantics and [Runtime Workflows](/runtime/workflows) for the
+   request lifecycle.
 2. You import from `sdk/realm` (or `sdk/world` if you need composed
    world reads) to read the world's truth. You do not import Realm
    internals; the SDK projects what your app is allowed to see.

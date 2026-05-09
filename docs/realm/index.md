@@ -11,11 +11,40 @@ in Realm — that's the layer everything else points at.
 
 ## What This Section Contains
 
-- [World Semantics](/realm/world-semantics) — how truth, state, and
-  history relate to the platform's six protocol primitives.
+World semantics:
 
-The cross-domain [Glossary](/glossary) explains "world," "truth," and
-"world history" if those terms are unfamiliar.
+- [Truth](/realm/truth) — canonical world facts, regardless of when
+  they were written.
+- [World State](/realm/world-state) — what a world looks like right
+  now.
+- [World History](/realm/world-history) — append-only history of how
+  a world reached its current state.
+- [Projection](/realm/projection) — how Realm shape projects to
+  app-facing readers.
+
+Domain surfaces:
+
+- [Chat](/realm/chat) — canonical thread / message / membership /
+  agent-slot lifecycle when conversation participates in world
+  meaning.
+- [Social And Economy](/realm/social-and-economy) — relationship
+  graph and value/exchange contracts owned by Realm.
+- [Asset And Binding](/realm/asset-and-binding) — what a world
+  contains and how those things attach to participants and scenes.
+- [Transit](/realm/transit) — single-hop continuity protocol
+  through OASIS that lets participants move between worlds.
+
+Creator and app surfaces:
+
+- [Creator Economy](/realm/creator-economy) — world creator economy,
+  revenue, and settlement.
+- [App Interconnect](/realm/app-interconnect) — admitted patterns
+  for how apps consume Realm truth.
+
+For the high-level distinction between truth, state, and history,
+see [Platform → Worlds → Truth, State, And History](/platform/worlds/truth-state-history).
+The cross-domain [Glossary](/reference/glossary) explains "world,"
+"truth," and "world history" if those terms are unfamiliar.
 
 ## Why Realm Matters
 
