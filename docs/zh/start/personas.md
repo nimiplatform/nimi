@@ -1,78 +1,76 @@
 # 用户画像
 
-按读者类型给出阅读路径。每条路径有一个主线，页面之间也彼此引用，方便横向跳跃。
+本章根据不同读者的技术背景与角色需求，提供相应的阅读路径。各路径之间相互引用，便于横向查阅。
 
-## 新接触者
+## 初次接触者
 
-你听说了 Nimi，想用 30 分钟判断这件事跟你相关不相关。
+如果您初步了解 Nimi，并希望快速评估平台的技术定位与适用场景：
 
-1. [平台 → 愿景](/zh/platform/vision)：这个项目是为了什么。
-2. [平台 → 六条基础协议](/zh/platform/protocol)：让平台之所以是平台的那层跨世界契约。
-3. [平台 → 架构](/zh/platform/architecture/)：谁拥有什么的全景图。
-4. [Nimi Coding → 概览](/zh/nimicoding/)：第二个并列产品论点，把 Nimi Coding 视为 AI 开发范式。
-5. [参考 → 术语表](/zh/reference/glossary)：边读边看。
+1. [平台 → 愿景](/zh/platform/vision)：了解项目的核心目标与架构定位。
+2. [平台 → 六条基础协议](/zh/platform/protocol)：了解跨越不同“世界”的核心技术契约，这是 Nimi 作为平台的基础。
+3. [平台 → 架构](/zh/platform/architecture/)：查看跨越核心层的架构全景图，明确组件的权责归属。
+4. [Nimi Coding → 概览](/zh/nimicoding/)：了解 Nimi Coding 这一套 AI 驱动的开发方法论。
+5. [参考 → 术语表](/zh/reference/glossary)：阅读过程中的术语对照表。
 
-走完这条路径，你能向别人讲清楚 Nimi 是什么。
+通过此路径，您将能够清晰概述 Nimi 平台的核心功能与架构理念。
 
 ## 世界创作者
 
-你想设计一个世界（规则、设定、Agent、场景），然后发布出来。
+如果您的目标是架构并发布一个数字世界（包括规则、设定、Agent 及场景）：
 
-1. [平台 → 愿景](/zh/platform/vision)：世界是什么。
-2. [Realm](/zh/realm/)：语义真相、世界状态、世界历史。
-3. [参考 → 世界字段](/zh/reference/world-fields)：字段层面世界长什么样。
-4. [参考 → 六条基础协议](/zh/reference/six-primitives)：你的世界要参与的跨世界契约。
-5. [Realm → 世界创作者经济](/zh/realm/)：创作者的经济语义（准入后；部分子页在后续批次完成）。
+1. [平台 → 愿景](/zh/platform/vision)：了解 Nimi 架构中“世界”的定义。
+2. [Realm](/zh/realm/)：掌握数字世界底座的三大核心要素：语义真相、世界状态及历史轨迹。
+3. [参考 → 世界字段](/zh/reference/world-fields)：在数据字段层面查看规范对“世界”的具体定义。
+4. [参考 → 六条基础协议](/zh/reference/six-primitives)：理解您的世界在跨域交互时必须遵守的基础契约。
+5. [Realm → 创作者经济](/zh/realm/creator-economy)：了解跨世界的创作者经济模型与价值流转规则。
 
 ## Mod 开发者
 
-你想用受限能力扩展桌面端。
+如果您希望利用受限接口，为官方桌面端提供扩展功能：
 
-1. [桌面端](/zh/desktop/)：桌面端是什么、为什么 Mod 是一等表面而不是插件。
-2. [桌面端 → Mod 体系](/zh/desktop/mods)：Hook 能力边界。
-3. [SDK → 边界](/zh/sdk/boundaries)：Mod 不能绕开的地方。
-4. [参考 → 权威域](/zh/reference/authority-domains)：Mod 必须遵守的归属线。
+1. [桌面端](/zh/desktop/)：了解桌面端外壳的底层逻辑，以及 Mod 作为一等表面（Surface）的机制。
+2. [桌面端 → Mod 体系](/zh/desktop/mods)：明确各类 Hook 回调的核心能力与边界。
+3. [SDK → 边界](/zh/sdk/boundaries)：了解开发过程中必须遵守的代码隔离底线。
+4. [参考 → 权威域](/zh/reference/authority-domains)：明确 Mod 组件运行时的权限归属与限制。
 
 ## 应用开发者
 
-你想用 SDK 在 Nimi 上做应用。
+如果您计划使用 Nimi SDK 构建应用：
 
-1. [SDK → 概览](/zh/sdk/)：唯一的开发面。
-2. [SDK → 边界](/zh/sdk/boundaries)：应用能与不能触达的范围。
-3. [SDK → Runtime 客户端](/zh/sdk/runtime-client)：应用走向 Runtime 的通道。
-4. [SDK → Realm 与世界客户端](/zh/sdk/realm-world-client)：把世界真相与 Runtime 生成组合起来。
-5. [参考 → 状态机](/zh/reference/state-machines)：你的应用会观察到的状态机。
+1. [SDK → 概览](/zh/sdk/)：了解应用代码与平台交互的标准公开入口。
+2. [SDK → 边界](/zh/sdk/boundaries)：明确应用逻辑允许触达的范围及不可跨越的安全边界。
+3. [SDK → Runtime 客户端](/zh/sdk/runtime-client)：掌握应用调用 Runtime 底层能力的标准路径。
+4. [SDK → Realm 与世界客户端](/zh/sdk/realm-world-client)：了解如何将世界真相的读取与 Runtime 的动态生成能力相结合。
+5. [参考 → 状态机](/zh/reference/state-machines)：了解应用在运行过程中需要处理的各类状态机流转。
 
 ## AI Agent 接入方
 
-你想把外部 AI 宿主接入为参与者。
+如果您计划将外部或本地的 AI 宿主接入为 Nimi 世界中的独立参与者：
 
-1. [平台 → 愿景](/zh/platform/vision)：Agent 作为一等参与者。
-2. [平台 → AI Agent 安全接口](/zh/platform/)：外部 Agent 的安全模型（子页在后续批次完成）。
-3. [Runtime → 委派能力](/zh/runtime/)：网关与输出防火墙（子页在后续批次完成）。
-4. [参考 → Agent 字段](/zh/reference/agent-fields)：Agent 长什么样，包括外部 Agent 字段。
-5. [参考 → 状态机](/zh/reference/state-machines)：委派 Provider 与委派会话状态机。
+1. [平台 → 愿景](/zh/platform/vision)：了解将 AI Agent 视作平台“参与者”的设计理念。
+2. [平台 → AI Agent 安全接口](/zh/platform/)：查阅针对外部第三方 Agent 接入的安全模型规范。
+3. [Runtime → 委派能力](/zh/runtime/delegated-capability)：了解接入网关架构及相关输出防火墙机制。
+4. [参考 → Agent 字段](/zh/reference/agent-fields)：查看 Agent 的内部数据结构及涉外的核心属性。
+5. [参考 → 状态机](/zh/reference/state-machines)：掌握委派 Provider 机制及委派会话状态机模型。
 
 ## Nimi Coding 采用者
 
-你想在自己的项目里把 Nimi Coding 作为 AI 开发方法论。
+如果您希望将 Nimi Coding 方法论引入自有开发流程中：
 
-1. [Nimi Coding → 概览](/zh/nimicoding/)：范式与软件包。
-2. [Nimi Coding → 白皮书](/zh/nimicoding/whitepaper)：范式论点。
-3. [Nimi Coding → 议题工作流](/zh/nimicoding/topic-workflow)：topic / wave / packet / preflight / audit / closeout 生命周期。
-4. [参考 → 禁止主张](/zh/reference/forbidden-claims)：把"禁捷径"心态用到文档上。
-5. [参考 → 状态机](/zh/reference/state-machines)：topic 与 wave 状态机。
+1. [Nimi Coding → 概览](/zh/nimicoding/)：宏观了解该方法论及其对应的 npm 软件包。
+2. [Nimi Coding → 白皮书](/zh/nimicoding/whitepaper)：查阅支撑该方法论的工程治理理论基础。
+3. [Nimi Coding → 议题工作流](/zh/nimicoding/topic-workflow)：了解从 Topic 创建、Wave 发起，历经 Packet 编排、Preflight 预检，至最终 Closeout 的完整闭环流程。
+4. [参考 → 禁止主张](/zh/reference/forbidden-claims)：了解开发规范中对“反模式”与“走捷径”做法的严格限制。
+5. [参考 → 状态机](/zh/reference/state-machines)：了解保障协作流程有序推进的 Topic 及 Wave 状态机机制。
 
-完整 Nimi Coding 章节在后续批次扩写；当前子页可以从概览页直达。
+## 审计与评审人员
 
-## 审计 / 评审
+如果您负责依据权威基准对平台代码或主张进行评审和溯源：
 
-你在依据已准入权威评估 Nimi。要把公开主张追溯回源头。
-
-1. [参考 → 规范地图](/zh/reference/spec-map)：公开章节到规范区域的映射。
-2. [参考 → 权威域](/zh/reference/authority-domains)：谁拥有什么。
-3. [参考 → 术语表](/zh/reference/glossary)：词汇对齐。
-4. [Nimi Coding → 议题工作流](/zh/nimicoding/topic-workflow)：工作产物 (topic.yaml、packet、preflight 结果、audit、closeout) 的组织方式。
+1. [参考 → 规范地图](/zh/reference/spec-map)：查看公开文档与底层技术契约之间的映射关系。
+2. [参考 → 权威域](/zh/reference/authority-domains)：核查系统中各项数据与权力的最终归属。
+3. [参考 → 术语表](/zh/reference/glossary)：利用统一的术语体系对齐技术语义。
+4. [Nimi Coding → 议题工作流](/zh/nimicoding/topic-workflow)：审查工作产物（如 `topic.yaml`、Packet 存档、预检及审计报告）的组织标准与约束条件。
 
 ## Source Basis
 
