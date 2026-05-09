@@ -160,10 +160,9 @@ export const sidebarZh: DefaultTheme.Sidebar = {
       ],
     },
     {
-      text: '用户面',
+      text: '用户界面',
       items: [
-        { text: '聊天', link: '/zh/desktop/chat' },
-        { text: 'Agent Avatar（聊天表面）', link: '/zh/desktop/agent-avatar' },
+        { text: 'Agent Avatar（聊天界面）', link: '/zh/desktop/agent-avatar' },
         { text: '语音会话', link: '/zh/desktop/voice-session' },
         { text: '对话能力', link: '/zh/desktop/conversation-capability' },
         { text: '消息操作', link: '/zh/desktop/message-actions' },
@@ -216,11 +215,11 @@ export const sidebarZh: DefaultTheme.Sidebar = {
         { text: '真相', link: '/zh/realm/truth' },
         { text: '世界状态', link: '/zh/realm/world-state' },
         { text: '世界历史', link: '/zh/realm/world-history' },
-        { text: '读聚合面', link: '/zh/realm/projection' },
+        { text: '数据投影', link: '/zh/realm/projection' },
       ],
     },
     {
-      text: '域表面',
+      text: 'Realm 子域',
       items: [
         { text: '聊天', link: '/zh/realm/chat' },
         { text: '社交与经济', link: '/zh/realm/social-and-economy' },
@@ -255,9 +254,9 @@ export const sidebarZh: DefaultTheme.Sidebar = {
       ],
     },
     {
-      text: '形体化',
+      text: '具身化',
       items: [
-        { text: '形体化呈现', link: '/zh/avatar/embodiment-projection' },
+        { text: '具身化呈现', link: '/zh/avatar/embodiment-projection' },
         { text: '载体视觉接受度', link: '/zh/avatar/carrier-acceptance' },
         { text: '后端分支', link: '/zh/avatar/backend-branches' },
       ],
@@ -353,7 +352,7 @@ export const sidebarZh: DefaultTheme.Sidebar = {
         { text: '包', link: '/zh/nimicoding/the-package' },
         { text: '宿主无关边界', link: '/zh/nimicoding/host-agnostic' },
         { text: '技能', link: '/zh/nimicoding/skills' },
-        { text: 'CLI 表面', link: '/zh/nimicoding/cli' },
+        { text: 'CLI 界面', link: '/zh/nimicoding/cli' },
         { text: 'CLI 参考', link: '/zh/nimicoding/cli-reference' },
         { text: '安装', link: '/zh/nimicoding/installation' },
       ],
@@ -379,10 +378,10 @@ export const sidebarZh: DefaultTheme.Sidebar = {
       items: [
         { text: 'How-to 总览', link: '/zh/nimicoding/how-to/' },
         { text: '准入一个 Wave', link: '/zh/nimicoding/how-to/admit-a-wave' },
-        { text: '写 Fail-Close 不变量', link: '/zh/nimicoding/how-to/write-fail-close-invariants' },
-        { text: '处理 Pending Acceptance', link: '/zh/nimicoding/how-to/handle-pending-acceptance' },
+        { text: '编写故障关闭不变量', link: '/zh/nimicoding/how-to/write-fail-close-invariants' },
+        { text: '处理待接受状态', link: '/zh/nimicoding/how-to/handle-pending-acceptance' },
         { text: '调和分歧审计', link: '/zh/nimicoding/how-to/reconcile-divergent-audits' },
-        { text: '溢出后重开', link: '/zh/nimicoding/how-to/reopen-after-overflow' },
+        { text: '溢出后重新打开', link: '/zh/nimicoding/how-to/reopen-after-overflow' },
         { text: '准入外部宿主', link: '/zh/nimicoding/how-to/admit-an-external-host' },
       ],
     },
