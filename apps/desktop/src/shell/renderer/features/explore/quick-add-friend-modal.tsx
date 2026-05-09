@@ -73,6 +73,7 @@ export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
       kind="dialog"
       onClose={adding ? undefined : handleClose}
       dataTestId={E2E_IDS.exploreQuickAddFriendDialog}
+      className="bg-[var(--nimi-scrim-modal)]"
       title={(
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-base font-semibold text-gray-900">{t('Contacts.addContact', { defaultValue: 'Add Friend' })}</h2>

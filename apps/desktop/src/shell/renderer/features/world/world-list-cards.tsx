@@ -42,7 +42,6 @@ function CoverBand({
 export function FeaturedWorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () => void }) {
   const { t } = useTranslation();
   const tags = worldTags(world).slice(0, 6);
-  const tagline = worldTagline(world);
   return (
     <section
       className="nimi-material-glass-thick"
@@ -126,19 +125,6 @@ export function FeaturedWorldCard({ world, onOpen }: { world: WorldListItem; onO
                 />
                 <Chip>{world.nativeCreationState}</Chip>
               </div>
-              {tagline ? (
-                <p
-                  style={{
-                    margin: '4px 0 12px',
-                    fontSize: 14,
-                    lineHeight: 1.6,
-                    color: 'var(--nimi-text-secondary)',
-                    maxWidth: 560,
-                  }}
-                >
-                  {tagline}
-                </p>
-              ) : null}
               {tags.length > 0 ? (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {tags.map((tag) => (

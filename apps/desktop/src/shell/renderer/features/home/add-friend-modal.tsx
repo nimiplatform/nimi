@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
+import { Button, IconButton } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { OverlayShell } from '@renderer/components/overlay/index.js';
 
 export type PostCardAuthorPreview = {
   name: string;
@@ -24,6 +26,7 @@ export function AddFriendModal({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+
   const handleAddFriend = useCallback(async () => {
     if (loading) {
       return;
@@ -54,95 +57,87 @@ export function AddFriendModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-[var(--nimi-scrim-modal)]"
-        onClick={handleClose}
-      />
-      <div className="relative mx-4 w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h2 className="text-lg font-bold text-gray-900">{t('Contacts.addContact', { defaultValue: 'Add Friend' })}</h2>
-          <button
-            type="button"
-            onClick={handleClose}
+    <OverlayShell
+      open={isOpen}
+      kind="dialog"
+      onClose={loading ? undefined : handleClose}
+      className="bg-[var(--nimi-scrim-modal)]"
+      title={(
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-base font-semibold text-gray-900">{t('Contacts.addContact', { defaultValue: 'Add Friend' })}</h2>
+          <IconButton
+            icon={(
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            )}
+            size="sm"
             disabled={loading}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="flex flex-col items-center px-6 py-8">
-          <div className="relative">
-            <EntityAvatar
-              imageUrl={author.avatarUrl}
-              name={author.name}
-              kind={author.isAgent ? 'agent' : 'human'}
-              sizeClassName="h-20 w-20"
-              className={author.isAgent ? undefined : 'ring-4 ring-mint-100'}
-              textClassName="text-2xl font-bold"
-              fallbackClassName={author.isAgent ? undefined : 'bg-mint-100 text-mint-700'}
-            />
-          </div>
-
-          <h3 className="mt-4 text-xl font-bold text-gray-900">{author.name}</h3>
-          <p className="mt-1 text-sm text-gray-500">@{author.handle.replace(/^@/, '')}</p>
-
-          {author.isAgent ? (
-            <span className="mt-2 inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
-              {t('Contacts.agentBadge', { defaultValue: 'Agent' })}
-            </span>
-          ) : null}
-
-          <div className="mt-4 w-full">
-            <textarea
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              placeholder={t('Home.sayHello', { defaultValue: 'Say Hello...' })}
-              className="h-20 w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 placeholder:text-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-mint-500"
-            />
-          </div>
-          {error ? (
-            <div className="mt-3 w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
-              {error}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="flex gap-3 bg-gray-50 px-6 py-4">
-          <button
-            type="button"
             onClick={handleClose}
-            disabled={loading}
-            className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
-          >
+            aria-label={t('Home.close', { defaultValue: 'Close' })}
+          />
+        </div>
+      )}
+      footer={(
+        <div className="flex items-center gap-3">
+          <Button tone="secondary" fullWidth onClick={handleClose} disabled={loading}>
             {t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            tone="primary"
+            fullWidth
             onClick={() => {
               void handleAddFriend();
             }}
             disabled={loading}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-mint-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-mint-600 disabled:opacity-70"
           >
-            {loading ? (
-              <>
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                {t('Home.adding', { defaultValue: 'Adding...' })}
-              </>
-            ) : (
-              t('Contacts.addContact', { defaultValue: 'Add Friend' })
-            )}
-          </button>
+            {loading ? t('Home.adding', { defaultValue: 'Adding...' }) : t('Contacts.addContact', { defaultValue: 'Add Friend' })}
+          </Button>
         </div>
+      )}
+    >
+      <div className="flex flex-col items-center">
+        <EntityAvatar
+          imageUrl={author.avatarUrl}
+          name={author.name}
+          kind={author.isAgent ? 'agent' : 'human'}
+          sizeClassName="h-16 w-16"
+          className={author.isAgent ? undefined : 'ring-4 ring-mint-100'}
+          textClassName="text-xl font-bold"
+          fallbackClassName={author.isAgent ? undefined : 'bg-mint-100 text-mint-700'}
+        />
+        <h3 className="mt-3 text-lg font-bold text-gray-900">{author.name}</h3>
+        <p className="text-sm text-gray-500">@{author.handle.replace(/^@/, '')}</p>
+        {author.isAgent ? (
+          <span className="mt-2 inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
+            {t('Contacts.agentBadge', { defaultValue: 'Agent' })}
+          </span>
+        ) : null}
       </div>
-    </div>
+
+      <div className="mt-4">
+        <textarea
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          placeholder={t('Home.sayHello', { defaultValue: 'Say Hello...' })}
+          rows={3}
+          maxLength={200}
+          disabled={loading}
+          className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-300 focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-50"
+        />
+      </div>
+
+      {error ? (
+        <div className="mt-3 flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          {error}
+        </div>
+      ) : null}
+    </OverlayShell>
   );
 }

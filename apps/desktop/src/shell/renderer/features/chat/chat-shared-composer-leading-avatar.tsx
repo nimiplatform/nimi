@@ -6,6 +6,10 @@ import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar';
 import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
+import {
+  ContactDetailProfileModal,
+  type ContactDetailProfileSeed,
+} from '@renderer/features/contacts/contact-detail-profile-modal.js';
 
 export type ChatComposerLeadingAvatarPreviewTarget = {
   targetId: string;
@@ -77,8 +81,8 @@ function ChatComposerAvatarHoverPreview(props: {
 }) {
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
-  const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const [open, setOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const openTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
 
@@ -137,50 +141,71 @@ function ChatComposerAvatarHoverPreview(props: {
     if (!props.targetId) {
       return;
     }
-    navigateToProfile(props.targetId, props.kind === 'agent' ? 'agent-detail' : 'profile');
-  }, [cancelTimers, navigateToProfile, props.kind, props.targetId]);
+    setProfileModalOpen(true);
+  }, [cancelTimers, props.targetId]);
 
   const ariaLabel = props.kind === 'agent'
     ? t('Chat.composerAvatarOpenAgent', { defaultValue: 'Open agent profile' })
     : t('Chat.composerAvatarOpenContact', { defaultValue: 'Open profile' });
 
+  const profileSeed: ContactDetailProfileSeed | null = profileModalOpen
+    ? {
+        id: props.targetId,
+        displayName: props.name,
+        handle: (props.handleHint || '').replace(/^@/, ''),
+        avatarUrl: props.imageUrl,
+        isAgent: props.kind === 'agent',
+        worldName: props.worldNameHint,
+      }
+    : null;
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          data-chat-shared-composer-leading-avatar="true"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-transparent p-0 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4ECCA3]/60"
-          onMouseEnter={scheduleOpen}
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            data-chat-shared-composer-leading-avatar="true"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-transparent p-0 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4ECCA3]/60"
+            onMouseEnter={scheduleOpen}
+            onMouseLeave={scheduleClose}
+            onFocus={scheduleOpen}
+            onBlur={scheduleClose}
+            onClick={handleOpenProfile}
+            aria-label={ariaLabel}
+          >
+            {props.children}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          side="top"
+          align="start"
+          sideOffset={10}
+          onMouseEnter={() => {
+            cancelTimers();
+            setOpen(true);
+          }}
           onMouseLeave={scheduleClose}
-          onFocus={scheduleOpen}
-          onBlur={scheduleClose}
-          onClick={handleOpenProfile}
-          aria-label={ariaLabel}
+          onOpenAutoFocus={(event) => event.preventDefault()}
+          className="w-[280px] overflow-hidden rounded-2xl"
         >
-          {props.children}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        side="top"
-        align="start"
-        sideOffset={10}
-        onMouseEnter={() => {
-          cancelTimers();
-          setOpen(true);
-        }}
-        onMouseLeave={scheduleClose}
-        onOpenAutoFocus={(event) => event.preventDefault()}
-        className="w-[280px] overflow-hidden rounded-2xl"
-      >
-        <ChatComposerAvatarPreviewCard
-          profile={profile}
-          kind={props.kind}
-          isLoading={isLoading}
-          onOpenProfile={handleOpenProfile}
+          <ChatComposerAvatarPreviewCard
+            profile={profile}
+            kind={props.kind}
+            isLoading={isLoading}
+            onOpenProfile={handleOpenProfile}
+          />
+        </PopoverContent>
+      </Popover>
+      {profileModalOpen ? (
+        <ContactDetailProfileModal
+          open
+          profileId={props.targetId}
+          profileSeed={profileSeed}
+          onClose={() => setProfileModalOpen(false)}
         />
-      </PopoverContent>
-    </Popover>
+      ) : null}
+    </>
   );
 }
 

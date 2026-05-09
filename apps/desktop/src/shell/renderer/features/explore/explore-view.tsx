@@ -240,24 +240,18 @@ export function ExploreView(props: ExploreViewProps) {
         }
       `}</style>
       {/* Header bar */}
-      <Surface
-        tone="panel"
-        material="glass-regular"
-        elevation="base"
-        padding="none"
-        className="shrink-0 rounded-[2rem] border-white/60 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
-      >
+      <div className="shrink-0">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-end justify-between gap-4 px-5 py-4">
           <div>
-            <div className="desktop-kicker-tiny mb-3">{t('Explore.pageKicker', { defaultValue: 'Nimi · Explore' })}</div>
+            <div className="desktop-kicker-tiny mb-1">{t('Explore.pageKicker', { defaultValue: 'Nimi · Explore' })}</div>
             <h1
               className="m-0 leading-none"
               style={{
                 fontFamily: 'var(--nimi-font-display)',
-                fontSize: 40,
+                fontSize: 28,
                 fontWeight: 700,
-                letterSpacing: '-0.032em',
-                color: 'var(--nimi-fg-1)',
+                letterSpacing: '-0.02em',
+                color: 'var(--nimi-text-primary)',
               }}
             >
               {t('Explore.pageTitle')}
@@ -285,7 +279,7 @@ export function ExploreView(props: ExploreViewProps) {
             </Surface>
           </div>
         </div>
-      </Surface>
+      </div>
 
       {/* Scrollable content */}
       <ScrollArea
@@ -664,7 +658,17 @@ export function ExploreView(props: ExploreViewProps) {
 
           <section ref={feedSectionRef} className="mt-12">
             <div className="mb-6 flex items-center justify-between">
-              <h2 className={`nimi-type-section-title text-[color:var(--nimi-text-secondary)]`} style={{ fontFamily: 'var(--font-display)' }}>
+              <h2
+                className="m-0"
+                style={{
+                  fontFamily: 'var(--nimi-font-display)',
+                  fontSize: 26,
+                  fontWeight: 600,
+                  letterSpacing: '-0.02em',
+                  color: 'var(--nimi-fg-1)',
+                  lineHeight: 1.1,
+                }}
+              >
                 {t('Explore.dynamicFeed', { defaultValue: 'Dynamic Feed' })}
               </h2>
             </div>
