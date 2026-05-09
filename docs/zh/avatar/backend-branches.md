@@ -1,5 +1,9 @@
 # 后端分支
 
+## 状态：混合 (Mixed)
+
+分节标记：Live2D 后端（现在运行中）、VRM 后端（已准入，建设中）、生成式动作 provider（现在运行中）。
+
 Avatar 的渲染后端是一个**封闭的判别联合**：`live2d | vrm`。Live2D 通过 Cubism SDK for Web 已在生产中使用；VRM 是规划中的后端分支。生成式动作以独立 Provider 的形态准入，仍走同一套后端分支模型。
 
 ## 封闭联合，不是开放插件
@@ -90,7 +94,7 @@ VRM 提前准入是为了让 NAS 处理器今天就能写出可移植的代码�
 | 允许绕过契约的运行期后端选择 | 判别联合强制走强类型选型 |
 | 允许未经准入的跨后端资产复用 | 每个后端的兼容性各自准入 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/avatar/kernel/backend-branch-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/backend-branch-contract.md)
 - [`.nimi/spec/avatar/kernel/live2d-render-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/live2d-render-contract.md)

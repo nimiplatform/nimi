@@ -73,7 +73,7 @@ Nimi 里的一个世界，是一个长时存活的语义环境：有创作者定
 
 这是创作者与平台之间的契约：平台给你跨世界持久的身份与意义；你给平台一个尊重基础协议、有内在一致性的地方。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
 - [`.nimi/spec/realm/world.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/world.md)

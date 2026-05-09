@@ -2,7 +2,7 @@
 
 > 状态：运行中 (Running)。NimiAgentScript (NAS) 1.0 是已发布的处理器约定；自动发现和热重载功能已上线。
 
-NimiAgentScript (NAS) 遵循**约定优于配置**的原则：具身包的作者只需将 JS 文件放入固定的目录结构中，Avatar 运行时便会自动发现它们。无需清单文件。文件路径即注册方式。
+NimiAgentScript (NAS) 遵循**约定优于配置**的原则：Avatar 包的作者只需将 JS 文件放入固定的目录结构中，Avatar 运行时便会自动发现它们。无需清单文件。文件路径即注册方式。
 
 ## 目录结构
 
@@ -79,7 +79,7 @@ export default {
 
 ## 读者场景：响应点击区域
 
-1.  **声明点击区域。** 根据具身包的定义，`head` 区域在包清单中声明了 alpha 蒙版边界。
+1.  **声明点击区域。** 根据 Avatar 包的定义，`head` 区域在包清单中声明了 alpha 蒙版边界。
 2.  **编写事件处理器。** `mychar/runtime/nimi/event/onClickHead.js`。
 3.  **用户点击头部。** 点击区域检测触发 `avatar.user.click` 并附带区域信息。约定路径将处理器绑定到该事件。
 4.  **处理器运行。** 触发害羞表情，播放短音效，然后恢复中性表情。
@@ -108,7 +108,7 @@ export default {
 ## NAS 的定位
 
 *   **不是声明式 DSL。** 没有 YAML，没有模式验证器，没有 CEL 规则引擎——它是 JS 处理器，提供完整的可编程接口。
-*   **不是 SDK API。** SDK 适用于应用程序开发者。NAS 适用于具身包作者的 `<model>/runtime/nimi/`。
+*   **不是 SDK API。** SDK 适用于应用程序开发者。NAS 适用于 Avatar 包作者的 `<model>/runtime/nimi/`。
 *   **不是承载语义真相的地方。** 处理器消费运行时语义事件。它们不创造代理状态。
 *   **不是后端逃逸舱口。** 后端特定调用受 `requires` + 类型收窄的保护。
 

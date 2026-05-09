@@ -89,7 +89,7 @@
 | WEE 事件语义 | `runtime/kernel/world-evolution-engine-contract.md`（`K-WEV-*`） |
 | Workflow 部分复用硬切 | `runtime/kernel/world-evolution-engine-contract.md` |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/index.md)
 - [`.nimi/spec/realm/kernel/truth-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/truth-contract.md)

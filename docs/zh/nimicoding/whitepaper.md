@@ -65,7 +65,7 @@ Nimi Coding 并非旨在取代传统的代码审查。它旨在增加一道结�
 
 当发生此类情况时，正确的应对策略是保持该 Topic 的挂起 (Pending) 状态，并准入一个后续的 Wave 来专门解决该问题，而非勉强宣布任务完成。
 
-## 参考来源
+## 来源依据
 
 - [`.nimi/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/product-scope.yaml)
 - [`.nimi/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/bootstrap-state.yaml)

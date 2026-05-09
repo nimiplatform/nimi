@@ -125,7 +125,7 @@
 - 它不允许 JWKS 刷新失败降级为匿名。
 - 它不允许自省失败降级为匿名。
 
-## 源基础
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/authn-token-validation.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/authn-token-validation.md)
 - [`.nimi/spec/runtime/kernel/authz-ownership.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/authz-ownership.md)

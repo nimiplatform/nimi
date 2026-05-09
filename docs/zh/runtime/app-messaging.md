@@ -136,7 +136,7 @@ Nimi 上的应用间协调通过**运行时中介应用消息**进行。应用�
 | 范围绑定发行 | `RuntimeAccountService.IssueScopedAppBinding` |
 | 模块间路径比较 | `K-APP-006`（桌面模块 interMod 路径） |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/app-messaging-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/app-messaging-contract.md)
 - [`.nimi/spec/runtime/kernel/account-session-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/account-session-contract.md)

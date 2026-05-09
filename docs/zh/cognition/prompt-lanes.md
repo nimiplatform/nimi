@@ -109,7 +109,7 @@
 - 它们不允许工作状态在没有显式准入的情况下进入提示。
 - 它们不允许在通道违规时尽力渲染。
 
-## 边界摘要
+## 边界总结
 
 | 关注点 | 权威 |
 | --- | --- |
@@ -119,7 +119,7 @@
 | 失败模型 | `C-COG-052` |
 | 拥有提示组装的服务 | 认知 `PromptService` |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/cognition/kernel/prompt-serving-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/prompt-serving-contract.md)
 - [`.nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/tables/prompt-serving-lanes.yaml)

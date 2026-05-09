@@ -92,7 +92,7 @@ CLI 在严格隔离边界下管理凭据：
 
 两面严格隔离。`daemon-config` 的 key 不会泄到 `request-credential` 请求里，反之亦然。它们的信任边界不同：daemon 配置 key 在启动时准入；请求凭据按请求准入。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/cli.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/cli.md)
 - [`.nimi/spec/runtime/config.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/config.md)

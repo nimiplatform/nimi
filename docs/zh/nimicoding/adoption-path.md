@@ -159,7 +159,7 @@ Nimi Coding 提供：
 
 这次变化只针对 AI 贡献是结构性的；常规的人类贡献不受影响。
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
 - [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)

@@ -1,5 +1,9 @@
 # 创作者经济
 
+## 状态：现在 (Running today)
+
+Realm 经济契约 (R-ECON-*) 已交付；通往创作者收益政策的桥接已准入。完整的支付管线叙事见 [创作者收益](/zh/realm/creator-payouts)。
+
 创作者经济是 Realm 经济中关于世界创作者变现的那一部分：礼物和购买产生的收入事件、分成方案、结算、提现。世界创作者经济和创作者收入策略这两份文件在外部开放规范锚点和本地经济契约之间搭起一座桥。
 
 ## 创作者经济归在哪里
@@ -95,7 +99,7 @@ Append-only 是审计的基础。每一条收入事件都带来源、时间戳�
 | 世界内自定义货币 | 创作者可在自己的世界里跑内部货币，但那不是平台规范经济 |
 | 订阅处理器内部细节 | 归在准入的订阅面，不归创作者经济直接管 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/world-creator-economy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/world-creator-economy.md)
 - [`.nimi/spec/realm/creator-revenue-policy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/creator-revenue-policy.md)

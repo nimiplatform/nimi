@@ -216,7 +216,7 @@ reopen_criteria: SessionBearer regression observed; admit
 | CI 管线 | 属于 DevOps 层，不属于 Nimi Coding 层 |
 | 行级 diff | 方法论纪律在 wave 级，不在行级 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
 - [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)

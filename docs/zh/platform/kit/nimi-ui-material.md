@@ -111,7 +111,7 @@
 | 性能降级接口 | 此合同（规范层面） |
 | 运行时性能降级实现 | 消费者责任（单独） |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/kernel/nimi-ui-material-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/nimi-ui-material-contract.md)
 - [`.nimi/spec/platform/kernel/design-pattern-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/design-pattern-contract.md)

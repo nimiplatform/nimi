@@ -60,7 +60,7 @@ Runtime 的愿景再走一步：一个机器之间互相联邦 AI 能力的对�
 
 架构承诺：以上任何失败模式都不应让平台静默退化。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
 - [`.nimi/spec/runtime/kernel/cli-onboarding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/cli-onboarding-contract.md)

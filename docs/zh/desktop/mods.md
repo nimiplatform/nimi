@@ -45,7 +45,7 @@ Mod 在桌面端 Mod 治理契约里有明确的生命周期：
 
 Mod 能消费的 Avatar、Cognition、Runtime 面，都受各自的准入约束。即使底层域在别处准入了某项能力，只要 Hook 能力白名单没收录，Mod 仍然不能用。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/desktop/kernel/mod-governance-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/mod-governance-contract.md)
 - [`.nimi/spec/desktop/kernel/hook-capability-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/hook-capability-contract.md)

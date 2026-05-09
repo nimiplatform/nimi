@@ -133,7 +133,7 @@
 | `effectClass` 封闭枚举 | 领域 (`R-WSTATE-004`) |
 | WEE 侧提交请求暂存 | 运行时（参见 [WEE 执行](/platform/worlds/wee-execution)）|
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/kernel/world-state-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-state-contract.md)
 - [`.nimi/spec/realm/kernel/world-history-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-history-contract.md)

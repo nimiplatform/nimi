@@ -70,7 +70,7 @@ Nimi 的 OASIS 是转场中枢与连续性锚点，不是共享物理舞台。�
 
 不可替换正是这件事的要点。如果 OASIS 可被品牌替换，连续性保证也就跟着可被替换。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
 - [`.nimi/spec/realm/world.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/world.md)

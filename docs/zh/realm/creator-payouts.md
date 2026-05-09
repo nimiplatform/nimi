@@ -14,16 +14,16 @@
 
 本页面解释了各个部分。它不承诺具体日期。
 
-## 权限表面
+## 权威层面
 
 | 关注点 | 权限 |
 | --- | --- |
 | 领域经济合约（追加式，与叙事分离） | `R-ECON-001..R-ECON-004` |
 | 世界创作者经济桥梁 | `realm/world-creator-economy.md` |
 | 创作者收益政策（分成计划，结算） | `realm/creator-revenue-policy.md` |
-| 桌面钱包投影 | 桌面内核（已准入） |
+| 桌面钱包转换 | 桌面内核（已准入） |
 
-经济在领域中是规范的。桌面对其进行投影；分成计划和收益政策在桥梁处附加。
+经济在领域中是规范的。桌面对其进行转换；分成计划和收益政策在桥梁处附加。
 
 ## 追加式收益事件
 
@@ -108,9 +108,9 @@
 | 领域经济事件流 | 领域 (`R-ECON-*`) |
 | 分成计划 + 结算规则 | `creator-revenue-policy.md` |
 | 世界创作者桥梁 | `world-creator-economy.md` |
-| 钱包 UI 投影 | 桌面内核（已准入） |
+| 钱包 UI 转换 | 桌面内核（已准入） |
 
-## 源基础
+## 来源依据
 
 - [`.nimi/spec/realm/kernel/economy-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/economy-contract.md)
 - [`.nimi/spec/realm/creator-revenue-policy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/creator-revenue-policy.md)

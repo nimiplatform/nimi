@@ -97,7 +97,7 @@ mod 没有自己创建一层存储；没有写文件到磁盘；没有滥用浏�
 | Mod KV store 实现 | 宿主（桌面端）注入 |
 | Mod UI 槽绑定 | 桌面端内核 `ui-slots` 表 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/sdk/scope.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/scope.md)
 - [`.nimi/spec/sdk/mod.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/mod.md)

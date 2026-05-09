@@ -54,7 +54,7 @@ Nimi Coding 作为独立于宿主环境的方法论，已作为标准 npm 软件
 
 全景阅读完成后，如需查阅具体的技术细节，可借助 [规范地图](/zh/reference/spec-map) 定位到底层技术契约。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)

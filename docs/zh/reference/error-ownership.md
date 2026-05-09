@@ -52,7 +52,7 @@ retry 和 auth refresh 是传输机制，不能用来悄悄恢复 decode、conte
 | 桌面端 UI | 在 `D-*` 错误边界下呈现 |
 | 用户 | 看到的是受治理的失败，而不是被伪造出来的成功 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/kernel/protocol-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/protocol-contract.md)
 - [`.nimi/spec/platform/kernel/tables/protocol-error-codes.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/protocol-error-codes.yaml)

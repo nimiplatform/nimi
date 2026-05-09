@@ -85,7 +85,7 @@ forbidden_shortcuts:
 | 失败形态不清 | 复核者无从验证 |
 | 缺对应负面测试 | 只覆盖正面情况，少了对称性 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/packet.schema.yaml)
 - [`.nimi/contracts/acceptance.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/acceptance.schema.yaml)

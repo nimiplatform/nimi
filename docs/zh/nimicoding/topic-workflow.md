@@ -54,7 +54,7 @@ Nimi Coding 把这些情形当作重开条件，不当作"瑕疵尚可接受"。
 
 正因如此，方法论才会把 wave closeout 与 topic closeout 分开，并把 pending 看作一个真实的状态，而不是一个过渡状态。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
 - [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)

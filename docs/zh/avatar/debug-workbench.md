@@ -1,6 +1,6 @@
 # 调试工作台
 
-## 状态：已准入为平台方向 (Admitted as platform direction)
+## 状态：已获准作为平台方向 (Admitted as platform direction)
 
 Avatar 调试工作台界面已在契约层面获准，覆盖 Avatar（摄入 + 后端证据）和 Runtime（探测请求包 + 回放权限）。面向用户的工作台工具已获准为方向；目前尚未发布。
 
@@ -95,7 +95,7 @@ Runtime 拥有 Avatar 调试探测的回放密钥。密钥集固定在 `tables/a
 | --- | --- | --- |
 | 探测请求/结果包 + 回放 | Runtime | `avatar-debug-projection-contract.md` (K-AGCORE-054..060) |
 | 后端证据 | Avatar | `avatar-debug-session-contract.md` |
-| 工作台用户体验 | Desktop | (已准入为方向；尚未发布) |
+| 工作台用户体验 | Desktop | (已获准作为方向；尚未发布) |
 
 ## 来源依据
 

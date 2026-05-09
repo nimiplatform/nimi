@@ -46,7 +46,7 @@
 - 它们不会静默地授予超出清单声明的能力。
 - 它们不允许每次安装的状态覆盖规范准入的枚举。
 
-## 源基础
+## 来源依据
 
 - [`.nimi/spec/desktop/kernel/hook-capability-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/hook-capability-contract.md)
 - [`.nimi/spec/desktop/kernel/tables/hook-capability-allowlists.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/tables/hook-capability-allowlists.yaml)

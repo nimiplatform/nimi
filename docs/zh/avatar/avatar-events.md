@@ -1,5 +1,9 @@
 # Avatar 事件
 
+## 状态：现在 (Running today)
+
+事件分类法已在内核层级获得准入；事件总线已交付。
+
 Avatar 对外暴露一组强类型事件，供 NAS 处理器、Mod 与 Runtime 组件订阅。事件家族在内核层准入，不接受自由格式。
 
 ## 事件家族
@@ -96,7 +100,7 @@ Agent 开口说话，唇形需要与音频对齐。
 | 跨实例协同 | `avatar_instance_registry` |
 | 唇形同步桥 | Runtime 展示流 + SDK 队列 + Avatar `ParamMouthOpenY` |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/avatar/kernel/avatar-event-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/avatar-event-contract.md)
 - [`.nimi/spec/avatar/kernel/embodiment-projection-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/embodiment-projection-contract.md)

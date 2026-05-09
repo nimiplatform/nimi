@@ -48,7 +48,7 @@ Nimi 同时存在桌面端与网页端，但二者的能力范围并不对等。
 
 读者在做分发判断时需要明白一件事：双端都在不等于双端一致。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/desktop/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/index.md)
 - [`.nimi/spec/desktop/kernel/ui-shell-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/kernel/ui-shell-contract.md)

@@ -61,7 +61,7 @@ Agent 可以拥有身份、社交关系、以及在世界里的行动权（受 T
 
 这些角色名不是营销标签，每一个都对应 Runtime、SDK、桌面端、平台内核里的准入契约。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
 - [`.nimi/spec/platform/kernel/architecture-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/architecture-contract.md)

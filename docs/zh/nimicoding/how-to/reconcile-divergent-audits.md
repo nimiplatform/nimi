@@ -76,7 +76,7 @@
 | 跳过对齐 | 违规；要求补对齐工件 |
 | 反复重审直到 PASS | 软通过；finding 仍需处置 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/contracts/result.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/result.schema.yaml)
 - [`.nimi/contracts/decision-review.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/decision-review.schema.yaml)

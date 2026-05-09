@@ -49,7 +49,7 @@ SDK 让「两个同侪」从 App 开发者视角看起来是一个平台。`crea
 
 SDK 不会做的事：它不发明任何破坏同侪边界的捷径。没有哪一个 SDK 调用会经由 Runtime 路径去改 Realm 真相，也没有哪一个 SDK 调用会经由 Realm 路径去读 Runtime 本地状态。权威级的边界，在开发者面上同样保留。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/architecture.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/architecture.md)
 - [`.nimi/spec/platform/kernel/architecture-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/architecture-contract.md)

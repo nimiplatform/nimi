@@ -63,7 +63,7 @@ SDK 被拆分为多个命名的子路径（Subpaths），每个子路径遵循�
 
 在 Code Review 阶段精准拦截此违规行为，可保障应用的架构安全。SDK 内核维护的导入边界规则表，是判定操作合规性的标准依据。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/sdk/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/index.md)
 - [`.nimi/spec/sdk/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/index.md)

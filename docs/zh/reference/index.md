@@ -17,6 +17,6 @@ Reference 是 Nimi 的产品概念字典。每页都是字段列表、表格或�
 | [Forbidden Claims](/zh/reference/forbidden-claims) | 公开文档禁止主张的清单与检测形态 |
 | [Spec Map](/zh/reference/spec-map) | 公开主张与规范位置之间的对应关系 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)

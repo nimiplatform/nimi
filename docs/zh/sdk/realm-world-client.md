@@ -50,7 +50,7 @@ Realm 持有语义真值、世界状态、世界历史、聊天，以及相关�
 
 读者只需记住：依赖某个方法之前，先看它在 surface 契约里有没有；没有提到的方法不属于契约。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/sdk/realm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/realm.md)
 - [`.nimi/spec/sdk/world.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/world.md)

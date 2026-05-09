@@ -106,7 +106,7 @@ Agent 有一份关于"明天面试"的页面。可能相关的页面包括"用�
 | 自由格式无类型摄入 | 页面是强类型的 |
 | 隐式相关性 | 服务侧元数据是显式的 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/cognition/kernel/knowledge-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/knowledge-service-contract.md)
 - [`.nimi/spec/cognition/kernel/family-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/family-contract.md)

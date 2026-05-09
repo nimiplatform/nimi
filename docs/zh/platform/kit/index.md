@@ -54,7 +54,7 @@
 - 每个应用的布局（每个应用以自己的方式组合工具包的基本元素）
 - 应用特定的用户体验或产品流程（桌面聊天形状、Avatar 外壳等）
 - 运行时语义权威（这些是运行时/认知合同）
-- 领域领域真理
+- 领域真相
 - 后端执行
 
 工具包提供构建块。应用程序进行组装。
@@ -89,7 +89,7 @@
 3. **在 `kit/<subpath>` 下添加源代码。** 单个工作区包；没有独立的清单。
 4. **消费者可以导入。** 只有在注册后；边界得到强制执行。
 
-子模块不能发布黑暗的、未记录的表面区域。
+子模块不能发布隐秘的、未记录的表面区域。
 
 ## 工具包不做什么
 
@@ -109,7 +109,7 @@
 | 设计模式（视觉+交互合同） | `P-DESIGN-*`（单独页面） |
 | 材料分类法+令牌 | `nimi-ui-material-contract.md`（单独页面） |
 
-## 源基础
+## 来源依据
 
 - [`.nimi/spec/platform/kernel/kit-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/kit-contract.md)
 - [`.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/tables/nimi-kit-registry.yaml)

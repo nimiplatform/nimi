@@ -12,7 +12,7 @@
 
 ## 操作注册表
 
-权限表面：
+权威层面：
 
 | 关注点 | 权限 |
 | --- | --- |
@@ -106,7 +106,7 @@
 | 非所有权边界 | `C-COG-058` |
 | 技能参与的家庭系统 | `cognition/kernel/family-contract.md` + `tables/artifact-families.yaml` |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/cognition/kernel/skill-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/skill-service-contract.md)
 - [`.nimi/spec/cognition/kernel/family-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/family-contract.md)

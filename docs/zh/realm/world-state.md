@@ -1,5 +1,9 @@
 # 世界状态
 
+## 状态：现在 (Running today)
+
+Realm R-WSTATE-* 是已交付的共享当前状态权威。
+
 世界状态是一个世界的**持久共享当下**。它回答"这个世界现在是什么样"。变更必须带显式 commit envelope；真相和历史分别守在状态的两侧。
 
 ## 世界状态是什么
@@ -111,7 +115,7 @@ Envelope 是状态变更可审计的关键。每一次变更都可以重建：�
 | 不声明 scope 或 scope 含糊 | scope 是声明式的；含糊会被拒收 |
 | 跳过证据引用 | 可追溯性要求带证据 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/world-state.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/world-state.md)
 - [`.nimi/spec/realm/kernel/world-state-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-state-contract.md)

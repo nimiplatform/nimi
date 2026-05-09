@@ -108,7 +108,7 @@ Nimi 智能体并非总是在执行同一种任务。有时它与您进行规范
 - 它不拥有 A2A 或 MCP 线缆真相——这些是协议。
 - 它不拥有桌面/网页/头像/模组 UI 状态。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md)
 - [`.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml)

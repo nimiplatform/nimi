@@ -69,7 +69,7 @@
 
 架构存在就是让这些故事在没有静默捷径的前提下成立。当某些事看上去意外——云端不在线但 AI 仍能用、外部 AI 不能直接按下按钮——那是架构在按设计执行。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/architecture.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/architecture.md)
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)

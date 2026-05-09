@@ -1,5 +1,9 @@
 # 外部 Agent 接入
 
+## 状态：现在 (Running today)
+
+外部 Agent 接入面是桌面端已交付的 ExternalPrincipal token 颁发与撤销 UI。
+
 外部 Agent 接入面板是桌面端独有的 UI，用来管理 `ExternalPrincipal` Token。它是"以受控、限定作用域、可撤销的方式让外部 AI 宿主访问我的 Nimi 账户"这件事的人面。
 
 平台层模型见 [平台 → Agent → 外部 Agent](/zh/platform/agents/external-agents)。
@@ -82,7 +86,7 @@
 
 通过这块面板创建其他类型的 Token 不准入。其他 Token 形态（用户会话 Token 等）归别处。窄，是这块面板安全姿态清晰的关键。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/desktop/external-agent.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/external-agent.md)
 - [`.nimi/spec/runtime/kernel/delegated-capability-gateway-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-capability-gateway-contract.md)

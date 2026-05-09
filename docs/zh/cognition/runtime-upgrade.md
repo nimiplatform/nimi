@@ -83,7 +83,7 @@ Runtime 升级契约描述能力升级如何在 Runtime 与 Cognition 之间流�
 
 审计员读规范就能拿到强类型答案。权威不模糊，因为桥接是准入的，不是临时拼出来的。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/cognition/kernel/runtime-upgrade-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/runtime-upgrade-contract.md)
 - [`.nimi/spec/cognition/kernel/runtime-bridge-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/runtime-bridge-contract.md)

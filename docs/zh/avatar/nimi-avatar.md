@@ -130,7 +130,7 @@ Avatar 运行期间 Runtime 守护进程停了。
 | 静默切换到 mock | Runtime 不可达时 fail-closed |
 | 降级态自动恢复 | 仅手动重载 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/avatar/nimi-avatar.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/nimi-avatar.md)
 - [`.nimi/spec/avatar/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/index.md)

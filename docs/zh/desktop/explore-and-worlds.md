@@ -74,7 +74,7 @@
 
 组合受准入接缝约束。探索不会自造与上游真相不一致的缓存。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/desktop/explore.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/explore.md)
 - [`.nimi/spec/desktop/world-detail.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/world-detail.md)

@@ -1,5 +1,9 @@
 # AI 最终执行环节（AI Last Mile）
 
+## 状态：已准入，建设中 (Admitted, in build-out)
+
+Hook Action Fabric + Principal 模型 + 执行协议状态机已在内核层准入 (P-ALMI-002, P-ALMI-003, P-ALMI-011)。
+
 AI 的最终执行环节，指的是从 Agent 形成意图，到平台上真正发生一次操作之间的那一段。当模型说"送一份礼物"时，平台要么真的送出去，要么停下来问用户，要么直接拒绝——所有这些动作都必须发生在显式、可审计的契约之下。
 
 本页介绍 **Hook Action Fabric**：Nimi 内部 Agent 与外部 AI 宿主共用的统一动作面。
@@ -72,7 +76,7 @@ Hook Action Fabric 对两者是同一张面。Nimi 自带的 Agent（生命轨�
 
 以"合成点击"作为 AI 控制面的平台，对上面这些问题没有答案。采用"强类型动词"作为 AI 控制面的平台，则从结构上解决了这些问题。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/ai-last-mile.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ai-last-mile.md)
 - [`.nimi/spec/platform/ai-agent-security-interface.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ai-agent-security-interface.md)

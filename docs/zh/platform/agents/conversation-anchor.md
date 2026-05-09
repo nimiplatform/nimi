@@ -1,5 +1,9 @@
 # 对话锚（Conversation Anchor）
 
+## 状态：现在 (Running today)
+
+锚点基础协议、跨界面接入与后期加入恢复管线已在 Runtime 中交付。
+
 `ConversationAnchor` 是 Runtime 持有的连续性身份。它让一段对话能跨多个面（桌面端聊天、Avatar、网页端）继续下去，又不至于塌成同一个全局会话。
 
 ## 它解决的问题
@@ -76,7 +80,7 @@
 
 锚归在 Runtime 里，是面崩了对话还能续上的根据。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)
 - [`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-service-contract.md)

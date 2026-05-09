@@ -44,7 +44,7 @@
 
 如果知识吸收了记忆：
 - 隐私边界将崩溃（一个参与者的记忆在一个共享的知识库中 = 泄露）
-- 记忆的每个关系的保真度将被扁平化为“知识库恰好所说的内容”
+- 记忆的每个关系的保真度会简化为“知识库恰好所说的内容”
 
 认知同时保留两者。应用程序通过已准入的表面来消费这两者；它们不会发明第三种融合它们的东西。
 
@@ -110,7 +110,7 @@
 | 运行时消费桥接 | `runtime-bridge-contract.md` |
 | 提示服务（带通道分离） | `prompt-serving-contract.md`（参见 [提示通道](/cognition/prompt-lanes)） |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/cognition/kernel/cognition-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/cognition-contract.md)
 - [`.nimi/spec/cognition/kernel/memory-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/memory-service-contract.md)

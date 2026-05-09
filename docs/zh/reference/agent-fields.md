@@ -150,7 +150,7 @@ Agent 申请未来调度的强类型契约。模型不能直接发出自由格�
 | 能力域 | `action.discover.*`、`action.dry-run.*`、`action.verify.*`、`action.commit.*` |
 | 动作面 | Hook Action Fabric（Runtime + 桌面端 hook 能力沙盒） |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
 - [`.nimi/spec/platform/ai-last-mile.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ai-last-mile.md)

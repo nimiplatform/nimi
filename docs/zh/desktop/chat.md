@@ -79,7 +79,7 @@ Agent 身份是 Realm 的规范态；对话连续性归 Runtime 的 anchor；流
 
 如果用户想要具身化，他们去 Avatar。桌面端聊天可以呈现非承载性的提示（例如表情指示），但不再是 Live2D / VRM 的承载面。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/desktop/chat.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/chat.md)
 - [`.nimi/spec/realm/chat.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/chat.md)

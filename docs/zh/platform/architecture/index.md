@@ -61,7 +61,7 @@ App 不能直接跨进 Runtime 或 Realm 的私有内部。SDK 是公开的集�
 
 App 越过这道边界会出两件事。第一，它绑死在会改变的内部上。第二，它会形成自己对 Runtime 或 Realm 行为的本地预期，这种预期会与契约偏移，悄悄地长成本地的真相。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/architecture.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/architecture.md)
 - [`.nimi/spec/platform/kernel/architecture-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/architecture-contract.md)

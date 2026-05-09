@@ -1,12 +1,12 @@
-# 道路图
+# 路线图
 
 ## 状态：已准入平台方向
 
-能力积压 (`F-CAP-*`)、源注册表和毕业合同已在内核级别下被准入，位于 `nimi/.nimi/spec/future/`。本页面描述了**道路图治理结构**：如何跟踪能力、它们如何获得准入以及它们经过的状态值。它不承诺具体日期。
+能力积压 (`F-CAP-*`)、源注册表和毕业合同已在内核级别下被准入，位于 `nimi/.nimi/spec/future/`。本页面描述了**路线图治理结构**：如何跟踪能力、它们如何获得准入以及它们经过的状态值。它不承诺具体日期。
 
-## 为什么需要一个道路图权威
+## 为什么需要一个路线图权威
 
-没有道路图表面的平台最终会出现以下情况：功能未经宣布就悄悄加入，临时公开的道路图与现实脱节，没有共享词汇来描述“X 在管道中的位置”。未来的权威表面回答了所有这三个问题：每个被跟踪的能力都在积压中，并带有类型化的状态；每个状态转换都受到管理。
+没有路线图表面的平台最终会出现以下情况：功能未经宣布就悄悄加入，临时公开的路线图与现实脱节，没有共享词汇来描述“X 在管道中的位置”。未来的权威表面回答了所有这三个问题：每个被跟踪的能力都在积压中，并带有类型化的状态；每个状态转换都受到管理。
 
 ## 积压项结构 (F-CAP-001)
 
@@ -56,7 +56,7 @@ proposed → accepted → spec-drafted → implemented
 
 状态转换由 `graduation-contract.md` 管理。状态不会按应用惯例改变；它会通过准入的毕业事件改变。
 
-## 分类分类 (F-CAP-004)
+## 分类 (F-CAP-004)
 
 | 分类 | 含义 |
 | --- | --- |
@@ -124,7 +124,7 @@ proposed → accepted → spec-drafted → implemented
 2. **命名重新评估条件。** “当 X.Y 发布时重新评估。”
 3. **积压保持准确。** 该条目可见但不假装处于活跃状态。
 
-## 道路图不做的事情
+## 路线图不做的事情
 
 - 它不承诺日期。
 - 它不承诺任何条目的具体实现。
@@ -140,12 +140,12 @@ proposed → accepted → spec-drafted → implemented
 | 积压项结构 | `F-CAP-001` + `tables/backlog-items.yaml` |
 | 优先级分类 | `F-CAP-002` |
 | 状态生命周期 | `F-CAP-003` + 毕业合同 |
-| 分类分类 | `F-CAP-004` |
+| 分类 | `F-CAP-004` |
 | 依赖规则 | `F-CAP-005` |
 | 源来源 | `source-registry.md` |
 | 状态转换 | `graduation-contract.md` + `tables/graduation-log.yaml` |
 
-## 来源基础
+## 来源依据
 
 - [`.nimi/spec/future/kernel/capability-backlog.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/future/kernel/capability-backlog.md)
 - [`.nimi/spec/future/kernel/source-registry.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/future/kernel/source-registry.md)

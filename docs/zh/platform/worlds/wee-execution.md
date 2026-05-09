@@ -80,7 +80,7 @@ WEE 有自己的执行阶段分类法：
 
 每个阶段都有类型化的输入和输出。产生畸形输出的阶段会关闭失败；引擎不会默默地回退到通用阶段处理程序。
 
-## 读者情景：一个世界事件通过 WEE 流动
+## 读者场景：一个世界事件通过 WEE 流动
 
 一个计划的世界事件触发（例如，周期性的季节变化）。
 
@@ -97,7 +97,7 @@ WEE 有自己的执行阶段分类法：
 
 每个阶段都是类型化的。每次转换都会发出运行时本地执行证据。Realm 是真相接受者；WEE 是请求生产者。
 
-## 读者情景：从检查点重放
+## 读者场景：从检查点重放
 
 新节点加入或需要恢复。
 
@@ -108,7 +108,7 @@ WEE 有自己的执行阶段分类法：
 
 重放是引擎的正确性原语。契约规定重放不会绕过准入。
 
-## 读者情景：`REPLAY` 运行尝试追加历史
+## 读者场景：`REPLAY` 运行尝试追加历史
 
 WEE 在 `REPLAY` 模式下重放先前的规范变更。
 
@@ -140,7 +140,7 @@ WEE 在 `REPLAY` 模式下重放先前的规范变更。
 | 跨层放置边界文本 | 平台内核 |
 | 下游投影 | SDK |
 
-## 源基础
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/world-evolution-engine-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/world-evolution-engine-contract.md)
 - [`.nimi/spec/realm/kernel/world-state-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-state-contract.md)

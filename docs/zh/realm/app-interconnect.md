@@ -81,7 +81,7 @@ Realm 互操作映射在 Realm 概念与外部开放规范锚点之间做翻译�
 | 外部系统桥接 | Realm 互操作映射 |
 | 跨协议形态 | 互操作映射桥接 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/app-interconnect-model.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/app-interconnect-model.md)
 - [`.nimi/spec/realm/realm-interop-mapping.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/realm-interop-mapping.md)

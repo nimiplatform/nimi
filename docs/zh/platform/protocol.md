@@ -57,7 +57,7 @@ Social 基础协议不强迫每个世界以同样的方式建模友谊，它强�
 
 六个基础协议单独看抽象，在一次正常的世界流程里它们会同时出现。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/protocol.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/protocol.md)
 - [`.nimi/spec/platform/kernel/protocol-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/protocol-contract.md)

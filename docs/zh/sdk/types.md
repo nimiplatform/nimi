@@ -87,7 +87,7 @@ try {
 | Provider 名 | 是 catalog 数据，不是类型系统 |
 | 世界内容（规则、Agent 等） | 是内容，不是类型 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/sdk/types.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/types.md)
 - [`.nimi/spec/sdk/kernel/surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/surface-contract.md)

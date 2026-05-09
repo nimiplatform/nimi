@@ -103,7 +103,7 @@ Alice 和 Bob 都在世界 A 里游玩，在那里成了朋友。
 
 当事件同时触及两侧时，平台不会把它们合并成一条记录。每一侧拿到自己的强类型事件；整条链通过审计连接。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/social.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/social.md)
 - [`.nimi/spec/realm/economy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/economy.md)

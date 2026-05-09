@@ -57,7 +57,7 @@ Profile 是身份的可编辑面；身份本身是规范化的，不能直接从
 
 你能改的是「你怎么被看见」；你不能改的是「你是谁」。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/desktop/profile.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/profile.md)
 - [`.nimi/spec/realm/agent.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/agent.md)

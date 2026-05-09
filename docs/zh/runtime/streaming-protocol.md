@@ -1,6 +1,6 @@
 # 流式协议
 
-> 状态：运行中 (Running)。流式合约 (`K-STREAM-*`) 是每个运行时服务器流式 RPC 的已发布关闭模式权限。
+> 状态：运行中 (Running)。流式合约 (`K-STREAM-*`) 是每个运行时服务器流式 RPC 的已发布关闭模式权威。
 
 运行时拥有多个服务器流式 RPC（文本生成、语音合成、场景作业事件、工作流事件、审计导出、长期订阅）。流式合约明确了**每个流如何关闭**，以便消费者可以编写不依赖于协议形状猜测的恢复逻辑。
 
@@ -112,7 +112,7 @@
 | 订阅流生命周期 | `K-STREAM-010` |
 | 守护进程关闭耦合 | `K-DAEMON-003` |
 
-## 源基础
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/streaming-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/streaming-contract.md)
 - [`.nimi/spec/runtime/kernel/key-source-routing.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/key-source-routing.md)

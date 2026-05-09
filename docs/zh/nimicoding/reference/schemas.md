@@ -149,7 +149,7 @@ Sweep design 流程发源于审计识别项 (Audit findings)，并将生成的�
 
 `mvp_subset_contract`、`legacy_alias`、`compat_shim`、`dual_read`、`dual_write`、`placeholder_success`、`happy_path_only_closure`、`time_phased_layering`、`app_local_shadow_truth`、`silent_owner_cut_reopen`。
 
-## 参考来源
+## 来源依据
 
 - [`nimi-coding/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/topic.schema.yaml)
 - [`nimi-coding/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/wave.schema.yaml)

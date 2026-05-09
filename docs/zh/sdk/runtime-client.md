@@ -54,7 +54,7 @@ Runtime client 有意隐藏：
 
 这种等待感觉慢。这正是 SDK 不会积累一堆"无人背书的静默 surface"的原因。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/sdk/runtime.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/runtime.md)
 - [`.nimi/spec/sdk/kernel/runtime-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/runtime-contract.md)

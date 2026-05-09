@@ -1,5 +1,9 @@
 # Cognition
 
+## 状态：现在 (Running today)
+
+Cognition 是独立权威域 (C-COG-*)；Runtime 桥接是已准入的消费接口。
+
 Cognition 拥有记忆、知识、提示词服务、引用、完成关卡、技能服务、Runtime 桥接行为以及能力升级，是一个独立的权威域。
 
 Runtime 通过明确定义的桥接面与 Cognition 通信。它能消费 Cognition，但不会吞掉 Cognition 的权威。
@@ -47,7 +51,7 @@ Cognition 不拥有 Runtime 执行、Realm 的世界真相、桌面端 Shell，�
 
 如果结果错了是因为知识过期，修复在 Cognition；如果结果错了是因为完成关卡治理不够，修复在完成契约，而不是知识服务。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/cognition/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/index.md)
 - [`.nimi/spec/cognition/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/index.md)

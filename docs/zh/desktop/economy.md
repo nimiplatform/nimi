@@ -67,7 +67,7 @@ Realm 经济是**仅追加**的。每一份礼物、每一次收入分润、每�
 | AI 计算成本细节 | 归 Runtime，是另一回事 |
 | 世界内部货币 | 创作者可以在自己的世界里跑内部货币，但那不是平台规范态 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/desktop/economy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/economy.md)
 - [`.nimi/spec/realm/economy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/economy.md)

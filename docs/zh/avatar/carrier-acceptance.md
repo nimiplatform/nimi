@@ -62,7 +62,7 @@ Carrier 视觉接受契约就是每个 Carrier 自己声明能承载什么。具
 | 修改具身化包 | Carrier 是读方；包由创作者发布 |
 | 在准入档位之外渲染 | 契约的上限是显式的 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/carrier-visual-acceptance-contract.md)
 - [`.nimi/spec/avatar/kernel/embodiment-projection-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/embodiment-projection-contract.md)

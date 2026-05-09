@@ -1,5 +1,9 @@
 # 具身化语义层（Embodiment Projection）
 
+## 状态：现在 (Running today)
+
+具身化语义层是 Avatar 已交付的、与后端无关的核心契约，将代理语义翻译为后端中立的提示。
+
 具身化语义层是一组**宿主无关**的 API。它从 Agent 的真相状态出发，向下产出某个具体后端的渲染调用。NAS 处理器消费这层接口，由它再翻译成 Live2D（当前）或 VRM（未来）需要的指令。
 
 ## 这一层负责什么
@@ -76,7 +80,7 @@ Runtime 是源头，语义层做强类型翻译，后端只负责渲染。
 | NAS 处理器 API | Avatar agent-script 契约 |
 | 后端专属调用 | 后端分支契约（live2d / vrm） |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/avatar/kernel/embodiment-projection-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/embodiment-projection-contract.md)
 - [`.nimi/spec/avatar/kernel/backend-branch-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/backend-branch-contract.md)

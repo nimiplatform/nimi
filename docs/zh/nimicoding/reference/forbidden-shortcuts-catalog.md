@@ -140,7 +140,7 @@ forbidden_shortcuts:
 | 抗漂移闭合检查 (Closeout drift-resistance) | 核查禁用规则在最终收尾阶段是否维持有效约束。 |
 | 流程步进决策 (Topic-step-decision) | 在系统检测到违反反模式的行为时，直接拒绝准入请求。 |
 
-## 参考来源
+## 来源依据
 
 - [`.nimi/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/forbidden-shortcuts.catalog.yaml)
 - [`.nimi/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/packet.schema.yaml)

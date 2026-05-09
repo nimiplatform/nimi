@@ -109,7 +109,7 @@ Runtime 可选地把审计聚合送到 Realm。
 
 本地审计是真相源，Realm 聚合是它的一份改写。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/audit-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/audit-contract.md)
 - [`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-service-contract.md)

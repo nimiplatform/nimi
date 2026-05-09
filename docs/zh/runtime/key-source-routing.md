@@ -114,7 +114,7 @@ AI 消费请求按固定顺序评估：
 | 连接器保管 | `RuntimeConnectorService` (`K-CONN-001`) |
 | 内联凭证安全性 | 调用者 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/key-source-routing.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/key-source-routing.md)
 - [`.nimi/spec/runtime/kernel/auth-service.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/auth-service.md)

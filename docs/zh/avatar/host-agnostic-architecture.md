@@ -26,7 +26,7 @@ Avatar 的架构围绕一个核心承诺构建：**智能体语义不属于任�
 
 ## 封闭后端联合
 
-后端并非可插拔的字符串。`BackendKind` 是一个封闭的判别联合类型：`'live2d' | 'vrm'`。新增后端需要修订契约。这就是为什么今天针对投影 API 编写的 NAS 处理器在 VRM 发布后仍能继续工作——处理器不会硬编码后端。
+后端并非可插拔的字符串。`BackendKind` 是一个封闭的判别联合类型：`'live2d' | 'vrm'`。新增后端需要修订契约。因此今天针对投影 API 编写的 NAS 处理器在 VRM 发布后仍能继续工作——处理器不会硬编码后端。
 
 存在后端特定的扩展（例如，用于参数 ID 直接写入的 `Live2DBackendExtension`），但它们只有在类型收窄后才能访问。使用 `live2dExtension` 的处理器声明 `requires: ['live2d-extension']`，并接受它将无法在非 Live2D 后端上运行。
 
@@ -70,7 +70,7 @@ Avatar 窗口不知道是 Live2D 还是 VRM 已挂载。它只消费投影。
 | 处理器约定 | Avatar (NAS) | `agent-script-contract.md` |
 | 桌面聊天智能体瞬态表面 | 桌面 | `agent-avatar-surface-contract.md` |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/avatar/kernel/embodiment-projection-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/embodiment-projection-contract.md)
 - [`.nimi/spec/avatar/kernel/backend-branch-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/backend-branch-contract.md)

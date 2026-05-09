@@ -54,7 +54,7 @@
 
 通知本身是有边界的。新的通知种类必须有对应准入的通知契约。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/desktop/home.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/home.md)
 - [`.nimi/spec/desktop/notification.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/notification.md)

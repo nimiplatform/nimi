@@ -124,7 +124,7 @@ Mod 不会无意中违反宿主类型。矩阵是声明式的，并强制执行�
 
 合并这些概念会丢掉这些回答。"文件"这一层抽象答不出"谁拥有这个组合体"或"这个挂法是否合法"。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/asset.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/asset.md)
 - [`.nimi/spec/realm/binding.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/binding.md)

@@ -98,7 +98,7 @@ grep -rEni '\b(OpenAI|Anthropic|Claude|Gemini|GPT-[0-9]|Llama|DeepSeek|Mistral|Q
 
 除在引用语境或明确表达“客观解释姿态”的合法使用外，若上述命令返回任何非空匹配结果，即判定文档引入了违规声明，将拦截发布流程。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/cli-onboarding-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/cli-onboarding-contract.md)
 - [`.nimi/spec/runtime/kernel/model-catalog-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/model-catalog-contract.md)

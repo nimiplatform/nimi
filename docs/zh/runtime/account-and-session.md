@@ -2,7 +2,7 @@
 
 > 状态：运行中 (Running)。`RuntimeAccountService` 拥有本地机器的账户会话事实、保管、登录生命周期以及在 `K-ACCSVC-*` 下的第一方范围绑定发行。
 
-`RuntimeAccountService` 是**本地第一方账户身份**的运行时权威：谁登录了这台机器，当前活动的是哪个账户，如何进行登录/刷新/登出流程，以及短期访问令牌如何被投射到已准入的本地第一方应用程序中。
+`RuntimeAccountService` 是**本地第一方账户身份**的运行时权威：谁登录了这台机器，当前活动的是哪个账户，如何进行登录/刷新/登出流程，以及短期访问令牌如何分发给已准入的本地第一方应用程序中。
 
 ## 权限边界
 
@@ -126,7 +126,7 @@
 | 令牌验证（传入的承载 JWT） | 认证令牌验证 (`K-AUTHN-*`) |
 | 令牌授权/所有权（谁拥有什么） | 授权所有权 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/account-session-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/account-session-contract.md)
 - [`.nimi/spec/runtime/kernel/auth-service.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/auth-service.md)

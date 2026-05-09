@@ -10,17 +10,17 @@ SDK WEE 消费者是应用程序用来**驱动**WEE状态的接口——提交�
 
 读取WEE状态是[WEE 投影](/sdk/wee-projection)的角色；驱动则在这里进行。
 
-## 权限姿态
+## 职责划分
 
 | 拥有 | 不拥有 |
 | --- | --- |
 | 类型化事件提案提交API | WEE 阶段执行语义（运行时） |
 | 类型化提交请求观察 | 领域提交信封权限（领域） |
-| 面向消费者的读取场景形状 | 运行时本地执行证据语义 |
+| 面向消费者的读者场景形状 | 运行时本地执行证据语义 |
 
 消费者提交；运行时执行；领域准入。消费者不能发明阶段或跳过运行时引擎。
 
-## 读取场景：应用程序提交一个世界事件提案
+## 读者场景：应用程序提交一个世界事件提案
 
 应用程序希望在用户操作时提出一个类型化的世界事件。
 
@@ -30,14 +30,14 @@ SDK WEE 消费者是应用程序用来**驱动**WEE状态的接口——提交�
 4. **领域准入或拒绝。** 根据 `R-WSTATE-005` 授权矩阵。
 5. **应用程序观察结果。** 通过WEE投影。
 
-## 该功能不包括
+## 该消费者不做的事情
 
 - 它不允许消费者跳过WEE阶段。
 - 它不会绕过领域提交信封。
 - 它不允许消费者发明 `effectClass` 值。
 - 它不会将消费者负载提升为领域规范真相，除非在已准入的提交管道中。
 
-## 源基础
+## 来源依据
 
 - [`.nimi/spec/sdk/kernel/world-evolution-engine-consumer-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/world-evolution-engine-consumer-contract.md)
 - [`.nimi/spec/runtime/kernel/world-evolution-engine-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/world-evolution-engine-contract.md)

@@ -1,5 +1,9 @@
 # 多模态
 
+## 状态：现在 (Running today)
+
+多模态投递门控（R8）与多模态 provider 契约（R16）已在 Runtime 内核中交付。
+
 多模态产出的不是文本。Runtime 持有规范输入字段、产物形状、适配器路由、交付门控；App 负责展示或消费产物，不能重新定义产物的真值。
 
 ## 能力面
@@ -143,7 +147,7 @@ App 通过一个长任务 provider 生成图像。
 
 App 看到的是强类型 `TIMEOUT`，不是模糊的"请求失败了"；`ScenarioJob` 的终态类型告诉 App 发生了什么。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/multimodal-provider.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/multimodal-provider.md)
 - [`.nimi/spec/runtime/multimodal-delivery-gates.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/multimodal-delivery-gates.md)

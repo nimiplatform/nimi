@@ -71,7 +71,7 @@ App 在受限作用域下与基础协议交互。平台准入三套预设模板�
 
 跨基础协议的动作会产出审计事件，记录在平台审计字典：`.nimi/spec/platform/kernel/tables/audit-events.yaml`。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/protocol.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/protocol.md)
 - [`.nimi/spec/platform/kernel/protocol-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/protocol-contract.md)

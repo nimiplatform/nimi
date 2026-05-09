@@ -115,7 +115,7 @@ worker 想派发一个编辑 `.nimi/spec/` 的 packet，但没有实施前审计
 | 实施后判定 | 独立审计员 |
 | 机械相位转换 | 管理者（在判定 PASS 之后，附规范更新复核关卡） |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)
 - [`.nimi/contracts/authority-convergence-audit.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/authority-convergence-audit.schema.yaml)

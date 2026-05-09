@@ -66,7 +66,7 @@ npx nimicoding clear --yes
 
 `clear` 只在受管 AI 区块和包自有 bootstrap 文件仍与发布 seed 一致时才会移除它们。项目自有真相和本地操作证据不在它的清理范围内。
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/package.json)
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)

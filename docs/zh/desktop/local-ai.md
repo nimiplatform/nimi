@@ -102,7 +102,7 @@ Runtime 说不可用，桌面端就显示「不可用」，不会偷偷重试，
 | 自行宣布 memory 绑定成功 | 这是 Runtime 的归属 |
 | Runtime 说不可用时给一个回退 | fail-closed 姿态 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/desktop/local-ai.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/local-ai.md)
 - [`.nimi/spec/desktop/runtime-config.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/runtime-config.md)

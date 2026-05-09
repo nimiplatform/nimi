@@ -68,7 +68,7 @@ Nimi 公开文档对兼容性与迁移的姿态参考。
 
 文档页不能预告契约还没到达的阶段。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/protocol.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/protocol.md)
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)

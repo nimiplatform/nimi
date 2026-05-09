@@ -108,7 +108,7 @@ App 在声明时就要表明自己是哪一类公民。模式决定 App 能写�
 | 审计必须可还原 | 每次动作都带 principal 血缘；token 不会重复展示，伪造来源走不通 |
 | 世界归属必须无歧义 | 每个世界最多一个激活 extension-app，绑定显式 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/architecture.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/architecture.md)
 - [`.nimi/spec/platform/kernel/architecture-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/architecture-contract.md)

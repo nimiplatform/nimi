@@ -56,7 +56,7 @@ Nimi 的好友关系是**平台规范化的真相**：一旦准入，它不属�
 
 联系人侧边栏的搜索输入框可折叠，失焦或按 Esc 会自动收起。是个细节，但能让这块面用起来更顺手。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/desktop/contacts.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/contacts.md)
 - [`.nimi/spec/realm/social.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/social.md)

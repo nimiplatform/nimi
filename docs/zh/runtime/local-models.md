@@ -118,7 +118,7 @@ Runtime 的设备画像系统描述这台硬件能撑什么。画像由设备探
 
 整个过程不会直接跑 PowerShell 或 bash，所有动作都过 materializer，配单一确认 UI。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/local-model.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/local-model.md)
 - [`.nimi/spec/runtime/kernel/local-category-capability.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/local-category-capability.md)

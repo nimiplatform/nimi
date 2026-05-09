@@ -54,7 +54,7 @@
 | `render-app` | 是 | 否 | 多个 |
 | `extension-app` | 是 | 是 | 至多一个活跃 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
 - [`.nimi/spec/platform/architecture.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/architecture.md)

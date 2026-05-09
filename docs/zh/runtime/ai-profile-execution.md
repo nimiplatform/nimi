@@ -107,7 +107,7 @@
 | 执行快照证据 | 运行时 (`K-AIEXEC-003`) |
 | `AIScopeRef` 身份 | 平台 (`P-AISC-*`) |
 
-## 源基础
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/ai-profile-execution-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/ai-profile-execution-contract.md)
 - [`.nimi/spec/platform/kernel/ai-scope-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/ai-scope-contract.md)

@@ -112,7 +112,7 @@ host_profile:
 | 宿主要求安装本地 runtime | `do_not_assume_local_runtime_install` 未满足；拒绝 |
 | Adapter overlay 把厂商契约偷渡进方法学 | `vendor_neutral_profile_only` 未满足；拒绝 |
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/config/host-profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-profile.yaml)
 - [`nimi-coding/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-adapter.yaml)

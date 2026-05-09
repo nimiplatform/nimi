@@ -86,7 +86,7 @@ Nimi 代理并非仅存在于一个应用程序中。同一个对话可以在桌
 
 用户在桌面上观看代理的响应流。他们想起想在 Avatar 上看到这个。他们打开 Avatar。
 
-1.  **Avatar 在轮次进行中连接。** 后期加入被准入；它通过运行时拥有的锚点/会话快照进行重建。
+1.  **Avatar 在轮次进行中连接。** 后期加入是已准入路径；它通过运行时所持的锚点 / 会话快照进行重建。
 2.  **Avatar 加入正在进行的流。** 它不会重放解析器内部状态或从桌面的 UI 状态中猜测。运行时向 Avatar 提供已提交的快照。
 3.  **两个界面都保持活跃直到完成。** 它们共享中断语义：如果用户在 Avatar 上点击停止，桌面的流也会中断。
 
@@ -109,7 +109,7 @@ Nimi 代理并非仅存在于一个应用程序中。同一个对话可以在桌
 | 范围限定为对话的内存写入 | 认知内存 + 运行时内存库      |
 | 实体界面的呈现流         | 运行时呈现流                 |
 
-## Source Basis
+## 来源依据
 
 -   [`.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md)
 -   [`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-service-contract.md)

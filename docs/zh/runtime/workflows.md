@@ -133,7 +133,7 @@ App 构造一个工作流，做这几件事：
 
 策略语义在这里很关键。`ALL` 会等齐三个；`ANY` 取最先完成的；`N_OF_M` 让工作流挑出"3 选 N"配合回退。策略由声明给出，运行时不能临时改。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/workflow-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/workflow-contract.md)
 - [`.nimi/spec/runtime/kernel/scenario-job-lifecycle.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/scenario-job-lifecycle.md)

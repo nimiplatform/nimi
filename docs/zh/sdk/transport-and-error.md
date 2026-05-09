@@ -2,7 +2,7 @@
 
 > 状态：运行中 (Running)。SDK 传输合同和 SDK 错误投影合同已发布在 `sdk/kernel/transport-contract.md` + `sdk/kernel/error-projection.md`。
 
-SDK 传输与错误表面涵盖了 SDK 如何通过已准入的传输方式与运行时通信，以及运行时错误如何投影为类型化的 SDK 错误，以便应用程序可以预测性地处理这些错误。
+SDK 传输与错误表面涵盖了 SDK 如何通过已准入的传输方式与运行时通信，以及运行时错误如何投影为类型化的 SDK 错误，以便应用程序可以可靠地处理这些错误。
 
 ## 传输
 
@@ -48,7 +48,7 @@ SDK 传输与错误表面涵盖了 SDK 如何通过已准入的传输方式与�
 - 它们不会静默丢弃原因代码。
 - 它们不会让认证刷新替代修复模式错误。
 
-## 源基础
+## 来源依据
 
 - [`.nimi/spec/sdk/kernel/transport-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/transport-contract.md)
 - [`.nimi/spec/sdk/kernel/error-projection.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/error-projection.md)

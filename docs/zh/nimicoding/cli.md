@@ -209,7 +209,7 @@ CLI 会带你走完：
 
 这些都是显式被推迟的能力面。
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)（CLI 章节）
 - [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)（CLI 实现）

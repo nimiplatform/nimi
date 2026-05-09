@@ -105,7 +105,7 @@ Transit 同时触及多条基础协议。一次 transit 必须满足：
 | 跳过 OASIS | hub-and-spoke 是拓扑；没有捷径 |
 | 允许 N×N 点对点 transit | 设计上禁止 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/transit.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/transit.md)
 - [`.nimi/spec/realm/kernel/transit-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/transit-contract.md)

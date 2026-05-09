@@ -71,7 +71,7 @@ Nimi Coding 与平台的其他部分互为压力测试。Nimi Coding 让 Nimi �
 
 - [oh-my-codex 适配器](/zh/nimicoding/appendix/oh-my-codex) —— 已准入的外部宿主适配层。
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/package.json)

@@ -1,8 +1,8 @@
 # 语音资产生命周期
 
-> 状态：运行中 (Running)。语音创建（克隆 + 设计）和 `VoiceAsset` 运行时管理对象在 `K-VOICE-*` 权限范围内发布。
+> 状态：运行中 (Running)。语音创建（克隆 + 设计）和 `VoiceAsset` 运行时管理对象在 `K-VOICE-*` 权威范围内发布。
 
-Nimi 中的语音是一种运行时一流能力。语音创建（克隆 + 设计）和语音资产生命周期由运行时在 `K-VOICE-001..K-VOICE-018` 权限下拥有。本页涵盖了**资产侧**——`VoiceAsset` 是什么、如何创建、如何引用以及它与一次性语音合成有何不同。
+Nimi 中的语音是一种运行时一流能力。语音创建（克隆 + 设计）和语音资产生命周期由运行时在 `K-VOICE-001..K-VOICE-018` 权威下拥有。本页涵盖了**资产侧**——`VoiceAsset` 是什么、如何创建、如何引用以及它与一次性语音合成有何不同。
 
 ## 语音创建范围
 
@@ -171,7 +171,7 @@ Nimi 中的语音是一种运行时一流能力。语音创建（克隆 + 设计
 | 语音句柄策略 | 运行时 (`K-VOICE-015`) |
 | 家族级工作流验证边界 | 运行时 (`K-VOICE-016`) |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/voice-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/voice-contract.md)
 - [`.nimi/spec/runtime/kernel/tables/voice-enums.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/tables/voice-enums.yaml)

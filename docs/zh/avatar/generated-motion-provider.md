@@ -1,6 +1,6 @@
 # 生成式动作提供器
 
-> 状态：运行中 (Running)。提供器契约被准入为APML驱动动作的运行时证明路径；能力配置文件和映射边车是已交付的后端权限接口。
+> 状态：运行中 (Running)。提供器契约已获准作为APML驱动动作的运行时证明路径；能力配置文件和映射边车是已交付的后端权限接口。
 
 生成式动作提供器是将运行时类型化的动作/表情/姿态/注视/活动意图转换为可执行后端输出的线路，它不依赖于物理 `.vrma` (或其他创作工件) 文件。正是它让“代理的动作具有生命力”——它在运行时生成动作，而非重放手动创作的资产。
 
@@ -87,7 +87,7 @@ type GeneratedMotionProviderInput = {
 4.  **提供器执行。** 验证能力配置文件 + 边车；生成确定性的后端输出 (Live2D动作序列或VRM `AnimationClip` 形状的工件)。
 5.  **后端渲染。** 输出在具身中播放。
 
-包的作者从未为“挥手”编写过 `.vrma` 文件。提供器在运行时根据已准入的后端能力生成动作。
+包作者从未为“挥手”编写过 `.vrma` 文件。提供器在运行时根据已准入的后端能力生成动作。
 
 ## 读者场景：某能力未被准入
 
@@ -119,7 +119,7 @@ type GeneratedMotionProviderInput = {
 | 映射边车 + 置信度 | 本契约 + `tables/mapping-sidecar.schema.yaml` |
 | 后端执行 | 各后端契约 (Live2D / VRM) |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/avatar/kernel/generated-motion-provider-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/generated-motion-provider-contract.md)
 - [`.nimi/spec/avatar/kernel/backend-branch-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/backend-branch-contract.md)

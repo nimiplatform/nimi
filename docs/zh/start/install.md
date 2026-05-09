@@ -41,7 +41,7 @@ Nimi Coding 作为独立于宿主环境（Host-agnostic）的方法论，已获�
 
 此外，[禁止主张](/zh/reference/forbidden-claims) 页面列出了在缺乏准入证据时，公开文档严禁使用的安装类与发布类宣传语。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/product-scope.yaml)
 - [`.nimi/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/bootstrap-state.yaml)
