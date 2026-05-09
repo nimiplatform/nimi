@@ -99,7 +99,7 @@
 
 四闭合存在的意义，正在于此。没有它，"build 通过"就会被当成完成。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
 - [`.nimi/contracts/closeout.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/closeout.schema.yaml)

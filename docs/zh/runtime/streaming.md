@@ -89,7 +89,7 @@ App 正在消费一段长 Mode A 流。用户打开了一个重型 modal，渲�
 
 无丢帧，无队列爆涨。反压是端到端的。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/streaming-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/streaming-contract.md)
 - [`.nimi/spec/runtime/kernel/error-model.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/error-model.md)

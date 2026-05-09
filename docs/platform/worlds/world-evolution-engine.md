@@ -1,5 +1,10 @@
 # World Evolution Engine
 
+> Status: Running today (this overview describes the platform
+> framing). For the runtime contract depth (admitted but not yet
+> shipped as a runnable engine) see
+> [WEE Execution](/platform/worlds/wee-execution).
+
 The World Evolution Engine (WEE) is the runtime-owned machinery that
 makes a world feel alive — characters acting, scenes progressing,
 events accruing — under contracts that are auditable, replayable, and

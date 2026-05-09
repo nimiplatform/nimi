@@ -247,7 +247,7 @@
 
 将仓库本地的 blueprint 根与 `.nimi/spec` 下的候选规范树做对比。这是一次显式的等价性审计，不会触发任何路由变更。
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)（CLI 章节）

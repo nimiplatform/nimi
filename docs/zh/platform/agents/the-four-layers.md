@@ -90,7 +90,7 @@ Mira 还是 Mira。Brain 升级是内部改动，不是换了一个人。
 
 四层结构让这件事在结构上为真。如果 Soul 与 Brain 是同一回事，每次模型升级都会造出一个新 Agent。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
 - [`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-service-contract.md)

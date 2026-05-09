@@ -1,9 +1,14 @@
 # Backend Branches
 
+> Status: Mixed. Per-section labels below: Live2D backend (running),
+> VRM backend (admitted, in build-out), Generated motion provider
+> (running).
+
 Avatar's rendering backend is a **closed discriminated union**:
 `live2d | vrm`. Live2D ships today via Cubism SDK for Web; VRM
-is a future backend branch. Generated motion is admitted as a
-distinct provider concern under the same backend branch model.
+is admitted as the next backend branch. Generated motion is admitted
+as a distinct provider concern under the same backend branch model
+(see [Generated Motion Provider](/avatar/generated-motion-provider.md)).
 
 ## Closed Union, Not Open Plugin System
 
@@ -19,7 +24,7 @@ A reader who hopes to "drop in another backend" cannot. The
 backend list is admitted; new backends are admitted at the kernel
 level, not by author convention.
 
-## Live2D Backend
+## Live2D Backend (running)
 
 | Property | Value |
 | --- | --- |
@@ -32,12 +37,12 @@ level, not by author convention.
 Live2D is the production backend. Embodiment packages today are
 typically Live2D packages.
 
-## VRM Backend
+## VRM Backend (admitted, in build-out)
 
 | Property | Value |
 | --- | --- |
-| Tech | VRM 3D asset standard |
-| Status | Future branch (not shipped) |
+| Tech | VRM 3D asset standard (three-vrm + R3F) |
+| Status | Admitted backend branch; not yet shipped |
 | Backend extensions | VRM-specific (when shipped) |
 
 VRM is admitted as a future backend so that NAS handlers can
@@ -45,11 +50,12 @@ write portable code today without coupling to Live2D specifics
 that VRM cannot honor. The backend branch model exists exactly
 so future backends do not require rewriting handlers.
 
-## Generated Motion
+## Generated Motion Provider (running)
 
 `generated-motion-provider-contract.md` describes how AI-generated
 motion can drive an embodiment. It is admitted as a provider
-under the same backend-branch model.
+under the same backend-branch model and is the runtime proof path
+that replaces hand-authored `.vrma` files.
 
 | Property | Value |
 | --- | --- |

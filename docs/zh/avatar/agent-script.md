@@ -1,5 +1,9 @@
 # Agent Script（NAS）
 
+## 状态：现在 (Running today)
+
+NimiAgentScript (NAS) 1.0 是已交付的 handler 约定；自动发现与热重载已上线。
+
 NimiAgentScript（NAS）是一套基于约定的 JS 处理器系统，由它驱动 Avatar 的具身化表现。Avatar 包作者把 JS 文件放到约定路径下，Runtime 自动注册；Tauri notify watcher 负责热加载。
 
 ## 三类处理器
@@ -94,7 +98,7 @@ Live2D 专用处理器在类型收窄之后可以用 `live2dExtension`。VRM 上
 | 后端扩展 | 类型收窄后的后端专属扩展 |
 | 热加载 | Tauri notify watcher |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/avatar/kernel/agent-script-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/agent-script-contract.md)
 - [`.nimi/spec/avatar/kernel/agent-script-reference.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/agent-script-reference.md)

@@ -85,7 +85,7 @@ Nimi 是一个由 AI 驱动的开放世界平台。它面向长期存在的世�
 
 上述场景涉及平台（Transit、Social、Economy）、Cognition（记忆）、Avatar（外形呈现）以及 Realm（世界真相）。这些表面各自独立，不能私自重新定义对方。将其整合协同的，正是平台的底层协议。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
 - [`.nimi/spec/platform/architecture.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/architecture.md)

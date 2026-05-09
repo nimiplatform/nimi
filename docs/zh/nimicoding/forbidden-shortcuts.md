@@ -153,7 +153,7 @@ forbidden_shortcuts:
 
 目录让违规变得**有名、有类型**。这个模式能不能接受，没有歧义可言。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/contracts/forbidden-shortcuts.catalog.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/forbidden-shortcuts.catalog.yaml)
 - [`.nimi/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/packet.schema.yaml)

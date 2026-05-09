@@ -118,7 +118,7 @@ Nimi Coding 不管节奏（属于另一层）。两者并不冲突，处在不�
 
 方法论**对适用范围明确**——高风险或承载权威的工作；复杂修复；多 wave 迭代。把它强加到小改动上，只增加成本而不带来闭合价值。
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
 - [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)

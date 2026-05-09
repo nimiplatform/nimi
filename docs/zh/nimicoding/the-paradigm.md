@@ -70,7 +70,7 @@ Nimi Coding 的角色分离正是应对这个结构问题。auditor 角色**不�
 
 更好的提示词替代不了结构上的分离。引入这种分离的，是范式本身。
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
 - [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)

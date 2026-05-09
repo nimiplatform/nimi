@@ -127,7 +127,7 @@ doctor 输出健康，意味着你可以把技能交接给外部 AI 宿主了。
 
 本教程不覆盖具体宿主的特定配置。包是宿主无关的，你可以选任何已准入的宿主。
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
 - [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)（CLI 实现）

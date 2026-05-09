@@ -110,7 +110,7 @@ Kernel 不可侵犯——它是核心真相，advisory 清理永远不会触及�
 | 清理决策 | 摘要例程 + 准入策略 |
 | 跨作用域引用 | 禁止 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/cognition/kernel/memory-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/memory-service-contract.md)
 - [`.nimi/spec/cognition/kernel/cognition-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/cognition-contract.md)

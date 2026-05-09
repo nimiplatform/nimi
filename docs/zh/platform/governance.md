@@ -39,7 +39,7 @@ AI 平台对悄无声息的权威漂移特别敏感。一个本地小工具可�
 
 如果这种区别会影响你的决策（例如下游项目要不要依赖某个行为），就顺着页面的 Source Basis 找规范。kernel 规则才是权威答案。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/kernel/governance-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/governance-contract.md)
 - [`.nimi/spec/platform/kernel/app-slice-admission-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/kernel/app-slice-admission-contract.md)

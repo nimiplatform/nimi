@@ -1,5 +1,9 @@
 # 连接器与 provider
 
+## 状态：现在 (Running today)
+
+Connector 托管与 provider 路由是 Runtime 已交付的凭据 / 路由权威。
+
 Runtime 把云端 AI provider 当成受治理的 runtime 数据，而不是宣传文案。Provider 名字、模型能力、健康状态、路由承诺——任何一项都会影响用户预期与集成行为，所以每一项都按契约准入。
 
 本页讲受管的云端路由。本地路由见 [本地模型](/zh/runtime/local-models)。
@@ -89,7 +93,7 @@ Provider 状态机准入在 `runtime/kernel/provider-health-contract.md`。状�
 
 不存在静默 provider 兜底。路由是受治理的，provider 不健康时由用户或应用决定下一步。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/connector.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/connector.md)
 - [`.nimi/spec/runtime/nimillm.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/nimillm.md)

@@ -109,7 +109,7 @@ Agent 没有重新发明，而是查阅了强类型技能。
 | 清理 | 摘要 + 显式删除 |
 | 真相权重 | advisory（非核心） |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/cognition/kernel/skill-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/skill-service-contract.md)
 - [`.nimi/spec/cognition/kernel/cognition-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/cognition-contract.md)

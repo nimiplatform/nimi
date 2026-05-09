@@ -1,5 +1,9 @@
 # Projection
 
+## 状态：现在 (Running today)
+
+Realm projection 内核 (R-PROJ-*) 是对规范真相的已交付只读聚合权威；Runtime 与 App 是消费方。
+
 Projection 是规范真相的**正式消费层**。它不是世界设定的复刻，不是 worldview 预览，也不是 prompt 拼装的辅助函数。它的语义归 Realm Projection kernel 所有，runtime 是消费方。
 
 ## Projection 是什么
@@ -75,7 +79,7 @@ Projection 喂给 prompt 拼装；projection 本身不是 prompt 拼装。这条
 - Cognition 在下游处理 prompt 上下文拼装。
 - 真相变更走单独的显式路径。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/projection.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/projection.md)
 - [`.nimi/spec/realm/truth.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/truth.md)

@@ -184,7 +184,7 @@ disposition: complete
 
 完整周期你已经走过一遍。后续不同情境下的具体调整，参考 [How-to 条目](/zh/nimicoding/how-to/)。
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
 - [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)（高风险执行命令）

@@ -96,7 +96,7 @@ Lorebook 文本与 prompt payload 永远不是这个包的规范化中心。它�
 
 为什么这么严？因为一个世界对「此刻为真的」只允许一份规范化真相。如果两个 extension-app 同时写，两份不同真相会互相覆盖。平台让转交是显式的。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/world.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/world.md)
 - [`.nimi/spec/realm/truth.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/truth.md)

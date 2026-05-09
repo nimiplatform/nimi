@@ -89,7 +89,7 @@ Mod 没法借提示词组装夹带 working state——通道校验就是那道�
 | advisory 输入 | 准入的记忆 / 知识 / 技能服务 |
 | working state | 按设计被排除 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/cognition/kernel/prompt-serving-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/prompt-serving-contract.md)
 - [`.nimi/spec/cognition/kernel/cognition-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/cognition-contract.md)

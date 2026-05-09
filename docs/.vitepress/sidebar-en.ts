@@ -32,6 +32,9 @@ export const sidebarEn: DefaultTheme.Sidebar = {
         { text: 'Protocol (Six Primitives)', link: '/platform/protocol' },
         { text: 'Authority Model', link: '/platform/authority-model' },
         { text: 'AI Last Mile', link: '/platform/ai-last-mile' },
+        { text: 'AI Scope Identity', link: '/platform/ai-scope-identity' },
+        { text: 'Execution Protocol', link: '/platform/execution-protocol' },
+        { text: 'Roadmap', link: '/platform/roadmap' },
         { text: 'Governance', link: '/platform/governance' },
       ],
     },
@@ -39,10 +42,11 @@ export const sidebarEn: DefaultTheme.Sidebar = {
       text: 'Worlds',
       items: [
         { text: 'Worlds Overview', link: '/platform/worlds/' },
-        { text: 'Truth, State, And History', link: '/platform/worlds/truth-state-history' },
+        { text: 'State vs History', link: '/platform/worlds/state-vs-history' },
         { text: 'OASIS', link: '/platform/worlds/oasis' },
         { text: 'World Lifecycle', link: '/platform/worlds/lifecycle' },
         { text: 'World Evolution Engine', link: '/platform/worlds/world-evolution-engine' },
+        { text: 'WEE Execution', link: '/platform/worlds/wee-execution' },
       ],
     },
     {
@@ -52,6 +56,8 @@ export const sidebarEn: DefaultTheme.Sidebar = {
         { text: 'The Four Layers', link: '/platform/agents/the-four-layers' },
         { text: 'Chat And Life Tracks', link: '/platform/agents/chat-and-life-tracks' },
         { text: 'Conversation Anchor', link: '/platform/agents/conversation-anchor' },
+        { text: 'Cross-Surface Continuity', link: '/platform/agents/cross-surface-continuity' },
+        { text: 'Participation Authority', link: '/platform/agents/participation-authority' },
         { text: 'Cross-World Identity', link: '/platform/agents/cross-world-identity' },
         { text: 'External Agents', link: '/platform/agents/external-agents' },
         { text: 'Hook Intent', link: '/platform/agents/hook-intent' },
@@ -64,6 +70,14 @@ export const sidebarEn: DefaultTheme.Sidebar = {
         { text: 'Realm And Runtime As Siblings', link: '/platform/architecture/realm-runtime-siblings' },
         { text: 'Local-First With Federation', link: '/platform/architecture/local-first-with-federation' },
         { text: 'Cross-Domain Product Stories', link: '/platform/architecture/cross-domain-product-stories' },
+      ],
+    },
+    {
+      text: 'Kit',
+      items: [
+        { text: 'Platform Kit', link: '/platform/kit/' },
+        { text: 'Design Pattern', link: '/platform/kit/design-pattern' },
+        { text: 'Nimi UI Material', link: '/platform/kit/nimi-ui-material' },
       ],
     },
     {
@@ -96,13 +110,23 @@ export const sidebarEn: DefaultTheme.Sidebar = {
       items: [
         { text: 'Workflows', link: '/runtime/workflows' },
         { text: 'Streaming', link: '/runtime/streaming' },
+        { text: 'Streaming Protocol', link: '/runtime/streaming-protocol' },
         { text: 'Multimodal', link: '/runtime/multimodal' },
+        { text: 'Voice Asset Lifecycle', link: '/runtime/voice-asset-lifecycle' },
+        { text: 'MCP Integration', link: '/runtime/mcp-integration' },
       ],
     },
     {
       text: 'Agent And Memory',
       items: [
         { text: 'Agent Execution', link: '/runtime/agent-execution' },
+        { text: 'Agent Presentation Stream', link: '/runtime/presentation-stream' },
+        { text: 'Account And Session', link: '/runtime/account-and-session' },
+        { text: 'Auth Token Validation', link: '/runtime/auth-token-validation' },
+        { text: 'AI Profile Execution', link: '/runtime/ai-profile-execution' },
+        { text: 'Key Source Routing', link: '/runtime/key-source-routing' },
+        { text: 'Runtime Config', link: '/runtime/config-contract' },
+        { text: 'App Messaging', link: '/runtime/app-messaging' },
         { text: 'Memory And Knowledge', link: '/runtime/memory-and-knowledge' },
       ],
     },
@@ -142,6 +166,19 @@ export const sidebarEn: DefaultTheme.Sidebar = {
       ],
     },
     {
+      text: 'Client APIs',
+      items: [
+        { text: 'Agent Participation Client', link: '/sdk/agent-participation-client' },
+        { text: 'Avatar Control Client', link: '/sdk/avatar-control-client' },
+        { text: 'Delegation Client', link: '/sdk/delegation-client' },
+        { text: 'Local Environment Projection', link: '/sdk/local-environment-projection' },
+        { text: 'AI Config Surface', link: '/sdk/ai-config-surface' },
+        { text: 'WEE Projection', link: '/sdk/wee-projection' },
+        { text: 'WEE Consumer', link: '/sdk/wee-consumer' },
+        { text: 'Transport And Error', link: '/sdk/transport-and-error' },
+      ],
+    },
+    {
       text: 'Related',
       items: [
         { text: 'Runtime', link: '/runtime/' },
@@ -163,6 +200,14 @@ export const sidebarEn: DefaultTheme.Sidebar = {
       text: 'User Surfaces',
       items: [
         { text: 'Chat', link: '/desktop/chat' },
+        { text: 'Agent Avatar (Chat Surface)', link: '/desktop/agent-avatar' },
+        { text: 'Voice Session', link: '/desktop/voice-session' },
+        { text: 'Conversation Capability', link: '/desktop/conversation-capability' },
+        { text: 'Message Actions', link: '/desktop/message-actions' },
+        { text: 'AI Profile Config', link: '/desktop/ai-profile-config' },
+        { text: 'Knowledge UI', link: '/desktop/knowledge-ui' },
+        { text: 'Delegation Control', link: '/desktop/delegation-control' },
+        { text: 'Hook Capability Allowlists', link: '/desktop/hook-capability-allowlists' },
         { text: 'Contacts And Social', link: '/desktop/contacts-and-social' },
         { text: 'Profile', link: '/desktop/profile' },
         { text: 'Economy / Wallet', link: '/desktop/economy' },
@@ -224,6 +269,7 @@ export const sidebarEn: DefaultTheme.Sidebar = {
       text: 'Creator + App',
       items: [
         { text: 'Creator Economy', link: '/realm/creator-economy' },
+        { text: 'Creator Payouts', link: '/realm/creator-payouts' },
         { text: 'App Interconnect', link: '/realm/app-interconnect' },
       ],
     },
@@ -244,21 +290,34 @@ export const sidebarEn: DefaultTheme.Sidebar = {
       items: [
         { text: 'Overview', link: '/avatar/' },
         { text: 'Nimi Avatar (App)', link: '/avatar/nimi-avatar' },
+        { text: 'Host-Agnostic Architecture', link: '/avatar/host-agnostic-architecture' },
+        { text: 'Instance Lifecycle', link: '/avatar/instance-lifecycle' },
       ],
     },
     {
       text: 'Embodiment',
       items: [
         { text: 'Embodiment Projection', link: '/avatar/embodiment-projection' },
-        { text: 'Carrier Visual Acceptance', link: '/avatar/carrier-acceptance' },
         { text: 'Backend Branches', link: '/avatar/backend-branches' },
+        { text: 'Live2D Integration', link: '/avatar/live2d-integration' },
+        { text: 'Generated Motion Provider', link: '/avatar/generated-motion-provider' },
+        { text: 'Carrier Visual Acceptance', link: '/avatar/carrier-acceptance' },
+        { text: 'Visual Acceptance', link: '/avatar/visual-acceptance' },
       ],
     },
     {
       text: 'Scripting',
       items: [
         { text: 'Agent Script (NAS)', link: '/avatar/agent-script' },
+        { text: 'NAS Handler Authoring', link: '/avatar/nas-handler-authoring' },
         { text: 'Avatar Events', link: '/avatar/avatar-events' },
+      ],
+    },
+    {
+      text: 'Tooling',
+      items: [
+        { text: 'Test Fixtures', link: '/avatar/test-fixtures' },
+        { text: 'Debug Workbench', link: '/avatar/debug-workbench' },
       ],
     },
     {
@@ -282,11 +341,15 @@ export const sidebarEn: DefaultTheme.Sidebar = {
     {
       text: 'Standalone Authority',
       items: [
+        { text: 'Memory + Knowledge Composition', link: '/cognition/memory-knowledge-composition' },
         { text: 'Memory Service', link: '/cognition/memory' },
         { text: 'Knowledge Service', link: '/cognition/knowledge' },
         { text: 'Prompt Serving', link: '/cognition/prompt-serving' },
+        { text: 'Prompt Lanes', link: '/cognition/prompt-lanes' },
         { text: 'Completion', link: '/cognition/completion' },
         { text: 'Skill Service', link: '/cognition/skill-service' },
+        { text: 'Skill Artifacts', link: '/cognition/skill-artifacts' },
+        { text: 'Reference Graph', link: '/cognition/reference-graph' },
       ],
     },
     {

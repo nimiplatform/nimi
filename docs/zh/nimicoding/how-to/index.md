@@ -15,6 +15,6 @@ How-to 是一组按问题组织的操作手册。你已经清楚自己要解决�
 | [OVERFLOW 之后续接](/zh/nimicoding/how-to/reopen-after-overflow) | "wave 返回 OVERFLOW，我想以续接形式继续" |
 | [准入一个外部宿主](/zh/nimicoding/how-to/admit-an-external-host) | "我想换一个 AI 宿主，准入它需要满足什么" |
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)

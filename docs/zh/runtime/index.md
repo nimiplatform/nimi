@@ -75,7 +75,7 @@ Runtime 不掌控 Realm 层的世界真相定义权、不决定桌面端的 UI �
 
 针对外部提供商（Provider）与内部模型目录的治理逻辑，已在契约层面给出严谨定义。可用性目录需在 Runtime 内核层面彻底落定并取得准入证据后方可对外发布。当前的契约面设计，详见 [连接器与 Provider](/zh/runtime/connectors-and-providers)（针对托管云提供商）以及 [本地模型](/zh/runtime/local-models)（针对本地计算引擎）文档。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
 - [`.nimi/spec/runtime/kernel/rpc-surface.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/rpc-surface.md)

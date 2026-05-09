@@ -141,7 +141,7 @@ worker 提交一份 packet 申请准入。manager 复核：
 
 拒绝**不是可选项**。方法论的硬规则：未消解的阻断项 fail closed。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/methodology/role-separation-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/role-separation-policy.yaml)
 - [`.nimi/methodology/authority-convergence-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/authority-convergence-policy.yaml)

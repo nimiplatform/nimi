@@ -45,7 +45,7 @@ Runtime 内部还有子族：`K-WF-*`（工作流）、`K-STREAM-*`（流式）�
 
 私有仓（例如 `nimi-realm/.nimi/spec/**` 承载后端 / dashboard / 创作者侧权威，`nimi-mods/spec/**` 承载 mods 工作区权威）只在公开文档里按名字提及，不带内容。这些提及只说明位置，不会把私有权威带进公开文档。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
 - [`.nimi/spec/_meta/spec-generation-audit.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/_meta/spec-generation-audit.yaml)

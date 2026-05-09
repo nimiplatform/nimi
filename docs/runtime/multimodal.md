@@ -116,9 +116,62 @@ iterated under typed parameters to produce variations.
 Iteration is bounded by the admitted contract; apps can't invent
 new iteration kinds at runtime.
 
+## Multimodal Provider Depth (R16)
+
+> Status: Running today. The multimodal provider contract sits
+> downstream of provider capability profiles; it pins how providers
+> participate in multimodal delivery beyond the gate verdict surface.
+
+The multimodal provider contract describes how providers are bound,
+profiled, and admitted into multimodal capability paths
+(image / audio / video / file). The boundaries:
+
+| Owned by provider contract | Owned elsewhere |
+| --- | --- |
+| Per-provider capability profile shape | Connector custody (`K-CONN-*`) |
+| Provider lifecycle within delegated multimodal path | Workflow execution (`K-WF-*`) |
+| Provider drift detection | Delivery gates verdict (`K-DGATE-*`) |
+| Provider native parameter encapsulation | Public delivery surface |
+
+Provider-native parameters do not pass through freely; they go
+through namespaced extensions and are bound by the admitted
+extension registry — same boundary that voice creation enforces.
+
+## Delivery Gates Verdicts (R8)
+
+When multimodal delivery happens, the runtime delivery-gates contract
+emits a verdict. Verdicts include `accepted`, `quarantined`,
+`rejected`, plus typed reason codes.
+
+A `quarantined` verdict means: the artifact is held; it does not
+flow to the consumer; the user sees the quarantine reason explicitly.
+Quarantine reasons cover sensitivity classification, descriptor
+drift, schema mismatch, prompt-poisoning detection, and more (see
+`runtime/kernel/tables/runtime-delivery-gates.yaml`).
+
+A `quarantined` verdict is NOT a transient state. It is a typed
+terminal outcome until either:
+
+- The user / admitted approver explicitly releases the artifact, or
+- The flow is canceled
+
+There is no silent retry that "fixes" quarantine.
+
 ## Voice Cloning Support
 
-The voice capability admits voice cloning under typed contracts.
+> Status: Running today. Voice creation (clone + design) and
+> `VoiceAsset` lifecycle are shipped under `K-VOICE-*`.
+
+The voice capability admits voice cloning + voice design under typed
+contracts. Both creation paths run through a unified `Scenario`
+abstraction:
+
+| Scenario type | Direction |
+| --- | --- |
+| `VOICE_CLONE` | Audio sample → voice |
+| `VOICE_DESIGN` | Text description → voice |
+
+The synthesis-side capability operations:
 
 | Operation | Purpose |
 | --- | --- |
@@ -126,8 +179,19 @@ The voice capability admits voice cloning under typed contracts.
 | `AI_TTS_SYNTHESIZE` | Synthesize speech using an admitted voice profile |
 | `AI_TTS` | Standard TTS using an admitted voice |
 
-`VoiceAsset` lifecycle is admitted in the voice contract
-(`K-VOICE-*`); voice profiles have admitted reference contracts.
+The runtime distinguishes durable voice resources from one-off
+synthesis:
+
+| Concept | Owner | Persistence |
+| --- | --- | --- |
+| `VoiceAsset` | Runtime | Durable (subject to admitted lifecycle) |
+| `VoiceReference` | Runtime | Identifies which voice a synthesis call uses |
+| `provider_voice_ref` | Provider | Provider-native handle (does not become public asset truth) |
+
+For the full asset surface — discovery channel split, target model
+binding, tenant isolation, voice handle policy, and the
+`VoiceReference` boundary — see
+[Voice Asset Lifecycle](/runtime/voice-asset-lifecycle.md).
 
 ## Reader Scenario: An Image Generation Workflow
 

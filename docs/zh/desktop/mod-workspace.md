@@ -86,7 +86,7 @@ Mod 没有自己发明 Runtime 配置路径；面板就是准入的桥。
 | 让 Mod 直接对接浏览器 | 渲染层无关的外壳，不开放浏览器直连 |
 | 让 Mod 不走 Realm 契约改 Realm 真相 | Realm 契约是规范变更的唯一路径 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/desktop/mod-workspace.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/mod-workspace.md)
 - [`.nimi/spec/desktop/mod-codegen.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/mod-codegen.md)

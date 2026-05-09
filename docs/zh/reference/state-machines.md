@@ -233,7 +233,7 @@ provider 异步状态用 lower_snake；ScenarioJob 用 UPPER_SNAKE。映射规�
 
 ScenarioJob 与 Workflow 用 UPPER_SNAKE proto 枚举；provider 异步任务用 lower_snake，贴近 provider 语义；mod lifecycle 用小写产品语。大小写差异是有意的设计选择。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/index.md)
 - [`.nimi/spec/runtime/kernel/daemon-lifecycle.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/daemon-lifecycle.md)

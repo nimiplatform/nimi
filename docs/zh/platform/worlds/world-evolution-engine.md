@@ -1,5 +1,9 @@
 # 世界演化引擎
 
+## 状态：现在 (Running today)
+
+本概览页描述平台层框架；Runtime 契约深度（已准入但尚未作为可运行引擎交付）见 [WEE 执行](/zh/platform/worlds/wee-execution)。
+
 世界演化引擎（World Evolution Engine，WEE）是 Runtime 持有的机制，让世界感觉是活的 —— 角色在动作、场景在推进、事件在累积 —— 全部在可审计、可重放、fail-closed 的契约下进行。
 
 ## WEE 解决的问题
@@ -77,7 +81,7 @@ WEE 与 Runtime 的工作流面都执行多步工作。它们按设计相互独�
 
 这正是重放成为真审计工具的根据。如果重放能追加或再推断，它读的就不是过去，而是在改写过去。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/world-evolution-engine-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/world-evolution-engine-contract.md)
 - [`.nimi/spec/runtime/kernel/workflow-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/workflow-contract.md)

@@ -118,7 +118,7 @@
 
 **伪闭合**。一个维度看似完成、另一维度其实失败的产物。常见形态：构建过了但页面不可读；页面可读但缺权威源；路由存在但对读者无价值。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)

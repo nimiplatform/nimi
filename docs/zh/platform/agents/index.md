@@ -64,7 +64,7 @@ Nimi 的 Agent：
 
 普通 AI 聊天机器人不会做这些。Nimi Agent 的设计就奔着这点去——平台的产品论点是：Agent 是生命体，不是工具。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)
 - [`.nimi/spec/platform/architecture.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/architecture.md)

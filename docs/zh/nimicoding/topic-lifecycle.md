@@ -139,7 +139,7 @@ true close **不等同于 topic 状态 `closed`**。一个 topic 可以在文件
 
 pending-note 是结构化的等待。不存在"它就这么放着"这种隐式状态。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/methodology/topic-lifecycle.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle.yaml)
 - [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)

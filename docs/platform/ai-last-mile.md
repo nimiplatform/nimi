@@ -1,12 +1,25 @@
 # AI Last Mile
 
+> Status: Admitted, in build-out. The Hook Action Fabric +
+> Principal model + execution protocol state machine are admitted
+> at the kernel level (`P-ALMI-002`, `P-ALMI-003`, `P-ALMI-011`).
+> Sub-pieces (typed action verbs, delegated firewall, MCP adapter)
+> are at varying running / admitted-impl-in-progress maturity per
+> their own pages.
+
 The AI last mile is the bridge between an AI agent's intent and a
 real action on the platform. It is where a model says "send a gift"
 and the platform either does it, asks the user, or refuses — under
 explicit, audited contracts.
 
 This page introduces the **Hook Action Fabric**, the unified action
-surface for both internal Nimi agents and external AI hosts.
+surface for both internal Nimi agents and external AI hosts. For
+the contract depth see:
+
+- [Execution Protocol](/platform/execution-protocol) — the five-stage state machine
+- [AI Scope Identity](/platform/ai-scope-identity) — AI configuration scope identity
+- [Runtime → MCP Integration](/runtime/mcp-integration) — MCP as protocol adapter
+- [Runtime → Delegated Capability](/runtime/delegated-capability) — gateway + output firewall
 
 ## What Problem It Solves
 

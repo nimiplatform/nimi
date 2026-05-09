@@ -1,0 +1,146 @@
+# Creator Payouts
+
+## Status: Admitted as platform direction
+
+The Realm economy contracts (`R-ECON-*`) and the
+`creator-revenue-policy.md` / `world-creator-economy.md` framings
+are admitted at the spec level. Payout flows, settlement cadence
+operationalization, and withdrawal UI are admitted as direction;
+the user-facing payout surface is not shipped.
+
+## What "Payouts" Means
+
+A creator who builds a world earns from gifts, purchases, and
+share-plan settlements made within that world. **Payouts** are the
+typed pipeline from those earnings to the creator's withdrawn
+funds — accruing in append-only events, settling per share plan,
+withdrawn through admitted flows.
+
+This page explains the pieces. It does not promise dates.
+
+## Authority Surface
+
+| Concern | Authority |
+| --- | --- |
+| Realm economy contract (append-only, separate from narrative) | `R-ECON-001..R-ECON-004` |
+| World creator economy bridge | `realm/world-creator-economy.md` |
+| Creator revenue policy (share plans, settlement) | `realm/creator-revenue-policy.md` |
+| Desktop wallet projection | Desktop kernel (admitted) |
+
+The economy is canonical at Realm. Desktop projects it; share plans
+and revenue policies attach at the bridge.
+
+## Append-Only Revenue Events
+
+Every revenue event is typed and appended:
+
+| Event kind | Purpose |
+| --- | --- |
+| Gift | Sender gifts content / participation |
+| Purchase | Buyer purchases admitted ownable assets |
+| Settlement | Periodic settlement per share plan |
+| Withdrawal | Creator withdraws settled funds |
+| Correction | Supersedes a prior event under admitted correction flow |
+
+Append-only is the audit foundation. Every revenue event has
+provenance, timestamp, and typed shape. Settlement events reference
+the gift / purchase events they settle.
+
+## Share Plans
+
+A share plan declares how revenue is split among creators and
+platform. Plans are explicit; revenue does not flow without an
+admitted plan. The plan governs:
+
+- Which creators receive shares
+- The split percentages
+- Settlement cadence
+- Withdrawal eligibility
+
+Hidden side splits, retroactive plan changes that mutate prior
+settlements, or platform-skim outside the declared plan are
+forbidden.
+
+## Boundary Per `R-ECON-*`
+
+| Rule | Constraint |
+| --- | --- |
+| `R-ECON-001` | Creator economy + access economics remain auditable, explicit, separate from narrative runtime |
+| `R-ECON-002` | AI compute route cost is NOT modeled as Realm core truth or hidden world mutation |
+| `R-ECON-003` | Revenue and settlement use explicit event types and share plans with append-only accounting |
+| `R-ECON-004` | Apps cannot hide economic state changes inside narrative history or memory commits |
+
+The boundary keeps "money flow" from getting tangled with "story
+flow." A purchase is a typed economy event. A character buying
+something in-narrative is a story event. They are not the same row.
+
+## Reader Scenario: A Gift Becomes A Settlement
+
+A user gifts a creator's world.
+
+1. **Gift event.** Realm appends a typed `Gift` event with
+   provenance: who, what, when, related world.
+2. **Time passes.** Other gifts and purchases accrue under the
+   admitted share plan.
+3. **Settlement cadence fires.** Per the share plan's cadence, a
+   `Settlement` event lands. It references the underlying gift /
+   purchase events it settles. Each creator's share is computed.
+4. **Settled funds available for withdrawal.** A creator may withdraw
+   settled funds through admitted Withdrawal flow.
+5. **Withdrawal event.** Append-only. Provenance attached.
+
+The chain is auditable end-to-end: gift → settlement → withdrawal,
+all linked by event references.
+
+## Reader Scenario: A Correction
+
+A gift was attributed to the wrong world.
+
+1. **Original gift event.** Stays as-is (append-only).
+2. **Correction event.** A typed correction event lands; it
+   supersedes the original attribution and provides the corrected
+   one with reason.
+3. **Settlement re-derivation.** The next settlement cycle reads
+   the corrected attribution; downstream settlement flows respect
+   the supersede.
+4. **Audit chain.** Reviewers see both the original event and the
+   correction; nothing is silently overwritten.
+
+## Reader Scenario: A Forbidden Substitution
+
+A maintainer asks: can settlement be embedded inline as a memory
+commit to skip Realm economy?
+
+1. **Reject.** Per `R-ECON-004`, apps cannot hide economic state
+   changes inside narrative history or memory commits.
+2. **Re-route.** Settlement is a Realm economy event; no other
+   surface may stand in for it.
+3. **Audit posture preserved.** The auditable separate stream is
+   what makes payouts trustworthy.
+
+## What Creator Payouts Do Not Do
+
+- Promise specific payout dates.
+- Promise specific share-plan terms.
+- Promise specific withdrawal cadence.
+- Allow revenue to flow without admitted share plans.
+- Let AI compute cost become Realm truth.
+- Let economy events hide inside narrative history or memory.
+
+The "what is admitted" surface is the contract. The "what ships when"
+question is operational, not contractual.
+
+## Boundary Summary
+
+| Concern | Owner |
+| --- | --- |
+| Realm economy event stream | Realm (`R-ECON-*`) |
+| Share plans + settlement rules | `creator-revenue-policy.md` |
+| World creator bridge | `world-creator-economy.md` |
+| Wallet UI projection | Desktop kernel (admitted) |
+
+## Source Basis
+
+- [`.nimi/spec/realm/kernel/economy-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/economy-contract.md)
+- [`.nimi/spec/realm/creator-revenue-policy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/creator-revenue-policy.md)
+- [`.nimi/spec/realm/world-creator-economy.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/world-creator-economy.md)

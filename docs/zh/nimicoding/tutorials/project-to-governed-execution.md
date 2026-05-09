@@ -289,7 +289,7 @@ npx nimicoding topic closeout topic <topic-id> ...
 
 目标不是给用户多加流程，而是让 Codex 能干大活，同时留下另一段会话、另一个审计员或人工管理者都能复检的轨迹。
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
 - [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)

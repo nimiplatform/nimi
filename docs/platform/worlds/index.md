@@ -29,8 +29,10 @@ time.
 ## Three Things A World Carries
 
 Every world has three related but distinct concepts. These are
-canonical Realm semantics; the [World Truth, State, And History](/platform/worlds/truth-state-history)
-page walks each in detail.
+canonical Realm semantics; [State vs History](/platform/worlds/state-vs-history)
+walks the state-vs-history relationship in detail (with the
+per-realm pages [Truth](/realm/truth), [World State](/realm/world-state),
+[World History](/realm/world-history) for each surface).
 
 | Concept | What it answers | Owner |
 | --- | --- | --- |
@@ -60,8 +62,11 @@ place rather than a database.
 
 ## What This Section Contains
 
-- [World Truth, State, And History](/platform/worlds/truth-state-history)
-  — the three Realm concepts, what differs, when to read which.
+- [State vs History](/platform/worlds/state-vs-history) — when state
+  updates vs history appends, governed by `effectClass`. (Truth lives
+  on its own per-realm page: [Truth](/realm/truth).)
+- [WEE Execution](/platform/worlds/wee-execution) — runtime contract
+  depth for the World Evolution Engine kernel framing.
 - [OASIS](/platform/worlds/oasis) — the unique system main world.
 - [Lifecycle](/platform/worlds/lifecycle) — how a world is created,
   published, bound to apps, suspended, revoked.

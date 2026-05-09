@@ -86,7 +86,7 @@ Mod Hub 是 **Mod 管理的唯一一等入口**。这里没有「商店」与「
 
 `dev` 来源不是目录的一部分；它是显式准入的本地路径。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/desktop/mod-hub.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/mod-hub.md)
 - [`.nimi/spec/desktop/mods-panel.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/mods-panel.md)

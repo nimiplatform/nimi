@@ -16,7 +16,7 @@
 
 此部分文档属于结构化数据字典，而非操作教程。其预设读者已熟悉相关工程概念，目的是供开发者精准查询特定字段名称、合法的枚举类型 (Enum values) 以及 Schema 数据约束限制。
 
-## 参考来源
+## 来源依据
 
 - [`nimi-coding/contracts/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/contracts/)
 - [`nimi-coding/cli/`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/cli/)

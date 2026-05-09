@@ -131,7 +131,7 @@ Token 可以携带任意子集。一个只读助手可能拿 `discover` + `dry-r
 
 这也是为什么外部 AI 集成是真实产品特性，而不是集成风险。漂移会被检测并显式呈现。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/platform/ai-agent-security-interface.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ai-agent-security-interface.md)
 - [`.nimi/spec/platform/ai-last-mile.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ai-last-mile.md)

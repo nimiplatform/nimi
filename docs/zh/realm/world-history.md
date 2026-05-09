@@ -1,5 +1,9 @@
 # 世界历史
 
+## 状态：现在 (Running today)
+
+Realm R-WHIST-* 是已交付的规范已发生事实权威。
+
 世界历史是一个世界内所有事件的**仅限追加的规范日志**。每条记录都强制附带溯源信息。Replay 只能读取历史，不能追加；只有真相突变执行才能写入。修正历史缺陷必须通过记录替代或标记废止，系统**禁止**静默删除。
 
 ## 仅限追加
@@ -71,7 +75,7 @@ Replay 能读取历史、生成投影、演算结果，但写入被完全阻断�
 
 试图把三者混在一起的接口会静默丢失核心信息。历史回答"怎么来的"，不代办"是什么"或"现在如何"。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/world-history.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/world-history.md)
 - [`.nimi/spec/realm/kernel/world-history-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/world-history-contract.md)

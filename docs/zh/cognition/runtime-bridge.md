@@ -1,5 +1,9 @@
 # Runtime 桥接
 
+## 状态：现在 (Running today)
+
+Runtime 桥接契约定义了 Runtime 消费 Cognition 的边界；接口已交付。
+
 Runtime 桥接是 Runtime 消费 Cognition 用的强类型接缝。这是消费，不是吞并。Runtime 可以读 Cognition 的接口面，Cognition 的权威仍然属于自己。
 
 ## 桥接做什么
@@ -96,7 +100,7 @@ Cognition 的独立可运行性是结构性的；桥接对 Runtime 消费方而�
 | 标准真相（Cognition 侧） | Cognition substrate |
 | 标准真相（Runtime 侧） | Runtime 记忆 bank 加复制 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/cognition/kernel/runtime-bridge-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/runtime-bridge-contract.md)
 - [`.nimi/spec/cognition/kernel/cognition-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/cognition-contract.md)

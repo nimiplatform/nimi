@@ -102,7 +102,7 @@ reject_when:
 | 把 OVERFLOW 强行归一到 PASS | 伪关闭；拒绝 |
 | 把 OVERFLOW 强行归一到 FAIL | 丢失进度证据；拒绝 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/methodology/overflow-continuation-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/overflow-continuation-policy.yaml)
 - [`.nimi/contracts/overflow-continuation.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/overflow-continuation.schema.yaml)

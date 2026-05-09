@@ -56,7 +56,7 @@ SDK 边界存在的目的，是让 App 接入既稳定又诚实。SDK 不只是�
 
 边界本身记录在 `.nimi/spec/sdk/kernel/boundary-contract.md` 与导入边界表中。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/sdk/kernel/boundary-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/boundary-contract.md)
 - [`.nimi/spec/sdk/kernel/surface-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/surface-contract.md)

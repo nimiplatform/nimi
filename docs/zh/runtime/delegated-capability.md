@@ -1,5 +1,9 @@
 # 受委派能力
 
+## 状态：现在 (Running today)
+
+Runtime 受委派会话、网关、输出防火墙以及审计 / 重放扩展均在 K-DELEG-* 下交付；MCP 适配器以 stdio_command 交付，远程传输作为方向准入。
+
 外部 AI 宿主（另一家 AI provider、配 MCP 工具的 Agent、未来的 A2A 对端）想在平台上动作时，要通过 Runtime 持有的网关与输出防火墙。本页讲委派的 Runtime 这一面。产品角度的说明见 [平台 → AI 最终执行环节](/zh/platform/ai-last-mile) 与 [平台 → Agents → 外部 Agent](/zh/platform/agents/external-agents)。
 
 ## 受委派会话
@@ -162,7 +166,7 @@ A2A（Agent-to-Agent）协议被准入为**未来用接缝**。当前不存在�
 6. **用户看到原因。** "provider X 在会话中途改了描述符"。
 7. **不静默继续。** 平台不会假装漂移没发生。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/delegated-capability-gateway-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-capability-gateway-contract.md)
 - [`.nimi/spec/runtime/kernel/delegated-output-firewall-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/delegated-output-firewall-contract.md)

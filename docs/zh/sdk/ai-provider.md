@@ -69,7 +69,7 @@
 | 审计 | Runtime 审计 |
 | Tool calls | Runtime 受委派能力（已准入的部分） |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/sdk/ai-provider.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/ai-provider.md)
 - [`.nimi/spec/sdk/kernel/ai-provider-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdk/kernel/ai-provider-contract.md)

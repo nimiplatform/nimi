@@ -109,7 +109,7 @@ Agent 写下一条记忆，与 Realm 端治理产生了冲突。例如某条受�
 
 入库流水线由准入契约约束，任意自由形式的入库路径不被准入。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/runtime-memory-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-memory-service-contract.md)
 - [`.nimi/spec/runtime/kernel/runtime-memory-substrate-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-memory-substrate-contract.md)

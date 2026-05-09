@@ -165,7 +165,7 @@ bootstrap 状态声明 `runtime_installed: false`、`installation_mode: deferred
 
 这些是被推迟，不是被放弃。它们位于"独立形态边界完整"范围之外。
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)
 - [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/package.json)

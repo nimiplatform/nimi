@@ -16,6 +16,6 @@ Tutorials 是面向学习的分步教程。每篇都假设了前置条件，带�
 
 Tutorial 回答"我想学一遍"，How-to 回答"我要解决某个具体问题"。如果你目标已经很清楚，[How-to 条目](/zh/nimicoding/how-to/)更短也更直接。
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/README.md)

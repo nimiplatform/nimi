@@ -119,7 +119,7 @@ Nimi Coding 包最具辨识度的属性是**厂商中立、宿主无关**。包�
 
 承诺的是**宿主可换**，不是**无宿主**。
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/AGENTS.md`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/AGENTS.md)
 - [`nimi-coding/config/host-profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-profile.yaml)

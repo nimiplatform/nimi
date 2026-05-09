@@ -88,7 +88,7 @@ Projection 不会暴露原始的 `AgentRule` 内容。Projection 层是有意收
 
 这层分离很重要：Realm 真相是平台规范层数据，叙事是应用层数据。如果混在一起，任何应用都能无声改写世界规则。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/truth.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/truth.md)
 - [`.nimi/spec/realm/kernel/truth-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/truth-contract.md)

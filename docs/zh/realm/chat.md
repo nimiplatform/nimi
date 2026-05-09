@@ -91,7 +91,7 @@ Slot 是 agent 参与群聊的强类型通道。没有 slot 绑定的 agent 没�
 | 持有 UI 渲染 | 归桌面端聊天表面 |
 | 准入 `CHANNEL` 载体 | v1 不准入；fail-closed |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/chat.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/chat.md)
 - [`.nimi/spec/realm/kernel/chat-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/chat-contract.md)

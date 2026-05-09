@@ -92,7 +92,7 @@ Chat Track 不共用这份预算。聊天回复在任何 Life 预算状态下都
 
 如果默认是开的，每个新 Agent 一上来就开始消耗预算并产生自主时刻。默认关尊重用户的同意与预算。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-service-contract.md)
 - [`.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md)

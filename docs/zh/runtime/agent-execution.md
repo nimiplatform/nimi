@@ -1,5 +1,9 @@
 # Agent 执行
 
+## 状态：现在 (Running today)
+
+RuntimeAgentService 是已交付的 Agent 执行权威。
+
 `RuntimeAgentService` 是 Runtime 持有的 Agent 执行权威。它持有多 Agent 生命周期、对话连续性、Chat / Life 双轨模型、hook 调度、记忆写入准入和呈现改写。
 
 本页是产品叙述 [平台 → Agents](/zh/platform/agents/) 的运行时一面。Agent 的产品定义在那边，本页讲 Runtime 这一侧的归属。
@@ -119,7 +123,7 @@ Runtime 同时托管多个 `agent_id` 生命周期。应用想和某个 Agent �
 
 锚点归 Runtime 所有，这正是表面崩溃可以扛过去的根因。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-service-contract.md)
 - [`.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md)

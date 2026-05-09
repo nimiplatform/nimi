@@ -1,6 +1,6 @@
 # Realm
 
-Realm 是世界真相的权威归属域。一个世界的持久语义均由其掌管，涵盖真相、当前状态、状态演进的历史轨迹、聊天语义，以及社交、经济、资产、绑定关系、资源和跨世界迁移（Transit）等子域。
+Realm 是世界真相的权威归属域。一个世界的持久语义都由 Realm 管理，涵盖真相、当前状态、状态演进的历史轨迹、聊天语义，以及社交、经济、资产、绑定关系、资源和跨世界迁移（Transit）等子域。
 
 在架构分层中，Runtime 负责处理 AI 任务的执行，SDK 为应用提供安全的访问边界，桌面端与网页端负责呈现用户体验。一个世界所共享的核心真相则锚定于 Realm 之上，平台上其他各层最终均需指向此域。
 
@@ -11,11 +11,11 @@ Realm 是世界真相的权威归属域。一个世界的持久语义均由其�
 - [真相](/zh/realm/truth)：与写入时机无关、构成世界基底的客观事实。
 - [世界状态](/zh/realm/world-state)：当前时间点世界所展现的状态。
 - [世界历史](/zh/realm/world-history)：记录世界如何演变至当前状态的仅追加（append-only）轨迹。
-- [呈现](/zh/realm/projection)：Realm 的数据结构向应用层读者进行投射和展现的规则。
+- [呈现](/zh/realm/projection)：Realm 的数据结构向应用层读者提供数据访问的规则。
 
 域表面：
 
-- [聊天](/zh/realm/chat)：当对话文本承载了世界的实质含义时，对于讨论线（Thread）、消息、成员资格以及 Agent 槽位（Slot）的生命周期管理。
+- [聊天](/zh/realm/chat)：当对话文本承载了世界的实质含义时，对于会话线程（Thread）、消息、成员资格以及 Agent 槽位（Slot）的生命周期管理。
 - [社交与经济](/zh/realm/social-and-economy)：由 Realm 权威管理的关系图谱与价值流转、兑换契约。
 - [资产与绑定](/zh/realm/asset-and-binding)：世界内包含的内容，及其与参与者、场景之间的附着关系。
 - [Transit](/zh/realm/transit)：基于 OASIS 架构的单跳连续性协议，支持参与者跨越不同世界。
@@ -25,7 +25,7 @@ Realm 是世界真相的权威归属域。一个世界的持久语义均由其�
 - [创作者经济](/zh/realm/creator-economy)：围绕世界创作者的经济体系、收益模型与结算机制。
 - [应用互联](/zh/realm/app-interconnect)：规范应用层消费 Realm 核心真相的准入模式。
 
-关于真相、状态、历史的高层定义与区分，详见 [平台 → 世界 → 真相、状态与历史](/zh/platform/worlds/truth-state-history)。遇到不熟悉的专业词汇，可查阅跨领域通用的[术语表](/zh/reference/glossary)。
+关于真相、状态、历史的高层定义与区分，详见 [平台 → 世界 → 真相、状态与历史](/zh/platform/worlds/state-vs-history)。遇到不熟悉的专业词汇，可查阅跨领域通用的[术语表](/zh/reference/glossary)。
 
 ## 为什么需要 Realm
 
@@ -54,7 +54,7 @@ Realm 即是承担这一职责的语义底座。同时，它的存在也为跨�
 
 核心要义在于：历史是平台中的一等概念，而非单纯的派生系统日志。一个世界中发生的事件，是构成其核心真相的实质部分，绝非事后补充的附属数据。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/README.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/README.md)
 - [`.nimi/spec/realm/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/kernel/index.md)

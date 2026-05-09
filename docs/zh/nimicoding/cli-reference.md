@@ -50,7 +50,7 @@ CLI 系统存在的根本目的，是确保每次开发治理动作具备高度�
 
 请将本页面作为理解工作流指令分类逻辑的高阶指南。有关精准的命令行参数配置和调用语法，请直接查阅本地工具帮助文档或对 `.nimi/topics/**` 目录下的实际工件进行参考分析。
 
-## 参考来源
+## 来源依据
 
 - [`.nimi/spec/product-scope.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/product-scope.yaml)
 - [`.nimi/spec/bootstrap-state.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/bootstrap-state.yaml)

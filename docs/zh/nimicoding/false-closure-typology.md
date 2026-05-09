@@ -147,7 +147,7 @@ wave 上限策略写得很清楚：规划可以把一个执行目标硬化下来
 
 如果管理者直接以另一个规划名义准入 wave-4，那就是伪进展。方法论的上限正是阻止这件事的机制。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/methodology/four-closure-policy.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/four-closure-policy.yaml)
 - [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)

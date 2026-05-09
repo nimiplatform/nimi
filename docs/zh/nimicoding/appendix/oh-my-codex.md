@@ -67,7 +67,7 @@ Nimi Coding 的架构承诺在于：任何遵循兼容契约的宿主均可接�
 
 同时，本页不提供关于 `oh-my-codex` 软件自身的应用说明——此类信息应查阅该工具官方的上游技术文档。
 
-## 参考来源
+## 来源依据
 
 - [`nimi-coding/adapters/oh-my-codex/profile.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/adapters/oh-my-codex/profile.yaml)
 - [`nimi-coding/config/host-adapter.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/host-adapter.yaml)

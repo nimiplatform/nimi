@@ -92,7 +92,7 @@ Cognition 持有一条严格标准：认知必须按**生产级**而不是 MVP /
 | 结果 | 准入 / 隔离 / 拒收（强类型） |
 | 生产级标准 | Cognition 的准入策略 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/cognition/kernel/completion-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/completion-contract.md)
 - [`.nimi/spec/cognition/kernel/cognition-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/kernel/cognition-contract.md)

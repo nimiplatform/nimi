@@ -49,7 +49,7 @@
 
 至此 wave-2 可以派发。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/contracts/wave.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/wave.schema.yaml)
 - [`.nimi/contracts/packet.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/packet.schema.yaml)

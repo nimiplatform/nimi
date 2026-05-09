@@ -98,7 +98,7 @@ Tov 在用户眼里仍是同一个 Agent。平台契约在每一层都让这件�
 
 不可修改性正是跨世界身份保证有意义的关键。如果创作者能改写身份，"同一个 Agent 跨世界"就只是营销词，不是契约。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/realm/agent.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/agent.md)
 - [`.nimi/spec/realm/social.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/realm/social.md)

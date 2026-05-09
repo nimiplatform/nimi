@@ -1,11 +1,21 @@
 # Cognition
 
+> Status: Running today. Cognition is a standalone authority domain
+> (`C-COG-*`); the runtime bridge is the admitted consume seam.
+
 Cognition owns memory, knowledge, prompt serving, references,
 completion, skill service, runtime-bridge behavior, and capability
 upgrades. It's a standalone authority domain.
 
 Runtime can talk to Cognition through a defined bridge. It can't absorb
 Cognition's authority — only consume it.
+
+For depth on the surfaces:
+
+- [Memory + Knowledge Composition](/cognition/memory-knowledge-composition) — why two services, how they compose
+- [Prompt Lanes](/cognition/prompt-lanes) — lane separation + serving rules
+- [Skill Artifacts](/cognition/skill-artifacts) — validated advisory bundles + non-ownership boundary
+- [Reference Graph](/cognition/reference-graph) — refgraph explainability for cleanup decisions
 
 ## Why Cognition Is Separate
 

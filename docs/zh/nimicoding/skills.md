@@ -137,7 +137,7 @@ Nimi Coding 包声明了四个**技能**。每个技能都是一个强类型表�
 | 输出无来源依据 | 禁止（`spec_reconstruction` 强制要求来源依据或缺口跟踪） |
 | 宿主能力检查失败仍继续 | 禁止（fail closed） |
 
-## Source Basis
+## 来源依据
 
 - [`nimi-coding/config/skills.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/skills.yaml)
 - [`nimi-coding/config/skill-manifest.yaml`](https://github.com/nimiplatform/nimi/blob/main/nimi-coding/config/skill-manifest.yaml)

@@ -45,7 +45,7 @@ Avatar 不拥有：
 
 如果把呈现塞进 Runtime，这些关注点会挤掉 Runtime 本身的执行语义。把它们分开，每个域的契约才能各自聚焦。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/avatar/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/index.md)
 - [`.nimi/spec/avatar/kernel/index.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/avatar/kernel/index.md)

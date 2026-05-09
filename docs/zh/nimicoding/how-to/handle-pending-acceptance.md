@@ -101,7 +101,7 @@ reopen 条件与 close 触发条件必须写明确。"用户迟早会看的"不�
 | 处于 pending 但缺 pending-note | 违规；补一份明确的 pending-note |
 | Pending-note 缺 close_trigger | 软；重写并写明触发条件 |
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/methodology/topic-lifecycle-report.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/methodology/topic-lifecycle-report.yaml)
 - [`.nimi/contracts/topic.schema.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/contracts/topic.schema.yaml)

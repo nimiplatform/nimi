@@ -72,7 +72,7 @@
 3. [参考 → 术语表](/zh/reference/glossary)：利用统一的术语体系对齐技术语义。
 4. [Nimi Coding → 议题工作流](/zh/nimicoding/topic-workflow)：审查工作产物（如 `topic.yaml`、Packet 存档、预检及审计报告）的组织标准与约束条件。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/INDEX.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/INDEX.md)
 - [`.nimi/spec/platform/vision.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/vision.md)

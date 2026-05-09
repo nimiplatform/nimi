@@ -98,7 +98,7 @@ Intent 准入之后，进入 Hook 生命周期：
 
 让模型输出自由格式调度字符串的平台，没有这些回答。强制强类型 Intent 的平台，按构造就拥有它们。
 
-## Source Basis
+## 来源依据
 
 - [`.nimi/spec/runtime/kernel/agent-hook-intent-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/agent-hook-intent-contract.md)
 - [`.nimi/spec/runtime/kernel/runtime-agent-service-contract.md`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/kernel/runtime-agent-service-contract.md)
