@@ -175,21 +175,13 @@ export function ParentModePanel() {
           autoFocus
         />
         {pinError !== null && <p className="text-xs text-red-500">{pinError}</p>}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => void handleEnterPin()}
-            disabled={pinBusy}
-            className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors"
-          >
-            {t('settings.parentMode.unlock')}
-          </button>
-          <button
-            onClick={() => { setIsSettingPin(true); setPinInput(''); setPinConfirm(''); setPinError(null); }}
-            className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
-          >
-            {t('settings.parentMode.resetPin')}
-          </button>
-        </div>
+        <button
+          onClick={() => void handleEnterPin()}
+          disabled={pinBusy}
+          className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors"
+        >
+          {t('settings.parentMode.unlock')}
+        </button>
       </div>
     );
   }

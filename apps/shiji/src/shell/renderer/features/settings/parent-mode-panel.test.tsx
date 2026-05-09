@@ -89,4 +89,15 @@ describe('ParentModePanel', () => {
     expect(await screen.findByText('settings.parentMode.wrongPin')).toBeTruthy();
     expect(screen.queryByTestId('profile-list')).toBeNull();
   });
+
+  it('does not expose PIN reset when an existing PIN has not been proven', async () => {
+    hasParentPinMock.mockResolvedValueOnce(true);
+
+    render(<ParentModePanel />);
+
+    expect(await screen.findByText('settings.parentMode.unlock')).toBeTruthy();
+    expect(screen.queryByText('settings.parentMode.resetPin')).toBeNull();
+    expect(screen.queryByText('settings.parentMode.setPin')).toBeNull();
+    expect(setParentPinMock).not.toHaveBeenCalled();
+  });
 });
