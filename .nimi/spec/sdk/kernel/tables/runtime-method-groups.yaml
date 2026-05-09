@@ -130,11 +130,12 @@ groups:
   - group: account_service_projection
     service: RuntimeAccountService
     phase: 1
-    status: deferred
+    status: active
     note: >
       Runtime account authority is admitted by K-ACCSVC-002 as a frozen method
-      set. Proto + Go implementation and active owner switch are prerequisites
-      for SDK projection at S-RUNTIME-109 / S-RUNTIME-110.
+      set. SDK projection is required by S-RUNTIME-109 / S-RUNTIME-110 for the
+      local first-party Runtime account projection, Runtime-backed short-lived
+      access-token provider, and login adapter surface.
     source_kernel_table: .nimi/spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
       - GetAccountSessionStatus
