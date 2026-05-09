@@ -223,7 +223,9 @@ const kernelRuleDefinitions = collectKernelRuleDefinitions();
 
 checkLegacyDesignReferenceDrift();
 checkReasonCodeNumericAssignments();
+checkReasonCodeUniqueness();
 checkBannedExternalRpcNames();
+checkStreamingContractSurfaceCoverage();
 checkProviderTableParity();
 checkSourceProviderCoverage();
 checkModelCatalogTables();
@@ -290,6 +292,40 @@ function checkReasonCodeNumericAssignments() {
   }
 }
 
+function checkReasonCodeUniqueness() {
+  const tablePath = '.nimi/spec/runtime/kernel/tables/reason-codes.yaml';
+  const table = readYaml(tablePath);
+  const codes = Array.isArray(table?.codes) ? table.codes : [];
+  const names = new Map();
+  const values = new Map();
+
+  for (const [index, code] of codes.entries()) {
+    const name = String(code?.name || '').trim();
+    const value = Number(code?.value);
+    const label = name || `<entry ${index + 1}>`;
+    if (!name) {
+      fail(`${tablePath} reason code entry ${index + 1} missing name`);
+      continue;
+    }
+    if (!Number.isInteger(value)) {
+      fail(`${tablePath} ${label} has non-integer value`);
+      continue;
+    }
+    if (names.has(name)) {
+      const previous = names.get(name);
+      fail(`${tablePath} duplicate ReasonCode name ${name}: values ${previous.value} and ${value}`);
+    } else {
+      names.set(name, { index, value });
+    }
+    if (values.has(value)) {
+      const previous = values.get(value);
+      fail(`${tablePath} duplicate ReasonCode value ${value}: names ${previous.name} and ${name}`);
+    } else {
+      values.set(value, { index, name });
+    }
+  }
+}
+
 function checkBannedExternalRpcNames() {
   const bannedMethodNames = new Set([
     'GenerateText',
@@ -309,6 +345,24 @@ function checkBannedExternalRpcNames() {
       if (bannedMethodNames.has(methodName)) {
         fail(`banned external RPC method appears in rpc-methods.yaml: ${serviceName}.${methodName}`);
       }
+    }
+  }
+}
+
+function checkStreamingContractSurfaceCoverage() {
+  const streamingContract = read('.nimi/spec/runtime/kernel/streaming-contract.md');
+  const protoFiles = walk(protoRoot).filter((file) => file.endsWith('.proto'));
+  const streamingMethods = new Set();
+  const streamingRpcPattern = /\brpc\s+([A-Za-z0-9_]+)\s*\([^)]*\)\s+returns\s+\(\s*stream\s+[A-Za-z0-9_.]+\s*\)\s*;/gu;
+  for (const protoFile of protoFiles) {
+    const proto = fs.readFileSync(protoFile, 'utf8');
+    for (const match of proto.matchAll(streamingRpcPattern)) {
+      streamingMethods.add(match[1]);
+    }
+  }
+  for (const methodName of [...streamingMethods].sort((a, b) => a.localeCompare(b))) {
+    if (!streamingContract.includes(`\`${methodName}\``)) {
+      fail(`streaming-contract.md must classify server-streaming RPC ${methodName}`);
     }
   }
 }

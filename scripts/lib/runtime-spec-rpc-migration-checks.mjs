@@ -43,14 +43,32 @@ export function checkRpcMigrationMapCoverage({ fail, fs, protoRoot, readYaml, wa
   for (const [designService, mapping] of serviceMappingByDesign.entries()) {
     const protoService = String(mapping?.proto_service || '').trim();
     const status = String(mapping?.mapping_status || '').trim();
+    const serviceMethodMappings = methodMappings.filter(
+      (item) => String(item?.design_service || '').trim() === designService,
+    );
     if (!protoService) {
       if (status !== 'design_only_pending_proto') {
         fail(`rpc-migration-map ${designService} has empty proto_service but status is ${status}`);
+      }
+      for (const item of serviceMethodMappings) {
+        const designMethod = String(item?.design_method || '').trim();
+        const methodProtoService = String(item?.proto_service || '').trim();
+        const methodProtoName = String(item?.proto_method || '').trim();
+        if (methodProtoService || methodProtoName) {
+          fail(`rpc-migration-map ${designService} is design_only_pending_proto but method ${designMethod || '<unknown>'} maps to ${methodProtoService || '<empty>'}.${methodProtoName || '<empty>'}`);
+        }
       }
       continue;
     }
     if (!protoMap.has(protoService)) {
       fail(`rpc-migration-map ${designService} references unknown proto service: ${protoService}`);
+    }
+    for (const item of serviceMethodMappings) {
+      const designMethod = String(item?.design_method || '').trim();
+      const methodProtoService = String(item?.proto_service || '').trim();
+      if (methodProtoService && methodProtoService !== protoService) {
+        fail(`rpc-migration-map ${designService}.${designMethod || '<unknown>'} maps to ${methodProtoService}, which diverges from service proto ${protoService}`);
+      }
     }
   }
 

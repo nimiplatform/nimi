@@ -47,18 +47,17 @@ DeleteConnector 必须执行级联清理与可恢复补偿流程。
 - `owner_id="machine"` 的 machine-global remote connector 仅允许 `auth_kind=API_KEY` 形态，并允许 anonymous 与 authenticated 调用方删除。
 - `auth_kind=OAUTH_MANAGED` connector 若不满足 user-owned 边界，删除路径必须 fail-close 并按 `NOT_FOUND` 隐藏。
 
-## K-CONN-005 Inventory-Mode Model Listing
+## K-CONN-005 Snapshot-Only Connector Model Listing
 
-`ListConnectorModels` 必须按 provider inventory mode 分支：
+`ListConnectorModels` 是 catalog read surface，必须只读 active catalog snapshot。
 
-- `static_source` remote provider：
-  - 远端 connector 模型列表只能来自 active catalog snapshot
-  - `force_refresh` 为 no-op
-- `dynamic_endpoint` remote provider：
-  - 模型列表来自 live connector discovery
-  - runtime 可以做内存级缓存
-  - `force_refresh=true` 必须触发重新探测
-  - 返回结果必须经过 source-authored policy 过滤与归一化
+- remote provider 模型列表只能来自 active catalog snapshot。
+- `force_refresh` 为允许字段，但必须是 no-op。
+- `ListConnectorModels` 不得加载 connector credential、解析 endpoint、
+  出站调用 provider model list API、执行 dynamic discovery、或承担 probe 语义。
+- dynamic inventory policy 不能把此 RPC 重新解释为 live discovery surface；需要出站
+  凭据/endpoint 探测时只能走 `TestConnector(remote)` 或已明确 admission 的
+  scenario/execution path。
 
 非 scenario 路径不得把 live discovery 结果提升为 catalog authority；它只
 是 dynamic provider 的 execution-time inventory truth。

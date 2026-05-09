@@ -50,8 +50,34 @@ export function createCatalogChecks(context) {
       .filter(Boolean);
   }
 
-  function aggregateProviderCapabilities(parsed) {
+  function providerExtensionWorkflowCapabilities() {
+    const table = readYaml('.nimi/spec/runtime/kernel/tables/provider-extension-registry.yaml');
+    const out = new Map();
+    for (const entry of Array.isArray(table?.entries) ? table.entries : []) {
+      const provider = normalizeProviderName(entry?.provider_id);
+      if (!provider) {
+        continue;
+      }
+      const direction = String(entry?.direction || '').trim().toLowerCase();
+      if (direction && direction !== 'request') {
+        continue;
+      }
+      const scenarioType = String(entry?.scenario_type || '').trim().toUpperCase();
+      const current = out.get(provider) || { voiceClone: false, voiceDesign: false };
+      if (scenarioType === 'VOICE_CLONE') {
+        current.voiceClone = true;
+      }
+      if (scenarioType === 'VOICE_DESIGN') {
+        current.voiceDesign = true;
+      }
+      out.set(provider, current);
+    }
+    return out;
+  }
+
+  function aggregateProviderCapabilities(parsed, extensionWorkflows) {
     const capabilitySet = new Set();
+    const provider = normalizeProviderName(parsed?.provider);
     const defaults = normalizeStringArray(parsed?.defaults?.capabilities).map((item) => item.toLowerCase());
     const dynamicInventoryCapabilities = normalizeStringArray(
       parsed?.runtime?.dynamic_inventory?.allowed_capabilities,
@@ -67,15 +93,12 @@ export function createCatalogChecks(context) {
         capabilitySet.add(capability);
       }
     }
-    const workflows = Array.isArray(parsed?.voice_workflow_models) ? parsed.voice_workflow_models : [];
-    for (const workflow of workflows) {
-      const workflowType = String(workflow?.workflow_type || '').trim().toLowerCase();
-      if (workflowType === 'voice_clone') {
-        capabilitySet.add('voice_workflow.voice_clone');
-      }
-      if (workflowType === 'voice_design') {
-        capabilitySet.add('voice_workflow.voice_design');
-      }
+    const extension = extensionWorkflows.get(provider) || { voiceClone: false, voiceDesign: false };
+    if (extension.voiceClone) {
+      capabilitySet.add('voice_workflow.voice_clone');
+    }
+    if (extension.voiceDesign) {
+      capabilitySet.add('voice_workflow.voice_design');
     }
     return [...capabilitySet].sort((a, b) => a.localeCompare(b));
   }
@@ -113,6 +136,7 @@ export function createCatalogChecks(context) {
     const catalog = readYaml('.nimi/spec/runtime/kernel/tables/provider-catalog.yaml');
     const capabilities = readYaml('.nimi/spec/runtime/kernel/tables/provider-capabilities.yaml');
     const sourceDocs = listSourceProviderDocs();
+    const extensionWorkflows = providerExtensionWorkflowCapabilities();
 
     const catalogProviders = new Set(
       (Array.isArray(catalog?.providers) ? catalog.providers : [])
@@ -218,7 +242,7 @@ export function createCatalogChecks(context) {
       if (String(capabilityEntry?.endpoint_requirement || '').trim() !== expectedRequirement) {
         fail(`${relPath} provider ${provider} endpoint_requirement mismatch with provider-capabilities`);
       }
-      const expectedCapabilities = aggregateProviderCapabilities(parsed);
+      const expectedCapabilities = aggregateProviderCapabilities(parsed, extensionWorkflows);
       const actualCapabilities = normalizeStringArray(capabilityEntry?.capabilities)
         .map((item) => item.toLowerCase())
         .sort((a, b) => a.localeCompare(b));
@@ -582,6 +606,7 @@ export function createCatalogChecks(context) {
     const allowedDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped', 'mixed']);
     const seenProviderIDs = new Set();
     const activeProviders = new Set();
+    const extensionWorkflows = providerExtensionWorkflowCapabilities();
 
     for (const entry of entries) {
       const providerID = String(entry?.provider_id || '').trim();
@@ -667,9 +692,9 @@ export function createCatalogChecks(context) {
         fail(`${tablePath} provider ${providerID} runtime_plane mismatch (matrix=${runtimePlane}, inferred=${inferredRuntimePlane})`);
       }
 
-      const workflowModels = Array.isArray(sourceDoc?.voice_workflow_models) ? sourceDoc.voice_workflow_models : [];
-      const inferredSupportsClone = workflowModels.some((workflow) => String(workflow?.workflow_type || '').trim() === 'voice_clone');
-      const inferredSupportsDesign = workflowModels.some((workflow) => String(workflow?.workflow_type || '').trim() === 'voice_design');
+      const extension = extensionWorkflows.get(providerID) || { voiceClone: false, voiceDesign: false };
+      const inferredSupportsClone = Boolean(extension.voiceClone);
+      const inferredSupportsDesign = Boolean(extension.voiceDesign);
       if (Boolean(entry?.supports_voice_clone) !== inferredSupportsClone) {
         fail(`${tablePath} provider ${providerID} supports_voice_clone mismatch (matrix=${Boolean(entry?.supports_voice_clone)}, inferred=${inferredSupportsClone})`);
       }
@@ -710,6 +735,20 @@ export function createCatalogChecks(context) {
           : [];
         if (modelDiscovery === 'dynamic_user_scoped' && !modelVoiceKinds.includes('voice_asset_id')) {
           fail(`${tablePath} provider ${providerID} model ${modelID} dynamic_user_scoped must include voice_ref_kinds.voice_asset_id`);
+        }
+      }
+      if (providerID === 'azure_speech') {
+        const azureTimingModes = new Set();
+        for (const model of ttsModels) {
+          for (const mode of Array.isArray(model?.voice_request_options?.timing_modes)
+            ? model.voice_request_options.timing_modes
+            : []) {
+            const normalizedMode = String(mode || '').trim();
+            if (normalizedMode) azureTimingModes.add(normalizedMode);
+          }
+        }
+        if (Boolean(entry?.supports_timing_alignment) !== [...azureTimingModes].some((mode) => mode !== 'none')) {
+          fail(`${tablePath} provider azure_speech supports_timing_alignment must match catalog timing_modes`);
         }
       }
     }

@@ -27,6 +27,20 @@
 | `provider_persistent` | `VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT` | 1 | stored by provider and reusable across sessions | `K-VOICE-004` |
 | `session_ephemeral` | `VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL` | 2 | short-lived session scoped voice asset | `K-VOICE-004` |
 
+## Handle Scopes
+
+| Scope | Enum Name | Enum Value | Description | Source |
+|---|---|---:|---|---|
+| `user_scoped` | `VOICE_HANDLE_SCOPE_USER_SCOPED` | 1 | handle/asset is visible only to the subject user inside the runtime tenant boundary | `K-VOICE-015` |
+| `app_scoped` | `VOICE_HANDLE_SCOPE_APP_SCOPED` | 2 | handle/asset is reusable inside one app scope but not cross-tenant global | `K-VOICE-015` |
+
+## Delete Semantics
+
+| Delete Semantics | Enum Name | Enum Value | Description | Source |
+|---|---|---:|---|---|
+| `runtime_authoritative_delete` | `VOICE_HANDLE_DELETE_RUNTIME_AUTHORITATIVE` | 1 | runtime-owned asset deletion is the public source of truth | `K-VOICE-015` |
+| `best_effort_provider_delete` | `VOICE_HANDLE_DELETE_BEST_EFFORT_PROVIDER` | 2 | runtime deletes local asset truth and attempts provider cleanup on a best-effort basis | `K-VOICE-015` |
+
 ## Asset Statuses
 
 | Status | Enum Name | Enum Value | Description | Source |

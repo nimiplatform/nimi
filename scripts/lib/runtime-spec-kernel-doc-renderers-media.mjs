@@ -48,6 +48,36 @@ export function renderVoiceEnums(doc, sourceName) {
   }
   out += '\n';
 
+  const handleScopes = Array.isArray(doc?.handle_scopes) ? doc.handle_scopes : [];
+  out += '## Handle Scopes\n\n';
+  out += '| Scope | Enum Name | Enum Value | Description | Source |\n';
+  out += '|---|---|---:|---|---|\n';
+  for (const item of handleScopes) {
+    const scope = String(item?.scope || '').trim();
+    if (!scope) continue;
+    const enumName = String(item?.enum_name || '').trim() || '—';
+    const enumValue = Number(item?.enum_value);
+    const description = String(item?.description || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${scope}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
+  }
+  out += '\n';
+
+  const deleteSemantics = Array.isArray(doc?.delete_semantics) ? doc.delete_semantics : [];
+  out += '## Delete Semantics\n\n';
+  out += '| Delete Semantics | Enum Name | Enum Value | Description | Source |\n';
+  out += '|---|---|---:|---|---|\n';
+  for (const item of deleteSemantics) {
+    const semantics = String(item?.delete_semantics || '').trim();
+    if (!semantics) continue;
+    const enumName = String(item?.enum_name || '').trim() || '—';
+    const enumValue = Number(item?.enum_value);
+    const description = String(item?.description || '').trim() || '—';
+    const source = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${semantics}\` | \`${enumName}\` | ${Number.isNaN(enumValue) ? '—' : enumValue} | ${description} | \`${source}\` |\n`;
+  }
+  out += '\n';
+
   const assetStatuses = Array.isArray(doc?.asset_statuses) ? doc.asset_statuses : [];
   out += '## Asset Statuses\n\n';
   out += '| Status | Enum Name | Enum Value | Description | Source |\n';

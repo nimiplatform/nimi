@@ -134,6 +134,3 @@ huggingface_inference:
     local_token: embedding
   - pipeline_tag: image-text-to-text
     local_token: vision
-  - pipeline_tag: unknown
-    local_token: chat
-    note: Fallback default for unrecognized pipeline tags

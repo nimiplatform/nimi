@@ -41,6 +41,8 @@ States: `SUBMITTED`, `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELED`, `TI
 | `RUNNING` | `CANCELED` | `user_cancel` | `K-JOB-002` |
 | `RUNNING` | `TIMEOUT` | `job_timeout` | `K-JOB-002` |
 
+Note: ScenarioJob 与 workflow 是并行但不相同的状态机；ScenarioJob 以 SUBMITTED 起步且不产生 SKIPPED，Workflow 以 ACCEPTED 起步并支持 branch-driven SKIPPED。对照见 tables/workflow-states.yaml 与 K-WF-003~007。
+
 ## local_model_lifecycle
 
 States: `INSTALLED`, `ACTIVE`, `UNHEALTHY`, `REMOVED`
@@ -57,6 +59,8 @@ States: `INSTALLED`, `ACTIVE`, `UNHEALTHY`, `REMOVED`
 | `UNHEALTHY` | `INSTALLED` | `maintenance_stop_from_unhealthy` | `K-LOCAL-005` |
 | `INSTALLED` | `REMOVED` | `remove_model_from_installed` | `K-LOCAL-005` |
 
+Note: local_model_lifecycle 只表达 availability truth。residency / warmth 由 LocalWarmState 并行承载；ACTIVE 可与 warm_state=COLD 组合，表示模型可路由但当前未驻留。未加载或当前未命中 resident worker 不得单独触发 UNHEALTHY。
+
 ## local_service_lifecycle
 
 States: `INSTALLED`, `ACTIVE`, `UNHEALTHY`, `REMOVED`
@@ -71,6 +75,8 @@ States: `INSTALLED`, `ACTIVE`, `UNHEALTHY`, `REMOVED`
 | `ACTIVE` | `INSTALLED` | `stop_service` | `K-LOCAL-005` |
 | `UNHEALTHY` | `INSTALLED` | `stop_service_from_unhealthy` | `K-LOCAL-005` |
 | `INSTALLED` | `REMOVED` | `remove_service_from_installed` | `K-LOCAL-005` |
+
+Note: local_service_lifecycle 表达底层 service / engine process truth，不承载单个 model 的 residency；单个 llama model 是否当前 resident 必须由 LocalWarmState 或 runtime-private residency detail 表达。
 
 ## model_status
 

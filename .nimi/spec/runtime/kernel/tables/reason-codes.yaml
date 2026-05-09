@@ -130,10 +130,6 @@ codes:
     value: 353
     family: MODEL
     source_rule: K-LOCAL-003
-  - name: AI_LOCAL_ASSET_ALREADY_INSTALLED
-    value: 354
-    family: MODEL
-    source_rule: K-LOCAL-009
   - name: AI_LOCAL_ENDPOINT_REQUIRED
     value: 355
     family: MODEL

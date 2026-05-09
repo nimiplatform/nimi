@@ -5,7 +5,7 @@
 | Provider ID | Runtime Plane | Synthesize | Clone | Design | Timing Alignment | Voice Discovery Mode | Activation State | Source Rule |
 |---|---|---|---|---|---|---|---|---|
 | `aws_polly` | `remote` | `true` | `false` | `false` | `true` | `static_catalog` | `active` | `K-MCAT-023` |
-| `azure_speech` | `remote` | `true` | `false` | `false` | `true` | `static_catalog` | `active` | `K-MCAT-023` |
+| `azure_speech` | `remote` | `true` | `false` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |
 | `dashscope` | `remote` | `true` | `true` | `true` | `false` | `mixed` | `active` | `K-MCAT-023` |
 | `elevenlabs` | `remote` | `true` | `true` | `true` | `true` | `static_catalog` | `active` | `K-MCAT-023` |
 | `fish_audio` | `remote` | `true` | `true` | `false` | `false` | `static_catalog` | `active` | `K-MCAT-023` |

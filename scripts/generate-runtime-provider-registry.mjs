@@ -12,6 +12,7 @@ const generatedPath = path.join(repoRoot, 'runtime', 'internal', 'providerregist
 const sdkGeneratedPath = path.join(repoRoot, 'sdk', 'src', 'runtime', 'provider-targeting.generated.ts');
 const providerCatalogTablePath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'provider-catalog.yaml');
 const providerCapabilitiesTablePath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'provider-capabilities.yaml');
+const providerExtensionRegistryTablePath = path.join(repoRoot, '.nimi', 'spec', 'runtime', 'kernel', 'tables', 'provider-extension-registry.yaml');
 
 const supplementalProviders = [
   {
@@ -208,20 +209,7 @@ function capabilityFlags(sourceDoc) {
     }
   }
 
-  const workflowModels = Array.isArray(sourceDoc?.voice_workflow_models) ? sourceDoc.voice_workflow_models : [];
-  let voiceClone = false;
-  let voiceDesign = false;
-  for (const workflow of workflowModels) {
-    const workflowType = String(workflow?.workflow_type || '').trim().toLowerCase();
-    if (workflowType === 'voice_clone') {
-      voiceClone = true;
-    }
-    if (workflowType === 'voice_design') {
-      voiceDesign = true;
-    }
-  }
-
-  return { text, embed, image, video, tts, stt, music, musicIteration, voiceClone, voiceDesign };
+  return { text, embed, image, video, tts, stt, music, musicIteration, voiceClone: false, voiceDesign: false };
 }
 
 function collectProviderCapabilities(sourceDoc) {
@@ -251,17 +239,56 @@ function collectProviderCapabilities(sourceDoc) {
       capabilitySet.add(normalized);
     }
   }
-  const workflows = Array.isArray(sourceDoc?.voice_workflow_models) ? sourceDoc.voice_workflow_models : [];
-  for (const workflow of workflows) {
-    const workflowType = String(workflow?.workflow_type || '').trim().toLowerCase();
-    if (workflowType === 'voice_clone') {
-      capabilitySet.add('voice_workflow.voice_clone');
-    }
-    if (workflowType === 'voice_design') {
-      capabilitySet.add('voice_workflow.voice_design');
-    }
-  }
   return [...capabilitySet].sort((left, right) => left.localeCompare(right));
+}
+
+async function loadProviderExtensionCapabilities() {
+  const raw = await fs.readFile(providerExtensionRegistryTablePath, 'utf8');
+  const doc = YAML.parse(raw) || {};
+  const entries = Array.isArray(doc?.entries) ? doc.entries : [];
+  const out = new Map();
+  for (const entry of entries) {
+    const providerID = normalizeProvider(entry?.provider_id);
+    if (!providerID) {
+      throw new Error('provider-extension-registry entry missing provider_id');
+    }
+    const direction = String(entry?.direction || '').trim().toLowerCase();
+    if (direction && direction !== 'request') {
+      continue;
+    }
+    const scenarioType = String(entry?.scenario_type || '').trim().toUpperCase();
+    const current = out.get(providerID) || { voiceClone: false, voiceDesign: false };
+    if (scenarioType === 'VOICE_CLONE') {
+      current.voiceClone = true;
+    }
+    if (scenarioType === 'VOICE_DESIGN') {
+      current.voiceDesign = true;
+    }
+    out.set(providerID, current);
+  }
+  return out;
+}
+
+function applyProviderExtensionCapabilities(record, extensionCapabilities) {
+  const extension = extensionCapabilities.get(record.id) || { voiceClone: false, voiceDesign: false };
+  const capabilities = Array.isArray(record.capabilities)
+    ? record.capabilities.filter((capability) => !String(capability).startsWith('voice_workflow.'))
+    : [];
+  if (extension.voiceClone) {
+    capabilities.push('voice_workflow.voice_clone');
+  }
+  if (extension.voiceDesign) {
+    capabilities.push('voice_workflow.voice_design');
+  }
+  return {
+    ...record,
+    supports: {
+      ...record.supports,
+      voiceClone: Boolean(extension.voiceClone),
+      voiceDesign: Boolean(extension.voiceDesign),
+    },
+    capabilities: [...new Set(capabilities)].sort((left, right) => left.localeCompare(right)),
+  };
 }
 
 function readSelectionProfileDefaultTextModel(sourceDoc) {
@@ -500,6 +527,7 @@ function renderSDKFile(records) {
 
 async function main() {
   const sourceProviders = await loadSourceProviders();
+  const providerExtensionCapabilities = await loadProviderExtensionCapabilities();
 
   const recordsByID = new Map();
   for (const record of sourceProviders) {
@@ -524,7 +552,15 @@ async function main() {
     });
   }
 
-  const records = [...recordsByID.values()].sort((a, b) => compareProviderID(a.id, b.id));
+  for (const providerID of providerExtensionCapabilities.keys()) {
+    if (!recordsByID.has(providerID)) {
+      throw new Error(`provider-extension-registry references unknown provider: ${providerID}`);
+    }
+  }
+
+  const records = [...recordsByID.values()]
+    .map((record) => applyProviderExtensionCapabilities(record, providerExtensionCapabilities))
+    .sort((a, b) => compareProviderID(a.id, b.id));
   const rendered = renderGoFile(records);
   const sdkRendered = renderSDKFile(records);
   await fs.mkdir(path.dirname(generatedPath), { recursive: true });

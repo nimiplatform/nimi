@@ -31,8 +31,8 @@ service_mappings:
   phase: phase1
   source_rule: K-GRANT-002
 - design_service: RuntimeAccountService
-  proto_service: ""
-  mapping_status: design_only_pending_proto
+  proto_service: RuntimeAccountService
+  mapping_status: aligned
   phase: phase1
   source_rule: K-ACCSVC-002
 - design_service: RuntimeWorkflowService

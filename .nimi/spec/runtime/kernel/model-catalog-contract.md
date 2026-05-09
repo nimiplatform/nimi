@@ -306,9 +306,13 @@ Runtime 实际可用性必须与 source/snapshot 激活面一致；未接入实�
 source、snapshot、registry、resolver、scenario guard、live-provider checks 必须只使用以下 canonical capability token：
 
 - `text.generate`
+- `text.generate.vision`
+- `text.generate.audio`
+- `text.generate.video`
 - `text.embed`
 - `image.generate`
 - `video.generate`
+- `world.generate`
 - `audio.synthesize`
 - `audio.transcribe`
 - `music.generate`

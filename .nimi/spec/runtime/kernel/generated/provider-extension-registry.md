@@ -10,5 +10,11 @@
 | `local` | `SPEECH_TRANSCRIBE` | `request` | `nimi.scenario.speech_transcribe.request` | `best_effort` | `K-MMPROV-012` |
 | `dashscope` | `SPEECH_SYNTHESIZE` | `request` | `nimi.scenario.speech_synthesize.request` | `best_effort` | `K-MMPROV-012` |
 | `dashscope` | `SPEECH_TRANSCRIBE` | `request` | `nimi.scenario.speech_transcribe.request` | `best_effort` | `K-MMPROV-012` |
+| `dashscope` | `VOICE_CLONE` | `request` | `nimi.scenario.voice_clone.request` | `strict` | `K-MMPROV-020` |
+| `dashscope` | `VOICE_DESIGN` | `request` | `nimi.scenario.voice_design.request` | `strict` | `K-MMPROV-020` |
 | `elevenlabs` | `VOICE_CLONE` | `request` | `nimi.scenario.voice_clone.request` | `strict` | `K-MMPROV-020` |
 | `elevenlabs` | `VOICE_DESIGN` | `request` | `nimi.scenario.voice_design.request` | `strict` | `K-MMPROV-020` |
+| `fish_audio` | `VOICE_CLONE` | `request` | `nimi.scenario.voice_clone.request` | `strict` | `K-MMPROV-020` |
+| `local` | `VOICE_CLONE` | `request` | `nimi.scenario.voice_clone.request` | `strict` | `K-MMPROV-020` |
+| `local` | `VOICE_DESIGN` | `request` | `nimi.scenario.voice_design.request` | `strict` | `K-MMPROV-020` |
+| `stepfun` | `VOICE_CLONE` | `request` | `nimi.scenario.voice_clone.request` | `strict` | `K-MMPROV-020` |

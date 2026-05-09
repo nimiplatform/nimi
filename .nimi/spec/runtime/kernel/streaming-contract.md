@@ -20,6 +20,9 @@
 **模式 D — 长生命周期订阅流**（K-STREAM-010）：
 - `SubscribeRuntimeHealthEvents`（K-AUDIT-013）
 - `SubscribeAIProviderHealthEvents`（K-AUDIT-013）
+- `SubscribeAccountSessionEvents`
+- `SubscribeMemoryEvents`
+- `SubscribeAgentEvents`
 - `SubscribeAppMessages`（K-APP-003）
 - `ReadRealtimeEvents`
 - `WatchLocalTransfers`
@@ -75,7 +78,7 @@ Runtime 全部 server-streaming RPC 归入四种关闭模式（K-STREAM-001 分�
 | A — done=true 终帧 | 最后一帧 `done=true` + 可选 `reason_code` | StreamScenario(TEXT_GENERATE), StreamScenario(SPEECH_SYNTHESIZE) | K-STREAM-003, K-STREAM-004 |
 | B — 终态事件后 close | steady-state 下终态事件（COMPLETED/FAILED/CANCELED 等）发出后 server gRPC OK close；shutdown 可 `CANCELLED` 预empt | SubscribeScenarioJobEvents, SubscribeWorkflowEvents | K-STREAM-005, K-WF-004 |
 | C — eof=true 块后 close | `eof=true` 块发出后 server gRPC OK close | ExportAuditEvents | K-AUDIT-009 |
-| D — 长生命周期订阅 | 无终帧/eof 信号；server 在 daemon STOPPING 时以 `CANCELLED` 关闭 | SubscribeRuntimeHealthEvents, SubscribeAIProviderHealthEvents, SubscribeAppMessages, ReadRealtimeEvents, WatchLocalTransfers, grpc.health.v1.Health/Watch | K-STREAM-010 |
+| D — 长生命周期订阅 | 无终帧/eof 信号；server 在 daemon STOPPING 时以 `CANCELLED` 关闭 | SubscribeRuntimeHealthEvents, SubscribeAIProviderHealthEvents, SubscribeAccountSessionEvents, SubscribeMemoryEvents, SubscribeAgentEvents, SubscribeAppMessages, ReadRealtimeEvents, WatchLocalTransfers, grpc.health.v1.Health/Watch | K-STREAM-010 |
 
 SDK 消费方实现流式 RPC 时必须按所属模式处理流关闭语义。新增 server-streaming RPC 时必须在本表中声明所属模式。
 

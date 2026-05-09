@@ -12,7 +12,7 @@
 | `RuntimeLocalService` | `RuntimeLocalService` | `aligned` | `phase1` | `K-RPC-004` |
 | `RuntimeAuthService` | `RuntimeAuthService` | `aligned` | `phase1` | `K-AUTHSVC-002` |
 | `RuntimeGrantService` | `RuntimeGrantService` | `aligned` | `phase1` | `K-GRANT-002` |
-| `RuntimeAccountService` | `—` | `design_only_pending_proto` | `phase1` | `K-ACCSVC-002` |
+| `RuntimeAccountService` | `RuntimeAccountService` | `aligned` | `phase1` | `K-ACCSVC-002` |
 | `RuntimeWorkflowService` | `RuntimeWorkflowService` | `aligned` | `phase2` | `K-WF-003` |
 | `RuntimeAuditService` | `RuntimeAuditService` | `aligned` | `phase2` | `K-AUDIT-013` |
 | `RuntimeModelService` | `RuntimeModelService` | `aligned` | `phase2` | `K-MODEL-004` |

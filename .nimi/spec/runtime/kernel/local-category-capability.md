@@ -451,7 +451,7 @@ Runtime/desktop 允许在 catalog surface 之外新增 capability-scoped candida
 | `automatic-speech-recognition` | `stt` |
 | `feature-extraction` / `sentence-similarity` | `embedding` |
 
-未匹配的 `pipeline_tag` 回退为 `chat`（默认）。
+未匹配的 `pipeline_tag` / `tags` 不得回退为 `chat`。runtime 必须将其视为缺失 capability evidence，并 fail-close：该 HuggingFace row 不得进入可安装 / 可执行 catalog projection。
 
 ## K-LOCAL-024 下载管线契约
 

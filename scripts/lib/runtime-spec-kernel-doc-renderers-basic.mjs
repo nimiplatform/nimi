@@ -401,6 +401,10 @@ export function renderStateTransitions(doc, sourceName) {
       if (!from || !to || !trigger) continue;
       out += `| \`${from}\` | \`${to}\` | \`${trigger}\` | \`${source || '—'}\` |\n`;
     }
+    const note = String(machine?.note || '').trim();
+    if (note) {
+      out += `\nNote: ${note}\n`;
+    }
     out += '\n';
   }
 
@@ -559,4 +563,3 @@ export function renderWorkflowStates(doc, sourceName) {
 
   return normalizeMarkdown(out);
 }
-

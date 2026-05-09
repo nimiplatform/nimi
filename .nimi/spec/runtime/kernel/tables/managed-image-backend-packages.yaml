@@ -12,6 +12,7 @@ entries:
     package_format: oci_payload
     install_dir_name: metal-stablediffusion-ggml
     image_ref: quay.io/go-skynet/local-ai-backends:latest-metal-darwin-arm64-stablediffusion-ggml
+    oci_layer_digest: sha256:2a86268d6c75d765711ffe872077efc4e9e7f2dc4996cbc7f1f4bc9011d21575
     product_state: supported
 
   - entry_id: macos-apple-silicon-stablediffusion-ggml-official-sdcpp

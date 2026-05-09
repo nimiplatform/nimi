@@ -78,4 +78,3 @@
 | `feature-extraction` | `embedding` | — |
 | `sentence-similarity` | `embedding` | — |
 | `image-text-to-text` | `vision` | — |
-| `unknown` | `chat` | Fallback default for unrecognized pipeline tags |
