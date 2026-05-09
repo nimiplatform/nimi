@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { evaluateChangedProviderEntries, resolveRequiredProviders } from './check-live-smoke-gate.mjs';
@@ -85,4 +86,11 @@ test('release mode falls back to configured providers instead of every provider 
   });
 
   assert.deepEqual(toSortedValues(requiredProviders), ['dashscope', 'gemini']);
+});
+
+test('live matrix reads provider catalog from active .nimi authority', () => {
+  const source = readFileSync(new URL('./run-live-test-matrix.mjs', import.meta.url), 'utf8');
+
+  assert.match(source, /\.nimi\/spec\/runtime\/kernel\/tables\/provider-catalog\.yaml/);
+  assert.doesNotMatch(source, /['"`]spec\/runtime\/kernel\/tables\/provider-catalog\.yaml['"`]/);
 });

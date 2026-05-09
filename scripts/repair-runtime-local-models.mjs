@@ -164,7 +164,7 @@ function buildBackupIndex(snapshot) {
   return byLocalId;
 }
 
-function runtimeManifestFromAsset(asset, manifestRepo) {
+function runtimeManifestFromAsset(asset, manifestRepo, integrityAdmissionRef) {
   const kind = inferKind(asset);
   const manifest = {
     schemaVersion: '1.0.0',
@@ -181,6 +181,9 @@ function runtimeManifestFromAsset(asset, manifestRepo) {
     integrity_mode: 'local_unverified',
     hashes: normalizeObject(asset.hashes),
   };
+  if (normalizeString(integrityAdmissionRef)) {
+    manifest.repair_admission_ref = normalizeString(integrityAdmissionRef);
+  }
   const logicalModelId = normalizeString(asset.logicalModelId);
   if (logicalModelId) {
     manifest.logical_model_id = logicalModelId;
@@ -261,7 +264,24 @@ async function writeJson(filePath, value) {
   await fs.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
-async function repairAsset(modelsRoot, asset, backupAsset, write) {
+function manifestHasExplicitIntegrityEvidence(manifest) {
+  const mode = normalizeString(manifest?.integrity_mode).toLowerCase();
+  if (!mode || mode === 'local_unverified') {
+    return false;
+  }
+  return Object.keys(normalizeObject(manifest?.hashes)).length > 0;
+}
+
+function assertRepairWriteIntegrityAdmitted(manifest, admissionRef, asset) {
+  if (manifestHasExplicitIntegrityEvidence(manifest) || normalizeString(admissionRef)) {
+    return;
+  }
+  const assetRef = normalizeString(asset.assetId) || normalizeString(asset.localAssetId) || 'unknown asset';
+  throw new Error(`refusing to write local model repair for ${assetRef} without explicit integrity evidence or --integrity-admission-ref`);
+}
+
+async function repairAsset(modelsRoot, asset, backupAsset, options) {
+  const write = Boolean(options.write);
   const normalized = {
     ...asset,
     assetId: normalizeString(asset.assetId),
@@ -290,22 +310,6 @@ async function repairAsset(modelsRoot, asset, backupAsset, write) {
   let repaired = false;
   let restored = false;
 
-  if (candidateEntryPath && path.normalize(candidateEntryPath) !== path.normalize(entryPath)) {
-    if (write) {
-      await ensureParentDir(entryPath);
-      await fs.copyFile(candidateEntryPath, entryPath);
-    }
-    repaired = true;
-  }
-
-  if (!(await fileExists(entryPath)) && candidateEntryPath) {
-    if (write) {
-      await ensureParentDir(entryPath);
-      await fs.copyFile(candidateEntryPath, entryPath);
-    }
-    repaired = true;
-  }
-
   let existingManifest = null;
   for (const candidate of [manifestPath, legacyManifestPath, sourceRepoPath]) {
     if (!candidate) {
@@ -321,12 +325,36 @@ async function repairAsset(modelsRoot, asset, backupAsset, write) {
     }
   }
 
-  if (await fileExists(entryPath)) {
-    const manifest = {
-      ...normalizeObject(existingManifest),
-      ...runtimeManifestFromAsset({ ...normalized, kind }, manifestRepo),
-    };
+  const manifest = {
+    ...normalizeObject(existingManifest),
+    ...runtimeManifestFromAsset({ ...normalized, kind }, manifestRepo, options.integrityAdmissionRef),
+  };
+  if (manifestHasExplicitIntegrityEvidence(existingManifest) && !normalizeString(options.integrityAdmissionRef)) {
+    manifest.integrity_mode = normalizeString(existingManifest.integrity_mode);
+    manifest.hashes = normalizeObject(existingManifest.hashes);
+  }
+
+  if (candidateEntryPath && path.normalize(candidateEntryPath) !== path.normalize(entryPath)) {
     if (write) {
+      assertRepairWriteIntegrityAdmitted(manifest, options.integrityAdmissionRef, normalized);
+      await ensureParentDir(entryPath);
+      await fs.copyFile(candidateEntryPath, entryPath);
+    }
+    repaired = true;
+  }
+
+  if (!(await fileExists(entryPath)) && candidateEntryPath) {
+    if (write) {
+      assertRepairWriteIntegrityAdmitted(manifest, options.integrityAdmissionRef, normalized);
+      await ensureParentDir(entryPath);
+      await fs.copyFile(candidateEntryPath, entryPath);
+    }
+    repaired = true;
+  }
+
+  if (await fileExists(entryPath)) {
+    if (write) {
+      assertRepairWriteIntegrityAdmitted(manifest, options.integrityAdmissionRef, normalized);
       await writeJson(manifestPath, manifest);
     }
     if (sourceRepoPath && path.normalize(sourceRepoPath) !== path.normalize(manifestPath) && await fileExists(sourceRepoPath)) {
@@ -378,14 +406,25 @@ async function resolveModelsRoot(configPath, explicitModelsRoot) {
 function parseArgs(argv) {
   const result = {
     write: false,
+    help: false,
     localStatePath: '',
     configPath: '',
     modelsRoot: '',
+    integrityAdmissionRef: '',
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
+    if (arg === '--help' || arg === '-h') {
+      result.help = true;
+      continue;
+    }
     if (arg === '--write') {
       result.write = true;
+      continue;
+    }
+    if (arg === '--integrity-admission-ref') {
+      result.integrityAdmissionRef = argv[index + 1] || '';
+      index += 1;
       continue;
     }
     if (arg === '--local-state-path') {
@@ -406,8 +445,27 @@ function parseArgs(argv) {
   return result;
 }
 
+function printHelp() {
+  process.stdout.write(`Usage: node scripts/repair-runtime-local-models.mjs [options]
+
+Options:
+  --help, -h                         Show this help.
+  --write                            Write repaired manifests and local state.
+  --integrity-admission-ref <ref>    Required for --write when repaired manifests remain local_unverified.
+  --local-state-path <path>          Local runtime state JSON path.
+  --config-path <path>               Runtime config JSON path.
+  --models-root <path>               Local model root.
+
+Without --write, the command is diagnostic only.
+`);
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.help) {
+    printHelp();
+    return;
+  }
   const configPath = path.resolve(expandHome(args.configPath || defaultConfigPath()));
   const localStatePath = path.resolve(expandHome(args.localStatePath || defaultLocalStatePath()));
   const modelsRoot = await resolveModelsRoot(configPath, args.modelsRoot);
@@ -428,7 +486,7 @@ async function main() {
   for (const asset of assets) {
     const localAssetId = normalizeString(asset.localAssetId);
     const backupAsset = backupIndex.get(localAssetId) || null;
-    const repaired = await repairAsset(modelsRoot, asset, backupAsset, args.write);
+    const repaired = await repairAsset(modelsRoot, asset, backupAsset, args);
     repairedAssets.push(repaired.asset);
     if (repaired.repaired || repaired.restored) {
       repairedSummaries.push({

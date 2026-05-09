@@ -162,7 +162,10 @@ function checkNoLegacyAliasAcceptance() {
 }
 
 for (const root of scanRoots) {
-  walk(resolve(repoRoot, root));
+  const absRoot = resolve(repoRoot, root);
+  if (existsSync(absRoot)) {
+    walk(absRoot);
+  }
 }
 
 checkNoLegacyAliasAcceptance();
