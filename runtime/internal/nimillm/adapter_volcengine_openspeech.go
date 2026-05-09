@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
@@ -201,6 +202,9 @@ func executeBytedanceOpenSpeechWS(
 	if targetURL == "" {
 		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	if err := validateBytedanceOpenSpeechWSURL(ctx, targetURL); err != nil {
+		return "", nil, err
+	}
 	config, err := websocket.NewConfig(targetURL, websocketOrigin(targetURL))
 	if err != nil {
 		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -374,7 +378,14 @@ func resolveBytedanceOpenSpeechWSURL(baseURL string, scenarioExtensions map[stri
 		if !explicitParsed.IsAbs() {
 			return resolveBytedanceOpenSpeechWSURL(baseURL, map[string]any{"ws_path": explicitURL})
 		}
+		explicitScheme := strings.ToLower(strings.TrimSpace(explicitParsed.Scheme))
+		if explicitScheme != "ws" && explicitScheme != "wss" {
+			return ""
+		}
 		if !strings.EqualFold(strings.TrimSpace(baseParsed.Host), strings.TrimSpace(explicitParsed.Host)) {
+			return ""
+		}
+		if isSecureEndpointScheme(baseParsed.Scheme) && explicitScheme != "wss" {
 			return ""
 		}
 		return explicitParsed.String()
@@ -395,6 +406,29 @@ func resolveBytedanceOpenSpeechWSURL(baseURL string, scenarioExtensions map[stri
 		parsed.Scheme = "ws"
 	}
 	return parsed.String()
+}
+
+func validateBytedanceOpenSpeechWSURL(ctx context.Context, targetURL string) error {
+	parsed, err := url.Parse(strings.TrimSpace(targetURL))
+	if err != nil || parsed == nil || strings.TrimSpace(parsed.Host) == "" {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	switch strings.ToLower(strings.TrimSpace(parsed.Scheme)) {
+	case "wss":
+		parsed.Scheme = "https"
+	case "ws":
+		parsed.Scheme = "http"
+	default:
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if err := endpointsec.ValidateEndpoint(ctx, parsed.String(), allowLoopbackProviderEndpointFromContext(ctx)); err != nil {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+	}
+	return nil
+}
+
+func isSecureEndpointScheme(scheme string) bool {
+	return strings.EqualFold(strings.TrimSpace(scheme), "https") || strings.EqualFold(strings.TrimSpace(scheme), "wss")
 }
 
 func websocketOrigin(targetURL string) string {

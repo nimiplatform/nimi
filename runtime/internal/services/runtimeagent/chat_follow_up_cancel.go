@@ -1,18 +1,20 @@
 package runtimeagent
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *Service) cancelPublicChatFollowUpForAnchor(anchorID string, reason string, emit bool) *publicChatFollowUpState {
+func (s *Service) cancelPublicChatFollowUpForAnchor(anchorID string, reason string, emit bool) (*publicChatFollowUpState, error) {
 	s.chatSurfaceMu.Lock()
 	session := s.chatAnchors[strings.TrimSpace(anchorID)]
 	if session == nil || strings.TrimSpace(session.PendingFollowUpID) == "" {
 		s.chatSurfaceMu.Unlock()
-		return nil
+		return nil, nil
 	}
 	followUpID := session.PendingFollowUpID
 	followUp := s.chatFollowUps[followUpID]
@@ -24,16 +26,18 @@ func (s *Service) cancelPublicChatFollowUpForAnchor(anchorID string, reason stri
 	}
 	s.persistCurrentPublicChatSurfaceState()
 	if emit && followUp != nil {
-		s.emitPublicChatFollowUpCanceled(*followUp, reason, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", "")
+		if err := s.emitPublicChatFollowUpCanceled(*followUp, reason, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, "", ""); err != nil {
+			return followUp, err
+		}
 	}
-	return followUp
+	return followUp, nil
 }
 
-func (s *Service) cancelPublicChatFollowUpsForThread(callerAppID string, threadID string, reason string) {
+func (s *Service) cancelPublicChatFollowUpsForThread(callerAppID string, threadID string, reason string) error {
 	callerAppID = strings.TrimSpace(callerAppID)
 	threadID = strings.TrimSpace(threadID)
 	if callerAppID == "" || threadID == "" {
-		return
+		return nil
 	}
 	anchorIDs := make([]string, 0)
 	s.chatSurfaceMu.Lock()
@@ -47,16 +51,19 @@ func (s *Service) cancelPublicChatFollowUpsForThread(callerAppID string, threadI
 	}
 	s.chatSurfaceMu.Unlock()
 	for _, anchorID := range anchorIDs {
-		s.cancelPublicChatFollowUpForAnchor(anchorID, reason, true)
+		if _, err := s.cancelPublicChatFollowUpForAnchor(anchorID, reason, true); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func (s *Service) cancelPublicChatFollowUpsForRequest(callerAppID string, anchorID string, threadID string, reason string) {
+func (s *Service) cancelPublicChatFollowUpsForRequest(callerAppID string, anchorID string, threadID string, reason string) error {
 	callerAppID = strings.TrimSpace(callerAppID)
 	anchorID = strings.TrimSpace(anchorID)
 	threadID = strings.TrimSpace(threadID)
 	if callerAppID == "" {
-		return
+		return nil
 	}
 	if anchorID != "" {
 		s.chatSurfaceMu.Lock()
@@ -64,12 +71,15 @@ func (s *Service) cancelPublicChatFollowUpsForRequest(callerAppID string, anchor
 		ownedByCaller := session != nil && strings.TrimSpace(session.CallerAppID) == callerAppID
 		s.chatSurfaceMu.Unlock()
 		if ownedByCaller {
-			s.cancelPublicChatFollowUpForAnchor(anchorID, reason, true)
+			if _, err := s.cancelPublicChatFollowUpForAnchor(anchorID, reason, true); err != nil {
+				return err
+			}
 		}
 	}
 	if threadID != "" {
-		s.cancelPublicChatFollowUpsForThread(callerAppID, threadID, reason)
+		return s.cancelPublicChatFollowUpsForThread(callerAppID, threadID, reason)
 	}
+	return nil
 }
 
 func (s *Service) takePublicChatFollowUp(followUpID string) *publicChatFollowUpState {
@@ -101,8 +111,7 @@ func (s *Service) emitPublicChatFollowUpCanceled(
 	reasonCode runtimev1.ReasonCode,
 	actionHint string,
 	message string,
-) {
-	_ = reason // retained for audit/debug logging only; not surfaced on any public event.
+) error {
 	s.setPublicChatStoredFollowUpOutcome(followUp.ConversationAnchorID, followUp.SourceTurnID, publicChatFollowUpOutcome{
 		Status:           "canceled",
 		FollowUpID:       followUp.FollowUpID,
@@ -116,6 +125,36 @@ func (s *Service) emitPublicChatFollowUpCanceled(
 		ActionHint:       strings.TrimSpace(actionHint),
 		Message:          strings.TrimSpace(message),
 	})
+	intent := cloneHookIntent(followUp.HookIntent)
+	if intent == nil {
+		intent = &runtimev1.HookIntent{
+			IntentId:             strings.TrimSpace(followUp.SourceActionID),
+			AgentId:              strings.TrimSpace(followUp.AgentID),
+			ConversationAnchorId: strings.TrimSpace(followUp.ConversationAnchorID),
+			OriginatingTurnId:    strings.TrimSpace(followUp.SourceTurnID),
+			Effect:               runtimev1.HookEffect_HOOK_EFFECT_FOLLOW_UP_TURN,
+		}
+	}
+	intent.AdmissionState = runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED
+	agentID := strings.TrimSpace(intent.GetAgentId())
+	if agentID == "" {
+		agentID = strings.TrimSpace(followUp.AgentID)
+	}
+	if agentID == "" {
+		return fmt.Errorf("public chat follow-up cancellation requires agent id")
+	}
+	entry, err := s.agentByID(agentID)
+	if err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	return s.updateAgent(entry, hookEventAt(entry.Agent.GetAgentId(), &runtimev1.HookExecutionOutcome{
+		Intent:     intent,
+		ObservedAt: timestamppb.New(now),
+		Reason:     strings.TrimSpace(reason),
+		ReasonCode: reasonCode,
+		Message:    strings.TrimSpace(message),
+	}, now))
 }
 
 func firstPublicChatFollowUpAction(structured *publicChatStructuredEnvelope) *publicChatStructuredAction {

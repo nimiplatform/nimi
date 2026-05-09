@@ -72,6 +72,57 @@ func TestAvatarDebugProbeRecordsRuntimeAuditReplayAndProjection(t *testing.T) {
 	if replay.GetRequest().GetProbeId() != "probe-1" || replay.GetResult().GetProbeId() != "probe-1" || replay.GetReplayRef().GetProbeId() != "probe-1" {
 		t.Fatalf("replay did not reconstruct from runtime audit lineage: %+v", replay)
 	}
+	if len(replay.GetResult().GetEvidenceRefs()) == 0 || replay.GetResult().GetEvidenceRefs()[0] != avatarDebugAuthorizationRefPrefix+"probe-1" {
+		t.Fatalf("replay result missing authorization evidence ref: %+v", replay.GetResult().GetEvidenceRefs())
+	}
+	if !containsString(replay.GetResult().GetEvidenceRefs(), avatarDebugProjectionRefPrefix+"probe-1") {
+		t.Fatalf("replay result missing projection lineage evidence ref: %+v", replay.GetResult().GetEvidenceRefs())
+	}
+	auditEvents, err := svc.auditStore.ListEvents(&runtimev1.ListAuditEventsRequest{
+		Domain:   avatarDebugAuditDomain,
+		PageSize: 10,
+	})
+	if err != nil {
+		t.Fatalf("list avatar debug audit events: %v", err)
+	}
+	if len(auditEvents.GetEvents()) != 3 {
+		t.Fatalf("expected request/result/replay audit events, got %d", len(auditEvents.GetEvents()))
+	}
+	for _, event := range auditEvents.GetEvents() {
+		fields := event.GetPayload().GetFields()
+		if fields["access_decision_verdict"].GetStringValue() != avatarDebugAuthorizationVerdict {
+			t.Fatalf("avatar debug audit event missing authorization verdict: %+v", event)
+		}
+		if fields["access_decision_ref"].GetStringValue() != avatarDebugAuthorizationRefPrefix+"probe-1" {
+			t.Fatalf("avatar debug audit event missing authorization ref: %+v", event)
+		}
+		if event.GetOperation() == avatarDebugReplayLinkOperation {
+			if fields["request_event_id"].GetStringValue() != avatarDebugRequestOperation+":probe-1" {
+				t.Fatalf("avatar debug replay missing request event id: %+v", event)
+			}
+			if fields["result_event_id"].GetStringValue() != avatarDebugResultOperation+":probe-1" {
+				t.Fatalf("avatar debug replay missing result event id: %+v", event)
+			}
+			if fields["authorization_verdict_id"].GetStringValue() == "" {
+				t.Fatalf("avatar debug replay missing authorization verdict id: %+v", event)
+			}
+			if fields["projection_lineage_id"].GetStringValue() != avatarDebugProjectionRefPrefix+"probe-1" {
+				t.Fatalf("avatar debug replay missing projection lineage id: %+v", event)
+			}
+			if fields["replay_visibility"].GetStringValue() != runtimev1.AvatarDebugReplayVisibility_AVATAR_DEBUG_REPLAY_VISIBILITY_DESKTOP_DEBUG_WORKBENCH.String() {
+				t.Fatalf("avatar debug replay missing replay visibility: %+v", event)
+			}
+		}
+	}
+}
+
+func containsString(values []string, expected string) bool {
+	for _, value := range values {
+		if value == expected {
+			return true
+		}
+	}
+	return false
 }
 
 func TestAvatarDebugProbeFailsClosedWithoutAuditStore(t *testing.T) {

@@ -72,7 +72,8 @@ func (s *Service) schedulePublicChatFollowUp(
 			Message:          message,
 		}
 	}
-	if _, err := publicChatFollowUpHookIntent(session, turn, action, runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED); err != nil {
+	pendingIntent, err := publicChatFollowUpHookIntent(session, turn, action, runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING)
+	if err != nil {
 		return publicChatFollowUpOutcome{
 			Status:           "rejected",
 			ChainID:          turn.ChainID,
@@ -107,9 +108,22 @@ func (s *Service) schedulePublicChatFollowUp(
 		SourceActionID:       action.ActionID,
 		Context:              ctx,
 		Cancel:               cancel,
+		HookIntent:           pendingIntent,
 	}
 
-	s.cancelPublicChatFollowUpForAnchor(session.ConversationAnchorID, "superseded", false)
+	if _, err := s.cancelPublicChatFollowUpForAnchor(session.ConversationAnchorID, "superseded", true); err != nil {
+		cancel()
+		return publicChatFollowUpOutcome{
+			Status:           "rejected",
+			ChainID:          chainID,
+			FollowUpDepth:    nextDepth,
+			MaxFollowUpTurns: maxTurns,
+			SourceTurnID:     turn.TurnID,
+			SourceActionID:   action.ActionID,
+			ReasonCode:       reasonCodeFromError(err),
+			Message:          strings.TrimSpace(err.Error()),
+		}
+	}
 
 	s.chatSurfaceMu.Lock()
 	if current := s.chatAnchors[session.ConversationAnchorID]; current != nil {

@@ -12,6 +12,32 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+const anonymousScenarioJobOwner = "anonymous"
+
+func normalizeSubmitScenarioJobOwner(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobRequest, error) {
+	owner, err := canonicalScenarioJobOwner(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := cloneSubmitScenarioJobRequest(req)
+	if out == nil || out.GetHead() == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	out.Head.SubjectUserId = owner
+	return out, nil
+}
+
+func canonicalScenarioJobOwner(ctx context.Context) (string, error) {
+	if identity := authn.IdentityFromContext(ctx); identity != nil {
+		subject := strings.TrimSpace(identity.SubjectUserID)
+		if subject == "" {
+			return "", grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+		}
+		return subject, nil
+	}
+	return anonymousScenarioJobOwner, nil
+}
+
 func (s *Service) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetJobId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -220,6 +246,10 @@ func authorizeScenarioJob(ctx context.Context, job *runtimev1.ScenarioJob) error
 		if actualSubject == "" || expectedSubject != actualSubject {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		}
+		return nil
+	}
+	if expectedSubject != anonymousScenarioJobOwner {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	return nil
 }

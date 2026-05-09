@@ -145,9 +145,9 @@ func TestAcquireSelectedLocalModelLease(t *testing.T) {
 
 func TestSelectActiveLocalModel(t *testing.T) {
 	models := []*runtimev1.LocalAssetRecord{
-		{LocalAssetId: "b", AssetId: "qwen", Engine: "media"},
-		{LocalAssetId: "c", AssetId: "qwen", Engine: "sidecar"},
-		{LocalAssetId: "a", AssetId: "qwen", Engine: "llama"},
+		{LocalAssetId: "b", AssetId: "qwen", Engine: "media", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
+		{LocalAssetId: "c", AssetId: "qwen", Engine: "sidecar", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
+		{LocalAssetId: "a", AssetId: "qwen", Engine: "llama", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
 	}
 
 	selected, reason := selectActiveLocalModel(models, localModelSelector{modelID: "qwen"})
@@ -252,9 +252,19 @@ func TestValidateLocalModelRequest(t *testing.T) {
 		t.Fatalf("expected local model unavailable, got=%v ok=%v", reason, ok)
 	}
 
+	// Proto zero-value status must not be treated as runnable readiness.
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
+		Assets: []*runtimev1.LocalAssetRecord{{AssetId: "qwen", Engine: "llama", LocalInvokeProfileId: "invoke"}},
+	}}}
+	err = svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED)
+	reason, ok = grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("expected unspecified-status local model unavailable, got=%v ok=%v", reason, ok)
+	}
+
 	// Missing invoke profile for custom capability should fail.
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
-		Assets: []*runtimev1.LocalAssetRecord{{AssetId: "qwen", Engine: "llama", Capabilities: []string{"custom"}}},
+		Assets: []*runtimev1.LocalAssetRecord{{AssetId: "qwen", Engine: "llama", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, Capabilities: []string{"custom"}}},
 	}}}
 	err = svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED)
 	reason, ok = grpcerr.ExtractReasonCode(err)
@@ -274,7 +284,7 @@ func TestValidateLocalModelRequest(t *testing.T) {
 
 	// Success path.
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
-		Assets: []*runtimev1.LocalAssetRecord{{AssetId: "qwen", Engine: "llama", LocalInvokeProfileId: "invoke"}},
+		Assets: []*runtimev1.LocalAssetRecord{{AssetId: "qwen", Engine: "llama", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, LocalInvokeProfileId: "invoke"}},
 	}}}
 	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("expected local model validation success, got %v", err)
@@ -311,8 +321,8 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	// Same modelId across engines should respect explicit engine selector.
 	dualEnginePage := &runtimev1.ListLocalAssetsResponse{
 		Assets: []*runtimev1.LocalAssetRecord{
-			{AssetId: "qwen", Engine: "llama", LocalInvokeProfileId: "invoke"},
-			{AssetId: "qwen", Engine: "sidecar", LocalInvokeProfileId: "invoke"},
+			{AssetId: "qwen", Engine: "llama", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, LocalInvokeProfileId: "invoke"},
+			{AssetId: "qwen", Engine: "sidecar", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, LocalInvokeProfileId: "invoke"},
 		},
 	}
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{
@@ -327,9 +337,9 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	}
 	dualEnginePageWithSidecar := &runtimev1.ListLocalAssetsResponse{
 		Assets: []*runtimev1.LocalAssetRecord{
-			{AssetId: "qwen", Engine: "llama", LocalInvokeProfileId: "invoke"},
-			{AssetId: "qwen", Engine: "sidecar", LocalInvokeProfileId: "invoke"},
-			{AssetId: "qwen", Engine: "media", LocalInvokeProfileId: "invoke"},
+			{AssetId: "qwen", Engine: "llama", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, LocalInvokeProfileId: "invoke"},
+			{AssetId: "qwen", Engine: "sidecar", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, LocalInvokeProfileId: "invoke"},
+			{AssetId: "qwen", Engine: "media", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, LocalInvokeProfileId: "invoke"},
 		},
 	}
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{
@@ -354,7 +364,7 @@ func TestValidateLocalModelRequest(t *testing.T) {
 
 	// Case-insensitive modelId matching should succeed across desktop/go-runtime normalization.
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
-		Assets: []*runtimev1.LocalAssetRecord{{AssetId: "Qwen", Engine: "llama", LocalInvokeProfileId: "invoke"}},
+		Assets: []*runtimev1.LocalAssetRecord{{AssetId: "Qwen", Engine: "llama", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, LocalInvokeProfileId: "invoke"}},
 	}}}
 	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("expected case-insensitive local model validation success, got %v", err)

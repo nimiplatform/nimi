@@ -118,6 +118,12 @@ func TestImportLocalPassiveAssetFileKeepsManifestKind(t *testing.T) {
 	if got, _ := manifest["asset_id"].(string); got != asset.GetAssetId() {
 		t.Fatalf("manifest asset_id mismatch: got=%q want=%q", got, asset.GetAssetId())
 	}
+	if got, _ := manifest["schema_version"].(string); got != "1.0.0" {
+		t.Fatalf("manifest schema_version mismatch: got=%q want=1.0.0", got)
+	}
+	if _, exists := manifest["schemaVersion"]; exists {
+		t.Fatalf("legacy schemaVersion must not be written: %#v", manifest)
+	}
 	if got, _ := manifest["kind"].(string); got != "vae" {
 		t.Fatalf("manifest kind mismatch: got=%q want=vae", got)
 	}

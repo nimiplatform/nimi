@@ -120,6 +120,17 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(session publicChatAnchor
 	if len(out.Frames) == 0 || strings.TrimSpace(out.AudioArtifactID) == "" {
 		return
 	}
+	if err := r.svc.storeVoiceLipsyncArtifact(out); err != nil {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("store voice lipsync artifact failed",
+				"agent_id", session.AgentID,
+				"turn_id", turnID,
+				"audio_artifact_id", out.AudioArtifactID,
+				"error", err,
+			)
+		}
+		return
+	}
 	if err := r.emitVoicePlaybackTimelineEvent(session, turn, publicChatVoicePlaybackProjection{
 		AudioArtifactID: out.AudioArtifactID,
 		AudioMimeType:   out.AudioMimeType,

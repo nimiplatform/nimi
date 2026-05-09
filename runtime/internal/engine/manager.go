@@ -156,8 +156,6 @@ func (m *Manager) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedIma
 	backendsPath := strings.TrimSpace(m.managedImageBackendsPath)
 	sharedDependenciesPath := strings.TrimSpace(m.sharedAcceleratorDependenciesPath)
 	m.mu.RUnlock()
-	installStartedAt := time.Now()
-	installRequired := false
 	if normalized.Mode == ManagedImageBackendOfficial {
 		if spec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource(normalized.BackendName, normalized.PackageSource); ok {
 			attrs := []any{
@@ -178,9 +176,8 @@ func (m *Manager) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedIma
 			if _, err := discoverInstalledManagedImageBackendLaunchConfig(backendsPath, sharedDependenciesPath, normalized.BackendName, spec, normalized.Address); err == nil {
 				m.logger.Info("managed image backend package already installed", attrs...)
 			} else {
-				installRequired = true
 				attrs = append(attrs, "reason", err)
-				m.logger.Info("installing managed image backend package", attrs...)
+				m.logger.Info("managed image backend package materialization required", attrs...)
 			}
 		}
 	}
@@ -193,21 +190,6 @@ func (m *Manager) EnsureManagedImageBackend(ctx context.Context, cfg *ManagedIma
 	resolved, err := ensureManagedImageBackendInstalled(ctx, backendsPath, sharedDependenciesPath, normalized)
 	if err != nil {
 		return err
-	}
-	if normalized.Mode == ManagedImageBackendOfficial && installRequired {
-		if spec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource(normalized.BackendName, normalized.PackageSource); ok {
-			m.logger.Info(
-				"managed image backend package installed",
-				"backend", normalized.BackendName,
-				"mode", normalized.Mode,
-				"package_source", strings.TrimSpace(string(spec.PackageSource)),
-				"package_format", spec.PackageFormat,
-				"launch_mode", spec.LaunchMode,
-				"install_dir", spec.InstallDirName,
-				"backends_path", backendsPath,
-				"duration_ms", time.Since(installStartedAt).Milliseconds(),
-			)
-		}
 	}
 	auxCfg, err := managedImageBackendEngineConfig(resolved)
 	if err != nil {
@@ -231,7 +213,8 @@ func (m *Manager) EnsureManagedImageBackendDependency(ctx context.Context, cfg *
 			return ManagedImageBackendDependencyStatus{}, fmt.Errorf("managed image backend requires shared accelerator dependency %s to be ready before activation: state=%s detail=%s", status.DependencyID, status.State, status.Detail)
 		}
 	}
-	resolved, err := ensureManagedImageBackendInstalled(ctx, backendsPath, sharedDependenciesPath, normalized)
+	materializedStartedAt := time.Now()
+	resolved, err := ensureManagedImageBackendMaterialized(ctx, backendsPath, sharedDependenciesPath, normalized)
 	if err != nil {
 		return ManagedImageBackendDependencyStatus{}, err
 	}
@@ -239,7 +222,21 @@ func (m *Manager) EnsureManagedImageBackendDependency(ctx context.Context, cfg *
 	if !ok {
 		return ManagedImageBackendDependencyStatus{}, fmt.Errorf("managed image backend package source record unavailable for %s", resolved.BackendName)
 	}
-	return managedImageBackendDependencyStatusFromConfig(resolved, spec), nil
+	status := managedImageBackendDependencyStatusFromConfig(resolved, spec)
+	if normalized.Mode == ManagedImageBackendOfficial {
+		m.logger.Info(
+			"managed image backend package materialized",
+			"backend", normalized.BackendName,
+			"mode", normalized.Mode,
+			"package_source", strings.TrimSpace(string(spec.PackageSource)),
+			"package_format", spec.PackageFormat,
+			"launch_mode", spec.LaunchMode,
+			"install_dir", spec.InstallDirName,
+			"backends_path", backendsPath,
+			"duration_ms", time.Since(materializedStartedAt).Milliseconds(),
+		)
+	}
+	return status, nil
 }
 
 // StartInstalledManagedImageBackend starts a previously materialized runtime-owned

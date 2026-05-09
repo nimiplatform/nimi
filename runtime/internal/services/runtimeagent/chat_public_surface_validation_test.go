@@ -177,7 +177,6 @@ func TestPublicChatTurnInvalidStructuredOutputFailsClosed(t *testing.T) {
 	}
 	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
 	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
-	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)
 	failed := capture.waitForMessageType(t, publicChatTurnFailedType)
 	failedDetail := publicChatTurnDetail(t, failed)
 	if got := failedDetail["reason_code"]; got != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {
@@ -273,7 +272,6 @@ func TestPublicChatTurnRequestPreservesCommittedTranscriptOnFailedTurn(t *testin
 	}
 	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
 	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
-	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)
 	_ = capture.waitForMessageType(t, publicChatTurnFailedType)
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-preserve-committed-transcript")
 	detail := publicChatSessionSnapshotDetail(t, snapshot)
@@ -466,7 +464,6 @@ func TestPublicChatTurnRequestRejectsUnknownEmotionBeforeCommit(t *testing.T) {
 	}
 	_ = capture.waitForMessageType(t, publicChatTurnAcceptedType)
 	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
-	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)
 	failed := capture.waitForMessageType(t, publicChatTurnFailedType)
 	failedDetail := publicChatTurnDetail(t, failed)
 	if got := failedDetail["reason_code"]; got != runtimev1.ReasonCode_AI_OUTPUT_INVALID.String() {

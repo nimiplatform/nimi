@@ -34,7 +34,7 @@ func TestValidateLocalModelRequestPrefersCanonicalModalEngines(t *testing.T) {
 
 	textPage := &runtimev1.ListLocalAssetsResponse{
 		Assets: []*runtimev1.LocalAssetRecord{
-			{AssetId: "qwen", Engine: "llama", LocalInvokeProfileId: "invoke"},
+			{AssetId: "qwen", Engine: "llama", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, LocalInvokeProfileId: "invoke"},
 		},
 	}
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{textPage}}
@@ -45,7 +45,7 @@ func TestValidateLocalModelRequestPrefersCanonicalModalEngines(t *testing.T) {
 
 	imagePage := &runtimev1.ListLocalAssetsResponse{
 		Assets: []*runtimev1.LocalAssetRecord{
-			{AssetId: "flux.1-schnell", Engine: "media", LocalInvokeProfileId: "invoke"},
+			{AssetId: "flux.1-schnell", Engine: "media", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, LocalInvokeProfileId: "invoke"},
 		},
 	}
 	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{imagePage}}
@@ -334,7 +334,7 @@ func TestValidateLocalModelRequestUnhealthyImageRetriesStartAndRecovers(t *testi
 	}
 }
 
-func TestValidateLocalModelRequestUnhealthyImageBypassesStartWithDynamicProfileOverrides(t *testing.T) {
+func TestValidateLocalModelRequestUnhealthyImageRequiresStartWithDynamicProfileOverrides(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger, Config{EnforceEndpointSecurity: true})
 	loopbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -342,18 +342,30 @@ func TestValidateLocalModelRequestUnhealthyImageBypassesStartWithDynamicProfileO
 	}))
 	defer loopbackServer.Close()
 
-	imageLister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalAssetsResponse{{
-		Assets: []*runtimev1.LocalAssetRecord{{
+	imageLister := &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId:         "local-image-unhealthy",
+				AssetId:              "z_image_turbo-Q4_K",
+				Engine:               "media",
+				Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+				LocalInvokeProfileId: "invoke",
+				Capabilities:         []string{"image.generate"},
+				Endpoint:             loopbackServer.URL + "/v1",
+				HealthDetail:         "managed local image backend validation failed: stale failure",
+			}},
+		}},
+		startResp: &runtimev1.StartLocalAssetResponse{Asset: &runtimev1.LocalAssetRecord{
 			LocalAssetId:         "local-image-unhealthy",
 			AssetId:              "z_image_turbo-Q4_K",
 			Engine:               "media",
-			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+			Status:               runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 			LocalInvokeProfileId: "invoke",
 			Capabilities:         []string{"image.generate"},
 			Endpoint:             loopbackServer.URL + "/v1",
-			HealthDetail:         "managed local image backend validation failed: stale failure",
+			HealthDetail:         "managed local image active; backend load verified",
 		}},
-	}}}
+	}
 	resolver := &fakeLocalImageProfileResolver{
 		alias:          "dynamic-profile",
 		profile:        map[string]any{"name": "dynamic-profile"},
@@ -395,21 +407,21 @@ func TestValidateLocalModelRequestUnhealthyImageBypassesStartWithDynamicProfileO
 		},
 	)
 	if err != nil {
-		t.Fatalf("expected unhealthy image local model validation to use dynamic profile bypass, got %v", err)
+		t.Fatalf("expected unhealthy image local model validation to start with dynamic profile, got %v", err)
 	}
 	if resolver.resolveProfileCalls != 1 {
 		t.Fatalf("expected dynamic profile resolver to run once, got %d", resolver.resolveProfileCalls)
 	}
-	if imageLister.startCalls != 0 {
-		t.Fatalf("expected unhealthy image local model to bypass StartLocalAsset, got %d", imageLister.startCalls)
+	if imageLister.startCalls != 1 {
+		t.Fatalf("expected unhealthy image local model to require StartLocalAsset, got %d", imageLister.startCalls)
 	}
 }
 
 func TestLocalPreferredEnginesPrefersCanonicalEngines(t *testing.T) {
 	models := []*runtimev1.LocalAssetRecord{
-		{LocalAssetId: "a", AssetId: "qwen", Engine: "llama"},
-		{LocalAssetId: "b", AssetId: "qwen", Engine: "media"},
-		{LocalAssetId: "c", AssetId: "qwen", Engine: "sidecar"},
+		{LocalAssetId: "a", AssetId: "qwen", Engine: "llama", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
+		{LocalAssetId: "b", AssetId: "qwen", Engine: "media", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
+		{LocalAssetId: "c", AssetId: "qwen", Engine: "sidecar", Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
 	}
 
 	selected, reason := selectActiveLocalModel(models, localModelSelector{

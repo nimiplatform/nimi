@@ -14,11 +14,16 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 import uvicorn
 from speech_server_runtime import (
+    MODELS_ROOT_ENV,
+    HostState,
+    QWEN3_ASR_DRIVER_ENV,
+    QWEN3_TTS_PREFLIGHT_CACHE,
     QWEN3_TTS_DRIVER_ENV,
+    SpeechModelState,
     build_host_state,
     driver_command_state,
-    find_ready_model,
-    infer_workflow_family,
+    find_ready_model as runtime_find_ready_model,
+    find_ready_workflow_model as runtime_find_ready_workflow_model,
     local_workflow_not_admitted_response,
     plain_speech_unavailable_response,
     public_model_payload,
@@ -29,6 +34,34 @@ from speech_server_runtime import (
     voice_workflow_result_from_driver,
     workflow_execution_unavailable_response,
 )
+
+
+def find_ready_model(model_id: str, capability: str) -> SpeechModelState:
+    target = model_id.strip()
+    normalized_target = target.lower()
+    candidate_targets = {normalized_target}
+    if "/" in normalized_target:
+        _, suffix = normalized_target.split("/", 1)
+        if suffix:
+            candidate_targets.add(suffix)
+    elif normalized_target:
+        candidate_targets.add(f"speech/{normalized_target}")
+    for model in build_host_state().models:
+        normalized_model_id = model.model_id.strip().lower()
+        if (
+            normalized_model_id in candidate_targets
+            and model.ready
+            and capability in model.ready_capabilities
+        ):
+            return model
+    return runtime_find_ready_model(model_id, capability)
+
+
+def find_ready_workflow_model(model_id: str, capability: str, workflow_model_id: str) -> SpeechModelState:
+    model = find_ready_model(model_id, capability)
+    if workflow_model_id.strip() not in model.workflow_model_bindings.get(capability, []):
+        return runtime_find_ready_workflow_model(model_id, capability, workflow_model_id)
+    return model
 
 
 class SpeechSynthesizeRequest:
@@ -240,11 +273,10 @@ def create_app() -> FastAPI:
     def clone_voice(payload: dict[str, Any]):
         workflow_model_id = str(payload.get("workflow_model_id") or "").strip()
         target_model_id = str(payload.get("target_model_id") or "").strip()
-        workflow_family = infer_workflow_family(target_model_id, workflow_model_id)
-        if workflow_family != "qwen3_tts":
-            return local_workflow_not_admitted_response("voice clone", workflow_family)
+        if not workflow_model_id or not target_model_id:
+            return local_workflow_not_admitted_response("voice clone", "")
         try:
-            model = find_ready_model(target_model_id, "audio.synthesize")
+            model = find_ready_workflow_model(target_model_id, "voice_workflow.voice_clone", workflow_model_id)
             response = run_driver_command(
                 driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")[0],
                 {
@@ -275,11 +307,10 @@ def create_app() -> FastAPI:
     def design_voice(payload: dict[str, Any]):
         workflow_model_id = str(payload.get("workflow_model_id") or "").strip()
         target_model_id = str(payload.get("target_model_id") or "").strip()
-        workflow_family = infer_workflow_family(target_model_id, workflow_model_id)
-        if workflow_family != "qwen3_tts":
-            return local_workflow_not_admitted_response("voice design", workflow_family)
+        if not workflow_model_id or not target_model_id:
+            return local_workflow_not_admitted_response("voice design", "")
         try:
-            model = find_ready_model(target_model_id, "audio.synthesize")
+            model = find_ready_workflow_model(target_model_id, "voice_workflow.voice_design", workflow_model_id)
             response = run_driver_command(
                 driver_command_state(QWEN3_TTS_DRIVER_ENV, "qwen3_tts")[0],
                 {

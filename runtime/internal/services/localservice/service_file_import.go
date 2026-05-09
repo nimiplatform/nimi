@@ -278,7 +278,7 @@ func (s *Service) importLocalModelFile(
 		})
 	}
 	manifest := map[string]any{
-		"schemaVersion":    "1.0.0",
+		"schema_version":   "1.0.0",
 		"asset_id":         modelID,
 		"kind":             kindToken,
 		"logical_model_id": logicalModelID,
@@ -440,13 +440,13 @@ func (s *Service) importLocalPassiveAssetFile(
 		})
 	}
 	manifest := map[string]any{
-		"schemaVersion": "1.0.0",
-		"asset_id":      artifactID,
-		"kind":          kindToken,
-		"engine":        engine,
-		"entry":         destFileName,
-		"files":         []string{destFileName},
-		"license":       "unknown",
+		"schema_version": "1.0.0",
+		"asset_id":       artifactID,
+		"kind":           kindToken,
+		"engine":         engine,
+		"entry":          destFileName,
+		"files":          []string{destFileName},
+		"license":        "unknown",
 		"source": map[string]any{
 			"repo":     "file://" + filepath.ToSlash(manifestPath),
 			"revision": "local",

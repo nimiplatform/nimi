@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -102,9 +101,6 @@ func llamaExpectedSHA256(version string, assetName string) (string, error) {
 func fetchGitHubReleaseByTag(tagURL string, client *http.Client) (githubReleasePayload, error) {
 	resp, err := doEngineDownloadRequest(tagURL, client, 60*time.Second)
 	if err != nil {
-		if payload, fallbackErr := fetchGitHubReleaseByTagWithCurl(tagURL, err); fallbackErr == nil {
-			return payload, nil
-		}
 		return githubReleasePayload{}, fmt.Errorf("%w: fetch release metadata: %v", ErrEngineBinaryDownloadFailed, err)
 	}
 	defer resp.Body.Close()
@@ -116,30 +112,6 @@ func fetchGitHubReleaseByTag(tagURL string, client *http.Client) (githubReleaseP
 	var payload githubReleasePayload
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return githubReleasePayload{}, fmt.Errorf("%w: decode release metadata: %v", ErrEngineBinaryDownloadFailed, err)
-	}
-	return payload, nil
-}
-
-func fetchGitHubReleaseByTagWithCurl(tagURL string, requestErr error) (githubReleasePayload, error) {
-	tmp, err := os.CreateTemp("", "nimi-llama-release-*.json")
-	if err != nil {
-		return githubReleasePayload{}, err
-	}
-	tmpPath := tmp.Name()
-	_ = tmp.Close()
-	defer os.Remove(tmpPath)
-
-	if _, err := tryCurlDownload(tagURL, tmpPath, requestErr); err != nil {
-		return githubReleasePayload{}, err
-	}
-	file, err := os.Open(tmpPath)
-	if err != nil {
-		return githubReleasePayload{}, err
-	}
-	defer file.Close()
-	var payload githubReleasePayload
-	if err := json.NewDecoder(file).Decode(&payload); err != nil {
-		return githubReleasePayload{}, fmt.Errorf("%w: decode release metadata from curl fallback: %v", ErrEngineBinaryDownloadFailed, err)
 	}
 	return payload, nil
 }

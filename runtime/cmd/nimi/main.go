@@ -254,8 +254,12 @@ func runTopLevelRun(args []string) error {
 			if err != nil {
 				return err
 			}
+			configPath, persistErr := persistOnboardingProviderAPIKey(target.ProviderName, apiKey)
+			if persistErr != nil {
+				return fmt.Errorf("persist cloud credentials for %s: %w", target.ProviderName, persistErr)
+			}
 			if !*jsonOutput {
-				fmt.Printf("Using pasted %s API key for this run only. Persist credentials with '%s'.\n", target.ProviderName, cloudCredentialSetupCommand(target.ProviderName, *cloudTarget))
+				fmt.Printf("Saved pasted %s API key to %s. Prefer '%s' for future setup when possible.\n", target.ProviderName, configPath, cloudCredentialSetupCommand(target.ProviderName, *cloudTarget))
 			}
 		}
 		endpoint := target.ProviderEndpoint

@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
@@ -20,35 +19,17 @@ type ResolvedCloudProvider struct {
 	APIKey      string
 }
 
-var providerEnvBindings = buildProviderEnvBindings()
-
-func buildProviderEnvBindings() []providerEnvBinding {
-	ids := append([]string(nil), providerregistry.RemoteProviders...)
-	sort.Strings(ids)
-	out := make([]providerEnvBinding, 0, len(ids))
-	for _, providerID := range ids {
-		token := providerEnvToken(providerID)
-		if token == "" {
-			continue
-		}
-		out = append(out, providerEnvBinding{
-			canonicalID: providerID,
-			baseURLKey:  "NIMI_RUNTIME_CLOUD_" + token + "_BASE_URL",
-			apiKeyKey:   "NIMI_RUNTIME_CLOUD_" + token + "_API_KEY",
-		})
-	}
-	return out
-}
-
-func providerEnvToken(providerID string) string {
-	token := strings.TrimSpace(strings.ToUpper(providerID))
-	token = strings.ReplaceAll(token, "-", "_")
-	token = strings.ReplaceAll(token, ".", "_")
-	token = strings.ReplaceAll(token, " ", "_")
-	for strings.Contains(token, "__") {
-		token = strings.ReplaceAll(token, "__", "_")
-	}
-	return strings.Trim(token, "_")
+var providerEnvBindings = []providerEnvBinding{
+	{canonicalID: "dashscope", baseURLKey: "NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY"},
+	{canonicalID: "deepseek", baseURLKey: "NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY"},
+	{canonicalID: "gemini", baseURLKey: "NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"},
+	{canonicalID: "glm", baseURLKey: "NIMI_RUNTIME_CLOUD_GLM_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_GLM_API_KEY"},
+	{canonicalID: "kimi", baseURLKey: "NIMI_RUNTIME_CLOUD_KIMI_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_KIMI_API_KEY"},
+	{canonicalID: "minimax", baseURLKey: "NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY"},
+	{canonicalID: "nimillm", baseURLKey: "NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY"},
+	{canonicalID: "openrouter", baseURLKey: "NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY"},
+	{canonicalID: "volcengine", baseURLKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY"},
+	{canonicalID: "volcengine_openspeech", baseURLKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY"},
 }
 
 func defaultRemoteProviderBaseURL(canonicalID string) string {

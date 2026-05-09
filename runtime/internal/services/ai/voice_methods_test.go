@@ -96,7 +96,8 @@ func TestVoiceAssetMethodsLifecycle(t *testing.T) {
 		},
 	})
 
-	submitResp, err := svc.SubmitScenarioJob(context.Background(), &runtimev1.SubmitScenarioJobRequest{
+	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
+	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         "nimi.desktop",
 			SubjectUserId: "user-001",

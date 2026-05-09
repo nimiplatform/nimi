@@ -302,11 +302,15 @@ func (s *Service) downloadManagedModelFile(
 			summary.State = localTransferStateRunning
 		})
 	}
+	expectedHash := expectedModelSHA256(hashes, relativeFile)
+	if expectedHash == "" {
+		return "", fmt.Errorf("model file %q requires admitted expected sha256 before download", relativeFile)
+	}
 	actualHash, _, err := s.downloadToFileWithTransfer(ctx, sessionID, "download", resp.Body, targetPath, maxBodyBytes)
 	if err != nil {
 		return "", fmt.Errorf("write model file %q: %w", relativeFile, err)
 	}
-	if expectedHash := expectedModelSHA256(hashes, relativeFile); expectedHash != "" && !strings.EqualFold(expectedHash, actualHash) {
+	if !strings.EqualFold(expectedHash, actualHash) {
 		return "", fmt.Errorf("model file %q hash mismatch: expected=%s actual=%s", relativeFile, expectedHash, actualHash)
 	}
 	return actualHash, nil
@@ -380,7 +384,7 @@ func writeModelManifest(manifestPath string, descriptor managedModelManifestDesc
 		return err
 	}
 	manifest := map[string]any{
-		"schemaVersion":    "1.0.0",
+		"schema_version":   "1.0.0",
 		"asset_id":         descriptor.assetID,
 		"kind":             kindToken,
 		"logical_model_id": descriptor.logicalModelID,

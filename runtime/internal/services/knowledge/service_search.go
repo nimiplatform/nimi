@@ -107,7 +107,12 @@ func (s *Service) SearchHybrid(_ context.Context, req *runtimev1.SearchHybridReq
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 
-	offset, err := decodePageToken(req.GetPageToken())
+	filterDigest := paginationFilterDigest("knowledge.search.hybrid", map[string]any{
+		"bank_id":             strings.TrimSpace(req.GetBankId()),
+		"query":               strings.TrimSpace(req.GetQuery()),
+		"entity_type_filters": normalizeStringFilterValues(req.GetEntityTypeFilters()),
+	})
+	offset, err := decodePageToken(req.GetPageToken(), filterDigest)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +168,7 @@ func (s *Service) SearchHybrid(_ context.Context, req *runtimev1.SearchHybridReq
 		return items[i].score > items[j].score
 	})
 
-	start, end, next := sliceBounds(len(items), offset, pageSize)
+	start, end, next := sliceBounds(len(items), offset, pageSize, filterDigest)
 	hits := make([]*runtimev1.KnowledgeKeywordHit, 0, end-start)
 	for _, item := range items[start:end] {
 		hits = append(hits, item.hit)

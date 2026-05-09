@@ -314,7 +314,7 @@ func TestOpenSessionRejectsTTLBounds(t *testing.T) {
 		t.Fatalf("register app: %v", err)
 	}
 
-	for _, ttl := range []int32{59, 86401} {
+	for _, ttl := range []int32{-1, 59, 86401} {
 		_, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
 			AppId:         "nimi.desktop",
 			AppInstanceId: registerResp.GetAppInstanceId(),
@@ -333,6 +333,83 @@ func TestOpenSessionRejectsTTLBounds(t *testing.T) {
 		if !ok || reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
 			t.Fatalf("ttl %d: expected structured protocol invalid, got %v", ttl, reason)
 		}
+	}
+}
+
+func TestAuthSessionRejectsNegativeTTLOnRefreshAndExternalOpen(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := context.Background()
+
+	registerResp, err := svc.RegisterApp(ctx, &runtimev1.RegisterAppRequest{
+		AppId:    "nimi.desktop",
+		DeviceId: "local-device",
+		ModeManifest: &runtimev1.AppModeManifest{
+			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+			RuntimeRequired: true,
+			RealmRequired:   true,
+			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+		},
+	})
+	if err != nil {
+		t.Fatalf("register app: %v", err)
+	}
+	openResp, err := svc.OpenSession(ctx, &runtimev1.OpenSessionRequest{
+		AppId:         "nimi.desktop",
+		AppInstanceId: registerResp.GetAppInstanceId(),
+		DeviceId:      "local-device",
+		SubjectUserId: "user-001",
+	})
+	if err != nil {
+		t.Fatalf("open session: %v", err)
+	}
+
+	_, err = svc.RefreshSession(sessionContext(openResp.GetSessionId(), openResp.GetSessionToken()), &runtimev1.RefreshSessionRequest{
+		SessionId:  openResp.GetSessionId(),
+		TtlSeconds: -1,
+	})
+	if err == nil {
+		t.Fatal("expected negative refresh ttl rejected")
+	}
+	if st, ok := status.FromError(err); !ok || st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument for negative refresh ttl, got %v", err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+		t.Fatalf("expected structured protocol invalid for negative refresh ttl, got %v", reason)
+	}
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate rsa key: %v", err)
+	}
+	publicKey := encodePublicKeyDERBase64(t, &privateKey.PublicKey)
+	registerPrincipalResp, err := svc.RegisterExternalPrincipal(ctx, &runtimev1.RegisterExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		Issuer:                "https://issuer.nimi.xyz",
+		SignatureKeyId:        publicKey,
+		ProofType:             runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
+	})
+	if err != nil {
+		t.Fatalf("register external principal: %v", err)
+	}
+	if !registerPrincipalResp.GetAccepted() {
+		t.Fatal("register external principal must be accepted")
+	}
+	_, err = svc.OpenExternalPrincipalSession(ctx, &runtimev1.OpenExternalPrincipalSessionRequest{
+		AppId:               "nimi.desktop",
+		ExternalPrincipalId: "agent-openclaw",
+		Proof:               buildTestJWT(t, "https://issuer.nimi.xyz", time.Now().Add(5*time.Minute), privateKey),
+		TtlSeconds:          -1,
+	})
+	if err == nil {
+		t.Fatal("expected negative external session ttl rejected")
+	}
+	if st, ok := status.FromError(err); !ok || st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument for negative external session ttl, got %v", err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+		t.Fatalf("expected structured protocol invalid for negative external ttl, got %v", reason)
 	}
 }
 

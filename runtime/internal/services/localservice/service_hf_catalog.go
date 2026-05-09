@@ -239,7 +239,7 @@ func inferCapabilitiesFromHF(pipelineTag string, tags []string) []string {
 	}
 	caps = normalizeAssetCapabilities(caps)
 	if len(caps) == 0 {
-		return []string{"chat"}
+		return nil
 	}
 	return caps
 }
@@ -251,6 +251,9 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, engineFilter string) (*runtim
 		return nil, false
 	}
 	capabilities := inferCapabilitiesFromHF(row.PipelineTag, row.Tags)
+	if len(capabilities) == 0 {
+		return nil, false
+	}
 	engine := strings.ToLower(defaultLocalEngine(strings.TrimSpace(engineFilter), capabilities))
 	deviceProfile := collectDeviceProfile()
 	kind := inferAssetKindFromCapabilities(capabilities)

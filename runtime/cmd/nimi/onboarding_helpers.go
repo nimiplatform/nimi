@@ -179,6 +179,28 @@ func promptOnboardingAPIKey(providerName string) (string, error) {
 	return onboardingSecretPrompt(fmt.Sprintf("%s API key is not configured. Paste it now:", strings.TrimSpace(providerName)))
 }
 
+func persistOnboardingProviderAPIKey(providerName string, apiKey string) (string, error) {
+	providerName = strings.TrimSpace(providerName)
+	apiKey = strings.TrimSpace(apiKey)
+	if providerName == "" {
+		return "", fmt.Errorf("provider name is required")
+	}
+	if apiKey == "" {
+		return "", fmt.Errorf("api key is required")
+	}
+	path, _, err := mutateProviderConfig(func(fileCfg *config.FileConfig) error {
+		target := fileCfg.Providers[providerName]
+		target.APIKey = apiKey
+		target.APIKeyEnv = ""
+		fileCfg.Providers[providerName] = target
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
 func cloudCredentialSetupCommand(providerName string, setDefault bool) string {
 	providerName = strings.TrimSpace(providerName)
 	if providerName == "" {

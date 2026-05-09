@@ -441,7 +441,7 @@ func TestProbeMediaHealthRequiresCatalog(t *testing.T) {
 	}
 }
 
-func TestProbeMediaHealthProxyExecutionAllowsReadyEmptyCatalog(t *testing.T) {
+func TestProbeMediaHealthProxyExecutionRequiresExecutionReadyCatalog(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/healthz":
@@ -456,8 +456,25 @@ func TestProbeMediaHealthProxyExecutionAllowsReadyEmptyCatalog(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if err := ProbeMediaHealth(context.Background(), server.URL); err != nil {
-		t.Fatalf("expected proxy_execution media health to accept ready empty catalog, got %v", err)
+	if err := ProbeMediaHealth(context.Background(), server.URL); err == nil {
+		t.Fatal("expected proxy_execution media health to fail without ready catalog models")
+	}
+}
+
+func TestProbeMediaHealthRejectsImageDriverPartialHealth(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"ready":false,"image_driver":"stablediffusion-ggml"}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	if err := ProbeMediaHealth(context.Background(), server.URL); err == nil {
+		t.Fatal("expected media health to fail when healthz is not execution-ready")
 	}
 }
 

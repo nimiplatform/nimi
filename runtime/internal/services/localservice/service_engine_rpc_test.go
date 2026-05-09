@@ -271,10 +271,12 @@ func (m *mockEngineManager) EnsureSharedAcceleratorDependency(_ context.Context,
 		return status, m.ensureManagedImageBackendErr
 	}
 	status := engine.SharedAcceleratorDependencyStatus{
-		DependencyID: engine.NormalizeSharedAcceleratorDependencyID(dependencyID),
-		State:        engine.SharedAcceleratorDependencyReadyManaged,
-		Source:       "runtime_managed",
-		Detail:       "nvidia_cuda_user_space_runtime state=ready_managed",
+		DependencyID:      engine.NormalizeSharedAcceleratorDependencyID(dependencyID),
+		State:             engine.SharedAcceleratorDependencyReadyManaged,
+		Source:            "runtime_managed",
+		CanonicalRoot:     `C:\nimi\runtime\dependencies\cuda`,
+		Detail:            "nvidia_cuda_user_space_runtime state=ready_managed source=runtime_managed driver_compatible=true cuda_major=12",
+		RequiredArtifacts: []string{"cudart64_12.dll", "cublas64_12.dll", "cublasLt64_12.dll"},
 	}
 	return status, m.ensureManagedImageBackendErr
 }

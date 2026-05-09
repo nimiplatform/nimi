@@ -137,8 +137,7 @@ func firstRunnableLocalModel(models []*runtimev1.LocalAssetRecord, modal runtime
 			continue
 		}
 		switch candidate.GetStatus() {
-		case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-			runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED:
+		case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 			return candidate
 		}
 	}
@@ -183,8 +182,7 @@ func firstActiveLocalModel(models []*runtimev1.LocalAssetRecord) *runtimev1.Loca
 	active := make([]*runtimev1.LocalAssetRecord, 0, len(models))
 	for _, model := range models {
 		switch model.GetStatus() {
-		case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
-			runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED:
+		case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 			active = append(active, model)
 		}
 	}

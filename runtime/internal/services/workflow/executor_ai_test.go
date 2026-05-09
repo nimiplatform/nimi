@@ -301,6 +301,69 @@ func TestExecuteAINodesFailClosedWithoutRuntimeAIClient(t *testing.T) {
 	}
 }
 
+func TestExecuteAIEmbedNodeRequiresTypedNonEmptyVectorOutput(t *testing.T) {
+	tests := []struct {
+		name    string
+		output  *runtimev1.ScenarioOutput
+		wantErr string
+	}{
+		{
+			name:    "missing typed payload",
+			output:  &runtimev1.ScenarioOutput{},
+			wantErr: "ai embed output missing typed payload",
+		},
+		{
+			name: "empty vector list",
+			output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextEmbed{
+					TextEmbed: &runtimev1.TextEmbedOutput{},
+				},
+			},
+			wantErr: "ai embed output vectors are empty",
+		},
+		{
+			name: "empty vector row",
+			output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextEmbed{
+					TextEmbed: &runtimev1.TextEmbedOutput{
+						Vectors: []*runtimev1.EmbeddingVector{{}},
+					},
+				},
+			},
+			wantErr: "ai embed output vector row is empty",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			client := &recordingRuntimeAIClient{
+				embedResp: &runtimev1.ExecuteScenarioResponse{Output: tc.output},
+			}
+			svc := New(
+				slog.New(slog.NewTextHandler(io.Discard, nil)),
+				WithAIClient(client),
+				WithArtifactRoot(t.TempDir()),
+			)
+			_, err := svc.executeNode(context.Background(), &taskRecord{
+				TaskID:        "task-ai-embed-fail-closed",
+				AppID:         "nimi.desktop",
+				SubjectUserID: "user-001",
+			}, &runtimev1.WorkflowNode{
+				NodeId:   "embed",
+				NodeType: runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_EMBED,
+				TypeConfig: &runtimev1.WorkflowNode_AiEmbedConfig{
+					AiEmbedConfig: &runtimev1.AiEmbedNodeConfig{ModelId: "m-embed"},
+				},
+			}, map[string]*structpb.Struct{
+				"inputs": structFromMap(map[string]any{"values": []any{"a"}}),
+			})
+			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("expected %q error, got %v", tc.wantErr, err)
+			}
+		})
+	}
+}
+
 func TestWorkflowReasonCodeFromErrorPrefersStructuredErrorInfo(t *testing.T) {
 	err := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
 	if got := workflowReasonCodeFromError(err); got != runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
@@ -389,6 +452,7 @@ type recordingRuntimeAIClient struct {
 	scenarioPollStatuses []runtimev1.ScenarioJobStatus
 	scenarioPollIndex    int
 	cancelReq            *runtimev1.CancelScenarioJobRequest
+	embedResp            *runtimev1.ExecuteScenarioResponse
 }
 
 func (c *recordingRuntimeAIClient) ExecuteScenario(_ context.Context, req *runtimev1.ExecuteScenarioRequest, _ ...grpc.CallOption) (*runtimev1.ExecuteScenarioResponse, error) {
@@ -406,6 +470,9 @@ func (c *recordingRuntimeAIClient) ExecuteScenario(_ context.Context, req *runti
 		}, nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
 		c.embedReq = cloneExecuteScenarioRequest(req)
+		if c.embedResp != nil {
+			return cloneExecuteScenarioResponse(c.embedResp), nil
+		}
 		return &runtimev1.ExecuteScenarioResponse{
 			Output: &runtimev1.ScenarioOutput{
 				Output: &runtimev1.ScenarioOutput_TextEmbed{
@@ -692,6 +759,15 @@ func cloneExecuteScenarioRequest(req *runtimev1.ExecuteScenarioRequest) *runtime
 	copied, ok := cloned.(*runtimev1.ExecuteScenarioRequest)
 	if !ok {
 		return &runtimev1.ExecuteScenarioRequest{}
+	}
+	return copied
+}
+
+func cloneExecuteScenarioResponse(resp *runtimev1.ExecuteScenarioResponse) *runtimev1.ExecuteScenarioResponse {
+	cloned := proto.Clone(resp)
+	copied, ok := cloned.(*runtimev1.ExecuteScenarioResponse)
+	if !ok {
+		return &runtimev1.ExecuteScenarioResponse{}
 	}
 	return copied
 }

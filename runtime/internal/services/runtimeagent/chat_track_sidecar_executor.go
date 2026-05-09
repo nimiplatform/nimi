@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -15,7 +16,6 @@ import (
 const (
 	chatTrackSidecarPromptMaxTokens = 768
 	chatTrackSidecarExecutorAppID   = "runtime.agent.internal.chat_track_sidecar"
-	chatTrackSidecarExecutorModelID = "local/default"
 )
 
 type ChatTrackSidecarExecutionRequest struct {
@@ -107,8 +107,8 @@ func buildChatTrackSidecarScenarioRequest(req *ChatTrackSidecarExecutorRequest) 
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         firstNonEmpty(strings.TrimSpace(req.CallerAppID), chatTrackSidecarExecutorAppID),
 			SubjectUserId: subjectUserID,
-			ModelId:       chatTrackSidecarExecutorModelID,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			ModelId:       texttarget.InternalDefaultLocalTextModelAlias,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     10_000,
 		},

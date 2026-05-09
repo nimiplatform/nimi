@@ -68,6 +68,9 @@ Optional model-level capability blocks:
 Canonical capability tokens are:
 
 - `text.generate`
+- `text.generate.vision`
+- `text.generate.audio`
+- `text.generate.video`
 - `text.embed`
 - `image.generate`
 - `video.generate`

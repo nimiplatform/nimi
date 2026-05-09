@@ -257,7 +257,7 @@ func TestValidateTextGenerateInputPartsNoMediaPassthrough(t *testing.T) {
 	}
 }
 
-func TestValidateTextGenerateInputPartsUnknownCatalogModelPasses(t *testing.T) {
+func TestValidateTextGenerateInputPartsUnknownCatalogModelFailsClosed(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 	input := []*runtimev1.ChatMessage{
@@ -269,9 +269,40 @@ func TestValidateTextGenerateInputPartsUnknownCatalogModelPasses(t *testing.T) {
 			},
 		},
 	}
+	err := svc.validateTextGenerateInputParts(context.Background(), "openai/unknown-vision-model", nil, nil, input)
+	if err == nil {
+		t.Fatal("expected unknown catalog model with image input to fail closed")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok {
+		t.Fatalf("expected grpc reason code, got error: %v", err)
+	}
+	if reason != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
+		t.Fatalf("reason code mismatch: got=%s want=%s", reason.String(), runtimev1.ReasonCode_AI_MODEL_NOT_FOUND.String())
+	}
+}
+
+func TestValidateTextGenerateInputPartsUnknownProviderFailsClosed(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	input := []*runtimev1.ChatMessage{
+		{
+			Role: "user",
+			Parts: []*runtimev1.ChatContentPart{
+				imagePart("https://example.com/img.png"),
+			},
+		},
+	}
 	err := svc.validateTextGenerateInputParts(context.Background(), "custom/vision-model", nil, nil, input)
-	if err != nil {
-		t.Fatalf("expected unknown catalog model to pass through, got %v", err)
+	if err == nil {
+		t.Fatal("expected unknown provider with image input to fail closed")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok {
+		t.Fatalf("expected grpc reason code, got error: %v", err)
+	}
+	if reason != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
+		t.Fatalf("reason code mismatch: got=%s want=%s", reason.String(), runtimev1.ReasonCode_AI_MODEL_NOT_FOUND.String())
 	}
 }
 

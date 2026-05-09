@@ -103,22 +103,21 @@ def write_manifest(
     files: list[str],
     payloads: dict[str, bytes],
     entry: str,
+    extras: dict[str, object] | None = None,
 ) -> pathlib.Path:
     manifest_dir = models_root / "resolved" / pathlib.Path(logical_model_id)
     manifest_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = manifest_dir / "asset.manifest.json"
-    manifest_path.write_text(
-        json.dumps(
-            {
-                "asset_id": asset_id,
-                "engine": "speech",
-                "entry": entry,
-                "files": files,
-                "capabilities": capabilities,
-            }
-        ),
-        encoding="utf-8",
-    )
+    manifest_payload = {
+        "asset_id": asset_id,
+        "engine": "speech",
+        "entry": entry,
+        "files": files,
+        "capabilities": capabilities,
+    }
+    if extras:
+        manifest_payload.update(extras)
+    manifest_path.write_text(json.dumps(manifest_payload), encoding="utf-8")
     for name, content in payloads.items():
         target = manifest_dir / name
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -132,6 +131,11 @@ def write_driver_script(path: pathlib.Path, body: str) -> str:
     return f"{sys.executable} {path}"
 
 
+def restore_env(name: str, old_value: str | None) -> None:
+    if old_value is None:
+        os.environ.pop(name, None)
+    else:
+        os.environ[name] = old_value
 class SpeechServerTests(unittest.TestCase):
     def test_safe_uploaded_audio_path_uses_generated_basename_for_path_filename(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -235,14 +239,8 @@ class SpeechServerTests(unittest.TestCase):
                 os.environ[SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV] = stt_driver
                 state = SPEECH_SERVER.build_host_state()
             finally:
-                if old_models_root is None:
-                    os.environ.pop(SPEECH_SERVER.MODELS_ROOT_ENV, None)
-                else:
-                    os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = old_models_root
-                if old_tts is None:
-                    os.environ.pop(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, None)
-                else:
-                    os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = old_tts
+                restore_env(SPEECH_SERVER.MODELS_ROOT_ENV, old_models_root)
+                restore_env(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, old_tts)
                 if old_stt is None:
                     os.environ.pop(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV, None)
                 else:
@@ -283,14 +281,8 @@ class SpeechServerTests(unittest.TestCase):
                 os.environ[SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV] = f"{sys.executable} -c pass"
                 state = SPEECH_SERVER.build_host_state()
             finally:
-                if old_models_root is None:
-                    os.environ.pop(SPEECH_SERVER.MODELS_ROOT_ENV, None)
-                else:
-                    os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = old_models_root
-                if old_tts is None:
-                    os.environ.pop(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, None)
-                else:
-                    os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = old_tts
+                restore_env(SPEECH_SERVER.MODELS_ROOT_ENV, old_models_root)
+                restore_env(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, old_tts)
                 if old_stt is None:
                     os.environ.pop(SPEECH_SERVER.QWEN3_ASR_DRIVER_ENV, None)
                 else:
@@ -341,14 +333,83 @@ class SpeechServerTests(unittest.TestCase):
             self.assertEqual(state.qwen3_tts_detail, "qwen3_tts driver executable unresolved")
             self.assertIn("qwen3_tts driver executable unresolved", state.models[0].detail)
 
-    def test_build_host_state_discovers_ready_qwen3_tts_workflow_model(self) -> None:
+    def test_build_host_state_requires_explicit_qwen3_tts_workflow_binding(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
             write_manifest(
                 root,
                 "nimi/tts-qwen3-base",
                 "speech/qwen3tts-base",
-                ["audio.synthesize"],
+                ["audio.synthesize", "voice_workflow.voice_clone"],
+                ["model.safetensors"],
+                {"model.safetensors": b"fake-qwen3-tts-base"},
+                "model.safetensors",
+                {
+                    "voice_workflow_models": [
+                        {
+                            "workflow_model_id": "qwen3-local-voice-clone",
+                            "workflow_type": "voice_clone",
+                            "workflow_family": "qwen3_tts",
+                            "target_model_refs": ["speech/qwen3tts-base"],
+                        }
+                    ],
+                    "model_workflow_bindings": [
+                        {
+                            "workflow_model_id": "qwen3-local-voice-clone",
+                            "workflow_family": "qwen3_tts",
+                            "target_model_ref": "speech/qwen3tts-base",
+                        }
+                    ],
+                },
+            )
+            qwen3_tts_driver = write_driver_script(
+                root / "qwen3_tts_driver.py",
+                textwrap.dedent(
+                    """\
+                    #!/usr/bin/env python3
+                    import argparse, json, pathlib
+                    parser = argparse.ArgumentParser()
+                    parser.add_argument("--request", required=True)
+                    parser.add_argument("--response", required=True)
+                    args = parser.parse_args()
+                    request = json.loads(pathlib.Path(args.request).read_text())
+                    if request["operation"] == "driver.preflight":
+                        pathlib.Path(args.response).write_text(json.dumps({"driver_family": "qwen3_tts"}))
+                    else:
+                        pathlib.Path(args.response).write_text(json.dumps({"voice_id": "voice-local-001"}))
+                    """
+                ),
+            )
+            old_models_root = os.environ.get(SPEECH_SERVER.MODELS_ROOT_ENV)
+            old_tts = os.environ.get(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV)
+            try:
+                os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = str(root)
+                os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = qwen3_tts_driver
+                state = SPEECH_SERVER.build_host_state()
+            finally:
+                if old_models_root is None:
+                    os.environ.pop(SPEECH_SERVER.MODELS_ROOT_ENV, None)
+                else:
+                    os.environ[SPEECH_SERVER.MODELS_ROOT_ENV] = old_models_root
+                if old_tts is None:
+                    os.environ.pop(SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV, None)
+                else:
+                    os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = old_tts
+
+            self.assertEqual(len(state.models), 1)
+            self.assertEqual(state.models[0].capability_drivers["audio.synthesize"], "qwen3_tts")
+            self.assertEqual(state.models[0].capability_drivers["voice_workflow.voice_clone"], "qwen3_tts")
+            self.assertTrue(state.models[0].ready)
+            self.assertIn("voice_workflow.voice_clone", state.models[0].ready_capabilities)
+
+    def test_build_host_state_rejects_qwen3_tts_workflow_without_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            write_manifest(
+                root,
+                "nimi/tts-qwen3-base",
+                "speech/qwen3tts-base",
+                ["audio.synthesize", "voice_workflow.voice_clone"],
                 ["model.safetensors"],
                 {"model.safetensors": b"fake-qwen3-tts-base"},
                 "model.safetensors",
@@ -388,9 +449,9 @@ class SpeechServerTests(unittest.TestCase):
                     os.environ[SPEECH_SERVER.QWEN3_TTS_DRIVER_ENV] = old_tts
 
             self.assertEqual(len(state.models), 1)
-            self.assertEqual(state.models[0].capability_drivers["audio.synthesize"], "qwen3_tts")
-            self.assertTrue(state.models[0].ready)
-            self.assertIn("voice_workflow.voice_clone", state.models[0].ready_capabilities)
+            self.assertFalse(state.models[0].ready)
+            self.assertNotIn("voice_workflow.voice_clone", state.models[0].ready_capabilities)
+            self.assertIn("voice_workflow.voice_clone requires explicit qwen3_tts workflow binding", state.models[0].detail)
 
     def test_build_host_state_rejects_qwen3_tts_model_when_preflight_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -453,10 +514,38 @@ class SpeechServerTests(unittest.TestCase):
                 root,
                 "nimi/tts-qwen3",
                 "speech/qwen3tts",
-                ["audio.synthesize"],
+                ["audio.synthesize", "voice_workflow.voice_clone", "voice_workflow.voice_design"],
                 ["model.safetensors"],
                 {"model.safetensors": b"fake-qwen3-tts"},
                 "model.safetensors",
+                {
+                    "voice_workflow_models": [
+                        {
+                            "workflow_model_id": "qwen3-local-voice-clone",
+                            "workflow_type": "voice_clone",
+                            "workflow_family": "qwen3_tts",
+                            "target_model_refs": ["speech/qwen3tts"],
+                        },
+                        {
+                            "workflow_model_id": "qwen3-local-voice-design",
+                            "workflow_type": "voice_design",
+                            "workflow_family": "qwen3_tts",
+                            "target_model_refs": ["speech/qwen3tts"],
+                        },
+                    ],
+                    "model_workflow_bindings": [
+                        {
+                            "workflow_model_id": "qwen3-local-voice-clone",
+                            "workflow_family": "qwen3_tts",
+                            "target_model_ref": "speech/qwen3tts",
+                        },
+                        {
+                            "workflow_model_id": "qwen3-local-voice-design",
+                            "workflow_family": "qwen3_tts",
+                            "target_model_ref": "speech/qwen3tts",
+                        },
+                    ],
+                },
             )
             driver = write_driver_script(
                 root / "qwen3_tts_driver.py",
@@ -704,7 +793,6 @@ class SpeechServerTests(unittest.TestCase):
             )
         finally:
             SPEECH_SERVER.build_host_state = original_build_host_state
-
 
 if __name__ == "__main__":
     unittest.main()

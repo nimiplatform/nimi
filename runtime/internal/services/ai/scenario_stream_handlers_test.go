@@ -13,6 +13,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -125,6 +126,43 @@ func TestStreamScenarioSpeechSynthesizeValidation(t *testing.T) {
 	}
 	if len(stream.events) != 0 {
 		t.Fatalf("expected no stream events before validation passes, got=%d", len(stream.events))
+	}
+}
+
+func TestStreamScenarioSpeechSynthesizeCapabilityGuardFailsClosed(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		CloudProviders: map[string]nimillm.ProviderCredentials{"anthropic": {BaseURL: "http://example.com"}},
+	})
+	stream := &mockScenarioEventStream{ctx: context.Background()}
+	req := &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "anthropic/claude-sonnet-4-6",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
+				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+					Text: "hello world",
+				},
+			},
+		},
+	}
+
+	err := svc.StreamScenario(req, stream)
+	if err == nil {
+		t.Fatalf("expected speech stream capability guard error")
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
+		t.Fatalf("expected AI_MEDIA_OPTION_UNSUPPORTED, got reason=%v ok=%v err=%v", reason, ok, err)
+	}
+	if len(stream.events) != 0 {
+		t.Fatalf("capability guard must fail before stream events, got=%d", len(stream.events))
 	}
 }
 

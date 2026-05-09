@@ -30,12 +30,26 @@ func (s *Service) ListKnowledgeBanks(ctx context.Context, req *runtimev1.ListKno
 }
 
 func (s *Service) DeleteKnowledgeBank(ctx context.Context, req *runtimev1.DeleteKnowledgeBankRequest) (*runtimev1.DeleteKnowledgeBankResponse, error) {
-	resp, err := s.knowledgeSvc.DeleteKnowledgeBank(ctx, req)
+	bankResp, err := s.knowledgeSvc.GetKnowledgeBank(ctx, &runtimev1.GetKnowledgeBankRequest{
+		Context: req.GetContext(),
+		BankId:  req.GetBankId(),
+	})
 	if err != nil {
 		return nil, err
 	}
-	if err := s.cognitionCore.DeleteScope(knowledgeScopeID(strings.TrimSpace(req.GetBankId()))); err != nil && s.logger != nil {
-		s.logger.Warn("runtime cognition knowledge scope cleanup failed", "bank_id", strings.TrimSpace(req.GetBankId()), "error", err)
+	bankID := strings.TrimSpace(bankResp.GetBank().GetBankId())
+	if err := s.cognitionCore.DeleteScope(knowledgeScopeID(bankID)); err != nil {
+		if s.logger != nil {
+			s.logger.Warn("runtime cognition knowledge scope cleanup failed", "bank_id", bankID, "error", err)
+		}
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
+			ActionHint: "retry_after_cognition_scope_cleanup_is_available",
+			Message:    "knowledge bank delete blocked because cognition scope cleanup failed",
+		})
+	}
+	resp, err := s.knowledgeSvc.DeleteKnowledgeBank(ctx, req)
+	if err != nil {
+		return nil, err
 	}
 	return resp, nil
 }
@@ -248,11 +262,8 @@ func (s *Service) TraverseGraph(ctx context.Context, req *runtimev1.TraverseGrap
 	}
 	scopeID := knowledgeScopeID(bank.GetBankId())
 	depth := int(req.GetMaxDepth())
-	if depth <= 0 {
-		depth = defaultGraphTraversalDepth
-	}
-	if depth > maxGraphTraversalDepth {
-		depth = maxGraphTraversalDepth
+	if depth < 1 || depth > maxGraphTraversalDepth {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_KNOWLEDGE_GRAPH_DEPTH_INVALID)
 	}
 	hits, err := s.cognitionCore.KnowledgeService().Traverse(scopeID, cognitionknowledge.PageID(strings.TrimSpace(req.GetRootPageId())), depth)
 	if err != nil {

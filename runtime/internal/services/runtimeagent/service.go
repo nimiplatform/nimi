@@ -12,6 +12,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"github.com/nimiplatform/nimi/runtime/internal/services/delegation"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
+	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
 
 const (
@@ -69,6 +70,9 @@ type Service struct {
 	// the deterministic synthetic adapter; real TTS providers can implement
 	// voiceLipsyncSynthesizer for future provider integration.
 	voiceLipsync voiceLipsyncSynthesizer
+	// runtimeArtifacts is the runtime-owned by-id artifact byte store. Any
+	// runtime event carrying an artifact id must put bytes here before emit.
+	runtimeArtifacts runtimeartifact.Store
 
 	mu               sync.RWMutex
 	agents           map[string]*agentEntry
@@ -137,6 +141,7 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 		chatFollowUps:             make(map[string]*publicChatFollowUpState),
 		chatActiveByAgent:         make(map[string]string),
 		voiceLipsync:              newSyntheticVoiceLipsyncSynthesizer(),
+		runtimeArtifacts:          runtimeartifact.NewMemoryStore(),
 		delegatedProviderProfiles: make(map[string]*runtimev1.DelegatedProviderProfile),
 		delegatedApprovalRequests: make(map[string]*runtimev1.DelegatedApprovalRequest),
 	}

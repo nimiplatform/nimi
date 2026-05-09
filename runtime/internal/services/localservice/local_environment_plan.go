@@ -193,6 +193,12 @@ func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefiniti
 		dep.SourceKind = record.SourceKind
 		dep.SelectedSourceRecordID = record.RecordID
 		dep.CanonicalRoot = record.CanonicalRoot
+		if err := validateLocalEnvironmentSelectedSourceRecord(record); err != nil {
+			dep.State = localEnvironmentStateRepairRequired
+			dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_REPAIR_REQUIRED"
+			dep.Detail = err.Error()
+			return dep
+		}
 		switch strings.TrimSpace(record.RepairState) {
 		case localEnvironmentRepairRequired, localEnvironmentRepairRunning, localEnvironmentRepairFailed:
 			dep.State = localEnvironmentStateRepairRequired
@@ -213,8 +219,7 @@ func (s *Service) resolveLocalEnvironmentDependency(def localComputePackDefiniti
 	}
 
 	if family == localEnvironmentFamilyCUDA {
-		promoted, _ := s.promoteLocalEnvironmentCUDAProjection(dep, consumerScope)
-		return promoted
+		return s.resolveLocalEnvironmentCUDAProjection(dep, consumerScope)
 	}
 
 	dep.ConfirmationRequired = true

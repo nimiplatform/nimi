@@ -418,6 +418,9 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 			})
 		},
 	})
+	svc.mu.RLock()
+	hookCursor := svc.sequence
+	svc.mu.RUnlock()
 	err := svc.ConsumePublicChatAppMessage(context.Background(), &runtimev1.AppMessageEvent{
 		ToAppId:       publicChatRuntimeAppID,
 		FromAppId:     "desktop.app",
@@ -481,6 +484,34 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 	secondSnapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-session-reuse-second")
 	if got := publicChatLastTurnSnapshot(t, secondSnapshot)["turn_origin"]; got != publicChatTurnOriginUser {
 		t.Fatalf("expected second snapshot last_turn.turn_origin=user, got=%v", publicChatLastTurnSnapshot(t, secondSnapshot))
+	}
+	hookStream := newAgentEventCaptureStreamLimit(context.Background(), 3)
+	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
+		AgentId:      "agent-alpha",
+		Cursor:       encodeCursor(hookCursor),
+		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
+	}, hookStream); err != context.Canceled {
+		t.Fatalf("SubscribeAgentEvents(hook cancellation): %v", err)
+	}
+	if len(hookStream.events) != 3 {
+		t.Fatalf("expected proposed+pending+canceled hook events, got %#v", hookStream.events)
+	}
+	for index, want := range []runtimev1.HookAdmissionState{
+		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
+		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
+		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED,
+	} {
+		detail := hookStream.events[index].GetHook()
+		if got := detail.GetFamily(); got != want {
+			t.Fatalf("unexpected hook lifecycle event at index %d: got %s want %s", index, got, want)
+		}
+		intent := detail.GetIntent()
+		if got := strings.TrimSpace(intent.GetIntentId()); got != "action-follow-up-1" {
+			t.Fatalf("expected canceled hook to preserve action id, got %#v", intent)
+		}
+		if got := strings.TrimSpace(intent.GetConversationAnchorId()); got != anchorID {
+			t.Fatalf("expected canceled hook to preserve anchor id %s, got %#v", anchorID, intent)
+		}
 	}
 	time.Sleep(250 * time.Millisecond)
 	waitForPublicChatAgentIdle(t, svc, "agent-alpha")

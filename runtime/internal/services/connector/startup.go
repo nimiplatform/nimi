@@ -50,6 +50,9 @@ func EnsureCloudConnectorsFromConfig(store *ConnectorStore, defs []CloudConnecto
 			canonical == "sidecar" {
 			continue
 		}
+		if !IsKnownProvider(canonical) {
+			return fmt.Errorf("cloud connector provider %q is not in the canonical provider catalog", canonical)
+		}
 
 		connectorID := SystemCloudConnectorID(canonical)
 		endpoint := strings.TrimSpace(def.Endpoint)

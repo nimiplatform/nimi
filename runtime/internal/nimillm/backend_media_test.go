@@ -143,7 +143,7 @@ func TestBackendGenerateImageUsesCodexResponsesTool(t *testing.T) {
 		t.Fatalf("unexpected payload: %q", string(payload))
 	}
 	if got := strings.TrimSpace(ValueAsString(captured["model"])); got != "gpt-5.4" {
-		t.Fatalf("expected codex host model, got=%q", got)
+		t.Fatalf("expected catalog codex host model, got=%q", got)
 	}
 	tools, ok := captured["tools"].([]any)
 	if !ok || len(tools) != 1 {
@@ -158,6 +158,55 @@ func TestBackendGenerateImageUsesCodexResponsesTool(t *testing.T) {
 	}
 	if got := strings.TrimSpace(ValueAsString(tool["quality"])); got != "high" {
 		t.Fatalf("expected forwarded image quality, got=%q", got)
+	}
+}
+
+func TestBackendGenerateImageUsesConfiguredCodexHostModel(t *testing.T) {
+	var captured map[string]any
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/backend-api/codex/responses" {
+			http.NotFound(w, r)
+			return
+		}
+		captured = decodeJSONBodyForBackendMediaTest(t, r)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"output": []map[string]any{
+				{
+					"type":   "image_generation_call",
+					"result": base64.StdEncoding.EncodeToString([]byte("image-codex")),
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	provider := NewCloudProvider(CloudConfig{
+		Providers: map[string]ProviderCredentials{
+			"openai_codex": {
+				BaseURL:      server.URL + "/backend-api/codex",
+				APIKey:       "token-123",
+				Headers:      map[string]string{"originator": "codex_cli_rs"},
+				DefaultModel: "gpt-5.3-codex",
+			},
+		},
+	}, nil, nil)
+	backend, toolModel := provider.ResolveMediaBackend("openai_codex/gpt-image-2")
+	if backend == nil {
+		t.Fatal("expected codex backend")
+	}
+	if toolModel != "gpt-image-2" {
+		t.Fatalf("tool model mismatch: %q", toolModel)
+	}
+	_, _, err := backend.GenerateImage(context.Background(), toolModel, &runtimev1.ImageGenerateScenarioSpec{
+		Prompt: "make a skyline",
+	}, nil)
+	if err != nil {
+		t.Fatalf("GenerateImage failed: %v", err)
+	}
+	if got := strings.TrimSpace(ValueAsString(captured["model"])); got != "gpt-5.3-codex" {
+		t.Fatalf("expected configured codex host model, got=%q", got)
 	}
 }
 

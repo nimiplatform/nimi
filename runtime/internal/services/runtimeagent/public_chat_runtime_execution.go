@@ -121,11 +121,10 @@ func (r publicChatRuntime) runTurn(
 					projection.TraceID = traceID
 					projection.OutputObserved = true
 				})
-				// yaml `turn.text_delta.detail` admits only `text`. trace_id
-				// is runtime-internal and is recovered through session.snapshot.
-				return r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{
-					"text": textDelta,
-				})
+				// Raw model chunks are APML input, not durable app-facing text.
+				// They remain internal until the APML envelope validates and the
+				// committed message event succeeds.
+				return nil
 			case *runtimev1.ScenarioStreamDelta_Reasoning:
 				reasoningDelta := item.Reasoning.GetText()
 				if reasoningDelta == "" {
@@ -280,22 +279,35 @@ func (r publicChatRuntime) runTurn(
 	}); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit public chat structured event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
 	}
-	// Project committed runtime interpretation into state+presentation per
-	// K-AGCORE-037 / K-AGCORE-038: StatusCue.Mood is the committed emotion
-	// update for this turn. emotion_changed carries real anchor/turn/stream
-	// origin linkage (this IS a chat turn); presentation.expression_requested
-	// is stream-scoped and uses the same identifiers. Mood is optional — when
-	// absent, no presentation/emotion projection is synthesized.
-	r.projectCommittedStatusCue(session, turn, structured)
 	// K-AGCORE-039 commit point: emit `runtime.agent.turn.message_committed`
 	// with the schema-compliant detail (`message_id`, `text`) and the
 	// required `message_id` envelope extra per yaml `extra_fields_by_event`.
-	// All `text_delta` slices preceding this commit point are provisional;
-	// late-join consumers reconcile the committed text from this event.
 	messageCommitStartedAt := time.Now()
-	if err := r.emitTurnMessageCommitted(session, turn.TurnID, structured.Message.MessageID, structured.Message.Text); err != nil && r.svc.logger != nil {
-		r.svc.logger.Warn("emit public chat message_committed event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
+	if err := r.emitTurnMessageCommitted(session, turn.TurnID, structured.Message.MessageID, structured.Message.Text); err != nil {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("emit public chat message_committed event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
+		}
+		r.svc.finalizePublicChatTurnProjection(turn.TurnID, true, func(projection *publicChatTurnProjectionState) {
+			projection.Status = publicChatTurnStatusFailed
+			projection.TraceID = traceID
+			projection.ModelResolved = modelResolved
+			projection.RouteDecision = routeDecision
+			projection.ReasonCode = runtimev1.ReasonCode_AI_STREAM_BROKEN
+			projection.Message = strings.TrimSpace(err.Error())
+		})
+		r.emitTurnFailed(session, turn, traceID, modelResolved, routeDecision, runtimev1.ReasonCode_AI_STREAM_BROKEN, err.Error(), "")
+		return
 	}
+	// After the commit point succeeds, app-facing text_delta may expose the
+	// typed message text. It must never expose raw APML/model chunks.
+	if err := r.emitTurnEvent(session, turn.TurnID, publicChatTurnTextDeltaType, map[string]any{
+		"text": structured.Message.Text,
+	}); err != nil && r.svc.logger != nil {
+		r.svc.logger.Warn("emit public chat committed text_delta event failed", "agent_id", session.AgentID, "turn_id", turn.TurnID, "error", err)
+	}
+	// Project committed runtime interpretation into state+presentation per
+	// K-AGCORE-037 / K-AGCORE-038 only after the commit point succeeds.
+	r.projectCommittedStatusCue(session, turn, structured)
 	// K-AGCORE-051 voice/lipsync projection: derive runtime-owned timeline
 	// events (`voice_playback_requested` + `lipsync_frame_batch`) from the
 	// committed assistant text. Synthesizer + emit failures are logged but

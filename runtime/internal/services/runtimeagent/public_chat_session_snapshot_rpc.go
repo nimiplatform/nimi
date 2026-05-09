@@ -32,13 +32,11 @@ func (s *Service) GetPublicChatSessionSnapshot(_ context.Context, req *runtimev1
 		return nil, status.Error(codes.InvalidArgument, "context.app_id is required")
 	}
 	scopedBinding := requestContext.GetScopedBinding()
-	if scopedBinding == nil && strings.TrimSpace(requestContext.GetSubjectUserId()) == "" {
+	if scopedBinding == nil {
 		return nil, runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
 	}
-	if scopedBinding != nil {
-		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, agentID, runtimeAgentTurnReadScope); err != nil {
-			return nil, err
-		}
+	if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, agentID, runtimeAgentTurnReadScope); err != nil {
+		return nil, err
 	}
 	snapshot, session, _, _, _, err := s.publicChatRuntime().buildSessionSnapshot(callerAppID, anchorID, req.GetRequestId())
 	if err != nil {

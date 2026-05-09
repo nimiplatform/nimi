@@ -3,6 +3,7 @@ package delegation
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -75,6 +76,7 @@ func TestGatewayRejectsUnlistedToolCall(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "not allowlisted") {
 		t.Fatalf("expected unlisted tool rejection, got %v", err)
 	}
+	assertGatewayReason(t, err, ReasonGatewayMCPToolNotAllowlisted)
 }
 
 func TestGatewayFailsClosedOnSchemaDrift(t *testing.T) {
@@ -94,6 +96,56 @@ func TestGatewayFailsClosedOnSchemaDrift(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "schema drift") {
 		t.Fatalf("expected schema drift failure, got %v", err)
 	}
+	assertGatewayReason(t, err, ReasonProviderDrifted)
+}
+
+func TestGatewayRejectsCredentialMaterialInToolArguments(t *testing.T) {
+	gateway := newTestGateway(t, ProviderProfile{
+		ID:            "provider-1",
+		ProviderKind:  ProviderKindMCPToolProvider,
+		TransportKind: TransportKindStdioCommand,
+		State:         ProviderStateReady,
+		Command:       "test-mcp-server",
+		AllowedTools: []ToolAllowlistEntry{
+			{Name: "echo"},
+		},
+		Timeout: time.Second,
+	})
+
+	_, err := gateway.CallTool(context.Background(), ToolCallRequest{
+		ProviderID: "provider-1",
+		ToolName:   "echo",
+		Arguments:  json.RawMessage(`{"api_key":"secret","text":"hello"}`),
+	})
+	if err == nil || !strings.Contains(err.Error(), "credential material") {
+		t.Fatalf("expected credential material rejection, got %v", err)
+	}
+	assertGatewayReason(t, err, ReasonGatewayMCPCredentialBlocked)
+}
+
+func TestGatewayMapsMCPConnectFailureToTypedReason(t *testing.T) {
+	gateway, err := NewGateway([]ProviderProfile{{
+		ID:            "provider-1",
+		ProviderKind:  ProviderKindMCPToolProvider,
+		TransportKind: TransportKindStdioCommand,
+		State:         ProviderStateReady,
+		Command:       "test-mcp-server",
+		AllowedTools: []ToolAllowlistEntry{
+			{Name: "echo"},
+		},
+		Timeout: time.Second,
+	}}, WithTransportFactory(func(context.Context, ProviderProfile) (mcp.Transport, func(), error) {
+		return nil, nil, errors.New("server unavailable")
+	}))
+	if err != nil {
+		t.Fatalf("NewGateway returned error: %v", err)
+	}
+
+	_, err = gateway.DiscoverTools(context.Background(), "provider-1")
+	if err == nil {
+		t.Fatal("expected connect failure")
+	}
+	assertGatewayReason(t, err, ReasonGatewayMCPConnectFailed)
 }
 
 func TestGatewayCallToolReturnsQuarantinedEvidence(t *testing.T) {
@@ -172,6 +224,17 @@ func newTestGateway(t *testing.T, profile ProviderProfile) *Gateway {
 		t.Fatalf("NewGateway returned error: %v", err)
 	}
 	return gateway
+}
+
+func assertGatewayReason(t *testing.T, err error, want string) {
+	t.Helper()
+	var gatewayErr GatewayError
+	if !errors.As(err, &gatewayErr) {
+		t.Fatalf("expected GatewayError, got %T: %v", err, err)
+	}
+	if gatewayErr.ReasonCode != want {
+		t.Fatalf("gateway reason mismatch: got=%s want=%s err=%v", gatewayErr.ReasonCode, want, err)
+	}
 }
 
 func testMCPTransportFactory(t *testing.T) TransportFactory {

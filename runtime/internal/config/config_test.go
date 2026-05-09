@@ -641,6 +641,39 @@ func TestLoadDefaultCloudProviderEnvOverrideWinsAndNormalizes(t *testing.T) {
 	}
 }
 
+func TestProviderEnvBindingsFollowProbeTargetFactSource(t *testing.T) {
+	expected := readProviderProbeTargetBindingsForTest(t)
+	actual := make(map[string]providerEnvBinding, len(providerEnvBindings))
+	for _, binding := range providerEnvBindings {
+		actual[binding.canonicalID] = binding
+	}
+	if len(actual) != len(expected) {
+		t.Fatalf("provider env binding count mismatch: got=%d want=%d actual=%v expected=%v", len(actual), len(expected), actual, expected)
+	}
+	for providerID, want := range expected {
+		got, ok := actual[providerID]
+		if !ok {
+			t.Fatalf("missing provider env binding for %s", providerID)
+		}
+		if got.baseURLKey != want.baseURLKey || got.apiKeyKey != want.apiKeyKey {
+			t.Fatalf("provider env binding mismatch for %s: got=%+v want=%+v", providerID, got, want)
+		}
+	}
+}
+
+func TestResolveCloudProvidersIgnoresRegistryOnlyEnvWithoutProbeTarget(t *testing.T) {
+	clearRuntimeConfigEnv(t)
+	t.Setenv("NIMI_RUNTIME_CLOUD_OPENAI_API_KEY", "openai-key")
+	t.Setenv("NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL", "https://api.openai.com/v1")
+
+	targets := ResolveCloudProviderTargets(nil)
+	for _, target := range targets {
+		if target.CanonicalID == "openai" {
+			t.Fatalf("registry-only provider env binding was admitted without probe-target fact source: %+v", target)
+		}
+	}
+}
+
 func TestLoadRejectsLegacyProviderKey(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
@@ -721,4 +754,61 @@ func TestLoadIgnoresLegacyRuntimeConfigPath(t *testing.T) {
 	if _, statErr := os.Stat(filepath.Join(homeDir, ".nimi/config.json")); !os.IsNotExist(statErr) {
 		t.Fatalf("canonical config should not be auto-created")
 	}
+}
+
+func readProviderProbeTargetBindingsForTest(t *testing.T) map[string]providerEnvBinding {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", ".nimi", "spec", "runtime", "kernel", "tables", "provider-probe-targets.yaml"))
+	if err != nil {
+		t.Fatalf("read provider probe targets: %v", err)
+	}
+	type target struct {
+		name       string
+		category   string
+		baseURLKey string
+		apiKeyKey  string
+	}
+	out := make(map[string]providerEnvBinding)
+	current := target{}
+	flush := func() {
+		if current.category != "cloud" {
+			current = target{}
+			return
+		}
+		if current.name == "" || !strings.HasPrefix(current.name, "cloud-") {
+			t.Fatalf("cloud provider probe target must use cloud-* name: %+v", current)
+		}
+		if !strings.HasPrefix(current.baseURLKey, "NIMI_RUNTIME_") || !strings.HasPrefix(current.apiKeyKey, "NIMI_RUNTIME_") {
+			t.Fatalf("cloud provider probe target must use concrete runtime env keys: %+v", current)
+		}
+		providerID := strings.ReplaceAll(strings.TrimPrefix(current.name, "cloud-"), "-", "_")
+		out[providerID] = providerEnvBinding{
+			canonicalID: providerID,
+			baseURLKey:  current.baseURLKey,
+			apiKeyKey:   current.apiKeyKey,
+		}
+		current = target{}
+	}
+	for _, line := range strings.Split(string(raw), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "- name: ") {
+			flush()
+			current.name = strings.TrimSpace(strings.TrimPrefix(trimmed, "- name: "))
+			continue
+		}
+		if strings.HasPrefix(trimmed, "base_url_env: ") {
+			current.baseURLKey = strings.TrimSpace(strings.TrimPrefix(trimmed, "base_url_env: "))
+			continue
+		}
+		if strings.HasPrefix(trimmed, "api_key_env: ") {
+			current.apiKeyKey = strings.TrimSpace(strings.TrimPrefix(trimmed, "api_key_env: "))
+			continue
+		}
+		if strings.HasPrefix(trimmed, "category: ") {
+			current.category = strings.TrimSpace(strings.TrimPrefix(trimmed, "category: "))
+			continue
+		}
+	}
+	flush()
+	return out
 }

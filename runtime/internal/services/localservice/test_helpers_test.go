@@ -66,6 +66,37 @@ func mustInstallSupervisedLocalModel(t *testing.T, svc *Service, req installLoca
 	return record
 }
 
+func verifiedSelectedSourceRecordForTest(record localEnvironmentSelectedSourceRecordState) localEnvironmentSelectedSourceRecordState {
+	if record.SourceKind == "" {
+		record.SourceKind = localEnvironmentSourceManaged
+	}
+	if record.CanonicalRoot == "" {
+		record.CanonicalRoot = "test-canonical-root"
+	}
+	if record.Version == "" && len(record.Hashes) == 0 {
+		record.Version = "test-version"
+	}
+	if len(record.CompatibilityEvidence) == 0 {
+		record.CompatibilityEvidence = []string{"test compatibility evidence"}
+	}
+	if len(record.VerifiedArtifacts) == 0 {
+		record.VerifiedArtifacts = []string{"test-artifact"}
+	}
+	if len(record.SelectedConsumers) == 0 {
+		record.SelectedConsumers = []string{"test-consumer"}
+	}
+	if record.SourceManifestRef == "" {
+		record.SourceManifestRef = "test-source-manifest#" + shortHash(record.EnvironmentKey)
+	}
+	if record.VerificationEvidenceRef == "" {
+		record.VerificationEvidenceRef = "test-verification-evidence#" + shortHash(record.EnvironmentKey)
+	}
+	if record.AuditReasonCode == "" {
+		record.AuditReasonCode = "test_ready"
+	}
+	return record
+}
+
 func writeManagedBundleFilesForTest(t *testing.T, svc *Service, model *runtimev1.LocalAssetRecord, declaredFiles []string, files map[string][]byte) string {
 	t.Helper()
 	if model == nil {

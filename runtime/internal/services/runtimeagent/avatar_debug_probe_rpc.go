@@ -18,14 +18,17 @@ const (
 	avatarDebugReadScope  = "runtime.agent.avatar_debug.read"
 	avatarDebugWriteScope = "runtime.agent.avatar_debug.write"
 
-	avatarDebugAuditDomain           = "runtime.agent.avatar_debug"
-	avatarDebugRequestOperation      = "runtime.agent.avatar_debug.probe_requested"
-	avatarDebugResultOperation       = "runtime.agent.avatar_debug.probe_result"
-	avatarDebugReplayLinkOperation   = "runtime.agent.avatar_debug.replay_linked"
-	avatarDebugSessionUnavailable    = "avatar_debug_session_not_available"
-	avatarDebugReplayRefPrefix       = "runtime.audit.avatar_debug.replay/"
-	avatarDebugRequestAuditRefPrefix = "runtime.audit.avatar_debug.request/"
-	avatarDebugResultAuditRefPrefix  = "runtime.audit.avatar_debug.result/"
+	avatarDebugAuditDomain            = "runtime.agent.avatar_debug"
+	avatarDebugRequestOperation       = "runtime.agent.avatar_debug.probe_requested"
+	avatarDebugResultOperation        = "runtime.agent.avatar_debug.probe_result"
+	avatarDebugReplayLinkOperation    = "runtime.agent.avatar_debug.replay_linked"
+	avatarDebugSessionUnavailable     = "avatar_debug_session_not_available"
+	avatarDebugAuthorizationVerdict   = "PASS"
+	avatarDebugAuthorizationRefPrefix = "runtime.audit.avatar_debug.authorization/"
+	avatarDebugProjectionRefPrefix    = "runtime.agent.avatar_debug.projection/"
+	avatarDebugReplayRefPrefix        = "runtime.audit.avatar_debug.replay/"
+	avatarDebugRequestAuditRefPrefix  = "runtime.audit.avatar_debug.request/"
+	avatarDebugResultAuditRefPrefix   = "runtime.audit.avatar_debug.result/"
 )
 
 func (s *Service) GetAvatarDebugSnapshot(_ context.Context, req *runtimev1.GetAvatarDebugSnapshotRequest) (*runtimev1.GetAvatarDebugSnapshotResponse, error) {
@@ -102,8 +105,10 @@ func (s *Service) RequestAvatarDebugProbe(_ context.Context, req *runtimev1.Requ
 		Status:               runtimev1.AvatarDebugProbeStatus_AVATAR_DEBUG_PROBE_STATUS_BLOCKED,
 		ObservedAt:           timestamppb.New(now),
 		EvidenceRefs: []string{
+			avatarDebugAuthorizationRefPrefix + probeID,
 			avatarDebugRequestAuditRefPrefix + probeID,
 			avatarDebugResultAuditRefPrefix + probeID,
+			avatarDebugProjectionRefPrefix + probeID,
 		},
 		ReasonCode: avatarDebugSessionUnavailable,
 		ResultId:   "avatar-debug-result-" + ulid.Make().String(),
@@ -276,32 +281,38 @@ func avatarDebugAuditEvent(probeID string, agentID string, anchorID string, oper
 
 func avatarDebugRequestPayload(request *runtimev1.AvatarDebugProbeRequestEnvelope) *structpb.Struct {
 	payload, _ := structpb.NewStruct(map[string]any{
-		"probe_id":               request.GetProbeId(),
-		"agent_id":               request.GetAgentId(),
-		"conversation_anchor_id": request.GetConversationAnchorId(),
-		"probe_kind":             request.GetProbeKind().String(),
-		"requested_by":           request.GetRequestedBy().String(),
-		"requested_at":           timestampString(request.GetRequestedAt()),
-		"turn_id":                request.GetTurnId(),
-		"stream_id":              request.GetStreamId(),
-		"avatar_instance_id":     request.GetAvatarInstanceId(),
-		"runtime_replay_ref":     request.GetRuntimeReplayRef(),
-		"replay_requested":       request.GetReplayRequested(),
+		"probe_id":                request.GetProbeId(),
+		"agent_id":                request.GetAgentId(),
+		"conversation_anchor_id":  request.GetConversationAnchorId(),
+		"probe_kind":              request.GetProbeKind().String(),
+		"requested_by":            request.GetRequestedBy().String(),
+		"requested_at":            timestampString(request.GetRequestedAt()),
+		"turn_id":                 request.GetTurnId(),
+		"stream_id":               request.GetStreamId(),
+		"avatar_instance_id":      request.GetAvatarInstanceId(),
+		"runtime_replay_ref":      request.GetRuntimeReplayRef(),
+		"replay_requested":        request.GetReplayRequested(),
+		"access_decision_verdict": avatarDebugAuthorizationVerdict,
+		"access_decision_scope":   avatarDebugWriteScope,
+		"access_decision_ref":     avatarDebugAuthorizationRefPrefix + request.GetProbeId(),
 	})
 	return payload
 }
 
 func avatarDebugResultPayload(result *runtimev1.AvatarDebugProbeResultEnvelope) *structpb.Struct {
 	payload, _ := structpb.NewStruct(map[string]any{
-		"probe_id":               result.GetProbeId(),
-		"agent_id":               result.GetAgentId(),
-		"conversation_anchor_id": result.GetConversationAnchorId(),
-		"probe_kind":             result.GetProbeKind().String(),
-		"status":                 result.GetStatus().String(),
-		"observed_at":            timestampString(result.GetObservedAt()),
-		"evidence_refs":          avatarDebugStructList(result.GetEvidenceRefs()),
-		"reason_code":            result.GetReasonCode(),
-		"result_id":              result.GetResultId(),
+		"probe_id":                result.GetProbeId(),
+		"agent_id":                result.GetAgentId(),
+		"conversation_anchor_id":  result.GetConversationAnchorId(),
+		"probe_kind":              result.GetProbeKind().String(),
+		"status":                  result.GetStatus().String(),
+		"observed_at":             timestampString(result.GetObservedAt()),
+		"evidence_refs":           avatarDebugStructList(result.GetEvidenceRefs()),
+		"reason_code":             result.GetReasonCode(),
+		"result_id":               result.GetResultId(),
+		"access_decision_verdict": avatarDebugAuthorizationVerdict,
+		"access_decision_scope":   avatarDebugWriteScope,
+		"access_decision_ref":     avatarDebugAuthorizationRefPrefix + result.GetProbeId(),
 	})
 	return payload
 }
@@ -316,11 +327,19 @@ func avatarDebugStructList(values []string) []any {
 
 func avatarDebugReplayPayload(replay *runtimev1.AvatarDebugReplayRef) *structpb.Struct {
 	payload, _ := structpb.NewStruct(map[string]any{
-		"probe_id":        replay.GetProbeId(),
-		"replay_ref":      replay.GetReplayRef(),
-		"redaction_state": replay.GetRedactionState().String(),
-		"visibility":      replay.GetVisibility().String(),
-		"linked_at":       timestampString(replay.GetLinkedAt()),
+		"probe_id":                 replay.GetProbeId(),
+		"request_event_id":         fmt.Sprintf("%s:%s", avatarDebugRequestOperation, replay.GetProbeId()),
+		"result_event_id":          fmt.Sprintf("%s:%s", avatarDebugResultOperation, replay.GetProbeId()),
+		"authorization_verdict_id": avatarDebugAuthorizationRefPrefix + replay.GetProbeId(),
+		"projection_lineage_id":    avatarDebugProjectionRefPrefix + replay.GetProbeId(),
+		"replay_ref":               replay.GetReplayRef(),
+		"redaction_state":          replay.GetRedactionState().String(),
+		"replay_visibility":        replay.GetVisibility().String(),
+		"visibility":               replay.GetVisibility().String(),
+		"linked_at":                timestampString(replay.GetLinkedAt()),
+		"access_decision_verdict":  avatarDebugAuthorizationVerdict,
+		"access_decision_scope":    avatarDebugWriteScope,
+		"access_decision_ref":      avatarDebugAuthorizationRefPrefix + replay.GetProbeId(),
 	})
 	return payload
 }
@@ -467,7 +486,11 @@ func avatarDebugReplayFromAuditEvent(event *runtimev1.AuditEventRecord) (*runtim
 	if !ok {
 		return nil, false
 	}
-	visibility, ok := avatarDebugReplayVisibilityFromString(avatarDebugStructString(fields, "visibility"))
+	visibilityRaw := avatarDebugStructString(fields, "replay_visibility")
+	if visibilityRaw == "" {
+		visibilityRaw = avatarDebugStructString(fields, "visibility")
+	}
+	visibility, ok := avatarDebugReplayVisibilityFromString(visibilityRaw)
 	if !ok {
 		return nil, false
 	}

@@ -12,15 +12,33 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 )
 
 const (
 	codexResponsesPath       = "/responses"
-	codexHostChatModel       = "gpt-5.4"
 	codexImageInstructions   = "You are an assistant that must fulfill image generation requests by using the image_generation tool when provided."
 	codexDefaultInstructions = "You are helpful, knowledgeable, and direct."
 	codexTextMaxStreamBuffer = 1024 * 1024
 )
+
+func defaultBackendModelForName(name string) string {
+	lowerName := strings.ToLower(strings.TrimSpace(name))
+	bestProviderID := ""
+	for _, providerID := range providerregistry.RemoteProviders {
+		if !strings.Contains(lowerName, providerID) {
+			continue
+		}
+		if len(providerID) > len(bestProviderID) {
+			bestProviderID = providerID
+		}
+	}
+	record, ok := providerregistry.Lookup(bestProviderID)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(record.DefaultTextModel)
+}
 
 func (b *Backend) supportsCodexResponses() bool {
 	if b == nil {
@@ -174,8 +192,12 @@ func (b *Backend) generateImageCodexResponses(
 	if spec == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	hostModel := strings.TrimSpace(b.defaultModel)
+	if hostModel == "" {
+		return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	}
 	requestBody := map[string]any{
-		"model":        codexHostChatModel,
+		"model":        hostModel,
 		"store":        false,
 		"instructions": codexImageInstructions,
 		"input": []map[string]any{

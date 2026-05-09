@@ -37,22 +37,24 @@ type localEnvironmentHostProfileState struct {
 }
 
 type localEnvironmentSelectedSourceRecordState struct {
-	RecordID              string            `json:"recordId"`
-	DependencyFamily      string            `json:"dependencyFamily"`
-	DependencyID          string            `json:"dependencyId"`
-	EnvironmentKey        string            `json:"environmentKey"`
-	SourceKind            string            `json:"sourceKind"`
-	CanonicalRoot         string            `json:"canonicalRoot,omitempty"`
-	Version               string            `json:"version,omitempty"`
-	CompatibilityEvidence []string          `json:"compatibilityEvidence,omitempty"`
-	VerifiedArtifacts     []string          `json:"verifiedArtifacts,omitempty"`
-	Hashes                map[string]string `json:"hashes,omitempty"`
-	SelectedConsumers     []string          `json:"selectedConsumers,omitempty"`
-	ActivationEnvDelta    []string          `json:"activationEnvDelta,omitempty"`
-	SelectedAt            string            `json:"selectedAt,omitempty"`
-	LastVerifiedAt        string            `json:"lastVerifiedAt,omitempty"`
-	RepairState           string            `json:"repairState,omitempty"`
-	AuditReasonCode       string            `json:"auditReasonCode,omitempty"`
+	RecordID                string            `json:"recordId"`
+	DependencyFamily        string            `json:"dependencyFamily"`
+	DependencyID            string            `json:"dependencyId"`
+	EnvironmentKey          string            `json:"environmentKey"`
+	SourceKind              string            `json:"sourceKind"`
+	CanonicalRoot           string            `json:"canonicalRoot,omitempty"`
+	Version                 string            `json:"version,omitempty"`
+	CompatibilityEvidence   []string          `json:"compatibilityEvidence,omitempty"`
+	VerifiedArtifacts       []string          `json:"verifiedArtifacts,omitempty"`
+	Hashes                  map[string]string `json:"hashes,omitempty"`
+	SelectedConsumers       []string          `json:"selectedConsumers,omitempty"`
+	SourceManifestRef       string            `json:"sourceManifestRef,omitempty"`
+	VerificationEvidenceRef string            `json:"verificationEvidenceRef,omitempty"`
+	ActivationEnvDelta      []string          `json:"activationEnvDelta,omitempty"`
+	SelectedAt              string            `json:"selectedAt,omitempty"`
+	LastVerifiedAt          string            `json:"lastVerifiedAt,omitempty"`
+	RepairState             string            `json:"repairState,omitempty"`
+	AuditReasonCode         string            `json:"auditReasonCode,omitempty"`
 }
 
 func localEnvironmentHostProfileFromDeviceProfile(profile *runtimev1.LocalDeviceProfile) localEnvironmentHostProfileState {
@@ -116,6 +118,8 @@ func (s *Service) upsertLocalEnvironmentSelectedSourceRecord(record localEnviron
 	record.DependencyID = strings.TrimSpace(record.DependencyID)
 	record.EnvironmentKey = strings.TrimSpace(record.EnvironmentKey)
 	record.SourceKind = strings.TrimSpace(record.SourceKind)
+	record.SourceManifestRef = strings.TrimSpace(record.SourceManifestRef)
+	record.VerificationEvidenceRef = strings.TrimSpace(record.VerificationEvidenceRef)
 	if record.SourceKind == "" {
 		record.SourceKind = localEnvironmentSourceManaged
 	}

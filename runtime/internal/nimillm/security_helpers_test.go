@@ -350,6 +350,32 @@ func TestResolveBytedanceOpenSpeechWSReadTimeoutClampsToMaximum(t *testing.T) {
 	}
 }
 
+func TestResolveBytedanceOpenSpeechWSURLRejectsSecureDowngrade(t *testing.T) {
+	got := resolveBytedanceOpenSpeechWSURL("https://openspeech.example.com/api/v1", map[string]any{
+		"ws_url": "ws://openspeech.example.com/api/v3/auc/bigmodel/recognize/stream",
+	})
+	if got != "" {
+		t.Fatalf("secure base URL must not be downgraded to plaintext websocket, got %q", got)
+	}
+
+	got = resolveBytedanceOpenSpeechWSURL("https://openspeech.example.com/api/v1", map[string]any{
+		"ws_url": "wss://openspeech.example.com/api/v3/auc/bigmodel/recognize/stream",
+	})
+	if got != "wss://openspeech.example.com/api/v3/auc/bigmodel/recognize/stream" {
+		t.Fatalf("same-host wss override should be allowed, got %q", got)
+	}
+}
+
+func TestValidateBytedanceOpenSpeechWSURLRejectsPlaintextPublicEndpoint(t *testing.T) {
+	err := validateBytedanceOpenSpeechWSURL(context.Background(), "ws://openspeech.example.com/api/v3/auc/bigmodel/recognize/stream")
+	if err == nil {
+		t.Fatal("expected plaintext public websocket endpoint to fail closed")
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN {
+		t.Fatalf("unexpected reason: ok=%v reason=%v err=%v", ok, reason, err)
+	}
+}
+
 func TestExtractSpeechArtifactFromResponseBodyRejectsTextOnlyJSON(t *testing.T) {
 	artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(context.Background(), &JSONOrBinaryBody{
 		Bytes: []byte(`{"text":"not-audio"}`),

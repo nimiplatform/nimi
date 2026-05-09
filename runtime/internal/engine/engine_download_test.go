@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -133,65 +132,6 @@ func TestDownloadURLToFileRetriesTransientEOF(t *testing.T) {
 	}
 	if requests < 2 {
 		t.Fatalf("expected retry after transient EOF, got %d requests", requests)
-	}
-	wantSum := sha256.Sum256(fakeBinary)
-	if hash != hex.EncodeToString(wantSum[:]) {
-		t.Fatalf("hash mismatch: got=%s want=%s", hash, hex.EncodeToString(wantSum[:]))
-	}
-	info, err := os.Stat(destPath)
-	if err != nil {
-		t.Fatalf("stat downloaded file: %v", err)
-	}
-	if info.Size() != int64(len(fakeBinary)) {
-		t.Fatalf("downloaded size mismatch: got=%d want=%d", info.Size(), len(fakeBinary))
-	}
-}
-
-func TestTryCurlDownloadFallback(t *testing.T) {
-	sourceFile := filepath.Join(t.TempDir(), "source.bin")
-	fakeBinary := []byte("fake-windows-curl-download")
-	if err := os.WriteFile(sourceFile, fakeBinary, 0o644); err != nil {
-		t.Fatalf("write source file: %v", err)
-	}
-	originalLookPath := engineDownloadLookPath
-	originalCommand := engineDownloadCommand
-	lookedUp := ""
-	engineDownloadLookPath = func(name string) (string, error) {
-		lookedUp = name
-		return name, nil
-	}
-	engineDownloadCommand = func(_ string, args ...string) *exec.Cmd {
-		dest := ""
-		for i := 0; i < len(args)-1; i++ {
-			if args[i] == "--output" {
-				dest = args[i+1]
-				break
-			}
-		}
-		if dest == "" {
-			t.Fatal("missing --output destination")
-		}
-		if currentGOOS() == "windows" {
-			return exec.Command("cmd", "/c", "copy", "/Y", sourceFile, dest)
-		}
-		return exec.Command("sh", "-c", "cp \"$1\" \"$2\"", "sh", sourceFile, dest)
-	}
-	t.Cleanup(func() {
-		engineDownloadLookPath = originalLookPath
-		engineDownloadCommand = originalCommand
-	})
-
-	destPath := filepath.Join(t.TempDir(), "downloaded.bin")
-	hash, err := tryCurlDownload("https://github.com/example/release.zip", destPath, io.EOF)
-	if err != nil {
-		t.Fatalf("tryCurlDownload: %v", err)
-	}
-	if currentGOOS() == "windows" {
-		if lookedUp != "curl.exe" {
-			t.Fatalf("expected curl.exe lookup on windows, got %q", lookedUp)
-		}
-	} else if lookedUp != "curl" {
-		t.Fatalf("expected curl lookup on non-windows, got %q", lookedUp)
 	}
 	wantSum := sha256.Sum256(fakeBinary)
 	if hash != hex.EncodeToString(wantSum[:]) {

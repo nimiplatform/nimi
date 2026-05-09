@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -130,7 +129,11 @@ func cloneStringMap(input map[string]string) map[string]string {
 	return cloned
 }
 
-func ensureManagedImageBackendInstalled(ctx context.Context, backendsPath string, sharedDependenciesPath string, cfg *ManagedImageBackendConfig) (*ManagedImageBackendConfig, error) {
+func ensureManagedImageBackendInstalled(_ context.Context, backendsPath string, sharedDependenciesPath string, cfg *ManagedImageBackendConfig) (*ManagedImageBackendConfig, error) {
+	return resolveInstalledManagedImageBackendConfig(backendsPath, sharedDependenciesPath, cfg)
+}
+
+func ensureManagedImageBackendMaterialized(ctx context.Context, backendsPath string, sharedDependenciesPath string, cfg *ManagedImageBackendConfig) (*ManagedImageBackendConfig, error) {
 	normalized := normalizeManagedImageBackendConfig(cfg)
 	if !normalized.Enabled() {
 		return normalized, nil
@@ -310,6 +313,13 @@ func installManagedImageBackendFromOCI(ctx context.Context, backendsPath string,
 	if layerDigest == "" {
 		return fmt.Errorf("install managed image backend %s: OCI layer digest is required", backendName)
 	}
+	expectedLayerDigest := normalizeOCIContentDigest(spec.OCILayerDigest)
+	if expectedLayerDigest == "" {
+		return fmt.Errorf("install managed image backend %s: admitted OCI layer digest is required for %s", backendName, spec.ImageRef)
+	}
+	if !strings.EqualFold(expectedLayerDigest, normalizeOCIContentDigest(layerDigest)) {
+		return fmt.Errorf("%w: OCI layer digest mismatch for %s: expected=%s actual=%s", ErrEngineBinaryHashMismatch, spec.ImageRef, expectedLayerDigest, normalizeOCIContentDigest(layerDigest))
+	}
 
 	tmpDir, err := os.MkdirTemp(filepath.Dir(backendsPath), ".managed-image-backend-*")
 	if err != nil {
@@ -318,7 +328,7 @@ func installManagedImageBackendFromOCI(ctx context.Context, backendsPath string,
 	defer os.RemoveAll(tmpDir)
 
 	layerPath := filepath.Join(tmpDir, "layer.tar.gz")
-	if _, err := downloadOCIImageBlobToFile(ctx, parsedRef, layerDigest, layerPath); err != nil {
+	if _, err := downloadOCIImageBlobToFile(ctx, parsedRef, expectedLayerDigest, layerPath); err != nil {
 		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
 
@@ -352,6 +362,10 @@ func installManagedImageBackendFromDirectArchive(ctx context.Context, backendsPa
 	if len(spec.ExecutableCandidates) == 0 {
 		return fmt.Errorf("install managed image backend %s: executable candidates are required", backendName)
 	}
+	expectedArchiveSHA256 := strings.TrimSpace(spec.ArchiveSHA256)
+	if expectedArchiveSHA256 == "" {
+		return fmt.Errorf("install managed image backend %s: admitted archive sha256 is required for %s", backendName, spec.ArchiveURL)
+	}
 
 	tmpDir, err := os.MkdirTemp(filepath.Dir(backendsPath), ".managed-image-backend-*")
 	if err != nil {
@@ -368,8 +382,8 @@ func installManagedImageBackendFromDirectArchive(ctx context.Context, backendsPa
 	if err != nil {
 		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}
-	if expected := strings.TrimSpace(spec.ArchiveSHA256); expected != "" && !strings.EqualFold(expected, archiveHash) {
-		return fmt.Errorf("%w: expected=%s actual=%s", ErrEngineBinaryHashMismatch, strings.ToLower(expected), archiveHash)
+	if !strings.EqualFold(expectedArchiveSHA256, archiveHash) {
+		return fmt.Errorf("%w: expected=%s actual=%s", ErrEngineBinaryHashMismatch, strings.ToLower(expectedArchiveSHA256), archiveHash)
 	}
 
 	stagedDir := filepath.Join(tmpDir, "payload")
@@ -395,102 +409,6 @@ func installManagedImageBackendFromDirectArchive(ctx context.Context, backendsPa
 	return nil
 }
 
-func parseOCIImageReference(imageRef string) (ociImageReference, error) {
-	trimmed := strings.TrimSpace(imageRef)
-	if trimmed == "" {
-		return ociImageReference{}, fmt.Errorf("OCI image reference is required")
-	}
-	firstSlash := strings.Index(trimmed, "/")
-	if firstSlash <= 0 || firstSlash == len(trimmed)-1 {
-		return ociImageReference{}, fmt.Errorf("invalid OCI image reference %q", imageRef)
-	}
-	registry := strings.TrimSpace(trimmed[:firstSlash])
-	remainder := strings.TrimSpace(trimmed[firstSlash+1:])
-	if registry == "" || remainder == "" {
-		return ociImageReference{}, fmt.Errorf("invalid OCI image reference %q", imageRef)
-	}
-	lastColon := strings.LastIndex(remainder, ":")
-	if lastColon <= 0 || lastColon == len(remainder)-1 {
-		return ociImageReference{}, fmt.Errorf("OCI image tag is required in %q", imageRef)
-	}
-	repository := strings.TrimSpace(remainder[:lastColon])
-	reference := strings.TrimSpace(remainder[lastColon+1:])
-	if repository == "" || reference == "" {
-		return ociImageReference{}, fmt.Errorf("invalid OCI image reference %q", imageRef)
-	}
-	return ociImageReference{
-		Registry:   registry,
-		Repository: repository,
-		Reference:  reference,
-	}, nil
-}
-
-func fetchOCIManifest(ctx context.Context, ref ociImageReference) (ociDistributionManifest, error) {
-	url := fmt.Sprintf("https://%s/v2/%s/manifests/%s", ref.Registry, ref.Repository, ref.Reference)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return ociDistributionManifest{}, fmt.Errorf("build OCI manifest request: %w", err)
-	}
-	req.Header.Set("User-Agent", "nimi-runtime/0.1")
-	req.Header.Set("Accept", ociManifestMediaTypeV2)
-	resp, err := doOCIRegistryRequestWithRetry(ctx, url, req, 5*time.Minute)
-	if err != nil {
-		return ociDistributionManifest{}, fmt.Errorf("request OCI manifest %s: %w", ref.Reference, err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return ociDistributionManifest{}, fmt.Errorf("request OCI manifest %s: HTTP %d", ref.Reference, resp.StatusCode)
-	}
-	var manifest ociDistributionManifest
-	if err := json.NewDecoder(resp.Body).Decode(&manifest); err != nil {
-		return ociDistributionManifest{}, fmt.Errorf("decode OCI manifest %s: %w", ref.Reference, err)
-	}
-	if manifest.SchemaVersion != 2 {
-		return ociDistributionManifest{}, fmt.Errorf("unsupported OCI schema version %d for %s", manifest.SchemaVersion, ref.Reference)
-	}
-	return manifest, nil
-}
-
-func downloadOCIImageBlobToFile(ctx context.Context, ref ociImageReference, digest string, destPath string) (string, error) {
-	trimmedDigest := strings.TrimSpace(digest)
-	if trimmedDigest == "" {
-		return "", fmt.Errorf("OCI blob digest is required")
-	}
-	url := fmt.Sprintf("https://%s/v2/%s/blobs/%s", ref.Registry, ref.Repository, trimmedDigest)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return "", fmt.Errorf("build OCI blob request: %w", err)
-	}
-	req.Header.Set("User-Agent", "nimi-runtime/0.1")
-	resp, err := doOCIRegistryRequestWithRetry(ctx, url, req, 30*time.Minute)
-	if err != nil {
-		return "", fmt.Errorf("request OCI blob %s: %w", trimmedDigest, err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("request OCI blob %s: HTTP %d", trimmedDigest, resp.StatusCode)
-	}
-	out, err := os.Create(destPath)
-	if err != nil {
-		return "", fmt.Errorf("create OCI blob temp file: %w", err)
-	}
-	shouldRemove := true
-	defer func() {
-		_ = out.Close()
-		if shouldRemove {
-			_ = os.Remove(destPath)
-		}
-	}()
-	if _, err := io.Copy(out, resp.Body); err != nil {
-		return "", fmt.Errorf("write OCI blob %s: %w", trimmedDigest, err)
-	}
-	if err := out.Close(); err != nil {
-		return "", fmt.Errorf("close OCI blob %s: %w", trimmedDigest, err)
-	}
-	shouldRemove = false
-	return destPath, nil
-}
-
 func writeManagedImageBackendMetadata(path string, metadata managedImageBackendMetadata) error {
 	payload, err := json.Marshal(metadata)
 	if err != nil {
@@ -500,31 +418,6 @@ func writeManagedImageBackendMetadata(path string, metadata managedImageBackendM
 		return fmt.Errorf("write managed image backend metadata %s: %w", path, err)
 	}
 	return nil
-}
-
-func doOCIRegistryRequestWithRetry(ctx context.Context, sourceURL string, req *http.Request, timeout time.Duration) (*http.Response, error) {
-	client := newEngineDownloadHTTPClient(sourceURL, nil, timeout)
-	var lastErr error
-	for attempt := 0; attempt < 3; attempt++ {
-		cloned := req.Clone(ctx)
-		resp, err := client.Do(cloned)
-		if err == nil {
-			return resp, nil
-		}
-		lastErr = err
-		if attempt == 2 {
-			break
-		}
-		delay := time.Duration(attempt+1) * 250 * time.Millisecond
-		timer := time.NewTimer(delay)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return nil, ctx.Err()
-		case <-timer.C:
-		}
-	}
-	return nil, lastErr
 }
 
 func discoverInstalledManagedImageBackendRunPath(backendsPath string, backendName string) (string, error) {

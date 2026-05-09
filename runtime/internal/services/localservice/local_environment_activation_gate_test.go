@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 )
 
 func TestLocalEnvironmentActivationGateBlocksMissingSourceRecords(t *testing.T) {
@@ -127,6 +128,40 @@ func TestLocalEnvironmentActivationGateBlocksUnsupportedCUDA(t *testing.T) {
 	}
 }
 
+func TestLocalEnvironmentActivationDependencyRequiresMaterializerForReadyCUDAProjection(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{
+		sharedAcceleratorDependencyStatus: &engine.SharedAcceleratorDependencyStatus{
+			DependencyID:      cudaUserSpaceRuntimeDependencyID,
+			State:             engine.SharedAcceleratorDependencyReadyManaged,
+			Source:            "runtime_managed",
+			CanonicalRoot:     `C:\Users\admin\.nimi\runtime\accelerator-dependencies\nvidia-cuda-user-space-runtime`,
+			Detail:            "nvidia_cuda_user_space_runtime state=ready_managed source=runtime_managed",
+			RequiredArtifacts: []string{"cudart64_12.dll", "cublas64_12.dll", "cublasLt64_12.dll"},
+		},
+	})
+
+	dep := svc.resolveLocalEnvironmentActivationDependency(localEnvironmentPlanDependency{
+		DependencyFamily:     localEnvironmentFamilyCUDA,
+		DependencyID:         cudaUserSpaceRuntimeDependencyID,
+		Required:             true,
+		State:                localEnvironmentStateNeedsConfirmation,
+		SourceKind:           localEnvironmentSourceManaged,
+		ConfirmationRequired: true,
+		EnvironmentKey:       "accelerator.cuda.runtime|nvidia-cuda-user-space-runtime|host|windows/amd64|root|stable-diffusion.cpp.cuda",
+	}, stableDiffusionCUDAConsumerID)
+
+	if dep.State != localEnvironmentStateNeedsConfirmation || !dep.ConfirmationRequired {
+		t.Fatalf("ready CUDA projection must require confirmed materializer job: %+v", dep)
+	}
+	if dep.SelectedSourceRecordID != "" {
+		t.Fatalf("activation projection must not promote selected source record: %+v", dep)
+	}
+	if _, ok := svc.localEnvironmentSelectedSourceRecord(dep.EnvironmentKey); ok {
+		t.Fatalf("expected no selected source record from activation projection for %q", dep.EnvironmentKey)
+	}
+}
+
 func TestLocalEnvironmentActivationGatePreservesCancelledAndFailedJobs(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
@@ -230,7 +265,7 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 		if dep.DependencyFamily == localEnvironmentFamilyPythonRuntime || dep.DependencyFamily == localEnvironmentFamilyPythonUV {
 			sourceKind = localEnvironmentSourceSystem
 		}
-		svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+		svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 			DependencyFamily:  dep.DependencyFamily,
 			DependencyID:      dep.DependencyID,
 			EnvironmentKey:    dep.EnvironmentKey,
@@ -238,7 +273,7 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 			CanonicalRoot:     filepath.Join(t.TempDir(), strings.ReplaceAll(dep.DependencyID, ".", "-")),
 			SelectedConsumers: []string{req.ConsumerID},
 			AuditReasonCode:   "test_ready",
-		})
+		}))
 	}
 	return plan.Dependencies
 }

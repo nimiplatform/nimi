@@ -13,6 +13,9 @@ import (
 )
 
 func (s *Service) IngestDocument(_ context.Context, req *runtimev1.IngestDocumentRequest) (*runtimev1.IngestDocumentResponse, error) {
+	if err := s.ensureKnowledgeAuditAvailable(); err != nil {
+		return nil, err
+	}
 	if err := validateRequestContext(req.GetContext()); err != nil {
 		return nil, err
 	}
@@ -55,6 +58,11 @@ func (s *Service) IngestDocument(_ context.Context, req *runtimev1.IngestDocumen
 		s.mu.Unlock()
 		return nil, err
 	}
+	s.recordKnowledgeAudit(req.GetContext(), "knowledge.ingest.accept", map[string]any{
+		"bank_id": task.GetBankId(),
+		"task_id": task.GetTaskId(),
+		"slug":    task.GetSlug(),
+	})
 	s.mu.Unlock()
 
 	go s.runIngestTask(cloneIngestDocumentRequest(req), task.GetTaskId())
@@ -162,6 +170,12 @@ func (s *Service) applyIngestDocument(taskID string, req *runtimev1.IngestDocume
 		s.ingestTasksByID[taskID] = previousTask
 		return nil, err
 	}
+	s.recordKnowledgeAudit(req.GetContext(), "knowledge.page.put", map[string]any{
+		"bank_id":        state.Bank.GetBankId(),
+		"page_id":        page.GetPageId(),
+		"slug":           page.GetSlug(),
+		"ingest_task_id": taskID,
+	})
 	return cloneKnowledgePage(page), nil
 }
 

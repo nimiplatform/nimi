@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"google.golang.org/grpc/metadata"
 )
@@ -285,5 +286,36 @@ func TestLocalAuditCapacityRespectedAcrossPersistAndRestore(t *testing.T) {
 	}
 	if restored.GetEvents()[0].GetEventType() != "evt-4" || restored.GetEvents()[1].GetEventType() != "evt-3" {
 		t.Fatalf("unexpected retained audit order after restart: %s, %s", restored.GetEvents()[0].GetEventType(), restored.GetEvents()[1].GetEventType())
+	}
+}
+
+func TestLocalAuditDoesNotReplicateIntoGlobalRuntimeAuditStore(t *testing.T) {
+	globalAudit := auditlog.New(16, 16)
+	statePath := filepath.Join(t.TempDir(), "local-state.json")
+	svc, err := New(nil, globalAudit, statePath, 16)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	t.Cleanup(svc.Close)
+
+	if _, err := svc.AppendRuntimeAudit(context.Background(), &runtimev1.AppendRuntimeAuditRequest{
+		EventType: "local_runtime_event",
+		ModelId:   "local/chat-default",
+	}); err != nil {
+		t.Fatalf("append local runtime audit: %v", err)
+	}
+	localEvents, err := svc.ListLocalAudits(context.Background(), &runtimev1.ListLocalAuditsRequest{PageSize: 10})
+	if err != nil {
+		t.Fatalf("list local audits: %v", err)
+	}
+	if len(localEvents.GetEvents()) != 1 {
+		t.Fatalf("expected local audit to be retained locally, got %d", len(localEvents.GetEvents()))
+	}
+	globalEvents, err := globalAudit.ListEvents(&runtimev1.ListAuditEventsRequest{PageSize: 10})
+	if err != nil {
+		t.Fatalf("list global audit events: %v", err)
+	}
+	if len(globalEvents.GetEvents()) != 0 {
+		t.Fatalf("local audit must not replicate to global runtime audit store: %+v", globalEvents.GetEvents())
 	}
 }

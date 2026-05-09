@@ -201,6 +201,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	}
 	agentSvc.SetScopedBindingValidator(accountSvc)
 	agentSvc.SetAuditStore(auditStore)
+	agentSvc.SetRuntimeArtifactStore(artifactStore)
 	agentSvc.SetRuntimePrivateAIBridge(runtimeagentservice.NewAIBackedRuntimePrivateAIBridge(aiSvc))
 	runtimev1.RegisterRuntimeAgentServiceServer(g, agentSvc)
 
@@ -308,6 +309,8 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		localSvc.Close()
 		return nil, fmt.Errorf("init knowledge service: %w", err)
 	}
+	knowledgeSvc.SetAuditStore(auditStore)
+	knowledgeSvc.RequireAuditStore(true)
 	cognitionSvc, err := cognitionservice.New(logger, cfg, memorySvc, knowledgeSvc)
 	if err != nil {
 		_ = knowledgeSvc.Close()

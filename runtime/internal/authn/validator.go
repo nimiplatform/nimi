@@ -219,8 +219,11 @@ func (v *Validator) ValidateContext(ctx context.Context, tokenString string) (*I
 }
 
 func (v *Validator) checkRevocation(ctx context.Context, identity *Identity) error {
-	if identity == nil || strings.TrimSpace(identity.SessionID) == "" || strings.TrimSpace(v.revocationURL) == "" {
+	if strings.TrimSpace(v.revocationURL) == "" {
 		return nil
+	}
+	if identity == nil || strings.TrimSpace(identity.SessionID) == "" {
+		return fmt.Errorf("token missing sid claim required for revocation")
 	}
 	payload := revocationRequest{
 		SessionID:     identity.SessionID,

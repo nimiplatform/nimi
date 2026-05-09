@@ -244,7 +244,7 @@ func TestSubmitScenarioJobDashScopeVoiceDesignUsesAPIModelTarget(t *testing.T) {
 
 func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	ctx := scenarioJobContext("nimi.desktop")
+	ctx := scenarioJobUserContext("nimi.desktop", "user-001")
 
 	_, err := svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{})
 	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
@@ -438,13 +438,13 @@ func TestScenarioJobStoreSubscribeBranches(t *testing.T) {
 	sendErr := errors.New("stream-send-failed")
 	err := svc.SubscribeScenarioJobEvents(
 		&runtimev1.SubscribeScenarioJobEventsRequest{JobId: terminalJobID},
-		&scenarioJobFailingCollector{ctx: scenarioJobContext("app"), sendErr: sendErr},
+		&scenarioJobFailingCollector{ctx: scenarioJobUserContext("app", "user"), sendErr: sendErr},
 	)
 	if !errors.Is(err, sendErr) {
 		t.Fatalf("expected send error branch, got %v", err)
 	}
 
-	ctx, cancel := context.WithCancel(scenarioJobContext("app"))
+	ctx, cancel := context.WithCancel(scenarioJobUserContext("app", "user"))
 	cancel()
 	runningJobID := "scenario-subscribe-cancel-context"
 	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
@@ -515,6 +515,69 @@ func TestScenarioJobStoreRejectsUnauthorizedSubscriptionAndVoiceCancel(t *testin
 	}
 }
 
+func TestNormalizeSubmitScenarioJobOwnerUsesAuthnSubject(t *testing.T) {
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app",
+			SubjectUserId: "request-body-user",
+			ModelId:       "local/qwen",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Spec:          &runtimev1.ScenarioSpec{},
+	}
+
+	ctx := authn.WithIdentity(context.Background(), &authn.Identity{SubjectUserID: "jwt-user"})
+	normalized, err := normalizeSubmitScenarioJobOwner(ctx, req)
+	if err != nil {
+		t.Fatalf("normalize owner: %v", err)
+	}
+	if got := normalized.GetHead().GetSubjectUserId(); got != "jwt-user" {
+		t.Fatalf("scenario job owner must come from JWT subject, got %q", got)
+	}
+	if got := req.GetHead().GetSubjectUserId(); got != "request-body-user" {
+		t.Fatalf("normalize must not mutate caller request, got %q", got)
+	}
+
+	anonymous, err := normalizeSubmitScenarioJobOwner(context.Background(), req)
+	if err != nil {
+		t.Fatalf("normalize anonymous owner: %v", err)
+	}
+	if got := anonymous.GetHead().GetSubjectUserId(); got != anonymousScenarioJobOwner {
+		t.Fatalf("anonymous scenario job owner mismatch: got %q", got)
+	}
+}
+
+func TestAuthorizeScenarioJobRejectsAnonymousAccessToUserOwnedJob(t *testing.T) {
+	userOwned := &runtimev1.ScenarioJob{
+		JobId: "job-user-owned",
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app",
+			SubjectUserId: "user-a",
+			ModelId:       "local/qwen",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+	}
+	err := authorizeScenarioJob(metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "app")), userOwned)
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("anonymous access to user-owned scenario job must fail closed, got %v", err)
+	}
+
+	anonymousOwned := &runtimev1.ScenarioJob{
+		JobId: "job-anonymous-owned",
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app",
+			SubjectUserId: anonymousScenarioJobOwner,
+			ModelId:       "local/qwen",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+	}
+	if err := authorizeScenarioJob(metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "app")), anonymousOwned); err != nil {
+		t.Fatalf("anonymous owner should be readable by anonymous caller with matching app: %v", err)
+	}
+}
+
 type scenarioJobFailingCollector struct {
 	ctx     context.Context
 	sendErr error
@@ -557,7 +620,7 @@ func TestScenarioJobStoreSubscribeVoiceStreamingBranch(t *testing.T) {
 	}
 	svc.voiceAssets.mu.Unlock()
 
-	collector := &scenarioJobEventCollector{ctx: scenarioJobContext("app")}
+	collector := &scenarioJobEventCollector{ctx: scenarioJobUserContext("app", "user")}
 	done := make(chan error, 1)
 	go func() {
 		done <- svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector)
@@ -612,7 +675,7 @@ func TestScenarioJobStoreSubscribeVoiceTerminalBacklogBranch(t *testing.T) {
 	}
 	svc.voiceAssets.mu.Unlock()
 
-	collector := &scenarioJobEventCollector{ctx: scenarioJobContext("app")}
+	collector := &scenarioJobEventCollector{ctx: scenarioJobUserContext("app", "user")}
 	if err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector); err != nil {
 		t.Fatalf("subscribe voice terminal backlog branch returned error: %v", err)
 	}

@@ -62,6 +62,7 @@ func TestInstallManagedImageBackendFromOCI(t *testing.T) {
 		GPUVendor:      "apple",
 		InstallDirName: "metal-stablediffusion-ggml",
 		ImageRef:       registryHost + "/test/llama-backends:test-tag",
+		OCILayerDigest: layerDigest,
 		Supported:      true,
 	})
 	if err != nil {
@@ -82,6 +83,105 @@ func TestInstallManagedImageBackendFromOCI(t *testing.T) {
 	}
 	if metadata.Alias != "stablediffusion-ggml" {
 		t.Fatalf("backend alias mismatch: %q", metadata.Alias)
+	}
+}
+
+func TestInstallManagedImageBackendFromOCIRequiresAuthorityDigest(t *testing.T) {
+	tarball := makeFakeArchiveAsset(t, "backend.tar.gz", "run.sh", []byte("#!/bin/sh\n"))
+	layerDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(tarball))
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/test/llama-backends/manifests/test-tag":
+			w.Header().Set("Content-Type", ociManifestMediaTypeV2)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"schemaVersion":2,"mediaType":"%s","layers":[{"mediaType":"application/vnd.docker.image.rootfs.diff.tar.gzip","digest":"%s"}]}`, ociManifestMediaTypeV2, layerDigest)))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	oldTransport := http.DefaultTransport
+	http.DefaultTransport = server.Client().Transport
+	t.Cleanup(func() {
+		http.DefaultTransport = oldTransport
+	})
+
+	registryHost := strings.TrimPrefix(server.URL, "https://")
+	err := installManagedImageBackendFromOCI(context.Background(), t.TempDir(), "stablediffusion-ggml", managedImageBackendPackageSpec{
+		BackendName:    "stablediffusion-ggml",
+		InstallDirName: "metal-stablediffusion-ggml",
+		ImageRef:       registryHost + "/test/llama-backends:test-tag",
+		Supported:      true,
+	})
+	if err == nil {
+		t.Fatal("expected OCI install without admitted digest to fail")
+	}
+	if !strings.Contains(err.Error(), "admitted OCI layer digest is required") {
+		t.Fatalf("expected admitted digest error, got %v", err)
+	}
+}
+
+func TestInstallManagedImageBackendFromOCIRejectsManifestDigestDrift(t *testing.T) {
+	tarball := makeFakeArchiveAsset(t, "backend.tar.gz", "run.sh", []byte("#!/bin/sh\n"))
+	layerDigest := fmt.Sprintf("sha256:%x", sha256.Sum256(tarball))
+	otherDigest := "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/test/llama-backends/manifests/test-tag":
+			w.Header().Set("Content-Type", ociManifestMediaTypeV2)
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"schemaVersion":2,"mediaType":"%s","layers":[{"mediaType":"application/vnd.docker.image.rootfs.diff.tar.gzip","digest":"%s"}]}`, ociManifestMediaTypeV2, layerDigest)))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	oldTransport := http.DefaultTransport
+	http.DefaultTransport = server.Client().Transport
+	t.Cleanup(func() {
+		http.DefaultTransport = oldTransport
+	})
+
+	registryHost := strings.TrimPrefix(server.URL, "https://")
+	err := installManagedImageBackendFromOCI(context.Background(), t.TempDir(), "stablediffusion-ggml", managedImageBackendPackageSpec{
+		BackendName:    "stablediffusion-ggml",
+		InstallDirName: "metal-stablediffusion-ggml",
+		ImageRef:       registryHost + "/test/llama-backends:test-tag",
+		OCILayerDigest: otherDigest,
+		Supported:      true,
+	})
+	if !errors.Is(err, ErrEngineBinaryHashMismatch) {
+		t.Fatalf("expected digest mismatch, got %v", err)
+	}
+}
+
+func TestDownloadOCIImageBlobToFileRejectsBodyDigestMismatch(t *testing.T) {
+	expectedDigest := "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/test/llama-backends/blobs/"+expectedDigest {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte("wrong-body"))
+	}))
+	defer server.Close()
+
+	oldTransport := http.DefaultTransport
+	http.DefaultTransport = server.Client().Transport
+	t.Cleanup(func() {
+		http.DefaultTransport = oldTransport
+	})
+
+	registryHost := strings.TrimPrefix(server.URL, "https://")
+	ref, err := parseOCIImageReference(registryHost + "/test/llama-backends:test-tag")
+	if err != nil {
+		t.Fatalf("parseOCIImageReference: %v", err)
+	}
+	_, err = downloadOCIImageBlobToFile(context.Background(), ref, expectedDigest, filepath.Join(t.TempDir(), "layer.tar.gz"))
+	if !errors.Is(err, ErrEngineBinaryHashMismatch) {
+		t.Fatalf("expected body digest mismatch, got %v", err)
 	}
 }
 
@@ -241,6 +341,33 @@ func TestResolveInstalledManagedImageBackendRequiresMaterializerWithoutCreatingR
 	}
 }
 
+func TestEnsureManagedImageBackendRequiresMaterializerWithoutInstalling(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	_, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource("stablediffusion-ggml", "")
+	if !ok {
+		t.Skip("current host has no managed image backend package spec")
+	}
+	mgr, err := NewManager(nil, t.TempDir(), nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	backendsPath := filepath.Join(t.TempDir(), "managed-image-backends")
+	mgr.managedImageBackendsPath = backendsPath
+	mgr.sharedAcceleratorDependenciesPath = t.TempDir()
+
+	err = mgr.EnsureManagedImageBackend(context.Background(), &ManagedImageBackendConfig{
+		Mode:        ManagedImageBackendOfficial,
+		BackendName: "stablediffusion-ggml",
+		Address:     "127.0.0.1:50052",
+	})
+	if !errors.Is(err, ErrManagedImageBackendMaterializationRequired) {
+		t.Fatalf("expected materialization-required error, got %v", err)
+	}
+	if _, statErr := os.Stat(backendsPath); !os.IsNotExist(statErr) {
+		t.Fatalf("startup path must not install or create backend root, stat err=%v", statErr)
+	}
+}
+
 func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaCUDA(t *testing.T) {
 	spec, ok := resolveManagedImageBackendPackageSpecForHost(
 		"stablediffusion-ggml",
@@ -314,12 +441,15 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinApple(t *testing.T) {
 	if got := strings.TrimSpace(spec.ImageRef); got == "" {
 		t.Fatal("expected OCI image ref for darwin managed image backend package")
 	}
+	if got := strings.TrimSpace(spec.OCILayerDigest); got == "" {
+		t.Fatal("expected OCI layer digest for darwin managed image backend package")
+	}
 	if strings.TrimSpace(spec.ArchiveURL) != "" {
 		t.Fatalf("expected no archive URL for canonical darwin package, got %q", spec.ArchiveURL)
 	}
 }
 
-func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleExperimentalOfficialSource(t *testing.T) {
+func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleExperimentalOfficialSourceIsNotSupported(t *testing.T) {
 	spec, ok := resolveManagedImageBackendPackageSpecForHostWithSource(
 		"stablediffusion-ggml",
 		string(managedImageBackendPackageSourceExperimentalOfficialSDCPP),
@@ -331,8 +461,8 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleExperimentalOffi
 	if !ok {
 		t.Fatal("expected darwin apple host to resolve the experimental official managed image backend package")
 	}
-	if !spec.Supported {
-		t.Fatalf("expected experimental darwin managed image backend package to be supported, got %#v", spec)
+	if spec.Supported {
+		t.Fatalf("expected experimental darwin managed image backend package to remain non-supported, got %#v", spec)
 	}
 	if spec.PackageSource != managedImageBackendPackageSourceExperimentalOfficialSDCPP {
 		t.Fatalf("expected experimental official package source, got %q", spec.PackageSource)
@@ -354,6 +484,9 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleExperimentalOffi
 	}
 	if len(spec.ExecutableCandidates) != 1 || spec.ExecutableCandidates[0] != "sd-cli" {
 		t.Fatalf("unexpected darwin executable candidates: %#v", spec.ExecutableCandidates)
+	}
+	if !strings.Contains(spec.Detail, "not admitted") {
+		t.Fatalf("expected non-admitted detail for experimental package source, got %q", spec.Detail)
 	}
 }
 

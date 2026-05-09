@@ -33,11 +33,14 @@ func TestLocalEnvironmentDependencyJobSuccessPromotesSelectedSource(t *testing.T
 
 	job, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
 		return localEnvironmentDependencyJobResult{
-			SourceKind:        localEnvironmentSourceManaged,
-			CanonicalRoot:     filepath.Join(t.TempDir(), "dependency-root"),
-			Version:           "1.0.0",
-			VerifiedArtifacts: []string{"bin/tool"},
-			AuditReasonCode:   "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
+			State:                 localEnvironmentStateReadyManaged,
+			SourceKind:            localEnvironmentSourceManaged,
+			CanonicalRoot:         filepath.Join(t.TempDir(), "dependency-root"),
+			Version:               "1.0.0",
+			CompatibilityEvidence: []string{"test compatibility"},
+			VerifiedArtifacts:     []string{"bin/tool"},
+			SelectedConsumers:     []string{"llama.cpp.cuda"},
+			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 		}, nil
 	})
 	if err != nil {
@@ -98,6 +101,28 @@ func TestLocalEnvironmentDependencyJobFailureDoesNotPromote(t *testing.T) {
 	}
 }
 
+func TestLocalEnvironmentDependencyJobUnderspecifiedReadyResultDoesNotPromote(t *testing.T) {
+	svc := newLocalEnvironmentJobTestService(t)
+	defer svc.Close()
+	req := localEnvironmentJobRequestForTest(t, svc)
+
+	job, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
+		return localEnvironmentDependencyJobResult{
+			SourceKind:    localEnvironmentSourceManaged,
+			CanonicalRoot: filepath.Join(t.TempDir(), "dependency-root"),
+		}, nil
+	})
+	if err != nil {
+		t.Fatalf("underspecified job should fail closed without transport error: %v", err)
+	}
+	if job.State != localEnvironmentStateFailed {
+		t.Fatalf("expected failed state for underspecified ready result, got %+v", job)
+	}
+	if _, ok := svc.localEnvironmentSelectedSourceRecord(req.EnvironmentKey); ok {
+		t.Fatalf("underspecified ready result must not promote selected source")
+	}
+}
+
 func TestLocalEnvironmentDependencyJobRepairRequiredBlocksPlan(t *testing.T) {
 	svc := newLocalEnvironmentJobTestService(t)
 	defer svc.Close()
@@ -106,8 +131,14 @@ func TestLocalEnvironmentDependencyJobRepairRequiredBlocksPlan(t *testing.T) {
 
 	_, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
 		return localEnvironmentDependencyJobResult{
-			SourceKind:    localEnvironmentSourceManaged,
-			CanonicalRoot: filepath.Join(t.TempDir(), "dependency-root"),
+			State:                 localEnvironmentStateReadyManaged,
+			SourceKind:            localEnvironmentSourceManaged,
+			CanonicalRoot:         filepath.Join(t.TempDir(), "dependency-root"),
+			Version:               "1.0.0",
+			CompatibilityEvidence: []string{"test compatibility"},
+			VerifiedArtifacts:     []string{"bin/tool"},
+			SelectedConsumers:     []string{"llama.cpp.cuda"},
+			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 		}, nil
 	})
 	if err != nil {
@@ -139,8 +170,14 @@ func TestLocalEnvironmentDependencyJobsPersistAcrossRestart(t *testing.T) {
 	req := localEnvironmentJobRequestForTestWithRoot(t, svc, runtimeDataRoot)
 	job, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState) (localEnvironmentDependencyJobResult, error) {
 		return localEnvironmentDependencyJobResult{
-			SourceKind:    localEnvironmentSourceManaged,
-			CanonicalRoot: filepath.Join(runtimeDataRoot, "engines", "llama"),
+			State:                 localEnvironmentStateReadyManaged,
+			SourceKind:            localEnvironmentSourceManaged,
+			CanonicalRoot:         filepath.Join(runtimeDataRoot, "engines", "llama"),
+			Version:               "1.0.0",
+			CompatibilityEvidence: []string{"test compatibility"},
+			VerifiedArtifacts:     []string{"bin/llama"},
+			SelectedConsumers:     []string{"llama.cpp.cuda"},
+			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 		}, nil
 	})
 	if err != nil {

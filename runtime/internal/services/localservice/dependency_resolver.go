@@ -183,17 +183,7 @@ func resolveExecutionPlan(req *executionResolveRequest) *runtimev1.LocalExecutio
 	}
 
 	if len(plan.Entries) == 0 && capability != "" {
-		item := &runtimev1.LocalExecutionOptionDescriptor{
-			EntryId:    "dep_" + slug(capability),
-			Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL,
-			Capability: capability,
-			ModelId:    "local/" + capability + "-default",
-			Engine:     "llama",
-		}
-		check := evaluateDependencyCandidate(item, profile)
-		check.reasonCode = "LOCAL_DEPENDENCY_DEFAULT_SELECTED"
-		check.detail = "selected default dependency by capability"
-		appendDecision(item, true, true, true, check)
+		plan.Warnings = append(plan.Warnings, "local execution dependency descriptor is required for capability "+capability)
 	}
 
 	switch {
@@ -201,6 +191,8 @@ func resolveExecutionPlan(req *executionResolveRequest) *runtimev1.LocalExecutio
 		plan.ReasonCode = "LOCAL_DEPENDENCY_REQUIRED_UNSATISFIED"
 	case alternativeFailures > 0:
 		plan.ReasonCode = "LOCAL_DEPENDENCY_ALTERNATIVE_UNSATISFIED"
+	case len(plan.Entries) == 0 && capability != "":
+		plan.ReasonCode = "LOCAL_DEPENDENCY_DESCRIPTOR_REQUIRED"
 	default:
 		plan.ReasonCode = "ACTION_EXECUTED"
 	}

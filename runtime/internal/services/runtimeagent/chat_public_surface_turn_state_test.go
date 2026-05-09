@@ -176,7 +176,6 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	}
 	accepted := capture.waitForMessageType(t, publicChatTurnAcceptedType)
 	_ = capture.waitForMessageType(t, publicChatTurnStartedType)
-	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)
 	if got := publicChatPayloadMap(t, accepted)["conversation_anchor_id"].(string); got != anchorID {
 		t.Fatalf("expected accepted conversation_anchor_id=%s, got=%s", anchorID, got)
 	}
@@ -195,8 +194,8 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 	if got := activeTurn["trace_id"]; got != "trace-session-snapshot" {
 		t.Fatalf("expected active turn trace_id, got=%v", activeTurn)
 	}
-	if got := activeTurn["stream_sequence"]; got != float64(3) {
-		t.Fatalf("expected active turn stream_sequence 3, got=%v", activeTurn)
+	if got := activeTurn["stream_sequence"]; got != float64(2) {
+		t.Fatalf("expected active turn stream_sequence 2, got=%v", activeTurn)
 	}
 	if got := activeTurn["output_observed"]; got != true {
 		t.Fatalf("expected active turn output_observed=true, got=%v", activeTurn)

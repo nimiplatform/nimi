@@ -178,6 +178,21 @@ func TestSearchCatalogModelsPassesHFRequestShape(t *testing.T) {
 	}
 }
 
+func TestHFCatalogUnknownPipelineFailsClosed(t *testing.T) {
+	if capabilities := inferCapabilitiesFromHF("unknown-pipeline", nil); len(capabilities) != 0 {
+		t.Fatalf("unknown pipeline must not fall back to chat, got %v", capabilities)
+	}
+
+	item, ok := mapHFRowToCatalogItem(hfModelSearchEntry{
+		ID:          "org/unknown-pipeline-model",
+		ModelID:     "org/unknown-pipeline-model",
+		PipelineTag: "unknown-pipeline",
+	}, "")
+	if ok || item != nil {
+		t.Fatalf("unknown pipeline row must be blocked, got ok=%v item=%v", ok, item)
+	}
+}
+
 func TestLocalRecoverySweepPromotesUnhealthyModel(t *testing.T) {
 	healthy := false
 	svc := newTestServiceWithProbe(t, func(_ context.Context, _ string) endpointProbeResult {

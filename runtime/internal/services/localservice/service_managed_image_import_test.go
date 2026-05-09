@@ -105,6 +105,55 @@ func TestLocalImportManifestValidation(t *testing.T) {
 	if st.Code() != codes.InvalidArgument || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID.String() {
 		t.Fatalf("unexpected legacy manifest error: %v", err)
 	}
+
+	aliasPath := filepath.Join(tmpDir, "resolved", "nimi", "alias-import", "asset.manifest.json")
+	aliasManifest := map[string]any{
+		"assetId":        "local/alias-import",
+		"kind":           "chat",
+		"logicalModelId": "nimi/alias-import",
+		"engine":         "llama",
+		"capabilities":   []string{"chat"},
+		"entry":          "./dist/index.js",
+	}
+	aliasRaw, _ := json.Marshal(aliasManifest)
+	if err := os.MkdirAll(filepath.Dir(aliasPath), 0o755); err != nil {
+		t.Fatalf("create alias manifest dir: %v", err)
+	}
+	if err := os.WriteFile(aliasPath, aliasRaw, 0o600); err != nil {
+		t.Fatalf("write alias manifest: %v", err)
+	}
+	_, err = svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: aliasPath})
+	if err == nil {
+		t.Fatalf("expected alias public manifest fields to fail-close")
+	}
+	st, _ = status.FromError(err)
+	if st.Code() != codes.InvalidArgument || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID.String() {
+		t.Fatalf("unexpected alias manifest error: %v", err)
+	}
+
+	missingCapabilitiesPath := filepath.Join(tmpDir, "resolved", "nimi", "missing-capabilities", "asset.manifest.json")
+	missingCapabilitiesManifest := map[string]any{
+		"asset_id":         "local/missing-capabilities",
+		"kind":             "chat",
+		"logical_model_id": "nimi/missing-capabilities",
+		"engine":           "llama",
+		"entry":            "./dist/index.js",
+	}
+	missingCapabilitiesRaw, _ := json.Marshal(missingCapabilitiesManifest)
+	if err := os.MkdirAll(filepath.Dir(missingCapabilitiesPath), 0o755); err != nil {
+		t.Fatalf("create missing capabilities manifest dir: %v", err)
+	}
+	if err := os.WriteFile(missingCapabilitiesPath, missingCapabilitiesRaw, 0o600); err != nil {
+		t.Fatalf("write missing capabilities manifest: %v", err)
+	}
+	_, err = svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: missingCapabilitiesPath})
+	if err == nil {
+		t.Fatalf("expected missing runnable capabilities to fail-close")
+	}
+	st, _ = status.FromError(err)
+	if st.Code() != codes.InvalidArgument || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID.String() {
+		t.Fatalf("unexpected missing capabilities error: %v", err)
+	}
 }
 
 func TestLocalImportImageModelDefaultsToSupervisedOnLlamaSupportedHost(t *testing.T) {

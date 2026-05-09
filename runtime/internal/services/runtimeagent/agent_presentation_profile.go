@@ -21,14 +21,35 @@ func normalizeAgentPresentationProfile(input *runtimev1.AgentPresentationProfile
 	if avatarAssetRef == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	defaultVoiceReference, err := normalizeDefaultVoiceReference(input.GetDefaultVoiceReference())
+	if err != nil {
+		return nil, err
+	}
 	return &runtimev1.AgentPresentationProfile{
 		BackendKind:           backendKind,
 		AvatarAssetRef:        avatarAssetRef,
 		ExpressionProfileRef:  strings.TrimSpace(input.GetExpressionProfileRef()),
 		IdlePreset:            strings.TrimSpace(input.GetIdlePreset()),
 		InteractionPolicyRef:  strings.TrimSpace(input.GetInteractionPolicyRef()),
-		DefaultVoiceReference: strings.TrimSpace(input.GetDefaultVoiceReference()),
+		DefaultVoiceReference: defaultVoiceReference,
 	}, nil
+}
+
+func normalizeDefaultVoiceReference(input string) (string, error) {
+	value := strings.TrimSpace(input)
+	if value == "" {
+		return "", nil
+	}
+	kind, ref, ok := strings.Cut(value, ":")
+	if !ok || strings.TrimSpace(kind) != kind || strings.TrimSpace(ref) == "" {
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	switch kind {
+	case "preset_voice_id", "voice_asset_id", "provider_voice_ref":
+		return kind + ":" + strings.TrimSpace(ref), nil
+	default:
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
 }
 
 func agentPresentationBackendKindLabel(kind runtimev1.AgentPresentationBackendKind) (string, bool) {

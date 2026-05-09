@@ -68,21 +68,21 @@ func TestLoadAppliesGeminiDefaultBaseURLWhenCanonicalKeyPresent(t *testing.T) {
 func TestLoadAppliesCatalogDefaultBaseURLForRegistryProvider(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "missing-config.json"))
 	clearRuntimeConfigEnv(t)
-	t.Setenv("NIMI_RUNTIME_CLOUD_STEPFUN_API_KEY", "stepfun-key")
+	t.Setenv("NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY", "deepseek-key")
 
 	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
-	target, ok := cfg.Providers["stepfun"]
+	target, ok := cfg.Providers["deepseek"]
 	if !ok {
-		t.Fatalf("expected env-only stepfun provider to be resolved")
+		t.Fatalf("expected env-only deepseek provider to be resolved")
 	}
-	if got := strings.TrimSpace(ResolveProviderAPIKey(target)); got != "stepfun-key" {
-		t.Fatalf("stepfun key mismatch: %q", got)
+	if got := strings.TrimSpace(ResolveProviderAPIKey(target)); got != "deepseek-key" {
+		t.Fatalf("deepseek key mismatch: %q", got)
 	}
-	if got := strings.TrimSpace(target.BaseURL); got != "https://api.stepfun.ai/v1" {
-		t.Fatalf("stepfun default base mismatch: %q", got)
+	if got := strings.TrimSpace(target.BaseURL); got != "https://api.deepseek.com/v1" {
+		t.Fatalf("deepseek default base mismatch: %q", got)
 	}
 }
 

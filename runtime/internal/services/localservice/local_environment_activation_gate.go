@@ -100,11 +100,7 @@ func (s *Service) resolveLocalEnvironmentConsumerActivationGate(req localEnviron
 
 func (s *Service) resolveLocalEnvironmentActivationDependency(dep localEnvironmentPlanDependency, consumerID string) localEnvironmentPlanDependency {
 	if dep.DependencyFamily == localEnvironmentFamilyCUDA {
-		promoted, ok := s.promoteLocalEnvironmentCUDAProjection(dep, consumerID)
-		dep = promoted
-		if ok {
-			return promoted
-		}
+		dep = s.resolveLocalEnvironmentCUDAProjection(dep, consumerID)
 	}
 	if localEnvironmentDependencyBlocksActivation(dep.State) {
 		if job, ok := s.latestLocalEnvironmentDependencyJobForEnvironment(dep.EnvironmentKey); ok {
@@ -122,9 +118,9 @@ func (s *Service) resolveLocalEnvironmentActivationDependency(dep localEnvironme
 	return dep
 }
 
-func (s *Service) promoteLocalEnvironmentCUDAProjection(dep localEnvironmentPlanDependency, consumerID string) (localEnvironmentPlanDependency, bool) {
+func (s *Service) resolveLocalEnvironmentCUDAProjection(dep localEnvironmentPlanDependency, consumerID string) localEnvironmentPlanDependency {
 	if dep.SelectedSourceRecordID != "" {
-		return dep, true
+		return dep
 	}
 	status := s.resolveSharedCUDADependencyStatus(consumerID)
 	dep.DependencyID = cudaUserSpaceRuntimeDependencyID
@@ -136,24 +132,11 @@ func (s *Service) promoteLocalEnvironmentCUDAProjection(dep localEnvironmentPlan
 		sourceKind := localEnvironmentSourceManaged
 		if status.State == engine.SharedAcceleratorDependencyReadySystem {
 			sourceKind = localEnvironmentSourceSystem
-			dep.State = localEnvironmentStateReadySystem
-		} else {
-			dep.State = localEnvironmentStateReadyManaged
 		}
-		record := s.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
-			DependencyFamily:      localEnvironmentFamilyCUDA,
-			DependencyID:          cudaUserSpaceRuntimeDependencyID,
-			EnvironmentKey:        dep.EnvironmentKey,
-			SourceKind:            sourceKind,
-			CanonicalRoot:         strings.TrimSpace(status.CanonicalRoot),
-			CompatibilityEvidence: []string{strings.TrimSpace(status.Detail)},
-			VerifiedArtifacts:     normalizeStringSlice(status.RequiredArtifacts),
-			SelectedConsumers:     []string{strings.TrimSpace(consumerID)},
-			AuditReasonCode:       runtimeDependencyReasonCode(string(status.State)),
-		})
+		dep.State = localEnvironmentStateNeedsConfirmation
 		dep.SourceKind = sourceKind
-		dep.SelectedSourceRecordID = record.RecordID
-		return dep, true
+		dep.ConfirmationRequired = true
+		dep.ReasonCode = "LOCAL_ENVIRONMENT_DEPENDENCY_CONFIRMATION_REQUIRED"
 	case engine.SharedAcceleratorDependencyRepairRequired:
 		dep.State = localEnvironmentStateRepairRequired
 		dep.SourceKind = localEnvironmentSourceManaged
@@ -168,7 +151,7 @@ func (s *Service) promoteLocalEnvironmentCUDAProjection(dep localEnvironmentPlan
 		dep.SourceKind = localEnvironmentSourceManaged
 		dep.ConfirmationRequired = true
 	}
-	return dep, false
+	return dep
 }
 
 func (s *Service) latestLocalEnvironmentDependencyJobForEnvironment(environmentKey string) (localEnvironmentDependencyJobState, bool) {

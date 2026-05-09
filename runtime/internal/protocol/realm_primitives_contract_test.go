@@ -88,6 +88,38 @@ func TestValidateEconomyContractRejectsNonConservingPayload(t *testing.T) {
 	}
 }
 
+func TestValidateEconomyContractRejectsHiddenWorldStateMutation(t *testing.T) {
+	err := ValidateEconomyContract(map[string]any{
+		"currencyNamespace":       "nimi.spark",
+		"transferMode":            "ESCROW",
+		"settlementWindowSeconds": 600,
+		"conservationRequired":    true,
+		"inflationPolicy":         "FIXED_CAP",
+		"worldId":                 "world-1",
+		"effectClass":             "STATE_AND_HISTORY",
+		"schemaId":                "economy.balance",
+		"evidenceRefs":            []any{map[string]any{"kind": "event", "refId": "evt-1"}},
+	})
+	if err == nil || err.Error() != "validate economy contract: economy payload must not carry world mutation field effectClass; use explicit world-state/history commit authority" {
+		t.Fatalf("ValidateEconomyContract() error = %v", err)
+	}
+}
+
+func TestValidateEconomyContractRejectsHiddenWorldHistoryAppend(t *testing.T) {
+	err := ValidateEconomyContract(map[string]any{
+		"currencyNamespace":       "nimi.spark",
+		"transferMode":            "ESCROW",
+		"settlementWindowSeconds": 600,
+		"conservationRequired":    true,
+		"inflationPolicy":         "FIXED_CAP",
+		"historyAppends":          []any{map[string]any{"eventType": "economy.hidden"}},
+		"relatedStateRefs":        []any{map[string]any{"stateId": "state-1"}},
+	})
+	if err == nil || err.Error() != "validate economy contract: economy payload must not carry world mutation field historyAppends; use explicit world-state/history commit authority" {
+		t.Fatalf("ValidateEconomyContract() error = %v", err)
+	}
+}
+
 func TestValidatePrimitiveContractReturnsSkeletonErrorForDeferredPrimitive(t *testing.T) {
 	err := ValidatePrimitiveContract("social", map[string]any{})
 	if !errors.Is(err, ErrPrimitiveContractNotImplemented) {

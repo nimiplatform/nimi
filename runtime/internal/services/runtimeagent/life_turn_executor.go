@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -16,7 +17,6 @@ const (
 	lifeTurnPromptMaxTokens = 512
 	lifeTurnRecallLimit     = 8
 	lifeTurnExecutorAppID   = "runtime.agent.internal.life_track"
-	lifeTurnExecutorModelID = "local/default"
 )
 
 type lifeTurnRequest struct {
@@ -143,8 +143,8 @@ func buildLifeTurnScenarioRequest(req *lifeTurnRequest) (*runtimev1.ExecuteScena
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         lifeTurnExecutorAppID,
 			SubjectUserId: subjectUserID,
-			ModelId:       lifeTurnExecutorModelID,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			ModelId:       texttarget.InternalDefaultLocalTextModelAlias,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     10_000,
 		},

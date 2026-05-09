@@ -4,14 +4,16 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log/slog"
-	"strconv"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"google.golang.org/grpc/codes"
@@ -59,6 +61,8 @@ type Service struct {
 	banksByID       map[string]*bankState
 	bankIDByOwner   map[string]string
 	ingestTasksByID map[string]*ingestTaskState
+	auditStore      *auditlog.Store
+	auditRequired   bool
 }
 
 func New(logger *slog.Logger) *Service {
@@ -106,6 +110,20 @@ func (s *Service) Close() error {
 		return nil
 	}
 	return s.backend.Close()
+}
+
+func (s *Service) SetAuditStore(store *auditlog.Store) {
+	if s == nil {
+		return
+	}
+	s.auditStore = store
+}
+
+func (s *Service) RequireAuditStore(required bool) {
+	if s == nil {
+		return
+	}
+	s.auditRequired = required
 }
 
 func (s *Service) lookupPage(ctx *runtimev1.KnowledgeRequestContext, bankID, pageID, slug string) (*bankState, *runtimev1.KnowledgePage, error) {
@@ -156,7 +174,7 @@ func validateCreateBankAccess(ctx *runtimev1.KnowledgeRequestContext, locator *r
 		if strings.TrimSpace(workspace.GetWorkspaceId()) == "" {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-		return nil
+		return denyWorkspaceKnowledgeAccess()
 	}
 	return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_KNOWLEDGE_BANK_SCOPE_INVALID)
 }
@@ -170,7 +188,53 @@ func authorizeBank(ctx *runtimev1.KnowledgeRequestContext, bank *runtimev1.Knowl
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_KNOWLEDGE_BANK_ACCESS_DENIED)
 		}
 	}
+	if workspace := bank.GetLocator().GetWorkspacePrivate(); workspace != nil {
+		if strings.TrimSpace(workspace.GetWorkspaceId()) == "" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+		return denyWorkspaceKnowledgeAccess()
+	}
 	return nil
+}
+
+func denyWorkspaceKnowledgeAccess() error {
+	return grpcerr.WithReasonCodeOptions(codes.PermissionDenied, runtimev1.ReasonCode_KNOWLEDGE_BANK_ACCESS_DENIED, grpcerr.ReasonOptions{
+		ActionHint: "use_an_admitted_workspace_authorization_carrier",
+		Message:    "workspace private knowledge access requires explicit workspace authority",
+	})
+}
+
+func (s *Service) ensureKnowledgeAuditAvailable() error {
+	if s == nil || !s.auditRequired || s.auditStore != nil {
+		return nil
+	}
+	return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
+		ActionHint: "attach_runtime_audit_store_before_knowledge_write",
+		Message:    "knowledge write audit store unavailable",
+	})
+}
+
+func (s *Service) recordKnowledgeAudit(ctx *runtimev1.KnowledgeRequestContext, operation string, fields map[string]any) {
+	if s == nil || s.auditStore == nil {
+		return
+	}
+	if fields == nil {
+		fields = map[string]any{}
+	}
+	fields["knowledge_operation"] = operation
+	payload, err := structpb.NewStruct(fields)
+	if err != nil {
+		payload, _ = structpb.NewStruct(map[string]any{"payload_encode_error": err.Error()})
+	}
+	s.auditStore.AppendEvent(&runtimev1.AuditEventRecord{
+		AppId:         strings.TrimSpace(ctx.GetAppId()),
+		SubjectUserId: strings.TrimSpace(ctx.GetSubjectUserId()),
+		Domain:        "runtime.knowledge",
+		Operation:     operation,
+		Capability:    operation,
+		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+		Payload:       payload,
+	})
 }
 
 func fullLocatorFromPublic(locator *runtimev1.PublicKnowledgeBankLocator) (*runtimev1.KnowledgeBankLocator, error) {
@@ -401,7 +465,7 @@ func normalizeBankIDs(values []string) []string {
 	return items
 }
 
-func sliceBounds(total, offset, pageSize int) (start, end int, next string) {
+func sliceBounds(total, offset, pageSize int, filterDigest string) (start, end int, next string) {
 	start = offset
 	if start > total {
 		start = total
@@ -411,7 +475,7 @@ func sliceBounds(total, offset, pageSize int) (start, end int, next string) {
 		end = total
 	}
 	if end < total {
-		next = encodePageToken(end)
+		next = encodePageToken(end, filterDigest)
 	}
 	return start, end, next
 }
@@ -427,11 +491,20 @@ func clampPageSize(value int32, defaultValue, maxValue int) int {
 	return pageSize
 }
 
-func encodePageToken(offset int) string {
-	return base64.RawURLEncoding.EncodeToString([]byte(strconv.Itoa(offset)))
+type pageTokenPayload struct {
+	Offset       int    `json:"offset"`
+	FilterDigest string `json:"filter_digest"`
 }
 
-func decodePageToken(token string) (int, error) {
+func encodePageToken(offset int, filterDigest string) string {
+	raw, _ := json.Marshal(pageTokenPayload{
+		Offset:       offset,
+		FilterDigest: filterDigest,
+	})
+	return base64.RawURLEncoding.EncodeToString(raw)
+}
+
+func decodePageToken(token string, expectedFilterDigest string) (int, error) {
 	if strings.TrimSpace(token) == "" {
 		return 0, nil
 	}
@@ -439,11 +512,74 @@ func decodePageToken(token string) (int, error) {
 	if err != nil {
 		return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
 	}
-	offset, err := strconv.Atoi(string(raw))
-	if err != nil || offset < 0 {
+	var payload pageTokenPayload
+	if err := json.Unmarshal(raw, &payload); err != nil {
 		return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
 	}
-	return offset, nil
+	if payload.Offset < 0 || payload.FilterDigest == "" || payload.FilterDigest != expectedFilterDigest {
+		return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
+	}
+	return payload.Offset, nil
+}
+
+func paginationFilterDigest(resource string, fields map[string]any) string {
+	raw, _ := json.Marshal(map[string]any{
+		"resource": resource,
+		"fields":   fields,
+	})
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:])
+}
+
+func normalizeStringFilterValues(values []string) []string {
+	items := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, raw := range values {
+		value := strings.ToLower(strings.TrimSpace(raw))
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		items = append(items, value)
+	}
+	sort.Strings(items)
+	return items
+}
+
+func normalizeBankScopeFilterValues(scopes []runtimev1.KnowledgeBankScope) []int32 {
+	items := make([]int32, 0, len(scopes))
+	seen := make(map[int32]struct{}, len(scopes))
+	for _, scope := range scopes {
+		value := int32(scope)
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		items = append(items, value)
+	}
+	sort.Slice(items, func(i, j int) bool { return items[i] < items[j] })
+	return items
+}
+
+func normalizeBankOwnerFilterValues(owners []*runtimev1.KnowledgeBankOwnerFilter) []string {
+	items := make([]string, 0, len(owners))
+	seen := make(map[string]struct{}, len(owners))
+	for _, owner := range owners {
+		value := ownerFilterKey(owner)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		items = append(items, value)
+	}
+	sort.Strings(items)
+	return items
 }
 
 func timestampValue(ts *timestamppb.Timestamp) time.Time {

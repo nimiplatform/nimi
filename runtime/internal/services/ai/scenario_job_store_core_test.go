@@ -79,7 +79,7 @@ func TestScenarioJobStateEnumerationMatchesSpec(t *testing.T) {
 
 func TestScenarioJobStoreCancelAndArtifactsPaths(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	ctx := scenarioJobContext("app")
+	ctx := scenarioJobUserContext("app", "user")
 
 	jobID := "scenario-cancelable-job"
 	snapshot := svc.scenarioJobs.create(&runtimev1.ScenarioJob{

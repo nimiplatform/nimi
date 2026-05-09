@@ -44,11 +44,22 @@ const (
 	ConfidenceReasonInsufficientEvidence = "INSUFFICIENT_EVIDENCE"
 	ConfidenceReasonPolicyDowngrade      = "POLICY_DOWNGRADE"
 
-	ReasonFirewallSchemaInvalid = "DELEG_FIREWALL_SCHEMA_INVALID"
-	ReasonFirewallQuarantined   = "DELEG_FIREWALL_QUARANTINED"
-	ReasonProviderDrifted       = "DELEG_PROVIDER_DRIFTED"
-	ReasonApprovalRequired      = "DELEG_APPROVAL_REQUIRED"
-	ReasonStreamTerminalError   = "DELEG_STREAM_TERMINAL_ERROR"
+	ReasonFirewallSchemaInvalid        = "DELEG_FIREWALL_SCHEMA_INVALID"
+	ReasonFirewallQuarantined          = "DELEG_FIREWALL_QUARANTINED"
+	ReasonProviderDrifted              = "DELEG_PROVIDER_DRIFTED"
+	ReasonApprovalRequired             = "DELEG_APPROVAL_REQUIRED"
+	ReasonStreamTerminalError          = "DELEG_STREAM_TERMINAL_ERROR"
+	ReasonGatewayProviderInvalid       = "DELEG_GATEWAY_PROVIDER_INVALID"
+	ReasonGatewayProviderUnavailable   = "DELEG_GATEWAY_PROVIDER_UNAVAILABLE"
+	ReasonGatewayTransportInvalid      = "DELEG_GATEWAY_TRANSPORT_INVALID"
+	ReasonGatewayMCPConnectFailed      = "DELEG_GATEWAY_MCP_CONNECT_FAILED"
+	ReasonGatewayMCPDiscoveryFailed    = "DELEG_GATEWAY_MCP_DISCOVERY_FAILED"
+	ReasonGatewayMCPToolNotAllowlisted = "DELEG_GATEWAY_MCP_TOOL_NOT_ALLOWLISTED"
+	ReasonGatewayMCPArgumentsInvalid   = "DELEG_GATEWAY_MCP_ARGUMENTS_INVALID"
+	ReasonGatewayMCPCredentialBlocked  = "DELEG_GATEWAY_MCP_CREDENTIAL_BLOCKED"
+	ReasonGatewayMCPToolCallFailed     = "DELEG_GATEWAY_MCP_TOOL_CALL_FAILED"
+	ReasonGatewayMCPResultInvalid      = "DELEG_GATEWAY_MCP_RESULT_INVALID"
+	ReasonGatewayMCPTimeout            = "DELEG_GATEWAY_MCP_TIMEOUT"
 )
 
 type ProviderProfile struct {

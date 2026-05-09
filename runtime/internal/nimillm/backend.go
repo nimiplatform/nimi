@@ -23,11 +23,12 @@ const maxInlineOpenAIMediaBytes = 32 << 20
 
 // Backend is an OpenAI-compatible HTTP backend for AI inference.
 type Backend struct {
-	Name    string
-	baseURL string
-	apiKey  string
-	headers map[string]string
-	client  *http.Client
+	Name         string
+	baseURL      string
+	apiKey       string
+	headers      map[string]string
+	client       *http.Client
+	defaultModel string
 
 	// Security controls for outbound endpoint validation.
 	enforceEndpointSecurity bool
@@ -118,6 +119,7 @@ func newBackend(name string, baseURL string, apiKey string, headers map[string]s
 		apiKey:                  strings.TrimSpace(apiKey),
 		headers:                 cloneProviderHeaders(headers),
 		client:                  client,
+		defaultModel:            defaultBackendModelForName(name),
 		enforceEndpointSecurity: secure,
 		allowLoopbackEndpoint:   allowLoopback,
 	}

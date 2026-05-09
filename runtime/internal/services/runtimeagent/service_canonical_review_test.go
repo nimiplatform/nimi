@@ -392,7 +392,7 @@ func TestRuntimeAgentExecuteCanonicalReviewCommitsExecutorOutputs(t *testing.T) 
 		t.Fatalf("memory.New: %v", err)
 	}
 	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
-	memorySvc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+	setRuntimeAgentManagedEmbeddingProfileForTest(memorySvc, &runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
 		Dimension:       32,

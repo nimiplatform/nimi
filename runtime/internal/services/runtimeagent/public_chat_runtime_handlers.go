@@ -21,7 +21,9 @@ func (r publicChatRuntime) handleTurnRequest(
 	}
 	callerAppID := strings.TrimSpace(event.GetFromAppId())
 	subjectUserID := strings.TrimSpace(event.GetSubjectUserId())
-	r.svc.cancelPublicChatFollowUpsForRequest(callerAppID, strings.TrimSpace(req.ConversationAnchorID), strings.TrimSpace(req.ThreadID), "user_message")
+	if err := r.svc.cancelPublicChatFollowUpsForRequest(callerAppID, strings.TrimSpace(req.ConversationAnchorID), strings.TrimSpace(req.ThreadID), "user_message"); err != nil {
+		return err
+	}
 	session, turn, turnCtx, err := r.reserveTurn(ctx, callerAppID, subjectUserID, req)
 	if err != nil {
 		return err

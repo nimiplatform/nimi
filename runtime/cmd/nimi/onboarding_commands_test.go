@@ -459,8 +459,11 @@ func TestRunTopLevelRunCloudInteractiveCredentialCapture(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load saved provider config: %v", err)
 	}
-	if _, ok := fileCfg.Providers["gemini"]; ok {
-		t.Fatalf("interactive run must not persist inline provider api key: %#v", fileCfg.Providers["gemini"])
+	if got := fileCfg.Providers["gemini"].APIKey; got != "gemini-inline-key" {
+		t.Fatalf("interactive run must persist pasted provider api key in canonical config, got %#v", fileCfg.Providers["gemini"])
+	}
+	if got := strings.TrimSpace(fileCfg.Providers["gemini"].APIKeyEnv); got != "" {
+		t.Fatalf("interactive inline persistence must not also set apiKeyEnv, got %q", got)
 	}
 	md := service.lastStreamMetadata()
 	if got := firstMD(md, "x-nimi-key-source"); got != "inline" {

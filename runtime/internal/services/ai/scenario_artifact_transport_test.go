@@ -37,7 +37,7 @@ func TestSanitizeScenarioArtifactsForResponseStripsVideoBytesWhenURIAvailable(t 
 
 func TestGetScenarioJobAndArtifactsCompactVideoResponsePayloads(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	ctx := scenarioJobContext("nimi.desktop")
+	ctx := scenarioJobUserContext("nimi.desktop", "user")
 
 	jobID := "scenario-video-compact-job"
 	originalBytes := make([]byte, maxInlineVideoArtifactResponseBytes+256)
@@ -105,7 +105,7 @@ func TestGetScenarioJobAndArtifactsCompactVideoResponsePayloads(t *testing.T) {
 
 func TestGetScenarioArtifactsFailsClosedForProviderAuthFailedJob(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	ctx := scenarioJobContext("nimi.desktop")
+	ctx := scenarioJobUserContext("nimi.desktop", "user")
 
 	jobID := "scenario-provider-auth-failed-job"
 	snapshot := svc.scenarioJobs.create(&runtimev1.ScenarioJob{

@@ -97,6 +97,49 @@ func TestRouteSelectorResolvesDefaultAliases(t *testing.T) {
 	}
 }
 
+func TestPreferredRouteUsesProviderRegistryRuntimePlane(t *testing.T) {
+	tests := []struct {
+		name  string
+		model string
+		want  runtimev1.RoutePolicy
+	}{
+		{
+			name:  "explicit_cloud_prefix",
+			model: "cloud/default",
+			want:  runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		},
+		{
+			name:  "registry_remote_provider_not_hardcoded",
+			model: "stepfun/step-1",
+			want:  runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		},
+		{
+			name:  "registry_local_provider_stays_local",
+			model: "local/qwen",
+			want:  runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+		{
+			name:  "unknown_provider_prefix_does_not_promote_cloud",
+			model: "unknown-provider/model",
+			want:  runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+		{
+			name:  "bare_model_defaults_local",
+			model: "qwen2.5",
+			want:  runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			if got := preferredRoute(tt.model); got != tt.want {
+				t.Fatalf("preferredRoute(%q) = %v, want %v", tt.model, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestLocalProviderLegacyWrappers(t *testing.T) {
 	p := &localProvider{}
 

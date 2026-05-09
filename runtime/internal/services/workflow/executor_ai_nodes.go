@@ -158,8 +158,18 @@ func (s *Service) executeAIEmbedNode(ctx context.Context, record *taskRecord, no
 	if err != nil {
 		return nil, err
 	}
-	vectors := make([]any, 0)
-	for _, vector := range scenarioOutputVectors(resp.GetOutput()) {
+	outputVectors, ok := scenarioOutputVectors(resp.GetOutput())
+	if !ok {
+		return nil, fmt.Errorf("ai embed output missing typed payload")
+	}
+	if len(outputVectors) == 0 {
+		return nil, fmt.Errorf("ai embed output vectors are empty")
+	}
+	vectors := make([]any, 0, len(outputVectors))
+	for _, vector := range outputVectors {
+		if len(vector) == 0 {
+			return nil, fmt.Errorf("ai embed output vector row is empty")
+		}
 		row := make([]any, 0, len(vector))
 		for _, value := range vector {
 			row = append(row, value)
@@ -197,16 +207,16 @@ func scenarioOutputText(output *runtimev1.ScenarioOutput) string {
 	return ""
 }
 
-func scenarioOutputVectors(output *runtimev1.ScenarioOutput) [][]float64 {
+func scenarioOutputVectors(output *runtimev1.ScenarioOutput) ([][]float64, bool) {
 	value, ok := output.GetOutput().(*runtimev1.ScenarioOutput_TextEmbed)
 	if !ok || value.TextEmbed == nil {
-		return nil
+		return nil, false
 	}
 	rows := make([][]float64, 0, len(value.TextEmbed.GetVectors()))
 	for _, vector := range value.TextEmbed.GetVectors() {
 		rows = append(rows, append([]float64(nil), vector.GetValues()...))
 	}
-	return rows
+	return rows, true
 }
 
 func streamDeltaText(delta *runtimev1.ScenarioStreamDelta) string {

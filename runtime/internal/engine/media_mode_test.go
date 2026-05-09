@@ -189,12 +189,12 @@ func TestMediaServerStartsWithValidProxyMode(t *testing.T) {
 		if err == nil {
 			body, readErr := io.ReadAll(resp.Body)
 			_ = resp.Body.Close()
-			if readErr == nil && resp.StatusCode == http.StatusOK && strings.Contains(string(body), `"ready": true`) {
+			if readErr == nil && resp.StatusCode == http.StatusServiceUnavailable && strings.Contains(string(body), `"ready": false`) {
 				return
 			}
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("expected proxy mode media server to report healthy at %s", healthURL)
+			t.Fatalf("expected proxy mode media server to report not execution-ready at %s", healthURL)
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
@@ -238,13 +238,14 @@ func TestMediaServerProxyModeImageGenerateFailsClosed(t *testing.T) {
 	for {
 		resp, err := http.Get(healthURL)
 		if err == nil {
+			body, readErr := io.ReadAll(resp.Body)
 			_ = resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
+			if readErr == nil && resp.StatusCode == http.StatusServiceUnavailable && strings.Contains(string(body), `"ready": false`) {
 				break
 			}
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("expected proxy mode media server to report healthy at %s", healthURL)
+			t.Fatalf("expected proxy mode media server to report not execution-ready at %s", healthURL)
 		}
 		time.Sleep(50 * time.Millisecond)
 	}

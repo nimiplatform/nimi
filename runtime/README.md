@@ -145,6 +145,11 @@ Health endpoints:
 - Provider credentials may use `apiKey` or `apiKeyEnv`, but never both
 - User-facing setup should prefer env-backed credentials; inline `apiKey` is fallback-only
 - `config` changes that touch runtime wiring remain restart-scoped
+- Connector/provider authority is the repo-local `.nimi` spec surface:
+  `.nimi/spec/runtime/connector.md`, `.nimi/spec/runtime/kernel/connector-contract.md`,
+  and imported kernel provider catalog/capability tables. Runtime catalog source
+  files and generated snapshots are support/projection inputs, not standalone
+  product truth.
 
 ## Compliance
 
@@ -163,6 +168,6 @@ contract 发生有意变化，必须先完成 runtime / sdk 对齐，再重建 b
 ## References
 
 - Runtime reference: [docs/reference/runtime.md](../docs/reference/runtime.md)
-- Runtime domain spec: [spec/runtime](../spec/runtime)
-- Runtime kernel contracts: [spec/runtime/kernel](../spec/runtime/kernel)
+- Runtime domain spec: [.nimi/spec/runtime](../.nimi/spec/runtime)
+- Runtime kernel contracts: [.nimi/spec/runtime/kernel](../.nimi/spec/runtime/kernel)
 - Contributor workflow: [CONTRIBUTING.md](../CONTRIBUTING.md)

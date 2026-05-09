@@ -13,6 +13,9 @@ import (
 )
 
 func (s *Service) CreateKnowledgeBank(_ context.Context, req *runtimev1.CreateKnowledgeBankRequest) (*runtimev1.CreateKnowledgeBankResponse, error) {
+	if err := s.ensureKnowledgeAuditAvailable(); err != nil {
+		return nil, err
+	}
 	locator, err := fullLocatorFromPublic(req.GetLocator())
 	if err != nil {
 		return nil, err
@@ -64,6 +67,10 @@ func (s *Service) CreateKnowledgeBank(_ context.Context, req *runtimev1.CreateKn
 		delete(s.banksByID, bank.GetBankId())
 		return nil, err
 	}
+	s.recordKnowledgeAudit(req.GetContext(), "knowledge.bank.create", map[string]any{
+		"bank_id": bank.GetBankId(),
+		"scope":   bank.GetLocator().GetScope().String(),
+	})
 	return &runtimev1.CreateKnowledgeBankResponse{Bank: cloneKnowledgeBank(bank)}, nil
 }
 
@@ -116,12 +123,16 @@ func (s *Service) ListKnowledgeBanks(_ context.Context, req *runtimev1.ListKnowl
 		return items[i].GetLocator().GetScope() < items[j].GetLocator().GetScope()
 	})
 
-	offset, err := decodePageToken(req.GetPageToken())
+	filterDigest := paginationFilterDigest("knowledge.banks.list", map[string]any{
+		"scope_filters": normalizeBankScopeFilterValues(req.GetScopeFilters()),
+		"owner_filters": normalizeBankOwnerFilterValues(req.GetOwnerFilters()),
+	})
+	offset, err := decodePageToken(req.GetPageToken(), filterDigest)
 	if err != nil {
 		return nil, err
 	}
 	pageSize := clampPageSize(req.GetPageSize(), defaultBankPageSize, maxBankPageSize)
-	start, end, next := sliceBounds(len(items), offset, pageSize)
+	start, end, next := sliceBounds(len(items), offset, pageSize, filterDigest)
 	return &runtimev1.ListKnowledgeBanksResponse{
 		Banks:         items[start:end],
 		NextPageToken: next,
@@ -129,6 +140,9 @@ func (s *Service) ListKnowledgeBanks(_ context.Context, req *runtimev1.ListKnowl
 }
 
 func (s *Service) DeleteKnowledgeBank(_ context.Context, req *runtimev1.DeleteKnowledgeBankRequest) (*runtimev1.DeleteKnowledgeBankResponse, error) {
+	if err := s.ensureKnowledgeAuditAvailable(); err != nil {
+		return nil, err
+	}
 	if err := validateRequestContext(req.GetContext()); err != nil {
 		return nil, err
 	}
@@ -154,6 +168,10 @@ func (s *Service) DeleteKnowledgeBank(_ context.Context, req *runtimev1.DeleteKn
 		s.banksByID[bankID] = previous
 		return nil, err
 	}
+	s.recordKnowledgeAudit(req.GetContext(), "knowledge.bank.delete", map[string]any{
+		"bank_id": bankID,
+		"scope":   previous.Bank.GetLocator().GetScope().String(),
+	})
 	return &runtimev1.DeleteKnowledgeBankResponse{
 		Ack: &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED},
 	}, nil

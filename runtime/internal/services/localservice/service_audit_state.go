@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
@@ -183,33 +181,6 @@ func (s *Service) appendRuntimeAuditLocked(event *runtimev1.LocalAuditEvent) {
 		s.audits = append([]*runtimev1.LocalAuditEvent(nil), s.audits[:capacity]...)
 	}
 	s.persistStateLocked()
-	if s.auditStore == nil {
-		return
-	}
-
-	reasonCode := runtimev1.ReasonCode_ACTION_EXECUTED
-	if raw := strings.TrimSpace(eventCopy.GetReasonCode()); raw != "" {
-		if parsed, ok := runtimev1.ReasonCode_value[raw]; ok {
-			reasonCode = runtimev1.ReasonCode(parsed)
-		}
-	}
-	s.auditStore.AppendEvent(&runtimev1.AuditEventRecord{
-		AuditId:       eventCopy.GetId(),
-		AppId:         defaultString(strings.TrimSpace(eventCopy.GetAppId()), "nimi.desktop"),
-		SubjectUserId: strings.TrimSpace(eventCopy.GetSubjectUserId()),
-		Domain:        defaultString(strings.TrimSpace(eventCopy.GetDomain()), localAuditDomain),
-		Operation:     defaultString(strings.TrimSpace(eventCopy.GetOperation()), strings.TrimSpace(eventCopy.GetEventType())),
-		ReasonCode:    reasonCode,
-		TraceId:       defaultString(strings.TrimSpace(eventCopy.GetTraceId()), ulid.Make().String()),
-		Timestamp:     timestamppb.New(time.Now().UTC()),
-		Payload:       cloneStruct(eventCopy.GetPayload()),
-		CallerKind:    runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
-		CallerId:      "runtime.local_runtime.service",
-		SurfaceId:     "runtime.local_runtime",
-		Capability:    "runtime.local_runtime.audit.append",
-		PrincipalId:   "runtime.local_runtime",
-		PrincipalType: "runtime_service",
-	})
 }
 
 const localAuditFieldMaxLen = 1024

@@ -270,6 +270,7 @@ func TestRuntimeAgentWorldSharedQueryAndWriteUseActiveWorldID(t *testing.T) {
 					},
 				},
 				SourceEventId: "evt-world-1",
+				Extensions:    completePromotionEvidence(t),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
 					Payload: &runtimev1.MemoryRecordInput_Semantic{
@@ -333,6 +334,7 @@ func TestRuntimeAgentWorldSharedWriteFailsClosedForMissingOrMismatchedWorld(t *t
 					},
 				},
 				SourceEventId: "evt-world-fail-1",
+				Extensions:    completePromotionEvidence(t),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
 					Payload: &runtimev1.MemoryRecordInput_Semantic{
@@ -377,6 +379,7 @@ func TestRuntimeAgentWorldSharedWriteFailsClosedForMissingOrMismatchedWorld(t *t
 					},
 				},
 				SourceEventId: "evt-world-fail-2",
+				Extensions:    completePromotionEvidence(t),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
 					Payload: &runtimev1.MemoryRecordInput_Semantic{

@@ -1,10 +1,11 @@
 package grpcserver
 
 import (
+	"strings"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"strings"
 )
 
 func reasonCodeFromError(err error) runtimev1.ReasonCode {
@@ -98,4 +99,82 @@ func inferModelResolved(resp any) (string, bool) {
 		return "", false
 	}
 	return modelID, true
+}
+
+func addAIExecutionAuditPayload(payload map[string]any, req any, traceID string) {
+	if payload == nil {
+		return
+	}
+	details, ok := inferAIExecutionAuditDetails(req)
+	if !ok {
+		return
+	}
+	payload["ai_execution"] = true
+	payload["trace_id"] = strings.TrimSpace(traceID)
+	if details.RequestID != "" {
+		payload["request_id"] = details.RequestID
+	}
+	if details.IdempotencyKey != "" {
+		payload["idempotency_key"] = details.IdempotencyKey
+	}
+	payload["scenario_type"] = details.ScenarioType
+	payload["execution_mode"] = details.ExecutionMode
+	payload["route_policy"] = details.RoutePolicy
+	payload["fallback_policy"] = details.FallbackPolicy
+	payload["connector_id"] = details.ConnectorID
+	payload["extension_count"] = len(details.ExtensionNamespaces)
+	if len(details.ExtensionNamespaces) > 0 {
+		namespaces := make([]any, 0, len(details.ExtensionNamespaces))
+		for _, namespace := range details.ExtensionNamespaces {
+			namespaces = append(namespaces, namespace)
+		}
+		payload["extension_namespaces"] = namespaces
+	}
+}
+
+type aiExecutionAuditDetails struct {
+	RequestID           string
+	IdempotencyKey      string
+	ScenarioType        string
+	ExecutionMode       string
+	RoutePolicy         string
+	FallbackPolicy      string
+	ConnectorID         string
+	ExtensionNamespaces []string
+}
+
+func inferAIExecutionAuditDetails(req any) (aiExecutionAuditDetails, bool) {
+	switch value := req.(type) {
+	case *runtimev1.ExecuteScenarioRequest:
+		return aiExecutionAuditDetailsFromScenario(value.GetHead(), value.GetScenarioType(), value.GetExecutionMode(), value.GetExtensions(), "", ""), true
+	case *runtimev1.StreamScenarioRequest:
+		return aiExecutionAuditDetailsFromScenario(value.GetHead(), value.GetScenarioType(), value.GetExecutionMode(), value.GetExtensions(), "", ""), true
+	case *runtimev1.SubmitScenarioJobRequest:
+		return aiExecutionAuditDetailsFromScenario(value.GetHead(), value.GetScenarioType(), value.GetExecutionMode(), value.GetExtensions(), value.GetRequestId(), value.GetIdempotencyKey()), true
+	default:
+		return aiExecutionAuditDetails{}, false
+	}
+}
+
+func aiExecutionAuditDetailsFromScenario(head *runtimev1.ScenarioRequestHead, scenarioType runtimev1.ScenarioType, executionMode runtimev1.ExecutionMode, extensions []*runtimev1.ScenarioExtension, requestID string, idempotencyKey string) aiExecutionAuditDetails {
+	details := aiExecutionAuditDetails{
+		RequestID:           strings.TrimSpace(requestID),
+		IdempotencyKey:      strings.TrimSpace(idempotencyKey),
+		ScenarioType:        scenarioType.String(),
+		ExecutionMode:       executionMode.String(),
+		ExtensionNamespaces: make([]string, 0, len(extensions)),
+	}
+	if head != nil {
+		details.RoutePolicy = head.GetRoutePolicy().String()
+		details.FallbackPolicy = head.GetFallback().String()
+		details.ConnectorID = strings.TrimSpace(head.GetConnectorId())
+	}
+	for _, extension := range extensions {
+		namespace := strings.TrimSpace(extension.GetNamespace())
+		if namespace == "" {
+			continue
+		}
+		details.ExtensionNamespaces = append(details.ExtensionNamespaces, namespace)
+	}
+	return details
 }

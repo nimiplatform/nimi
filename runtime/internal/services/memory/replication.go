@@ -175,16 +175,36 @@ func validateReplicationObservation(replication *runtimev1.MemoryReplicationStat
 			return status.Error(codes.InvalidArgument, "pending replication observation requires pending detail")
 		}
 	case runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_SYNCED:
-		if replication.GetSynced() == nil {
+		synced := replication.GetSynced()
+		if synced == nil {
 			return status.Error(codes.InvalidArgument, "synced replication observation requires synced detail")
 		}
+		if strings.TrimSpace(synced.GetRealmVersion()) == "" || synced.GetSyncedAt() == nil {
+			return status.Error(codes.InvalidArgument, "synced replication observation requires realm_version and synced_at evidence")
+		}
 	case runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_CONFLICT:
-		if replication.GetConflict() == nil {
+		conflict := replication.GetConflict()
+		if conflict == nil {
 			return status.Error(codes.InvalidArgument, "conflict replication observation requires conflict detail")
 		}
+		if strings.TrimSpace(conflict.GetConflictId()) == "" ||
+			strings.TrimSpace(conflict.GetLocalVersion()) == "" ||
+			strings.TrimSpace(conflict.GetRemoteVersion()) == "" ||
+			strings.TrimSpace(conflict.GetConflictReason()) == "" ||
+			conflict.GetDetectedAt() == nil {
+			return status.Error(codes.InvalidArgument, "conflict replication observation requires conflict_id, local_version, remote_version, conflict_reason, and detected_at evidence")
+		}
 	case runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_INVALIDATED:
-		if replication.GetInvalidation() == nil {
+		invalidation := replication.GetInvalidation()
+		if invalidation == nil {
 			return status.Error(codes.InvalidArgument, "invalidated replication observation requires invalidation detail")
+		}
+		if strings.TrimSpace(invalidation.GetInvalidationId()) == "" ||
+			strings.TrimSpace(invalidation.GetInvalidatedVersion()) == "" ||
+			strings.TrimSpace(invalidation.GetAuthority()) == "" ||
+			strings.TrimSpace(invalidation.GetInvalidationReason()) == "" ||
+			invalidation.GetInvalidatedAt() == nil {
+			return status.Error(codes.InvalidArgument, "invalidated replication observation requires invalidation_id, invalidated_version, authority, invalidation_reason, and invalidated_at evidence")
 		}
 	default:
 		return status.Error(codes.InvalidArgument, "replication observation requires admitted outcome")

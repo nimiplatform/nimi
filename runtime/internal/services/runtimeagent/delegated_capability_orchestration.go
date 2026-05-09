@@ -45,6 +45,10 @@ type runtimeAgentDelegatedCapabilityDecision struct {
 	ProviderID           string
 	CapabilityID         string
 	ToolName             string
+	DescriptorHash       string
+	PolicySnapshotID     string
+	ApprovalPrincipalID  string
+	ApprovalExpiresAt    time.Time
 	GatewayEvidenceID    string
 	FirewallInputID      string
 	FirewallVerdict      string
@@ -116,6 +120,14 @@ func (r publicChatRuntime) executeDelegatedCapability(
 	if err != nil {
 		return nil, err
 	}
+	if r.svc.auditStore == nil {
+		return nil, fmt.Errorf("runtime agent delegated audit store is not configured")
+	}
+	if normalized.RequiresApproval {
+		decision := runtimeAgentPreinvokeApprovalDecision(session, turn, normalized)
+		r.svc.recordDelegatedCapabilityDecision(decision)
+		return decision, nil
+	}
 	evidence, err := gateway.CallTool(ctx, delegation.ToolCallRequest{
 		ProviderID: normalized.ProviderID,
 		ToolName:   normalized.ToolName,
@@ -124,6 +136,9 @@ func (r publicChatRuntime) executeDelegatedCapability(
 	})
 	if err != nil {
 		return nil, err
+	}
+	if strings.TrimSpace(evidenceID(evidence)) == "" {
+		return nil, fmt.Errorf("runtime agent delegated gateway evidence id is required")
 	}
 	firewallInput := buildRuntimeAgentFirewallInput(session, turn, normalized, evidence)
 	verdict, err := firewall.Evaluate(ctx, firewallInput)
@@ -149,6 +164,33 @@ func normalizeRuntimeAgentDelegatedCapabilityRequest(req runtimeAgentDelegatedCa
 	return req, nil
 }
 
+func runtimeAgentPreinvokeApprovalDecision(
+	session publicChatAnchorState,
+	turn publicChatTurnState,
+	req runtimeAgentDelegatedCapabilityRequest,
+) *runtimeAgentDelegatedCapabilityDecision {
+	now := time.Now().UTC()
+	return &runtimeAgentDelegatedCapabilityDecision{
+		DecisionID:           "deleg-decision-" + ulid.Make().String(),
+		AgentID:              strings.TrimSpace(session.AgentID),
+		DelegationRequestID:  firstNonEmpty(strings.TrimSpace(turn.RequestID), strings.TrimSpace(turn.TurnID)),
+		TurnID:               strings.TrimSpace(turn.TurnID),
+		StreamID:             strings.TrimSpace(turn.StreamID),
+		ConversationAnchorID: strings.TrimSpace(session.ConversationAnchorID),
+		ProviderID:           req.ProviderID,
+		CapabilityID:         req.CapabilityID,
+		ToolName:             req.ToolName,
+		DescriptorHash:       req.DescriptorHash,
+		PolicySnapshotID:     delegatedApprovalPolicySnapshotID(req.ProviderID, req.CapabilityID, req.ToolName, req.DescriptorHash),
+		ApprovalPrincipalID:  firstNonEmpty(strings.TrimSpace(session.SubjectUserID), strings.TrimSpace(session.CallerAppID)),
+		ApprovalExpiresAt:    now.Add(defaultDelegatedApprovalTTL),
+		FirewallVerdict:      delegation.FirewallVerdictApprovalRequired,
+		ReasonCode:           delegation.ReasonApprovalRequired,
+		RuntimeDecision:      "approval_required",
+		DecidedAt:            now,
+	}
+}
+
 func buildRuntimeAgentFirewallInput(
 	session publicChatAnchorState,
 	turn publicChatTurnState,
@@ -171,7 +213,7 @@ func buildRuntimeAgentFirewallInput(
 	return delegation.FirewallInput{
 		FirewallInputID:    "deleg-fw-" + ulid.Make().String(),
 		DelegationResultID: resultID,
-		CandidateOutputRef: firstNonEmpty(strings.TrimSpace(evidenceID(evidence)), "deleg-evidence-unavailable"),
+		CandidateOutputRef: strings.TrimSpace(evidenceID(evidence)),
 		ProviderProfileID:  req.ProviderID,
 		CapabilityID:       req.CapabilityID,
 		DescriptorHash:     req.DescriptorHash,
@@ -209,6 +251,10 @@ func runtimeAgentDecisionFromFirewall(
 		ProviderID:           req.ProviderID,
 		CapabilityID:         req.CapabilityID,
 		ToolName:             req.ToolName,
+		DescriptorHash:       req.DescriptorHash,
+		PolicySnapshotID:     delegatedApprovalPolicySnapshotID(req.ProviderID, req.CapabilityID, req.ToolName, req.DescriptorHash),
+		ApprovalPrincipalID:  firstNonEmpty(strings.TrimSpace(session.SubjectUserID), strings.TrimSpace(session.CallerAppID)),
+		ApprovalExpiresAt:    time.Now().UTC().Add(defaultDelegatedApprovalTTL),
 		GatewayEvidenceID:    evidenceID(evidence),
 		FirewallInputID:      strings.TrimSpace(input.FirewallInputID),
 		RuntimeDecision:      "ignore",
@@ -284,11 +330,22 @@ func (s *Service) recordDelegatedApprovalRequestLocked(decision *runtimeAgentDel
 	if decidedAt.IsZero() {
 		decidedAt = time.Now().UTC()
 	}
+	expiresAt := decision.ApprovalExpiresAt.UTC()
+	if expiresAt.IsZero() {
+		expiresAt = decidedAt.Add(defaultDelegatedApprovalTTL)
+	}
+	policySnapshotID := firstNonEmpty(
+		strings.TrimSpace(decision.PolicySnapshotID),
+		delegatedApprovalPolicySnapshotID(decision.ProviderID, decision.CapabilityID, decision.ToolName, decision.DescriptorHash),
+	)
 	detail, _ := structpb.NewStruct(map[string]any{
 		"gateway_evidence_id":   strings.TrimSpace(decision.GatewayEvidenceID),
 		"firewall_input_id":     strings.TrimSpace(decision.FirewallInputID),
 		"delegation_request_id": strings.TrimSpace(decision.DelegationRequestID),
 		"delegation_result_id":  strings.TrimSpace(decision.DelegationResultID),
+		"descriptor_hash":       strings.TrimSpace(decision.DescriptorHash),
+		"policy_snapshot_id":    policySnapshotID,
+		"principal_id":          strings.TrimSpace(decision.ApprovalPrincipalID),
 	})
 	s.delegatedApprovalRequests[key] = &runtimev1.DelegatedApprovalRequest{
 		ApprovalRequestId:    approvalID,
@@ -304,6 +361,7 @@ func (s *Service) recordDelegatedApprovalRequestLocked(decision *runtimeAgentDel
 		Detail:               detail,
 		CreatedAt:            timestamppb.New(decidedAt),
 		UpdatedAt:            timestamppb.New(decidedAt),
+		ExpiresAt:            timestamppb.New(expiresAt),
 	}
 }
 

@@ -135,23 +135,23 @@ func TestSendRuntimeAgentMessageRequiresScopedBinding(t *testing.T) {
 	}
 }
 
-func TestSendRuntimeAgentMessageAllowsValidatedProtectedCapabilityWithoutScopedBinding(t *testing.T) {
+func TestSendRuntimeAgentMessageRejectsProtectedCapabilityWithoutScopedBinding(t *testing.T) {
 	validator := &testScopedBindingValidator{t: t, ok: false}
 	svc := newTestService(WithScopedBindingValidator(validator))
 	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "nimi.avatar", "runtime.agent.turn.write")
-	resp, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
+	_, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
 		FromAppId:   "nimi.avatar",
 		ToAppId:     "runtime.agent",
 		MessageType: "runtime.agent.turn.request",
 	})
-	if err != nil {
-		t.Fatalf("SendAppMessage with protected capability: %v", err)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid argument for protected capability without binding, got %v", err)
 	}
-	if !resp.GetAccepted() {
-		t.Fatalf("expected accepted response: %#v", resp)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_APP_GRANT_INVALID {
+		t.Fatalf("unexpected reason: %v ok=%v err=%v", reason, ok, err)
 	}
 	if validator.calls != 0 {
-		t.Fatalf("scoped binding validator must not be called for protected capability, got %d", validator.calls)
+		t.Fatalf("missing binding must fail before validator, got %d calls", validator.calls)
 	}
 }
 
@@ -476,34 +476,26 @@ func TestSubscribeRuntimeAgentMessagesRequiresScopedBinding(t *testing.T) {
 	}
 }
 
-func TestSubscribeRuntimeAgentMessagesAllowsValidatedProtectedCapabilityWithoutScopedBinding(t *testing.T) {
+func TestSubscribeRuntimeAgentMessagesRejectsProtectedCapabilityWithoutScopedBinding(t *testing.T) {
 	validator := &testScopedBindingValidator{t: t, ok: false}
 	svc := newTestService(WithScopedBindingValidator(validator))
-	ctx, cancel := context.WithCancel(envelope.WithValidatedProtectedCapability(
+	ctx := envelope.WithValidatedProtectedCapability(
 		appContext("nimi.avatar"),
 		"nimi.avatar",
 		"runtime.agent.turn.read",
-	))
-	stream := &appMessageStreamCollector{ctx: ctx}
-	done := make(chan error, 1)
-	go func() {
-		done <- svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{
-			AppId:      "nimi.avatar",
-			FromAppIds: []string{"runtime.agent"},
-		}, stream)
-	}()
-	time.Sleep(20 * time.Millisecond)
-	cancel()
-	select {
-	case err := <-done:
-		if err != nil && !errors.Is(err, context.Canceled) {
-			t.Fatalf("SubscribeAppMessages returned unexpected error: %v", err)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("SubscribeAppMessages did not stop after cancel")
+	)
+	err := svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{
+		AppId:      "nimi.avatar",
+		FromAppIds: []string{"runtime.agent"},
+	}, &appMessageStreamCollector{ctx: ctx})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid argument for protected capability without binding, got %v", err)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_APP_GRANT_INVALID {
+		t.Fatalf("unexpected reason: %v ok=%v err=%v", reason, ok, err)
 	}
 	if validator.calls != 0 {
-		t.Fatalf("scoped binding validator must not be called for protected capability, got %d", validator.calls)
+		t.Fatalf("missing binding must fail before validator, got %d calls", validator.calls)
 	}
 }
 

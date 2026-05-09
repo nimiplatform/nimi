@@ -14,6 +14,9 @@ import (
 )
 
 func (s *Service) AddLink(_ context.Context, req *runtimev1.AddLinkRequest) (*runtimev1.AddLinkResponse, error) {
+	if err := s.ensureKnowledgeAuditAvailable(); err != nil {
+		return nil, err
+	}
 	if err := validateRequestContext(req.GetContext()); err != nil {
 		return nil, err
 	}
@@ -62,10 +65,20 @@ func (s *Service) AddLink(_ context.Context, req *runtimev1.AddLinkRequest) (*ru
 		s.banksByID[bankID] = previous
 		return nil, err
 	}
+	s.recordKnowledgeAudit(req.GetContext(), "knowledge.link.add", map[string]any{
+		"bank_id":      bankID,
+		"link_id":      link.GetLinkId(),
+		"from_page_id": link.GetFromPageId(),
+		"to_page_id":   link.GetToPageId(),
+		"link_type":    link.GetLinkType(),
+	})
 	return &runtimev1.AddLinkResponse{Link: cloneKnowledgeLink(link)}, nil
 }
 
 func (s *Service) RemoveLink(_ context.Context, req *runtimev1.RemoveLinkRequest) (*runtimev1.RemoveLinkResponse, error) {
+	if err := s.ensureKnowledgeAuditAvailable(); err != nil {
+		return nil, err
+	}
 	if err := validateRequestContext(req.GetContext()); err != nil {
 		return nil, err
 	}
@@ -95,6 +108,10 @@ func (s *Service) RemoveLink(_ context.Context, req *runtimev1.RemoveLinkRequest
 		s.banksByID[bankID] = previous
 		return nil, err
 	}
+	s.recordKnowledgeAudit(req.GetContext(), "knowledge.link.remove", map[string]any{
+		"bank_id": bankID,
+		"link_id": linkID,
+	})
 	return &runtimev1.RemoveLinkResponse{
 		Ack: &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED},
 	}, nil
@@ -104,7 +121,12 @@ func (s *Service) ListLinks(_ context.Context, req *runtimev1.ListLinksRequest) 
 	if err := validateRequestContext(req.GetContext()); err != nil {
 		return nil, err
 	}
-	offset, err := decodePageToken(req.GetPageToken())
+	filterDigest := paginationFilterDigest("knowledge.links.list", map[string]any{
+		"bank_id":           strings.TrimSpace(req.GetBankId()),
+		"from_page_id":      strings.TrimSpace(req.GetFromPageId()),
+		"link_type_filters": normalizeStringFilterValues(req.GetLinkTypeFilters()),
+	})
+	offset, err := decodePageToken(req.GetPageToken(), filterDigest)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +156,7 @@ func (s *Service) ListLinks(_ context.Context, req *runtimev1.ListLinksRequest) 
 		}
 		return left.After(right)
 	})
-	start, end, next := sliceBounds(len(items), offset, pageSize)
+	start, end, next := sliceBounds(len(items), offset, pageSize, filterDigest)
 	return &runtimev1.ListLinksResponse{Links: items[start:end], NextPageToken: next}, nil
 }
 
@@ -142,7 +164,12 @@ func (s *Service) ListBacklinks(_ context.Context, req *runtimev1.ListBacklinksR
 	if err := validateRequestContext(req.GetContext()); err != nil {
 		return nil, err
 	}
-	offset, err := decodePageToken(req.GetPageToken())
+	filterDigest := paginationFilterDigest("knowledge.backlinks.list", map[string]any{
+		"bank_id":           strings.TrimSpace(req.GetBankId()),
+		"to_page_id":        strings.TrimSpace(req.GetToPageId()),
+		"link_type_filters": normalizeStringFilterValues(req.GetLinkTypeFilters()),
+	})
+	offset, err := decodePageToken(req.GetPageToken(), filterDigest)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +199,7 @@ func (s *Service) ListBacklinks(_ context.Context, req *runtimev1.ListBacklinksR
 		}
 		return left.After(right)
 	})
-	start, end, next := sliceBounds(len(items), offset, pageSize)
+	start, end, next := sliceBounds(len(items), offset, pageSize, filterDigest)
 	return &runtimev1.ListBacklinksResponse{Backlinks: items[start:end], NextPageToken: next}, nil
 }
 
@@ -180,14 +207,17 @@ func (s *Service) TraverseGraph(_ context.Context, req *runtimev1.TraverseGraphR
 	if err := validateRequestContext(req.GetContext()); err != nil {
 		return nil, err
 	}
-	offset, err := decodePageToken(req.GetPageToken())
+	filterDigest := paginationFilterDigest("knowledge.graph.traverse", map[string]any{
+		"bank_id":           strings.TrimSpace(req.GetBankId()),
+		"root_page_id":      strings.TrimSpace(req.GetRootPageId()),
+		"link_type_filters": normalizeStringFilterValues(req.GetLinkTypeFilters()),
+		"max_depth":         req.GetMaxDepth(),
+	})
+	offset, err := decodePageToken(req.GetPageToken(), filterDigest)
 	if err != nil {
 		return nil, err
 	}
 	maxDepth := int(req.GetMaxDepth())
-	if maxDepth == 0 {
-		maxDepth = defaultGraphTraversalDepth
-	}
 	if maxDepth < 1 || maxDepth > maxGraphTraversalDepth {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_KNOWLEDGE_GRAPH_DEPTH_INVALID)
 	}
@@ -249,6 +279,6 @@ func (s *Service) TraverseGraph(_ context.Context, req *runtimev1.TraverseGraphR
 		}
 		return nodes[i].GetDepth() < nodes[j].GetDepth()
 	})
-	start, end, next := sliceBounds(len(nodes), offset, pageSize)
+	start, end, next := sliceBounds(len(nodes), offset, pageSize, filterDigest)
 	return &runtimev1.TraverseGraphResponse{Nodes: nodes[start:end], NextPageToken: next}, nil
 }

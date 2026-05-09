@@ -183,8 +183,15 @@ func (c Config) normalized() Config {
 }
 
 func (c Config) toCloudConfig() nimillm.CloudConfig {
+	providers := make(map[string]nimillm.ProviderCredentials, len(c.CloudProviders))
+	for providerID, creds := range c.CloudProviders {
+		if model := strings.TrimSpace(c.ProviderDefaultModels[providerID]); model != "" {
+			creds.DefaultModel = model
+		}
+		providers[providerID] = creds
+	}
 	return nimillm.CloudConfig{
-		Providers:               c.CloudProviders,
+		Providers:               providers,
 		HTTPTimeout:             c.AIHTTPTimeout,
 		EnforceEndpointSecurity: c.EnforceEndpointSecurity,
 		AllowLoopbackEndpoint:   c.AllowLoopbackEndpoint,

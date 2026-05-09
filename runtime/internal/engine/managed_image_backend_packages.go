@@ -40,6 +40,7 @@ type managedImageBackendPackageSpec struct {
 	InstallDirName       string
 	PackageFormat        managedImageBackendPackageFormat
 	ImageRef             string
+	OCILayerDigest       string
 	ArchiveURL           string
 	ArchiveSHA256        string
 	ExecutableCandidates []string
@@ -59,6 +60,7 @@ var managedImageBackendPackageSpecs = []managedImageBackendPackageSpec{
 		InstallDirName: "metal-stablediffusion-ggml",
 		PackageFormat:  managedImageBackendPackageFormatOCIPayload,
 		ImageRef:       "quay.io/go-skynet/local-ai-backends:latest-metal-darwin-arm64-stablediffusion-ggml",
+		OCILayerDigest: "sha256:2a86268d6c75d765711ffe872077efc4e9e7f2dc4996cbc7f1f4bc9011d21575",
 		LaunchMode:     managedImageBackendLaunchModePackageEntrypoint,
 		Supported:      true,
 	},
@@ -77,7 +79,8 @@ var managedImageBackendPackageSpecs = []managedImageBackendPackageSpec{
 		},
 		LaunchMode:    managedImageBackendLaunchModeRuntimeWrapper,
 		WrapperDriver: "stable-diffusion.cpp",
-		Supported:     true,
+		Supported:     false,
+		Detail:        "experimental official stable-diffusion.cpp package source is proposed and not admitted as a supported runtime-owned package source",
 	},
 	{
 		BackendName:          "stablediffusion-ggml",

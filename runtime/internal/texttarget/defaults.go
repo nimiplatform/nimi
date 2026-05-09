@@ -8,7 +8,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerregistry"
 )
 
-const BundledDefaultLocalTextModel = "qwen2.5"
+const (
+	BundledDefaultLocalTextModel       = "qwen2.5"
+	InternalDefaultLocalTextModelAlias = "local/default"
+)
 
 var localQualifiedPrefixes = []string{"local", "llama", "media", "speech", "sidecar"}
 
@@ -143,7 +146,7 @@ func ResolveInternalDefaultAlias(cfg config.Config, rawModelID string) (string, 
 		return "", nil
 	}
 	switch strings.ToLower(modelID) {
-	case "local/default":
+	case InternalDefaultLocalTextModelAlias:
 		return EnsureLocalQualifiedModel(ResolveLocalDefaultModel(cfg)), nil
 	case "cloud/default":
 		providerName, _, err := ResolveCloudProvider(cfg, "")

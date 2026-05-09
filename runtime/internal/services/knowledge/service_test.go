@@ -11,10 +11,22 @@ import (
 	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func assertPageTokenInvalid(t *testing.T, err error) {
+	t.Helper()
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid page token, got %v", err)
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_PAGE_TOKEN_INVALID {
+		t.Fatalf("unexpected page token reason: got=%v ok=%v", reason, ok)
+	}
+}
 
 func TestKnowledgeBankAndPageLifecycle(t *testing.T) {
 	t.Parallel()
@@ -224,6 +236,60 @@ func TestKnowledgeBankAccessDeniedReasonCode(t *testing.T) {
 	}
 }
 
+func TestWorkspacePrivateKnowledgeBanksFailClosedWithoutWorkspaceAuthority(t *testing.T) {
+	t.Parallel()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := context.Background()
+	reqCtx := &runtimev1.KnowledgeRequestContext{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+	}
+
+	_, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
+		Context: reqCtx,
+		Locator: &runtimev1.PublicKnowledgeBankLocator{
+			Locator: &runtimev1.PublicKnowledgeBankLocator_WorkspacePrivate{
+				WorkspacePrivate: &runtimev1.KnowledgeWorkspacePrivateOwner{WorkspaceId: "workspace-001"},
+			},
+		},
+	})
+	assertKnowledgeAccessDenied(t, err)
+
+	locator := &runtimev1.KnowledgeBankLocator{
+		Scope: runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE,
+		Owner: &runtimev1.KnowledgeBankLocator_WorkspacePrivate{
+			WorkspacePrivate: &runtimev1.KnowledgeWorkspacePrivateOwner{WorkspaceId: "workspace-001"},
+		},
+	}
+	svc.mu.Lock()
+	svc.bankIDByOwner[locatorKey(locator)] = "workspace-bank"
+	svc.banksByID["workspace-bank"] = &bankState{
+		Bank: &runtimev1.KnowledgeBank{
+			BankId:  "workspace-bank",
+			Locator: locator,
+		},
+		PagesByID:  map[string]*runtimev1.KnowledgePage{},
+		SlugToPage: map[string]string{},
+		LinksByID:  map[string]*runtimev1.KnowledgeLink{},
+	}
+	svc.mu.Unlock()
+
+	_, err = svc.GetKnowledgeBank(ctx, &runtimev1.GetKnowledgeBankRequest{
+		Context: reqCtx,
+		BankId:  "workspace-bank",
+	})
+	assertKnowledgeAccessDenied(t, err)
+
+	_, err = svc.PutPage(ctx, &runtimev1.PutPageRequest{
+		Context: reqCtx,
+		BankId:  "workspace-bank",
+		Slug:    "blocked",
+		Content: "blocked",
+	})
+	assertKnowledgeAccessDenied(t, err)
+}
+
 func TestPutPageSlugConflictReasonCode(t *testing.T) {
 	t.Parallel()
 
@@ -341,6 +407,14 @@ func TestListPagesPaginationAndSnippetUTF8(t *testing.T) {
 	if len(page2.GetPages()) != 1 {
 		t.Fatalf("unexpected second page payload: %+v", page2)
 	}
+	_, err = svc.ListPages(ctx, &runtimev1.ListPagesRequest{
+		Context:    reqCtx,
+		BankId:     bankID,
+		PageSize:   1,
+		PageToken:  page1.GetNextPageToken(),
+		SlugPrefix: "page-",
+	})
+	assertPageTokenInvalid(t, err)
 
 	searchResp, err := svc.SearchKeyword(ctx, &runtimev1.SearchKeywordRequest{
 		Context: reqCtx,
@@ -357,6 +431,90 @@ func TestListPagesPaginationAndSnippetUTF8(t *testing.T) {
 	if !utf8.ValidString(searchResp.GetHits()[0].GetSnippet()) {
 		t.Fatal("snippet must preserve UTF-8 boundaries")
 	}
+}
+
+func TestKnowledgePageTokenBindsGraphFilters(t *testing.T) {
+	t.Parallel()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := context.Background()
+	reqCtx := &runtimev1.KnowledgeRequestContext{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+	}
+	createResp, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
+		Context: reqCtx,
+		Locator: &runtimev1.PublicKnowledgeBankLocator{
+			Locator: &runtimev1.PublicKnowledgeBankLocator_AppPrivate{
+				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: "nimi.desktop"},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create bank: %v", err)
+	}
+	bankID := createResp.GetBank().GetBankId()
+	pageIDs := make(map[string]string)
+	for _, slug := range []string{"root", "child-a", "child-b"} {
+		putResp, err := svc.PutPage(ctx, &runtimev1.PutPageRequest{
+			Context: reqCtx,
+			BankId:  bankID,
+			Slug:    slug,
+			Title:   slug,
+		})
+		if err != nil {
+			t.Fatalf("put page %s: %v", slug, err)
+		}
+		pageIDs[slug] = putResp.GetPage().GetPageId()
+	}
+	for _, toPageID := range []string{pageIDs["child-a"], pageIDs["child-b"]} {
+		if _, err := svc.AddLink(ctx, &runtimev1.AddLinkRequest{
+			Context:    reqCtx,
+			BankId:     bankID,
+			FromPageId: pageIDs["root"],
+			ToPageId:   toPageID,
+			LinkType:   "references",
+		}); err != nil {
+			t.Fatalf("add link: %v", err)
+		}
+	}
+
+	firstPage, err := svc.ListLinks(ctx, &runtimev1.ListLinksRequest{
+		Context:         reqCtx,
+		BankId:          bankID,
+		FromPageId:      pageIDs["root"],
+		LinkTypeFilters: []string{"references"},
+		PageSize:        1,
+	})
+	if err != nil {
+		t.Fatalf("list links first page: %v", err)
+	}
+	if len(firstPage.GetLinks()) != 1 || firstPage.GetNextPageToken() == "" {
+		t.Fatalf("unexpected first link page: %+v", firstPage)
+	}
+	secondPage, err := svc.ListLinks(ctx, &runtimev1.ListLinksRequest{
+		Context:         reqCtx,
+		BankId:          bankID,
+		FromPageId:      pageIDs["root"],
+		LinkTypeFilters: []string{"references"},
+		PageSize:        1,
+		PageToken:       firstPage.GetNextPageToken(),
+	})
+	if err != nil {
+		t.Fatalf("list links second page: %v", err)
+	}
+	if len(secondPage.GetLinks()) != 1 {
+		t.Fatalf("unexpected second link page: %+v", secondPage)
+	}
+	_, err = svc.ListLinks(ctx, &runtimev1.ListLinksRequest{
+		Context:         reqCtx,
+		BankId:          bankID,
+		FromPageId:      pageIDs["root"],
+		LinkTypeFilters: []string{"mentions"},
+		PageSize:        1,
+		PageToken:       firstPage.GetNextPageToken(),
+	})
+	assertPageTokenInvalid(t, err)
 }
 
 func TestKnowledgeStatePersistsAcrossRestart(t *testing.T) {
@@ -674,6 +832,153 @@ func TestKnowledgeGraphLifecycleAndTraversal(t *testing.T) {
 	}
 }
 
+func TestKnowledgeGraphTraversalRequiresExplicitBoundedDepth(t *testing.T) {
+	t.Parallel()
+
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := context.Background()
+	reqCtx := &runtimev1.KnowledgeRequestContext{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+	}
+	createResp, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
+		Context: reqCtx,
+		Locator: &runtimev1.PublicKnowledgeBankLocator{
+			Locator: &runtimev1.PublicKnowledgeBankLocator_AppPrivate{
+				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: "nimi.desktop"},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create bank: %v", err)
+	}
+	pageResp, err := svc.PutPage(ctx, &runtimev1.PutPageRequest{
+		Context: reqCtx,
+		BankId:  createResp.GetBank().GetBankId(),
+		Slug:    "root",
+		Title:   "Root",
+	})
+	if err != nil {
+		t.Fatalf("put page: %v", err)
+	}
+
+	for _, depth := range []int32{0, maxGraphTraversalDepth + 1} {
+		_, err := svc.TraverseGraph(ctx, &runtimev1.TraverseGraphRequest{
+			Context:    reqCtx,
+			BankId:     createResp.GetBank().GetBankId(),
+			RootPageId: pageResp.GetPage().GetPageId(),
+			MaxDepth:   depth,
+		})
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected invalid argument for depth %d, got %v", depth, err)
+		}
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_KNOWLEDGE_GRAPH_DEPTH_INVALID {
+			t.Fatalf("unexpected graph depth reason for depth %d: got=%v ok=%v", depth, reason, ok)
+		}
+	}
+}
+
+func TestKnowledgeWritesEmitRequiredAuditEvents(t *testing.T) {
+	t.Parallel()
+
+	store := auditlog.New(128, 128)
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetAuditStore(store)
+	svc.RequireAuditStore(true)
+	ctx := context.Background()
+	reqCtx := &runtimev1.KnowledgeRequestContext{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+	}
+	createResp, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
+		Context: reqCtx,
+		Locator: &runtimev1.PublicKnowledgeBankLocator{
+			Locator: &runtimev1.PublicKnowledgeBankLocator_AppPrivate{
+				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: "nimi.desktop"},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create bank: %v", err)
+	}
+	bankID := createResp.GetBank().GetBankId()
+	pageA, err := svc.PutPage(ctx, &runtimev1.PutPageRequest{
+		Context: reqCtx,
+		BankId:  bankID,
+		Slug:    "page-a",
+		Title:   "Page A",
+	})
+	if err != nil {
+		t.Fatalf("put page a: %v", err)
+	}
+	pageB, err := svc.PutPage(ctx, &runtimev1.PutPageRequest{
+		Context: reqCtx,
+		BankId:  bankID,
+		Slug:    "page-b",
+		Title:   "Page B",
+	})
+	if err != nil {
+		t.Fatalf("put page b: %v", err)
+	}
+	linkResp, err := svc.AddLink(ctx, &runtimev1.AddLinkRequest{
+		Context:    reqCtx,
+		BankId:     bankID,
+		FromPageId: pageA.GetPage().GetPageId(),
+		ToPageId:   pageB.GetPage().GetPageId(),
+		LinkType:   "references",
+	})
+	if err != nil {
+		t.Fatalf("add link: %v", err)
+	}
+	if _, err := svc.RemoveLink(ctx, &runtimev1.RemoveLinkRequest{
+		Context: reqCtx,
+		BankId:  bankID,
+		LinkId:  linkResp.GetLink().GetLinkId(),
+	}); err != nil {
+		t.Fatalf("remove link: %v", err)
+	}
+	if _, err := svc.DeletePage(ctx, &runtimev1.DeletePageRequest{
+		Context: reqCtx,
+		BankId:  bankID,
+		Lookup: &runtimev1.DeletePageRequest_PageId{
+			PageId: pageA.GetPage().GetPageId(),
+		},
+	}); err != nil {
+		t.Fatalf("delete page: %v", err)
+	}
+	if _, err := svc.DeleteKnowledgeBank(ctx, &runtimev1.DeleteKnowledgeBankRequest{
+		Context: reqCtx,
+		BankId:  bankID,
+	}); err != nil {
+		t.Fatalf("delete bank: %v", err)
+	}
+
+	events, err := store.ListEvents(&runtimev1.ListAuditEventsRequest{Domain: "runtime.knowledge", PageSize: 100})
+	if err != nil {
+		t.Fatalf("list audit events: %v", err)
+	}
+	seen := make(map[string]bool)
+	for _, event := range events.GetEvents() {
+		seen[event.GetOperation()] = true
+		if event.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+			t.Fatalf("unexpected audit reason for %s: %v", event.GetOperation(), event.GetReasonCode())
+		}
+	}
+	for _, operation := range []string{
+		"knowledge.bank.create",
+		"knowledge.page.put",
+		"knowledge.link.add",
+		"knowledge.link.remove",
+		"knowledge.page.delete",
+		"knowledge.bank.delete",
+	} {
+		if !seen[operation] {
+			t.Fatalf("missing knowledge audit operation %s; events=%v", operation, seen)
+		}
+	}
+}
+
 func TestAddLinkRejectsDuplicateAndInvalidRelations(t *testing.T) {
 	t.Parallel()
 
@@ -834,6 +1139,17 @@ func TestKnowledgeGraphPersistsAcrossRestart(t *testing.T) {
 	}
 	if len(linksResp.GetLinks()) != 1 || linksResp.GetLinks()[0].GetToSlug() != "child" {
 		t.Fatalf("unexpected links after restart: %+v", linksResp.GetLinks())
+	}
+}
+
+func assertKnowledgeAccessDenied(t *testing.T, err error) {
+	t.Helper()
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected permission denied, got %v", err)
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_KNOWLEDGE_BANK_ACCESS_DENIED {
+		t.Fatalf("unexpected access reason: got=%v ok=%v", reason, ok)
 	}
 }
 

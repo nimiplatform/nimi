@@ -24,6 +24,10 @@ WORKFLOW_CAPABILITIES = [
     "voice_workflow.voice_clone",
     "voice_workflow.voice_design",
 ]
+WORKFLOW_CAPABILITY_TYPES = {
+    "voice_workflow.voice_clone": "voice_clone",
+    "voice_workflow.voice_design": "voice_design",
+}
 PLAIN_SPEECH_CAPABILITIES = [
     "audio.synthesize",
     "audio.transcribe",
@@ -44,6 +48,7 @@ class SpeechModelState:
     bundle_dir: str
     entry_path: str
     declared_files: list[str]
+    workflow_model_bindings: dict[str, list[str]] = dataclasses.field(default_factory=dict)
 
 
 @dataclasses.dataclass
@@ -267,15 +272,106 @@ def qwen3_tts_driver_preflight(command: list[str], model_id: str, entry_path: st
     return result
 
 
-def inferred_qwen3_workflow_capabilities(model_id: str) -> list[str]:
-    normalized = model_id.strip().lower()
-    if "qwen3-tts-base" in normalized or "qwen3tts-base" in normalized:
-        return ["voice_workflow.voice_clone"]
-    if "voicedesign" in normalized or "qwen3tts-design" in normalized:
-        return ["voice_workflow.voice_design"]
-    if "qwen3-tts" in normalized or "qwen3tts" in normalized:
-        return ["voice_workflow.voice_clone", "voice_workflow.voice_design"]
-    return []
+def normalized_string_list(value: Any) -> list[str]:
+    if isinstance(value, str):
+        values: list[Any] = [value]
+    elif isinstance(value, list):
+        values = value
+    else:
+        return []
+    result: list[str] = []
+    seen: set[str] = set()
+    for item in values:
+        if not isinstance(item, str):
+            continue
+        normalized = item.strip()
+        if not normalized:
+            continue
+        key = normalized.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(normalized)
+    return result
+
+
+def target_model_ref_matches(ref: str, model_id: str) -> bool:
+    normalized_ref = ref.strip().lower()
+    normalized_model = model_id.strip().lower()
+    if not normalized_ref or not normalized_model:
+        return False
+    if normalized_ref == normalized_model:
+        return True
+    if "/" in normalized_model and normalized_ref == normalized_model.split("/", 1)[1]:
+        return True
+    if "/" in normalized_ref and normalized_model == normalized_ref.split("/", 1)[1]:
+        return True
+    return False
+
+
+def binding_target_refs(binding: dict[str, Any]) -> list[str]:
+    refs: list[str] = []
+    refs.extend(normalized_string_list(binding.get("target_model_refs")))
+    refs.extend(normalized_string_list(binding.get("target_model_ids")))
+    refs.extend(normalized_string_list(binding.get("target_model_ref")))
+    refs.extend(normalized_string_list(binding.get("target_model_id")))
+    refs.extend(normalized_string_list(binding.get("target_model")))
+    refs.extend(normalized_string_list(binding.get("model_id")))
+    refs.extend(normalized_string_list(binding.get("model_ref")))
+    return refs
+
+
+def manifest_workflow_model_bindings(payload: dict[str, Any], model_id: str) -> dict[str, list[str]]:
+    workflow_models = payload.get("voice_workflow_models")
+    binding_rows = payload.get("model_workflow_bindings")
+    if not isinstance(workflow_models, list) or not isinstance(binding_rows, list):
+        return {}
+
+    workflow_model_rows: dict[str, dict[str, Any]] = {}
+    for row in workflow_models:
+        if not isinstance(row, dict):
+            continue
+        workflow_model_id = str(row.get("workflow_model_id") or "").strip()
+        workflow_type = str(row.get("workflow_type") or "").strip()
+        if not workflow_model_id or workflow_type not in WORKFLOW_CAPABILITY_TYPES.values():
+            continue
+        workflow_family = str(row.get("workflow_family") or "").strip()
+        if workflow_family and workflow_family != "qwen3_tts":
+            continue
+        target_refs = binding_target_refs(row)
+        if not any(target_model_ref_matches(ref, model_id) for ref in target_refs):
+            continue
+        workflow_model_rows[workflow_model_id] = row
+
+    bindings_by_capability: dict[str, list[str]] = {}
+    for row in binding_rows:
+        if not isinstance(row, dict):
+            continue
+        workflow_model_id = str(row.get("workflow_model_id") or "").strip()
+        workflow_row = workflow_model_rows.get(workflow_model_id)
+        if workflow_row is None:
+            continue
+        workflow_family = str(row.get("workflow_family") or workflow_row.get("workflow_family") or "").strip()
+        if workflow_family != "qwen3_tts":
+            continue
+        target_refs = binding_target_refs(row)
+        if not any(target_model_ref_matches(ref, model_id) for ref in target_refs):
+            continue
+        workflow_type = str(workflow_row.get("workflow_type") or "").strip()
+        capability = next(
+            (
+                candidate_capability
+                for candidate_capability, candidate_type in WORKFLOW_CAPABILITY_TYPES.items()
+                if candidate_type == workflow_type
+            ),
+            "",
+        )
+        if not capability:
+            continue
+        bindings_by_capability.setdefault(capability, [])
+        if workflow_model_id not in bindings_by_capability[capability]:
+            bindings_by_capability[capability].append(workflow_model_id)
+    return bindings_by_capability
 
 
 def manifest_speech_model_state(
@@ -325,8 +421,17 @@ def manifest_speech_model_state(
 
     ready_capabilities: list[str] = []
     capability_drivers: dict[str, str] = {}
+    workflow_bindings = manifest_workflow_model_bindings(payload, model_id)
     for capability in declared_capabilities:
         if capability in WORKFLOW_CAPABILITIES:
+            if capability not in workflow_bindings:
+                problems.append(f"{capability} requires explicit qwen3_tts workflow binding")
+                continue
+            capability_drivers[capability] = "qwen3_tts"
+            if not qwen3_tts_driver_state[1]:
+                problems.append(qwen3_tts_driver_state[2])
+                continue
+            ready_capabilities.append(capability)
             continue
         driver_kind = infer_runtime_native_driver(model_id, capability, resolved_entry, declared_files)
         if not driver_kind:
@@ -358,14 +463,6 @@ def manifest_speech_model_state(
                 problems.append(qwen3_asr_driver_state[2])
                 continue
             ready_capabilities.append(capability)
-    if "audio.synthesize" in ready_capabilities and capability_drivers.get("audio.synthesize", "").strip() == "qwen3_tts":
-        derived_workflow_capabilities = inferred_qwen3_workflow_capabilities(model_id)
-        for capability in derived_workflow_capabilities:
-            if capability not in declared_capabilities:
-                declared_capabilities.append(capability)
-            if capability not in ready_capabilities:
-                ready_capabilities.append(capability)
-
     ready = len(ready_capabilities) > 0 and len(problems) == 0
     detail = "ready" if ready else "; ".join(dict.fromkeys(problems)) or "runtime-native speech driver unavailable"
     return SpeechModelState(
@@ -379,6 +476,7 @@ def manifest_speech_model_state(
         bundle_dir=str(bundle_dir),
         entry_path=resolved_entry,
         declared_files=declared_files,
+        workflow_model_bindings=workflow_bindings,
     )
 
 
@@ -458,6 +556,7 @@ def public_model_payload(model: SpeechModelState) -> dict[str, Any]:
         "capabilities": model.ready_capabilities if model.ready_capabilities else model.declared_capabilities,
         "declared_capabilities": model.declared_capabilities,
         "capability_drivers": model.capability_drivers,
+        "workflow_model_bindings": model.workflow_model_bindings,
     }
     if model.declared_files:
         payload["declared_files"] = model.declared_files
@@ -491,6 +590,22 @@ def find_ready_model(model_id: str, capability: str) -> SpeechModelState:
             "capability": capability,
         },
     )
+
+
+def find_ready_workflow_model(model_id: str, capability: str, workflow_model_id: str) -> SpeechModelState:
+    model = find_ready_model(model_id, capability)
+    if workflow_model_id.strip() not in model.workflow_model_bindings.get(capability, []):
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "message": f'local speech model "{model_id.strip()}" has no admitted binding for workflow model "{workflow_model_id.strip()}"',
+                "reason": "speech_workflow_binding_not_ready",
+                "model": model_id.strip(),
+                "capability": capability,
+                "workflow_model_id": workflow_model_id.strip(),
+            },
+        )
+    return model
 
 
 def synthesize_with_driver(model: SpeechModelState, request_payload: dict[str, Any]) -> tuple[bytes, str]:

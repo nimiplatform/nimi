@@ -54,6 +54,16 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 		}
 		usage, _ := inferUsage(resp)
 
+		payload := map[string]any{
+			"grpc_method":                  info.FullMethod,
+			"model_id":                     modelID,
+			"success":                      success,
+			"kind":                         "unary",
+			"credential_source":            credentialSource,
+			"provider_endpoint":            providerEndpoint,
+			"provider_api_key_fingerprint": providerAPIKeyFingerprint,
+		}
+		addAIExecutionAuditPayload(payload, req, traceID)
 		appendAuditEvent(store, auditEventInput{
 			AppID:                 appID,
 			SubjectUserID:         subjectUserID,
@@ -75,15 +85,7 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 			ExternalPrincipalType: grantDetails.ExternalPrincipalType,
 			PrincipalID:           principalID(callerID, tokenID),
 			PrincipalType:         principalType(callerKind, tokenID),
-			Payload: map[string]any{
-				"grpc_method":                  info.FullMethod,
-				"model_id":                     modelID,
-				"success":                      success,
-				"kind":                         "unary",
-				"credential_source":            credentialSource,
-				"provider_endpoint":            providerEndpoint,
-				"provider_api_key_fingerprint": providerAPIKeyFingerprint,
-			},
+			Payload:               payload,
 		})
 		store.RecordUsage(auditlog.UsageInput{
 			Timestamp:     startedAt,
@@ -131,6 +133,16 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 		reasonCode := reasonCodeFromError(err)
 		success := reasonCode == runtimev1.ReasonCode_ACTION_EXECUTED
 
+		payload := map[string]any{
+			"grpc_method":                  info.FullMethod,
+			"model_id":                     modelID,
+			"success":                      success,
+			"kind":                         "stream",
+			"credential_source":            credentialSource,
+			"provider_endpoint":            providerEndpoint,
+			"provider_api_key_fingerprint": providerAPIKeyFingerprint,
+		}
+		addAIExecutionAuditPayload(payload, request, traceID)
 		appendAuditEvent(store, auditEventInput{
 			AppID:         appID,
 			SubjectUserID: subjectUserID,
@@ -145,15 +157,7 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 			TokenID:       tokenID,
 			PrincipalID:   principalID(callerID, tokenID),
 			PrincipalType: principalType(callerKind, tokenID),
-			Payload: map[string]any{
-				"grpc_method":                  info.FullMethod,
-				"model_id":                     modelID,
-				"success":                      success,
-				"kind":                         "stream",
-				"credential_source":            credentialSource,
-				"provider_endpoint":            providerEndpoint,
-				"provider_api_key_fingerprint": providerAPIKeyFingerprint,
-			},
+			Payload:       payload,
 		})
 		store.RecordUsage(auditlog.UsageInput{
 			Timestamp:     startedAt,

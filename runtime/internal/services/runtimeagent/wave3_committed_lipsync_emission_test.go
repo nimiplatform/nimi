@@ -96,14 +96,25 @@ func TestPublicChatCommittedTurnEmitsVoiceLipsyncProjection(t *testing.T) {
 	voicePayload := publicChatPayloadMap(t, voicePlayback)
 	requirePublicChatTimelineEnvelope(t, voicePayload, turnID, streamID, publicChatTimelineChannelVoice)
 	voiceDetail := voicePayload["detail"].(map[string]any)
-	if got := strings.TrimSpace(voiceDetail["audio_artifact_id"].(string)); !strings.HasPrefix(got, syntheticVoiceArtifactScheme+"/") {
-		t.Fatalf("expected synthetic audio artifact id, got %s", got)
+	audioArtifactID := strings.TrimSpace(voiceDetail["audio_artifact_id"].(string))
+	if !strings.HasPrefix(audioArtifactID, syntheticVoiceArtifactScheme+"/") {
+		t.Fatalf("expected synthetic audio artifact id, got %s", audioArtifactID)
 	}
-	if !strings.Contains(strings.TrimSpace(voiceDetail["audio_artifact_id"].(string)), turnID) {
+	if !strings.Contains(audioArtifactID, turnID) {
 		t.Fatalf("audio artifact id must include turn_id: got %v turn_id=%s", voiceDetail["audio_artifact_id"], turnID)
 	}
 	if got := strings.TrimSpace(voiceDetail["audio_mime_type"].(string)); got != syntheticVoiceMimeType {
 		t.Fatalf("expected synthetic mime type %s, got %s", syntheticVoiceMimeType, got)
+	}
+	record, ok := svc.runtimeArtifacts.Get(audioArtifactID)
+	if !ok {
+		t.Fatalf("expected synthetic lipsync artifact to be stored before emit")
+	}
+	if len(record.Bytes) == 0 {
+		t.Fatalf("expected stored synthetic lipsync artifact bytes")
+	}
+	if got := strings.TrimSpace(record.MimeType); got != syntheticVoiceMimeType {
+		t.Fatalf("expected stored synthetic mime type %s, got %s", syntheticVoiceMimeType, got)
 	}
 	if got := strings.TrimSpace(voiceDetail["playback_state"].(string)); got != "requested" {
 		t.Fatalf("expected playback_state=requested, got %s", got)
@@ -115,7 +126,7 @@ func TestPublicChatCommittedTurnEmitsVoiceLipsyncProjection(t *testing.T) {
 	lipsyncPayload := publicChatPayloadMap(t, lipsyncBatch)
 	requirePublicChatTimelineEnvelope(t, lipsyncPayload, turnID, streamID, publicChatTimelineChannelLipsync)
 	lipsyncDetail := lipsyncPayload["detail"].(map[string]any)
-	if got := strings.TrimSpace(lipsyncDetail["audio_artifact_id"].(string)); got != strings.TrimSpace(voiceDetail["audio_artifact_id"].(string)) {
+	if got := strings.TrimSpace(lipsyncDetail["audio_artifact_id"].(string)); got != audioArtifactID {
 		t.Fatalf("voice + lipsync audio_artifact_id mismatch: %s vs %s", got, voiceDetail["audio_artifact_id"])
 	}
 	frames, ok := lipsyncDetail["frames"].([]any)
@@ -165,5 +176,35 @@ func TestPublicChatCommittedTurnSkipsLipsyncProjectionOnEmptyText(t *testing.T) 
 	})
 	if emitted != 0 {
 		t.Fatalf("expected zero emitted events for empty committed text, got %d", emitted)
+	}
+}
+
+func TestPublicChatCommittedTurnSkipsLipsyncProjectionWithoutArtifactStore(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	svc.SetRuntimeArtifactStore(nil)
+	emitted := 0
+	svc.SetPublicChatAppEmitter(func(_ context.Context, _ *runtimev1.SendAppMessageRequest) (*runtimev1.SendAppMessageResponse, error) {
+		emitted++
+		return &runtimev1.SendAppMessageResponse{Accepted: true}, nil
+	})
+
+	svc.publicChatRuntime().projectCommittedVoiceLipsync(publicChatAnchorState{
+		ConversationAnchorID: "anchor-no-store-1",
+		AgentID:              "agent-alpha",
+		CallerAppID:          "desktop.app",
+		SubjectUserID:        "user-1",
+	}, publicChatTurnState{
+		ConversationAnchorID: "anchor-no-store-1",
+		TurnID:               "turn-no-store-1",
+		StreamID:             "stream-no-store-1",
+	}, &publicChatStructuredEnvelope{
+		Message: publicChatStructuredMessage{
+			MessageID: "message-no-store-1",
+			Text:      "store is required before emitting lipsync",
+		},
+	})
+	if emitted != 0 {
+		t.Fatalf("expected zero emitted events without artifact store, got %d", emitted)
 	}
 }

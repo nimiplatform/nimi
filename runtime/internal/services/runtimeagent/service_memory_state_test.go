@@ -57,6 +57,7 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testi
 					},
 				},
 				SourceEventId: "evt-feedback-1",
+				Extensions:    completePromotionEvidence(t),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					Payload: &runtimev1.MemoryRecordInput_Observational{
@@ -73,6 +74,7 @@ func TestRuntimeAgentRecordAgentMemoryRecallFeedbackAffectsQueryRanking(t *testi
 					},
 				},
 				SourceEventId: "evt-feedback-2",
+				Extensions:    completePromotionEvidence(t),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					Payload: &runtimev1.MemoryRecordInput_Observational{
@@ -358,7 +360,7 @@ func newRuntimeAgentTestService(t *testing.T) *Service {
 		t.Fatalf("memory.New: %v", err)
 	}
 	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
-	memorySvc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+	setRuntimeAgentManagedEmbeddingProfileForTest(memorySvc, &runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
 		Dimension:       4,

@@ -5,7 +5,9 @@ import (
 	"log/slog"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 const versionHeaderKey = "x-nimi-runtime-version"
@@ -14,8 +16,11 @@ const versionHeaderKey = "x-nimi-runtime-version"
 // x-nimi-runtime-version response header on every gRPC call. (K-DAEMON-011)
 func newUnaryVersionInterceptor(logger *slog.Logger, version string) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		if err := grpc.SetHeader(ctx, metadata.Pairs(versionHeaderKey, version)); err != nil && logger != nil {
-			logger.Warn("set unary version header failed", "method", info.FullMethod, "error", err)
+		if err := grpc.SetHeader(ctx, metadata.Pairs(versionHeaderKey, version)); err != nil {
+			if logger != nil {
+				logger.Warn("set unary version header failed", "method", info.FullMethod, "error", err)
+			}
+			return nil, requiredVersionHeaderError()
 		}
 		return handler(ctx, req)
 	}
@@ -25,9 +30,16 @@ func newUnaryVersionInterceptor(logger *slog.Logger, version string) grpc.UnaryS
 // x-nimi-runtime-version response header on every gRPC stream. (K-DAEMON-011)
 func newStreamVersionInterceptor(logger *slog.Logger, version string) grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		if err := ss.SetHeader(metadata.Pairs(versionHeaderKey, version)); err != nil && logger != nil {
-			logger.Warn("set stream version header failed", "method", info.FullMethod, "error", err)
+		if err := ss.SetHeader(metadata.Pairs(versionHeaderKey, version)); err != nil {
+			if logger != nil {
+				logger.Warn("set stream version header failed", "method", info.FullMethod, "error", err)
+			}
+			return requiredVersionHeaderError()
 		}
 		return handler(srv, ss)
 	}
+}
+
+func requiredVersionHeaderError() error {
+	return status.Error(codes.Unavailable, "required runtime version response metadata unavailable")
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -165,6 +166,7 @@ func (r publicChatRuntime) applyAssistantTurnMemory(
 				},
 				SourceEventId: turn.TurnID,
 				PolicyReason:  publicChatAssistantMemoryPolicy,
+				Extensions:    publicChatAssistantMemoryPromotionEvidence(session, turn),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind:           runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC,
@@ -204,4 +206,25 @@ func (r publicChatRuntime) applyAssistantTurnMemory(
 		outcome.Message = strings.TrimSpace(resp.GetRejected()[0].GetMessage())
 	}
 	return outcome
+}
+
+func publicChatAssistantMemoryPromotionEvidence(session publicChatAnchorState, turn publicChatTurnState) *structpb.Struct {
+	out, err := structpb.NewStruct(map[string]any{
+		"promotion_target_id":                 "RUNTIME_MEMORY_OR_COGNITION",
+		"participation_id":                    firstNonEmpty(turn.ChainID, session.ConversationAnchorID),
+		"source_profile":                      "realm_group_agent",
+		"output_candidate_ref":                firstNonEmpty(turn.TurnID, turn.RequestID),
+		"audit_id":                            firstNonEmpty(turn.LastKnownTraceID, turn.StreamID, turn.TurnID),
+		"provenance_ref":                      firstNonEmpty(turn.StreamID, turn.TurnID),
+		"policy_verdict_ref":                  publicChatAssistantMemoryPolicy,
+		"memory_read_verdict":                 "PASS",
+		"memory_write_verdict":                "PASS",
+		"capability_scope_verdict":            "PASS",
+		"target_owner_authorization_ref":      firstNonEmpty(session.SubjectUserID, session.CallerAppID),
+		"explicit_user_or_manager_intent_ref": firstNonEmpty(turn.RequestID, turn.TurnID),
+	})
+	if err != nil {
+		return nil
+	}
+	return out
 }

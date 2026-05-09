@@ -14,6 +14,9 @@ import (
 )
 
 func (s *Service) PutPage(_ context.Context, req *runtimev1.PutPageRequest) (*runtimev1.PutPageResponse, error) {
+	if err := s.ensureKnowledgeAuditAvailable(); err != nil {
+		return nil, err
+	}
 	if err := validateRequestContext(req.GetContext()); err != nil {
 		return nil, err
 	}
@@ -46,6 +49,11 @@ func (s *Service) PutPage(_ context.Context, req *runtimev1.PutPageRequest) (*ru
 		s.banksByID[bankID] = previous
 		return nil, err
 	}
+	s.recordKnowledgeAudit(req.GetContext(), "knowledge.page.put", map[string]any{
+		"bank_id": bankID,
+		"page_id": page.GetPageId(),
+		"slug":    page.GetSlug(),
+	})
 	return &runtimev1.PutPageResponse{Page: cloneKnowledgePage(page)}, nil
 }
 
@@ -98,12 +106,17 @@ func (s *Service) ListPages(_ context.Context, req *runtimev1.ListPagesRequest) 
 		return left.After(right)
 	})
 
-	offset, err := decodePageToken(req.GetPageToken())
+	filterDigest := paginationFilterDigest("knowledge.pages.list", map[string]any{
+		"bank_id":             strings.TrimSpace(req.GetBankId()),
+		"entity_type_filters": normalizeStringFilterValues(req.GetEntityTypeFilters()),
+		"slug_prefix":         strings.TrimSpace(req.GetSlugPrefix()),
+	})
+	offset, err := decodePageToken(req.GetPageToken(), filterDigest)
 	if err != nil {
 		return nil, err
 	}
 	pageSize := clampPageSize(req.GetPageSize(), defaultPagePageSize, maxPagePageSize)
-	start, end, next := sliceBounds(len(items), offset, pageSize)
+	start, end, next := sliceBounds(len(items), offset, pageSize, filterDigest)
 	return &runtimev1.ListPagesResponse{
 		Pages:         items[start:end],
 		NextPageToken: next,
@@ -111,6 +124,9 @@ func (s *Service) ListPages(_ context.Context, req *runtimev1.ListPagesRequest) 
 }
 
 func (s *Service) DeletePage(_ context.Context, req *runtimev1.DeletePageRequest) (*runtimev1.DeletePageResponse, error) {
+	if err := s.ensureKnowledgeAuditAvailable(); err != nil {
+		return nil, err
+	}
 	if err := validateRequestContext(req.GetContext()); err != nil {
 		return nil, err
 	}
@@ -150,6 +166,11 @@ func (s *Service) DeletePage(_ context.Context, req *runtimev1.DeletePageRequest
 		s.banksByID[bankID] = previous
 		return nil, err
 	}
+	s.recordKnowledgeAudit(req.GetContext(), "knowledge.page.delete", map[string]any{
+		"bank_id": bankID,
+		"page_id": page.GetPageId(),
+		"slug":    page.GetSlug(),
+	})
 	return &runtimev1.DeletePageResponse{
 		Ack: &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED},
 	}, nil

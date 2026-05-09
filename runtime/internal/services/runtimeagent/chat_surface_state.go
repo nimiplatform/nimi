@@ -80,19 +80,20 @@ type persistedPublicChatTurnSnapshot struct {
 }
 
 type persistedPublicChatFollowUp struct {
-	FollowUpID           string `json:"followUpId"`
-	ConversationAnchorID string `json:"conversationAnchorId"`
-	AgentID              string `json:"agentId"`
-	CallerAppID          string `json:"callerAppId"`
-	SubjectUserID        string `json:"subjectUserId"`
-	ThreadID             string `json:"threadId"`
-	Instruction          string `json:"instruction"`
-	ScheduledFor         string `json:"scheduledFor"`
-	ChainID              string `json:"chainId"`
-	FollowUpDepth        int    `json:"followUpDepth"`
-	MaxFollowUpTurns     int    `json:"maxFollowUpTurns"`
-	SourceTurnID         string `json:"sourceTurnId"`
-	SourceActionID       string `json:"sourceActionId"`
+	FollowUpID           string          `json:"followUpId"`
+	ConversationAnchorID string          `json:"conversationAnchorId"`
+	AgentID              string          `json:"agentId"`
+	CallerAppID          string          `json:"callerAppId"`
+	SubjectUserID        string          `json:"subjectUserId"`
+	ThreadID             string          `json:"threadId"`
+	Instruction          string          `json:"instruction"`
+	ScheduledFor         string          `json:"scheduledFor"`
+	ChainID              string          `json:"chainId"`
+	FollowUpDepth        int             `json:"followUpDepth"`
+	MaxFollowUpTurns     int             `json:"maxFollowUpTurns"`
+	SourceTurnID         string          `json:"sourceTurnId"`
+	SourceActionID       string          `json:"sourceActionId"`
+	HookIntent           json.RawMessage `json:"hookIntent,omitempty"`
 }
 
 func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatSurfaceState, error) {
@@ -148,7 +149,7 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 		if followUp == nil {
 			continue
 		}
-		snapshot.FollowUps = append(snapshot.FollowUps, persistedPublicChatFollowUp{
+		item := persistedPublicChatFollowUp{
 			FollowUpID:           followUp.FollowUpID,
 			ConversationAnchorID: followUp.ConversationAnchorID,
 			AgentID:              followUp.AgentID,
@@ -162,7 +163,15 @@ func (s *Service) capturePublicChatSurfaceSnapshotLocked() (persistedPublicChatS
 			MaxFollowUpTurns:     followUp.MaxFollowUpTurns,
 			SourceTurnID:         followUp.SourceTurnID,
 			SourceActionID:       followUp.SourceActionID,
-		})
+		}
+		if followUp.HookIntent != nil {
+			raw, err := marshal.Marshal(followUp.HookIntent)
+			if err != nil {
+				return persistedPublicChatSurfaceState{}, fmt.Errorf("marshal public chat follow-up hook intent: %w", err)
+			}
+			item.HookIntent = append(json.RawMessage(nil), raw...)
+		}
+		snapshot.FollowUps = append(snapshot.FollowUps, item)
 	}
 	return snapshot, nil
 }
@@ -415,6 +424,13 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 		if err != nil {
 			return fmt.Errorf("parse public chat follow-up scheduled time: %w", err)
 		}
+		var hookIntent *runtimev1.HookIntent
+		if len(item.HookIntent) > 0 {
+			hookIntent = &runtimev1.HookIntent{}
+			if err := protojson.Unmarshal(item.HookIntent, hookIntent); err != nil {
+				return fmt.Errorf("unmarshal public chat follow-up hook intent: %w", err)
+			}
+		}
 		s.chatFollowUps[item.FollowUpID] = &publicChatFollowUpState{
 			FollowUpID:           item.FollowUpID,
 			ConversationAnchorID: item.ConversationAnchorID,
@@ -429,6 +445,7 @@ func (r *publicChatSurfaceStateRepository) loadPublicChatSurfaceStateFromDB(s *S
 			MaxFollowUpTurns:     item.MaxFollowUpTurns,
 			SourceTurnID:         item.SourceTurnID,
 			SourceActionID:       item.SourceActionID,
+			HookIntent:           hookIntent,
 		}
 	}
 	return nil

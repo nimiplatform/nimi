@@ -21,14 +21,8 @@ MODE = _raw_mode.strip().lower()
 if MODE not in _VALID_MODES:
     raise SystemExit("invalid NIMI_MEDIA_MODE: %s" % MODE)
 
-DEFAULT_IMAGE_MODEL = os.environ.get(
-    "NIMI_MEDIA_DEFAULT_IMAGE_MODEL",
-    "black-forest-labs/FLUX.1-schnell",
-)
-DEFAULT_VIDEO_MODEL = os.environ.get(
-    "NIMI_MEDIA_DEFAULT_VIDEO_MODEL",
-    "Wan-AI/Wan2.1-T2V-1.3B-Diffusers",
-)
+DEFAULT_IMAGE_MODEL = os.environ.get("NIMI_MEDIA_DEFAULT_IMAGE_MODEL", "").strip()
+DEFAULT_VIDEO_MODEL = os.environ.get("NIMI_MEDIA_DEFAULT_VIDEO_MODEL", "").strip()
 DEVICE = os.environ.get("NIMI_MEDIA_DEVICE", "cuda")
 TORCH_DTYPE = os.environ.get("NIMI_MEDIA_TORCH_DTYPE", "float16")
 IMAGE_DRIVER = os.environ.get("NIMI_MEDIA_IMAGE_DRIVER", "flux")
@@ -356,6 +350,13 @@ def _wan_pipeline(model_id, image_to_video):
         return pipeline
 
 
+def _required_default_model(model_id, env_name, capability):
+    normalized = str(model_id or "").strip()
+    if not normalized:
+        raise RuntimeError("%s is required for %s default model selection" % (env_name, capability))
+    return normalized
+
+
 def _warm_default_models():
     checks, detail = _preflight_checks()
     if detail:
@@ -364,10 +365,13 @@ def _warm_default_models():
 
     models = []
     try:
-        _flux_pipeline(DEFAULT_IMAGE_MODEL)
+        image_model = _required_default_model(
+            DEFAULT_IMAGE_MODEL, "NIMI_MEDIA_DEFAULT_IMAGE_MODEL", "image.generate"
+        )
+        _flux_pipeline(image_model)
         models.append(
             {
-                "id": DEFAULT_IMAGE_MODEL,
+                "id": image_model,
                 "capabilities": ["image.generate"],
                 "ready": True,
                 "family": "diffusers",
@@ -386,11 +390,14 @@ def _warm_default_models():
         return
 
     try:
-        _wan_pipeline(DEFAULT_VIDEO_MODEL, False)
-        _wan_pipeline(DEFAULT_VIDEO_MODEL, True)
+        video_model = _required_default_model(
+            DEFAULT_VIDEO_MODEL, "NIMI_MEDIA_DEFAULT_VIDEO_MODEL", "video.generate"
+        )
+        _wan_pipeline(video_model, False)
+        _wan_pipeline(video_model, True)
         models.append(
             {
-                "id": DEFAULT_VIDEO_MODEL,
+                "id": video_model,
                 "capabilities": ["video.generate"],
                 "ready": True,
                 "family": "diffusers",
@@ -438,9 +445,9 @@ def _catalog_payload():
 
 def _proxy_health_payload():
     return {
-        "status": "ok",
-        "ready": True,
-        "detail": "runtime-owned proxy execution ready; native-binary image generation must use the managed image backend direct path",
+        "status": "unavailable",
+        "ready": False,
+        "detail": "runtime-owned proxy execution is not execution-ready; native-binary image generation must use the managed image backend direct path",
         "family": "managed-image-proxy",
         "device": "supervised",
         "image_driver": "stablediffusion-ggml",
@@ -456,9 +463,9 @@ def _proxy_health_payload():
 
 def _proxy_catalog_payload():
     return {
-        "status": "ok",
-        "ready": True,
-        "detail": "runtime-owned proxy execution catalog is informational only; native-binary image generation must use the managed image backend direct path",
+        "status": "unavailable",
+        "ready": False,
+        "detail": "runtime-owned proxy execution catalog is not execution-ready; native-binary image generation must use the managed image backend direct path",
         "models": [],
     }
 
@@ -471,7 +478,11 @@ def _proxy_generate_image_unavailable():
 
 def _generate_image(model_id, spec):
     spec = spec or {}
-    model_id = str(model_id or DEFAULT_IMAGE_MODEL).strip() or DEFAULT_IMAGE_MODEL
+    model_id = str(model_id or "").strip()
+    if not model_id:
+        model_id = _required_default_model(
+            DEFAULT_IMAGE_MODEL, "NIMI_MEDIA_DEFAULT_IMAGE_MODEL", "image.generate"
+        )
     prompt = str(spec.get("prompt") or "").strip()
     if not prompt:
         raise ValueError("prompt is required")
@@ -501,7 +512,11 @@ def _generate_image(model_id, spec):
 
 def _generate_video(model_id, spec):
     spec = spec or {}
-    model_id = str(model_id or DEFAULT_VIDEO_MODEL).strip() or DEFAULT_VIDEO_MODEL
+    model_id = str(model_id or "").strip()
+    if not model_id:
+        model_id = _required_default_model(
+            DEFAULT_VIDEO_MODEL, "NIMI_MEDIA_DEFAULT_VIDEO_MODEL", "video.generate"
+        )
     prompt = str(spec.get("prompt") or "").strip()
     if not prompt:
         raise ValueError("prompt is required")
@@ -616,9 +631,9 @@ def main():
         warm_thread.start()
     else:
         _set_state(
-            "ok",
-            True,
-            "runtime-owned proxy execution booting in fail-closed mode",
+            "unavailable",
+            False,
+            "runtime-owned proxy execution is not execution-ready",
             checks={"proxy_mode": True, "execution_mode": "fail_closed"},
             models=[],
         )

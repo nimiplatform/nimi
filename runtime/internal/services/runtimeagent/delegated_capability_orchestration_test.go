@@ -124,6 +124,7 @@ func TestRuntimeAgentDelegatedCapabilityApprovalRequiredDoesNotExecute(t *testin
 		ReasonCode: delegation.ReasonApprovalRequired,
 	}}
 	svc := &Service{}
+	svc.SetAuditStore(auditlog.New(128, 128))
 	svc.SetDelegatedCapabilityRuntime(gateway, firewall)
 	decision, err := svc.publicChatRuntime().executeDelegatedCapability(context.Background(), testDelegatedSession(), testDelegatedTurn(), validDelegatedRequest())
 	if err != nil {
@@ -148,6 +149,41 @@ func TestRuntimeAgentDelegatedCapabilityApprovalRequiredDoesNotExecute(t *testin
 	}
 }
 
+func TestRuntimeAgentDelegatedCapabilityPreinvokeApprovalDoesNotCallProvider(t *testing.T) {
+	gateway := &fakeDelegatedGateway{out: cleanRuntimeAgentDelegatedEvidence(t)}
+	firewall := &fakeDelegatedFirewall{out: &delegation.FirewallDecision{
+		Verdict: delegation.FirewallVerdictAcceptedObservation,
+	}}
+	svc := &Service{}
+	svc.SetAuditStore(auditlog.New(128, 128))
+	svc.SetDelegatedCapabilityRuntime(gateway, firewall)
+	req := validDelegatedRequest()
+	req.RequiresApproval = true
+
+	decision, err := svc.publicChatRuntime().executeDelegatedCapability(context.Background(), testDelegatedSession(), testDelegatedTurn(), req)
+	if err != nil {
+		t.Fatalf("executeDelegatedCapability returned error: %v", err)
+	}
+	if gateway.called {
+		t.Fatal("pre-invocation approval must not call delegated provider")
+	}
+	if firewall.called {
+		t.Fatal("pre-invocation approval must not rely on post-provider firewall repair")
+	}
+	if decision.RuntimeDecision != "approval_required" ||
+		decision.FirewallVerdict != delegation.FirewallVerdictApprovalRequired ||
+		decision.ReasonCode != delegation.ReasonApprovalRequired {
+		t.Fatalf("expected pre-invocation approval decision, got %+v", decision)
+	}
+	approvals := svc.listDelegatedApprovalRequests("agent-1", "anchor-1")
+	if len(approvals) != 1 {
+		t.Fatalf("expected one pending approval request, got %+v", approvals)
+	}
+	if approvals[0].GetExpiresAt() == nil || approvals[0].GetDetail().GetFields()["descriptor_hash"].GetStringValue() == "" {
+		t.Fatalf("pre-invocation approval request lost expiry or descriptor lineage: %+v", approvals[0])
+	}
+}
+
 func TestRuntimeAgentDelegatedCapabilityRejectedDoesNotProject(t *testing.T) {
 	gateway := &fakeDelegatedGateway{out: cleanRuntimeAgentDelegatedEvidence(t)}
 	firewall := &fakeDelegatedFirewall{out: &delegation.FirewallDecision{
@@ -155,6 +191,7 @@ func TestRuntimeAgentDelegatedCapabilityRejectedDoesNotProject(t *testing.T) {
 		ReasonCode: delegation.ReasonFirewallQuarantined,
 	}}
 	svc := &Service{}
+	svc.SetAuditStore(auditlog.New(128, 128))
 	svc.SetDelegatedCapabilityRuntime(gateway, firewall)
 	decision, err := svc.publicChatRuntime().executeDelegatedCapability(context.Background(), testDelegatedSession(), testDelegatedTurn(), validDelegatedRequest())
 	if err != nil {
@@ -165,6 +202,52 @@ func TestRuntimeAgentDelegatedCapabilityRejectedDoesNotProject(t *testing.T) {
 	}
 	if decision.ModelContextAdmitted || decision.ProjectionAdmitted || decision.ActionAdmitted {
 		t.Fatalf("rejected delegated output must not be admitted: %+v", decision)
+	}
+}
+
+func TestRuntimeAgentDelegatedCapabilityRequiresAuditStoreBeforeGateway(t *testing.T) {
+	gateway := &fakeDelegatedGateway{out: cleanRuntimeAgentDelegatedEvidence(t)}
+	firewall := &fakeDelegatedFirewall{out: &delegation.FirewallDecision{
+		Verdict: delegation.FirewallVerdictAcceptedObservation,
+	}}
+	svc := &Service{}
+	svc.SetDelegatedCapabilityRuntime(gateway, firewall)
+
+	_, err := svc.publicChatRuntime().executeDelegatedCapability(context.Background(), testDelegatedSession(), testDelegatedTurn(), validDelegatedRequest())
+	if err == nil || !strings.Contains(err.Error(), "audit store") {
+		t.Fatalf("expected missing audit store failure, got %v", err)
+	}
+	if gateway.called {
+		t.Fatal("gateway must not be called before audit store availability is proven")
+	}
+	if firewall.called {
+		t.Fatal("firewall must not run when pre-gateway audit preflight fails")
+	}
+}
+
+func TestRuntimeAgentDelegatedCapabilityRejectsMissingGatewayEvidenceID(t *testing.T) {
+	evidence := cleanRuntimeAgentDelegatedEvidence(t)
+	evidence.EvidenceID = ""
+	gateway := &fakeDelegatedGateway{out: evidence}
+	firewall := &fakeDelegatedFirewall{out: &delegation.FirewallDecision{
+		Verdict: delegation.FirewallVerdictAcceptedObservation,
+	}}
+	svc := &Service{}
+	svc.SetAuditStore(auditlog.New(128, 128))
+	svc.SetDelegatedCapabilityRuntime(gateway, firewall)
+
+	_, err := svc.publicChatRuntime().executeDelegatedCapability(context.Background(), testDelegatedSession(), testDelegatedTurn(), validDelegatedRequest())
+	if err == nil || !strings.Contains(err.Error(), "evidence id") {
+		t.Fatalf("expected missing gateway evidence id failure, got %v", err)
+	}
+	if !gateway.called {
+		t.Fatal("expected gateway call before validating returned evidence id")
+	}
+	if firewall.called {
+		t.Fatal("firewall must not accept missing gateway evidence lineage")
+	}
+	if records := svc.delegatedCapabilityDecisionAuditSnapshot(); len(records) != 0 {
+		t.Fatalf("missing gateway evidence id must not create audit decision records: %+v", records)
 	}
 }
 
@@ -439,6 +522,7 @@ func testDelegatedSession() publicChatAnchorState {
 		ConversationAnchorID: "anchor-1",
 		AgentID:              "agent-1",
 		CallerAppID:          "desktop.app",
+		SubjectUserID:        "user-1",
 		ThreadID:             "thread-1",
 	}
 }

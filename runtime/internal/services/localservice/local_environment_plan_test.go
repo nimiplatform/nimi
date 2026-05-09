@@ -93,7 +93,7 @@ func TestResolveLocalEnvironmentPlanIncludesTextAndOptionalCUDA(t *testing.T) {
 	assertLocalEnvironmentFamily(t, plan, localEnvironmentFamilyCUDA)
 }
 
-func TestResolveLocalEnvironmentPlanPromotesReadyManagedCUDAProjection(t *testing.T) {
+func TestResolveLocalEnvironmentPlanRequiresMaterializerForReadyManagedCUDAProjection(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer svc.Close()
 	svc.SetEngineManager(&mockEngineManager{
@@ -114,21 +114,21 @@ func TestResolveLocalEnvironmentPlanPromotesReadyManagedCUDAProjection(t *testin
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
 	})
 
-	if plan.State != localEnvironmentStateReadyManaged {
-		t.Fatalf("plan state = %q, want ready_managed", plan.State)
+	if plan.State != localEnvironmentStateNeedsConfirmation {
+		t.Fatalf("plan state = %q, want needs_confirmation", plan.State)
 	}
 	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
-	if dep.State != localEnvironmentStateReadyManaged {
-		t.Fatalf("CUDA dependency state = %q, want ready_managed: %+v", dep.State, dep)
+	if dep.State != localEnvironmentStateNeedsConfirmation {
+		t.Fatalf("CUDA dependency state = %q, want needs_confirmation: %+v", dep.State, dep)
 	}
-	if dep.ConfirmationRequired {
-		t.Fatalf("ready managed CUDA dependency must not require confirmation: %+v", dep)
+	if !dep.ConfirmationRequired {
+		t.Fatalf("ready managed CUDA projection must still require materializer confirmation: %+v", dep)
 	}
-	if dep.SelectedSourceRecordID == "" || dep.CanonicalRoot == "" {
-		t.Fatalf("expected selected source record and canonical root: %+v", dep)
+	if dep.SelectedSourceRecordID != "" {
+		t.Fatalf("CUDA projection must not promote selected source record outside materializer job: %+v", dep)
 	}
-	if _, ok := svc.localEnvironmentSelectedSourceRecord(dep.EnvironmentKey); !ok {
-		t.Fatalf("expected plan projection to persist selected source record for %q", dep.EnvironmentKey)
+	if _, ok := svc.localEnvironmentSelectedSourceRecord(dep.EnvironmentKey); ok {
+		t.Fatalf("expected no selected source record from plan projection for %q", dep.EnvironmentKey)
 	}
 }
 
@@ -181,13 +181,13 @@ func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing
 		RuntimeDataRoot: runtimeDataRoot,
 	})
 	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeLlama)
-	svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+	svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily: dep.DependencyFamily,
 		DependencyID:     dep.DependencyID,
 		EnvironmentKey:   dep.EnvironmentKey,
 		SourceKind:       localEnvironmentSourceManaged,
 		CanonicalRoot:    filepath.Join(runtimeDataRoot, "engines", "llama"),
-	})
+	}))
 	svc.Close()
 
 	restored, err := New(slog.Default(), nil, statePath, 10, runtimeDataRoot)
@@ -210,7 +210,7 @@ func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing
 	}
 }
 
-func TestResolveLocalEnvironmentPlanRepairRecordBlocksDependency(t *testing.T) {
+func TestResolveLocalEnvironmentPlanRejectsSelectedSourceWithoutVerificationEvidence(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer svc.Close()
 	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
@@ -228,8 +228,44 @@ func TestResolveLocalEnvironmentPlanRepairRecordBlocksDependency(t *testing.T) {
 		DependencyID:     dep.DependencyID,
 		EnvironmentKey:   dep.EnvironmentKey,
 		SourceKind:       localEnvironmentSourceManaged,
-		RepairState:      localEnvironmentRepairRequired,
+		CanonicalRoot:    filepath.Join(runtimeDataRoot, "engines", "llama"),
 	})
+
+	stalePlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-text",
+		ConsumerScope:   "llama.cpp.cuda",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
+	})
+	staleDep := findLocalEnvironmentDependency(t, stalePlan, localEnvironmentFamilyNativeLlama)
+	if staleDep.State != localEnvironmentStateRepairRequired {
+		t.Fatalf("expected unverified selected source to fail closed, got %+v", staleDep)
+	}
+	if stalePlan.State != localEnvironmentStateRepairRequired {
+		t.Fatalf("expected plan repair_required, got %s", stalePlan.State)
+	}
+}
+
+func TestResolveLocalEnvironmentPlanRepairRecordBlocksDependency(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer svc.Close()
+	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	profile := localEnvironmentNvidiaProfile()
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-text",
+		ConsumerScope:   "llama.cpp.cuda",
+		HostProfile:     profile,
+		RuntimeDataRoot: runtimeDataRoot,
+	})
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeLlama)
+	svc.upsertLocalEnvironmentSelectedSourceRecord(verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily: dep.DependencyFamily,
+		DependencyID:     dep.DependencyID,
+		EnvironmentKey:   dep.EnvironmentKey,
+		SourceKind:       localEnvironmentSourceManaged,
+		RepairState:      localEnvironmentRepairRequired,
+	}))
 
 	repairPlan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:          "local-text",

@@ -485,7 +485,7 @@ func (s *Service) RevokeExternalPrincipalSession(ctx context.Context, req *runti
 
 // resolveTTL validates and resolves TTL with bounds enforcement (K-AUTHSVC-004).
 func (s *Service) resolveTTL(rawSeconds int32, fallbackSeconds int32) (time.Duration, error) {
-	if rawSeconds <= 0 {
+	if rawSeconds == 0 {
 		return time.Duration(fallbackSeconds) * time.Second, nil
 	}
 	if rawSeconds < s.ttlMinSeconds || rawSeconds > s.ttlMaxSeconds {

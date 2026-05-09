@@ -283,6 +283,36 @@ func TestValidateCallsRevocationEndpointAfterSuccessfulJWTValidation(t *testing.
 	}
 }
 
+func TestValidateRejectsMissingSIDWhenRevocationConfigured(t *testing.T) {
+	key := generateRSAKey(t)
+	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer jwksServer.Close()
+
+	var revocationHits int
+	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		revocationHits++
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+	}))
+	defer revocationServer.Close()
+
+	validator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	validator.SetRevocationURL(revocationServer.URL)
+
+	claims := validClaims()
+	delete(claims, "sid")
+	token := signRS256(t, key, "kid-1", claims)
+	if _, err := validator.Validate(token); err == nil || !strings.Contains(err.Error(), "missing sid") {
+		t.Fatalf("expected missing sid fail-closed rejection, got %v", err)
+	}
+	if revocationHits != 0 {
+		t.Fatalf("missing sid must fail before revocation call, got hits=%d", revocationHits)
+	}
+}
+
 func TestValidateRejectsRevokedSession(t *testing.T) {
 	key := generateRSAKey(t)
 	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})

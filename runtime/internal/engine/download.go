@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -24,11 +23,6 @@ var (
 	ErrEngineBinaryDownloadFailed = errors.New("engine binary download failed")
 	// ErrEngineBinaryHashMismatch indicates checksum mismatch against authority.
 	ErrEngineBinaryHashMismatch = errors.New("engine binary hash mismatch")
-)
-
-var (
-	engineDownloadLookPath = exec.LookPath
-	engineDownloadCommand  = exec.Command
 )
 
 var githubReleaseRedirectHosts = map[string]struct{}{
@@ -160,9 +154,6 @@ func doEngineDownloadRequest(sourceURL string, base *http.Client, fallbackTimeou
 func downloadURLToFile(sourceURL string, destPath string) (string, error) {
 	resp, err := doEngineDownloadRequest(sourceURL, nil, 30*time.Minute)
 	if err != nil {
-		if hash, fallbackErr := tryCurlDownload(sourceURL, destPath, err); fallbackErr == nil {
-			return hash, nil
-		}
 		return "", fmt.Errorf("%w: request engine binary: %v", ErrEngineBinaryDownloadFailed, err)
 	}
 	defer resp.Body.Close()
@@ -185,10 +176,6 @@ func downloadURLToFile(sourceURL string, destPath string) (string, error) {
 
 	hasher := sha256.New()
 	if _, err := io.Copy(io.MultiWriter(out, hasher), resp.Body); err != nil {
-		if hash, fallbackErr := tryCurlDownload(sourceURL, destPath, err); fallbackErr == nil {
-			shouldRemove = false
-			return hash, nil
-		}
 		return "", fmt.Errorf("%w: write engine binary: %v", ErrEngineBinaryDownloadFailed, err)
 	}
 	if err := out.Close(); err != nil {
@@ -197,47 +184,6 @@ func downloadURLToFile(sourceURL string, destPath string) (string, error) {
 	shouldRemove = false
 
 	return hex.EncodeToString(hasher.Sum(nil)), nil
-}
-
-func tryCurlDownload(sourceURL string, destPath string, requestErr error) (string, error) {
-	if !isRetryableEngineDownloadError(requestErr) {
-		return "", requestErr
-	}
-	parsed, err := url.Parse(strings.TrimSpace(sourceURL))
-	if err != nil {
-		return "", err
-	}
-	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
-	if _, ok := githubReleaseRedirectHosts[host]; !ok {
-		return "", requestErr
-	}
-	curlBinaryName := "curl"
-	if currentGOOS() == "windows" {
-		curlBinaryName = "curl.exe"
-	}
-	curlPath, err := engineDownloadLookPath(curlBinaryName)
-	if err != nil {
-		return "", err
-	}
-	cmd := engineDownloadCommand(
-		curlPath,
-		"-L",
-		"--fail",
-		"--silent",
-		"--show-error",
-		"--retry", "3",
-		"--retry-delay", "1",
-		"--proto", "=https",
-		"--proto-redir", "=https",
-		"--header", "Accept: application/vnd.github+json",
-		"--output", destPath,
-		sourceURL,
-	)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("curl download failed: %v: %s", err, strings.TrimSpace(string(output)))
-	}
-	return sha256File(destPath)
 }
 
 func isEngineArchiveAsset(name string) bool {

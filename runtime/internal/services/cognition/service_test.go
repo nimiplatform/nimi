@@ -4,10 +4,12 @@ import (
 	"context"
 	"log/slog"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	knowledgeservice "github.com/nimiplatform/nimi/runtime/internal/services/knowledge"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
@@ -277,6 +279,92 @@ func TestRuntimeCognitionKnowledgeIngestTaskPreservesSlugAndTitle(t *testing.T) 
 	}
 }
 
+func TestRuntimeCognitionTraverseGraphRequiresExplicitBoundedDepth(t *testing.T) {
+	svc, _, _, cleanup := newTestService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app-test"}
+	createResp, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
+		Context: reqCtx,
+		Locator: &runtimev1.PublicKnowledgeBankLocator{
+			Locator: &runtimev1.PublicKnowledgeBankLocator_AppPrivate{
+				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: "app-test"},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateKnowledgeBank: %v", err)
+	}
+	pageResp, err := svc.PutPage(ctx, &runtimev1.PutPageRequest{
+		Context: reqCtx,
+		BankId:  createResp.GetBank().GetBankId(),
+		Slug:    "root",
+		Title:   "Root",
+		Content: "root body",
+	})
+	if err != nil {
+		t.Fatalf("PutPage: %v", err)
+	}
+
+	for _, depth := range []int32{0, maxGraphTraversalDepth + 1} {
+		_, err := svc.TraverseGraph(ctx, &runtimev1.TraverseGraphRequest{
+			Context:    reqCtx,
+			BankId:     createResp.GetBank().GetBankId(),
+			RootPageId: pageResp.GetPage().GetPageId(),
+			MaxDepth:   depth,
+		})
+		if status.Code(err) != codes.InvalidArgument {
+			t.Fatalf("expected InvalidArgument for depth %d, got %v", depth, err)
+		}
+		reason, ok := grpcerr.ExtractReasonCode(err)
+		if !ok || reason != runtimev1.ReasonCode_KNOWLEDGE_GRAPH_DEPTH_INVALID {
+			t.Fatalf("unexpected graph depth reason for depth %d: got=%v ok=%v", depth, reason, ok)
+		}
+	}
+}
+
+func TestRuntimeCognitionDeleteKnowledgeBankFailsWhenScopeCleanupUnavailable(t *testing.T) {
+	svc, _, knowledgeSvc, cleanup := newTestService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app-test"}
+	createResp, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
+		Context: reqCtx,
+		Locator: &runtimev1.PublicKnowledgeBankLocator{
+			Locator: &runtimev1.PublicKnowledgeBankLocator_AppPrivate{
+				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: "app-test"},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateKnowledgeBank: %v", err)
+	}
+	bankID := createResp.GetBank().GetBankId()
+	if err := svc.cognitionCore.Close(); err != nil {
+		t.Fatalf("close cognition core: %v", err)
+	}
+
+	_, err = svc.DeleteKnowledgeBank(ctx, &runtimev1.DeleteKnowledgeBankRequest{
+		Context: reqCtx,
+		BankId:  bankID,
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition cleanup failure, got %v", err)
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE {
+		t.Fatalf("unexpected cleanup failure reason: got=%v ok=%v", reason, ok)
+	}
+	if _, err := knowledgeSvc.GetKnowledgeBank(ctx, &runtimev1.GetKnowledgeBankRequest{
+		Context: reqCtx,
+		BankId:  bankID,
+	}); err != nil {
+		t.Fatalf("knowledge bank should remain after blocked cleanup: %v", err)
+	}
+}
+
 func newTestService(t *testing.T) (*Service, *memoryservice.Service, *knowledgeservice.Service, func()) {
 	t.Helper()
 
@@ -288,6 +376,7 @@ func newTestService(t *testing.T) (*Service, *memoryservice.Service, *knowledges
 	if err != nil {
 		t.Fatalf("memoryservice.New: %v", err)
 	}
+	setMemoryEmbeddingVectorExecutorForTest(memorySvc)
 	knowledgeSvc, err := knowledgeservice.NewWithBackend(logger, memorySvc.PersistenceBackend())
 	if err != nil {
 		_ = memorySvc.Close()
@@ -305,6 +394,36 @@ func newTestService(t *testing.T) (*Service, *memoryservice.Service, *knowledges
 		_ = memorySvc.Close()
 	}
 	return svc, memorySvc, knowledgeSvc, cleanup
+}
+
+func setMemoryEmbeddingVectorExecutorForTest(svc *memoryservice.Service) {
+	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, profile *runtimev1.MemoryEmbeddingProfile, raws []string) ([][]float64, error) {
+		dimension := int(profile.GetDimension())
+		out := make([][]float64, 0, len(raws))
+		for _, raw := range raws {
+			out = append(out, testEmbeddingVector(raw, dimension))
+		}
+		return out, nil
+	})
+}
+
+func testEmbeddingVector(raw string, dimension int) []float64 {
+	if dimension <= 0 {
+		return nil
+	}
+	vector := make([]float64, dimension)
+	tokens := strings.Fields(strings.ToLower(raw))
+	for _, token := range tokens {
+		hash := 0
+		for i, r := range token {
+			hash += (i + 1) * int(r)
+		}
+		vector[hash%dimension] += 1
+	}
+	if len(tokens) == 0 {
+		vector[0] = 1
+	}
+	return vector
 }
 
 type testWriter struct {

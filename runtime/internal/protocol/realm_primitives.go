@@ -114,6 +114,9 @@ func ValidateEconomyContract(payload map[string]any) error {
 	if payload == nil {
 		return fmt.Errorf("%s: payload is required", operation)
 	}
+	if err := rejectHiddenWorldMutationFields(payload); err != nil {
+		return fmt.Errorf("%s: %w", operation, err)
+	}
 
 	currencyNamespace, err := stringField(payload, "currencyNamespace")
 	if err != nil {
@@ -155,6 +158,30 @@ func ValidateEconomyContract(payload map[string]any) error {
 		return fmt.Errorf("%s: inflationPolicy must be FIXED_CAP or PROGRAMMATIC", operation)
 	}
 
+	return nil
+}
+
+func rejectHiddenWorldMutationFields(payload map[string]any) error {
+	hiddenMutationFields := []string{
+		"actorRefs",
+		"appId",
+		"commit",
+		"effectClass",
+		"evidenceRefs",
+		"historyAppends",
+		"relatedStateRefs",
+		"schemaId",
+		"schemaVersion",
+		"scope",
+		"sessionId",
+		"worldId",
+		"writes",
+	}
+	for _, field := range hiddenMutationFields {
+		if _, ok := payload[field]; ok {
+			return fmt.Errorf("economy payload must not carry world mutation field %s; use explicit world-state/history commit authority", field)
+		}
+	}
 	return nil
 }
 

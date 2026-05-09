@@ -102,6 +102,60 @@ func TestUnaryAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 	}
 }
 
+func TestUnaryAIAuditIncludesRequestAndExecutionLineage(t *testing.T) {
+	store := auditlog.New(128, 128)
+	interceptor := newUnaryAuditInterceptor(store)
+
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-trace-id", "trace-submit-001",
+	))
+	req := &runtimev1.SubmitScenarioJobRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/qwen2.5",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			ConnectorId:   "local",
+		},
+		ScenarioType:   runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		ExecutionMode:  runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		RequestId:      "scenario-request-001",
+		IdempotencyKey: "idem-001",
+		Extensions: []*runtimev1.ScenarioExtension{
+			{Namespace: "runtime.execution.test"},
+		},
+	}
+	info := &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob"}
+	_, err := interceptor(ctx, req, info, func(context.Context, any) (any, error) {
+		return &runtimev1.SubmitScenarioJobResponse{}, nil
+	})
+	if err != nil {
+		t.Fatalf("unary interceptor returned error: %v", err)
+	}
+
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.ai"})
+	if len(events.GetEvents()) != 1 {
+		t.Fatalf("expected 1 audit event, got=%d", len(events.GetEvents()))
+	}
+	payload := events.GetEvents()[0].GetPayload().GetFields()
+	if payload["request_id"].GetStringValue() != "scenario-request-001" {
+		t.Fatalf("request_id missing from audit payload: %+v", payload)
+	}
+	if payload["trace_id"].GetStringValue() != "trace-submit-001" {
+		t.Fatalf("trace_id missing from audit payload: %+v", payload)
+	}
+	if payload["scenario_type"].GetStringValue() != runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE.String() {
+		t.Fatalf("scenario_type missing from audit payload: %+v", payload)
+	}
+	if payload["execution_mode"].GetStringValue() != runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB.String() {
+		t.Fatalf("execution_mode missing from audit payload: %+v", payload)
+	}
+	if payload["extension_count"].GetNumberValue() != 1 {
+		t.Fatalf("extension_count missing from audit payload: %+v", payload)
+	}
+}
+
 func TestStreamAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 	store := auditlog.New(128, 128)
 	interceptor := newStreamAuditInterceptor(store)

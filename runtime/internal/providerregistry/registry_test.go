@@ -49,14 +49,21 @@ func TestVoiceWorkflowProviderFamilyFlagsDoNotOverclaim(t *testing.T) {
 			wantTTS:           true,
 			wantVoiceClone:    true,
 			wantVoiceDesign:   false,
-			coverageInvariant: "clone-capable provider must not advertise design unless source catalog has design workflow",
+			coverageInvariant: "provider-extension registry admits voice clone but not voice design",
 		},
 		{
 			provider:          "dashscope",
 			wantTTS:           true,
 			wantVoiceClone:    true,
 			wantVoiceDesign:   true,
-			coverageInvariant: "full TTS2 provider must advertise both workflow lanes",
+			coverageInvariant: "provider-extension registry admits both workflow lanes",
+		},
+		{
+			provider:          "elevenlabs",
+			wantTTS:           true,
+			wantVoiceClone:    true,
+			wantVoiceDesign:   true,
+			coverageInvariant: "provider-extension registry rows admit both ElevenLabs workflow lanes",
 		},
 	}
 

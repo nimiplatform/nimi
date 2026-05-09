@@ -24,7 +24,25 @@ func (s *Service) executeCUDAEnvironmentDependencyJob(ctx context.Context, job l
 	if err != nil {
 		return localEnvironmentDependencyJobResult{}, err
 	}
+	if strings.TrimSpace(status.ConsumerID) == "" {
+		status.ConsumerID = cudaSelectedConsumer(job.EnvironmentKey)
+	}
 	return localEnvironmentDependencyJobResultFromSharedAcceleratorStatus(status), nil
+}
+
+func cudaSelectedConsumer(environmentKey string) string {
+	for _, consumer := range []string{
+		"stable-diffusion.cpp.cuda",
+		"media.diffusers.cuda",
+		"media.video-python.cuda",
+		"llama.cpp.cuda",
+		"desktop.local-model-center",
+	} {
+		if strings.Contains(environmentKey, "|"+consumer) {
+			return consumer
+		}
+	}
+	return "accelerator.cuda.runtime"
 }
 
 func localEnvironmentDependencyJobResultFromSharedAcceleratorStatus(status engine.SharedAcceleratorDependencyStatus) localEnvironmentDependencyJobResult {
@@ -34,8 +52,10 @@ func localEnvironmentDependencyJobResultFromSharedAcceleratorStatus(status engin
 			State:                 localEnvironmentStateReadySystem,
 			SourceKind:            localEnvironmentSourceSystem,
 			CanonicalRoot:         strings.TrimSpace(status.CanonicalRoot),
+			Version:               "cuda_major=12",
 			CompatibilityEvidence: []string{strings.TrimSpace(status.Detail)},
 			VerifiedArtifacts:     normalizeStringSlice(status.RequiredArtifacts),
+			Hashes:                map[string]string{"required_artifact_set": shortHash(strings.Join(normalizeStringSlice(status.RequiredArtifacts), "|"))},
 			SelectedConsumers:     normalizeStringSlice([]string{status.ConsumerID}),
 			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_SYSTEM",
 		}
@@ -44,8 +64,10 @@ func localEnvironmentDependencyJobResultFromSharedAcceleratorStatus(status engin
 			State:                 localEnvironmentStateReadyManaged,
 			SourceKind:            localEnvironmentSourceManaged,
 			CanonicalRoot:         strings.TrimSpace(status.CanonicalRoot),
+			Version:               "cuda_major=12",
 			CompatibilityEvidence: []string{strings.TrimSpace(status.Detail)},
 			VerifiedArtifacts:     normalizeStringSlice(status.RequiredArtifacts),
+			Hashes:                map[string]string{"required_artifact_set": shortHash(strings.Join(normalizeStringSlice(status.RequiredArtifacts), "|"))},
 			SelectedConsumers:     normalizeStringSlice([]string{status.ConsumerID}),
 			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 		}

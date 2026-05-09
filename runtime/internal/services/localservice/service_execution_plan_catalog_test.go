@@ -583,6 +583,24 @@ func TestLocalResolveExecutionPlanFailsOnInvalidRequired(t *testing.T) {
 	}
 }
 
+func TestLocalResolveExecutionPlanRejectsImplicitCapabilityDefault(t *testing.T) {
+	newTestService(t)
+	plan := resolveExecutionPlan(&executionResolveRequest{
+		modID:      "world.nimi.implicit-default",
+		capability: "chat",
+		entries:    &runtimev1.LocalExecutionDeclarationDescriptor{},
+	})
+	if plan.GetReasonCode() != "LOCAL_DEPENDENCY_DESCRIPTOR_REQUIRED" {
+		t.Fatalf("unexpected reason code: %s", plan.GetReasonCode())
+	}
+	if len(plan.GetEntries()) != 0 {
+		t.Fatalf("implicit default dependency must not be synthesized: %#v", plan.GetEntries())
+	}
+	if len(plan.GetWarnings()) == 0 || !strings.Contains(plan.GetWarnings()[0], "dependency descriptor is required") {
+		t.Fatalf("expected descriptor-required warning, got %#v", plan.GetWarnings())
+	}
+}
+
 func TestLocalResolveExecutionPlanRejectsWorkflowKind(t *testing.T) {
 	newTestService(t)
 	plan := resolveExecutionPlan(&executionResolveRequest{

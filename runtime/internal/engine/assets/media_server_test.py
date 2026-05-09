@@ -41,6 +41,14 @@ class MediaServerLocalFileBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unsupported media input URL scheme"):
             MEDIA_SERVER._load_image_from_uri("c:/Users/example/secret.png")
 
+    def test_generate_image_requires_configured_default_when_model_omitted(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "NIMI_MEDIA_DEFAULT_IMAGE_MODEL is required"):
+            MEDIA_SERVER._generate_image("", {"prompt": "a lantern"})
+
+    def test_generate_video_requires_configured_default_when_model_omitted(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "NIMI_MEDIA_DEFAULT_VIDEO_MODEL is required"):
+            MEDIA_SERVER._generate_video("", {"prompt": "a lantern"})
+
 
 if __name__ == "__main__":
     unittest.main()

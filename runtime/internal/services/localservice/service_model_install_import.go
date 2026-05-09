@@ -30,14 +30,14 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
 	}
 
-	if manifestHasAnyKey(manifest, "model_id", "modelId", "artifact_id", "artifactId") {
+	if manifestHasAnyKey(manifest, "model_id", "modelId", "artifact_id", "artifactId", "assetId", "asset_kind", "assetKind", "logicalModelId", "localInvokeProfileId") {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
-	assetID, ok := manifestString(manifest, "asset_id", "assetId")
+	assetID, ok := manifestString(manifest, "asset_id")
 	if !ok || strings.TrimSpace(assetID) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
 	}
-	kind, ok := manifestAssetKind(manifest, "kind", "asset_kind", "assetKind")
+	kind, ok := manifestAssetKind(manifest, "kind")
 	if !ok || kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
@@ -54,10 +54,7 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	}
 	capabilities = normalizeAssetCapabilities(capabilities)
 	if isRunnableKind(kind) && len(capabilities) == 0 {
-		capabilities = defaultCapabilitiesForAssetKind(kind)
-	}
-	if isRunnableKind(kind) && len(capabilities) == 0 {
-		capabilities = []string{"chat"}
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
 	if !isRunnableKind(kind) && len(capabilities) > 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
@@ -123,7 +120,7 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 	if fallbackEnginesErr != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
-	logicalModelID := manifestStringDefault(manifest, "logical_model_id", "logicalModelId")
+	logicalModelID := manifestStringDefault(manifest, "logical_model_id")
 	repo := manifestStringDefault(manifest, "repo")
 	revision := defaultString(manifestStringDefault(manifest, "revision"), "import")
 	if sourceValue, ok := manifest["source"]; ok {
@@ -210,7 +207,7 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 			hashes,
 			binding.endpoint,
 			binding.mode,
-			manifestStringDefault(manifest, "local_invoke_profile_id", "localInvokeProfileId"),
+			manifestStringDefault(manifest, "local_invoke_profile_id"),
 			engineConfig,
 			projectionOverride,
 			"runtime_model_imported",
@@ -238,7 +235,7 @@ func (s *Service) ImportLocalAsset(_ context.Context, req *runtimev1.ImportLocal
 		hashes,
 		binding.endpoint,
 		binding.mode,
-		manifestStringDefault(manifest, "local_invoke_profile_id", "localInvokeProfileId"),
+		manifestStringDefault(manifest, "local_invoke_profile_id"),
 		engineConfig,
 		&modelregistry.NativeProjection{
 			LogicalModelID:  logicalModelID,

@@ -9,9 +9,10 @@ import (
 
 // ProviderCredentials holds base URL and API key for a single cloud provider.
 type ProviderCredentials struct {
-	BaseURL string
-	APIKey  string
-	Headers map[string]string
+	BaseURL      string
+	APIKey       string
+	Headers      map[string]string
+	DefaultModel string
 }
 
 // CloudConfig holds all cloud provider connection parameters.

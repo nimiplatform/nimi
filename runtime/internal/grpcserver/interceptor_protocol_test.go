@@ -263,3 +263,76 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		}
 	}
 }
+
+func TestIsWriteMethodCoversGeneratedRuntimeMethods(t *testing.T) {
+	for _, method := range generatedRuntimeFullMethods() {
+		if isWriteMethod(method) {
+			continue
+		}
+		operation := method[strings.LastIndex(method, "/")+1:]
+		if isKnownReadOperation(operation) {
+			continue
+		}
+		t.Fatalf("generated runtime RPC method is not classified as write-gated or explicitly read-only: %s", method)
+	}
+}
+
+func generatedRuntimeFullMethods() []string {
+	descs := []grpc.ServiceDesc{
+		runtimev1.RuntimeAccountService_ServiceDesc,
+		runtimev1.RuntimeAgentService_ServiceDesc,
+		runtimev1.RuntimeAiRealtimeService_ServiceDesc,
+		runtimev1.RuntimeAiService_ServiceDesc,
+		runtimev1.RuntimeAppService_ServiceDesc,
+		runtimev1.RuntimeArtifactService_ServiceDesc,
+		runtimev1.RuntimeAuditService_ServiceDesc,
+		runtimev1.RuntimeAuthService_ServiceDesc,
+		runtimev1.RuntimeCognitionService_ServiceDesc,
+		runtimev1.RuntimeConnectorService_ServiceDesc,
+		runtimev1.RuntimeGrantService_ServiceDesc,
+		runtimev1.RuntimeLocalService_ServiceDesc,
+		runtimev1.RuntimeModelService_ServiceDesc,
+		runtimev1.RuntimeWorkflowService_ServiceDesc,
+	}
+	methods := make([]string, 0)
+	for _, desc := range descs {
+		for _, method := range desc.Methods {
+			methods = append(methods, "/"+desc.ServiceName+"/"+method.MethodName)
+		}
+		for _, stream := range desc.Streams {
+			methods = append(methods, "/"+desc.ServiceName+"/"+stream.StreamName)
+		}
+	}
+	return methods
+}
+
+func isKnownReadOperation(operation string) bool {
+	switch operation {
+	case "ResolveLocalEnvironmentPlan",
+		"ResolveModelInstallPlan",
+		"ResolveProfile":
+		return true
+	}
+	readPrefixes := []string{
+		"Check",
+		"Collect",
+		"Get",
+		"History",
+		"List",
+		"Peek",
+		"Query",
+		"Read",
+		"Recall",
+		"Search",
+		"Subscribe",
+		"Traverse",
+		"Validate",
+		"Watch",
+	}
+	for _, prefix := range readPrefixes {
+		if strings.HasPrefix(operation, prefix) {
+			return true
+		}
+	}
+	return false
+}

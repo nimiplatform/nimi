@@ -12,6 +12,11 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	if req == nil || req.GetHead() == nil || req.GetSpec() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	var ownerErr error
+	req, ownerErr = normalizeSubmitScenarioJobOwner(ctx, req)
+	if ownerErr != nil {
+		return nil, ownerErr
+	}
 	mode := req.GetExecutionMode()
 	if mode == runtimev1.ExecutionMode_EXECUTION_MODE_UNSPECIFIED {
 		mode = runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB

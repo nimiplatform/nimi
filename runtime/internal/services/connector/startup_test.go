@@ -128,6 +128,25 @@ func TestEnsureCloudConnectorsFromConfig_SkipLocal(t *testing.T) {
 	}
 }
 
+func TestEnsureCloudConnectorsFromConfig_RejectsUnknownProvider(t *testing.T) {
+	store := tempConnectorStore(t)
+
+	err := EnsureCloudConnectorsFromConfig(store, []CloudConnectorDef{
+		{Provider: "unreviewed-provider", Endpoint: "https://provider.example/v1", APIKey: "sk-test", Label: "Unreviewed"},
+	})
+	if err == nil {
+		t.Fatalf("expected unknown provider to be rejected")
+	}
+
+	records, loadErr := store.Load()
+	if loadErr != nil {
+		t.Fatalf("load: %v", loadErr)
+	}
+	if cloud := filterSystemCloud(records); len(cloud) != 0 {
+		t.Fatalf("expected no system cloud connector for unknown provider, got %d", len(cloud))
+	}
+}
+
 func TestEnsureCloudConnectorsFromConfig_UpdateEndpoint(t *testing.T) {
 	store := tempConnectorStore(t)
 

@@ -120,6 +120,9 @@ func NewCloudProvider(cfg CloudConfig, registry *modelregistry.Registry, health 
 			b = NewBackendWithHeaders(backendName, creds.BaseURL, creds.APIKey, creds.Headers, cfg.HTTPTimeout)
 		}
 		if b != nil {
+			if model := strings.TrimSpace(creds.DefaultModel); model != "" {
+				b.defaultModel = model
+			}
 			backends[canonical] = b
 		}
 	}

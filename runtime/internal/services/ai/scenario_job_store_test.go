@@ -12,6 +12,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -21,6 +22,10 @@ import (
 
 func scenarioJobContext(appID string) context.Context {
 	return metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", appID))
+}
+
+func scenarioJobUserContext(appID string, subjectUserID string) context.Context {
+	return authn.WithIdentity(scenarioJobContext(appID), &authn.Identity{SubjectUserID: subjectUserID})
 }
 
 func TestInheritAsyncJobContextPreservesMetadata(t *testing.T) {

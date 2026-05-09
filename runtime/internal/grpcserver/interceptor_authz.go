@@ -22,12 +22,12 @@ const deferredStreamCapability = "__deferred__"
 
 func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		if authorizer == nil {
-			return handler(ctx, req)
-		}
 		capability, required := protectedCapabilityForUnary(info.FullMethod, req)
 		if !required {
 			return handler(ctx, req)
+		}
+		if authorizer == nil {
+			return nil, protectedCapabilityAuthorizerUnavailableError()
 		}
 		tokenID, secret, _ := envelope.ParseAccessTokenFromContext(ctx)
 		appID := appIDFromMetadata(ctx)
@@ -46,12 +46,12 @@ func newUnaryAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.Una
 
 func newStreamAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		if authorizer == nil {
-			return handler(srv, ss)
-		}
 		capability, required := protectedCapabilityForStream(info.FullMethod, nil)
 		if !required {
 			return handler(srv, ss)
+		}
+		if authorizer == nil && capability != deferredStreamCapability {
+			return protectedCapabilityAuthorizerUnavailableError()
 		}
 		tokenID, secret, _ := envelope.ParseAccessTokenFromContext(ss.Context())
 		wrapped := &authzStream{
@@ -104,6 +104,9 @@ func (s *authzStream) RecvMsg(m any) error {
 	if s.capability == deferredStreamCapability {
 		return nil
 	}
+	if s.authorizer == nil {
+		return protectedCapabilityAuthorizerUnavailableError()
+	}
 	appID := strings.TrimSpace(s.metadataAppID)
 	if appID == "" {
 		appID = appIDFromRequest(m)
@@ -115,6 +118,12 @@ func (s *authzStream) RecvMsg(m any) error {
 	}
 	s.ctx = envelope.WithValidatedProtectedCapability(s.ServerStream.Context(), appID, s.capability)
 	return nil
+}
+
+func protectedCapabilityAuthorizerUnavailableError() error {
+	return grpcerr.WithReasonCodeOptions(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, grpcerr.ReasonOptions{
+		ActionHint: "protected_capability_authorizer_unavailable",
+	})
 }
 
 func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
@@ -180,11 +189,11 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 	case "/nimi.runtime.v1.RuntimeAgentService/ListAgents":
 		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor":
-		return "runtime.agent.turn.write", true
+		return "runtime.agent.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot":
-		return "runtime.agent.turn.read", true
+		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":
-		return "runtime.agent.turn.read", true
+		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot":
 		return "runtime.agent.avatar_debug.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe":

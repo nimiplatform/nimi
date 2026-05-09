@@ -373,6 +373,80 @@ func TestMemoryServiceApplyReplicationObservationFailClosesIllegalTransitionAndH
 	}
 }
 
+func TestMemoryServiceApplyReplicationObservationRejectsEmptyEvidenceBeforeMutation(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name        string
+		replication func(record *runtimev1.MemoryRecord) *runtimev1.MemoryReplicationState
+	}{
+		{
+			name: "synced",
+			replication: func(record *runtimev1.MemoryRecord) *runtimev1.MemoryReplicationState {
+				return &runtimev1.MemoryReplicationState{
+					Outcome:      runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_SYNCED,
+					LocalVersion: record.GetReplication().GetLocalVersion(),
+					BasisVersion: record.GetReplication().GetLocalVersion(),
+					Detail:       &runtimev1.MemoryReplicationState_Synced{Synced: &runtimev1.MemoryReplicationSynced{}},
+				}
+			},
+		},
+		{
+			name: "conflict",
+			replication: func(record *runtimev1.MemoryRecord) *runtimev1.MemoryReplicationState {
+				return &runtimev1.MemoryReplicationState{
+					Outcome:      runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_CONFLICT,
+					LocalVersion: record.GetReplication().GetLocalVersion(),
+					BasisVersion: record.GetReplication().GetLocalVersion(),
+					Detail:       &runtimev1.MemoryReplicationState_Conflict{Conflict: &runtimev1.MemoryReplicationConflict{}},
+				}
+			},
+		},
+		{
+			name: "invalidated",
+			replication: func(record *runtimev1.MemoryRecord) *runtimev1.MemoryReplicationState {
+				return &runtimev1.MemoryReplicationState{
+					Outcome:      runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_INVALIDATED,
+					LocalVersion: record.GetReplication().GetLocalVersion(),
+					BasisVersion: record.GetReplication().GetLocalVersion(),
+					Detail:       &runtimev1.MemoryReplicationState_Invalidation{Invalidation: &runtimev1.MemoryInvalidation{}},
+				}
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			svc, locator, record := newCanonicalTestMemoryRecord(t)
+			if backlog := svc.ListReplicationBacklog(); len(backlog) != 1 {
+				t.Fatalf("expected one pending backlog before invalid observation, got %#v", backlog)
+			}
+			err := svc.ApplyReplicationObservation(locator, record.GetMemoryId(), tc.replication(record), time.Now().UTC())
+			if status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("expected invalid evidence to fail before mutation, got %v", err)
+			}
+			historyResp, historyErr := svc.History(context.Background(), &runtimev1.HistoryRequest{
+				Bank:  locator,
+				Query: &runtimev1.MemoryHistoryQuery{PageSize: 10},
+			})
+			if historyErr != nil {
+				t.Fatalf("History: %v", historyErr)
+			}
+			if len(historyResp.GetRecords()) != 1 {
+				t.Fatalf("expected record preserved after invalid observation, got %d", len(historyResp.GetRecords()))
+			}
+			if got := historyResp.GetRecords()[0].GetReplication().GetOutcome(); got != runtimev1.MemoryReplicationOutcome_MEMORY_REPLICATION_OUTCOME_PENDING {
+				t.Fatalf("expected replication outcome to remain pending, got %s", got)
+			}
+			if backlog := svc.ListReplicationBacklog(); len(backlog) != 1 {
+				t.Fatalf("expected backlog preserved after invalid observation, got %#v", backlog)
+			}
+		})
+	}
+}
+
 func TestMemoryServiceCanonicalRetainEnqueuesBacklogAndInfraRetainDoesNot(t *testing.T) {
 	t.Parallel()
 

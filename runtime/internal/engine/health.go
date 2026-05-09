@@ -96,35 +96,15 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 
 	healthPayload := struct {
-		Ready       bool   `json:"ready"`
-		ImageDriver string `json:"image_driver"`
-		Checks      struct {
-			ProxyMode bool `json:"proxy_mode"`
-		} `json:"checks"`
+		Ready bool `json:"ready"`
 	}{}
-	// Parse body before checking status code so we can inspect image_driver
-	// even on non-2xx responses (e.g. 503 when proxy_execution is fail-closed).
 	_ = json.Unmarshal(body, &healthPayload)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		// When the media engine reports not-ready solely because the
-		// proxy_execution sub-check failed but an image_driver is active
-		// (diffusers-backend is running), treat the engine as healthy
-		// for image operations. Without this, a health probe failure
-		// accumulates toward the 3-strike unhealthy threshold and can
-		// degrade the daemon while image generation is working fine.
-		if engineLabel == "media" && strings.TrimSpace(healthPayload.ImageDriver) != "" {
-			return nil
-		}
 		return fmt.Errorf("health probe returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	if !healthPayload.Ready {
-		// Same partial-health logic: if image_driver is active the media
-		// engine is functional for image workloads even when ready=false.
-		if engineLabel == "media" && strings.TrimSpace(healthPayload.ImageDriver) != "" {
-			return nil
-		}
 		return fmt.Errorf("%s health probe reported ready=false", engineLabel)
 	}
 
@@ -154,12 +134,6 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 	}{}
 	if err := json.Unmarshal(body, &payload); err != nil {
 		return fmt.Errorf("%s catalog probe parse failed: %w", engineLabel, err)
-	}
-	if engineLabel == "media" && healthPayload.Checks.ProxyMode {
-		if payload.Ready {
-			return nil
-		}
-		return fmt.Errorf("%s catalog probe reported ready=false in proxy mode", engineLabel)
 	}
 	if !payload.Ready {
 		return fmt.Errorf("%s catalog probe reported ready=false", engineLabel)

@@ -10,6 +10,7 @@ import (
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type memoryPolicyRuntime struct {
@@ -23,6 +24,9 @@ func (s *Service) memoryPolicyRuntime() memoryPolicyRuntime {
 func (m memoryPolicyRuntime) query(ctx context.Context, req *runtimev1.QueryAgentMemoryRequest) (*runtimev1.QueryAgentMemoryResponse, error) {
 	entry, err := m.svc.agentByID(strings.TrimSpace(req.GetAgentId()))
 	if err != nil {
+		return nil, err
+	}
+	if err := validateMemoryReadScopeAdmission(entry, req); err != nil {
 		return nil, err
 	}
 	if requiresExplicitWorldSharedAdmission(req.GetCanonicalClasses()) && validateWorldSharedAgentState(entry) != nil {
@@ -127,6 +131,10 @@ func (m memoryPolicyRuntime) write(ctx context.Context, req *runtimev1.WriteAgen
 	accepted := make([]*runtimev1.CanonicalMemoryView, 0, len(req.GetCandidates()))
 	rejected := make([]*runtimev1.CanonicalMemoryRejection, 0)
 	for _, candidate := range req.GetCandidates() {
+		if rejection := validateDirectMemoryPromotionEvidence(candidate); rejection != nil {
+			rejected = append(rejected, rejection)
+			continue
+		}
 		if rejection := validateWorldSharedCandidateAdmission(entry, candidate); rejection != nil {
 			rejected = append(rejected, rejection)
 			continue
@@ -152,6 +160,96 @@ func (m memoryPolicyRuntime) write(ctx context.Context, req *runtimev1.WriteAgen
 		}
 	}
 	return &runtimev1.WriteAgentMemoryResponse{Accepted: accepted, Rejected: rejected}, nil
+}
+
+var requiredDirectMemoryPromotionEvidenceFields = []string{
+	"participation_id",
+	"source_profile",
+	"output_candidate_ref",
+	"audit_id",
+	"provenance_ref",
+	"policy_verdict_ref",
+	"memory_read_verdict",
+	"memory_write_verdict",
+	"capability_scope_verdict",
+	"target_owner_authorization_ref",
+	"explicit_user_or_manager_intent_ref",
+}
+
+func validateDirectMemoryPromotionEvidence(candidate *runtimev1.CanonicalMemoryCandidate) *runtimev1.CanonicalMemoryRejection {
+	if candidate == nil {
+		return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "canonical memory candidate is required")
+	}
+	fields := candidate.GetExtensions().GetFields()
+	if len(fields) == 0 {
+		return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "direct WriteAgentMemory requires promotion evidence extensions")
+	}
+	if got := strings.TrimSpace(extensionString(fields, "promotion_target_id")); got != "RUNTIME_MEMORY_OR_COGNITION" {
+		return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "promotion_target_id must be RUNTIME_MEMORY_OR_COGNITION")
+	}
+	for _, key := range requiredDirectMemoryPromotionEvidenceFields {
+		if strings.TrimSpace(extensionString(fields, key)) == "" {
+			return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, fmt.Sprintf("direct WriteAgentMemory requires promotion evidence field %s", key))
+		}
+	}
+	switch strings.TrimSpace(extensionString(fields, "source_profile")) {
+	case "realm_group_agent", "scenario_sandbox", "oasis_world_participation":
+	default:
+		return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "source_profile is not admitted for runtime memory promotion")
+	}
+	for _, key := range []string{"memory_read_verdict", "memory_write_verdict", "capability_scope_verdict"} {
+		if !isPassVerdict(extensionString(fields, key)) {
+			return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, fmt.Sprintf("%s must be PASS", key))
+		}
+	}
+	return nil
+}
+
+func extensionString(fields map[string]*structpb.Value, key string) string {
+	if len(fields) == 0 || fields[key] == nil {
+		return ""
+	}
+	return strings.TrimSpace(fields[key].GetStringValue())
+}
+
+func isPassVerdict(value string) bool {
+	return strings.EqualFold(strings.TrimSpace(value), "PASS")
+}
+
+func validateMemoryReadScopeAdmission(entry *agentEntry, req *runtimev1.QueryAgentMemoryRequest) error {
+	if entry == nil {
+		return nil
+	}
+	explicitDyadicRead := requestsExplicitDyadicCanonicalMemory(req.GetCanonicalClasses())
+	if !explicitDyadicRead && len(req.GetCanonicalClasses()) > 0 {
+		return nil
+	}
+	activeUserID := strings.TrimSpace(entry.State.GetActiveUserId())
+	if activeUserID == "" {
+		if !explicitDyadicRead {
+			return nil
+		}
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	subjectUserID := strings.TrimSpace(req.GetContext().GetSubjectUserId())
+	if subjectUserID != activeUserID {
+		return grpcerr.WithReasonCodeOptions(codes.PermissionDenied, runtimev1.ReasonCode_APP_GRANT_INVALID, grpcerr.ReasonOptions{
+			ActionHint: "attach_canonical_memory_read_scope_context",
+			Metadata: map[string]string{
+				"required_read_scope": "CANONICAL_OWNER_POLICY",
+			},
+		})
+	}
+	return nil
+}
+
+func requestsExplicitDyadicCanonicalMemory(classes []runtimev1.MemoryCanonicalClass) bool {
+	for _, class := range classes {
+		if class == runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_DYADIC {
+			return true
+		}
+	}
+	return false
 }
 
 func (m memoryPolicyRuntime) writeCandidate(ctx context.Context, entry *agentEntry, candidate *runtimev1.CanonicalMemoryCandidate) (*runtimev1.CanonicalMemoryView, *runtimev1.CanonicalMemoryRejection) {

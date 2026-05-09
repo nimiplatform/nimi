@@ -162,7 +162,7 @@ func TestListConnectorModelsForceRefreshIsNoOpAndDoesNotOutbound(t *testing.T) {
 		t.Fatalf("force_refresh must not trigger outbound discovery, got %d upstream calls", got)
 	}
 }
-func TestListConnectorModelsDynamicProviderUsesOutboundCacheAndForceRefresh(t *testing.T) {
+func TestListConnectorModelsDynamicProviderUsesSnapshotAndForceRefreshDoesNotOutbound(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
 	var hits atomic.Int32
@@ -194,21 +194,8 @@ func TestListConnectorModelsDynamicProviderUsesOutboundCacheAndForceRefresh(t *t
 	if err != nil {
 		t.Fatalf("ListConnectorModels first: %v", err)
 	}
-	if got := hits.Load(); got != 1 {
-		t.Fatalf("expected first dynamic discovery to outbound once, got %d", got)
-	}
-	if len(first.GetModels()) != 2 {
-		t.Fatalf("expected two live-discovered models, got %d", len(first.GetModels()))
-	}
-	modelCapabilities := map[string][]string{}
-	for _, model := range first.GetModels() {
-		modelCapabilities[model.GetModelId()] = append([]string(nil), model.GetCapabilities()...)
-	}
-	if got := modelCapabilities["openai/gpt-4.1"]; len(got) != 1 || got[0] != "text.generate" {
-		t.Fatalf("expected openrouter text model capabilities to be inferred per-model, got %v", got)
-	}
-	if got := modelCapabilities["openai/text-embedding-3-large"]; len(got) != 1 || got[0] != "text.embed" {
-		t.Fatalf("expected openrouter embedding model capabilities to be inferred per-model, got %v", got)
+	if got := hits.Load(); got != 0 {
+		t.Fatalf("expected dynamic provider ListConnectorModels to use snapshot without outbound, got %d upstream calls", got)
 	}
 	second, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
 		ConnectorId: connectorID,
@@ -218,12 +205,12 @@ func TestListConnectorModelsDynamicProviderUsesOutboundCacheAndForceRefresh(t *t
 		t.Fatalf("ListConnectorModels second: %v", err)
 	}
 	if len(second.GetModels()) != len(first.GetModels()) {
-		t.Fatalf("expected cached dynamic inventory on second call")
+		t.Fatalf("expected stable catalog-derived model count on second call")
 	}
-	if got := hits.Load(); got != 1 {
-		t.Fatalf("expected second dynamic call to use cache, got %d upstream calls", got)
+	if got := hits.Load(); got != 0 {
+		t.Fatalf("expected second snapshot read to avoid outbound, got %d upstream calls", got)
 	}
-	_, err = svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+	refreshed, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
 		ConnectorId:  connectorID,
 		PageSize:     200,
 		ForceRefresh: true,
@@ -231,17 +218,18 @@ func TestListConnectorModelsDynamicProviderUsesOutboundCacheAndForceRefresh(t *t
 	if err != nil {
 		t.Fatalf("ListConnectorModels force_refresh: %v", err)
 	}
-	if got := hits.Load(); got != 2 {
-		t.Fatalf("expected force_refresh to re-discover dynamic inventory, got %d upstream calls", got)
+	if len(refreshed.GetModels()) != len(first.GetModels()) {
+		t.Fatalf("force_refresh should return the same catalog-derived model count: first=%d refreshed=%d", len(first.GetModels()), len(refreshed.GetModels()))
+	}
+	if got := hits.Load(); got != 0 {
+		t.Fatalf("force_refresh must not trigger dynamic discovery, got %d upstream calls", got)
 	}
 }
-func TestListConnectorModelsFireworksUsesAccountModelsEndpointAndPerModelCapabilities(t *testing.T) {
+func TestListConnectorModelsFireworksUsesSnapshotWithoutAccountModelsEndpoint(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
 	var hits atomic.Int32
-	var requestedPath atomic.Value
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestedPath.Store(r.URL.Path)
 		hits.Add(1)
 		if r.URL.Path != "/v1/accounts/fireworks/models" {
 			http.NotFound(w, r)
@@ -266,31 +254,14 @@ func TestListConnectorModelsFireworksUsesAccountModelsEndpointAndPerModelCapabil
 		t.Fatalf("CreateConnector: %v", err)
 	}
 	connectorID := created.GetConnector().GetConnectorId()
-	resp, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
+	if _, err := svc.ListConnectorModels(ctx, &runtimev1.ListConnectorModelsRequest{
 		ConnectorId: connectorID,
 		PageSize:    200,
-	})
-	if err != nil {
+	}); err != nil {
 		t.Fatalf("ListConnectorModels: %v", err)
 	}
-	if got := hits.Load(); got != 1 {
-		t.Fatalf("expected fireworks discovery to probe account models endpoint once, got %d", got)
-	}
-	if got, _ := requestedPath.Load().(string); got != "/v1/accounts/fireworks/models" {
-		t.Fatalf("expected fireworks discovery path /v1/accounts/fireworks/models, got %q", got)
-	}
-	if len(resp.GetModels()) != 2 {
-		t.Fatalf("expected two fireworks models, got %d", len(resp.GetModels()))
-	}
-	modelCapabilities := map[string][]string{}
-	for _, model := range resp.GetModels() {
-		modelCapabilities[model.GetModelId()] = append([]string(nil), model.GetCapabilities()...)
-	}
-	if got := modelCapabilities["accounts/fireworks/models/deepseek-v3"]; len(got) != 1 || got[0] != "text.generate" {
-		t.Fatalf("expected fireworks text model capabilities to stay text-only, got %v", got)
-	}
-	if got := modelCapabilities["accounts/fireworks/models/qwen3-vl"]; len(got) != 2 || got[0] != "text.generate" || got[1] != "text.generate.vision" {
-		t.Fatalf("expected fireworks vision model capabilities to include text.generate.vision, got %v", got)
+	if got := hits.Load(); got != 0 {
+		t.Fatalf("expected fireworks ListConnectorModels to use snapshot without account models probe, got %d upstream calls", got)
 	}
 }
 func TestTestConnectorRemoteStillProbesOutbound(t *testing.T) {
@@ -474,7 +445,7 @@ func TestTestConnectorQwenOAuthUsesBearerTokenThroughOpenAICompatibleProvider(t 
 		t.Fatalf("expected bearer oauth token, got %q", capturedAuthorization)
 	}
 }
-func TestTestConnectorSystemOwnedRemoteVisibleWithoutCaller(t *testing.T) {
+func TestTestConnectorSystemOwnedRemoteFailsClosedWithoutCloudProvider(t *testing.T) {
 	svc := newTestService(t)
 	if _, err := svc.store.Create(ConnectorRecord{
 		ConnectorID: "sys-openai",
@@ -492,8 +463,11 @@ func TestTestConnectorSystemOwnedRemoteVisibleWithoutCaller(t *testing.T) {
 	if err != nil {
 		t.Fatalf("TestConnector: %v", err)
 	}
-	if !resp.GetAck().GetOk() {
-		t.Fatalf("expected system-owned remote connector to be visible, got ok=false reason=%v", resp.GetAck().GetReasonCode())
+	if resp.GetAck().GetOk() {
+		t.Fatalf("expected system-owned remote connector probe to fail closed without cloud provider")
+	}
+	if resp.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE {
+		t.Fatalf("expected AI_PROVIDER_UNAVAILABLE, got %v", resp.GetAck().GetReasonCode())
 	}
 }
 func TestEnsureLocalConnectors(t *testing.T) {
@@ -533,6 +507,16 @@ func TestTestConnectorLocalUsesRuntimeAvailability(t *testing.T) {
 	}
 	if llmConnectorID == "" {
 		t.Fatalf("expected LLM local connector")
+	}
+	nilListerResp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{ConnectorId: llmConnectorID})
+	if err != nil {
+		t.Fatalf("TestConnector nil local lister: %v", err)
+	}
+	if nilListerResp.GetAck().GetOk() {
+		t.Fatalf("expected local connector unavailable when local model lister is absent")
+	}
+	if nilListerResp.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got %v", nilListerResp.GetAck().GetReasonCode())
 	}
 	svc.SetLocalModelLister(&fakeLocalModelLister{
 		models: []*runtimev1.LocalAssetRecord{

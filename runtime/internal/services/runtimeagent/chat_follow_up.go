@@ -26,6 +26,7 @@ type publicChatFollowUpState struct {
 	MaxFollowUpTurns     int
 	SourceTurnID         string
 	SourceActionID       string
+	HookIntent           *runtimev1.HookIntent
 	Context              context.Context
 	Cancel               context.CancelFunc
 	Armed                bool

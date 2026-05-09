@@ -26,7 +26,12 @@ first.
 
 ## Authority Rules
 
-- `runtime/catalog/source/providers/*.source.yaml` is the authority home.
+- Repo-wide product authority remains under `.nimi/spec/**`.
+- Connector provider/model semantics must align with
+  `.nimi/spec/runtime/connector.md`, `.nimi/spec/runtime/kernel/connector-contract.md`,
+  and the imported kernel provider catalog/capability tables.
+- `runtime/catalog/source/providers/*.source.yaml` is a reviewed authoring work
+  surface for generated projections, not parallel semantic truth.
 - Browser output, aggregate listings, and live probe output are support inputs
   only.
 - Do not auto-promote scraped or browsed content into source truth without a
@@ -46,10 +51,12 @@ first.
 ## Inventory Modes
 
 - `static_source`
-  - source owns `models`
-  - `selection_profiles` and reviewed defaults remain relevant
+  - source may author reviewed model rows for generated projections
+  - `selection_profiles` and reviewed defaults remain relevant only when aligned
+    with connector/provider authority
 - `dynamic_endpoint`
-  - source owns provider runtime metadata and dynamic inventory policy only
+  - source may author provider runtime metadata and dynamic inventory policy for
+    generated projections only
   - explicit config model or live-selected model is required at runtime
   - do not invent catalog defaults just to preserve legacy behavior
 

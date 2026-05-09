@@ -133,22 +133,23 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			},
 			capability: "runtime.app.send.cross_app",
 		},
-		// Affirmative: OpenConversationAnchor is guarded by the admitted
-		// runtime.agent.turn.write capability.
+		// RuntimeAgentService RPC methods follow K-RPC-004b read/write scopes;
+		// runtime.agent.turn.* is reserved for RuntimeAppService app-message
+		// reactive chat transport.
 		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
 			request:    &runtimev1.OpenConversationAnchorRequest{AgentId: "agent-alpha"},
-			capability: "runtime.agent.turn.write",
+			capability: "runtime.agent.write",
 		},
 		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
 			request:    &runtimev1.GetConversationAnchorSnapshotRequest{AgentId: "agent-alpha"},
-			capability: "runtime.agent.turn.read",
+			capability: "runtime.agent.read",
 		},
 		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
 			request:    &runtimev1.GetPublicChatSessionSnapshotRequest{AgentId: "agent-alpha"},
-			capability: "runtime.agent.turn.read",
+			capability: "runtime.agent.read",
 		},
 		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
@@ -271,6 +272,132 @@ func (s *authzTestStream) RecvMsg(m any) error {
 		return err
 	}
 	return proto.Unmarshal(payload, target)
+}
+
+func TestUnaryAuthzInterceptorFailsClosedWhenAuthorizerUnavailable(t *testing.T) {
+	interceptor := newUnaryAuthzInterceptor(nil)
+	called := false
+	req := &runtimev1.QueryAgentMemoryRequest{
+		Context: &runtimev1.AgentRequestContext{
+			AppId: "nimi.desktop",
+		},
+		AgentId: "agent-1",
+	}
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory",
+	}
+
+	_, err := interceptor(context.Background(), req, info, func(_ context.Context, request any) (any, error) {
+		called = true
+		return request, nil
+	})
+	if err == nil {
+		t.Fatal("expected permission denied")
+	}
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("unexpected status code: %v", status.Code(err))
+	}
+	if !strings.Contains(status.Convert(err).Message(), "protected_capability_authorizer_unavailable") {
+		t.Fatalf("expected unavailable action hint, got %q", status.Convert(err).Message())
+	}
+	if called {
+		t.Fatal("protected unary handler ran without authorizer")
+	}
+}
+
+func TestUnaryAuthzInterceptorAllowsUnprotectedMethodWithoutAuthorizer(t *testing.T) {
+	interceptor := newUnaryAuthzInterceptor(nil)
+	called := false
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "/nimi.runtime.v1.RuntimeAiService/GetScenario",
+	}
+
+	_, err := interceptor(context.Background(), &runtimev1.SendAppMessageRequest{}, info, func(_ context.Context, request any) (any, error) {
+		called = true
+		return request, nil
+	})
+	if err != nil {
+		t.Fatalf("expected unprotected method to pass, got %v", err)
+	}
+	if !called {
+		t.Fatal("expected unprotected unary handler to run")
+	}
+}
+
+func TestStreamAuthzInterceptorFailsClosedWhenAuthorizerUnavailable(t *testing.T) {
+	interceptor := newStreamAuthzInterceptor(nil)
+	stream := &authzTestStream{
+		ctx: context.Background(),
+		requests: []proto.Message{
+			&runtimev1.ExportAuditEventsRequest{AppId: "nimi.desktop"},
+		},
+	}
+	info := &grpc.StreamServerInfo{
+		FullMethod:     "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents",
+		IsServerStream: true,
+	}
+
+	err := interceptor(nil, stream, info, func(_ any, ss grpc.ServerStream) error {
+		t.Fatal("protected stream handler ran without authorizer")
+		return nil
+	})
+	if err == nil {
+		t.Fatal("expected permission denied")
+	}
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("unexpected status code: %v", status.Code(err))
+	}
+}
+
+func TestDeferredStreamAuthzInterceptorFailsClosedForProtectedRequestWithoutAuthorizer(t *testing.T) {
+	interceptor := newStreamAuthzInterceptor(nil)
+	stream := &authzTestStream{
+		ctx: context.Background(),
+		requests: []proto.Message{
+			&runtimev1.SubscribeAppMessagesRequest{
+				AppId: "runtime.agent",
+			},
+		},
+	}
+	info := &grpc.StreamServerInfo{
+		FullMethod:     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
+		IsServerStream: true,
+	}
+
+	err := interceptor(nil, stream, info, func(_ any, ss grpc.ServerStream) error {
+		var got runtimev1.SubscribeAppMessagesRequest
+		return ss.RecvMsg(&got)
+	})
+	if err == nil {
+		t.Fatal("expected permission denied")
+	}
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("unexpected status code: %v", status.Code(err))
+	}
+}
+
+func TestDeferredStreamAuthzInterceptorAllowsUnprotectedRequestWithoutAuthorizer(t *testing.T) {
+	interceptor := newStreamAuthzInterceptor(nil)
+	stream := &authzTestStream{
+		ctx: context.Background(),
+		requests: []proto.Message{
+			&runtimev1.SubscribeAppMessagesRequest{
+				AppId: "nimi.desktop",
+			},
+		},
+	}
+	info := &grpc.StreamServerInfo{
+		FullMethod:     "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
+		IsServerStream: true,
+	}
+
+	err := interceptor(nil, stream, info, func(_ any, ss grpc.ServerStream) error {
+		var got runtimev1.SubscribeAppMessagesRequest
+		return ss.RecvMsg(&got)
+	})
+	if err != nil {
+		t.Fatalf("expected unprotected deferred stream request to pass, got %v", err)
+	}
 }
 
 func TestStreamAuthzInterceptorUsesFirstRequestAppID(t *testing.T) {

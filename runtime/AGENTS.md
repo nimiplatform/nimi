@@ -8,7 +8,12 @@
 - Keep runtime self-contained: no imports from `sdk/**` or `apps/**`.
 - Preserve Go rules: constructor injection, no global mutable state, `fmt.Errorf("op: %w", err)`, no `log.Println`.
 - Treat `runtime/gen/**` and `runtime/internal/providerregistry/generated.go` as generated read-only outputs.
-- Runtime model/provider authority comes from `.nimi/spec/runtime/local-model.md` and its imported kernel tables; runtime catalog source files are support inputs and must not become parallel product truth outside generated/admitted projections.
+- Runtime connector/provider authority comes from `.nimi/spec/runtime/connector.md`,
+  `.nimi/spec/runtime/kernel/connector-contract.md`, and the imported kernel
+  provider catalog/capability tables. Runtime catalog source files and generated
+  snapshots are support/projection inputs only; they must not become parallel
+  product truth for connector provider domains, model-list semantics, custody,
+  owner, or probe behavior.
 - Do not patch runtime gaps with desktop or SDK hardcodes.
 
 ## Retrieval Defaults

@@ -37,6 +37,37 @@ func closeRuntimeAgentServiceForTest(t *testing.T, svc *Service) {
 	})
 }
 
+func setRuntimeAgentManagedEmbeddingProfileForTest(svc *memoryservice.Service, profile *runtimev1.MemoryEmbeddingProfile) {
+	svc.SetManagedEmbeddingProfile(profile)
+	svc.SetRuntimeEmbeddingVectorExecutor(func(_ context.Context, profile *runtimev1.MemoryEmbeddingProfile, raws []string) ([][]float64, error) {
+		dimension := int(profile.GetDimension())
+		out := make([][]float64, 0, len(raws))
+		for _, raw := range raws {
+			out = append(out, runtimeAgentTestEmbeddingVector(raw, dimension))
+		}
+		return out, nil
+	})
+}
+
+func runtimeAgentTestEmbeddingVector(raw string, dimension int) []float64 {
+	if dimension <= 0 {
+		return nil
+	}
+	vector := make([]float64, dimension)
+	tokens := strings.Fields(strings.ToLower(raw))
+	for _, token := range tokens {
+		hash := 0
+		for i, r := range token {
+			hash += (i + 1) * int(r)
+		}
+		vector[hash%dimension] += 1
+	}
+	if len(tokens) == 0 {
+		vector[0] = 1
+	}
+	return vector
+}
+
 func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	t.Parallel()
 
@@ -49,7 +80,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 		t.Fatalf("memory.New: %v", err)
 	}
 	closeRuntimeAgentMemoryServiceForTest(t, memorySvc)
-	memorySvc.SetManagedEmbeddingProfile(&runtimev1.MemoryEmbeddingProfile{
+	setRuntimeAgentManagedEmbeddingProfileForTest(memorySvc, &runtimev1.MemoryEmbeddingProfile{
 		Provider:        "local",
 		ModelId:         "nimi-embed",
 		Dimension:       4,
@@ -106,6 +137,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 					},
 				},
 				SourceEventId: "evt-1",
+				Extensions:    completePromotionEvidence(t),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_SEMANTIC,
 					Payload: &runtimev1.MemoryRecordInput_Semantic{
@@ -126,6 +158,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 					},
 				},
 				SourceEventId: "evt-2",
+				Extensions:    completePromotionEvidence(t),
 				Record: &runtimev1.MemoryRecordInput{
 					Kind: runtimev1.MemoryRecordKind_MEMORY_RECORD_KIND_OBSERVATIONAL,
 					Payload: &runtimev1.MemoryRecordInput_Observational{
@@ -145,6 +178,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	}
 
 	queryResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		Context: &runtimev1.AgentRequestContext{SubjectUserId: "user-1"},
 		AgentId: "agent-alpha",
 		Query:   "What do you know?",
 		Limit:   10,
@@ -157,6 +191,7 @@ func TestRuntimeAgentInitializeWriteQueryAndHooks(t *testing.T) {
 	}
 
 	historyResp, err := svc.QueryAgentMemory(ctx, &runtimev1.QueryAgentMemoryRequest{
+		Context:          &runtimev1.AgentRequestContext{SubjectUserId: "user-1"},
 		AgentId:          "agent-alpha",
 		Query:            "",
 		Limit:            10,
@@ -333,7 +368,7 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 				ExpressionProfileRef:  " expressions://airi/default ",
 				IdlePreset:            " idle.soft ",
 				InteractionPolicyRef:  " interaction://airi/v1 ",
-				DefaultVoiceReference: " voice://airi/default ",
+				DefaultVoiceReference: " preset_voice_id:airi-default ",
 			},
 		},
 	})
@@ -355,7 +390,7 @@ func TestRuntimeAgentSetPresentationProfilePersistsAndClearsMetadata(t *testing.
 	if got := presentation["avatarAssetRef"].GetStringValue(); got != "avatar://airi/live2d/main" {
 		t.Fatalf("unexpected avatarAssetRef metadata: %q", got)
 	}
-	if got := presentation["defaultVoiceReference"].GetStringValue(); got != "voice://airi/default" {
+	if got := presentation["defaultVoiceReference"].GetStringValue(); got != "preset_voice_id:airi-default" {
 		t.Fatalf("unexpected defaultVoiceReference metadata: %q", got)
 	}
 
@@ -418,6 +453,34 @@ func TestRuntimeAgentSetPresentationProfileRejectsInvalidProfiles(t *testing.T) 
 	})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected empty avatar_asset_ref to fail with InvalidArgument, got %v", err)
+	}
+
+	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		AgentId: "agent-presentation-profile-invalid",
+		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
+			Profile: &runtimev1.AgentPresentationProfile{
+				BackendKind:           runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM,
+				AvatarAssetRef:        "avatar://valid",
+				DefaultVoiceReference: "voice://airi/default",
+			},
+		},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected non-VoiceReference default voice to fail with InvalidArgument, got %v", err)
+	}
+
+	_, err = svc.SetAgentPresentationProfile(ctx, &runtimev1.SetAgentPresentationProfileRequest{
+		AgentId: "agent-presentation-profile-invalid",
+		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Profile{
+			Profile: &runtimev1.AgentPresentationProfile{
+				BackendKind:           runtimev1.AgentPresentationBackendKind_AGENT_PRESENTATION_BACKEND_KIND_VRM,
+				AvatarAssetRef:        "avatar://valid",
+				DefaultVoiceReference: "voice_asset_id:   ",
+			},
+		},
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected empty VoiceReference id to fail with InvalidArgument, got %v", err)
 	}
 }
 

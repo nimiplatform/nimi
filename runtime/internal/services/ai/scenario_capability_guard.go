@@ -259,10 +259,10 @@ func (s *Service) validateRemoteTextGenerateInputCapabilities(
 	}
 	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, runtimev1.Modal_MODAL_UNSPECIFIED)
 	if providerType == "" {
-		return nil
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
 	}
 	if !providerregistry.Contains(providerType) {
-		return nil
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
 	}
 	if s == nil || s.speechCatalog == nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
@@ -271,7 +271,7 @@ func (s *Service) validateRemoteTextGenerateInputCapabilities(
 		supported, err := s.speechCatalog.SupportsCapabilityForSubject(catalogSubjectUserIDFromContext(ctx), providerType, modelResolved, capability)
 		if err != nil {
 			if errors.Is(err, aicatalog.ErrModelNotFound) {
-				continue
+				return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
 			}
 			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 		}

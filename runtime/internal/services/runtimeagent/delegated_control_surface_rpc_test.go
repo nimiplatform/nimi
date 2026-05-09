@@ -3,12 +3,14 @@ package runtimeagent
 import (
 	"context"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestDelegatedProviderProfilesAreRuntimeOwned(t *testing.T) {
@@ -227,6 +229,7 @@ func TestDelegatedProviderStateRequiresLifecycleReason(t *testing.T) {
 func TestDelegatedApprovalAndDiagnosticsSurfaceRuntimeDecisions(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
 	ctx := testDelegatedControlContext()
+	upsertDelegatedApprovalTestProfile(t, svc, "sha256:calendar")
 	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
 		DecisionID:           "deleg-decision-1",
 		AgentID:              "agent-1",
@@ -237,6 +240,10 @@ func TestDelegatedApprovalAndDiagnosticsSurfaceRuntimeDecisions(t *testing.T) {
 		ProviderID:           "calendar-mcp",
 		CapabilityID:         "calendar.read",
 		ToolName:             "calendar_lookup",
+		DescriptorHash:       "sha256:calendar",
+		PolicySnapshotID:     delegatedApprovalPolicySnapshotID("calendar-mcp", "calendar.read", "calendar_lookup", "sha256:calendar"),
+		ApprovalPrincipalID:  "user-1",
+		ApprovalExpiresAt:    time.Now().UTC().Add(defaultDelegatedApprovalTTL),
 		GatewayEvidenceID:    "evidence-1",
 		FirewallInputID:      "fw-1",
 		FirewallVerdict:      "approval_required",
@@ -283,6 +290,68 @@ func TestDelegatedApprovalAndDiagnosticsSurfaceRuntimeDecisions(t *testing.T) {
 	}
 	if snapshot.GetSnapshot().GetDiagnostics()[0].GetGatewayEvidenceId() != "evidence-1" {
 		t.Fatalf("diagnostic did not preserve gateway evidence linkage: %+v", snapshot.GetSnapshot().GetDiagnostics()[0])
+	}
+}
+
+func TestDelegatedApprovalDecisionFailsClosedOnExpiredApproval(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	ctx := testDelegatedControlContext()
+	upsertDelegatedApprovalTestProfile(t, svc, "sha256:calendar")
+	recordDelegatedApprovalDecisionForTest(svc)
+	svc.delegatedMu.Lock()
+	approval := svc.delegatedApprovalRequests[delegatedApprovalRequestKey("agent-1", "deleg-decision-1")]
+	approval.ExpiresAt = timestamppb.New(time.Now().UTC().Add(-time.Minute))
+	svc.delegatedMu.Unlock()
+
+	_, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+		Context:           ctx,
+		AgentId:           "agent-1",
+		ApprovalRequestId: "deleg-decision-1",
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected expired approval to fail closed, got %v", err)
+	}
+	if got := svc.delegatedApprovalRequest("agent-1", "deleg-decision-1").GetState(); got != runtimev1.DelegatedApprovalRequestState_DELEGATED_APPROVAL_REQUEST_STATE_EXPIRED {
+		t.Fatalf("expected expired approval state, got %s", got)
+	}
+}
+
+func TestDelegatedApprovalDecisionFailsClosedOnDescriptorDrift(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	ctx := testDelegatedControlContext()
+	upsertDelegatedApprovalTestProfile(t, svc, "sha256:calendar")
+	recordDelegatedApprovalDecisionForTest(svc)
+	upsertDelegatedApprovalTestProfile(t, svc, "sha256:drifted")
+
+	_, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+		Context:           ctx,
+		AgentId:           "agent-1",
+		ApprovalRequestId: "deleg-decision-1",
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected descriptor drift to fail closed, got %v", err)
+	}
+}
+
+func TestDelegatedApprovalDecisionFailsClosedOnPrincipalMismatch(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	upsertDelegatedApprovalTestProfile(t, svc, "sha256:calendar")
+	recordDelegatedApprovalDecisionForTest(svc)
+	ctx := &runtimev1.AgentRequestContext{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "other-user",
+	}
+
+	_, err := svc.SubmitDelegatedApprovalDecision(context.Background(), &runtimev1.SubmitDelegatedApprovalDecisionRequest{
+		Context:           ctx,
+		AgentId:           "agent-1",
+		ApprovalRequestId: "deleg-decision-1",
+		Decision:          runtimev1.DelegatedApprovalDecision_DELEGATED_APPROVAL_DECISION_APPROVE,
+	})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected principal mismatch to fail closed, got %v", err)
 	}
 }
 
@@ -392,6 +461,29 @@ func TestDelegatedReplayTraceFailsClosedOnMissingJoinKeys(t *testing.T) {
 	}
 }
 
+func TestDelegatedReplayTraceFailsClosedOnMissingFinalDisposition(t *testing.T) {
+	svc := testDelegatedControlSurfaceService()
+	_, err := svc.buildDelegatedReplayTrace("agent-1", delegatedCapabilityDecisionAuditRecord{
+		DecisionID:          "deleg-decision-1",
+		AgentID:             "agent-1",
+		DelegationRequestID: "deleg-request-1",
+		DelegationResultID:  "deleg-result-1",
+		TurnID:              "turn-1",
+		ProviderID:          "calendar-mcp",
+		CapabilityID:        "calendar.read",
+		ToolName:            "calendar_lookup",
+		GatewayEvidenceID:   "evidence-1",
+		FirewallInputID:     "fw-1",
+		FirewallVerdict:     "ACCEPTED_OBSERVATION",
+		RuntimeDecision:     "context_candidate",
+		ReasonCode:          "DELEG_ACCEPTED",
+		RecordedAt:          time.Now().UTC(),
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected missing final disposition to fail closed, got %v", err)
+	}
+}
+
 func TestDelegatedReplayTraceIncludesApprovalState(t *testing.T) {
 	svc := testDelegatedControlSurfaceService()
 	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
@@ -444,6 +536,57 @@ func testDelegatedControlSurfaceServiceWithoutAudit() *Service {
 		delegatedProviderProfiles: map[string]*runtimev1.DelegatedProviderProfile{},
 		delegatedApprovalRequests: map[string]*runtimev1.DelegatedApprovalRequest{},
 	}
+}
+
+func upsertDelegatedApprovalTestProfile(t *testing.T, svc *Service, descriptorHash string) {
+	t.Helper()
+	_, err := svc.UpsertDelegatedProviderProfile(context.Background(), &runtimev1.UpsertDelegatedProviderProfileRequest{
+		Context: testDelegatedControlContext(),
+		AgentId: "agent-1",
+		ProviderProfile: &runtimev1.DelegatedProviderProfile{
+			ProviderProfileId: "calendar-mcp",
+			DisplayName:       "Calendar MCP",
+			ProviderKind:      runtimev1.DelegatedProviderKind_DELEGATED_PROVIDER_KIND_MCP_TOOL_PROVIDER,
+			TransportKind:     runtimev1.DelegatedTransportKind_DELEGATED_TRANSPORT_KIND_STDIO_COMMAND,
+			State:             runtimev1.DelegatedProviderState_DELEGATED_PROVIDER_STATE_READY,
+			TrustTier:         runtimev1.DelegatedProviderTrustTier_DELEGATED_PROVIDER_TRUST_TIER_USER_ADDED_REVIEWED,
+			AllowedTools: []*runtimev1.DelegatedToolAllowlistEntry{{
+				ToolName:          "calendar_lookup",
+				InputSchemaDigest: descriptorHash,
+			}},
+			TransportRef:        "runtime-transport://calendar-mcp",
+			Command:             "calendar-mcp",
+			LifecycleReasonCode: "",
+			CredentialRef:       "connector://calendar/oauth",
+			Timeout:             durationpb.New(5_000_000_000),
+		},
+	})
+	if err != nil {
+		t.Fatalf("upsert delegated approval test profile: %v", err)
+	}
+}
+
+func recordDelegatedApprovalDecisionForTest(svc *Service) {
+	svc.recordDelegatedCapabilityDecision(&runtimeAgentDelegatedCapabilityDecision{
+		DecisionID:           "deleg-decision-1",
+		AgentID:              "agent-1",
+		DelegationRequestID:  "deleg-request-1",
+		DelegationResultID:   "deleg-result-1",
+		ConversationAnchorID: "anchor-1",
+		TurnID:               "turn-1",
+		ProviderID:           "calendar-mcp",
+		CapabilityID:         "calendar.read",
+		ToolName:             "calendar_lookup",
+		DescriptorHash:       "sha256:calendar",
+		PolicySnapshotID:     delegatedApprovalPolicySnapshotID("calendar-mcp", "calendar.read", "calendar_lookup", "sha256:calendar"),
+		ApprovalPrincipalID:  "user-1",
+		ApprovalExpiresAt:    time.Now().UTC().Add(defaultDelegatedApprovalTTL),
+		GatewayEvidenceID:    "evidence-1",
+		FirewallInputID:      "fw-1",
+		FirewallVerdict:      "APPROVAL_REQUIRED",
+		ReasonCode:           "DELEG_APPROVAL_REQUIRED",
+		RuntimeDecision:      "approval_required",
+	})
 }
 
 func testDelegatedControlContext() *runtimev1.AgentRequestContext {

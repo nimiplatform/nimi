@@ -3,10 +3,13 @@ package localservice
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -14,12 +17,14 @@ import (
 
 func TestInstallManagedDownloadedModelInfersEmbeddingKindWhenUnspecified(t *testing.T) {
 	svc := newTestService(t)
+	modelBytes := validTestGGUF()
+	sum := sha256.Sum256(modelBytes)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/Qwen/Qwen3-Embedding-8B-GGUF/resolve/main/Qwen3-Embedding-8B-Q4_K_M.gguf" {
 			http.NotFound(w, r)
 			return
 		}
-		_, _ = w.Write(validTestGGUF())
+		_, _ = w.Write(modelBytes)
 	}))
 	defer server.Close()
 
@@ -35,7 +40,7 @@ func TestInstallManagedDownloadedModelInfersEmbeddingKindWhenUnspecified(t *test
 		license:      "apache-2.0",
 		repo:         "Qwen/Qwen3-Embedding-8B-GGUF",
 		revision:     "main",
-		hashes:       map[string]string{},
+		hashes:       map[string]string{"Qwen3-Embedding-8B-Q4_K_M.gguf": "sha256:" + hex.EncodeToString(sum[:])},
 		mode:         runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 	})
 	if err != nil {
@@ -61,5 +66,35 @@ func TestInstallManagedDownloadedModelInfersEmbeddingKindWhenUnspecified(t *test
 	}
 	if _, err := os.Stat(filepath.Join(filepath.Dir(manifestPath), "Qwen3-Embedding-8B-Q4_K_M.gguf")); err != nil {
 		t.Fatalf("managed embedding file missing: %v", err)
+	}
+}
+
+func TestInstallManagedDownloadedModelRequiresExpectedHash(t *testing.T) {
+	svc := newTestService(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(validTestGGUF())
+	}))
+	defer server.Close()
+
+	svc.hfDownloadBaseURL = server.URL
+
+	_, err := svc.installManagedDownloadedModel(context.Background(), managedDownloadedModelSpec{
+		modelID:      "local/qwen3-embedding-8b",
+		kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED,
+		capabilities: []string{"text.embed"},
+		engine:       "llama",
+		entry:        "Qwen3-Embedding-8B-Q4_K_M.gguf",
+		files:        []string{"Qwen3-Embedding-8B-Q4_K_M.gguf"},
+		license:      "apache-2.0",
+		repo:         "Qwen/Qwen3-Embedding-8B-GGUF",
+		revision:     "main",
+		hashes:       map[string]string{},
+		mode:         runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+	})
+	if err == nil {
+		t.Fatal("expected managed download without expected hash to fail")
+	}
+	if !strings.Contains(err.Error(), "requires admitted expected sha256") {
+		t.Fatalf("expected missing expected hash error, got %v", err)
 	}
 }

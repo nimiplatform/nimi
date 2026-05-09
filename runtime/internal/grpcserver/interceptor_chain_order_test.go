@@ -11,12 +11,13 @@ import (
 
 func TestInterceptorChainOrderMatchesSpec(t *testing.T) {
 	// K-AUTH-007: authn must run before authz in the interceptor chain.
-	expected := []string{"version", "lifecycle", "protocol", "authn", "authz", "credential_scrub", "audit", "handler"}
+	expected := expectedInterceptorChainOrder()
 	unaryOrder := make([]string, 0, len(expected))
 
 	recordUnaryChainExecution(&unaryOrder,
 		recordingUnaryInterceptor("version", &unaryOrder),
 		recordingUnaryInterceptor("lifecycle", &unaryOrder),
+		recordingUnaryInterceptor("activity", &unaryOrder),
 		recordingUnaryInterceptor("protocol", &unaryOrder),
 		recordingUnaryInterceptor("authn", &unaryOrder),
 		recordingUnaryInterceptor("authz", &unaryOrder),
@@ -31,6 +32,7 @@ func TestInterceptorChainOrderMatchesSpec(t *testing.T) {
 	recordStreamChainExecution(&streamOrder,
 		recordingStreamInterceptor("version", &streamOrder),
 		recordingStreamInterceptor("lifecycle", &streamOrder),
+		recordingStreamInterceptor("activity", &streamOrder),
 		recordingStreamInterceptor("protocol", &streamOrder),
 		recordingStreamInterceptor("authn", &streamOrder),
 		recordingStreamInterceptor("authz", &streamOrder),
@@ -40,6 +42,17 @@ func TestInterceptorChainOrderMatchesSpec(t *testing.T) {
 	if !reflect.DeepEqual(streamOrder, expected) {
 		t.Fatalf("unexpected stream interceptor order: got=%v want=%v", streamOrder, expected)
 	}
+}
+
+func TestInterceptorChainOrderRejectsMissingActivity(t *testing.T) {
+	withoutActivity := []string{"version", "lifecycle", "protocol", "authn", "authz", "credential_scrub", "audit", "handler"}
+	if reflect.DeepEqual(withoutActivity, expectedInterceptorChainOrder()) {
+		t.Fatal("chain-order assertion must fail closed when activity interceptor is omitted")
+	}
+}
+
+func expectedInterceptorChainOrder() []string {
+	return []string{"version", "lifecycle", "activity", "protocol", "authn", "authz", "credential_scrub", "audit", "handler"}
 }
 
 func recordUnaryChainExecution(order *[]string, interceptors ...grpc.UnaryServerInterceptor) {

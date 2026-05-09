@@ -9,13 +9,13 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
+	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const (
 	canonicalReviewPromptMaxTokens = 1024
 	canonicalReviewExecutorAppID   = "runtime.agent.internal.canonical_review"
-	canonicalReviewExecutorModelID = "local/default"
 )
 
 type canonicalReviewScenarioExecutor interface {
@@ -120,8 +120,8 @@ func buildCanonicalReviewScenarioRequest(req *CanonicalReviewExecutorRequest) (*
 		Head: &runtimev1.ScenarioRequestHead{
 			AppId:         canonicalReviewExecutorAppID,
 			SubjectUserId: subjectUserID,
-			ModelId:       canonicalReviewExecutorModelID,
-			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			ModelId:       texttarget.InternalDefaultLocalTextModelAlias,
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED,
 			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
 			TimeoutMs:     10_000,
 		},
