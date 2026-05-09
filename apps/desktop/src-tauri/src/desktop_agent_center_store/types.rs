@@ -238,13 +238,6 @@ pub(crate) enum AgentCenterSectionId {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct AgentCenterSelectedAvatarPackage {
-    pub kind: AgentCenterAvatarPackageKind,
-    pub package_id: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub(crate) struct AgentCenterAvatarConfigProvenance {
     pub source: AgentCenterAvatarConfigProvenanceSource,
     pub evidence_ref: String,
@@ -262,7 +255,6 @@ pub(crate) struct AgentCenterAppearanceModule {
 #[serde(deny_unknown_fields)]
 pub(crate) struct AgentCenterAvatarPackageModule {
     pub schema_version: u8,
-    pub selected_package: Option<AgentCenterSelectedAvatarPackage>,
     pub conversation_anchor_scope: AgentCenterAvatarConversationAnchorScope,
     pub avatar_package_ref: Option<String>,
     pub live2d_adapter_manifest_source: AgentCenterLive2dAdapterManifestSource,
@@ -275,7 +267,6 @@ pub(crate) struct AgentCenterAvatarPackageModule {
     pub debug_profile: AgentCenterAvatarDebugProfile,
     pub updated_at: String,
     pub provenance: AgentCenterAvatarConfigProvenance,
-    pub last_validated_at: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -3,25 +3,17 @@ use super::*;
 pub(super) fn select_imported_avatar_package(
     account_id: &str,
     agent_id: &str,
-    kind: AgentCenterAvatarPackageKind,
     package_id: &str,
-    checked_at: &str,
 ) -> Result<(), String> {
     let mut config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
         account_id: account_id.to_string(),
         agent_id: agent_id.to_string(),
     })?;
-    config.modules.avatar_package.selected_package = Some(AgentCenterSelectedAvatarPackage {
-        kind,
-        package_id: package_id.to_string(),
-    });
     config.modules.avatar_package.avatar_package_ref = Some(package_id.to_string());
-    config.modules.avatar_package.backend_kind = avatar_backend_kind_for_package(kind);
-    config.modules.avatar_package.last_validated_at = Some(checked_at.to_string());
     config.modules.avatar_package.updated_at =
         chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
     config.modules.avatar_package.provenance = AgentCenterAvatarConfigProvenance {
-        source: AgentCenterAvatarConfigProvenanceSource::ImportValidation,
+        source: AgentCenterAvatarConfigProvenanceSource::RuntimeProjection,
         evidence_ref: package_id.to_string(),
     };
     desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
@@ -42,12 +34,11 @@ pub(super) fn select_imported_live2d_adapter_manifest(
         account_id: account_id.to_string(),
         agent_id: agent_id.to_string(),
     })?;
-    let selected = config.modules.avatar_package.selected_package.as_ref();
-    if !selected.is_some_and(|entry| {
-        entry.kind == AgentCenterAvatarPackageKind::Live2d && entry.package_id == package_id
-    }) {
+    if config.modules.avatar_package.backend_kind != AgentCenterAvatarBackendKind::Live2d
+        || config.modules.avatar_package.avatar_package_ref.as_deref() != Some(package_id)
+    {
         return Err(
-            "external Live2D adapter manifest requires the selected Live2D package".to_string(),
+            "external Live2D adapter manifest requires matching runtime-projected Live2D package evidence".to_string(),
         );
     }
     config.modules.avatar_package.live2d_adapter_manifest_source =
@@ -88,25 +79,18 @@ pub(super) fn select_imported_background(
 pub(super) fn clear_selected_avatar_package(
     account_id: &str,
     agent_id: &str,
-    kind: AgentCenterAvatarPackageKind,
     package_id: &str,
 ) -> Result<(), String> {
     let mut config = desktop_agent_center_config_get(DesktopAgentCenterConfigScopePayload {
         account_id: account_id.to_string(),
         agent_id: agent_id.to_string(),
     })?;
-    let selected = config.modules.avatar_package.selected_package.clone();
-    if selected
-        .as_ref()
-        .is_some_and(|entry| entry.kind == kind && entry.package_id == package_id)
-    {
-        config.modules.avatar_package.selected_package = None;
+    if config.modules.avatar_package.avatar_package_ref.as_deref() == Some(package_id) {
         config.modules.avatar_package.avatar_package_ref = None;
         config.modules.avatar_package.live2d_adapter_manifest_source =
             AgentCenterLive2dAdapterManifestSource::None;
         config.modules.avatar_package.live2d_adapter_manifest_ref = None;
         config.modules.avatar_package.backend_capability_profile_ref = None;
-        config.modules.avatar_package.last_validated_at = None;
         config.modules.avatar_package.updated_at =
             chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
         config.modules.avatar_package.provenance = AgentCenterAvatarConfigProvenance {
@@ -458,13 +442,7 @@ pub(crate) fn desktop_agent_center_avatar_package_import(
             ));
         }
         if selected {
-            select_imported_avatar_package(
-                &account_id,
-                &agent_id,
-                payload.kind,
-                &package_id,
-                &validation.checked_at,
-            )?;
+            select_imported_avatar_package(&account_id, &agent_id, &package_id)?;
         }
         let _ = record_resource_operation(
             &account_id,
@@ -597,13 +575,7 @@ pub(crate) fn desktop_agent_center_avatar_package_import(
     };
 
     if selected {
-        select_imported_avatar_package(
-            &account_id,
-            &agent_id,
-            payload.kind,
-            &package_id,
-            &validation.checked_at,
-        )?;
+        select_imported_avatar_package(&account_id, &agent_id, &package_id)?;
     }
     let _ = record_resource_operation(
         &account_id,

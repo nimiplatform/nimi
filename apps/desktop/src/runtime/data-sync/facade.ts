@@ -516,6 +516,7 @@ export class DataSync {
     }
     try {
       const refreshResult = await Realm.refreshAccessToken({
+        authMode: 'external_principal',
         realmBaseUrl: this.realmBaseUrl,
         refreshToken: this.refreshToken,
         fetchImpl: this.fetchImpl || undefined,

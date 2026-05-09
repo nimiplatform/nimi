@@ -3,8 +3,6 @@ import assert from 'node:assert/strict';
 
 import {
   createDefaultAgentCenterLocalConfig,
-  validateAgentCenterAvatarPackageValidationResult,
-  validateAgentCenterAvatarPackageImportResult,
   validateAgentCenterLive2dAdapterManifestImportResult,
   validateAgentCenterBackgroundAssetResult,
   validateAgentCenterBackgroundImportResult,
@@ -30,12 +28,8 @@ test('Agent Center local config bridge parser accepts Rust store payload shape',
       },
       avatar_package: {
         schema_version: 1,
-        selected_package: {
-          kind: 'vrm',
-          package_id: 'vrm_ab12cd34ef56',
-        },
         conversation_anchor_scope: 'current_anchor',
-        avatar_package_ref: 'vrm_ab12cd34ef56',
+        avatar_package_ref: 'runtime-avatar-ref:vrm_ab12cd34ef56',
         live2d_adapter_manifest_source: 'none',
         live2d_adapter_manifest_ref: null,
         avatar_instance_policy: 'reuse_active_instance',
@@ -46,10 +40,9 @@ test('Agent Center local config bridge parser accepts Rust store payload shape',
         debug_profile: 'standard',
         updated_at: '2026-04-27T00:00:00Z',
         provenance: {
-          source: 'import_validation',
-          evidence_ref: 'vrm_ab12cd34ef56',
+          source: 'runtime_projection',
+          evidence_ref: 'runtime-avatar-ref:vrm_ab12cd34ef56',
         },
-        last_validated_at: null,
       },
       local_history: {
         schema_version: 1,
@@ -65,7 +58,7 @@ test('Agent Center local config bridge parser accepts Rust store payload shape',
   assert.equal(result.ok, true);
 });
 
-test('Agent Center local config bridge rejects backend kind drift from selected package', () => {
+test('Agent Center local config bridge rejects retired selected package truth', () => {
   const result = validateAgentCenterLocalConfig({
     schema_version: 1,
     config_kind: 'agent_center_local_config',
@@ -98,7 +91,6 @@ test('Agent Center local config bridge rejects backend kind drift from selected 
           source: 'import_validation',
           evidence_ref: 'vrm_ab12cd34ef56',
         },
-        last_validated_at: null,
       },
       local_history: {
         schema_version: 1,
@@ -112,7 +104,7 @@ test('Agent Center local config bridge rejects backend kind drift from selected 
   });
 
   assert.equal(result.ok, false);
-  assert.match(result.errors.join('\n'), /backend kind must match selected package kind/u);
+  assert.match(result.errors.join('\n'), /selected_package: unknown field/u);
 });
 
 test('Agent Center local config bridge exposes stable query key shape', () => {
@@ -129,7 +121,6 @@ test('Agent Center local config default includes closed avatar configuration fie
     agentId: 'agent_1',
   });
 
-  assert.deepEqual(config.modules.avatar_package.selected_package, null);
   assert.equal(config.modules.avatar_package.backend_kind, 'live2d');
   assert.equal(config.modules.avatar_package.live2d_adapter_manifest_source, 'none');
   assert.equal(config.modules.avatar_package.live2d_adapter_manifest_ref, null);
@@ -155,7 +146,6 @@ test('Agent Center local config bridge rejects retired launch package config fie
       },
       avatar_package: {
         schema_version: 1,
-        selected_package: null,
         conversation_anchor_scope: 'current_anchor',
         avatar_package_ref: null,
         live2d_adapter_manifest_source: 'none',
@@ -171,7 +161,6 @@ test('Agent Center local config bridge rejects retired launch package config fie
           source: 'runtime_projection',
           evidence_ref: 'agent-center-avatar-config-default',
         },
-        last_validated_at: null,
         last_launch_package_id: null,
       },
       local_history: {
@@ -187,51 +176,6 @@ test('Agent Center local config bridge rejects retired launch package config fie
 
   assert.equal(result.ok, false);
   assert.match(result.errors.join('\n'), /last_launch_package_id: unknown field/u);
-});
-
-test('Agent Center avatar package validation parser accepts sidecar payload shape', () => {
-  const result = validateAgentCenterAvatarPackageValidationResult({
-    schema_version: 1,
-    package_id: 'live2d_ab12cd34ef56',
-    checked_at: '2026-04-27T00:00:00Z',
-    status: 'valid',
-    errors: [],
-    warnings: [],
-  });
-
-  assert.equal(result.ok, true);
-});
-
-test('Agent Center avatar package validation parser rejects unknown payload fields', () => {
-  const result = validateAgentCenterAvatarPackageValidationResult({
-    schema_version: 1,
-    package_id: 'live2d_ab12cd34ef56',
-    checked_at: '2026-04-27T00:00:00Z',
-    status: 'valid',
-    errors: [],
-    warnings: [],
-    runtime_profile: 'forbidden',
-  });
-
-  assert.equal(result.ok, false);
-});
-
-test('Agent Center avatar package import parser accepts Rust payload shape', () => {
-  const result = validateAgentCenterAvatarPackageImportResult({
-    package_id: 'live2d_ab12cd34ef56',
-    kind: 'live2d',
-    selected: true,
-    validation: {
-      schema_version: 1,
-      package_id: 'live2d_ab12cd34ef56',
-      checked_at: '2026-04-27T00:00:00Z',
-      status: 'valid',
-      errors: [],
-      warnings: [],
-    },
-  });
-
-  assert.equal(result.ok, true);
 });
 
 test('Agent Center Live2D adapter manifest import parser accepts Rust payload shape', () => {

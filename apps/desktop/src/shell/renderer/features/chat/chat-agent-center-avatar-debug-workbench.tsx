@@ -9,13 +9,7 @@ import {
   type GetAvatarDebugSnapshotResponse,
 } from '@nimiplatform/sdk/runtime';
 import type { UseAgentConversationPresentationInput } from './chat-agent-shell-presentation-types';
-import type { AgentCenterAvatarPackageKind } from './chat-agent-center-local-config';
 import type { AgentCenterAvatarPackageModule } from './chat-agent-center-avatar-config-types';
-
-type SelectedAvatarPackage = {
-  kind: AgentCenterAvatarPackageKind;
-  package_id: string;
-} | null;
 
 export type AvatarDebugWorkbenchProbe = {
   kind: AvatarDebugProbeKind;
@@ -42,7 +36,6 @@ type AgentCenterAvatarDebugWorkbenchProps = {
   avatarPackageConfig: AgentCenterAvatarPackageModule | null;
   avatarPackageValid: boolean;
   avatarPackageChecking: boolean;
-  selectedAvatarPackage: SelectedAvatarPackage;
   validationMessage: string | null;
 };
 
@@ -111,7 +104,6 @@ const REQUIRED_EVIDENCE_REF_COUNTS_BY_PROBE_KIND: Partial<Record<AvatarDebugProb
 export function buildAvatarDebugWorkbenchLaunchHealth(input: {
   avatarPackageValid: boolean;
   avatarPackageChecking: boolean;
-  selectedAvatarPackage: SelectedAvatarPackage;
   conversationAnchorId: string | null;
   routeReady: boolean;
 }): AvatarDebugWorkbenchLaunchHealth {
@@ -129,11 +121,11 @@ export function buildAvatarDebugWorkbenchLaunchHealth(input: {
       detail: 'Desktop is validating the current avatar package record.',
     };
   }
-  if (!input.selectedAvatarPackage || !input.avatarPackageValid) {
+  if (!input.avatarPackageValid) {
     return {
       status: 'needs_package',
       label: 'Needs package',
-      detail: 'Import and validate an avatar package before probe execution.',
+      detail: 'Runtime-projected avatar package and backend evidence are required before probe execution.',
     };
   }
   if (!input.routeReady) {
@@ -152,9 +144,8 @@ export function buildAvatarDebugWorkbenchLaunchHealth(input: {
 
 export function buildAvatarDebugWorkbenchDiagnostics(
   config: AgentCenterAvatarPackageModule | null,
-  selectedPackage: SelectedAvatarPackage,
 ): AvatarDebugWorkbenchDiagnostics {
-  const backendKind = selectedPackage?.kind || config?.backend_kind || 'live2d';
+  const backendKind = config?.backend_kind || 'live2d';
   return {
     backendKind,
     packageRefState: config?.avatar_package_ref ? 'linked' : 'missing',
@@ -262,7 +253,7 @@ export async function requestAvatarDebugWorkbenchProbe(input: {
 }
 
 export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWorkbenchProps) {
-  const { input, avatarPackageConfig, avatarPackageValid, avatarPackageChecking, selectedAvatarPackage, validationMessage } = props;
+  const { input, avatarPackageConfig, avatarPackageValid, avatarPackageChecking, validationMessage } = props;
   const [snapshot, setSnapshot] = useState<GetAvatarDebugSnapshotResponse | null>(null);
   const [latestResult, setLatestResult] = useState<AvatarDebugProbeResultEnvelope | null>(null);
   const [latestReplay, setLatestReplay] = useState<AvatarDebugReplayRef | null>(null);
@@ -274,7 +265,6 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
   const launchHealth = useMemo(() => buildAvatarDebugWorkbenchLaunchHealth({
     avatarPackageValid,
     avatarPackageChecking,
-    selectedAvatarPackage,
     conversationAnchorId: input.activeConversationAnchorId,
     routeReady: input.agentRouteReady,
   }), [
@@ -282,11 +272,9 @@ export function AgentCenterAvatarDebugWorkbench(props: AgentCenterAvatarDebugWor
     avatarPackageValid,
     input.activeConversationAnchorId,
     input.agentRouteReady,
-    selectedAvatarPackage,
   ]);
-  const diagnostics = useMemo(() => buildAvatarDebugWorkbenchDiagnostics(avatarPackageConfig, selectedAvatarPackage), [
+  const diagnostics = useMemo(() => buildAvatarDebugWorkbenchDiagnostics(avatarPackageConfig), [
     avatarPackageConfig,
-    selectedAvatarPackage,
   ]);
   const canRequestProbe = Boolean(agentId && conversationAnchorId && launchHealth.status === 'ready');
 

@@ -8,12 +8,6 @@ import {
   RegisterAppResponse,
 } from '@nimiplatform/sdk/runtime/generated/runtime/v1/auth';
 import {
-  ConversationAnchor,
-  ConversationAnchorStatus,
-  GetConversationAnchorSnapshotResponse,
-  OpenConversationAnchorResponse,
-} from '@nimiplatform/sdk/runtime/generated/runtime/v1/agent_service';
-import {
   AuthorizeExternalPrincipalResponse,
 } from '@nimiplatform/sdk/runtime/generated/runtime/v1/grant';
 
@@ -121,38 +115,6 @@ function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
                   policyVersion: '1.0.0',
                   issuedScopeCatalogVersion: '1.0.0',
                   canDelegate: false,
-                })),
-              ).toString('base64'),
-            };
-          }
-          if (methodId === '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor') {
-            return {
-              responseBytesBase64: Buffer.from(
-                OpenConversationAnchorResponse.toBinary(OpenConversationAnchorResponse.create({
-                  snapshot: {
-                    anchor: ConversationAnchor.create({
-                      conversationAnchorId: 'anchor-1',
-                      agentId: 'agent-1',
-                      subjectUserId: 'subject-user',
-                      status: ConversationAnchorStatus.ACTIVE,
-                    }),
-                  },
-                })),
-              ).toString('base64'),
-            };
-          }
-          if (methodId === '/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot') {
-            return {
-              responseBytesBase64: Buffer.from(
-                GetConversationAnchorSnapshotResponse.toBinary(GetConversationAnchorSnapshotResponse.create({
-                  snapshot: {
-                    anchor: ConversationAnchor.create({
-                      conversationAnchorId: 'anchor-1',
-                      agentId: 'agent-1',
-                      subjectUserId: 'subject-user',
-                      status: ConversationAnchorStatus.ACTIVE,
-                    }),
-                  },
                 })),
               ).toString('base64'),
             };
@@ -291,7 +253,7 @@ test('platform runtime call injects bearer token from accessTokenProvider', asyn
       accessTokenProvider: () => 'token-provider-value',
     });
 
-    await getPlatformClient().runtime.model.list({});
+    await getPlatformClient().runtime.connector.listConnectors({} as never);
 
     const unaryCall = calls.find((item) => item.command === 'runtime_bridge_unary');
     assert.ok(unaryCall);
@@ -312,9 +274,9 @@ test('platform runtime call resolves fresh token on each invocation', async () =
       accessTokenProvider: () => currentToken,
     });
 
-    await getPlatformClient().runtime.model.list({});
+    await getPlatformClient().runtime.connector.listConnectors({} as never);
     currentToken = 'token-refreshed';
-    await getPlatformClient().runtime.model.list({});
+    await getPlatformClient().runtime.connector.listConnectors({} as never);
 
     const unaryCalls = calls.filter((item) => item.command === 'runtime_bridge_unary');
     assert.ok(unaryCalls.length >= 2);
@@ -371,7 +333,7 @@ test('platform runtime call omits authorization when token provider returns empt
       accessTokenProvider: () => '',
     });
 
-    await getPlatformClient().runtime.model.list({});
+    await getPlatformClient().runtime.connector.listConnectors({} as never);
 
     const unaryCall = calls.find((item) => item.command === 'runtime_bridge_unary');
     assert.ok(unaryCall);
@@ -508,7 +470,7 @@ test('platform runtime app call injects runtime app session transparently', asyn
   }
 });
 
-test('platform runtime agent anchor call injects runtime app session transparently', async () => {
+test('platform runtime agent anchor call fails closed while method-group admission is deferred', async () => {
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls);
   try {
@@ -519,24 +481,22 @@ test('platform runtime agent anchor call injects runtime app session transparent
       subjectUserIdProvider: () => 'subject-user',
     });
 
-    await getPlatformClient().runtime.agent.anchors.getSnapshot({
-      agentId: 'agent-1',
-      conversationAnchorId: 'anchor-1',
-    });
+    await assert.rejects(
+      () => getPlatformClient().runtime.agent.anchors.getSnapshot({
+        agentId: 'agent-1',
+        conversationAnchorId: 'anchor-1',
+      }),
+      (error: unknown) => {
+        assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_METHOD_UNAVAILABLE');
+        return true;
+      },
+    );
 
     const snapshotCall = findUnaryCallByMethodId(
       calls,
       '/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot',
     );
-    assert.ok(snapshotCall);
-    assert.deepEqual(snapshotCall.payload.appSession, {
-      sessionId: 'runtime-session-id',
-      sessionToken: 'runtime-session-token',
-    });
-    assert.deepEqual(snapshotCall.payload.protectedAccessToken, {
-      tokenId: 'runtime-agent-anchor-token',
-      secret: 'runtime-agent-anchor-secret',
-    });
+    assert.equal(snapshotCall, undefined);
   } finally {
     restoreTauri();
   }

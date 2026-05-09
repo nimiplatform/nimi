@@ -20,18 +20,13 @@ import type {
   AgentCenterGeneratedMotionProviderPolicy,
   AgentCenterLive2dAdapterManifestSource,
 } from './chat-agent-center-avatar-config-types';
-import type { AgentCenterAvatarPackageKind, AgentCenterSelectedAvatarPackage } from './chat-agent-center-local-config';
 
 const NORMALIZED_ID_PATTERN = /^(?=.*[A-Za-z0-9])(?!\.{1,2}$)(?!.*:\/\/)[A-Za-z0-9._~:@+-]{1,256}$/u;
-const PACKAGE_ID_PATTERN = /^(live2d|vrm)_[a-f0-9]{12}$/u;
 const LIVE2D_ADAPTER_MANIFEST_REF_PATTERN = /^live2d_adapter_[a-f0-9]{12}$/u;
 const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/u;
-const PACKAGE_KIND_SET = new Set(['live2d', 'vrm']);
-const SELECTED_PACKAGE_KEYS = ['kind', 'package_id'] as const;
 const AVATAR_CONFIG_PROVENANCE_KEYS = ['source', 'evidence_ref'] as const;
 const AVATAR_PACKAGE_KEYS = [
   'schema_version',
-  'selected_package',
   'conversation_anchor_scope',
   'avatar_package_ref',
   'live2d_adapter_manifest_source',
@@ -44,7 +39,6 @@ const AVATAR_PACKAGE_KEYS = [
   'debug_profile',
   'updated_at',
   'provenance',
-  'last_validated_at',
 ] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -101,28 +95,12 @@ function validateNullableNormalizedId(value: unknown, path: string, errors: stri
   return id;
 }
 
-function validatePackageId(value: unknown, path: string, errors: string[]): string | null {
-  const id = readNullableString(value, path, errors);
-  if (id !== null && !PACKAGE_ID_PATTERN.test(id)) {
-    errors.push(`${path}: invalid package id`);
-  }
-  return id;
-}
-
 function validateLive2dAdapterManifestRef(value: unknown, path: string, errors: string[]): string | null {
   const id = readNullableString(value, path, errors);
   if (id !== null && !LIVE2D_ADAPTER_MANIFEST_REF_PATTERN.test(id)) {
     errors.push(`${path}: invalid Live2D adapter manifest ref`);
   }
   return id;
-}
-
-function validateTimestamp(value: unknown, path: string, errors: string[]): string | null {
-  const timestamp = readNullableString(value, path, errors);
-  if (timestamp !== null && (!ISO_TIMESTAMP_PATTERN.test(timestamp) || Number.isNaN(Date.parse(timestamp)))) {
-    errors.push(`${path}: invalid ISO timestamp`);
-  }
-  return timestamp;
 }
 
 function validateRequiredTimestamp(value: unknown, path: string, errors: string[]): string {
@@ -132,29 +110,6 @@ function validateRequiredTimestamp(value: unknown, path: string, errors: string[
     return '';
   }
   return timestamp;
-}
-
-function validateSelectedPackage(value: unknown, path: string, errors: string[]): AgentCenterSelectedAvatarPackage | null {
-  if (value === null) {
-    return null;
-  }
-  const record = requireRecord(value, path, errors);
-  if (!record) {
-    return null;
-  }
-  collectUnknownKeys(record, SELECTED_PACKAGE_KEYS, path, errors);
-  const kind = readString(record.kind, `${path}.kind`, errors);
-  if (kind && !PACKAGE_KIND_SET.has(kind)) {
-    errors.push(`${path}.kind: invalid package kind`);
-  }
-  const packageId = validatePackageId(record.package_id, `${path}.package_id`, errors);
-  if (kind && packageId && !packageId.startsWith(`${kind}_`)) {
-    errors.push(`${path}.package_id: package id must match kind`);
-  }
-  return {
-    kind: PACKAGE_KIND_SET.has(kind || '') ? kind as AgentCenterAvatarPackageKind : 'live2d',
-    package_id: packageId || '',
-  };
 }
 
 function validateEnum<T extends string>(
@@ -196,7 +151,6 @@ export function validateAvatarPackageModule(value: unknown, errors: string[]): A
   if (record.schema_version !== 1) {
     errors.push(`${path}.schema_version: expected 1`);
   }
-  const selectedPackage = validateSelectedPackage(record.selected_package, `${path}.selected_package`, errors);
   const backendKind = validateEnum<AgentCenterAvatarBackendKind>(
     record.backend_kind,
     `${path}.backend_kind`,
@@ -215,12 +169,6 @@ export function validateAvatarPackageModule(value: unknown, errors: string[]): A
     'invalid Live2D adapter manifest source',
   );
   const manifestRef = validateLive2dAdapterManifestRef(record.live2d_adapter_manifest_ref, `${path}.live2d_adapter_manifest_ref`, errors);
-  if (selectedPackage && backendKind !== selectedPackage.kind) {
-    errors.push(`${path}.backend_kind: backend kind must match selected package kind`);
-  }
-  if (selectedPackage && avatarPackageRef && avatarPackageRef !== selectedPackage.package_id) {
-    errors.push(`${path}.avatar_package_ref: avatar package ref must match selected package id`);
-  }
   if (manifestSource !== 'none' && backendKind !== 'live2d') {
     errors.push(`${path}.live2d_adapter_manifest_source: requires live2d backend`);
   }
@@ -233,7 +181,6 @@ export function validateAvatarPackageModule(value: unknown, errors: string[]): A
 
   return {
     schema_version: 1,
-    selected_package: selectedPackage,
     conversation_anchor_scope: validateEnum<AgentCenterAvatarConversationAnchorScope>(record.conversation_anchor_scope, `${path}.conversation_anchor_scope`, errors, new Set(AVATAR_CONVERSATION_ANCHOR_SCOPE_VALUES), 'current_anchor', 'invalid anchor scope'),
     avatar_package_ref: avatarPackageRef,
     live2d_adapter_manifest_source: manifestSource,
@@ -246,6 +193,5 @@ export function validateAvatarPackageModule(value: unknown, errors: string[]): A
     debug_profile: validateEnum<AgentCenterAvatarDebugProfile>(record.debug_profile, `${path}.debug_profile`, errors, new Set(AVATAR_DEBUG_PROFILE_VALUES), 'standard', 'invalid debug profile'),
     updated_at: validateRequiredTimestamp(record.updated_at, `${path}.updated_at`, errors),
     provenance: validateAvatarConfigProvenance(record.provenance, `${path}.provenance`, errors),
-    last_validated_at: validateTimestamp(record.last_validated_at, `${path}.last_validated_at`, errors),
   };
 }

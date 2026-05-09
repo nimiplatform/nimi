@@ -184,7 +184,7 @@ test('chat unified shell a2: AI and agent hosts reuse canonical transcript/compo
   assert.match(chatAgentPresentationSource, /widthClassName=\{CHAT_CONTENT_WIDTH_CLASS\}/);
   assert.match(chatAgentPresentationSource, /widthPositionClassName=\{CHAT_CONTENT_POSITION_CLASS\}/);
   assert.match(chatAgentPresentationSource, /topContent: schedulingFeedbackNode/);
-  assert.match(chatAgentPresentationSource, /importAgentCenterAvatarPackage/);
+  assert.doesNotMatch(chatAgentPresentationSource, /importAgentCenterAvatarPackage/);
   assert.match(chatAgentPresentationSource, /importAgentCenterBackground/);
   assert.match(chatAgentPresentationSource, /settingsContent:/);
   assert.match(chatAgentPresentationSource, /diagnosticsContent=/);

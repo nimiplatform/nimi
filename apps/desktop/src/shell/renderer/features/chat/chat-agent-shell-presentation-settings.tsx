@@ -14,21 +14,10 @@ import type {
   AgentCenterGeneratedMotionProviderPolicy,
 } from './chat-agent-center-avatar-config-types';
 
-type SelectedAvatarPackage = {
-  kind: 'live2d' | 'vrm';
-  package_id: string;
-} | null;
-
 type MutationLike<TArg = void> = {
   error: unknown;
   isPending: boolean;
   mutate: [TArg] extends [void] ? () => void : (arg: TArg) => void;
-};
-
-type ValidationQueryLike = {
-  data?: {
-    errors?: Array<{ message?: string }>;
-  } | null;
 };
 
 type BackgroundQueryLike = {
@@ -52,16 +41,8 @@ type AgentConversationSettingsContentProps = {
   avatarPackageValid: boolean;
   backgroundValid: boolean;
   avatarPackageChecking: boolean;
-  selectedAvatarPackage: SelectedAvatarPackage;
   avatarPackageConfig: AgentCenterAvatarPackageModule | null;
-  avatarPackageValidationQuery: ValidationQueryLike;
-  avatarImportError: string | null;
-  clearAvatarPackageMutation: MutationLike;
-  avatarImportDisabled: boolean;
-  avatarPackageImportMutation: MutationLike<'live2d' | 'vrm'>;
-  live2dAdapterManifestImportMutation: MutationLike;
   avatarConfigMutation: MutationLike<AgentCenterAvatarConfigPatch>;
-  avatarActionPending: boolean;
   selectedBackgroundAssetId: string | null | undefined;
   backgroundAssetQuery: BackgroundQueryLike;
   backgroundValidation: BackgroundValidation;
@@ -121,16 +102,8 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
     avatarPackageValid,
     backgroundValid,
     avatarPackageChecking,
-    selectedAvatarPackage,
     avatarPackageConfig,
-    avatarPackageValidationQuery,
-    avatarImportError,
-    clearAvatarPackageMutation,
-    avatarImportDisabled,
-    avatarPackageImportMutation,
-    live2dAdapterManifestImportMutation,
     avatarConfigMutation,
-    avatarActionPending,
     selectedBackgroundAssetId,
     backgroundAssetQuery,
     backgroundValidation,
@@ -139,7 +112,7 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
     backgroundImportDisabled,
     backgroundImportMutation,
   } = props;
-  const avatarBackendKind = selectedAvatarPackage?.kind || avatarPackageConfig?.backend_kind || 'live2d';
+  const avatarBackendKind = avatarPackageConfig?.backend_kind || 'live2d';
   const avatarInstancePolicy = avatarPackageConfig?.avatar_instance_policy || 'reuse_active_instance';
   const generatedMotionProviderPolicy = avatarPackageConfig?.generated_motion_provider_policy || 'require_profile_support';
   const avatarLaunchMode = avatarPackageConfig?.launch_mode || 'manual';
@@ -196,11 +169,6 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                       : input.t('Chat.agentCenterNeedsSetup', { defaultValue: 'Needs setup' })}
                 </span>
               </div>
-              {avatarPackageValidationQuery.data?.errors?.[0]?.message ? (
-                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-800">
-                  {avatarPackageValidationQuery.data.errors[0].message}
-                </div>
-              ) : null}
               <div className="mt-3 grid gap-2 text-[11px] leading-4 text-slate-500 sm:grid-cols-2">
                 <div className="rounded-md bg-white px-2.5 py-2">
                   <span className="font-semibold text-slate-700">
@@ -231,83 +199,11 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
                   </span>
                 </div>
               </div>
-              {(avatarImportError
-                || (live2dAdapterManifestImportMutation.error instanceof Error ? live2dAdapterManifestImportMutation.error.message : null)
-                || (clearAvatarPackageMutation.error instanceof Error ? clearAvatarPackageMutation.error.message : null)) ? (
-                <div className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] leading-4 text-rose-700">
-                  {avatarImportError
-                    || (live2dAdapterManifestImportMutation.error instanceof Error ? live2dAdapterManifestImportMutation.error.message : null)
-                    || (clearAvatarPackageMutation.error instanceof Error ? clearAvatarPackageMutation.error.message : null)}
-                </div>
-              ) : null}
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                disabled={avatarImportDisabled}
-                onClick={() => avatarPackageImportMutation.mutate('live2d')}
-                className="group flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 bg-white/70 px-3 py-3 text-center text-xs font-semibold text-slate-700 transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-emerald-400 hover:bg-emerald-50/60 hover:text-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.08)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:border-slate-300 disabled:hover:bg-white/70 disabled:hover:text-slate-700 disabled:hover:shadow-none"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-400 transition-colors group-hover:text-emerald-500">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                <span>
-                  {avatarPackageImportMutation.isPending
-                    ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing…' })
-                    : input.t('Chat.agentCenterImportLive2d', { defaultValue: 'Import Live2D folder' })}
-                </span>
-              </button>
-              <button
-                type="button"
-                disabled={avatarImportDisabled}
-                onClick={() => avatarPackageImportMutation.mutate('vrm')}
-                className="group flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 bg-white/70 px-3 py-3 text-center text-xs font-semibold text-slate-700 transition-all duration-200 ease-out hover:-translate-y-[1px] hover:border-emerald-400 hover:bg-emerald-50/60 hover:text-emerald-700 hover:shadow-[0_8px_20px_rgba(16,185,129,0.08)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:border-slate-300 disabled:hover:bg-white/70 disabled:hover:text-slate-700 disabled:hover:shadow-none"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-400 transition-colors group-hover:text-emerald-500">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                <span>
-                  {avatarPackageImportMutation.isPending
-                    ? input.t('Chat.agentCenterAvatarImporting', { defaultValue: 'Importing…' })
-                    : input.t('Chat.agentCenterImportVrm', { defaultValue: 'Import VRM file' })}
-                </span>
-              </button>
-            </div>
-            {selectedAvatarPackage ? (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {selectedAvatarPackage.kind === 'live2d' ? (
-                  <button
-                    type="button"
-                    disabled={live2dAdapterManifestImportMutation.isPending || avatarActionPending || !hasTauriInvoke()}
-                    onClick={() => live2dAdapterManifestImportMutation.mutate()}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
-                  >
-                    {live2dAdapterManifestImportMutation.isPending
-                      ? input.t('Chat.agentCenterLive2dAdapterImporting', { defaultValue: 'Importing sidecar…' })
-                      : input.t('Chat.agentCenterImportLive2dAdapterManifest', { defaultValue: 'Import Live2D adapter sidecar' })}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  disabled={clearAvatarPackageMutation.isPending || avatarActionPending}
-                  onClick={() => clearAvatarPackageMutation.mutate()}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-semibold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55"
-                >
-                  {clearAvatarPackageMutation.isPending
-                    ? input.t('Chat.agentCenterAvatarClearing', { defaultValue: 'Clearing…' })
-                    : input.t('Chat.agentCenterClearAvatarSelection', { defaultValue: 'Remove avatar package' })}
-                </button>
-              </div>
-            ) : null}
             <div className="grid gap-2 sm:grid-cols-2">
               {renderOptionSelect<'live2d' | 'vrm' | 'future'>({
                 label: input.t('Chat.agentCenterAvatarBackendKind', { defaultValue: 'Backend kind' }),
                 value: avatarBackendKind,
-                disabled: Boolean(selectedAvatarPackage),
                 options: [
                   { value: 'live2d', label: 'Live2D' },
                   { value: 'vrm', label: 'VRM' },
@@ -366,14 +262,8 @@ export function AgentConversationSettingsContent(props: AgentConversationSetting
               avatarPackageConfig={avatarPackageConfig}
               avatarPackageValid={avatarPackageValid}
               avatarPackageChecking={avatarPackageChecking}
-              selectedAvatarPackage={selectedAvatarPackage}
-              validationMessage={avatarPackageValidationQuery.data?.errors?.[0]?.message || null}
+              validationMessage={null}
             />
-            {!hasTauriInvoke() ? (
-              <div className="text-[11px] leading-4 text-slate-500">
-                {input.t('Chat.agentCenterAvatarImportDesktopOnly', { defaultValue: 'Avatar package import is available in the desktop app.' })}
-              </div>
-            ) : null}
           </div>
         )}
         localAppearanceContent={(

@@ -25,10 +25,6 @@ export function useAgentCenterAvatarConfigMutation(input: UseAgentConversationPr
           evidence_ref: 'agent-center-avatar-settings',
         },
       };
-      if (nextAvatarPackage.selected_package) {
-        nextAvatarPackage.backend_kind = nextAvatarPackage.selected_package.kind;
-        nextAvatarPackage.avatar_package_ref = nextAvatarPackage.selected_package.package_id;
-      }
       if (nextAvatarPackage.backend_kind !== 'live2d') {
         nextAvatarPackage.live2d_adapter_manifest_source = 'none';
         nextAvatarPackage.live2d_adapter_manifest_ref = null;

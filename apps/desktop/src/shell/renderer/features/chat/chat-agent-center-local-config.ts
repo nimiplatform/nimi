@@ -37,11 +37,6 @@ export type AgentCenterLocalConfigSectionId =
 
 export type AgentCenterAvatarPackageKind = 'live2d' | 'vrm';
 
-export type AgentCenterSelectedAvatarPackage = {
-  kind: AgentCenterAvatarPackageKind;
-  package_id: string;
-};
-
 export type AgentCenterAppearanceModule = {
   schema_version: 1;
   background_asset_id: string | null;
@@ -75,15 +70,6 @@ export type AgentCenterLocalConfigValidationResult =
   | { ok: true; config: AgentCenterLocalConfig }
   | { ok: false; errors: string[] };
 
-export type AgentCenterAvatarPackageValidationStatus =
-  | 'valid'
-  | 'invalid_manifest'
-  | 'missing_files'
-  | 'permission_denied'
-  | 'path_rejected'
-  | 'unsupported_kind'
-  | 'package_missing';
-
 export type AgentCenterValidationIssueSeverity = 'error' | 'warning';
 
 export type AgentCenterValidationIssue = {
@@ -92,30 +78,6 @@ export type AgentCenterValidationIssue = {
   path: string | null;
   severity: AgentCenterValidationIssueSeverity;
 };
-
-export type AgentCenterAvatarPackageValidationResult = {
-  schema_version: 1;
-  package_id: string;
-  checked_at: string;
-  status: AgentCenterAvatarPackageValidationStatus;
-  errors: AgentCenterValidationIssue[];
-  warnings: AgentCenterValidationIssue[];
-};
-
-export type AgentCenterAvatarPackageValidationParseResult =
-  | { ok: true; result: AgentCenterAvatarPackageValidationResult }
-  | { ok: false; errors: string[] };
-
-export type AgentCenterAvatarPackageImportResult = {
-  package_id: string;
-  kind: AgentCenterAvatarPackageKind;
-  selected: boolean;
-  validation: AgentCenterAvatarPackageValidationResult;
-};
-
-export type AgentCenterAvatarPackageImportParseResult =
-  | { ok: true; result: AgentCenterAvatarPackageImportResult }
-  | { ok: false; errors: string[] };
 
 export type AgentCenterLive2dAdapterManifestImportResult = {
   manifest_ref: string;
@@ -199,17 +161,7 @@ const LOCAL_HISTORY_KEYS = ['schema_version', 'last_cleared_at'] as const;
 const UI_KEYS = ['schema_version', 'last_section'] as const;
 
 const MOTION_VALUES = new Set(['system', 'reduced', 'full']);
-const PACKAGE_KIND_VALUES = new Set(['live2d', 'vrm']);
 const SECTION_VALUES = new Set(['overview', 'appearance', 'chat_behavior', 'model', 'cognition', 'advanced']);
-const VALIDATION_STATUS_VALUES = new Set([
-  'valid',
-  'invalid_manifest',
-  'missing_files',
-  'permission_denied',
-  'path_rejected',
-  'unsupported_kind',
-  'package_missing',
-]);
 const VALIDATION_SEVERITY_VALUES = new Set(['error', 'warning']);
 const BACKGROUND_VALIDATION_STATUS_VALUES = new Set([
   'valid',
@@ -447,80 +399,6 @@ function validateValidationIssues(value: unknown, path: string, errors: string[]
     return [];
   }
   return value.map((item, index) => validateValidationIssue(item, `${path}.${index}`, errors));
-}
-
-export function validateAgentCenterAvatarPackageValidationResult(
-  value: unknown,
-): AgentCenterAvatarPackageValidationParseResult {
-  const errors: string[] = [];
-  const root = requireRecord(value, 'validation', errors);
-  if (!root) {
-    return { ok: false, errors };
-  }
-
-  collectUnknownKeys(root, ['schema_version', 'package_id', 'checked_at', 'status', 'errors', 'warnings'], 'validation', errors);
-  requireSchemaVersion(root, 'validation', errors);
-  const packageId = validatePackageId(root.package_id, 'validation.package_id', errors) || '';
-  const checkedAt = validateTimestamp(root.checked_at, 'validation.checked_at', errors) || '';
-  const status = readString(root.status, 'validation.status', errors);
-  if (status && !VALIDATION_STATUS_VALUES.has(status)) {
-    errors.push('validation.status: invalid status');
-  }
-  const validationErrors = validateValidationIssues(root.errors, 'validation.errors', errors);
-  const warnings = validateValidationIssues(root.warnings, 'validation.warnings', errors);
-
-  if (errors.length > 0) {
-    return { ok: false, errors };
-  }
-  return {
-    ok: true,
-    result: {
-      schema_version: 1,
-      package_id: packageId,
-      checked_at: checkedAt,
-      status: status as AgentCenterAvatarPackageValidationStatus,
-      errors: validationErrors,
-      warnings,
-    },
-  };
-}
-
-export function validateAgentCenterAvatarPackageImportResult(
-  value: unknown,
-): AgentCenterAvatarPackageImportParseResult {
-  const errors: string[] = [];
-  const root = requireRecord(value, 'importResult', errors);
-  if (!root) {
-    return { ok: false, errors };
-  }
-  collectUnknownKeys(root, ['package_id', 'kind', 'selected', 'validation'], 'importResult', errors);
-  const packageId = validatePackageId(root.package_id, 'importResult.package_id', errors) || '';
-  const kind = readString(root.kind, 'importResult.kind', errors);
-  if (kind && !PACKAGE_KIND_VALUES.has(kind)) {
-    errors.push('importResult.kind: invalid package kind');
-  }
-  if (kind && packageId && !packageId.startsWith(`${kind}_`)) {
-    errors.push('importResult.package_id: package id must match kind');
-  }
-  if (typeof root.selected !== 'boolean') {
-    errors.push('importResult.selected: expected boolean');
-  }
-  const validation = validateAgentCenterAvatarPackageValidationResult(root.validation);
-  if (!validation.ok) {
-    errors.push(...validation.errors.map((error) => `importResult.${error}`));
-  }
-  if (errors.length > 0 || !validation.ok) {
-    return { ok: false, errors };
-  }
-  return {
-    ok: true,
-    result: {
-      package_id: packageId,
-      kind: kind as AgentCenterAvatarPackageKind,
-      selected: root.selected as boolean,
-      validation: validation.result,
-    },
-  };
 }
 
 export function validateAgentCenterLive2dAdapterManifestImportResult(

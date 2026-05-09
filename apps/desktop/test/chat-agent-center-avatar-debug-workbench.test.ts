@@ -23,7 +23,6 @@ import type { AgentCenterAvatarPackageModule } from '../src/shell/renderer/featu
 function buildConfig(overrides: Partial<AgentCenterAvatarPackageModule> = {}): AgentCenterAvatarPackageModule {
   return {
     schema_version: 1,
-    selected_package: { kind: 'vrm', package_id: 'pkg-vrm-1' },
     conversation_anchor_scope: 'current_anchor',
     avatar_package_ref: 'avatar-package:pkg-vrm-1',
     live2d_adapter_manifest_source: 'none',
@@ -39,7 +38,6 @@ function buildConfig(overrides: Partial<AgentCenterAvatarPackageModule> = {}): A
       source: 'runtime_projection',
       evidence_ref: 'runtime-agent-avatar-config',
     },
-    last_validated_at: '2026-05-01T00:00:00.000Z',
     ...overrides,
   };
 }
@@ -72,7 +70,6 @@ test('avatar debug workbench launch health is fail-closed before typed Runtime p
   assert.equal(buildAvatarDebugWorkbenchLaunchHealth({
     avatarPackageValid: true,
     avatarPackageChecking: false,
-    selectedAvatarPackage: { kind: 'vrm', package_id: 'pkg-vrm-1' },
     conversationAnchorId: null,
     routeReady: true,
   }).status, 'needs_anchor');
@@ -80,7 +77,6 @@ test('avatar debug workbench launch health is fail-closed before typed Runtime p
   assert.equal(buildAvatarDebugWorkbenchLaunchHealth({
     avatarPackageValid: false,
     avatarPackageChecking: false,
-    selectedAvatarPackage: null,
     conversationAnchorId: 'anchor-1',
     routeReady: true,
   }).status, 'needs_package');
@@ -88,14 +84,13 @@ test('avatar debug workbench launch health is fail-closed before typed Runtime p
   assert.equal(buildAvatarDebugWorkbenchLaunchHealth({
     avatarPackageValid: true,
     avatarPackageChecking: false,
-    selectedAvatarPackage: { kind: 'vrm', package_id: 'pkg-vrm-1' },
     conversationAnchorId: 'anchor-1',
     routeReady: false,
   }).status, 'runtime_unavailable');
 });
 
 test('avatar debug workbench diagnostics treats package/profile refs as opaque control state', () => {
-  assert.deepEqual(buildAvatarDebugWorkbenchDiagnostics(buildConfig(), { kind: 'vrm', package_id: 'pkg-vrm-1' }), {
+  assert.deepEqual(buildAvatarDebugWorkbenchDiagnostics(buildConfig()), {
     backendKind: 'vrm',
     packageRefState: 'linked',
     profileRefState: 'linked',
@@ -106,7 +101,7 @@ test('avatar debug workbench diagnostics treats package/profile refs as opaque c
   assert.deepEqual(buildAvatarDebugWorkbenchDiagnostics(buildConfig({
     avatar_package_ref: null,
     backend_capability_profile_ref: null,
-  }), { kind: 'vrm', package_id: 'pkg-vrm-1' }), {
+  })), {
     backendKind: 'vrm',
     packageRefState: 'missing',
     profileRefState: 'pending',

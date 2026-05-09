@@ -32,8 +32,10 @@ test('Agent Chat Settings Avatar surface exposes closed configuration controls',
 
   assert.match(presentationSource, /useAgentCenterAvatarConfigMutation/u);
   assert.match(mutationSource, /putAgentCenterLocalConfig/u);
-  assert.match(mutationSource, /nextAvatarPackage\.backend_kind = nextAvatarPackage\.selected_package\.kind/u);
-  assert.match(mutationSource, /nextAvatarPackage\.avatar_package_ref = nextAvatarPackage\.selected_package\.package_id/u);
+  assert.doesNotMatch(mutationSource, /selected_package/u);
+  assert.doesNotMatch(mutationSource, /last_validated_at/u);
+  assert.doesNotMatch(presentationSource, /importAgentCenterAvatarPackage/u);
+  assert.doesNotMatch(presentationSource, /validateAgentCenterAvatarPackage/u);
 });
 
 test('Agent Chat Settings Avatar surface does not widen Avatar launch handoff', () => {
@@ -47,4 +49,27 @@ test('Agent Chat Settings Avatar surface does not widen Avatar launch handoff', 
   assert.match(launchCall[0], /avatarInstanceId/u);
   assert.match(launchCall[0], /sourceSurface/u);
   assert.doesNotMatch(launchCall[0], /package|descriptor|path|profile|token|account|realm|binding|carrier/u);
+});
+
+test('Agent Chat composer Avatar launch fails closed without package and backend evidence', () => {
+  const presentationSource = readFileSync(
+    join(repoRoot, 'src/shell/renderer/features/chat/chat-agent-shell-presentation.tsx'),
+    'utf8',
+  );
+  const actionState = presentationSource.match(/const avatarComposerActionState = avatarActionPending[\s\S]*?: 'ready_stopped';/u);
+  assert.ok(actionState, 'avatarComposerActionState must stay visible to the guard');
+  assert.match(actionState[0], /!avatarConfigured/u);
+  assert.match(actionState[0], /'not_configured'/u);
+  assert.match(actionState[0], /!avatarPackageValid/u);
+  assert.match(actionState[0], /'package_invalid'/u);
+
+  const invalidEvidenceGuard = presentationSource.match(/if \(!avatarRunning && !avatarPackageValid\) \{[\s\S]*?\n {4}\}/u);
+  assert.ok(invalidEvidenceGuard, 'Avatar launch must guard resolver and backend evidence before handoff');
+  assert.match(invalidEvidenceGuard[0], /input\.onOpenAgentCenter\?\.\(\)/u);
+  assert.match(invalidEvidenceGuard[0], /Chat\.agentCenterAvatarStartBackendEvidenceRequired/u);
+  assert.match(invalidEvidenceGuard[0], /Chat\.agentCenterAvatarStartPackageEvidenceRequired/u);
+
+  const guardIndex = presentationSource.indexOf('if (!avatarRunning && !avatarPackageValid)');
+  const launchIndex = presentationSource.indexOf('launchDesktopAvatarHandoff({');
+  assert.ok(guardIndex >= 0 && launchIndex >= 0 && guardIndex < launchIndex);
 });

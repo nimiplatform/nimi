@@ -12,7 +12,7 @@ import {
   vendorToProvider,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service';
 import { createPlatformClient } from '@nimiplatform/sdk';
-import { GetAccessTokenResponse, RegisterAppResponse, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
+import { RegisterAppResponse, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 
 const CONNECTOR_SERVICE_SOURCE = readFileSync(
   resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.ts'),
@@ -60,7 +60,6 @@ function unwrapPayload(payload: unknown): Record<string, unknown> {
 
 function installTauriRuntime(
   calls: TauriInvokeCall[],
-  accessTokenProvider: () => string = () => 'runtime-account-access-token',
 ): () => void {
   const target = globalThis as MutableGlobalTauri;
   const previousRoot = target.__NIMI_TAURI_TEST__;
@@ -73,19 +72,6 @@ function installTauriRuntime(
           command,
           payload: unwrapped,
         });
-        if (
-          command === 'runtime_bridge_unary'
-          && unwrapped.methodId === '/nimi.runtime.v1.RuntimeAccountService/GetAccessToken'
-        ) {
-          return {
-            responseBytesBase64: Buffer.from(
-              GetAccessTokenResponse.toBinary(GetAccessTokenResponse.create({
-                accepted: true,
-                accessToken: accessTokenProvider(),
-              })),
-            ).toString('base64'),
-          };
-        }
         if (
           command === 'runtime_bridge_unary'
           && unwrapped.methodId === '/nimi.runtime.v1.RuntimeAuthService/RegisterApp'
@@ -344,11 +330,12 @@ test('listConnectorAuthOptionsForProvider exposes admitted oauth-managed options
 test('sdkCreateConnector runtime calls include auto authorization and pick refreshed token', async () => {
   const calls: TauriInvokeCall[] = [];
   let token = 'connector-token-1';
-  const restoreTauri = installTauriRuntime(calls, () => token);
+  const restoreTauri = installTauriRuntime(calls);
   try {
     await createPlatformClient({
-      authMode: 'local-first-party-runtime',
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => token,
     });
 
     await sdkCreateConnector({
@@ -382,11 +369,12 @@ test('sdkCreateConnector runtime calls include auto authorization and pick refre
 
 test('sdkListConnectors retries read-only connector discovery without stale bearer authorization', async () => {
   const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls, () => 'stale-realm-token');
+  const restoreTauri = installTauriRuntime(calls);
   try {
     await createPlatformClient({
-      authMode: 'local-first-party-runtime',
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => 'stale-realm-token',
     });
 
     const targetMethods = new Set([
@@ -403,19 +391,6 @@ test('sdkListConnectors retries read-only connector discovery without stale bear
         const unwrapped = unwrapPayload(payload);
         calls.push({ command, payload: unwrapped });
         const methodId = String(unwrapped.methodId || '');
-        if (
-          command === 'runtime_bridge_unary'
-          && methodId === '/nimi.runtime.v1.RuntimeAccountService/GetAccessToken'
-        ) {
-          return {
-            responseBytesBase64: Buffer.from(
-              GetAccessTokenResponse.toBinary(GetAccessTokenResponse.create({
-                accepted: true,
-                accessToken: 'stale-realm-token',
-              })),
-            ).toString('base64'),
-          };
-        }
         if (
           command === 'runtime_bridge_unary'
           && targetMethods.has(methodId)
@@ -457,11 +432,12 @@ test('sdkListConnectors retries read-only connector discovery without stale bear
 
 test('sdkCreateConnector emits oauth-managed payload when selected auth shape requires it', async () => {
   const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls, () => 'connector-token-oauth');
+  const restoreTauri = installTauriRuntime(calls);
   try {
     await createPlatformClient({
-      authMode: 'local-first-party-runtime',
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => 'connector-token-oauth',
     });
 
     await sdkCreateConnector({
@@ -492,11 +468,12 @@ test('sdkCreateConnector emits oauth-managed payload when selected auth shape re
 
 test('sdkCreateConnector preserves explicit credentialJson for oauth-managed providers', async () => {
   const calls: TauriInvokeCall[] = [];
-  const restoreTauri = installTauriRuntime(calls, () => 'connector-token-oauth');
+  const restoreTauri = installTauriRuntime(calls);
   try {
     await createPlatformClient({
-      authMode: 'local-first-party-runtime',
+      authMode: 'external-principal',
       realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => 'connector-token-oauth',
     });
 
     await sdkCreateConnector({

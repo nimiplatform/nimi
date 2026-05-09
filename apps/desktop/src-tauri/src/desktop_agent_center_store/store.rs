@@ -101,22 +101,6 @@ pub(super) fn validate_background_id(value: &str, field_name: &str) -> Result<()
     validate_hex_suffix(value, "bg_", field_name)
 }
 
-fn avatar_kind_prefix(kind: AgentCenterAvatarPackageKind) -> &'static str {
-    match kind {
-        AgentCenterAvatarPackageKind::Live2d => "live2d_",
-        AgentCenterAvatarPackageKind::Vrm => "vrm_",
-    }
-}
-
-pub(super) fn avatar_backend_kind_for_package(
-    kind: AgentCenterAvatarPackageKind,
-) -> AgentCenterAvatarBackendKind {
-    match kind {
-        AgentCenterAvatarPackageKind::Live2d => AgentCenterAvatarBackendKind::Live2d,
-        AgentCenterAvatarPackageKind::Vrm => AgentCenterAvatarBackendKind::Vrm,
-    }
-}
-
 pub(super) fn validate_package_id(value: &str, field_name: &str) -> Result<(), String> {
     if value.starts_with("live2d_") {
         return validate_hex_suffix(value, "live2d_", field_name);
@@ -177,33 +161,7 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
         config.modules.avatar_package.schema_version,
         "modules.avatar_package.schema_version",
     )?;
-    if let Some(selected) = &config.modules.avatar_package.selected_package {
-        validate_package_id(
-            &selected.package_id,
-            "modules.avatar_package.selected_package.package_id",
-        )?;
-        let prefix = avatar_kind_prefix(selected.kind);
-        if !selected.package_id.starts_with(prefix) {
-            return Err(
-                "modules.avatar_package.selected_package.package_id must match kind".to_string(),
-            );
-        }
-        if config.modules.avatar_package.backend_kind
-            != avatar_backend_kind_for_package(selected.kind)
-        {
-            return Err(
-                "modules.avatar_package.backend_kind must match selected package kind".to_string(),
-            );
-        }
-        if config.modules.avatar_package.avatar_package_ref.as_deref()
-            != Some(selected.package_id.as_str())
-        {
-            return Err(
-                "modules.avatar_package.avatar_package_ref must match selected package id"
-                    .to_string(),
-            );
-        }
-    } else if let Some(package_ref) = &config.modules.avatar_package.avatar_package_ref {
+    if let Some(package_ref) = &config.modules.avatar_package.avatar_package_ref {
         validate_normalized_id(package_ref, "modules.avatar_package.avatar_package_ref")?;
     }
     match config.modules.avatar_package.live2d_adapter_manifest_source {
@@ -273,11 +231,6 @@ fn validate_agent_center_config(config: &AgentCenterLocalConfig) -> Result<(), S
         &config.modules.avatar_package.provenance.evidence_ref,
         "modules.avatar_package.provenance.evidence_ref",
     )?;
-    validate_optional_timestamp(
-        config.modules.avatar_package.last_validated_at.as_ref(),
-        "modules.avatar_package.last_validated_at",
-    )?;
-
     validate_module_version(
         config.modules.local_history.schema_version,
         "modules.local_history.schema_version",
@@ -308,7 +261,6 @@ fn default_config(account_id: String, agent_id: String) -> AgentCenterLocalConfi
             },
             avatar_package: AgentCenterAvatarPackageModule {
                 schema_version: AGENT_CENTER_CONFIG_SCHEMA_VERSION,
-                selected_package: None,
                 conversation_anchor_scope: AgentCenterAvatarConversationAnchorScope::CurrentAnchor,
                 avatar_package_ref: None,
                 live2d_adapter_manifest_source: AgentCenterLive2dAdapterManifestSource::None,
@@ -325,7 +277,6 @@ fn default_config(account_id: String, agent_id: String) -> AgentCenterLocalConfi
                     source: AgentCenterAvatarConfigProvenanceSource::RuntimeProjection,
                     evidence_ref: "agent-center-avatar-config-default".to_string(),
                 },
-                last_validated_at: None,
             },
             local_history: AgentCenterLocalHistoryModule {
                 schema_version: AGENT_CENTER_CONFIG_SCHEMA_VERSION,

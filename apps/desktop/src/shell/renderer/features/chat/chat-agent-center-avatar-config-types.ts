@@ -1,4 +1,4 @@
-import type { AgentCenterAvatarPackageKind, AgentCenterSelectedAvatarPackage } from './chat-agent-center-local-config';
+import type { AgentCenterAvatarPackageKind } from './chat-agent-center-local-config';
 
 export type AgentCenterAvatarBackendKind = AgentCenterAvatarPackageKind | 'future';
 export type AgentCenterAvatarConversationAnchorScope = 'current_anchor' | 'explicit_debug_anchor' | 'no_anchor';
@@ -20,7 +20,6 @@ export type AgentCenterAvatarConfigProvenance = {
 
 export type AgentCenterAvatarPackageModule = {
   schema_version: 1;
-  selected_package: AgentCenterSelectedAvatarPackage | null;
   conversation_anchor_scope: AgentCenterAvatarConversationAnchorScope;
   avatar_package_ref: string | null;
   live2d_adapter_manifest_source: AgentCenterLive2dAdapterManifestSource;
@@ -33,7 +32,6 @@ export type AgentCenterAvatarPackageModule = {
   debug_profile: AgentCenterAvatarDebugProfile;
   updated_at: string;
   provenance: AgentCenterAvatarConfigProvenance;
-  last_validated_at: string | null;
 };
 
 export type AgentCenterAvatarConfigPatch = Partial<Pick<
@@ -57,7 +55,6 @@ export const AVATAR_CONFIG_PROVENANCE_SOURCE_VALUES = ['user_selection', 'import
 export function createDefaultAgentCenterAvatarPackageModule(): AgentCenterAvatarPackageModule {
   return {
     schema_version: 1,
-    selected_package: null,
     conversation_anchor_scope: 'current_anchor',
     avatar_package_ref: null,
     live2d_adapter_manifest_source: 'none',
@@ -73,6 +70,5 @@ export function createDefaultAgentCenterAvatarPackageModule(): AgentCenterAvatar
       source: 'runtime_projection',
       evidence_ref: 'agent-center-avatar-config-default',
     },
-    last_validated_at: null,
   };
 }

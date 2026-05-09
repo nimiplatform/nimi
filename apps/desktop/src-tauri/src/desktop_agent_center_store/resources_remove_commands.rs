@@ -13,7 +13,7 @@ pub(crate) fn desktop_agent_center_avatar_package_remove(
     {
         return Err("packageId must match kind".to_string());
     }
-    clear_selected_avatar_package(&account_id, &agent_id, payload.kind, &payload.package_id)?;
+    clear_selected_avatar_package(&account_id, &agent_id, &payload.package_id)?;
     let source = package_dir(&account_id, &agent_id, payload.kind, &payload.package_id)?;
     let destination = quarantine_path(
         &account_id,
