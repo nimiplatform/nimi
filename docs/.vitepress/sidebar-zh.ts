@@ -32,6 +32,9 @@ export const sidebarZh: DefaultTheme.Sidebar = {
         { text: '协议（六个基础协议）', link: '/zh/platform/protocol' },
         { text: '权威模型', link: '/zh/platform/authority-model' },
         { text: 'AI 最后一公里', link: '/zh/platform/ai-last-mile' },
+        { text: 'AI 范围身份', link: '/zh/platform/ai-scope-identity' },
+        { text: '执行协议', link: '/zh/platform/execution-protocol' },
+        { text: '路线图', link: '/zh/platform/roadmap' },
         { text: '治理', link: '/zh/platform/governance' },
       ],
     },
@@ -43,6 +46,7 @@ export const sidebarZh: DefaultTheme.Sidebar = {
         { text: 'OASIS', link: '/zh/platform/worlds/oasis' },
         { text: '世界生命周期', link: '/zh/platform/worlds/lifecycle' },
         { text: '世界演化引擎', link: '/zh/platform/worlds/world-evolution-engine' },
+        { text: 'WEE 执行', link: '/zh/platform/worlds/wee-execution' },
       ],
     },
     {
@@ -52,6 +56,8 @@ export const sidebarZh: DefaultTheme.Sidebar = {
         { text: '四层结构', link: '/zh/platform/agents/the-four-layers' },
         { text: 'Chat 与 Life 双轨', link: '/zh/platform/agents/chat-and-life-tracks' },
         { text: '对话锚点', link: '/zh/platform/agents/conversation-anchor' },
+        { text: '跨表面连续性', link: '/zh/platform/agents/cross-surface-continuity' },
+        { text: '参与权限', link: '/zh/platform/agents/participation-authority' },
         { text: '跨世界身份', link: '/zh/platform/agents/cross-world-identity' },
         { text: '外部 Agent', link: '/zh/platform/agents/external-agents' },
         { text: 'Hook Intent', link: '/zh/platform/agents/hook-intent' },
@@ -64,6 +70,14 @@ export const sidebarZh: DefaultTheme.Sidebar = {
         { text: 'Realm 与 Runtime 是同侪', link: '/zh/platform/architecture/realm-runtime-siblings' },
         { text: '本地优先 + 联邦', link: '/zh/platform/architecture/local-first-with-federation' },
         { text: '跨域产品故事', link: '/zh/platform/architecture/cross-domain-product-stories' },
+      ],
+    },
+    {
+      text: 'Kit',
+      items: [
+        { text: '平台 Kit', link: '/zh/platform/kit/' },
+        { text: '设计模式', link: '/zh/platform/kit/design-pattern' },
+        { text: 'Nimi UI Material', link: '/zh/platform/kit/nimi-ui-material' },
       ],
     },
     {
@@ -96,13 +110,23 @@ export const sidebarZh: DefaultTheme.Sidebar = {
       items: [
         { text: 'Workflows', link: '/zh/runtime/workflows' },
         { text: '流式', link: '/zh/runtime/streaming' },
+        { text: '流式协议', link: '/zh/runtime/streaming-protocol' },
         { text: '多模态', link: '/zh/runtime/multimodal' },
+        { text: '语音资产生命周期', link: '/zh/runtime/voice-asset-lifecycle' },
+        { text: 'MCP 集成', link: '/zh/runtime/mcp-integration' },
       ],
     },
     {
       text: 'Agent 与记忆',
       items: [
         { text: 'Agent 执行', link: '/zh/runtime/agent-execution' },
+        { text: 'Agent 呈现流', link: '/zh/runtime/presentation-stream' },
+        { text: '账户与会话', link: '/zh/runtime/account-and-session' },
+        { text: '认证令牌验证', link: '/zh/runtime/auth-token-validation' },
+        { text: 'AI Profile 执行', link: '/zh/runtime/ai-profile-execution' },
+        { text: '密钥源路由', link: '/zh/runtime/key-source-routing' },
+        { text: 'Runtime 配置', link: '/zh/runtime/config-contract' },
+        { text: '应用消息', link: '/zh/runtime/app-messaging' },
         { text: '记忆与知识', link: '/zh/runtime/memory-and-knowledge' },
       ],
     },
@@ -142,6 +166,19 @@ export const sidebarZh: DefaultTheme.Sidebar = {
       ],
     },
     {
+      text: 'Client APIs',
+      items: [
+        { text: 'Agent 参与客户端', link: '/zh/sdk/agent-participation-client' },
+        { text: 'Avatar 控制客户端', link: '/zh/sdk/avatar-control-client' },
+        { text: '委派客户端', link: '/zh/sdk/delegation-client' },
+        { text: '本地环境投影', link: '/zh/sdk/local-environment-projection' },
+        { text: 'AI 配置界面', link: '/zh/sdk/ai-config-surface' },
+        { text: 'WEE 投影', link: '/zh/sdk/wee-projection' },
+        { text: 'WEE 消费者', link: '/zh/sdk/wee-consumer' },
+        { text: '传输与错误', link: '/zh/sdk/transport-and-error' },
+      ],
+    },
+    {
       text: '相关',
       items: [
         { text: 'Runtime', link: '/zh/runtime/' },
@@ -162,6 +199,7 @@ export const sidebarZh: DefaultTheme.Sidebar = {
     {
       text: '用户界面',
       items: [
+        { text: '聊天', link: '/zh/desktop/chat' },
         { text: 'Agent Avatar（聊天界面）', link: '/zh/desktop/agent-avatar' },
         { text: '语音会话', link: '/zh/desktop/voice-session' },
         { text: '对话能力', link: '/zh/desktop/conversation-capability' },
@@ -231,6 +269,7 @@ export const sidebarZh: DefaultTheme.Sidebar = {
       text: '创作者与 App',
       items: [
         { text: '创作者经济', link: '/zh/realm/creator-economy' },
+        { text: '创作者收益', link: '/zh/realm/creator-payouts' },
         { text: 'App 互联', link: '/zh/realm/app-interconnect' },
       ],
     },
@@ -251,21 +290,34 @@ export const sidebarZh: DefaultTheme.Sidebar = {
       items: [
         { text: '总览', link: '/zh/avatar/' },
         { text: 'Nimi Avatar (App)', link: '/zh/avatar/nimi-avatar' },
+        { text: '宿主无关架构', link: '/zh/avatar/host-agnostic-architecture' },
+        { text: '实例生命周期', link: '/zh/avatar/instance-lifecycle' },
       ],
     },
     {
       text: '具身化',
       items: [
         { text: '具身化呈现', link: '/zh/avatar/embodiment-projection' },
-        { text: '载体视觉接受度', link: '/zh/avatar/carrier-acceptance' },
         { text: '后端分支', link: '/zh/avatar/backend-branches' },
+        { text: 'Live2D 集成', link: '/zh/avatar/live2d-integration' },
+        { text: '生成式动作提供器', link: '/zh/avatar/generated-motion-provider' },
+        { text: '载体视觉接受度', link: '/zh/avatar/carrier-acceptance' },
+        { text: '视觉接受度', link: '/zh/avatar/visual-acceptance' },
       ],
     },
     {
       text: '脚本',
       items: [
         { text: 'Agent Script (NAS)', link: '/zh/avatar/agent-script' },
+        { text: 'NAS 处理器编写', link: '/zh/avatar/nas-handler-authoring' },
         { text: 'Avatar 事件', link: '/zh/avatar/avatar-events' },
+      ],
+    },
+    {
+      text: '工具',
+      items: [
+        { text: '测试夹具', link: '/zh/avatar/test-fixtures' },
+        { text: '调试工作台', link: '/zh/avatar/debug-workbench' },
       ],
     },
     {
@@ -289,11 +341,15 @@ export const sidebarZh: DefaultTheme.Sidebar = {
     {
       text: '独立权威',
       items: [
+        { text: '记忆与知识组合', link: '/zh/cognition/memory-knowledge-composition' },
         { text: '记忆服务', link: '/zh/cognition/memory' },
         { text: '知识服务', link: '/zh/cognition/knowledge' },
         { text: 'Prompt 服务', link: '/zh/cognition/prompt-serving' },
+        { text: 'Prompt 通道', link: '/zh/cognition/prompt-lanes' },
         { text: 'Completion', link: '/zh/cognition/completion' },
         { text: '技能服务', link: '/zh/cognition/skill-service' },
+        { text: '技能工件', link: '/zh/cognition/skill-artifacts' },
+        { text: '引用图', link: '/zh/cognition/reference-graph' },
       ],
     },
     {
