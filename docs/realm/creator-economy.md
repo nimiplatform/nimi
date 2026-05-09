@@ -1,5 +1,10 @@
 # Creator Economy
 
+> Status: Running today. Realm economy contracts (`R-ECON-*`) are
+> shipped; the bridge to creator revenue policy is admitted. For
+> the payout pipeline narrative see
+> [Creator Payouts](/realm/creator-payouts).
+
 The creator economy is the slice of Realm economy specifically
 about world-creator monetization: revenue events from gifts and
 purchases, share plans, settlement, withdrawal. World Creator

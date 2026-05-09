@@ -1,11 +1,18 @@
 # External Agent Access
 
+> Status: Running today. The External Agent Access panel is
+> Desktop's shipped UI for managing `ExternalPrincipal` token
+> issuance + revocation.
+
 The External Agent Access panel is Desktop's unique UI for
 managing `ExternalPrincipal` tokens. It is the human-facing
 surface for "let an external AI host access my Nimi account in a
 controlled, scoped, revocable way."
 
-For the platform-level model, see
+For the broader delegation flow (firewall verdicts, approval cards,
+quarantine review) see
+[Desktop → Delegation Control](/desktop/delegation-control). For
+the platform-level external agent model see
 [Platform → Agents → External Agents](/platform/agents/external-agents).
 
 ## What The Panel Does

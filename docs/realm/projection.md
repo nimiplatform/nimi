@@ -1,9 +1,16 @@
 # Projection
 
+> Status: Running today. The Realm projection kernel
+> (`R-PROJ-*`) is the shipped read-aggregate authority over
+> canonical truth; runtime and apps consume.
+
 Projection is the **formal consumption layer** for canonical
 truth. It isn't a lorebook rebuild, not a worldview preview, not
 a prompt assembly helper. Its semantic owner is Realm Projection
 kernel; runtime is the consumer.
+
+Realm is the truth anchor. Projections are typed read views over
+that truth — never replicas, never parallel writers.
 
 ## What Projection Is
 

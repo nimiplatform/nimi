@@ -1,11 +1,17 @@
 # Delegated Capability
 
+> Status: Running today. Runtime delegated session, gateway,
+> output firewall, and audit / replay extension are shipped under
+> `K-DELEG-*`. MCP adapter ships at `stdio_command`; remote
+> transports admitted as direction.
+
 Runtime owns the gateway and the output firewall through which
 external AI hosts (a separate AI provider, an MCP-tooled agent, a
 future A2A peer) take action on the platform. This page covers the
 runtime side of delegation. For the product framing, see
-[Platform → AI Last Mile](/platform/ai-last-mile) and
-[Platform → Agents → External Agents](/platform/agents/external-agents).
+[Platform → AI Last Mile](/platform/ai-last-mile),
+[Platform → Execution Protocol](/platform/execution-protocol), and
+[Runtime → MCP Integration](/runtime/mcp-integration).
 
 ## The Delegated Session
 

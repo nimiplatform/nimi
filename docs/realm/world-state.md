@@ -1,9 +1,16 @@
 # World State
 
+> Status: Running today. Realm `R-WSTATE-*` is the shipped
+> shared present-state authority.
+
 World state is the **durable shared present** of a world. It
 answers "what does this world look like right now." Mutations
 require an explicit commit envelope; truth and history sit on
 either side of state.
+
+For the side-by-side comparison with history (when each surface
+updates per `effectClass`), see
+[State vs History](/platform/worlds/state-vs-history).
 
 ## What World State Is
 

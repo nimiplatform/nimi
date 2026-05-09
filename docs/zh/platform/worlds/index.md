@@ -17,7 +17,7 @@ Nimi 里的一个世界，是一个长时存活的语义环境：有创作者定
 
 ## 世界承载的三件事
 
-每个世界都有三个相关但不同的概念。这是规范化的 Realm 语义；[世界的真相、状态、历史](/zh/platform/worlds/truth-state-history) 一页对这三者各做展开。
+每个世界都有三个相关但不同的概念。这是规范化的 Realm 语义；[世界的真相、状态、历史](/zh/platform/worlds/state-vs-history) 一页对这三者各做展开。
 
 | 概念 | 它回答的问题 | 归属 |
 | --- | --- | --- |
@@ -43,7 +43,7 @@ Nimi 里的一个世界，是一个长时存活的语义环境：有创作者定
 
 ## 这一节包含什么
 
-- [世界的真相、状态、历史](/zh/platform/worlds/truth-state-history) —— 三个 Realm 概念，差别在哪里，何时读哪一种。
+- [世界的真相、状态、历史](/zh/platform/worlds/state-vs-history) —— 三个 Realm 概念，差别在哪里，何时读哪一种。
 - [OASIS](/zh/platform/worlds/oasis) —— 唯一的系统主世界。
 - [生命周期](/zh/platform/worlds/lifecycle) —— 世界的创建、发布、绑定、暂停、撤销。
 - [世界演化引擎](/zh/platform/worlds/world-evolution-engine) —— 世界在 Runtime 中运行时，replay、checkpoint、监督、commit-request 暂存的语义归属。

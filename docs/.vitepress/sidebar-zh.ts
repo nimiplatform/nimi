@@ -39,7 +39,7 @@ export const sidebarZh: DefaultTheme.Sidebar = {
       text: '世界',
       items: [
         { text: '世界总览', link: '/zh/platform/worlds/' },
-        { text: '真相、状态与历史', link: '/zh/platform/worlds/truth-state-history' },
+        { text: '真相、状态与历史', link: '/zh/platform/worlds/state-vs-history' },
         { text: 'OASIS', link: '/zh/platform/worlds/oasis' },
         { text: '世界生命周期', link: '/zh/platform/worlds/lifecycle' },
         { text: '世界演化引擎', link: '/zh/platform/worlds/world-evolution-engine' },

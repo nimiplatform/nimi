@@ -1,8 +1,15 @@
 # Conversation Anchor
 
+> Status: Running today. The anchor primitive + cross-surface
+> attach + late-join + recovery seam is shipped under runtime.
+
 A `ConversationAnchor` is the runtime-owned continuity identity that
 lets one conversation span multiple surfaces — Desktop chat, Avatar,
 Web — without collapsing into a single global session.
+
+For the runtime contract depth (envelope fields, attach vs open,
+late-join recovery), see
+[Runtime → Cross-Surface Continuity](/platform/agents/cross-surface-continuity.md).
 
 ## What It Solves
 

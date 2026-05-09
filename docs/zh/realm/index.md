@@ -25,7 +25,7 @@ Realm 是世界真相的权威归属域。一个世界的持久语义均由其�
 - [创作者经济](/zh/realm/creator-economy)：围绕世界创作者的经济体系、收益模型与结算机制。
 - [应用互联](/zh/realm/app-interconnect)：规范应用层消费 Realm 核心真相的准入模式。
 
-关于真相、状态、历史的高层定义与区分，详见 [平台 → 世界 → 真相、状态与历史](/zh/platform/worlds/truth-state-history)。遇到不熟悉的专业词汇，可查阅跨领域通用的[术语表](/zh/reference/glossary)。
+关于真相、状态、历史的高层定义与区分，详见 [平台 → 世界 → 真相、状态与历史](/zh/platform/worlds/state-vs-history)。遇到不熟悉的专业词汇，可查阅跨领域通用的[术语表](/zh/reference/glossary)。
 
 ## 为什么需要 Realm
 

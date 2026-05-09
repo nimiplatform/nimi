@@ -1,9 +1,16 @@
 # World History
 
+> Status: Running today. Realm `R-WHIST-*` is the shipped
+> canonical happened-fact authority.
+
 World history is the **append-only canonical record** of what
 happened in a world. Provenance is mandatory. Replay runs cannot
 append; only canon-mutating runs may. Corrections happen by
 supersession or invalidation, never by silent deletion.
+
+For the side-by-side comparison with state (when each surface
+updates per `effectClass`), see
+[State vs History](/platform/worlds/state-vs-history).
 
 ## Append-Only
 

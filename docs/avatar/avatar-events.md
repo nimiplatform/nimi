@@ -1,5 +1,8 @@
 # Avatar Events
 
+> Status: Running today. The event taxonomy is admitted at the
+> kernel level; the event bus is shipped.
+
 Avatar emits a typed event surface that NAS handlers, mods, and
 runtime components observe. The event families are admitted at
 the kernel level; they are not free-form.
@@ -87,6 +90,30 @@ example, sync visual emotion with chat UI.
 
 The `avatar_instance_registry` provides the cross-app coordination
 seam (admitted under the avatar app-shell contract).
+
+## Reader Scenario: APML Output Drives Avatar Events
+
+A model emits an APML response that includes typed activity and
+emotion intent. Avatar reflects both as event emissions.
+
+1. **Model emits APML.** Public wire: `<activity name="wave" />` plus
+   `<emotion name="happy" />`.
+2. **Runtime parses + validates.** The runtime owns APML parsing.
+   Typed projection events fire:
+   `runtime.agent.presentation.activity_requested` and
+   `runtime.agent.state.emotion_changed`.
+3. **Avatar receives via SDK.** Projection consumes the typed events.
+4. **Generated motion provider produces backend output.** Per
+   [Generated Motion Provider](/avatar/generated-motion-provider.md).
+5. **Avatar event bus emits.** `avatar.activity.started` /
+   `avatar.expression.changed` propagate to NAS handlers, mods, and
+   subscribing apps.
+6. **Backend renders.** Live2D plays the wave motion + happy
+   expression.
+
+The chain crosses runtime → SDK → projection → provider → backend →
+event bus, all through admitted seams. No raw APML reaches Avatar;
+no Avatar event invents semantic truth.
 
 ## Reader Scenario: Lipsync Bridge
 

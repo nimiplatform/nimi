@@ -1,13 +1,19 @@
 # Agent Execution
 
+> Status: Running today. `RuntimeAgentService` is the shipped
+> runtime authority for agent execution.
+
 `RuntimeAgentService` is the runtime-owned authority for agent
 execution. It owns multi-agent lifecycle, conversation continuity,
 the Chat / Life two-track model, hook scheduling, memory write
 admission, and presentation projection.
 
-This page is the runtime-side complement to the product narrative
-in [Platform → Agents](/platform/agents/). Agent product framing
-lives there; this page covers the runtime ownership.
+This page is the runtime-side overview. For depth see:
+
+- [Participation Authority](/platform/agents/participation-authority.md) — non-canonical participation profiles
+- [Cross-Surface Continuity](/platform/agents/cross-surface-continuity.md) — `ConversationAnchor` + late-join + recovery
+- [Agent Presentation Stream](/runtime/presentation-stream.md) — `runtime.agent.*` event projection + APML wire
+- [Voice Asset Lifecycle](/runtime/voice-asset-lifecycle.md) — `VoiceAsset` runtime-owned voice resource
 
 ## What RuntimeAgentService Owns
 

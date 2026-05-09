@@ -41,8 +41,9 @@ Creator and app surfaces:
 - [App Interconnect](/realm/app-interconnect) — admitted patterns
   for how apps consume Realm truth.
 
-For the high-level distinction between truth, state, and history,
-see [Platform → Worlds → Truth, State, And History](/platform/worlds/truth-state-history).
+For the side-by-side comparison of state vs history (governed by
+`effectClass`), see
+[Platform → Worlds → State vs History](/platform/worlds/state-vs-history).
 The cross-domain [Glossary](/reference/glossary) explains "world,"
 "truth," and "world history" if those terms are unfamiliar.
 
