@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 
 export function runAccountSessionHardcutSelfTest({
   AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS,
-  LOCAL_APP_SLICE_FENCE_MARKER,
-  LOCAL_APP_SLICE_FENCE_SPECS,
-  LOCAL_APP_SLICE_ROOTS,
+  NON_ADMITTED_LOCAL_APP_SLICE_FENCE_MARKER,
+  NON_ADMITTED_LOCAL_APP_SLICE_FENCE_SPECS,
+  NON_ADMITTED_LOCAL_APP_SLICE_ROOTS,
   scanAccountSessionHardcut,
 }) {
   const files = [
@@ -55,45 +55,44 @@ export function runAccountSessionHardcutSelfTest({
         },
       }),
     },
-    ...LOCAL_APP_SLICE_ROOTS.map((root) => ({
-      relPath: LOCAL_APP_SLICE_FENCE_SPECS.get(root),
-      source: `${LOCAL_APP_SLICE_FENCE_MARKER}: non-admitted local app slice; legacy auth seams are fenced until Runtime admission migration.`,
+    // For each currently NON-admitted local app slice, supply a spec fixture
+    // that carries the fence marker. If NON_ADMITTED_LOCAL_APP_SLICE_ROOTS is
+    // empty (i.e. all in-tree slices are admitted), this expansion is a no-op.
+    ...NON_ADMITTED_LOCAL_APP_SLICE_ROOTS.map((root) => ({
+      relPath: NON_ADMITTED_LOCAL_APP_SLICE_FENCE_SPECS.get(root),
+      source: `${NON_ADMITTED_LOCAL_APP_SLICE_FENCE_MARKER}: non-admitted local app slice; legacy auth seams are fenced until Runtime admission migration.`,
     })),
-    {
-      relPath: 'apps/shiji/src/shell/renderer/app-shell/bootstrap.ts',
-      source: 'createPlatformClient({ accessTokenProvider: () => token, refreshTokenProvider: () => refresh });',
-    },
     {
       relPath: 'runtime/internal/services/account/bad.go',
       source: 'func read() { _ = "auth_session_load"; _ = "subject_user_id" }',
     },
-		    {
-		      relPath: 'runtime/internal/services/account/service.go',
-		      source: `
-	func (s *Service) GetAccountSessionStatus(req *Request) {
-	  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-	  s.mu.RLock()
-	}
-	func (s *Service) GetAccessToken() { s.validateRuntimeAdmittedCaller(req.GetCaller(), true) }
-	func (s *Service) SubscribeAccountSessionEvents(req *Request) {
-	  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-	  s.subscribe(req)
-	}
-	func (s *Service) RefreshAccountSession(req *Request) {
-	  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-	  s.mu.Lock()
-	}
-	func (s *Service) Logout(req *Request) {
-	  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-	  s.logout(ctx, reason)
-	}
-	func (s *Service) SwitchAccount(req *Request) {
-	  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-	  s.mu.Lock()
-	}
-	func (s *Service) IssueScopedAppBinding() {
-	  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
-	  validateBindingCallerRelation(req.GetCaller(), relation)
+    {
+      relPath: 'runtime/internal/services/account/service.go',
+      source: `
+func (s *Service) GetAccountSessionStatus(req *Request) {
+  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
+  s.mu.RLock()
+}
+func (s *Service) GetAccessToken() { s.validateRuntimeAdmittedCaller(req.GetCaller(), true) }
+func (s *Service) SubscribeAccountSessionEvents(req *Request) {
+  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
+  s.subscribe(req)
+}
+func (s *Service) RefreshAccountSession(req *Request) {
+  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
+  s.mu.Lock()
+}
+func (s *Service) Logout(req *Request) {
+  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
+  s.logout(ctx, reason)
+}
+func (s *Service) SwitchAccount(req *Request) {
+  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
+  s.mu.Lock()
+}
+func (s *Service) IssueScopedAppBinding() {
+  s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
+  validateBindingCallerRelation(req.GetCaller(), relation)
 }
 func (s *Service) RevokeScopedAppBinding() {
   s.validateRuntimeAdmittedCaller(req.GetCaller(), false)
@@ -108,31 +107,31 @@ func (s *Service) markCustodyUnavailable() { s.revokeBindingsLocked(reason) }
 func (s *Service) transitionToReauthRequired() { s.revokeBindingsLocked(reason) }
 func (s *Service) ObserveRefreshToken() { s.revokeBindingsLocked(reason) }
 `,
-	    },
-	    {
-	      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-launcher.ts',
-	      source: 'export const payload = { agentId, avatarPackageId };',
-	    },
-	    {
-	      relPath: 'apps/desktop/src-tauri/src/main_parts/defaults_and_commands/window_and_logs.rs',
-	      source: 'serializer.append_pair("agent_id", agent_id.as_str());',
-	    },
-	    {
-	      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts',
-	      source: 'const DESKTOP_AVATAR_STORE_DECOMMISSIONED_MESSAGE = "closed"; export async function listDesktopAgentAvatarResources() { throw new Error(DESKTOP_AVATAR_STORE_DECOMMISSIONED_MESSAGE); }',
-	    },
-	    {
-	      relPath: 'apps/avatar/src/shell/renderer/bridge/launch-context.ts',
-	      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
-	    },
-	    {
-	      relPath: 'apps/avatar/src-tauri/src/avatar_launch_context.rs',
-	      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
-	    },
-	    {
-	      relPath: 'apps/avatar/src-tauri/src/agent_center_avatar_package.rs',
-	      source: 'struct Payload { agent_id: String, avatar_package_id: String }',
-	    },
+    },
+    {
+      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-launcher.ts',
+      source: 'export const payload = { agentId, avatarPackageId };',
+    },
+    {
+      relPath: 'apps/desktop/src-tauri/src/main_parts/defaults_and_commands/window_and_logs.rs',
+      source: 'serializer.append_pair("agent_id", agent_id.as_str());',
+    },
+    {
+      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts',
+      source: 'const DESKTOP_AVATAR_STORE_DECOMMISSIONED_MESSAGE = "closed"; export async function listDesktopAgentAvatarResources() { throw new Error(DESKTOP_AVATAR_STORE_DECOMMISSIONED_MESSAGE); }',
+    },
+    {
+      relPath: 'apps/avatar/src/shell/renderer/bridge/launch-context.ts',
+      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
+    },
+    {
+      relPath: 'apps/avatar/src-tauri/src/avatar_launch_context.rs',
+      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
+    },
+    {
+      relPath: 'apps/avatar/src-tauri/src/agent_center_avatar_package.rs',
+      source: 'struct Payload { agent_id: String, avatar_package_id: String }',
+    },
     {
       relPath: 'apps/web/src/desktop-adapter/runtime-bootstrap.web.ts',
       source: "export const WEB_CLOUD_ADAPTER_AUTH_MODE = 'web-cloud-adapter' as const;",
@@ -164,115 +163,113 @@ func (s *Service) ObserveRefreshToken() { s.revokeBindingsLocked(reason) }
   assert.equal(violations.some((item) => item.includes('good.ts') && item.includes('Avatar forbidden')), false);
   assert.equal(violations.some((item) => item.includes('bad.json') && item.includes('Avatar forbidden Tauri permission')), true);
   assert.equal(violations.some((item) => item.includes('default.json') && item.includes('Avatar forbidden Tauri permission')), false);
-	  assert.equal(violations.some((item) => item.includes('tauri.conf.json') && item.includes('Avatar broad .nimi asset scope')), false);
-  assert.equal(violations.some((item) => item.includes('apps/shiji/src') && item.includes('Local app slice')), false);
-	  assert.equal(violations.some((item) => item.includes('bad.go') && item.includes('Runtime account broker')), true);
-	  assert.equal(violations.some((item) => item.includes('chat-agent-avatar-launcher.ts') && item.includes('Desktop Avatar launch authority field')), true);
-	  assert.equal(violations.some((item) => item.includes('runtime-bootstrap.web.ts')), false);
-	  assert.equal(violations.some((item) => item.includes('apps/web/src/negative.ts')), true);
+  assert.equal(violations.some((item) => item.includes('tauri.conf.json') && item.includes('Avatar broad .nimi asset scope')), false);
+  assert.equal(violations.some((item) => item.includes('bad.go') && item.includes('Runtime account broker')), true);
+  assert.equal(violations.some((item) => item.includes('chat-agent-avatar-launcher.ts') && item.includes('Desktop Avatar launch authority field')), true);
+  assert.equal(violations.some((item) => item.includes('runtime-bootstrap.web.ts')), false);
+  assert.equal(violations.some((item) => item.includes('apps/web/src/negative.ts')), true);
   assert.equal(violations.some((item) => item.includes('apps/web/src/positive.ts')), false);
-	  assert.equal(violations.some((item) => item.includes('nimi-mods/example/src/bad.ts')), false);
-	  assert.equal(violations.some((item) => item.includes('nimi-mods/example/src/good.ts')), false);
+  assert.equal(violations.some((item) => item.includes('nimi-mods/example/src/bad.ts')), false);
+  assert.equal(violations.some((item) => item.includes('nimi-mods/example/src/good.ts')), false);
 
-		  const p1NegativeViolations = scanAccountSessionHardcut([
-		    {
-		      relPath: 'runtime/internal/services/account/service.go',
-		      source: `
-	func (s *Service) GetAccountSessionStatus(req *Request) {
-	  validateProductionCaller(req.GetCaller(), false)
-	  s.mu.RLock()
-	}
-	func (s *Service) GetAccessToken() { validateProductionCaller(req.GetCaller(), true) }
-	func (s *Service) SubscribeAccountSessionEvents(req *Request) {
-	  s.subscribe(req)
-	}
-	func (s *Service) RefreshAccountSession(req *Request) {
-	  s.mu.Lock()
-	  s.refresher.Refresh(ctx, current)
-	}
-	func (s *Service) Logout(req *Request) {
-	  return s.logout(ctx, reason)
-	}
-	func (s *Service) SwitchAccount(req *Request) {
-	  s.mu.Lock()
-	}
-	func (s *Service) IssueScopedAppBinding() { validateProductionCaller(req.GetCaller(), false) }
-	func (s *Service) RevokeScopedAppBinding() {
-	  s.mu.Lock()
-	  record.relation.State = runtimev1.ScopedAppBindingState_SCOPED_APP_BINDING_STATE_REVOKED
-	}
-	func (s *Service) ValidateScopedBinding() { record := s.bindings[id]; _ = record }
-	func (s *Service) markCustodyUnavailable() {}
+  // Negative case: an unfenced spec in an entry of NON_ADMITTED_LOCAL_APP_SLICE_ROOTS
+  // MUST trigger the Non-admitted local app slice fence violation. We
+  // simulate this by injecting a synthetic non-admitted root + spec map for
+  // the duration of this assertion.
+  if (NON_ADMITTED_LOCAL_APP_SLICE_ROOTS.length > 0) {
+    const sliceRoot = NON_ADMITTED_LOCAL_APP_SLICE_ROOTS[0];
+    const sliceSpecPath = NON_ADMITTED_LOCAL_APP_SLICE_FENCE_SPECS.get(sliceRoot);
+    const filesMissingFence = files
+      .filter((file) => file.relPath !== sliceSpecPath)
+      .concat({
+        relPath: sliceSpecPath,
+        source: 'no fence text here',
+      });
+    const fenceViolations = scanAccountSessionHardcut(filesMissingFence);
+    assert.equal(
+      fenceViolations.some((item) => item.includes('Non-admitted local app slice fence')),
+      true,
+      'expected Non-admitted local app slice fence violation when marker is absent',
+    );
+  }
+
+  const p1NegativeViolations = scanAccountSessionHardcut([
+    {
+      relPath: 'runtime/internal/services/account/service.go',
+      source: `
+func (s *Service) GetAccountSessionStatus(req *Request) {
+  validateProductionCaller(req.GetCaller(), false)
+  s.mu.RLock()
+}
+func (s *Service) GetAccessToken() { validateProductionCaller(req.GetCaller(), true) }
+func (s *Service) SubscribeAccountSessionEvents(req *Request) {
+  s.subscribe(req)
+}
+func (s *Service) RefreshAccountSession(req *Request) {
+  s.mu.Lock()
+  s.refresher.Refresh(ctx, current)
+}
+func (s *Service) Logout(req *Request) {
+  return s.logout(ctx, reason)
+}
+func (s *Service) SwitchAccount(req *Request) {
+  s.mu.Lock()
+}
+func (s *Service) IssueScopedAppBinding() { validateProductionCaller(req.GetCaller(), false) }
+func (s *Service) RevokeScopedAppBinding() {
+  s.mu.Lock()
+  record.relation.State = runtimev1.ScopedAppBindingState_SCOPED_APP_BINDING_STATE_REVOKED
+}
+func (s *Service) ValidateScopedBinding() { record := s.bindings[id]; _ = record }
+func (s *Service) markCustodyUnavailable() {}
 func (s *Service) transitionToReauthRequired() {}
 func (s *Service) ObserveRefreshToken() {}
 `,
-	    },
-	    {
-	      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-launcher.ts',
-	      source: 'export const payload = { agentCenterAccountId: accountId, agentId };',
-	    },
-	    {
-	      relPath: 'apps/desktop/src-tauri/src/main_parts/defaults_and_commands/window_and_logs.rs',
-	      source: 'serializer.append_pair("binding_id", binding_id.as_str());',
-	    },
-	    {
-	      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts',
-	      source: 'export async function listDesktopAgentAvatarResources() { return invokeChecked("desktop_agent_avatar_resource_list", {}, parse); }',
-	    },
-	    {
-	      relPath: 'apps/avatar/src/shell/renderer/bridge/launch-context.ts',
-	      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
-	    },
-	    {
-	      relPath: 'apps/avatar/src-tauri/src/avatar_launch_context.rs',
-	      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
-	    },
-	    {
-	      relPath: 'apps/avatar/src-tauri/src/agent_center_avatar_package.rs',
-	      source: 'struct Payload { agent_center_account_id: String, subject_user_id: String }',
-	    },
-	    {
-	      relPath: 'apps/avatar/src-tauri/tauri.conf.json',
-	      source: JSON.stringify({ app: { security: { assetProtocol: { scope: ['$HOME/.nimi/**'] } } } }),
-	    },
-	    {
-	      relPath: 'apps/shiji/spec/kernel/app-shell-contract.md',
-	      source: 'missing app slice fence',
-	    },
-	    {
-	      relPath: 'apps/moment/spec/kernel/app-shell-contract.md',
-	      source: `${LOCAL_APP_SLICE_FENCE_MARKER}: non-admitted`,
-	    },
-	    {
-	      relPath: 'apps/polyinfo/spec/kernel/app-shell-contract.md',
-	      source: `${LOCAL_APP_SLICE_FENCE_MARKER}: non-admitted`,
-	    },
-	    {
-	      relPath: 'apps/parentos/spec/kernel/app-shell-contract.md',
-	      source: `${LOCAL_APP_SLICE_FENCE_MARKER}: non-admitted`,
-	    },
-	    {
-	      relPath: 'apps/shiji/src/shell/renderer/app-shell/bootstrap.ts',
-	      source: 'createPlatformClient({ accessTokenProvider: () => token });',
-	    },
-		  ]);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime status caller admission')), true);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime GetAccessToken caller admission')), true);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime account event subscription caller admission')), true);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime refresh caller admission')), true);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime logout caller admission')), true);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime switch caller admission')), true);
-		  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding caller admission')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding relation admission')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding revoke caller admission')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding revoke relation admission')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding authenticated-state validation')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding non-auth revocation')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop Avatar launch authority field')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop Avatar handoff URI authority field')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop local avatar carrier')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Avatar broad .nimi asset scope')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Local app slice auth fence')), true);
-	  assert.equal(p1NegativeViolations.some((item) => item.includes('Local app slice app-owned provider seam')), true);
+    },
+    {
+      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-launcher.ts',
+      source: 'export const payload = { agentCenterAccountId: accountId, agentId };',
+    },
+    {
+      relPath: 'apps/desktop/src-tauri/src/main_parts/defaults_and_commands/window_and_logs.rs',
+      source: 'serializer.append_pair("binding_id", binding_id.as_str());',
+    },
+    {
+      relPath: 'apps/desktop/src/shell/renderer/bridge/runtime-bridge/chat-agent-avatar-store.ts',
+      source: 'export async function listDesktopAgentAvatarResources() { return invokeChecked("desktop_agent_avatar_resource_list", {}, parse); }',
+    },
+    {
+      relPath: 'apps/avatar/src/shell/renderer/bridge/launch-context.ts',
+      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
+    },
+    {
+      relPath: 'apps/avatar/src-tauri/src/avatar_launch_context.rs',
+      source: AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS.join('\n'),
+    },
+    {
+      relPath: 'apps/avatar/src-tauri/src/agent_center_avatar_package.rs',
+      source: 'struct Payload { agent_center_account_id: String, subject_user_id: String }',
+    },
+    {
+      relPath: 'apps/avatar/src-tauri/tauri.conf.json',
+      source: JSON.stringify({ app: { security: { assetProtocol: { scope: ['$HOME/.nimi/**'] } } } }),
+    },
+  ]);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime status caller admission')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime GetAccessToken caller admission')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime account event subscription caller admission')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime refresh caller admission')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime logout caller admission')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime switch caller admission')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding caller admission')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding relation admission')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding revoke caller admission')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding revoke relation admission')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding authenticated-state validation')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Runtime binding non-auth revocation')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop Avatar launch authority field')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop Avatar handoff URI authority field')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Desktop local avatar carrier')), true);
+  assert.equal(p1NegativeViolations.some((item) => item.includes('Avatar broad .nimi asset scope')), true);
   process.stdout.write('account-session hardcut self-test passed\n');
 }

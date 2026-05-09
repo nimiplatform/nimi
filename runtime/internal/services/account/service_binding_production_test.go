@@ -618,6 +618,33 @@ func TestProductionAuthorizationURLDefaultsToRealmAuthorizeEndpoint(t *testing.T
 	}
 }
 
+// TestProductionAuthorizationURLHonoursExplicitOverride asserts that the
+// NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL env override wins over the default
+// realm authorize endpoint, while a missing override still resolves to the
+// API authorize endpoint (Wave A-fix R-OAUTH-011 split UI/API topology). The
+// override exists for staging/test environments — production deployments
+// MUST NOT point this at the apps/web origin.
+func TestProductionAuthorizationURLHonoursExplicitOverride(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL", "https://override.nimi.test/oauth/authorize")
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "")
+	t.Setenv("NIMI_REALM_URL", "")
+	resolved := resolveProductionConfig(ProductionConfig{
+		RealmBaseURL: "https://realm.nimi.test",
+		ClientID:     "nimi-desktop",
+		RedirectURI:  "http://127.0.0.1:34939/oauth/callback",
+		HTTPClient:   http.DefaultClient,
+	})
+	if resolved.AuthorizationURL != "https://override.nimi.test/oauth/authorize" {
+		t.Fatalf("override AuthorizationURL = %q, want https://override.nimi.test/oauth/authorize", resolved.AuthorizationURL)
+	}
+	// Token URL is NOT covered by the authorize override — it stays bound to
+	// the realm base URL so the runtime always exchanges the code at the
+	// realm token endpoint.
+	if resolved.TokenURL != "https://realm.nimi.test/api/auth/oauth/token" {
+		t.Fatalf("TokenURL with authorize override = %q, want https://realm.nimi.test/api/auth/oauth/token", resolved.TokenURL)
+	}
+}
+
 func issueBinding(t *testing.T, svc *Service) *runtimev1.IssueScopedAppBindingResponse {
 	t.Helper()
 	return issueBindingForRelation(t, svc, bindingRelation())

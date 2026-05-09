@@ -26,21 +26,20 @@ const LOCAL_FIRST_PARTY_DESKTOP_ROOTS = [
   'apps/desktop/test/',
 ];
 
-export const LOCAL_APP_SLICE_ROOTS = [
-  'apps/shiji/',
-  'apps/moment/',
-  'apps/polyinfo/',
-  'apps/parentos/',
-];
+// NON_ADMITTED_LOCAL_APP_SLICE_ROOTS: closed set of local-first-party Tauri
+// apps that have NOT yet been admitted as RuntimeAccountService consumers.
+// Each must declare its non-admitted state by carrying NON_ADMITTED_LOCAL_APP_SLICE_FENCE_MARKER
+// in its app-shell contract; missing marker is a governance violation.
+//
+// Apps are removed from this set as part of their D-Wave admission migration
+// (alongside the spec-level admission rules that replace the fence text).
+// When this set is empty, all in-tree local app slices have been migrated
+// and the named arrays remain only as future-proofing for new entrants.
+export const NON_ADMITTED_LOCAL_APP_SLICE_ROOTS = [];
 
-export const LOCAL_APP_SLICE_FENCE_MARKER = 'ACCOUNT_HARDCUT_NON_ADMITTED_APP_SLICE_FENCE';
+export const NON_ADMITTED_LOCAL_APP_SLICE_FENCE_MARKER = 'ACCOUNT_HARDCUT_NON_ADMITTED_APP_SLICE_FENCE';
 
-export const LOCAL_APP_SLICE_FENCE_SPECS = new Map([
-  ['apps/shiji/', 'apps/shiji/spec/kernel/app-shell-contract.md'],
-  ['apps/moment/', 'apps/moment/spec/kernel/app-shell-contract.md'],
-  ['apps/polyinfo/', 'apps/polyinfo/spec/kernel/app-shell-contract.md'],
-  ['apps/parentos/', 'apps/parentos/spec/kernel/app-shell-contract.md'],
-]);
+export const NON_ADMITTED_LOCAL_APP_SLICE_FENCE_SPECS = new Map([]);
 
 const LOCAL_FIRST_PARTY_APP_OWNED_INPUTS = [
   'accessToken',
@@ -149,12 +148,15 @@ const RUNTIME_ACCOUNT_FORBIDDEN_PATTERNS = [
   { label: 'caller subject as account truth', pattern: /\bsubject_user_id\b/g },
 ];
 
-const LOCAL_APP_SLICE_AUTH_DRIFT_PATTERNS = [
-  { label: 'shared auth IPC', pattern: /\bauth_session_(?:load|save|clear)\b|\bauth_session_commands\b/g },
-  { label: 'app-owned token store', pattern: /\baccessToken\b|\brefreshToken\b|\brawJwt\b/g },
-  { label: 'app-owned provider seam', pattern: /\baccessTokenProvider\b|\brefreshTokenProvider\b|\bsubjectUserIdProvider\b|\bsessionStore\b/g },
-  { label: 'subject/user account truth', pattern: /\bsubject_user_id\b|\bsubjectUserId\b|\bauthUserId\b/g },
-];
+// NOTE: the legacy LOCAL_APP_SLICE_AUTH_DRIFT_PATTERNS source-text scan has
+// been retired. After the runtime-account migration (Waves A-D), token-custody
+// drift for admitted apps is enforced by scanPlatformClientConstruction (which
+// covers both `createPlatformClient` and `createLocalFirstPartyRuntimePlatformClient`
+// constructions across all walked roots) and by per-app static source-text
+// locks in each app's bootstrap/auth-adapter test. The broad accessToken /
+// subjectUserId pattern scan over-matched legitimate post-migration code
+// (e.g. `auth.user?.id` projections) and was redundant with the construction
+// scanner.
 
 function toPosix(input) {
   return input.split(path.sep).join('/');
@@ -216,6 +218,44 @@ function collectRepoFiles() {
     'apps/parentos/src',
     'apps/parentos/src-tauri',
     'apps/parentos/spec/kernel',
+    // FG-SHELL-011 / FG-SHELL-012: Forge is admitted as a local-first-party
+    // Runtime account consumer. Walked here so scanPlatformClientConstruction
+    // and scanJwtSubjectAuthority detect regressions in forge sources.
+    // Forge intentionally does NOT appear in LOCAL_APP_SLICE_ROOTS — it is
+    // admitted, not fenced.
+    'apps/forge/src',
+    'apps/forge/spec/kernel',
+    // LD-SHELL-010 / LD-SHELL-011: Lookdev is admitted as a local-first-party
+    // Runtime account consumer. Walked here so scanPlatformClientConstruction
+    // and scanJwtSubjectAuthority detect regressions in lookdev sources.
+    // Lookdev intentionally does NOT appear in NON_ADMITTED_LOCAL_APP_SLICE_ROOTS
+    // — it is admitted, not fenced.
+    'apps/lookdev/src',
+    'apps/lookdev/spec/kernel',
+    // RD-SHELL-009 / RD-SHELL-010: Realm Drift is admitted as a
+    // local-first-party Runtime account consumer. Walked here so
+    // scanPlatformClientConstruction and scanJwtSubjectAuthority detect
+    // regressions in realm-drift sources. Realm Drift intentionally does NOT
+    // appear in NON_ADMITTED_LOCAL_APP_SLICE_ROOTS; it is admitted, not
+    // fenced.
+    'apps/realm-drift/src',
+    'apps/realm-drift/src-tauri',
+    'apps/realm-drift/spec/kernel',
+    // SJ-SHELL-010 / SJ-SHELL-011: ShiJi is admitted as a local-first-party
+    // Runtime account consumer. Walked here for the same reason as forge /
+    // lookdev. ShiJi intentionally does NOT appear in
+    // NON_ADMITTED_LOCAL_APP_SLICE_ROOTS — it is admitted, not fenced.
+    // Existing roots above (shiji/src, shiji/src-tauri, shiji/spec/kernel)
+    // are retained — they were previously walked while shiji was non-admitted.
+    // Overtone admitted as a local-first-party Runtime account consumer
+    // (apps/overtone/spec/architecture.md §"Auth & Runtime Account").
+    // Walked here so scanPlatformClientConstruction and
+    // scanJwtSubjectAuthority detect regressions in overtone sources.
+    // Overtone uses prose-only spec (Option A) — no kernel/, fact tables
+    // live at apps/overtone/spec/tables/.
+    'apps/overtone/src',
+    'apps/overtone/src-tauri',
+    'apps/overtone/spec',
     'runtime/internal/services/account',
     'runtime/internal/grpcserver',
   ];
@@ -320,8 +360,8 @@ function isDesktopLocalFirstPartyPath(relPath) {
   return LOCAL_FIRST_PARTY_DESKTOP_ROOTS.some((root) => relPath.startsWith(root));
 }
 
-function localAppSliceRoot(relPath) {
-  return LOCAL_APP_SLICE_ROOTS.find((root) => relPath.startsWith(root)) || null;
+function nonAdmittedLocalAppSliceRoot(relPath) {
+  return NON_ADMITTED_LOCAL_APP_SLICE_ROOTS.find((root) => relPath.startsWith(root)) || null;
 }
 
 function isExplicitlyFencedProviderMode(block) {
@@ -559,40 +599,20 @@ function scanRuntimeAccountBroker(files, violations) {
   }
 }
 
-function scanLocalAppSliceAuthDrift(files, violations) {
-  const authorityByRoot = new Map();
-  for (const root of LOCAL_APP_SLICE_ROOTS) {
-    const specPath = LOCAL_APP_SLICE_FENCE_SPECS.get(root);
+function scanNonAdmittedLocalAppSliceFence(files, violations) {
+  // Each NON-admitted local app slice MUST carry NON_ADMITTED_LOCAL_APP_SLICE_FENCE_MARKER
+  // in its app-shell contract — this is the explicit governance signal that
+  // legacy auth seams in the slice are tolerated only because the slice has
+  // not yet been admitted as a RuntimeAccountService consumer. Once admitted
+  // via a D-Wave migration, the app is removed from
+  // NON_ADMITTED_LOCAL_APP_SLICE_ROOTS and the fence text is removed from its
+  // spec.
+  for (const root of NON_ADMITTED_LOCAL_APP_SLICE_ROOTS) {
+    const specPath = NON_ADMITTED_LOCAL_APP_SLICE_FENCE_SPECS.get(root);
     const spec = files.find((item) => item.relPath === specPath);
-    authorityByRoot.set(root, Boolean(spec && spec.source.includes(LOCAL_APP_SLICE_FENCE_MARKER)));
-    if (!authorityByRoot.get(root)) {
-      violations.push(`${specPath}:1 Local app slice auth fence: missing ${LOCAL_APP_SLICE_FENCE_MARKER} authority classification`);
-    }
-  }
-
-  for (const file of files) {
-    const root = localAppSliceRoot(file.relPath);
-    if (!root || isTestPath(file.relPath) || file.relPath.includes('/spec/')) {
-      continue;
-    }
-    if (!/\.(?:[cm]?[jt]sx?|rs)$/u.test(file.relPath)) {
-      continue;
-    }
-    if (authorityByRoot.get(root)) {
-      continue;
-    }
-    for (const check of LOCAL_APP_SLICE_AUTH_DRIFT_PATTERNS) {
-      check.pattern.lastIndex = 0;
-      for (const match of file.source.matchAll(check.pattern)) {
-        pushViolation(
-          violations,
-          file.relPath,
-          file.source,
-          match.index || 0,
-          `Local app slice ${check.label}`,
-          'local app slices must migrate auth to Runtime account projection or carry an authority-backed non-admitted fence',
-        );
-      }
+    const hasMarker = Boolean(spec && spec.source.includes(NON_ADMITTED_LOCAL_APP_SLICE_FENCE_MARKER));
+    if (!hasMarker) {
+      violations.push(`${specPath}:1 Non-admitted local app slice fence: missing ${NON_ADMITTED_LOCAL_APP_SLICE_FENCE_MARKER} authority classification`);
     }
   }
 }
@@ -940,7 +960,7 @@ export function scanAccountSessionHardcut(files) {
   scanAvatarLaunchParserGuardrail(files, violations);
   scanDesktopLocalAvatarCarrierDecommission(files, violations);
   scanWebCloudFence(files, violations);
-  scanLocalAppSliceAuthDrift(files, violations);
+  scanNonAdmittedLocalAppSliceFence(files, violations);
   return violations.sort();
 }
 
@@ -949,9 +969,9 @@ async function main() {
     const { runAccountSessionHardcutSelfTest } = await import('./lib/check-account-session-hardcut-self-test.mjs');
     runAccountSessionHardcutSelfTest({
       AVATAR_LAUNCH_FORBIDDEN_QUERY_PARAMETERS,
-      LOCAL_APP_SLICE_FENCE_MARKER,
-      LOCAL_APP_SLICE_FENCE_SPECS,
-      LOCAL_APP_SLICE_ROOTS,
+      NON_ADMITTED_LOCAL_APP_SLICE_FENCE_MARKER,
+      NON_ADMITTED_LOCAL_APP_SLICE_FENCE_SPECS,
+      NON_ADMITTED_LOCAL_APP_SLICE_ROOTS,
       scanAccountSessionHardcut,
     });
     return;
