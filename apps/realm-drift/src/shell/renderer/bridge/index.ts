@@ -1,12 +1,13 @@
+// RD-SHELL-010 / spec K-ACCSVC-008: legacy shared desktop auth-session helpers
+// (`loadAuthSession`, `saveAuthSession`, `clearAuthSession`) are NOT
+// re-exported here. RuntimeAccountService owns token / refresh-token custody;
+// Realm Drift does not own a persisted auth-session bridge.
 export {
   hasTauriInvoke,
   invoke,
   invokeChecked,
   BridgeError,
   getRuntimeDefaults,
-  loadAuthSession,
-  saveAuthSession,
-  clearAuthSession,
   getDaemonStatus,
   createTauriOAuthBridge,
   oauthTokenExchange,
@@ -27,3 +28,11 @@ export type {
   JsonObject,
   JsonPrimitive,
 } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+
+import { createTauriOAuthBridge } from '@nimiplatform/nimi-kit/shell/renderer/bridge';
+
+// RD-SHELL-009 / RD-SHELL-010: Tauri OAuth bridge for the kit
+// `<DesktopShellAuthPage>` desktop-browser flow. Runtime BeginLogin returns a
+// realm OAuth authorize URL; the bridge opens the system browser, listens for
+// the loopback callback `code`, and the runtime broker exchanges it.
+export const driftTauriOAuthBridge = createTauriOAuthBridge();

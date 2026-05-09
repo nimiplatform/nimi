@@ -3,9 +3,10 @@ import { useAppStore } from './app-store.js';
 
 describe('DriftAppStore', () => {
   beforeEach(() => {
-    // Reset store to initial state
+    // Reset store to initial state. RD-SHELL-008 / RD-SHELL-010: no
+    // app-owned token fields on the auth slice.
     useAppStore.setState({
-      auth: { status: 'bootstrapping', user: null, token: '', refreshToken: '' },
+      auth: { status: 'bootstrapping', user: null },
       bootstrapReady: false,
       bootstrapError: null,
       runtimeDefaults: null,
@@ -20,26 +21,35 @@ describe('DriftAppStore', () => {
   });
 
   describe('auth', () => {
-    it('sets auth session', () => {
+    it('starts in bootstrapping state with no token fields', () => {
+      const state = useAppStore.getState();
+      expect(state.auth.status).toBe('bootstrapping');
+      expect(state.auth.user).toBeNull();
+      // RD-SHELL-008 / RD-SHELL-010: auth slice MUST NOT carry token state.
+      expect(state.auth).not.toHaveProperty('token');
+      expect(state.auth).not.toHaveProperty('refreshToken');
+    });
+
+    it('setAuthSession projects only the user (no token argument)', () => {
       const user = { id: 'u1', displayName: 'Test User' };
-      useAppStore.getState().setAuthSession(user, 'token123', 'refresh456');
+      useAppStore.getState().setAuthSession(user);
 
       const state = useAppStore.getState();
       expect(state.auth.status).toBe('authenticated');
       expect(state.auth.user).toEqual(user);
-      expect(state.auth.token).toBe('token123');
-      expect(state.auth.refreshToken).toBe('refresh456');
+      expect(state.auth).not.toHaveProperty('token');
+      expect(state.auth).not.toHaveProperty('refreshToken');
     });
 
     it('clears auth session', () => {
       const user = { id: 'u1', displayName: 'Test' };
-      useAppStore.getState().setAuthSession(user, 'tok', 'ref');
+      useAppStore.getState().setAuthSession(user);
       useAppStore.getState().clearAuthSession();
 
       const state = useAppStore.getState();
       expect(state.auth.status).toBe('unauthenticated');
       expect(state.auth.user).toBeNull();
-      expect(state.auth.token).toBe('');
+      expect(state.auth).not.toHaveProperty('token');
     });
   });
 

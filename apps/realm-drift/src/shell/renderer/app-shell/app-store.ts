@@ -60,11 +60,11 @@ export type FriendInfo = {
 export type RightPanelTab = 'agents' | 'people';
 
 export interface DriftAppStore {
+  // RD-SHELL-008 / RD-SHELL-010: no app-owned token fields. Token / refresh-
+  // token / subject-id custody is owned exclusively by RuntimeAccountService.
   auth: {
     status: AuthStatus;
     user: AuthUser | null;
-    token: string;
-    refreshToken: string;
   };
   bootstrapReady: boolean;
   bootstrapError: string | null;
@@ -88,7 +88,7 @@ export interface DriftAppStore {
   onlineUsers: Set<string>;
 
   // Auth actions
-  setAuthSession(user: AuthUser, token: string, refreshToken: string): void;
+  setAuthSession(user: AuthUser): void;
   clearAuthSession(): void;
   setBootstrapReady(ready: boolean): void;
   setBootstrapError(error: string | null): void;
@@ -126,8 +126,6 @@ export const useAppStore = create<DriftAppStore>((set, get) => ({
   auth: {
     status: 'bootstrapping',
     user: null,
-    token: '',
-    refreshToken: '',
   },
   bootstrapReady: false,
   bootstrapError: null,
@@ -140,15 +138,15 @@ export const useAppStore = create<DriftAppStore>((set, get) => ({
   friendList: [],
   onlineUsers: new Set<string>(),
 
-  setAuthSession(user, token, refreshToken) {
+  setAuthSession(user) {
     set({
-      auth: { status: 'authenticated', user, token, refreshToken },
+      auth: { status: 'authenticated', user },
     });
   },
 
   clearAuthSession() {
     set({
-      auth: { status: 'unauthenticated', user: null, token: '', refreshToken: '' },
+      auth: { status: 'unauthenticated', user: null },
     });
   },
 

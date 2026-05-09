@@ -14,6 +14,7 @@ import { HumanChatPanel } from '../human-chat/human-chat-panel.js';
 import { realtimeConnection } from '../human-chat/realtime-connection.js';
 import { resolveInitialMarbleQuality } from './marble-model-authority.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
+import { projectDriftRealtimeAccessToken } from '../auth/drift-auth-adapter.js';
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 
 type ListMyFriendsWithDetailsResult = RealmServiceResult<'MeService', 'listMyFriendsWithDetails'>;
@@ -49,48 +50,69 @@ export function WorldViewerPage() {
     };
   }, [worldQuery.data, worldviewQuery.data, lorebooksQuery.data]);
 
-  // Socket.IO connection for human chat
+  // Socket.IO connection for human chat (RD-HCHAT).
+  // RD-SHELL-004 / RD-SHELL-010: project a one-shot short-lived access token
+  // from runtime custody at connect time. The token MUST NOT be cached on
+  // the app store or in module-level state.
   useEffect(() => {
+    let cancelled = false;
     const store = useAppStore.getState();
     const defaults = store.runtimeDefaults;
-    const token = store.auth.token;
+    const authStatus = store.auth.status;
+    const subjectUserId = store.auth.user?.id || '';
 
-    if (!defaults || !token) return;
+    if (!defaults || authStatus !== 'authenticated' || !subjectUserId) {
+      return;
+    }
 
-    realtimeConnection.connect(
-      defaults.realm.realtimeUrl || defaults.realm.realmBaseUrl,
-      token,
-      {
-        onChatEvent: (event) => {
-          if (event.chatId && event.content) {
-            appendHumanChatMessage(event.chatId, {
-              id: event.eventId,
-              role: event.senderId === store.auth.user?.id ? 'user' : 'assistant',
-              content: event.content,
-              timestamp: new Date(event.createdAt).getTime() || Date.now(),
-            });
-          }
-        },
-        onMessageEdited: (event) => {
-          if (event.chatId && event.eventId && event.content) {
-            updateHumanMessage(event.chatId, event.eventId, event.content);
-          }
-        },
-        onMessageRecalled: (event) => {
-          if (event.chatId && event.eventId) {
-            removeHumanMessage(event.chatId, event.eventId);
-          }
-        },
-        onChatRead: () => {
-          // Read receipt — no UI action needed for demo
-        },
-      },
-    );
+    void (async () => {
+      let token: string;
+      try {
+        token = await projectDriftRealtimeAccessToken();
+      } catch {
+        // If the runtime account access token is unavailable, leave the
+        // socket disconnected — the realtime panel will surface its own
+        // empty state.
+        return;
+      }
+      if (cancelled) return;
 
-    // Load friend list
-    void loadFriendList();
+      realtimeConnection.connect(
+        defaults.realm.realtimeUrl || defaults.realm.realmBaseUrl,
+        token,
+        {
+          onChatEvent: (event) => {
+            if (event.chatId && event.content) {
+              appendHumanChatMessage(event.chatId, {
+                id: event.eventId,
+                role: event.senderId === subjectUserId ? 'user' : 'assistant',
+                content: event.content,
+                timestamp: new Date(event.createdAt).getTime() || Date.now(),
+              });
+            }
+          },
+          onMessageEdited: (event) => {
+            if (event.chatId && event.eventId && event.content) {
+              updateHumanMessage(event.chatId, event.eventId, event.content);
+            }
+          },
+          onMessageRecalled: (event) => {
+            if (event.chatId && event.eventId) {
+              removeHumanMessage(event.chatId, event.eventId);
+            }
+          },
+          onChatRead: () => {
+            // Read receipt — no UI action needed for demo
+          },
+        },
+      );
+
+      // Load friend list
+      void loadFriendList();
+    })();
 
     return () => {
+      cancelled = true;
       realtimeConnection.disconnect();
     };
   }, [appendHumanChatMessage]);

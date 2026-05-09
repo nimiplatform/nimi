@@ -44,6 +44,7 @@ YAML tables in `kernel/tables/` are the authoritative fact sources. Prose in con
 | `routes.yaml` | All route definitions (path, feature, component, lazy loading) |
 | `feature-matrix.yaml` | Feature matrix (phase, priority, backend dependency, external dependency) |
 | `external-api-surface.yaml` | World Labs Marble API endpoint inventory (method, path, input, output, cost) |
+| `runtime-account-caller.yaml` | Realm Drift RuntimeAccountService caller identity (RD-SHELL-009) |
 
 ## Editing Rules
 

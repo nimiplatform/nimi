@@ -4,9 +4,14 @@ use serde::Serialize;
 
 mod marble_commands;
 
-// Shared modules from kit/shell/tauri crate
-use nimi_kit_shell_tauri::auth_session_commands;
+// Shared modules from kit/shell/tauri crate.
+// RD-SHELL-010: Realm Drift MUST NOT expose the kit shared desktop auth-session
+// bridge (`auth_session_load/save/clear`). RuntimeAccountService owns token
+// custody; the bridge import is intentionally absent. RD-SHELL-009 wires the
+// kit OAuth commands so the renderer's `driftTauriOAuthBridge` can drive the
+// desktop-browser broker login flow (PKCE S256 via runtime BeginLogin).
 use nimi_kit_shell_tauri::desktop_paths;
+use nimi_kit_shell_tauri::oauth_commands;
 use nimi_kit_shell_tauri::runtime_bridge;
 use nimi_kit_shell_tauri::runtime_defaults as defaults;
 use nimi_kit_shell_tauri::session_logging;
@@ -39,9 +44,9 @@ fn main() {
             defaults::runtime_defaults,
             marble_commands::realm_drift_marble_generate,
             marble_commands::realm_drift_marble_poll,
-            auth_session_commands::auth_session_load,
-            auth_session_commands::auth_session_save,
-            auth_session_commands::auth_session_clear,
+            oauth_commands::open_external_url,
+            oauth_commands::oauth_token_exchange,
+            oauth_commands::oauth_listen_for_code,
             runtime_bridge::runtime_bridge_unary,
             runtime_bridge::runtime_bridge_stream_open,
             runtime_bridge::runtime_bridge_stream_close,
