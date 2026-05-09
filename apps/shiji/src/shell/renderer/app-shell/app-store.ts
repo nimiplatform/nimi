@@ -13,13 +13,13 @@ export type AuthUser = {
 export type AuthStatus = 'bootstrapping' | 'authenticated' | 'unauthenticated';
 
 export interface AuthSlice {
+  // SJ-SHELL-009 / SJ-SHELL-011: no app-owned token fields. Token / refresh-
+  // token / subject-id custody is owned exclusively by RuntimeAccountService.
   auth: {
     status: AuthStatus;
     user: AuthUser | null;
-    token: string;
-    refreshToken: string;
   };
-  setAuthSession(user: AuthUser, token: string, refreshToken: string): void;
+  setAuthSession(user: AuthUser): void;
   clearAuthSession(): void;
 }
 
@@ -100,14 +100,12 @@ export const useAppStore = create<ShiJiStore>((set) => ({
   auth: {
     status: 'bootstrapping',
     user: null,
-    token: '',
-    refreshToken: '',
   },
-  setAuthSession(user, token, refreshToken) {
-    set({ auth: { status: 'authenticated', user, token, refreshToken } });
+  setAuthSession(user) {
+    set({ auth: { status: 'authenticated', user } });
   },
   clearAuthSession() {
-    set({ auth: { status: 'unauthenticated', user: null, token: '', refreshToken: '' } });
+    set({ auth: { status: 'unauthenticated', user: null } });
   },
 
   // Bootstrap

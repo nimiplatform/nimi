@@ -5,30 +5,56 @@
 
 ## SJ-SHELL-001 — Bootstrap Sequence
 
-Authority fence: `ACCOUNT_HARDCUT_NON_ADMITTED_APP_SLICE_FENCE`.
-ShiJi is not currently admitted as an active local first-party Runtime account/session authority for the `2026-04-28-runtime-core-account-session-broker-hardcut` topic. Existing app-local token/session bootstrap seams are fenced legacy slice behavior and must not be treated as hardcut-compliant local account truth until migrated to Runtime-issued short-lived token projection and admitted caller registration.
-
-App bootstrap follows the standard nimi Tauri app sequence:
+App bootstrap follows the standard nimi Tauri app sequence (SJ-SHELL-010 /
+SJ-SHELL-011 / SJ-SHELL-012):
 
 1. Tauri shell starts, renderer loads `main.tsx`
 2. `runShiJiBootstrap()` obtains runtime defaults from Tauri bridge
-3. `createPlatformClient({ appId: 'nimi.shiji' })` initializes SDK
-4. Auth session bootstrap via `bootstrapAuthSession()`
-5. Runtime readiness check (blocking — 15 s timeout, fail-close on failure)
-6. SQLite init (blocking — fail-close on failure)
-7. App store sets `bootstrapReady = true`, routes render
+3. `createLocalFirstPartyRuntimePlatformClient({ appId: 'app.nimi.shiji', realmBaseUrl, runtimeTransport })`
+   initializes the SDK. The helper type-rejects `accessToken`,
+   `accessTokenProvider`, `refreshTokenProvider`, `subjectUserIdProvider`,
+   and `sessionStore` inputs (SJ-SHELL-011 / spec K-ACCSVC-008).
+4. Account projection: `runtime.account.getAccountSessionStatus({ caller: shijiRuntimeAccountCaller })`.
+   AUTHENTICATED projects to `auth.user`; ANONYMOUS / UNAVAILABLE / RPC error
+   transitions to `unauthenticated` without failing bootstrap.
+5. Runtime readiness check (blocking — 15 s timeout, fail-close on failure).
+6. SQLite init (blocking — fail-close on failure).
+7. App store sets `bootstrapReady = true`, routes render.
 
-Runtime readiness and SQLite are hard requirements. If either fails, `bootstrapError` is set and the app shows an error screen. There is no cloud-only degradation mode.
+Runtime readiness and SQLite are hard requirements. If either fails,
+`bootstrapError` is set and the app shows an error screen. There is no
+cloud-only degradation mode. The blocking semantics in steps 5 and 6 are
+intentional and MUST be preserved across migrations — ShiJi requires local
+runtime + SQLite to be healthy before any content surface renders.
 
 ## SJ-SHELL-002 — Auth Flow
 
-Auth flow reuses `@nimiplatform/nimi-kit/core/oauth` and the Tauri `oauth_commands` bridge:
+Auth identity is owned by RuntimeAccountService (SJ-SHELL-010 / SJ-SHELL-011,
+spec K-ACCSVC-008). ShiJi does not own access-token, refresh-token, or
+session-store custody at any layer.
 
-1. Unauthenticated users see a login gate before any content
-2. Auth supports password login and OAuth (per nimi-kit)
-3. Session tokens persist via Tauri secure storage
-4. Token refresh uses SDK `sessionStore` callbacks
-5. Auth failure redirects to login gate, preserving intended route
+1. Unauthenticated users see a login gate before any content.
+2. Login goes through the kit `<DesktopShellAuthPage>` desktop-browser flow
+   wired to a ShiJi `runtimeAccountBroker`:
+   - `broker.begin` → `runtime.account.beginLogin`. The realm OAuth authorize
+     URL returned by runtime carries a PKCE S256 challenge bound to a
+     runtime-held verifier. ShiJi never observes the verifier.
+   - User authorizes in the system browser; the realm authorization endpoint
+     302-redirects to the ShiJi desktop loopback redirect_uri with a raw
+     OAuth `code`.
+   - `broker.complete` → `runtime.account.completeLogin` with the raw `code`,
+     `state`, `nonce`, and `redirectUri`. `refreshToken` MUST be the empty
+     string at the wire level (R-OAUTH-008 / spec K-ACCSVC-008); any
+     non-empty value is rejected by runtime as `PROOF_UNSUPPORTED`.
+3. Token refresh is owned entirely by runtime. ShiJi MUST NOT install
+   `accessTokenProvider`, `refreshTokenProvider`, `subjectUserIdProvider`,
+   or `sessionStore`, and MUST NOT call any kit shared desktop auth-session
+   helpers.
+4. `useAppStore.auth` holds only `{ status, user }`. Token fields are not
+   admitted on the renderer state truth.
+5. Logout calls `runtime.account.logout({ caller })` and then
+   `clearAuthSession()`. ShiJi MUST NOT clear any persisted shared session
+   bridge — none is admitted.
 
 ## SJ-SHELL-003 — App Shell Layout
 
@@ -106,3 +132,64 @@ The first-time Explore experience uses a "character comes to find you" mechanism
    c. If an active learner profile exists but `encounterCompletedAt` is null, the encounter triggers
    d. On encounter completion (accept or dismiss or 3rd pass-through), write `encounterCompletedAt = now` to the active profile. If no profile exists yet, the timestamp is written when the profile is subsequently created via the onboarding gate (per SJ-SHELL-008)
 9. The encounter interaction must have zero learning cost: only two visible actions (accept / next), no settings, no explanatory text, no tutorial overlay
+
+## SJ-SHELL-010 — RuntimeAccountService Admission
+
+ShiJi is admitted as an active local-first-party Runtime account / session
+consumer. The caller is fixed and authoritative; concrete identifiers live in
+`tables/runtime-account-caller.yaml`:
+
+| Field | Value |
+|-------|-------|
+| `appId` | `app.nimi.shiji` |
+| `appInstanceId` | `app.nimi.shiji.local-first-party` |
+| `deviceId` | `local-first-party-device` |
+| `mode` | `ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP` |
+
+Implementation rules:
+
+- The renderer constructs the platform client via the SDK helper
+  `createLocalFirstPartyRuntimePlatformClient`. Calling `createPlatformClient`
+  directly from the ShiJi bootstrap is forbidden.
+- Every `runtime.account.*` call from ShiJi MUST pass the caller exactly as
+  declared in the table. Diverging fields (any other `mode`, missing
+  `appInstanceId`) MUST fail-close at the call site, not be coerced.
+- Mode `ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR` is not admitted for
+  ShiJi; runtime rejects it as `AVATAR_BINDING_ONLY`.
+- Runtime admission gates on the (`appId`, `appInstanceId`) pair. ShiJi MUST
+  NOT introduce a parallel `RegisterApp` flow; admission is reached by
+  letting the SDK helper register the FULL-mode manifest.
+
+## SJ-SHELL-011 — App-Owned Token Custody Forbidden
+
+App-owned access-token, refresh-token, subject-user-id, and session-store
+custody are forbidden in the ShiJi renderer and bridge layers. Runtime
+(`runtime/internal/services/account`) is the sole owner of token material.
+
+This rule is enforced at three layers:
+
+1. **SDK type level.** `createLocalFirstPartyRuntimePlatformClient` rejects
+   `accessToken`, `accessTokenProvider`, `refreshTokenProvider`,
+   `subjectUserIdProvider`, and `sessionStore` inputs at compile time
+   (spec K-ACCSVC-008). ShiJi MUST consume that helper, not bypass it.
+2. **Auth adapter.** The ShiJi `AuthPlatformAdapter` exposed to the kit
+   `<DesktopShellAuthPage>` MUST fail-close on `applyToken`,
+   `persistSession`, and any oauth/password embedded login path. Returning
+   silently or proxying through the realm SDK is a contract violation.
+3. **Renderer state.** `useAppStore.auth` MUST NOT carry `token` or
+   `refreshToken` fields. `setAuthSession` MUST accept only the
+   `AccountProjection`-derived `AuthUser` and MUST NOT take a token argument.
+
+Wire-level rule for `runtime.account.completeLogin`: the `refreshToken` field
+of the proof envelope MUST be the empty string. Runtime rejects any
+non-empty value with `PROOF_UNSUPPORTED` (R-OAUTH-008).
+
+Logout MUST go through `runtime.account.logout({ caller })`. ShiJi MUST NOT
+call any kit shared desktop auth-session bridge (`auth_session_load/save/clear`,
+`persistSharedDesktopAuthSession`, `resolveDesktopBootstrapAuthSession`); none
+is admitted on the ShiJi surface.
+
+Note: `learnerId` (the local-only learner profile identifier per SJ-SHELL-006)
+is distinct from `accountId`. Learner profiles are local-only and bind to the
+projected `accountId` for scoping; they are not Realm truth and do not
+constitute auth identity.

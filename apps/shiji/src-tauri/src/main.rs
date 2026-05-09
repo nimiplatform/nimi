@@ -2,8 +2,10 @@
 
 use serde::Serialize;
 
-// Shared modules from kit/shell/tauri crate
-use nimi_kit_shell_tauri::auth_session_commands;
+// Shared modules from kit/shell/tauri crate.
+// SJ-SHELL-011: ShiJi MUST NOT expose the kit shared desktop auth-session
+// bridge (`auth_session_load/save/clear`). RuntimeAccountService owns token
+// custody; the bridge import is intentionally absent.
 use nimi_kit_shell_tauri::desktop_paths;
 use nimi_kit_shell_tauri::oauth_commands;
 use nimi_kit_shell_tauri::runtime_bridge;
@@ -53,9 +55,6 @@ fn main() {
             parent_pin::parent_pin_set,
             parent_pin::parent_pin_verify,
             defaults::runtime_defaults,
-            auth_session_commands::auth_session_load,
-            auth_session_commands::auth_session_save,
-            auth_session_commands::auth_session_clear,
             oauth_commands::open_external_url,
             oauth_commands::oauth_token_exchange,
             oauth_commands::oauth_listen_for_code,

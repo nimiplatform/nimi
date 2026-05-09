@@ -1,0 +1,21 @@
+# ShiJi — Runtime Account Caller (SJ-SHELL-010)
+# Authoritative identity used by ShiJi when calling RuntimeAccountService
+# (BeginLogin, CompleteLogin, GetAccountSessionStatus, Logout). The caller is
+# fixed; runtime owns refresh-token custody and short-lived access-token
+# projection (SJ-SHELL-011, spec K-ACCSVC-008).
+
+caller:
+  app_id: app.nimi.shiji
+  app_instance_id: app.nimi.shiji.local-first-party
+  device_id: local-first-party-device
+  mode: ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP
+  scopes: []
+
+# Notes
+# - app_id MUST equal the Tauri identifier.
+# - app_instance_id is a stable per-install constant; ShiJi runs as a single
+#   primary window for one learner profile at a time.
+# - device_id is informational; runtime admission keys on (app_id, app_instance_id)
+#   per runtime/internal/appregistry/registry.go AdmitLocalFirstPartyInstance.
+# - mode is fixed to LOCAL_FIRST_PARTY_APP; DESKTOP_LAUNCHED_AVATAR is rejected
+#   by runtime helpers as AVATAR_BINDING_ONLY and is not admitted for ShiJi.

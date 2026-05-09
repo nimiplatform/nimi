@@ -1,31 +1,86 @@
-import { getRuntimeDefaults, invoke } from '@renderer/bridge';
-import { useAppStore } from './app-store.js';
-import { createPlatformClient } from '@nimiplatform/sdk';
 import {
-  persistSharedDesktopAuthSession,
-  resolveDesktopBootstrapAuthSession,
-} from '@nimiplatform/nimi-kit/auth';
-import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
-import { bootstrapAuthSession } from './bootstrap-auth.js';
+  clearPlatformClient,
+  createLocalFirstPartyRuntimePlatformClient,
+  type PlatformClient,
+} from '@nimiplatform/sdk';
 import {
-  clearAuthSession as clearPersistedAuthSession,
+  AccountCallerMode,
+  AccountSessionState,
+  type AccountCaller,
+  type AccountProjection,
+} from '@nimiplatform/sdk/runtime/browser';
+import type { Runtime } from '@nimiplatform/sdk/runtime';
+import {
+  getRuntimeDefaults,
   getDaemonStatus,
-  loadAuthSession,
-  saveAuthSession,
+  invoke,
   startDaemon,
 } from '@renderer/bridge';
+import { useAppStore, type AuthUser } from './app-store.js';
+import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
+
+// SJ-SHELL-010 / SJ-SHELL-011: ShiJi admitted as local-first-party Runtime
+// account / session consumer. Caller fixed; runtime owns refresh-token
+// custody and short-lived access-token projection. No app-owned token surface.
+// Concrete identifiers are authoritative in tables/runtime-account-caller.yaml.
+export const SHIJI_RUNTIME_APP_ID = 'app.nimi.shiji';
+export const SHIJI_RUNTIME_APP_INSTANCE_ID = `${SHIJI_RUNTIME_APP_ID}.local-first-party`;
+export const SHIJI_RUNTIME_DEVICE_ID = 'local-first-party-device';
+
+export const shijiRuntimeAccountCaller: AccountCaller = {
+  appId: SHIJI_RUNTIME_APP_ID,
+  appInstanceId: SHIJI_RUNTIME_APP_INSTANCE_ID,
+  deviceId: SHIJI_RUNTIME_DEVICE_ID,
+  mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+  scopes: [],
+};
 
 let bootstrapPromise: Promise<void> | null = null;
 let bootstrapSettled = false;
 
+const SHIJI_RUNTIME_READY_TIMEOUT_MS = 15_000;
+
+function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+export function normalizeShiJiAccountProjection(
+  projection: AccountProjection | null | undefined,
+): AuthUser | null {
+  const accountId = String(projection?.accountId || '').trim();
+  if (!accountId) {
+    return null;
+  }
+  return {
+    id: accountId,
+    displayName: String(projection?.displayName || '').trim(),
+  };
+}
+
+export async function loadShiJiRuntimeAccountUser(
+  runtime: Runtime,
+): Promise<AuthUser | null> {
+  const response = await runtime.account.getAccountSessionStatus({
+    caller: shijiRuntimeAccountCaller,
+  });
+  if (response.state !== AccountSessionState.AUTHENTICATED) {
+    return null;
+  }
+  return normalizeShiJiAccountProjection(response.accountProjection);
+}
+
 /**
- * runShiJiBootstrap — Phase 0 bootstrap sequence (SJ-SHELL-001)
+ * runShiJiBootstrap — Phase 0 bootstrap sequence (SJ-SHELL-001 /
+ * SJ-SHELL-010 / SJ-SHELL-011 / SJ-SHELL-012).
  *
- * 1. Runtime defaults from Tauri bridge
- * 2. createPlatformClient({ appId: 'nimi.shiji' })
- * 3. Auth session bootstrap
- * 4. SQLite init (non-blocking — local data, not auth-critical)
- * 5. Runtime readiness check (non-blocking — cloud-only mode valid)
+ * 1. Runtime defaults (Tauri bridge)
+ * 2. createLocalFirstPartyRuntimePlatformClient — type-rejects token / session
+ *    inputs (SJ-SHELL-011 / spec K-ACCSVC-008).
+ * 3. Account projection from runtime (anonymous / unavailable / RPC error
+ *    do NOT fail bootstrap)
+ * 4. SQLite init (BLOCKING — fail-close on failure; SJ-SHELL-001:6)
+ * 5. Runtime readiness check (BLOCKING — 15s timeout, fail-close;
+ *    SJ-SHELL-001:5)
  * 6. bootstrapReady = true → routes render
  */
 export async function runShiJiBootstrap(): Promise<void> {
@@ -61,6 +116,21 @@ export async function ensureShiJiBootstrapReady(): Promise<void> {
   }
 }
 
+async function buildShiJiPlatformClient(realmBaseUrl: string): Promise<PlatformClient> {
+  // SJ-SHELL-010 / SJ-SHELL-011 / spec K-ACCSVC-008: type-level rejection of
+  // any app-owned token surface. Runtime is the sole owner of access /
+  // refresh-token custody.
+  return createLocalFirstPartyRuntimePlatformClient({
+    appId: SHIJI_RUNTIME_APP_ID,
+    realmBaseUrl,
+    runtimeTransport: {
+      type: 'tauri-ipc',
+      commandNamespace: 'runtime_bridge',
+      eventNamespace: 'runtime_bridge',
+    },
+  });
+}
+
 async function doRunShiJiBootstrap(): Promise<void> {
   const store = useAppStore.getState();
 
@@ -71,114 +141,37 @@ async function doRunShiJiBootstrap(): Promise<void> {
   });
 
   try {
-    // Step 1: Runtime defaults
+    // SJ-SHELL-001 Step 1: Runtime defaults
     const runtimeDefaults = await getRuntimeDefaults();
     store.setRuntimeDefaults(runtimeDefaults);
     if (!store.aiModel && runtimeDefaults.runtime.localProviderModel) {
       store.setAiModel(runtimeDefaults.runtime.localProviderModel);
     }
-    const resolvedBootstrapAuthSession = await resolveDesktopBootstrapAuthSession({
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      envAccessToken: runtimeDefaults.realm.accessToken,
-      loadPersistedSession: () => loadAuthSession(),
-    });
-    if (resolvedBootstrapAuthSession.shouldClearPersistedSession) {
-      await clearPersistedAuthSession();
-    }
-    let bootstrapAccessToken = String(resolvedBootstrapAuthSession.session?.accessToken || '').trim();
-    let bootstrapRefreshToken = String(resolvedBootstrapAuthSession.session?.refreshToken || '').trim();
-    const resolveCurrentAccessToken = () => {
-      const authToken = String(useAppStore.getState().auth.token || '').trim();
-      if (authToken) {
-        return authToken;
-      }
-      return useAppStore.getState().auth.status === 'bootstrapping'
-        ? bootstrapAccessToken
-        : '';
-    };
-    const resolveCurrentRefreshToken = () => {
-      const refreshToken = String(useAppStore.getState().auth.refreshToken || '').trim();
-      if (refreshToken) {
-        return refreshToken;
-      }
-      return useAppStore.getState().auth.status === 'bootstrapping'
-        ? bootstrapRefreshToken
-        : '';
-    };
-    const persistDesktopSession = (user: Record<string, unknown> | null, accessToken: string, refreshToken?: string) => {
-      void persistSharedDesktopAuthSession({
-        realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-        accessToken,
-        refreshToken,
-        user,
-        saveSession: (session) => saveAuthSession(session),
-        clearSession: () => clearPersistedAuthSession(),
+
+    // SJ-SHELL-001 Step 2: Platform client (SJ-SHELL-010 / SJ-SHELL-011).
+    clearPlatformClient();
+    const { runtime } = await buildShiJiPlatformClient(runtimeDefaults.realm.realmBaseUrl);
+
+    // SJ-SHELL-001 Step 3 / SJ-SHELL-002: Account projection from runtime.
+    // ANONYMOUS / UNAVAILABLE / RPC error MUST NOT fail bootstrap; the shell
+    // opens unauthenticated and the user signs in via the broker.
+    const runtimeAccountUser = await loadShiJiRuntimeAccountUser(runtime).catch((error) => {
+      logRendererEvent({
+        level: 'warn',
+        area: 'shiji-bootstrap.account',
+        message: 'action:runtime-account-projection-unavailable',
+        details: { error: describeError(error) },
       });
-    };
-    const clearDesktopSession = () => {
-      bootstrapAccessToken = '';
-      bootstrapRefreshToken = '';
-      void clearPersistedAuthSession();
-    };
-
-    // Step 2: Platform client
-    const { runtime, realm } = await createPlatformClient({
-      appId: 'nimi.shiji',
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      accessToken: bootstrapAccessToken,
-      accessTokenProvider: resolveCurrentAccessToken,
-      refreshTokenProvider: resolveCurrentRefreshToken,
-      runtimeTransport: {
-        type: 'tauri-ipc',
-        commandNamespace: 'runtime_bridge',
-        eventNamespace: 'runtime_bridge',
-      },
-      sessionStore: {
-        getAccessToken: resolveCurrentAccessToken,
-        getRefreshToken: resolveCurrentRefreshToken,
-        getSubjectUserId: () => useAppStore.getState().auth.user?.id ?? '',
-        getCurrentUser: () => useAppStore.getState().auth.user,
-        setAuthSession: (user, accessToken, refreshToken) => {
-          bootstrapAccessToken = String(accessToken || '').trim();
-          if (refreshToken !== undefined) {
-            bootstrapRefreshToken = String(refreshToken || '').trim();
-          }
-          const u = user as Record<string, unknown> | null;
-          const existingUser = useAppStore.getState().auth.user;
-          const normalizedUser = !u || typeof u['id'] !== 'string' || !String(u['id']).trim()
-            ? existingUser
-            : {
-                id: String(u['id']),
-                displayName: typeof u['displayName'] === 'string' ? u['displayName'] : '',
-                email: u['email'] ? String(u['email']) : undefined,
-                avatarUrl: u['avatarUrl'] ? String(u['avatarUrl']) : undefined,
-              };
-          if (!normalizedUser) {
-            throw new Error('platform auth session is missing a valid user.id');
-          }
-          useAppStore.getState().setAuthSession(normalizedUser, accessToken, refreshToken ?? '');
-          persistDesktopSession(normalizedUser, accessToken, refreshToken);
-        },
-        clearAuthSession: () => {
-          useAppStore.getState().clearAuthSession();
-          clearDesktopSession();
-        },
-      },
+      return null;
     });
+    if (runtimeAccountUser) {
+      store.setAuthSession(runtimeAccountUser);
+    } else {
+      store.clearAuthSession();
+    }
 
-    // Step 3: Auth session
-    await bootstrapAuthSession({
-      realm,
-      accessToken: bootstrapAccessToken,
-      refreshToken: bootstrapRefreshToken,
-      source: resolvedBootstrapAuthSession.source,
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      clearPersistedSession: async () => {
-        clearDesktopSession();
-      },
-    });
-
-    // Step 4: SQLite init (blocking — local data is required for all stable paths)
+    // SJ-SHELL-001 Step 4: SQLite init (blocking — local data is required for
+    // all stable paths).
     await invoke('db_init', {});
     logRendererEvent({
       level: 'info',
@@ -186,7 +179,7 @@ async function doRunShiJiBootstrap(): Promise<void> {
       message: 'phase:sqlite:ready',
     });
 
-    // Step 5: Runtime readiness check (blocking — SJ-SHELL-001:5 hard-cut)
+    // SJ-SHELL-001 Step 5: Runtime readiness check (BLOCKING — hard cut).
     // Runtime must be available for AI generation. No cloud-only fallback.
     const daemonStatus = await getDaemonStatus();
     if (!daemonStatus.running) {
@@ -196,7 +189,7 @@ async function doRunShiJiBootstrap(): Promise<void> {
       }
     }
     const runtimeReadyTimeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('runtime ready timeout (15s)')), 15_000),
+      setTimeout(() => reject(new Error(`runtime ready timeout (${SHIJI_RUNTIME_READY_TIMEOUT_MS / 1000}s)`)), SHIJI_RUNTIME_READY_TIMEOUT_MS),
     );
     await Promise.race([runtime.ready(), runtimeReadyTimeout]);
     logRendererEvent({
@@ -205,7 +198,7 @@ async function doRunShiJiBootstrap(): Promise<void> {
       message: 'phase:runtime:ready',
     });
 
-    // Step 6: Ready — routes render
+    // SJ-SHELL-001 Step 6: Ready — routes render.
     store.setBootstrapReady(true);
     logRendererEvent({
       level: 'info',
@@ -213,7 +206,7 @@ async function doRunShiJiBootstrap(): Promise<void> {
       message: 'phase:bootstrap:ready',
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = describeError(error);
     store.setBootstrapError(message);
     logRendererEvent({
       level: 'error',
