@@ -113,3 +113,129 @@ Batch detail should separate queue navigation, active preview inspection, and di
 - one pane should focus on active preview comparison and frozen snapshots
 - one pane should hold evaluation detail, audit trail, and residual errors
 - batch list and batch detail may expose a delete-batch-record action, but that action must be clearly framed as removing Lookdev-local history rather than reverting Realm truth
+
+## LD-SHELL-010 — RuntimeAccountService Admission
+
+Lookdev is admitted as an active local-first-party Runtime account / session
+consumer. The caller is fixed and authoritative; concrete identifiers live in
+`tables/runtime-account-caller.yaml`:
+
+| Field | Value |
+|-------|-------|
+| `appId` | `app.nimi.lookdev` |
+| `appInstanceId` | `app.nimi.lookdev.local-first-party` |
+| `deviceId` | `local-first-party-device` |
+| `mode` | `ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP` |
+
+Implementation rules:
+
+- The renderer constructs the platform client via the SDK helper
+  `createLocalFirstPartyRuntimePlatformClient`. Calling `createPlatformClient`
+  directly from the Lookdev bootstrap is forbidden.
+- Every `runtime.account.*` call from Lookdev MUST pass the caller exactly as
+  declared in the table. Diverging fields (any other `mode`, missing
+  `appInstanceId`) MUST fail-close at the call site, not be coerced.
+- Mode `ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR` is not admitted for
+  Lookdev; runtime rejects it as `AVATAR_BINDING_ONLY`.
+- Runtime admission gates on the (`appId`, `appInstanceId`) pair. Lookdev MUST
+  NOT introduce a parallel `RegisterApp` flow; admission is reached by
+  letting the SDK helper register the FULL-mode manifest.
+
+## LD-SHELL-011 — App-Owned Token Custody Forbidden
+
+App-owned access-token, refresh-token, subject-user-id, and session-store
+custody are forbidden in the Lookdev renderer and bridge layers. Runtime
+(`runtime/internal/services/account`) is the sole owner of token material.
+
+This rule is enforced at three layers:
+
+1. **SDK type level.** `createLocalFirstPartyRuntimePlatformClient` rejects
+   `accessToken`, `accessTokenProvider`, `refreshTokenProvider`,
+   `subjectUserIdProvider`, and `sessionStore` inputs at compile time
+   (spec K-ACCSVC-008). Lookdev MUST consume that helper, not bypass it.
+2. **Auth adapter.** The Lookdev `AuthPlatformAdapter` exposed to the kit
+   `<DesktopShellAuthPage>` MUST fail-close on `applyToken`,
+   `persistSession`, and any oauth/password embedded login path. Returning
+   silently or proxying through the realm SDK is a contract violation.
+3. **Renderer state.** `useAppStore.auth` MUST NOT carry `token` or
+   `refreshToken` fields. `setAuthSession` MUST accept only the
+   `AccountProjection`-derived `AuthUser` and MUST NOT take a token argument.
+
+Wire-level rule for `runtime.account.completeLogin`: the `refreshToken`
+field of the proof envelope MUST be the empty string. Runtime rejects any
+non-empty value with `PROOF_UNSUPPORTED` (R-OAUTH-008).
+
+Logout MUST go through `runtime.account.logout({ caller })`. Lookdev MUST
+NOT call any kit shared desktop auth-session bridge (`auth_session_load/save/clear`,
+`persistSharedDesktopAuthSession`, `resolveDesktopBootstrapAuthSession`); none
+is admitted on the Lookdev surface.
+
+## LD-SHELL-012 — Bootstrap and Auth Flow
+
+Lookdev bootstrap is the single entry that constructs the platform client and
+projects auth state from the runtime account; there is no separate "auth
+bootstrap" stage that owns token material.
+
+```
+Step 1: Runtime defaults
+  → desktopBridge.getRuntimeDefaults()
+  → store realm base URL + runtime defaults
+
+Step 2: Platform client (LD-SHELL-010 / LD-SHELL-011)
+  → createLocalFirstPartyRuntimePlatformClient({ appId, realmBaseUrl, runtimeTransport })
+  → SDK helper type-rejects accessToken / accessTokenProvider /
+    refreshTokenProvider / subjectUserIdProvider / sessionStore inputs.
+
+Step 3: Account projection
+  → runtime.account.getAccountSessionStatus({ caller: lookdevRuntimeAccountCaller })
+  → AUTHENTICATED → setAuthSession(projection)
+  → ANONYMOUS / UNAVAILABLE / RPC error → clearAuthSession()
+    Anonymous and runtime-unavailable states MUST NOT fail bootstrap; the
+    shell opens unauthenticated and the user signs in via the broker login.
+
+Step 4: Runtime SDK readiness (non-blocking)
+  → runtime.ready()
+  → readiness failure does NOT fail bootstrap; route-settings dialog
+    surfaces the runtime probe state to the operator.
+
+Step 5: Ready
+  → setBootstrapReady(true)
+  → render shell
+```
+
+Login goes through the kit `<DesktopShellAuthPage>` desktop-browser flow
+wired to a Lookdev `runtimeAccountBroker`:
+
+- `broker.begin` → `runtime.account.beginLogin`. The realm OAuth authorize
+  URL returned by runtime carries a PKCE S256 challenge bound to a
+  runtime-held verifier. Lookdev never observes the verifier.
+- User authorizes in the system browser; the realm authorization endpoint
+  302-redirects to the Lookdev desktop loopback redirect_uri with a raw
+  OAuth `code`.
+- `broker.complete` → `runtime.account.completeLogin` with the raw `code`,
+  `state`, `nonce`, and `redirectUri`. `refreshToken` MUST be the empty
+  string at the wire level (R-OAUTH-008 / spec K-ACCSVC-008); any non-empty
+  value is rejected by runtime as `PROOF_UNSUPPORTED`.
+- On success, runtime mints account material in its own custody and emits an
+  account projection containing only `accountId`, `displayName`, and
+  `realmEnvironmentId`.
+
+App store auth slice shape (LD-SHELL-011):
+
+```typescript
+interface LookdevAppStore {
+  auth: {
+    status: 'bootstrapping' | 'authenticated' | 'unauthenticated';
+    user: AuthUser | null;
+  };
+  // ... runtime probe, route settings, etc.
+  setAuthSession(user: AuthUser): void;
+  clearAuthSession(): void;
+}
+```
+
+`AuthUser` is the shape projected from `runtime.account.getAccountSessionStatus`
+(`{ id, displayName }`). Token / refresh-token / subject-id provider state is
+forbidden on the renderer store (LD-SHELL-011).
+
+Auth states: `bootstrapping` → `authenticated` | `unauthenticated`

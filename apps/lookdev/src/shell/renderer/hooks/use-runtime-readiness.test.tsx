@@ -27,8 +27,6 @@ describe('useRuntimeReadiness', () => {
       auth: {
         status: 'unauthenticated',
         user: null,
-        token: '',
-        refreshToken: '',
       },
       runtimeStatus: 'checking',
     });
@@ -51,8 +49,6 @@ describe('useRuntimeReadiness', () => {
           displayName: 'Nimi Test User',
           email: 'test@nimi.xyz',
         },
-        token: 'token',
-        refreshToken: 'refresh',
       },
     });
 

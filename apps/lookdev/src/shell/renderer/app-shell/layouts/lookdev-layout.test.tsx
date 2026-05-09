@@ -90,8 +90,6 @@ describe('LookdevLayout', () => {
           displayName: 'Nimi Test User',
           email: 'test@nimi.xyz',
         },
-        token: 'token',
-        refreshToken: 'refresh',
       },
     });
   });

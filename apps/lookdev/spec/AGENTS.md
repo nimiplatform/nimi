@@ -9,7 +9,7 @@
 
 ## Rule ID Namespace
 
-- `LD-SHELL-*` — standalone app shell, top-level surfaces, navigation
+- `LD-SHELL-*` — standalone app shell, top-level surfaces, navigation, RuntimeAccountService admission, and token-custody boundary
 - `LD-BATCH-*` — batch and item model, lifecycle, state ownership
 - `LD-PIPE-*` — processing flow, retry flow, pause/resume, commit stages
 - `LD-EVAL-*` — auto-evaluation gate and result structure
@@ -31,3 +31,4 @@
 - `kernel/tables/batch-model.yaml` — batch/item fields, states, snapshots, and defaults
 - `kernel/tables/evaluation-rubric.yaml` — hard gates, scored checks, and evaluation payload shape
 - `kernel/tables/writeback-policy.yaml` — Realm commit target and replacement rules
+- `kernel/tables/runtime-account-caller.yaml` — Lookdev RuntimeAccountService caller identity (LD-SHELL-010)

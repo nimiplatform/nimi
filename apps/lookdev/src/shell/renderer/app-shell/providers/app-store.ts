@@ -34,11 +34,11 @@ export type RuntimeProbeState = {
 };
 
 export interface LookdevAppStore {
+  // LD-SHELL-011 / LD-SHELL-012: no app-owned token fields. Token / refresh-
+  // token / subject-id custody is owned exclusively by RuntimeAccountService.
   auth: {
     status: AuthStatus;
     user: AuthUser | null;
-    token: string;
-    refreshToken: string;
   };
   bootstrapReady: boolean;
   bootstrapError: string | null;
@@ -53,7 +53,7 @@ export interface LookdevAppStore {
     evaluationTargetKey: string;
   };
 
-  setAuthSession(user: AuthUser, token: string, refreshToken: string): void;
+  setAuthSession(user: AuthUser): void;
   clearAuthSession(): void;
   setBootstrapReady(ready: boolean): void;
   setBootstrapError(error: string | null): void;
@@ -88,8 +88,6 @@ export const useAppStore = create<LookdevAppStore>((set) => ({
   auth: {
     status: 'bootstrapping',
     user: null,
-    token: '',
-    refreshToken: '',
   },
   bootstrapReady: false,
   bootstrapError: null,
@@ -100,15 +98,15 @@ export const useAppStore = create<LookdevAppStore>((set) => ({
   routeSettingsOpen: false,
   routeSettings: loadLookdevRouteSettings(),
 
-  setAuthSession(user, token, refreshToken) {
+  setAuthSession(user) {
     set({
-      auth: { status: 'authenticated', user, token, refreshToken },
+      auth: { status: 'authenticated', user },
     });
   },
 
   clearAuthSession() {
     set({
-      auth: { status: 'unauthenticated', user: null, token: '', refreshToken: '' },
+      auth: { status: 'unauthenticated', user: null },
       runtimeProbe: DEFAULT_RUNTIME_PROBE,
       runtimeError: null,
       runtimeStatus: 'checking',

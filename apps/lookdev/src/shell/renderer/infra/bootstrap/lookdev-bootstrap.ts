@@ -1,36 +1,65 @@
 import {
-  getRuntimeDefaults,
-  getDaemonStatus,
-  clearAuthSession as clearPersistedAuthSession,
-  loadAuthSession,
-  saveAuthSession,
-} from '@renderer/bridge';
-import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
-import { createPlatformClient } from '@nimiplatform/sdk';
+  clearPlatformClient,
+  createLocalFirstPartyRuntimePlatformClient,
+  type PlatformClient,
+} from '@nimiplatform/sdk';
 import {
-  persistSharedDesktopAuthSession,
-  resolveDesktopBootstrapAuthSession,
-} from '@nimiplatform/nimi-kit/auth';
+  AccountCallerMode,
+  AccountSessionState,
+  type AccountCaller,
+  type AccountProjection,
+} from '@nimiplatform/sdk/runtime/browser';
+import type { Runtime } from '@nimiplatform/sdk/runtime';
+import { getRuntimeDefaults, getDaemonStatus } from '@renderer/bridge';
+import { useAppStore, type AuthUser } from '@renderer/app-shell/providers/app-store.js';
 import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
-import { bootstrapAuthSession } from './lookdev-bootstrap-auth.js';
+
+// LD-SHELL-010 / LD-SHELL-011: Lookdev admitted as local-first-party Runtime
+// account / session consumer. Caller fixed; runtime owns refresh-token
+// custody and short-lived access-token projection. No app-owned token surface.
+// Concrete identifiers are authoritative in tables/runtime-account-caller.yaml.
+export const LOOKDEV_RUNTIME_APP_ID = 'app.nimi.lookdev';
+export const LOOKDEV_RUNTIME_APP_INSTANCE_ID = `${LOOKDEV_RUNTIME_APP_ID}.local-first-party`;
+export const LOOKDEV_RUNTIME_DEVICE_ID = 'local-first-party-device';
+
+export const lookdevRuntimeAccountCaller: AccountCaller = {
+  appId: LOOKDEV_RUNTIME_APP_ID,
+  appInstanceId: LOOKDEV_RUNTIME_APP_INSTANCE_ID,
+  deviceId: LOOKDEV_RUNTIME_DEVICE_ID,
+  mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+  scopes: [],
+};
 
 let bootstrapPromise: Promise<void> | null = null;
 let bootstrapSettled = false;
 
-function toLookdevAuthUser(user: Record<string, unknown> | null) {
-  if (!user) {
-    return null;
-  }
-  const id = String(user.id || '').trim();
-  if (!id) {
+function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+export function normalizeLookdevAccountProjection(
+  projection: AccountProjection | null | undefined,
+): AuthUser | null {
+  const accountId = String(projection?.accountId || '').trim();
+  if (!accountId) {
     return null;
   }
   return {
-    id,
-    displayName: String(user.displayName || user.name || '').trim(),
-    email: user.email ? String(user.email) : undefined,
-    avatarUrl: user.avatarUrl ? String(user.avatarUrl) : undefined,
+    id: accountId,
+    displayName: String(projection?.displayName || '').trim(),
   };
+}
+
+export async function loadLookdevRuntimeAccountUser(
+  runtime: Runtime,
+): Promise<AuthUser | null> {
+  const response = await runtime.account.getAccountSessionStatus({
+    caller: lookdevRuntimeAccountCaller,
+  });
+  if (response.state !== AccountSessionState.AUTHENTICATED) {
+    return null;
+  }
+  return normalizeLookdevAccountProjection(response.accountProjection);
 }
 
 export async function runLookdevBootstrap(): Promise<void> {
@@ -66,6 +95,21 @@ export async function ensureLookdevBootstrapReady(): Promise<void> {
   }
 }
 
+async function buildLookdevPlatformClient(realmBaseUrl: string): Promise<PlatformClient> {
+  // LD-SHELL-010 / LD-SHELL-011 / spec K-ACCSVC-008: type-level rejection of
+  // any app-owned token surface. Runtime is the sole owner of access /
+  // refresh-token custody.
+  return createLocalFirstPartyRuntimePlatformClient({
+    appId: LOOKDEV_RUNTIME_APP_ID,
+    realmBaseUrl,
+    runtimeTransport: {
+      type: 'tauri-ipc',
+      commandNamespace: 'runtime_bridge',
+      eventNamespace: 'runtime_bridge',
+    },
+  });
+}
+
 async function doRunLookdevBootstrap(): Promise<void> {
   const store = useAppStore.getState();
 
@@ -76,122 +120,52 @@ async function doRunLookdevBootstrap(): Promise<void> {
   });
 
   try {
-    // Step 1: Runtime Defaults (i18n is eagerly initialized at module load)
+    // LD-SHELL-012 Step 1: Runtime defaults.
     const runtimeDefaults = await getRuntimeDefaults();
     store.setRuntimeDefaults(runtimeDefaults);
-    const resolvedBootstrapAuthSession = await resolveDesktopBootstrapAuthSession({
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      envAccessToken: runtimeDefaults.realm.accessToken,
-      loadPersistedSession: () => loadAuthSession(),
-    });
-    if (resolvedBootstrapAuthSession.shouldClearPersistedSession) {
-      await clearPersistedAuthSession();
-    }
-    let bootstrapAccessToken = String(resolvedBootstrapAuthSession.session?.accessToken || '').trim();
-    let bootstrapRefreshToken = String(resolvedBootstrapAuthSession.session?.refreshToken || '').trim();
-    const resolveCurrentAccessToken = () => {
-      const authToken = String(useAppStore.getState().auth.token || '').trim();
-      if (authToken) {
-        return authToken;
-      }
-      return useAppStore.getState().auth.status === 'bootstrapping'
-        ? bootstrapAccessToken
-        : '';
-    };
-    const resolveCurrentRefreshToken = () => {
-      const refreshToken = String(useAppStore.getState().auth.refreshToken || '').trim();
-      if (refreshToken) {
-        return refreshToken;
-      }
-      return useAppStore.getState().auth.status === 'bootstrapping'
-        ? bootstrapRefreshToken
-        : '';
-    };
-    const persistDesktopSession = (user: Record<string, unknown> | null, accessToken: string, refreshToken?: string) => {
-      void persistSharedDesktopAuthSession({
-        realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-        accessToken,
-        refreshToken,
-        user,
-        saveSession: (session) => saveAuthSession(session),
-        clearSession: () => clearPersistedAuthSession(),
+
+    // LD-SHELL-012 Step 2: Platform client (LD-SHELL-010 / LD-SHELL-011).
+    clearPlatformClient();
+    const { runtime } = await buildLookdevPlatformClient(runtimeDefaults.realm.realmBaseUrl);
+
+    // LD-SHELL-012 Step 3: Account projection from runtime.
+    // ANONYMOUS / UNAVAILABLE / RPC error MUST NOT fail bootstrap; the shell
+    // opens unauthenticated and the user signs in via the broker.
+    const runtimeAccountUser = await loadLookdevRuntimeAccountUser(runtime).catch((error) => {
+      logRendererEvent({
+        level: 'warn',
+        area: 'lookdev-bootstrap.account',
+        message: 'action:runtime-account-projection-unavailable',
+        details: { error: describeError(error) },
       });
-    };
-    const clearDesktopSession = () => {
-      bootstrapAccessToken = '';
-      bootstrapRefreshToken = '';
-      void clearPersistedAuthSession();
-    };
-
-    // Step 3: Platform Client
-    const { runtime, realm } = await createPlatformClient({
-      appId: 'nimi.lookdev',
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      accessToken: bootstrapAccessToken,
-      accessTokenProvider: resolveCurrentAccessToken,
-      refreshTokenProvider: resolveCurrentRefreshToken,
-      runtimeTransport: {
-        type: 'tauri-ipc',
-        commandNamespace: 'runtime_bridge',
-        eventNamespace: 'runtime_bridge',
-      },
-      sessionStore: {
-        getAccessToken: resolveCurrentAccessToken,
-        getRefreshToken: resolveCurrentRefreshToken,
-        getSubjectUserId: () => useAppStore.getState().auth.user?.id ?? '',
-        getCurrentUser: () => useAppStore.getState().auth.user,
-        setAuthSession: (user, accessToken, refreshToken) => {
-          bootstrapAccessToken = String(accessToken || '').trim();
-          if (refreshToken !== undefined) {
-            bootstrapRefreshToken = String(refreshToken || '').trim();
-          }
-          const normalizedUser = toLookdevAuthUser(user as Record<string, unknown> | null)
-            ?? useAppStore.getState().auth.user;
-          if (!normalizedUser) {
-            return;
-          }
-          useAppStore.getState().setAuthSession(normalizedUser, accessToken, refreshToken || '');
-          persistDesktopSession(normalizedUser, accessToken, refreshToken);
-        },
-        clearAuthSession: () => {
-          useAppStore.getState().clearAuthSession();
-          clearDesktopSession();
-        },
-      },
+      return null;
     });
+    if (runtimeAccountUser) {
+      store.setAuthSession(runtimeAccountUser);
+    } else {
+      store.clearAuthSession();
+    }
 
-    // Step 4: Auth Session
-    await bootstrapAuthSession({
-      realm,
-      accessToken: bootstrapAccessToken,
-      refreshToken: bootstrapRefreshToken,
-      source: resolvedBootstrapAuthSession.source,
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      clearPersistedSession: async () => {
-        clearDesktopSession();
-      },
-    });
-
-    // Step 5: Runtime SDK Readiness
+    // LD-SHELL-012 Step 4: Runtime SDK readiness (non-blocking).
     try {
       await runtime.ready();
-    } catch {
-      // Runtime readiness is non-blocking for Forge — creator features
-      // may work without local AI runtime available
+    } catch (error) {
+      logRendererEvent({
+        level: 'warn',
+        area: 'lookdev-bootstrap.runtime',
+        message: 'action:runtime-ready-nonblocking-failed',
+        details: { error: describeError(error) },
+      });
     }
 
-    // Step 6: Exit Handler (daemon status check)
+    // LD-SHELL-012 Step 4b: Daemon status (informational).
     try {
-      const daemonStatus = await getDaemonStatus();
-      if (daemonStatus.managed) {
-        // Register exit handler if daemon is managed
-        // Forge uses a lighter touch — just log the status
-      }
+      await getDaemonStatus();
     } catch {
-      // Non-blocking — daemon may not be running
+      // Non-blocking — daemon may not be running.
     }
 
-    // Step 7: Ready
+    // LD-SHELL-012 Step 5: Ready.
     store.setBootstrapReady(true);
     logRendererEvent({
       level: 'info',
@@ -199,7 +173,7 @@ async function doRunLookdevBootstrap(): Promise<void> {
       message: 'phase:bootstrap:ready',
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = describeError(error);
     store.setBootstrapError(message);
     logRendererEvent({
       level: 'error',

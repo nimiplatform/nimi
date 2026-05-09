@@ -1,12 +1,13 @@
+// LD-SHELL-011 / spec K-ACCSVC-008: legacy shared desktop auth-session helpers
+// (`loadAuthSession`, `saveAuthSession`, `clearAuthSession`) are NOT
+// re-exported here. RuntimeAccountService owns token / refresh-token custody;
+// Lookdev does not own a persisted auth-session bridge.
 export {
   hasTauriInvoke,
   invoke,
   invokeChecked,
   BridgeError,
   getRuntimeDefaults,
-  loadAuthSession,
-  saveAuthSession,
-  clearAuthSession,
   getDaemonStatus,
   startDaemon,
   stopDaemon,
