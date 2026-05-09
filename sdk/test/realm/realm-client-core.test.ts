@@ -30,11 +30,11 @@ test('Realm keeps baseUrl/accessToken isolated per instance', async () => {
   try {
     const realmA = new Realm({
       baseUrl: 'https://realm-a.nimi.xyz',
-      auth: { accessToken: 'token-a' },
+      auth: { mode: 'external_principal', accessToken: 'token-a' },
     });
     const realmB = new Realm({
       baseUrl: 'https://realm-b.nimi.xyz',
-      auth: { accessToken: 'token-b' },
+      auth: { mode: 'external_principal', accessToken: 'token-b' },
     });
 
     await realmA.unsafeRaw.request({ method: 'GET', path: '/api/a' });
@@ -67,7 +67,7 @@ test('Realm unsafeRaw.request replaces pathParams before dispatch', async () => 
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-path-params.nimi.xyz',
-      auth: { accessToken: 'path-token' },
+      auth: { mode: 'external_principal', accessToken: 'path-token' },
     });
 
     await realm.unsafeRaw.request({
@@ -130,7 +130,7 @@ test('Realm unsafeRaw.request only returns typed data through explicit parsing',
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-parser.nimi.xyz',
-      auth: { accessToken: 'parser-token' },
+      auth: { mode: 'external_principal', accessToken: 'parser-token' },
     });
 
     const result = await realm.unsafeRaw.request({
@@ -200,7 +200,7 @@ test('Realm maps HTTP errors to NimiError with layered reasonCode/actionHint', a
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-error.nimi.xyz',
-      auth: { accessToken: 'error-token' },
+      auth: { mode: 'external_principal', accessToken: 'error-token' },
     });
 
     let thrown: unknown = null;
@@ -241,7 +241,7 @@ test('Realm maps HTTP 422 to CONFIG_INVALID when reasonCode is absent', async ()
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-validation.nimi.xyz',
-      auth: { accessToken: 'validation-token' },
+      auth: { mode: 'external_principal', accessToken: 'validation-token' },
     });
 
     let thrown: unknown = null;
@@ -285,7 +285,7 @@ test('Realm maps default 404/409/429 status codes when reasonCode is absent', as
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-status-map.nimi.xyz',
-      auth: { accessToken: 'status-token' },
+      auth: { mode: 'external_principal', accessToken: 'status-token' },
     });
 
     const expectations: Array<{
@@ -325,7 +325,7 @@ test('Realm maps network failures to REALM_UNAVAILABLE', async () => {
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-network.nimi.xyz',
-      auth: { accessToken: 'network-token' },
+      auth: { mode: 'external_principal', accessToken: 'network-token' },
     });
 
     let thrown: unknown = null;
@@ -369,7 +369,7 @@ test('Realm maps timeout abort to REALM_UNAVAILABLE (not OPERATION_ABORTED)', as
     const realm = new Realm({
       baseUrl: 'https://realm-timeout.nimi.xyz',
       timeoutMs: 10,
-      auth: { accessToken: 'timeout-token' },
+      auth: { mode: 'external_principal', accessToken: 'timeout-token' },
     });
 
     let thrown: unknown = null;
@@ -414,7 +414,7 @@ test('Realm maps external abort signal to OPERATION_ABORTED', async () => {
     const realm = new Realm({
       baseUrl: 'https://realm-abort.nimi.xyz',
       timeoutMs: 1000,
-      auth: { accessToken: 'abort-token' },
+      auth: { mode: 'external_principal', accessToken: 'abort-token' },
     });
     const controller = new AbortController();
     const requestPromise = realm.unsafeRaw.request({

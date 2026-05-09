@@ -10,11 +10,6 @@ const outputFiles = [
   resolve(repoRoot, 'kit/shell/tauri/src/runtime_bridge/generated/method_ids.rs'),
   resolve(repoRoot, 'apps/forge/src-tauri/src/runtime_bridge/generated/method_ids.rs'),
 ];
-const customAllowlistedMethods = [
-  '/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor',
-  '/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot',
-];
-
 function parseRuntimeMethodMap(source) {
   const lines = source.split('\n');
   const map = new Map();
@@ -64,10 +59,12 @@ function parseRuntimeMethodMap(source) {
   return map;
 }
 
-function parseStreamReferences(source) {
-  const streamBlockMatch = source.match(
-    /export const RuntimeStreamMethodIds:[\s\S]*?Object\.freeze\(\[([\s\S]*?)\]\);/,
+function parseMethodReferences(source, constName) {
+  const escapedName = constName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const blockPattern = new RegExp(
+    `export const ${escapedName}:[\\s\\S]*?Object\\.freeze\\(\\[([\\s\\S]*?)\\]\\);`,
   );
+  const streamBlockMatch = source.match(blockPattern);
   if (!streamBlockMatch) {
     return [];
   }
@@ -115,12 +112,19 @@ function main() {
   const checkMode = process.argv.includes('--check');
   const source = readFileSync(methodIdsFile, 'utf8');
   const methodMap = parseRuntimeMethodMap(source);
-  const allowlistedMethods = uniqueSorted([
-    ...Array.from(methodMap.values()),
-    ...customAllowlistedMethods,
-  ]);
+  const deniedReferences = parseMethodReferences(source, 'RuntimeMethodGroupDeniedMethodIds');
+  const deniedMethods = new Set(deniedReferences.map((reference) => {
+    const method = methodMap.get(reference);
+    if (!method) {
+      throw new Error(`failed to resolve denied method reference: ${reference}`);
+    }
+    return method;
+  }));
+  const allowlistedMethods = uniqueSorted(
+    Array.from(methodMap.values()).filter((method) => !deniedMethods.has(method)),
+  );
 
-  const streamReferences = parseStreamReferences(source);
+  const streamReferences = parseMethodReferences(source, 'RuntimeStreamMethodIds');
   const streamMethods = uniqueSorted(streamReferences.map((reference) => {
     const method = methodMap.get(reference);
     if (!method) {

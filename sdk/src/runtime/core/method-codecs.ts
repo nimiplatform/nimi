@@ -17,4 +17,4 @@ export const RuntimeUnaryMethodCodecs: RuntimeUnaryMethodCodecMap = {
   ...runtimeUnaryMethodCodecsDomain,
 } as RuntimeUnaryMethodCodecMap;
 
-export const RuntimeStreamMethodCodecs: RuntimeStreamMethodCodecMap = runtimeStreamMethodCodecs;
+export const RuntimeStreamMethodCodecs: RuntimeStreamMethodCodecMap = runtimeStreamMethodCodecs as RuntimeStreamMethodCodecMap;

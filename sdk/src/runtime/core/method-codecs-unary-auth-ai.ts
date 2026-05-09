@@ -26,26 +26,6 @@ import {
   ValidateAppAccessTokenResponse,
 } from '../generated/runtime/v1/grant';
 import {
-  BeginLoginRequest,
-  BeginLoginResponse,
-  CompleteLoginRequest,
-  CompleteLoginResponse,
-  GetAccessTokenRequest,
-  GetAccessTokenResponse,
-  GetAccountSessionStatusRequest,
-  GetAccountSessionStatusResponse,
-  IssueScopedAppBindingRequest,
-  IssueScopedAppBindingResponse,
-  LogoutRequest,
-  LogoutResponse,
-  RefreshAccountSessionRequest,
-  RefreshAccountSessionResponse,
-  RevokeScopedAppBindingRequest,
-  RevokeScopedAppBindingResponse,
-  SwitchAccountRequest,
-  SwitchAccountResponse,
-} from '../generated/runtime/v1/account';
-import {
   AppendRealtimeInputRequest,
   AppendRealtimeInputResponse,
   CancelScenarioJobRequest,
@@ -83,22 +63,6 @@ import {
   ListVoiceAssetsRequest,
   ListVoiceAssetsResponse,
 } from '../generated/runtime/v1/voice';
-import {
-  CancelWorkflowRequest,
-  GetWorkflowRequest,
-  GetWorkflowResponse,
-  SubmitWorkflowRequest,
-  SubmitWorkflowResponse,
-} from '../generated/runtime/v1/workflow';
-import {
-  CheckModelHealthRequest,
-  CheckModelHealthResponse,
-  ListModelsRequest,
-  ListModelsResponse,
-  PullModelRequest,
-  PullModelResponse,
-  RemoveModelRequest,
-} from '../generated/runtime/v1/model';
 import type { RuntimeUnaryMethodCodecMap } from './method-codecs-types';
 
 export const runtimeUnaryMethodCodecsAuthAi: Partial<RuntimeUnaryMethodCodecMap> = {
@@ -153,42 +117,6 @@ export const runtimeUnaryMethodCodecsAuthAi: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.artifact.readArtifactBytes]: {
     requestType: ReadArtifactBytesRequest,
     responseType: ReadArtifactBytesResponse,
-  },
-  [RuntimeMethodIds.account.getAccountSessionStatus]: {
-    requestType: GetAccountSessionStatusRequest,
-    responseType: GetAccountSessionStatusResponse,
-  },
-  [RuntimeMethodIds.account.beginLogin]: {
-    requestType: BeginLoginRequest,
-    responseType: BeginLoginResponse,
-  },
-  [RuntimeMethodIds.account.completeLogin]: {
-    requestType: CompleteLoginRequest,
-    responseType: CompleteLoginResponse,
-  },
-  [RuntimeMethodIds.account.getAccessToken]: {
-    requestType: GetAccessTokenRequest,
-    responseType: GetAccessTokenResponse,
-  },
-  [RuntimeMethodIds.account.refreshAccountSession]: {
-    requestType: RefreshAccountSessionRequest,
-    responseType: RefreshAccountSessionResponse,
-  },
-  [RuntimeMethodIds.account.logout]: {
-    requestType: LogoutRequest,
-    responseType: LogoutResponse,
-  },
-  [RuntimeMethodIds.account.switchAccount]: {
-    requestType: SwitchAccountRequest,
-    responseType: SwitchAccountResponse,
-  },
-  [RuntimeMethodIds.account.issueScopedAppBinding]: {
-    requestType: IssueScopedAppBindingRequest,
-    responseType: IssueScopedAppBindingResponse,
-  },
-  [RuntimeMethodIds.account.revokeScopedAppBinding]: {
-    requestType: RevokeScopedAppBindingRequest,
-    responseType: RevokeScopedAppBindingResponse,
   },
   [RuntimeMethodIds.ai.executeScenario]: {
     requestType: ExecuteScenarioRequest,
@@ -245,33 +173,5 @@ export const runtimeUnaryMethodCodecsAuthAi: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.aiRealtime.closeRealtimeSession]: {
     requestType: CloseRealtimeSessionRequest,
     responseType: CloseRealtimeSessionResponse,
-  },
-  [RuntimeMethodIds.workflow.submit]: {
-    requestType: SubmitWorkflowRequest,
-    responseType: SubmitWorkflowResponse,
-  },
-  [RuntimeMethodIds.workflow.get]: {
-    requestType: GetWorkflowRequest,
-    responseType: GetWorkflowResponse,
-  },
-  [RuntimeMethodIds.workflow.cancel]: {
-    requestType: CancelWorkflowRequest,
-    responseType: Ack,
-  },
-  [RuntimeMethodIds.model.list]: {
-    requestType: ListModelsRequest,
-    responseType: ListModelsResponse,
-  },
-  [RuntimeMethodIds.model.pull]: {
-    requestType: PullModelRequest,
-    responseType: PullModelResponse,
-  },
-  [RuntimeMethodIds.model.remove]: {
-    requestType: RemoveModelRequest,
-    responseType: Ack,
-  },
-  [RuntimeMethodIds.model.checkHealth]: {
-    requestType: CheckModelHealthRequest,
-    responseType: CheckModelHealthResponse,
   },
 } satisfies Partial<RuntimeUnaryMethodCodecMap>;

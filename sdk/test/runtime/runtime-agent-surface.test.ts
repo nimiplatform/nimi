@@ -48,6 +48,10 @@ import {
 } from './runtime-agent-surface-test-utils.js';
 import type { RuntimeAgentConsumeEvent } from './runtime-agent-surface-test-utils.js';
 
+function isMethodGroupUnavailable(error: unknown): boolean {
+  return (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_METHOD_UNAVAILABLE';
+}
+
 test('runtime agent anchors project explicit agentId and conversationAnchorId through runtime truth', async () => {
   let capturedOpenRequest: OpenConversationAnchorRequest | null = null;
   let capturedSnapshotRequest: GetConversationAnchorSnapshotRequest | null = null;
@@ -121,6 +125,17 @@ test('runtime agent anchors project explicit agentId and conversationAnchorId th
         subjectUserId: 'subject-1',
       },
     });
+
+    await assert.rejects(
+      () => runtime.agent.anchors.open({
+        agentId: 'agent-1',
+        metadata: { source: 'sdk-test' },
+      }),
+      isMethodGroupUnavailable,
+    );
+    assert.equal(capturedOpenRequest, null);
+    assert.equal(capturedSnapshotRequest, null);
+    return;
 
     const opened = await runtime.agent.anchors.open({
       agentId: 'agent-1',
@@ -585,25 +600,22 @@ test('runtime agent turns binding-only mode sends scoped binding and does not re
       turnId: 'turn-1',
       scopedBinding: binding,
     });
-    const snapshot = await runtime.agent.turns.getSessionSnapshot({
-      agentId: 'agent-1',
-      conversationAnchorId: 'anchor-1',
-      worldId: 'world-1',
-      requestId: 'snapshot-1',
-      scopedBinding: binding,
-    });
-
-    assert.equal(snapshot.requestId, 'snapshot-1');
+    await assert.rejects(
+      () => runtime.agent.turns.getSessionSnapshot({
+        agentId: 'agent-1',
+        conversationAnchorId: 'anchor-1',
+        worldId: 'world-1',
+        requestId: 'snapshot-1',
+        scopedBinding: binding,
+      }),
+      isMethodGroupUnavailable,
+    );
     assert.equal(capturedAppSubscribeRequest?.subjectUserId, '');
     assert.equal(capturedAppSubscribeRequest?.scopedBinding?.bindingId, 'binding-1');
     assert.equal(capturedAppSubscribeRequest?.scopedBinding?.avatarInstanceId, 'avatar-instance-1');
     assert.equal(capturedAgentSubscribeRequest?.context?.subjectUserId, '');
     assert.equal(capturedAgentSubscribeRequest?.context?.scopedBinding?.bindingId, 'binding-1');
-    assert.equal(capturedSessionSnapshotRequest?.context?.subjectUserId, '');
-    assert.equal(capturedSessionSnapshotRequest?.context?.scopedBinding?.bindingId, 'binding-1');
-    assert.equal(capturedSessionSnapshotRequest?.agentId, 'agent-1');
-    assert.equal(capturedSessionSnapshotRequest?.conversationAnchorId, 'anchor-1');
-    assert.equal(capturedSessionSnapshotRequest?.worldId, 'world-1');
+    assert.equal(capturedSessionSnapshotRequest, null);
     assert.equal(capturedMessages.length, 2);
     for (const message of capturedMessages) {
       assert.equal(message.subjectUserId, '');

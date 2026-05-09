@@ -15,6 +15,7 @@ const SKIP_DIRS = new Set(['generated', 'dist', 'node_modules']);
 const LEGACY_PUBLIC_SYMBOLS = new Set([
   'Me2FaService',
   'Auth2faVerifyDto',
+  'Me2faOperationResultDto',
   'Me2faVerifyDto',
   'Me2faPrepareResponseDto',
   'SocialV1DefaultVisibilityService',

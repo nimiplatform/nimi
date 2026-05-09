@@ -464,17 +464,17 @@ test('tauri-ipc: uses default command namespace when none provided', async () =>
 });
 
 // ---------------------------------------------------------------------------
-// tauri-ipc: canRetryWithDefaultCommand branches
+// tauri-ipc: configured command namespace is authoritative
 // ---------------------------------------------------------------------------
 
-test('tauri-ipc: canRetryWithDefaultCommand returns false for empty message', async () => {
+test('tauri-ipc: custom command namespace fails closed for empty message', async () => {
   let invokeCount = 0;
   const restoreTauri = installTauriRuntime({
     core: {
       invoke: async (command: string) => {
         invokeCount++;
         if (command.startsWith('custom_ns_')) {
-          throw new Error(''); // empty message -> canRetryWithDefaultCommand => false
+          throw new Error('');
         }
         return { responseBytesBase64: '' };
       },
@@ -500,7 +500,7 @@ test('tauri-ipc: canRetryWithDefaultCommand returns false for empty message', as
   }
 });
 
-test('tauri-ipc: canRetryWithDefaultCommand retries on "unknown command" message', async () => {
+test('tauri-ipc: custom command namespace fails closed on "unknown command" message', async () => {
   const invokedCommands: string[] = [];
   const restoreTauri = installTauriRuntime({
     core: {
@@ -509,7 +509,7 @@ test('tauri-ipc: canRetryWithDefaultCommand retries on "unknown command" message
         if (command.startsWith('custom_ns_')) {
           throw new Error('unknown command custom_ns_unary');
         }
-        return { responseBytesBase64: '' };
+        throw new Error(`unexpected tauri command: ${command}`);
       },
     },
     event: { listen: () => () => {} },
@@ -520,18 +520,20 @@ test('tauri-ipc: canRetryWithDefaultCommand retries on "unknown command" message
       type: 'tauri-ipc',
       commandNamespace: 'custom_ns',
     });
-    await transport.invokeUnary({
-      methodId: 'test',
-      request: new Uint8Array(0),
-      metadata: {} as RuntimeUnaryCall['metadata'],
-    });
-    assert.deepEqual(invokedCommands, ['custom_ns_unary', 'runtime_bridge_unary']);
+    await assert.rejects(
+      () => transport.invokeUnary({
+        methodId: 'test',
+        request: new Uint8Array(0),
+        metadata: {} as RuntimeUnaryCall['metadata'],
+      }),
+    );
+    assert.deepEqual(invokedCommands, ['custom_ns_unary']);
   } finally {
     restoreTauri();
   }
 });
 
-test('tauri-ipc: canRetryWithDefaultCommand returns true for "command not found"', async () => {
+test('tauri-ipc: custom command namespace fails closed on "command not found"', async () => {
   const invokedCommands: string[] = [];
   const restoreTauri = installTauriRuntime({
     core: {
@@ -540,7 +542,7 @@ test('tauri-ipc: canRetryWithDefaultCommand returns true for "command not found"
         if (command.startsWith('custom_ns_')) {
           throw new Error('Command Not Found');
         }
-        return { responseBytesBase64: '' };
+        throw new Error(`unexpected tauri command: ${command}`);
       },
     },
     event: { listen: () => () => {} },
@@ -551,18 +553,20 @@ test('tauri-ipc: canRetryWithDefaultCommand returns true for "command not found"
       type: 'tauri-ipc',
       commandNamespace: 'custom_ns',
     });
-    await transport.invokeUnary({
-      methodId: 'test',
-      request: new Uint8Array(0),
-      metadata: {} as RuntimeUnaryCall['metadata'],
-    });
-    assert.deepEqual(invokedCommands, ['custom_ns_unary', 'runtime_bridge_unary']);
+    await assert.rejects(
+      () => transport.invokeUnary({
+        methodId: 'test',
+        request: new Uint8Array(0),
+        metadata: {} as RuntimeUnaryCall['metadata'],
+      }),
+    );
+    assert.deepEqual(invokedCommands, ['custom_ns_unary']);
   } finally {
     restoreTauri();
   }
 });
 
-test('tauri-ipc: canRetryWithDefaultCommand handles error without message', async () => {
+test('tauri-ipc: custom command namespace fails closed on error without message', async () => {
   let invokeCount = 0;
   const restoreTauri = installTauriRuntime({
     core: {
@@ -589,13 +593,13 @@ test('tauri-ipc: canRetryWithDefaultCommand handles error without message', asyn
         metadata: {} as RuntimeUnaryCall['metadata'],
       }),
     );
-    assert.equal(invokeCount, 1); // no retry because empty message
+    assert.equal(invokeCount, 1);
   } finally {
     restoreTauri();
   }
 });
 
-test('tauri-ipc: does not retry when command matches default namespace', async () => {
+test('tauri-ipc: default command namespace also fails closed on unknown command', async () => {
   let invokeCount = 0;
   const restoreTauri = installTauriRuntime({
     core: {
@@ -619,7 +623,7 @@ test('tauri-ipc: does not retry when command matches default namespace', async (
         metadata: {} as RuntimeUnaryCall['metadata'],
       }),
     );
-    assert.equal(invokeCount, 1); // no retry because command === defaultCommand
+    assert.equal(invokeCount, 1);
   } finally {
     restoreTauri();
   }

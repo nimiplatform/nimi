@@ -1,4 +1,4 @@
-import { OPENROUTER_AUDIO_CHAT_MODELS, type ModelScenario } from './presets';
+import { type ModelScenario } from './presets';
 import {
   isLikelyAudioChatModel,
   isLikelyEmbeddingModel,
@@ -29,9 +29,6 @@ export function filterModelsForScenario(
   if (scenario === 'tts') {
     const ttsModels = all.filter((model) => isLikelyTtsModel(model));
     if (ttsModels.length > 0) return ttsModels;
-    if (String(options?.vendor || '').trim() === 'openrouter') {
-      return [...OPENROUTER_AUDIO_CHAT_MODELS];
-    }
     return [];
   }
 

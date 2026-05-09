@@ -26,7 +26,10 @@ import {
   StreamScenarioEvent,
   StreamScenarioRequest,
 } from '../../src/runtime/generated/runtime/v1/ai';
-import { ListModelsRequest, ListModelsResponse } from '../../src/runtime/generated/runtime/v1/model';
+import {
+  ListConnectorsRequest,
+  ListConnectorsResponse,
+} from '../../src/runtime/generated/runtime/v1/connector';
 
 const APP_ID = 'nimi.desktop.grpc.integration';
 
@@ -39,15 +42,15 @@ function fromBinaryBuffer(value: Buffer): Uint8Array {
 }
 
 const runtimeServiceDefinition = {
-  listModels: {
-    path: RuntimeMethodIds.model.list,
+  listConnectors: {
+    path: RuntimeMethodIds.connector.listConnectors,
     requestStream: false,
     responseStream: false,
     requestSerialize: toBinaryBuffer,
     requestDeserialize: fromBinaryBuffer,
     responseSerialize: toBinaryBuffer,
     responseDeserialize: fromBinaryBuffer,
-    originalName: 'listModels',
+    originalName: 'listConnectors',
   },
   streamScenario: {
     path: RuntimeMethodIds.ai.streamScenario,
@@ -62,7 +65,7 @@ const runtimeServiceDefinition = {
 } satisfies ServiceDefinition<UntypedServiceImplementation>;
 
 type RuntimeServiceImpl = {
-  listModels: (
+  listConnectors: (
     call: ServerUnaryCall<Uint8Array, Uint8Array>,
     callback: sendUnaryData<Uint8Array>,
   ) => void;
@@ -150,17 +153,16 @@ test('node-grpc integrates metadata injection and stream decoding against grpc-j
   let streamIdempotencyKey = '';
 
   const server = await startRuntimeGrpcServer({
-    listModels: (call, callback) => {
+    listConnectors: (call, callback) => {
       unaryMetadata = call.metadata.getMap();
-      ListModelsRequest.fromBinary(call.request);
+      ListConnectorsRequest.fromBinary(call.request);
 
       callback(
         null,
-        ListModelsResponse.toBinary(ListModelsResponse.create({
-          models: [{
-            modelId: 'llama3',
+        ListConnectorsResponse.toBinary(ListConnectorsResponse.create({
+          connectors: [{
+            connectorId: 'connector-1',
             provider: 'local',
-            modal: [],
           }],
         })),
       );
@@ -198,8 +200,8 @@ test('node-grpc integrates metadata injection and stream decoding against grpc-j
   try {
     const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
 
-    const listModels = await client.model.list({});
-    assert.equal(listModels.models.length, 1);
+    const listConnectors = await client.connector.listConnectors({});
+    assert.equal(listConnectors.connectors.length, 1);
 
     const stream = await client.ai.streamScenario(createStreamGenerateRequest());
     const events: StreamScenarioEvent[] = [];
@@ -227,7 +229,7 @@ test('node-grpc maps grpc status code to structured NimiError reason', async () 
   setNodeGrpcBridge(null);
 
   const server = await startRuntimeGrpcServer({
-    listModels: (_call, callback) => {
+    listConnectors: (_call, callback) => {
       const error = Object.assign(new Error('permission denied'), {
         code: grpc.status.PERMISSION_DENIED,
         details: 'permission denied',
@@ -244,7 +246,7 @@ test('node-grpc maps grpc status code to structured NimiError reason', async () 
     const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
     let thrown: unknown = null;
     try {
-      await client.model.list({});
+      await client.connector.listConnectors({});
     } catch (error) {
       thrown = error;
     }
@@ -263,7 +265,7 @@ test('node-grpc maps unavailable grpc status to retryable NimiError', async () =
   setNodeGrpcBridge(null);
 
   const server = await startRuntimeGrpcServer({
-    listModels: (_call, callback) => {
+    listConnectors: (_call, callback) => {
       const error = Object.assign(new Error('upstream unavailable'), {
         code: grpc.status.UNAVAILABLE,
         details: 'upstream unavailable',
@@ -280,7 +282,7 @@ test('node-grpc maps unavailable grpc status to retryable NimiError', async () =
     const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
     let thrown: unknown = null;
     try {
-      await client.model.list({});
+      await client.connector.listConnectors({});
     } catch (error) {
       thrown = error;
     }
@@ -299,7 +301,7 @@ test('node-grpc normalizes h2 transport cancellation to retryable unavailable', 
   setNodeGrpcBridge(null);
 
   const server = await startRuntimeGrpcServer({
-    listModels: (_call, callback) => {
+    listConnectors: (_call, callback) => {
       const error = Object.assign(new Error('h2 protocol error: http2 error'), {
         code: grpc.status.CANCELLED,
         details: 'h2 protocol error: http2 error',
@@ -316,7 +318,7 @@ test('node-grpc normalizes h2 transport cancellation to retryable unavailable', 
     const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
     let thrown: unknown = null;
     try {
-      await client.model.list({});
+      await client.connector.listConnectors({});
     } catch (error) {
       thrown = error;
     }
@@ -335,7 +337,7 @@ test('node-grpc uses uppercase reason code from grpc details', async () => {
   setNodeGrpcBridge(null);
 
   const server = await startRuntimeGrpcServer({
-    listModels: (_call, callback) => {
+    listConnectors: (_call, callback) => {
       const error = Object.assign(new Error('model not found'), {
         code: grpc.status.NOT_FOUND,
         details: 'AI_MODEL_NOT_FOUND',
@@ -352,7 +354,7 @@ test('node-grpc uses uppercase reason code from grpc details', async () => {
     const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
     let thrown: unknown = null;
     try {
-      await client.model.list({});
+      await client.connector.listConnectors({});
     } catch (error) {
       thrown = error;
     }
@@ -371,7 +373,7 @@ test('node-grpc extracts reason code from CODE: prefixed grpc details', async ()
   setNodeGrpcBridge(null);
 
   const server = await startRuntimeGrpcServer({
-    listModels: (_call, callback) => {
+    listConnectors: (_call, callback) => {
       const error = Object.assign(new Error('provider timeout'), {
         code: grpc.status.DEADLINE_EXCEEDED,
         details: 'AI_PROVIDER_TIMEOUT: upstream deadline exceeded',
@@ -388,7 +390,7 @@ test('node-grpc extracts reason code from CODE: prefixed grpc details', async ()
     const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
     let thrown: unknown = null;
     try {
-      await client.model.list({});
+      await client.connector.listConnectors({});
     } catch (error) {
       thrown = error;
     }
@@ -405,7 +407,7 @@ test('node-grpc prefers structured reason payload from grpc details', async () =
   setNodeGrpcBridge(null);
 
   const server = await startRuntimeGrpcServer({
-    listModels: (_call, callback) => {
+    listConnectors: (_call, callback) => {
       const error = Object.assign(new Error('internal runtime failure'), {
         code: grpc.status.INTERNAL,
         details: `runtime error: ${JSON.stringify({
@@ -428,7 +430,7 @@ test('node-grpc prefers structured reason payload from grpc details', async () =
     const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
     let thrown: unknown = null;
     try {
-      await client.model.list({});
+      await client.connector.listConnectors({});
     } catch (error) {
       thrown = error;
     }
@@ -449,7 +451,7 @@ test('node-grpc structured grpc details can override retryable for unavailable s
   setNodeGrpcBridge(null);
 
   const server = await startRuntimeGrpcServer({
-    listModels: (_call, callback) => {
+    listConnectors: (_call, callback) => {
       const error = Object.assign(new Error('provider denied retry'), {
         code: grpc.status.UNAVAILABLE,
         details: JSON.stringify({
@@ -472,7 +474,7 @@ test('node-grpc structured grpc details can override retryable for unavailable s
     const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
     let thrown: unknown = null;
     try {
-      await client.model.list({});
+      await client.connector.listConnectors({});
     } catch (error) {
       thrown = error;
     }
@@ -493,8 +495,8 @@ test('node-grpc stream respects AbortSignal cancellation', { timeout: 5_000 }, a
   setNodeGrpcBridge(null);
 
   const server = await startRuntimeGrpcServer({
-    listModels: (_call, callback) => {
-      callback(null, ListModelsResponse.toBinary(ListModelsResponse.create({ models: [] })));
+    listConnectors: (_call, callback) => {
+      callback(null, ListConnectorsResponse.toBinary(ListConnectorsResponse.create({ connectors: [] })));
     },
     streamScenario: (call) => {
       const timer = setTimeout(() => {
@@ -526,8 +528,8 @@ test('node-grpc stream completion removes abort listener', async () => {
   setNodeGrpcBridge(null);
 
   const server = await startRuntimeGrpcServer({
-    listModels: (_call, callback) => {
-      callback(null, ListModelsResponse.toBinary(ListModelsResponse.create({ models: [] })));
+    listConnectors: (_call, callback) => {
+      callback(null, ListConnectorsResponse.toBinary(ListConnectorsResponse.create({ connectors: [] })));
     },
     streamScenario: (call) => {
       call.write(StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
@@ -577,9 +579,9 @@ test('node-grpc metadata only forwards x-nimi extra headers', async () => {
 
   let unaryMetadata: Record<string, unknown> | null = null;
   const server = await startRuntimeGrpcServer({
-    listModels: (call, callback) => {
+    listConnectors: (call, callback) => {
       unaryMetadata = call.metadata.getMap();
-      callback(null, ListModelsResponse.toBinary(ListModelsResponse.create({ models: [] })));
+      callback(null, ListConnectorsResponse.toBinary(ListConnectorsResponse.create({ connectors: [] })));
     },
     streamScenario: (call) => {
       call.end();
@@ -588,7 +590,7 @@ test('node-grpc metadata only forwards x-nimi extra headers', async () => {
 
   try {
     const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
-    await client.model.list({}, {
+    await client.connector.listConnectors({}, {
       metadata: {
         traceId: 'trace-extra-headers',
         extra: {
@@ -615,9 +617,9 @@ test('node-grpc injects authorization header from runtime auth provider', async 
 
   let unaryMetadata: Record<string, unknown> | null = null;
   const server = await startRuntimeGrpcServer({
-    listModels: (call, callback) => {
+    listConnectors: (call, callback) => {
       unaryMetadata = call.metadata.getMap();
-      callback(null, ListModelsResponse.toBinary(ListModelsResponse.create({ models: [] })));
+      callback(null, ListConnectorsResponse.toBinary(ListConnectorsResponse.create({ connectors: [] })));
     },
     streamScenario: (call) => {
       call.end();
@@ -637,13 +639,13 @@ test('node-grpc injects authorization header from runtime auth provider', async 
       },
     });
 
-    await client.model.list({});
+    await client.connector.listConnectors({});
     assert.equal(unaryMetadata?.authorization, 'Bearer token-initial');
     assert.equal(unaryMetadata?.['x-nimi-access-token-id'], 'protected-token-id');
     assert.equal(unaryMetadata?.['x-nimi-access-token-secret'], 'protected-token-secret');
 
     accessToken = 'token-refreshed';
-    await client.model.list({});
+    await client.connector.listConnectors({});
     assert.equal(unaryMetadata?.authorization, 'Bearer token-refreshed');
     assert.equal(unaryMetadata?.['x-nimi-access-token-id'], 'protected-token-id');
     assert.equal(unaryMetadata?.['x-nimi-access-token-secret'], 'protected-token-secret');

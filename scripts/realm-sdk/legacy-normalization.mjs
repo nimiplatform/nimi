@@ -6,6 +6,7 @@ const LEGACY_SERVICE_NAME_MAP = Object.freeze({
 
 const LEGACY_MODEL_SYMBOL_MAP = Object.freeze({
   Auth2faVerifyDto: 'AuthTwoFactorVerifyInput',
+  Me2faOperationResultDto: 'MeTwoFactorOperationOutput',
   Me2faVerifyDto: 'MeTwoFactorVerifyInput',
   Me2faPrepareResponseDto: 'MeTwoFactorPrepareOutput',
 });
@@ -59,4 +60,3 @@ export function normalizeEnumMemberKey(memberKey) {
   const value = String(memberKey || '');
   return LEGACY_ENUM_MEMBER_KEY_MAP[value] || value;
 }
-

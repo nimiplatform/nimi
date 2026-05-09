@@ -207,18 +207,72 @@ export const RuntimeMethodIds = {
   },
 } as const;
 
-export const RuntimeAllowlistedMethodIds: readonly string[] = Object.freeze(
+const RuntimeAllMethodIds: readonly string[] = Object.freeze(
   Object.values(RuntimeMethodIds)
     .flatMap((serviceMethods) => Object.values(serviceMethods)),
 );
 
-export const RuntimeStreamMethodIds: readonly string[] = Object.freeze([
+export const RuntimeMethodGroupDeniedMethodIds: readonly string[] = Object.freeze([
+  RuntimeMethodIds.account.getAccountSessionStatus,
   RuntimeMethodIds.account.subscribeAccountSessionEvents,
+  RuntimeMethodIds.account.beginLogin,
+  RuntimeMethodIds.account.completeLogin,
+  RuntimeMethodIds.account.getAccessToken,
+  RuntimeMethodIds.account.refreshAccountSession,
+  RuntimeMethodIds.account.logout,
+  RuntimeMethodIds.account.switchAccount,
+  RuntimeMethodIds.account.issueScopedAppBinding,
+  RuntimeMethodIds.account.revokeScopedAppBinding,
+  RuntimeMethodIds.workflow.submit,
+  RuntimeMethodIds.workflow.get,
+  RuntimeMethodIds.workflow.cancel,
+  RuntimeMethodIds.workflow.subscribeEvents,
+  RuntimeMethodIds.model.list,
+  RuntimeMethodIds.model.pull,
+  RuntimeMethodIds.model.remove,
+  RuntimeMethodIds.model.checkHealth,
+  RuntimeMethodIds.connector.listCatalogProviderModels,
+  RuntimeMethodIds.connector.getCatalogModelDetail,
+  RuntimeMethodIds.connector.upsertCatalogModelOverlay,
+  RuntimeMethodIds.connector.deleteCatalogModelOverlay,
+  RuntimeMethodIds.agent.openConversationAnchor,
+  RuntimeMethodIds.agent.getConversationAnchorSnapshot,
+  RuntimeMethodIds.agent.getPublicChatSessionSnapshot,
+  RuntimeMethodIds.agent.getAvatarDebugSnapshot,
+  RuntimeMethodIds.agent.requestAvatarDebugProbe,
+  RuntimeMethodIds.agent.listAvatarDebugProbeResults,
+  RuntimeMethodIds.agent.getAvatarDebugReplay,
+  RuntimeMethodIds.agent.listDelegatedProviderProfiles,
+  RuntimeMethodIds.agent.upsertDelegatedProviderProfile,
+  RuntimeMethodIds.agent.setDelegatedProviderState,
+  RuntimeMethodIds.agent.listDelegatedApprovalRequests,
+  RuntimeMethodIds.agent.submitDelegatedApprovalDecision,
+  RuntimeMethodIds.agent.listDelegatedDiagnostics,
+  RuntimeMethodIds.agent.getDelegatedReplayTrace,
+  RuntimeMethodIds.agent.getDelegatedControlSurfaceSnapshot,
+  RuntimeMethodIds.agent.executeDelegatedCapability,
+  RuntimeMethodIds.agent.setPresentationProfile,
+  RuntimeMethodIds.local.listLocalTransfers,
+  RuntimeMethodIds.local.pauseLocalTransfer,
+  RuntimeMethodIds.local.resumeLocalTransfer,
+  RuntimeMethodIds.local.cancelLocalTransfer,
+  RuntimeMethodIds.local.watchLocalTransfers,
+  RuntimeMethodIds.local.resolveLocalStateReconciliation,
+  RuntimeMethodIds.local.executeLocalStateCutover,
+]);
+
+const RuntimeMethodGroupDeniedMethodIdSet: ReadonlySet<string> = new Set(RuntimeMethodGroupDeniedMethodIds);
+
+export const RuntimeAllowlistedMethodIds: readonly string[] = Object.freeze(
+  RuntimeAllMethodIds.filter((methodId) => !RuntimeMethodGroupDeniedMethodIdSet.has(methodId)),
+);
+
+const RuntimeAllowlistedMethodIdSet: ReadonlySet<string> = new Set(RuntimeAllowlistedMethodIds);
+
+export const RuntimeStreamMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.ai.streamScenario,
   RuntimeMethodIds.ai.subscribeScenarioJobEvents,
   RuntimeMethodIds.aiRealtime.readRealtimeEvents,
-  RuntimeMethodIds.workflow.subscribeEvents,
-  RuntimeMethodIds.local.watchLocalTransfers,
   RuntimeMethodIds.memory.subscribeEvents,
   RuntimeMethodIds.agent.subscribeEvents,
   RuntimeMethodIds.app.subscribeAppMessages,
@@ -316,7 +370,7 @@ export const RuntimeWriteMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.agent.writeMemory,
   RuntimeMethodIds.app.sendAppMessage,
   RuntimeMethodIds.audit.exportAuditEvents,
-]);
+].filter((methodId) => RuntimeAllowlistedMethodIdSet.has(methodId)));
 
 export const RuntimeLocalAnonymousMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.local.listLocalAssets,
@@ -339,7 +393,7 @@ export const RuntimeLocalAnonymousMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.local.listNodeCatalog,
   RuntimeMethodIds.local.listLocalAudits,
   RuntimeMethodIds.local.watchLocalTransfers,
-]);
+].filter((methodId) => RuntimeAllowlistedMethodIdSet.has(methodId)));
 
 const RuntimeStreamMethodIdSet: ReadonlySet<string> = new Set(RuntimeStreamMethodIds);
 const RuntimeWriteMethodIdSet: ReadonlySet<string> = new Set(RuntimeWriteMethodIds);
@@ -352,6 +406,14 @@ const RuntimeAppSessionBootstrapMethodIdSet: ReadonlySet<string> = new Set([
 
 export function isRuntimeStreamMethod(methodId: string): boolean {
   return RuntimeStreamMethodIdSet.has(methodId);
+}
+
+export function isRuntimeMethodAllowlisted(methodId: string): boolean {
+  return RuntimeAllowlistedMethodIdSet.has(methodId);
+}
+
+export function isRuntimeMethodDeniedByMethodGroup(methodId: string): boolean {
+  return RuntimeMethodGroupDeniedMethodIdSet.has(methodId);
 }
 
 export function isRuntimeWriteMethod(methodId: string): boolean {

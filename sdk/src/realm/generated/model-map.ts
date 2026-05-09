@@ -172,7 +172,7 @@ export type RealmGeneratedModelMap = {
   LocationRegionDto: components['schemas']['LocationRegionDto'];
   MakeAgentPublicResponseDto: components['schemas']['MakeAgentPublicResponseDto'];
   MarkNotificationsReadInputDto: components['schemas']['MarkNotificationsReadInputDto'];
-  Me2faOperationResultDto: components['schemas']['Me2faOperationResultDto'];
+  MeTwoFactorOperationOutput: components['schemas']['Me2faOperationResultDto'];
   MeTwoFactorPrepareOutput: components['schemas']['Me2faPrepareResponseDto'];
   MeTwoFactorVerifyInput: components['schemas']['Me2faVerifyDto'];
   MessageReplyViewDto: components['schemas']['MessageReplyViewDto'];

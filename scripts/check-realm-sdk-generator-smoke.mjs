@@ -3,11 +3,15 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import YAML from 'yaml';
+import { computeDirectoryHash } from './realm-sdk/fs-state.mjs';
+import { resolveInputPath } from './realm-sdk/cli.mjs';
 
 const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const specPath = path.join(repoRoot, '.cache', 'realm-openapi', 'api-nimi.yaml');
+const specPath = resolveInputPath(repoRoot, '');
 const generatedDir = path.join(repoRoot, 'sdk', 'src', 'realm', 'generated');
+const generatedFacadePath = path.join(repoRoot, 'sdk', 'src', 'realm', 'index.ts');
 
 const EXPECTED_GROUP_PATHS = new Map([
   ['/api/human/group-chats', ['get', 'post']],
@@ -45,12 +49,24 @@ function assert(condition, message) {
   }
 }
 
+function computeGeneratedSurfaceHash() {
+  const hasher = createHash('sha256');
+  hasher.update('generated-dir');
+  hasher.update('\0');
+  hasher.update(computeDirectoryHash(generatedDir));
+  hasher.update('\0');
+  hasher.update('realm-facade');
+  hasher.update('\0');
+  hasher.update(existsSync(generatedFacadePath) ? readFileSync(generatedFacadePath) : 'MISSING');
+  return hasher.digest('hex');
+}
+
 function runGenerate() {
   const result = spawnSync('node', [
     'scripts/generate-realm-sdk.mjs',
     '--',
     '--input',
-    '.cache/realm-openapi/api-nimi.yaml',
+    specPath,
     '--skip-version-bump',
   ], {
     cwd: repoRoot,
@@ -132,11 +148,11 @@ function assertOpenApiGroupSurface() {
 
   for (const [route, methods] of EXPECTED_GROUP_PATHS.entries()) {
     const routeNode = paths[route];
-    assert(routeNode && typeof routeNode === 'object', `missing group chat route in api-nimi.yaml: ${route}`);
+    assert(routeNode && typeof routeNode === 'object', `missing group chat route in admitted Realm OpenAPI source: ${route}`);
     for (const method of methods) {
       assert(
         routeNode[method],
-        `missing group chat method in api-nimi.yaml: ${method.toUpperCase()} ${route}`,
+        `missing group chat method in admitted Realm OpenAPI source: ${method.toUpperCase()} ${route}`,
       );
     }
   }
@@ -144,7 +160,7 @@ function assertOpenApiGroupSurface() {
   for (const schemaName of EXPECTED_GROUP_SCHEMAS) {
     assert(
       schemaName in schemas,
-      `missing group chat schema in api-nimi.yaml: ${schemaName}`,
+      `missing group chat schema in admitted Realm OpenAPI source: ${schemaName}`,
     );
   }
 }
@@ -199,10 +215,18 @@ function assertSplitModules() {
 }
 
 function main() {
-  assert(existsSync(specPath), `realm OpenAPI spec not found: ${specPath}`);
+  assert(existsSync(specPath), `admitted Realm OpenAPI spec not found: ${specPath}`);
   assertOpenApiGroupSurface();
 
-  runGenerate();
+  const beforeGenerateHash = computeGeneratedSurfaceHash();
+  const firstRunOutput = runGenerate();
+  const afterFirstGenerateHash = computeGeneratedSurfaceHash();
+  assert(
+    afterFirstGenerateHash === beforeGenerateHash
+      && firstRunOutput.includes('[generate:realm-sdk] generated changed: false'),
+    'generated Realm SDK drift detected before smoke validation; run the generator from the admitted Realm OpenAPI source and commit the generated output before this check can pass',
+  );
+
   const secondRunOutput = runGenerate();
 
   assert(

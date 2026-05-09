@@ -51,6 +51,25 @@ function requiredEnvOrSkip(t: { skip: (msg?: string) => void }, key: string): st
   return value;
 }
 
+function envValue(keys: string[]): string {
+  for (const key of keys) {
+    const value = String(process.env[key] || '').trim();
+    if (value) {
+      return value;
+    }
+  }
+  return '';
+}
+
+function requiredAnyEnvOrSkip(t: { skip: (msg?: string) => void }, keys: string[]): string | null {
+  const value = envValue(keys);
+  if (!value) {
+    t.skip(`set one of ${keys.join(', ')} to run live smoke test`);
+    return null;
+  }
+  return value;
+}
+
 function fishAudioBalanceBlockMessage(provider: string, error: unknown): string {
   if (provider !== 'fish_audio') {
     return '';
@@ -196,6 +215,13 @@ function qualifyLocalSidecarMusicModel(modelId: string): string {
   }
   return `sidecar/${normalizedModelId}`;
 }
+
+test('nimi sdk ai-provider live smoke: sidecar music helper contract is self-validating', () => {
+  assert.equal(typeof envValue, 'function');
+  assert.equal(typeof requiredAnyEnvOrSkip, 'function');
+  assert.equal(qualifyLocalSidecarMusicModel('music-model'), 'sidecar/music-model');
+  assert.equal(qualifyLocalSidecarMusicModel('sidecar/music-model'), 'sidecar/music-model');
+});
 
 function createSdkTextModel(
   endpoint: string,

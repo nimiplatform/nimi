@@ -5,8 +5,10 @@ import { fileURLToPath } from 'node:url';
 
 import {
   RuntimeAllowlistedMethodIds,
+  RuntimeMethodGroupDeniedMethodIds,
   RuntimeMethodIds,
   RuntimeStreamMethodIds,
+  isRuntimeMethodAllowlisted,
 } from '../../src/runtime/method-ids';
 import {
   RuntimeStreamMethodCodecs,
@@ -45,11 +47,26 @@ test('sdk method ids include exact unary/stream codec coverage', () => {
     ...Object.keys(RuntimeUnaryMethodCodecs),
     ...Object.keys(RuntimeStreamMethodCodecs),
   ]);
-  assert.deepEqual(codecMethodIds, sdkMethodIdValues());
+  assert.deepEqual(codecMethodIds, uniqueSorted(RuntimeAllowlistedMethodIds));
 });
 
 test('sdk allowlist matches RuntimeMethodIds flatten', () => {
-  assert.deepEqual(uniqueSorted(RuntimeAllowlistedMethodIds), sdkMethodIdValues());
+  const denied = new Set(RuntimeMethodGroupDeniedMethodIds);
+  assert.deepEqual(
+    uniqueSorted(RuntimeAllowlistedMethodIds),
+    sdkMethodIdValues().filter((methodId) => !denied.has(methodId)),
+  );
+});
+
+test('method-group denied method ids are not callable codec entries', () => {
+  const codecMethodIds = new Set([
+    ...Object.keys(RuntimeUnaryMethodCodecs),
+    ...Object.keys(RuntimeStreamMethodCodecs),
+  ]);
+  for (const methodId of RuntimeMethodGroupDeniedMethodIds) {
+    assert.equal(isRuntimeMethodAllowlisted(methodId), false, `${methodId} must not be allowlisted`);
+    assert.equal(codecMethodIds.has(methodId), false, `${methodId} must not have a codec`);
+  }
 });
 
 test('rust bridge stream method allowlist matches sdk stream ids', () => {

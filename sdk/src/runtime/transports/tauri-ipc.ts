@@ -200,26 +200,6 @@ function createEventName(config: RuntimeTauriIpcTransportConfig, streamId: strin
   return `${prefix}:stream:${streamId}`;
 }
 
-function createDefaultCommandName(suffix: string): string {
-  return `${DEFAULT_COMMAND_NAMESPACE}_${suffix}`;
-}
-
-function canRetryWithDefaultCommand(error: unknown): boolean {
-  const message = String((error as { message?: unknown })?.message || error || '')
-    .trim()
-    .toLowerCase();
-  if (!message) {
-    return false;
-  }
-  const mentionsCommand = message.includes('command');
-  const mentionsNotFound = message.includes('not found');
-  return (
-    message.includes('unknown command')
-    || message.includes('command not found')
-    || (mentionsCommand && mentionsNotFound)
-  );
-}
-
 async function invokeCommand(
   invoke: TauriInvoke,
   config: RuntimeTauriIpcTransportConfig,
@@ -227,18 +207,7 @@ async function invokeCommand(
   payload: Record<string, unknown>,
 ): Promise<unknown> {
   const command = createCommandName(config, suffix);
-  try {
-    return await invoke(command, { payload });
-  } catch (error) {
-    const defaultCommand = createDefaultCommandName(suffix);
-    if (
-      command === defaultCommand
-      || !canRetryWithDefaultCommand(error)
-    ) {
-      throw error;
-    }
-    return invoke(defaultCommand, { payload });
-  }
+  return invoke(command, { payload });
 }
 
 function asObject(value: unknown): Record<string, unknown> {

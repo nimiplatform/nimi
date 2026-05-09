@@ -18,7 +18,6 @@ import {
   StreamEventType,
   StreamScenarioEvent,
 } from '../../src/runtime/generated/runtime/v1/ai';
-import { ListModelsResponse } from '../../src/runtime/generated/runtime/v1/model';
 import {
   InstallVerifiedAssetResponse,
   ListLocalAssetsResponse,
@@ -26,6 +25,7 @@ import {
 import {
   ConnectorAuthKind,
   ConnectorStatus,
+  ListConnectorsResponse,
 } from '../../src/runtime/generated/runtime/v1/connector';
 import { RuntimeMethodIds } from '../../src/runtime/method-ids';
 import {
@@ -378,9 +378,9 @@ test('createRuntimeClient does not inject idempotency key for read unary methods
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
       captured = input;
-      return ListModelsResponse.toBinary(
-        ListModelsResponse.create({
-          models: [],
+      return ListConnectorsResponse.toBinary(
+        ListConnectorsResponse.create({
+          connectors: [],
         }),
       );
     },
@@ -396,7 +396,7 @@ test('createRuntimeClient does not inject idempotency key for read unary methods
 
   try {
     const client = createRuntimeClient(runtimeConfig);
-    await client.model.list({});
+    await client.connector.listConnectors({});
     assert.ok(captured);
     assert.equal(captured.metadata.idempotencyKey, undefined);
   } finally {

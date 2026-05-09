@@ -33,6 +33,7 @@ import {
   resolveBaseUrl,
 } from './client-helpers.js';
 import { assertNoAuthRealmEndpointAllowed } from './no-auth-allowlist.js';
+import { assertExternalPrincipalRefreshMode, assertRealmAuthCustodyMode } from './auth-custody.js';
 
 type RealmEventPayloadMap = {
   error: { error: NimiError; at: string };
@@ -150,13 +151,8 @@ export class Realm {
         source: 'sdk',
       });
     }
-    if (options.auth != null && !options.auth.accessToken) {
-      throw createNimiError({
-        message: 'realm token is required (set auth explicitly to null or undefined for unauthenticated access)',
-        reasonCode: ReasonCode.SDK_REALM_TOKEN_REQUIRED,
-        actionHint: 'set_realm_auth_access_token',
-        source: 'sdk',
-      });
+    if (options.auth != null) {
+      assertRealmAuthCustodyMode(options.auth);
     }
     this.#options = options;
 
@@ -198,16 +194,9 @@ export class Realm {
       return;
     }
 
-    this.#state = {
-      ...this.#state,
-      status: 'connecting',
-    };
+    this.#state = { ...this.#state, status: 'connecting' };
 
-    this.#state = {
-      ...this.#state,
-      status: 'ready',
-      connectedAt: nowIso(),
-    };
+    this.#state = { ...this.#state, status: 'ready', connectedAt: nowIso() };
     this.#emitTelemetry('realm.connected', { baseUrl: this.baseUrl });
   }
 
@@ -219,17 +208,15 @@ export class Realm {
       DEFAULT_REALM_TIMEOUT_MS,
     );
 
-    await this.#requestUnknown({
-      method: 'GET',
-      path: '/',
-      timeoutMs,
-    });
+    try {
+      await this.#requestUnknown({ method: 'GET', path: '/', timeoutMs });
+    } catch (error) {
+      this.#state = { ...this.#state, status: 'closed' };
+      this.#emitTelemetry('realm.disconnected', { baseUrl: this.baseUrl, reason: 'ready_probe_failed' });
+      throw error;
+    }
 
-    this.#state = {
-      ...this.#state,
-      status: 'ready',
-      lastReadyAt: nowIso(),
-    };
+    this.#state = { ...this.#state, status: 'ready', lastReadyAt: nowIso() };
   }
 
   async close(): Promise<void> {
@@ -254,11 +241,11 @@ export class Realm {
   }
 
   updateAuth(patch: Partial<RealmAuthOptions>): void {
-    if (!this.#options.auth) {
-      this.#options.auth = { ...patch };
-      return;
-    }
-    Object.assign(this.#options.auth, patch);
+    const nextAuth = this.#options.auth
+      ? { ...this.#options.auth, ...patch }
+      : { ...patch } as RealmAuthOptions;
+    assertRealmAuthCustodyMode(nextAuth);
+    this.#options.auth = nextAuth;
   }
 
   clearAuth(): void {
@@ -266,10 +253,12 @@ export class Realm {
   }
 
   static async refreshAccessToken(input: {
+    authMode: 'external_principal';
     realmBaseUrl: string;
     refreshToken: string;
     fetchImpl?: typeof fetch;
   }): Promise<RealmTokenRefreshResult> {
+    assertExternalPrincipalRefreshMode(input.authMode);
     const baseUrl = resolveBaseUrl(input.realmBaseUrl);
     const refreshToken = normalizeText(input.refreshToken);
     if (!refreshToken) {
@@ -427,7 +416,12 @@ export class Realm {
 
           if (isResponse(response)) {
             if (!response.ok) {
-              if (!refreshAttempted && response.status === 401 && this.#options.auth?.refreshToken) {
+              if (
+                !refreshAttempted
+                && response.status === 401
+                && this.#options.auth?.mode === 'external_principal'
+                && this.#options.auth.refreshToken
+              ) {
                 try {
                   const refreshResult = await this.#attemptRefresh();
                   refreshAttempted = true;

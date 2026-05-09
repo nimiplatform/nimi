@@ -1,6 +1,7 @@
 import { createNimiError } from '../errors.js';
 import { ReasonCode } from '../../types/index.js';
 import {
+  isRuntimeMethodAllowlisted,
   RuntimeMethodIds,
 } from '../method-ids.js';
 import { createTauriIpcTransport } from '../transports/tauri-ipc.js';
@@ -152,6 +153,15 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
     request: RuntimeUnaryMethodRequest<MethodId>,
     options?: RuntimeCallOptions,
   ): Promise<RuntimeUnaryMethodResponse<MethodId>> => {
+    if (!isRuntimeMethodAllowlisted(methodId)) {
+      throw createNimiError({
+        message: `${methodId} is not admitted by runtime-method-groups`,
+        reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+        actionHint: 'wait_for_runtime_method_group_admission',
+        source: 'sdk',
+        details: { methodId },
+      });
+    }
     const codec = getUnaryCodec(methodId);
     if (!codec) {
       throw createNimiError({
@@ -178,6 +188,15 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
     request: Request,
     options?: RuntimeCallOptions,
   ): Promise<Response> => {
+    if (!isRuntimeMethodAllowlisted(methodId)) {
+      throw createNimiError({
+        message: `${methodId} is not admitted by runtime-method-groups`,
+        reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+        actionHint: 'wait_for_runtime_method_group_admission',
+        source: 'sdk',
+        details: { methodId },
+      });
+    }
     const normalizedRequest = normalizeRequestForMethod(methodId, request, options);
     const wireRequest = encodeRequest(methodId, codec, normalizedRequest);
     const call = await toUnaryCall(config, methodId, wireRequest, normalizedRequest, options);
@@ -189,6 +208,15 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
     request: RuntimeStreamMethodRequest<MethodId>,
     options?: RuntimeStreamCallOptions,
   ): Promise<RuntimeStreamMethodResponse<MethodId>> => {
+    if (!isRuntimeMethodAllowlisted(methodId)) {
+      throw createNimiError({
+        message: `${methodId} is not admitted by runtime-method-groups`,
+        reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+        actionHint: 'wait_for_runtime_method_group_admission',
+        source: 'sdk',
+        details: { methodId },
+      });
+    }
     const codec = getStreamCodec(methodId);
     if (!codec) {
       throw createNimiError({

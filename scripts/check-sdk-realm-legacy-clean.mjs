@@ -15,6 +15,7 @@ const LEGACY_SERVICE_NAMES = new Set([
 
 const LEGACY_MODEL_SYMBOLS = new Set([
   'Auth2faVerifyDto',
+  'Me2faOperationResultDto',
   'Me2faVerifyDto',
   'Me2faPrepareResponseDto',
 ]);
@@ -163,4 +164,3 @@ main().catch((error) => {
   process.stderr.write(`check-sdk-realm-legacy-clean failed: ${String(error)}\n`);
   process.exitCode = 1;
 });
-

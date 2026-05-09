@@ -187,7 +187,7 @@ type _GuardMessageReplyPayload = Assert<IsEqual<
   _ChatMessagePayload | null
 >>;
 
-type _GuardMe2faOperationResultDto = Assert<IsEqual<
+type _GuardMeTwoFactorOperationOutputWireSchema = Assert<IsEqual<
   components['schemas']['Me2faOperationResultDto'],
   {
     success: boolean;

@@ -684,9 +684,11 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
       ? null
       : isLocalFirstPartyRuntime
         ? {
+            mode: 'runtime_account',
             accessToken: runtimeAccountAccessTokenProvider,
           }
       : {
+          mode: 'external_principal',
           accessToken: async () => resolveToken(
             tokenValue,
             input.accessTokenProvider,

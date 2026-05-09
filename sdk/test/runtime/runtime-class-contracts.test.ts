@@ -176,8 +176,8 @@ test('S-RUNTIME-050: Phase 2 deferred method propagates SDK_RUNTIME_METHOD_UNAVA
     assert.equal(nimiError.reasonCode, ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
       'reasonCode must be SDK_RUNTIME_METHOD_UNAVAILABLE, not a generic blocked error');
     assert.ok(
-      nimiError.actionHint.includes('phase') || nimiError.message.includes('Phase'),
-      'error must reference phase/deferred context in actionHint or message',
+      nimiError.actionHint.includes('admission') || nimiError.message.includes('runtime-method-groups'),
+      'error must reference method-group admission context in actionHint or message',
     );
   } finally {
     clearNodeGrpcBridge();

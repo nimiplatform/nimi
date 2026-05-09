@@ -1,7 +1,8 @@
 import path from 'node:path';
 
 export const OPENAPI_TYPESCRIPT_VERSION = '7.10.1';
-export const DEFAULT_SPEC_RELATIVE_PATH = path.join('.cache', 'realm-openapi', 'api-nimi.yaml');
+export const DEFAULT_SPEC_MANIFEST_RELATIVE_PATH = path.join('config', 'realm-openapi-source.json');
+export const NORMALIZED_SPEC_RELATIVE_PATH = path.join('.cache', 'realm-openapi', 'api-nimi.codegen.json');
 export const REALM_GENERATED_RELATIVE_PATH = path.join('sdk', 'src', 'realm', 'generated');
 export const REALM_FACADE_RELATIVE_PATH = path.join('sdk', 'src', 'realm', 'index.ts');
 export const SDK_PACKAGE_JSON_RELATIVE_PATH = path.join('sdk', 'package.json');

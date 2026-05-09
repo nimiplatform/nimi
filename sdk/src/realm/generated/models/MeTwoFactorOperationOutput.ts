@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type Me2faOperationResultDto = components['schemas']['Me2faOperationResultDto'];
+export type MeTwoFactorOperationOutput = components['schemas']['Me2faOperationResultDto'];

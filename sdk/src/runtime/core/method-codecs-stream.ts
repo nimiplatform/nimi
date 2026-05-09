@@ -8,14 +8,6 @@ import {
   SubscribeScenarioJobEventsRequest,
 } from '../generated/runtime/v1/ai';
 import {
-  WorkflowEvent,
-  SubscribeWorkflowEventsRequest,
-} from '../generated/runtime/v1/workflow';
-import {
-  LocalTransferProgressEvent,
-  WatchLocalTransfersRequest,
-} from '../generated/runtime/v1/local_runtime';
-import {
   MemoryEvent,
   SubscribeMemoryEventsRequest,
 } from '../generated/runtime/v1/memory';
@@ -35,17 +27,9 @@ import {
   SubscribeAIProviderHealthEventsRequest,
   SubscribeRuntimeHealthEventsRequest,
 } from '../generated/runtime/v1/audit';
-import {
-  AccountSessionEvent,
-  SubscribeAccountSessionEventsRequest,
-} from '../generated/runtime/v1/account';
 import type { RuntimeStreamMethodCodecMap } from './method-codecs-types';
 
-export const runtimeStreamMethodCodecs: RuntimeStreamMethodCodecMap = {
-  [RuntimeMethodIds.account.subscribeAccountSessionEvents]: {
-    requestType: SubscribeAccountSessionEventsRequest,
-    eventType: AccountSessionEvent,
-  },
+export const runtimeStreamMethodCodecs: Partial<RuntimeStreamMethodCodecMap> = {
   [RuntimeMethodIds.ai.streamScenario]: {
     requestType: StreamScenarioRequest,
     eventType: StreamScenarioEvent,
@@ -57,14 +41,6 @@ export const runtimeStreamMethodCodecs: RuntimeStreamMethodCodecMap = {
   [RuntimeMethodIds.aiRealtime.readRealtimeEvents]: {
     requestType: ReadRealtimeEventsRequest,
     eventType: RealtimeEvent,
-  },
-  [RuntimeMethodIds.workflow.subscribeEvents]: {
-    requestType: SubscribeWorkflowEventsRequest,
-    eventType: WorkflowEvent,
-  },
-  [RuntimeMethodIds.local.watchLocalTransfers]: {
-    requestType: WatchLocalTransfersRequest,
-    eventType: LocalTransferProgressEvent,
   },
   [RuntimeMethodIds.memory.subscribeEvents]: {
     requestType: SubscribeMemoryEventsRequest,

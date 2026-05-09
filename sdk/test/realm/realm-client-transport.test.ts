@@ -23,7 +23,7 @@ test('Realm resolves async headers function per request', async () => {
     let callCount = 0;
     const realm = new Realm({
       baseUrl: 'https://realm-headers-fn.nimi.xyz',
-      auth: { accessToken: 'headers-token' },
+      auth: { mode: 'external_principal', accessToken: 'headers-token' },
       headers: async () => ({ 'x-realm-test': `call-${callCount++}` }),
     });
 
@@ -51,7 +51,7 @@ test('Realm requests still execute after close()', async () => {
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-close.nimi.xyz',
-      auth: { accessToken: 'close-token' },
+      auth: { mode: 'external_principal', accessToken: 'close-token' },
     });
 
     await realm.close();
@@ -75,7 +75,7 @@ test('Realm returns undefined for 204 responses', async () => {
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-no-content.nimi.xyz',
-      auth: { accessToken: 'content-token' },
+      auth: { mode: 'external_principal', accessToken: 'content-token' },
     });
 
     const result = await realm.unsafeRaw.request({ method: 'DELETE', path: '/api/resource' });
@@ -98,7 +98,7 @@ test('Realm rejects text/plain responses when published contract expects JSON', 
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-text.nimi.xyz',
-      auth: { accessToken: 'text-token' },
+      auth: { mode: 'external_principal', accessToken: 'text-token' },
     });
 
     await assert.rejects(
@@ -134,7 +134,7 @@ test('Realm retries 429 responses using Retry-After', async () => {
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-retry-429.nimi.xyz',
-      auth: { accessToken: 'retry-token' },
+      auth: { mode: 'external_principal', accessToken: 'retry-token' },
     });
 
     const result = await realm.unsafeRaw.request({ method: 'GET', path: '/api/rate-limited' });
@@ -166,7 +166,7 @@ test('Realm retries configured 5xx responses and stops at maxRetries', async () 
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-retry-503.nimi.xyz',
-      auth: { accessToken: 'retry-token' },
+      auth: { mode: 'external_principal', accessToken: 'retry-token' },
       retry: {
         maxRetries: 2,
         backoffMs: 1,
@@ -193,7 +193,7 @@ test('Realm retries configured 5xx responses and stops at maxRetries', async () 
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-retry-fail.nimi.xyz',
-      auth: { accessToken: 'retry-token' },
+      auth: { mode: 'external_principal', accessToken: 'retry-token' },
       retry: {
         maxRetries: 1,
         backoffMs: 1,

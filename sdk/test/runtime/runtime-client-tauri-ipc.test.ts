@@ -27,11 +27,12 @@ import {
   ConversationAnchorStatus,
   OpenConversationAnchorResponse,
 } from '../../src/runtime/generated/runtime/v1/agent_service.js';
-import { ListModelsResponse } from '../../src/runtime/generated/runtime/v1/model';
+import { ListConnectorsResponse } from '../../src/runtime/generated/runtime/v1/connector';
 import { RuntimeUnaryMethodCodecs } from '../../src/runtime/core/method-codecs';
 import { Runtime } from '../../src/runtime/runtime.js';
 import {
   isRuntimeWriteMethod,
+  RuntimeAllowlistedMethodIds,
   RuntimeMethodIds,
   RuntimeStreamMethodIds,
 } from '../../src/runtime/method-ids';
@@ -45,11 +46,17 @@ import {
   unwrapTauriInvokePayload,
 } from './runtime-client-fixtures.js';
 
+function isMethodGroupUnavailable(error: unknown): boolean {
+  return (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_METHOD_UNAVAILABLE';
+}
+
 test('node-grpc and tauri-ipc cover runtime.local unary contract surface', async () => {
   const localMethodEntries = Object.entries(RuntimeMethodIds.local) as Array<
     [keyof typeof RuntimeMethodIds.local, string]
   >;
-  const unaryLocalMethodEntries = localMethodEntries.filter(([, methodId]) => !RuntimeStreamMethodIds.includes(methodId));
+  const unaryLocalMethodEntries = localMethodEntries.filter(([, methodId]) => (
+    RuntimeAllowlistedMethodIds.includes(methodId) && !RuntimeStreamMethodIds.includes(methodId)
+  ));
 
   const nodeCalls: RuntimeUnaryCall<RuntimeWireMessage>[] = [];
   installNodeGrpcBridge({
@@ -214,7 +221,7 @@ test('tauri-ipc per-call protected access token suppresses stale bearer authoriz
           capturedPayload = unwrapTauriInvokePayload(payload);
           return {
             responseBytesBase64: Buffer.from(
-              ListModelsResponse.toBinary(ListModelsResponse.create({ models: [] })),
+              ListConnectorsResponse.toBinary(ListConnectorsResponse.create({ connectors: [] })),
             ).toString('base64'),
           };
         }
@@ -239,7 +246,7 @@ test('tauri-ipc per-call protected access token suppresses stale bearer authoriz
       },
     });
 
-    await client.model.list({}, {
+    await client.connector.listConnectors({}, {
       protectedAccessToken: {
         tokenId: 'protected-token-id',
         secret: 'protected-token-secret',
@@ -429,17 +436,14 @@ test('tauri-ipc runtime agent anchor unary request includes runtime app session'
       },
     });
 
-    await client.agent.openConversationAnchor({
-      agentId: 'agent-1',
-      subjectUserId: 'user-1',
-    });
-
-    assert.ok(capturedPayload);
-    assert.equal(capturedPayload.methodId, RuntimeMethodIds.agent.openConversationAnchor);
-    assert.deepEqual(capturedPayload.appSession, {
-      sessionId: 'runtime-session-id',
-      sessionToken: 'runtime-session-token',
-    });
+    await assert.rejects(
+      () => client.agent.openConversationAnchor({
+        agentId: 'agent-1',
+        subjectUserId: 'user-1',
+      }),
+      isMethodGroupUnavailable,
+    );
+    assert.equal(capturedPayload, null);
   } finally {
     restoreTauri();
   }
@@ -526,20 +530,15 @@ test('tauri-ipc Runtime agent anchor surface includes protected token and app se
       },
     });
 
-    await runtime.agent.anchors.open({
-      agentId: 'agent-1',
-    });
+    await assert.rejects(
+      () => runtime.agent.anchors.open({
+        agentId: 'agent-1',
+      }),
+      isMethodGroupUnavailable,
+    );
 
     const openPayload = capturedPayloads.find((captured) => captured.methodId === RuntimeMethodIds.agent.openConversationAnchor);
-    assert.ok(openPayload);
-    assert.deepEqual(openPayload.appSession, {
-      sessionId: 'runtime-session-id',
-      sessionToken: 'runtime-session-token',
-    });
-    assert.deepEqual(openPayload.protectedAccessToken, {
-      tokenId: 'runtime-agent-anchor-token',
-      secret: 'runtime-agent-anchor-secret',
-    });
+    assert.equal(openPayload, undefined);
     assert.deepEqual(authorizeRequests.map((request) => request.scopes), [
       ['runtime.agent.turn.write'],
     ]);
@@ -674,7 +673,7 @@ test('tauri-ipc Runtime agent turns surface includes protected tokens for stream
   }
 });
 
-test('tauri-ipc falls back to runtime_bridge command namespace when custom command is missing', async () => {
+test('tauri-ipc fails closed when custom command namespace is missing', async () => {
   const invokedCommands: string[] = [];
   const restoreTauri = installTauriRuntime({
     core: {
@@ -682,13 +681,6 @@ test('tauri-ipc falls back to runtime_bridge command namespace when custom comma
         invokedCommands.push(command);
         if (command.startsWith('custom_bridge_')) {
           throw new Error(`unknown command: ${command}`);
-        }
-        if (command === 'runtime_bridge_unary') {
-          return {
-            responseBytesBase64: Buffer.from(
-              ListModelsResponse.toBinary(ListModelsResponse.create({ models: [] })),
-            ).toString('base64'),
-          };
         }
         throw new Error(`unexpected tauri command: ${command}`);
       },
@@ -708,9 +700,17 @@ test('tauri-ipc falls back to runtime_bridge command namespace when custom comma
       },
     });
 
-    const result = await client.model.list({});
-    assert.deepEqual(result.models, []);
-    assert.deepEqual(invokedCommands, ['custom_bridge_unary', 'runtime_bridge_unary']);
+    let captured: ReturnType<typeof asNimiError> | null = null;
+    try {
+      await client.connector.listConnectors({});
+    } catch (error) {
+      captured = asNimiError(error, { source: 'runtime' });
+    }
+
+    assert.ok(captured);
+    assert.equal(captured.reasonCode, 'SDK_RUNTIME_TAURI_UNARY_FAILED');
+    assert.match(captured.message, /unknown command: custom_bridge_unary/i);
+    assert.deepEqual(invokedCommands, ['custom_bridge_unary']);
   } finally {
     restoreTauri();
   }
@@ -745,7 +745,7 @@ test('tauri-ipc does not retry with legacy payload when invoke reports invalid a
 
     let captured: ReturnType<typeof asNimiError> | null = null;
     try {
-      await client.model.list({});
+      await client.connector.listConnectors({});
     } catch (error) {
       captured = asNimiError(error, { source: 'runtime' });
     }
@@ -769,7 +769,7 @@ test('tauri-ipc does not fall back when custom command returns domain not-found 
       invoke: async (command: string) => {
         invokedCommands.push(command);
         if (command === 'custom_bridge_unary') {
-          throw new Error('model not found');
+          throw new Error('connector not found');
         }
         throw new Error(`unexpected tauri command: ${command}`);
       },
@@ -791,14 +791,14 @@ test('tauri-ipc does not fall back when custom command returns domain not-found 
 
     let captured: ReturnType<typeof asNimiError> | null = null;
     try {
-      await client.model.list({});
+      await client.connector.listConnectors({});
     } catch (error) {
       captured = asNimiError(error, { source: 'runtime' });
     }
 
     assert.ok(captured);
     assert.equal(captured.reasonCode, 'SDK_RUNTIME_TAURI_UNARY_FAILED');
-    assert.match(captured.message, /model not found/i);
+    assert.match(captured.message, /connector not found/i);
     assert.deepEqual(invokedCommands, ['custom_bridge_unary']);
   } finally {
     restoreTauri();
@@ -832,8 +832,8 @@ test('tauri-ipc unary accepts empty protobuf payload bytes', async () => {
       },
     });
 
-    const result = await client.model.list({});
-    assert.deepEqual(result.models, []);
+    const result = await client.connector.listConnectors({});
+    assert.deepEqual(result.connectors, []);
   } finally {
     restoreTauri();
   }

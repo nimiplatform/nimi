@@ -22,6 +22,7 @@ function createRealmContext(input: RealmContextInput): Realm {
   return new Realm({
     baseUrl: input.realmBaseUrl,
     auth: {
+      mode: 'external_principal',
       accessToken: async () => String(input.accessToken || ''),
       refreshToken: refreshToken || undefined,
       onTokenRefreshed: input.onTokenRefreshed,

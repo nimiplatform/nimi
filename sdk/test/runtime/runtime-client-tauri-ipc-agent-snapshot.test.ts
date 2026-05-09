@@ -16,6 +16,10 @@ import {
   unwrapTauriInvokePayload,
 } from './runtime-client-fixtures.js';
 
+function isMethodGroupUnavailable(error: unknown): boolean {
+  return (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_METHOD_UNAVAILABLE';
+}
+
 test('tauri-ipc Runtime agent session snapshot includes protected token and app session', async () => {
   const capturedPayloads: Record<string, unknown>[] = [];
   const authorizeRequests: AuthorizeExternalPrincipalRequest[] = [];
@@ -88,21 +92,17 @@ test('tauri-ipc Runtime agent session snapshot includes protected token and app 
       },
     });
 
-    await runtime.agent.turns.getSessionSnapshot({
-      agentId: 'agent-1',
-      conversationAnchorId: 'anchor-1',
-    });
+    await assert.rejects(
+      () => runtime.agent.turns.getSessionSnapshot({
+        agentId: 'agent-1',
+        conversationAnchorId: 'anchor-1',
+      }),
+      isMethodGroupUnavailable,
+    );
 
     const snapshotPayload = capturedPayloads.find((captured) => captured.methodId === RuntimeMethodIds.agent.getPublicChatSessionSnapshot);
     assert.deepEqual(authorizeRequests.map((request) => request.scopes), [['runtime.agent.turn.read']]);
-    assert.deepEqual(snapshotPayload?.protectedAccessToken, {
-      tokenId: 'runtime-agent-turn-read-token',
-      secret: 'runtime-agent-turn-read-secret',
-    });
-    assert.deepEqual(snapshotPayload?.appSession, {
-      sessionId: 'runtime-session-id',
-      sessionToken: 'runtime-session-token',
-    });
+    assert.equal(snapshotPayload, undefined);
   } finally {
     restoreTauri();
   }

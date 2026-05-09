@@ -40,7 +40,6 @@ export function isLikelyTtsModel(modelId: string): boolean {
   return (
     normalized.includes('tts')
     || normalized.includes('text-to-speech')
-    || normalized.includes('audio')
     || normalized.includes('voice')
     || normalized.includes('speech')
   );

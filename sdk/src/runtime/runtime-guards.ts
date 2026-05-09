@@ -2,6 +2,10 @@ import type { JsonObject } from '../internal/utils.js';
 import { ReasonCode } from '../types/index.js';
 import type { NimiError, VersionCompatibilityStatus } from '../types/index.js';
 import { asNimiError, createNimiError } from './errors.js';
+import {
+  isRuntimeMethodAllowlisted,
+  RuntimeMethodIds,
+} from './method-ids.js';
 import { RoutePolicy } from './generated/runtime/v1/ai.js';
 import { normalizeText, parseSemverMajor } from './helpers.js';
 import type { RuntimeMetadata, RuntimeOptions } from './types.js';
@@ -82,6 +86,18 @@ export function assertRuntimeMethodAvailable(input: {
   phase2AuditMethodIds: ReadonlySet<string>;
   auditMethodIds: Record<string, string>;
 }): void {
+  const runtimeMethodIds = RuntimeMethodIds as Record<string, Record<string, string> | undefined>;
+  const methodId = runtimeMethodIds[input.moduleKey]?.[input.methodKey] || '';
+  if (methodId && !isRuntimeMethodAllowlisted(methodId)) {
+    throw createNimiError({
+      message: `${input.moduleKey}.${input.methodKey} is not admitted by runtime-method-groups`,
+      reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+      actionHint: 'wait_for_runtime_method_group_admission',
+      source: 'sdk',
+      details: { methodId },
+    });
+  }
+
   const isPhase2Module = input.phase2ModuleKeys.has(input.moduleKey);
   const isPhase2AuditMethod = input.moduleKey === 'audit'
     && input.phase2AuditMethodIds.has(

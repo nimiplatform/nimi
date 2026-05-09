@@ -1,0 +1,9 @@
+{
+  "contract": "nimi.realm-openapi-source.v1",
+  "source_kind": "backend_filtered_openapi_contract",
+  "source_path": "../nimi-backend/api-nimi.yaml",
+  "authority_refs": [
+    ".nimi/spec/sdk/kernel/realm-contract.md",
+    ".nimi/spec/sdk/kernel/generated/index.md"
+  ]
+}

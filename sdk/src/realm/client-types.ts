@@ -25,7 +25,10 @@ export type RealmTokenRefreshResult = {
 
 export type RealmFetchImpl = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
+export type RealmAuthCustodyMode = 'runtime_account' | 'external_principal';
+
 export type RealmAuthOptions = {
+  mode: RealmAuthCustodyMode;
   accessToken?: string | (() => Promise<string> | string);
   refreshToken?: string | (() => Promise<string> | string);
   onTokenRefreshed?: (result: RealmTokenRefreshResult) => void;

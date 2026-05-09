@@ -225,9 +225,9 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
             output,
           }));
         }
-        case RuntimeMethodIds.model.list:
+        case RuntimeMethodIds.connector.listConnectors:
           return encodeUnary(input.methodId, {
-            models: [{ modelId: 'model-1' }],
+            connectors: [{ connectorId: 'connector-1', provider: 'local' }],
           });
         case RuntimeMethodIds.app.sendAppMessage:
           return SendAppMessageResponse.toBinary(SendAppMessageResponse.create({
@@ -331,10 +331,10 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
     const health = await runtime.health();
     assert.equal(health.status, 'healthy');
 
-    const listModels = await runtime.model.list({});
-    assert.equal(listModels.models.length, 1);
+    const listConnectors = await runtime.connector.listConnectors({});
+    assert.equal(listConnectors.connectors.length, 1);
 
-    const viaCall = await runtime.call(RuntimeMethodIds.model.list, {});
+    const viaCall = await runtime.call(RuntimeMethodIds.connector.listConnectors, {});
     assert.ok(viaCall);
 
     const rawEmbed = await runtime.unsafeRaw.call(RuntimeMethodIds.ai.executeScenario, {
@@ -635,8 +635,8 @@ test('Runtime emits telemetry and auth/error events across lifecycle', async () 
             reasonCode: RuntimeReasonCode.ACTION_EXECUTED,
             actionHint: '',
           }));
-        case RuntimeMethodIds.model.list:
-          throw new Error('forced-model-error');
+        case RuntimeMethodIds.connector.listConnectors:
+          throw new Error('forced-connector-error');
         default:
           return encodeUnary(input.methodId);
       }
@@ -719,7 +719,7 @@ test('Runtime emits telemetry and auth/error events across lifecycle', async () 
     });
 
     await assert.rejects(
-      async () => runtime.model.list({}),
+      async () => runtime.connector.listConnectors({}),
       (error: unknown) => asNimiError(error, { source: 'runtime' }).reasonCode === ReasonCode.SDK_RUNTIME_NODE_GRPC_UNARY_FAILED,
     );
 

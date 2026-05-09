@@ -10,9 +10,11 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const nimiRoot = path.resolve(scriptDir, '..');
 
 const schemaPath = path.join(nimiRoot, 'sdk', 'src', 'realm', 'generated', 'schema.ts');
+const modelMapPath = path.join(nimiRoot, 'sdk', 'src', 'realm', 'generated', 'model-map.ts');
 const operationMapPath = path.join(nimiRoot, 'sdk', 'src', 'realm', 'generated', 'operation-map.ts');
 
 const schema = readFileSync(schemaPath, 'utf8');
+const modelMap = readFileSync(modelMapPath, 'utf8');
 const operationMap = readFileSync(operationMapPath, 'utf8');
 
 const failures = [];
@@ -208,8 +210,18 @@ expectRegex(
 expectRegex(
   schema,
   /Me2faOperationResultDto:\s*{\s*success: boolean;\s*};/,
-  'Me2faOperationResultDto must expose the stable enable\/disable 2FA response contract',
+  'Me2faOperationResultDto wire schema must keep the stable enable\/disable 2FA response contract',
 );
+
+expectRegex(
+  modelMap,
+  /MeTwoFactorOperationOutput: components\['schemas'\]\['Me2faOperationResultDto'\];/,
+  'Realm model map must expose Me2faOperationResultDto through the normalized MeTwoFactorOperationOutput symbol',
+);
+
+if (/^\s*Me2faOperationResultDto:/m.test(modelMap)) {
+  failures.push('Realm model map must not expose legacy public symbol Me2faOperationResultDto');
+}
 
 expectRegex(
   schema,

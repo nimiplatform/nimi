@@ -6,6 +6,71 @@ import { asNimiError } from '../../src/runtime/index.js';
 import { ReasonCode } from '../../src/types/index.js';
 import { resolveFetchHeaders, resolveFetchUrl } from './realm-client-test-helpers.js';
 
+test('Realm rejects direct token auth without an explicit custody mode', () => {
+  assert.throws(
+    () => new Realm({
+      baseUrl: 'https://realm-mode-required.nimi.xyz',
+      auth: { accessToken: 'token-without-mode' } as any,
+    }),
+    (error: unknown) => {
+      const nimiError = asNimiError(error, { source: 'sdk' });
+      assert.equal(nimiError.reasonCode, ReasonCode.SDK_REALM_CONFIG_INVALID);
+      assert.equal(nimiError.actionHint, 'set_realm_auth_mode_runtime_account_or_external_principal');
+      return true;
+    },
+  );
+});
+
+test('Realm runtime_account auth only accepts RuntimeAccountService-backed token providers', () => {
+  assert.throws(
+    () => new Realm({
+      baseUrl: 'https://realm-runtime-account-static-token.nimi.xyz',
+      auth: {
+        mode: 'runtime_account',
+        accessToken: 'app-owned-token',
+      },
+    }),
+    (error: unknown) => {
+      const nimiError = asNimiError(error, { source: 'sdk' });
+      assert.equal(nimiError.reasonCode, ReasonCode.SDK_REALM_CONFIG_INVALID);
+      assert.equal(nimiError.actionHint, 'provide_runtime_account_service_access_token_provider');
+      return true;
+    },
+  );
+
+  assert.throws(
+    () => new Realm({
+      baseUrl: 'https://realm-runtime-account-refresh-token.nimi.xyz',
+      auth: {
+        mode: 'runtime_account',
+        accessToken: async () => 'runtime-token',
+        refreshToken: 'sdk-owned-refresh-token',
+      },
+    }),
+    (error: unknown) => {
+      const nimiError = asNimiError(error, { source: 'sdk' });
+      assert.equal(nimiError.reasonCode, ReasonCode.SDK_REALM_CONFIG_INVALID);
+      assert.equal(nimiError.actionHint, 'remove_sdk_refresh_token_custody_from_runtime_account_mode');
+      return true;
+    },
+  );
+});
+
+test('Realm static refresh requires explicit external_principal mode', async () => {
+  await assert.rejects(
+    () => Realm.refreshAccessToken({
+      realmBaseUrl: 'https://realm-refresh-mode.nimi.xyz',
+      refreshToken: 'refresh-token',
+    } as any),
+    (error: unknown) => {
+      const nimiError = asNimiError(error, { source: 'sdk' });
+      assert.equal(nimiError.reasonCode, ReasonCode.SDK_REALM_CONFIG_INVALID);
+      assert.equal(nimiError.actionHint, 'set_external_principal_mode_for_realm_refresh');
+      return true;
+    },
+  );
+});
+
 test('Realm 401 with refreshToken triggers refresh then retries successfully', async () => {
   const originalFetch = globalThis.fetch;
   let callCount = 0;
@@ -55,6 +120,7 @@ test('Realm 401 with refreshToken triggers refresh then retries successfully', a
     const realm = new Realm({
       baseUrl: 'https://realm-refresh.nimi.xyz',
       auth: {
+        mode: 'external_principal',
         accessToken: 'expired-token',
         refreshToken: 'valid-refresh-token',
         onTokenRefreshed: (result) => { refreshedResult = result; },
@@ -110,6 +176,7 @@ test('Realm refresh normalizes numeric-string expiresIn consistently across refr
 
   try {
     const staticResult = await Realm.refreshAccessToken({
+      authMode: 'external_principal',
       realmBaseUrl: 'https://realm-refresh.nimi.xyz',
       refreshToken: 'refresh-token',
     });
@@ -118,6 +185,7 @@ test('Realm refresh normalizes numeric-string expiresIn consistently across refr
     const realm = new Realm({
       baseUrl: 'https://realm-refresh.nimi.xyz',
       auth: {
+        mode: 'external_principal',
         accessToken: 'expired-token',
         refreshToken: 'refresh-token',
         onTokenRefreshed: (result) => { refreshCallbackResult = result; },
@@ -169,6 +237,7 @@ test('Realm refresh drops invalid expiresIn values', async () => {
 
   try {
     const staticResult = await Realm.refreshAccessToken({
+      authMode: 'external_principal',
       realmBaseUrl: 'https://realm-refresh.nimi.xyz',
       refreshToken: 'refresh-token',
     });
@@ -177,6 +246,7 @@ test('Realm refresh drops invalid expiresIn values', async () => {
     const realm = new Realm({
       baseUrl: 'https://realm-refresh.nimi.xyz',
       auth: {
+        mode: 'external_principal',
         accessToken: 'expired-token',
         refreshToken: 'refresh-token',
         onTokenRefreshed: (result) => { refreshCallbackResult = result; },
@@ -205,7 +275,7 @@ test('Realm 401 without refreshToken throws directly (existing behavior)', async
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-no-refresh.nimi.xyz',
-      auth: { accessToken: 'expired-token' },
+      auth: { mode: 'external_principal', accessToken: 'expired-token' },
     });
 
     let thrown: unknown = null;
@@ -253,6 +323,7 @@ test('Realm refresh failure calls onRefreshFailed and throws original 401 error'
     const realm = new Realm({
       baseUrl: 'https://realm-refresh-fail.nimi.xyz',
       auth: {
+        mode: 'external_principal',
         accessToken: 'expired-token',
         refreshToken: 'expired-refresh-token',
         onRefreshFailed: (error) => { failedError = error; },
@@ -309,6 +380,7 @@ test('Realm refresh failure preserves unreadable error-body diagnostics', async 
     const realm = new Realm({
       baseUrl: 'https://realm-refresh-unreadable.nimi.xyz',
       auth: {
+        mode: 'external_principal',
         accessToken: 'expired-token',
         refreshToken: 'expired-refresh-token',
       },
@@ -351,6 +423,7 @@ test('Realm 403 does not trigger refresh', async () => {
     const realm = new Realm({
       baseUrl: 'https://realm-403.nimi.xyz',
       auth: {
+        mode: 'external_principal',
         accessToken: 'valid-token',
         refreshToken: 'valid-refresh',
       },
@@ -407,6 +480,7 @@ test('Realm refreshToken supports function mode', async () => {
     const realm = new Realm({
       baseUrl: 'https://realm-fn-refresh.nimi.xyz',
       auth: {
+        mode: 'external_principal',
         accessToken: 'expired-token',
         refreshToken: () => 'dynamic-refresh-token',
       },
@@ -505,7 +579,7 @@ test('Realm ready() fails closed on probe failure and still emits error event', 
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-ready-error.nimi.xyz',
-      auth: { accessToken: 'ready-token' },
+      auth: { mode: 'external_principal', accessToken: 'ready-token' },
     });
 
     realm.events.on('error', (event) => {
@@ -519,7 +593,7 @@ test('Realm ready() fails closed on probe failure and still emits error event', 
 
     assert.equal(errors.length, 1, 'ready() probe failure must emit exactly one error event');
     assert.equal(errors[0]?.error?.reasonCode, 'REALM_UNAVAILABLE');
-    assert.equal(realm.state().status, 'ready');
+    assert.equal(realm.state().status, 'closed');
     assert.equal(realm.state().lastReadyAt, undefined);
   } finally {
     globalThis.fetch = originalFetch;
@@ -555,7 +629,7 @@ test('Realm services support path-first call pattern for mixed path/query method
   try {
     const realm = new Realm({
       baseUrl: 'https://realm-params.nimi.xyz',
-      auth: { accessToken: 'params-token' },
+      auth: { mode: 'external_principal', accessToken: 'params-token' },
     });
 
     await realm.services.HumanChatsService.listMessages('chat-123', 20);
@@ -664,6 +738,7 @@ test('S-REALM-015: auth retry max once — second 401 after refresh does not loo
     const realm = new Realm({
       baseUrl: 'https://realm-retry-max.nimi.xyz',
       auth: {
+        mode: 'external_principal',
         accessToken: 'expired-token',
         refreshToken: 'valid-refresh',
       },
@@ -732,6 +807,7 @@ test('S-REALM-029: concurrent 401 requests merge into a single refresh call', as
     const realm = new Realm({
       baseUrl: 'https://realm-single-flight.nimi.xyz',
       auth: {
+        mode: 'external_principal',
         accessToken: 'expired-token',
         refreshToken: 'valid-refresh',
       },
@@ -772,6 +848,7 @@ test('S-REALM-027: accessToken as function resolves dynamically on each request'
     const realm = new Realm({
       baseUrl: 'https://realm-fn-token.nimi.xyz',
       auth: {
+        mode: 'external_principal',
         accessToken: () => 'dynamic-token-' + tokenCallCount++,
       },
     });
@@ -828,6 +905,7 @@ test('Realm refresh updates internal static token for subsequent requests', asyn
     const realm = new Realm({
       baseUrl: 'https://realm-refresh-static.nimi.xyz',
       auth: {
+        mode: 'external_principal',
         accessToken: 'expired-static-token',
         refreshToken: 'valid-refresh-token',
       },

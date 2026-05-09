@@ -4,7 +4,7 @@ import { ReasonCode } from '../../src/types/index.js';
 import { asNimiError, isNimiError } from '../../src/runtime/errors';
 import { createRuntimeClient } from '../../src/runtime/core/client';
 import { mergeRuntimeMetadata } from '../../src/runtime/core/metadata';
-import { ListModelsResponse } from '../../src/runtime/generated/runtime/v1/model';
+import { ListConnectorsResponse } from '../../src/runtime/generated/runtime/v1/connector';
 import {
   runtimeConfig,
   installNodeGrpcBridge,
@@ -114,12 +114,11 @@ test('isNimiError detects structured sdk/runtime errors', () => {
 
 test('node-grpc and tauri-ipc unary transports decode equivalent payloads', async () => {
   installNodeGrpcBridge({
-    invokeUnary: async () => ListModelsResponse.toBinary(
-      ListModelsResponse.create({
-        models: [{
-          modelId: 'llama3',
+    invokeUnary: async () => ListConnectorsResponse.toBinary(
+      ListConnectorsResponse.create({
+        connectors: [{
+          connectorId: 'connector-1',
           provider: 'local',
-          modal: [],
         }],
       }),
     ),
@@ -141,12 +140,11 @@ test('node-grpc and tauri-ipc unary transports decode equivalent payloads', asyn
         }
         return {
           responseBytesBase64: Buffer.from(
-            ListModelsResponse.toBinary(
-              ListModelsResponse.create({
-                models: [{
-                  modelId: 'llama3',
+            ListConnectorsResponse.toBinary(
+              ListConnectorsResponse.create({
+                connectors: [{
+                  connectorId: 'connector-1',
                   provider: 'local',
-                  modal: [],
                 }],
               }),
             ),
@@ -176,8 +174,8 @@ test('node-grpc and tauri-ipc unary transports decode equivalent payloads', asyn
       },
     });
 
-    const nodeResponse = await nodeClient.model.list({});
-    const tauriResponse = await tauriClient.model.list({});
+    const nodeResponse = await nodeClient.connector.listConnectors({});
+    const tauriResponse = await tauriClient.connector.listConnectors({});
 
     assert.deepEqual(tauriResponse, nodeResponse);
   } finally {
