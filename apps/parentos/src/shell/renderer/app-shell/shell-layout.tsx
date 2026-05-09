@@ -4,9 +4,9 @@ import { Home, User, BookText, MessageCircle, TrendingUp, Settings, Bell, LogOut
 import { AmbientBackground, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore, computeAgeMonths, type ChildProfile } from './app-store.js';
 import { startParentosWindowDrag } from '../bridge/window-drag.js';
-import { clearAuthSession as clearPersistedAuthSession } from '../bridge/index.js';
 import { setAppSetting } from '../bridge/sqlite-bridge.js';
 import { syncParentOSLocalDataScope } from '../infra/parentos-bootstrap.js';
+import { logoutParentOSRuntimeAccount } from '../features/auth/parentos-auth-adapter.js';
 import { isoNow } from '../bridge/ulid.js';
 import { ProfileTodoDrawer } from '../features/profile/profile-todo-drawer.js';
 import { ChildAvatar } from '../shared/child-avatar.js';
@@ -192,7 +192,9 @@ function AccountAvatarMenu() {
 
   const handleLogout = async () => {
     closeMenu();
-    try { await clearPersistedAuthSession(); } catch { /* best-effort */ }
+    // PO-SHELL-008: revoke through Runtime account custody (single source of
+    // truth). No legacy app-local session storage to clear.
+    try { await logoutParentOSRuntimeAccount(); } catch { /* best-effort */ }
     clearAuth();
     void syncParentOSLocalDataScope(null);
   };

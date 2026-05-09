@@ -11,14 +11,16 @@ vi.mock('@nimiplatform/nimi-kit/auth', () => ({
     desktopShellAuthPageSpy(props);
     return <div data-testid="desktop-shell-auth-page" />;
   },
-  buildDesktopWebAuthLaunchUrl: vi.fn(),
-  resolveDesktopCallbackRequestFromLocation: vi.fn(() => null),
 }));
 
 vi.mock('./parentos-auth-adapter.js', () => ({
   createParentOSDesktopBrowserAuthAdapter: vi.fn(() => ({
     applyToken: vi.fn(),
     loadCurrentUser: vi.fn(),
+  })),
+  createParentOSRuntimeAccountBrowserBroker: vi.fn(() => ({
+    begin: vi.fn(),
+    complete: vi.fn(),
   })),
 }));
 
@@ -77,5 +79,14 @@ describe('ParentOSLoginPage', () => {
       desktopBrowserAuth?: { baseUrl?: string };
     };
     expect(props.desktopBrowserAuth?.baseUrl).toBe('http://localhost:3000');
+  });
+
+  it('PO-SHELL-008: wires runtimeAccountBroker into desktopBrowserAuth (admitted login path)', () => {
+    render(<ParentOSLoginPage />);
+
+    const props = desktopShellAuthPageSpy.mock.calls[0]?.[0] as {
+      desktopBrowserAuth?: { runtimeAccountBroker?: unknown };
+    };
+    expect(props.desktopBrowserAuth?.runtimeAccountBroker).toBeDefined();
   });
 });

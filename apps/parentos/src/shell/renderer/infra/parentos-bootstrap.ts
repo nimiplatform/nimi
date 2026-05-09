@@ -1,97 +1,87 @@
+import {
+  clearPlatformClient,
+  createLocalFirstPartyRuntimePlatformClient,
+  type PlatformClient,
+} from '@nimiplatform/sdk';
+import {
+  AccountCallerMode,
+  AccountSessionState,
+  type AccountCaller,
+  type AccountProjection,
+} from '@nimiplatform/sdk/runtime/browser';
+import type { Runtime } from '@nimiplatform/sdk/runtime';
 import { getParentOSRuntimeDefaults } from '../bridge/index.js';
-import {
-  clearAuthSession as clearPersistedAuthSession,
-  loadAuthSession,
-  saveAuthSession,
-} from '../bridge/index.js';
 import { useAppStore } from '../app-shell/app-store.js';
-import { createPlatformClient } from '@nimiplatform/sdk';
 import {
-  persistSharedDesktopAuthSession,
-  resolveDesktopBootstrapAuthSession,
-} from '@nimiplatform/nimi-kit/auth';
-import { dbInit, getAppSetting, getChild, getChildren, getFamily } from '../bridge/sqlite-bridge.js';
+  dbInit,
+  getAppSetting,
+  getChild,
+  getChildren,
+  getFamily,
+} from '../bridge/sqlite-bridge.js';
 import { mapChildRow } from '../bridge/mappers.js';
-import { bootstrapParentOSAuthSession } from './parentos-bootstrap-auth.js';
 import { loadPersistedParentosAIConfig } from '../features/settings/parentos-ai-config.js';
 import { describeError, logRendererEvent } from './telemetry/renderer-log.js';
+
+// PO-SHELL-001 / PO-SHELL-008: ParentOS is admitted as an active local
+// first-party Runtime account/session consumer. The caller is fixed; runtime
+// owns refresh-token custody and short-lived access-token projection. No
+// app-owned token surface is admitted.
+export const PARENTOS_RUNTIME_APP_ID = 'app.nimi.parentos';
+export const PARENTOS_RUNTIME_APP_INSTANCE_ID = `${PARENTOS_RUNTIME_APP_ID}.local-first-party`;
+export const PARENTOS_RUNTIME_DEVICE_ID = 'local-first-party-device';
+
+export const parentosRuntimeAccountCaller: AccountCaller = {
+  appId: PARENTOS_RUNTIME_APP_ID,
+  appInstanceId: PARENTOS_RUNTIME_APP_INSTANCE_ID,
+  deviceId: PARENTOS_RUNTIME_DEVICE_ID,
+  mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+  scopes: [],
+};
 
 let bootstrapPromise: Promise<void> | null = null;
 let localDataSyncPromise: Promise<void> = Promise.resolve();
 const ACTIVE_CHILD_SETTING_KEYS = ['activeChildId', 'inspection:last-active-child-id'] as const;
 
-/**
- * The shared desktop auth-session Tauri commands (`auth_session_load`/`save`/
- * `clear`) were disabled when local first-party account custody moved to
- * RuntimeAccountService. ParentOS still routes its bootstrap through the
- * shared kit helpers, so we swallow that specific "is disabled" error and
- * degrade to an anonymous bootstrap rather than failing the whole boot path.
- * Other errors (encrypted-file corruption, etc.) still propagate.
- */
-function isAuthSessionDisabledError(error: unknown): boolean {
-  return error instanceof Error && error.message.includes('is disabled for local first-party account truth');
-}
+export type ParentOSAuthUser = {
+  id: string;
+  displayName: string;
+};
 
-async function loadAuthSessionTolerant(): Promise<Awaited<ReturnType<typeof loadAuthSession>>> {
-  try {
-    return await loadAuthSession();
-  } catch (error) {
-    if (isAuthSessionDisabledError(error)) {
-      return null;
-    }
-    throw error;
-  }
-}
-
-async function saveAuthSessionTolerant(session: Parameters<typeof saveAuthSession>[0]): Promise<void> {
-  try {
-    await saveAuthSession(session);
-  } catch (error) {
-    if (isAuthSessionDisabledError(error)) {
-      return;
-    }
-    throw error;
-  }
-}
-
-async function clearPersistedAuthSessionTolerant(): Promise<void> {
-  try {
-    await clearPersistedAuthSession();
-  } catch (error) {
-    if (isAuthSessionDisabledError(error)) {
-      return;
-    }
-    throw error;
-  }
-}
-
-function toAuthUser(user: Record<string, unknown> | null) {
-  if (!user) {
-    return null;
-  }
-  const id = String(user.id || '').trim();
-  if (!id) {
+export function normalizeParentOSAccountProjection(
+  projection: AccountProjection | null | undefined,
+): ParentOSAuthUser | null {
+  const accountId = String(projection?.accountId || '').trim();
+  if (!accountId) {
     return null;
   }
   return {
-    id,
-    displayName: String(user.displayName || user.name || '').trim(),
-    email: user.email ? String(user.email) : undefined,
-    avatarUrl: user.avatarUrl ? String(user.avatarUrl) : undefined,
+    id: accountId,
+    displayName: String(projection?.displayName || '').trim(),
   };
+}
+
+export async function loadParentOSRuntimeAccountUser(
+  runtime: Runtime,
+): Promise<ParentOSAuthUser | null> {
+  const response = await runtime.account.getAccountSessionStatus({
+    caller: parentosRuntimeAccountCaller,
+  });
+  if (response.state !== AccountSessionState.AUTHENTICATED) {
+    return null;
+  }
+  return normalizeParentOSAccountProjection(response.accountProjection);
 }
 
 export async function runParentOSBootstrap(): Promise<void> {
   if (bootstrapPromise) {
     return bootstrapPromise;
   }
-
   bootstrapPromise = doRunParentOSBootstrap().finally(() => {
     if (!useAppStore.getState().bootstrapReady) {
       bootstrapPromise = null;
     }
   });
-
   return bootstrapPromise;
 }
 
@@ -100,12 +90,10 @@ export async function ensureParentOSBootstrapReady(): Promise<void> {
   if (store.bootstrapReady) {
     return;
   }
-
   await runParentOSBootstrap();
-
-  const nextStore = useAppStore.getState();
-  if (!nextStore.bootstrapReady) {
-    throw new Error(nextStore.bootstrapError || 'ParentOS bootstrap did not complete');
+  const next = useAppStore.getState();
+  if (!next.bootstrapReady) {
+    throw new Error(next.bootstrapError || 'ParentOS bootstrap did not complete');
   }
 }
 
@@ -160,156 +148,85 @@ export function syncParentOSLocalDataScope(subjectUserId?: string | null): Promi
   return localDataSyncPromise;
 }
 
+async function buildParentOSPlatformClient(realmBaseUrl: string): Promise<PlatformClient> {
+  // PO-SHELL-008 / spec K-ACCSVC-008: type-level rejection of any app-owned
+  // token surface. Runtime is the sole owner of access/refresh token custody.
+  return createLocalFirstPartyRuntimePlatformClient({
+    appId: PARENTOS_RUNTIME_APP_ID,
+    realmBaseUrl,
+    runtimeTransport: {
+      type: 'tauri-ipc',
+      commandNamespace: 'runtime_bridge',
+      eventNamespace: 'runtime_bridge',
+    },
+    runtimeDefaults: {
+      callerId: PARENTOS_RUNTIME_APP_ID,
+      surfaceId: 'parentos.advisor',
+    },
+  });
+}
+
 async function doRunParentOSBootstrap(): Promise<void> {
   const store = useAppStore.getState();
   const flowId = `parentos-bootstrap-${Date.now().toString(36)}`;
 
   try {
-    // Step 1: Runtime Defaults
+    // Step 1: Runtime defaults (realm base URL, transport).
     const runtimeDefaults = await getParentOSRuntimeDefaults();
     store.setRuntimeDefaults(runtimeDefaults);
 
-    // Step 2: Resolve persisted auth session
-    const resolvedBootstrapAuthSession = await resolveDesktopBootstrapAuthSession({
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      envAccessToken: runtimeDefaults.realm.accessToken,
-      loadPersistedSession: () => loadAuthSessionTolerant(),
-    });
-    if (resolvedBootstrapAuthSession.shouldClearPersistedSession) {
-      await clearPersistedAuthSessionTolerant();
-    }
-    let bootstrapAccessToken = String(resolvedBootstrapAuthSession.session?.accessToken || '').trim();
-    let bootstrapRefreshToken = String(resolvedBootstrapAuthSession.session?.refreshToken || '').trim();
+    // Step 2: Construct the local-first-party-runtime platform client. The
+    // SDK helper type-rejects accessToken / refreshToken / sessionStore inputs.
+    clearPlatformClient();
+    const { runtime } = await buildParentOSPlatformClient(runtimeDefaults.realm.realmBaseUrl);
 
-    const resolveCurrentAccessToken = () => {
-      const authToken = String(useAppStore.getState().auth.token || '').trim();
-      if (authToken) {
-        return authToken;
-      }
-      return useAppStore.getState().auth.status === 'bootstrapping'
-        ? bootstrapAccessToken
-        : '';
-    };
-    const resolveCurrentRefreshToken = () => {
-      const refreshToken = String(useAppStore.getState().auth.refreshToken || '').trim();
-      if (refreshToken) {
-        return refreshToken;
-      }
-      return useAppStore.getState().auth.status === 'bootstrapping'
-        ? bootstrapRefreshToken
-        : '';
-    };
-
-    const persistDesktopSession = (user: Record<string, unknown> | null, accessToken: string, refreshToken?: string) => {
-      void persistSharedDesktopAuthSession({
-        realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-        accessToken,
-        refreshToken,
-        user,
-        saveSession: (session) => saveAuthSessionTolerant(session),
-        clearSession: () => clearPersistedAuthSessionTolerant(),
+    // Step 3: Resolve the current account from runtime projection. Anonymous /
+    // unavailable / errors must NOT fail bootstrap (PO-SHELL-001) — ParentOS
+    // opens against the anonymous local scope and waits for runtime broker
+    // login to switch.
+    const runtimeAccountUser = await loadParentOSRuntimeAccountUser(runtime).catch((error) => {
+      logRendererEvent({
+        level: 'warn',
+        area: 'parentos-bootstrap.account',
+        message: 'action:runtime-account-projection-unavailable',
+        flowId,
+        details: { error: describeError(error) },
       });
-    };
-    const clearDesktopSession = () => {
-      bootstrapAccessToken = '';
-      bootstrapRefreshToken = '';
-      void clearPersistedAuthSessionTolerant();
-    };
-
-    // Step 3: Platform Client
-    const { runtime, realm } = await createPlatformClient({
-      appId: 'app.nimi.parentos',
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      accessToken: bootstrapAccessToken,
-      accessTokenProvider: resolveCurrentAccessToken,
-      refreshTokenProvider: resolveCurrentRefreshToken,
-      runtimeTransport: {
-        type: 'tauri-ipc',
-        commandNamespace: 'runtime_bridge',
-        eventNamespace: 'runtime_bridge',
-      },
-      runtimeDefaults: {
-        callerId: 'app.nimi.parentos',
-        surfaceId: 'parentos.advisor',
-      },
-      sessionStore: {
-        getAccessToken: resolveCurrentAccessToken,
-        getRefreshToken: resolveCurrentRefreshToken,
-        getSubjectUserId: () => useAppStore.getState().auth.user?.id ?? '',
-        getCurrentUser: () => useAppStore.getState().auth.user,
-        setAuthSession: (user, accessToken, refreshToken) => {
-          const previousUserId = useAppStore.getState().auth.user?.id ?? null;
-          bootstrapAccessToken = String(accessToken || '').trim();
-          if (refreshToken !== undefined) {
-            bootstrapRefreshToken = String(refreshToken || '').trim();
-          }
-          const normalizedUser = toAuthUser(user as Record<string, unknown> | null)
-            ?? useAppStore.getState().auth.user;
-          if (!normalizedUser) {
-            return;
-          }
-          useAppStore.getState().setAuthSession(normalizedUser, accessToken, refreshToken || '');
-          persistDesktopSession(normalizedUser, accessToken, refreshToken);
-          if (previousUserId !== normalizedUser.id) {
-            void syncParentOSLocalDataScope(normalizedUser.id);
-          }
-        },
-        clearAuthSession: () => {
-          const previousUserId = useAppStore.getState().auth.user?.id ?? null;
-          useAppStore.getState().clearAuthSession();
-          clearDesktopSession();
-          if (previousUserId) {
-            void syncParentOSLocalDataScope(null);
-          } else {
-            useAppStore.getState().clearLocalData();
-          }
-        },
-      },
+      return null;
     });
-    // Step 4: Auth Session
-    await bootstrapParentOSAuthSession({
-      realm,
-      accessToken: bootstrapAccessToken,
-      refreshToken: bootstrapRefreshToken,
-      source: resolvedBootstrapAuthSession.source,
-      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      clearPersistedSession: async () => {
-        clearDesktopSession();
-      },
-    });
+    if (runtimeAccountUser) {
+      store.setAuthSession(runtimeAccountUser);
+    } else {
+      store.clearAuthSession();
+    }
 
-    // Step 5: Local data bootstrap (SQLite)
+    // Step 4: Local SQLite scope (local-first; anonymous OK).
     try {
-      await syncParentOSLocalDataScope(useAppStore.getState().auth.user?.id ?? null);
+      await syncParentOSLocalDataScope(runtimeAccountUser?.id ?? null);
     } catch (error) {
       logRendererEvent({
         level: 'warn',
         area: 'bootstrap.local-data',
         message: 'action:local-data-bootstrap-failed',
         flowId,
-        details: {
-          error: describeError(error),
-        },
+        details: { error: describeError(error) },
       });
     }
 
-    // Step 6: Runtime SDK Readiness
+    // Step 5: Runtime SDK readiness (non-blocking — core surfaces work without
+    // runtime extras).
     try {
       await runtime.ready();
     } catch (error) {
-      // Runtime readiness is non-blocking; core ParentOS features work without runtime
       logRendererEvent({
         level: 'warn',
         area: 'bootstrap.runtime',
         message: 'action:runtime-ready-nonblocking-failed',
         flowId,
-        details: {
-          error: describeError(error),
-        },
+        details: { error: describeError(error) },
       });
     }
 
-    // Step 7: Ready
     store.setBootstrapReady(true);
     store.setBootstrapError(null);
   } catch (error) {
@@ -319,9 +236,7 @@ async function doRunParentOSBootstrap(): Promise<void> {
       area: 'bootstrap',
       message: 'action:bootstrap-failed',
       flowId,
-      details: {
-        error: describeError(error),
-      },
+      details: { error: describeError(error) },
     });
     store.setBootstrapError(message);
     store.setBootstrapReady(false);

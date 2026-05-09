@@ -33,17 +33,20 @@ export interface ChildProfile {
 }
 
 interface AppState {
+  // PO-SHELL-008 / spec K-ACCSVC-008: ParentOS does not own access or refresh
+  // tokens. The `auth` slice tracks only the runtime-projected account
+  // identity. Short-lived access tokens, when needed for a direct realm call,
+  // are pulled from `runtime.account.getAccessToken` at call time and never
+  // persisted in this store.
   auth: {
     status: AuthStatus;
     user: AuthUser | null;
-    token: string;
-    refreshToken: string;
   };
   bootstrapReady: boolean;
   bootstrapError: string | null;
   runtimeDefaults: RuntimeDefaults | null;
 
-  setAuthSession: (user: AuthUser, token: string, refreshToken: string) => void;
+  setAuthSession: (user: AuthUser) => void;
   clearAuthSession: () => void;
   setBootstrapReady: (ready: boolean) => void;
   setBootstrapError: (error: string | null) => void;
@@ -67,21 +70,19 @@ export const useAppStore = create<AppState>((set) => ({
   auth: {
     status: 'bootstrapping',
     user: null,
-    token: '',
-    refreshToken: '',
   },
   bootstrapReady: false,
   bootstrapError: null,
   runtimeDefaults: null,
 
-  setAuthSession(user, token, refreshToken) {
+  setAuthSession(user) {
     set({
-      auth: { status: 'authenticated', user, token, refreshToken },
+      auth: { status: 'authenticated', user },
     });
   },
   clearAuthSession() {
     set({
-      auth: { status: 'unauthenticated', user: null, token: '', refreshToken: '' },
+      auth: { status: 'unauthenticated', user: null },
       familyId: null,
       children: [],
       activeChildId: null,

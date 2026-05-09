@@ -1,12 +1,13 @@
+// PO-SHELL-008 / spec K-ACCSVC-008: ParentOS does not own access/refresh
+// token custody. The legacy `auth_session_load`/`save`/`clear` Tauri commands
+// were already disabled at the host layer; the kit also no longer re-exports
+// them through the parentos bridge.
 export {
   hasTauriInvoke,
   invoke,
   invokeChecked,
   BridgeError,
   getRuntimeDefaults,
-  loadAuthSession,
-  saveAuthSession,
-  clearAuthSession,
   getDaemonStatus,
   startDaemon,
   stopDaemon,

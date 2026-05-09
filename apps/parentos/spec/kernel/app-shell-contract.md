@@ -22,20 +22,41 @@ Governing fact sources:
 
 ## PO-SHELL-001 Bootstrap Order
 
-Authority fence: `ACCOUNT_HARDCUT_NON_ADMITTED_APP_SLICE_FENCE`.
-ParentOS is Pre-Alpha and is not currently admitted as an active local first-party Runtime account/session authority for the `2026-04-28-runtime-core-account-session-broker-hardcut` topic. Existing app-local token/session bootstrap seams are fenced legacy slice behavior and must not be treated as hardcut-compliant local account truth until migrated to Runtime-issued short-lived token projection and admitted caller registration.
+ParentOS is admitted as an active local first-party Runtime account/session consumer. The desktop shell bootstrap MUST construct its platform client through the SDK's `createLocalFirstPartyRuntimePlatformClient` helper, which type-rejects app-owned access tokens, refresh tokens, subject providers, and session stores; RuntimeAccountService is the sole owner of account custody and short-lived access-token projection.
+
+Caller identity for runtime-account RPCs:
+
+| Field | Value |
+|---|---|
+| `mode` | `ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP` |
+| `appId` | `app.nimi.parentos` |
+| `appInstanceId` | `app.nimi.parentos.local-first-party` |
+| `deviceId` | `local-first-party-device` |
+
+`ACCOUNT_CALLER_MODE_DESKTOP_LAUNCHED_AVATAR` is not admitted for ParentOS — runtime treats that mode as binding-only avatar, not as a first-class account consumer.
 
 The desktop shell bootstrap path must execute in this order:
 
-1. initialize SDK/runtime access needed by the app shell
-2. resolve the current local storage scope from the authenticated subject when available, otherwise use the anonymous local scope
-3. initialize the SQLite-backed local storage for that scope
-4. load family, child, and app-setting rows from the scoped local storage
-5. derive the active child from persisted local state or the first available child
-6. render shell routes after local prerequisites are ready
+1. resolve runtime defaults (realm base URL, transport)
+2. construct the platform client via `createLocalFirstPartyRuntimePlatformClient` (Runtime owns the access token projection; ParentOS does not pass any token material)
+3. resolve the current local storage scope from `runtime.account.getAccountSessionStatus().accountProjection.accountId` when authenticated; use the anonymous local scope when runtime returns `ANONYMOUS` / `UNAVAILABLE`
+4. initialize the SQLite-backed local storage for that scope
+5. load family, child, and app-setting rows from the scoped local storage
+6. derive the active child from persisted local state or the first available child
+7. render shell routes after local prerequisites are ready
 
-Bootstrap is local-first. ParentOS must not require cloud hydration before local family and child data become usable.
-Authenticated sessions must switch into that subject's dedicated local database before shell data is hydrated.
+Bootstrap is local-first. ParentOS must not require cloud hydration before local family and child data become usable. Authenticated sessions must switch into that subject's dedicated local database before shell data is hydrated. Runtime account states `anonymous` and `unavailable` must NOT cause bootstrap failure — ParentOS opens against the anonymous local scope and waits for a successful runtime broker login before switching scope.
+
+## PO-SHELL-008 Account Material Custody Boundary
+
+ParentOS MUST NOT persist, project, or transit access tokens or refresh tokens at any layer (renderer, Tauri host, SQLite, OS keychain, or any other store). Runtime owns refresh-token custody (spec K-ACCSVC-008 / R-OAUTH-008). Concretely:
+
+- The desktop shell must not call `applyToken(accessToken, refreshToken)` or any equivalent that takes refresh-token material.
+- The Tauri shared desktop auth-session bridge (`auth_session_load`/`save`/`clear`) must not be invoked from ParentOS bootstrap or login paths.
+- The platform client's `refreshTokenProvider`, `accessTokenProvider`, `accessToken`, `subjectUserIdProvider`, and `sessionStore` inputs are forbidden — `createLocalFirstPartyRuntimePlatformClient` enforces this at the type level.
+- The realm client must not be constructed with a refresh token provider; access tokens, when needed for direct realm calls, are projected from `runtime.account.getAccessToken` (single call, never persisted, never returned to ParentOS surfaces).
+
+Login flows MUST go through the kit's `runtimeAccountBroker` path with the realm OAuth authority endpoints (`R-OAUTH-002`); the kit/Desktop never observes the realm OAuth `code`'s exchanged tokens. The browser-based login `desktopBrowserAuth.runtimeAccountBroker` is the single admitted entry point for ParentOS desktop login.
 
 ## PO-SHELL-002 Route Registration
 

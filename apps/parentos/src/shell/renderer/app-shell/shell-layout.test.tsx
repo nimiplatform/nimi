@@ -34,8 +34,6 @@ describe('ShellLayout', () => {
           displayName: 'Parent User',
           email: 'parent@example.com',
         },
-        token: 'token',
-        refreshToken: 'refresh-token',
       },
       children: [
         {
@@ -81,7 +79,7 @@ describe('ShellLayout', () => {
   afterEach(() => {
     useAppStore.setState({
       bootstrapReady: false,
-      auth: { status: 'unauthenticated', user: null, token: '', refreshToken: '' },
+      auth: { status: 'unauthenticated', user: null },
       familyId: null,
       activeChildId: null,
       children: [],

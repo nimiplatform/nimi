@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../../app-shell/app-store.js';
-import { clearAuthSession as clearPersistedAuthSession } from '../../bridge/index.js';
+import { logoutParentOSRuntimeAccount } from '../auth/parentos-auth-adapter.js';
 import { seedMockData, type SeedProgress } from '../../infra/mock-seed.js';
 
 /* ── design tokens (aligned with dashboard C) ──────────────── */
@@ -52,10 +52,12 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     setLoggingOut(true);
+    // PO-SHELL-008: revoke through Runtime account custody (single source of
+    // truth). No legacy app-local session storage to clear.
     try {
-      await clearPersistedAuthSession();
+      await logoutParentOSRuntimeAccount();
     } catch {
-      // best-effort clear
+      // best-effort
     }
     clearAuth();
   };
