@@ -1,41 +1,24 @@
-import { useEffect, useMemo } from 'react';
-import {
-  DesktopShellAuthPage,
-  buildDesktopWebAuthLaunchUrl,
-  resolveDesktopCallbackRequestFromLocation,
-} from '@nimiplatform/nimi-kit/auth';
+import { useMemo } from 'react';
+import { DesktopShellAuthPage } from '@nimiplatform/nimi-kit/auth';
 import '@nimiplatform/nimi-kit/auth/styles.css';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { forgeTauriOAuthBridge } from '@renderer/bridge';
 import { createForgeDesktopBrowserAuthAdapter } from './forge-auth-adapter.js';
 
+function createUnavailableRuntimeAccountBroker() {
+  return {
+    begin: async (): Promise<never> => {
+      throw new Error('Forge desktop browser login requires RuntimeAccountService broker wiring.');
+    },
+    complete: async (): Promise<never> => {
+      throw new Error('Forge desktop browser login requires RuntimeAccountService broker wiring.');
+    },
+  };
+}
+
 export function ForgeLoginPage() {
   const adapter = useMemo(() => createForgeDesktopBrowserAuthAdapter(), []);
-  const desktopCallbackRequest = useMemo(() => resolveDesktopCallbackRequestFromLocation(), []);
-  const desktopCallbackRedirectUrl = useMemo(() => {
-    if (!desktopCallbackRequest) {
-      return '';
-    }
-    return buildDesktopWebAuthLaunchUrl({
-      callbackUrl: desktopCallbackRequest.callbackUrl,
-      state: desktopCallbackRequest.state,
-    });
-  }, [desktopCallbackRequest]);
-
-  useEffect(() => {
-    if (!desktopCallbackRequest || typeof window === 'undefined') {
-      return;
-    }
-    const currentUrl = window.location.href;
-    if (!desktopCallbackRedirectUrl || desktopCallbackRedirectUrl === currentUrl) {
-      return;
-    }
-    window.location.replace(desktopCallbackRedirectUrl);
-  }, [desktopCallbackRequest, desktopCallbackRedirectUrl]);
-
-  if (desktopCallbackRequest) {
-    return null;
-  }
+  const runtimeAccountBroker = useMemo(() => createUnavailableRuntimeAccountBroker(), []);
 
   return (
     <DesktopShellAuthPage
@@ -64,6 +47,7 @@ export function ForgeLoginPage() {
       }}
       desktopBrowserAuth={{
         bridge: forgeTauriOAuthBridge,
+        runtimeAccountBroker,
       }}
       testIds={{
         screen: 'forge-login-page',

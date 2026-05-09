@@ -141,70 +141,38 @@ test('web auth session storage persists metadata only and never restores raw acc
   assert.match(String(parsed.raw || ''), /"user":\{"id":"u1"\}/);
 });
 
-test('desktop callback auth flow upgrades main view after async session restore', () => {
-  assert.match(
-    authFlowSource,
-    /const hasDesktopCallbackSession =\s*authStatus === 'authenticated'\s*\|\|\s*Boolean\(desktopCallbackToken\)\s*\|\|\s*Boolean\(desktopCallbackUser\);/s,
-  );
-  assert.match(
-    authFlowSource,
-    /if \(!desktopCallbackRequest \|\| !hasDesktopCallbackSession\) \{\s*return;\s*\}\s*if \(desktopProbeStatus !== 'valid'\) \{\s*return;\s*\}\s*setView\(\(current\) => \(current === 'main' \? 'desktop_authorize' : current\)\);\s*\}, \[desktopCallbackRequest, hasDesktopCallbackSession, desktopProbeStatus\]\);/s,
-  );
+test('desktop callback authorize view and persisted-session probe are removed', () => {
+  assert.doesNotMatch(authFlowSource, /desktopCallbackRequest/);
+  assert.doesNotMatch(authFlowSource, /desktopProbeStatus/);
+  assert.doesNotMatch(authFlowSource, /desktop_authorize/);
+  assert.doesNotMatch(authFlowSource, /restoreSession\?\.\(\)/);
+  assert.doesNotMatch(authTypesSource, /DesktopCallbackRequest/);
 });
 
-test('desktop callback auth flow probes the persisted session before showing the authorize view', () => {
-  assert.match(authFlowSource, /const \[desktopProbeStatus, setDesktopProbeStatus\] = useState</);
-  assert.match(authFlowSource, /const restored = await adapter\.restoreSession\?\.\(\);/);
-  assert.match(authFlowSource, /await adapter\.applyToken\(restoredAccessToken, restored\?\.refreshToken \|\| undefined\);/);
-  assert.match(authFlowSource, /const probedUser = await adapter\.loadCurrentUser\(\);/);
-  assert.match(authFlowSource, /setDesktopProbeStatus\('valid'\);/);
-  assert.match(authFlowSource, /setDesktopProbeStatus\('invalid'\);/);
+test('login page no longer preserves authenticated web shell for desktop callback URLs', () => {
+  assert.doesNotMatch(loginPageSource, /hasDesktopCallbackRequestInLocation/);
+  assert.match(loginPageSource, /if \(authStatus === 'authenticated'\) \{\s*return <Navigate to="\/" replace \/>;\s*\}/s);
 });
 
-test('desktop callback auth flow falls back to email entry with prefill when the session probe fails', () => {
-  assert.match(authFlowSource, /if \(desktopProbeStatus !== 'invalid'\) return;/);
-  assert.match(
-    authFlowSource,
-    /setView\(\(current\) => \(current === 'desktop_authorize' \? 'main' : current\)\);/,
-  );
-  assert.match(
-    authFlowSource,
-    /setEmbeddedStage\(\(current\) => \(current === 'logo' \? 'email' : current\)\);/,
-  );
-  assert.match(authFlowSource, /setLoginError\(\(current\) => current \?\? AUTH_COPY\.desktopSessionInvalid\);/);
+// The Wave A2 hard-cut deleted handleConfirmDesktopAuthorization and the
+// shell-auth-page non-runtime branch that used to applyToken/persistSession on
+// the web side of a `desktop_callback` flow. Spec K-ACCSVC-008 forbids the
+// kit/desktop from being a refresh-token custody owner; the regression lock
+// has migrated to kit/test/desktop-callback-no-exchange.test.ts.
+
+test('auth-menu-handlers-ext no longer holds refresh tokens via handleConfirmDesktopAuthorization', () => {
+  assert.doesNotMatch(authMenuHandlersExtSource, /export\s+async\s+function\s+handleConfirmDesktopAuthorization/);
+  assert.doesNotMatch(authMenuHandlersExtSource, /submitDesktopCallbackResult/);
 });
 
-test('login page detects desktop callback from shared hash-aware helper', () => {
-  assert.match(loginPageSource, /import \{ hasDesktopCallbackRequestInLocation \} from '@nimiplatform\/nimi-kit\/auth';/);
-  assert.match(loginPageSource, /const hasDesktopCallback = hasDesktopCallbackRequestInLocation\(\{\s*search: location\.search,\s*hash: typeof window !== 'undefined' \? window\.location\.hash : '',\s*\}\);/s);
-});
-
-test('desktop authorization preserves refresh token by leaving it undefined in auth store update', () => {
-  assert.match(
-    authMenuHandlersExtSource,
-    /setAuthSession\(\s*normalizedUser,\s*accessToken,\s*refreshToken \|\| undefined,\s*\)/,
-  );
-});
-
-test('desktop authorization can restore a same-origin session before submitting desktop callback', () => {
-  assert.match(authMenuHandlersExtSource, /const restored = await adapter\.restoreSession\?\.\(\);/);
-  assert.match(authMenuHandlersExtSource, /throw new Error\(AUTH_COPY\.desktopSessionMissing\);/);
-  assert.match(authMenuHandlersExtSource, /await adapter\.applyToken\(accessToken, refreshToken \|\| undefined\);/);
-  assert.match(
-    authMenuHandlersExtSource,
-    /await adapter\.persistSession\?\.\(\{\s*accessToken,\s*refreshToken,\s*user: normalizedUser \?\? desktopCtx\.desktopCallbackUser,\s*\}\);/s,
-  );
-});
-
-test('desktop-browser auth persists the restored session immediately after browser authorization', () => {
+test('shell-auth-page no longer persists access/refresh tokens after desktop browser auth', () => {
   const shellAuthPageSource = fs.readFileSync(
     path.join(import.meta.dirname, '../../../kit/auth/src/components/shell-auth-page.tsx'),
     'utf8',
   );
-  assert.match(
-    shellAuthPageSource,
-    /await adapter\.persistSession\?\.\(\{\s*accessToken: result\.accessToken,\s*refreshToken: result\.refreshToken,\s*user,\s*\}\);/s,
-  );
+  assert.doesNotMatch(shellAuthPageSource, /result\.accessToken/);
+  assert.doesNotMatch(shellAuthPageSource, /result\.refreshToken/);
+  assert.doesNotMatch(shellAuthPageSource, /adapter\.applyToken\(result\./);
 });
 
 test('auth state watcher observes Runtime projection without shared desktop session persistence', () => {
@@ -261,7 +229,7 @@ test('verify email otp sends onboarding users through password setup before logi
   assert.match(authMenuHandlersExtSource, /setters\.setView\('email_set_password'\)/);
   assert.match(
     authMenuHandlersExtSource,
-    /handleLoginResult\(\s*result,\s*AUTH_COPY\.otpVerifySuccess,\s*setters,\s*desktopCtx,\s*adapter,\s*'email_otp_verify',?\s*\)/s,
+    /handleLoginResult\(\s*result,\s*AUTH_COPY\.otpVerifySuccess,\s*setters,\s*adapter,\s*'email_otp_verify',?\s*\)/s,
   );
 });
 

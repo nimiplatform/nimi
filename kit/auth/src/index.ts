@@ -16,7 +16,6 @@ export type {
   WalletType,
   WalletProvider,
   ShellAuthWindow,
-  DesktopCallbackRequest,
   RememberedLogin,
   AuthMenuProps,
   ShellAuthTheme,
@@ -99,16 +98,7 @@ export {
 } from './logic/remember-login.js';
 
 export {
-  readLocationQueryParams,
-  hasDesktopCallbackRequestInLocation,
-  resolveDesktopCallbackRequestFromLocation,
-  buildDesktopCallbackReturnUrl,
-  submitDesktopCallbackResult,
-  createDesktopCallbackState,
   createDesktopCallbackRedirectUri,
-  normalizeWebAuthLaunchPath,
-  resolveDesktopWebAuthLaunchBaseUrl,
-  buildDesktopWebAuthLaunchUrl,
 } from './logic/desktop-callback-helpers.js';
 
 export {
@@ -145,7 +135,7 @@ export {
 } from './logic/desktop-web-auth.js';
 
 // Handlers
-export type { AuthMenuSetters, DesktopCallbackContext } from './logic/auth-menu-handlers.js';
+export type { AuthMenuSetters } from './logic/auth-menu-handlers.js';
 export {
   applyTokens,
   handleLoginResult,
@@ -160,7 +150,6 @@ export {
   handleVerifyEmailOtp,
   handleResendOtp,
   handleVerify2Fa,
-  handleConfirmDesktopAuthorization,
   handleWalletLogin,
 } from './logic/auth-menu-handlers-ext.js';
 
@@ -175,7 +164,6 @@ export {
   AuthViewEmailOtpVerify,
   AuthViewEmail2Fa,
 } from './components/auth-view-email.js';
-export { AuthViewDesktopAuthorize } from './components/auth-view-desktop-authorize.js';
 export { AuthViewWalletSelect } from './components/auth-view-wallet-select.js';
 export { CircleIconButton } from './components/auth-menu-header.js';
 export { OtpInput } from './components/auth-otp-input.js';

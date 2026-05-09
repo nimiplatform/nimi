@@ -7,17 +7,12 @@ import type { RuntimeDefaults } from '@renderer/bridge';
 const mocks = vi.hoisted(() => ({
   createLocalFirstPartyRuntimePlatformClient: vi.fn(),
   getPlatformClient: vi.fn(),
-  buildDesktopWebAuthLaunchUrl: vi.fn(),
   ensureMomentBootstrapReady: vi.fn(async () => undefined),
 }));
 
 vi.mock('@nimiplatform/sdk', () => ({
   createLocalFirstPartyRuntimePlatformClient: mocks.createLocalFirstPartyRuntimePlatformClient,
   getPlatformClient: mocks.getPlatformClient,
-}));
-
-vi.mock('@nimiplatform/nimi-kit/auth', () => ({
-  buildDesktopWebAuthLaunchUrl: mocks.buildDesktopWebAuthLaunchUrl,
 }));
 
 vi.mock('@renderer/infra/bootstrap/moment-bootstrap.js', () => ({
@@ -64,8 +59,6 @@ const runtimeDefaults: RuntimeDefaults = {
 describe('moment runtime account auth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.buildDesktopWebAuthLaunchUrl.mockImplementation((input: { callbackUrl: string; state: string; baseUrl?: string }) =>
-      `launch:${input.state}:${input.callbackUrl}:${input.baseUrl ?? ''}`);
   });
 
   it('uses Moment as a local first-party Runtime caller', () => {
@@ -149,43 +142,54 @@ describe('moment runtime account auth', () => {
     expect(mocks.ensureMomentBootstrapReady).toHaveBeenCalledTimes(1);
   });
 
-  it('wraps browser login with Runtime begin and complete calls', async () => {
+  it('wraps browser login with Runtime begin and complete calls (R-OAUTH-* / K-ACCSVC-008)', async () => {
+    const REALM_AUTHORIZE_URL =
+      'https://realm.example/api/auth/oauth/authorize'
+      + '?response_type=code&client_id=nimi-desktop'
+      + '&redirect_uri=http%3A%2F%2F127.0.0.1%3A35123%2Fcallback'
+      + '&code_challenge=runtime-challenge&code_challenge_method=S256'
+      + '&state=state-1';
+    const completeLoginMock = vi.fn(async () => ({
+      accepted: true,
+      accountProjection: {
+        accountId: 'acct-3',
+        displayName: 'Lin',
+      },
+    }));
     const runtime = {
       account: {
         beginLogin: vi.fn(async () => ({
           accepted: true,
           loginAttemptId: 'attempt-1',
-          oauthAuthorizationUrl: 'https://web.example/#/login?desktop_state=state-1',
+          oauthAuthorizationUrl: REALM_AUTHORIZE_URL,
           state: 'state-1',
           nonce: 'nonce-1',
         })),
-        completeLogin: vi.fn(async () => ({
-          accepted: true,
-          accountProjection: {
-            accountId: 'acct-3',
-            displayName: 'Lin',
-          },
-        })),
+        completeLogin: completeLoginMock,
       },
     };
     mocks.getPlatformClient.mockReturnValue({ runtime });
 
     const broker = createMomentRuntimeAccountBrowserBroker();
+    // begin returns the realm authorize URL verbatim — no kit-side rebuild,
+    // no `desktop_callback`/`#/login` web-relay fragment.
     await expect(broker.begin({
       callbackUrl: 'http://127.0.0.1:35123/callback',
       baseUrl: 'https://realm.example',
       timeoutMs: 30_000,
     })).resolves.toEqual({
       loginAttemptId: 'attempt-1',
-      authorizationUrl: 'launch:state-1:http://127.0.0.1:35123/callback:https://realm.example',
+      authorizationUrl: REALM_AUTHORIZE_URL,
       state: 'state-1',
       nonce: 'nonce-1',
     });
 
+    // complete sends a code-only proof envelope — no accessToken/idToken, and
+    // refreshToken is empty (runtime fail-closes any non-empty value with
+    // PROOF_UNSUPPORTED).
     await expect(broker.complete({
       loginAttemptId: 'attempt-1',
-      accessToken: 'browser-code',
-      refreshToken: 'browser-refresh',
+      code: 'oauth-code-abc',
       state: 'state-1',
       nonce: 'nonce-1',
       callbackUrl: 'http://127.0.0.1:35123/callback',
@@ -195,6 +199,13 @@ describe('moment runtime account auth', () => {
         displayName: 'Lin',
       },
     });
+
+    expect(completeLoginMock).toHaveBeenCalledTimes(1);
+    const completeArgs = (completeLoginMock.mock.calls[0] as unknown as [Record<string, unknown>])[0];
+    expect(completeArgs.code).toBe('oauth-code-abc');
+    expect(completeArgs.refreshToken).toBe('');
+    expect(completeArgs).not.toHaveProperty('accessToken');
+    expect(completeArgs).not.toHaveProperty('idToken');
   });
 
   it('refuses app-local token application and persistence', async () => {

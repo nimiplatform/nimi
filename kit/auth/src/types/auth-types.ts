@@ -15,7 +15,6 @@ export type EmbeddedAuthStage = 'logo' | 'email' | 'credential';
 
 export type AuthView =
   | 'main'
-  | 'desktop_authorize'
   | 'email_login'
   | 'email_register'
   | 'email_otp'
@@ -68,15 +67,6 @@ export type ShellAuthWindow = Window & {
 };
 
 // ---------------------------------------------------------------------------
-// Desktop callback types
-// ---------------------------------------------------------------------------
-
-export type DesktopCallbackRequest = {
-  callbackUrl: string;
-  state: string;
-};
-
-// ---------------------------------------------------------------------------
 // Remember login
 // ---------------------------------------------------------------------------
 
@@ -126,33 +116,42 @@ export type ShellAuthAppearance = {
   footerPlacement?: 'inside-content' | 'outside-content';
 };
 
+/**
+ * Type-level admission of `RuntimeAccountService` as the only desktop-browser
+ * login authority (R-OAUTH-* / spec K-ACCSVC-008). `runtimeAccountBroker` is
+ * required — there is no admitted fallback. Apps without a broker cannot
+ * type-check; if you are adding a new app, mirror polyinfo / parentos /
+ * desktop and route through `createLocalFirstPartyRuntimePlatformClient` +
+ * `runtime.account.{beginLogin, completeLogin}`.
+ */
+export type ShellAuthDesktopBrowserAuthRuntimeBroker = {
+  begin: (input: {
+    callbackUrl: string;
+    baseUrl?: string;
+    timeoutMs: number;
+  }) => Promise<{
+    loginAttemptId: string;
+    authorizationUrl: string;
+    state: string;
+    nonce: string;
+  }>;
+  complete: (input: {
+    loginAttemptId: string;
+    code: string;
+    state: string;
+    nonce: string;
+    callbackUrl: string;
+  }) => Promise<{
+    user: Record<string, unknown> | null;
+  }>;
+};
+
 export type ShellAuthDesktopBrowserAuth = {
   bridge: TauriOAuthBridge;
   baseUrl?: string;
   onRootPointerDown?: (event: ReactMouseEvent<HTMLElement>) => void;
   hintVisibility?: 'always' | 'hover-or-status';
-  runtimeAccountBroker?: {
-    begin: (input: {
-      callbackUrl: string;
-      baseUrl?: string;
-      timeoutMs: number;
-    }) => Promise<{
-      loginAttemptId: string;
-      authorizationUrl: string;
-      state: string;
-      nonce: string;
-    }>;
-    complete: (input: {
-      loginAttemptId: string;
-      accessToken: string;
-      refreshToken: string;
-      state: string;
-      nonce: string;
-      callbackUrl: string;
-    }) => Promise<{
-      user: Record<string, unknown> | null;
-    }>;
-  };
+  runtimeAccountBroker: ShellAuthDesktopBrowserAuthRuntimeBroker;
 };
 
 export type ShellAuthCopy = {

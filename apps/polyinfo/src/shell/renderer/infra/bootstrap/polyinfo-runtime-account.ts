@@ -10,7 +10,6 @@ import {
   type AccountProjection,
 } from '@nimiplatform/sdk/runtime/browser';
 import type { Runtime } from '@nimiplatform/sdk/runtime';
-import { buildDesktopWebAuthLaunchUrl } from '@nimiplatform/nimi-kit/auth';
 import type { RuntimeDefaults } from '@renderer/bridge';
 import type { AuthUser } from '@renderer/data/types.js';
 
@@ -110,30 +109,31 @@ export function createPolyinfoRuntimeAccountBrowserBroker() {
       ) {
         throw new Error(`Runtime account login could not start: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`);
       }
+      // R-OAUTH / K-ACCSVC-008: use the realm OAuth authorize URL constructed
+      // by runtime (PKCE S256 challenge bound to runtime-held verifier).
       return {
         loginAttemptId: response.loginAttemptId,
-        authorizationUrl: buildDesktopWebAuthLaunchUrl({
-          callbackUrl: input.callbackUrl,
-          state: response.state,
-          baseUrl: input.baseUrl,
-        }),
+        authorizationUrl: response.oauthAuthorizationUrl,
         state: response.state,
         nonce: response.nonce,
       };
     },
     complete: async (input: {
       loginAttemptId: string;
-      accessToken: string;
-      refreshToken: string;
+      code: string;
       state: string;
       nonce: string;
       callbackUrl: string;
     }) => {
+      // R-OAUTH / K-ACCSVC-008: code-only proof envelope; runtime owns the
+      // token exchange and refresh-token custody.
       const response = await getPlatformClient().runtime.account.completeLogin({
         caller: polyinfoRuntimeAccountCaller,
         loginAttemptId: input.loginAttemptId,
-        code: input.accessToken,
-        refreshToken: input.refreshToken,
+        code: input.code,
+        // R-OAUTH-008 / spec K-ACCSVC-008: refreshToken MUST be empty here.
+        // Runtime fail-closes any non-empty value with PROOF_UNSUPPORTED.
+        refreshToken: '',
         state: input.state,
         nonce: input.nonce,
         redirectUri: input.callbackUrl,

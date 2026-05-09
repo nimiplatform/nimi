@@ -5,7 +5,6 @@ type CreateRendererFlowId = (typeof import('@desktop-public/infra'))['createRend
 type LogRendererEvent = (typeof import('@desktop-public/infra'))['logRendererEvent'];
 type UseAppStore = (typeof import('@desktop-public/app-store'))['useAppStore'];
 type ClearPersistedAccessToken = (typeof import('@nimiplatform/nimi-kit/auth'))['clearPersistedAccessToken'];
-type HasDesktopCallbackRequestInLocation = (typeof import('@nimiplatform/nimi-kit/auth'))['hasDesktopCallbackRequestInLocation'];
 type LoadPersistedAuthSession = (typeof import('@nimiplatform/nimi-kit/auth'))['loadPersistedAuthSession'];
 type PersistAuthSession = (typeof import('@nimiplatform/nimi-kit/auth'))['persistAuthSession'];
 
@@ -17,7 +16,6 @@ type RuntimeBootstrapWebDeps = {
   logRendererEvent: LogRendererEvent;
   useAppStore: UseAppStore;
   clearPersistedAccessToken: ClearPersistedAccessToken;
-  hasDesktopCallbackRequestInLocation: HasDesktopCallbackRequestInLocation;
   loadPersistedAuthSession: LoadPersistedAuthSession;
   persistAuthSession: PersistAuthSession;
 };
@@ -63,7 +61,6 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
       logRendererEvent: infraModule.logRendererEvent,
       useAppStore: appStoreModule.useAppStore,
       clearPersistedAccessToken: authStorageModule.clearPersistedAccessToken,
-      hasDesktopCallbackRequestInLocation: authStorageModule.hasDesktopCallbackRequestInLocation,
       loadPersistedAuthSession: authStorageModule.loadPersistedAuthSession,
       persistAuthSession: authStorageModule.persistAuthSession,
     };
@@ -71,7 +68,6 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
 
   return depsPromise;
 }
-
 export function safeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || '');
 }
@@ -234,14 +230,16 @@ export function bootstrapRuntime(): Promise<void> {
 
   let deps: RuntimeBootstrapWebDeps | null = null;
   let authSessionSnapshot: AuthSessionSnapshot | null = null;
-  let preservePersistedAuthSession = false;
+  // Wave C: legacy desktop_callback URL preservation flow is gone — direct-
+  // to-loopback routes the user agent through the realm OAuth authorize
+  // endpoint, which never lands a `?desktop_callback=` URL on apps/web.
+  const preservePersistedAuthSession = false;
   bootstrapPromise = (async () => {
     deps = await loadRuntimeBootstrapWebDeps();
     const flowId = deps.createRendererFlowId('renderer-bootstrap-web');
     const startedAt = performance.now();
     const appStore = deps.useAppStore.getState();
     authSessionSnapshot = snapshotAuthSession(deps);
-    preservePersistedAuthSession = deps.hasDesktopCallbackRequestInLocation();
     appStore.setAuthBootstrapping();
     appStore.setBootstrapReady(false);
 
@@ -342,5 +340,3 @@ export function bootstrapRuntime(): Promise<void> {
 
   return bootstrapPromise;
 }
-
-export { bootstrapAuthSession as bootstrapAuthSessionForTest };

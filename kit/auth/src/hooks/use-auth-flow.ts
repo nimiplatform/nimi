@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { getUserDisplayLabel, toErrorMessage } from '../logic/oauth-helpers.js';
+import { toErrorMessage } from '../logic/oauth-helpers.js';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
-import type { AuthView, EmbeddedAuthStage, DesktopCallbackRequest } from '../types/auth-types.js';
-import type { AuthMenuSetters, DesktopCallbackContext } from '../logic/auth-menu-handlers.js';
+import type { AuthView, EmbeddedAuthStage } from '../types/auth-types.js';
+import type { AuthMenuSetters } from '../logic/auth-menu-handlers.js';
 import {
   handleEmailLogin as doEmailLogin,
   handleSetPasswordAfterOtp as doSetPasswordAfterOtp,
@@ -15,18 +15,10 @@ import {
   handleVerifyEmailOtp as doVerifyEmailOtp,
   handleResendOtp as doResendOtp,
   handleVerify2Fa as doVerify2Fa,
-  handleConfirmDesktopAuthorization as doConfirmDesktopAuth,
   handleWalletLogin as doWalletLogin,
 } from '../logic/auth-menu-handlers-ext.js';
 import { resolveEmailEntryRoute } from '../logic/auth-email-flow.js';
 import { AUTH_COPY } from '../logic/auth-copy.js';
-import {
-  loadPersistedAuthSession,
-  WEB_AUTH_SESSION_KEY,
-} from '../logic/auth-session-storage.js';
-import {
-  resolveDesktopCallbackRequestFromLocation,
-} from '../logic/desktop-callback-helpers.js';
 
 type AuthTokensDto = RealmModel<'AuthTokensDto'>;
 
@@ -41,8 +33,6 @@ export type UseAuthFlowConfig = {
   initialView?: AuthView;
   /** Auth status from app store */
   authStatus?: string;
-  /** Auth token from app store */
-  authToken?: string | null;
   /** Auth user from app store */
   authUser?: Record<string, unknown> | null;
   /** Set auth session in app store */
@@ -68,8 +58,6 @@ export type UseAuthFlowReturn = {
   showAlternatives: boolean;
   showRegisterConfirm: boolean;
   pendingTokens: AuthTokensDto | null;
-  desktopCallbackRequest: DesktopCallbackRequest | null;
-  desktopCallbackUserLabel: string;
   supportsPasswordLogin: boolean;
 
   // Setters
@@ -94,28 +82,12 @@ export type UseAuthFlowReturn = {
   handleOtpVerify: (event: FormEvent) => void;
   handleResendOtp: () => void;
   handleVerify2Fa: (event: FormEvent) => void;
-  handleConfirmDesktopAuth: (event: FormEvent) => void;
   handleWalletLogin: (walletType: 'metamask' | 'okx' | 'binance') => void;
-  handleUseAnotherDesktopAccount: () => void;
   handleGoogleLogin: () => void;
   handleTwitterLogin: () => void;
   handleTikTokLogin: () => void;
   handleWeb3Login: () => void;
 };
-
-function readLocationSignature(): string {
-  if (typeof window === 'undefined') {
-    return '';
-  }
-  return `${window.location.pathname}|${window.location.search}|${window.location.hash}`;
-}
-
-function toAuthUserRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
-}
 
 function handleUnexpectedAsyncError(
   error: unknown,
@@ -131,66 +103,14 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
   const {
     adapter,
     mode,
-    authStatus = '',
-    authToken = null,
-    authUser = null,
     setAuthSession: externalSetAuthSession,
     setStatusBanner: externalSetStatusBanner,
   } = config;
 
-  const [locationSignature, setLocationSignature] = useState(() => readLocationSignature());
-  const desktopCallbackRequest = useMemo(
-    () => resolveDesktopCallbackRequestFromLocation(),
-    [locationSignature],
-  );
-  const persistedAuthSession = useMemo(
-    () => loadPersistedAuthSession(),
-    [authStatus, authToken, authUser, locationSignature],
-  );
   const supportsPasswordLogin =
     adapter.supportsPasswordLogin !== false && typeof adapter.passwordLogin === 'function';
 
-  const desktopCallbackToken = useMemo(() => {
-    return String(authToken || '').trim();
-  }, [authToken]);
-
-  const desktopCallbackUser = useMemo(() => {
-    const normalizedAuthUser = toAuthUserRecord(authUser);
-    if (normalizedAuthUser) {
-      return normalizedAuthUser;
-    }
-
-    const persistedUser = toAuthUserRecord(persistedAuthSession?.user);
-    if (persistedUser) {
-      return persistedUser;
-    }
-
-    return null;
-  }, [authUser, persistedAuthSession]);
-
-  const desktopCallbackUserLabel = useMemo(
-    () => getUserDisplayLabel(desktopCallbackUser, 'Current Account'),
-    [desktopCallbackUser],
-  );
-  const hasDesktopCallbackSession =
-    authStatus === 'authenticated'
-    || Boolean(desktopCallbackToken)
-    || Boolean(desktopCallbackUser);
-
-  const hasFreshAuthenticatedSession =
-    authStatus === 'authenticated' && Boolean(desktopCallbackToken);
-
-  const initialView: AuthView =
-    config.initialView
-    ?? (desktopCallbackRequest && hasFreshAuthenticatedSession
-      ? 'desktop_authorize'
-      : 'main');
-
-  const [view, setView] = useState<AuthView>(initialView);
-  const [desktopProbeStatus, setDesktopProbeStatus] = useState<
-    'idle' | 'probing' | 'valid' | 'invalid'
-  >(() => (desktopCallbackRequest && hasFreshAuthenticatedSession ? 'valid' : 'idle'));
-  const desktopProbeStartedRef = useRef(false);
+  const [view, setView] = useState<AuthView>(config.initialView ?? 'main');
   const [embeddedStage, setEmbeddedStage] = useState<EmbeddedAuthStage>('logo');
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [showRegisterConfirm, setShowRegisterConfirm] = useState(false);
@@ -234,13 +154,6 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     setAuthSession: (user, token, refreshToken) => authSessionSetterRef.current(user, token, refreshToken),
   }), []);
 
-  const desktopCtx: DesktopCallbackContext = useMemo(() => ({
-    desktopCallbackRequest,
-    desktopCallbackToken,
-    desktopCallbackUser,
-    authToken,
-  }), [desktopCallbackRequest, desktopCallbackToken, desktopCallbackUser, authToken]);
-
   // OTP countdown timer
   useEffect(() => {
     if (otpResendCountdown <= 0) return;
@@ -249,114 +162,6 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     }, 1000);
     return () => { window.clearTimeout(timer); };
   }, [otpResendCountdown]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    const syncLocationSignature = () => {
-      setLocationSignature(readLocationSignature());
-    };
-    window.addEventListener('popstate', syncLocationSignature);
-    window.addEventListener('hashchange', syncLocationSignature);
-    return () => {
-      window.removeEventListener('popstate', syncLocationSignature);
-      window.removeEventListener('hashchange', syncLocationSignature);
-    };
-  }, []);
-
-  // Desktop callback storage sync
-  useEffect(() => {
-    if (!desktopCallbackRequest || typeof window === 'undefined') return;
-
-    const handleStorage = (event: StorageEvent) => {
-      if (event.storageArea !== window.localStorage) return;
-      if (event.key && event.key !== WEB_AUTH_SESSION_KEY) return;
-      setLocationSignature(readLocationSignature());
-    };
-
-    window.addEventListener('storage', handleStorage);
-    return () => { window.removeEventListener('storage', handleStorage); };
-  }, [desktopCallbackRequest]);
-
-  // Validate the persisted desktop-callback session before showing the Authorize view.
-  // Without this probe the UI optimistically shows "Authorize Desktop" based on a
-  // localStorage user record, only to fail at click time when the underlying token is gone.
-  // The ref-based one-shot guard ensures we never re-enter the async path when state
-  // changes flip dependency values (which would otherwise tear down the in-flight probe
-  // via cleanup before it can settle to 'valid' or 'invalid').
-  useEffect(() => {
-    if (!desktopCallbackRequest || !hasDesktopCallbackSession) {
-      return;
-    }
-    if (hasFreshAuthenticatedSession) {
-      setDesktopProbeStatus((current) => (current === 'valid' ? current : 'valid'));
-      return;
-    }
-    if (desktopProbeStatus !== 'idle') {
-      return;
-    }
-    if (desktopProbeStartedRef.current) {
-      return;
-    }
-    desktopProbeStartedRef.current = true;
-    setDesktopProbeStatus('probing');
-    void (async () => {
-      try {
-        const restored = await adapter.restoreSession?.();
-        const restoredAccessToken = String(restored?.accessToken || '').trim();
-        if (!restoredAccessToken) {
-          setDesktopProbeStatus('invalid');
-          return;
-        }
-        await adapter.applyToken(restoredAccessToken, restored?.refreshToken || undefined);
-        const probedUser = await adapter.loadCurrentUser();
-        if (!probedUser) {
-          await adapter.clearPersistedSession?.().catch(() => undefined);
-          setDesktopProbeStatus('invalid');
-          return;
-        }
-        setDesktopProbeStatus('valid');
-      } catch {
-        await adapter.clearPersistedSession?.().catch(() => undefined);
-        setDesktopProbeStatus('invalid');
-      }
-    })();
-  }, [
-    desktopCallbackRequest,
-    hasDesktopCallbackSession,
-    hasFreshAuthenticatedSession,
-    desktopProbeStatus,
-    adapter,
-  ]);
-
-  useEffect(() => {
-    if (!desktopCallbackRequest || !hasDesktopCallbackSession) {
-      return;
-    }
-    if (desktopProbeStatus !== 'valid') {
-      return;
-    }
-    setView((current) => (current === 'main' ? 'desktop_authorize' : current));
-  }, [desktopCallbackRequest, hasDesktopCallbackSession, desktopProbeStatus]);
-
-  // Probe failed — drop straight into the email-entry stage with the persisted email
-  // pre-filled and the expiry surfaced, so the user does not have to click the logo
-  // and re-type the address that was just shown to them.
-  useEffect(() => {
-    if (!desktopCallbackRequest) return;
-    if (desktopProbeStatus !== 'invalid') return;
-    setView((current) => (current === 'desktop_authorize' ? 'main' : current));
-    if (mode === 'embedded') {
-      setEmbeddedStage((current) => (current === 'logo' ? 'email' : current));
-    }
-    const persistedEmailRaw = desktopCallbackUser?.email;
-    const persistedEmail = typeof persistedEmailRaw === 'string' ? persistedEmailRaw.trim() : '';
-    if (persistedEmail) {
-      setEmail((current) => (current.trim() ? current : persistedEmail));
-    }
-    setLoginError((current) => current ?? AUTH_COPY.desktopSessionInvalid);
-  }, [desktopCallbackRequest, desktopProbeStatus, mode, desktopCallbackUser]);
 
   // Cleanup pending tokens on unmount
   useEffect(() => {
@@ -475,14 +280,6 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     });
   };
 
-  const handleUseAnotherDesktopAccount = () => {
-    setView('main');
-    setEmbeddedStage('email');
-    setShowAlternatives(false);
-    setLoginError(null);
-    setPassword('');
-  };
-
   const clearOtpFlowState = () => {
     setOtpCode('');
     setOtpResendCountdown(0);
@@ -524,8 +321,6 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
       setView('main');
       setEmbeddedStage('email');
       setShowAlternatives(true);
-    } else if (view === 'desktop_authorize') {
-      handleUseAnotherDesktopAccount();
     } else if (embeddedStage === 'credential') {
       setView('main');
       setEmbeddedStage('email');
@@ -560,8 +355,6 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     showAlternatives,
     showRegisterConfirm,
     pendingTokens,
-    desktopCallbackRequest,
-    desktopCallbackUserLabel,
     supportsPasswordLogin,
 
     // Setters
@@ -582,37 +375,33 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     handleInlineOtpRequest,
     handleHeaderBack,
     handleEmailLogin: (event: FormEvent) => {
-      void doEmailLogin(event, email, password, false, setters, desktopCtx, adapter);
+      void doEmailLogin(event, email, password, false, setters, adapter);
     },
     handleSetPasswordAfterOtp: (event: FormEvent) => {
       if (pendingTokens) {
-        void doSetPasswordAfterOtp(event, password, confirmPassword, pendingTokens, setters, desktopCtx, adapter);
+        void doSetPasswordAfterOtp(event, password, confirmPassword, pendingTokens, setters, adapter);
       }
     },
     handleOtpVerify: (event: FormEvent) => {
-      void doVerifyEmailOtp(event, email, otpCode, setters, desktopCtx, adapter);
+      void doVerifyEmailOtp(event, email, otpCode, setters, adapter);
     },
     handleResendOtp: () => {
       void doResendOtp(email, otpResendCountdown, setters, adapter);
     },
     handleVerify2Fa: (event: FormEvent) => {
-      void doVerify2Fa(event, tempToken, twoFactorCode, setters, desktopCtx, adapter);
-    },
-    handleConfirmDesktopAuth: (event: FormEvent) => {
-      void doConfirmDesktopAuth(event, setters, desktopCtx, adapter);
+      void doVerify2Fa(event, tempToken, twoFactorCode, setters, adapter);
     },
     handleWalletLogin: (walletType) => {
-      void doWalletLogin(walletType, setters, desktopCtx, adapter);
+      void doWalletLogin(walletType, setters, adapter);
     },
-    handleUseAnotherDesktopAccount,
     handleGoogleLogin: () => {
-      void doGoogleLogin(setters, desktopCtx, adapter);
+      void doGoogleLogin(setters, adapter);
     },
     handleTwitterLogin: () => {
-      void doSocialLogin('TWITTER', setters, desktopCtx, adapter);
+      void doSocialLogin('TWITTER', setters, adapter);
     },
     handleTikTokLogin: () => {
-      void doSocialLogin('TIKTOK', setters, desktopCtx, adapter);
+      void doSocialLogin('TIKTOK', setters, adapter);
     },
     handleWeb3Login: () => {
       setView('wallet_select');

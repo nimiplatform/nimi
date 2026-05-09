@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import { toDesktopBrowserAuthErrorMessage } from '../logic/oauth-helpers.js';
+import { AUTH_COPY } from '../logic/auth-copy.js';
 import { useTranslation } from 'react-i18next';
 import type { ShellAuthPageProps } from '../types/auth-types.js';
 import { useAuthFlow } from '../hooks/use-auth-flow.js';
@@ -18,7 +19,6 @@ import {
   AuthViewEmailSetPassword,
   AuthViewEmail2Fa,
 } from './auth-view-email.js';
-import { AuthViewDesktopAuthorize } from './auth-view-desktop-authorize.js';
 import { AuthViewWalletSelect } from './auth-view-wallet-select.js';
 
 function renderLogo(
@@ -66,7 +66,6 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
     adapter,
     mode: session.mode,
     authStatus: session.authStatus,
-    authToken: session.authToken,
     authUser: session.authUser,
     setAuthSession: session.setAuthSession,
     setStatusBanner: session.setStatusBanner,
@@ -95,6 +94,17 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
     if (!desktopBrowserAuth) {
       return;
     }
+    // R-OAUTH / K-ACCSVC-008: the only admitted desktop login path goes
+    // through the runtime account broker. Without it the runtime cannot
+    // exchange the OAuth code or own refresh-token custody, so refuse to
+    // start the flow rather than fall back to a parallel web-relay branch.
+    const runtimeAccountBroker = desktopBrowserAuth.runtimeAccountBroker;
+    if (!runtimeAccountBroker) {
+      const message = AUTH_COPY.desktopBrowserRuntimeBrokerMissing;
+      setDesktopAuthError(message);
+      session.setStatusBanner?.({ kind: 'error', message });
+      return;
+    }
 
     const attemptId = ++desktopAttemptRef.current;
     void (async () => {
@@ -104,7 +114,7 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
       try {
         const result = await performDesktopWebAuth(desktopBrowserAuth.bridge, {
           baseUrl: desktopBrowserAuth.baseUrl,
-          runtimeAccountBroker: desktopBrowserAuth.runtimeAccountBroker,
+          runtimeAccountBroker,
           onOpened: () => {
             session.setStatusBanner?.({
               kind: 'info',
@@ -117,29 +127,10 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
           return;
         }
 
-        if (result.runtimeAccountCompleted) {
-          const user = result.user ?? await adapter.loadCurrentUser();
-          session.setAuthSession?.(user, '');
-          await adapter.syncAfterLogin?.();
-          await adapter.onLoginComplete?.();
-          session.setStatusBanner?.({
-            kind: 'success',
-            message: copy?.desktopAuthSuccessMessage || '网页登录授权成功，已登录。',
-          });
-          return;
-        }
-
-        await adapter.applyToken(result.accessToken, result.refreshToken);
-        const user = await adapter.loadCurrentUser();
-        session.setAuthSession?.(user, result.accessToken);
-        await adapter.persistSession?.({
-          accessToken: result.accessToken,
-          refreshToken: result.refreshToken,
-          user,
-        });
+        const user = result.user ?? await adapter.loadCurrentUser();
+        session.setAuthSession?.(user, '');
         await adapter.syncAfterLogin?.();
         await adapter.onLoginComplete?.();
-
         session.setStatusBanner?.({
           kind: 'success',
           message: copy?.desktopAuthSuccessMessage || '网页登录授权成功，已登录。',
@@ -353,18 +344,6 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
                       passwordInput: testIds?.passwordInput,
                       otpButton: testIds?.otpButton,
                     }}
-                  />
-                </AnimateIn>
-              ) : null}
-
-              {flow.view === 'desktop_authorize' ? (
-                <AnimateIn className="w-full">
-                  <AuthViewDesktopAuthorize
-                    authStatus={session.authStatus || ''}
-                    desktopCallbackUserLabel={flow.desktopCallbackUserLabel}
-                    pending={flow.pending}
-                    onSubmit={flow.handleConfirmDesktopAuth}
-                    onUseAnotherAccount={flow.handleUseAnotherDesktopAccount}
                   />
                 </AnimateIn>
               ) : null}

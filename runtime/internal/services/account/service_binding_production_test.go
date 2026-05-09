@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -296,8 +297,23 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 		if err := r.ParseForm(); err != nil {
 			t.Fatalf("parse form: %v", err)
 		}
-		if r.Form.Get("grant_type") != "authorization_code" || r.Form.Get("code") != "auth-code" || r.Form.Get("code_verifier") == "" {
-			t.Fatalf("unexpected exchange form: %v", r.Form)
+		// R-OAUTH-002 / R-OAUTH-005 / R-OAUTH-012: token exchange must send
+		// authorization_code grant, the raw code, the matching redirect_uri,
+		// and the code_verifier.
+		if r.Form.Get("grant_type") != "authorization_code" {
+			t.Fatalf("token exchange grant_type = %q, want authorization_code", r.Form.Get("grant_type"))
+		}
+		if r.Form.Get("code") != "auth-code" {
+			t.Fatalf("token exchange code = %q, want auth-code", r.Form.Get("code"))
+		}
+		if r.Form.Get("code_verifier") == "" {
+			t.Fatalf("token exchange code_verifier missing")
+		}
+		if r.Form.Get("redirect_uri") != "http://localhost/callback" {
+			t.Fatalf("token exchange redirect_uri = %q, want http://localhost/callback (R-OAUTH-005)", r.Form.Get("redirect_uri"))
+		}
+		if r.Form.Get("client_id") != "desktop-test" {
+			t.Fatalf("token exchange client_id = %q, want desktop-test", r.Form.Get("client_id"))
 		}
 		w.Header().Set("content-type", "application/json")
 		_, _ = w.Write([]byte(`{"access_token":"access-prod","refresh_token":"refresh-prod","expires_in":300,"user":{"id":"acct-prod","displayName":"Prod User"}}`))
@@ -319,11 +335,40 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 	if err != nil {
 		t.Fatalf("BeginLogin: %v", err)
 	}
-	if !begin.GetAccepted() ||
-		!strings.Contains(begin.GetOauthAuthorizationUrl(), "#/login?") ||
-		!strings.Contains(begin.GetOauthAuthorizationUrl(), "desktop_callback=") ||
-		!strings.Contains(begin.GetOauthAuthorizationUrl(), "desktop_state=") {
-		t.Fatalf("production BeginLogin did not return Nimi Web browser callback instruction: %+v", begin)
+	if !begin.GetAccepted() {
+		t.Fatalf("BeginLogin not accepted: %+v", begin)
+	}
+	authorizeURL := begin.GetOauthAuthorizationUrl()
+	parsed, err := url.Parse(authorizeURL)
+	if err != nil {
+		t.Fatalf("parse authorize URL %q: %v", authorizeURL, err)
+	}
+	// R-OAUTH-002 / R-OAUTH-003 / R-OAUTH-005 / R-OAUTH-011: authorize URL
+	// is shaped per OAuth 2.0 + PKCE S256, not the legacy web-relay fragment.
+	authQuery := parsed.Query()
+	if got, want := authQuery.Get("response_type"), "code"; got != want {
+		t.Fatalf("authorize response_type = %q, want %q", got, want)
+	}
+	if got, want := authQuery.Get("client_id"), "desktop-test"; got != want {
+		t.Fatalf("authorize client_id = %q, want %q", got, want)
+	}
+	if got, want := authQuery.Get("redirect_uri"), "http://localhost/callback"; got != want {
+		t.Fatalf("authorize redirect_uri = %q, want %q", got, want)
+	}
+	if authQuery.Get("code_challenge") == "" {
+		t.Fatalf("authorize code_challenge missing")
+	}
+	if got, want := authQuery.Get("code_challenge_method"), "S256"; got != want {
+		t.Fatalf("authorize code_challenge_method = %q, want %q", got, want)
+	}
+	if authQuery.Get("state") != begin.GetState() {
+		t.Fatalf("authorize state = %q, want %q (begin response state)", authQuery.Get("state"), begin.GetState())
+	}
+	if parsed.Fragment != "" {
+		t.Fatalf("authorize URL must not carry a fragment, got %q", parsed.Fragment)
+	}
+	if strings.Contains(authorizeURL, "desktop_callback=") || strings.Contains(authorizeURL, "desktop_state=") {
+		t.Fatalf("authorize URL must not embed legacy web-relay params, got %q", authorizeURL)
 	}
 	complete, err := svc.CompleteLogin(context.Background(), &runtimev1.CompleteLoginRequest{
 		Caller:         firstPartyCaller(),
@@ -354,7 +399,7 @@ func TestProductionActivationCodeStateExchangeCustodyAndTokenProjection(t *testi
 func TestProductionCompleteLoginRejectsBrowserCallbackTokens(t *testing.T) {
 	custody := &memoryCustody{}
 	exchanger := newRealmOAuthExchanger(resolveProductionConfig(ProductionConfig{
-		AuthorizationURL: "https://app.nimi.test#/login",
+		AuthorizationURL: "https://app.nimi.test/api/auth/oauth/authorize",
 		ClientID:         "desktop-test",
 		RedirectURI:      "http://localhost/callback",
 		HTTPClient:       http.DefaultClient,
@@ -462,6 +507,114 @@ func TestCompleteLoginRejectsSealedTicketAndInertExchange(t *testing.T) {
 	}
 	if resp.GetAccepted() || resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE {
 		t.Fatalf("exchange unavailable must fail closed: %+v", resp)
+	}
+}
+
+// TestProductionAuthorizationURLEmitsPKCEOauthShape locks the realm OAuth
+// authorize URL contract from the runtime side
+// (.nimi/spec/realm/kernel/oauth-authority-contract.md R-OAUTH-002 /
+// R-OAUTH-003 / R-OAUTH-005 / R-OAUTH-011). Any drift back to the legacy
+// `#/login?desktop_callback=&desktop_state=` web-relay shape must fail this
+// test on sight.
+func TestProductionAuthorizationURLEmitsPKCEOauthShape(t *testing.T) {
+	cases := []struct {
+		name             string
+		authorizationURL string
+	}{
+		{
+			name:             "realm authorize endpoint",
+			authorizationURL: "https://realm.nimi.test/api/auth/oauth/authorize",
+		},
+		{
+			name:             "config carries pre-existing query params",
+			authorizationURL: "https://realm.nimi.test/api/auth/oauth/authorize?audience=desktop",
+		},
+		{
+			name:             "legacy fragment in config is stripped",
+			authorizationURL: "https://realm.nimi.test/api/auth/oauth/authorize#/login",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			exchanger := newRealmOAuthExchanger(resolveProductionConfig(ProductionConfig{
+				AuthorizationURL: tc.authorizationURL,
+				ClientID:         "nimi-desktop",
+				RedirectURI:      "http://127.0.0.1:34939/oauth/callback",
+				HTTPClient:       http.DefaultClient,
+			}))
+			attempt := LoginAttempt{
+				LoginAttemptID: "attempt-test",
+				State:          "state-xyz",
+				Nonce:          "nonce-xyz",
+				PKCEVerifier:   "verifier-test-1234567890abcdef",
+				RedirectURI:    "http://127.0.0.1:34939/oauth/callback",
+			}
+			attempt.PKCEChallenge = pkceChallenge(attempt.PKCEVerifier)
+
+			raw := exchanger.AuthorizationURL(attempt)
+			if raw == "" {
+				t.Fatalf("AuthorizationURL returned empty for config %q", tc.authorizationURL)
+			}
+			parsed, err := url.Parse(raw)
+			if err != nil {
+				t.Fatalf("parse %q: %v", raw, err)
+			}
+			if parsed.Fragment != "" {
+				t.Fatalf("authorize URL must not carry a fragment, got %q (full %q)", parsed.Fragment, raw)
+			}
+			if strings.Contains(raw, "desktop_callback=") || strings.Contains(raw, "desktop_state=") {
+				t.Fatalf("authorize URL must not embed legacy web-relay params, got %q", raw)
+			}
+			if strings.Contains(raw, "#/login") {
+				t.Fatalf("authorize URL must not embed web-app login fragment, got %q", raw)
+			}
+			q := parsed.Query()
+			wants := map[string]string{
+				"response_type":         "code",
+				"client_id":             "nimi-desktop",
+				"redirect_uri":          "http://127.0.0.1:34939/oauth/callback",
+				"code_challenge":        attempt.PKCEChallenge,
+				"code_challenge_method": "S256",
+				"state":                 "state-xyz",
+			}
+			for k, want := range wants {
+				if got := q.Get(k); got != want {
+					t.Fatalf("authorize query %q = %q, want %q (full URL %q)", k, got, want, raw)
+				}
+			}
+			// Pre-existing query params must be preserved.
+			if strings.Contains(tc.authorizationURL, "audience=desktop") && q.Get("audience") != "desktop" {
+				t.Fatalf("pre-existing query param must be preserved, got %q", raw)
+			}
+			// Path segment from config must be preserved.
+			if !strings.HasPrefix(raw, "https://realm.nimi.test/api/auth/oauth/authorize") {
+				t.Fatalf("authorize URL must preserve configured path, got %q", raw)
+			}
+		})
+	}
+}
+
+// TestProductionAuthorizationURLDefaultsToRealmAuthorizeEndpoint asserts that
+// when ProductionConfig sets only RealmBaseURL (no AuthorizationURL override),
+// the runtime resolves the authorize endpoint to
+// `${RealmBaseURL}/api/auth/oauth/authorize` rather than the legacy NIMI_WEB_URL
+// web-relay default (R-OAUTH-002).
+func TestProductionAuthorizationURLDefaultsToRealmAuthorizeEndpoint(t *testing.T) {
+	t.Setenv("NIMI_WEB_URL", "https://web.nimi.test")
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL", "")
+	t.Setenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL", "")
+	t.Setenv("NIMI_REALM_URL", "")
+	resolved := resolveProductionConfig(ProductionConfig{
+		RealmBaseURL: "https://realm.nimi.test",
+		ClientID:     "nimi-desktop",
+		RedirectURI:  "http://127.0.0.1:34939/oauth/callback",
+		HTTPClient:   http.DefaultClient,
+	})
+	if resolved.AuthorizationURL != "https://realm.nimi.test/api/auth/oauth/authorize" {
+		t.Fatalf("default AuthorizationURL = %q, want https://realm.nimi.test/api/auth/oauth/authorize", resolved.AuthorizationURL)
+	}
+	if resolved.TokenURL != "https://realm.nimi.test/api/auth/oauth/token" {
+		t.Fatalf("default TokenURL = %q, want https://realm.nimi.test/api/auth/oauth/token", resolved.TokenURL)
 	}
 }
 

@@ -55,7 +55,6 @@ pub struct OauthListenForCodePayload {
 pub struct OauthListenForCodeResult {
     pub callback_url: String,
     pub code: Option<String>,
-    pub refresh_token: Option<String>,
     pub state: Option<String>,
     pub error: Option<String>,
 }
@@ -392,7 +391,7 @@ fn oauth_listen_for_code_blocking(
 
     loop {
         match listener.accept() {
-            Ok((mut stream, _)) => {
+            Ok((mut stream, _peer)) => {
                 stream
                     .set_nonblocking(false)
                     .map_err(|error| error.to_string())?;
@@ -420,10 +419,6 @@ fn oauth_listen_for_code_blocking(
                     callback_params.insert(key, value);
                 }
                 let code = callback_params.get("code").cloned();
-                let refresh_token = callback_params
-                    .get("refresh_token")
-                    .or_else(|| callback_params.get("refreshToken"))
-                    .cloned();
                 let state = callback_params.get("state").cloned();
                 let error = callback_params.get("error").cloned();
 
@@ -432,7 +427,6 @@ fn oauth_listen_for_code_blocking(
                 return Ok(OauthListenForCodeResult {
                     callback_url,
                     code,
-                    refresh_token,
                     state,
                     error,
                 });

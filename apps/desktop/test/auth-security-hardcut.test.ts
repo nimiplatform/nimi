@@ -16,7 +16,6 @@ import {
   persistAuthSession,
   persistAuthSessionMetadata,
 } from '../../../kit/auth/src/logic/auth-session-storage.js';
-import { submitDesktopCallbackResult } from '../../../kit/auth/src/logic/desktop-callback-helpers.js';
 import { handleWalletLogin } from '../../../kit/auth/src/logic/auth-menu-handlers-ext.js';
 
 type StorageLike = {
@@ -248,201 +247,9 @@ test('persistAuthSessionMetadata stores web auth metadata without accepting raw 
   }
 });
 
-test('submitDesktopCallbackResult uses sendBeacon and closes the current window without top-level navigation', async () => {
-  const beaconCalls: Array<{ url: string; body: Blob }> = [];
-  let closeCount = 0;
-  const appendedBodyTags: string[] = [];
-  const appendedHeadTags: string[] = [];
-  const restoreWindow = installWindowForTest({
-    close: () => {
-      closeCount += 1;
-    },
-    setTimeout: (callback: () => void) => {
-      callback();
-      return 0 as unknown as ReturnType<typeof setTimeout>;
-    },
-    navigator: {
-      sendBeacon: (url: string, body: Blob) => {
-        beaconCalls.push({
-          url,
-          body,
-        });
-        return true;
-      },
-    },
-    document: {
-      getElementById: () => null,
-      head: {
-        appendChild: (node: { __tag?: string }) => {
-          appendedHeadTags.push(String(node.__tag || 'unknown'));
-        },
-      },
-      body: {
-        appendChild: (node: { __tag?: string }) => {
-          appendedBodyTags.push(String(node.__tag || 'unknown'));
-        },
-      },
-      createElement: (tag: string) => {
-        if (tag === 'style') {
-          return {
-            __tag: 'style',
-            id: '',
-            textContent: '',
-          };
-        }
-        if (tag === 'div') {
-          return {
-            __tag: 'div',
-            id: '',
-            innerHTML: '',
-            setAttribute: () => undefined,
-          };
-        }
-        return {
-          __tag: tag,
-        };
-      },
-    },
-  });
-  const previousDocument = (globalThis as typeof globalThis & { document?: unknown }).document;
-  Object.defineProperty(globalThis, 'document', {
-    value: (globalThis.window as typeof globalThis.window & { document: Document }).document,
-    configurable: true,
-  });
-  try {
-    submitDesktopCallbackResult({
-      request: {
-        callbackUrl: 'http://127.0.0.1:43123/oauth/callback',
-        state: 'desktop-state',
-      },
-      code: 'access-token-123',
-    });
-    assert.equal(beaconCalls.length, 1);
-    assert.equal(beaconCalls[0]?.url, 'http://127.0.0.1:43123/oauth/callback');
-    assert.equal(closeCount, 1);
-    assert.deepEqual(appendedHeadTags, ['style']);
-    assert.deepEqual(appendedBodyTags, ['div']);
-    const bodyText = beaconCalls[0] ? await beaconCalls[0].body.text() : '';
-    assert.match(bodyText, /code=access-token-123/);
-    assert.match(bodyText, /state=desktop-state/);
-  } finally {
-    Object.defineProperty(globalThis, 'document', {
-      value: previousDocument,
-      configurable: true,
-    });
-    restoreWindow();
-  }
-});
-
-test('submitDesktopCallbackResult falls back to hidden iframe form POST when beacon is unavailable', () => {
-  const submitted: Array<{ method?: string; action?: string; fields: Record<string, string> }> = [];
-  const appendedTags: string[] = [];
-  const appendedHeadTags: string[] = [];
-  let closeCount = 0;
-  const restoreWindow = installWindowForTest({
-    close: () => {
-      closeCount += 1;
-    },
-    setTimeout: (callback: () => void) => {
-      callback();
-      return 0 as unknown as ReturnType<typeof setTimeout>;
-    },
-    document: {
-      getElementById: () => null,
-      head: {
-        appendChild: (node: { __tag?: string }) => {
-          appendedHeadTags.push(String(node.__tag || 'unknown'));
-        },
-      },
-      body: {
-        appendChild: (node: { __tag?: string }) => {
-          appendedTags.push(String(node.__tag || 'unknown'));
-        },
-      },
-      createElement: (tag: string) => {
-        if (tag === 'iframe') {
-          return {
-            __tag: 'iframe',
-            name: '',
-            tabIndex: 0,
-            style: { display: '' },
-            setAttribute: () => undefined,
-          };
-        }
-        if (tag === 'style') {
-          return {
-            __tag: 'style',
-            id: '',
-            textContent: '',
-          };
-        }
-        if (tag === 'div') {
-          return {
-            __tag: 'div',
-            id: '',
-            innerHTML: '',
-            setAttribute: () => undefined,
-          };
-        }
-        if (tag === 'form') {
-          const fields: Array<{ name: string; value: string }> = [];
-          return {
-            __tag: 'form',
-            method: '',
-            action: '',
-            target: '',
-            style: { display: '' },
-            appendChild: (field: { name: string; value: string }) => {
-              fields.push({ name: field.name, value: field.value });
-            },
-            submit() {
-              submitted.push({
-                method: this.method,
-                action: this.action,
-                fields: Object.fromEntries(fields.map((field) => [field.name, field.value])),
-              });
-            },
-          };
-        }
-        return {
-          __tag: tag,
-          type: '',
-          name: '',
-          value: '',
-        };
-      },
-    },
-  });
-  const previousDocument = (globalThis as typeof globalThis & { document?: unknown }).document;
-  Object.defineProperty(globalThis, 'document', {
-    value: (globalThis.window as typeof globalThis.window & { document: Document }).document,
-    configurable: true,
-  });
-  try {
-    submitDesktopCallbackResult({
-      request: {
-        callbackUrl: 'http://127.0.0.1:43123/oauth/callback',
-        state: 'desktop-state',
-      },
-      code: 'access-token-123',
-    });
-    assert.equal(submitted.length, 1);
-    assert.equal(submitted[0]?.method, 'POST');
-    assert.equal(submitted[0]?.action, 'http://127.0.0.1:43123/oauth/callback');
-    assert.equal(submitted[0]?.fields.code, 'access-token-123');
-    assert.equal(submitted[0]?.fields.state, 'desktop-state');
-    assert.equal(submitted[0]?.action?.includes('code='), false);
-    assert.deepEqual(appendedHeadTags, ['style']);
-    assert.deepEqual(appendedTags, ['iframe', 'form', 'div']);
-    assert.equal(closeCount, 1);
-  } finally {
-    Object.defineProperty(globalThis, 'document', {
-      value: previousDocument,
-      configurable: true,
-    });
-    restoreWindow();
-  }
-});
+// `submitDesktopCallbackResult` was deleted in Wave C — direct-to-loopback
+// (realm 302 → loopback) replaces the kit-side relay. The "no exchange"
+// regression lock now lives in kit/test/desktop-callback-no-exchange.test.ts.
 
 test('desktop callback state validates flow and expiry using secure random state', () => {
   const restoreCrypto = installCryptoForTest({
@@ -537,12 +344,6 @@ test('wallet login keeps cancellations silent but surfaces non-cancellation fail
     walletChallenge: async () => ({ message: 'challenge', nonce: 'nonce' }),
     walletLogin: async () => ({ tokens: null }),
   };
-  const desktopCtx = {
-    desktopCallbackRequest: null,
-    desktopCallbackToken: '',
-    desktopCallbackUser: null,
-    authToken: null,
-  };
 
   const restoreWindow = installWindowForTest({
     ethereum: {
@@ -556,7 +357,7 @@ test('wallet login keeps cancellations silent but surfaces non-cancellation fail
   });
 
   try {
-    await handleWalletLogin('metamask', setters as never, desktopCtx, adapter as never);
+    await handleWalletLogin('metamask', setters as never, adapter as never);
     assert.deepEqual(loginErrors, [null]);
     (globalThis.window as typeof globalThis.window & {
       ethereum: { request: (input: { method: string }) => Promise<unknown> };
@@ -565,7 +366,7 @@ test('wallet login keeps cancellations silent but surfaces non-cancellation fail
       if (method === 'eth_chainId') return '0x1';
       throw new Error('signature verification failed');
     };
-    await handleWalletLogin('metamask', setters as never, desktopCtx, adapter as never);
+    await handleWalletLogin('metamask', setters as never, adapter as never);
     assert.deepEqual(loginErrors.slice(0, 2), [null, null]);
     assert.equal(typeof loginErrors[2], 'string');
     assert.notEqual(loginErrors[2], '');

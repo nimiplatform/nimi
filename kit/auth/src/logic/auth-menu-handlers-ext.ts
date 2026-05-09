@@ -8,9 +8,8 @@ import {
   toAuthUiErrorMessage,
   walletUnavailableMessage,
 } from './auth-copy.js';
-import { submitDesktopCallbackResult } from './desktop-callback-helpers.js';
 import { parseChainId, resolveWalletProvider } from './wallet-helpers.js';
-import type { AuthMenuSetters, DesktopCallbackContext } from './auth-menu-handlers.js';
+import type { AuthMenuSetters } from './auth-menu-handlers.js';
 import { applyTokens, handleLoginResult } from './auth-menu-handlers.js';
 
 const WALLET_LOGIN_TIMEOUT_MS = 30000;
@@ -91,7 +90,6 @@ export async function handleVerifyEmailOtp(
   email: string,
   otpCode: string,
   setters: AuthMenuSetters,
-  desktopCtx: DesktopCallbackContext,
   adapter: AuthPlatformAdapter,
 ): Promise<void> {
   event.preventDefault();
@@ -118,7 +116,6 @@ export async function handleVerifyEmailOtp(
       result,
       AUTH_COPY.otpVerifySuccess,
       setters,
-      desktopCtx,
       adapter,
       'email_otp_verify',
     );
@@ -174,7 +171,6 @@ export async function handleVerify2Fa(
   tempToken: string,
   twoFactorCode: string,
   setters: AuthMenuSetters,
-  desktopCtx: DesktopCallbackContext,
   adapter: AuthPlatformAdapter,
 ): Promise<void> {
   event.preventDefault();
@@ -187,7 +183,7 @@ export async function handleVerify2Fa(
   setters.setLoginError(null);
   try {
     const tokens = await adapter.verifyTwoFactor(tempToken, twoFactorCode);
-    await applyTokens(tokens, AUTH_COPY.twoFactorSuccess, setters, desktopCtx, adapter);
+    await applyTokens(tokens, AUTH_COPY.twoFactorSuccess, setters, adapter);
   } catch (error) {
     setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.twoFactorFailed));
   } finally {
@@ -196,108 +192,15 @@ export async function handleVerify2Fa(
 }
 
 // ---------------------------------------------------------------------------
-// handleConfirmDesktopAuthorization
+// handleConfirmDesktopAuthorization (deleted)
+//
+// The legacy "Authorize Desktop with my web session" flow is not admitted
+// under the direct-to-loopback model (Wave A1). The realm OAuth authorize
+// endpoint reads the web session cookie and 302-redirects directly to the
+// desktop loopback redirect_uri with a fresh OAuth `code`; no kit-side bearer
+// relay is permitted. Any UI surface still rendering this flow is dead and
+// will be removed in the kit non-runtime branch hard-cut (Wave C).
 // ---------------------------------------------------------------------------
-
-export async function handleConfirmDesktopAuthorization(
-  event: FormEvent,
-  setters: AuthMenuSetters,
-  desktopCtx: DesktopCallbackContext,
-  adapter: AuthPlatformAdapter,
-): Promise<void> {
-  event.preventDefault();
-  if (!desktopCtx.desktopCallbackRequest) {
-    setters.setLoginError(AUTH_COPY.desktopRequestInvalid);
-    setters.setView('main');
-    return;
-  }
-
-  let accessToken = String(
-    desktopCtx.authToken
-    || desktopCtx.desktopCallbackToken
-    || '',
-  ).trim();
-  let refreshToken = '';
-
-  setters.setPending(true);
-  setters.setLoginError(null);
-  try {
-    let normalizedUser: Record<string, unknown> | null =
-      desktopCtx.desktopCallbackUser && typeof desktopCtx.desktopCallbackUser === 'object'
-        ? desktopCtx.desktopCallbackUser
-        : null;
-
-    const resolveActiveDesktopSession = async (): Promise<void> => {
-      if (!accessToken) {
-        const restored = await adapter.restoreSession?.();
-        accessToken = String(restored?.accessToken || '').trim();
-        refreshToken = String(restored?.refreshToken || '').trim();
-        if (restored?.user && typeof restored.user === 'object') {
-          normalizedUser = restored.user;
-        }
-      }
-      if (!accessToken) {
-        throw new Error(AUTH_COPY.desktopSessionMissing);
-      }
-
-      await adapter.applyToken(accessToken, refreshToken || undefined);
-      const user = await adapter.loadCurrentUser();
-      if (user && typeof user === 'object') {
-        normalizedUser = user as Record<string, unknown>;
-        return;
-      }
-
-      const restored = await adapter.restoreSession?.();
-      accessToken = String(restored?.accessToken || '').trim();
-      refreshToken = String(restored?.refreshToken || '').trim();
-      if (restored?.user && typeof restored.user === 'object') {
-        normalizedUser = restored.user;
-      }
-      if (!accessToken) {
-        throw new Error(AUTH_COPY.desktopSessionInvalid);
-      }
-      await adapter.applyToken(accessToken, refreshToken || undefined);
-      const recoveredUser = await adapter.loadCurrentUser();
-      normalizedUser = recoveredUser && typeof recoveredUser === 'object'
-        ? (recoveredUser as Record<string, unknown>)
-        : normalizedUser;
-    };
-
-    await resolveActiveDesktopSession();
-
-    setters.setAuthSession(
-      normalizedUser,
-      accessToken,
-      refreshToken || undefined,
-    );
-    await adapter.persistSession?.({
-      accessToken,
-      refreshToken,
-      user: normalizedUser ?? desktopCtx.desktopCallbackUser,
-    });
-    persistAuthSession({
-      accessToken,
-      refreshToken,
-      user: normalizedUser ?? desktopCtx.desktopCallbackUser,
-    });
-
-    submitDesktopCallbackResult({
-      request: desktopCtx.desktopCallbackRequest,
-      code: accessToken,
-      refreshToken,
-    });
-  } catch (error) {
-    setters.setLoginError(
-      toAuthUiErrorMessage(error, AUTH_COPY.desktopSessionInvalid, {
-        expiredMessage: AUTH_COPY.desktopSessionExpired,
-        forbiddenMessage: AUTH_COPY.desktopPermissionDenied,
-      }),
-    );
-    setters.setView('main');
-  } finally {
-    setters.setPending(false);
-  }
-}
 
 // ---------------------------------------------------------------------------
 // handleWalletLogin
@@ -306,7 +209,6 @@ export async function handleConfirmDesktopAuthorization(
 export async function handleWalletLogin(
   walletType: WalletType,
   setters: AuthMenuSetters,
-  desktopCtx: DesktopCallbackContext,
   adapter: AuthPlatformAdapter,
 ): Promise<void> {
   setters.setPending(true);
@@ -384,7 +286,7 @@ export async function handleWalletLogin(
     });
     throwIfTimedOut();
 
-    await handleLoginResult(result, AUTH_COPY.walletLoginSuccess, setters, desktopCtx, adapter);
+    await handleLoginResult(result, AUTH_COPY.walletLoginSuccess, setters, adapter);
   } catch (error) {
     if (!isWalletCancellationError(error)) {
       if (!isWalletTimeoutError(error)) {

@@ -5,7 +5,7 @@ import {
   startSocialOauth,
   type SocialOauthProvider,
 } from './social-oauth.js';
-import type { AuthView, DesktopCallbackRequest, ShellAuthWindow } from '../types/auth-types.js';
+import type { AuthView, ShellAuthWindow } from '../types/auth-types.js';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import { persistAuthSession } from './auth-session-storage.js';
 import {
@@ -14,7 +14,6 @@ import {
   formatProviderLoginSuccessMessage,
   toAuthUiErrorMessage,
 } from './auth-copy.js';
-import { submitDesktopCallbackResult } from './desktop-callback-helpers.js';
 import { saveRememberedLogin, clearRememberedLogin } from './remember-login.js';
 import { loadGoogleScript, getGoogleClientId } from './google-helpers.js';
 
@@ -39,13 +38,6 @@ export type AuthMenuSetters = {
   setAuthSession: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
 };
 
-export type DesktopCallbackContext = {
-  desktopCallbackRequest: DesktopCallbackRequest | null;
-  desktopCallbackToken: string;
-  desktopCallbackUser: Record<string, unknown> | null;
-  authToken: string | null;
-};
-
 // ---------------------------------------------------------------------------
 // applyTokens — finalize login by persisting tokens + syncing data
 // ---------------------------------------------------------------------------
@@ -54,7 +46,6 @@ export async function applyTokens(
   tokens: AuthTokensDto,
   successMessage: string,
   setters: AuthMenuSetters,
-  desktopCtx: DesktopCallbackContext,
   adapter: AuthPlatformAdapter,
 ): Promise<void> {
   const accessToken = String(tokens.accessToken || '').trim();
@@ -81,15 +72,6 @@ export async function applyTokens(
     user,
   });
 
-  if (desktopCtx.desktopCallbackRequest) {
-    submitDesktopCallbackResult({
-      request: desktopCtx.desktopCallbackRequest,
-      code: accessToken,
-      refreshToken,
-    });
-    return;
-  }
-
   if (adapter.syncAfterLogin) {
     await adapter.syncAfterLogin();
   }
@@ -110,7 +92,6 @@ export async function handleLoginResult(
   result: OAuthLoginResultDto,
   successMessage: string,
   setters: AuthMenuSetters,
-  desktopCtx: DesktopCallbackContext,
   adapter: AuthPlatformAdapter,
   twoFactorReturnView: AuthView = 'main',
 ): Promise<void> {
@@ -131,7 +112,7 @@ export async function handleLoginResult(
     throw new Error(AUTH_COPY.loginMissingTokenPayload);
   }
 
-  await applyTokens(result.tokens, successMessage, setters, desktopCtx, adapter);
+  await applyTokens(result.tokens, successMessage, setters, adapter);
 
   if (result.loginState === OAuthLoginState.NEEDS_ONBOARDING) {
     setters.setStatusBanner({
@@ -147,7 +128,6 @@ export async function handleLoginResult(
 
 export async function handleGoogleLogin(
   setters: AuthMenuSetters,
-  desktopCtx: DesktopCallbackContext,
   adapter: AuthPlatformAdapter,
 ): Promise<void> {
   const googleClientId = getGoogleClientId();
@@ -184,7 +164,6 @@ export async function handleGoogleLogin(
               result,
               formatProviderLoginSuccessMessage('Google'),
               setters,
-              desktopCtx,
               adapter,
             );
           } catch (error) {
@@ -212,7 +191,6 @@ export async function handleGoogleLogin(
 export async function handleSocialLogin(
   provider: SocialOauthProvider,
   setters: AuthMenuSetters,
-  desktopCtx: DesktopCallbackContext,
   adapter: AuthPlatformAdapter,
 ): Promise<void> {
   const providerLabel = provider === 'TWITTER' ? 'Twitter' : 'TikTok';
@@ -228,7 +206,6 @@ export async function handleSocialLogin(
       result,
       formatProviderLoginSuccessMessage(providerLabel),
       setters,
-      desktopCtx,
       adapter,
     );
   } catch (error) {
@@ -250,7 +227,6 @@ export async function handleEmailLogin(
   password: string,
   rememberMe: boolean,
   setters: AuthMenuSetters,
-  desktopCtx: DesktopCallbackContext,
   adapter: AuthPlatformAdapter,
 ): Promise<void> {
   event.preventDefault();
@@ -274,7 +250,7 @@ export async function handleEmailLogin(
       clearRememberedLogin();
     }
 
-    await handleLoginResult(result, AUTH_COPY.emailLoginSuccess, setters, desktopCtx, adapter, 'main');
+    await handleLoginResult(result, AUTH_COPY.emailLoginSuccess, setters, adapter, 'main');
   } catch (error) {
     setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.emailLoginFailed));
   } finally {
@@ -292,7 +268,6 @@ export async function handleSetPasswordAfterOtp(
   confirmPassword: string,
   pendingTokens: AuthTokensDto,
   setters: AuthMenuSetters,
-  desktopCtx: DesktopCallbackContext,
   adapter: AuthPlatformAdapter,
 ): Promise<void> {
   event.preventDefault();
@@ -343,7 +318,7 @@ export async function handleSetPasswordAfterOtp(
 
     setters.setPendingTokens(null);
     try {
-      await applyTokens(finalizedTokens, AUTH_COPY.setPasswordSuccess, setters, desktopCtx, adapter);
+      await applyTokens(finalizedTokens, AUTH_COPY.setPasswordSuccess, setters, adapter);
     } catch (error) {
       await adapter.applyToken('');
       setters.setView('main');

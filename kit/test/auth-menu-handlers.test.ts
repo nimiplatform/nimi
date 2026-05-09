@@ -2,30 +2,17 @@ import type { FormEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AuthPlatformAdapter } from '../auth/src/platform/auth-platform-adapter.js';
-import type { AuthMenuSetters, DesktopCallbackContext } from '../auth/src/logic/auth-menu-handlers.js';
+import type { AuthMenuSetters } from '../auth/src/logic/auth-menu-handlers.js';
 import { AUTH_COPY } from '../auth/src/logic/auth-copy.js';
 import {
   handleEmailLogin,
   handleSetPasswordAfterOtp,
 } from '../auth/src/logic/auth-menu-handlers.js';
-import {
-  handleConfirmDesktopAuthorization,
-} from '../auth/src/logic/auth-menu-handlers-ext.js';
 
 function createEvent(): FormEvent {
   return {
     preventDefault: vi.fn(),
   } as unknown as FormEvent;
-}
-
-function createDesktopContext(overrides?: Partial<DesktopCallbackContext>): DesktopCallbackContext {
-  return {
-    desktopCallbackRequest: null,
-    desktopCallbackToken: '',
-    desktopCallbackUser: null,
-    authToken: null,
-    ...overrides,
-  };
 }
 
 function createSetters() {
@@ -102,62 +89,17 @@ describe('auth menu handlers', () => {
       'secret123',
       false,
       setters,
-      createDesktopContext(),
       adapter,
     );
 
     expect(state.loginError).toBe(AUTH_COPY.emailLoginFailed);
   });
 
-  it('maps expired desktop authorization sessions to a dedicated message', async () => {
-    const { state, setters } = createSetters();
-    const adapter = createAdapter({
-      applyToken: async () => {
-        throw new Error('HTTP_401 unauthorized');
-      },
-    });
-
-    await handleConfirmDesktopAuthorization(
-      createEvent(),
-      setters,
-      createDesktopContext({
-        desktopCallbackRequest: {
-          callbackUrl: 'http://127.0.0.1:43123/oauth/callback',
-          state: 'state-1',
-        },
-        authToken: 'access-token',
-      }),
-      adapter,
-    );
-
-    expect(state.loginError).toBe(AUTH_COPY.desktopSessionExpired);
-    expect(state.view).toBe('main');
-  });
-
-  it('maps forbidden desktop authorization responses to a permission error', async () => {
-    const { state, setters } = createSetters();
-    const adapter = createAdapter({
-      applyToken: async () => {
-        throw new Error('PERMISSION_DENIED');
-      },
-    });
-
-    await handleConfirmDesktopAuthorization(
-      createEvent(),
-      setters,
-      createDesktopContext({
-        desktopCallbackRequest: {
-          callbackUrl: 'http://127.0.0.1:43123/oauth/callback',
-          state: 'state-2',
-        },
-        authToken: 'access-token',
-      }),
-      adapter,
-    );
-
-    expect(state.loginError).toBe(AUTH_COPY.desktopPermissionDenied);
-    expect(state.view).toBe('main');
-  });
+  // The legacy "Authorize Desktop with my web session" flow
+  // (handleConfirmDesktopAuthorization) was deleted in Wave A2 — direct-to-loopback
+  // makes the realm 302-redirect to the desktop loopback redirect_uri after
+  // /api/auth/oauth/authorize sees a valid web session cookie. The "no exchange"
+  // regression lock lives in test/desktop-callback-no-exchange.test.ts.
 
   it('continues password setup when reloading the latest user fails', async () => {
     const { state, setters } = createSetters();
@@ -178,7 +120,6 @@ describe('auth menu handlers', () => {
         user: { id: 'user-1' },
       } as never,
       setters,
-      createDesktopContext(),
       adapter,
     );
 
@@ -208,7 +149,6 @@ describe('auth menu handlers', () => {
         user: { id: 'user-1' },
       } as never,
       setters,
-      createDesktopContext(),
       adapter,
     );
 

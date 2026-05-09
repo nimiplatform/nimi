@@ -1,6 +1,5 @@
 import {
   clearPersistedAccessToken,
-  buildDesktopWebAuthLaunchUrl,
   persistAuthSessionMetadata,
   resolveSessionExpiry,
   type AuthPlatformAdapter,
@@ -72,31 +71,36 @@ export function createDesktopRuntimeAccountBrowserBroker() {
       if (!response.accepted || !response.loginAttemptId || !response.oauthAuthorizationUrl || !response.state || !response.nonce) {
         throw new Error(`Runtime account login could not start: ${String(response.accountReasonCode || response.reasonCode || 'unknown')}`);
       }
+      // R-OAUTH / K-ACCSVC-008: the kit MUST drive the user agent to the
+      // realm OAuth authorize endpoint that runtime constructed (with
+      // PKCE S256 challenge bound to runtime-held verifier). Rebuilding the
+      // URL on the desktop side would re-introduce the legacy web-relay
+      // shape and de-bind PKCE.
       return {
         loginAttemptId: response.loginAttemptId,
-        authorizationUrl: buildDesktopWebAuthLaunchUrl({
-          callbackUrl: input.callbackUrl,
-          state: response.state,
-          baseUrl: input.baseUrl,
-        }),
+        authorizationUrl: response.oauthAuthorizationUrl,
         state: response.state,
         nonce: response.nonce,
       };
     },
     complete: async (input: {
       loginAttemptId: string;
-      accessToken: string;
-      refreshToken: string;
+      code: string;
       state: string;
       nonce: string;
       callbackUrl: string;
     }) => {
       await ensureAuthApiReady();
+      // R-OAUTH / K-ACCSVC-008: only the raw OAuth `code` is admitted; the
+      // runtime exchanges with the realm and owns refresh-token custody. Kit
+      // and desktop never observe access or refresh tokens.
       const response = await getPlatformClient().runtime.account.completeLogin({
         caller: desktopRuntimeAccountCaller,
         loginAttemptId: input.loginAttemptId,
-        code: input.accessToken,
-        refreshToken: input.refreshToken,
+        code: input.code,
+        // R-OAUTH-008 / spec K-ACCSVC-008: refreshToken MUST be empty here.
+        // Runtime fail-closes any non-empty value with PROOF_UNSUPPORTED.
+        refreshToken: '',
         state: input.state,
         nonce: input.nonce,
         redirectUri: input.callbackUrl,

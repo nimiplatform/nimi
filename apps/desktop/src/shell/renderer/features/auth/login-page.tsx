@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
-import { hasDesktopCallbackRequestInLocation } from '@nimiplatform/nimi-kit/auth';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 const WebAuthMenu = lazy(async () => {
@@ -18,16 +17,11 @@ export function LoginPage() {
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const location = useLocation();
   const navigate = useNavigate();
-  const hasDesktopCallback = hasDesktopCallbackRequestInLocation({
-    search: location.search,
-    hash: typeof window !== 'undefined' ? window.location.hash : '',
-  });
 
-  if (flags.mode === 'desktop' && authStatus === 'authenticated') {
-    return <Navigate to="/" replace />;
-  }
-
-  if (flags.mode === 'web' && authStatus === 'authenticated' && !hasDesktopCallback) {
+  // Wave C: the legacy `?desktop_callback=` web-relay flow is gone — the
+  // realm OAuth authority 302-redirects directly to the desktop loopback,
+  // so a web-shell that's already authenticated can always go home.
+  if (authStatus === 'authenticated') {
     return <Navigate to="/" replace />;
   }
 

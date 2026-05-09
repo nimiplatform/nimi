@@ -76,11 +76,15 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 		os.Getenv("NIMI_RUNTIME_ACCOUNT_REALM_BASE_URL"),
 		os.Getenv("NIMI_REALM_URL"),
 	))
+	// Authorization URL must point at the realm OAuth authorize endpoint
+	// (R-OAUTH-002 / R-OAUTH-011). Web-relay shapes (NIMI_WEB_URL with
+	// #/login?desktop_callback=...) are no longer admitted; the runtime
+	// hands the user agent directly to the realm authorize endpoint and
+	// the realm 302-redirects to the loopback redirect_uri.
 	authorizationURL := firstNonEmpty(
 		cfg.AuthorizationURL,
 		os.Getenv("NIMI_RUNTIME_ACCOUNT_AUTHORIZATION_URL"),
-		os.Getenv("NIMI_WEB_URL"),
-		"http://localhost",
+		joinURL(realmBaseURL, "/api/auth/oauth/authorize"),
 	)
 	tokenURL := firstNonEmpty(
 		cfg.TokenURL,
@@ -276,6 +280,13 @@ func materialFromTokenResponse(resp *http.Response) (AccountMaterial, error) {
 	}, nil
 }
 
+// AuthorizationURL constructs the realm OAuth 2.0 authorize URL the user
+// agent must visit. The shape is normative against
+// .nimi/spec/realm/kernel/oauth-authority-contract.md (R-OAUTH-002 /
+// R-OAUTH-003 / R-OAUTH-005 / R-OAUTH-011): response_type=code,
+// client_id, redirect_uri, code_challenge, code_challenge_method=S256,
+// state. No desktop_callback / desktop_state web-relay fragment is
+// admitted.
 func (r realmOAuthExchanger) AuthorizationURL(attempt LoginAttempt) string {
 	if strings.TrimSpace(r.authorizationURL) == "" {
 		return ""
@@ -285,19 +296,15 @@ func (r realmOAuthExchanger) AuthorizationURL(attempt LoginAttempt) string {
 		return ""
 	}
 	callbackURL := firstNonEmpty(attempt.RedirectURI, r.redirectURI)
-	if u.Fragment != "" {
-		hashRaw := strings.TrimPrefix(u.Fragment, "#")
-		hashPath, hashQueryRaw, _ := strings.Cut(hashRaw, "?")
-		if strings.TrimSpace(hashPath) == "" {
-			hashPath = "/login"
-		}
-		hashQuery, _ := url.ParseQuery(hashQueryRaw)
-		hashQuery.Set("desktop_callback", callbackURL)
-		hashQuery.Set("desktop_state", attempt.State)
-		u.Fragment = hashPath + "?" + hashQuery.Encode()
-		return u.String()
-	}
-	u.Fragment = "/login?desktop_callback=" + url.QueryEscape(callbackURL) + "&desktop_state=" + url.QueryEscape(attempt.State)
+	q := u.Query()
+	q.Set("response_type", "code")
+	q.Set("client_id", r.clientID)
+	q.Set("redirect_uri", callbackURL)
+	q.Set("code_challenge", attempt.PKCEChallenge)
+	q.Set("code_challenge_method", "S256")
+	q.Set("state", attempt.State)
+	u.RawQuery = q.Encode()
+	u.Fragment = ""
 	return u.String()
 }
 
