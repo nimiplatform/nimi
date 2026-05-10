@@ -1,6 +1,4 @@
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::io::{Read, Write};
-use std::net::TcpListener;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{env, path::Path, path::PathBuf};
@@ -29,12 +27,11 @@ use defaults_and_commands::{
 use env_http::{
     allowed_http_origins, is_private_lan_http_origin, is_sensitive_key, load_dotenv_files,
     normalize_http_method, normalize_origin, preview_text_utf8_safe, redact_body_preview,
-    sanitize_headers, validate_external_url,
+    sanitize_headers,
 };
 use session_logging::{
-    app_run_session_id, append_diag_log_entry, debug_boot_enabled, env_value, install_panic_hook,
-    log_boot_marker, now_ms, session_trace_id_from_details, should_echo_diag_log,
-    should_echo_renderer_log, verbose_renderer_logs_enabled,
+    append_diag_log_entry, debug_boot_enabled, env_value, install_panic_hook, log_boot_marker,
+    now_ms, verbose_renderer_logs_enabled,
 };
 #[cfg(target_os = "macos")]
 use session_logging::{apply_macos_traffic_light_position, schedule_macos_traffic_light_reapply};
@@ -189,18 +186,6 @@ struct DesktopMacosSmokeReportResult {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct OpenExternalUrlPayload {
-    url: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct OpenExternalUrlResult {
-    opened: bool,
-}
-
-#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAvatarLaunchHandoffPayload {
@@ -231,94 +216,6 @@ pub(crate) struct DesktopAvatarCloseHandoffPayload {
 pub(crate) struct DesktopAvatarCloseHandoffResult {
     opened: bool,
     handoff_uri: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-#[serde(rename_all = "camelCase")]
-struct OauthTokenExchangePayload {
-    provider: String,
-    client_id: String,
-    code: String,
-    code_verifier: Option<String>,
-    redirect_uri: Option<String>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum OauthTokenExchangeProvider {
-    Codex,
-    Twitter,
-    TikTok,
-}
-
-fn parse_oauth_token_exchange_provider(
-    provider: &str,
-) -> Result<OauthTokenExchangeProvider, String> {
-    match provider.trim().to_ascii_uppercase().as_str() {
-        "CODEX" => Ok(OauthTokenExchangeProvider::Codex),
-        "TWITTER" => Ok(OauthTokenExchangeProvider::Twitter),
-        "TIKTOK" => Ok(OauthTokenExchangeProvider::TikTok),
-        _ => Err("OAuth token exchange provider is not admitted".to_string()),
-    }
-}
-
-fn oauth_token_exchange_url(provider: OauthTokenExchangeProvider) -> &'static str {
-    match provider {
-        OauthTokenExchangeProvider::Codex => "https://auth.openai.com/oauth/token",
-        OauthTokenExchangeProvider::Twitter => "https://api.twitter.com/2/oauth2/token",
-        OauthTokenExchangeProvider::TikTok => "https://open.tiktokapis.com/v2/oauth/token/",
-    }
-}
-
-fn required_trimmed(value: Option<&str>, field_name: &str) -> Result<String, String> {
-    let normalized = value.unwrap_or_default().trim().to_string();
-    if normalized.is_empty() {
-        return Err(format!("OAuth token exchange requires {field_name}"));
-    }
-    Ok(normalized)
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct OauthTokenExchangeResult {
-    access_token: String,
-    refresh_token: Option<String>,
-    token_type: Option<String>,
-    expires_in: Option<i64>,
-    scope: Option<String>,
-    raw: serde_json::Value,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct OauthListenForCodePayload {
-    redirect_uri: String,
-    timeout_ms: Option<u64>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct OauthListenForCodeResult {
-    callback_url: String,
-    code: Option<String>,
-    refresh_token: Option<String>,
-    state: Option<String>,
-    error: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RendererLogPayload {
-    level: String,
-    area: String,
-    message: String,
-    trace_id: Option<String>,
-    #[serde(rename = "flowId")]
-    flow_id: Option<String>,
-    source: Option<String>,
-    #[serde(rename = "costMs")]
-    cost_ms: Option<f64>,
-    details: Option<serde_json::Value>,
 }
 
 const DIAG_LOG_MESSAGE_PREVIEW_BYTES: usize = 4000;

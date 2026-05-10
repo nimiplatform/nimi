@@ -91,17 +91,6 @@ pub(super) fn append_diag_log_entry(
     eprintln!("[diag-log] {line}");
 }
 
-pub(super) fn session_trace_id_from_details(details: &Option<serde_json::Value>) -> Option<String> {
-    details
-        .as_ref()
-        .and_then(|value| value.as_object())
-        .and_then(|object| object.get("sessionTraceId"))
-        .and_then(|value| value.as_str())
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(|value| value.to_string())
-}
-
 pub(super) fn log_boot_marker(message: &str) {
     let boot_ms = now_ms();
     let trace_id = format!("boot-{boot_ms}");
