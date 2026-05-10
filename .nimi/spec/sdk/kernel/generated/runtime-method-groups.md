@@ -38,6 +38,10 @@ Source: `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `ListModelCatalogProviders` | `S-SURFACE-002` |
 | `UpsertModelCatalogProvider` | `S-SURFACE-002` |
 | `DeleteModelCatalogProvider` | `S-SURFACE-002` |
+| `ListCatalogProviderModels` | `S-SURFACE-002` |
+| `GetCatalogModelDetail` | `S-SURFACE-002` |
+| `UpsertCatalogModelOverlay` | `S-SURFACE-002` |
+| `DeleteCatalogModelOverlay` | `S-SURFACE-002` |
 
 ## ai_realtime_service_projection
 

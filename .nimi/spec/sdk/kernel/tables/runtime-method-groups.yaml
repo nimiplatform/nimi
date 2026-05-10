@@ -42,6 +42,10 @@ groups:
       - ListModelCatalogProviders
       - UpsertModelCatalogProvider
       - DeleteModelCatalogProvider
+      - ListCatalogProviderModels
+      - GetCatalogModelDetail
+      - UpsertCatalogModelOverlay
+      - DeleteCatalogModelOverlay
     source_rule: S-SURFACE-002
   - group: ai_realtime_service_projection
     service: RuntimeAiRealtimeService

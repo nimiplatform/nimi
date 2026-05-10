@@ -84,12 +84,18 @@ import {
 import {
   CreateConnectorRequest,
   CreateConnectorResponse,
+  DeleteCatalogModelOverlayRequest,
+  DeleteCatalogModelOverlayResponse,
   DeleteConnectorRequest,
   DeleteConnectorResponse,
   DeleteModelCatalogProviderRequest,
   DeleteModelCatalogProviderResponse,
+  GetCatalogModelDetailRequest,
+  GetCatalogModelDetailResponse,
   GetConnectorRequest,
   GetConnectorResponse,
+  ListCatalogProviderModelsRequest,
+  ListCatalogProviderModelsResponse,
   ListConnectorModelsRequest,
   ListConnectorModelsResponse,
   ListConnectorsRequest,
@@ -102,6 +108,8 @@ import {
   TestConnectorResponse,
   UpdateConnectorRequest,
   UpdateConnectorResponse,
+  UpsertCatalogModelOverlayRequest,
+  UpsertCatalogModelOverlayResponse,
   UpsertModelCatalogProviderRequest,
   UpsertModelCatalogProviderResponse,
 } from '../generated/runtime/v1/connector';
@@ -166,6 +174,22 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.connector.deleteModelCatalogProvider]: {
     requestType: DeleteModelCatalogProviderRequest,
     responseType: DeleteModelCatalogProviderResponse,
+  },
+  [RuntimeMethodIds.connector.listCatalogProviderModels]: {
+    requestType: ListCatalogProviderModelsRequest,
+    responseType: ListCatalogProviderModelsResponse,
+  },
+  [RuntimeMethodIds.connector.getCatalogModelDetail]: {
+    requestType: GetCatalogModelDetailRequest,
+    responseType: GetCatalogModelDetailResponse,
+  },
+  [RuntimeMethodIds.connector.upsertCatalogModelOverlay]: {
+    requestType: UpsertCatalogModelOverlayRequest,
+    responseType: UpsertCatalogModelOverlayResponse,
+  },
+  [RuntimeMethodIds.connector.deleteCatalogModelOverlay]: {
+    requestType: DeleteCatalogModelOverlayRequest,
+    responseType: DeleteCatalogModelOverlayResponse,
   },
   [RuntimeMethodIds.knowledge.createKnowledgeBank]: {
     requestType: CreateKnowledgeBankRequest,

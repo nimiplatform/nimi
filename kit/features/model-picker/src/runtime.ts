@@ -1,7 +1,9 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
+  asNimiError,
   CatalogModelSource,
   ModelCatalogProviderSource,
+  Runtime,
   type CatalogModelDetail,
   type CatalogOverlayWarning,
   type CatalogPricing,
@@ -13,6 +15,7 @@ import {
   type CatalogModelSummary,
   type ModelCatalogProviderEntry,
 } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useModelPicker, type UseModelPickerOptions, type UseModelPickerResult } from './headless.js';
 import type { ModelCatalogAdapter } from './types.js';
@@ -344,19 +347,70 @@ function runtimeAdmin() {
   return getPlatformClient().domains.runtimeAdmin;
 }
 
+const STALE_BEARER_ANONYMOUS_RETRY_MS = 60_000;
+let anonymousRuntime: Runtime | null = null;
+let anonymousReadUntilMs = 0;
+
+function getAnonymousRuntime(): Runtime {
+  const runtime = getPlatformClient().runtime;
+  if (
+    anonymousRuntime
+    && anonymousRuntime.appId === runtime.appId
+    && anonymousRuntime.transport === runtime.transport
+  ) {
+    return anonymousRuntime;
+  }
+  anonymousRuntime = new Runtime({
+    appId: runtime.appId,
+    transport: runtime.transport,
+  });
+  return anonymousRuntime;
+}
+
+function authFailedBecauseOfStaleBearer(error: unknown): boolean {
+  const normalized = asNimiError(error, {
+    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+    actionHint: 'retry_without_stale_runtime_bearer',
+    source: 'runtime',
+  });
+  const code = typeof normalized.reasonCode === 'string' ? normalized.reasonCode.trim() : '';
+  return code === ReasonCode.AUTH_TOKEN_INVALID;
+}
+
+async function withAnonymousReadFallback<T>(
+  action: () => Promise<T>,
+  anonymousAction: (runtime: Runtime) => Promise<T>,
+): Promise<T> {
+  if (Date.now() < anonymousReadUntilMs) {
+    return anonymousAction(getAnonymousRuntime());
+  }
+  try {
+    return await action();
+  } catch (error) {
+    if (!authFailedBecauseOfStaleBearer(error)) {
+      throw error;
+    }
+    anonymousReadUntilMs = Date.now() + STALE_BEARER_ANONYMOUS_RETRY_MS;
+    return anonymousAction(getAnonymousRuntime());
+  }
+}
+
 export const runtimeModelCatalogService: RuntimeModelCatalogService = {
   async listProviders() {
-    const response = await runtimeAdmin().listModelCatalogProviders({}, CATALOG_CALL_OPTIONS);
+    const response = await withAnonymousReadFallback(
+      () => runtimeAdmin().listModelCatalogProviders({}, CATALOG_CALL_OPTIONS),
+      (runtime) => runtime.connector.listModelCatalogProviders({}, CATALOG_CALL_OPTIONS),
+    );
     return (response.providers || [])
       .map(normalizeRuntimeModelCatalogProvider)
       .sort((left, right) => left.provider.localeCompare(right.provider));
   },
   async listProviderModels(provider: string, pageSize = 500, pageToken = '') {
-    const response = await runtimeAdmin().listCatalogProviderModels({
-      provider: provider.trim(),
-      pageSize,
-      pageToken,
-    }, CATALOG_CALL_OPTIONS);
+    const request = { provider: provider.trim(), pageSize, pageToken };
+    const response = await withAnonymousReadFallback(
+      () => runtimeAdmin().listCatalogProviderModels(request, CATALOG_CALL_OPTIONS),
+      (runtime) => runtime.connector.listCatalogProviderModels(request, CATALOG_CALL_OPTIONS),
+    );
     return {
       provider: normalizeRuntimeModelCatalogProvider(response.provider || {} as ModelCatalogProviderEntry),
       models: (response.models || []).map(normalizeRuntimeCatalogModelSummary),
@@ -365,10 +419,11 @@ export const runtimeModelCatalogService: RuntimeModelCatalogService = {
     };
   },
   async getModelDetail(provider: string, modelId: string) {
-    const response = await runtimeAdmin().getCatalogModelDetail({
-      provider: provider.trim(),
-      modelId: modelId.trim(),
-    }, CATALOG_CALL_OPTIONS);
+    const request = { provider: provider.trim(), modelId: modelId.trim() };
+    const response = await withAnonymousReadFallback(
+      () => runtimeAdmin().getCatalogModelDetail(request, CATALOG_CALL_OPTIONS),
+      (runtime) => runtime.connector.getCatalogModelDetail(request, CATALOG_CALL_OPTIONS),
+    );
     return {
       provider: normalizeRuntimeModelCatalogProvider(response.provider || {} as ModelCatalogProviderEntry),
       model: normalizeRuntimeCatalogModelDetail(response.model),

@@ -174,42 +174,6 @@ export const runtimeUnaryMethodCodecsAuthAi: Partial<RuntimeUnaryMethodCodecMap>
     requestType: ReadArtifactBytesRequest,
     responseType: ReadArtifactBytesResponse,
   },
-  [RuntimeMethodIds.account.getAccountSessionStatus]: {
-    requestType: GetAccountSessionStatusRequest,
-    responseType: GetAccountSessionStatusResponse,
-  },
-  [RuntimeMethodIds.account.beginLogin]: {
-    requestType: BeginLoginRequest,
-    responseType: BeginLoginResponse,
-  },
-  [RuntimeMethodIds.account.completeLogin]: {
-    requestType: CompleteLoginRequest,
-    responseType: CompleteLoginResponse,
-  },
-  [RuntimeMethodIds.account.getAccessToken]: {
-    requestType: GetAccessTokenRequest,
-    responseType: GetAccessTokenResponse,
-  },
-  [RuntimeMethodIds.account.refreshAccountSession]: {
-    requestType: RefreshAccountSessionRequest,
-    responseType: RefreshAccountSessionResponse,
-  },
-  [RuntimeMethodIds.account.logout]: {
-    requestType: LogoutRequest,
-    responseType: LogoutResponse,
-  },
-  [RuntimeMethodIds.account.switchAccount]: {
-    requestType: SwitchAccountRequest,
-    responseType: SwitchAccountResponse,
-  },
-  [RuntimeMethodIds.account.issueScopedAppBinding]: {
-    requestType: IssueScopedAppBindingRequest,
-    responseType: IssueScopedAppBindingResponse,
-  },
-  [RuntimeMethodIds.account.revokeScopedAppBinding]: {
-    requestType: RevokeScopedAppBindingRequest,
-    responseType: RevokeScopedAppBindingResponse,
-  },
   [RuntimeMethodIds.ai.executeScenario]: {
     requestType: ExecuteScenarioRequest,
     responseType: ExecuteScenarioResponse,
