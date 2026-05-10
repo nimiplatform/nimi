@@ -30,11 +30,14 @@ import {
   loadKnownPRelgIds,
   loadKnownPGovIds,
 } from './lib/release-gate/registry-loader.mjs';
+import { checkWorkflowReferences } from './lib/release-gate/workflow-resolver.mjs';
 
 function parseArgs(argv) {
   const opts = {
     registryPath: undefined,
     skipAnchorResolution: false,
+    skipWorkflowResolution: false,
+    rootDir: process.cwd(),
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -42,6 +45,10 @@ function parseArgs(argv) {
       opts.registryPath = argv[++i];
     } else if (arg === '--skip-anchor-resolution') {
       opts.skipAnchorResolution = true;
+    } else if (arg === '--skip-workflow-resolution') {
+      opts.skipWorkflowResolution = true;
+    } else if (arg === '--root-dir') {
+      opts.rootDir = argv[++i];
     } else if (arg === '--help' || arg === '-h') {
       printUsage();
       process.exit(0);
@@ -64,6 +71,11 @@ function printUsage() {
       '                                 (default: .nimi/spec/platform/kernel/tables/release-gate-registry.yaml)',
       '  --skip-anchor-resolution       Do not load P-RELG/P-GOV anchor sources',
       '                                 (used by tests; production runs always resolve)',
+      '  --skip-workflow-resolution     Do not run the W4 workflow-yml',
+      '                                 reference resolution pass (used by',
+      '                                 tests; production runs always check)',
+      '  --root-dir <path>              Override repo root for the workflow',
+      '                                 resolution pass (default: cwd)',
       '  --help, -h                     Print this help and exit',
       '',
       'Exit: 0 on green; 1 on coherence violation; 2 on usage error',
@@ -111,12 +123,38 @@ function main() {
     process.exit(1);
   }
 
+  // W4 pass: every `pnpm <script>` reference inside .github/workflows/*.yml
+  // must resolve to a defined script in the workspace package.json set.
+  // Fail-close per P-RELG-011 enforcement.
+  if (!opts.skipWorkflowResolution) {
+    const workflowResult = checkWorkflowReferences(opts.rootDir);
+    if (!workflowResult.ok) {
+      process.stderr.write(
+        `release-gate workflow resolution: FAIL (${workflowResult.unresolved.length} unresolved reference(s) across ${workflowResult.scanned} workflow file(s))\n`
+      );
+      for (const u of workflowResult.unresolved) {
+        const filterDesc = u.filterPkg ? ` --filter ${u.filterPkg}` : '';
+        const dirDesc = u.dirPath ? ` --dir ${u.dirPath}` : '';
+        const recDesc = u.recursive ? ' --recursive' : '';
+        process.stderr.write(
+          `  - ${u.file}:${u.line} pnpm${filterDesc}${dirDesc}${recDesc} ${u.script}  [${u.reason}]\n`
+        );
+      }
+      process.exit(1);
+    }
+  }
+
   const gateCount = Array.isArray(loadResult.registry.gates)
     ? loadResult.registry.gates.length
     : 0;
   process.stdout.write(
     `release-gate registry coherence: OK (${gateCount} gates, schema=${loadResult.registry.schema_version}, registry_version=${loadResult.registry.registry_version})\n`
   );
+  if (!opts.skipWorkflowResolution) {
+    process.stdout.write(
+      `release-gate workflow resolution: OK\n`
+    );
+  }
   process.exit(0);
 }
 

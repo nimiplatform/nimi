@@ -67,9 +67,6 @@ jobs:
       - name: Live provider invariants gate
         run: pnpm check:live-provider-invariants
 
-      - name: Run local-chat live smoke gate
-        run: pnpm check:local-chat-live-smoke
-
       - name: Run live smoke matrix
         run: node scripts/run-live-test-matrix.mjs
 
