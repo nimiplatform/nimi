@@ -4783,6 +4783,7 @@ Fixed rules:
 | cognition.kernel_service | facade_accessor | KernelService | Cognition | kernel | *KernelService | — |
 | cognition.memory_service | facade_accessor | MemoryService | Cognition | memory_substrate | *MemoryService | — |
 | cognition.knowledge_service | facade_accessor | KnowledgeService | Cognition | knowledge_projections | *KnowledgeService | — |
+| cognition.knowledge_scope_registry | facade_accessor | KnowledgeScopeRegistry | Cognition | knowledge_projections | KnowledgeScopeRegistry | — |
 | cognition.skill_service | facade_accessor | SkillService | Cognition | skill_artifacts | *SkillService | — |
 | cognition.working_service | facade_accessor | WorkingService | Cognition | working_state | *WorkingService | — |
 | cognition.prompt_service | facade_accessor | PromptService | Cognition | prompt | *PromptService | — |

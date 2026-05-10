@@ -9,6 +9,7 @@
 | `cognition.kernel_service` | `facade_accessor` | `KernelService` | `Cognition` | `kernel` | `*KernelService` | — | `C-COG-027` |
 | `cognition.memory_service` | `facade_accessor` | `MemoryService` | `Cognition` | `memory_substrate` | `*MemoryService` | — | `C-COG-027` |
 | `cognition.knowledge_service` | `facade_accessor` | `KnowledgeService` | `Cognition` | `knowledge_projections` | `*KnowledgeService` | — | `C-COG-027` |
+| `cognition.knowledge_scope_registry` | `facade_accessor` | `KnowledgeScopeRegistry` | `Cognition` | `knowledge_projections` | `KnowledgeScopeRegistry` | — | `C-COG-059` |
 | `cognition.skill_service` | `facade_accessor` | `SkillService` | `Cognition` | `skill_artifacts` | `*SkillService` | — | `C-COG-027` |
 | `cognition.working_service` | `facade_accessor` | `WorkingService` | `Cognition` | `working_state` | `*WorkingService` | — | `C-COG-027` |
 | `cognition.prompt_service` | `facade_accessor` | `PromptService` | `Cognition` | `prompt` | `*PromptService` | — | `C-COG-027` |

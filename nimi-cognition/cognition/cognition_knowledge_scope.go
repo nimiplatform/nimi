@@ -78,10 +78,10 @@ type KnowledgeScopeRegistry interface {
 	DeleteKnowledgeScope(ctx context.Context, scopeID string) error
 }
 
-// NewKnowledgeScopeRegistry constructs the typed registry against the
+// newKnowledgeScopeRegistry constructs the typed registry against the
 // shared SQLite-backed cognition store. Constructor injection only —
 // no global state.
-func NewKnowledgeScopeRegistry(store *storage.SQLiteBackend, clk clock.Clock) KnowledgeScopeRegistry {
+func newKnowledgeScopeRegistry(store *storage.SQLiteBackend, clk clock.Clock) KnowledgeScopeRegistry {
 	return &knowledgeScopeRegistry{store: store, clock: clk}
 }
 

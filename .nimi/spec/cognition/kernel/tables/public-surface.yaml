@@ -45,6 +45,15 @@ surfaces:
     capability_concerns: []
     notes: Root accessor only.
     source_rule: C-COG-027
+  - surface_id: cognition.knowledge_scope_registry
+    surface_kind: facade_accessor
+    entrypoint: KnowledgeScopeRegistry
+    owner_surface: Cognition
+    family_scope: knowledge_projections
+    return_contract: KnowledgeScopeRegistry
+    capability_concerns: []
+    notes: Typed registry for runtime_knowledge_bank scope kind (C-COG-059).
+    source_rule: C-COG-059
   - surface_id: cognition.skill_service
     surface_kind: facade_accessor
     entrypoint: SkillService

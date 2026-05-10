@@ -124,7 +124,7 @@ func New(rootDir string, opts ...Option) (*Cognition, error) {
 	c.skillSvc = &SkillService{store: store, refgraph: graph}
 	c.workingSvc = &WorkingService{store: workingStore}
 	c.promptSvc = &PromptService{store: store, refgraph: graph}
-	c.knowledgeScopes = NewKnowledgeScopeRegistry(store, clk)
+	c.knowledgeScopes = newKnowledgeScopeRegistry(store, clk)
 	if err := c.knowledgeSvc.markInterruptedIngestTasks(); err != nil {
 		_ = store.Close()
 		return nil, fmt.Errorf("cognition: %w", err)
