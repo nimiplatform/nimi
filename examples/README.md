@@ -10,7 +10,7 @@ For the SDK examples you only need:
 
 ```bash
 # Install the runtime + CLI
-curl -fsSL https://install.nimi.xyz | sh
+curl -fsSL https://install.nimi.ai | sh
 
 # Start the runtime
 nimi start

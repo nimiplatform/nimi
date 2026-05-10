@@ -45,42 +45,48 @@ describe('LookdevLayout', () => {
         visionDefaultTargetKey: 'text.generate.vision::cloud::vision-connector::vision-model::',
         visionConnectorId: 'vision-connector',
         visionModelId: 'vision-model',
-        textTargets: [{
-          key: 'text.generate::cloud::text-connector::text-model::',
-          source: 'cloud',
-          route: 'cloud',
-          connectorId: 'text-connector',
-          connectorLabel: 'Text Connector',
-          endpoint: 'https://text.example.com/v1',
-          provider: 'openai',
-          modelId: 'text-model',
-          modelLabel: 'Text Model',
-          capability: 'text.generate',
-        }],
-        imageTargets: [{
-          key: 'image.generate::cloud::image-connector::image-model::',
-          source: 'cloud',
-          route: 'cloud',
-          connectorId: 'image-connector',
-          connectorLabel: 'Image Connector',
-          endpoint: 'https://image.example.com/v1',
-          provider: 'openai',
-          modelId: 'image-model',
-          modelLabel: 'Image Model',
-          capability: 'image.generate',
-        }],
-        visionTargets: [{
-          key: 'text.generate.vision::cloud::vision-connector::vision-model::',
-          source: 'cloud',
-          route: 'cloud',
-          connectorId: 'vision-connector',
-          connectorLabel: 'Vision Connector',
-          endpoint: 'https://vision.example.com/v1',
-          provider: 'openai',
-          modelId: 'vision-model',
-          modelLabel: 'Vision Model',
-          capability: 'text.generate.vision',
-        }],
+        textTargets: [
+          {
+            key: 'text.generate::cloud::text-connector::text-model::',
+            source: 'cloud',
+            route: 'cloud',
+            connectorId: 'text-connector',
+            connectorLabel: 'Text Connector',
+            endpoint: 'https://text.example.com/v1',
+            provider: 'openai',
+            modelId: 'text-model',
+            modelLabel: 'Text Model',
+            capability: 'text.generate',
+          },
+        ],
+        imageTargets: [
+          {
+            key: 'image.generate::cloud::image-connector::image-model::',
+            source: 'cloud',
+            route: 'cloud',
+            connectorId: 'image-connector',
+            connectorLabel: 'Image Connector',
+            endpoint: 'https://image.example.com/v1',
+            provider: 'openai',
+            modelId: 'image-model',
+            modelLabel: 'Image Model',
+            capability: 'image.generate',
+          },
+        ],
+        visionTargets: [
+          {
+            key: 'text.generate.vision::cloud::vision-connector::vision-model::',
+            source: 'cloud',
+            route: 'cloud',
+            connectorId: 'vision-connector',
+            connectorLabel: 'Vision Connector',
+            endpoint: 'https://vision.example.com/v1',
+            provider: 'openai',
+            modelId: 'vision-model',
+            modelLabel: 'Vision Model',
+            capability: 'text.generate.vision',
+          },
+        ],
         issues: ['missing provider metadata', 'stale vision target'],
       },
       auth: {
@@ -88,7 +94,7 @@ describe('LookdevLayout', () => {
         user: {
           id: 'u1',
           displayName: 'Nimi Test User',
-          email: 'test@nimi.xyz',
+          email: 'test@nimi.ai',
         },
       },
     });
@@ -131,7 +137,9 @@ describe('LookdevLayout', () => {
 
     await user.click(screen.getByRole('button', { name: 'Route Settings' }));
 
-    expect(await screen.findByRole('heading', { name: 'Lookdev route settings' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Lookdev route settings' }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Dialogue route')).toBeInTheDocument();
     expect(screen.getByLabelText('Image route')).toBeInTheDocument();
     expect(screen.getByLabelText('Evaluation route')).toBeInTheDocument();

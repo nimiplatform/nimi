@@ -192,7 +192,7 @@ func TestExternalPrincipalSessionLifecycle(t *testing.T) {
 		AppId:                 "nimi.desktop",
 		ExternalPrincipalId:   "agent-openclaw",
 		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
-		Issuer:                "https://issuer.nimi.xyz",
+		Issuer:                "https://issuer.nimi.ai",
 		SignatureKeyId:        publicKey,
 		ProofType:             runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
 	})
@@ -218,7 +218,7 @@ func TestExternalPrincipalSessionLifecycle(t *testing.T) {
 	openResp, err := svc.OpenExternalPrincipalSession(ctx, &runtimev1.OpenExternalPrincipalSessionRequest{
 		AppId:               "nimi.desktop",
 		ExternalPrincipalId: "agent-openclaw",
-		Proof:               buildTestJWT(t, "https://issuer.nimi.xyz", time.Now().Add(5*time.Minute), privateKey),
+		Proof:               buildTestJWT(t, "https://issuer.nimi.ai", time.Now().Add(5*time.Minute), privateKey),
 	})
 	if err != nil {
 		t.Fatalf("open external principal session: %v", err)
@@ -278,7 +278,7 @@ func TestRegisterExternalPrincipalRequiresSignatureKey(t *testing.T) {
 		AppId:                 "nimi.desktop",
 		ExternalPrincipalId:   "agent-openclaw",
 		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
-		Issuer:                "https://issuer.nimi.xyz",
+		Issuer:                "https://issuer.nimi.ai",
 		ProofType:             runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
 	})
 	if err == nil {
@@ -386,7 +386,7 @@ func TestAuthSessionRejectsNegativeTTLOnRefreshAndExternalOpen(t *testing.T) {
 		AppId:                 "nimi.desktop",
 		ExternalPrincipalId:   "agent-openclaw",
 		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
-		Issuer:                "https://issuer.nimi.xyz",
+		Issuer:                "https://issuer.nimi.ai",
 		SignatureKeyId:        publicKey,
 		ProofType:             runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
 	})
@@ -399,7 +399,7 @@ func TestAuthSessionRejectsNegativeTTLOnRefreshAndExternalOpen(t *testing.T) {
 	_, err = svc.OpenExternalPrincipalSession(ctx, &runtimev1.OpenExternalPrincipalSessionRequest{
 		AppId:               "nimi.desktop",
 		ExternalPrincipalId: "agent-openclaw",
-		Proof:               buildTestJWT(t, "https://issuer.nimi.xyz", time.Now().Add(5*time.Minute), privateKey),
+		Proof:               buildTestJWT(t, "https://issuer.nimi.ai", time.Now().Add(5*time.Minute), privateKey),
 		TtlSeconds:          -1,
 	})
 	if err == nil {
@@ -509,7 +509,7 @@ func TestExternalPrincipalProofValidation(t *testing.T) {
 		AppId:                 "nimi.desktop",
 		ExternalPrincipalId:   "agent-openclaw",
 		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
-		Issuer:                "https://issuer.nimi.xyz",
+		Issuer:                "https://issuer.nimi.ai",
 		SignatureKeyId:        publicKey,
 		ProofType:             runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
 	})
@@ -528,7 +528,7 @@ func TestExternalPrincipalProofValidation(t *testing.T) {
 			request: &runtimev1.OpenExternalPrincipalSessionRequest{
 				AppId:               "nimi.desktop",
 				ExternalPrincipalId: "agent-openclaw",
-				Proof:               buildTestJWT(t, "https://issuer.nimi.xyz", time.Now().Add(-2*time.Minute), privateKey),
+				Proof:               buildTestJWT(t, "https://issuer.nimi.ai", time.Now().Add(-2*time.Minute), privateKey),
 			},
 			wantCode:   codes.Unauthenticated,
 			wantReason: runtimev1.ReasonCode_AUTH_TOKEN_EXPIRED,
@@ -538,7 +538,7 @@ func TestExternalPrincipalProofValidation(t *testing.T) {
 			request: &runtimev1.OpenExternalPrincipalSessionRequest{
 				AppId:               "nimi.desktop",
 				ExternalPrincipalId: "agent-openclaw",
-				Proof:               buildTestJWT(t, "https://wrong-issuer.nimi.xyz", time.Now().Add(5*time.Minute), privateKey),
+				Proof:               buildTestJWT(t, "https://wrong-issuer.nimi.ai", time.Now().Add(5*time.Minute), privateKey),
 			},
 			wantCode:   codes.Unauthenticated,
 			wantReason: runtimev1.ReasonCode_AUTH_TOKEN_INVALID,
@@ -568,7 +568,7 @@ func TestExternalPrincipalProofValidation(t *testing.T) {
 		AppId:                 "nimi.desktop",
 		ExternalPrincipalId:   "agent-unsupported",
 		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
-		Issuer:                "https://issuer.nimi.xyz",
+		Issuer:                "https://issuer.nimi.ai",
 		SignatureKeyId:        publicKey,
 		ProofType:             runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_UNSPECIFIED,
 	})

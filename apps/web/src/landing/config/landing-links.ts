@@ -9,25 +9,25 @@ export type LandingLinks = {
   modDocsUrl: string;
 };
 
-// Docs site is deployed at the docs.nimi.xyz subdomain (VitePress with
+// Docs site is deployed at the docs.nimi.ai subdomain (VitePress with
 // cleanUrls + locales: en at root, zh under /zh/). Locale prefixing for zh
 // is applied in App.tsx via resolveLocalizedLinks(); these defaults are the
 // en/root URLs.
 const DEFAULT_LINKS: LandingLinks = {
-  appUrl: 'https://docs.nimi.xyz/start/',
+  appUrl: 'https://docs.nimi.ai/start/',
   webAppUrl: '/login',
   discordUrl: 'https://discord.gg/BQwHJvPn',
-  docsUrl: 'https://docs.nimi.xyz/',
+  docsUrl: 'https://docs.nimi.ai/',
   githubUrl: 'https://github.com/nimiplatform/nimi',
-  protocolUrl: 'https://docs.nimi.xyz/platform/protocol',
-  desktopDownloadUrl: 'https://docs.nimi.xyz/desktop/',
-  modDocsUrl: 'https://docs.nimi.xyz/desktop/mods',
+  protocolUrl: 'https://docs.nimi.ai/platform/protocol',
+  desktopDownloadUrl: 'https://docs.nimi.ai/desktop/',
+  modDocsUrl: 'https://docs.nimi.ai/desktop/mods',
 };
 
 /**
- * Insert a locale prefix (e.g. 'zh') into a docs URL on the docs.nimi.xyz
+ * Insert a locale prefix (e.g. 'zh') into a docs URL on the docs.nimi.ai
  * subdomain. en/root locale returns the URL unchanged; zh transforms
- * `https://docs.nimi.xyz/<path>` → `https://docs.nimi.xyz/zh/<path>`.
+ * `https://docs.nimi.ai/<path>` → `https://docs.nimi.ai/zh/<path>`.
  *
  * Non-docs URLs (webAppUrl, discordUrl, githubUrl) pass through unchanged.
  */
@@ -35,7 +35,7 @@ function localizeDocsUrl(url: string, locale: 'en' | 'zh'): string {
   if (locale === 'en') return url;
   try {
     const parsed = new URL(url);
-    if (parsed.host !== 'docs.nimi.xyz') return url;
+    if (parsed.host !== 'docs.nimi.ai') return url;
     if (parsed.pathname.startsWith('/zh/') || parsed.pathname === '/zh') return url;
     parsed.pathname = '/zh' + parsed.pathname;
     return parsed.toString();
@@ -69,7 +69,9 @@ function normalizeUrl(raw: unknown, fallback: string): string {
   if (value.startsWith('/')) return value;
   try {
     const parsed = new URL(value);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : fallback;
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+      ? parsed.toString()
+      : fallback;
   } catch {
     return fallback;
   }
@@ -83,7 +85,10 @@ export function resolveLandingLinks(env: Record<string, unknown> = {}): LandingL
     docsUrl: normalizeUrl(env.VITE_LANDING_DOCS_URL, DEFAULT_LINKS.docsUrl),
     githubUrl: normalizeUrl(env.VITE_LANDING_GITHUB_URL, DEFAULT_LINKS.githubUrl),
     protocolUrl: normalizeUrl(env.VITE_LANDING_PROTOCOL_URL, DEFAULT_LINKS.protocolUrl),
-    desktopDownloadUrl: normalizeUrl(env.VITE_LANDING_DESKTOP_DOWNLOAD_URL, DEFAULT_LINKS.desktopDownloadUrl),
+    desktopDownloadUrl: normalizeUrl(
+      env.VITE_LANDING_DESKTOP_DOWNLOAD_URL,
+      DEFAULT_LINKS.desktopDownloadUrl,
+    ),
     modDocsUrl: normalizeUrl(env.VITE_LANDING_MOD_DOCS_URL, DEFAULT_LINKS.modDocsUrl),
   };
 }

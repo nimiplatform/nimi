@@ -5,7 +5,14 @@ import { Realm } from '../../src/realm/index.js';
 import { REALM_OPERATION_MAP } from '../../src/realm/generated/operation-map.js';
 import { asNimiError } from '../../src/runtime/index.js';
 import { ReasonCode } from '../../src/types/index.js';
-import { FetchCall, extractPathParameterNames, resolveFetchHeaders, resolveFetchSignal, resolveFetchUrl, createAbortError } from './realm-client-test-helpers.js';
+import {
+  FetchCall,
+  extractPathParameterNames,
+  resolveFetchHeaders,
+  resolveFetchSignal,
+  resolveFetchUrl,
+  createAbortError,
+} from './realm-client-test-helpers.js';
 
 test('Realm keeps baseUrl/accessToken isolated per instance', async () => {
   const originalFetch = globalThis.fetch;
@@ -29,11 +36,11 @@ test('Realm keeps baseUrl/accessToken isolated per instance', async () => {
 
   try {
     const realmA = new Realm({
-      baseUrl: 'https://realm-a.nimi.xyz',
+      baseUrl: 'https://realm-a.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'token-a' },
     });
     const realmB = new Realm({
-      baseUrl: 'https://realm-b.nimi.xyz',
+      baseUrl: 'https://realm-b.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'token-b' },
     });
 
@@ -41,9 +48,9 @@ test('Realm keeps baseUrl/accessToken isolated per instance', async () => {
     await realmB.unsafeRaw.request({ method: 'GET', path: '/api/b' });
 
     assert.equal(calls.length, 2);
-    assert.equal(calls[0]?.url, 'https://realm-a.nimi.xyz/api/a');
+    assert.equal(calls[0]?.url, 'https://realm-a.nimi.ai/api/a');
     assert.equal(calls[0]?.authorization, 'Bearer token-a');
-    assert.equal(calls[1]?.url, 'https://realm-b.nimi.xyz/api/b');
+    assert.equal(calls[1]?.url, 'https://realm-b.nimi.ai/api/b');
     assert.equal(calls[1]?.authorization, 'Bearer token-b');
   } finally {
     globalThis.fetch = originalFetch;
@@ -66,7 +73,7 @@ test('Realm unsafeRaw.request replaces pathParams before dispatch', async () => 
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-path-params.nimi.xyz',
+      baseUrl: 'https://realm-path-params.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'path-token' },
     });
 
@@ -80,7 +87,7 @@ test('Realm unsafeRaw.request replaces pathParams before dispatch', async () => 
     });
 
     assert.equal(calls.length, 1);
-    assert.equal(calls[0], 'https://realm-path-params.nimi.xyz/api/worlds/world%201/posts/42');
+    assert.equal(calls[0], 'https://realm-path-params.nimi.ai/api/worlds/world%201/posts/42');
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -88,7 +95,7 @@ test('Realm unsafeRaw.request replaces pathParams before dispatch', async () => 
 
 test('Realm exposes unsafeRaw as the explicit escape hatch', () => {
   const realm = new Realm({
-    baseUrl: 'https://realm-unsafe-raw.nimi.xyz',
+    baseUrl: 'https://realm-unsafe-raw.nimi.ai',
     auth: null,
   });
 
@@ -97,7 +104,7 @@ test('Realm exposes unsafeRaw as the explicit escape hatch', () => {
 
 test('Realm unsafeRaw.request rejects unsupported HTTP methods with supported list', async () => {
   const realm = new Realm({
-    baseUrl: 'https://realm-methods.nimi.xyz',
+    baseUrl: 'https://realm-methods.nimi.ai',
     auth: null,
   });
 
@@ -129,7 +136,7 @@ test('Realm unsafeRaw.request only returns typed data through explicit parsing',
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-parser.nimi.xyz',
+      baseUrl: 'https://realm-parser.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'parser-token' },
     });
 
@@ -137,7 +144,7 @@ test('Realm unsafeRaw.request only returns typed data through explicit parsing',
       method: 'GET',
       path: '/api/policy',
       parseResponse: (value) => {
-        const record = (value && typeof value === 'object') ? value as { allowed?: unknown } : {};
+        const record = value && typeof value === 'object' ? (value as { allowed?: unknown }) : {};
         return { allowed: record.allowed === true };
       },
     });
@@ -164,17 +171,17 @@ test('Realm services facade uses instance config (no global OpenAPI mutation)', 
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-service.nimi.xyz',
+      baseUrl: 'https://realm-service.nimi.ai',
       auth: null,
     });
 
     await realm.services.AuthService.passwordLogin({
-      email: 'test@nimi.xyz',
+      email: 'test@nimi.ai',
       password: 'secret',
     });
 
     assert.equal(calls.length, 1);
-    assert.equal(calls[0], 'https://realm-service.nimi.xyz/api/auth/password/login');
+    assert.equal(calls[0], 'https://realm-service.nimi.ai/api/auth/password/login');
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -184,22 +191,25 @@ test('Realm maps HTTP errors to NimiError with layered reasonCode/actionHint', a
   const originalFetch = globalThis.fetch;
 
   globalThis.fetch = (async (): Promise<Response> => {
-    return new Response(JSON.stringify({
-      reasonCode: ReasonCode.APP_TOKEN_EXPIRED,
-      actionHint: 'reauthenticate_now',
-      message: 'token expired',
-      traceId: 'trace-realm-401',
-    }), {
-      status: 401,
-      headers: {
-        'content-type': 'application/json',
+    return new Response(
+      JSON.stringify({
+        reasonCode: ReasonCode.APP_TOKEN_EXPIRED,
+        actionHint: 'reauthenticate_now',
+        message: 'token expired',
+        traceId: 'trace-realm-401',
+      }),
+      {
+        status: 401,
+        headers: {
+          'content-type': 'application/json',
+        },
       },
-    });
+    );
   }) as typeof globalThis.fetch;
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-error.nimi.xyz',
+      baseUrl: 'https://realm-error.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'error-token' },
     });
 
@@ -228,19 +238,22 @@ test('Realm maps HTTP 422 to CONFIG_INVALID when reasonCode is absent', async ()
   const originalFetch = globalThis.fetch;
 
   globalThis.fetch = (async (): Promise<Response> => {
-    return new Response(JSON.stringify({
-      message: 'payload invalid',
-    }), {
-      status: 422,
-      headers: {
-        'content-type': 'application/json',
+    return new Response(
+      JSON.stringify({
+        message: 'payload invalid',
+      }),
+      {
+        status: 422,
+        headers: {
+          'content-type': 'application/json',
+        },
       },
-    });
+    );
   }) as typeof globalThis.fetch;
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-validation.nimi.xyz',
+      baseUrl: 'https://realm-validation.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'validation-token' },
     });
 
@@ -284,7 +297,7 @@ test('Realm maps default 404/409/429 status codes when reasonCode is absent', as
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-status-map.nimi.xyz',
+      baseUrl: 'https://realm-status-map.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'status-token' },
     });
 
@@ -324,7 +337,7 @@ test('Realm maps network failures to REALM_UNAVAILABLE', async () => {
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-network.nimi.xyz',
+      baseUrl: 'https://realm-network.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'network-token' },
     });
 
@@ -359,15 +372,19 @@ test('Realm maps timeout abort to REALM_UNAVAILABLE (not OPERATION_ABORTED)', as
         reject(createAbortError('request aborted'));
         return;
       }
-      signal.addEventListener('abort', () => {
-        reject(createAbortError('request aborted'));
-      }, { once: true });
+      signal.addEventListener(
+        'abort',
+        () => {
+          reject(createAbortError('request aborted'));
+        },
+        { once: true },
+      );
     });
   }) as typeof globalThis.fetch;
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-timeout.nimi.xyz',
+      baseUrl: 'https://realm-timeout.nimi.ai',
       timeoutMs: 10,
       auth: { mode: 'external_principal', accessToken: 'timeout-token' },
     });
@@ -404,15 +421,19 @@ test('Realm maps external abort signal to OPERATION_ABORTED', async () => {
         reject(createAbortError('request aborted'));
         return;
       }
-      signal.addEventListener('abort', () => {
-        reject(createAbortError('request aborted'));
-      }, { once: true });
+      signal.addEventListener(
+        'abort',
+        () => {
+          reject(createAbortError('request aborted'));
+        },
+        { once: true },
+      );
     });
   }) as typeof globalThis.fetch;
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-abort.nimi.xyz',
+      baseUrl: 'https://realm-abort.nimi.ai',
       timeoutMs: 1000,
       auth: { mode: 'external_principal', accessToken: 'abort-token' },
     });

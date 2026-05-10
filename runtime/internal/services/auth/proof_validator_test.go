@@ -34,10 +34,10 @@ func TestValidateExternalProofRequiresSignatureKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generate rsa key: %v", err)
 	}
-	token := buildTestJWT(t, "https://issuer.nimi.xyz", time.Now().Add(5*time.Minute), privateKey)
+	token := buildTestJWT(t, "https://issuer.nimi.ai", time.Now().Add(5*time.Minute), privateKey)
 	principal := externalPrincipal{
 		ProofType: runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
-		Issuer:    "https://issuer.nimi.xyz",
+		Issuer:    "https://issuer.nimi.ai",
 	}
 	if err := validateExternalProof(token, principal); err == nil {
 		t.Fatalf("expected invalid proof for missing signature key")
@@ -51,10 +51,10 @@ func TestValidateExternalProofAcceptsValidSignature(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generate rsa key: %v", err)
 	}
-	token := buildTestJWT(t, "https://issuer.nimi.xyz", time.Now().Add(5*time.Minute), privateKey)
+	token := buildTestJWT(t, "https://issuer.nimi.ai", time.Now().Add(5*time.Minute), privateKey)
 	principal := externalPrincipal{
 		ProofType:      runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
-		Issuer:         "https://issuer.nimi.xyz",
+		Issuer:         "https://issuer.nimi.ai",
 		SignatureKeyID: encodePublicKeyDERBase64(t, &privateKey.PublicKey),
 	}
 	if err := validateExternalProof(token, principal); err != nil {
@@ -67,10 +67,10 @@ func TestValidateExternalProofRejectsMissingExpClaim(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generate rsa key: %v", err)
 	}
-	token := buildExpOmittedJWT(t, "https://issuer.nimi.xyz", privateKey)
+	token := buildExpOmittedJWT(t, "https://issuer.nimi.ai", privateKey)
 	principal := externalPrincipal{
 		ProofType:      runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
-		Issuer:         "https://issuer.nimi.xyz",
+		Issuer:         "https://issuer.nimi.ai",
 		SignatureKeyID: encodePublicKeyDERBase64(t, &privateKey.PublicKey),
 	}
 	if err := validateExternalProof(token, principal); err == nil {
@@ -86,14 +86,14 @@ func TestValidateExternalProofRejectsFutureNbfOutsideClockSkew(t *testing.T) {
 		t.Fatalf("generate rsa key: %v", err)
 	}
 	token := buildTestJWTWithClaims(t, map[string]any{
-		"iss": "https://issuer.nimi.xyz",
+		"iss": "https://issuer.nimi.ai",
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(5 * time.Minute).Unix(),
 		"nbf": time.Now().Add(2 * time.Minute).Unix(),
 	}, privateKey)
 	principal := externalPrincipal{
 		ProofType:      runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
-		Issuer:         "https://issuer.nimi.xyz",
+		Issuer:         "https://issuer.nimi.ai",
 		SignatureKeyID: encodePublicKeyDERBase64(t, &privateKey.PublicKey),
 	}
 	if err := validateExternalProof(token, principal); err == nil {
@@ -109,14 +109,14 @@ func TestValidateExternalProofAcceptsNbfWithinClockSkew(t *testing.T) {
 		t.Fatalf("generate rsa key: %v", err)
 	}
 	token := buildTestJWTWithClaims(t, map[string]any{
-		"iss": "https://issuer.nimi.xyz",
+		"iss": "https://issuer.nimi.ai",
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(5 * time.Minute).Unix(),
 		"nbf": time.Now().Add(30 * time.Second).Unix(),
 	}, privateKey)
 	principal := externalPrincipal{
 		ProofType:      runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
-		Issuer:         "https://issuer.nimi.xyz",
+		Issuer:         "https://issuer.nimi.ai",
 		SignatureKeyID: encodePublicKeyDERBase64(t, &privateKey.PublicKey),
 	}
 	if err := validateExternalProof(token, principal); err != nil {
@@ -130,12 +130,12 @@ func TestValidateExternalProofRejectsMissingIatClaim(t *testing.T) {
 		t.Fatalf("generate rsa key: %v", err)
 	}
 	token := buildTestJWTWithClaims(t, map[string]any{
-		"iss": "https://issuer.nimi.xyz",
+		"iss": "https://issuer.nimi.ai",
 		"exp": time.Now().Add(5 * time.Minute).Unix(),
 	}, privateKey)
 	principal := externalPrincipal{
 		ProofType:      runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
-		Issuer:         "https://issuer.nimi.xyz",
+		Issuer:         "https://issuer.nimi.ai",
 		SignatureKeyID: encodePublicKeyDERBase64(t, &privateKey.PublicKey),
 	}
 	if err := validateExternalProof(token, principal); err == nil {
@@ -152,13 +152,13 @@ func TestValidateExternalProofRejectsLifetimeExceedingMaximum(t *testing.T) {
 	}
 	issuedAt := time.Now().Add(-time.Hour)
 	token := buildTestJWTWithClaims(t, map[string]any{
-		"iss": "https://issuer.nimi.xyz",
+		"iss": "https://issuer.nimi.ai",
 		"iat": issuedAt.Unix(),
 		"exp": issuedAt.Add(25 * time.Hour).Unix(),
 	}, privateKey)
 	principal := externalPrincipal{
 		ProofType:      runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
-		Issuer:         "https://issuer.nimi.xyz",
+		Issuer:         "https://issuer.nimi.ai",
 		SignatureKeyID: encodePublicKeyDERBase64(t, &privateKey.PublicKey),
 	}
 	if err := validateExternalProof(token, principal); err == nil {

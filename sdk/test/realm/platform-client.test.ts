@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createPlatformClient, getPlatformClient, clearPlatformClient } from '../../src/platform-client.js';
+import {
+  createPlatformClient,
+  getPlatformClient,
+  clearPlatformClient,
+} from '../../src/platform-client.js';
 import { asNimiError } from '../../src/runtime/errors.js';
 import { ReasonCode } from '../../src/types/index.js';
 
@@ -23,7 +27,7 @@ test('createPlatformClient returns client with realm and domains', async () => {
 
   try {
     const client = await createPlatformClient({
-      realmBaseUrl: 'https://platform-test.nimi.xyz',
+      realmBaseUrl: 'https://platform-test.nimi.ai',
       accessToken: 'test-token',
       runtimeTransport: null,
     });
@@ -50,7 +54,7 @@ test('clearPlatformClient resets singleton so getPlatformClient throws', async (
 
   try {
     await createPlatformClient({
-      realmBaseUrl: 'https://platform-clear.nimi.xyz',
+      realmBaseUrl: 'https://platform-clear.nimi.ai',
       accessToken: 'test-token',
       runtimeTransport: null,
     });
@@ -75,7 +79,7 @@ test('disabled runtime proxy throws SDK_RUNTIME_METHOD_UNAVAILABLE', async () =>
 
   try {
     const client = await createPlatformClient({
-      realmBaseUrl: 'https://platform-disabled-rt.nimi.xyz',
+      realmBaseUrl: 'https://platform-disabled-rt.nimi.ai',
       accessToken: 'test-token',
       runtimeTransport: null,
     });

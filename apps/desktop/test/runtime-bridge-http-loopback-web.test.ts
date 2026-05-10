@@ -3,9 +3,10 @@ import test from 'node:test';
 
 function setWindowOrigin(origin: string): void {
   const currentWindow = globalThis.window as unknown;
-  const existingWindow = (currentWindow && typeof currentWindow === 'object')
-    ? currentWindow as Record<string, unknown>
-    : {};
+  const existingWindow =
+    currentWindow && typeof currentWindow === 'object'
+      ? (currentWindow as Record<string, unknown>)
+      : {};
   Object.defineProperty(globalThis, 'window', {
     value: {
       ...existingWindow,
@@ -22,7 +23,8 @@ test('web proxy http fallback allows loopback backend across localhost and 127.0
   const originalFetch = globalThis.fetch;
   setWindowOrigin('http://127.0.0.1:3000');
   globalThis.fetch = (async (input: RequestInfo | URL) => {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const url =
+      typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     calls.push(url);
     return new Response('{"available":false}', {
       status: 200,
@@ -33,14 +35,16 @@ test('web proxy http fallback allows loopback backend across localhost and 127.0
   }) as typeof fetch;
 
   try {
-    const { proxyHttp } = await import(`../src/shell/renderer/bridge/runtime-bridge/http.ts?loopback-web=${Date.now()}`);
+    const { proxyHttp } = await import(
+      `../src/shell/renderer/bridge/runtime-bridge/http.ts?loopback-web=${Date.now()}`
+    );
     const result = await proxyHttp({
       url: 'http://localhost:3002/api/auth/email/check',
       method: 'POST',
       headers: {
         'content-type': 'application/json',
       },
-      body: '{"email":"test@nimi.xyz"}',
+      body: '{"email":"test@nimi.ai"}',
     });
 
     assert.equal(calls.length, 1);
@@ -60,16 +64,19 @@ test('web proxy http fallback still rejects non-loopback private network targets
   }) as typeof fetch;
 
   try {
-    const { proxyHttp } = await import(`../src/shell/renderer/bridge/runtime-bridge/http.ts?private-network-block=${Date.now()}`);
+    const { proxyHttp } = await import(
+      `../src/shell/renderer/bridge/runtime-bridge/http.ts?private-network-block=${Date.now()}`
+    );
     await assert.rejects(
-      () => proxyHttp({
-        url: 'http://192.168.1.8:3002/api/auth/email/check',
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: '{"email":"test@nimi.xyz"}',
-      }),
+      () =>
+        proxyHttp({
+          url: 'http://192.168.1.8:3002/api/auth/email/check',
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: '{"email":"test@nimi.ai"}',
+        }),
       /禁止访问私有网络地址/,
     );
   } finally {
@@ -85,12 +92,15 @@ test('web proxy http fallback rejects off-origin https targets outside explicit 
   }) as typeof fetch;
 
   try {
-    const { proxyHttp } = await import(`../src/shell/renderer/bridge/runtime-bridge/http.ts?https-origin-block=${Date.now()}`);
+    const { proxyHttp } = await import(
+      `../src/shell/renderer/bridge/runtime-bridge/http.ts?https-origin-block=${Date.now()}`
+    );
     await assert.rejects(
-      () => proxyHttp({
-        url: 'https://api.third-party.example/v1/data',
-        method: 'GET',
-      }),
+      () =>
+        proxyHttp({
+          url: 'https://api.third-party.example/v1/data',
+          method: 'GET',
+        }),
       /Web fallback 仅允许同源或显式 loopback 请求/,
     );
   } finally {

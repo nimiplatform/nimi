@@ -746,13 +746,13 @@ func TestValidateAlgNoneTokenRejected(t *testing.T) {
 }
 
 func TestNewValidatorRejectsPartialConfig(t *testing.T) {
-	if _, err := NewValidator("https://realm.nimi.xyz/api/auth/jwks", "", "runtime"); err == nil {
+	if _, err := NewValidator("https://realm.nimi.ai/api/auth/jwks", "", "runtime"); err == nil {
 		t.Fatal("expected partial jwt config to be rejected")
 	}
 }
 
 func TestNewValidatorRejectsNonLoopbackHTTPJWKS(t *testing.T) {
-	if _, err := NewValidator("http://realm.nimi.xyz/api/auth/jwks", "issuer", "audience"); err == nil {
+	if _, err := NewValidator("http://realm.nimi.ai/api/auth/jwks", "issuer", "audience"); err == nil {
 		t.Fatal("expected non-loopback http jwks url to be rejected")
 	}
 }

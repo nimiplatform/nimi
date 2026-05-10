@@ -10,10 +10,7 @@ import {
 test('createRealmServiceRegistry exposes every generated service', () => {
   const registry = createRealmServiceRegistry(async () => undefined);
 
-  assert.deepEqual(
-    Object.keys(registry).sort(),
-    Object.keys(REALM_SERVICE_METHODS).sort(),
-  );
+  assert.deepEqual(Object.keys(registry).sort(), Object.keys(REALM_SERVICE_METHODS).sort());
 });
 
 test('service registry replaces and encodes path parameters', async () => {
@@ -51,7 +48,7 @@ test('service registry forwards tail options for body operations', async () => {
   });
 
   await registry.AuthService.passwordLogin(
-    { email: 'test@nimi.xyz', password: 'secret' },
+    { email: 'test@nimi.ai', password: 'secret' },
     {
       headers: { 'x-test': '1' },
       timeoutMs: 250,
@@ -72,7 +69,7 @@ test('service registry forwards abort signals via tail options', async () => {
   const controller = new AbortController();
 
   await registry.AuthService.passwordLogin(
-    { email: 'test@nimi.xyz', password: 'secret' },
+    { email: 'test@nimi.ai', password: 'secret' },
     {
       signal: controller.signal,
     },
@@ -90,7 +87,7 @@ test('service registry forwards bodies for body operations', async () => {
   });
 
   const payload = {
-    email: 'test@nimi.xyz',
+    email: 'test@nimi.ai',
     password: 'secret',
   };
 
@@ -123,7 +120,10 @@ test('service registry throws when required request bodies are missing', async (
   const registry = createRealmServiceRegistry(async () => ({ ok: true }));
 
   await assert.rejects(
-    () => registry.AuthService.passwordLogin(undefined as unknown as Parameters<typeof registry.AuthService.passwordLogin>[0]),
+    () =>
+      registry.AuthService.passwordLogin(
+        undefined as unknown as Parameters<typeof registry.AuthService.passwordLogin>[0],
+      ),
     /missing required request body/,
   );
 });

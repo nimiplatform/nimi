@@ -7,7 +7,7 @@ REPO_OWNER="nimiplatform"
 REPO_NAME="nimi"
 INSTALL_ROOT="${HOME}/.nimi"
 BIN_DIR="${INSTALL_ROOT}/bin"
-INSTALL_MANIFEST_URL_DEFAULT="https://install.nimi.xyz/runtime/latest.json"
+INSTALL_MANIFEST_URL_DEFAULT="https://install.nimi.ai/runtime/latest.json"
 DRY_RUN=0
 REQUESTED_VERSION=""
 

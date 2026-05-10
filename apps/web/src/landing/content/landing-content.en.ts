@@ -32,19 +32,32 @@ export const landingContentEn: LandingContent = {
     getStartedTitle: 'Quickstart',
     getStartedSubtitle: 'Pick your integration entry',
     tabs: [
-      { id: 'platform', label: 'Platform', command: 'docs.nimi.xyz/platform', ctaText: 'Read Platform Docs' },
-      { id: 'runtime', label: 'Runtime', command: 'docs.nimi.xyz/runtime', ctaText: 'Read Runtime Docs' },
-      { id: 'sdk', label: 'SDK', command: 'docs.nimi.xyz/sdk', ctaText: 'Read SDK Docs' },
+      {
+        id: 'platform',
+        label: 'Platform',
+        command: 'docs.nimi.ai/platform',
+        ctaText: 'Read Platform Docs',
+      },
+      {
+        id: 'runtime',
+        label: 'Runtime',
+        command: 'docs.nimi.ai/runtime',
+        ctaText: 'Read Runtime Docs',
+      },
+      { id: 'sdk', label: 'SDK', command: 'docs.nimi.ai/sdk', ctaText: 'Read SDK Docs' },
     ],
   },
   architecture: {
     title: 'One platform, many worlds.',
     subtitle: 'Architecture',
-    description: 'Nimi gives you a typed SDK to build AI experiences that span persistent worlds, autonomous agents, shared memory, identity, social, and economy — bridged by a runtime you can run locally or in the cloud.',
+    description:
+      'Nimi gives you a typed SDK to build AI experiences that span persistent worlds, autonomous agents, shared memory, identity, social, and economy — bridged by a runtime you can run locally or in the cloud.',
     devTitle: 'For builders',
-    devText: 'Integrate through the typed SDK. Compose agents, models, workflows, and memory the same way whether they run on a laptop or in cloud infrastructure you control.',
+    devText:
+      'Integrate through the typed SDK. Compose agents, models, workflows, and memory the same way whether they run on a laptop or in cloud infrastructure you control.',
     userTitle: 'For product readers',
-    userText: 'Nimi is an AI open world platform — agents that persist across sessions, share state across worlds, and act through admitted runtime capabilities. Not a chat wrapper, not a single-purpose app.',
+    userText:
+      'Nimi is an AI open world platform — agents that persist across sessions, share state across worlds, and act through admitted runtime capabilities. Not a chat wrapper, not a single-purpose app.',
     conclusion: 'Concept-led, contracts-first, runtime-anywhere.',
     slogan: 'Your code, your contracts, your worlds.',
     diagram: {
@@ -86,7 +99,8 @@ export const landingContentEn: LandingContent = {
   modelCatalog: {
     kicker: 'Provider routing',
     title: 'Route any model. Through one normalized API.',
-    subtitle: 'Connect to admitted providers through a single typed surface — pick the model, ship the integration.',
+    subtitle:
+      'Connect to admitted providers through a single typed surface — pick the model, ship the integration.',
     overview: {
       searchPlaceholder: 'Search providers, models, and capabilities',
       cloudProvidersLabel: 'Cloud Providers',
@@ -102,13 +116,20 @@ export const landingContentEn: LandingContent = {
     },
     liveBadge: 'Open catalog',
     featuredProvidersLabel: 'Featured providers',
-    stats: { providers: 'providers', models: 'default models', cloudProviders: 'cloud providers', localModels: 'local providers' },
+    stats: {
+      providers: 'providers',
+      models: 'default models',
+      cloudProviders: 'cloud providers',
+      localModels: 'local providers',
+    },
     localTitle: 'Local execution',
     localHeadline: 'Run models on your own machine.',
-    localDescription: 'Local provider routes execute through the runtime on your hardware — same SDK, same capability typing, no cloud round-trip.',
+    localDescription:
+      'Local provider routes execute through the runtime on your hardware — same SDK, same capability typing, no cloud round-trip.',
     capabilitiesTitle: 'Capability matrix',
     capabilitiesHeadline: 'Twelve admitted capabilities across providers.',
-    capabilitiesDescription: 'Text generation, vision, embeddings, image and video generation, speech synthesis and transcription, music generation, voice cloning and design, and world generation — each capability admits the providers that support it.',
+    capabilitiesDescription:
+      'Text generation, vision, embeddings, image and video generation, speech synthesis and transcription, music generation, voice cloning and design, and world generation — each capability admits the providers that support it.',
     capabilityLabels: {
       'text.generate': 'Text generation',
       'text.embed': 'Embeddings',
@@ -127,12 +148,14 @@ export const landingContentEn: LandingContent = {
     cloudBadge: 'cloud',
     matrixTitle: 'Provider matrix',
     matrixHeadline: 'Pick a model, route to the matching provider.',
-    matrixDescription: 'Each provider admits one or more capability categories. The runtime selects the routed model based on your config — switch providers without touching call sites.',
+    matrixDescription:
+      'Each provider admits one or more capability categories. The runtime selects the routed model based on your config — switch providers without touching call sites.',
     providerDetailSuffix: 'capabilities',
     searchResultsTitle: 'Search results',
     searchResultsDescription: 'Filter providers by name, default model, or admitted capability.',
     noResultsTitle: 'No providers match.',
-    noResultsDescription: 'Try a different keyword, or browse the full catalog in the routing docs.',
+    noResultsDescription:
+      'Try a different keyword, or browse the full catalog in the routing docs.',
     sourceNote: 'Read the routing docs for full provider configuration and capability details.',
     providerDisplayNames: {
       anthropic: 'Anthropic',
@@ -179,41 +202,47 @@ export const landingContentEn: LandingContent = {
     eyebrow: 'One typed SDK',
     title: 'One SDK.',
     titleAccent: 'Multiple ways to run AI.',
-    subtitle: 'Compose agents, models, workflows, and shared environments through one typed integration surface — locally or in the cloud.',
+    subtitle:
+      'Compose agents, models, workflows, and shared environments through one typed integration surface — locally or in the cloud.',
     callout: 'Explore the SDK reference',
     tabs: [
       {
         id: 'agent-participation',
         label: 'Agent Participation',
-        description: 'Connect agents to live worlds — authored once, shared across sessions and apps.',
+        description:
+          'Connect agents to live worlds — authored once, shared across sessions and apps.',
         docsPath: 'sdk/agent-participation-client',
         previewMediaId: 'sdk',
       },
       {
         id: 'avatar-control',
         label: 'Avatar Control',
-        description: 'Drive embodied avatars with multimodal input + scripted motion through one client.',
+        description:
+          'Drive embodied avatars with multimodal input + scripted motion through one client.',
         docsPath: 'sdk/avatar-control-client',
         previewMediaId: 'multimodal',
       },
       {
         id: 'delegation',
         label: 'Delegation',
-        description: 'Hand off tasks between agents and humans with typed context handoff and audit trail.',
+        description:
+          'Hand off tasks between agents and humans with typed context handoff and audit trail.',
         docsPath: 'sdk/delegation-client',
         previewMediaId: 'workflow',
       },
       {
         id: 'local-environment',
         label: 'Local Environment',
-        description: 'Project shared environments into local sessions — files, tools, and runtime state.',
+        description:
+          'Project shared environments into local sessions — files, tools, and runtime state.',
         docsPath: 'sdk/local-environment-projection',
         previewMediaId: 'workflow',
       },
       {
         id: 'ai-config',
         label: 'AI Config',
-        description: 'One config surface for model selection, capability routing, and provider preferences.',
+        description:
+          'One config surface for model selection, capability routing, and provider preferences.',
         docsPath: 'sdk/ai-config-surface',
         previewMediaId: 'sdk',
       },
@@ -227,14 +256,16 @@ export const landingContentEn: LandingContent = {
       {
         id: 'wee-consumer',
         label: 'WEE Consumer',
-        description: 'Subscribe to admitted world execution events with backpressure-safe consumption.',
+        description:
+          'Subscribe to admitted world execution events with backpressure-safe consumption.',
         docsPath: 'sdk/wee-consumer',
         previewMediaId: 'streamJob',
       },
       {
         id: 'transport-error',
         label: 'Transport & Error',
-        description: 'Typed transport contracts plus structured error semantics across the whole SDK.',
+        description:
+          'Typed transport contracts plus structured error semantics across the whole SDK.',
         docsPath: 'sdk/transport-and-error',
         previewMediaId: 'workflow',
       },
@@ -248,7 +279,8 @@ export const landingContentEn: LandingContent = {
   },
   desktop: {
     title: 'Native desktop. Real web boundary.',
-    subtitle: 'Desktop is the full app — local mods, embedded runtime, your machine. Web mode runs the same shell with explicit web-only adapters. Both ship as real surfaces.',
+    subtitle:
+      'Desktop is the full app — local mods, embedded runtime, your machine. Web mode runs the same shell with explicit web-only adapters. Both ship as real surfaces.',
     chromeLabels: {
       appName: 'Nimi Desktop',
       runtime: 'Runtime',
@@ -261,56 +293,140 @@ export const landingContentEn: LandingContent = {
       installed: 'Installed',
     },
     features: [
-      { icon: 'dashboard', title: 'Runtime Dashboard', description: 'See model health, resource usage, and active sessions at a glance.' },
-      { icon: 'chat', title: 'Built-in Chat', description: 'Talk to local and cloud models from the same workspace.' },
-      { icon: 'mods', title: 'Mod Host', description: 'Launch installed mods without leaving the desktop app.' },
-      { icon: 'models', title: 'Model Management', description: 'Install, update, and switch models from one place.' },
+      {
+        icon: 'dashboard',
+        title: 'Runtime Dashboard',
+        description: 'See model health, resource usage, and active sessions at a glance.',
+      },
+      {
+        icon: 'chat',
+        title: 'Built-in Chat',
+        description: 'Talk to local and cloud models from the same workspace.',
+      },
+      {
+        icon: 'mods',
+        title: 'Mod Host',
+        description: 'Launch installed mods without leaving the desktop app.',
+      },
+      {
+        icon: 'models',
+        title: 'Model Management',
+        description: 'Install, update, and switch models from one place.',
+      },
     ],
     downloadCta: 'Read Desktop Docs',
     availability: {
       eyebrow: 'Available now',
-      items: ['Native shell on macOS, Linux, and Windows', 'Browser-only sessions via web mode', 'Mods + runtime built-in'],
+      items: [
+        'Native shell on macOS, Linux, and Windows',
+        'Browser-only sessions via web mode',
+        'Mods + runtime built-in',
+      ],
     },
   },
   faq: {
     eyebrow: 'FAQ',
     title: 'Common questions',
-    description: 'Quick answers for builders and product readers — read the docs for the full picture.',
+    description:
+      'Quick answers for builders and product readers — read the docs for the full picture.',
     communityCta: 'Join Discord',
     items: [
-      { question: 'What is Nimi?', answer: 'An open-source AI runtime built around persistent worlds and embodied agents. Compose models, workflows, and shared memory through one typed SDK.' },
-      { question: 'How do I start integrating?', answer: 'Read the SDK docs, install the typed client, and connect to the runtime locally or in your own cloud — same SDK, same contracts.' },
-      { question: 'Can I run models locally?', answer: 'Yes. The runtime executes through admitted local providers on your hardware — no cloud round-trip required for routes that support it.' },
-      { question: 'Is Nimi open source?', answer: 'Yes. Runtime and SDK ship under Apache-2.0; desktop and app-layer code under MIT. The full source tree is on GitHub.' },
-      { question: 'Desktop vs Web mode?', answer: 'Desktop is the full app — local mods, embedded runtime, native shell. Web mode runs the same shell with web-only adapters for browser-only sessions.' },
-      { question: 'Can I build mods?', answer: 'Yes. Mods plug into the desktop runtime via admitted hook and capability contracts — clear boundary, no plugin sprawl.' },
+      {
+        question: 'What is Nimi?',
+        answer:
+          'An open-source AI runtime built around persistent worlds and embodied agents. Compose models, workflows, and shared memory through one typed SDK.',
+      },
+      {
+        question: 'How do I start integrating?',
+        answer:
+          'Read the SDK docs, install the typed client, and connect to the runtime locally or in your own cloud — same SDK, same contracts.',
+      },
+      {
+        question: 'Can I run models locally?',
+        answer:
+          'Yes. The runtime executes through admitted local providers on your hardware — no cloud round-trip required for routes that support it.',
+      },
+      {
+        question: 'Is Nimi open source?',
+        answer:
+          'Yes. Runtime and SDK ship under Apache-2.0; desktop and app-layer code under MIT. The full source tree is on GitHub.',
+      },
+      {
+        question: 'Desktop vs Web mode?',
+        answer:
+          'Desktop is the full app — local mods, embedded runtime, native shell. Web mode runs the same shell with web-only adapters for browser-only sessions.',
+      },
+      {
+        question: 'Can I build mods?',
+        answer:
+          'Yes. Mods plug into the desktop runtime via admitted hook and capability contracts — clear boundary, no plugin sprawl.',
+      },
     ],
   },
   security: {
     title: 'Built on contracts you can read',
     subtitle: 'Every public surface traces to admitted spec — readable, reviewable, real.',
-    intro: 'Nimi separates owner cuts (runtime, SDK, desktop, realm, avatar) explicitly. The boundaries you see are the boundaries the platform actually enforces.',
+    intro:
+      'Nimi separates owner cuts (runtime, SDK, desktop, realm, avatar) explicitly. The boundaries you see are the boundaries the platform actually enforces.',
     pillars: [
-      { label: 'Open spec', title: 'Spec is the source of truth', points: ['.nimi/spec/** holds public product and platform contracts.', 'Docs and landing are derived projections — same source, same truth.'] },
-      { label: 'Owner cuts', title: 'Each surface owns its boundary', points: ['Runtime, SDK, desktop, realm, and avatar are distinct owner domains.', 'Apps integrate through admitted public boundaries — no private-surface bypass.'] },
-      { label: 'Generated truth', title: 'Catalog data derives from spec', points: ['Provider, model, and capability data generate from admitted spec tables.', 'No hand-written marketing claims drift from the source.'] },
+      {
+        label: 'Open spec',
+        title: 'Spec is the source of truth',
+        points: [
+          '.nimi/spec/** holds public product and platform contracts.',
+          'Docs and landing are derived projections — same source, same truth.',
+        ],
+      },
+      {
+        label: 'Owner cuts',
+        title: 'Each surface owns its boundary',
+        points: [
+          'Runtime, SDK, desktop, realm, and avatar are distinct owner domains.',
+          'Apps integrate through admitted public boundaries — no private-surface bypass.',
+        ],
+      },
+      {
+        label: 'Generated truth',
+        title: 'Catalog data derives from spec',
+        points: [
+          'Provider, model, and capability data generate from admitted spec tables.',
+          'No hand-written marketing claims drift from the source.',
+        ],
+      },
     ],
   },
   mods: {
     eyebrow: 'Ecosystem surface',
     title: 'Mods that extend chat. Within a typed runtime.',
-    subtitle: 'Mods plug into the desktop runtime via admitted hook and capability contracts. Build once, ship inside the runtime your users already trust.',
+    subtitle:
+      'Mods plug into the desktop runtime via admitted hook and capability contracts. Build once, ship inside the runtime your users already trust.',
     items: [
-      { icon: 'docs', name: 'Capability contracts', description: 'Mods route through admitted hook and capability contracts — clear boundary, no plugin sprawl.' },
-      { icon: 'sim', name: 'Owner boundaries', description: 'Mods compose with runtime, SDK, and desktop surfaces without bypassing owner cuts.' },
-      { icon: 'story', name: 'Open ecosystem ahead', description: 'A public mod catalog admits as the registry contract lands — until then, build for your own users.' },
+      {
+        icon: 'docs',
+        name: 'Capability contracts',
+        description:
+          'Mods route through admitted hook and capability contracts — clear boundary, no plugin sprawl.',
+      },
+      {
+        icon: 'sim',
+        name: 'Owner boundaries',
+        description:
+          'Mods compose with runtime, SDK, and desktop surfaces without bypassing owner cuts.',
+      },
+      {
+        icon: 'story',
+        name: 'Open ecosystem ahead',
+        description:
+          'A public mod catalog admits as the registry contract lands — until then, build for your own users.',
+      },
     ],
     buildModCta: 'Read mod docs',
   },
   openSource: {
     title: 'Open source. End to end.',
     subtitle: 'Read the runtime. Read the SDK. Read the spec.',
-    description: 'Nimi ships under permissive licenses across the runtime, SDK, and app layers — built on contracts you can read, fork, and extend.',
+    description:
+      'Nimi ships under permissive licenses across the runtime, SDK, and app layers — built on contracts you can read, fork, and extend.',
     githubCta: 'View on GitHub',
     docsCta: 'Read Docs',
     roadmapCta: 'Read Roadmap',
@@ -318,7 +434,8 @@ export const landingContentEn: LandingContent = {
       {
         label: 'Runtime + SDK',
         value: 'Apache-2.0',
-        detail: 'Core runtime and SDK are open and inspectable — clone, build, and run them locally.',
+        detail:
+          'Core runtime and SDK are open and inspectable — clone, build, and run them locally.',
         icon: 'runtime',
       },
       {
@@ -336,7 +453,12 @@ export const landingContentEn: LandingContent = {
       },
     ],
   },
-  footer: { line1: 'Open-source AI runtime for apps. One CLI, one SDK, local and cloud AI.', line2: 'Read the docs to see what ships today and what is on the roadmap.', termsLabel: 'Terms', privacyLabel: 'Privacy' },
+  footer: {
+    line1: 'Open-source AI runtime for apps. One CLI, one SDK, local and cloud AI.',
+    line2: 'Read the docs to see what ships today and what is on the roadmap.',
+    termsLabel: 'Terms',
+    privacyLabel: 'Privacy',
+  },
   localeToggleLabel: 'Language',
   localeOptions: {
     en: 'English',

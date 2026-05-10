@@ -26,7 +26,7 @@ fn with_release_version(run: impl FnOnce()) {
             ("NIMI_RUNTIME_BRIDGE_MODE", Some("RUNTIME")),
             (
                 "NIMI_DESKTOP_UPDATER_ENDPOINT",
-                Some("https://install.nimi.xyz/desktop/latest.json"),
+                Some("https://install.nimi.ai/desktop/latest.json"),
             ),
         ],
         || {
@@ -179,12 +179,12 @@ fn configured_updater_endpoint_prefers_runtime_env() {
         with_env(
             &[(
                 "NIMI_DESKTOP_UPDATER_ENDPOINT",
-                Some("https://install.nimi.xyz/desktop/latest.json"),
+                Some("https://install.nimi.ai/desktop/latest.json"),
             )],
             || {
                 assert_eq!(
                     configured_updater_endpoint_raw(),
-                    "https://install.nimi.xyz/desktop/latest.json"
+                    "https://install.nimi.ai/desktop/latest.json"
                 );
             },
         );
@@ -205,7 +205,7 @@ fn default_updater_endpoint_uses_install_domain() {
     with_update_test_lock(|| {
         assert_eq!(
             DEFAULT_UPDATE_ENDPOINT,
-            "https://install.nimi.xyz/desktop/latest.json"
+            "https://install.nimi.ai/desktop/latest.json"
         );
     });
 }

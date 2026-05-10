@@ -151,14 +151,16 @@ jobs:
       - name: Install nimi-mods dependencies
         run: pnpm --dir nimi-mods install --no-frozen-lockfile
 
-      - name: Live provider invariants gate
+      # >>> nimi-release-gate-projection: live-smoke-checks >>>
+      - name: gate.live.live2d-companion-timeline-acceptance
+        run: pnpm check:live2d-companion-timeline-acceptance
+      - name: gate.live.provider-invariants
         run: pnpm check:live-provider-invariants
-
-      - name: Run live smoke matrix
-        run: node scripts/run-live-test-matrix.mjs
-
-      - name: Evaluate release live smoke gate
+      - name: gate.live.smoke-gate
         run: pnpm check:live-smoke-gate --require-release
+      - name: gate.live.test-matrix
+        run: node scripts/run-live-test-matrix.mjs
+      # <<< nimi-release-gate-projection: live-smoke-checks <<<
 
       - name: Upload live smoke coverage
         if: always()
@@ -202,61 +204,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Package license matrix check
-        run: pnpm check:package-license-matrix
-
-      - name: Validate sdk package versions and publish flags
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs = require('node:fs');
-
-          const version = process.env.RELEASE_VERSION;
-          const packages = [
-            ['@nimiplatform/sdk', 'sdk/package.json'],
-            ['@nimiplatform/dev-tools', 'dev-tools/package.json'],
-          ];
-
-          const violations = [];
-          for (const [name, file] of packages) {
-            const payload = JSON.parse(fs.readFileSync(file, 'utf8'));
-            if (payload.name !== name) {
-              violations.push(`${file}: expected name ${name}, got ${payload.name}`);
-            }
-            if (payload.version !== version) {
-              violations.push(`${file}: expected version ${version}, got ${payload.version}`);
-            }
-            if (payload.private !== false) {
-              violations.push(`${file}: private must be false for npm release`);
-            }
-          }
-
-          if (violations.length > 0) {
-            process.stderr.write(`release-sdk validation failed:\\n${violations.map((line) => `- ${line}`).join('\\n')}\\n`);
-            process.exit(1);
-          }
-          NODE
-
-      - name: Build SDK surfaces
+      # >>> nimi-release-gate-projection: release-target-sdk-static-checks >>>
+      - name: gate.sdk.build
         run: pnpm build:sdk
-
-      - name: Enforce no createNimiClient legacy entry
-        run: pnpm check:no-create-nimi-client
-
-      - name: Enforce no global OpenAPI singleton config
-        run: pnpm check:no-global-openapi-config
-
-      - name: Enforce no OpenAPI singleton import
-        run: pnpm check:no-openapi-singleton-import
-
-      - name: SDK vNext matrix gate
-        run: pnpm check:sdk-vnext-matrix
-
-      - name: Verify sdk version matrix
-        run: pnpm check:sdk-version-matrix
-
-      - name: SDK consumer smoke (npm pack + node import)
+      - name: gate.sdk.consumer-smoke
         run: pnpm check:sdk-consumer-smoke
+      - name: gate.sdk.coverage
+        run: pnpm check:sdk-coverage
+      - name: gate.sdk.test
+        run: pnpm --filter @nimiplatform/sdk test
+      - name: gate.sdk.version-matrix
+        run: pnpm check:sdk-version-matrix
+      - name: gate.sdk.vnext-matrix
+        run: pnpm check:sdk-vnext-matrix
+      - name: gate.security.package-license-matrix
+        run: pnpm check:package-license-matrix
+      # <<< nimi-release-gate-projection: release-target-sdk-static-checks <<<
 
       - name: Publish npm author packages (or dry-run)
         run: |
@@ -703,7 +666,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
-          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.xyz/desktop/latest.json' }}
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
           REQUIRE_APPLE_CREDENTIALS: ${{ steps.macos_signing.outputs.require_apple_credentials }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
@@ -726,7 +689,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
-          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.xyz/desktop/latest.json' }}
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
           NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}

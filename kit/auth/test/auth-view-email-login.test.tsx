@@ -20,7 +20,7 @@ describe('AuthViewEmailLogin password visibility', () => {
     act(() => {
       root.render(
         <AuthViewEmailLogin
-          email="halliday@nimi.xyz"
+          email="halliday@nimi.ai"
           password="hunter2!!"
           pending={false}
           onPasswordChange={() => {}}

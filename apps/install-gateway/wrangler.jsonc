@@ -4,7 +4,7 @@
   "compatibility_date": "2026-03-16",
   "routes": [
     {
-      "pattern": "install.nimi.xyz",
+      "pattern": "install.nimi.ai",
       "custom_domain": true
     }
   ],

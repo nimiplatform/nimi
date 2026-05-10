@@ -242,7 +242,7 @@ The contributor code of conduct lives in
 ## Security
 
 Do not open public issues for security reports. Use the GitHub Security
-Advisory (preferred) or email `security@nimi.xyz`. Full reporting
+Advisory (preferred) or email `security@nimi.ai`. Full reporting
 guidance and supported-version policy live in [SECURITY.md](SECURITY.md).
 
 ## License

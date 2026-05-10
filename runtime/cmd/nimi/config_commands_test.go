@@ -218,9 +218,9 @@ func TestRunRuntimeConfigSetAuthJWTFieldsRequireRestart(t *testing.T) {
 	setOutput, err := captureStdoutFromRun(func() error {
 		return runRuntimeConfig([]string{
 			"set",
-			"--set", "auth.jwt.jwksUrl=https://realm.nimi.xyz/api/auth/jwks",
-			"--set", "auth.jwt.revocationUrl=https://realm.nimi.xyz/api/auth/revocation",
-			"--set", "auth.jwt.issuer=https://realm.nimi.xyz",
+			"--set", "auth.jwt.jwksUrl=https://realm.nimi.ai/api/auth/jwks",
+			"--set", "auth.jwt.revocationUrl=https://realm.nimi.ai/api/auth/revocation",
+			"--set", "auth.jwt.issuer=https://realm.nimi.ai",
 			"--set", "auth.jwt.audience=nimi-runtime",
 			"--json",
 		})
@@ -241,13 +241,13 @@ func TestRunRuntimeConfigSetAuthJWTFieldsRequireRestart(t *testing.T) {
 	if cfg.Auth == nil || cfg.Auth.JWT == nil {
 		t.Fatalf("auth.jwt config should exist after set: %#v", cfg.Auth)
 	}
-	if cfg.Auth.JWT.JWKSURL != "https://realm.nimi.xyz/api/auth/jwks" {
+	if cfg.Auth.JWT.JWKSURL != "https://realm.nimi.ai/api/auth/jwks" {
 		t.Fatalf("jwksUrl mismatch: %q", cfg.Auth.JWT.JWKSURL)
 	}
-	if cfg.Auth.JWT.RevocationURL != "https://realm.nimi.xyz/api/auth/revocation" {
+	if cfg.Auth.JWT.RevocationURL != "https://realm.nimi.ai/api/auth/revocation" {
 		t.Fatalf("revocationUrl mismatch: %q", cfg.Auth.JWT.RevocationURL)
 	}
-	if cfg.Auth.JWT.Issuer != "https://realm.nimi.xyz" {
+	if cfg.Auth.JWT.Issuer != "https://realm.nimi.ai" {
 		t.Fatalf("issuer mismatch: %q", cfg.Auth.JWT.Issuer)
 	}
 	if cfg.Auth.JWT.Audience != "nimi-runtime" {
@@ -267,9 +267,9 @@ func TestRunRuntimeConfigUnsetAuthJWTFieldsPrunesObject(t *testing.T) {
 
 	if err := runRuntimeConfig([]string{
 		"set",
-		"--set", "auth.jwt.jwksUrl=https://realm.nimi.xyz/api/auth/jwks",
-		"--set", "auth.jwt.revocationUrl=https://realm.nimi.xyz/api/auth/revocation",
-		"--set", "auth.jwt.issuer=https://realm.nimi.xyz",
+		"--set", "auth.jwt.jwksUrl=https://realm.nimi.ai/api/auth/jwks",
+		"--set", "auth.jwt.revocationUrl=https://realm.nimi.ai/api/auth/revocation",
+		"--set", "auth.jwt.issuer=https://realm.nimi.ai",
 		"--set", "auth.jwt.audience=nimi-runtime",
 		"--json",
 	}); err != nil {
@@ -316,7 +316,7 @@ func TestRunRuntimeConfigSetRejectsInvalidJwksURL(t *testing.T) {
 
 	err := runRuntimeConfig([]string{
 		"set",
-		"--set", "auth.jwt.jwksUrl=ftp://realm.nimi.xyz/jwks.json",
+		"--set", "auth.jwt.jwksUrl=ftp://realm.nimi.ai/jwks.json",
 		"--json",
 	})
 	if err == nil {

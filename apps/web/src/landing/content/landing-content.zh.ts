@@ -32,19 +32,32 @@ export const landingContentZh: LandingContent = {
     getStartedTitle: '快速上手',
     getStartedSubtitle: '选择你的接入入口',
     tabs: [
-      { id: 'platform', label: 'Platform', command: 'docs.nimi.xyz/zh/platform', ctaText: '阅读平台文档' },
-      { id: 'runtime', label: 'Runtime', command: 'docs.nimi.xyz/zh/runtime', ctaText: '阅读 Runtime 文档' },
-      { id: 'sdk', label: 'SDK', command: 'docs.nimi.xyz/zh/sdk', ctaText: '阅读 SDK 文档' },
+      {
+        id: 'platform',
+        label: 'Platform',
+        command: 'docs.nimi.ai/zh/platform',
+        ctaText: '阅读平台文档',
+      },
+      {
+        id: 'runtime',
+        label: 'Runtime',
+        command: 'docs.nimi.ai/zh/runtime',
+        ctaText: '阅读 Runtime 文档',
+      },
+      { id: 'sdk', label: 'SDK', command: 'docs.nimi.ai/zh/sdk', ctaText: '阅读 SDK 文档' },
     ],
   },
   architecture: {
     title: '一个平台，多个世界。',
     subtitle: '架构',
-    description: 'Nimi 提供强类型 SDK，让你构建跨越持续世界的 AI 体验 —— 自主智能体、共享记忆、身份、社交与经济 —— 由可本地或云端运行的 runtime 桥接。',
+    description:
+      'Nimi 提供强类型 SDK，让你构建跨越持续世界的 AI 体验 —— 自主智能体、共享记忆、身份、社交与经济 —— 由可本地或云端运行的 runtime 桥接。',
     devTitle: '面向构建者',
-    devText: '通过强类型 SDK 接入。无论运行在笔记本上还是你掌控的云端基础设施，组合智能体、模型、工作流和记忆的方式完全一致。',
+    devText:
+      '通过强类型 SDK 接入。无论运行在笔记本上还是你掌控的云端基础设施，组合智能体、模型、工作流和记忆的方式完全一致。',
     userTitle: '面向产品用户',
-    userText: 'Nimi 是 AI 开放世界平台 —— 智能体跨会话持续存在、跨世界共享状态、通过 runtime 能力执行行动。不是聊天框封装，不是单一用途的应用。',
+    userText:
+      'Nimi 是 AI 开放世界平台 —— 智能体跨会话持续存在、跨世界共享状态、通过 runtime 能力执行行动。不是聊天框封装，不是单一用途的应用。',
     conclusion: '概念驱动、契约优先、跨平台运行时。',
     slogan: '你的代码、你的契约、你的世界。',
     diagram: {
@@ -102,13 +115,20 @@ export const landingContentZh: LandingContent = {
     },
     liveBadge: '开放目录',
     featuredProvidersLabel: '主要 provider',
-    stats: { providers: 'provider', models: '默认模型', cloudProviders: '云端 provider', localModels: '本地 provider' },
+    stats: {
+      providers: 'provider',
+      models: '默认模型',
+      cloudProviders: '云端 provider',
+      localModels: '本地 provider',
+    },
     localTitle: '本地执行',
     localHeadline: '在你自己的机器上跑模型。',
-    localDescription: '本地 provider 路由通过 runtime 在你的硬件上执行 —— 同一套 SDK、同一套能力类型，没有云端往返。',
+    localDescription:
+      '本地 provider 路由通过 runtime 在你的硬件上执行 —— 同一套 SDK、同一套能力类型，没有云端往返。',
     capabilitiesTitle: '能力矩阵',
     capabilitiesHeadline: '覆盖 12 项能力，横跨各 provider。',
-    capabilitiesDescription: '文本生成、视觉、Embedding、图像与视频生成、语音合成与转写、音乐生成、声音克隆与设计、世界生成 —— 每项能力都明确支持它的 provider。',
+    capabilitiesDescription:
+      '文本生成、视觉、Embedding、图像与视频生成、语音合成与转写、音乐生成、声音克隆与设计、世界生成 —— 每项能力都明确支持它的 provider。',
     capabilityLabels: {
       'text.generate': '文本生成',
       'text.embed': 'Embedding',
@@ -127,7 +147,8 @@ export const landingContentZh: LandingContent = {
     cloudBadge: '云端',
     matrixTitle: 'Provider 矩阵',
     matrixHeadline: '选定模型，自动路由到对应 provider。',
-    matrixDescription: '每个 provider 支持一项或多项能力类别。Runtime 根据你的配置选择路由的模型 —— 切换 provider 不必修改调用点。',
+    matrixDescription:
+      '每个 provider 支持一项或多项能力类别。Runtime 根据你的配置选择路由的模型 —— 切换 provider 不必修改调用点。',
     providerDetailSuffix: '项能力',
     searchResultsTitle: '搜索结果',
     searchResultsDescription: '按名称、默认模型或支持能力筛选 provider。',
@@ -248,7 +269,8 @@ export const landingContentZh: LandingContent = {
   },
   desktop: {
     title: '原生 Desktop，真实的 Web 边界。',
-    subtitle: 'Desktop 是完整应用 —— 本地 mod、内嵌 runtime、跑在你自己的机器上。Web mode 用同一套外壳加上明确的 web-only adapter。两边都是真实的产品面。',
+    subtitle:
+      'Desktop 是完整应用 —— 本地 mod、内嵌 runtime、跑在你自己的机器上。Web mode 用同一套外壳加上明确的 web-only adapter。两边都是真实的产品面。',
     chromeLabels: {
       appName: 'Nimi Desktop',
       runtime: 'Runtime',
@@ -261,7 +283,11 @@ export const landingContentZh: LandingContent = {
       installed: '已安装',
     },
     features: [
-      { icon: 'dashboard', title: 'Runtime 仪表盘', description: '一眼看清模型状态、资源占用和活跃会话。' },
+      {
+        icon: 'dashboard',
+        title: 'Runtime 仪表盘',
+        description: '一眼看清模型状态、资源占用和活跃会话。',
+      },
       { icon: 'chat', title: '内置聊天', description: '在同一个工作区里对话本地与云端模型。' },
       { icon: 'mods', title: 'Mod 宿主', description: '不离开桌面应用即可启动已安装的 mod。' },
       { icon: 'models', title: '模型管理', description: '一处安装、更新、切换模型。' },
@@ -269,7 +295,11 @@ export const landingContentZh: LandingContent = {
     downloadCta: '阅读 Desktop 文档',
     availability: {
       eyebrow: '已可用',
-      items: ['原生外壳，覆盖 macOS、Linux 与 Windows', '通过 web mode 支持纯浏览器会话', 'Mod 与 runtime 内置'],
+      items: [
+        '原生外壳，覆盖 macOS、Linux 与 Windows',
+        '通过 web mode 支持纯浏览器会话',
+        'Mod 与 runtime 内置',
+      ],
     },
   },
   faq: {
@@ -278,39 +308,97 @@ export const landingContentZh: LandingContent = {
     description: '面向构建者与产品用户的快速答案 —— 完整内容请阅读文档。',
     communityCta: '加入 Discord',
     items: [
-      { question: 'Nimi 是什么？', answer: '一个面向持续世界与有形智能体的开源 AI 运行时。通过统一的强类型 SDK 组合模型、工作流与共享记忆。' },
-      { question: '如何开始接入？', answer: '阅读 SDK 文档，安装强类型客户端，连接到本地或你自己的云端 runtime —— 同一套 SDK、同一套契约。' },
-      { question: '能本地运行模型吗？', answer: '可以。Runtime 通过本地 provider 在你的硬件上执行 —— 支持本地路由的路径无需云端往返。' },
-      { question: 'Nimi 是开源的吗？', answer: '是。Runtime 与 SDK 以 Apache-2.0 发布；桌面端与 app 层代码以 MIT 发布。完整源码在 GitHub 上。' },
-      { question: 'Desktop 与 Web mode 有什么区别？', answer: 'Desktop 是完整应用 —— 本地 mod、内嵌 runtime、原生外壳。Web mode 用同一套外壳加上 web-only adapter 支持纯浏览器会话。' },
-      { question: '可以构建 Mod 吗？', answer: '可以。Mods 通过已准入的 hook 与 capability 契约接入桌面 runtime —— 边界清晰，不会插件失控。' },
+      {
+        question: 'Nimi 是什么？',
+        answer:
+          '一个面向持续世界与有形智能体的开源 AI 运行时。通过统一的强类型 SDK 组合模型、工作流与共享记忆。',
+      },
+      {
+        question: '如何开始接入？',
+        answer:
+          '阅读 SDK 文档，安装强类型客户端，连接到本地或你自己的云端 runtime —— 同一套 SDK、同一套契约。',
+      },
+      {
+        question: '能本地运行模型吗？',
+        answer:
+          '可以。Runtime 通过本地 provider 在你的硬件上执行 —— 支持本地路由的路径无需云端往返。',
+      },
+      {
+        question: 'Nimi 是开源的吗？',
+        answer:
+          '是。Runtime 与 SDK 以 Apache-2.0 发布；桌面端与 app 层代码以 MIT 发布。完整源码在 GitHub 上。',
+      },
+      {
+        question: 'Desktop 与 Web mode 有什么区别？',
+        answer:
+          'Desktop 是完整应用 —— 本地 mod、内嵌 runtime、原生外壳。Web mode 用同一套外壳加上 web-only adapter 支持纯浏览器会话。',
+      },
+      {
+        question: '可以构建 Mod 吗？',
+        answer:
+          '可以。Mods 通过已准入的 hook 与 capability 契约接入桌面 runtime —— 边界清晰，不会插件失控。',
+      },
     ],
   },
   security: {
     title: '建立在可阅读的契约之上',
     subtitle: '每个公开层都追溯到已准入的规范 —— 可读、可审、真实。',
-    intro: 'Nimi 显式划分权责边界（runtime、SDK、desktop、realm、avatar）。你看到的边界，就是平台真正在执行的边界。',
+    intro:
+      'Nimi 显式划分权责边界（runtime、SDK、desktop、realm、avatar）。你看到的边界，就是平台真正在执行的边界。',
     pillars: [
-      { label: '开放规范', title: '规范是真相来源', points: ['.nimi/spec/** 持有公开产品与平台契约。', 'Docs 与首页都是衍生呈现 —— 同一个来源、同一个真相。'] },
-      { label: '权责划分', title: '每个层持有自己的边界', points: ['Runtime、SDK、desktop、realm、avatar 是各自独立的归属域。', '应用通过已准入的公共边界接入 —— 不绕开私有层。'] },
-      { label: '生成式数据', title: '目录数据从规范生成', points: ['Provider、模型与能力数据由规范表生成。', '不会有手写的营销说法偏离来源。'] },
+      {
+        label: '开放规范',
+        title: '规范是真相来源',
+        points: [
+          '.nimi/spec/** 持有公开产品与平台契约。',
+          'Docs 与首页都是衍生呈现 —— 同一个来源、同一个真相。',
+        ],
+      },
+      {
+        label: '权责划分',
+        title: '每个层持有自己的边界',
+        points: [
+          'Runtime、SDK、desktop、realm、avatar 是各自独立的归属域。',
+          '应用通过已准入的公共边界接入 —— 不绕开私有层。',
+        ],
+      },
+      {
+        label: '生成式数据',
+        title: '目录数据从规范生成',
+        points: ['Provider、模型与能力数据由规范表生成。', '不会有手写的营销说法偏离来源。'],
+      },
     ],
   },
   mods: {
     eyebrow: '生态层',
     title: '扩展聊天的 Mod，跑在强类型 runtime 里。',
-    subtitle: 'Mods 通过已准入的 hook 与 capability 契约接入桌面 runtime —— 一次构建，跑在用户已经信任的 runtime 中。',
+    subtitle:
+      'Mods 通过已准入的 hook 与 capability 契约接入桌面 runtime —— 一次构建，跑在用户已经信任的 runtime 中。',
     items: [
-      { icon: 'docs', name: '能力契约', description: 'Mods 通过已准入的 hook 与 capability 契约路由 —— 边界清晰，不会插件失控。' },
-      { icon: 'sim', name: '归属边界', description: 'Mods 与 Runtime、SDK、Desktop 各层组合，不绕开归属边界。' },
-      { icon: 'story', name: '开放生态进行中', description: '注册中心契约获准入后，公开 Mod 目录随之上线 —— 在那之前，先为你自己的用户构建。' },
+      {
+        icon: 'docs',
+        name: '能力契约',
+        description: 'Mods 通过已准入的 hook 与 capability 契约路由 —— 边界清晰，不会插件失控。',
+      },
+      {
+        icon: 'sim',
+        name: '归属边界',
+        description: 'Mods 与 Runtime、SDK、Desktop 各层组合，不绕开归属边界。',
+      },
+      {
+        icon: 'story',
+        name: '开放生态进行中',
+        description:
+          '注册中心契约获准入后，公开 Mod 目录随之上线 —— 在那之前，先为你自己的用户构建。',
+      },
     ],
     buildModCta: '阅读 Mod 文档',
   },
   openSource: {
     title: '从头到尾，全部开源。',
     subtitle: '读 runtime、读 SDK、读规范。',
-    description: 'Nimi 在 runtime、SDK 与应用层全部以宽松许可证发布 —— 建立在你可以阅读、fork、扩展的契约之上。',
+    description:
+      'Nimi 在 runtime、SDK 与应用层全部以宽松许可证发布 —— 建立在你可以阅读、fork、扩展的契约之上。',
     githubCta: '查看 GitHub',
     docsCta: '阅读文档',
     roadmapCta: '阅读路线图',
@@ -336,7 +424,12 @@ export const landingContentZh: LandingContent = {
       },
     ],
   },
-  footer: { line1: '面向应用的开源 AI 运行时：一个 CLI、一个 SDK，本地与云端 AI。', line2: '阅读文档了解当前可用功能与路线图。', termsLabel: '服务条款', privacyLabel: '隐私政策' },
+  footer: {
+    line1: '面向应用的开源 AI 运行时：一个 CLI、一个 SDK，本地与云端 AI。',
+    line2: '阅读文档了解当前可用功能与路线图。',
+    termsLabel: '服务条款',
+    privacyLabel: '隐私政策',
+  },
   localeToggleLabel: '语言',
   localeOptions: {
     en: 'English',

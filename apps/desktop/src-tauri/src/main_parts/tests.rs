@@ -30,7 +30,7 @@ fn normalize_origin_rejects_non_http_scheme() {
 fn allowed_http_origins_contains_runtime_defaults() {
     with_env(
         &[
-            ("NIMI_REALM_URL", Some("https://gateway.nimi.xyz/v1")),
+            ("NIMI_REALM_URL", Some("https://gateway.nimi.ai/v1")),
             (
                 "NIMI_LOCAL_PROVIDER_ENDPOINT",
                 Some("http://127.0.0.1:1234/v1"),
@@ -42,7 +42,7 @@ fn allowed_http_origins_contains_runtime_defaults() {
         ],
         || {
             let origins = allowed_http_origins();
-            assert!(origins.contains("https://gateway.nimi.xyz:443"));
+            assert!(origins.contains("https://gateway.nimi.ai:443"));
             assert!(origins.contains("http://127.0.0.1:1234"));
             assert!(origins.contains("http://localhost:1234"));
         },

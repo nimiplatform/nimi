@@ -184,7 +184,7 @@ import { createPlatformClient } from '@nimiplatform/sdk';
 const { runtime, realm } = await createPlatformClient({
   appId: 'my_app',
   runtimeTransport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-  realmBaseUrl: 'https://api.nimi.xyz',
+  realmBaseUrl: 'https://api.nimi.ai',
 });
 ```
 

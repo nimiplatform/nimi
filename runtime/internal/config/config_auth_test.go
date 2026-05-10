@@ -13,10 +13,10 @@ func TestLoadAuthJWTFromConfigFile(t *testing.T) {
   "schemaVersion": 1,
   "auth": {
     "jwt": {
-      "issuer": "https://realm.nimi.xyz",
+      "issuer": "https://realm.nimi.ai",
       "audience": "nimi-runtime",
-      "jwksUrl": "https://realm.nimi.xyz/api/auth/jwks",
-      "revocationUrl": "https://realm.nimi.xyz/api/auth/revocation"
+      "jwksUrl": "https://realm.nimi.ai/api/auth/jwks",
+      "revocationUrl": "https://realm.nimi.ai/api/auth/revocation"
     }
   }
 }`
@@ -31,16 +31,16 @@ func TestLoadAuthJWTFromConfigFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
-	if cfg.AuthJWTIssuer != "https://realm.nimi.xyz" {
+	if cfg.AuthJWTIssuer != "https://realm.nimi.ai" {
 		t.Fatalf("issuer mismatch: %q", cfg.AuthJWTIssuer)
 	}
 	if cfg.AuthJWTAudience != "nimi-runtime" {
 		t.Fatalf("audience mismatch: %q", cfg.AuthJWTAudience)
 	}
-	if cfg.AuthJWTJWKSURL != "https://realm.nimi.xyz/api/auth/jwks" {
+	if cfg.AuthJWTJWKSURL != "https://realm.nimi.ai/api/auth/jwks" {
 		t.Fatalf("jwksUrl mismatch: %q", cfg.AuthJWTJWKSURL)
 	}
-	if cfg.AuthJWTRevocationURL != "https://realm.nimi.xyz/api/auth/revocation" {
+	if cfg.AuthJWTRevocationURL != "https://realm.nimi.ai/api/auth/revocation" {
 		t.Fatalf("revocationUrl mismatch: %q", cfg.AuthJWTRevocationURL)
 	}
 }
@@ -150,10 +150,10 @@ func TestLoadRejectsNonLoopbackHTTPJWKSURL(t *testing.T) {
   "schemaVersion": 1,
   "auth": {
     "jwt": {
-      "issuer": "https://realm.nimi.xyz",
+      "issuer": "https://realm.nimi.ai",
       "audience": "nimi-runtime",
-      "jwksUrl": "http://realm.nimi.xyz/api/auth/jwks",
-      "revocationUrl": "https://realm.nimi.xyz/api/auth/revocation"
+      "jwksUrl": "http://realm.nimi.ai/api/auth/jwks",
+      "revocationUrl": "https://realm.nimi.ai/api/auth/revocation"
     }
   }
 }`

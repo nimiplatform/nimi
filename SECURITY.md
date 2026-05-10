@@ -11,7 +11,7 @@ Do not open public issues for security reports.
 Use one of the following channels:
 
 - GitHub Security Advisory (preferred): open a private report in this repository.
-- Email: `security@nimi.xyz`
+- Email: `security@nimi.ai`
 
 Include:
 

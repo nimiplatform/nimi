@@ -2,18 +2,25 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { Realm } from '../../src/realm/client.js';
-import { getRealmContextLockQueueSizeForTest, withRealmContextLock } from '../../src/realm/context-lock.js';
+import {
+  getRealmContextLockQueueSizeForTest,
+  withRealmContextLock,
+} from '../../src/realm/context-lock.js';
 
 test('withRealmContextLock serializes concurrent calls', async () => {
   const originalConnect = Realm.prototype.connect;
   const originalClose = Realm.prototype.close;
   const order: number[] = [];
 
-  Realm.prototype.connect = async function patchedConnect() { /* noop */ };
-  Realm.prototype.close = async function patchedClose() { /* noop */ };
+  Realm.prototype.connect = async function patchedConnect() {
+    /* noop */
+  };
+  Realm.prototype.close = async function patchedClose() {
+    /* noop */
+  };
 
   try {
-    const input = { realmBaseUrl: 'https://lock-test.nimi.xyz', accessToken: 'test-token' };
+    const input = { realmBaseUrl: 'https://lock-test.nimi.ai', accessToken: 'test-token' };
 
     const p1 = withRealmContextLock(input, async () => {
       order.push(1);
@@ -41,11 +48,15 @@ test('withRealmContextLock error in first task does not block second', async () 
   const originalConnect = Realm.prototype.connect;
   const originalClose = Realm.prototype.close;
 
-  Realm.prototype.connect = async function patchedConnect() { /* noop */ };
-  Realm.prototype.close = async function patchedClose() { /* noop */ };
+  Realm.prototype.connect = async function patchedConnect() {
+    /* noop */
+  };
+  Realm.prototype.close = async function patchedClose() {
+    /* noop */
+  };
 
   try {
-    const input = { realmBaseUrl: 'https://lock-error.nimi.xyz', accessToken: 'test-token' };
+    const input = { realmBaseUrl: 'https://lock-error.nimi.ai', accessToken: 'test-token' };
 
     const p1 = withRealmContextLock(input, async () => {
       throw new Error('task-1-failed');
@@ -74,7 +85,7 @@ test('withRealmContextLock calls connect before task and close after', async () 
   };
 
   try {
-    const input = { realmBaseUrl: 'https://lock-lifecycle.nimi.xyz', accessToken: 'test-token' };
+    const input = { realmBaseUrl: 'https://lock-lifecycle.nimi.ai', accessToken: 'test-token' };
 
     await withRealmContextLock(input, async () => {
       events.push('task');
@@ -96,21 +107,31 @@ test('withRealmContextLock does not serialize different realmBaseUrl values behi
     releaseFirst = resolve;
   });
 
-  Realm.prototype.connect = async function patchedConnect() { /* noop */ };
-  Realm.prototype.close = async function patchedClose() { /* noop */ };
+  Realm.prototype.connect = async function patchedConnect() {
+    /* noop */
+  };
+  Realm.prototype.close = async function patchedClose() {
+    /* noop */
+  };
 
   try {
-    const first = withRealmContextLock({ realmBaseUrl: 'https://realm-a.nimi.xyz', accessToken: 'token-a' }, async () => {
-      events.push('task:a:start');
-      await firstGate;
-      events.push('task:a:end');
-      return 'a';
-    });
+    const first = withRealmContextLock(
+      { realmBaseUrl: 'https://realm-a.nimi.ai', accessToken: 'token-a' },
+      async () => {
+        events.push('task:a:start');
+        await firstGate;
+        events.push('task:a:end');
+        return 'a';
+      },
+    );
 
-    const second = withRealmContextLock({ realmBaseUrl: 'https://realm-b.nimi.xyz', accessToken: 'token-b' }, async () => {
-      events.push('task:b');
-      return 'b';
-    });
+    const second = withRealmContextLock(
+      { realmBaseUrl: 'https://realm-b.nimi.ai', accessToken: 'token-b' },
+      async () => {
+        events.push('task:b');
+        return 'b';
+      },
+    );
 
     await Promise.resolve();
     await Promise.resolve();
@@ -133,18 +154,31 @@ test('withRealmContextLock evicts queue entries after pending work drains', asyn
     releaseFirst = resolve;
   });
 
-  Realm.prototype.connect = async function patchedConnect() { /* noop */ };
-  Realm.prototype.close = async function patchedClose() { /* noop */ };
+  Realm.prototype.connect = async function patchedConnect() {
+    /* noop */
+  };
+  Realm.prototype.close = async function patchedClose() {
+    /* noop */
+  };
 
   try {
     assert.equal(getRealmContextLockQueueSizeForTest(), 0);
 
-    const first = withRealmContextLock({ realmBaseUrl: 'https://realm-queue.nimi.xyz', accessToken: 'token-a' }, async () => {
-      await firstGate;
-      return 'first';
-    });
-    const second = withRealmContextLock({ realmBaseUrl: 'https://realm-queue.nimi.xyz', accessToken: 'token-b' }, async () => 'second');
-    const third = withRealmContextLock({ realmBaseUrl: 'https://realm-other.nimi.xyz', accessToken: 'token-c' }, async () => 'third');
+    const first = withRealmContextLock(
+      { realmBaseUrl: 'https://realm-queue.nimi.ai', accessToken: 'token-a' },
+      async () => {
+        await firstGate;
+        return 'first';
+      },
+    );
+    const second = withRealmContextLock(
+      { realmBaseUrl: 'https://realm-queue.nimi.ai', accessToken: 'token-b' },
+      async () => 'second',
+    );
+    const third = withRealmContextLock(
+      { realmBaseUrl: 'https://realm-other.nimi.ai', accessToken: 'token-c' },
+      async () => 'third',
+    );
 
     await Promise.resolve();
     await Promise.resolve();

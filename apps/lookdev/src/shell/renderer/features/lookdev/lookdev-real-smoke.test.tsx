@@ -10,13 +10,32 @@ import CreateBatchPage from './create-batch-page.js';
 import BatchListPage from './batch-list-page.js';
 import BatchDetailPage from './batch-detail-page.js';
 import { compilePortraitBrief } from './prompting.js';
-import { createConfirmedWorldStylePack, createDefaultPolicySnapshot, type LookdevAgentImportance, type LookdevBatch, type LookdevCaptureState, type LookdevItem, type LookdevPortraitBrief, type LookdevWorldStylePack } from './types.js';
+import {
+  createConfirmedWorldStylePack,
+  createDefaultPolicySnapshot,
+  type LookdevAgentImportance,
+  type LookdevBatch,
+  type LookdevCaptureState,
+  type LookdevItem,
+  type LookdevPortraitBrief,
+  type LookdevWorldStylePack,
+} from './types.js';
 
 vi.mock('@nimiplatform/nimi-kit/ui', async () => {
-  const actual = await vi.importActual<typeof import('@nimiplatform/nimi-kit/ui')>('@nimiplatform/nimi-kit/ui');
+  const actual = await vi.importActual<typeof import('@nimiplatform/nimi-kit/ui')>(
+    '@nimiplatform/nimi-kit/ui',
+  );
   return {
     ...actual,
-    SelectField: ({ options, value, placeholder, onValueChange, onChange, id, ...rest }: import('@nimiplatform/nimi-kit/ui').SelectFieldProps) => (
+    SelectField: ({
+      options,
+      value,
+      placeholder,
+      onValueChange,
+      onChange,
+      id,
+      ...rest
+    }: import('@nimiplatform/nimi-kit/ui').SelectFieldProps) => (
       <select
         id={id}
         aria-label={rest['aria-label']}
@@ -40,7 +59,15 @@ vi.mock('@nimiplatform/nimi-kit/ui', async () => {
   };
 });
 
-const { listLookdevWorlds, listLookdevAgents, listLookdevWorldAgents, getLookdevAgent, getLookdevAgentTruthBundle, getLookdevAgentAuthoringContext, getAgentPortraitBinding } = vi.hoisted(() => ({
+const {
+  listLookdevWorlds,
+  listLookdevAgents,
+  listLookdevWorldAgents,
+  getLookdevAgent,
+  getLookdevAgentTruthBundle,
+  getLookdevAgentAuthoringContext,
+  getAgentPortraitBinding,
+} = vi.hoisted(() => ({
   listLookdevWorlds: vi.fn(),
   listLookdevAgents: vi.fn(),
   listLookdevWorldAgents: vi.fn(),
@@ -56,9 +83,29 @@ const { listLookdevWorlds, listLookdevAgents, listLookdevWorldAgents, getLookdev
     wakeStrategy: 'PASSIVE',
     dna: {
       identity: { role: 'Harbor scout', worldview: null, species: null, summary: null },
-      biological: { gender: null, visualAge: null, ethnicity: null, heightCm: null, weightKg: null },
-      appearance: { artStyle: null, hair: null, eyes: null, skin: null, fashionStyle: null, signatureItems: [] },
-      personality: { summary: null, mbti: null, interests: [], goals: [], relationshipMode: null, emotionBaseline: null },
+      biological: {
+        gender: null,
+        visualAge: null,
+        ethnicity: null,
+        heightCm: null,
+        weightKg: null,
+      },
+      appearance: {
+        artStyle: null,
+        hair: null,
+        eyes: null,
+        skin: null,
+        fashionStyle: null,
+        signatureItems: [],
+      },
+      personality: {
+        summary: null,
+        mbti: null,
+        interests: [],
+        goals: [],
+        relationshipMode: null,
+        emotionBaseline: null,
+      },
       communication: { summary: null, responseLength: null, formality: null, sentiment: null },
     },
     behavioralRules: [],
@@ -221,10 +268,12 @@ const evaluationTarget = {
 function buildDialoguePayload(language: 'en' | 'zh') {
   if (language === 'zh') {
     return {
-      assistantReply: '方向已经够清楚了。现在可以先整理风格包草案，如果你还想继续补门派感或禁区，也可以继续聊。',
+      assistantReply:
+        '方向已经够清楚了。现在可以先整理风格包草案，如果你还想继续补门派感或禁区，也可以继续聊。',
       readiness: 'ready_to_synthesize',
       readinessReason: '世界气质、人物差异和画面控制都已经足够稳定，可以先整理草案。',
-      summary: '人物锚点肖像整体克制写实，主要靠服装层级与身份气场拉开差异，背景始终退后服务角色识别。',
+      summary:
+        '人物锚点肖像整体克制写实，主要靠服装层级与身份气场拉开差异，背景始终退后服务角色识别。',
       understanding: {
         tone: '克制写实，强调身份与世界一致性。',
         differentiation: '服装层级、身份气场和材质差异共同承担人物区分。',
@@ -235,10 +284,13 @@ function buildDialoguePayload(language: 'en' | 'zh') {
     };
   }
   return {
-    assistantReply: 'The lane is already coherent. We can synthesize a draft now, and you can still keep tightening any taboo or differentiation cue afterward.',
+    assistantReply:
+      'The lane is already coherent. We can synthesize a draft now, and you can still keep tightening any taboo or differentiation cue afterward.',
     readiness: 'ready_to_synthesize',
-    readinessReason: 'Tone, differentiation, and control principles are already stable enough to synthesize a draft.',
-    summary: 'Anchor portraits should stay grounded and role-first, with costume hierarchy doing most of the differentiation while palette and background remain restrained.',
+    readinessReason:
+      'Tone, differentiation, and control principles are already stable enough to synthesize a draft.',
+    summary:
+      'Anchor portraits should stay grounded and role-first, with costume hierarchy doing most of the differentiation while palette and background remain restrained.',
     understanding: {
       tone: 'Grounded, role-first realism with stable world identity.',
       differentiation: 'Costume hierarchy, identity cues, and restrained material contrast.',
@@ -253,7 +305,8 @@ function buildSynthesisPayload(language: 'en' | 'zh') {
   if (language === 'zh') {
     return {
       name: `${realFixture?.activeWorld?.name || 'Real'} 肖像风格包`,
-      summary: '人物锚点肖像整体克制写实，主要通过服装层级与身份气场拉开差异，背景始终服从角色识别。',
+      summary:
+        '人物锚点肖像整体克制写实，主要通过服装层级与身份气场拉开差异，背景始终服从角色识别。',
       visualEra: '克制写实的世界人物时代感与身份气质。',
       artStyle: '角色锚点肖像插画，强调稳定的人物识别。',
       paletteDirection: '收敛的主配色关系，背景退后，不抢角色识别。',
@@ -267,7 +320,8 @@ function buildSynthesisPayload(language: 'en' | 'zh') {
   }
   return {
     name: `${realFixture?.activeWorld?.name || 'Real'} portrait style pack`,
-    summary: 'Anchor portraits stay grounded and role-first, with costume hierarchy carrying differentiation while palette and background remain restrained.',
+    summary:
+      'Anchor portraits stay grounded and role-first, with costume hierarchy carrying differentiation while palette and background remain restrained.',
     visualEra: 'Grounded world identity with restrained realism.',
     artStyle: 'Anchor portrait illustration with stable character readability.',
     paletteDirection: 'Restrained palette direction with subdued backgrounds.',
@@ -275,7 +329,8 @@ function buildSynthesisPayload(language: 'en' | 'zh') {
     silhouetteDirection: 'Clean full-body silhouettes with clear costume structure.',
     costumeDensity: 'Moderate complexity that serves role identity first.',
     backgroundDirection: 'Backgrounds stay atmospheric but subordinate to character readability.',
-    promptFrame: 'full-body character anchor portrait, fixed focal length, stable eye-level camera, subdued background',
+    promptFrame:
+      'full-body character anchor portrait, fixed focal length, stable eye-level camera, subdued background',
     forbiddenElements: ['extreme close-up', 'dramatic action pose', 'busy cinematic background'],
   };
 }
@@ -284,7 +339,11 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-async function selectFieldOption(user: ReturnType<typeof userEvent.setup>, label: string, optionName: string | RegExp) {
+async function selectFieldOption(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string,
+  optionName: string | RegExp,
+) {
   const select = screen.getByLabelText(label) as HTMLSelectElement;
   let option: HTMLOptionElement | undefined;
   await waitFor(() => {
@@ -312,9 +371,7 @@ function renderWithProviders(element: React.ReactNode, initialEntries: string[] 
   });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={initialEntries}>
-        {element}
-      </MemoryRouter>
+      <MemoryRouter initialEntries={initialEntries}>{element}</MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -333,7 +390,10 @@ type RealSmokeRealmClient = {
   close: () => Promise<void>;
 };
 
-async function createRealSmokeRealmClient(): Promise<{ token: string; realm: RealSmokeRealmClient }> {
+async function createRealSmokeRealmClient(): Promise<{
+  token: string;
+  realm: RealSmokeRealmClient;
+}> {
   const { Realm } = await import('@nimiplatform/sdk/realm');
   const realmBaseUrl = process.env.LOOKDEV_REAL_SMOKE_REALM_BASE_URL ?? 'http://localhost:3002';
   if (process.env.LOOKDEV_REAL_SMOKE_ACCESS_TOKEN) {
@@ -345,13 +405,16 @@ async function createRealSmokeRealmClient(): Promise<{ token: string; realm: Rea
       }) as RealSmokeRealmClient,
     };
   }
-  const identifier = process.env.LOOKDEV_REAL_SMOKE_EMAIL ?? 'test@nimi.xyz';
+  const identifier = process.env.LOOKDEV_REAL_SMOKE_EMAIL ?? 'test@nimi.ai';
   const password = process.env.LOOKDEV_REAL_SMOKE_PASSWORD ?? 'test123';
   const authRealm = new Realm({
     baseUrl: realmBaseUrl,
     auth: undefined,
   });
-  const payload = await authRealm.services.AuthService.passwordLogin({ identifier, password }) as {
+  const payload = (await authRealm.services.AuthService.passwordLogin({
+    identifier,
+    password,
+  })) as {
     tokens?: { accessToken?: string };
     accessToken?: string;
   };
@@ -379,7 +442,9 @@ function normalizeRealAgent(worldId: string, value: Record<string, unknown>): Re
     concept: String(value.concept || value.bio || '').trim(),
     worldId,
     avatarUrl: value.avatarUrl ? String(value.avatarUrl) : null,
-    importance: String(value.importance || 'UNKNOWN').trim().toUpperCase() as LookdevAgentImportance,
+    importance: String(value.importance || 'UNKNOWN')
+      .trim()
+      .toUpperCase() as LookdevAgentImportance,
     status: String(value.status || value.state || 'UNKNOWN').trim() || 'UNKNOWN',
   };
 }
@@ -398,7 +463,8 @@ function seedCreateBatchStore() {
     useLookdevStore.setState((state) => ({
       portraitBriefs: {
         ...state.portraitBriefs,
-        [`${String((brief as LookdevPortraitBrief).worldId || 'unscoped').trim() || 'unscoped'}::${(brief as LookdevPortraitBrief).agentId}`]: brief as LookdevPortraitBrief,
+        [`${String((brief as LookdevPortraitBrief).worldId || 'unscoped').trim() || 'unscoped'}::${(brief as LookdevPortraitBrief).agentId}`]:
+          brief as LookdevPortraitBrief,
       },
     }));
   });
@@ -432,7 +498,11 @@ async function completeWorldStyleSession(
 }
 
 function makeRealDataBatch(): LookdevBatch {
-  const worldStylePack = createConfirmedWorldStylePack(realFixture.activeWorld.id, realFixture.activeWorld.name, 'zh');
+  const worldStylePack = createConfirmedWorldStylePack(
+    realFixture.activeWorld.id,
+    realFixture.activeWorld.name,
+    'zh',
+  );
   const agents = realFixture.cast.slice(0, 2);
   const items: LookdevItem[] = agents.map((agent, index) => {
     const captureStateSnapshot: LookdevCaptureState = {
@@ -496,21 +566,22 @@ function makeRealDataBatch(): LookdevBatch {
       status: index === 0 ? 'auto_passed' : 'auto_failed_retryable',
       attemptCount: 1,
       currentImage: null,
-      currentEvaluation: index === 0
-        ? {
-          passed: true,
-          score: 87,
-          checks: [{ key: 'fullBody', passed: true, kind: 'hard_gate' }],
-          summary: 'Real cast anchor passed.',
-          failureReasons: [],
-        }
-        : {
-          passed: false,
-          score: 61,
-          checks: [{ key: 'fullBody', passed: false, kind: 'hard_gate' }],
-          summary: 'Needs rerun.',
-          failureReasons: ['Keep full-body framing stable.'],
-        },
+      currentEvaluation:
+        index === 0
+          ? {
+              passed: true,
+              score: 87,
+              checks: [{ key: 'fullBody', passed: true, kind: 'hard_gate' }],
+              summary: 'Real cast anchor passed.',
+              failureReasons: [],
+            }
+          : {
+              passed: false,
+              score: 61,
+              checks: [{ key: 'fullBody', passed: false, kind: 'hard_gate' }],
+              summary: 'Needs rerun.',
+              failureReasons: ['Keep full-body framing stable.'],
+            },
       lastErrorCode: index === 0 ? null : 'REAL_SMOKE_RERUN',
       lastErrorMessage: index === 0 ? null : 'Keep full-body framing stable.',
       correctionHints: [],
@@ -529,7 +600,9 @@ function makeRealDataBatch(): LookdevBatch {
     selectionSnapshot: {
       selectionSource: 'by_world',
       agentIds: items.map((item) => item.agentId),
-      captureSelectionAgentIds: items.filter((item) => item.captureMode === 'capture').map((item) => item.agentId),
+      captureSelectionAgentIds: items
+        .filter((item) => item.captureMode === 'capture')
+        .map((item) => item.agentId),
       worldId: realFixture.activeWorld.id,
     },
     worldStylePackSnapshot: worldStylePack,
@@ -548,15 +621,17 @@ function makeRealDataBatch(): LookdevBatch {
     processingCompletedAt: '2026-03-29T00:02:00.000Z',
     commitCompletedAt: null,
     selectedItemId: items[0]?.itemId || null,
-    auditTrail: [{
-      eventId: 'audit-real-created',
-      batchId: 'real-batch',
-      occurredAt: '2026-03-29T00:00:00.000Z',
-      kind: 'batch_created',
-      scope: 'batch',
-      severity: 'info',
-      detail: realFixture.activeWorld.name,
-    }],
+    auditTrail: [
+      {
+        eventId: 'audit-real-created',
+        batchId: 'real-batch',
+        occurredAt: '2026-03-29T00:00:00.000Z',
+        kind: 'batch_created',
+        scope: 'batch',
+        severity: 'info',
+        detail: realFixture.activeWorld.name,
+      },
+    ],
     items,
   };
 }
@@ -567,39 +642,45 @@ maybeDescribe('Lookdev real-data smoke', () => {
     await changeLocale('en');
     const { token, realm } = await createRealSmokeRealmClient();
     try {
-      const access = await realm.services.WorldControlService.worldControlControllerGetMyAccess() as {
-        hasActiveAccess: boolean;
-        canMaintainWorld: boolean;
-        records: Array<{ scopeWorldId?: string | null }>;
-      };
+      const access =
+        (await realm.services.WorldControlService.worldControlControllerGetMyAccess()) as {
+          hasActiveAccess: boolean;
+          canMaintainWorld: boolean;
+          records: Array<{ scopeWorldId?: string | null }>;
+        };
       if (!access.hasActiveAccess || !access.canMaintainWorld) {
         throw new Error('LOOKDEV_REAL_SMOKE_NO_MAINTAIN_ACCESS');
       }
-      const myWorldsPayload = await realm.services.WorldControlService.worldControlControllerListMyWorlds() as
-        | { items?: Array<Record<string, unknown>> }
-        | Array<Record<string, unknown>>;
-      const worldItems = Array.isArray(myWorldsPayload) ? myWorldsPayload : myWorldsPayload.items || [];
-      const worlds = await Promise.all(worldItems.map(async (item) => {
-        const id = String(item.id || '').trim();
-        const name = String(item.name || id || 'Untitled World').trim();
-        const castPayload = await realm.services.WorldsService.worldControllerGetWorldAgents(id) as
-          | Array<Record<string, unknown>>
-          | { items?: Array<Record<string, unknown>> };
-        const cast = Array.isArray(castPayload) ? castPayload : castPayload.items || [];
-        return {
-          id,
-          name,
-          status: String(item.status || '').trim() || 'ACTIVE',
-          agentCount: cast.length,
-        };
-      }));
+      const myWorldsPayload =
+        (await realm.services.WorldControlService.worldControlControllerListMyWorlds()) as
+          | { items?: Array<Record<string, unknown>> }
+          | Array<Record<string, unknown>>;
+      const worldItems = Array.isArray(myWorldsPayload)
+        ? myWorldsPayload
+        : myWorldsPayload.items || [];
+      const worlds = await Promise.all(
+        worldItems.map(async (item) => {
+          const id = String(item.id || '').trim();
+          const name = String(item.name || id || 'Untitled World').trim();
+          const castPayload = (await realm.services.WorldsService.worldControllerGetWorldAgents(
+            id,
+          )) as Array<Record<string, unknown>> | { items?: Array<Record<string, unknown>> };
+          const cast = Array.isArray(castPayload) ? castPayload : castPayload.items || [];
+          return {
+            id,
+            name,
+            status: String(item.status || '').trim() || 'ACTIVE',
+            agentCount: cast.length,
+          };
+        }),
+      );
       const activeWorld = worlds.find((world) => world.agentCount > 0);
       if (!activeWorld) {
         throw new Error('LOOKDEV_REAL_SMOKE_NO_NONEMPTY_WORLD');
       }
-      const rawCastPayload = await realm.services.WorldsService.worldControllerGetWorldAgents(activeWorld.id) as
-        | Array<Record<string, unknown>>
-        | { items?: Array<Record<string, unknown>> };
+      const rawCastPayload = (await realm.services.WorldsService.worldControllerGetWorldAgents(
+        activeWorld.id,
+      )) as Array<Record<string, unknown>> | { items?: Array<Record<string, unknown>> };
       const rawCast = Array.isArray(rawCastPayload) ? rawCastPayload : rawCastPayload.items || [];
       const cast = rawCast.map((item) => normalizeRealAgent(activeWorld.id, item));
       const primaryAgents = cast.filter((agent) => agent.importance === 'PRIMARY');
@@ -621,17 +702,24 @@ maybeDescribe('Lookdev real-data smoke', () => {
   beforeEach(async () => {
     localStorage.clear();
     await changeLocale('en');
-    mockRuntime.ai.text.generate.mockImplementation(async (input: { system?: string; prompt?: string; input?: string }) => {
-      const payload = String(input.system || '').includes('structured world style pack draft')
-        || String(input.system || '').includes('结构化的 world style pack 草案')
-        ? buildSynthesisPayload(String(input.prompt || input.input || '').includes('language: zh') ? 'zh' : 'en')
-        : buildDialoguePayload(String(input.prompt || input.input || '').includes('language: zh') ? 'zh' : 'en');
-      return {
-        text: JSON.stringify(payload),
-        finishReason: 'stop',
-        trace: { traceId: 'real-style-trace' },
-      };
-    });
+    mockRuntime.ai.text.generate.mockImplementation(
+      async (input: { system?: string; prompt?: string; input?: string }) => {
+        const payload =
+          String(input.system || '').includes('structured world style pack draft') ||
+          String(input.system || '').includes('结构化的 world style pack 草案')
+            ? buildSynthesisPayload(
+                String(input.prompt || input.input || '').includes('language: zh') ? 'zh' : 'en',
+              )
+            : buildDialoguePayload(
+                String(input.prompt || input.input || '').includes('language: zh') ? 'zh' : 'en',
+              );
+        return {
+          text: JSON.stringify(payload),
+          finishReason: 'stop',
+          trace: { traceId: 'real-style-trace' },
+        };
+      },
+    );
     useAppStore.setState({
       runtimeProbe: {
         realmConfigured: true,
@@ -653,9 +741,9 @@ maybeDescribe('Lookdev real-data smoke', () => {
     });
     listLookdevWorlds.mockResolvedValue(realFixture.worlds);
     listLookdevAgents.mockResolvedValue(realFixture.cast);
-    listLookdevWorldAgents.mockImplementation(async (worldId: string) => (
-      worldId === realFixture.activeWorld.id ? realFixture.cast : []
-    ));
+    listLookdevWorldAgents.mockImplementation(async (worldId: string) =>
+      worldId === realFixture.activeWorld.id ? realFixture.cast : [],
+    );
     useLookdevStore.setState({
       batches: [],
       worldStyleSessions: {},
@@ -678,10 +766,18 @@ maybeDescribe('Lookdev real-data smoke', () => {
 
     await user.type(screen.getByLabelText('Batch name'), 'Real smoke batch');
     await screen.findByLabelText('World');
-    await selectFieldOption(user, 'World', new RegExp(escapeRegExp(realFixture.activeWorld.name), 'i'));
+    await selectFieldOption(
+      user,
+      'World',
+      new RegExp(escapeRegExp(realFixture.activeWorld.name), 'i'),
+    );
 
     expect(await screen.findByText('World Style Session')).toBeInTheDocument();
-    expect(screen.getByText(`Frozen selection preview: ${realFixture.cast.length} agents from ${realFixture.activeWorld.name}.`)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        `Frozen selection preview: ${realFixture.cast.length} agents from ${realFixture.activeWorld.name}.`,
+      ),
+    ).toBeInTheDocument();
     await completeWorldStyleSession(user, {
       replyLabel: 'Current reply',
       sendReplyLabel: 'Send reply',
@@ -702,9 +798,11 @@ maybeDescribe('Lookdev real-data smoke', () => {
       name: new RegExp(`${escapeRegExp(firstPrimaryName)}.*Capture`, 'i'),
     });
     await user.click(primaryCaptureButton);
-    expect(await screen.findByRole('button', {
-      name: new RegExp(`${escapeRegExp(firstPrimaryName)}.*Batch only`, 'i'),
-    })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {
+        name: new RegExp(`${escapeRegExp(firstPrimaryName)}.*Batch only`, 'i'),
+      }),
+    ).toBeInTheDocument();
 
     const reviewButton = screen.getAllByRole('button', { name: /Review/i })[0]!;
     await user.click(reviewButton);
@@ -718,15 +816,15 @@ maybeDescribe('Lookdev real-data smoke', () => {
     await waitFor(() => {
       expect(createBatch).toHaveBeenCalledTimes(1);
     });
-    expect(createBatch).toHaveBeenCalledWith(expect.objectContaining({
-      worldId: realFixture.activeWorld.id,
-      generationTarget,
-      evaluationTarget,
-      agents: expect.arrayContaining([
-        expect.objectContaining({ id: realFixture.cast[0]!.id }),
-      ]),
-      captureSelectionAgentIds: expect.not.arrayContaining([firstPrimary.id]),
-    }));
+    expect(createBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        worldId: realFixture.activeWorld.id,
+        generationTarget,
+        evaluationTarget,
+        agents: expect.arrayContaining([expect.objectContaining({ id: realFixture.cast[0]!.id })]),
+        captureSelectionAgentIds: expect.not.arrayContaining([firstPrimary.id]),
+      }),
+    );
   }, 30000);
 
   it('synthesizes a zh world style pack from real data without leaking legacy english defaults', async () => {
@@ -741,7 +839,11 @@ maybeDescribe('Lookdev real-data smoke', () => {
     );
 
     await screen.findByLabelText('World');
-    await selectFieldOption(user, 'World', new RegExp(escapeRegExp(realFixture.activeWorld.name), 'i'));
+    await selectFieldOption(
+      user,
+      'World',
+      new RegExp(escapeRegExp(realFixture.activeWorld.name), 'i'),
+    );
 
     expect(await screen.findByText('World 风格会话')).toBeInTheDocument();
     await completeWorldStyleSession(user, {
@@ -758,10 +860,12 @@ maybeDescribe('Lookdev real-data smoke', () => {
 
     expect(await screen.findByText('风格包草案')).toBeInTheDocument();
     expect(screen.getByText('风格摘要')).toBeInTheDocument();
-    expect(screen.getAllByText((_, element) => {
-      const text = element?.textContent || '';
-      return text.includes(realFixture.activeWorld.name) && text.includes('人物锚点肖像应保持');
-    }).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText((_, element) => {
+        const text = element?.textContent || '';
+        return text.includes(realFixture.activeWorld.name) && text.includes('人物锚点肖像应保持');
+      }).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByDisplayValue(/清晰全身轮廓/)).toBeInTheDocument();
     expect(screen.queryByDisplayValue(/clean full-body silhouette/i)).not.toBeInTheDocument();
   }, 30000);
@@ -774,7 +878,9 @@ maybeDescribe('Lookdev real-data smoke', () => {
     const commitBatch = vi.fn(async () => {});
     const selectItem = vi.fn((batchId: string, itemId: string) => {
       useLookdevStore.setState((state) => ({
-        batches: state.batches.map((entry) => entry.batchId === batchId ? { ...entry, selectedItemId: itemId } : entry),
+        batches: state.batches.map((entry) =>
+          entry.batchId === batchId ? { ...entry, selectedItemId: itemId } : entry,
+        ),
       }));
     });
 
@@ -799,9 +905,17 @@ maybeDescribe('Lookdev real-data smoke', () => {
     );
 
     expect(await screen.findByText('Batch snapshots')).toBeInTheDocument();
-    expect(screen.getByText((_, element) => element?.textContent === `World id · ${realFixture.activeWorld.id}`)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, element) => element?.textContent === `World id · ${realFixture.activeWorld.id}`,
+      ),
+    ).toBeInTheDocument();
 
-    await userEvent.setup().click(screen.getByRole('button', { name: new RegExp(escapeRegExp(batch.items[1]!.agentDisplayName), 'i') }));
+    await userEvent.setup().click(
+      screen.getByRole('button', {
+        name: new RegExp(escapeRegExp(batch.items[1]!.agentDisplayName), 'i'),
+      }),
+    );
     expect(selectItem).toHaveBeenCalledWith('real-batch', batch.items[1]!.itemId);
 
     await userEvent.setup().click(screen.getByRole('button', { name: 'Rerun Selected' }));

@@ -25,7 +25,9 @@ test('Realm allows admitted AuthService endpoints with explicit auth: undefined'
 
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     capturedAuthHeaders.push(resolveFetchHeaders(input, init).get('Authorization'));
-    capturedUrls.push(typeof Request !== 'undefined' && input instanceof Request ? input.url : String(input));
+    capturedUrls.push(
+      typeof Request !== 'undefined' && input instanceof Request ? input.url : String(input),
+    );
     return new Response('{}', {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -34,17 +36,19 @@ test('Realm allows admitted AuthService endpoints with explicit auth: undefined'
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-explicit-undefined.nimi.xyz',
+      baseUrl: 'https://realm-explicit-undefined.nimi.ai',
       auth: undefined,
     });
 
     await realm.services.AuthService.passwordLogin({
-      email: 'test@nimi.xyz',
+      email: 'test@nimi.ai',
       password: 'secret',
     });
 
     assert.deepEqual(capturedAuthHeaders, [null]);
-    assert.deepEqual(capturedUrls, ['https://realm-explicit-undefined.nimi.xyz/api/auth/password/login']);
+    assert.deepEqual(capturedUrls, [
+      'https://realm-explicit-undefined.nimi.ai/api/auth/password/login',
+    ]);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -64,7 +68,7 @@ test('Realm fails closed without accessToken outside admitted AuthService endpoi
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-explicit-undefined.nimi.xyz',
+      baseUrl: 'https://realm-explicit-undefined.nimi.ai',
       auth: undefined,
     });
 

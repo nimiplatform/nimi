@@ -346,7 +346,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
-          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.xyz/desktop/latest.json' }}
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
           REQUIRE_APPLE_CREDENTIALS: ${{ steps.macos_signing.outputs.require_apple_credentials }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
 
@@ -373,7 +373,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NIMI_DESKTOP_UPDATER_PUBLIC_KEY: ${{ vars.NIMI_DESKTOP_UPDATER_PUBLIC_KEY }}
-          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.xyz/desktop/latest.json' }}
+          NIMI_DESKTOP_UPDATER_ENDPOINT: ${{ vars.NIMI_DESKTOP_UPDATER_ENDPOINT || 'https://install.nimi.ai/desktop/latest.json' }}
           NIMI_DESKTOP_MACOS_SIGNING_MODE: ${{ steps.macos_signing.outputs.mode }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}

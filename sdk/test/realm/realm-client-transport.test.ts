@@ -22,7 +22,7 @@ test('Realm resolves async headers function per request', async () => {
   try {
     let callCount = 0;
     const realm = new Realm({
-      baseUrl: 'https://realm-headers-fn.nimi.xyz',
+      baseUrl: 'https://realm-headers-fn.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'headers-token' },
       headers: async () => ({ 'x-realm-test': `call-${callCount++}` }),
     });
@@ -50,7 +50,7 @@ test('Realm requests still execute after close()', async () => {
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-close.nimi.xyz',
+      baseUrl: 'https://realm-close.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'close-token' },
     });
 
@@ -68,13 +68,12 @@ test('Realm requests still execute after close()', async () => {
 test('Realm returns undefined for 204 responses', async () => {
   const originalFetch = globalThis.fetch;
 
-  globalThis.fetch = (async (): Promise<Response> => (
-    new Response(null, { status: 204 })
-  )) as typeof globalThis.fetch;
+  globalThis.fetch = (async (): Promise<Response> =>
+    new Response(null, { status: 204 })) as typeof globalThis.fetch;
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-no-content.nimi.xyz',
+      baseUrl: 'https://realm-no-content.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'content-token' },
     });
 
@@ -88,22 +87,22 @@ test('Realm returns undefined for 204 responses', async () => {
 test('Realm rejects text/plain responses when published contract expects JSON', async () => {
   const originalFetch = globalThis.fetch;
 
-  globalThis.fetch = (async (): Promise<Response> => (
+  globalThis.fetch = (async (): Promise<Response> =>
     new Response('plain-text-payload', {
       status: 200,
       headers: { 'content-type': 'text/plain' },
-    })
-  )) as typeof globalThis.fetch;
+    })) as typeof globalThis.fetch;
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-text.nimi.xyz',
+      baseUrl: 'https://realm-text.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'text-token' },
     });
 
     await assert.rejects(
       async () => realm.unsafeRaw.request({ method: 'GET', path: '/api/text' }),
-      (error: unknown) => asNimiError(error, { source: 'realm' }).reasonCode === ReasonCode.REALM_UNAVAILABLE,
+      (error: unknown) =>
+        asNimiError(error, { source: 'realm' }).reasonCode === ReasonCode.REALM_UNAVAILABLE,
     );
   } finally {
     globalThis.fetch = originalFetch;
@@ -133,7 +132,7 @@ test('Realm retries 429 responses using Retry-After', async () => {
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-retry-429.nimi.xyz',
+      baseUrl: 'https://realm-retry-429.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'retry-token' },
     });
 
@@ -165,7 +164,7 @@ test('Realm retries configured 5xx responses and stops at maxRetries', async () 
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-retry-503.nimi.xyz',
+      baseUrl: 'https://realm-retry-503.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'retry-token' },
       retry: {
         maxRetries: 2,
@@ -192,7 +191,7 @@ test('Realm retries configured 5xx responses and stops at maxRetries', async () 
 
   try {
     const realm = new Realm({
-      baseUrl: 'https://realm-retry-fail.nimi.xyz',
+      baseUrl: 'https://realm-retry-fail.nimi.ai',
       auth: { mode: 'external_principal', accessToken: 'retry-token' },
       retry: {
         maxRetries: 1,

@@ -51,12 +51,14 @@ function GithubIcon() {
 export function App() {
   const baseLinks = useMemo(() => resolveLandingLinks(import.meta.env), []);
   const [catalogQuery, setCatalogQuery] = useState('');
-  const [locale, setLocale] = useState<LandingLocale>(() => resolveInitialLocale({
-    storage: getBrowserStorage(),
-    navigatorLanguage: getBrowserLanguage(),
-    defaultLocale: import.meta.env.VITE_LANDING_DEFAULT_LOCALE,
-  }));
-  // Apply locale prefix (zh -> /zh/) to docs URLs for the docs.nimi.xyz subdomain.
+  const [locale, setLocale] = useState<LandingLocale>(() =>
+    resolveInitialLocale({
+      storage: getBrowserStorage(),
+      navigatorLanguage: getBrowserLanguage(),
+      defaultLocale: import.meta.env.VITE_LANDING_DEFAULT_LOCALE,
+    }),
+  );
+  // Apply locale prefix (zh -> /zh/) to docs URLs for the docs.nimi.ai subdomain.
   const links = useMemo(() => resolveLocalizedLinks(baseLinks, locale), [baseLinks, locale]);
   const [content, setContent] = useState<LandingContent | null>(null);
 
@@ -103,12 +105,20 @@ export function App() {
 
       <header className="landing-header">
         <div className="container-nimi relative flex items-center justify-start py-3">
-          <a href="#top" className="flex items-center gap-3 rounded-xl px-2 py-1 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3]">
+          <a
+            href="#top"
+            className="flex items-center gap-3 rounded-xl px-2 py-1 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3]"
+          >
             <img src="/logo.svg" alt="Nimi" className="h-8 w-8" />
-            <span className="font-heading text-lg font-semibold tracking-tight text-slate-900">Nimi</span>
+            <span className="font-heading text-lg font-semibold tracking-tight text-slate-900">
+              Nimi
+            </span>
           </a>
 
-          <nav aria-label="Landing sections" className="absolute left-1/2 hidden -translate-x-1/2 lg:block">
+          <nav
+            aria-label="Landing sections"
+            className="absolute left-1/2 hidden -translate-x-1/2 lg:block"
+          >
             <ul className="flex items-center justify-center gap-1 text-slate-900">
               {sectionNavItems.map((item) => (
                 <li key={`${item.label}-${item.href}`}>
@@ -157,7 +167,11 @@ export function App() {
       <main id="main-content">
         <HeroSection content={content.hero} links={links} />
         <SdkSection content={content.sdk} links={links} />
-        <ModelCatalogOverviewSection content={content.modelCatalog} query={catalogQuery} onQueryChange={setCatalogQuery} />
+        <ModelCatalogOverviewSection
+          content={content.modelCatalog}
+          query={catalogQuery}
+          onQueryChange={setCatalogQuery}
+        />
         <ArchitectureSection content={content.architecture} />
         <DesktopSection content={content.desktop} links={links} />
         <ModsSection content={content.mods} links={links} />
@@ -169,7 +183,9 @@ export function App() {
       <footer className="pb-10 pt-2">
         <div className="container-nimi flex flex-col gap-5 text-sm text-slate-500 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-base font-semibold tracking-tight text-slate-700">{content.footer.line1}</p>
+            <p className="text-base font-semibold tracking-tight text-slate-700">
+              {content.footer.line1}
+            </p>
             <p className="mt-1 text-sm text-slate-500">{content.footer.line2}</p>
           </div>
           <div className="flex flex-col gap-2 text-sm text-slate-500 md:items-end">

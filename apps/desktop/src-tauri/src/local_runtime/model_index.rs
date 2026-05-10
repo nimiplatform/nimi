@@ -21,7 +21,7 @@ use super::types::{
 use super::verified_models::verified_model_list;
 
 const MODEL_INDEX_BASE_URL_ENV: &str = "NIMI_MODEL_INDEX_BASE_URL";
-const DEFAULT_MODEL_INDEX_BASE_URL: &str = "https://models.nimi.xyz";
+const DEFAULT_MODEL_INDEX_BASE_URL: &str = "https://models.nimi.ai";
 const MODEL_INDEX_CACHE_FILE: &str = "model-index-feed-cache.json";
 const DEFAULT_PAGE_SIZE: usize = 40;
 const MAX_PAGE_SIZE: usize = 80;

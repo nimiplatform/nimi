@@ -30,19 +30,12 @@ const checks = [
   },
   {
     file: 'docs/index.md',
-    required: [
-      'link: /user/',
-      'link: /app-dev/',
-      'link: /mod-dev/',
-    ],
+    required: ['link: /user/', 'link: /app-dev/', 'link: /mod-dev/'],
     forbidden: ['nimi serve', '--yes', '--model local/...', '--provider ... --model ...'],
   },
   {
     file: 'docs/getting-started/index.md',
-    required: [
-      "window.location.replace('/user/')",
-      'This page has moved to [Using Nimi](/user/).',
-    ],
+    required: ["window.location.replace('/user/')", 'This page has moved to [Using Nimi](/user/).'],
     forbidden: ['nimi serve', '--model local/qwen2.5', '--provider gemini --model'],
   },
   {
@@ -59,17 +52,13 @@ const checks = [
   },
   {
     file: 'scripts/install.sh',
-    required: [
-      'Run: nimi start',
-      'Run: nimi doctor',
-      'Run: nimi run \\"What is Nimi?\\"',
-    ],
+    required: ['Run: nimi start', 'Run: nimi doctor', 'Run: nimi run \\"What is Nimi?\\"'],
     forbidden: ['Run: nimi serve', '--model local/qwen2.5'],
   },
   {
     file: 'apps/web/src/landing/content/landing-content.en.ts',
     required: [
-      "command: 'curl -fsSL https://install.nimi.xyz | sh'",
+      "command: 'curl -fsSL https://install.nimi.ai | sh'",
       "command: 'npm install -g @nimiplatform/nimi'",
     ],
     forbidden: ["command: 'nimi serve'", '--yes', '--model local/qwen2.5'],
@@ -77,7 +66,7 @@ const checks = [
   {
     file: 'apps/web/src/landing/content/landing-content.zh.ts',
     required: [
-      "command: 'curl -fsSL https://install.nimi.xyz | sh'",
+      "command: 'curl -fsSL https://install.nimi.ai | sh'",
       "command: 'npm install -g @nimiplatform/nimi'",
     ],
     forbidden: ["command: 'nimi serve'", '--yes', '--model local/qwen2.5'],
@@ -116,7 +105,9 @@ for (const check of checks) {
       continue;
     }
     if (firstIndex > secondIndex) {
-      failures.push(`${check.file}: expected ${JSON.stringify(first)} to appear before ${JSON.stringify(second)}`);
+      failures.push(
+        `${check.file}: expected ${JSON.stringify(first)} to appear before ${JSON.stringify(second)}`,
+      );
     }
   }
 }

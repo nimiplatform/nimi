@@ -26,7 +26,7 @@ Maintainers are responsible for clarifying and enforcing this code of conduct. T
 
 Report incidents privately via:
 
-- `security@nimi.xyz`
+- `security@nimi.ai`
 - GitHub private security advisory when applicable
 
 All reports will be reviewed and handled confidentially.

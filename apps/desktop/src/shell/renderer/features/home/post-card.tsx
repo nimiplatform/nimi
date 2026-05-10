@@ -58,7 +58,10 @@ export type PostCardActionAdapter = {
   createReport(payload: CreateReportDto): Promise<unknown>;
   likePost(postId: string): Promise<void>;
   unlikePost(postId: string): Promise<void>;
-  updatePostVisibility(postId: string, visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE'): Promise<unknown>;
+  updatePostVisibility(
+    postId: string,
+    visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE',
+  ): Promise<unknown>;
   deletePost(postId: string): Promise<void>;
   requestOrAcceptFriend(authorId: string, message?: string): Promise<unknown>;
   openChat(input: { authorId: string; authStatus: string }): Promise<void>;
@@ -102,7 +105,14 @@ type PostCardProps = {
 };
 
 export function PostCard(input: PostCardProps) {
-  const { post, actionAdapter, onDelete, onBlock, showAddFriendBadge = true, onOpenAuthorProfile } = input;
+  const {
+    post,
+    actionAdapter,
+    onDelete,
+    onBlock,
+    showAddFriendBadge = true,
+    onOpenAuthorProfile,
+  } = input;
 
   const realmBaseUrl = actionAdapter.realmBaseUrl;
   const authStatus = actionAdapter.authStatus;
@@ -111,10 +121,7 @@ export function PostCard(input: PostCardProps) {
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
 
   const authorId = String(
-    post.authorId
-    || post.author?.id
-    || (post.author as unknown as { _id?: string })?._id
-    || '',
+    post.authorId || post.author?.id || (post.author as unknown as { _id?: string })?._id || '',
   ).trim();
   const attachments = Array.isArray(post.attachments) ? post.attachments : [];
   const hasMedia = attachments.length > 0;
@@ -135,9 +142,11 @@ export function PostCard(input: PostCardProps) {
 
   const firstDisplayAttachment = hasMedia
     ? attachments.find((item) => {
-      const attachmentKind = normalizeMediaType(resolveRenderableMediaAttachment(item)?.displayKind);
-      return attachmentKind === 'IMAGE' || attachmentKind === 'VIDEO';
-    })
+        const attachmentKind = normalizeMediaType(
+          resolveRenderableMediaAttachment(item)?.displayKind,
+        );
+        return attachmentKind === 'IMAGE' || attachmentKind === 'VIDEO';
+      })
     : null;
   const firstMedia = resolveRenderableMediaAttachment(firstDisplayAttachment);
   const firstMediaType = normalizeMediaType(firstMedia?.displayKind);
@@ -150,10 +159,10 @@ export function PostCard(input: PostCardProps) {
     const attachment: EditablePostSeed['attachment'] =
       firstDisplayAttachment?.targetType === 'RESOURCE' && firstMedia && firstMediaUrl
         ? {
-      id: extractPostAttachmentId(firstDisplayAttachment),
-      type: firstMediaType === 'VIDEO' ? 'video' : 'image',
-      previewUrl: firstMediaUrl,
-    }
+            id: extractPostAttachmentId(firstDisplayAttachment),
+            type: firstMediaType === 'VIDEO' ? 'video' : 'image',
+            previewUrl: firstMediaUrl,
+          }
         : null;
     return {
       postId: post.id,
@@ -162,22 +171,31 @@ export function PostCard(input: PostCardProps) {
       visibility: postVisibility,
       attachment,
     };
-  }, [firstDisplayAttachment, firstMedia, firstMediaType, firstMediaUrl, post.caption, post.id, post.tags, postVisibility]);
+  }, [
+    firstDisplayAttachment,
+    firstMedia,
+    firstMediaType,
+    firstMediaUrl,
+    post.caption,
+    post.id,
+    post.tags,
+    postVisibility,
+  ]);
   const canEditPostAttachment = Boolean(editPostSeed?.attachment);
   const videoSource = firstMediaType === 'VIDEO' ? resolveVideoPlaybackSource(firstMediaUrl) : null;
 
-  const authorRecord = (
+  const authorRecord =
     post.author && typeof post.author === 'object'
-  )
-    ? (post.author as Record<string, unknown>)
-    : null;
+      ? (post.author as Record<string, unknown>)
+      : null;
   const authorProfileSeed = useMemo<ContactDetailProfileSeed | null>(() => {
     if (!authorId) {
       return null;
     }
     return {
       id: authorId,
-      displayName: post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+      displayName:
+        post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
       handle: post.author?.handle || '',
       avatarUrl: post.author?.avatarUrl,
       bio: typeof authorRecord?.bio === 'string' ? authorRecord.bio : null,
@@ -189,27 +207,42 @@ export function PostCard(input: PostCardProps) {
       countryCode: typeof authorRecord?.countryCode === 'string' ? authorRecord.countryCode : null,
       gender: typeof authorRecord?.gender === 'string' ? authorRecord.gender : null,
       worldName: typeof authorRecord?.worldName === 'string' ? authorRecord.worldName : null,
-      worldBannerUrl: typeof authorRecord?.worldBannerUrl === 'string' ? authorRecord.worldBannerUrl : null,
-      friendsCount: typeof authorRecord?.friendsCount === 'number' ? authorRecord.friendsCount : undefined,
-      postsCount: typeof authorRecord?.postsCount === 'number' ? authorRecord.postsCount : undefined,
-      likesCount: typeof authorRecord?.likesCount === 'number'
-        ? authorRecord.likesCount
-        : typeof authorRecord?.likeCount === 'number'
-          ? authorRecord.likeCount
+      worldBannerUrl:
+        typeof authorRecord?.worldBannerUrl === 'string' ? authorRecord.worldBannerUrl : null,
+      friendsCount:
+        typeof authorRecord?.friendsCount === 'number' ? authorRecord.friendsCount : undefined,
+      postsCount:
+        typeof authorRecord?.postsCount === 'number' ? authorRecord.postsCount : undefined,
+      likesCount:
+        typeof authorRecord?.likesCount === 'number'
+          ? authorRecord.likesCount
+          : typeof authorRecord?.likeCount === 'number'
+            ? authorRecord.likeCount
+            : undefined,
+      giftStats:
+        authorRecord?.giftStats && typeof authorRecord.giftStats === 'object'
+          ? (authorRecord.giftStats as Record<string, number>)
           : undefined,
-      giftStats: authorRecord?.giftStats && typeof authorRecord.giftStats === 'object'
-        ? (authorRecord.giftStats as Record<string, number>)
-        : undefined,
       agentState: typeof authorRecord?.state === 'string' ? authorRecord.state : null,
       agentCategory: typeof authorRecord?.category === 'string' ? authorRecord.category : null,
       agentOrigin: typeof authorRecord?.origin === 'string' ? authorRecord.origin : null,
       agentTier: typeof authorRecord?.tier === 'string' ? authorRecord.tier : null,
-      agentWakeStrategy: typeof authorRecord?.wakeStrategy === 'string' ? authorRecord.wakeStrategy : null,
-      agentOwnershipType: typeof authorRecord?.ownershipType === 'string' ? authorRecord.ownershipType : null,
+      agentWakeStrategy:
+        typeof authorRecord?.wakeStrategy === 'string' ? authorRecord.wakeStrategy : null,
+      agentOwnershipType:
+        typeof authorRecord?.ownershipType === 'string' ? authorRecord.ownershipType : null,
       agentWorldId: typeof authorRecord?.worldId === 'string' ? authorRecord.worldId : null,
-      agentOwnerWorldId: typeof authorRecord?.ownerWorldId === 'string' ? authorRecord.ownerWorldId : null,
+      agentOwnerWorldId:
+        typeof authorRecord?.ownerWorldId === 'string' ? authorRecord.ownerWorldId : null,
     };
-  }, [authorId, authorRecord, post.author?.avatarUrl, post.author?.displayName, post.author?.handle, post.author?.isAgent]);
+  }, [
+    authorId,
+    authorRecord,
+    post.author?.avatarUrl,
+    post.author?.displayName,
+    post.author?.handle,
+    post.author?.isAgent,
+  ]);
   const isAuthorFriend = authorRecord?.isFriend === true || actionAdapter.isFriend(authorId);
 
   useEffect(() => {
@@ -217,7 +250,11 @@ export function PostCard(input: PostCardProps) {
   }, [isAuthorFriend, ui.setIsFriend]);
 
   useEffect(() => {
-    if (post.visibility === 'PUBLIC' || post.visibility === 'FRIENDS' || post.visibility === 'PRIVATE') {
+    if (
+      post.visibility === 'PUBLIC' ||
+      post.visibility === 'FRIENDS' ||
+      post.visibility === 'PRIVATE'
+    ) {
       setPostVisibility(post.visibility);
     }
   }, [post.visibility]);
@@ -248,29 +285,40 @@ export function PostCard(input: PostCardProps) {
       ui.setIsBlocking(false);
       ui.setShowBlockConfirm(false);
     }
-  }, [actionAdapter, authorId, onBlock, post.author.avatarUrl, post.author.displayName, post.author.handle, ui]);
+  }, [
+    actionAdapter,
+    authorId,
+    onBlock,
+    post.author.avatarUrl,
+    post.author.displayName,
+    post.author.handle,
+    ui,
+  ]);
 
-  const handleReportPost = useCallback(async (payload: { reason: keyof typeof ReportReason; description?: string }) => {
-    try {
-      await actionAdapter.createReport({
-        targetType: 'POST',
-        targetId: post.id,
-        reason: payload.reason,
-        description: payload.description,
-      });
-      setFeedback(null);
-      ui.setShowReportModal(false);
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: toBannerErrorMessage(
-          error,
-          i18n.t('Home.reportSubmitFailed', { defaultValue: 'Failed to submit report' }),
-        ),
-      });
-      throw error;
-    }
-  }, [actionAdapter, post.id, ui]);
+  const handleReportPost = useCallback(
+    async (payload: { reason: keyof typeof ReportReason; description?: string }) => {
+      try {
+        await actionAdapter.createReport({
+          targetType: 'POST',
+          targetId: post.id,
+          reason: payload.reason,
+          description: payload.description,
+        });
+        setFeedback(null);
+        ui.setShowReportModal(false);
+      } catch (error) {
+        setFeedback({
+          kind: 'error',
+          message: toBannerErrorMessage(
+            error,
+            i18n.t('Home.reportSubmitFailed', { defaultValue: 'Failed to submit report' }),
+          ),
+        });
+        throw error;
+      }
+    },
+    [actionAdapter, post.id, ui],
+  );
 
   const handleToggleLike = useCallback(async () => {
     if (!post.id || isLikePending) {
@@ -278,8 +326,8 @@ export function PostCard(input: PostCardProps) {
     }
     const previous = ui.isLiked;
     const next = !previous;
-      ui.setIsLiked(next);
-      setIsLikePending(true);
+    ui.setIsLiked(next);
+    setIsLikePending(true);
     try {
       if (next) {
         await actionAdapter.likePost(post.id);
@@ -300,25 +348,33 @@ export function PostCard(input: PostCardProps) {
     }
   }, [actionAdapter, isLikePending, post.id, ui]);
 
-  const handleUpdateVisibility = useCallback(async (visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') => {
-    if (!post.id || isVisibilityPending) {
-      return;
-    }
-    setIsVisibilityPending(true);
-    try {
-      await actionAdapter.updatePostVisibility(post.id, visibility);
-      setPostVisibility(visibility);
-      setFeedback(null);
-      ui.setShowEditVisibilityModal(false);
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: error instanceof Error ? error.message : i18n.t('Home.postVisibilityUpdateFailed', { defaultValue: 'Failed to update post visibility' }),
-      });
-    } finally {
-      setIsVisibilityPending(false);
-    }
-  }, [actionAdapter, isVisibilityPending, post.id, ui]);
+  const handleUpdateVisibility = useCallback(
+    async (visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') => {
+      if (!post.id || isVisibilityPending) {
+        return;
+      }
+      setIsVisibilityPending(true);
+      try {
+        await actionAdapter.updatePostVisibility(post.id, visibility);
+        setPostVisibility(visibility);
+        setFeedback(null);
+        ui.setShowEditVisibilityModal(false);
+      } catch (error) {
+        setFeedback({
+          kind: 'error',
+          message:
+            error instanceof Error
+              ? error.message
+              : i18n.t('Home.postVisibilityUpdateFailed', {
+                  defaultValue: 'Failed to update post visibility',
+                }),
+        });
+      } finally {
+        setIsVisibilityPending(false);
+      }
+    },
+    [actionAdapter, isVisibilityPending, post.id, ui],
+  );
 
   const handleDeletePost = useCallback(async () => {
     if (!post.id) {
@@ -332,7 +388,10 @@ export function PostCard(input: PostCardProps) {
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: error instanceof Error ? error.message : i18n.t('Home.postDeleteFailed', { defaultValue: 'Failed to delete post' }),
+        message:
+          error instanceof Error
+            ? error.message
+            : i18n.t('Home.postDeleteFailed', { defaultValue: 'Failed to delete post' }),
       });
     } finally {
       ui.setIsDeleting(false);
@@ -346,7 +405,8 @@ export function PostCard(input: PostCardProps) {
       setFeedback({
         kind: 'error',
         message: i18n.t('Home.editUnsupportedAttachment', {
-          defaultValue: 'Editing is only available for resource-backed image and video posts right now.',
+          defaultValue:
+            'Editing is only available for resource-backed image and video posts right now.',
         }),
       });
       return;
@@ -356,7 +416,8 @@ export function PostCard(input: PostCardProps) {
 
   const handleCopyLink = useCallback(async () => {
     ui.togglePostMenu();
-    const webBaseUrl = (import.meta as { env?: Record<string, string> }).env?.VITE_WEB_BASE_URL ?? 'https://nimi.xyz';
+    const webBaseUrl =
+      (import.meta as { env?: Record<string, string> }).env?.VITE_WEB_BASE_URL ?? 'https://nimi.ai';
     const postLink = `${webBaseUrl}/posts/${post.id}`;
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -371,22 +432,31 @@ export function PostCard(input: PostCardProps) {
     }
   }, [post.id, ui]);
 
-  const handleAddFriend = useCallback(async (message?: string) => {
-    if (!authorId) {
-      throw new Error(i18n.t('Home.missingAuthorForFriendRequest', { defaultValue: 'Cannot add friend: user ID not found' }));
-    }
-    await actionAdapter.requestOrAcceptFriend(authorId, message);
-    ui.setIsFriend(true);
-    setFeedback(null);
-    await actionAdapter.invalidateContacts?.();
-  }, [actionAdapter, authorId, ui]);
+  const handleAddFriend = useCallback(
+    async (message?: string) => {
+      if (!authorId) {
+        throw new Error(
+          i18n.t('Home.missingAuthorForFriendRequest', {
+            defaultValue: 'Cannot add friend: user ID not found',
+          }),
+        );
+      }
+      await actionAdapter.requestOrAcceptFriend(authorId, message);
+      ui.setIsFriend(true);
+      setFeedback(null);
+      await actionAdapter.invalidateContacts?.();
+    },
+    [actionAdapter, authorId, ui],
+  );
 
   const handleChat = useCallback(async () => {
     const userId = authorId;
     if (!userId) {
       setFeedback({
         kind: 'error',
-        message: i18n.t('Home.missingAuthorForChat', { defaultValue: 'Cannot start chat: user ID not found' }),
+        message: i18n.t('Home.missingAuthorForChat', {
+          defaultValue: 'Cannot start chat: user ID not found',
+        }),
       });
       return;
     }
@@ -402,11 +472,7 @@ export function PostCard(input: PostCardProps) {
         ),
       });
     }
-  }, [
-    actionAdapter,
-    authorId,
-    authStatus,
-  ]);
+  }, [actionAdapter, authorId, authStatus]);
 
   const openAuthorProfile = useCallback(() => {
     if (!authorId || !authorProfileSeed) {
@@ -465,7 +531,8 @@ export function PostCard(input: PostCardProps) {
       {actionAdapter.renderGiftSurface?.({
         open: ui.isSendGiftOpen && Boolean(authorId),
         authorId,
-        authorName: post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+        authorName:
+          post.author?.displayName || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
         authorHandle: post.author?.handle || '',
         authorIsAgent: post.author?.isAgent === true,
         authorAvatarUrl: post.author?.avatarUrl,
@@ -490,7 +557,11 @@ export function PostCard(input: PostCardProps) {
 
       <BlockUserConfirmModal
         isOpen={ui.showBlockConfirm}
-        authorName={post.author?.displayName || post.author?.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' })}
+        authorName={
+          post.author?.displayName ||
+          post.author?.handle ||
+          i18n.t('Common.unknown', { defaultValue: 'Unknown' })
+        }
         pending={ui.isBlocking}
         onClose={() => ui.setShowBlockConfirm(false)}
         onConfirm={() => {

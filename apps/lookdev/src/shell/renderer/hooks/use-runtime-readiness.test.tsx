@@ -35,10 +35,12 @@ describe('useRuntimeReadiness', () => {
   it('keeps readiness probing disabled until bootstrap is ready, then refreshes when auth session changes', async () => {
     render(<HookHost />);
 
-    expect(useQueryMock).toHaveBeenCalledWith(expect.objectContaining({
-      enabled: false,
-      queryKey: ['lookdev', 'runtime-ready', false, 'unauthenticated', ''],
-    }));
+    expect(useQueryMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        enabled: false,
+        queryKey: ['lookdev', 'runtime-ready', false, 'unauthenticated', ''],
+      }),
+    );
 
     useAppStore.setState({
       bootstrapReady: true,
@@ -47,16 +49,18 @@ describe('useRuntimeReadiness', () => {
         user: {
           id: 'user-1',
           displayName: 'Nimi Test User',
-          email: 'test@nimi.xyz',
+          email: 'test@nimi.ai',
         },
       },
     });
 
     await waitFor(() => {
-      expect(useQueryMock).toHaveBeenLastCalledWith(expect.objectContaining({
-        enabled: true,
-        queryKey: ['lookdev', 'runtime-ready', true, 'authenticated', 'user-1'],
-      }));
+      expect(useQueryMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          enabled: true,
+          queryKey: ['lookdev', 'runtime-ready', true, 'authenticated', 'user-1'],
+        }),
+      );
     });
   });
 });

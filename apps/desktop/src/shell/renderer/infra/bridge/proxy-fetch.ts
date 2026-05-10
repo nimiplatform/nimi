@@ -81,7 +81,7 @@ async function readBodyString(body: BodyInit | null | undefined): Promise<string
   if (typeof body === 'string') {
     return body;
   }
-  const probeRequest = new Request('https://probe.nimi.xyz/proxy-body', {
+  const probeRequest = new Request('https://probe.nimi.ai/proxy-body', {
     method: 'POST',
     body,
   });
