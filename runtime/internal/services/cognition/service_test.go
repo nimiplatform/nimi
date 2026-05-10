@@ -305,10 +305,11 @@ func TestRuntimeCognitionTraverseGraphRequiresExplicitBoundedDepth(t *testing.T)
 }
 
 // newTestService constructs a Cognition Service backed by the typed
-// KnowledgeScopeRegistry. The fixture does not import or instantiate
-// `runtime/internal/services/knowledge` — that package is retired by
-// K-KNOW-001a + C-COG-059 (wave-0) and replaced by the registry +
-// authorizer wired in here.
+// KnowledgeScopeRegistry. The fixture consumes the typed registry
+// from nimi-cognition plus the KnowledgeAuthorizer wired in here.
+// The legacy runtime knowledge package is retired by K-KNOW-001a +
+// C-COG-059 (wave-0) and deleted in wave-3; this test does not
+// instantiate it.
 func newTestService(t *testing.T) (*Service, *memoryservice.Service, func()) {
 	t.Helper()
 

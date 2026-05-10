@@ -309,7 +309,6 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		localSvc.Close()
 		return nil, fmt.Errorf("init cognition service: %w", err)
 	}
-	_ = auditStore // wave-2 retires the legacy knowledgeservice audit-store wiring; Wave 3 deletes the legacy package.
 
 	runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
