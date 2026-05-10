@@ -51,18 +51,25 @@ const ALLOW_PREFIXES = [
   'nimi-mods/runtime/knowledge-base/',                                // deferred mod surface
 ];
 
-// Test mock identifiers that wave-4 renames intentionally; these
-// files contain the retired token but never IMPORT the deleted
-// package. Allow-list them by name; wave-4 will rename them.
+// File-specific allow-list. The wave-4 rename targets
+// (knowledge_commands_test.go, runtime_knowledge_app_client_test.go)
+// were on this list during wave-3 but are now dropped — wave-4
+// renamed cmdTestRuntimeKnowledgeService and testRuntimeKnowledgeService
+// out of those files, so any future reintroduction of the retired
+// token there is caught by this guard.
+//
+// The cognition invariant tests pin the forbidden tokens as
+// constants they validate against; guarding them would defang the
+// test, so they remain allow-listed.
 const ALLOW_FILES = [
-  'runtime/cmd/nimi/knowledge_commands_test.go',
-  'runtime/internal/entrypoint/runtime_knowledge_app_client_test.go',
-  // Cognition invariant tests pin the forbidden tokens as constants
-  // they validate against; guarding them would defang the test.
   'runtime/internal/services/cognition/import_invariant_test.go',
   'runtime/internal/services/cognition/authorizer_test.go',
   'runtime/internal/services/cognition/workspace_denied_test.go',
   'runtime/internal/grpcserver/registration_invariant_test.go',
+  // Wave-4 SDK assertion test (K5.1): pins the retired token as a
+  // forbidden constant the test validates against; guarding it
+  // would defang the assertion.
+  'sdk/test/runtime-method-ids.test.ts',
 ];
 
 // Directories the walker never descends into.

@@ -16,7 +16,7 @@ import (
 )
 
 func TestKnowledgeGRPCWrappers_MetadataAndRequests(t *testing.T) {
-	service := &testRuntimeKnowledgeService{
+	service := &testRuntimeCognitionKnowledgeClient{
 		createBankResponse: &runtimev1.CreateKnowledgeBankResponse{
 			Bank: &runtimev1.KnowledgeBank{
 				BankId:      "bank-1",
@@ -491,7 +491,7 @@ func startTestRuntimeAppServer(t *testing.T, service runtimev1.RuntimeAppService
 	}
 }
 
-type testRuntimeKnowledgeService struct {
+type testRuntimeCognitionKnowledgeClient struct {
 	runtimev1.UnimplementedRuntimeCognitionServiceServer
 
 	mu sync.Mutex
@@ -512,7 +512,7 @@ type testRuntimeKnowledgeService struct {
 	deleteBankResponse     *runtimev1.DeleteKnowledgeBankResponse
 }
 
-func (s *testRuntimeKnowledgeService) CreateKnowledgeBank(ctx context.Context, _ *runtimev1.CreateKnowledgeBankRequest) (*runtimev1.CreateKnowledgeBankResponse, error) {
+func (s *testRuntimeCognitionKnowledgeClient) CreateKnowledgeBank(ctx context.Context, _ *runtimev1.CreateKnowledgeBankRequest) (*runtimev1.CreateKnowledgeBankResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.createBankMD = cloneMetadata(ctx)
@@ -522,84 +522,84 @@ func (s *testRuntimeKnowledgeService) CreateKnowledgeBank(ctx context.Context, _
 	return nil, errors.New("create bank response not configured")
 }
 
-func (s *testRuntimeKnowledgeService) PutPage(context.Context, *runtimev1.PutPageRequest) (*runtimev1.PutPageResponse, error) {
+func (s *testRuntimeCognitionKnowledgeClient) PutPage(context.Context, *runtimev1.PutPageRequest) (*runtimev1.PutPageResponse, error) {
 	if s.putPageResponse != nil {
 		return s.putPageResponse, nil
 	}
 	return nil, errors.New("put page response not configured")
 }
 
-func (s *testRuntimeKnowledgeService) IngestDocument(context.Context, *runtimev1.IngestDocumentRequest) (*runtimev1.IngestDocumentResponse, error) {
+func (s *testRuntimeCognitionKnowledgeClient) IngestDocument(context.Context, *runtimev1.IngestDocumentRequest) (*runtimev1.IngestDocumentResponse, error) {
 	if s.ingestDocumentResponse != nil {
 		return s.ingestDocumentResponse, nil
 	}
 	return nil, errors.New("ingest document response not configured")
 }
 
-func (s *testRuntimeKnowledgeService) GetIngestTask(context.Context, *runtimev1.GetIngestTaskRequest) (*runtimev1.GetIngestTaskResponse, error) {
+func (s *testRuntimeCognitionKnowledgeClient) GetIngestTask(context.Context, *runtimev1.GetIngestTaskRequest) (*runtimev1.GetIngestTaskResponse, error) {
 	if s.getIngestTaskResponse != nil {
 		return s.getIngestTaskResponse, nil
 	}
 	return nil, errors.New("get ingest task response not configured")
 }
 
-func (s *testRuntimeKnowledgeService) SearchKeyword(context.Context, *runtimev1.SearchKeywordRequest) (*runtimev1.SearchKeywordResponse, error) {
+func (s *testRuntimeCognitionKnowledgeClient) SearchKeyword(context.Context, *runtimev1.SearchKeywordRequest) (*runtimev1.SearchKeywordResponse, error) {
 	if s.searchResponse != nil {
 		return s.searchResponse, nil
 	}
 	return nil, errors.New("search response not configured")
 }
 
-func (s *testRuntimeKnowledgeService) SearchHybrid(context.Context, *runtimev1.SearchHybridRequest) (*runtimev1.SearchHybridResponse, error) {
+func (s *testRuntimeCognitionKnowledgeClient) SearchHybrid(context.Context, *runtimev1.SearchHybridRequest) (*runtimev1.SearchHybridResponse, error) {
 	if s.searchHybridResponse != nil {
 		return s.searchHybridResponse, nil
 	}
 	return nil, errors.New("search hybrid response not configured")
 }
 
-func (s *testRuntimeKnowledgeService) AddLink(context.Context, *runtimev1.AddLinkRequest) (*runtimev1.AddLinkResponse, error) {
+func (s *testRuntimeCognitionKnowledgeClient) AddLink(context.Context, *runtimev1.AddLinkRequest) (*runtimev1.AddLinkResponse, error) {
 	if s.addLinkResponse != nil {
 		return s.addLinkResponse, nil
 	}
 	return nil, errors.New("add link response not configured")
 }
 
-func (s *testRuntimeKnowledgeService) RemoveLink(context.Context, *runtimev1.RemoveLinkRequest) (*runtimev1.RemoveLinkResponse, error) {
+func (s *testRuntimeCognitionKnowledgeClient) RemoveLink(context.Context, *runtimev1.RemoveLinkRequest) (*runtimev1.RemoveLinkResponse, error) {
 	if s.removeLinkResponse != nil {
 		return s.removeLinkResponse, nil
 	}
 	return nil, errors.New("remove link response not configured")
 }
 
-func (s *testRuntimeKnowledgeService) ListLinks(context.Context, *runtimev1.ListLinksRequest) (*runtimev1.ListLinksResponse, error) {
+func (s *testRuntimeCognitionKnowledgeClient) ListLinks(context.Context, *runtimev1.ListLinksRequest) (*runtimev1.ListLinksResponse, error) {
 	if s.listLinksResponse != nil {
 		return s.listLinksResponse, nil
 	}
 	return nil, errors.New("list links response not configured")
 }
 
-func (s *testRuntimeKnowledgeService) ListBacklinks(context.Context, *runtimev1.ListBacklinksRequest) (*runtimev1.ListBacklinksResponse, error) {
+func (s *testRuntimeCognitionKnowledgeClient) ListBacklinks(context.Context, *runtimev1.ListBacklinksRequest) (*runtimev1.ListBacklinksResponse, error) {
 	if s.listBacklinksResponse != nil {
 		return s.listBacklinksResponse, nil
 	}
 	return nil, errors.New("list backlinks response not configured")
 }
 
-func (s *testRuntimeKnowledgeService) TraverseGraph(context.Context, *runtimev1.TraverseGraphRequest) (*runtimev1.TraverseGraphResponse, error) {
+func (s *testRuntimeCognitionKnowledgeClient) TraverseGraph(context.Context, *runtimev1.TraverseGraphRequest) (*runtimev1.TraverseGraphResponse, error) {
 	if s.traverseGraphResponse != nil {
 		return s.traverseGraphResponse, nil
 	}
 	return nil, errors.New("traverse graph response not configured")
 }
 
-func (s *testRuntimeKnowledgeService) DeleteKnowledgeBank(context.Context, *runtimev1.DeleteKnowledgeBankRequest) (*runtimev1.DeleteKnowledgeBankResponse, error) {
+func (s *testRuntimeCognitionKnowledgeClient) DeleteKnowledgeBank(context.Context, *runtimev1.DeleteKnowledgeBankRequest) (*runtimev1.DeleteKnowledgeBankResponse, error) {
 	if s.deleteBankResponse != nil {
 		return s.deleteBankResponse, nil
 	}
 	return nil, errors.New("delete bank response not configured")
 }
 
-func (s *testRuntimeKnowledgeService) lastCreateBankMetadata() metadata.MD {
+func (s *testRuntimeCognitionKnowledgeClient) lastCreateBankMetadata() metadata.MD {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.createBankMD.Copy()
