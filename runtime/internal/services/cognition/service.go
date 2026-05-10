@@ -15,7 +15,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	knowledgeservice "github.com/nimiplatform/nimi/runtime/internal/services/knowledge"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -46,7 +45,7 @@ type Service struct {
 
 	logger        *slog.Logger
 	memorySvc     *memoryservice.Service
-	knowledgeSvc  *knowledgeservice.Service
+	authorizer    KnowledgeAuthorizer
 	cognitionCore *nimicognition.Cognition
 
 	mu               sync.RWMutex
@@ -54,6 +53,25 @@ type Service struct {
 	nextSubscriberID uint64
 	subscribers      map[uint64]*subscriber
 	ingestTasks      map[string]ingestTaskProjection
+
+	// pageWriteMu serializes PutPage critical sections per scope so
+	// the resolveKnowledgePage(...)→Save sequence is atomic for a
+	// given bank. Without this, two concurrent PutPage calls on the
+	// same (bank, slug) can both miss the existing-slug check and
+	// commit two distinct page rows. Keyed by scopeID; values are
+	// *sync.Mutex.
+	pageWriteMu sync.Map
+}
+
+// ingestTaskProjection is in-memory UX projection for IngestDocument
+// task ids (slug/title). The cognition store's IngestTask envelope
+// does not carry slug, so we keep this small map until either
+// nimi-cognition extends the envelope or a future topic moves the
+// projection into persistent storage.
+type ingestTaskProjection struct {
+	BankID string
+	Slug   string
+	Title  string
 }
 
 type subscriber struct {
@@ -61,12 +79,6 @@ type subscriber struct {
 	scopeFilters map[runtimev1.MemoryBankScope]struct{}
 	ownerFilters []*runtimev1.MemoryBankOwnerFilter
 	ch           chan *runtimev1.MemoryEvent
-}
-
-type ingestTaskProjection struct {
-	BankID string
-	Slug   string
-	Title  string
 }
 
 type storedMemoryContent struct {
@@ -87,12 +99,12 @@ type storedKnowledgeBody struct {
 	Runtime json.RawMessage `json:"_runtime_page,omitempty"`
 }
 
-func New(logger *slog.Logger, cfg config.Config, memorySvc *memoryservice.Service, knowledgeSvc *knowledgeservice.Service) (*Service, error) {
+func New(logger *slog.Logger, cfg config.Config, memorySvc *memoryservice.Service, authorizer KnowledgeAuthorizer) (*Service, error) {
 	if memorySvc == nil {
 		return nil, errors.New("cognition service: memory service is required")
 	}
-	if knowledgeSvc == nil {
-		return nil, errors.New("cognition service: knowledge service is required")
+	if authorizer == nil {
+		return nil, errors.New("cognition service: knowledge authorizer is required")
 	}
 	if logger == nil {
 		logger = slog.Default()
@@ -105,7 +117,7 @@ func New(logger *slog.Logger, cfg config.Config, memorySvc *memoryservice.Servic
 	return &Service{
 		logger:        logger,
 		memorySvc:     memorySvc,
-		knowledgeSvc:  knowledgeSvc,
+		authorizer:    authorizer,
 		cognitionCore: core,
 		subscribers:   make(map[uint64]*subscriber),
 		ingestTasks:   make(map[string]ingestTaskProjection),
@@ -294,10 +306,6 @@ func validatePublicRuntimeMemoryLocator(locator *runtimev1.MemoryBankLocator) er
 
 func memoryScopeID(bankID string) string {
 	return "mem_" + sanitizeScopeID(bankID)
-}
-
-func knowledgeScopeID(bankID string) string {
-	return "know_" + sanitizeScopeID(bankID)
 }
 
 func sanitizeScopeID(value string) string {

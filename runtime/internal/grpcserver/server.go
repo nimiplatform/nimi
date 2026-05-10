@@ -31,7 +31,6 @@ import (
 	cognitionservice "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
 	connectorservice "github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	grantservice "github.com/nimiplatform/nimi/runtime/internal/services/grant"
-	knowledgeservice "github.com/nimiplatform/nimi/runtime/internal/services/knowledge"
 	localservice "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	modelservice "github.com/nimiplatform/nimi/runtime/internal/services/model"
@@ -303,21 +302,14 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeConnectorServiceServer(g, connSvc)
 	logger.Info("runtime in-process mode enabled")
 
-	knowledgeSvc, err := knowledgeservice.NewWithBackend(logger, memorySvc.PersistenceBackend())
+	knowledgeAuthorizer := cognitionservice.NewAccountKnowledgeAuthorizer(logger)
+	cognitionSvc, err := cognitionservice.New(logger, cfg, memorySvc, knowledgeAuthorizer)
 	if err != nil {
-		_ = memorySvc.Close()
-		localSvc.Close()
-		return nil, fmt.Errorf("init knowledge service: %w", err)
-	}
-	knowledgeSvc.SetAuditStore(auditStore)
-	knowledgeSvc.RequireAuditStore(true)
-	cognitionSvc, err := cognitionservice.New(logger, cfg, memorySvc, knowledgeSvc)
-	if err != nil {
-		_ = knowledgeSvc.Close()
 		_ = memorySvc.Close()
 		localSvc.Close()
 		return nil, fmt.Errorf("init cognition service: %w", err)
 	}
+	_ = auditStore // wave-2 retires the legacy knowledgeservice audit-store wiring; Wave 3 deletes the legacy package.
 
 	runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)

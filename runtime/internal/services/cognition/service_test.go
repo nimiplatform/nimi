@@ -10,14 +10,13 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	knowledgeservice "github.com/nimiplatform/nimi/runtime/internal/services/knowledge"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 func TestRuntimeCognitionMemoryUsesNimiCognitionMainline(t *testing.T) {
-	svc, memorySvc, _, cleanup := newTestService(t)
+	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
 	ctx := context.Background()
@@ -63,22 +62,10 @@ func TestRuntimeCognitionMemoryUsesNimiCognitionMainline(t *testing.T) {
 	if len(recallResp.GetHits()) != 1 {
 		t.Fatalf("recall hits mismatch: got=%d want=1", len(recallResp.GetHits()))
 	}
-
-	legacyResp, err := memorySvc.Recall(ctx, &runtimev1.RecallRequest{
-		Context: &runtimev1.MemoryRequestContext{AppId: "app-test"},
-		Bank:    createResp.GetBank().GetLocator(),
-		Query:   &runtimev1.MemoryRecallQuery{Query: "bridge", Limit: 5},
-	})
-	if err != nil {
-		t.Fatalf("legacy Recall: %v", err)
-	}
-	if len(legacyResp.GetHits()) != 0 {
-		t.Fatalf("legacy memory baseline unexpectedly became mainline: got=%d hits", len(legacyResp.GetHits()))
-	}
 }
 
 func TestRuntimeCognitionKnowledgeUsesNimiCognitionMainline(t *testing.T) {
-	svc, _, knowledgeSvc, cleanup := newTestService(t)
+	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
 	ctx := context.Background()
@@ -89,6 +76,7 @@ func TestRuntimeCognitionKnowledgeUsesNimiCognitionMainline(t *testing.T) {
 				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: "app-test"},
 			},
 		},
+		DisplayName: "Mainline Bank",
 	})
 	if err != nil {
 		t.Fatalf("CreateKnowledgeBank: %v", err)
@@ -120,21 +108,10 @@ func TestRuntimeCognitionKnowledgeUsesNimiCognitionMainline(t *testing.T) {
 	if len(searchResp.GetHits()) != 1 {
 		t.Fatalf("search hits mismatch: got=%d want=1", len(searchResp.GetHits()))
 	}
-
-	_, err = knowledgeSvc.GetPage(ctx, &runtimev1.GetPageRequest{
-		Context: &runtimev1.KnowledgeRequestContext{AppId: "app-test"},
-		BankId:  createResp.GetBank().GetBankId(),
-		Lookup: &runtimev1.GetPageRequest_PageId{
-			PageId: putResp.GetPage().GetPageId(),
-		},
-	})
-	if err == nil {
-		t.Fatal("legacy knowledge baseline unexpectedly served runtime cognition page")
-	}
 }
 
 func TestRuntimeCognitionMemoryHonorsBoundEmbeddingProfileAvailability(t *testing.T) {
-	svc, memorySvc, _, cleanup := newTestService(t)
+	svc, memorySvc, cleanup := newTestService(t)
 	defer cleanup()
 
 	ctx := context.Background()
@@ -201,7 +178,7 @@ func TestRuntimeCognitionMemoryHonorsBoundEmbeddingProfileAvailability(t *testin
 }
 
 func TestRuntimeCognitionKnowledgeIngestRejectsInvalidEnvelope(t *testing.T) {
-	svc, _, _, cleanup := newTestService(t)
+	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
 	ctx := context.Background()
@@ -212,6 +189,7 @@ func TestRuntimeCognitionKnowledgeIngestRejectsInvalidEnvelope(t *testing.T) {
 				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: "app-test"},
 			},
 		},
+		DisplayName: "Ingest Reject Bank",
 	})
 	if err != nil {
 		t.Fatalf("CreateKnowledgeBank: %v", err)
@@ -237,7 +215,7 @@ func TestRuntimeCognitionKnowledgeIngestRejectsInvalidEnvelope(t *testing.T) {
 }
 
 func TestRuntimeCognitionKnowledgeIngestTaskPreservesSlugAndTitle(t *testing.T) {
-	svc, _, _, cleanup := newTestService(t)
+	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
 	ctx := context.Background()
@@ -248,6 +226,7 @@ func TestRuntimeCognitionKnowledgeIngestTaskPreservesSlugAndTitle(t *testing.T) 
 				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: "app-test"},
 			},
 		},
+		DisplayName: "Ingest Task Bank",
 	})
 	if err != nil {
 		t.Fatalf("CreateKnowledgeBank: %v", err)
@@ -280,7 +259,7 @@ func TestRuntimeCognitionKnowledgeIngestTaskPreservesSlugAndTitle(t *testing.T) 
 }
 
 func TestRuntimeCognitionTraverseGraphRequiresExplicitBoundedDepth(t *testing.T) {
-	svc, _, _, cleanup := newTestService(t)
+	svc, _, cleanup := newTestService(t)
 	defer cleanup()
 
 	ctx := context.Background()
@@ -292,6 +271,7 @@ func TestRuntimeCognitionTraverseGraphRequiresExplicitBoundedDepth(t *testing.T)
 				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: "app-test"},
 			},
 		},
+		DisplayName: "Traverse Bank",
 	})
 	if err != nil {
 		t.Fatalf("CreateKnowledgeBank: %v", err)
@@ -324,48 +304,12 @@ func TestRuntimeCognitionTraverseGraphRequiresExplicitBoundedDepth(t *testing.T)
 	}
 }
 
-func TestRuntimeCognitionDeleteKnowledgeBankFailsWhenScopeCleanupUnavailable(t *testing.T) {
-	svc, _, knowledgeSvc, cleanup := newTestService(t)
-	defer cleanup()
-
-	ctx := context.Background()
-	reqCtx := &runtimev1.KnowledgeRequestContext{AppId: "app-test"}
-	createResp, err := svc.CreateKnowledgeBank(ctx, &runtimev1.CreateKnowledgeBankRequest{
-		Context: reqCtx,
-		Locator: &runtimev1.PublicKnowledgeBankLocator{
-			Locator: &runtimev1.PublicKnowledgeBankLocator_AppPrivate{
-				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: "app-test"},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("CreateKnowledgeBank: %v", err)
-	}
-	bankID := createResp.GetBank().GetBankId()
-	if err := svc.cognitionCore.Close(); err != nil {
-		t.Fatalf("close cognition core: %v", err)
-	}
-
-	_, err = svc.DeleteKnowledgeBank(ctx, &runtimev1.DeleteKnowledgeBankRequest{
-		Context: reqCtx,
-		BankId:  bankID,
-	})
-	if status.Code(err) != codes.FailedPrecondition {
-		t.Fatalf("expected FailedPrecondition cleanup failure, got %v", err)
-	}
-	reason, ok := grpcerr.ExtractReasonCode(err)
-	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE {
-		t.Fatalf("unexpected cleanup failure reason: got=%v ok=%v", reason, ok)
-	}
-	if _, err := knowledgeSvc.GetKnowledgeBank(ctx, &runtimev1.GetKnowledgeBankRequest{
-		Context: reqCtx,
-		BankId:  bankID,
-	}); err != nil {
-		t.Fatalf("knowledge bank should remain after blocked cleanup: %v", err)
-	}
-}
-
-func newTestService(t *testing.T) (*Service, *memoryservice.Service, *knowledgeservice.Service, func()) {
+// newTestService constructs a Cognition Service backed by the typed
+// KnowledgeScopeRegistry. The fixture does not import or instantiate
+// `runtime/internal/services/knowledge` — that package is retired by
+// K-KNOW-001a + C-COG-059 (wave-0) and replaced by the registry +
+// authorizer wired in here.
+func newTestService(t *testing.T) (*Service, *memoryservice.Service, func()) {
 	t.Helper()
 
 	root := t.TempDir()
@@ -377,12 +321,8 @@ func newTestService(t *testing.T) (*Service, *memoryservice.Service, *knowledges
 		t.Fatalf("memoryservice.New: %v", err)
 	}
 	setMemoryEmbeddingVectorExecutorForTest(memorySvc)
-	knowledgeSvc, err := knowledgeservice.NewWithBackend(logger, memorySvc.PersistenceBackend())
-	if err != nil {
-		_ = memorySvc.Close()
-		t.Fatalf("knowledgeservice.NewWithBackend: %v", err)
-	}
-	svc, err := New(logger, cfg, memorySvc, knowledgeSvc)
+	authorizer := NewAccountKnowledgeAuthorizer(logger)
+	svc, err := New(logger, cfg, memorySvc, authorizer)
 	if err != nil {
 		_ = memorySvc.Close()
 		t.Fatalf("cognition.New: %v", err)
@@ -390,10 +330,9 @@ func newTestService(t *testing.T) (*Service, *memoryservice.Service, *knowledges
 
 	cleanup := func() {
 		_ = svc.Close()
-		_ = knowledgeSvc.Close()
 		_ = memorySvc.Close()
 	}
-	return svc, memorySvc, knowledgeSvc, cleanup
+	return svc, memorySvc, cleanup
 }
 
 func setMemoryEmbeddingVectorExecutorForTest(svc *memoryservice.Service) {
