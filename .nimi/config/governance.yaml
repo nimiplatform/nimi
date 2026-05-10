@@ -155,6 +155,13 @@ ai_governance:
         error_lines: 1400
         error_max_line_bytes: 16000
         error_average_line_bytes: 1600
+      release_gate_registry:
+        warning_lines: 5000
+        warning_max_line_bytes: 4000
+        warning_average_line_bytes: 800
+        error_lines: 8000
+        error_max_line_bytes: 16000
+        error_average_line_bytes: 1600
       temporary_large_generated:
         warning_lines: 2000
         warning_max_line_bytes: 16000
@@ -192,6 +199,8 @@ ai_governance:
         - apps/parentos/spec/kernel/tables/reminder-rules.yaml
         - spec/runtime/kernel/tables/rule-evidence.rules.yaml
         - .nimi/spec/runtime/kernel/tables/rule-evidence.rules.yaml
+      release_gate_registry:
+        - .nimi/spec/platform/kernel/tables/release-gate-registry.yaml
       temporary_large_generated:
         - .nimi/spec/_meta/spec-generation-audit.yaml
       proto_schema:
