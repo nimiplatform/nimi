@@ -31,7 +31,7 @@ export function HeroSection(props: HeroSectionProps) {
 
   return (
     <section
-      id="install"
+      id="hero"
       className="relative overflow-hidden bg-transparent pb-36 pt-24 text-slate-900 md:pb-40 md:pt-32"
     >
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

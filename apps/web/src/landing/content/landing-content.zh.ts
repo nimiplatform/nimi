@@ -5,9 +5,9 @@ const ZH_SPEC_NOTE = `权威路径：.nimi/spec/**
 边界：公开展示面，不是独立真相`;
 
 export const landingContentZh: LandingContent = {
-  localeName: '简体中文',
   skipToContent: '跳转到主要内容',
   nav: {
+    enterNimi: '进入 Nimi',
     install: '开始',
     sdk: 'SDK',
     catalog: 'Runtime',
@@ -16,7 +16,7 @@ export const landingContentZh: LandingContent = {
     security: 'Governance',
     mods: 'Mods',
     openSource: 'Source',
-    discord: 'Discord',
+    faq: '常见问题',
   },
   hero: {
     eyebrow: '由规范治理的 AI 开放世界平台',
@@ -179,7 +179,12 @@ export const landingContentZh: LandingContent = {
     primaryCta: '阅读文档',
     githubCta: '查看源码',
   },
-  footer: { line1: '公开首页内容跟随文档与规范权威。', line2: '这里不独立发布 Provider / Model、安装或 release 说法。', termsLabel: '服务条款', privacyLabel: '隐私政策' },
+  footer: { line1: '面向应用的开源 AI 运行时：一个 CLI、一个 SDK，本地与云端 AI。', line2: '阅读文档了解当前可用功能与路线图。', termsLabel: '服务条款', privacyLabel: '隐私政策' },
   localeToggleLabel: '语言',
-  localeOptions: { en: 'English', zh: '中文' },
+  localeOptions: {
+    en: 'English',
+    zh: '中文',
+    switchToEn: '切换语言为英文',
+    switchToZh: '切换语言为中文',
+  },
 };

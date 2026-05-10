@@ -82,13 +82,15 @@ export function App() {
     return null;
   }
   const sectionNavItems: Array<{ href: string; label: string; external?: boolean }> = [
-    { href: '#install', label: content.nav.install },
+    { href: '#hero', label: content.nav.install },
+    { href: '#architecture', label: content.nav.architecture },
     { href: '#sdk', label: content.nav.sdk },
     { href: '#catalog', label: content.nav.catalog },
-    { href: '#architecture', label: content.nav.architecture },
     { href: '#desktop', label: content.nav.desktop },
-    { href: '#security', label: content.nav.security },
     { href: '#mods', label: content.nav.mods },
+    { href: '#security', label: content.nav.security },
+    { href: '#open-source', label: content.nav.openSource },
+    { href: '#faq', label: content.nav.faq },
   ];
 
   return (
@@ -144,7 +146,7 @@ export function App() {
               href={links.webAppUrl}
               className="inline-flex h-10 items-center justify-center rounded-full bg-slate-900 px-4 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#2ba980]"
             >
-              Enter Nimi
+              {content.nav.enterNimi}
             </a>
           </div>
         </div>

@@ -5,9 +5,9 @@ Docs: /docs/reference/spec-map
 Boundary: public projection, not independent truth`;
 
 export const landingContentEn: LandingContent = {
-  localeName: 'English',
   skipToContent: 'Skip to main content',
   nav: {
+    enterNimi: 'Enter Nimi',
     install: 'Start',
     sdk: 'SDK',
     catalog: 'Runtime',
@@ -16,7 +16,7 @@ export const landingContentEn: LandingContent = {
     security: 'Governance',
     mods: 'Mods',
     openSource: 'Source',
-    discord: 'Discord',
+    faq: 'FAQ',
   },
   hero: {
     eyebrow: 'Spec-governed AI open world platform',
@@ -179,7 +179,12 @@ export const landingContentEn: LandingContent = {
     primaryCta: 'Read Docs',
     githubCta: 'View Source',
   },
-  footer: { line1: 'Public landing content is a projection of docs/spec authority.', line2: 'No independent provider/model, setup, or release claims are published here.', termsLabel: 'Terms', privacyLabel: 'Privacy' },
+  footer: { line1: 'Open-source AI runtime for apps. One CLI, one SDK, local and cloud AI.', line2: 'Read the docs to see what ships today and what is on the roadmap.', termsLabel: 'Terms', privacyLabel: 'Privacy' },
   localeToggleLabel: 'Language',
-  localeOptions: { en: 'English', zh: '中文' },
+  localeOptions: {
+    en: 'English',
+    zh: '中文',
+    switchToEn: 'Switch language to English',
+    switchToZh: 'Switch language to Chinese',
+  },
 };

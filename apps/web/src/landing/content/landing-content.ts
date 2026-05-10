@@ -1,9 +1,9 @@
 import type { LandingLocale } from '../i18n/locale.js';
 
 export type LandingContent = {
-  localeName: string;
   skipToContent: string;
   nav: {
+    enterNimi: string;
     install: string;
     sdk: string;
     catalog: string;
@@ -12,7 +12,7 @@ export type LandingContent = {
     security: string;
     mods: string;
     openSource: string;
-    discord: string;
+    faq: string;
   };
   hero: {
     eyebrow: string;
@@ -187,7 +187,12 @@ export type LandingContent = {
     privacyLabel: string;
   };
   localeToggleLabel: string;
-  localeOptions: { en: string; zh: string };
+  localeOptions: {
+    en: string;
+    zh: string;
+    switchToEn: string;
+    switchToZh: string;
+  };
 };
 
 const landingContentCache: Partial<Record<LandingLocale, Promise<LandingContent>>> = {};

@@ -6,6 +6,8 @@ export type LanguageToggleProps = {
   options: {
     en: string;
     zh: string;
+    switchToEn: string;
+    switchToZh: string;
   };
   onChange: (locale: LandingLocale) => void;
 };
@@ -21,7 +23,7 @@ export function LanguageToggle(props: LanguageToggleProps) {
             key={item}
             type="button"
             aria-pressed={active}
-            aria-label={item === 'en' ? 'Switch language to English' : '切换到中文'}
+            aria-label={item === 'en' ? props.options.switchToEn : props.options.switchToZh}
             onClick={() => props.onChange(item)}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
               active
