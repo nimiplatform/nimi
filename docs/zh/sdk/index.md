@@ -24,10 +24,10 @@ SDK 被拆分为多个命名的子路径（Subpaths），每个子路径遵循�
 
 | 子路径 | 核心含义 |
 | --- | --- |
-| `runtime` | 封装由 Runtime 支撑的调用逻辑与传输面的数据投影。 |
+| `runtime` | 封装由 Runtime 支撑的调用逻辑与传输面的数据映射。 |
 | `realm` | 提供公开的 Realm 门面及生成式客户端边界。 |
 | `world` | 结合世界真值状态与 Runtime 的生成能力。 |
-| `ai-provider` | 对经由 Runtime 暴露的 AI Provider 进行标准化投影。 |
+| `ai-provider` | 对经由 Runtime 暴露的 AI Provider 进行标准化适配。 |
 | `scope` | 管理应用的授权机制与目录生命周期。 |
 | `mod` | 提供宿主环境注入的 Mod 扩展能力接口。 |
 | `types` | 提供跨模块共享的公开数据类型。 |
@@ -45,7 +45,7 @@ SDK 被拆分为多个命名的子路径（Subpaths），每个子路径遵循�
 假设您在开发一款应用，业务需要调用 Runtime 生成文本、读取世界真值，并对 Realm 状态更新做出响应。标准操作流程如下：
 
 1. 从 `sdk/runtime` 导入。在流式契约保障下发起生成请求并使用数据流；具体规范详见 [Runtime 流式](/zh/runtime/streaming) 与 [Runtime 工作流](/zh/runtime/workflows)。
-2. 从 `sdk/realm`（如需组合读取则使用 `sdk/world`）导入以获取世界真值。严禁跨越边界直接导入 Realm 的私有内部逻辑；SDK 已安全地投影出应用层获准访问的视图。
+2. 从 `sdk/realm`（如需组合读取则使用 `sdk/world`）导入以获取世界真值。严禁跨越边界直接导入 Realm 的私有内部逻辑；SDK 已安全地转换出应用层获准访问的视图。
 3. 若涉及权限验证与目录树管理，从 `sdk/scope` 导入相关工具。
 4. 仅在构建由宿主注入的 Mod 扩展表面时，从 `sdk/mod` 进行导入。一般应用开发不涉及此路径。
 5. 通用数据结构统一从 `sdk/types` 获取。它们是稳定的构建基石，支持跨子路径复用。

@@ -1,25 +1,25 @@
 # 智能体呈现流
 
-> 状态：运行中 (Running) 今日。瞬时呈现接口（轮次投影 + 呈现事件 + 状态事件）已发布；面向模型的 APML 传输格式已准入。
+> 状态：运行中 (Running)。瞬时呈现接口已发布（轮次生命周期事件 + 呈现请求事件 + 状态事件）；面向模型的 APML 传输格式已获准入。
 
-智能体呈现流是运行时与任何希望实时渲染智能体行为的应用之间的**瞬时投影接口**——例如，桌面聊天显示消息文本流式传输，Avatar 渲染情感变化，工具包消费者读取轮次生命周期。
+智能体呈现流是运行时与任何希望实时渲染智能体行为的应用之间的**瞬时呈现接口**——例如，桌面聊天显示消息文本流式传输，Avatar 渲染情感变化，工具包消费者读取轮次生命周期。
 
-它不同于**持久化**的 `AgentPresentationProfile`（缓慢变化的默认语音/资产/表情预设绑定），也不同于**面向模型**的 APML 传输格式。应用消费的是类型化投影，而非原始 APML 或持久化配置文件。
+它不同于**持久化**的 `AgentPresentationProfile`（缓慢变化的默认语音/资产/表情预设绑定），也不同于**面向模型**的 APML 传输格式。应用消费的是类型化事件，而非原始 APML 或持久化配置文件。
 
-## 权限边界
+## 职责边界
 
 | 层级 | 所有者 | 所属职责 |
 | --- | --- | --- |
 | 持久化呈现配置文件 | 运行时 (`agent-presentation-contract.md`) | 默认语音 + 资产 + 表情预设绑定 |
-| 面向模型的 APML 传输格式 | 运行时 (`agent-output-wire-contract.md`) | 公共 APML 标签准入、解析器验证、映射到类型化投影 |
-| 瞬时呈现流 | 运行时 (`agent-presentation-stream-contract.md`) | 锚点作用域的轮次生命周期 + 瞬时呈现请求 + 当前情感投影 |
+| 面向模型的 APML 传输格式 | 运行时 (`agent-output-wire-contract.md`) | 公共 APML 标签准入、解析器验证、映射到类型化事件 |
+| 瞬时呈现流 | 运行时 (`agent-presentation-stream-contract.md`) | 锚点作用域的轮次生命周期 + 瞬时呈现请求 + 当前情感状态 |
 | 渲染器本地插值/物理 | 各应用（Avatar、桌面、工具包） | 视觉/音频渲染 |
 
 该流是**运行时拥有的已提交真实状态**。渲染器本地插值、运动句柄、Live2D 参数写入和外壳编排是应用本地关注点。
 
-## 已准入的投影家族
+## 已准入的事件家族
 
-运行时拥有的稳定投影家族：
+运行时拥有的稳定事件家族：
 
 ### 轮次生命周期 (`runtime.agent.turn.*`)
 
@@ -43,7 +43,7 @@
 
 ### 呈现请求 (`runtime.agent.presentation.*`)
 
-流作用域的瞬时呈现投影——智能体希望具身/聊天界面在此轮次中执行的操作。
+流作用域的瞬时呈现事件——智能体希望具身/聊天界面在此轮次中执行的操作。
 
 | 家族 | 用途 |
 | --- | --- |
@@ -58,16 +58,16 @@
 
 ### 智能体状态 (`runtime.agent.state.*`)
 
-智能体作用域的投影，可能源自某个锚点/轮次，但作用于整个智能体。
+智能体作用域的事件，可能源自某个锚点/轮次，但作用于整个智能体。
 
 | 家族 | 用途 |
 | --- | --- |
 | `runtime.agent.state.status_text_changed` | 自由文本状态更新 |
 | `runtime.agent.state.execution_state_changed` | 执行生命周期状态 |
-| `runtime.agent.state.emotion_changed` | 当前情感投影 |
-| `runtime.agent.state.posture_changed` | 姿势投影 |
+| `runtime.agent.state.emotion_changed` | 当前情感状态 |
+| `runtime.agent.state.posture_changed` | 姿势状态 |
 
-所需封装结构：`agent_id`。与锚点/轮次/流的源头关联是可选的，仅当状态投影可追溯到特定的连续性分支时才存在。
+所需封装结构：`agent_id`。与锚点/轮次/流的源头关联是可选的，仅当状态事件可追溯到特定的连续性分支时才存在。
 
 ### 钩子 (`runtime.agent.hook.*`)
 
@@ -75,13 +75,13 @@
 
 ## APML：面向模型的传输格式，而非应用消费
 
-对于 Live2D 伴随底层支持方向，已准入的面向模型的传输格式是 **APML** 内联标记。模型发出 APML；运行时解析 + 验证；运行时发出类型化投影；**应用消费的是类型化投影，绝非原始 APML 解析器事件**。
+对于 Live2D 伴随底层支持方向，已准入的面向模型的传输格式是 **APML** 内联标记。模型发出 APML；运行时解析 + 验证；运行时发出类型化事件；**应用消费的是类型化事件，绝非原始 APML 解析器输出**。
 
 | 公共 APML 标签 | 准入位置 |
 | --- | --- |
 | `<message>` (顶层) | 用户可见的轮次文本主体 |
-| `<emotion>` (消息内部) | 投影到运行时当前情感状态 |
-| `<activity>` (消息内部) | 投影到运行时活动本体 |
+| `<emotion>` (消息内部) | 映射到运行时当前情感状态 |
+| `<activity>` (消息内部) | 映射到运行时活动本体 |
 | `<action kind="image\|voice">` (同级) | 带有 `<prompt-payload>` + `<prompt-text>` 的图像/语音动作 |
 | `<time-hook>` (顶层) | 基于时间的钩子意图 |
 | `<event-hook>` (顶层) | 窄范围事件钩子（`event-user-idle` / `event-chat-ended`），带有 `<effect kind="follow-up-turn">` |
@@ -89,7 +89,7 @@
 公共 APML **不**准入以下内容：
 
 - 直接的 `<motion>`、`<expression>`、`<lookat>`、`<pose>`、
-  `<clear-pose>`（这些是下游 Avatar 投影路由——请参阅
+  `<clear-pose>`（这些是下游 Avatar 事件路由——请参阅
   [生成运动提供者](/avatar/generated-motion-provider.md)）
 - 语音韵律、表面路由、通知、工具调用、
   思维链、内存写入、姿势/状态、钩子取消、
@@ -130,9 +130,9 @@
 
 1.  **模型发出。** `<message><emotion name="happy" /><activity name="wave" />
     Hi! It's good to see you.</message>`。
-2.  **运行时解析。** APML 解析器验证；准入投影。
-3.  **类型化事件触发。** `turn.text_delta` 携带用户可见文本；`state.emotion_changed` 投影“happy”；`presentation.activity_requested` 投影“wave”，并带有已准入的活动本体 ID。
-4.  **应用消费。** 桌面聊天渲染文本；Avatar 的投影层通过活跃后端路由活动；Avatar 事件总线触发 `avatar.expression.changed`。
+2.  **运行时解析。** APML 解析器验证；准入事件。
+3.  **类型化事件触发。** `turn.text_delta` 携带用户可见文本；`state.emotion_changed` 映射 "happy"；`presentation.activity_requested` 映射 "wave"，并带有已准入的活动本体 ID。
+4.  **应用消费。** 桌面聊天渲染文本；Avatar 的呈现层通过活跃后端路由活动；Avatar 事件总线触发 `avatar.expression.changed`。
 
 模型编写了 APML；应用消费了类型化事件。APML 绝不会以原始解析器输出的形式到达应用。
 
@@ -155,7 +155,7 @@
 - 它不准入 JSON 消息-动作传输格式；APML 是此发展路线的已准入公共模型传输格式。
 - 它不准入尽力 APML 修复；格式错误的 APML 会导致轮次闭环失败。
 
-## 边界摘要
+## 边界总结
 
 | 关注点 | 所有者 |
 | --- | --- |

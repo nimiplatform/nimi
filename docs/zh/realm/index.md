@@ -13,7 +13,7 @@ Realm 是世界真相的权威归属域。一个世界的持久语义都由 Real
 - [世界历史](/zh/realm/world-history)：记录世界如何演变至当前状态的仅追加（append-only）轨迹。
 - [呈现](/zh/realm/projection)：Realm 的数据结构向应用层读者提供数据访问的规则。
 
-域表面：
+Realm 子域：
 
 - [聊天](/zh/realm/chat)：当对话文本承载了世界的实质含义时，对于会话线程（Thread）、消息、成员资格以及 Agent 槽位（Slot）的生命周期管理。
 - [社交与经济](/zh/realm/social-and-economy)：由 Realm 权威管理的关系图谱与价值流转、兑换契约。

@@ -1,8 +1,8 @@
-# Nimi Coding 数据参考 (Reference)
+# Nimi Coding 数据参考
 
 本部分提供针对 Nimi Coding 工件系统底层 Schema 及指令的字段级技术参考。此处各页面均由参数列表或查阅表格组成，**不包含**概念介绍与叙述性说明。
 
-有关工作流概念解析与业务实践示例，请参阅“核心范式 (The Paradigm)”相关章节及 [Topic 工作流](/zh/nimicoding/topic-workflow)。
+有关工作流概念解析与业务实践示例，请参阅[范式](/zh/nimicoding/the-paradigm)及 [Topic 工作流](/zh/nimicoding/topic-workflow)。
 
 ## 参考索引表
 
@@ -14,7 +14,7 @@
 
 ## 查阅使用建议
 
-此部分文档属于结构化数据字典，而非操作教程。其预设读者已熟悉相关工程概念，目的是供开发者精准查询特定字段名称、合法的枚举类型 (Enum values) 以及 Schema 数据约束限制。
+此部分文档属于结构化数据字典，而非操作教程。其预设读者已熟悉相关工程概念，目的是供开发者精准查询特定字段名称、合法的枚举值以及 Schema 数据约束限制。
 
 ## 来源依据
 

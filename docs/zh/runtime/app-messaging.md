@@ -27,7 +27,7 @@ Nimi 上的应用间协调通过**运行时中介应用消息**进行。应用�
 
 返回 `message_id`（ULID），`accepted`，`reason_code`。
 
-`scoped_binding` 字段是凭证平面边界：向运行时代理表面发送已准入家族消息的应用必须提供其已准入的范围绑定（由 `RuntimeAccountService.IssueScopedAppBinding` 发布）。绑定携带非秘密绑定 ID/可选句柄/非秘密关系选择器。这就是为什么应用消息接口位于 auth/identity 波中——绑定本身具有认证功能。
+`scoped_binding` 字段是凭证平面边界：向运行时代理表面发送已准入家族消息的应用必须提供其已准入的范围绑定（由 `RuntimeAccountService.IssueScopedAppBinding` 发布）。绑定携带非秘密绑定 ID/可选句柄/非秘密关系选择器。这就是为什么应用消息接口位于 auth/identity 阶段——绑定本身具有认证功能。
 
 ## SubscribeAppMessages
 

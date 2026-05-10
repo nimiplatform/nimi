@@ -2,24 +2,24 @@
 
 ## 状态：已准入，正在构建中
 
-`AIProfile` 执行的运行时合约 (`K-AIEXEC-001..K-AIEXEC-005`) 已在内核级别被准入。从桌面可移植 `AIProfile` 到本地配置描述符的投影作为规范边界提供；探针 + 快照 UI 正在积极构建中。
+`AIProfile` 执行的运行时合约 (`K-AIEXEC-001..K-AIEXEC-005`) 已在内核级别被准入。从桌面可移植 `AIProfile` 到本地配置描述符的映射作为规范边界提供；探针 + 快照 UI 正在积极构建中。
 
 ## 本页涵盖的内容
 
-`AIProfile` 是 **桌面可移植的 AI 配置包**（见 `D-AIPC-002`）。它并不直接等同于 `LocalProfileDescriptor` (`K-LOCAL-014a`)。本页涵盖了运行时如何执行本地端投影——探针、快照、解析以及 `AIScopeRef` 链接。
+`AIProfile` 是 **桌面可移植的 AI 配置包**（见 `D-AIPC-002`）。它并不直接等同于 `LocalProfileDescriptor` (`K-LOCAL-014a`)。本页涵盖了运行时如何执行本地端映射——探针、快照、解析以及 `AIScopeRef` 链接。
 
-## 权限边界
+## 权责边界
 
 | 职责 | 负责人 |
 | --- | --- |
 | `AIProfile` 可移植模式定义 + 验证 | 桌面内核 (`D-AIPC-002`) |
-| 可移植 → 本地描述符投影 | 桌面 / SDK |
+| 可移植 → 本地描述符映射 | 桌面 / SDK |
 | `LocalProfileDescriptor` 执行 + 安装 | 运行时 (`K-LOCAL-013..015`) |
 | 设备配置文件收集 | 运行时 (`K-DEV-001..009`) |
 | 本地资源解析 + 健康状况 | 运行时 (`K-LOCAL-014a`) |
 | 执行快照证据 | 运行时 (`K-AIEXEC-003`) |
 
-运行时 **不是** 可移植模式验证器。它接受并执行 `LocalProfileDescriptor`；桌面侧 / SDK 侧的投影将可移植的 `AIProfile` 转换为描述符。
+运行时 **不是** 可移植模式验证器。它接受并执行 `LocalProfileDescriptor`；桌面侧 / SDK 侧的映射将可移植的 `AIProfile` 转换为描述符。
 
 ## 探针合约
 
@@ -62,7 +62,7 @@
 
 ## 读者场景：模块工作区在 AI 配置文件下执行
 
-1. **配置文件应用。** 桌面将可移植的 `AIProfile` 投影到此设备的 `LocalProfileDescriptor`。
+1. **配置文件应用。** 桌面将可移植的 `AIProfile` 转换为此设备的 `LocalProfileDescriptor`。
 2. **范围身份。** 模块工作区的 `AIScopeRef{ kind: 'mod', ownerId: <manifest>, surfaceId: 'workspace' }` 键控快照。
 3. **执行调用。** `SubmitScenarioJob`（或等效操作）通过解析后的描述符进行。
 4. **执行快照。** 运行时在执行上下文中固定四个证据行。
@@ -101,7 +101,7 @@
 | 关注点 | 负责人 |
 | --- | --- |
 | `AIProfile` 可移植模式 | 桌面内核 (`D-AIPC-002`) |
-| 可移植 → 本地投影 | 桌面 / SDK |
+| 可移植 → 本地映射 | 桌面 / SDK |
 | `LocalProfileDescriptor` 执行 | 运行时 (`K-LOCAL-013..015`) |
 | 探针层级 | 混合（静态 = 桌面；可用性 = 运行时路由健康；可行性 = 运行时设备 + 解析器 + 调度器） |
 | 执行快照证据 | 运行时 (`K-AIEXEC-003`) |

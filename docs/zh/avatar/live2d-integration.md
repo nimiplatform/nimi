@@ -2,7 +2,7 @@
 
 > 状态：运行中 (Running)。Live2D 是已交付的后端分支；Cubism SDK for Web 是官方集成路径。
 
-Live2D 是 Avatar 的活跃渲染后端。集成通过官方的 Cubism SDK for Web 进行，其参数、动作、表情和物理表面通过宿主无关的投影层暴露，并提供一个 `Live2DBackendExtension` 逃生舱口，用于参数 ID 的直接写入。
+Live2D 是 Avatar 的活跃渲染后端。集成通过官方的 Cubism SDK for Web 进行，其参数、动作、表情和物理表面通过宿主无关的映射层暴露，并提供一个 `Live2DBackendExtension` 逃生舱口，用于参数 ID 的直接写入。
 
 ## SDK 边界
 
@@ -15,7 +15,7 @@ Live2D 是 Avatar 的活跃渲染后端。集成通过官方的 Cubism SDK for W
 | 音频桥接 | `wLipSync` 流水线写入 `ParamMouthOpenY`（+ 根据资产层级可选的 `ParamMouthForm`） |
 | 默认行为 | Cubism 呼吸 / 眨眼 / 口型同步；NAS 处理器可根据契约进行覆盖 |
 
-Live2D 分支在封闭的 `BackendKind` 联合类型中为 `kind: 'live2d'`。它实现了 `BackendBranch` 接口；载体和投影层通过该接口消费它，而不是直接访问 Cubism 内部。
+Live2D 分支在封闭的 `BackendKind` 联合类型中为 `kind: 'live2d'`。它实现了 `BackendBranch` 接口；载体和映射层通过该接口消费它，而不是直接访问 Cubism 内部。
 
 ## 模型加载
 
@@ -24,7 +24,7 @@ Avatar 应用通过以下步骤加载 Live2D 模型包：
 1.  通过已准入的解析器解析包描述符。
 2.  加载 `model3.json` 及其声明的资产（动作、表情、物理、姿态、纹理、点击区域）。
 3.  对照 `live2d-asset-compatibility-contract.md` 运行兼容性验证，并计算资产层级。
-4.  向投影层报告 `embodiment_bounds`（模型 alpha 边界框）和 `BackendNominalBounds`，以便外壳可以调整窗口大小。
+4.  向映射层报告 `embodiment_bounds`（模型 alpha 边界框）和 `BackendNominalBounds`，以便外壳可以调整窗口大小。
 
 未能通过兼容性验证的模型不会成功加载。缺少必需参数会导致加载失败；缺少可选参数会降低资产层级。
 
@@ -41,7 +41,7 @@ Avatar 应用通过以下步骤加载 Live2D 模型包：
 
 ## 参数 API
 
-后端中立的参数访问通过投影 API (`ctx.params`) 进行。直接参数 ID 写入——这是每个 Live2D 作者最终都希望实现的方式——通过 `Live2DBackendExtension` 进行：
+后端中立的参数访问通过映射 API (`ctx.params`) 进行。直接参数 ID 写入——这是每个 Live2D 作者最终都希望实现的方式——通过 `Live2DBackendExtension` 进行：
 
 ```js
 export default {
@@ -65,7 +65,7 @@ export default {
 | 帧批次 | Avatar | `lipsync_frame_batch` |
 | 参数写入 | Live2D 后端 | `ParamMouthOpenY`（+ 根据层级可选的 `ParamMouthForm`） |
 
-口型同步是平台中最跨领域的协同路径。它跨越运行时 → SDK 队列 → Avatar 投影 → Live2D 参数写入，所有这些都通过已准入的衔接点进行。
+口型同步是平台中最跨领域的协同路径。它跨越运行时 → SDK 队列 → Avatar 映射 → Live2D 参数写入，所有这些都通过已准入的衔接点进行。
 
 ## NAS 连续调度
 
@@ -92,7 +92,7 @@ NAS 连续处理器（例如 `breathe.js`、`eye_tracker.js`）根据 Live2D `mo
 ## Live2D 集成不做什么
 
 -   它不重新定义活动 / 情感 / 姿态的真实性——那是运行时负责的。
--   它不拥有具身投影语义——那是 `embodiment-projection-contract.md` 负责的。
+-   它不拥有具身映射语义——那是 `embodiment-projection-contract.md` 负责的。
 -   它不会静默地替换声明的默认 Cubism 行为——覆盖是根据渲染契约按范围进行的。
 -   桌面聊天应用的独立 Live2D 渲染器不能作为 Avatar 载体接受的证明——参见 [视觉验收](/avatar/visual-acceptance.md)。
 

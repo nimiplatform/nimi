@@ -39,8 +39,8 @@ Nimi 代理并非仅存在于一个应用程序中。同一个对话可以在桌
 
 | 同一锚点界面共享的内容 | 形式                                   |
 | :--------------------- | :------------------------------------- |
-| 轮次投影               | `runtime.agent.turn.*` 事件            |
-| 呈现投影               | `runtime.agent.presentation.*` 事件    |
+| 轮次事件               | `runtime.agent.turn.*` 事件            |
+| 呈现事件               | `runtime.agent.presentation.*` 事件    |
 | 轮次中断语义           | 锚点范围；中断会传播到所有已连接的界面 |
 | 连续性身份             | `conversation_anchor_id`               |
 | 轮次/消息 ID 范围      | 在一个锚点内唯一                       |
@@ -48,7 +48,7 @@ Nimi 代理并非仅存在于一个应用程序中。同一个对话可以在桌
 
 ## 不同锚点界面不共享的内容
 
-在**相同** `agent_id` 下的两个锚点，**不**会隐含地共享 `turn_id`、`message_id` 或中断传播。它们都可以观察代理范围的投影（`runtime.agent.state.*`、`runtime.agent.memory.*`、`runtime.agent.hook.*`），但消费者不得将这些代理范围的投影解释为一个对话流。
+在**相同** `agent_id` 下的两个锚点，**不**会隐含地共享 `turn_id`、`message_id` 或中断传播。它们都可以观察代理范围的事件（`runtime.agent.state.*`、`runtime.agent.memory.*`、`runtime.agent.hook.*`），但消费者不得将这些代理范围的事件解释为一个对话流。
 
 ## 读者场景：一个对话，三个界面，一天
 
@@ -77,7 +77,7 @@ Nimi 代理并非仅存在于一个应用程序中。同一个对话可以在桌
 
 1.  **锚点存在于运行时，而非 Avatar。** 运行时仍然拥有锚点和进行中的轮次状态。
 2.  **用户重新打开 Avatar。** Avatar 重新连接到运行时，调用 `GetConversationAnchorSnapshot`，恢复锚点。
-3.  **流恢复。** 轮次投影从运行时已提交的真相中恢复。
+3.  **流恢复。** 轮次事件从运行时已提交的真相中恢复。
 4.  **Realm 聊天保留消息。** 没有消息丢失；聊天线程由 Realm 拥有。
 
 锚点的运行时所有权正是使界面故障可存活的关键。

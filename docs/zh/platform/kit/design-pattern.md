@@ -1,7 +1,7 @@
 # 设计模式
 
 > 状态：运行中 (Running)。Nimi 设计模式 (`P-DESIGN-*`) 是
-> 用于共享视觉和交互约定的跨应用权限。
+> 用于共享视觉和交互约定的跨应用权威。
 
 Nimi **设计模式** 是位于 `@nimiplatform/nimi-kit/ui` 中的平台级视觉和交互权威，它管理着每一个 Nimi 管理的应用——包括 Desktop、Forge、Relay、Overtone、parentOS 以及任何未来的官方应用——在一种设计语言下，并且只允许少量已准入的主题表达。
 

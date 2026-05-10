@@ -111,7 +111,7 @@ CLI 机械校验结果。校验通过则记录摄入工件。
 nimicoding handoff --skill high_risk_execution --json （或专门的审计交接）
 ```
 
-把 payload 交给**审计员宿主**（与 worker 不是同一个）。审计员对照四闭环复核工作。
+把 payload 交给**审计员宿主**（与 worker 不是同一个）。审计员对照四闭合复核工作。
 
 样例任务的审计点：
 
@@ -128,7 +128,7 @@ nimicoding handoff --skill high_risk_execution --json （或专门的审计交�
 
 ## Step 10：管理者记录 closeout
 
-写 `closeout-wave-1-add-reference-field.md`，覆盖四闭环维度：
+写 `closeout-wave-1-add-reference-field.md`，覆盖四闭合维度：
 
 ```yaml
 authority_closure: closed
@@ -156,7 +156,7 @@ disposition: complete
 
 - 一个含一个已关闭 wave 的 topic。
 - 七种工件齐全：`topic.yaml`、packet、preflight 结果、worker 结果、审计、（如适用）管理者裁定、closeout。
-- 四闭环框架运行的可见证据。
+- 四闭合框架运行的可见证据。
 
 ## 你练过什么
 

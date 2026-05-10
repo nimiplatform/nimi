@@ -28,7 +28,7 @@
 
 **SDK**。面向 App 的 TypeScript 接入边界。App 通过 SDK 使用 Runtime、Realm、世界组合、scope、Mod，不跨进私有内部。
 
-**桌面端（Desktop）**。第一方原生外壳。承载桌面端契约准入的原生、本地、Mod 能力。
+**桌面端（Desktop）**。第一方原生外壳。承载经桌面端契约准入的原生、本地及 Mod 能力。
 
 **网页端（Web）**。选定平台面的受限呈现。不会因暗示就继承桌面端原生能力。
 
@@ -98,7 +98,7 @@
 
 **Prompt 服务**。Cognition 持有的权威 prompt 模板与服务通道。
 
-**Runtime 桥**。Runtime 在不吞并 Cognition 权威的前提下使用 Cognition 的接缝。
+**Runtime 桥**。Runtime 在不吞并 Cognition 权威的前提下使用 Cognition 的接口。
 
 ## Nimi Coding 词汇
 

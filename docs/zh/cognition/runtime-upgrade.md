@@ -44,7 +44,7 @@ Runtime 升级契约描述能力升级如何在 Runtime 与 Cognition 之间流�
 某宿主项目决定让 Agent 用 Cognition 来做记忆与知识，而不仅仅依赖 Runtime bank。
 
 1. **接线桥接**：在准入的接线流程下，Runtime 消费 Cognition。
-2. **复制 / 投影**：记忆写入经准入投影通道流入 Cognition 记忆 substrate。
+2. **复制 / 映射**：记忆写入经准入映射通道流入 Cognition 记忆 substrate。
 3. **通过桥接读取**：Runtime 查询 Cognition（更丰富的接口）。
 4. **既有 Runtime 契约不变**：不知情的 App 看 Runtime 与之前一样。
 
@@ -79,7 +79,7 @@ Runtime 升级契约描述能力升级如何在 Runtime 与 Cognition 之间流�
 | --- | --- |
 | Runtime bank 作用域（`AGENT_CORE`、`AGENT_DYADIC`、`WORLD_SHARED`） | Runtime |
 | Cognition 记忆 substrate | Cognition |
-| 跨投影 | 由桥接契约映射 |
+| 跨映射 | 由桥接契约映射 |
 
 审计员读规范就能拿到强类型答案。权威不模糊，因为桥接是准入的，不是临时拼出来的。
 

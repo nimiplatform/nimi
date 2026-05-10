@@ -63,7 +63,7 @@ reject_when:
 | Wave 状态 | `implementation_active → continuation_packet_open` |
 | Worker 续作 | 完成 |
 | 审计 | PASS |
-| 闭合 | 四闭环维度齐 |
+| 闭合 | 四闭合维度齐 |
 
 ## 场景：不可续接的 overflow
 

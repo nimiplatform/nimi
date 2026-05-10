@@ -34,7 +34,7 @@ Nimi 公开文档对兼容性与迁移的姿态参考。
 | `compat_shim` | 用临时兼容代码遮盖归属切割 |
 | `dual_read` | 两条未显式准入的并行真相读路径 |
 | `dual_write` | 两条未显式准入的并行真相写路径 |
-| `mvp_subset_contract` | 把规范契约真相削减成临时最小子集 |
+| `mvp_subset_contract` | 把规范契约削减为临时最小子集 |
 | `time_phased_layering` | 用时间切片（v1/v2/v3）替代语义分层 |
 | `placeholder_success` | 在缺失真相时假装成功或闭合 |
 | `happy_path_only_closure` | 仅完成 happy path 就宣告闭合 |

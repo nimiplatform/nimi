@@ -282,7 +282,7 @@ npx nimicoding topic closeout topic <topic-id> ...
 | --- | --- |
 | Codex 直接开始读和改 | Codex 先建立 topic 范围与 packet 边界 |
 | 进度只在对话里 | 进度在 `.nimi/topics/**` 与 `.nimi/local/audit/**` |
-| 完成与否由模型判断 | 完成与否由四闭环判断 |
+| 完成与否由模型判断 | 完成与否由四闭合判断 |
 | Finding 是散文 | Finding 是强类型证据与账本 |
 | 范围会漂 | Owner 域与 packet 约束工作 |
 | 用户只复核最终回答 | 用户在过程中复核关卡与证据 |

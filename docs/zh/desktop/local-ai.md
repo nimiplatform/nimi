@@ -43,7 +43,7 @@ Runtime 说不可用，桌面端就显示「不可用」，不会偷偷重试，
 | `repair_required` | 需要修复 |
 | `cancelled` | 用户取消 |
 
-关键一点：装配过程不直接执行 PowerShell 或 bash。**只有一次确认 UI**；真正的安装由 materializer 在准入契约下完成。
+关键一点：装配过程不直接执行 PowerShell 或 bash。**仅弹出一次确认对话框**；真正的安装由 materializer 在准入契约下完成。
 
 用户点「安装 CUDA 依赖」，materializer 走完整套阶段，桌面端把当前阶段呈现给用户。中间不存在不透明的 shell 命令环节。
 

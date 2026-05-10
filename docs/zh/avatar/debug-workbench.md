@@ -2,15 +2,15 @@
 
 ## 状态：已获准作为平台方向 (Admitted as platform direction)
 
-Avatar 调试工作台界面已在契约层面获准，覆盖 Avatar（摄入 + 后端证据）和 Runtime（探测请求包 + 回放权限）。面向用户的工作台工具已获准为方向；目前尚未发布。
+Avatar 调试工作台界面已在契约层面获准，覆盖 Avatar（摄入 + 后端证据）和 Runtime（探测请求包 + 回放权威）。面向用户的工作台工具已获准为方向；目前尚未发布。
 
 ## 调试工作台是什么
 
 工作台是一个界面，开发者可以在其中**探测**一个 Avatar 实例——提问“此后端是否支持生成式动作？”，“此语音路由是否支持唇形同步？”，“此命中区域是否可解析？”——并获得带有可回放证据的类型化结果。
 
-探测的权限被有意地拆分，以确保答案的可靠性：
+探测的权威被有意地拆分，以确保答案的可靠性：
 
-- **Runtime 拥有**探测请求/结果/回放语义。探测是一个已准入的运行时类型化请求包。Runtime 在投射之前会验证授权。
+- **Runtime 拥有**探测请求/结果/回放语义。探测是一个已准入的运行时类型化请求包。Runtime 在映射之前会验证授权。
 - **Avatar 拥有**后端证据。当探测请求后端特定内容时（能力配置文件验证、生成式动作路由支持、载体诊断），Avatar 会生成证据引用。
 - **Desktop 拥有**工作台布局——即最终用于发起探测和渲染结果的用户界面。
 
@@ -59,7 +59,7 @@ Avatar 为以下内容生成证据：
 - 语音 / 唇形同步支持
 - 载体诊断和命中区域证据
 
-证据形状由 `tables/avatar-debug-session.schema.yaml` 固定。Avatar 在授权的运行时 / SDK 投射后执行解析器——Desktop 仅存储不透明引用；Runtime 拥有授权；SDK 携带类型化引用和方法。
+证据形状由 `tables/avatar-debug-session.schema.yaml` 固定。Avatar 在授权的运行时 / SDK 映射后执行解析器——Desktop 仅存储不透明引用；Runtime 拥有授权；SDK 携带类型化引用和方法。
 
 ## 回放密钥
 
@@ -68,7 +68,7 @@ Runtime 拥有 Avatar 调试探测的回放密钥。密钥集固定在 `tables/a
 ## 读者场景：探测生成式动作路由支持
 
 1.  **开发者发起探测。** 工作台界面发出一个运行时探测请求：`probe_kind: generated_motion_route_support`，目标 `agent_id`，可选 `avatar_instance_id`。
-2.  **Runtime 授权 + 投射。** 验证请求者，将探测投射到 `runtime.agent.*` 投射空间。
+2.  **Runtime 授权 + 映射。** 验证请求者，将探测映射到 `runtime.agent.*` 映射空间。
 3.  **Avatar 评估。** 解析包描述符，验证后端能力配置文件，对照 `tables/generated-motion-routes.yaml` 检查路由 ID，生成描述后端支持内容的证据引用。
 4.  **Runtime 返回结果包。** `status: passed` 并附带证据引用，或者如果此后端不准入该路由，则返回 `unsupported` 并附带原因码。
 5.  **审计员回放。** Runtime 回放重现结果，无需重新询问实时后端；证据引用作为证明的锚点。
@@ -85,7 +85,7 @@ Runtime 拥有 Avatar 调试探测的回放密钥。密钥集固定在 `tables/a
 
 - 它不拥有 SDK 方法形状——SDK 仅携带类型化引用。
 - 它不拥有 Desktop 产品布局——这是 Desktop 的职责。
-- 它不拥有 APML 公共线路——runtime 拥有线路权限。
+- 它不拥有 APML 公共线路——runtime 拥有线路权威。
 - 它不拥有委托的提供者访问权限——提供者集成是独立准入的。
 - 它不会通过空闲回退或静态图像回退，将 `unsupported` 能力静默报告为成功。
 

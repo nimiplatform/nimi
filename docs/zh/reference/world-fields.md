@@ -78,7 +78,7 @@
 
 ## 世界演化引擎（Runtime 持有）
 
-当世界在 Runtime 内运行（Runtime 宿主的世界体验），世界演化引擎掌管它的演化。WEE 有自己的执行阶段分类，与 Workflow 不同：
+当世界在 Runtime 内运行（Runtime 宿主的世界体验），世界演化引擎管理它的演化。WEE 有自己的执行阶段分类，与 Workflow 不同：
 
 `INGRESS → NORMALIZE → SCHEDULE → DISPATCH → TRANSITION → EFFECT → COMMIT_REQUEST → CHECKPOINT → TERMINAL`
 

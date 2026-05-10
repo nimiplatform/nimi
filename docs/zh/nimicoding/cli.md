@@ -1,6 +1,6 @@
 # CLI Surface
 
-`nimicoding` CLI 是一组小而有界的命令。这个包刻意做成**边界完整、但不自主执行**：CLI 负责引导、校验和投射出工件，不替你跑 packet。
+`nimicoding` CLI 是一组小而有界的命令。这个包刻意做成**边界完整、但不自主执行**：CLI 负责引导、校验和生成工件，不替你跑 packet。
 
 每个命令的字段级参考见 [Reference → CLI Commands](/zh/nimicoding/reference/cli-commands)。
 
@@ -27,7 +27,7 @@ CLI 的命令分成几类：
 
 ### `nimicoding start`
 
-侦测项目当前状态，把包内 source 投射到宿主路径，写入 `.nimi/**` seed，准备一份权威 JSON 任务包，并打印可粘贴的提示词。
+侦测项目当前状态，把包内 source 映射到宿主路径，写入 `.nimi/**` seed，准备一份权威 JSON 任务包，并打印可粘贴的提示词。
 
 | 属性 | 值 |
 | --- | --- |
@@ -104,7 +104,7 @@ Plan 输出会报告分块工件引用。分块 id 存在分块文件里，按 p
 
 ### `nimicoding closeout --skill --outcome --verified-at`
 
-把外部技能结果投射成仅本地可见的 closeout payload。可选 `--write-local` 写入 `.nimi/local/handoff-results/`。
+把外部技能结果转成仅本地可见的 closeout payload。可选 `--write-local` 写入 `.nimi/local/handoff-results/`。
 
 | 属性 | 值 |
 | --- | --- |
@@ -116,7 +116,7 @@ Plan 输出会报告分块工件引用。分块 id 存在分块文件里，按 p
 
 ### `nimicoding admit-high-risk-decision --from <json> --admitted-at <iso8601>`
 
-只接受 `nimicoding.high-risk-decision.v1` payload，且 `decisionStatus: manager_decision_recorded`。投射出权威准入预览。需要显式 `--write-spec` 才会写入受跟踪的语义真相。
+只接受 `nimicoding.high-risk-decision.v1` payload，且 `decisionStatus: manager_decision_recorded`。生成权威准入预览。需要显式 `--write-spec` 才会写入受跟踪的语义真相。
 
 ### `nimicoding ingest-high-risk-execution --from <json>`
 
@@ -124,11 +124,11 @@ Plan 输出会报告分块工件引用。分块 id 存在分块文件里，按 p
 
 ### `nimicoding review-high-risk-execution --from <json>`
 
-接受 `ok: true` 的 ingest payload。投射出供管理者复核的附件，附件携带引用与摄入校验证据。
+接受 `ok: true` 的 ingest payload。生成供管理者复核的附件，附件携带引用与摄入校验证据。
 
 ### `nimicoding decide-high-risk-execution --from <json> --acceptance <path> --verified-at <iso8601>`
 
-接受 `ok: true` 且 `reviewStatus: ready_for_manager_review` 的 review payload。机械校验 acceptance 工件，必须含 `Disposition:` 行。投射出仅本地可见的管理者决策记录。
+接受 `ok: true` 且 `reviewStatus: ready_for_manager_review` 的 review payload。机械校验 acceptance 工件，必须含 `Disposition:` 行。生成仅本地可见的管理者决策记录。
 
 ## 机械校验器
 

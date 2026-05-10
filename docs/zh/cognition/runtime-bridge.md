@@ -74,10 +74,10 @@ Runtime 是消费方，Cognition 是权威。
 
 1. **Runtime 写入记忆**：Agent 写到 `AGENT_CORE` bank。
 2. **复制到 Realm**：按 Runtime 的复制状态推进。
-3. **桥接到 Cognition（宿主项目接线时）**：同一条记忆记录可经准入投影通道，呈现为 Cognition 记忆产物。
+3. **桥接到 Cognition（宿主项目接线时）**：同一条记忆记录可经准入映射通道进入 Cognition，成为 Cognition 记忆产物。
 4. **复制状态显式**：在每一层都有 `pending → synced | conflict | invalidated`。
 
-同一条记忆既可以是 Runtime 的标准记录，又可以是 Realm 复制的记录，还可以是 Cognition 的记忆产物——都在准入的复制 / 投影契约下。
+同一条记忆既可以是 Runtime 的标准记录，又可以是 Realm 复制的记录，还可以是 Cognition 的记忆产物——都在准入的复制 / 映射契约下。
 
 ## 场景：不带 Runtime 的 Cognition
 

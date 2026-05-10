@@ -25,7 +25,7 @@ Realm R-WHIST-* 是已交付的规范已发生事实权威。
 | `REPLAY` | 否 | 重新演算和验证已发生的事件 |
 | `CANON_MUTATION` | 是 | 提交真实的状态变动 |
 
-Replay 能读取历史、生成投影、演算结果，但写入被完全阻断。只有 Canon-mutation 才能追加数据。这种结构隔离确保 Replay 成为中立的审计工具。
+Replay 能读取历史、生成视图、演算结果，但写入被完全阻断。只有 Canon-mutation 才能追加数据。这种结构隔离确保 Replay 成为中立的审计工具。
 
 ## 溯源
 

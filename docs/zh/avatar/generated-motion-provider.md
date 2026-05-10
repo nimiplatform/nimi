@@ -1,26 +1,26 @@
 # 生成式动作提供器
 
-> 状态：运行中 (Running)。提供器契约已获准作为APML驱动动作的运行时证明路径；能力配置文件和映射边车是已交付的后端权限接口。
+> 状态：运行中 (Running)。提供器契约已获准作为APML驱动动作的运行时证明路径；能力配置文件和映射边车是已交付的后端权威接口。
 
 生成式动作提供器是将运行时类型化的动作/表情/姿态/注视/活动意图转换为可执行后端输出的线路，它不依赖于物理 `.vrma` (或其他创作工件) 文件。正是它让“代理的动作具有生命力”——它在运行时生成动作，而非重放手动创作的资产。
 
-## 权限边界
+## 权威边界
 
 | 层 | 所有者 | 所属内容 |
 | --- | --- | --- |
 | 公共APML线路 | 运行时 | 解析、验证、公共标签集 |
-| 类型化投影 | 运行时 | `runtime.agent.presentation.*` 和 `runtime.agent.state.*` 事件接口 |
+| 类型化映射 | 运行时 | `runtime.agent.presentation.*` 和 `runtime.agent.state.*` 事件接口 |
 | 活动本体 | 运行时 | `tables/agent-activity-ontology.yaml` 中的活动ID和类别 |
 | 后端路由ID | Avatar | `tables/generated-motion-routes.yaml` |
 | 后端能力配置文件 schema | Avatar | `tables/backend-capability-profile.schema.yaml` |
 | 映射边车 schema + 置信度 | Avatar | `tables/mapping-sidecar.schema.yaml` |
 | 提供器执行语义 | Avatar | 本契约 |
 
-Avatar路由ID是后端投影ID。它们**不是**公共APML标签，也**不是**运行时活动本体ID。这种分离确保了即使后端路由演进，面向公共模型的线路也能保持稳定。
+Avatar路由ID是后端映射ID。它们**不是**公共APML标签，也**不是**运行时活动本体ID。这种分离确保了即使后端路由演进，面向公共模型的线路也能保持稳定。
 
 ## 未准入的公共APML标签
 
-本契约不准入 `<motion>`、`<expression>`、`<lookat>`、`<pose>` 或 `<clear-pose>` 的直接公共APML标签。这些名称只能在运行时验证后，作为类型化的运行时投影事件族或Avatar本地后端概念出现。公共APML继续仅使用运行时线路契约所准入的语法——例如 `<activity>`、`<emotion>` 等。
+本契约不准入 `<motion>`、`<expression>`、`<lookat>`、`<pose>` 或 `<clear-pose>` 的直接公共APML标签。这些名称只能在运行时验证后，作为类型化的运行时映射事件族或Avatar本地后端概念出现。公共APML继续仅使用运行时线路契约所准入的语法——例如 `<activity>`、`<emotion>` 等。
 
 ## 提供器输入
 
@@ -83,7 +83,7 @@ type GeneratedMotionProviderInput = {
 
 1.  **模型发出APML。** 公共线路：`<activity name="wave" />`。
 2.  **运行时解析 + 验证。** 发出类型化的 `runtime.agent.presentation.activity_requested` 事件。
-3.  **Avatar通过SDK接收。** 提供器输入通过类型化投影、活动后端上“wave”对应的 `avatarRouteId`、能力配置文件引用和映射边车引用进行组装。
+3.  **Avatar通过SDK接收。** 提供器输入通过类型化映射、活动后端上“wave”对应的 `avatarRouteId`、能力配置文件引用和映射边车引用进行组装。
 4.  **提供器执行。** 验证能力配置文件 + 边车；生成确定性的后端输出 (Live2D动作序列或VRM `AnimationClip` 形状的工件)。
 5.  **后端渲染。** 输出在具身中播放。
 
@@ -113,7 +113,7 @@ type GeneratedMotionProviderInput = {
 | 关注点 | 所有者 |
 | --- | --- |
 | 公共APML语法 (包括哪些标签被准入) | 运行时线路契约 |
-| 类型化运行时投影事件 | 运行时呈现流契约 |
+| 类型化运行时映射事件 | 运行时呈现流契约 |
 | 后端路由ID | 本契约 + `tables/generated-motion-routes.yaml` |
 | 后端能力配置文件 | 本契约 + `tables/backend-capability-profile.schema.yaml` |
 | 映射边车 + 置信度 | 本契约 + `tables/mapping-sidecar.schema.yaml` |

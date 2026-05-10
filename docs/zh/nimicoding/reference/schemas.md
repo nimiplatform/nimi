@@ -1,8 +1,8 @@
 # Nimi Coding 核心契约 Schema
 
-本页提供 Nimi Coding 核心记录工件 (Artifacts) Schema 的字段级参考。
+本页提供 Nimi Coding 核心记录工件 Schema 的字段级参考。
 
-## Topic 架构约束 (Topic Schema)
+## Topic Schema
 
 原始定义路径：`.nimi/contracts/topic.schema.yaml`
 
@@ -28,7 +28,7 @@
 | `forbidden_shortcuts` | 是 | 工具包反模式目录及显式声明的 Topic 局部扩展配置 |
 | `waves` | 否 | 所属 Wave 对象的有序列表 |
 
-## 波次状态约束 (Wave Schema)
+## Wave Schema
 
 原始定义路径：`.nimi/contracts/wave.schema.yaml`
 
@@ -43,7 +43,7 @@
 | `parallelizable_after` | 是 | 已准入的并行执行标记状态 |
 | `selected` | 是 | 布尔值；同一 Topic 范围内至多一项为 true |
 
-## 工作包执行约束 (Packet Schema)
+## Packet Schema
 
 原始定义路径：`.nimi/contracts/packet.schema.yaml`
 
@@ -55,15 +55,15 @@
 | `packet_kind` | 是 | `implementation` / `authority` / `spec` / `redesign` / `preflight` |
 | `status` | 是 | `draft` / `preflight` / `candidate` / `admitted` / `dispatched` / `closed` / `superseded` |
 | `authority_owner` | 是 | 所有者域的规范文本说明 |
-| `canonical_seams` | 是 | 系统关键不变量 (Invariants) 列表 |
+| `canonical_seams` | 是 | 系统关键不变量列表 |
 | `forbidden_shortcuts` | 是 | 系统目录键值与 Topic 局部扩展约束列表 |
-| `acceptance_invariants` | 是 | 具备逻辑可验证性的条件断言 (Verifiable predicates) |
+| `acceptance_invariants` | 是 | 可验证的条件断言 |
 | `negative_tests` | 是 | 具体的负向排查执行标准 |
 | `reopen_conditions` | 是 | 触发任务重开的明确条件准则 |
 | `allowed_reads` | 否 | 定义路径通配符范围；针对指派至 Worker 的工作包为必需配置 |
 | `allowed_writes` | 否 | 定义路径通配符范围；针对指派至 Worker 的工作包为必需配置 |
 
-## 执行结果反馈 (Result Schema)
+## Result Schema
 
 原始定义路径：`.nimi/contracts/result.schema.yaml`
 
@@ -78,11 +78,11 @@
 
 注：Sweep audit 类别的工件遵循独立契约定义。其关联的 CLI 生成时间戳必须输出包含毫秒的完整 JavaScript ISO UTC 格式标准（如 `2026-05-06T16:47:20.705Z`）。
 
-## 扫地式设计工件 (Sweep Design Result)
+## Sweep Design Result
 
 原始定义路径：`.nimi/contracts/sweep-design-result.yaml`
 
-Sweep design 流程发源于审计识别项 (Audit findings)，并将生成的本地专用设计工件写入 `.nimi/local/sweep-design/<run-id>/` 目录。系统在数据摄入 (Intake) 阶段保存并锁定源发现项的哈希值；后续一切设计状态更新仅存于特定的 Sweep design 关联工件内，绝对不会回溯覆写原始审计证据。
+sweep design 流程发源于审计 finding，并将生成的本地专用设计工件写入 `.nimi/local/sweep-design/<run-id>/` 目录。系统在摄入阶段保存并锁定源发现项的哈希值；后续一切设计状态更新仅存于特定的 sweep design 关联工件内，绝对不会回溯覆写原始审计证据。
 
 | 记录工件名称 | 核心系统职能 |
 | --- | --- |
@@ -105,11 +105,11 @@ Sweep design 流程发源于审计识别项 (Audit findings)，并将生成的�
 | `needs_user_decision` | 此步骤因逻辑冲突或定义盲区，需人类专家执行工程判断 |
 | `needs_authority_alignment` | 触及核心架构原则冲突，相关权威真相未能达成统一意见 |
 | `needs_design` | 执行逻辑开发前，必须产出明确的设计说明工件支撑 |
-| `ready_for_implementation_wave` | 该阶段已就绪，具备转化为后续执行波次 (Topic wave) 的合规条件 |
+| `ready_for_implementation_wave` | 该阶段已就绪，具备转化为后续执行 wave 的合规条件 |
 | `blocked` | 流程因阻碍项陷入挂起，无法继续向前推进行为 |
 | `duplicate` / `superseded` / `false_positive` | 宣告终止的非活跃状态，不会被引入后续的具体代码实现 |
 
-## 闭合收尾约束 (Closeout Schema)
+## Closeout Schema
 
 原始定义路径：`.nimi/contracts/closeout.schema.yaml`
 
@@ -124,7 +124,7 @@ Sweep design 流程发源于审计识别项 (Audit findings)，并将生成的�
 | `drift_resistance_closure` | 是 | 同上 |
 | `disposition` | 是 | `complete` / `partial` / `deferred`（或涵盖 `complete_pending_user_acceptance` 状态） |
 
-## 流程步进决策 (Topic Step Decision)
+## Topic Step Decision
 
 原始定义路径：`.nimi/contracts/topic-step-decision.schema.yaml`
 
@@ -143,7 +143,7 @@ Sweep design 流程发源于审计识别项 (Audit findings)，并将生成的�
 | `expected_artifacts` | 是 | 预期后续流程阶段的关联工件对象列表 |
 | `next_command_ref` | 是 | 推荐执行的具体下级命令字符串（在 `continue` 流转决策时不可留空占位） |
 
-## 禁用反模式目录 (Forbidden Shortcuts Catalog)
+## Forbidden Shortcuts Catalog
 
 系统内建的 10 项已准入限制原则（完整逻辑定义详见 [禁用反模式技术目录](/zh/nimicoding/reference/forbidden-shortcuts-catalog)）：
 

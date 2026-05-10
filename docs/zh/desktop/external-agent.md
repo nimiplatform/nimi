@@ -4,7 +4,7 @@
 
 外部 Agent 接入面是桌面端已交付的 ExternalPrincipal token 颁发与撤销 UI。
 
-外部 Agent 接入面板是桌面端独有的 UI，用来管理 `ExternalPrincipal` Token。它是"以受控、限定作用域、可撤销的方式让外部 AI 宿主访问我的 Nimi 账户"这件事的人面。
+外部 Agent 接入面板是桌面端独有的 UI，用来管理 `ExternalPrincipal` Token。它是"以受控、限定作用域、可撤销的方式让外部 AI 宿主访问我的 Nimi 账户"这件事的操作界面。
 
 平台层模型见 [平台 → Agent → 外部 Agent](/zh/platform/agents/external-agents)。
 
@@ -82,7 +82,7 @@
 
 ## 这块 UI 为什么是独立的
 
-外部 Agent 接入面板就是外部 principal Token 签发的那块 UI。它不是"任意 Token"的通用工具；而是专门为外部 principal 设计——因为后者在授权模型里是真实存在的具名参与者。
+外部 Agent 接入面板就是外部 principal Token 签发的那块 UI。它不是"任意 Token"的通用工具；而是专门为外部 principal 设计——因为外部 principal 在授权模型里是真实存在的具名参与者。
 
 通过这块面板创建其他类型的 Token 不准入。其他 Token 形态（用户会话 Token 等）归别处。窄，是这块面板安全姿态清晰的关键。
 

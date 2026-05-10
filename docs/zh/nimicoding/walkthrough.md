@@ -4,7 +4,7 @@
 
 ## 背景
 
-某团队要把认证服务从只用 JWT 迁移到 JWT 加 session bearer 双轨。这次变更触及权威契约、运行时执行和 SDK 接口投射，正是方法论想要覆盖的跨域工作。
+某团队要把认证服务从只用 JWT 迁移到 JWT 加 session bearer 双轨。这次变更触及权威契约、运行时执行和 SDK 接口呈现，正是方法论想要覆盖的跨域工作。
 
 下面追踪这个 topic 从 `proposal` 走到 `closed` 的完整过程。
 
@@ -160,7 +160,7 @@ manager 准入一份续作 packet，扩大边界。worker 继续。
 
 续作完成后，wave-2 走完四闭合（PASS）并关闭。
 
-## 阶段 11：wave-3（SDK 投射）
+## 阶段 11：wave-3（SDK 接口层）
 
 wave-3 让 SDK 暴露新的 SessionBearer error reason code。
 
