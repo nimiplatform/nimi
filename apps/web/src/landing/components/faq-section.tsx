@@ -29,7 +29,7 @@ export function FaqSection(props: FaqSectionProps) {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
-    <section className="section-pad pt-10 md:pt-12">
+    <section id="faq" className="section-pad pt-10 md:pt-12">
       <div className="container-nimi mx-auto max-w-4xl">
         <div className="mb-16 flex flex-col items-center text-center">
           <p className="text-[12px] font-bold uppercase tracking-[0.24em] text-[#2bb28f]">

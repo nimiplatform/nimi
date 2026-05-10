@@ -1,40 +1,15 @@
 import type { LandingContent } from '../content/landing-content.js';
 import type { LandingLinks } from '../config/landing-links.js';
-import type { LandingLocale } from '../i18n/locale.js';
 
 export type DesktopSectionProps = {
   content: LandingContent['desktop'];
   links: LandingLinks;
-  locale: LandingLocale;
 };
 
 export function DesktopSection(props: DesktopSectionProps) {
   const [primaryFeature, secondaryFeature, tertiaryFeature, quaternaryFeature] = props.content.features;
   const availability = props.content.availability;
-  const isChinese = props.locale === 'zh';
-  const chromeLabels = isChinese
-    ? {
-        appName: 'Nimi Desktop',
-        runtime: 'Runtime',
-        health: '状态正常',
-        healthDetail: 'gRPC 已就绪，本地 runtime 已连接。',
-        workspace: '工作区',
-        activity: '活动',
-        ready: '就绪',
-        connected: '已连接',
-        installed: '已安装',
-      }
-    : {
-        appName: 'Nimi Desktop',
-        runtime: 'Runtime',
-        health: 'Health: OK',
-        healthDetail: 'gRPC ready. Local runtime connected.',
-        workspace: 'Workspace',
-        activity: 'Activity',
-        ready: 'Ready',
-        connected: 'Connected',
-        installed: 'Installed',
-      };
+  const chromeLabels = props.content.chromeLabels;
 
   const featureIcons = [
     <svg key="1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="h-6 w-6 text-[#4ade80]">
@@ -83,7 +58,7 @@ export function DesktopSection(props: DesktopSectionProps) {
             <div className="mt-8">
               <a
                 className="inline-flex h-[52px] items-center justify-center rounded-[20px] bg-gradient-to-r from-[#38d6a3] to-[#0ea5e9] px-8 text-[15px] font-bold text-white shadow-[0_12px_30px_-10px_rgba(56,214,163,0.5)] transition hover:-translate-y-1 hover:shadow-[0_16px_40px_-10px_rgba(56,214,163,0.6)]"
-                href={props.links.desktopDownloadUrl}
+                href={props.links.docsUrl + 'desktop/'}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -121,13 +96,13 @@ export function DesktopSection(props: DesktopSectionProps) {
                     </div>
 
                     <div className="rounded-[14px] border border-white/5 bg-[#20232b] p-4 transition-colors">
-                      <p className="text-[13px] font-bold text-slate-200">{primaryFeature?.title || 'Runtime Dashboard'}</p>
-                      <p className="mt-[6px] text-[11px] font-medium leading-[1.5] text-[#868d9a]">{primaryFeature?.description || 'See health, model status, and resource usage at a glance.'}</p>
+                      <p className="text-[13px] font-bold text-slate-200">{primaryFeature!.title}</p>
+                      <p className="mt-[6px] text-[11px] font-medium leading-[1.5] text-[#868d9a]">{primaryFeature!.description}</p>
                     </div>
 
                     <div className="rounded-[14px] border border-white/5 bg-[#20232b] p-4 transition-colors">
-                      <p className="text-[13px] font-bold text-slate-200">{quaternaryFeature?.title || 'Model Management'}</p>
-                      <p className="mt-[6px] text-[11px] font-medium leading-[1.5] text-[#868d9a]">{quaternaryFeature?.description || 'Install, update, and switch models from one place.'}</p>
+                      <p className="text-[13px] font-bold text-slate-200">{quaternaryFeature!.title}</p>
+                      <p className="mt-[6px] text-[11px] font-medium leading-[1.5] text-[#868d9a]">{quaternaryFeature!.description}</p>
                     </div>
                   </div>
 
@@ -136,12 +111,12 @@ export function DesktopSection(props: DesktopSectionProps) {
                       <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#38bdf8]">{chromeLabels.workspace}</p>
                       <div className="grid grid-cols-2 gap-[14px]">
                         <div className="rounded-[14px] border border-white/5 bg-[#20232b] p-4">
-                          <p className="text-[13px] font-bold text-slate-200">{secondaryFeature?.title || 'Built-in Chat'}</p>
-                          <p className="mt-[6px] text-[11px] font-medium leading-[1.5] text-[#868d9a]">{secondaryFeature?.description || 'Talk to local and cloud models from the same workspace.'}</p>
+                          <p className="text-[13px] font-bold text-slate-200">{secondaryFeature!.title}</p>
+                          <p className="mt-[6px] text-[11px] font-medium leading-[1.5] text-[#868d9a]">{secondaryFeature!.description}</p>
                         </div>
                         <div className="rounded-[14px] border border-white/5 bg-[#20232b] p-4">
-                          <p className="text-[13px] font-bold text-slate-200">{tertiaryFeature?.title || 'Mod Host'}</p>
-                          <p className="mt-[6px] text-[11px] font-medium leading-[1.5] text-[#868d9a]">{tertiaryFeature?.description || 'Launch installed mods without leaving the desktop app.'}</p>
+                          <p className="text-[13px] font-bold text-slate-200">{tertiaryFeature!.title}</p>
+                          <p className="mt-[6px] text-[11px] font-medium leading-[1.5] text-[#868d9a]">{tertiaryFeature!.description}</p>
                         </div>
                       </div>
                     </div>

@@ -66,20 +66,19 @@ export type LandingContent = {
     subtitle: string;
     overview: {
       searchPlaceholder: string;
-      cloudProvidersLabel?: string;
-      localModelsLabel?: string;
-      modalitiesLabel?: string;
-      modalitiesValue?: string;
-      modalitiesDescription?: string;
+      cloudProvidersLabel: string;
+      localModelsLabel: string;
+      modalitiesLabel: string;
+      modalitiesDescription: string;
       industryLeadersLabel: string;
       shortcutLabel: string;
       clearSearchLabel: string;
       matchingProvidersLabel: string;
       liveCatalogLabel: string;
+      supportedByLabel: string;
     };
     liveBadge: string;
     featuredProvidersLabel: string;
-    featuredProviders: string[];
     stats: {
       providers: string;
       models: string;
@@ -104,28 +103,44 @@ export type LandingContent = {
     noResultsTitle: string;
     noResultsDescription: string;
     sourceNote: string;
+    providerDisplayNames: Readonly<Record<string, string>>;
+    marqueeProviderOrder: ReadonlyArray<string>;
   };
   sdk: {
+    eyebrow: string;
     title: string;
+    titleAccent: string;
     subtitle: string;
-    tabs: Array<{
-      label: string;
-      snippet: string;
-      caption: string;
-    }>;
-    previewLabel: string;
-    previewAlt: string;
-    previewCaption: string;
-    multimodalLabel: string;
-    multimodalAlt: string;
-    multimodalCaption: string;
     callout: string;
+    tabs: ReadonlyArray<{
+      id: string;
+      label: string;
+      description: string;
+      docsPath: string;
+      previewMediaId: 'sdk' | 'multimodal' | 'streamJob' | 'workflow';
+    }>;
+    previewMedia: {
+      sdk: { alt: string };
+      multimodal: { alt: string };
+      streamJob: { alt: string };
+      workflow: { alt: string };
+    };
   };
   desktop: {
     title: string;
     subtitle: string;
-    screenshotAlt: string;
-    features: Array<{
+    chromeLabels: {
+      appName: string;
+      runtime: string;
+      health: string;
+      healthDetail: string;
+      workspace: string;
+      activity: string;
+      ready: string;
+      connected: string;
+      installed: string;
+    };
+    features: ReadonlyArray<{
       icon: string;
       title: string;
       description: string;
@@ -133,7 +148,7 @@ export type LandingContent = {
     downloadCta: string;
     availability: {
       eyebrow: string;
-      items: string[];
+      items: ReadonlyArray<string>;
     };
   };
   faq: {
@@ -157,9 +172,10 @@ export type LandingContent = {
     }>;
   };
   mods: {
+    eyebrow: string;
     title: string;
     subtitle: string;
-    items: Array<{
+    items: ReadonlyArray<{
       icon: string;
       name: string;
       description: string;
@@ -172,12 +188,14 @@ export type LandingContent = {
     description: string;
     githubCta: string;
     docsCta: string;
-  };
-  finalCta: {
-    title: string;
-    description: string;
-    primaryCta: string;
-    githubCta: string;
+    roadmapCta: string;
+    proofItems: ReadonlyArray<{
+      label: string;
+      value: string;
+      detail: string;
+      icon: 'runtime' | 'apps' | 'contracts';
+      featured?: boolean;
+    }>;
   };
   footer: {
     line1: string;

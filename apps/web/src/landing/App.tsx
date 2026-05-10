@@ -154,13 +154,13 @@ export function App() {
 
       <main id="main-content">
         <HeroSection content={content.hero} links={links} />
-        <SdkSection content={content.sdk} locale={locale} />
-        <ModelCatalogOverviewSection content={content.modelCatalog} locale={locale} query={catalogQuery} onQueryChange={setCatalogQuery} />
+        <SdkSection content={content.sdk} links={links} />
+        <ModelCatalogOverviewSection content={content.modelCatalog} query={catalogQuery} onQueryChange={setCatalogQuery} />
         <ArchitectureSection content={content.architecture} />
-        <DesktopSection content={content.desktop} links={links} locale={locale} />
-        <ModsSection content={content.mods} links={links} locale={locale} />
+        <DesktopSection content={content.desktop} links={links} />
+        <ModsSection content={content.mods} links={links} />
         <SecuritySection content={content.security} />
-        <OpenSourceSection content={content.openSource} links={links} locale={locale} />
+        <OpenSourceSection content={content.openSource} links={links} />
         <FaqSection content={content.faq} links={links} />
       </main>
 

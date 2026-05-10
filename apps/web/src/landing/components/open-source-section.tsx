@@ -1,20 +1,12 @@
 import type { LandingContent } from '../content/landing-content.js';
 import type { LandingLinks } from '../config/landing-links.js';
-import type { LandingLocale } from '../i18n/locale.js';
 
 export type OpenSourceSectionProps = {
   content: LandingContent['openSource'];
   links: LandingLinks;
-  locale: LandingLocale;
 };
 
-type ProofItem = {
-  label: string;
-  value: string;
-  detail: string;
-  icon: 'runtime' | 'apps' | 'contracts';
-  featured?: boolean;
-};
+type ProofItem = LandingContent['openSource']['proofItems'][number];
 
 function ProofIcon(props: { icon: ProofItem['icon'] }) {
   if (props.icon === 'runtime') {
@@ -46,50 +38,7 @@ function ProofIcon(props: { icon: ProofItem['icon'] }) {
 }
 
 export function OpenSourceSection(props: OpenSourceSectionProps) {
-  const isChinese = props.locale === 'zh';
-  const proofItems: ProofItem[] = isChinese
-    ? [
-        {
-          label: '\u8FD0\u884C\u65F6 + SDK',
-          value: 'Apache-2.0',
-          detail: '\u6838\u5FC3 runtime \u548C SDK \u53EF\u4EE5\u88AB\u76F4\u63A5\u67E5\u770B\u4E0E\u5BA1\u89C6\u3002',
-          icon: 'runtime',
-        },
-        {
-          label: '\u5E94\u7528\u5C42',
-          value: 'MIT',
-          detail: '\u684C\u9762\u7AEF\u548C app \u5C42\u4EE3\u7801\u4EE5\u5BBD\u677E\u8BB8\u53EF\u65B9\u5F0F\u53D1\u5E03\u3002',
-          icon: 'apps',
-        },
-        {
-          label: '\u5408\u7EA6',
-          value: '\u516C\u5F00',
-          detail: '\u6258\u7BA1\u4E91\u96C6\u6210\u4ECD\u7136\u901A\u8FC7 SDK \u63A5\u53E3\u5BF9\u5916\u53EF\u89C1\u3002',
-          icon: 'contracts',
-          featured: true,
-        },
-      ]
-    : [
-        {
-          label: 'Runtime + SDK',
-          value: 'Apache-2.0',
-          detail: 'Core runtime and SDK stay open and inspectable.',
-          icon: 'runtime',
-        },
-        {
-          label: 'Apps',
-          value: 'MIT',
-          detail: 'Desktop and app-layer code ship with permissive licensing.',
-          icon: 'apps',
-        },
-        {
-          label: 'Contracts',
-          value: 'Public',
-          detail: 'Managed cloud integration stays visible through the SDK surface.',
-          icon: 'contracts',
-          featured: true,
-        },
-      ];
+  const proofItems: ReadonlyArray<ProofItem> = props.content.proofItems;
 
   return (
     <section id="open-source" className="section-pad">
@@ -129,6 +78,14 @@ export function OpenSourceSection(props: OpenSourceSectionProps) {
                     rel="noreferrer"
                   >
                     {props.content.docsCta}
+                  </a>
+                  <a
+                    className="inline-flex items-center justify-center rounded-full border border-white/12 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 hover:text-white"
+                    href={props.links.docsUrl + 'platform/roadmap/'}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {props.content.roadmapCta}
                   </a>
                 </div>
               </div>

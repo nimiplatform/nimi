@@ -7,19 +7,23 @@ import kimiLogo from '../assets/provider-logos/kimi.ico';
 import openaiLogo from '../assets/provider-logos/openai.png';
 import volcengineLogo from '../assets/provider-logos/volcengine.png';
 import type { LandingContent } from '../content/landing-content.js';
-import { MODEL_CATALOG_PROVIDERS } from '../content/model-catalog.js';
-import type { LandingLocale } from '../i18n/locale.js';
+import {
+  ADMITTED_PROVIDERS,
+  PROVIDER_CAPABILITIES,
+  type AdmittedCapability,
+  type AdmittedProvider,
+  type AdmittedRuntimePlane,
+} from '../generated/index.js';
 
 export type ModelCatalogOverviewSectionProps = {
   content: LandingContent['modelCatalog'];
-  locale: LandingLocale;
   query: string;
   onQueryChange: (query: string) => void;
 };
 
-const MARQUEE_PROVIDER_ORDER = ['openai', 'anthropic', 'gemini', 'deepseek', 'dashscope', 'volcengine'];
-
-const PROVIDER_LOGOS: Record<string, string> = {
+// Provider logo asset map. Keyed by stable provider id (matches ADMITTED_PROVIDERS[].provider).
+// Visual-asset concern, not user-facing string.
+const PROVIDER_LOGOS: Readonly<Record<string, string>> = {
   openai: openaiLogo,
   anthropic: anthropicLogo,
   gemini: googleGeminiLogo,
@@ -29,17 +33,29 @@ const PROVIDER_LOGOS: Record<string, string> = {
   volcengine: volcengineLogo,
 };
 
-function formatProviderName(provider: string) {
-  if (provider === 'xai') {
-    return 'xAI';
-  }
-  if (provider === 'gemini') {
-    return 'Gemini';
-  }
-  if (provider === 'dashscope') {
-    return 'DashScope';
-  }
+// JOINed catalog entry shape — combines AdmittedProvider metadata with
+// per-provider capabilities + runtimePlane from PROVIDER_CAPABILITIES.
+// Per D1.3.3 r2 JOIN policy: LEFT JOIN on provider name; capabilities default
+// to empty array, runtimePlane defaults to null if no capability row.
+type CatalogEntry = AdmittedProvider & {
+  capabilities: ReadonlyArray<AdmittedCapability>;
+  runtimePlane: AdmittedRuntimePlane | null;
+};
 
+const CAPS_BY_PROVIDER = new Map(PROVIDER_CAPABILITIES.map((cap) => [cap.provider, cap]));
+
+const CATALOG: ReadonlyArray<CatalogEntry> = ADMITTED_PROVIDERS.map((provider) => {
+  const cap = CAPS_BY_PROVIDER.get(provider.provider);
+  return {
+    ...provider,
+    capabilities: cap?.capabilities ?? [],
+    runtimePlane: cap?.runtimePlane ?? null,
+  };
+});
+
+function getDisplayName(provider: string, displayNames: Readonly<Record<string, string>>): string {
+  const explicit = displayNames[provider];
+  if (explicit) return explicit;
   return provider
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -50,14 +66,17 @@ export function ModelCatalogOverviewSection(props: ModelCatalogOverviewSectionPr
   const inputRef = useRef<HTMLInputElement | null>(null);
   const searchShellRef = useRef<HTMLDivElement | null>(null);
   const normalizedQuery = props.query.trim().toLowerCase();
-  const isChinese = props.locale === 'zh';
+  const displayNames = props.content.providerDisplayNames;
 
   const marqueeProviders = useMemo(
     () =>
-      MARQUEE_PROVIDER_ORDER.map((providerName) =>
-        MODEL_CATALOG_PROVIDERS.find((provider) => provider.provider === providerName),
-      ).filter((provider): provider is (typeof MODEL_CATALOG_PROVIDERS)[number] => provider !== undefined),
-    [],
+      props.content.marqueeProviderOrder
+        .map((providerName) => CATALOG.find((p) => p.provider === providerName))
+        .filter(
+          (p): p is CatalogEntry =>
+            p !== undefined && Object.prototype.hasOwnProperty.call(PROVIDER_LOGOS, p.provider),
+        ),
+    [props.content.marqueeProviderOrder],
   );
 
   const dropdownResults = useMemo(() => {
@@ -65,25 +84,30 @@ export function ModelCatalogOverviewSection(props: ModelCatalogOverviewSectionPr
       return [];
     }
 
-    return MODEL_CATALOG_PROVIDERS.filter((provider) => provider.runtimePlane === 'cloud')
-      .filter((provider) => {
-        const formatted = formatProviderName(provider.provider).toLowerCase();
+    return CATALOG.filter((p) => p.runtimePlane === 'remote')
+      .filter((p) => {
+        const formatted = getDisplayName(p.provider, displayNames).toLowerCase();
+        const defaultModel = (p.defaultTextModel ?? '').toLowerCase();
         return (
-          provider.provider.toLowerCase().includes(normalizedQuery) ||
+          p.provider.toLowerCase().includes(normalizedQuery) ||
           formatted.includes(normalizedQuery) ||
-          provider.models.some((model) => model.toLowerCase().includes(normalizedQuery)) ||
-          provider.capabilities.some((capability) => capability.toLowerCase().includes(normalizedQuery))
+          defaultModel.includes(normalizedQuery) ||
+          p.capabilities.some((capability) => capability.toLowerCase().includes(normalizedQuery))
         );
       })
       .slice(0, 10);
-  }, [normalizedQuery]);
+  }, [normalizedQuery, displayNames]);
 
   const cloudProviderCount = useMemo(
-    () => MODEL_CATALOG_PROVIDERS.filter((provider) => provider.runtimePlane === 'cloud').length,
+    () => CATALOG.filter((p) => p.runtimePlane === 'remote').length,
+    [],
+  );
+  const localProviderCount = useMemo(
+    () => CATALOG.filter((p) => p.runtimePlane === 'local').length,
     [],
   );
   const modalityCount = useMemo(
-    () => new Set(MODEL_CATALOG_PROVIDERS.flatMap((provider) => provider.capabilities)).size,
+    () => new Set(CATALOG.flatMap((p) => p.capabilities)).size,
     [],
   );
 
@@ -136,6 +160,9 @@ export function ModelCatalogOverviewSection(props: ModelCatalogOverviewSectionPr
 
           <div className="relative text-center">
             <div className="mb-18 space-y-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
+                {props.content.kicker}
+              </p>
               <h2 className="font-heading text-4xl font-extrabold tracking-tight text-slate-900 md:text-5xl">
                 {props.content.title}
               </h2>
@@ -182,9 +209,7 @@ export function ModelCatalogOverviewSection(props: ModelCatalogOverviewSectionPr
                     <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                         {dropdownResults.length > 0
-                          ? isChinese
-                            ? `${dropdownResults.length}${props.content.overview.matchingProvidersLabel}`
-                            : `${dropdownResults.length} ${props.content.overview.matchingProvidersLabel}`
+                          ? `${dropdownResults.length} ${props.content.overview.matchingProvidersLabel}`
                           : props.content.noResultsTitle}
                       </p>
                       <p className="text-xs text-slate-400">{props.content.overview.liveCatalogLabel}</p>
@@ -196,29 +221,34 @@ export function ModelCatalogOverviewSection(props: ModelCatalogOverviewSectionPr
                             <button
                               key={provider.provider}
                               type="button"
-                              onClick={() => props.onQueryChange(formatProviderName(provider.provider))}
+                              onClick={() => props.onQueryChange(getDisplayName(provider.provider, displayNames))}
                               className="block w-full rounded-[1.15rem] border border-transparent px-4 py-4 text-left transition hover:border-slate-200 hover:bg-slate-50"
                             >
                               <div className="flex items-center gap-3">
-                                <img
-                                  src={PROVIDER_LOGOS[provider.provider] ?? PROVIDER_LOGOS.openai}
-                                  alt={`${formatProviderName(provider.provider)} logo`}
-                                  className="h-8 w-8 rounded-md object-contain"
-                                />
+                                {PROVIDER_LOGOS[provider.provider] ? (
+                                  <img
+                                    src={PROVIDER_LOGOS[provider.provider]}
+                                    alt=""
+                                    aria-hidden="true"
+                                    className="h-8 w-8 rounded-md object-contain"
+                                  />
+                                ) : (
+                                  <div className="h-8 w-8 rounded-md bg-slate-100" aria-hidden="true" />
+                                )}
                                 <div>
-                                  <div className="text-base font-semibold text-slate-900">{formatProviderName(provider.provider)}</div>
+                                  <div className="text-base font-semibold text-slate-900">{getDisplayName(provider.provider, displayNames)}</div>
                                   <div className="mt-0.5 text-xs text-slate-500">
-                                    {provider.models.length} {props.content.providerDetailSuffix}
+                                    {provider.capabilities.length} {props.content.providerDetailSuffix}
                                   </div>
                                 </div>
                               </div>
                               <div className="mt-3 flex flex-wrap gap-2">
-                                {provider.models.slice(0, 6).map((model) => (
+                                {provider.capabilities.slice(0, 6).map((capability) => (
                                   <span
-                                    key={`${provider.provider}-${model}`}
+                                    key={`${provider.provider}-${capability}`}
                                     className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600"
                                   >
-                                    {model}
+                                    {props.content.capabilityLabels[capability]}
                                   </span>
                                 ))}
                               </div>
@@ -241,31 +271,33 @@ export function ModelCatalogOverviewSection(props: ModelCatalogOverviewSectionPr
                 <div className="flex flex-col items-center justify-center">
                   <span className="text-5xl font-black tracking-tight text-slate-900 md:text-6xl">{cloudProviderCount}</span>
                   <span className="mt-3 text-sm font-semibold uppercase tracking-wider text-slate-500">
-                    {props.content.overview.cloudProvidersLabel ?? 'Cloud Providers'}
+                    {props.content.overview.cloudProvidersLabel}
                   </span>
                 </div>
 
                 <div className="flex flex-col items-center justify-center">
-                  <span className="bg-gradient-to-r from-[#38d6a3] to-[#0ea5e9] bg-clip-text text-5xl font-black tracking-tight text-transparent md:text-6xl">∞</span>
+                  <span className="text-5xl font-black tracking-tight text-slate-900 md:text-6xl">{localProviderCount}</span>
                   <span className="mt-3 text-sm font-semibold uppercase tracking-wider text-slate-500">
-                    {props.content.overview.localModelsLabel ?? 'Local Models'}
+                    {props.content.overview.localModelsLabel}
                   </span>
                 </div>
 
                 <div className="flex flex-col items-center justify-center">
-                  <span className="text-5xl font-black tracking-tight text-slate-900 md:text-6xl">{props.content.overview.modalitiesValue ?? String(modalityCount)}</span>
+                  <span className="text-5xl font-black tracking-tight text-slate-900 md:text-6xl">{modalityCount}</span>
                   <span className="mt-3 text-sm font-semibold uppercase tracking-wider text-slate-500">
-                    {props.content.overview.modalitiesLabel ?? 'Modalities'}
+                    {props.content.overview.modalitiesLabel}
                   </span>
                   <span className="mt-1.5 text-xs font-medium tracking-wide text-slate-400">
-                    {props.content.overview.modalitiesDescription ?? 'Text / TTS / STT / Video / Image / Embeddings'}
+                    {props.content.overview.modalitiesDescription}
                   </span>
                 </div>
               </div>
             </div>
 
             <div className="mx-auto mt-32 max-w-5xl">
-              <p className="mb-10 text-xs font-semibold uppercase tracking-widest text-slate-400">Supported by</p>
+              <p className="mb-10 text-xs font-semibold uppercase tracking-widest text-slate-400">
+                {props.content.overview.supportedByLabel}
+              </p>
 
               <div className="model-catalog-mask relative h-14 overflow-hidden">
                 <div className="model-catalog-marquee flex w-max items-center gap-16 md:gap-24">
@@ -277,12 +309,13 @@ export function ModelCatalogOverviewSection(props: ModelCatalogOverviewSectionPr
                           className="flex items-center gap-3 text-slate-400 opacity-80 transition-all duration-300 hover:opacity-100"
                         >
                           <img
-                            src={PROVIDER_LOGOS[provider.provider] ?? PROVIDER_LOGOS.openai}
-                            alt={`${formatProviderName(provider.provider)} logo`}
+                            src={PROVIDER_LOGOS[provider.provider]}
+                            alt=""
+                            aria-hidden="true"
                             className="h-9 w-9 object-contain"
                           />
                           <span className="cursor-default text-2xl font-bold text-slate-400">
-                            {formatProviderName(provider.provider)}
+                            {getDisplayName(provider.provider, displayNames)}
                           </span>
                         </div>
                       ))}
