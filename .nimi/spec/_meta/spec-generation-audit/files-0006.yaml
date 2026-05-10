@@ -864,6 +864,13 @@ spec_generation_audit_file_entries:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
     - canonical_path: .nimi/spec/runtime/kernel/tables/scenario-execution-matrix.yaml
       file_class: kernel_tables
       source_refs:

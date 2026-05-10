@@ -255,6 +255,13 @@ spec_generation_audit_file_entries:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
+    - canonical_path: .nimi/spec/platform/kernel/generated/package-authority-admissions.md
+      file_class: kernel_generated
+      source_refs:
+        - .nimi/spec/platform/kernel/tables/package-authority-admissions.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
     - canonical_path: .nimi/spec/platform/kernel/generated/participant-profiles.md
       file_class: kernel_generated
       source_refs:
