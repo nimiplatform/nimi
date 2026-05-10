@@ -6,7 +6,7 @@
 
 | Declared K Rules | Resolved Rule Rows | Evidence Catalog Entries |
 |---:|---:|---:|
-| 754 | 754 | 7 |
+| 755 | 755 | 7 |
 
 ## Evidence Catalog
 
@@ -244,6 +244,7 @@
 | `K-KEYSRC-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KEYSRC-011` | `deferred` | — |
 | `K-KNOW-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KNOW-001a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KNOW-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KNOW-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KNOW-004` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |

@@ -26,6 +26,37 @@ It still does not own:
 - AgentCore prompt-assembly knowledge lanes
 - cross-service citation/relation truth
 
+## K-KNOW-001a Retired Runtime Knowledge Implementation Package
+
+The internal Go implementation package
+`runtime/internal/services/knowledge` is retired alongside the public
+`RuntimeKnowledgeService` topology. The runtime no longer owns its own
+knowledge bank in-memory state, its own `knowledge_snapshot` persistence
+schema, or any `knowledgeservice.Service`-shaped wrapper around the
+cognition store.
+
+Fixed rules:
+
+- runtime-facing knowledge bank, page, relation, search, and ingest
+  truth must originate from `nimi-cognition` storage through the
+  cognition typed scope registry (see C-COG-059)
+- runtime backend code must not maintain a parallel in-memory bank
+  state, a parallel page index, a parallel relation table, or a
+  parallel ingest task map
+- the `knowledge_snapshot` persistence schema is retired; runtime
+  persistence must not create, register, load, or write any table or
+  blob bound to that name
+- internal naming `knowledgeservice.Service`,
+  `knowledgeservice.NewWithBackend`, and `knowledgeservice.NewPersistent`
+  is retired; new internal helpers must consume the cognition typed
+  scope registry directly
+- this rule is a strictly stronger statement of K-KNOW-001 — it
+  forbids the absorbed slice from being shadowed by a runtime-private
+  parallel implementation
+- pre-cutover history of the retired package remains available only
+  through Git; no compat shim, no migration loader, no dual-read
+  fallback is admitted
+
 ## K-KNOW-002 Baseline Bank Scope And Owner Boundary
 
 Baseline public knowledge scopes are fixed to:

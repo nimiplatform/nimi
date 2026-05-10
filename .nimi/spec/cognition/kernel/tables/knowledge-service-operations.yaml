@@ -1,4 +1,16 @@
 version: 1
+scope_kind_constraint:
+  description: >
+    Operations in this registry can be invoked under any registered cognition
+    scope. Runtime-facing knowledge bank invocations (those that originate from
+    RuntimeCognitionService knowledge RPCs) are constrained to scope_kind =
+    runtime_knowledge_bank per C-COG-059; scope id provenance is the typed
+    cognition scope registry, not ad-hoc string concatenation. Agent-bound
+    invocations operate under agent_core / agent_dyadic / world_shared scope
+    kinds and remain governed by the memory contracts.
+  authoritative_rules:
+    - C-COG-059
+    - K-KNOW-001a
 operations:
   - operation_id: knowledge_save
     entrypoint: KnowledgeService.Save

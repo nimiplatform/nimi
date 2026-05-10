@@ -70,3 +70,33 @@ Fixed rules:
   must not be restored as the future steady state
 - same-scope local graph ownership does not authorize cognition to absorb
   runtime shared citation or runtime review semantics
+
+## C-COG-059 Runtime Knowledge Bank Typed Scope Kind
+
+Runtime-facing knowledge bank lifecycle is owned by a typed cognition scope
+kind `runtime_knowledge_bank` registered in the cognition scope registry.
+This scope kind is disjoint from agent-bound scope kinds (`agent_core`,
+`agent_dyadic`, `world_shared`); it admits only the public infra-scoped
+owners declared by K-KNOW-002 (`APP_PRIVATE`, `WORKSPACE_PRIVATE`).
+
+Fixed rules:
+
+- every runtime-facing knowledge bank corresponds to exactly one
+  registered scope of kind `runtime_knowledge_bank`; the cognition scope
+  registry is the single owner of this binding
+- scope id provenance is the typed cognition scope registry; runtime
+  facade and downstream consumers must not derive a scope id by ad-hoc
+  string concatenation (e.g. `"know_" + bankID`) on production paths
+- `runtime_knowledge_bank` scopes do not admit `AGENT_CORE`,
+  `AGENT_DYADIC`, or `WORLD_SHARED` owner kinds; agent recall semantics
+  (`Retain` / `Recall` / `History`) do not operate on this scope kind
+- registered runtime knowledge bank scopes carry typed metadata
+  (display_name, owner_kind, owner_key, owner_json, created_at,
+  updated_at) sufficient to authorize and audit runtime-facing RPCs
+  without re-reading legacy snapshot blobs
+- delete of a `runtime_knowledge_bank` scope must cascade in a single
+  storage transaction to all scope-anchored stores (page / relation /
+  embedding / history / ingest task / FTS); no orphan rows may survive
+- this rule is the cognition-side statement of the runtime-side
+  retirement K-KNOW-001a; the two rules together forbid any parallel
+  runtime-private bank truth

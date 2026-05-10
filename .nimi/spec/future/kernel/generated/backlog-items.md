@@ -122,7 +122,7 @@ Runtime 扩展 AI 推理管道支持多模态输入输出：TTS（文字转语�
 
 ### F-RAG-001: 知识库/RAG 系统
 
-Runtime 需引入向量存储和检索管道；SDK 暴露知识库 CRUD； Desktop 提供文档上传和知识库管理 UI。与 RuntimeKnowledgeService 对齐。
+Runtime 需引入向量存储和检索管道；SDK 暴露知识库 CRUD； Desktop 提供文档上传和知识库管理 UI。与 RuntimeCognitionService knowledge 投影族对齐（K-KNOW-001 / C-COG-059）。
 
 ### F-DOCPROC-001: 文档处理 Pipeline
 
@@ -174,7 +174,7 @@ Runtime 工作流引擎增加 Iteration（并行迭代）和 Loop （顺序循�
 
 ### F-MULTIROUTE-001: 多数据集智能路由
 
-当存在多个知识库时，Runtime 自动选择最相关的数据集进行检索。 可使用 ReAct/Function-Call 方式让 LLM 选择数据集。需在 RuntimeKnowledgeService 中增加多数据集路由策略。依赖 F-RAG-001。
+当存在多个知识库时，Runtime 自动选择最相关的数据集进行检索。 可使用 ReAct/Function-Call 方式让 LLM 选择数据集。需在 RuntimeCognitionService knowledge 投影族（K-KNOW-001 / C-COG-059） 中增加多数据集路由策略。依赖 F-RAG-001。
 
 ### F-CODEEDIT-001: 内嵌代码编辑器
 

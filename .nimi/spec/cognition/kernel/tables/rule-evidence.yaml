@@ -1,6 +1,6 @@
 version: 1
 rule_compliance:
-  total_c_rules: 58
+  total_c_rules: 59
   audit_date: "2026-04-24"
 
 evidence_catalog:
@@ -246,3 +246,7 @@ rules:
     status: covered
     evidence_refs: [cognition_spec_governance_gate, cognition_build_gate, cognition_test_gate]
     note: Skill remains cognition-owned advisory retrieval/lifecycle only and does not absorb runtime execution-policy or scheduler ownership. R20 finding-0004 is closed by removing untyped bundle metadata from the admitted Bundle shape and excluding unadmitted metadata from skill FTS.
+  - rule_id: C-COG-059
+    status: covered
+    evidence_refs: [cognition_spec_governance_gate, cognition_generated_docs_gate]
+    note: Runtime knowledge bank lifecycle is owned by typed cognition scope kind runtime_knowledge_bank registered in the cognition scope registry; disjoint from agent-bound scope kinds. Paired with K-KNOW-001a (runtime-side retirement of the legacy knowledgeservice package).

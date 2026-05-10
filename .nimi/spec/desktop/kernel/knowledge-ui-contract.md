@@ -8,6 +8,23 @@ Desktop knowledge management UI 契约。该 surface 消费
 `RuntimeCognitionService` 中的 runtime-local knowledge slices，不经过 Realm
 REST / DataSync facade。
 
+Desktop "Knowledge" 标签是 runtime-local app/workspace bank 表面，
+**不是** AgentCore knowledge 投影，**也不是** memory recall 投影：
+- 该 UI 表面只消费 `runtime_knowledge_bank` typed cognition scope
+  (C-COG-059) 之下的 bank/page/relation/search/ingest 数据
+- 该 UI 表面不投影 `agent_core` / `agent_dyadic` / `world_shared`
+  memory scope；agent recall (`Retain` / `Recall` / `History`) 不在
+  该标签的消费范围
+- WORKSPACE_PRIVATE 投影：在
+  `2026-05-10-runtime-knowledge-cognition-hard-cut` topic 范围内，
+  该 scope 在每个 RPC 上都返回
+  `KNOWLEDGE_BANK_ACCESS_DENIED` + action_hint
+  `use_an_admitted_workspace_authorization_carrier`，与今天的 legacy
+  `denyWorkspaceKnowledgeAccess()` 行为等价；WORKSPACE_PRIVATE
+  re-enablement 由 sibling topic
+  `2026-05-10-runtime-workspace-binding-resolver` 拥有，不在该 UI
+  契约范围
+
 ## D-DSYNC-014 — Runtime Path And Scope Boundary
 
 Knowledge UI 必须通过 Runtime 路径消费以下 admitted 方法：

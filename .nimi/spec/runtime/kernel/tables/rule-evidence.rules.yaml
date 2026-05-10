@@ -671,6 +671,9 @@
 - rule_id: K-KNOW-001
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-KNOW-001a
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-KNOW-002
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]

@@ -222,9 +222,17 @@ groups:
     service: RuntimeCognitionService
     phase: 2
     status: active
+    forbidden_service_bindings:
+      - RuntimeKnowledgeService
     note: >
       Runtime-facing knowledge projection is carried by
       `RuntimeCognitionService`, not a standalone `RuntimeKnowledgeService`.
+      Future SDK code generation, method-id tables, generated clients, or
+      transport routing must not bind any method in this group to
+      `RuntimeKnowledgeService` under any condition; that service identifier
+      is retired by K-KNOW-001 and its internal implementation package is
+      retired by K-KNOW-001a. The `forbidden_service_bindings` field above
+      is the machine-readable form of the same constraint.
       The baseline runtime-local knowledge projection is admitted and landed.
       Hybrid retrieval extends the same projection with explicit hybrid recall
       while keeping `SearchKeyword` stable and lexical-only. Graph/backlink

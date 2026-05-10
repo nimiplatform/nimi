@@ -202,7 +202,8 @@ items:
   depends_on:
   - F-DOCPROC-001
   architecture_notes: Runtime 需引入向量存储和检索管道；SDK 暴露知识库 CRUD；
-    Desktop 提供文档上传和知识库管理 UI。与 RuntimeKnowledgeService 对齐。
+    Desktop 提供文档上传和知识库管理 UI。与 RuntimeCognitionService
+    knowledge 投影族对齐（K-KNOW-001 / C-COG-059）。
 - item_id: F-DOCPROC-001
   title: 文档处理 Pipeline
   priority: medium
@@ -408,7 +409,8 @@ items:
   - F-RAG-001
   architecture_notes: 当存在多个知识库时，Runtime 自动选择最相关的数据集进行检索。
     可使用 ReAct/Function-Call 方式让 LLM 选择数据集。需在
-    RuntimeKnowledgeService 中增加多数据集路由策略。依赖 F-RAG-001。
+    RuntimeCognitionService knowledge 投影族（K-KNOW-001 / C-COG-059）
+    中增加多数据集路由策略。依赖 F-RAG-001。
 - item_id: F-CODEEDIT-001
   title: 内嵌代码编辑器
   priority: medium
