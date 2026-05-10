@@ -10,7 +10,7 @@ import { OpenSourceSection } from './components/open-source-section.js';
 import { SecuritySection } from './components/security-section.js';
 import { SdkSection } from './components/sdk-section.js';
 import { loadLandingContent, type LandingContent } from './content/landing-content.js';
-import { resolveLandingLinks } from './config/landing-links.js';
+import { resolveLandingLinks, resolveLocalizedLinks } from './config/landing-links.js';
 import {
   persistLocale,
   resolveInitialLocale,
@@ -49,13 +49,15 @@ function GithubIcon() {
 }
 
 export function App() {
-  const links = useMemo(() => resolveLandingLinks(import.meta.env), []);
+  const baseLinks = useMemo(() => resolveLandingLinks(import.meta.env), []);
   const [catalogQuery, setCatalogQuery] = useState('');
   const [locale, setLocale] = useState<LandingLocale>(() => resolveInitialLocale({
     storage: getBrowserStorage(),
     navigatorLanguage: getBrowserLanguage(),
     defaultLocale: import.meta.env.VITE_LANDING_DEFAULT_LOCALE,
   }));
+  // Apply locale prefix (zh -> /zh/) to docs URLs for the docs.nimi.xyz subdomain.
+  const links = useMemo(() => resolveLocalizedLinks(baseLinks, locale), [baseLinks, locale]);
   const [content, setContent] = useState<LandingContent | null>(null);
 
   useEffect(() => {

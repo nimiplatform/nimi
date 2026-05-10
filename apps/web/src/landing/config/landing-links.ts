@@ -9,16 +9,59 @@ export type LandingLinks = {
   modDocsUrl: string;
 };
 
+// Docs site is deployed at the docs.nimi.xyz subdomain (VitePress with
+// cleanUrls + locales: en at root, zh under /zh/). Locale prefixing for zh
+// is applied in App.tsx via resolveLocalizedLinks(); these defaults are the
+// en/root URLs.
 const DEFAULT_LINKS: LandingLinks = {
-  appUrl: '/docs/start/',
+  appUrl: 'https://docs.nimi.xyz/start/',
   webAppUrl: '/login',
   discordUrl: 'https://discord.gg/BQwHJvPn',
-  docsUrl: '/docs/',
+  docsUrl: 'https://docs.nimi.xyz/',
   githubUrl: 'https://github.com/nimiplatform/nimi',
-  protocolUrl: '/docs/platform/protocol',
-  desktopDownloadUrl: '/docs/desktop/',
-  modDocsUrl: '/docs/desktop/mods',
+  protocolUrl: 'https://docs.nimi.xyz/platform/protocol',
+  desktopDownloadUrl: 'https://docs.nimi.xyz/desktop/',
+  modDocsUrl: 'https://docs.nimi.xyz/desktop/mods',
 };
+
+/**
+ * Insert a locale prefix (e.g. 'zh') into a docs URL on the docs.nimi.xyz
+ * subdomain. en/root locale returns the URL unchanged; zh transforms
+ * `https://docs.nimi.xyz/<path>` → `https://docs.nimi.xyz/zh/<path>`.
+ *
+ * Non-docs URLs (webAppUrl, discordUrl, githubUrl) pass through unchanged.
+ */
+function localizeDocsUrl(url: string, locale: 'en' | 'zh'): string {
+  if (locale === 'en') return url;
+  try {
+    const parsed = new URL(url);
+    if (parsed.host !== 'docs.nimi.xyz') return url;
+    if (parsed.pathname.startsWith('/zh/') || parsed.pathname === '/zh') return url;
+    parsed.pathname = '/zh' + parsed.pathname;
+    return parsed.toString();
+  } catch {
+    // Relative path fallback (only used if env override deviates from default).
+    if (url.startsWith('/docs/zh/')) return url;
+    if (url.startsWith('/docs/')) return '/docs/zh/' + url.slice('/docs/'.length);
+    return url;
+  }
+}
+
+/**
+ * Apply locale prefix to all docs-pointing fields in a LandingLinks bundle.
+ * Non-docs fields (webAppUrl / discordUrl / githubUrl) pass through.
+ */
+export function resolveLocalizedLinks(links: LandingLinks, locale: 'en' | 'zh'): LandingLinks {
+  if (locale === 'en') return links;
+  return {
+    ...links,
+    appUrl: localizeDocsUrl(links.appUrl, locale),
+    docsUrl: localizeDocsUrl(links.docsUrl, locale),
+    protocolUrl: localizeDocsUrl(links.protocolUrl, locale),
+    desktopDownloadUrl: localizeDocsUrl(links.desktopDownloadUrl, locale),
+    modDocsUrl: localizeDocsUrl(links.modDocsUrl, locale),
+  };
+}
 
 function normalizeUrl(raw: unknown, fallback: string): string {
   const value = typeof raw === 'string' ? raw.trim() : '';

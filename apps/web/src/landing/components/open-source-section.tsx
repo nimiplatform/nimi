@@ -81,7 +81,7 @@ export function OpenSourceSection(props: OpenSourceSectionProps) {
                   </a>
                   <a
                     className="inline-flex items-center justify-center rounded-full border border-white/12 bg-white/6 px-6 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 hover:text-white"
-                    href={props.links.docsUrl + 'platform/roadmap/'}
+                    href={props.links.docsUrl + 'platform/roadmap'}
                     target="_blank"
                     rel="noreferrer"
                   >
