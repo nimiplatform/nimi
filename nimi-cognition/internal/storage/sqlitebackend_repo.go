@@ -346,6 +346,7 @@ func (b *SQLiteBackend) DeleteScope(scopeID string) error {
 		`DELETE FROM knowledge_ingest_task WHERE scope_id = ?`,
 		`DELETE FROM skill_bundle WHERE scope_id = ?`,
 		`DELETE FROM skill_history WHERE scope_id = ?`,
+		`DELETE FROM cognition_scope_registry WHERE scope_id = ?`,
 		`DELETE FROM scope WHERE scope_id = ?`,
 	}
 	for _, stmt := range stmts {

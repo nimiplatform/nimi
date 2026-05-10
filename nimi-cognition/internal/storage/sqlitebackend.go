@@ -45,6 +45,13 @@ type SQLiteBackend struct {
 }
 
 // NewSQLiteBackend opens or creates the default SQLite-backed repository.
+//
+// The DSN sets per-connection pragmas (foreign_keys, journal_mode WAL,
+// busy_timeout) via the modernc.org/sqlite `_pragma` query parameter so
+// every pooled connection gets the same posture. Per-connection pragmas
+// set inside init() would only land on the first checked-out connection
+// and miss subsequent ones used by concurrent writers — which surfaces
+// as SQLITE_BUSY under contention.
 func NewSQLiteBackend(rootDir string) (*SQLiteBackend, error) {
 	if rootDir == "" {
 		return nil, errors.New("storage: root directory is required")
@@ -52,7 +59,9 @@ func NewSQLiteBackend(rootDir string) (*SQLiteBackend, error) {
 	if err := os.MkdirAll(rootDir, dirPerm); err != nil {
 		return nil, fmt.Errorf("storage: create root: %w", err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(rootDir, sqliteFileName))
+	dsn := "file:" + filepath.Join(rootDir, sqliteFileName) +
+		"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(on)"
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("storage: open sqlite: %w", err)
 	}
@@ -68,6 +77,7 @@ func (b *SQLiteBackend) init() error {
 	stmts := []string{
 		`PRAGMA foreign_keys = ON;`,
 		`PRAGMA journal_mode = WAL;`,
+		`PRAGMA busy_timeout = 5000;`,
 		`CREATE TABLE IF NOT EXISTS scope (
 			scope_id TEXT PRIMARY KEY,
 			created_at TEXT NOT NULL,
@@ -231,6 +241,21 @@ func (b *SQLiteBackend) init() error {
 			bundle_id UNINDEXED,
 			search_text
 		);`,
+		`CREATE TABLE IF NOT EXISTS cognition_scope_registry (
+			scope_id TEXT PRIMARY KEY,
+			scope_kind TEXT NOT NULL CHECK (scope_kind = 'runtime_knowledge_bank'),
+			owner_kind TEXT NOT NULL CHECK (owner_kind IN ('app_private', 'workspace_private')),
+			owner_key TEXT NOT NULL,
+			owner_json TEXT NOT NULL,
+			display_name TEXT NOT NULL,
+			metadata_json TEXT NOT NULL DEFAULT '{}',
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL
+		);`,
+		`CREATE INDEX IF NOT EXISTS cognition_scope_registry_owner_idx
+			ON cognition_scope_registry(scope_kind, owner_kind, owner_key);`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS cognition_scope_registry_owner_unique
+			ON cognition_scope_registry(scope_kind, owner_kind, owner_key, display_name);`,
 	}
 	for _, stmt := range stmts {
 		if _, err := b.db.Exec(stmt); err != nil {

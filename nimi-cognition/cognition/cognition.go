@@ -30,12 +30,13 @@ type Cognition struct {
 	refgraph *refgraph.Service
 	working  *workingStore
 
-	kernelSvc    *KernelService
-	memorySvc    *MemoryService
-	knowledgeSvc *KnowledgeService
-	skillSvc     *SkillService
-	workingSvc   *WorkingService
-	promptSvc    *PromptService
+	kernelSvc       *KernelService
+	memorySvc       *MemoryService
+	knowledgeSvc    *KnowledgeService
+	skillSvc        *SkillService
+	workingSvc      *WorkingService
+	promptSvc       *PromptService
+	knowledgeScopes KnowledgeScopeRegistry
 }
 
 // KernelService handles kernel access and mutation.
@@ -123,6 +124,7 @@ func New(rootDir string, opts ...Option) (*Cognition, error) {
 	c.skillSvc = &SkillService{store: store, refgraph: graph}
 	c.workingSvc = &WorkingService{store: workingStore}
 	c.promptSvc = &PromptService{store: store, refgraph: graph}
+	c.knowledgeScopes = NewKnowledgeScopeRegistry(store, clk)
 	if err := c.knowledgeSvc.markInterruptedIngestTasks(); err != nil {
 		_ = store.Close()
 		return nil, fmt.Errorf("cognition: %w", err)
@@ -158,6 +160,12 @@ func (c *Cognition) WorkingService() *WorkingService { return c.workingSvc }
 
 // PromptService returns the prompt subservice.
 func (c *Cognition) PromptService() *PromptService { return c.promptSvc }
+
+// KnowledgeScopeRegistry returns the typed runtime_knowledge_bank scope
+// registry. Production paths must consume this interface rather than
+// constructing scope ids by ad-hoc string concatenation. See C-COG-059
+// and K-KNOW-001a in the spec authority.
+func (c *Cognition) KnowledgeScopeRegistry() KnowledgeScopeRegistry { return c.knowledgeScopes }
 
 // KernelEngine exposes the kernel mutation surface for direct use.
 func (c *Cognition) KernelEngine() *kernelops.Engine { return c.engine }
