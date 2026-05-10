@@ -1,4 +1,5 @@
 import type { LandingLocale } from '../i18n/locale.js';
+import type { AdmittedCapability } from '../generated/index.js';
 
 export type LandingContent = {
   skipToContent: string;
@@ -18,21 +19,13 @@ export type LandingContent = {
     eyebrow: string;
     title: string;
     titleAccent: string;
-    title2: string;
-    titleAccent2: string;
     subtitle: string;
-    description: string;
-    primaryCta: string;
-    docsCta: string;
     helperPrefix: string;
     helperDocsCta: string;
     helperGithubCta: string;
     copyTooltipLabel: string;
     copiedCommandLabel: string;
-    githubCta: string;
-    previewLabel: string;
     previewAlt: string;
-    previewCaption: string;
     getStartedTitle: string;
     getStartedSubtitle: string;
     tabs: Array<{
@@ -41,7 +34,6 @@ export type LandingContent = {
       command: string;
       ctaText: string;
     }>;
-    terminalMockupTitle: string;
   };
   architecture: {
     title: string;
@@ -53,6 +45,20 @@ export type LandingContent = {
     userText: string;
     conclusion: string;
     slogan: string;
+    diagram: {
+      appLabel: string;
+      realm: string;
+      runtime: string;
+      cloudContextPlane: string;
+      localExecutionPlane: string;
+      cloudContext: string;
+      localCompute: string;
+      realmDomains: ReadonlyArray<{ id: string; label: string; icon: string }>;
+      runtimeCapabilities: ReadonlyArray<{ id: string; label: string; icon: string }>;
+      crossCutting: ReadonlyArray<{ id: string; label: string; icon: string }>;
+      transportLabels: { rest: string; grpc: string };
+      mobileFallback: { sdkLabel: string; sdkDescription: string };
+    };
   };
   modelCatalog: {
     kicker: string;
@@ -86,14 +92,7 @@ export type LandingContent = {
     capabilitiesTitle: string;
     capabilitiesHeadline: string;
     capabilitiesDescription: string;
-    capabilityLabels: {
-      'text.generate': string;
-      'text.embed': string;
-      'image.generate': string;
-      'video.generate': string;
-      'audio.synthesize': string;
-      'audio.transcribe': string;
-    };
+    capabilityLabels: Record<AdmittedCapability, string>;
     capabilityCountLabel: string;
     cloudBadge: string;
     matrixTitle: string;

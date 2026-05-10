@@ -1,8 +1,35 @@
-import React from 'react';
 import type { LandingContent } from '../content/landing-content.js';
+
+// Per-node visual style (color + position). Kept in component because these
+// are visual concerns, not user-facing strings. Keyed by stable ids that
+// match the content-tree diagram label arrays.
+const REALM_DOMAIN_STYLE: Record<string, { y: number; color: string }> = {
+  worlds: { y: 220, color: '#0ea5e9' },
+  agents: { y: 265, color: '#06b6d4' },
+  social: { y: 310, color: '#10b981' },
+  economy: { y: 355, color: '#f59e0b' },
+  memory: { y: 400, color: '#8b5cf6' },
+  identity: { y: 445, color: '#ec4899' },
+};
+
+const RUNTIME_CAPABILITY_STYLE: Record<string, { y: number; color: string }> = {
+  'ai-models': { y: 250, color: '#0ea5e9' },
+  workflows: { y: 320, color: '#8b5cf6' },
+  knowledge: { y: 390, color: '#f43f5e' },
+};
+
+const CROSS_CUTTING_X: Record<string, number> = {
+  'unified-account': 50,
+  'shared-data': 200,
+  'shared-auth': 350,
+  'persistent-presence': 500,
+  'multi-world-exploration': 650,
+  'seamless-ai': 800,
+};
 
 export function ArchitectureSection({ content }: { content?: LandingContent['architecture'] }) {
   if (!content) return null;
+  const diagram = content.diagram;
 
   return (
     <section id="architecture" className="relative overflow-hidden border-t border-white/5 bg-[#0A0D14] section-pad outline-none">
@@ -137,7 +164,7 @@ export function ArchitectureSection({ content }: { content?: LandingContent['arc
             <svg className="w-5 h-5 text-[#0ea5e9]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
-            <span className="text-[13px] tracking-[0.15em] font-bold uppercase">YOUR AI APP / MOD</span>
+            <span className="text-[13px] tracking-[0.15em] font-bold uppercase">{diagram.appLabel}</span>
           </div>
 
           {/* Wide SDK Node */}
@@ -159,72 +186,60 @@ export function ArchitectureSection({ content }: { content?: LandingContent['arc
           {/* Left Block: REALM Container */}
           <div className="absolute top-[160px] left-[50px] w-[280px] h-[340px] bg-white/[0.02] border border-white/5 rounded-3xl backdrop-blur-md z-0 flex flex-col items-center shadow-xl">
              <div className="w-full bg-gradient-to-b from-white/[0.06] to-transparent pt-4 pb-2 flex flex-col items-center rounded-t-3xl text-center">
-                <span className="font-bold text-white tracking-[0.2em] text-[16px]">REALM</span>
-                <span className="text-[#0ea5e9] text-[9px] uppercase tracking-widest font-bold">Cloud Context Plane</span>
+                <span className="font-bold text-white tracking-[0.2em] text-[16px]">{diagram.realm}</span>
+                <span className="text-[#0ea5e9] text-[9px] uppercase tracking-widest font-bold">{diagram.cloudContextPlane}</span>
              </div>
           </div>
 
           {/* REST + WS Node */}
           <div className="absolute top-[535px] left-[90px] w-[200px] h-[32px] bg-[#0A0D14] rounded-xl flex items-center justify-center border border-[#0ea5e9]/40 shadow-[0_0_20px_rgba(14,165,233,0.15)] z-10 transition-transform hover:-translate-y-1">
             <div className="absolute inset-0 bg-[#0ea5e9]/10 rounded-xl" />
-            <span className="font-bold tracking-widest text-[10px] text-[#0ea5e9] relative z-10 uppercase">REST + WebSocket</span>
+            <span className="font-bold tracking-widest text-[10px] text-[#0ea5e9] relative z-10 uppercase">{diagram.transportLabels.rest}</span>
           </div>
 
           {/* Realm Domain Nodes */}
-          {[
-            { id: 'Worlds', y: 220, icon: '\u{1F310}', color: '#0ea5e9' },
-            { id: 'Agents', y: 265, icon: '\u{1F916}', color: '#06b6d4' },
-            { id: 'Social', y: 310, icon: '\u{1F465}', color: '#10b981' },
-            { id: 'Economy', y: 355, icon: '\u{1F4B0}', color: '#f59e0b' },
-            { id: 'Memory', y: 400, icon: '\u{1F9E0}', color: '#8b5cf6' },
-            { id: 'Identity', y: 445, icon: '\u{1F464}', color: '#ec4899' },
-          ].map(sat => (
-            <div key={sat.id} className="absolute left-[90px] w-[220px] h-[36px] bg-[#111827] border border-white/10 rounded-lg flex items-center px-4 shadow-[0_4px_15px_rgba(0,0,0,0.5)] transition-all hover:bg-white/[0.05] hover:-translate-x-1 hover:border-white/30 z-10 cursor-default" style={{ top: sat.y }}>
-               <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center mr-3 text-sm shadow-inner" style={{ color: sat.color }}>{sat.icon}</div>
-               <span className="text-[12px] font-bold text-slate-300 transition-colors tracking-wide">{sat.id}</span>
-            </div>
-          ))}
+          {diagram.realmDomains.map((node) => {
+            const style = REALM_DOMAIN_STYLE[node.id] ?? { y: 0, color: '#94a3b8' };
+            return (
+              <div key={node.id} className="absolute left-[90px] w-[220px] h-[36px] bg-[#111827] border border-white/10 rounded-lg flex items-center px-4 shadow-[0_4px_15px_rgba(0,0,0,0.5)] transition-all hover:bg-white/[0.05] hover:-translate-x-1 hover:border-white/30 z-10 cursor-default" style={{ top: style.y }}>
+                <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center mr-3 text-sm shadow-inner" style={{ color: style.color }}>{node.icon}</div>
+                <span className="text-[12px] font-bold text-slate-300 transition-colors tracking-wide">{node.label}</span>
+              </div>
+            );
+          })}
 
           {/* Right Block: RUNTIME Container */}
           <div className="absolute top-[160px] left-[670px] w-[280px] h-[340px] bg-white/[0.02] border border-white/5 rounded-3xl backdrop-blur-md z-0 flex flex-col items-center shadow-xl">
              <div className="w-full bg-gradient-to-b from-white/[0.06] to-transparent pt-4 pb-2 flex flex-col items-center rounded-t-3xl text-center">
-                <span className="font-bold text-white tracking-[0.2em] text-[16px]">RUNTIME</span>
-                <span className="text-[#38d6a3] text-[9px] uppercase tracking-widest font-bold">Local Execution Plane</span>
+                <span className="font-bold text-white tracking-[0.2em] text-[16px]">{diagram.runtime}</span>
+                <span className="text-[#38d6a3] text-[9px] uppercase tracking-widest font-bold">{diagram.localExecutionPlane}</span>
              </div>
           </div>
 
           {/* gRPC Node */}
           <div className="absolute top-[535px] left-[710px] w-[200px] h-[32px] bg-[#0A0D14] rounded-xl flex items-center justify-center border border-[#38d6a3]/40 shadow-[0_0_20px_rgba(56,214,163,0.15)] z-10 transition-transform hover:-translate-y-1">
             <div className="absolute inset-0 bg-[#38d6a3]/10 rounded-xl" />
-            <span className="font-bold tracking-widest text-[10px] text-[#38d6a3] relative z-10 uppercase">gRPC</span>
+            <span className="font-bold tracking-widest text-[10px] text-[#38d6a3] relative z-10 uppercase">{diagram.transportLabels.grpc}</span>
           </div>
 
           {/* Runtime Capability Nodes */}
-          {[
-            { id: 'AI Models', y: 250, icon: '\u{1F9E0}', color: '#0ea5e9' },
-            { id: 'Workflows', y: 320, icon: '\u{26A1}',   color: '#8b5cf6' },
-            { id: 'Knowledge', y: 390, icon: '\u{1F4DA}', color: '#f43f5e' },
-          ].map(sat => (
-            <div key={sat.id} className="absolute left-[690px] w-[240px] h-[48px] bg-[#111827] border border-white/10 rounded-xl flex items-center px-4 shadow-[0_4px_15px_rgba(0,0,0,0.5)] transition-all hover:bg-white/[0.05] hover:translate-x-1 hover:border-white/30 z-10 cursor-default" style={{ top: sat.y }}>
-               <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center mr-4 text-[16px] shadow-inner" style={{ color: sat.color }}>{sat.icon}</div>
-               <span className="text-[13px] font-bold text-slate-300 transition-colors tracking-widest uppercase">{sat.id}</span>
-            </div>
-          ))}
+          {diagram.runtimeCapabilities.map((node) => {
+            const style = RUNTIME_CAPABILITY_STYLE[node.id] ?? { y: 0, color: '#94a3b8' };
+            return (
+              <div key={node.id} className="absolute left-[690px] w-[240px] h-[48px] bg-[#111827] border border-white/10 rounded-xl flex items-center px-4 shadow-[0_4px_15px_rgba(0,0,0,0.5)] transition-all hover:bg-white/[0.05] hover:translate-x-1 hover:border-white/30 z-10 cursor-default" style={{ top: style.y }}>
+                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center mr-4 text-[16px] shadow-inner" style={{ color: style.color }}>{node.icon}</div>
+                <span className="text-[13px] font-bold text-slate-300 transition-colors tracking-widest uppercase">{node.label}</span>
+              </div>
+            );
+          })}
 
           {/* Bottom Row - Cross-World Journey */}
-          {[
-            { id: 'Unified Account', x: 50, icon: '\u{1F464}' },
-            { id: 'Shared Data', x: 200, icon: '\u{1F4BE}' },
-            { id: 'Shared Authorization', x: 350, icon: '\u{1F512}' },
-            { id: 'Persistent Cross-World Presence', x: 500, icon: '\u{1F310}' },
-            { id: 'Multi-World Exploration', x: 650, icon: '\u{1F9ED}' },
-            { id: 'Seamless AI Experience', x: 800, icon: '\u{2728}' },
-          ].map(sat => (
-            <div key={sat.id} className="absolute top-[600px] w-[140px] flex flex-col items-center text-center group cursor-default" style={{ left: sat.x }}>
-               <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-3 text-[18px] border border-white/10 shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition-transform group-hover:-translate-y-1 grayscale group-hover:grayscale-0 group-hover:bg-white/[0.08] group-hover:border-white/30">
-                 {sat.icon}
-               </div>
-               <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-white leading-tight transition-colors">{sat.id}</span>
+          {diagram.crossCutting.map((node) => (
+            <div key={node.id} className="absolute top-[600px] w-[140px] flex flex-col items-center text-center group cursor-default" style={{ left: CROSS_CUTTING_X[node.id] ?? 0 }}>
+              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-3 text-[18px] border border-white/10 shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition-transform group-hover:-translate-y-1 grayscale group-hover:grayscale-0 group-hover:bg-white/[0.08] group-hover:border-white/30">
+                {node.icon}
+              </div>
+              <span className="text-[10px] sm:text-[11px] font-bold text-slate-400 group-hover:text-white leading-tight transition-colors">{node.label}</span>
             </div>
           ))}
 
@@ -235,29 +250,29 @@ export function ArchitectureSection({ content }: { content?: LandingContent['arc
         <div className="relative z-10 mx-auto px-4 sm:px-6 lg:hidden flex flex-col gap-6 max-w-md mb-16">
            <div className="bg-[#111827] rounded-3xl border border-white/10 p-8 shadow-xl">
               <div className="w-12 h-12 bg-gradient-to-r from-[#0ea5e9] to-[#8b5cf6] rounded-xl flex items-center justify-center font-bold text-white shadow-lg mb-4">SDK</div>
-              <h3 className="text-xl font-heading font-bold text-white mb-2">@nimi/sdk</h3>
-              <p className="text-sm text-slate-400 leading-relaxed font-medium">Single surface connecting to local and cloud intelligence.</p>
+              <h3 className="text-xl font-heading font-bold text-white mb-2">{diagram.mobileFallback.sdkLabel}</h3>
+              <p className="text-sm text-slate-400 leading-relaxed font-medium">{diagram.mobileFallback.sdkDescription}</p>
            </div>
-           
+
            <div className="flex items-center justify-center text-slate-500">
              <svg className="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
            </div>
 
            <div className="bg-gradient-to-br from-[#0A0D14] to-[#111827] rounded-3xl border border-[#0ea5e9]/20 p-8 shadow-xl relative overflow-hidden">
               <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-[#0ea5e9]/20 blur-2xl rounded-full pointer-events-none" />
-              <h3 className="text-xl font-heading font-bold text-[#0ea5e9] mb-2 tracking-widest uppercase">REALM</h3>
-              <p className="text-[11px] text-[#0ea5e9]/70 uppercase tracking-widest font-bold mb-6">Cloud Context</p>
+              <h3 className="text-xl font-heading font-bold text-[#0ea5e9] mb-2 tracking-widest uppercase">{diagram.realm}</h3>
+              <p className="text-[11px] text-[#0ea5e9]/70 uppercase tracking-widest font-bold mb-6">{diagram.cloudContext}</p>
               <div className="flex flex-wrap gap-2">
-                {['Worlds', 'Agents', 'Social', 'Economy', 'Memory', 'Identity'].map(n => <span key={n} className="px-3 py-1 bg-white/[0.05] border border-white/10 rounded-full text-xs font-bold text-slate-300 shadow-sm">{n}</span>)}
+                {diagram.realmDomains.map((node) => <span key={node.id} className="px-3 py-1 bg-white/[0.05] border border-white/10 rounded-full text-xs font-bold text-slate-300 shadow-sm">{node.label}</span>)}
               </div>
            </div>
 
            <div className="bg-gradient-to-br from-[#0A0D14] to-[#111827] rounded-3xl border border-[#38d6a3]/20 p-8 shadow-xl relative overflow-hidden">
               <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-[#38d6a3]/20 blur-2xl rounded-full pointer-events-none" />
-              <h3 className="text-xl font-heading font-bold text-[#38d6a3] mb-2 tracking-widest uppercase">RUNTIME</h3>
-              <p className="text-[11px] text-[#38d6a3]/70 uppercase tracking-widest font-bold mb-6">Local Compute</p>
+              <h3 className="text-xl font-heading font-bold text-[#38d6a3] mb-2 tracking-widest uppercase">{diagram.runtime}</h3>
+              <p className="text-[11px] text-[#38d6a3]/70 uppercase tracking-widest font-bold mb-6">{diagram.localCompute}</p>
               <div className="flex flex-wrap gap-2">
-                {['AI Models', 'Workflows', 'Knowledge'].map(n => <span key={n} className="px-3 py-1 bg-[#38d6a3]/[0.05] border border-[#38d6a3]/20 rounded-full text-xs font-bold text-slate-300 shadow-sm">{n}</span>)}
+                {diagram.runtimeCapabilities.map((node) => <span key={node.id} className="px-3 py-1 bg-[#38d6a3]/[0.05] border border-[#38d6a3]/20 rounded-full text-xs font-bold text-slate-300 shadow-sm">{node.label}</span>)}
               </div>
            </div>
         </div>
