@@ -1,7 +1,9 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
+  asNimiError,
   CatalogModelSource,
   ModelCatalogProviderSource,
+  Runtime,
   type CatalogModelDetail,
   type CatalogModelInput,
   type CatalogModelSummary,
@@ -14,6 +16,7 @@ import {
   type CatalogWorkflowModel,
   type ModelCatalogProviderEntry,
 } from '@nimiplatform/sdk/runtime';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type JsonObject = Record<string, unknown>;
 type JsonValue = unknown;
@@ -231,6 +234,54 @@ function runtimeAdmin() {
   return getPlatformClient().domains.runtimeAdmin;
 }
 
+const STALE_BEARER_ANONYMOUS_RETRY_MS = 60_000;
+let anonymousRuntime: Runtime | null = null;
+let anonymousReadUntilMs = 0;
+
+function getAnonymousRuntime(): Runtime {
+  const runtime = getPlatformClient().runtime;
+  if (
+    anonymousRuntime
+    && anonymousRuntime.appId === runtime.appId
+    && anonymousRuntime.transport === runtime.transport
+  ) {
+    return anonymousRuntime;
+  }
+  anonymousRuntime = new Runtime({
+    appId: runtime.appId,
+    transport: runtime.transport,
+  });
+  return anonymousRuntime;
+}
+
+function authFailedBecauseOfStaleBearer(error: unknown): boolean {
+  const normalized = asNimiError(error, {
+    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
+    actionHint: 'retry_without_stale_runtime_bearer',
+    source: 'runtime',
+  });
+  const code = typeof normalized.reasonCode === 'string' ? normalized.reasonCode.trim() : '';
+  return code === ReasonCode.AUTH_TOKEN_INVALID;
+}
+
+async function withAnonymousReadFallback<T>(
+  action: () => Promise<T>,
+  anonymousAction: (runtime: Runtime) => Promise<T>,
+): Promise<T> {
+  if (Date.now() < anonymousReadUntilMs) {
+    return anonymousAction(getAnonymousRuntime());
+  }
+  try {
+    return await action();
+  } catch (error) {
+    if (!authFailedBecauseOfStaleBearer(error)) {
+      throw error;
+    }
+    anonymousReadUntilMs = Date.now() + STALE_BEARER_ANONYMOUS_RETRY_MS;
+    return anonymousAction(getAnonymousRuntime());
+  }
+}
+
 export function jsonToProtoStruct(value: JsonObject): ProtoStruct { return { fields: Object.fromEntries(Object.entries(value || {}).map(([key, item]) => [key, jsonToProtoValue(item)])) }; }
 function jsonToProtoValue(value: JsonValue): ProtoValue { if (value === null || value === undefined) return { kind: { oneofKind: 'nullValue', nullValue: 0 } }; if (Array.isArray(value)) return { kind: { oneofKind: 'listValue', listValue: { values: value.map(jsonToProtoValue) } } }; if (typeof value === 'number') return { kind: { oneofKind: 'numberValue', numberValue: value } }; if (typeof value === 'boolean') return { kind: { oneofKind: 'boolValue', boolValue: value } }; if (typeof value === 'string') return { kind: { oneofKind: 'stringValue', stringValue: value } }; return { kind: { oneofKind: 'structValue', structValue: jsonToProtoStruct(value as JsonObject) } }; }
 export function protoStructToJson(value?: ProtoStruct): JsonObject { const output: JsonObject = {}; for (const [key, item] of Object.entries(value?.fields || {})) output[key] = protoValueToJson(item); return output; }
@@ -252,9 +303,29 @@ function detailToProtoInput(provider: string, detail: RuntimeCatalogModelDetail)
   };
 }
 
-export async function sdkListModelCatalogProviders(): Promise<RuntimeModelCatalogProvider[]> { const response = await runtimeAdmin().listModelCatalogProviders({}, CATALOG_CALL_OPTIONS); return (response.providers || []).map(normalizeProviderEntry).sort((a, b) => a.provider.localeCompare(b.provider)); }
-export async function sdkListCatalogProviderModels(provider: string, pageSize = 500, pageToken = ''): Promise<RuntimeCatalogProviderModelsResponse> { const response = await runtimeAdmin().listCatalogProviderModels({ provider: provider.trim(), pageSize, pageToken }, CATALOG_CALL_OPTIONS); return { provider: normalizeProviderEntry(response.provider || {} as ModelCatalogProviderEntry), models: (response.models || []).map(normalizeModelSummary), nextPageToken: String(response.nextPageToken || '').trim(), warnings: normalizeWarnings(response.warnings) }; }
-export async function sdkGetCatalogModelDetail(provider: string, modelId: string): Promise<RuntimeCatalogModelDetailResponse> { const response = await runtimeAdmin().getCatalogModelDetail({ provider: provider.trim(), modelId: modelId.trim() }, CATALOG_CALL_OPTIONS); return { provider: normalizeProviderEntry(response.provider || {} as ModelCatalogProviderEntry), model: normalizeModelDetail(response.model), warnings: normalizeWarnings(response.warnings) }; }
+export async function sdkListModelCatalogProviders(): Promise<RuntimeModelCatalogProvider[]> {
+  const response = await withAnonymousReadFallback(
+    () => runtimeAdmin().listModelCatalogProviders({}, CATALOG_CALL_OPTIONS),
+    (runtime) => runtime.connector.listModelCatalogProviders({}, CATALOG_CALL_OPTIONS),
+  );
+  return (response.providers || []).map(normalizeProviderEntry).sort((a, b) => a.provider.localeCompare(b.provider));
+}
+export async function sdkListCatalogProviderModels(provider: string, pageSize = 500, pageToken = ''): Promise<RuntimeCatalogProviderModelsResponse> {
+  const request = { provider: provider.trim(), pageSize, pageToken };
+  const response = await withAnonymousReadFallback(
+    () => runtimeAdmin().listCatalogProviderModels(request, CATALOG_CALL_OPTIONS),
+    (runtime) => runtime.connector.listCatalogProviderModels(request, CATALOG_CALL_OPTIONS),
+  );
+  return { provider: normalizeProviderEntry(response.provider || {} as ModelCatalogProviderEntry), models: (response.models || []).map(normalizeModelSummary), nextPageToken: String(response.nextPageToken || '').trim(), warnings: normalizeWarnings(response.warnings) };
+}
+export async function sdkGetCatalogModelDetail(provider: string, modelId: string): Promise<RuntimeCatalogModelDetailResponse> {
+  const request = { provider: provider.trim(), modelId: modelId.trim() };
+  const response = await withAnonymousReadFallback(
+    () => runtimeAdmin().getCatalogModelDetail(request, CATALOG_CALL_OPTIONS),
+    (runtime) => runtime.connector.getCatalogModelDetail(request, CATALOG_CALL_OPTIONS),
+  );
+  return { provider: normalizeProviderEntry(response.provider || {} as ModelCatalogProviderEntry), model: normalizeModelDetail(response.model), warnings: normalizeWarnings(response.warnings) };
+}
 export async function sdkUpsertCatalogModelOverlay(provider: string, input: RuntimeCatalogModelOverlayInput): Promise<RuntimeCatalogModelDetailResponse> { const response = await runtimeAdmin().upsertCatalogModelOverlay({ provider: provider.trim(), model: detailToProtoInput(provider, input.model), voices: (input.voices || []).map((voice) => ({ voiceSetId: voice.voiceSetId.trim(), provider: provider.trim(), voiceId: voice.voiceId.trim(), name: voice.name.trim(), langs: voice.langs.map((item) => item.trim()).filter(Boolean), modelIds: voice.modelIds.map((item) => item.trim()).filter(Boolean), sourceRef: { url: voice.sourceRef.url.trim(), retrievedAt: voice.sourceRef.retrievedAt.trim(), note: voice.sourceRef.note.trim() } } satisfies CatalogVoiceEntry)), voiceWorkflowModels: (input.voiceWorkflowModels || []).map((workflow) => ({ workflowModelId: workflow.workflowModelId.trim(), workflowType: workflow.workflowType.trim(), inputContractRef: workflow.inputContractRef.trim(), outputPersistence: workflow.outputPersistence.trim(), targetModelRefs: workflow.targetModelRefs.map((item) => item.trim()).filter(Boolean), langs: workflow.langs.map((item) => item.trim()).filter(Boolean), sourceRef: { url: workflow.sourceRef.url.trim(), retrievedAt: workflow.sourceRef.retrievedAt.trim(), note: workflow.sourceRef.note.trim() } } satisfies CatalogWorkflowModel)), modelWorkflowBinding: input.modelWorkflowBinding ? { modelId: input.modelWorkflowBinding.modelId.trim(), workflowModelRefs: input.modelWorkflowBinding.workflowModelRefs.map((item) => item.trim()).filter(Boolean), workflowTypes: input.modelWorkflowBinding.workflowTypes.map((item) => item.trim()).filter(Boolean) } satisfies CatalogModelWorkflowBinding : undefined }, CATALOG_CALL_OPTIONS); return { provider: normalizeProviderEntry(response.provider || {} as ModelCatalogProviderEntry), model: normalizeModelDetail(response.model), warnings: normalizeWarnings(response.warnings) }; }
 export async function sdkDeleteCatalogModelOverlay(provider: string, modelId: string): Promise<RuntimeModelCatalogProvider> { const response = await runtimeAdmin().deleteCatalogModelOverlay({ provider: provider.trim(), modelId: modelId.trim() }, CATALOG_CALL_OPTIONS); return normalizeProviderEntry(response.provider || {} as ModelCatalogProviderEntry); }
 export async function sdkUpsertModelCatalogProvider(provider: string, yaml: string): Promise<RuntimeModelCatalogProvider> { const response = await runtimeAdmin().upsertModelCatalogProvider({ provider: provider.trim(), yaml: yaml.trim() }, CATALOG_CALL_OPTIONS); return normalizeProviderEntry(response.provider || {} as ModelCatalogProviderEntry); }
