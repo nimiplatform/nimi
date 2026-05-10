@@ -162,6 +162,9 @@ export type RealmGeneratedModelMap = {
   GroupParticipantDto: components['schemas']['GroupParticipantDto'];
   HandleAvailabilityDto: components['schemas']['HandleAvailabilityDto'];
   ImportPolicyDto: components['schemas']['ImportPolicyDto'];
+  IntrospectSessionErrorDto: components['schemas']['IntrospectSessionErrorDto'];
+  IntrospectSessionRequestDto: components['schemas']['IntrospectSessionRequestDto'];
+  IntrospectSessionResponseDto: components['schemas']['IntrospectSessionResponseDto'];
   InvitationCodeResponseDto: components['schemas']['InvitationCodeResponseDto'];
   InvitationCodeUsedByAccountDto: components['schemas']['InvitationCodeUsedByAccountDto'];
   ListChatsResultDto: components['schemas']['ListChatsResultDto'];
@@ -198,6 +201,8 @@ export type RealmGeneratedModelMap = {
   OAuthLoginDto: components['schemas']['OAuthLoginDto'];
   OAuthLoginResultDto: components['schemas']['OAuthLoginResultDto'];
   OAuthProvider: components['schemas']['OAuthProvider'];
+  OAuthTokenRequestDto: components['schemas']['OAuthTokenRequestDto'];
+  OAuthTokenResponseDto: components['schemas']['OAuthTokenResponseDto'];
   PasswordLoginDto: components['schemas']['PasswordLoginDto'];
   PasswordRegisterDto: components['schemas']['PasswordRegisterDto'];
   PermissionCheckResponseDto: components['schemas']['PermissionCheckResponseDto'];

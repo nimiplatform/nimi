@@ -643,6 +643,12 @@ export const ImportPolicyAllowedHostTypesItem = {
 
 export type ImportPolicyAllowedHostTypesItem = (typeof ImportPolicyAllowedHostTypesItem)[keyof typeof ImportPolicyAllowedHostTypesItem];
 
+export const IntrospectSessionError = {
+  INVALID_INTROSPECTION_REQUEST: "INVALID_INTROSPECTION_REQUEST",
+} as const satisfies Record<string, components['schemas']['IntrospectSessionErrorDto']['error']>;
+
+export type IntrospectSessionError = (typeof IntrospectSessionError)[keyof typeof IntrospectSessionError];
+
 export const MutationCommitEnvelopeEffectClass = {
   NONE: "NONE",
   STATE_ONLY: "STATE_ONLY",

@@ -735,6 +735,25 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
+  "AuthService.introspectSession": {
+    "operationId": "introspectSession",
+    "method": "POST",
+    "path": "/api/auth/sessions/introspect",
+    "service": "AuthService",
+    "methodName": "introspectSession",
+    "tag": "Auth",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "AuthService.linkOauth": {
     "operationId": "linkOauth",
     "method": "POST",
@@ -769,6 +788,63 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
+  "AuthService.oauthAuthorize": {
+    "operationId": "oauthAuthorize",
+    "method": "GET",
+    "path": "/api/auth/oauth/authorize",
+    "service": "AuthService",
+    "methodName": "oauthAuthorize",
+    "tag": "Auth",
+    "parameters": [
+      {
+        "name": "state",
+        "in": "query",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "code_challenge_method",
+        "in": "query",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "code_challenge",
+        "in": "query",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "redirect_uri",
+        "in": "query",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "client_id",
+        "in": "query",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "response_type",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "scope",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [],
+    "successContentTypes": [],
+    "hasSuccessBody": false
+  },
   "AuthService.oauthLogin": {
     "operationId": "oauthLogin",
     "method": "POST",
@@ -780,6 +856,25 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "AuthService.oauthToken": {
+    "operationId": "oauthToken",
+    "method": "POST",
+    "path": "/api/auth/oauth/token",
+    "service": "AuthService",
+    "methodName": "oauthToken",
+    "tag": "Auth",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/x-www-form-urlencoded",
     "successStatusCodes": [
       "200"
     ],
@@ -6173,9 +6268,12 @@ export const REALM_SERVICE_METHODS = {
     "bindEmail": "AuthService.bindEmail",
     "changeEmail": "AuthService.changeEmail",
     "checkEmail": "AuthService.checkEmail",
+    "introspectSession": "AuthService.introspectSession",
     "linkOauth": "AuthService.linkOauth",
     "logout": "AuthService.logout",
+    "oauthAuthorize": "AuthService.oauthAuthorize",
     "oauthLogin": "AuthService.oauthLogin",
+    "oauthToken": "AuthService.oauthToken",
     "passwordLogin": "AuthService.passwordLogin",
     "passwordRegister": "AuthService.passwordRegister",
     "refreshToken": "AuthService.refreshToken",

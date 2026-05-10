@@ -90,3 +90,17 @@ Realm 后端签发 JWT，Runtime 校验 JWT。两者的 claims 契约必须对�
 **不一致后果**：`iss` 或 `aud` 不匹配时，Runtime 对所有携带 Realm token 的请求返回 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`（`K-AUTHN-007`）。Desktop 用户将无法执行任何认证操作。
 
 **跨层引用**：`D-AUTH-004`（Desktop 消费 Realm 签发 token）、`K-DAEMON-009`（配置三层优先级）。
+
+> 跨表引用：每个 RPC 在 K-AUTHN-001..009 下的实际接受姿态（anonymous_read / authenticated_required / mixed）汇总在 `tables/runtime-rpc-auth-posture.yaml`，由 `pnpm check:runtime-rpc-auth-posture-coverage` / `check:runtime-rpc-auth-posture-shape` 守护。
+
+## Reference Tests (informative, not normative)
+
+K-AUTHN-006 conformance is exercised by the runtime test suite at
+`nimi/runtime/internal/authn/validator_test.go` and
+`nimi/runtime/internal/authn/interceptor_test.go`. Tests cover all
+rows of the response decision matrix defined in the
+cross-referenced introspection contract, plus network-failure
+branches (HTTP 500, non-JSON body, missing fields, wrong
+content-type, request timeout, and revocationUrl-empty pass-
+without-HTTP-call). The test fixtures use real `httptest.NewServer`
+to exercise the contract under realistic transport behavior.

@@ -1,8 +1,6 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
-  asNimiError,
   createNimiError,
-  Runtime,
   RuntimeReasonCode,
   ConnectorAuthKind,
   type ProviderCatalogEntry,
@@ -29,15 +27,12 @@ const CONNECTOR_CALL_OPTIONS = {
 const CONNECTOR_MODELS_PAGE_SIZE = 200;
 const CONNECTOR_MODELS_MAX_PAGES = 200;
 const PROVIDER_CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
-const STALE_BEARER_ANONYMOUS_RETRY_MS = 60_000;
 
 const CONNECTOR_KIND_REMOTE_MANAGED = 2;
 const CONNECTOR_OWNER_TYPE_SYSTEM = 1;
 
 let cachedProviderCatalog: ProviderCatalogEntry[] | null = null;
 let cachedProviderCatalogAt = 0;
-let anonymousRuntime: Runtime | null = null;
-let anonymousReadUntilMs = 0;
 
 type RuntimeConnectorLike = {
   connectorId: string;
@@ -85,49 +80,6 @@ function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function authFailedBecauseOfStaleBearer(error: unknown): boolean {
-  const normalized = asNimiError(error, {
-    reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-    actionHint: 'retry_without_stale_runtime_bearer',
-    source: 'runtime',
-  });
-  return normalizeText(normalized.reasonCode) === ReasonCode.AUTH_TOKEN_INVALID;
-}
-
-function getAnonymousRuntime(): Runtime {
-  const runtime = getPlatformClient().runtime;
-  if (
-    anonymousRuntime
-    && anonymousRuntime.appId === runtime.appId
-    && anonymousRuntime.transport === runtime.transport
-  ) {
-    return anonymousRuntime;
-  }
-  anonymousRuntime = new Runtime({
-    appId: runtime.appId,
-    transport: runtime.transport,
-  });
-  return anonymousRuntime;
-}
-
-async function withAnonymousReadFallback<T>(
-  action: () => Promise<T>,
-  anonymousAction: (runtime: Runtime) => Promise<T>,
-): Promise<T> {
-  if (Date.now() < anonymousReadUntilMs) {
-    return anonymousAction(getAnonymousRuntime());
-  }
-  try {
-    return await action();
-  } catch (error) {
-    if (!authFailedBecauseOfStaleBearer(error)) {
-      throw error;
-    }
-    anonymousReadUntilMs = Date.now() + STALE_BEARER_ANONYMOUS_RETRY_MS;
-    return anonymousAction(getAnonymousRuntime());
-  }
-}
-
 export async function sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]> {
   const now = Date.now();
   if (
@@ -136,10 +88,7 @@ export async function sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]> 
   ) {
     return cachedProviderCatalog;
   }
-  const response = await withAnonymousReadFallback(
-    () => runtimeAdmin().listProviderCatalog({}, CONNECTOR_CALL_OPTIONS),
-    (runtime) => runtime.connector.listProviderCatalog({}, CONNECTOR_CALL_OPTIONS),
-  );
+  const response = await runtimeAdmin().listProviderCatalog({}, CONNECTOR_CALL_OPTIONS);
   const providers = Array.isArray(response.providers)
     ? (response.providers as ProviderCatalogEntry[])
     : [];
@@ -307,10 +256,7 @@ export async function sdkListConnectors(): Promise<ApiConnector[]> {
     statusFilter: 0,
     providerFilter: '',
   };
-  const response = await withAnonymousReadFallback(
-    () => runtimeAdmin().listConnectors(request, CONNECTOR_CALL_OPTIONS),
-    (runtime) => runtime.connector.listConnectors(request, CONNECTOR_CALL_OPTIONS),
-  );
+  const response = await runtimeAdmin().listConnectors(request, CONNECTOR_CALL_OPTIONS);
   const connectors = Array.isArray(response.connectors)
     ? (response.connectors as RuntimeConnectorLike[])
     : [];
@@ -458,10 +404,7 @@ export async function sdkListConnectorModelDescriptors(
       pageSize: CONNECTOR_MODELS_PAGE_SIZE,
       pageToken,
     };
-    const response = await withAnonymousReadFallback(
-      () => runtimeAdmin().listConnectorModels(request, CONNECTOR_CALL_OPTIONS),
-      (runtime) => runtime.connector.listConnectorModels(request, CONNECTOR_CALL_OPTIONS),
-    );
+    const response = await runtimeAdmin().listConnectorModels(request, CONNECTOR_CALL_OPTIONS);
     const models = Array.isArray(response.models)
       ? (response.models as RuntimeConnectorModelLike[])
       : [];

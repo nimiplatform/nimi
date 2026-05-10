@@ -50,3 +50,5 @@
 
 - AuthN（验签/会话有效性）失败统一返回 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`，不进入 AuthZ 评估。
 - AuthZ 规则（owner/status/credential）仅在 AuthN 通过后执行。
+
+> 跨表引用：每个 RPC 在 K-AUTH-001..007 下的实际接受姿态（anonymous_read / authenticated_required / mixed）汇总在 `tables/runtime-rpc-auth-posture.yaml`，由 `pnpm check:runtime-rpc-auth-posture-coverage` / `check:runtime-rpc-auth-posture-shape` 守护。

@@ -1,5 +1,6 @@
 import {
   isRuntimeAccountMethod,
+  isRuntimeAnonymousReadMethod,
   isRuntimeAppSessionBootstrapMethod,
   isRuntimeLocalAnonymousMethod,
   isRuntimeWriteMethod,
@@ -62,6 +63,9 @@ async function resolveAuthorization(
   options?: RuntimeCallOptions | RuntimeStreamCallOptions,
 ): Promise<string | undefined> {
   if (options?.protectedAccessToken?.tokenId && options.protectedAccessToken.secret) {
+    return undefined;
+  }
+  if (isRuntimeAnonymousReadMethod(methodId)) {
     return undefined;
   }
   if (isRuntimeLocalAnonymousMethod(methodId)) {

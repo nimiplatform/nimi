@@ -817,3 +817,294 @@ func TestValidateFallbackUsesCachedHistoricalKeyOnRefreshFailure(t *testing.T) {
 		t.Fatalf("validate with stale historical key fallback should pass: %v", err)
 	}
 }
+
+// =============================================================================
+// Wave 4 (topic 2026-05-10-runtime-bearer-revocation-contract-closure):
+// negative-path coverage for the K-AUTHN-006 introspection contract. Decision-
+// matrix rows 3..8 plus 5 network-failure branches plus the
+// revocationUrl-empty pass-without-HTTP case. All fixtures use real
+// httptest.NewServer; no mocked HTTP at the contract seam.
+//
+// Existing baseline (kept, not duplicated):
+//   - Row 1 (active=true, revoked=false): TestValidateCallsRevocationEndpointAfterSuccessfulJWTValidation
+//   - Row 2 (active=false, revoked=true): TestValidateRejectsRevokedSession
+//   - sid missing while revocationUrl configured: TestValidateRejectsMissingSIDWhenRevocationConfigured
+//   - active=false (no specific row): TestValidateRejectsInactiveSession
+//   - malformed JSON body: TestValidateRejectsMalformedRevocationResponse
+// =============================================================================
+
+// newRevocationServer wires a httptest.NewServer that runs `handler` on every
+// hit and exposes a hit counter. Wave 4 tests use this to assert HTTP request
+// shape and to assert pass-without-HTTP for the empty-revocationUrl case.
+func newRevocationServer(t *testing.T, handler http.HandlerFunc) (*httptest.Server, *int) {
+	t.Helper()
+	hits := 0
+	var hitsMu sync.Mutex
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hitsMu.Lock()
+		hits++
+		hitsMu.Unlock()
+		handler(w, r)
+	}))
+	t.Cleanup(server.Close)
+	return server, &hits
+}
+
+// validatorWithJWKSAndRevocation builds a validator wired to a JWKS test server
+// and a revocation test server. Returns the validator plus a signed token using
+// validClaims().
+func validatorWithJWKSAndRevocation(t *testing.T, revocationURL string) (*Validator, string) {
+	t.Helper()
+	key := generateRSAKey(t)
+	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	t.Cleanup(jwksServer.Close)
+	v, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	if revocationURL != "" {
+		v.SetRevocationURL(revocationURL)
+	}
+	token := signRS256(t, key, "kid-1", validClaims())
+	return v, token
+}
+
+// TestValidateRejectsExpiredRowDecisionMatrixRow3 covers Wave 1 introspection
+// matrix row 3: backend found a session row but its exp has passed.
+// Response shape: {active: false, revoked: false, expires_at: "<past>"}.
+// Validator must FAIL closed (not silently pass anonymous).
+func TestValidateRejectsExpiredRowDecisionMatrixRow3(t *testing.T) {
+	pastExpiry := time.Now().Add(-1 * time.Hour).UTC().Format(time.RFC3339)
+	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{
+			Active:    false,
+			Revoked:   false,
+			ExpiresAt: pastExpiry,
+		})
+	})
+	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
+	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
+		t.Fatalf("expected fail-close on row-3 expired response, got %v", err)
+	}
+	if *hits != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	}
+}
+
+// TestValidateRejectsRowNotFoundDecisionMatrixRow4 covers Wave 1 row 4: no
+// session row exists for the presented sid. Response omits expires_at to make
+// the row-not-found case distinguishable from row 3.
+func TestValidateRejectsRowNotFoundDecisionMatrixRow4(t *testing.T) {
+	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"active":false,"revoked":false}`)
+	})
+	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
+	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
+		t.Fatalf("expected fail-close on row-4 row-not-found response, got %v", err)
+	}
+	if *hits != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	}
+}
+
+// TestValidateRejectsSubjectMismatchDecisionMatrixRow5 covers row 5: stored row
+// has a different subject_user_id than the presented bearer. Backend returns
+// {active=false, revoked=true} per Wave 1 decision_matrix_rationale.
+func TestValidateRejectsSubjectMismatchDecisionMatrixRow5(t *testing.T) {
+	futureExpiry := time.Now().Add(1 * time.Hour).UTC().Format(time.RFC3339)
+	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{
+			Active:    false,
+			Revoked:   true,
+			ExpiresAt: futureExpiry,
+		})
+	})
+	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
+	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
+		t.Fatalf("expected fail-close on row-5 subject mismatch, got %v", err)
+	}
+	if *hits != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	}
+}
+
+// TestValidateRejectsIssuerMismatchDecisionMatrixRow6 covers row 6: stored row
+// has a different issuer than the presented bearer. Same backend response shape
+// as row 5; from the validator's perspective the rejection is by revoked=true.
+func TestValidateRejectsIssuerMismatchDecisionMatrixRow6(t *testing.T) {
+	futureExpiry := time.Now().Add(1 * time.Hour).UTC().Format(time.RFC3339)
+	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{
+			Active:    false,
+			Revoked:   true,
+			ExpiresAt: futureExpiry,
+		})
+	})
+	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
+	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
+		t.Fatalf("expected fail-close on row-6 issuer mismatch, got %v", err)
+	}
+	if *hits != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	}
+}
+
+// TestValidateRejectsAudienceMismatchDecisionMatrixRow7 covers row 7: stored
+// row has a different audience than the presented bearer.
+func TestValidateRejectsAudienceMismatchDecisionMatrixRow7(t *testing.T) {
+	futureExpiry := time.Now().Add(1 * time.Hour).UTC().Format(time.RFC3339)
+	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{
+			Active:    false,
+			Revoked:   true,
+			ExpiresAt: futureExpiry,
+		})
+	})
+	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
+	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
+		t.Fatalf("expected fail-close on row-7 audience mismatch, got %v", err)
+	}
+	if *hits != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	}
+}
+
+// TestValidateRejectsIssuedAtMismatchDecisionMatrixRow8 covers row 8: stored
+// row has a different issued_at than the presented bearer.
+func TestValidateRejectsIssuedAtMismatchDecisionMatrixRow8(t *testing.T) {
+	futureExpiry := time.Now().Add(1 * time.Hour).UTC().Format(time.RFC3339)
+	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{
+			Active:    false,
+			Revoked:   true,
+			ExpiresAt: futureExpiry,
+		})
+	})
+	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
+	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
+		t.Fatalf("expected fail-close on row-8 issued_at mismatch, got %v", err)
+	}
+	if *hits != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	}
+}
+
+// TestValidateRejectsIntrospectionHTTP500 — network-failure branch: a
+// non-2xx response from the introspection endpoint MUST fail-close, not
+// degrade silently to anonymous (per K-AUTHN-006 final paragraph).
+func TestValidateRejectsIntrospectionHTTP500(t *testing.T) {
+	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = io.WriteString(w, `internal error`)
+	})
+	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
+	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "status 500") {
+		t.Fatalf("expected fail-close on HTTP 500 introspection, got %v", err)
+	}
+	if *hits != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	}
+}
+
+// TestValidateRejectsIntrospectionWrongContentType — network-failure branch:
+// when the introspection endpoint violates the K-AUTHN-006
+// `200 application/json` contract by returning a non-JSON body labelled
+// text/plain, the validator MUST fail-close. JSON decoding of the non-JSON body
+// surfaces the contract violation; no soft degradation.
+func TestValidateRejectsIntrospectionWrongContentType(t *testing.T) {
+	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, "OK")
+	})
+	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
+	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "decode revocation response") {
+		t.Fatalf("expected fail-close on wrong-content-type introspection, got %v", err)
+	}
+	if *hits != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	}
+}
+
+// TestValidateRejectsIntrospectionMissingActiveField — network-failure branch:
+// JSON body missing the required `active` field. Per Wave 1 decision matrix
+// every documented row populates `active`; a response that omits it violates
+// the contract. The validator decodes `active` as zero-value false, the same
+// fail-close path as active=false (row not found) catches it; no degradation
+// to anonymous.
+func TestValidateRejectsIntrospectionMissingActiveField(t *testing.T) {
+	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"revoked":false}`)
+	})
+	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
+	if _, err := v.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
+		t.Fatalf("expected fail-close on missing-active-field introspection, got %v", err)
+	}
+	if *hits != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	}
+}
+
+// TestValidateRejectsIntrospectionTimeout — network-failure branch: the
+// introspection request times out (server delays beyond the caller's context
+// deadline). The validator's checkRevocation builds the request via
+// http.NewRequestWithContext, so a context-deadline cancellation propagates
+// into the Do call and the validator MUST surface the failure rather than
+// degrading to anonymous.
+func TestValidateRejectsIntrospectionTimeout(t *testing.T) {
+	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-time.After(500 * time.Millisecond):
+		case <-r.Context().Done():
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+	})
+	v, token := validatorWithJWKSAndRevocation(t, revocationServer.URL)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if _, err := v.ValidateContext(ctx, token); err == nil ||
+		!strings.Contains(err.Error(), "request revocation endpoint") {
+		t.Fatalf("expected fail-close on introspection timeout, got %v", err)
+	}
+	if *hits != 1 {
+		t.Fatalf("expected exactly 1 introspection hit, got %d", *hits)
+	}
+}
+
+// TestValidatePassesWithoutHTTPWhenRevocationURLEmpty — pass-without-HTTP
+// branch: per K-AUTHN-006 ("revocation only required when configured"), if
+// revocationURL is empty the validator passes a syntactically valid sid-bearing
+// JWT without making any introspection HTTP request. Verified by a fixture
+// counter showing zero hits even though a httptest server is live.
+func TestValidatePassesWithoutHTTPWhenRevocationURLEmpty(t *testing.T) {
+	revocationServer, hits := newRevocationServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		// If we reach here, the validator violated the contract.
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+	})
+	// Pass an empty URL to validatorWithJWKSAndRevocation so SetRevocationURL
+	// is never called. revocationServer is live but unreferenced by the
+	// validator.
+	_ = revocationServer
+	v, token := validatorWithJWKSAndRevocation(t, "")
+
+	identity, err := v.Validate(token)
+	if err != nil {
+		t.Fatalf("expected pass when revocationURL is empty, got %v", err)
+	}
+	if identity == nil {
+		t.Fatal("expected non-nil identity")
+	}
+	if *hits != 0 {
+		t.Fatalf("expected zero introspection hits when revocationURL is empty, got %d", *hits)
+	}
+}

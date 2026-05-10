@@ -573,6 +573,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/oauth/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OAuth authorize */
+        get: operations["oauthAuthorize"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/oauth/link": {
         parameters: {
             query?: never;
@@ -601,6 +618,23 @@ export type paths = {
         put?: never;
         /** OAuth login */
         post: operations["oauthLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oauth/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** OAuth token exchange */
+        post: operations["oauthToken"];
         delete?: never;
         options?: never;
         head?: never;
@@ -669,6 +703,23 @@ export type paths = {
         put?: never;
         /** Refresh token */
         post: operations["refreshToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/sessions/introspect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Introspect session */
+        post: operations["introspectSession"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5064,6 +5115,37 @@ export type components = {
         ImportPolicyDto: {
             allowedHostTypes: "WORLD"[];
         };
+        IntrospectSessionErrorDto: {
+            /**
+             * @description Stable error code; never localised, never variant.
+             * @enum {string}
+             */
+            error: "INVALID_INTROSPECTION_REQUEST";
+            /** @description Human-readable description of the validation failure. */
+            message: string;
+        };
+        IntrospectSessionRequestDto: {
+            /** @description JWT `aud` claim — audience, MUST match the stored row. */
+            audience: string;
+            /** @description JWT `exp` rendered as RFC3339 — informational only; the response echoes the stored value (TTL invariant, K-AUTHN-006). */
+            expires_at: string;
+            /** @description JWT `iat` rendered as RFC3339 — MUST match the stored row. */
+            issued_at: string;
+            /** @description JWT `iss` claim — issuer, MUST match the stored row. */
+            issuer: string;
+            /** @description JWT `sid` claim — opaque ULID identifying the session record. */
+            session_id: string;
+            /** @description JWT `sub` claim — subject user id, MUST match the stored row. */
+            subject_user_id: string;
+        };
+        IntrospectSessionResponseDto: {
+            /** @description true only when the session row exists, is not revoked, and `now < expires_at`. */
+            active: boolean;
+            /** @description RFC3339 echo of the stored row's `expires_at`. Omitted only when the session row was not found (K-AUTHN-006 TTL invariant). */
+            expires_at?: string;
+            /** @description true when the session row carries a `revoked_at` timestamp or any presented claim diverges from the stored row. */
+            revoked: boolean;
+        };
         InvitationCodeResponseDto: {
             code: string;
             /** Format: date-time */
@@ -5345,6 +5427,35 @@ export type components = {
         };
         /** @enum {string} */
         OAuthProvider: "GOOGLE" | "WECHAT" | "TWITTER" | "TIKTOK";
+        OAuthTokenRequestDto: {
+            /**
+             * @description Public client identifier; must be in admitted set (R-OAUTH-007).
+             * @example nimi-desktop
+             */
+            client_id: string;
+            /** @description Authorization code obtained from /api/auth/oauth/authorize redirect. */
+            code: string;
+            /** @description PKCE code_verifier; SHA-256 hash must equal the code_challenge bound at issuance (R-OAUTH-003 / R-OAUTH-006). */
+            code_verifier: string;
+            /**
+             * @description Must equal "authorization_code"; any other value fails-close unsupported_grant_type (R-OAUTH-010).
+             * @example authorization_code
+             */
+            grant_type: string;
+            /** @description Loopback redirect URI; must byte-for-byte match the redirect_uri presented at /authorize (R-OAUTH-005 / R-OAUTH-006). */
+            redirect_uri: string;
+        };
+        OAuthTokenResponseDto: {
+            access_token: string;
+            account_id: string;
+            display_name: string;
+            /** @description Access token lifetime in seconds. */
+            expires_in: number;
+            realm_environment_id: string;
+            refresh_token: string;
+            /** @example Bearer */
+            token_type: string;
+        };
         PPSlotConfigDto: {
             slot1?: components["schemas"]["PPSlotItemDto"];
             slot2?: components["schemas"]["PPSlotItemDto"];
@@ -8200,6 +8311,32 @@ export interface operations {
             };
         };
     };
+    oauthAuthorize: {
+        parameters: {
+            query: {
+                response_type?: "code";
+                scope?: string;
+                state: string;
+                code_challenge_method: "S256";
+                code_challenge: string;
+                redirect_uri: string;
+                client_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirect to redirect_uri with code, or to login UI when unauthenticated. */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     linkOauth: {
         parameters: {
             query?: never;
@@ -8241,6 +8378,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OAuthLoginResultDto"];
+                };
+            };
+        };
+    };
+    oauthToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["OAuthTokenRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthTokenResponseDto"];
                 };
             };
         };
@@ -8330,6 +8490,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthTokensDto"];
+                };
+            };
+        };
+    };
+    introspectSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntrospectSessionRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntrospectSessionResponseDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntrospectSessionErrorDto"];
                 };
             };
         };
