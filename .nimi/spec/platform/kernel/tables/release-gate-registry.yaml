@@ -1262,16 +1262,16 @@ gates:
       shape: command_exit
     p_relg_anchors: [P-RELG-003, P-RELG-009, P-RELG-010]
     parent_p_gov_anchors: [P-GOV-003, P-GOV-021, P-GOV-023]
-    experimental: true
+    experimental: false
     notes: |
-      Self-bootstrap exception per implementation-doctrine.md W1
-      hard constraint: this row's consumer script
-      (scripts/check-release-gate-projection-drift.mjs) lands in
-      W2, not W1, so the row is registered as experimental at W1
-      close. Flag MUST be cleared in the same W2 commit that
-      lands the consumer script. P-RELG-009 self-bootstrap
-      authority covers this exception; no other row may invoke
-      it.
+      Consumer script scripts/check-release-gate-projection-drift.mjs
+      landed in W2; experimental flag cleared in same commit per
+      implementation-doctrine.md W1 hard-constraint exception. The
+      checker operates in W2 mode (informational warnings only)
+      until W3 lands the lint-chain regenerator and W5 lands the
+      CI fence regenerator; both W3 and W5 transitions activate
+      stricter modes via mode-detection at runtime, not by row
+      mutation.
 
   # =====================================================================
   # owner: runtime (Go runtime)
@@ -1958,10 +1958,13 @@ gates:
     parent_p_gov_anchors: [P-GOV-003, P-GOV-011]
     experimental: false
     notes: |
-      Originally an inline pipe in scripts/check-release-preflight.sh
-      (the W0 audit identified the pipe-shape risk under R8). The
-      shell runner wraps the pipe in `bash -c` so pipefail can be
-      applied and pipe-rightmost exit captured.
+      Historical provenance: originated as an inline pipe in
+      scripts/check-release-preflight.sh (deleted in W2). The W0
+      audit identified the pipe-shape risk under R8; the W2 shell
+      runner wraps the pipe in `bash -c "set -o pipefail; ..."`
+      so the rightmost command's exit propagates correctly. Unit
+      test "runByKind shell: piped command honors pipefail" in
+      scripts/lib/release-gate/runner.test.mjs verifies.
 
   - id: gate.security.zizmor
     description: zizmor workflow + dependabot audit (high severity).

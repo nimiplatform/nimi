@@ -26,12 +26,22 @@ The SDK, Dev Tools, Runtime, and Proto versions must be aligned within the same 
 ### 1. Pre-release Checks
 
 ```bash
-pnpm check:release-preflight
+pnpm preflight --require-release
 ```
 
-该命令会将完整输出持久化到 `.local/report/release/preflight-YYYYMMDD-HHMMSS.log`。
-终端默认只显示阶段、命令和通过/失败摘要，完整 stdout/stderr 只写入日志。
-如果中途失败，脚本会打印失败的 `section`、`command`、日志路径，以及日志尾部片段。
+该命令是 Node mjs 实现的 release preflight，从单一 source of truth
+`.nimi/spec/platform/kernel/tables/release-gate-registry.yaml` 投影出
+所有 release-blocking gate（149 行 / 20 owner namespaces，由 P-RELG-001..014
+治理）。每个 gate 的 stdout/stderr 持久化到
+`.local/report/release/preflight-logs/<gate_id>-<ISO8601>.log`，结构化的
+verdict + summary 输出到 `.local/report/release/preflight-evidence-<ISO8601>.json`
+（schema: release-gate-evidence/v1）。
+
+`--require-release` 让 blocked verdict 计为 fail（CI release 必须用此 flag）；
+开发者本地可省略，让 live / external-repo tier 的 blocked 不阻断。
+
+详细命令行参考 `pnpm preflight --help`。Topic 闭环：
+`2026-05-10-release-preflight-gate-authority-hardcut`（已 closed）。
 如需自定义日志文件，可设置 `NIMI_RELEASE_PREFLIGHT_LOG_FILE=/abs/path/to.log`。
 如需调整失败时回显的日志尾部行数，可设置 `NIMI_RELEASE_PREFLIGHT_TAIL_LINES=120`。
 

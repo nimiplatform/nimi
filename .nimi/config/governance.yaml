@@ -68,6 +68,8 @@ spec_governance:
       - node scripts/generate-future-spec-kernel-docs.mjs
     spec-human-doc:
       - node scripts/generate-spec-human-doc.mjs
+    release-gate-projection:
+      - node scripts/generate-release-gate-projection-all.mjs
 
 ai_governance:
   agents_freshness:
