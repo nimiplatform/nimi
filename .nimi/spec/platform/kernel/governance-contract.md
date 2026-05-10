@@ -52,3 +52,7 @@ Top-level package/protocol support roots such as `sdk/` root metadata and `proto
 ## P-GOV-023 — Release Automation Traceability
 
 Release and CI workflow files must remain traceable to their governed release surface, security posture, or package/protocol release gates. Workflows that publish runtime, SDK, proto, desktop, web, or mod artifacts must not become unstated parallel release authority.
+
+## Operational Refinement Reference
+
+`release-gate-contract.md` (`P-RELG-*`) is the operational refinement of `P-GOV-003`, `P-GOV-011`, `P-GOV-021`, and `P-GOV-023`. It declares a single release-gate registry (`tables/release-gate-registry.yaml`) as the source of release-gate identity, locks projection-only semantics for preflight / lint chain / CI workflow step blocks, and enforces traceability through a coherence checker plus a projection-drift checker. `P-RELG-*` rules cite their parent `P-GOV-*` anchors explicitly and never override them.

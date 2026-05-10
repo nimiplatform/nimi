@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `/.nimi/spec/` 规范树的人类可读投影。
-> 生成时间: 2026-05-09
+> 生成时间: 2026-05-10
 >
 > 权威规则定义位于 `/.nimi/spec/` 原始文件中。如需修改，请编辑当前 canonical spec 后重新生成。
 
@@ -429,6 +429,8 @@ AuthN 与 AuthZ 之间有明确的分层边界：AuthN 失败直接返回 `UNAUT
 
 - AuthN（验签/会话有效性）失败统一返回 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`，不进入 AuthZ 评估。
 - AuthZ 规则（owner/status/credential）仅在 AuthN 通过后执行。
+
+> 跨表引用：每个 RPC 在 K-AUTH-001..007 下的实际接受姿态（anonymous_read / authenticated_required / mixed）汇总在 `tables/runtime-rpc-auth-posture.yaml`，由 `pnpm check:runtime-rpc-auth-posture-coverage` / `check:runtime-rpc-auth-posture-shape` 守护。
 
 ### 2.3 会话管理（AuthService）
 
@@ -4998,6 +5000,7 @@ Fixed rules:
 | C-COG-056 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Skill service operation registry is now explicit and aligned to validated save/load/list/search/delete/history/list_ids behavior. |
 | C-COG-057 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Skill now owns strict step validation plus explicit archive/remove/delete lifecycle semantics with visible history and removed-state retrieval behavior. |
 | C-COG-058 | covered | `cognition_spec_governance_gate`, `cognition_build_gate`, `cognition_test_gate` | Skill remains cognition-owned advisory retrieval/lifecycle only and does not absorb runtime execution-policy or scheduler ownership. R20 finding-0004 is closed by removing untyped bundle metadata from the admitted Bundle shape and excluding unadmitted metadata from skill FTS. |
+| C-COG-059 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Runtime knowledge bank lifecycle is owned by typed cognition scope kind runtime_knowledge_bank registered in the cognition scope registry; disjoint from agent-bound scope kinds. Paired with K-KNOW-001a (runtime-side retirement of the legacy knowledgeservice package). |
 
 ### 13.15 Runtime — Key Source 真值表
 
@@ -5238,6 +5241,10 @@ Fixed rules:
 - ListModelCatalogProviders
 - UpsertModelCatalogProvider
 - DeleteModelCatalogProvider
+- ListCatalogProviderModels
+- GetCatalogModelDetail
+- UpsertCatalogModelOverlay
+- DeleteCatalogModelOverlay
 
 **ai_realtime_service_projection** → RuntimeAiRealtimeService
 

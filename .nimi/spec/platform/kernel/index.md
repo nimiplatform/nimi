@@ -23,6 +23,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `WEB` | Web and release gateway contract | `web-release-contract.md` |
 | `PKG` | Package authority admission and host-local projection | `package-authority-admission-contract.md` |
 | `GOV` | Governance contract | `governance-contract.md` |
+| `RELG` | Release gate contract (operational refinement of `P-GOV-003/011/021/023`) | `release-gate-contract.md` |
 
 ## Numbering Convention
 
@@ -58,6 +59,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `web-release-contract.md` | `P-WEB-*` | Web surface, install gateway, Cloudflare adapter, and release evidence ownership |
 | `package-authority-admission-contract.md` | `P-PKG-*` | Package-local spec admission, package-vs-host projection boundary, and audit expansion rules |
 | `governance-contract.md` | `P-GOV-*` | License matrix, release gates, governance tasks |
+| `release-gate-contract.md` | `P-RELG-*` | Release-gate registry authority, projection-only execution surfaces (preflight, lint chain, CI step blocks), evidence JSON shape, verdict semantics, drift gate self-bootstrap |
 
 ## Structured Fact Sources
 
@@ -82,6 +84,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `tables/package-authority-admissions.yaml` | `package-authority-admission-contract.md` | Active package-local spec roots admitted by `.nimi/spec` as package audit authority |
 | `tables/audit-evidence-roots.yaml` | `web-release-contract.md`, `kit-contract.md`, `package-authority-admission-contract.md` | Authority-specific implementation and host-local evidence roots admitted for spec-first audit planning |
 | `tables/rule-evidence.yaml` | `protocol-contract.md`, `architecture-contract.md`, `ai-last-mile-contract.md`, `ai-scope-contract.md`, `design-pattern-contract.md`, `kit-contract.md`, `capability-catalog-contract.md`, `governance-contract.md` | Platform formal rule → executable evidence mapping |
+| `tables/release-gate-registry.yaml` | `release-gate-contract.md` | Single source of release-gate identity (gate id, command, tier, target, prerequisites, evidence shape, blocker semantics) projected into preflight, lint chain, and CI step blocks. Populated in topic `2026-05-10-release-preflight-gate-authority-hardcut` Wave 1. |
 
 ## Version Terminology
 
