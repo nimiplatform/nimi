@@ -47,6 +47,8 @@ spec_governance:
       - node scripts/check-realm-spec-kernel-consistency.mjs
     future-consistency:
       - node scripts/check-future-spec-kernel-consistency.mjs
+    release-gate-consistency:
+      - node scripts/check-release-gate-registry-coherence.mjs
   generate_commands:
     cognition:
       - node scripts/generate-cognition-spec-kernel-docs.mjs

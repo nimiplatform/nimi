@@ -1,0 +1,32 @@
+schema_version: release-gate-registry/v1
+registry_version: "0.1.0"
+profile_id: nimi
+generated_at: 2026-05-10T00:00:00Z
+
+tiers:
+  - id: fast
+    semantic: dev_laptop_under_60s_no_secrets
+  - id: release
+    semantic: full_release_blocking_set
+
+targets:
+  - any
+
+reason_codes:
+  - id: COMMAND_NONZERO
+    semantic: failed_command_exited_nonzero
+
+gates:
+  - id: gate.runtime.go-build
+    description: minimal valid gate
+    command: go build ./...
+    runner: shell
+    tiers: [fast, release]
+    targets: [any]
+    timeout_seconds: 60
+    requires_binaries: [go]
+    evidence:
+      shape: command_exit
+    p_relg_anchors: [P-RELG-001]
+    parent_p_gov_anchors: [P-GOV-003]
+    experimental: false

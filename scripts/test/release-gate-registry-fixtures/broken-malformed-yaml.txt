@@ -1,0 +1,7 @@
+schema_version: release-gate-registry/v1
+registry_version: "0.1.0"
+profile_id: nimi
+gates:
+  - id: gate.runtime.test
+    tiers: [fast
+    targets: [any
