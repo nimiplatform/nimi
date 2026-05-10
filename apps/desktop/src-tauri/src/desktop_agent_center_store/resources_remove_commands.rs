@@ -1,64 +1,6 @@
 use super::*;
 
 #[tauri::command]
-pub(crate) fn desktop_agent_center_avatar_package_remove(
-    payload: DesktopAgentCenterAvatarPackageRemovePayload,
-) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
-    let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
-    let agent_id = validate_normalized_id(&payload.agent_id, "agentId")?;
-    validate_package_id(&payload.package_id, "packageId")?;
-    if !payload
-        .package_id
-        .starts_with(package_kind_dir(payload.kind))
-    {
-        return Err("packageId must match kind".to_string());
-    }
-    clear_selected_avatar_package(&account_id, &agent_id, &payload.package_id)?;
-    let source = package_dir(&account_id, &agent_id, payload.kind, &payload.package_id)?;
-    let destination = quarantine_path(
-        &account_id,
-        &agent_id,
-        "avatar_package",
-        &payload.package_id,
-    )?;
-    let quarantined = match quarantine_dir(&source, &destination) {
-        Ok(value) => value,
-        Err(error) => {
-            let _ = record_resource_operation(
-                &account_id,
-                &agent_id,
-                "package_quarantine",
-                "avatar_package",
-                &payload.package_id,
-                "failed",
-                "user_removed",
-            );
-            return Err(error);
-        }
-    };
-    let operation_id = record_resource_operation(
-        &account_id,
-        &agent_id,
-        "package_quarantine",
-        "avatar_package",
-        &payload.package_id,
-        "completed",
-        if quarantined {
-            "user_removed"
-        } else {
-            "already_missing"
-        },
-    )?;
-    Ok(DesktopAgentCenterLocalResourceRemoveResult {
-        resource_kind: "avatar_package".to_string(),
-        resource_id: payload.package_id,
-        quarantined,
-        operation_id,
-        status: "completed".to_string(),
-    })
-}
-
-#[tauri::command]
 pub(crate) fn desktop_agent_center_background_remove(
     payload: DesktopAgentCenterBackgroundRemovePayload,
 ) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {

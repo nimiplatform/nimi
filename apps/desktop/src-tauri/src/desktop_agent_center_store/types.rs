@@ -17,47 +17,12 @@ pub(crate) struct DesktopAgentCenterConfigPutPayload {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct DesktopAgentCenterAvatarPackageValidatePayload {
-    pub account_id: String,
-    pub agent_id: String,
-    pub kind: AgentCenterAvatarPackageKind,
-    pub package_id: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct DesktopAgentCenterAvatarPackagePickSourcePayload {
-    pub kind: AgentCenterAvatarPackageKind,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct DesktopAgentCenterAvatarPackageImportPayload {
-    pub account_id: String,
-    pub agent_id: String,
-    pub kind: AgentCenterAvatarPackageKind,
-    pub source_path: String,
-    pub display_name: Option<String>,
-    pub select: Option<bool>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAgentCenterLive2dAdapterManifestImportPayload {
     pub account_id: String,
     pub agent_id: String,
     pub package_id: String,
     pub source_path: String,
     pub select: Option<bool>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct DesktopAgentCenterAvatarPackageRemovePayload {
-    pub account_id: String,
-    pub agent_id: String,
-    pub kind: AgentCenterAvatarPackageKind,
-    pub package_id: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -71,15 +36,6 @@ pub(crate) struct DesktopAgentCenterAgentLocalResourcesRemovePayload {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DesktopAgentCenterAccountLocalResourcesRemovePayload {
     pub account_id: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(deny_unknown_fields)]
-pub(crate) struct DesktopAgentCenterAvatarPackageImportResult {
-    pub package_id: String,
-    pub kind: AgentCenterAvatarPackageKind,
-    pub selected: bool,
-    pub validation: AgentCenterAvatarPackageValidationResult,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -143,13 +99,6 @@ pub(crate) struct DesktopAgentCenterBackgroundAssetResult {
     pub background_asset_id: String,
     pub file_url: String,
     pub validation: AgentCenterBackgroundValidationResult,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum AgentCenterAvatarPackageKind {
-    Live2d,
-    Vrm,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -304,18 +253,6 @@ pub(crate) struct AgentCenterLocalConfig {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub(crate) enum AgentCenterAvatarPackageValidationStatus {
-    Valid,
-    InvalidManifest,
-    MissingFiles,
-    PermissionDenied,
-    PathRejected,
-    UnsupportedKind,
-    PackageMissing,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
 pub(crate) enum AgentCenterValidationIssueSeverity {
     Error,
     Warning,
@@ -328,17 +265,6 @@ pub(crate) struct AgentCenterValidationIssue {
     pub message: String,
     pub path: Option<String>,
     pub severity: AgentCenterValidationIssueSeverity,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub(crate) struct AgentCenterAvatarPackageValidationResult {
-    pub schema_version: u8,
-    pub package_id: String,
-    pub checked_at: String,
-    pub status: AgentCenterAvatarPackageValidationStatus,
-    pub errors: Vec<AgentCenterValidationIssue>,
-    pub warnings: Vec<AgentCenterValidationIssue>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

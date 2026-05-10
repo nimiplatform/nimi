@@ -23,35 +23,6 @@ pub(super) fn error(code: &str, message: &str, path: Option<String>) -> AgentCen
     )
 }
 
-pub(super) fn validation_result(
-    package_id: &str,
-    status: AgentCenterAvatarPackageValidationStatus,
-    errors: Vec<AgentCenterValidationIssue>,
-    warnings: Vec<AgentCenterValidationIssue>,
-) -> AgentCenterAvatarPackageValidationResult {
-    AgentCenterAvatarPackageValidationResult {
-        schema_version: VALIDATION_SCHEMA_VERSION,
-        package_id: package_id.to_string(),
-        checked_at: checked_at(),
-        status,
-        errors,
-        warnings,
-    }
-}
-
-pub(super) fn write_validation_sidecar(
-    package_dir: &Path,
-    result: &AgentCenterAvatarPackageValidationResult,
-) -> Result<(), String> {
-    if !package_dir.exists() {
-        return Ok(());
-    }
-    let raw = serde_json::to_string_pretty(result)
-        .map_err(|error| format!("failed to serialize package validation sidecar: {error}"))?;
-    fs::write(package_dir.join(VALIDATION_FILE_NAME), raw)
-        .map_err(|error| format!("failed to write package validation sidecar: {error}"))
-}
-
 pub(super) fn write_background_validation_sidecar(
     background_dir: &Path,
     result: &AgentCenterBackgroundValidationResult,
@@ -63,27 +34,6 @@ pub(super) fn write_background_validation_sidecar(
         .map_err(|error| format!("failed to serialize background validation sidecar: {error}"))?;
     fs::write(background_dir.join(VALIDATION_FILE_NAME), raw)
         .map_err(|error| format!("failed to write background validation sidecar: {error}"))
-}
-
-pub(super) fn package_kind_dir(kind: AgentCenterAvatarPackageKind) -> &'static str {
-    match kind {
-        AgentCenterAvatarPackageKind::Live2d => "live2d",
-        AgentCenterAvatarPackageKind::Vrm => "vrm",
-    }
-}
-
-pub(super) fn package_dir(
-    account_id: &str,
-    agent_id: &str,
-    kind: AgentCenterAvatarPackageKind,
-    package_id: &str,
-) -> Result<PathBuf, String> {
-    Ok(agent_center_dir(account_id, agent_id)?
-        .join("modules")
-        .join("avatar_package")
-        .join("packages")
-        .join(package_kind_dir(kind))
-        .join(package_id))
 }
 
 pub(super) fn background_dir(
@@ -158,23 +108,6 @@ pub(super) fn resolve_under_root(
     Ok(canonical_path)
 }
 
-pub(super) fn is_semver(value: &str) -> bool {
-    let mut parts = value.split('.');
-    let Some(major) = parts.next() else {
-        return false;
-    };
-    let Some(minor) = parts.next() else {
-        return false;
-    };
-    let Some(patch) = parts.next() else {
-        return false;
-    };
-    parts.next().is_none()
-        && [major, minor, patch]
-            .iter()
-            .all(|part| !part.is_empty() && part.chars().all(|ch| ch.is_ascii_digit()))
-}
-
 pub(super) fn validate_display_text(
     value: &str,
     field_name: &str,
@@ -203,10 +136,6 @@ pub(super) fn is_digest(value: &str) -> bool {
         && value
             .chars()
             .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
-}
-
-pub(super) fn is_prefixed_digest(value: &str) -> bool {
-    value.strip_prefix("sha256:").is_some_and(is_digest)
 }
 
 pub(super) fn extension_for(path: &str) -> String {
@@ -244,103 +173,6 @@ pub(super) fn source_label_for(path: &Path) -> String {
         .unwrap_or_else(|| "local import".to_string())
 }
 
-pub(super) fn mime_for(path: &str) -> String {
-    match extension_for(path).as_str() {
-        "json" => "application/json",
-        "moc3" => "application/octet-stream",
-        "png" => "image/png",
-        "jpg" | "jpeg" => "image/jpeg",
-        "webp" => "image/webp",
-        "vrm" => "model/vrm",
-        _ => "application/octet-stream",
-    }
-    .to_string()
-}
-
-pub(super) fn relative_path_to_string(path: &Path) -> Result<String, String> {
-    let value = path
-        .to_str()
-        .ok_or_else(|| "source path must be valid UTF-8".to_string())?
-        .replace('\\', "/");
-    if !is_safe_relative_path(&value) {
-        return Err(format!("source file path is not package-safe: {value}"));
-    }
-    Ok(value)
-}
-
-pub(super) fn collect_files_recursive(
-    source_root: &Path,
-    current: &Path,
-    files: &mut Vec<(PathBuf, String)>,
-) -> Result<(), String> {
-    let metadata = fs::symlink_metadata(current).map_err(|error| {
-        format!(
-            "failed to read source metadata ({}): {error}",
-            current.display()
-        )
-    })?;
-    if metadata.file_type().is_symlink() {
-        return Err(format!(
-            "source package must not contain symlinks: {}",
-            current.display()
-        ));
-    }
-    if metadata.is_dir() {
-        let mut entries = fs::read_dir(current)
-            .map_err(|error| {
-                format!(
-                    "failed to read source directory ({}): {error}",
-                    current.display()
-                )
-            })?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|error| format!("failed to read source directory entry: {error}"))?;
-        entries.sort_by_key(|entry| entry.path());
-        for entry in entries {
-            collect_files_recursive(source_root, &entry.path(), files)?;
-        }
-        return Ok(());
-    }
-    if !metadata.is_file() {
-        return Err(format!(
-            "source package contains unsupported filesystem entry: {}",
-            current.display()
-        ));
-    }
-    let relative = current.strip_prefix(source_root).map_err(|error| {
-        format!(
-            "source file does not stay under source root ({}): {error}",
-            current.display()
-        )
-    })?;
-    let relative = relative_path_to_string(relative)?;
-    files.push((current.to_path_buf(), relative));
-    Ok(())
-}
-
-pub(super) fn aggregate_content_digest(files: &[AvatarPackageManifestFile]) -> String {
-    let mut hasher = Sha256::new();
-    let mut ordered = files.iter().collect::<Vec<_>>();
-    ordered.sort_by(|left, right| left.path.cmp(&right.path));
-    for file in ordered {
-        hasher.update(file.path.as_bytes());
-        hasher.update([0]);
-        hasher.update(file.bytes.to_string().as_bytes());
-        hasher.update([0]);
-        hasher.update(file.sha256.as_bytes());
-        hasher.update([0]);
-    }
-    format!("{:x}", hasher.finalize())
-}
-
-pub(super) fn package_id_for(kind: AgentCenterAvatarPackageKind, content_digest: &str) -> String {
-    let prefix = match kind {
-        AgentCenterAvatarPackageKind::Live2d => "live2d_",
-        AgentCenterAvatarPackageKind::Vrm => "vrm_",
-    };
-    format!("{prefix}{}", &content_digest[..12])
-}
-
 pub(super) fn safe_display_name(
     input: Option<String>,
     fallback_path: &Path,
@@ -374,30 +206,6 @@ pub(super) fn remove_dir_if_exists(path: &Path) {
     if path.exists() {
         let _ = fs::remove_dir_all(path);
     }
-}
-
-pub(super) fn status_for_errors(
-    errors: &[AgentCenterValidationIssue],
-) -> AgentCenterAvatarPackageValidationStatus {
-    if errors.iter().any(|entry| entry.code == "package_missing") {
-        return AgentCenterAvatarPackageValidationStatus::PackageMissing;
-    }
-    if errors.iter().any(|entry| entry.code == "path_rejected") {
-        return AgentCenterAvatarPackageValidationStatus::PathRejected;
-    }
-    if errors.iter().any(|entry| entry.code == "permission_denied") {
-        return AgentCenterAvatarPackageValidationStatus::PermissionDenied;
-    }
-    if errors
-        .iter()
-        .any(|entry| entry.code == "missing_required_file")
-    {
-        return AgentCenterAvatarPackageValidationStatus::MissingFiles;
-    }
-    if errors.iter().any(|entry| entry.code == "unsupported_kind") {
-        return AgentCenterAvatarPackageValidationStatus::UnsupportedKind;
-    }
-    AgentCenterAvatarPackageValidationStatus::InvalidManifest
 }
 
 pub(super) fn background_validation_result(

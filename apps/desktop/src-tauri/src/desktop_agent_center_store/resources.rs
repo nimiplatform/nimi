@@ -7,7 +7,6 @@ use super::types::*;
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeSet, HashSet};
 use std::env;
 use std::fs::{self, OpenOptions};
 use std::io::ErrorKind;
@@ -16,12 +15,7 @@ use std::path::{Component, Path, PathBuf};
 use url::Url;
 
 const VALIDATION_SCHEMA_VERSION: u8 = 1;
-const AVATAR_PACKAGE_MANIFEST_VERSION: u8 = 1;
-const MAX_MANIFEST_BYTES: u64 = 262_144;
 const MAX_LIVE2D_ADAPTER_MANIFEST_BYTES: u64 = 262_144;
-const MAX_PACKAGE_BYTES: u64 = 524_288_000;
-const MAX_FILE_BYTES: u64 = 104_857_600;
-const MAX_FILE_COUNT: usize = 2_048;
 const MAX_BACKGROUND_BYTES: u64 = 20_971_520;
 const MAX_BACKGROUND_PIXELS: u32 = 8_192;
 const VALIDATION_FILE_NAME: &str = "validation.json";
@@ -31,52 +25,6 @@ const LIVE2D_ADAPTER_CUSTODY_FILE_NAME: &str = "custody.json";
 const OPERATIONS_FILE_NAME: &str = "agent-center-local-resources.jsonl";
 const OPERATION_RETENTION_DAYS: i64 = 30;
 const QUARANTINE_RETENTION_DAYS: i64 = 7;
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct AvatarPackageManifest {
-    manifest_version: u8,
-    package_version: String,
-    package_id: String,
-    kind: AgentCenterAvatarPackageKind,
-    loader_min_version: String,
-    display_name: String,
-    #[serde(default)]
-    display_name_i18n: serde_json::Map<String, serde_json::Value>,
-    entry_file: String,
-    required_files: Vec<String>,
-    content_digest: String,
-    files: Vec<AvatarPackageManifestFile>,
-    limits: AvatarPackageManifestLimits,
-    capabilities: serde_json::Value,
-    import: AvatarPackageManifestImport,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct AvatarPackageManifestFile {
-    path: String,
-    sha256: String,
-    bytes: u64,
-    mime: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct AvatarPackageManifestLimits {
-    max_manifest_bytes: u64,
-    max_package_bytes: u64,
-    max_file_bytes: u64,
-    max_file_count: usize,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct AvatarPackageManifestImport {
-    imported_at: String,
-    source_label: String,
-    source_fingerprint: String,
-}
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]

@@ -422,13 +422,8 @@ mod tests {
 
     fn valid_config() -> AgentCenterLocalConfig {
         let mut config = default_config("account_1".to_string(), "agent_1".to_string());
-        config.modules.avatar_package.selected_package = Some(AgentCenterSelectedAvatarPackage {
-            kind: AgentCenterAvatarPackageKind::Live2d,
-            package_id: "live2d_ab12cd34ef56".to_string(),
-        });
         config.modules.avatar_package.avatar_package_ref = Some("live2d_ab12cd34ef56".to_string());
         config.modules.avatar_package.backend_kind = AgentCenterAvatarBackendKind::Live2d;
-        config.modules.avatar_package.last_validated_at = Some("2026-04-27T00:00:00Z".to_string());
         config
     }
 
@@ -461,7 +456,7 @@ mod tests {
             })
             .expect("default config");
             assert_eq!(config.config_kind, AGENT_CENTER_CONFIG_KIND);
-            assert!(config.modules.avatar_package.selected_package.is_none());
+            assert!(config.modules.avatar_package.avatar_package_ref.is_none());
             assert!(!home
                 .join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/config.json")
                 .exists());
@@ -485,13 +480,8 @@ mod tests {
             })
             .expect("get config");
             assert_eq!(
-                loaded
-                    .modules
-                    .avatar_package
-                    .selected_package
-                    .unwrap()
-                    .package_id,
-                "live2d_ab12cd34ef56"
+                loaded.modules.avatar_package.avatar_package_ref.as_deref(),
+                Some("live2d_ab12cd34ef56")
             );
         });
     }
@@ -558,40 +548,4 @@ mod tests {
         });
     }
 
-    #[test]
-    fn put_rejects_package_kind_mismatch() {
-        let home = temp_home("kind");
-        with_env(&[("HOME", home.to_str())], || {
-            let mut config = valid_config();
-            config.modules.avatar_package.selected_package =
-                Some(AgentCenterSelectedAvatarPackage {
-                    kind: AgentCenterAvatarPackageKind::Vrm,
-                    package_id: "live2d_ab12cd34ef56".to_string(),
-                });
-            let err = desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
-                account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-                config,
-            })
-            .expect_err("kind mismatch");
-            assert!(err.contains("match kind"));
-        });
-    }
-
-    #[test]
-    fn put_rejects_backend_kind_mismatch() {
-        let home = temp_home("backend-kind");
-        with_env(&[("HOME", home.to_str())], || {
-            let mut config = valid_config();
-            config.modules.avatar_package.backend_kind = AgentCenterAvatarBackendKind::Vrm;
-            let err = desktop_agent_center_config_put(DesktopAgentCenterConfigPutPayload {
-                account_id: "account_1".to_string(),
-                agent_id: "agent_1".to_string(),
-                config,
-            })
-            .expect_err("backend kind mismatch");
-            assert!(err.contains("backend_kind"));
-            assert!(err.contains("selected package kind"));
-        });
-    }
 }
