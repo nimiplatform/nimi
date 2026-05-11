@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import {
   AUDIO_SYNTHESIZE_RESPONSE_FORMAT_OPTIONS,
   type AudioSynthesizeParamsState,
@@ -135,7 +135,7 @@ function VoicePopover(props: {
               <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-[var(--nimi-text-muted)]">
                 {t('Tester.audioSynthesize.voiceReference', { defaultValue: 'Voice' })}
               </div>
-              <div className="max-h-52 overflow-y-auto rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)] p-1">
+              <ScrollArea className="max-h-52 rounded-[var(--nimi-radius-sm)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-canvas)]" contentClassName="p-1">
                 <button
                   type="button"
                   onClick={() => props.onSelectedVoiceKeyChange(null)}
@@ -195,7 +195,7 @@ function VoicePopover(props: {
                     })}
                   </div>
                 ) : null}
-              </div>
+              </ScrollArea>
             </div>
             <div className="flex flex-col gap-1.5">
               <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-[var(--nimi-text-muted)]">

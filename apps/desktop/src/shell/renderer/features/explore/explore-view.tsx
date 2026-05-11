@@ -242,7 +242,12 @@ export function ExploreView(props: ExploreViewProps) {
       {/* Header bar */}
       <div className="shrink-0">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-end justify-between gap-4 px-5 py-4">
-          <div>
+          <Surface
+            tone="panel"
+            material="glass-regular"
+            padding="none"
+            className="rounded-2xl border-white/60 px-5 py-4 shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
+          >
             <div className="desktop-kicker-tiny mb-1">{t('Explore.pageKicker', { defaultValue: 'Nimi · Explore' })}</div>
             <h1
               className="m-0 leading-none"
@@ -256,7 +261,7 @@ export function ExploreView(props: ExploreViewProps) {
             >
               {t('Explore.pageTitle')}
             </h1>
-          </div>
+          </Surface>
           <div className="w-[300px] shrink-0">
             <Surface
               tone="panel"

@@ -87,5 +87,90 @@ apps/web/src/landing/components/mods-section.tsx:401                            
 apps/web/src/landing/components/mods-section.tsx:431                            # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
 apps/web/src/landing/components/mods-section.tsx:450                            # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
 apps/web/src/landing/components/mods-section.tsx:470                            # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/styles.css:84                                              # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/styles.css:85                                              # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
 apps/web/src/landing/styles.css:90                                              # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
 apps/web/src/landing/styles.css:91                                              # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/desktop-section.tsx:34                          # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/desktop-section.tsx:74                          # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/desktop-section.tsx:152                         # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/hero-section.tsx:105                            # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/model-catalog-overview-section.tsx:208          # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/mods-section.tsx:174                            # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/architecture-section.tsx:69                     # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/architecture-section.tsx:171                    # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/architecture-section.tsx:177                    # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/architecture-section.tsx:187                    # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/architecture-section.tsx:212                    # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+apps/web/src/landing/components/architecture-section.tsx:315                    # segment-B | ticket: FOLLOWON-UI-GLASS-WEB
+
+# --- apps/avatar (6 sites) — ticket: FOLLOWON-UI-GLASS-AVATAR
+apps/avatar/src/shell/renderer/app.css:109                                      # segment-B | ticket: FOLLOWON-UI-GLASS-AVATAR
+apps/avatar/src/shell/renderer/app.css:110                                      # segment-B | ticket: FOLLOWON-UI-GLASS-AVATAR
+apps/avatar/src/shell/renderer/app.css:411                                      # segment-B | ticket: FOLLOWON-UI-GLASS-AVATAR
+apps/avatar/src/shell/renderer/app.css:412                                      # segment-B | ticket: FOLLOWON-UI-GLASS-AVATAR
+apps/avatar/src/shell/renderer/app.css:506                                      # segment-B | ticket: FOLLOWON-UI-GLASS-AVATAR
+apps/avatar/src/shell/renderer/app.css:507                                      # segment-B | ticket: FOLLOWON-UI-GLASS-AVATAR
+
+# --- apps/desktop (35 sites) — ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/app-shell/layouts/shell-chrome-classes.ts:10    # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/app-shell/layouts/shell-chrome-classes.ts:16    # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/chat/chat-agent-avatar-live2d-shells.tsx:55  # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/contacts/contact-detail-view-content.tsx:141 # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/explore/explore-view.tsx:374           # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/explore/explore-view.tsx:375           # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/explore/explore-view.tsx:400           # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/explore/explore-view.tsx:401           # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/explore/explore-view.tsx:494           # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/explore/explore-view.tsx:495           # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/explore/explore-view.tsx:570           # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/explore/explore-view.tsx:571           # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/explore/explore-view.tsx:591           # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/explore/explore-view.tsx:592           # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/tester/panels/panel-image-generate-components.tsx:264  # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/tester/panels/panel-image-generate-components.tsx:270  # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/tester/panels/panel-image-generate-components.tsx:337  # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/tester/panels/panel-video-generate-controls.tsx:110   # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/tester/panels/panel-video-generate-history.tsx:65     # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/tester/panels/panel-video-generate-history.tsx:70     # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/tester/panels/panel-video-generate-history.tsx:141    # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/tester/tester-history-panel.tsx:114    # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/tester/tester-history-panel.tsx:115    # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/world/world-list-cards.tsx:71          # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/world/world-list-cards.tsx:72          # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/world/world-list-cards.tsx:237         # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/world/world-list-cards.tsx:238         # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/world/world-list-cards.tsx:396         # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/world/world-list-cards.tsx:397         # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/world/world-list.tsx:98                # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/world/world-list.tsx:99                # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/world/world-list.tsx:263               # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/world/world-list.tsx:264               # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/world/world-list.tsx:525               # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+apps/desktop/src/shell/renderer/features/world/world-list.tsx:526               # segment-B | ticket: FOLLOWON-UI-GLASS-DESKTOP
+
+# --- apps/parentos (18 sites) — ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/dental-page-insight-card.tsx:133  # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/dental-page-insight-card.tsx:134  # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/dental-photo-lightbox.tsx:99       # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/dental-photo-lightbox.tsx:100      # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/dental-photo-lightbox.tsx:123      # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/dental-photo-lightbox.tsx:124      # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/dental-photo-lightbox.tsx:150      # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/dental-photo-lightbox.tsx:151      # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/dental-photo-lightbox.tsx:177      # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/dental-photo-lightbox.tsx:178      # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/dental-photo-lightbox.tsx:240      # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/dental-photo-lightbox.tsx:241      # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/health-record-modal-shell.tsx:280  # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/profile/health-record-modal-shell.tsx:281  # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/features/reports/reports-action-bar.tsx:354         # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/styles.css:328                                      # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+apps/parentos/src/shell/renderer/styles.css:329                                      # segment-B | ticket: FOLLOWON-UI-GLASS-PARENTOS
+
+# --- apps/shiji (1 site) — ticket: FOLLOWON-UI-GLASS-SHIJI
+apps/shiji/src/shell/renderer/features/explore/explore-home-page.tsx:201            # segment-B | ticket: FOLLOWON-UI-GLASS-SHIJI
+
+# --- apps/video-food-map (2 sites) — ticket: FOLLOWON-UI-GLASS-VIDEO-FOOD-MAP
+apps/video-food-map/src/shell/renderer/components/map-surface.tsx:465                # segment-B | ticket: FOLLOWON-UI-GLASS-VIDEO-FOOD-MAP
+apps/video-food-map/src/shell/renderer/styles.css:122                                # segment-B | ticket: FOLLOWON-UI-GLASS-VIDEO-FOOD-MAP

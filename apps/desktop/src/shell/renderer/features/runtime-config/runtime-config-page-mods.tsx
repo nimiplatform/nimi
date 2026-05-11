@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { LocalRuntimeProfileResolutionPlan } from '@runtime/local-runtime';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeConfigPanelControllerModel, RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
@@ -195,136 +195,140 @@ export function ModsPage({ model, state }: ModsPageProps) {
       {/* Left-right split: mod list | mod detail */}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         {/* Left panel — mod list */}
-        <Surface tone="card" className="h-[600px] overflow-y-auto space-y-1.5 rounded-2xl p-4">
-          {runtimeProfileTargets.map((target) => {
-            const active = target.modId === selectedModId;
-            return (
-              <ModTargetRow
-                key={target.modId}
-                target={target}
-                state={state}
-                active={active}
-                onSelect={() => {
-                  setSelectedModId(target.modId);
-                  setSelectedProfileCapability('');
-                  setApplySummary('');
-                }}
-              />
-            );
-          })}
+        <Surface tone="card" className="h-[600px] overflow-hidden rounded-2xl">
+          <ScrollArea className="h-full" contentClassName="space-y-1.5 p-4">
+            {runtimeProfileTargets.map((target) => {
+              const active = target.modId === selectedModId;
+              return (
+                <ModTargetRow
+                  key={target.modId}
+                  target={target}
+                  state={state}
+                  active={active}
+                  onSelect={() => {
+                    setSelectedModId(target.modId);
+                    setSelectedProfileCapability('');
+                    setApplySummary('');
+                  }}
+                />
+              );
+            })}
+          </ScrollArea>
         </Surface>
 
         {/* Right panel — mod detail & profile config */}
-        <Surface tone="card" className="h-[600px] overflow-y-auto rounded-2xl p-4">
-          {selectedTarget ? (
-            <div className="space-y-5">
-              {/* Mod header */}
-              <div>
-                <h3 className="text-base font-semibold text-[var(--nimi-text-primary)]">{selectedTarget.modName}</h3>
-                <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{selectedTarget.modId}</p>
+        <Surface tone="card" className="h-[600px] overflow-hidden rounded-2xl">
+          <ScrollArea className="h-full" contentClassName="p-4">
+            {selectedTarget ? (
+              <div className="space-y-5">
+                {/* Mod header */}
+                <div>
+                  <h3 className="text-base font-semibold text-[var(--nimi-text-primary)]">{selectedTarget.modName}</h3>
+                  <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{selectedTarget.modId}</p>
+                </div>
+
+                {/* Capability status badges */}
+                {selectedTarget.consumeCapabilities.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.mods.aiCapabilityStatus', { defaultValue: 'AI Capability Status' })}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedTarget.consumeCapabilities.map((cap) => {
+                        const localNode = state.local.nodeMatrix.find(
+                          (node) => node.capability === cap && node.available,
+                        );
+                        const hasLocalModel = state.local.models.some(
+                          (m) => m.status === 'active' && m.capabilities.includes(cap),
+                        );
+                        const localAvailable = Boolean(localNode) || hasLocalModel;
+                        return (
+                          <span
+                            key={`mod-cap-${cap}`}
+                            className={`rounded-xl border px-3 py-1.5 text-xs font-medium ${
+                              localAvailable
+                                ? 'border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]'
+                                : 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]'
+                            }`}
+                          >
+                            {cap}: {localAvailable
+                              ? t('runtimeConfig.mods.local', { defaultValue: 'local' })
+                              : t('runtimeConfig.mods.needsSetup', { defaultValue: 'needs setup' })}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Profile configuration — flat variant */}
+                <ModelCenterProfileSection
+                  isModMode
+                  variant="flat"
+                  state={state}
+                  onNavigateToSetup={model.onChangePage}
+                  hideInstallButton
+                  loadingProfilePlan={loadingPlan}
+                  selectedProfileModId={selectedModId}
+                  profileSelectionLocked
+                  selectedProfileId={selectedProfileId}
+                  selectedProfileCapability={selectedProfileCapability}
+                  selectedProfileTarget={selectedTarget}
+                  executionPlanPreview={executionPlanPreview}
+                  runtimeProfileTargets={runtimeProfileTargets}
+                  onSetSelectedProfileModId={setSelectedModId}
+                  onSetSelectedProfileId={(profileId) => {
+                    setSelectedProfileId(profileId);
+                    setSelectedProfileCapability('');
+                    setApplySummary('');
+                  }}
+                  onSetSelectedProfileCapability={setSelectedProfileCapability}
+                  onResolveProfilePlanPreview={() => void resolvePlanPreview()}
+                  onApplyProfile={model.applyRuntimeProfile}
+                />
+
+                {/* Apply summary feedback */}
+                {applySummary ? (
+                  <div className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-4 py-3 text-xs text-[var(--nimi-action-primary-bg)]">
+                    {applySummary}
+                  </div>
+                ) : null}
+
+                {/* Install footer inside detail panel */}
+                {selectedProfile ? (
+                  <div className="sticky bottom-0 -mx-4 nimi-material-glass-thin border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]/95 backdrop-blur-[var(--nimi-backdrop-blur-thin)] px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-[var(--nimi-text-muted)]">
+                        {capabilitySelectionMissing
+                          ? t('runtimeConfig.mods.selectCapabilityFirst', { defaultValue: 'Select a capability to continue.' })
+                          : allRequiredMet
+                            ? t('runtimeConfig.mods.readyToInstall', {
+                                defaultValue: 'Ready to install {{title}}',
+                                title: selectedProfile.title,
+                              })
+                            : t('runtimeConfig.mods.missingDeps', {
+                                defaultValue: '{{count}} required {{label}} not yet set up',
+                                count: missingCount,
+                                label: missingCount === 1 ? 'dependency' : 'dependencies',
+                              })}
+                      </p>
+                      <Button
+                        variant="primary"
+                        disabled={applyingProfile || !allRequiredMet || capabilitySelectionMissing}
+                        onClick={handleApplyProfile}
+                      >
+                        {applyingProfile
+                          ? t('runtimeConfig.local.applying', { defaultValue: 'Installing...' })
+                          : t('runtimeConfig.local.installProfile', { defaultValue: 'Install Profile' })}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
-
-              {/* Capability status badges */}
-              {selectedTarget.consumeCapabilities.length > 0 ? (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.mods.aiCapabilityStatus', { defaultValue: 'AI Capability Status' })}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedTarget.consumeCapabilities.map((cap) => {
-                      const localNode = state.local.nodeMatrix.find(
-                        (node) => node.capability === cap && node.available,
-                      );
-                      const hasLocalModel = state.local.models.some(
-                        (m) => m.status === 'active' && m.capabilities.includes(cap),
-                      );
-                      const localAvailable = Boolean(localNode) || hasLocalModel;
-                      return (
-                        <span
-                          key={`mod-cap-${cap}`}
-                          className={`rounded-xl border px-3 py-1.5 text-xs font-medium ${
-                            localAvailable
-                              ? 'border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]'
-                              : 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]'
-                          }`}
-                        >
-                          {cap}: {localAvailable
-                            ? t('runtimeConfig.mods.local', { defaultValue: 'local' })
-                            : t('runtimeConfig.mods.needsSetup', { defaultValue: 'needs setup' })}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : null}
-
-              {/* Profile configuration — flat variant */}
-              <ModelCenterProfileSection
-                isModMode
-                variant="flat"
-                state={state}
-                onNavigateToSetup={model.onChangePage}
-                hideInstallButton
-                loadingProfilePlan={loadingPlan}
-                selectedProfileModId={selectedModId}
-                profileSelectionLocked
-                selectedProfileId={selectedProfileId}
-                selectedProfileCapability={selectedProfileCapability}
-                selectedProfileTarget={selectedTarget}
-                executionPlanPreview={executionPlanPreview}
-                runtimeProfileTargets={runtimeProfileTargets}
-                onSetSelectedProfileModId={setSelectedModId}
-                onSetSelectedProfileId={(profileId) => {
-                  setSelectedProfileId(profileId);
-                  setSelectedProfileCapability('');
-                  setApplySummary('');
-                }}
-                onSetSelectedProfileCapability={setSelectedProfileCapability}
-                onResolveProfilePlanPreview={() => void resolvePlanPreview()}
-                onApplyProfile={model.applyRuntimeProfile}
-              />
-
-              {/* Apply summary feedback */}
-              {applySummary ? (
-                <div className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-4 py-3 text-xs text-[var(--nimi-action-primary-bg)]">
-                  {applySummary}
-                </div>
-              ) : null}
-
-              {/* Install footer inside detail panel */}
-              {selectedProfile ? (
-                <div className="sticky bottom-0 -mx-4 nimi-material-glass-thin border-t border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]/95 backdrop-blur-[var(--nimi-backdrop-blur-thin)] px-4 py-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-[var(--nimi-text-muted)]">
-                      {capabilitySelectionMissing
-                        ? t('runtimeConfig.mods.selectCapabilityFirst', { defaultValue: 'Select a capability to continue.' })
-                        : allRequiredMet
-                          ? t('runtimeConfig.mods.readyToInstall', {
-                              defaultValue: 'Ready to install {{title}}',
-                              title: selectedProfile.title,
-                            })
-                          : t('runtimeConfig.mods.missingDeps', {
-                              defaultValue: '{{count}} required {{label}} not yet set up',
-                              count: missingCount,
-                              label: missingCount === 1 ? 'dependency' : 'dependencies',
-                            })}
-                    </p>
-                    <Button
-                      variant="primary"
-                      disabled={applyingProfile || !allRequiredMet || capabilitySelectionMissing}
-                      onClick={handleApplyProfile}
-                    >
-                      {applyingProfile
-                        ? t('runtimeConfig.local.applying', { defaultValue: 'Installing...' })
-                        : t('runtimeConfig.local.installProfile', { defaultValue: 'Install Profile' })}
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <p className="text-sm text-[var(--nimi-text-secondary)]">
-              {t('runtimeConfig.mods.selectModPrompt', { defaultValue: 'Select a mod to configure its AI profiles.' })}
-            </p>
-          )}
+            ) : (
+              <p className="text-sm text-[var(--nimi-text-secondary)]">
+                {t('runtimeConfig.mods.selectModPrompt', { defaultValue: 'Select a mod to configure its AI profiles.' })}
+              </p>
+            )}
+          </ScrollArea>
         </Surface>
       </div>
     </RuntimePageShell>

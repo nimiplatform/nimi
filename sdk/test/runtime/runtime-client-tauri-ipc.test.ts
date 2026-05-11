@@ -36,6 +36,7 @@ import {
   RuntimeMethodIds,
   RuntimeStreamMethodIds,
 } from '../../src/runtime/method-ids';
+import { ReasonCode } from '../../src/types/index.js';
 import {
   APP_ID,
   runtimeConfig,
@@ -47,7 +48,7 @@ import {
 } from './runtime-client-fixtures.js';
 
 function isMethodGroupUnavailable(error: unknown): boolean {
-  return (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_METHOD_UNAVAILABLE';
+  return (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE;
 }
 
 test('node-grpc and tauri-ipc cover runtime.local unary contract surface', async () => {

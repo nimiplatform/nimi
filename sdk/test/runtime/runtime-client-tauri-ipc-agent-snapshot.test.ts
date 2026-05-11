@@ -10,6 +10,7 @@ import {
 } from '../../src/runtime/generated/runtime/v1/grant';
 import { Runtime } from '../../src/runtime/runtime.js';
 import { RuntimeMethodIds } from '../../src/runtime/method-ids';
+import { ReasonCode } from '../../src/types/index.js';
 import {
   APP_ID,
   installTauriRuntime,
@@ -17,7 +18,7 @@ import {
 } from './runtime-client-fixtures.js';
 
 function isMethodGroupUnavailable(error: unknown): boolean {
-  return (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_METHOD_UNAVAILABLE';
+  return (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE;
 }
 
 test('tauri-ipc Runtime agent session snapshot includes protected token and app session', async () => {

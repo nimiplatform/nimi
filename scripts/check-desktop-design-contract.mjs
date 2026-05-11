@@ -147,21 +147,28 @@ function countLocalButtonFamilies(content) {
 }
 
 function usesSharedOverlayPrimitive(content) {
-  if (/(?:components\/overlay\.js|\.\/overlay\.js)/u.test(content)) {
+  if (/(?:components\/overlay(?:\/index)?\.js|\.\/overlay(?:\/index)?\.js|@renderer\/components\/overlay(?:\/index)?\.js)/u.test(content)) {
     return true;
   }
   if (/@nimiplatform\/nimi-kit\/features\/commerce\/ui/u.test(content) && /\bSendGiftDialog\b/u.test(content)) {
     return true;
   }
   if (/@nimiplatform\/nimi-kit\/ui/u.test(content)
-    && /\bTooltip(?:Provider|Trigger|Content)?\b/u.test(content)) {
+    && /\b(?:Tooltip(?:Provider|Trigger|Content)?|OverlayShell)\b/u.test(content)) {
     return true;
   }
   return false;
 }
 
 function usesSharedSidebarPrimitive(content) {
-  return /(?:components\/sidebar\.js|\.\/sidebar\.js)/u.test(content);
+  if (/(?:components\/sidebar\.js|\.\/sidebar\.js|@renderer\/components\/sidebar\.js)/u.test(content)) {
+    return true;
+  }
+  if (/@nimiplatform\/nimi-kit\/ui/u.test(content)
+    && /\bSidebar(?:Shell|Header|Search|Section|Item|ResizeHandle|AffordanceBadge)\b/u.test(content)) {
+    return true;
+  }
+  return false;
 }
 
 function hasStableTestabilityMarkup(content) {

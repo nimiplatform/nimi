@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { Realm } from '@nimiplatform/sdk/realm';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { DataSync } from '../src/runtime/data-sync/facade.js';
 import { readDataSyncHotState } from '../src/runtime/data-sync/facade-hot-state.js';
 
@@ -225,7 +226,7 @@ test('DataSync clears Desktop auth projection when Realm access requires reauthe
     stopAllPollingCalls += 1;
   }) as typeof dataSync.stopAllPolling;
   const authRequired = Object.assign(new Error('Authentication required'), {
-    reasonCode: 'AUTH_REQUIRED',
+    reasonCode: ReasonCode.AUTH_TOKEN_EXPIRED,
     actionHint: 'refresh_realm_token_or_reauthenticate',
     retryable: false,
     traceId: 'trace-auth-required',

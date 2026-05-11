@@ -212,7 +212,7 @@ export class Realm {
       await this.#requestUnknown({ method: 'GET', path: '/', timeoutMs });
     } catch (error) {
       this.#state = { ...this.#state, status: 'closed' };
-      this.#emitTelemetry('realm.disconnected', { baseUrl: this.baseUrl, reason: 'ready_probe_failed' });
+      this.#emitTelemetry('realm.disconnected', { baseUrl: this.baseUrl, reason: 'probe_error_propagated' });
       throw error;
     }
 

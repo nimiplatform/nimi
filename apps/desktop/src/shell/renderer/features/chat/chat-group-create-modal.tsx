@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { dataSync } from '@runtime/data-sync';
 
 type FriendEntry = {
@@ -142,7 +143,7 @@ export function ChatGroupCreateModal(props: {
               </div>
             </div>
 
-            <div className="max-h-48 space-y-1 overflow-y-auto">
+            <ScrollArea className="max-h-48" contentClassName="space-y-1 pr-2">
               {friends.length === 0 && (
                 <div className="px-3 py-6 text-center text-xs text-[var(--nimi-text-muted)]">
                   {friendsQuery.isLoading
@@ -187,7 +188,7 @@ export function ChatGroupCreateModal(props: {
                   </button>
                 );
               })}
-            </div>
+            </ScrollArea>
           </div>
 
           {/* Create Button */}

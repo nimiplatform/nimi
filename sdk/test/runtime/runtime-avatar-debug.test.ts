@@ -12,6 +12,7 @@ import {
   installNodeGrpcBridge,
   clearNodeGrpcBridge,
 } from './runtime-agent-surface-test-utils.js';
+import { ReasonCode } from '../../src/types/index.js';
 import {
   AvatarDebugProbeKind,
   AvatarDebugProbeStatus,
@@ -29,7 +30,7 @@ import {
 } from '../../src/runtime/generated/runtime/v1/agent_service.js';
 
 function isMethodGroupUnavailable(error: unknown): boolean {
-  return (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_METHOD_UNAVAILABLE';
+  return (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE;
 }
 
 function requestEnvelope() {

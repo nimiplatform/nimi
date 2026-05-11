@@ -46,10 +46,11 @@ import {
   createAgentEvent,
   collectRuntimeAgentEvents,
 } from './runtime-agent-surface-test-utils.js';
+import { ReasonCode } from '../../src/types/index.js';
 import type { RuntimeAgentConsumeEvent } from './runtime-agent-surface-test-utils.js';
 
 function isMethodGroupUnavailable(error: unknown): boolean {
-  return (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_METHOD_UNAVAILABLE';
+  return (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE;
 }
 
 test('runtime agent anchors project explicit agentId and conversationAnchorId through runtime truth', async () => {

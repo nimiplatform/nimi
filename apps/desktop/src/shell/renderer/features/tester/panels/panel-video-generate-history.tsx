@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type { VideoGenerationRecord } from '../tester-types.js';
 import { RawJsonSection } from '../tester-diagnostics.js';
 import { EMPTY_VIDEO_ICON, TRASH_ICON, X_ICON, formatRelativeTime, modeShortLabel } from './panel-video-generate-shared.js';
@@ -142,7 +143,7 @@ function RecordDetailDrawer({ record, onClose }: { record: VideoGenerationRecord
           {X_ICON}
         </button>
         <div className="flex max-h-[90vh] flex-col">
-          <div className="flex-1 overflow-auto p-4">
+          <ScrollArea className="flex-1" contentClassName="p-4">
             {record.videoUri ? (
               <div className="overflow-hidden rounded-[var(--nimi-radius-md)] bg-black">
                 <VideoPlayer src={record.videoUri} />
@@ -152,7 +153,7 @@ function RecordDetailDrawer({ record, onClose }: { record: VideoGenerationRecord
                 {failed ? (record.error || 'Failed') : 'No video artifacts.'}
               </div>
             )}
-          </div>
+          </ScrollArea>
           <div className="border-t border-[var(--nimi-border-subtle)] p-4">
             <div className="text-xs font-semibold text-[var(--nimi-text-secondary)]">
               {t('Tester.videoGenerate.promptLabel', { defaultValue: 'Prompt' })}

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 import {
   parseLocalRuntimeAssetRecord,
@@ -28,11 +29,11 @@ test('parseLocalRuntimeAssetRecord requires hard-cut asset fields in bridge surf
     status: 'installed',
     installedAt: '2026-03-08T00:00:00Z',
     updatedAt: '2026-03-08T00:00:00Z',
-    reasonCode: 'AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED',
+    reasonCode: ReasonCode.AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED,
   });
 
   assert.deepEqual(parsed.files, ['z_image_turbo-Q4_K.gguf']);
-  assert.equal(parsed.reasonCode, 'AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED');
+  assert.equal(parsed.reasonCode, ReasonCode.AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED);
 });
 
 test('parseLocalRuntimeAssetsHealthResult reads assets key only', () => {
@@ -42,11 +43,11 @@ test('parseLocalRuntimeAssetsHealthResult reads assets key only', () => {
       status: 'active',
       detail: 'healthy',
       endpoint: 'http://127.0.0.1:1234/v1',
-      reasonCode: 'AI_LOCAL_SPEECH_HOST_INIT_FAILED',
+      reasonCode: ReasonCode.AI_LOCAL_SPEECH_HOST_INIT_FAILED,
     }],
   });
 
   assert.equal(parsed.assets.length, 1);
   assert.equal(parsed.assets[0]?.localAssetId, 'asset-1');
-  assert.equal(parsed.assets[0]?.reasonCode, 'AI_LOCAL_SPEECH_HOST_INIT_FAILED');
+  assert.equal(parsed.assets[0]?.reasonCode, ReasonCode.AI_LOCAL_SPEECH_HOST_INIT_FAILED);
 });

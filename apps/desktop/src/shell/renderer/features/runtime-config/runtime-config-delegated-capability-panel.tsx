@@ -7,7 +7,7 @@ import {
   type DelegatedDiagnostic,
   type DelegatedReplayTrace,
 } from '@nimiplatform/sdk/runtime';
-import { Surface, cn } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Surface, cn } from '@nimiplatform/nimi-kit/ui';
 import { Button, Input } from './runtime-config-primitives';
 import {
   createDesktopDelegatedCapabilityService,
@@ -15,7 +15,6 @@ import {
 } from './runtime-config-delegated-capability-service';
 
 const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
-const TOKEN_TEXT_SECONDARY = 'text-[var(--nimi-text-secondary)]';
 const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
 const TOKEN_PANEL_CARD = 'rounded-2xl';
 
@@ -260,7 +259,7 @@ export function DelegatedCapabilityControlPanel() {
                 </div>
               ))}
             </div>
-            <div className={cn('max-h-40 overflow-auto rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-2 text-xs', TOKEN_TEXT_SECONDARY)}>
+            <ScrollArea className="max-h-40 rounded-lg border border-[var(--nimi-border-subtle)]" viewportClassName="px-3 py-2" contentClassName="text-xs">
               {(snapshot?.diagnostics || []).length > 0 ? (
                 (snapshot?.diagnostics || []).map((item) => (
                   <div key={item.diagnosticId} className="border-b border-[var(--nimi-border-subtle)] py-1 last:border-b-0">
@@ -286,7 +285,7 @@ export function DelegatedCapabilityControlPanel() {
               ) : (
                 <span className={TOKEN_TEXT_MUTED}>{t('runtimeConfig.delegation.noDiagnostics', { defaultValue: 'No diagnostics' })}</span>
               )}
-            </div>
+            </ScrollArea>
             {replayTrace ? (
               <div className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-2 text-xs">
                 <div className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>

@@ -515,7 +515,7 @@ test('agent runtime turn yields terminal turn-failed when runtime emits failed e
               turnId: 'turn-failed',
               streamId: 'stream-failed',
               detail: {
-                reasonCode: 'AI_OUTPUT_INVALID',
+                reasonCode: ReasonCode.AI_OUTPUT_INVALID,
                 message: 'structured envelope parse failed',
               },
             };
@@ -598,7 +598,7 @@ test('agent runtime turn yields terminal turn-failed when runtime emits failed e
       ['text-delta', 'turn-failed'],
     );
     assert.equal(parts[0]?.textDelta, 'partial output');
-    assert.equal(parts[1]?.error?.code, 'AI_OUTPUT_INVALID');
+    assert.equal(parts[1]?.error?.code, ReasonCode.AI_OUTPUT_INVALID);
     assert.equal(parts[1]?.error?.message, 'structured envelope parse failed');
     assert.equal(parts[1]?.outputText, 'partial output');
   } finally {

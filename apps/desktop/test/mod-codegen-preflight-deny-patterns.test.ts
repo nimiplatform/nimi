@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 import { preflightCodegenBundle } from '../src/runtime/mod/codegen/preflight';
 
@@ -18,8 +19,8 @@ test('preflight denies forbidden source patterns', () => {
 
   assert.equal(result.ok, false);
   const reasonCodes = result.violations.map((item) => item.reasonCode);
-  assert.ok(reasonCodes.includes('CODEGEN_PATTERN_EVAL_FORBIDDEN'));
-  assert.ok(reasonCodes.includes('CODEGEN_PATTERN_FETCH_FORBIDDEN'));
+  assert.ok(reasonCodes.includes(ReasonCode.CODEGEN_PATTERN_EVAL_FORBIDDEN));
+  assert.ok(reasonCodes.includes(ReasonCode.CODEGEN_PATTERN_FETCH_FORBIDDEN));
 });
 
 test('preflight rejects non-user-dot codegen manifest ids', () => {
@@ -30,8 +31,8 @@ test('preflight rejects non-user-dot codegen manifest ids', () => {
   });
 
   assert.equal(result.ok, false);
-  assert.equal(result.reasonCode, 'CODEGEN_MOD_ID_PREFIX_INVALID');
-  assert.ok(result.violations.some((item) => item.reasonCode === 'CODEGEN_MOD_ID_PREFIX_INVALID'));
+  assert.equal(result.reasonCode, ReasonCode.CODEGEN_MOD_ID_PREFIX_INVALID);
+  assert.ok(result.violations.some((item) => item.reasonCode === ReasonCode.CODEGEN_MOD_ID_PREFIX_INVALID));
 });
 
 test('preflight preserves missing mod id failure before prefix validation', () => {
@@ -42,6 +43,6 @@ test('preflight preserves missing mod id failure before prefix validation', () =
   });
 
   assert.equal(result.ok, false);
-  assert.equal(result.reasonCode, 'CODEGEN_MOD_ID_REQUIRED');
-  assert.ok(!result.violations.some((item) => item.reasonCode === 'CODEGEN_MOD_ID_PREFIX_INVALID'));
+  assert.equal(result.reasonCode, ReasonCode.CODEGEN_MOD_ID_REQUIRED);
+  assert.ok(!result.violations.some((item) => item.reasonCode === ReasonCode.CODEGEN_MOD_ID_PREFIX_INVALID));
 });

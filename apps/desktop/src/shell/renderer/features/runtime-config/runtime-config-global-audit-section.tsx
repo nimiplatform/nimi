@@ -328,14 +328,20 @@ function ExpandedDetails({ event, timestampIso, reasonCodeText }: { event: Audit
           <p className={cn('mb-1.5 text-[10px] font-medium uppercase tracking-[0.14em]', TOKEN_TEXT_MUTED)}>
             {t('runtimeConfig.runtime.payload', { defaultValue: 'Payload' })}
           </p>
-          <pre
-            className={cn(
-              'max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-md border border-[var(--nimi-border-subtle)]/60 bg-[var(--nimi-surface-panel)] p-3 font-mono text-[11px] leading-relaxed',
-              TOKEN_TEXT_PRIMARY,
-            )}
+          <ScrollArea
+            className="max-h-48 rounded-md border border-[var(--nimi-border-subtle)]/60 bg-[var(--nimi-surface-panel)]"
+            viewportClassName="max-h-48"
+            contentClassName="p-3"
           >
-            {JSON.stringify(structToRecord(event.payload as { fields: Record<string, unknown> }), null, 2)}
-          </pre>
+            <pre
+              className={cn(
+                'whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed',
+                TOKEN_TEXT_PRIMARY,
+              )}
+            >
+              {JSON.stringify(structToRecord(event.payload as { fields: Record<string, unknown> }), null, 2)}
+            </pre>
+          </ScrollArea>
         </div>
       ) : null}
     </div>

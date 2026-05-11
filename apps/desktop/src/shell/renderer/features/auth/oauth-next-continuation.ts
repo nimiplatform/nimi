@@ -29,7 +29,7 @@ function readApiOriginAllowlist(): string[] {
   try {
     env = (import.meta as { env?: Record<string, string | undefined> }).env || {};
   } catch {
-    env = {};
+    // ignore
   }
   const processEnv = (typeof globalThis !== 'undefined'
     && (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env)

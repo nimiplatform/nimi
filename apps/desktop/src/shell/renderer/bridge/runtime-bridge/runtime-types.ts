@@ -465,7 +465,7 @@ export type DesktopMacosSmokeReportPayload = {
   errorCause?: string;
   route?: string;
   htmlSnapshot?: string;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 };
 
 export type DesktopMacosSmokeReportResult = {

@@ -1,4 +1,5 @@
 import { withRealmContextLock } from '@nimiplatform/sdk';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RealmTokenRefreshResult, RequestAccountDeletionInput, RequestAccountDeletionOutput, RequestDataExportInput, RequestDataExportOutput } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { Realm } from '@nimiplatform/sdk/realm';
@@ -237,10 +238,9 @@ export class DataSync {
     const actionHint = String(errorFields.actionHint || '').trim().toLowerCase();
     const message = String(errorFields.message || (error instanceof Error ? error.message : error) || '').trim().toLowerCase();
     return (
-      reasonCode === 'AUTH_REQUIRED'
-      || reasonCode === 'AUTH_DENIED'
-      || reasonCode === 'AUTH_TOKEN_INVALID'
-      || reasonCode === 'AUTH_TOKEN_EXPIRED'
+      reasonCode === ReasonCode.AUTH_DENIED
+      || reasonCode === ReasonCode.AUTH_TOKEN_INVALID
+      || reasonCode === ReasonCode.AUTH_TOKEN_EXPIRED
       || actionHint.includes('reauthenticate')
       || actionHint.includes('refresh_realm_token')
       || message.includes('authentication required')

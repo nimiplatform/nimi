@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { AgentDataBundle, AgentDataDriver, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from './app-store.js';
 
@@ -655,7 +656,7 @@ describe('bootstrapAvatar', () => {
 
   it('surfaces first-party Runtime bootstrap stage when anchor authorization fails', async () => {
     openAnchorMock.mockRejectedValue(Object.assign(new Error('permission denied'), {
-      reasonCode: 'PRINCIPAL_UNAUTHORIZED',
+      reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
       actionHint: 'check_runtime_bridge_and_daemon',
       source: 'runtime',
       retryable: true,

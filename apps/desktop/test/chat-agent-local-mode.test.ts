@@ -1,6 +1,7 @@
 import {
   assert,
   test,
+  ReasonCode,
   findAgentConversationThreadByAgentId,
   resolveAgentConversationActiveThreadId,
   toAgentFriendTargetsFromSocialSnapshot,
@@ -307,7 +308,7 @@ test('agent session hydration does not drop committed assistant text when failed
         turnId: 'turn-failed',
         status: 'failed',
         message: 'structured chat output must be APML beginning with <message>',
-        reasonCode: 'AI_OUTPUT_INVALID',
+        reasonCode: ReasonCode.AI_OUTPUT_INVALID,
       },
     },
     nowMs: 5000,

@@ -34,28 +34,40 @@ const checks = [
   },
 ];
 
-function runRipgrep(pattern, paths) {
-  try {
-    return execFileSync('rg', ['-n', pattern, ...paths], {
-      cwd: repoRoot,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim();
-  } catch (error) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
-      throw new Error('desktop bootstrap hardcut requires `rg` to be installed');
+function runSearch(pattern, paths) {
+  const tryCommand = (cmd, args) => {
+    try {
+      return execFileSync(cmd, args, {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+    } catch (error) {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+        return null; // Command not found
+      }
+      if (typeof error.status === 'number' && error.status === 1) {
+        return ''; // No matches
+      }
+      throw error;
     }
-    if (typeof error.status === 'number' && error.status === 1) {
-      return '';
-    }
-    throw error;
-  }
+  };
+
+  // Try ripgrep (rg) first
+  let result = tryCommand('rg', ['-n', pattern, ...paths]);
+  if (result !== null) return result;
+
+  // Fallback to grep -E
+  result = tryCommand('grep', ['-En', pattern, ...paths]);
+  if (result !== null) return result;
+
+  throw new Error('desktop bootstrap hardcut requires `rg` or `grep` to be installed');
 }
 
 const failures = [];
 
 for (const check of checks) {
-  const matches = runRipgrep(check.pattern, check.paths);
+  const matches = runSearch(check.pattern, check.paths);
   if (matches) {
     failures.push(`[desktop-bootstrap-hardcut] ${check.description}\n${matches}`);
   }

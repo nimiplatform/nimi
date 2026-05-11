@@ -151,7 +151,9 @@ test('desktop callback authorize view and persisted-session probe are removed', 
 
 test('login page no longer preserves authenticated web shell for desktop callback URLs', () => {
   assert.doesNotMatch(loginPageSource, /hasDesktopCallbackRequestInLocation/);
-  assert.match(loginPageSource, /if \(authStatus === 'authenticated'\) \{\s*return <Navigate to="\/" replace \/>;\s*\}/s);
+  assert.match(loginPageSource, /if \(authStatus === 'authenticated'\) \{/);
+  assert.match(loginPageSource, /continueOauthNextIfPresent\(window\.location\.search\)/);
+  assert.match(loginPageSource, /return <Navigate to="\/" replace \/>;/);
 });
 
 // The Wave A2 hard-cut deleted handleConfirmDesktopAuthorization and the

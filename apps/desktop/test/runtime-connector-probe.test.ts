@@ -12,6 +12,7 @@ import {
   vendorToProvider,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service';
 import { createPlatformClient } from '@nimiplatform/sdk';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { GetAccessTokenResponse, RegisterAppResponse, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 
 const CONNECTOR_SERVICE_SOURCE = readFileSync(
@@ -488,7 +489,7 @@ test('sdkListConnectors propagates AUTH_TOKEN_INVALID without retrying anonymous
           && methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors'
         ) {
           throw {
-            reasonCode: 'AUTH_TOKEN_INVALID',
+            reasonCode: ReasonCode.AUTH_TOKEN_INVALID,
             message: 'token rejected by runtime authn (simulated)',
           };
         }

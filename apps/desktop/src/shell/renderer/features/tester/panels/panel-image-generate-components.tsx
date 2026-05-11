@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type { ImageGenerationRecord } from '../tester-types.js';
 import { RawJsonSection } from '../tester-diagnostics.js';
 import { formatRelativeTime } from './panel-image-generate-model.js';
@@ -338,7 +339,7 @@ function RecordDetailDrawer({ record, onClose }: { record: ImageGenerationRecord
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
         <div className="flex max-h-[90vh] flex-col">
-          <div className="flex-1 overflow-auto p-4">
+          <ScrollArea className="flex-1" contentClassName="p-4">
             {record.imageUris.length > 0 ? (
               <div className={`grid gap-3 ${record.imageUris.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {record.imageUris.map((uri, i) => (
@@ -350,7 +351,7 @@ function RecordDetailDrawer({ record, onClose }: { record: ImageGenerationRecord
                 {failed ? (record.error || 'Failed') : 'No image artifacts.'}
               </div>
             )}
-          </div>
+          </ScrollArea>
           <div className="border-t border-[var(--nimi-border-subtle)] p-4">
             <div className="text-xs font-semibold text-[var(--nimi-text-secondary)]">
               {t('Tester.imageGenerate.promptLabel', { defaultValue: 'Prompt' })}

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 import {
   parseAssetRecord,
@@ -22,18 +23,18 @@ test('local runtime parsers preserve projection reasonCode for assets, health, a
     installedAt: '2026-04-17T00:00:00Z',
     updatedAt: '2026-04-17T00:00:00Z',
     healthDetail: 'speech probe missing expected model',
-    reasonCode: 'AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED',
+    reasonCode: ReasonCode.AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED,
   });
-  assert.equal(asset.reasonCode, 'AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED');
+  assert.equal(asset.reasonCode, ReasonCode.AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED);
 
   const health = parseAssetHealth({
     localAssetId: 'speech-asset',
     status: 'unhealthy',
     detail: 'speech probe missing required capability',
     endpoint: 'http://127.0.0.1:8330/v1',
-    reasonCode: 'AI_LOCAL_SPEECH_BUNDLE_DEGRADED',
+    reasonCode: ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED,
   });
-  assert.equal(health.reasonCode, 'AI_LOCAL_SPEECH_BUNDLE_DEGRADED');
+  assert.equal(health.reasonCode, ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED);
 
   const service = parseServiceDescriptor({
     serviceId: 'speech-service',
@@ -45,9 +46,9 @@ test('local runtime parsers preserve projection reasonCode for assets, health, a
     localAssetId: 'speech-asset',
     status: 'unhealthy',
     detail: 'speech probe request failed',
-    reasonCode: 'AI_LOCAL_SPEECH_HOST_INIT_FAILED',
+    reasonCode: ReasonCode.AI_LOCAL_SPEECH_HOST_INIT_FAILED,
     installedAt: '2026-04-17T00:00:00Z',
     updatedAt: '2026-04-17T00:00:00Z',
   });
-  assert.equal(service.reasonCode, 'AI_LOCAL_SPEECH_HOST_INIT_FAILED');
+  assert.equal(service.reasonCode, ReasonCode.AI_LOCAL_SPEECH_HOST_INIT_FAILED);
 });

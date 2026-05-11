@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 
 import {
@@ -379,9 +380,9 @@ test('tester speech actions submit cloud voice design with provider-scoped workf
 test('tester speech failure prefers local speech bundle summary over raw reason code', () => {
   const result = buildTesterSpeechFailure({
     message: 'VOICE_WORKFLOW_FAILED',
-    reasonCode: 'AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED',
+    reasonCode: ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
     details: {
-      reason_code: 'AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED',
+      reason_code: ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED,
       detail: 'speech bundle download confirmation required',
     },
   }, {
@@ -393,7 +394,7 @@ test('tester speech failure prefers local speech bundle summary over raw reason 
 
   assert.equal(result.result, 'failed');
   assert.equal(result.error, 'Explicit download confirmation is required before Local Speech setup can continue.');
-  assert.equal(result.diagnostics.responseMetadata.finishReason, 'AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED');
+  assert.equal(result.diagnostics.responseMetadata.finishReason, ReasonCode.AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED);
 });
 
 test('tester voice workflow terminal failures preserve structured local speech reason', async () => {
@@ -404,7 +405,7 @@ test('tester voice workflow terminal failures preserve structured local speech r
       status: 5,
       traceId: 'trace-job',
       modelResolved: 'speech/qwen3-tts',
-      reasonCode: 'AI_LOCAL_SPEECH_BUNDLE_DEGRADED',
+      reasonCode: ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED,
       reasonDetail: 'speech voices metadata missing',
     },
   });
@@ -428,7 +429,7 @@ test('tester voice workflow terminal failures preserve structured local speech r
     }),
     (error: Error & { reasonCode?: string }) => {
       assert.equal(error.message, 'The Local Speech bundle is degraded and needs repair.');
-      assert.equal(error.reasonCode, 'AI_LOCAL_SPEECH_BUNDLE_DEGRADED');
+      assert.equal(error.reasonCode, ReasonCode.AI_LOCAL_SPEECH_BUNDLE_DEGRADED);
       return true;
     },
   );

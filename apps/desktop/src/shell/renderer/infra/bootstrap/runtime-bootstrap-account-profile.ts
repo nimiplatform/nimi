@@ -1,4 +1,5 @@
 import { dataSync } from '@runtime/data-sync';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { extractRuntimeErrorFields } from '@runtime/telemetry/error-fields';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
@@ -56,10 +57,9 @@ function isReauthenticationRequiredError(error: unknown): boolean {
   const actionHint = String(errorFields.actionHint || '').trim().toLowerCase();
   const message = String(errorFields.message || (error instanceof Error ? error.message : error) || '').trim().toLowerCase();
   return (
-    reasonCode === 'AUTH_REQUIRED'
-    || reasonCode === 'AUTH_DENIED'
-    || reasonCode === 'AUTH_TOKEN_INVALID'
-    || reasonCode === 'AUTH_TOKEN_EXPIRED'
+    reasonCode === ReasonCode.AUTH_DENIED
+    || reasonCode === ReasonCode.AUTH_TOKEN_INVALID
+    || reasonCode === ReasonCode.AUTH_TOKEN_EXPIRED
     || actionHint.includes('reauthenticate')
     || actionHint.includes('refresh_realm_token')
     || message.includes('authentication required')

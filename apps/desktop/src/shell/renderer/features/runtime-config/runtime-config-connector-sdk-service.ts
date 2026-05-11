@@ -76,10 +76,6 @@ function runtimeAdmin() {
   return getPlatformClient().domains.runtimeAdmin;
 }
 
-function normalizeText(value: unknown): string {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
 export async function sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]> {
   const now = Date.now();
   if (
