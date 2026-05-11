@@ -124,64 +124,33 @@ export type {
   ForgeWorldRelease,
 } from './world-data-client-governance.js';
 
-type RawAccessResponse = {
-  hasActiveAccess?: unknown;
-  canCreateWorld?: unknown;
-  canMaintainWorld?: unknown;
-  records?: unknown[];
-};
+type WorldAccessResponse = RealmServiceResult<'WorldControlService', 'worldControlControllerGetMyAccess'>;
+type WorldLandingResponse = RealmServiceResult<'WorldControlService', 'worldControlControllerResolveLanding'>;
 
-function normalizeWorldAccessResponse(response: unknown): ForgeWorldAccessResult {
-  const access = response && typeof response === 'object' && !Array.isArray(response)
-    ? response as RawAccessResponse
-    : null;
-
-  if (!access || typeof access.hasActiveAccess !== 'boolean') {
-    throw new Error('FORGE_WORLD_ACCESS_CONTRACT_INVALID');
-  }
-
-  const rawRecords = Array.isArray(access.records) ? access.records : [];
-  const records: ForgeWorldAccessRecord[] = rawRecords
-    .filter((r): r is Record<string, unknown> => r != null && typeof r === 'object')
-    .map((r) => ({
-      id: String(r.id || ''),
-      userId: String(r.userId || ''),
-      scopeType: (r.scopeType === 'CREATE' || r.scopeType === 'MAINTAIN') ? r.scopeType : 'MAINTAIN',
-      scopeWorldId: r.scopeWorldId ? String(r.scopeWorldId) : undefined,
-      canCreateWorld: Boolean(r.canCreateWorld),
-      canMaintainWorld: Boolean(r.canMaintainWorld),
-      maintainRole: r.maintainRole === 'OWNER' ? 'OWNER' : 'MAINTAINER',
-      status: (['ACTIVE', 'REVOKED', 'EXPIRED', 'SUSPENDED'] as const).includes(r.status as any)
-        ? r.status as ForgeWorldAccessRecord['status']
-        : 'ACTIVE',
-      expiresAt: r.expiresAt ? String(r.expiresAt) : null,
-    }));
-
+function normalizeWorldAccessResponse(response: WorldAccessResponse): ForgeWorldAccessResult {
   return {
-    hasAccess: access.hasActiveAccess,
-    canCreateWorld: Boolean(access.canCreateWorld),
-    canMaintainWorld: Boolean(access.canMaintainWorld),
-    records,
+    hasAccess: response.hasActiveAccess,
+    canCreateWorld: response.canCreateWorld,
+    canMaintainWorld: response.canMaintainWorld,
+    records: response.records.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      scopeType: r.scopeType,
+      scopeWorldId: r.scopeWorldId,
+      canCreateWorld: r.canCreateWorld,
+      canMaintainWorld: r.canMaintainWorld,
+      maintainRole: r.maintainRole,
+      status: r.status,
+      expiresAt: r.expiresAt ?? null,
+    })),
   };
 }
 
-function normalizeWorldLandingResponse(response: unknown): ForgeWorldLandingResult {
-  const landing = response && typeof response === 'object' && !Array.isArray(response)
-    ? response as Record<string, unknown>
-    : null;
-
-  if (!landing || typeof landing.target !== 'string') {
-    throw new Error('FORGE_WORLD_LANDING_CONTRACT_INVALID');
-  }
-
-  const target = (['NO_ACCESS', 'CREATE', 'MAINTAIN'] as const).includes(landing.target as any)
-    ? landing.target as ForgeWorldLandingResult['target']
-    : 'NO_ACCESS';
-
+function normalizeWorldLandingResponse(response: WorldLandingResponse): ForgeWorldLandingResult {
   return {
-    target,
-    worldId: landing.worldId ? String(landing.worldId) : null,
-    reason: landing.reason ? String(landing.reason) : undefined,
+    target: response.target,
+    worldId: response.worldId ?? null,
+    reason: response.reason,
   };
 }
 

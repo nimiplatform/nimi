@@ -168,11 +168,7 @@ export type FileUploadResult = {
 
 export async function uploadFileAsResource(file: File): Promise<FileUploadResult> {
   const session = await createImageDirectUpload();
-  const record = session && typeof session === 'object' && !Array.isArray(session)
-    ? session as Record<string, unknown>
-    : {};
-  const uploadUrl = String(record.uploadUrl || '');
-  const resourceId = String(record.resourceId || record.id || '');
+  const { uploadUrl, resourceId } = session;
 
   if (!uploadUrl || !resourceId) {
     throw new Error('FORGE_FILE_UPLOAD_NO_SESSION');
@@ -193,13 +189,13 @@ export async function uploadFileAsResource(file: File): Promise<FileUploadResult
   }
 
   const finalized = await finalizeResource(resourceId, {});
-  const finalRecord = finalized && typeof finalized === 'object' && !Array.isArray(finalized)
-    ? finalized as Record<string, unknown>
-    : {};
+  if (!finalized.url) {
+    throw new Error(`FORGE_FILE_UPLOAD_NOT_FINALIZED: ${finalized.status}`);
+  }
 
   return {
     resourceId,
-    url: String(finalRecord.url || ''),
+    url: finalized.url,
   };
 }
 

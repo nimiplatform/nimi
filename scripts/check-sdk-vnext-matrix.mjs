@@ -12,9 +12,9 @@ const sdkRoot = path.join(repoRoot, 'sdk');
 
 const SDK_VNEXT_TEST_FILES = [
   'test/runtime/runtime-bridge-method-parity.test.ts',
-  'test/realm/realm-client.test.ts',
+  'test/realm/realm-client-core.test.ts',
   'test/scope/module.test.ts',
-  'test/ai-provider/provider.test.ts',
+  'test/ai-provider/provider-text.test.ts',
   'test/mod/mod-runtime-context.test.ts',
   'test/integration/runtime-realm-orchestration.test.ts',
 ];

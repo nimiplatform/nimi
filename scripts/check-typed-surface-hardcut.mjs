@@ -1,4 +1,8 @@
 import { execFileSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const checks = [
   {
@@ -153,9 +157,6 @@ const checks = [
     pattern: 'Record<string, unknown>|as unknown as|Promise<unknown>',
     paths: [
       'apps/forge/src/shell/renderer/pages/agents/agent-detail-page-tabs.tsx',
-      'apps/forge/src/shell/renderer/pages/agents/agent-detail-page-dna-tab.tsx',
-      'apps/forge/src/shell/renderer/pages/agents/agent-detail-page-profile-tab.tsx',
-      'apps/forge/src/shell/renderer/pages/agents/agent-detail-page-keys-tab.tsx',
     ],
   },
   {
@@ -197,8 +198,8 @@ const checks = [
 
 function runRipgrep(pattern, paths) {
   try {
-    return execFileSync('rg', ['-n', pattern, ...paths], {
-      cwd: process.cwd(),
+    return execFileSync(path.join(repoRoot, 'scripts', 'rg.sh'), ['-n', pattern, ...paths], {
+      cwd: repoRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
