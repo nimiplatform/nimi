@@ -97,11 +97,12 @@ func unsupportedTextGeneratePartType(input []*runtimev1.ChatMessage) (runtimev1.
 
 func (s *Service) validateScenarioCapability(
 	ctx context.Context,
-	scenarioType runtimev1.ScenarioType,
+	req scenarioRequestLike,
 	modelResolved string,
 	remoteTarget *nimillm.RemoteTarget,
 	selected provider,
 ) error {
+	scenarioType := req.GetScenarioType()
 	providerType := inferScenarioProviderType(modelResolved, remoteTarget, selected, scenarioModalFromType(scenarioType))
 	if providerType == "" {
 		return nil
@@ -128,7 +129,7 @@ func (s *Service) validateScenarioCapability(
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
 	if supported {
-		return nil
+		return s.validateCatalogAwareScenarioSupport(ctx, scenarioType, providerType, modelResolved, req.GetSpec())
 	}
 	return grpcerr.WithReasonCode(codes.InvalidArgument, unsupportedCapabilityReasonCode(scenarioType))
 }

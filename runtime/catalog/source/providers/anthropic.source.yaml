@@ -55,19 +55,19 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: claude-sonnet-4-6
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Balanced default for general chat and multimodal text use.
   - profile_id: text.fast
     capability: text.generate
     model_id: claude-haiku-4-5
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Lowest-latency Claude track.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: claude-opus-4-7
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Highest reasoning-quality Claude track after Opus 4.7 became the current top-tier model.
 

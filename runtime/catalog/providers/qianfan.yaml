@@ -129,20 +129,20 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: ernie-5.0
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Current flagship ERNIE first-party route in the admitted Qianfan subset.
   - provider: qianfan
     profile_id: text.fast
     capability: text.generate
     model_id: ernie-4.5-turbo-32k
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Current lower-cost high-throughput ERNIE route in the admitted Qianfan subset.
   - provider: qianfan
     profile_id: text.reasoning
     capability: text.generate
     model_id: ernie-x1.1
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Current stable ERNIE first-party reasoning route for logic, math, and agent workflows.

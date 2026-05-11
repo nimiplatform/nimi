@@ -9,11 +9,11 @@ require (
 	github.com/nimiplatform/nimi/nimi-cognition v0.0.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/zalando/go-keyring v0.2.6
-	golang.org/x/net v0.51.0
-	golang.org/x/sys v0.42.0
-	golang.org/x/term v0.41.0
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171
-	google.golang.org/grpc v1.79.2
+	golang.org/x/net v0.54.0
+	golang.org/x/sys v0.44.0
+	golang.org/x/term v0.43.0
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260504160031-60b97b32f348
+	google.golang.org/grpc v1.81.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.48.2
@@ -32,8 +32,8 @@ require (
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
-	golang.org/x/oauth2 v0.35.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/oauth2 v0.36.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	modernc.org/libc v1.70.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect

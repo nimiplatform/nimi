@@ -89,7 +89,7 @@ func (s *Service) submitScenarioAsyncJob(
 		)
 	}
 	capabilityStartedAt := time.Now()
-	if err := s.validateScenarioCapability(ctx, req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
+	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
 	if logLocalImageSubmit {

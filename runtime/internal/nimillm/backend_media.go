@@ -295,12 +295,10 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 	}
 
 	prompt := strings.TrimSpace(spec.GetPrompt())
-	responseFormat := "b64_json"
-	normalizedFormat, err := normalizeImageResponseFormat(spec.GetResponseFormat())
+	responseFormat, err := normalizeImageResponseFormat(spec.GetResponseFormat())
 	if err != nil {
 		return nil, nil, err
 	}
-	responseFormat = normalizedFormat
 
 	var respBody imageResponse
 	err = b.postJSON(ctx, "/v1/images/generations", imageRequest{

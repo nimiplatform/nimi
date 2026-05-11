@@ -48,6 +48,7 @@ func runLiveSmokeCloudGenerateText(t *testing.T, providerID string, envPrefix st
 	baseURL := liveEnvOrDefault(t, "NIMI_LIVE_"+envPrefix+"_BASE_URL", fallbackBaseURL)
 	apiKey := requiredLiveEnv(t, "NIMI_LIVE_"+envPrefix+"_API_KEY")
 	modelID := requiredLiveEnv(t, "NIMI_LIVE_"+envPrefix+"_MODEL_ID")
+	modelID = qualifyLiveModelIDForRoute(providerID, modelID)
 
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{

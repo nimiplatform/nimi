@@ -231,7 +231,7 @@ func runtimeRecordToCognition(bank *runtimev1.MemoryBank, input *runtimev1.Memor
 
 func buildStoredMemoryContent(record *runtimev1.MemoryRecord) (json.RawMessage, cognitionmemory.RecordKind, error) {
 	stored := storedMemoryContent{}
-	kind := cognitionmemory.RecordKindEvent
+	var kind cognitionmemory.RecordKind
 	switch payload := record.GetPayload().(type) {
 	case *runtimev1.MemoryRecord_Episodic:
 		kind = cognitionmemory.RecordKindExperience

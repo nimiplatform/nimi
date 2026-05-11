@@ -39,19 +39,19 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: gpt-5.4
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Current flagship deployable Azure OpenAI text route in the admitted subset.
   - profile_id: text.fast
     capability: text.generate
     model_id: gpt-5.4-mini
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Current lower-latency deployable Azure OpenAI text route in the admitted subset.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: gpt-5.4
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Highest-confidence reasoning route in the reviewed Azure deployable subset.
 

@@ -332,7 +332,19 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 			models = buildLocalConnectorModelDescriptors(localModels, rec.LocalCategory)
 		}
 	} else {
-		models, err = s.listCatalogConnectorModels(ownerID, rec.Provider)
+		entry, hasEntry := ProviderCatalog[rec.Provider]
+		if hasEntry && entry.InventoryMode == "dynamic_endpoint" {
+			// Dynamic-endpoint providers expose their inventory through the
+			// cached snapshot here; outbound discovery belongs to
+			// RefreshConnectorModels, not the list-time projection.
+			if cached, ok := s.loadDynamicConnectorModelsFromCache(connectorID); ok {
+				models = cached
+			} else {
+				models, err = s.listCatalogConnectorModels(ownerID, rec.Provider)
+			}
+		} else {
+			models, err = s.listCatalogConnectorModels(ownerID, rec.Provider)
+		}
 		if err != nil {
 			return nil, err
 		}

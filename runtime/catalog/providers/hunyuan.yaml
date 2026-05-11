@@ -78,13 +78,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: hunyuan-turbos-latest
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Current stable fast-thinking flagship route in Hunyuan's public contract.
   - provider: hunyuan
     profile_id: text.reasoning
     capability: text.generate
     model_id: hunyuan-t1-latest
-    reviewed_at: 2026-04-16
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Current stable reasoning route in Hunyuan's public contract.

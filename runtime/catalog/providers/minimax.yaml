@@ -95,6 +95,6 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: MiniMax-M2.7
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: MiniMax M2.7 is the current flagship text model in the official API docs.

@@ -32,6 +32,14 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 		return nil, err
 	}
 
+	// Per-scenario catalog enforcement chain (video/image/voice all share the
+	// same dispatch shape but route into different async jobs):
+	//   SubmitScenarioJob → submitScenarioAsyncJob → validateScenarioCapability
+	//     → validateCatalogAwareScenarioSupport(ctx, scenarioType, providerType, modelResolved, spec)
+	// The catalog-aware validation enforces VIDEO_GENERATE option/role/output
+	// allow-lists declared in the kernel model catalog. VOICE_CLONE /
+	// VOICE_DESIGN go through submitVoiceWorkflowJob which reaches the same
+	// hook via its own validateScenarioCapability call.
 	switch req.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
 		return s.submitVoiceWorkflowJob(ctx, req, ignored)

@@ -79,7 +79,7 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	if err != nil {
 		return err
 	}
-	if err := s.validateScenarioCapability(stream.Context(), req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
+	if err := s.validateScenarioCapability(stream.Context(), req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return err
 	}
 	s.recordRouteAutoSwitch(

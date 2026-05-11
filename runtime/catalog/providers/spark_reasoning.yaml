@@ -22,3 +22,11 @@ models:
       retrieved_at: 2026-04-18
       note: Official Spark reasoning HTTP documentation for the current `spark-x` public contract and endpoint-scoped X1.5/X2 routing.
 voices: []
+selection_profiles:
+  - provider: spark_reasoning
+    profile_id: text.general
+    capability: text.generate
+    model_id: spark-x
+    reviewed_at: 2026-05-11
+    freshness_sla_days: 21
+    rationale: Default reasoning model for the Spark Reasoning surface.

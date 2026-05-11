@@ -134,7 +134,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	if err != nil {
 		return err
 	}
-	if err := s.validateScenarioCapability(stream.Context(), req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
+	if err := s.validateScenarioCapability(stream.Context(), req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return err
 	}
 	if err := validateReasoningRequest(spec, modelResolved, remoteTarget, selectedProvider, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM); err != nil {

@@ -47,7 +47,7 @@ func (s *Service) submitVoiceWorkflowJob(
 	if err != nil {
 		return nil, err
 	}
-	if err := s.validateScenarioCapability(ctx, req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
+	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
 	providerType := voiceWorkflowCatalogProviderType(modelResolved, remoteTarget, selectedProvider)

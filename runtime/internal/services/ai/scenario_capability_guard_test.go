@@ -15,7 +15,7 @@ func TestValidateScenarioCapabilitySupportedModelPasses(t *testing.T) {
 
 	err := svc.validateScenarioCapability(
 		context.Background(),
-		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE},
 		"anthropic/claude-sonnet-4-6",
 		nil,
 		nil,
@@ -56,7 +56,7 @@ func TestValidateScenarioCapabilityFailCloseReasonCodes(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := svc.validateScenarioCapability(context.Background(), tc.scenario, tc.model, nil, nil)
+			err := svc.validateScenarioCapability(context.Background(), &runtimev1.ExecuteScenarioRequest{ScenarioType: tc.scenario}, tc.model, nil, nil)
 			if err == nil {
 				t.Fatalf("expected capability guard error")
 			}
@@ -77,7 +77,7 @@ func TestValidateScenarioCapabilityCatalogUnavailableFailsClosedForCloudProvider
 
 	err := svc.validateScenarioCapability(
 		context.Background(),
-		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE},
 		"anthropic/claude-sonnet-4-6",
 		nil,
 		nil,
@@ -100,7 +100,7 @@ func TestValidateScenarioCapabilityCatalogUnavailableAllowsLocalProvider(t *test
 
 	err := svc.validateScenarioCapability(
 		context.Background(),
-		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE},
 		"media/local-import/z_image_turbo-Q4_K",
 		nil,
 		nil,
@@ -115,7 +115,7 @@ func TestValidateScenarioCapabilityRejectsUnsupportedLocalLlamaVideo(t *testing.
 
 	err := svc.validateScenarioCapability(
 		context.Background(),
-		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE},
 		"llama/wan2.2",
 		nil,
 		&localProvider{},
@@ -137,7 +137,7 @@ func TestValidateScenarioCapabilityLocalVoiceWorkflowBoundedFamilyOnly(t *testin
 
 	if err := svc.validateScenarioCapability(
 		context.Background(),
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE},
 		"speech/qwen3tts",
 		nil,
 		nil,
@@ -147,7 +147,7 @@ func TestValidateScenarioCapabilityLocalVoiceWorkflowBoundedFamilyOnly(t *testin
 
 	err := svc.validateScenarioCapability(
 		context.Background(),
-		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		&runtimev1.ExecuteScenarioRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN},
 		"kokoro-local",
 		nil,
 		nil,

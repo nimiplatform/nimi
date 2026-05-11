@@ -179,7 +179,6 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 		progress, hasProgress, done, success, message, diag := readGenerateImageEvent(event)
 		if !hasOptionalField(event, "done") {
 			if legacySuccess, legacyMessage, legacyTerminal := readLegacyGenerateImageResult(event); legacyTerminal {
-				receivedTerminal = true
 				slog.Info("managed image backend invoke completed",
 					"operation", "generate",
 					"backend_address", strings.TrimSpace(req.BackendAddress),
@@ -199,7 +198,6 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 		if !done {
 			continue
 		}
-		receivedTerminal = true
 		terminalDiag = diag
 		slog.Info("managed image backend invoke completed",
 			"operation", "generate",

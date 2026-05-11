@@ -487,13 +487,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: doubao-seed-2-0-pro-260215
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Best current general Volcengine text route in the admitted set.
   - provider: volcengine
     profile_id: text.fast
     capability: text.generate
     model_id: doubao-seed-2-0-mini-260215
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Lightweight Volcengine text route for lower-latency general tasks.

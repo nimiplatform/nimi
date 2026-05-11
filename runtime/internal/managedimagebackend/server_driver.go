@@ -187,7 +187,7 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 			payload = result.payload
 			err = result.err
 			var emitErr error
-			progressCursor, lastProgress, haveProgress, emitErr = emitManagedImageProgressUpdates(resident.logCapture, progressCursor, onProgress, lastProgress, haveProgress)
+			progressCursor, _, _, emitErr = emitManagedImageProgressUpdates(resident.logCapture, progressCursor, onProgress, lastProgress, haveProgress)
 			if emitErr != nil {
 				return nil, emitErr
 			}

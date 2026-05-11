@@ -61,13 +61,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: command-a-03-2025
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Best current Cohere text default in the admitted set.
   - provider: cohere
     profile_id: text.fast
     capability: text.generate
     model_id: command-r7b-12-2024
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Lowest-cost current Cohere text route for faster general tasks.

@@ -163,20 +163,20 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: glm-5.1
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Current latest flagship GLM text route.
   - provider: glm
     profile_id: text.fast
     capability: text.generate
     model_id: glm-5-turbo
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Current turbo GLM base route for lower-latency long-task execution.
   - provider: glm
     profile_id: text.reasoning
     capability: text.generate
     model_id: glm-5.1
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Current highest-confidence GLM reasoning and coding route.

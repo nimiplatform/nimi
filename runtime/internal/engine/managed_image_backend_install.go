@@ -576,7 +576,7 @@ func discoverInstalledManagedImageBackendExecutablePath(backendsPath string, bac
 		if metadataErr != nil {
 			return "", "", metadataErr
 		}
-		score := 100
+		var score int
 		switch {
 		case trimmedInstallDir != "" && strings.EqualFold(dir, trimmedInstallDir):
 			score = 0

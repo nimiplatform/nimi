@@ -67,13 +67,13 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: mistral-large-latest
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Best current general Mistral text route in the admitted alias-backed set, aligned to Mistral Large 3.
   - profile_id: text.fast
     capability: text.generate
     model_id: mistral-small-latest
-    reviewed_at: 2026-04-18
+    reviewed_at: 2026-05-11
     freshness_sla_days: 21
     rationale: Cost-efficient Mistral text route for fast general tasks, aligned to Mistral Small 4.
 

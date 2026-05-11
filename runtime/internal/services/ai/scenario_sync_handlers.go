@@ -49,7 +49,7 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	if err != nil {
 		return nil, err
 	}
-	if err := s.validateScenarioCapability(ctx, req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
+	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
 	describeProbe, hasDescribeProbe, err := textGenerateRouteDescribeProbeFromExtensions(req.GetExtensions())
@@ -183,7 +183,7 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 	if err != nil {
 		return nil, err
 	}
-	if err := s.validateScenarioCapability(ctx, req.GetScenarioType(), modelResolved, remoteTarget, selectedProvider); err != nil {
+	if err := s.validateScenarioCapability(ctx, req, modelResolved, remoteTarget, selectedProvider); err != nil {
 		return nil, err
 	}
 	s.recordRouteAutoSwitch(
