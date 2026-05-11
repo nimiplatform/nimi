@@ -157,6 +157,7 @@
     "check:release-gate-registry-coherence": "node scripts/check-release-gate-registry-coherence.mjs",
     "check:release-gate-projection-drift": "node scripts/check-release-gate-projection-drift.mjs",
     "generate:release-gate-projection-all": "node scripts/generate-release-gate-projection-all.mjs",
+    "generate:ci-workflow-steps": "node scripts/generate-ci-workflow-steps.mjs",
     "generate:lint-chain": "node scripts/generate-lint-chain.mjs",
     "deploy:install-gateway": "pnpm --filter @nimiplatform/install-gateway deploy",
     "dev:desktop": "pnpm --filter @nimiplatform/desktop dev:shell",

@@ -2349,7 +2349,7 @@ gates:
     tiers: [release, release-target:runtime]
     targets: [runtime]
     timeout_seconds: 1800
-    requires_binaries: [go]
+    requires_binaries: [go, cosign, syft]
     blocker_semantics:
       on_binary_missing: blocked
     evidence:

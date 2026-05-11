@@ -327,23 +327,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build SDK surfaces
+      # >>> nimi-release-gate-projection: release-target-sdk-static-checks >>>
+      - name: gate.sdk.build
         run: pnpm build:sdk
-
-      - name: Test unified sdk
-        run: pnpm --filter @nimiplatform/sdk test
-
-      - name: SDK vNext matrix gate
-        run: pnpm check:sdk-vnext-matrix
-
-      - name: SDK coverage gate
-        run: pnpm check:sdk-coverage
-
-      - name: SDK version matrix check
-        run: pnpm check:sdk-version-matrix
-
-      - name: SDK consumer smoke (npm pack + node import)
+      - name: gate.sdk.consumer-smoke
         run: pnpm check:sdk-consumer-smoke
+      - name: gate.sdk.coverage
+        run: pnpm check:sdk-coverage
+      - name: gate.sdk.test
+        run: pnpm --filter @nimiplatform/sdk test
+      - name: gate.sdk.version-matrix
+        run: pnpm check:sdk-version-matrix
+      - name: gate.sdk.vnext-matrix
+        run: pnpm check:sdk-vnext-matrix
+      - name: gate.security.package-license-matrix
+        run: pnpm check:package-license-matrix
+      # <<< nimi-release-gate-projection: release-target-sdk-static-checks <<<
 
   runtime-quality:
     needs: changes
@@ -381,53 +380,46 @@ jobs:
           echo "${GOBIN}" >> "${GITHUB_PATH}"
           go install github.com/bufbuild/buf/cmd/buf@v1.66.1
 
-      - name: Live provider invariants gate
-        run: pnpm check:live-provider-invariants
-
-      - name: Proto lint
-        run: pnpm proto:lint
-
-      - name: Proto baseline exists (hard gate)
+      # >>> nimi-release-gate-projection: release-target-runtime-static-checks >>>
+      - name: gate.proto.baseline-exists
         run: test -s runtime/proto/runtime-v1.baseline.binpb
-
-      - name: Proto breaking (hard gate)
-        run: pnpm proto:breaking
-
-      - name: Proto drift check
-        run: pnpm proto:drift-check
-
-      - name: Runtime go build
+      - name: gate.runtime.ai-scenario-coverage
+        run: pnpm check:runtime-ai-scenario-coverage
+      - name: gate.runtime.compliance
+        working-directory: runtime
+        run: go run ./cmd/runtime-compliance --gate
+      - name: gate.runtime.go-build
         working-directory: runtime
         run: go build ./...
-
-      - name: npm binary launcher smoke
-        run: pnpm check:npm-binary-smoke
-
-      - name: Runtime go vet
+      - name: gate.runtime.go-coverage
+        run: pnpm check:runtime-go-coverage
+      - name: gate.runtime.go-test
+        working-directory: runtime
+        run: go test ./...
+      - name: gate.runtime.go-vet
         working-directory: runtime
         run: go vet ./...
-
-      - name: Runtime go coverage gate
-        env:
-          NIMI_RUNTIME_MIN_STATEMENTS_COVERAGE: 60
-        run: pnpm check:runtime-go-coverage
-
-      - name: Runtime ai scenario coverage gate
-        run: pnpm check:runtime-ai-scenario-coverage
+      - name: gate.runtime.golangci-lint
+        working-directory: runtime
+        run: golangci-lint run
+      - name: gate.runtime.govulncheck
+        working-directory: runtime
+        run: govulncheck ./...
+      - name: gate.sdk.npm-binary-smoke
+        run: pnpm check:npm-binary-smoke
+      - name: gate.security.runtime-release-signing
+        run: node scripts/release/sign-and-sbom-artifacts.mjs
+      - name: gate.workflow.runtime-goreleaser-check
+        run: go run github.com/goreleaser/goreleaser/v2@latest check --config .goreleaser.yml
+      - name: gate.workflow.runtime-goreleaser-snapshot
+        run: go run github.com/goreleaser/goreleaser/v2@latest release --clean --snapshot --skip=publish --skip=announce --config .goreleaser.yml
+      # <<< nimi-release-gate-projection: release-target-runtime-static-checks <<<
 
       - name: Runtime golangci-lint
         uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
           version: latest
           working-directory: runtime
-
-      - name: Runtime govulncheck
-        working-directory: runtime
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./...
-
-      - name: Runtime compliance gate
-        working-directory: runtime
-        run: go run ./cmd/runtime-compliance --gate
 
   desktop-web-quality:
     needs: changes
@@ -464,29 +456,40 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb
           cargo install tauri-driver --locked
 
-      - name: Desktop cloud runtime-only gate
-        run: pnpm check:desktop-cloud-runtime-only
-
-      - name: Rust cargo check
+      # >>> nimi-release-gate-projection: release-target-desktop-static-checks >>>
+      - name: gate.cargo.audit
+        run: cargo audit --file apps/desktop/src-tauri/Cargo.lock
+      - name: gate.cargo.check
         run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
-
-      - name: Rust runtime bridge tests
-        run: cargo test runtime_bridge --manifest-path apps/desktop/src-tauri/Cargo.toml
-
-      - name: Rust cargo test
-        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
-
-      - name: Rust clippy
+      - name: gate.cargo.clippy
         run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets
-
-      - name: Rust cargo audit
-        run: cargo install cargo-audit --locked && cargo audit --file apps/desktop/src-tauri/Cargo.lock
-
-      - name: Typecheck desktop
-        run: pnpm --filter @nimiplatform/desktop typecheck
-
-      - name: Test desktop
+      - name: gate.cargo.test
+        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
+      - name: gate.cargo.test-runtime-bridge
+        run: cargo test runtime_bridge --manifest-path apps/desktop/src-tauri/Cargo.toml
+      - name: gate.desktop.env-mods-root
+        run: pnpm --filter @nimiplatform/desktop run env:check:mods-root
+      - name: gate.desktop.group-chat-contract
+        run: pnpm check:desktop-group-chat-contract
+      - name: gate.desktop.lint
+        run: pnpm --filter @nimiplatform/desktop lint
+      - name: gate.desktop.macos-smoke
+        run: pnpm check:desktop-macos-smoke
+      - name: gate.desktop.mods-smoke
+        run: pnpm check:desktop-mods-smoke
+      - name: gate.desktop.release-sync
+        run: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync
+      - name: gate.desktop.test
         run: pnpm --filter @nimiplatform/desktop test
+      - name: gate.desktop.typecheck
+        run: pnpm --filter @nimiplatform/desktop typecheck
+      - name: gate.desktop.updater-artifacts
+        run: pnpm --filter @nimiplatform/desktop run check:desktop-updater-artifacts
+      - name: gate.desktop.version-sync
+        run: pnpm --filter @nimiplatform/desktop run check:version-sync
+      - name: gate.security.runtime-release-signing
+        run: node scripts/release/sign-and-sbom-artifacts.mjs
+      # <<< nimi-release-gate-projection: release-target-desktop-static-checks <<<
 
       - name: Desktop E2E smoke
         id: desktop_e2e_smoke
@@ -580,8 +583,10 @@ jobs:
       - name: Install nimi-mods dependencies
         run: pnpm --dir nimi-mods install --no-frozen-lockfile
 
-      - name: Mods boundary gate
+      # >>> nimi-release-gate-projection: mods-quality-checks >>>
+      - name: gate.runtime-mod.mods-no-runtime-sdk
         run: pnpm check:mods-no-runtime-sdk
+      # <<< nimi-release-gate-projection: mods-quality-checks <<<
 
   governance-security:
     needs: changes
@@ -606,17 +611,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: npm dependency audit
-        run: pnpm audit --prod --audit-level=high
-
-      - name: License file map check
+      # >>> nimi-release-gate-projection: governance-security-checks >>>
+      - name: gate.docs.examples-build
+        run: pnpm check:examples
+      - name: gate.docs.examples-run-comments
+        run: pnpm check:examples-run-comments
+      - name: gate.docs.first-run-doc-drift
+        run: pnpm check:first-run-doc-drift
+      - name: gate.docs.install-script-smoke
+        run: pnpm check:install-script-smoke
+      - name: gate.docs.markdown-lint
+        run: pnpm check:markdown
+      - name: gate.docs.no-absolute-user-paths
+        run: pnpm check:no-absolute-user-paths
+      - name: gate.docs.no-legacy-doc-contracts
+        run: pnpm check:no-legacy-doc-contracts
+      - name: gate.security.license-headers
         run: pnpm check:license-file-map
-
-      - name: Package license matrix check
+      - name: gate.security.package-license-matrix
         run: pnpm check:package-license-matrix
-
-      - name: Experimental API lifecycle check
-        run: pnpm check:experimental-api-lifecycle
+      # <<< nimi-release-gate-projection: governance-security-checks <<<
 
   js-contract:
     needs:
