@@ -58,7 +58,7 @@ Lanes are admitted under
 | Derived view source | Which service-derived view backs this lane |
 | Forbidden inputs | What is explicitly excluded |
 
-A reader who wants to know "what shape does this lane produce" 
+A reader who wants to know "what shape does this lane produce"
 goes to the table, not to docs prose.
 
 ## Reader Scenario: An Agent's Turn Composes A Full Prompt

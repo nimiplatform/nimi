@@ -189,7 +189,7 @@ const desktopGroups: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'Mod Hub', link: '/desktop/mod-hub' },
       { text: 'Mod Workspace', link: '/desktop/mod-workspace' },
-      { text: 'Mods (Governance)', link: '/desktop/mods' },
+      { text: 'Mods (Governance)', link: '/desktop/mod-system' },
       { text: 'External Agent Access', link: '/desktop/external-agent' },
     ],
   },

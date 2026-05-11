@@ -21,7 +21,7 @@ const DEFAULT_LINKS: LandingLinks = {
   githubUrl: 'https://github.com/nimiplatform/nimi',
   protocolUrl: 'https://docs.nimi.ai/platform/protocol',
   desktopDownloadUrl: 'https://docs.nimi.ai/desktop/',
-  modDocsUrl: 'https://docs.nimi.ai/desktop/mods',
+  modDocsUrl: 'https://docs.nimi.ai/desktop/mod-system',
 };
 
 /**

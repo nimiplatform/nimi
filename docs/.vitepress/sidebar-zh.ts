@@ -189,7 +189,7 @@ const desktopGroups: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'Mod Hub', link: '/zh/desktop/mod-hub' },
       { text: 'Mod Workspace', link: '/zh/desktop/mod-workspace' },
-      { text: 'Mod 治理', link: '/zh/desktop/mods' },
+      { text: 'Mod 治理', link: '/zh/desktop/mod-system' },
       { text: '外部 Agent 接入', link: '/zh/desktop/external-agent' },
     ],
   },

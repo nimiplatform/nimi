@@ -7,7 +7,7 @@
 ## 本节包含的内容
 
 - [Web 模式](/zh/desktop/web-mode) — 桌面端部分能力在浏览器中的受限呈现。
-- [Mod 体系](/zh/desktop/mods) — 桌面端的有界扩展模型与 hook 能力边界。
+- [Mod 体系](/zh/desktop/mod-system) — 桌面端的有界扩展模型与 hook 能力边界。
 
 ## 桌面端与网页端不一样
 

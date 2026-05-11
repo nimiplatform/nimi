@@ -36,5 +36,5 @@ test('landing links include desktopDownloadUrl and modDocsUrl defaults', () => {
   assert.equal(links.appUrl, '/docs/start/');
   assert.equal(links.webAppUrl, '/login');
   assert.equal(links.desktopDownloadUrl, '/docs/desktop/');
-  assert.equal(links.modDocsUrl, '/docs/desktop/mods');
+  assert.equal(links.modDocsUrl, '/docs/desktop/mod-system');
 });

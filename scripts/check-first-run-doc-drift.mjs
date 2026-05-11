@@ -20,23 +20,14 @@ const checks = [
     ],
   },
   {
-    file: 'docs/README.md',
-    required: [
-      'nimi start',
-      'nimi run "What is Nimi?"',
-      'nimi run "What is Nimi?" --provider gemini',
-    ],
-    forbidden: ['nimi serve', '--yes', '--model local/qwen2.5', '--provider gemini --model'],
-  },
-  {
+    // Post-reorg (fe7eac835) docs IA replaced audience-segmented routes
+    // (/user/, /app-dev/, /mod-dev/) with product-segmented routes anchored
+    // at /start/ and the per-product entries. docs/index.md must keep the
+    // product-segment link surface so first-run readers land on each
+    // product's reader-facing prose.
     file: 'docs/index.md',
-    required: ['link: /user/', 'link: /app-dev/', 'link: /mod-dev/'],
+    required: ['/start/', '/platform/', '/runtime/', '/sdk/', '/desktop/'],
     forbidden: ['nimi serve', '--yes', '--model local/...', '--provider ... --model ...'],
-  },
-  {
-    file: 'docs/getting-started/index.md',
-    required: ["window.location.replace('/user/')", 'This page has moved to [Using Nimi](/user/).'],
-    forbidden: ['nimi serve', '--model local/qwen2.5', '--provider gemini --model'],
   },
   {
     file: 'examples/README.md',

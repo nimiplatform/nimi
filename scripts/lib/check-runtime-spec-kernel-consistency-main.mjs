@@ -47,6 +47,8 @@ const kernelFiles = [
   '.nimi/spec/runtime/kernel/scenario-job-lifecycle.md',
   '.nimi/spec/runtime/kernel/local-category-capability.md',
   '.nimi/spec/runtime/kernel/local-engine-contract.md',
+  '.nimi/spec/runtime/kernel/local-environment-materializers-contract.md',
+  '.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md',
   '.nimi/spec/runtime/kernel/device-profile-contract.md',
   '.nimi/spec/runtime/kernel/endpoint-security.md',
   '.nimi/spec/runtime/kernel/streaming-contract.md',

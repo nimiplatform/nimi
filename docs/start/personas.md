@@ -41,7 +41,7 @@ You want to extend Desktop with bounded capabilities.
 
 1. [Desktop](/desktop/) — what Desktop is and why mods are first-class
    surfaces, not plugins.
-2. [Desktop → Mods](/desktop/mods) — the hook capability boundary.
+2. [Desktop → Mods](/desktop/mod-system) — the hook capability boundary.
 3. [SDK → Boundaries](/sdk/boundaries) — what mods can't bypass.
 4. [Reference → Authority Domains](/reference/authority-domains) — the
    ownership lines mods must respect.

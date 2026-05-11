@@ -12,7 +12,7 @@ and how Desktop mods are governed.
 
 - [Web Mode](/desktop/web-mode) — the constrained projection of selected
   Desktop surfaces in the browser.
-- [Mods](/desktop/mods) — Desktop's bounded extension model and the hook
+- [Mods](/desktop/mod-system) — Desktop's bounded extension model and the hook
   capability boundary.
 
 ## Desktop And Web Are Different

@@ -2,7 +2,7 @@
 
 > Owner Domain: `S-RUNTIME-*`
 
-## S-RUNTIME-109 Runtime Local Environment Projection
+## S-RUNTIME-119 Runtime Local Environment Projection
 
 SDK may expose typed projection for Runtime local environment plans only as a
 downstream mirror of Runtime truth. The Runtime authority source is

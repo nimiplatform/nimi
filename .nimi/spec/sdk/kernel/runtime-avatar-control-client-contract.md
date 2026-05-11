@@ -63,4 +63,3 @@ Stable SDK contracts must not use:
 SDK must not provide helper APIs that let Desktop, Avatar, apps, Web, or mods
 bypass Runtime-owned probe/replay/authorization semantics or Avatar-owned
 backend resolver execution.
-

@@ -793,6 +793,6 @@ create selected source records, mutate PATH, run package-manager scripts, or
 project `ready` from job existence, transfer completion, endpoint reachability,
 file existence, or local cache.
 
-## K-LENG-028 Runtime Local Environment Materializers
+## Runtime Local Environment Materializers Anchor
 
-Detailed materializer authority is owned by `local-environment-materializers-contract.md`. This section remains the stable Local Engine Contract anchor and delegates registry, source manifest, verification evidence, selected source record, activation, and ordinary-user boundary rules to that file.
+Detailed materializer authority is owned by `K-LENG-028` in `local-environment-materializers-contract.md`. This section remains the stable Local Engine Contract anchor and delegates registry, source manifest, verification evidence, selected source record, activation, and ordinary-user boundary rules to that file.

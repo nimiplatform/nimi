@@ -76,4 +76,3 @@ runtime support proof.
 
 Wave-1 admits this contract and schema only. Avatar debug session runtime code
 belongs to later waves and cannot claim product support before closeout.
-

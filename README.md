@@ -137,6 +137,31 @@ The Platform, Runtime, SDK, Desktop, Web, Realm, Avatar, and Cognition
 surfaces are documented at the contract level under `docs/` and authored
 under `.nimi/spec/`. Their public release channels are not yet open.
 
+## Quickstart
+
+Once the runtime CLI is on `PATH`, three commands cover the
+zero-config first-run path:
+
+```sh
+# Start the local runtime daemon (background).
+nimi start
+
+# Ask the local runtime to answer a question with the default provider.
+nimi run "What is Nimi?"
+
+# Same prompt, routed through Gemini (set the API key in your env first;
+# see the provider configuration step below).
+nimi run "What is Nimi?" --provider gemini
+```
+
+To configure a cloud provider before invoking `--provider gemini`:
+
+```sh
+nimi provider set gemini --api-key-env GEMINI_API_KEY
+```
+
+`nimi doctor` reports environment, daemon, and provider readiness.
+
 ## Documentation
 
 Reader docs live under [`docs/`](docs/) (built with VitePress) and are

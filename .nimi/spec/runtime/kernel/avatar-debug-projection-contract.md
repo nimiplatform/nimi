@@ -119,4 +119,3 @@ for avatar debug success.
 Wave-1 admits contract and table truth only. Runtime implementation, SDK
 methods, Desktop UI, and Avatar debug execution belong to later waves and must
 not claim product support until their wave closeout evidence exists.
-

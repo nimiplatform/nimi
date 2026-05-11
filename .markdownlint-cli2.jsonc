@@ -2,7 +2,7 @@
   "config": {
     "default": false,
     "MD009": true,
-    "MD010": true,
+    "MD010": { "code_blocks": false },
     "MD012": true
   },
   "globs": [

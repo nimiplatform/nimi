@@ -377,7 +377,6 @@ Fixed rules:
 Retired SDK Event API and PresentationTimeline designs are evidence only and
 cannot close SDK timeline support without current tests.
 
-
 ## S-RUNTIME-109 Local First-Party Account Projection And Binding Consumer
 
 > Authority: SDK kernel

@@ -766,9 +766,15 @@ preserve these constraints:
   envelope, and reason-code semantics are owned by
   `local-environment-consumer-activation-contract.md`
 
-## K-RPC-025 RuntimeLocalService Materializer Projection Surface
+## RuntimeLocalService Materializer Projection Surface Anchor
 
-Detailed RuntimeLocalService materializer projection semantics are owned by `local-environment-materializers-contract.md`; detailed activation-gate projection semantics are owned by `local-environment-consumer-activation-contract.md`. This section remains the stable RPC Surface anchor and delegates read, confirmation, command, job observation, activation-gate, and no-ordinary-user-installer rules to those files.
+Detailed RuntimeLocalService materializer projection semantics are owned by
+`K-RPC-025` in `local-environment-materializers-contract.md`; detailed
+activation-gate projection semantics are owned by
+`local-environment-consumer-activation-contract.md`. This section remains the
+stable RPC Surface anchor and delegates read, confirmation, command, job
+observation, activation-gate, and no-ordinary-user-installer rules to those
+files.
 
 ## K-RPC-023 Workflow Family Validation Boundary
 

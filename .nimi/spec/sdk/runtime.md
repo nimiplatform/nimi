@@ -75,7 +75,7 @@
 ## 4. Local Environment Projection Boundary
 
 Runtime local environment SDK projection is governed by
-`kernel/local-environment-projection-contract.md` (`S-RUNTIME-109`).
+`kernel/local-environment-projection-contract.md` (`S-RUNTIME-119`).
 
 The runtime SDK may expose typed reads and commands for Runtime local
 environment plans, dependency jobs, selected source record references, and

@@ -184,7 +184,7 @@ export function ModsSection(props: ModsSectionProps) {
 
         <div className="mt-14 flex justify-center">
           <a
-            href={props.links.docsUrl + 'desktop/mods'}
+            href={props.links.docsUrl + 'desktop/mod-system'}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/[0.06] px-6 py-3 text-sm font-semibold text-white transition hover:border-white/40 hover:bg-white/10"
