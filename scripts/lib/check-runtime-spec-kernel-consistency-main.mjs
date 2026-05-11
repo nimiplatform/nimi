@@ -144,6 +144,34 @@ const kernelFiles = [
   '.nimi/spec/runtime/kernel/tables/capability-vocabulary-mapping.yaml',
   '.nimi/spec/runtime/kernel/tables/config-schema.yaml',
   '.nimi/spec/runtime/kernel/tables/rule-evidence.yaml',
+  // Host capability + accelerator profile tables
+  '.nimi/spec/runtime/kernel/tables/accelerator-consumer-requirements.yaml',
+  '.nimi/spec/runtime/kernel/tables/host-accelerator-profiles.yaml',
+  '.nimi/spec/runtime/kernel/tables/host-capability-profiles.yaml',
+  '.nimi/spec/runtime/kernel/tables/shared-accelerator-dependencies.yaml',
+  '.nimi/spec/runtime/kernel/tables/local-compute-packs.yaml',
+  // Local environment materializer authority tables
+  '.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml',
+  '.nimi/spec/runtime/kernel/tables/local-environment-consumer-requirements.yaml',
+  '.nimi/spec/runtime/kernel/tables/local-environment-dependencies.yaml',
+  '.nimi/spec/runtime/kernel/tables/local-environment-job-states.yaml',
+  '.nimi/spec/runtime/kernel/tables/local-environment-materializers.yaml',
+  '.nimi/spec/runtime/kernel/tables/local-environment-source-manifests.yaml',
+  '.nimi/spec/runtime/kernel/tables/local-environment-verification-evidence.yaml',
+  '.nimi/spec/runtime/kernel/tables/selected-source-record-schema.yaml',
+  // Managed image backend tables
+  '.nimi/spec/runtime/kernel/tables/local-image-supervised-backend-matrix.yaml',
+  '.nimi/spec/runtime/kernel/tables/managed-image-backend-packages.yaml',
+  // Asset ontology tables
+  '.nimi/spec/runtime/kernel/tables/asset-kind-registry.yaml',
+  '.nimi/spec/runtime/kernel/tables/capability-to-asset-kind.yaml',
+  '.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml',
+  '.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml',
+  '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml',
+  // Rule evidence shards
+  '.nimi/spec/runtime/kernel/tables/rule-evidence.catalog.yaml',
+  '.nimi/spec/runtime/kernel/tables/rule-evidence.rules.yaml',
+  '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-multimodal.yaml',
   // AI profile execution and scheduling
   '.nimi/spec/runtime/kernel/ai-profile-execution-contract.md',
   '.nimi/spec/runtime/kernel/scheduling-contract.md',
@@ -199,6 +227,36 @@ function readYaml(rel) {
 for (const rel of kernelFiles) {
   if (!fs.existsSync(path.join(cwd, rel))) {
     fail(`missing kernel file: ${rel}`);
+  }
+}
+
+// Reverse invariant: every .md / .yaml file under the runtime kernel tree
+// (excluding generated outputs) must be explicitly admitted in kernelFiles.
+// Catches the "forgot to register a new kernel file" failure mode that
+// silently invalidates rule-resolution against this admitted set.
+const kernelFilesSet = new Set(kernelFiles);
+function collectKernelDiskFiles(rel) {
+  const abs = path.join(cwd, rel);
+  if (!fs.existsSync(abs)) return [];
+  const out = [];
+  for (const entry of fs.readdirSync(abs).sort()) {
+    const childRel = `${rel}/${entry}`;
+    const childAbs = path.join(cwd, childRel);
+    const stat = fs.statSync(childAbs);
+    if (stat.isDirectory()) {
+      // generated/ is read-only derived output; companion/ holds admitted
+      // human-facing guides outside rule-definition source.
+      if (entry === 'generated' || entry === 'companion') continue;
+      out.push(...collectKernelDiskFiles(childRel));
+    } else if (entry.endsWith('.md') || entry.endsWith('.yaml') || entry.endsWith('.yml')) {
+      out.push(childRel);
+    }
+  }
+  return out;
+}
+for (const rel of collectKernelDiskFiles('.nimi/spec/runtime/kernel')) {
+  if (!kernelFilesSet.has(rel)) {
+    fail(`unregistered kernel file (add to kernelFiles or move out of kernel/): ${rel}`);
   }
 }
 

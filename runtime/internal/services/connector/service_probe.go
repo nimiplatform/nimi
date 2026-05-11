@@ -155,6 +155,15 @@ func intersectDynamicCapabilities(discovered []string, allowed []string) []strin
 	return out
 }
 
+// listDynamicConnectorModels is an admitted-but-deferred outbound-discovery
+// helper for dynamic_endpoint providers. It has no caller in the current
+// runtime — the gate.runtime-provider.yaml-first-hardcut spec requires the
+// helper + backend.ListModels(ctx) call shape to remain in-source so a
+// future admitted refresh-RPC wave can wire it without re-deriving the
+// secret resolution + cache write-back design. ListConnectorModels is
+// snapshot-only by spec contract and must not invoke this helper.
+//
+//nolint:unused // admitted deferred helper; do not delete without spec gate update
 func (s *Service) listDynamicConnectorModels(ctx context.Context, connectorID string, rec ConnectorRecord, forceRefresh bool) ([]*runtimev1.ConnectorModelDescriptor, error) {
 	entry, ok := ProviderCatalog[rec.Provider]
 	if !ok || entry.InventoryMode != "dynamic_endpoint" {
@@ -335,8 +344,9 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 		entry, hasEntry := ProviderCatalog[rec.Provider]
 		if hasEntry && entry.InventoryMode == "dynamic_endpoint" {
 			// Dynamic-endpoint providers expose their inventory through the
-			// cached snapshot here; outbound discovery belongs to
-			// RefreshConnectorModels, not the list-time projection.
+			// cached snapshot here; the listDynamicConnectorModels helper
+			// remains in-source as an admitted-but-deferred outbound-discovery
+			// path with no caller until a refresh RPC is admitted in proto.
 			if cached, ok := s.loadDynamicConnectorModelsFromCache(connectorID); ok {
 				models = cached
 			} else {

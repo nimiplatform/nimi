@@ -164,8 +164,10 @@ function usesSharedSidebarPrimitive(content) {
   if (/(?:components\/sidebar\.js|\.\/sidebar\.js|@renderer\/components\/sidebar\.js)/u.test(content)) {
     return true;
   }
-  if (/@nimiplatform\/nimi-kit\/ui/u.test(content)
-    && /\bSidebar(?:Shell|Header|Search|Section|Item|ResizeHandle|AffordanceBadge)\b/u.test(content)) {
+  // Any named Sidebar* import from nimi-kit/ui counts as adopting the shared
+  // primitive. New Sidebar* sub-primitives added to the kit are picked up
+  // automatically without editing this regex.
+  if (/@nimiplatform\/nimi-kit\/ui/u.test(content) && /\bSidebar[A-Z][A-Za-z0-9]*\b/u.test(content)) {
     return true;
   }
   return false;

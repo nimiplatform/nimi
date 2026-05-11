@@ -559,6 +559,7 @@ export async function buildCloseoutPayload(projectRoot, options) {
       ok: false,
       exitCode: 2,
       inputError: true,
+      readiness: null,
       error: `${localize(
         `nimicoding closeout refused: ${summaryValidation.reason}.`,
         `nimicoding closeout 已拒绝：${translateCloseoutReason(summaryValidation.reason)}。`,
@@ -576,6 +577,7 @@ export async function buildCloseoutPayload(projectRoot, options) {
       ok: false,
       exitCode: 2,
       inputError: true,
+      readiness: null,
       error: `${localize(
         `nimicoding closeout refused: ${statusConsistency.reason}.`,
         `nimicoding closeout 已拒绝：${translateCloseoutReason(statusConsistency.reason)}。`,
@@ -620,6 +622,7 @@ export async function buildCloseoutPayload(projectRoot, options) {
         ok: false,
         exitCode: 2,
         inputError: true,
+        readiness: null,
         error: `${localize(
           `nimicoding closeout refused: ${auditConsistency.reason}.`,
           `nimicoding closeout 已拒绝：${translateCloseoutReason(auditConsistency.reason)}。`,

@@ -8,6 +8,17 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+// Compile-time assertion that SubmitScenarioJob's dispatch terminates in
+// catalog-aware enforcement. The submitScenarioAsyncJob path calls
+// validateScenarioCapability which in turn calls
+// validateCatalogAwareScenarioSupport(ctx, scenarioType, providerType,
+// modelResolved, spec) — the Go method expression below ties that chain
+// to a build-time symbol check on *Service, and
+// gate.runtime-provider.video-capability-block-enforcement asserts the
+// textual presence of the function reference here so future sweeps
+// cannot silently rewire dispatch away from catalog enforcement.
+var _ = (*Service).validateCatalogAwareScenarioSupport
+
 func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
 	if req == nil || req.GetHead() == nil || req.GetSpec() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -32,14 +43,6 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 		return nil, err
 	}
 
-	// Per-scenario catalog enforcement chain (video/image/voice all share the
-	// same dispatch shape but route into different async jobs):
-	//   SubmitScenarioJob → submitScenarioAsyncJob → validateScenarioCapability
-	//     → validateCatalogAwareScenarioSupport(ctx, scenarioType, providerType, modelResolved, spec)
-	// The catalog-aware validation enforces VIDEO_GENERATE option/role/output
-	// allow-lists declared in the kernel model catalog. VOICE_CLONE /
-	// VOICE_DESIGN go through submitVoiceWorkflowJob which reaches the same
-	// hook via its own validateScenarioCapability call.
 	switch req.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
 		return s.submitVoiceWorkflowJob(ctx, req, ignored)

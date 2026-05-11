@@ -159,8 +159,6 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 	if err := stream.CloseSend(); err != nil {
 		return nil, fmt.Errorf("close managed media generate request stream: %w", err)
 	}
-	receivedTerminal := false
-	var terminalDiag *ImageGenerateDiagnostics
 	for {
 		event := dynamicpb.NewMessage(generateImageEventDescriptor)
 		if err := stream.RecvMsg(event); err != nil {
@@ -198,7 +196,6 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 		if !done {
 			continue
 		}
-		terminalDiag = diag
 		slog.Info("managed image backend invoke completed",
 			"operation", "generate",
 			"backend_address", strings.TrimSpace(req.BackendAddress),
@@ -211,19 +208,17 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateDiagnos
 		if !success {
 			return nil, fmt.Errorf("generate managed media image failed: %s", defaultMessage(message, "backend returned unsuccessful image result"))
 		}
-		return terminalDiag, nil
+		return diag, nil
 	}
-	if !receivedTerminal {
-		slog.Warn("managed image backend invoke failed",
-			"operation", "generate",
-			"backend_address", strings.TrimSpace(req.BackendAddress),
-			"model_path", strings.TrimSpace(req.ModelPath),
-			"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
-			"error", "missing terminal backend event",
-		)
-		return nil, fmt.Errorf("generate managed media image: missing terminal backend event")
-	}
-	return terminalDiag, nil
+	// Stream closed (io.EOF) before a terminal event arrived.
+	slog.Warn("managed image backend invoke failed",
+		"operation", "generate",
+		"backend_address", strings.TrimSpace(req.BackendAddress),
+		"model_path", strings.TrimSpace(req.ModelPath),
+		"duration_ms", time.Since(invokeStartedAt).Milliseconds(),
+		"error", "missing terminal backend event",
+	)
+	return nil, fmt.Errorf("generate managed media image: missing terminal backend event")
 }
 
 func LoadModel(ctx context.Context, req LoadModelRequest) (*LoadModelDiagnostics, error) {
