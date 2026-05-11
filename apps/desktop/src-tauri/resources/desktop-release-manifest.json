@@ -2,9 +2,9 @@
   "desktopVersion": "0.1.0",
   "runtimeVersion": "0.1.0",
   "channel": "stable",
-  "commit": "ef2c951326ef1921cdcbdb399e14479c777c8dc4",
-  "runtimeArchivePath": "runtime/windows-amd64/nimi-runtime.zip",
-  "runtimeSha256": "c2d2ed64e73a0f2f2c8fe124ebcd77899ae3363382bf52ab6864f0345312594a",
-  "runtimeBinaryPath": "bin/nimi.exe",
-  "builtAt": "2026-04-30T05:41:00.776Z"
+  "commit": "c01646823aaf55fa786424c85d0a4890a2639bf7",
+  "runtimeArchivePath": "runtime/darwin-arm64/nimi-runtime.zip",
+  "runtimeSha256": "a98a64a20b9f9894d8509d03ee7ee876beedd6f30edfb379fc0c532da8e38aab",
+  "runtimeBinaryPath": "bin/nimi",
+  "builtAt": "2026-05-11T13:00:47.747Z"
 }

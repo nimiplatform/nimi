@@ -377,7 +377,7 @@ function createMockHost() {
                                 bytes: new Uint8Array(Buffer.from('demo-audio')),
                                 traceId: 'trace-demo-tts',
                                 metadata: {
-                                    voiceId: input.voice || 'voice-demo-1',
+                                    voiceId: (input.voiceRef?.kind === 'preset_voice_id' ? input.voiceRef.presetVoiceId : undefined) || 'voice-demo-1',
                                 },
                             }] as never,
                         trace: {
@@ -583,7 +583,7 @@ async function useRuntimeFacade() {
     const speech = await runtime.media.tts.synthesize({
         binding: selectedTtsBinding,
         model: selectedTtsBinding.model,
-        voice: voices.voices[0]?.voiceId,
+        voiceRef: { kind: 'preset_voice_id', presetVoiceId: voices.voices[0]?.voiceId || '' },
         text: 'Hello from the runtime-aligned mod example.',
     });
     writeLine(`[runtime.media.tts.synthesize] artifact-bytes=${speech.artifacts[0]?.bytes.length || 0}`);

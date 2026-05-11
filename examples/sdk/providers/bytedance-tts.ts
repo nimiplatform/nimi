@@ -116,7 +116,7 @@ async function main(): Promise<void> {
     subjectUserId,
     connectorId,
     text,
-    voice,
+    voiceRef: { kind: 'preset_voice_id', presetVoiceId: voice },
     audioFormat: 'mp3',
     route: 'cloud',
     timeoutMs: 120000,

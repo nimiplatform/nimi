@@ -584,6 +584,32 @@ export async function buildCloseoutPayload(projectRoot, options) {
   }
 
   if (options.skill === "spec_reconstruction" && options.outcome === "completed") {
+    // Canonical tree must be intact before audit-coverage comparison; a
+    // missing domain kernel file is a readiness fail with its own reason.
+    if (doctorResult.canonicalTree?.requiredFilesValid !== true) {
+      const reason = "Completed closeout requires declared canonical tree files to be valid";
+      return {
+        ok: false,
+        exitCode: 1,
+        readiness: { ok: false, reason },
+        error: `${localize(
+          `nimicoding closeout refused: ${reason}.`,
+          `nimicoding closeout 已拒绝：${translateCloseoutReason(reason)}。`,
+        )}\n`,
+      };
+    }
+    if (doctorResult.specGenerationAudit?.ok !== true) {
+      const reason = "Completed closeout requires a valid `.nimi/spec/_meta/spec-generation-audit.yaml` artifact";
+      return {
+        ok: false,
+        exitCode: 1,
+        readiness: { ok: false, reason },
+        error: `${localize(
+          `nimicoding closeout refused: ${reason}.`,
+          `nimicoding closeout 已拒绝：${translateCloseoutReason(reason)}。`,
+        )}\n`,
+      };
+    }
     const auditConsistency = await validateSpecReconstructionSummaryAgainstAudit(
       projectRoot,
       effectiveSummary,

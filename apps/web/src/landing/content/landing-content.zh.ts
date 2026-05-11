@@ -33,6 +33,18 @@ export const landingContentZh: LandingContent = {
     getStartedSubtitle: '选择你的接入入口',
     tabs: [
       {
+        id: 'install-shell',
+        label: '安装 (Shell)',
+        command: 'curl -fsSL https://install.nimi.ai | sh',
+        ctaText: '通过 Shell 安装',
+      },
+      {
+        id: 'install-npm',
+        label: '安装 (NPM)',
+        command: 'npm install -g @nimiplatform/nimi',
+        ctaText: '通过 NPM 安装',
+      },
+      {
         id: 'platform',
         label: 'Platform',
         command: 'docs.nimi.ai/zh/platform',

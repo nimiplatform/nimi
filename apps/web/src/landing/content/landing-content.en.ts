@@ -33,6 +33,18 @@ export const landingContentEn: LandingContent = {
     getStartedSubtitle: 'Pick your integration entry',
     tabs: [
       {
+        id: 'install-shell',
+        label: 'Install (Shell)',
+        command: 'curl -fsSL https://install.nimi.ai | sh',
+        ctaText: 'Install via Shell',
+      },
+      {
+        id: 'install-npm',
+        label: 'Install (NPM)',
+        command: 'npm install -g @nimiplatform/nimi',
+        ctaText: 'Install via NPM',
+      },
+      {
         id: 'platform',
         label: 'Platform',
         command: 'docs.nimi.ai/platform',

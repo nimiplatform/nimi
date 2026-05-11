@@ -163,6 +163,9 @@ export async function runCloseout(args) {
   const payload = await buildCloseoutPayload(process.cwd(), effectiveOptions);
   if (payload.inputError) {
     process.stderr.write(payload.error);
+    if (parsed.options.json) {
+      process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+    }
     return payload.exitCode;
   }
 

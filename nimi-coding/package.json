@@ -45,7 +45,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test",
+    "test": "NIMICODING_LANG=en NO_COLOR=1 node --test",
     "check:pack": "npm pack --dry-run"
   }
 }
