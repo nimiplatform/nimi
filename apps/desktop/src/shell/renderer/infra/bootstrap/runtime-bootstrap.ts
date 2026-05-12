@@ -55,6 +55,7 @@ import { startAuthStateWatcher, stopAuthStateWatcher } from './auth-state-watche
 import { checkDaemonVersion } from './version-check';
 import { registerExitHandler } from './exit-handler';
 import { isRuntimeDaemonReachable } from './runtime-bootstrap-runtime-availability';
+import { AccountSessionState } from '@nimiplatform/sdk/runtime/browser';
 import { getDesktopMacosSmokeContext } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { pingDesktopMacosSmoke } from '@renderer/bridge/runtime-bridge/macos-smoke';
 import { hydrateDesktopAccountProfile } from './runtime-bootstrap-account-profile';
@@ -350,7 +351,30 @@ export function bootstrapRuntime(): Promise<void> {
       caller: accountCaller,
     });
     const accountProjection = accountStatus.accountProjection;
-    if (accountProjection?.accountId) {
+    let accountTokenAvailable = false;
+    if (
+      accountStatus.state === AccountSessionState.AUTHENTICATED
+      && accountProjection?.accountId
+    ) {
+      const tokenStatus = await platformClient.runtime.account.getAccessToken({
+        caller: accountCaller,
+        requestedScopes: [],
+      });
+      accountTokenAvailable = Boolean(tokenStatus.accepted && tokenStatus.accessToken);
+      if (!accountTokenAvailable) {
+        logRendererEvent({
+          level: 'warn',
+          area: 'renderer-bootstrap',
+          message: 'phase:runtime-account-token-unavailable',
+          flowId,
+          details: {
+            accountReasonCode: tokenStatus.accountReasonCode || null,
+            reasonCode: tokenStatus.reasonCode || null,
+          },
+        });
+      }
+    }
+    if (accountProjection?.accountId && accountTokenAvailable) {
       useAppStore.getState().setAuthSession({
         id: accountProjection.accountId,
         displayName: accountProjection.displayName,
@@ -420,12 +444,6 @@ export function bootstrapRuntime(): Promise<void> {
         hydrateDesktopAccountProfile({
           accountProjection,
           flowId,
-          onReauthenticationRequired: async () => {
-            await platformClient.runtime.account.logout({
-              caller: accountCaller,
-              reason: 'desktop_bootstrap_reauth_required',
-            });
-          },
         }),
         NON_CRITICAL_BOOTSTRAP_STEP_TIMEOUT_MS,
       ).catch((error) => {

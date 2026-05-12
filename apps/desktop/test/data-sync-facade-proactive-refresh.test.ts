@@ -246,3 +246,84 @@ test('DataSync clears Desktop auth projection when Realm access requires reauthe
   assert.equal(hotState?.refreshToken, '');
   clearHotState();
 });
+
+test('DataSync keeps Desktop auth projection when Realm denies data access', async () => {
+  clearHotState();
+  let clearAuthCalls = 0;
+  let stopAllPollingCalls = 0;
+  const dataSync = new DataSync();
+  dataSync.initApi({
+    realmBaseUrl: 'https://realm.example',
+    accessTokenProvider: async () => 'runtime-account-access-token',
+  });
+  dataSync.setAuthCallbacks({
+    setAuth: () => undefined,
+    clearAuth: () => {
+      clearAuthCalls += 1;
+    },
+    getCurrentUser: () => ({ id: 'user-1' }),
+    isFriend: () => false,
+  });
+  dataSync.stopAllPolling = (() => {
+    stopAllPollingCalls += 1;
+  }) as typeof dataSync.stopAllPolling;
+  const dataAccessDenied = Object.assign(new Error('Forbidden'), {
+    reasonCode: ReasonCode.PRINCIPAL_UNAUTHORIZED,
+    actionHint: 'check_principal_permissions_or_resource_visibility',
+    retryable: false,
+    traceId: 'trace-private-profile',
+  });
+
+  await assert.rejects(
+    () => dataSync.callApi(async () => {
+      throw dataAccessDenied;
+    }),
+    /Forbidden/,
+  );
+
+  assert.equal(clearAuthCalls, 0);
+  assert.equal(stopAllPollingCalls, 0);
+  const hotState = readDataSyncHotState();
+  assert.equal(hotState?.accessToken, '');
+  assert.equal(hotState?.refreshToken, '');
+  clearHotState();
+});
+
+test('DataSync does not treat generic AUTH_DENIED as a session lifecycle signal', async () => {
+  clearHotState();
+  let clearAuthCalls = 0;
+  let stopAllPollingCalls = 0;
+  const dataSync = new DataSync();
+  dataSync.initApi({
+    realmBaseUrl: 'https://realm.example',
+    accessTokenProvider: async () => 'runtime-account-access-token',
+  });
+  dataSync.setAuthCallbacks({
+    setAuth: () => undefined,
+    clearAuth: () => {
+      clearAuthCalls += 1;
+    },
+    getCurrentUser: () => ({ id: 'user-1' }),
+    isFriend: () => false,
+  });
+  dataSync.stopAllPolling = (() => {
+    stopAllPollingCalls += 1;
+  }) as typeof dataSync.stopAllPolling;
+  const genericDenied = Object.assign(new Error('Access denied'), {
+    reasonCode: ReasonCode.AUTH_DENIED,
+    actionHint: 'refresh_realm_token_or_reauthenticate',
+    retryable: false,
+    traceId: 'trace-generic-auth-denied',
+  });
+
+  await assert.rejects(
+    () => dataSync.callApi(async () => {
+      throw genericDenied;
+    }),
+    /Access denied/,
+  );
+
+  assert.equal(clearAuthCalls, 0);
+  assert.equal(stopAllPollingCalls, 0);
+  clearHotState();
+});

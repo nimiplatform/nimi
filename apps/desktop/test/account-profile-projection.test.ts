@@ -28,9 +28,10 @@ test('account menu renders only a real email and never synthesizes a nimi.app ad
 test('desktop bootstrap merges Realm profile fields without moving profile ownership into Runtime account projection', () => {
   assert.match(runtimeBootstrapSource, /hydrateDesktopAccountProfile/);
   assert.match(runtimeBootstrapAccountProfileSource, /function mergeRuntimeAccountProjectionWithRealmProfile/);
-  assert.match(runtimeBootstrapAccountProfileSource, /realmProfile = await dataSync\.loadCurrentUser\(\);/);
-  assert.match(runtimeBootstrapAccountProfileSource, /isReauthenticationRequiredError\(error\)[\s\S]*await input\.onReauthenticationRequired\(\)/);
-  assert.match(runtimeBootstrapSource, /runtime\.account\.logout\(\{[\s\S]*reason: 'desktop_bootstrap_reauth_required'/);
+  assert.match(runtimeBootstrapAccountProfileSource, /const realmProfile: unknown = await dataSync\.loadCurrentUser\(\);/);
+  assert.doesNotMatch(runtimeBootstrapAccountProfileSource, /isReauthenticationRequiredError/);
+  assert.doesNotMatch(runtimeBootstrapAccountProfileSource, /onReauthenticationRequired/);
+  assert.doesNotMatch(runtimeBootstrapSource, /desktop_bootstrap_reauth_required/);
   assert.match(runtimeBootstrapAccountProfileSource, /setAuthSession\(hydratedUser, '', undefined\)/);
   assert.match(runtimeBootstrapAccountProfileSource, /readNonEmptyString\(profile\.email\)|hasEmail: Boolean\(readNonEmptyString\(hydratedUser\.email\)\)/);
   assert.doesNotMatch(

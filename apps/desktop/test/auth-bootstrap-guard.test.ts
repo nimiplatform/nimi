@@ -87,11 +87,12 @@ test('desktop runtime account browser broker waits for bootstrap before RuntimeA
   assert.match(completeBlock, /await ensureAuthApiReady\(\);[\s\S]*runtime\.account\.completeLogin\(\{/);
 });
 
-test('desktop runtime account browser broker clears stale Runtime account custody before retrying login', () => {
+test('desktop runtime account browser broker does not mutate Runtime account custody while starting login', () => {
   const beginStart = authAdapterSource.indexOf('begin: async (input: { callbackUrl: string; baseUrl?: string; timeoutMs: number }) => {');
   assert.notEqual(beginStart, -1, 'browser broker begin handler must exist');
   const beginBlock = authAdapterSource.slice(beginStart, authAdapterSource.indexOf('complete: async', beginStart));
-  assert.match(beginBlock, /accountReasonCode === AccountReasonCode\.ACCOUNT_UNAVAILABLE/);
-  assert.match(beginBlock, /await clearRuntimeAccountForReauth\('desktop_login_reauth'\)/);
-  assert.match(beginBlock, /response = await beginRuntimeAccountLogin\(input\)/);
+  assert.doesNotMatch(beginBlock, /runtime\.account\.logout/);
+  assert.doesNotMatch(beginBlock, /clearRuntimeAccountForReauth/);
+  assert.doesNotMatch(beginBlock, /desktop_login_reauth/);
+  assert.match(beginBlock, /const response = await beginRuntimeAccountLogin\(input\)/);
 });

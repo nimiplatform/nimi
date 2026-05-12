@@ -1,6 +1,4 @@
 import { dataSync } from '@runtime/data-sync';
-import { ReasonCode } from '@nimiplatform/sdk/types';
-import { extractRuntimeErrorFields } from '@runtime/telemetry/error-fields';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 
@@ -51,38 +49,14 @@ function mergeRuntimeAccountProjectionWithRealmProfile(input: {
   };
 }
 
-function isReauthenticationRequiredError(error: unknown): boolean {
-  const errorFields = extractRuntimeErrorFields(error);
-  const reasonCode = String(errorFields.reasonCode || '').trim().toUpperCase();
-  const actionHint = String(errorFields.actionHint || '').trim().toLowerCase();
-  const message = String(errorFields.message || (error instanceof Error ? error.message : error) || '').trim().toLowerCase();
-  return (
-    reasonCode === ReasonCode.AUTH_DENIED
-    || reasonCode === ReasonCode.AUTH_TOKEN_INVALID
-    || reasonCode === ReasonCode.AUTH_TOKEN_EXPIRED
-    || actionHint.includes('reauthenticate')
-    || actionHint.includes('refresh_realm_token')
-    || message.includes('authentication required')
-  );
-}
-
 export async function hydrateDesktopAccountProfile(input: {
   accountProjection: RuntimeAccountProjection;
   flowId: string;
-  onReauthenticationRequired?: () => Promise<void>;
 }): Promise<void> {
   if (!readNonEmptyString(input.accountProjection.accountId)) {
     return;
   }
-  let realmProfile: unknown;
-  try {
-    realmProfile = await dataSync.loadCurrentUser();
-  } catch (error) {
-    if (isReauthenticationRequiredError(error) && input.onReauthenticationRequired) {
-      await input.onReauthenticationRequired();
-    }
-    throw error;
-  }
+  const realmProfile: unknown = await dataSync.loadCurrentUser();
   const hydratedUser = mergeRuntimeAccountProjectionWithRealmProfile({
     accountProjection: input.accountProjection,
     realmProfile,
