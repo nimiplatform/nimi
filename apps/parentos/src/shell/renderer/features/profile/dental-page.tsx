@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAppStore, computeAgeMonths } from '../../app-shell/app-store.js';
 import { S } from '../../app-shell/page-style.js';
@@ -104,8 +104,8 @@ export default function DentalPage() {
       >
         <TabNav activeTab={activeTab} onChange={setActiveTab} />
         {activeTab === 'orthodontic' && (
-          <OrthodonticToolbarMenu
-            onRequest={(kind) => setActionRequest({ kind, nonce: Date.now() })}
+          <AddApplianceButton
+            onClick={() => setActionRequest({ kind: 'add-appliance', nonce: Date.now() })}
           />
         )}
       </div>
@@ -127,147 +127,48 @@ export default function DentalPage() {
 }
 
 /**
- * "+" menu next to the tab strip. Wave D audit follow-up (W-D-1): the page
- * recomposition deleted the legacy footer buttons for "添加装置" / "记录临床
- * 事件" but did not surface a replacement, leaving "add a second appliance"
- * and "free-form clinical event" without an entry point. This menu is the
- * dedicated home for both — visible only on the orthodontic tab, dispatches
- * a typed `OrthodonticActionRequest` to the underlying page.
+ * "添加矫治器" button next to the tab strip on the orthodontic tab.
+ *
+ * Earlier this slot held a dropdown with "添加矫治器" + "记录临床事件" siblings.
+ * The clinical-event entry was retired (the contextual `记录就诊` and
+ * `记录异常` buttons inside the treatment card cover that flow), so the
+ * dropdown layer is dropped and the single remaining action is surfaced
+ * directly as a plain button.
  */
-function OrthodonticToolbarMenu({
-  onRequest,
-}: {
-  onRequest: (kind: OrthodonticActionRequest['kind']) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDocClick = (event: MouseEvent) => {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (containerRef.current && !containerRef.current.contains(target)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, [open]);
-
-  return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        style={{
-          padding: '6px 14px',
-          borderRadius: 999,
-          fontSize: 13,
-          fontWeight: 500,
-          background: 'transparent',
-          border: '1px solid var(--nimi-border-subtle)',
-          color: 'var(--nimi-text-secondary)',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        添加
-      </button>
-      {open && (
-        <div
-          role="menu"
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: 'calc(100% + 6px)',
-            zIndex: 20,
-            background: '#ffffff',
-            border: '1px solid rgba(226,232,240,0.8)',
-            borderRadius: 12,
-            boxShadow: '0 12px 32px rgba(15,23,42,0.12)',
-            minWidth: 200,
-            padding: 4,
-          }}
-        >
-          <ToolbarMenuItem
-            label="添加装置"
-            description="新增一副牙套或保持器"
-            onClick={() => {
-              setOpen(false);
-              onRequest('add-appliance');
-            }}
-          />
-          <ToolbarMenuItem
-            label="记录临床事件"
-            description="复诊 / 调整 / 不适记录"
-            onClick={() => {
-              setOpen(false);
-              onRequest('log-clinical-event');
-            }}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ToolbarMenuItem({
-  label,
-  description,
-  onClick,
-}: {
-  label: string;
-  description: string;
-  onClick: () => void;
-}) {
+function AddApplianceButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
-      role="menuitem"
       onClick={onClick}
       style={{
-        display: 'block',
-        width: '100%',
-        textAlign: 'left',
-        padding: '8px 12px',
-        border: 0,
+        padding: '6px 14px',
+        borderRadius: 999,
+        fontSize: 13,
+        fontWeight: 500,
         background: 'transparent',
+        border: '1px solid var(--nimi-border-subtle)',
+        color: 'var(--nimi-text-secondary)',
         cursor: 'pointer',
         fontFamily: 'inherit',
-        borderRadius: 8,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'var(--nimi-surface-active)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'transparent';
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        whiteSpace: 'nowrap',
       }}
     >
-      <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--nimi-text-primary)' }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 12, color: 'var(--nimi-text-muted)', marginTop: 2 }}>
-        {description}
-      </div>
+      <svg
+        width="13"
+        height="13"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+      添加矫治器
     </button>
   );
 }

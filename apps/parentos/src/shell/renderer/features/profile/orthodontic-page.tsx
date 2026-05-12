@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
+  deleteAttachment,
+  deleteDentalRecord,
+  getAttachments,
+  getDentalRecords,
   getOrthodonticAppliances,
   getOrthodonticCases,
   getOrthodonticCheckins,
   getOrthodonticJourney,
   getUnwearIntervals,
+  type AttachmentRow,
+  type DentalRecordRow,
   type OrthoClinicalEventType,
   type OrthodonticApplianceRow,
   type OrthodonticApplianceType,
@@ -20,36 +27,28 @@ import { S } from '../../app-shell/page-style.js';
 import { OrthodonticTreatmentCard } from './orthodontic-treatment-card.js';
 import { OrthodonticTeethSelfiesCard } from './orthodontic-teeth-selfies-card.js';
 import { OrthodonticPhotoCaptureModal } from './orthodontic-photo-capture-modal.js';
-import {
-  DetailsStat,
-  OrthodonticDetailsSection,
-} from './orthodontic-details-section.js';
+import { OrthodonticDetailsSection } from './orthodontic-details-section.js';
 import { OrthodonticJourneyTimeline } from './orthodontic-journey-timeline.js';
 import {
   ApplianceFormModal,
   CaseFormModal,
+  EditApplianceFormModal,
   EditCaseFormModal,
   OrthoClinicalEventModal,
 } from './orthodontic-modals.js';
 import { OrthodonticUnwearForm } from './orthodontic-unwear-form.js';
 import {
-  computeRecentTrends,
-  formatHours,
-} from './orthodontic-derive.js';
-import {
-  type OrthodonticQuickTagId,
-  quickTagClinicalEventPrefill,
-} from './orthodontic-quick-tag-strip.js';
-
+  buildDentalAttachmentMap,
+  dentalEventLabelAndEmoji,
+  ORTHO_EVENT_TYPES,
+} from './dental-page-domain.js';
 /**
  * Cross-component action requests dispatched by the dental-page toolbar
  * (`+` menu) into this surface. `nonce` is a monotonically-increasing
  * number so re-clicking the same action triggers a new effect even when
  * the kind hasn't changed.
  */
-export type OrthodonticActionRequest =
-  | { kind: 'add-appliance'; nonce: number }
-  | { kind: 'log-clinical-event'; nonce: number };
+export type OrthodonticActionRequest = { kind: 'add-appliance'; nonce: number };
 
 interface Props {
   childId: string;
@@ -94,6 +93,7 @@ export function OrthodonticPage({
   actionRequest,
   onActionRequestHandled,
 }: Props) {
+  const navigate = useNavigate();
   const [cases, setCases] = useState<OrthodonticCaseRow[]>([]);
   const [appliances, setAppliances] = useState<OrthodonticApplianceRow[]>([]);
   const [intervalsByAppliance, setIntervalsByAppliance] = useState<
@@ -103,15 +103,25 @@ export function OrthodonticPage({
     Record<string, OrthodonticCheckinRow[]>
   >({});
   const [journey, setJourney] = useState<OrthodonticJourney | null>(null);
+  // ortho-* dental_records + their attachments: feed into the journey
+  // timeline so clinical-event entries render with photos like the dental
+  // history list does. Both surfaces (dental history + this timeline) show
+  // the same rows; the timeline pairs by `recordId` returned by the journey
+  // query.
+  const [orthoDentalRecords, setOrthoDentalRecords] = useState<DentalRecordRow[]>([]);
+  const [dentalAttachmentMap, setDentalAttachmentMap] = useState<Map<string, AttachmentRow[]>>(new Map());
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showCaseForm, setShowCaseForm] = useState(false);
   const [showEditCaseForm, setShowEditCaseForm] = useState(false);
   const [showApplianceForm, setShowApplianceForm] = useState(false);
+  const [showEditApplianceForm, setShowEditApplianceForm] = useState(false);
   const [showClinicalEventModal, setShowClinicalEventModal] = useState(false);
   const [clinicalEventPrefill, setClinicalEventPrefill] =
     useState<ClinicalEventPrefill | null>(null);
+  const [editingClinicalRecord, setEditingClinicalRecord] =
+    useState<DentalRecordRow | null>(null);
   const [showBackfillForm, setShowBackfillForm] = useState(false);
   const [backfillDefaultReason, setBackfillDefaultReason] =
     useState<OrthodonticUnwearReason | undefined>(undefined);
@@ -132,14 +142,8 @@ export function OrthodonticPage({
   // kind still fire the effect.
   useEffect(() => {
     if (!actionRequest) return;
-    switch (actionRequest.kind) {
-      case 'add-appliance':
-        setShowApplianceForm(true);
-        break;
-      case 'log-clinical-event':
-        setClinicalEventPrefill(null);
-        setShowClinicalEventModal(true);
-        break;
+    if (actionRequest.kind === 'add-appliance') {
+      setShowApplianceForm(true);
     }
     onActionRequestHandled?.();
   }, [actionRequest, onActionRequestHandled]);
@@ -201,10 +205,19 @@ export function OrthodonticPage({
     async (caseId: string | null) => {
       if (!caseId) {
         setJourney(null);
+        setOrthoDentalRecords([]);
+        setDentalAttachmentMap(new Map());
         return;
       }
       try {
-        setJourney(await getOrthodonticJourney({ childId, caseId }));
+        const [nextJourney, allDental, allAttachments] = await Promise.all([
+          getOrthodonticJourney({ childId, caseId }),
+          getDentalRecords(childId),
+          getAttachments(childId),
+        ]);
+        setJourney(nextJourney);
+        setOrthoDentalRecords(allDental.filter((r) => ORTHO_EVENT_TYPES.has(r.eventType)));
+        setDentalAttachmentMap(buildDentalAttachmentMap(allAttachments));
       } catch (error) {
         catchLog('ortho', 'action:load-journey-failed')(error);
         setErrorMsg(error instanceof Error ? error.message : String(error));
@@ -303,33 +316,58 @@ export function OrthodonticPage({
     return { nextReview: next, daysToReview: days };
   }, [appliances, activeCase, nowIso]);
 
-  const recentTrends = useMemo(() => {
-    if (!primaryAppliance) return null;
-    return computeRecentTrends({
-      appliance: primaryAppliance,
-      intervals: primaryIntervals,
-      alignerChangeCheckins: primaryCheckins,
-      nowIso,
-    });
-  }, [primaryAppliance, primaryIntervals, primaryCheckins, nowIso]);
-
   // ── Modal routing ──
-
-  const handleQuickTag = (id: OrthodonticQuickTagId) => {
-    if (id === 'miss') {
-      setBackfillDefaultReason('other');
-      setShowBackfillForm(true);
-      return;
-    }
-    const notesPrefill = quickTagClinicalEventPrefill(id);
-    if (notesPrefill === null) return;
-    setClinicalEventPrefill({ eventType: 'ortho-issue', notes: notesPrefill });
-    setShowClinicalEventModal(true);
-  };
 
   const handleOpenClinicalEvent = () => {
     setClinicalEventPrefill(null);
     setShowClinicalEventModal(true);
+  };
+
+  const handleLogOrthoIssue = () => {
+    // 「记录异常」 — prefill event type only; the parent fills in their own
+    // notes. PO-ORTHO-010 wording boundary is enforced inside the modal.
+    setClinicalEventPrefill({ eventType: 'ortho-issue', notes: '' });
+    setShowClinicalEventModal(true);
+  };
+
+  // Per-card action handlers for orthodontic journey clinical-event entries.
+  // Same backing data as the dental history list, same handlers structurally;
+  // we copy the logic here rather than navigate to the dental tab so the
+  // parent stays in the orthodontic context.
+  const handleAskAiAboutRecord = (record: DentalRecordRow) => {
+    const meta = dentalEventLabelAndEmoji(record.eventType);
+    const eventDate = record.eventDate.split('T')[0] ?? record.eventDate;
+    const descParts: string[] = [`日期：${eventDate}`];
+    if (record.hospital) descParts.push(`机构：${record.hospital}`);
+    if (record.notes) descParts.push(`备注：${record.notes}`);
+    const params = new URLSearchParams({
+      topic: meta.label,
+      desc: descParts.join('；'),
+      record: 'dental',
+    });
+    navigate(`/advisor?${params.toString()}`);
+  };
+
+  const handleEditRecord = (record: DentalRecordRow) => {
+    setEditingClinicalRecord(record);
+    setClinicalEventPrefill(null);
+    setShowClinicalEventModal(true);
+  };
+
+  const handleDeleteRecord = async (record: DentalRecordRow) => {
+    if (!window.confirm('确定删除该条临床事件？相关照片会一并删除，操作不可撤销。')) {
+      return;
+    }
+    try {
+      for (const attachment of dentalAttachmentMap.get(record.recordId) ?? []) {
+        await deleteAttachment(attachment.attachmentId);
+      }
+      await deleteDentalRecord(record.recordId);
+      await reloadAll();
+    } catch (error) {
+      catchLog('ortho', 'action:delete-clinical-event-failed')(error);
+      setErrorMsg(error instanceof Error ? error.message : String(error));
+    }
   };
 
   const handleOpenUnwearBackfill = (defaultReason?: 'other') => {
@@ -383,10 +421,10 @@ export function OrthodonticPage({
         monthsTotal={monthsTotal}
         nowIso={nowIso}
         onEditCase={() => setShowEditCaseForm(true)}
-        onEditAppliance={() => setShowApplianceForm(true)}
+        onEditAppliance={() => setShowEditApplianceForm(true)}
         onOpenUnwearBackfill={handleOpenUnwearBackfill}
-        onQuickTagClick={handleQuickTag}
         onOpenClinicalEvent={handleOpenClinicalEvent}
+        onLogOrthoIssue={handleLogOrthoIssue}
         onCaseChanged={reloadAll}
         onError={setErrorMsg}
       />
@@ -421,14 +459,16 @@ export function OrthodonticPage({
         }
         hint="按时间回看"
       >
-        <OrthodonticJourneyTimeline journey={journey} loading={journey === null} />
+        <OrthodonticJourneyTimeline
+          journey={journey}
+          loading={journey === null}
+          orthoDentalRecords={orthoDentalRecords}
+          attachmentMap={dentalAttachmentMap}
+          onAskAiAboutRecord={handleAskAiAboutRecord}
+          onEditRecord={handleEditRecord}
+          onDeleteRecord={(r) => void handleDeleteRecord(r)}
+        />
       </OrthodonticDetailsSection>
-
-      {recentTrends && (
-        <OrthodonticDetailsSection title="近 7 天数据" hint="任务达成率近似">
-          <RecentTrendsGrid trends={recentTrends} />
-        </OrthodonticDetailsSection>
-      )}
 
       {showCaseForm && (
         <CaseFormModal
@@ -470,19 +510,34 @@ export function OrthodonticPage({
         />
       )}
 
+      {showEditApplianceForm && primaryAppliance && (
+        <EditApplianceFormModal
+          appliance={primaryAppliance}
+          onClose={() => setShowEditApplianceForm(false)}
+          onSaved={async () => {
+            setShowEditApplianceForm(false);
+            await reloadAll();
+          }}
+          onError={setErrorMsg}
+        />
+      )}
+
       {showClinicalEventModal && (
         <OrthoClinicalEventModal
           childId={childId}
           childBirthDate={childBirthDate}
           activeAppliances={activeAppliances}
           prefill={clinicalEventPrefill ?? undefined}
+          editingRecord={editingClinicalRecord}
           onClose={() => {
             setShowClinicalEventModal(false);
             setClinicalEventPrefill(null);
+            setEditingClinicalRecord(null);
           }}
           onSaved={async () => {
             setShowClinicalEventModal(false);
             setClinicalEventPrefill(null);
+            setEditingClinicalRecord(null);
             await reloadAll();
           }}
           onError={setErrorMsg}
@@ -541,55 +596,6 @@ function computeCaseMonthsTotal(
     return Math.max(1, Math.round(days / 30));
   }
   return null;
-}
-
-function RecentTrendsGrid({ trends }: { trends: ReturnType<typeof computeRecentTrends> }) {
-  const cells: { label: string; value: string; sub: string }[] = [
-    {
-      label: '日均净戴',
-      value: formatHours(trends.last7AvgPerDay),
-      sub: `近 7 天合计 ${formatHours(trends.last7NetHours)}`,
-    },
-  ];
-  if (trends.cycle) {
-    cells.push({
-      label: '本副净戴',
-      value: formatHours(trends.cycle.netWearHours),
-      sub: `目标 ${formatHours(trends.cycle.targetHours)}`,
-    });
-    cells.push({
-      label: '本副提前度',
-      value:
-        trends.cycle.daysShifted === 0
-          ? '按计划'
-          : trends.cycle.daysShifted > 0
-          ? `推后 ${trends.cycle.daysShifted} 天`
-          : `提前 ${-trends.cycle.daysShifted} 天`,
-      sub: '下次换套',
-    });
-  } else if (trends.daysToReview !== null && trends.nextReviewDate !== null) {
-    cells.push({
-      label: '下次复诊',
-      value:
-        trends.daysToReview >= 0
-          ? `还有 ${trends.daysToReview} 天`
-          : `过期 ${-trends.daysToReview} 天`,
-      sub: trends.nextReviewDate,
-    });
-  }
-  return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${cells.length}, 1fr)`,
-        gap: 16,
-      }}
-    >
-      {cells.map((c) => (
-        <DetailsStat key={c.label} label={c.label} value={c.value} sub={c.sub} />
-      ))}
-    </div>
-  );
 }
 
 function ErrorBanner({ msg, onDismiss }: { msg: string; onDismiss: () => void }) {
@@ -678,7 +684,7 @@ function NoActiveApplianceCard({
       style={{ background: '#ffffff', boxShadow: '0 1px 4px rgba(15,23,42,0.06)' }}
     >
       <p className="text-[14px]" style={{ color: S.sub, margin: 0 }}>
-        当前疗程还没有进行中的装置。添加装置后可以开始记录每日状态。
+        当前疗程还没有进行中的矫治器。添加矫治器后可以开始记录每日状态。
       </p>
       {canAdd && (
         <button
@@ -687,7 +693,7 @@ function NoActiveApplianceCard({
           className="mt-3 text-[14px] font-semibold px-4 py-2 rounded-full"
           style={{ background: S.accent, color: '#fff', border: 0, cursor: 'pointer' }}
         >
-          添加装置
+          添加矫治器
         </button>
       )}
     </div>

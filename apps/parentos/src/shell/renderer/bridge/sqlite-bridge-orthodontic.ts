@@ -143,7 +143,7 @@ export type OrthodonticJourneyEntry =
   | { kind: 'appliance-completed'; occurredAt: string; applianceId: string }
   | { kind: 'aligner-change'; occurredAt: string; applianceId: string; alignerIndex: number }
   | { kind: 'expander-activation'; occurredAt: string; applianceId: string; activationIndex: number }
-  | { kind: 'clinical-event'; occurredAt: string; eventType: string; hospital: string | null; notes: string | null }
+  | { kind: 'clinical-event'; occurredAt: string; eventType: string; hospital: string | null; notes: string | null; recordId: string }
   | { kind: 'unwear-interval'; startAt: string; endAt: string | null; durationHours: number | null; reason: OrthodonticUnwearReason | null }
   | { kind: 'next-clinical-review'; predictedAt: string; applianceId: string; ruleId: string }
   | { kind: 'next-aligner-change'; predictedAt: string; applianceId: string; alignerIndex: number }

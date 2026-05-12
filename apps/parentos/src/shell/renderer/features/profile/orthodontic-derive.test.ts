@@ -9,7 +9,6 @@ import {
   applianceSupportsWearGap,
   computeCycleProgress,
   computeOpenIntervalState,
-  computeRecentTrends,
   computeStageOptions,
   defaultPrescribedHoursPerDay,
   defaultReviewIntervalDays,
@@ -243,6 +242,35 @@ describe('computeCycleProgress (clear-aligner)', () => {
     expect(cycle.cycleElapsedHours).toBeCloseTo(2, 3);
   });
 
+  it('uses LATEST-by-time alignerIndex, not max — so a correction with a lower index wins', () => {
+    // Regression: a parent mis-clicks 换下一副 (logging idx=3 yesterday at
+    // 09:00) and then corrects today (logging idx=2 at 10:00). The display
+    // must reflect their correction (2), not the stale max (3). Prior code
+    // used `Math.max(...alignerIndices)` and prevented downward correction.
+    const appliance = makeAppliance({ startedAt: '2026-04-01' });
+    const cycle = computeCycleProgress({
+      appliance,
+      intervals: [],
+      alignerChangeCheckins: [
+        makeCheckin({
+          checkinType: 'aligner-change',
+          checkinDate: '2026-04-07',
+          checkinAt: '2026-04-07T09:00:00.000Z',
+          alignerIndex: 3,
+        }),
+        makeCheckin({
+          checkinType: 'aligner-change',
+          checkinDate: '2026-04-08',
+          checkinAt: '2026-04-08T10:00:00.000Z',
+          alignerIndex: 2,
+        }),
+      ],
+      nowIso: '2026-04-08T12:00:00.000Z',
+    });
+    expect(cycle.currentAlignerIndex).toBe(2);
+    expect(cycle.cycleAnchor).toBe('2026-04-08T10:00:00.000Z');
+  });
+
   it('falls back to checkinDate at 00:00 UTC for legacy rows (checkinAt = null)', () => {
     const appliance = makeAppliance({ startedAt: '2026-04-01' });
     const cycle = computeCycleProgress({
@@ -323,53 +351,6 @@ describe('computeStageOptions', () => {
     const options = computeStageOptions(makeCase({ stage: 'retention', actualEndAt: '2027-01-01' }));
     const completed = options.find((o) => o.stage === 'completed')!;
     expect(completed.advanceable).toBe(true);
-  });
-});
-
-describe('computeRecentTrends', () => {
-  it('returns last7 averages plus the clear-aligner cycle block', () => {
-    const trends = computeRecentTrends({
-      appliance: makeAppliance(),
-      intervals: [],
-      alignerChangeCheckins: [],
-      nowIso: NOW,
-    });
-    // With no recorded gaps the projection assumes full continuous wear,
-    // so the 7-day average pins at 24 h/day.
-    expect(trends.last7AvgPerDay).toBeCloseTo(24, 1);
-    expect(trends.cycle).not.toBeNull();
-    expect(trends.cycle!.targetHours).toBeGreaterThan(0);
-  });
-
-  it('emits null cycle for non clear-aligner appliances', () => {
-    const trends = computeRecentTrends({
-      appliance: makeAppliance({ applianceType: 'twin-block', totalAligners: null, daysPerAligner: null }),
-      intervals: [],
-      alignerChangeCheckins: [],
-      nowIso: NOW,
-    });
-    expect(trends.cycle).toBeNull();
-  });
-
-  it('surfaces the next-review countdown when set', () => {
-    const trends = computeRecentTrends({
-      appliance: makeAppliance({ nextReviewDate: '2026-05-27' }),
-      intervals: [],
-      alignerChangeCheckins: [],
-      nowIso: NOW,
-    });
-    expect(trends.nextReviewDate).toBe('2026-05-27');
-    expect(trends.daysToReview).toBeGreaterThan(0);
-  });
-
-  it('reflects an overdue review as a negative day count', () => {
-    const trends = computeRecentTrends({
-      appliance: makeAppliance({ nextReviewDate: '2026-04-01' }),
-      intervals: [],
-      alignerChangeCheckins: [],
-      nowIso: NOW,
-    });
-    expect(trends.daysToReview).toBeLessThan(0);
   });
 });
 

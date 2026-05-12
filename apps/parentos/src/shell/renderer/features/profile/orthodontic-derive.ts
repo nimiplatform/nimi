@@ -178,20 +178,25 @@ export function computeCycleProgress(params: {
   })();
   const cycleTargetHours = cycleDays * prescribedHours;
 
-  // Cycle anchor (PO-ORTHO-008): prefer `checkinAt` (sub-day precision) on
-  // the latest aligner-change row; legacy rows (pre-v19) fall back to
-  // `checkinDate` at 00:00 UTC. No aligner-change yet → appliance start at
-  // 00:00 UTC. Comparison is on the resolved ISO datetime so a checkin with
-  // a wall-clock time still picks the latest event correctly even when two
-  // rows share a date.
+  // Cycle anchor + current-aligner index (PO-ORTHO-008): both derive from
+  // the LATEST aligner-change row by event time, NOT max(alignerIndex).
+  // Latest-by-time means a parent who mis-clicked 换下一副 (creating an idx=3
+  // row) can correct themselves by logging a new change with idx=2 — the
+  // newer event overrides. Prefer `checkinAt` (sub-day precision) when
+  // present; legacy rows (pre-v19) fall back to `checkinDate` at 00:00 UTC.
   const relevantChanges = alignerChangeCheckins
     .filter((c) => c.checkinType === 'aligner-change' && c.applianceId === appliance.applianceId)
-    .map((c) => c.checkinAt ?? ymdToIsoMidnight(c.checkinDate))
-    .sort();
-  const latestAlignerChangeAt = relevantChanges.length > 0
+    .map((c) => ({
+      at: c.checkinAt ?? ymdToIsoMidnight(c.checkinDate),
+      idx: c.alignerIndex,
+    }))
+    .sort((a, b) => a.at.localeCompare(b.at));
+  const latestChange = relevantChanges.length > 0
     ? relevantChanges[relevantChanges.length - 1]
     : null;
-  const cycleAnchor = latestAlignerChangeAt ?? ymdToIsoMidnight(appliance.startedAt);
+  const cycleAnchor = latestChange
+    ? latestChange.at
+    : ymdToIsoMidnight(appliance.startedAt);
 
   const anchorMs = parseIso(cycleAnchor);
   const nowMs = parseIso(nowIso);
@@ -223,14 +228,12 @@ export function computeCycleProgress(params: {
   const idealSwitchMs = anchorMs + cycleDays * DAY_MS;
   const daysShifted = Math.round((predictedSwitchMs - idealSwitchMs) / DAY_MS);
 
-  // Aligner indices.
-  const alignerIndices = alignerChangeCheckins
-    .filter((c) => c.applianceId === appliance.applianceId && c.alignerIndex !== null)
-    .map((c) => c.alignerIndex as number);
-  const latestIndex = alignerIndices.length > 0 ? Math.max(...alignerIndices) : 0;
-  // The "current" aligner is the one the parent is actively wearing now.
-  // If they have logged N changes, they are wearing aligner N (1-based);
-  // before the first logged change, they are wearing aligner 1.
+  // Current aligner = the index on the LATEST-by-time aligner-change row
+  // (see the sorted `relevantChanges` above). Falls back to 1 before the
+  // first logged change. Critically NOT `Math.max(alignerIndex)` — that
+  // semantic prevents the parent from ever correcting a mis-clicked higher
+  // index by logging a new lower one.
+  const latestIndex = latestChange && latestChange.idx !== null ? latestChange.idx : 0;
   const currentAlignerIndex = Math.max(1, latestIndex);
   const totalAligners = appliance.totalAligners ?? null;
   const cycleSeriesComplete =
@@ -295,107 +298,6 @@ export function computeStageOptions(
     return { stage, state, advanceable, blockedReason };
   });
 }
-
-// ── Contextual prompts (removed in Wave D audit follow-up W-D-3) ────────
-// `computeContextualPrompts`, `formatDeterministicAiSummary`, and the
-// `ContextualPrompt` shape were the engines behind the now-deleted
-// `OrthodonticPromptsCard` and the standalone "最近趋势" footer. Wave D
-// redistributed those affordances into the wearing-hero quick-tag strip,
-// the next-visit-card 3×3 grid, and the per-cycle stat row, so the
-// pre-baked prompt strings are no longer surfaced. The structured trend
-// data the renderer still wants is exposed through `computeRecentTrends`
-// (below) without the natural-language layer that lived too close to the
-// PO-ORTHO-010 boundary.
-//
-// Retired placeholder so any future re-introduction has to land a fresh
-// design — the deleted strings ("复诊已过期未记录", "该换下一副了") were
-// rooted in the old card and should not be revived verbatim.
-
-// (Function bodies retired by Wave D audit follow-up W-D-3; see comment above.)
-
-// ── Deterministic AI summary (PO-ORTHO-010) ─────────────────────────────
-
-/**
- * Structured trend data computed deterministically from local records. Used
- * by both `formatDeterministicAiSummary` (text rendering) and Wave D's
- * "近 7 天数据" details accordion (Stat-grid rendering). Splitting the
- * computation from the rendering keeps the PO-ORTHO-010 fact-restatement
- * surface stable while letting UI evolve.
- */
-export interface OrthodonticRecentTrends {
-  /** Hours of net wear over the last 7 days (caps at elapsed wall-clock). */
-  last7NetHours: number;
-  /** Average net wear per day over the last 7 days. */
-  last7AvgPerDay: number;
-  /** Clear-aligner only — current-cycle net wear, target, and shift. */
-  cycle: {
-    netWearHours: number;
-    targetHours: number;
-    daysShifted: number;
-  } | null;
-  /** Days until next clinical review (negative = overdue). Null when no date set. */
-  daysToReview: number | null;
-  nextReviewDate: string | null;
-}
-
-export function computeRecentTrends(params: {
-  appliance: OrthodonticApplianceRow;
-  intervals: OrthodonticUnwearIntervalRow[];
-  alignerChangeCheckins: OrthodonticCheckinRow[];
-  nowIso: string;
-}): OrthodonticRecentTrends {
-  const { appliance, intervals, alignerChangeCheckins, nowIso } = params;
-  const sevenDaysAgoMs = parseIso(nowIso) - 7 * DAY_MS;
-  const nowMs = parseIso(nowIso);
-  let last7GapHours = 0;
-  for (const iv of intervals) {
-    const startMs = parseIso(iv.startAt);
-    const endMs = iv.endAt ? parseIso(iv.endAt) : nowMs;
-    if (endMs <= sevenDaysAgoMs || startMs >= nowMs) continue;
-    last7GapHours +=
-      Math.max(0, Math.min(endMs, nowMs) - Math.max(startMs, sevenDaysAgoMs)) / HOUR_MS;
-  }
-  const last7ElapsedHours = (nowMs - sevenDaysAgoMs) / HOUR_MS;
-  const last7NetHours = Math.max(0, last7ElapsedHours - last7GapHours);
-  const last7AvgPerDay = last7ElapsedHours > 0 ? last7NetHours / 7 : 0;
-
-  const cycle =
-    appliance.applianceType === 'clear-aligner'
-      ? (() => {
-          const c = computeCycleProgress({
-            appliance,
-            intervals,
-            alignerChangeCheckins,
-            nowIso,
-          });
-          return {
-            netWearHours: c.cycleNetWearHours,
-            targetHours: c.cycleTargetHours,
-            daysShifted: c.daysShifted,
-          };
-        })()
-      : null;
-
-  const daysToReview = appliance.nextReviewDate
-    ? Math.round(
-        (parseIso(ymdToIsoMidnight(appliance.nextReviewDate)) - parseIso(nowIso)) / DAY_MS,
-      )
-    : null;
-
-  return {
-    last7NetHours,
-    last7AvgPerDay,
-    cycle,
-    daysToReview,
-    nextReviewDate: appliance.nextReviewDate ?? null,
-  };
-}
-
-// `formatDeterministicAiSummary` was the natural-language renderer for the
-// retired "最近趋势" footer. The Details accordion that replaced it
-// (`OrthodonticDetailsSection` + `computeRecentTrends`) renders structured
-// stat tiles instead, keeping the wording layer farther away from the
-// PO-ORTHO-010 boundary.
 
 // ── Formatting ──────────────────────────────────────────────────────────
 

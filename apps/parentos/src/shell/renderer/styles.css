@@ -4,6 +4,31 @@
 @import "@nimiplatform/nimi-kit/ui/themes/desktop-accent.css";
 @import 'tailwindcss';
 
+/* Active-stage dot in the orthodontic 疗程总进度 strip. Halo expands +
+ * fades cyclically to signal "this is the current stage right now". The
+ * accent green matches `S.accent` (#4ECCA3) used everywhere else on the
+ * orthodontic surface. */
+@keyframes ortho-stage-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(78, 204, 163, 0.22);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(78, 204, 163, 0.05);
+  }
+}
+
+.ortho-stage-active-dot {
+  animation: ortho-stage-pulse 1.8s ease-in-out infinite;
+}
+
+/* Respect reduced-motion preference — health-app surfaces should not force
+ * animation on parents who opt out at the OS level. */
+@media (prefers-reduced-motion: reduce) {
+  .ortho-stage-active-dot {
+    animation: none;
+  }
+}
+
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  * ParentOS (成长底稿) Typography Specification
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

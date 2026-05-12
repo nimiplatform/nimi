@@ -55,6 +55,10 @@ pub enum JourneyEntry {
         event_type: String,
         hospital: Option<String>,
         notes: Option<String>,
+        /// Backing health_record_events.eventId — equal to the dental-record
+        /// `recordId` surfaced by `get_dental_records`. Renderers use it to
+        /// look up attachments and align with the dental history list.
+        record_id: String,
     },
     #[serde(rename_all = "camelCase")]
     UnwearInterval {
@@ -278,6 +282,7 @@ pub fn get_orthodontic_journey(
     let mut clinical_stmt = conn
         .prepare(
             "SELECT
+                 e.eventId,
                  json_extract(v.valueJson, '$.eventType'),
                  e.effectiveDate,
                  json_extract(v.valueJson, '$.hospital'),
@@ -291,26 +296,28 @@ pub fn get_orthodontic_journey(
              ORDER BY e.effectiveDate ASC, e.createdAt ASC",
         )
         .map_err(|e| format!("get_orthodontic_journey clinical prepare: {e}"))?;
-    let clinical_rows: Vec<(Option<String>, String, Option<String>, Option<String>)> =
+    let clinical_rows: Vec<(String, Option<String>, String, Option<String>, Option<String>)> =
         clinical_stmt
             .query_map(params![child_id], |row| {
                 Ok((
-                    row.get::<_, Option<String>>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, Option<String>>(2)?,
+                    row.get::<_, String>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                    row.get::<_, String>(2)?,
                     row.get::<_, Option<String>>(3)?,
+                    row.get::<_, Option<String>>(4)?,
                 ))
             })
             .map_err(|e| format!("get_orthodontic_journey clinical query: {e}"))?
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| format!("get_orthodontic_journey clinical collect: {e}"))?;
-    for (event_type_opt, effective_date, hospital, notes) in clinical_rows {
+    for (record_id, event_type_opt, effective_date, hospital, notes) in clinical_rows {
         if let Some(event_type) = event_type_opt {
             past.push(JourneyEntry::ClinicalEvent {
                 occurred_at: format!("{effective_date}T00:00:00.000Z"),
                 event_type,
                 hospital,
                 notes,
+                record_id,
             });
         }
     }

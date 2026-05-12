@@ -10,14 +10,16 @@
  * Pure composition of `bridge` writers + small primitives. PO-ORTHO-002 /
  * PO-ORTHO-003 / PO-ORTHO-006 fail-close happens in the Rust command layer.
  */
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   insertOrthodonticAppliance,
   insertOrthodonticCase,
   insertOrthoClinicalDentalRecord,
+  updateDentalRecord,
   updateOrthodonticApplianceReview,
   updateOrthodonticAppliancePlan,
   updateOrthodonticCase,
+  type DentalRecordRow,
   type OrthoClinicalEventType,
   type OrthodonticApplianceRow,
   type OrthodonticApplianceType,
@@ -239,7 +241,7 @@ export function EditCaseFormModal({
       return;
     }
     if (showAlignerPlanFields && (!totalAlignersValid || !daysPerAlignerValid)) {
-      const msg = '隐形牙套需要正整数的总副数和每副佩戴天数（PO-ORTHO-003）';
+      const msg = '隐形牙套需要正整数的总副数和每副佩戴天数';
       setLocalError(msg);
       onError(msg);
       return;
@@ -296,9 +298,6 @@ export function EditCaseFormModal({
   return (
     <Modal title="编辑当前疗程" onClose={onClose}>
       {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
-      <p className="text-[13px]" style={{ color: S.sub }}>
-        阶段（如「治疗中 → 保持期」）请在页面顶部疗程卡的进度条上点击切换，这里不修改。
-      </p>
       <FieldSelect
         label="类型"
         value={caseType}
@@ -427,13 +426,13 @@ export function ApplianceFormModal({
   const handleSubmit = async () => {
     if (!startedAt) return;
     if (needsPrescribedHours && !prescribedHours.trim()) {
-      const msg = '请填写该装置的医嘱每日佩戴小时数';
+      const msg = '请填写矫治器的医嘱每日佩戴小时数';
       setLocalError(msg);
       onError(msg);
       return;
     }
     if (isClearAligner && (!totalAlignersValid || !daysPerAlignerValid)) {
-      const msg = '隐形牙套需要正整数的总副数和每副佩戴天数（PO-ORTHO-003）';
+      const msg = '隐形牙套需要正整数的总副数和每副佩戴天数';
       setLocalError(msg);
       onError(msg);
       return;
@@ -472,7 +471,7 @@ export function ApplianceFormModal({
     : 0;
 
   return (
-    <Modal title="添加装置" onClose={onClose}>
+    <Modal title="添加矫治器" onClose={onClose}>
       {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
       <FieldSelect label="装置类型" value={applianceType}
         onChange={(v) => setApplianceType(v as OrthodonticApplianceType)}
@@ -480,7 +479,7 @@ export function ApplianceFormModal({
       {eligibleTypes.length === 0 && (
         <div className="text-[14px] px-3 py-2 rounded-md"
           style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
-          孩子当前年龄不满足任何装置的最小年龄门槛（PO-ORTHO-009）。
+          孩子当前年龄不满足任何矫治器的最小年龄门槛。
         </div>
       )}
       <FieldInput label="开始日期" type="date" value={startedAt} onChange={setStartedAt} />
@@ -490,12 +489,7 @@ export function ApplianceFormModal({
         </div>
       )}
       <FieldInput label="医嘱佩戴小时/天" type="number" value={prescribedHours} onChange={setPrescribedHours}
-        placeholder={needsPrescribedHours ? '该装置必填' : '非日佩戴类装置可不填'} />
-      {needsPrescribedHours && !prescribedHours.trim() && (
-        <div className="text-[13px]" style={{ color: '#b91c1c' }}>
-          每日佩戴类装置必须有医嘱小时数（PO-ORTHO-003）。
-        </div>
-      )}
+        required={needsPrescribedHours} />
       {applianceType === 'expander' && (
         <FieldInput label="扩弓总激活次数" type="number" value={prescribedActivations}
           onChange={setPrescribedActivations} />
@@ -519,7 +513,7 @@ export function ApplianceFormModal({
         </>
       )}
       <FieldInput label="复诊间隔（天）" type="number" value={reviewIntervalDays}
-        onChange={setReviewIntervalDays} placeholder="不填使用协议默认值" />
+        onChange={setReviewIntervalDays} />
       {startedAt && childBirthDate && !dateIsBeforeBirth && (
         <div className="text-[13px]" style={{ color: S.sub }}>
           开始时孩子 {Math.floor(startedAgeMonths / 12)} 岁 {startedAgeMonths % 12} 月
@@ -536,11 +530,175 @@ export function ApplianceFormModal({
   );
 }
 
+/**
+ * In-flight edit modal for an existing appliance. Surfaces what
+ * `updateOrthodonticAppliancePlan` (`prescribedHoursPerDay` / `totalAligners`
+ * / `daysPerAligner`) and `updateOrthodonticApplianceReview` (`nextReviewDate`)
+ * actually admit; `applianceType` and `startedAt` are structural and shown
+ * read-only. Same fail-close rules as the insert path (PO-ORTHO-003): a
+ * clear-aligner must keep positive `totalAligners` + `daysPerAligner`;
+ * non-clear-aligner cannot expose those fields at all.
+ */
+export function EditApplianceFormModal({
+  appliance,
+  onClose,
+  onSaved,
+  onError,
+}: {
+  appliance: OrthodonticApplianceRow;
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+  onError: (message: string | null) => void;
+}) {
+  const isClearAligner = appliance.applianceType === 'clear-aligner';
+  const needsPrescribedHours = applianceRequiresPrescribedHours(appliance.applianceType);
+
+  const [prescribedHours, setPrescribedHours] = useState<string>(
+    appliance.prescribedHoursPerDay !== null ? String(appliance.prescribedHoursPerDay) : '',
+  );
+  const [totalAligners, setTotalAligners] = useState<string>(
+    appliance.totalAligners !== null ? String(appliance.totalAligners) : '',
+  );
+  const [daysPerAligner, setDaysPerAligner] = useState<string>(
+    appliance.daysPerAligner !== null ? String(appliance.daysPerAligner) : '',
+  );
+  const [nextReviewDate, setNextReviewDate] = useState<string>(appliance.nextReviewDate ?? '');
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const prescribedHoursNum = Number(prescribedHours);
+  const totalAlignersNum = Number(totalAligners);
+  const daysPerAlignerNum = Number(daysPerAligner);
+
+  const prescribedHoursValid = needsPrescribedHours
+    ? Number.isInteger(prescribedHoursNum) && prescribedHoursNum > 0 && prescribedHoursNum <= 24
+    : true;
+  const totalAlignersValid = isClearAligner
+    ? Number.isInteger(totalAlignersNum) && totalAlignersNum > 0
+    : true;
+  const daysPerAlignerValid = isClearAligner
+    ? Number.isInteger(daysPerAlignerNum) && daysPerAlignerNum > 0
+    : true;
+  const nextReviewValid = nextReviewDate === '' || /^\d{4}-\d{2}-\d{2}$/.test(nextReviewDate);
+
+  const formValid =
+    prescribedHoursValid && totalAlignersValid && daysPerAlignerValid && nextReviewValid;
+
+  const handleSubmit = async () => {
+    if (needsPrescribedHours && !prescribedHoursValid) {
+      const msg = '医嘱每日佩戴小时数必须在 1..24 之间';
+      setLocalError(msg);
+      onError(msg);
+      return;
+    }
+    if (isClearAligner && (!totalAlignersValid || !daysPerAlignerValid)) {
+      const msg = '隐形牙套需要正整数的总副数和每副佩戴天数';
+      setLocalError(msg);
+      onError(msg);
+      return;
+    }
+    if (!nextReviewValid) {
+      const msg = '下次复诊日期格式应为 YYYY-MM-DD';
+      setLocalError(msg);
+      onError(msg);
+      return;
+    }
+    try {
+      onError(null);
+      setLocalError(null);
+      const now = isoNow();
+      await updateOrthodonticAppliancePlan({
+        applianceId: appliance.applianceId,
+        prescribedHoursPerDay: needsPrescribedHours ? prescribedHoursNum : null,
+        totalAligners: isClearAligner ? totalAlignersNum : null,
+        daysPerAligner: isClearAligner ? daysPerAlignerNum : null,
+        now,
+      });
+      // Persist the review date only when the parent actually touched it.
+      // Empty string clears the row; matching the existing value is a no-op
+      // but we still skip the write to keep `lastReviewAt` untouched.
+      if (nextReviewDate !== (appliance.nextReviewDate ?? '')) {
+        await updateOrthodonticApplianceReview({
+          applianceId: appliance.applianceId,
+          lastReviewAt: appliance.lastReviewAt,
+          nextReviewDate: nextReviewDate === '' ? null : nextReviewDate,
+          now,
+        });
+      }
+      await onSaved();
+    } catch (error) {
+      catchLog('ortho', 'action:update-appliance-plan-failed')(error);
+      const msg = error instanceof Error ? error.message : String(error);
+      setLocalError(msg);
+      onError(msg);
+    }
+  };
+
+  return (
+    <Modal title="编辑装置设置" onClose={onClose}>
+      {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
+
+      <div className="text-[13px] px-3 py-2 rounded-md"
+        style={{ background: 'rgba(15,23,42,0.04)', color: S.sub, border: '1px solid rgba(226,232,240,0.7)' }}>
+        装置类型 <strong style={{ color: S.text, marginLeft: 6 }}>{applianceTypeLabel(appliance.applianceType)}</strong>
+        <span style={{ marginLeft: 12 }}>启用日期</span>
+        <strong style={{ color: S.text, marginLeft: 6 }}>{appliance.startedAt}</strong>
+      </div>
+
+      {needsPrescribedHours && (
+        <>
+          <FieldInput label="医嘱每日佩戴小时" type="number" value={prescribedHours} onChange={setPrescribedHours}
+            placeholder="例如 22" />
+          {!prescribedHoursValid && (
+            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+              医嘱每日佩戴小时数必须在 1..24 之间。
+            </div>
+          )}
+        </>
+      )}
+
+      {isClearAligner && (
+        <>
+          <FieldInput label="牙套总副数" type="number" value={totalAligners} onChange={setTotalAligners}
+            placeholder="例如 30" />
+          {!totalAlignersValid && (
+            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+              总副数必须是大于 0 的整数。
+            </div>
+          )}
+          <FieldInput label="每副佩戴天数" type="number" value={daysPerAligner} onChange={setDaysPerAligner}
+            placeholder="例如 7" />
+          {!daysPerAlignerValid && (
+            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+              每副佩戴天数必须是大于 0 的整数。
+            </div>
+          )}
+        </>
+      )}
+
+      <FieldInput label="下次复诊日期" type="date" value={nextReviewDate} onChange={setNextReviewDate}
+        placeholder="留空清除" />
+      {!nextReviewValid && (
+        <div className="text-[13px]" style={{ color: '#b91c1c' }}>
+          下次复诊日期格式应为 YYYY-MM-DD。
+        </div>
+      )}
+
+      <ModalFooter
+        onCancel={onClose}
+        onSubmit={() => void handleSubmit()}
+        submitLabel="保存"
+        disabled={!formValid}
+      />
+    </Modal>
+  );
+}
+
 export function OrthoClinicalEventModal({
   childId,
   childBirthDate,
   activeAppliances,
   prefill,
+  editingRecord,
   onClose,
   onSaved,
   onError,
@@ -558,16 +716,32 @@ export function OrthoClinicalEventModal({
     eventType?: OrthoClinicalEventType;
     notes?: string;
   };
+  /**
+   * When present the modal is in EDIT mode: fields are seeded from the
+   * existing dental record, the title flips, save dispatches
+   * `updateDentalRecord` (preserving `toothId` / `toothSet` / `severity` /
+   * `photoPath` that this modal doesn't surface), and the post-save
+   * `updateOrthodonticApplianceReview` recompute is suppressed (the review
+   * advance ran when the record was originally created — re-running it on
+   * a subsequent edit would silently shift the next-visit date forward).
+   */
+  editingRecord?: DentalRecordRow | null;
   onClose: () => void;
   onSaved: () => Promise<void>;
   onError: (message: string | null) => void;
 }) {
+  const isEditing = !!editingRecord;
   const [eventType, setEventType] = useState<OrthoClinicalEventType>(
-    prefill?.eventType ?? 'ortho-review',
+    (editingRecord?.eventType as OrthoClinicalEventType | undefined)
+      ?? prefill?.eventType
+      ?? 'ortho-review',
   );
-  const [eventDate, setEventDate] = useState(new Date().toISOString().slice(0, 10));
-  const [hospital, setHospital] = useState('');
-  const [notes, setNotes] = useState(prefill?.notes ?? '');
+  const [eventDate, setEventDate] = useState(
+    editingRecord?.eventDate?.split('T')[0]
+      ?? new Date().toISOString().slice(0, 10),
+  );
+  const [hospital, setHospital] = useState(editingRecord?.hospital ?? '');
+  const [notes, setNotes] = useState(editingRecord?.notes ?? prefill?.notes ?? '');
   const [appliedToApplianceId, setAppliedToApplianceId] = useState<string>(
     activeAppliances[0]?.applianceId ?? '',
   );
@@ -606,27 +780,46 @@ export function OrthoClinicalEventModal({
       setLocalError(null);
       const now = isoNow();
       const ageMonths = computeAgeMonthsAt(childBirthDate, eventDate);
-      await insertOrthoClinicalDentalRecord({
-        recordId: ulid(),
-        childId,
-        eventType,
-        eventDate,
-        ageMonths,
-        hospital: hospital.trim() || null,
-        notes: notes.trim() || null,
-        now,
-      });
-      if (advancesReview && selectedAppliance && computedNextReviewDate) {
-        await updateOrthodonticApplianceReview({
-          applianceId: selectedAppliance.applianceId,
-          lastReviewAt: eventDate,
-          nextReviewDate: computedNextReviewDate,
+      if (editingRecord) {
+        await updateDentalRecord({
+          recordId: editingRecord.recordId,
+          eventType,
+          // Preserve fields this modal doesn't expose; orthodontic clinical
+          // events historically have no toothId/severity/photoPath, so these
+          // pass through whatever was stored at create time.
+          toothId: editingRecord.toothId,
+          toothSet: editingRecord.toothSet,
+          eventDate,
+          ageMonths,
+          severity: editingRecord.severity,
+          hospital: hospital.trim() || null,
+          notes: notes.trim() || null,
+          photoPath: editingRecord.photoPath,
           now,
         });
+      } else {
+        await insertOrthoClinicalDentalRecord({
+          recordId: ulid(),
+          childId,
+          eventType,
+          eventDate,
+          ageMonths,
+          hospital: hospital.trim() || null,
+          notes: notes.trim() || null,
+          now,
+        });
+        if (advancesReview && selectedAppliance && computedNextReviewDate) {
+          await updateOrthodonticApplianceReview({
+            applianceId: selectedAppliance.applianceId,
+            lastReviewAt: eventDate,
+            nextReviewDate: computedNextReviewDate,
+            now,
+          });
+        }
       }
       await onSaved();
     } catch (error) {
-      catchLog('ortho', 'action:insert-ortho-clinical-event-failed')(error);
+      catchLog('ortho', 'action:save-ortho-clinical-event-failed')(error);
       const msg = error instanceof Error ? error.message : String(error);
       setLocalError(msg);
       onError(msg);
@@ -634,16 +827,13 @@ export function OrthoClinicalEventModal({
   };
 
   return (
-    <Modal title="记录正畸临床事件" onClose={onClose}>
+    <Modal title={isEditing ? '编辑正畸临床事件' : '记录正畸临床事件'} onClose={onClose}>
       {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
-      <p className="text-[13px]" style={{ color: S.sub }}>
-        将写入口腔档案的临床时间线（dental_records），不参与日常依从率统计。
-      </p>
       <FieldSelect label="事件类型" value={eventType}
         onChange={(v) => setEventType(v as OrthoClinicalEventType)}
         options={ORTHO_CLINICAL_EVENT_OPTIONS.map((o) => ({ value: o.value, label: `${o.label}（${o.desc}）` }))} />
       <FieldInput label="日期" type="date" value={eventDate} onChange={setEventDate} />
-      {advancesReview && activeAppliances.length > 0 && (
+      {!isEditing && advancesReview && activeAppliances.length > 0 && (
         <>
           <FieldSelect label="对应装置" value={appliedToApplianceId}
             onChange={(v) => setAppliedToApplianceId(v)}
@@ -659,7 +849,7 @@ export function OrthoClinicalEventModal({
           )}
         </>
       )}
-      {advancesReview && activeAppliances.length === 0 && (
+      {!isEditing && advancesReview && activeAppliances.length === 0 && (
         <div className="text-[13px] px-3 py-2 rounded-md"
           style={{ background: 'rgba(245,158,11,0.08)', color: '#b45309', border: '1px solid rgba(245,158,11,0.25)' }}>
           当前疗程没有进行中的装置。事件会写入时间线，但不会推进复诊周期。
@@ -675,9 +865,29 @@ export function OrthoClinicalEventModal({
 /* ── Primitives ────────────────────────────────────────── */
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  // Escape key closes — standard modal behavior. Registered once per mount so
+  // multiple open modals don't double-fire (only the topmost should listen,
+  // but we don't stack modals in this surface in practice).
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.32)', display: 'grid', placeItems: 'center', zIndex: 100 }}>
-      <div style={{ background: '#fff', padding: 24, borderRadius: 16, minWidth: 360, maxWidth: 460, display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.32)', display: 'grid', placeItems: 'center', zIndex: 100 }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: '#fff', padding: 24, borderRadius: 16, minWidth: 360, maxWidth: 460, display: 'flex', flexDirection: 'column', gap: 12 }}
+      >
         <div className="flex items-center justify-between">
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{title}</h3>
           <button type="button" onClick={onClose}
@@ -747,17 +957,22 @@ function FieldSelect({ label, value, onChange, options }: {
   );
 }
 
-function FieldInput({ label, type = 'text', value, onChange, placeholder }: {
+function FieldInput({ label, type = 'text', value, onChange, placeholder, required }: {
   label: string;
   type?: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  required?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-1 text-[14px]" style={{ color: '#475569' }}>
-      {label}
+      <span>
+        {label}
+        {required && <span aria-hidden="true" style={{ color: '#dc2626', marginLeft: 4 }}>*</span>}
+      </span>
       <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        aria-required={required || undefined}
         className="px-2 py-1.5 rounded-md text-[14px]" style={{ border: '1px solid rgba(226,232,240,0.9)' }} />
     </label>
   );
