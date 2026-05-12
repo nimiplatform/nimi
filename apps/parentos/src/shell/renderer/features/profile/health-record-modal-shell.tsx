@@ -23,6 +23,7 @@
 
 import {
   forwardRef,
+  useRef,
   type CSSProperties,
   type MouseEventHandler,
   type ReactNode,
@@ -126,12 +127,13 @@ type HealthRecordSidebarProps = {
   selected: string;
   onSelect: (id: string) => void;
   title?: string;
+  footer?: ReactNode;
 };
 
-export function HealthRecordSidebar({ items, selected, onSelect, title }: HealthRecordSidebarProps) {
+export function HealthRecordSidebar({ items, selected, onSelect, title, footer }: HealthRecordSidebarProps) {
   return (
     <aside
-      className="flex shrink-0 flex-col gap-1 px-3 py-5"
+      className="flex shrink-0 flex-col px-3 py-5"
       style={{
         width: HEALTH_MODAL_TOKENS.sidebarWidth,
         background: HEALTH_MODAL_TOKENS.surfaceMuted,
@@ -175,7 +177,88 @@ export function HealthRecordSidebar({ items, selected, onSelect, title }: Health
           );
         })}
       </div>
+      {footer ? <div className="mt-auto pt-3">{footer}</div> : null}
     </aside>
+  );
+}
+
+/* ── SmartInputButton ──────────────────────────────────────────────────── */
+
+type SmartInputButtonProps = {
+  loading: boolean;
+  error: string | null;
+  imageName: string | null;
+  accept?: string;
+  hint?: string;
+  onUpload: (file: File) => void;
+};
+
+export function SmartInputButton({
+  loading,
+  error,
+  imageName,
+  accept = 'image/*',
+  hint,
+  onUpload,
+}: SmartInputButtonProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const status = loading
+    ? imageName
+      ? `正在识别 ${imageName}…`
+      : '识别中…'
+    : error
+      ? error
+      : imageName
+        ? `✓ 已从 ${imageName} 提取`
+        : (hint ?? '上传图片，AI 自动填表');
+  const statusColor = loading
+    ? HEALTH_MODAL_TOKENS.accent
+    : error
+      ? '#dc2626'
+      : imageName
+        ? HEALTH_MODAL_TOKENS.accent
+        : HEALTH_MODAL_TOKENS.sub;
+
+  return (
+    <div
+      className="rounded-[14px] p-3"
+      style={{
+        background: '#ffffff',
+        border: `1px solid ${HEALTH_MODAL_TOKENS.border}`,
+      }}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) onUpload(file);
+          event.target.value = '';
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={loading}
+        className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2.5 text-[13px] font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50"
+        style={{
+          background: HEALTH_MODAL_TOKENS.accent,
+          boxShadow: '0 6px 16px -8px rgba(78,204,163,0.55)',
+        }}
+      >
+        <span aria-hidden="true" className="text-[16px]">
+          {loading ? '⏳' : '🤖'}
+        </span>
+        <span className="flex-1 text-left truncate">
+          {loading ? '识别中…' : '智能录入'}
+        </span>
+      </button>
+      <p className="mt-2 text-[11px] leading-snug" style={{ color: statusColor }}>
+        {status}
+      </p>
+    </div>
   );
 }
 
@@ -615,7 +698,7 @@ export function ChipGroup<V extends string = string>({
                 onChange(option.value);
               }
             }}
-            className={`${heightCls} inline-flex items-center justify-center gap-1.5 rounded-[12px] font-medium transition-all disabled:opacity-40 ${
+            className={`${heightCls} inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[12px] font-medium transition-all disabled:opacity-40 ${
               layout === 'fill' ? 'flex-1' : ''
             }`}
             style={

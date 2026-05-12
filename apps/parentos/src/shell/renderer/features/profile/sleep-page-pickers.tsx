@@ -220,7 +220,6 @@ export function TimePickerInput({
 
   const fmt = (hh: number, mm: number) => `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
   const isSmall = size === 'small';
-  const py = isSmall ? 'py-1' : 'py-2';
   const iconSize = isSmall ? 14 : 16;
 
   return (
@@ -230,10 +229,18 @@ export function TimePickerInput({
           type="text"
           readOnly
           value={value}
-          className={`w-full ${S.radiusSm} ${isSmall ? 'pl-2 pr-7' : 'pl-3 pr-8'} ${py} text-[14px] outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 cursor-pointer ${isSmall ? 'bg-white' : ''}`}
-          style={isSmall ? { borderColor: S.border, borderWidth: 1, borderStyle: 'solid' } : inputSty}
+          className={`w-full outline-none transition-shadow focus:ring-2 focus:ring-[#4ECCA3]/50 cursor-pointer ${
+            isSmall
+              ? `${S.radiusSm} pl-2 pr-7 py-1 text-[14px] bg-white`
+              : 'h-12 rounded-[14px] pl-3 pr-9 text-[14px]'
+          }`}
+          style={
+            isSmall
+              ? { borderColor: S.border, borderWidth: 1, borderStyle: 'solid' }
+              : { borderColor: '#E5E5DD', borderWidth: 1, borderStyle: 'solid', background: '#fafaf8', color: '#1e293b' }
+          }
         />
-        <Icon size={iconSize} strokeWidth={1.5} className={`absolute ${isSmall ? 'right-2' : 'right-2.5'} text-gray-400 transition-colors cursor-pointer ${open ? 'text-[#1e293b]' : 'group-focus-within/field:text-[#1e293b]'}`} />
+        <Icon size={iconSize} strokeWidth={1.5} className={`absolute ${isSmall ? 'right-2' : 'right-3'} text-gray-400 transition-colors cursor-pointer ${open ? 'text-[#1e293b]' : 'group-focus-within/field:text-[#1e293b]'}`} />
       </div>
 
       <PickerPortal open={open}>

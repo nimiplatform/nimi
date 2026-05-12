@@ -129,14 +129,10 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
               <DateField value={formSleepDate} onChange={setFormSleepDate} />
             </FormField>
             <FormField label="入睡时间">
-              <TimeFieldShell>
-                <TimePickerInput value={formBedtime} onChange={setFormBedtime} icon={Moon} />
-              </TimeFieldShell>
+              <TimePickerInput value={formBedtime} onChange={setFormBedtime} icon={Moon} />
             </FormField>
             <FormField label="起床时间">
-              <TimeFieldShell>
-                <TimePickerInput value={formWakeTime} onChange={setFormWakeTime} icon={Sun} />
-              </TimeFieldShell>
+              <TimePickerInput value={formWakeTime} onChange={setFormWakeTime} icon={Sun} />
             </FormField>
           </FormGrid>
 
@@ -269,24 +265,6 @@ export function SleepFormContent({ child, initialRecord, onSaved, onClose }: Sle
         </PrimaryButton>
       </ModalFooter>
     </>
-  );
-}
-
-/* TimePickerInput renders its own button with internal sizing — wrap it so the
- * outer field shows uniform 48px height + radius without rebuilding the picker. */
-function TimeFieldShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="flex items-center px-2"
-      style={{
-        height: HEALTH_MODAL_TOKENS.fieldHeight,
-        borderRadius: HEALTH_MODAL_TOKENS.fieldRadius,
-        border: `1px solid ${HEALTH_MODAL_TOKENS.fieldBorder}`,
-        background: HEALTH_MODAL_TOKENS.fieldBg,
-      }}
-    >
-      <div className="w-full">{children}</div>
-    </div>
   );
 }
 

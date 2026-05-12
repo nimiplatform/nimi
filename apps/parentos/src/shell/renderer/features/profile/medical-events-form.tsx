@@ -1,4 +1,4 @@
-import { useEffect, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useState, type RefObject } from 'react';
 import { DrugComboBox, type DrugSelection } from './drug-combobox.js';
 import { getMedicalEvents } from '../../bridge/sqlite-bridge.js';
 import type { MedicalEventRow } from '../../bridge/sqlite-bridge.js';
@@ -48,14 +48,30 @@ export function MedicalEventsForm(props: MedicalEventsFormProps) {
   );
 }
 
+export type SmartInputState = {
+  loading: boolean;
+  error: string | null;
+  imageName: string | null;
+  onUpload: ((file: File) => void) | null;
+};
+
+export const EMPTY_SMART_INPUT_STATE: SmartInputState = {
+  loading: false,
+  error: null,
+  imageName: null,
+  onUpload: null,
+};
+
 export function MedicalEventFormContent({
   child,
   onSaved,
   onClose,
+  onSmartInputStateChange,
 }: {
   child: MedicalEventsChildContext;
   onSaved?: () => void;
   onClose: () => void;
+  onSmartInputStateChange?: (state: SmartInputState) => void;
 }) {
   const [events, setEvents] = useState<MedicalEventRow[]>([]);
 
@@ -70,6 +86,34 @@ export function MedicalEventFormContent({
     onSaved?.();
     onClose();
   });
+
+  const handleOCRUpload = useCallback(
+    (file: File) => { void formState.handleOCRUpload(file); },
+    [formState.handleOCRUpload],
+  );
+
+  const smartInputHoisted = onSmartInputStateChange != null;
+
+  useEffect(() => {
+    if (!onSmartInputStateChange) return;
+    onSmartInputStateChange({
+      loading: formState.ocrLoading,
+      error: formState.ocrError,
+      imageName: formState.ocrImageName,
+      onUpload: handleOCRUpload,
+    });
+  }, [
+    onSmartInputStateChange,
+    formState.ocrLoading,
+    formState.ocrError,
+    formState.ocrImageName,
+    handleOCRUpload,
+  ]);
+
+  useEffect(() => {
+    if (!onSmartInputStateChange) return;
+    return () => onSmartInputStateChange(EMPTY_SMART_INPUT_STATE);
+  }, [onSmartInputStateChange]);
 
   return (
     <MedicalEventsFormBody
@@ -105,9 +149,10 @@ export function MedicalEventFormContent({
       ocrInputRef={formState.ocrInputRef}
       submitError={formState.submitError}
       saving={formState.saving}
+      hideInlineSmartInput={smartInputHoisted}
       onClose={onClose}
       onSubmit={() => { void formState.submitForm(); }}
-      onOCRUpload={(file) => { void formState.handleOCRUpload(file); }}
+      onOCRUpload={handleOCRUpload}
     />
   );
 }
@@ -145,6 +190,7 @@ type MedicalEventsFormProps = {
   ocrInputRef: RefObject<HTMLInputElement | null>;
   submitError: string | null;
   saving: boolean;
+  hideInlineSmartInput?: boolean;
   onClose: () => void;
   onSubmit: () => void;
   onOCRUpload: (file: File) => void;
@@ -183,6 +229,7 @@ function MedicalEventsFormBody({
   ocrInputRef,
   submitError,
   saving,
+  hideInlineSmartInput = false,
   onClose,
   onSubmit,
   onOCRUpload,
@@ -218,7 +265,7 @@ function MedicalEventsFormBody({
       />
       <ModalContent>
         <div className="space-y-4">
-          {!editingEventId ? (
+          {!editingEventId && !hideInlineSmartInput ? (
             <>
               <input
                 ref={ocrInputRef}

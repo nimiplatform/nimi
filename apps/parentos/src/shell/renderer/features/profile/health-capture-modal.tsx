@@ -17,7 +17,11 @@ import { GrowthAddRecordContent } from './growth-curve-add-record-modal.js';
 import { VisionBatchFormContent } from './vision-batch-form.js';
 import { SleepFormContent } from './sleep-record-form.js';
 import { FitnessAssessmentFormContent } from './fitness-assessment-form.js';
-import { MedicalEventFormContent } from './medical-events-form.js';
+import {
+  EMPTY_SMART_INPUT_STATE,
+  MedicalEventFormContent,
+  type SmartInputState,
+} from './medical-events-form.js';
 import { MilestoneCaptureContent } from './milestone-capture-form.js';
 import { OutdoorCaptureContent } from './outdoor-capture-form.js';
 import { DentalCaptureContent } from './dental-capture-form.js';
@@ -42,6 +46,7 @@ import {
   ModalHeader,
   PrimaryButton,
   SectionCard,
+  SmartInputButton,
 } from './health-record-modal-shell.js';
 
 interface HealthCaptureModalProps {
@@ -85,6 +90,25 @@ const GROUP_EMOJI: Record<string, string> = {
   development: '🌱',
 };
 
+const SIDEBAR_GROUP_ORDER: readonly string[] = [
+  'growth',
+  'fitness',
+  'sleep',
+  'outdoor',
+  'vision',
+  'dental',
+  'medical',
+  'development',
+];
+
+function sortOptionsForSidebar<T extends { group: { groupId: string } }>(options: readonly T[]): T[] {
+  const indexOf = (groupId: string) => {
+    const idx = SIDEBAR_GROUP_ORDER.indexOf(groupId);
+    return idx === -1 ? SIDEBAR_GROUP_ORDER.length : idx;
+  };
+  return [...options].sort((a, b) => indexOf(a.group.groupId) - indexOf(b.group.groupId));
+}
+
 export function HealthCaptureModal(props: HealthCaptureModalProps) {
   if (!props.open) return null;
   if (props.initialIntent) {
@@ -104,7 +128,7 @@ function SidebarHealthCaptureModal({
   const { t } = useTranslation();
   const ageMonths = computeAgeMonths(childBirthDate);
   const isUnder6 = ageMonths <= 72;
-  const options = useMemo(() => getHealthRecordEventCaptureProtocolOptions(), []);
+  const options = useMemo(() => sortOptionsForSidebar(getHealthRecordEventCaptureProtocolOptions()), []);
   const [selectedGroupId, setSelectedGroupId] = useState(() => {
     if (initialGroupId && options.some((option) => option.group.groupId === initialGroupId)) {
       return initialGroupId;
@@ -119,6 +143,7 @@ function SidebarHealthCaptureModal({
         ? 'milestone'
         : 'tanner';
   const [developmentTab, setDevelopmentTab] = useState<'milestone' | 'tanner'>(initialDevelopmentTab);
+  const [smartInput, setSmartInput] = useState<SmartInputState>(EMPTY_SMART_INPUT_STATE);
   const { children } = useAppStore();
   const child = children.find((item) => item.childId === childId);
 
@@ -185,6 +210,7 @@ function SidebarHealthCaptureModal({
           }}
           onSaved={handleSavedFromGroup}
           onClose={onClose}
+          onSmartInputStateChange={setSmartInput}
         />
       );
     }
@@ -240,6 +266,16 @@ function SidebarHealthCaptureModal({
           items={sidebarItems}
           selected={selectedGroupId}
           onSelect={setSelectedGroupId}
+          footer={
+            smartInput.onUpload ? (
+              <SmartInputButton
+                loading={smartInput.loading}
+                error={smartInput.error}
+                imageName={smartInput.imageName}
+                onUpload={smartInput.onUpload}
+              />
+            ) : null
+          }
         />
       }
     >
@@ -343,7 +379,7 @@ function LegacyHealthCaptureModal({
   onSaved,
 }: HealthCaptureModalProps) {
   const { t } = useTranslation();
-  const options = useMemo(() => getHealthRecordEventCaptureProtocolOptions(), []);
+  const options = useMemo(() => sortOptionsForSidebar(getHealthRecordEventCaptureProtocolOptions()), []);
   const firstProtocol = options[0]?.protocols[0];
   const initialProtocolId = initialIntent?.protocolId ?? firstProtocol?.protocolId;
   const [selectedGroupId, setSelectedGroupId] = useState(initialIntent?.protocolId ? null : options[0]?.group.groupId ?? null);

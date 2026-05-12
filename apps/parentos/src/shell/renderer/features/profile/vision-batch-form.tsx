@@ -569,10 +569,10 @@ export function VisionBatchFormContent({ childId, birthDate, onSave, onClose, in
           <SectionCard title={t('Profile.rich.visionBatch.behaviorFactors')}>
             <FormGrid cols={2}>
               <FormField label={t('Profile.rich.visionBatch.nearWorkDaily')}>
-                <ChipGroup options={screenChips} value={screenTime} onChange={setScreenTime} layout="fill" clearable size="sm" />
+                <ChipGroup options={screenChips} value={screenTime} onChange={setScreenTime} layout="wrap" clearable size="sm" />
               </FormField>
               <FormField label={t('Profile.rich.visionBatch.outdoorDaily')}>
-                <ChipGroup options={outdoorChips} value={outdoorTime} onChange={setOutdoorTime} layout="fill" clearable size="sm" />
+                <ChipGroup options={outdoorChips} value={outdoorTime} onChange={setOutdoorTime} layout="wrap" clearable size="sm" />
               </FormField>
             </FormGrid>
           </SectionCard>

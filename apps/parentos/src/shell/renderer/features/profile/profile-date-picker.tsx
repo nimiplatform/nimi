@@ -394,7 +394,10 @@ export function ProfileDatePicker({
     toggle();
   };
 
-  const sizeClass = size === 'small' ? 'pl-2.5 pr-14 py-1.5 text-[14px]' : 'pl-3 pr-16 py-2 text-[14px]';
+  const hasClear = allowClear && Boolean(value);
+  const sizeClass = size === 'small'
+    ? `pl-2.5 ${hasClear ? 'pr-14' : 'pr-8'} py-1.5 text-[14px]`
+    : `pl-3 ${hasClear ? 'pr-16' : 'pr-9'} py-2 text-[14px]`;
 
   return (
     <div ref={wrapRef} className="relative">
