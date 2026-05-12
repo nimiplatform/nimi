@@ -17,7 +17,8 @@ const MAX_COUNT = 4;
 const MIN_LEN = 4;
 const MAX_LEN = 24;
 
-const HARD_BAN = /诊断|治疗|发育迟缓|建议用药|建议服用|推荐治疗|障碍/u;
+const HARD_BAN_TERMS = ['诊断', '治疗', '发育迟缓', '建议用药', '建议服用', '推荐治疗', '障碍'];
+const HARD_BAN = new RegExp(HARD_BAN_TERMS.join('|'), 'u');
 
 function summarizeLatestMeasurement(snapshot: AdvisorSnapshot) {
   const latest = [...snapshot.measurements]

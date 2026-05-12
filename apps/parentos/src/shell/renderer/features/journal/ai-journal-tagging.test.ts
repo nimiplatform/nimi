@@ -45,11 +45,11 @@ describe('parseJournalTagSuggestion', () => {
     }), candidateDimensions)).toEqual({ dimensionId: null, tags: [] });
   });
 
-  it('filters out tags outside the allowed quick-tag vocabulary', () => {
+  it('fails closed when any tag is outside the allowed quick-tag vocabulary', () => {
     expect(parseJournalTagSuggestion(JSON.stringify({
       dimensionId: 'PO-OBS-SOCL-001',
       tags: ['Invented tag', 'Shared toys'],
-    }), candidateDimensions)).toEqual({ dimensionId: 'PO-OBS-SOCL-001', tags: ['Shared toys'] });
+    }), candidateDimensions)).toEqual({ dimensionId: null, tags: [] });
   });
 
   it('returns empty when tags are returned without a dimension', () => {

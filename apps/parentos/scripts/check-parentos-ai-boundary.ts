@@ -231,6 +231,7 @@ export function findProfileBoundaryErrors(input: {
     admittedRuntimeFiles: [
       'src/shell/renderer/features/profile/ai-summary-card.tsx',
       'src/shell/renderer/features/profile/checkup-ocr.ts',
+      'src/shell/renderer/features/profile/dental-eruption-scan.ts',
       'src/shell/renderer/features/profile/medical-events-page-insights.ts',
       'src/shell/renderer/features/profile/medical-events-page-form-state.ts',
     ],
@@ -265,7 +266,10 @@ export function findProfileBoundaryErrors(input: {
     if (!hasSurfaceMarker(checkupOcrFile.content, 'parentos.profile.checkup-ocr')) {
       errors.push('checkup-ocr.ts is missing the parentos.profile.checkup-ocr surface marker');
     }
-    if (!checkupOcrFile.content.includes("resolveParentosTextRuntimeConfig('parentos.profile.checkup-ocr'")) {
+    if (
+      !checkupOcrFile.content.includes("resolveParentosTextRuntimeConfig('parentos.profile.checkup-ocr'")
+      && !checkupOcrFile.content.includes("resolveParentosImageTextRuntimeConfig('parentos.profile.checkup-ocr'")
+    ) {
       errors.push('checkup-ocr.ts must resolve runtime params through the governed surface helper');
     }
     if (!checkupOcrFile.content.includes('ensureParentosLocalRuntimeReady')) {
@@ -276,6 +280,25 @@ export function findProfileBoundaryErrors(input: {
     }
     if (!checkupOcrFile.content.includes('parseOCRMeasurementExtraction')) {
       errors.push('checkup-ocr.ts must fail closed through the typed OCR extraction parser');
+    }
+  }
+
+  const dentalEruptionScanFile = relFiles.get('src/shell/renderer/features/profile/dental-eruption-scan.ts');
+  if (dentalEruptionScanFile?.content.includes('runtime.ai.text.generate')) {
+    if (!hasSurfaceMarker(dentalEruptionScanFile.content, 'parentos.profile.dental-eruption-scan')) {
+      errors.push('dental-eruption-scan.ts is missing the parentos.profile.dental-eruption-scan surface marker');
+    }
+    if (!/resolveParentosImageTextRuntimeConfig\(\s*['"]parentos\.profile\.dental-eruption-scan['"]/.test(dentalEruptionScanFile.content)) {
+      errors.push('dental-eruption-scan.ts must resolve runtime params through the governed image-text surface helper');
+    }
+    if (!dentalEruptionScanFile.content.includes('ensureParentosLocalRuntimeReady')) {
+      errors.push('dental-eruption-scan.ts must warm governed local runtime assets before image extraction');
+    }
+    if (!dentalEruptionScanFile.content.includes("type: 'image_url'")) {
+      errors.push('dental-eruption-scan.ts must keep image extraction on the explicit image_url input path');
+    }
+    if (!dentalEruptionScanFile.content.includes('parseDentalEruptionExtraction')) {
+      errors.push('dental-eruption-scan.ts must fail closed through the typed dental extraction parser');
     }
   }
 

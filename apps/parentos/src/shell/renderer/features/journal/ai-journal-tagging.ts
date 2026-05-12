@@ -13,6 +13,18 @@ export interface JournalTagSuggestion {
   tags: string[];
 }
 
+const JOURNAL_TAGGING_FAIL_CLOSE_REASONS = {
+  unknownDimensionId: 'unknown dimensionId',
+  unsupportedTag: 'unsupported tag',
+  missingTags: 'response is missing tags',
+} as const;
+
+function failClosedJournalTagSuggestion(
+  _reason: (typeof JOURNAL_TAGGING_FAIL_CLOSE_REASONS)[keyof typeof JOURNAL_TAGGING_FAIL_CLOSE_REASONS],
+): JournalTagSuggestion {
+  return { dimensionId: null, tags: [] };
+}
+
 function normalizeDraftText(value: string) {
   const normalized = value.trim();
   if (!normalized) {
@@ -106,19 +118,25 @@ export function parseJournalTagSuggestion(
   const dimensionId = rawDimensionId == null ? null : String(rawDimensionId).trim();
 
   if (dimensionId !== null && !candidateDimensionMap.has(dimensionId)) {
-    return { dimensionId: null, tags: [] };
+    return failClosedJournalTagSuggestion(JOURNAL_TAGGING_FAIL_CLOSE_REASONS.unknownDimensionId);
   }
 
   if (!Array.isArray(payload.tags)) {
-    return { dimensionId: null, tags: [] };
+    return failClosedJournalTagSuggestion(JOURNAL_TAGGING_FAIL_CLOSE_REASONS.missingTags);
   }
 
   const uniqueTags = [...new Set(payload.tags.map((tag) => String(tag).trim()).filter(Boolean))];
   if (dimensionId === null) {
+    if (uniqueTags.length > 0) {
+      return failClosedJournalTagSuggestion(JOURNAL_TAGGING_FAIL_CLOSE_REASONS.unsupportedTag);
+    }
     return { dimensionId: null, tags: [] };
   }
 
   const allowedTags = new Set(candidateDimensionMap.get(dimensionId)?.quickTags ?? []);
+  if (uniqueTags.some((tag) => !allowedTags.has(tag))) {
+    return failClosedJournalTagSuggestion(JOURNAL_TAGGING_FAIL_CLOSE_REASONS.unsupportedTag);
+  }
   const validTags = uniqueTags.filter((tag) => allowedTags.has(tag));
 
   return {

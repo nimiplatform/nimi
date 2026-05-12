@@ -227,7 +227,7 @@ export function ToothStatusOverview({ records }: { records: DentalRecordRow[] })
                 <span style={{ color: '#38bdf8', fontWeight: 500 }}>乳牙 51–85</span>：四象限各 5 颗乳牙（5/6/7/8 系）。
               </p>
               <p style={{ margin: '6px 0 0', color: '#94a3b8', fontSize: 10 }}>
-                同一牙位：乳牙脱落后该格会切换为对应恒牙编号（例如 53 → 13）。
+                同一牙位：乳牙更替后该格会切换为对应恒牙编号（例如 53 → 13）。
               </p>
             </div>
           </div>
