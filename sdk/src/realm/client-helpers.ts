@@ -43,8 +43,11 @@ function isAbortLikeError(error: unknown): boolean {
 }
 
 function mapRealmStatusReasonCode(status: number): string {
-  if (status === 401 || status === 403) {
-    return ReasonCode.AUTH_DENIED;
+  if (status === 401) {
+    return ReasonCode.AUTH_TOKEN_INVALID;
+  }
+  if (status === 403) {
+    return ReasonCode.PRINCIPAL_UNAUTHORIZED;
   }
   if (status === 404) {
     return ReasonCode.REALM_NOT_FOUND;
@@ -65,8 +68,11 @@ function mapRealmStatusReasonCode(status: number): string {
 }
 
 function mapRealmStatusActionHint(status: number): string {
-  if (status === 401 || status === 403) {
+  if (status === 401) {
     return 'refresh_realm_token_or_reauthenticate';
+  }
+  if (status === 403) {
+    return 'check_principal_permissions_or_resource_visibility';
   }
   if (status === 404) {
     return 'check_realm_path_or_resource_id';
@@ -126,13 +132,15 @@ export function extractResponseReasonCode(
     || readString(nestedError, ['reasonCode', 'reason_code'])
     || normalizeText(response.headers.get('x-reason-code'));
 
-  const reasonCode = rawReasonCode || mapRealmStatusReasonCode(response.status);
+  const statusReasonCode = mapRealmStatusReasonCode(response.status);
+  const reasonCode = response.status === 403 ? statusReasonCode : rawReasonCode || statusReasonCode;
   const code = mapRealmStatusReasonCode(response.status);
 
-  const actionHint = readString(body, ['actionHint', 'action_hint'])
+  const rawActionHint = readString(body, ['actionHint', 'action_hint'])
     || readString(nestedError, ['actionHint', 'action_hint'])
-    || normalizeText(response.headers.get('x-action-hint'))
-    || mapRealmStatusActionHint(response.status);
+    || normalizeText(response.headers.get('x-action-hint'));
+  const statusActionHint = mapRealmStatusActionHint(response.status);
+  const actionHint = response.status === 403 ? statusActionHint : rawActionHint || statusActionHint;
 
   const traceId = readString(body, ['traceId', 'trace_id'])
     || readString(nestedError, ['traceId', 'trace_id'])
@@ -148,6 +156,9 @@ export function extractResponseReasonCode(
   };
   if (rawReasonCode) {
     details.rawReasonCode = rawReasonCode;
+  }
+  if (rawActionHint) {
+    details.rawActionHint = rawActionHint;
   }
 
   return {

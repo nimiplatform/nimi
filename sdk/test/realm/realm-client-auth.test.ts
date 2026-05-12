@@ -324,7 +324,7 @@ test('Realm 401 without refreshToken throws directly (existing behavior)', async
 
     assert.ok(thrown);
     const nimiError = asNimiError(thrown, { source: 'realm' });
-    assert.equal(nimiError.code, ReasonCode.AUTH_DENIED);
+    assert.equal(nimiError.code, ReasonCode.AUTH_TOKEN_INVALID);
     assert.equal(nimiError.reasonCode, ReasonCode.APP_TOKEN_EXPIRED);
   } finally {
     globalThis.fetch = originalFetch;
@@ -385,7 +385,7 @@ test('Realm refresh failure calls onRefreshFailed and throws original 401 error'
     assert.ok(thrown);
     assert.ok(failedError);
     const nimiError = asNimiError(thrown, { source: 'realm' });
-    assert.equal(nimiError.code, ReasonCode.AUTH_DENIED);
+    assert.equal(nimiError.code, ReasonCode.AUTH_TOKEN_INVALID);
     assert.equal(nimiError.reasonCode, ReasonCode.APP_TOKEN_EXPIRED);
   } finally {
     globalThis.fetch = originalFetch;
@@ -443,7 +443,7 @@ test('Realm refresh failure preserves unreadable error-body diagnostics', async 
 
     assert.ok(thrown);
     const nimiError = asNimiError(thrown, { source: 'realm' });
-    assert.equal(nimiError.code, ReasonCode.AUTH_DENIED);
+    assert.equal(nimiError.code, ReasonCode.AUTH_TOKEN_INVALID);
     assert.equal(nimiError.details?.responseBodyReadable, false);
     assert.equal(nimiError.details?.responseBodyReadError, 'stream locked');
   } finally {
@@ -461,10 +461,21 @@ test('Realm 403 does not trigger refresh', async () => {
       refreshCalled = true;
       return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
     }
-    return new Response(JSON.stringify({ message: 'forbidden' }), {
-      status: 403,
-      headers: { 'content-type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        message: 'forbidden',
+        reasonCode: ReasonCode.AUTH_DENIED,
+        actionHint: 'refresh_realm_token_or_reauthenticate',
+      }),
+      {
+        status: 403,
+        headers: {
+          'content-type': 'application/json',
+          'x-reason-code': ReasonCode.AUTH_DENIED,
+          'x-action-hint': 'refresh_realm_token_or_reauthenticate',
+        },
+      },
+    );
   }) as typeof globalThis.fetch;
 
   try {
@@ -486,6 +497,10 @@ test('Realm 403 does not trigger refresh', async () => {
 
     assert.ok(thrown);
     assert.equal(refreshCalled, false);
+    const nimiError = asNimiError(thrown, { source: 'realm' });
+    assert.equal(nimiError.code, ReasonCode.PRINCIPAL_UNAUTHORIZED);
+    assert.equal(nimiError.reasonCode, ReasonCode.PRINCIPAL_UNAUTHORIZED);
+    assert.equal(nimiError.actionHint, 'check_principal_permissions_or_resource_visibility');
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -821,7 +836,7 @@ test('S-REALM-015: auth retry max once — second 401 after refresh does not loo
     assert.ok(thrown, 'second 401 after refresh must throw');
     assert.equal(callCount, 3, 'must be exactly 3 calls: original 401 + refresh + retry 401');
     const nimiError = asNimiError(thrown, { source: 'realm' });
-    assert.equal(nimiError.code, ReasonCode.AUTH_DENIED);
+    assert.equal(nimiError.code, ReasonCode.AUTH_TOKEN_INVALID);
   } finally {
     globalThis.fetch = originalFetch;
   }

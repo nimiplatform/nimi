@@ -222,7 +222,7 @@ test('Realm maps HTTP errors to NimiError with layered reasonCode/actionHint', a
 
     assert.ok(thrown);
     const nimiError = asNimiError(thrown, { source: 'realm' });
-    assert.equal(nimiError.code, ReasonCode.AUTH_DENIED);
+    assert.equal(nimiError.code, ReasonCode.AUTH_TOKEN_INVALID);
     assert.equal(nimiError.reasonCode, ReasonCode.APP_TOKEN_EXPIRED);
     assert.equal(nimiError.actionHint, 'reauthenticate_now');
     assert.equal(nimiError.traceId, 'trace-realm-401');
