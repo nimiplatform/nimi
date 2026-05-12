@@ -193,12 +193,12 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
           actionHint: 'provide-local-model-id',
         };
       }
-      const model = await localRuntime.remove(localModelId, { caller: 'core' });
+      const accepted = await localRuntime.remove(localModelId, { caller: 'core' });
       return {
         ok: true,
         reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
-        output: { model },
+        output: { accepted },
       };
     },
   });
@@ -231,7 +231,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
           actionHint: 'provide-model-and-repo',
         };
       }
-      const installed = await localRuntime.install({
+      const accepted = await localRuntime.install({
         modelId,
         kind: 'chat',
         repo,
@@ -247,7 +247,7 @@ function registerCoreActions(hookRuntime: DesktopHookRuntimeService): void {
         ok: true,
         reasonCode: ReasonCode.ACTION_EXECUTED,
         actionHint: 'none',
-        output: { localModelId: installed.localAssetId, modelId: installed.assetId },
+        output: { localModelId: accepted.localModelId, modelId: accepted.modelId },
       };
     },
   });

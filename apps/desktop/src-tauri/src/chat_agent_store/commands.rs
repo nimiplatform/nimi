@@ -38,6 +38,16 @@ fn ensure_chat_agent_writes_allowed() -> Result<(), String> {
     Ok(())
 }
 
+async fn run_chat_agent_store<T, F>(operation: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(operation)
+        .await
+        .map_err(|error| format!("CHAT_AGENT_STORE_TASK_JOIN_FAILED: {error}"))?
+}
+
 #[tauri::command]
 pub(crate) fn chat_agent_set_offline_tier(
     payload: ChatAgentOfflineTierPayload,
@@ -47,139 +57,189 @@ pub(crate) fn chat_agent_set_offline_tier(
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_list_threads() -> Result<Vec<ChatAgentThreadSummary>, String> {
-    let conn = open_db()?;
-    list_threads(&conn)
+pub(crate) async fn chat_agent_list_threads() -> Result<Vec<ChatAgentThreadSummary>, String> {
+    run_chat_agent_store(|| {
+        let conn = open_db()?;
+        list_threads(&conn)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_get_thread_bundle(
+pub(crate) async fn chat_agent_get_thread_bundle(
     payload: ChatAgentThreadLookupPayload,
 ) -> Result<Option<ChatAgentThreadBundle>, String> {
-    let conn = open_db()?;
-    get_thread_bundle(&conn, &payload.thread_id)
+    run_chat_agent_store(move || {
+        let conn = open_db()?;
+        get_thread_bundle(&conn, &payload.thread_id)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_create_thread(
+pub(crate) async fn chat_agent_create_thread(
     payload: ChatAgentCreateThreadInput,
 ) -> Result<ChatAgentThreadRecord, String> {
-    ensure_chat_agent_writes_allowed()?;
-    let conn = open_db()?;
-    create_thread(&conn, &payload)
+    run_chat_agent_store(move || {
+        ensure_chat_agent_writes_allowed()?;
+        let conn = open_db()?;
+        create_thread(&conn, &payload)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_update_thread_metadata(
+pub(crate) async fn chat_agent_update_thread_metadata(
     payload: ChatAgentUpdateThreadMetadataInput,
 ) -> Result<ChatAgentThreadRecord, String> {
-    ensure_chat_agent_writes_allowed()?;
-    let conn = open_db()?;
-    update_thread_metadata(&conn, &payload)
+    run_chat_agent_store(move || {
+        ensure_chat_agent_writes_allowed()?;
+        let conn = open_db()?;
+        update_thread_metadata(&conn, &payload)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_create_message(
+pub(crate) async fn chat_agent_create_message(
     payload: ChatAgentCreateMessageInput,
 ) -> Result<ChatAgentMessageRecord, String> {
-    ensure_chat_agent_writes_allowed()?;
-    let conn = open_db()?;
-    create_message(&conn, &payload)
+    run_chat_agent_store(move || {
+        ensure_chat_agent_writes_allowed()?;
+        let conn = open_db()?;
+        create_message(&conn, &payload)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_update_message(
+pub(crate) async fn chat_agent_update_message(
     payload: ChatAgentUpdateMessageInput,
 ) -> Result<ChatAgentMessageRecord, String> {
-    ensure_chat_agent_writes_allowed()?;
-    let conn = open_db()?;
-    update_message(&conn, &payload)
+    run_chat_agent_store(move || {
+        ensure_chat_agent_writes_allowed()?;
+        let conn = open_db()?;
+        update_message(&conn, &payload)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_update_turn_beat(
+pub(crate) async fn chat_agent_update_turn_beat(
     payload: ChatAgentUpdateTurnBeatInput,
 ) -> Result<(), String> {
-    ensure_chat_agent_writes_allowed()?;
-    let conn = open_db()?;
-    update_turn_beat(&conn, &payload)
+    run_chat_agent_store(move || {
+        ensure_chat_agent_writes_allowed()?;
+        let conn = open_db()?;
+        update_turn_beat(&conn, &payload)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_get_draft(
+pub(crate) async fn chat_agent_get_draft(
     payload: ChatAgentThreadLookupPayload,
 ) -> Result<Option<ChatAgentDraftRecord>, String> {
-    let conn = open_db()?;
-    get_draft(&conn, &payload.thread_id)
+    run_chat_agent_store(move || {
+        let conn = open_db()?;
+        get_draft(&conn, &payload.thread_id)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_put_draft(
+pub(crate) async fn chat_agent_put_draft(
     payload: ChatAgentPutDraftInput,
 ) -> Result<ChatAgentDraftRecord, String> {
-    ensure_chat_agent_writes_allowed()?;
-    let conn = open_db()?;
-    put_draft(&conn, &payload)
+    run_chat_agent_store(move || {
+        ensure_chat_agent_writes_allowed()?;
+        let conn = open_db()?;
+        put_draft(&conn, &payload)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_delete_draft(payload: ChatAgentDeleteDraftInput) -> Result<(), String> {
-    ensure_chat_agent_writes_allowed()?;
-    let conn = open_db()?;
-    delete_draft(&conn, &payload.thread_id)
+pub(crate) async fn chat_agent_delete_draft(
+    payload: ChatAgentDeleteDraftInput,
+) -> Result<(), String> {
+    run_chat_agent_store(move || {
+        ensure_chat_agent_writes_allowed()?;
+        let conn = open_db()?;
+        delete_draft(&conn, &payload.thread_id)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_delete_thread(
+pub(crate) async fn chat_agent_delete_thread(
     payload: ChatAgentThreadLookupPayload,
 ) -> Result<(), String> {
-    ensure_chat_agent_writes_allowed()?;
-    let conn = open_db()?;
-    delete_thread(&conn, &payload.thread_id)
+    run_chat_agent_store(move || {
+        ensure_chat_agent_writes_allowed()?;
+        let conn = open_db()?;
+        delete_thread(&conn, &payload.thread_id)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_delete_message(
+pub(crate) async fn chat_agent_delete_message(
     payload: ChatAgentMessageLookupPayload,
 ) -> Result<ChatAgentThreadBundle, String> {
-    ensure_chat_agent_writes_allowed()?;
-    let conn = open_db()?;
-    delete_message(&conn, &payload.message_id)
+    run_chat_agent_store(move || {
+        ensure_chat_agent_writes_allowed()?;
+        let conn = open_db()?;
+        delete_message(&conn, &payload.message_id)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_load_turn_context(
+pub(crate) async fn chat_agent_load_turn_context(
     payload: ChatAgentLoadTurnContextInput,
 ) -> Result<ChatAgentTurnContext, String> {
-    let conn = open_db()?;
-    load_turn_context(&conn, &payload)
+    run_chat_agent_store(move || {
+        let conn = open_db()?;
+        load_turn_context(&conn, &payload)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_commit_turn_result(
+pub(crate) async fn chat_agent_commit_turn_result(
     payload: ChatAgentCommitTurnResultInput,
 ) -> Result<ChatAgentCommitTurnResult, String> {
-    ensure_chat_agent_writes_allowed()?;
-    let mut conn = open_db()?;
-    commit_turn_result(&mut conn, &payload)
+    run_chat_agent_store(move || {
+        ensure_chat_agent_writes_allowed()?;
+        let mut conn = open_db()?;
+        commit_turn_result(&mut conn, &payload)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_cancel_turn(
+pub(crate) async fn chat_agent_cancel_turn(
     payload: ChatAgentCancelTurnInput,
 ) -> Result<ChatAgentTurnRecord, String> {
-    ensure_chat_agent_writes_allowed()?;
-    let mut conn = open_db()?;
-    cancel_turn(&mut conn, &payload)
+    run_chat_agent_store(move || {
+        ensure_chat_agent_writes_allowed()?;
+        let mut conn = open_db()?;
+        cancel_turn(&mut conn, &payload)
+    })
+    .await
 }
 
 #[tauri::command]
-pub(crate) fn chat_agent_rebuild_projection(
+pub(crate) async fn chat_agent_rebuild_projection(
     payload: ChatAgentThreadLookupPayload,
 ) -> Result<ChatAgentProjectionRebuildResult, String> {
-    ensure_chat_agent_writes_allowed()?;
-    let mut conn = open_db()?;
-    rebuild_projection(&mut conn, &payload.thread_id)
+    run_chat_agent_store(move || {
+        ensure_chat_agent_writes_allowed()?;
+        let mut conn = open_db()?;
+        rebuild_projection(&mut conn, &payload.thread_id)
+    })
+    .await
 }
 
 #[cfg(test)]

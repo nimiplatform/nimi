@@ -83,12 +83,13 @@ export function MainLayoutTopBar(props: MainLayoutTopBarProps) {
               {props.activeTab !== 'runtime' ? (
                 <Tooltip content={t('Navigation.runtime', { defaultValue: 'Runtime' })} className="h-10">
                   <button
-                  type="button"
-                  data-mod-tab-interactive="true"
-                  onClick={props.onOpenRuntimeConfig}
-                  className={SHELL_CHROME_ACTION_CELL_CLASS}
-                  aria-label={t('Navigation.runtime', { defaultValue: 'Runtime' })}
-                >
+                    type="button"
+                    data-testid={E2E_IDS.topbarRuntimeButton}
+                    data-mod-tab-interactive="true"
+                    onClick={props.onOpenRuntimeConfig}
+                    className={SHELL_CHROME_ACTION_CELL_CLASS}
+                    aria-label={t('Navigation.runtime', { defaultValue: 'Runtime' })}
+                  >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
                       <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />

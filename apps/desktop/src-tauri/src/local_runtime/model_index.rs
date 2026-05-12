@@ -1,11 +1,14 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
+#[cfg(test)]
 use std::fs;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
+use super::model_index_remote::fetch_leaderboard_async;
+#[cfg(test)]
 use super::model_index_remote::{fetch_leaderboard, resolve_remote_or_cached_feed};
 use super::recommendation::{build_catalog_recommendation, build_recommendation_candidate};
 use super::store::{load_state, runtime_root_dir};
@@ -19,6 +22,10 @@ use super::types::{
     LocalAiRecommendationFormat, LocalAiRecommendationInstalledState, LocalAiRecommendationTier,
 };
 use super::verified_models::verified_model_list;
+
+#[cfg(test)]
+#[path = "model_index_test_fixtures.rs"]
+mod model_index_test_fixtures;
 
 const MODEL_INDEX_BASE_URL_ENV: &str = "NIMI_MODEL_INDEX_BASE_URL";
 const DEFAULT_MODEL_INDEX_BASE_URL: &str = "https://models.nimi.ai";
@@ -68,17 +75,34 @@ fn cache_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(runtime_root_dir(app)?.join(MODEL_INDEX_CACHE_FILE))
 }
 
+#[cfg(test)]
 fn load_cache(app: &AppHandle) -> Option<ModelIndexCacheRecord> {
     let path = cache_path(app).ok()?;
     let raw = fs::read_to_string(path).ok()?;
     serde_json::from_str::<ModelIndexCacheRecord>(&raw).ok()
 }
 
+async fn load_cache_async(app: &AppHandle) -> Option<ModelIndexCacheRecord> {
+    let path = cache_path(app).ok()?;
+    let raw = tokio::fs::read_to_string(path).await.ok()?;
+    serde_json::from_str::<ModelIndexCacheRecord>(&raw).ok()
+}
+
+#[cfg(test)]
 fn save_cache(app: &AppHandle, cache: &ModelIndexCacheRecord) -> Result<(), String> {
     let path = cache_path(app)?;
     let serialized = serde_json::to_string_pretty(cache)
         .map_err(|error| format!("MODEL_INDEX_CACHE_SERIALIZE_FAILED: {error}"))?;
     fs::write(path, serialized).map_err(|error| format!("MODEL_INDEX_CACHE_WRITE_FAILED: {error}"))
+}
+
+async fn save_cache_async(app: &AppHandle, cache: &ModelIndexCacheRecord) -> Result<(), String> {
+    let path = cache_path(app)?;
+    let serialized = serde_json::to_string_pretty(cache)
+        .map_err(|error| format!("MODEL_INDEX_CACHE_SERIALIZE_FAILED: {error}"))?;
+    tokio::fs::write(path, serialized)
+        .await
+        .map_err(|error| format!("MODEL_INDEX_CACHE_WRITE_FAILED: {error}"))
 }
 
 fn preferred_engine_for_capability(capability: &str) -> String {
@@ -380,6 +404,7 @@ fn materialize_feed_descriptor(
     }
 }
 
+#[cfg(test)]
 pub fn load_recommendation_feed(
     app: &AppHandle,
     capability: Option<&str>,
@@ -426,74 +451,71 @@ pub fn load_recommendation_feed(
     ))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::local_runtime::model_index_remote::resolve_remote_or_cached_feed;
-    use crate::local_runtime::types::{
-        LocalAiGpuProfile, LocalAiMemoryModel, LocalAiNpuProfile, LocalAiPortAvailability,
-        LocalAiPythonProfile, LocalAiRecommendationFeedSource,
+pub async fn load_recommendation_feed_async(
+    app: &AppHandle,
+    capability: Option<&str>,
+    page_size: Option<usize>,
+) -> Result<LocalAiRecommendationFeedDescriptor, String> {
+    let normalized_capability = normalize_capability(capability);
+    let normalized_page_size = normalize_page_size(page_size);
+    let device_profile = super::device_profile::collect_device_profile_async(app).await;
+    let installed_assets = load_installed_runnable_assets(app);
+    let cache = load_cache_async(app).await;
+    let base_url = resolve_model_index_base_url();
+    let remote = if let Some(base_url) = base_url.as_deref() {
+        match fetch_leaderboard_async(
+            base_url,
+            normalized_capability.as_str(),
+            normalized_page_size,
+        )
+        .await
+        {
+            Ok(feed) => Some((feed, LocalAiRecommendationFeedCacheState::Fresh)),
+            Err(_) => super::model_index_remote::cached_feed_for_capability(
+                cache.as_ref(),
+                normalized_capability.as_str(),
+            ),
+        }
+    } else {
+        super::model_index_remote::cached_feed_for_capability(
+            cache.as_ref(),
+            normalized_capability.as_str(),
+        )
     };
 
-    fn profile_fixture() -> LocalAiDeviceProfile {
-        LocalAiDeviceProfile {
-            os: "darwin".to_string(),
-            arch: "arm64".to_string(),
-            total_ram_bytes: 64 * 1024 * 1024 * 1024,
-            available_ram_bytes: 48 * 1024 * 1024 * 1024,
-            gpu: LocalAiGpuProfile {
-                available: true,
-                vendor: Some("Apple".to_string()),
-                model: Some("M4 Max".to_string()),
-                total_vram_bytes: None,
-                available_vram_bytes: None,
-                memory_model: LocalAiMemoryModel::Unified,
-            },
-            python: LocalAiPythonProfile {
-                available: false,
-                version: None,
-            },
-            npu: LocalAiNpuProfile {
-                available: false,
-                ready: false,
-                vendor: None,
-                runtime: None,
-                detail: None,
-            },
-            disk_free_bytes: 0,
-            ports: vec![LocalAiPortAvailability {
-                port: 1234,
-                available: true,
-            }],
-        }
+    if let Some((feed, LocalAiRecommendationFeedCacheState::Fresh)) = remote.as_ref() {
+        let mut next_cache = cache.unwrap_or_default();
+        next_cache.fetched_at = now_iso_timestamp();
+        next_cache
+            .feeds
+            .insert(normalized_capability.clone(), feed.clone());
+        let _ = save_cache_async(app, &next_cache).await;
     }
 
-    fn chat_item(repo: &str, title: &str, entry: &str, size_bytes: u64) -> RemoteModelEntry {
-        RemoteModelEntry {
-            repo: repo.to_string(),
-            revision: "main".to_string(),
-            title: title.to_string(),
-            description: None,
-            capabilities: vec!["chat".to_string()],
-            tags: vec!["chat".to_string(), "gguf".to_string()],
-            formats: vec!["gguf".to_string()],
-            downloads: Some(100),
-            likes: Some(10),
-            last_modified: Some("2026-03-17T10:00:00Z".to_string()),
-            entries: vec![RemoteInstallEntry {
-                entry_id: format!("gguf:{entry}"),
-                format: "gguf".to_string(),
-                entry: entry.to_string(),
-                files: vec![RemoteModelFile {
-                    path: entry.to_string(),
-                    size_bytes,
-                    sha256: Some(format!("sha256:{entry}")),
-                }],
-                total_size_bytes: size_bytes,
-                sha256: Some(format!("sha256:{entry}")),
-            }],
-        }
-    }
+    let Some((feed, cache_state)) = remote else {
+        return Ok(LocalAiRecommendationFeedDescriptor {
+            device_profile,
+            active_capability: feed_capability(normalized_capability.as_str()),
+            generated_at: None,
+            cache_state: LocalAiRecommendationFeedCacheState::Empty,
+            items: Vec::new(),
+        });
+    };
+    Ok(materialize_feed_descriptor(
+        &feed,
+        cache_state,
+        normalized_capability.as_str(),
+        device_profile,
+        installed_assets.as_slice(),
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::model_index_test_fixtures::{chat_item, profile_fixture};
+    use super::*;
+    use crate::local_runtime::model_index_remote::resolve_remote_or_cached_feed;
+    use crate::local_runtime::types::LocalAiRecommendationFeedSource;
 
     #[test]
     fn recommendation_sort_key_prefers_better_tier() {

@@ -23,7 +23,6 @@ fn runtime_local_assets_install_impl(
         provider_hints: None,
         engine_config: None,
     };
-    run_install_preflight(&app, &install_request)?;
     let accepted = download_manager::enqueue_install(
         &app,
         install_request,

@@ -1,5 +1,5 @@
 #[tauri::command]
-pub fn runtime_local_recommendation_feed_get(
+pub async fn runtime_local_recommendation_feed_get(
     app: AppHandle,
     payload: Option<LocalAiRecommendationFeedGetPayload>,
 ) -> Result<LocalAiRecommendationFeedDescriptor, String> {
@@ -9,7 +9,7 @@ pub fn runtime_local_recommendation_feed_get(
     let page_size = payload.as_ref().and_then(|item| item.page_size);
     let normalized_capability = capability.unwrap_or_else(|| "chat".to_string());
     append_recommendation_feed_resolve_invoked(&app, normalized_capability.as_str());
-    match load_recommendation_feed(&app, Some(normalized_capability.as_str()), page_size) {
+    match load_recommendation_feed_async(&app, Some(normalized_capability.as_str()), page_size).await {
         Ok(feed) => {
             append_recommendation_feed_resolve_completed(
                 &app,

@@ -295,7 +295,9 @@ fn collect_system_resource_snapshot() -> SystemResourceSnapshot {
 }
 
 #[tauri::command]
-pub(crate) fn get_system_resource_snapshot() -> SystemResourceSnapshot {
-    collect_system_resource_snapshot()
+pub(crate) async fn get_system_resource_snapshot() -> Result<SystemResourceSnapshot, String> {
+    tauri::async_runtime::spawn_blocking(collect_system_resource_snapshot)
+        .await
+        .map_err(|error| format!("get_system_resource_snapshot worker failed: {error}"))
 }
 use super::*;

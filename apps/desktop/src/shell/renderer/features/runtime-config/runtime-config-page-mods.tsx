@@ -139,15 +139,15 @@ export function ModsPage({ model, state }: ModsPageProps) {
       setApplyingProfile(true);
       setApplySummary('');
       try {
-        const result = await model.applyRuntimeProfile(
+        const accepted = await model.applyRuntimeProfile(
           selectedModId,
           selectedProfile.id,
           effectiveCapability || undefined,
         );
-        setApplySummary(t('runtimeConfig.local.profileInstalled', {
-          defaultValue: 'Installed {{profileId}}: {{assetCount}} asset(s)',
+        setApplySummary(t('runtimeConfig.local.profileApplyQueued', {
+          defaultValue: 'Profile {{profileId}} queued. Session: {{applySessionId}}',
           profileId: selectedProfile.id,
-          assetCount: result.installedAssets.length,
+          applySessionId: accepted.applySessionId,
         }));
       } catch (e) {
         setApplySummary(

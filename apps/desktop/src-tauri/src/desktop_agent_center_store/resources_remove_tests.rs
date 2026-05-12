@@ -6,7 +6,7 @@ fn removes_agent_local_resources_by_quarantining_agent_center_tree() {
     with_env(&[("HOME", home.to_str())], || {
         let agent_center = agent_center_marker(&home, "agent_1");
 
-        let result = desktop_agent_center_agent_local_resources_remove(
+        let result = desktop_agent_center_agent_local_resources_remove_blocking(
             DesktopAgentCenterAgentLocalResourcesRemovePayload {
                 account_id: "account_1".to_string(),
                 agent_id: "agent_1".to_string(),
@@ -43,7 +43,7 @@ fn removes_account_local_resources_by_quarantining_each_agent_center_tree() {
         let agent_one = agent_center_marker(&home, "agent_1");
         let agent_two = agent_center_marker(&home, "agent_2");
 
-        let result = desktop_agent_center_account_local_resources_remove(
+        let result = desktop_agent_center_account_local_resources_remove_blocking(
             DesktopAgentCenterAccountLocalResourcesRemovePayload {
                 account_id: "account_1".to_string(),
             },
@@ -79,7 +79,7 @@ fn removes_account_local_resources_for_opaque_account_ids() {
         let account_segment = local_scope_path_segment(account_id);
         let agent_center = agent_center_marker_for_account(&home, account_id, "agent:abc.def+1");
 
-        let result = desktop_agent_center_account_local_resources_remove(
+        let result = desktop_agent_center_account_local_resources_remove_blocking(
             DesktopAgentCenterAccountLocalResourcesRemovePayload {
                 account_id: account_id.to_string(),
             },
@@ -109,15 +109,16 @@ fn import_rejects_svg_background_before_staging() {
     with_env(&[("HOME", home.to_str())], || {
         let source = home.join("source-background.svg");
         fs::write(&source, b"<svg></svg>").expect("svg");
-        let err =
-            desktop_agent_center_background_import(DesktopAgentCenterBackgroundImportPayload {
+        let err = desktop_agent_center_background_import_blocking(
+            DesktopAgentCenterBackgroundImportPayload {
                 account_id: "account_1".to_string(),
                 agent_id: "agent_1".to_string(),
                 source_path: source.to_string_lossy().to_string(),
                 display_name: None,
                 select: Some(true),
-            })
-            .expect_err("svg rejected");
+            },
+        )
+        .expect_err("svg rejected");
         assert!(err.contains("SVG"));
         assert!(!home
                 .join(".nimi/data/accounts/account_1/agents/agent_1/agent-center/modules/appearance/staging")
@@ -130,13 +131,14 @@ fn validates_background_and_writes_sidecar() {
     let home = temp_home("background");
     with_env(&[("HOME", home.to_str())], || {
         let dir = write_valid_background(&home);
-        let result =
-            desktop_agent_center_background_validate(DesktopAgentCenterBackgroundValidatePayload {
+        let result = desktop_agent_center_background_validate_blocking(
+            DesktopAgentCenterBackgroundValidatePayload {
                 account_id: "account_1".to_string(),
                 agent_id: "agent_1".to_string(),
                 background_asset_id: "bg_ab12cd34ef56".to_string(),
-            })
-            .expect("validate background");
+            },
+        )
+        .expect("validate background");
         assert_eq!(result.status, AgentCenterBackgroundValidationStatus::Valid);
         assert!(dir.join(VALIDATION_FILE_NAME).exists());
     });
@@ -155,13 +157,14 @@ fn rejects_svg_background_manifest() {
         value["mime"] = json!("image/svg+xml");
         fs::write(dir.join("image.svg"), b"<svg></svg>").expect("svg");
         fs::write(dir.join(MANIFEST_FILE_NAME), value.to_string()).expect("write manifest");
-        let result =
-            desktop_agent_center_background_validate(DesktopAgentCenterBackgroundValidatePayload {
+        let result = desktop_agent_center_background_validate_blocking(
+            DesktopAgentCenterBackgroundValidatePayload {
                 account_id: "account_1".to_string(),
                 agent_id: "agent_1".to_string(),
                 background_asset_id: "bg_ab12cd34ef56".to_string(),
-            })
-            .expect("validate background");
+            },
+        )
+        .expect("validate background");
         assert_eq!(
             result.status,
             AgentCenterBackgroundValidationStatus::UnsupportedMime

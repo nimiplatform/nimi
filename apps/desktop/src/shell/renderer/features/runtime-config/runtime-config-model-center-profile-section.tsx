@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { LocalRuntimeProfileApplyResult, LocalRuntimeProfileResolutionPlan } from '@runtime/local-runtime';
+import type { LocalRuntimeProfileApplyAccepted, LocalRuntimeProfileResolutionPlan } from '@runtime/local-runtime';
 import type { RuntimeConfigStateV11, RuntimePageIdV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import type { RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
 import {
@@ -100,7 +100,7 @@ export type ModelCenterProfileSectionProps = {
   onSetSelectedProfileId: (profileId: string) => void;
   onSetSelectedProfileCapability: (capability: string) => void;
   onResolveProfilePlanPreview: () => void;
-  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyResult>;
+  onApplyProfile: (modId: string, profileId: string, capability?: string) => Promise<LocalRuntimeProfileApplyAccepted>;
   variant?: 'card' | 'flat';
   state?: RuntimeConfigStateV11;
   onNavigateToSetup?: (pageId: RuntimePageIdV11) => void;
@@ -320,15 +320,15 @@ function ProfileSectionCard(props: ModelCenterProfileSectionProps & {
                   void (async () => {
                     setApplyingProfile(true);
                     try {
-                      const result = await props.onApplyProfile(
+                      const accepted = await props.onApplyProfile(
                         props.selectedProfileModId,
                         selectedProfile.id,
                         effectiveCapability || undefined,
                       );
-                      setApplySummary(t('runtimeConfig.local.profileInstalled', {
-                        defaultValue: 'Installed {{profileId}}: {{assetCount}} asset(s)',
+                      setApplySummary(t('runtimeConfig.local.profileApplyQueued', {
+                        defaultValue: 'Profile {{profileId}} queued. Session: {{applySessionId}}',
                         profileId: selectedProfile.id,
-                        assetCount: result.installedAssets.length,
+                        applySessionId: accepted.applySessionId,
                       }));
                     } catch (e) {
                       setApplySummary(

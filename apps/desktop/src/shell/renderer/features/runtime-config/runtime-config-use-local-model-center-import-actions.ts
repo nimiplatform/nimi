@@ -210,10 +210,8 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       endpoint: String(endpoint || '').trim() || undefined,
     });
     await input.props.onDiscover();
-    const passiveKinds = new Set(['vae', 'clip', 'lora', 'controlnet', 'auxiliary']);
-    if (passiveKinds.has(imported.asset.kind)) {
-      await input.onRefreshAssetSections();
-    }
+    void imported;
+    await input.onRefreshAssetSections();
     await input.onRefreshUnregisteredAssets();
   }, [input]);
 

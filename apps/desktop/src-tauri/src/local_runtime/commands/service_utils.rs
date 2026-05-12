@@ -1,4 +1,4 @@
-fn ensure_dependency_service_descriptor(
+async fn ensure_dependency_service_descriptor(
     app: &AppHandle,
     service_id: &str,
     capability: Option<&str>,
@@ -51,7 +51,7 @@ fn ensure_dependency_service_descriptor(
         capabilities: capability_values,
         local_model_id: None,
     };
-    let installed = build_service_descriptor_from_install_payload(app, &install_payload)?;
+    let installed = build_service_descriptor_from_install_payload(app, &install_payload).await?;
     let installed = upsert_service_descriptor(app, installed)?;
     service_ids_to_start.insert(installed.service_id.clone());
     service_map.insert(normalized_service_id, installed.clone());
@@ -97,4 +97,3 @@ fn fail_progress_with_rollback(
     }
     LocalAiDependencyApplyFailure::without_rollback(error)
 }
-

@@ -222,20 +222,18 @@ export function useRuntimeConfigModelManagementActions(
         : capabilities.includes('stt') ? 'stt' as const
         : (capabilities.includes('embedding') || capabilities.includes('text.embed')) ? 'embedding' as const
         : 'chat' as const;
-      const imported = await importLocalRuntimeAssetFile({
+      const accepted = await importLocalRuntimeAssetFile({
         filePath,
         kind,
         engine: engine || undefined,
       }, { caller: 'core' });
-      applyLocalModelSnapshotToState(updateState, imported);
-      await refreshLocalSnapshot();
 
       setStatusBanner({
         kind: 'success',
         message: translateRuntimeLocalText(
-          'runtimeConfig.local.modelFileImported',
-          'Model file imported: {{modelId}}',
-          { modelId: imported.assetId },
+          'runtimeConfig.local.modelFileImportQueued',
+          'Model file import queued: {{modelId}}',
+          { modelId: accepted.modelId },
         ),
       });
     } catch (error) {
@@ -412,7 +410,7 @@ export function useRuntimeConfigModelManagementActions(
 
   const removeLocalModel = useCallback(async (localModelId: string) => {
     assertRuntimeWriteAllowed();
-    const model = await removeLocalRuntimeAsset(localModelId, { caller: 'core' }).catch((error) => {
+    const accepted = await removeLocalRuntimeAsset(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
@@ -423,21 +421,19 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     });
-    applyLocalModelSnapshotToState(updateState, model);
-    await refreshLocalSnapshot();
     setStatusBanner({
       kind: 'success',
       message: translateRuntimeLocalText(
-        'runtimeConfig.local.modelRemoved',
-        'Model removed: {{localModelId}}',
-        { localModelId },
+        'runtimeConfig.local.modelRemoveQueued',
+        'Model removal queued: {{localModelId}}',
+        { localModelId: accepted.localModelId || localModelId },
       ),
     });
-  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner, updateState]);
+  }, [assertRuntimeWriteAllowed, setStatusBanner]);
 
   const removeLocalAsset = useCallback(async (localAssetId: string) => {
     assertRuntimeWriteAllowed();
-    const asset = await removeLocalRuntimeAsset(localAssetId, { caller: 'core' }).catch((error) => {
+    const accepted = await removeLocalRuntimeAsset(localAssetId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
@@ -448,16 +444,15 @@ export function useRuntimeConfigModelManagementActions(
       });
       throw error;
     });
-    await refreshLocalSnapshot();
     setStatusBanner({
       kind: 'success',
       message: translateRuntimeLocalText(
-        'runtimeConfig.local.assetRemoved',
-        'Asset removed: {{assetId}}',
-        { assetId: asset.assetId },
+        'runtimeConfig.local.assetRemoveQueued',
+        'Asset removal queued: {{assetId}}',
+        { assetId: accepted.localModelId || localAssetId },
       ),
     });
-  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, setStatusBanner]);
 
   return {
     importLocalModel,

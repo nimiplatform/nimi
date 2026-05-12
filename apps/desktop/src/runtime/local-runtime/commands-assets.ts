@@ -5,6 +5,7 @@ import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
+  LocalRuntimeTransferAccepted,
   LocalRuntimeEnvironmentActivationGate,
   LocalRuntimeEnvironmentActivationGatePayload,
   LocalRuntimeEnvironmentDependencyJobCancelPayload,
@@ -35,6 +36,7 @@ import {
   parseAssetRecord,
   parseDownloadProgressEvent,
   parseDownloadSessionSummary,
+  parseTransferAccepted,
   parseLocalRuntimeEnvironmentActivationGate,
   parseLocalRuntimeEnvironmentDependencyJob,
   parseLocalRuntimeEnvironmentPlan,
@@ -42,29 +44,46 @@ import {
   parseUnregisteredAssetDescriptor,
 } from './parsers';
 import { invokeLocalRuntimeCommand } from './parsers';
-import { asRecord, requireSdkLocal, toAssetKindFilter } from './commands-shared';
+import { asRecord, requireSdkLocal } from './commands-shared';
+
+function capabilitiesForImportFileKind(kind: LocalRuntimeImportFilePayload['kind']): string[] {
+  switch (kind) {
+    case 'image':
+      return ['image'];
+    case 'video':
+      return ['video'];
+    case 'tts':
+      return ['tts'];
+    case 'stt':
+      return ['stt'];
+    case 'embedding':
+      return ['embedding'];
+    default:
+      return ['chat'];
+  }
+}
 
 export async function importLocalRuntimeAssetFile(
   payload: LocalRuntimeImportFilePayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeAssetRecord> {
+): Promise<LocalRuntimeTransferAccepted> {
   assertLifecycleWriteAllowed('local_runtime_assets_import_file', options?.caller);
-  const runtime = requireSdkLocal();
-  const response = await runtime.importLocalAssetFile({
-    filePath: String(payload.filePath || '').trim(),
-    assetName: String(payload.assetName || '').trim(),
-    kind: toAssetKindFilter(payload.kind),
-    engine: String(payload.engine || '').trim(),
-    capabilities: [],
-    endpoint: String(payload.endpoint || '').trim(),
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_import_file', {
+    payload: {
+      filePath: String(payload.filePath || '').trim(),
+      modelName: String(payload.assetName || '').trim() || undefined,
+      capabilities: capabilitiesForImportFileKind(payload.kind),
+      engine: String(payload.engine || '').trim() || undefined,
+      endpoint: String(payload.endpoint || '').trim() || undefined,
+    },
   });
-  return parseAssetRecord(asRecord(response).asset);
+  return parseTransferAccepted(result);
 }
 
 export async function importLocalRuntimeAssetBundle(
   payload: LocalRuntimeImportBundlePayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeAssetRecord> {
+): Promise<LocalRuntimeTransferAccepted> {
   assertLifecycleWriteAllowed('local_runtime_assets_import_bundle', options?.caller);
   const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_import_bundle', {
     payload: {
@@ -75,13 +94,13 @@ export async function importLocalRuntimeAssetBundle(
       endpoint: String(payload.endpoint || '').trim() || undefined,
     },
   });
-  return parseAssetRecord(result);
+  return parseTransferAccepted(result);
 }
 
 export async function installLocalRuntimeAsset(
   payload: LocalRuntimeInstallPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeAssetRecord> {
+): Promise<LocalRuntimeTransferAccepted> {
   assertLifecycleWriteAllowed('local_runtime_assets_install', options?.caller);
   const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_install', {
     payload: {
@@ -95,23 +114,23 @@ export async function installLocalRuntimeAsset(
       license: String(payload.license || '').trim(),
       hashes: payload.hashes || {},
       endpoint: String(payload.endpoint || '').trim(),
-      engineConfig: payload.engineConfig,
     },
   });
-  return parseAssetRecord(result);
+  return parseTransferAccepted(result);
 }
 
 export async function installLocalRuntimeVerifiedAsset(
   payload: LocalRuntimeInstallVerifiedAssetPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeAssetRecord> {
+): Promise<LocalRuntimeTransferAccepted> {
   assertLifecycleWriteAllowed('local_runtime_assets_install_verified', options?.caller);
-  const runtime = requireSdkLocal();
-  const response = await runtime.installVerifiedAsset({
-    templateId: String(payload.templateId || '').trim(),
-    endpoint: String(payload.endpoint || '').trim(),
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_install_verified', {
+    payload: {
+      templateId: String(payload.templateId || '').trim(),
+      endpoint: String(payload.endpoint || '').trim(),
+    },
   });
-  return parseAssetRecord(asRecord(response).asset);
+  return parseTransferAccepted(result);
 }
 
 export async function listLocalRuntimeDownloadSessions(): Promise<LocalRuntimeDownloadSessionSummary[]> {
@@ -161,26 +180,28 @@ export async function cancelLocalRuntimeDownload(
 export async function importLocalRuntimeAsset(
   payload: LocalRuntimeImportAssetPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeAssetRecord> {
+): Promise<LocalRuntimeTransferAccepted> {
   assertLifecycleWriteAllowed('local_runtime_assets_import', options?.caller);
-  const runtime = requireSdkLocal();
-  const response = await runtime.importLocalAsset({
-    manifestPath: String(payload.manifestPath || '').trim(),
-    endpoint: String(payload.endpoint || '').trim(),
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_import', {
+    payload: {
+      manifestPath: String(payload.manifestPath || '').trim(),
+      endpoint: String(payload.endpoint || '').trim(),
+    },
   });
-  return parseAssetRecord(asRecord(response).asset);
+  return parseTransferAccepted(result);
 }
 
 export async function removeLocalRuntimeAsset(
   localAssetId: string,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeAssetRecord> {
+): Promise<LocalRuntimeTransferAccepted> {
   assertLifecycleWriteAllowed('local_runtime_assets_remove', options?.caller);
-  const runtime = requireSdkLocal();
-  const response = await runtime.removeLocalAsset({
-    localAssetId: String(localAssetId || '').trim(),
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_remove', {
+    payload: {
+      localAssetId: String(localAssetId || '').trim(),
+    },
   });
-  return parseAssetRecord(asRecord(response).asset);
+  return parseTransferAccepted(result);
 }
 
 export async function startLocalRuntimeAsset(
@@ -347,14 +368,14 @@ export async function revealLocalRuntimeAssetsRootFolder(): Promise<void> {
 export async function rescanLocalRuntimeAssetBundle(
   payload: LocalRuntimeRescanBundlePayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeAssetRecord> {
+): Promise<LocalRuntimeTransferAccepted> {
   assertLifecycleWriteAllowed('local_runtime_assets_rescan_bundle', options?.caller);
   const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_rescan_bundle', {
     payload: {
       localAssetId: String(payload.localAssetId || '').trim(),
     },
   });
-  return parseAssetRecord(result);
+  return parseTransferAccepted(result);
 }
 
 export async function subscribeLocalRuntimeDownloadProgress(
@@ -393,7 +414,7 @@ export async function subscribeLocalRuntimeDownloadProgress(
 export async function scaffoldLocalRuntimeOrphanAsset(
   payload: LocalRuntimeScaffoldOrphanPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeAssetRecord> {
+): Promise<LocalRuntimeTransferAccepted> {
   assertLifecycleWriteAllowed('local_runtime_assets_scaffold_orphan', options?.caller);
   const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_scaffold_orphan', {
     payload: {
@@ -404,7 +425,7 @@ export async function scaffoldLocalRuntimeOrphanAsset(
       endpoint: String(payload.endpoint || '').trim() || undefined,
     },
   });
-  return parseAssetRecord(result);
+  return parseTransferAccepted(result);
 }
 
 export async function scanLocalRuntimeUnregisteredAssets(): Promise<LocalRuntimeUnregisteredAssetDescriptor[]> {
@@ -420,14 +441,14 @@ export async function importLocalRuntimeAssetFileUnified(
   options?: LocalRuntimeWriteOptions,
 ): Promise<LocalRuntimeAssetFileImportResult> {
   const declaration = payload.declaration;
-  const asset = await importLocalRuntimeAssetFile({
+  const accepted = await importLocalRuntimeAssetFile({
     filePath: payload.filePath,
     assetName: payload.assetName,
     kind: declaration.assetKind,
     engine: declaration.engine,
     endpoint: payload.endpoint,
   }, options);
-  return { asset };
+  return { accepted };
 }
 
 export async function importLocalRuntimeAssetManifest(
@@ -438,9 +459,9 @@ export async function importLocalRuntimeAssetManifest(
   if (!normalizedPath) {
     throw new Error('manifestPath is required');
   }
-  const asset = await importLocalRuntimeAsset({
+  const accepted = await importLocalRuntimeAsset({
     manifestPath: normalizedPath,
     endpoint: String(options?.endpoint || '').trim() || undefined,
   }, options);
-  return { asset };
+  return { accepted };
 }

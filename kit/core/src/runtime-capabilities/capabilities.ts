@@ -192,6 +192,7 @@ const DEFAULT_RUNTIME_ALLOWLIST = [
   'runtime.local.assets.list',
   'runtime.local.profiles.list',
   'runtime.local.profiles.install.request',
+  'runtime.local.profiles.apply.status',
   'runtime.profile.read.agent',
 ] as const;
 

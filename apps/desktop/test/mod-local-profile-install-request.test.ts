@@ -95,24 +95,10 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
   localRuntime.applyProfile = (async () => {
     applied += 1;
     return {
+      applySessionId: 'profile-apply-plan-balanced-fast-1',
       planId: 'plan-balanced-fast',
       modId: 'world.nimi.local-image',
       profileId: 'balanced-fast',
-      executionResult: {
-        planId: 'plan-balanced-fast',
-        modId: 'world.nimi.local-image',
-        entries: [],
-        installedAssets: [],
-        services: [],
-        capabilities: [],
-        stageResults: [],
-        preflightDecisions: [],
-        rollbackApplied: false,
-        warnings: [],
-      },
-      installedAssets: [],
-      warnings: [],
-      reasonCode: ReasonCode.ACTION_EXECUTED,
     };
   }) as unknown as typeof localRuntime.applyProfile;
 
@@ -127,8 +113,11 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
 
     assert.equal(result.accepted, true);
     assert.equal(result.declined, false);
+    assert.equal(result.status, 'queued');
+    assert.deepEqual(result.warnings, []);
     assert.equal(resolved, 1);
     assert.equal(applied, 1);
+    assert.equal(result.applySessionId, 'profile-apply-plan-balanced-fast-1');
     assert.equal(resolvedCapability, 'image');
     assert.deepEqual(resolvedEntryOverrides, [{ entryId: 'text-encoder', localAssetId: 'asset-llm-1' }]);
     assert.match(confirmMessage, /Balanced Fast/);
@@ -193,6 +182,41 @@ test('getProfileInstallStatus forwards capability to local runtime profile statu
   } finally {
     useAppStore.getState = originalGetState;
     localRuntime.getProfileInstallStatus = originalGetProfileInstallStatus;
+  }
+});
+
+test('getProfileApplyStatus forwards apply session status to local runtime', async () => {
+  const originalGetProfileApplyStatus = localRuntime.getProfileApplyStatus;
+
+  let observedApplySessionId = '';
+  localRuntime.getProfileApplyStatus = (async (applySessionId: string) => {
+    observedApplySessionId = applySessionId;
+    return {
+      applySessionId,
+      planId: 'plan-balanced-fast',
+      modId: 'world.nimi.local-image',
+      profileId: 'balanced-fast',
+      phase: 'complete',
+      status: 'completed',
+      message: 'Profile applied',
+      occurredAt: new Date(0).toISOString(),
+      done: true,
+      success: true,
+    };
+  }) as typeof localRuntime.getProfileApplyStatus;
+
+  try {
+    const host = createHost();
+    const result = await host.runtime.local.getProfileApplyStatus({
+      modId: 'world.nimi.local-image',
+      applySessionId: 'profile-apply-plan-balanced-fast-1',
+    });
+
+    assert.equal(observedApplySessionId, 'profile-apply-plan-balanced-fast-1');
+    assert.equal(result?.status, 'completed');
+    assert.equal(result?.applySessionId, 'profile-apply-plan-balanced-fast-1');
+  } finally {
+    localRuntime.getProfileApplyStatus = originalGetProfileApplyStatus;
   }
 });
 

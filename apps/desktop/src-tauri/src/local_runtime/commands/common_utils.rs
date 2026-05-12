@@ -149,7 +149,7 @@ async fn refresh_state_capability_matrix_with_provider_probe_async(
     state: &mut LocalAiRuntimeState,
 ) {
     let probe_models = collect_probe_models_by_service_async(state).await;
-    let profile = collect_device_profile(app);
+    let profile = collect_device_profile_async(app).await;
     refresh_state_capability_matrix_with_probe_and_device(state, &probe_models, Some(&profile));
 }
 

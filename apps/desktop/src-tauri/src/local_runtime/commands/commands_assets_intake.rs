@@ -299,16 +299,19 @@ fn scan_unregistered_assets(app: &AppHandle) -> Result<Vec<LocalAiUnregisteredAs
 }
 
 #[tauri::command]
-pub fn runtime_local_assets_scan_unregistered(
+pub async fn runtime_local_assets_scan_unregistered(
     app: AppHandle,
 ) -> Result<Vec<LocalAiUnregisteredAssetDescriptor>, String> {
-    scan_unregistered_assets(&app)
+    tauri::async_runtime::spawn_blocking(move || scan_unregistered_assets(&app))
+        .await
+        .map_err(|error| format!("LOCAL_AI_ASSETS_SCAN_UNREGISTERED_TASK_FAILED: {error}"))?
 }
 
 #[tauri::command]
 pub fn runtime_local_assets_scaffold_orphan(
+    app: AppHandle,
     payload: LocalAiScaffoldOrphanPayload,
-) -> Result<LocalAiAssetRecord, String> {
+) -> Result<LocalAiInstallAcceptedResponse, String> {
     let endpoint = match payload
         .endpoint
         .as_deref()
@@ -318,13 +321,50 @@ pub fn runtime_local_assets_scaffold_orphan(
         Some(value) => Some(validate_loopback_endpoint(value)?),
         None => None,
     };
-    runtime_scaffold_orphan_asset_via_runtime(
-        std::path::Path::new(payload.path.trim()),
-        &payload.kind,
-        payload.capabilities.as_deref().unwrap_or(&[]),
-        payload.engine.as_deref(),
-        endpoint.as_deref(),
-    )
+    let model_id = std::path::Path::new(payload.path.trim())
+        .file_name()
+        .and_then(|value| value.to_str())
+        .map(|value| format!("orphan:{value}"))
+        .unwrap_or_else(|| "orphan:asset".to_string());
+    let local_model_id = format!("pending:{}", slugify_local_model_id(model_id.as_str()));
+    let accepted = download_manager::enqueue_background_import_task(
+        &app,
+        model_id.as_str(),
+        local_model_id.as_str(),
+        "scaffold",
+        "queued orphan asset scaffold",
+        move |app, install_session_id, _model_id, _local_model_id, cancel_token| {
+            if cancel_token.throw_if_cancelled().is_err() {
+                return;
+            }
+            match runtime_scaffold_orphan_asset_via_runtime(
+                std::path::Path::new(payload.path.trim()),
+                &payload.kind,
+                payload.capabilities.as_deref().unwrap_or(&[]),
+                payload.engine.as_deref(),
+                endpoint.as_deref(),
+            ) {
+                Ok(asset) => download_manager::complete_background_import_task(
+                    &app,
+                    install_session_id.as_str(),
+                    asset.asset_id.as_str(),
+                    asset.local_asset_id.as_str(),
+                    "orphan asset scaffold completed",
+                ),
+                Err(error) => download_manager::fail_background_import_task(
+                    &app,
+                    install_session_id.as_str(),
+                    error,
+                    false,
+                ),
+            }
+        },
+    )?;
+    Ok(LocalAiInstallAcceptedResponse {
+        install_session_id: accepted.install_session_id,
+        model_id: accepted.model_id,
+        local_model_id: accepted.local_model_id,
+    })
 }
 
 #[tauri::command]

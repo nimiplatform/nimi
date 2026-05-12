@@ -10,10 +10,12 @@ use std::collections::HashMap;
 mod huggingface;
 mod shared;
 
-pub use self::huggingface::list_repo_catalog_variants;
+#[cfg(test)]
+use self::huggingface::{fetch_hf_model_details, fetch_hf_search_models};
 use self::huggingface::{
-    fetch_hf_model_details, fetch_hf_search_models, hf_search_to_catalog_item, infer_capabilities,
-    infer_license, known_total_size_bytes, match_catalog_capability, match_catalog_query,
+    fetch_hf_model_details_async, fetch_hf_search_models_async, hf_search_to_catalog_item,
+    infer_capabilities, infer_license, known_total_size_bytes,
+    list_repo_catalog_variants_from_details, match_catalog_capability, match_catalog_query,
     normalize_hf_repo_slug, normalize_search_query, resolve_hashes_for_files, select_entry_file,
     select_install_files, sibling_size_bytes,
 };
@@ -109,6 +111,7 @@ fn verified_descriptor_to_catalog_item(
     }
 }
 
+#[cfg(test)]
 pub fn search_catalog(
     query: Option<&str>,
     capability: Option<&str>,
@@ -165,6 +168,64 @@ pub fn search_catalog(
     Ok(filtered)
 }
 
+pub async fn search_catalog_async(
+    query: Option<&str>,
+    capability: Option<&str>,
+    limit: usize,
+    profile: &LocalAiDeviceProfile,
+) -> Result<Vec<LocalAiCatalogItemDescriptor>, String> {
+    let normalized_query = normalize_search_query(query);
+    let normalized_capability = normalize_non_empty(capability);
+    let normalized_limit = normalize_install_limit(limit);
+
+    let mut merged = verified_model_list()
+        .into_iter()
+        .map(|descriptor| verified_descriptor_to_catalog_item(descriptor, profile))
+        .collect::<Vec<_>>();
+
+    let hf_rows =
+        fetch_hf_search_models_async(normalized_query.as_str(), normalized_limit * 2).await?;
+    merged.extend(
+        hf_rows
+            .into_iter()
+            .filter_map(|item| hf_search_to_catalog_item(item, profile)),
+    );
+
+    let mut filtered = merged
+        .into_iter()
+        .filter(|item| match_catalog_query(item, normalized_query.as_str()))
+        .filter(|item| {
+            if let Some(capability_filter) = normalized_capability.as_ref() {
+                return match_catalog_capability(item, capability_filter.as_str());
+            }
+            true
+        })
+        .collect::<Vec<_>>();
+
+    filtered.sort_by(|left, right| {
+        let left_rank = if left.verified { 0 } else { 1 };
+        let right_rank = if right.verified { 0 } else { 1 };
+        if left_rank != right_rank {
+            return left_rank.cmp(&right_rank);
+        }
+
+        left.title
+            .to_ascii_lowercase()
+            .cmp(&right.title.to_ascii_lowercase())
+    });
+
+    if filtered.len() > normalized_limit {
+        filtered.truncate(normalized_limit);
+    }
+
+    for item in filtered.iter_mut() {
+        hydrate_catalog_item_for_recommendation_async(item, profile).await?;
+    }
+
+    Ok(filtered)
+}
+
+#[cfg(test)]
 pub fn list_catalog_variants(
     repo: &str,
     profile: &LocalAiDeviceProfile,
@@ -175,7 +236,8 @@ pub fn list_catalog_variants(
         &details.tags,
     ))?;
     let engine = infer_engine(repo, &details.tags, &capabilities);
-    list_repo_catalog_variants(
+    Ok(list_repo_catalog_variants_from_details(
+        &details,
         repo,
         details.id.as_str(),
         details.id.as_str(),
@@ -183,7 +245,29 @@ pub fn list_catalog_variants(
         engine.as_str(),
         profile,
         details.tags.as_slice(),
-    )
+    ))
+}
+
+pub async fn list_catalog_variants_async(
+    repo: &str,
+    profile: &LocalAiDeviceProfile,
+) -> Result<Vec<CatalogVariantDescriptor>, String> {
+    let details = fetch_hf_model_details_async(repo).await?;
+    let capabilities = normalize_and_validate_capabilities(&infer_capabilities(
+        details.pipeline_tag.as_deref(),
+        &details.tags,
+    ))?;
+    let engine = infer_engine(repo, &details.tags, &capabilities);
+    Ok(list_repo_catalog_variants_from_details(
+        &details,
+        repo,
+        details.id.as_str(),
+        details.id.as_str(),
+        capabilities.as_slice(),
+        engine.as_str(),
+        profile,
+        details.tags.as_slice(),
+    ))
 }
 
 #[cfg(test)]

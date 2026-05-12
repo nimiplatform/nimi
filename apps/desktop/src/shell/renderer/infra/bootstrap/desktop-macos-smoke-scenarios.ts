@@ -253,6 +253,17 @@ export async function runDesktopMacosSmokeScenario(
   const record = (step: string) => {
     steps.push(step);
   };
+  const openRuntimePanel = async () => {
+    try {
+      await deps.clickByTestId(E2E_IDS.navTab('runtime'));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error || '');
+      if (!message.includes(`missing test id ${E2E_IDS.navTab('runtime')}`)) {
+        throw error;
+      }
+      await deps.clickByTestId(E2E_IDS.topbarRuntimeButton);
+    }
+  };
 
   try {
     switch (scenarioId) {
@@ -260,7 +271,7 @@ export async function runDesktopMacosSmokeScenario(
         record('wait-main-shell');
         await deps.waitForTestId(E2E_IDS.mainShell);
         record('open-runtime-panel');
-        await deps.clickByTestId(E2E_IDS.navTab('runtime'));
+        await openRuntimePanel();
         record('wait-runtime-overview');
         await deps.waitForTestId(E2E_IDS.panel('runtime'));
         await deps.waitForTestId(E2E_IDS.runtimePageRoot('overview'));
@@ -284,6 +295,8 @@ export async function runDesktopMacosSmokeScenario(
           }
           record('return-runtime-panel');
           await deps.clickByTestId(E2E_IDS.loginBackButton);
+          await deps.waitForTestId(E2E_IDS.mainShell);
+          await openRuntimePanel();
           await deps.waitForTestId(E2E_IDS.panel('runtime'));
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error || '');

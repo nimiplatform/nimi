@@ -82,7 +82,12 @@ mod tests {
         let content = b"hello world model data for sha256 test";
         std::fs::write(&src, content).expect("write source");
 
-        copy_file_with_progress(std::fs::File::open(&src).expect("open source"), &dst, |_| {})
+        copy_file_with_progress(
+            std::fs::File::open(&src).expect("open source"),
+            &dst,
+            |_| {},
+            || Ok(()),
+        )
             .expect("copy should succeed");
 
         let copied = std::fs::read(&dst).expect("read dest");
@@ -96,7 +101,12 @@ mod tests {
         let dst = tmp.path().join("empty_copy.bin");
         std::fs::write(&src, b"").expect("write empty source");
 
-        copy_file_with_progress(std::fs::File::open(&src).expect("open source"), &dst, |_| {})
+        copy_file_with_progress(
+            std::fs::File::open(&src).expect("open source"),
+            &dst,
+            |_| {},
+            || Ok(()),
+        )
             .expect("copy should succeed for empty file");
 
         let copied = std::fs::read(&dst).expect("read dest");
@@ -112,7 +122,12 @@ mod tests {
         let content = vec![0xABu8; 200 * 1024];
         std::fs::write(&src, &content).expect("write large source");
 
-        copy_file_with_progress(std::fs::File::open(&src).expect("open source"), &dst, |_| {})
+        copy_file_with_progress(
+            std::fs::File::open(&src).expect("open source"),
+            &dst,
+            |_| {},
+            || Ok(()),
+        )
             .expect("copy should succeed");
 
         let copied = std::fs::read(&dst).expect("read dest");
@@ -129,9 +144,14 @@ mod tests {
         std::fs::write(&src, &content).expect("write source");
 
         let mut progress_calls = Vec::new();
-        copy_file_with_progress(std::fs::File::open(&src).expect("open source"), &dst, |bytes_copied| {
-            progress_calls.push(bytes_copied);
-        })
+        copy_file_with_progress(
+            std::fs::File::open(&src).expect("open source"),
+            &dst,
+            |bytes_copied| {
+                progress_calls.push(bytes_copied);
+            },
+            || Ok(()),
+        )
         .expect("copy should succeed");
 
         // Should have at least 2 progress callbacks (2 chunks)
@@ -156,6 +176,37 @@ mod tests {
     }
 
     #[test]
+    fn copy_file_with_progress_stops_at_cancel_boundary() {
+        let tmp = tempfile::tempdir().expect("create temp dir");
+        let src = tmp.path().join("cancel.bin");
+        let dst = tmp.path().join("cancel_copy.bin");
+        let content = vec![0x7Fu8; 128 * 1024];
+        std::fs::write(&src, &content).expect("write source");
+
+        let progress_calls = std::cell::Cell::new(0usize);
+        let result = copy_file_with_progress(
+            std::fs::File::open(&src).expect("open source"),
+            &dst,
+            |_| {
+                progress_calls.set(progress_calls.get() + 1);
+            },
+            || {
+                if progress_calls.get() > 0 {
+                    Err("LOCAL_AI_BACKGROUND_IMPORT_CANCELLED: test cancel".to_string())
+                } else {
+                    Ok(())
+                }
+            },
+        );
+
+        let error = result.expect_err("copy should stop after cancellation");
+        assert!(
+            error.starts_with("LOCAL_AI_BACKGROUND_IMPORT_CANCELLED"),
+            "error should preserve cancellation reason, got: {error}"
+        );
+    }
+
+    #[test]
     fn copy_file_with_progress_fails_on_missing_source() {
         let tmp = tempfile::tempdir().expect("create temp dir");
         let src = tmp.path().join("nonexistent.gguf");
@@ -172,7 +223,12 @@ mod tests {
         // Dest inside a non-existent directory
         let dst = tmp.path().join("no-such-dir").join("deep").join("dest.bin");
 
-        let result = copy_file_with_progress(std::fs::File::open(&src).expect("open source"), &dst, |_| {});
+        let result = copy_file_with_progress(
+            std::fs::File::open(&src).expect("open source"),
+            &dst,
+            |_| {},
+            || Ok(()),
+        );
         let error = result.expect_err("should fail for invalid dest path");
         assert!(
             error.contains("LOCAL_AI_FILE_IMPORT_WRITE_FAILED"),

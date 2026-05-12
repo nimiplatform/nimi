@@ -58,12 +58,66 @@ fn collect_python_profile() -> LocalAiPythonProfile {
     }
 }
 
+async fn collect_python_profile_async() -> LocalAiPythonProfile {
+    let mut candidates = vec!["python3".to_string(), "python".to_string()];
+    if let Ok(override_python) = std::env::var("NIMI_QWEN_PYTHON_BIN") {
+        let normalized = override_python.trim().to_string();
+        if !normalized.is_empty() {
+            candidates.insert(0, normalized);
+        }
+    }
+
+    for candidate in candidates {
+        let output = tokio::process::Command::new(candidate.as_str())
+            .arg("--version")
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .output()
+            .await;
+        let Ok(output) = output else {
+            continue;
+        };
+        if !output.status.success() {
+            continue;
+        }
+        let mut text = String::from_utf8_lossy(&output.stdout).to_string();
+        text.push_str(String::from_utf8_lossy(&output.stderr).as_ref());
+        return LocalAiPythonProfile {
+            available: true,
+            version: parse_python_version(text.as_str()),
+        };
+    }
+
+    LocalAiPythonProfile {
+        available: false,
+        version: None,
+    }
+}
+
 fn read_command_output(program: &str, args: &[&str]) -> Option<String> {
     let output = Command::new(program)
         .args(args)
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null())
         .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if text.is_empty() {
+        return None;
+    }
+    Some(text)
+}
+
+async fn read_command_output_async(program: &str, args: &[&str]) -> Option<String> {
+    let output = tokio::process::Command::new(program)
+        .args(args)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .output()
+        .await
         .ok()?;
     if !output.status.success() {
         return None;
@@ -108,9 +162,61 @@ fn collect_memory_bytes() -> Option<(u64, u64)> {
     Some((total_bytes, free_pages.saturating_mul(page_size)))
 }
 
+#[cfg(target_os = "macos")]
+async fn collect_memory_bytes_async() -> Option<(u64, u64)> {
+    let total_bytes = read_command_output_async("sysctl", &["-n", "hw.memsize"])
+        .await
+        .and_then(|value| value.trim().parse::<u64>().ok())?;
+    let vm_stat = read_command_output_async("vm_stat", &[]).await?;
+    let page_size = vm_stat
+        .lines()
+        .next()
+        .and_then(parse_digits_u64)
+        .filter(|value| *value > 0)?;
+    let mut free_pages = 0_u64;
+    for line in vm_stat.lines() {
+        if line.starts_with("Pages free:") || line.starts_with("Pages speculative:") {
+            if let Some(value) = parse_digits_u64(line) {
+                free_pages = free_pages.saturating_add(value);
+            }
+        }
+    }
+    Some((total_bytes, free_pages.saturating_mul(page_size)))
+}
+
 #[cfg(target_os = "linux")]
 fn collect_memory_bytes() -> Option<(u64, u64)> {
     let meminfo = std::fs::read_to_string("/proc/meminfo").ok()?;
+    let mut total_kb: Option<u64> = None;
+    let mut available_kb: Option<u64> = None;
+    let mut free_kb: Option<u64> = None;
+    for line in meminfo.lines() {
+        if line.starts_with("MemTotal:") {
+            total_kb = line
+                .split_whitespace()
+                .nth(1)
+                .and_then(|value| value.parse::<u64>().ok());
+        } else if line.starts_with("MemAvailable:") {
+            available_kb = line
+                .split_whitespace()
+                .nth(1)
+                .and_then(|value| value.parse::<u64>().ok());
+        } else if line.starts_with("MemFree:") {
+            free_kb = line
+                .split_whitespace()
+                .nth(1)
+                .and_then(|value| value.parse::<u64>().ok());
+        }
+    }
+    Some((
+        total_kb?.saturating_mul(1024),
+        available_kb.or(free_kb)?.saturating_mul(1024),
+    ))
+}
+
+#[cfg(target_os = "linux")]
+async fn collect_memory_bytes_async() -> Option<(u64, u64)> {
+    let meminfo = tokio::fs::read_to_string("/proc/meminfo").await.ok()?;
     let mut total_kb: Option<u64> = None;
     let mut available_kb: Option<u64> = None;
     let mut free_kb: Option<u64> = None;
@@ -163,8 +269,39 @@ fn collect_memory_bytes() -> Option<(u64, u64)> {
     ))
 }
 
+#[cfg(target_os = "windows")]
+async fn collect_memory_bytes_async() -> Option<(u64, u64)> {
+    let raw = read_command_output_async(
+        "powershell",
+        &[
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            "$os=Get-CimInstance Win32_OperatingSystem; \"$($os.TotalVisibleMemorySize) $($os.FreePhysicalMemory)\"",
+        ],
+    )
+    .await?;
+    let values = raw
+        .split_whitespace()
+        .filter_map(|item| item.parse::<u64>().ok())
+        .collect::<Vec<_>>();
+    if values.len() < 2 {
+        return None;
+    }
+    Some((
+        values[0].saturating_mul(1024),
+        values[1].saturating_mul(1024),
+    ))
+}
+
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
 fn collect_memory_bytes() -> Option<(u64, u64)> {
+    None
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+async fn collect_memory_bytes_async() -> Option<(u64, u64)> {
     None
 }
 
@@ -208,6 +345,70 @@ fn collect_gpu_profile() -> LocalAiGpuProfile {
         let model = read_command_output("sysctl", &["-n", "machdep.cpu.brand_string"])
             .or_else(|| read_command_output("sysctl", &["-n", "machdep.cpu.brand_string"]));
         if let Some((total_ram_bytes, available_ram_bytes)) = collect_memory_bytes() {
+            return LocalAiGpuProfile {
+                available: true,
+                vendor: Some("Apple".to_string()),
+                model: model.filter(|value| !value.trim().is_empty()),
+                total_vram_bytes: Some(total_ram_bytes),
+                available_vram_bytes: Some(available_ram_bytes),
+                memory_model: LocalAiMemoryModel::Unified,
+            };
+        }
+    }
+
+    LocalAiGpuProfile {
+        available: false,
+        vendor: None,
+        model: None,
+        total_vram_bytes: None,
+        available_vram_bytes: None,
+        memory_model: LocalAiMemoryModel::Unknown,
+    }
+}
+
+async fn collect_gpu_profile_async() -> LocalAiGpuProfile {
+    if let Some(raw) = read_command_output_async(
+        "nvidia-smi",
+        &[
+            "--query-gpu=name,memory.total,memory.free",
+            "--format=csv,noheader,nounits",
+        ],
+    )
+    .await
+    {
+        if let Some(first_row) = raw.lines().find(|line| !line.trim().is_empty()) {
+            let columns = first_row
+                .split(',')
+                .map(|item| item.trim())
+                .collect::<Vec<_>>();
+            let total_vram_bytes = columns
+                .get(1)
+                .and_then(|value| value.parse::<u64>().ok())
+                .map(|value| value.saturating_mul(1024 * 1024));
+            let available_vram_bytes = columns
+                .get(2)
+                .and_then(|value| value.parse::<u64>().ok())
+                .map(|value| value.saturating_mul(1024 * 1024));
+            return LocalAiGpuProfile {
+                available: true,
+                vendor: Some("NVIDIA".to_string()),
+                model: columns
+                    .first()
+                    .map(|value| (*value).to_string())
+                    .filter(|value| !value.is_empty()),
+                total_vram_bytes,
+                available_vram_bytes,
+                memory_model: LocalAiMemoryModel::Discrete,
+            };
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let model = read_command_output_async("sysctl", &["-n", "machdep.cpu.brand_string"])
+            .await
+            .or_else(|| None);
+        if let Some((total_ram_bytes, available_ram_bytes)) = collect_memory_bytes_async().await {
             return LocalAiGpuProfile {
                 available: true,
                 vendor: Some("Apple".to_string()),
@@ -308,6 +509,72 @@ fn collect_npu_profile() -> LocalAiNpuProfile {
     }
 }
 
+async fn collect_npu_profile_async() -> LocalAiNpuProfile {
+    let override_ready = parse_bool_env(std::env::var("NIMI_LOCAL_AI_HOST_NPU_READY").ok());
+    let vendor_env = std::env::var("NIMI_LOCAL_AI_HOST_NPU_VENDOR")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    let runtime_env = std::env::var("NIMI_LOCAL_AI_HOST_NPU_RUNTIME")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    let detail_env = std::env::var("NIMI_LOCAL_AI_HOST_NPU_DETAIL")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+
+    if let Some(ready) = override_ready {
+        return LocalAiNpuProfile {
+            available: ready,
+            ready,
+            vendor: vendor_env.or(Some("env".to_string())),
+            runtime: runtime_env,
+            detail: detail_env.or(Some(format!(
+                "npu host probe overridden via env (ready={ready})"
+            ))),
+        };
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let output = tokio::process::Command::new("sysctl")
+            .arg("-n")
+            .arg("hw.optional.neuralengine")
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .output()
+            .await;
+        if let Ok(output) = output {
+            if output.status.success() {
+                let raw = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                let ready = raw == "1";
+                return LocalAiNpuProfile {
+                    available: ready,
+                    ready,
+                    vendor: Some("Apple".to_string()),
+                    runtime: Some("ane".to_string()),
+                    detail: if ready {
+                        Some("Apple Neural Engine available".to_string())
+                    } else {
+                        Some(format!(
+                            "Apple Neural Engine not reported by host (value={raw})"
+                        ))
+                    },
+                };
+            }
+        }
+    }
+
+    LocalAiNpuProfile {
+        available: false,
+        ready: false,
+        vendor: vendor_env,
+        runtime: runtime_env,
+        detail: detail_env.or(Some("NPU host probe unavailable".to_string())),
+    }
+}
+
 #[cfg(not(target_os = "windows"))]
 fn parse_df_available_kbytes(output: &str) -> Option<u64> {
     // POSIX df -Pk output: Filesystem 1024-blocks Used Available Capacity Mounted on
@@ -350,12 +617,48 @@ fn collect_disk_free_bytes_for_runtime_root(runtime_root: Option<&str>) -> u64 {
     0
 }
 
+async fn collect_disk_free_bytes_for_runtime_root_async(runtime_root: Option<&str>) -> u64 {
+    let runtime_root = runtime_root.unwrap_or_default().trim().to_string();
+    if runtime_root.is_empty() {
+        return 0;
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let output = tokio::process::Command::new("df")
+            .arg("-Pk")
+            .arg(runtime_root.as_str())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .output()
+            .await;
+        if let Ok(output) = output {
+            if output.status.success() {
+                let text = String::from_utf8_lossy(&output.stdout).to_string();
+                if let Some(bytes) = parse_df_available_kbytes(text.as_str()) {
+                    return bytes;
+                }
+            }
+        }
+    }
+
+    0
+}
+
 fn collect_disk_free_bytes(app: &AppHandle) -> u64 {
     let Ok(runtime_root) = runtime_root_dir(app) else {
         return 0;
     };
     let runtime_root = runtime_root.to_string_lossy().to_string();
     collect_disk_free_bytes_for_runtime_root(Some(runtime_root.as_str()))
+}
+
+async fn collect_disk_free_bytes_async(app: &AppHandle) -> u64 {
+    let Ok(runtime_root) = runtime_root_dir(app) else {
+        return 0;
+    };
+    let runtime_root = runtime_root.to_string_lossy().to_string();
+    collect_disk_free_bytes_for_runtime_root_async(Some(runtime_root.as_str())).await
 }
 
 fn collect_ports() -> Vec<LocalAiPortAvailability> {
@@ -366,6 +669,17 @@ fn collect_ports() -> Vec<LocalAiPortAvailability> {
             LocalAiPortAvailability { port, available }
         })
         .collect::<Vec<_>>()
+}
+
+async fn collect_ports_async() -> Vec<LocalAiPortAvailability> {
+    let mut output = Vec::new();
+    for port in [1234_u16, 18181_u16, 38100_u16] {
+        let available = tokio::net::TcpListener::bind(("127.0.0.1", port))
+            .await
+            .is_ok();
+        output.push(LocalAiPortAvailability { port, available });
+    }
+    output
 }
 
 pub fn collect_device_profile(app: &AppHandle) -> LocalAiDeviceProfile {
@@ -380,6 +694,22 @@ pub fn collect_device_profile(app: &AppHandle) -> LocalAiDeviceProfile {
         npu: collect_npu_profile(),
         disk_free_bytes: collect_disk_free_bytes(app),
         ports: collect_ports(),
+    }
+}
+
+pub async fn collect_device_profile_async(app: &AppHandle) -> LocalAiDeviceProfile {
+    let (total_ram_bytes, available_ram_bytes) =
+        collect_memory_bytes_async().await.unwrap_or((0, 0));
+    LocalAiDeviceProfile {
+        os: std::env::consts::OS.to_string(),
+        arch: std::env::consts::ARCH.to_string(),
+        total_ram_bytes,
+        available_ram_bytes,
+        gpu: collect_gpu_profile_async().await,
+        python: collect_python_profile_async().await,
+        npu: collect_npu_profile_async().await,
+        disk_free_bytes: collect_disk_free_bytes_async(app).await,
+        ports: collect_ports_async().await,
     }
 }
 

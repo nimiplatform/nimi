@@ -14,6 +14,7 @@ import type {
   LocalRuntimeDownloadState,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
+  LocalRuntimeTransferAccepted,
   LocalRuntimeEnvironmentActivationGate,
   LocalRuntimeEnvironmentDependencyJob,
   LocalRuntimeEnvironmentPlan,
@@ -510,6 +511,15 @@ export function parseDownloadSessionSummary(value: unknown): LocalRuntimeDownloa
     retryable: Boolean(record.retryable),
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
+  };
+}
+
+export function parseTransferAccepted(value: unknown): LocalRuntimeTransferAccepted {
+  const record = asRecord(value);
+  return {
+    installSessionId: requiredString('installSessionId', record.installSessionId),
+    modelId: toCanonicalLocalId(requiredString('modelId', record.modelId || record.assetId)),
+    localModelId: requiredString('localModelId', record.localModelId || record.localAssetId),
   };
 }
 

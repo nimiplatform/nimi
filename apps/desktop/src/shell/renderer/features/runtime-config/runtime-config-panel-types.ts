@@ -10,7 +10,7 @@ import type {
   LocalRuntimeCatalogItemDescriptor,
   LocalRuntimeInstallPayload,
   LocalRuntimeInstallPlanDescriptor,
-  LocalRuntimeProfileApplyResult,
+  LocalRuntimeProfileApplyAccepted,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileResolutionPlan,
 } from '@runtime/local-runtime';
@@ -68,7 +68,7 @@ export type RuntimeConfigPanelControllerModel = {
     modId: string,
     profileId: string,
     capability?: string,
-  ) => Promise<LocalRuntimeProfileApplyResult>;
+  ) => Promise<LocalRuntimeProfileApplyAccepted>;
   installCatalogLocalModel: (
     item: LocalRuntimeCatalogItemDescriptor,
     options?: {

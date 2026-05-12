@@ -73,7 +73,16 @@ pub(super) fn clear_selected_background(
 }
 
 #[tauri::command]
-pub(crate) fn desktop_agent_center_background_import(
+pub(crate) async fn desktop_agent_center_background_import(
+    payload: DesktopAgentCenterBackgroundImportPayload,
+) -> Result<DesktopAgentCenterBackgroundImportResult, String> {
+    run_agent_center_resource_blocking("desktop_agent_center_background_import", move || {
+        desktop_agent_center_background_import_blocking(payload)
+    })
+    .await
+}
+
+pub(crate) fn desktop_agent_center_background_import_blocking(
     payload: DesktopAgentCenterBackgroundImportPayload,
 ) -> Result<DesktopAgentCenterBackgroundImportResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
@@ -257,7 +266,17 @@ pub(crate) fn desktop_agent_center_background_import(
 }
 
 #[tauri::command]
-pub(crate) fn desktop_agent_center_live2d_adapter_manifest_import(
+pub(crate) async fn desktop_agent_center_live2d_adapter_manifest_import(
+    payload: DesktopAgentCenterLive2dAdapterManifestImportPayload,
+) -> Result<DesktopAgentCenterLive2dAdapterManifestImportResult, String> {
+    run_agent_center_resource_blocking(
+        "desktop_agent_center_live2d_adapter_manifest_import",
+        move || desktop_agent_center_live2d_adapter_manifest_import_blocking(payload),
+    )
+    .await
+}
+
+pub(crate) fn desktop_agent_center_live2d_adapter_manifest_import_blocking(
     payload: DesktopAgentCenterLive2dAdapterManifestImportPayload,
 ) -> Result<DesktopAgentCenterLive2dAdapterManifestImportResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;

@@ -26,6 +26,19 @@ const OPERATIONS_FILE_NAME: &str = "agent-center-local-resources.jsonl";
 const OPERATION_RETENTION_DAYS: i64 = 30;
 const QUARANTINE_RETENTION_DAYS: i64 = 7;
 
+async fn run_agent_center_resource_blocking<T, F>(
+    operation: &'static str,
+    task: F,
+) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(task)
+        .await
+        .map_err(|error| format!("{operation} background worker failed: {error}"))?
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct BackgroundManifest {

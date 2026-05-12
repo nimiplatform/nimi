@@ -21,8 +21,8 @@ use super::audit::{
 };
 use super::capability_matrix::refresh_state_capability_matrix_with_probe_and_device;
 use super::catalog::{
-    list_catalog_variants, resolve_install_plan as resolve_catalog_install_plan, search_catalog,
-    LocalAiCatalogResolveInput,
+    list_catalog_variants_async, resolve_install_plan_async as resolve_catalog_install_plan_async,
+    search_catalog_async, LocalAiCatalogResolveInput,
 };
 use super::dependency_apply::{
     fail_progress, mark_capability_matrix_refresh, run_preflight_all, DependencyApplyProgress,
@@ -30,14 +30,14 @@ use super::dependency_apply::{
 use super::dependency_resolver::{
     resolve_dependencies, DependencyDeclarationInput, DependencyOptionInput, DependencyResolveInput,
 };
-use super::device_profile::collect_device_profile;
+use super::device_profile::{collect_device_profile, collect_device_profile_async};
 use super::download_manager;
 use super::hf_source::{install_from_hf, HfDownloadProgress};
 use super::import_validator::{
     normalize_and_validate_capabilities, validate_import_asset_manifest_path,
     validate_loopback_endpoint,
 };
-use super::model_index::load_recommendation_feed;
+use super::model_index::load_recommendation_feed_async;
 use super::node_catalog::list_nodes_from_services;
 use super::reason_codes::{
     extract_reason_code as extract_local_ai_reason_code, normalize_local_ai_reason_code,
@@ -63,7 +63,8 @@ use super::types::{
     LocalAiDependencyResolutionPlan, LocalAiDeviceProfile, LocalAiDownloadControlPayload,
     LocalAiDownloadProgressEvent, LocalAiDownloadSessionSummary, LocalAiDownloadState,
     LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiIntegrityMode,
-    LocalAiNodeDescriptor, LocalAiProfileApplyResult, LocalAiProfileDescriptor,
+    LocalAiNodeDescriptor, LocalAiProfileApplyAccepted, LocalAiProfileApplyProgressEvent,
+    LocalAiProfileApplyResult, LocalAiProfileApplyStatusPayload, LocalAiProfileDescriptor,
     LocalAiProfileEntryDescriptor, LocalAiProfileResolutionPlan,
     LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
     LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiSuggestionConfidence,

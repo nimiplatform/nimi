@@ -1,7 +1,16 @@
 use super::*;
 
 #[tauri::command]
-pub(crate) fn desktop_agent_center_background_remove(
+pub(crate) async fn desktop_agent_center_background_remove(
+    payload: DesktopAgentCenterBackgroundRemovePayload,
+) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
+    run_agent_center_resource_blocking("desktop_agent_center_background_remove", move || {
+        desktop_agent_center_background_remove_blocking(payload)
+    })
+    .await
+}
+
+pub(crate) fn desktop_agent_center_background_remove_blocking(
     payload: DesktopAgentCenterBackgroundRemovePayload,
 ) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
@@ -53,7 +62,17 @@ pub(crate) fn desktop_agent_center_background_remove(
 }
 
 #[tauri::command]
-pub(crate) fn desktop_agent_center_agent_local_resources_remove(
+pub(crate) async fn desktop_agent_center_agent_local_resources_remove(
+    payload: DesktopAgentCenterAgentLocalResourcesRemovePayload,
+) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
+    run_agent_center_resource_blocking(
+        "desktop_agent_center_agent_local_resources_remove",
+        move || desktop_agent_center_agent_local_resources_remove_blocking(payload),
+    )
+    .await
+}
+
+pub(crate) fn desktop_agent_center_agent_local_resources_remove_blocking(
     payload: DesktopAgentCenterAgentLocalResourcesRemovePayload,
 ) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
@@ -62,7 +81,17 @@ pub(crate) fn desktop_agent_center_agent_local_resources_remove(
 }
 
 #[tauri::command]
-pub(crate) fn desktop_agent_center_account_local_resources_remove(
+pub(crate) async fn desktop_agent_center_account_local_resources_remove(
+    payload: DesktopAgentCenterAccountLocalResourcesRemovePayload,
+) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
+    run_agent_center_resource_blocking(
+        "desktop_agent_center_account_local_resources_remove",
+        move || desktop_agent_center_account_local_resources_remove_blocking(payload),
+    )
+    .await
+}
+
+pub(crate) fn desktop_agent_center_account_local_resources_remove_blocking(
     payload: DesktopAgentCenterAccountLocalResourcesRemovePayload,
 ) -> Result<DesktopAgentCenterLocalResourceRemoveResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;

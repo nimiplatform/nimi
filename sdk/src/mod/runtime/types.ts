@@ -253,8 +253,27 @@ export type ModRuntimeLocalProfileInstallResult = {
   profileId: string;
   accepted: boolean;
   declined: boolean;
+  status?: 'queued' | 'declined' | 'missing' | 'failed';
   warnings: string[];
+  applySessionId?: string;
+  planId?: string;
   reasonCode?: string;
+};
+
+export type ModRuntimeLocalProfileApplyStatus = {
+  applySessionId: string;
+  planId: string;
+  modId: string;
+  profileId: string;
+  phase: string;
+  status: 'queued' | 'running' | 'completed' | 'failed' | string;
+  occurredAt: string;
+  message?: string;
+  error?: string;
+  reasonCode?: string;
+  rollbackApplied?: boolean;
+  done: boolean;
+  success: boolean;
 };
 
 export type ModRuntimeLocalAssetRecord = {
@@ -346,6 +365,9 @@ export type ModRuntimeClient = {
       capability?: RuntimeCanonicalCapability | string;
       entryOverrides?: ModRuntimeProfileEntryOverride[];
     }): Promise<ModRuntimeLocalProfileInstallStatus>;
+    getProfileApplyStatus(input: {
+      applySessionId: string;
+    }): Promise<ModRuntimeLocalProfileApplyStatus | null>;
   };
   aiConfig: {
     get(scopeRef: AIScopeRef): AIConfig;

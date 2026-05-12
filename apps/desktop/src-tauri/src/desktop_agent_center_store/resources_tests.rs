@@ -94,15 +94,16 @@ fn imports_background_transactionally_and_selects_it() {
     let home = temp_home("import-background");
     with_env(&[("HOME", home.to_str())], || {
         let source = write_background_import_source(&home);
-        let result =
-            desktop_agent_center_background_import(DesktopAgentCenterBackgroundImportPayload {
+        let result = desktop_agent_center_background_import_blocking(
+            DesktopAgentCenterBackgroundImportPayload {
                 account_id: "account_1".to_string(),
                 agent_id: "agent_1".to_string(),
                 source_path: source.to_string_lossy().to_string(),
                 display_name: Some("Imported Background".to_string()),
                 select: Some(true),
-            })
-            .expect("import background");
+            },
+        )
+        .expect("import background");
 
         assert!(result.background_asset_id.starts_with("bg_"));
         assert_eq!(
@@ -123,7 +124,7 @@ fn imports_background_transactionally_and_selects_it() {
             config.modules.appearance.background_asset_id.as_deref(),
             Some(result.background_asset_id.as_str())
         );
-        let asset = desktop_agent_center_background_asset_get(
+        let asset = desktop_agent_center_background_asset_get_blocking(
             DesktopAgentCenterBackgroundValidatePayload {
                 account_id: "account_1".to_string(),
                 agent_id: "agent_1".to_string(),
@@ -150,13 +151,14 @@ fn removes_selected_background_by_clearing_config_and_quarantining_directory() {
         select_imported_background("account_1", "agent_1", "bg_ab12cd34ef56")
             .expect("select background");
 
-        let result =
-            desktop_agent_center_background_remove(DesktopAgentCenterBackgroundRemovePayload {
+        let result = desktop_agent_center_background_remove_blocking(
+            DesktopAgentCenterBackgroundRemovePayload {
                 account_id: "account_1".to_string(),
                 agent_id: "agent_1".to_string(),
                 background_asset_id: "bg_ab12cd34ef56".to_string(),
-            })
-            .expect("remove background");
+            },
+        )
+        .expect("remove background");
 
         assert!(result.quarantined);
         assert!(!background_root.exists());

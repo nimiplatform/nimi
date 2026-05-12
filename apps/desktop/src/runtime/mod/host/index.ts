@@ -101,6 +101,7 @@ function buildFallbackRuntimeModSdkContext(): ModRuntimeContext {
                 listProfiles: async () => { throw notReady(); },
                 requestProfileInstall: async () => { throw notReady(); },
                 getProfileInstallStatus: async () => { throw notReady(); },
+                getProfileApplyStatus: async () => { throw notReady(); },
             },
             aiConfig: {
                 get: () => { throw notReady(); },

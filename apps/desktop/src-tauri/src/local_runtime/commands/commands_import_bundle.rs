@@ -52,80 +52,8 @@ fn validate_import_source_directory(raw_path: &str) -> Result<std::path::PathBuf
         .map_err(|error| format!("LOCAL_AI_BUNDLE_IMPORT_CANONICALIZE_FAILED: {error}"))
 }
 
-fn scan_bundle_directory(root: &std::path::Path) -> Result<BundleScan, String> {
-    fn walk(
-        root: &std::path::Path,
-        current: &std::path::Path,
-        files: &mut Vec<String>,
-    ) -> Result<(), String> {
-        let entries = std::fs::read_dir(current).map_err(|error| {
-            format!(
-                "LOCAL_AI_BUNDLE_IMPORT_READ_DIR_FAILED: cannot read bundle directory {}: {error}",
-                current.display()
-            )
-        })?;
-        for entry in entries {
-            let entry = entry.map_err(|error| {
-                format!(
-                    "LOCAL_AI_BUNDLE_IMPORT_READ_DIR_FAILED: cannot read bundle entry {}: {error}",
-                    current.display()
-                )
-            })?;
-            let path = entry.path();
-            if is_ignored_local_asset_metadata_path(&path) {
-                continue;
-            }
-            let metadata = std::fs::symlink_metadata(&path).map_err(|error| {
-                format!(
-                    "LOCAL_AI_BUNDLE_IMPORT_STAT_FAILED: cannot stat bundle entry {}: {error}",
-                    path.display()
-                )
-            })?;
-            if metadata.file_type().is_symlink() {
-                return Err(symlink_forbidden_error(&path));
-            }
-            if metadata.is_dir() {
-                walk(root, &path, files)?;
-                continue;
-            }
-            if !metadata.is_file() {
-                continue;
-            }
-            let relative = path.strip_prefix(root).map_err(|error| {
-                format!(
-                    "LOCAL_AI_BUNDLE_IMPORT_RELATIVE_PATH_FAILED: cannot normalize bundle entry {}: {error}",
-                    path.display()
-                )
-            })?;
-            let relative_string = relative_path_string(relative);
-            if relative_string == ASSET_MANIFEST_FILE_NAME {
-                continue;
-            }
-            files.push(relative_string);
-        }
-        Ok(())
-    }
 
-    let mut files = Vec::<String>::new();
-    walk(root, root, &mut files)?;
-    files.sort();
-    let entry_candidates = files
-        .iter()
-        .filter(|item| is_model_file_extension(std::path::Path::new(item.as_str())))
-        .filter(|item| !is_mmproj_relative_path(item))
-        .cloned()
-        .collect::<Vec<_>>();
-    let mmproj_candidates = files
-        .iter()
-        .filter(|item| is_mmproj_relative_path(item))
-        .cloned()
-        .collect::<Vec<_>>();
-    Ok(BundleScan {
-        files,
-        entry_candidates,
-        mmproj_candidates,
-    })
-}
+include!("commands_import_bundle_fs.rs");
 
 fn kind_from_capabilities(capabilities: &[String]) -> Result<LocalAiAssetKind, String> {
     let normalized = normalize_and_validate_capabilities(capabilities)?;
@@ -280,94 +208,6 @@ fn parse_manifest_identity(path: &std::path::Path) -> Result<BundleManifestIdent
         engine,
         entry,
     })
-}
-
-fn ensure_parent_dir(path: &std::path::Path) -> Result<(), String> {
-    let Some(parent) = path.parent() else {
-        return Ok(());
-    };
-    std::fs::create_dir_all(parent).map_err(|error| {
-        format!(
-            "LOCAL_AI_BUNDLE_IMPORT_DIR_FAILED: cannot create directory {}: {error}",
-            parent.display()
-        )
-    })
-}
-
-fn copy_bundle_directory(
-    source_root: &std::path::Path,
-    dest_root: &std::path::Path,
-) -> Result<(), String> {
-    fn walk_copy(
-        source_root: &std::path::Path,
-        current: &std::path::Path,
-        dest_root: &std::path::Path,
-    ) -> Result<(), String> {
-        let entries = std::fs::read_dir(current).map_err(|error| {
-            format!(
-                "LOCAL_AI_BUNDLE_IMPORT_READ_DIR_FAILED: cannot read bundle directory {}: {error}",
-                current.display()
-            )
-        })?;
-        for entry in entries {
-            let entry = entry.map_err(|error| {
-                format!(
-                    "LOCAL_AI_BUNDLE_IMPORT_READ_DIR_FAILED: cannot read bundle entry {}: {error}",
-                    current.display()
-                )
-            })?;
-            let source_path = entry.path();
-            if is_ignored_local_asset_metadata_path(&source_path) {
-                continue;
-            }
-            let metadata = std::fs::symlink_metadata(&source_path).map_err(|error| {
-                format!(
-                    "LOCAL_AI_BUNDLE_IMPORT_STAT_FAILED: cannot stat bundle entry {}: {error}",
-                    source_path.display()
-                )
-            })?;
-            if metadata.file_type().is_symlink() {
-                return Err(symlink_forbidden_error(&source_path));
-            }
-            let relative = source_path.strip_prefix(source_root).map_err(|error| {
-                format!(
-                    "LOCAL_AI_BUNDLE_IMPORT_RELATIVE_PATH_FAILED: cannot normalize bundle entry {}: {error}",
-                    source_path.display()
-                )
-            })?;
-            let dest_path = dest_root.join(relative);
-            if metadata.is_dir() {
-                std::fs::create_dir_all(&dest_path).map_err(|error| {
-                    format!(
-                        "LOCAL_AI_BUNDLE_IMPORT_DIR_FAILED: cannot create bundle directory {}: {error}",
-                        dest_path.display()
-                    )
-                })?;
-                walk_copy(source_root, &source_path, dest_root)?;
-                continue;
-            }
-            if !metadata.is_file() {
-                continue;
-            }
-            ensure_parent_dir(&dest_path)?;
-            std::fs::copy(&source_path, &dest_path).map_err(|error| {
-                format!(
-                    "LOCAL_AI_BUNDLE_IMPORT_COPY_FAILED: cannot copy bundle file {} -> {}: {error}",
-                    source_path.display(),
-                    dest_path.display()
-                )
-            })?;
-        }
-        Ok(())
-    }
-
-    std::fs::create_dir_all(dest_root).map_err(|error| {
-        format!(
-            "LOCAL_AI_BUNDLE_IMPORT_DIR_FAILED: cannot create bundle root {}: {error}",
-            dest_root.display()
-        )
-    })?;
-    walk_copy(source_root, source_root, dest_root)
 }
 
 fn same_canonical_path(left: &std::path::Path, right: &std::path::Path) -> bool {
@@ -547,8 +387,9 @@ fn normalize_existing_manifest_object(
 
 mod commands_import_bundle_manifest;
 use commands_import_bundle_manifest::{
-    asset_manifest_identity_from_record, import_bundle_manifest_via_runtime,
-    scaffold_bundle_manifest, scaffold_manifest_from_record, write_manifest_json,
+    asset_manifest_identity_from_record, commit_manifest_replace, import_bundle_manifest_via_runtime,
+    rollback_manifest_replace, scaffold_bundle_manifest, scaffold_manifest_from_record,
+    write_manifest_json, write_manifest_json_with_rollback,
 };
 
 fn runtime_local_pick_asset_directory_impl(app: &AppHandle) -> Result<Option<String>, String> {
@@ -563,12 +404,15 @@ fn runtime_local_pick_asset_directory_impl(app: &AppHandle) -> Result<Option<Str
 fn runtime_local_assets_import_bundle_impl(
     app: AppHandle,
     payload: LocalAiAssetsImportBundlePayload,
+    cancel_token: &download_manager::BackgroundImportCancelToken,
 ) -> Result<LocalAiAssetRecord, String> {
+    cancel_token.throw_if_cancelled()?;
     let source_dir = validate_import_source_directory(payload.directory_path.as_str())?;
     let source_manifest_path = source_dir.join(ASSET_MANIFEST_FILE_NAME);
     let source_has_manifest = source_manifest_path.is_file();
-    let scan = scan_bundle_directory(&source_dir)?;
+    let scan = scan_bundle_directory(&source_dir, Some(cancel_token))?;
 
+    cancel_token.throw_if_cancelled()?;
     let models_root = runtime_models_dir(&app)?;
     let endpoint_override = match payload
         .endpoint
@@ -633,29 +477,78 @@ fn runtime_local_assets_import_bundle_impl(
         (dest_dir, manifest_json, manifest_path)
     };
 
-    if !same_canonical_path(&source_dir, &dest_dir) && dest_dir.exists() {
-        std::fs::remove_dir_all(&dest_dir).map_err(|error| {
-            format!(
-                "LOCAL_AI_BUNDLE_IMPORT_DIR_CLEAN_FAILED: cannot replace existing managed bundle {}: {error}",
-                dest_dir.display()
-            )
-        })?;
+    let source_is_dest = same_canonical_path(&source_dir, &dest_dir);
+    cancel_token.throw_if_cancelled()?;
+    if !source_is_dest {
+        let staging_dir = unique_sibling_path(&dest_dir, "staging")?;
+        let staged_result = (|| {
+            remove_dir_if_exists(
+                &staging_dir,
+                "LOCAL_AI_BUNDLE_IMPORT_STAGING_CLEAN_FAILED",
+            )?;
+            copy_bundle_directory(&source_dir, &staging_dir, Some(cancel_token))?;
+            cancel_token.throw_if_cancelled()?;
+            write_manifest_json(&staging_dir.join(ASSET_MANIFEST_FILE_NAME), &manifest_json)?;
+            cancel_token.throw_if_cancelled()
+        })();
+        if let Err(error) = staged_result {
+            let _ = remove_dir_if_exists(
+                &staging_dir,
+                "LOCAL_AI_BUNDLE_IMPORT_STAGING_CLEAN_FAILED",
+            );
+            return Err(error);
+        }
+
+        let backup_dir = replace_directory_with_rollback(&staging_dir, &dest_dir)?;
+        let import_result = (|| {
+            cancel_token.throw_if_cancelled()?;
+            let validated_path = validate_import_asset_manifest_path(
+                manifest_path.to_string_lossy().as_ref(),
+                models_root.as_path(),
+            )?;
+            cancel_token.throw_if_cancelled()?;
+            import_bundle_manifest_via_runtime(validated_path.as_path(), endpoint_override.as_deref())
+        })();
+        return match import_result {
+            Ok(asset) => {
+                cleanup_directory_backup(backup_dir.as_deref());
+                Ok(asset)
+            }
+            Err(error) => {
+                let _ = rollback_directory_replace(&dest_dir, backup_dir.as_deref());
+                Err(error)
+            }
+        };
     }
-    if !same_canonical_path(&source_dir, &dest_dir) {
-        copy_bundle_directory(&source_dir, &dest_dir)?;
+
+    let manifest_guard = write_manifest_json_with_rollback(&manifest_path, &manifest_json)?;
+    cancel_token.throw_if_cancelled()?;
+    let import_result = (|| {
+        let validated_path = validate_import_asset_manifest_path(
+            manifest_path.to_string_lossy().as_ref(),
+            models_root.as_path(),
+        )?;
+        cancel_token.throw_if_cancelled()?;
+        import_bundle_manifest_via_runtime(validated_path.as_path(), endpoint_override.as_deref())
+    })();
+    match import_result {
+        Ok(asset) => {
+            commit_manifest_replace(manifest_guard);
+            Ok(asset)
+        }
+        Err(error) => {
+            let _ = rollback_manifest_replace(manifest_guard);
+            Err(error)
+        }
     }
-    write_manifest_json(&manifest_path, &manifest_json)?;
-    let validated_path = validate_import_asset_manifest_path(
-        manifest_path.to_string_lossy().as_ref(),
-        models_root.as_path(),
-    )?;
-    import_bundle_manifest_via_runtime(validated_path.as_path(), endpoint_override.as_deref())
 }
 
 fn runtime_local_assets_rescan_bundle_impl(
     app: AppHandle,
     payload: LocalAiAssetIdPayload,
+    cancel_token: &download_manager::BackgroundImportCancelToken,
 ) -> Result<LocalAiAssetRecord, String> {
+    cancel_token.throw_if_cancelled()?;
     let state = load_state(&app)?;
     let asset = state
         .assets
@@ -677,7 +570,7 @@ fn runtime_local_assets_rescan_bundle_impl(
         ));
     }
     let manifest_path = runtime_managed_asset_manifest_path(models_root.as_path(), &asset);
-    let scan = scan_bundle_directory(&bundle_dir)?;
+    let scan = scan_bundle_directory(&bundle_dir, Some(cancel_token))?;
     let manifest_json = if manifest_path.is_file() {
         normalize_existing_manifest_object(
             &manifest_path,
@@ -689,13 +582,27 @@ fn runtime_local_assets_rescan_bundle_impl(
     } else {
         scaffold_manifest_from_record(&manifest_path, &asset, &scan)?
     };
-    write_manifest_json(&manifest_path, &manifest_json)?;
+    cancel_token.throw_if_cancelled()?;
     let endpoint = if asset.endpoint.trim().is_empty() {
         None
     } else {
         Some(asset.endpoint.as_str())
     };
-    import_bundle_manifest_via_runtime(manifest_path.as_path(), endpoint)
+    let manifest_guard = write_manifest_json_with_rollback(&manifest_path, &manifest_json)?;
+    let import_result = (|| {
+        cancel_token.throw_if_cancelled()?;
+        import_bundle_manifest_via_runtime(manifest_path.as_path(), endpoint)
+    })();
+    match import_result {
+        Ok(asset) => {
+            commit_manifest_replace(manifest_guard);
+            Ok(asset)
+        }
+        Err(error) => {
+            let _ = rollback_manifest_replace(manifest_guard);
+            Err(error)
+        }
+    }
 }
 
 #[tauri::command]
@@ -707,16 +614,94 @@ pub fn runtime_local_pick_asset_directory(app: AppHandle) -> Result<Option<Strin
 pub fn runtime_local_assets_import_bundle(
     app: AppHandle,
     payload: LocalAiAssetsImportBundlePayload,
-) -> Result<LocalAiAssetRecord, String> {
-    runtime_local_assets_import_bundle_impl(app, payload)
+) -> Result<LocalAiInstallAcceptedResponse, String> {
+    let model_id = payload
+        .model_name
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| format!("bundle:{value}"))
+        .or_else(|| {
+            std::path::Path::new(payload.directory_path.as_str())
+                .file_name()
+                .and_then(|value| value.to_str())
+                .map(|value| format!("bundle:{value}"))
+        })
+        .unwrap_or_else(|| "bundle:import".to_string());
+    let local_model_id = format!("pending:{}", slugify_local_model_id(model_id.as_str()));
+    let accepted = download_manager::enqueue_background_import_task(
+        &app,
+        model_id.as_str(),
+        local_model_id.as_str(),
+        "bundle",
+        "queued bundle import",
+        move |app, install_session_id, _model_id, _local_model_id, cancel_token| {
+            if cancel_token.throw_if_cancelled().is_err() {
+                return;
+            }
+            match runtime_local_assets_import_bundle_impl(app.clone(), payload, &cancel_token) {
+                Ok(asset) => download_manager::complete_background_import_task(
+                    &app,
+                    install_session_id.as_str(),
+                    asset.asset_id.as_str(),
+                    asset.local_asset_id.as_str(),
+                    "bundle import completed",
+                ),
+                Err(error) => download_manager::fail_background_import_task(
+                    &app,
+                    install_session_id.as_str(),
+                    error,
+                    false,
+                ),
+            }
+        },
+    )?;
+    Ok(LocalAiInstallAcceptedResponse {
+        install_session_id: accepted.install_session_id,
+        model_id: accepted.model_id,
+        local_model_id: accepted.local_model_id,
+    })
 }
 
 #[tauri::command]
 pub fn runtime_local_assets_rescan_bundle(
     app: AppHandle,
     payload: LocalAiAssetIdPayload,
-) -> Result<LocalAiAssetRecord, String> {
-    runtime_local_assets_rescan_bundle_impl(app, payload)
+) -> Result<LocalAiInstallAcceptedResponse, String> {
+    let model_id = format!("rescan:{}", payload.local_asset_id.trim());
+    let local_model_id = payload.local_asset_id.trim().to_string();
+    let accepted = download_manager::enqueue_background_import_task(
+        &app,
+        model_id.as_str(),
+        local_model_id.as_str(),
+        "rescan",
+        "queued bundle rescan",
+        move |app, install_session_id, _model_id, _local_model_id, cancel_token| {
+            if cancel_token.throw_if_cancelled().is_err() {
+                return;
+            }
+            match runtime_local_assets_rescan_bundle_impl(app.clone(), payload, &cancel_token) {
+                Ok(asset) => download_manager::complete_background_import_task(
+                    &app,
+                    install_session_id.as_str(),
+                    asset.asset_id.as_str(),
+                    asset.local_asset_id.as_str(),
+                    "bundle rescan completed",
+                ),
+                Err(error) => download_manager::fail_background_import_task(
+                    &app,
+                    install_session_id.as_str(),
+                    error,
+                    false,
+                ),
+            }
+        },
+    )?;
+    Ok(LocalAiInstallAcceptedResponse {
+        install_session_id: accepted.install_session_id,
+        model_id: accepted.model_id,
+        local_model_id: accepted.local_model_id,
+    })
 }
 
 #[cfg(test)]

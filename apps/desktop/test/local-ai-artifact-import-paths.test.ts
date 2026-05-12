@@ -55,7 +55,7 @@ test('asset manifest import uses the unified importLocalRuntimeAsset command', (
   assert.match(runtimeCommandsSource, /importLocalRuntimeAsset\(\{\s*manifestPath: normalizedPath,\s*endpoint: String\(options\?\.endpoint \|\| ''\)\.trim\(\) \|\| undefined,\s*\}, options\)/s);
   assert.match(runtimeCommandsSource, /export async function importLocalRuntimeAssetManifest/);
   assert.doesNotMatch(runtimeCommandsSource, /runtime_local_assets_adopt/);
-  assert.match(tauriAssetsCommandsSource, /runtime_import_manifest_via_runtime\(path\.as_path\(\), endpoint, engine_config\)/);
+  assert.match(tauriAssetsCommandsSource, /runtime_import_manifest_via_runtime\(\s*path\.as_path\(\),\s*endpoint\.as_deref\(\),\s*engine_config\.as_ref\(\),\s*\)/);
   assert.doesNotMatch(tauriAssetsCommandsSource, /upsert_asset/);
   assert.doesNotMatch(tauriAssetsCommandsSource, /runtime_local_assets_adopt/);
   assert.doesNotMatch(tauriAssetsCommandsSource, /LOCAL_AI_ASSET_ADOPT_UNSUPPORTED/);
@@ -64,8 +64,8 @@ test('asset manifest import uses the unified importLocalRuntimeAsset command', (
 test('asset file import uses unified importLocalRuntimeAssetFile and scaffoldLocalRuntimeOrphanAsset', () => {
   assert.match(runtimeCommandsSource, /export async function importLocalRuntimeAssetFile/);
   assert.match(runtimeCommandsSource, /export async function scaffoldLocalRuntimeOrphanAsset/);
+  assert.match(runtimeCommandsSource, /invokeLocalRuntimeCommand<unknown>\('runtime_local_assets_import_file', \{/);
   assert.match(runtimeCommandsSource, /invokeLocalRuntimeCommand<unknown>\('runtime_local_assets_scaffold_orphan', \{/);
-  assert.match(runtimeCommandsSource, /runtime\.importLocalAssetFile\(\{/);
 });
 
 test('local model center uses one runtime manifest import entry and one asset file import entry', () => {

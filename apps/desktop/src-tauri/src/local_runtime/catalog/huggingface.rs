@@ -237,6 +237,7 @@ fn hf_user_agent() -> String {
         .unwrap_or_else(|| "nimi-desktop/0.1 local-ai-runtime".to_string())
 }
 
+#[cfg(test)]
 fn build_hf_client() -> Result<reqwest::blocking::Client, String> {
     reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(HF_SEARCH_TIMEOUT_SECS))
@@ -246,6 +247,16 @@ fn build_hf_client() -> Result<reqwest::blocking::Client, String> {
         })
 }
 
+fn build_hf_async_client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(HF_SEARCH_TIMEOUT_SECS))
+        .build()
+        .map_err(|error| {
+            format!("LOCAL_AI_CATALOG_HTTP_CLIENT_FAILED: failed to create HF API client: {error}")
+        })
+}
+
+#[cfg(test)]
 pub(super) fn fetch_hf_search_models(
     query: &str,
     limit: usize,
@@ -285,6 +296,47 @@ pub(super) fn fetch_hf_search_models(
     })
 }
 
+pub(super) async fn fetch_hf_search_models_async(
+    query: &str,
+    limit: usize,
+) -> Result<Vec<HfSearchModel>, String> {
+    let client = build_hf_async_client()?;
+    let api_base = hf_api_base_url();
+    let response = client
+        .get(&api_base)
+        .query(&[
+            ("search", query),
+            ("limit", &limit.to_string()),
+            ("full", "true"),
+            ("sort", "downloads"),
+            ("direction", "-1"),
+        ])
+        .header(reqwest::header::USER_AGENT, hf_user_agent())
+        .send()
+        .await
+        .map_err(|error| {
+            format!("LOCAL_AI_CATALOG_HF_SEARCH_FAILED: huggingface search request failed: {error}")
+        })?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "LOCAL_AI_CATALOG_HF_SEARCH_FAILED: huggingface search status={} query={} ",
+            response.status().as_u16(),
+            query
+        ));
+    }
+
+    let body = response.text().await.map_err(|error| {
+        format!(
+            "LOCAL_AI_CATALOG_HF_SEARCH_FAILED: failed to read huggingface search payload: {error}"
+        )
+    })?;
+    serde_json::from_str::<Vec<HfSearchModel>>(body.as_str()).map_err(|error| {
+        format!("LOCAL_AI_CATALOG_HF_SEARCH_FAILED: invalid huggingface search payload: {error}")
+    })
+}
+
+#[cfg(test)]
 pub(super) fn fetch_hf_model_details(repo: &str) -> Result<HfModelDetails, String> {
     let client = build_hf_client()?;
     let api_base = hf_api_base_url();
@@ -308,6 +360,41 @@ pub(super) fn fetch_hf_model_details(repo: &str) -> Result<HfModelDetails, Strin
     }
 
     let body = response.text().map_err(|error| {
+        format!(
+            "LOCAL_AI_INSTALL_PLAN_RESOLVE_FAILED: failed to read huggingface model details payload: {error}"
+        )
+    })?;
+    serde_json::from_str::<HfModelDetails>(body.as_str()).map_err(|error| {
+        format!(
+            "LOCAL_AI_INSTALL_PLAN_RESOLVE_FAILED: invalid huggingface model details payload: {error}"
+        )
+    })
+}
+
+pub(super) async fn fetch_hf_model_details_async(repo: &str) -> Result<HfModelDetails, String> {
+    let client = build_hf_async_client()?;
+    let api_base = hf_api_base_url();
+    let url = format!("{api_base}/{repo}");
+    let response = client
+        .get(url)
+        .query(&[("full", "true")])
+        .header(reqwest::header::USER_AGENT, hf_user_agent())
+        .send()
+        .await
+        .map_err(|error| {
+            format!(
+                "LOCAL_AI_INSTALL_PLAN_RESOLVE_FAILED: huggingface model details request failed: {error}"
+            )
+        })?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "LOCAL_AI_INSTALL_PLAN_RESOLVE_FAILED: huggingface model details status={} repo={repo}",
+            response.status().as_u16(),
+        ));
+    }
+
+    let body = response.text().await.map_err(|error| {
         format!(
             "LOCAL_AI_INSTALL_PLAN_RESOLVE_FAILED: failed to read huggingface model details payload: {error}"
         )
@@ -594,7 +681,8 @@ pub(super) fn infer_license(tags: &[String], manual: Option<&str>) -> String {
     "unknown".to_string()
 }
 
-pub fn list_repo_catalog_variants(
+pub(super) fn list_repo_catalog_variants_from_details(
+    details: &HfModelDetails,
     repo: &str,
     model_id: &str,
     title: &str,
@@ -602,8 +690,7 @@ pub fn list_repo_catalog_variants(
     engine: &str,
     profile: &LocalAiDeviceProfile,
     tags: &[String],
-) -> Result<Vec<CatalogVariantDescriptor>, String> {
-    let details = fetch_hf_model_details(repo)?;
+) -> Vec<CatalogVariantDescriptor> {
     let mut variants = Vec::<CatalogVariantDescriptor>::new();
     for sibling in &details.siblings {
         let name_lower = sibling.rfilename.to_ascii_lowercase();
@@ -643,5 +730,28 @@ pub fn list_repo_catalog_variants(
         profile,
         tags,
     );
-    Ok(variants)
+    variants
+}
+
+#[cfg(test)]
+pub fn list_repo_catalog_variants(
+    repo: &str,
+    model_id: &str,
+    title: &str,
+    capabilities: &[String],
+    engine: &str,
+    profile: &LocalAiDeviceProfile,
+    tags: &[String],
+) -> Result<Vec<CatalogVariantDescriptor>, String> {
+    let details = fetch_hf_model_details(repo)?;
+    Ok(list_repo_catalog_variants_from_details(
+        &details,
+        repo,
+        model_id,
+        title,
+        capabilities,
+        engine,
+        profile,
+        tags,
+    ))
 }

@@ -1,5 +1,5 @@
 #[tauri::command]
-pub fn runtime_local_models_catalog_search(
+pub async fn runtime_local_models_catalog_search(
     app: AppHandle,
     payload: Option<LocalAiModelsCatalogSearchPayload>,
 ) -> Result<Vec<LocalAiCatalogItemDescriptor>, String> {
@@ -38,8 +38,8 @@ pub fn runtime_local_models_catalog_search(
         capability.as_deref(),
     );
 
-    let profile = collect_device_profile(&app);
-    match search_catalog(query.as_deref(), capability.as_deref(), limit, &profile) {
+    let profile = collect_device_profile_async(&app).await;
+    match search_catalog_async(query.as_deref(), capability.as_deref(), limit, &profile).await {
         Ok(items) => {
             for item in &items {
                 if let Some(recommendation) = item.recommendation.as_ref() {
@@ -81,7 +81,7 @@ pub fn runtime_local_models_catalog_search(
 }
 
 #[tauri::command]
-pub fn runtime_local_models_catalog_list_variants(
+pub async fn runtime_local_models_catalog_list_variants(
     app: AppHandle,
     payload: LocalAiModelsCatalogListVariantsPayload,
 ) -> Result<Vec<CatalogVariantDescriptor>, String> {
@@ -94,8 +94,8 @@ pub fn runtime_local_models_catalog_list_variants(
         return Err("LOCAL_AI_LIST_VARIANTS_REPO_REQUIRED: repo is required".to_string());
     }
     append_recommendation_resolve_invoked(&app, repo, Some(repo), None);
-    let profile = collect_device_profile(&app);
-    match list_catalog_variants(repo, &profile) {
+    let profile = collect_device_profile_async(&app).await;
+    match list_catalog_variants_async(repo, &profile).await {
         Ok(variants) => {
             for variant in &variants {
                 if let Some(recommendation) = variant.recommendation.as_ref() {
@@ -118,11 +118,11 @@ pub fn runtime_local_models_catalog_list_variants(
 }
 
 #[tauri::command]
-pub fn runtime_local_models_catalog_resolve_install_plan(
+pub async fn runtime_local_models_catalog_resolve_install_plan(
     app: AppHandle,
     payload: LocalAiModelsCatalogResolveInstallPlanPayload,
 ) -> Result<LocalAiInstallPlanDescriptor, String> {
-    let profile = collect_device_profile(&app);
+    let profile = collect_device_profile_async(&app).await;
     let audit_item_id = payload.item_id.clone();
     let audit_model_id = payload.model_id.clone();
     let audit_capability = payload
@@ -138,7 +138,7 @@ pub fn runtime_local_models_catalog_resolve_install_plan(
         audit_model_id.as_deref(),
         audit_capability.as_deref(),
     );
-    match resolve_catalog_install_plan(LocalAiCatalogResolveInput {
+    match resolve_catalog_install_plan_async(LocalAiCatalogResolveInput {
         item_id: payload.item_id,
         source: payload.source,
         template_id: payload.template_id,
@@ -152,7 +152,7 @@ pub fn runtime_local_models_catalog_resolve_install_plan(
         license: payload.license,
         hashes: payload.hashes,
         endpoint: payload.endpoint,
-    }, &profile) {
+    }, &profile).await {
         Ok(plan) => {
             if let Some(recommendation) = plan.recommendation.as_ref() {
                 append_recommendation_resolve_completed(
@@ -221,6 +221,6 @@ pub async fn runtime_local_profiles_resolve(
 }
 
 #[tauri::command]
-pub fn runtime_local_device_profile_collect(app: AppHandle) -> Result<LocalAiDeviceProfile, String> {
-    Ok(collect_device_profile(&app))
+pub async fn runtime_local_device_profile_collect(app: AppHandle) -> Result<LocalAiDeviceProfile, String> {
+    Ok(collect_device_profile_async(&app).await)
 }
