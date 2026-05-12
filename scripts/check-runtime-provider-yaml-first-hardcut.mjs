@@ -81,17 +81,23 @@ function main() {
   const sourceReadme = readText(sourceReadmePath);
 
   const listConnectorModelsBody = extractFunctionBody(connectorService, 'ListConnectorModels');
+  const testConnectorBody = extractFunctionBody(connectorService, 'TestConnector');
   if (!/\blistCatalogConnectorModels\(\s*[^,]+,\s*rec\.Provider\s*\)/u.test(listConnectorModelsBody)) {
     fail(`${rel(connectorServicePath)} ListConnectorModels must keep static_source catalog read path`);
   }
   if (!listConnectorModelsBody.includes('InventoryMode == "dynamic_endpoint"')) {
     fail(`${rel(connectorServicePath)} ListConnectorModels must branch on dynamic_endpoint inventory mode`);
   }
-  if (!connectorService.includes('func (s *Service) listDynamicConnectorModels(') || !connectorService.includes('backend.ListModels(ctx)')) {
-    fail(`${rel(connectorServicePath)} dynamic ListConnectorModels helper must call backend.ListModels`);
+  if (connectorService.includes('func (s *Service) listDynamicConnectorModels(') || connectorService.includes('backend.ListModels(ctx)')) {
+    fail(`${rel(connectorServicePath)} must not retain dead dynamic ListConnectorModels outbound discovery code`);
   }
-  if (!connectorService.includes('LoadSecretPayload(') || !connectorService.includes('ResolveCredential(')) {
-    fail(`${rel(connectorServicePath)} dynamic ListConnectorModels path must resolve connector credentials from stored secret payload`);
+  if (listConnectorModelsBody.includes('LoadSecretPayload(') || listConnectorModelsBody.includes('ResolveCredential(') || listConnectorModelsBody.includes('ResolveProbeBackend(')) {
+    fail(`${rel(connectorServicePath)} ListConnectorModels must stay YAML/catalog-only and must not resolve credentials or probe providers`);
+  }
+  for (const fragment of ['LoadSecretPayload(', 'ResolveCredential(', 'ResolveProbeBackend(', 'ProbeConnector(ctx)']) {
+    if (!testConnectorBody.includes(fragment)) {
+      fail(`${rel(connectorServicePath)} TestConnector must retain active outbound probe credential path: ${fragment}`);
+    }
   }
 
   if (voiceMethods.includes('ListSpeechVoices(')) {

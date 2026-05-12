@@ -1,0 +1,191 @@
+package cognition
+
+import (
+	"context"
+	"errors"
+	"strings"
+
+	cognitionpkg "github.com/nimiplatform/nimi/nimi-cognition/cognition"
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+// authorize is the single seam every knowledge RPC uses to invoke the
+// KnowledgeAuthorizer. It maps the typed result into a gRPC error.
+func (s *Service) authorize(ctx context.Context, action KnowledgeAction, requestCtx *runtimev1.KnowledgeRequestContext, owner cognitionpkg.KnowledgeScopeOwner) error {
+	res, err := s.authorizer.Authorize(ctx, KnowledgeAuthRequest{
+		Action:  action,
+		Context: requestCtx,
+		Owner:   owner,
+	})
+	if err != nil {
+		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+	}
+	if res.Decision == KnowledgeAuthAllow {
+		return nil
+	}
+	code := codes.PermissionDenied
+	if res.Reason == runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+		code = codes.InvalidArgument
+	}
+	return grpcerr.WithReasonCodeOptions(code, res.Reason, grpcerr.ReasonOptions{
+		ActionHint: res.ActionHint,
+		Message:    res.Message,
+	})
+}
+
+// loadAuthorizedScope loads a scope by id and authorizes the action
+// against its owner. Maps not-found to KNOWLEDGE_BANK_NOT_FOUND.
+func (s *Service) loadAuthorizedScope(ctx context.Context, requestCtx *runtimev1.KnowledgeRequestContext, bankID string, action KnowledgeAction) (cognitionpkg.KnowledgeScope, error) {
+	scope, err := s.cognitionCore.KnowledgeScopeRegistry().GetKnowledgeScope(ctx, strings.TrimSpace(bankID))
+	if err != nil {
+		if errors.Is(err, cognitionpkg.ErrScopeNotFound) {
+			return cognitionpkg.KnowledgeScope{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_KNOWLEDGE_BANK_NOT_FOUND)
+		}
+		return cognitionpkg.KnowledgeScope{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+	}
+	if err := s.authorize(ctx, action, requestCtx, scope.Owner); err != nil {
+		return cognitionpkg.KnowledgeScope{}, err
+	}
+	return scope, nil
+}
+
+// listAuthorizedScopes returns every scope the caller can read. Used
+// by SearchKeyword (default empty bank list) and GetIngestTask.
+func (s *Service) listAuthorizedScopes(ctx context.Context, requestCtx *runtimev1.KnowledgeRequestContext) ([]cognitionpkg.KnowledgeScope, error) {
+	filter := cognitionpkg.KnowledgeScopeFilter{
+		OwnerKinds: []string{cognitionpkg.KnowledgeScopeOwnerKindAppPrivate},
+		Owners: []cognitionpkg.KnowledgeScopeOwner{{
+			Kind:  cognitionpkg.KnowledgeScopeOwnerKindAppPrivate,
+			AppID: trimContextAppID(requestCtx),
+		}},
+	}
+	scopes, _, err := s.cognitionCore.KnowledgeScopeRegistry().ListKnowledgeScopes(ctx, filter)
+	if err != nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+	}
+	out := make([]cognitionpkg.KnowledgeScope, 0, len(scopes))
+	for _, scope := range scopes {
+		if err := s.authorize(ctx, KnowledgeActionReadBank, requestCtx, scope.Owner); err != nil {
+			continue
+		}
+		out = append(out, scope)
+	}
+	return out, nil
+}
+
+// buildScopeFilterFromList narrows the registry list by request
+// owner_filters / scope_filters; defaults to caller's app_private
+// when neither is provided (per design D3 ListKnowledgeBanks).
+func (s *Service) buildScopeFilterFromList(req *runtimev1.ListKnowledgeBanksRequest) cognitionpkg.KnowledgeScopeFilter {
+	filter := cognitionpkg.KnowledgeScopeFilter{
+		PageSize:  int(req.GetPageSize()),
+		PageToken: req.GetPageToken(),
+	}
+	for _, scope := range req.GetScopeFilters() {
+		switch scope {
+		case runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_APP_PRIVATE:
+			filter.OwnerKinds = append(filter.OwnerKinds, cognitionpkg.KnowledgeScopeOwnerKindAppPrivate)
+		case runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE:
+			filter.OwnerKinds = append(filter.OwnerKinds, cognitionpkg.KnowledgeScopeOwnerKindWorkspace)
+		}
+	}
+	for _, owner := range req.GetOwnerFilters() {
+		if app := owner.GetAppPrivate(); app != nil {
+			filter.Owners = append(filter.Owners, cognitionpkg.KnowledgeScopeOwner{
+				Kind:  cognitionpkg.KnowledgeScopeOwnerKindAppPrivate,
+				AppID: strings.TrimSpace(app.GetAppId()),
+			})
+		}
+		if ws := owner.GetWorkspacePrivate(); ws != nil {
+			filter.Owners = append(filter.Owners, cognitionpkg.KnowledgeScopeOwner{
+				Kind:        cognitionpkg.KnowledgeScopeOwnerKindWorkspace,
+				WorkspaceID: strings.TrimSpace(ws.GetWorkspaceId()),
+			})
+		}
+	}
+	if len(filter.OwnerKinds) == 0 && len(filter.Owners) == 0 {
+		filter.OwnerKinds = []string{cognitionpkg.KnowledgeScopeOwnerKindAppPrivate}
+		filter.Owners = []cognitionpkg.KnowledgeScopeOwner{{
+			Kind:  cognitionpkg.KnowledgeScopeOwnerKindAppPrivate,
+			AppID: trimContextAppID(req.GetContext()),
+		}}
+	}
+	return filter
+}
+
+// ownerFromPublicLocator translates the proto PublicKnowledgeBankLocator
+// into the typed KnowledgeScopeOwner used by the registry.
+func ownerFromPublicLocator(locator *runtimev1.PublicKnowledgeBankLocator) (cognitionpkg.KnowledgeScopeOwner, error) {
+	if locator == nil {
+		return cognitionpkg.KnowledgeScopeOwner{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if app := locator.GetAppPrivate(); app != nil {
+		return cognitionpkg.KnowledgeScopeOwner{
+			Kind:  cognitionpkg.KnowledgeScopeOwnerKindAppPrivate,
+			AppID: strings.TrimSpace(app.GetAppId()),
+		}, nil
+	}
+	if ws := locator.GetWorkspacePrivate(); ws != nil {
+		return cognitionpkg.KnowledgeScopeOwner{
+			Kind:        cognitionpkg.KnowledgeScopeOwnerKindWorkspace,
+			WorkspaceID: strings.TrimSpace(ws.GetWorkspaceId()),
+		}, nil
+	}
+	return cognitionpkg.KnowledgeScopeOwner{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_KNOWLEDGE_BANK_SCOPE_INVALID)
+}
+
+// bankFromScope projects a typed KnowledgeScope into the runtime proto
+// KnowledgeBank envelope. The scope_id is the bank_id.
+func bankFromScope(scope cognitionpkg.KnowledgeScope) *runtimev1.KnowledgeBank {
+	bank := &runtimev1.KnowledgeBank{
+		BankId:      scope.ScopeID,
+		Locator:     locatorFromOwner(scope.Owner),
+		DisplayName: scope.DisplayName,
+		Metadata:    mapToStruct(scope.Metadata),
+		CreatedAt:   timestamppb.New(scope.CreatedAt),
+		UpdatedAt:   timestamppb.New(scope.UpdatedAt),
+	}
+	return bank
+}
+
+func locatorFromOwner(owner cognitionpkg.KnowledgeScopeOwner) *runtimev1.KnowledgeBankLocator {
+	switch owner.Kind {
+	case cognitionpkg.KnowledgeScopeOwnerKindAppPrivate:
+		return &runtimev1.KnowledgeBankLocator{
+			Scope: runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_APP_PRIVATE,
+			Owner: &runtimev1.KnowledgeBankLocator_AppPrivate{
+				AppPrivate: &runtimev1.KnowledgeAppPrivateOwner{AppId: owner.AppID},
+			},
+		}
+	case cognitionpkg.KnowledgeScopeOwnerKindWorkspace:
+		return &runtimev1.KnowledgeBankLocator{
+			Scope: runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE,
+			Owner: &runtimev1.KnowledgeBankLocator_WorkspacePrivate{
+				WorkspacePrivate: &runtimev1.KnowledgeWorkspacePrivateOwner{WorkspaceId: owner.WorkspaceID},
+			},
+		}
+	}
+	return nil
+}
+
+func structToMap(value *structpb.Struct) map[string]any {
+	if value == nil {
+		return nil
+	}
+	return value.AsMap()
+}
+
+func mapToStruct(value map[string]any) *structpb.Struct {
+	if len(value) == 0 {
+		return nil
+	}
+	out, err := structpb.NewStruct(value)
+	if err != nil {
+		return nil
+	}
+	return out
+}

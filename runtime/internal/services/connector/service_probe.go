@@ -2,212 +2,16 @@ package connector
 
 import (
 	"context"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 )
-
-func cloneConnectorModelDescriptors(models []*runtimev1.ConnectorModelDescriptor) []*runtimev1.ConnectorModelDescriptor {
-	out := make([]*runtimev1.ConnectorModelDescriptor, 0, len(models))
-	for _, item := range models {
-		if item == nil {
-			continue
-		}
-		out = append(out, &runtimev1.ConnectorModelDescriptor{
-			ModelId:      item.GetModelId(),
-			ModelLabel:   item.GetModelLabel(),
-			Available:    item.GetAvailable(),
-			Capabilities: append([]string(nil), item.GetCapabilities()...),
-		})
-	}
-	return out
-}
-
-func (s *Service) loadDynamicConnectorModelsFromCache(connectorID string) ([]*runtimev1.ConnectorModelDescriptor, bool) {
-	s.dynamicModelsMu.RLock()
-	defer s.dynamicModelsMu.RUnlock()
-	entry, ok := s.dynamicModelsCache[connectorID]
-	if !ok || time.Now().After(entry.expiresAt) {
-		return nil, false
-	}
-	return cloneConnectorModelDescriptors(entry.models), true
-}
-
-func (s *Service) storeDynamicConnectorModelsCache(connectorID string, ttlSeconds int, models []*runtimev1.ConnectorModelDescriptor) {
-	s.dynamicModelsMu.Lock()
-	defer s.dynamicModelsMu.Unlock()
-	s.dynamicModelsCache[connectorID] = dynamicConnectorModelsCacheEntry{
-		models:    cloneConnectorModelDescriptors(models),
-		expiresAt: time.Now().Add(time.Duration(ttlSeconds) * time.Second),
-	}
-}
-
-func matchesDynamicModelPattern(modelID string, pattern string) bool {
-	normalizedModelID := strings.TrimSpace(modelID)
-	normalizedPattern := strings.TrimSpace(pattern)
-	if normalizedModelID == "" || normalizedPattern == "" {
-		return false
-	}
-	if ok, err := path.Match(normalizedPattern, normalizedModelID); err == nil && ok {
-		return true
-	}
-	return strings.EqualFold(normalizedModelID, normalizedPattern)
-}
-
-func dynamicModelMatchesAnyPattern(modelID string, patterns []string) bool {
-	for _, pattern := range patterns {
-		if matchesDynamicModelPattern(modelID, pattern) {
-			return true
-		}
-	}
-	return false
-}
-
-func preferredDynamicModelRank(modelID string, patterns []string) int {
-	for index, pattern := range patterns {
-		if matchesDynamicModelPattern(modelID, pattern) {
-			return index
-		}
-	}
-	return len(patterns) + 1000
-}
-
-func applyDynamicProviderPolicy(entry ProviderCatalogEntry, discovered []nimillm.ProbeModel) []*runtimev1.ConnectorModelDescriptor {
-	allowedCapabilities := append([]string(nil), entry.DynamicAllowedCapabilities...)
-	descriptors := make([]*runtimev1.ConnectorModelDescriptor, 0, len(discovered))
-	for _, item := range discovered {
-		modelID := strings.TrimSpace(item.ModelID)
-		if modelID == "" {
-			continue
-		}
-		if dynamicModelMatchesAnyPattern(modelID, entry.DynamicDenyModelPatterns) {
-			continue
-		}
-		if entry.DynamicSelectionMode == "curated_filter" {
-			if len(entry.DynamicAllowModelPatterns) > 0 || len(entry.DynamicPreferredModelPatterns) > 0 {
-				if !dynamicModelMatchesAnyPattern(modelID, entry.DynamicAllowModelPatterns) &&
-					!dynamicModelMatchesAnyPattern(modelID, entry.DynamicPreferredModelPatterns) {
-					continue
-				}
-			}
-		}
-		label := strings.TrimSpace(item.ModelLabel)
-		if label == "" {
-			label = modelID
-		}
-		capabilities := intersectDynamicCapabilities(item.Capabilities, allowedCapabilities)
-		descriptors = append(descriptors, &runtimev1.ConnectorModelDescriptor{
-			ModelId:      modelID,
-			ModelLabel:   label,
-			Available:    item.Available,
-			Capabilities: capabilities,
-		})
-	}
-	sort.Slice(descriptors, func(i, j int) bool {
-		leftRank := preferredDynamicModelRank(descriptors[i].GetModelId(), entry.DynamicPreferredModelPatterns)
-		rightRank := preferredDynamicModelRank(descriptors[j].GetModelId(), entry.DynamicPreferredModelPatterns)
-		if leftRank != rightRank {
-			return leftRank < rightRank
-		}
-		if descriptors[i].GetModelLabel() == descriptors[j].GetModelLabel() {
-			return descriptors[i].GetModelId() < descriptors[j].GetModelId()
-		}
-		return descriptors[i].GetModelLabel() < descriptors[j].GetModelLabel()
-	})
-	return descriptors
-}
-
-func intersectDynamicCapabilities(discovered []string, allowed []string) []string {
-	if len(discovered) == 0 {
-		return nil
-	}
-	if len(allowed) == 0 {
-		return append([]string(nil), discovered...)
-	}
-	allowedSet := make(map[string]struct{}, len(allowed))
-	for _, capability := range allowed {
-		normalized := strings.TrimSpace(capability)
-		if normalized == "" {
-			continue
-		}
-		allowedSet[normalized] = struct{}{}
-	}
-	out := make([]string, 0, len(discovered))
-	for _, capability := range discovered {
-		normalized := strings.TrimSpace(capability)
-		if normalized == "" {
-			continue
-		}
-		if _, ok := allowedSet[normalized]; !ok {
-			continue
-		}
-		out = append(out, normalized)
-	}
-	return out
-}
-
-// listDynamicConnectorModels is an admitted-but-deferred outbound-discovery
-// helper for dynamic_endpoint providers. It has no caller in the current
-// runtime — the gate.runtime-provider.yaml-first-hardcut spec requires the
-// helper + backend.ListModels(ctx) call shape to remain in-source so a
-// future admitted refresh-RPC wave can wire it without re-deriving the
-// secret resolution + cache write-back design. ListConnectorModels is
-// snapshot-only by spec contract and must not invoke this helper.
-//
-//nolint:unused // admitted deferred helper; do not delete without spec gate update
-func (s *Service) listDynamicConnectorModels(ctx context.Context, connectorID string, rec ConnectorRecord, forceRefresh bool) ([]*runtimev1.ConnectorModelDescriptor, error) {
-	entry, ok := ProviderCatalog[rec.Provider]
-	if !ok || entry.InventoryMode != "dynamic_endpoint" {
-		return s.listCatalogConnectorModels("", rec.Provider)
-	}
-	if !forceRefresh {
-		if cached, ok := s.loadDynamicConnectorModelsFromCache(connectorID); ok {
-			return cached, nil
-		}
-	}
-	secretPayload, err := s.store.LoadSecretPayload(connectorID)
-	if err != nil {
-		return nil, s.internalProviderError("list_connector_models.load_credential", err)
-	}
-	resolvedCredential := ResolveCredential(rec, secretPayload)
-	if resolvedCredential.APIKey == "" {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
-	}
-	cloud := s.cloudProvider()
-	if cloud == nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
-			ActionHint: "check_runtime_cloud_provider",
-		})
-	}
-	backend, _, err := cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, resolvedCredential.APIKey, resolvedCredential.Headers)
-	if err != nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
-			ActionHint: "check_connector_endpoint_or_provider_support",
-			Message:    err.Error(),
-		})
-	}
-	discovered, err := backend.ListModels(ctx)
-	if err != nil {
-		if entry.DynamicFailurePolicy == "use_cache_then_fail_closed" {
-			if cached, ok := s.loadDynamicConnectorModelsFromCache(connectorID); ok {
-				return cached, nil
-			}
-		}
-		return nil, err
-	}
-	descriptors := applyDynamicProviderPolicy(entry, discovered)
-	s.storeDynamicConnectorModelsCache(connectorID, entry.DynamicCacheTTLSeconds, descriptors)
-	return descriptors, nil
-}
 
 func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnectorRequest) (*runtimev1.TestConnectorResponse, error) {
 	connectorID := strings.TrimSpace(req.GetConnectorId())
@@ -343,15 +147,10 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 	} else {
 		entry, hasEntry := ProviderCatalog[rec.Provider]
 		if hasEntry && entry.InventoryMode == "dynamic_endpoint" {
-			// Dynamic-endpoint providers expose their inventory through the
-			// cached snapshot here; the listDynamicConnectorModels helper
-			// remains in-source as an admitted-but-deferred outbound-discovery
-			// path with no caller until a refresh RPC is admitted in proto.
-			if cached, ok := s.loadDynamicConnectorModelsFromCache(connectorID); ok {
-				models = cached
-			} else {
-				models, err = s.listCatalogConnectorModels(ownerID, rec.Provider)
-			}
+			// ListConnectorModels is a YAML/catalog snapshot read. Live
+			// outbound probing remains scoped to TestConnector until a refresh
+			// RPC is admitted in proto and spec.
+			models, err = s.listCatalogConnectorModels(ownerID, rec.Provider)
 		} else {
 			models, err = s.listCatalogConnectorModels(ownerID, rec.Provider)
 		}
