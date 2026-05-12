@@ -435,8 +435,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     upsertAssetTask(normalizedTemplateId, 'running');
     try {
       await props.onInstallVerifiedAsset(normalizedTemplateId);
-      await refreshAssetSections();
-      upsertAssetTask(normalizedTemplateId, 'completed', 'Asset installed and ready.');
+      upsertAssetTask(normalizedTemplateId, 'running', 'Asset install queued.');
     } catch (error: unknown) {
       upsertAssetTask(
         normalizedTemplateId,

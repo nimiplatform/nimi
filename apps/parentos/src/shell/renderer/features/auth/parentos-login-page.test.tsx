@@ -47,7 +47,7 @@ describe('ParentOSLoginPage', () => {
           realtimeUrl: '',
           accessToken: '',
           jwksUrl: 'http://localhost:3002/api/auth/jwks',
-          revocationUrl: 'http://localhost:3002/api/auth/revocation',
+          revocationUrl: 'http://localhost:3002/api/auth/sessions/introspect',
           jwtIssuer: 'http://localhost:3002',
           jwtAudience: 'nimi-runtime',
         },

@@ -143,7 +143,7 @@ fn avatar_runtime_env_pairs_forward_runtime_defaults_without_realm_or_token() {
     );
     std::env::set_var(
         "NIMI_REALM_REVOCATION_URL",
-        "http://127.0.0.1:50803/api/auth/revocation",
+        "http://127.0.0.1:50803/api/auth/sessions/introspect",
     );
     std::env::set_var("NIMI_REALM_JWT_ISSUER", "http://127.0.0.1:50803");
     std::env::set_var("NIMI_REALM_JWT_AUDIENCE", "nimi-runtime");

@@ -31,6 +31,9 @@ import {
   collectLocalRuntimeDeviceProfile,
   getLocalRuntimeRecommendationFeed,
   applyLocalRuntimeProfile,
+  subscribeLocalRuntimeProfileApplyProgress,
+  getLocalRuntimeProfileApplyStatus,
+  listLocalRuntimeProfileApplySessions,
   getLocalRuntimeProfileInstallStatus,
   listLocalRuntimeServices,
   installLocalRuntimeService,
@@ -69,6 +72,8 @@ import type {
   LocalRuntimeCatalogResolveInstallPlanPayload,
   LocalRuntimeCatalogSearchPayload,
   LocalRuntimeAuditQuery,
+  LocalRuntimeProfileApplyAccepted,
+  LocalRuntimeProfileApplyProgressEvent,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileEntryDescriptor,
@@ -81,6 +86,7 @@ import type {
   LocalRuntimeProfileTargetDescriptor,
   LocalRuntimeDeviceProfile,
   LocalRuntimeDownloadSessionSummary,
+  LocalRuntimeTransferAccepted,
   LocalRuntimeDownloadState,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeImportAssetFilePayload,
@@ -161,6 +167,8 @@ export type {
   LocalRuntimeCatalogResolveInstallPlanPayload,
   LocalRuntimeCatalogSearchPayload,
   LocalRuntimeAuditQuery,
+  LocalRuntimeProfileApplyAccepted,
+  LocalRuntimeProfileApplyProgressEvent,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileEntryDescriptor,
@@ -239,7 +247,14 @@ export type LocalRuntimeFacade = {
   applyProfile: (
     plan: LocalRuntimeProfileResolutionPlan,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeProfileApplyResult>;
+  ) => Promise<LocalRuntimeProfileApplyAccepted>;
+  subscribeProfileApplyProgress: (
+    listener: (event: LocalRuntimeProfileApplyProgressEvent) => void,
+  ) => Promise<() => void>;
+  getProfileApplyStatus: (
+    applySessionId: string,
+  ) => Promise<LocalRuntimeProfileApplyProgressEvent | null>;
+  listProfileApplySessions: () => Promise<LocalRuntimeProfileApplyProgressEvent[]>;
   getProfileInstallStatus: (payload: LocalRuntimeProfileResolvePayload) => Promise<LocalRuntimeProfileInstallStatus>;
   listServices: () => Promise<LocalRuntimeServiceDescriptor[]>;
   installService: (
@@ -263,14 +278,14 @@ export type LocalRuntimeFacade = {
   install: (
     payload: LocalRuntimeInstallPayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
+  ) => Promise<LocalRuntimeTransferAccepted>;
   listVerifiedAssets: (
     payload?: LocalRuntimeListVerifiedAssetsPayload,
   ) => Promise<LocalRuntimeVerifiedAssetDescriptor[]>;
   installVerifiedAsset: (
     payload: LocalRuntimeInstallVerifiedAssetPayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
+  ) => Promise<LocalRuntimeTransferAccepted>;
   listDownloads: () => Promise<LocalRuntimeDownloadSessionSummary[]>;
   pauseDownload: (
     installSessionId: string,
@@ -287,21 +302,21 @@ export type LocalRuntimeFacade = {
   importAsset: (
     payload: LocalRuntimeImportAssetPayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
+  ) => Promise<LocalRuntimeTransferAccepted>;
   pickAssetFile: () => Promise<string | null>;
   pickAssetDirectory: () => Promise<string | null>;
   importFile: (
     payload: LocalRuntimeImportFilePayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
+  ) => Promise<LocalRuntimeTransferAccepted>;
   importAssetBundle: (
     payload: LocalRuntimeImportBundlePayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
+  ) => Promise<LocalRuntimeTransferAccepted>;
   remove: (
     localAssetId: string,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
+  ) => Promise<LocalRuntimeTransferAccepted>;
   start: (
     localAssetId: string,
     options?: LocalRuntimeWriteOptions,
@@ -351,11 +366,11 @@ export type LocalRuntimeFacade = {
   rescanAssetBundle: (
     payload: LocalRuntimeRescanBundlePayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
+  ) => Promise<LocalRuntimeTransferAccepted>;
   scaffoldOrphanAsset: (
     payload: LocalRuntimeScaffoldOrphanPayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeAssetRecord>;
+  ) => Promise<LocalRuntimeTransferAccepted>;
   scanUnregisteredAssets: () => Promise<LocalRuntimeUnregisteredAssetDescriptor[]>;
   importAssetFile: (
     payload: LocalRuntimeImportAssetFilePayload,
@@ -377,6 +392,9 @@ export const localRuntime: LocalRuntimeFacade = {
   getRecommendationFeed: getLocalRuntimeRecommendationFeed,
   resolveProfile: resolveLocalRuntimeProfile,
   applyProfile: applyLocalRuntimeProfile,
+  subscribeProfileApplyProgress: subscribeLocalRuntimeProfileApplyProgress,
+  getProfileApplyStatus: getLocalRuntimeProfileApplyStatus,
+  listProfileApplySessions: listLocalRuntimeProfileApplySessions,
   getProfileInstallStatus: getLocalRuntimeProfileInstallStatus,
   listServices: listLocalRuntimeServices,
   installService: installLocalRuntimeService,

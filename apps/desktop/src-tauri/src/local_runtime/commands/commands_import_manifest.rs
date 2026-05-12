@@ -14,13 +14,15 @@ pub fn runtime_local_pick_asset_file(app: AppHandle) -> Result<Option<String>, S
     Ok(selected.map(|p| p.to_string_lossy().to_string()))
 }
 
-fn copy_file_with_progress<F>(
+fn copy_file_with_progress<F, C>(
     mut reader: std::fs::File,
     dest: &std::path::Path,
     mut on_progress: F,
+    mut cancel_check: C,
 ) -> Result<(), String>
 where
     F: FnMut(u64),
+    C: FnMut() -> Result<(), String>,
 {
     let mut writer = std::fs::File::create(dest).map_err(|e| {
         format!("LOCAL_AI_FILE_IMPORT_WRITE_FAILED: cannot create target file: {e}")
@@ -28,21 +30,25 @@ where
     let mut buffer = vec![0u8; 64 * 1024];
     let mut bytes_copied: u64 = 0;
     loop {
+        cancel_check()?;
         let n = reader.read(&mut buffer).map_err(|e| {
             format!("LOCAL_AI_FILE_IMPORT_READ_FAILED: read error at byte {bytes_copied}: {e}")
         })?;
         if n == 0 {
             break;
         }
+        cancel_check()?;
         writer.write_all(&buffer[..n]).map_err(|e| {
             format!("LOCAL_AI_FILE_IMPORT_WRITE_FAILED: write error at byte {bytes_copied}: {e}")
         })?;
         bytes_copied += n as u64;
         on_progress(bytes_copied);
     }
+    cancel_check()?;
     writer
         .flush()
         .map_err(|e| format!("LOCAL_AI_FILE_IMPORT_FLUSH_FAILED: {e}"))?;
+    cancel_check()?;
     writer
         .sync_all()
         .map_err(|e| format!("LOCAL_AI_FILE_IMPORT_SYNC_FAILED: {e}"))?;
@@ -61,7 +67,9 @@ fn execute_file_import(
     capabilities: &[String],
     engine: &str,
     endpoint: &str,
-) {
+    cancel_token: &download_manager::BackgroundImportCancelToken,
+) -> Result<(String, String), String> {
+    cancel_token.throw_if_cancelled()?;
     let models_root = match runtime_models_dir(app) {
         Ok(dir) => dir,
         Err(error) => {
@@ -85,12 +93,13 @@ fn execute_file_import(
                     success: false,
                 },
             );
-            return;
+            return Err(error);
         }
     };
     let logical_model_id = default_logical_model_id(model_id);
     let dest_dir = resolved_model_dir(&models_root, logical_model_id.as_str());
     if let Err(error) = std::fs::create_dir_all(&dest_dir) {
+        let message = format!("LOCAL_AI_FILE_IMPORT_DIR_FAILED: {error}");
         emit_download_progress_event(
             app,
             LocalAiDownloadProgressEvent {
@@ -103,7 +112,7 @@ fn execute_file_import(
                 bytes_total: Some(file_size),
                 speed_bytes_per_sec: None,
                 eta_seconds: None,
-                message: Some(format!("LOCAL_AI_FILE_IMPORT_DIR_FAILED: {error}")),
+                message: Some(message.clone()),
                 state: LocalAiDownloadState::Failed,
                 reason_code: Some("LOCAL_AI_FILE_IMPORT_DIR_FAILED".to_string()),
                 retryable: Some(false),
@@ -111,56 +120,65 @@ fn execute_file_import(
                 success: false,
             },
         );
-        return;
+        return Err(message);
     }
     let dest_file = dest_dir.join(file_name);
+    cancel_token.throw_if_cancelled()?;
 
     // Copy file with progress reporting (throttled to ~200ms intervals).
     let mut last_emit_ms: u64 = 0;
     let copy_start = std::time::Instant::now();
-    let copy_result = copy_file_with_progress(source_file, &dest_file, |bytes_copied| {
-        let elapsed = copy_start.elapsed();
-        let elapsed_ms = elapsed.as_millis() as u64;
-        if elapsed_ms.saturating_sub(last_emit_ms) < 200 && bytes_copied < file_size {
-            return;
-        }
-        last_emit_ms = elapsed_ms;
-        let speed = if elapsed.as_secs_f64() > 0.0 {
-            Some(bytes_copied as f64 / elapsed.as_secs_f64())
-        } else {
-            None
-        };
-        let eta = speed.and_then(|s| {
-            if s > 0.0 {
-                Some((file_size.saturating_sub(bytes_copied)) as f64 / s)
+    let copy_result = copy_file_with_progress(
+        source_file,
+        &dest_file,
+        |bytes_copied| {
+            let elapsed = copy_start.elapsed();
+            let elapsed_ms = elapsed.as_millis() as u64;
+            if elapsed_ms.saturating_sub(last_emit_ms) < 200 && bytes_copied < file_size {
+                return;
+            }
+            last_emit_ms = elapsed_ms;
+            let speed = if elapsed.as_secs_f64() > 0.0 {
+                Some(bytes_copied as f64 / elapsed.as_secs_f64())
             } else {
                 None
-            }
-        });
-        emit_download_progress_event(
-            app,
-            LocalAiDownloadProgressEvent {
-                install_session_id: install_session_id.to_string(),
-                model_id: model_id.to_string(),
-                local_model_id: Some(local_model_id.to_string()),
-                session_kind: LocalAiTransferSessionKind::Import,
-                phase: "copy".to_string(),
-                bytes_received: bytes_copied,
-                bytes_total: Some(file_size),
-                speed_bytes_per_sec: speed,
-                eta_seconds: eta,
-                message: None,
-                state: LocalAiDownloadState::Running,
-                reason_code: None,
-                retryable: Some(true),
-                done: false,
-                success: false,
-            },
-        );
-    });
+            };
+            let eta = speed.and_then(|s| {
+                if s > 0.0 {
+                    Some((file_size.saturating_sub(bytes_copied)) as f64 / s)
+                } else {
+                    None
+                }
+            });
+            emit_download_progress_event(
+                app,
+                LocalAiDownloadProgressEvent {
+                    install_session_id: install_session_id.to_string(),
+                    model_id: model_id.to_string(),
+                    local_model_id: Some(local_model_id.to_string()),
+                    session_kind: LocalAiTransferSessionKind::Import,
+                    phase: "copy".to_string(),
+                    bytes_received: bytes_copied,
+                    bytes_total: Some(file_size),
+                    speed_bytes_per_sec: speed,
+                    eta_seconds: eta,
+                    message: None,
+                    state: LocalAiDownloadState::Running,
+                    reason_code: None,
+                    retryable: Some(true),
+                    done: false,
+                    success: false,
+                },
+            );
+        },
+        || cancel_token.throw_if_cancelled(),
+    );
 
     if let Err(error) = copy_result {
         let _ = std::fs::remove_dir_all(&dest_dir);
+        if download_manager::is_background_import_cancelled_error(error.as_str()) {
+            return Err(error);
+        }
         emit_download_progress_event(
             app,
             LocalAiDownloadProgressEvent {
@@ -173,7 +191,7 @@ fn execute_file_import(
                 bytes_total: Some(file_size),
                 speed_bytes_per_sec: None,
                 eta_seconds: None,
-                message: Some(error),
+                message: Some(error.clone()),
                 state: LocalAiDownloadState::Failed,
                 reason_code: Some("LOCAL_AI_FILE_IMPORT_COPY_FAILED".to_string()),
                 retryable: Some(false),
@@ -181,9 +199,10 @@ fn execute_file_import(
                 success: false,
             },
         );
-        return;
+        return Err(error);
     }
 
+    cancel_token.throw_if_cancelled()?;
     let normalized_engine = normalize_local_engine(engine, capabilities);
     let artifact_roles = default_artifact_roles_for_capabilities(capabilities);
     let preferred_engine = default_preferred_engine_for_capabilities(capabilities);
@@ -242,9 +261,11 @@ fn execute_file_import(
         "metadata": null
     });
     let manifest_path = runtime_managed_asset_manifest_path(&models_root, &record);
+    cancel_token.throw_if_cancelled()?;
     let manifest_json = match serde_json::to_string_pretty(&manifest) {
         Ok(json) => json,
         Err(error) => {
+            let message = format!("LOCAL_AI_FILE_IMPORT_MANIFEST_SERIALIZE_FAILED: {error}");
             let _ = std::fs::remove_dir_all(&dest_dir);
             emit_download_progress_event(
                 app,
@@ -258,9 +279,7 @@ fn execute_file_import(
                     bytes_total: Some(file_size),
                     speed_bytes_per_sec: None,
                     eta_seconds: None,
-                    message: Some(format!(
-                        "LOCAL_AI_FILE_IMPORT_MANIFEST_SERIALIZE_FAILED: {error}"
-                    )),
+                    message: Some(message.clone()),
                     state: LocalAiDownloadState::Failed,
                     reason_code: Some("LOCAL_AI_FILE_IMPORT_MANIFEST_SERIALIZE_FAILED".to_string()),
                     retryable: Some(false),
@@ -268,10 +287,11 @@ fn execute_file_import(
                     success: false,
                 },
             );
-            return;
+            return Err(message);
         }
     };
     if let Err(error) = std::fs::write(&manifest_path, manifest_json) {
+        let message = format!("LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED: {error}");
         let _ = std::fs::remove_dir_all(&dest_dir);
         emit_download_progress_event(
             app,
@@ -285,9 +305,7 @@ fn execute_file_import(
                 bytes_total: Some(file_size),
                 speed_bytes_per_sec: None,
                 eta_seconds: None,
-                message: Some(format!(
-                    "LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED: {error}"
-                )),
+                message: Some(message.clone()),
                 state: LocalAiDownloadState::Failed,
                 reason_code: Some("LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED".to_string()),
                 retryable: Some(false),
@@ -295,11 +313,16 @@ fn execute_file_import(
                 success: false,
             },
         );
-        return;
+        return Err(message);
     }
 
+    cancel_token.throw_if_cancelled()?;
     match runtime_import_manifest_via_runtime(manifest_path.as_path(), Some(endpoint), None) {
         Ok(saved) => {
+            if let Err(error) = cancel_token.throw_if_cancelled() {
+                let _ = runtime_remove_asset_via_runtime(saved.local_asset_id.as_str());
+                return Err(error);
+            }
             emit_download_progress_event(
                 app,
                 LocalAiDownloadProgressEvent {
@@ -341,6 +364,7 @@ fn execute_file_import(
                     "manifestPath": manifest_path.to_string_lossy().to_string(),
                 })),
             );
+            Ok((saved.asset_id, saved.local_asset_id))
         }
         Err(error) => {
             let _ = std::fs::remove_dir_all(&dest_dir);
@@ -356,7 +380,7 @@ fn execute_file_import(
                     bytes_total: Some(file_size),
                     speed_bytes_per_sec: None,
                     eta_seconds: None,
-                    message: Some(error),
+                    message: Some(error.clone()),
                     state: LocalAiDownloadState::Failed,
                     reason_code: Some("LOCAL_AI_FILE_IMPORT_RUNTIME_IMPORT_FAILED".to_string()),
                     retryable: Some(false),
@@ -364,6 +388,7 @@ fn execute_file_import(
                     success: false,
                 },
             );
+            Err(error)
         }
     }
 }

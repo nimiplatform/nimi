@@ -58,9 +58,6 @@ fn runtime_local_assets_import_file_impl(
     app: AppHandle,
     payload: LocalAiAssetsImportFilePayload,
 ) -> Result<LocalAiInstallAcceptedResponse, String> {
-    let (canonical_source_path, source_file, file_size) =
-        prepare_import_source_file(&payload.file_path)?;
-
     // Validate capabilities
     let capabilities = normalize_and_validate_capabilities(&payload.capabilities)?;
     if capabilities.is_empty() {
@@ -86,7 +83,8 @@ fn runtime_local_assets_import_file_impl(
     )?;
 
     // Derive model name from filename if not provided
-    let file_name = canonical_source_path
+    let source_path = std::path::PathBuf::from(payload.file_path.as_str());
+    let file_name = source_path
         .file_name()
         .and_then(|v| v.to_str())
         .unwrap_or("model")
@@ -99,7 +97,7 @@ fn runtime_local_assets_import_file_impl(
         .map(|v| v.to_string())
         .unwrap_or_else(|| {
             // Strip known extensions to derive a friendly name
-            let stem = canonical_source_path
+            let stem = source_path
                 .file_stem()
                 .and_then(|v| v.to_str())
                 .unwrap_or("model");
@@ -109,63 +107,80 @@ fn runtime_local_assets_import_file_impl(
     let model_id = format!("local-import/{model_name}");
     let slug = slugify_local_model_id(&model_id);
     let local_model_id = format!("file:{slug}");
-    let install_session_id = next_install_session_id(&model_id);
-
-    // Emit initial progress
-    emit_download_progress_event(
-        &app,
-        LocalAiDownloadProgressEvent {
-            install_session_id: install_session_id.clone(),
-            model_id: model_id.clone(),
-            local_model_id: Some(local_model_id.clone()),
-            session_kind: LocalAiTransferSessionKind::Import,
-            phase: "copy".to_string(),
-            bytes_received: 0,
-            bytes_total: Some(file_size),
-            speed_bytes_per_sec: None,
-            eta_seconds: None,
-            message: Some("starting file import".to_string()),
-            state: LocalAiDownloadState::Running,
-            reason_code: None,
-            retryable: Some(true),
-            done: false,
-            success: false,
-        },
-    );
-
-    let accepted = LocalAiInstallAcceptedResponse {
-        install_session_id: install_session_id.clone(),
-        model_id: model_id.clone(),
-        local_model_id: local_model_id.clone(),
-    };
-
-    // Spawn copy on background thread
-    let bg_app = app.clone();
-    let bg_install_session_id = install_session_id;
-    let bg_model_id = model_id;
-    let bg_local_model_id = local_model_id;
+    let bg_file_path = payload.file_path;
     let bg_slug = slug;
-    let bg_file_name = file_name;
     let bg_capabilities = capabilities;
     let bg_engine = engine.to_string();
     let bg_endpoint = endpoint;
-    std::thread::spawn(move || {
-        execute_file_import(
-            &bg_app,
-            &bg_install_session_id,
-            &bg_model_id,
-            &bg_local_model_id,
-            &bg_slug,
-            source_file,
-            &bg_file_name,
-            file_size,
-            &bg_capabilities,
-            &bg_engine,
-            &bg_endpoint,
-        );
-    });
 
-    Ok(accepted)
+    let accepted = download_manager::enqueue_background_import_task(
+        &app,
+        model_id.as_str(),
+        local_model_id.as_str(),
+        "copy",
+        "queued file import",
+        move |bg_app, bg_install_session_id, bg_model_id, bg_local_model_id, cancel_token| {
+            if cancel_token.throw_if_cancelled().is_err() {
+                return;
+            }
+            let (canonical_source_path, source_file, file_size) =
+                match prepare_import_source_file(bg_file_path.as_str()) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        download_manager::fail_background_import_task(
+                            &bg_app,
+                            bg_install_session_id.as_str(),
+                            error,
+                            false,
+                        );
+                        return;
+                    }
+                };
+            let bg_file_name = canonical_source_path
+                .file_name()
+                .and_then(|v| v.to_str())
+                .unwrap_or(file_name.as_str())
+                .to_string();
+            match execute_file_import(
+                &bg_app,
+                &bg_install_session_id,
+                &bg_model_id,
+                &bg_local_model_id,
+                &bg_slug,
+                source_file,
+                &bg_file_name,
+                file_size,
+                &bg_capabilities,
+                &bg_engine,
+                &bg_endpoint,
+                &cancel_token,
+            ) {
+                Ok((saved_model_id, saved_local_model_id)) => {
+                    download_manager::complete_background_import_task(
+                        &bg_app,
+                        bg_install_session_id.as_str(),
+                        saved_model_id.as_str(),
+                        saved_local_model_id.as_str(),
+                        "file import completed",
+                    );
+                }
+                Err(error) => {
+                    download_manager::fail_background_import_task(
+                        &bg_app,
+                        bg_install_session_id.as_str(),
+                        error,
+                        false,
+                    );
+                }
+            }
+        },
+    )?;
+
+    Ok(LocalAiInstallAcceptedResponse {
+        install_session_id: accepted.install_session_id,
+        model_id: accepted.model_id,
+        local_model_id: accepted.local_model_id,
+    })
 }
 
 #[tauri::command]

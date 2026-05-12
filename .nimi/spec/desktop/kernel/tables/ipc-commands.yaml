@@ -481,6 +481,16 @@ commands:
     description: Apply a resolved local AI profile after host confirmation without creating Desktop-owned local model truth
     source_rule: D-IPC-011
 
+  - command: runtime_local_profiles_apply_status
+    module: local-runtime
+    description: Read the durable terminal or in-flight status for a local AI profile apply session
+    source_rule: D-IPC-011
+
+  - command: runtime_local_profiles_apply_sessions
+    module: local-runtime
+    description: List durable local AI profile apply session statuses for reload-safe host and mod observation
+    source_rule: D-IPC-011
+
   - command: runtime_local_services_list
     module: local-runtime
     description: Host helper surface for local service listing; shipped product paths must treat RuntimeLocalService as the service truth source

@@ -43,7 +43,7 @@ function deriveDefaultJwksUrl(realmBaseUrl: string): string {
 function deriveDefaultRevocationUrl(realmBaseUrl: string): string {
   const normalizedBaseUrl = trimTrailingSlashes(realmBaseUrl);
   const baseUrl = normalizedBaseUrl || 'http://localhost:3002';
-  return `${baseUrl}/api/auth/revocation`;
+  return `${baseUrl}/api/auth/sessions/introspect`;
 }
 
 function readEnv(name: string): string {

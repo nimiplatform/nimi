@@ -200,15 +200,24 @@ export function buildRuntimeLocalCapabilities(input: {
         capability: String(capability || '').trim() || undefined,
         entryOverrides,
       });
-      const result = await localRuntime.applyProfile(plan, { caller: 'core' });
+      const apply = await localRuntime.applyProfile(plan, { caller: 'core' });
       return {
         modId,
         profileId: profile.id,
         accepted: true,
         declined: false,
-        warnings: result.warnings,
-        reasonCode: result.reasonCode,
+        status: 'queued',
+        warnings: [],
+        applySessionId: apply.applySessionId,
+        planId: apply.planId,
       };
+    },
+    getProfileApplyStatus: async ({ modId, applySessionId }) => {
+      input.authorizeRuntimeCapability({
+        modId,
+        capabilityKey: 'runtime.local.profiles.apply.status',
+      });
+      return localRuntime.getProfileApplyStatus(String(applySessionId || '').trim());
     },
     getProfileInstallStatus: async ({ modId, profileId, capability, entryOverrides }) => {
       input.authorizeRuntimeCapability({

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   findLocalRuntimeProfileById,
@@ -8,7 +8,7 @@ import {
   type LocalRuntimeCatalogItemDescriptor,
   type LocalRuntimeInstallPayload,
   type LocalRuntimeInstallPlanDescriptor,
-  type LocalRuntimeProfileApplyResult,
+  type LocalRuntimeProfileApplyAccepted,
   type LocalRuntimeProfileDescriptor,
   type LocalRuntimeProfileResolutionPlan,
 } from '@runtime/local-runtime';
@@ -62,7 +62,7 @@ export type RuntimeConfigInstallActions = {
     modId: string,
     profileId: string,
     capability?: string,
-  ) => Promise<LocalRuntimeProfileApplyResult>;
+  ) => Promise<LocalRuntimeProfileApplyAccepted>;
   installCatalogLocalModel: (
     item: LocalRuntimeCatalogItemDescriptor,
     options?: {
@@ -122,12 +122,67 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     await refreshLocalSnapshot();
   }, [refreshLocalSnapshot]);
 
+  useEffect(() => {
+    let active = true;
+    let unsubscribe: (() => void) | null = null;
+    void localRuntime.subscribeProfileApplyProgress((event) => {
+      if (!event.done) {
+        return;
+      }
+      void (async () => {
+        await refreshLocalSnapshot();
+        if (!active) {
+          return;
+        }
+        if (event.success && event.result) {
+          setStatusBanner({
+            kind: 'success',
+            message: translateRuntimeLocalText(
+              'runtimeConfig.local.profileAppliedSummary',
+              'Installed profile {{profileId}} for {{modId}}: {{modelCount}} runnable asset(s), {{serviceCount}} service(s), {{dependencyAssetCount}} dependency asset(s)',
+              {
+                modId: event.modId,
+                profileId: event.profileId,
+                modelCount: event.result.executionResult.installedAssets.length,
+                serviceCount: event.result.executionResult.services.length,
+                dependencyAssetCount: event.result.installedAssets.length,
+              },
+            ),
+          });
+          return;
+        }
+        setStatusBanner({
+          kind: 'error',
+          message: translateRuntimeLocalText(
+            'runtimeConfig.local.profileApplyFailed',
+            'Profile install failed: {{message}}',
+            { message: event.error || event.reasonCode || 'unknown error' },
+          ),
+        });
+      })();
+    }).then((nextUnsubscribe) => {
+      if (!active) {
+        nextUnsubscribe();
+        return;
+      }
+      unsubscribe = nextUnsubscribe;
+    }).catch(() => {
+      // Non-Tauri test hosts do not expose profile apply events.
+    });
+    return () => {
+      active = false;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [refreshLocalSnapshot, setStatusBanner]);
+
   const runInstallPlanLifecycle = useCallback(async (
     plan: LocalRuntimeInstallPlanDescriptor,
     installSource: 'catalog' | 'manual' | 'verified',
   ) => {
     assertRuntimeWriteAllowed();
-    const installed = installSource === 'verified'
+    const accepted = installSource === 'verified'
       ? await localRuntime.installVerifiedAsset({
         templateId: String(plan.templateId || '').trim(),
         endpoint: String(plan.endpoint || '').trim(),
@@ -150,16 +205,16 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         hashes: plan.hashes,
         endpoint: plan.endpoint,
       }, { caller: 'core' });
-    await refreshLocalSnapshot();
+    installSessionMeta.set(accepted.installSessionId, { plan, installSource });
     setStatusBanner({
       kind: 'success',
       message: translateRuntimeLocalText(
-        'runtimeConfig.local.modelInstalledAndReady',
-        'Model installed and ready: {{modelId}}',
-        { modelId: installed.assetId || plan.modelId },
+        'runtimeConfig.local.modelInstallQueued',
+        'Model install queued: {{modelId}}',
+        { modelId: accepted.modelId || plan.modelId },
       ),
     });
-  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, installSessionMeta, setStatusBanner]);
 
   const retryInstall = useCallback((plan: LocalRuntimeInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => {
     void runInstallPlanLifecycle(plan, source).catch((error: unknown) => {
@@ -209,7 +264,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     modId: string,
     profileId: string,
     capability?: string,
-  ): Promise<LocalRuntimeProfileApplyResult> => {
+  ): Promise<LocalRuntimeProfileApplyAccepted> => {
     try {
       assertRuntimeWriteAllowed();
       const plan = await resolveRuntimeProfile(modId, profileId, capability);
@@ -217,23 +272,19 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(confirmMessage)) {
         throw new Error('LOCAL_AI_PROFILE_INSTALL_DECLINED');
       }
-      const result = await localRuntime.applyProfile(plan, { caller: 'core' });
-      await refreshLocalSnapshot();
+      const accepted = await localRuntime.applyProfile(plan, { caller: 'core' });
       setStatusBanner({
-        kind: 'success',
+        kind: 'info',
         message: translateRuntimeLocalText(
-          'runtimeConfig.local.profileAppliedSummary',
-          'Installed profile {{profileId}} for {{modId}}: {{modelCount}} runnable asset(s), {{serviceCount}} service(s), {{dependencyAssetCount}} dependency asset(s)',
+          'runtimeConfig.local.profileApplyQueued',
+          'Profile {{profileId}} queued for {{modId}}.',
           {
             modId,
             profileId,
-            modelCount: result.executionResult.installedAssets.length,
-            serviceCount: result.executionResult.services.length,
-            dependencyAssetCount: (result.installedAssets ?? []).length,
           },
         ),
       });
-      return result;
+      return accepted;
     } catch (error) {
       setStatusBanner({
         kind: 'error',
@@ -245,7 +296,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, resolveRuntimeProfile, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, resolveRuntimeProfile, setStatusBanner]);
 
   const installCatalogLocalModel = useCallback(async (
     item: LocalRuntimeCatalogItemDescriptor,
@@ -346,13 +397,12 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
     try {
       assertRuntimeWriteAllowed();
-      const asset = await localRuntime.installVerifiedAsset({
+      const accepted = await localRuntime.installVerifiedAsset({
         templateId: normalizedTemplateId,
       }, { caller: 'core' });
-      await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
-        message: `Asset installed: ${asset.assetId}`,
+        message: `Asset install queued: ${accepted.modelId}`,
       });
     } catch (error) {
       setStatusBanner({
@@ -361,7 +411,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, setStatusBanner]);
 
   const importLocalAsset = useCallback(async () => {
     try {
@@ -370,14 +420,13 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       if (!manifestPath) {
         return;
       }
-      const imported = await localRuntime.importAsset({ manifestPath }, { caller: 'core' });
-      await refreshLocalSnapshot();
+      const accepted = await localRuntime.importAsset({ manifestPath }, { caller: 'core' });
       setStatusBanner({
         kind: 'success',
         message: translateRuntimeLocalText(
-          'runtimeConfig.local.assetImported',
-          'Asset imported: {{assetId}}',
-          { assetId: imported.assetId },
+          'runtimeConfig.local.assetImportQueued',
+          'Asset import queued: {{assetId}}',
+          { assetId: accepted.modelId },
         ),
       });
     } catch (error) {
@@ -391,19 +440,18 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, setStatusBanner]);
 
   const scaffoldLocalAssetOrphan = useCallback(async (path: string, kind: LocalRuntimeAssetKind) => {
     try {
       assertRuntimeWriteAllowed();
-      const imported = await localRuntime.scaffoldOrphanAsset({
+      const accepted = await localRuntime.scaffoldOrphanAsset({
         path,
         kind,
       }, { caller: 'core' });
-      await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
-        message: `Asset imported: ${imported.assetId}`,
+        message: `Asset import queued: ${accepted.modelId}`,
       });
     } catch (error) {
       setStatusBanner({
@@ -412,7 +460,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, setStatusBanner]);
 
   const modelActions = useRuntimeConfigModelManagementActions({
     refreshLocalSnapshot,

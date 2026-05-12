@@ -438,6 +438,8 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             local_runtime::commands::runtime_local_profiles_resolve,
             local_runtime::commands::runtime_local_device_profile_collect,
             local_runtime::commands::runtime_local_profiles_apply,
+            local_runtime::commands::runtime_local_profiles_apply_status,
+            local_runtime::commands::runtime_local_profiles_apply_sessions,
             local_runtime::commands::runtime_local_services_list,
             local_runtime::commands::runtime_local_services_install,
             local_runtime::commands::runtime_local_services_start,

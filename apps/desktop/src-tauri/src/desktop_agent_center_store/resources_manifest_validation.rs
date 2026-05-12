@@ -177,7 +177,16 @@ pub(super) fn validate_background_manifest(
 }
 
 #[tauri::command]
-pub(crate) fn desktop_agent_center_background_validate(
+pub(crate) async fn desktop_agent_center_background_validate(
+    payload: DesktopAgentCenterBackgroundValidatePayload,
+) -> Result<AgentCenterBackgroundValidationResult, String> {
+    run_agent_center_resource_blocking("desktop_agent_center_background_validate", move || {
+        desktop_agent_center_background_validate_blocking(payload)
+    })
+    .await
+}
+
+pub(crate) fn desktop_agent_center_background_validate_blocking(
     payload: DesktopAgentCenterBackgroundValidatePayload,
 ) -> Result<AgentCenterBackgroundValidationResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;
@@ -202,7 +211,16 @@ pub(crate) fn desktop_agent_center_background_validate(
 }
 
 #[tauri::command]
-pub(crate) fn desktop_agent_center_background_asset_get(
+pub(crate) async fn desktop_agent_center_background_asset_get(
+    payload: DesktopAgentCenterBackgroundValidatePayload,
+) -> Result<DesktopAgentCenterBackgroundAssetResult, String> {
+    run_agent_center_resource_blocking("desktop_agent_center_background_asset_get", move || {
+        desktop_agent_center_background_asset_get_blocking(payload)
+    })
+    .await
+}
+
+pub(crate) fn desktop_agent_center_background_asset_get_blocking(
     payload: DesktopAgentCenterBackgroundValidatePayload,
 ) -> Result<DesktopAgentCenterBackgroundAssetResult, String> {
     let account_id = validate_normalized_id(&payload.account_id, "accountId")?;

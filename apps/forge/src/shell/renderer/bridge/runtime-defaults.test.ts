@@ -37,7 +37,7 @@ describe('getRuntimeDefaults', () => {
 
       expect(defaults.realm.realmBaseUrl).toBe('http://localhost:3002');
       expect(defaults.realm.jwtAudience).toBe('nimi-runtime');
-      expect(defaults.realm.revocationUrl).toBe('http://localhost:3002/api/auth/revocation');
+      expect(defaults.realm.revocationUrl).toBe('http://localhost:3002/api/auth/sessions/introspect');
       expect(defaults.runtime.localProviderEndpoint).toBe('');
       expect(defaults.runtime.targetType).toBe('');
       expect(defaults.runtime.userConfirmedUpload).toBe(false);
@@ -62,7 +62,7 @@ describe('getRuntimeDefaults', () => {
     it('derives revocationUrl from realmBaseUrl by default', async () => {
       const defaults = await getRuntimeDefaults();
 
-      expect(defaults.realm.revocationUrl).toBe('http://localhost:3002/api/auth/revocation');
+      expect(defaults.realm.revocationUrl).toBe('http://localhost:3002/api/auth/sessions/introspect');
     });
 
     it('derives jwksUrl from overridden realmBaseUrl', async () => {
@@ -96,7 +96,7 @@ describe('getRuntimeDefaults', () => {
           realtimeUrl: 'ws://localhost:3003',
           accessToken: 'tauri-token',
           jwksUrl: 'http://localhost:3002/api/auth/jwks',
-          revocationUrl: 'http://localhost:3002/api/auth/revocation',
+          revocationUrl: 'http://localhost:3002/api/auth/sessions/introspect',
           jwtIssuer: 'http://localhost:3002',
           jwtAudience: 'nimi-runtime',
         },
@@ -130,7 +130,7 @@ describe('getRuntimeDefaults', () => {
           realtimeUrl: '',
           accessToken: 'tauri-token',
           jwksUrl: 'http://localhost:3002/api/auth/jwks',
-          revocationUrl: 'http://localhost:3002/api/auth/revocation',
+          revocationUrl: 'http://localhost:3002/api/auth/sessions/introspect',
           jwtIssuer: 'http://localhost:3002',
           jwtAudience: 'nimi-runtime',
         },

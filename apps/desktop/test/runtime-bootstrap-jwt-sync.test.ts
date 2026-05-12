@@ -17,7 +17,7 @@ function createRealmDefaults(): RealmDefaults {
     realtimeUrl: 'http://localhost:3003',
     accessToken: 'token-1',
     jwksUrl: 'http://localhost:3002/api/auth/jwks',
-    revocationUrl: 'http://localhost:3002/api/auth/revocation',
+    revocationUrl: 'http://localhost:3002/api/auth/sessions/introspect',
     jwtIssuer: 'http://localhost:3002',
     jwtAudience: 'nimi-runtime',
   };

@@ -29,7 +29,7 @@ function functionBody(name: string): string {
   assert.fail(`${name} body must be balanced`);
 }
 
-for (const name of ['install_catalog_mod', 'update_installed_catalog_mod']) {
+for (const name of ['install_catalog_mod_with_session', 'update_installed_catalog_mod_with_session']) {
   test(`${name} gates consent before catalog mutation`, () => {
     const body = functionBody(name);
     const evaluateIndex = body.indexOf('let consent = evaluate_catalog_consent');

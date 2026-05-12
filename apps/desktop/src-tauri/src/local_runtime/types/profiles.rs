@@ -83,3 +83,35 @@ pub struct LocalAiProfileApplyResult {
     pub warnings: Vec<String>,
     pub reason_code: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiProfileApplyAccepted {
+    pub apply_session_id: String,
+    pub plan_id: String,
+    pub mod_id: String,
+    pub profile_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiProfileApplyStatusPayload {
+    pub apply_session_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAiProfileApplyProgressEvent {
+    pub apply_session_id: String,
+    pub plan_id: String,
+    pub mod_id: String,
+    pub profile_id: String,
+    pub phase: String,
+    pub status: String,
+    pub occurred_at: String,
+    pub message: Option<String>,
+    pub error: Option<String>,
+    pub reason_code: Option<String>,
+    pub rollback_applied: Option<bool>,
+    pub result: Option<LocalAiProfileApplyResult>,
+}

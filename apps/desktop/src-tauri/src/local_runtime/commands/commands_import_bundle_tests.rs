@@ -15,7 +15,7 @@ use super::*;
         std::fs::create_dir_all(dir.path().join("nested")).expect("create nested");
         std::fs::write(dir.path().join("nested").join("readme.txt"), b"note").expect("write note");
 
-        let scan = scan_bundle_directory(dir.path()).expect("scan");
+        let scan = scan_bundle_directory(dir.path(), None).expect("scan");
         assert_eq!(
             scan.files,
             vec![
@@ -41,7 +41,7 @@ use super::*;
         )
         .expect("write nested sidecar");
 
-        let scan = scan_bundle_directory(dir.path()).expect("scan");
+        let scan = scan_bundle_directory(dir.path(), None).expect("scan");
         assert_eq!(scan.files, vec!["model.gguf".to_string()]);
         assert_eq!(scan.entry_candidates, vec!["model.gguf".to_string()]);
         assert!(scan.mmproj_candidates.is_empty());
@@ -60,11 +60,49 @@ use super::*;
         )
         .expect("write nested sidecar");
 
-        copy_bundle_directory(source.path(), dest.path()).expect("copy");
+        copy_bundle_directory(source.path(), dest.path(), None).expect("copy");
 
         assert!(dest.path().join("model.gguf").exists());
         assert!(!dest.path().join("._model.gguf").exists());
         assert!(!dest.path().join("__MACOSX").exists());
+    }
+
+    #[test]
+    fn bundle_directory_replace_can_restore_previous_managed_bundle() {
+        let root = temp_dir("replace-rollback");
+        let dest = root.path().join("managed");
+        let staged = root.path().join("staged");
+        std::fs::create_dir_all(&dest).expect("create dest");
+        std::fs::create_dir_all(&staged).expect("create staged");
+        std::fs::write(dest.join("old.gguf"), b"old").expect("write old");
+        std::fs::write(staged.join("new.gguf"), b"new").expect("write new");
+
+        let backup = replace_directory_with_rollback(&staged, &dest).expect("replace");
+        assert!(dest.join("new.gguf").exists());
+        assert!(!dest.join("old.gguf").exists());
+
+        rollback_directory_replace(&dest, backup.as_deref()).expect("rollback");
+        assert!(dest.join("old.gguf").exists());
+        assert!(!dest.join("new.gguf").exists());
+    }
+
+    #[test]
+    fn manifest_replace_can_restore_previous_manifest() {
+        let dir = temp_dir("manifest-rollback");
+        let manifest_path = dir.path().join("asset.manifest.json");
+        std::fs::write(&manifest_path, br#"{"asset_id":"old"}"#).expect("write old manifest");
+
+        let guard = write_manifest_json_with_rollback(
+            &manifest_path,
+            &serde_json::json!({ "asset_id": "new" }),
+        )
+        .expect("write new manifest");
+        let raw = std::fs::read_to_string(&manifest_path).expect("read new manifest");
+        assert!(raw.contains("\"new\""));
+
+        rollback_manifest_replace(guard).expect("rollback manifest");
+        let raw = std::fs::read_to_string(&manifest_path).expect("read restored manifest");
+        assert!(raw.contains("\"old\""));
     }
 
     #[test]

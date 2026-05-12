@@ -104,9 +104,9 @@ pub fn runtime_defaults() -> RuntimeDefaults {
         format!("{}/api/auth/jwks", normalized_realm_base_url)
     };
     let default_revocation_url = if normalized_realm_base_url.is_empty() {
-        "http://localhost:3002/api/auth/revocation".to_string()
+        "http://localhost:3002/api/auth/sessions/introspect".to_string()
     } else {
-        format!("{}/api/auth/revocation", normalized_realm_base_url)
+        format!("{}/api/auth/sessions/introspect", normalized_realm_base_url)
     };
     let jwks_url = normalize_loopback_http_url(
         env_value("NIMI_REALM_JWKS_URL", default_jwks_url.as_str()).as_str(),
@@ -194,7 +194,7 @@ mod tests {
                 );
                 assert_eq!(
                     defaults.realm.revocation_url,
-                    "http://localhost:3002/api/auth/revocation"
+                    "http://localhost:3002/api/auth/sessions/introspect"
                 );
                 assert_eq!(defaults.realm.jwt_issuer, "http://localhost:3002");
                 assert_eq!(defaults.realm.jwt_audience, "nimi-runtime");
@@ -221,7 +221,7 @@ mod tests {
                 );
                 assert_eq!(
                     defaults.realm.revocation_url,
-                    "http://localhost:3002/api/auth/revocation"
+                    "http://localhost:3002/api/auth/sessions/introspect"
                 );
                 assert_eq!(defaults.realm.jwt_issuer, "http://localhost:3002");
             },

@@ -123,6 +123,10 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
         modId: normalizedModId,
         ...input,
       }),
+      getProfileApplyStatus: async (input) => runtimeHost.local.getProfileApplyStatus({
+        modId: normalizedModId,
+        ...input,
+      }),
     },
     aiConfig: {
       get: (scopeRef) => getAIConfigBridge().get({

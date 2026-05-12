@@ -7,7 +7,8 @@ import type {
   LocalRuntimeCatalogResolveInstallPlanPayload,
   LocalRuntimeInstallPlanDescriptor,
   LocalRuntimeDeviceProfile,
-  LocalRuntimeProfileApplyResult,
+  LocalRuntimeProfileApplyAccepted,
+  LocalRuntimeProfileApplyProgressEvent,
   LocalRuntimeProfileInstallStatus,
   LocalRuntimeProfileResolutionPlan,
   LocalRuntimeProfileResolvePayload,
@@ -26,10 +27,12 @@ import {
   parseGgufVariantDescriptor,
   parseInstallPlanDescriptor,
   parseDeviceProfile,
-  parseProfileApplyResult,
+  parseProfileApplyAccepted,
+  parseProfileApplyProgressEvent,
   parseProfileResolutionPlan,
   parseRecommendationFeedDescriptor,
   assertLifecycleWriteAllowed,
+  readGlobalTauriEventListen,
 } from './parsers';
 import {
   assetLookupKey,
@@ -124,6 +127,8 @@ export {
 // runtime_local_append_runtime_audit
 // runtime_local_assets_scan_unregistered
 
+const LOCAL_RUNTIME_PROFILE_APPLY_PROGRESS_EVENT = 'local-runtime://profile-apply-progress';
+
 export async function listLocalRuntimeAssets(
   payload?: LocalRuntimeListAssetsPayload,
 ): Promise<LocalRuntimeAssetRecord[]> {
@@ -171,16 +176,13 @@ export async function listLocalRuntimeVerifiedAssets(
 export async function searchLocalRuntimeCatalog(
   payload?: LocalRuntimeCatalogSearchPayload,
 ): Promise<LocalRuntimeCatalogItemDescriptor[]> {
-  const runtime = requireSdkLocal();
-  const response = await runtime.searchCatalogModels({
-    query: String(payload?.query || '').trim(),
-    capability: String(payload?.capability || '').trim(),
-    categoryFilter: '',
-    engineFilter: '',
-    pageSize: Number(payload?.limit || 0),
-    pageToken: '',
+  const items = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_models_catalog_search', {
+    payload: {
+      query: String(payload?.query || '').trim() || undefined,
+      capability: String(payload?.capability || '').trim() || undefined,
+      limit: Number(payload?.limit || 0) || undefined,
+    },
   });
-  const items = Array.isArray(asRecord(response).items) ? asRecord(response).items : [];
   return (Array.isArray(items) ? items : []).map((item) => parseCatalogItemDescriptor(item));
 }
 
@@ -196,30 +198,30 @@ export async function listLocalRuntimeRepoGgufVariants(
 export async function resolveLocalRuntimeInstallPlan(
   payload: LocalRuntimeCatalogResolveInstallPlanPayload,
 ): Promise<LocalRuntimeInstallPlanDescriptor> {
-  const runtime = requireSdkLocal();
-  const result = await runtime.resolveModelInstallPlan({
-    itemId: String(payload.itemId || '').trim(),
-    source: String(payload.source || '').trim(),
-    templateId: String(payload.templateId || '').trim(),
-    modelId: String(payload.modelId || '').trim(),
-    repo: String(payload.repo || '').trim(),
-    revision: String(payload.revision || '').trim(),
-    capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : [],
-    engine: String(payload.engine || '').trim(),
-    entry: String(payload.entry || '').trim(),
-    files: Array.isArray(payload.files) ? payload.files : [],
-    license: String(payload.license || '').trim(),
-    hashes: payload.hashes || {},
-    endpoint: String(payload.endpoint || '').trim(),
-    engineConfig: payload.engineConfig as never,
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_models_catalog_resolve_install_plan', {
+    payload: {
+      itemId: String(payload.itemId || '').trim() || undefined,
+      source: String(payload.source || '').trim() || undefined,
+      templateId: String(payload.templateId || '').trim() || undefined,
+      modelId: String(payload.modelId || '').trim() || undefined,
+      repo: String(payload.repo || '').trim() || undefined,
+      revision: String(payload.revision || '').trim() || undefined,
+      capabilities: Array.isArray(payload.capabilities) ? payload.capabilities : undefined,
+      engine: String(payload.engine || '').trim() || undefined,
+      entry: String(payload.entry || '').trim() || undefined,
+      files: Array.isArray(payload.files) ? payload.files : undefined,
+      license: String(payload.license || '').trim() || undefined,
+      hashes: payload.hashes || undefined,
+      endpoint: String(payload.endpoint || '').trim() || undefined,
+      engineConfig: payload.engineConfig,
+    },
   });
-  return parseInstallPlanDescriptor(asRecord(result).plan);
+  return parseInstallPlanDescriptor(result);
 }
 
 export async function collectLocalRuntimeDeviceProfile(): Promise<LocalRuntimeDeviceProfile> {
-  const runtime = requireSdkLocal();
-  const result = await runtime.collectDeviceProfile({ extraPorts: [] });
-  return parseDeviceProfile(asRecord(result).profile);
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_device_profile_collect');
+  return parseDeviceProfile(result);
 }
 
 export async function getLocalRuntimeRecommendationFeed(
@@ -252,21 +254,53 @@ export async function resolveLocalRuntimeProfile(
 export async function applyLocalRuntimeProfile(
   plan: LocalRuntimeProfileResolutionPlan,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeProfileApplyResult> {
+): Promise<LocalRuntimeProfileApplyAccepted> {
   assertLifecycleWriteAllowed('local_runtime_profiles_apply', options?.caller);
   const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_profiles_apply', {
     payload: { plan },
   });
-  const applyResult = parseProfileApplyResult(result);
+  const accepted = parseProfileApplyAccepted(result);
   return {
+    applySessionId: accepted.applySessionId,
     planId: plan.planId,
     modId: plan.modId,
     profileId: plan.profileId,
-    executionResult: applyResult.executionResult,
-    installedAssets: applyResult.installedAssets,
-    warnings: applyResult.warnings,
-    reasonCode: applyResult.reasonCode || applyResult.executionResult.reasonCode,
   };
+}
+
+export async function subscribeLocalRuntimeProfileApplyProgress(
+  listener: (event: LocalRuntimeProfileApplyProgressEvent) => void,
+): Promise<() => void> {
+  const listen = readGlobalTauriEventListen();
+  if (!listen) {
+    throw new Error('LOCAL_AI_TAURI_EVENT_LISTEN_UNAVAILABLE: tauri listen is not available');
+  }
+  const unsubscribe = await Promise.resolve(listen(LOCAL_RUNTIME_PROFILE_APPLY_PROGRESS_EVENT, (event) => {
+    listener(parseProfileApplyProgressEvent(event.payload));
+  }));
+  return () => {
+    if (unsubscribe) {
+      unsubscribe();
+    }
+  };
+}
+
+export async function getLocalRuntimeProfileApplyStatus(
+  applySessionId: string,
+): Promise<LocalRuntimeProfileApplyProgressEvent | null> {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_profiles_apply_status', {
+    payload: {
+      applySessionId: String(applySessionId || '').trim(),
+    },
+  });
+  return result ? parseProfileApplyProgressEvent(result) : null;
+}
+
+export async function listLocalRuntimeProfileApplySessions(): Promise<LocalRuntimeProfileApplyProgressEvent[]> {
+  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_profiles_apply_sessions');
+  return Array.isArray(result)
+    ? result.map((item) => parseProfileApplyProgressEvent(item))
+    : [];
 }
 
 export async function getLocalRuntimeProfileInstallStatus(

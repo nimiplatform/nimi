@@ -49,6 +49,12 @@ export type LocalRuntimeAssetsHealthResult = {
   assets: LocalRuntimeAssetHealth[];
 };
 
+export type LocalRuntimeTransferAccepted = {
+  installSessionId: string;
+  modelId: string;
+  localModelId: string;
+};
+
 export type LocalRuntimeInferenceAuditEventType =
   | 'inference_invoked'
   | 'inference_failed'

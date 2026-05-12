@@ -145,6 +145,14 @@ fn next_profile_plan_id(mod_id: &str, profile_id: &str) -> String {
     )
 }
 
+fn next_profile_apply_session_id(plan_id: &str) -> String {
+    let now_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    format!("profile-apply-{}-{now_ms}", slugify_local_model_id(plan_id))
+}
+
 async fn resolve_profile_plan(
     app: &AppHandle,
     payload: &LocalAiProfilesResolvePayload,
@@ -156,10 +164,10 @@ async fn resolve_profile_plan(
     let title = normalize_non_empty(payload.profile.title.as_str())
         .ok_or_else(|| "LOCAL_AI_PROFILE_TITLE_REQUIRED: profile.title is required".to_string())?;
     let capability_filter = normalize_capability_filter(payload.capability.clone());
-    let device_profile = payload
-        .device_profile
-        .clone()
-        .unwrap_or_else(|| collect_device_profile(app));
+    let device_profile = match payload.device_profile.clone() {
+        Some(profile) => profile,
+        None => collect_device_profile_async(app).await,
+    };
     let (declaration, asset_entries) =
         bridge_profile_to_dependency_declaration(&payload.profile, capability_filter.as_deref());
     let mut state = load_state(app)?;
@@ -213,13 +221,13 @@ fn find_service_index(services: &[LocalAiServiceDescriptor], service_id: &str) -
     })
 }
 
-fn run_service_install_preflight(
+async fn run_service_install_preflight(
     app: &AppHandle,
     dependency_id: Option<&str>,
     service_id: &str,
     endpoint: Option<&str>,
 ) -> Result<(), String> {
-    let profile = collect_device_profile(app);
+    let profile = collect_device_profile_async(app).await;
     let decisions = preflight_service_artifact(dependency_id, service_id, endpoint, &profile)?;
     if let Some(failed) = decisions.iter().find(|item| !item.ok) {
         return Err(format!("{}: {}", failed.reason_code, failed.detail));
@@ -227,12 +235,12 @@ fn run_service_install_preflight(
     Ok(())
 }
 
-fn run_service_runtime_preflight(
+async fn run_service_runtime_preflight(
     app: &AppHandle,
     dependency_id: Option<&str>,
     service: &LocalAiServiceDescriptor,
 ) -> Result<(), String> {
-    let profile = collect_device_profile(app);
+    let profile = collect_device_profile_async(app).await;
     let decisions = preflight_service_artifact(
         dependency_id,
         service.service_id.as_str(),
@@ -245,13 +253,13 @@ fn run_service_runtime_preflight(
     Ok(())
 }
 
-fn build_service_descriptor_from_install_payload(
+async fn build_service_descriptor_from_install_payload(
     app: &AppHandle,
     payload: &LocalAiServicesInstallPayload,
 ) -> Result<LocalAiServiceDescriptor, String> {
     let service_id = normalize_non_empty(payload.service_id.as_str())
         .ok_or_else(|| "LOCAL_AI_SERVICE_ID_REQUIRED: serviceId is required".to_string())?;
-    run_service_install_preflight(app, None, service_id.as_str(), payload.endpoint.as_deref())?;
+    run_service_install_preflight(app, None, service_id.as_str(), payload.endpoint.as_deref()).await?;
     let capabilities = payload
         .capabilities
         .clone()
@@ -365,7 +373,7 @@ async fn start_service_runtime(
     app: &AppHandle,
     service: &LocalAiServiceDescriptor,
 ) -> Result<String, String> {
-    run_service_runtime_preflight(app, None, service)?;
+    run_service_runtime_preflight(app, None, service).await?;
     let _ = bootstrap_service_artifact(service.service_id.as_str())?;
     match resolve_service_runtime_start_target(service) {
         ServiceRuntimeStartTarget::Endpoint(endpoint) => {

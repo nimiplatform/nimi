@@ -144,7 +144,7 @@ function handleApi(request, response, manifestPath) {
     return undefined;
   }
 
-  if (request.method === 'POST' && pathname === '/api/auth/revocation') {
+  if (request.method === 'POST' && pathname === '/api/auth/sessions/introspect') {
     json(response, 200, {
       active: true,
       revoked: false,

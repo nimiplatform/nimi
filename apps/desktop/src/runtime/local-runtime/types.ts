@@ -352,6 +352,8 @@ export type {
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileTargetDescriptor,
   LocalRuntimeProfileResolutionPlan,
+  LocalRuntimeProfileApplyAccepted,
+  LocalRuntimeProfileApplyProgressEvent,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileInstallStatus,
   LocalRuntimeProfileResolvePayload,
@@ -592,6 +594,12 @@ export type LocalRuntimeDownloadControlPayload = {
   installSessionId: string;
 };
 
+export type LocalRuntimeTransferAccepted = {
+  installSessionId: string;
+  modelId: string;
+  localModelId: string;
+};
+
 export type LocalRuntimeEnvironmentPlanDependency = {
   dependencyFamily: string;
   dependencyId: string;
@@ -763,9 +771,9 @@ export type LocalRuntimeImportAssetFilePayload = {
 };
 
 export type LocalRuntimeAssetFileImportResult = {
-  asset: LocalRuntimeAssetRecord;
+  accepted: LocalRuntimeTransferAccepted;
 };
 
 export type LocalRuntimeAssetManifestImportResult = {
-  asset: LocalRuntimeAssetRecord;
+  accepted: LocalRuntimeTransferAccepted;
 };

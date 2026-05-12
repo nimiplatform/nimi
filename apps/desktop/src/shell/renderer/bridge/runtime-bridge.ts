@@ -110,6 +110,7 @@ export type {
   RuntimeModReloadResult,
   RuntimeModSourceChangeEvent,
   RuntimeModInstallPayload,
+  RuntimeModInstallAccepted,
   RuntimeModInstallProgressEvent,
   RuntimeModInstallResult,
   RuntimeModInstallSourceKind,

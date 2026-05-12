@@ -11,6 +11,7 @@ import type {
   ModRuntimeBoundImageGenerateInput,
   ModRuntimeBoundWorldGenerateInput,
   ModRuntimeLocalProfile,
+  ModRuntimeLocalProfileApplyStatus,
   ModRuntimeLocalProfileInstallResult,
   ModRuntimeLocalProfileInstallStatus,
   ModRuntimeListLocalAssetsInput,
@@ -166,6 +167,10 @@ export type ModRuntimeHost = {
       capability?: RuntimeCanonicalCapability | string;
       entryOverrides?: ModRuntimeProfileEntryOverride[];
     }) => Promise<ModRuntimeLocalProfileInstallStatus>;
+    getProfileApplyStatus: (input: {
+      modId: string;
+      applySessionId: string;
+    }) => Promise<ModRuntimeLocalProfileApplyStatus | null>;
   };
   aiConfig: {
     get: (input: { modId: string; scopeRef: AIScopeRef }) => AIConfig;

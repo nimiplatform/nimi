@@ -188,6 +188,7 @@
     "dependenciesAppliedSummary": "已为 {{modId}} 应用依赖：{{modelCount}} 个模型，{{serviceCount}} 个服务",
     "profileAppliedSyncFailed": "配置档已安装，但 Go runtime 同步失败：{{message}}",
     "profileAppliedSummary": "已为 {{modId}} 安装配置档 {{profileId}}：{{modelCount}} 个可运行资产、{{serviceCount}} 个服务、{{dependencyAssetCount}} 个依赖资产",
+    "profileApplyQueued": "已将 {{modId}} 的配置档 {{profileId}} 加入队列。",
     "profileApplyFailed": "配置档安装失败：{{message}}",
     "assetImported": "资产已导入：{{assetId}}",
     "assetImportFailed": "导入资产失败",

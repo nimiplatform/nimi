@@ -148,7 +148,7 @@ async fn run_dependency_apply(
                     local_model_id: local_model_id_for_service,
                 };
                 let installed =
-                    build_service_descriptor_from_install_payload(app, &install_payload)?;
+                    build_service_descriptor_from_install_payload(app, &install_payload).await?;
                 let installed = upsert_service_descriptor(app, installed)?;
                 service_ids_to_start.insert(installed.service_id.clone());
                 let service_key = normalize_service_id(installed.service_id.as_str())
@@ -181,7 +181,8 @@ async fn run_dependency_apply(
                     resolved_capability.as_deref(),
                     &mut service_map,
                     &mut service_ids_to_start,
-                )?;
+                )
+                .await?;
                 if service.status == LocalAiServiceStatus::Unhealthy {
                     warnings.push(format!(
                         "LOCAL_AI_SERVICE_UNHEALTHY: serviceId={}",

@@ -138,6 +138,7 @@ export { ExternalProofType, AppMode, WorldRelation } from './generated/runtime/v
 export { PolicyMode, AuthorizationPreset as RuntimeAuthorizationPreset } from './generated/runtime/v1/grant.js';
 export { WorkflowStatus, WorkflowEventType, WorkflowExecutionMode } from './generated/runtime/v1/workflow.js';
 export { createTauriIpcTransport } from './transports/tauri-ipc.js';
+export { createRuntimeClient } from './core/client.js';
 export { createRuntimeProtectedScopeHelper } from './protected-access.js';
 export { toProtoStruct } from './helpers.js';
 export { Runtime } from './runtime.js';
