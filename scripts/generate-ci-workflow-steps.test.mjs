@@ -273,7 +273,7 @@ test('registry rows with optional cwd and env fields project correctly', () => {
   runGenerator(['--registry-path', regPath, '--workflow-path', wfPath]);
   const updated = fs.readFileSync(wfPath, 'utf8');
   assert.ok(updated.includes('working-directory: some/dir'));
-  // Note: currently projectCiStepBlock DOES NOT project env, 
+  // Note: currently projectCiStepBlock DOES NOT project env,
   // despite W5 design mentioning it. This test documents the current reality.
-  // assert.ok(updated.includes('env:'), 'Should project env'); 
+  // assert.ok(updated.includes('env:'), 'Should project env');
 });
