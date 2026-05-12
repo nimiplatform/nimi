@@ -1,19 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { i18n } from '@renderer/i18n';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   desktopBridge,
   type CatalogConsentReason,
   type CatalogInstallResult,
   type CatalogPackageSummary,
-  type RuntimeLocalManifestSummary,
+  type RuntimeModInstallProgressEvent,
 } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import {
-  discoverSideloadRuntimeMods,
-  registerRuntimeMods,
-  unregisterRuntimeMods,
-  type RuntimeModRegisterFailure,
-} from '@runtime/mod';
+import { unregisterRuntimeMods } from '@runtime/mod';
 import { resolveModTabId } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import {
   refreshRuntimeManifestSummaries,
@@ -34,9 +28,7 @@ import {
   buildManagementSections,
   toCatalogModRow,
   toRuntimeModRow,
-  type ModHubMod,
   type ModHubPendingActionType,
-  type ModHubSection,
 } from './mod-hub-model';
 import {
   clearPendingReconsentRecord,
@@ -46,132 +38,8 @@ import {
   writePendingReconsentRecord,
   type ModHubReconsentRecord,
 } from './mod-hub-reconsent';
-import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
-
-function normalizeModId(modId: string): string {
-  return String(modId || '').trim();
-}
-
-function stripVersionPrefix(value: string | undefined): string {
-  return String(value || '').trim().replace(/^v/i, '');
-}
-
-function withAddedModId(modIds: string[], modId: string): string[] {
-  const target = normalizeModId(modId);
-  if (!target) return modIds;
-  const deduped = new Set(modIds.map((item) => normalizeModId(item)).filter(Boolean));
-  deduped.add(target);
-  return Array.from(deduped.values()).sort();
-}
-
-function withRemovedModId(modIds: string[], modId: string): string[] {
-  const target = normalizeModId(modId);
-  if (!target) return modIds;
-  return modIds
-    .map((item) => normalizeModId(item))
-    .filter((item) => item && item !== target)
-    .sort();
-}
-
-function safeErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error || 'unknown error');
-}
-
-function tModHub(key: string, options: Record<string, unknown> & { defaultValue: string }): string {
-  return i18n.t(key, options);
-}
-
-function resolveOpenDirPath(input: {
-  manifestPath?: string;
-  sourceDir?: string;
-}): string {
-  const manifestPath = String(input.manifestPath || '').trim();
-  if (manifestPath) {
-    return manifestPath.replace(/[\\/][^\\/]+$/, '');
-  }
-  return String(input.sourceDir || '').trim();
-}
-
-async function registerOneRuntimeMod(input: {
-  manifest: RuntimeLocalManifestSummary;
-}): Promise<{ failure: RuntimeModRegisterFailure | null }> {
-  const discoverFailures: RuntimeModRegisterFailure[] = [];
-  const sideloadRegistrations = await discoverSideloadRuntimeMods({
-    manifests: [input.manifest],
-    readEntry: (entryPath) => desktopBridge.readRuntimeLocalModEntry(entryPath),
-    onError: ({ manifestId, error }) => {
-      discoverFailures.push({
-        modId: manifestId,
-        sourceType: 'sideload',
-        stage: 'discover',
-        error: safeErrorMessage(error),
-      });
-    },
-  });
-  if (discoverFailures.length > 0) {
-    return {
-      failure: discoverFailures[0] || null,
-    };
-  }
-  if (sideloadRegistrations.length === 0) {
-    return {
-      failure: {
-        modId: String(input.manifest.id || '').trim(),
-        sourceType: 'sideload',
-        stage: 'discover',
-        error: 'mod entry not found',
-      },
-    };
-  }
-  const sideloadResult = await registerRuntimeMods(sideloadRegistrations, {
-    replaceExisting: true,
-  });
-  const modId = String(input.manifest.id || '').trim();
-  return {
-    failure: sideloadResult.failedMods.find((item) => item.modId === modId) || null,
-  };
-}
-
-export type ModHubPendingAction = {
-  modId: string;
-  action: ModHubPendingActionType;
-} | null;
-
-export type ModHubPageModel = {
-  loading: boolean;
-  searchQuery: string;
-  filteredMods: ModHubMod[];
-  dockMods: ModHubMod[];
-  managementSections: ModHubSection[];
-  pendingAction: ModHubPendingAction;
-  selectedModId: string | null;
-  installedModsDir: string;
-  visibleModCount: number;
-  installedModsCount: number;
-  isSearchFocused: boolean;
-  feedback: StatusBanner | null;
-  issueSummary: {
-    failureCount: number;
-    fusedCount: number;
-    message: string;
-  } | null;
-  dismissFeedback: () => void;
-  onSearchQueryChange: (value: string) => void;
-  onSearchFocus: () => void;
-  onSearchBlur: () => void;
-  onActivateDockMod: (modId: string) => void;
-  onOpenMod: (modId: string) => void;
-  onInstallMod: (modId: string) => void;
-  onUpdateMod: (modId: string) => void;
-  onUninstallMod: (modId: string) => void;
-  onEnableMod: (modId: string) => void;
-  onDisableMod: (modId: string) => void;
-  onRetryMod: (modId: string) => void;
-  onOpenModFolder: (modId: string) => void;
-  onOpenModSettings: (modId: string) => void;
-  onOpenModsFolder: () => void;
-  onSelectMod: (modId: string | null) => void;
-};
+import { buildModHubIssueSummary, normalizeModId, registerOneRuntimeMod, resolveOpenDirPath, safeErrorMessage, stripVersionPrefix, tModHub, withAddedModId, withRemovedModId } from './mod-hub-controller-helpers';
+import type { ModHubPageModel, ModHubPendingAction } from './mod-hub-controller-types'; export type { ModHubPageModel } from './mod-hub-controller-types';
 
 export function useModHubPageModel(): ModHubPageModel {
   const [searchQuery, setSearchQuery] = useState('');
@@ -193,6 +61,7 @@ export function useModHubPageModel(): ModHubPageModel {
     consentReasons: CatalogConsentReason[];
     addedCapabilities: string[];
   }>>({});
+  const handledInstallProgressSessions = useRef<Set<string>>(new Set());
   const uiExtensionContext = useUiExtensionContext();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const openModWorkspaceTab = useAppStore((state) => state.openModWorkspaceTab);
@@ -348,7 +217,7 @@ export function useModHubPageModel(): ModHubPageModel {
 
   const mergedMods = useMemo(() => {
     const runtimeById = new Map(runtimeMods.map((item) => [item.id, item] as const));
-    const rows: ModHubMod[] = catalogMods.map((catalogMod) => {
+    const rows = catalogMods.map((catalogMod) => {
       const runtime = runtimeById.get(catalogMod.packageId);
       const update = availableUpdates[catalogMod.packageId];
       const pendingReconsent = pendingReconsentByModId[catalogMod.packageId];
@@ -380,49 +249,23 @@ export function useModHubPageModel(): ModHubPageModel {
     return rows;
   }, [availableUpdates, catalogMods, pendingReconsentByModId, runtimeMods]);
 
-  const managementSections = useMemo(() => buildManagementSections({
-    mods: mergedMods,
-    query: searchQuery,
-  }), [mergedMods, searchQuery]);
-
-  const filteredMods = useMemo(
-    () => managementSections.flatMap((section) => section.mods),
-    [managementSections],
+  const managementSections = useMemo(
+    () => buildManagementSections({ mods: mergedMods, query: searchQuery }),
+    [mergedMods, searchQuery],
   );
+
+  const filteredMods = useMemo(() => managementSections.flatMap((section) => section.mods), [managementSections]);
 
   const dockMods = useMemo(() => buildDockMods(mergedMods), [mergedMods]);
   const loading = !storageReady || !catalogReady;
-  const issueSummary = useMemo(() => {
-    const fusedCount = Object.keys(fusedRuntimeMods).length;
-    const failureCount = runtimeModFailures.length;
-    if (fusedCount === 0 && failureCount === 0) {
-      return null;
-    }
-    const parts: string[] = [];
-    if (failureCount > 0) {
-      parts.push(`${failureCount} load failure${failureCount > 1 ? 's' : ''}`);
-    }
-    if (fusedCount > 0) {
-      parts.push(`${fusedCount} fused runtime mod${fusedCount > 1 ? 's' : ''}`);
-    }
-    return {
-      failureCount,
-      fusedCount,
-      message: `Startup/runtime issues detected: ${parts.join(' · ')}. Open the affected mod row for the error chain and retry actions.`,
-    };
-  }, [fusedRuntimeMods, runtimeModFailures]);
+  const issueSummary = useMemo(
+    () => buildModHubIssueSummary({ fusedRuntimeMods, runtimeModFailures }),
+    [fusedRuntimeMods, runtimeModFailures],
+  );
 
-  const onSearchFocus = useCallback(() => {
-    setIsSearchFocused(true);
-  }, []);
-
-  const onSearchBlur = useCallback(() => {
-    setIsSearchFocused(false);
-  }, []);
-
-  const onSelectMod = useCallback((modId: string | null) => {
-    setSelectedModId(modId);
-  }, []);
+  const onSearchFocus = useCallback(() => setIsSearchFocused(true), []);
+  const onSearchBlur = useCallback(() => setIsSearchFocused(false), []);
+  const onSelectMod = useCallback((modId: string | null) => setSelectedModId(modId), []);
 
   const onOpenMod = useCallback((modId: string) => {
     const normalized = normalizeModId(modId);
@@ -460,10 +303,7 @@ export function useModHubPageModel(): ModHubPageModel {
   ) => {
     const normalizedModId = normalizeModId(modId);
     if (!normalizedModId) return;
-    setPendingAction({
-      modId: normalizedModId,
-      action,
-    });
+    setPendingAction({ modId: normalizedModId, action });
     try {
       await task();
       logRendererEvent({
@@ -504,6 +344,47 @@ export function useModHubPageModel(): ModHubPageModel {
     }
   }, [setModsFeedback]);
 
+  const syncExistingRuntimeModAfterFailure = useCallback(async (modId: string) => {
+    const normalizedModId = normalizeModId(modId);
+    const refreshedManifests = await refreshRuntimeManifestSummaries();
+    const manifest = refreshedManifests.find((item) => normalizeModId(item.id || '') === normalizedModId);
+    const appStore = useAppStore.getState();
+    const isDisabled = appStore.runtimeModDisabledIds.map(normalizeModId).includes(normalizedModId);
+    const isUninstalled = appStore.runtimeModUninstalledIds.map(normalizeModId).includes(normalizedModId);
+    if (manifest && !isDisabled && !isUninstalled) {
+      const registration = await registerOneRuntimeMod({ manifest });
+      if (registration.failure) {
+        appStore.setRuntimeModFailures([
+          ...appStore.runtimeModFailures.filter((item) => item.modId !== normalizedModId),
+          registration.failure,
+        ]);
+      }
+    }
+    await syncRuntimeModShellState(refreshedManifests);
+  }, []);
+
+  const onInstallMod = useCallback((modId: string) => {
+    void runRuntimeAction(modId, 'install', async () => {
+      const normalizedModId = normalizeModId(modId);
+      const selected = mergedMods.find((item) => item.id === normalizedModId);
+      if (!selected) {
+        throw new Error('mod not found');
+      }
+      if (selected.source !== 'catalog') {
+        throw new Error('local install flow is not available from Mod Hub');
+      }
+      const accepted = await desktopBridge.installCatalogMod({ packageId: normalizedModId });
+      setModsFeedback({
+        kind: 'info',
+        message: tModHub('ModHub.installQueued', {
+          modId: normalizedModId,
+          installSessionId: accepted.installSessionId,
+          defaultValue: 'Mod {{modId}} install queued.',
+        }),
+      });
+    });
+  }, [mergedMods, runRuntimeAction, setModsFeedback]);
+
   const finalizeInstalledManifest = useCallback(async (input: {
     result: CatalogInstallResult;
     successMessage: string;
@@ -520,13 +401,20 @@ export function useModHubPageModel(): ModHubPageModel {
       const registration = await registerOneRuntimeMod({ manifest });
       if (registration.failure) {
         if (input.rollbackOnFailure && result.rollbackPath) {
-          const restored = await desktopBridge.restoreRuntimeModBackup({
+          const accepted = await desktopBridge.restoreRuntimeModBackup({
             modId: result.modId,
             backupPath: result.rollbackPath,
           });
-          await registerOneRuntimeMod({ manifest: restored });
-          await syncRuntimeModShellState(await refreshRuntimeManifestSummaries());
-          throw new Error(`update registration failed and rollback restored previous version: ${registration.failure.error}`);
+          appStore.setModsFeedback({
+            kind: 'warning',
+            message: tModHub('ModHub.updateRollbackQueued', {
+              modId: result.modId,
+              installSessionId: accepted.installSessionId,
+              message: registration.failure.error,
+              defaultValue: 'Mod {{modId}} update registration failed; rollback queued.',
+            }),
+          });
+          return;
         }
         throw new Error(registration.failure.error);
       }
@@ -543,6 +431,10 @@ export function useModHubPageModel(): ModHubPageModel {
       removeRuntimeModStyles(result.modId);
     }
     refreshPendingReconsentByModId();
+    appStore.setRuntimeModFailures(
+      appStore.runtimeModFailures.filter((item) => item.modId !== result.modId),
+    );
+    appStore.clearRuntimeModFuse(result.modId);
     await syncRuntimeModShellState(refreshedManifests);
     setSelectedModId(result.modId);
     const consentSummary = formatConsentSummary({
@@ -563,44 +455,152 @@ export function useModHubPageModel(): ModHubPageModel {
     });
   }, [refreshPendingReconsentByModId]);
 
-  const onInstallMod = useCallback((modId: string) => {
-    void runRuntimeAction(modId, 'install', async () => {
-      const normalizedModId = normalizeModId(modId);
-      const selected = mergedMods.find((item) => item.id === normalizedModId);
-      if (!selected) {
-        throw new Error('mod not found');
+  const finalizeRestoredManifest = useCallback(async (event: RuntimeModInstallProgressEvent) => {
+    const restoredManifest = event.restoredManifest;
+    if (!restoredManifest) return;
+    const modId = normalizeModId(restoredManifest.id || event.modId || '');
+    if (!modId) return;
+    const appStore = useAppStore.getState();
+    appStore.setRuntimeModUninstalledIds(withRemovedModId(appStore.runtimeModUninstalledIds, modId));
+    appStore.setRuntimeModDisabledIds(withRemovedModId(appStore.runtimeModDisabledIds, modId));
+    const registration = await registerOneRuntimeMod({ manifest: restoredManifest });
+    if (registration.failure) {
+      appStore.setRuntimeModFailures([
+        ...appStore.runtimeModFailures.filter((item) => item.modId !== modId),
+        registration.failure,
+      ]);
+      throw new Error(registration.failure.error);
+    }
+    appStore.setRuntimeModFailures(
+      appStore.runtimeModFailures.filter((item) => item.modId !== modId),
+    );
+    const refreshedManifests = await refreshRuntimeManifestSummaries();
+    await syncRuntimeModShellState(refreshedManifests);
+    setSelectedModId(modId);
+    appStore.setModsFeedback({
+      kind: 'success',
+      message: tModHub('ModHub.rollbackRestored', {
+        modId,
+        defaultValue: 'Mod {{modId}} rollback restored.',
+      }),
+    });
+  }, []);
+
+  const handleRuntimeModInstallProgress = useCallback(async (event: RuntimeModInstallProgressEvent) => {
+    const status = String(event.status || '').trim();
+    const sessionId = String(event.installSessionId || '').trim();
+    if (!sessionId || (status !== 'completed' && status !== 'failed')) {
+      return;
+    }
+    const completionKey = `${sessionId}:${event.catalogInstall ? 'catalog' : event.restoredManifest ? 'restore' : status}`;
+    if (handledInstallProgressSessions.current.has(completionKey)) {
+      return;
+    }
+    handledInstallProgressSessions.current.add(completionKey);
+    const eventModId = normalizeModId(event.modId || event.catalogInstall?.install.modId || event.restoredManifest?.id || '');
+    try {
+      if (status === 'failed') {
+        if (eventModId) {
+          await syncExistingRuntimeModAfterFailure(eventModId);
+        }
+        useAppStore.getState().setModsFeedback({
+          kind: 'error',
+          message: tModHub('ModHub.backgroundActionFailed', {
+            modId: eventModId || 'unknown',
+            message: event.error || event.message || 'background operation failed',
+            defaultValue: 'Mod {{modId}} background action failed: {{message}}',
+          }),
+        });
+        return;
       }
-      if (selected.source !== 'catalog') {
-        throw new Error('local install flow is not available from Mod Hub');
+      if (event.catalogInstall) {
+        await finalizeInstalledManifest({
+          result: event.catalogInstall,
+          successMessage: event.operation === 'update'
+            ? tModHub('ModHub.updateSuccess', {
+              modId: event.catalogInstall.install.modId,
+              version: event.catalogInstall.release.version,
+              defaultValue: 'Mod {{modId}} updated to {{version}}',
+            })
+            : tModHub('ModHub.installFromCatalogSuccess', {
+              modId: event.catalogInstall.install.modId,
+              defaultValue: 'Mod {{modId}} installed from catalog',
+            }),
+          rollbackOnFailure: event.operation === 'update',
+        });
+        return;
       }
-      const result = await desktopBridge.installCatalogMod({ packageId: normalizedModId });
-      await finalizeInstalledManifest({
-        result,
-        successMessage: tModHub('ModHub.installFromCatalogSuccess', {
-          modId: normalizedModId,
-          defaultValue: 'Mod {{modId}} installed from catalog',
+      if (event.restoredManifest) {
+        await finalizeRestoredManifest(event);
+      }
+    } catch (error) {
+      const message = safeErrorMessage(error);
+      useAppStore.getState().setModsFeedback({
+        kind: 'error',
+        message: tModHub('ModHub.backgroundActionFinalizeFailed', {
+          modId: eventModId || 'unknown',
+          message,
+          defaultValue: 'Mod {{modId}} background action completed but finalization failed: {{message}}',
         }),
       });
+      logRendererEvent({
+        level: 'warn',
+        area: 'mod-hub',
+        message: 'mod-hub:runtime-mod:background-finalize-failed',
+        details: {
+          modId: eventModId,
+          operation: event.operation,
+          installSessionId: event.installSessionId,
+          error: message,
+        },
+      });
+    }
+  }, [finalizeInstalledManifest, finalizeRestoredManifest, syncExistingRuntimeModAfterFailure]);
+
+  useEffect(() => {
+    let disposed = false;
+    let unsubscribe: (() => void) | null = null;
+    void desktopBridge.subscribeRuntimeModInstallProgress((event) => {
+      if (disposed) return;
+      void handleRuntimeModInstallProgress(event);
+    }).then((dispose) => {
+      if (disposed) {
+        dispose();
+        return;
+      }
+      unsubscribe = dispose;
+    }).catch((error) => {
+      logRendererEvent({
+        level: 'warn',
+        area: 'mod-hub',
+        message: 'mod-hub:runtime-mod:progress-subscribe-failed',
+        details: {
+          error: safeErrorMessage(error),
+        },
+      });
     });
-  }, [finalizeInstalledManifest, mergedMods, runRuntimeAction]);
+    return () => {
+      disposed = true;
+      unsubscribe?.();
+    };
+  }, [handleRuntimeModInstallProgress]);
 
   const onUpdateMod = useCallback((modId: string) => {
     void runRuntimeAction(modId, 'update', async () => {
       const normalizedModId = normalizeModId(modId);
       unregisterRuntimeMods([normalizedModId]);
       removeRuntimeModStyles(normalizedModId);
-      const result = await desktopBridge.updateInstalledMod({ packageId: normalizedModId });
-      await finalizeInstalledManifest({
-        result,
-        successMessage: tModHub('ModHub.updateSuccess', {
+      const accepted = await desktopBridge.updateInstalledMod({ packageId: normalizedModId });
+      setModsFeedback({
+        kind: 'info',
+        message: tModHub('ModHub.updateQueued', {
           modId: normalizedModId,
-          version: result.release.version,
-          defaultValue: 'Mod {{modId}} updated to {{version}}',
+          installSessionId: accepted.installSessionId,
+          defaultValue: 'Mod {{modId}} update queued.',
         }),
-        rollbackOnFailure: true,
       });
     });
-  }, [finalizeInstalledManifest, runRuntimeAction]);
+  }, [runRuntimeAction, setModsFeedback]);
 
   const onEnableMod = useCallback((modId: string) => {
     void runRuntimeAction(modId, 'enable', async () => {

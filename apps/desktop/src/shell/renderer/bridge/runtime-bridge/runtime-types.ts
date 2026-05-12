@@ -187,6 +187,14 @@ export type RuntimeModInstallResult = {
   rollbackPath?: string;
 };
 
+export type RuntimeModInstallAccepted = {
+  installSessionId: string;
+  operation: string;
+  modId?: string;
+  packageId?: string;
+  sourceKind: string;
+};
+
 export type CatalogTrustTier = 'official' | 'verified' | 'community';
 
 export type CatalogPublisher = {
@@ -310,6 +318,9 @@ export type RuntimeModInstallProgressEvent = {
   progressPercent?: number;
   message?: string;
   error?: string;
+  install?: RuntimeModInstallResult;
+  catalogInstall?: CatalogInstallResult;
+  restoredManifest?: RuntimeLocalManifestSummary;
 };
 
 export type OpenExternalUrlResult = {

@@ -10,6 +10,7 @@ function readSource(relativePath: string): string {
 const giftBubbleSource = readSource('../src/shell/renderer/features/economy/gift-message-bubble.tsx');
 const hydrationSource = readSource('../src/shell/renderer/features/runtime-config/runtime-config-effect-hydration.ts');
 const modHubControllerSource = readSource('../src/shell/renderer/features/mod-hub/mod-hub-controller.ts');
+const modHubControllerHelpersSource = readSource('../src/shell/renderer/features/mod-hub/mod-hub-controller-helpers.ts');
 const connectorDiscoverySource = readSource('../src/shell/renderer/features/runtime-config/runtime-config-connector-discovery.ts');
 const createPostModalSource = readSource('../src/shell/renderer/features/profile/create-post-modal.tsx');
 
@@ -27,7 +28,7 @@ test('runtime config hydration banner is localized instead of hardcoded Chinese 
 });
 
 test('mod hub controller routes runtime action banners through i18n helpers', () => {
-  assert.match(modHubControllerSource, /function tModHub/);
+  assert.match(modHubControllerHelpersSource, /function tModHub/);
   assert.match(modHubControllerSource, /ModHub\.runtimeActionFailed/);
   assert.match(modHubControllerSource, /ModHub\.installRequiresConsent/);
   assert.match(modHubControllerSource, /ModHub\.installFromCatalogSuccess/);

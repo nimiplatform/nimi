@@ -142,6 +142,16 @@ pub struct RuntimeModInstallResultPayload {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RuntimeModInstallAcceptedPayload {
+    pub install_session_id: String,
+    pub operation: String,
+    pub mod_id: Option<String>,
+    pub package_id: Option<String>,
+    pub source_kind: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RuntimeModInstallProgressPayload {
     pub install_session_id: String,
     pub operation: String,
@@ -155,6 +165,9 @@ pub struct RuntimeModInstallProgressPayload {
     pub progress_percent: Option<f64>,
     pub message: Option<String>,
     pub error: Option<String>,
+    pub install: Option<RuntimeModInstallResultPayload>,
+    pub catalog_install: Option<CatalogInstallResultPayload>,
+    pub restored_manifest: Option<RuntimeLocalManifestSummary>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

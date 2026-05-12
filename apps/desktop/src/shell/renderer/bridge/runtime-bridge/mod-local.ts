@@ -4,16 +4,15 @@ import { invoke, invokeChecked } from './invoke';
 import {
   parseRuntimeModDeveloperModeState,
   parseRuntimeModDiagnosticRecords,
+  parseRuntimeModInstallAccepted,
   parseRuntimeModInstallProgressEvent,
   parseRuntimeModInstallProgressEvents,
-  parseRuntimeModInstallResult,
   parseRuntimeModReloadResults,
   parseRuntimeModSourceChangeEvent,
   parseRuntimeModSourceRecords,
   parseRuntimeModStorageDirs,
   parseRuntimeLocalManifestSummaries,
   parseRuntimeLocalManifestSummary,
-  parseCatalogInstallResult,
   parseCatalogPackageRecord,
   parseCatalogPackageSummaries,
   parseAvailableModUpdates,
@@ -21,8 +20,8 @@ import {
   type RuntimeModDeveloperModeState,
   type RuntimeModDiagnosticRecord,
   type RuntimeModInstallPayload,
+  type RuntimeModInstallAccepted,
   type RuntimeModInstallProgressEvent,
-  type RuntimeModInstallResult,
   type RuntimeModReloadResult,
   type RuntimeModSourceChangeEvent,
   type RuntimeModSourceRecord,
@@ -30,7 +29,6 @@ import {
   type RuntimeModUpdatePayload,
   type RuntimeLocalAsset,
   type RuntimeLocalManifestSummary,
-  type CatalogInstallResult,
   type CatalogPackageRecord,
   type CatalogPackageSummary,
   type AvailableModUpdate,
@@ -191,18 +189,18 @@ export async function openRuntimeModDir(path: string): Promise<void> {
   });
 }
 
-export async function installRuntimeMod(payload: RuntimeModInstallPayload): Promise<RuntimeModInstallResult> {
+export async function installRuntimeMod(payload: RuntimeModInstallPayload): Promise<RuntimeModInstallAccepted> {
   if (!hasTauriInvoke()) {
     throw new Error('runtime_mod_install requires Tauri runtime');
   }
-  return invokeChecked('runtime_mod_install', { payload }, parseRuntimeModInstallResult);
+  return invokeChecked('runtime_mod_install', { payload }, parseRuntimeModInstallAccepted);
 }
 
-export async function updateRuntimeMod(payload: RuntimeModUpdatePayload): Promise<RuntimeModInstallResult> {
+export async function updateRuntimeMod(payload: RuntimeModUpdatePayload): Promise<RuntimeModInstallAccepted> {
   if (!hasTauriInvoke()) {
     throw new Error('runtime_mod_update requires Tauri runtime');
   }
-  return invokeChecked('runtime_mod_update', { payload }, parseRuntimeModInstallResult);
+  return invokeChecked('runtime_mod_update', { payload }, parseRuntimeModInstallAccepted);
 }
 
 export async function uninstallRuntimeMod(modId: string): Promise<RuntimeLocalManifestSummary> {
@@ -263,31 +261,31 @@ export async function checkModUpdates(): Promise<AvailableModUpdate[]> {
 export async function installCatalogMod(input: {
   packageId: string;
   channel?: string;
-}): Promise<CatalogInstallResult> {
+}): Promise<RuntimeModInstallAccepted> {
   if (!hasTauriInvoke()) {
     throw new Error('runtime_mod_catalog_install requires Tauri runtime');
   }
-  return invokeChecked('runtime_mod_catalog_install', { payload: input }, parseCatalogInstallResult);
+  return invokeChecked('runtime_mod_catalog_install', { payload: input }, parseRuntimeModInstallAccepted);
 }
 
 export async function updateInstalledMod(input: {
   packageId: string;
   channel?: string;
-}): Promise<CatalogInstallResult> {
+}): Promise<RuntimeModInstallAccepted> {
   if (!hasTauriInvoke()) {
     throw new Error('runtime_mod_catalog_update requires Tauri runtime');
   }
-  return invokeChecked('runtime_mod_catalog_update', { payload: input }, parseCatalogInstallResult);
+  return invokeChecked('runtime_mod_catalog_update', { payload: input }, parseRuntimeModInstallAccepted);
 }
 
 export async function restoreRuntimeModBackup(input: {
   modId: string;
   backupPath: string;
-}): Promise<RuntimeLocalManifestSummary> {
+}): Promise<RuntimeModInstallAccepted> {
   if (!hasTauriInvoke()) {
     throw new Error('runtime_mod_restore_backup requires Tauri runtime');
   }
-  return invokeChecked('runtime_mod_restore_backup', { payload: input }, parseRuntimeLocalManifestSummary);
+  return invokeChecked('runtime_mod_restore_backup', { payload: input }, parseRuntimeModInstallAccepted);
 }
 
 export async function listRuntimeModInstallProgress(

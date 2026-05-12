@@ -609,10 +609,11 @@ pub fn check_catalog_mod_updates(app: &AppHandle) -> Result<Vec<AvailableModUpda
     Ok(updates)
 }
 
-pub fn install_catalog_mod(
+pub fn install_catalog_mod_with_session(
     app: &AppHandle,
     package_id: &str,
     channel: Option<&str>,
+    install_session_id: String,
 ) -> Result<CatalogInstallResultPayload, String> {
     let normalized_package_id = package_id.trim();
     if normalized_package_id.is_empty() {
@@ -627,13 +628,14 @@ pub fn install_catalog_mod(
     let consent = evaluate_catalog_consent(&package, &release, &advisory_ids, None);
     require_catalog_consent_clear_before_mutation("install", normalized_package_id, &release, &consent)?;
     let (_temp, archive_path) = download_release_archive(&release)?;
-    let install = install_runtime_mod_common(
+    let install = install_runtime_mod_common_with_session(
         app,
         &archive_path,
         Some("archive"),
         false,
         "install",
         None,
+        install_session_id,
     )?;
     Ok(CatalogInstallResultPayload {
         install,
@@ -650,10 +652,11 @@ pub fn install_catalog_mod(
     })
 }
 
-pub fn update_installed_catalog_mod(
+pub fn update_installed_catalog_mod_with_session(
     app: &AppHandle,
     package_id: &str,
     channel: Option<&str>,
+    install_session_id: String,
 ) -> Result<CatalogInstallResultPayload, String> {
     let normalized_package_id = package_id.trim();
     if normalized_package_id.is_empty() {
@@ -673,13 +676,14 @@ pub fn update_installed_catalog_mod(
     let consent = evaluate_catalog_consent(&package, &release, &advisory_ids, Some(&installed_summary));
     require_catalog_consent_clear_before_mutation("update", normalized_package_id, &release, &consent)?;
     let (_temp, archive_path) = download_release_archive(&release)?;
-    let install = install_runtime_mod_common(
+    let install = install_runtime_mod_common_with_session(
         app,
         &archive_path,
         Some("archive"),
         true,
         "update",
         Some(normalized_package_id),
+        install_session_id,
     )?;
     Ok(CatalogInstallResultPayload {
         install,

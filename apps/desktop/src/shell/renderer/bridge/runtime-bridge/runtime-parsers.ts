@@ -41,6 +41,7 @@ import type {
   RuntimeLocalManifestSummary,
   RuntimeModDeveloperModeState,
   RuntimeModDiagnosticRecord,
+  RuntimeModInstallAccepted,
   RuntimeModInstallProgressEvent,
   RuntimeModInstallResult,
   RuntimeModReloadResult,
@@ -245,6 +246,17 @@ export function parseRuntimeModInstallResult(value: unknown): RuntimeModInstallR
   };
 }
 
+export function parseRuntimeModInstallAccepted(value: unknown): RuntimeModInstallAccepted {
+  const record = assertRecord(value, 'runtime_mod_install accepted payload');
+  return {
+    installSessionId: parseRequiredString(record.installSessionId, 'installSessionId', 'runtime_mod_install'),
+    operation: parseRequiredString(record.operation, 'operation', 'runtime_mod_install'),
+    modId: parseOptionalString(record.modId),
+    packageId: parseOptionalString(record.packageId),
+    sourceKind: parseRequiredString(record.sourceKind, 'sourceKind', 'runtime_mod_install'),
+  };
+}
+
 function parseCatalogPublisher(value: unknown): CatalogPublisher {
   const record = assertRecord(value, 'catalog publisher');
   return {
@@ -410,6 +422,9 @@ export function parseRuntimeModInstallProgressEvent(value: unknown): RuntimeModI
     progressPercent: parseOptionalNumber(record.progressPercent),
     message: parseOptionalString(record.message),
     error: parseOptionalString(record.error),
+    install: record.install ? parseRuntimeModInstallResult(record.install) : undefined,
+    catalogInstall: record.catalogInstall ? parseCatalogInstallResult(record.catalogInstall) : undefined,
+    restoredManifest: record.restoredManifest ? parseRuntimeLocalManifestSummary(record.restoredManifest) : undefined,
   };
 }
 

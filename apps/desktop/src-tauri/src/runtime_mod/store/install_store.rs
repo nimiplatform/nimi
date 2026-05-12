@@ -28,7 +28,11 @@ fn create_install_session_id() -> String {
     )
 }
 
-fn emit_install_progress(
+pub fn create_runtime_mod_install_session_id() -> String {
+    create_install_session_id()
+}
+
+pub fn emit_runtime_mod_install_progress(
     app: &AppHandle,
     payload: RuntimeModInstallProgressPayload,
 ) -> Result<(), String> {
@@ -40,6 +44,13 @@ fn emit_install_progress(
     app.emit(RUNTIME_MOD_INSTALL_PROGRESS_EVENT, &payload)
         .map_err(|error| format!("发送 runtime mod 安装进度事件失败: {error}"))?;
     Ok(())
+}
+
+fn emit_install_progress(
+    app: &AppHandle,
+    payload: RuntimeModInstallProgressPayload,
+) -> Result<(), String> {
+    emit_runtime_mod_install_progress(app, payload)
 }
 
 pub fn list_runtime_mod_install_progress(
@@ -246,6 +257,9 @@ fn stage_source_directory(
                     progress_percent: Some(25.0),
                     message: Some("downloading mod package".to_string()),
                     error: None,
+                    install: None,
+                    catalog_install: None,
+                    restored_manifest: None,
                 },
             )?;
             let client = Client::new();
@@ -308,6 +322,9 @@ fn install_from_staged_dir(
             progress_percent: Some(55.0),
             message: Some("validated mod package".to_string()),
             error: None,
+            install: None,
+            catalog_install: None,
+            restored_manifest: None,
         },
     )?;
 
@@ -360,25 +377,28 @@ fn install_from_staged_dir(
             progress_percent: Some(100.0),
             message: Some("mod installed".to_string()),
             error: None,
+            install: Some(result.clone()),
+            catalog_install: None,
+            restored_manifest: None,
         },
     )?;
 
     Ok(result)
 }
 
-fn install_runtime_mod_common(
+pub fn install_runtime_mod_common_with_session(
     app: &AppHandle,
     source: &str,
     source_kind: Option<&str>,
     replace_existing: bool,
     operation: &str,
     expected_mod_id: Option<&str>,
+    session_id: String,
 ) -> Result<RuntimeModInstallResultPayload, String> {
     let normalized_source = String::from(source).trim().to_string();
     if normalized_source.is_empty() {
         return Err("mod 安装源不能为空".to_string());
     }
-    let session_id = create_install_session_id();
     let resolved_source_kind = normalize_source_kind(&normalized_source, source_kind)?;
     emit_install_progress(
         app,
@@ -395,6 +415,9 @@ fn install_runtime_mod_common(
             progress_percent: Some(5.0),
             message: Some("preparing runtime mod install".to_string()),
             error: None,
+            install: None,
+            catalog_install: None,
+            restored_manifest: None,
         },
     )?;
 
@@ -436,40 +459,14 @@ fn install_runtime_mod_common(
                 progress_percent: None,
                 message: Some("runtime mod install failed".to_string()),
                 error: Some(error.clone()),
+                install: None,
+                catalog_install: None,
+                restored_manifest: None,
             },
         );
     }
 
     result
-}
-
-pub fn install_runtime_mod(
-    app: &AppHandle,
-    source: &str,
-    source_kind: Option<&str>,
-    replace_existing: bool,
-) -> Result<RuntimeModInstallResultPayload, String> {
-    install_runtime_mod_common(app, source, source_kind, replace_existing, "install", None)
-}
-
-pub fn update_runtime_mod(
-    app: &AppHandle,
-    mod_id: &str,
-    source: &str,
-    source_kind: Option<&str>,
-) -> Result<RuntimeModInstallResultPayload, String> {
-    let normalized_mod_id = mod_id.trim();
-    if normalized_mod_id.is_empty() {
-        return Err("modId 不能为空".to_string());
-    }
-    install_runtime_mod_common(
-        app,
-        source,
-        source_kind,
-        true,
-        "update",
-        Some(normalized_mod_id),
-    )
 }
 
 pub fn read_installed_runtime_mod_manifest(
