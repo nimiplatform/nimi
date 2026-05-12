@@ -1829,6 +1829,54 @@
   status: deferred
   evidence_refs: [runtime_kernel_consistency]
   note: "Runtime agent participation promotion fail-closed invariants admitted as contract/table truth."
+- rule_id: K-AGCORE-107
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime room orchestration authority admitted as contract/table truth."
+- rule_id: K-AGCORE-108
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime room orchestration parent participation boundary admitted as contract/table truth."
+- rule_id: K-AGCORE-109
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime room orchestration closed axis model admitted as contract/table truth."
+- rule_id: K-AGCORE-110
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime room orchestration domain matrix admitted as contract/table truth."
+- rule_id: K-AGCORE-111
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime room orchestration trigger arbitration and turn ordering admitted as contract/table truth."
+- rule_id: K-AGCORE-112
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime room orchestration budget cancellation and timeout policy admitted as contract/table truth."
+- rule_id: K-AGCORE-113
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime room orchestration status projection boundary admitted as contract/table truth."
+- rule_id: K-AGCORE-114
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime room orchestration external participant admission admitted as contract/table truth."
+- rule_id: K-AGCORE-115
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime room orchestration commit-race handoff boundary admitted as contract/table truth."
+- rule_id: K-AGCORE-116
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime room orchestration domain overlay limitation admitted as contract/table truth."
+- rule_id: K-AGCORE-117
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime room orchestration negative gates admitted as contract/table truth."
+- rule_id: K-AGCORE-118
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Runtime room orchestration closure gates admitted as contract/table truth."
 - rule_id: K-RPC-004a
   status: deferred
   evidence_refs: []

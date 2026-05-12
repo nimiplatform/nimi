@@ -6,7 +6,7 @@
 
 | Declared K Rules | Resolved Rule Rows | Evidence Catalog Entries |
 |---:|---:|---:|
-| 755 | 755 | 7 |
+| 767 | 767 | 7 |
 
 ## Evidence Catalog
 
@@ -610,6 +610,18 @@
 | `K-AGCORE-104` | `deferred` | `runtime_kernel_consistency` |
 | `K-AGCORE-105` | `deferred` | `runtime_kernel_consistency` |
 | `K-AGCORE-106` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-107` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-108` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-109` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-110` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-111` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-112` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-113` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-114` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-115` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-116` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-117` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-118` | `deferred` | `runtime_kernel_consistency` |
 | `K-RPC-004a` | `deferred` | — |
 | `K-RPC-004b` | `deferred` | — |
 | `K-RPC-004c` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |

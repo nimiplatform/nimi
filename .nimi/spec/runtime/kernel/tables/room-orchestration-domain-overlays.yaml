@@ -1,0 +1,157 @@
+version: 1
+source_rule: K-AGCORE-116
+overlay_only: true
+matrix_ref: .nimi/spec/runtime/kernel/tables/room-orchestration-domain-matrix.yaml
+axis_model_ref: .nimi/spec/runtime/kernel/tables/room-orchestration-axis-model.yaml
+allowed_matrix_rows:
+  - realm_group
+  - scenario_sandbox
+  - oasis_world
+  - avatar_companion_presentation_room
+  - external_entry_inside_room
+  - canonical_chat_adjacency
+overlays:
+  - id: realm_group
+    matrix_row: realm_group
+    source_rule: K-AGCORE-116
+    downstream_topic_ref: .nimi/topics/proposal/2026-05-03-realm-group-agent-participation-product
+    domain_truth_owner: Realm owns GROUP transcript, membership, message, read-state, sync, and authenticated commit truth.
+    orchestration_owner: K-AGCORE
+    evidence_bindings:
+      - realm_group_thread_ref
+      - realm_group_membership_ref
+      - realm_agent_slot_ref
+      - realm_message_trigger_ref
+      - runtime_output_candidate_ref
+    display_projection_guidance: Realm and apps may display runtime.agent.* queue/status projection only.
+    refusal_posture: Missing Realm evidence, invalid membership, or Runtime budget/cancellation refusal fails closed before candidate handoff.
+    commit_handoff: Runtime returns Realm GROUP message candidates; Realm owns authenticated commit.
+    forbidden_parallel_truth:
+      - realm_private_scheduler
+      - app_local_group_reply_queue
+      - realm_budget_or_fairness_owner
+      - runtime_direct_realm_group_commit
+  - id: scenario_sandbox
+    matrix_row: scenario_sandbox
+    source_rule: K-AGCORE-116
+    downstream_topic_ref: .nimi/topics/proposal/2026-05-03-scenario-sandbox-participation-domain
+    domain_truth_owner: Scenario owns scenario package, run, branch, replay, transcript, and product truth.
+    orchestration_owner: K-AGCORE
+    evidence_bindings:
+      - scenario_run_ref
+      - scenario_branch_ref
+      - scenario_participant_projection_ref
+      - scenario_step_trigger_ref
+      - runtime_scenario_turn_candidate_ref
+    display_projection_guidance: Scenario surfaces may display runtime.agent.* projection without becoming queue/status authority.
+    refusal_posture: Missing scenario projection evidence or Runtime policy refusal fails closed before candidate handoff.
+    commit_handoff: Runtime returns scenario turn candidates; Scenario owns domain commit.
+    forbidden_parallel_truth:
+      - scenario_private_scheduler
+      - scenario_turn_order_owner
+      - scenario_budget_or_cancellation_owner
+      - runtime_direct_scenario_commit
+  - id: oasis_world
+    matrix_row: oasis_world
+    source_rule: K-AGCORE-116
+    downstream_topic_ref: .nimi/topics/proposal/2026-05-03-oasis-world-agent-participation-product
+    domain_truth_owner: OASIS/world owns world state, event log, actor ontology, and product truth.
+    orchestration_owner: K-AGCORE
+    evidence_bindings:
+      - world_context_ref
+      - world_actor_ref
+      - world_event_trigger_ref
+      - world_agent_projection_ref
+      - runtime_world_event_candidate_ref
+    display_projection_guidance: World surfaces may display runtime.agent.* projection without becoming Runtime queue/status truth.
+    refusal_posture: Missing world evidence, invalid actor projection, or Runtime budget/cancellation refusal fails closed before candidate handoff.
+    commit_handoff: Runtime returns world event candidates; OASIS/world owns world commit.
+    forbidden_parallel_truth:
+      - world_engine_private_scheduler
+      - world_engine_agent_turn_order_owner
+      - oasis_budget_or_timeout_owner
+      - runtime_direct_world_commit
+  - id: avatar_companion_presentation_room
+    matrix_row: avatar_companion_presentation_room
+    source_rule: K-AGCORE-116
+    downstream_topic_ref: .nimi/topics/proposal/2026-05-03-avatar-companion-participation-product
+    domain_truth_owner: Avatar/Companion owns presentation and UI rendering truth only.
+    orchestration_owner: K-AGCORE
+    evidence_bindings:
+      - runtime_agent_presentation_profile_ref
+      - avatar_instance_ref
+      - companion_binding_ref
+      - presentation_event_ref
+      - runtime_presentation_candidate_ref
+    display_projection_guidance: Avatar may render runtime.agent.* projection and presentation candidates without owning orchestration status.
+    refusal_posture: Missing Runtime presentation evidence or Runtime policy refusal fails closed before presentation candidate handoff.
+    commit_handoff: Runtime returns presentation candidates; no domain transcript commit is created by Avatar overlay.
+    forbidden_parallel_truth:
+      - avatar_private_scheduler
+      - avatar_turn_order_owner
+      - desktop_or_avatar_budget_owner
+      - avatar_semantic_status_truth_for_runtime_queue
+  - id: external_entry_inside_room
+    matrix_row: external_entry_inside_room
+    source_rule: K-AGCORE-114
+    downstream_topic_ref: .nimi/topics/proposal/2026-05-03-external-agent-entry-productization
+    domain_truth_owner: External protocol/domain owners retain wire/protocol and external-domain truth; Runtime owns room admission posture.
+    orchestration_owner: K-AGCORE
+    evidence_bindings:
+      - external_participant_identity_ref
+      - gateway_verdict_ref
+      - credential_custody_ref
+      - consent_ref
+      - delegated_firewall_verdict_ref
+      - audit_lineage_ref
+      - protocol_signal_ref
+      - runtime_external_reply_candidate_ref
+    gateway_requirements:
+      gateway_verdict: required
+      credential_custody: required
+      consent: required
+      audit_lineage: required
+      delegated_firewall_verdict_when_protocol_execution_occurs: required
+      protocol_readiness_as_room_admission: forbidden
+    display_projection_guidance: External protocol status remains gateway evidence; apps consume runtime.agent.* projection for room status.
+    refusal_posture: Missing gateway verdict, consent, credential custody, firewall verdict, or audit lineage fails closed before room admission.
+    commit_handoff: Runtime returns external reply candidates; external protocol/domain owner handles external commit outside Runtime truth.
+    forbidden_parallel_truth:
+      - direct_mcp_room_entry
+      - direct_a2a_room_entry
+      - protocol_readiness_scheduler
+      - external_provider_budget_as_nimi_room_budget
+      - runtime_direct_external_domain_commit
+  - id: canonical_chat_adjacency
+    matrix_row: canonical_chat_adjacency
+    source_rule: K-AGCORE-116
+    downstream_topic_ref: canonical_chat_adjacency
+    domain_truth_owner: Canonical chat authority owns canonical chat history and owner-authorized canonical handling.
+    orchestration_owner: K-AGCORE
+    evidence_bindings:
+      - conversation_anchor_ref
+      - canonical_turn_ref
+      - runtime_agent_identity_ref
+      - runtime_canonical_candidate_ref
+    display_projection_guidance: Apps may consume runtime.agent.* projection without creating a second orchestration status namespace.
+    refusal_posture: Missing Runtime conversation anchor or Runtime policy refusal fails closed before canonical candidate handoff.
+    commit_handoff: Runtime returns canonical candidates; canonical chat authority owns commit.
+    forbidden_parallel_truth:
+      - app_local_same_room_scheduler
+      - app_local_canonical_turn_order_owner
+      - app_or_ui_budget_owner
+      - runtime_orchestration_direct_canonical_chat_append
+governance:
+  source_rule: K-AGCORE-116
+  overlay_only: true
+  new_matrix_rows: forbidden
+  new_matrix_columns: forbidden
+  new_axes: forbidden
+  new_owner_cells: forbidden
+  private_schedulers: forbidden
+  app_local_room_queues: forbidden
+  domain_owned_fairness_budget_cancellation_timeout: forbidden
+  direct_domain_commit: forbidden
+  external_gateway_bypass: forbidden
+  public_runtime_orchestration_status_namespace: forbidden
+  status_projection_namespace: runtime.agent.*

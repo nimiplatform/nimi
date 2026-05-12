@@ -59,6 +59,7 @@
 | `runtime-memory-substrate-contract.md` | `K-MEMSUB-*` | Runtime-private local memory substrate / Hindsight bridge、health、daemon boundary、runtime-owned typed overlay |
 | `runtime-agent-service-contract.md` | `K-AGCORE-*` | Runtime-owned live agent lifecycle、typed hook admission、conversation continuity、agent memory policy |
 | `runtime-agent-participation-contract.md` | `K-AGCORE-*` | Runtime-owned non-canonical agent participation authority、closed axis/profile model、candidate output、memory/capability/concurrency policy、and public raw prompt boundary |
+| `multi-agent-room-orchestration-contract.md` | `K-AGCORE-*` | Runtime-owned same-room/session orchestration authority、closed room axis registry、domain matrix、trigger arbitration、budget/cancellation/status/external admission、and domain commit handoff boundary |
 | `agent-conversation-anchor-contract.md` | `K-AGCORE-*` | Runtime-owned `ConversationAnchor` continuity truth for per-agent multi-surface chat/session sharing inside a multi-agent runtime |
 | `agent-presentation-contract.md` | `K-AGCORE-*` | Runtime-owned persistent `AgentPresentationProfile` truth、default avatar binding、and non-owner boundary for renderer-local state |
 | `agent-presentation-stream-contract.md` | `K-AGCORE-*` | Runtime-owned transient `turn` / `presentation` projection seam、current emotion projection、and stream commit semantics |
@@ -131,6 +132,11 @@
 - `tables/agent-participation-external-entry-boundaries.yaml`
 - `tables/agent-participation-domain-future-seams.yaml`
 - `tables/agent-participation-promotion-boundaries.yaml`
+- `tables/room-orchestration-axis-model.yaml`
+- `tables/room-orchestration-domain-matrix.yaml`
+- `tables/room-orchestration-trigger-arbitration.yaml`
+- `tables/room-orchestration-budget-policy.yaml`
+- `tables/room-orchestration-domain-overlays.yaml`
 - `tables/avatar-debug-probe-events.yaml`
 - `tables/avatar-debug-replay-keys.yaml`
 - `tables/delegation-provider-profiles.yaml`

@@ -1,0 +1,85 @@
+version: 1
+source_rule: K-AGCORE-109
+closed_axis_registry: true
+parent_participation_axis_registry: .nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml
+parent_participation_profile_registry: .nimi/spec/runtime/kernel/tables/agent-participation-profiles.yaml
+axes:
+  - id: room_session_owner
+    source_rule: K-AGCORE-107
+    owner: K-AGCORE
+    values:
+      - RUNTIME_ROOM_ORCHESTRATOR
+    open_values_allowed: false
+  - id: participant_set_source
+    source_rule: K-AGCORE-110
+    owner: K-AGCORE
+    values:
+      - REALM_GROUP_MEMBERSHIP_EVIDENCE
+      - SCENARIO_PARTICIPANT_EVIDENCE
+      - OASIS_WORLD_ACTOR_EVIDENCE
+      - AVATAR_PRESENTATION_EVIDENCE
+      - EXTERNAL_GATEWAY_IDENTITY_EVIDENCE
+      - CANONICAL_CHAT_ANCHOR_EVIDENCE
+    open_values_allowed: false
+  - id: trigger_arbitration
+    source_rule: K-AGCORE-111
+    owner: K-AGCORE
+    values:
+      - RUNTIME_TRIGGER_ARBITRATION
+    open_values_allowed: false
+  - id: turn_ordering
+    source_rule: K-AGCORE-111
+    owner: K-AGCORE
+    values:
+      - RUNTIME_DETERMINISTIC_TURN_ORDER
+    open_values_allowed: false
+  - id: fairness_starvation_policy
+    source_rule: K-AGCORE-111
+    owner: K-AGCORE
+    values:
+      - RUNTIME_FAIRNESS_STARVATION_POLICY
+    open_values_allowed: false
+  - id: budget_owner
+    source_rule: K-AGCORE-112
+    owner: K-AGCORE
+    values:
+      - RUNTIME_ROOM_AND_AGENT_BUDGET
+    preserves:
+      - K-AGCORE-007
+      - K-AGCORE-073
+      - K-AGCORE-086
+    open_values_allowed: false
+  - id: queue_status_projection
+    source_rule: K-AGCORE-113
+    owner: K-AGCORE
+    values:
+      - RUNTIME_AGENT_STATUS_PROJECTION
+    projection_table: .nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml
+    public_runtime_orchestration_namespace: forbidden
+    open_values_allowed: false
+  - id: cancellation_timeout_owner
+    source_rule: K-AGCORE-112
+    owner: K-AGCORE
+    values:
+      - RUNTIME_CANCEL_TIMEOUT_POLICY
+    open_values_allowed: false
+  - id: external_participant_admission
+    source_rule: K-AGCORE-114
+    owner: K-AGCORE
+    values:
+      - RUNTIME_GATEWAY_VERDICT_REQUIRED
+      - NOT_EXTERNAL
+    open_values_allowed: false
+  - id: commit_race_handoff
+    source_rule: K-AGCORE-115
+    owner: K-AGCORE
+    values:
+      - RUNTIME_CANDIDATE_HANDOFF_DOMAIN_COMMIT_OWNER
+      - NO_DOMAIN_COMMIT
+    open_values_allowed: false
+governance:
+  source_rule: K-AGCORE-118
+  open_string_axis_values_allowed: false
+  new_axis_requires_new_authority_admission: true
+  wave_2_axis_first_definition: forbidden
+  runtime_participation_axis_reopen: forbidden

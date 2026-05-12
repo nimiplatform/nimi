@@ -1,0 +1,60 @@
+version: 1
+source_rule: K-AGCORE-112
+preserves:
+  - K-AGCORE-007
+  - K-AGCORE-073
+  - K-AGCORE-086
+policies:
+  - id: default_runtime_room_budget
+    source_rule: K-AGCORE-112
+    applies_to_rows:
+      - realm_group
+      - scenario_sandbox
+      - oasis_world
+      - avatar_companion_presentation_room
+      - canonical_chat_adjacency
+    per_room_budget_owner: K-AGCORE
+    per_agent_budget_owner: K-AGCORE
+    cancellation_owner: K-AGCORE
+    timeout_owner: K-AGCORE
+    exhaustion_refusal: runtime_budget_exhausted
+    app_domain_budget_owner: forbidden
+  - id: external_gateway_room_budget
+    source_rule: K-AGCORE-114
+    applies_to_rows:
+      - external_entry_inside_room
+    per_room_budget_owner: K-AGCORE
+    per_agent_budget_owner: K-AGCORE
+    gateway_budget_owner: K-AGCORE
+    cancellation_owner: K-AGCORE
+    timeout_owner: K-AGCORE
+    exhaustion_refusal: runtime_gateway_budget_exhausted
+    external_provider_budget_as_nimi_truth: forbidden
+limits:
+  source_rule: K-AGCORE-112
+  concrete_numeric_defaults: implementation_or_policy_profile_specific
+  numeric_default_first_definition_in_app: forbidden
+  room_budget_without_agent_budget: forbidden
+  agent_budget_without_room_budget: forbidden
+cancellation:
+  source_rule: K-AGCORE-112
+  owner: K-AGCORE
+  allowed_reasons:
+    - user_cancel
+    - room_closed
+    - superseded_turn
+    - budget_exhausted
+    - timeout
+    - gateway_revoked
+    - policy_refusal
+  domain_local_cancellation_authority: forbidden
+timeout:
+  source_rule: K-AGCORE-112
+  owner: K-AGCORE
+  basis: runtime_policy_ref
+  missing_timeout_policy: fail_closed
+status_projection:
+  source_rule: K-AGCORE-113
+  namespace: runtime.agent.*
+  projection_table: .nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml
+  public_runtime_orchestration_namespace: forbidden
