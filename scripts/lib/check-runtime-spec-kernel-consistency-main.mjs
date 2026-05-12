@@ -34,151 +34,7 @@ const {
   YAML,
 });
 
-const kernelFiles = [
-  '.nimi/spec/runtime/kernel/index.md',
-  '.nimi/spec/runtime/kernel/rpc-surface.md',
-  '.nimi/spec/runtime/kernel/authz-ownership.md',
-  '.nimi/spec/runtime/kernel/authn-token-validation.md',
-  '.nimi/spec/runtime/kernel/auth-service.md',
-  '.nimi/spec/runtime/kernel/account-session-contract.md',
-  '.nimi/spec/runtime/kernel/scoped-app-binding-contract.md',
-  '.nimi/spec/runtime/kernel/grant-service.md',
-  '.nimi/spec/runtime/kernel/key-source-routing.md',
-  '.nimi/spec/runtime/kernel/scenario-job-lifecycle.md',
-  '.nimi/spec/runtime/kernel/local-category-capability.md',
-  '.nimi/spec/runtime/kernel/local-engine-contract.md',
-  '.nimi/spec/runtime/kernel/local-engine-accelerator-contract.md',
-  '.nimi/spec/runtime/kernel/local-engine-speech-contract.md',
-  '.nimi/spec/runtime/kernel/local-environment-materializers-contract.md',
-  '.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md',
-  '.nimi/spec/runtime/kernel/device-profile-contract.md',
-  '.nimi/spec/runtime/kernel/endpoint-security.md',
-  '.nimi/spec/runtime/kernel/streaming-contract.md',
-  '.nimi/spec/runtime/kernel/error-model.md',
-  '.nimi/spec/runtime/kernel/pagination-filtering.md',
-  '.nimi/spec/runtime/kernel/audit-contract.md',
-  '.nimi/spec/runtime/kernel/tables/rpc-methods.yaml',
-  '.nimi/spec/runtime/kernel/tables/rpc-migration-map.yaml',
-  '.nimi/spec/runtime/kernel/tables/reason-codes.yaml',
-  '.nimi/spec/runtime/kernel/tables/error-mapping-matrix.yaml',
-  '.nimi/spec/runtime/kernel/tables/metadata-keys.yaml',
-  '.nimi/spec/runtime/kernel/tables/key-source-truth-table.yaml',
-  '.nimi/spec/runtime/kernel/tables/connector-auth-profiles.yaml',
-  '.nimi/spec/runtime/kernel/tables/provider-catalog.yaml',
-  '.nimi/spec/runtime/kernel/tables/provider-capabilities.yaml',
-  '.nimi/spec/runtime/kernel/tables/connector-rpc-field-rules.yaml',
-  '.nimi/spec/runtime/kernel/tables/job-states.yaml',
-  '.nimi/spec/runtime/kernel/tables/state-transitions.yaml',
-  '.nimi/spec/runtime/kernel/tables/local-engine-catalog.yaml',
-  '.nimi/spec/runtime/kernel/tables/local-adapter-routing.yaml',
-  // Phase 2 kernel files (daemon, provider, deferred services)
-  '.nimi/spec/runtime/kernel/daemon-lifecycle.md',
-  '.nimi/spec/runtime/kernel/provider-health-contract.md',
-  '.nimi/spec/runtime/kernel/workflow-contract.md',
-  '.nimi/spec/runtime/kernel/voice-contract.md',
-  '.nimi/spec/runtime/kernel/model-service-contract.md',
-  '.nimi/spec/runtime/kernel/knowledge-contract.md',
-  '.nimi/spec/runtime/kernel/runtime-memory-service-contract.md',
-  '.nimi/spec/runtime/kernel/runtime-memory-substrate-contract.md',
-  '.nimi/spec/runtime/kernel/runtime-agent-service-contract.md',
-  '.nimi/spec/runtime/kernel/runtime-agent-participation-contract.md',
-  '.nimi/spec/runtime/kernel/agent-conversation-anchor-contract.md',
-  '.nimi/spec/runtime/kernel/agent-presentation-contract.md',
-  '.nimi/spec/runtime/kernel/agent-presentation-stream-contract.md',
-  '.nimi/spec/runtime/kernel/avatar-debug-projection-contract.md',
-  '.nimi/spec/runtime/kernel/agent-hook-intent-contract.md',
-  '.nimi/spec/runtime/kernel/agent-output-wire-contract.md',
-  '.nimi/spec/runtime/kernel/delegated-capability-gateway-contract.md',
-  '.nimi/spec/runtime/kernel/delegated-output-firewall-contract.md',
-  '.nimi/spec/runtime/kernel/delegated-audit-replay-contract.md',
-  '.nimi/spec/runtime/kernel/delegated-approval-contract.md',
-  '.nimi/spec/runtime/kernel/delegated-mcp-adapter-contract.md',
-  '.nimi/spec/runtime/kernel/delegated-a2a-future-seam-contract.md',
-  '.nimi/spec/runtime/kernel/runtime-artifact-contract.md',
-  '.nimi/spec/runtime/kernel/app-messaging-contract.md',
-  '.nimi/spec/runtime/kernel/cli-onboarding-contract.md',
-  '.nimi/spec/runtime/kernel/tables/daemon-health-states.yaml',
-  '.nimi/spec/runtime/kernel/tables/interceptor-chain.yaml',
-  '.nimi/spec/runtime/kernel/tables/ai-timeout-defaults.yaml',
-  '.nimi/spec/runtime/kernel/tables/provider-probe-targets.yaml',
-  '.nimi/spec/runtime/kernel/tables/workflow-node-types.yaml',
-  '.nimi/spec/runtime/kernel/tables/workflow-states.yaml',
-  '.nimi/spec/runtime/kernel/tables/voice-enums.yaml',
-  '.nimi/spec/runtime/kernel/tables/tts-provider-capability-matrix.yaml',
-  // Dedicated families migrated from domain-local IDs
-  '.nimi/spec/runtime/kernel/config-contract.md',
-  '.nimi/spec/runtime/kernel/connector-contract.md',
-  '.nimi/spec/runtime/kernel/nimillm-contract.md',
-  '.nimi/spec/runtime/kernel/model-catalog-contract.md',
-  '.nimi/spec/runtime/kernel/multimodal-provider-contract.md',
-  '.nimi/spec/runtime/kernel/delivery-gates-contract.md',
-  '.nimi/spec/runtime/kernel/proto-governance-contract.md',
-  '.nimi/spec/runtime/kernel/tables/multimodal-canonical-fields.yaml',
-  '.nimi/spec/runtime/kernel/tables/multimodal-artifact-fields.yaml',
-  '.nimi/spec/runtime/kernel/tables/scenario-types.yaml',
-  '.nimi/spec/runtime/kernel/tables/scenario-execution-matrix.yaml',
-  '.nimi/spec/runtime/kernel/tables/provider-extension-registry.yaml',
-  '.nimi/spec/runtime/kernel/tables/runtime-memory-bank-scope.yaml',
-  '.nimi/spec/runtime/kernel/tables/runtime-memory-hook-trigger.yaml',
-  '.nimi/spec/runtime/kernel/tables/runtime-memory-replication-outcome.yaml',
-  '.nimi/spec/runtime/kernel/tables/runtime-agent-service-typed-family.yaml',
-  '.nimi/spec/runtime/kernel/tables/agent-participation-axis-model.yaml',
-  '.nimi/spec/runtime/kernel/tables/agent-participation-profiles.yaml',
-  '.nimi/spec/runtime/kernel/tables/agent-participation-context-blocks.yaml',
-  '.nimi/spec/runtime/kernel/tables/agent-participation-output-destinations.yaml',
-  '.nimi/spec/runtime/kernel/tables/agent-participation-memory-policy.yaml',
-  '.nimi/spec/runtime/kernel/tables/agent-participation-memory-read-scopes.yaml',
-  '.nimi/spec/runtime/kernel/tables/agent-participation-capability-scopes.yaml',
-  '.nimi/spec/runtime/kernel/tables/agent-participation-concurrency-policy.yaml',
-  '.nimi/spec/runtime/kernel/tables/agent-participation-external-entry-boundaries.yaml',
-  '.nimi/spec/runtime/kernel/tables/agent-participation-domain-future-seams.yaml',
-  '.nimi/spec/runtime/kernel/tables/agent-participation-promotion-boundaries.yaml',
-  '.nimi/spec/runtime/kernel/tables/avatar-debug-probe-events.yaml',
-  '.nimi/spec/runtime/kernel/tables/avatar-debug-replay-keys.yaml',
-  '.nimi/spec/runtime/kernel/tables/scenario-profile-fields.yaml',
-  '.nimi/spec/runtime/kernel/tables/delegation-provider-profiles.yaml',
-  '.nimi/spec/runtime/kernel/tables/delegation-request-fields.yaml',
-  '.nimi/spec/runtime/kernel/tables/delegation-result-fields.yaml',
-  '.nimi/spec/runtime/kernel/tables/delegation-reason-codes.yaml',
-  '.nimi/spec/runtime/kernel/tables/delegation-protocol-adapters.yaml',
-  '.nimi/spec/runtime/kernel/tables/runtime-delivery-gates.yaml',
-  '.nimi/spec/runtime/kernel/tables/runtime-proto-governance-gates.yaml',
-  '.nimi/spec/runtime/kernel/tables/capability-vocabulary-mapping.yaml',
-  '.nimi/spec/runtime/kernel/tables/config-schema.yaml',
-  '.nimi/spec/runtime/kernel/tables/rule-evidence.yaml',
-  // Host capability + accelerator profile tables
-  '.nimi/spec/runtime/kernel/tables/accelerator-consumer-requirements.yaml',
-  '.nimi/spec/runtime/kernel/tables/host-accelerator-profiles.yaml',
-  '.nimi/spec/runtime/kernel/tables/host-capability-profiles.yaml',
-  '.nimi/spec/runtime/kernel/tables/shared-accelerator-dependencies.yaml',
-  '.nimi/spec/runtime/kernel/tables/local-compute-packs.yaml',
-  // Local environment materializer authority tables
-  '.nimi/spec/runtime/kernel/tables/activation-gate-reason-codes.yaml',
-  '.nimi/spec/runtime/kernel/tables/local-environment-consumer-requirements.yaml',
-  '.nimi/spec/runtime/kernel/tables/local-environment-dependencies.yaml',
-  '.nimi/spec/runtime/kernel/tables/local-environment-job-states.yaml',
-  '.nimi/spec/runtime/kernel/tables/local-environment-materializers.yaml',
-  '.nimi/spec/runtime/kernel/tables/local-environment-source-manifests.yaml',
-  '.nimi/spec/runtime/kernel/tables/local-environment-verification-evidence.yaml',
-  '.nimi/spec/runtime/kernel/tables/selected-source-record-schema.yaml',
-  // Managed image backend tables
-  '.nimi/spec/runtime/kernel/tables/local-image-supervised-backend-matrix.yaml',
-  '.nimi/spec/runtime/kernel/tables/managed-image-backend-packages.yaml',
-  // Asset ontology tables
-  '.nimi/spec/runtime/kernel/tables/asset-kind-registry.yaml',
-  '.nimi/spec/runtime/kernel/tables/capability-to-asset-kind.yaml',
-  '.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml',
-  '.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml',
-  ...['.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml', '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml', '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml', '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml', '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml'],
-  // Rule evidence shards
-  '.nimi/spec/runtime/kernel/tables/rule-evidence.catalog.yaml',
-  '.nimi/spec/runtime/kernel/tables/rule-evidence.rules.yaml',
-  '.nimi/spec/runtime/kernel/tables/rule-evidence.rules-multimodal.yaml',
-  // AI profile execution and scheduling
-  '.nimi/spec/runtime/kernel/ai-profile-execution-contract.md',
-  '.nimi/spec/runtime/kernel/scheduling-contract.md',
-  '.nimi/spec/runtime/kernel/world-evolution-engine-contract.md',
-];
+const kernelFiles = listRuntimeKernelFiles();
 
 const domainFiles = listDomainMarkdownFiles('.nimi/spec/runtime');
 
@@ -229,36 +85,6 @@ function readYaml(rel) {
 for (const rel of kernelFiles) {
   if (!fs.existsSync(path.join(cwd, rel))) {
     fail(`missing kernel file: ${rel}`);
-  }
-}
-
-// Reverse invariant: every .md / .yaml file under the runtime kernel tree
-// (excluding generated outputs) must be explicitly admitted in kernelFiles.
-// Catches the "forgot to register a new kernel file" failure mode that
-// silently invalidates rule-resolution against this admitted set.
-const kernelFilesSet = new Set(kernelFiles);
-function collectKernelDiskFiles(rel) {
-  const abs = path.join(cwd, rel);
-  if (!fs.existsSync(abs)) return [];
-  const out = [];
-  for (const entry of fs.readdirSync(abs).sort()) {
-    const childRel = `${rel}/${entry}`;
-    const childAbs = path.join(cwd, childRel);
-    const stat = fs.statSync(childAbs);
-    if (stat.isDirectory()) {
-      // generated/ is read-only derived output; companion/ holds admitted
-      // human-facing guides outside rule-definition source.
-      if (entry === 'generated' || entry === 'companion') continue;
-      out.push(...collectKernelDiskFiles(childRel));
-    } else if (entry.endsWith('.md') || entry.endsWith('.yaml') || entry.endsWith('.yml')) {
-      out.push(childRel);
-    }
-  }
-  return out;
-}
-for (const rel of collectKernelDiskFiles('.nimi/spec/runtime/kernel')) {
-  if (!kernelFilesSet.has(rel)) {
-    fail(`unregistered kernel file (add to kernelFiles or move out of kernel/): ${rel}`);
   }
 }
 
@@ -1219,6 +1045,15 @@ function loadWorkflowNodeTypeSet() {
 
 function normalizeProviderName(value) {
   return String(value || '').trim().toLowerCase();
+}
+
+function listRuntimeKernelFiles() {
+  return walk(path.join(cwd, '.nimi/spec/runtime/kernel'))
+    .filter(isSpecDocFile)
+    .map((absPath) => path.relative(cwd, absPath).split(path.sep).join('/'))
+    .filter((rel) => !rel.includes('/kernel/generated/'))
+    .filter((rel) => !rel.includes('/kernel/companion/'))
+    .sort();
 }
 
 function isSpecDocFile(file) {

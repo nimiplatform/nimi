@@ -6,11 +6,12 @@ const cwd = process.cwd();
 const specRoot = path.join(cwd, '.nimi', 'spec');
 const allowlistPath = path.join(cwd, 'scripts', 'spec-semantic-completeness-allowlist.json');
 
-const RULE_HEADING_RE = /^##\s+((?:C|K|S|D|P|R|F)-[A-Z]+-\d{3})\b/gmu;
-const RULE_REF_RE = /\b(?:C|K|S|D|P|R|F)-[A-Z]+-\d{3}\b/g;
+const RULE_ID_SOURCE = String.raw`(?:C|K|S|D|P|R|F)-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-\d{3}[a-z]?`;
+const RULE_HEADING_RE = new RegExp(String.raw`^##\s+(${RULE_ID_SOURCE})\b`, 'gmu');
+const RULE_REF_RE = new RegExp(String.raw`\b${RULE_ID_SOURCE}\b`, 'g');
 const RULELIKE_NON_FAMILY_RE = /(?<![CKSDPRF]-)\b[A-Z][A-Z0-9]{1,15}(?:-[A-Z0-9]{1,15})?-\d{3}[a-z]?\b/g;
-const COMPANION_RULE_HEADING_RE = /^##\s+(?:C|K|S|D|P|R|F)-[A-Z]+-\d{3}\b/gmu;
-const ANCHOR_RULE_RE = /\b(?:C|K|S|D|P|R|F)-[A-Z]+-\d{3}\b/g;
+const COMPANION_RULE_HEADING_RE = new RegExp(String.raw`^##\s+${RULE_ID_SOURCE}\b`, 'gmu');
+const ANCHOR_RULE_RE = new RegExp(String.raw`\b${RULE_ID_SOURCE}\b`, 'g');
 
 const LEGACY_PREFIXES = [
   'CONN',
@@ -184,7 +185,8 @@ function checkRuleReferencesResolvable(specFiles, definitionMap) {
       }
     }
 
-    for (const match of content.matchAll(RULELIKE_NON_FAMILY_RE)) {
+    const nonRuleScanContent = content.replace(RULE_REF_RE, '');
+    for (const match of nonRuleScanContent.matchAll(RULELIKE_NON_FAMILY_RE)) {
       const token = match[0];
       if (isAllowedNonRuleToken(token)) continue;
       fail(`${rel} contains unresolved rule-like token (non-kernel): ${token}`);

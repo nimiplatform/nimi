@@ -225,6 +225,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -236,6 +237,14 @@ jobs:
         with:
           go-version-file: runtime/go.mod
           cache: false
+
+      - name: Install supply chain tooling (cosign + syft)
+        run: |
+          set -euo pipefail
+          GOBIN="$(go env GOPATH)/bin"
+          echo "${GOBIN}" >> "${GITHUB_PATH}"
+          go install github.com/sigstore/cosign/v2/cmd/cosign@v2.6.2
+          go install github.com/anchore/syft/cmd/syft@v1.42.2
 
       - name: Goreleaser snapshot (dry-run)
         uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7.0.0

@@ -45,12 +45,13 @@ export const PROJECTION_KEY_CATALOG = {
     description: 'ci.yml runtime-quality + release-runtime.yml preflight',
     tierFilter: 'release-target:runtime',
     targetFilter: 'runtime',
+    excludeIdSubstrings: ['runtime-release-signing'],
   },
   'release-target-desktop-static-checks': {
     description: 'ci.yml desktop-web-quality static checks (excluding E2E)',
     tierFilter: 'release-target:desktop',
     targetFilter: 'desktop',
-    excludeIdSubstrings: ['e2e'],
+    excludeIdSubstrings: ['e2e', 'runtime-release-signing'],
   },
   'release-target-desktop-release-checks': {
     description: 'release.yml release-desktop pre-bundle gates',

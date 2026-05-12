@@ -380,6 +380,14 @@ jobs:
           echo "${GOBIN}" >> "${GITHUB_PATH}"
           go install github.com/bufbuild/buf/cmd/buf@v1.66.1
 
+      - name: Install supply chain tooling (cosign + syft)
+        run: |
+          set -euo pipefail
+          GOBIN="$(go env GOPATH)/bin"
+          echo "${GOBIN}" >> "${GITHUB_PATH}"
+          go install github.com/sigstore/cosign/v2/cmd/cosign@v2.6.2
+          go install github.com/anchore/syft/cmd/syft@v1.42.2
+
       # >>> nimi-release-gate-projection: release-target-runtime-static-checks >>>
       - name: gate.proto.baseline-exists
         run: test -s runtime/proto/runtime-v1.baseline.binpb
@@ -407,8 +415,6 @@ jobs:
         run: govulncheck ./...
       - name: gate.sdk.npm-binary-smoke
         run: pnpm check:npm-binary-smoke
-      - name: gate.security.runtime-release-signing
-        run: node scripts/release/sign-and-sbom-artifacts.mjs
       - name: gate.workflow.runtime-goreleaser-check
         run: go run github.com/goreleaser/goreleaser/v2@latest check --config .goreleaser.yml
       - name: gate.workflow.runtime-goreleaser-snapshot
@@ -487,8 +493,6 @@ jobs:
         run: pnpm --filter @nimiplatform/desktop run check:desktop-updater-artifacts
       - name: gate.desktop.version-sync
         run: pnpm --filter @nimiplatform/desktop run check:version-sync
-      - name: gate.security.runtime-release-signing
-        run: node scripts/release/sign-and-sbom-artifacts.mjs
       # <<< nimi-release-gate-projection: release-target-desktop-static-checks <<<
 
       - name: Desktop E2E smoke

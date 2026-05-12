@@ -1,7 +1,8 @@
 import { promises as fs } from 'node:fs';
 import YAML from 'yaml';
 
-const RULE_HEADING_RE = /^##\s+((?:C|K|S|D|P|R|F)-[A-Z]+-\d{3}[a-z]?)\b(?:\s+[—-]\s+(.*)|\s+(.*))?$/;
+const RULE_ID_SOURCE = String.raw`(?:C|K|S|D|P|R|F)-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-\d{3}[a-z]?`;
+const RULE_HEADING_RE = new RegExp(String.raw`^##\s+(${RULE_ID_SOURCE})\b(?:\s+[—-]\s+(.*)|\s+(.*))?$`);
 
 export function parseKernelRules(content) {
   const rules = new Map();
