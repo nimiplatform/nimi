@@ -32,11 +32,19 @@ const checks = [
   {
     file: 'examples/README.md',
     required: [
+      'pnpm build:runtime',
+      'export PATH="$PWD/dist:$PATH"',
       'nimi start',
       'nimi run "What is Nimi?" --provider gemini',
       'nimi provider set gemini --api-key-env',
     ],
-    forbidden: ['nimi serve', '--provider openai --model', '--default-model gpt-4o-mini'],
+    forbidden: [
+      'curl -fsSL https://install.nimi.ai | sh',
+      'npm install -g @nimiplatform/nimi',
+      'nimi serve',
+      '--provider openai --model',
+      '--default-model gpt-4o-mini',
+    ],
     ordered: [
       ['nimi run "What is Nimi?" --provider gemini', 'nimi provider set gemini --api-key-env'],
     ],
@@ -49,18 +57,30 @@ const checks = [
   {
     file: 'apps/web/src/landing/content/landing-content.en.ts',
     required: [
-      "command: 'curl -fsSL https://install.nimi.ai | sh'",
-      "command: 'npm install -g @nimiplatform/nimi'",
+      "command: 'pnpm install && pnpm build:runtime'",
+      "command: './dist/nimi doctor'",
     ],
-    forbidden: ["command: 'nimi serve'", '--yes', '--model local/qwen2.5'],
+    forbidden: [
+      'install.nimi.ai',
+      'npm install -g @nimiplatform/nimi',
+      "command: 'nimi serve'",
+      '--yes',
+      '--model local/qwen2.5',
+    ],
   },
   {
     file: 'apps/web/src/landing/content/landing-content.zh.ts',
     required: [
-      "command: 'curl -fsSL https://install.nimi.ai | sh'",
-      "command: 'npm install -g @nimiplatform/nimi'",
+      "command: 'pnpm install && pnpm build:runtime'",
+      "command: './dist/nimi doctor'",
     ],
-    forbidden: ["command: 'nimi serve'", '--yes', '--model local/qwen2.5'],
+    forbidden: [
+      'install.nimi.ai',
+      'npm install -g @nimiplatform/nimi',
+      "command: 'nimi serve'",
+      '--yes',
+      '--model local/qwen2.5',
+    ],
   },
 ];
 

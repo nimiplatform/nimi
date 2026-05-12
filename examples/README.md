@@ -4,15 +4,13 @@ These examples are organized by onboarding slope: start with one file that prove
 
 ## Before You Run Anything
 
-You do not need Go, pnpm, or a local source build unless you are developing Nimi itself.
-
-For the SDK examples you only need:
+The public install channel is not open yet. Run examples from a source
+checkout with the runtime CLI built locally:
 
 ```bash
-# Install the runtime + CLI
-curl -fsSL https://install.nimi.ai | sh
-
-# Start the runtime
+pnpm install
+pnpm build:runtime
+export PATH="$PWD/dist:$PATH"
 nimi start
 ```
 

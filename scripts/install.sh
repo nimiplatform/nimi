@@ -7,16 +7,16 @@ REPO_OWNER="nimiplatform"
 REPO_NAME="nimi"
 INSTALL_ROOT="${HOME}/.nimi"
 BIN_DIR="${INSTALL_ROOT}/bin"
-INSTALL_MANIFEST_URL_DEFAULT="https://install.nimi.ai/runtime/latest.json"
+INSTALL_MANIFEST_URL_DEFAULT=""
 DRY_RUN=0
 REQUESTED_VERSION=""
 
 usage() {
   cat <<'EOF'
-Install nimi CLI + runtime.
+Install nimi CLI + runtime from an admitted release manifest.
 
 Usage:
-  sh install.sh [--dry-run] [--version v0.2.0]
+  NIMI_INSTALL_MANIFEST_URL=https://.../runtime/latest.json sh install.sh [--dry-run] [--version v0.2.0]
 EOF
 }
 
@@ -79,7 +79,12 @@ resolve_install_manifest_url() {
     printf '%s' "$manifest_url"
     return 0
   fi
-  printf '%s' "$INSTALL_MANIFEST_URL_DEFAULT"
+  if [ -n "$INSTALL_MANIFEST_URL_DEFAULT" ]; then
+    printf '%s' "$INSTALL_MANIFEST_URL_DEFAULT"
+    return 0
+  fi
+  log "NIMI_INSTALL_MANIFEST_URL is required until the public runtime install channel is admitted."
+  exit 1
 }
 
 fetch_install_manifest() {
