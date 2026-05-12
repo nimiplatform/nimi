@@ -9,18 +9,17 @@ import {
   TOOTH_NAMES,
 } from './dental-page-domain.js';
 
-type StatusKey = 'unerupted' | 'primary' | 'erupting' | 'permanent' | 'caries' | 'treated';
+type StatusKey = 'primary' | 'permanent' | 'lost' | 'caries' | 'treated';
 
 const STATUS_META: Record<StatusKey, { label: string; dot: string; ring: string; fill: string; fg: string }> = {
-  permanent: { label: '恒牙已长出', dot: '#6366f1', ring: 'rgba(99,102,241,0.45)',  fill: 'rgba(99,102,241,0.10)', fg: '#4338ca' },
-  primary:   { label: '乳牙在位',   dot: '#38bdf8', ring: 'rgba(56,189,248,0.45)',  fill: 'rgba(56,189,248,0.10)', fg: '#0369a1' },
-  erupting:  { label: '已脱落·待恒牙', dot: '#f59e0b', ring: 'rgba(245,158,11,0.55)', fill: 'rgba(245,158,11,0.14)', fg: '#b45309' },
-  caries:    { label: '龋齿',      dot: '#ec4899', ring: 'rgba(236,72,153,0.45)',  fill: 'rgba(236,72,153,0.10)', fg: '#be185d' },
-  treated:   { label: '已治疗',    dot: '#10b981', ring: 'rgba(16,185,129,0.45)',  fill: 'rgba(16,185,129,0.10)', fg: '#047857' },
-  unerupted: { label: '未萌出',    dot: '#cbd5e1', ring: 'rgba(148,163,184,0.35)', fill: 'transparent',            fg: '#94a3b8' },
+  permanent: { label: '恒牙',   dot: '#8b5cf6', ring: 'rgba(139,92,246,0.55)',  fill: 'rgba(139,92,246,0.16)', fg: '#6d28d9' },
+  primary:   { label: '乳牙',   dot: '#38bdf8', ring: 'rgba(56,189,248,0.55)',  fill: 'rgba(56,189,248,0.16)', fg: '#0369a1' },
+  lost:      { label: '已脱落', dot: '#64748b', ring: 'rgba(100,116,139,0.55)', fill: 'rgba(100,116,139,0.14)', fg: '#475569' },
+  caries:    { label: '龋齿',   dot: '#ec4899', ring: 'rgba(236,72,153,0.45)',  fill: 'rgba(236,72,153,0.10)', fg: '#be185d' },
+  treated:   { label: '已治疗', dot: '#10b981', ring: 'rgba(16,185,129,0.45)',  fill: 'rgba(16,185,129,0.10)', fg: '#047857' },
 };
 
-const LEGEND_ORDER: StatusKey[] = ['permanent', 'primary', 'erupting', 'caries', 'treated', 'unerupted'];
+const LEGEND_ORDER: StatusKey[] = ['permanent', 'primary', 'lost', 'caries', 'treated'];
 
 const OVERVIEW_UPPER_R = ['18', '17', '16', '55', '54', '53', '52', '51'];
 const OVERVIEW_UPPER_L = ['61', '62', '63', '64', '65', '26', '27', '28'];
@@ -29,18 +28,28 @@ const OVERVIEW_LOWER_R = ['48', '47', '46', '85', '84', '83', '82', '81'];
 
 const MONO = '"JetBrains Mono", "SF Mono", ui-monospace, monospace';
 
-function collapseStatus(eruption: EruptionState, health: HealthState): StatusKey {
-  if (health === 'caries') return 'caries';
-  if (health === 'treated') return 'treated';
-  if (eruption === 'permanent_erupted') return 'permanent';
-  if (eruption === 'primary_present') return 'primary';
-  if (eruption === 'lost_waiting') return 'erupting';
-  return 'unerupted';
-}
-
 function isPrimaryPosition(positionId: string): boolean {
   const n = Number(positionId);
   return n >= 51 && n <= 85;
+}
+
+interface CellInfo {
+  status: StatusKey;
+  isPresent: boolean;
+}
+
+function collapseStatus(
+  positionId: string,
+  eruption: EruptionState,
+  health: HealthState,
+): CellInfo {
+  if (health === 'caries') return { status: 'caries', isPresent: true };
+  if (health === 'treated') return { status: 'treated', isPresent: true };
+  if (eruption === 'lost_waiting') return { status: 'lost', isPresent: false };
+  if (eruption === 'permanent_erupted') return { status: 'permanent', isPresent: true };
+  if (eruption === 'primary_present') return { status: 'primary', isPresent: true };
+  // Unerupted: color by slot type so the chart conveys 乳牙位/恒牙位 at a glance.
+  return { status: isPrimaryPosition(positionId) ? 'primary' : 'permanent', isPresent: false };
 }
 
 export function ToothStatusOverview({ records }: { records: DentalRecordRow[] }) {
@@ -48,16 +57,17 @@ export function ToothStatusOverview({ records }: { records: DentalRecordRow[] })
   const [hovered, setHovered] = useState<string | null>(null);
 
   const statusByPosition = useMemo(() => {
-    const map = new Map<string, { status: StatusKey; displayId: string }>();
+    const map = new Map<string, { status: StatusKey; displayId: string; isPresent: boolean }>();
     for (const [positionId, cell] of states.entries()) {
-      map.set(positionId, { status: collapseStatus(cell.eruption, cell.health), displayId: cell.displayId });
+      const info = collapseStatus(positionId, cell.eruption, cell.health);
+      map.set(positionId, { status: info.status, displayId: cell.displayId, isPresent: info.isPresent });
     }
     return map;
   }, [states]);
 
   const counts = useMemo(() => {
     const base: Record<StatusKey, number> = {
-      permanent: 0, primary: 0, erupting: 0, caries: 0, treated: 0, unerupted: 0,
+      permanent: 0, primary: 0, lost: 0, caries: 0, treated: 0,
     };
     for (const { status } of statusByPosition.values()) base[status]++;
     return base;
@@ -69,15 +79,26 @@ export function ToothStatusOverview({ records }: { records: DentalRecordRow[] })
     if (!entry) return null;
     const meta = STATUS_META[entry.status];
     const name = TOOTH_NAMES[entry.displayId] ?? '';
-    return { displayId: entry.displayId, label: meta.label, color: meta.dot, name };
+    const showsTypeOnly = entry.status === 'primary' || entry.status === 'permanent';
+    const label = showsTypeOnly
+      ? `${meta.label}${entry.isPresent ? '·已长出' : '·未萌出'}`
+      : meta.label;
+    return { displayId: entry.displayId, label, color: meta.dot, name };
   })();
 
   const renderTooth = (positionId: string) => {
-    const entry = statusByPosition.get(positionId) ?? { status: 'unerupted' as StatusKey, displayId: positionId };
+    const fallbackStatus: StatusKey = isPrimaryPosition(positionId) ? 'primary' : 'permanent';
+    const entry = statusByPosition.get(positionId)
+      ?? { status: fallbackStatus, displayId: positionId, isPresent: false };
     const meta = STATUS_META[entry.status];
     const isHovered = hovered === positionId;
-    const isPrimary = isPrimaryPosition(positionId);
-    const title = `${entry.displayId}${TOOTH_NAMES[entry.displayId] ? ` ${TOOTH_NAMES[entry.displayId]}` : ''} · ${meta.label}`;
+    const isFaded =
+      !entry.isPresent && (entry.status === 'primary' || entry.status === 'permanent');
+    const stateLabel =
+      entry.status === 'primary' || entry.status === 'permanent'
+        ? `${meta.label}${entry.isPresent ? '·已长出' : '·未萌出'}`
+        : meta.label;
+    const title = `${entry.displayId}${TOOTH_NAMES[entry.displayId] ? ` ${TOOTH_NAMES[entry.displayId]}` : ''} · ${stateLabel}`;
     const cellStyle: CSSProperties = {
       position: 'relative',
       width: '100%',
@@ -92,9 +113,10 @@ export function ToothStatusOverview({ records }: { records: DentalRecordRow[] })
       display: 'grid',
       placeItems: 'center',
       cursor: 'pointer',
+      opacity: isFaded && !isHovered ? 0.42 : 1,
       boxShadow: isHovered
         ? '0 4px 12px rgba(15,23,42,0.10)'
-        : entry.status === 'unerupted'
+        : isFaded
           ? 'none'
           : '0 1px 2px rgba(15,23,42,0.04)',
       transition: 'all 160ms',
@@ -112,37 +134,7 @@ export function ToothStatusOverview({ records }: { records: DentalRecordRow[] })
         onBlur={() => setHovered((cur) => (cur === positionId ? null : cur))}
         style={cellStyle}
       >
-        <span style={{ opacity: entry.status === 'unerupted' ? 0.55 : 1 }}>{entry.displayId}</span>
-        {isPrimary && (
-          <span
-            aria-hidden
-            style={{
-              position: 'absolute',
-              top: 2,
-              left: 3,
-              fontSize: 7,
-              lineHeight: 1,
-              fontWeight: 600,
-              color: entry.status === 'unerupted' ? '#cbd5e1' : '#38bdf8',
-              letterSpacing: 0,
-            }}
-          >
-            乳
-          </span>
-        )}
-        {isPrimary && entry.status !== 'unerupted' && (
-          <span
-            style={{
-              position: 'absolute',
-              top: 3,
-              right: 4,
-              width: 4,
-              height: 4,
-              borderRadius: 999,
-              background: meta.dot,
-            }}
-          />
-        )}
+        <span>{entry.displayId}</span>
       </button>
     );
   };
@@ -221,7 +213,7 @@ export function ToothStatusOverview({ records }: { records: DentalRecordRow[] })
             >
               <p style={{ margin: 0, marginBottom: 6, fontWeight: 600, color: '#ffffff', fontSize: 12 }}>FDI 牙位编号</p>
               <p style={{ margin: 0, color: '#cbd5e1' }}>
-                <span style={{ color: '#6366f1', fontWeight: 500 }}>恒牙 11–48</span>：四象限各 8 颗恒牙（1/2/3/4 系）。
+                <span style={{ color: '#8b5cf6', fontWeight: 500 }}>恒牙 11–48</span>：四象限各 8 颗恒牙（1/2/3/4 系）。
               </p>
               <p style={{ margin: '4px 0 0', color: '#cbd5e1' }}>
                 <span style={{ color: '#38bdf8', fontWeight: 500 }}>乳牙 51–85</span>：四象限各 5 颗乳牙（5/6/7/8 系）。

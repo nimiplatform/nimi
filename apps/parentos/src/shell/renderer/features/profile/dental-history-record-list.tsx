@@ -4,7 +4,7 @@ import type { AttachmentRow, DentalRecordRow } from '../../bridge/sqlite-bridge.
 import { S } from '../../app-shell/page-style.js';
 import { DentalRecordActionMenu } from './dental-record-action-menu.js';
 import { formatDateLabel } from '../journal/journal-page-helpers.js';
-import { EVENT_TYPES, SEVERITY_LABELS, formatDentalToothLabel } from './dental-page-domain.js';
+import { dentalEventLabelAndEmoji, SEVERITY_LABELS, formatDentalToothLabel } from './dental-page-domain.js';
 import { DentalPhotoLightbox } from './dental-photo-lightbox.js';
 
 const DENTAL_TYPE_TONE_DEFAULT = { bg: 'rgba(100,116,139,0.12)', fg: '#475569' };
@@ -109,7 +109,7 @@ function DentalHistoryRecordCard({
   onEdit: (record: DentalRecordRow) => void;
   onDelete: (record: DentalRecordRow) => void;
 }) {
-  const evtInfo = EVENT_TYPES.find((e) => e.key === record.eventType);
+  const evtInfo = dentalEventLabelAndEmoji(record.eventType);
   const toothLabel = formatDentalToothLabel(record.toothId);
   const tone = DENTAL_TYPE_TONE[record.eventType] ?? DENTAL_TYPE_TONE_DEFAULT;
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -131,11 +131,11 @@ function DentalHistoryRecordCard({
             width: 32, height: 32, borderRadius: 10, display: 'grid', placeItems: 'center',
             background: tone.bg, color: tone.fg, fontSize: 16, flexShrink: 0,
           }}>
-            <span style={{ lineHeight: 1 }}>{evtInfo?.emoji ?? '🦷'}</span>
+            <span style={{ lineHeight: 1 }}>{evtInfo.emoji}</span>
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: S.text, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span>{evtInfo?.label ?? record.eventType}</span>
+              <span>{evtInfo.label}</span>
               {toothLabel && (
                 <span style={{
                   background: 'rgba(241,245,249,0.8)', color: '#475569',

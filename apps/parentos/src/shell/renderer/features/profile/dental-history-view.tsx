@@ -21,11 +21,15 @@ import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { readImageFileAsDataUrl } from './checkup-ocr.js';
 import {
   buildDentalAttachmentMap,
+  dentalEventLabelAndEmoji,
   EVENT_TYPES,
   formatDentalToothLabel,
   joinDentalToothIds,
   makeEventEntry,
   NEEDS_SEVERITY,
+  ORTHO_EVENT_TYPES,
+  ORTHO_GROUP_FILTER_KEY,
+  ORTHO_GROUP_FILTER_LABEL,
   parseDentalToothIds,
   PHOTO_MAX,
   SEVERITY_LABELS,
@@ -392,23 +396,33 @@ export function DentalHistoryView() {
   if (!child) return <div className="p-8" style={{ color: S.sub }}>请先添加孩子</div>;
 
   const sortedRecords = [...records].sort((a, b) => b.eventDate.localeCompare(a.eventDate));
-  const usedEventTypes = (() => {
+  // Build filter chips. All `ortho-*` events collapse into a single "正畸"
+  // chip with key `ORTHO_GROUP_FILTER_KEY`; non-ortho types each get their
+  // own chip in first-seen order. Individual cards still surface their own
+  // specific label/emoji, so the merge is filter-only.
+  const usedFilterKeys = (() => {
     const seen = new Set<string>();
     const ordered: string[] = [];
     for (const r of sortedRecords) {
-      if (!seen.has(r.eventType)) { seen.add(r.eventType); ordered.push(r.eventType); }
+      const key = ORTHO_EVENT_TYPES.has(r.eventType) ? ORTHO_GROUP_FILTER_KEY : r.eventType;
+      if (!seen.has(key)) { seen.add(key); ordered.push(key); }
     }
     return ordered;
   })();
   const filterTabs: Array<{ key: string | null; label: string }> = [
     { key: null, label: '全部' },
-    ...usedEventTypes.slice(0, 4).map((key) => ({
+    ...usedFilterKeys.slice(0, 4).map((key) => ({
       key,
-      label: EVENT_TYPES.find((e) => e.key === key)?.label ?? key,
+      label: key === ORTHO_GROUP_FILTER_KEY
+        ? ORTHO_GROUP_FILTER_LABEL
+        : dentalEventLabelAndEmoji(key).label,
     })),
   ];
   const filteredSortedRecords = typeFilter
-    ? sortedRecords.filter((r) => r.eventType === typeFilter)
+    ? sortedRecords.filter((r) => {
+        if (typeFilter === ORTHO_GROUP_FILTER_KEY) return ORTHO_EVENT_TYPES.has(r.eventType);
+        return r.eventType === typeFilter;
+      })
     : sortedRecords;
   const recordGroups: Array<[string, DentalRecordRow[]]> = (() => {
     const map = new Map<string, DentalRecordRow[]>();

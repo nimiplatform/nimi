@@ -36,6 +36,39 @@ export const DENTAL_READ_ONLY_EVENT_LABELS: Record<string, { label: string; emoj
   'ortho-end':        { label: '结束正畸',       emoji: '✅' },
 };
 
+/**
+ * Filter-chip group: the dental history view collapses every orthodontic
+ * eventType (evaluation, in-flight reviews/adjustments/issues, end) into a
+ * single "正畸" chip. The chip's filter key is `ORTHO_GROUP_FILTER_KEY`;
+ * individual rows still display their own specific label inside the card.
+ */
+export const ORTHO_EVENT_TYPES: ReadonlySet<string> = new Set([
+  'ortho-assessment',
+  'ortho-start',
+  'ortho-review',
+  'ortho-adjustment',
+  'ortho-issue',
+  'ortho-end',
+]);
+export const ORTHO_GROUP_FILTER_KEY = '__ortho__';
+export const ORTHO_GROUP_FILTER_LABEL = '正畸';
+
+/**
+ * Resolve a dental eventType to its Chinese label + emoji. Consults the
+ * pickable `EVENT_TYPES` first, then `DENTAL_READ_ONLY_EVENT_LABELS` for
+ * orthodontic events that the dental UI only renders (orthodontic-workflow
+ * writes those rows). Falls back to the raw key + a generic tooth emoji so
+ * a brand-new type never crashes the timeline — but the raw key fallback
+ * is a code smell signaling the maps drifted from the schema.
+ */
+export function dentalEventLabelAndEmoji(key: string): { label: string; emoji: string } {
+  const pickable = EVENT_TYPES.find((e) => e.key === key);
+  if (pickable) return { label: pickable.label, emoji: pickable.emoji };
+  const readOnly = DENTAL_READ_ONLY_EVENT_LABELS[key];
+  if (readOnly) return readOnly;
+  return { label: key, emoji: '🦷' };
+}
+
 export const SEVERITY_LABELS: Record<string, string> = {
   mild: '轻度',
   moderate: '中度',
