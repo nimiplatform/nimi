@@ -53,6 +53,7 @@
 | `offline-degradation-contract.md` | `D-OFFLINE-*` | Runtime/Realm 离线降级、缓存与重连冲突策略 |
 | `codegen-contract.md` | `D-CODEGEN-*` | mod codegen 规则、预检、门禁与回滚 |
 | `testing-gates-contract.md` | `D-GATE-*` | Desktop 测试治理、E2E 风险分层与发布门禁 |
+| `command-execution-contract.md` | `D-GATE-*` | Desktop Tauri invoke command execution classes, cross-crate registered surface SSOT, blocking admission, and fail-closed gate |
 
 ## 5. 结构化事实源
 
@@ -81,6 +82,7 @@
 - `tables/renderer-design-overlays.yaml`
 - `tables/renderer-design-allowlists.yaml`
 - `tables/desktop-testing-gates.yaml`
+- `tables/command-execution-classification.yaml`
 - `tables/desktop-feature-coverage.yaml`
 - `tables/agent-avatar-configuration.schema.yaml`
 - `tables/agent-avatar-debug-workbench-probes.yaml`

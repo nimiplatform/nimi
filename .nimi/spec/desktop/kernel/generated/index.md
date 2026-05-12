@@ -27,6 +27,7 @@
 | `renderer-design-overlays.md` | `tables/renderer-design-overlays.yaml` |
 | `renderer-design-allowlists.md` | `tables/renderer-design-allowlists.yaml` |
 | `desktop-testing-gates.md` | `tables/desktop-testing-gates.yaml` |
+| `command-execution-classification.md` | `tables/command-execution-classification.yaml` |
 | `desktop-feature-coverage.md` | `tables/desktop-feature-coverage.yaml` |
 | `rule-evidence.md` | `tables/rule-evidence.yaml` |
 | `codegen-import-allowlist.md` | `tables/codegen-import-allowlist.yaml` |

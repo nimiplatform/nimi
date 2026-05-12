@@ -98,6 +98,11 @@ desktop_design_contract_gate:
   command: pnpm check:desktop-design-contract
   path: scripts/check-desktop-design-contract.mjs
   description: Enforces desktop baseline design token usage, governed sidebar family compliance, arbitrary value allowlists, and shared overlay adoption on pilot surfaces.
+desktop_tauri_command_execution_gate:
+  type: static_gate
+  command: pnpm check:desktop-tauri-command-execution
+  path: scripts/check-desktop-tauri-command-execution.mjs
+  description: Enforces Desktop Tauri command execution classification, cross-crate registered invoke surface coverage, dormant command classification, and blocking risk admission.
 desktop_runtime_config_path_gate:
   type: static_gate
   command: pnpm check:desktop-no-legacy-runtime-config-path

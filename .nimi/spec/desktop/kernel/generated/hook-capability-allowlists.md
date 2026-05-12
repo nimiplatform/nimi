@@ -58,6 +58,7 @@ Platform-bundled desktop mods shipped with the product; trust level is below cor
 | `runtime.local.assets.list` |
 | `runtime.local.profiles.list` |
 | `runtime.local.profiles.install.request` |
+| `runtime.local.profiles.apply.status` |
 | `runtime.profile.read.agent` |
 | `action.discover.*` |
 | `action.dry-run.*` |
@@ -115,6 +116,7 @@ Third-party injected mods with restricted turn hook access
 | `runtime.local.assets.list` |
 | `runtime.local.profiles.list` |
 | `runtime.local.profiles.install.request` |
+| `runtime.local.profiles.apply.status` |
 | `runtime.profile.read.agent` |
 | `action.discover.*` |
 | `action.dry-run.*` |
@@ -167,6 +169,7 @@ Locally installed mods and catalog-installed mods share the sideload capability 
 | `runtime.local.assets.list` |
 | `runtime.local.profiles.list` |
 | `runtime.local.profiles.install.request` |
+| `runtime.local.profiles.apply.status` |
 | `runtime.profile.read.agent` |
 | `action.discover.*` |
 | `action.dry-run.*` |

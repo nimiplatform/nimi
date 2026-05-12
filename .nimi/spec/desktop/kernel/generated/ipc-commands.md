@@ -98,6 +98,8 @@
 | `runtime_local_device_profile_collect` | `local-runtime` | Collect local device profile (CPU/GPU/NPU/disk/ports) | `D-IPC-011` |
 | `runtime_local_recommendation_feed_get` | `local-runtime` | Read capability-scoped host recommendation feed; helper-only and not a local model truth source | `D-IPC-011` |
 | `runtime_local_profiles_apply` | `local-runtime` | Apply a resolved local AI profile after host confirmation without creating Desktop-owned local model truth | `D-IPC-011` |
+| `runtime_local_profiles_apply_status` | `local-runtime` | Read the durable terminal or in-flight status for a local AI profile apply session | `D-IPC-011` |
+| `runtime_local_profiles_apply_sessions` | `local-runtime` | List durable local AI profile apply session statuses for reload-safe host and mod observation | `D-IPC-011` |
 | `runtime_local_services_list` | `local-runtime` | Host helper surface for local service listing; shipped product paths must treat RuntimeLocalService as the service truth source | `D-IPC-011` |
 | `runtime_local_services_install` | `local-runtime` | Host service install helper; shipped product install truth must come from RuntimeLocalService and must not imply Desktop-owned local speech install truth | `D-IPC-011` |
 | `runtime_local_services_start` | `local-runtime` | Host service start helper; shipped product lifecycle truth must come from RuntimeLocalService and must not bypass explicit Download-gated speech bundle flows | `D-IPC-011` |

@@ -123,6 +123,7 @@ Capability 检查流程：
 - `runtime.local.assets.list`
 - `runtime.local.profiles.list`
 - `runtime.local.profiles.install.request`
+- `runtime.local.profiles.apply.status`
 - `runtime.profile.read.agent`
 
 legacy runtime-aligned mod/hook surface 已硬切移除，不得回流旧的 mod AI 专用子路径、旧的 AI client 构造入口与公开类型、旧的 LLM hook capability 键、旧的 runtime route hint / override 字段，或 legacy speech provider-list / stream-control surface。

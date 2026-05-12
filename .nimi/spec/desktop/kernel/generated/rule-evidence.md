@@ -26,6 +26,7 @@
 | `runtime_mod_hook_hardcut_gate` | `static_gate` | `pnpm check:runtime-mod-hook-hardcut` | `scripts/check-runtime-mod-hook-hardcut.mjs` | Cross-layer runtime-aligned mod and hook surface hard-cut guard. |
 | `desktop_cloud_runtime_only_gate` | `static_gate` | `pnpm check:desktop-cloud-runtime-only` | `scripts/check-desktop-cloud-runtime-only.mjs` | Enforces cloud connector routing through runtime-owned APIs only. |
 | `desktop_design_contract_gate` | `static_gate` | `pnpm check:desktop-design-contract` | `scripts/check-desktop-design-contract.mjs` | Enforces desktop baseline design token usage, governed sidebar family compliance, arbitrary value allowlists, and shared overlay adoption on pilot surfaces. |
+| `desktop_tauri_command_execution_gate` | `static_gate` | `pnpm check:desktop-tauri-command-execution` | `scripts/check-desktop-tauri-command-execution.mjs` | Enforces Desktop Tauri command execution classification, cross-crate registered invoke surface coverage, dormant command classification, and blocking risk admission. |
 | `desktop_runtime_config_path_gate` | `static_gate` | `pnpm check:desktop-no-legacy-runtime-config-path` | `package.json` | Forbids desktop fallback to the retired .nimi/runtime/config.json path. |
 | `desktop_local_ai_bridge_gate` | `static_gate` | `pnpm check:no-local-ai-private-calls && pnpm check:no-local-ai-tauri-commands` | `package.json` | Forbids direct legacy local_ai command literals outside the managed bridge surface. |
 | `desktop_mod_capabilities_gate` | `static_gate` | `pnpm check:no-legacy-mod-permissions-field` | `package.json` | Enforces capabilities-only mod manifests and runtime registration surfaces. |
@@ -281,7 +282,12 @@
 | `D-GATE-080` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate` |
 | `D-GATE-081` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate`, `desktop_spec_docs_drift_gate` |
 | `D-GATE-090` | `covered` | `desktop_kernel_consistency`, `desktop_design_contract_gate` |
-| `D-GATE-091` | `covered` | `desktop_kernel_consistency`, `desktop_design_contract_gate` |
+| `D-GATE-091` | `covered` | `desktop_kernel_consistency`, `desktop_design_contract_gate`, `desktop_spec_docs_drift_gate` |
+| `D-GATE-092` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_tauri_command_execution_gate` |
+| `D-GATE-093` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_tauri_command_execution_gate` |
+| `D-GATE-094` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_tauri_command_execution_gate` |
+| `D-GATE-095` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_tauri_command_execution_gate` |
+| `D-GATE-096` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_tauri_command_execution_gate` |
 | `D-LLM-073` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-LLM-074` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-LLM-075` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |

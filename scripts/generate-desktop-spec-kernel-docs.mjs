@@ -128,6 +128,11 @@ const specs = [
     render: renderDesktopTestingGates,
   },
   {
+    input: 'command-execution-classification.yaml',
+    output: 'command-execution-classification.md',
+    render: renderCommandExecutionClassification,
+  },
+  {
     input: 'desktop-feature-coverage.yaml',
     output: 'desktop-feature-coverage.md',
     render: renderDesktopFeatureCoverage,
@@ -651,6 +656,74 @@ function renderDesktopTestingGates(doc, sourceName) {
     out += `| \`${gate}\` | \`${command}\` | \`${sourceRule}\` |\n`;
   }
   out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderCommandExecutionClassification(doc, sourceName) {
+  const classes = Array.isArray(doc?.execution_classes) ? doc.execution_classes : [];
+  const risks = Array.isArray(doc?.risk_catalog) ? doc.risk_catalog : [];
+  const families = Array.isArray(doc?.registered_command_families) ? doc.registered_command_families : [];
+  const dormant = Array.isArray(doc?.dormant_command_families) ? doc.dormant_command_families : [];
+  let out = header('Generated Command Execution Classification', sourceName);
+
+  out += '## Execution Classes\n\n';
+  out += '| Class | Description | Source Rule |\n';
+  out += '|---|---|---|\n';
+  for (const item of classes) {
+    const className = String(item?.class || '').trim();
+    if (!className) continue;
+    const description = String(item?.description || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${className}\` | ${description} | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  out += '## Risk Catalog\n\n';
+  out += '| Risk | Source Rule |\n';
+  out += '|---|---|\n';
+  for (const item of risks) {
+    const risk = String(item?.risk || '').trim();
+    if (!risk) continue;
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${risk}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  out += '## Registered Command Families\n\n';
+  out += '| Family | Execution Class | Owner Domain | Origin | Remediation Required | Admitted Risks | Source Rule |\n';
+  out += '|---|---|---|---|---|---|---|\n';
+  for (const item of families) {
+    const family = String(item?.family || '').trim();
+    if (!family) continue;
+    const executionClass = String(item?.execution_class || '').trim() || '—';
+    const ownerDomain = String(item?.owner_domain || '').trim() || '—';
+    const origin = String(item?.origin_crate || '').trim() || '—';
+    const remediation = mdBool(Boolean(item?.remediation_required));
+    const risksList = Array.isArray(item?.admitted_risks) && item.admitted_risks.length > 0
+      ? item.admitted_risks.map((risk) => `\`${String(risk)}\``).join(', ')
+      : '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${family}\` | \`${executionClass}\` | \`${ownerDomain}\` | \`${origin}\` | \`${remediation}\` | ${risksList} | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  if (dormant.length > 0) {
+    out += '## Dormant Command Families\n\n';
+    out += '| Family | Dormant Class | Owner Domain | Remediation Required | Reason | Source Rule |\n';
+    out += '|---|---|---|---|---|---|\n';
+    for (const item of dormant) {
+      const family = String(item?.family || '').trim();
+      if (!family) continue;
+      const dormantClass = String(item?.dormant_class || '').trim() || '—';
+      const ownerDomain = String(item?.owner_domain || '').trim() || '—';
+      const remediation = mdBool(Boolean(item?.remediation_required));
+      const reason = String(item?.reason || '').trim() || '—';
+      const sourceRule = String(item?.source_rule || '').trim() || '—';
+      out += `| \`${family}\` | \`${dormantClass}\` | \`${ownerDomain}\` | \`${remediation}\` | ${reason} | \`${sourceRule}\` |\n`;
+    }
+    out += '\n';
+  }
 
   return normalizeMarkdown(out);
 }

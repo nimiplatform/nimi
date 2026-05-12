@@ -1365,6 +1365,25 @@
   evidence_refs:
     - desktop_kernel_consistency
     - desktop_design_contract_gate
+    - desktop_spec_docs_drift_gate
+- rule_id: D-GATE-092
+  status: covered
+  evidence_refs: &desktop_tauri_command_execution_evidence
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+    - desktop_tauri_command_execution_gate
+- rule_id: D-GATE-093
+  status: covered
+  evidence_refs: *desktop_tauri_command_execution_evidence
+- rule_id: D-GATE-094
+  status: covered
+  evidence_refs: *desktop_tauri_command_execution_evidence
+- rule_id: D-GATE-095
+  status: covered
+  evidence_refs: *desktop_tauri_command_execution_evidence
+- rule_id: D-GATE-096
+  status: covered
+  evidence_refs: *desktop_tauri_command_execution_evidence
 - rule_id: D-LLM-073
   status: covered
   evidence_refs:

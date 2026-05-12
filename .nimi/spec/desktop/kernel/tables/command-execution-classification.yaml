@@ -1,0 +1,595 @@
+# Desktop Tauri command execution classification.
+# Source of truth for D-GATE-092..D-GATE-096.
+schema_version: desktop-tauri-command-execution/v1
+source_rules:
+  - D-GATE-092
+  - D-GATE-093
+  - D-GATE-094
+  - D-GATE-095
+  - D-GATE-096
+
+scan_roots:
+  - apps/desktop/src-tauri/src
+  - kit/shell/tauri/src
+
+registered_surface:
+  source_rule: D-GATE-093
+  generate_handler: apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs
+  minimum_registered_count: 1
+
+execution_classes:
+  - class: ui_sync
+    source_rule: D-GATE-092
+    description: Pure in-memory or constant config command with no admitted blocking source.
+  - class: request_response_async
+    source_rule: D-GATE-092
+    description: Async request/response command using async-aware I/O or runtime bridge work.
+  - class: background_job
+    source_rule: D-GATE-092
+    description: Long-running transfer, install, import, archive, scan, hash, or bulk mutation with progress/cancel ownership.
+  - class: bounded_blocking_with_admission
+    source_rule: D-GATE-092
+    description: Explicitly bounded synchronous local or OS work with admitted risk families.
+  - class: registered_disabled_stub
+    source_rule: D-GATE-092
+    description: Registered fail-closed command stub with no active side effect.
+
+dormant_classes:
+  - class: dormant_admitted
+    source_rule: D-GATE-095
+    description: Annotated but unregistered command retained only as unavailable code; re-registration requires active classification first.
+  - class: dead_for_removal
+    source_rule: D-GATE-095
+    description: Annotated but unregistered command that should be deleted by cleanup.
+
+risk_catalog:
+  - risk: blocking_http
+    source_rule: D-GATE-094
+  - risk: sync_dns_or_connect
+    source_rule: D-GATE-094
+  - risk: runtime_bridge_block_on
+    source_rule: D-GATE-094
+  - risk: block_on_variants
+    source_rule: D-GATE-094
+  - risk: process_command
+    source_rule: D-GATE-094
+  - risk: archive_or_compression
+    source_rule: D-GATE-094
+  - risk: sqlite_sync
+    source_rule: D-GATE-094
+  - risk: std_fs
+    source_rule: D-GATE-094
+  - risk: native_dialog
+    source_rule: D-GATE-094
+  - risk: thread_sleep
+    source_rule: D-GATE-094
+  - risk: raw_thread_spawn
+    source_rule: D-GATE-094
+  - risk: spawn_blocking
+    source_rule: D-GATE-094
+  - risk: sync_lock_contention
+    source_rule: D-GATE-094
+  - risk: cpu_hash_or_codec
+    source_rule: D-GATE-094
+  - risk: sync_socket_bind
+    source_rule: D-GATE-094
+  - risk: os_browser_handoff
+    source_rule: D-GATE-094
+  - risk: window_handoff
+    source_rule: D-GATE-094
+  - risk: sync_keyring_dialog
+    source_rule: D-GATE-094
+
+registered_command_families:
+  - family: auth_session_disabled
+    match:
+      prefix: auth_session_
+    origin_crate: kit/shell/tauri
+    owner_domain: runtime-account-custody
+    execution_class: registered_disabled_stub
+    current_status: active_registered_fail_closed
+    remediation_required: false
+    admitted_risks: []
+    source_rule: D-GATE-092
+
+  - family: static_desktop_state
+    match:
+      exact:
+        - runtime_defaults
+        - desktop_release_info_get
+        - desktop_update_state_get
+        - runtime_mod_dev_mode_get
+        - runtime_mod_install_progress
+        - memory_embedding_runtime_inspect
+        - memory_embedding_runtime_request_bind
+        - memory_embedding_runtime_request_cutover
+    origin_crate: mixed
+    owner_domain: desktop-state-projection
+    execution_class: bounded_blocking_with_admission
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: desktop_update_async
+    match:
+      exact:
+        - desktop_update_check
+        - desktop_update_download
+        - desktop_update_install
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-updater
+    execution_class: request_response_async
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - blocking_http
+      - std_fs
+    source_rule: D-GATE-092
+
+  - family: http_proxy_async
+    match:
+      exact:
+        - http_request
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-http-proxy
+    execution_class: request_response_async
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - blocking_http
+    source_rule: D-GATE-092
+
+  - family: native_window_and_os_handoff
+    match:
+      exact:
+        - desktop_update_restart
+        - open_external_url
+        - desktop_avatar_launch_handoff
+        - desktop_avatar_close_handoff
+        - desktop_avatar_instance_registry_list
+        - focus_main_window
+        - start_window_drag
+        - open_world_tour_window
+        - runtime_local_assets_reveal_in_folder
+        - runtime_local_assets_reveal_root_folder
+        - runtime_mod_open_dir
+    origin_crate: mixed
+    owner_domain: desktop-shell
+    execution_class: bounded_blocking_with_admission
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - os_browser_handoff
+      - window_handoff
+      - std_fs
+      - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: native_dialogs_and_pickers
+    match:
+      exact:
+        - confirm_dialog
+        - confirm_private_sync
+        - runtime_local_pick_asset_manifest_path
+        - runtime_local_pick_asset_file
+        - runtime_local_pick_asset_directory
+        - desktop_agent_center_live2d_adapter_manifest_pick_source
+        - desktop_agent_center_background_pick_source
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-shell
+    execution_class: bounded_blocking_with_admission
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - native_dialog
+      - std_fs
+    source_rule: D-GATE-092
+
+  - family: oauth_commands
+    match:
+      prefix: oauth_
+    origin_crate: kit/shell/tauri
+    owner_domain: desktop-oauth
+    execution_class: request_response_async
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - blocking_http
+      - spawn_blocking
+      - sync_socket_bind
+      - thread_sleep
+    source_rule: D-GATE-094
+
+  - family: telemetry_and_menu_projection
+    match:
+      regex: "^(log_renderer_event|menu_bar_.*|desktop_macos_smoke_.*)$"
+    origin_crate: mixed
+    owner_domain: desktop-telemetry-and-menu
+    execution_class: bounded_blocking_with_admission
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: runtime_bridge_commands
+    match:
+      prefix: runtime_bridge_
+    origin_crate: kit/shell/tauri
+    owner_domain: runtime-bridge
+    execution_class: request_response_async
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - runtime_bridge_block_on
+      - block_on_variants
+      - process_command
+      - std_fs
+      - spawn_blocking
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: external_agent_async_gateway
+    match:
+      prefix: external_agent_
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: external-agent-gateway
+    execution_class: request_response_async
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: runtime_memory_binding_async
+    match:
+      prefix: agent_memory_
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: runtime-memory-binding
+    execution_class: request_response_async
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - blocking_http
+      - runtime_bridge_block_on
+    source_rule: D-GATE-092
+
+  - family: local_runtime_catalog_and_feed
+    match:
+      exact:
+        - runtime_local_models_catalog_search
+        - runtime_local_models_catalog_list_variants
+        - runtime_local_models_catalog_resolve_install_plan
+        - runtime_local_recommendation_feed_get
+        - runtime_local_device_profile_collect
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: local-runtime-catalog
+    execution_class: request_response_async
+    current_status: active
+    remediation_required: false
+    admitted_risks: []
+    source_rule: D-GATE-094
+
+  - family: local_runtime_background_assets
+    match:
+      exact:
+        - runtime_local_assets_install
+        - runtime_local_assets_install_verified
+        - runtime_local_downloads_resume
+        - runtime_local_assets_import
+        - runtime_local_assets_import_file
+        - runtime_local_assets_import_bundle
+        - runtime_local_assets_remove
+        - runtime_local_assets_rescan_bundle
+        - runtime_local_assets_scaffold_orphan
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: local-runtime-assets
+    execution_class: background_job
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - blocking_http
+      - runtime_bridge_block_on
+      - block_on_variants
+      - archive_or_compression
+      - sqlite_sync
+      - std_fs
+      - raw_thread_spawn
+      - spawn_blocking
+      - sync_lock_contention
+      - cpu_hash_or_codec
+    source_rule: D-GATE-094
+
+  - family: local_runtime_profile_apply
+    match:
+      exact:
+        - runtime_local_profiles_apply
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: local-runtime-profile-apply
+    execution_class: background_job
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - blocking_http
+      - process_command
+      - std_fs
+      - runtime_bridge_block_on
+      - raw_thread_spawn
+      - spawn_blocking
+      - sync_lock_contention
+      - cpu_hash_or_codec
+    source_rule: D-GATE-094
+
+  - family: local_runtime_profile_apply_query
+    match:
+      exact:
+        - runtime_local_profiles_apply_status
+        - runtime_local_profiles_apply_sessions
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: local-runtime-profile-apply
+    execution_class: request_response_async
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - spawn_blocking
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: local_runtime_service_request_response
+    match:
+      exact:
+        - runtime_local_profiles_resolve
+        - runtime_local_services_list
+        - runtime_local_services_install
+        - runtime_local_services_start
+        - runtime_local_services_stop
+        - runtime_local_services_health
+        - runtime_local_services_remove
+        - runtime_local_nodes_catalog_list
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: local-runtime-services
+    execution_class: request_response_async
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - process_command
+      - std_fs
+      - spawn_blocking
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: local_runtime_download_controls
+    match:
+      exact:
+        - runtime_local_downloads_list
+        - runtime_local_downloads_pause
+        - runtime_local_downloads_resume
+        - runtime_local_downloads_cancel
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: local-runtime-download-manager
+    execution_class: bounded_blocking_with_admission
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: local_runtime_audit_store
+    match:
+      exact:
+        - runtime_local_audits_list
+        - runtime_local_append_inference_audit
+        - runtime_local_append_runtime_audit
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: local-runtime-audit-store
+    execution_class: bounded_blocking_with_admission
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: local_runtime_asset_runtime_controls
+    match:
+      exact:
+        - runtime_local_assets_start
+        - runtime_local_assets_stop
+        - runtime_local_assets_health
+        - runtime_local_assets_scan_unregistered
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: local-runtime-assets
+    execution_class: request_response_async
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - runtime_bridge_block_on
+      - block_on_variants
+      - std_fs
+      - spawn_blocking
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: runtime_mod_catalog_queries
+    match:
+      exact:
+        - runtime_mod_catalog_get
+        - runtime_mod_catalog_updates_check
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: runtime-mod-catalog
+    execution_class: request_response_async
+    current_status: active
+    remediation_required: false
+    admitted_risks: []
+    source_rule: D-GATE-094
+
+  - family: runtime_mod_catalog_background
+    match:
+      exact:
+        - runtime_mod_catalog_install
+        - runtime_mod_catalog_update
+        - runtime_mod_restore_backup
+        - runtime_mod_install
+        - runtime_mod_update
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: runtime-mod-catalog
+    execution_class: background_job
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - blocking_http
+      - archive_or_compression
+      - sqlite_sync
+      - std_fs
+      - process_command
+      - spawn_blocking
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: runtime_mod_local_store
+    match:
+      prefix: runtime_mod_
+    explicit_admission_required: true
+    admitted_commands:
+      - runtime_mod_append_audit
+      - runtime_mod_query_audit
+      - runtime_mod_delete_audit
+      - runtime_mod_list_local_manifests
+      - runtime_mod_read_local_entry
+      - runtime_mod_read_local_asset
+      - runtime_mod_list_installed
+      - runtime_mod_sources_list
+      - runtime_mod_sources_upsert
+      - runtime_mod_sources_remove
+      - runtime_mod_dev_mode_get
+      - runtime_mod_dev_mode_set
+      - runtime_mod_storage_dirs_get
+      - runtime_mod_data_dir_set
+      - runtime_mod_diagnostics_list
+      - runtime_mod_reload
+      - runtime_mod_reload_all
+      - runtime_mod_open_dir
+      - runtime_mod_uninstall
+      - runtime_mod_storage_file_read
+      - runtime_mod_storage_file_write
+      - runtime_mod_storage_file_delete
+      - runtime_mod_storage_file_list
+      - runtime_mod_storage_file_stat
+      - runtime_mod_storage_sqlite_query
+      - runtime_mod_storage_sqlite_execute
+      - runtime_mod_storage_sqlite_transaction
+      - runtime_mod_storage_data_purge
+      - runtime_mod_read_manifest
+      - runtime_mod_catalog_list
+      - runtime_mod_install_progress
+      - runtime_mod_get_action_idempotency
+      - runtime_mod_put_action_idempotency
+      - runtime_mod_purge_action_idempotency
+      - runtime_mod_get_action_verify_ticket
+      - runtime_mod_put_action_verify_ticket
+      - runtime_mod_delete_action_verify_ticket
+      - runtime_mod_purge_action_verify_tickets
+      - runtime_mod_put_action_execution_ledger
+      - runtime_mod_query_action_execution_ledger
+      - runtime_mod_purge_action_execution_ledger
+      - runtime_mod_media_cache_put
+      - runtime_mod_media_cache_gc
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: runtime-mod-local-store
+    execution_class: bounded_blocking_with_admission
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - sqlite_sync
+      - std_fs
+      - native_dialog
+      - process_command
+      - spawn_blocking
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: chat_local_stores
+    match:
+      regex: "^chat_(ai|agent)_.*$"
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-chat-local-store
+    execution_class: bounded_blocking_with_admission
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - sqlite_sync
+      - std_fs
+      - spawn_blocking
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: desktop_agent_center_resources
+    match:
+      exact:
+        - desktop_agent_center_account_local_resources_remove
+        - desktop_agent_center_agent_local_resources_remove
+        - desktop_agent_center_background_asset_get
+        - desktop_agent_center_background_import
+        - desktop_agent_center_background_remove
+        - desktop_agent_center_background_validate
+        - desktop_agent_center_config_get
+        - desktop_agent_center_config_put
+        - desktop_agent_center_live2d_adapter_manifest_import
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-agent-center-resource-store
+    execution_class: bounded_blocking_with_admission
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - cpu_hash_or_codec
+      - spawn_blocking
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+  - family: tester_and_world_tour_local_fixtures
+    match:
+      regex: "^(tester_.*|resolve_world_tour_fixture|save_world_tour_viewer_preset)$"
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-test-fixtures
+    execution_class: bounded_blocking_with_admission
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - std_fs
+      - sync_lock_contention
+    source_rule: D-GATE-092
+
+  - family: system_resource_snapshot
+    match:
+      exact:
+        - get_system_resource_snapshot
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-device-profile
+    execution_class: request_response_async
+    current_status: active
+    remediation_required: false
+    admitted_risks:
+      - process_command
+      - std_fs
+      - spawn_blocking
+      - sync_lock_contention
+    source_rule: D-GATE-094
+
+dormant_command_families:
+  - family: desktop_agent_avatar_store_unregistered
+    match:
+      prefix: desktop_agent_avatar_
+    origin_crate: apps/desktop/src-tauri
+    owner_domain: desktop-agent-avatar-store
+    dormant_class: dormant_admitted
+    current_status: annotated_unregistered
+    remediation_required: true
+    reason: Avatar store commands are annotated but not registered; W3 must either admit a product path and active classification or delete them.
+    source_rule: D-GATE-095
