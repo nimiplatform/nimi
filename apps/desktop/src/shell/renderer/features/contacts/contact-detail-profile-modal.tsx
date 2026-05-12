@@ -14,6 +14,10 @@ import {
 } from './contact-detail-view-content-shell.js';
 import { InlineFeedback, type InlineFeedbackState } from '@renderer/ui/feedback/inline-feedback';
 import { RemoveFriendConfirmDialog } from './contacts-blocked-users.js';
+import {
+  isPrivateProfileAccessError,
+  toRestrictedContactProfileData,
+} from './contact-private-profile.js';
 
 export type ContactDetailProfileSeed = {
   id: string;
@@ -86,18 +90,25 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
   }, [t]);
 
   const profileQuery = useQuery({
-    queryKey: ['contact-detail-modal-profile', props.profileId, props.profileSeed?.handle, props.profileSeed?.isAgent],
+    queryKey: ['contact-detail-modal-profile', props.profileId, props.profileSeed?.handle, props.profileSeed?.isAgent, 'restricted-state-v1'],
     queryFn: async () => {
       if (!props.profileId) {
         return null;
       }
-      const result = props.profileSeed?.isAgent
-        ? await dataSync.loadAgentDetails(props.profileId)
-        : await dataSync.loadUserProfile(props.profileId);
-      return toProfileData(result as ProfileSource);
+      try {
+        const result = props.profileSeed?.isAgent
+          ? await dataSync.loadAgentDetails(props.profileId)
+          : await dataSync.loadUserProfile(props.profileId);
+        return toProfileData(result as ProfileSource);
+      } catch (error) {
+        if (props.profileSeed && !props.profileSeed.isAgent && isPrivateProfileAccessError(error)) {
+          return toRestrictedContactProfileData(props.profileSeed);
+        }
+        throw error;
+      }
     },
     enabled: props.open && Boolean(props.profileId),
-    retry: 1,
+    retry: (failureCount, error) => !isPrivateProfileAccessError(error) && failureCount < 1,
   });
 
   const profile: ProfileData | null = profileQuery.data ?? null;
@@ -228,18 +239,19 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
             <ContactDetailView
               profile={profile}
               isBlockedProfile={isBlockedProfile}
+              isRestrictedProfile={profile.accessState === 'restricted'}
               loading={false}
               error={false}
               onClose={props.onClose}
-              onMessage={() => {
+              onMessage={profile.accessState === 'restricted' ? () => {} : () => {
                 void handleMessage();
               }}
-              onSendGift={() => setGiftModalOpen(true)}
+              onSendGift={profile.accessState === 'restricted' ? () => {} : () => setGiftModalOpen(true)}
               onBlock={!isBlockedProfile ? () => {
                 void handleBlock();
               } : undefined}
               onRemove={!isBlockedProfile && profile.isFriend ? () => setRemoveConfirmOpen(true) : undefined}
-              showMessageButton={!profile.isAgent && !isBlockedProfile}
+              showMessageButton={!profile.isAgent && !isBlockedProfile && profile.accessState !== 'restricted'}
             />
           ) : profileQuery.isError ? (
             <div className="flex h-full items-center justify-center bg-white">

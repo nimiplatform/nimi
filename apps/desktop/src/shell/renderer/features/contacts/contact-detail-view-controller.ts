@@ -9,6 +9,7 @@ export type ContactDetailViewProps = {
   loading: boolean;
   error: boolean;
   isBlockedProfile?: boolean;
+  isRestrictedProfile?: boolean;
   onClose: () => void;
   onMessage: () => void;
   onAddFriend?: () => void;

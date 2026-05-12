@@ -64,6 +64,8 @@
   "displayNameRequired": "Display name is required",
   "blockedPostsHidden": "Posts from this user are hidden because you blocked them.",
   "blockedMediaHidden": "Media from this user is hidden because you blocked them.",
+  "privateProfileDescription": "This profile is private. Only basic contact information is available.",
+  "privateProfileState": "Private profile",
   "loadPostsFailed": "Failed to load posts",
   "loadLikedPostsFailed": "Failed to load liked posts",
   "loadMediaFailed": "Failed to load media",

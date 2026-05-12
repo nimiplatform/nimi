@@ -14,6 +14,7 @@ export type GiftWallItem = {
 };
 
 export type ProfileData = {
+  accessState: 'full' | 'restricted';
   id: string;
   displayName: string;
   handle: string;
@@ -133,6 +134,7 @@ export function toProfileData(raw: ProfileSource): ProfileData {
   }
 
   return {
+    accessState: 'full',
     id: String(raw.id || ''),
     displayName: String(raw.displayName || raw.handle || 'Unknown'),
     handle: String(raw.handle || ''),

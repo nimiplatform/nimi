@@ -94,10 +94,13 @@ export function ContactDetailViewContent(input: {
   const worldLabel = profile.worldName || t('Profile.unknownWorld', { defaultValue: 'Unknown world' });
   const worldNavigationId = profile.agentOwnerWorldId || profile.agentWorldId || '';
   const canVisitWorld = Boolean(worldNavigationId);
-  const headline = profile.bio || (profile.isAgent
+  const isRestrictedProfile = (input.isRestrictedProfile === true || profile.accessState === 'restricted') && !input.isOwnProfile;
+  const headline = isRestrictedProfile
+    ? t('Profile.privateProfileDescription', { defaultValue: 'This profile is private. Only basic contact information is available.' })
+    : profile.bio || (profile.isAgent
     ? t('Profile.agentNoSummary', { defaultValue: 'This contact has no public profile summary yet.' })
     : t('Profile.noDescription', { defaultValue: 'No profile summary has been added yet.' }));
-  const contentRestricted = input.isBlockedProfile === true && !input.isOwnProfile;
+  const contentRestricted = (input.isBlockedProfile === true || isRestrictedProfile) && !input.isOwnProfile;
   const showGiftButton = !input.isOwnProfile && !contentRestricted;
   const showAddFriendButton = !contentRestricted && !input.isOwnProfile && !profile.isFriend && !profile.isPendingFriendRequest && Boolean(input.onAddFriend);
   const showMessageButton = input.showMessageButton !== false && !contentRestricted;
@@ -306,6 +309,14 @@ export function ContactDetailViewContent(input: {
                                   <p className="mt-3 max-w-[420px] text-[14px] leading-[1.6] text-[#424245]">
                                     {headline}
                                   </p>
+                                  {isRestrictedProfile ? (
+                                    <div
+                                      data-testid="contacts-private-profile-state"
+                                      className="mt-3 inline-flex max-w-[420px] items-center rounded-2xl border border-amber-200/80 bg-amber-50/80 px-3 py-2 text-[12px] font-medium text-amber-800"
+                                    >
+                                      {t('Profile.privateProfileState', { defaultValue: 'Private profile' })}
+                                    </div>
+                                  ) : null}
                                   <div className="mt-4">
                                     <div className="grid max-w-[460px] grid-cols-2 gap-x-10 gap-y-2 text-sm text-slate-600">
                                       <InlineMeta value={joinedLabel} icon={<CalendarIcon className="h-3.5 w-3.5" />} />
@@ -485,7 +496,7 @@ export function ContactDetailViewContent(input: {
               <div className="mt-4 rounded-[24px] nimi-material-glass-regular bg-[var(--nimi-material-glass-regular-bg)] border-[var(--nimi-material-glass-regular-border)] px-5 py-4 shadow-[0_22px_56px_rgba(15,23,42,0.08)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] xl:px-6">
                 <ContactDetailTabs
                   activeTab={activeTab}
-                  isBlockedProfile={input.isBlockedProfile}
+                  isBlockedProfile={input.isBlockedProfile || isRestrictedProfile}
                   isOwnProfile={input.isOwnProfile}
                   onSetActiveTab={setActiveTab}
                   profileId={profile.id}

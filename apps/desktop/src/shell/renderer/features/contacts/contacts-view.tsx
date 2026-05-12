@@ -21,6 +21,10 @@ import { InlineFeedback } from '@renderer/ui/feedback/inline-feedback';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
 import { toProfileData } from '@renderer/features/profile/profile-model';
 import type { ProfileData } from '@renderer/features/profile/profile-model';
+import {
+  isPrivateProfileAccessError,
+  toRestrictedContactProfileData,
+} from './contact-private-profile.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import nimiLogo from '@renderer/assets/logo-gray.png';
 import type { ContactsViewProps, BlockedUserInfo } from './contacts-view-types.js';
@@ -390,16 +394,23 @@ export function ContactsView(props: ContactsViewProps) {
 
   // 加载选中联系人的 Profile 数据
   const profileQuery = useQuery({
-    queryKey: ['contact-profile', selectedContact?.id],
+    queryKey: ['contact-profile', selectedContact?.id, 'restricted-state-v1'],
     queryFn: async () => {
       if (!selectedContact) return null;
-      const result = selectedContact.isAgent
-        ? await dataSync.loadAgentDetails(selectedContact.id)
-        : await dataSync.loadUserProfile(selectedContact.id);
-      return toProfileData(result);
+      try {
+        const result = selectedContact.isAgent
+          ? await dataSync.loadAgentDetails(selectedContact.id)
+          : await dataSync.loadUserProfile(selectedContact.id);
+        return toProfileData(result);
+      } catch (error) {
+        if (!selectedContact.isAgent && isPrivateProfileAccessError(error)) {
+          return toRestrictedContactProfileData(selectedContact);
+        }
+        throw error;
+      }
     },
     enabled: !!selectedContact,
-    retry: 1,
+    retry: (failureCount, error) => !isPrivateProfileAccessError(error) && failureCount < 1,
   });
 
   const selectedProfile: ProfileData | null = useMemo(() => {
@@ -578,17 +589,18 @@ export function ContactsView(props: ContactsViewProps) {
             profile={selectedProfile}
             loading={false}
             error={false}
+            isRestrictedProfile={selectedProfile.accessState === 'restricted'}
             onClose={() => {
               setSelectedContact(null);
               setSelectedProfileId(null);
               setSelectedProfileIsAgent(null);
             }}
-            onMessage={() => {
+            onMessage={selectedProfile.accessState === 'restricted' ? () => {} : () => {
               if (selectedContact) {
                 props.onMessage(selectedContact);
               }
             }}
-            onSendGift={() => {
+            onSendGift={selectedProfile.accessState === 'restricted' ? () => {} : () => {
               // 打开送礼物模态框
               if (selectedContact) {
                 setGiftTargetContact(selectedContact);
@@ -597,7 +609,7 @@ export function ContactsView(props: ContactsViewProps) {
             }}
             onBlock={selectedContact ? () => setBlockingContact(selectedContact) : undefined}
             onRemove={selectedContact ? () => setRemovingContact(selectedContact) : undefined}
-            showMessageButton={!selectedProfile?.isAgent}
+            showMessageButton={!selectedProfile?.isAgent && selectedProfile.accessState !== 'restricted'}
           />
         ) : selectedContact && profileError ? (
           <div className="flex h-full items-center justify-center bg-transparent px-6 py-6">
