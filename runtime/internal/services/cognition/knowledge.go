@@ -55,12 +55,16 @@ func (s *Service) GetKnowledgeBank(ctx context.Context, req *runtimev1.GetKnowle
 	return &runtimev1.GetKnowledgeBankResponse{Bank: bankFromScope(scope)}, nil
 }
 
-// ListKnowledgeBanks enumerates scopes the caller can read. Banks the
-// caller cannot read are silently dropped from the page (per-bank
-// denial is silent on list, explicit on get).
+// ListKnowledgeBanks enumerates readable app_private scopes. Any
+// explicit workspace_private selector is authorization-bearing and
+// must fail closed until the admitted workspace authorization carrier
+// exists; returning an empty page would be pseudo-success.
 func (s *Service) ListKnowledgeBanks(ctx context.Context, req *runtimev1.ListKnowledgeBanksRequest) (*runtimev1.ListKnowledgeBanksResponse, error) {
 	if err := validateKnowledgeContext(req.GetContext()); err != nil {
 		return nil, err
+	}
+	if owner, ok := explicitWorkspaceOwnerFromList(req); ok {
+		return nil, s.authorize(ctx, KnowledgeActionReadBank, req.GetContext(), owner)
 	}
 	filter := s.buildScopeFilterFromList(req)
 	scopes, nextToken, err := s.cognitionCore.KnowledgeScopeRegistry().ListKnowledgeScopes(ctx, filter)

@@ -52,6 +52,24 @@ func TestWorkspacePrivateRPCsAlwaysDenied(t *testing.T) {
 			_, err := svc.GetKnowledgeBank(ctx, &runtimev1.GetKnowledgeBankRequest{Context: reqCtx, BankId: bankID})
 			return err
 		}},
+		{"ListKnowledgeBanksByWorkspaceScope", func() error {
+			_, err := svc.ListKnowledgeBanks(ctx, &runtimev1.ListKnowledgeBanksRequest{
+				Context:      reqCtx,
+				ScopeFilters: []runtimev1.KnowledgeBankScope{runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE},
+			})
+			return err
+		}},
+		{"ListKnowledgeBanksByWorkspaceOwner", func() error {
+			_, err := svc.ListKnowledgeBanks(ctx, &runtimev1.ListKnowledgeBanksRequest{
+				Context: reqCtx,
+				OwnerFilters: []*runtimev1.KnowledgeBankOwnerFilter{{
+					Owner: &runtimev1.KnowledgeBankOwnerFilter_WorkspacePrivate{
+						WorkspacePrivate: &runtimev1.KnowledgeWorkspacePrivateOwner{WorkspaceId: "ws.s2-3"},
+					},
+				}},
+			})
+			return err
+		}},
 		{"DeleteKnowledgeBank", func() error {
 			_, err := svc.DeleteKnowledgeBank(ctx, &runtimev1.DeleteKnowledgeBankRequest{Context: reqCtx, BankId: bankID})
 			return err
@@ -74,6 +92,10 @@ func TestWorkspacePrivateRPCsAlwaysDenied(t *testing.T) {
 		}},
 		{"SearchHybrid", func() error {
 			_, err := svc.SearchHybrid(ctx, &runtimev1.SearchHybridRequest{Context: reqCtx, BankId: bankID, Query: "q"})
+			return err
+		}},
+		{"SearchKeyword", func() error {
+			_, err := svc.SearchKeyword(ctx, &runtimev1.SearchKeywordRequest{Context: reqCtx, BankIds: []string{bankID}, Query: "q"})
 			return err
 		}},
 		{"AddLink", func() error {

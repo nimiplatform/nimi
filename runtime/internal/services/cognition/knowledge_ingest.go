@@ -30,17 +30,27 @@ func (s *Service) IngestDocument(ctx context.Context, req *runtimev1.IngestDocum
 	if pageID == "" {
 		pageID = newULID()
 	}
+	title := defaultPageTitle(slug, req.GetTitle())
+	runtimePage := &runtimev1.KnowledgePage{
+		PageId:     pageID,
+		BankId:     scope.ScopeID,
+		Slug:       slug,
+		Title:      title,
+		Content:    content,
+		EntityType: strings.TrimSpace(req.GetEntityType()),
+		Metadata:   cloneStruct(req.GetMetadata()),
+	}
 	env := cognitionknowledge.IngestEnvelope{
 		PageID: cognitionknowledge.PageID(pageID),
 		Kind:   projectionKindForEntityType(req.GetEntityType()),
-		Title:  defaultPageTitle(slug, req.GetTitle()),
-		Body:   mustMarshalJSON(storedKnowledgeBody{Content: content}),
+		Title:  title,
+		Body:   mustMarshalJSON(storedKnowledgeBody{Content: content, Runtime: mustProtoJSON(runtimePage)}),
 	}
 	task, err := s.cognitionCore.KnowledgeService().IngestDocument(scope.ScopeID, env)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	s.rememberIngestTaskProjection(task.TaskID, scope.ScopeID, slug, defaultPageTitle(slug, req.GetTitle()))
+	s.rememberIngestTaskProjection(task.TaskID, scope.ScopeID, slug, title)
 	return &runtimev1.IngestDocumentResponse{
 		TaskId:     task.TaskID,
 		Accepted:   true,

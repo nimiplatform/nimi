@@ -117,6 +117,25 @@ func (s *Service) buildScopeFilterFromList(req *runtimev1.ListKnowledgeBanksRequ
 	return filter
 }
 
+func explicitWorkspaceOwnerFromList(req *runtimev1.ListKnowledgeBanksRequest) (cognitionpkg.KnowledgeScopeOwner, bool) {
+	for _, owner := range req.GetOwnerFilters() {
+		if ws := owner.GetWorkspacePrivate(); ws != nil {
+			return cognitionpkg.KnowledgeScopeOwner{
+				Kind:        cognitionpkg.KnowledgeScopeOwnerKindWorkspace,
+				WorkspaceID: strings.TrimSpace(ws.GetWorkspaceId()),
+			}, true
+		}
+	}
+	for _, scope := range req.GetScopeFilters() {
+		if scope == runtimev1.KnowledgeBankScope_KNOWLEDGE_BANK_SCOPE_WORKSPACE_PRIVATE {
+			return cognitionpkg.KnowledgeScopeOwner{
+				Kind: cognitionpkg.KnowledgeScopeOwnerKindWorkspace,
+			}, true
+		}
+	}
+	return cognitionpkg.KnowledgeScopeOwner{}, false
+}
+
 // ownerFromPublicLocator translates the proto PublicKnowledgeBankLocator
 // into the typed KnowledgeScopeOwner used by the registry.
 func ownerFromPublicLocator(locator *runtimev1.PublicKnowledgeBankLocator) (cognitionpkg.KnowledgeScopeOwner, error) {
