@@ -16,10 +16,10 @@ const minScenarioCoreFunctionCoverage = Number(process.env.NIMI_RUNTIME_MIN_AI_S
 
 const scenarioCoreFunctions = [
   'internal/services/ai/scenario_job_store.go:SubmitScenarioJob',
-  'internal/services/ai/scenario_job_store.go:GetScenarioJob',
-  'internal/services/ai/scenario_job_store.go:CancelScenarioJob',
-  'internal/services/ai/scenario_job_store.go:SubscribeScenarioJobEvents',
-  'internal/services/ai/scenario_job_store.go:GetScenarioArtifacts',
+  'internal/services/ai/scenario_job_access.go:GetScenarioJob',
+  'internal/services/ai/scenario_job_access.go:CancelScenarioJob',
+  'internal/services/ai/scenario_job_access.go:SubscribeScenarioJobEvents',
+  'internal/services/ai/scenario_job_access.go:GetScenarioArtifacts',
 ];
 
 function assertFiniteThreshold(value, envName) {

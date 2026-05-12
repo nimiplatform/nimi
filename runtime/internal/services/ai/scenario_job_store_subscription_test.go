@@ -599,6 +599,130 @@ func (s *scenarioJobFailingCollector) Context() context.Context       { return s
 func (s *scenarioJobFailingCollector) SendMsg(any) error              { return nil }
 func (s *scenarioJobFailingCollector) RecvMsg(any) error              { return nil }
 
+func TestScenarioJobStoreSubscribeScenarioContextCancelBranch(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	jobID := "scenario-subscribe-context-cancel"
+	now := time.Now().UTC()
+	created := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+		JobId: jobID,
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app",
+			SubjectUserId: "user",
+			ModelId:       "local/sd3",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		TraceId:       "trace-scenario-context-cancel",
+		CreatedAt:     timestamppb.New(now),
+		UpdatedAt:     timestamppb.New(now),
+		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+	}, func() {})
+	if created == nil {
+		t.Fatal("create scenario job record")
+	}
+
+	ctx, cancel := context.WithCancel(scenarioJobUserContext("app", "user"))
+	collector := &scenarioJobEventCollector{ctx: ctx}
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector)
+	}()
+
+	time.Sleep(20 * time.Millisecond)
+	cancel()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("context cancellation should close subscription cleanly, got %v", err)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("subscribe scenario context cancel branch did not return")
+	}
+}
+
+func TestScenarioJobStoreSubscribeScenarioBacklogSendError(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	jobID := "scenario-subscribe-backlog-send-error"
+	now := time.Now().UTC()
+	created := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+		JobId: jobID,
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app",
+			SubjectUserId: "user",
+			ModelId:       "local/sd3",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		TraceId:       "trace-scenario-send-error",
+		CreatedAt:     timestamppb.New(now),
+		UpdatedAt:     timestamppb.New(now),
+		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+	}, func() {})
+	if created == nil {
+		t.Fatal("create scenario job record")
+	}
+	_, _ = svc.scenarioJobs.transition(
+		jobID,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
+		nil,
+	)
+
+	sendErr := errors.New("send failed")
+	collector := &scenarioJobFailingCollector{ctx: scenarioJobUserContext("app", "user"), sendErr: sendErr}
+	err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector)
+	if !errors.Is(err, sendErr) {
+		t.Fatalf("expected send error, got %v", err)
+	}
+}
+
+func TestScenarioJobStoreSubscribeScenarioTerminalBacklogReturns(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	jobID := "scenario-subscribe-terminal-backlog-success"
+	now := time.Now().UTC()
+	created := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+		JobId: jobID,
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app",
+			SubjectUserId: "user",
+			ModelId:       "local/sd3",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		TraceId:       "trace-scenario-terminal-backlog",
+		CreatedAt:     timestamppb.New(now),
+		UpdatedAt:     timestamppb.New(now),
+		ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+	}, func() {})
+	if created == nil {
+		t.Fatal("create scenario job record")
+	}
+	_, _ = svc.scenarioJobs.transition(
+		jobID,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
+		nil,
+	)
+
+	collector := &scenarioJobEventCollector{ctx: scenarioJobUserContext("app", "user")}
+	if err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector); err != nil {
+		t.Fatalf("subscribe terminal scenario backlog: %v", err)
+	}
+	if len(collector.events) == 0 {
+		t.Fatal("expected terminal scenario backlog")
+	}
+	if got := collector.events[len(collector.events)-1].GetEventType(); got != runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED {
+		t.Fatalf("expected completed event at terminal backlog tail, got %v", got)
+	}
+}
+
 func TestScenarioJobStoreSubscribeVoiceStreamingBranch(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	jobID := "voice-subscribe-streaming"
@@ -681,5 +805,72 @@ func TestScenarioJobStoreSubscribeVoiceTerminalBacklogBranch(t *testing.T) {
 	}
 	if len(collector.events) != 1 || collector.events[0].GetEventType() != runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED {
 		t.Fatalf("expected completed backlog event, got %#v", collector.events)
+	}
+}
+
+func TestScenarioJobStoreSubscribeVoiceBacklogSendError(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	jobID := "voice-subscribe-backlog-send-error"
+	now := time.Now().UTC()
+
+	svc.voiceAssets.mu.Lock()
+	svc.voiceAssets.jobs[jobID] = &voiceScenarioJobRecord{
+		job: &runtimev1.ScenarioJob{
+			JobId:      jobID,
+			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen3-tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+			TraceId:    "trace-voice-backlog-send-error",
+			CreatedAt:  timestamppb.New(now),
+			UpdatedAt:  timestamppb.New(now),
+			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		},
+		events: []*runtimev1.ScenarioJobEvent{
+			{
+				EventType: runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
+				Timestamp: timestamppb.New(now),
+				Job: &runtimev1.ScenarioJob{
+					JobId:  jobID,
+					Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+				},
+			},
+		},
+		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
+	}
+	svc.voiceAssets.mu.Unlock()
+
+	sendErr := errors.New("voice send failed")
+	collector := &scenarioJobFailingCollector{ctx: scenarioJobUserContext("app", "user"), sendErr: sendErr}
+	err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector)
+	if !errors.Is(err, sendErr) {
+		t.Fatalf("expected voice send error, got %v", err)
+	}
+}
+
+func TestScenarioJobStoreSubscribeVoiceContextDeadline(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	jobID := "voice-subscribe-context-deadline"
+	now := time.Now().UTC()
+
+	svc.voiceAssets.mu.Lock()
+	svc.voiceAssets.jobs[jobID] = &voiceScenarioJobRecord{
+		job: &runtimev1.ScenarioJob{
+			JobId:      jobID,
+			Head:       &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user", ModelId: "local/qwen3-tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+			TraceId:    "trace-voice-context-deadline",
+			CreatedAt:  timestamppb.New(now),
+			UpdatedAt:  timestamppb.New(now),
+			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		},
+		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
+	}
+	svc.voiceAssets.mu.Unlock()
+
+	ctx, cancel := context.WithDeadline(scenarioJobUserContext("app", "user"), time.Now().Add(-time.Second))
+	defer cancel()
+	collector := &scenarioJobEventCollector{ctx: ctx}
+	err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("expected deadline exceeded from voice subscription context, got %v", err)
 	}
 }
