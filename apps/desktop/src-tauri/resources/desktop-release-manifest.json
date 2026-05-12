@@ -2,9 +2,9 @@
   "desktopVersion": "0.1.0",
   "runtimeVersion": "0.1.0",
   "channel": "stable",
-  "commit": "15fe089c4a4c3eb75b8c43cf9a49a2c4e1ad7084",
+  "commit": "b3f3d8188d3394bef4fdb68f196224bab4749f1b",
   "runtimeArchivePath": "runtime/darwin-arm64/nimi-runtime.zip",
-  "runtimeSha256": "062e48bc7ddb3cd3d093e34dc466ea8d49fe23a704a37037753a4534f73c0c6b",
+  "runtimeSha256": "57cb602ecd68475e6c8b38651dcf762494e1ed97f67b26351d6f3450b0e58f7c",
   "runtimeBinaryPath": "bin/nimi",
-  "builtAt": "2026-05-12T03:23:18.866Z"
+  "builtAt": "2026-05-12T06:32:48.987Z"
 }
