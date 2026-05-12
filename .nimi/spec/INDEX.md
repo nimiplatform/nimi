@@ -88,15 +88,19 @@ Runtime 规范采用 kernel + domain 的两层结构，覆盖 Runtime proto 全�
 
 1. `.nimi/spec/runtime/kernel/local-category-capability.md`
 2. `.nimi/spec/runtime/kernel/local-engine-contract.md`
-3. `.nimi/spec/runtime/kernel/device-profile-contract.md`
-4. `.nimi/spec/runtime/kernel/streaming-contract.md`
-5. `.nimi/spec/runtime/local-model.md`
+3. `.nimi/spec/runtime/kernel/local-engine-accelerator-contract.md`
+4. `.nimi/spec/runtime/kernel/local-engine-speech-contract.md`
+5. `.nimi/spec/runtime/kernel/device-profile-contract.md`
+6. `.nimi/spec/runtime/kernel/streaming-contract.md`
+7. `.nimi/spec/runtime/local-model.md`
 
-### 修改本地引擎（llama / media / sidecar）
+### 修改本地引擎（llama / media / speech / sidecar）
 
 1. `.nimi/spec/runtime/kernel/local-engine-contract.md`
-2. `.nimi/spec/runtime/kernel/tables/local-engine-catalog.yaml`
-3. `.nimi/spec/runtime/local-model.md`
+2. `.nimi/spec/runtime/kernel/local-engine-accelerator-contract.md`
+3. `.nimi/spec/runtime/kernel/local-engine-speech-contract.md`
+4. `.nimi/spec/runtime/kernel/tables/local-engine-catalog.yaml`
+5. `.nimi/spec/runtime/local-model.md`
 
 ### 修改本地适配器路由
 

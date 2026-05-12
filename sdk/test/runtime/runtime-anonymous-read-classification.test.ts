@@ -148,7 +148,7 @@ test('isRuntimeAnonymousReadMethod returns false for fabricated method ids', () 
   assert.equal(isRuntimeAnonymousReadMethod('garbage'), false);
 });
 
-test('RuntimeAnonymousReadMethodIds set has exactly 136 members (Wave 0 spec table size)', () => {
+test('RuntimeAnonymousReadMethodIds set has exactly 136 members (Wave 0 spec shard size)', () => {
   // Set equality is enforced by scripts/check-runtime-rpc-auth-posture-sdk-drift.mjs;
   // this in-memory check guards against accidental duplication / truncation
   // of the literal at TS compile time.

@@ -535,6 +535,20 @@ spec_generation_audit_file_entries:
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/local-engine-accelerator-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/runtime/kernel/local-engine-accelerator-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/local-engine-speech-contract.md
+      file_class: kernel_markdown
+      source_refs:
+        - .nimi/spec/runtime/kernel/local-engine-speech-contract.md
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
     - canonical_path: .nimi/spec/runtime/kernel/model-catalog-contract.md
       file_class: kernel_markdown
       source_refs:
@@ -868,6 +882,38 @@ spec_generation_audit_file_entries:
       file_class: kernel_tables
       source_refs:
         - .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml
+        - .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml
+        - .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml
+        - .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml
+        - .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml
+      source_basis: grounded
+      coverage_status: complete
+      unresolved_items: []
+    - canonical_path: .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml
+      file_class: kernel_tables
+      source_refs:
+        - .nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml
       source_basis: grounded
       coverage_status: complete
       unresolved_items: []

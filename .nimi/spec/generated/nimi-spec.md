@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `/.nimi/spec/` 规范树的人类可读投影。
-> 生成时间: 2026-05-10
+> 生成时间: 2026-05-12
 >
 > 权威规则定义位于 `/.nimi/spec/` 原始文件中。如需修改，请编辑当前 canonical spec 后重新生成。
 
@@ -430,7 +430,7 @@ AuthN 与 AuthZ 之间有明确的分层边界：AuthN 失败直接返回 `UNAUT
 - AuthN（验签/会话有效性）失败统一返回 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`，不进入 AuthZ 评估。
 - AuthZ 规则（owner/status/credential）仅在 AuthN 通过后执行。
 
-> 跨表引用：每个 RPC 在 K-AUTH-001..007 下的实际接受姿态（anonymous_read / authenticated_required / mixed）汇总在 `tables/runtime-rpc-auth-posture.yaml`，由 `pnpm check:runtime-rpc-auth-posture-coverage` / `check:runtime-rpc-auth-posture-shape` 守护。
+> 跨表引用：每个 RPC 在 K-AUTH-001..007 下的实际接受姿态（anonymous_read / authenticated_required / mixed）由 `tables/runtime-rpc-auth-posture.yaml` 索引并汇总在 `tables/runtime-rpc-auth-posture/*.yaml` 分片中，由 `pnpm check:runtime-rpc-auth-posture-coverage` / `check:runtime-rpc-auth-posture-shape` 守护。
 
 ### 2.3 会话管理（AuthService）
 
@@ -759,11 +759,7 @@ Phase 1 本地执行引擎固定为：
 
 - `llama`：`llama.cpp` / `llama-server`，负责 `text.generate`、`text.embed`、`image.understand`、`audio.understand`
 - `media`：`stable-diffusion.cpp` 主 driver，负责 `image.generate`、`image.edit`、`video.generate`、`i2v`
-- `speech`：本地语音引擎族。当前 ordinary-user admitted baseline 固定围绕 baseline `Qwen3` family line：
-  - `audio.transcribe` default lane: `Qwen3-ASR-0.6B`
-  - `audio.synthesize` default lane: `Qwen3-TTS-12Hz-0.6B-CustomVoice`
-  - `voice_workflow.voice_clone`、`voice_workflow.voice_design` 只有在真实本地 workflow execution plane 被显式 cutover admitted 后才能升格为 local truth
-  - 当前 baseline admitted local workflow family 边界固定为 `qwen3_tts`，不得被扩写成 generic local workflow truth
+- `speech`：本地语音引擎族；baseline `Qwen3` family line 与 workflow 边界由 `local-engine-speech-contract.md` 的 `Speech Engine Family Line` 拥有。
 - `sidecar`：外部自托管 music sidecar，使用 Nimi music canonical HTTP 协议；当前仅支持 `ATTACHED_ENDPOINT`
 
 `media.diffusers` 仅允许作为 `media` 的 runtime 内部 fallback driver；不是 public engine target。若要把 `media.diffusers` 升格为 matrix-supported canonical backend family，必须在同一轮 cutover 中同步修订 `K-LENG-004`、`K-MMPROV-010`、`K-PROV-002` 的对应规则。
@@ -787,14 +783,7 @@ Phase 1 本地执行引擎固定为：
 
 `sidecar` 当前只允许 `ATTACHED_ENDPOINT`；`llama`、`media` 与 `speech` 允许 `ATTACHED_ENDPOINT` 或 `SUPERVISED`。
 
-speech product posture:
-
-- ordinary-user canonical local speech path 固定为 `engine=speech + SUPERVISED`
-- ordinary-user canonical local speech path 必须按 bundle-shaped `Local Speech` setup surface 理解；desktop 不得把它投影成 generic verified model rows，或把 env/bootstrap/host 拆成独立用户安装对象
-- 当 ordinary-user 缺失 local speech bundle slice 时，显式 `Download` 用户确认是唯一允许的启动信号；在用户确认前，desktop/runtime 不得因 capability 选择、route 尝试或被动探测而静默执行 env/bootstrap、host bring-up 或 capability 下载
-- 用户确认后，runtime 可以复用已存在的 env/cache/host/slice；不得默认重装、重引导或重下载
-- capability materialization 必须保持按 capability 懒加载；一次 `audio.synthesize` / `audio.transcribe` 请求或点击不得顺手预取全部 speech slices
-- `speech + ATTACHED_ENDPOINT` 只允许作为高级/自托管路径存在，不得在产品语义上与 supervised 等价
+Speech product posture 由 `local-engine-speech-contract.md` 的 `Speech Runtime Mode Product Posture` 拥有；本文件只保留 engine runtime mode 的通用枚举与 cross-engine 约束。
 
 所有引擎通过标准 OpenAI-compatible HTTP API 通信：
 

@@ -41,6 +41,8 @@
 | `scenario-job-lifecycle.md` | `K-JOB-*` | ScenarioJob 生命周期与 owner/credential 快照 |
 | `local-category-capability.md` | `K-LOCAL-*` | 本地模型能力、依赖解析、适配器路由 |
 | `local-engine-contract.md` | `K-LENG-*` | 本地引擎类型、运行模式、配置优先级 |
+| `local-engine-accelerator-contract.md` | `K-LENG-*` | 本地引擎共享 accelerator dependency readiness |
+| `local-engine-speech-contract.md` | `K-LENG-*` | 本地语音引擎 baseline、product posture、supervised readiness |
 | `device-profile-contract.md` | `K-DEV-*` | 设备画像与兼容性判定 |
 | `endpoint-security.md` | `K-SEC-*` | endpoint 安全校验与 TOCTOU 防护 |
 | `streaming-contract.md` | `K-STREAM-*` | 流式阶段边界、终帧与错误语义 |

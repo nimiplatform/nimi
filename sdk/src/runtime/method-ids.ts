@@ -386,9 +386,10 @@ export const RuntimeLocalAnonymousMethodIds: readonly string[] = Object.freeze([
 // Anonymous-read posture classifier (Wave 2 of topic
 // 2026-05-10-runtime-bearer-revocation-contract-closure).
 //
-// Source of truth: Wave 0 spec table at
+// Source of truth: Wave 0 spec table index at
 // nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml,
-// filtered to entries whose `posture` field equals `anonymous_read`.
+// filtered from its method shards to entries whose `posture` field equals
+// `anonymous_read`.
 //
 // Set equality with the spec table is enforced by
 // scripts/check-runtime-rpc-auth-posture-sdk-drift.mjs (Spec Gates job).

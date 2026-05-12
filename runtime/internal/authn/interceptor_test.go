@@ -157,11 +157,12 @@ func TestAuthenticateMapsInvalidTokenToAuthTokenInvalid(t *testing.T) {
 
 // =============================================================================
 // Wave 4 (topic 2026-05-10-runtime-bearer-revocation-contract-closure):
-// posture-consumer test. Loads the Wave 0 spec table at
-// nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml as a
-// READ-ONLY YAML fixture, asserts table shape sanity, and confirms the
-// runtime authn interceptor's K-AUTHN-001 pass-through behavior on sample
-// method ids of every posture (anonymous_read AND authenticated_required).
+// posture-consumer test. Loads the Wave 0 spec table index at
+// nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml plus its
+// method shards as READ-ONLY YAML fixtures, asserts table shape sanity, and
+// confirms the runtime authn interceptor's K-AUTHN-001 pass-through behavior
+// on sample method ids of every posture (anonymous_read AND
+// authenticated_required).
 //
 // Important semantic clarification (per K-AUTHN-001 + K-AUTH separation):
 // the AuthN interceptor permits anonymous requests for ALL methods — header
@@ -179,16 +180,40 @@ type runtimeRPCAuthPostureMethodEntry struct {
 }
 
 type runtimeRPCAuthPostureTable struct {
-	ID                       string                            `yaml:"id"`
-	Kind                     string                            `yaml:"kind"`
-	Version                  int                               `yaml:"version"`
-	PostureDecisionDoctrine  string                            `yaml:"posture_decision_doctrine"`
-	Methods                  []runtimeRPCAuthPostureMethodEntry `yaml:"methods"`
+	ID                      string                             `yaml:"id"`
+	Kind                    string                             `yaml:"kind"`
+	Version                 int                                `yaml:"version"`
+	PostureDecisionDoctrine string                             `yaml:"posture_decision_doctrine"`
+	Methods                 []runtimeRPCAuthPostureMethodEntry `yaml:"methods"`
 }
 
-// loadPostureTableFixture reads the Wave 0 spec table from disk via a
-// repo-root-relative path. The yaml is treated as a read-only fixture; the
-// test does not write to it.
+type runtimeRPCAuthPostureIndex struct {
+	ID                      string                             `yaml:"id"`
+	Kind                    string                             `yaml:"kind"`
+	Version                 int                                `yaml:"version"`
+	PostureDecisionDoctrine string                             `yaml:"posture_decision_doctrine"`
+	MethodShards            []runtimeRPCAuthPostureShard       `yaml:"method_shards"`
+	InlineMethods           []runtimeRPCAuthPostureMethodEntry `yaml:"methods"`
+}
+
+type runtimeRPCAuthPostureShard struct {
+	Path        string   `yaml:"path"`
+	ID          string   `yaml:"id"`
+	MethodCount int      `yaml:"method_count"`
+	Services    []string `yaml:"services"`
+}
+
+type runtimeRPCAuthPostureShardFile struct {
+	ID      string                             `yaml:"id"`
+	Kind    string                             `yaml:"kind"`
+	Parent  string                             `yaml:"parent"`
+	Version int                                `yaml:"version"`
+	Methods []runtimeRPCAuthPostureMethodEntry `yaml:"methods"`
+}
+
+// loadPostureTableFixture reads the runtime RPC auth posture index and method
+// shards from disk via repo-root-relative paths. The YAML files are treated as
+// read-only fixtures; the test does not write to them.
 func loadPostureTableFixture(t *testing.T) *runtimeRPCAuthPostureTable {
 	t.Helper()
 	_, thisFile, _, ok := runtime.Caller(0)
@@ -204,9 +229,66 @@ func loadPostureTableFixture(t *testing.T) *runtimeRPCAuthPostureTable {
 	if err != nil {
 		t.Fatalf("read posture table fixture %s: %v", tablePath, err)
 	}
-	var table runtimeRPCAuthPostureTable
-	if err := yaml.Unmarshal(raw, &table); err != nil {
-		t.Fatalf("unmarshal posture table fixture: %v", err)
+	var rootShape map[string]any
+	if err := yaml.Unmarshal(raw, &rootShape); err != nil {
+		t.Fatalf("unmarshal posture table fixture root shape: %v", err)
+	}
+	if _, ok := rootShape["methods"]; ok {
+		t.Fatalf("posture table index %s must not contain inline methods", tablePath)
+	}
+	var index runtimeRPCAuthPostureIndex
+	if err := yaml.Unmarshal(raw, &index); err != nil {
+		t.Fatalf("unmarshal posture table fixture index: %v", err)
+	}
+	if len(index.InlineMethods) != 0 {
+		t.Fatalf("posture table index %s must not expose inline methods", tablePath)
+	}
+	if len(index.MethodShards) == 0 {
+		t.Fatalf("posture table index %s must declare method_shards", tablePath)
+	}
+	table := runtimeRPCAuthPostureTable{
+		ID:                      index.ID,
+		Kind:                    index.Kind,
+		Version:                 index.Version,
+		PostureDecisionDoctrine: index.PostureDecisionDoctrine,
+	}
+	seenMethods := map[string]string{}
+	for _, shardRef := range index.MethodShards {
+		if strings.TrimSpace(shardRef.Path) == "" {
+			t.Fatalf("posture table index %s contains empty shard path", tablePath)
+		}
+		cleanShardRef := filepath.Clean(shardRef.Path)
+		if filepath.IsAbs(cleanShardRef) || cleanShardRef == ".." || strings.HasPrefix(cleanShardRef, ".."+string(os.PathSeparator)) {
+			t.Fatalf("posture table index %s contains invalid shard path %q", tablePath, shardRef.Path)
+		}
+		shardPath := filepath.Join(filepath.Dir(tablePath), cleanShardRef)
+		shardRaw, err := os.ReadFile(shardPath)
+		if err != nil {
+			t.Fatalf("read posture table shard %s: %v", shardPath, err)
+		}
+		var shard runtimeRPCAuthPostureShardFile
+		if err := yaml.Unmarshal(shardRaw, &shard); err != nil {
+			t.Fatalf("unmarshal posture table shard %s: %v", shardPath, err)
+		}
+		if shard.Kind != "runtime-rpc-auth-posture-shard" {
+			t.Fatalf("posture table shard %s has kind %q", shardPath, shard.Kind)
+		}
+		if shard.Parent != index.ID {
+			t.Fatalf("posture table shard %s parent %q does not match index %q", shardPath, shard.Parent, index.ID)
+		}
+		if shardRef.ID != "" && shard.ID != shardRef.ID {
+			t.Fatalf("posture table shard %s id %q does not match index ref %q", shardPath, shard.ID, shardRef.ID)
+		}
+		if shardRef.MethodCount != 0 && len(shard.Methods) != shardRef.MethodCount {
+			t.Fatalf("posture table shard %s method_count=%d, loaded=%d", shardPath, shardRef.MethodCount, len(shard.Methods))
+		}
+		for _, entry := range shard.Methods {
+			if previousShard, exists := seenMethods[entry.MethodID]; exists {
+				t.Fatalf("posture table method %s appears in both %s and %s", entry.MethodID, previousShard, shardPath)
+			}
+			seenMethods[entry.MethodID] = shardPath
+		}
+		table.Methods = append(table.Methods, shard.Methods...)
 	}
 	return &table
 }

@@ -8,11 +8,7 @@ Phase 1 本地执行引擎固定为：
 
 - `llama`：`llama.cpp` / `llama-server`，负责 `text.generate`、`text.embed`、`image.understand`、`audio.understand`
 - `media`：`stable-diffusion.cpp` 主 driver，负责 `image.generate`、`image.edit`、`video.generate`、`i2v`
-- `speech`：本地语音引擎族。当前 ordinary-user admitted baseline 固定围绕 baseline `Qwen3` family line：
-  - `audio.transcribe` default lane: `Qwen3-ASR-0.6B`
-  - `audio.synthesize` default lane: `Qwen3-TTS-12Hz-0.6B-CustomVoice`
-  - `voice_workflow.voice_clone`、`voice_workflow.voice_design` 只有在真实本地 workflow execution plane 被显式 cutover admitted 后才能升格为 local truth
-  - 当前 baseline admitted local workflow family 边界固定为 `qwen3_tts`，不得被扩写成 generic local workflow truth
+- `speech`：本地语音引擎族；baseline `Qwen3` family line 与 workflow 边界由 `local-engine-speech-contract.md` 的 `Speech Engine Family Line` 拥有。
 - `sidecar`：外部自托管 music sidecar，使用 Nimi music canonical HTTP 协议；当前仅支持 `ATTACHED_ENDPOINT`
 
 `media.diffusers` 仅允许作为 `media` 的 runtime 内部 fallback driver；不是 public engine target。若要把 `media.diffusers` 升格为 matrix-supported canonical backend family，必须在同一轮 cutover 中同步修订 `K-LENG-004`、`K-MMPROV-010`、`K-PROV-002` 的对应规则。
@@ -36,14 +32,7 @@ Phase 1 本地执行引擎固定为：
 
 `sidecar` 当前只允许 `ATTACHED_ENDPOINT`；`llama`、`media` 与 `speech` 允许 `ATTACHED_ENDPOINT` 或 `SUPERVISED`。
 
-speech product posture:
-
-- ordinary-user canonical local speech path 固定为 `engine=speech + SUPERVISED`
-- ordinary-user canonical local speech path 必须按 bundle-shaped `Local Speech` setup surface 理解；desktop 不得把它投影成 generic verified model rows，或把 env/bootstrap/host 拆成独立用户安装对象
-- 当 ordinary-user 缺失 local speech bundle slice 时，显式 `Download` 用户确认是唯一允许的启动信号；在用户确认前，desktop/runtime 不得因 capability 选择、route 尝试或被动探测而静默执行 env/bootstrap、host bring-up 或 capability 下载
-- 用户确认后，runtime 可以复用已存在的 env/cache/host/slice；不得默认重装、重引导或重下载
-- capability materialization 必须保持按 capability 懒加载；一次 `audio.synthesize` / `audio.transcribe` 请求或点击不得顺手预取全部 speech slices
-- `speech + ATTACHED_ENDPOINT` 只允许作为高级/自托管路径存在，不得在产品语义上与 supervised 等价
+Speech product posture 由 `local-engine-speech-contract.md` 的 `Speech Runtime Mode Product Posture` 拥有；本文件只保留 engine runtime mode 的通用枚举与 cross-engine 约束。
 
 ## K-LENG-003 ATTACHED_ENDPOINT 约束
 
@@ -74,29 +63,7 @@ speech product posture:
 
 - `llama`：管理 `llama.cpp` / `llama-server`、GPU layers、context/batch policy、warmup。
 - `media`：管理 image/video 执行 backend。`engine=media` 不能按引擎名整体决定 host support；必须结合 `asset_family`、`backend_class`、`backend_family` 与 `tables/local-image-supervised-backend-matrix.yaml` v2 matrix resolver 输出判断真实受管 backend。
-- `speech`：管理 baseline local speech supervised families，并负责当前 admitted 语音基础能力探测。ordinary-user supervised truth 当前只承认 `audio.transcribe` / `audio.synthesize`；在 admitted local plain-speech execution plane 尚未 materialize 前，speech supervised `/healthz` 与 `/v1/catalog` 必须保持 placeholder/non-ready，plain-speech write routes 必须 fail-close。baseline supervised family line 固定为：
-  - `qwen3_asr`：default local `STT` family，普通用户默认 lane 为 `Qwen3-ASR-0.6B`
-  - `qwen3_tts`：default local synth / workflow family
-    - plain synth default lane: `Qwen3-TTS-12Hz-0.6B-CustomVoice`
-    - clone workflow default lane: `Qwen3-TTS-12Hz-0.6B-Base`
-    - design workflow default lane: `Qwen3-TTS-12Hz-1.7B-VoiceDesign`
-  - baseline local `Qwen3` speech env topology 固定为 explicit split supervised envs：
-    - `Qwen3-TTS` synth / workflow checkpoints 共享同一 `qwen3_tts` env line
-    - `Qwen3-ASR` 使用独立 `qwen3_asr` env line
-    - runtime 不得假设 `qwen-tts` 与 `qwen-asr` 可在同一 canonical supervised env 中共装
-  - `Qwen3-ASR-1.7B` 只作为 optional premium candidate 保留；在独立 premium admission 前不得自动 materialize 为 ordinary-user canonical default
-  - workflow-capable local family 只有在对应 local workflow execution plane 被显式 admitted 后才能进入 canonical local speech truth；当前 baseline admitted family 边界固定为 `qwen3_tts`
-  - ordinary-user supervised local speech install/readiness 语义固定分三层，且不得塌缩成单一“speech model installed” bit：
-    1. `env/bootstrap readiness`：`qwen3_tts` / `qwen3_asr` env root、launcher、stable cache root 已就绪
-    2. `host readiness`：受管 speech host 可提供 admitted health/catalog proof
-    3. `capability materialization`：仅被请求 capability 对应的权重/工件已 materialize
-  - `env/bootstrap readiness` 与 `host readiness` 不是独立 ordinary-user install object；它们属于 runtime-owned local speech bundle download/init flow 的内部分层
-  - ordinary-user supervised path 必须先经过显式 `Download` 用户确认，才允许启动缺失的 env/bootstrap、host bring-up 或 capability materialization
-  - capability materialization 默认按 requested capability 懒加载：
-    - `audio.transcribe` 只 materialize 当前 admitted `qwen3_asr` slice
-    - `audio.synthesize` 只 materialize 当前 admitted `qwen3_tts` plain synth slice
-    - future-admitted `voice_workflow.voice_clone` / `voice_workflow.voice_design` 也必须分别按自身 slice 懒加载，不得因为 plain `TTS` 已请求就自动预取
-  - runtime/desktop 必须复用已验证的 env/cache/materialized slice；除非 repair/remove 明确要求，否则不得默认重下载或重 bootstrap
+- `speech`：baseline supervised families、ordinary-user readiness layers、capability materialization 懒加载与 local speech bundle download/init flow 由 `local-engine-speech-contract.md` 的 `Speech Supervised Baseline` 拥有。
 - `media.diffusers`：只在 `media` 不支持 family / artifact completeness / pipeline variant 时作为内部 fallback 启动。当前 kernel 基线仍规定 `media.diffusers` 不得作为 public engine target，不得在未完成规范修订前直接升格为 matrix-supported canonical path。
 
 资产级 supervised 规则：
@@ -571,129 +538,13 @@ supervised `llama` 的 public residency truth 固定投影到 `LocalWarmState`�
 - `local-media` remains the canonical app-facing HTTP surface for image execution and health projection, but native-binary success may not depend on proxy import support.
 - Runtime must not treat llama `/models/import` as part of the canonical native-binary image path on any supported host tuple.
 
-## K-LENG-022 Runtime Shared Accelerator Dependency Readiness
+## Runtime Shared Accelerator Dependency Readiness Anchor
 
-Runtime owns shared accelerator dependency readiness for supervised local
-execution. CUDA user-space runtime readiness is not owned by image assets,
-`llama.cpp`, `stable-diffusion.cpp`, diffusers, package installers, Desktop, SDK,
-or mods. Ordinary users must not be required to install CUDA Toolkit, configure
-`CUDA_PATH` / `CUDA_HOME`, or have `nvcc` on PATH before using an admitted
-Windows NVIDIA local execution path.
-
-The authority layers are fixed:
-
-- `tables/host-accelerator-profiles.yaml` owns host accelerator profile shape,
-  evidence sources, staleness, refresh triggers, multi-GPU policy, degraded
-  reasons, and profile states.
-- `tables/shared-accelerator-dependencies.yaml` is an accelerator-specific
-  projection of canonical local environment dependency authority. It may carry
-  CUDA compatibility and package provenance detail, but source policy, selected
-  source record schema, activation policy, repair policy, and dependency job
-  lifecycle are owned by the local environment tables.
-- `tables/accelerator-consumer-requirements.yaml` is an accelerator-specific
-  projection of canonical local environment consumer requirements. It may carry
-  CUDA consumer projection detail, but it must preserve distinct `failed`,
-  `unsupported`, `repair_required`, and `cancelled` semantics and must not
-  become a parallel consumer authority.
-- Image topology/package tables may reference dependency ids and consumer ids,
-  but they must not own CUDA source selection, installation, repair, or selected
-  source records.
-- Desktop, SDK, mods, and app code may only project runtime dependency truth and
-  must not probe, install, or infer CUDA readiness themselves.
-
-Windows NVIDIA CUDA source policy is `system-first-managed-fallback`:
-
-1. compatible system CUDA user-space runtime, if runtime can prove compatibility
-   from canonicalized and allowlisted evidence
-2. previously verified runtime-managed CUDA dependency under the Nimi runtime
-   dependency root
-3. declared managed dependency package, after explicit user confirmation for
-   first network materialization
-
-System source proof must be positive. Runtime must fail closed when it cannot
-verify source identity, canonical root, required DLL/file set, version metadata
-or binary version, driver compatibility, and selected source record creation.
-Runtime may inspect PATH as a hint, but must never accept a source solely because
-a DLL appears earlier in PATH. Runtime must reject model directories, import
-directories, and arbitrary user-selected directories as CUDA DLL sources.
-
-Managed source proof must include declared package source, archive hash,
-staged extraction, required artifact set verification, version/driver
-compatibility where available, atomic promotion, repair metadata, and a selected
-source record before any consumer activation.
-
-Dependency resolver states are runtime-private but must be projectable through
-stable install / health / audit detail:
-
-| state | meaning |
-|---|---|
-| `unknown` | dependency evidence has not been resolved |
-| `ready_system` | compatible system accelerator dependency was verified and selected |
-| `ready_managed` | compatible runtime-managed accelerator dependency was verified and selected |
-| `materializable_requires_confirmation` | runtime can install/repair the dependency, but first network materialization needs explicit user confirmation |
-| `queued` | user confirmation has been accepted and the runtime install job is queued |
-| `downloading` | runtime is fetching a declared dependency package |
-| `verifying` | runtime is verifying archive hash, declared files, canonical path, version metadata, and driver compatibility |
-| `installing` | runtime is staging and atomically promoting the managed dependency |
-| `repair_required` | previously selected dependency is missing, corrupt, or incompatible |
-| `failed` | dependency download, verification, compatibility, or install failed |
-| `unsupported` | no admitted source can satisfy the dependency on this host |
-| `cancelled` | user cancelled before promotion; no ready state may be projected |
-
-Selected source record invariants:
-
-- exactly one active selected source record may exist per
-  `dependency_id + host_profile_id + platform_tuple + runtime_data_root`
-- all engine consumers in the same dependency environment must reference that
-  record; consumers must not independently re-resolve a different CUDA source
-- record invalidation is allowed only by runtime verification failure, explicit
-  repair, dependency removal, host profile incompatibility, or required artifact
-  loss
-- failed verification cannot produce a fallback ready state without a new
-  verified selected source record
-
-Runtime job invariants:
-
-- setup is idempotent for the same dependency/environment while a job is active
-- duplicate consumer requests attach to the same active job id
-- cancellation is explicit and stops before promotion
-- repair locks exclude activation using the corrupt dependency
-- automatic reinstall is forbidden unless the current confirmation policy allows
-  it for that repair case
-
-Windows process environment constraints:
-
-- Runtime may prepend the selected dependency directory to a supervised engine
-  process PATH only for that child process.
-- Runtime must not mutate machine PATH, user PATH, shell profile, or system CUDA
-  configuration.
-- Runtime must canonicalize dependency paths before use.
-- Runtime must record selected source and verification detail in runtime-private
-  audit / health detail.
-
-User confirmation constraints:
-
-- Health probes, route resolution, background maintenance, and passive import
-  review must not silently trigger first network download of accelerator
-  dependencies.
-- The first managed dependency download must be initiated by explicit user
-  confirmation or by a model install/import confirmation that clearly discloses
-  the dependency, approximate size when known, and Nimi data/runtime dependency
-  storage location.
-- A visible terminal, bash, PowerShell, Chocolatey, WSL, or external package
-  manager flow is not the ordinary-user installation path. It may exist only as
-  diagnostic/log export and must not be the source of truth for dependency state.
-
-Lifecycle projection:
-
-- A consumer with `materializable_requires_confirmation` may appear as
-  installable/review-needed dependency setup, but must not become `ACTIVE` or
-  health-successful.
-- Activation and ready health for accelerator-backed consumers require
-  `ready_system` or `ready_managed`.
-- `failed`, `cancelled`, and `repair_required` must project as fail-closed
-  dependency setup / repair detail, not as topology unsupported and not as
-  pseudo-success.
+Shared accelerator dependency readiness for supervised local execution is owned
+by `local-engine-accelerator-contract.md` under `K-LENG-022`. This file keeps
+the local engine ordering anchor; CUDA source policy, selected source records,
+dependency resolver states, process environment constraints, user confirmation,
+and lifecycle projection live in the accelerator companion contract.
 
 ## K-LENG-023 Runtime Readiness Is Not Engine Bootstrap Readiness
 

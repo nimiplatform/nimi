@@ -7,7 +7,7 @@
  * mutated copy of the SDK classifier source to confirm that:
  *
  *   - The script exits non-zero when the SDK omits an anonymous_read
- *     method id present in the spec table.
+ *     method id present in the spec table shards.
  *   - The script exits non-zero when the SDK adds a fake method id
  *     not present in the spec table's anonymous_read slice.
  *   - The script exits zero on the unmodified SDK source.
@@ -52,12 +52,24 @@ function runDriftScript(workdirOverride?: string): { code: number; stdout: strin
 
 function makeIsolatedRepoCopy(mutator: (source: string) => string): string {
   const workdir = mkdtempSync(join(tmpdir(), 'sdk-drift-fixture-'));
-  // Mirror just the two paths the drift script reads.
+  // Mirror the index, shards, and SDK path the drift script reads.
   const tableRel = 'nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml';
   const tableSrcAbs = join(repoRoot, tableRel);
   const tableDstAbs = join(workdir, tableRel);
   mkdirSync(dirname(tableDstAbs), { recursive: true });
   copyFileSync(tableSrcAbs, tableDstAbs);
+
+  const shardRels = [
+    'nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml',
+    'nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml',
+    'nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml',
+    'nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml',
+  ];
+  for (const shardRel of shardRels) {
+    const shardDstAbs = join(workdir, shardRel);
+    mkdirSync(dirname(shardDstAbs), { recursive: true });
+    copyFileSync(join(repoRoot, shardRel), shardDstAbs);
+  }
 
   const sdkSrcContent = readFileSync(sdkSourceAbs, 'utf8');
   const sdkDstAbs = join(workdir, sdkSourceRel);

@@ -456,7 +456,8 @@ test('createRuntimeClient suppresses auth only for anonymous local AI and local 
     assert.equal(calls[0]?.authorization, undefined);
     assert.equal(calls[1]?.authorization, undefined);
     // installVerifiedAsset is classified `anonymous_read` in Wave 0's
-    // posture table (nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml);
+    // posture table shards indexed by
+    // nimi/.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml;
     // Wave 2's classifier branch in resolveAuthorization therefore skips
     // Authorization for it. Same applies to executeScenario when the
     // request lacks a subjectUserId — the existing AI-route subject-aware

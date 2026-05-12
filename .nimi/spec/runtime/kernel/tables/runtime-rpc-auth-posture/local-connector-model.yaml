@@ -1,0 +1,422 @@
+id: nimicoding.runtime-rpc-auth-posture.local-connector-model.v1
+kind: runtime-rpc-auth-posture-shard
+parent: nimicoding.runtime-rpc-auth-posture.v1
+version: 1
+generated: false
+description: Local runtime, connector, and model posture entries.
+services:
+  - RuntimeLocalService
+  - RuntimeConnectorService
+  - RuntimeModelService
+methods:
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/CreateConnector
+    posture: mixed
+    rationale: K-AUTH-004 admits anonymous create for machine-global API_KEY connectors; user-owned
+      connectors require JWT
+    kernel_refs:
+      - K-AUTH-001
+      - K-AUTH-003
+      - K-AUTH-004
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/GetConnector
+    posture: mixed
+    rationale: K-AUTH-002 information-hiding diverges by JWT presence; system-owned remains visible
+    kernel_refs:
+      - K-AUTH-001
+      - K-AUTH-002
+      - K-AUTH-004
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectors
+    posture: mixed
+    rationale: K-AUTH-004 list semantics diverge by JWT presence; user-owned hidden when JWT absent
+    kernel_refs:
+      - K-AUTH-001
+      - K-AUTH-002
+      - K-AUTH-004
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/UpdateConnector
+    posture: mixed
+    rationale: K-AUTH-004 admits anonymous update for machine-global API_KEY connectors; user-owned
+      requires JWT
+    kernel_refs:
+      - K-AUTH-001
+      - K-AUTH-003
+      - K-AUTH-004
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/DeleteConnector
+    posture: mixed
+    rationale: K-AUTH-004 admits anonymous delete for machine-global API_KEY connectors; user-owned
+      requires JWT
+    kernel_refs:
+      - K-AUTH-001
+      - K-AUTH-003
+      - K-AUTH-004
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/TestConnector
+    posture: mixed
+    rationale: K-AUTH-004 Test path tolerates JWT absence with information hiding
+    kernel_refs:
+      - K-AUTH-001
+      - K-AUTH-002
+      - K-AUTH-004
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels
+    posture: mixed
+    rationale: K-AUTH-004 ListConnectorModels tolerates JWT absence with information hiding
+    kernel_refs:
+      - K-AUTH-001
+      - K-AUTH-002
+      - K-AUTH-004
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog
+    posture: anonymous_read
+    rationale: machine-local provider catalog enumeration; handler ignores context entirely
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListModelCatalogProviders
+    posture: mixed
+    rationale: ListProvidersForSubject filters by subjectUserID; anonymous sees system-only subset
+    kernel_refs:
+      - K-AUTH-001
+      - K-AUTH-002
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider
+    posture: authenticated_required
+    rationale: handler calls requireSubjectUserID which fails closed without JWT
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider
+    posture: authenticated_required
+    rationale: handler calls requireSubjectUserID which fails closed without JWT
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/ListCatalogProviderModels
+    posture: mixed
+    rationale: ListModelsForProviderForSubject filters by subjectUserID; anonymous sees system-only subset
+    kernel_refs:
+      - K-AUTH-001
+      - K-AUTH-002
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/GetCatalogModelDetail
+    posture: mixed
+    rationale: GetModelDetailForSubject filters by subjectUserID; anonymous sees system-only detail
+    kernel_refs:
+      - K-AUTH-001
+      - K-AUTH-002
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay
+    posture: authenticated_required
+    rationale: handler calls requireSubjectUserID which fails closed without JWT
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay
+    posture: authenticated_required
+    rationale: handler calls requireSubjectUserID which fails closed without JWT
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAssets
+    posture: anonymous_read
+    rationale: local asset enumeration; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets
+    posture: anonymous_read
+    rationale: verified asset enumeration; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset
+    posture: anonymous_read
+    rationale: local install operation; no JWT validation, no Realm subject binding
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset
+    posture: anonymous_read
+    rationale: local import operation; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile
+    posture: anonymous_read
+    rationale: local file import; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets
+    posture: anonymous_read
+    rationale: filesystem scan; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset
+    posture: anonymous_read
+    rationale: local asset scaffold; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset
+    posture: anonymous_read
+    rationale: local asset remove; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels
+    posture: anonymous_read
+    rationale: local catalog search; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan
+    posture: anonymous_read
+    rationale: install plan resolution; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalAsset
+    posture: anonymous_read
+    rationale: local asset start; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StopLocalAsset
+    posture: anonymous_read
+    rationale: local asset stop; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth
+    posture: anonymous_read
+    rationale: local asset health probe; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset
+    posture: anonymous_read
+    rationale: local asset warm; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers
+    posture: anonymous_read
+    rationale: local transfer enumeration; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer
+    posture: anonymous_read
+    rationale: local transfer pause; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer
+    posture: anonymous_read
+    rationale: local transfer resume; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer
+    posture: anonymous_read
+    rationale: local transfer cancel; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers
+    posture: anonymous_read
+    rationale: local transfer progress stream; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan
+    posture: anonymous_read
+    rationale: local environment plan resolution; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentSelectedSources
+    posture: anonymous_read
+    rationale: local environment selected source enumeration; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs
+    posture: anonymous_read
+    rationale: local environment dependency job list; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate
+    posture: anonymous_read
+    rationale: local environment activation gate evaluation; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob
+    posture: anonymous_read
+    rationale: local environment job start; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/CancelLocalEnvironmentDependencyJob
+    posture: anonymous_read
+    rationale: local environment job cancel; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RetryLocalEnvironmentDependencyJob
+    posture: anonymous_read
+    rationale: local environment job retry; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency
+    posture: anonymous_read
+    rationale: local environment dependency repair; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveLocalStateReconciliation
+    posture: anonymous_read
+    rationale: local state reconciliation resolution; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ExecuteLocalStateCutover
+    posture: anonymous_read
+    rationale: local state cutover execution; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile
+    posture: anonymous_read
+    rationale: machine-local device profile collection; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveProfile
+    posture: anonymous_read
+    rationale: profile resolution; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ApplyProfile
+    posture: anonymous_read
+    rationale: profile apply; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalServices
+    posture: anonymous_read
+    rationale: local service enumeration; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallLocalService
+    posture: anonymous_read
+    rationale: local service install; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartLocalService
+    posture: anonymous_read
+    rationale: local service start; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StopLocalService
+    posture: anonymous_read
+    rationale: local service stop; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/CheckLocalServiceHealth
+    posture: anonymous_read
+    rationale: local service health probe; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/RemoveLocalService
+    posture: anonymous_read
+    rationale: local service remove; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListNodeCatalog
+    posture: anonymous_read
+    rationale: node catalog enumeration; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalAudits
+    posture: anonymous_read
+    rationale: machine-local audit enumeration; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit
+    posture: anonymous_read
+    rationale: audit append; identity used only for opportunistic enrichment, not as gate
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit
+    posture: anonymous_read
+    rationale: audit append; identity used only for opportunistic enrichment, not as gate
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListEngines
+    posture: anonymous_read
+    rationale: engine enumeration; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/EnsureEngine
+    posture: anonymous_read
+    rationale: engine ensure; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartEngine
+    posture: anonymous_read
+    rationale: engine start; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StopEngine
+    posture: anonymous_read
+    rationale: engine stop; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetEngineStatus
+    posture: anonymous_read
+    rationale: engine status fetch; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeModelService/ListModels
+    posture: anonymous_read
+    rationale: registry enumeration; handler ignores context entirely
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeModelService/PullModel
+    posture: anonymous_read
+    rationale: registry-driven pull; no JWT validation, no Realm subject binding
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeModelService/RemoveModel
+    posture: anonymous_read
+    rationale: registry-driven remove; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeModelService/CheckModelHealth
+    posture: anonymous_read
+    rationale: registry-driven health probe; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+

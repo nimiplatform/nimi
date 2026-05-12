@@ -47,6 +47,8 @@ const kernelFiles = [
   '.nimi/spec/runtime/kernel/scenario-job-lifecycle.md',
   '.nimi/spec/runtime/kernel/local-category-capability.md',
   '.nimi/spec/runtime/kernel/local-engine-contract.md',
+  '.nimi/spec/runtime/kernel/local-engine-accelerator-contract.md',
+  '.nimi/spec/runtime/kernel/local-engine-speech-contract.md',
   '.nimi/spec/runtime/kernel/local-environment-materializers-contract.md',
   '.nimi/spec/runtime/kernel/local-environment-consumer-activation-contract.md',
   '.nimi/spec/runtime/kernel/device-profile-contract.md',
@@ -167,7 +169,7 @@ const kernelFiles = [
   '.nimi/spec/runtime/kernel/tables/capability-to-asset-kind.yaml',
   '.nimi/spec/runtime/kernel/tables/agent-activity-ontology.yaml',
   '.nimi/spec/runtime/kernel/tables/runtime-agent-event-projection.yaml',
-  '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml',
+  ...['.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture.yaml', '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/agent-ai-cognition.yaml', '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/audit-artifact-workflow.yaml', '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/identity-access.yaml', '.nimi/spec/runtime/kernel/tables/runtime-rpc-auth-posture/local-connector-model.yaml'],
   // Rule evidence shards
   '.nimi/spec/runtime/kernel/tables/rule-evidence.catalog.yaml',
   '.nimi/spec/runtime/kernel/tables/rule-evidence.rules.yaml',

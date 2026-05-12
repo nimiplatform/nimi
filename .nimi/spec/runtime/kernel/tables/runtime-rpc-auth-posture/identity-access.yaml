@@ -1,0 +1,172 @@
+id: nimicoding.runtime-rpc-auth-posture.identity-access.v1
+kind: runtime-rpc-auth-posture-shard
+parent: nimicoding.runtime-rpc-auth-posture.v1
+version: 1
+generated: false
+description: Account, auth, grants, and app binding posture entries.
+services:
+  - RuntimeAccountService
+  - RuntimeAuthService
+  - RuntimeGrantService
+  - RuntimeAppService
+methods:
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus
+    posture: authenticated_required
+    rationale: requires admitted LOCAL_FIRST_PARTY_APP or DESKTOP_SHELL caller; rejects unadmitted callers
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents
+    posture: authenticated_required
+    rationale: requires admitted LOCAL_FIRST_PARTY_APP or DESKTOP_SHELL caller
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/BeginLogin
+    posture: authenticated_required
+    rationale: requires admitted LOCAL_FIRST_PARTY_APP or DESKTOP_SHELL caller to start login flow
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/CompleteLogin
+    posture: authenticated_required
+    rationale: requires admitted LOCAL_FIRST_PARTY_APP or DESKTOP_SHELL caller to complete login flow
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccessToken
+    posture: authenticated_required
+    rationale: requires admitted caller and active session for token-request branch
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/RefreshAccountSession
+    posture: authenticated_required
+    rationale: requires admitted caller plus existing AUTHENTICATED account session
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/Logout
+    posture: authenticated_required
+    rationale: requires admitted caller; bound to active Realm session lifecycle
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/SwitchAccount
+    posture: authenticated_required
+    rationale: requires admitted caller plus AUTHENTICATED account session
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding
+    posture: authenticated_required
+    rationale: requires admitted caller plus binding-relation match per validateBindingCallerRelation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding
+    posture: authenticated_required
+    rationale: requires admitted caller plus relation-match against stored binding
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage
+    posture: authenticated_required
+    rationale: requires app session credential via envelope.ParseSessionFromContext for non-internal callers
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages
+    posture: authenticated_required
+    rationale: requires app session credential via envelope.ParseSessionFromContext for non-internal callers
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterApp
+    posture: anonymous_read
+    rationale: bootstrap app registration; no JWT or session credential required
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenSession
+    posture: anonymous_read
+    rationale: bootstrap session establishment; subject_user_id taken from request body, no JWT
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/RefreshSession
+    posture: authenticated_required
+    rationale: requires app session_id + session_token via envelope.ParseSessionFromContext as admitted
+      credential
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/RevokeSession
+    posture: anonymous_read
+    rationale: handler revokes by session_id with no caller credential check
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/RegisterExternalPrincipal
+    posture: anonymous_read
+    rationale: bootstrap principal registration; no JWT or session credential required
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenExternalPrincipalSession
+    posture: authenticated_required
+    rationale: requires external proof JWT in request body to be valid as admitted credential
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuthService/RevokeExternalPrincipalSession
+    posture: anonymous_read
+    rationale: handler revokes by external_session_id with no caller credential check
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeGrantService/AuthorizeExternalPrincipal
+    posture: anonymous_read
+    rationale: validates request-body consent and registry record; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeGrantService/ValidateAppAccessToken
+    posture: anonymous_read
+    rationale: token-id introspection with no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeGrantService/RevokeAppAccessToken
+    posture: anonymous_read
+    rationale: id-based revocation with no caller credential check
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeGrantService/IssueDelegatedAccessToken
+    posture: anonymous_read
+    rationale: parent-token-driven issuance with no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeGrantService/ListTokenChain
+    posture: anonymous_read
+    rationale: id-based chain enumeration with no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+

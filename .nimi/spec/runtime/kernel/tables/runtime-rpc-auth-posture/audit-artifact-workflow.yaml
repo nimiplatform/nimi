@@ -1,0 +1,90 @@
+id: nimicoding.runtime-rpc-auth-posture.audit-artifact-workflow.v1
+kind: runtime-rpc-auth-posture-shard
+parent: nimicoding.runtime-rpc-auth-posture.v1
+version: 1
+generated: false
+description: Audit, artifact, and workflow posture entries.
+services:
+  - RuntimeAuditService
+  - RuntimeArtifactService
+  - RuntimeWorkflowService
+methods:
+  - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
+    posture: anonymous_read
+    rationale: pure id-based artifact byte read; no JWT validation, no owner gate
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/ListAuditEvents
+    posture: anonymous_read
+    rationale: machine-local audit observability; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents
+    posture: anonymous_read
+    rationale: machine-local audit export stream; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/ListUsageStats
+    posture: anonymous_read
+    rationale: machine-local usage stats; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth
+    posture: anonymous_read
+    rationale: machine-local health observation; no subject-bound state
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/ListAIProviderHealth
+    posture: anonymous_read
+    rationale: machine-local provider health observation; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeAIProviderHealthEvents
+    posture: anonymous_read
+    rationale: machine-local provider health stream; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeRuntimeHealthEvents
+    posture: anonymous_read
+    rationale: machine-local runtime health stream; no JWT validation
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow
+    posture: anonymous_read
+    rationale: subject_user_id taken from request body; no JWT validation in handler
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow
+    posture: mixed
+    rationale: authorizeWorkflowTask enforces subject match only when JWT present per K-AUTH-002
+      divergence pattern
+    kernel_refs:
+      - K-AUTH-001
+      - K-AUTH-002
+      - K-AUTH-006
+  - method_id: /nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow
+    posture: mixed
+    rationale: authorizeWorkflowTask enforces subject match only when JWT present per K-AUTH-002
+      divergence pattern
+    kernel_refs:
+      - K-AUTH-001
+      - K-AUTH-002
+      - K-AUTH-006
+  - method_id: /nimi.runtime.v1.RuntimeWorkflowService/SubscribeWorkflowEvents
+    posture: mixed
+    rationale: authorizeWorkflowTask enforces subject match only when JWT present per K-AUTH-002
+      divergence pattern
+    kernel_refs:
+      - K-AUTH-001
+      - K-AUTH-002
+      - K-AUTH-006
+
