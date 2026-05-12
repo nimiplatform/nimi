@@ -1,4 +1,4 @@
-// Wave 1 NAV-SHELL-COMPOSITION-001..002 + topic
+// Wave 1 K-NAV-SHELL-COMPOSITION-001..002 + topic
 // `2026-04-30-avatar-vrm-backend-branch` wave_1 step_4 + wave_4 chunk
 // 4-C — per-surface unit test for embodiment-stage covering:
 //  * render presence under ready / fixture_active composition states

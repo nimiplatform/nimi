@@ -1,7 +1,7 @@
 // Wave 1 — Embodiment Stage surface.
 // Renders the Live2D carrier on a transparent background. Owns the hit-region /
 // drag-region / pointer interaction wiring. Per app-shell-contract.md
-// NAV-SHELL-COMPOSITION-001..002 this surface is mounted ONLY when composition
+// K-NAV-SHELL-COMPOSITION-001..002 this surface is mounted ONLY when composition
 // state is `ready` or `fixture_active`; it is hard-cut unmounted under any
 // degraded / loading / error / relaunch-pending state.
 
@@ -40,7 +40,7 @@ export type EmbodimentStageProps = {
   backend: BackendBranch | null;
   windowSize: { width: number; height: number };
   embodied: boolean;
-  // composition state (NAV-SHELL-COMPOSITION-001) at the time the surface is
+  // composition state (K-NAV-SHELL-COMPOSITION-001) at the time the surface is
   // mounted. Required so the surface-mounted/unmounted evidence carries the
   // correct posture annotation (`ready` vs `fixture_active`).
   compositionState: string;

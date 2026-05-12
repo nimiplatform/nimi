@@ -1,6 +1,6 @@
 // IMPORTANT: i18n is imported FIRST so its synchronous init runs before any
 // component module that calls t() / useTranslation() at module evaluation
-// time. Wave 2 / app-shell-contract.md NAV-SHELL-COMPANION-* + DEGRADED-* all
+// time. Wave 2 / app-shell-contract.md K-NAV-SHELL-COMPANION-* + DEGRADED-* all
 // rely on i18n being ready at first paint — no loading flash, no async
 // fallback path.
 import './i18n/index.js';

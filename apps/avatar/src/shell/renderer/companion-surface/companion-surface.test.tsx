@@ -1,9 +1,9 @@
-// Wave 1 NAV-SHELL-COMPANION-001..010 — per-surface unit test for companion-surface.
+// Wave 1 K-NAV-SHELL-COMPANION-001..010 — per-surface unit test for companion-surface.
 // Covers render of the 3-layer stack (assistant-bubble / status-row / composer),
 // composer enabled/disabled gating, mic disabled gating, and surface-mounted /
 // surface-unmounted evidence emit. Heavy dependencies (i18n, voice capture) are
 // the real ones; only the evidence emitter is mocked so we can assert spec
-// scope NAV-SHELL-COMPOSITION-004 evidence.
+// scope K-NAV-SHELL-COMPOSITION-004 evidence.
 
 import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

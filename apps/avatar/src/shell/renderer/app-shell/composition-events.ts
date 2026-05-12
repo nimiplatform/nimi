@@ -1,4 +1,4 @@
-// Wave 1 NAV-SHELL-COMPOSITION-004 — composition state machine evidence emit.
+// Wave 1 K-NAV-SHELL-COMPOSITION-004 — composition state machine evidence emit.
 //
 // Emits the four `avatar.composition.*` events admitted by
 // `avatar-event-contract.md` §2.5 / §4 whenever the avatar shell composition

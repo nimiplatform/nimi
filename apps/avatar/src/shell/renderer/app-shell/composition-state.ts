@@ -1,4 +1,4 @@
-// Surface composition state derivation per app-shell-contract.md §6 (NAV-SHELL-COMPOSITION-001..005).
+// Surface composition state derivation per app-shell-contract.md §6 (K-NAV-SHELL-COMPOSITION-001..005).
 // The avatar shell renders exactly one of three surfaces at any time:
 //   - ready:               embodiment-stage + companion-surface (mutually visible)
 //   - fixture-active:      same as ready, but driven by VITE_AVATAR_DRIVER=mock fixture data

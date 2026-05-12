@@ -47,7 +47,7 @@ VRM backend 是 `apps/avatar` 内独立实现：
 
 ## 2. Lifecycle
 
-### 2.1 Model Load (NAV-VRM-001)
+## K-NAV-VRM-001 Model Load
 
 加载流程：
 
@@ -82,7 +82,7 @@ must-honor list）。
 
 无静默 fallback；任何 failure 进 degraded surface。
 
-### 2.3 Context Lost & Restore (NAV-VRM-002)
+## K-NAV-VRM-002 Context Lost & Restore
 
 WebGL context lost 处理：
 
@@ -114,7 +114,7 @@ webglcontextlost → emit avatar.carrier.lifecycle.context_lost
 
 ## 3. Generated Motion Provider
 
-### 3.1 Runtime Support Path (NAV-VRM-003)
+## K-NAV-VRM-003 Runtime Support Path
 
 APML auto-adapter runtime support is proved by generated `THREE.AnimationClip`
 execution downstream of typed runtime projection, not by the presence of
@@ -145,7 +145,7 @@ fallback is not support for a non-idle route.
 This path is admitted only for interchange, authoring, and legacy evidence. It
 must not be required for APML auto-adapter runtime support.
 
-### 3.3 Interchange Preset Registry (NAV-VRM-004)
+## K-NAV-VRM-004 Interchange Preset Registry
 
 Interchange registry见 `tables/vrm-motion-presets.yaml`。每 entry 必须有：
 
@@ -196,7 +196,7 @@ generatedMotionRuntime.play({
 
 ## 4. Nominal Bounds
 
-### 4.1 Derivation (NAV-VRM-005)
+## K-NAV-VRM-005 Derivation
 
 VRM `BackendNominalBounds.width/height` 派生顺序：
 
@@ -228,7 +228,7 @@ avatar 默认 `bottom-companion`，aspect 0.45（高瘦窗口）。framing inten
 
 ## 5. Expression System
 
-### 5.1 Preset Names (NAV-VRM-006)
+## K-NAV-VRM-006 Preset Names
 
 VRM expression preset 标准命名：
 
@@ -253,7 +253,7 @@ VRM expression preset 标准命名：
 
 ## 6. Tauri WebView Quirks
 
-### 6.1 createImageBitmap Suspend (NAV-VRM-007)
+## K-NAV-VRM-007 createImageBitmap Suspend
 
 Tauri webview（macOS WKWebView）在 GLTF texture 加载阶段触发
 `createImageBitmap` 时偶发 hang。VRM loader 必须在 `loadAsync` 调用
@@ -281,7 +281,7 @@ worklet（wLipSync）+ WebGL2 + offscreen canvas 要求。
 
 ## 7. MToon Outline Policy
 
-### 7.1 Outline Algorithm (NAV-VRM-008)
+## K-NAV-VRM-008 Outline Algorithm
 
 VRM 标准 MToon material 支持 outline（描边）。avatar 使用 airi 工业级
 outline fallback 算法（design-11 admit）：

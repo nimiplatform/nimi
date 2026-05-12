@@ -8,7 +8,7 @@ exports[`Avatar shell visual snapshots > degraded surface — relaunch pending (
 >
   <section
     aria-label="Avatar surface unavailable"
-    class="avatar-degraded-surface avatar-degraded-surface--error"
+    class="avatar-degraded-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-degraded-surface--error"
     data-composition-state="error_bootstrap_fatal"
     data-testid="avatar-degraded-surface"
     role="alert"
@@ -85,7 +85,7 @@ exports[`Avatar shell visual snapshots > degraded surface — runtime unavailabl
 >
   <section
     aria-label="Avatar surface unavailable"
-    class="avatar-degraded-surface avatar-degraded-surface--degraded"
+    class="avatar-degraded-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-degraded-surface--degraded"
     data-composition-state="degraded_runtime_unavailable"
     data-testid="avatar-degraded-surface"
     role="alert"
@@ -171,7 +171,7 @@ exports[`Avatar shell visual snapshots > ready surface (embodiment-stage + compa
   </section>
   <section
     aria-label="Avatar companion"
-    class="avatar-companion-surface avatar-companion-surface--idle"
+    class="avatar-companion-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-companion-surface--idle"
     data-testid="avatar-companion-surface"
   >
     <div

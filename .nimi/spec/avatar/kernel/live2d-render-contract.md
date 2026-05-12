@@ -59,7 +59,7 @@ Wave 4 hard cut: current Avatar app evidence proves Live2D model/resource loadin
 
 ## 1. SDK Integration Boundary
 
-### 1.1 Cubism SDK for Web 使用方式 (NAV-L2D-001)
+## K-NAV-L2D-001 Cubism SDK for Web 使用方式
 
 - **不 fork** Cubism SDK
 - 通过官方 `@live2d/cubism-framework` + native `Live2DCubismCore.js` 依赖接入
@@ -86,7 +86,7 @@ Wave 4 hard cut: current Avatar app evidence proves Live2D model/resource loadin
 
 ## 2. Model Loading
 
-### 2.1 Loading Entry Point (NAV-L2D-002)
+## K-NAV-L2D-002 Loading Entry Point
 
 Avatar app 接收 `model_path`（来自 `avatar.app.start.detail.model_path` 或 default config）：
 
@@ -110,7 +110,7 @@ contract's explicit manifest sources. It must not silently rewrite upstream
 Cubism assets or treat arbitrary Live2D package loading as semantic companion
 support.
 
-### 2.2 Model-ID 推断 (NAV-L2D-003)
+## K-NAV-L2D-003 Model-ID 推断
 
 `model_id` = `*.model3.json` 文件名去掉 `.model3.json` 后缀。
 
@@ -119,7 +119,7 @@ support.
 | `ren.model3.json` | `ren` |
 | `cute-avatar.model3.json` | `cute-avatar` |
 
-### 2.3 Model Lifecycle (NAV-L2D-004)
+## K-NAV-L2D-004 Model Lifecycle
 
 | Op | 条件 | 事件 |
 |---|---|---|
@@ -142,7 +142,7 @@ support.
 
 ## 3. Backend Frame Loop
 
-### 3.1 Frame Cadence (NAV-L2D-005)
+## K-NAV-L2D-005 Frame Cadence
 
 - NAS continuous scheduler 运行于 `requestAnimationFrame`，目标 60fps（浏览器 vsync）
 - Current Avatar app backend-session applies commands and calls Cubism `model.update()` when command-state changes.
@@ -157,7 +157,7 @@ support.
 
 ## 4. NAS Continuous Handler Frame Sync
 
-### 4.1 调度规则 (NAV-L2D-006)
+## K-NAV-L2D-006 调度规则
 
 Continuous handler 在 Avatar app frame scheduler 内按声明 fps 调度：
 
@@ -181,7 +181,7 @@ For each continuous handler h:
 
 ---
 
-## 5. Motion System (NAV-L2D-007)
+## K-NAV-L2D-007 Motion System
 
 ### 5.1 Motion Group 命名 Convention
 
@@ -212,7 +212,7 @@ Live2D branch 默认 activity fallback 查的 motion group 名：`Activity_<Came
 
 ---
 
-## 6. Expression System (NAV-L2D-008)
+## K-NAV-L2D-008 Expression System
 
 ### 6.1 Expression Stack
 
@@ -230,7 +230,7 @@ Cubism 支持 expression overlay。Nimi Avatar 只维护**单一 active expressi
 
 ## 7. Physics & Auto Behaviors
 
-### 7.1 Physics (NAV-L2D-009)
+## K-NAV-L2D-009 Physics
 
 - 若 `physics3.json` 存在 → Cubism 官方 physics 自动应用（breath, cloth, hair swing 等）
 - Handler 不直接控制 physics（v1 scope out；future API）
@@ -248,7 +248,7 @@ Cubism 支持 expression overlay。Nimi Avatar 只维护**单一 active expressi
 - Model 需声明 `Eyes` group（`ParamEyeLOpen` / `ParamEyeROpen`）
 - NAS handler setParameter 同样覆盖
 
-### 7.4 Auto Lipsync (NAV-L2D-013)
+## K-NAV-L2D-013 Auto Lipsync
 
 - Auto lipsync is admitted only through runtime-owned PresentationTimeline
   truth (`K-AGCORE-051`) plus Avatar-owned voice adapter / mouth parameter
@@ -269,7 +269,7 @@ Cubism 支持 expression overlay。Nimi Avatar 只维护**单一 active expressi
 
 ## 8. Parameter API
 
-### 8.1 Direct Parameter Access (NAV-L2D-010)
+## K-NAV-L2D-010 Direct Parameter Access
 
 当前 Live2D backend branch 提供 parameter read/write/add：
 
@@ -299,7 +299,7 @@ live2d.addParameter(id: string, delta: number): void;
 
 最后生效的值写入 MOC3。
 
-### 8.3 Pose System (NAV-L2D-011)
+## K-NAV-L2D-011 Pose System
 
 `setPose(group, loop)` 持续设置某 motion group 作为 "durable pose"：
 
@@ -311,7 +311,7 @@ live2d.addParameter(id: string, delta: number): void;
 
 ## 9. Hit Testing (for Avatar Shell)
 
-### 9.1 Model Hit Region (NAV-L2D-012)
+## K-NAV-L2D-012 Model Hit Region
 
 Avatar shell 调用 renderer 获取当前帧 hit region：
 

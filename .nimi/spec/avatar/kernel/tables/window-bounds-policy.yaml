@@ -5,7 +5,7 @@ description: >
   embodiment backend's surface bounds plus the companion-surface footprint,
   which triggers cause a recompute, the formula that combines the two
   contributions, and the visible-area + multi-monitor constraints. Rule ids
-  follow NAV-SHELL-002 / NAV-SHELL-003 / NAV-SHELL-005-* admitted in
+  follow K-NAV-SHELL-002 / K-NAV-SHELL-003 / K-NAV-SHELL-005-* admitted in
   app-shell-contract.md §1.2 / §1.3 / §3.3.
 
 policy:
@@ -13,7 +13,7 @@ policy:
     width_px: 400
     height_px: 600
     reason: >
-      Boot placeholder declared in app-shell-contract NAV-SHELL-001. Replaced
+      Boot placeholder declared in app-shell-contract K-NAV-SHELL-001. Replaced
       on the first model_load recompute trigger (no user-visible flash).
 
   recompute_triggers:
@@ -81,7 +81,7 @@ policy:
       around the union so drop-shadow / focus rings don't get clipped.
 
   visible_area:
-    rule_id: NAV-SHELL-005-EDGE
+    rule_id: K-NAV-SHELL-010
     min_visible_ratio: 0.20
     target_metric: embodiment_bounds_area
     enforcer: nimi_avatar_constrain_window_to_visible_area
@@ -137,13 +137,13 @@ constraints:
   - description: >
       Companion footprint contributes to total window size; companion is
       NOT in a separate Tauri window. Splitting companion into its own
-      window is forbidden by NAV-SHELL-COMPOSITION-002 (single shell window
+      window is forbidden by K-NAV-SHELL-COMPOSITION-002 (single shell window
       hosts both stacks).
   - description: >
       Drag region is limited to embodiment-stage hit area
       (avatar-hit-region.ts). Companion-surface and degraded-surface
       pointer-down events MUST NOT trigger window drag — drag rescue must
-      come from the embodiment-stage body region per NAV-SHELL-004-DRAG.
+      come from the embodiment-stage body region per K-NAV-SHELL-008.
   - description: >
       Recompute on model_load + model_switch fires synchronously with
       debounce_ms=0; companion_footprint_change is debounced (80ms) to

@@ -13,7 +13,7 @@ Runtime-issued app access token 是 `RuntimeAccountService.GetAccessToken`
 
 Default Nimi Avatar launch is no longer a Desktop scoped-binding consumer.
 Avatar default launch is governed by `.nimi/spec/avatar/kernel/app-shell-contract.md`
-`NAV-SHELL-FIRST-PARTY-RUNTIME-*` and uses local first-party Runtime account
+`K-NAV-SHELL-FIRST-PARTY-RUNTIME-*` and uses local first-party Runtime account
 projection. This contract continues to govern explicit binding-only / embedded /
 delegated / external / mod capability consumers.
 

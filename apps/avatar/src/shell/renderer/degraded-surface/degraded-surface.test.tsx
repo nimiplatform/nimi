@@ -1,4 +1,4 @@
-// Wave 1 NAV-SHELL-DEGRADED-001..005 — per-surface unit test for degraded-surface.
+// Wave 1 K-NAV-SHELL-DEGRADED-001..005 — per-surface unit test for degraded-surface.
 // Covers all admitted state postures (loading / degraded:* / error / relaunch /
 // unknown), reason interpolation, reload-button affordance, and i18n coverage.
 // Surface-mounted/unmounted evidence is asserted via mocked

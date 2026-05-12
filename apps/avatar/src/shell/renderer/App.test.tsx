@@ -1,5 +1,5 @@
 // Wave 1 — App.tsx three-surface integration tests.
-// Per app-shell-contract.md NAV-SHELL-COMPOSITION-* the shell renders exactly
+// Per app-shell-contract.md K-NAV-SHELL-COMPOSITION-* the shell renders exactly
 // one of: (embodiment-stage + companion-surface) under ready / fixture_active,
 // or degraded-surface under loading / degraded:* / error:* / relaunch-pending.
 

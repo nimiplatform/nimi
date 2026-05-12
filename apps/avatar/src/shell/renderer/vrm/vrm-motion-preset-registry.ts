@@ -2,7 +2,7 @@
 //
 // Runtime registry that maps motion preset id → Three.js AnimationAction
 // and drives crossfaded playback against a single per-VRM AnimationMixer.
-// Implements NAV-VRM-003 + NAV-VRM-004 from vrm-backend-contract.md and
+// Implements K-NAV-VRM-003 + K-NAV-VRM-004 from vrm-backend-contract.md and
 // the algorithm sketched in design-04 §"VrmMotionPresetRegistry".
 //
 // Per-model override semantics (vrm-backend-contract.md §3.3):

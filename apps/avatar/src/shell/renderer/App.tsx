@@ -1,5 +1,5 @@
 // Wave 1 — Avatar shell root component.
-// Per app-shell-contract.md NAV-SHELL-COMPOSITION-002 the shell mounts exactly
+// Per app-shell-contract.md K-NAV-SHELL-COMPOSITION-002 the shell mounts exactly
 // one of: (embodiment-stage + companion-surface) OR degraded-surface.
 // The legacy mixed `recovery panel` + `trigger toggle` paths from Phase 1/2 are
 // hard-cut; companion-surface is always-visible while ready.
@@ -476,7 +476,7 @@ export function App() {
     ],
   );
 
-  // ── Composition transition evidence (NAV-SHELL-COMPOSITION-004) ──────────────
+  // ── Composition transition evidence (K-NAV-SHELL-COMPOSITION-004) ──────────────
   // Observes composition derivation changes and emits
   // `avatar.composition.transition` whenever the state field actually flips.
   // The first observation establishes the baseline (no `from`) so we can

@@ -200,7 +200,7 @@ fn build_avatar_window(
     app: &tauri::AppHandle,
     window_label: &str,
 ) -> Result<WebviewWindow, String> {
-    // NAV-SHELL-001: transparent + decorations(false) + skip_taskbar(true) +
+    // K-NAV-SHELL-001: transparent + decorations(false) + skip_taskbar(true) +
     // shadow(false) are required (not optional) per app-shell-contract §1.1.
     // Transparent is what lets the embodiment-stage's transparent background
     // actually show desktop underneath outside the model alpha + companion
@@ -427,7 +427,7 @@ async fn nimi_avatar_get_cursor_client_position(
 
 // Wave 4 — pure constraint math extracted so cargo tests can cover it
 // without spinning up a Tauri WebviewWindow. Encodes
-// window-bounds-policy.yaml visible_area rule (NAV-SHELL-005-EDGE):
+// window-bounds-policy.yaml visible_area rule (K-NAV-SHELL-010):
 // at least `min_visible_ratio` of the window must remain inside the active
 // monitor's work area.
 pub(crate) fn compute_constrained_window_position(

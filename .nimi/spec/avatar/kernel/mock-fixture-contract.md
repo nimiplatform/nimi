@@ -31,7 +31,7 @@ Nimi Avatar 当前正常启动路径已经采用 real runtime/SDK consume chain�
 
 ---
 
-## 1. Module Boundary (NAV-MOCK-001)
+## K-NAV-MOCK-001 Module Boundary
 
 ### 1.1 模块布局
 
@@ -51,7 +51,7 @@ src/shell/renderer/
     └── index.ts               # Export SdkDriver
 ```
 
-### 1.2 共享 Interface (NAV-MOCK-002)
+## K-NAV-MOCK-002 共享 Interface
 
 `MockDriver` 和 `SdkDriver` 都实现同一 `AgentDataDriver` interface：
 
@@ -84,7 +84,7 @@ export function createDriver(): AgentDataDriver {
 
 ## 2. Scenario File Format
 
-### 2.1 顶层 Schema (NAV-MOCK-003)
+## K-NAV-MOCK-003 顶层 Schema
 
 ```typescript
 interface MockScenario {
@@ -228,7 +228,7 @@ interface MockTrigger {
 
 ## 3. Event Injection
 
-### 3.1 Time-Based Scheduling (NAV-MOCK-004)
+## K-NAV-MOCK-004 Time-Based Scheduling
 
 ```typescript
 class MockDriver implements AgentDataDriver {
@@ -284,7 +284,7 @@ Ctx 由 app 组装（app 调 driver.onAgentDataChange 拿 bundle 的 base + 触�
 
 ---
 
-## 4. Validation Rules (NAV-MOCK-005)
+## K-NAV-MOCK-005 Validation Rules
 
 ### 4.1 Scenario Load-Time Validation
 
@@ -312,7 +312,7 @@ Load scenario 时 hard-validate（fail-close）：
 
 ---
 
-## 5. Scenario Catalog (NAV-MOCK-006)
+## K-NAV-MOCK-006 Scenario Catalog
 
 - 所有 scenarios registered 在 `spec/kernel/tables/scenario-catalog.yaml`
 - Catalog 提供 id / file path / description / tags / duration
@@ -325,7 +325,7 @@ Load scenario 时 hard-validate（fail-close）：
 
 ---
 
-## 6. Mock vs Real Boundary (NAV-MOCK-007)
+## K-NAV-MOCK-007 Mock vs Real Boundary
 
 ### 6.1 Current Carrier Boundary
 

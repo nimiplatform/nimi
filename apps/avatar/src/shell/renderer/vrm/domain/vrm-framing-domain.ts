@@ -9,7 +9,7 @@
 // is an independent rewrite; see apps/avatar/AGENTS.md "External
 // Reference" section for the borrowing accounting.
 //
-// Per vrm-backend-contract.md §4 (NAV-VRM-005):
+// Per vrm-backend-contract.md §4 (K-NAV-VRM-005):
 //   - `bottom-companion` is the avatar default (waist-up framing)
 //   - `full-body` is for idle / motion-preview at full body scale
 //   - `head-shoulders` is the closest framing for speaking emphasis

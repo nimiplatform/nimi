@@ -1,5 +1,5 @@
 // Wave 1 + Wave 2 — Degraded Surface
-// Per app-shell-contract.md NAV-SHELL-DEGRADED-001..005 this surface is the
+// Per app-shell-contract.md K-NAV-SHELL-DEGRADED-001..005 this surface is the
 // SOLE renderer when composition state is loading / degraded:* / error:* /
 // relaunch-pending. It is mutually exclusive with embodiment-stage and
 // companion-surface; no ready surface elements are rendered concurrently.

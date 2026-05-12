@@ -136,7 +136,7 @@ Runtime 错误通过三层投影到 Desktop UI：
 | `RUNTIME_UNAVAILABLE` | SDK 合成码 | "本地运行时不可用，请检查 daemon 状态" |
 | `RUNTIME_BRIDGE_DAEMON_UNAVAILABLE` | SDK 合成码 | "无法连接到运行时服务" |
 
-**D-ERR-007a `AI_PROVIDER_UNAVAILABLE` 上下文感知映射**：
+## D-ERR-007a `AI_PROVIDER_UNAVAILABLE` 上下文感知映射
 
 Runtime K-PROV-003 指出 provider 健康探测将 `401`/`403` 视为 healthy（server 可达）。因此 provider 显示 healthy 但 consume 持续返回 `AI_PROVIDER_UNAVAILABLE` 时，根因是凭据问题而非网络问题。Desktop 应结合 provider 健康状态（D-IPC-002 可获取）差异化引导用户：
 

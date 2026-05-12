@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => {
   return {
     // Order tracker — every mocked side-effect pushes a tag here so the
-    // strict NAV-VRM-001 ordering can be asserted.
+    // strict K-NAV-VRM-001 ordering can be asserted.
     callOrder: [] as string[],
     rotateVRM0: vi.fn((_vrm: unknown) => {
       mocks.callOrder.push('rotateVRM0');

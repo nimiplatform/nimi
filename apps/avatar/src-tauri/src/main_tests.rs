@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 // Wave 4 — `compute_constrained_window_position` covers
-// window-bounds-policy.yaml `visible_area` rule (NAV-SHELL-005-EDGE):
+// window-bounds-policy.yaml `visible_area` rule (K-NAV-SHELL-010):
 // at least `min_visible_ratio` of the window must remain inside the active
 // monitor's work area.
 

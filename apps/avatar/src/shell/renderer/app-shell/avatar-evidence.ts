@@ -18,12 +18,12 @@ export type AvatarEvidenceKind =
   | 'avatar.model.load'
   | 'avatar.carrier.visual'
   | 'avatar.debug.session-evidence'
-  // Wave 1 NAV-SHELL-COMPOSITION-004 — composition state machine evidence.
+  // Wave 1 K-NAV-SHELL-COMPOSITION-004 — composition state machine evidence.
   | 'avatar.composition.transition'
   | 'avatar.composition.relaunch-pending'
   | 'avatar.composition.surface-mounted'
   | 'avatar.composition.surface-unmounted'
-  // Wave 4 NAV-SHELL-002 — dynamic window-bounds recompute evidence.
+  // Wave 4 K-NAV-SHELL-002 — dynamic window-bounds recompute evidence.
   // Per avatar-event-contract.md §2.6 + §4 detail schemas.
   | 'avatar.shell.window-bounds-changed'
   // Topic 2026-04-30 wave_4 chunk 4-C — device tier detection (one-shot

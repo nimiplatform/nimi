@@ -14,7 +14,7 @@
 >
 > Explicit binding-only / embedded / delegated Avatar mode 仍可由 `K-BIND-*` admit，但它不是 Desktop-launched Avatar 的默认路径。
 >
-> **Wave 0 Surface Composition admit**：本 contract 重写 surface composition 模型为 `embodiment-stage` / `companion-surface` / `degraded-surface` 三互斥结构（NAV-SHELL-COMPOSITION-*）。原 "Phase 2 deferred small chat button" 路径正式废弃，由 always-visible Companion Surface（NAV-SHELL-COMPANION-*）取代；degraded posture 由独立 Degraded Surface（NAV-SHELL-DEGRADED-*）承载，不再混入 ready 主区。
+> **Wave 0 Surface Composition admit**：本 contract 重写 surface composition 模型为 `embodiment-stage` / `companion-surface` / `degraded-surface` 三互斥结构（K-NAV-SHELL-COMPOSITION-*）。原 "Phase 2 deferred small chat button" 路径正式废弃，由 always-visible Companion Surface（K-NAV-SHELL-COMPANION-*）取代；degraded posture 由独立 Degraded Surface（K-NAV-SHELL-DEGRADED-*）承载，不再混入 ready 主区。
 
 ---
 
@@ -28,7 +28,7 @@ Wave 顺序见 `nimi-avatar.md` 与 `kernel/tables/feature-matrix.yaml`。本 co
 
 ## 1. Window Configuration
 
-### 1.1 Tauri Window Config (NAV-SHELL-001)
+## K-NAV-SHELL-001 Tauri Window Config
 
 Window 必须以如下 config 启动（不可 runtime 改变）：
 
@@ -42,7 +42,7 @@ Window 必须以如下 config 启动（不可 runtime 改变）：
 | `shadow` | `false` | 无 window shadow（形象自身有阴影） |
 | `width` / `height` | Initial 400 × 600 | 启动占位，model 加载完按 bounds 调整 |
 
-### 1.2 Dynamic Window Size (NAV-SHELL-002)
+## K-NAV-SHELL-002 Dynamic Window Size
 
 Window 尺寸**必须**跟随当前 embodiment backend 产出的 surface bounds **加** companion-surface footprint：
 
@@ -53,7 +53,7 @@ Window 尺寸**必须**跟随当前 embodiment backend 产出的 surface bounds 
 
 详细 sizing policy 见 `kernel/tables/window-bounds-policy.yaml`（Wave 4 admit）。
 
-### 1.3 Initial Position (NAV-SHELL-003)
+## K-NAV-SHELL-003 Initial Position
 
 - 首次启动：屏幕右下角 padding 24px
 - 后续启动：记忆上次关闭时位置（persisted via `tauri-plugin-window-state` 或等价机制）
@@ -61,7 +61,7 @@ Window 尺寸**必须**跟随当前 embodiment backend 产出的 surface bounds 
 
 ---
 
-## 2. Hit Region & Click-through (NAV-SHELL-004)
+## K-NAV-SHELL-004 Hit Region & Click-through
 
 ### 2.1 Hit Region 定义
 
@@ -86,7 +86,7 @@ hit_region = union of:
 - **Out-of-region**（透明区域）：`set_ignore_cursor_events(true)` 状态，事件穿透到下层 app
 - **State transition**：mouse move 跨越 region 边界 → immediate switch；不做 hysteresis
 
-### 2.3.1 Hit Region 双层结构 (NAV-SHELL-COMPOSITION-HIT-REGION)
+## K-NAV-SHELL-COMPOSITION-006 Hit Region 双层结构
 
 > Wave 0 of topic `2026-04-30-avatar-vrm-backend-branch` (design-07) admit.
 > Replaces the single-layer alpha-mask path with **alpha-mask + bbox 双层互补**.
@@ -123,7 +123,7 @@ backend.hitRegion.isOpaqueAtClientPoint(x, y)
 
 `set_ignore_cursor_events` IPC 调用频率约束 ≤ 60Hz（节流强制；log assert）。
 
-### 2.3.2 Device Tier Baseline (NAV-SHELL-COMPOSITION-DEVICE-TIER)
+## K-NAV-SHELL-COMPOSITION-007 Device Tier Baseline
 
 > Wave 0 admit. Per-device capability detection at carrier mount.
 
@@ -137,7 +137,7 @@ device tier detect：carrier 启动时通过 GPU vendor / GLSL ES 版本 / 基�
 测试综合判定；结果存 `nimi.avatar.deviceTier` 全局 key。tier 一旦确定不再
 runtime 变更（除非 reload）。
 
-### 2.4 Drag Region 限定 (NAV-SHELL-004-DRAG)
+## K-NAV-SHELL-008 Drag Region 限定
 
 Window drag（§3）仅在 embodiment-stage 内部触发：
 
@@ -147,7 +147,7 @@ Window drag（§3）仅在 embodiment-stage 内部触发：
 
 ---
 
-## 3. Window Drag (NAV-SHELL-005)
+## K-NAV-SHELL-005 Window Drag
 
 ### 3.1 Drag 触发
 
@@ -180,18 +180,26 @@ Hold + move N pixels within drag_threshold_ms
 - 最小可见 padding：embodiment_bounds 的 20% 必须留在屏幕内
 - 多 monitor：允许拖到其他 monitor，移动时 window state 同步 monitor 变更
 
+## K-NAV-SHELL-010 Visible Area Constraint
+
+Avatar window movement must preserve the visible-area invariant defined by
+`kernel/tables/window-bounds-policy.yaml`: at least 20% of the active
+`embodiment_bounds` area remains inside the current monitor work area. The
+companion footprint is excluded from the ratio so the visible avatar body, not
+the auxiliary UI, remains recoverable by drag.
+
 ---
 
-## 4. Always-on-Top & Focus (NAV-SHELL-006)
+## K-NAV-SHELL-006 Always-on-Top & Focus
 
 ### 4.1 Default 状态
 
 - Always-on-top **启用**（default）
 - 即使 avatar window 无 focus，依然 render 于顶层
 
-### 4.2 User Override (NAV-SHELL-006-SETTINGS)
+## K-NAV-SHELL-011 User Override
 
-Avatar shell 仅暴露下列 4 个 avatar-shell-local 行为开关，默认通过 settings popover（NAV-SHELL-COMPANION-009）调整：
+Avatar shell 仅暴露下列 4 个 avatar-shell-local 行为开关，默认通过 settings popover（K-NAV-SHELL-COMPANION-009）调整：
 
 - `always_on_top: true|false`（default `true`）
 - `bubble_auto_open: true|false`（default `true`；关闭后只保留 unread cue，不强开 bubble）
@@ -202,7 +210,7 @@ Settings UI 必须保持 product-light：
 
 - 不得暴露 transcript-heavy、desktop-parity、background voice、或 runtime owner-crossing setting
 - 不得把 settings 当作 launch/runtime fail-closed posture 的 bypass
-- 不得 inline 在主区（embodiment-stage 或 companion-surface），必须以 popover 形式弹出，遵从 NAV-SHELL-COMPANION-009
+- 不得 inline 在主区（embodiment-stage 或 companion-surface），必须以 popover 形式弹出，遵从 K-NAV-SHELL-COMPANION-009
 
 ### 4.3 Focus Event
 
@@ -212,7 +220,7 @@ Settings UI 必须保持 product-light：
 
 ---
 
-## 5. Visibility (NAV-SHELL-007)
+## K-NAV-SHELL-007 Visibility
 
 ### 5.1 Visibility States
 
@@ -229,9 +237,9 @@ Settings UI 必须保持 product-light：
 
 ---
 
-## 6. Surface Composition (NAV-SHELL-COMPOSITION-*)
+## 6. Surface Composition (K-NAV-SHELL-COMPOSITION-*)
 
-### 6.1 Composition States (NAV-SHELL-COMPOSITION-001)
+## K-NAV-SHELL-COMPOSITION-001 Composition States
 
 Avatar shell 的渲染由 **composition state** 决定。任何时刻 shell 处于且仅处于以下一个 composition state：
 
@@ -245,7 +253,7 @@ Avatar shell 的渲染由 **composition state** 决定。任何时刻 shell 处�
 | `error:bootstrap-fatal` | bootstrap 抛错且不属于上述 typed degraded reason | 仅 `degraded-surface`（fatal posture） |
 | `relaunch-pending` | desktop 推送了 launch context update，等待 shell reload | 仅 `degraded-surface`（relaunch notice） |
 
-### 6.2 互斥规则 (NAV-SHELL-COMPOSITION-002)
+## K-NAV-SHELL-COMPOSITION-002 互斥规则
 
 - 三类 surface（embodiment-stage / companion-surface / degraded-surface）必须**硬性互斥呈现**于 ready 与非 ready 之间：
   - `ready` → embodiment-stage + companion-surface 同时可见；degraded-surface 不渲染
@@ -254,7 +262,7 @@ Avatar shell 的渲染由 **composition state** 决定。任何时刻 shell 处�
 - 不允许在 ready 主区域显示 diagnostic 文字、reason summary、或 recovery copy；这些信息只能出现在 degraded-surface
 - 不允许在 degraded-surface 内嵌入 companion-surface 或 embodiment-stage 子组件（保持视觉权威单一）
 
-### 6.3 状态转移 (NAV-SHELL-COMPOSITION-003)
+## K-NAV-SHELL-COMPOSITION-003 状态转移
 
 - `loading` → `ready`：bootstrap 完成 + visual ready
 - `loading` → `degraded:*`：bootstrap 失败，按 typed reason 进入对应 degraded sub-state
@@ -262,7 +270,7 @@ Avatar shell 的渲染由 **composition state** 决定。任何时刻 shell 处�
 - `ready` → `relaunch-pending`：desktop 推送 `nimi-avatar://launch?...` 更新到现有 instance；shell 必须卸载 ready surface、显示 relaunch notice 并主动 reload
 - 任何 degraded → `loading`：仅由用户显式触发的 reload 路径开启；shell 不允许自动从 degraded 自愈到 ready
 
-### 6.4 Composition Evidence (NAV-SHELL-COMPOSITION-004)
+## K-NAV-SHELL-COMPOSITION-004 Composition Evidence
 
 每次 composition state 转移必须写入 evidence（`avatar-carrier-evidence` projection）：
 
@@ -270,7 +278,7 @@ Avatar shell 的渲染由 **composition state** 决定。任何时刻 shell 处�
 - 转入 `degraded:*` 与 `error:*` 时同步 emit `avatar.runtime.bind-failed` 或 `avatar.startup.failed`（按既有 evidence schema）
 - `relaunch-pending` 转移必须 emit `avatar.composition.relaunch-pending`，含 `next_launch_context` summary
 
-### 6.5 Fail-Close 与 Mock 路径 (NAV-SHELL-COMPOSITION-005)
+## K-NAV-SHELL-COMPOSITION-005 Fail-Close 与 Mock 路径
 
 - 任何非 explicit fixture mode（`VITE_AVATAR_DRIVER=mock`）下，runtime 不可用时禁止 silent fallback 到 mock
 - explicit fixture mode 下，shell 进入特殊 composition state `fixture:active`，渲染 embodiment-stage + companion-surface（仅消费 fixture data，不连 runtime）+ persistent banner 标识 fixture 来源
@@ -278,11 +286,11 @@ Avatar shell 的渲染由 **composition state** 决定。任何时刻 shell 处�
 
 ---
 
-## 7. Companion Surface (NAV-SHELL-COMPANION-*)
+## 7. Companion Surface (K-NAV-SHELL-COMPANION-*)
 
 Companion Surface 是 avatar shell 的一等表面，在 `ready` 与 `fixture:active` 状态下与 embodiment-stage 共存。它是 always-visible，不再依赖外部 trigger button。
 
-### 7.1 三层结构 (NAV-SHELL-COMPANION-001)
+## K-NAV-SHELL-COMPANION-001 三层结构
 
 Companion Surface 由三层垂直堆叠组成（自顶向下）：
 
@@ -292,13 +300,13 @@ Companion Surface 由三层垂直堆叠组成（自顶向下）：
 | `status-row` | 显示 mic toggle、mode label（idle/listening/transcribing/replying/interrupted）、speaker indicator、settings cog | ❌ 始终可见 |
 | `composer` | text input + send button；Enter 提交一个 bounded text turn | ❌ 始终可见 |
 
-### 7.2 定位与窗口约束 (NAV-SHELL-COMPANION-002)
+## K-NAV-SHELL-COMPANION-002 定位与窗口约束
 
 - Companion Surface 默认锚定 embodiment-stage 右下角，offset (-16px, -16px)，可由 settings 配置改为 left-bottom / right-bottom（默认）
 - Companion footprint 计入 §1.2 dynamic window sizing；window 必须容纳 embodiment_bounds 和 companion_footprint 之和加边距
 - Companion Surface 矩形必须接受 pointer 事件并阻止 window drag（§2.4）
 
-### 7.3 Anchor 绑定 (NAV-SHELL-COMPANION-003)
+## K-NAV-SHELL-COMPANION-003 Anchor 绑定
 
 Companion Surface 显式绑定当前 launch-selected `agent_id + conversation_anchor_id`：
 
@@ -307,7 +315,7 @@ Companion Surface 显式绑定当前 launch-selected `agent_id + conversation_an
 - voice 入口（status-row mic）打开的 listening session 必须绑定当前 anchor
 - desktop 推送 launch context update（不同 anchor）必须先转入 `relaunch-pending`，清空 companion 本地 transient state，再重新挂载
 
-### 7.4 Assistant Bubble (NAV-SHELL-COMPANION-004)
+## K-NAV-SHELL-COMPANION-004 Assistant Bubble
 
 - 文本来源：runtime turn 的 `text` / `committed_message`（projection-only），不构造 client-side history
 - 显示策略：
@@ -318,7 +326,7 @@ Companion Surface 显式绑定当前 launch-selected `agent_id + conversation_an
 - 文本溢出：max-height + scroll；不展开成 full transcript view
 - 关闭按钮：右上角 × ；点击触发 `avatar.companion.bubble.dismissed` event
 
-### 7.5 Status Row (NAV-SHELL-COMPANION-005)
+## K-NAV-SHELL-COMPANION-005 Status Row
 
 Status row 必须可读地表达当前模式，且每个图标代表的行为完整接通：
 
@@ -327,7 +335,7 @@ Status row 必须可读地表达当前模式，且每个图标代表的行为完
 | Mic icon | `idle` (off) / `listening` (active filled + level ring) / `transcribing` (spinner) / `pending` (paused) / `replying` (locked) / `error` (alert) | `idle` 点击进入 listening；`listening` 点击 commit；`replying` 点击 interrupt；其他状态按需 |
 | Mode label | `idle` / `Listening…` / `Transcribing…` / `Reply pending` / `Reply active` / `Interrupted` / `Voice unavailable` | non-clickable |
 | Speaker indicator | `inactive` (灰) / `playing` (active highlight) / `muted` (按 settings) | non-clickable（playback 无 user-toggle，由 runtime 决定） |
-| Settings cog | always visible | 点击展开 settings popover（NAV-SHELL-COMPANION-009） |
+| Settings cog | always visible | 点击展开 settings popover（K-NAV-SHELL-COMPANION-009） |
 
 Voice 行为约束：
 
@@ -338,7 +346,7 @@ Voice 行为约束：
 - 在 admitted active-turn evidence 出现前，shell 只能表达 transcript submitted / reply pending；不得本地伪装 speaking、playback active、interrupt opened
 - voice 不可用（runtime voice playback event / artifact read capability 不允许）→ status 进入 `Voice unavailable`，mic icon disabled，不模拟听到声音
 
-### 7.6 Composer (NAV-SHELL-COMPANION-006)
+## K-NAV-SHELL-COMPANION-006 Composer
 
 - 单行 text input，placeholder 来自 i18n key `Avatar.composer.placeholder`
 - Enter 提交（Shift+Enter 换行展开多行）
@@ -346,25 +354,25 @@ Voice 行为约束：
 - 提交内容必须经过 anchor 绑定（§7.3）；提交前不允许任何 anchor switch
 - 提交失败 → emit `avatar.companion.composer.send-failed` evidence + status-row 切到 transient error label；不允许静默吞掉
 
-### 7.7 Caption Reveal (NAV-SHELL-COMPANION-007)
+## K-NAV-SHELL-COMPANION-007 Caption Reveal
 
 - 当 `show_voice_captions=true` 且 voice listening / replying 时，可以在 status-row 下方临时浮出 caption（user transcript cue + assistant live caption）
 - Caption 文本必须直接来自 runtime turn `text_delta` / committed projection，不允许本地伪造
 - Caption 不展开成 transcript view；user 离开 voice 模式后立即清空
 
-### 7.8 Cross-app Coordination (NAV-SHELL-COMPANION-008)
+## K-NAV-SHELL-COMPANION-008 Cross-app Coordination
 
 - Companion Surface 不向 desktop 推送 transcript 副本；transcript truth owner 是 runtime
 - Companion Surface 可以接收 desktop 的 `avatar_instance_registry` projection 用于"当前 instance 是否依然 admitted"的健康指示，但不允许据此自行决定 ready/degraded 转移（composition state 仍由 runtime carrier 决定）
 
-### 7.9 Settings Popover (NAV-SHELL-COMPANION-009)
+## K-NAV-SHELL-COMPANION-009 Settings Popover
 
 - 从 status-row 的 settings cog 触发，弹出在 status-row 上方
 - 仅暴露 §4.2 列出的 4 个 toggle
 - Popover 不能 inline 占据 stage 主区或 push 内容布局；必须是 floating layer
 - Popover 关闭：点击外部 / Esc / cog 再次点击
 
-### 7.10 Companion Lifecycle Events (NAV-SHELL-COMPANION-010)
+## K-NAV-SHELL-COMPANION-010 Companion Lifecycle Events
 
 下列 evidence 必须由 companion-surface 在对应交互发生时 emit：
 
@@ -377,9 +385,9 @@ Voice 行为约束：
 
 ---
 
-## 8. Degraded Surface (NAV-SHELL-DEGRADED-*)
+## 8. Degraded Surface (K-NAV-SHELL-DEGRADED-*)
 
-### 8.1 Surface 形态 (NAV-SHELL-DEGRADED-001)
+## K-NAV-SHELL-DEGRADED-001 Surface 形态
 
 Degraded Surface 是 ready 之外所有 composition state 的唯一渲染表面。Surface 内部结构：
 
@@ -390,32 +398,32 @@ Degraded Surface 是 ready 之外所有 composition state 的唯一渲染表面�
 | Summary | i18n 化的多行描述，包含 reason code / action hint（如可读化） |
 | Recovery affordance | 一个显式 `reload shell` button（仅触发 app reload / relaunch）；degraded 期不允许其他 affordance |
 
-### 8.2 Reason 透传 (NAV-SHELL-DEGRADED-002)
+## K-NAV-SHELL-DEGRADED-002 Reason 透传
 
 - Bootstrap 抛错时透传到 degraded-surface 的字段：`stage`、`reason_code`、`account_reason_code`、`action_hint`、`source`、`retryable`
 - Surface 必须显式呈现 i18n 化的 stage 与 reason_code（不是裸字符串）
 - 不允许显示 stack trace 或 raw error message 作为主区文案；仅 `Avatar.degraded.diagnostics` 子区域以 collapsible 形式可选呈现
 
-### 8.3 No Mock Fallback (NAV-SHELL-DEGRADED-003)
+## K-NAV-SHELL-DEGRADED-003 No Mock Fallback
 
 - Degraded surface 期间禁止任何 mock fallback 路径
 - 不允许把"上一次成功的 visual carrier"留作 degraded 期间的部分 ready；进入 degraded 立即卸载 carrier
 
-### 8.4 Reload 行为 (NAV-SHELL-DEGRADED-004)
+## K-NAV-SHELL-DEGRADED-004 Reload 行为
 
 - `reload shell` 行为：调用 shell-reload 流程，清空 avatar-local transient state（draft、bubble echo、foreground voice capture/caption）后重新进入 `loading`
 - Reload 不允许触发 silent retry / 自动重连；必须由 user 显式启动
 - Relaunch-pending 状态下的 reload 与 launch context update 联动：reload 完成后 desktop-pushed 新 context 接管启动
 
-### 8.5 Degraded Lifecycle Evidence (NAV-SHELL-DEGRADED-005)
+## K-NAV-SHELL-DEGRADED-005 Degraded Lifecycle Evidence
 
-- 进入 degraded 状态：emit `avatar.composition.transition` (NAV-SHELL-COMPOSITION-004) + 对应的 startup/bind-failed evidence
+- 进入 degraded 状态：emit `avatar.composition.transition` (K-NAV-SHELL-COMPOSITION-004) + 对应的 startup/bind-failed evidence
 - User 触发 reload：emit `avatar.shell.reload-requested`，detail 含 `from_state`
 - Reload 完成后回到 `loading` 时 emit `avatar.shell.reload-resumed`
 
 ---
 
-## 9. App Lifecycle Events (NAV-SHELL-009)
+## K-NAV-SHELL-009 App Lifecycle Events
 
 ### 9.1 Start → Ready 序列
 
@@ -579,12 +587,12 @@ Minimum permission set for industrial baseline shell：
 
 ---
 
-## 13. First-Party Runtime Boundary (NAV-SHELL-FIRST-PARTY-RUNTIME)
+## 13. First-Party Runtime Boundary (K-NAV-SHELL-FIRST-PARTY-RUNTIME)
 
 > 本节由 topic `2026-04-29-avatar-first-party-app-launch-hardcut` wave-1 admit。
 > Upstream authority：`.nimi/spec/runtime/kernel/account-session-contract.md`（`K-ACCSVC-*`）、`.nimi/spec/sdk/kernel/runtime-contract.md`（`S-RUNTIME-109` / `S-RUNTIME-110`）、`.nimi/spec/runtime/kernel/scoped-app-binding-contract.md`（explicit binding-only modes only）。
 
-### 13.1 默认 Avatar 禁止的能力 (NAV-SHELL-FIRST-PARTY-RUNTIME-001)
+## K-NAV-SHELL-FIRST-PARTY-RUNTIME-001 默认 Avatar 禁止的能力
 
 默认 Avatar app shell 不允许：
 
@@ -597,7 +605,7 @@ Minimum permission set for industrial baseline shell：
 - 在 mock 之外回退到 fixture 模式以隐藏 account、agent、package、或 Runtime 不可用
 - 在 Tauri permission set 中包含 auth / session / account 相关 capability
 
-### 13.2 默认 Avatar 允许的能力 (NAV-SHELL-FIRST-PARTY-RUNTIME-002)
+## K-NAV-SHELL-FIRST-PARTY-RUNTIME-002 默认 Avatar 允许的能力
 
 默认 Avatar app shell 允许：
 
@@ -609,7 +617,7 @@ Minimum permission set for industrial baseline shell：
 - 通过 Runtime / SDK 验证 `agent_id`，解析 agent/user projection 与 visual package descriptor
 - 创建或恢复 Avatar-owned conversation context
 
-### 13.3 Minimal Launch Intent (NAV-SHELL-FIRST-PARTY-RUNTIME-003)
+## K-NAV-SHELL-FIRST-PARTY-RUNTIME-003 Minimal Launch Intent
 
 Desktop 默认启动 Avatar 只允许传递：
 
@@ -625,7 +633,7 @@ shared auth payload、auth UX route。
 `agent_id` 是 selector，不是 authorization proof。Avatar 必须通过 Runtime /
 SDK 验证。
 
-### 13.4 Tauri Permission 排除 (NAV-SHELL-FIRST-PARTY-RUNTIME-004)
+## K-NAV-SHELL-FIRST-PARTY-RUNTIME-004 Tauri Permission 排除
 
 Avatar Tauri capability 文件不允许包含：
 
@@ -636,7 +644,7 @@ Avatar Tauri capability 文件不允许包含：
 
 guardrail 必须在合规 wave 落地（见 `negative-test-matrix.md` 与 `guardrail-scan-plan.md`）。
 
-### 13.5 Agent / Visual Package / Conversation Ownership (NAV-SHELL-FIRST-PARTY-RUNTIME-005)
+## K-NAV-SHELL-FIRST-PARTY-RUNTIME-005 Agent / Visual Package / Conversation Ownership
 
 Avatar 必须：
 
@@ -648,7 +656,7 @@ Avatar 必须：
 Desktop 不得预解析或透传 agent authorization、visual package truth、或
 conversation anchor truth。
 
-### 13.6 Binding-Only Mode Exclusion (NAV-SHELL-FIRST-PARTY-RUNTIME-006)
+## K-NAV-SHELL-FIRST-PARTY-RUNTIME-006 Binding-Only Mode Exclusion
 
 Explicit binding-only / embedded / delegated Avatar mode 可以由 `K-BIND-*` admit，
 但它不是默认 Desktop launch path。

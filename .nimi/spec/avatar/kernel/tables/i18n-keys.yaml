@@ -11,14 +11,14 @@ description: >
   - Keys MUST be dot-namespaced under `Avatar.{section}.{leaf}`.
   - Surface fragments expressing fail-close reasons MUST use Runtime / account /
     binding language, never CORS / shared auth / workaround leakage (see
-    NAV-SHELL-DEGRADED-002 + NAV-SHELL-FIRST-PARTY-RUNTIME hard rules).
+    K-NAV-SHELL-DEGRADED-002 + K-NAV-SHELL-FIRST-PARTY-RUNTIME hard rules).
   - No empty strings, no TODO placeholders.
   - When introducing or removing a key, update this table FIRST, then both
     locale JSON files, then the consuming component.
 
 namespaces:
   - id: composer
-    spec_anchor: "app-shell-contract.md §7.6 NAV-SHELL-COMPANION-006"
+    spec_anchor: "app-shell-contract.md §7.6 K-NAV-SHELL-COMPANION-006"
     description: "Companion composer (text input + send button)."
     keys:
       - key: Avatar.composer.placeholder
@@ -35,7 +35,7 @@ namespaces:
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
 
   - id: status
-    spec_anchor: "app-shell-contract.md §7.5 NAV-SHELL-COMPANION-005"
+    spec_anchor: "app-shell-contract.md §7.5 K-NAV-SHELL-COMPANION-005"
     description: "Status row (mic toggle, mode label, speaker, settings cog)."
     keys:
       - key: Avatar.status.idle
@@ -88,7 +88,7 @@ namespaces:
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
 
   - id: bubble
-    spec_anchor: "app-shell-contract.md §7.4 NAV-SHELL-COMPANION-004"
+    spec_anchor: "app-shell-contract.md §7.4 K-NAV-SHELL-COMPANION-004"
     description: "Assistant bubble (latest message + close affordance)."
     keys:
       - key: Avatar.bubble.close_aria
@@ -96,7 +96,7 @@ namespaces:
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
 
   - id: degraded
-    spec_anchor: "app-shell-contract.md §8 NAV-SHELL-DEGRADED-*"
+    spec_anchor: "app-shell-contract.md §8 K-NAV-SHELL-DEGRADED-*"
     description: "Degraded surface: badge / title / summary / recovery + diagnostics for every composition state."
     keys:
       - key: Avatar.degraded.surface_aria
@@ -238,7 +238,7 @@ namespaces:
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
 
   - id: settings
-    spec_anchor: "app-shell-contract.md §4.2 + §7.9 NAV-SHELL-COMPANION-009"
+    spec_anchor: "app-shell-contract.md §4.2 + §7.9 K-NAV-SHELL-COMPANION-009"
     description: "Settings popover (4 toggles) anchored to status-row cog."
     keys:
       - key: Avatar.settings.popover_aria
@@ -279,7 +279,7 @@ namespaces:
         usage: "src/shell/renderer/App.tsx"
 
   - id: shell
-    spec_anchor: "app-shell-contract.md §7 NAV-SHELL-COMPANION-* (companion surface aria)"
+    spec_anchor: "app-shell-contract.md §7 K-NAV-SHELL-COMPANION-* (companion surface aria)"
     description: "Shell-wide labels (companion aria + document title)."
     keys:
       - key: Avatar.shell.companion_aria

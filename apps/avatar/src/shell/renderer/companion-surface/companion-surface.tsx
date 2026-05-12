@@ -1,5 +1,5 @@
 // Wave 1 — Companion Surface (always-visible compact stack).
-// Per app-shell-contract.md NAV-SHELL-COMPANION-001..010 this surface is mounted
+// Per app-shell-contract.md K-NAV-SHELL-COMPANION-001..010 this surface is mounted
 // alongside embodiment-stage when composition state is `ready` or `fixture_active`.
 // Three-layer stack: assistant-bubble / status-row / composer. Anchor binding is
 // hard-bound to the current launch-selected agent_id + conversation_anchor_id;
@@ -38,7 +38,7 @@ export type CompanionSurfaceProps = {
   companion: CompanionState;
   voice: VoiceCompanionState;
   shellSettings: AvatarShellSettings;
-  // composition state (NAV-SHELL-COMPOSITION-001) at mount time. Required so
+  // composition state (K-NAV-SHELL-COMPOSITION-001) at mount time. Required so
   // the surface-mounted/unmounted evidence carries the correct posture
   // annotation (`ready` vs `fixture_active`).
   compositionState: string;

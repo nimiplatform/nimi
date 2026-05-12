@@ -30,7 +30,7 @@ waves:
     scope:
       - id: app_shell_contract_rewrite
         title: "Rewrite app-shell-contract.md surface composition / companion / degraded sections"
-        desc: "NAV-SHELL-COMPOSITION-* / NAV-SHELL-COMPANION-* / NAV-SHELL-DEGRADED-* admitted; legacy 'Phase 2 small button' path removed"
+        desc: "K-NAV-SHELL-COMPOSITION-* / K-NAV-SHELL-COMPANION-* / K-NAV-SHELL-DEGRADED-* admitted; legacy 'Phase 2 small button' path removed"
       - id: nimi_avatar_guide_rewrite
         title: "Rewrite nimi-avatar.md as wave-based guide"
         desc: "Phase 1/2/3 framing replaced with Wave 0-4 schedule + reading path"
@@ -66,7 +66,7 @@ waves:
         desc: "顶层三选一渲染：<EmbodimentStage>+<CompanionSurface> | <DegradedSurface kind=loading|degraded|error|relaunch> ；删除 ready 时 recovery panel / shell-controls panel 渲染分支"
       - id: composition_state_machine
         title: "Composition state machine + transition evidence"
-        desc: "状态机覆盖 NAV-SHELL-COMPOSITION-001..005；avatar.composition.transition / surface-mounted / surface-unmounted evidence 必须实际产生"
+        desc: "状态机覆盖 K-NAV-SHELL-COMPOSITION-001..005；avatar.composition.transition / surface-mounted / surface-unmounted evidence 必须实际产生"
       - id: hard_cut_legacy_paths
         title: "Hard-cut legacy toggle paths"
         desc: "avatar-companion-trigger-row、surface-presentation 中 ready 区 meta/contextCards/recovery 投影、companionAvailable mid-state 兜底全部删除"

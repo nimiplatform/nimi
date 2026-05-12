@@ -6,7 +6,7 @@
 // instance (both plugins register on it; plugin order is matched against
 // the asset's GLTF extensions list).
 //
-// Load order is governed by vrm-backend-contract.md §2.1 (NAV-VRM-001):
+// Load order is governed by vrm-backend-contract.md §2.1 (K-NAV-VRM-001):
 //
 //     1. suspendCreateImageBitmapForTauriVrmLoad()    // Tauri WKWebView quirk
 //     2. loader.loadAsync(url)
@@ -136,7 +136,7 @@ export async function loadVrmFromManifest(manifest: VrmAvatarModelManifest): Pro
     if (!vrm) {
       throw new Error('Asset is not a valid VRM (gltf.userData.vrm missing)');
     }
-    // STRICT ORDER per NAV-VRM-001 — do not reorder these three steps.
+    // STRICT ORDER per K-NAV-VRM-001 — do not reorder these three steps.
     VRMUtils.rotateVRM0(vrm);
     applyIdlePose(vrm);
     vrm.scene.traverse((object: { frustumCulled?: boolean }) => {
