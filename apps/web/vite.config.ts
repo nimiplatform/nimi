@@ -239,6 +239,27 @@ export default defineConfig(({ mode }) => {
             if (normalizedId.includes('vite/preload-helper')) {
               return 'vite-preload';
             }
+            if (normalizedId.includes('/kit/ui/src/')) {
+              return 'vendor-kit-ui';
+            }
+            if (normalizedId.includes('/kit/features/chat/src/')) {
+              return 'vendor-kit-chat';
+            }
+            if (normalizedId.includes('/kit/features/avatar/src/')) {
+              return 'vendor-kit-avatar';
+            }
+            if (normalizedId.includes('/kit/features/commerce/src/')) {
+              return 'vendor-kit-commerce';
+            }
+            if (normalizedId.includes('/kit/features/model-config/src/')) {
+              return 'vendor-kit-model-config';
+            }
+            if (normalizedId.includes('/kit/features/model-picker/src/')) {
+              return 'vendor-kit-model-picker';
+            }
+            if (normalizedId.includes('/kit/core/src/model-config/')) {
+              return 'vendor-kit-model-config-core';
+            }
             if (normalizedId.includes('/apps/desktop/src/shell/renderer/features/chat/')) {
               if (
                 normalizedId.includes('/chat-agent-runtime')
@@ -315,6 +336,51 @@ export default defineConfig(({ mode }) => {
               if (normalizedId.includes('/chat-nimi-')) {
                 return 'chat-nimi-core';
               }
+              if (matchesAny(normalizedId, [
+                '/chat-agent-shell-presentation',
+                '/chat-agent-center-panel',
+                '/chat-agent-center-avatar-debug-workbench',
+                '/chat-agent-mode-content',
+                '/chat-agent-scene-background',
+              ])) {
+                return 'chat-agent-presentation';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-agent-shell-adapter',
+                '/chat-agent-session-hydration',
+                '/runtime-agent-inspect',
+                '/chat-shared-floating-menu',
+              ])) {
+                return 'chat-agent-adapter';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-agent-behavior',
+                '/chat-agent-center-avatar-config',
+                '/chat-agent-center-local-config',
+                '/chat-agent-voice-playback',
+              ])) {
+                return 'chat-agent-behavior';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-agent-shell-host-actions',
+                '/chat-agent-shell-host-flow',
+                '/chat-agent-shell-host-interaction',
+                '/chat-agent-shell-projection-refresh',
+                '/chat-agent-shell-submit',
+                '/chat-agent-timeouts',
+              ])) {
+                return 'chat-agent-host-actions';
+              }
+              if (matchesAny(normalizedId, [
+                '/chat-agent-shell-core',
+                '/chat-agent-shell-lifecycle',
+                '/chat-agent-shell-visible-state',
+                '/chat-agent-shell-footer-state',
+                '/chat-agent-shell-presentation-status',
+                '/chat-agent-thread-model',
+              ])) {
+                return 'chat-agent-shell-state';
+              }
               if (normalizedId.includes('/chat-agent-')) {
                 return 'chat-agent-shell';
               }
@@ -355,6 +421,12 @@ export default defineConfig(({ mode }) => {
             if (normalizedId.includes('/apps/desktop/src/runtime/data-sync/')) {
               return 'vendor-runtime-data-sync';
             }
+            if (normalizedId.includes('/apps/desktop/src/runtime/local-runtime/')) {
+              return 'vendor-runtime-local';
+            }
+            if (normalizedId.includes('/apps/desktop/src/runtime/llm-adapter/')) {
+              return 'vendor-runtime-llm-adapter';
+            }
             if (
               normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/')
               || normalizedId.endsWith('/apps/desktop/src/shell/renderer/bridge/runtime-bridge.ts')
@@ -362,10 +434,16 @@ export default defineConfig(({ mode }) => {
             ) {
               return 'vendor-runtime-bridge-core';
             }
-            if (normalizedId.endsWith('/apps/desktop/src/shell/renderer/locales/en.json')) {
+            if (
+              normalizedId.includes('/apps/desktop/src/shell/renderer/locales/en/')
+              || normalizedId.endsWith('/apps/desktop/src/shell/renderer/locales/en.json')
+            ) {
               return 'vendor-shell-locale-en';
             }
-            if (normalizedId.endsWith('/apps/desktop/src/shell/renderer/locales/zh.json')) {
+            if (
+              normalizedId.includes('/apps/desktop/src/shell/renderer/locales/zh/')
+              || normalizedId.endsWith('/apps/desktop/src/shell/renderer/locales/zh.json')
+            ) {
               return 'vendor-shell-locale-zh';
             }
 

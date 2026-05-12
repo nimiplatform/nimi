@@ -225,12 +225,10 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
 
   const backendLog = createLogFile(backendLogPath);
   const initialRuntimeLockPid = readRuntimeLockPid();
-  const smokeAuthSessionEnv = scenarioId === LIVE2D_AVATAR_PRODUCT_SMOKE_SCENARIO
-    ? {
-        NIMI_E2E_AUTH_SESSION_STORAGE: 'encrypted-file',
-        NIMI_E2E_AUTH_SESSION_MASTER_KEY: crypto.randomBytes(32).toString('base64'),
-      }
-    : {};
+  const smokeAuthSessionEnv = {
+    NIMI_E2E_AUTH_SESSION_STORAGE: 'encrypted-file',
+    NIMI_E2E_AUTH_SESSION_MASTER_KEY: crypto.randomBytes(32).toString('base64'),
+  };
   const app = spawn(appPath, [], {
     cwd: repoRoot,
     env: {

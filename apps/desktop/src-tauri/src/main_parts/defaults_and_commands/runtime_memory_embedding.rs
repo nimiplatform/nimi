@@ -397,7 +397,9 @@ mod tests {
         assert_eq!(result.resolution_state, "missing");
         assert_eq!(result.canonical_bank_status, "unbound");
         assert!(request.starts_with("POST /v1/runtime/private/memory/embedding/inspect HTTP/1.1"));
-        assert!(request.contains("Content-Type: application/json"));
+        assert!(request
+            .to_ascii_lowercase()
+            .contains("content-type: application/json"));
     }
 
     #[tokio::test]

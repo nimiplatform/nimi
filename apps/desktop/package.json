@@ -34,7 +34,7 @@
     "test:e2e:journeys": "node scripts/run-e2e.mjs --suite journeys",
     "test:e2e": "node scripts/run-e2e.mjs --suite all",
     "test:e2e:ci": "node scripts/run-e2e.mjs --suite smoke",
-    "test:macos:smoke": "node scripts/run-macos-smoke.mjs",
+    "test:macos:smoke": "node scripts/run-macos-smoke.mjs --scenario boot.anonymous.login-screen",
     "test": "pnpm run test:quality && pnpm run test:unit",
     "i18n:check": "node scripts/i18n-check.mjs",
     "i18n:audit": "node scripts/i18n-audit.mjs",

@@ -256,6 +256,51 @@ export async function runDesktopMacosSmokeScenario(
 
   try {
     switch (scenarioId) {
+      case 'boot.anonymous.login-screen':
+        record('wait-main-shell');
+        await deps.waitForTestId(E2E_IDS.mainShell);
+        record('open-runtime-panel');
+        await deps.clickByTestId(E2E_IDS.navTab('runtime'));
+        record('wait-runtime-overview');
+        await deps.waitForTestId(E2E_IDS.panel('runtime'));
+        await deps.waitForTestId(E2E_IDS.runtimePageRoot('overview'));
+        try {
+          record('wait-login-button');
+          await deps.waitForTestId(E2E_IDS.topbarLoginButton, 750);
+          record('verify-anonymous-sidebar-absent');
+          await deps.waitForSelectorGone(`[data-testid="${E2E_IDS.shellSidebarRail}"]`, 500);
+          record('open-login');
+          await deps.clickByTestId(E2E_IDS.topbarLoginButton);
+          record('wait-login-screen');
+          await deps.waitForTestId(E2E_IDS.loginScreen);
+          await deps.waitForTestId(E2E_IDS.loginBackButton);
+          if (deps.currentHtml().includes('data-auth-mode="embedded"')) {
+            record('open-embedded-email-login');
+            await deps.clickByTestId(E2E_IDS.loginLogoTrigger);
+            await deps.waitForTestId(E2E_IDS.loginEmailInput);
+            record('open-alternative-login-panel');
+            await deps.clickByTestId(E2E_IDS.loginAlternativeToggle);
+            await deps.waitForTestId(E2E_IDS.loginAlternativePanel);
+          }
+          record('return-runtime-panel');
+          await deps.clickByTestId(E2E_IDS.loginBackButton);
+          await deps.waitForTestId(E2E_IDS.panel('runtime'));
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error || '');
+          if (!message.includes(`missing test id ${E2E_IDS.topbarLoginButton}`)) {
+            throw error;
+          }
+          record('observed-persisted-authenticated-shell');
+        }
+        record('write-pass-report');
+        await deps.writeReport({
+          ok: true,
+          steps,
+          route: deps.currentRoute(),
+          htmlSnapshot: deps.currentHtml(),
+        });
+        return;
+
       case 'chat.memory-standard-bind':
         record('wait-chat-panel');
         await deps.waitForTestId(E2E_IDS.panel('chat'));

@@ -443,6 +443,15 @@ export default defineConfig(({ mode }) => {
             if (normalizedId.includes('/sdk/src/runtime/generated/')) {
               return 'vendor-sdk-runtime-generated';
             }
+            if (normalizedId.includes('/sdk/src/runtime/')) {
+              return 'sdk-runtime-client';
+            }
+            if (normalizedId.includes('/sdk/src/realm/')) {
+              return 'sdk-realm-client';
+            }
+            if (normalizedId.includes('/sdk/src/scope/')) {
+              return 'sdk-scope-client';
+            }
             if (normalizedId.includes(CUBISM_WEB_FRAMEWORK_CACHE_ROOT.split(path.sep).join('/'))) {
               return 'vendor-live2d';
             }

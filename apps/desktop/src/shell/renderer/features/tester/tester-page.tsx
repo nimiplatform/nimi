@@ -26,20 +26,10 @@ import {
   type VoiceAssetSelection,
 } from './tester-types.js';
 import { loadRouteSnapshot, makeInitialCapabilityStates } from './tester-state.js';
-import { TesterSettingsPanel } from './tester-settings-dialog.js';
-import { TextGeneratePanel } from './panels/panel-text-generate.js';
-import { TextEmbedPanel } from './panels/panel-text-embed.js';
-import { ImageGeneratePanel } from './panels/panel-image-generate.js';
-import { VideoGeneratePanel } from './panels/panel-video-generate.js';
-import { WorldTourPanel } from './panels/panel-world-tour.js';
-import { AudioSynthesizePanel } from './panels/panel-audio-synthesize.js';
-import { AudioTranscribePanel } from './panels/panel-audio-transcribe.js';
-import { VoiceAssetPanel } from './panels/panel-voice-stubs.js';
 import { TESTER_AI_SCOPE_REF, bindingFromTesterConfig, bootstrapTesterAIConfigScope, createEmptyTesterAIConfig } from './tester-ai-config';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { CAP_META } from './tester-cap-meta.js';
 import { CapTile, SourceChip } from './tester-visuals.js';
-import { TesterHistoryPanel } from './tester-history-panel.js';
 import { useTesterHistory } from './tester-history.js';
 
 const SIDEBAR_GROUPS: Array<{ label: string; ids: CapabilityId[] }> = [
@@ -56,6 +46,16 @@ const SETTINGS_GEAR_ICON = (
   </svg>
 );
 
+const TesterSettingsPanel = React.lazy(() => import('./tester-settings-dialog.js').then((mod) => ({ default: mod.TesterSettingsPanel })));
+const TextGeneratePanel = React.lazy(() => import('./panels/panel-text-generate.js').then((mod) => ({ default: mod.TextGeneratePanel })));
+const TextEmbedPanel = React.lazy(() => import('./panels/panel-text-embed.js').then((mod) => ({ default: mod.TextEmbedPanel })));
+const ImageGeneratePanel = React.lazy(() => import('./panels/panel-image-generate.js').then((mod) => ({ default: mod.ImageGeneratePanel })));
+const VideoGeneratePanel = React.lazy(() => import('./panels/panel-video-generate.js').then((mod) => ({ default: mod.VideoGeneratePanel })));
+const WorldTourPanel = React.lazy(() => import('./panels/panel-world-tour.js').then((mod) => ({ default: mod.WorldTourPanel })));
+const AudioSynthesizePanel = React.lazy(() => import('./panels/panel-audio-synthesize.js').then((mod) => ({ default: mod.AudioSynthesizePanel })));
+const AudioTranscribePanel = React.lazy(() => import('./panels/panel-audio-transcribe.js').then((mod) => ({ default: mod.AudioTranscribePanel })));
+const VoiceAssetPanel = React.lazy(() => import('./panels/panel-voice-stubs.js').then((mod) => ({ default: mod.VoiceAssetPanel })));
+const TesterHistoryPanel = React.lazy(() => import('./tester-history-panel.js').then((mod) => ({ default: mod.TesterHistoryPanel })));
 
 function createInitialImageWorkflowDraftState(): ImageWorkflowDraftState {
   return {
@@ -504,17 +504,21 @@ export function TesterPage() {
               />
             </div>
 
-            {renderPanel()}
+            <React.Suspense fallback={null}>
+              {renderPanel()}
+            </React.Suspense>
 
             {activeCapability !== 'image.generate'
               && activeCapability !== 'video.create-job'
               && activeCapability !== 'video.generate' ? (
-              <TesterHistoryPanel
-                capabilityLabel={activeLabels.label}
-                entries={activeHistory}
-                onClear={() => clearCapability(activeCapability)}
-                onRemoveEntry={(entryId) => removeEntry(activeCapability, entryId)}
-              />
+              <React.Suspense fallback={null}>
+                <TesterHistoryPanel
+                  capabilityLabel={activeLabels.label}
+                  entries={activeHistory}
+                  onClear={() => clearCapability(activeCapability)}
+                  onRemoveEntry={(entryId) => removeEntry(activeCapability, entryId)}
+                />
+              </React.Suspense>
             ) : null}
           </RuntimePageShell>
         </ScrollArea>
@@ -527,22 +531,24 @@ export function TesterPage() {
             bindingFromTesterConfig(testerConfig, 'image.generate'),
           );
           return (
-            <TesterSettingsPanel
-              open={settingsOpen}
-              onClose={() => setSettingsOpen(false)}
-              config={testerConfig}
-              initialSection={CAPABILITY_TO_SECTION[activeCapability] ?? null}
-              voiceAssetRefreshRevision={voiceAssetRefreshRevision}
-              imageContext={{
-                state: imageGenerateState,
-                draft: imageDraft,
-                onDraftChange: handleImageDraftChange,
-              }}
-              videoContext={{
-                params: currentVideoParams,
-                onParamsChange: (next) => handleSettingsParamsChange('video.generate', next as unknown as Record<string, unknown>),
-              }}
-            />
+            <React.Suspense fallback={null}>
+              <TesterSettingsPanel
+                open={settingsOpen}
+                onClose={() => setSettingsOpen(false)}
+                config={testerConfig}
+                initialSection={CAPABILITY_TO_SECTION[activeCapability] ?? null}
+                voiceAssetRefreshRevision={voiceAssetRefreshRevision}
+                imageContext={{
+                  state: imageGenerateState,
+                  draft: imageDraft,
+                  onDraftChange: handleImageDraftChange,
+                }}
+                videoContext={{
+                  params: currentVideoParams,
+                  onParamsChange: (next) => handleSettingsParamsChange('video.generate', next as unknown as Record<string, unknown>),
+                }}
+              />
+            </React.Suspense>
           );
         })()
       ) : null}

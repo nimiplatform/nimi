@@ -106,7 +106,13 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
         });
         return;
       }
-      void import(scriptSrc)
+      void invokeSafe('desktop_macos_smoke_context_get')
+        .then((context) => {
+          if (context?.enabled && context?.scenarioId === 'boot.anonymous.login-screen') {
+            globalRecord.localStorage?.clear?.();
+          }
+        })
+        .then(() => import(scriptSrc))
         .then(() => invokeSafe('desktop_macos_smoke_ping', {
           payload: {
             stage: 'window-dynamic-import-ok',
