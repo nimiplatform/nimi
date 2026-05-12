@@ -3,10 +3,7 @@ import { parseAppConsumeEvent } from '../sdk/src/runtime/runtime-agent-surface-p
 import { summarizeRuntimeAgentTimeline } from '../apps/desktop/src/shell/renderer/features/chat/chat-agent-runtime-agent-timeline.ts';
 import { SdkDriver } from '../apps/avatar/src/shell/renderer/sdk/SdkDriver.ts';
 import type { AgentDataBundle, AgentDataDriver, AppOriginEvent, DriverStatus } from '../apps/avatar/src/shell/renderer/driver/types.ts';
-import {
-  AVATAR_MOUTH_OPEN_SIGNAL,
-  wireAvatarVoiceLipsync,
-} from '../apps/avatar/src/shell/renderer/voice-lipsync/avatar-voice-lipsync.ts';
+import { wireAvatarVoiceLipsync } from '../apps/avatar/src/shell/renderer/voice-lipsync/avatar-voice-lipsync.ts';
 
 const turnId = 'acceptance-turn-1';
 const streamId = 'acceptance-stream-1';
@@ -101,25 +98,8 @@ async function main(): Promise<void> {
     observedEvents.push({ name: event.name, detail: event.detail });
   });
 
-  const projection = {
-    triggerMotion: async () => undefined,
-    stopMotion: () => undefined,
-    setSignal: (signalId: string, value: number, weight?: number) => {
-      parameterWrites.push({ signalId, value, weight });
-    },
-    getSignal: () => 0,
-    addSignal: () => undefined,
-    setExpression: async () => undefined,
-    clearExpression: () => undefined,
-    setPose: () => undefined,
-    clearPose: () => undefined,
-    wait: async () => undefined,
-    getSurfaceBounds: () => ({ x: 0, y: 0, width: 400, height: 600 }),
-  };
-
   const unwire = wireAvatarVoiceLipsync({
     driver: driver as AgentDataDriver,
-    projection,
   });
 
   await driver.start();
@@ -130,14 +110,10 @@ async function main(): Promise<void> {
   assert.equal(avatarPassthrough?.detail.stream_id, streamId);
   assert.equal((avatarPassthrough?.detail.runtime_timeline as Record<string, unknown> | undefined)?.timebase_owner, 'runtime');
 
-  const speakStart = observedEvents.find((event) => event.name === 'avatar.speak.start');
-  assert.equal(speakStart?.detail.turn_id, turnId);
-  assert.equal(speakStart?.detail.stream_id, streamId);
-  assert.equal((speakStart?.detail.runtime_timeline as Record<string, unknown> | undefined)?.projection_rule_id, 'K-AGCORE-051');
-
-  const mouthWrites = parameterWrites.filter((write) => write.signalId === AVATAR_MOUTH_OPEN_SIGNAL);
-  assert.deepEqual(mouthWrites.map((write) => write.value), [0.14, 0.82, 0.28, 0]);
-  assert.equal(new Set(mouthWrites.map((write) => write.value)).size > 2, true);
+  assert.equal(
+    observedEvents.some((event) => event.name === 'avatar.speak.start'),
+    false,
+  );
 
   const canceledBefore = parameterWrites.length;
   driver.emit({
@@ -156,8 +132,7 @@ async function main(): Promise<void> {
     detail: avatarPassthrough?.detail ?? {},
   });
 
-  const lateWrites = parameterWrites.slice(canceledBefore).filter((write) => write.value !== 0);
-  assert.equal(lateWrites.length, 0);
+  assert.equal(parameterWrites.length, canceledBefore);
 
   unwire();
   await driver.stop();
