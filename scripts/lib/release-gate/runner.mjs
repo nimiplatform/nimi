@@ -22,7 +22,7 @@
 // evidence rows. Offline-safe.
 
 import { runByKind } from './runners.mjs';
-import { probeGateEnvironment, translateProbeVerdict } from './env-probe.mjs';
+import { evaluateSkipWhen, probeGateEnvironment, translateProbeVerdict } from './env-probe.mjs';
 import { writeGateLog, formatGateLine } from './log-formatter.mjs';
 import { buildGateRow } from './evidence.mjs';
 
@@ -176,7 +176,41 @@ export async function executeGates({ gates, selectedTier, options, onProgress })
       continue;
     }
 
-    // Step 2: environment probe
+    // Step 2: declared precondition skip
+    const skipVerdict = evaluateSkipWhen(gate);
+    if (skipVerdict) {
+      const finishedAt = new Date().toISOString();
+      const row = buildGateRow({
+        gateId: gate.id,
+        tier,
+        target,
+        command: gate.command,
+        startedAt,
+        finishedAt,
+        verdict: skipVerdict.verdict,
+        blockerReasonCode: skipVerdict.blockerReasonCode,
+        exitCode: null,
+        logExcerptPath: null,
+      });
+      rows.push(row);
+      verdictById.set(gate.id, skipVerdict.verdict);
+      if (onProgress) {
+        onProgress(
+          formatGateLine({
+            index: i + 1,
+            total,
+            gateId: gate.id,
+            verdict: skipVerdict.verdict,
+            blockerReasonCode: skipVerdict.blockerReasonCode,
+            elapsedMs: 0,
+            color: options.color,
+          })
+        );
+      }
+      continue;
+    }
+
+    // Step 3: environment probe
     const probe = probeGateEnvironment(gate);
     const probeVerdict = translateProbeVerdict(gate, probe);
     if (probeVerdict) {
@@ -211,7 +245,7 @@ export async function executeGates({ gates, selectedTier, options, onProgress })
       continue;
     }
 
-    // Step 3: execute
+    // Step 4: execute
     const execResult = await runByKind(gate);
     const elapsedMs = Date.parse(execResult.finishedAt) - Date.parse(execResult.startedAt);
 
@@ -227,7 +261,7 @@ export async function executeGates({ gates, selectedTier, options, onProgress })
       blockerReasonCode = 'COMMAND_NONZERO';
     }
 
-    // Step 4: write log
+    // Step 5: write log
     const logExcerptPath = writeGateLog({
       gateId: gate.id,
       startedAt: execResult.startedAt,
@@ -287,6 +321,12 @@ export function computeProcessExitCode({ rows, gatesById, options }) {
   // dev-friendly: blocked permitted only if gate's tiers ∩ allowBlockedTiers ≠ ∅
   for (const r of rows) {
     if (r.verdict !== 'blocked') continue;
+    if (
+      r.blocker_reason_code === 'PRECONDITION_NOT_MET' ||
+      r.blocker_reason_code === 'REQUIRED_STATE_MISSING'
+    ) {
+      continue;
+    }
     const gate = gatesById.get(r.gate_id);
     if (!gate) return 1;
     const tiers = gate.tiers ?? [];

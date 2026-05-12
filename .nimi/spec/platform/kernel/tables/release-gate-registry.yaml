@@ -427,7 +427,7 @@ gates:
     experimental: false
 
   - id: gate.desktop.e2e-smoke
-    description: Desktop E2E smoke test (Linux requires xvfb-run + WebKitWebDriver; macOS native).
+    description: Desktop E2E smoke test (Linux/Windows CI only; macOS uses manual smoke).
     command: pnpm check:desktop-e2e-smoke
     runner: pnpm
     tiers: [release, release-target:desktop]
@@ -436,6 +436,9 @@ gates:
     requires_binaries: [pnpm, tauri-driver]
     blocker_semantics:
       on_binary_missing: blocked
+    skip_when:
+      condition: macos
+      reason_code: PRECONDITION_NOT_MET
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001]
@@ -444,7 +447,7 @@ gates:
     notes: Native driver (WebKitWebDriver / msedgedriver) configuration is platform-specific and lives outside the registry.
 
   - id: gate.desktop.e2e-journeys
-    description: Desktop E2E journeys (extended scenarios beyond smoke).
+    description: Desktop E2E journeys (extended scenarios beyond smoke; Linux/Windows CI only).
     command: pnpm check:desktop-e2e-journeys
     runner: pnpm
     tiers: [release, release-target:desktop]
@@ -453,6 +456,9 @@ gates:
     requires_binaries: [pnpm, tauri-driver]
     blocker_semantics:
       on_binary_missing: blocked
+    skip_when:
+      condition: macos
+      reason_code: PRECONDITION_NOT_MET
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001]
@@ -484,8 +490,10 @@ gates:
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
+    requires_env: [NIMI_MODS_ROOT, NIMI_RUNTIME_MODS_DIR]
     requires_external_repo: [nimi-mods]
     blocker_semantics:
+      on_env_missing: blocked
       on_external_repo_unavailable: blocked
     evidence:
       shape: command_exit
@@ -529,6 +537,9 @@ gates:
     targets: [desktop]
     timeout_seconds: 60
     requires_binaries: [pnpm]
+    requires_env: [NIMI_ARTIFACT_PATHS_JSON]
+    blocker_semantics:
+      on_env_missing: blocked
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001]
@@ -1403,7 +1414,7 @@ gates:
     timeout_seconds: 300
     requires_binaries: [govulncheck]
     blocker_semantics:
-      on_binary_missing: fail
+      on_binary_missing: blocked
     evidence:
       shape: command_exit
     p_relg_anchors: [P-RELG-001]

@@ -27,6 +27,10 @@ export function isSecretAvailable(name, env = process.env) {
   return typeof value === 'string' && value.length > 0;
 }
 
+export function isEnvAvailable(name, env = process.env) {
+  return isSecretAvailable(name, env);
+}
+
 /**
  * Probe whether a directory path exists relative to cwd.
  * @param {string} relativePath
@@ -78,10 +82,14 @@ export function isBinaryAvailable(name) {
 export function probeGateEnvironment(gate, env = process.env, cwd = process.cwd()) {
   const missing = {
     secrets: [],
+    env: [],
     externalRepos: [],
     binaries: [],
   };
 
+  for (const e of gate.requires_env ?? []) {
+    if (!isEnvAvailable(e, env)) missing.env.push(e);
+  }
   for (const s of gate.requires_secrets ?? []) {
     if (!isSecretAvailable(s, env)) missing.secrets.push(s);
   }
@@ -94,6 +102,7 @@ export function probeGateEnvironment(gate, env = process.env, cwd = process.cwd(
 
   const ok =
     missing.secrets.length === 0 &&
+    missing.env.length === 0 &&
     missing.externalRepos.length === 0 &&
     missing.binaries.length === 0;
 
@@ -118,6 +127,15 @@ export function translateProbeVerdict(gate, probeResult) {
   if (probeResult.ok) return null;
 
   const policy = gate.blocker_semantics ?? {};
+
+  if (probeResult.missing.env?.length > 0) {
+    const verdict = policy.on_env_missing === 'fail' ? 'fail' : 'blocked';
+    return {
+      verdict,
+      blockerReasonCode: 'REQUIRED_STATE_MISSING',
+      detail: `env missing: ${probeResult.missing.env.join(', ')}`,
+    };
+  }
 
   if (probeResult.missing.secrets.length > 0) {
     const verdict = policy.on_secrets_missing === 'fail' ? 'fail' : 'blocked';
@@ -148,6 +166,32 @@ export function translateProbeVerdict(gate, probeResult) {
   }
 
   return null;
+}
+
+export function evaluateSkipWhen(gate, env = process.env) {
+  const skipWhen = gate.skip_when;
+  if (!skipWhen || typeof skipWhen !== 'object') {
+    return null;
+  }
+  const condition = String(skipWhen.condition || '');
+  const ci = env.CI === 'true' || env.CI === '1';
+  const shouldSkip =
+    (condition === 'macos' && process.platform === 'darwin') ||
+    (condition === 'not_macos' && process.platform !== 'darwin') ||
+    (condition === 'linux' && process.platform === 'linux') ||
+    (condition === 'not_linux' && process.platform !== 'linux') ||
+    (condition === 'windows' && process.platform === 'win32') ||
+    (condition === 'not_windows' && process.platform !== 'win32') ||
+    (condition === 'local' && !ci) ||
+    (condition === 'ci' && ci);
+  if (!shouldSkip) {
+    return null;
+  }
+  return {
+    verdict: 'blocked',
+    blockerReasonCode: skipWhen.reason_code || 'PRECONDITION_NOT_MET',
+    detail: `skip_when matched: ${condition}`,
+  };
 }
 
 /**

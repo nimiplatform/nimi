@@ -244,6 +244,21 @@ test('requires_secrets non-uppercase: rejected', () => {
   expectFail(registry, 'UPPER_SNAKE');
 });
 
+test('requires_env non-uppercase: rejected', () => {
+  const registry = loadValidFixture();
+  registry.gates[0].requires_env = ['lowercase_env'];
+  expectFail(registry, 'UPPER_SNAKE');
+});
+
+test('skip_when unknown condition: rejected', () => {
+  const registry = loadValidFixture();
+  registry.gates[0].skip_when = {
+    condition: 'darwin',
+    reason_code: 'PRECONDITION_NOT_MET',
+  };
+  expectFail(registry, 'skip_when.condition');
+});
+
 test('blocker_semantics with invalid policy: rejected', () => {
   const registry = loadValidFixture();
   registry.gates[0].blocker_semantics = { on_secrets_missing: 'warn' };

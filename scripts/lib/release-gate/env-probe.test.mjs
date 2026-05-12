@@ -7,7 +7,9 @@ import os from 'node:os';
 import path from 'node:path';
 
 import {
+  evaluateSkipWhen,
   isSecretAvailable,
+  isEnvAvailable,
   isExternalRepoAvailable,
   isBinaryAvailable,
   probeGateEnvironment,
@@ -25,6 +27,10 @@ test('isSecretAvailable: missing key → false', () => {
 
 test('isSecretAvailable: empty string → false', () => {
   assert.equal(isSecretAvailable('FOO', { FOO: '' }), false);
+});
+
+test('isEnvAvailable: present non-empty value → true', () => {
+  assert.equal(isEnvAvailable('FOO', { FOO: 'bar' }), true);
 });
 
 test('isExternalRepoAvailable: existing dir → true', () => {
@@ -77,6 +83,13 @@ test('probeGateEnvironment: missing secret reported', () => {
   assert.deepEqual(r.missing.secrets, ['MY_SECRET_FOO']);
 });
 
+test('probeGateEnvironment: missing required env reported', () => {
+  const gate = { id: 'gate.test.x', requires_env: ['MY_ENV_FOO'] };
+  const r = probeGateEnvironment(gate, {}, process.cwd());
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.missing.env, ['MY_ENV_FOO']);
+});
+
 test('probeGateEnvironment: missing binary reported', () => {
   const gate = {
     id: 'gate.test.x',
@@ -88,7 +101,15 @@ test('probeGateEnvironment: missing binary reported', () => {
 });
 
 test('translateProbeVerdict: ok probe → null', () => {
-  assert.equal(translateProbeVerdict({}, { ok: true, missing: { secrets: [], externalRepos: [], binaries: [] } }), null);
+  assert.equal(translateProbeVerdict({}, { ok: true, missing: { secrets: [], env: [], externalRepos: [], binaries: [] } }), null);
+});
+
+test('translateProbeVerdict: missing env defaults to blocked required state', () => {
+  const gate = { id: 'gate.test.x' };
+  const probe = { ok: false, missing: { secrets: [], env: ['NIMI_ARTIFACT_PATHS_JSON'], externalRepos: [], binaries: [] } };
+  const r = translateProbeVerdict(gate, probe);
+  assert.equal(r.verdict, 'blocked');
+  assert.equal(r.blockerReasonCode, 'REQUIRED_STATE_MISSING');
 });
 
 test('translateProbeVerdict: missing secret defaults to blocked', () => {
@@ -128,4 +149,10 @@ test('captureHostEnvironment: returns expected shape', () => {
   assert.match(r.os, /^[a-z]+-/);
   assert.match(r.node_version, /^v\d+/);
   assert.equal(typeof r.ci, 'boolean');
+});
+
+test('evaluateSkipWhen: local condition blocks outside CI', () => {
+  const r = evaluateSkipWhen({ skip_when: { condition: 'local', reason_code: 'PRECONDITION_NOT_MET' } }, {});
+  assert.equal(r.verdict, 'blocked');
+  assert.equal(r.blockerReasonCode, 'PRECONDITION_NOT_MET');
 });

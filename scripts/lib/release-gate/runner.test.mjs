@@ -288,6 +288,35 @@ test('executeGates: blocked on missing secret', { timeout: 10000 }, async () => 
   assert.equal(rows[0].blocker_reason_code, 'SECRETS_MISSING');
 });
 
+test('executeGates: blocked on skip_when local precondition', { timeout: 10000 }, async () => {
+  const gates = [
+    {
+      id: 'gate.test.x',
+      runner: 'shell',
+      command: 'false',
+      tiers: ['fast'],
+      targets: ['any'],
+      timeout_seconds: 5,
+      skip_when: { condition: 'local', reason_code: 'PRECONDITION_NOT_MET' },
+    },
+  ];
+  const selectedTier = new Map([['gate.test.x', 'fast']]);
+  const { rows } = await executeGates({
+    gates,
+    selectedTier,
+    options: {
+      tier: 'fast',
+      target: 'any',
+      include: [],
+      allowBlockedTiers: [],
+      requireRelease: false,
+      color: false,
+    },
+  });
+  assert.equal(rows[0].verdict, 'blocked');
+  assert.equal(rows[0].blocker_reason_code, 'PRECONDITION_NOT_MET');
+});
+
 // --- computeProcessExitCode -----------------------------------------------
 
 test('computeProcessExitCode: fail → 1', () => {
@@ -316,6 +345,16 @@ test('computeProcessExitCode: blocked + tier in allow list → 0', () => {
     rows,
     gatesById: new Map([['g.a.x', { tiers: ['live'] }]]),
     options: { requireRelease: false, allowBlockedTiers: ['live'] },
+  });
+  assert.equal(code, 0);
+});
+
+test('computeProcessExitCode: precondition blocked is permitted outside require-release', () => {
+  const rows = [{ gate_id: 'g.a.x', verdict: 'blocked', blocker_reason_code: 'PRECONDITION_NOT_MET' }];
+  const code = computeProcessExitCode({
+    rows,
+    gatesById: new Map([['g.a.x', { tiers: ['release'] }]]),
+    options: { requireRelease: false, allowBlockedTiers: [] },
   });
   assert.equal(code, 0);
 });

@@ -51,6 +51,16 @@ const VALID_EVIDENCE_SHAPES = new Set([
 ]);
 
 const VALID_BLOCKER_POLICIES = new Set(['blocked', 'fail']);
+const VALID_SKIP_WHEN_CONDITIONS = new Set([
+  'macos',
+  'not_macos',
+  'linux',
+  'not_linux',
+  'windows',
+  'not_windows',
+  'local',
+  'ci',
+]);
 
 /**
  * Read and parse the registry yaml from disk.
@@ -276,8 +286,16 @@ export function validateRegistry(registry, contextOverride = {}) {
     if (g.skip_when != null) {
       if (typeof g.skip_when !== 'object' || typeof g.skip_when.reason_code !== 'string') {
         errors.push(`${g.id}: skip_when must have reason_code string`);
-      } else if (!reasonCodeIds.has(g.skip_when.reason_code)) {
-        errors.push(`${g.id}: skip_when.reason_code unknown: ${g.skip_when.reason_code}`);
+      } else {
+        if (!reasonCodeIds.has(g.skip_when.reason_code)) {
+          errors.push(`${g.id}: skip_when.reason_code unknown: ${g.skip_when.reason_code}`);
+        }
+        if (
+          typeof g.skip_when.condition !== 'string' ||
+          !VALID_SKIP_WHEN_CONDITIONS.has(g.skip_when.condition)
+        ) {
+          errors.push(`${g.id}: skip_when.condition must be one of ${[...VALID_SKIP_WHEN_CONDITIONS].join('|')}`);
+        }
       }
     }
 
@@ -338,7 +356,20 @@ export function validateRegistry(registry, contextOverride = {}) {
       errors.push(`${g.id}: evidence.shape=json_file requires evidence.json_file_path string`);
     }
 
-    // Rule 11: requires_secrets format
+    // Rule 11: requires_env format
+    if (g.requires_env != null) {
+      if (!Array.isArray(g.requires_env)) {
+        errors.push(`${g.id}: requires_env must be array`);
+      } else {
+        for (const s of g.requires_env) {
+          if (typeof s !== 'string' || !/^[A-Z][A-Z0-9_]*$/.test(s)) {
+            errors.push(`${g.id}: requires_env entry must be UPPER_SNAKE env var name: ${s}`);
+          }
+        }
+      }
+    }
+
+    // Rule 12: requires_secrets format
     if (g.requires_secrets != null) {
       if (!Array.isArray(g.requires_secrets)) {
         errors.push(`${g.id}: requires_secrets must be array`);
@@ -351,7 +382,7 @@ export function validateRegistry(registry, contextOverride = {}) {
       }
     }
 
-    // Rule 12: requires_external_repo
+    // Rule 13: requires_external_repo
     if (g.requires_external_repo != null) {
       if (!Array.isArray(g.requires_external_repo)) {
         errors.push(`${g.id}: requires_external_repo must be array`);
@@ -364,7 +395,7 @@ export function validateRegistry(registry, contextOverride = {}) {
       }
     }
 
-    // Rule 13: experimental flag must be boolean if present
+    // Rule 14: experimental flag must be boolean if present
     if (g.experimental != null && typeof g.experimental !== 'boolean') {
       errors.push(`${g.id}: experimental must be boolean`);
     }
