@@ -229,10 +229,10 @@ KnowledgeService 的跨域消费契约状态：
 | 消费层 | 当前状态 | Baseline 必须保持 |
 |---|---|---|
 | **SDK 方法投影** | admitted / landed | 保持 baseline SDK 方法投影与 runtime proto / reason-code / pagination 语义对齐 |
-| **Desktop UI Spec** | admitted / landed | 保持 Knowledge baseline UI spec 与 Runtime-path authz / unavailable / pagination / method surface 对齐 |
+| **Desktop UI Spec** | retired hard-cut | Desktop Runtime Config 不再暴露 bank/page/search/graph/ingest 管理页；未来 cognition UX 必须新建产品契约，不得复活旧 Runtime Config Knowledge 页 |
 | **knowledge-base mod (Desktop host sqlite)** | 独立实现 | KB mod 当前不消费 RuntimeCognitionService；baseline 不要求该 mod 迁移，只要求不再把旧 index-only draft或 RuntimeKnowledgeService 当作 Runtime 稳定目标 |
 
-> **设计完整性注意**：当前 admitted knowledge slice 只定义 runtime-local infra-scoped ownership；AgentCore integration、shared truth、cross-service citation redesign 仍未交付。Runtime、CLI、SDK、Desktop UI spec 已就绪，但 Desktop/Forge 产品消费实现仍属于后续交付。
+> **设计完整性注意**：当前 admitted knowledge slice 只定义 runtime-local infra-scoped ownership；AgentCore integration、shared truth、cross-service citation redesign 仍未交付。Runtime、CLI、SDK 方法投影已就绪；旧 Desktop Runtime Config Knowledge 管理页已 hard-cut retired，Desktop/Forge 产品消费必须另行 admission。
 >
 > **Hybrid retrieval 注意**：`SearchHybrid` 只扩 retrieval surface；它不改变 baseline bank/page ownership、也不引入 graph、AgentCore、shared truth 或 citation admission。
 >

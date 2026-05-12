@@ -28,7 +28,7 @@
 | `state-contract.md` | `D-STATE-*` | Zustand slices、持久化策略、pending action lifecycle projection boundary |
 | `auth-session-contract.md` | `D-AUTH-*` | 会话生命周期、token 持久化 |
 | `data-sync-contract.md` | `D-DSYNC-*` | DataSync 业务流规则 |
-| `knowledge-ui-contract.md` | `D-DSYNC-*` | RuntimeCognitionService knowledge lane 的 Desktop baseline 消费 UI 规则 |
+| `knowledge-ui-contract.md` | `D-DSYNC-*` | 已退役的 Runtime Config Knowledge UI hard-cut；RuntimeCognitionService knowledge 仍为 runtime/SDK API，不是 Desktop 配置页 |
 | `hook-capability-contract.md` | `D-HOOK-*` | Hook 子系统与能力网关 |
 | `mod-governance-contract.md` | `D-MOD-*` | 8 阶段执行内核与审计 |
 | `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配与路由边界 |

@@ -1,139 +1,94 @@
-# Knowledge UI Contract
+# Retired Knowledge UI Contract
 
 > Authority: Desktop Kernel
+> Status: retired hard-cut
 
 ## Scope
 
-Desktop knowledge management UI 契约。该 surface 消费
-`RuntimeCognitionService` 中的 runtime-local knowledge slices，不经过 Realm
-REST / DataSync facade。
+Desktop Runtime Config must not expose a standalone "Knowledge" management
+page.
 
-Desktop "Knowledge" 标签是 runtime-local app/workspace bank 表面，
-**不是** AgentCore knowledge 投影，**也不是** memory recall 投影：
-- 该 UI 表面只消费 `runtime_knowledge_bank` typed cognition scope
-  (C-COG-059) 之下的 bank/page/relation/search/ingest 数据
-- 该 UI 表面不投影 `agent_core` / `agent_dyadic` / `world_shared`
-  memory scope；agent recall (`Retain` / `Recall` / `History`) 不在
-  该标签的消费范围
-- WORKSPACE_PRIVATE 投影：在
-  `2026-05-10-runtime-knowledge-cognition-hard-cut` topic 范围内，
-  该 scope 在每个 RPC 上都返回
-  `KNOWLEDGE_BANK_ACCESS_DENIED` + action_hint
-  `use_an_admitted_workspace_authorization_carrier`，与今天的 legacy
-  `denyWorkspaceKnowledgeAccess()` 行为等价；WORKSPACE_PRIVATE
-  re-enablement 由 sibling topic
-  `2026-05-10-runtime-workspace-binding-resolver` 拥有，不在该 UI
-  契约范围
+The retired page was a bank/page administration surface inherited from the
+absorbed `RuntimeKnowledgeService` topology. Runtime and SDK may still expose
+`runtime.knowledge.*` helpers when every method routes to
+`RuntimeCognitionService`, but Desktop must not present that infra slice as an
+active product configuration page.
 
-## D-DSYNC-014 — Runtime Path And Scope Boundary
+This contract separates three meanings that must not be collapsed:
 
-Knowledge UI 必须通过 Runtime 路径消费以下 admitted 方法：
+- `RuntimeCognitionService` is the runtime-facing cognition service owner.
+- Runtime-local knowledge banks/pages are an absorbed infra projection family.
+- Desktop product cognition UX is not admitted by this retired page contract.
 
-- `CreateKnowledgeBank`
-- `GetKnowledgeBank`
-- `ListKnowledgeBanks`
-- `DeleteKnowledgeBank`
-- `PutPage`
-- `GetPage`
-- `ListPages`
-- `DeletePage`
-- `SearchKeyword`
-- `SearchHybrid`（仅在 hybrid retrieval expansion admitted 时）
-- `IngestDocument` / `GetIngestTask`（仅在 single-document ingest expansion admitted 时）
+## D-DSYNC-014 — Retired Runtime Config Knowledge Page
 
-固定约束：
+Desktop Runtime Config must hard-cut the old Knowledge page.
 
-- Desktop 不得为 Knowledge UI 创建 Realm-side parallel truth 或 REST bypass
-- Desktop 不得把旧 `BuildIndex` / `SearchIndex` / `DeleteIndex` draft 当作稳定 surface
-- Desktop 只消费 baseline admitted scope：`APP_PRIVATE`、`WORKSPACE_PRIVATE`
-- Desktop 不得在 UI 层暗示 shared truth / replication / AgentCore knowledge lane
-- Desktop 不得把 `SearchHybrid` 解释成 graph、citation、canonical truth 或 AgentCore admission
-- Desktop 不得把 `IngestDocument` / `GetIngestTask` 解释成 shared-truth ingest、workflow-service ownership、或 batch ingest admission
+Fixed constraints:
 
-## D-DSYNC-015 — Bank Surface
+- no `RuntimePageIdV11` value named `knowledge`
+- no Runtime Config sidebar item, page meta, route branch, or E2E page root for
+  `knowledge`
+- no `runtime-config-page-knowledge*` renderer modules
+- no Desktop Runtime Config wrapper service dedicated to knowledge bank/page
+  CRUD
+- no `runtimeConfig.sidebar.knowledge` or `runtimeConfig.knowledge` locale
+  subtree
+- persisted or external `activePage="knowledge"` input must normalize to
+  `overview`
 
-Desktop Knowledge UI 必须至少定义 bank-level 管理 surface：
+## D-DSYNC-015 — Runtime Knowledge API Boundary
 
-- bank list
-- bank create
-- bank delete
-- bank detail / selection
+The SDK/runtime knowledge method family remains allowed only as an absorbed
+`RuntimeCognitionService` API surface.
 
-固定约束：
+Fixed constraints:
 
-- bank list 使用 `ListKnowledgeBanks`
-- bank create 使用 `CreateKnowledgeBank`
-- bank delete 使用 `DeleteKnowledgeBank`
-- UI 不得生成 free-form `scope + owner_id`；owner shape 必须来自 admitted typed locator
-- `APP_PRIVATE` 默认由当前 app 绑定；`WORKSPACE_PRIVATE` 必须显式输入或选择 `workspace_id`
+- SDK method ids must not route to `RuntimeKnowledgeService`
+- Desktop must not create a Realm REST bypass, DataSync facade, or app-local
+  parallel truth for knowledge banks/pages
+- Desktop must not treat runtime-local bank/page CRUD as canonical AgentCore
+  knowledge, memory recall, shared truth, or prompt-serving policy
+- Desktop must not add a product UI over this API without a new cognition UX
+  authority contract
 
-## D-DSYNC-016 — Page Surface
+## D-DSYNC-016 — Workspace-Private UI Gate
 
-Desktop Knowledge UI 必须至少定义 page-level 管理 surface：
+Desktop must not expose a user-selectable `WORKSPACE_PRIVATE` knowledge flow in
+Runtime Config.
 
-- page list
-- page get
-- page create/update
-- page delete
+Fixed constraints:
 
-固定约束：
+- workspace-private knowledge access remains fail-closed until an admitted
+  workspace authorization carrier exists
+- UI must not offer workspace id entry, workspace bank create/list/delete, or
+  empty-state fallbacks that mask authorization denial
+- workspace re-enablement belongs to a separate cognition/product admission,
+  not to this retired Runtime Config page
 
-- page list 使用 `ListPages`
-- page detail 使用 `GetPage`
-- page create/update 使用 `PutPage`
-- page delete 使用 `DeletePage`
-- page delete 必须明确区分 bank-level delete 与 page-level delete，UI 不得混淆
-- `slug` 冲突必须投影为可理解的冲突错误，不得静默覆盖或伪成功
+## D-DSYNC-017 — Removed Management Surface
 
-## D-DSYNC-017 — Search, Authz, And Unavailable Projection
+The old bank/page/search/graph/ingest management surface is retired from
+Desktop Runtime Config.
 
-Desktop Knowledge UI 必须定义 `SearchKeyword` 的结果消费和异常投影。
+Fixed constraints:
 
-固定约束：
+- no bank create/delete/detail/selection surface
+- no page list/get/put/delete surface
+- no bank-scoped keyword or hybrid search explorer
+- no same-bank graph/backlink editor
+- no single-document ingest/progress inspector
 
-- keyword search 结果只代表 runtime-local lexical hits，不代表 canonical truth、graph expansion、vector recall 或 AgentCore admission
-- `ListKnowledgeBanks` / `ListPages` 必须消费 runtime page token；Desktop 不得用 DataSync 默认分页参数覆盖 runtime 分页语义
-- `KNOWLEDGE_BANK_ACCESS_DENIED` / `KNOWLEDGE_PAGE_ACCESS_DENIED` 必须投影为 authz denial，而不是 empty state
-- Runtime unavailable / bridge unavailable 必须投影为 runtime-path unavailable state，不得回退到本地伪数据
-- Desktop 可以在 surface 上声明“Desktop product UI pending / gated”，但不得改变 admitted method meaning
+## D-DSYNC-018 — Future Cognition UX Admission
 
-## D-DSYNC-018 — Hybrid Search Projection
+Any future Desktop cognition UI must be admitted as a new cognition product
+surface rather than by reviving this retired page.
 
-Desktop 只有在 hybrid retrieval expansion admitted 时才可以暴露 `SearchHybrid`。
+Fixed constraints:
 
-固定约束：
-
-- UI 必须明确区分 `SearchKeyword` 与 `SearchHybrid`
-- `SearchHybrid` unavailable / capability-missing / index-not-ready 必须投影为显式 unavailable state
-- Desktop 不得把 `SearchHybrid` 静默回退为 `SearchKeyword`
-- `SearchHybrid` 命中仍只代表 runtime-local retrieval，不代表 graph expansion、shared truth、AgentCore admission 或 citation expansion
-- Hybrid retrieval 优先扩展现有 `runtime-config` knowledge surface；本规则不要求产品级 discovery UI 同步交付
-
-## D-DSYNC-019 — Graph / Backlink Projection
-
-Desktop 只有在 same-bank graph admission 落地后才可以暴露知识链接和
-backlink surface。
-
-固定约束：
-
-- UI 只可以消费同一 bank 内的 `AddLink`、`RemoveLink`、`ListLinks`、`ListBacklinks`、`TraverseGraph`
-- Desktop 不得在 UI 层制造 cross-bank relation、cross-service citation 或 shared-truth 暗示
-- page link create/remove 必须显式区分 outgoing link 与 backlink read；UI 不得把 backlink 当作可直接写入的独立 truth
-- `ListLinks` / `ListBacklinks` / `TraverseGraph` 必须消费 runtime page token，不得自行改写排序/分页语义
-- `KNOWLEDGE_LINK_NOT_FOUND` / `KNOWLEDGE_LINK_ALREADY_EXISTS` / `KNOWLEDGE_LINK_INVALID` / `KNOWLEDGE_GRAPH_DEPTH_INVALID` 必须投影为显式 graph state，而不是静默空列表
-- `TraverseGraph` 结果只代表 runtime-local same-bank graph expansion，不代表 citation redesign、AgentCore admission 或 canonical truth
-- Graph/backlink 优先扩展现有 `runtime-config` knowledge surface；本规则不要求产品级 graph explorer UI 同步交付
-
-## D-DSYNC-020 — Ingest / Progress Projection
-
-Desktop 只有在 single-document ingest admission 落地后才可以暴露
-`IngestDocument` / `GetIngestTask`。
-
-固定约束：
-
-- UI 只可以消费单文档 ingest；不得在 UI 层暗示 batch ingest 已 admitted
-- `IngestDocument` 必须返回显式 task acceptance；Desktop 不得伪装成同步 `PutPage`
-- `GetIngestTask` 必须投影显式 `status` / `progress_percent` / `reason_code`
-- `KNOWLEDGE_INGEST_TASK_NOT_FOUND` 必须投影为显式 task-missing state，而不是 generic empty state
-- task progress 只代表 runtime-local ingest 执行进度；不代表 timeline/version、shared truth、AgentCore admission 或 workflow-service ownership
-- Ingest/progress 优先扩展现有 `runtime-config` knowledge surface；本规则不要求产品级 bulk ingest UI 同步交付
+- new UI must define its subject, scope, user value, and product vocabulary
+  before implementation
+- new UI must not use "Knowledge" as a generic label for an infra bank CRUD
+  page
+- new UI must not reuse the retired Runtime Config page contract as active
+  truth
