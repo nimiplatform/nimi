@@ -111,8 +111,6 @@ function TimelineCard({ entry, onRemove }: { entry: TesterHistoryEntry; onRemove
         borderRadius: 18,
         padding: 20,
         boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)',
-        backdropFilter: 'blur(18px)',
-        WebkitBackdropFilter: 'blur(18px)',
       }}
     >
       <div

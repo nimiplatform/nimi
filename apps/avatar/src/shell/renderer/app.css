@@ -105,10 +105,8 @@ button {
   width: var(--companion-surface-width);
   padding: var(--spacing-md);
   border-radius: var(--surface-radius-md);
-  background: var(--surface-glass-bg);
-  backdrop-filter: blur(var(--surface-glass-blur));
-  -webkit-backdrop-filter: blur(var(--surface-glass-blur));
-  border: 1px solid var(--surface-glass-border);
+  background: var(--nimi-material-glass-regular-bg);
+  border: 1px solid var(--nimi-material-glass-regular-border);
   box-shadow: var(--surface-glass-shadow);
   color: var(--color-text-primary);
   -webkit-app-region: no-drag;
@@ -123,7 +121,7 @@ button {
   padding: var(--spacing-md) calc(var(--spacing-lg) + var(--spacing-sm)) var(--spacing-md) var(--spacing-md);
   border-radius: var(--surface-radius-sm);
   background: rgba(15, 23, 42, 0.62);
-  border: 1px solid var(--surface-glass-border);
+  border: 1px solid var(--nimi-material-glass-regular-border);
   font-size: var(--font-size-md);
   line-height: var(--line-height-normal);
   color: var(--color-text-primary);
@@ -175,7 +173,7 @@ button {
   width: 30px;
   height: 30px;
   padding: 0;
-  border: 1px solid var(--surface-glass-border);
+  border: 1px solid var(--nimi-material-glass-regular-border);
   border-radius: var(--surface-radius-pill);
   background: rgba(15, 23, 42, 0.62);
   color: var(--color-text-secondary);
@@ -331,7 +329,7 @@ button {
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--surface-radius-sm);
   background: rgba(15, 23, 42, 0.62);
-  border: 1px solid var(--surface-glass-border);
+  border: 1px solid var(--nimi-material-glass-regular-border);
   transition: border-color var(--motion-duration-fast) var(--motion-easing-standard),
     background var(--motion-duration-fast) var(--motion-easing-standard);
 }
@@ -407,10 +405,8 @@ button {
   width: var(--settings-popover-width);
   padding: var(--spacing-md);
   border-radius: var(--surface-radius-md);
-  background: var(--surface-glass-bg-strong);
-  backdrop-filter: blur(var(--surface-glass-blur));
-  -webkit-backdrop-filter: blur(var(--surface-glass-blur));
-  border: 1px solid var(--surface-glass-border-strong);
+  background: var(--nimi-material-glass-thick-bg);
+  border: 1px solid var(--nimi-material-glass-thick-border);
   box-shadow: var(--surface-glass-shadow);
   color: var(--color-text-primary);
   -webkit-app-region: no-drag;
@@ -503,8 +499,6 @@ button {
   gap: var(--spacing-md);
   padding: var(--spacing-xl);
   background: rgba(2, 6, 23, 0.86);
-  backdrop-filter: blur(var(--surface-glass-blur));
-  -webkit-backdrop-filter: blur(var(--surface-glass-blur));
   color: var(--color-text-primary);
   text-align: center;
   -webkit-app-region: no-drag;
@@ -528,7 +522,7 @@ button {
   letter-spacing: 0.06em;
   background: rgba(148, 163, 184, 0.14);
   color: var(--color-text-secondary);
-  border: 1px solid var(--surface-glass-border);
+  border: 1px solid var(--nimi-material-glass-regular-border);
 }
 
 .avatar-degraded-surface__badge--loading {
@@ -606,7 +600,7 @@ button {
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--surface-radius-sm);
   background: rgba(15, 23, 42, 0.62);
-  border: 1px solid var(--surface-glass-border);
+  border: 1px solid var(--nimi-material-glass-regular-border);
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   text-align: left;

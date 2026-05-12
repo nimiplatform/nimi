@@ -124,14 +124,12 @@ export function DentalInsightCard({ childName, ageLabel, records }: DentalInsigh
 
   return (
     <section
-      className="mb-5"
+      className="mb-5 nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)]"
       style={{
         position: 'relative',
         overflow: 'hidden',
         background: 'var(--nimi-material-glass-thick-bg, rgba(255,255,255,0.70))',
         border: '1px solid var(--nimi-material-glass-thick-border, rgba(226,232,240,0.40))',
-        backdropFilter: 'blur(var(--nimi-backdrop-blur-strong, 24px))',
-        WebkitBackdropFilter: 'blur(var(--nimi-backdrop-blur-strong, 24px))',
         padding: 22,
         borderRadius: 24,
         boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 14px 40px rgba(15,23,42,0.08)',

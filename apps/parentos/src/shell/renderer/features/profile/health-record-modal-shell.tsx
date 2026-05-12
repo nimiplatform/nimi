@@ -273,12 +273,10 @@ type ModalFooterProps = {
 export function ModalFooter({ children, leading }: ModalFooterProps) {
   return (
     <footer
-      className="flex shrink-0 items-center justify-end gap-3 px-6"
+      className="flex shrink-0 items-center justify-end gap-3 px-6 nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
       style={{
         height: HEALTH_MODAL_TOKENS.footerHeight,
         background: HEALTH_MODAL_TOKENS.footerGlass,
-        backdropFilter: 'blur(18px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(18px) saturate(140%)',
         borderTop: `1px solid ${HEALTH_MODAL_TOKENS.border}`,
       }}
     >

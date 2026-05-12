@@ -188,7 +188,6 @@ body {
   border: 1px solid var(--moment-border);
   background: linear-gradient(135deg, rgba(21, 27, 38, 0.94), rgba(38, 25, 19, 0.94));
   box-shadow: var(--moment-shadow);
-  backdrop-filter: blur(24px) saturate(1.08);
 }
 
 .moment-hero-card {

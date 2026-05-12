@@ -107,7 +107,7 @@ export function CompactUploadTile(props: {
           type="button"
           onClick={(event) => { event.stopPropagation(); onChange(''); }}
           aria-label={t('Tester.videoGenerate.uploadRemove', { defaultValue: 'Remove image' })}
-          className="absolute right-0.5 top-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-black/80 group-hover:opacity-100"
+          className="absolute right-0.5 top-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] transition-opacity hover:bg-black/80 group-hover:opacity-100"
         >
           {X_ICON}
         </button>

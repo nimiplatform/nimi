@@ -100,7 +100,7 @@ export default function MomentPlayPage() {
   }
 
   return (
-    <section className="moment-play-card">
+    <section className="moment-play-card nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)]">
       <div className="moment-play-visual">
         <div className="moment-scene-frame moment-scene-frame-play">
           {activeSession.seed.mode === 'image' && activeSession.seed.imageDataUrl ? (

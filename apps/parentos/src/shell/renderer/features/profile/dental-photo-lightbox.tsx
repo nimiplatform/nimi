@@ -78,6 +78,7 @@ export function DentalPhotoLightbox({ photos, index, onChange, onClose }: Props)
   const navBtn = (dir: 'left' | 'right', enabled: boolean, onClick: () => void) => (
     <button
       type="button"
+      className="nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)]"
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       disabled={!enabled}
       aria-label={dir === 'left' ? '上一张' : '下一张'}
@@ -96,8 +97,6 @@ export function DentalPhotoLightbox({ photos, index, onChange, onClose }: Props)
         placeItems: 'center',
         cursor: enabled ? 'pointer' : 'default',
         opacity: enabled ? 1 : 0.3,
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
         transition: 'background 160ms, opacity 160ms',
         zIndex: 2,
       } as React.CSSProperties}
@@ -114,14 +113,13 @@ export function DentalPhotoLightbox({ photos, index, onChange, onClose }: Props)
     <div
       role="dialog"
       aria-modal="true"
+      className="nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)]"
       onClick={onClose}
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
         background: 'rgba(8,10,15,0.88)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -132,6 +130,7 @@ export function DentalPhotoLightbox({ photos, index, onChange, onClose }: Props)
 
       <button
         type="button"
+        className="nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)]"
         onClick={(e) => { e.stopPropagation(); onClose(); }}
         aria-label="关闭"
         style={{
@@ -147,8 +146,6 @@ export function DentalPhotoLightbox({ photos, index, onChange, onClose }: Props)
           display: 'grid',
           placeItems: 'center',
           cursor: 'pointer',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
           transition: 'background 160ms',
           zIndex: 2,
         }}
@@ -162,6 +159,7 @@ export function DentalPhotoLightbox({ photos, index, onChange, onClose }: Props)
 
       {photos.length > 1 && (
         <div
+          className="nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)]"
           style={{
             position: 'absolute',
             top: 24,
@@ -174,8 +172,6 @@ export function DentalPhotoLightbox({ photos, index, onChange, onClose }: Props)
             borderRadius: 999,
             fontFamily: MONO,
             letterSpacing: '0.05em',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
             zIndex: 2,
           }}
         >
@@ -222,6 +218,7 @@ export function DentalPhotoLightbox({ photos, index, onChange, onClose }: Props)
 
       {photo.fileName && (
         <div
+          className="nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)]"
           onClick={(e) => e.stopPropagation()}
           style={{
             position: 'absolute',
@@ -237,8 +234,6 @@ export function DentalPhotoLightbox({ photos, index, onChange, onClose }: Props)
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
             zIndex: 2,
           }}
         >

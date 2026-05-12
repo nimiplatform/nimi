@@ -367,12 +367,10 @@ export function ExploreView(props: ExploreViewProps) {
 
                 {/* Top-left glass chip: live state */}
                 <div
-                  className="absolute left-5 top-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5"
+                  className="absolute left-5 top-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
                   style={{
                     background: 'color-mix(in srgb, var(--nimi-fg-inverse) 14%, transparent)',
                     border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 28%, transparent)',
-                    backdropFilter: 'blur(12px)',
-                    WebkitBackdropFilter: 'blur(12px)',
                   }}
                 >
                   <span className="desktop-world-pulse-dot" />
@@ -393,12 +391,10 @@ export function ExploreView(props: ExploreViewProps) {
                 {/* Top-right glass chip: mono world date */}
                 {currentBanner.currentLabel && (
                   <div
-                    className="absolute right-5 top-5 inline-flex items-center rounded-full px-3 py-1.5"
+                    className="absolute right-5 top-5 inline-flex items-center rounded-full px-3 py-1.5 nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
                     style={{
                       background: 'color-mix(in srgb, var(--nimi-fg-inverse) 14%, transparent)',
                       border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 28%, transparent)',
-                      backdropFilter: 'blur(12px)',
-                      WebkitBackdropFilter: 'blur(12px)',
                       fontFamily: 'var(--nimi-font-mono)',
                       fontSize: 11,
                       fontWeight: 500,
@@ -487,12 +483,10 @@ export function ExploreView(props: ExploreViewProps) {
                 {/* Stat rail (bottom-right) */}
                 {(currentBanner.agentCount !== null || currentBanner.flowRatio !== null || currentBanner.eraLabel) && (
                   <div
-                    className="absolute bottom-5 right-5 flex items-stretch gap-0 rounded-2xl px-4 py-3"
+                    className="absolute bottom-5 right-5 flex items-stretch gap-0 rounded-2xl px-4 py-3 nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
                     style={{
                       background: 'color-mix(in srgb, var(--nimi-fg-inverse) 12%, transparent)',
                       border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 22%, transparent)',
-                      backdropFilter: 'blur(14px)',
-                      WebkitBackdropFilter: 'blur(14px)',
                     }}
                   >
                     {currentBanner.agentCount !== null && (
@@ -562,13 +556,11 @@ export function ExploreView(props: ExploreViewProps) {
                           <polyline points="15 18 9 12 15 6" />
                         </svg>
                       )}
-                      className="absolute left-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full"
+                      className="absolute left-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
                       style={{
                         background: 'color-mix(in srgb, var(--nimi-fg-inverse) 14%, transparent)',
                         border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 24%, transparent)',
                         color: 'var(--nimi-fg-inverse)',
-                        backdropFilter: 'blur(12px)',
-                        WebkitBackdropFilter: 'blur(12px)',
                       }}
                       aria-label={t('Explore.previousBanner', { defaultValue: 'Previous banner' })}
                     />
@@ -583,13 +575,11 @@ export function ExploreView(props: ExploreViewProps) {
                           <polyline points="9 18 15 12 9 6" />
                         </svg>
                       )}
-                      className="absolute right-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full"
+                      className="absolute right-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
                       style={{
                         background: 'color-mix(in srgb, var(--nimi-fg-inverse) 14%, transparent)',
                         border: '1px solid color-mix(in srgb, var(--nimi-fg-inverse) 24%, transparent)',
                         color: 'var(--nimi-fg-inverse)',
-                        backdropFilter: 'blur(12px)',
-                        WebkitBackdropFilter: 'blur(12px)',
                       }}
                       aria-label={t('Explore.nextBanner', { defaultValue: 'Next banner' })}
                     />

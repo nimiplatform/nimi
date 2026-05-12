@@ -205,7 +205,7 @@ export function ModelCatalogOverviewSection(props: ModelCatalogOverviewSectionPr
                 </div>
 
                 {normalizedQuery ? (
-                  <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-30 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white/95 text-left shadow-[0_24px_60px_-30px_rgba(15,23,42,0.28)] backdrop-blur">
+                  <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-30 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white/95 text-left shadow-[0_24px_60px_-30px_rgba(15,23,42,0.28)] nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
                     <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                         {dropdownResults.length > 0

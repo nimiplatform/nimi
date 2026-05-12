@@ -102,7 +102,7 @@ export function HeroSection(props: HeroSectionProps) {
       <div className="container-nimi relative z-10">
         <div className="reveal mx-auto max-w-[1200px] text-center">
           {props.content.eyebrow ? (
-            <p className="mx-auto inline-flex rounded-full border border-slate-200/70 bg-white/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 shadow-sm backdrop-blur">
+            <p className="mx-auto inline-flex rounded-full border border-slate-200/70 bg-white/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 shadow-sm nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
               {props.content.eyebrow}
             </p>
           ) : null}

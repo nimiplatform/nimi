@@ -611,8 +611,6 @@
 
 [data-world-isolated] .wi-card-glass {
   background: color-mix(in srgb, var(--wi-surface) 80%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 /* Button Component */
@@ -848,7 +846,6 @@
   border-radius: var(--wi-radius-full);
   font-size: var(--wi-text-xs);
   color: var(--wi-muted);
-  backdrop-filter: blur(8px);
 }
 
 /* Selection Color */
@@ -910,7 +907,7 @@
   }
 
   .nimi-glass {
-    @apply bg-card/40 backdrop-blur-xl border border-white/20;
+    @apply bg-card/40 border border-white/20;
     box-shadow:
       0 10px 28px oklch(0 0 0 / 0.1),
       inset 0 0 0 1px oklch(1 0 0 / 0.1);

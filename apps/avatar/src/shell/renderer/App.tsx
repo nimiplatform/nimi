@@ -562,7 +562,7 @@ export function App() {
       {settingsOpen ? (
         <section
           id="avatar-companion-settings-popover"
-          className="avatar-settings-popover"
+          className="avatar-settings-popover nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)]"
           aria-label={t('Avatar.settings.popover_aria')}
           data-testid="avatar-settings-popover"
         >

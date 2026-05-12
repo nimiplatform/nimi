@@ -87,17 +87,14 @@ function ToolBar({
   });
   return (
     <div
-      className="nimi-material-glass-regular"
+      className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
       style={{
         padding: '10px 14px',
         display: 'flex',
         alignItems: 'center',
         gap: 10,
         background: 'var(--nimi-material-glass-regular-bg)',
-        border: '1px solid var(--nimi-material-glass-regular-border)',
-        backdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
-        WebkitBackdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
-        borderRadius: 'var(--nimi-radius-lg)',
+        border: '1px solid var(--nimi-material-glass-regular-border)',        borderRadius: 'var(--nimi-radius-lg)',
         boxShadow: 'var(--nimi-elevation-base)',
       }}
       data-nimi-material="glass-regular"
@@ -259,10 +256,7 @@ function Sidebar({
   ];
   const panelStyle: CSSProperties = {
     background: 'var(--nimi-material-glass-regular-bg)',
-    border: '1px solid var(--nimi-material-glass-regular-border)',
-    backdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
-    WebkitBackdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
-    borderRadius: 'var(--nimi-radius-lg)',
+    border: '1px solid var(--nimi-material-glass-regular-border)',    borderRadius: 'var(--nimi-radius-lg)',
     boxShadow: 'var(--nimi-elevation-base)',
     padding: 8,
   };
@@ -303,7 +297,7 @@ function Sidebar({
         </svg>
         {t('World.sidebar.create')}
       </button>
-      <nav className="nimi-material-glass-regular" style={panelStyle} data-nimi-material="glass-regular">
+      <nav className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={panelStyle} data-nimi-material="glass-regular">
         <Kicker style={{ padding: '8px 10px 6px' }}>{t('World.sidebar.library')}</Kicker>
         {filters.map((entry) => {
           const active = filter === entry.id;
@@ -344,7 +338,7 @@ function Sidebar({
           );
         })}
       </nav>
-      <nav className="nimi-material-glass-regular" style={panelStyle} data-nimi-material="glass-regular">
+      <nav className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={panelStyle} data-nimi-material="glass-regular">
         <Kicker style={{ padding: '8px 10px 6px' }}>{t('World.sidebar.collections')}</Kicker>
         {collections.length === 0 ? (
           <div style={{ padding: '7px 10px', fontSize: 12, color: 'var(--nimi-text-muted)' }}>
@@ -392,7 +386,7 @@ function Sidebar({
         )}
       </nav>
       <div
-        className="nimi-material-glass-regular"
+        className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
         style={{ ...panelStyle, padding: 16 }}
         data-nimi-material="glass-regular"
       >
@@ -514,17 +508,14 @@ export function WorldList() {
             />
             {sorted.length === 0 ? (
               <div
-                className="nimi-material-glass-regular"
+                className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
                 style={{
                   padding: 48,
                   textAlign: 'center',
                   color: 'var(--nimi-text-muted)',
                   fontSize: 13,
                   background: 'var(--nimi-material-glass-regular-bg)',
-                  border: '1px solid var(--nimi-material-glass-regular-border)',
-                  backdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
-                  WebkitBackdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
-                  borderRadius: 'var(--nimi-radius-lg)',
+                  border: '1px solid var(--nimi-material-glass-regular-border)',                  borderRadius: 'var(--nimi-radius-lg)',
                 }}
               >
                 {query ? t('World.noSearchResults') : t('World.card.noMatch')}

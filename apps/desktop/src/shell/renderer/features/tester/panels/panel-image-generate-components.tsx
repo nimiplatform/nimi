@@ -261,13 +261,13 @@ function RunCard({ record, onSelect, onDelete }: {
           type="button"
           onClick={(event) => { event.stopPropagation(); onDelete(record.id); }}
           aria-label={t('Tester.imageGenerate.deleteHistoryItem')}
-          className="pointer-events-auto inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-[var(--nimi-accent-danger)] hover:text-white"
+          className="pointer-events-auto inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-white nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] transition-colors hover:bg-[var(--nimi-accent-danger)] hover:text-white"
         >
           {TRASH_ICON}
         </button>
       </div>
       {record.imageUris.length > 1 ? (
-        <span className="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+        <span className="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)]">
           ×{record.imageUris.length}
         </span>
       ) : null}
@@ -334,7 +334,7 @@ function RecordDetailDrawer({ record, onClose }: { record: ImageGenerationRecord
           type="button"
           onClick={onClose}
           aria-label={t('Tester.imageGenerate.closePreview')}
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] transition-colors hover:bg-black/60"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>

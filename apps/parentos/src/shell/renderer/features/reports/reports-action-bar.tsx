@@ -345,13 +345,12 @@ export function ReportActionBar({
   };
 
   return (
-    <section className="report-action-bar hide-on-print" style={{
+    <section className="report-action-bar hide-on-print nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]" style={{
       marginTop: 48, padding: '22px 24px',
       background: 'rgba(255,255,255,0.55)',
       border: `1px solid ${RULE_SOFT}`,
       borderRadius: 18,
       boxShadow: '0 1px 2px rgba(15,23,42,0.03), 0 6px 18px rgba(15,23,42,0.04)',
-      backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
     }}>
       <FamilyShareRow onShareSelected={handleFamilySelection} selfRoleName={selfRoleName} />
 

@@ -190,7 +190,7 @@ export function PlayerPanel() {
   /* ─── Empty state ─── */
   if (!selectedTake) {
     return (
-      <div className="ot-glass h-[80px] flex items-center justify-center px-6 z-50 shrink-0">
+      <div className="ot-glass nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)] h-[80px] flex items-center justify-center px-6 z-50 shrink-0">
         <button className="ot-play-btn" disabled type="button">
           <span className="text-sm">&#x25B6;</span>
         </button>
@@ -206,7 +206,7 @@ export function PlayerPanel() {
   }
 
   return (
-    <div className="ot-glass h-[80px] flex items-center gap-5 px-6 z-50 shrink-0">
+    <div className="ot-glass nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)] h-[80px] flex items-center gap-5 px-6 z-50 shrink-0">
       {/* Play button */}
       <button
         className={`ot-play-btn${isPlaying ? ' ot-play-btn--playing' : ''}`}

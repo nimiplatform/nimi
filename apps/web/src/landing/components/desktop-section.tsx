@@ -31,7 +31,7 @@ export function DesktopSection(props: DesktopSectionProps) {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#e1fbef] via-[#e2fafe] to-[#e8f2fe] opacity-80" />
 
       <div className="container-nimi relative z-10 mx-auto max-w-[1060px]">
-        <div className="mb-8 rounded-[24px] border border-white/70 bg-white/70 p-5 shadow-[0_18px_48px_-24px_rgba(14,165,233,0.18)] backdrop-blur-xl md:mb-10 md:p-6">
+        <div className="mb-8 rounded-[24px] border border-white/70 bg-white/70 p-5 shadow-[0_18px_48px_-24px_rgba(14,165,233,0.18)] nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)] md:mb-10 md:p-6">
           <p className="text-[12px] font-bold uppercase tracking-[0.24em] text-[#2bb28f]">
             {availability.eyebrow}
           </p>
@@ -71,7 +71,7 @@ export function DesktopSection(props: DesktopSectionProps) {
             <div className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-tr from-[#38d6a3]/10 to-[#0ea5e9]/10 blur-[60px] md:h-[500px] md:w-[500px]" />
 
             <div
-              className="relative z-10 w-full max-w-[720px] rounded-[22px] p-[6px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.35),_inset_0_1px_1px_rgba(255,255,255,0.4)] backdrop-blur-[24px] xl:w-[calc(100%+2rem)] xl:max-w-[700px] xl:-translate-x-[4%] 2xl:absolute 2xl:right-[-12%] 2xl:top-[54%] 2xl:w-full 2xl:max-w-[620px] 2xl:-translate-y-[40%] 2xl:translate-x-0"
+              className="relative z-10 w-full max-w-[720px] rounded-[22px] p-[6px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.35),_inset_0_1px_1px_rgba(255,255,255,0.4)] nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)] xl:w-[calc(100%+2rem)] xl:max-w-[700px] xl:-translate-x-[4%] 2xl:absolute 2xl:right-[-12%] 2xl:top-[54%] 2xl:w-full 2xl:max-w-[620px] 2xl:-translate-y-[40%] 2xl:translate-x-0"
               style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 100%)' }}
             >
               <div className="h-full w-full overflow-hidden rounded-[16px] bg-[#1a1c23] shadow-2xl ring-1 ring-white/10">
@@ -149,7 +149,7 @@ export function DesktopSection(props: DesktopSectionProps) {
           {props.content.features.map((feature, idx) => (
             <article
               key={feature.title}
-              className="reveal flex flex-col justify-start rounded-[24px] border border-slate-100 bg-[#f9fdfc]/90 p-7 shadow-[0_8px_30px_rgba(45,212,191,0.06)] backdrop-blur-md transition-all hover:-translate-y-1 hover:bg-white hover:shadow-[0_15px_40px_rgba(45,212,191,0.12)]"
+              className="reveal flex flex-col justify-start rounded-[24px] border border-slate-100 bg-[#f9fdfc]/90 p-7 shadow-[0_8px_30px_rgba(45,212,191,0.06)] nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] transition-all hover:-translate-y-1 hover:bg-white hover:shadow-[0_15px_40px_rgba(45,212,191,0.12)]"
             >
               <div className="mb-5 flex h-[46px] w-[46px] items-center justify-center rounded-[14px] border border-slate-200/60 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
                 {featureIcons[idx] || feature.icon}

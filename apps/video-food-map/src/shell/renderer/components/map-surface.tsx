@@ -462,7 +462,7 @@ export function MapSurface({
       ) : null}
       {selectedPoint ? (
         <div className="absolute left-4 bottom-4 max-w-[320px]">
-          <div className="rounded-3xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_28%,transparent)] bg-white/96 p-4 shadow-[0_22px_48px_rgba(15,23,42,0.18)] backdrop-blur">
+          <div className="rounded-3xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_28%,transparent)] bg-white/96 p-4 shadow-[0_22px_48px_rgba(15,23,42,0.18)] nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
             <div className="flex flex-wrap items-center gap-2">
               <div className="text-base font-semibold text-[var(--nimi-text-primary)]">{selectedPoint.venueName || '未明确店名'}</div>
               {selectedPointDistanceKm != null ? (

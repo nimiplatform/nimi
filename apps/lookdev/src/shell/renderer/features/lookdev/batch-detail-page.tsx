@@ -90,7 +90,7 @@ export default function BatchDetailPage() {
 
   if (!batch) {
     return (
-      <div className="ld-card px-8 py-12 text-center text-white/68">
+      <div className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-8 py-12 text-center text-white/68">
         {t('batchDetail.notFound')}
       </div>
     );
@@ -98,7 +98,7 @@ export default function BatchDetailPage() {
 
   if (!hasExecutionTargets(batch.policySnapshot)) {
     return (
-      <div className="ld-card px-8 py-12 text-center">
+      <div className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-8 py-12 text-center">
         <div className="mx-auto max-w-xl space-y-3">
           <div className="text-lg font-medium text-white">{t('batchDetail.invalidSnapshotTitle')}</div>
           <p className="text-sm leading-6 text-white/66">
@@ -111,7 +111,7 @@ export default function BatchDetailPage() {
 
   if (!selectedItem || !hasCaptureStateSnapshot(selectedItem.captureStateSnapshot)) {
     return (
-      <div className="ld-card px-8 py-12 text-center">
+      <div className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-8 py-12 text-center">
         <div className="mx-auto max-w-xl space-y-3">
           <div className="text-lg font-medium text-white">{t('batchDetail.invalidSnapshotTitle')}</div>
           <p className="text-sm leading-6 text-white/66">
@@ -126,7 +126,7 @@ export default function BatchDetailPage() {
 
   return (
     <div className="space-y-5 pb-6">
-      <section className="ld-card px-7 py-7">
+      <section className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-7 py-7">
         <div className="flex flex-col gap-5 2xl:flex-row 2xl:items-start 2xl:justify-between">
           <div className="space-y-2">
             <div className="text-xs uppercase tracking-[0.18em] text-[var(--ld-gold)]">{t(`selectionSource.${batch.selectionSnapshot.selectionSource}`, { defaultValue: batch.selectionSnapshot.selectionSource.replace('_', ' ') })}</div>
@@ -203,7 +203,7 @@ export default function BatchDetailPage() {
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,0.95fr)_360px]">
-        <section className="ld-card px-5 py-5">
+        <section className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-5 py-5">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">{t('batchDetail.itemsTitle')}</h3>
             <div className="text-xs uppercase tracking-[0.18em] text-white/38">{t('batchDetail.batchStatus', { status: t(`batchStatus.${batch.status}`, { defaultValue: batch.status.replace('_', ' ') }) })}</div>
@@ -237,7 +237,7 @@ export default function BatchDetailPage() {
         {selectedItem ? (
           <>
             <div className="space-y-5">
-              <section className="ld-card px-6 py-6">
+              <section className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-6 py-6">
                 <div>
                   <div className="text-xs uppercase tracking-[0.18em] text-[var(--ld-gold)]">{t('batchDetail.preview')}</div>
                   <h3 className="mt-2 text-2xl font-semibold text-white">{selectedItem.agentDisplayName}</h3>
@@ -277,7 +277,7 @@ export default function BatchDetailPage() {
                 </div>
               </section>
 
-              <section className="ld-card px-6 py-6">
+              <section className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-6 py-6">
                 <div className="text-xs uppercase tracking-[0.16em] text-white/40">{t('batchDetail.batchSnapshots')}</div>
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                   <div className="rounded-2xl bg-black/14 px-4 py-4">
@@ -304,7 +304,7 @@ export default function BatchDetailPage() {
               </section>
 
               <div className="grid gap-5 lg:grid-cols-2">
-                <section className="ld-card px-5 py-5">
+                <section className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-5 py-5">
                   <div className="text-xs uppercase tracking-[0.16em] text-white/40">{t('createBatch.captureStateStatus', { defaultValue: 'Capture state' })}</div>
                   <div className="mt-4 space-y-2 text-sm text-white/68">
                     <div><span className="text-white/42">{t('createBatch.captureStateCurrentBrief', { defaultValue: 'Current brief' })}</span> · {selectedItem.captureStateSnapshot.currentBrief}</div>
@@ -313,7 +313,7 @@ export default function BatchDetailPage() {
                   </div>
                 </section>
 
-                <section className="ld-card px-5 py-5">
+                <section className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-5 py-5">
                   <div className="text-xs uppercase tracking-[0.16em] text-white/40">{t('batchDetail.portraitBrief')}</div>
                   <div className="mt-4 space-y-2 text-sm text-white/68">
                     <div><span className="text-white/42">{t('batchDetail.role')}</span> · {selectedItem.portraitBrief.visualRole}</div>
@@ -327,7 +327,7 @@ export default function BatchDetailPage() {
             </div>
 
             <div className="space-y-5 xl:col-span-2 2xl:col-span-1">
-              <section className="ld-card px-5 py-5">
+              <section className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-5 py-5">
                 <div className="text-xs uppercase tracking-[0.16em] text-white/40">{t('batchDetail.evaluation')}</div>
                 {selectedItem.currentEvaluation ? (
                   <div className="mt-4 space-y-4">
@@ -361,7 +361,7 @@ export default function BatchDetailPage() {
                 )}
               </section>
 
-              <section className="ld-card px-5 py-5">
+              <section className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-5 py-5">
                 <div className="text-xs uppercase tracking-[0.16em] text-white/40">{t('batchDetail.auditTrail')}</div>
                 <div className="mt-3 text-sm text-white/52">{t('batchDetail.auditSummary', { count: batch.auditTrail.length })}</div>
                 <div className="mt-4 grid gap-2 text-sm text-white/68">

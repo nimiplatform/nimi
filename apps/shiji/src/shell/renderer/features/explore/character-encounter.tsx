@@ -94,7 +94,7 @@ export function CharacterEncounter({ onDismiss }: { onDismiss: () => void }) {
 
   if (state.phase === 'done') {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-amber-950/70 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-amber-950/70 nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)]">
         <div className="max-w-md mx-auto px-6 text-center space-y-6">
           <p className="text-amber-100 text-xl leading-relaxed font-medium">
             {t('encounter.moreWaiting')}
@@ -115,7 +115,7 @@ export function CharacterEncounter({ onDismiss }: { onDismiss: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-amber-950/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-amber-950/60 nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)]">
       <div className="w-full max-w-lg mb-12 mx-4">
         <div className="bg-amber-50 rounded-3xl overflow-hidden shadow-2xl">
           <div className="flex gap-2 px-6 pt-5">

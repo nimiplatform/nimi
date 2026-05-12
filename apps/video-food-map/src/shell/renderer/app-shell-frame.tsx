@@ -48,7 +48,7 @@ export function VideoFoodMapShellFrame(props: {
                   type="button"
                   aria-label={item.label}
                   onClick={() => props.onSurfaceChange(item.id)}
-                  className={`vfm-shell-nav-button flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-2xl px-2 text-center transition ${
+                  className={`vfm-shell-nav-button nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-2xl px-2 text-center transition ${
                     active
                       ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,white)] text-[var(--nimi-text-primary)]'
                       : 'text-[var(--nimi-text-secondary)] hover:bg-white/40 hover:text-[var(--nimi-text-primary)]'

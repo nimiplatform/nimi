@@ -40,7 +40,7 @@ export function CreateBatchPolicyPanel(props: CreateBatchPolicyPanelProps) {
   } = props;
 
   return (
-    <section className="ld-card px-7 py-7">
+    <section className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-7 py-7">
       <div className="space-y-2">
         <div className="text-xs uppercase tracking-[0.2em] text-[var(--ld-gold)]">{t('createBatch.policyEyebrow')}</div>
         <h3 className="text-2xl font-semibold text-white">{t('createBatch.policyTitle')}</h3>

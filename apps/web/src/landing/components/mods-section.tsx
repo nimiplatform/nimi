@@ -171,7 +171,7 @@ export function ModsSection(props: ModsSectionProps) {
           {props.content.items.map((item) => (
             <div
               key={item.name}
-              className="flex flex-col items-start rounded-2xl border border-white/8 bg-white/[0.03] p-7 backdrop-blur-md transition-colors hover:border-white/20 hover:bg-white/[0.05]"
+              className="flex flex-col items-start rounded-2xl border border-white/8 bg-white/[0.03] p-7 nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] transition-colors hover:border-white/20 hover:bg-white/[0.05]"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#63f0cf]/10 text-[#63f0cf]">
                 <ModGlyph icon={item.icon} className="h-6 w-6" />

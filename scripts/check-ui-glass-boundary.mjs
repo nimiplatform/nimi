@@ -66,17 +66,74 @@ const SKIP_FILE_SUFFIXES = ['.test.ts', '.test.tsx', '.test.js', '.test.mjs', '.
 
 function loadAllowlist() {
   const abs = path.join(repoRoot, ALLOWLIST_FILE);
-  if (!fs.existsSync(abs)) return new Set();
+  if (!fs.existsSync(abs)) return { entries: new Set(), errors: [] };
   const raw = fs.readFileSync(abs, 'utf8');
   const entries = new Set();
-  for (const line of raw.split('\n')) {
+  const errors = [];
+  for (const [index, line] of raw.split('\n').entries()) {
     const stripped = line.replace(/#.*$/, '').trim();
     if (!stripped) continue;
     // Accept either "path:line" or "path:line  # comment"
     const m = stripped.match(/^([^\s]+:\d+)/);
-    if (m) entries.add(m[1]);
+    if (!m) continue;
+    const key = m[1];
+    entries.add(key);
+    const lineNo = index + 1;
+    if (line.includes('segment-B')) {
+      const ticketMatch = line.match(/\bticket:\s+(\S+)/);
+      if (!ticketMatch) {
+        errors.push(`${ALLOWLIST_FILE}:${lineNo} ${key} is segment-B but has no ticket`);
+        continue;
+      }
+      const ticket = ticketMatch[1];
+      const ticketError = validateTicketRef(ticket);
+      if (ticketError) {
+        errors.push(`${ALLOWLIST_FILE}:${lineNo} ${key} has invalid ticket "${ticket}": ${ticketError}`);
+      }
+    }
   }
-  return entries;
+  return { entries, errors };
+}
+
+function validateTicketRef(ticket) {
+  if (/^(?:FOLLOWON-|TBD$|TODO$|PLACEHOLDER$)/i.test(ticket)) {
+    return 'placeholder ticket references are forbidden';
+  }
+  if (!ticket.startsWith('.nimi/topics/')) {
+    return 'ticket must resolve to a .nimi topic artifact';
+  }
+  const [fileRef, anchor] = ticket.split('#', 2);
+  if (!/^\.nimi\/topics\/(?:proposal|ongoing|pending|closed)\/[^/]+\/.+/.test(fileRef)) {
+    return 'ticket must point inside .nimi/topics/{proposal,ongoing,pending,closed}/<topic-id>/';
+  }
+  const abs = path.join(repoRoot, fileRef);
+  if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) {
+    return 'target file does not exist';
+  }
+  if (anchor && !markdownAnchorExists(abs, anchor)) {
+    return 'target markdown anchor does not exist';
+  }
+  return null;
+}
+
+function markdownAnchorExists(abs, anchor) {
+  const src = fs.readFileSync(abs, 'utf8');
+  for (const line of src.split('\n')) {
+    const match = line.match(/^#{1,6}\s+(.+?)\s*#*\s*$/);
+    if (!match) continue;
+    if (markdownSlug(match[1]) === anchor) return true;
+  }
+  return false;
+}
+
+function markdownSlug(text) {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/`/g, '')
+    .replace(/[^\p{Letter}\p{Number}\s-]/gu, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
 }
 
 // ---------- Walk ----------
@@ -247,7 +304,15 @@ function extractExcerpt(src, idx) {
 // ---------- Main ----------
 
 function main() {
-  const allowlist = loadAllowlist();
+  const { entries: allowlist, errors: allowlistErrors } = loadAllowlist();
+  if (allowlistErrors.length > 0) {
+    process.stderr.write(`check:ui-glass-boundary — FAIL (${allowlistErrors.length} allowlist ticket errors)\n\n`);
+    for (const error of allowlistErrors) {
+      process.stderr.write(`  ${error}\n`);
+    }
+    process.stderr.write(`\nAllowlist: ${ALLOWLIST_FILE}\n`);
+    process.exit(1);
+  }
   const violations = [];
 
   for (const root of SCAN_ROOTS) {

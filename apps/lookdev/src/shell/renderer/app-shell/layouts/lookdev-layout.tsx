@@ -38,7 +38,7 @@ export function LookdevLayout() {
     <div className="ld-grid-glow min-h-screen bg-transparent">
       <LookdevShellSettingsDialog open={routeSettingsOpen} onOpenChange={setRouteSettingsOpen} />
       <div className="mx-auto flex min-h-screen w-full max-w-[1560px] flex-col gap-5 px-5 py-5">
-        <header className="ld-card px-6 py-5">
+        <header className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-6 py-5">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
             <div className="space-y-4">
               <div className="space-y-3">

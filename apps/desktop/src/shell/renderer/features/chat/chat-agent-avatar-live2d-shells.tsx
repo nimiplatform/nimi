@@ -52,7 +52,7 @@ export function Live2dErrorShell(props: {
         className={cn(
           'relative mx-6 max-w-[18rem] px-5 py-4 text-center',
           props.transparent
-            ? 'rounded-[20px] bg-white/70 shadow-[0_8px_24px_rgba(15,23,42,0.08)] backdrop-blur-md'
+            ? 'rounded-[20px] bg-white/70 shadow-[0_8px_24px_rgba(15,23,42,0.08)] nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]'
             : 'rounded-[24px] nimi-material-glass-thin border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] shadow-[0_18px_40px_rgba(15,23,42,0.12)] backdrop-blur-[var(--nimi-backdrop-blur-thin)]',
         )}
       >

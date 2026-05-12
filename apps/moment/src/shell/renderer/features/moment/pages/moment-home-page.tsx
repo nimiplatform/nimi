@@ -111,7 +111,7 @@ export default function MomentHomePage() {
     : '';
 
   return (
-    <section className="moment-hero-card">
+    <section className="moment-hero-card nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)]">
       <div className="moment-start-pane">
         <div className="moment-start-copy">
           <h1>{t('moment.startTitle')}</h1>

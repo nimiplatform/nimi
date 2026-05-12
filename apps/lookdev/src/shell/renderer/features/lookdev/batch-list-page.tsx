@@ -49,7 +49,7 @@ export default function BatchListPage() {
 
   return (
     <div className="space-y-5 pb-6">
-      <section className="ld-card relative overflow-hidden px-8 py-8">
+      <section className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] relative overflow-hidden px-8 py-8">
         <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_center,rgba(117,240,213,0.16),transparent_60%)]" />
         <div className="relative flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl space-y-3">
@@ -72,19 +72,19 @@ export default function BatchListPage() {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="ld-card px-5 py-5">
+        <div className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-5 py-5">
           <div className="text-[11px] uppercase tracking-[0.18em] text-white/40">{t('batchList.overviewTotal')}</div>
           <div className="mt-3 text-3xl font-semibold text-white">{overviewStats.total}</div>
         </div>
-        <div className="ld-card px-5 py-5">
+        <div className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-5 py-5">
           <div className="text-[11px] uppercase tracking-[0.18em] text-white/40">{t('batchList.overviewRunning')}</div>
           <div className="mt-3 text-3xl font-semibold text-cyan-100">{overviewStats.running}</div>
         </div>
-        <div className="ld-card px-5 py-5">
+        <div className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-5 py-5">
           <div className="text-[11px] uppercase tracking-[0.18em] text-white/40">{t('batchList.overviewPassed')}</div>
           <div className="mt-3 text-3xl font-semibold text-emerald-200">{overviewStats.passed}</div>
         </div>
-        <div className="ld-card px-5 py-5">
+        <div className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-5 py-5">
           <div className="text-[11px] uppercase tracking-[0.18em] text-white/40">{t('batchList.overviewCommitted')}</div>
           <div className="mt-3 text-3xl font-semibold text-cyan-100">{overviewStats.committed}</div>
         </div>
@@ -106,7 +106,7 @@ export default function BatchListPage() {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {visibleBatches.length === 0 ? (
-          <div className="ld-card col-span-full px-8 py-12 text-center">
+          <div className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] col-span-full px-8 py-12 text-center">
             <div className="mx-auto max-w-md space-y-3">
               <div className="text-lg font-medium text-white">{batches.length === 0 ? t('batchList.emptyTitle') : t('batchList.emptyFilteredTitle')}</div>
               <p className="text-sm leading-6 text-white/66">
@@ -123,7 +123,7 @@ export default function BatchListPage() {
             </div>
           </div>
         ) : visibleBatches.map((batch) => (
-          <div key={batch.batchId} className="ld-card px-6 py-5 transition hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--ld-accent)_28%,transparent)]">
+          <div key={batch.batchId} className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-6 py-5 transition hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--ld-accent)_28%,transparent)]">
             <div className="flex items-start justify-between gap-4">
               <Link to={`/batches/${batch.batchId}`} className="min-w-0 flex-1">
                 <div className="text-xs uppercase tracking-[0.16em] text-white/40">{t(`selectionSource.${batch.selectionSnapshot.selectionSource}`, { defaultValue: batch.selectionSnapshot.selectionSource.replace('_', ' ') })}</div>

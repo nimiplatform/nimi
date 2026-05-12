@@ -268,7 +268,7 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
 
   return (
     <section
-      className={`avatar-companion-surface avatar-companion-surface--${status}`}
+      className={`avatar-companion-surface nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] avatar-companion-surface--${status}`}
       data-testid="avatar-companion-surface"
       aria-label={t('Avatar.shell.companion_aria')}
     >

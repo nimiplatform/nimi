@@ -62,12 +62,12 @@ function RunCard({ record, onSelect, onDelete }: {
           type="button"
           onClick={(event) => { event.stopPropagation(); onDelete(record.id); }}
           aria-label={t('Tester.videoGenerate.deleteHistoryItem', { defaultValue: 'Delete' })}
-          className="pointer-events-auto inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-[var(--nimi-accent-danger)] hover:text-white"
+          className="pointer-events-auto inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-white nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] transition-colors hover:bg-[var(--nimi-accent-danger)] hover:text-white"
         >
           {TRASH_ICON}
         </button>
       </div>
-      <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+      <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium text-white nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)]">
         {modeShortLabel(record.mode, t)}
       </span>
     </div>
@@ -138,7 +138,7 @@ function RecordDetailDrawer({ record, onClose }: { record: VideoGenerationRecord
           type="button"
           onClick={onClose}
           aria-label={t('Tester.videoGenerate.closePreview', { defaultValue: 'Close preview' })}
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] transition-colors hover:bg-black/60"
         >
           {X_ICON}
         </button>

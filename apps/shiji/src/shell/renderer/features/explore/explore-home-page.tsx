@@ -198,7 +198,7 @@ export default function ExploreHomePage() {
 
   return (
     <div className="flex h-full flex-col bg-amber-50/20">
-      <div className="border-b border-amber-100 bg-white/80 px-6 py-4 backdrop-blur-sm">
+      <div className="border-b border-amber-100 bg-white/80 px-6 py-4 nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)]">
         <h1 className="mb-3 text-xl font-bold text-neutral-800">{t('explore.title')}</h1>
 
         <div className="flex flex-wrap items-center gap-3">

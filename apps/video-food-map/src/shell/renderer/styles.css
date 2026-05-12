@@ -119,7 +119,6 @@ button {
 }
 
 .vfm-shell-nav-button {
-  backdrop-filter: blur(var(--nimi-backdrop-blur-thin));
 }
 
 .vfm-pill-neutral {

@@ -322,11 +322,9 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     color: #1e293b !important;
   }
 
-  /* Kill glass + backdrop filters globally within print target. */
+  /* Keep printable output flat inside the report target. */
   .report-printable-page * {
     background-image: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
     box-shadow: none !important;
   }
 

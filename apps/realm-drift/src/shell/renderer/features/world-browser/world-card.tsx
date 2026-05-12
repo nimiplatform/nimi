@@ -32,12 +32,12 @@ export function WorldCard({ world, onClick }: WorldCardProps) {
         {marbleJob && (
           <div className="absolute top-2 right-2">
             {marbleJob.status === 'completed' && (
-              <span className="rounded-full bg-emerald-500/80 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
+              <span className="rounded-full bg-emerald-500/80 px-2 py-0.5 text-xs text-white nimi-material-glass-thin border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] backdrop-blur-[var(--nimi-backdrop-blur-thin)]">
                 {t('browser.marbleReady')}
               </span>
             )}
             {marbleJob.status === 'generating' && (
-              <span className="rounded-full bg-amber-500/80 px-2 py-0.5 text-xs text-white backdrop-blur-sm animate-pulse">
+              <span className="rounded-full bg-amber-500/80 px-2 py-0.5 text-xs text-white nimi-material-glass-thin border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] backdrop-blur-[var(--nimi-backdrop-blur-thin)] animate-pulse">
                 {t('browser.marbleGenerating')}
               </span>
             )}

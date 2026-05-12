@@ -53,8 +53,6 @@ body {
 /* ─── Glass Effect ─── */
 .ot-glass {
   background: color-mix(in srgb, var(--nimi-surface-panel) 82%, transparent);
-  backdrop-filter: blur(24px) saturate(1.5);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
   border-top: 1px solid var(--nimi-border-subtle);
 }
 

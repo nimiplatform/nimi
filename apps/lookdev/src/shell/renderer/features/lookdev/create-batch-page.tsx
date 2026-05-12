@@ -476,7 +476,7 @@ export default function CreateBatchPage() {
   return (
     <div className="grid gap-5 pb-6 2xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="space-y-5">
-        <section className="ld-card px-7 py-7">
+        <section className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-7 py-7">
           <div className="flex flex-col gap-6">
             <div className="space-y-2">
               <div className="text-xs uppercase tracking-[0.2em] text-[var(--ld-gold)]">{t('createBatch.eyebrow')}</div>
@@ -707,7 +707,7 @@ export default function CreateBatchPage() {
       </div>
 
       <div className="space-y-5 self-start 2xl:sticky 2xl:top-5">
-        <section className="ld-card px-6 py-6">
+        <section className="ld-card nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] px-6 py-6">
           <div className="space-y-2">
             <div className="text-xs uppercase tracking-[0.2em] text-[var(--ld-gold)]">{t('createBatch.reviewEyebrow')}</div>
             <h3 className="text-2xl font-semibold text-white">{t('createBatch.reviewTitle')}</h3>

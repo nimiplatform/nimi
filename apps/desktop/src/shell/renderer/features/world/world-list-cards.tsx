@@ -44,7 +44,7 @@ export function FeaturedWorldCard({ world, onOpen }: { world: WorldListItem; onO
   const tags = worldTags(world).slice(0, 6);
   return (
     <section
-      className="nimi-material-glass-thick"
+      className="nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)]"
       style={{
         position: 'relative',
         overflow: 'hidden',
@@ -67,10 +67,7 @@ export function FeaturedWorldCard({ world, onOpen }: { world: WorldListItem; onO
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'var(--nimi-material-glass-thick-bg)',
-            backdropFilter: 'blur(var(--nimi-backdrop-blur-strong))',
-            WebkitBackdropFilter: 'blur(var(--nimi-backdrop-blur-strong))',
-            maskImage: world.bannerUrl
+            background: 'var(--nimi-material-glass-thick-bg)',            maskImage: world.bannerUrl
               ? 'linear-gradient(to bottom, transparent 0, black 36px)'
               : undefined,
             WebkitMaskImage: world.bannerUrl
@@ -191,7 +188,7 @@ export function WorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () 
   const hasCover = Boolean(world.bannerUrl);
   return (
     <article
-      className="nimi-material-glass-regular"
+      className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
       onClick={onOpen}
       onMouseEnter={(event) => {
         prefetchWorldDetailPanel();
@@ -233,10 +230,7 @@ export function WorldCard({ world, onOpen }: { world: WorldListItem; onOpen: () 
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'var(--nimi-material-glass-regular-bg)',
-            backdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
-            WebkitBackdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
-            maskImage: hasCover
+            background: 'var(--nimi-material-glass-regular-bg)',            maskImage: hasCover
               ? 'linear-gradient(to bottom, transparent 0, black 20px)'
               : undefined,
             WebkitMaskImage: hasCover
@@ -373,7 +367,7 @@ export function WorldListRow({ world, onOpen }: { world: WorldListItem; onOpen: 
   const pulse = useMemo(() => pulseFromId(world.id), [world.id]);
   return (
     <article
-      className="nimi-material-glass-regular"
+      className="nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
       onClick={onOpen}
       onMouseEnter={(event) => {
         prefetchWorldDetailPanel();
@@ -392,10 +386,7 @@ export function WorldListRow({ world, onOpen }: { world: WorldListItem; onOpen: 
         alignItems: 'center',
         transition: 'box-shadow 160ms',
         background: 'var(--nimi-material-glass-regular-bg)',
-        border: '1px solid var(--nimi-material-glass-regular-border)',
-        backdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
-        WebkitBackdropFilter: 'blur(var(--nimi-backdrop-blur-regular))',
-        borderRadius: 'var(--nimi-radius-lg)',
+        border: '1px solid var(--nimi-material-glass-regular-border)',        borderRadius: 'var(--nimi-radius-lg)',
         boxShadow: 'var(--nimi-elevation-base)',
       }}
       data-nimi-material="glass-regular"

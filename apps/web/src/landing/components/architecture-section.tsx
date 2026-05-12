@@ -52,8 +52,7 @@ export function ArchitectureSection({ content }: { content?: LandingContent['arc
         }
         .glass-panel {
           background: rgba(17, 24, 39, 0.7);
-          backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
           box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
         }
       `}</style>
@@ -66,7 +65,7 @@ export function ArchitectureSection({ content }: { content?: LandingContent['arc
         
         {/* Title Area */}
         <div className="text-center max-w-4xl mx-auto mb-16 lg:mb-24">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-6 font-semibold text-xs text-slate-300 uppercase tracking-widest shadow-lg backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-6 font-semibold text-xs text-slate-300 uppercase tracking-widest shadow-lg nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
             {content.subtitle}
           </div>
           <h2 className="text-3xl font-bold tracking-tight sm:text-5xl text-white mb-8">
@@ -168,13 +167,13 @@ export function ArchitectureSection({ content }: { content?: LandingContent['arc
           </div>
 
           {/* Wide SDK Node */}
-          <div className="absolute top-[90px] left-[200px] w-[600px] h-[44px] bg-gradient-to-r from-[#0ea5e9]/20 via-[#8b5cf6]/20 to-[#38d6a3]/20 rounded-xl flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.2)] border border-[#8b5cf6]/30 z-10 backdrop-blur-md">
+          <div className="absolute top-[90px] left-[200px] w-[600px] h-[44px] bg-gradient-to-r from-[#0ea5e9]/20 via-[#8b5cf6]/20 to-[#38d6a3]/20 rounded-xl flex items-center justify-center shadow-[0_0_40px_rgba(139,92,246,0.2)] border border-[#8b5cf6]/30 z-10 nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
             <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent" />
             <span className="font-mono text-[16px] font-bold text-white tracking-widest uppercase">@nimiplatform/sdk</span>
           </div>
 
           {/* Central Vertical Pillar: Platform */}
-          <div className="absolute top-[160px] left-[460px] w-[80px] h-[340px] rounded-3xl bg-[#0f172a]/90 backdrop-blur-xl border border-white/10 shadow-[0_0_50px_rgba(139,92,246,0.3)] z-20 flex items-center justify-center overflow-hidden group hover:bg-[#1e293b]/90 transition-colors">
+          <div className="absolute top-[160px] left-[460px] w-[80px] h-[340px] rounded-3xl bg-[#0f172a]/90 nimi-material-glass-thick backdrop-blur-[var(--nimi-backdrop-blur-strong)] border border-white/10 shadow-[0_0_50px_rgba(139,92,246,0.3)] z-20 flex items-center justify-center overflow-hidden group hover:bg-[#1e293b]/90 transition-colors">
              <div className="absolute inset-0 bg-gradient-to-b from-[#0ea5e9]/10 via-[#8b5cf6]/20 to-[#38d6a3]/10" />
              <span className="text-white font-bold tracking-[0.2em] uppercase text-[15px] whitespace-nowrap opacity-90 transition-transform group-hover:scale-105" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
                @NIMI PLATFORM
@@ -184,7 +183,7 @@ export function ArchitectureSection({ content }: { content?: LandingContent['arc
           </div>
 
           {/* Left Block: REALM Container */}
-          <div className="absolute top-[160px] left-[50px] w-[280px] h-[340px] bg-white/[0.02] border border-white/5 rounded-3xl backdrop-blur-md z-0 flex flex-col items-center shadow-xl">
+          <div className="absolute top-[160px] left-[50px] w-[280px] h-[340px] bg-white/[0.02] border border-white/5 rounded-3xl nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] z-0 flex flex-col items-center shadow-xl">
              <div className="w-full bg-gradient-to-b from-white/[0.06] to-transparent pt-4 pb-2 flex flex-col items-center rounded-t-3xl text-center">
                 <span className="font-bold text-white tracking-[0.2em] text-[16px]">{diagram.realm}</span>
                 <span className="text-[#0ea5e9] text-[9px] uppercase tracking-widest font-bold">{diagram.cloudContextPlane}</span>
@@ -209,7 +208,7 @@ export function ArchitectureSection({ content }: { content?: LandingContent['arc
           })}
 
           {/* Right Block: RUNTIME Container */}
-          <div className="absolute top-[160px] left-[670px] w-[280px] h-[340px] bg-white/[0.02] border border-white/5 rounded-3xl backdrop-blur-md z-0 flex flex-col items-center shadow-xl">
+          <div className="absolute top-[160px] left-[670px] w-[280px] h-[340px] bg-white/[0.02] border border-white/5 rounded-3xl nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)] z-0 flex flex-col items-center shadow-xl">
              <div className="w-full bg-gradient-to-b from-white/[0.06] to-transparent pt-4 pb-2 flex flex-col items-center rounded-t-3xl text-center">
                 <span className="font-bold text-white tracking-[0.2em] text-[16px]">{diagram.runtime}</span>
                 <span className="text-[#38d6a3] text-[9px] uppercase tracking-widest font-bold">{diagram.localExecutionPlane}</span>
@@ -312,7 +311,7 @@ export function ArchitectureSection({ content }: { content?: LandingContent['arc
            <h4 className="text-xl sm:text-2xl font-bold text-white mb-6 tracking-tight">
              {content.conclusion}
            </h4>
-           <div className="inline-flex items-center px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/10 text-white font-medium text-[15px] tracking-wide shadow-2xl backdrop-blur-sm group hover:bg-white/[0.06] transition-colors">
+           <div className="inline-flex items-center px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/10 text-white font-medium text-[15px] tracking-wide shadow-2xl nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] group hover:bg-white/[0.06] transition-colors">
               <span className="w-2 h-2 rounded-full bg-[#0ea5e9] mr-3 animate-pulse shadow-[0_0_10px_#0ea5e9]" />
               <span className="opacity-90">{content.slogan}</span>
            </div>
