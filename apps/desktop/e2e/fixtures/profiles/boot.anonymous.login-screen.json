@@ -9,7 +9,7 @@
         "realtimeUrl": "__FIXTURE_ORIGIN__",
         "accessToken": "",
         "jwksUrl": "__FIXTURE_ORIGIN__/api/auth/jwks",
-        "revocationUrl": "__FIXTURE_ORIGIN__/api/auth/revocation",
+        "revocationUrl": "__FIXTURE_ORIGIN__/api/auth/sessions/introspect",
         "jwtIssuer": "__FIXTURE_ORIGIN__",
         "jwtAudience": "nimi-runtime"
       },

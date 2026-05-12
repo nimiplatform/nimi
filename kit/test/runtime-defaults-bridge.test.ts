@@ -8,7 +8,7 @@ const VALID_RUNTIME_DEFAULTS = {
     realtimeUrl: '',
     accessToken: '',
     jwksUrl: 'https://realm.example.com/api/auth/jwks',
-    revocationUrl: 'https://realm.example.com/api/auth/revocation',
+    revocationUrl: 'https://realm.example.com/api/auth/sessions/introspect',
     jwtIssuer: 'https://realm.example.com',
     jwtAudience: 'nimi-runtime',
   },
@@ -29,7 +29,7 @@ const VALID_RUNTIME_DEFAULTS = {
 describe('parseRuntimeDefaults', () => {
   it('accepts split payloads and empty local bindings', () => {
     const parsed = parseRuntimeDefaults(VALID_RUNTIME_DEFAULTS);
-    expect(parsed.realm.revocationUrl).toBe('https://realm.example.com/api/auth/revocation');
+    expect(parsed.realm.revocationUrl).toBe('https://realm.example.com/api/auth/sessions/introspect');
     expect(parsed.runtime.connectorId).toBe('');
     expect(parsed.runtime.localProviderEndpoint).toBe('');
   });

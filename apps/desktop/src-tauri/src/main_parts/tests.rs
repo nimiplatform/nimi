@@ -67,7 +67,7 @@ fn runtime_defaults_normalizes_loopback_realm_jwt_fields() {
             );
             assert_eq!(
                 defaults.realm.revocation_url,
-                "http://localhost:3002/api/auth/revocation"
+                "http://localhost:3002/api/auth/sessions/introspect"
             );
             assert_eq!(defaults.realm.jwt_issuer, "http://localhost:3002");
         },
@@ -85,7 +85,7 @@ fn runtime_defaults_normalizes_explicit_loopback_jwt_overrides() {
             ),
             (
                 "NIMI_REALM_REVOCATION_URL",
-                Some("http://localhost/api/auth/revocation"),
+                Some("http://localhost/api/auth/sessions/introspect"),
             ),
             ("NIMI_REALM_JWT_ISSUER", Some("http://localhost")),
         ],
@@ -97,7 +97,7 @@ fn runtime_defaults_normalizes_explicit_loopback_jwt_overrides() {
             );
             assert_eq!(
                 defaults.realm.revocation_url,
-                "http://localhost:3002/api/auth/revocation"
+                "http://localhost:3002/api/auth/sessions/introspect"
             );
             assert_eq!(defaults.realm.jwt_issuer, "http://localhost:3002");
         },

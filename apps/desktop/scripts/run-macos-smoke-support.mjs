@@ -145,7 +145,7 @@ export async function runScenario({ scenarioId, runIndex, runRoot, timeoutMs }) 
           issuer: fixtureServer.origin,
           audience: 'nimi-runtime',
           jwksUrl: new URL('/api/auth/jwks', fixtureServer.origin).toString(),
-          revocationUrl: new URL('/api/auth/revocation', fixtureServer.origin).toString(),
+          revocationUrl: new URL('/api/auth/sessions/introspect', fixtureServer.origin).toString(),
         },
       },
     });

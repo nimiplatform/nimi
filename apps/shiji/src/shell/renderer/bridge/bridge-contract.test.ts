@@ -21,7 +21,7 @@ const VALID_RUNTIME_DEFAULTS = {
     realtimeUrl: '',
     accessToken: '',
     jwksUrl: 'https://realm.example.com/api/auth/jwks',
-    revocationUrl: 'https://realm.example.com/api/auth/revocation',
+    revocationUrl: 'https://realm.example.com/api/auth/sessions/introspect',
     jwtIssuer: 'https://realm.example.com',
     jwtAudience: 'nimi-runtime',
   },

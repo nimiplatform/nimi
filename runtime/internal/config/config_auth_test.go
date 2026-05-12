@@ -16,7 +16,7 @@ func TestLoadAuthJWTFromConfigFile(t *testing.T) {
       "issuer": "https://realm.nimi.ai",
       "audience": "nimi-runtime",
       "jwksUrl": "https://realm.nimi.ai/api/auth/jwks",
-      "revocationUrl": "https://realm.nimi.ai/api/auth/revocation"
+      "revocationUrl": "https://realm.nimi.ai/api/auth/sessions/introspect"
     }
   }
 }`
@@ -40,7 +40,7 @@ func TestLoadAuthJWTFromConfigFile(t *testing.T) {
 	if cfg.AuthJWTJWKSURL != "https://realm.nimi.ai/api/auth/jwks" {
 		t.Fatalf("jwksUrl mismatch: %q", cfg.AuthJWTJWKSURL)
 	}
-	if cfg.AuthJWTRevocationURL != "https://realm.nimi.ai/api/auth/revocation" {
+	if cfg.AuthJWTRevocationURL != "https://realm.nimi.ai/api/auth/sessions/introspect" {
 		t.Fatalf("revocationUrl mismatch: %q", cfg.AuthJWTRevocationURL)
 	}
 }
@@ -54,7 +54,7 @@ func TestLoadAuthJWTEnvOverridesConfigFile(t *testing.T) {
       "issuer": "https://realm.config.test",
       "audience": "runtime-config",
       "jwksUrl": "https://realm.config.test/api/auth/jwks",
-      "revocationUrl": "https://realm.config.test/api/auth/revocation"
+      "revocationUrl": "https://realm.config.test/api/auth/sessions/introspect"
     }
   }
 }`
@@ -67,7 +67,7 @@ func TestLoadAuthJWTEnvOverridesConfigFile(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_AUTH_JWT_ISSUER", "https://realm.env.test")
 	t.Setenv("NIMI_RUNTIME_AUTH_JWT_AUDIENCE", "runtime-env")
 	t.Setenv("NIMI_RUNTIME_AUTH_JWT_JWKS_URL", "https://realm.env.test/api/auth/jwks")
-	t.Setenv("NIMI_RUNTIME_AUTH_JWT_REVOCATION_URL", "https://realm.env.test/api/auth/revocation")
+	t.Setenv("NIMI_RUNTIME_AUTH_JWT_REVOCATION_URL", "https://realm.env.test/api/auth/sessions/introspect")
 
 	cfg, err := Load()
 	if err != nil {
@@ -82,7 +82,7 @@ func TestLoadAuthJWTEnvOverridesConfigFile(t *testing.T) {
 	if cfg.AuthJWTJWKSURL != "https://realm.env.test/api/auth/jwks" {
 		t.Fatalf("jwksUrl env override mismatch: %q", cfg.AuthJWTJWKSURL)
 	}
-	if cfg.AuthJWTRevocationURL != "https://realm.env.test/api/auth/revocation" {
+	if cfg.AuthJWTRevocationURL != "https://realm.env.test/api/auth/sessions/introspect" {
 		t.Fatalf("revocationUrl env override mismatch: %q", cfg.AuthJWTRevocationURL)
 	}
 }
@@ -124,7 +124,7 @@ func TestLoadAllowsLoopbackHTTPJWKSURL(t *testing.T) {
       "issuer": "http://localhost:3002",
       "audience": "nimi-runtime",
       "jwksUrl": "http://127.0.0.1:3002/api/auth/jwks",
-      "revocationUrl": "http://127.0.0.1:3002/api/auth/revocation"
+      "revocationUrl": "http://127.0.0.1:3002/api/auth/sessions/introspect"
     }
   }
 }`
@@ -153,7 +153,7 @@ func TestLoadRejectsNonLoopbackHTTPJWKSURL(t *testing.T) {
       "issuer": "https://realm.nimi.ai",
       "audience": "nimi-runtime",
       "jwksUrl": "http://realm.nimi.ai/api/auth/jwks",
-      "revocationUrl": "https://realm.nimi.ai/api/auth/revocation"
+      "revocationUrl": "https://realm.nimi.ai/api/auth/sessions/introspect"
     }
   }
 }`

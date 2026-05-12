@@ -219,7 +219,7 @@ func TestRunRuntimeConfigSetAuthJWTFieldsRequireRestart(t *testing.T) {
 		return runRuntimeConfig([]string{
 			"set",
 			"--set", "auth.jwt.jwksUrl=https://realm.nimi.ai/api/auth/jwks",
-			"--set", "auth.jwt.revocationUrl=https://realm.nimi.ai/api/auth/revocation",
+			"--set", "auth.jwt.revocationUrl=https://realm.nimi.ai/api/auth/sessions/introspect",
 			"--set", "auth.jwt.issuer=https://realm.nimi.ai",
 			"--set", "auth.jwt.audience=nimi-runtime",
 			"--json",
@@ -244,7 +244,7 @@ func TestRunRuntimeConfigSetAuthJWTFieldsRequireRestart(t *testing.T) {
 	if cfg.Auth.JWT.JWKSURL != "https://realm.nimi.ai/api/auth/jwks" {
 		t.Fatalf("jwksUrl mismatch: %q", cfg.Auth.JWT.JWKSURL)
 	}
-	if cfg.Auth.JWT.RevocationURL != "https://realm.nimi.ai/api/auth/revocation" {
+	if cfg.Auth.JWT.RevocationURL != "https://realm.nimi.ai/api/auth/sessions/introspect" {
 		t.Fatalf("revocationUrl mismatch: %q", cfg.Auth.JWT.RevocationURL)
 	}
 	if cfg.Auth.JWT.Issuer != "https://realm.nimi.ai" {
@@ -268,7 +268,7 @@ func TestRunRuntimeConfigUnsetAuthJWTFieldsPrunesObject(t *testing.T) {
 	if err := runRuntimeConfig([]string{
 		"set",
 		"--set", "auth.jwt.jwksUrl=https://realm.nimi.ai/api/auth/jwks",
-		"--set", "auth.jwt.revocationUrl=https://realm.nimi.ai/api/auth/revocation",
+		"--set", "auth.jwt.revocationUrl=https://realm.nimi.ai/api/auth/sessions/introspect",
 		"--set", "auth.jwt.issuer=https://realm.nimi.ai",
 		"--set", "auth.jwt.audience=nimi-runtime",
 		"--json",
@@ -340,7 +340,7 @@ func TestRunRuntimeConfigSetAcceptsLoopbackHTTPJWKSURL(t *testing.T) {
 	if err := runRuntimeConfig([]string{
 		"set",
 		"--set", "auth.jwt.jwksUrl=http://localhost:3002/api/auth/jwks",
-		"--set", "auth.jwt.revocationUrl=http://localhost:3002/api/auth/revocation",
+		"--set", "auth.jwt.revocationUrl=http://localhost:3002/api/auth/sessions/introspect",
 		"--set", "auth.jwt.issuer=http://localhost:3002",
 		"--set", "auth.jwt.audience=nimi-runtime",
 		"--json",
@@ -359,7 +359,7 @@ func TestRunRuntimeConfigSetAcceptsLoopbackHTTPJWKSURL(t *testing.T) {
 	if cfg.Auth.JWT.JWKSURL != "http://localhost:3002/api/auth/jwks" {
 		t.Fatalf("jwksUrl mismatch: %q", cfg.Auth.JWT.JWKSURL)
 	}
-	if cfg.Auth.JWT.RevocationURL != "http://localhost:3002/api/auth/revocation" {
+	if cfg.Auth.JWT.RevocationURL != "http://localhost:3002/api/auth/sessions/introspect" {
 		t.Fatalf("revocationUrl mismatch: %q", cfg.Auth.JWT.RevocationURL)
 	}
 }
