@@ -308,6 +308,11 @@ pub(super) const V1_SCHEMA_SQL: &str = r#"
         CREATE INDEX IF NOT EXISTS idx_fitness_child_date ON fitness_assessments (childId, assessedAt);
 
         -- Attachments
+        -- ownerTable values admitted by `local-storage.yaml#attachments`.
+        -- v18 ALTERs this table to add `metadataJson TEXT` and admit
+        -- `orthodontic_photo_sessions` as an owner (PO-ORTHO-012); the
+        -- v1 baseline here is the original 8-column shape that pre-launch
+        -- installs were stamped against.
         CREATE TABLE IF NOT EXISTS attachments (
             attachmentId TEXT PRIMARY KEY NOT NULL,
             childId      TEXT NOT NULL REFERENCES children(childId) ON DELETE CASCADE,

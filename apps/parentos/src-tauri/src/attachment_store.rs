@@ -65,6 +65,11 @@ fn ensure_path_is_owned(path: &Path) -> Result<(), String> {
 }
 
 fn is_supported_owner_table(t: &str) -> bool {
+    // Authority source: local-storage.yaml#attachments.ownerTable description.
+    // Keep this list synchronized with the YAML enum AND with the equivalent
+    // bridge-side guard. Reviewed by Wave A audit follow-up (W2): added
+    // `orthodontic_unwear_intervals` (pre-existing gap) and
+    // `orthodontic_photo_sessions` (PO-ORTHO-012 admission).
     matches!(
         t,
         "health_record_events"
@@ -74,7 +79,13 @@ fn is_supported_owner_table(t: &str) -> bool {
             | "orthodontic_cases"
             | "orthodontic_appliances"
             | "orthodontic_checkins"
+            | "orthodontic_unwear_intervals"
+            | "orthodontic_photo_sessions"
     )
+}
+
+fn is_generic_attachment_owner_table(t: &str) -> bool {
+    is_supported_owner_table(t) && t != "orthodontic_photo_sessions"
 }
 
 #[tauri::command]
@@ -89,10 +100,17 @@ pub fn save_attachment(
     caption: Option<String>,
     now: String,
 ) -> Result<AttachmentRow, String> {
-    if !is_supported_owner_table(owner_table.trim()) {
+    let owner_table_trimmed = owner_table.trim();
+    if !is_supported_owner_table(owner_table_trimmed) {
         return Err(format!(
             "unsupported attachment ownerTable \"{owner_table}\""
         ));
+    }
+    if !is_generic_attachment_owner_table(owner_table_trimmed) {
+        return Err(
+            "photo-session attachments must be created via `attach_orthodontic_photo` (PO-ORTHO-012)"
+                .to_string(),
+        );
     }
 
     let safe_child_id = sanitize_segment(&child_id, "child_id")?;
@@ -202,14 +220,28 @@ pub fn get_attachments_by_owner(
 pub fn delete_attachment(attachment_id: String) -> Result<(), String> {
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
 
-    // Query the row to get filePath
-    let file_path: String = conn
+    // Wave B audit follow-up (B1): photo-session attachments live under
+    // `parentos/photos/...`, not under `parentos/attachments/`, so the file
+    // sweep below (`ensure_path_is_owned` + `fs::remove_file`) silently
+    // skips them. That would orphan the on-disk JPEG and violate
+    // PO-ORTHO-011 fail-close "deletion fails to prune the matching files".
+    // Force every photo-session attachment through the typed command
+    // `orthodontic_photos::delete_orthodontic_photo_attachment` which knows
+    // how to reach into the photos root.
+    let (file_path, owner_table): (String, String) = conn
         .query_row(
-            "SELECT filePath FROM attachments WHERE attachmentId = ?1",
+            "SELECT filePath, ownerTable FROM attachments WHERE attachmentId = ?1",
             params![attachment_id],
-            |row| row.get(0),
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
         )
         .map_err(|e| format!("delete_attachment lookup: {e}"))?;
+
+    if owner_table == "orthodontic_photo_sessions" {
+        return Err(
+            "photo-session attachments must be deleted via `delete_orthodontic_photo_attachment` (PO-ORTHO-012)"
+                .to_string(),
+        );
+    }
 
     let candidate = PathBuf::from(file_path.trim());
     if candidate.is_absolute() {
@@ -231,7 +263,10 @@ pub fn delete_attachment(attachment_id: String) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{extension_for_mime_type, is_supported_owner_table, sanitize_segment};
+    use super::{
+        extension_for_mime_type, is_generic_attachment_owner_table, is_supported_owner_table,
+        sanitize_segment,
+    };
 
     #[test]
     fn rejects_unsupported_mime_types() {
@@ -256,11 +291,22 @@ mod tests {
     #[test]
     fn validates_owner_tables() {
         assert!(is_supported_owner_table("health_record_events"));
+        assert!(is_supported_owner_table("vaccine_records"));
+        assert!(is_supported_owner_table("milestone_records"));
         assert!(is_supported_owner_table("allergy_records"));
+        assert!(is_supported_owner_table("orthodontic_cases"));
+        assert!(is_supported_owner_table("orthodontic_appliances"));
         assert!(is_supported_owner_table("orthodontic_checkins"));
+        // Wave A audit follow-up (W2): both must be admitted.
+        assert!(is_supported_owner_table("orthodontic_unwear_intervals"));
+        assert!(is_supported_owner_table("orthodontic_photo_sessions"));
+        assert!(is_generic_attachment_owner_table("orthodontic_unwear_intervals"));
+        assert!(!is_generic_attachment_owner_table("orthodontic_photo_sessions"));
+
         assert!(!is_supported_owner_table("dental_records"));
         assert!(!is_supported_owner_table("growth_measurements"));
         assert!(!is_supported_owner_table("medical_events"));
         assert!(!is_supported_owner_table("unknown_table"));
+        assert!(!is_supported_owner_table(""));
     }
 }

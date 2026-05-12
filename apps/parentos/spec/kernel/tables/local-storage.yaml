@@ -18,6 +18,7 @@ health_record_unification:
     - orthodontic_appliances
     - orthodontic_checkins
     - orthodontic_unwear_intervals
+    - orthodontic_photo_sessions
     - allergy_records
     - vaccine_records
     - milestone_records
@@ -341,7 +342,8 @@ tables:
       - { name: caseId, type: TEXT, nullable: false, fk: "orthodontic_cases.caseId" }
       - { name: applianceId, type: TEXT, nullable: false, fk: "orthodontic_appliances.applianceId" }
       - { name: checkinType, type: TEXT, nullable: false, description: "aligner-change | expander-activation" }
-      - { name: checkinDate, type: TEXT, nullable: false, description: "ISO 8601 date" }
+      - { name: checkinDate, type: TEXT, nullable: false, description: "ISO 8601 date — the date the event occurred (local). Drives day-bucketed indexes/queries." }
+      - { name: checkinAt, type: TEXT, nullable: true, description: "ISO 8601 datetime when the event actually occurred. When present, used as the cycle anchor for PO-ORTHO-008; falls back to checkinDate at 00:00 UTC when null (legacy rows). Added by schema v19." }
       - { name: activationIndex, type: INTEGER, nullable: true, description: "expander-activation only" }
       - { name: alignerIndex, type: INTEGER, nullable: true, description: "aligner-change only" }
       - { name: notes, type: TEXT, nullable: true }
@@ -372,6 +374,26 @@ tables:
       - { columns: [applianceId, startAt] }
       - { columns: [childId, startAt] }
       - { columns: [applianceId], unique: true, where: "endAt IS NULL", description: "At most one open interval per applianceId (PO-ORTHO-005a invariant)" }
+
+  # ── 正畸照片会话 (orthodontic photo sessions) ────────────
+  # Governed by orthodontic-contract.md#PO-ORTHO-012.
+
+  - name: orthodontic_photo_sessions
+    description: "Parent-captured intra-oral photo session for the orthodontic journey. One row per session; image bytes live in attachments with ownerTable=orthodontic_photo_sessions. NOT clinical evidence, NOT input to any AI prompt (PO-ORTHO-012)."
+    columns:
+      - { name: sessionId, type: TEXT, pk: true, description: "ULID" }
+      - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
+      - { name: caseId, type: TEXT, nullable: false, fk: "orthodontic_cases.caseId" }
+      - { name: applianceId, type: TEXT, nullable: true, fk: "orthodontic_appliances.applianceId", description: "Optional — pin to a specific appliance" }
+      - { name: trayIndex, type: INTEGER, nullable: true, description: "Clear-aligner only; the tray number when this session was captured" }
+      - { name: sessionDate, type: TEXT, nullable: false, description: "ISO 8601 date (parent-entered)" }
+      - { name: note, type: TEXT, nullable: true, description: "Parent-entered free-text label, e.g. '复诊确认'" }
+      - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+      - { name: updatedAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
+    indexes:
+      - { columns: [childId, sessionDate] }
+      - { columns: [caseId, sessionDate] }
+      - { columns: [applianceId] }
 
   # ── 过敏记录 ─────────────────────────────────────────────
 
@@ -574,12 +596,13 @@ tables:
     columns:
       - { name: attachmentId, type: TEXT, pk: true, description: "ULID" }
       - { name: childId, type: TEXT, nullable: false, fk: "children.childId" }
-      - { name: ownerTable, type: TEXT, nullable: false, description: "health_record_events | vaccine_records | milestone_records | allergy_records | orthodontic_cases | orthodontic_appliances | orthodontic_checkins | orthodontic_unwear_intervals" }
+      - { name: ownerTable, type: TEXT, nullable: false, description: "health_record_events | vaccine_records | milestone_records | allergy_records | orthodontic_cases | orthodontic_appliances | orthodontic_checkins | orthodontic_unwear_intervals | orthodontic_photo_sessions" }
       - { name: ownerId, type: TEXT, nullable: false, description: "PK of the owning record" }
       - { name: filePath, type: TEXT, nullable: false, description: "Absolute local file path" }
       - { name: fileName, type: TEXT, nullable: false, description: "Original file name" }
-      - { name: mimeType, type: TEXT, nullable: false }
+      - { name: mimeType, type: TEXT, nullable: false, description: "image/jpeg | image/png | image/webp (for orthodontic_photo_sessions, runtime re-encodes to image/jpeg)" }
       - { name: caption, type: TEXT, nullable: true }
+      - { name: metadataJson, type: TEXT, nullable: true, description: "Owner-specific JSON metadata. For orthodontic_photo_sessions: {angle: 'front'|'side'} — exactly one angle per attachment (PO-ORTHO-012)." }
       - { name: createdAt, type: TEXT, nullable: false, description: "ISO 8601 datetime" }
     indexes:
       - { columns: [childId, ownerTable, ownerId] }
@@ -619,9 +642,10 @@ constraints:
   - "JSON payloads are stored as TEXT and must remain valid JSON on read/write."
   - "childId is the primary filter field for child-scoped tables."
   - "growth_reports.reportType is limited to monthly | quarterly | quarterly-letter | custom."
-  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, outdoor_records, vision_followup_settings, health_record_events, health_record_values, attachments, custom_todos, orthodontic_cases, orthodontic_appliances, orthodontic_checkins, orthodontic_unwear_intervals."
+  - "Child deletion cascades through all child-scoped tables: growth_measurements, milestone_records, reminder_states, vaccine_records, journal_entries, ai_conversations, growth_reports, dental_records, allergy_records, sleep_records, medical_events, tanner_assessments, fitness_assessments, outdoor_records, vision_followup_settings, health_record_events, health_record_values, attachments, custom_todos, orthodontic_cases, orthodontic_appliances, orthodontic_checkins, orthodontic_unwear_intervals, orthodontic_photo_sessions."
   - "vision_followup_settings.cadenceMonths is constrained to the integer range 1..36 at the bridge boundary; values outside this range must fail-close. customNextDate must be ISO 8601 YYYY-MM-DD when present."
-  - "orthodontic_cases deletion cascades to orthodontic_appliances, orthodontic_checkins, and orthodontic_unwear_intervals. orthodontic_appliances deletion cascades to orthodontic_checkins and orthodontic_unwear_intervals."
+  - "orthodontic_cases deletion cascades to orthodontic_appliances, orthodontic_checkins, orthodontic_unwear_intervals, and orthodontic_photo_sessions. orthodontic_appliances deletion cascades to orthodontic_checkins, orthodontic_unwear_intervals, and orthodontic_photo_sessions (when pinned via applianceId)."
+  - "orthodontic_photo_sessions deletion cascades to its attachments rows AND the on-disk session directory under ${appLocalData}/parentos/photos/{childId}/{sessionId}/ (PO-ORTHO-012). The attachments-row purge and file purge run inside the same Tauri command transaction; the FK chain does not cascade attachments because attachments is the unified owner-polymorphic table with no per-owner FK back."
   - "orthodontic_unwear_intervals enforces at most one open interval (endAt IS NULL) per applianceId via a partial unique index, per orthodontic-contract.md#PO-ORTHO-005a."
   - "orthodontic_checkins.checkinType is restricted to aligner-change | expander-activation; legacy wear-daily / retention-wear were permanently retired by migration v15 (PO-ORTHO-005b)."
   - "children.allergies JSON array remains as a quick-access summary; allergy_records is the structured source of truth."

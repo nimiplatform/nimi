@@ -322,9 +322,16 @@ pub fn update_child(
 
 #[tauri::command]
 pub fn delete_child(child_id: String) -> Result<(), String> {
-    let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM children WHERE childId = ?1", params![child_id])
-        .map_err(|e| format!("delete_child: {e}"))?;
+    {
+        let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM children WHERE childId = ?1", params![child_id])
+            .map_err(|e| format!("delete_child: {e}"))?;
+    }
+    // PIPL cascade (PO-ORTHO-012 + AGENTS.md Privacy Boundary):
+    // delete the child's orthodontic photo directory tree after the SQL
+    // cascade has swept all dependent rows. Fail-safe — a missing directory
+    // (no photos ever captured for this child) is OK. Anything else surfaces.
+    crate::photos::delete_child_dir(child_id.as_str())?;
     Ok(())
 }
 

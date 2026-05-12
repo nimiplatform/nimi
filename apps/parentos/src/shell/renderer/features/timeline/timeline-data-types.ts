@@ -18,6 +18,29 @@ export interface MonthlyReportSummary {
   generatedAt: string;
 }
 
+/**
+ * Per-aligner cycle summary for the dashboard right-rail progress widget.
+ * Calendar-based (anchor + daysPerAligner) — not net-wear; the orthodontic
+ * page surfaces the precise wear-hour view via `computeCycleProgress`.
+ */
+export interface OrthoCycleSummary {
+  applianceId: string;
+  daysPerAligner: number;
+  totalAligners: number;
+  /** 1-based index of the aligner the parent is currently wearing. */
+  currentAlignerIndex: number;
+  /** YYYY-MM-DD of the latest aligner-change checkin, or appliance.startedAt before any change. */
+  cycleAnchor: string;
+  /** Whole days from cycleAnchor to localToday (>= 0; can exceed daysPerAligner when overdue). */
+  daysSinceAnchor: number;
+  /** daysPerAligner - daysSinceAnchor; negative = past due. */
+  daysUntilSwitch: number;
+  /** YYYY-MM-DD predicted switch date = cycleAnchor + daysPerAligner. */
+  predictedSwitchDate: string;
+  /** True when currentAlignerIndex >= totalAligners — series is on its final tray. */
+  isFinalAligner: boolean;
+}
+
 export interface DashData {
   reminderStates: ReminderState[];
   measurements: MeasurementRow[];
@@ -41,6 +64,8 @@ export interface DashData {
   latestMonthlyReport: MonthlyReportSummary | null;
   outdoorRecords: OutdoorRecordRow[];
   outdoorGoalMinutes: number | null;
+  /** Active clear-aligner cycle summary for the dashboard right-rail; null when no active clear-aligner. */
+  orthoCycle: OrthoCycleSummary | null;
 }
 
 export type RecentChangeIconName =

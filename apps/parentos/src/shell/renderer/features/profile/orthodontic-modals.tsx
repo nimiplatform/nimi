@@ -540,6 +540,7 @@ export function OrthoClinicalEventModal({
   childId,
   childBirthDate,
   activeAppliances,
+  prefill,
   onClose,
   onSaved,
   onError,
@@ -547,14 +548,26 @@ export function OrthoClinicalEventModal({
   childId: string;
   childBirthDate: string;
   activeAppliances: OrthodonticApplianceRow[];
+  /**
+   * Wave D quick-tag / next-visit-grid wiring. When the parent opens this
+   * modal from a deterministic affordance (e.g. the 脱落 chip in the
+   * wearing hero), the relevant event type and a note prefix are seeded so
+   * the user only confirms + saves. The fields stay editable.
+   */
+  prefill?: {
+    eventType?: OrthoClinicalEventType;
+    notes?: string;
+  };
   onClose: () => void;
   onSaved: () => Promise<void>;
   onError: (message: string | null) => void;
 }) {
-  const [eventType, setEventType] = useState<OrthoClinicalEventType>('ortho-review');
+  const [eventType, setEventType] = useState<OrthoClinicalEventType>(
+    prefill?.eventType ?? 'ortho-review',
+  );
   const [eventDate, setEventDate] = useState(new Date().toISOString().slice(0, 10));
   const [hospital, setHospital] = useState('');
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(prefill?.notes ?? '');
   const [appliedToApplianceId, setAppliedToApplianceId] = useState<string>(
     activeAppliances[0]?.applianceId ?? '',
   );

@@ -18,7 +18,6 @@ import type {
   OrthodonticApplianceType,
   OrthodonticCaseRow,
   OrthodonticCheckinRow,
-  OrthodonticJourney,
   OrthodonticStage,
   OrthodonticUnwearIntervalRow,
 } from '../../bridge/sqlite-bridge.js';
@@ -91,15 +90,6 @@ const DAY_MS = 24 * HOUR_MS;
 /** Parses an ISO 8601 datetime ("2026-04-10T12:00:00.000Z" or date-only "2026-04-10"). */
 function parseIso(iso: string): number {
   return new Date(iso).getTime();
-}
-
-function addDaysIso(iso: string, days: number): string {
-  const ms = parseIso(iso) + days * DAY_MS;
-  return new Date(ms).toISOString();
-}
-
-function isoToYmd(iso: string): string {
-  return iso.slice(0, 10);
 }
 
 function ymdToIsoMidnight(ymd: string): string {
@@ -188,15 +178,20 @@ export function computeCycleProgress(params: {
   })();
   const cycleTargetHours = cycleDays * prescribedHours;
 
-  // Cycle anchor = latest aligner-change date (at 00:00 UTC), else appliance.startedAt 00:00 UTC.
-  const latestAlignerChange = alignerChangeCheckins
+  // Cycle anchor (PO-ORTHO-008): prefer `checkinAt` (sub-day precision) on
+  // the latest aligner-change row; legacy rows (pre-v19) fall back to
+  // `checkinDate` at 00:00 UTC. No aligner-change yet → appliance start at
+  // 00:00 UTC. Comparison is on the resolved ISO datetime so a checkin with
+  // a wall-clock time still picks the latest event correctly even when two
+  // rows share a date.
+  const relevantChanges = alignerChangeCheckins
     .filter((c) => c.checkinType === 'aligner-change' && c.applianceId === appliance.applianceId)
-    .map((c) => c.checkinDate)
-    .sort()
-    .pop();
-  const cycleAnchor = latestAlignerChange
-    ? ymdToIsoMidnight(latestAlignerChange)
-    : ymdToIsoMidnight(appliance.startedAt);
+    .map((c) => c.checkinAt ?? ymdToIsoMidnight(c.checkinDate))
+    .sort();
+  const latestAlignerChangeAt = relevantChanges.length > 0
+    ? relevantChanges[relevantChanges.length - 1]
+    : null;
+  const cycleAnchor = latestAlignerChangeAt ?? ymdToIsoMidnight(appliance.startedAt);
 
   const anchorMs = parseIso(cycleAnchor);
   const nowMs = parseIso(nowIso);
@@ -301,153 +296,55 @@ export function computeStageOptions(
   });
 }
 
-// ── Contextual prompts ──────────────────────────────────────────────────
+// ── Contextual prompts (removed in Wave D audit follow-up W-D-3) ────────
+// `computeContextualPrompts`, `formatDeterministicAiSummary`, and the
+// `ContextualPrompt` shape were the engines behind the now-deleted
+// `OrthodonticPromptsCard` and the standalone "最近趋势" footer. Wave D
+// redistributed those affordances into the wearing-hero quick-tag strip,
+// the next-visit-card 3×3 grid, and the per-cycle stat row, so the
+// pre-baked prompt strings are no longer surfaced. The structured trend
+// data the renderer still wants is exposed through `computeRecentTrends`
+// (below) without the natural-language layer that lived too close to the
+// PO-ORTHO-010 boundary.
+//
+// Retired placeholder so any future re-introduction has to land a fresh
+// design — the deleted strings ("复诊已过期未记录", "该换下一副了") were
+// rooted in the old card and should not be revived verbatim.
 
-export type ContextualPromptKind =
-  | 'record-aligner-switch'
-  | 'close-open-unwear'
-  | 'recent-review-undocumented'
-  | 'record-anomaly';
-
-export interface ContextualPrompt {
-  kind: ContextualPromptKind;
-  priority: 'p1' | 'p2' | 'p3';
-  /** Display headline; deterministic, PO-ORTHO-010 admitted wording. */
-  headline: string;
-  /** Display body; deterministic. */
-  body: string;
-  /** When applicable, the appliance/interval the prompt is anchored to. */
-  applianceId: string | null;
-  intervalId: string | null;
-}
-
-/**
- * Computes the active contextual prompts for the today/cycle surfaces. All
- * triggers are deterministic (no AI, no probability). Empty array means no
- * prompt is currently applicable.
- */
-export function computeContextualPrompts(params: {
-  caseRow: OrthodonticCaseRow;
-  appliances: OrthodonticApplianceRow[];
-  intervalsByAppliance: Record<string, OrthodonticUnwearIntervalRow[]>;
-  checkinsByAppliance: Record<string, OrthodonticCheckinRow[]>;
-  journey: OrthodonticJourney | null;
-  nowIso: string;
-}): ContextualPrompt[] {
-  const { appliances, intervalsByAppliance, checkinsByAppliance, journey, nowIso } = params;
-  const out: ContextualPrompt[] = [];
-  const todayYmd = isoToYmd(nowIso);
-
-  for (const appliance of appliances) {
-    if (appliance.status !== 'active') continue;
-    const intervals = intervalsByAppliance[appliance.applianceId] ?? [];
-    const checkins = checkinsByAppliance[appliance.applianceId] ?? [];
-
-    // 1. close-open-unwear: open interval > 4h.
-    const openState = computeOpenIntervalState(intervals, nowIso);
-    if (openState.hasOpen && openState.ageHours >= 4) {
-      out.push({
-        kind: 'close-open-unwear',
-        priority: 'p1',
-        headline: '可能忘记戴回了',
-        body: `已未戴 ${formatHours(openState.ageHours)}。如果已经戴回，请关闭这一段记录。`,
-        applianceId: appliance.applianceId,
-        intervalId: openState.intervalId,
-      });
-    }
-
-    // 2. record-aligner-switch: clear-aligner, daysPerAligner elapsed since
-    //    last anchor, more aligners remaining.
-    if (
-      appliance.applianceType === 'clear-aligner' &&
-      appliance.daysPerAligner !== null &&
-      appliance.totalAligners !== null
-    ) {
-      const lastChangeYmd = checkins
-        .filter((c) => c.checkinType === 'aligner-change')
-        .map((c) => c.checkinDate)
-        .sort()
-        .pop();
-      const anchorYmd = lastChangeYmd ?? appliance.startedAt;
-      const elapsedDays = Math.floor(
-        (parseIso(ymdToIsoMidnight(todayYmd)) - parseIso(ymdToIsoMidnight(anchorYmd))) / DAY_MS,
-      );
-      const latestIndex = checkins
-        .filter((c) => c.alignerIndex !== null)
-        .map((c) => c.alignerIndex as number)
-        .reduce((acc, v) => Math.max(acc, v), 0);
-      if (
-        elapsedDays >= appliance.daysPerAligner &&
-        latestIndex < appliance.totalAligners
-      ) {
-        out.push({
-          kind: 'record-aligner-switch',
-          priority: 'p1',
-          headline: '该换下一副了',
-          body: `本副已戴 ${elapsedDays} 天（医嘱 ${appliance.daysPerAligner} 天）。如果已经更换，请记录下一副的序号。`,
-          applianceId: appliance.applianceId,
-          intervalId: null,
-        });
-      }
-    }
-
-    // 3. recent-review-undocumented: appliance.nextReviewDate < today AND
-    //    no ortho-review event in past 7 days.
-    if (appliance.nextReviewDate && appliance.nextReviewDate < todayYmd) {
-      const sevenDaysAgo = isoToYmd(addDaysIso(nowIso, -7));
-      const recentReview = (journey?.past ?? []).some(
-        (entry) =>
-          entry.kind === 'clinical-event' &&
-          entry.eventType === 'ortho-review' &&
-          isoToYmd(entry.occurredAt) >= sevenDaysAgo,
-      );
-      if (!recentReview) {
-        out.push({
-          kind: 'recent-review-undocumented',
-          priority: 'p2',
-          headline: '复诊已过期未记录',
-          body: `预定复诊日 ${appliance.nextReviewDate} 已过。如果已经复诊，请补一笔临床事件以推进周期。`,
-          applianceId: appliance.applianceId,
-          intervalId: null,
-        });
-      }
-    }
-  }
-
-  // 4. record-anomaly: always available, priority p3.
-  out.push({
-    kind: 'record-anomaly',
-    priority: 'p3',
-    headline: '有异常想记一笔？',
-    body: '脱落、断裂、疼痛、肿胀都可以写下来，便于复诊时与医生沟通。',
-    applianceId: null,
-    intervalId: null,
-  });
-
-  // Stable priority sort: p1 > p2 > p3.
-  const rank: Record<ContextualPrompt['priority'], number> = { p1: 0, p2: 1, p3: 2 };
-  return out.sort((a, b) => rank[a.priority] - rank[b.priority]);
-}
+// (Function bodies retired by Wave D audit follow-up W-D-3; see comment above.)
 
 // ── Deterministic AI summary (PO-ORTHO-010) ─────────────────────────────
 
 /**
- * Produces the "AI summary" sentences shown below the weekly strip. These are
- * deterministic, computed-only descriptions of admitted facts (PO-ORTHO-010
- * fact-restatement + descriptive trend wording). No SDK call, no inference.
- *
- * Returns an empty array when there is not enough data.
+ * Structured trend data computed deterministically from local records. Used
+ * by both `formatDeterministicAiSummary` (text rendering) and Wave D's
+ * "近 7 天数据" details accordion (Stat-grid rendering). Splitting the
+ * computation from the rendering keeps the PO-ORTHO-010 fact-restatement
+ * surface stable while letting UI evolve.
  */
-export function formatDeterministicAiSummary(params: {
+export interface OrthodonticRecentTrends {
+  /** Hours of net wear over the last 7 days (caps at elapsed wall-clock). */
+  last7NetHours: number;
+  /** Average net wear per day over the last 7 days. */
+  last7AvgPerDay: number;
+  /** Clear-aligner only — current-cycle net wear, target, and shift. */
+  cycle: {
+    netWearHours: number;
+    targetHours: number;
+    daysShifted: number;
+  } | null;
+  /** Days until next clinical review (negative = overdue). Null when no date set. */
+  daysToReview: number | null;
+  nextReviewDate: string | null;
+}
+
+export function computeRecentTrends(params: {
   appliance: OrthodonticApplianceRow;
   intervals: OrthodonticUnwearIntervalRow[];
   alignerChangeCheckins: OrthodonticCheckinRow[];
   nowIso: string;
-}): string[] {
+}): OrthodonticRecentTrends {
   const { appliance, intervals, alignerChangeCheckins, nowIso } = params;
-  const out: string[] = [];
-
-  // Last 7 days net wear.
   const sevenDaysAgoMs = parseIso(nowIso) - 7 * DAY_MS;
   const nowMs = parseIso(nowIso);
   let last7GapHours = 0;
@@ -460,43 +357,45 @@ export function formatDeterministicAiSummary(params: {
   }
   const last7ElapsedHours = (nowMs - sevenDaysAgoMs) / HOUR_MS;
   const last7NetHours = Math.max(0, last7ElapsedHours - last7GapHours);
-  if (last7ElapsedHours > 0) {
-    const avgPerDay = last7NetHours / 7;
-    out.push(`近 7 天净戴约 ${formatHours(last7NetHours)} · 日均 ${formatHours(avgPerDay)}（任务达成率近似）`);
-  }
+  const last7AvgPerDay = last7ElapsedHours > 0 ? last7NetHours / 7 : 0;
 
-  // Cycle ratio + days shifted (clear-aligner only).
-  if (appliance.applianceType === 'clear-aligner') {
-    const cycle = computeCycleProgress({
-      appliance,
-      intervals,
-      alignerChangeCheckins,
-      nowIso,
-    });
-    out.push(
-      `本副已净戴 ${formatHours(cycle.cycleNetWearHours)} / 共 ${formatHours(cycle.cycleTargetHours)}（PO-ORTHO-008 任务达成率近似）`,
-    );
-    if (cycle.daysShifted > 0) {
-      out.push(`下次换套预计推后 ${cycle.daysShifted} 天`);
-    } else if (cycle.daysShifted < 0) {
-      out.push(`下次换套预计提前 ${-cycle.daysShifted} 天`);
-    }
-  }
+  const cycle =
+    appliance.applianceType === 'clear-aligner'
+      ? (() => {
+          const c = computeCycleProgress({
+            appliance,
+            intervals,
+            alignerChangeCheckins,
+            nowIso,
+          });
+          return {
+            netWearHours: c.cycleNetWearHours,
+            targetHours: c.cycleTargetHours,
+            daysShifted: c.daysShifted,
+          };
+        })()
+      : null;
 
-  // Next review.
-  if (appliance.nextReviewDate) {
-    const daysToReview = Math.round(
-      (parseIso(ymdToIsoMidnight(appliance.nextReviewDate)) - parseIso(nowIso)) / DAY_MS,
-    );
-    if (daysToReview >= 0) {
-      out.push(`下次复诊还有 ${daysToReview} 天 · ${appliance.nextReviewDate}`);
-    } else {
-      out.push(`复诊已过期 ${-daysToReview} 天 · 原定 ${appliance.nextReviewDate}`);
-    }
-  }
+  const daysToReview = appliance.nextReviewDate
+    ? Math.round(
+        (parseIso(ymdToIsoMidnight(appliance.nextReviewDate)) - parseIso(nowIso)) / DAY_MS,
+      )
+    : null;
 
-  return out;
+  return {
+    last7NetHours,
+    last7AvgPerDay,
+    cycle,
+    daysToReview,
+    nextReviewDate: appliance.nextReviewDate ?? null,
+  };
 }
+
+// `formatDeterministicAiSummary` was the natural-language renderer for the
+// retired "最近趋势" footer. The Details accordion that replaced it
+// (`OrthodonticDetailsSection` + `computeRecentTrends`) renders structured
+// stat tiles instead, keeping the wording layer farther away from the
+// PO-ORTHO-010 boundary.
 
 // ── Formatting ──────────────────────────────────────────────────────────
 

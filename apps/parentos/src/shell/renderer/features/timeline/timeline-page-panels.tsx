@@ -10,6 +10,8 @@ import { CustomTodoComposer, CustomTodoInlineList } from './timeline-custom-todo
 import { TimelineReminderRow } from './timeline-reminder-row.js';
 import type { ObservationNudge } from './timeline-observation-nudges.js';
 import { isRecordDataReminder } from '../reminders/record-data-capture.js';
+import { OrthoCycleProgressWidget } from './timeline-ortho-cycle-widget.js';
+import type { OrthoCycleSummary } from './timeline-data-types.js';
 
 export { CustomTodoComposer, CustomTodoInlineList } from './timeline-custom-todos.js';
 
@@ -341,6 +343,7 @@ export function ReminderPanel({
   seasonalTasks,
   customTodos,
   childId,
+  orthoCycle,
   onAction,
   onOpenCapture,
   onCustomTodoChanged,
@@ -357,6 +360,8 @@ export function ReminderPanel({
   seasonalTasks: DynamicTask[];
   customTodos: CustomTodoRow[];
   childId: string;
+  /** Active clear-aligner cycle summary for the right-rail progress widget. */
+  orthoCycle: OrthoCycleSummary | null;
   onAction: (
     reminder: ActiveReminder,
     action: ReminderActionType,
@@ -445,6 +450,7 @@ export function ReminderPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto px-1">
+        {orthoCycle && <OrthoCycleProgressWidget cycle={orthoCycle} />}
         {items.length === 0 ? (
           <p className="py-10 text-center text-[14px]" style={{ color: '#64748b' }}>暂无事项</p>
         ) : (

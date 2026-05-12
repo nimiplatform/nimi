@@ -5,7 +5,8 @@
 ## Scope
 
 This contract governs orthodontic case and appliance tracking, daily compliance
-checkins, orthodontic dynamic reminders, and the orthodontic AI summary surface.
+checkins, orthodontic dynamic reminders, the orthodontic AI summary surface,
+and the orthodontic photo-session image record.
 
 Covered features from `feature-matrix.yaml`:
 
@@ -22,13 +23,15 @@ Governing fact sources:
 - `tables/local-storage.yaml#orthodontic_appliances`
 - `tables/local-storage.yaml#orthodontic_checkins`
 - `tables/local-storage.yaml#orthodontic_unwear_intervals`
+- `tables/local-storage.yaml#orthodontic_photo_sessions`
+- `tables/local-storage.yaml#attachments` (admitting `ownerTable = orthodontic_photo_sessions`)
 - `tables/local-storage.yaml#health_record_events`
 - `tables/local-storage.yaml#reminder_states`
 - `tables/routes.yaml#/profile` and `/profile/dental` redirect shell
 
-## PO-ORTHO-001 Four-Layer Data Model
+## PO-ORTHO-001 Five-Layer Data Model
 
-Orthodontic state is modeled in exactly four tables, each with a distinct
+Orthodontic state is modeled in exactly five tables, each with a distinct
 semantic purpose. Implementation must never collapse them or cross-write.
 
 | Table | Mandate |
@@ -38,10 +41,12 @@ semantic purpose. Implementation must never collapse them or cross-write.
 | `orthodontic_appliances` | One row per appliance instance attached to a case. Source of truth for `applianceType`, active/paused/completed status, prescribed wear, review cadence, expander activation counters, and clear-aligner per-tray schedule (`totalAligners`, `daysPerAligner`). |
 | `orthodontic_checkins` | Discrete clinical events parent-records. Admitted `checkinType` values are `aligner-change` and `expander-activation`. Daily wear is NOT a checkin (see `orthodontic_unwear_intervals`). Checkins do NOT appear in the dental clinical timeline. |
 | `orthodontic_unwear_intervals` | Event stream of un-wear periods (when a removable appliance was taken out). Source of truth for compliance projection (PO-ORTHO-008). Applies only to `clear-aligner | twin-block | activator | retainer-removable`. |
+| `orthodontic_photo_sessions` | One row per parent-captured photo session (front + side intra-oral). Source of truth for the orthodontic image record (PO-ORTHO-012). Image bytes live in the shared `attachments` table on disk under `${appLocalData}/parentos/photos/...`. Sessions are NOT clinical evidence and NOT input to any AI prompt. |
 
 Invariant: review, adjustment, issue, and end events must write to
-`health_record_events` only. A `checkinType` outside the admitted set, or a
-wear-gap interval on a non-removable appliance type, is a fail-close violation.
+`health_record_events` only. A `checkinType` outside the admitted set, a
+wear-gap interval on a non-removable appliance type, or a photo session
+attachment with an angle outside `front | side` is a fail-close violation.
 
 ## PO-ORTHO-002 Case Shape
 
@@ -64,6 +69,13 @@ Orthodontic cases must store and read:
 `stage` transitions are parent-initiated only; runtime must not auto-promote a
 case between stages. `actualEndAt` is required when `stage = completed`.
 
+The advance-trigger UX surface is not constrained by this contract: rendering
+may place the trigger anywhere admissible (top-card menu, dedicated affordance,
+or inline strip), and may render a read-only stage strip elsewhere on the page.
+The only invariants are (a) the trigger is parent-initiated, (b) the confirm
+dialog enumerates the immediate next stage label, and (c) the `completed`
+transition is blocked when `actualEndAt` is null.
+
 `nextReviewDate` is a cache. A case deletion or appliance status change must
 recompute it. It must never be edited directly by the UI.
 
@@ -74,10 +86,12 @@ A child MAY hold **at most one** orthodontic case whose `stage` is not
 
 - The parent's mental model is "where am I now" — one ongoing journey, not a
   catalogue of parallel ones.
-- Concurrent `clear-aligners` cases share the same `PO-ORTHO-UNWEAR-OPEN` /
-  `PO-ORTHO-WEAR-DAILY` family of physical events; a per-case cycle projection
-  cannot tell which case "owns" a given un-wear interval without an explicit
-  case linkage on the interval (which we deliberately do not require).
+- Concurrent `clear-aligners` cases share the same `PO-ORTHO-UNWEAR-OPEN`
+  family of physical events; a per-case cycle projection cannot tell which
+  case "owns" a given un-wear interval without an explicit case linkage on
+  the interval (which we deliberately do not require). `PO-ORTHO-WEAR-DAILY`
+  was the legacy counterpart here and was permanently retired by
+  PO-ORTHO-005b alongside the migration v15 cutover.
 - A new course of treatment naturally implies the prior course closed; the
   parent must transition the previous case to `completed` before starting the
   next one.
@@ -171,7 +185,8 @@ Orthodontic checkins must store and read:
 - `caseId` (FK)
 - `applianceId` (FK)
 - `checkinType` — one of `aligner-change | expander-activation`
-- `checkinDate` — ISO 8601 date
+- `checkinDate` — ISO 8601 date (the local calendar date on which the event occurred; day-bucketed indexes and journey grouping key off this).
+- `checkinAt` — ISO 8601 datetime, nullable. When present, denotes the actual moment the event occurred (e.g. "aligner-change at 13:42 local"). Drives the cycle anchor in PO-ORTHO-008 with sub-day precision. NULL on legacy rows persisted before schema v19; consumers MUST fall back to `checkinDate` at 00:00 UTC for those rows.
 - `activationIndex` — integer, nullable (expander-activation only)
 - `alignerIndex` — integer, nullable (aligner-change only)
 - `notes` — nullable
@@ -182,6 +197,7 @@ Invariants:
 - `aligner-change` and `expander-activation` may repeat within a day if medically indicated; uniqueness is enforced by `checkinId` only.
 - A checkin with `applianceId` that does not resolve back to the declared `caseId` is a fail-close violation.
 - The command layer MUST reject any `checkinType` outside the admitted two; legacy `wear-daily` and `retention-wear` are permanently retired (PO-ORTHO-005b).
+- When `checkinAt` is provided, its UTC date component MUST match `checkinDate`. The command layer fail-closes on mismatch so the day-bucketed indexes and sub-day anchor stay coherent.
 
 ## PO-ORTHO-005a Wear-Gap Interval Shape
 
@@ -283,7 +299,7 @@ The unit of measurement is the *aligner cycle* (clear-aligner) or the
 *review cycle* (other removable appliances). Within one cycle:
 
 ```
-cycleAnchor          = max(latest aligner-change checkinDate, appliance.startedAt)  -- ISO datetime treated as 00:00 UTC for cycle math
+cycleAnchor          = max(latest aligner-change checkinAt ?? checkinDate@00:00Z, appliance.startedAt)  -- prefer checkinAt (sub-day precision); legacy rows fall back to checkinDate at 00:00 UTC
 cycleElapsedHours    = (now − cycleAnchor) in hours, clamped to >= 0
 sumGapHoursInCycle   = Σ (closed_gap.endAt − closed_gap.startAt) for closed gaps overlapping [cycleAnchor, now]
                        + (now − open_gap.startAt) if an open gap overlaps the cycle (open gap is treated as still accumulating)
@@ -335,6 +351,108 @@ Forbidden outputs:
 Violations must be filtered by the shared AI safety filter. If filtered output
 is empty, the surface must display no summary rather than placeholder text.
 
+## PO-ORTHO-012 Photo Sessions
+
+Orthodontic photo sessions are admitted as a structured local-only image
+record so a parent can re-experience the treatment journey ("before / after"
+intra-oral comparison). They are NOT clinical evidence and NOT input to any
+AI prompt.
+
+Governing fact sources:
+
+- `tables/local-storage.yaml#orthodontic_photo_sessions`
+- `tables/local-storage.yaml#attachments` (ownerTable admits `orthodontic_photo_sessions`)
+
+### Session shape
+
+A photo session row stores and reads:
+
+- `sessionId` (ULID)
+- `childId` (FK cascade delete)
+- `caseId` (FK cascade delete on `orthodontic_cases`)
+- `applianceId` (FK cascade delete on `orthodontic_appliances`, nullable; pin to a specific appliance when the session is anchored to one)
+- `trayIndex` (INTEGER, nullable; clear-aligner only — the tray number when the session was captured)
+- `sessionDate` (ISO 8601 date, parent-entered)
+- `note` (TEXT, nullable; parent-entered free text — same boundary as `orthodontic_cases.notes`)
+- `createdAt`, `updatedAt`
+
+### Image storage
+
+Each captured photograph is one row in the shared `attachments` table with:
+
+- `ownerTable = 'orthodontic_photo_sessions'`
+- `ownerId = sessionId`
+- `metadataJson = '{"angle":"front"}'` or `'{"angle":"side"}'` — exactly one angle per attachment
+- `filePath` pointing at a file under
+  `${appLocalData}/parentos/photos/${childId}/${sessionId}/${angle}.{ext}`
+- `mimeType` taken from the admitted image set `image/jpeg | image/png | image/webp`
+
+The runtime MUST downsample any incoming bitmap so the longest edge is
+≤ 1600 px, then re-encode as `image/jpeg` quality 82 before writing to disk.
+This is a hard cap so the local DB / disk footprint stays bounded and so the
+renderer can read the entire bitmap into memory without OOM risk.
+
+#### Format-specific decode behavior
+
+- **PNG with alpha** — incoming alpha is flattened onto an opaque white
+  background before JPEG re-encode (JPEG has no alpha channel). Photographic
+  intra-oral photos do not carry alpha; flatten-to-white is admitted so an
+  occasional screenshot does not bounce off the gate. Future profiles MAY
+  swap the background color but MUST not introduce a transparency channel
+  on the persisted JPEG.
+- **WebP animated** — the runtime decodes the **first frame only**. The
+  `image` crate's WebP decoder does not expose later frames, and the
+  album semantics (one photo per `(session, angle)` pair) intentionally
+  do not preserve motion. Admitting animated WebP later requires a new
+  schema slot, not a quiet upgrade of this contract.
+- **JPEG with trailing garbage** — common camera-firmware quirk; the
+  runtime MUST tolerate trailing bytes after the EOI marker as long as a
+  valid frame decodes.
+- **EXIF orientation** — the runtime does NOT currently re-orient images
+  per the EXIF `Orientation` tag. A future revision MAY add normalization;
+  until then UI surfaces show photos in their raw byte order. This is
+  documented here so a "rotated phone photo" report is recognized as known
+  behavior, not a bug.
+
+A session may carry 0, 1, or 2 attachments (one per angle); a third attachment
+with the same angle for the same session is a fail-close violation.
+
+### Angle enum (v1)
+
+Admitted `angle` values are `front | side`. Future extensions (e.g.
+`upper-arch | lower-arch | bite | overjet`) are explicitly out of scope for
+v1 and may NOT be quietly admitted without amending this section.
+
+### Cascade and lifecycle
+
+- Deleting an `orthodontic_cases` row MUST cascade-delete all
+  `orthodontic_photo_sessions` rows for that case, all matching `attachments`
+  rows, AND the corresponding files under
+  `${appLocalData}/parentos/photos/${childId}/${sessionId}/`. The directory
+  prune is a fail-safe step that does not error when the directory is missing.
+- Deleting an `orthodontic_photo_sessions` row directly MUST cascade-delete
+  its `attachments` rows + the on-disk session directory by the same fail-safe
+  contract.
+- Deleting a `children` row cascade-deletes every `orthodontic_photo_sessions`
+  and matching `attachments` row through the existing FK chain; the runtime
+  command must also prune `${appLocalData}/parentos/photos/${childId}/`.
+- Pause / resume of an appliance does NOT affect photo sessions.
+
+### AI boundary
+
+Photo sessions are entirely out of scope for any AI prompt or summary. The
+runtime MUST NOT read photo bytes, EXIF, captions, or per-session counts into
+any prompt context, and the orthodontic AI summary surface (PO-ORTHO-010)
+MUST NOT mention photo sessions even as a fact restatement. Photos are a
+private parental memory artifact, not an analyzable signal.
+
+### Privacy
+
+All photo bytes live locally. The runtime MUST NOT upload, transmit, or
+include them in any export that leaves the device. The session directory is
+within the per-app local data dir already covered by the broader PIPL
+boundary (`apps/parentos/AGENTS.md#Privacy Boundary`).
+
 ## PO-ORTHO-011 Fail-Close Behaviors
 
 The orthodontic layer must fail closed when:
@@ -353,6 +471,14 @@ The orthodontic layer must fail closed when:
 - a wear-gap interval is inserted for an appliance type outside `clear-aligner | twin-block | activator | retainer-removable`
 - a wear-gap interval references a `caseId` / `applianceId` pair that does not round-trip
 - closing or deleting an interval fails to update the matching `PO-ORTHO-UNWEAR-OPEN` reminder_state
+- an `orthodontic_photo_sessions` row references a `caseId` / `applianceId` pair that does not round-trip (PO-ORTHO-012)
+- an `attachments` row claims `ownerTable = 'orthodontic_photo_sessions'` but its `ownerId` does not resolve to a live `orthodontic_photo_sessions` row (PO-ORTHO-012)
+- an `attachments.metadataJson` for a photo-session attachment is missing `angle`, or `angle` is outside the admitted enum `front | side` (PO-ORTHO-012)
+- a third photo attachment is inserted with an `angle` that already exists for the same `sessionId` (PO-ORTHO-012)
+- an incoming photo bitmap fails the `≤ 1600 px longest edge` cap or the `image/jpeg quality 82` re-encode step (PO-ORTHO-012)
+- a photo upload is attempted outside the admitted mime set `image/jpeg | image/png | image/webp` (PO-ORTHO-012)
+- deletion of a case / child / session fails to prune the matching files under `${appLocalData}/parentos/photos/...` (PO-ORTHO-012; directory-missing is fail-safe, anything else is fail-close)
+- any code path reads photo bytes, captions, or session metadata into an AI prompt or export payload (PO-ORTHO-012)
 
 ## Phase Exclusions
 

@@ -98,6 +98,12 @@ export interface OrthodonticCheckinRow {
   applianceId: string;
   checkinType: OrthodonticCheckinType;
   checkinDate: string;
+  /**
+   * PO-ORTHO-008 cycle anchor: ISO 8601 datetime when the event actually
+   * occurred. Null on rows persisted before schema v19 — consumers fall back
+   * to `checkinDate` at 00:00 UTC for those rows.
+   */
+  checkinAt: string | null;
   activationIndex: number | null;
   alignerIndex: number | null;
   notes: string | null;
@@ -271,6 +277,13 @@ export function insertOrthodonticCheckin(params: {
   applianceId: string;
   checkinType: OrthodonticCheckinType;
   checkinDate: string;
+  /**
+   * ISO 8601 datetime when the event actually occurred. The Rust command
+   * fail-closes if its UTC date component does not match `checkinDate`.
+   * Pass `null` only for compatibility paths that intentionally accept the
+   * legacy date-midnight anchor (PO-ORTHO-008 fallback).
+   */
+  checkinAt: string | null;
   activationIndex: number | null;
   alignerIndex: number | null;
   notes: string | null;

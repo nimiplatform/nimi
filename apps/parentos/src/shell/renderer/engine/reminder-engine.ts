@@ -573,10 +573,13 @@ function isUpcomingCandidate(reminder: ActiveReminder) {
   // Practice items in the 'practicing' lifecycle remain visible so the parent can log
   // recurring engagements per PO-REMI-008.
   if (reminder.kind !== 'task') return true;
-  // Tasks: scheduled, recently overdue, or starting within 30 days
+  // Tasks: scheduled, recently overdue, or starting within 7 days. The
+  // ReminderPanel labels this tab "近期 7 天" so the window must match — a
+  // wider window makes far-future items churn at the bottom of the list and
+  // dilutes the "soon" signal (PO-REMI-007 freshness).
   if (reminder.lifecycle === 'scheduled') return true;
   if (reminder.lifecycle === 'overdue') return true;
-  return reminder.daysUntilStart >= 0 && reminder.daysUntilStart <= 30;
+  return reminder.daysUntilStart >= 0 && reminder.daysUntilStart <= 7;
 }
 
 export function buildReminderAgenda(

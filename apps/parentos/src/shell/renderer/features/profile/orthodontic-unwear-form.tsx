@@ -14,6 +14,13 @@ interface Props {
   openOnly?: boolean;
   /** Optional default startAt; defaults to now. */
   defaultStartAt?: string;
+  /**
+   * Optional seed for the reason field. Wave D quick-tag routing uses this
+   * to land the parent on `OrthodonticUnwearReason='other'` (selecting "其它"
+   * from the picker) when they tap the 漏戴 chip — the chip already implies
+   * "miss" so we skip an extra click.
+   */
+  defaultReason?: OrthodonticUnwearReason;
   onClose: () => void;
   onSaved: () => Promise<void>;
   onError: (msg: string | null) => void;
@@ -42,6 +49,7 @@ export function OrthodonticUnwearForm({
   appliance,
   openOnly = false,
   defaultStartAt,
+  defaultReason,
   onClose,
   onSaved,
   onError,
@@ -49,7 +57,7 @@ export function OrthodonticUnwearForm({
   const initialStart = useMemo(() => defaultStartAt ?? toLocalInputValue(new Date()), [defaultStartAt]);
   const [startAt, setStartAt] = useState(initialStart);
   const [endAt, setEndAt] = useState<string>('');
-  const [reason, setReason] = useState<OrthodonticUnwearReason | ''>('');
+  const [reason, setReason] = useState<OrthodonticUnwearReason | ''>(defaultReason ?? '');
   const [notes, setNotes] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 

@@ -7,13 +7,12 @@ import type {
 } from '../../bridge/sqlite-bridge.js';
 import {
   applianceSupportsWearGap,
-  computeContextualPrompts,
   computeCycleProgress,
   computeOpenIntervalState,
+  computeRecentTrends,
   computeStageOptions,
   defaultPrescribedHoursPerDay,
   defaultReviewIntervalDays,
-  formatDeterministicAiSummary,
   formatHours,
 } from './orthodontic-derive.js';
 
@@ -93,6 +92,7 @@ function makeCheckin(
     caseId: 'case-1',
     applianceId: 'appl-1',
     checkinDate,
+    checkinAt: null,
     checkinType,
     activationIndex: null,
     alignerIndex: null,
@@ -221,6 +221,47 @@ describe('computeCycleProgress (clear-aligner)', () => {
     expect(cycle.currentAlignerIndex).toBe(2);
   });
 
+  it('prefers checkinAt over checkinDate when present (PO-ORTHO-008 sub-day anchor)', () => {
+    // Parent clicks 换下一副 mid-afternoon. Without sub-day anchoring the new
+    // cycle would back-date to 00:00 UTC and "本副已净戴" would show several
+    // hours of phantom wear; with checkinAt it starts at the actual moment.
+    const appliance = makeAppliance({ startedAt: '2026-04-01' });
+    const cycle = computeCycleProgress({
+      appliance,
+      intervals: [],
+      alignerChangeCheckins: [
+        makeCheckin({
+          checkinType: 'aligner-change',
+          checkinDate: '2026-04-08',
+          checkinAt: '2026-04-08T14:00:00.000Z',
+          alignerIndex: 2,
+        }),
+      ],
+      nowIso: '2026-04-08T16:00:00.000Z',
+    });
+    expect(cycle.cycleAnchor).toBe('2026-04-08T14:00:00.000Z');
+    expect(cycle.cycleElapsedHours).toBeCloseTo(2, 3);
+  });
+
+  it('falls back to checkinDate at 00:00 UTC for legacy rows (checkinAt = null)', () => {
+    const appliance = makeAppliance({ startedAt: '2026-04-01' });
+    const cycle = computeCycleProgress({
+      appliance,
+      intervals: [],
+      alignerChangeCheckins: [
+        makeCheckin({
+          checkinType: 'aligner-change',
+          checkinDate: '2026-04-08',
+          checkinAt: null,
+          alignerIndex: 2,
+        }),
+      ],
+      nowIso: '2026-04-08T16:00:00.000Z',
+    });
+    expect(cycle.cycleAnchor).toBe('2026-04-08T00:00:00.000Z');
+    expect(cycle.cycleElapsedHours).toBeCloseTo(16, 3);
+  });
+
   it('flags series complete when latest index reaches totalAligners and progress ≥ 1', () => {
     // daysPerAligner=3, anchor=2026-04-08 (4.75d ago), elapsed×24 ≫ target (3×22=66h),
     // so cycleProgressRatio ≥ 1 and currentAlignerIndex (2) === totalAligners (2).
@@ -285,146 +326,50 @@ describe('computeStageOptions', () => {
   });
 });
 
-describe('computeContextualPrompts', () => {
-  it('emits close-open-unwear when an open interval is older than 4h', () => {
-    const caseRow = makeCase();
-    const appliance = makeAppliance();
-    const prompts = computeContextualPrompts({
-      caseRow,
-      appliances: [appliance],
-      intervalsByAppliance: {
-        [appliance.applianceId]: [
-          makeInterval({ startAt: '2026-04-12T13:00:00.000Z', endAt: null }), // 5h
-        ],
-      },
-      checkinsByAppliance: { [appliance.applianceId]: [] },
-      journey: null,
-      nowIso: NOW,
-    });
-    expect(prompts.find((p) => p.kind === 'close-open-unwear')).toBeDefined();
-  });
-
-  it('does NOT emit close-open-unwear when the open interval is younger than 4h', () => {
-    const caseRow = makeCase();
-    const appliance = makeAppliance();
-    const prompts = computeContextualPrompts({
-      caseRow,
-      appliances: [appliance],
-      intervalsByAppliance: {
-        [appliance.applianceId]: [
-          makeInterval({ startAt: '2026-04-12T15:00:00.000Z', endAt: null }), // 3h
-        ],
-      },
-      checkinsByAppliance: { [appliance.applianceId]: [] },
-      journey: null,
-      nowIso: NOW,
-    });
-    expect(prompts.find((p) => p.kind === 'close-open-unwear')).toBeUndefined();
-  });
-
-  it('emits record-aligner-switch when daysPerAligner has elapsed since last anchor', () => {
-    const caseRow = makeCase();
-    const appliance = makeAppliance({ daysPerAligner: 7, totalAligners: 30 });
-    // No aligner-change checkins yet, started 11 days ago → elapsed 11 ≥ 7.
-    const prompts = computeContextualPrompts({
-      caseRow,
-      appliances: [appliance],
-      intervalsByAppliance: { [appliance.applianceId]: [] },
-      checkinsByAppliance: { [appliance.applianceId]: [] },
-      journey: null,
-      nowIso: NOW,
-    });
-    expect(prompts.find((p) => p.kind === 'record-aligner-switch')).toBeDefined();
-  });
-
-  it('does NOT emit record-aligner-switch after totalAligners reached', () => {
-    const caseRow = makeCase();
-    const appliance = makeAppliance({ daysPerAligner: 7, totalAligners: 2 });
-    const prompts = computeContextualPrompts({
-      caseRow,
-      appliances: [appliance],
-      intervalsByAppliance: { [appliance.applianceId]: [] },
-      checkinsByAppliance: {
-        [appliance.applianceId]: [
-          makeCheckin({ checkinType: 'aligner-change', checkinDate: '2026-04-01', alignerIndex: 1 }),
-          makeCheckin({ checkinType: 'aligner-change', checkinDate: '2026-04-08', alignerIndex: 2 }),
-        ],
-      },
-      journey: null,
-      nowIso: NOW,
-    });
-    expect(prompts.find((p) => p.kind === 'record-aligner-switch')).toBeUndefined();
-  });
-
-  it('always emits record-anomaly at p3', () => {
-    const caseRow = makeCase();
-    const appliance = makeAppliance();
-    const prompts = computeContextualPrompts({
-      caseRow,
-      appliances: [appliance],
-      intervalsByAppliance: { [appliance.applianceId]: [] },
-      checkinsByAppliance: { [appliance.applianceId]: [] },
-      journey: null,
-      nowIso: NOW,
-    });
-    const anomaly = prompts.find((p) => p.kind === 'record-anomaly');
-    expect(anomaly).toBeDefined();
-    expect(anomaly?.priority).toBe('p3');
-  });
-
-  it('sorts prompts p1 → p2 → p3', () => {
-    const caseRow = makeCase();
-    const appliance = makeAppliance({ daysPerAligner: 7, totalAligners: 30 });
-    const prompts = computeContextualPrompts({
-      caseRow,
-      appliances: [appliance],
-      intervalsByAppliance: {
-        [appliance.applianceId]: [
-          makeInterval({ startAt: '2026-04-12T13:00:00.000Z', endAt: null }),
-        ],
-      },
-      checkinsByAppliance: { [appliance.applianceId]: [] },
-      journey: null,
-      nowIso: NOW,
-    });
-    const priorities = prompts.map((p) => p.priority);
-    for (let i = 1; i < priorities.length; i += 1) {
-      const prev = priorities[i - 1]!;
-      const cur = priorities[i]!;
-      expect(prev <= cur).toBe(true);
-    }
-  });
-});
-
-describe('formatDeterministicAiSummary', () => {
-  it('emits cycle line for clear-aligner', () => {
-    const lines = formatDeterministicAiSummary({
+describe('computeRecentTrends', () => {
+  it('returns last7 averages plus the clear-aligner cycle block', () => {
+    const trends = computeRecentTrends({
       appliance: makeAppliance(),
       intervals: [],
       alignerChangeCheckins: [],
       nowIso: NOW,
     });
-    expect(lines.join(' ')).toContain('本副已净戴');
+    // With no recorded gaps the projection assumes full continuous wear,
+    // so the 7-day average pins at 24 h/day.
+    expect(trends.last7AvgPerDay).toBeCloseTo(24, 1);
+    expect(trends.cycle).not.toBeNull();
+    expect(trends.cycle!.targetHours).toBeGreaterThan(0);
   });
 
-  it('emits review countdown when nextReviewDate is in the future', () => {
-    const lines = formatDeterministicAiSummary({
+  it('emits null cycle for non clear-aligner appliances', () => {
+    const trends = computeRecentTrends({
+      appliance: makeAppliance({ applianceType: 'twin-block', totalAligners: null, daysPerAligner: null }),
+      intervals: [],
+      alignerChangeCheckins: [],
+      nowIso: NOW,
+    });
+    expect(trends.cycle).toBeNull();
+  });
+
+  it('surfaces the next-review countdown when set', () => {
+    const trends = computeRecentTrends({
       appliance: makeAppliance({ nextReviewDate: '2026-05-27' }),
       intervals: [],
       alignerChangeCheckins: [],
       nowIso: NOW,
     });
-    expect(lines.some((l) => l.includes('下次复诊还有'))).toBe(true);
+    expect(trends.nextReviewDate).toBe('2026-05-27');
+    expect(trends.daysToReview).toBeGreaterThan(0);
   });
 
-  it('emits overdue countdown when nextReviewDate is in the past', () => {
-    const lines = formatDeterministicAiSummary({
+  it('reflects an overdue review as a negative day count', () => {
+    const trends = computeRecentTrends({
       appliance: makeAppliance({ nextReviewDate: '2026-04-01' }),
       intervals: [],
       alignerChangeCheckins: [],
       nowIso: NOW,
     });
-    expect(lines.some((l) => l.includes('复诊已过期'))).toBe(true);
+    expect(trends.daysToReview).toBeLessThan(0);
   });
 });
 

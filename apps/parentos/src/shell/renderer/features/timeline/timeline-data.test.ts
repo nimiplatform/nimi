@@ -47,6 +47,7 @@ function makeDash(overrides: Partial<DashData> = {}): DashData {
     latestMonthlyReport: null,
     outdoorRecords: [],
     outdoorGoalMinutes: null,
+    orthoCycle: null,
     ...overrides,
   };
 }

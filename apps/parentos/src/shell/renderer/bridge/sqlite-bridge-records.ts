@@ -151,6 +151,21 @@ export interface AttachmentRow {
   createdAt: string;
 }
 
+/**
+ * Generic attachment writer for non-photo-session owners.
+ *
+ * `ownerTable` must be one of the values admitted by
+ * `attachment_store::is_supported_owner_table` MINUS `orthodontic_photo_sessions`.
+ * For photo-session uploads, use `attachOrthodonticPhoto` from
+ * `sqlite-bridge-orthodontic-photos.ts` — that path runs the PO-ORTHO-012
+ * codec gate (downsample + JPEG re-encode), enforces the per-angle unique
+ * index, and writes to the dedicated `parentos/photos/` storage root. This
+ * generic writer is unaware of all three.
+ *
+ * Rust also rejects `orthodontic_photo_sessions` here, so a caller cannot
+ * bypass the photo codec gate or write photo-session rows into the generic
+ * attachments directory.
+ */
 export function saveAttachment(params: {
   attachmentId: string;
   childId: string;
@@ -173,6 +188,16 @@ export function getAttachmentsByOwner(childId: string, ownerTable: string, owner
   return invoke<AttachmentRow[]>('get_attachments_by_owner', { childId, ownerTable, ownerId });
 }
 
+/**
+ * Generic attachment deleter for non-photo-session owners.
+ *
+ * Rust fail-closes when the underlying row's `ownerTable` is
+ * `orthodontic_photo_sessions` (Wave B audit B1 mitigation in
+ * `attachment_store.rs`). Callers that hold a photo-session attachment
+ * MUST route through `deleteOrthodonticPhotoAttachment` so the on-disk
+ * JPEG under `parentos/photos/...` is actually purged; the generic path
+ * only knows about `parentos/attachments/` and would orphan the file.
+ */
 export function deleteAttachment(attachmentId: string) {
   return invoke<void>('delete_attachment', { attachmentId });
 }

@@ -21,6 +21,10 @@ mod migrations_v15;
 mod migrations_v16;
 #[path = "migrations_v17.rs"]
 mod migrations_v17;
+#[path = "migrations_v18.rs"]
+mod migrations_v18;
+#[path = "migrations_v19.rs"]
+mod migrations_v19;
 #[path = "migrations_v2.rs"]
 mod migrations_v2;
 #[path = "migrations_v3.rs"]
@@ -47,6 +51,8 @@ use migrations_v14::apply_v14;
 use migrations_v15::apply_v15;
 use migrations_v16::apply_v16;
 use migrations_v17::apply_v17;
+use migrations_v18::apply_v18;
+use migrations_v19::apply_v19;
 use migrations_v2::apply_v2;
 
 #[cfg(test)]
@@ -61,7 +67,7 @@ use migrations_v7::apply_v7;
 use migrations_v8::apply_v8;
 use migrations_v9::apply_v9;
 
-const SCHEMA_VERSION: u32 = 17;
+const SCHEMA_VERSION: u32 = 19;
 
 pub fn run_migrations(conn: &Connection) -> Result<(), String> {
     ensure_schema_version_table(conn)?;
@@ -157,6 +163,16 @@ pub fn run_migrations(conn: &Connection) -> Result<(), String> {
         record_schema_version(conn, 17)?;
     }
 
+    if current_version < 18 {
+        apply_v18(conn)?;
+        record_schema_version(conn, 18)?;
+    }
+
+    if current_version < 19 {
+        apply_v19(conn)?;
+        record_schema_version(conn, 19)?;
+    }
+
     repair_missing_tables(conn)?;
 
     Ok(())
@@ -187,6 +203,8 @@ fn repair_missing_tables(conn: &Connection) -> Result<(), String> {
     apply_v15(conn)?;
     apply_v16(conn)?;
     apply_v17(conn)?;
+    apply_v18(conn)?;
+    apply_v19(conn)?;
     Ok(())
 }
 

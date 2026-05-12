@@ -96,6 +96,7 @@ fn assert_parent_case_accepts_appliance(
 /// appliances on the same child) need disjoint `repeatIndex` values per rule.
 /// We reuse the existing `repeatIndex` on stateId replay, otherwise allocate
 /// the next free integer for `(childId, ruleId)`.
+#[allow(clippy::too_many_arguments)]
 fn seed_protocol_reminders_for_appliance(
     appliance_id: &str,
     child_id: &str,
@@ -103,6 +104,7 @@ fn seed_protocol_reminders_for_appliance(
     started_at: &str,
     _review_interval_days_override: Option<i32>,
     _prescribed_hours_per_day: Option<i32>,
+    days_per_aligner: Option<i32>,
     now: &str,
 ) -> Result<(), String> {
     let protocols = protocols_for_appliance(appliance_type);
@@ -111,7 +113,18 @@ fn seed_protocol_reminders_for_appliance(
     }
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     for protocol in protocols {
-        let next_trigger = add_days_iso(started_at, protocol.first_trigger_days);
+        // PO-ORTHO-ALIGNER-CHANGE cadence comes from the appliance's prescribed
+        // daysPerAligner so the reminder lines up with the actual change cycle
+        // (PO-ORTHO-008). Other clear-aligner protocols (e.g. review) keep the
+        // catalog default.
+        let trigger_days = if protocol.rule_id == "PO-ORTHO-ALIGNER-CHANGE" {
+            days_per_aligner
+                .map(i64::from)
+                .unwrap_or(protocol.first_trigger_days)
+        } else {
+            protocol.first_trigger_days
+        };
+        let next_trigger = add_days_iso(started_at, trigger_days);
         let next_trigger_iso = format!("{next_trigger}T00:00:00.000Z");
         let state_id = format!("ortho-{}-{}", appliance_id, protocol.rule_id);
         let notes = format!("[ortho-protocol] applianceId={appliance_id}");
@@ -204,6 +217,9 @@ fn delete_protocol_reminders_for_appliance(
 }
 fn protocol_binding_for_checkin_type(checkin_type: &str) -> Option<(&'static str, i64)> {
     // wear-daily / retention-wear retired by migration v15 (PO-ORTHO-005b).
+    // The cadence_days returned here is a *fallback* default. The aligner-change
+    // path overrides it with the appliance's prescribed daysPerAligner so the
+    // reminder lines up with PO-ORTHO-008 cycle math.
     match checkin_type {
         "aligner-change" => Some(("PO-ORTHO-ALIGNER-CHANGE", 14)),
         "expander-activation" => Some(("PO-ORTHO-EXPANDER-ACTIVATION", 1)),
@@ -216,17 +232,19 @@ fn repair_protocol_state_after_checkin_delete(
     checkin_type: &str,
     now: &str,
 ) -> Result<(), String> {
-    let Some((rule_id, cadence_days)) = protocol_binding_for_checkin_type(checkin_type) else {
+    let Some((rule_id, fallback_cadence_days)) = protocol_binding_for_checkin_type(checkin_type)
+    else {
         return Ok(());
     };
-    let (appliance_type, started_at, appliance_status, prescribed_activations): (
+    let (appliance_type, started_at, appliance_status, prescribed_activations, days_per_aligner): (
         String,
         String,
         String,
         Option<i32>,
+        Option<i32>,
     ) = conn
         .query_row(
-            "SELECT applianceType, startedAt, status, prescribedActivations FROM orthodontic_appliances WHERE applianceId = ?1",
+            "SELECT applianceType, startedAt, status, prescribedActivations, daysPerAligner FROM orthodontic_appliances WHERE applianceId = ?1",
             params![appliance_id],
             |row| {
                 Ok((
@@ -234,10 +252,18 @@ fn repair_protocol_state_after_checkin_delete(
                     row.get::<_, String>(1)?,
                     row.get::<_, String>(2)?,
                     row.get::<_, Option<i32>>(3)?,
+                    row.get::<_, Option<i32>>(4)?,
                 ))
             },
         )
         .map_err(|e| format!("repair_protocol_state_after_checkin_delete fetch appliance meta: {e}"))?;
+    let cadence_days = if checkin_type == "aligner-change" {
+        days_per_aligner
+            .map(i64::from)
+            .unwrap_or(fallback_cadence_days)
+    } else {
+        fallback_cadence_days
+    };
     let latest_checkin_date: Option<String> = conn
         .query_row(
             "SELECT checkinDate FROM orthodontic_checkins
@@ -251,11 +277,21 @@ fn repair_protocol_state_after_checkin_delete(
     let next_trigger_date = match latest_checkin_date {
         Some(date) => add_days_iso_strict(date.as_str(), cadence_days)?,
         None => {
-            let seed_days = protocols_for_appliance(appliance_type.as_str())
+            let catalog_seed_days = protocols_for_appliance(appliance_type.as_str())
                 .iter()
                 .find(|protocol| protocol.rule_id == rule_id)
                 .map(|protocol| protocol.first_trigger_days)
                 .unwrap_or(0);
+            // Seed-day parity with seed_protocol_reminders_for_appliance: the
+            // aligner-change protocol uses the appliance's daysPerAligner so
+            // the reminder lines up with PO-ORTHO-008 cycle math.
+            let seed_days = if rule_id == "PO-ORTHO-ALIGNER-CHANGE" {
+                days_per_aligner
+                    .map(i64::from)
+                    .unwrap_or(catalog_seed_days)
+            } else {
+                catalog_seed_days
+            };
             add_days_iso_strict(started_at.as_str(), seed_days)?
         }
     };

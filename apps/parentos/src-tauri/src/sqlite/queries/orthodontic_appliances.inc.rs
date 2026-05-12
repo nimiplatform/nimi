@@ -111,6 +111,7 @@ pub fn insert_orthodontic_appliance(
             started_at.as_str(),
             review_interval_days,
             prescribed_hours_per_day,
+            days_per_aligner,
             now.as_str(),
         )?;
     }
@@ -157,6 +158,7 @@ pub fn update_orthodontic_appliance_status(
     let child_id: String;
     let prescribed_hours: Option<i32>;
     let review_interval: Option<i32>;
+    let days_per_aligner: Option<i32>;
     {
         let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
         conn.execute(
@@ -166,7 +168,7 @@ pub fn update_orthodontic_appliance_status(
         .map_err(|e| format!("update_orthodontic_appliance_status: {e}"))?;
         let row = conn
             .query_row(
-                "SELECT caseId, applianceType, startedAt, childId, prescribedHoursPerDay, reviewIntervalDays FROM orthodontic_appliances WHERE applianceId = ?1",
+                "SELECT caseId, applianceType, startedAt, childId, prescribedHoursPerDay, reviewIntervalDays, daysPerAligner FROM orthodontic_appliances WHERE applianceId = ?1",
                 params![appliance_id],
                 |row| Ok((
                     row.get::<_, String>(0)?,
@@ -175,6 +177,7 @@ pub fn update_orthodontic_appliance_status(
                     row.get::<_, String>(3)?,
                     row.get::<_, Option<i32>>(4)?,
                     row.get::<_, Option<i32>>(5)?,
+                    row.get::<_, Option<i32>>(6)?,
                 )),
             )
             .map_err(|e| format!("update_orthodontic_appliance_status fetch appliance meta: {e}"))?;
@@ -184,6 +187,7 @@ pub fn update_orthodontic_appliance_status(
         child_id = row.3;
         prescribed_hours = row.4;
         review_interval = row.5;
+        days_per_aligner = row.6;
         // Protocol reminder lifecycle transitions (PO-ORTHO-007 delivery).
         match status.trim() {
             "paused" => transition_protocol_reminders(
@@ -213,6 +217,7 @@ pub fn update_orthodontic_appliance_status(
             started_at.as_str(),
             review_interval,
             prescribed_hours,
+            days_per_aligner,
             now.as_str(),
         )?;
     }
@@ -279,9 +284,12 @@ pub fn update_orthodontic_appliance_review(
 /// rows must keep both NULL; `prescribed_hours_per_day` must be present for
 /// any wear-gap-supporting type.
 ///
-/// Does NOT mutate `reviewIntervalDays`, `nextReviewDate`, `status`, or any
-/// reminder_state — those are owned by the review/status update paths so a
-/// plan edit never silently advances the review cycle.
+/// Does NOT mutate `reviewIntervalDays`, `nextReviewDate`, or `status` — those
+/// stay owned by the review/status update paths so a plan edit never silently
+/// advances the review cycle. The `PO-ORTHO-ALIGNER-CHANGE` reminder_state
+/// IS rescheduled when `daysPerAligner` changes, because its cadence is
+/// definitionally `daysPerAligner` (PO-ORTHO-008) and a stale value would
+/// surface as the wrong "更换下一副牙套" date in the reminder center.
 #[tauri::command]
 pub fn update_orthodontic_appliance_plan(
     appliance_id: String,
@@ -346,6 +354,36 @@ pub fn update_orthodontic_appliance_plan(
         ],
     )
     .map_err(|e| format!("update_orthodontic_appliance_plan: {e}"))?;
+    // Reschedule the active PO-ORTHO-ALIGNER-CHANGE reminder so its
+    // nextTriggerAt reflects the new daysPerAligner. Anchor is the latest
+    // aligner-change checkin date if any, else the appliance startedAt.
+    if appliance_type_trimmed == "clear-aligner" {
+        if let Some(dpa) = days_per_aligner {
+            let anchor: Option<String> = conn
+                .query_row(
+                    "SELECT COALESCE(
+                         (SELECT checkinDate FROM orthodontic_checkins
+                          WHERE applianceId = ?1 AND checkinType = 'aligner-change'
+                          ORDER BY checkinDate DESC, createdAt DESC LIMIT 1),
+                         (SELECT startedAt FROM orthodontic_appliances WHERE applianceId = ?1)
+                     )",
+                    params![appliance_id],
+                    |row| row.get::<_, Option<String>>(0),
+                )
+                .map_err(|e| format!("update_orthodontic_appliance_plan fetch aligner-change anchor: {e}"))?;
+            if let Some(anchor_date) = anchor {
+                let next = add_days_iso(anchor_date.as_str(), i64::from(dpa));
+                let next_iso = format!("{next}T00:00:00.000Z");
+                let state_id = format!("ortho-{}-PO-ORTHO-ALIGNER-CHANGE", appliance_id);
+                conn.execute(
+                    "UPDATE reminder_states SET nextTriggerAt = ?2, updatedAt = ?3
+                     WHERE stateId = ?1 AND status = 'active'",
+                    params![state_id, next_iso, now],
+                )
+                .map_err(|e| format!("update_orthodontic_appliance_plan reschedule aligner-change: {e}"))?;
+            }
+        }
+    }
     Ok(())
 }
 
@@ -442,6 +480,10 @@ pub struct OrthodonticCheckin {
     pub appliance_id: String,
     pub checkin_type: String,
     pub checkin_date: String,
+    /// PO-ORTHO-008 cycle anchor: ISO 8601 datetime when the event actually
+    /// occurred. NULL on legacy rows (pre-v19); renderer falls back to
+    /// `checkin_date` at 00:00 UTC for those rows.
+    pub checkin_at: Option<String>,
     pub activation_index: Option<i32>,
     pub aligner_index: Option<i32>,
     pub notes: Option<String>,

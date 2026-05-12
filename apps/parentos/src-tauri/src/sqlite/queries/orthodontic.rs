@@ -359,6 +359,8 @@ include!("orthodontic_checkins.inc.rs");
 
 include!("orthodontic_unwear_intervals.inc.rs");
 
+include!("orthodontic_photo_sessions.inc.rs");
+
 include!("orthodontic_journey.inc.rs");
 
 #[tauri::command]

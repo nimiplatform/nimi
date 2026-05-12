@@ -92,10 +92,23 @@ export default function TimelinePage() {
     [agenda, allergyProfile],
   );
 
-  const upcoming: EnhancedReminder[] = useMemo(
-    () => agenda ? (allergyProfile ? interceptAllergyCollisions(agenda.upcoming, allergyProfile) : agenda.upcoming) : [],
-    [agenda, allergyProfile],
-  );
+  const upcoming: EnhancedReminder[] = useMemo(() => {
+    if (!agenda) return [];
+    const base = allergyProfile
+      ? interceptAllergyCollisions(agenda.upcoming, allergyProfile)
+      : agenda.upcoming;
+    // PO-ORTHO-ALIGNER-CHANGE lead time: floor(daysPerAligner / 2). Short cycles
+    // (e.g. 7 days) get a 3-day lead window instead of the global 7-day window so
+    // the reminder doesn't sit at the bottom of the list for the entire cycle.
+    // The cycle progress widget below the list still shows full progress.
+    const cycle = d.orthoCycle;
+    if (!cycle) return base;
+    const leadDays = Math.max(1, Math.floor(cycle.daysPerAligner / 2));
+    return base.filter((reminder) => {
+      if (reminder.rule.ruleId !== 'PO-ORTHO-ALIGNER-CHANGE') return true;
+      return reminder.daysUntilStart <= leadDays;
+    });
+  }, [agenda, allergyProfile, d.orthoCycle]);
 
   const seasonalTasks = useMemo(() => {
     if (!allergyProfile || !child) return [];
@@ -230,6 +243,7 @@ export default function TimelinePage() {
           seasonalTasks={seasonalTasks}
           customTodos={d.customTodos}
           childId={child.childId}
+          orthoCycle={d.orthoCycle}
           onAction={handleAction}
           onOpenCapture={openRecordDataCapture}
           onCustomTodoChanged={reload}

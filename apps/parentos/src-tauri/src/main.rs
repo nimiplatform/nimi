@@ -17,6 +17,8 @@ mod child_avatar;
 mod dropped_file;
 mod journal_audio;
 mod journal_photo;
+mod orthodontic_photos;
+mod photos;
 mod sqlite;
 #[cfg(test)]
 mod test_support;
@@ -309,6 +311,17 @@ fn main() {
             sqlite::queries::delete_unwear_interval,
             sqlite::queries::get_unwear_intervals,
             sqlite::queries::get_orthodontic_journey,
+            // Orthodontic Photo Sessions (PO-ORTHO-012)
+            sqlite::queries::insert_orthodontic_photo_session,
+            sqlite::queries::update_orthodontic_photo_session,
+            sqlite::queries::get_orthodontic_photo_session,
+            sqlite::queries::list_orthodontic_photo_sessions_for_case,
+            sqlite::queries::list_photo_attachments_for_session,
+            orthodontic_photos::attach_orthodontic_photo,
+            orthodontic_photos::list_orthodontic_photo_session_bundles,
+            orthodontic_photos::read_orthodontic_photo_blob,
+            orthodontic_photos::delete_orthodontic_photo_session,
+            orthodontic_photos::delete_orthodontic_photo_attachment,
             // Vision follow-up settings
             sqlite::queries::get_vision_followup_settings,
             sqlite::queries::set_vision_followup_settings,

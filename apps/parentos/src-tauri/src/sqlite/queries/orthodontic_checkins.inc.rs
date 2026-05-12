@@ -517,6 +517,7 @@ pub fn insert_orthodontic_checkin(
     appliance_id: String,
     checkin_type: String,
     checkin_date: String,
+    checkin_at: Option<String>,
     activation_index: Option<i32>,
     aligner_index: Option<i32>,
     notes: Option<String>,
@@ -541,6 +542,23 @@ pub fn insert_orthodontic_checkin(
             }
         }
         _ => {}
+    }
+    // PO-ORTHO-005 invariant: when checkinAt is provided, its UTC date
+    // component must match checkinDate so the day-bucketed indexes and the
+    // sub-day cycle anchor stay coherent. Empty string is treated as None.
+    let checkin_at_norm: Option<String> = match checkin_at.as_deref() {
+        None => None,
+        Some(s) if s.trim().is_empty() => None,
+        Some(s) => Some(s.trim().to_string()),
+    };
+    if let Some(ts) = checkin_at_norm.as_deref() {
+        if ts.len() < 10 || &ts[..10] != checkin_date {
+            return Err(format!(
+                "checkinAt UTC date component ({}) does not match checkinDate ({}) — PO-ORTHO-005",
+                &ts[..ts.len().min(10)],
+                checkin_date
+            ));
+        }
     }
     // Verify caseId<->applianceId round-trip and expander activation cap.
     {
@@ -580,9 +598,9 @@ pub fn insert_orthodontic_checkin(
     }
     let conn = get_conn()?.lock().map_err(|e| e.to_string())?;
     conn.execute(
-        "INSERT INTO orthodontic_checkins (checkinId, childId, caseId, applianceId, checkinType, checkinDate, activationIndex, alignerIndex, notes, createdAt, updatedAt)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10)",
-        params![checkin_id, child_id, case_id, appliance_id, checkin_type, checkin_date, activation_index, aligner_index, notes, now],
+        "INSERT INTO orthodontic_checkins (checkinId, childId, caseId, applianceId, checkinType, checkinDate, checkinAt, activationIndex, alignerIndex, notes, createdAt, updatedAt)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)",
+        params![checkin_id, child_id, case_id, appliance_id, checkin_type, checkin_date, checkin_at_norm, activation_index, aligner_index, notes, now],
     )
     .map_err(|e| format!("insert_orthodontic_checkin: {e}"))?;
     // For expander-activation, bump the parent appliance's completedActivations counter.
@@ -601,9 +619,23 @@ pub fn insert_orthodontic_checkin(
         _ => None,
     };
     if let Some(rule_id) = rule_id_for_advance {
+        // PO-ORTHO-ALIGNER-CHANGE cadence follows the appliance's prescribed
+        // daysPerAligner so the reminder lines up with the actual change cycle
+        // (PO-ORTHO-008). Falls back to the catalog default only if the column
+        // is missing (defensive — clear-aligner inserts enforce a positive
+        // value per PO-ORTHO-003).
         let advance_days = match ct {
             "expander-activation" => 1,
-            "aligner-change" => 14,
+            "aligner-change" => {
+                let dpa: Option<i32> = conn
+                    .query_row(
+                        "SELECT daysPerAligner FROM orthodontic_appliances WHERE applianceId = ?1",
+                        params![appliance_id],
+                        |row| row.get(0),
+                    )
+                    .map_err(|e| format!("insert_orthodontic_checkin fetch daysPerAligner: {e}"))?;
+                dpa.map(i64::from).unwrap_or(14)
+            }
             _ => 0,
         };
         let next = add_days_iso(&checkin_date, advance_days);
@@ -677,7 +709,7 @@ pub fn get_orthodontic_checkins(
     let days = limit_days.unwrap_or(30);
     let mut stmt = conn
         .prepare(
-            "SELECT checkinId, childId, caseId, applianceId, checkinType, checkinDate, activationIndex, alignerIndex, notes, createdAt, updatedAt
+            "SELECT checkinId, childId, caseId, applianceId, checkinType, checkinDate, checkinAt, activationIndex, alignerIndex, notes, createdAt, updatedAt
              FROM orthodontic_checkins
              WHERE applianceId = ?1
                AND checkinDate >= date('now', '-' || ?2 || ' day')
@@ -693,11 +725,12 @@ pub fn get_orthodontic_checkins(
                 appliance_id: row.get(3)?,
                 checkin_type: row.get(4)?,
                 checkin_date: row.get(5)?,
-                activation_index: row.get(6)?,
-                aligner_index: row.get(7)?,
-                notes: row.get(8)?,
-                created_at: row.get(9)?,
-                updated_at: row.get(10)?,
+                checkin_at: row.get(6)?,
+                activation_index: row.get(7)?,
+                aligner_index: row.get(8)?,
+                notes: row.get(9)?,
+                created_at: row.get(10)?,
+                updated_at: row.get(11)?,
             })
         })
         .map_err(|e| format!("get_orthodontic_checkins: {e}"))?;
