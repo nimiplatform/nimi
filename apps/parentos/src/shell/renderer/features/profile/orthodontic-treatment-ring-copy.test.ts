@@ -3,7 +3,7 @@ import type { OrthodonticApplianceRow } from '../../bridge/sqlite-bridge.js';
 import {
   computeTreatmentRingCopy,
   type TreatmentRingCopy,
-} from './orthodontic-treatment-card.js';
+} from './orthodontic-treatment-ring-copy.js';
 
 /**
  * `computeTreatmentRingCopy` is the single source of every parent-facing

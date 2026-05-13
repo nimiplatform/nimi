@@ -10,7 +10,7 @@
  * Pure composition of `bridge` writers + small primitives. PO-ORTHO-002 /
  * PO-ORTHO-003 / PO-ORTHO-006 fail-close happens in the Rust command layer.
  */
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import {
   insertOrthodonticAppliance,
   insertOrthodonticCase,
@@ -27,52 +27,27 @@ import {
   type OrthodonticStage,
   type WritableOrthodonticCaseType,
 } from '../../bridge/sqlite-bridge.js';
-import { applianceSupportsWearGap, applianceTypeLabel } from './orthodontic-derive.js';
+import { applianceSupportsWearGap, applianceTypeLabel, defaultReviewIntervalDays } from './orthodontic-derive.js';
 import { computeAgeMonthsAt } from '../../app-shell/app-store.js';
 import { isoNow, ulid } from '../../bridge/ulid.js';
 import { catchLog } from '../../infra/telemetry/catch-log.js';
 import { S } from '../../app-shell/page-style.js';
-import { defaultReviewIntervalDays } from './orthodontic-derive.js';
-
-export const CASE_TYPE_OPTIONS: { value: WritableOrthodonticCaseType; label: string }[] = [
-  { value: 'early-intervention', label: '早期矫治' },
-  { value: 'fixed-braces', label: '固定矫治' },
-  { value: 'clear-aligners', label: '隐形矫治' },
-];
-
-export const STAGE_OPTIONS: { value: OrthodonticStage; label: string }[] = [
-  { value: 'assessment', label: '初评' },
-  { value: 'planning', label: '方案规划' },
-  { value: 'active', label: '治疗中' },
-  { value: 'retention', label: '保持期' },
-  { value: 'completed', label: '已完成' },
-];
-
-const CASE_CREATE_STAGE_OPTIONS = STAGE_OPTIONS.filter((option) => option.value !== 'completed');
-
-const ORTHO_CLINICAL_EVENT_OPTIONS: { value: OrthoClinicalEventType; label: string; desc: string }[] = [
-  { value: 'ortho-review',     label: '复诊',  desc: '医生例行检查进度' },
-  { value: 'ortho-adjustment', label: '调整',  desc: '弓丝/结扎/附件调整' },
-  { value: 'ortho-issue',      label: '异常',  desc: '断裂、脱落、疼痛等' },
-  { value: 'ortho-end',        label: '结束',  desc: '正畸结束或保持期开始' },
-];
-
-function eventTypeAdvancesReview(t: OrthoClinicalEventType): boolean {
-  return t === 'ortho-review' || t === 'ortho-adjustment';
-}
-
-function addDaysIso(iso: string, days: number): string {
-  const date = new Date(`${iso}T00:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-function applianceRequiresPrescribedHours(applianceType: OrthodonticApplianceType): boolean {
-  return applianceType === 'clear-aligner'
-    || applianceType === 'twin-block'
-    || applianceType === 'activator'
-    || applianceType === 'retainer-removable';
-}
+import {
+  addDaysIso,
+  applianceRequiresPrescribedHours,
+  CASE_CREATE_STAGE_OPTIONS,
+  CASE_TYPE_OPTIONS,
+  eventTypeAdvancesReview,
+  ORTHO_CLINICAL_EVENT_OPTIONS,
+} from './orthodontic-modal-domain.js';
+import {
+  FieldInput,
+  FieldSelect,
+  FieldTextarea,
+  Modal,
+  ModalErrorBanner,
+  ModalFooter,
+} from './orthodontic-modal-primitives.js';
 
 export function CaseFormModal({
   childId,
@@ -530,168 +505,7 @@ export function ApplianceFormModal({
   );
 }
 
-/**
- * In-flight edit modal for an existing appliance. Surfaces what
- * `updateOrthodonticAppliancePlan` (`prescribedHoursPerDay` / `totalAligners`
- * / `daysPerAligner`) and `updateOrthodonticApplianceReview` (`nextReviewDate`)
- * actually admit; `applianceType` and `startedAt` are structural and shown
- * read-only. Same fail-close rules as the insert path (PO-ORTHO-003): a
- * clear-aligner must keep positive `totalAligners` + `daysPerAligner`;
- * non-clear-aligner cannot expose those fields at all.
- */
-export function EditApplianceFormModal({
-  appliance,
-  onClose,
-  onSaved,
-  onError,
-}: {
-  appliance: OrthodonticApplianceRow;
-  onClose: () => void;
-  onSaved: () => Promise<void>;
-  onError: (message: string | null) => void;
-}) {
-  const isClearAligner = appliance.applianceType === 'clear-aligner';
-  const needsPrescribedHours = applianceRequiresPrescribedHours(appliance.applianceType);
-
-  const [prescribedHours, setPrescribedHours] = useState<string>(
-    appliance.prescribedHoursPerDay !== null ? String(appliance.prescribedHoursPerDay) : '',
-  );
-  const [totalAligners, setTotalAligners] = useState<string>(
-    appliance.totalAligners !== null ? String(appliance.totalAligners) : '',
-  );
-  const [daysPerAligner, setDaysPerAligner] = useState<string>(
-    appliance.daysPerAligner !== null ? String(appliance.daysPerAligner) : '',
-  );
-  const [nextReviewDate, setNextReviewDate] = useState<string>(appliance.nextReviewDate ?? '');
-  const [localError, setLocalError] = useState<string | null>(null);
-
-  const prescribedHoursNum = Number(prescribedHours);
-  const totalAlignersNum = Number(totalAligners);
-  const daysPerAlignerNum = Number(daysPerAligner);
-
-  const prescribedHoursValid = needsPrescribedHours
-    ? Number.isInteger(prescribedHoursNum) && prescribedHoursNum > 0 && prescribedHoursNum <= 24
-    : true;
-  const totalAlignersValid = isClearAligner
-    ? Number.isInteger(totalAlignersNum) && totalAlignersNum > 0
-    : true;
-  const daysPerAlignerValid = isClearAligner
-    ? Number.isInteger(daysPerAlignerNum) && daysPerAlignerNum > 0
-    : true;
-  const nextReviewValid = nextReviewDate === '' || /^\d{4}-\d{2}-\d{2}$/.test(nextReviewDate);
-
-  const formValid =
-    prescribedHoursValid && totalAlignersValid && daysPerAlignerValid && nextReviewValid;
-
-  const handleSubmit = async () => {
-    if (needsPrescribedHours && !prescribedHoursValid) {
-      const msg = '医嘱每日佩戴小时数必须在 1..24 之间';
-      setLocalError(msg);
-      onError(msg);
-      return;
-    }
-    if (isClearAligner && (!totalAlignersValid || !daysPerAlignerValid)) {
-      const msg = '隐形牙套需要正整数的总副数和每副佩戴天数';
-      setLocalError(msg);
-      onError(msg);
-      return;
-    }
-    if (!nextReviewValid) {
-      const msg = '下次复诊日期格式应为 YYYY-MM-DD';
-      setLocalError(msg);
-      onError(msg);
-      return;
-    }
-    try {
-      onError(null);
-      setLocalError(null);
-      const now = isoNow();
-      await updateOrthodonticAppliancePlan({
-        applianceId: appliance.applianceId,
-        prescribedHoursPerDay: needsPrescribedHours ? prescribedHoursNum : null,
-        totalAligners: isClearAligner ? totalAlignersNum : null,
-        daysPerAligner: isClearAligner ? daysPerAlignerNum : null,
-        now,
-      });
-      // Persist the review date only when the parent actually touched it.
-      // Empty string clears the row; matching the existing value is a no-op
-      // but we still skip the write to keep `lastReviewAt` untouched.
-      if (nextReviewDate !== (appliance.nextReviewDate ?? '')) {
-        await updateOrthodonticApplianceReview({
-          applianceId: appliance.applianceId,
-          lastReviewAt: appliance.lastReviewAt,
-          nextReviewDate: nextReviewDate === '' ? null : nextReviewDate,
-          now,
-        });
-      }
-      await onSaved();
-    } catch (error) {
-      catchLog('ortho', 'action:update-appliance-plan-failed')(error);
-      const msg = error instanceof Error ? error.message : String(error);
-      setLocalError(msg);
-      onError(msg);
-    }
-  };
-
-  return (
-    <Modal title="编辑装置设置" onClose={onClose}>
-      {localError && <ModalErrorBanner message={localError} onDismiss={() => setLocalError(null)} />}
-
-      <div className="text-[13px] px-3 py-2 rounded-md"
-        style={{ background: 'rgba(15,23,42,0.04)', color: S.sub, border: '1px solid rgba(226,232,240,0.7)' }}>
-        装置类型 <strong style={{ color: S.text, marginLeft: 6 }}>{applianceTypeLabel(appliance.applianceType)}</strong>
-        <span style={{ marginLeft: 12 }}>启用日期</span>
-        <strong style={{ color: S.text, marginLeft: 6 }}>{appliance.startedAt}</strong>
-      </div>
-
-      {needsPrescribedHours && (
-        <>
-          <FieldInput label="医嘱每日佩戴小时" type="number" value={prescribedHours} onChange={setPrescribedHours}
-            placeholder="例如 22" />
-          {!prescribedHoursValid && (
-            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
-              医嘱每日佩戴小时数必须在 1..24 之间。
-            </div>
-          )}
-        </>
-      )}
-
-      {isClearAligner && (
-        <>
-          <FieldInput label="牙套总副数" type="number" value={totalAligners} onChange={setTotalAligners}
-            placeholder="例如 30" />
-          {!totalAlignersValid && (
-            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
-              总副数必须是大于 0 的整数。
-            </div>
-          )}
-          <FieldInput label="每副佩戴天数" type="number" value={daysPerAligner} onChange={setDaysPerAligner}
-            placeholder="例如 7" />
-          {!daysPerAlignerValid && (
-            <div className="text-[13px]" style={{ color: '#b91c1c' }}>
-              每副佩戴天数必须是大于 0 的整数。
-            </div>
-          )}
-        </>
-      )}
-
-      <FieldInput label="下次复诊日期" type="date" value={nextReviewDate} onChange={setNextReviewDate}
-        placeholder="留空清除" />
-      {!nextReviewValid && (
-        <div className="text-[13px]" style={{ color: '#b91c1c' }}>
-          下次复诊日期格式应为 YYYY-MM-DD。
-        </div>
-      )}
-
-      <ModalFooter
-        onCancel={onClose}
-        onSubmit={() => void handleSubmit()}
-        submitLabel="保存"
-        disabled={!formValid}
-      />
-    </Modal>
-  );
-}
+export { EditApplianceFormModal } from './orthodontic-edit-appliance-form-modal.js';
 
 export function OrthoClinicalEventModal({
   childId,
@@ -859,136 +673,5 @@ export function OrthoClinicalEventModal({
       <FieldTextarea label="备注" value={notes} onChange={setNotes} placeholder="可选" />
       <ModalFooter onCancel={onClose} onSubmit={() => void handleSubmit()} submitLabel="保存" />
     </Modal>
-  );
-}
-
-/* ── Primitives ────────────────────────────────────────── */
-
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  // Escape key closes — standard modal behavior. Registered once per mount so
-  // multiple open modals don't double-fire (only the topmost should listen,
-  // but we don't stack modals in this surface in practice).
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose]);
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      onClick={onClose}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.32)', display: 'grid', placeItems: 'center', zIndex: 100 }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{ background: '#fff', padding: 24, borderRadius: 16, minWidth: 360, maxWidth: 460, display: 'flex', flexDirection: 'column', gap: 12 }}
-      >
-        <div className="flex items-center justify-between">
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{title}</h3>
-          <button type="button" onClick={onClose}
-            style={{ background: 'transparent', border: 0, cursor: 'pointer', fontSize: 18, color: '#64748b' }}>
-            ×
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function ModalErrorBanner({ message, onDismiss }: { message: string; onDismiss: () => void }) {
-  return (
-    <div role="alert" className="text-[13px] px-3 py-2 rounded-md flex items-start justify-between gap-2"
-      style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
-      <span style={{ wordBreak: 'break-word' }}>{message}</span>
-      <button type="button" onClick={onDismiss}
-        style={{ background: 'transparent', border: 0, color: '#b91c1c', cursor: 'pointer', flexShrink: 0 }}>
-        ×
-      </button>
-    </div>
-  );
-}
-
-function ModalFooter({ onCancel, onSubmit, submitLabel, disabled }: {
-  onCancel: () => void;
-  onSubmit: () => void;
-  submitLabel: string;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="flex justify-end gap-2 mt-2">
-      <button type="button" onClick={onCancel} className="text-[14px]"
-        style={{ background: 'transparent', color: '#64748b', border: 0, cursor: 'pointer', padding: '6px 12px' }}>
-        取消
-      </button>
-      <button type="button" onClick={onSubmit} disabled={disabled} className="text-[14px] font-semibold text-white"
-        style={{
-          background: disabled ? '#cbd5e1' : S.accent,
-          padding: '6px 14px',
-          borderRadius: 8,
-          border: 0,
-          cursor: disabled ? 'not-allowed' : 'pointer',
-        }}>
-        {submitLabel}
-      </button>
-    </div>
-  );
-}
-
-function FieldSelect({ label, value, onChange, options }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <label className="flex flex-col gap-1 text-[14px]" style={{ color: '#475569' }}>
-      {label}
-      <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="px-2 py-1.5 rounded-md text-[14px]" style={{ border: '1px solid rgba(226,232,240,0.9)' }}>
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-    </label>
-  );
-}
-
-function FieldInput({ label, type = 'text', value, onChange, placeholder, required }: {
-  label: string;
-  type?: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  required?: boolean;
-}) {
-  return (
-    <label className="flex flex-col gap-1 text-[14px]" style={{ color: '#475569' }}>
-      <span>
-        {label}
-        {required && <span aria-hidden="true" style={{ color: '#dc2626', marginLeft: 4 }}>*</span>}
-      </span>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-        aria-required={required || undefined}
-        className="px-2 py-1.5 rounded-md text-[14px]" style={{ border: '1px solid rgba(226,232,240,0.9)' }} />
-    </label>
-  );
-}
-
-function FieldTextarea({ label, value, onChange, placeholder }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <label className="flex flex-col gap-1 text-[14px]" style={{ color: '#475569' }}>
-      {label}
-      <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={3}
-        className="px-2 py-1.5 rounded-md text-[14px]" style={{ border: '1px solid rgba(226,232,240,0.9)' }} />
-    </label>
   );
 }

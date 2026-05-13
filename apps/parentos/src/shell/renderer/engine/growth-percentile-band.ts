@@ -1,5 +1,4 @@
-import whoLmsData from '../features/profile/generated/who-lms-data.json';
-import chinaLmsData from '../features/profile/generated/china-growth-data.json';
+import { getGrowthLmsDataset } from '../features/profile/growth-lms-datasets.js';
 
 export type GrowthPercentileTypeId = 'height' | 'weight' | 'head-circumference' | 'bmi';
 export type GrowthPercentileSex = 'male' | 'female';
@@ -17,31 +16,15 @@ interface PercentileDataset {
   points: number[][];
 }
 
-interface PercentileDataFile {
-  percentiles: number[];
-  datasets: Record<string, PercentileDataset>;
-}
-
-const WHO_DATA = whoLmsData as unknown as PercentileDataFile;
-const CHINA_DATA = chinaLmsData as unknown as PercentileDataFile;
-
 const P3_INDEX = 1;
 const P97_INDEX = 7;
-
-function datasetKey(typeId: GrowthPercentileTypeId, sex: GrowthPercentileSex, standard: GrowthPercentileStandard) {
-  if (standard === 'china' && typeId === 'head-circumference') {
-    return `hc:${sex}`;
-  }
-  return `${typeId}:${sex}`;
-}
 
 function getDataset(
   typeId: GrowthPercentileTypeId,
   sex: GrowthPercentileSex,
   standard: GrowthPercentileStandard,
 ): PercentileDataset | null {
-  const file = standard === 'china' ? CHINA_DATA : WHO_DATA;
-  return file.datasets[datasetKey(typeId, sex, standard)] ?? null;
+  return getGrowthLmsDataset(typeId, sex, standard);
 }
 
 function interpolate(low: number[], high: number[], ageMonths: number, index: number): number {

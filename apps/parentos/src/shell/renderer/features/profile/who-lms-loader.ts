@@ -1,6 +1,9 @@
 import type { GrowthTypeId } from '../../knowledge-base/gen/growth-standards.gen.js';
-import whoLmsData from './generated/who-lms-data.json';
-import chinaLmsData from './generated/china-growth-data.json';
+import {
+  getGrowthLmsDataset,
+  GROWTH_LMS_PERCENTILES,
+  type GrowthLmsDatasetAsset,
+} from './growth-lms-datasets.js';
 
 export interface WHOPercentilePoint {
   ageMonths: number;
@@ -23,33 +26,11 @@ export const GROWTH_STANDARD_LABELS: Record<GrowthStandard, string> = {
 
 type WHOGender = 'male' | 'female';
 type WHOLMSTypeId = Extract<GrowthTypeId, 'height' | 'weight' | 'head-circumference' | 'bmi'>;
-type DatasetKey = `${WHOLMSTypeId}:${WHOGender}`;
-
-interface WHOLMSDatasetAsset {
-  typeId: WHOLMSTypeId;
-  gender: WHOGender;
-  source: string;
-  urls?: string[];
-  coverage: {
-    startAgeMonths: number;
-    endAgeMonths: number;
-  };
-  points: number[][];
-}
-
-interface WHOLMSDataFile {
-  generatedAt: string;
-  percentiles: number[];
-  datasets: Record<string, WHOLMSDatasetAsset>;
-}
-
-export interface WHOLMSDataset extends WHOLMSDatasetAsset {
+export interface WHOLMSDataset extends GrowthLmsDatasetAsset {
   lines: WHOPercentileLine[];
   standard: GrowthStandard;
 }
 
-const WHO_LMS_DATA = whoLmsData as unknown as WHOLMSDataFile;
-const CHINA_LMS_DATA = chinaLmsData as unknown as WHOLMSDataFile;
 const SUPPORTED_TYPES = new Set<WHOLMSTypeId>(['height', 'weight', 'head-circumference', 'bmi']);
 const LINE_INDEX_BY_PERCENTILE = new Map<number, number>([
   [3, 1],
@@ -66,7 +47,7 @@ function isWHOLMSType(typeId: GrowthTypeId): typeId is WHOLMSTypeId {
 }
 
 function toLines(points: number[][]): WHOPercentileLine[] {
-  return WHO_PERCENTILES.map((percentile) => {
+  return GROWTH_LMS_PERCENTILES.map((percentile) => {
     const pointIndex = LINE_INDEX_BY_PERCENTILE.get(percentile) ?? 4;
     return {
       percentile,
@@ -97,11 +78,9 @@ export async function loadWHOLMS(
     throw new Error(`LMS dataset is not defined for growth type "${typeId}"`);
   }
 
-  const dataFile = standard === 'china' ? CHINA_LMS_DATA : WHO_LMS_DATA;
-  const datasetKey = `${typeId}:${gender}` as DatasetKey;
-  const dataset = dataFile.datasets[datasetKey];
+  const dataset = getGrowthLmsDataset(typeId, gender, standard);
   if (!dataset) {
-    throw new Error(`LMS dataset is missing for "${datasetKey}" (${standard})`);
+    throw new Error(`LMS dataset is missing for "${typeId}:${gender}" (${standard})`);
   }
 
   return {
