@@ -39,16 +39,21 @@ Realm hard-cut semantic core is `Truth / Projection / World State / World Histor
 - `R-BNDL-NNN`
 - `R-TRANSIT-NNN`
 
-## Language Convention
+## Rule Catalog Authority
 
-Bilingual (Chinese + English) is an intentional design choice:
+Realm rule semantic authority is single-source:
 
-- `rule_id` is the cross-language canonical key (always English, e.g. `R-TRUTH-001`)
-- `rule-catalog.yaml`: Chinese title/statement (human-facing summary)
-- Contract YAMLs: English title/statement (machine-facing canonical)
-- Contract MDs: Chinese prose (human spec narrative)
+- Contract markdown plus contract tables are the only Realm rule semantic source.
+- `rule_id` is the cross-language canonical key (always English, e.g. `R-TRUTH-001`).
+- Contract YAMLs provide canonical machine-facing `title` and `statement`.
+- Contract MDs provide human spec narrative.
+- `rule-catalog.yaml` is a generated derivative index. Its `statement` field must
+  exactly match the corresponding contract table statement and must not be edited
+  as a separate summary.
 
-When in doubt, `rule_id` is the single source of truth for cross-referencing.
+If bilingual human summaries are needed later, they must be added to contract
+tables as explicit derived fields such as `human_summary_zh`, then generated into
+catalog views. They must not be hand-authored only in `rule-catalog.yaml`.
 
 ## Commands
 

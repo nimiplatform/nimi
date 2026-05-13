@@ -1,538 +1,646 @@
-id_pattern: '^R-(TRUTH|PROJ|WSTATE|WHIST|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT|OAUTH)-[0-9]{3}$'
-generated_at: '2026-04-23T00:00:00Z'
+id_pattern: ^R-(TRUTH|PROJ|WSTATE|WHIST|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT|OAUTH)-[0-9]{3}$
+generated_at: derived-from-contract-tables
+generated_from: kernel/tables/*-contract.yaml
 rules:
   - rule_id: R-TRUTH-001
     domain: truth
     level: must
-    statement: Realm canonical truth is limited to creator-governed world truth and agent truth; runtime story output never becomes truth by default.
+    title: realm-truth-scope
+    statement: Realm canonical truth is limited to creator-governed world truth and agent truth; runtime story output is not truth by default.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-002
     domain: truth
     level: must
-    statement: World truth is anchored by WorldRule plus WorldRelease; Worldview is projection not truth.
+    title: world-rule-canonical
+    statement: World truth is anchored by WorldRule entries and WorldRelease snapshots; Worldview is computed projection only.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-003
     domain: truth
     level: must
-    statement: Agent truth is anchored by AgentRule and defines durable identity boundaries only.
+    title: agent-rule-canonical
+    statement: Agent truth is anchored by AgentRule entries bound to world scope; agent truth defines identity and durable behavioral boundaries only.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-004
     domain: truth
     level: must
-    statement: Truth writes are reserved for creator or control-plane authority.
+    title: creator-only-truth-write
+    statement: Truth writes are reserved for creator/control-plane authority and cannot be produced by runtime story execution.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-005
     domain: truth
     level: must
-    statement: Truth changes must be explicit, versioned, transactional, and auditable.
+    title: truth-write-audited
+    statement: Truth changes are explicit, versioned, transactional, and auditable; projection updates cannot masquerade as truth writes.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-006
     domain: truth
     level: must
-    statement: Realm truth must remain app-independent and cannot be owned by a single runtime path.
+    title: truth-app-independent
+    statement: Realm truth remains app-independent and cannot be owned by a single app, renderer, or model route.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-007
     domain: truth
     level: must
-    statement: OASIS is the unique system main world in Realm truth and cannot be creator-owned or replaced by creator convention.
+    title: oasis-is-system-main-world
+    statement: OASIS is the unique system main world in Realm truth, cannot be creator-owned, and cannot be replaced by creator convention.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-008
     domain: truth
     level: must
-    statement: GET /api/world/oasis is a formal Realm truth read surface for the system main world.
+    title: oasis-read-surface-formal
+    statement: GET /api/world/oasis is a formal Realm truth read surface for the system main world and not a legacy browse shortcut.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-009
     domain: truth
     level: must
-    statement: Public read surfaces may expose computed aggregates derived from truth but must not expose AgentRule content; aggregates are projection not truth writes.
+    title: public-projection-aggregates-not-truth
+    statement: Public read surfaces (e.g. detail-with-agents) may expose computed aggregates derived from truth (activeRuleCount, agentRuleSummary byLayer) but must not expose AgentRule content; aggregates are projection, not truth writes.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-010
     domain: truth
     level: must
-    statement: GET /api/world/by-id/{id}/scenes is a public read surface exposing Scene identity for a world; it does not modify truth state.
+    title: world-scenes-public-read-surface
+    statement: GET /api/world/by-id/{id}/scenes is a public read surface exposing Scene identity (id, name, description, activeEntities) for a world; it does not modify truth state.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-011
     domain: truth
     level: must
-    statement: Official Realm content publish must converge on one package-native contract; world-drafts are minimal candidates, not a parallel official truth-write line.
+    title: official-package-publish-is-unique
+    statement: Official Realm content publish must converge on one package-native publish contract; world-drafts may remain minimal candidates but are not a parallel canonical truth-write contract for official content.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-012
     domain: truth
     level: must
-    statement: Official package publish requires explicit governance provenance including official owner, editorial operator, reviewer, publisher, source provenance, and review verdict; missing required governance fields must fail-close.
+    title: official-publish-governance-provenance-required
+    statement: Official package publish requires explicit governance provenance including official owner, editorial operator, reviewer, publisher, source provenance, and review verdict; missing required governance identity or verdict must fail-close.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-013
     domain: truth
     level: must
-    statement: Official package publish must atomically write world truth, agent truth, projection inputs, and WorldRelease; partial success middle states are invalid.
+    title: official-publish-atomic-world-agent-release
+    statement: Official package publish must atomically write world truth, agent truth, projection inputs, and WorldRelease; world-published/agent-pending or release-less success states are invalid.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-014
     domain: truth
     level: must
-    statement: WorldRelease is the sole official release governance anchor; each official publish binds package version, provenance, diff metadata, and rollback lineage to an explicit release identity.
+    title: release-governance-and-rollback-anchor
+    statement: WorldRelease is the sole official truth release governance anchor; each official publish must bind package version, publish provenance, checksum/diff metadata, and rollback lineage to an explicit release identity.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-015
     domain: truth
     level: must
+    title: canonical-truth-package-is-formal-ingress
     statement: CanonicalTruthPackage is the formal upstream truth-ingress object for official content publish; it must separate canonical truth units, derivation or inheritance inputs, projection inputs, and governance or release metadata, and must not center lorebook text, prompt payloads, or card views.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-016
     domain: truth
     level: must
+    title: inheritance-link-is-formal-world-agent-edge
     statement: InheritanceLink is the formal world-truth-to-agent-truth edge; WORLD_INHERITED and worldRuleRef may materialize it, but they do not replace the full inheritance semantics.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-017
     domain: truth
     level: must
+    title: all-agent-entry-paths-share-derivation-line
     statement: Official package publish, creator create-agent, and future import surfaces must pass through the same truth derivation line and fail-close if they cannot produce governed truth writes, inheritance materialization or derivation basis, and projection inputs.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-018
     domain: truth
     level: must
+    title: observation-markup-protocol-is-sole-formal-authoring-wire-contract
     statement: Formal Forge extract-observations and refine-observations must converge on one ObservationMarkupProtocol mainline; strict single-object JSON payloads and provider- or stage-specific parallel wire contracts are not formal authority.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-019
     domain: truth
     level: must
+    title: observation-commit-ledger-admits-validated-closed-units-only
     statement: ObservationCommitLedger may admit only closed and validated observation units; truncated envelopes, unclosed units, or provider-returned but unvalidated content are not committed authoring truth evidence.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-020
     domain: truth
     level: must
+    title: continuation-plan-is-runtime-owned
     statement: ObservationContinuationPlan semantics are owned by the runtime or authoring kernel, not by the model; models may declare remaining categories or stop reason but may not define opaque cursor semantics or override frozen sequence discipline.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-TRUTH-021
     domain: truth
     level: must
+    title: raw-attempt-committed-units-and-final-batch-must-stay-distinct
     statement: Official publish, workspace continuation, and governed Forge commit surfaces must distinguish raw attempt artifacts, committed observation units, and the final consolidated extraction batch; raw provider output, partial attempt residue, or incomplete continuation state cannot be treated as canonical truth ingress or successful publish evidence.
     source: .nimi/spec/realm/kernel/truth-contract.md
   - rule_id: R-PROJ-001
     domain: projection
     level: must
-    statement: Projection is derived from canonical truth and allowed state visibility; projection output is not truth by default and cannot masquerade as a truth write.
+    title: projection-derived-not-truth
+    statement: Projection is derived from canonical truth and explicit allowed state visibility; projection output is not truth by default and cannot masquerade as a truth write.
     source: .nimi/spec/realm/kernel/projection-contract.md
   - rule_id: R-PROJ-002
     domain: projection
     level: must
+    title: projection-consumes-explicit-inputs
     statement: Authoritative projection consumes explicit projection inputs anchored to truth, permitted state visibility, and governing release/truth anchors; consumers must not reconstruct canonical inputs from lorebook text, browse summaries, or app-local caches.
     source: .nimi/spec/realm/kernel/projection-contract.md
   - rule_id: R-PROJ-003
     domain: projection
     level: must
+    title: projection-request-explicit-and-replayable
     statement: Authoritative projection requests must explicitly identify world scope, agent scope, consumer surface, governing release/truth anchor, and constrained context envelope.
     source: .nimi/spec/realm/kernel/projection-contract.md
   - rule_id: R-PROJ-004
     domain: projection
     level: must
+    title: projection-deterministic-for-identical-inputs
     statement: For identical inputs, consumer surface, release/truth anchor, and constrained context envelope, authoritative projection must be deterministic and checksumable.
     source: .nimi/spec/realm/kernel/projection-contract.md
   - rule_id: R-PROJ-005
     domain: projection
     level: must
+    title: consumers-must-not-bypass-projection
     statement: Runtime and app consumers must not bypass authoritative projection by directly assembling truth text into prompt payloads; PromptTrace may consume projection output but does not replace the projection contract.
     source: .nimi/spec/realm/kernel/projection-contract.md
   - rule_id: R-PROJ-006
     domain: projection
     level: must
+    title: compat-surfaces-are-projection-only
     statement: Worldview, lorebooks, public browse aggregates, and future card-shaped exports are projection surfaces only and must not become the canonical semantic source.
     source: .nimi/spec/realm/kernel/projection-contract.md
   - rule_id: R-PROJ-007
     domain: projection
     level: must
+    title: projection-results-require-trace
     statement: Authoritative projection must produce traceable results that identify selected inputs, suppressed inputs, governing release/truth anchor, and resolution outcomes.
     source: .nimi/spec/realm/kernel/projection-contract.md
   - rule_id: R-PROJ-008
     domain: projection
     level: must
+    title: realm-projection-contract-owns-seam-until-runtime-mounted
     statement: Until a dedicated runtime-mounted projection spec is admitted, Realm projection authority owns the semantic contract for ProjectionInput, ProjectionRequest, ProjectionResult, and ProjectionTraceRequirement; downstream runtime or app implementations must not fork or narrow these semantics ad hoc.
     source: .nimi/spec/realm/kernel/projection-contract.md
   - rule_id: R-WSTATE-001
     domain: world-state
     level: must
-    statement: World State expresses durable shared present only and excludes story runtime.
+    title: shared-present-only
+    statement: World State expresses durable shared present only and excludes story runtime or prompt context.
     source: .nimi/spec/realm/kernel/world-state-contract.md
   - rule_id: R-WSTATE-002
     domain: world-state
     level: must
-    statement: State mutation uses an explicit commit envelope with fixed provenance fields.
+    title: explicit-commit-envelope
+    statement: State mutation uses an explicit commit envelope with worldId, appId, sessionId, effectClass, scope, schemaId, schemaVersion, actorRefs, reason, and evidenceRefs.
     source: .nimi/spec/realm/kernel/world-state-contract.md
   - rule_id: R-WSTATE-003
     domain: world-state
     level: must
-    statement: World State scope is limited to durable shared scopes WORLD, ENTITY, or RELATION.
+    title: durable-scope-only
+    statement: World State scope is limited to WORLD, ENTITY, or RELATION durable scopes.
     source: .nimi/spec/realm/kernel/world-state-contract.md
   - rule_id: R-WSTATE-004
     domain: world-state
     level: must
+    title: fixed-effect-classes
     statement: effectClass is fixed to NONE, STATE_ONLY, or STATE_AND_HISTORY.
     source: .nimi/spec/realm/kernel/world-state-contract.md
   - rule_id: R-WSTATE-005
     domain: world-state
     level: must
+    title: fail-close-state-write
     statement: State writes require explicit app authorization through an appId/schemaId/schemaVersion/effectClass to runMode matrix and fail-close schema validation.
     source: .nimi/spec/realm/kernel/world-state-contract.md
   - rule_id: R-WSTATE-006
     domain: world-state
     level: must
-    statement: Creator tooling and authorized apps use the same explicit state commit model.
+    title: single-state-commit-model
+    statement: Creator tooling and authorized apps use the same explicit state commit model; hidden legacy write paths are forbidden.
     source: .nimi/spec/realm/kernel/world-state-contract.md
   - rule_id: R-WHIST-001
     domain: world-history
     level: must
-    statement: World History stores canonical happened facts only, not arbitrary story traces.
+    title: canonical-happened-facts
+    statement: World History stores canonical happened facts only, never arbitrary story traces.
     source: .nimi/spec/realm/kernel/world-history-contract.md
   - rule_id: R-WHIST-002
     domain: world-history
     level: must
-    statement: History append is explicit and cannot be implied by stopping a story run.
+    title: explicit-history-append
+    statement: History append is explicit; story-stop persistence cannot auto-convert runtime output into world history.
     source: .nimi/spec/realm/kernel/world-history-contract.md
   - rule_id: R-WHIST-003
     domain: world-history
     level: must
+    title: typed-history-provenance
     statement: Each history event carries typed provenance including appId, sessionId, actorRefs, reason, and evidenceRefs.
     source: .nimi/spec/realm/kernel/world-history-contract.md
   - rule_id: R-WHIST-004
     domain: world-history
     level: must
-    statement: Replay and private continuity runs must not append shared world history; only CANON_MUTATION matrix entries may do so.
+    title: no-shared-history-for-non-canon-runs
+    statement: Replay and private continuity app runs must not append shared world history; only CANON_MUTATION matrix entries may do so.
     source: .nimi/spec/realm/kernel/world-history-contract.md
   - rule_id: R-WHIST-005
     domain: world-history
     level: must
-    statement: World History is append-only and corrections use superseding or invalidation records.
+    title: append-only-history
+    statement: World History is append-only; correction uses superseding or invalidation records instead of silent deletion.
     source: .nimi/spec/realm/kernel/world-history-contract.md
   - rule_id: R-WHIST-006
     domain: world-history
     level: must
+    title: archive-not-history
     statement: App-owned narrative archives must not be represented as Realm canonical world history.
     source: .nimi/spec/realm/kernel/world-history-contract.md
   - rule_id: R-CHAT-001
     domain: chat
     level: must
+    title: chat-is-realm-domain
     statement: Realm owns Chat as a realm domain and provides the canonical thread, message, read-state, sync, membership, group lifecycle, and agent-slot metadata surface.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-002
     domain: chat
     level: must
+    title: direct-and-group-substrate-in-v1
     statement: Realm Chat v1 admits DIRECT and GROUP as canonical chat substrates; GROUP threads may contain human participants and agent slots/authors, while AI execution, prompt assembly, model routing, session orchestration, and turn execution stay outside Realm Chat. CHANNEL and any unsupported chat shape must fail-close.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-003
     domain: chat
     level: must
-    statement: Social gates human participant admission preconditions, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat.
+    title: social-gates-chat-but-does-not-own-it
+    statement: Social gates human participant admission and preconditions, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-004
     domain: chat
     level: must
+    title: agent-chat-runtime-stays-outside
     statement: Human-agent chat, agent-agent chat, model routing, prompt assembly, session orchestration, and turn execution runtime stay outside Realm Chat v1, and group membership does not transfer those responsibilities into Realm.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-005
     domain: chat
     level: must
+    title: canonical-chat-attachment-envelope
     statement: Realm Chat canonicalizes non-text attachments as MessageType ATTACHMENT with payload.attachment generic envelope and does not expose assetId-only or resourceId-only attachment payload contracts.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-006
     domain: chat
     level: must
-    statement: Realm Chat owns group admission/admin authority for GROUP threads, including lifecycle transitions, roster management, membership roles, and agent-slot metadata; Social only gates human admission preconditions and does not own group lifecycle or agent-slot state.
+    title: chat-owns-group-lifecycle-and-admin-authority
+    statement: Realm Chat owns GROUP lifecycle transitions, roster management, membership roles, and agent-slot metadata; Social only gates human admission preconditions and does not own group lifecycle or agent-slot state.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-007
     domain: chat
     level: must
-    statement: Agent-authored group posts and messages must validate the thread owner/slot binding before commit, read visibility, or sync fanout, and spoofed agent authorship must fail-close.
+    title: group-agent-authorship-must-validate-slot-binding
+    statement: Agent-authored group posts and messages must validate thread owner and slot binding before commit, read visibility, or sync fanout, and spoofed agent authorship must fail-close.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-008
     domain: chat
     level: must
+    title: realm-group-agent-participation-consumes-runtime
     statement: Realm Group Agent Participation is a Realm GROUP product surface and Runtime Agent Participation consumer; Realm owns group product truth while Runtime owns execution, policy verdicts, candidates, audit/replay, and same-room orchestration.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-009
     domain: chat
     level: must
+    title: realm-owns-group-agent-slot-lifecycle
     statement: Realm owns the GROUP agent slot lifecycle and visibility metadata, but slot state must not imply Runtime prompt, provider/model, memory, capability, concurrency, queue, or execution ownership.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-010
     domain: chat
     level: must
+    title: group-agent-triggers-are-closed
     statement: Realm Group agent triggers are closed to mention, explicit user action, admitted automation, or product-disabled posture, and admitted triggers must carry Realm evidence before Runtime participation admission.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-011
     domain: chat
     level: must
+    title: runtime-candidate-realm-commit-handoff
     statement: Runtime may return only REALM_GROUP_MESSAGE_CANDIDATE output; Realm must authenticate candidate lineage, target chat, target agent slot, author authority, evidence hash, runtime trace reference, idempotency, moderation/refusal posture, and audit record before canonical GROUP message commit.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-012
     domain: chat
     level: must
+    title: group-agent-candidate-commit-operation
     statement: The only admitted Realm commit-handoff operation for group agent candidates is POST /api/human/group-chats/{chatId}/agent-message-candidate-commits with CommitRealmGroupMessageCandidateInputDto; historical POST /api/human/group-chats/{chatId}/agent-messages and SendGroupAgentMessageInputDto are not compatibility aliases and must be removed.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-013
     domain: chat
     level: must
+    title: group-agent-commit-forbidden-fields
     statement: Realm Group candidate commit requests must not accept raw text, payload, prompt, systemPrompt, provider, model, messageId, senderId, or caller-owned agentAccountId as commit authority; canonical messageId may appear only after Realm validation and storage succeed.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-014
     domain: chat
     level: must
+    title: sdk-desktop-preserve-candidate-commit-split
     statement: SDK and Desktop consumers must preserve split Runtime candidate and Realm commit facades; collapsed generate-and-commit helpers, Desktop direct REST, Runtime internal imports, sendGroupMessage substitution, runtime.agent.turn.request substitution, renderer-local committed truth, and synthetic candidate/message success are forbidden.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-015
     domain: chat
     level: must
-    statement: Realm Group candidate commit may carry only typed REALM_GROUP_MESSAGE_CANDIDATE output fields derived from the local Runtime candidate evidence read, including candidate refs, evidenceHash, runtimeTraceRef, output/audit/policy refs, timestamps, commitDisposition, and either validated TEXT body plus bodyHash or validated refusal code/reason plus refusalHash; Realm validates authenticated user authority, group membership, active slot, localAgentRef, agent participant projection, candidate kind, trigger, idempotency, expiry, canonical payload hash, body/refusal hash, and moderation/refusal posture before storage; Realm must not require Runtime authorship proof, Runtime attestation, Realm-side Runtime verifier, evidence escrow, or Realm direct Runtime access for this group chat commit path.
+    title: group-candidate-typed-payload-commit-boundary
+    statement: "Realm Group candidate commit may carry only typed REALM_GROUP_MESSAGE_CANDIDATE output fields derived from the local Runtime candidate evidence read: candidate ids/refs, evidenceHash, runtimeTraceRef, output/audit/policy refs, timestamps, commitDisposition, and either validated TEXT body plus bodyHash or validated refusal code/reason plus refusalHash; Realm validates authenticated user authority, group membership, active realmGroupAgentSlotId, localAgentRef, agent participant projection, candidate kind, trigger, idempotency, expiry, canonical payload hash, body/refusal hash, and moderation/refusal posture before storage; Realm must not require Runtime authorship proof, Runtime attestation, Realm-side Runtime verifier, evidence escrow, or Realm direct Runtime access for this group chat commit path, and commit requests must still not carry raw prompt text, raw provider output, provider/model selection, untyped payload, caller-owned messageId, caller-owned senderId, or caller-owned agent identity as commit authority."
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-CHAT-016
     domain: chat
     level: must
+    title: realm-agent-slot-id-is-durable-binding-identity
     statement: realmGroupAgentSlotId is the durable Realm identity for a local Agent participation binding inside a specific GROUP thread, distinct from the Realm Agent source identity and human membership identity; executable local Agent reference is localAgentRef = ownerUserId + realmAgentId, and commit must validate the same active realmGroupAgentSlotId, target chatId, and localAgentRef because realmAgentId alone is not a valid executable local Agent or group slot reference.
     source: .nimi/spec/realm/kernel/chat-contract.md
   - rule_id: R-SOC-001
     domain: social
     level: must
+    title: friendship-graph-is-canonical
     statement: Friendship is the canonical admission graph for realm-level social relationships.
     source: .nimi/spec/realm/kernel/social-contract.md
   - rule_id: R-SOC-002
     domain: social
     level: must
-    statement: Friendship uses ordered-pair uniqueness and cannot produce duplicate canonical rows.
+    title: ordered-pair-uniqueness
+    statement: Friendship uses an ordered pair uniqueness model so the same pair cannot produce duplicate canonical rows.
     source: .nimi/spec/realm/kernel/social-contract.md
   - rule_id: R-SOC-003
     domain: social
     level: must
+    title: social-defines-admission-not-execution
     statement: Social defines relationship and admission facts and does not define agent-chat runtime, model routing, or turn execution.
     source: .nimi/spec/realm/kernel/social-contract.md
   - rule_id: R-SOC-004
     domain: social
     level: must
+    title: social-gates-human-chat-agent-chat-stays-outside
     statement: Social may gate human chat via preconditions, but canonical chat surface lives in Realm Chat and agent chat runtime stays outside Realm.
     source: .nimi/spec/realm/kernel/social-contract.md
   - rule_id: R-ECON-001
     domain: economy
     level: must
-    statement: World creator economy and access economics remain auditable and separate from narrative runtime.
+    title: creator-world-economy-is-auditable
+    statement: World creator economy and access economics remain auditable, explicit, and separate from narrative runtime.
     source: .nimi/spec/realm/kernel/economy-contract.md
   - rule_id: R-ECON-002
     domain: economy
     level: must
+    title: compute-not-billed-as-realm-truth
     statement: AI compute route cost is not modeled as Realm core truth or hidden world mutation.
     source: .nimi/spec/realm/kernel/economy-contract.md
   - rule_id: R-ECON-003
     domain: economy
     level: must
-    statement: Revenue and settlement logic use explicit event types and append-only accounting with observable distribution rules.
+    title: revenue-share-is-explicit
+    statement: Revenue and settlement logic use explicit event types, explicit distribution rules, and append-only accounting.
     source: .nimi/spec/realm/kernel/economy-contract.md
   - rule_id: R-ECON-004
     domain: economy
     level: must
+    title: no-hidden-cross-domain-economics
     statement: Apps cannot hide economic state changes inside narrative history or memory commits.
     source: .nimi/spec/realm/kernel/economy-contract.md
-  - rule_id: R-RSRC-001
-    domain: resource
-    level: must
-    statement: Realm Resource objects are typed content carriers with stable identity, storage, delivery, status, and controller semantics, not independent ownership semantics.
-    source: .nimi/spec/realm/kernel/resource-contract.md
-  - rule_id: R-RSRC-002
-    domain: resource
-    level: must
-    statement: Active Resource types are fixed to IMAGE, VIDEO, AUDIO, and TEXT; VOICE remains outside the active hard-cut model.
-    source: .nimi/spec/realm/kernel/resource-contract.md
-  - rule_id: R-RSRC-003
-    domain: resource
-    level: must
-    statement: Resource lifecycle mutation is explicit, idempotent, and auditable; prepare upload, finalize, update, and delete are lifecycle transitions.
-    source: .nimi/spec/realm/kernel/resource-contract.md
-  - rule_id: R-RSRC-004
-    domain: resource
-    level: must
-    statement: Resource objects may participate in attachment or binding relations without promoting them into OwnableAsset by default, but Binding kind PRESENTATION with objectType RESOURCE is the only active formal resource-binding shape in Realm.
-    source: .nimi/spec/realm/kernel/resource-contract.md
-  - rule_id: R-BIND-001
-    domain: binding
-    level: must
-    statement: Realm Binding is the only formal durable relation used to attach Realm objects to Realm hosts for presentation, use, or import semantics; Attachment remains a display envelope only.
-    source: .nimi/spec/realm/kernel/binding-contract.md
-  - rule_id: R-BIND-002
-    domain: binding
-    level: must
-    statement: Active binding object types are RESOURCE, ASSET, and BUNDLE; active binding host types are WORLD, AGENT, SCENE, WORLD_EVENT, and WORLDVIEW; WORKSPACE is outside the active backend binding model until a host contract exists.
-    source: .nimi/spec/realm/kernel/binding-contract.md
-  - rule_id: R-BIND-003
-    domain: binding
-    level: must
-    statement: Binding legality is fail-close and matrix-governed; only declared bindingKind, objectType, hostType, and bindingPoint combinations are valid, and all undeclared combinations must be rejected.
-    source: .nimi/spec/realm/kernel/binding-contract.md
-  - rule_id: R-BIND-004
-    domain: binding
-    level: must
-    statement: PRESENTATION bindings may carry flat string-map conditions and explicit binding points; USE and IMPORT bindings must not carry conditions; IMPORT bindings must pin the imported bundle version and do not imply member USE bindings.
-    source: .nimi/spec/realm/kernel/binding-contract.md
-  - rule_id: R-BIND-005
-    domain: binding
-    level: must
-    statement: Binding writes are explicit, idempotent, and auditable; every binding resolves to a world scope, records the creating actor, and uses the same logical uniqueness key for validation, persistence, and upsert behavior.
-    source: .nimi/spec/realm/kernel/binding-contract.md
   - rule_id: R-ATTACH-001
     domain: attachment
     level: must
-    statement: Realm Attachment is a first-class cross-surface envelope with stable targetType plus targetId identity and is not equivalent to Resource, OwnableAsset, Bundle, or Binding.
+    title: generic-target-envelope
+    statement: Realm Attachment is a first-class cross-surface envelope with stable targetType plus targetId identity and is not equivalent to Resource, OwnableAsset, or Bundle.
     source: .nimi/spec/realm/kernel/attachment-contract.md
   - rule_id: R-ATTACH-002
     domain: attachment
     level: must
-    statement: Active attachment targets are fixed to RESOURCE, ASSET, and BUNDLE; attachment target enums are independent from binding object enums even when values overlap, write surfaces persist target references only, and read surfaces may resolve display metadata.
+    title: fixed-active-target-set
+    statement: Active attachment targets are fixed to RESOURCE, ASSET, and BUNDLE; write surfaces persist target references only and read surfaces may resolve display metadata without introducing attachment-level owner or viewer policy.
     source: .nimi/spec/realm/kernel/attachment-contract.md
   - rule_id: R-ATTACH-003
     domain: attachment
     level: must
+    title: post-and-chat-canonical-persistence
     statement: Post attachments persist as ordered PostAttachment relations and chat non-text attachment messages persist as MessageType ATTACHMENT with payload.attachment envelope.
     source: .nimi/spec/realm/kernel/attachment-contract.md
   - rule_id: R-ATTACH-004
     domain: attachment
     level: must
+    title: resolved-read-model-does-not-change-target-identity
     statement: Resolved attachment read models may expose displayKind, URLs, thumbnails, duration, title, subtitle, and nested preview attachments for card targets; surface readability authorizes preview resolution, and stable APIs must not collapse back to resourceId-only or assetId-only attachment contracts.
     source: .nimi/spec/realm/kernel/attachment-contract.md
-  - rule_id: R-RSRC-005
-    domain: resource
-    level: must
-    statement: Resource deliveryAccess defines delivery strategy such as public versus signed URL resolution only; viewer authorization is enforced by the reading surface or controller and must not be inferred from deliveryAccess alone.
-    source: .nimi/spec/realm/kernel/resource-contract.md
-  - rule_id: R-RSRC-006
-    domain: resource
-    level: must
-    statement: Public resource upload preparation defaults to SIGNED delivery unless the caller explicitly requests PUBLIC; this default applies to direct upload and inline text creation surfaces for managed realm resources.
-    source: .nimi/spec/realm/kernel/resource-contract.md
   - rule_id: R-ASSET-101
     domain: asset
     level: must
+    title: independently-ownable-formal-object-model
     statement: Realm OwnableAsset objects are independently ownable formal objects with stable identity, owner, authorship, lineage, lifecycle, and binding policy semantics.
     source: .nimi/spec/realm/kernel/asset-contract.md
   - rule_id: R-ASSET-102
     domain: asset
     level: must
+    title: ownable-asset-not-resource-or-core-archive
     statement: OwnableAsset is distinct from Resource, truth, history, and memory; raw content carriers and app-private archives must not masquerade as ownable realm assets.
     source: .nimi/spec/realm/kernel/asset-contract.md
   - rule_id: R-ASSET-103
     domain: asset
     level: must
+    title: explicit-idempotent-ownable-asset-mutation
     statement: OwnableAsset mutations are explicit, idempotent, and auditable; create, update, clone, and lifecycle transitions are first-class state changes.
     source: .nimi/spec/realm/kernel/asset-contract.md
   - rule_id: R-ASSET-104
     domain: asset
     level: must
+    title: ownable-asset-consumption-boundary-safe
     statement: Formal asset use is expressed only through Binding kind USE with objectType ASSET, while bundle membership or app usage must not usurp asset ownership, lifecycle, policy, or lineage truth.
     source: .nimi/spec/realm/kernel/asset-contract.md
   - rule_id: R-ASSET-105
     domain: asset
     level: must
+    title: explicit-preview-truth-does-not-change-ownership-truth
     statement: OwnableAsset.resourceRefs defines composition only and must reference real, undeleted, attachable Resource objects that the current actor is allowed to reference; OwnableAsset.previewResourceId, when present, must reference one member of resourceRefs, surfaces must not infer preview from resourceRefs ordering, and preview exposure through attachment read models does not change ownership, authorship, acquisition, lifecycle, or policy truth.
     source: .nimi/spec/realm/kernel/asset-contract.md
+  - rule_id: R-RSRC-001
+    domain: resource
+    level: must
+    title: typed-content-carrier-model
+    statement: Realm Resource objects are typed content carriers with stable identity, storage, delivery, status, and controller semantics, not independent ownership semantics.
+    source: .nimi/spec/realm/kernel/resource-contract.md
+  - rule_id: R-RSRC-002
+    domain: resource
+    level: must
+    title: fixed-active-resource-type-set
+    statement: Active Resource types are fixed to IMAGE, VIDEO, AUDIO, and TEXT; VOICE remains outside the active hard-cut model.
+    source: .nimi/spec/realm/kernel/resource-contract.md
+  - rule_id: R-RSRC-003
+    domain: resource
+    level: must
+    title: explicit-idempotent-resource-lifecycle
+    statement: Resource lifecycle mutation is explicit, idempotent, and auditable; prepare upload, finalize, update, and delete are lifecycle transitions.
+    source: .nimi/spec/realm/kernel/resource-contract.md
+  - rule_id: R-RSRC-004
+    domain: resource
+    level: must
+    title: resource-attachment-and-binding-boundary
+    statement: Resource objects may participate in attachment or binding relations without promoting them into OwnableAsset by default, but Binding kind PRESENTATION with objectType RESOURCE is the only active formal resource-binding shape in Realm.
+    source: .nimi/spec/realm/kernel/resource-contract.md
+  - rule_id: R-RSRC-005
+    domain: resource
+    level: must
+    title: delivery-access-does-not-grant-viewer-auth
+    statement: Resource deliveryAccess defines delivery strategy such as public versus signed URL resolution only; viewer authorization is enforced by the reading surface or controller and must not be inferred from deliveryAccess alone.
+    source: .nimi/spec/realm/kernel/resource-contract.md
+  - rule_id: R-RSRC-006
+    domain: resource
+    level: must
+    title: upload-preparation-defaults-to-signed
+    statement: Public resource upload preparation defaults to SIGNED delivery unless the caller explicitly requests PUBLIC; this default applies to direct upload and inline text creation surfaces for managed realm resources.
+    source: .nimi/spec/realm/kernel/resource-contract.md
+  - rule_id: R-BIND-001
+    domain: binding
+    level: must
+    title: binding-is-only-durable-object-to-host-relation
+    statement: Realm Binding is the only formal durable relation used to attach Realm objects to Realm hosts for presentation, use, or import semantics; Attachment remains a display envelope only.
+    source: .nimi/spec/realm/kernel/binding-contract.md
+  - rule_id: R-BIND-002
+    domain: binding
+    level: must
+    title: fixed-active-binding-object-and-host-types
+    statement: Active binding object types are RESOURCE, ASSET, and BUNDLE; active binding host types are WORLD, AGENT, SCENE, WORLD_EVENT, and WORLDVIEW; WORKSPACE is outside the active backend binding model until a host contract exists.
+    source: .nimi/spec/realm/kernel/binding-contract.md
+  - rule_id: R-BIND-003
+    domain: binding
+    level: must
+    title: allow-matrix-fail-close
+    statement: Binding legality is fail-close and matrix-governed; only declared bindingKind, objectType, hostType, and bindingPoint combinations are valid, and all undeclared combinations must be rejected.
+    source: .nimi/spec/realm/kernel/binding-contract.md
+  - rule_id: R-BIND-004
+    domain: binding
+    level: must
+    title: typed-conditions-and-import-version-pin
+    statement: PRESENTATION bindings may carry flat string-map conditions and explicit binding points; USE and IMPORT bindings must not carry conditions; IMPORT bindings must pin the imported bundle version and do not imply member USE bindings.
+    source: .nimi/spec/realm/kernel/binding-contract.md
+  - rule_id: R-BIND-005
+    domain: binding
+    level: must
+    title: explicit-idempotent-world-scoped-binding-writes
+    statement: Binding writes are explicit, idempotent, and auditable; every binding resolves to a world scope, records the creating actor, and uses the same logical uniqueness key for validation, persistence, and upsert behavior.
+    source: .nimi/spec/realm/kernel/binding-contract.md
   - rule_id: R-BNDL-001
     domain: bundle
     level: must
+    title: bundle-composition-and-import-unit
     statement: Realm Bundle objects are formal composition units with stable identity, owner, member ordering, cover asset, metadata, lifecycle, and import semantics.
     source: .nimi/spec/realm/kernel/bundle-contract.md
   - rule_id: R-BNDL-002
     domain: bundle
     level: must
+    title: bundle-members-ownable-asset-only
     statement: Bundle members must be OwnableAsset references only and raw Resource objects must not appear as direct bundle members.
     source: .nimi/spec/realm/kernel/bundle-contract.md
   - rule_id: R-BNDL-003
     domain: bundle
     level: must
+    title: explicit-idempotent-bundle-lifecycle
     statement: Bundle mutation is explicit, idempotent, and auditable; draft editing, publish, archive, and import are first-class lifecycle or event transitions.
     source: .nimi/spec/realm/kernel/bundle-contract.md
   - rule_id: R-BNDL-004
     domain: bundle
     level: must
+    title: bundle-preview-chain-and-runtime-binding-boundary
     statement: Bundle attachment preview resolves through Bundle.coverAssetId to OwnableAsset.previewResourceId to nested Attachment.preview; if the cover asset has no explicit preview resource then bundle read models remain CARD without inferred preview, and Binding kind IMPORT with objectType BUNDLE does not imply member Binding kind USE with objectType ASSET.
     source: .nimi/spec/realm/kernel/bundle-contract.md
   - rule_id: R-TRANSIT-001
     domain: transit
     level: must
+    title: transit-is-continuity-protocol
     statement: Transit is a continuity protocol for cross-world movement and not a narrative engine.
     source: .nimi/spec/realm/kernel/transit-contract.md
   - rule_id: R-TRANSIT-002
     domain: transit
     level: must
-    statement: Transit preserves identity continuity while allowing world-context change.
+    title: preserve-identity-continuity
+    statement: Transit preserves identity continuity while allowing world-context change and cannot mutate truth by side effect.
     source: .nimi/spec/realm/kernel/transit-contract.md
   - rule_id: R-TRANSIT-003
     domain: transit
     level: must
+    title: explicit-state-machine
     statement: Transit state changes are explicit, state-machine governed, and auditable.
     source: .nimi/spec/realm/kernel/transit-contract.md
   - rule_id: R-TRANSIT-004
     domain: transit
     level: must
-    statement: Transit may hand off durable references but app-local runtime checkpoints stay outside Realm.
+    title: runtime-checkpoints-stay-outside
+    statement: Transit may hand off durable state and memory references but app-local runtime checkpoints stay outside Realm.
     source: .nimi/spec/realm/kernel/transit-contract.md
   - rule_id: R-TRANSIT-005
     domain: transit
     level: must
-    statement: OASIS is the default return point and transit hub for creator-world continuity transfer.
+    title: oasis-is-return-anchor
+    statement: OASIS is the default return point and transit hub; creator-world continuity transfer uses OASIS as the system anchor.
     source: .nimi/spec/realm/kernel/transit-contract.md
   - rule_id: R-TRANSIT-006
     domain: transit
     level: must
-    statement: Creator worlds must not transit directly to other creator worlds; transit stays single-hop via OASIS and excludes scene quota/runtime gating.
+    title: creator-worlds-no-direct-transit
+    statement: Creator worlds must not transit directly to other creator worlds; transit stays single-hop via OASIS and cannot introduce scene quota or scene runtime.
     source: .nimi/spec/realm/kernel/transit-contract.md
   - rule_id: R-OAUTH-001
     domain: oauth-authority
     level: must
+    title: realm-is-oauth-authorization-server
     statement: Realm is the OAuth 2.0 authorization server for native/public clients in nimi-realm; PKCE-protected authorization code flow is the sole admitted method on this contract's endpoints.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md
   - rule_id: R-OAUTH-002
     domain: oauth-authority
     level: must
+    title: endpoint-set-closed
     statement: Admitted OAuth endpoints are exactly GET /api/auth/oauth/authorize and POST /api/auth/oauth/token; implicit, client_credentials, password, device_code, and URN-namespaced grants are forbidden.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md
   - rule_id: R-OAUTH-003
     domain: oauth-authority
     level: must
+    title: pkce-s256-only
     statement: code_challenge_method must equal S256; plain and any other value fail-close invalid_request; missing code_challenge or code_challenge_method on /authorize fails-close.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md
   - rule_id: R-OAUTH-004
     domain: oauth-authority
     level: must
-    statement: Authorization codes are single-shot with TTL <= 60 seconds, persisted in atomically-consumable storage; expired or already-consumed codes fail-close invalid_grant at /token.
+    title: authorization-code-single-shot
+    statement: Authorization codes are single-shot with TTL <= 60 seconds, persisted in atomically-consumable storage (single SQL UPDATE returning row, or atomic key-value claim-and-delete); expired or already-consumed codes fail-close invalid_grant at /token.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md
   - rule_id: R-OAUTH-005
     domain: oauth-authority
     level: must
+    title: redirect-uri-loopback-exact-match
     statement: redirect_uri must be http scheme, host 127.0.0.1 or localhost, any port 1..65535, path exactly /oauth/callback; authorize-time and token-time redirect_uri must byte-for-byte match; any other shape or mismatch fails-close.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md
   - rule_id: R-OAUTH-006
     domain: oauth-authority
     level: must
+    title: code-binds-to-client-redirect-pkce
     statement: Authorization code is bound at issuance to client_id, redirect_uri, code_challenge, and code_challenge_method; all four must match at /token exchange or fail-close invalid_grant; binding is immutable for code lifetime.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md
   - rule_id: R-OAUTH-007
     domain: oauth-authority
     level: must
-    statement: Admitted client_id set is closed and governed by tables/oauth-authority-contract.yaml#oauth_clients; no client_secret accepted; PKCE is the sole security boundary; ad-hoc client provisioning is forbidden.
+    title: closed-client-set-no-secret
+    statement: Admitted client_id set is closed and governed by tables/oauth-authority-contract.yaml#oauth_clients; no client_secret accepted on either endpoint; PKCE is the sole security boundary; ad-hoc client provisioning is forbidden.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md
   - rule_id: R-OAUTH-008
     domain: oauth-authority
     level: must
-    statement: Authorization codes, code_verifier, access_token, and refresh_token must never appear in logs, audit payloads, error response bodies, exception messages, telemetry, or any persisted observability surface; at-rest authorization codes use HMAC-SHA256 keyed by realm secret; raw codes must not survive past the issuing HTTP response.
+    title: sensitive-material-redaction
+    statement: Authorization codes, code_verifier, access_token, and refresh_token must never appear in logs, audit payloads, error response bodies, exception messages, telemetry attributes, or any persisted observability surface; at-rest authorization codes use HMAC-SHA256 keyed by realm secret; raw codes must not survive past the issuing HTTP response.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md
   - rule_id: R-OAUTH-009
     domain: oauth-authority
     level: must
+    title: token-response-shape
     statement: /token success response is JSON {access_token, refresh_token, token_type='Bearer', expires_in, account_id, display_name, realm_environment_id}; refresh_token issued only after all PKCE/binding/lifecycle/replay checks pass; field names are normative and consumed by runtime.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md
   - rule_id: R-OAUTH-010
     domain: oauth-authority
     level: must
+    title: forbidden-grant-types
     statement: Grant types other than authorization_code on /token (refresh_token, client_credentials, password, device_code, URN-namespaced, or any other value) fail-close unsupported_grant_type.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md
   - rule_id: R-OAUTH-011
     domain: oauth-authority
     level: must
+    title: authorize-requires-session
     statement: /authorize requires authenticated realm session cookie; unauthenticated request 302 redirects to NIMI_WEB_URL /login with oauth_next set to the absolute API authorize URL built from NIMI_REALM_URL and the original request URL; web login must validate oauth_next against an OAuth-only realm/API-origin allowlist, then navigate back to the API authorize URL after login; web login must not parse codes, receive tokens, exchange tokens, or relay tokens; state is mandatory and passed verbatim.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md
   - rule_id: R-OAUTH-012
     domain: oauth-authority
     level: must
+    title: replay-defense-atomic-claim-first
     statement: Token endpoint must atomically claim code consumption before any other validation; order is (1) atomic claim, (2) client_id binding, (3) redirect_uri exact match, (4) PKCE S256 equality, (5) mint; failure at step 1 returns invalid_grant with no further detail; failure at 2/3/4 leaves code consumed and not retryable; consumption claim must never be undone.
     source: .nimi/spec/realm/kernel/oauth-authority-contract.md

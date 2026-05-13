@@ -193,9 +193,13 @@ function main() {
   if (catalog.id_pattern !== EXPECTED_ID_PATTERN) {
     pushIssue(issues, 'rule-catalog', `id_pattern must equal ${EXPECTED_ID_PATTERN}`);
   }
+  if (catalog.generated_from !== 'kernel/tables/*-contract.yaml') {
+    pushIssue(issues, 'rule-catalog', 'generated_from must equal kernel/tables/*-contract.yaml');
+  }
 
   const catalogRules = Array.isArray(catalog.rules) ? catalog.rules : [];
   const catalogRuleIds = new Set();
+  const catalogRowsById = new Map();
   for (const row of catalogRules) {
     const ruleId = String(row.rule_id || '').trim();
     if (!RULE_ID_PATTERN.test(ruleId)) {
@@ -204,6 +208,7 @@ function main() {
     }
     if (catalogRuleIds.has(ruleId)) pushIssue(issues, 'rule-catalog', `duplicate rule_id: ${ruleId}`);
     catalogRuleIds.add(ruleId);
+    catalogRowsById.set(ruleId, row);
     const source = String(row.source || '').trim();
     if (!source) {
       pushIssue(issues, 'rule-catalog', `${ruleId}: source is required`);
@@ -231,6 +236,7 @@ function main() {
   }
 
   const contractRuleIds = new Set();
+  const expectedCatalogRows = new Map();
   for (const contract of contractTables) {
     if (!fs.existsSync(contract.mdPath)) {
       pushIssue(issues, 'contract-doc', `missing contract doc ${rel(contract.mdPath)}`);
@@ -246,6 +252,16 @@ function main() {
       }
       if (contractRuleIds.has(ruleId)) pushIssue(issues, 'contract-table', `duplicate contract rule_id ${ruleId}`);
       contractRuleIds.add(ruleId);
+      if (!expectedCatalogRows.has(ruleId)) {
+        expectedCatalogRows.set(ruleId, {
+          rule_id: ruleId,
+          domain: contract.doc.domain,
+          level: rule.level,
+          title: rule.title,
+          statement: rule.statement,
+          source: rel(contract.mdPath),
+        });
+      }
       if (!mdRuleIds.has(ruleId)) {
         pushIssue(issues, 'contract-doc', `${rel(contract.mdPath)} missing heading for ${ruleId}`);
       }
@@ -257,6 +273,17 @@ function main() {
   }
   for (const ruleId of contractRuleIds) {
     if (!catalogRuleIds.has(ruleId)) pushIssue(issues, 'rule-catalog', `missing catalog entry for ${ruleId}`);
+  }
+  for (const [ruleId, expected] of expectedCatalogRows) {
+    const actual = catalogRowsById.get(ruleId);
+    if (!actual) continue;
+    for (const field of ['domain', 'level', 'title', 'statement', 'source']) {
+      const actualValue = String(actual[field] ?? '');
+      const expectedValue = String(expected[field] ?? '');
+      if (actualValue !== expectedValue) {
+        pushIssue(issues, 'rule-catalog', `${ruleId}: ${field} must match contract table (${JSON.stringify(actualValue)} != ${JSON.stringify(expectedValue)})`);
+      }
+    }
   }
   for (const ruleId of catalogRuleIds) {
     if (!contractRuleIds.has(ruleId)) pushIssue(issues, 'rule-catalog', `unexpected catalog entry ${ruleId}`);

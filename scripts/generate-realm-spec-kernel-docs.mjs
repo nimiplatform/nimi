@@ -9,6 +9,24 @@ const KERNEL_DIR = path.join(PROJECT_ROOT, '.nimi', 'spec', 'realm', 'kernel');
 const TABLES_DIR = path.join(KERNEL_DIR, 'tables');
 const GENERATED_DIR = path.join(KERNEL_DIR, 'generated');
 const CHECK_MODE = process.argv.includes('--check');
+const RULE_FAMILIES = [
+  'TRUTH',
+  'PROJ',
+  'WSTATE',
+  'WHIST',
+  'CHAT',
+  'SOC',
+  'ECON',
+  'ATTACH',
+  'ASSET',
+  'RSRC',
+  'BIND',
+  'BNDL',
+  'TRANSIT',
+  'OAUTH',
+];
+const EXPECTED_ID_PATTERN = `^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`;
+const RULE_FAMILY_ORDER = new Map(RULE_FAMILIES.map((family, index) => [family, index]));
 
 function toPosix(filePath) {
   return filePath.replace(/\\/g, '/');
@@ -59,16 +77,17 @@ function renderRuleCatalog(doc, sourceFile) {
   const blockedRules = Array.isArray(data.blocked_rules) ? data.blocked_rules : [];
   const lines = [
     `Generated at: ${data.generated_at ?? 'unknown'}`,
+    `Generated from: ${data.generated_from ?? 'unknown'}`,
     '',
     `Total rules: ${rules.length}`,
     `Blocked external rules: ${blockedRules.length}`,
     '',
-    '| Rule ID | Domain | Level | Source | Statement |',
-    '| --- | --- | --- | --- | --- |',
+    '| Rule ID | Domain | Level | Title | Source | Statement |',
+    '| --- | --- | --- | --- | --- | --- |',
   ];
   for (const row of rules) {
     lines.push(
-      `| ${escapeCell(row.rule_id)} | ${escapeCell(row.domain)} | ${escapeCell(row.level)} | ${escapeCell(row.source)} | ${escapeCell(row.statement)} |`,
+      `| ${escapeCell(row.rule_id)} | ${escapeCell(row.domain)} | ${escapeCell(row.level)} | ${escapeCell(row.title)} | ${escapeCell(row.source)} | ${escapeCell(row.statement)} |`,
     );
   }
   if (blockedRules.length > 0) {
@@ -255,6 +274,76 @@ function renderGenericYaml(doc, sourceFile, stem) {
   return withPreamble(`${formatTitle(stem)} (Generated)`, sourceFile, lines);
 }
 
+function ruleSortKey(ruleId) {
+  const match = String(ruleId).match(/^R-([A-Z]+)-([0-9]{3})$/u);
+  if (!match) return [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, String(ruleId)];
+  return [
+    RULE_FAMILY_ORDER.get(match[1] ?? '') ?? Number.MAX_SAFE_INTEGER,
+    Number(match[2] ?? '0'),
+    String(ruleId),
+  ];
+}
+
+function compareRuleId(a, b) {
+  const left = ruleSortKey(a);
+  const right = ruleSortKey(b);
+  return left[0] - right[0] || left[1] - right[1] || left[2].localeCompare(right[2]);
+}
+
+function buildDerivedRuleCatalog() {
+  const rules = [];
+  const contractFiles = fs
+    .readdirSync(TABLES_DIR)
+    .filter((file) => file.endsWith('-contract.yaml'))
+    .sort((a, b) => a.localeCompare(b));
+
+  for (const file of contractFiles) {
+    const sourceFile = path.join(TABLES_DIR, file);
+    const doc = readYaml(sourceFile) ?? {};
+    const source = relativeToRoot(path.join(KERNEL_DIR, file.replace(/\.yaml$/u, '.md')));
+    for (const rule of Array.isArray(doc.rules) ? doc.rules : []) {
+      rules.push({
+        rule_id: rule.rule_id,
+        domain: doc.domain,
+        level: rule.level,
+        title: rule.title,
+        statement: rule.statement,
+        source,
+      });
+    }
+  }
+
+  rules.sort((a, b) => compareRuleId(a.rule_id ?? '', b.rule_id ?? ''));
+
+  return {
+    id_pattern: EXPECTED_ID_PATTERN,
+    generated_at: 'derived-from-contract-tables',
+    generated_from: 'kernel/tables/*-contract.yaml',
+    rules,
+  };
+}
+
+function normalizeYaml(content) {
+  return `${content.trim()}\n`;
+}
+
+function renderDerivedRuleCatalogYaml() {
+  return normalizeYaml(YAML.stringify(buildDerivedRuleCatalog(), { lineWidth: 0 }));
+}
+
+function ensureDerivedRuleCatalog() {
+  const catalogPath = path.join(TABLES_DIR, 'rule-catalog.yaml');
+  const expected = renderDerivedRuleCatalogYaml();
+  const existing = fs.existsSync(catalogPath) ? fs.readFileSync(catalogPath, 'utf8') : '';
+  if (CHECK_MODE) {
+    if (normalizeYaml(existing) !== expected) {
+      throw new Error(`Realm rule catalog drift detected: ${relativeToRoot(catalogPath)} must be regenerated from contract tables`);
+    }
+    return;
+  }
+  writeFile(catalogPath, expected);
+}
+
 function buildRenderTargets() {
   const tableFiles = fs
     .readdirSync(TABLES_DIR)
@@ -347,6 +436,7 @@ function removeStaleGeneratedFiles(targets) {
 }
 
 function main() {
+  ensureDerivedRuleCatalog();
   const targets = buildRenderTargets();
   const indexContent = buildIndexContent(targets);
   if (!CHECK_MODE) removeStaleGeneratedFiles(targets);

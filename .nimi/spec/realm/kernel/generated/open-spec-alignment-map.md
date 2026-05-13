@@ -4,7 +4,7 @@
 # Open Spec Alignment Map (Generated)
 
 Version: `1`
-Updated: `2026-04-18`
+Updated: `2026-03-26`
 
 | External ID | Type | External Path | Local Anchor | Coverage |
 | --- | --- | --- | --- | --- |
