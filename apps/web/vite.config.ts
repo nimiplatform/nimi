@@ -144,6 +144,10 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, 'src/desktop-adapter/mod-hub-page.web.tsx'),
         },
         {
+          find: '@renderer/features/tester/world-tour-viewer-route',
+          replacement: path.resolve(__dirname, 'src/desktop-adapter/world-tour-viewer-route.web.tsx'),
+        },
+        {
           find: /^@renderer\/bridge$/,
           replacement: path.resolve(__dirname, 'src/desktop-adapter/bridge.web.ts'),
         },
@@ -295,7 +299,7 @@ export default defineConfig(({ mode }) => {
               if (matchesAny(normalizedId, [
                 '/chat-human-canonical-composer-profile',
               ])) {
-                return 'chat-composer-profile';
+                return 'chat-human-surface';
               }
               if (matchesAny(normalizedId, [
                 '/chat-group-composer',
@@ -311,10 +315,10 @@ export default defineConfig(({ mode }) => {
               if (
                 normalizedId.includes('/chat-human-canonical-components')
               ) {
-                return 'chat-human-ui';
+                return 'chat-human-surface';
               }
               if (normalizedId.includes('/chat-human-')) {
-                return 'chat-human-core';
+                return 'chat-human-surface';
               }
               if (
                 normalizedId.includes('/conversation-capability')
@@ -343,7 +347,7 @@ export default defineConfig(({ mode }) => {
                 '/chat-agent-mode-content',
                 '/chat-agent-scene-background',
               ])) {
-                return 'chat-agent-presentation';
+                return 'chat-agent-surface';
               }
               if (matchesAny(normalizedId, [
                 '/chat-agent-shell-adapter',
@@ -351,7 +355,7 @@ export default defineConfig(({ mode }) => {
                 '/runtime-agent-inspect',
                 '/chat-shared-floating-menu',
               ])) {
-                return 'chat-agent-adapter';
+                return 'chat-agent-surface';
               }
               if (matchesAny(normalizedId, [
                 '/chat-agent-behavior',
@@ -359,7 +363,7 @@ export default defineConfig(({ mode }) => {
                 '/chat-agent-center-local-config',
                 '/chat-agent-voice-playback',
               ])) {
-                return 'chat-agent-behavior';
+                return 'desktop-runtime-shell-core';
               }
               if (matchesAny(normalizedId, [
                 '/chat-agent-shell-host-actions',
@@ -419,20 +423,20 @@ export default defineConfig(({ mode }) => {
               return 'vendor-sdk-client';
             }
             if (normalizedId.includes('/apps/desktop/src/runtime/data-sync/')) {
-              return 'vendor-runtime-data-sync';
+              return 'desktop-runtime-shell-core';
             }
             if (normalizedId.includes('/apps/desktop/src/runtime/local-runtime/')) {
-              return 'vendor-runtime-local';
+              return 'desktop-runtime-shell-core';
             }
             if (normalizedId.includes('/apps/desktop/src/runtime/llm-adapter/')) {
-              return 'vendor-runtime-llm-adapter';
+              return 'desktop-runtime-shell-core';
             }
             if (
               normalizedId.includes('/apps/desktop/src/shell/renderer/bridge/runtime-bridge/')
               || normalizedId.endsWith('/apps/desktop/src/shell/renderer/bridge/runtime-bridge.ts')
               || normalizedId.endsWith('/apps/desktop/src/shell/renderer/bridge.ts')
             ) {
-              return 'vendor-runtime-bridge-core';
+              return 'desktop-runtime-shell-core';
             }
             if (
               normalizedId.includes('/apps/desktop/src/shell/renderer/locales/en/')
@@ -453,57 +457,204 @@ export default defineConfig(({ mode }) => {
             if (isReactCoreVendor(normalizedId)) {
               return 'vendor-react';
             }
-            if (id.includes('/react-router') || id.includes('/@remix-run/router/')) {
+            if (
+              isNodePackage(normalizedId, 'react-router')
+              || isNodePackage(normalizedId, '@remix-run/router')
+            ) {
               return 'vendor-router';
             }
-            if (id.includes('/@tanstack/react-query/')) {
+            if (
+              isNodePackage(normalizedId, '@tanstack/react-query')
+              || isNodePackage(normalizedId, '@tanstack/query-core')
+            ) {
               return 'vendor-query';
             }
-            if (id.includes('/i18next/') || id.includes('/react-i18next/')) {
+            if (
+              isNodePackage(normalizedId, 'i18next')
+              || isNodePackage(normalizedId, 'react-i18next')
+            ) {
               return 'vendor-i18n';
             }
             if (
-              id.includes('/@nimiplatform/sdk')
-              || id.includes('/@nimiplatform/nimi-kit/auth/')
-              || id.includes('/openapi-fetch/')
+              normalizedId.includes('/@nimiplatform/sdk')
+              || normalizedId.includes('/@nimiplatform/nimi-kit/auth/')
+              || isNodePackage(normalizedId, 'openapi-fetch')
             ) {
               return 'vendor-platform';
             }
-            if (id.includes('/ai/') || id.includes('/@ai-sdk/')) {
+            if (normalizedId.includes('/ai/') || normalizedId.includes('/@ai-sdk/')) {
               return 'vendor-ai';
             }
             if (
-              id.includes('/three/examples/')
-              || id.includes('/three/addons/')
+              normalizedId.includes('/three/examples/')
+              || normalizedId.includes('/three/addons/')
             ) {
               return 'vendor-three-extras';
             }
-            if (id.includes('/three/') || id.includes('/simplex-noise/')) {
+            if (
+              isNodePackage(normalizedId, 'three')
+              || isNodePackage(normalizedId, 'simplex-noise')
+            ) {
               return 'vendor-three-core';
             }
             if (
-              id.includes('/@react-three/')
-              || id.includes('/postprocessing/')
-              || id.includes('/three-stdlib/')
+              normalizedId.includes('/@react-three/')
+              || isNodePackage(normalizedId, 'postprocessing')
+              || isNodePackage(normalizedId, 'three-stdlib')
             ) {
               return 'vendor-three-react';
             }
             if (
-              id.includes('/socket.io-client/')
-              || id.includes('/engine.io-client/')
-              || id.includes('/socket.io-parser/')
-              || id.includes('/engine.io-parser/')
+              isNodePackage(normalizedId, 'maath')
+              || isNodePackage(normalizedId, '@monogrid/gainmap-js')
+              || isNodePackage(normalizedId, 'camera-controls')
+              || isNodePackage(normalizedId, 'meshline')
+              || isNodePackage(normalizedId, 'troika-three-text')
+              || isNodePackage(normalizedId, 'troika-three-utils')
+              || isNodePackage(normalizedId, 'troika-worker-utils')
+              || isNodePackage(normalizedId, 'webgl-sdf-generator')
+              || isNodePackage(normalizedId, 'suspend-react')
+              || isNodePackage(normalizedId, 'its-fine')
+              || isNodePackage(normalizedId, 'react-use-measure')
+              || isNodePackage(normalizedId, 'fflate')
+              || isNodePackage(normalizedId, 'bidi-js')
+            ) {
+              return 'vendor-three-support';
+            }
+            if (
+              isNodePackage(normalizedId, 'socket.io-client')
+              || isNodePackage(normalizedId, 'engine.io-client')
+              || isNodePackage(normalizedId, 'socket.io-parser')
+              || isNodePackage(normalizedId, 'engine.io-parser')
+              || isNodePackage(normalizedId, '@socket.io/component-emitter')
             ) {
               return 'vendor-socket';
             }
             if (
-              id.includes('/@protobuf-ts/runtime')
-              || id.includes('/@protobuf-ts/runtime-rpc/')
+              isNodePackage(normalizedId, '@protobuf-ts/runtime')
+              || isNodePackage(normalizedId, '@protobuf-ts/runtime-rpc')
             ) {
               return 'vendor-protobuf';
             }
-            if (id.includes('/ajv/') || id.includes('/zod/') || id.includes('/yaml/')) {
+            if (
+              isNodePackage(normalizedId, 'ajv')
+              || isNodePackage(normalizedId, 'zod')
+              || isNodePackage(normalizedId, 'yaml')
+            ) {
               return 'vendor-data';
+            }
+            if (isNodePackage(normalizedId, '@tauri-apps/api')) {
+              return 'vendor-tauri';
+            }
+            if (
+              isNodePackage(normalizedId, 'zustand')
+              || isNodePackage(normalizedId, 'use-sync-external-store')
+            ) {
+              return 'vendor-state';
+            }
+            if (
+              isNodePackage(normalizedId, 'lodash')
+              || isNodePackage(normalizedId, 'lodash-es')
+            ) {
+              return 'vendor-lodash';
+            }
+            if (
+              isNodePackage(normalizedId, 'unified')
+              || isNodePackage(normalizedId, 'vfile')
+              || isNodePackage(normalizedId, 'vfile-message')
+              || isNodePackage(normalizedId, 'bail')
+              || isNodePackage(normalizedId, '@ungap/structured-clone')
+              || isNodePackage(normalizedId, 'style-to-js')
+              || isNodePackage(normalizedId, 'style-to-object')
+              || isNodePackage(normalizedId, 'inline-style-parser')
+              || isNodePackage(normalizedId, 'devlop')
+              || isNodePackage(normalizedId, 'estree-util-is-identifier-name')
+              || isNodePackage(normalizedId, 'html-url-attributes')
+              || isNodePackage(normalizedId, 'decode-named-character-reference')
+              || isNodePackage(normalizedId, 'extend')
+              || isNodePackage(normalizedId, 'is-plain-obj')
+              || isNodePackage(normalizedId, 'trough')
+              || isNodePackage(normalizedId, 'react-markdown')
+              || isNodePackage(normalizedId, 'escape-string-regexp')
+              || isNodePackage(normalizedId, 'longest-streak')
+              || normalizedId.includes('/node_modules/.pnpm/mdast-')
+              || normalizedId.includes('/node_modules/.pnpm/micromark')
+              || normalizedId.includes('/node_modules/.pnpm/hast-')
+              || normalizedId.includes('/node_modules/.pnpm/unist-')
+              || normalizedId.includes('/node_modules/.pnpm/remark-')
+              || normalizedId.includes('/node_modules/.pnpm/rehype-')
+              || normalizedId.includes('/node_modules/.pnpm/property-information')
+              || normalizedId.includes('/node_modules/.pnpm/space-separated-tokens')
+              || normalizedId.includes('/node_modules/.pnpm/comma-separated-tokens')
+              || normalizedId.includes('/node_modules/.pnpm/trim-lines')
+              || normalizedId.includes('/node_modules/.pnpm/ccount')
+              || normalizedId.includes('/node_modules/.pnpm/character-entities')
+              || normalizedId.includes('/node_modules/.pnpm/markdown-')
+            ) {
+              return 'vendor-markdown';
+            }
+            if (
+              isNodePackage(normalizedId, 'clsx')
+              || isNodePackage(normalizedId, 'tailwind-merge')
+              || isNodePackage(normalizedId, 'class-variance-authority')
+              || isNodePackage(normalizedId, '@babel/runtime')
+              || isNodePackage(normalizedId, '@radix-ui/primitive')
+              || isNodePackage(normalizedId, '@radix-ui/number')
+            ) {
+              return 'vendor-shared-ui-utils';
+            }
+            if (
+              isNodePackage(normalizedId, 'lucide-react')
+              || isNodePackage(normalizedId, '@radix-ui/react-arrow')
+              || isNodePackage(normalizedId, '@radix-ui/react-avatar')
+              || isNodePackage(normalizedId, '@radix-ui/react-collection')
+              || isNodePackage(normalizedId, '@radix-ui/react-context')
+              || isNodePackage(normalizedId, '@radix-ui/react-dialog')
+              || isNodePackage(normalizedId, '@radix-ui/react-direction')
+              || isNodePackage(normalizedId, '@radix-ui/react-focus-guards')
+              || isNodePackage(normalizedId, '@radix-ui/react-id')
+              || isNodePackage(normalizedId, '@radix-ui/react-popper')
+              || isNodePackage(normalizedId, '@radix-ui/react-popover')
+              || isNodePackage(normalizedId, '@radix-ui/react-scroll-area')
+              || isNodePackage(normalizedId, '@radix-ui/react-select')
+              || isNodePackage(normalizedId, '@radix-ui/react-slot')
+              || isNodePackage(normalizedId, '@radix-ui/react-switch')
+              || isNodePackage(normalizedId, '@radix-ui/react-compose-refs')
+              || isNodePackage(normalizedId, '@radix-ui/react-primitive')
+              || isNodePackage(normalizedId, '@radix-ui/react-use-callback-ref')
+              || isNodePackage(normalizedId, '@radix-ui/react-use-controllable-state')
+              || isNodePackage(normalizedId, '@radix-ui/react-use-effect-event')
+              || isNodePackage(normalizedId, '@radix-ui/react-use-escape-keydown')
+              || isNodePackage(normalizedId, '@radix-ui/react-use-is-hydrated')
+              || isNodePackage(normalizedId, '@radix-ui/react-use-layout-effect')
+              || isNodePackage(normalizedId, '@radix-ui/react-use-previous')
+              || isNodePackage(normalizedId, '@radix-ui/react-use-size')
+              || isNodePackage(normalizedId, '@radix-ui/react-dismissable-layer')
+              || isNodePackage(normalizedId, '@radix-ui/react-portal')
+              || isNodePackage(normalizedId, '@radix-ui/react-presence')
+              || isNodePackage(normalizedId, '@radix-ui/react-focus-scope')
+              || isNodePackage(normalizedId, '@radix-ui/react-visually-hidden')
+              || isNodePackage(normalizedId, '@floating-ui/react-dom')
+              || isNodePackage(normalizedId, '@floating-ui/react-dom-interactions')
+              || isNodePackage(normalizedId, '@floating-ui/core')
+              || isNodePackage(normalizedId, '@floating-ui/dom')
+              || isNodePackage(normalizedId, '@floating-ui/utils')
+              || isNodePackage(normalizedId, 'react-remove-scroll')
+              || isNodePackage(normalizedId, 'react-remove-scroll-bar')
+              || isNodePackage(normalizedId, 'react-style-singleton')
+              || isNodePackage(normalizedId, 'use-callback-ref')
+              || isNodePackage(normalizedId, 'use-sidecar')
+              || isNodePackage(normalizedId, 'aria-hidden')
+              || isNodePackage(normalizedId, 'get-nonce')
+              || isNodePackage(normalizedId, 'tslib')
+            ) {
+              return 'vendor-react-ui';
+            }
+            if (
+              isNodePackage(normalizedId, '@tanstack/virtual-core')
+              || isNodePackage(normalizedId, '@tanstack/react-virtual')
+            ) {
+              return 'vendor-virtual';
             }
             return 'vendor-misc';
           },

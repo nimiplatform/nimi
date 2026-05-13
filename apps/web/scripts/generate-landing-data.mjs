@@ -36,6 +36,7 @@ const ADMITTED_ENDPOINT_REQUIREMENTS = new Set([
   'explicit_required',
   'empty_string_only',
 ]);
+const CAPABILITIES_ONLY_PROVIDERS = new Set(['local']);
 
 // Per r5 (audit r4 F-002): the AdmittedCapability union is generated from
 // DISTINCT capability values discovered in provider-capabilities.yaml.
@@ -355,11 +356,15 @@ export {
 }
 
 function applyJoinPolicy(catalogProviders, capabilityProviders) {
-  // Per D1.3.3: orphan rows in either YAML emit warning + keep row; no silent drop
+  // Per D1.3.3: orphan rows in either YAML emit warning + keep row; no silent drop.
+  // `local` is intentionally capabilities-only: runtime spec governance requires
+  // exactly one local capability row and forbids it in provider-catalog.yaml.
   const catalogSet = new Set(catalogProviders);
   const capSet = new Set(capabilityProviders);
   const onlyInCatalog = [...catalogSet].filter((p) => !capSet.has(p));
-  const onlyInCapabilities = [...capSet].filter((p) => !catalogSet.has(p));
+  const onlyInCapabilities = [...capSet].filter(
+    (p) => !catalogSet.has(p) && !CAPABILITIES_ONLY_PROVIDERS.has(p),
+  );
   if (onlyInCatalog.length > 0) {
     process.stderr.write(
       `generate-landing-data: WARNING — provider(s) in catalog but not in capabilities: ` +

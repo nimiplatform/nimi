@@ -72,6 +72,7 @@ import type {
   RuntimeModReloadResult,
   RuntimeModSourceChangeEvent,
   RuntimeModInstallPayload,
+  RuntimeModInstallAccepted,
   RuntimeModInstallProgressEvent,
   RuntimeModInstallResult,
   RuntimeModUpdatePayload,
@@ -116,6 +117,7 @@ export type {
   RuntimeModReloadResult,
   RuntimeModSourceChangeEvent,
   RuntimeModInstallPayload,
+  RuntimeModInstallAccepted,
   RuntimeModInstallProgressEvent,
   RuntimeModInstallResult,
   RuntimeModUpdatePayload,
@@ -272,18 +274,18 @@ export async function checkModUpdates(): Promise<AvailableModUpdate[]> {
   return [];
 }
 
-export async function installCatalogMod(_input: { packageId: string }): Promise<CatalogInstallResult> {
+export async function installCatalogMod(_input: { packageId: string }): Promise<RuntimeModInstallAccepted> {
   unsupportedDesktopRuntime('Catalog mod install is only available in desktop runtime');
 }
 
-export async function updateInstalledMod(_input: { packageId: string }): Promise<CatalogInstallResult> {
+export async function updateInstalledMod(_input: { packageId: string }): Promise<RuntimeModInstallAccepted> {
   unsupportedDesktopRuntime('Installed mod update is only available in desktop runtime');
 }
 
 export async function restoreRuntimeModBackup(_input: {
   modId: string;
   backupPath: string;
-}): Promise<RuntimeLocalManifestSummary> {
+}): Promise<RuntimeModInstallAccepted> {
   unsupportedDesktopRuntime('Runtime mod backup restore is only available in desktop runtime');
 }
 
