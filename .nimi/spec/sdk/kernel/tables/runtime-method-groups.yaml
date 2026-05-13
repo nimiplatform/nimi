@@ -76,6 +76,11 @@ groups:
       - InstallVerifiedAsset
       - ImportLocalAsset
       - ImportLocalAssetFile
+      - ListLocalTransfers
+      - PauseLocalTransfer
+      - ResumeLocalTransfer
+      - CancelLocalTransfer
+      - WatchLocalTransfers
       - CollectDeviceProfile
       - ListLocalServices
       - InstallLocalService
@@ -104,6 +109,16 @@ groups:
       - CancelLocalEnvironmentDependencyJob
       - RetryLocalEnvironmentDependencyJob
       - RepairLocalEnvironmentDependency
+    excluded:
+      - name: ResolveLocalStateReconciliation
+        reason: >
+          removed local-state cutover compatibility path; runtime returns
+          not-required guidance and SDK must not re-admit cutover as an active
+          operation.
+      - name: ExecuteLocalStateCutover
+        reason: >
+          removed local-state cutover operation; runtime fails closed with
+          unimplemented guidance, so SDK keeps the method unavailable.
     source_rule: S-SURFACE-002
   - group: auth_service_projection
     service: RuntimeAuthService
@@ -155,6 +170,8 @@ groups:
       - SwitchAccount
       - IssueScopedAppBinding
       - RevokeScopedAppBinding
+      - IssueWorkspaceBinding
+      - RevokeWorkspaceBinding
     source_rule: S-RUNTIME-109
   - group: workflow_service_projection
     service: RuntimeWorkflowService
@@ -317,8 +334,27 @@ groups:
       - TerminateAgent
       - GetAgent
       - ListAgents
+      - OpenConversationAnchor
+      - GetConversationAnchorSnapshot
+      - GetPublicChatSessionSnapshot
+      - CreateRealmGroupMessageCandidate
+      - GetRealmGroupMessageCandidateEvidence
+      - GetAvatarDebugSnapshot
+      - RequestAvatarDebugProbe
+      - ListAvatarDebugProbeResults
+      - GetAvatarDebugReplay
+      - ListDelegatedProviderProfiles
+      - UpsertDelegatedProviderProfile
+      - SetDelegatedProviderState
+      - ListDelegatedApprovalRequests
+      - SubmitDelegatedApprovalDecision
+      - ListDelegatedDiagnostics
+      - GetDelegatedReplayTrace
+      - GetDelegatedControlSurfaceSnapshot
+      - ExecuteDelegatedCapability
       - GetAgentState
       - UpdateAgentState
+      - SetAgentPresentationProfile
       - EnableAutonomy
       - DisableAutonomy
       - SetAutonomyConfig

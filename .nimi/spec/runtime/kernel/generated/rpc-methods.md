@@ -102,6 +102,8 @@ Source: `K-RPC-004`
 | `ListLocalEnvironmentSelectedSources` | `unary` |
 | `ListLocalEnvironmentDependencyJobs` | `unary` |
 | `ResolveLocalEnvironmentActivationGate` | `unary` |
+| `ResolveLocalStateReconciliation` | `unary` |
+| `ExecuteLocalStateCutover` | `unary` |
 | `StartLocalEnvironmentDependencyJob` | `unary` |
 | `CancelLocalEnvironmentDependencyJob` | `unary` |
 | `RetryLocalEnvironmentDependencyJob` | `unary` |
@@ -243,6 +245,12 @@ Source: `K-RPC-004b`
 | `OpenConversationAnchor` | `unary` |
 | `GetConversationAnchorSnapshot` | `unary` |
 | `GetPublicChatSessionSnapshot` | `unary` |
+| `CreateRealmGroupMessageCandidate` | `unary` |
+| `GetRealmGroupMessageCandidateEvidence` | `unary` |
+| `GetAvatarDebugSnapshot` | `unary` |
+| `RequestAvatarDebugProbe` | `unary` |
+| `ListAvatarDebugProbeResults` | `unary` |
+| `GetAvatarDebugReplay` | `unary` |
 | `ListDelegatedProviderProfiles` | `unary` |
 | `UpsertDelegatedProviderProfile` | `unary` |
 | `SetDelegatedProviderState` | `unary` |
@@ -254,6 +262,7 @@ Source: `K-RPC-004b`
 | `ExecuteDelegatedCapability` | `unary` |
 | `GetAgentState` | `unary` |
 | `UpdateAgentState` | `unary` |
+| `SetAgentPresentationProfile` | `unary` |
 | `EnableAutonomy` | `unary` |
 | `DisableAutonomy` | `unary` |
 | `SetAutonomyConfig` | `unary` |

@@ -72,6 +72,11 @@ Source: `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `InstallVerifiedAsset` | `S-SURFACE-002` |
 | `ImportLocalAsset` | `S-SURFACE-002` |
 | `ImportLocalAssetFile` | `S-SURFACE-002` |
+| `ListLocalTransfers` | `S-SURFACE-002` |
+| `PauseLocalTransfer` | `S-SURFACE-002` |
+| `ResumeLocalTransfer` | `S-SURFACE-002` |
+| `CancelLocalTransfer` | `S-SURFACE-002` |
+| `WatchLocalTransfers` | `S-SURFACE-002` |
 | `CollectDeviceProfile` | `S-SURFACE-002` |
 | `ListLocalServices` | `S-SURFACE-002` |
 | `InstallLocalService` | `S-SURFACE-002` |
@@ -143,6 +148,8 @@ Source: `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `SwitchAccount` | `S-RUNTIME-109` |
 | `IssueScopedAppBinding` | `S-RUNTIME-109` |
 | `RevokeScopedAppBinding` | `S-RUNTIME-109` |
+| `IssueWorkspaceBinding` | `S-RUNTIME-109` |
+| `RevokeWorkspaceBinding` | `S-RUNTIME-109` |
 
 ## workflow_service_projection
 
@@ -246,8 +253,27 @@ Source: `.nimi/spec/runtime/kernel/tables/rpc-methods.yaml` · Phase 1
 | `TerminateAgent` | `S-SURFACE-002` |
 | `GetAgent` | `S-SURFACE-002` |
 | `ListAgents` | `S-SURFACE-002` |
+| `OpenConversationAnchor` | `S-SURFACE-002` |
+| `GetConversationAnchorSnapshot` | `S-SURFACE-002` |
+| `GetPublicChatSessionSnapshot` | `S-SURFACE-002` |
+| `CreateRealmGroupMessageCandidate` | `S-SURFACE-002` |
+| `GetRealmGroupMessageCandidateEvidence` | `S-SURFACE-002` |
+| `GetAvatarDebugSnapshot` | `S-SURFACE-002` |
+| `RequestAvatarDebugProbe` | `S-SURFACE-002` |
+| `ListAvatarDebugProbeResults` | `S-SURFACE-002` |
+| `GetAvatarDebugReplay` | `S-SURFACE-002` |
+| `ListDelegatedProviderProfiles` | `S-SURFACE-002` |
+| `UpsertDelegatedProviderProfile` | `S-SURFACE-002` |
+| `SetDelegatedProviderState` | `S-SURFACE-002` |
+| `ListDelegatedApprovalRequests` | `S-SURFACE-002` |
+| `SubmitDelegatedApprovalDecision` | `S-SURFACE-002` |
+| `ListDelegatedDiagnostics` | `S-SURFACE-002` |
+| `GetDelegatedReplayTrace` | `S-SURFACE-002` |
+| `GetDelegatedControlSurfaceSnapshot` | `S-SURFACE-002` |
+| `ExecuteDelegatedCapability` | `S-SURFACE-002` |
 | `GetAgentState` | `S-SURFACE-002` |
 | `UpdateAgentState` | `S-SURFACE-002` |
+| `SetAgentPresentationProfile` | `S-SURFACE-002` |
 | `EnableAutonomy` | `S-SURFACE-002` |
 | `DisableAutonomy` | `S-SURFACE-002` |
 | `SetAutonomyConfig` | `S-SURFACE-002` |

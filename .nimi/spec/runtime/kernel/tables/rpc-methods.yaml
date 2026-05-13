@@ -158,6 +158,10 @@ services:
         type: unary
       - name: ResolveLocalEnvironmentActivationGate
         type: unary
+      - name: ResolveLocalStateReconciliation
+        type: unary
+      - name: ExecuteLocalStateCutover
+        type: unary
       - name: StartLocalEnvironmentDependencyJob
         type: unary
       - name: CancelLocalEnvironmentDependencyJob
@@ -341,6 +345,18 @@ services:
         type: unary
       - name: GetPublicChatSessionSnapshot
         type: unary
+      - name: CreateRealmGroupMessageCandidate
+        type: unary
+      - name: GetRealmGroupMessageCandidateEvidence
+        type: unary
+      - name: GetAvatarDebugSnapshot
+        type: unary
+      - name: RequestAvatarDebugProbe
+        type: unary
+      - name: ListAvatarDebugProbeResults
+        type: unary
+      - name: GetAvatarDebugReplay
+        type: unary
       - name: ListDelegatedProviderProfiles
         type: unary
       - name: UpsertDelegatedProviderProfile
@@ -362,6 +378,8 @@ services:
       - name: GetAgentState
         type: unary
       - name: UpdateAgentState
+        type: unary
+      - name: SetAgentPresentationProfile
         type: unary
       - name: EnableAutonomy
         type: unary

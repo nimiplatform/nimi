@@ -21,6 +21,7 @@
         "C-COG-*"
       ],
       "admitted_source_profiles": [
+        "canonical_agent_chat",
         "realm_group_agent",
         "scenario_sandbox",
         "oasis_world_participation"

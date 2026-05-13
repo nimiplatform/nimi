@@ -4314,6 +4314,8 @@ Fixed rules:
 | ListLocalEnvironmentSelectedSources | unary |
 | ListLocalEnvironmentDependencyJobs | unary |
 | ResolveLocalEnvironmentActivationGate | unary |
+| ResolveLocalStateReconciliation | unary |
+| ExecuteLocalStateCutover | unary |
 | StartLocalEnvironmentDependencyJob | unary |
 | CancelLocalEnvironmentDependencyJob | unary |
 | RetryLocalEnvironmentDependencyJob | unary |
@@ -4437,6 +4439,12 @@ Fixed rules:
 | OpenConversationAnchor | unary |
 | GetConversationAnchorSnapshot | unary |
 | GetPublicChatSessionSnapshot | unary |
+| CreateRealmGroupMessageCandidate | unary |
+| GetRealmGroupMessageCandidateEvidence | unary |
+| GetAvatarDebugSnapshot | unary |
+| RequestAvatarDebugProbe | unary |
+| ListAvatarDebugProbeResults | unary |
+| GetAvatarDebugReplay | unary |
 | ListDelegatedProviderProfiles | unary |
 | UpsertDelegatedProviderProfile | unary |
 | SetDelegatedProviderState | unary |
@@ -4448,6 +4456,7 @@ Fixed rules:
 | ExecuteDelegatedCapability | unary |
 | GetAgentState | unary |
 | UpdateAgentState | unary |
+| SetAgentPresentationProfile | unary |
 | EnableAutonomy | unary |
 | DisableAutonomy | unary |
 | SetAutonomyConfig | unary |
@@ -5285,6 +5294,11 @@ Fixed rules:
 - InstallVerifiedAsset
 - ImportLocalAsset
 - ImportLocalAssetFile
+- ListLocalTransfers
+- PauseLocalTransfer
+- ResumeLocalTransfer
+- CancelLocalTransfer
+- WatchLocalTransfers
 - CollectDeviceProfile
 - ListLocalServices
 - InstallLocalService
@@ -5344,6 +5358,8 @@ Fixed rules:
 - SwitchAccount
 - IssueScopedAppBinding
 - RevokeScopedAppBinding
+- IssueWorkspaceBinding
+- RevokeWorkspaceBinding
 
 **workflow_service_projection** → RuntimeWorkflowService
 
@@ -5415,8 +5431,27 @@ Fixed rules:
 - TerminateAgent
 - GetAgent
 - ListAgents
+- OpenConversationAnchor
+- GetConversationAnchorSnapshot
+- GetPublicChatSessionSnapshot
+- CreateRealmGroupMessageCandidate
+- GetRealmGroupMessageCandidateEvidence
+- GetAvatarDebugSnapshot
+- RequestAvatarDebugProbe
+- ListAvatarDebugProbeResults
+- GetAvatarDebugReplay
+- ListDelegatedProviderProfiles
+- UpsertDelegatedProviderProfile
+- SetDelegatedProviderState
+- ListDelegatedApprovalRequests
+- SubmitDelegatedApprovalDecision
+- ListDelegatedDiagnostics
+- GetDelegatedReplayTrace
+- GetDelegatedControlSurfaceSnapshot
+- ExecuteDelegatedCapability
 - GetAgentState
 - UpdateAgentState
+- SetAgentPresentationProfile
 - EnableAutonomy
 - DisableAutonomy
 - SetAutonomyConfig
