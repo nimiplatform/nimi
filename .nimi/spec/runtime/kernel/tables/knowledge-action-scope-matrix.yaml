@@ -1,0 +1,68 @@
+version: 1
+source_rules:
+  - K-KNOW-008
+  - K-KNOW-009
+scope_implication:
+  runtime.knowledge.admin:
+    includes:
+      - runtime.knowledge.write
+      - runtime.knowledge.read
+  runtime.knowledge.write:
+    includes:
+      - runtime.knowledge.read
+  runtime.knowledge.read:
+    includes: []
+actions:
+  - action: create_bank
+    rpc: CreateKnowledgeBank
+    required_scope: runtime.knowledge.admin
+  - action: delete_bank
+    rpc: DeleteKnowledgeBank
+    required_scope: runtime.knowledge.admin
+  - action: put_page
+    rpc: PutPage
+    required_scope: runtime.knowledge.write
+  - action: delete_page
+    rpc: DeletePage
+    required_scope: runtime.knowledge.write
+  - action: add_link
+    rpc: AddLink
+    required_scope: runtime.knowledge.write
+  - action: remove_link
+    rpc: RemoveLink
+    required_scope: runtime.knowledge.write
+  - action: ingest_document
+    rpc: IngestDocument
+    required_scope: runtime.knowledge.write
+  - action: get_bank
+    rpc: GetKnowledgeBank
+    required_scope: runtime.knowledge.read
+  - action: list_banks
+    rpc: ListKnowledgeBanks
+    required_scope: runtime.knowledge.read
+    enumeration_rule: explicit_workspace_binding_required_for_workspace_private
+  - action: get_page
+    rpc: GetPage
+    required_scope: runtime.knowledge.read
+  - action: list_pages
+    rpc: ListPages
+    required_scope: runtime.knowledge.read
+  - action: search_keyword
+    rpc: SearchKeyword
+    required_scope: runtime.knowledge.read
+  - action: search_hybrid
+    rpc: SearchHybrid
+    required_scope: runtime.knowledge.read
+  - action: list_links
+    rpc: ListLinks
+    required_scope: runtime.knowledge.read
+  - action: list_backlinks
+    rpc: ListBacklinks
+    required_scope: runtime.knowledge.read
+  - action: traverse_graph
+    rpc: TraverseGraph
+    required_scope: runtime.knowledge.read
+  - action: get_ingest_task
+    rpc: GetIngestTask
+    required_scope: runtime.knowledge.read
+    owner_resolution_rule: task_id_must_resolve_to_bank_before_progress_return

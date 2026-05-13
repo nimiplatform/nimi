@@ -270,3 +270,70 @@ Fixed rules:
 - runtime knowledge must not absorb cognition kernel, working-state, prompt, or routine ownership by extension
 - shared page or relation mechanics do not make the retired runtime knowledge
   topology the continuing owner of cognition knowledge projections
+
+## K-KNOW-008 WORKSPACE_PRIVATE Authorization Carrier
+
+WORKSPACE_PRIVATE knowledge banks may be positively authorized only through an
+explicit workspace binding attachment on `KnowledgeRequestContext` and an
+internal account-owned workspace binding resolver allow decision.
+
+Fixed rules:
+
+- `APP_PRIVATE` remains app-owned and is not authorized by workspace binding
+- `WORKSPACE_PRIVATE` requires a workspace binding attachment for create, read,
+  list, write, delete, graph, search, ingest, and task polling paths
+- `KnowledgeRequestContext.app_id` is compatibility context only and must not
+  be used as resolver identity or authorization proof
+- `KnowledgeRequestContext.subject_user_id` is compatibility context only and
+  must not be used as account truth, subject truth, membership truth, or
+  resolver proof
+- Runtime-authenticated caller identity for WORKSPACE_PRIVATE resolver
+  consumption must come from the Runtime protocol envelope: `x-nimi-app-id`
+  for app id and `x-nimi-app-instance-id` for app instance id. Device identity
+  must be derived or verified by Runtime account/app registry state, not from
+  `KnowledgeRequestContext`, attachment fields, SDK/Desktop cache, or caller
+  body payload
+- cognition must not read account persistence, Realm membership state, or app
+  local cache to authorize WORKSPACE_PRIVATE
+- resolver denies must map to typed knowledge / workspace binding reason codes
+  and fail closed
+
+The only admitted positive WORKSPACE_PRIVATE allow path is:
+
+1. knowledge request targets or resolves to a workspace-owned bank
+2. request carries a workspace binding attachment
+3. cognition asks `KnowledgeAuthorizer` for a decision
+4. `KnowledgeAuthorizer` delegates to the internal account resolver
+5. account resolver returns `ALLOW` after checking binding, caller relation,
+   account state, membership projection, target workspace, and required scopes
+
+Any missing step must deny.
+
+## K-KNOW-009 Knowledge Action Scope And Enumeration Semantics
+
+The admitted knowledge action-to-scope matrix is
+`tables/knowledge-action-scope-matrix.yaml`.
+
+Scope implication is explicit:
+
+- `runtime.knowledge.admin` authorizes admin actions and also satisfies read
+  and write requirements
+- `runtime.knowledge.write` authorizes write actions and also satisfies read
+  requirements
+- `runtime.knowledge.read` authorizes read actions only
+
+List/search/get-ingest fixed rules:
+
+- no caller may enumerate all workspace-owned banks across workspaces
+- `ListKnowledgeBanks` without a workspace binding attachment must not return
+  WORKSPACE_PRIVATE banks
+- `ListKnowledgeBanks` with an explicit workspace filter requires a matching
+  workspace binding attachment and resolver allow decision; mismatch must
+  fail closed or return an explicitly specified empty result according to the
+  RPC's reason-code mapping, never silently widen
+- `SearchKeyword`, `SearchHybrid`, graph reads, page reads, and link reads must
+  authorize the resolved bank before returning results
+- `GetIngestTask` must resolve the task to its bank/workspace owner before
+  returning progress; task-id-only polling must not bypass workspace binding
+- write/admin actions must validate bank authorization before mutating storage
+  or accepting ingest work

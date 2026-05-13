@@ -149,6 +149,8 @@ Source: `K-ACCSVC-002`
 | `SwitchAccount` | `unary` |
 | `IssueScopedAppBinding` | `unary` |
 | `RevokeScopedAppBinding` | `unary` |
+| `IssueWorkspaceBinding` | `unary` |
+| `RevokeWorkspaceBinding` | `unary` |
 
 ## RuntimeWorkflowService
 

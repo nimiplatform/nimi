@@ -3,7 +3,7 @@ id: SPEC-REALM-TRUTH-001
 title: Realm Truth Domain
 status: active
 owner: "@team"
-updated: 2026-04-23
+updated: 2026-04-01
 ---
 
 # Realm Truth Domain

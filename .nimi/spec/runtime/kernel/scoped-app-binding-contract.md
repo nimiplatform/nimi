@@ -8,6 +8,11 @@ scoped app binding 是 Runtime-issued 的 opaque capability，指向一个具体
 
 scoped binding 不是 account truth，不可被赎回为 durable subject、account、Realm token、refresh token、或 Runtime app session 权威。
 
+Workspace knowledge binding is not a scoped app binding relation and must not
+reuse Avatar / agent / window / anchor tuple semantics. WORKSPACE_PRIVATE
+knowledge access uses the workspace-specific binding authority in
+`workspace-binding-contract.md` (`K-BIND-016..024`).
+
 Runtime-issued app access token 是 `RuntimeAccountService.GetAccessToken`
 管理的独立 account-token-broker surface。它不是 scoped binding carrier，也不得作为 binding-only Avatar capability 的一部分传递。
 

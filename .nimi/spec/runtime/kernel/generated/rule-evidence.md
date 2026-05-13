@@ -6,7 +6,7 @@
 
 | Declared K Rules | Resolved Rule Rows | Evidence Catalog Entries |
 |---:|---:|---:|
-| 767 | 767 | 7 |
+| 786 | 786 | 7 |
 
 ## Evidence Catalog
 
@@ -104,6 +104,8 @@
 | `K-ACCSVC-016` | `deferred` | — |
 | `K-ACCSVC-017` | `deferred` | — |
 | `K-ACCSVC-018` | `deferred` | — |
+| `K-ACCSVC-019` | `deferred` | — |
+| `K-ACCSVC-020` | `deferred` | — |
 | `K-BIND-001` | `deferred` | — |
 | `K-BIND-002` | `deferred` | — |
 | `K-BIND-003` | `deferred` | — |
@@ -119,6 +121,15 @@
 | `K-BIND-013` | `deferred` | — |
 | `K-BIND-014` | `deferred` | — |
 | `K-BIND-015` | `deferred` | — |
+| `K-BIND-016` | `deferred` | — |
+| `K-BIND-017` | `deferred` | — |
+| `K-BIND-018` | `deferred` | — |
+| `K-BIND-019` | `deferred` | — |
+| `K-BIND-020` | `deferred` | — |
+| `K-BIND-021` | `deferred` | — |
+| `K-BIND-022` | `deferred` | — |
+| `K-BIND-023` | `deferred` | — |
+| `K-BIND-024` | `deferred` | — |
 | `K-CFG-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-CFG-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-CFG-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -255,6 +266,8 @@
 | `K-KNOW-005a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KNOW-006` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-KNOW-007` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-KNOW-008` | `deferred` | — |
+| `K-KNOW-009` | `deferred` | — |
 | `K-LENG-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LENG-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LENG-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
@@ -622,6 +635,12 @@
 | `K-AGCORE-116` | `deferred` | `runtime_kernel_consistency` |
 | `K-AGCORE-117` | `deferred` | `runtime_kernel_consistency` |
 | `K-AGCORE-118` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-119` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-120` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-121` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-122` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-123` | `deferred` | `runtime_kernel_consistency` |
+| `K-AGCORE-124` | `deferred` | `runtime_kernel_consistency` |
 | `K-RPC-004a` | `deferred` | — |
 | `K-RPC-004b` | `deferred` | — |
 | `K-RPC-004c` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |

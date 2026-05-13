@@ -1,0 +1,81 @@
+contract_id: GROUP-AGENT-PARTICIPATION-CONTRACT-001
+domain: chat
+status: ACTIVE
+version: 2026-05-13
+owner: '@team'
+sources:
+  human_spec: ../group-agent-participation-contract.md
+  openapi:
+    - nimi-backend/api-nimi.yaml
+  prisma: nimi-backend/prisma/schema.prisma
+  services:
+    - nimi-backend/libs/domains/chat/src/domains/group-chat.service.ts
+    - nimi-backend/apps/api/src/modules/group-chat/group-chat.controller.ts
+rule_id_prefix: R-CHAT-
+source_rules:
+  - R-CHAT-008
+  - R-CHAT-009
+  - R-CHAT-010
+  - R-CHAT-011
+  - R-CHAT-012
+  - R-CHAT-013
+  - R-CHAT-014
+  - R-CHAT-015
+  - R-CHAT-016
+entities:
+  - name: GroupAgentSlot
+    prisma_model: ChatParticipant
+    required_fields: [chatId, accountId, role, type, joinedAt]
+    json_fields: []
+  - name: GroupAgentTrigger
+    prisma_model: Message
+    required_fields: [id, chatId, senderId, type, createdAt]
+    json_fields: [payload, interaction, diagnostics]
+  - name: RealmGroupMessageCandidate
+    prisma_model: Message
+    required_fields: [id, chatId, senderId, type, createdAt]
+    json_fields: [payload, interaction, diagnostics]
+product_authority:
+  realm_owner:
+    - group_thread
+    - membership
+    - agent_slot_lifecycle
+    - trigger_evidence
+    - transcript
+    - read_sync
+    - authenticated_commit
+  runtime_owner:
+    - agent_execution
+    - prompt_assembly
+    - provider_model_routing
+    - memory_verdict
+    - capability_verdict
+    - concurrency_verdict
+    - message_candidate
+    - audit_replay
+    - same_room_orchestration
+api_surface:
+  required_operations:
+    - GET /api/human/group-chats
+    - POST /api/human/group-chats
+    - GET /api/human/group-chats/{chatId}
+    - PATCH /api/human/group-chats/{chatId}
+    - GET /api/human/group-chats/{chatId}/messages
+    - POST /api/human/group-chats/{chatId}/messages
+    - POST /api/human/group-chats/{chatId}/agent-message-candidate-commits
+    - POST /api/human/group-chats/{chatId}/participants
+    - DELETE /api/human/group-chats/{chatId}/participants/{accountId}
+    - PATCH /api/human/group-chats/{chatId}/participants/{accountId}
+    - POST /api/human/group-chats/{chatId}/agents
+    - DELETE /api/human/group-chats/{chatId}/agents/{agentAccountId}
+  secondary_operations:
+    - Runtime realm_group_agent participation APIs are referenced by K-AGCORE and not defined by Realm.
+negative_boundaries:
+  - no_desktop_web_prompt_assembly
+  - no_provider_model_selection_in_realm
+  - no_realm_ai_execution_owner
+  - no_runtime_direct_group_commit
+  - no_group_local_scheduler
+  - no_group_limited_capability_enum
+test_evidence_notes:
+  - "Group lifecycle/admin, roster changes, and agent-auth anti-spoof are covered by nimi-backend/libs/domains/chat/src/domains/group-chat.service.spec.ts; Runtime participation integration is owned by K-AGCORE downstream evidence."

@@ -1,4 +1,4 @@
-id_pattern: '^R-(TRUTH|PROJ|WSTATE|WHIST|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT)-[0-9]{3}$'
+id_pattern: '^R-(TRUTH|PROJ|WSTATE|WHIST|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT|OAUTH)-[0-9]{3}$'
 generated_at: '2026-04-09T00:00:00Z'
 rules:
   - rule_id: R-TRUTH-001
@@ -241,6 +241,111 @@ rules:
     level: must
     statement: Agent-authored group posts and messages must validate thread owner and slot binding before commit, read visibility, or sync fanout, and spoofed agent authorship must fail-close.
     source: .nimi/spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-008
+    domain: chat
+    level: must
+    statement: Realm Group Agent Participation is a Realm GROUP product surface and Runtime Agent Participation consumer; Realm owns group product truth while Runtime owns execution, policy verdicts, candidates, audit/replay, and same-room orchestration.
+    source: .nimi/spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-009
+    domain: chat
+    level: must
+    statement: Realm owns the GROUP agent slot lifecycle and visibility metadata, but slot state must not imply Runtime prompt, provider/model, memory, capability, concurrency, queue, or execution ownership.
+    source: .nimi/spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-010
+    domain: chat
+    level: must
+    statement: Realm Group agent triggers are closed to mention, explicit user action, admitted automation, or product-disabled posture, and admitted triggers must carry Realm evidence before Runtime participation admission.
+    source: .nimi/spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-011
+    domain: chat
+    level: must
+    statement: Runtime may return only REALM_GROUP_MESSAGE_CANDIDATE output; Realm must authenticate candidate lineage, target chat, target agent slot, author authority, evidence hash, runtime trace reference, idempotency, moderation/refusal posture, and audit record before canonical GROUP message commit.
+    source: .nimi/spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-012
+    domain: chat
+    level: must
+    statement: The only admitted Realm commit-handoff operation for group agent candidates is POST /api/human/group-chats/{chatId}/agent-message-candidate-commits with CommitRealmGroupMessageCandidateInputDto; historical POST /api/human/group-chats/{chatId}/agent-messages and SendGroupAgentMessageInputDto are not compatibility aliases and must be removed.
+    source: .nimi/spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-013
+    domain: chat
+    level: must
+    statement: Realm Group candidate commit requests must not accept raw text, payload, prompt, systemPrompt, provider, model, messageId, senderId, or caller-owned agentAccountId as commit authority; canonical messageId may appear only after Realm validation and storage succeed.
+    source: .nimi/spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-014
+    domain: chat
+    level: must
+    statement: SDK and Desktop consumers must preserve split Runtime candidate and Realm commit facades; collapsed generate-and-commit helpers, Desktop direct REST, Runtime internal imports, sendGroupMessage substitution, runtime.agent.turn.request substitution, renderer-local committed truth, and synthetic candidate/message success are forbidden.
+    source: .nimi/spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-015
+    domain: chat
+    level: must
+    statement: Realm Group candidate commit must consume candidate content only through a Runtime-owned candidate evidence reference verified by a Realm-side verifier that returns an immutable RealmGroupMessageCandidateSnapshot matching evidenceHash; missing verifier, missing snapshot, hash mismatch, expired snapshot, thread mismatch, slot mismatch, trigger mismatch, or non-REALM_GROUP_MESSAGE_CANDIDATE output must fail closed before storage.
+    source: .nimi/spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-016
+    domain: chat
+    level: must
+    statement: realmAgentSlotId is the durable Realm identity for an Agent participation binding inside a specific GROUP thread, distinct from the Agent global identity and human membership identity; commit must validate the same active realmAgentSlotId, target chatId, and Agent identity, and agentId alone must not be used as a group participation slot reference.
+    source: .nimi/spec/realm/kernel/chat-contract.md
+  - rule_id: R-OAUTH-001
+    domain: oauth-authority
+    level: must
+    statement: Realm is the OAuth 2.0 authorization server for native/public clients in nimi-realm; PKCE-protected authorization code flow is the sole admitted method on this contract's endpoints.
+    source: .nimi/spec/realm/kernel/oauth-authority-contract.md
+  - rule_id: R-OAUTH-002
+    domain: oauth-authority
+    level: must
+    statement: Admitted OAuth endpoints are exactly GET /api/auth/oauth/authorize and POST /api/auth/oauth/token; implicit, client_credentials, password, device_code, and URN-namespaced grants are forbidden.
+    source: .nimi/spec/realm/kernel/oauth-authority-contract.md
+  - rule_id: R-OAUTH-003
+    domain: oauth-authority
+    level: must
+    statement: code_challenge_method must equal S256; plain and any other value fail-close invalid_request; missing code_challenge or code_challenge_method on /authorize fails-close.
+    source: .nimi/spec/realm/kernel/oauth-authority-contract.md
+  - rule_id: R-OAUTH-004
+    domain: oauth-authority
+    level: must
+    statement: Authorization codes are single-shot with TTL <= 60 seconds, persisted in atomically-consumable storage; expired or already-consumed codes fail-close invalid_grant at /token.
+    source: .nimi/spec/realm/kernel/oauth-authority-contract.md
+  - rule_id: R-OAUTH-005
+    domain: oauth-authority
+    level: must
+    statement: redirect_uri must be http scheme, host 127.0.0.1 or localhost, any port 1..65535, path exactly /oauth/callback; authorize-time and token-time redirect_uri must byte-for-byte match.
+    source: .nimi/spec/realm/kernel/oauth-authority-contract.md
+  - rule_id: R-OAUTH-006
+    domain: oauth-authority
+    level: must
+    statement: Authorization code is bound at issuance to client_id, redirect_uri, code_challenge, and code_challenge_method; all four must match at /token exchange or fail-close invalid_grant.
+    source: .nimi/spec/realm/kernel/oauth-authority-contract.md
+  - rule_id: R-OAUTH-007
+    domain: oauth-authority
+    level: must
+    statement: Admitted client_id set is closed and governed by oauth-authority-contract; no client_secret accepted on either endpoint; PKCE is the sole security boundary.
+    source: .nimi/spec/realm/kernel/oauth-authority-contract.md
+  - rule_id: R-OAUTH-008
+    domain: oauth-authority
+    level: must
+    statement: Authorization codes, code_verifier, access_token, and refresh_token must never appear in logs, audit payloads, error response bodies, exception messages, telemetry attributes, or persisted observability surfaces.
+    source: .nimi/spec/realm/kernel/oauth-authority-contract.md
+  - rule_id: R-OAUTH-009
+    domain: oauth-authority
+    level: must
+    statement: /token success response is JSON with access_token, refresh_token, token_type='Bearer', expires_in, account_id, display_name, and realm_environment_id; field names are normative and consumed by runtime.
+    source: .nimi/spec/realm/kernel/oauth-authority-contract.md
+  - rule_id: R-OAUTH-010
+    domain: oauth-authority
+    level: must
+    statement: Grant types other than authorization_code on /token fail-close unsupported_grant_type.
+    source: .nimi/spec/realm/kernel/oauth-authority-contract.md
+  - rule_id: R-OAUTH-011
+    domain: oauth-authority
+    level: must
+    statement: /authorize requires authenticated realm session cookie; unauthenticated requests redirect to the web login UI with oauth_next, and the web shell must not parse codes, receive tokens, exchange tokens, or relay tokens.
+    source: .nimi/spec/realm/kernel/oauth-authority-contract.md
+  - rule_id: R-OAUTH-012
+    domain: oauth-authority
+    level: must
+    statement: Token endpoint must atomically claim code consumption before any other validation; replay or validation failures must not undo consumption.
+    source: .nimi/spec/realm/kernel/oauth-authority-contract.md
   - rule_id: R-SOC-001
     domain: social
     level: must

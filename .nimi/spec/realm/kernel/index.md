@@ -14,6 +14,7 @@ updated: 2026-04-18
 - `world-state-contract.md` (`R-WSTATE-*`)
 - `world-history-contract.md` (`R-WHIST-*`)
 - `chat-contract.md` (`R-CHAT-*`)
+- `group-agent-participation-contract.md` (`R-CHAT-*`)
 - `attachment-contract.md` (`R-ATTACH-*`)
 - `binding-contract.md` (`R-BIND-*`)
 - `resource-contract.md` (`R-RSRC-*`)
@@ -32,6 +33,9 @@ updated: 2026-04-18
 - `tables/world-state-contract.yaml`
 - `tables/world-history-contract.yaml`
 - `tables/chat-contract.yaml`
+- `tables/group-agent-participation-contract.yaml`
+- `tables/group-agent-trigger-policy.yaml`
+- `tables/group-agent-slot-lifecycle.yaml`
 - `tables/attachment-contract.yaml`
 - `tables/binding-contract.yaml`
 - `tables/resource-contract.yaml`
@@ -55,6 +59,9 @@ updated: 2026-04-18
 - `generated/world-state-contract.md`
 - `generated/world-history-contract.md`
 - `generated/chat-contract.md`
+- `generated/group-agent-participation-contract.md`
+- `generated/group-agent-trigger-policy.md`
+- `generated/group-agent-slot-lifecycle.md`
 - `generated/attachment-contract.md`
 - `generated/binding-contract.md`
 - `generated/resource-contract.md`

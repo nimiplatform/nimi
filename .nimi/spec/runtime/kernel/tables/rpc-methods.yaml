@@ -219,6 +219,10 @@ services:
         type: unary
       - name: RevokeScopedAppBinding
         type: unary
+      - name: IssueWorkspaceBinding
+        type: unary
+      - name: RevokeWorkspaceBinding
+        type: unary
   - name: RuntimeWorkflowService
     source_rule: K-WF-003
     methods:

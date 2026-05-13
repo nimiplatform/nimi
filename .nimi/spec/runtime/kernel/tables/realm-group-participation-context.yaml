@@ -1,0 +1,100 @@
+version: 1
+source_rule: K-AGCORE-120
+realm_product_rules:
+  - R-CHAT-008
+  - R-CHAT-009
+  - R-CHAT-010
+  - R-CHAT-011
+runtime_profile: realm_group_agent
+output_destination: REALM_GROUP_MESSAGE_CANDIDATE
+context_blocks:
+  - id: group_thread_ref
+    realm_owner: R-CHAT-008
+    required_fields:
+      - thread_id
+      - thread_kind
+      - thread_owner_ref
+    forbidden_fields:
+      - direct_commit_handle
+      - provider_model_hint
+  - id: membership_snapshot_ref
+    realm_owner: R-CHAT-008
+    required_fields:
+      - membership_snapshot_id
+      - visible_member_refs
+      - snapshot_cursor
+    forbidden_fields:
+      - app_local_participant_list
+      - unbounded_transcript_dump
+  - id: agent_slot_ref
+    realm_owner: R-CHAT-009
+    required_fields:
+      - slot_id
+      - agent_id
+      - lifecycle_state
+      - display_identity_ref
+    forbidden_fields:
+      - prompt_template
+      - provider_model_hint
+      - memory_write_policy
+  - id: trigger_event_ref
+    realm_owner: R-CHAT-010
+    required_fields:
+      - trigger_id
+      - trigger_kind
+      - actor_member_ref
+      - source_event_ref
+    forbidden_fields:
+      - raw_prompt_blob
+      - local_ai_execution_payload
+  - id: read_cursor_ref
+    realm_owner: R-CHAT-008
+    required_fields:
+      - transcript_cursor
+      - visibility_scope
+      - trust_posture
+    forbidden_fields:
+      - dyadic_private_memory_ref
+      - canonical_chat_history_ref
+  - id: reply_target_ref
+    realm_owner: R-CHAT-010
+    required_fields:
+      - reply_to_message_id
+      - thread_id
+    optional: true
+    forbidden_fields:
+      - direct_commit_handle
+  - id: room_orchestration_ref
+    runtime_owner: K-AGCORE-123
+    required_fields:
+      - room_session_id
+      - matrix_row
+      - overlay_id
+      - queue_projection_ref
+    required_values:
+      matrix_row: realm_group
+      overlay_id: realm_group
+    forbidden_fields:
+      - app_local_reply_queue_id
+      - realm_scheduler_id
+  - id: realm_commit_handoff_ref
+    realm_owner: R-CHAT-011
+    runtime_owner: K-AGCORE-121
+    required_fields:
+      - candidate_id
+      - output_destination
+      - audit_lineage_ref
+      - moderation_or_refusal_posture
+    required_values:
+      output_destination: REALM_GROUP_MESSAGE_CANDIDATE
+    forbidden_fields:
+      - committed_message_id_from_runtime
+      - runtime_commit_success_flag
+governance:
+  open_context_block_kind_allowed: false
+  raw_prompt_blob_public_input: forbidden
+  provider_model_hint_from_realm_or_app: forbidden
+  direct_realm_commit_handle: forbidden
+  app_local_reply_queue: forbidden
+  canonical_chat_history_default_context: forbidden
+  group_limited_capability_enum: forbidden

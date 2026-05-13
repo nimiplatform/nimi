@@ -16,6 +16,9 @@ keys:
   - key: x-nimi-app-id
     required_when: ConnectorService RPC
     source_rule: K-KEYSRC-003
+  - key: x-nimi-app-instance-id
+    required_when: Runtime-authenticated local first-party calls that must resolve app-instance-scoped authority
+    source_rule: K-KNOW-008
   - key: x-nimi-client-id
     required_when: optional audit context
     source_rule: K-KEYSRC-003

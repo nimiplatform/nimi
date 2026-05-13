@@ -1,6 +1,6 @@
 version: 2
 rule_compliance:
-  total_s_rules: 178
+  total_s_rules: 184
   audit_date: "2026-05-01"
   sdk_version: "0.4.0"
 
@@ -620,6 +620,30 @@ rules:
     status: covered
     evidence_refs: [sdk_kernel_consistency]
     note: "Runtime Agent Participation later-surface status admitted as typed contract/table truth."
+  - rule_id: S-RUNTIME-221
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Realm Group Agent Participation SDK client boundary admitted as typed contract truth."
+  - rule_id: S-RUNTIME-222
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Realm Group typed evidence projection admitted as SDK contract truth."
+  - rule_id: S-RUNTIME-223
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Realm Group candidate and commit split admitted as SDK contract truth."
+  - rule_id: S-RUNTIME-224
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Realm Group status and refusal projection admitted as SDK contract truth."
+  - rule_id: S-RUNTIME-225
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Realm Group SDK consumer hardcut gates admitted as contract truth."
+  - rule_id: S-RUNTIME-226
+    status: covered
+    evidence_refs: [sdk_kernel_consistency]
+    note: "Realm Group SDK implementation status admitted as contract truth."
 
   # --- World Contract (S-WORLD) ---
   - rule_id: S-WORLD-001

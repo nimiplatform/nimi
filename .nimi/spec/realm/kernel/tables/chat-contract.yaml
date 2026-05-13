@@ -1,7 +1,7 @@
 contract_id: CHAT-CONTRACT-001
 domain: chat
 status: ACTIVE
-version: 2026-04-23
+version: 2026-05-13
 owner: '@team'
 sources:
   human_spec: ../chat-contract.md
@@ -21,11 +21,11 @@ rules:
   - rule_id: R-CHAT-002
     level: must
     title: direct-and-group-substrate-in-v1
-    statement: "Realm Chat v1 admits DIRECT and GROUP as canonical chat substrates; GROUP threads may contain human participants and agent slots/authors, while AI execution, prompt assembly, model routing, session orchestration, and turn execution stay outside Realm Chat."
+    statement: "Realm Chat v1 admits DIRECT and GROUP as canonical chat substrates; GROUP threads may contain human participants and agent slots/authors, while AI execution, prompt assembly, model routing, session orchestration, and turn execution stay outside Realm Chat. CHANNEL and any unsupported chat shape must fail-close."
   - rule_id: R-CHAT-003
     level: must
     title: social-gates-chat-but-does-not-own-it
-    statement: "Social gates human participant admission preconditions, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat."
+    statement: "Social gates human participant admission and preconditions, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat."
   - rule_id: R-CHAT-004
     level: must
     title: agent-chat-runtime-stays-outside
@@ -42,6 +42,42 @@ rules:
     level: must
     title: group-agent-authorship-must-validate-slot-binding
     statement: "Agent-authored group posts and messages must validate thread owner and slot binding before commit, read visibility, or sync fanout, and spoofed agent authorship must fail-close."
+  - rule_id: R-CHAT-008
+    level: must
+    title: realm-group-agent-participation-consumes-runtime
+    statement: "Realm Group Agent Participation is a Realm GROUP product surface and Runtime Agent Participation consumer; Realm owns group product truth while Runtime owns execution, policy verdicts, candidates, audit/replay, and same-room orchestration."
+  - rule_id: R-CHAT-009
+    level: must
+    title: realm-owns-group-agent-slot-lifecycle
+    statement: "Realm owns the GROUP agent slot lifecycle and visibility metadata, but slot state must not imply Runtime prompt, provider/model, memory, capability, concurrency, queue, or execution ownership."
+  - rule_id: R-CHAT-010
+    level: must
+    title: group-agent-triggers-are-closed
+    statement: "Realm Group agent triggers are closed to mention, explicit user action, admitted automation, or product-disabled posture, and admitted triggers must carry Realm evidence before Runtime participation admission."
+  - rule_id: R-CHAT-011
+    level: must
+    title: runtime-candidate-realm-commit-handoff
+    statement: "Runtime may return only REALM_GROUP_MESSAGE_CANDIDATE output; Realm must authenticate candidate lineage, target chat, target agent slot, author authority, evidence hash, runtime trace reference, idempotency, moderation/refusal posture, and audit record before canonical GROUP message commit."
+  - rule_id: R-CHAT-012
+    level: must
+    title: group-agent-candidate-commit-operation
+    statement: "The only admitted Realm commit-handoff operation for group agent candidates is POST /api/human/group-chats/{chatId}/agent-message-candidate-commits with CommitRealmGroupMessageCandidateInputDto; historical POST /api/human/group-chats/{chatId}/agent-messages and SendGroupAgentMessageInputDto are not compatibility aliases and must be removed."
+  - rule_id: R-CHAT-013
+    level: must
+    title: group-agent-commit-forbidden-fields
+    statement: "Realm Group candidate commit requests must not accept raw text, payload, prompt, systemPrompt, provider, model, messageId, senderId, or caller-owned agentAccountId as commit authority; canonical messageId may appear only after Realm validation and storage succeed."
+  - rule_id: R-CHAT-014
+    level: must
+    title: sdk-desktop-preserve-candidate-commit-split
+    statement: "SDK and Desktop consumers must preserve split Runtime candidate and Realm commit facades; collapsed generate-and-commit helpers, Desktop direct REST, Runtime internal imports, sendGroupMessage substitution, runtime.agent.turn.request substitution, renderer-local committed truth, and synthetic candidate/message success are forbidden."
+  - rule_id: R-CHAT-015
+    level: must
+    title: candidate-evidence-verifier-is-required
+    statement: "Realm Group candidate commit must consume candidate content only through a Runtime-owned candidate evidence reference verified by a Realm-side verifier that returns an immutable RealmGroupMessageCandidateSnapshot matching evidenceHash; missing verifier, missing snapshot, hash mismatch, expired snapshot, thread mismatch, slot mismatch, trigger mismatch, or non-REALM_GROUP_MESSAGE_CANDIDATE output must fail closed before storage."
+  - rule_id: R-CHAT-016
+    level: must
+    title: realm-agent-slot-id-is-durable-binding-identity
+    statement: "realmAgentSlotId is the durable Realm identity for an Agent participation binding inside a specific GROUP thread, distinct from the Agent global identity and human membership identity; commit must validate the same active realmAgentSlotId, target chatId, and Agent identity, and agentId alone must not be used as a group participation slot reference."
 entities:
   - name: ChatThread
     prisma_model: Chat
@@ -57,17 +93,30 @@ entities:
     json_fields: []
   - name: GroupParticipant
     prisma_model: ChatParticipant
-    required_fields: [chatId, accountId, role, type, joinedAt]
+    required_fields: [chatId, accountId, role, joinedAt]
     json_fields: []
   - name: GroupMessage
     prisma_model: Message
     required_fields: [id, chatId, senderId, type, createdAt]
     json_fields: [payload, interaction, diagnostics]
+  - name: RealmGroupAgentSlot
+    prisma_model: RealmGroupAgentSlot
+    required_fields: [id, chatId, agentAccountId, agentOwnerId, state, createdAt]
+    json_fields: [display, audit]
+  - name: RealmGroupMessageCandidateSnapshot
+    prisma_model: RuntimeEvidence
+    required_fields: [candidateId, candidateKind, realmGroupThreadId, realmAgentSlotId, agentId, evidenceHash, runtimeTraceRef, expiresAt]
+    json_fields: [body, refusal, lineage]
 group_authority:
   lifecycle_owner: Chat
   admission_admin_owner: Chat
   human_admission_gate: Social
   anti_spoof_rule: Agent-authored group posts and messages must validate thread owner/slot binding before commit, read visibility, or sync fanout.
+  candidate_commit_handoff_owner: Chat
+  runtime_candidate_owner: Runtime
+  candidate_evidence_verifier_owner: Runtime evidence, Realm verification
+  agent_slot_identity_owner: Chat
+  historical_agent_messages_posture: remove_not_alias
 api_surface:
   required_operations:
     - GET /api/human/chats
@@ -85,7 +134,7 @@ api_surface:
     - PATCH /api/human/group-chats/{chatId}
     - GET /api/human/group-chats/{chatId}/messages
     - POST /api/human/group-chats/{chatId}/messages
-    - POST /api/human/group-chats/{chatId}/agent-messages
+    - POST /api/human/group-chats/{chatId}/agent-message-candidate-commits
     - PATCH /api/human/group-chats/{chatId}/messages/{messageId}
     - POST /api/human/group-chats/{chatId}/messages/{messageId}/recall
     - POST /api/human/group-chats/{chatId}/read
@@ -109,8 +158,12 @@ dto_evidence:
   - UpdateGroupInputDto
   - AddGroupParticipantInputDto
   - AddGroupAgentInputDto
-  - SendGroupAgentMessageInputDto
+  - CommitRealmGroupMessageCandidateInputDto
+  - RealmGroupMessageCandidateCommitResultDto
+  - RealmGroupMessageCandidateSnapshotDto
+  - RealmGroupAgentSlotDto
   - UpdateParticipantRoleInputDto
   - ChatSyncResultDto
 test_evidence_notes:
   - "Group lifecycle/admin, roster changes, and agent-auth anti-spoof are covered by nimi-backend/libs/domains/chat/src/domains/group-chat.service.spec.ts, with broader chat coverage in chat.controller.spec.ts and social integration tests."
+  - "Wave-1 must replace historical direct group agent message commit with candidate commit-handoff tests that validate candidate lineage, evidence hash, runtime trace ref, idempotency, moderation/refusal, audit, and no raw text fallback."

@@ -14,6 +14,10 @@ Generated files:
 - `.nimi/spec/realm/kernel/generated/domain-enums.md`
 - `.nimi/spec/realm/kernel/generated/domain-state-machines.md`
 - `.nimi/spec/realm/kernel/generated/economy-contract.md`
+- `.nimi/spec/realm/kernel/generated/group-agent-participation-contract.md`
+- `.nimi/spec/realm/kernel/generated/group-agent-slot-lifecycle.md`
+- `.nimi/spec/realm/kernel/generated/group-agent-trigger-policy.md`
+- `.nimi/spec/realm/kernel/generated/oauth-authority-contract.md`
 - `.nimi/spec/realm/kernel/generated/open-spec-alignment-map.md`
 - `.nimi/spec/realm/kernel/generated/projection-contract.md`
 - `.nimi/spec/realm/kernel/generated/resource-contract.md`

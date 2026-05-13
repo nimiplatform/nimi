@@ -80,6 +80,25 @@ methods:
       - K-AUTHN-001
       - K-AUTHN-006
       - K-AUTH-001
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding
+    posture: authenticated_required
+    rationale: requires active account, Runtime-authenticated caller identity, and Realm-owned active workspace membership projection; mints only workspace binding attachment
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+      - K-ACCSVC-018
+      - K-ACCSVC-019
+      - K-BIND-018
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding
+    posture: authenticated_required
+    rationale: requires caller ownership of workspace binding relation; revokes only workspace binding attachment and does not expose resolver state
+    kernel_refs:
+      - K-AUTHN-001
+      - K-AUTHN-006
+      - K-AUTH-001
+      - K-ACCSVC-019
+      - K-BIND-018
   - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage
     posture: authenticated_required
     rationale: requires app session credential via envelope.ParseSessionFromContext for non-internal callers
@@ -169,4 +188,3 @@ methods:
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
-

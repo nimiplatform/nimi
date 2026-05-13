@@ -6,8 +6,8 @@
 Version: `2026-04-23`
 Owner: `@team`
 
-Profiles: 14
-Rules mapped: 86
+Profiles: 15
+Rules mapped: 107
 
 | Rule ID | Domain | OpenAPI | Prisma | Services | Tests |
 | --- | --- | --- | --- | --- | --- |
@@ -59,6 +59,27 @@ Rules mapped: 86
 | R-CHAT-005 | chat | 25 | 3 | 4 | 4 |
 | R-CHAT-006 | chat | 25 | 3 | 4 | 4 |
 | R-CHAT-007 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-008 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-009 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-010 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-011 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-012 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-013 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-014 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-015 | chat | 25 | 3 | 4 | 4 |
+| R-CHAT-016 | chat | 25 | 3 | 4 | 4 |
+| R-OAUTH-001 | oauth-authority | 2 | 2 | 2 | 2 |
+| R-OAUTH-002 | oauth-authority | 2 | 2 | 2 | 2 |
+| R-OAUTH-003 | oauth-authority | 2 | 2 | 2 | 2 |
+| R-OAUTH-004 | oauth-authority | 2 | 2 | 2 | 2 |
+| R-OAUTH-005 | oauth-authority | 2 | 2 | 2 | 2 |
+| R-OAUTH-006 | oauth-authority | 2 | 2 | 2 | 2 |
+| R-OAUTH-007 | oauth-authority | 2 | 2 | 2 | 2 |
+| R-OAUTH-008 | oauth-authority | 2 | 2 | 2 | 2 |
+| R-OAUTH-009 | oauth-authority | 2 | 2 | 2 | 2 |
+| R-OAUTH-010 | oauth-authority | 2 | 2 | 2 | 2 |
+| R-OAUTH-011 | oauth-authority | 2 | 2 | 2 | 2 |
+| R-OAUTH-012 | oauth-authority | 2 | 2 | 2 | 2 |
 | R-BIND-001 | binding | 4 | 1 | 3 | 3 |
 | R-BIND-002 | binding | 4 | 1 | 3 | 3 |
 | R-BIND-003 | binding | 4 | 1 | 3 | 3 |

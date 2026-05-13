@@ -3,7 +3,7 @@ id: SPEC-REALM-WORLD-001
 title: Realm World Domain
 status: active
 owner: "@team"
-updated: 2026-04-23
+updated: 2026-03-26
 ---
 
 # Realm World Boundary

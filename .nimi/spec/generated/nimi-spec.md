@@ -4355,6 +4355,8 @@ Fixed rules:
 | SwitchAccount | unary |
 | IssueScopedAppBinding | unary |
 | RevokeScopedAppBinding | unary |
+| IssueWorkspaceBinding | unary |
+| RevokeWorkspaceBinding | unary |
 
 **RuntimeWorkflowService**
 
@@ -4592,6 +4594,17 @@ Fixed rules:
 | AI_LOCAL_SPEECH_HOST_INIT_FAILED | 563 | LOCAL_SPEECH |
 | AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED | 564 | LOCAL_SPEECH |
 | AI_LOCAL_SPEECH_BUNDLE_DEGRADED | 565 | LOCAL_SPEECH |
+| WORKSPACE_BINDING_MISSING | 570 | WORKSPACE_BINDING |
+| WORKSPACE_BINDING_MALFORMED | 571 | WORKSPACE_BINDING |
+| WORKSPACE_BINDING_NOT_FOUND | 572 | WORKSPACE_BINDING |
+| WORKSPACE_BINDING_REVOKED | 573 | WORKSPACE_BINDING |
+| WORKSPACE_BINDING_EXPIRED | 574 | WORKSPACE_BINDING |
+| WORKSPACE_BINDING_REPLAY | 575 | WORKSPACE_BINDING |
+| WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE | 576 | WORKSPACE_BINDING |
+| WORKSPACE_BINDING_CALLER_MISMATCH | 577 | WORKSPACE_BINDING |
+| WORKSPACE_BINDING_WORKSPACE_MISMATCH | 578 | WORKSPACE_BINDING |
+| WORKSPACE_BINDING_ENV_DEVICE_MISMATCH | 579 | WORKSPACE_BINDING |
+| WORKSPACE_BINDING_SCOPE_MISSING | 580 | WORKSPACE_BINDING |
 | ARTIFACT_INVALID_INPUT | 600 | ARTIFACT |
 | ARTIFACT_NOT_FOUND | 601 | ARTIFACT |
 | ARTIFACT_TOO_LARGE | 602 | ARTIFACT |
@@ -4738,6 +4751,17 @@ Fixed rules:
 | KNOWLEDGE_LINK_INVALID | INVALID_ARGUMENT | add_knowledge_link_invalid_same_bank_relation | grpc_status |
 | KNOWLEDGE_GRAPH_DEPTH_INVALID | INVALID_ARGUMENT | traverse_knowledge_graph_invalid_depth | grpc_status |
 | KNOWLEDGE_INGEST_TASK_NOT_FOUND | NOT_FOUND | get_knowledge_ingest_task_missing | grpc_status |
+| WORKSPACE_BINDING_MISSING | PERMISSION_DENIED | workspace_binding_missing_attachment | grpc_status |
+| WORKSPACE_BINDING_MALFORMED | INVALID_ARGUMENT | workspace_binding_malformed_attachment | grpc_status |
+| WORKSPACE_BINDING_NOT_FOUND | PERMISSION_DENIED | workspace_binding_not_found | grpc_status |
+| WORKSPACE_BINDING_REVOKED | PERMISSION_DENIED | workspace_binding_revoked | grpc_status |
+| WORKSPACE_BINDING_EXPIRED | PERMISSION_DENIED | workspace_binding_expired | grpc_status |
+| WORKSPACE_BINDING_REPLAY | PERMISSION_DENIED | workspace_binding_replay | grpc_status |
+| WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE | FAILED_PRECONDITION | workspace_binding_account_unavailable | grpc_status |
+| WORKSPACE_BINDING_CALLER_MISMATCH | PERMISSION_DENIED | workspace_binding_caller_mismatch | grpc_status |
+| WORKSPACE_BINDING_WORKSPACE_MISMATCH | PERMISSION_DENIED | workspace_binding_workspace_mismatch | grpc_status |
+| WORKSPACE_BINDING_ENV_DEVICE_MISMATCH | PERMISSION_DENIED | workspace_binding_env_or_device_mismatch | grpc_status |
+| WORKSPACE_BINDING_SCOPE_MISSING | PERMISSION_DENIED | workspace_binding_scope_missing | grpc_status |
 | ARTIFACT_INVALID_INPUT | INVALID_ARGUMENT | read_artifact_bytes_invalid_request | grpc_status |
 | ARTIFACT_NOT_FOUND | NOT_FOUND | read_artifact_bytes_artifact_missing | grpc_status |
 | ARTIFACT_TOO_LARGE | RESOURCE_EXHAUSTED | read_artifact_bytes_inline_size_cap | grpc_status |
@@ -4994,6 +5018,7 @@ Fixed rules:
 | C-COG-057 | covered | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Skill now owns strict step validation plus explicit archive/remove/delete lifecycle semantics with visible history and removed-state retrieval behavior. |
 | C-COG-058 | covered | `cognition_spec_governance_gate`, `cognition_build_gate`, `cognition_test_gate` | Skill remains cognition-owned advisory retrieval/lifecycle only and does not absorb runtime execution-policy or scheduler ownership. R20 finding-0004 is closed by removing untyped bundle metadata from the admitted Bundle shape and excluding unadmitted metadata from skill FTS. |
 | C-COG-059 | covered | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Runtime knowledge bank lifecycle is owned by typed cognition scope kind runtime_knowledge_bank registered in the cognition scope registry; disjoint from agent-bound scope kinds. Paired with K-KNOW-001a (runtime-side retirement of the legacy knowledgeservice package). |
+| C-COG-060 | deferred | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Runtime WORKSPACE_PRIVATE authorization must enter through KnowledgeAuthorizer and may only consume the account-owned internal workspace binding resolver seam; implementation evidence is deferred to the runtime/cognition wiring wave. |
 
 ### 13.15 Runtime — Key Source 真值表
 

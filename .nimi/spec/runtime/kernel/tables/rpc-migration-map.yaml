@@ -571,6 +571,16 @@ method_mappings:
   proto_service: RuntimeAccountService
   proto_method: RevokeScopedAppBinding
   mapping_status: aligned
+- design_service: RuntimeAccountService
+  design_method: IssueWorkspaceBinding
+  proto_service: RuntimeAccountService
+  proto_method: IssueWorkspaceBinding
+  mapping_status: aligned
+- design_service: RuntimeAccountService
+  design_method: RevokeWorkspaceBinding
+  proto_service: RuntimeAccountService
+  proto_method: RevokeWorkspaceBinding
+  mapping_status: aligned
 - design_service: RuntimeWorkflowService
   design_method: SubmitWorkflow
   proto_service: RuntimeWorkflowService

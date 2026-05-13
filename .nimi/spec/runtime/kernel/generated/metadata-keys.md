@@ -9,6 +9,7 @@
 | `x-nimi-provider-endpoint` | — | inline provider has no default endpoint |
 | `x-nimi-provider-api-key` | — | inline |
 | `x-nimi-app-id` | — | ConnectorService RPC |
+| `x-nimi-app-instance-id` | — | Runtime-authenticated local first-party calls that must resolve app-instance-scoped authority |
 | `x-nimi-client-id` | — | optional audit context |
 | `x-nimi-idempotency-key` | — | optional dedup context |
 | `authorization` | — | authenticated runtime call (optional for anonymous) |

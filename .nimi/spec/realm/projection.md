@@ -3,7 +3,7 @@ id: SPEC-REALM-PROJECTION-001
 title: Realm Projection Domain
 status: active
 owner: "@team"
-updated: 2026-04-23
+updated: 2026-04-21
 ---
 
 # Realm Projection Domain

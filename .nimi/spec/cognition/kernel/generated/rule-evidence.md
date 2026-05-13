@@ -4,7 +4,7 @@
 > Source: `.nimi/spec/cognition/kernel/tables/rule-evidence.yaml`
 | Metric | Value |
 |---|---|
-| `total_c_rules` | 59 |
+| `total_c_rules` | 60 |
 | `audit_date` | 2026-04-24 |
 
 ## Evidence Catalog
@@ -82,3 +82,4 @@
 | `C-COG-057` | `covered` | `cognition_build_gate`, `cognition_test_gate`, `cognition_generated_docs_gate` | Skill now owns strict step validation plus explicit archive/remove/delete lifecycle semantics with visible history and removed-state retrieval behavior. |
 | `C-COG-058` | `covered` | `cognition_spec_governance_gate`, `cognition_build_gate`, `cognition_test_gate` | Skill remains cognition-owned advisory retrieval/lifecycle only and does not absorb runtime execution-policy or scheduler ownership. R20 finding-0004 is closed by removing untyped bundle metadata from the admitted Bundle shape and excluding unadmitted metadata from skill FTS. |
 | `C-COG-059` | `covered` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Runtime knowledge bank lifecycle is owned by typed cognition scope kind runtime_knowledge_bank registered in the cognition scope registry; disjoint from agent-bound scope kinds. Paired with K-KNOW-001a (runtime-side retirement of the legacy knowledgeservice package). |
+| `C-COG-060` | `deferred` | `cognition_spec_governance_gate`, `cognition_generated_docs_gate` | Runtime WORKSPACE_PRIVATE authorization must enter through KnowledgeAuthorizer and may only consume the account-owned internal workspace binding resolver seam; implementation evidence is deferred to the runtime/cognition wiring wave. |

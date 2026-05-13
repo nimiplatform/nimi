@@ -293,3 +293,9 @@
 | `D-LLM-075` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-LLM-076` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-LLM-077` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
+| `D-LLM-088` | `covered` | `desktop_kernel_consistency` |
+| `D-LLM-089` | `covered` | `desktop_kernel_consistency` |
+| `D-LLM-090` | `covered` | `desktop_kernel_consistency` |
+| `D-LLM-091` | `covered` | `desktop_kernel_consistency` |
+| `D-LLM-092` | `covered` | `desktop_kernel_consistency` |
+| `D-LLM-093` | `covered` | `desktop_kernel_consistency` |

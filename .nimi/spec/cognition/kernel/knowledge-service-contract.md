@@ -100,3 +100,29 @@ Fixed rules:
 - this rule is the cognition-side statement of the runtime-side
   retirement K-KNOW-001a; the two rules together forbid any parallel
   runtime-private bank truth
+
+## C-COG-060 Runtime Workspace Authorization Seam
+
+Runtime-facing cognition knowledge owns storage, typed scope registry, local
+page/relation/ingest persistence, and action-to-storage facade behavior. It
+does not own Runtime account authorization for WORKSPACE_PRIVATE banks.
+
+Fixed rules:
+
+- runtime knowledge authorization must enter through the
+  `KnowledgeAuthorizer` seam before any workspace-owned bank data is returned
+  or mutated
+- `KnowledgeAuthorizer` is the only cognition-side consumer of the internal
+  account workspace binding resolver
+- cognition must not import account persistence internals, read account
+  custody, read workspace membership projection directly, call Realm for
+  membership per knowledge RPC, or derive authorization from app-local cache
+- cognition must pass target owner kind, target workspace id,
+  runtime-authenticated caller context from the protocol envelope
+  (`x-nimi-app-id`, `x-nimi-app-instance-id`), workspace binding attachment,
+  knowledge action, and required scopes to the authorizer. Device identity must
+  be derived or verified by Runtime account/app registry state through the
+  account resolver, not supplied by knowledge request body fields
+- a deny or unavailable decision from the authorizer must fail closed and must
+  not downgrade to APP_PRIVATE, anonymous, subject_user_id, fixture, or legacy
+  behavior

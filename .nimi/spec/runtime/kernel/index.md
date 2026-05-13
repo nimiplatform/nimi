@@ -36,6 +36,7 @@
 | `auth-service.md` | `K-AUTHSVC-*` | RuntimeAuthService 契约与会话生命周期 |
 | `account-session-contract.md` | `K-ACCSVC-*` | RuntimeAccountService 契约：local first-party account session、login lifecycle、secure custody、refresh、short-lived app access-token projection、logout、user switch、daemon restart recovery、scoped binding issuance |
 | `scoped-app-binding-contract.md` | `K-BIND-*` | Runtime-issued scoped app binding：carrier 分类、生命周期、relation tuple、revocation、replay、Avatar/Mod/Desktop binding 规则 |
+| `workspace-binding-contract.md` | `K-BIND-*` | Runtime-issued workspace knowledge binding：Realm membership projection consumption、workspace-specific relation/attachment、issue/revoke lifecycle、internal resolver、decision/audit/fail-close matrix |
 | `grant-service.md` | `K-GRANT-*` | RuntimeGrantService 契约与 delegated token 约束 |
 | `key-source-routing.md` | `K-KEYSRC-*` | `connector_id`/inline 与 metadata 契约 |
 | `scenario-job-lifecycle.md` | `K-JOB-*` | ScenarioJob 生命周期与 owner/credential 快照 |
@@ -60,6 +61,7 @@
 | `runtime-agent-service-contract.md` | `K-AGCORE-*` | Runtime-owned live agent lifecycle、typed hook admission、conversation continuity、agent memory policy |
 | `runtime-agent-participation-contract.md` | `K-AGCORE-*` | Runtime-owned non-canonical agent participation authority、closed axis/profile model、candidate output、memory/capability/concurrency policy、and public raw prompt boundary |
 | `multi-agent-room-orchestration-contract.md` | `K-AGCORE-*` | Runtime-owned same-room/session orchestration authority、closed room axis registry、domain matrix、trigger arbitration、budget/cancellation/status/external admission、and domain commit handoff boundary |
+| `realm-group-participation-consumer-contract.md` | `K-AGCORE-*` | Runtime-owned consumer boundary for Realm GROUP agent participation、typed context refs、candidate output、policy inheritance、room-orchestration binding、and no direct Realm commit |
 | `agent-conversation-anchor-contract.md` | `K-AGCORE-*` | Runtime-owned `ConversationAnchor` continuity truth for per-agent multi-surface chat/session sharing inside a multi-agent runtime |
 | `agent-presentation-contract.md` | `K-AGCORE-*` | Runtime-owned persistent `AgentPresentationProfile` truth、default avatar binding、and non-owner boundary for renderer-local state |
 | `agent-presentation-stream-contract.md` | `K-AGCORE-*` | Runtime-owned transient `turn` / `presentation` projection seam、current emotion projection、and stream commit semantics |
@@ -119,6 +121,8 @@
 - `tables/runtime-memory-bank-scope.yaml`
 - `tables/runtime-memory-hook-trigger.yaml`
 - `tables/runtime-memory-replication-outcome.yaml`
+- `tables/workspace-binding-relation.yaml`
+- `tables/knowledge-action-scope-matrix.yaml`
 - `tables/runtime-agent-service-typed-family.yaml`
 - `tables/runtime-agent-event-projection.yaml`
 - `tables/agent-participation-axis-model.yaml`
@@ -137,6 +141,7 @@
 - `tables/room-orchestration-trigger-arbitration.yaml`
 - `tables/room-orchestration-budget-policy.yaml`
 - `tables/room-orchestration-domain-overlays.yaml`
+- `tables/realm-group-participation-context.yaml`
 - `tables/avatar-debug-probe-events.yaml`
 - `tables/avatar-debug-replay-keys.yaml`
 - `tables/delegation-provider-profiles.yaml`

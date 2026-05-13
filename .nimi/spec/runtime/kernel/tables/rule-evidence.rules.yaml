@@ -241,6 +241,12 @@
 - rule_id: K-ACCSVC-018
   status: deferred
   evidence_refs: []
+- rule_id: K-ACCSVC-019
+  status: deferred
+  evidence_refs: []
+- rule_id: K-ACCSVC-020
+  status: deferred
+  evidence_refs: []
 - rule_id: K-BIND-001
   status: deferred
   evidence_refs: []
@@ -284,6 +290,33 @@
   status: deferred
   evidence_refs: []
 - rule_id: K-BIND-015
+  status: deferred
+  evidence_refs: []
+- rule_id: K-BIND-016
+  status: deferred
+  evidence_refs: []
+- rule_id: K-BIND-017
+  status: deferred
+  evidence_refs: []
+- rule_id: K-BIND-018
+  status: deferred
+  evidence_refs: []
+- rule_id: K-BIND-019
+  status: deferred
+  evidence_refs: []
+- rule_id: K-BIND-020
+  status: deferred
+  evidence_refs: []
+- rule_id: K-BIND-021
+  status: deferred
+  evidence_refs: []
+- rule_id: K-BIND-022
+  status: deferred
+  evidence_refs: []
+- rule_id: K-BIND-023
+  status: deferred
+  evidence_refs: []
+- rule_id: K-BIND-024
   status: deferred
   evidence_refs: []
 - rule_id: K-CFG-001
@@ -704,6 +737,12 @@
 - rule_id: K-KNOW-007
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-KNOW-008
+  status: deferred
+  evidence_refs: []
+- rule_id: K-KNOW-009
+  status: deferred
+  evidence_refs: []
 - rule_id: K-LENG-001
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
@@ -1877,6 +1916,30 @@
   status: deferred
   evidence_refs: [runtime_kernel_consistency]
   note: "Runtime room orchestration closure gates admitted as contract/table truth."
+- rule_id: K-AGCORE-119
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Realm Group participation consumer boundary admitted as contract/table truth."
+- rule_id: K-AGCORE-120
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Realm Group typed context mapping admitted as contract/table truth."
+- rule_id: K-AGCORE-121
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Realm Group message candidate and commit handoff admitted as contract/table truth."
+- rule_id: K-AGCORE-122
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Realm Group Runtime participation policy inheritance admitted as contract/table truth."
+- rule_id: K-AGCORE-123
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Realm Group room orchestration consumer binding admitted as contract/table truth."
+- rule_id: K-AGCORE-124
+  status: deferred
+  evidence_refs: [runtime_kernel_consistency]
+  note: "Realm Group negative gates admitted as contract/table truth."
 - rule_id: K-RPC-004a
   status: deferred
   evidence_refs: []

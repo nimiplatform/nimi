@@ -140,6 +140,17 @@
 | `KNOWLEDGE_LINK_INVALID` | `INVALID_ARGUMENT` | `add_knowledge_link_invalid_same_bank_relation` | `grpc_status` | `K-KNOW-005` |
 | `KNOWLEDGE_GRAPH_DEPTH_INVALID` | `INVALID_ARGUMENT` | `traverse_knowledge_graph_invalid_depth` | `grpc_status` | `K-KNOW-005` |
 | `KNOWLEDGE_INGEST_TASK_NOT_FOUND` | `NOT_FOUND` | `get_knowledge_ingest_task_missing` | `grpc_status` | `K-KNOW-005` |
+| `WORKSPACE_BINDING_MISSING` | `PERMISSION_DENIED` | `workspace_binding_missing_attachment` | `grpc_status` | `K-BIND-019` |
+| `WORKSPACE_BINDING_MALFORMED` | `INVALID_ARGUMENT` | `workspace_binding_malformed_attachment` | `grpc_status` | `K-BIND-019` |
+| `WORKSPACE_BINDING_NOT_FOUND` | `PERMISSION_DENIED` | `workspace_binding_not_found` | `grpc_status` | `K-BIND-019` |
+| `WORKSPACE_BINDING_REVOKED` | `PERMISSION_DENIED` | `workspace_binding_revoked` | `grpc_status` | `K-BIND-019` |
+| `WORKSPACE_BINDING_EXPIRED` | `PERMISSION_DENIED` | `workspace_binding_expired` | `grpc_status` | `K-BIND-019` |
+| `WORKSPACE_BINDING_REPLAY` | `PERMISSION_DENIED` | `workspace_binding_replay` | `grpc_status` | `K-BIND-019` |
+| `WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE` | `FAILED_PRECONDITION` | `workspace_binding_account_unavailable` | `grpc_status` | `K-BIND-019` |
+| `WORKSPACE_BINDING_CALLER_MISMATCH` | `PERMISSION_DENIED` | `workspace_binding_caller_mismatch` | `grpc_status` | `K-BIND-019` |
+| `WORKSPACE_BINDING_WORKSPACE_MISMATCH` | `PERMISSION_DENIED` | `workspace_binding_workspace_mismatch` | `grpc_status` | `K-BIND-019` |
+| `WORKSPACE_BINDING_ENV_DEVICE_MISMATCH` | `PERMISSION_DENIED` | `workspace_binding_env_or_device_mismatch` | `grpc_status` | `K-BIND-019` |
+| `WORKSPACE_BINDING_SCOPE_MISSING` | `PERMISSION_DENIED` | `workspace_binding_scope_missing` | `grpc_status` | `K-BIND-019` |
 | `ARTIFACT_INVALID_INPUT` | `INVALID_ARGUMENT` | `read_artifact_bytes_invalid_request` | `grpc_status` | `K-AGCORE-053` |
 | `ARTIFACT_NOT_FOUND` | `NOT_FOUND` | `read_artifact_bytes_artifact_missing` | `grpc_status` | `K-AGCORE-053` |
 | `ARTIFACT_TOO_LARGE` | `RESOURCE_EXHAUSTED` | `read_artifact_bytes_inline_size_cap` | `grpc_status` | `K-AGCORE-053` |

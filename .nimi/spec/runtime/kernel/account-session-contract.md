@@ -24,8 +24,13 @@
 8. `SwitchAccount`
 9. `IssueScopedAppBinding`
 10. `RevokeScopedAppBinding`
+11. `IssueWorkspaceBinding`
+12. `RevokeWorkspaceBinding`
 
-Admitted 方法集合为冻结集合。任何新增方法必须经过新规则 admit 后才允许加入 proto / RPC 表。
+Admitted 方法集合为冻结集合。`IssueWorkspaceBinding` /
+`RevokeWorkspaceBinding` are admitted only for workspace-specific attachment
+mint/revoke under `K-ACCSVC-019` and `K-BIND-018`. Any further method must
+undergo a new rule admission before proto / RPC table projection.
 
 ## K-ACCSVC-003 Account Session 状态机
 
@@ -67,7 +72,7 @@ Admitted 方法集合为冻结集合。任何新增方法必须经过新规则 a
 
 每个方法的最小契约：
 
-- `GetAccountSessionStatus`: 返回当前 account state 与投影。投影最多包含 `account_id`、显示信息、`realm_environment_id`（admit 时），不得返回 raw token、refresh token、JWT、或 `subject_user_id` 字段。
+- `GetAccountSessionStatus`: 返回当前 account state 与投影。投影最多包含 `account_id`、显示信息、`realm_environment_id`（admit 时）、和 `K-ACCSVC-018` admitted workspace membership projection， 不得返回 raw token、refresh token、JWT、或 `subject_user_id` 字段。
 - `SubscribeAccountSessionEvents`: server-stream，必须先返回 `account.status` snapshot，再按单调 sequence 顺序投递事件。重连时若 replay 不可用，必须发出 `replay_truncated` 标志。
 - `BeginLogin`: 创建 login attempt，返回 UX instruction envelope（如 `oauth_authorization_url`、`callback_origin`、`pkce_challenge`、`state`、`expires_at`）。kit / Desktop 不得获得 PKCE verifier。
 - `CompleteLogin`: 接受 typed proof envelope（见 K-ACCSVC-008）。Runtime 验证后写入 custody 并转换状态。
@@ -279,7 +284,71 @@ Web / cloud 模式不属于 local first-party Runtime account 模式。Web 应�
 
 任何 Web / cloud exception 都必须显式 fence，禁止泄漏到 local first-party Runtime 模式。
 
-## K-ACCSVC-018 Fail-Close Doctrine
+## K-ACCSVC-018 Realm-Owned Workspace Membership Projection
+
+Workspace membership truth is Realm-owned product authority and is projected into
+Runtime account custody/login/refresh as a redacted membership projection.
+Runtime must not create a local workspace registry, accept caller-provided
+workspace membership, or infer membership from `workspace_id`,
+`subject_user_id`, app-local cache, SDK state, Desktop state, or knowledge bank
+metadata.
+
+Admitted projection shape:
+
+- `workspace_id`
+- `membership_state` in `active`, `suspended`, `revoked`, `unknown`
+- `realm_environment_id`
+- `observed_at`
+- optional redacted display metadata
+
+Fixed rules:
+
+- workspace membership projection is derived only during account login,
+  account refresh, custody recovery, or an admitted Realm membership refresh
+  owned by `RuntimeAccountService`
+- a missing, stale, unavailable, or `unknown` projection fails closed for
+  workspace binding issuance and workspace binding consumption
+- `active` membership is required at both issue time and consume time
+- membership loss, realm-environment mismatch, custody unavailable, refresh
+  failure, logout, account switch, policy revocation, or daemon restart must
+  revoke or invalidate related workspace bindings before any positive
+  WORKSPACE_PRIVATE allow can be returned
+- projection may be surfaced to local first-party status only as redacted
+  account projection; it must not expose Realm tokens, raw JWT claims,
+  `subject_user_id`, or membership proof material that apps can replay
+
+## K-ACCSVC-019 Workspace Binding Account Surface And Resolver Ownership
+
+`RuntimeAccountService` owns workspace binding issuance, revocation, and the
+internal resolver seam used by runtime knowledge authorization. Public proto /
+RPC projection of workspace binding issue/revoke is admitted only for
+`IssueWorkspaceBinding` and `RevokeWorkspaceBinding`; no caller-visible
+workspace binding resolve/probe RPC exists.
+
+Fixed rules:
+
+- workspace binding issue/revoke is workspace-specific authority and must not be
+  implemented by broadening `IssueScopedAppBinding` / `RevokeScopedAppBinding`
+- `IssueWorkspaceBinding` and `RevokeWorkspaceBinding` public local
+  first-party account RPCs may only mint/revoke workspace knowledge
+  attachments; they must not return account truth, membership truth, Realm
+  tokens, or resolver decisions
+- `ResolveWorkspaceBinding` is not a public RPC, not an SDK/Desktop-visible
+  method, and not a probing surface; it is an internal Go/runtime capability
+  consumed by `RuntimeCognitionService` through the cognition
+  `KnowledgeAuthorizer` seam
+- resolver matching must use Runtime-authenticated caller identity from the
+  app session/envelope and account projection: `runtime_app_id`,
+  `app_instance_id`, `device_id`, `account_id`, and `realm_environment_id`
+- resolver matching must not use `KnowledgeRequestContext.app_id`,
+  `subject_user_id`, attachment self-claims, app-local cache, Desktop state, or
+  SDK state as proof
+- issue-time validation and consume-time validation both require
+  `K-ACCSVC-018` active membership for the target workspace
+- account state other than `authenticated`, refresh/custody uncertainty, or
+  stale workspace membership projection fails closed
+
+## K-ACCSVC-020 Fail-Close Doctrine
 
 以下情况必须 fail-close，禁止伪造成功：
 

@@ -9,7 +9,7 @@ const REALM_ROOT = path.join(PROJECT_ROOT, '.nimi', 'spec', 'realm');
 const KERNEL_ROOT = path.join(REALM_ROOT, 'kernel');
 const TABLES_DIR = path.join(KERNEL_ROOT, 'tables');
 
-const RULE_FAMILIES = ['TRUTH', 'PROJ', 'WSTATE', 'WHIST', 'CHAT', 'SOC', 'ECON', 'ATTACH', 'ASSET', 'RSRC', 'BIND', 'BNDL', 'TRANSIT'];
+const RULE_FAMILIES = ['TRUTH', 'PROJ', 'WSTATE', 'WHIST', 'CHAT', 'SOC', 'ECON', 'ATTACH', 'ASSET', 'RSRC', 'BIND', 'BNDL', 'TRANSIT', 'OAUTH'];
 const EXPECTED_ID_PATTERN = `^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`;
 const RULE_ID_PATTERN = new RegExp(`^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`);
 const BLOCKED_BIND_RULE_ID_PATTERN = /^R-BIND-[0-9]{3}$/;

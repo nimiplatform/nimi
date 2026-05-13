@@ -5,29 +5,40 @@
 
 Contract: `CHAT-CONTRACT-001`
 Domain: `chat`
-Version: `2026-04-23`
+Version: `2026-05-13`
 
-Rules: 7
+Rules: 16
 
 | Rule ID | Level | Title | Statement |
 | --- | --- | --- | --- |
 | R-CHAT-001 | must | chat-is-realm-domain | Realm owns Chat as a realm domain and provides the canonical thread, message, read-state, sync, membership, group lifecycle, and agent-slot metadata surface. |
-| R-CHAT-002 | must | direct-and-group-substrate-in-v1 | Realm Chat v1 admits DIRECT and GROUP as canonical chat substrates; GROUP threads may contain human participants and agent slots/authors, while AI execution, prompt assembly, model routing, session orchestration, and turn execution stay outside Realm Chat. |
-| R-CHAT-003 | must | social-gates-chat-but-does-not-own-it | Social gates human participant admission preconditions, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat. |
+| R-CHAT-002 | must | direct-and-group-substrate-in-v1 | Realm Chat v1 admits DIRECT and GROUP as canonical chat substrates; GROUP threads may contain human participants and agent slots/authors, while AI execution, prompt assembly, model routing, session orchestration, and turn execution stay outside Realm Chat. CHANNEL and any unsupported chat shape must fail-close. |
+| R-CHAT-003 | must | social-gates-chat-but-does-not-own-it | Social gates human participant admission and preconditions, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat. |
 | R-CHAT-004 | must | agent-chat-runtime-stays-outside | Human-agent chat, agent-agent chat, model routing, prompt assembly, session orchestration, and turn execution runtime stay outside Realm Chat v1, and group membership does not transfer those responsibilities into Realm. |
 | R-CHAT-005 | must | canonical-chat-attachment-envelope | Realm Chat canonicalizes non-text attachments as MessageType ATTACHMENT with payload.attachment generic envelope and does not expose assetId-only or resourceId-only attachment payload contracts. |
 | R-CHAT-006 | must | chat-owns-group-lifecycle-and-admin-authority | Realm Chat owns GROUP lifecycle transitions, roster management, membership roles, and agent-slot metadata; Social only gates human admission preconditions and does not own group lifecycle or agent-slot state. |
 | R-CHAT-007 | must | group-agent-authorship-must-validate-slot-binding | Agent-authored group posts and messages must validate thread owner and slot binding before commit, read visibility, or sync fanout, and spoofed agent authorship must fail-close. |
+| R-CHAT-008 | must | realm-group-agent-participation-consumes-runtime | Realm Group Agent Participation is a Realm GROUP product surface and Runtime Agent Participation consumer; Realm owns group product truth while Runtime owns execution, policy verdicts, candidates, audit/replay, and same-room orchestration. |
+| R-CHAT-009 | must | realm-owns-group-agent-slot-lifecycle | Realm owns the GROUP agent slot lifecycle and visibility metadata, but slot state must not imply Runtime prompt, provider/model, memory, capability, concurrency, queue, or execution ownership. |
+| R-CHAT-010 | must | group-agent-triggers-are-closed | Realm Group agent triggers are closed to mention, explicit user action, admitted automation, or product-disabled posture, and admitted triggers must carry Realm evidence before Runtime participation admission. |
+| R-CHAT-011 | must | runtime-candidate-realm-commit-handoff | Runtime may return only REALM_GROUP_MESSAGE_CANDIDATE output; Realm must authenticate candidate lineage, target chat, target agent slot, author authority, evidence hash, runtime trace reference, idempotency, moderation/refusal posture, and audit record before canonical GROUP message commit. |
+| R-CHAT-012 | must | group-agent-candidate-commit-operation | The only admitted Realm commit-handoff operation for group agent candidates is POST /api/human/group-chats/{chatId}/agent-message-candidate-commits with CommitRealmGroupMessageCandidateInputDto; historical POST /api/human/group-chats/{chatId}/agent-messages and SendGroupAgentMessageInputDto are not compatibility aliases and must be removed. |
+| R-CHAT-013 | must | group-agent-commit-forbidden-fields | Realm Group candidate commit requests must not accept raw text, payload, prompt, systemPrompt, provider, model, messageId, senderId, or caller-owned agentAccountId as commit authority; canonical messageId may appear only after Realm validation and storage succeed. |
+| R-CHAT-014 | must | sdk-desktop-preserve-candidate-commit-split | SDK and Desktop consumers must preserve split Runtime candidate and Realm commit facades; collapsed generate-and-commit helpers, Desktop direct REST, Runtime internal imports, sendGroupMessage substitution, runtime.agent.turn.request substitution, renderer-local committed truth, and synthetic candidate/message success are forbidden. |
+| R-CHAT-015 | must | candidate-evidence-verifier-is-required | Realm Group candidate commit must consume candidate content only through a Runtime-owned candidate evidence reference verified by a Realm-side verifier that returns an immutable RealmGroupMessageCandidateSnapshot matching evidenceHash; missing verifier, missing snapshot, hash mismatch, expired snapshot, thread mismatch, slot mismatch, trigger mismatch, or non-REALM_GROUP_MESSAGE_CANDIDATE output must fail closed before storage. |
+| R-CHAT-016 | must | realm-agent-slot-id-is-durable-binding-identity | realmAgentSlotId is the durable Realm identity for an Agent participation binding inside a specific GROUP thread, distinct from the Agent global identity and human membership identity; commit must validate the same active realmAgentSlotId, target chatId, and Agent identity, and agentId alone must not be used as a group participation slot reference. |
 
-Entities: 5
+Entities: 7
 
 | Entity | Prisma Model | Required Fields | JSON Fields |
 | --- | --- | --- | --- |
 | ChatThread | Chat | id, type, accountIdL, accountIdH, createdAt, updatedAt |  |
 | ChatMessage | Message | id, chatId, senderId, type, createdAt | payload, interaction, diagnostics |
 | GroupChatThread | Chat | id, type, title, creatorId, createdAt, updatedAt |  |
-| GroupParticipant | ChatParticipant | chatId, accountId, role, type, joinedAt |  |
+| GroupParticipant | ChatParticipant | chatId, accountId, role, joinedAt |  |
 | GroupMessage | Message | id, chatId, senderId, type, createdAt | payload, interaction, diagnostics |
+| RealmGroupAgentSlot | RealmGroupAgentSlot | id, chatId, agentAccountId, agentOwnerId, state, createdAt | display, audit |
+| RealmGroupMessageCandidateSnapshot | RuntimeEvidence | candidateId, candidateKind, realmGroupThreadId, realmAgentSlotId, agentId, evidenceHash, runtimeTraceRef, expiresAt | body, refusal, lineage |
 
 Required operations: 25
 - GET /api/human/chats
@@ -45,7 +56,7 @@ Required operations: 25
 - PATCH /api/human/group-chats/{chatId}
 - GET /api/human/group-chats/{chatId}/messages
 - POST /api/human/group-chats/{chatId}/messages
-- POST /api/human/group-chats/{chatId}/agent-messages
+- POST /api/human/group-chats/{chatId}/agent-message-candidate-commits
 - PATCH /api/human/group-chats/{chatId}/messages/{messageId}
 - POST /api/human/group-chats/{chatId}/messages/{messageId}/recall
 - POST /api/human/group-chats/{chatId}/read

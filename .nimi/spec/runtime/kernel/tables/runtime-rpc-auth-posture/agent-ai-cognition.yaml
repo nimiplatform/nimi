@@ -368,105 +368,138 @@ methods:
       - K-AUTHN-001
       - K-AUTH-001
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/CreateKnowledgeBank
-    posture: anonymous_read
-    rationale: knowledge bank create; no JWT validation
+    posture: authenticated_required
+    rationale: knowledge bank create requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/GetKnowledgeBank
-    posture: anonymous_read
-    rationale: knowledge bank locator read; no JWT validation
+    posture: authenticated_required
+    rationale: knowledge bank read requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/ListKnowledgeBanks
-    posture: anonymous_read
-    rationale: knowledge bank list; no JWT validation
+    posture: authenticated_required
+    rationale: knowledge bank list requires Runtime-authenticated caller and must not enumerate WORKSPACE_PRIVATE without matching workspace binding
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/DeleteKnowledgeBank
-    posture: anonymous_read
-    rationale: knowledge bank delete; no JWT validation
+    posture: authenticated_required
+    rationale: knowledge bank delete requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires admin scope via workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/PutPage
-    posture: anonymous_read
-    rationale: knowledge page write; no JWT validation
+    posture: authenticated_required
+    rationale: knowledge page write requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires write scope via workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/GetPage
-    posture: anonymous_read
-    rationale: knowledge page read; no JWT validation
+    posture: authenticated_required
+    rationale: knowledge page read requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires read scope via workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/ListPages
-    posture: anonymous_read
-    rationale: knowledge page list; no JWT validation
+    posture: authenticated_required
+    rationale: knowledge page list requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires read scope via workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/DeletePage
-    posture: anonymous_read
-    rationale: knowledge page delete; no JWT validation
+    posture: authenticated_required
+    rationale: knowledge page delete requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires write scope via workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/SearchKeyword
-    posture: anonymous_read
-    rationale: keyword search; no JWT validation
+    posture: authenticated_required
+    rationale: keyword search requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires read scope via workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/SearchHybrid
-    posture: anonymous_read
-    rationale: hybrid search; no JWT validation
+    posture: authenticated_required
+    rationale: hybrid search requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires read scope via workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/AddLink
-    posture: anonymous_read
-    rationale: knowledge link add; no JWT validation
+    posture: authenticated_required
+    rationale: knowledge link add requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires write scope via workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/RemoveLink
-    posture: anonymous_read
-    rationale: knowledge link remove; no JWT validation
+    posture: authenticated_required
+    rationale: knowledge link remove requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires write scope via workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/ListLinks
-    posture: anonymous_read
-    rationale: knowledge link list; no JWT validation
+    posture: authenticated_required
+    rationale: knowledge link list requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires read scope via workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/ListBacklinks
-    posture: anonymous_read
-    rationale: knowledge backlinks list; no JWT validation
+    posture: authenticated_required
+    rationale: knowledge backlinks list requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires read scope via workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/TraverseGraph
-    posture: anonymous_read
-    rationale: knowledge graph traversal; no JWT validation
+    posture: authenticated_required
+    rationale: knowledge graph traversal requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires read scope via workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/IngestDocument
-    posture: anonymous_read
-    rationale: document ingest; no JWT validation
+    posture: authenticated_required
+    rationale: document ingest requires Runtime-authenticated caller; WORKSPACE_PRIVATE requires write scope via workspace binding resolver allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
+      - K-KNOW-008
+      - K-KNOW-009
   - method_id: /nimi.runtime.v1.RuntimeCognitionService/GetIngestTask
-    posture: anonymous_read
-    rationale: id-based ingest task fetch; no JWT validation
+    posture: authenticated_required
+    rationale: ingest task fetch requires Runtime-authenticated caller; task id must resolve to bank owner before WORKSPACE_PRIVATE read allow
     kernel_refs:
       - K-AUTHN-001
       - K-AUTH-001
-
+      - K-KNOW-008
+      - K-KNOW-009

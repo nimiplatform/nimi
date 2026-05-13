@@ -125,6 +125,8 @@
 | `RuntimeAccountService` | `SwitchAccount` | `RuntimeAccountService` | `SwitchAccount` | `aligned` |
 | `RuntimeAccountService` | `IssueScopedAppBinding` | `RuntimeAccountService` | `IssueScopedAppBinding` | `aligned` |
 | `RuntimeAccountService` | `RevokeScopedAppBinding` | `RuntimeAccountService` | `RevokeScopedAppBinding` | `aligned` |
+| `RuntimeAccountService` | `IssueWorkspaceBinding` | `RuntimeAccountService` | `IssueWorkspaceBinding` | `aligned` |
+| `RuntimeAccountService` | `RevokeWorkspaceBinding` | `RuntimeAccountService` | `RevokeWorkspaceBinding` | `aligned` |
 | `RuntimeWorkflowService` | `SubmitWorkflow` | `RuntimeWorkflowService` | `SubmitWorkflow` | `aligned` |
 | `RuntimeWorkflowService` | `GetWorkflow` | `RuntimeWorkflowService` | `GetWorkflow` | `aligned` |
 | `RuntimeWorkflowService` | `CancelWorkflow` | `RuntimeWorkflowService` | `CancelWorkflow` | `aligned` |
