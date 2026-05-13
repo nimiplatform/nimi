@@ -11,6 +11,7 @@ updated: 2026-04-18
 ## Contracts
 
 - `truth-contract.md` (`R-TRUTH-*`)
+- `projection-contract.md` (`R-PROJ-*`)
 - `world-state-contract.md` (`R-WSTATE-*`)
 - `world-history-contract.md` (`R-WHIST-*`)
 - `chat-contract.md` (`R-CHAT-*`)
@@ -23,6 +24,7 @@ updated: 2026-04-18
 - `asset-contract.md` (`R-ASSET-*`)
 - `bundle-contract.md` (`R-BNDL-*`)
 - `transit-contract.md` (`R-TRANSIT-*`)
+- `oauth-authority-contract.md` (`R-OAUTH-*`)
 
 ## Tables
 
@@ -30,6 +32,7 @@ updated: 2026-04-18
 - `tables/rule-evidence.yaml`
 - `tables/commit-authorization-matrix.yaml`
 - `tables/truth-contract.yaml`
+- `tables/projection-contract.yaml`
 - `tables/world-state-contract.yaml`
 - `tables/world-history-contract.yaml`
 - `tables/chat-contract.yaml`
@@ -44,6 +47,7 @@ updated: 2026-04-18
 - `tables/asset-contract.yaml`
 - `tables/bundle-contract.yaml`
 - `tables/transit-contract.yaml`
+- `tables/oauth-authority-contract.yaml`
 - `tables/domain-enums.yaml`
 - `tables/domain-state-machines.yaml`
 - `tables/open-spec-alignment-map.yaml`
@@ -56,6 +60,7 @@ updated: 2026-04-18
 - `generated/rule-evidence.md`
 - `generated/commit-authorization-matrix.md`
 - `generated/truth-contract.md`
+- `generated/projection-contract.md`
 - `generated/world-state-contract.md`
 - `generated/world-history-contract.md`
 - `generated/chat-contract.md`
@@ -70,6 +75,7 @@ updated: 2026-04-18
 - `generated/asset-contract.md`
 - `generated/bundle-contract.md`
 - `generated/transit-contract.md`
+- `generated/oauth-authority-contract.md`
 - `generated/domain-enums.md`
 - `generated/domain-state-machines.md`
 - `generated/open-spec-alignment-map.md`

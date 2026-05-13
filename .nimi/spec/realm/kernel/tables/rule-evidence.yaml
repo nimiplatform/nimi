@@ -32,18 +32,19 @@ profiles:
       - tests/arch/world.spec.ts
   projection:
     openapi:
-      - POST /api/runtime/projections/project
+      - GET /api/world/by-id/{id}/detail-with-agents
       - GET /api/world/by-id/{id}/worldview
       - GET /api/world/by-id/{id}/lorebooks
-      - GET /api/world/by-id/{id}/detail-with-agents
-    prisma_models: [World, WorldRule, AgentRule, WorldRelease, Worldview, WorldLorebook]
+    prisma_models: [WorldRule, AgentRule, WorldRelease, Worldview, WorldLorebook]
     service_files:
       - nimi-backend/libs/domains/world/src/projection/projection.service.ts
-      - nimi-backend/libs/domains/world/src/worldview.service.ts
       - nimi-backend/libs/domains/world/src/world-release.service.ts
-      - sdk/src/world/projection.ts
+      - nimi-backend/libs/domains/world/src/worldview.service.ts
     test_files:
-      - sdk/test/world/world-facade.test.ts
+      - nimi-backend/libs/domains/world/src/world-release.service.spec.ts
+      - nimi-backend/libs/domains/world/src/projection/projection.service.spec.ts
+      - nimi-backend/libs/domains/world/src/world-projection.service.spec.ts
+      - tests/arch/world.spec.ts
   world_state:
     openapi:
       - GET /api/worlds/{worldId}/state
@@ -68,18 +69,6 @@ profiles:
     test_files:
       - nimi-backend/libs/domains/world/src/world-control.service.unit.spec.ts
       - tests/arch/world.spec.ts
-  agent_memory:
-    openapi:
-      - RPC RuntimeCognitionService.SubscribeMemoryEvents
-      - RPC RuntimeAgentService.QueryAgentMemory
-      - RPC RuntimeAgentService.WriteAgentMemory
-    prisma_models: [MemoryBank, MemoryRecord]
-    service_files:
-      - runtime/internal/services/cognition/service.go
-      - runtime/internal/services/runtimeagent/service.go
-    test_files:
-      - runtime/internal/services/cognition/service_test.go
-      - runtime/internal/services/runtimeagent/service_test.go
   chat:
     openapi:
       - GET /api/human/chats
@@ -121,17 +110,21 @@ profiles:
     notes:
       - Group admission/admin authority is owned by Chat; Social only gates human admission preconditions.
       - Agent-authored group posts require owner/slot validation to prevent spoofed authorship.
-  oauth_authority:
-    openapi:
-      - GET /api/auth/oauth/authorize
-      - POST /api/auth/oauth/token
-    prisma_models: [OauthAuthorizationCode, Account]
-    service_files:
-      - nimi-backend/apps/api/src/modules/auth/auth.controller.ts
-      - nimi-backend/libs/infra/auth/src/oauth-authority.service.ts
-    test_files:
-      - nimi-backend/apps/api/src/modules/auth/auth.controller.spec.ts
-      - nimi-backend/libs/infra/auth/src/oauth-authority.service.spec.ts
+    dto_evidence:
+      - GroupChatViewDto
+      - GroupParticipantDto
+      - GroupMessageAuthorDto
+      - GroupMessageViewDto
+      - ListGroupChatsResultDto
+      - ListGroupMessagesResultDto
+      - CreateGroupInputDto
+      - UpdateGroupInputDto
+      - AddGroupParticipantInputDto
+      - AddGroupAgentInputDto
+      - CommitRealmGroupMessageCandidateInputDto
+      - RealmGroupMessageCandidateCommitResultDto
+      - UpdateParticipantRoleInputDto
+      - ChatSyncResultDto
   attachment:
     openapi:
       - POST /api/world/posts
@@ -271,6 +264,17 @@ profiles:
     test_files:
       - nimi-backend/libs/domains/world/src/transit.service.spec.ts
       - tests/arch/world.spec.ts
+  oauth_authority:
+    openapi:
+      - GET /api/auth/oauth/authorize
+      - POST /api/auth/oauth/token
+    prisma_models: [OauthAuthorizationCode]
+    service_files:
+      - nimi-backend/apps/api/src/modules/auth/auth.controller.ts
+      - nimi-backend/libs/infra/auth/src/oauth-authority.service.ts
+    test_files:
+      - nimi-backend/libs/infra/auth/src/oauth-authority.service.spec.ts
+      - nimi-backend/apps/api/src/modules/auth/auth.controller.spec.ts
 rules:
   R-TRUTH-001: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-001, profile_refs: [truth] }
   R-TRUTH-002: { domain: truth, spec_anchor: .nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-002, profile_refs: [truth] }
@@ -329,18 +333,6 @@ rules:
   R-CHAT-014: { domain: chat, spec_anchor: .nimi/spec/realm/kernel/chat-contract.md#R-CHAT-014, profile_refs: [chat] }
   R-CHAT-015: { domain: chat, spec_anchor: .nimi/spec/realm/kernel/chat-contract.md#R-CHAT-015, profile_refs: [chat] }
   R-CHAT-016: { domain: chat, spec_anchor: .nimi/spec/realm/kernel/chat-contract.md#R-CHAT-016, profile_refs: [chat] }
-  R-OAUTH-001: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-001, profile_refs: [oauth_authority] }
-  R-OAUTH-002: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-002, profile_refs: [oauth_authority] }
-  R-OAUTH-003: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-003, profile_refs: [oauth_authority] }
-  R-OAUTH-004: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-004, profile_refs: [oauth_authority] }
-  R-OAUTH-005: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-005, profile_refs: [oauth_authority] }
-  R-OAUTH-006: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-006, profile_refs: [oauth_authority] }
-  R-OAUTH-007: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-007, profile_refs: [oauth_authority] }
-  R-OAUTH-008: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-008, profile_refs: [oauth_authority] }
-  R-OAUTH-009: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-009, profile_refs: [oauth_authority] }
-  R-OAUTH-010: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-010, profile_refs: [oauth_authority] }
-  R-OAUTH-011: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-011, profile_refs: [oauth_authority] }
-  R-OAUTH-012: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-012, profile_refs: [oauth_authority] }
   R-BIND-001: { domain: binding, spec_anchor: .nimi/spec/realm/kernel/binding-contract.md#R-BIND-001, profile_refs: [binding] }
   R-BIND-002: { domain: binding, spec_anchor: .nimi/spec/realm/kernel/binding-contract.md#R-BIND-002, profile_refs: [binding] }
   R-BIND-003: { domain: binding, spec_anchor: .nimi/spec/realm/kernel/binding-contract.md#R-BIND-003, profile_refs: [binding] }
@@ -379,3 +371,15 @@ rules:
   R-TRANSIT-004: { domain: transit, spec_anchor: .nimi/spec/realm/kernel/transit-contract.md#R-TRANSIT-004, profile_refs: [transit] }
   R-TRANSIT-005: { domain: transit, spec_anchor: .nimi/spec/realm/kernel/transit-contract.md#R-TRANSIT-005, profile_refs: [transit] }
   R-TRANSIT-006: { domain: transit, spec_anchor: .nimi/spec/realm/kernel/transit-contract.md#R-TRANSIT-006, profile_refs: [transit] }
+  R-OAUTH-001: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-001, profile_refs: [oauth_authority] }
+  R-OAUTH-002: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-002, profile_refs: [oauth_authority] }
+  R-OAUTH-003: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-003, profile_refs: [oauth_authority] }
+  R-OAUTH-004: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-004, profile_refs: [oauth_authority] }
+  R-OAUTH-005: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-005, profile_refs: [oauth_authority] }
+  R-OAUTH-006: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-006, profile_refs: [oauth_authority] }
+  R-OAUTH-007: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-007, profile_refs: [oauth_authority] }
+  R-OAUTH-008: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-008, profile_refs: [oauth_authority] }
+  R-OAUTH-009: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-009, profile_refs: [oauth_authority] }
+  R-OAUTH-010: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-010, profile_refs: [oauth_authority] }
+  R-OAUTH-011: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-011, profile_refs: [oauth_authority] }
+  R-OAUTH-012: { domain: oauth-authority, spec_anchor: .nimi/spec/realm/kernel/oauth-authority-contract.md#R-OAUTH-012, profile_refs: [oauth_authority] }

@@ -103,14 +103,20 @@ synthetic candidate or message success are forbidden.
 
 ## R-CHAT-015
 
-Realm Group candidate commit must consume candidate content only through a
-Runtime-owned candidate evidence reference verified by a Realm-side verifier.
-The verifier returns an immutable `RealmGroupMessageCandidateSnapshot` whose
-canonical hash matches the submitted `evidenceHash`. Commit requests must not
-carry candidate body, refusal body, raw provider output, prompt text, or payload
-as caller-owned commit truth. Missing verifier, missing snapshot, hash mismatch,
-expired snapshot, thread mismatch, slot mismatch, trigger mismatch, or
-non-`REALM_GROUP_MESSAGE_CANDIDATE` output must fail closed before storage.
+Realm Group candidate commit may carry only typed
+`REALM_GROUP_MESSAGE_CANDIDATE` output fields derived from the local Runtime
+candidate evidence read: candidate ids/refs, `evidenceHash`, `runtimeTraceRef`,
+output/audit/policy refs, creation/expiry timestamps, `commitDisposition`, and
+either validated `TEXT` body plus `bodyHash` or validated refusal code/reason
+plus `refusalHash`. Realm validates authenticated user authority, group
+membership, active `realmGroupAgentSlotId`, `localAgentRef`, agent participant
+projection, candidate kind, trigger, idempotency, expiry, canonical payload hash,
+body/refusal hash, and moderation/refusal posture before storage. Realm must not
+require Runtime authorship proof, Runtime attestation, Realm-side Runtime
+verifier, evidence escrow, or Realm direct Runtime access for this group chat
+commit path. Commit requests must still not carry raw prompt text, raw provider
+output, provider/model selection, untyped payload, caller-owned `messageId`,
+caller-owned `senderId`, or caller-owned agent identity as commit authority.
 
 ## R-CHAT-016
 

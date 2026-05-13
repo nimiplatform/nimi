@@ -72,8 +72,8 @@ rules:
     statement: "SDK and Desktop consumers must preserve split Runtime candidate and Realm commit facades; collapsed generate-and-commit helpers, Desktop direct REST, Runtime internal imports, sendGroupMessage substitution, runtime.agent.turn.request substitution, renderer-local committed truth, and synthetic candidate/message success are forbidden."
   - rule_id: R-CHAT-015
     level: must
-    title: candidate-evidence-verifier-is-required
-    statement: "Realm Group candidate commit must consume candidate content only through a Runtime-owned candidate evidence reference verified by a Realm-side verifier that returns an immutable RealmGroupMessageCandidateSnapshot matching evidenceHash; missing verifier, missing snapshot, hash mismatch, expired snapshot, thread mismatch, slot mismatch, trigger mismatch, or non-REALM_GROUP_MESSAGE_CANDIDATE output must fail closed before storage."
+    title: group-candidate-typed-payload-commit-boundary
+    statement: "Realm Group candidate commit may carry only typed REALM_GROUP_MESSAGE_CANDIDATE output fields derived from the local Runtime candidate evidence read: candidate ids/refs, evidenceHash, runtimeTraceRef, output/audit/policy refs, timestamps, commitDisposition, and either validated TEXT body plus bodyHash or validated refusal code/reason plus refusalHash; Realm validates authenticated user authority, group membership, active realmGroupAgentSlotId, localAgentRef, agent participant projection, candidate kind, trigger, idempotency, expiry, canonical payload hash, body/refusal hash, and moderation/refusal posture before storage; Realm must not require Runtime authorship proof, Runtime attestation, Realm-side Runtime verifier, evidence escrow, or Realm direct Runtime access for this group chat commit path, and commit requests must still not carry raw prompt text, raw provider output, provider/model selection, untyped payload, caller-owned messageId, caller-owned senderId, or caller-owned agent identity as commit authority."
   - rule_id: R-CHAT-016
     level: must
     title: realm-agent-slot-id-is-durable-binding-identity
@@ -103,10 +103,10 @@ entities:
     prisma_model: RealmGroupAgentSlot
     required_fields: [id, chatId, ownerUserId, realmAgentId, localAgentRef, state, createdAt]
     json_fields: [display, audit]
-  - name: RealmGroupMessageCandidateSnapshot
-    prisma_model: RuntimeEvidence
-    required_fields: [candidateId, candidateKind, realmGroupThreadId, realmGroupAgentSlotId, ownerUserId, realmAgentId, localAgentRef, evidenceHash, runtimeTraceRef, expiresAt]
-    json_fields: [body, refusal, lineage]
+  - name: RealmGroupMessageCandidateCommitPayload
+    prisma_model: CommitRealmGroupMessageCandidateInputDto
+    required_fields: [candidateId, candidateKind, candidateEvidenceRef, evidenceHash, runtimeTraceRef, expectedRealmGroupAgentSlotId, expectedLocalAgentRef, triggerRef, outputCandidateRef, auditLineageRef, policyVerdictRef, createdAt, expiresAt, commitDisposition, idempotencyKey]
+    json_fields: [body, refusal]
 group_authority:
   lifecycle_owner: Chat
   admission_admin_owner: Chat
@@ -114,7 +114,7 @@ group_authority:
   anti_spoof_rule: Agent-authored group posts and messages must validate thread owner/slot binding before commit, read visibility, or sync fanout.
   candidate_commit_handoff_owner: Chat
   runtime_candidate_owner: Runtime
-  candidate_evidence_verifier_owner: Runtime evidence, Realm verification
+  candidate_evidence_verifier_owner: not a product gate; Runtime owns local candidate evidence production and Realm owns typed payload, slot, commit, and sync validation
   agent_slot_identity_owner: Chat
   historical_agent_messages_posture: remove_not_alias
 api_surface:

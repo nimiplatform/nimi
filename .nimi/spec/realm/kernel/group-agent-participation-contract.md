@@ -66,24 +66,44 @@ truth is forbidden.
 
 ### Imported R-CHAT-012
 
-Realm Group agent participation consumes Runtime profile `realm_group_agent`
-defaults. Group context defaults to `DYADIC_PRIVATE_EXCLUDED` memory read scope,
-`WRITE_NONE` memory write default, and `PROFILE_LIMITED` capability scope.
-Product copy may describe the experience as "group limited", but `GROUP_LIMITED`
-is not an admitted Runtime capability enum and must not appear in Realm or
-Runtime spec tables.
+The only admitted Realm commit-handoff operation for group agent candidates is
+`POST /api/human/group-chats/{chatId}/agent-message-candidate-commits` with
+`CommitRealmGroupMessageCandidateInputDto`. The historical direct
+`POST /api/human/group-chats/{chatId}/agent-messages` operation and
+`SendGroupAgentMessageInputDto` are not admitted as compatibility aliases and
+must be removed from implementation and OpenAPI.
 
 ### Imported R-CHAT-013
 
-Realm and apps may present queued, running, refused, cancelled, timed-out, or
-committed group agent participation status only as typed projections sourced
-from Runtime `runtime.agent.*` projection authority and Realm commit/read/sync
-truth. Realm must not create a public `runtime.orchestration.*` namespace or a
-parallel same-room status truth.
+Realm Group candidate commit requests must not accept raw `text`, `payload`,
+`prompt`, `systemPrompt`, `provider`, `model`, `messageId`, `senderId`, or
+caller-owned `agentAccountId` as commit authority. A canonical `messageId` may
+appear only in the Realm commit result after validation and storage succeed.
 
 ### Imported R-CHAT-014
 
-Realm Group agent participation must fail closed if a consumer attempts Desktop
-or Web prompt assembly, provider/model routing, group-local queue ownership,
-Realm-owned AI execution, app-local memory policy, direct Runtime group commit,
-private same-room scheduler, or Runtime Participation axis/profile reopening.
+SDK and Desktop consumers must preserve split Runtime candidate and Realm commit
+facades. Collapsed generate-and-commit helpers, Desktop direct REST, Runtime
+internal imports, `sendGroupMessage` substitution, `runtime.agent.turn.request`
+substitution, renderer-local committed truth, and synthetic candidate or message
+success are forbidden.
+
+### Imported R-CHAT-015
+
+Realm Group candidate commit may carry only typed
+`REALM_GROUP_MESSAGE_CANDIDATE` output fields derived from the local Runtime
+candidate evidence read. Realm validates authenticated user authority, group
+membership, active `realmGroupAgentSlotId`, `localAgentRef`, agent participant
+projection, candidate kind, trigger, idempotency, expiry, canonical payload hash,
+body/refusal hash, and moderation/refusal posture before storage. Realm must not
+require Runtime authorship proof, Runtime attestation, Realm-side Runtime
+verifier, evidence escrow, or Realm direct Runtime access for this group chat
+commit path.
+
+### Imported R-CHAT-016
+
+`realmGroupAgentSlotId` is the durable Realm identity for a local Agent
+participation binding inside a specific `GROUP` thread. The executable local
+Agent reference is `localAgentRef = ownerUserId + realmAgentId`; `realmAgentId`
+alone is not a valid group participation slot or executable local Agent
+reference.
