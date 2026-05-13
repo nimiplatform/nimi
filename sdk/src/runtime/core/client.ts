@@ -20,8 +20,6 @@ import {
 import {
   ExecuteDelegatedCapabilityRequest,
   ExecuteDelegatedCapabilityResponse,
-  CreateRealmGroupMessageCandidateRequest,
-  CreateRealmGroupMessageCandidateResponse,
   GetAvatarDebugReplayRequest,
   GetAvatarDebugReplayResponse,
   GetAvatarDebugSnapshotRequest,
@@ -34,8 +32,6 @@ import {
   GetDelegatedReplayTraceResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
-  GetRealmGroupMessageCandidateEvidenceRequest,
-  GetRealmGroupMessageCandidateEvidenceResponse,
   ListAvatarDebugProbeResultsRequest,
   ListAvatarDebugProbeResultsResponse,
   ListDelegatedApprovalRequestsRequest,
@@ -55,6 +51,12 @@ import {
   UpsertDelegatedProviderProfileRequest,
   UpsertDelegatedProviderProfileResponse,
 } from '../generated/runtime/v1/agent_service.js';
+import {
+  CreateRealmGroupMessageCandidateRequest,
+  CreateRealmGroupMessageCandidateResponse,
+  GetRealmGroupMessageCandidateEvidenceRequest,
+  GetRealmGroupMessageCandidateEvidenceResponse,
+} from '../generated/runtime/v1/agent_group_message_candidate.js';
 import {
   decodeStreamEvent,
   decodeUnaryResponse,

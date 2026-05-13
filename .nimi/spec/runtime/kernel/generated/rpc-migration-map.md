@@ -200,6 +200,8 @@
 | `RuntimeAgentService` | `QueryAgentMemory` | `RuntimeAgentService` | `QueryAgentMemory` | `aligned` |
 | `RuntimeAgentService` | `WriteAgentMemory` | `RuntimeAgentService` | `WriteAgentMemory` | `aligned` |
 | `RuntimeAgentService` | `SetAgentPresentationProfile` | `RuntimeAgentService` | `SetAgentPresentationProfile` | `aligned` |
+| `RuntimeAgentService` | `CreateRealmGroupMessageCandidate` | `RuntimeAgentService` | `CreateRealmGroupMessageCandidate` | `aligned` |
+| `RuntimeAgentService` | `GetRealmGroupMessageCandidateEvidence` | `RuntimeAgentService` | `GetRealmGroupMessageCandidateEvidence` | `aligned` |
 | `RuntimeAgentService` | `SubscribeAgentEvents` | `RuntimeAgentService` | `SubscribeAgentEvents` | `aligned` |
 
 ## Excluded Proto Methods

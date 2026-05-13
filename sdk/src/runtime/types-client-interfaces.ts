@@ -282,12 +282,8 @@ import type {
   GetAvatarDebugReplayResponse,
   GetAvatarDebugSnapshotRequest,
   GetAvatarDebugSnapshotResponse,
-  CreateRealmGroupMessageCandidateRequest,
-  CreateRealmGroupMessageCandidateResponse,
   InitializeAgentRequest,
   InitializeAgentResponse,
-  GetRealmGroupMessageCandidateEvidenceRequest,
-  GetRealmGroupMessageCandidateEvidenceResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
   GetDelegatedControlSurfaceSnapshotResponse,
   GetDelegatedReplayTraceRequest,
@@ -331,6 +327,12 @@ import type {
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
 } from './generated/runtime/v1/agent_service';
+import type {
+  CreateRealmGroupMessageCandidateRequest,
+  CreateRealmGroupMessageCandidateResponse,
+  GetRealmGroupMessageCandidateEvidenceRequest,
+  GetRealmGroupMessageCandidateEvidenceResponse,
+} from './generated/runtime/v1/agent_group_message_candidate';
 import type {
   AppMessageEvent,
   SendAppMessageRequest,

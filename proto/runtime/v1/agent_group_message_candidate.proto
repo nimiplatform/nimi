@@ -1,0 +1,94 @@
+syntax = "proto3";
+package nimi.runtime.v1;
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/agent_common.proto";
+
+enum RealmGroupMessageCandidateCommitDisposition {
+  REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_UNSPECIFIED = 0;
+  REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_MESSAGE_CANDIDATE = 1;
+  REALM_GROUP_MESSAGE_CANDIDATE_COMMIT_DISPOSITION_REFUSAL_CANDIDATE = 2;
+}
+
+message CreateRealmGroupMessageCandidateRequest {
+  AgentRequestContext context = 1;
+  string realm_group_thread_id = 2;
+  string realm_group_agent_slot_id = 3;
+  string owner_user_id = 4;
+  string realm_agent_id = 5;
+  string local_agent_ref = 6;
+  string trigger_ref = 7;
+  string membership_snapshot_ref = 8;
+  string read_cursor_ref = 9;
+  string reply_target_ref = 10;
+  string room_orchestration_ref = 11;
+  string idempotency_key = 12;
+  map<string, string> context_refs = 13;
+}
+
+message RealmGroupMessageCandidateCommitHandle {
+  string candidate_id = 1;
+  string candidate_kind = 2;
+  string candidate_evidence_ref = 3;
+  string evidence_hash = 4;
+  string runtime_trace_ref = 5;
+  string realm_group_thread_id = 6;
+  string realm_group_agent_slot_id = 7;
+  string owner_user_id = 8;
+  string realm_agent_id = 9;
+  string local_agent_ref = 10;
+  string trigger_ref = 11;
+  string output_candidate_ref = 12;
+  string audit_lineage_ref = 13;
+  string policy_verdict_ref = 14;
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp expires_at = 16;
+  RealmGroupMessageCandidateCommitDisposition commit_disposition = 17;
+}
+
+message CreateRealmGroupMessageCandidateResponse {
+  RealmGroupMessageCandidateCommitHandle candidate = 1;
+}
+
+message GetRealmGroupMessageCandidateEvidenceRequest {
+  AgentRequestContext context = 1;
+  string candidate_id = 2;
+  string candidate_kind = 3;
+  string candidate_evidence_ref = 4;
+  string evidence_hash = 5;
+  string runtime_trace_ref = 6;
+  string expected_realm_group_agent_slot_id = 7;
+  string expected_local_agent_ref = 8;
+  string trigger_ref = 9;
+  string target_realm_group_thread_id = 10;
+}
+
+message RealmGroupMessageCandidateEvidence {
+  string candidate_id = 1;
+  string candidate_kind = 2;
+  string realm_group_thread_id = 3;
+  string realm_group_agent_slot_id = 4;
+  string owner_user_id = 5;
+  string realm_agent_id = 6;
+  string local_agent_ref = 7;
+  string trigger_ref = 8;
+  string output_candidate_ref = 9;
+  string evidence_hash = 10;
+  string runtime_trace_ref = 11;
+  string audit_lineage_ref = 12;
+  string policy_verdict_ref = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp expires_at = 15;
+  RealmGroupMessageCandidateCommitDisposition commit_disposition = 16;
+  string message_type = 17;
+  string body = 18;
+  string body_hash = 19;
+  string refusal_code = 20;
+  string refusal_reason = 21;
+  string refusal_hash = 22;
+}
+
+message GetRealmGroupMessageCandidateEvidenceResponse {
+  RealmGroupMessageCandidateEvidence evidence = 1;
+}

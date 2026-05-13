@@ -1,7 +1,5 @@
 import type {
   AgentEvent,
-  CreateRealmGroupMessageCandidateRequest,
-  CreateRealmGroupMessageCandidateResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
   GetDelegatedControlSurfaceSnapshotResponse,
   GetDelegatedReplayTraceRequest,
@@ -10,8 +8,6 @@ import type {
   GetConversationAnchorSnapshotResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
-  GetRealmGroupMessageCandidateEvidenceRequest,
-  GetRealmGroupMessageCandidateEvidenceResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
   SubmitDelegatedApprovalDecisionRequest,
@@ -24,6 +20,12 @@ import type {
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
 } from './generated/runtime/v1/agent_service.js';
+import type {
+  CreateRealmGroupMessageCandidateRequest,
+  CreateRealmGroupMessageCandidateResponse,
+  GetRealmGroupMessageCandidateEvidenceRequest,
+  GetRealmGroupMessageCandidateEvidenceResponse,
+} from './generated/runtime/v1/agent_group_message_candidate.js';
 import type {
   ExecuteScenarioRequest,
   ExecuteScenarioResponse,

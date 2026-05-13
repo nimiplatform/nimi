@@ -56,8 +56,6 @@ import {
 import {
   CancelHookRequest,
   CancelHookResponse,
-  CreateRealmGroupMessageCandidateRequest,
-  CreateRealmGroupMessageCandidateResponse,
   DisableAutonomyRequest,
   DisableAutonomyResponse,
   EnableAutonomyRequest,
@@ -66,8 +64,6 @@ import {
   GetAgentResponse,
   GetAgentStateRequest,
   GetAgentStateResponse,
-  GetRealmGroupMessageCandidateEvidenceRequest,
-  GetRealmGroupMessageCandidateEvidenceResponse,
   InitializeAgentRequest,
   InitializeAgentResponse,
   ListAgentsRequest,
@@ -85,6 +81,12 @@ import {
   WriteAgentMemoryRequest,
   WriteAgentMemoryResponse,
 } from '../generated/runtime/v1/agent_service';
+import {
+  CreateRealmGroupMessageCandidateRequest,
+  CreateRealmGroupMessageCandidateResponse,
+  GetRealmGroupMessageCandidateEvidenceRequest,
+  GetRealmGroupMessageCandidateEvidenceResponse,
+} from '../generated/runtime/v1/agent_group_message_candidate';
 import {
   CreateConnectorRequest,
   CreateConnectorResponse,
