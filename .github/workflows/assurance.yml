@@ -260,6 +260,10 @@ jobs:
       - name: Install nimi-mods dependencies
         run: pnpm --dir nimi-mods install --no-frozen-lockfile
 
+      - name: Build product studio runtime mod
+        working-directory: nimi-mods/runtime/product-studio
+        run: pnpm run build
+
       - name: Install desktop native drivers
         run: cargo install tauri-driver --locked
 

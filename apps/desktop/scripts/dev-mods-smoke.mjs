@@ -73,6 +73,10 @@ function findManifestPath(modDir) {
   return null;
 }
 
+function isRuntimeModCandidateDir(modDir) {
+  return existsSync(path.join(modDir, 'package.json')) || findManifestPath(modDir) !== null;
+}
+
 function readManifestSummary(manifestPath) {
   const content = readFileSync(manifestPath, 'utf8');
   if (manifestPath.endsWith('.json')) {
@@ -123,7 +127,8 @@ function main() {
   const runtimeModsDir = resolveRuntimeModsDir({ required: true, mustExist: true });
   ensureDir(runtimeModsDir, 'runtime mods dir');
   const installedDirNames = readdirSync(runtimeModsDir)
-    .filter((name) => isExistingDirectory(path.join(runtimeModsDir, name)));
+    .filter((name) => isExistingDirectory(path.join(runtimeModsDir, name)))
+    .filter((name) => !options.all || isRuntimeModCandidateDir(path.join(runtimeModsDir, name)));
   const targetDirNames = options.all
     ? installedDirNames
     : [options.mod || installedDirNames[0] || ''];

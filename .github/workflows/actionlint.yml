@@ -23,12 +23,10 @@ jobs:
           go-version: '1.25.x'
           cache: false
 
-      - name: Install actionlint
-        run: |
-          set -euo pipefail
-          GOBIN="$(go env GOPATH)/bin"
-          echo "${GOBIN}" >> "${GITHUB_PATH}"
-          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.11
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
 
       - name: Run actionlint
-        run: actionlint -color
+        run: node scripts/check-actionlint.mjs
