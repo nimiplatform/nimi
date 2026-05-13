@@ -51,6 +51,24 @@ func canonicalSupervisorProcessPath(path string) string {
 	return filepath.Clean(trimmed)
 }
 
+func shouldRetryObservedExecutablePath(actualPath string, fallbackPath string) bool {
+	actualBase := strings.ToLower(filepath.Base(strings.TrimSpace(actualPath)))
+	if actualBase == "" {
+		return false
+	}
+	switch strings.ToLower(filepath.Ext(strings.TrimSpace(fallbackPath))) {
+	case ".sh", ".bash", ".zsh":
+	default:
+		return false
+	}
+	switch actualBase {
+	case "sh", "bash", "zsh", "dash", "env":
+		return true
+	default:
+		return false
+	}
+}
+
 func encodeSupervisorPIDMetadata(metadata supervisorPIDMetadata) ([]byte, error) {
 	encoded, err := json.Marshal(metadata)
 	if err != nil {

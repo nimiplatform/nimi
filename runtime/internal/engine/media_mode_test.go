@@ -118,7 +118,7 @@ func TestMediaServerRequiresExplicitMode(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, pythonPath, scriptPath, "--port", "0")
-	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1")
+	cmd.Env = mediaServerTestEnv("PYTHONUNBUFFERED=1")
 	output, err := cmd.CombinedOutput()
 	if err == nil {
 		t.Fatal("expected media server to fail without NIMI_MEDIA_MODE")
@@ -140,7 +140,7 @@ func TestMediaServerRejectsInvalidMode(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, pythonPath, scriptPath, "--port", "0")
-	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "NIMI_MEDIA_MODE=invalid_mode")
+	cmd.Env = mediaServerTestEnv("PYTHONUNBUFFERED=1", "NIMI_MEDIA_MODE=invalid_mode")
 	output, err := cmd.CombinedOutput()
 	if err == nil {
 		t.Fatal("expected media server to fail for invalid NIMI_MEDIA_MODE")
@@ -170,7 +170,7 @@ func TestMediaServerStartsWithValidProxyMode(t *testing.T) {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, pythonPath, scriptPath, "--host", "127.0.0.1", "--port", fmt.Sprintf("%d", port))
 	cmd.Env = append(
-		os.Environ(),
+		mediaServerTestEnv(),
 		"PYTHONUNBUFFERED=1",
 		"NIMI_MEDIA_MODE=proxy_execution",
 	)
@@ -221,7 +221,7 @@ func TestMediaServerProxyModeImageGenerateFailsClosed(t *testing.T) {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, pythonPath, scriptPath, "--host", "127.0.0.1", "--port", fmt.Sprintf("%d", port))
 	cmd.Env = append(
-		os.Environ(),
+		mediaServerTestEnv(),
 		"PYTHONUNBUFFERED=1",
 		"NIMI_MEDIA_MODE=proxy_execution",
 	)
@@ -283,4 +283,16 @@ func writeMediaServerScriptForTest(t *testing.T) string {
 		t.Fatalf("write media server script: %v", err)
 	}
 	return scriptPath
+}
+
+func mediaServerTestEnv(extra ...string) []string {
+	env := make([]string, 0, len(os.Environ())+len(extra))
+	for _, item := range os.Environ() {
+		key, _, ok := strings.Cut(item, "=")
+		if ok && key == "NIMI_MEDIA_MODE" {
+			continue
+		}
+		env = append(env, item)
+	}
+	return append(env, extra...)
 }

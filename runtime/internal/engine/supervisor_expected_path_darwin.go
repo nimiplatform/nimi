@@ -8,7 +8,7 @@ import (
 
 func resolveSupervisorExpectedExecutablePath(pid int, fallbackPath string) string {
 	if pid > 0 {
-		deadline := time.Now().Add(250 * time.Millisecond)
+		deadline := time.Now().Add(2 * time.Second)
 		for {
 			if actual := observedSupervisorExecutablePath(pid); actual != "" {
 				if !shouldRetryObservedExecutablePath(actual, fallbackPath) || time.Now().After(deadline) {
