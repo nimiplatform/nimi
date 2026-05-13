@@ -1,5 +1,7 @@
 import type {
   AgentEvent,
+  CreateRealmGroupMessageCandidateRequest,
+  CreateRealmGroupMessageCandidateResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
   GetDelegatedControlSurfaceSnapshotResponse,
   GetDelegatedReplayTraceRequest,
@@ -8,6 +10,8 @@ import type {
   GetConversationAnchorSnapshotResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
+  GetRealmGroupMessageCandidateEvidenceRequest,
+  GetRealmGroupMessageCandidateEvidenceResponse,
   OpenConversationAnchorRequest,
   OpenConversationAnchorResponse,
   SubmitDelegatedApprovalDecisionRequest,
@@ -60,6 +64,12 @@ const runtimeAgentPresentationResult = runtime.call(
 const runtimeAgentOpenAnchorResult = runtime.agent.openConversationAnchor({} as OpenConversationAnchorRequest);
 const runtimeAgentGetAnchorSnapshotResult = runtime.agent.getConversationAnchorSnapshot({} as GetConversationAnchorSnapshotRequest);
 const runtimeAgentGetPublicChatSessionSnapshotResult = runtime.agent.getPublicChatSessionSnapshot({} as GetPublicChatSessionSnapshotRequest);
+const runtimeAgentCreateRealmGroupMessageCandidateResult = runtime.agent.createRealmGroupMessageCandidate(
+  {} as CreateRealmGroupMessageCandidateRequest,
+);
+const runtimeAgentGetRealmGroupMessageCandidateEvidenceResult = runtime.agent.getRealmGroupMessageCandidateEvidence(
+  {} as GetRealmGroupMessageCandidateEvidenceRequest,
+);
 const runtimeAgentDelegatedSnapshotResult = runtime.agent.getDelegatedControlSurfaceSnapshot(
   {} as GetDelegatedControlSurfaceSnapshotRequest,
 );
@@ -122,6 +132,14 @@ type _GuardRuntimeAgentGetAnchorSnapshotResult = Assert<IsEqual<
 type _GuardRuntimeAgentGetPublicChatSessionSnapshotResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentGetPublicChatSessionSnapshotResult>,
   GetPublicChatSessionSnapshotResponse
+>>;
+type _GuardRuntimeAgentCreateRealmGroupMessageCandidateResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentCreateRealmGroupMessageCandidateResult>,
+  CreateRealmGroupMessageCandidateResponse
+>>;
+type _GuardRuntimeAgentGetRealmGroupMessageCandidateEvidenceResult = Assert<IsEqual<
+  Awaited<typeof runtimeAgentGetRealmGroupMessageCandidateEvidenceResult>,
+  GetRealmGroupMessageCandidateEvidenceResponse
 >>;
 type _GuardRuntimeAgentDelegatedSnapshotResult = Assert<IsEqual<
   Awaited<typeof runtimeAgentDelegatedSnapshotResult>,

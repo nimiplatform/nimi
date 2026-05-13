@@ -251,6 +251,8 @@ const AGENT_METHODS = [
   'openConversationAnchor',
   'getConversationAnchorSnapshot',
   'getPublicChatSessionSnapshot',
+  'createRealmGroupMessageCandidate',
+  'getRealmGroupMessageCandidateEvidence',
   'getAvatarDebugSnapshot',
   'requestAvatarDebugProbe',
   'listAvatarDebugProbeResults',

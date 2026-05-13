@@ -134,6 +134,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
 		"/nimi.runtime.v1.RuntimeAgentService/CancelHook",
+		"/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate",
 		"/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy",
 		"/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy",
 		"/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability",

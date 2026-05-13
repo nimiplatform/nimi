@@ -4,25 +4,28 @@ type runtimePrivateAIBridgeAI interface {
 	lifeTurnScenarioExecutor
 	chatTrackSidecarScenarioExecutor
 	canonicalReviewScenarioExecutor
+	realmGroupMessageCandidateScenarioExecutor
 	publicChatBindingResolverService
 	publicChatScenarioStreamer
 }
 
 type RuntimePrivateAIBridge struct {
-	lifeTrack         LifeTrackExecutor
-	chatTrackSidecar  ChatTrackSidecarExecutor
-	canonicalReview   CanonicalReviewExecutor
-	publicChatBinding PublicChatBindingResolver
-	publicChatTurn    PublicChatTurnExecutor
+	lifeTrack           LifeTrackExecutor
+	chatTrackSidecar    ChatTrackSidecarExecutor
+	canonicalReview     CanonicalReviewExecutor
+	realmGroupCandidate RealmGroupMessageCandidateExecutor
+	publicChatBinding   PublicChatBindingResolver
+	publicChatTurn      PublicChatTurnExecutor
 }
 
 func newRuntimePrivateAIBridge() *RuntimePrivateAIBridge {
 	return &RuntimePrivateAIBridge{
-		lifeTrack:         rejectingLifeTrackExecutor{},
-		chatTrackSidecar:  rejectingChatTrackSidecarExecutor{},
-		canonicalReview:   rejectingCanonicalReviewExecutor{},
-		publicChatBinding: rejectingPublicChatBindingResolver{},
-		publicChatTurn:    rejectingPublicChatTurnExecutor{},
+		lifeTrack:           rejectingLifeTrackExecutor{},
+		chatTrackSidecar:    rejectingChatTrackSidecarExecutor{},
+		canonicalReview:     rejectingCanonicalReviewExecutor{},
+		realmGroupCandidate: rejectingRealmGroupMessageCandidateExecutor{},
+		publicChatBinding:   rejectingPublicChatBindingResolver{},
+		publicChatTurn:      rejectingPublicChatTurnExecutor{},
 	}
 }
 
@@ -34,6 +37,7 @@ func NewAIBackedRuntimePrivateAIBridge(ai runtimePrivateAIBridgeAI) *RuntimePriv
 	bridge.lifeTrack = NewAIBackedLifeTrackExecutor(ai)
 	bridge.chatTrackSidecar = NewAIBackedChatTrackSidecarExecutor(ai)
 	bridge.canonicalReview = NewAIBackedCanonicalReviewExecutor(ai)
+	bridge.realmGroupCandidate = NewAIBackedRealmGroupMessageCandidateExecutor(ai)
 	bridge.publicChatBinding = NewAIBackedPublicChatBindingResolver(ai)
 	bridge.publicChatTurn = NewAIBackedPublicChatTurnExecutor(ai)
 	return bridge
@@ -58,6 +62,13 @@ func (b *RuntimePrivateAIBridge) canonicalReviewExecutor() CanonicalReviewExecut
 		return rejectingCanonicalReviewExecutor{}
 	}
 	return b.canonicalReview
+}
+
+func (b *RuntimePrivateAIBridge) realmGroupMessageCandidateExecutor() RealmGroupMessageCandidateExecutor {
+	if b == nil || b.realmGroupCandidate == nil {
+		return rejectingRealmGroupMessageCandidateExecutor{}
+	}
+	return b.realmGroupCandidate
 }
 
 func (b *RuntimePrivateAIBridge) publicChatBindingResolver() PublicChatBindingResolver {
@@ -85,13 +96,16 @@ func (s *Service) SetRuntimePrivateAIBridge(bridge *RuntimePrivateAIBridge) {
 	if s == nil || s.isClosed() {
 		return
 	}
+	var candidateExecutor RealmGroupMessageCandidateExecutor
 	s.aiBridgeMu.Lock()
 	if bridge == nil {
 		s.aiBridge = newRuntimePrivateAIBridge()
 	} else {
 		s.aiBridge = bridge
 	}
+	candidateExecutor = s.aiBridge.realmGroupMessageCandidateExecutor()
 	s.aiBridgeMu.Unlock()
+	s.SetRealmGroupMessageCandidateExecutor(candidateExecutor)
 	s.resumeRecoveredPublicChatFollowUps()
 }
 

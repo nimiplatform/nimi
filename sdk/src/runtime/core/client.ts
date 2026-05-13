@@ -20,6 +20,8 @@ import {
 import {
   ExecuteDelegatedCapabilityRequest,
   ExecuteDelegatedCapabilityResponse,
+  CreateRealmGroupMessageCandidateRequest,
+  CreateRealmGroupMessageCandidateResponse,
   GetAvatarDebugReplayRequest,
   GetAvatarDebugReplayResponse,
   GetAvatarDebugSnapshotRequest,
@@ -32,6 +34,8 @@ import {
   GetDelegatedReplayTraceResponse,
   GetPublicChatSessionSnapshotRequest,
   GetPublicChatSessionSnapshotResponse,
+  GetRealmGroupMessageCandidateEvidenceRequest,
+  GetRealmGroupMessageCandidateEvidenceResponse,
   ListAvatarDebugProbeResultsRequest,
   ListAvatarDebugProbeResultsResponse,
   ListDelegatedApprovalRequestsRequest,
@@ -423,6 +427,14 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       getPublicChatSessionSnapshot: customUnary(RuntimeMethodIds.agent.getPublicChatSessionSnapshot, {
         requestType: GetPublicChatSessionSnapshotRequest,
         responseType: GetPublicChatSessionSnapshotResponse,
+      }),
+      createRealmGroupMessageCandidate: customUnary(RuntimeMethodIds.agent.createRealmGroupMessageCandidate, {
+        requestType: CreateRealmGroupMessageCandidateRequest,
+        responseType: CreateRealmGroupMessageCandidateResponse,
+      }),
+      getRealmGroupMessageCandidateEvidence: customUnary(RuntimeMethodIds.agent.getRealmGroupMessageCandidateEvidence, {
+        requestType: GetRealmGroupMessageCandidateEvidenceRequest,
+        responseType: GetRealmGroupMessageCandidateEvidenceResponse,
       }),
       getAvatarDebugSnapshot: customUnary(RuntimeMethodIds.agent.getAvatarDebugSnapshot, {
         requestType: GetAvatarDebugSnapshotRequest,

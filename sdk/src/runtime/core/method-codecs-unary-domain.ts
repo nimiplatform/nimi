@@ -56,6 +56,8 @@ import {
 import {
   CancelHookRequest,
   CancelHookResponse,
+  CreateRealmGroupMessageCandidateRequest,
+  CreateRealmGroupMessageCandidateResponse,
   DisableAutonomyRequest,
   DisableAutonomyResponse,
   EnableAutonomyRequest,
@@ -64,6 +66,8 @@ import {
   GetAgentResponse,
   GetAgentStateRequest,
   GetAgentStateResponse,
+  GetRealmGroupMessageCandidateEvidenceRequest,
+  GetRealmGroupMessageCandidateEvidenceResponse,
   InitializeAgentRequest,
   InitializeAgentResponse,
   ListAgentsRequest,
@@ -306,6 +310,14 @@ export const runtimeUnaryMethodCodecsDomain: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.agent.listAgents]: {
     requestType: ListAgentsRequest,
     responseType: ListAgentsResponse,
+  },
+  [RuntimeMethodIds.agent.createRealmGroupMessageCandidate]: {
+    requestType: CreateRealmGroupMessageCandidateRequest,
+    responseType: CreateRealmGroupMessageCandidateResponse,
+  },
+  [RuntimeMethodIds.agent.getRealmGroupMessageCandidateEvidence]: {
+    requestType: GetRealmGroupMessageCandidateEvidenceRequest,
+    responseType: GetRealmGroupMessageCandidateEvidenceResponse,
   },
   [RuntimeMethodIds.agent.getAgentState]: {
     requestType: GetAgentStateRequest,

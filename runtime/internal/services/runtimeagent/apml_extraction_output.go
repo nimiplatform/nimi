@@ -393,6 +393,27 @@ func allowedAPMLShape(rootName string) (map[string]struct{}, map[string]map[stri
 			"statement":        {},
 		}
 		return tags, attrs, children, textTags, true
+	case "realm-group-message-candidate":
+		tags := map[string]struct{}{
+			"realm-group-message-candidate": {},
+			"message":                       {},
+			"refusal":                       {},
+		}
+		attrs := map[string]map[string]struct{}{
+			"realm-group-message-candidate": noAttrs,
+			"message":                       noAttrs,
+			"refusal":                       {"code": {}},
+		}
+		children := map[string]map[string]struct{}{
+			"realm-group-message-candidate": {"message": {}, "refusal": {}},
+			"message":                       {},
+			"refusal":                       {},
+		}
+		textTags := map[string]struct{}{
+			"message": {},
+			"refusal": {},
+		}
+		return tags, attrs, children, textTags, true
 	default:
 		return nil, nil, nil, nil, false
 	}

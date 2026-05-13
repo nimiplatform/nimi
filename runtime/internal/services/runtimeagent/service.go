@@ -95,6 +95,11 @@ type Service struct {
 	chatActiveByAgent map[string]string
 	chatAsyncWG       sync.WaitGroup
 
+	realmGroupCandidateMu          sync.RWMutex
+	realmGroupCandidateExecutor    RealmGroupMessageCandidateExecutor
+	realmGroupCandidates           map[string]*realmGroupMessageCandidateEvidenceRecord
+	realmGroupCandidateIdempotency map[string]string
+
 	lifeLoopMu     sync.Mutex
 	lifeLoopCancel context.CancelFunc
 	lifeLoopDone   chan struct{}
@@ -122,30 +127,35 @@ func New(logger *slog.Logger, localStatePath string, memorySvc *memoryservice.Se
 	backend := memorySvc.PersistenceBackend()
 	stateRepo := newRuntimeAgentStateRepository(backend, statePath)
 	svc := &Service{
-		logger:                    logger,
-		memorySvc:                 memorySvc,
-		statePath:                 statePath,
-		backend:                   backend,
-		stateRepo:                 stateRepo,
-		chatStateRepo:             newPublicChatSurfaceStateRepository(backend, stateRepo),
-		reviews:                   newReviewPersistence(backend),
-		postures:                  newBehavioralPosturePersistence(backend),
-		aiBridge:                  newRuntimePrivateAIBridge(),
-		delegatedGateway:          delegatedGateway,
-		delegatedFirewall:         delegatedFirewall,
-		agents:                    make(map[string]*agentEntry),
-		events:                    make([]*runtimev1.AgentEvent, 0, maxEventLogSize),
-		subscribers:               make(map[uint64]*subscriber),
-		chatAnchors:               make(map[string]*publicChatAnchorState),
-		chatTurns:                 make(map[string]*publicChatTurnState),
-		chatFollowUps:             make(map[string]*publicChatFollowUpState),
-		chatActiveByAgent:         make(map[string]string),
-		voiceLipsync:              newSyntheticVoiceLipsyncSynthesizer(),
-		runtimeArtifacts:          runtimeartifact.NewMemoryStore(),
-		delegatedProviderProfiles: make(map[string]*runtimev1.DelegatedProviderProfile),
-		delegatedApprovalRequests: make(map[string]*runtimev1.DelegatedApprovalRequest),
+		logger:                         logger,
+		memorySvc:                      memorySvc,
+		statePath:                      statePath,
+		backend:                        backend,
+		stateRepo:                      stateRepo,
+		chatStateRepo:                  newPublicChatSurfaceStateRepository(backend, stateRepo),
+		reviews:                        newReviewPersistence(backend),
+		postures:                       newBehavioralPosturePersistence(backend),
+		aiBridge:                       newRuntimePrivateAIBridge(),
+		delegatedGateway:               delegatedGateway,
+		delegatedFirewall:              delegatedFirewall,
+		agents:                         make(map[string]*agentEntry),
+		events:                         make([]*runtimev1.AgentEvent, 0, maxEventLogSize),
+		subscribers:                    make(map[uint64]*subscriber),
+		chatAnchors:                    make(map[string]*publicChatAnchorState),
+		chatTurns:                      make(map[string]*publicChatTurnState),
+		chatFollowUps:                  make(map[string]*publicChatFollowUpState),
+		chatActiveByAgent:              make(map[string]string),
+		realmGroupCandidates:           make(map[string]*realmGroupMessageCandidateEvidenceRecord),
+		realmGroupCandidateIdempotency: make(map[string]string),
+		voiceLipsync:                   newSyntheticVoiceLipsyncSynthesizer(),
+		runtimeArtifacts:               runtimeartifact.NewMemoryStore(),
+		delegatedProviderProfiles:      make(map[string]*runtimev1.DelegatedProviderProfile),
+		delegatedApprovalRequests:      make(map[string]*runtimev1.DelegatedApprovalRequest),
 	}
 	if err := svc.loadState(); err != nil {
+		return nil, err
+	}
+	if err := svc.loadRealmGroupMessageCandidateStateFromDB(); err != nil {
 		return nil, err
 	}
 	svc.memorySvc.RegisterReplicationObserver(svc.handleCommittedMemoryReplication)
@@ -187,6 +197,15 @@ func (s *Service) SetAuditStore(store *auditlog.Store) {
 
 func (s *Service) SetLifeTrackExecutor(executor LifeTrackExecutor) {
 	s.setLifeTrackExecutor(executor)
+}
+
+func (s *Service) SetRealmGroupMessageCandidateExecutor(executor RealmGroupMessageCandidateExecutor) {
+	if s == nil {
+		return
+	}
+	s.realmGroupCandidateMu.Lock()
+	defer s.realmGroupCandidateMu.Unlock()
+	s.realmGroupCandidateExecutor = executor
 }
 
 func (s *Service) StartLifeTrackLoop(parent context.Context) error {

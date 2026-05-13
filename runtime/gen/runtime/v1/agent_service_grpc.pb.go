@@ -19,37 +19,39 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAgentService_InitializeAgent_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent"
-	RuntimeAgentService_TerminateAgent_FullMethodName                     = "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent"
-	RuntimeAgentService_GetAgent_FullMethodName                           = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
-	RuntimeAgentService_ListAgents_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
-	RuntimeAgentService_OpenConversationAnchor_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
-	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
-	RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
-	RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot"
-	RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe"
-	RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults"
-	RuntimeAgentService_GetAvatarDebugReplay_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay"
-	RuntimeAgentService_GetAgentState_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
-	RuntimeAgentService_UpdateAgentState_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState"
-	RuntimeAgentService_SetAgentPresentationProfile_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile"
-	RuntimeAgentService_EnableAutonomy_FullMethodName                     = "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy"
-	RuntimeAgentService_DisableAutonomy_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy"
-	RuntimeAgentService_SetAutonomyConfig_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig"
-	RuntimeAgentService_ListPendingHooks_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks"
-	RuntimeAgentService_CancelHook_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/CancelHook"
-	RuntimeAgentService_ListDelegatedProviderProfiles_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles"
-	RuntimeAgentService_UpsertDelegatedProviderProfile_FullMethodName     = "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile"
-	RuntimeAgentService_SetDelegatedProviderState_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState"
-	RuntimeAgentService_ListDelegatedApprovalRequests_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests"
-	RuntimeAgentService_SubmitDelegatedApprovalDecision_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision"
-	RuntimeAgentService_ListDelegatedDiagnostics_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics"
-	RuntimeAgentService_GetDelegatedReplayTrace_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace"
-	RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot"
-	RuntimeAgentService_ExecuteDelegatedCapability_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability"
-	RuntimeAgentService_QueryAgentMemory_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory"
-	RuntimeAgentService_WriteAgentMemory_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
-	RuntimeAgentService_SubscribeAgentEvents_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
+	RuntimeAgentService_InitializeAgent_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/InitializeAgent"
+	RuntimeAgentService_TerminateAgent_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/TerminateAgent"
+	RuntimeAgentService_GetAgent_FullMethodName                              = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
+	RuntimeAgentService_ListAgents_FullMethodName                            = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
+	RuntimeAgentService_OpenConversationAnchor_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
+	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
+	RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
+	RuntimeAgentService_CreateRealmGroupMessageCandidate_FullMethodName      = "/nimi.runtime.v1.RuntimeAgentService/CreateRealmGroupMessageCandidate"
+	RuntimeAgentService_GetRealmGroupMessageCandidateEvidence_FullMethodName = "/nimi.runtime.v1.RuntimeAgentService/GetRealmGroupMessageCandidateEvidence"
+	RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot"
+	RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe"
+	RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults"
+	RuntimeAgentService_GetAvatarDebugReplay_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay"
+	RuntimeAgentService_GetAgentState_FullMethodName                         = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
+	RuntimeAgentService_UpdateAgentState_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState"
+	RuntimeAgentService_SetAgentPresentationProfile_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile"
+	RuntimeAgentService_EnableAutonomy_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/EnableAutonomy"
+	RuntimeAgentService_DisableAutonomy_FullMethodName                       = "/nimi.runtime.v1.RuntimeAgentService/DisableAutonomy"
+	RuntimeAgentService_SetAutonomyConfig_FullMethodName                     = "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig"
+	RuntimeAgentService_ListPendingHooks_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/ListPendingHooks"
+	RuntimeAgentService_CancelHook_FullMethodName                            = "/nimi.runtime.v1.RuntimeAgentService/CancelHook"
+	RuntimeAgentService_ListDelegatedProviderProfiles_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles"
+	RuntimeAgentService_UpsertDelegatedProviderProfile_FullMethodName        = "/nimi.runtime.v1.RuntimeAgentService/UpsertDelegatedProviderProfile"
+	RuntimeAgentService_SetDelegatedProviderState_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/SetDelegatedProviderState"
+	RuntimeAgentService_ListDelegatedApprovalRequests_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests"
+	RuntimeAgentService_SubmitDelegatedApprovalDecision_FullMethodName       = "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision"
+	RuntimeAgentService_ListDelegatedDiagnostics_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics"
+	RuntimeAgentService_GetDelegatedReplayTrace_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace"
+	RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_FullMethodName    = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot"
+	RuntimeAgentService_ExecuteDelegatedCapability_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/ExecuteDelegatedCapability"
+	RuntimeAgentService_QueryAgentMemory_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/QueryAgentMemory"
+	RuntimeAgentService_WriteAgentMemory_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/WriteAgentMemory"
+	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                  = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
 )
 
 // RuntimeAgentServiceClient is the client API for RuntimeAgentService service.
@@ -63,6 +65,8 @@ type RuntimeAgentServiceClient interface {
 	OpenConversationAnchor(ctx context.Context, in *OpenConversationAnchorRequest, opts ...grpc.CallOption) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(ctx context.Context, in *GetConversationAnchorSnapshotRequest, opts ...grpc.CallOption) (*GetConversationAnchorSnapshotResponse, error)
 	GetPublicChatSessionSnapshot(ctx context.Context, in *GetPublicChatSessionSnapshotRequest, opts ...grpc.CallOption) (*GetPublicChatSessionSnapshotResponse, error)
+	CreateRealmGroupMessageCandidate(ctx context.Context, in *CreateRealmGroupMessageCandidateRequest, opts ...grpc.CallOption) (*CreateRealmGroupMessageCandidateResponse, error)
+	GetRealmGroupMessageCandidateEvidence(ctx context.Context, in *GetRealmGroupMessageCandidateEvidenceRequest, opts ...grpc.CallOption) (*GetRealmGroupMessageCandidateEvidenceResponse, error)
 	GetAvatarDebugSnapshot(ctx context.Context, in *GetAvatarDebugSnapshotRequest, opts ...grpc.CallOption) (*GetAvatarDebugSnapshotResponse, error)
 	RequestAvatarDebugProbe(ctx context.Context, in *RequestAvatarDebugProbeRequest, opts ...grpc.CallOption) (*RequestAvatarDebugProbeResponse, error)
 	ListAvatarDebugProbeResults(ctx context.Context, in *ListAvatarDebugProbeResultsRequest, opts ...grpc.CallOption) (*ListAvatarDebugProbeResultsResponse, error)
@@ -161,6 +165,26 @@ func (c *runtimeAgentServiceClient) GetPublicChatSessionSnapshot(ctx context.Con
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetPublicChatSessionSnapshotResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) CreateRealmGroupMessageCandidate(ctx context.Context, in *CreateRealmGroupMessageCandidateRequest, opts ...grpc.CallOption) (*CreateRealmGroupMessageCandidateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateRealmGroupMessageCandidateResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_CreateRealmGroupMessageCandidate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) GetRealmGroupMessageCandidateEvidence(ctx context.Context, in *GetRealmGroupMessageCandidateEvidenceRequest, opts ...grpc.CallOption) (*GetRealmGroupMessageCandidateEvidenceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRealmGroupMessageCandidateEvidenceResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_GetRealmGroupMessageCandidateEvidence_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -427,6 +451,8 @@ type RuntimeAgentServiceServer interface {
 	OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error)
 	GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error)
+	CreateRealmGroupMessageCandidate(context.Context, *CreateRealmGroupMessageCandidateRequest) (*CreateRealmGroupMessageCandidateResponse, error)
+	GetRealmGroupMessageCandidateEvidence(context.Context, *GetRealmGroupMessageCandidateEvidenceRequest) (*GetRealmGroupMessageCandidateEvidenceResponse, error)
 	GetAvatarDebugSnapshot(context.Context, *GetAvatarDebugSnapshotRequest) (*GetAvatarDebugSnapshotResponse, error)
 	RequestAvatarDebugProbe(context.Context, *RequestAvatarDebugProbeRequest) (*RequestAvatarDebugProbeResponse, error)
 	ListAvatarDebugProbeResults(context.Context, *ListAvatarDebugProbeResultsRequest) (*ListAvatarDebugProbeResultsResponse, error)
@@ -480,6 +506,12 @@ func (UnimplementedRuntimeAgentServiceServer) GetConversationAnchorSnapshot(cont
 }
 func (UnimplementedRuntimeAgentServiceServer) GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPublicChatSessionSnapshot not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) CreateRealmGroupMessageCandidate(context.Context, *CreateRealmGroupMessageCandidateRequest) (*CreateRealmGroupMessageCandidateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateRealmGroupMessageCandidate not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) GetRealmGroupMessageCandidateEvidence(context.Context, *GetRealmGroupMessageCandidateEvidenceRequest) (*GetRealmGroupMessageCandidateEvidenceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRealmGroupMessageCandidateEvidence not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetAvatarDebugSnapshot(context.Context, *GetAvatarDebugSnapshotRequest) (*GetAvatarDebugSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAvatarDebugSnapshot not implemented")
@@ -695,6 +727,42 @@ func _RuntimeAgentService_GetPublicChatSessionSnapshot_Handler(srv interface{}, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).GetPublicChatSessionSnapshot(ctx, req.(*GetPublicChatSessionSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_CreateRealmGroupMessageCandidate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateRealmGroupMessageCandidateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).CreateRealmGroupMessageCandidate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_CreateRealmGroupMessageCandidate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).CreateRealmGroupMessageCandidate(ctx, req.(*CreateRealmGroupMessageCandidateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_GetRealmGroupMessageCandidateEvidence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRealmGroupMessageCandidateEvidenceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).GetRealmGroupMessageCandidateEvidence(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_GetRealmGroupMessageCandidateEvidence_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).GetRealmGroupMessageCandidateEvidence(ctx, req.(*GetRealmGroupMessageCandidateEvidenceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1158,6 +1226,14 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPublicChatSessionSnapshot",
 			Handler:    _RuntimeAgentService_GetPublicChatSessionSnapshot_Handler,
+		},
+		{
+			MethodName: "CreateRealmGroupMessageCandidate",
+			Handler:    _RuntimeAgentService_CreateRealmGroupMessageCandidate_Handler,
+		},
+		{
+			MethodName: "GetRealmGroupMessageCandidateEvidence",
+			Handler:    _RuntimeAgentService_GetRealmGroupMessageCandidateEvidence_Handler,
 		},
 		{
 			MethodName: "GetAvatarDebugSnapshot",

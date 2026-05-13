@@ -282,8 +282,12 @@ import type {
   GetAvatarDebugReplayResponse,
   GetAvatarDebugSnapshotRequest,
   GetAvatarDebugSnapshotResponse,
+  CreateRealmGroupMessageCandidateRequest,
+  CreateRealmGroupMessageCandidateResponse,
   InitializeAgentRequest,
   InitializeAgentResponse,
+  GetRealmGroupMessageCandidateEvidenceRequest,
+  GetRealmGroupMessageCandidateEvidenceResponse,
   GetDelegatedControlSurfaceSnapshotRequest,
   GetDelegatedControlSurfaceSnapshotResponse,
   GetDelegatedReplayTraceRequest,
@@ -516,6 +520,14 @@ export type RuntimeAgentClient = {
     request: GetPublicChatSessionSnapshotRequest,
     options?: RuntimeCallOptions,
   ): Promise<GetPublicChatSessionSnapshotResponse>;
+  createRealmGroupMessageCandidate(
+    request: CreateRealmGroupMessageCandidateRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<CreateRealmGroupMessageCandidateResponse>;
+  getRealmGroupMessageCandidateEvidence(
+    request: GetRealmGroupMessageCandidateEvidenceRequest,
+    options?: RuntimeCallOptions,
+  ): Promise<GetRealmGroupMessageCandidateEvidenceResponse>;
   getAvatarDebugSnapshot(
     request: GetAvatarDebugSnapshotRequest,
     options?: RuntimeCallOptions,

@@ -85,6 +85,9 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	if !agentSvc.HasCanonicalReviewExecutor() {
 		t.Fatal("expected canonical review executor to be configured")
 	}
+	if !agentSvc.HasRealmGroupMessageCandidateExecutor() {
+		t.Fatal("expected realm group message candidate executor to be configured")
+	}
 	if !appSvc.HasInternalConsumer("runtime.agent.internal.chat_track_sidecar") {
 		t.Fatal("expected runtime.agent.internal.chat_track_sidecar app consumer to be configured")
 	}

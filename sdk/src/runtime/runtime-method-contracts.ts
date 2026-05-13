@@ -151,6 +151,8 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.agent.openConversationAnchor]: RuntimeClientMethodContract<'agent', 'openConversationAnchor'>;
   [RuntimeMethodIds.agent.getConversationAnchorSnapshot]: RuntimeClientMethodContract<'agent', 'getConversationAnchorSnapshot'>;
   [RuntimeMethodIds.agent.getPublicChatSessionSnapshot]: RuntimeClientMethodContract<'agent', 'getPublicChatSessionSnapshot'>;
+  [RuntimeMethodIds.agent.createRealmGroupMessageCandidate]: RuntimeClientMethodContract<'agent', 'createRealmGroupMessageCandidate'>;
+  [RuntimeMethodIds.agent.getRealmGroupMessageCandidateEvidence]: RuntimeClientMethodContract<'agent', 'getRealmGroupMessageCandidateEvidence'>;
   [RuntimeMethodIds.agent.getAvatarDebugSnapshot]: RuntimeClientMethodContract<'agent', 'getAvatarDebugSnapshot'>;
   [RuntimeMethodIds.agent.requestAvatarDebugProbe]: RuntimeClientMethodContract<'agent', 'requestAvatarDebugProbe'>;
   [RuntimeMethodIds.agent.listAvatarDebugProbeResults]: RuntimeClientMethodContract<'agent', 'listAvatarDebugProbeResults'>;
