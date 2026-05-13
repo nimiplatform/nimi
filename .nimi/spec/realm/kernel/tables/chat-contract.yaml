@@ -77,7 +77,7 @@ rules:
   - rule_id: R-CHAT-016
     level: must
     title: realm-agent-slot-id-is-durable-binding-identity
-    statement: "realmAgentSlotId is the durable Realm identity for an Agent participation binding inside a specific GROUP thread, distinct from the Agent global identity and human membership identity; commit must validate the same active realmAgentSlotId, target chatId, and Agent identity, and agentId alone must not be used as a group participation slot reference."
+    statement: "realmGroupAgentSlotId is the durable Realm identity for a local Agent participation binding inside a specific GROUP thread, distinct from the Realm Agent source identity and human membership identity; executable local Agent reference is localAgentRef = ownerUserId + realmAgentId, and commit must validate the same active realmGroupAgentSlotId, target chatId, and localAgentRef because realmAgentId alone is not a valid executable local Agent or group slot reference."
 entities:
   - name: ChatThread
     prisma_model: Chat
@@ -101,11 +101,11 @@ entities:
     json_fields: [payload, interaction, diagnostics]
   - name: RealmGroupAgentSlot
     prisma_model: RealmGroupAgentSlot
-    required_fields: [id, chatId, agentAccountId, agentOwnerId, state, createdAt]
+    required_fields: [id, chatId, ownerUserId, realmAgentId, state, createdAt]
     json_fields: [display, audit]
   - name: RealmGroupMessageCandidateSnapshot
     prisma_model: RuntimeEvidence
-    required_fields: [candidateId, candidateKind, realmGroupThreadId, realmAgentSlotId, agentId, evidenceHash, runtimeTraceRef, expiresAt]
+    required_fields: [candidateId, candidateKind, realmGroupThreadId, realmGroupAgentSlotId, ownerUserId, realmAgentId, localAgentRef, evidenceHash, runtimeTraceRef, expiresAt]
     json_fields: [body, refusal, lineage]
 group_authority:
   lifecycle_owner: Chat

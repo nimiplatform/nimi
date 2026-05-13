@@ -114,10 +114,12 @@ non-`REALM_GROUP_MESSAGE_CANDIDATE` output must fail closed before storage.
 
 ## R-CHAT-016
 
-`realmAgentSlotId` is the durable Realm identity for an Agent participation
-binding inside a specific `GROUP` thread. It is distinct from the Agent global
-identity (`agentId` / `agentAccountId`) and from human membership identity.
-Realm Group candidate commit must validate that the candidate snapshot binds the
-same active `realmAgentSlotId`, target `chatId`, and Agent identity before
-creating a message. `agentId` remains the Agent's global identity; it must not
-be used alone as a group participation slot reference.
+`realmGroupAgentSlotId` is the durable Realm identity for a local Agent
+participation binding inside a specific `GROUP` thread. It is distinct from the
+Realm Agent source identity (`realmAgentId`) and from human membership identity.
+The executable local Agent reference is `localAgentRef = ownerUserId +
+realmAgentId`; multiple users may have private local forks of the same
+`realmAgentId`. Realm Group candidate commit must validate that the candidate
+snapshot binds the same active `realmGroupAgentSlotId`, target `chatId`, and
+`localAgentRef` before creating a message. `realmAgentId` must not be used alone
+as a group participation slot or executable local Agent reference.

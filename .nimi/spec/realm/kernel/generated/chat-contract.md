@@ -26,7 +26,7 @@ Rules: 16
 | R-CHAT-013 | must | group-agent-commit-forbidden-fields | Realm Group candidate commit requests must not accept raw text, payload, prompt, systemPrompt, provider, model, messageId, senderId, or caller-owned agentAccountId as commit authority; canonical messageId may appear only after Realm validation and storage succeed. |
 | R-CHAT-014 | must | sdk-desktop-preserve-candidate-commit-split | SDK and Desktop consumers must preserve split Runtime candidate and Realm commit facades; collapsed generate-and-commit helpers, Desktop direct REST, Runtime internal imports, sendGroupMessage substitution, runtime.agent.turn.request substitution, renderer-local committed truth, and synthetic candidate/message success are forbidden. |
 | R-CHAT-015 | must | candidate-evidence-verifier-is-required | Realm Group candidate commit must consume candidate content only through a Runtime-owned candidate evidence reference verified by a Realm-side verifier that returns an immutable RealmGroupMessageCandidateSnapshot matching evidenceHash; missing verifier, missing snapshot, hash mismatch, expired snapshot, thread mismatch, slot mismatch, trigger mismatch, or non-REALM_GROUP_MESSAGE_CANDIDATE output must fail closed before storage. |
-| R-CHAT-016 | must | realm-agent-slot-id-is-durable-binding-identity | realmAgentSlotId is the durable Realm identity for an Agent participation binding inside a specific GROUP thread, distinct from the Agent global identity and human membership identity; commit must validate the same active realmAgentSlotId, target chatId, and Agent identity, and agentId alone must not be used as a group participation slot reference. |
+| R-CHAT-016 | must | realm-agent-slot-id-is-durable-binding-identity | realmGroupAgentSlotId is the durable Realm identity for a local Agent participation binding inside a specific GROUP thread, distinct from the Realm Agent source identity and human membership identity; executable local Agent reference is localAgentRef = ownerUserId + realmAgentId, and commit must validate the same active realmGroupAgentSlotId, target chatId, and localAgentRef because realmAgentId alone is not a valid executable local Agent or group slot reference. |
 
 Entities: 7
 
@@ -37,8 +37,8 @@ Entities: 7
 | GroupChatThread | Chat | id, type, title, creatorId, createdAt, updatedAt |  |
 | GroupParticipant | ChatParticipant | chatId, accountId, role, joinedAt |  |
 | GroupMessage | Message | id, chatId, senderId, type, createdAt | payload, interaction, diagnostics |
-| RealmGroupAgentSlot | RealmGroupAgentSlot | id, chatId, agentAccountId, agentOwnerId, state, createdAt | display, audit |
-| RealmGroupMessageCandidateSnapshot | RuntimeEvidence | candidateId, candidateKind, realmGroupThreadId, realmAgentSlotId, agentId, evidenceHash, runtimeTraceRef, expiresAt | body, refusal, lineage |
+| RealmGroupAgentSlot | RealmGroupAgentSlot | id, chatId, ownerUserId, realmAgentId, state, createdAt | display, audit |
+| RealmGroupMessageCandidateSnapshot | RuntimeEvidence | candidateId, candidateKind, realmGroupThreadId, realmGroupAgentSlotId, ownerUserId, realmAgentId, localAgentRef, evidenceHash, runtimeTraceRef, expiresAt | body, refusal, lineage |
 
 Required operations: 25
 - GET /api/human/chats
