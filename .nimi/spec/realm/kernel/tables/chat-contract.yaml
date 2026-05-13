@@ -101,7 +101,7 @@ entities:
     json_fields: [payload, interaction, diagnostics]
   - name: RealmGroupAgentSlot
     prisma_model: RealmGroupAgentSlot
-    required_fields: [id, chatId, ownerUserId, realmAgentId, state, createdAt]
+    required_fields: [id, chatId, ownerUserId, realmAgentId, localAgentRef, state, createdAt]
     json_fields: [display, audit]
   - name: RealmGroupMessageCandidateSnapshot
     prisma_model: RuntimeEvidence

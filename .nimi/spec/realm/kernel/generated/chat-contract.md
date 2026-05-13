@@ -37,7 +37,7 @@ Entities: 7
 | GroupChatThread | Chat | id, type, title, creatorId, createdAt, updatedAt |  |
 | GroupParticipant | ChatParticipant | chatId, accountId, role, joinedAt |  |
 | GroupMessage | Message | id, chatId, senderId, type, createdAt | payload, interaction, diagnostics |
-| RealmGroupAgentSlot | RealmGroupAgentSlot | id, chatId, ownerUserId, realmAgentId, state, createdAt | display, audit |
+| RealmGroupAgentSlot | RealmGroupAgentSlot | id, chatId, ownerUserId, realmAgentId, localAgentRef, state, createdAt | display, audit |
 | RealmGroupMessageCandidateSnapshot | RuntimeEvidence | candidateId, candidateKind, realmGroupThreadId, realmGroupAgentSlotId, ownerUserId, realmAgentId, localAgentRef, evidenceHash, runtimeTraceRef, expiresAt | body, refusal, lineage |
 
 Required operations: 25
