@@ -118,21 +118,31 @@ export type {
 } from './generated/runtime/v1/audit.js';
 export { CallerKind } from './generated/runtime/v1/common.js';
 export { ReasonCode as RuntimeReasonCode, ExternalPrincipalType } from './generated/runtime/v1/common.js';
+export type { WorkspaceBindingAttachment } from './generated/runtime/v1/common.js';
 export {
   AccountCallerMode,
   AccountSessionState,
   AccountReasonCode,
   ScopedAppBindingPurpose,
   ScopedAppBindingState,
+  WorkspaceBindingPurpose,
+  WorkspaceBindingState,
+  WorkspaceMembershipState,
 } from './generated/runtime/v1/account.js';
 export type {
   AccountCaller,
   AccountProjection,
   ScopedAppBindingRelation,
+  WorkspaceBindingRelation,
+  WorkspaceMembershipProjection,
   IssueScopedAppBindingRequest,
   IssueScopedAppBindingResponse,
   RevokeScopedAppBindingRequest,
   RevokeScopedAppBindingResponse,
+  IssueWorkspaceBindingRequest,
+  IssueWorkspaceBindingResponse,
+  RevokeWorkspaceBindingRequest,
+  RevokeWorkspaceBindingResponse,
 } from './generated/runtime/v1/account.js';
 export { ExternalProofType, AppMode, WorldRelation } from './generated/runtime/v1/auth.js';
 export { PolicyMode, AuthorizationPreset as RuntimeAuthorizationPreset } from './generated/runtime/v1/grant.js';

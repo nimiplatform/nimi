@@ -206,6 +206,7 @@ function toGrpcMetadata(
   append('x-nimi-participant-id', metadata?.participantId);
   append('x-nimi-domain', metadata?.domain);
   append('x-nimi-app-id', metadata?.appId);
+  append('x-nimi-app-instance-id', metadata?.appInstanceId);
   append('x-nimi-trace-id', metadata?.traceId);
   append('x-nimi-idempotency-key', metadata?.idempotencyKey);
   append('x-nimi-caller-kind', metadata?.callerKind);

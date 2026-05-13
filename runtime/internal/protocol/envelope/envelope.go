@@ -30,6 +30,7 @@ type Metadata struct {
 	ParticipantID              string
 	Domain                     string
 	AppID                      string
+	AppInstanceID              string
 	TraceID                    string
 	IdempotencyKey             string
 	CallerKind                 string
@@ -53,6 +54,7 @@ func Validate(ctx context.Context, req any, requireIdempotency bool) (Metadata, 
 		ParticipantID:              first(md, "x-nimi-participant-id"),
 		Domain:                     first(md, "x-nimi-domain"),
 		AppID:                      first(md, "x-nimi-app-id"),
+		AppInstanceID:              first(md, "x-nimi-app-instance-id"),
 		TraceID:                    first(md, "x-nimi-trace-id"),
 		IdempotencyKey:             first(md, "x-nimi-idempotency-key"),
 		CallerKind:                 first(md, "x-nimi-caller-kind"),
@@ -141,6 +143,7 @@ func validateMetadataValueLengths(meta Metadata) error {
 		"x-nimi-participant-id":               meta.ParticipantID,
 		"x-nimi-domain":                       meta.Domain,
 		"x-nimi-app-id":                       meta.AppID,
+		"x-nimi-app-instance-id":              meta.AppInstanceID,
 		"x-nimi-trace-id":                     meta.TraceID,
 		"x-nimi-idempotency-key":              meta.IdempotencyKey,
 		"x-nimi-caller-kind":                  meta.CallerKind,
@@ -214,6 +217,9 @@ func HeaderPairs(meta Metadata) []string {
 	}
 	if appID := strings.TrimSpace(meta.AppID); appID != "" {
 		pairs = append(pairs, "x-nimi-app-id", appID)
+	}
+	if appInstanceID := strings.TrimSpace(meta.AppInstanceID); appInstanceID != "" {
+		pairs = append(pairs, "x-nimi-app-instance-id", appInstanceID)
 	}
 	if traceID := strings.TrimSpace(meta.TraceID); traceID != "" {
 		pairs = append(pairs, "x-nimi-trace-id", traceID)

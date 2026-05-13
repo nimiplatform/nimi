@@ -19,13 +19,14 @@ var (
 )
 
 type AccountMaterial struct {
-	AccountID          string
-	DisplayName        string
-	RealmEnvironmentID string
-	AccessToken        string
-	AccessTokenExpires time.Time
-	RefreshToken       string
-	RefreshTokenHashes map[string]bool
+	AccountID            string
+	DisplayName          string
+	RealmEnvironmentID   string
+	WorkspaceMemberships []*runtimev1.WorkspaceMembershipProjection
+	AccessToken          string
+	AccessTokenExpires   time.Time
+	RefreshToken         string
+	RefreshTokenHashes   map[string]bool
 }
 
 type LoginAttempt struct {
@@ -95,6 +96,11 @@ type bindingRecord struct {
 	carrier  string
 }
 
+type workspaceBindingRecord struct {
+	relation   *runtimev1.WorkspaceBindingRelation
+	attachment *runtimev1.WorkspaceBindingAttachment
+}
+
 type subscriber struct {
 	id uint64
 	ch chan *runtimev1.AccountSessionEvent
@@ -116,14 +122,15 @@ type Service struct {
 	nonProductionHarnessMode bool
 	eventRetention           int
 
-	mu               sync.RWMutex
-	state            runtimev1.AccountSessionState
-	projection       *runtimev1.AccountProjection
-	material         AccountMaterial
-	loginAttempts    map[string]loginAttemptRecord
-	bindings         map[string]bindingRecord
-	nextSequence     uint64
-	events           []*runtimev1.AccountSessionEvent
-	nextSubscriberID uint64
-	subscribers      map[uint64]subscriber
+	mu                sync.RWMutex
+	state             runtimev1.AccountSessionState
+	projection        *runtimev1.AccountProjection
+	material          AccountMaterial
+	loginAttempts     map[string]loginAttemptRecord
+	bindings          map[string]bindingRecord
+	workspaceBindings map[string]workspaceBindingRecord
+	nextSequence      uint64
+	events            []*runtimev1.AccountSessionEvent
+	nextSubscriberID  uint64
+	subscribers       map[uint64]subscriber
 }

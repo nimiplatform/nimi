@@ -36,12 +36,16 @@ import {
   GetAccountSessionStatusResponse,
   IssueScopedAppBindingRequest,
   IssueScopedAppBindingResponse,
+  IssueWorkspaceBindingRequest,
+  IssueWorkspaceBindingResponse,
   LogoutRequest,
   LogoutResponse,
   RefreshAccountSessionRequest,
   RefreshAccountSessionResponse,
   RevokeScopedAppBindingRequest,
   RevokeScopedAppBindingResponse,
+  RevokeWorkspaceBindingRequest,
+  RevokeWorkspaceBindingResponse,
   SwitchAccountRequest,
   SwitchAccountResponse,
 } from '../generated/runtime/v1/account';
@@ -149,6 +153,14 @@ export const runtimeUnaryMethodCodecsAuthAi: Partial<RuntimeUnaryMethodCodecMap>
   [RuntimeMethodIds.account.revokeScopedAppBinding]: {
     requestType: RevokeScopedAppBindingRequest,
     responseType: RevokeScopedAppBindingResponse,
+  },
+  [RuntimeMethodIds.account.issueWorkspaceBinding]: {
+    requestType: IssueWorkspaceBindingRequest,
+    responseType: IssueWorkspaceBindingResponse,
+  },
+  [RuntimeMethodIds.account.revokeWorkspaceBinding]: {
+    requestType: RevokeWorkspaceBindingRequest,
+    responseType: RevokeWorkspaceBindingResponse,
   },
   [RuntimeMethodIds.appAuth.authorizeExternalPrincipal]: {
     requestType: AuthorizeExternalPrincipalRequest,

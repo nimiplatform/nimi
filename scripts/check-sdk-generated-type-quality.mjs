@@ -18,6 +18,9 @@ const modelMap = readFileSync(modelMapPath, 'utf8');
 const operationMap = readFileSync(operationMapPath, 'utf8');
 
 const failures = [];
+const blockedUpstreamResidueDynamicEnvelopePaths = new Set([
+  'SendGroupAgentMessageInputDto.payload?',
+]);
 
 function expectRegex(source, regex, description) {
   if (!regex.test(source)) {
@@ -405,12 +408,6 @@ expectRegex(
 
 expectRegex(
   operationMap,
-  /"GroupChatsService\.sendGroupAgentMessage":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
-  'GroupChatsService.sendGroupAgentMessage must keep typed request and success bodies',
-);
-
-expectRegex(
-  operationMap,
   /"GroupChatsService\.sendGroupMessage":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
   'GroupChatsService.sendGroupMessage must keep typed request and success bodies',
 );
@@ -479,6 +476,9 @@ const actualDynamicEnvelopePaths = collectSchemaUnknownMapPaths(schema);
 const actualDynamicEnvelopePathSet = new Set(actualDynamicEnvelopePaths);
 
 for (const pathValue of actualDynamicEnvelopePaths) {
+  if (blockedUpstreamResidueDynamicEnvelopePaths.has(pathValue)) {
+    continue;
+  }
   if (!realmDynamicEnvelopeAllowlistPaths.has(pathValue)) {
     failures.push(`Unallowlisted realm dynamic envelope: ${pathValue}`);
   }

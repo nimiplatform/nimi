@@ -31,6 +31,7 @@ export function mergeRuntimeMetadata(
     participantId: normalize(metadata.participantId || defaults.participantId || config.appId),
     domain: normalize(metadata.domain || 'runtime.rpc'),
     appId: normalize(metadata.appId || config.appId),
+    appInstanceId: normalize(metadata.appInstanceId || defaults.appInstanceId),
     traceId: normalize(metadata.traceId),
     idempotencyKey: normalize(options?.idempotencyKey || metadata.idempotencyKey),
     callerKind: metadata.callerKind || defaults.callerKind || 'third-party-app',

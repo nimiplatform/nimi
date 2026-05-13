@@ -15,6 +15,7 @@ import { Ack } from "./common";
 import { ReasonCode } from "./common";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { Struct } from "../../google/protobuf/struct";
+import { WorkspaceBindingAttachment } from "./common";
 /**
  * @generated from protobuf message nimi.runtime.v1.KnowledgeRequestContext
  */
@@ -27,6 +28,10 @@ export interface KnowledgeRequestContext {
      * @generated from protobuf field: string subject_user_id = 2
      */
     subjectUserId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.WorkspaceBindingAttachment workspace_binding = 3
+     */
+    workspaceBinding?: WorkspaceBindingAttachment;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.KnowledgeAppPrivateOwner
@@ -1059,7 +1064,8 @@ class KnowledgeRequestContext$Type extends MessageType<KnowledgeRequestContext> 
     constructor() {
         super("nimi.runtime.v1.KnowledgeRequestContext", [
             { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "subject_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "workspace_binding", kind: "message", T: () => WorkspaceBindingAttachment }
         ]);
     }
     create(value?: PartialMessage<KnowledgeRequestContext>): KnowledgeRequestContext {
@@ -1081,6 +1087,9 @@ class KnowledgeRequestContext$Type extends MessageType<KnowledgeRequestContext> 
                 case /* string subject_user_id */ 2:
                     message.subjectUserId = reader.string();
                     break;
+                case /* nimi.runtime.v1.WorkspaceBindingAttachment workspace_binding */ 3:
+                    message.workspaceBinding = WorkspaceBindingAttachment.internalBinaryRead(reader, reader.uint32(), options, message.workspaceBinding);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1099,6 +1108,9 @@ class KnowledgeRequestContext$Type extends MessageType<KnowledgeRequestContext> 
         /* string subject_user_id = 2; */
         if (message.subjectUserId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.subjectUserId);
+        /* nimi.runtime.v1.WorkspaceBindingAttachment workspace_binding = 3; */
+        if (message.workspaceBinding)
+            WorkspaceBindingAttachment.internalBinaryWrite(message.workspaceBinding, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

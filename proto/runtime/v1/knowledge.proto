@@ -17,6 +17,7 @@ enum KnowledgeBankScope {
 message KnowledgeRequestContext {
   string app_id = 1;
   string subject_user_id = 2;
+  WorkspaceBindingAttachment workspace_binding = 3;
 }
 
 message KnowledgeAppPrivateOwner {

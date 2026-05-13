@@ -24,6 +24,7 @@ func newUnaryProtocolInterceptor(store *idempotency.Store) grpc.UnaryServerInter
 		if err != nil {
 			return nil, err
 		}
+		ctx = envelope.WithMetadata(ctx, meta)
 
 		if requireIdempotency && store != nil {
 			appID := strings.TrimSpace(meta.AppID)
@@ -62,6 +63,7 @@ func newStreamProtocolInterceptor() grpc.StreamServerInterceptor {
 		}
 		wrapped := &protocolStream{
 			ServerStream:   ss,
+			ctx:            envelope.WithMetadata(ss.Context(), meta),
 			metadataAppID:  strings.TrimSpace(meta.AppID),
 			checkedRequest: false,
 		}
@@ -71,9 +73,17 @@ func newStreamProtocolInterceptor() grpc.StreamServerInterceptor {
 
 type protocolStream struct {
 	grpc.ServerStream
+	ctx            context.Context
 	metadataAppID  string
 	checkedRequest bool
 	mu             sync.Mutex
+}
+
+func (s *protocolStream) Context() context.Context {
+	if s.ctx == nil {
+		return s.ServerStream.Context()
+	}
+	return s.ctx
 }
 
 func (s *protocolStream) RecvMsg(m any) error {
@@ -160,6 +170,8 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
 		"/nimi.runtime.v1.RuntimeAccountService/IssueScopedAppBinding",
 		"/nimi.runtime.v1.RuntimeAccountService/RevokeScopedAppBinding",
+		"/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
+		"/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
 		"/nimi.runtime.v1.RuntimeCognitionService/CreateBank",
 		"/nimi.runtime.v1.RuntimeCognitionService/DeleteBank",
 		"/nimi.runtime.v1.RuntimeCognitionService/Retain",

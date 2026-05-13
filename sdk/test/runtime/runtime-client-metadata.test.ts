@@ -24,6 +24,7 @@ test('mergeRuntimeMetadata applies defaults and per-call overrides', () => {
         protocolVersion: '1.2.3',
         participantProtocolVersion: '1.2.4',
         participantId: 'desktop:core',
+        appInstanceId: 'desktop-instance-default',
         callerKind: 'desktop-core',
         callerId: 'app:nimi.desktop',
         surfaceId: 'renderer',
@@ -33,6 +34,7 @@ test('mergeRuntimeMetadata applies defaults and per-call overrides', () => {
       idempotencyKey: 'idem-1',
       metadata: {
         domain: 'runtime.test',
+        appInstanceId: 'desktop-instance-call',
         traceId: 'trace-meta',
         extra: {
           'x-nimi-test': 'yes',
@@ -44,6 +46,7 @@ test('mergeRuntimeMetadata applies defaults and per-call overrides', () => {
   assert.equal(metadata.protocolVersion, '1.2.3');
   assert.equal(metadata.participantProtocolVersion, '1.2.4');
   assert.equal(metadata.participantId, 'desktop:core');
+  assert.equal(metadata.appInstanceId, 'desktop-instance-call');
   assert.equal(metadata.callerKind, 'desktop-core');
   assert.equal(metadata.callerId, 'app:nimi.desktop');
   assert.equal(metadata.surfaceId, 'renderer');
@@ -51,6 +54,24 @@ test('mergeRuntimeMetadata applies defaults and per-call overrides', () => {
   assert.equal(metadata.traceId, 'trace-meta');
   assert.equal(metadata.idempotencyKey, 'idem-1');
   assert.deepEqual(metadata.extra, { 'x-nimi-test': 'yes' });
+});
+
+test('mergeRuntimeMetadata does not infer appInstanceId from participantId', () => {
+  const metadata = mergeRuntimeMetadata(
+    {
+      appId: 'nimi.desktop.test',
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      defaults: {
+        participantId: 'desktop:core',
+      },
+    },
+  );
+
+  assert.equal(metadata.participantId, 'desktop:core');
+  assert.equal(metadata.appInstanceId, undefined);
 });
 
 test('asNimiError parses embedded runtime JSON payload', () => {

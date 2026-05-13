@@ -85,6 +85,17 @@ func (s *Service) GetIngestTask(ctx context.Context, req *runtimev1.GetIngestTas
 	if taskID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	if projection, ok := s.ingestTaskProjectionFor(taskID); ok {
+		scope, err := s.loadAuthorizedScope(ctx, req.GetContext(), projection.BankID, KnowledgeActionReadBank)
+		if err != nil {
+			return nil, err
+		}
+		task, err := s.cognitionCore.KnowledgeService().GetIngestTask(scope.ScopeID, taskID)
+		if err != nil {
+			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_KNOWLEDGE_INGEST_TASK_NOT_FOUND)
+		}
+		return &runtimev1.GetIngestTaskResponse{Task: s.projectIngestTask(scope.ScopeID, task)}, nil
+	}
 	scopes, err := s.listAuthorizedScopes(ctx, req.GetContext())
 	if err != nil {
 		return nil, err

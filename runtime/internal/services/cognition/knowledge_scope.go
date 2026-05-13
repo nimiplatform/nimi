@@ -8,6 +8,7 @@ import (
 	cognitionpkg "github.com/nimiplatform/nimi/nimi-cognition/cognition"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	grpcerr "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -17,9 +18,11 @@ import (
 // KnowledgeAuthorizer. It maps the typed result into a gRPC error.
 func (s *Service) authorize(ctx context.Context, action KnowledgeAction, requestCtx *runtimev1.KnowledgeRequestContext, owner cognitionpkg.KnowledgeScopeOwner) error {
 	res, err := s.authorizer.Authorize(ctx, KnowledgeAuthRequest{
-		Action:  action,
-		Context: requestCtx,
-		Owner:   owner,
+		Action:         action,
+		Context:        requestCtx,
+		Caller:         knowledgeCallerFromEnvelope(ctx),
+		Owner:          owner,
+		RequiredScopes: requiredScopesForKnowledgeAction(action),
 	})
 	if err != nil {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
@@ -35,6 +38,23 @@ func (s *Service) authorize(ctx context.Context, action KnowledgeAction, request
 		ActionHint: res.ActionHint,
 		Message:    res.Message,
 	})
+}
+
+func knowledgeCallerFromEnvelope(ctx context.Context) *runtimev1.AccountCaller {
+	meta, ok := envelope.MetadataFromContext(ctx)
+	if !ok {
+		return nil
+	}
+	appID := strings.TrimSpace(meta.AppID)
+	appInstanceID := strings.TrimSpace(meta.AppInstanceID)
+	if appID == "" || appInstanceID == "" {
+		return nil
+	}
+	return &runtimev1.AccountCaller{
+		AppId:         appID,
+		AppInstanceId: appInstanceID,
+		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
+	}
 }
 
 // loadAuthorizedScope loads a scope by id and authorizes the action

@@ -91,6 +91,43 @@ func (s *Service) revokeBindingsLocked(reason runtimev1.AccountReasonCode) []*ru
 		s.bindings[id] = record
 		events = append(events, s.appendBindingEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, record.relation))
 	}
+	for id, record := range s.workspaceBindings {
+		if record.relation.GetState() != runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ACTIVE &&
+			record.relation.GetState() != runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ISSUED {
+			continue
+		}
+		record.relation.State = runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_REVOKED
+		record.relation.ReasonCode = workspaceBindingReasonForAccountRevocation(reason)
+		s.workspaceBindings[id] = record
+		events = append(events, s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, reason, id))
+	}
+	return events
+}
+
+func workspaceBindingReasonForAccountRevocation(reason runtimev1.AccountReasonCode) runtimev1.ReasonCode {
+	switch reason {
+	case runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED:
+		return runtimev1.ReasonCode_WORKSPACE_BINDING_REVOKED
+	default:
+		return runtimev1.ReasonCode_WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE
+	}
+}
+
+func (s *Service) revokeWorkspaceBindingsWithoutActiveMembershipLocked() []*runtimev1.AccountSessionEvent {
+	var events []*runtimev1.AccountSessionEvent
+	for id, record := range s.workspaceBindings {
+		if record.relation.GetState() != runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ACTIVE &&
+			record.relation.GetState() != runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_ISSUED {
+			continue
+		}
+		if s.hasActiveWorkspaceMembershipLocked(record.relation.GetWorkspaceId(), record.relation.GetRealmEnvironmentId()) {
+			continue
+		}
+		record.relation.State = runtimev1.WorkspaceBindingState_WORKSPACE_BINDING_STATE_REVOKED
+		record.relation.ReasonCode = runtimev1.ReasonCode_WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE
+		s.workspaceBindings[id] = record
+		events = append(events, s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_BINDING_REVOKED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, id))
+	}
 	return events
 }
 

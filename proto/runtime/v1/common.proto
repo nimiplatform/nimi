@@ -160,6 +160,19 @@ enum ReasonCode {
   AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED = 564;
   AI_LOCAL_SPEECH_BUNDLE_DEGRADED = 565;
 
+  // WORKSPACE_BINDING family (570+)
+  WORKSPACE_BINDING_MISSING = 570;
+  WORKSPACE_BINDING_MALFORMED = 571;
+  WORKSPACE_BINDING_NOT_FOUND = 572;
+  WORKSPACE_BINDING_REVOKED = 573;
+  WORKSPACE_BINDING_EXPIRED = 574;
+  WORKSPACE_BINDING_REPLAY = 575;
+  WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE = 576;
+  WORKSPACE_BINDING_CALLER_MISMATCH = 577;
+  WORKSPACE_BINDING_WORKSPACE_MISMATCH = 578;
+  WORKSPACE_BINDING_ENV_DEVICE_MISMATCH = 579;
+  WORKSPACE_BINDING_SCOPE_MISSING = 580;
+
   // GRANT family (510+)
   GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND = 510;
   GRANT_TOKEN_CHAIN_ROOT_REQUIRED = 511;
@@ -226,6 +239,15 @@ message ScopedRuntimeBindingAttachment {
   string agent_id = 7;
   string conversation_anchor_id = 8;
   string world_id = 9;
+}
+
+message WorkspaceBindingAttachment {
+  string binding_id = 1;
+  string binding_handle = 2;
+  string runtime_app_id = 3;
+  string app_instance_id = 4;
+  string workspace_id = 5;
+  string realm_environment_id = 6;
 }
 
 message UsageStats {

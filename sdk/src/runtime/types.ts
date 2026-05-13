@@ -24,6 +24,7 @@ export type RuntimeMetadata = {
   participantId?: string;
   domain?: string;
   appId?: string;
+  appInstanceId?: string;
   traceId?: string;
   idempotencyKey?: string;
   callerKind?: RuntimeCallerKind;
@@ -83,6 +84,7 @@ export type RuntimeClientDefaults = {
   protocolVersion?: string;
   participantProtocolVersion?: string;
   participantId?: string;
+  appInstanceId?: string;
   callerKind?: RuntimeCallerKind;
   callerId?: string;
   surfaceId?: string;

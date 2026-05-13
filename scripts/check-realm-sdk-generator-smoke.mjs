@@ -16,7 +16,6 @@ const generatedFacadePath = path.join(repoRoot, 'sdk', 'src', 'realm', 'index.ts
 const EXPECTED_GROUP_PATHS = new Map([
   ['/api/human/group-chats', ['get', 'post']],
   ['/api/human/group-chats/{chatId}', ['get', 'patch']],
-  ['/api/human/group-chats/{chatId}/agent-messages', ['post']],
   ['/api/human/group-chats/{chatId}/agents', ['post']],
   ['/api/human/group-chats/{chatId}/agents/{agentAccountId}', ['delete']],
   ['/api/human/group-chats/{chatId}/messages', ['get', 'post']],
@@ -39,7 +38,6 @@ const EXPECTED_GROUP_SCHEMAS = [
   'GroupParticipantDto',
   'ListGroupChatsResultDto',
   'ListGroupMessagesResultDto',
-  'SendGroupAgentMessageInputDto',
   'UpdateParticipantRoleInputDto',
 ];
 

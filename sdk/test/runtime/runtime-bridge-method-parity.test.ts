@@ -81,6 +81,8 @@ test('RuntimeAccountService projection is admitted for local first-party custody
     RuntimeMethodIds.account.switchAccount,
     RuntimeMethodIds.account.issueScopedAppBinding,
     RuntimeMethodIds.account.revokeScopedAppBinding,
+    RuntimeMethodIds.account.issueWorkspaceBinding,
+    RuntimeMethodIds.account.revokeWorkspaceBinding,
   ];
   const codecMethodIds = new Set([
     ...Object.keys(RuntimeUnaryMethodCodecs),

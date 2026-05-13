@@ -42,7 +42,6 @@ export const realmDynamicEnvelopeAllowlist = [
   { path: 'WorldStateWriteDto.metadata?', category: 'world-state-metadata' },
   { path: 'WorldStateWriteDto.payload', category: 'world-state-payload' },
   { path: 'WorldviewTruthRuleSummaryDto.structured?', category: 'rule-structured-extension' },
-  { path: 'SendGroupAgentMessageInputDto.payload?', category: 'group-chat-agent-message-payload' },
 ];
 
 export const realmDynamicEnvelopeAllowlistPaths = new Set(

@@ -91,10 +91,40 @@ enum ScopedAppBindingPurpose {
   SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME = 2;
 }
 
+enum WorkspaceMembershipState {
+  WORKSPACE_MEMBERSHIP_STATE_UNSPECIFIED = 0;
+  WORKSPACE_MEMBERSHIP_STATE_ACTIVE = 1;
+  WORKSPACE_MEMBERSHIP_STATE_SUSPENDED = 2;
+  WORKSPACE_MEMBERSHIP_STATE_REVOKED = 3;
+  WORKSPACE_MEMBERSHIP_STATE_UNKNOWN = 4;
+}
+
+enum WorkspaceBindingPurpose {
+  WORKSPACE_BINDING_PURPOSE_UNSPECIFIED = 0;
+  WORKSPACE_BINDING_PURPOSE_KNOWLEDGE_CONSUME = 1;
+}
+
+enum WorkspaceBindingState {
+  WORKSPACE_BINDING_STATE_UNSPECIFIED = 0;
+  WORKSPACE_BINDING_STATE_ISSUED = 1;
+  WORKSPACE_BINDING_STATE_ACTIVE = 2;
+  WORKSPACE_BINDING_STATE_REVOKED = 3;
+  WORKSPACE_BINDING_STATE_EXPIRED = 4;
+}
+
+message WorkspaceMembershipProjection {
+  string workspace_id = 1;
+  WorkspaceMembershipState membership_state = 2;
+  string realm_environment_id = 3;
+  google.protobuf.Timestamp observed_at = 4;
+  map<string, string> display_metadata = 5;
+}
+
 message AccountProjection {
   string account_id = 1;
   string display_name = 2;
   string realm_environment_id = 3;
+  repeated WorkspaceMembershipProjection workspace_memberships = 4;
 }
 
 message AccountCaller {
@@ -120,6 +150,22 @@ message ScopedAppBindingRelation {
   google.protobuf.Timestamp expires_at = 12;
   ScopedAppBindingState state = 13;
   AccountReasonCode reason_code = 14;
+}
+
+message WorkspaceBindingRelation {
+  string binding_id = 1;
+  string runtime_app_id = 2;
+  string app_instance_id = 3;
+  string device_id = 4;
+  string account_id = 5;
+  string realm_environment_id = 6;
+  string workspace_id = 7;
+  WorkspaceBindingPurpose purpose = 8;
+  repeated string scopes = 9;
+  google.protobuf.Timestamp issued_at = 10;
+  google.protobuf.Timestamp expires_at = 11;
+  WorkspaceBindingState state = 12;
+  ReasonCode reason_code = 13;
 }
 
 message AccountSessionEvent {
@@ -281,6 +327,37 @@ message RevokeScopedAppBindingResponse {
   bool production_inert = 5;
 }
 
+message IssueWorkspaceBindingRequest {
+  AccountCaller caller = 1;
+  string workspace_id = 2;
+  repeated string scopes = 3;
+  int32 ttl_seconds = 4;
+}
+
+message IssueWorkspaceBindingResponse {
+  bool accepted = 1;
+  string binding_id = 2;
+  WorkspaceBindingAttachment attachment = 3;
+  WorkspaceBindingRelation relation = 4;
+  ReasonCode reason_code = 5;
+  AccountReasonCode account_reason_code = 6;
+  bool production_inert = 7;
+}
+
+message RevokeWorkspaceBindingRequest {
+  AccountCaller caller = 1;
+  string binding_id = 2;
+  ReasonCode reason_code = 3;
+}
+
+message RevokeWorkspaceBindingResponse {
+  bool accepted = 1;
+  WorkspaceBindingRelation relation = 2;
+  ReasonCode reason_code = 3;
+  AccountReasonCode account_reason_code = 4;
+  bool production_inert = 5;
+}
+
 service RuntimeAccountService {
   rpc GetAccountSessionStatus(GetAccountSessionStatusRequest) returns (GetAccountSessionStatusResponse);
   rpc SubscribeAccountSessionEvents(SubscribeAccountSessionEventsRequest) returns (stream AccountSessionEvent);
@@ -292,4 +369,6 @@ service RuntimeAccountService {
   rpc SwitchAccount(SwitchAccountRequest) returns (SwitchAccountResponse);
   rpc IssueScopedAppBinding(IssueScopedAppBindingRequest) returns (IssueScopedAppBindingResponse);
   rpc RevokeScopedAppBinding(RevokeScopedAppBindingRequest) returns (RevokeScopedAppBindingResponse);
+  rpc IssueWorkspaceBinding(IssueWorkspaceBindingRequest) returns (IssueWorkspaceBindingResponse);
+  rpc RevokeWorkspaceBinding(RevokeWorkspaceBindingRequest) returns (RevokeWorkspaceBindingResponse);
 }

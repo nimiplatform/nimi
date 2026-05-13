@@ -125,11 +125,16 @@ export type * from './generated/runtime/v1/memory.js';
 export type * from './generated/runtime/v1/agent_service.js';
 export { CallerKind } from './generated/runtime/v1/common.js';
 export { ReasonCode as RuntimeReasonCode, ExternalPrincipalType } from './generated/runtime/v1/common.js';
+export type { WorkspaceBindingAttachment } from './generated/runtime/v1/common.js';
 export {
   AccountSessionState,
   GetAccessTokenResponse,
   GetAccountSessionStatusResponse,
+  WorkspaceBindingPurpose,
+  WorkspaceBindingState,
+  WorkspaceMembershipState,
 } from './generated/runtime/v1/account.js';
+export type * from './generated/runtime/v1/account.js';
 export {
   AppMode,
   ExternalProofType,

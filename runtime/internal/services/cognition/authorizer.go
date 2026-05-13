@@ -35,15 +35,18 @@ const (
 	KnowledgeAuthDenyOwnerMismatch KnowledgeAuthDecision = "deny_owner_mismatch"
 	KnowledgeAuthDenyNoBinding     KnowledgeAuthDecision = "deny_no_binding"
 	KnowledgeAuthDenyUnknownScope  KnowledgeAuthDecision = "deny_unknown_scope"
+	KnowledgeAuthDenyResolver      KnowledgeAuthDecision = "deny_workspace_resolver"
 )
 
 // KnowledgeAuthRequest is the input envelope for an Authorize call.
 // Owner is the typed owner of the target scope (or, for create_bank,
 // the proposed owner from the request locator).
 type KnowledgeAuthRequest struct {
-	Action  KnowledgeAction
-	Context *runtimev1.KnowledgeRequestContext
-	Owner   cognitionpkg.KnowledgeScopeOwner
+	Action         KnowledgeAction
+	Context        *runtimev1.KnowledgeRequestContext
+	Caller         *runtimev1.AccountCaller
+	Owner          cognitionpkg.KnowledgeScopeOwner
+	RequiredScopes []string
 }
 
 // KnowledgeAuthResult carries the typed decision plus the
@@ -84,16 +87,28 @@ func denyOwnerMismatchResult() KnowledgeAuthResult {
 	}
 }
 
-// denyWorkspaceNoBindingResult is the always-deny envelope for
-// WORKSPACE_PRIVATE within this topic. The action_hint must match
-// the legacy denyWorkspaceKnowledgeAccess action_hint exactly per
-// the wave-2 packet acceptance invariants and decision-review-r1.
+// denyWorkspaceNoBindingResult is the fail-closed fallback for
+// WORKSPACE_PRIVATE when no account-owned workspace binding resolver is
+// wired. The action_hint preserves the established workspace auth family.
 func denyWorkspaceNoBindingResult() KnowledgeAuthResult {
 	return KnowledgeAuthResult{
 		Decision:   KnowledgeAuthDenyNoBinding,
 		Reason:     runtimev1.ReasonCode_KNOWLEDGE_BANK_ACCESS_DENIED,
 		ActionHint: "use_an_admitted_workspace_authorization_carrier",
 		Message:    "workspace private knowledge access requires explicit workspace authority",
+	}
+}
+
+func requiredScopesForKnowledgeAction(action KnowledgeAction) []string {
+	switch action {
+	case KnowledgeActionCreateBank, KnowledgeActionDeleteBank:
+		return []string{"runtime.knowledge.admin"}
+	case KnowledgeActionWritePage, KnowledgeActionDeletePage, KnowledgeActionWriteLink, KnowledgeActionIngest:
+		return []string{"runtime.knowledge.write"}
+	case KnowledgeActionReadBank, KnowledgeActionReadPage, KnowledgeActionSearch, KnowledgeActionReadLink:
+		return []string{"runtime.knowledge.read"}
+	default:
+		return nil
 	}
 }
 

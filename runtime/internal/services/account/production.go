@@ -15,8 +15,10 @@ import (
 	"strings"
 	"time"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	keyring "github.com/zalando/go-keyring"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const accountCustodyServicePrefix = "nimi/runtime/account"
@@ -32,13 +34,22 @@ type ProductionConfig struct {
 }
 
 type custodySnapshot struct {
-	AccountID          string          `json:"accountId"`
-	DisplayName        string          `json:"displayName,omitempty"`
-	RealmEnvironmentID string          `json:"realmEnvironmentId,omitempty"`
-	AccessToken        string          `json:"accessToken"`
-	AccessTokenExpires string          `json:"accessTokenExpires"`
-	RefreshToken       string          `json:"refreshToken"`
-	RefreshTokenHashes map[string]bool `json:"refreshTokenHashes,omitempty"`
+	AccountID            string                        `json:"accountId"`
+	DisplayName          string                        `json:"displayName,omitempty"`
+	RealmEnvironmentID   string                        `json:"realmEnvironmentId,omitempty"`
+	WorkspaceMemberships []workspaceMembershipSnapshot `json:"workspaceMemberships,omitempty"`
+	AccessToken          string                        `json:"accessToken"`
+	AccessTokenExpires   string                        `json:"accessTokenExpires"`
+	RefreshToken         string                        `json:"refreshToken"`
+	RefreshTokenHashes   map[string]bool               `json:"refreshTokenHashes,omitempty"`
+}
+
+type workspaceMembershipSnapshot struct {
+	WorkspaceID        string            `json:"workspaceId"`
+	MembershipState    string            `json:"membershipState"`
+	RealmEnvironmentID string            `json:"realmEnvironmentId,omitempty"`
+	ObservedAt         string            `json:"observedAt,omitempty"`
+	DisplayMetadata    map[string]string `json:"displayMetadata,omitempty"`
 }
 
 type osKeychainCustody struct{}
@@ -147,26 +158,28 @@ func (osKeychainCustody) Load(_ context.Context, partition string) (AccountMater
 	}
 	expiresAt, _ := time.Parse(time.RFC3339Nano, snapshot.AccessTokenExpires)
 	return normalizeMaterial(AccountMaterial{
-		AccountID:          snapshot.AccountID,
-		DisplayName:        snapshot.DisplayName,
-		RealmEnvironmentID: snapshot.RealmEnvironmentID,
-		AccessToken:        snapshot.AccessToken,
-		AccessTokenExpires: expiresAt,
-		RefreshToken:       snapshot.RefreshToken,
-		RefreshTokenHashes: snapshot.RefreshTokenHashes,
+		AccountID:            snapshot.AccountID,
+		DisplayName:          snapshot.DisplayName,
+		RealmEnvironmentID:   snapshot.RealmEnvironmentID,
+		WorkspaceMemberships: workspaceMembershipsFromSnapshots(snapshot.WorkspaceMemberships),
+		AccessToken:          snapshot.AccessToken,
+		AccessTokenExpires:   expiresAt,
+		RefreshToken:         snapshot.RefreshToken,
+		RefreshTokenHashes:   snapshot.RefreshTokenHashes,
 	}), nil
 }
 
 func (osKeychainCustody) Store(_ context.Context, partition string, material AccountMaterial) error {
 	material = normalizeMaterial(material)
 	payload, err := json.Marshal(custodySnapshot{
-		AccountID:          material.AccountID,
-		DisplayName:        material.DisplayName,
-		RealmEnvironmentID: material.RealmEnvironmentID,
-		AccessToken:        material.AccessToken,
-		AccessTokenExpires: material.AccessTokenExpires.UTC().Format(time.RFC3339Nano),
-		RefreshToken:       material.RefreshToken,
-		RefreshTokenHashes: material.RefreshTokenHashes,
+		AccountID:            material.AccountID,
+		DisplayName:          material.DisplayName,
+		RealmEnvironmentID:   material.RealmEnvironmentID,
+		WorkspaceMemberships: workspaceMembershipSnapshotsFromProjections(material.WorkspaceMemberships),
+		AccessToken:          material.AccessToken,
+		AccessTokenExpires:   material.AccessTokenExpires.UTC().Format(time.RFC3339Nano),
+		RefreshToken:         material.RefreshToken,
+		RefreshTokenHashes:   material.RefreshTokenHashes,
 	})
 	if err != nil {
 		return fmt.Errorf("%w: encode custody snapshot", ErrCustodyUnavailable)
@@ -270,14 +283,91 @@ func materialFromTokenResponse(resp *http.Response) (AccountMaterial, error) {
 		displayName = firstNonEmpty(displayName, readString(user, "displayName", "display_name", "name", "email"))
 	}
 	accountID = firstNonEmpty(accountID, jwtSubject(accessToken))
+	realmEnvironmentID := readString(parsed, "realm_environment_id", "realmEnvironmentId")
 	return AccountMaterial{
-		AccountID:          accountID,
-		DisplayName:        displayName,
-		RealmEnvironmentID: readString(parsed, "realm_environment_id", "realmEnvironmentId"),
-		AccessToken:        accessToken,
-		AccessTokenExpires: expiresAt,
-		RefreshToken:       refreshToken,
+		AccountID:            accountID,
+		DisplayName:          displayName,
+		RealmEnvironmentID:   realmEnvironmentID,
+		WorkspaceMemberships: workspaceMembershipsFromTokenPayload(parsed, realmEnvironmentID),
+		AccessToken:          accessToken,
+		AccessTokenExpires:   expiresAt,
+		RefreshToken:         refreshToken,
 	}, nil
+}
+
+func workspaceMembershipsFromTokenPayload(parsed map[string]any, defaultRealmEnvironmentID string) []*runtimev1.WorkspaceMembershipProjection {
+	for _, key := range []string{"workspace_memberships", "workspaceMemberships", "workspaces"} {
+		raw, ok := parsed[key]
+		if !ok {
+			continue
+		}
+		items, ok := raw.([]any)
+		if !ok {
+			continue
+		}
+		out := make([]*runtimev1.WorkspaceMembershipProjection, 0, len(items))
+		for _, item := range items {
+			record, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			workspaceID := readString(record, "workspace_id", "workspaceId", "id")
+			if strings.TrimSpace(workspaceID) == "" {
+				continue
+			}
+			var observedAt *timestamppb.Timestamp
+			if text := readString(record, "observed_at", "observedAt"); text != "" {
+				if parsedTime, err := time.Parse(time.RFC3339Nano, text); err == nil {
+					observedAt = timestamppb.New(parsedTime)
+				}
+			}
+			out = append(out, &runtimev1.WorkspaceMembershipProjection{
+				WorkspaceId:        workspaceID,
+				MembershipState:    workspaceMembershipStateFromString(readString(record, "membership_state", "membershipState", "state")),
+				RealmEnvironmentId: firstNonEmpty(readString(record, "realm_environment_id", "realmEnvironmentId"), defaultRealmEnvironmentID),
+				ObservedAt:         observedAt,
+				DisplayMetadata:    readStringMap(record, "display_metadata", "displayMetadata"),
+			})
+		}
+		return out
+	}
+	return nil
+}
+
+func workspaceMembershipsFromSnapshots(in []workspaceMembershipSnapshot) []*runtimev1.WorkspaceMembershipProjection {
+	out := make([]*runtimev1.WorkspaceMembershipProjection, 0, len(in))
+	for _, snapshot := range in {
+		observedAt, _ := time.Parse(time.RFC3339Nano, snapshot.ObservedAt)
+		out = append(out, &runtimev1.WorkspaceMembershipProjection{
+			WorkspaceId:        snapshot.WorkspaceID,
+			MembershipState:    workspaceMembershipStateFromString(snapshot.MembershipState),
+			RealmEnvironmentId: snapshot.RealmEnvironmentID,
+			ObservedAt:         timestamppb.New(observedAt),
+			DisplayMetadata:    snapshot.DisplayMetadata,
+		})
+	}
+	return out
+}
+
+func workspaceMembershipSnapshotsFromProjections(in []*runtimev1.WorkspaceMembershipProjection) []workspaceMembershipSnapshot {
+	out := make([]workspaceMembershipSnapshot, 0, len(in))
+	for _, projection := range in {
+		if projection == nil {
+			continue
+		}
+		observedAt := ""
+		if projection.GetObservedAt() != nil {
+			observedAt = projection.GetObservedAt().AsTime().UTC().Format(time.RFC3339Nano)
+		}
+		out = append(out, workspaceMembershipSnapshot{
+			WorkspaceID:        projection.GetWorkspaceId(),
+			MembershipState:    workspaceMembershipStateString(projection.GetMembershipState()),
+			RealmEnvironmentID: projection.GetRealmEnvironmentId(),
+			ObservedAt:         observedAt,
+			DisplayMetadata:    projection.GetDisplayMetadata(),
+		})
+	}
+	return out
 }
 
 // AuthorizationURL constructs the realm OAuth 2.0 authorize URL the user
@@ -357,6 +447,53 @@ func readNumber(values map[string]any, keys ...string) int64 {
 		}
 	}
 	return 0
+}
+
+func readStringMap(values map[string]any, keys ...string) map[string]string {
+	for _, key := range keys {
+		raw, ok := values[key]
+		if !ok {
+			continue
+		}
+		items, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		out := make(map[string]string, len(items))
+		for itemKey, itemValue := range items {
+			if trimmedKey := strings.TrimSpace(itemKey); trimmedKey != "" {
+				out[trimmedKey] = strings.TrimSpace(fmt.Sprint(itemValue))
+			}
+		}
+		return out
+	}
+	return nil
+}
+
+func workspaceMembershipStateFromString(value string) runtimev1.WorkspaceMembershipState {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "active":
+		return runtimev1.WorkspaceMembershipState_WORKSPACE_MEMBERSHIP_STATE_ACTIVE
+	case "suspended":
+		return runtimev1.WorkspaceMembershipState_WORKSPACE_MEMBERSHIP_STATE_SUSPENDED
+	case "revoked":
+		return runtimev1.WorkspaceMembershipState_WORKSPACE_MEMBERSHIP_STATE_REVOKED
+	default:
+		return runtimev1.WorkspaceMembershipState_WORKSPACE_MEMBERSHIP_STATE_UNKNOWN
+	}
+}
+
+func workspaceMembershipStateString(value runtimev1.WorkspaceMembershipState) string {
+	switch value {
+	case runtimev1.WorkspaceMembershipState_WORKSPACE_MEMBERSHIP_STATE_ACTIVE:
+		return "active"
+	case runtimev1.WorkspaceMembershipState_WORKSPACE_MEMBERSHIP_STATE_SUSPENDED:
+		return "suspended"
+	case runtimev1.WorkspaceMembershipState_WORKSPACE_MEMBERSHIP_STATE_REVOKED:
+		return "revoked"
+	default:
+		return "unknown"
+	}
 }
 
 func jwtSubject(token string) string {

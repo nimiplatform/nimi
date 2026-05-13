@@ -302,7 +302,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeConnectorServiceServer(g, connSvc)
 	logger.Info("runtime in-process mode enabled")
 
-	knowledgeAuthorizer := cognitionservice.NewAccountKnowledgeAuthorizer(logger)
+	knowledgeAuthorizer := cognitionservice.NewAccountKnowledgeAuthorizer(logger, accountSvc)
 	cognitionSvc, err := cognitionservice.New(logger, cfg, memorySvc, knowledgeAuthorizer)
 	if err != nil {
 		_ = memorySvc.Close()

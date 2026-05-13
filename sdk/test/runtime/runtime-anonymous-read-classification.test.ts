@@ -58,7 +58,7 @@ const ANONYMOUS_READ_SPOT_CHECK = [
   '/nimi.runtime.v1.RuntimeAuthService/OpenSession',
   '/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets',
   '/nimi.runtime.v1.RuntimeAgentService/GetAgent',
-  '/nimi.runtime.v1.RuntimeCognitionService/SearchKeyword',
+  '/nimi.runtime.v1.RuntimeCognitionService/Recall',
 ] as const;
 
 // Authenticated-required methods that fall through to the fallback path
@@ -148,13 +148,13 @@ test('isRuntimeAnonymousReadMethod returns false for fabricated method ids', () 
   assert.equal(isRuntimeAnonymousReadMethod('garbage'), false);
 });
 
-test('RuntimeAnonymousReadMethodIds set has exactly 136 members (Wave 0 spec shard size)', () => {
+test('RuntimeAnonymousReadMethodIds set has exactly 119 members (current spec shard size)', () => {
   // Set equality is enforced by scripts/check-runtime-rpc-auth-posture-sdk-drift.mjs;
   // this in-memory check guards against accidental duplication / truncation
   // of the literal at TS compile time.
   const distinct = new Set(RuntimeAnonymousReadMethodIds);
   assert.equal(distinct.size, RuntimeAnonymousReadMethodIds.length, 'classifier list must have no duplicates');
-  assert.equal(distinct.size, 136, 'classifier set must contain exactly 136 method ids');
+  assert.equal(distinct.size, 119, 'classifier set must contain exactly 119 method ids');
 });
 
 test('RuntimeMethodIds.audit live-failure anchors are all classified anonymous_read', () => {

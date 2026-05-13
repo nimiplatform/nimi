@@ -5,6 +5,10 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { RuntimeAccountService } from "./account";
+import type { RevokeWorkspaceBindingResponse } from "./account";
+import type { RevokeWorkspaceBindingRequest } from "./account";
+import type { IssueWorkspaceBindingResponse } from "./account";
+import type { IssueWorkspaceBindingRequest } from "./account";
 import type { RevokeScopedAppBindingResponse } from "./account";
 import type { RevokeScopedAppBindingRequest } from "./account";
 import type { IssueScopedAppBindingResponse } from "./account";
@@ -73,6 +77,14 @@ export interface IRuntimeAccountServiceClient {
      * @generated from protobuf rpc: RevokeScopedAppBinding
      */
     revokeScopedAppBinding(input: RevokeScopedAppBindingRequest, options?: RpcOptions): UnaryCall<RevokeScopedAppBindingRequest, RevokeScopedAppBindingResponse>;
+    /**
+     * @generated from protobuf rpc: IssueWorkspaceBinding
+     */
+    issueWorkspaceBinding(input: IssueWorkspaceBindingRequest, options?: RpcOptions): UnaryCall<IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse>;
+    /**
+     * @generated from protobuf rpc: RevokeWorkspaceBinding
+     */
+    revokeWorkspaceBinding(input: RevokeWorkspaceBindingRequest, options?: RpcOptions): UnaryCall<RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse>;
 }
 /**
  * @generated from protobuf service nimi.runtime.v1.RuntimeAccountService
@@ -152,5 +164,19 @@ export class RuntimeAccountServiceClient implements IRuntimeAccountServiceClient
     revokeScopedAppBinding(input: RevokeScopedAppBindingRequest, options?: RpcOptions): UnaryCall<RevokeScopedAppBindingRequest, RevokeScopedAppBindingResponse> {
         const method = this.methods[9], opt = this._transport.mergeOptions(options);
         return stackIntercept<RevokeScopedAppBindingRequest, RevokeScopedAppBindingResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: IssueWorkspaceBinding
+     */
+    issueWorkspaceBinding(input: IssueWorkspaceBindingRequest, options?: RpcOptions): UnaryCall<IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse> {
+        const method = this.methods[10], opt = this._transport.mergeOptions(options);
+        return stackIntercept<IssueWorkspaceBindingRequest, IssueWorkspaceBindingResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: RevokeWorkspaceBinding
+     */
+    revokeWorkspaceBinding(input: RevokeWorkspaceBindingRequest, options?: RpcOptions): UnaryCall<RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse> {
+        const method = this.methods[11], opt = this._transport.mergeOptions(options);
+        return stackIntercept<RevokeWorkspaceBindingRequest, RevokeWorkspaceBindingResponse>("unary", this._transport, method, opt, input);
     }
 }

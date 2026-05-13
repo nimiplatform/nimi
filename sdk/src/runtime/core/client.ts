@@ -277,6 +277,8 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
       switchAccount: unary(RuntimeMethodIds.account.switchAccount),
       issueScopedAppBinding: unary(RuntimeMethodIds.account.issueScopedAppBinding),
       revokeScopedAppBinding: unary(RuntimeMethodIds.account.revokeScopedAppBinding),
+      issueWorkspaceBinding: unary(RuntimeMethodIds.account.issueWorkspaceBinding),
+      revokeWorkspaceBinding: unary(RuntimeMethodIds.account.revokeWorkspaceBinding),
     },
     ai: {
       executeScenario: unary(RuntimeMethodIds.ai.executeScenario),

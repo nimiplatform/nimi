@@ -133,6 +133,8 @@ const ACCOUNT_METHODS = [
   'switchAccount',
   'issueScopedAppBinding',
   'revokeScopedAppBinding',
+  'issueWorkspaceBinding',
+  'revokeWorkspaceBinding',
 ] as const satisfies readonly RuntimePassthroughMethod<RuntimeAccountClient>[];
 
 const MODEL_METHODS = [

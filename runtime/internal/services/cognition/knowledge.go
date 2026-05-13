@@ -55,16 +55,31 @@ func (s *Service) GetKnowledgeBank(ctx context.Context, req *runtimev1.GetKnowle
 	return &runtimev1.GetKnowledgeBankResponse{Bank: bankFromScope(scope)}, nil
 }
 
-// ListKnowledgeBanks enumerates readable app_private scopes. Any
-// explicit workspace_private selector is authorization-bearing and
-// must fail closed until the admitted workspace authorization carrier
-// exists; returning an empty page would be pseudo-success.
+// ListKnowledgeBanks enumerates readable app_private scopes by default.
+// Any explicit workspace_private selector is authorization-bearing and
+// must pass the admitted workspace authorization carrier; returning an
+// empty page on auth failure would be pseudo-success.
 func (s *Service) ListKnowledgeBanks(ctx context.Context, req *runtimev1.ListKnowledgeBanksRequest) (*runtimev1.ListKnowledgeBanksResponse, error) {
 	if err := validateKnowledgeContext(req.GetContext()); err != nil {
 		return nil, err
 	}
 	if owner, ok := explicitWorkspaceOwnerFromList(req); ok {
-		return nil, s.authorize(ctx, KnowledgeActionReadBank, req.GetContext(), owner)
+		if err := s.authorize(ctx, KnowledgeActionReadBank, req.GetContext(), owner); err != nil {
+			return nil, err
+		}
+		filter := s.buildScopeFilterFromList(req)
+		scopes, nextToken, err := s.cognitionCore.KnowledgeScopeRegistry().ListKnowledgeScopes(ctx, filter)
+		if err != nil {
+			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
+		}
+		banks := make([]*runtimev1.KnowledgeBank, 0, len(scopes))
+		for _, scope := range scopes {
+			if err := s.authorize(ctx, KnowledgeActionReadBank, req.GetContext(), scope.Owner); err != nil {
+				continue
+			}
+			banks = append(banks, bankFromScope(scope))
+		}
+		return &runtimev1.ListKnowledgeBanksResponse{Banks: banks, NextPageToken: nextToken}, nil
 	}
 	filter := s.buildScopeFilterFromList(req)
 	scopes, nextToken, err := s.cognitionCore.KnowledgeScopeRegistry().ListKnowledgeScopes(ctx, filter)

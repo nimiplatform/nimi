@@ -522,6 +522,12 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
     mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
     scopes: [],
   };
+  const runtimeDefaults = isLocalFirstPartyRuntime
+    ? {
+      ...(input.runtimeDefaults || {}),
+      appInstanceId: normalizeText(input.runtimeDefaults?.appInstanceId) || accountCaller.appInstanceId,
+    }
+    : input.runtimeDefaults;
 
   const runtimeAccountAccessTokenProvider = async () => {
     const response = await runtime.account.getAccessToken({
@@ -656,7 +662,7 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
         ...input.runtimeOptions,
         appId,
         transport: input.runtimeTransport || detectTauriTransport() || undefined,
-        defaults: input.runtimeDefaults,
+        defaults: runtimeDefaults,
         auth: {
           accessToken: runtimeAccessTokenProvider,
           appSession: runtimeAppSessionProvider,

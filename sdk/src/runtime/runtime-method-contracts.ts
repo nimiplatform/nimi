@@ -39,6 +39,8 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.account.switchAccount]: RuntimeClientMethodContract<'account', 'switchAccount'>;
   [RuntimeMethodIds.account.issueScopedAppBinding]: RuntimeClientMethodContract<'account', 'issueScopedAppBinding'>;
   [RuntimeMethodIds.account.revokeScopedAppBinding]: RuntimeClientMethodContract<'account', 'revokeScopedAppBinding'>;
+  [RuntimeMethodIds.account.issueWorkspaceBinding]: RuntimeClientMethodContract<'account', 'issueWorkspaceBinding'>;
+  [RuntimeMethodIds.account.revokeWorkspaceBinding]: RuntimeClientMethodContract<'account', 'revokeWorkspaceBinding'>;
   [RuntimeMethodIds.ai.executeScenario]: RuntimeClientMethodContract<'ai', 'executeScenario'>;
   [RuntimeMethodIds.ai.submitScenarioJob]: RuntimeClientMethodContract<'ai', 'submitScenarioJob'>;
   [RuntimeMethodIds.ai.getScenarioJob]: RuntimeClientMethodContract<'ai', 'getScenarioJob'>;

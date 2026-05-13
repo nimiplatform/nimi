@@ -53,6 +53,35 @@ export interface ScopedRuntimeBindingAttachment {
     worldId: string;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.WorkspaceBindingAttachment
+ */
+export interface WorkspaceBindingAttachment {
+    /**
+     * @generated from protobuf field: string binding_id = 1
+     */
+    bindingId: string;
+    /**
+     * @generated from protobuf field: string binding_handle = 2
+     */
+    bindingHandle: string;
+    /**
+     * @generated from protobuf field: string runtime_app_id = 3
+     */
+    runtimeAppId: string;
+    /**
+     * @generated from protobuf field: string app_instance_id = 4
+     */
+    appInstanceId: string;
+    /**
+     * @generated from protobuf field: string workspace_id = 5
+     */
+    workspaceId: string;
+    /**
+     * @generated from protobuf field: string realm_environment_id = 6
+     */
+    realmEnvironmentId: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.UsageStats
  */
 export interface UsageStats {
@@ -652,6 +681,52 @@ export enum ReasonCode {
      */
     AI_LOCAL_SPEECH_BUNDLE_DEGRADED = 565,
     /**
+     * WORKSPACE_BINDING family (570+)
+     *
+     * @generated from protobuf enum value: WORKSPACE_BINDING_MISSING = 570;
+     */
+    WORKSPACE_BINDING_MISSING = 570,
+    /**
+     * @generated from protobuf enum value: WORKSPACE_BINDING_MALFORMED = 571;
+     */
+    WORKSPACE_BINDING_MALFORMED = 571,
+    /**
+     * @generated from protobuf enum value: WORKSPACE_BINDING_NOT_FOUND = 572;
+     */
+    WORKSPACE_BINDING_NOT_FOUND = 572,
+    /**
+     * @generated from protobuf enum value: WORKSPACE_BINDING_REVOKED = 573;
+     */
+    WORKSPACE_BINDING_REVOKED = 573,
+    /**
+     * @generated from protobuf enum value: WORKSPACE_BINDING_EXPIRED = 574;
+     */
+    WORKSPACE_BINDING_EXPIRED = 574,
+    /**
+     * @generated from protobuf enum value: WORKSPACE_BINDING_REPLAY = 575;
+     */
+    WORKSPACE_BINDING_REPLAY = 575,
+    /**
+     * @generated from protobuf enum value: WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE = 576;
+     */
+    WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE = 576,
+    /**
+     * @generated from protobuf enum value: WORKSPACE_BINDING_CALLER_MISMATCH = 577;
+     */
+    WORKSPACE_BINDING_CALLER_MISMATCH = 577,
+    /**
+     * @generated from protobuf enum value: WORKSPACE_BINDING_WORKSPACE_MISMATCH = 578;
+     */
+    WORKSPACE_BINDING_WORKSPACE_MISMATCH = 578,
+    /**
+     * @generated from protobuf enum value: WORKSPACE_BINDING_ENV_DEVICE_MISMATCH = 579;
+     */
+    WORKSPACE_BINDING_ENV_DEVICE_MISMATCH = 579,
+    /**
+     * @generated from protobuf enum value: WORKSPACE_BINDING_SCOPE_MISSING = 580;
+     */
+    WORKSPACE_BINDING_SCOPE_MISSING = 580,
+    /**
      * GRANT family (510+)
      *
      * @generated from protobuf enum value: GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND = 510;
@@ -913,6 +988,93 @@ class ScopedRuntimeBindingAttachment$Type extends MessageType<ScopedRuntimeBindi
  * @generated MessageType for protobuf message nimi.runtime.v1.ScopedRuntimeBindingAttachment
  */
 export const ScopedRuntimeBindingAttachment = new ScopedRuntimeBindingAttachment$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WorkspaceBindingAttachment$Type extends MessageType<WorkspaceBindingAttachment> {
+    constructor() {
+        super("nimi.runtime.v1.WorkspaceBindingAttachment", [
+            { no: 1, name: "binding_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "binding_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "runtime_app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "app_instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "workspace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "realm_environment_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<WorkspaceBindingAttachment>): WorkspaceBindingAttachment {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.bindingId = "";
+        message.bindingHandle = "";
+        message.runtimeAppId = "";
+        message.appInstanceId = "";
+        message.workspaceId = "";
+        message.realmEnvironmentId = "";
+        if (value !== undefined)
+            reflectionMergePartial<WorkspaceBindingAttachment>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WorkspaceBindingAttachment): WorkspaceBindingAttachment {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string binding_id */ 1:
+                    message.bindingId = reader.string();
+                    break;
+                case /* string binding_handle */ 2:
+                    message.bindingHandle = reader.string();
+                    break;
+                case /* string runtime_app_id */ 3:
+                    message.runtimeAppId = reader.string();
+                    break;
+                case /* string app_instance_id */ 4:
+                    message.appInstanceId = reader.string();
+                    break;
+                case /* string workspace_id */ 5:
+                    message.workspaceId = reader.string();
+                    break;
+                case /* string realm_environment_id */ 6:
+                    message.realmEnvironmentId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WorkspaceBindingAttachment, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string binding_id = 1; */
+        if (message.bindingId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.bindingId);
+        /* string binding_handle = 2; */
+        if (message.bindingHandle !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bindingHandle);
+        /* string runtime_app_id = 3; */
+        if (message.runtimeAppId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.runtimeAppId);
+        /* string app_instance_id = 4; */
+        if (message.appInstanceId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.appInstanceId);
+        /* string workspace_id = 5; */
+        if (message.workspaceId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.workspaceId);
+        /* string realm_environment_id = 6; */
+        if (message.realmEnvironmentId !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.realmEnvironmentId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WorkspaceBindingAttachment
+ */
+export const WorkspaceBindingAttachment = new WorkspaceBindingAttachment$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class UsageStats$Type extends MessageType<UsageStats> {
     constructor() {

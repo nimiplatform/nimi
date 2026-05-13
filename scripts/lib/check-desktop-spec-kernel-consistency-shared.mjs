@@ -20,6 +20,7 @@ export const kernelFiles = [
   '.nimi/spec/desktop/kernel/world-tour-tester-contract.md',
   '.nimi/spec/desktop/kernel/agent-avatar-surface-contract.md',
   '.nimi/spec/desktop/kernel/agent-delegation-control-surface-contract.md',
+  '.nimi/spec/desktop/kernel/realm-group-agent-participation-surface-contract.md',
   '.nimi/spec/desktop/kernel/menu-bar-shell-contract.md',
   '.nimi/spec/desktop/kernel/ui-shell-contract.md',
   '.nimi/spec/desktop/kernel/error-boundary-contract.md',

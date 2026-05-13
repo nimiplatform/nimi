@@ -32,6 +32,7 @@ import {
 } from '../../src/runtime/generated/runtime/v1/connector';
 
 const APP_ID = 'nimi.desktop.grpc.integration';
+const APP_INSTANCE_ID = 'nimi.desktop.grpc.integration.instance';
 
 function toBinaryBuffer(value: Uint8Array): Buffer {
   return Buffer.from(value);
@@ -142,6 +143,9 @@ function createRuntimeConfig(endpoint: string): RuntimeClientConfig {
       type: 'node-grpc',
       endpoint,
     },
+    defaults: {
+      appInstanceId: APP_INSTANCE_ID,
+    },
   };
 }
 
@@ -200,7 +204,13 @@ test('node-grpc integrates metadata injection and stream decoding against grpc-j
   try {
     const client = createRuntimeClient(createRuntimeConfig(server.endpoint));
 
-    const listConnectors = await client.connector.listConnectors({});
+    const listConnectors = await client.connector.listConnectors({}, {
+      metadata: {
+        extra: {
+          'x-nimi-app-instance-id': 'forged-extra-instance',
+        },
+      },
+    });
     assert.equal(listConnectors.connectors.length, 1);
 
     const stream = await client.ai.streamScenario(createStreamGenerateRequest());
@@ -214,10 +224,12 @@ test('node-grpc integrates metadata injection and stream decoding against grpc-j
 
     assert.ok(unaryMetadata);
     assert.equal(unaryMetadata['x-nimi-app-id'], APP_ID);
+    assert.equal(unaryMetadata['x-nimi-app-instance-id'], APP_INSTANCE_ID);
     assert.equal(unaryMetadata['x-nimi-idempotency-key'], undefined);
 
     assert.ok(streamMetadata);
     assert.equal(streamMetadata['x-nimi-app-id'], APP_ID);
+    assert.equal(streamMetadata['x-nimi-app-instance-id'], APP_INSTANCE_ID);
     assert.equal(streamMetadata['x-nimi-domain'], 'runtime.rpc');
     assert.ok(streamIdempotencyKey.length > 0);
   } finally {

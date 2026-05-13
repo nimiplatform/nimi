@@ -28,12 +28,16 @@ import type {
   GetAccountSessionStatusResponse,
   IssueScopedAppBindingRequest,
   IssueScopedAppBindingResponse,
+  IssueWorkspaceBindingRequest,
+  IssueWorkspaceBindingResponse,
   LogoutRequest,
   LogoutResponse,
   RefreshAccountSessionRequest,
   RefreshAccountSessionResponse,
   RevokeScopedAppBindingRequest,
   RevokeScopedAppBindingResponse,
+  RevokeWorkspaceBindingRequest,
+  RevokeWorkspaceBindingResponse,
   SubscribeAccountSessionEventsRequest,
   SwitchAccountRequest,
   SwitchAccountResponse,
@@ -413,6 +417,8 @@ export type RuntimeAccountClient = {
   switchAccount(request: SwitchAccountRequest, options?: RuntimeCallOptions): Promise<SwitchAccountResponse>;
   issueScopedAppBinding(request: IssueScopedAppBindingRequest, options?: RuntimeCallOptions): Promise<IssueScopedAppBindingResponse>;
   revokeScopedAppBinding(request: RevokeScopedAppBindingRequest, options?: RuntimeCallOptions): Promise<RevokeScopedAppBindingResponse>;
+  issueWorkspaceBinding(request: IssueWorkspaceBindingRequest, options?: RuntimeCallOptions): Promise<IssueWorkspaceBindingResponse>;
+  revokeWorkspaceBinding(request: RevokeWorkspaceBindingRequest, options?: RuntimeCallOptions): Promise<RevokeWorkspaceBindingResponse>;
 };
 
 export type RuntimeAiClient = {

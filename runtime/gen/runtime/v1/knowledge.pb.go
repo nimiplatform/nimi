@@ -128,11 +128,12 @@ func (KnowledgeIngestTaskStatus) EnumDescriptor() ([]byte, []int) {
 }
 
 type KnowledgeRequestContext struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AppId         string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
-	SubjectUserId string                 `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState      `protogen:"open.v1"`
+	AppId            string                      `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	SubjectUserId    string                      `protobuf:"bytes,2,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
+	WorkspaceBinding *WorkspaceBindingAttachment `protobuf:"bytes,3,opt,name=workspace_binding,json=workspaceBinding,proto3" json:"workspace_binding,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *KnowledgeRequestContext) Reset() {
@@ -177,6 +178,13 @@ func (x *KnowledgeRequestContext) GetSubjectUserId() string {
 		return x.SubjectUserId
 	}
 	return ""
+}
+
+func (x *KnowledgeRequestContext) GetWorkspaceBinding() *WorkspaceBindingAttachment {
+	if x != nil {
+		return x.WorkspaceBinding
+	}
+	return nil
 }
 
 type KnowledgeAppPrivateOwner struct {
@@ -3397,10 +3405,11 @@ var File_runtime_v1_knowledge_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_knowledge_proto_rawDesc = "" +
 	"\n" +
-	"\x1aruntime/v1/knowledge.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\"X\n" +
+	"\x1aruntime/v1/knowledge.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x17runtime/v1/common.proto\"\xb2\x01\n" +
 	"\x17KnowledgeRequestContext\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12&\n" +
-	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\"1\n" +
+	"\x0fsubject_user_id\x18\x02 \x01(\tR\rsubjectUserId\x12X\n" +
+	"\x11workspace_binding\x18\x03 \x01(\v2+.nimi.runtime.v1.WorkspaceBindingAttachmentR\x10workspaceBinding\"1\n" +
 	"\x18KnowledgeAppPrivateOwner\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\"C\n" +
 	"\x1eKnowledgeWorkspacePrivateOwner\x12!\n" +
@@ -3740,84 +3749,86 @@ var file_runtime_v1_knowledge_proto_goTypes = []any{
 	(*IngestDocumentResponse)(nil),         // 46: nimi.runtime.v1.IngestDocumentResponse
 	(*GetIngestTaskRequest)(nil),           // 47: nimi.runtime.v1.GetIngestTaskRequest
 	(*GetIngestTaskResponse)(nil),          // 48: nimi.runtime.v1.GetIngestTaskResponse
-	(*structpb.Struct)(nil),                // 49: google.protobuf.Struct
-	(*timestamppb.Timestamp)(nil),          // 50: google.protobuf.Timestamp
-	(ReasonCode)(0),                        // 51: nimi.runtime.v1.ReasonCode
-	(*Ack)(nil),                            // 52: nimi.runtime.v1.Ack
+	(*WorkspaceBindingAttachment)(nil),     // 49: nimi.runtime.v1.WorkspaceBindingAttachment
+	(*structpb.Struct)(nil),                // 50: google.protobuf.Struct
+	(*timestamppb.Timestamp)(nil),          // 51: google.protobuf.Timestamp
+	(ReasonCode)(0),                        // 52: nimi.runtime.v1.ReasonCode
+	(*Ack)(nil),                            // 53: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_knowledge_proto_depIdxs = []int32{
-	0,  // 0: nimi.runtime.v1.KnowledgeBankLocator.scope:type_name -> nimi.runtime.v1.KnowledgeBankScope
-	3,  // 1: nimi.runtime.v1.KnowledgeBankLocator.app_private:type_name -> nimi.runtime.v1.KnowledgeAppPrivateOwner
-	4,  // 2: nimi.runtime.v1.KnowledgeBankLocator.workspace_private:type_name -> nimi.runtime.v1.KnowledgeWorkspacePrivateOwner
-	3,  // 3: nimi.runtime.v1.PublicKnowledgeBankLocator.app_private:type_name -> nimi.runtime.v1.KnowledgeAppPrivateOwner
-	4,  // 4: nimi.runtime.v1.PublicKnowledgeBankLocator.workspace_private:type_name -> nimi.runtime.v1.KnowledgeWorkspacePrivateOwner
-	3,  // 5: nimi.runtime.v1.KnowledgeBankOwnerFilter.app_private:type_name -> nimi.runtime.v1.KnowledgeAppPrivateOwner
-	4,  // 6: nimi.runtime.v1.KnowledgeBankOwnerFilter.workspace_private:type_name -> nimi.runtime.v1.KnowledgeWorkspacePrivateOwner
-	5,  // 7: nimi.runtime.v1.KnowledgeBank.locator:type_name -> nimi.runtime.v1.KnowledgeBankLocator
-	49, // 8: nimi.runtime.v1.KnowledgeBank.metadata:type_name -> google.protobuf.Struct
-	50, // 9: nimi.runtime.v1.KnowledgeBank.created_at:type_name -> google.protobuf.Timestamp
-	50, // 10: nimi.runtime.v1.KnowledgeBank.updated_at:type_name -> google.protobuf.Timestamp
-	49, // 11: nimi.runtime.v1.KnowledgePage.metadata:type_name -> google.protobuf.Struct
-	50, // 12: nimi.runtime.v1.KnowledgePage.created_at:type_name -> google.protobuf.Timestamp
-	50, // 13: nimi.runtime.v1.KnowledgePage.updated_at:type_name -> google.protobuf.Timestamp
-	49, // 14: nimi.runtime.v1.KnowledgeKeywordHit.metadata:type_name -> google.protobuf.Struct
-	49, // 15: nimi.runtime.v1.KnowledgeLink.metadata:type_name -> google.protobuf.Struct
-	50, // 16: nimi.runtime.v1.KnowledgeLink.created_at:type_name -> google.protobuf.Timestamp
-	50, // 17: nimi.runtime.v1.KnowledgeLink.updated_at:type_name -> google.protobuf.Timestamp
-	11, // 18: nimi.runtime.v1.KnowledgeGraphEdge.link:type_name -> nimi.runtime.v1.KnowledgeLink
-	49, // 19: nimi.runtime.v1.KnowledgeGraphNode.metadata:type_name -> google.protobuf.Struct
-	1,  // 20: nimi.runtime.v1.KnowledgeIngestTask.status:type_name -> nimi.runtime.v1.KnowledgeIngestTaskStatus
-	51, // 21: nimi.runtime.v1.KnowledgeIngestTask.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	50, // 22: nimi.runtime.v1.KnowledgeIngestTask.created_at:type_name -> google.protobuf.Timestamp
-	50, // 23: nimi.runtime.v1.KnowledgeIngestTask.updated_at:type_name -> google.protobuf.Timestamp
-	2,  // 24: nimi.runtime.v1.CreateKnowledgeBankRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	6,  // 25: nimi.runtime.v1.CreateKnowledgeBankRequest.locator:type_name -> nimi.runtime.v1.PublicKnowledgeBankLocator
-	49, // 26: nimi.runtime.v1.CreateKnowledgeBankRequest.metadata:type_name -> google.protobuf.Struct
-	8,  // 27: nimi.runtime.v1.CreateKnowledgeBankResponse.bank:type_name -> nimi.runtime.v1.KnowledgeBank
-	2,  // 28: nimi.runtime.v1.GetKnowledgeBankRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	8,  // 29: nimi.runtime.v1.GetKnowledgeBankResponse.bank:type_name -> nimi.runtime.v1.KnowledgeBank
-	2,  // 30: nimi.runtime.v1.ListKnowledgeBanksRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	0,  // 31: nimi.runtime.v1.ListKnowledgeBanksRequest.scope_filters:type_name -> nimi.runtime.v1.KnowledgeBankScope
-	7,  // 32: nimi.runtime.v1.ListKnowledgeBanksRequest.owner_filters:type_name -> nimi.runtime.v1.KnowledgeBankOwnerFilter
-	8,  // 33: nimi.runtime.v1.ListKnowledgeBanksResponse.banks:type_name -> nimi.runtime.v1.KnowledgeBank
-	2,  // 34: nimi.runtime.v1.DeleteKnowledgeBankRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	52, // 35: nimi.runtime.v1.DeleteKnowledgeBankResponse.ack:type_name -> nimi.runtime.v1.Ack
-	2,  // 36: nimi.runtime.v1.PutPageRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	49, // 37: nimi.runtime.v1.PutPageRequest.metadata:type_name -> google.protobuf.Struct
-	9,  // 38: nimi.runtime.v1.PutPageResponse.page:type_name -> nimi.runtime.v1.KnowledgePage
-	2,  // 39: nimi.runtime.v1.GetPageRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	9,  // 40: nimi.runtime.v1.GetPageResponse.page:type_name -> nimi.runtime.v1.KnowledgePage
-	2,  // 41: nimi.runtime.v1.ListPagesRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	9,  // 42: nimi.runtime.v1.ListPagesResponse.pages:type_name -> nimi.runtime.v1.KnowledgePage
-	2,  // 43: nimi.runtime.v1.DeletePageRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	52, // 44: nimi.runtime.v1.DeletePageResponse.ack:type_name -> nimi.runtime.v1.Ack
-	2,  // 45: nimi.runtime.v1.SearchKeywordRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	10, // 46: nimi.runtime.v1.SearchKeywordResponse.hits:type_name -> nimi.runtime.v1.KnowledgeKeywordHit
-	51, // 47: nimi.runtime.v1.SearchKeywordResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	2,  // 48: nimi.runtime.v1.SearchHybridRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	10, // 49: nimi.runtime.v1.SearchHybridResponse.hits:type_name -> nimi.runtime.v1.KnowledgeKeywordHit
-	51, // 50: nimi.runtime.v1.SearchHybridResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	2,  // 51: nimi.runtime.v1.AddLinkRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	49, // 52: nimi.runtime.v1.AddLinkRequest.metadata:type_name -> google.protobuf.Struct
-	11, // 53: nimi.runtime.v1.AddLinkResponse.link:type_name -> nimi.runtime.v1.KnowledgeLink
-	2,  // 54: nimi.runtime.v1.RemoveLinkRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	52, // 55: nimi.runtime.v1.RemoveLinkResponse.ack:type_name -> nimi.runtime.v1.Ack
-	2,  // 56: nimi.runtime.v1.ListLinksRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	12, // 57: nimi.runtime.v1.ListLinksResponse.links:type_name -> nimi.runtime.v1.KnowledgeGraphEdge
-	2,  // 58: nimi.runtime.v1.ListBacklinksRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	12, // 59: nimi.runtime.v1.ListBacklinksResponse.backlinks:type_name -> nimi.runtime.v1.KnowledgeGraphEdge
-	2,  // 60: nimi.runtime.v1.TraverseGraphRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	13, // 61: nimi.runtime.v1.TraverseGraphResponse.nodes:type_name -> nimi.runtime.v1.KnowledgeGraphNode
-	2,  // 62: nimi.runtime.v1.IngestDocumentRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	49, // 63: nimi.runtime.v1.IngestDocumentRequest.metadata:type_name -> google.protobuf.Struct
-	51, // 64: nimi.runtime.v1.IngestDocumentResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	2,  // 65: nimi.runtime.v1.GetIngestTaskRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
-	14, // 66: nimi.runtime.v1.GetIngestTaskResponse.task:type_name -> nimi.runtime.v1.KnowledgeIngestTask
-	67, // [67:67] is the sub-list for method output_type
-	67, // [67:67] is the sub-list for method input_type
-	67, // [67:67] is the sub-list for extension type_name
-	67, // [67:67] is the sub-list for extension extendee
-	0,  // [0:67] is the sub-list for field type_name
+	49, // 0: nimi.runtime.v1.KnowledgeRequestContext.workspace_binding:type_name -> nimi.runtime.v1.WorkspaceBindingAttachment
+	0,  // 1: nimi.runtime.v1.KnowledgeBankLocator.scope:type_name -> nimi.runtime.v1.KnowledgeBankScope
+	3,  // 2: nimi.runtime.v1.KnowledgeBankLocator.app_private:type_name -> nimi.runtime.v1.KnowledgeAppPrivateOwner
+	4,  // 3: nimi.runtime.v1.KnowledgeBankLocator.workspace_private:type_name -> nimi.runtime.v1.KnowledgeWorkspacePrivateOwner
+	3,  // 4: nimi.runtime.v1.PublicKnowledgeBankLocator.app_private:type_name -> nimi.runtime.v1.KnowledgeAppPrivateOwner
+	4,  // 5: nimi.runtime.v1.PublicKnowledgeBankLocator.workspace_private:type_name -> nimi.runtime.v1.KnowledgeWorkspacePrivateOwner
+	3,  // 6: nimi.runtime.v1.KnowledgeBankOwnerFilter.app_private:type_name -> nimi.runtime.v1.KnowledgeAppPrivateOwner
+	4,  // 7: nimi.runtime.v1.KnowledgeBankOwnerFilter.workspace_private:type_name -> nimi.runtime.v1.KnowledgeWorkspacePrivateOwner
+	5,  // 8: nimi.runtime.v1.KnowledgeBank.locator:type_name -> nimi.runtime.v1.KnowledgeBankLocator
+	50, // 9: nimi.runtime.v1.KnowledgeBank.metadata:type_name -> google.protobuf.Struct
+	51, // 10: nimi.runtime.v1.KnowledgeBank.created_at:type_name -> google.protobuf.Timestamp
+	51, // 11: nimi.runtime.v1.KnowledgeBank.updated_at:type_name -> google.protobuf.Timestamp
+	50, // 12: nimi.runtime.v1.KnowledgePage.metadata:type_name -> google.protobuf.Struct
+	51, // 13: nimi.runtime.v1.KnowledgePage.created_at:type_name -> google.protobuf.Timestamp
+	51, // 14: nimi.runtime.v1.KnowledgePage.updated_at:type_name -> google.protobuf.Timestamp
+	50, // 15: nimi.runtime.v1.KnowledgeKeywordHit.metadata:type_name -> google.protobuf.Struct
+	50, // 16: nimi.runtime.v1.KnowledgeLink.metadata:type_name -> google.protobuf.Struct
+	51, // 17: nimi.runtime.v1.KnowledgeLink.created_at:type_name -> google.protobuf.Timestamp
+	51, // 18: nimi.runtime.v1.KnowledgeLink.updated_at:type_name -> google.protobuf.Timestamp
+	11, // 19: nimi.runtime.v1.KnowledgeGraphEdge.link:type_name -> nimi.runtime.v1.KnowledgeLink
+	50, // 20: nimi.runtime.v1.KnowledgeGraphNode.metadata:type_name -> google.protobuf.Struct
+	1,  // 21: nimi.runtime.v1.KnowledgeIngestTask.status:type_name -> nimi.runtime.v1.KnowledgeIngestTaskStatus
+	52, // 22: nimi.runtime.v1.KnowledgeIngestTask.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	51, // 23: nimi.runtime.v1.KnowledgeIngestTask.created_at:type_name -> google.protobuf.Timestamp
+	51, // 24: nimi.runtime.v1.KnowledgeIngestTask.updated_at:type_name -> google.protobuf.Timestamp
+	2,  // 25: nimi.runtime.v1.CreateKnowledgeBankRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	6,  // 26: nimi.runtime.v1.CreateKnowledgeBankRequest.locator:type_name -> nimi.runtime.v1.PublicKnowledgeBankLocator
+	50, // 27: nimi.runtime.v1.CreateKnowledgeBankRequest.metadata:type_name -> google.protobuf.Struct
+	8,  // 28: nimi.runtime.v1.CreateKnowledgeBankResponse.bank:type_name -> nimi.runtime.v1.KnowledgeBank
+	2,  // 29: nimi.runtime.v1.GetKnowledgeBankRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	8,  // 30: nimi.runtime.v1.GetKnowledgeBankResponse.bank:type_name -> nimi.runtime.v1.KnowledgeBank
+	2,  // 31: nimi.runtime.v1.ListKnowledgeBanksRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	0,  // 32: nimi.runtime.v1.ListKnowledgeBanksRequest.scope_filters:type_name -> nimi.runtime.v1.KnowledgeBankScope
+	7,  // 33: nimi.runtime.v1.ListKnowledgeBanksRequest.owner_filters:type_name -> nimi.runtime.v1.KnowledgeBankOwnerFilter
+	8,  // 34: nimi.runtime.v1.ListKnowledgeBanksResponse.banks:type_name -> nimi.runtime.v1.KnowledgeBank
+	2,  // 35: nimi.runtime.v1.DeleteKnowledgeBankRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	53, // 36: nimi.runtime.v1.DeleteKnowledgeBankResponse.ack:type_name -> nimi.runtime.v1.Ack
+	2,  // 37: nimi.runtime.v1.PutPageRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	50, // 38: nimi.runtime.v1.PutPageRequest.metadata:type_name -> google.protobuf.Struct
+	9,  // 39: nimi.runtime.v1.PutPageResponse.page:type_name -> nimi.runtime.v1.KnowledgePage
+	2,  // 40: nimi.runtime.v1.GetPageRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	9,  // 41: nimi.runtime.v1.GetPageResponse.page:type_name -> nimi.runtime.v1.KnowledgePage
+	2,  // 42: nimi.runtime.v1.ListPagesRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	9,  // 43: nimi.runtime.v1.ListPagesResponse.pages:type_name -> nimi.runtime.v1.KnowledgePage
+	2,  // 44: nimi.runtime.v1.DeletePageRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	53, // 45: nimi.runtime.v1.DeletePageResponse.ack:type_name -> nimi.runtime.v1.Ack
+	2,  // 46: nimi.runtime.v1.SearchKeywordRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	10, // 47: nimi.runtime.v1.SearchKeywordResponse.hits:type_name -> nimi.runtime.v1.KnowledgeKeywordHit
+	52, // 48: nimi.runtime.v1.SearchKeywordResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	2,  // 49: nimi.runtime.v1.SearchHybridRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	10, // 50: nimi.runtime.v1.SearchHybridResponse.hits:type_name -> nimi.runtime.v1.KnowledgeKeywordHit
+	52, // 51: nimi.runtime.v1.SearchHybridResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	2,  // 52: nimi.runtime.v1.AddLinkRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	50, // 53: nimi.runtime.v1.AddLinkRequest.metadata:type_name -> google.protobuf.Struct
+	11, // 54: nimi.runtime.v1.AddLinkResponse.link:type_name -> nimi.runtime.v1.KnowledgeLink
+	2,  // 55: nimi.runtime.v1.RemoveLinkRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	53, // 56: nimi.runtime.v1.RemoveLinkResponse.ack:type_name -> nimi.runtime.v1.Ack
+	2,  // 57: nimi.runtime.v1.ListLinksRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	12, // 58: nimi.runtime.v1.ListLinksResponse.links:type_name -> nimi.runtime.v1.KnowledgeGraphEdge
+	2,  // 59: nimi.runtime.v1.ListBacklinksRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	12, // 60: nimi.runtime.v1.ListBacklinksResponse.backlinks:type_name -> nimi.runtime.v1.KnowledgeGraphEdge
+	2,  // 61: nimi.runtime.v1.TraverseGraphRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	13, // 62: nimi.runtime.v1.TraverseGraphResponse.nodes:type_name -> nimi.runtime.v1.KnowledgeGraphNode
+	2,  // 63: nimi.runtime.v1.IngestDocumentRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	50, // 64: nimi.runtime.v1.IngestDocumentRequest.metadata:type_name -> google.protobuf.Struct
+	52, // 65: nimi.runtime.v1.IngestDocumentResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	2,  // 66: nimi.runtime.v1.GetIngestTaskRequest.context:type_name -> nimi.runtime.v1.KnowledgeRequestContext
+	14, // 67: nimi.runtime.v1.GetIngestTaskResponse.task:type_name -> nimi.runtime.v1.KnowledgeIngestTask
+	68, // [68:68] is the sub-list for method output_type
+	68, // [68:68] is the sub-list for method input_type
+	68, // [68:68] is the sub-list for extension type_name
+	68, // [68:68] is the sub-list for extension extendee
+	0,  // [0:68] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_knowledge_proto_init() }

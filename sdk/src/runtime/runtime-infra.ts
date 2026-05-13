@@ -225,6 +225,9 @@ export function resolveRuntimeCallOptions(
   const providerApiKey = normalizeText(
     metadataInput['x-nimi-provider-api-key'] || metadataInput.providerApiKey,
   ) || undefined;
+  const appInstanceId = normalizeText(
+    metadataInput['x-nimi-app-instance-id'] || metadataInput.appInstanceId,
+  ) || undefined;
 
   const metadataExtraEntries = Object.entries(metadataInput)
     .filter(([key]) => {
@@ -238,7 +241,9 @@ export function resolveRuntimeCallOptions(
         && normalizedKey !== 'x-nimi-provider-endpoint'
         && normalizedKey !== 'providerendpoint'
         && normalizedKey !== 'x-nimi-provider-api-key'
-        && normalizedKey !== 'providerapikey';
+        && normalizedKey !== 'providerapikey'
+        && normalizedKey !== 'x-nimi-app-instance-id'
+        && normalizedKey !== 'appinstanceid';
     });
   const metadataExtra = metadataExtraEntries.length > 0
     ? Object.fromEntries(metadataExtraEntries)
@@ -252,6 +257,7 @@ export function resolveRuntimeCallOptions(
       providerType,
       providerEndpoint,
       providerApiKey,
+      appInstanceId,
       extra: metadataExtra,
     },
     idempotencyKey: normalizeText(input.idempotencyKey) || undefined,

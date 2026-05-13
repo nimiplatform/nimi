@@ -20,6 +20,21 @@ pub struct ScopedRuntimeBindingAttachment {
     #[prost(string, tag = "9")]
     pub world_id: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorkspaceBindingAttachment {
+    #[prost(string, tag = "1")]
+    pub binding_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub binding_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub runtime_app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub app_instance_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub workspace_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub realm_environment_id: ::prost::alloc::string::String,
+}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UsageStats {
     #[prost(int64, tag = "1")]
@@ -210,6 +225,18 @@ pub enum ReasonCode {
     AiLocalSpeechHostInitFailed = 563,
     AiLocalSpeechCapabilityDownloadFailed = 564,
     AiLocalSpeechBundleDegraded = 565,
+    /// WORKSPACE_BINDING family (570+)
+    WorkspaceBindingMissing = 570,
+    WorkspaceBindingMalformed = 571,
+    WorkspaceBindingNotFound = 572,
+    WorkspaceBindingRevoked = 573,
+    WorkspaceBindingExpired = 574,
+    WorkspaceBindingReplay = 575,
+    WorkspaceBindingAccountUnavailable = 576,
+    WorkspaceBindingCallerMismatch = 577,
+    WorkspaceBindingWorkspaceMismatch = 578,
+    WorkspaceBindingEnvDeviceMismatch = 579,
+    WorkspaceBindingScopeMissing = 580,
     /// GRANT family (510+)
     GrantTokenChainRootNotFound = 510,
     GrantTokenChainRootRequired = 511,
@@ -371,6 +398,23 @@ impl ReasonCode {
                 "AI_LOCAL_SPEECH_CAPABILITY_DOWNLOAD_FAILED"
             }
             Self::AiLocalSpeechBundleDegraded => "AI_LOCAL_SPEECH_BUNDLE_DEGRADED",
+            Self::WorkspaceBindingMissing => "WORKSPACE_BINDING_MISSING",
+            Self::WorkspaceBindingMalformed => "WORKSPACE_BINDING_MALFORMED",
+            Self::WorkspaceBindingNotFound => "WORKSPACE_BINDING_NOT_FOUND",
+            Self::WorkspaceBindingRevoked => "WORKSPACE_BINDING_REVOKED",
+            Self::WorkspaceBindingExpired => "WORKSPACE_BINDING_EXPIRED",
+            Self::WorkspaceBindingReplay => "WORKSPACE_BINDING_REPLAY",
+            Self::WorkspaceBindingAccountUnavailable => {
+                "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE"
+            }
+            Self::WorkspaceBindingCallerMismatch => "WORKSPACE_BINDING_CALLER_MISMATCH",
+            Self::WorkspaceBindingWorkspaceMismatch => {
+                "WORKSPACE_BINDING_WORKSPACE_MISMATCH"
+            }
+            Self::WorkspaceBindingEnvDeviceMismatch => {
+                "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH"
+            }
+            Self::WorkspaceBindingScopeMissing => "WORKSPACE_BINDING_SCOPE_MISSING",
             Self::GrantTokenChainRootNotFound => "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
             Self::GrantTokenChainRootRequired => "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
             Self::PageTokenInvalid => "PAGE_TOKEN_INVALID",
@@ -551,6 +595,25 @@ impl ReasonCode {
                 Some(Self::AiLocalSpeechCapabilityDownloadFailed)
             }
             "AI_LOCAL_SPEECH_BUNDLE_DEGRADED" => Some(Self::AiLocalSpeechBundleDegraded),
+            "WORKSPACE_BINDING_MISSING" => Some(Self::WorkspaceBindingMissing),
+            "WORKSPACE_BINDING_MALFORMED" => Some(Self::WorkspaceBindingMalformed),
+            "WORKSPACE_BINDING_NOT_FOUND" => Some(Self::WorkspaceBindingNotFound),
+            "WORKSPACE_BINDING_REVOKED" => Some(Self::WorkspaceBindingRevoked),
+            "WORKSPACE_BINDING_EXPIRED" => Some(Self::WorkspaceBindingExpired),
+            "WORKSPACE_BINDING_REPLAY" => Some(Self::WorkspaceBindingReplay),
+            "WORKSPACE_BINDING_ACCOUNT_UNAVAILABLE" => {
+                Some(Self::WorkspaceBindingAccountUnavailable)
+            }
+            "WORKSPACE_BINDING_CALLER_MISMATCH" => {
+                Some(Self::WorkspaceBindingCallerMismatch)
+            }
+            "WORKSPACE_BINDING_WORKSPACE_MISMATCH" => {
+                Some(Self::WorkspaceBindingWorkspaceMismatch)
+            }
+            "WORKSPACE_BINDING_ENV_DEVICE_MISMATCH" => {
+                Some(Self::WorkspaceBindingEnvDeviceMismatch)
+            }
+            "WORKSPACE_BINDING_SCOPE_MISSING" => Some(Self::WorkspaceBindingScopeMissing),
             "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND" => Some(Self::GrantTokenChainRootNotFound),
             "GRANT_TOKEN_CHAIN_ROOT_REQUIRED" => Some(Self::GrantTokenChainRootRequired),
             "PAGE_TOKEN_INVALID" => Some(Self::PageTokenInvalid),
@@ -1165,7 +1228,23 @@ pub mod runtime_auth_service_client {
         }
     }
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct WorkspaceMembershipProjection {
+    #[prost(string, tag = "1")]
+    pub workspace_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "WorkspaceMembershipState", tag = "2")]
+    pub membership_state: i32,
+    #[prost(string, tag = "3")]
+    pub realm_environment_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(map = "string, string", tag = "5")]
+    pub display_metadata: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AccountProjection {
     #[prost(string, tag = "1")]
     pub account_id: ::prost::alloc::string::String,
@@ -1173,6 +1252,8 @@ pub struct AccountProjection {
     pub display_name: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub realm_environment_id: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "4")]
+    pub workspace_memberships: ::prost::alloc::vec::Vec<WorkspaceMembershipProjection>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AccountCaller {
@@ -1219,6 +1300,35 @@ pub struct ScopedAppBindingRelation {
     pub reason_code: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct WorkspaceBindingRelation {
+    #[prost(string, tag = "1")]
+    pub binding_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub runtime_app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub app_instance_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub device_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub account_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub realm_environment_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub workspace_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "WorkspaceBindingPurpose", tag = "8")]
+    pub purpose: i32,
+    #[prost(string, repeated, tag = "9")]
+    pub scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "10")]
+    pub issued_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "11")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "WorkspaceBindingState", tag = "12")]
+    pub state: i32,
+    #[prost(enumeration = "ReasonCode", tag = "13")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AccountSessionEvent {
     #[prost(string, tag = "1")]
     pub event_id: ::prost::alloc::string::String,
@@ -1248,7 +1358,7 @@ pub struct GetAccountSessionStatusRequest {
     #[prost(message, optional, tag = "1")]
     pub caller: ::core::option::Option<AccountCaller>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetAccountSessionStatusResponse {
     #[prost(enumeration = "AccountSessionState", tag = "1")]
     pub state: i32,
@@ -1329,7 +1439,7 @@ pub struct CompleteLoginRequest {
     #[prost(string, tag = "10")]
     pub refresh_token: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CompleteLoginResponse {
     #[prost(bool, tag = "1")]
     pub accepted: bool,
@@ -1371,7 +1481,7 @@ pub struct RefreshAccountSessionRequest {
     #[prost(message, optional, tag = "1")]
     pub caller: ::core::option::Option<AccountCaller>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RefreshAccountSessionResponse {
     #[prost(bool, tag = "1")]
     pub accepted: bool,
@@ -1413,7 +1523,7 @@ pub struct SwitchAccountRequest {
     #[prost(string, tag = "2")]
     pub reason: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SwitchAccountResponse {
     #[prost(bool, tag = "1")]
     pub accepted: bool,
@@ -1469,6 +1579,56 @@ pub struct RevokeScopedAppBindingResponse {
     pub accepted: bool,
     #[prost(message, optional, tag = "2")]
     pub relation: ::core::option::Option<ScopedAppBindingRelation>,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "4")]
+    pub account_reason_code: i32,
+    #[prost(bool, tag = "5")]
+    pub production_inert: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct IssueWorkspaceBindingRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(string, tag = "2")]
+    pub workspace_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "3")]
+    pub scopes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int32, tag = "4")]
+    pub ttl_seconds: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct IssueWorkspaceBindingResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(string, tag = "2")]
+    pub binding_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub attachment: ::core::option::Option<WorkspaceBindingAttachment>,
+    #[prost(message, optional, tag = "4")]
+    pub relation: ::core::option::Option<WorkspaceBindingRelation>,
+    #[prost(enumeration = "ReasonCode", tag = "5")]
+    pub reason_code: i32,
+    #[prost(enumeration = "AccountReasonCode", tag = "6")]
+    pub account_reason_code: i32,
+    #[prost(bool, tag = "7")]
+    pub production_inert: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevokeWorkspaceBindingRequest {
+    #[prost(message, optional, tag = "1")]
+    pub caller: ::core::option::Option<AccountCaller>,
+    #[prost(string, tag = "2")]
+    pub binding_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "3")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevokeWorkspaceBindingResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(message, optional, tag = "2")]
+    pub relation: ::core::option::Option<WorkspaceBindingRelation>,
     #[prost(enumeration = "ReasonCode", tag = "3")]
     pub reason_code: i32,
     #[prost(enumeration = "AccountReasonCode", tag = "4")]
@@ -1806,6 +1966,102 @@ impl ScopedAppBindingPurpose {
             "SCOPED_APP_BINDING_PURPOSE_APP_SCOPED_RUNTIME" => {
                 Some(Self::AppScopedRuntime)
             }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum WorkspaceMembershipState {
+    Unspecified = 0,
+    Active = 1,
+    Suspended = 2,
+    Revoked = 3,
+    Unknown = 4,
+}
+impl WorkspaceMembershipState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "WORKSPACE_MEMBERSHIP_STATE_UNSPECIFIED",
+            Self::Active => "WORKSPACE_MEMBERSHIP_STATE_ACTIVE",
+            Self::Suspended => "WORKSPACE_MEMBERSHIP_STATE_SUSPENDED",
+            Self::Revoked => "WORKSPACE_MEMBERSHIP_STATE_REVOKED",
+            Self::Unknown => "WORKSPACE_MEMBERSHIP_STATE_UNKNOWN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "WORKSPACE_MEMBERSHIP_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "WORKSPACE_MEMBERSHIP_STATE_ACTIVE" => Some(Self::Active),
+            "WORKSPACE_MEMBERSHIP_STATE_SUSPENDED" => Some(Self::Suspended),
+            "WORKSPACE_MEMBERSHIP_STATE_REVOKED" => Some(Self::Revoked),
+            "WORKSPACE_MEMBERSHIP_STATE_UNKNOWN" => Some(Self::Unknown),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum WorkspaceBindingPurpose {
+    Unspecified = 0,
+    KnowledgeConsume = 1,
+}
+impl WorkspaceBindingPurpose {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "WORKSPACE_BINDING_PURPOSE_UNSPECIFIED",
+            Self::KnowledgeConsume => "WORKSPACE_BINDING_PURPOSE_KNOWLEDGE_CONSUME",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "WORKSPACE_BINDING_PURPOSE_UNSPECIFIED" => Some(Self::Unspecified),
+            "WORKSPACE_BINDING_PURPOSE_KNOWLEDGE_CONSUME" => Some(Self::KnowledgeConsume),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum WorkspaceBindingState {
+    Unspecified = 0,
+    Issued = 1,
+    Active = 2,
+    Revoked = 3,
+    Expired = 4,
+}
+impl WorkspaceBindingState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "WORKSPACE_BINDING_STATE_UNSPECIFIED",
+            Self::Issued => "WORKSPACE_BINDING_STATE_ISSUED",
+            Self::Active => "WORKSPACE_BINDING_STATE_ACTIVE",
+            Self::Revoked => "WORKSPACE_BINDING_STATE_REVOKED",
+            Self::Expired => "WORKSPACE_BINDING_STATE_EXPIRED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "WORKSPACE_BINDING_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "WORKSPACE_BINDING_STATE_ISSUED" => Some(Self::Issued),
+            "WORKSPACE_BINDING_STATE_ACTIVE" => Some(Self::Active),
+            "WORKSPACE_BINDING_STATE_REVOKED" => Some(Self::Revoked),
+            "WORKSPACE_BINDING_STATE_EXPIRED" => Some(Self::Expired),
             _ => None,
         }
     }
@@ -2181,6 +2437,64 @@ pub mod runtime_account_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAccountService",
                         "RevokeScopedAppBinding",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn issue_workspace_binding(
+            &mut self,
+            request: impl tonic::IntoRequest<super::IssueWorkspaceBindingRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::IssueWorkspaceBindingResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/IssueWorkspaceBinding",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "IssueWorkspaceBinding",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn revoke_workspace_binding(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RevokeWorkspaceBindingRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RevokeWorkspaceBindingResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/RevokeWorkspaceBinding",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "RevokeWorkspaceBinding",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -8004,6 +8318,8 @@ pub struct KnowledgeRequestContext {
     pub app_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub subject_user_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub workspace_binding: ::core::option::Option<WorkspaceBindingAttachment>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct KnowledgeAppPrivateOwner {
