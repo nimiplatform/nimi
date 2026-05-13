@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type SendGroupAgentMessageInputDto = components['schemas']['SendGroupAgentMessageInputDto'];
+export type CommitRealmGroupMessageCandidateInputDto = components['schemas']['CommitRealmGroupMessageCandidateInputDto'];

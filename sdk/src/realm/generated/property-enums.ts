@@ -309,6 +309,12 @@ export const CloneAssetTransferPolicy = {
 
 export type CloneAssetTransferPolicy = (typeof CloneAssetTransferPolicy)[keyof typeof CloneAssetTransferPolicy];
 
+export const CommitRealmGroupMessageCandidateKind = {
+  REALM_GROUP_MESSAGE_CANDIDATE: "REALM_GROUP_MESSAGE_CANDIDATE",
+} as const satisfies Record<string, components['schemas']['CommitRealmGroupMessageCandidateInputDto']['candidateKind']>;
+
+export type CommitRealmGroupMessageCandidateKind = (typeof CommitRealmGroupMessageCandidateKind)[keyof typeof CommitRealmGroupMessageCandidateKind];
+
 export const CreateAgentRuleCategory = {
   CONSTRAINT: "CONSTRAINT",
   MECHANISM: "MECHANISM",
@@ -754,6 +760,22 @@ export const PublicWorldHistoryEventVisibility = {
 } as const satisfies Record<string, components['schemas']['PublicWorldHistoryEventDto']['visibility']>;
 
 export type PublicWorldHistoryEventVisibility = (typeof PublicWorldHistoryEventVisibility)[keyof typeof PublicWorldHistoryEventVisibility];
+
+export const RealmGroupMessageCandidateCommitDisposition = {
+  MESSAGE_CANDIDATE: "MESSAGE_CANDIDATE",
+  REFUSAL_CANDIDATE: "REFUSAL_CANDIDATE",
+} as const satisfies Record<string, components['schemas']['RealmGroupMessageCandidateCommitResultDto']['commitDisposition']>;
+
+export type RealmGroupMessageCandidateCommitDisposition = (typeof RealmGroupMessageCandidateCommitDisposition)[keyof typeof RealmGroupMessageCandidateCommitDisposition];
+
+export const RealmGroupMessageCandidateCommitStatus = {
+  COMMITTED: "COMMITTED",
+  REFUSED: "REFUSED",
+  REJECTED: "REJECTED",
+  IDEMPOTENT_REPLAY: "IDEMPOTENT_REPLAY",
+} as const satisfies Record<string, components['schemas']['RealmGroupMessageCandidateCommitResultDto']['status']>;
+
+export type RealmGroupMessageCandidateCommitStatus = (typeof RealmGroupMessageCandidateCommitStatus)[keyof typeof RealmGroupMessageCandidateCommitStatus];
 
 export const RequestDataExportFormat = {
   JSON: "JSON",

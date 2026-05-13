@@ -19,6 +19,7 @@ import {
   loadGroupChat,
   loadGroupChatMessages,
   sendGroupChatMessage,
+  commitRealmGroupMessageCandidateHandoff,
   markGroupChatRead,
   createGroupChat,
   syncGroupChatEvents,
@@ -33,6 +34,8 @@ type MeTwoFactorPrepareOutput = RealmModel<'MeTwoFactorPrepareOutput'>;
 type MeTwoFactorVerifyInput = RealmModel<'MeTwoFactorVerifyInput'>;
 type OAuthProvider = RealmModel<'OAuthProvider'>;
 type SendMessageInputDto = RealmModel<'SendMessageInputDto'>;
+type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
+type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 type CreateReviewDto = RealmModel<'CreateReviewDto'>;
 type CreateSparkCheckoutDto = RealmModel<'CreateSparkCheckoutDto'>;
 type CreateWithdrawalDto = RealmModel<'CreateWithdrawalDto'>;
@@ -234,6 +237,19 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       loadGroupChatMessages(input.callApiTask, input.emitFacadeError, chatId, limit),
     sendGroupMessage: async (chatId: string, content: string) =>
       sendGroupChatMessage(input.callApiTask, input.emitFacadeError, chatId, content),
+    commitRealmGroupMessageCandidate: async (
+      chatId: string,
+      participant: GroupParticipantDto,
+      triggerMessage: GroupMessageViewDto,
+    ) =>
+      commitRealmGroupMessageCandidateHandoff(
+        input.callApiTask,
+        input.emitFacadeError,
+        input.getCurrentUser,
+        chatId,
+        participant,
+        triggerMessage,
+      ),
     markGroupRead: async (chatId: string) =>
       markGroupChatRead(input.callApiTask, input.emitFacadeError, chatId),
     createGroup: async (title: string, participantIds: string[], initialMessage?: string) =>

@@ -47,12 +47,15 @@ test('group composer mention surface is text insertion posture only', () => {
   assert.doesNotMatch(composerSource, /chat-agent-orchestration|chat-agent-continuity|chat-agent-runtime-memory/);
 });
 
-test('group adapter feeds committed Realm agent slots into mention UI without execution handoff', () => {
+test('group adapter feeds committed Realm agent slots into split candidate handoff', () => {
   assert.match(groupAdapterSource, /const participants: GroupParticipantDto\[] = selectedGroup\?\.participants \|\| \[];/);
   assert.match(groupAdapterSource, /<ChatGroupComposer[\s\S]*agentParticipants=\{participants\}/);
   assert.match(groupAdapterSource, /dataSync\.sendGroupMessage\(chatId, content\)/);
+  assert.match(groupAdapterSource, /resolveInvokableGroupAgentMention/);
+  assert.match(groupAdapterSource, /normalizeText\(participant\.agentOwnerId\) === userId/);
+  assert.match(groupAdapterSource, /dataSync\.commitRealmGroupMessageCandidate/);
   assert.doesNotMatch(groupAdapterSource, /sendGroupAgentMessage|sendGroupAgentChatMessage/);
-  assert.doesNotMatch(groupAdapterSource, /candidate output|commit handoff|runtime\.orchestration|GROUP_LIMITED/);
+  assert.doesNotMatch(groupAdapterSource, /candidate output|runtime\.orchestration|GROUP_LIMITED/);
 });
 
 test('group control surface does not expose fake agent thinking copy', () => {

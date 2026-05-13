@@ -27,6 +27,49 @@ type UseGroupConversationModeHostInput = {
   currentUserId: string | null;
 };
 
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function resolveInvokableGroupAgentMention(
+  content: string,
+  participants: readonly GroupParticipantDto[],
+  currentUserId: string | null,
+): GroupParticipantDto | null {
+  const userId = normalizeText(currentUserId);
+  if (!userId) {
+    return null;
+  }
+  const candidates = participants
+    .filter((participant) =>
+      participant.type === 'agent'
+      && normalizeText(participant.agentOwnerId) === userId
+      && normalizeText(participant.realmGroupAgentSlotId)
+      && normalizeText(participant.realmAgentId)
+      && normalizeText(participant.localAgentRef),
+    )
+    .sort((a, b) =>
+      normalizeText(b.displayName || b.handle).length
+      - normalizeText(a.displayName || a.handle).length,
+    );
+
+  for (const participant of candidates) {
+    const mentionName = normalizeText(participant.displayName || participant.handle);
+    if (!mentionName) {
+      continue;
+    }
+    const pattern = new RegExp(`(^|\\s)@${escapeRegExp(mentionName)}(?=\\s|$|[.,!?])`, 'i');
+    if (pattern.test(content)) {
+      return participant;
+    }
+  }
+  return null;
+}
+
 export function useGroupConversationModeHost(
   input: UseGroupConversationModeHostInput,
 ): DesktopConversationModeHost {
@@ -90,7 +133,26 @@ export function useGroupConversationModeHost(
     mutationFn: async ({ chatId, content }: { chatId: string; content: string }) => {
       return dataSync.sendGroupMessage(chatId, content);
     },
-    onSuccess: (_sentMessage, variables) => {
+    onSettled: (_sentMessage, _error, variables) => {
+      const sentChatId = String(variables.chatId || '');
+      if (sentChatId) {
+        void queryClient.invalidateQueries({ queryKey: ['group-messages', sentChatId] });
+      }
+      void queryClient.invalidateQueries({ queryKey: GROUP_CHATS_QUERY_KEY });
+    },
+  });
+
+  const candidateCommitMutation = useMutation({
+    mutationFn: async ({
+      chatId,
+      participant,
+      triggerMessage,
+    }: {
+      chatId: string;
+      participant: GroupParticipantDto;
+      triggerMessage: GroupMessageViewDto;
+    }) => dataSync.commitRealmGroupMessageCandidate(chatId, participant, triggerMessage),
+    onSettled: (_result, _error, variables) => {
       const sentChatId = String(variables.chatId || '');
       if (sentChatId) {
         void queryClient.invalidateQueries({ queryKey: ['group-messages', sentChatId] });
@@ -115,6 +177,8 @@ export function useGroupConversationModeHost(
       setSelectedTargetForSource('group', null);
     }
   }, [allGroups, selectedGroupId, setSelectedTargetForSource]);
+
+  const participants: GroupParticipantDto[] = selectedGroup?.participants || [];
 
   const setupState = useMemo(() => {
     if (authStatus === 'authenticated') {
@@ -150,14 +214,25 @@ export function useGroupConversationModeHost(
 
   const handleSendMessage = useCallback(async (content: string) => {
     if (!selectedGroupId || !content.trim()) return;
-    await sendMutation.mutateAsync({ chatId: selectedGroupId, content: content.trim() });
-  }, [selectedGroupId, sendMutation]);
+    const trimmed = content.trim();
+    const mentionedAgent = resolveInvokableGroupAgentMention(
+      trimmed,
+      participants,
+      currentUserId,
+    );
+    const sentMessage = await sendMutation.mutateAsync({ chatId: selectedGroupId, content: trimmed });
+    if (mentionedAgent) {
+      await candidateCommitMutation.mutateAsync({
+        chatId: selectedGroupId,
+        participant: mentionedAgent,
+        triggerMessage: sentMessage,
+      });
+    }
+  }, [candidateCommitMutation, currentUserId, participants, selectedGroupId, sendMutation]);
 
   const selectedGroupTitle = selectedGroup
     ? getGroupChatTitle(selectedGroup)
     : t('Chat.group', { defaultValue: 'Group' });
-
-  const participants: GroupParticipantDto[] = selectedGroup?.participants || [];
 
   return useMemo((): DesktopConversationModeHost => ({
     mode: 'group',
@@ -211,7 +286,7 @@ export function useGroupConversationModeHost(
       <ChatGroupComposer
         selectedGroupId={selectedGroupId}
         onSendMessage={handleSendMessage}
-        isSending={sendMutation.isPending}
+        isSending={sendMutation.isPending || candidateCommitMutation.isPending}
         agentParticipants={participants}
       />
     ) : null,
@@ -230,6 +305,7 @@ export function useGroupConversationModeHost(
     selectedGroup,
     selectedGroupId,
     selectedGroupTitle,
+    candidateCommitMutation.isPending,
     sendMutation.isPending,
     setSelectedTargetForSource,
     t,

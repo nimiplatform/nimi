@@ -1821,7 +1821,7 @@ export type paths = {
         patch: operations["updateGroup"];
         trace?: never;
     };
-    "/api/human/group-chats/{chatId}/agent-messages": {
+    "/api/human/group-chats/{chatId}/agent-message-candidate-commits": {
         parameters: {
             query?: never;
             header?: never;
@@ -1830,8 +1830,8 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Send group agent message */
-        post: operations["sendGroupAgentMessage"];
+        /** Commit Realm group message candidate */
+        post: operations["commitRealmGroupMessageCandidate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4358,6 +4358,21 @@ export type components = {
             transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
             usePolicy?: components["schemas"]["UsePolicyDto"] | null;
         };
+        CommitRealmGroupMessageCandidateInputDto: {
+            candidateEvidenceRef: string;
+            candidateId: string;
+            /** @enum {string} */
+            candidateKind: "REALM_GROUP_MESSAGE_CANDIDATE";
+            clientCorrelationId?: string;
+            evidenceHash: string;
+            expectedLocalAgentRef: string;
+            expectedRealmGroupAgentSlotId: string;
+            idempotencyKey: string;
+            moderationRef?: string;
+            refusalRef?: string;
+            runtimeTraceRef: string;
+            triggerRef: string;
+        };
         CommitWorldStateDto: {
             commit: components["schemas"]["MutationCommitEnvelopeDto"];
             ifSnapshotVersion?: string;
@@ -5101,6 +5116,9 @@ export type components = {
             isOnline: boolean;
             /** Format: date-time */
             joinedAt: string;
+            localAgentRef: string | null;
+            realmAgentId: string | null;
+            realmGroupAgentSlotId: string | null;
             /** @enum {string} */
             role: "admin" | "member";
             /** @enum {string} */
@@ -5655,6 +5673,30 @@ export type components = {
             worldId: string;
             worldviewVersion: number;
         };
+        RealmGroupMessageCandidateCommitResultDto: {
+            auditRecordId: string;
+            candidateId: string;
+            /** @enum {string} */
+            commitDisposition: "MESSAGE_CANDIDATE" | "REFUSAL_CANDIDATE";
+            commitId: string;
+            /** Format: date-time */
+            committedAt: string;
+            committedMessage?: components["schemas"]["GroupMessageViewDto"];
+            committedMessageId: string | null;
+            evidenceHash: string;
+            idempotencyKey: string;
+            localAgentRef: string;
+            ownerUserId: string;
+            realmAgentId: string;
+            realmGroupAgentSlotId: string;
+            refusalCode: string | null;
+            refusalReason: string | null;
+            rejectionCode: string | null;
+            runtimeTraceRef: string;
+            /** @enum {string} */
+            status: "COMMITTED" | "REFUSED" | "REJECTED" | "IDEMPOTENT_REPLAY";
+            syncCursor: number;
+        };
         ReceivedGiftsResponseDto: {
             items: components["schemas"]["GiftTransactionRichDto"][];
             nextCursor: string | null;
@@ -5998,16 +6040,6 @@ export type components = {
             receiverId: string;
             /** @description Post ID context */
             relatedPostId?: string;
-        };
-        SendGroupAgentMessageInputDto: {
-            agentAccountId: string;
-            clientMessageId: string;
-            payload?: {
-                [key: string]: unknown;
-            };
-            replyToMessageId?: string;
-            text?: string;
-            type: components["schemas"]["MessageType"];
         };
         SendMessageInputDto: {
             clientMessageId: string;
@@ -10222,7 +10254,7 @@ export interface operations {
             };
         };
     };
-    sendGroupAgentMessage: {
+    commitRealmGroupMessageCandidate: {
         parameters: {
             query?: never;
             header?: never;
@@ -10233,7 +10265,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SendGroupAgentMessageInputDto"];
+                "application/json": components["schemas"]["CommitRealmGroupMessageCandidateInputDto"];
             };
         };
         responses: {
@@ -10242,7 +10274,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GroupMessageViewDto"];
+                    "application/json": components["schemas"]["RealmGroupMessageCandidateCommitResultDto"];
                 };
             };
         };

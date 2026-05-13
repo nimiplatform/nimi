@@ -2276,6 +2276,32 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
+  "GroupChatsService.commitRealmGroupMessageCandidate": {
+    "operationId": "commitRealmGroupMessageCandidate",
+    "method": "POST",
+    "path": "/api/human/group-chats/{chatId}/agent-message-candidate-commits",
+    "service": "GroupChatsService",
+    "methodName": "commitRealmGroupMessageCandidate",
+    "tag": "Group Chats",
+    "parameters": [
+      {
+        "name": "chatId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "GroupChatsService.createGroup": {
     "operationId": "createGroup",
     "method": "POST",
@@ -2541,32 +2567,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "successContentTypes": [],
     "hasSuccessBody": false
-  },
-  "GroupChatsService.sendGroupAgentMessage": {
-    "operationId": "sendGroupAgentMessage",
-    "method": "POST",
-    "path": "/api/human/group-chats/{chatId}/agent-messages",
-    "service": "GroupChatsService",
-    "methodName": "sendGroupAgentMessage",
-    "tag": "Group Chats",
-    "parameters": [
-      {
-        "name": "chatId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
   },
   "GroupChatsService.sendGroupMessage": {
     "operationId": "sendGroupMessage",
@@ -6353,6 +6353,7 @@ export const REALM_SERVICE_METHODS = {
   "GroupChatsService": {
     "addGroupAgent": "GroupChatsService.addGroupAgent",
     "addGroupParticipant": "GroupChatsService.addGroupParticipant",
+    "commitRealmGroupMessageCandidate": "GroupChatsService.commitRealmGroupMessageCandidate",
     "createGroup": "GroupChatsService.createGroup",
     "editGroupMessage": "GroupChatsService.editGroupMessage",
     "getGroup": "GroupChatsService.getGroup",
@@ -6362,7 +6363,6 @@ export const REALM_SERVICE_METHODS = {
     "recallGroupMessage": "GroupChatsService.recallGroupMessage",
     "removeGroupAgent": "GroupChatsService.removeGroupAgent",
     "removeGroupParticipant": "GroupChatsService.removeGroupParticipant",
-    "sendGroupAgentMessage": "GroupChatsService.sendGroupAgentMessage",
     "sendGroupMessage": "GroupChatsService.sendGroupMessage",
     "syncGroupEvents": "GroupChatsService.syncGroupEvents",
     "updateGroup": "GroupChatsService.updateGroup",

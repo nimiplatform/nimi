@@ -93,6 +93,7 @@ export type RealmGeneratedModelMap = {
   CheckEmailResponseDto: components['schemas']['CheckEmailResponseDto'];
   ClassDefinitionDto: components['schemas']['ClassDefinitionDto'];
   CloneAssetDto: components['schemas']['CloneAssetDto'];
+  CommitRealmGroupMessageCandidateInputDto: components['schemas']['CommitRealmGroupMessageCandidateInputDto'];
   CommitWorldStateDto: components['schemas']['CommitWorldStateDto'];
   ConnectDashboardLinkDto: components['schemas']['ConnectDashboardLinkDto'];
   ConnectOnboardingResponseDto: components['schemas']['ConnectOnboardingResponseDto'];
@@ -229,6 +230,7 @@ export type RealmGeneratedModelMap = {
   PublicWorldSceneListDto: components['schemas']['PublicWorldSceneListDto'];
   PublishWorldDraftDto: components['schemas']['PublishWorldDraftDto'];
   PublishWorldDraftResultDto: components['schemas']['PublishWorldDraftResultDto'];
+  RealmGroupMessageCandidateCommitResultDto: components['schemas']['RealmGroupMessageCandidateCommitResultDto'];
   ReceivedGiftsResponseDto: components['schemas']['ReceivedGiftsResponseDto'];
   RefreshTokenDto: components['schemas']['RefreshTokenDto'];
   RejectGiftDto: components['schemas']['RejectGiftDto'];
@@ -270,7 +272,6 @@ export type RealmGeneratedModelMap = {
   SceneTimeSettingsDto: components['schemas']['SceneTimeSettingsDto'];
   SelectAvatarDto: components['schemas']['SelectAvatarDto'];
   SendGiftDto: components['schemas']['SendGiftDto'];
-  SendGroupAgentMessageInputDto: components['schemas']['SendGroupAgentMessageInputDto'];
   SendMessageInputDto: components['schemas']['SendMessageInputDto'];
   SetAgentRelationshipDto: components['schemas']['SetAgentRelationshipDto'];
   SocialProfileDto: components['schemas']['SocialProfileDto'];

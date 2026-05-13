@@ -48,6 +48,8 @@ type RejectGiftDto = RealmModel<'RejectGiftDto'>;
 type ReceivedGiftsResponseDto = RealmModel<'ReceivedGiftsResponseDto'>;
 type SendGiftDto = RealmModel<'SendGiftDto'>;
 type SendMessageInputDto = RealmModel<'SendMessageInputDto'>;
+type GroupMessageViewDto = RealmModel<'GroupMessageViewDto'>;
+type GroupParticipantDto = RealmModel<'GroupParticipantDto'>;
 type SparkCheckoutSessionDto = RealmModel<'SparkCheckoutSessionDto'>;
 type SparkPackageDto = RealmModel<'SparkPackageDto'>;
 type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
@@ -318,6 +320,9 @@ export class DataSync {
   loadGroupChat(chatId: string) { return this.actions.loadGroupChat(chatId); }
   loadGroupMessages(chatId: string, limit = 50) { return this.actions.loadGroupMessages(chatId, Math.min(limit, 100)); }
   sendGroupMessage(chatId: string, content: string) { return this.actions.sendGroupMessage(chatId, content); }
+  commitRealmGroupMessageCandidate(chatId: string, participant: GroupParticipantDto, triggerMessage: GroupMessageViewDto) {
+    return this.actions.commitRealmGroupMessageCandidate(chatId, participant, triggerMessage);
+  }
   async markGroupRead(chatId: string) { await this.actions.markGroupRead(chatId); }
   createGroup(title: string, participantIds: string[], initialMessage?: string) { return this.actions.createGroup(title, participantIds, initialMessage); }
   syncGroupEvents(chatId: string, afterSeq: number, limit = 100) { return this.actions.syncGroupEvents(chatId, afterSeq, Math.min(limit, 100)); }
