@@ -32,18 +32,22 @@ describe('Realm group agent participation Desktop hardcut', () => {
     }
   });
 
-  it('wires split Runtime candidate and Realm commit facades without evidence bypass', () => {
+  it('wires split Runtime candidate/evidence read and Realm commit facades', () => {
     const flowSource = readDesktopFile('src/runtime/data-sync/flows/group-chat-flow.ts');
 
     assert.match(flowSource, /createRuntimeProtectedScopeHelper/);
     assert.match(flowSource, /runtime\.agent\.createRealmGroupMessageCandidate/);
+    assert.match(flowSource, /runtime\.agent\.getRealmGroupMessageCandidateEvidence/);
     assert.match(flowSource, /runtime\.agent\.create_realm_group_message_candidate/);
+    assert.match(flowSource, /runtime\.agent\.get_realm_group_message_candidate_evidence/);
+    assert.doesNotMatch(flowSource, /GroupChatsService\.publishRealmGroupMessageCandidateEvidence/);
     assert.match(flowSource, /GroupChatsService\.commitRealmGroupMessageCandidate/);
     assert.match(flowSource, /candidateEvidenceRef: candidate\.candidateEvidenceRef/);
+    assert.match(flowSource, /outputCandidateRef: evidence\.outputCandidateRef/);
     assert.match(flowSource, /assertCandidateHandleMatchesExpectedSlot/);
+    assert.match(flowSource, /assertCandidateEvidenceMatchesHandle/);
     assert.match(flowSource, /expectedRealmGroupAgentSlotId: slot\.realmGroupAgentSlotId/);
     assert.match(flowSource, /expectedLocalAgentRef: slot\.localAgentRef/);
-    assert.doesNotMatch(flowSource, /getRealmGroupMessageCandidateEvidence/);
     assert.doesNotMatch(flowSource, /unsafeRaw|fetch\(|\/agent-messages|message_committed|runtime\.agent\.turn\.request/);
   });
 

@@ -3667,10 +3667,7 @@ export type components = {
             maxAllowed: number;
             remaining: number;
         };
-        /**
-         * @description Agent category: GENERAL, COMPANION, ASSISTANT, GAME, CRYPTO, NSFW_AGENT
-         * @enum {string}
-         */
+        /** @enum {string} */
         AgentCategory: "GENERAL" | "COMPANION" | "ASSISTANT" | "GAME" | "CRYPTO" | "NSFW_AGENT";
         AgentCommunicationDto: {
             /** @enum {string} */
@@ -3716,25 +3713,15 @@ export type components = {
         /** @enum {string} */
         AgentImportance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
         AgentMetadataDto: {
-            /** @description Agent current active worldId */
             activeWorldId?: string;
-            /** @description Agent category: GENERAL, COMPANION, ASSISTANT, GAME, CRYPTO, NSFW_AGENT */
             category?: components["schemas"]["AgentCategory"];
-            /** @description Narrative importance tier inside the world */
             importance?: components["schemas"]["AgentImportance"];
-            /** @description Agent origin: OFFICIAL, PARTNER, COMMUNITY */
             origin?: components["schemas"]["AgentOrigin"];
-            /** @description WORLD_OWNED ownership audit field */
             ownerWorldId?: string | null;
-            /** @description Ownership semantics: MASTER_OWNED or WORLD_OWNED */
             ownershipType?: components["schemas"]["AgentOwnershipType"];
-            /** @description Lifecycle state: INCUBATING, READY, ACTIVE, SUSPENDED, FAILED */
             state?: components["schemas"]["AgentState"];
-            /** @description Verification tier: OFFICIAL, PARTNER, COMMUNITY */
             tier?: components["schemas"]["VerificationTier"];
-            /** @description Wake strategy: PASSIVE, PROACTIVE, SCHEDULED */
             wakeStrategy?: components["schemas"]["AgentWakeStrategy"];
-            /** @description Agent current residence worldId */
             worldId?: string;
         };
         /** @enum {string} */
@@ -3763,14 +3750,10 @@ export type components = {
         AgentProfileDto: {
             activeWorldId?: string;
             importance?: components["schemas"]["AgentImportance"];
-            /** @description WORLD_OWNED ownership audit field */
             ownerWorldId?: string | null;
-            /** @description Ownership semantics: MASTER_OWNED or WORLD_OWNED */
             ownershipType?: components["schemas"]["AgentOwnershipType"];
-            /** @description Lifecycle state: INCUBATING, READY, ACTIVE, SUSPENDED, FAILED */
             state?: components["schemas"]["AgentState"];
             stats?: components["schemas"]["AgentStatsDto"];
-            /** @description Agent current residence worldId */
             worldId?: string;
         };
         /** @enum {string} */
@@ -3933,10 +3916,7 @@ export type components = {
             speed?: number;
             voiceId?: string;
         };
-        /**
-         * @description Wake strategy: PASSIVE, PROACTIVE, SCHEDULED
-         * @enum {string}
-         */
+        /** @enum {string} */
         AgentWakeStrategy: "PASSIVE" | "PROACTIVE";
         /** @enum {string} */
         ApiKeyType: "PERSONAL" | "ENTERPRISE";
@@ -4359,16 +4339,30 @@ export type components = {
             usePolicy?: components["schemas"]["UsePolicyDto"] | null;
         };
         CommitRealmGroupMessageCandidateInputDto: {
+            auditLineageRef: string;
+            body?: string;
+            bodyHash?: string;
             candidateEvidenceRef: string;
             candidateId: string;
             /** @enum {string} */
             candidateKind: "REALM_GROUP_MESSAGE_CANDIDATE";
             clientCorrelationId?: string;
+            /** @enum {string} */
+            commitDisposition: "MESSAGE_CANDIDATE" | "REFUSAL_CANDIDATE";
+            createdAt: string;
             evidenceHash: string;
             expectedLocalAgentRef: string;
             expectedRealmGroupAgentSlotId: string;
+            expiresAt: string;
             idempotencyKey: string;
+            /** @enum {string} */
+            messageType?: "TEXT";
             moderationRef?: string;
+            outputCandidateRef: string;
+            policyVerdictRef: string;
+            refusalCode?: string;
+            refusalHash?: string;
+            refusalReason?: string;
             refusalRef?: string;
             runtimeTraceRef: string;
             triggerRef: string;

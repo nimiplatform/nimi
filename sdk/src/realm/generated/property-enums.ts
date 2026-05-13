@@ -309,11 +309,24 @@ export const CloneAssetTransferPolicy = {
 
 export type CloneAssetTransferPolicy = (typeof CloneAssetTransferPolicy)[keyof typeof CloneAssetTransferPolicy];
 
+export const CommitRealmGroupMessageCandidateCommitDisposition = {
+  MESSAGE_CANDIDATE: "MESSAGE_CANDIDATE",
+  REFUSAL_CANDIDATE: "REFUSAL_CANDIDATE",
+} as const satisfies Record<string, components['schemas']['CommitRealmGroupMessageCandidateInputDto']['commitDisposition']>;
+
+export type CommitRealmGroupMessageCandidateCommitDisposition = (typeof CommitRealmGroupMessageCandidateCommitDisposition)[keyof typeof CommitRealmGroupMessageCandidateCommitDisposition];
+
 export const CommitRealmGroupMessageCandidateKind = {
   REALM_GROUP_MESSAGE_CANDIDATE: "REALM_GROUP_MESSAGE_CANDIDATE",
 } as const satisfies Record<string, components['schemas']['CommitRealmGroupMessageCandidateInputDto']['candidateKind']>;
 
 export type CommitRealmGroupMessageCandidateKind = (typeof CommitRealmGroupMessageCandidateKind)[keyof typeof CommitRealmGroupMessageCandidateKind];
+
+export const CommitRealmGroupMessageCandidateMessageType = {
+  TEXT: "TEXT",
+} as const satisfies Record<string, components['schemas']['CommitRealmGroupMessageCandidateInputDto']['messageType']>;
+
+export type CommitRealmGroupMessageCandidateMessageType = (typeof CommitRealmGroupMessageCandidateMessageType)[keyof typeof CommitRealmGroupMessageCandidateMessageType];
 
 export const CreateAgentRuleCategory = {
   CONSTRAINT: "CONSTRAINT",

@@ -1,7 +1,10 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { createRuntimeProtectedScopeHelper } from '@nimiplatform/sdk/runtime';
+import {
+  RealmGroupMessageCandidateCommitDisposition,
+  createRuntimeProtectedScopeHelper,
+} from '@nimiplatform/sdk/runtime';
 import type { JsonObject } from '@runtime/net/json';
 
 type GroupChatViewDto = RealmModel<'GroupChatViewDto'>;
@@ -116,6 +119,63 @@ function assertCandidateHandleMatchesExpectedSlot(input: {
     || input.candidate.triggerRef !== input.triggerRef
   ) {
     throw new Error('Runtime Realm group message candidate handle does not match expected Realm slot handoff');
+  }
+}
+
+function timestampToIso(value: { seconds?: string | number | bigint; nanos?: number } | undefined, fieldName: string): string {
+  if (!value) {
+    throw new Error(`Runtime Realm group message candidate evidence missing ${fieldName}`);
+  }
+  const seconds = Number(value.seconds ?? 0);
+  const nanos = Number(value.nanos ?? 0);
+  if (!Number.isFinite(seconds) || !Number.isFinite(nanos)) {
+    throw new Error(`Runtime Realm group message candidate evidence has invalid ${fieldName}`);
+  }
+  return new Date(seconds * 1000 + Math.floor(nanos / 1_000_000)).toISOString();
+}
+
+function mapRuntimeCommitDisposition(
+  value: RealmGroupMessageCandidateCommitDisposition,
+): 'MESSAGE_CANDIDATE' | 'REFUSAL_CANDIDATE' {
+  if (value === RealmGroupMessageCandidateCommitDisposition.MESSAGE_CANDIDATE) {
+    return 'MESSAGE_CANDIDATE';
+  }
+  if (value === RealmGroupMessageCandidateCommitDisposition.REFUSAL_CANDIDATE) {
+    return 'REFUSAL_CANDIDATE';
+  }
+  throw new Error('Runtime Realm group message candidate evidence has unsupported commit disposition');
+}
+
+function requireCandidateEvidence(
+  response: Awaited<ReturnType<ReturnType<typeof getPlatformClient>['runtime']['agent']['getRealmGroupMessageCandidateEvidence']>>,
+) {
+  const evidence = response.evidence;
+  if (!evidence) {
+    throw new Error('Runtime did not return Realm group message candidate evidence');
+  }
+  if (evidence.candidateKind !== 'REALM_GROUP_MESSAGE_CANDIDATE') {
+    throw new Error('Runtime returned an unexpected Realm group message candidate evidence kind');
+  }
+  return evidence;
+}
+
+function assertCandidateEvidenceMatchesHandle(input: {
+  candidate: ReturnType<typeof requireCandidateHandle>;
+  evidence: ReturnType<typeof requireCandidateEvidence>;
+  slot: ReturnType<typeof requireOwnedAgentSlot>;
+  triggerRef: string;
+  chatId: string;
+}): void {
+  if (
+    input.evidence.candidateId !== input.candidate.candidateId
+    || input.evidence.evidenceHash !== input.candidate.evidenceHash
+    || input.evidence.runtimeTraceRef !== input.candidate.runtimeTraceRef
+    || input.evidence.realmGroupThreadId !== input.chatId
+    || input.evidence.realmGroupAgentSlotId !== input.slot.realmGroupAgentSlotId
+    || input.evidence.localAgentRef !== input.slot.localAgentRef
+    || input.evidence.triggerRef !== input.triggerRef
+  ) {
+    throw new Error('Runtime Realm group message candidate evidence does not match the candidate handle');
   }
 }
 
@@ -244,6 +304,27 @@ export async function commitRealmGroupMessageCandidateHandoff(
     );
     const candidate = requireCandidateHandle(response);
     assertCandidateHandleMatchesExpectedSlot({ candidate, slot, triggerRef });
+    const evidenceResponse = await protectedAccess.withScopes(
+      ['runtime.agent.get_realm_group_message_candidate_evidence'],
+      (options) => runtime.agent.getRealmGroupMessageCandidateEvidence({
+        context: {
+          appId: runtime.appId,
+          subjectUserId: slot.ownerUserId,
+        },
+        candidateId: candidate.candidateId,
+        candidateKind: candidate.candidateKind,
+        candidateEvidenceRef: candidate.candidateEvidenceRef,
+        evidenceHash: candidate.evidenceHash,
+        runtimeTraceRef: candidate.runtimeTraceRef,
+        expectedRealmGroupAgentSlotId: slot.realmGroupAgentSlotId,
+        expectedLocalAgentRef: slot.localAgentRef,
+        triggerRef,
+        targetRealmGroupThreadId: chatId,
+      }, options),
+    );
+    const evidence = requireCandidateEvidence(evidenceResponse);
+    assertCandidateEvidenceMatchesHandle({ candidate, evidence, slot, triggerRef, chatId });
+    const commitDisposition = mapRuntimeCommitDisposition(evidence.commitDisposition);
     const result = await callApi(
       (realm) => realm.services.GroupChatsService.commitRealmGroupMessageCandidate(chatId, {
         candidateId: candidate.candidateId,
@@ -254,6 +335,18 @@ export async function commitRealmGroupMessageCandidateHandoff(
         expectedRealmGroupAgentSlotId: slot.realmGroupAgentSlotId,
         expectedLocalAgentRef: slot.localAgentRef,
         triggerRef,
+        outputCandidateRef: evidence.outputCandidateRef,
+        auditLineageRef: evidence.auditLineageRef,
+        policyVerdictRef: evidence.policyVerdictRef,
+        createdAt: timestampToIso(evidence.createdAt, 'createdAt'),
+        expiresAt: timestampToIso(evidence.expiresAt, 'expiresAt'),
+        commitDisposition,
+        messageType: evidence.messageType === 'TEXT' ? 'TEXT' : undefined,
+        body: evidence.body || undefined,
+        bodyHash: evidence.bodyHash || undefined,
+        refusalCode: evidence.refusalCode || undefined,
+        refusalReason: evidence.refusalReason || undefined,
+        refusalHash: evidence.refusalHash || undefined,
         idempotencyKey,
         clientCorrelationId: idempotencyKey,
       }),
