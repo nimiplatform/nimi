@@ -30,7 +30,9 @@ context_blocks:
     realm_owner: R-CHAT-009
     required_fields:
       - slot_id
-      - agent_id
+      - owner_user_id
+      - realm_agent_id
+      - local_agent_ref
       - lifecycle_state
       - display_identity_ref
     forbidden_fields:
