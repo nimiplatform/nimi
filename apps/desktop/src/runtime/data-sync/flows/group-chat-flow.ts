@@ -135,36 +135,6 @@ export async function createGroupChat(
   }
 }
 
-export async function sendGroupAgentChatMessage(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-  chatId: string,
-  agentAccountId: string,
-  text: string,
-  replyToMessageId?: string,
-) {
-  try {
-    const clientMessageId = typeof globalThis.crypto?.randomUUID === 'function'
-      ? globalThis.crypto.randomUUID()
-      : `cm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-    const message = await callApi(
-      (realm) => realm.services.GroupChatsService.sendGroupAgentMessage(chatId, {
-        agentAccountId,
-        clientMessageId,
-        type: 'TEXT' as MessageType,
-        text,
-        payload: { content: text },
-        replyToMessageId: replyToMessageId || undefined,
-      }),
-      '发送群组 Agent 消息失败',
-    );
-    return message;
-  } catch (error) {
-    emitDataSyncError('send-group-agent-message', error, { chatId, agentAccountId });
-    throw error;
-  }
-}
-
 export async function addGroupChatAgent(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,

@@ -17,7 +17,11 @@ export function resolveCreatedGroupId(result: unknown): string {
   if (!result || typeof result !== 'object' || !('id' in result)) {
     throw new Error('chat-group-create:contract-violation:missing-id');
   }
-  const newId = String((result as { id: string }).id);
+  const rawId = (result as { id: unknown }).id;
+  if (typeof rawId !== 'string') {
+    throw new Error('chat-group-create:contract-violation:invalid-id');
+  }
+  const newId = rawId.trim();
   if (!newId) {
     throw new Error('chat-group-create:contract-violation:empty-id');
   }

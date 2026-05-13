@@ -212,6 +212,7 @@ export function useGroupConversationModeHost(
         selectedGroupId={selectedGroupId}
         onSendMessage={handleSendMessage}
         isSending={sendMutation.isPending}
+        agentParticipants={participants}
       />
     ) : null,
     setupDescription: t('Chat.groupSetupRequired', {

@@ -321,7 +321,6 @@ export class DataSync {
   async markGroupRead(chatId: string) { await this.actions.markGroupRead(chatId); }
   createGroup(title: string, participantIds: string[], initialMessage?: string) { return this.actions.createGroup(title, participantIds, initialMessage); }
   syncGroupEvents(chatId: string, afterSeq: number, limit = 100) { return this.actions.syncGroupEvents(chatId, afterSeq, Math.min(limit, 100)); }
-  sendGroupAgentMessage(chatId: string, agentAccountId: string, text: string, replyToMessageId?: string) { return this.actions.sendGroupAgentMessage(chatId, agentAccountId, text, replyToMessageId); }
   addGroupAgent(chatId: string, agentAccountId: string) { return this.actions.addGroupAgent(chatId, agentAccountId); }
   removeGroupAgent(chatId: string, agentAccountId: string) { return this.actions.removeGroupAgent(chatId, agentAccountId); }
   async loadContacts() {

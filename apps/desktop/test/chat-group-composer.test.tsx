@@ -14,10 +14,22 @@ test('group composer renders stacked rows with toolbar and send control', () => 
       selectedGroupId="group-1"
       onSendMessage={async () => undefined}
       isSending={false}
+      agentParticipants={[{
+        accountId: 'agent-1',
+        agentOwnerId: null,
+        avatarUrl: null,
+        displayName: 'Sage',
+        handle: 'sage',
+        isOnline: true,
+        joinedAt: '2026-05-13T00:00:00Z',
+        role: 'member',
+        type: 'agent',
+      } as never]}
     />,
   );
 
   assert.match(markup, /data-chat-group-composer-layout="stacked"/);
+  assert.match(markup, /data-chat-group-mention-posture="text-insertion-only"/);
   assert.match(markup, /data-chat-composer-textarea-row="true"/);
   assert.match(markup, /data-chat-group-composer-toolbar="true"/);
   assert.match(markup, /data-chat-composer-send="true"/);

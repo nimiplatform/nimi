@@ -21,6 +21,7 @@ export function ChatGroupCreateModal(props: {
   const [title, setTitle] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const friendsQuery = useQuery({
     queryKey: ['group-create-friends'],
@@ -57,10 +58,12 @@ export function ChatGroupCreateModal(props: {
       setTitle('');
       setSelectedIds(new Set());
       setIsCreating(false);
+      setCreateError(null);
     }
   }, [open]);
 
   const toggleFriend = useCallback((id: string) => {
+    setCreateError(null);
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -75,12 +78,18 @@ export function ChatGroupCreateModal(props: {
   const handleCreate = useCallback(async () => {
     if (titleMissing || selectedIds.size < 1 || isCreating) return;
     setIsCreating(true);
+    setCreateError(null);
     try {
       await onCreateGroup(normalizedTitle, [...selectedIds]);
+    } catch (error) {
+      const message = error instanceof Error && error.message.trim()
+        ? error.message.trim()
+        : t('Chat.createGroupError', { defaultValue: 'Failed to create group' });
+      setCreateError(message);
     } finally {
       setIsCreating(false);
     }
-  }, [titleMissing, normalizedTitle, selectedIds, isCreating, onCreateGroup]);
+  }, [titleMissing, normalizedTitle, selectedIds, isCreating, onCreateGroup, t]);
 
   if (!open) return null;
 
@@ -115,7 +124,10 @@ export function ChatGroupCreateModal(props: {
               type="text"
               className="w-full rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel,#f9fafb)] px-4 py-3 text-sm text-[var(--nimi-text-primary)] outline-none transition placeholder:text-[var(--nimi-text-muted)] focus:border-[var(--nimi-action-primary-bg)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)]"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setCreateError(null);
+              }}
             />
             {titleMissing ? (
               <p className="mt-1.5 text-xs text-[var(--nimi-status-danger,#ef4444)]">
@@ -192,6 +204,11 @@ export function ChatGroupCreateModal(props: {
           </div>
 
           {/* Create Button */}
+          {createError ? (
+            <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger,#ef4444)_20%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger,#ef4444)_8%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-danger,#ef4444)]">
+              {createError}
+            </div>
+          ) : null}
           <button
             type="button"
             disabled={createDisabled}

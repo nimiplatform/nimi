@@ -40,6 +40,9 @@ test('group create controller fails closed on contract violation and routes to n
   assert.match(chatGroupCreateControllerSource, /const setSelectedTargetForSource = useAppStore\(\(state\) => state\.setSelectedTargetForSource\);/);
   assert.match(chatGroupCreateControllerSource, /const result = await dataSync\.createGroup\(title, participantIds\);/);
   assert.match(chatGroupCreateControllerSource, /throw new Error\('chat-group-create:contract-violation:missing-id'\);/);
+  assert.match(chatGroupCreateControllerSource, /typeof rawId !== 'string'/);
+  assert.match(chatGroupCreateControllerSource, /throw new Error\('chat-group-create:contract-violation:invalid-id'\);/);
+  assert.match(chatGroupCreateControllerSource, /const newId = rawId\.trim\(\);/);
   assert.match(chatGroupCreateControllerSource, /throw new Error\('chat-group-create:contract-violation:empty-id'\);/);
   assert.match(chatGroupCreateControllerSource, /setChatMode\('group'\);\s*setSelectedTargetForSource\('group', newId\);/);
   assert.match(chatGroupCreateControllerSource, /<ChatGroupCreateModal\s+open=\{isOpen\}\s+onClose=\{close\}\s+onCreateGroup=\{handleCreateGroup\}\s*\/>/);

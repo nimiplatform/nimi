@@ -22,7 +22,6 @@ import {
   markGroupChatRead,
   createGroupChat,
   syncGroupChatEvents,
-  sendGroupAgentChatMessage,
   addGroupChatAgent,
   removeGroupChatAgent,
 } from './flows/group-chat-flow';
@@ -241,8 +240,6 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       createGroupChat(input.callApiTask, input.emitFacadeError, title, participantIds, initialMessage),
     syncGroupEvents: async (chatId: string, afterSeq: number, limit = 200) =>
       syncGroupChatEvents(input.callApiTask, input.emitFacadeError, chatId, afterSeq, limit),
-    sendGroupAgentMessage: async (chatId: string, agentAccountId: string, text: string, replyToMessageId?: string) =>
-      sendGroupAgentChatMessage(input.callApiTask, input.emitFacadeError, chatId, agentAccountId, text, replyToMessageId),
     addGroupAgent: async (chatId: string, agentAccountId: string) =>
       addGroupChatAgent(input.callApiTask, input.emitFacadeError, chatId, agentAccountId),
     removeGroupAgent: async (chatId: string, agentAccountId: string) =>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
@@ -70,13 +70,24 @@ export function ChatGroupParticipantPanel(props: {
   const humans = participants.filter((p) => p.type === 'human');
   const agents = participants.filter((p) => p.type === 'agent');
   const existingAgentIds = new Set(agents.map((a) => String(a.accountId || '')));
+  const canManageAgentSlots = Boolean(
+    currentUserId
+    && humans.some((p) => p.accountId === currentUserId && p.role === 'admin'),
+  );
+  const showAddAgentPicker = addAgentOpen && canManageAgentSlots;
 
   const socialQuery = useQuery({
     queryKey: ['social-snapshot-for-group-agents'],
     queryFn: async () => dataSync.loadSocialSnapshot(),
-    enabled: addAgentOpen,
+    enabled: showAddAgentPicker,
     staleTime: 30_000,
   });
+
+  useEffect(() => {
+    if (addAgentOpen && !canManageAgentSlots) {
+      setAddAgentOpen(false);
+    }
+  }, [addAgentOpen, canManageAgentSlots]);
 
   const availableAgents = toAgentListFromSocialSnapshot(
     socialQuery.data as { friends?: unknown[] } | null,
@@ -84,6 +95,10 @@ export function ChatGroupParticipantPanel(props: {
 
   const handleAddAgent = async (agentAccountId: string) => {
     if (!chatId || pendingAction) return;
+    if (!canManageAgentSlots) {
+      setPanelError(t('Chat.groupAgentSlotManagementDenied', { defaultValue: 'Only group admins can manage agents.' }));
+      return;
+    }
     setPendingAction(agentAccountId);
     setPanelError(null);
     try {
@@ -109,6 +124,10 @@ export function ChatGroupParticipantPanel(props: {
 
   const handleRemoveAgent = async (agentAccountId: string) => {
     if (!chatId || pendingAction) return;
+    if (!canManageAgentSlots) {
+      setPanelError(t('Chat.groupAgentSlotManagementDenied', { defaultValue: 'Only group admins can manage agents.' }));
+      return;
+    }
     setPendingAction(agentAccountId);
     setPanelError(null);
     try {
@@ -161,7 +180,7 @@ export function ChatGroupParticipantPanel(props: {
             <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
               {t('Chat.groupAgents', { defaultValue: 'Agents' })}
             </span>
-            {chatId && (
+            {chatId && canManageAgentSlots && (
               <button
                 type="button"
                 onClick={() => {
@@ -176,6 +195,14 @@ export function ChatGroupParticipantPanel(props: {
               </button>
             )}
           </div>
+          {chatId && !canManageAgentSlots ? (
+            <div
+              className="px-2 pb-2 text-xs text-slate-400"
+              data-chat-group-agent-slot-refusal="realm-role-required"
+            >
+              {t('Chat.groupAgentSlotManagementDenied', { defaultValue: 'Only group admins can manage agents.' })}
+            </div>
+          ) : null}
           {panelError ? (
             <div className="px-2 pb-2 text-xs text-rose-500">
               {panelError}
@@ -186,7 +213,7 @@ export function ChatGroupParticipantPanel(props: {
               key={p.accountId}
               participant={p}
               isCurrentUser={false}
-              canRemove={p.agentOwnerId === currentUserId}
+              canRemove={canManageAgentSlots}
               onRemove={() => handleRemoveAgent(String(p.accountId || ''))}
               isPending={pendingAction === p.accountId}
             />
@@ -196,7 +223,7 @@ export function ChatGroupParticipantPanel(props: {
               {t('Chat.groupNoAgents', { defaultValue: 'No agents in this group' })}
             </div>
           )}
-          {addAgentOpen && (
+          {showAddAgentPicker && (
             <div className="mt-1 rounded-lg border border-violet-200/60 bg-violet-50/50 p-2">
               {availableAgents.length > 0 ? (
                 availableAgents.map((agent) => (

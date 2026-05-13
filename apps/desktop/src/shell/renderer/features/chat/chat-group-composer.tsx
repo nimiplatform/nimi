@@ -116,6 +116,7 @@ export function ChatGroupComposer(props: {
       className="relative shrink-0 px-5 pb-5 pt-2"
       data-chat-composer-layout="stacked"
       data-chat-group-composer-layout="stacked"
+      data-chat-group-mention-posture="text-insertion-only"
     >
       {mentionOpen && agentOptions.length > 0 && (
         <div className="absolute bottom-full left-5 right-5 mb-1 rounded-lg border border-violet-200/80 bg-white shadow-lg">
