@@ -135,23 +135,23 @@ func TestSendRuntimeAgentMessageRequiresScopedBinding(t *testing.T) {
 	}
 }
 
-func TestSendRuntimeAgentMessageRejectsProtectedCapabilityWithoutScopedBinding(t *testing.T) {
+func TestSendRuntimeAgentMessageAcceptsProtectedCapabilityWithoutScopedBinding(t *testing.T) {
 	validator := &testScopedBindingValidator{t: t, ok: false}
 	svc := newTestService(WithScopedBindingValidator(validator))
 	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "nimi.avatar", "runtime.agent.turn.write")
-	_, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
+	resp, err := svc.SendAppMessage(ctx, &runtimev1.SendAppMessageRequest{
 		FromAppId:   "nimi.avatar",
 		ToAppId:     "runtime.agent",
 		MessageType: "runtime.agent.turn.request",
 	})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected invalid argument for protected capability without binding, got %v", err)
+	if err != nil {
+		t.Fatalf("protected capability without binding should use first-party path: %v", err)
 	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_APP_GRANT_INVALID {
-		t.Fatalf("unexpected reason: %v ok=%v err=%v", reason, ok, err)
+	if !resp.GetAccepted() {
+		t.Fatalf("expected accepted response: %+v", resp)
 	}
 	if validator.calls != 0 {
-		t.Fatalf("missing binding must fail before validator, got %d calls", validator.calls)
+		t.Fatalf("first-party protected path must not call scoped binding validator, got %d calls", validator.calls)
 	}
 }
 
@@ -476,7 +476,7 @@ func TestSubscribeRuntimeAgentMessagesRequiresScopedBinding(t *testing.T) {
 	}
 }
 
-func TestSubscribeRuntimeAgentMessagesRejectsProtectedCapabilityWithoutScopedBinding(t *testing.T) {
+func TestSubscribeRuntimeAgentMessagesAcceptsProtectedCapabilityWithoutScopedBinding(t *testing.T) {
 	validator := &testScopedBindingValidator{t: t, ok: false}
 	svc := newTestService(WithScopedBindingValidator(validator))
 	ctx := envelope.WithValidatedProtectedCapability(
@@ -484,18 +484,17 @@ func TestSubscribeRuntimeAgentMessagesRejectsProtectedCapabilityWithoutScopedBin
 		"nimi.avatar",
 		"runtime.agent.turn.read",
 	)
+	ctx, cancel := context.WithCancel(ctx)
+	cancel()
 	err := svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{
 		AppId:      "nimi.avatar",
 		FromAppIds: []string{"runtime.agent"},
 	}, &appMessageStreamCollector{ctx: ctx})
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected invalid argument for protected capability without binding, got %v", err)
-	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_APP_GRANT_INVALID {
-		t.Fatalf("unexpected reason: %v ok=%v err=%v", reason, ok, err)
+	if err != nil {
+		t.Fatalf("protected capability without binding should use first-party subscribe path: %v", err)
 	}
 	if validator.calls != 0 {
-		t.Fatalf("missing binding must fail before validator, got %d calls", validator.calls)
+		t.Fatalf("first-party protected path must not call scoped binding validator, got %d calls", validator.calls)
 	}
 }
 

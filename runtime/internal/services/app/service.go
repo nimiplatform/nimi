@@ -136,7 +136,7 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 		if !runtimeagentservice.IsPublicChatIngressMessageType(messageType) {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		}
-		if err := s.validateRuntimeAgentBinding(req.GetScopedBinding(), fromAppID, requiredRuntimeAgentSendScope(messageType)); err != nil {
+		if err := s.validateRuntimeAgentAccess(ctx, req.GetScopedBinding(), fromAppID, requiredRuntimeAgentSendScope(messageType)); err != nil {
 			return nil, err
 		}
 	}
@@ -233,7 +233,7 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 		}
 	}
 	if subscribesRuntimeAgent(req) {
-		if err := s.validateRuntimeAgentBinding(req.GetScopedBinding(), strings.TrimSpace(req.GetAppId()), "runtime.agent.turn.read"); err != nil {
+		if err := s.validateRuntimeAgentAccess(stream.Context(), req.GetScopedBinding(), strings.TrimSpace(req.GetAppId()), "runtime.agent.turn.read"); err != nil {
 			return err
 		}
 	}
@@ -409,6 +409,16 @@ func (s *Service) validateRuntimeAgentBinding(attachment *runtimev1.ScopedRuntim
 		return runtimeAgentBindingError(reason)
 	}
 	return nil
+}
+
+func (s *Service) validateRuntimeAgentAccess(ctx context.Context, attachment *runtimev1.ScopedRuntimeBindingAttachment, fallbackRuntimeAppID string, requiredScope string) error {
+	if attachment == nil || strings.TrimSpace(attachment.GetBindingId()) == "" {
+		if envelope.HasValidatedProtectedCapability(ctx, fallbackRuntimeAppID, requiredScope) {
+			return nil
+		}
+		return runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
+	}
+	return s.validateRuntimeAgentBinding(attachment, fallbackRuntimeAppID, requiredScope)
 }
 
 func relationFromAttachment(attachment *runtimev1.ScopedRuntimeBindingAttachment, fallbackRuntimeAppID string) *runtimev1.ScopedAppBindingRelation {

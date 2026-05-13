@@ -58,6 +58,28 @@ func TestWriteAgentMemoryAcceptsCompletePromotionEvidence(t *testing.T) {
 	}
 }
 
+func TestWriteAgentMemoryAcceptsCanonicalAgentChatPromotionEvidence(t *testing.T) {
+	t.Parallel()
+
+	svc := newRuntimeAgentTestService(t)
+	ctx := context.Background()
+	if _, err := svc.InitializeAgent(ctx, &runtimev1.InitializeAgentRequest{AgentId: "agent-promotion-canonical-chat"}); err != nil {
+		t.Fatalf("InitializeAgent: %v", err)
+	}
+
+	evidence := completePromotionEvidenceWithSourceProfile(t, "canonical_agent_chat")
+	resp, err := svc.WriteAgentMemory(ctx, &runtimev1.WriteAgentMemoryRequest{
+		AgentId:    "agent-promotion-canonical-chat",
+		Candidates: []*runtimev1.CanonicalMemoryCandidate{promotionEvidenceTestCandidate("agent-promotion-canonical-chat", evidence)},
+	})
+	if err != nil {
+		t.Fatalf("WriteAgentMemory: %v", err)
+	}
+	if len(resp.GetAccepted()) != 1 || len(resp.GetRejected()) != 0 {
+		t.Fatalf("expected canonical agent chat promotion evidence acceptance, accepted=%d rejected=%d", len(resp.GetAccepted()), len(resp.GetRejected()))
+	}
+}
+
 func promotionEvidenceTestCandidate(agentID string, evidence *structpb.Struct) *runtimev1.CanonicalMemoryCandidate {
 	return &runtimev1.CanonicalMemoryCandidate{
 		CanonicalClass: runtimev1.MemoryCanonicalClass_MEMORY_CANONICAL_CLASS_PUBLIC_SHARED,
@@ -84,11 +106,15 @@ func promotionEvidenceTestCandidate(agentID string, evidence *structpb.Struct) *
 }
 
 func completePromotionEvidence(t *testing.T) *structpb.Struct {
+	return completePromotionEvidenceWithSourceProfile(t, "scenario_sandbox")
+}
+
+func completePromotionEvidenceWithSourceProfile(t *testing.T, sourceProfile string) *structpb.Struct {
 	t.Helper()
 	out, err := structpb.NewStruct(map[string]any{
 		"promotion_target_id":                 "RUNTIME_MEMORY_OR_COGNITION",
 		"participation_id":                    "participation-1",
-		"source_profile":                      "scenario_sandbox",
+		"source_profile":                      sourceProfile,
 		"output_candidate_ref":                "candidate-1",
 		"audit_id":                            "audit-1",
 		"provenance_ref":                      "provenance-1",

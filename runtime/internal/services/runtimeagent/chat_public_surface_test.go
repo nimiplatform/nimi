@@ -5,6 +5,7 @@ import (
 	"fmt"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	memoryservice "github.com/nimiplatform/nimi/runtime/internal/services/memory"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -397,6 +398,27 @@ func TestPublicChatSessionSnapshotRejectsSubjectOnlyBindingContext(t *testing.T)
 	})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("expected subject-only snapshot to fail closed with InvalidArgument, got %v", err)
+	}
+}
+
+func TestPublicChatSessionSnapshotAcceptsFirstPartyProtectedCapability(t *testing.T) {
+	t.Parallel()
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+
+	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "desktop.app", runtimeAgentReadScope)
+	resp, err := svc.GetPublicChatSessionSnapshot(ctx, &runtimev1.GetPublicChatSessionSnapshotRequest{
+		Context:              &runtimev1.AgentRequestContext{AppId: "desktop.app", SubjectUserId: "user-1"},
+		AgentId:              "agent-alpha",
+		ConversationAnchorId: anchorID,
+		RequestId:            "subject-protected-snapshot",
+	})
+	if err != nil {
+		t.Fatalf("first-party protected snapshot should not require scoped binding: %v", err)
+	}
+	payload := publicChatSessionSnapshotDetail(t, resp.GetSnapshot())
+	if got := payload["request_id"]; got != "subject-protected-snapshot" {
+		t.Fatalf("expected request_id echo, got=%v", payload)
 	}
 }
 

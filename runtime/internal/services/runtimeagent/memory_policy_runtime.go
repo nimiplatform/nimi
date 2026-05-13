@@ -193,7 +193,7 @@ func validateDirectMemoryPromotionEvidence(candidate *runtimev1.CanonicalMemoryC
 		}
 	}
 	switch strings.TrimSpace(extensionString(fields, "source_profile")) {
-	case "realm_group_agent", "scenario_sandbox", "oasis_world_participation":
+	case "canonical_agent_chat", "realm_group_agent", "scenario_sandbox", "oasis_world_participation":
 	default:
 		return rejection(candidate, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "source_profile is not admitted for runtime memory promotion")
 	}

@@ -5,13 +5,15 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 const runtimeAgentTurnReadScope = "runtime.agent.turn.read"
+const runtimeAgentReadScope = "runtime.agent.read"
 
-func (s *Service) GetPublicChatSessionSnapshot(_ context.Context, req *runtimev1.GetPublicChatSessionSnapshotRequest) (*runtimev1.GetPublicChatSessionSnapshotResponse, error) {
+func (s *Service) GetPublicChatSessionSnapshot(ctx context.Context, req *runtimev1.GetPublicChatSessionSnapshotRequest) (*runtimev1.GetPublicChatSessionSnapshotResponse, error) {
 	if s == nil || s.isClosed() {
 		return nil, status.Error(codes.FailedPrecondition, "runtime agent service unavailable")
 	}
@@ -33,10 +35,13 @@ func (s *Service) GetPublicChatSessionSnapshot(_ context.Context, req *runtimev1
 	}
 	scopedBinding := requestContext.GetScopedBinding()
 	if scopedBinding == nil {
-		return nil, runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
-	}
-	if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, agentID, runtimeAgentTurnReadScope); err != nil {
-		return nil, err
+		if !envelope.HasValidatedProtectedCapability(ctx, callerAppID, runtimeAgentReadScope) {
+			return nil, runtimeAgentBindingError(runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BINDING_NOT_FOUND)
+		}
+	} else {
+		if err := s.validateScopedBindingAttachment(scopedBinding, callerAppID, agentID, runtimeAgentTurnReadScope); err != nil {
+			return nil, err
+		}
 	}
 	snapshot, session, _, _, _, err := s.publicChatRuntime().buildSessionSnapshot(callerAppID, anchorID, req.GetRequestId())
 	if err != nil {
