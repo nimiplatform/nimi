@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Struct } from '@nimiplatform/sdk/runtime/generated/google/protobuf/struct';
 import { MemoryCanonicalClass, MemoryRecordKind } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -205,6 +206,14 @@ describe('shiji memory-client', () => {
     expect(candidate.record.provenance.authorId).toBe('guardian-1');
     expect(candidate.record.provenance.traceId).toBe('session-1');
     expect(candidate.record.payload.observational.observation).toBe('Learner solved the riddle confidently');
+    const extensions = Struct.toJson(candidate.extensions) as Record<string, unknown>;
+    expect(extensions.promotion_target_id).toBe('RUNTIME_MEMORY_OR_COGNITION');
+    expect(extensions.source_profile).toBe('canonical_agent_chat');
+    expect(extensions.memory_read_verdict).toBe('PASS');
+    expect(extensions.memory_write_verdict).toBe('PASS');
+    expect(extensions.capability_scope_verdict).toBe('PASS');
+    expect(extensions.output_candidate_ref).toBe('session-1');
+    expect(extensions.target_owner_authorization_ref).toBe('learner-1');
     expect(options).toEqual({
       protectedAccessToken: {
         tokenId: 'protected-token-id',

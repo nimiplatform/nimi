@@ -406,7 +406,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
       return {
         runtime_health: { status: 'healthy', sampled_at: '2026-04-26T00:00:00.000Z' },
         runtime_authenticated: true,
-        runtime_auth_scopes: ['runtime.agent.turn.read'],
+        runtime_auth_scopes: ['runtime.agent.read'],
         same_anchor: true,
         agent_id: input.agentId,
         conversation_anchor_id: input.conversationAnchorId,
@@ -523,7 +523,7 @@ test('desktop macos smoke live2d avatar product scenario waits for same-anchor A
   assert.deepEqual(details.avatarProductPath?.runtime, {
     runtime_health: { status: 'healthy', sampled_at: '2026-04-26T00:00:00.000Z' },
     runtime_authenticated: true,
-    runtime_auth_scopes: ['runtime.agent.turn.read'],
+    runtime_auth_scopes: ['runtime.agent.read'],
     same_anchor: true,
     agent_id: 'agent-e2e-alpha',
     conversation_anchor_id: 'anchor-1',

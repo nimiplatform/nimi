@@ -202,16 +202,18 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
         listHooksByStatus(PROTO_HOOK_ADMISSION_STATE_REJECTED),
       ]);
       const activeWorldId = normalizeText(stateResponse.state?.activeWorldId);
+      const activeUserId = normalizeText(stateResponse.state?.activeUserId);
+      const canonicalClasses = [
+        MemoryCanonicalClass.PUBLIC_SHARED,
+        ...(activeWorldId ? [MemoryCanonicalClass.WORLD_SHARED] : []),
+        ...(activeUserId ? [MemoryCanonicalClass.DYADIC] : []),
+      ];
       const recentCanonicalMemoriesResponse = await protectedScopes.withScopes(['runtime.agent.read'], (options) => runtime.agent.queryMemory({
         context,
         agentId: normalizedAgentId,
         query: '',
         limit: MAX_RECENT_CANONICAL_MEMORIES,
-        canonicalClasses: [
-          MemoryCanonicalClass.PUBLIC_SHARED,
-          ...(activeWorldId ? [MemoryCanonicalClass.WORLD_SHARED] : []),
-          MemoryCanonicalClass.DYADIC,
-        ],
+        canonicalClasses,
         kinds: [],
         includeInvalidated: false,
       }, options));
@@ -242,7 +244,7 @@ export function createRuntimeAgentInspectAdapter(deps: RuntimeAgentInspectDeps =
         executionState: formatExecutionState(stateResponse.state?.executionState),
         statusText: normalizeText(stateResponse.state?.statusText) || null,
         activeWorldId: activeWorldId || null,
-        activeUserId: normalizeText(stateResponse.state?.activeUserId) || null,
+        activeUserId: activeUserId || null,
         autonomyMode: formatAutonomyMode(agentResponse.agent?.autonomy?.config?.mode),
         autonomyEnabled: typeof agentResponse.agent?.autonomy?.enabled === 'boolean'
           ? agentResponse.agent.autonomy.enabled

@@ -304,7 +304,7 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
         runtime,
         getSubjectUserId: async () => subjectUserId,
       });
-      await protectedAccess.withScopes(['runtime.agent.turn.read'], (options) => runtime.agent.anchors.getSnapshot({
+      await protectedAccess.withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
         agentId: input.agentId,
         conversationAnchorId: input.conversationAnchorId,
       }, options));
@@ -321,7 +321,7 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
         createRuntimeProtectedScopeHelper({
           runtime,
           getSubjectUserId: async () => subjectUserId,
-        }).withScopes(['runtime.agent.turn.read'], (options) => runtime.agent.anchors.getSnapshot({
+        }).withScopes(['runtime.agent.read'], (options) => runtime.agent.anchors.getSnapshot({
           agentId: input.agentId,
           conversationAnchorId: input.conversationAnchorId,
         }, options)),
@@ -345,7 +345,7 @@ function createDomDriverDeps(): DesktopMacosSmokeDriverDeps {
           sampled_at: health.sampledAt || null,
         },
         runtime_authenticated: true,
-        runtime_auth_scopes: ['runtime.agent.turn.read'],
+        runtime_auth_scopes: ['runtime.agent.read'],
         same_anchor: true,
         agent_id: input.agentId,
         conversation_anchor_id: input.conversationAnchorId,

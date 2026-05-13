@@ -3,7 +3,6 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   asNimiError,
   createRuntimeProtectedScopeHelper,
-  type AgentPresentationBackendKind,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -35,6 +34,10 @@ import {
 import type { PendingAttachment } from '../turns/turn-input-attachments';
 import type { AgentChatUserAttachment } from './chat-nimi-execution-engine';
 import type { UseAgentConversationHostActionsInput } from './chat-agent-shell-host-actions-types';
+import {
+  normalizeRuntimeAgentPresentationBackendKind,
+  normalizeRuntimeAgentPresentationDefaultVoiceReference,
+} from '@renderer/infra/runtime-agent-presentation-profile';
 
 let runtimeProtectedAccess: ReturnType<typeof createRuntimeProtectedScopeHelper> | null = null;
 
@@ -85,25 +88,6 @@ function getRuntimeProtectedAccess() {
   return runtimeProtectedAccess;
 }
 
-function toRuntimePresentationBackendKind(
-  value: NonNullable<AgentLocalTargetSnapshot['presentationProfile']>['backendKind'],
-): AgentPresentationBackendKind {
-  switch (value) {
-    case 'vrm':
-      return 1;
-    case 'live2d':
-      return 2;
-    case 'sprite2d':
-      return 3;
-    case 'canvas2d':
-      return 4;
-    case 'video':
-      return 5;
-    default:
-      return 0;
-  }
-}
-
 async function syncRuntimePresentationProfile(input: {
   target: AgentLocalTargetSnapshot;
   context: {
@@ -112,9 +96,14 @@ async function syncRuntimePresentationProfile(input: {
   };
 }): Promise<void> {
   const profile = input.target.presentationProfile;
-  if (!profile?.avatarAssetRef) {
+  const backendKind = profile
+    ? normalizeRuntimeAgentPresentationBackendKind(profile.backendKind)
+    : null;
+  const avatarAssetRef = normalizeText(profile?.avatarAssetRef);
+  if (!profile || !backendKind || !avatarAssetRef) {
     return;
   }
+  const runtimeProfile = profile;
   const runtime = getPlatformClient().runtime;
   const protectedAccess = getRuntimeProtectedAccess();
   await protectedAccess.withScopes(['runtime.agent.write'], (options) => runtime.agent.setPresentationProfile({
@@ -123,12 +112,12 @@ async function syncRuntimePresentationProfile(input: {
     mutation: {
       oneofKind: 'profile',
       profile: {
-        backendKind: toRuntimePresentationBackendKind(profile.backendKind),
-        avatarAssetRef: profile.avatarAssetRef,
-        expressionProfileRef: profile.expressionProfileRef || '',
-        idlePreset: profile.idlePreset || '',
-        interactionPolicyRef: profile.interactionPolicyRef || '',
-        defaultVoiceReference: profile.defaultVoiceReference || '',
+        backendKind,
+        avatarAssetRef,
+        expressionProfileRef: runtimeProfile.expressionProfileRef || '',
+        idlePreset: runtimeProfile.idlePreset || '',
+        interactionPolicyRef: runtimeProfile.interactionPolicyRef || '',
+        defaultVoiceReference: normalizeRuntimeAgentPresentationDefaultVoiceReference(runtimeProfile.defaultVoiceReference),
       },
     },
   }, options));
@@ -231,7 +220,7 @@ async function openConversationAnchorForTarget(
   const protectedAccess = getRuntimeProtectedAccess();
   await ensureRuntimeAgentExists(target);
   const snapshot = await protectedAccess.withScopes(
-    ['runtime.agent.turn.write'],
+    ['runtime.agent.write'],
     (options) => runtime.agent.anchors.open({
       agentId: target.agentId,
       metadata: {
@@ -272,7 +261,7 @@ async function ensureConversationAnchorBindingUpstream(input: {
   await ensureRuntimeAgentExists(input.target);
   try {
     await protectedAccess.withScopes(
-      ['runtime.agent.turn.read'],
+      ['runtime.agent.read'],
       (options) => runtime.agent.anchors.getSnapshot({
         agentId: input.target.agentId,
         conversationAnchorId: input.binding.conversationAnchorId,

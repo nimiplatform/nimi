@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { Struct } from '@nimiplatform/sdk/runtime/generated/google/protobuf/struct';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   createNimiError,
@@ -226,6 +227,19 @@ test('runtime agent memory adapter writes user turns through admitted dyadic obs
   assert.equal(candidate.canonicalClass, MemoryCanonicalClass.DYADIC);
   assert.equal((candidate.record as Record<string, unknown>).kind, MemoryRecordKind.OBSERVATIONAL);
   assert.equal((((candidate.record as Record<string, unknown>).provenance as Record<string, unknown>).authorId), 'user-1');
+  const extensions = Struct.toJson(candidate.extensions as Struct) as Record<string, unknown>;
+  assert.equal(extensions.promotion_target_id, 'RUNTIME_MEMORY_OR_COGNITION');
+  assert.equal(extensions.source_profile, 'canonical_agent_chat');
+  assert.equal(extensions.memory_read_verdict, 'PASS');
+  assert.equal(extensions.memory_write_verdict, 'PASS');
+  assert.equal(extensions.capability_scope_verdict, 'PASS');
+  assert.equal(extensions.output_candidate_ref, 'turn-1');
+  assert.equal(extensions.target_owner_authorization_ref, 'user-1');
+  const mutations = calls.updateAgentState[0]?.mutations as Array<Record<string, unknown>>;
+  const dyadicMutation = mutations
+    .map((mutation) => mutation.mutation as Record<string, unknown>)
+    .find((mutation) => mutation.oneofKind === 'setDyadicContext');
+  assert.deepEqual(dyadicMutation?.setDyadicContext, { userId: 'user-1' });
 });
 
 test('runtime agent memory adapter writes assistant turns with agent author id and fail-closes query misses', async () => {
@@ -423,4 +437,30 @@ test('runtime agent memory adapter ignores additive narratives in compatibility 
 
   assert.equal(records.length, 1);
   assert.equal(records[0]?.content, 'remember this');
+});
+
+test('runtime agent memory adapter defaults dyadic sync to subject before dyadic queries', async () => {
+  const { runtime, calls } = createRuntimeMock();
+  const adapter = createRuntimeAgentMemoryAdapter({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+    now: () => new Date('2026-04-12T00:00:00.000Z'),
+  });
+
+  await adapter.queryCompatibilityRecords({
+    agentId: 'agent-1',
+    displayName: 'Agent One',
+    createIfMissing: false,
+    syncDyadicContext: true,
+    syncWorldContext: false,
+    canonicalClasses: [MemoryCanonicalClass.DYADIC],
+    limit: 5,
+  });
+
+  const mutations = calls.updateAgentState[0]?.mutations as Array<Record<string, unknown>>;
+  const dyadicMutation = mutations
+    .map((mutation) => mutation.mutation as Record<string, unknown>)
+    .find((mutation) => mutation.oneofKind === 'setDyadicContext');
+  assert.deepEqual(dyadicMutation?.setDyadicContext, { userId: 'user-1' });
+  assert.equal(calls.queryMemory.length, 1);
 });

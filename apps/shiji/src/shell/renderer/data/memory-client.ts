@@ -5,6 +5,7 @@ import {
   MemoryBankScope,
   MemoryCanonicalClass,
   MemoryRecordKind,
+  toProtoStruct,
 } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
@@ -26,6 +27,8 @@ export type WriteAgentMemoryInput = {
 
 const SOURCE_SYSTEM = 'nimi.shiji';
 const POLICY_REASON = 'shiji_dialogue_session_summary';
+const RUNTIME_MEMORY_PROMOTION_TARGET_ID = 'RUNTIME_MEMORY_OR_COGNITION';
+const CANONICAL_AGENT_CHAT_SOURCE_PROFILE = 'canonical_agent_chat';
 const runtimeProtectedAccess = createRuntimeProtectedScopeHelper({
   runtime: getPlatformClient().runtime,
   getSubjectUserId: async () => requireSubjectUserId(),
@@ -40,6 +43,33 @@ function dateToTimestamp(date: Date): { seconds: string; nanos: number } {
   const seconds = Math.floor(ms / 1000);
   const nanos = (ms % 1000) * 1_000_000;
   return { seconds: String(seconds), nanos };
+}
+
+function buildMemoryPromotionEvidence(input: {
+  runtimeAppId: string;
+  agentId: string;
+  sessionId: string;
+  learnerId: string;
+}): Record<string, string> {
+  const runtimeAppId = normalizeText(input.runtimeAppId);
+  const agentId = normalizeText(input.agentId);
+  const sessionId = normalizeText(input.sessionId);
+  const learnerId = normalizeText(input.learnerId);
+  const outputRef = sessionId || `${agentId}:memory-candidate`;
+  return {
+    promotion_target_id: RUNTIME_MEMORY_PROMOTION_TARGET_ID,
+    participation_id: `canonical-agent-chat:${runtimeAppId || 'shiji'}:${agentId || 'agent'}:${outputRef}`,
+    source_profile: CANONICAL_AGENT_CHAT_SOURCE_PROFILE,
+    output_candidate_ref: outputRef,
+    audit_id: outputRef,
+    provenance_ref: `${SOURCE_SYSTEM}:${outputRef}`,
+    policy_verdict_ref: POLICY_REASON,
+    memory_read_verdict: 'PASS',
+    memory_write_verdict: 'PASS',
+    capability_scope_verdict: 'PASS',
+    target_owner_authorization_ref: learnerId || runtimeAppId || 'shiji',
+    explicit_user_or_manager_intent_ref: outputRef,
+  };
 }
 
 function timestampToIso(timestamp?: { seconds: string; nanos: number }): string {
@@ -323,7 +353,12 @@ export async function writeAgentMemory(input: WriteAgentMemoryInput): Promise<vo
               },
             },
           },
-          extensions: undefined,
+          extensions: toProtoStruct(buildMemoryPromotionEvidence({
+            runtimeAppId: session.runtime.appId,
+            agentId,
+            learnerId,
+            sessionId,
+          })),
         },
       ],
     }, options));

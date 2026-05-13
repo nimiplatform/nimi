@@ -352,8 +352,8 @@ test('agent shell stays desktop-owned and uses social snapshot plus local agent 
   assert.match(hostActionHelpersSource, /runtime\.agent\.anchors\.getSnapshot/);
   assert.match(hostActionHelpersSource, /clearAgentConversationAnchorBinding/);
   assert.doesNotMatch(hostActionHelpersSource, /runtimeAgentExecutionBindingsMatch/);
-  assert.match(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.turn\.write'\]/);
-  assert.match(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.turn\.read'\]/);
+  assert.match(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.write'\]/);
+  assert.match(hostActionHelpersSource, /withScopes\(\s*\['runtime\.agent\.read'\]/);
   assert.match(hostActionHelpersSource, /record\.anchor/);
   assert.match(hostActionSubmitSource, /chatAgentStoreClient\.commitTurnResult/);
   assert.match(hostActionSubmitRunSource, /matchConversationTurnEvent/);

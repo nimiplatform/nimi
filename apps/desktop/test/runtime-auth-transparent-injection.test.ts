@@ -10,6 +10,11 @@ import {
 import {
   AuthorizeExternalPrincipalResponse,
 } from '@nimiplatform/sdk/runtime/generated/runtime/v1/grant';
+import {
+  ConversationAnchor,
+  ConversationAnchorStatus,
+  GetConversationAnchorSnapshotResponse,
+} from '@nimiplatform/sdk/runtime/generated/runtime/v1/agent_service';
 
 type TauriInvokeCall = {
   command: string;
@@ -111,10 +116,26 @@ function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
                   appId: 'nimi.desktop',
                   subjectUserId: 'subject-user',
                   externalPrincipalId: 'nimi.desktop',
-                  effectiveScopes: ['runtime.agent.turn.read'],
+                  effectiveScopes: ['runtime.agent.read'],
                   policyVersion: '1.0.0',
                   issuedScopeCatalogVersion: '1.0.0',
                   canDelegate: false,
+                })),
+              ).toString('base64'),
+            };
+          }
+          if (methodId === '/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot') {
+            return {
+              responseBytesBase64: Buffer.from(
+                GetConversationAnchorSnapshotResponse.toBinary(GetConversationAnchorSnapshotResponse.create({
+                  snapshot: {
+                    anchor: ConversationAnchor.create({
+                      conversationAnchorId: 'anchor-1',
+                      agentId: 'agent-1',
+                      subjectUserId: 'subject-user',
+                      status: ConversationAnchorStatus.ACTIVE,
+                    }),
+                  },
                 })),
               ).toString('base64'),
             };
@@ -470,7 +491,7 @@ test('platform runtime app call injects runtime app session transparently', asyn
   }
 });
 
-test('platform runtime agent anchor call fails closed while method-group admission is deferred', async () => {
+test('platform runtime agent anchor call uses admitted SDK runtime method with protected token', async () => {
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls);
   try {
@@ -481,22 +502,24 @@ test('platform runtime agent anchor call fails closed while method-group admissi
       subjectUserIdProvider: () => 'subject-user',
     });
 
-    await assert.rejects(
-      () => getPlatformClient().runtime.agent.anchors.getSnapshot({
-        agentId: 'agent-1',
-        conversationAnchorId: 'anchor-1',
-      }),
-      (error: unknown) => {
-        assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_METHOD_UNAVAILABLE');
-        return true;
-      },
-    );
+    await getPlatformClient().runtime.agent.anchors.getSnapshot({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+    });
 
     const snapshotCall = findUnaryCallByMethodId(
       calls,
       '/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot',
     );
-    assert.equal(snapshotCall, undefined);
+    assert.ok(snapshotCall);
+    assert.deepEqual(snapshotCall.payload.appSession, {
+      sessionId: 'runtime-session-id',
+      sessionToken: 'runtime-session-token',
+    });
+    assert.deepEqual(snapshotCall.payload.protectedAccessToken, {
+      tokenId: 'runtime-agent-anchor-token',
+      secret: 'runtime-agent-anchor-secret',
+    });
   } finally {
     restoreTauri();
   }

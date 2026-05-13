@@ -111,6 +111,7 @@ test('conversation submit readiness: agent submit refreshes text projection into
       refreshAgentEffectiveCapabilityResolution: () => {
         resolutionRefreshed = true;
       },
+      getTextCapabilityProjection: () => null,
       getAgentResolution: () => (
         refreshed && resolutionRefreshed
           ? createAgentResolution({
@@ -140,6 +141,55 @@ test('conversation submit readiness: agent submit refreshes text projection into
   assert.equal(resolution.textProjection?.resolvedBinding?.resolvedBindingRef, 'binding:agent:text');
 });
 
+test('conversation submit readiness: agent submit rebuilds from fresh text projection when resolution is stale', async () => {
+  let refreshed = false;
+  let resolutionRefreshed = false;
+  const freshTextProjection = createTextProjection({
+    supported: true,
+    resolvedBinding: {
+      capability: 'text.generate',
+      source: 'local',
+      provider: 'llama',
+      connectorId: '',
+      model: 'gemma',
+      modelId: 'gemma',
+      localModelId: 'local-gemma',
+      resolvedBindingRef: 'binding:fresh-agent:text',
+    },
+    reasonCode: null,
+  });
+
+  const resolution = await ensureAgentConversationSubmitRouteReady({
+    t,
+    deps: {
+      refreshConversationCapabilityProjections: async (capabilities) => {
+        assert.deepEqual(capabilities, ['text.generate']);
+        refreshed = true;
+      },
+      refreshAgentEffectiveCapabilityResolution: () => {
+        resolutionRefreshed = true;
+      },
+      getTextCapabilityProjection: () => (refreshed ? freshTextProjection : null),
+      getAgentResolution: () => (
+        resolutionRefreshed
+          ? createAgentResolution({
+            ready: false,
+            reason: 'route_unresolved',
+            textProjection: createTextProjection({
+              supported: true,
+              resolvedBinding: null,
+              reasonCode: 'binding_unresolved',
+            }),
+          })
+          : createAgentResolution()
+      ),
+    },
+  });
+
+  assert.equal(resolution.ready, true);
+  assert.equal(resolution.textProjection?.resolvedBinding?.resolvedBindingRef, 'binding:fresh-agent:text');
+});
+
 test('conversation submit readiness: agent submit still fails after refresh when text route is unavailable', async () => {
   await assert.rejects(
     () => ensureAgentConversationSubmitRouteReady({
@@ -147,9 +197,14 @@ test('conversation submit readiness: agent submit still fails after refresh when
       deps: {
         refreshConversationCapabilityProjections: async () => undefined,
         refreshAgentEffectiveCapabilityResolution: () => undefined,
+        getTextCapabilityProjection: () => null,
         getAgentResolution: () => createAgentResolution(),
       },
     }),
-    /Choose a ready AI route before sending a message\./,
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_INPUT_INVALID');
+      assert.match(String((error as Error).message), /A local or cloud runtime route is required before sending a message\./);
+      return true;
+    },
   );
 });

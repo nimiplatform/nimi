@@ -27,12 +27,18 @@ const CONNECTOR_CALL_OPTIONS = {
 const CONNECTOR_MODELS_PAGE_SIZE = 200;
 const CONNECTOR_MODELS_MAX_PAGES = 200;
 const PROVIDER_CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
+const CONNECTOR_LIST_CACHE_TTL_MS = 15 * 1000;
+const CONNECTOR_MODEL_CACHE_TTL_MS = 30 * 1000;
 
 const CONNECTOR_KIND_REMOTE_MANAGED = 2;
 const CONNECTOR_OWNER_TYPE_SYSTEM = 1;
 
 let cachedProviderCatalog: ProviderCatalogEntry[] | null = null;
 let cachedProviderCatalogAt = 0;
+let cachedConnectors: ApiConnector[] | null = null;
+let cachedConnectorsAt = 0;
+let pendingConnectors: Promise<ApiConnector[]> | null = null;
+let connectorInventoryCacheGeneration = 0;
 
 type RuntimeConnectorLike = {
   connectorId: string;
@@ -60,6 +66,51 @@ type RuntimeConnectorModelLike = {
   modelId?: string;
   capabilities?: string[];
 };
+
+export type ConnectorModelInfo = {
+  modelId: string;
+  capabilities: string[];
+};
+
+const cachedConnectorModels = new Map<string, { at: number; value: ConnectorModelInfo[] }>();
+const pendingConnectorModels = new Map<string, Promise<ConnectorModelInfo[]>>();
+
+function cloneConnector(connector: ApiConnector): ApiConnector {
+  return {
+    ...connector,
+    models: Array.isArray(connector.models) ? [...connector.models] : [],
+  };
+}
+
+function cloneConnectors(connectors: ApiConnector[]): ApiConnector[] {
+  return connectors.map(cloneConnector);
+}
+
+function cloneConnectorModelInfo(model: ConnectorModelInfo): ConnectorModelInfo {
+  return {
+    modelId: model.modelId,
+    capabilities: Array.isArray(model.capabilities) ? [...model.capabilities] : [],
+  };
+}
+
+function cloneConnectorModelInfos(models: ConnectorModelInfo[]): ConnectorModelInfo[] {
+  return models.map(cloneConnectorModelInfo);
+}
+
+function invalidateConnectorInventoryCache(): void {
+  connectorInventoryCacheGeneration += 1;
+  cachedConnectors = null;
+  cachedConnectorsAt = 0;
+  pendingConnectors = null;
+  cachedConnectorModels.clear();
+  pendingConnectorModels.clear();
+}
+
+export function clearRuntimeConnectorSdkCaches(): void {
+  cachedProviderCatalog = null;
+  cachedProviderCatalogAt = 0;
+  invalidateConnectorInventoryCache();
+}
 
 function runtimeReasonCodeName(value: unknown): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
@@ -244,22 +295,48 @@ export function sdkConnectorToApiConnector(
 }
 
 export async function sdkListConnectors(): Promise<ApiConnector[]> {
-  const providerCatalog = await sdkListProviderCatalog();
-  const request = {
-    pageSize: 0,
-    pageToken: '',
-    kindFilter: CONNECTOR_KIND_REMOTE_MANAGED,
-    statusFilter: 0,
-    providerFilter: '',
-  };
-  const response = await runtimeAdmin().listConnectors(request, CONNECTOR_CALL_OPTIONS);
-  const connectors = Array.isArray(response.connectors)
-    ? (response.connectors as RuntimeConnectorLike[])
-    : [];
-  const remoteConnectors = connectors.filter(
-    (connector: RuntimeConnectorLike) => connector.kind === CONNECTOR_KIND_REMOTE_MANAGED,
-  );
-  return remoteConnectors.map((connector: RuntimeConnectorLike) => sdkConnectorToApiConnector(connector, providerCatalog));
+  const now = Date.now();
+  if (
+    cachedConnectors
+    && now - cachedConnectorsAt < CONNECTOR_LIST_CACHE_TTL_MS
+  ) {
+    return cloneConnectors(cachedConnectors);
+  }
+  if (pendingConnectors) {
+    return cloneConnectors(await pendingConnectors);
+  }
+  const cacheGeneration = connectorInventoryCacheGeneration;
+  pendingConnectors = (async () => {
+    const providerCatalog = await sdkListProviderCatalog();
+    const request = {
+      pageSize: 0,
+      pageToken: '',
+      kindFilter: CONNECTOR_KIND_REMOTE_MANAGED,
+      statusFilter: 0,
+      providerFilter: '',
+    };
+    const response = await runtimeAdmin().listConnectors(request, CONNECTOR_CALL_OPTIONS);
+    const connectors = Array.isArray(response.connectors)
+      ? (response.connectors as RuntimeConnectorLike[])
+      : [];
+    const remoteConnectors = connectors.filter(
+      (connector: RuntimeConnectorLike) => connector.kind === CONNECTOR_KIND_REMOTE_MANAGED,
+    );
+    const result = remoteConnectors.map((connector: RuntimeConnectorLike) => sdkConnectorToApiConnector(connector, providerCatalog));
+    if (cacheGeneration === connectorInventoryCacheGeneration) {
+      cachedConnectors = cloneConnectors(result);
+      cachedConnectorsAt = Date.now();
+    }
+    return result;
+  })();
+  const pending = pendingConnectors;
+  try {
+    return cloneConnectors(await pending);
+  } finally {
+    if (pendingConnectors === pending) {
+      pendingConnectors = null;
+    }
+  }
 }
 
 export async function sdkCreateConnector(input: {
@@ -291,6 +368,7 @@ export async function sdkCreateConnector(input: {
       })
       : '',
   }, CONNECTOR_CALL_OPTIONS);
+  invalidateConnectorInventoryCache();
   if (!response.connector) return null;
   const providerCatalog = await sdkListProviderCatalog();
   return sdkConnectorToApiConnector(response.connector, providerCatalog);
@@ -328,6 +406,7 @@ export async function sdkUpdateConnector(input: {
       })
       : undefined,
   }, CONNECTOR_CALL_OPTIONS);
+  invalidateConnectorInventoryCache();
   if (!response.connector) return null;
   const providerCatalog = await sdkListProviderCatalog();
   return sdkConnectorToApiConnector(response.connector, providerCatalog);
@@ -338,6 +417,7 @@ export async function sdkDeleteConnector(connectorId: string): Promise<void> {
     { connectorId },
     CONNECTOR_CALL_OPTIONS,
   );
+  invalidateConnectorInventoryCache();
 }
 
 export async function sdkTestConnector(connectorId: string): Promise<void> {
@@ -381,49 +461,75 @@ export async function sdkListConnectorModels(
   return descriptors.map((item) => item.modelId);
 }
 
-export type ConnectorModelInfo = {
-  modelId: string;
-  capabilities: string[];
-};
-
 export async function sdkListConnectorModelDescriptors(
   connectorId: string,
   forceRefresh: boolean = false,
 ): Promise<ConnectorModelInfo[]> {
-  const descriptors: ConnectorModelInfo[] = [];
-  const seenModelIds = new Set<string>();
-  let pageToken = '';
-  for (let pageIndex = 0; pageIndex < CONNECTOR_MODELS_MAX_PAGES; pageIndex += 1) {
-    const request = {
-      connectorId,
-      forceRefresh: pageIndex === 0 ? forceRefresh : false,
-      pageSize: CONNECTOR_MODELS_PAGE_SIZE,
-      pageToken,
-    };
-    const response = await runtimeAdmin().listConnectorModels(request, CONNECTOR_CALL_OPTIONS);
-    const models = Array.isArray(response.models)
-      ? (response.models as RuntimeConnectorModelLike[])
-      : [];
-    const pageItems = models
-      .filter((item: RuntimeConnectorModelLike) => Boolean(item.available))
-      .map((item: RuntimeConnectorModelLike) => ({
-        modelId: String(item.modelId || '').trim(),
-        capabilities: Array.isArray(item.capabilities)
-          ? item.capabilities.map((capability: string) => String(capability || '').trim()).filter(Boolean)
-          : [],
-      }))
-      .filter((item: ConnectorModelInfo) => item.modelId.length > 0);
-    for (const item of pageItems) {
-      if (seenModelIds.has(item.modelId)) {
-        continue;
-      }
-      seenModelIds.add(item.modelId);
-      descriptors.push(item);
+  const normalizedConnectorId = String(connectorId || '').trim();
+  const now = Date.now();
+  if (!forceRefresh) {
+    const cached = cachedConnectorModels.get(normalizedConnectorId);
+    if (cached && now - cached.at < CONNECTOR_MODEL_CACHE_TTL_MS) {
+      return cloneConnectorModelInfos(cached.value);
     }
-    pageToken = String(response.nextPageToken || '').trim();
-    if (!pageToken) {
-      break;
+    const pending = pendingConnectorModels.get(normalizedConnectorId);
+    if (pending) {
+      return cloneConnectorModelInfos(await pending);
     }
   }
-  return descriptors;
+  const cacheGeneration = connectorInventoryCacheGeneration;
+  const pending = (async () => {
+    const descriptors: ConnectorModelInfo[] = [];
+    const seenModelIds = new Set<string>();
+    let pageToken = '';
+    for (let pageIndex = 0; pageIndex < CONNECTOR_MODELS_MAX_PAGES; pageIndex += 1) {
+      const request = {
+        connectorId: normalizedConnectorId,
+        forceRefresh: pageIndex === 0 ? forceRefresh : false,
+        pageSize: CONNECTOR_MODELS_PAGE_SIZE,
+        pageToken,
+      };
+      const response = await runtimeAdmin().listConnectorModels(request, CONNECTOR_CALL_OPTIONS);
+      const models = Array.isArray(response.models)
+        ? (response.models as RuntimeConnectorModelLike[])
+        : [];
+      const pageItems = models
+        .filter((item: RuntimeConnectorModelLike) => Boolean(item.available))
+        .map((item: RuntimeConnectorModelLike) => ({
+          modelId: String(item.modelId || '').trim(),
+          capabilities: Array.isArray(item.capabilities)
+            ? item.capabilities.map((capability: string) => String(capability || '').trim()).filter(Boolean)
+            : [],
+        }))
+        .filter((item: ConnectorModelInfo) => item.modelId.length > 0);
+      for (const item of pageItems) {
+        if (seenModelIds.has(item.modelId)) {
+          continue;
+        }
+        seenModelIds.add(item.modelId);
+        descriptors.push(item);
+      }
+      pageToken = String(response.nextPageToken || '').trim();
+      if (!pageToken) {
+        break;
+      }
+    }
+    if (cacheGeneration === connectorInventoryCacheGeneration) {
+      cachedConnectorModels.set(normalizedConnectorId, {
+        at: Date.now(),
+        value: cloneConnectorModelInfos(descriptors),
+      });
+    }
+    return descriptors;
+  })();
+  if (!forceRefresh) {
+    pendingConnectorModels.set(normalizedConnectorId, pending);
+  }
+  try {
+    return cloneConnectorModelInfos(await pending);
+  } finally {
+    if (!forceRefresh && pendingConnectorModels.get(normalizedConnectorId) === pending) {
+      pendingConnectorModels.delete(normalizedConnectorId);
+    }
+  }
 }

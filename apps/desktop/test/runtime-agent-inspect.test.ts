@@ -595,6 +595,27 @@ test('runtime agent inspect adapter projects public state and pending hook summa
   });
 });
 
+test('runtime agent inspect adapter omits dyadic memory preview without active dyadic context', async () => {
+  const { runtime, calls } = createRuntimeMock();
+  const adapter = createRuntimeAgentInspectAdapter({
+    getRuntime: () => runtime as never,
+    getSubjectUserId: () => 'user-1',
+  });
+
+  await adapter.updateState({
+    agentId: 'agent-1',
+    clearDyadicContext: true,
+  });
+  const snapshot = await adapter.getPublicInspect('agent-1');
+
+  assert.equal(snapshot.activeUserId, null);
+  assert.equal(calls.queryMemory.length, 1);
+  assert.deepEqual(calls.queryMemory[0]?.canonicalClasses, [
+    MemoryCanonicalClass.PUBLIC_SHARED,
+    MemoryCanonicalClass.WORLD_SHARED,
+  ]);
+});
+
 test('runtime agent inspect adapter projects persistent presentation profile without loading inspect extras', async () => {
   const { runtime, calls } = createRuntimeMock();
   const adapter = createRuntimeAgentInspectAdapter({

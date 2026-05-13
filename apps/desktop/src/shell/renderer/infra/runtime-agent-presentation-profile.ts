@@ -14,7 +14,9 @@ type RuntimeAgentPresentationProfileDeps = {
   getSubjectUserId?: () => string | undefined | Promise<string | undefined>;
 };
 
-function toProtoBackendKind(value: AvatarPresentationProfile['backendKind']): AgentPresentationBackendKind {
+export function normalizeRuntimeAgentPresentationBackendKind(
+  value: AvatarPresentationProfile['backendKind'],
+): AgentPresentationBackendKind | null {
   switch (value) {
     case 'vrm':
       return 1;
@@ -27,8 +29,26 @@ function toProtoBackendKind(value: AvatarPresentationProfile['backendKind']): Ag
     case 'video':
       return 5;
     default:
-      return 0;
+      return null;
   }
+}
+
+const RUNTIME_AGENT_PRESENTATION_VOICE_REFERENCE_PREFIXES = [
+  'preset_voice_id:',
+  'voice_asset_id:',
+  'provider_voice_ref:',
+];
+
+export function normalizeRuntimeAgentPresentationDefaultVoiceReference(
+  value: string | null | undefined,
+): string {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    return '';
+  }
+  return RUNTIME_AGENT_PRESENTATION_VOICE_REFERENCE_PREFIXES.some((prefix) => normalized.startsWith(prefix))
+    ? normalized
+    : '';
 }
 
 function toSetPresentationProfileRequest(input: {
@@ -49,18 +69,23 @@ function toSetPresentationProfileRequest(input: {
       },
     };
   }
+  const backendKind = normalizeRuntimeAgentPresentationBackendKind(input.profile.backendKind);
+  const avatarAssetRef = normalizeText(input.profile.avatarAssetRef);
+  if (!backendKind || !avatarAssetRef) {
+    throw new Error('AGENT_PRESENTATION_PROFILE_INVALID');
+  }
   return {
     context: input.context,
     agentId: input.agentId,
     mutation: {
       oneofKind: 'profile',
       profile: {
-        backendKind: toProtoBackendKind(input.profile.backendKind),
-        avatarAssetRef: input.profile.avatarAssetRef,
+        backendKind,
+        avatarAssetRef,
         expressionProfileRef: input.profile.expressionProfileRef || '',
         idlePreset: input.profile.idlePreset || '',
         interactionPolicyRef: input.profile.interactionPolicyRef || '',
-        defaultVoiceReference: input.profile.defaultVoiceReference || '',
+        defaultVoiceReference: normalizeRuntimeAgentPresentationDefaultVoiceReference(input.profile.defaultVoiceReference),
       },
     },
   };

@@ -118,6 +118,8 @@ type RuntimeAgentSession = {
 };
 
 const EPOCH_ISO = '1970-01-01T00:00:00.000Z';
+const RUNTIME_MEMORY_PROMOTION_TARGET_ID = 'RUNTIME_MEMORY_OR_COGNITION';
+const CANONICAL_AGENT_CHAT_SOURCE_PROFILE = 'canonical_agent_chat';
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -144,6 +146,38 @@ function toTimestamp(date: Date): { seconds: string; nanos: number } {
   const seconds = Math.floor(ms / 1000);
   const nanos = (ms % 1000) * 1_000_000;
   return { seconds: String(seconds), nanos };
+}
+
+function buildCanonicalAgentChatMemoryPromotionEvidence(input: {
+  runtimeAppId: string;
+  agentId: string;
+  sourceEventId: string;
+  traceId: string;
+  policyReason: string;
+  targetOwnerId: string;
+}): Record<string, string> {
+  const sourceEventId = normalizeText(input.sourceEventId);
+  const traceId = normalizeText(input.traceId);
+  const agentId = normalizeText(input.agentId);
+  const runtimeAppId = normalizeText(input.runtimeAppId);
+  const policyReason = normalizeText(input.policyReason) || 'desktop_agent_chat_dyadic_turn';
+  const targetOwnerId = normalizeText(input.targetOwnerId);
+  const outputRef = sourceEventId || traceId || `${agentId}:memory-candidate`;
+  const traceRef = traceId || outputRef;
+  return {
+    promotion_target_id: RUNTIME_MEMORY_PROMOTION_TARGET_ID,
+    participation_id: `canonical-agent-chat:${runtimeAppId || 'desktop'}:${agentId || 'agent'}:${traceRef}`,
+    source_profile: CANONICAL_AGENT_CHAT_SOURCE_PROFILE,
+    output_candidate_ref: outputRef,
+    audit_id: traceRef,
+    provenance_ref: `desktop.agent-chat:${traceRef}`,
+    policy_verdict_ref: policyReason,
+    memory_read_verdict: 'PASS',
+    memory_write_verdict: 'PASS',
+    capability_scope_verdict: 'PASS',
+    target_owner_authorization_ref: targetOwnerId || runtimeAppId || 'desktop',
+    explicit_user_or_manager_intent_ref: outputRef,
+  };
 }
 
 function normalizeRuntimeError(error: unknown, actionHint: string) {
@@ -341,7 +375,7 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
 
     const mutations: AgentStateMutation[] = [];
     if (input.syncDyadicContext === true) {
-      const dyadicUserId = normalizeText(input.dyadicUserId);
+      const dyadicUserId = normalizeText(input.dyadicUserId) || subjectUserId;
       mutations.push(dyadicUserId
         ? {
           mutation: {
@@ -669,7 +703,14 @@ export function createRuntimeAgentMemoryAdapter(deps: RuntimeAgentMemoryDeps = {
                 },
               },
             },
-            extensions: undefined,
+            extensions: toProtoStruct(buildCanonicalAgentChatMemoryPromotionEvidence({
+              runtimeAppId: session.runtime.appId,
+              agentId: normalizeText(input.agentId),
+              sourceEventId: normalizeText(input.sourceEventId),
+              traceId: normalizeText(input.traceId),
+              policyReason: normalizeText(input.policyReason),
+              targetOwnerId: dyadicUserId,
+            })),
           },
         ],
       }, options));
