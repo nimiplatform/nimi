@@ -1,0 +1,438 @@
+name: assurance
+
+on:
+  schedule:
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: assurance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NIMI_MODS_REF: 931311bcc79ce93195e539da793a05579ee66194 # pragma: allowlist secret
+
+jobs:
+  ai-governance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: AI context budget assurance
+        run: pnpm check:ai-context-budget
+
+      - name: AI structure budget assurance
+        run: pnpm check:ai-structure-budget
+
+      - name: Full AI governance assurance
+        run: pnpm nimicoding:validate-ai-governance --profile nimi --scope all
+
+      - name: Report AI hotspots
+        if: always()
+        run: pnpm report:ai-hotspots --limit 120
+
+      - name: Report AI structure hotspots
+        if: always()
+        run: pnpm report:ai-structure-hotspots --limit 120
+
+  spec-governance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Full spec governance assurance
+        run: pnpm exec nimicoding validate-spec-governance --profile nimi --scope all
+
+      - name: Full spec generated-doc assurance
+        run: pnpm exec nimicoding generate-spec-derived-docs --profile nimi --scope all --check
+
+      - name: Spec semantic completeness assurance
+        run: pnpm check:spec-semantic-completeness
+
+      - name: Spec audit contract assurance
+        run: pnpm exec nimicoding validate-spec-audit
+
+      - name: Spec tree contract assurance
+        run: pnpm exec nimicoding validate-spec-tree
+
+  sdk-release-assurance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      # >>> nimi-release-gate-projection: release-target-sdk-static-checks >>>
+      - name: gate.sdk.build
+        run: pnpm build:sdk
+      - name: gate.sdk.consumer-smoke
+        run: pnpm check:sdk-consumer-smoke
+      - name: gate.sdk.coverage
+        run: pnpm check:sdk-coverage
+      - name: gate.sdk.test
+        run: pnpm --filter @nimiplatform/sdk test
+      - name: gate.sdk.version-matrix
+        run: pnpm check:sdk-version-matrix
+      - name: gate.sdk.vnext-matrix
+        run: pnpm check:sdk-vnext-matrix
+      - name: gate.security.package-license-matrix
+        run: pnpm check:package-license-matrix
+      # <<< nimi-release-gate-projection: release-target-sdk-static-checks <<<
+
+  runtime-release-assurance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: package.json
+
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version: '1.25.6'
+          cache-dependency-path: runtime/go.sum
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Install Buf CLI
+        run: go install github.com/bufbuild/buf/cmd/buf@v1.66.1
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Runtime proto lint assurance
+        run: pnpm proto:lint
+
+      - name: Runtime proto breaking assurance
+        run: pnpm proto:breaking
+
+      - name: Runtime proto drift assurance
+        run: pnpm proto:drift-check
+
+      - name: Runtime compliance assurance
+        working-directory: runtime
+        run: go run ./cmd/runtime-compliance --gate
+
+      - name: Runtime build assurance
+        working-directory: runtime
+        run: go build ./...
+
+      - name: Runtime test assurance
+        working-directory: runtime
+        run: go test ./...
+
+      - name: Runtime vet assurance
+        working-directory: runtime
+        run: go vet ./...
+
+      - name: Runtime Go coverage assurance
+        run: pnpm check:runtime-go-coverage
+
+      - name: Runtime AI scenario coverage assurance
+        run: pnpm check:runtime-ai-scenario-coverage
+
+      - name: Runtime vulnerability assurance
+        working-directory: runtime
+        run: govulncheck ./...
+
+      - name: Runtime npm binary smoke assurance
+        run: pnpm check:npm-binary-smoke
+
+      - name: Goreleaser config assurance
+        run: go run github.com/goreleaser/goreleaser/v2@latest check --config .goreleaser.yml
+
+      - name: Goreleaser snapshot assurance
+        run: go run github.com/goreleaser/goreleaser/v2@latest release --clean --snapshot --skip=publish --skip=announce --config .goreleaser.yml
+
+  desktop-release-assurance:
+    runs-on: ubuntu-22.04
+    env:
+      NIMI_MODS_ROOT: ${{ github.workspace }}/nimi-mods
+      NIMI_RUNTIME_MODS_DIR: ${{ github.workspace }}/nimi-mods/runtime
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Checkout nimi-mods (pinned external repo)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: nimiplatform/nimi-mods
+          token: ${{ secrets.NIMI_MODS_REPO_TOKEN || github.token }}
+          ref: ${{ env.NIMI_MODS_REF }}
+          path: nimi-mods
+          fetch-depth: 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: package.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+          components: clippy
+
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Install nimi-mods dependencies
+        run: pnpm --dir nimi-mods install --no-frozen-lockfile
+
+      - name: Install desktop native drivers
+        run: cargo install tauri-driver --locked
+
+      - name: Install cargo audit
+        run: cargo install cargo-audit --locked
+
+      - name: Build SDK surfaces
+        run: pnpm build:sdk
+
+      - name: Desktop Rust audit assurance
+        run: cargo audit --file apps/desktop/src-tauri/Cargo.lock
+
+      - name: Desktop Rust check assurance
+        run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
+
+      - name: Desktop Rust clippy assurance
+        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets
+
+      - name: Desktop Rust tests assurance
+        run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
+
+      - name: Desktop runtime bridge tests assurance
+        run: cargo test runtime_bridge --manifest-path apps/desktop/src-tauri/Cargo.toml
+
+      - name: Desktop mods env assurance
+        run: pnpm --filter @nimiplatform/desktop run env:check:mods-root
+
+      - name: Desktop group chat contract assurance
+        run: pnpm check:desktop-group-chat-contract
+
+      - name: Desktop mods smoke assurance
+        run: pnpm check:desktop-mods-smoke
+
+      - name: Desktop E2E smoke assurance
+        id: desktop_e2e_smoke
+        env:
+          NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
+        run: xvfb-run -a pnpm check:desktop-e2e-smoke
+
+      - name: Desktop E2E journeys assurance
+        id: desktop_e2e_journeys
+        env:
+          NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
+        run: xvfb-run -a pnpm check:desktop-e2e-journeys
+
+      - name: Generate desktop E2E evidence
+        if: always()
+        run: |
+          pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence -- \
+            --platform ubuntu-22.04 \
+            --workflow-ref assurance \
+            --workflow-run-id "${GITHUB_RUN_ID}" \
+            --commit "${GITHUB_SHA}" \
+            --smoke-outcome "${SMOKE_OUTCOME}" \
+            --journeys-outcome "${JOURNEYS_OUTCOME}" \
+            --native-driver /usr/bin/WebKitWebDriver \
+            --tauri-driver tauri-driver \
+            --app-mode source \
+            --artifact-upload-path "apps/desktop/reports/e2e/**"
+        env:
+          SMOKE_OUTCOME: ${{ steps.desktop_e2e_smoke.outcome }}
+          JOURNEYS_OUTCOME: ${{ steps.desktop_e2e_journeys.outcome }}
+
+      - name: Upload desktop E2E evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: desktop-e2e-evidence-assurance
+          path: apps/desktop/reports/e2e/evidence/**
+          if-no-files-found: ignore
+
+      - name: Upload desktop E2E artifacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: desktop-e2e-artifacts-assurance
+          path: apps/desktop/reports/e2e/**
+          if-no-files-found: ignore
+
+  docs-security-assurance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: package.json
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build SDK surfaces for examples
+        run: pnpm build:sdk
+
+      - name: Examples compile assurance
+        run: pnpm check:examples
+
+      - name: Examples run comments assurance
+        run: pnpm check:examples-run-comments
+
+      - name: Docs portal build assurance
+        run: pnpm docs:build
+
+      - name: Markdown assurance
+        run: pnpm check:markdown
+
+      - name: First-run docs drift assurance
+        run: pnpm check:first-run-doc-drift
+
+      - name: Install script smoke assurance
+        run: pnpm check:install-script-smoke
+
+      - name: No absolute user paths assurance
+        run: pnpm check:no-absolute-user-paths
+
+      - name: No legacy docs contracts assurance
+        run: pnpm check:no-legacy-doc-contracts
+
+      - name: License file map assurance
+        run: pnpm check:license-file-map
+
+      - name: Package license matrix assurance
+        run: pnpm check:package-license-matrix
+
+  assurance:
+    needs:
+      - ai-governance
+      - spec-governance
+      - sdk-release-assurance
+      - runtime-release-assurance
+      - desktop-release-assurance
+      - docs-security-assurance
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aggregate assurance status
+        env:
+          AI_GOVERNANCE_RESULT: ${{ needs.ai-governance.result }}
+          SPEC_GOVERNANCE_RESULT: ${{ needs.spec-governance.result }}
+          SDK_RELEASE_ASSURANCE_RESULT: ${{ needs.sdk-release-assurance.result }}
+          RUNTIME_RELEASE_ASSURANCE_RESULT: ${{ needs.runtime-release-assurance.result }}
+          DESKTOP_RELEASE_ASSURANCE_RESULT: ${{ needs.desktop-release-assurance.result }}
+          DOCS_SECURITY_ASSURANCE_RESULT: ${{ needs.docs-security-assurance.result }}
+        run: |
+          set -euo pipefail
+          failed=0
+
+          for item in \
+            "ai-governance:${AI_GOVERNANCE_RESULT}" \
+            "spec-governance:${SPEC_GOVERNANCE_RESULT}" \
+            "sdk-release-assurance:${SDK_RELEASE_ASSURANCE_RESULT}" \
+            "runtime-release-assurance:${RUNTIME_RELEASE_ASSURANCE_RESULT}" \
+            "desktop-release-assurance:${DESKTOP_RELEASE_ASSURANCE_RESULT}" \
+            "docs-security-assurance:${DOCS_SECURITY_ASSURANCE_RESULT}"; do
+            name="${item%%:*}"
+            result="${item#*:}"
+            if [[ "${result}" != "success" ]]; then
+              echo "${name} failed with result=${result}" >&2
+              failed=1
+            fi
+          done
+
+          if [[ "${failed}" -ne 0 ]]; then
+            exit 1
+          fi
+
+          echo "Assurance aggregate passed."

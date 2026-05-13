@@ -224,18 +224,6 @@ jobs:
       - name: Enforce desktop no private @client alias
         run: pnpm check:desktop-no-client-alias
 
-      - name: Scope catalog drift check
-        run: pnpm check:scope-catalog-drift
-
-      - name: SDK import boundary check
-        run: pnpm check:sdk-import-boundary
-
-      - name: SDK single-package layout check
-        run: pnpm check:sdk-single-package-layout
-
-      - name: SDK public naming check
-        run: pnpm check:sdk-public-naming
-
       - name: Enforce no createNimiClient legacy entry
         run: pnpm check:no-create-nimi-client
 
@@ -275,35 +263,6 @@ jobs:
       - name: Runtime bridge method drift check
         run: pnpm check:runtime-bridge-method-drift
 
-  ai-context-budget:
-    needs: changes
-    if: needs.changes.outputs.core_changed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
-        with:
-          version: 10.32.1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: package.json
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      - name: AI context budget gate
-        run: pnpm check:ai-context-budget
-
-      - name: AI hotspots report
-        run: pnpm report:ai-hotspots --limit 120
-
   sdk-quality:
     needs: changes
     if: needs.changes.outputs.sdk_changed == 'true'
@@ -327,22 +286,23 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      # >>> nimi-release-gate-projection: release-target-sdk-static-checks >>>
-      - name: gate.sdk.build
+      - name: Build SDK
         run: pnpm build:sdk
-      - name: gate.sdk.consumer-smoke
-        run: pnpm check:sdk-consumer-smoke
-      - name: gate.sdk.coverage
-        run: pnpm check:sdk-coverage
-      - name: gate.sdk.test
+
+      - name: Test SDK
         run: pnpm --filter @nimiplatform/sdk test
-      - name: gate.sdk.version-matrix
-        run: pnpm check:sdk-version-matrix
-      - name: gate.sdk.vnext-matrix
-        run: pnpm check:sdk-vnext-matrix
-      - name: gate.security.package-license-matrix
-        run: pnpm check:package-license-matrix
-      # <<< nimi-release-gate-projection: release-target-sdk-static-checks <<<
+
+      - name: SDK import boundary check
+        run: pnpm check:sdk-import-boundary
+
+      - name: SDK single-package layout check
+        run: pnpm check:sdk-single-package-layout
+
+      - name: SDK public naming check
+        run: pnpm check:sdk-public-naming
+
+      - name: Scope catalog drift check
+        run: pnpm check:scope-catalog-drift
 
   runtime-quality:
     needs: changes
@@ -367,59 +327,30 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version-file: runtime/go.mod
+          go-version: '1.25.6'
           cache-dependency-path: runtime/go.sum
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Install Buf CLI
-        run: |
-          set -euo pipefail
-          GOBIN="$(go env GOPATH)/bin"
-          echo "${GOBIN}" >> "${GITHUB_PATH}"
-          go install github.com/bufbuild/buf/cmd/buf@v1.66.1
+        run: go install github.com/bufbuild/buf/cmd/buf@v1.66.1
 
-      - name: Install supply chain tooling (cosign + syft)
-        run: |
-          set -euo pipefail
-          GOBIN="$(go env GOPATH)/bin"
-          echo "${GOBIN}" >> "${GITHUB_PATH}"
-          go install github.com/sigstore/cosign/v2/cmd/cosign@v2.6.2
-          go install github.com/anchore/syft/cmd/syft@v1.42.2
-
-      # >>> nimi-release-gate-projection: release-target-runtime-static-checks >>>
-      - name: gate.proto.baseline-exists
-        run: test -s runtime/proto/runtime-v1.baseline.binpb
-      - name: gate.runtime.ai-scenario-coverage
-        run: pnpm check:runtime-ai-scenario-coverage
-      - name: gate.runtime.compliance
+      - name: Runtime compliance
         working-directory: runtime
         run: go run ./cmd/runtime-compliance --gate
-      - name: gate.runtime.go-build
+
+      - name: Runtime Go build
         working-directory: runtime
         run: go build ./...
-      - name: gate.runtime.go-coverage
-        run: pnpm check:runtime-go-coverage
-      - name: gate.runtime.go-test
+
+      - name: Runtime Go test
         working-directory: runtime
         run: go test ./...
-      - name: gate.runtime.go-vet
+
+      - name: Runtime Go vet
         working-directory: runtime
         run: go vet ./...
-      - name: gate.runtime.golangci-lint
-        working-directory: runtime
-        run: golangci-lint run
-      - name: gate.runtime.govulncheck
-        working-directory: runtime
-        run: govulncheck ./...
-      - name: gate.sdk.npm-binary-smoke
-        run: pnpm check:npm-binary-smoke
-      - name: gate.workflow.runtime-goreleaser-check
-        run: go run github.com/goreleaser/goreleaser/v2@latest check --config .goreleaser.yml
-      - name: gate.workflow.runtime-goreleaser-snapshot
-        run: go run github.com/goreleaser/goreleaser/v2@latest release --clean --snapshot --skip=publish --skip=announce --config .goreleaser.yml
-      # <<< nimi-release-gate-projection: release-target-runtime-static-checks <<<
 
       - name: Runtime golangci-lint
         uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
@@ -456,90 +387,31 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Install Linux desktop E2E dependencies
+      - name: Install Linux desktop dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb
-          cargo install tauri-driver --locked
 
-      # >>> nimi-release-gate-projection: release-target-desktop-static-checks >>>
-      - name: gate.cargo.audit
-        run: cargo audit --file apps/desktop/src-tauri/Cargo.lock
-      - name: gate.cargo.check
+      - name: Cargo check
         run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
-      - name: gate.cargo.clippy
+
+      - name: Cargo clippy
         run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets
-      - name: gate.cargo.test
+
+      - name: Cargo test
         run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
-      - name: gate.cargo.test-runtime-bridge
+
+      - name: Cargo runtime bridge tests
         run: cargo test runtime_bridge --manifest-path apps/desktop/src-tauri/Cargo.toml
-      - name: gate.desktop.env-mods-root
-        run: pnpm --filter @nimiplatform/desktop run env:check:mods-root
-      - name: gate.desktop.group-chat-contract
-        run: pnpm check:desktop-group-chat-contract
-      - name: gate.desktop.lint
+
+      - name: Lint desktop
         run: pnpm --filter @nimiplatform/desktop lint
-      - name: gate.desktop.macos-smoke
-        run: pnpm check:desktop-macos-smoke
-      - name: gate.desktop.mods-smoke
-        run: pnpm check:desktop-mods-smoke
-      - name: gate.desktop.release-sync
-        run: pnpm --filter @nimiplatform/desktop run check:desktop-release-sync
-      - name: gate.desktop.test
+
+      - name: Test desktop
         run: pnpm --filter @nimiplatform/desktop test
-      - name: gate.desktop.typecheck
+
+      - name: Typecheck desktop
         run: pnpm --filter @nimiplatform/desktop typecheck
-      - name: gate.desktop.updater-artifacts
-        run: pnpm --filter @nimiplatform/desktop run check:desktop-updater-artifacts
-      - name: gate.desktop.version-sync
-        run: pnpm --filter @nimiplatform/desktop run check:version-sync
-      # <<< nimi-release-gate-projection: release-target-desktop-static-checks <<<
-
-      - name: Desktop E2E smoke
-        id: desktop_e2e_smoke
-        env:
-          NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
-        run: xvfb-run -a pnpm check:desktop-e2e-smoke
-
-      - name: Desktop E2E journeys
-        id: desktop_e2e_journeys
-        env:
-          NIMI_E2E_NATIVE_DRIVER: /usr/bin/WebKitWebDriver
-        run: xvfb-run -a pnpm check:desktop-e2e-journeys
-
-      - name: Generate desktop E2E evidence
-        if: always()
-        run: |
-          pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence -- \
-            --platform ubuntu-latest \
-            --workflow-ref ci \
-            --workflow-run-id "${GITHUB_RUN_ID}" \
-            --commit "${GITHUB_SHA}" \
-            --smoke-outcome "${SMOKE_OUTCOME}" \
-            --journeys-outcome "${JOURNEYS_OUTCOME}" \
-            --native-driver /usr/bin/WebKitWebDriver \
-            --tauri-driver tauri-driver \
-            --app-mode packaged \
-            --artifact-upload-path "apps/desktop/reports/e2e/**"
-        env:
-          SMOKE_OUTCOME: ${{ steps.desktop_e2e_smoke.outcome }}
-          JOURNEYS_OUTCOME: ${{ steps.desktop_e2e_journeys.outcome }}
-
-      - name: Upload desktop E2E evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: desktop-e2e-evidence-ubuntu-latest
-          path: apps/desktop/reports/e2e/evidence/**
-          if-no-files-found: ignore
-
-      - name: Upload desktop E2E artifacts
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: desktop-e2e-artifacts
-          path: apps/desktop/reports/e2e/**
-          if-no-files-found: ignore
 
       - name: Typecheck web
         run: pnpm --filter @nimiplatform/web typecheck
@@ -615,33 +487,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      # >>> nimi-release-gate-projection: governance-security-checks >>>
-      - name: gate.docs.examples-build
-        run: pnpm check:examples
-      - name: gate.docs.examples-run-comments
-        run: pnpm check:examples-run-comments
-      - name: gate.docs.first-run-doc-drift
-        run: pnpm check:first-run-doc-drift
-      - name: gate.docs.install-script-smoke
-        run: pnpm check:install-script-smoke
-      - name: gate.docs.markdown-lint
-        run: pnpm check:markdown
-      - name: gate.docs.no-absolute-user-paths
-        run: pnpm check:no-absolute-user-paths
-      - name: gate.docs.no-legacy-doc-contracts
-        run: pnpm check:no-legacy-doc-contracts
-      - name: gate.security.license-headers
+      - name: License file map check
         run: pnpm check:license-file-map
-      - name: gate.security.package-license-matrix
+
+      - name: Package license matrix check
         run: pnpm check:package-license-matrix
-      # <<< nimi-release-gate-projection: governance-security-checks <<<
 
   js-contract:
     needs:
       - changes
       - docs-contract
       - core-static
-      - ai-context-budget
       - sdk-quality
       - runtime-quality
       - desktop-web-quality
@@ -655,7 +511,6 @@ jobs:
           CHANGES_RESULT: ${{ needs.changes.result }}
           DOCS_CONTRACT_RESULT: ${{ needs.docs-contract.result }}
           CORE_STATIC_RESULT: ${{ needs.core-static.result }}
-          AI_CONTEXT_BUDGET_RESULT: ${{ needs.ai-context-budget.result }}
           SDK_QUALITY_RESULT: ${{ needs.sdk-quality.result }}
           RUNTIME_QUALITY_RESULT: ${{ needs.runtime-quality.result }}
           DESKTOP_WEB_QUALITY_RESULT: ${{ needs.desktop-web-quality.result }}
@@ -669,7 +524,6 @@ jobs:
             "changes:${CHANGES_RESULT}" \
             "docs-contract:${DOCS_CONTRACT_RESULT}" \
             "core-static:${CORE_STATIC_RESULT}" \
-            "ai-context-budget:${AI_CONTEXT_BUDGET_RESULT}" \
             "sdk-quality:${SDK_QUALITY_RESULT}" \
             "runtime-quality:${RUNTIME_QUALITY_RESULT}" \
             "desktop-web-quality:${DESKTOP_WEB_QUALITY_RESULT}" \

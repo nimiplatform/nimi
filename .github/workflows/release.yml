@@ -142,7 +142,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version-file: runtime/go.mod
+          go-version: '1.25.6'
           cache: false
 
       - name: Install dependencies
@@ -373,7 +373,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version-file: runtime/go.mod
+          go-version: '1.25.6'
           cache: false
 
       - name: Install Buf CLI
@@ -416,7 +416,7 @@ jobs:
             extra_args: "appimage"
           - platform: macos-latest
             extra_args: "app"
-          - platform: windows-latest
+          - platform: windows-2025-vs2026
             extra_args: "nsis"
     runs-on: ${{ matrix.platform }}
     env:
@@ -475,7 +475,7 @@ jobs:
         run: cargo install tauri-driver --locked
 
       - name: Probe or install Windows native driver
-        if: matrix.platform == 'windows-latest'
+        if: matrix.platform == 'windows-2025-vs2026'
         shell: pwsh
         run: |
           if (-not (Get-Command msedgedriver -ErrorAction SilentlyContinue)) {
@@ -502,14 +502,14 @@ jobs:
 
       - name: Run desktop E2E smoke (Windows)
         id: desktop_e2e_smoke_windows
-        if: matrix.platform == 'windows-latest'
+        if: matrix.platform == 'windows-2025-vs2026'
         env:
           NIMI_E2E_NATIVE_DRIVER: msedgedriver
         run: pnpm check:desktop-e2e-smoke
 
       - name: Run desktop E2E journeys (Windows)
         id: desktop_e2e_journeys_windows
-        if: matrix.platform == 'windows-latest'
+        if: matrix.platform == 'windows-2025-vs2026'
         env:
           NIMI_E2E_NATIVE_DRIVER: msedgedriver
         run: pnpm check:desktop-e2e-journeys
@@ -533,10 +533,10 @@ jobs:
           JOURNEYS_OUTCOME: ${{ steps.desktop_e2e_journeys_linux.outcome }}
 
       - name: Generate desktop E2E evidence (Windows)
-        if: always() && matrix.platform == 'windows-latest'
+        if: always() && matrix.platform == 'windows-2025-vs2026'
         run: |
           pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence -- \
-            --platform windows-latest \
+            --platform windows-2025-vs2026 \
             --workflow-ref release \
             --workflow-run-id "${GITHUB_RUN_ID}" \
             --commit "${GITHUB_SHA}" \
