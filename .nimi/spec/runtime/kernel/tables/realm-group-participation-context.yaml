@@ -5,6 +5,7 @@ realm_product_rules:
   - R-CHAT-009
   - R-CHAT-010
   - R-CHAT-011
+  - R-CHAT-016
 runtime_profile: realm_group_agent
 output_destination: REALM_GROUP_MESSAGE_CANDIDATE
 context_blocks:
