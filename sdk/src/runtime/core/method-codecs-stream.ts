@@ -12,6 +12,10 @@ import {
   SubscribeScenarioJobEventsRequest,
 } from '../generated/runtime/v1/ai';
 import {
+  LocalTransferProgressEvent,
+  WatchLocalTransfersRequest,
+} from '../generated/runtime/v1/local_runtime';
+import {
   MemoryEvent,
   SubscribeMemoryEventsRequest,
 } from '../generated/runtime/v1/memory';
@@ -49,6 +53,10 @@ export const runtimeStreamMethodCodecs: Partial<RuntimeStreamMethodCodecMap> = {
   [RuntimeMethodIds.aiRealtime.readRealtimeEvents]: {
     requestType: ReadRealtimeEventsRequest,
     eventType: RealtimeEvent,
+  },
+  [RuntimeMethodIds.local.watchLocalTransfers]: {
+    requestType: WatchLocalTransfersRequest,
+    eventType: LocalTransferProgressEvent,
   },
   [RuntimeMethodIds.memory.subscribeEvents]: {
     requestType: SubscribeMemoryEventsRequest,

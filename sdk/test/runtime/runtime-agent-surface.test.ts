@@ -46,12 +46,7 @@ import {
   createAgentEvent,
   collectRuntimeAgentEvents,
 } from './runtime-agent-surface-test-utils.js';
-import { ReasonCode } from '../../src/types/index.js';
 import type { RuntimeAgentConsumeEvent } from './runtime-agent-surface-test-utils.js';
-
-function isMethodGroupUnavailable(error: unknown): boolean {
-  return (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE;
-}
 
 test('runtime agent anchors project explicit agentId and conversationAnchorId through runtime truth', async () => {
   let capturedOpenRequest: OpenConversationAnchorRequest | null = null;
@@ -127,17 +122,6 @@ test('runtime agent anchors project explicit agentId and conversationAnchorId th
       },
     });
 
-    await assert.rejects(
-      () => runtime.agent.anchors.open({
-        agentId: 'agent-1',
-        metadata: { source: 'sdk-test' },
-      }),
-      isMethodGroupUnavailable,
-    );
-    assert.equal(capturedOpenRequest, null);
-    assert.equal(capturedSnapshotRequest, null);
-    return;
-
     const opened = await runtime.agent.anchors.open({
       agentId: 'agent-1',
       metadata: { source: 'sdk-test' },
@@ -160,8 +144,8 @@ test('runtime agent anchors project explicit agentId and conversationAnchorId th
     assert.equal(capturedSnapshotRequest?.context?.subjectUserId, 'subject-1');
     assert.equal(registerCalls, 1);
     assert.deepEqual(authorizeRequests.map((request) => request.scopes), [
-      ['runtime.agent.turn.write'],
-      ['runtime.agent.turn.read'],
+      ['runtime.agent.write'],
+      ['runtime.agent.read'],
     ]);
     assert.deepEqual(protectedTokens, [
       {
@@ -178,6 +162,133 @@ test('runtime agent anchors project explicit agentId and conversationAnchorId th
   } finally {
     clearNodeGrpcBridge();
   }
+});
+
+test('runtime agent turn request rejects malformed payloads before runtime RPC', async () => {
+  const runtime = new Runtime({
+    appId: APP_ID,
+    transport: {
+      type: 'node-grpc',
+      endpoint: '127.0.0.1:46371',
+    },
+    subjectContext: {
+      subjectUserId: 'subject-1',
+    },
+  });
+
+  await assert.rejects(
+    () => runtime.agent.turns.request({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+      messages: [],
+      executionBinding: { route: 'local', modelId: 'local/qwen2.5' },
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_INPUT_INVALID');
+      assert.match(String((error as Error).message), /non-empty message/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => runtime.agent.turns.request({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+      messages: [{ role: 'user', content: 'hello' }],
+      executionBinding: { route: 'invalid' as 'local', modelId: 'local/qwen2.5' },
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_INPUT_INVALID');
+      assert.match(String((error as Error).message), /route must be local or cloud/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => runtime.agent.turns.request({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+      messages: [{ role: 'user', content: 'hello' }],
+      executionBinding: { route: 'local', modelId: '' },
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_INPUT_INVALID');
+      assert.match(String((error as Error).message), /modelId is required/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => runtime.agent.anchors.open({
+      agentId: '',
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_INPUT_INVALID');
+      assert.match(String((error as Error).message), /requires agentId/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => runtime.agent.anchors.getSnapshot({
+      agentId: 'agent-1',
+      conversationAnchorId: '',
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_INPUT_INVALID');
+      assert.match(String((error as Error).message), /requires conversationAnchorId/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => runtime.agent.turns.subscribe({
+      agentId: '',
+      conversationAnchorId: 'anchor-1',
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_INPUT_INVALID');
+      assert.match(String((error as Error).message), /requires agentId/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => runtime.agent.turns.subscribe({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+      cursor: 'not-a-runtime-cursor',
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_INPUT_INVALID');
+      assert.match(String((error as Error).message), /cursor/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => runtime.agent.turns.interrupt({
+      agentId: 'agent-1',
+      conversationAnchorId: '',
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_INPUT_INVALID');
+      assert.match(String((error as Error).message), /requires conversationAnchorId/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    () => runtime.agent.turns.getSessionSnapshot({
+      agentId: 'agent-1',
+      conversationAnchorId: '',
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, 'AI_INPUT_INVALID');
+      assert.match(String((error as Error).message), /requires conversationAnchorId/);
+      return true;
+    },
+  );
 });
 
 test('runtime agent turns subscribe/request/interrupt hard-cut to anchor-native runtime.agent families', async () => {
@@ -601,22 +712,20 @@ test('runtime agent turns binding-only mode sends scoped binding and does not re
       turnId: 'turn-1',
       scopedBinding: binding,
     });
-    await assert.rejects(
-      () => runtime.agent.turns.getSessionSnapshot({
-        agentId: 'agent-1',
-        conversationAnchorId: 'anchor-1',
-        worldId: 'world-1',
-        requestId: 'snapshot-1',
-        scopedBinding: binding,
-      }),
-      isMethodGroupUnavailable,
-    );
+    await runtime.agent.turns.getSessionSnapshot({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+      worldId: 'world-1',
+      requestId: 'snapshot-1',
+      scopedBinding: binding,
+    });
     assert.equal(capturedAppSubscribeRequest?.subjectUserId, '');
     assert.equal(capturedAppSubscribeRequest?.scopedBinding?.bindingId, 'binding-1');
     assert.equal(capturedAppSubscribeRequest?.scopedBinding?.avatarInstanceId, 'avatar-instance-1');
     assert.equal(capturedAgentSubscribeRequest?.context?.subjectUserId, '');
     assert.equal(capturedAgentSubscribeRequest?.context?.scopedBinding?.bindingId, 'binding-1');
-    assert.equal(capturedSessionSnapshotRequest, null);
+    assert.equal(capturedSessionSnapshotRequest?.context?.subjectUserId, '');
+    assert.equal(capturedSessionSnapshotRequest?.context?.scopedBinding?.bindingId, 'binding-1');
     assert.equal(capturedMessages.length, 2);
     for (const message of capturedMessages) {
       assert.equal(message.subjectUserId, '');

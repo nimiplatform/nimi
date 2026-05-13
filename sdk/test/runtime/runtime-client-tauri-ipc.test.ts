@@ -36,7 +36,6 @@ import {
   RuntimeMethodIds,
   RuntimeStreamMethodIds,
 } from '../../src/runtime/method-ids';
-import { ReasonCode } from '../../src/types/index.js';
 import {
   APP_ID,
   runtimeConfig,
@@ -46,10 +45,6 @@ import {
   installTauriRuntime,
   unwrapTauriInvokePayload,
 } from './runtime-client-fixtures.js';
-
-function isMethodGroupUnavailable(error: unknown): boolean {
-  return (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE;
-}
 
 test('node-grpc and tauri-ipc cover runtime.local unary contract surface', async () => {
   const localMethodEntries = Object.entries(RuntimeMethodIds.local) as Array<
@@ -437,14 +432,16 @@ test('tauri-ipc runtime agent anchor unary request includes runtime app session'
       },
     });
 
-    await assert.rejects(
-      () => client.agent.openConversationAnchor({
-        agentId: 'agent-1',
-        subjectUserId: 'user-1',
-      }),
-      isMethodGroupUnavailable,
-    );
-    assert.equal(capturedPayload, null);
+    await client.agent.openConversationAnchor({
+      agentId: 'agent-1',
+      subjectUserId: 'user-1',
+    });
+    assert.ok(capturedPayload);
+    assert.equal(capturedPayload.methodId, RuntimeMethodIds.agent.openConversationAnchor);
+    assert.deepEqual(capturedPayload.appSession, {
+      sessionId: 'runtime-session-id',
+      sessionToken: 'runtime-session-token',
+    });
   } finally {
     restoreTauri();
   }
@@ -478,7 +475,7 @@ test('tauri-ipc Runtime agent anchor surface includes protected token and app se
                   appId: APP_ID,
                   subjectUserId: 'user-1',
                   externalPrincipalId: APP_ID,
-                  effectiveScopes: ['runtime.agent.turn.write'],
+                  effectiveScopes: ['runtime.agent.write'],
                   policyVersion: 'runtime-protected-access-v1',
                   issuedScopeCatalogVersion: 'sdk-v2',
                 })),
@@ -531,17 +528,22 @@ test('tauri-ipc Runtime agent anchor surface includes protected token and app se
       },
     });
 
-    await assert.rejects(
-      () => runtime.agent.anchors.open({
-        agentId: 'agent-1',
-      }),
-      isMethodGroupUnavailable,
-    );
+    await runtime.agent.anchors.open({
+      agentId: 'agent-1',
+    });
 
     const openPayload = capturedPayloads.find((captured) => captured.methodId === RuntimeMethodIds.agent.openConversationAnchor);
-    assert.equal(openPayload, undefined);
+    assert.ok(openPayload);
+    assert.deepEqual(openPayload.appSession, {
+      sessionId: 'runtime-session-id',
+      sessionToken: 'runtime-session-token',
+    });
+    assert.deepEqual(openPayload.protectedAccessToken, {
+      tokenId: 'runtime-agent-anchor-token',
+      secret: 'runtime-agent-anchor-secret',
+    });
     assert.deepEqual(authorizeRequests.map((request) => request.scopes), [
-      ['runtime.agent.turn.write'],
+      ['runtime.agent.write'],
     ]);
   } finally {
     restoreTauri();

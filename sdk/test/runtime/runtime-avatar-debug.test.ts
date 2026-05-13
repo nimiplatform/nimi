@@ -12,7 +12,6 @@ import {
   installNodeGrpcBridge,
   clearNodeGrpcBridge,
 } from './runtime-agent-surface-test-utils.js';
-import { ReasonCode } from '../../src/types/index.js';
 import {
   AvatarDebugProbeKind,
   AvatarDebugProbeStatus,
@@ -28,10 +27,6 @@ import {
   RequestAvatarDebugProbeRequest,
   RequestAvatarDebugProbeResponse,
 } from '../../src/runtime/generated/runtime/v1/agent_service.js';
-
-function isMethodGroupUnavailable(error: unknown): boolean {
-  return (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE;
-}
 
 function requestEnvelope() {
   return {
@@ -156,20 +151,6 @@ test('runtime avatar debug module uses typed Runtime RPCs and protected scopes',
         subjectUserId: 'subject-1',
       },
     });
-
-    await assert.rejects(
-      () => runtime.avatarDebug.requestProbe({
-        agentId: 'agent-1',
-        conversationAnchorId: 'anchor-1',
-        probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
-        requestedBy: AvatarDebugRequestedBy.DESKTOP_DEBUG_WORKBENCH,
-        probeId: 'probe-1',
-        replayRequested: true,
-      }),
-      isMethodGroupUnavailable,
-    );
-    assert.equal(capturedProbeRequests.length, 0);
-    return;
 
     const requested = await runtime.avatarDebug.requestProbe({
       agentId: 'agent-1',

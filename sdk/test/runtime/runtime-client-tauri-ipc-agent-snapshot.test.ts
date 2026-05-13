@@ -10,16 +10,11 @@ import {
 } from '../../src/runtime/generated/runtime/v1/grant';
 import { Runtime } from '../../src/runtime/runtime.js';
 import { RuntimeMethodIds } from '../../src/runtime/method-ids';
-import { ReasonCode } from '../../src/types/index.js';
 import {
   APP_ID,
   installTauriRuntime,
   unwrapTauriInvokePayload,
 } from './runtime-client-fixtures.js';
-
-function isMethodGroupUnavailable(error: unknown): boolean {
-  return (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE;
-}
 
 test('tauri-ipc Runtime agent session snapshot includes protected token and app session', async () => {
   const capturedPayloads: Record<string, unknown>[] = [];
@@ -47,8 +42,8 @@ test('tauri-ipc Runtime agent session snapshot includes protected token and app 
           return {
             responseBytesBase64: Buffer.from(AuthorizeExternalPrincipalResponse.toBinary(
               AuthorizeExternalPrincipalResponse.create({
-                tokenId: 'runtime-agent-turn-read-token',
-                secret: 'runtime-agent-turn-read-secret',
+                tokenId: 'runtime-agent-read-token',
+                secret: 'runtime-agent-read-secret',
                 appId: APP_ID,
                 subjectUserId: 'user-1',
                 externalPrincipalId: APP_ID,
@@ -93,17 +88,22 @@ test('tauri-ipc Runtime agent session snapshot includes protected token and app 
       },
     });
 
-    await assert.rejects(
-      () => runtime.agent.turns.getSessionSnapshot({
-        agentId: 'agent-1',
-        conversationAnchorId: 'anchor-1',
-      }),
-      isMethodGroupUnavailable,
-    );
+    await runtime.agent.turns.getSessionSnapshot({
+      agentId: 'agent-1',
+      conversationAnchorId: 'anchor-1',
+    });
 
     const snapshotPayload = capturedPayloads.find((captured) => captured.methodId === RuntimeMethodIds.agent.getPublicChatSessionSnapshot);
-    assert.deepEqual(authorizeRequests.map((request) => request.scopes), [['runtime.agent.turn.read']]);
-    assert.equal(snapshotPayload, undefined);
+    assert.deepEqual(authorizeRequests.map((request) => request.scopes), [['runtime.agent.read']]);
+    assert.ok(snapshotPayload);
+    assert.deepEqual(snapshotPayload.appSession, {
+      sessionId: 'runtime-session-id',
+      sessionToken: 'runtime-session-token',
+    });
+    assert.deepEqual(snapshotPayload.protectedAccessToken, {
+      tokenId: 'runtime-agent-read-token',
+      secret: 'runtime-agent-read-secret',
+    });
   } finally {
     restoreTauri();
   }

@@ -46,12 +46,7 @@ import {
   createAgentEvent,
   collectRuntimeAgentEvents,
 } from './runtime-agent-surface-test-utils.js';
-import { ReasonCode } from '../../src/types/index.js';
 import type { RuntimeAgentConsumeEvent } from './runtime-agent-surface-test-utils.js';
-
-function isMethodGroupUnavailable(error: unknown): boolean {
-  return (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE;
-}
 
 test('runtime agent turns subscribe parses Wave 2 hook projection events with origin and rejection detail', async () => {
   let capturedAgentSubscribeRequest: SubscribeAgentEventsRequest | null = null;
@@ -310,18 +305,6 @@ test('runtime agent session snapshot recovery stays anchor-native and consumer-o
         subjectUserId: 'subject-1',
       },
     });
-
-    await assert.rejects(
-      () => runtime.agent.turns.getSessionSnapshot({
-        agentId: 'agent-1',
-        conversationAnchorId: 'anchor-1',
-        requestId: 'req-1',
-      }),
-      isMethodGroupUnavailable,
-    );
-    assert.equal(capturedMessages.length, 0);
-    assert.equal(capturedSessionSnapshotRequest, null);
-    return;
 
     const snapshot = await runtime.agent.turns.getSessionSnapshot({
       agentId: 'agent-1',
