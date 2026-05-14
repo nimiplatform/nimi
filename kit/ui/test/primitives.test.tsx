@@ -151,6 +151,8 @@ test('surface, button, field, and status primitives render', () => {
   expect(hasClass(html, 'nimi-action--size-sm')).toBe(true);
   expect(hasClass(html, 'nimi-action--size-md')).toBe(true);
   expect(hasClass(html, 'nimi-action--icon')).toBe(true);
+  expect(hasClass(html, 'whitespace-nowrap')).toBe(true);
+  expect(hasClass(html, 'shrink-0')).toBe(true);
   expect(hasClass(html, 'nimi-action__leading')).toBe(true);
   expect(hasClass(html, 'nimi-action__trailing')).toBe(true);
   expect(hasClass(html, 'nimi-action__icon')).toBe(true);

@@ -43,12 +43,12 @@ exports[`Avatar shell visual snapshots > degraded surface — relaunch pending (
       class="avatar-degraded-surface__actions"
     >
       <button
-        class="nimi-action inline-flex items-center justify-center gap-2 border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--primary bg-[var(--nimi-action-primary-bg)] border-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px nimi-action--size-md min-h-[var(--nimi-sizing-action-md-height)] px-4 text-[length:var(--nimi-type-label-size)] avatar-degraded-surface__reload"
+        class="nimi-action inline-flex max-w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--primary bg-[var(--nimi-action-primary-bg)] border-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px nimi-action--size-md min-h-[var(--nimi-sizing-action-md-height)] px-4 text-[length:var(--nimi-type-label-size)] avatar-degraded-surface__reload"
         data-testid="avatar-degraded-reload"
         type="button"
       >
         <span
-          class="truncate"
+          class="inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap"
         >
           Reload shell
         </span>
@@ -126,12 +126,12 @@ exports[`Avatar shell visual snapshots > degraded surface — runtime unavailabl
       class="avatar-degraded-surface__actions"
     >
       <button
-        class="nimi-action inline-flex items-center justify-center gap-2 border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--primary bg-[var(--nimi-action-primary-bg)] border-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px nimi-action--size-md min-h-[var(--nimi-sizing-action-md-height)] px-4 text-[length:var(--nimi-type-label-size)] avatar-degraded-surface__reload"
+        class="nimi-action inline-flex max-w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--primary bg-[var(--nimi-action-primary-bg)] border-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px nimi-action--size-md min-h-[var(--nimi-sizing-action-md-height)] px-4 text-[length:var(--nimi-type-label-size)] avatar-degraded-surface__reload"
         data-testid="avatar-degraded-reload"
         type="button"
       >
         <span
-          class="truncate"
+          class="inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap"
         >
           Reload shell
         </span>
@@ -223,7 +223,7 @@ exports[`Avatar shell visual snapshots > ready surface (embodiment-stage + compa
         aria-controls="avatar-companion-settings-popover"
         aria-expanded="false"
         aria-label="Open companion settings"
-        class="nimi-action inline-flex items-center justify-center gap-2 border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--ghost bg-transparent border-transparent text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] hover:-translate-y-px nimi-action--size-sm min-h-[var(--nimi-sizing-action-sm-height)] text-[length:var(--nimi-type-body-sm-size)] nimi-action--icon aspect-square px-0 avatar-companion-surface__settings"
+        class="nimi-action inline-flex max-w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--ghost bg-transparent border-transparent text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] hover:-translate-y-px nimi-action--size-sm min-h-[var(--nimi-sizing-action-sm-height)] text-[length:var(--nimi-type-body-sm-size)] nimi-action--icon aspect-square px-0 avatar-companion-surface__settings"
         type="button"
       >
         <span
@@ -250,12 +250,12 @@ exports[`Avatar shell visual snapshots > ready surface (embodiment-stage + compa
       </label>
       <button
         aria-label="Send message"
-        class="nimi-action inline-flex items-center justify-center gap-2 border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--primary bg-[var(--nimi-action-primary-bg)] border-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px nimi-action--size-sm min-h-[var(--nimi-sizing-action-sm-height)] px-3 text-[length:var(--nimi-type-body-sm-size)] avatar-companion-surface__composer-send"
+        class="nimi-action inline-flex max-w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)] nimi-action--primary bg-[var(--nimi-action-primary-bg)] border-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:-translate-y-px nimi-action--size-sm min-h-[var(--nimi-sizing-action-sm-height)] px-3 text-[length:var(--nimi-type-body-sm-size)] avatar-companion-surface__composer-send"
         disabled=""
         type="submit"
       >
         <span
-          class="truncate"
+          class="inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap"
         >
           ➤
         </span>

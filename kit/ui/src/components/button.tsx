@@ -4,7 +4,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn, type ActionSize, type ActionTone } from '../design-tokens.js';
 
 export const buttonVariants = cva(
-  'nimi-action inline-flex items-center justify-center gap-2 border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
+  'nimi-action inline-flex max-w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap border font-semibold tracking-[var(--nimi-type-label-letter-spacing)] rounded-[var(--nimi-radius-action)] transition-all duration-[var(--nimi-motion-fast)] cursor-pointer disabled:cursor-not-allowed disabled:opacity-[var(--nimi-opacity-disabled)]',
   {
     variants: {
       tone: {
@@ -70,7 +70,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...rest}
     >
       {leadingIcon ? <span className="nimi-action__leading inline-flex shrink-0 items-center justify-center">{leadingIcon}</span> : null}
-      <span className="truncate">{children}</span>
+      <span className="inline-flex min-w-0 items-center justify-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">{children}</span>
       {trailingIcon ? <span className="nimi-action__trailing inline-flex shrink-0 items-center justify-center">{trailingIcon}</span> : null}
     </Comp>
   );
