@@ -2,11 +2,11 @@ import { E2E_IDS } from '../helpers/selectors.mjs';
 import { assertScenario, clickByTestId, waitForTestId } from '../helpers/app.mjs';
 
 describe('boot.anonymous.login-screen', () => {
-  it('boots into anonymous runtime shell and supports login roundtrip', async () => {
+  it('boots into anonymous chat shell and supports login roundtrip', async () => {
     assertScenario('boot.anonymous.login-screen');
     await waitForTestId(E2E_IDS.mainShell);
-    await waitForTestId(E2E_IDS.panel('runtime'));
-    await waitForTestId(E2E_IDS.runtimePageRoot('overview'));
+    await waitForTestId(E2E_IDS.panel('chat'));
+    await waitForTestId(E2E_IDS.chatPage);
     await waitForTestId(E2E_IDS.topbarLoginButton);
 
     if (await $(`[data-testid="${E2E_IDS.shellSidebarRail}"]`).isExisting()) {
@@ -26,6 +26,7 @@ describe('boot.anonymous.login-screen', () => {
     }
 
     await clickByTestId(E2E_IDS.loginBackButton);
-    await waitForTestId(E2E_IDS.panel('runtime'));
+    await waitForTestId(E2E_IDS.panel('chat'));
+    await waitForTestId(E2E_IDS.chatPage);
   });
 });
